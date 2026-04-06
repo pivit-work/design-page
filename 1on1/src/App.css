@@ -410,8 +410,8 @@
 }
 
 .member-card:hover {
-  background: #f3f4f6;
-  box-shadow: 0px 20px 24px -4px rgba(10, 13, 18, 0.08), 0px 8px 8px -4px rgba(10, 13, 18, 0.03), 0px 3px 3px -1.5px rgba(10, 13, 18, 0.04);
+  box-shadow: 0px 32px 64px -12px rgba(10, 13, 18, 0.14), 0px 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+  cursor: pointer;
 }
 
 .member-card-active {
@@ -424,7 +424,7 @@
     box-shadow: 0px 4px 0px 0px rgba(8, 121, 196, 0);
   }
   50% {
-    box-shadow: 0px 4px 100px 0px rgba(8, 121, 196, 0.1);
+    box-shadow: 0px 4px 100px 0px rgba(8, 121, 196, 0.28);
   }
 }
 
