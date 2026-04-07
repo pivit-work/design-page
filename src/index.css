@@ -21,8 +21,8 @@
   --text-tertiary: var(--colors-text-textTertiary);
   --text-quaternary: var(--colors-text-textQuaternary);
   --text-placeholder: var(--colors-text-textPlaceholder);
-  --text-brand-tertiary: var(--colors-text-textBrandTertiary-600);
-  --text-brand-secondary: var(--colors-text-textBrandSecondary-700);
+  --text-brand-tertiary: var(--colors-text-textBrandTertiary);
+  --text-brand-secondary: var(--colors-text-textBrandSecondary);
   --text-white: var(--colors-text-textWhite);
 
   /* Border Colors — linked to design system tokens */
@@ -32,7 +32,7 @@
   /* Additional Text Colors (1on1) */
   --text-disabled: var(--colors-text-textDisabled);
   --text-subtle: #858b95;
-  --text-error-primary: var(--colors-text-textErrorPrimary-600);
+  --text-error-primary: var(--colors-text-textErrorPrimary);
 
   /* Font Sizes */
   --font-size-display-sm: 30px;
