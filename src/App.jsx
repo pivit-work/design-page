@@ -4,12 +4,14 @@ import OneOnOneContent from './OneOnOnePage';
 import './App.css';
 
 /* ── Inline SVG Icon ── */
+const BASE = import.meta.env.BASE_URL;
 const svgCache = {};
 function Icon({ src, size = 16, color = 'currentColor', className = '' }) {
   const [svg, setSvg] = useState(svgCache[src] || '');
   useEffect(() => {
     if (svgCache[src]) { setSvg(svgCache[src]); return; }
-    fetch(src).then(r => r.text()).then(t => { svgCache[src] = t; setSvg(t); });
+    const url = src.startsWith('/') ? BASE + src.slice(1) : src;
+    fetch(url).then(r => r.text()).then(t => { svgCache[src] = t; setSvg(t); });
   }, [src]);
   const colored = svg
     .replace(/fill="(?!none)[^"]*"/g, `fill="${color}"`)
@@ -59,10 +61,10 @@ const MENU = [
 
 /* ── Org Data ── */
 const STAT_ICONS = {
-  okr: '/badge-okr.png',
-  hc: '/badge-hc.png',
-  oneOnOne: '/badge-1on1.png',
-  workHours: '/badge-hours.png',
+  okr: `${BASE}badge-okr.png`,
+  hc: `${BASE}badge-hc.png`,
+  oneOnOne: `${BASE}badge-1on1.png`,
+  workHours: `${BASE}badge-hours.png`,
 };
 
 const DEFAULT_PROFILE = {
@@ -161,7 +163,7 @@ function Sidebar({ currentPage, onNavigate }) {
     <aside className="sidebar">
       <div className="sidebar-inner">
         <div className="sidebar-top">
-          <div className="logo-wrap"><img src="/logo.svg" alt="Pivit" /></div>
+          <div className="logo-wrap"><img src={`${BASE}logo.svg`} alt="Pivit" /></div>
           <nav className="menu-list">
             {MENU.map(m => {
               const isActive = m.page === currentPage;
@@ -456,8 +458,8 @@ function ProfileModal({ member, onClose }) {
                     texLayer.texture = tex;
                   };
                 };
-                applyTex('profileImage', '/man.png');
-                applyTex('profileImage-2', '/man.png');
+                applyTex('profileImage', `${BASE}man.png`);
+                applyTex('profileImage-2', `${BASE}man.png`);
               }}
             />
           </div>
@@ -556,7 +558,7 @@ function ProfileModal({ member, onClose }) {
         {/* Footer */}
         <div className="modal-footer">
           <span className="modal-footer-text">Get Communication with</span>
-          <img src="/logo.svg" alt="Pivit" className="modal-footer-logo" />
+          <img src={`${BASE}logo.svg`} alt="Pivit" className="modal-footer-logo" />
         </div>
       </div>
     </div>
