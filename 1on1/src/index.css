@@ -1,3 +1,6 @@
+@import '../../../design-system/build/css/tokens.css';
+@import '../../../design-system/build/css/tokens-dark.css';
+
 :root {
   /* Design System Tokens */
   --font-family-body: 'Pretendard', sans-serif;
@@ -47,7 +50,10 @@
   --text-primary: #596069;
   --text-secondary: #8b929c;
   --text-tertiary: #b1b6be;
+  --text-quaternary: #a3aab0;
   --text-placeholder: #8b929c;
+  --text-disabled: #9398a1;
+  --text-subtle: #858b95;
   --text-error-primary: #d92d20;
   --text-brand-tertiary: #21a67a;
   --text-brand-secondary: #10774d;
@@ -59,6 +65,7 @@
 
   /* Component Colors */
   --utility-brand-50: #f1fffa;
+  --utility-brand-200: #b3fade;
   --utility-blue-light-50: #f0f9ff;
   --utility-blue-light-100: #e0f2fe;
   --utility-blue-light-400: #36bffa;
@@ -71,6 +78,7 @@
   --utility-green-600: #099250;
   --utility-error-50: #fef3f2;
   --utility-error-100: #fee4e2;
+  --utility-error-500: #f04438;
   --utility-gray-50: #f9fafb;
   --utility-gray-200: #e6e8ea;
   --utility-gray-700: #596069;

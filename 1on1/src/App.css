@@ -24,7 +24,7 @@
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border-radius: 24px;
-  background: rgba(243, 244, 246, 0.5);
+  background: var(--bg-primary-alt);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -67,7 +67,7 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #8b929c;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
   letter-spacing: -0.04em;
@@ -78,8 +78,8 @@
 }
 
 .menu-item.active {
-  background: #e6e8ea;
-  color: #596069;
+  background: var(--bg-active);
+  color: var(--text-primary);
 }
 
 .menu-icon {
@@ -106,7 +106,7 @@
   justify-content: space-between;
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
-  background: rgba(243, 244, 246, 0.5);
+  background: var(--bg-primary-alt);
   z-index: 90;
   box-sizing: border-box;
   gap: 20px;
@@ -121,7 +121,7 @@
 .nav-link {
   font-size: 14px;
   font-weight: 600;
-  color: #a3aab0;
+  color: var(--text-quaternary);
   cursor: pointer;
   letter-spacing: -0.04em;
   position: relative;
@@ -141,7 +141,7 @@
   right: -8px;
   width: 6px;
   height: 6px;
-  background: #f04438;
+  background: var(--utility-error-500);
   border-radius: 50%;
 }
 
@@ -236,7 +236,7 @@
   font-size: 30px;
   font-weight: 700;
   line-height: 38px;
-  color: #596069;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -246,30 +246,30 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #8b929c;
+  color: var(--text-secondary);
   line-height: 20px;
   letter-spacing: -0.04em;
 }
 
 .page-subtitle .dot {
-  color: #b1b6be;
+  color: var(--text-tertiary);
 }
 
 .brand-text {
   font-weight: 600;
-  color: #10774d;
+  color: var(--text-brand-secondary);
 }
 
 .btn-add {
   border-radius: 10px;
-  background: #2dbd82;
+  background: var(--bg-brand-solid);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px 12px;
   gap: 6px;
-  color: white;
+  color: var(--text-white);
   border: none;
   font-size: 16px;
   font-family: var(--font-family-body);
@@ -313,7 +313,7 @@
   gap: 6px;
   font-size: var(--font-size-text-sm);
   font-weight: 600;
-  color: #858b95;
+  color: var(--text-subtle);
 }
 
 .stat-icon {
@@ -326,7 +326,7 @@
 .stat-dot {
   width: 6px;
   height: 6px;
-  background: #2e90fa;
+  background: var(--utility-blue-500);
   border-radius: 50%;
 }
 
@@ -397,7 +397,7 @@
 /* ── Member Card ── */
 .member-card {
   position: relative;
-  background: #fff;
+  background: var(--bg-quaternary);
   border-radius: 16px;
   padding: 32px 24px;
   display: flex;
@@ -448,11 +448,11 @@
 }
 
 .badge-meeting {
-  color: #2e90fa;
+  color: var(--utility-blue-500);
 }
 
 .badge-done {
-  color: #9398a1;
+  color: var(--text-disabled);
 }
 
 .badge-hc {
@@ -460,7 +460,7 @@
 }
 
 .badge-unbooked {
-  color: #9398a1;
+  color: var(--text-disabled);
 }
 
 .badge-icon {
@@ -473,7 +473,7 @@
 .badge-dot {
   width: 6px;
   height: 6px;
-  background: #2e90fa;
+  background: var(--utility-blue-500);
   border-radius: 50%;
 }
 
@@ -489,7 +489,7 @@
   height: 51px;
   border-radius: 50%;
   object-fit: cover;
-  border: 0.78px solid rgba(0, 0, 0, 0.08);
+  border: 0.78px solid var(--border-secondary-alt);
 }
 
 .card-name {
@@ -615,7 +615,7 @@
   display: flex;
   justify-content: space-between;
   padding-top: 8px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--bg-primary);
 }
 
 .date-item {

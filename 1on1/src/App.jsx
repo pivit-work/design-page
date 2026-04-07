@@ -119,21 +119,21 @@ const MENU_ITEMS = [
 ];
 
 const STATS = [
-  { label: '전체 팀원 수', value: 5, bg: 'white' },
-  { label: '준비 중', value: 2, bg: '#f1fffa', color: '#21a67a', icon: ASSETS.trendUp },
-  { label: '미팅 중', value: 1, bg: '#f0f9ff', color: '#2e90fa', dot: true },
-  { label: '완료', value: 1, bg: 'white' },
-  { label: 'HC 주의', value: 0, bg: '#fef3f2', color: '#d92d20', icon: ASSETS.alertTriangle },
-  { label: '미예약', value: 1, bg: 'white', border: true },
+  { label: '전체 팀원 수', value: 5, bg: 'var(--bg-quaternary)' },
+  { label: '준비 중', value: 2, bg: 'radial-gradient(133.34% 93.36% at -0.18% 108.82%, var(--utility-brand-200), var(--utility-brand-50))', color: 'var(--text-brand-tertiary)', icon: ASSETS.trendUp },
+  { label: '미팅 중', value: 1, bg: 'var(--utility-blue-light-50)', color: 'var(--utility-blue-500)', dot: true },
+  { label: '완료', value: 1, bg: 'var(--bg-quaternary)' },
+  { label: 'HC 주의', value: 0, bg: 'var(--bg-error-primary)', color: 'var(--text-error-primary)', icon: ASSETS.alertTriangle },
+  { label: '미예약', value: 1, bg: 'var(--bg-quaternary)', border: true },
 ];
 
 const TABS = ['전체', '준비 중', '미팅 중', '완료', 'HC주의'];
 
 const PROGRESS_COLORS = {
-  green: { fill: '#d3f8df', text: '#099250' },
-  blue: { fill: '#d1e9ff', text: '#2e90fa' },
-  red: { fill: '#fee4e2', text: '#d92d20' },
-  blueLight: { fill: '#e0f2fe', text: '#0086c9' },
+  green: { fill: 'var(--utility-green-100)', text: 'var(--utility-green-600)' },
+  blue: { fill: 'var(--utility-blue-100)', text: 'var(--utility-blue-500)' },
+  red: { fill: 'var(--utility-error-100)', text: 'var(--text-error-primary)' },
+  blueLight: { fill: 'var(--utility-blue-light-100)', text: 'var(--utility-blue-light-600)' },
 };
 
 /* ── Components ── */
@@ -148,7 +148,7 @@ function Sidebar() {
           <nav className="menu-list">
             {MENU_ITEMS.map((item) => (
               <div key={item.label} className={`menu-item ${item.active ? 'active' : ''}`}>
-                <Icon src={item.icon} size={16} color={item.active ? '#596069' : '#8b929c'} />
+                <Icon src={item.icon} size={16} color={item.active ? 'var(--text-primary)' : 'var(--text-secondary)'} />
                 <span>{item.label}</span>
               </div>
             ))}
@@ -156,11 +156,11 @@ function Sidebar() {
         </div>
         <div className="sidebar-bottom">
           <div className="menu-item">
-            <Icon src={ASSETS.send} size={16} color="#8b929c" />
+            <Icon src={ASSETS.send} size={16} color="var(--text-secondary)" />
             <span>의견보내기</span>
           </div>
           <div className="menu-item">
-            <Icon src={ASSETS.settings} size={16} color="#8b929c" />
+            <Icon src={ASSETS.settings} size={16} color="var(--text-secondary)" />
             <span>설정</span>
           </div>
         </div>
@@ -178,7 +178,7 @@ function TopNav() {
         <span className="nav-link has-dot">알림<span className="notification-dot" /></span>
       </div>
       <div className="search-bar">
-        <Icon src={ASSETS.search} size={20} color="#8b929c" />
+        <Icon src={ASSETS.search} size={20} color="var(--text-secondary)" />
         <div className="search-kbd"><kbd>/</kbd></div>
         <span className="search-placeholder">를 눌러 검색하세요</span>
       </div>
@@ -189,12 +189,12 @@ function TopNav() {
 function StatCard({ stat }) {
   return (
     <div className="stat-card" style={{ background: stat.bg, border: stat.border ? '1px solid var(--border-primary)' : 'none' }}>
-      <div className="stat-label" style={{ color: stat.color || '#858b95' }}>
+      <div className="stat-label" style={{ color: stat.color || 'var(--text-subtle)' }}>
         {stat.icon && <Icon src={stat.icon} size={16} color={stat.color} />}
         {stat.dot && <span className="stat-dot" />}
         <span>{stat.label}</span>
       </div>
-      <div className="stat-value" style={{ color: stat.color || '#8b929c' }}>{stat.value}</div>
+      <div className="stat-value" style={{ color: stat.color || 'var(--text-secondary)' }}>{stat.value}</div>
     </div>
   );
 }
@@ -212,7 +212,7 @@ function Tag({ tag }) {
   const positive = tag.type === 'positive';
   return (
     <span className={`tag ${positive ? 'tag-positive' : 'tag-warning'}`}>
-      {tag.icon && <Icon src={tag.icon} size={12} color={positive ? '#16b364' : '#d92d20'} />}
+      {tag.icon && <Icon src={tag.icon} size={12} color={positive ? 'var(--utility-green-500)' : 'var(--text-error-primary)'} />}
       <span>{tag.text}</span>
     </span>
   );
@@ -221,7 +221,7 @@ function Tag({ tag }) {
 function StatusBadge({ status, label }) {
   const cls = { preparing: 'badge-preparing', meeting: 'badge-meeting', done: 'badge-done', hcWarning: 'badge-hc', unbooked: 'badge-unbooked' };
   const icons = { preparing: ASSETS.trendUp, done: ASSETS.check, hcWarning: ASSETS.alertTriangle };
-  const colors = { preparing: '#21a67a', done: '#9398a1', meeting: '#2e90fa', hcWarning: '#d92d20', unbooked: '#9398a1' };
+  const colors = { preparing: 'var(--text-brand-tertiary)', done: 'var(--text-disabled)', meeting: 'var(--utility-blue-500)', hcWarning: 'var(--text-error-primary)', unbooked: 'var(--text-disabled)' };
   return (
     <div className={`status-badge ${cls[status] || ''}`}>
       {icons[status] && <Icon src={icons[status]} size={12} color={colors[status]} />}
@@ -301,7 +301,7 @@ export default function App() {
                 <span className="brand-text">개발팀 5명</span>
               </div>
             </div>
-            <button className="btn-add"><Icon src={ASSETS.plus} size={20} color="white" /><span className="btn-text">1on1 일정 추가</span></button>
+            <button className="btn-add"><Icon src={ASSETS.plus} size={20} color="var(--text-white)" /><span className="btn-text">1on1 일정 추가</span></button>
           </div>
           <div className="stats-row">
             {STATS.map((s) => <StatCard key={s.label} stat={s} />)}
