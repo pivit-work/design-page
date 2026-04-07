@@ -67,6 +67,14 @@ const STAT_ICONS = {
   workHours: `${BASE}badge-hours.png`,
 };
 
+const MEMBER_STATUSES = {
+  working: { label: '근무중', badgeBg: '#2dbd82', borderColor: '#2dbd82', dotColor: '#17b26a' },
+  leave: { label: '휴직', badgeBg: '#687079', borderColor: '#b1b6be', dotColor: '#d2d6db' },
+  resigned: { label: '사퇴', badgeBg: '#f04438', borderColor: '#f04438', dotColor: '#d92d20' },
+  standby: { label: '대기', badgeBg: '#2e90fa', borderColor: '#2e90fa', dotColor: '#1570ef' },
+};
+const STATUS_KEYS = Object.keys(MEMBER_STATUSES);
+
 const DEFAULT_PROFILE = {
   title: '사원',
   dept: '경영지원본부',
@@ -99,50 +107,50 @@ const ORG = {
     {
       id: 'mgmt', name: '경영지원본부', type: '본부', count: '직속 2명', level: 'division',
       members: [
-        { name: '정은우', avatar: AVATARS.online1, online: true, profile: DEFAULT_PROFILE },
-        { name: '박우진', avatar: AVATARS.default, online: false, profile: DEFAULT_PROFILE },
+        { name: '정은우', avatar: AVATARS.online1, status: 'working', profile: DEFAULT_PROFILE },
+        { name: '박우진', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
       ],
       children: [
         { id: 'people', name: 'People팀', type: '팀', level: 'team', members: [
-          { name: '신예은', avatar: AVATARS.online2, online: true, profile: DEFAULT_PROFILE },
-          { name: '이서현', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-          { name: '김서윤', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+          { name: '신예은', avatar: AVATARS.online2, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '이서현', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '김서윤', avatar: AVATARS.default, status: 'resigned', profile: DEFAULT_PROFILE },
         ]},
         { id: 'finance', name: '재무회계팀', type: '팀', level: 'team', members: [
-          { name: '신예린', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-          { name: '오예린', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-          { name: '박은서', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+          { name: '신예린', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '오예린', avatar: AVATARS.default, status: 'standby', profile: DEFAULT_PROFILE },
+          { name: '박은서', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
         ]},
         { id: 'bizdev', name: '비즈니스개발팀', type: '팀', level: 'team', members: [
-          { name: '오민준', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-          { name: '이정민', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-          { name: '이서진', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+          { name: '오민준', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '이정민', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
+          { name: '이서진', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
         ]},
       ],
     },
     {
       id: 'product', name: '프로덕트 본부', type: '본부', count: '직속 1명', level: 'division',
       members: [
-        { name: 'Chris', avatar: AVATARS.online1, online: true, selected: true, profile: CHRIS_PROFILE },
+        { name: 'Chris', avatar: AVATARS.online1, status: 'working', selected: true, profile: CHRIS_PROFILE },
       ],
       children: [
         { id: 'proddev', name: '프로덕트개발팀', type: '팀', level: 'team', members: [
-          { name: '김우진', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+          { name: '김우진', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
         ], children: [
           { id: 'uiux', name: 'UIUX 디자인', type: '파트', level: 'part', members: [
-            { name: '박은지', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '윤지안', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '이서현', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+            { name: '박은지', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '윤지안', avatar: AVATARS.default, status: 'standby', profile: DEFAULT_PROFILE },
+            { name: '이서현', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
           ]},
           { id: 'frontend', name: '프론트엔드', type: '파트', level: 'part', members: [
-            { name: '박서아', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '윤다희', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '신서윤', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+            { name: '박서아', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '윤다희', avatar: AVATARS.default, status: 'resigned', profile: DEFAULT_PROFILE },
+            { name: '신서윤', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
           ]},
           { id: 'backend', name: '백엔드개발', type: '파트', level: 'part', members: [
-            { name: '최하은', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '박서현', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
-            { name: '신혜린', avatar: AVATARS.default, online: true, profile: DEFAULT_PROFILE },
+            { name: '최하은', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '박서현', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
+            { name: '신혜린', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
           ]},
         ]},
       ],
@@ -308,19 +316,24 @@ function MemberCard({ member, parentId, index }) {
     }
   };
 
+  const status = MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
+
   return (
     <div
       className={`member-node ${isDragging ? 'member-dragging' : ''}`}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
-      style={style}
+      style={{
+        ...style,
+        '--member-border-color': status.borderColor,
+      }}
     >
       <div className="avatar-wrap">
         <img src={member.avatar} alt="" className="avatar-sm" />
-        <span className={`online-dot ${member.online ? 'online' : 'offline'}`} />
+        <span className="online-dot" style={{ background: status.dotColor }} />
       </div>
       <span className="member-name">{member.name}</span>
-      <span className="status-badge-working">근무중</span>
+      <span className="status-badge-member" style={{ background: status.badgeBg }}>{status.label}</span>
     </div>
   );
 }
@@ -473,7 +486,7 @@ function ProfileModal({ member, onClose }) {
           <div className="modal-name">{member.name}</div>
           <div className="modal-title">{profile.title} · {profile.dept}</div>
           <div className="modal-bio">{profile.bio}</div>
-          <span className="modal-status-badge">근무중</span>
+          <span className="modal-status-badge">{(MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working).label}</span>
         </div>
 
         {/* Stats Row */}
@@ -509,16 +522,21 @@ function ProfileModal({ member, onClose }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="modal-actions">
-          <button className="modal-btn-feedback">
-            <Icon src="/icons-solid/send-03.svg" size={20} color="white" />
-            피드백주기
-          </button>
-          <button className="modal-btn-meeting">
-            <Icon src="/icons-solid/calendar-heart-02.svg" size={20} color="#21a67a" />
-            미팅잡기
-          </button>
-        </div>
+        {(() => {
+          const isDisabled = member.status === 'resigned' || member.status === 'leave';
+          return (
+            <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
+              <button className="modal-btn-feedback" disabled={isDisabled}>
+                <Icon src="/icons-solid/send-03.svg" size={20} color="white" />
+                피드백주기
+              </button>
+              <button className="modal-btn-meeting" disabled={isDisabled}>
+                <Icon src="/icons-solid/calendar-heart-02.svg" size={20} color="#21a67a" />
+                미팅잡기
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Info Sections */}
         <div className="modal-info-sections">
@@ -661,7 +679,7 @@ export default function App() {
     if (!el) return;
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
+  }, [handleWheel, currentPage]);
 
   const onMouseDown = (e) => {
     if (e.target.closest('.zoom-controls, .member-node, .dept-card')) return;
