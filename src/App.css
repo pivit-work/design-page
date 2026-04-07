@@ -595,11 +595,13 @@
 }
 
 .stat-value {
-  font-family: var(--font-family-body);
+  font-family: 'Pretendard Variable', var(--font-family-body);
   font-size: 50px;
-  font-weight: 300;
+  font-weight: 310;
+  font-variation-settings: 'wght' 310;
   line-height: 1;
   letter-spacing: -2px;
+  -webkit-font-smoothing: auto;
 }
 
 /* ── Tabs ── */
@@ -607,6 +609,18 @@
   display: flex;
   gap: 4px;
   padding: 0 40px 16px 0;
+  position: relative;
+}
+
+.tab-slider {
+  position: absolute;
+  top: 50%;
+  transform: translateY(calc(-50% - 8px));
+  height: 36px;
+  background: var(--bg-active);
+  border-radius: var(--radius-4xl);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
 }
 
 .tab-btn {
@@ -622,15 +636,12 @@
   font-weight: 700;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: all 0.15s;
-}
-
-.tab-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s;
 }
 
 .tab-btn.tab-active {
-  background: var(--bg-active);
   color: var(--text-secondary);
 }
 
@@ -653,7 +664,7 @@
 /* ── Cards Grid ── */
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(376px, 1fr));
   gap: 10px;
   padding-right: 40px;
 }
@@ -668,6 +679,7 @@
   flex-direction: column;
   gap: 32px;
   min-width: 376px;
+  max-width: 600px;
   overflow: hidden;
   isolation: isolate;
   transition: box-shadow 0.2s, background 0.2s;

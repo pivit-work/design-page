@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 /* ── 1on1 Asset URLs ── */
 const ASSETS = {
@@ -78,7 +78,7 @@ const STATS = [
   { label: '미팅 중', value: 1, bg: 'var(--utility-blue-light-50)', color: 'var(--utility-blue-500)', dot: true },
   { label: '완료', value: 1, bg: 'var(--bg-quaternary)' },
   { label: 'HC 주의', value: 0, bg: 'var(--bg-error-primary)', color: 'var(--text-error-primary)', icon: ASSETS.alertTriangle },
-  { label: '미예약', value: 1, bg: 'var(--bg-quaternary)', border: true },
+  { label: '미예약', value: 1, bg: 'var(--bg-primary)', border: true },
 ];
 
 const TABS = ['전체', '준비 중', '미팅 중', '완료', 'HC주의'];
@@ -190,6 +190,20 @@ function MemberCard({ member, Icon }) {
 /* ── Exported Content Component ── */
 export default function OneOnOneContent({ Icon }) {
   const [activeTab, setActiveTab] = useState('전체');
+  const tabsRef = useRef(null);
+  const [slider, setSlider] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (!tabsRef.current) return;
+      const activeEl = tabsRef.current.querySelector('.tab-btn.tab-active');
+      if (activeEl) {
+        const rowRect = tabsRef.current.getBoundingClientRect();
+        const btnRect = activeEl.getBoundingClientRect();
+        setSlider({ left: btnRect.left - rowRect.left, width: btnRect.width });
+      }
+    });
+  }, [activeTab]);
 
   return (
     <div className="content-area">
@@ -208,11 +222,11 @@ export default function OneOnOneContent({ Icon }) {
         <div className="stats-row">
           {STATS.map((s) => <StatCard key={s.label} stat={s} Icon={Icon} />)}
         </div>
-        <div className="tabs-row">
+        <div className="tabs-row" ref={tabsRef}>
+          <div className="tab-slider" style={{ left: slider.left, width: slider.width }} />
           {TABS.map((tab) => (
             <button key={tab} className={`tab-btn ${activeTab === tab ? 'tab-active' : ''}`} onClick={() => setActiveTab(tab)}>
               <span>{tab}</span>
-              {tab === '전체' && activeTab === '전체' && <span className="tab-badge">5</span>}
             </button>
           ))}
         </div>

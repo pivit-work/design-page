@@ -614,6 +614,8 @@ export default function App() {
 
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  const translateRef = useRef({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const translateStart = useRef({ x: 0, y: 0 });
@@ -621,10 +623,28 @@ export default function App() {
   const canvasInnerRef = useRef(null);
 
   const handleWheel = useCallback((e) => {
-    if (e.metaKey || e.ctrlKey) {
-      e.preventDefault();
-      setScale(prev => Math.min(Math.max(0.2, prev - e.deltaY * 0.001), 3));
-    }
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const prevScale = scaleRef.current;
+    const nextScale = Math.min(Math.max(0.2, prevScale - e.deltaY * 0.002), 3);
+    const ratio = nextScale / prevScale;
+
+    const prevT = translateRef.current;
+    const nextT = {
+      x: mouseX - ratio * (mouseX - prevT.x),
+      y: mouseY - ratio * (mouseY - prevT.y),
+    };
+
+    scaleRef.current = nextScale;
+    translateRef.current = nextT;
+    setScale(nextScale);
+    setTranslate(nextT);
   }, []);
 
   useEffect(() => {
@@ -642,13 +662,15 @@ export default function App() {
   };
   const onMouseMove = (e) => {
     if (!isDragging) return;
-    setTranslate({
+    const t = {
       x: translateStart.current.x + (e.clientX - dragStart.current.x),
       y: translateStart.current.y + (e.clientY - dragStart.current.y),
-    });
+    };
+    translateRef.current = t;
+    setTranslate(t);
   };
   const onMouseUp = () => setIsDragging(false);
-  const resetView = () => { setScale(1); setTranslate({ x: 0, y: 0 }); resetPositions(); };
+  const resetView = () => { setScale(1); setTranslate({ x: 0, y: 0 }); scaleRef.current = 1; translateRef.current = { x: 0, y: 0 }; resetPositions(); };
 
   return (
     <PositionsContext.Provider value={{ positions, updatePosition }}>
@@ -689,7 +711,7 @@ export default function App() {
 
             <div className="canvas-inner" ref={canvasInnerRef} style={{
               transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-              transformOrigin: 'center top',
+              transformOrigin: '0 0',
               position: 'relative',
             }}>
               <BezierConnectors containerRef={canvasInnerRef} scale={scale} />
@@ -697,10 +719,10 @@ export default function App() {
             </div>
 
             <div className="zoom-controls">
-              <button className="zoom-btn" onClick={() => setScale(s => Math.min(s + 0.1, 3))}>
+              <button className="zoom-btn" onClick={() => { const s = Math.min(scaleRef.current + 0.1, 3); scaleRef.current = s; setScale(s); }}>
                 <Icon src={ICONS.plus} size={20} color="var(--text-primary)" />
               </button>
-              <button className="zoom-btn" onClick={() => setScale(s => Math.max(s - 0.1, 0.2))}>
+              <button className="zoom-btn" onClick={() => { const s = Math.max(scaleRef.current - 0.1, 0.2); scaleRef.current = s; setScale(s); }}>
                 <Icon src={ICONS.minus} size={20} color="var(--text-primary)" />
               </button>
               <button className="zoom-btn" onClick={resetView}>
