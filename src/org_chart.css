@@ -14,7 +14,7 @@
 .sidebar-bottom { display: flex; flex-direction: column; border-radius: 17px; }
 
 /* ── Top Nav ── */
-.top-nav { position: fixed; top: 0; left: 240px; right: 0; padding: 16px 40px 12px 12px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(40px); background: var(--bg-primary-alt); z-index: 90; gap: 20px; }
+.top-nav { position: fixed; top: 0; left: 240px; right: 0; padding: 16px 40px 12px 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; letter-spacing: -0.04em; position: relative; }
 .nav-link:hover { color: var(--text-secondary); }
