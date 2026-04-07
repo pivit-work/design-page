@@ -1,0 +1,108 @@
+@import './tokens.css';
+@import './tokens-dark.css';
+
+:root {
+  --font-family-body: 'Pretendard', sans-serif;
+  --font-family-display: 'Pretendard', sans-serif;
+
+  /* Background Colors — linked to design system tokens */
+  --bg-primary: var(--colors-background-bgPrimary);
+  --bg-primary-alt: rgba(243, 244, 246, 0.5);
+  --bg-quaternary: white;
+  --bg-secondary: var(--colors-background-bgSecondary);
+  --bg-active: var(--colors-background-bgActive);
+  --bg-field: #eeeff1;
+  --bg-brand-solid: var(--colors-background-bgBrandSolid);
+  --bg-error-primary: var(--colors-background-bgErrorPrimary);
+
+  /* Text Colors — linked to design system tokens */
+  --text-primary: var(--colors-text-textPrimary);
+  --text-secondary: var(--colors-text-textSecondary);
+  --text-tertiary: var(--colors-text-textTertiary);
+  --text-quaternary: var(--colors-text-textQuaternary);
+  --text-placeholder: var(--colors-text-textPlaceholder);
+  --text-brand-tertiary: var(--colors-text-textBrandTertiary-600);
+  --text-brand-secondary: var(--colors-text-textBrandSecondary-700);
+  --text-white: var(--colors-text-textWhite);
+
+  /* Border Colors — linked to design system tokens */
+  --border-primary: var(--colors-border-borderPrimary);
+  --border-secondary-alt: var(--colors-border-borderSecondaryAlt);
+
+  /* Additional Text Colors (1on1) */
+  --text-disabled: var(--colors-text-textDisabled);
+  --text-subtle: #858b95;
+  --text-error-primary: var(--colors-text-textErrorPrimary-600);
+
+  /* Font Sizes */
+  --font-size-display-sm: 30px;
+  --font-size-display-xs: 24px;
+  --font-size-text-md: 16px;
+  --font-size-text-sm: 14px;
+  --font-size-text-xs: 12px;
+
+  /* Line Heights */
+  --line-height-display-sm: 38px;
+  --line-height-display-xs: 32px;
+  --line-height-text-md: 24px;
+  --line-height-text-sm: 20px;
+  --line-height-text-xs: 18px;
+
+  /* Spacing */
+  --spacing-2xl: 20px;
+  --spacing-lg: 12px;
+  --spacing-md: 8px;
+  --spacing-sm: 6px;
+  --spacing-xs: 4px;
+  --spacing-xxs: 2px;
+
+  /* Radius */
+  --radius-4xl: 24px;
+  --radius-2xl: 16px;
+  --radius-xl: 14px;
+  --radius-lg: 12px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --radius-xxs: 4px;
+  --radius-full: 9999px;
+
+  /* Component Colors — Org chart (linked to design system tokens) */
+  --utility-brand-50: var(--componentColors-utility-brand-utilityBrand50);
+  --utility-blue-50: var(--componentColors-utility-blue-utilityBlue50);
+  --utility-blue-600: var(--componentColors-utility-blue-utilityBlue600);
+  --utility-pink-50: var(--componentColors-utility-pink-utilityPink50);
+  --utility-purple-50: var(--componentColors-utility-purple-utilityPurple50);
+
+  /* Component Colors — 1on1 (linked to design system tokens) */
+  --utility-brand-200: var(--componentColors-utility-brand-utilityBrand200);
+  --utility-blue-light-50: var(--componentColors-utility-blueLight-utilityBlueLight50);
+  --utility-blue-light-100: var(--componentColors-utility-blueLight-utilityBlueLight100);
+  --utility-blue-light-400: var(--componentColors-utility-blueLight-utilityBlueLight400);
+  --utility-blue-light-600: var(--componentColors-utility-blueLight-utilityBlueLight600);
+  --utility-blue-500: var(--componentColors-utility-blue-utilityBlue500);
+  --utility-blue-100: var(--componentColors-utility-blue-utilityBlue100);
+  --utility-green-50: var(--componentColors-utility-green-utilityGreen50);
+  --utility-green-100: var(--componentColors-utility-green-utilityGreen100);
+  --utility-green-500: var(--componentColors-utility-green-utilityGreen500);
+  --utility-green-600: var(--componentColors-utility-green-utilityGreen600);
+  --utility-error-50: var(--componentColors-utility-error-utilityError50);
+  --utility-error-100: var(--componentColors-utility-error-utilityError100);
+  --utility-error-500: var(--componentColors-utility-error-utilityError500);
+  --utility-gray-50: var(--componentColors-utility-gray-utilityGray50);
+  --utility-gray-200: var(--componentColors-utility-gray-utilityGray200);
+  --utility-gray-700: var(--componentColors-utility-gray-utilityGray700);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-family-body);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+
+#root { width: 100%; height: 100%; }
