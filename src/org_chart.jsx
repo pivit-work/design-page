@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Spline from '@splinetool/react-spline';
 import OneOnOneContent from './OneOnOnePage';
-import './App.css';
+import './org_chart.css';
 
 /* ── Inline SVG Icon ── */
 const BASE = import.meta.env.BASE_URL;
@@ -411,6 +411,12 @@ function BezierConnectors({ containerRef, scale }) {
 
 /* ── Profile Modal ── */
 function ProfileModal({ member, onClose }) {
+  const [splineReady, setSplineReady] = useState(false);
+
+  useEffect(() => {
+    if (!member) setSplineReady(false);
+  }, [member]);
+
   if (!member) return null;
   const profile = member.profile || DEFAULT_PROFILE;
 
@@ -426,7 +432,7 @@ function ProfileModal({ member, onClose }) {
               <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div className="modal-spline-wrap">
+          <div className="modal-spline-wrap" style={{ opacity: splineReady ? 1 : 0, transition: 'opacity 0.4s ease' }}>
             <Spline
               scene="https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode"
               onLoad={(splineApp) => {
@@ -460,6 +466,7 @@ function ProfileModal({ member, onClose }) {
                 };
                 applyTex('profileImage', `${BASE}man.png`);
                 applyTex('profileImage-2', `${BASE}man.png`);
+                setTimeout(() => setSplineReady(true), 300);
               }}
             />
           </div>
