@@ -1,9 +1,9 @@
 // Shared
-export { default as Icon } from './shared/Icon';
+export { default as Icon } from './shared/Icon.jsx';
 
 // Layout
-export { default as Sidebar } from './layout/Sidebar';
-export { default as TopNav } from './layout/TopNav';
+export { default as Sidebar } from './layout/Sidebar.jsx';
+export { default as TopNav } from './layout/TopNav.jsx';
 
 // Org Chart
 export {
@@ -25,4 +25,4 @@ export {
   savePositions,
   usePositions,
   useDrag,
-} from './orgchart';
+} from './orgchart/index.js';

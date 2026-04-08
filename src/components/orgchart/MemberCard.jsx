@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
-import Icon from '../shared/Icon';
-import { MEMBER_STATUSES } from './constants';
-import { ModalContext, DragContext, MoveContext } from './contexts';
-import { usePositions, useDrag } from './hooks';
+import Icon from '../shared/Icon.jsx';
+import { MEMBER_STATUSES } from './constants.js';
+import { ModalContext, DragContext, MoveContext } from './contexts.js';
+import { usePositions, useDrag } from './hooks.js';
 
 export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;

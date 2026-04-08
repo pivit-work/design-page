@@ -1,8 +1,8 @@
 import React from 'react';
-import DeptCard from './DeptCard';
-import MemberCard from './MemberCard';
-import { DragContext } from './contexts';
-import { useDrag } from './hooks';
+import DeptCard from './DeptCard.jsx';
+import MemberCard from './MemberCard.jsx';
+import { DragContext } from './contexts.js';
+import { useDrag } from './hooks.js';
 
 export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, editMode, baseUrl = '', onMemberClick }) {
   const hasChildren = node.children && node.children.length > 0;

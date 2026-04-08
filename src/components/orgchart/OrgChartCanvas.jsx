@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import Icon from '../shared/Icon';
-import OrgNode from './OrgNode';
-import BezierConnectors from './BezierConnectors';
-import ProfileModal from './ProfileModal';
-import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts';
-import { loadPositions, savePositions } from './hooks';
+import Icon from '../shared/Icon.jsx';
+import OrgNode from './OrgNode.jsx';
+import BezierConnectors from './BezierConnectors.jsx';
+import ProfileModal from './ProfileModal.jsx';
+import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
+import { loadPositions, savePositions } from './hooks.js';
 
 export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '' }) {
   const [orgData, setOrgData] = useState(initialOrgData);

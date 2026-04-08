@@ -1,4 +1,4 @@
-import Icon from '../shared/Icon';
+import Icon from '../shared/Icon.jsx';
 
 export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl = '' }) {
   return (

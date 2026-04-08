@@ -1,4 +1,4 @@
-import { LEVEL_COLORS } from './constants';
+import { LEVEL_COLORS } from './constants.js';
 
 export default function DeptCard({ node, onMouseDown, isDragging }) {
   const lc = LEVEL_COLORS[node.level];

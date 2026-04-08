@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import Icon from '../shared/Icon';
-import { MEMBER_STATUSES } from './constants';
+import Icon from '../shared/Icon.jsx';
+import { MEMBER_STATUSES } from './constants.js';
 
 const DEFAULT_PROFILE = {
   title: '사원',
