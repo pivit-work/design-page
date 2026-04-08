@@ -1,0 +1,40 @@
+name: Publish npm package
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/**'
+      - 'src/org_chart.css'
+      - 'src/index.css'
+      - 'src/tokens.css'
+      - 'src/tokens-dark.css'
+      - 'package.json'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+
+      - name: Bump patch version
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          npm version patch --no-git-tag-version
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to $(node -p 'require(\"./package.json\").version')" || true
+          git push
+
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
