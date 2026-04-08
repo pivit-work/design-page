@@ -2,8 +2,8 @@
 @import './tokens-dark.css';
 
 :root {
-  --font-family-body: 'Pretendard', sans-serif;
-  --font-family-display: 'Pretendard', sans-serif;
+  --font-family-body: 'Pretendard Variable', Pretendard, sans-serif;
+  --font-family-display: 'Pretendard Variable', Pretendard, sans-serif;
 
   /* Background Colors — linked to design system tokens */
   --bg-primary: var(--colors-background-bgPrimary);
