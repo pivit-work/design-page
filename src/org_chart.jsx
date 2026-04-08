@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import Spline from '@splinetool/react-spline';
+
 import OneOnOneContent from './OneOnOnePage';
 import './org_chart.css';
 
@@ -42,9 +42,28 @@ const ICONS = {
 };
 
 const AVATARS = {
-  online1: 'https://www.figma.com/api/mcp/asset/6416dc11-3e97-42b8-80be-23d63a474691',
-  online2: 'https://www.figma.com/api/mcp/asset/b6872865-197b-46c2-9d9e-683164de1b29',
-  default: 'https://www.figma.com/api/mcp/asset/2f3ea81f-76dc-4bf9-9647-c132f7c13d5e',
+  정은우: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+  박우진: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+  신예은: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face',
+  이서현: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+  김서윤: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+  신예린: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=face',
+  오예린: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop&crop=face',
+  박은서: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
+  오민준: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+  이정민: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=face',
+  이서진: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&h=100&fit=crop&crop=face',
+  Chris: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=face',
+  김우진: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&crop=face',
+  박은지: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face',
+  윤지안: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=face',
+  이서현2: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop&crop=face',
+  박서아: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=100&h=100&fit=crop&crop=face',
+  윤다희: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=100&h=100&fit=crop&crop=face',
+  신서윤: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop&crop=face',
+  최하은: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop&crop=face',
+  박서현: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop&crop=face',
+  신혜린: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=100&h=100&fit=crop&crop=face',
 };
 
 const MENU = [
@@ -68,10 +87,10 @@ const STAT_ICONS = {
 };
 
 const MEMBER_STATUSES = {
-  working: { label: '근무중', badgeBg: '#2dbd82', borderColor: '#2dbd82', dotColor: '#17b26a' },
+  working: { label: '재직중', badgeBg: '#2dbd82', borderColor: '#2dbd82', dotColor: '#17b26a' },
   leave: { label: '휴직', badgeBg: '#687079', borderColor: '#b1b6be', dotColor: '#d2d6db' },
-  resigned: { label: '사퇴', badgeBg: '#f04438', borderColor: '#f04438', dotColor: '#d92d20' },
-  standby: { label: '대기', badgeBg: '#2e90fa', borderColor: '#2e90fa', dotColor: '#1570ef' },
+  resigned: { label: '퇴사 예정', badgeBg: '#f04438', borderColor: '#f04438', dotColor: '#d92d20' },
+  standby: { label: '대기중', badgeBg: '#2e90fa', borderColor: '#2e90fa', dotColor: '#1570ef' },
 };
 const STATUS_KEYS = Object.keys(MEMBER_STATUSES);
 
@@ -93,64 +112,64 @@ const CHRIS_PROFILE = {
   contacts: '@woojin.kim • manager1@pivit.com',
   links: ['https://woojin.dev', 'https://github.com/woojin-kim'],
   teamMembers: [
-    { name: '김우진', role: '팀장', avatar: AVATARS.default, online: true },
-    { name: '이수현', role: '과장', avatar: AVATARS.default, online: true },
-    { name: '신하윤', role: '대리', avatar: AVATARS.default, online: true },
-    { name: '박소연', role: '대리', avatar: AVATARS.default, online: false },
-    { name: '박지호', role: '사원', avatar: AVATARS.default, online: true },
+    { name: '김우진', role: '팀장', avatar: AVATARS.김우진, online: true },
+    { name: '이수현', role: '과장', avatar: AVATARS.이서현, online: true },
+    { name: '신하윤', role: '대리', avatar: AVATARS.신예린, online: true },
+    { name: '박소연', role: '대리', avatar: AVATARS.박은서, online: false },
+    { name: '박지호', role: '사원', avatar: AVATARS.오민준, online: true },
   ],
 };
 
-const ORG = {
+const INITIAL_ORG = {
   id: 'company', name: 'SAMSUNG 물산', type: '회사', count: '34명', level: 'company',
   children: [
     {
       id: 'mgmt', name: '경영지원본부', type: '본부', count: '직속 2명', level: 'division',
       members: [
-        { name: '정은우', avatar: AVATARS.online1, status: 'working', profile: DEFAULT_PROFILE },
-        { name: '박우진', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
+        { name: '정은우', avatar: AVATARS.정은우, status: 'working', workHours: '9 → 6', attendance: 51, profile: DEFAULT_PROFILE },
+        { name: '박우진', avatar: AVATARS.박우진, status: 'leave', role: 'DL', workHours: '9 → 6', attendance: 48, onVacation: true, profile: DEFAULT_PROFILE },
       ],
       children: [
         { id: 'people', name: 'People팀', type: '팀', level: 'team', members: [
-          { name: '신예은', avatar: AVATARS.online2, status: 'working', profile: DEFAULT_PROFILE },
-          { name: '이서현', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-          { name: '김서윤', avatar: AVATARS.default, status: 'resigned', profile: DEFAULT_PROFILE },
+          { name: '신예은', avatar: AVATARS.신예은, status: 'working', workHours: '9 → 6', attendance: 25, profile: DEFAULT_PROFILE },
+          { name: '이서현', avatar: AVATARS.이서현, status: 'working', workHours: '9 → 6', attendance: 76, profile: DEFAULT_PROFILE },
+          { name: '김서윤', avatar: AVATARS.김서윤, status: 'resigned', workHours: '9 → 6', attendance: 22, profile: DEFAULT_PROFILE },
         ]},
         { id: 'finance', name: '재무회계팀', type: '팀', level: 'team', members: [
-          { name: '신예린', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-          { name: '오예린', avatar: AVATARS.default, status: 'standby', profile: DEFAULT_PROFILE },
-          { name: '박은서', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '신예린', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 29, profile: DEFAULT_PROFILE },
+          { name: '오예린', avatar: AVATARS.오예린, status: 'standby', workHours: '9 → 6', attendance: 31, profile: DEFAULT_PROFILE },
+          { name: '박은서', avatar: AVATARS.박은서, status: 'working', workHours: '9 → 6', attendance: 17, profile: DEFAULT_PROFILE },
         ]},
         { id: 'bizdev', name: '비즈니스개발팀', type: '팀', level: 'team', members: [
-          { name: '오민준', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-          { name: '이정민', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
-          { name: '이서진', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '오민준', avatar: AVATARS.오민준, status: 'working', workHours: '9 → 6', attendance: 97, profile: DEFAULT_PROFILE },
+          { name: '이정민', avatar: AVATARS.이정민, status: 'leave', workHours: '9 → 6', attendance: 11, onVacation: true, profile: DEFAULT_PROFILE },
+          { name: '이서진', avatar: AVATARS.이서진, status: 'working', workHours: '9 → 6', attendance: 32, profile: DEFAULT_PROFILE },
         ]},
       ],
     },
     {
       id: 'product', name: '프로덕트 본부', type: '본부', count: '직속 1명', level: 'division',
       members: [
-        { name: 'Chris', avatar: AVATARS.online1, status: 'working', selected: true, profile: CHRIS_PROFILE },
+        { name: 'Chris', avatar: AVATARS.Chris, status: 'working', selected: true, role: 'DL', workHours: '9 → 6', attendance: 93, profile: CHRIS_PROFILE },
       ],
       children: [
         { id: 'proddev', name: '프로덕트개발팀', type: '팀', level: 'team', members: [
-          { name: '김우진', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+          { name: '김우진', avatar: AVATARS.김우진, status: 'working', role: 'TL', workHours: '10 → 7', attendance: 49, profile: DEFAULT_PROFILE },
         ], children: [
           { id: 'uiux', name: 'UIUX 디자인', type: '파트', level: 'part', members: [
-            { name: '박은지', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-            { name: '윤지안', avatar: AVATARS.default, status: 'standby', profile: DEFAULT_PROFILE },
-            { name: '이서현', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '박은지', avatar: AVATARS.박은지, status: 'working', workHours: '9 → 6', attendance: 67, profile: DEFAULT_PROFILE },
+            { name: '윤지안', avatar: AVATARS.윤지안, status: 'standby', workHours: '9 → 6', attendance: 87, profile: DEFAULT_PROFILE },
+            { name: '이서현', avatar: AVATARS.이서현2, status: 'working', workHours: '9 → 6', attendance: 89, profile: DEFAULT_PROFILE },
           ]},
           { id: 'frontend', name: '프론트엔드', type: '파트', level: 'part', members: [
-            { name: '박서아', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-            { name: '윤다희', avatar: AVATARS.default, status: 'resigned', profile: DEFAULT_PROFILE },
-            { name: '신서윤', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '박서아', avatar: AVATARS.박서아, status: 'working', workHours: '9 → 6', attendance: 68, profile: DEFAULT_PROFILE },
+            { name: '윤다희', avatar: AVATARS.윤다희, status: 'resigned', workHours: '9 → 6', attendance: 11, profile: DEFAULT_PROFILE },
+            { name: '신서윤', avatar: AVATARS.신서윤, status: 'working', workHours: '9 → 6', attendance: 79, profile: DEFAULT_PROFILE },
           ]},
           { id: 'backend', name: '백엔드개발', type: '파트', level: 'part', members: [
-            { name: '최하은', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
-            { name: '박서현', avatar: AVATARS.default, status: 'leave', profile: DEFAULT_PROFILE },
-            { name: '신혜린', avatar: AVATARS.default, status: 'working', profile: DEFAULT_PROFILE },
+            { name: '최하은', avatar: AVATARS.최하은, status: 'working', workHours: '9 → 6', attendance: 62, profile: DEFAULT_PROFILE },
+            { name: '박서현', avatar: AVATARS.박서현, status: 'leave', workHours: '9 → 6', attendance: 25, onVacation: true, profile: DEFAULT_PROFILE },
+            { name: '신혜린', avatar: AVATARS.신혜린, status: 'working', workHours: '9 → 6', attendance: 53, profile: DEFAULT_PROFILE },
           ]},
         ]},
       ],
@@ -230,18 +249,24 @@ function savePositions(positions) {
 
 const PositionsContext = React.createContext();
 const ModalContext = React.createContext();
+const MoveContext = React.createContext();
+const DragContext = React.createContext();
 
 function usePositions() {
   return React.useContext(PositionsContext);
 }
 
-function useDrag(nodeId) {
+function useDrag(nodeId, onDrop, onDragMove) {
   const { positions, updatePosition } = usePositions();
   const saved = positions[nodeId] || { x: 0, y: 0 };
   const [isDragging, setIsDragging] = useState(false);
   const [current, setCurrent] = useState(saved);
   const startMouse = useRef({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
+  const onDropRef = useRef(onDrop);
+  onDropRef.current = onDrop;
+  const onDragMoveRef = useRef(onDragMove);
+  onDragMoveRef.current = onDragMove;
 
   useEffect(() => {
     const s = positions[nodeId] || { x: 0, y: 0 };
@@ -257,14 +282,14 @@ function useDrag(nodeId) {
     const onMove = (ev) => {
       const nx = startPos.current.x + (ev.clientX - startMouse.current.x);
       const ny = startPos.current.y + (ev.clientY - startMouse.current.y);
-      setCurrent({ x: nx, y: ny });
+      const pos = { x: nx, y: ny };
+      setCurrent(pos);
+      updatePosition(nodeId, pos);
+      if (onDragMoveRef.current) onDragMoveRef.current(ev, pos);
     };
-    const onUp = () => {
+    const onUp = (ev) => {
       setIsDragging(false);
-      setCurrent(prev => {
-        updatePosition(nodeId, prev);
-        return prev;
-      });
+      if (onDropRef.current) onDropRef.current(ev);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
@@ -297,11 +322,82 @@ function DeptCard({ node, onMouseDown, isDragging }) {
   );
 }
 
-function MemberCard({ member, parentId, index }) {
+function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode }) {
   const memberId = `${parentId}_member_${index}`;
-  const { isDragging, onDown, style } = useDrag(memberId);
   const { openModal } = React.useContext(ModalContext);
+  const { positions, updatePosition } = usePositions();
+  const { moveMember } = React.useContext(MoveContext);
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const memberNodeRef = useRef(null);
+
+  const { setDropTarget } = React.useContext(DragContext);
+
+  // Shared logic: find the best drop target from a card's screen position
+  const findDropTarget = useCallback((cardEl) => {
+    if (!cardEl) return null;
+    const allLists = document.querySelectorAll('.members-list');
+    const cardRect = cardEl.getBoundingClientRect();
+    const cardCenterX = cardRect.left + cardRect.width / 2;
+    const cardCenterY = cardRect.top + cardRect.height / 2;
+
+    let bestList = null;
+    let bestDist = 150;
+
+    allLists.forEach(list => {
+      const listRect = list.getBoundingClientRect();
+      const expandedTop = listRect.top - 40;
+      const expandedBottom = listRect.bottom + 40;
+      const listCenterX = listRect.left + listRect.width / 2;
+      const dx = Math.abs(cardCenterX - listCenterX);
+      const isVerticallyClose = cardCenterY >= expandedTop && cardCenterY <= expandedBottom;
+      if (dx < bestDist && isVerticallyClose) {
+        bestDist = dx;
+        bestList = list;
+      }
+    });
+
+    if (!bestList) return null;
+
+    const targetOrgNode = bestList.closest('.org-node');
+    const targetNodeId = targetOrgNode?.dataset.nodeId;
+    if (!targetNodeId || targetNodeId === parentId) return null;
+
+    const memberNodes = bestList.querySelectorAll(':scope > .member-node');
+    let insertIdx = memberNodes.length;
+    for (let i = 0; i < memberNodes.length; i++) {
+      const mRect = memberNodes[i].getBoundingClientRect();
+      if (cardCenterY < mRect.top + mRect.height / 2) {
+        insertIdx = i;
+        break;
+      }
+    }
+
+    return { targetNodeId, insertIndex: insertIdx };
+  }, [parentId]);
+
+  const handleDragMove = useCallback((ev, pos) => {
+    if (!editMode || Math.abs(pos.x) < 200) {
+      setDropTarget(null);
+      return;
+    }
+    const target = findDropTarget(memberNodeRef.current);
+    setDropTarget(target);
+  }, [editMode, findDropTarget, setDropTarget]);
+
+  const handleDrop = useCallback((ev) => {
+    setDropTarget(null);
+    if (!editMode) return;
+    const pos = positions[memberId] || { x: 0, y: 0 };
+    if (Math.abs(pos.x) < 200) return;
+
+    const target = findDropTarget(memberNodeRef.current);
+    if (!target) return;
+
+    moveMember(parentId, index, target.targetNodeId, target.insertIndex);
+    updatePosition(memberId, { x: 0, y: 0 });
+  }, [memberId, parentId, index, positions, moveMember, updatePosition, findDropTarget, setDropTarget]);
+
+  const { isDragging, onDown, style } = useDrag(memberId, handleDrop, handleDragMove);
 
   const handleMouseDown = (e) => {
     dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -317,10 +413,23 @@ function MemberCard({ member, parentId, index }) {
   };
 
   const status = MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
+  const pos = positions[memberId] || { x: 0, y: 0 };
+  const wasDetached = useRef(false);
+  const absX = Math.abs(pos.x);
+  if (!editMode) {
+    wasDetached.current = false;
+  } else if (wasDetached.current) {
+    wasDetached.current = absX > 50;
+  } else {
+    wasDetached.current = absX > 200;
+  }
+  const isDetached = wasDetached.current;
 
   return (
     <div
-      className={`member-node ${isDragging ? 'member-dragging' : ''}`}
+      ref={memberNodeRef}
+      className={`member-node ${isDragging ? 'member-dragging' : ''} ${isDetached ? 'member-detached' : ''}`}
+      data-detached={isDetached ? 'true' : undefined}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       style={{
@@ -328,11 +437,31 @@ function MemberCard({ member, parentId, index }) {
         '--member-border-color': status.borderColor,
       }}
     >
-      <div className="avatar-wrap">
-        <img src={member.avatar} alt="" className="avatar-sm" />
-        <span className="online-dot" style={{ background: status.dotColor }} />
+      {showVacation && member.onVacation && <img src={`${BASE}vacation.png`} alt="" className="vacation-img" />}
+      <div className="member-content">
+        <div className="member-row">
+          <div className="avatar-wrap">
+            <img src={member.avatar} alt="" className="avatar-sm" />
+            <span className="online-dot" style={{ background: status.dotColor }} />
+          </div>
+          <span className="member-name">{member.name}</span>
+          {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
+        </div>
+        {showWorkHours && member.workHours && (
+          <>
+            <div className="working-time-bar">
+              <div className="active-bar" style={{ width: `${member.attendance || 0}%` }} />
+            </div>
+            <div className="working-time-info">
+              <div className="working-time-left">
+                <Icon src="/icons/clock-stopwatch.svg" size={14} color="#b1b6be" />
+                <span>{member.attendance || 0}%</span>
+              </div>
+              <span className="working-time-right">{member.workHours}</span>
+            </div>
+          </>
+        )}
       </div>
-      <span className="member-name">{member.name}</span>
       <span className="status-badge-member" style={{ background: status.badgeBg }}>{status.label}</span>
     </div>
   );
@@ -361,7 +490,11 @@ function BezierConnectors({ containerRef, scale }) {
 
         const membersList = parentNode.querySelector(':scope > .members-list');
         const deptCard = parentNode.querySelector(':scope > .dept-card');
-        const parentBottom = membersList ? (membersList.lastElementChild || deptCard) : deptCard;
+        let parentBottom = deptCard;
+        if (membersList) {
+          const attachedMembers = membersList.querySelectorAll(':scope > .member-node:not([data-detached="true"])');
+          parentBottom = attachedMembers.length > 0 ? attachedMembers[attachedMembers.length - 1] : deptCard;
+        }
         if (!parentBottom) return;
 
         const parentRect = parentBottom.getBoundingClientRect();
@@ -390,22 +523,21 @@ function BezierConnectors({ containerRef, scale }) {
         const dy = (deptRect.bottom - containerRect.top) / s;
 
         const members = membersList.querySelectorAll(':scope > .member-node');
-        members.forEach((memberEl, idx) => {
-          const mRect = memberEl.getBoundingClientRect();
-          const mx = (mRect.left + mRect.width / 2 - containerRect.left) / s;
-          const my = (mRect.top - containerRect.top) / s;
+        let lastX = dx;
+        let lastY = dy;
+        members.forEach((memberEl) => {
+          const isDetached = memberEl.dataset.detached === 'true';
+          if (isDetached) return;
 
-          if (idx === 0) {
-            const midY = (dy + my) / 2;
-            pathData += `M ${dx} ${dy} C ${dx} ${midY}, ${mx} ${midY}, ${mx} ${my} `;
-          } else {
-            const prevMember = members[idx - 1];
-            const prevRect = prevMember.getBoundingClientRect();
-            const prevX = (prevRect.left + prevRect.width / 2 - containerRect.left) / s;
-            const prevY = (prevRect.bottom - containerRect.top) / s;
-            const midY = (prevY + my) / 2;
-            pathData += `M ${prevX} ${prevY} C ${prevX} ${midY}, ${mx} ${midY}, ${mx} ${my} `;
-          }
+          const mRect = memberEl.getBoundingClientRect();
+          const targetX = (mRect.left + mRect.width / 2 - containerRect.left) / s;
+          const targetY = (mRect.top - containerRect.top) / s;
+
+          const midY = (lastY + targetY) / 2;
+          pathData += `M ${lastX} ${lastY} C ${lastX} ${midY}, ${targetX} ${midY}, ${targetX} ${targetY} `;
+
+          lastX = targetX;
+          lastY = (mRect.bottom - containerRect.top) / s;
         });
       });
 
@@ -423,11 +555,14 @@ function BezierConnectors({ containerRef, scale }) {
 }
 
 /* ── Profile Modal ── */
+const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
+
 function ProfileModal({ member, onClose }) {
   const [splineReady, setSplineReady] = useState(false);
+  const [splineActive, setSplineActive] = useState(false);
 
   useEffect(() => {
-    if (!member) setSplineReady(false);
+    if (!member) { setSplineReady(false); setSplineActive(false); }
   }, [member]);
 
   if (!member) return null;
@@ -445,43 +580,12 @@ function ProfileModal({ member, onClose }) {
               <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div className="modal-spline-wrap" style={{ opacity: splineReady ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-            <Spline
-              scene="https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode"
-              onLoad={(splineApp) => {
-                const group = splineApp.findObjectByName('Group');
-                if (group) {
-                  group.scale.x = 0.7;
-                  group.scale.y = 0.7;
-                  group.scale.z = 0.7;
-                }
-                const applyTex = (name, src) => {
-                  const obj = splineApp.findObjectByName(name);
-                  if (!obj) return;
-                  const texLayer = [...Array(obj.material.layers.length)]
-                    .map((_, i) => obj.material.layers[i])
-                    .find((l) => l.type === 'texture');
-                  if (!texLayer) return;
-                  const img = new Image();
-                  img.crossOrigin = 'anonymous';
-                  img.src = src;
-                  img.onload = () => {
-                    texLayer.updateTexture(img);
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    canvas.getContext('2d').drawImage(img, 0, 0);
-                    texLayer.updateTexture(canvas.toDataURL('image/png'));
-                    const tex = texLayer.texture;
-                    tex.image = img;
-                    texLayer.texture = tex;
-                  };
-                };
-                applyTex('profileImage', `${BASE}man.png`);
-                applyTex('profileImage-2', `${BASE}man.png`);
-                setTimeout(() => setSplineReady(true), 300);
-              }}
-            />
+          <div
+            className={`modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
+            onClick={() => setSplineActive(true)}
+            onMouseLeave={() => setSplineActive(false)}
+          >
+            <iframe src={`${BASE}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`} sandbox="allow-scripts" frameBorder="0" width="100%" height="100%" title="Spline 3D" style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.5s ease' }} onLoad={() => setTimeout(() => setSplineReady(true), 1500)} />
           </div>
           <div className="modal-name">{member.name}</div>
           <div className="modal-title">{profile.title} · {profile.dept}</div>
@@ -591,25 +695,44 @@ function ProfileModal({ member, onClose }) {
   );
 }
 
-function OrgNode({ node, depth = 0 }) {
+function OrgNode({ node, depth = 0, showWorkHours, showVacation, editMode }) {
   const hasChildren = node.children && node.children.length > 0;
   const { isDragging, onDown, style } = useDrag(node.id);
+  const { dropTarget } = React.useContext(DragContext);
+  const isDropTarget = dropTarget && dropTarget.targetNodeId === node.id;
+
   return (
     <div
       className={`org-node ${hasChildren ? 'has-children' : ''} ${isDragging ? 'org-node-dragging' : ''}`}
+      data-node-id={node.id}
       style={style}
     >
       <DeptCard node={node} onMouseDown={onDown} isDragging={isDragging} />
       {node.members && (
-        <div className="members-list">
-          {node.members.map((m, i) => <MemberCard key={i} member={m} parentId={node.id} index={i} />)}
+        <div className={`members-list ${isDropTarget ? 'drop-target' : ''}`}>
+          {node.members.map((m, i) => (
+            <React.Fragment key={`${node.id}_${m.name}_${i}`}>
+              {isDropTarget && dropTarget.insertIndex === i && (
+                <div className="drop-indicator" />
+              )}
+              <MemberCard member={m} parentId={node.id} index={i} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} />
+            </React.Fragment>
+          ))}
+          {isDropTarget && dropTarget.insertIndex >= node.members.length && (
+            <div className="drop-indicator" />
+          )}
+        </div>
+      )}
+      {!node.members && isDropTarget && (
+        <div className={`members-list drop-target`}>
+          <div className="drop-indicator" />
         </div>
       )}
       {hasChildren && (
         <div className="children-row">
           {node.children.map(child => (
             <div key={child.id} className="child-branch">
-              <OrgNode node={child} depth={depth + 1} />
+              <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} />
             </div>
           ))}
         </div>
@@ -621,6 +744,8 @@ function OrgNode({ node, depth = 0 }) {
 /* ── Main App ── */
 export default function App() {
   const [currentPage, setCurrentPage] = useState('orgchart');
+  const [orgData, setOrgData] = useState(INITIAL_ORG);
+  const [dropTarget, setDropTarget] = useState(null);
 
   const [positions, setPositions] = useState(loadPositions);
   const updatePosition = useCallback((id, pos) => {
@@ -634,6 +759,38 @@ export default function App() {
     setPositions({});
     savePositions({});
   }, []);
+
+  const moveMember = useCallback((sourceNodeId, sourceIndex, targetNodeId, insertIndex) => {
+    setOrgData(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+
+      function findNode(node, id) {
+        if (node.id === id) return node;
+        if (node.children) {
+          for (const child of node.children) {
+            const found = findNode(child, id);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      const sourceNode = findNode(next, sourceNodeId);
+      const targetNode = findNode(next, targetNodeId);
+      if (!sourceNode || !targetNode || !sourceNode.members) return prev;
+
+      const [member] = sourceNode.members.splice(sourceIndex, 1);
+      if (!member) return prev;
+      if (!targetNode.members) targetNode.members = [];
+      targetNode.members.splice(insertIndex, 0, member);
+
+      return next;
+    });
+  }, []);
+
+  const [showWorkHours, setShowWorkHours] = useState(true);
+  const [showVacation, setShowVacation] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const openModal = useCallback((member) => setSelectedMember(member), []);
@@ -702,6 +859,8 @@ export default function App() {
   return (
     <PositionsContext.Provider value={{ positions, updatePosition }}>
     <ModalContext.Provider value={{ openModal }}>
+    <MoveContext.Provider value={{ moveMember }}>
+    <DragContext.Provider value={{ dropTarget, setDropTarget }}>
     <div className="app">
       <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
       <TopNav />
@@ -736,13 +895,34 @@ export default function App() {
               <span>화면을 드래그하면 좀 더 쉽게 조직도를 보실 수 있습니다.</span>
             </div>
 
+            <div className="canvas-toggles">
+              <label className="canvas-toggle">
+                <span className="canvas-toggle-label">출퇴근 시간</span>
+                <button className={`toggle-switch ${showWorkHours ? 'toggle-on' : ''}`} onClick={() => setShowWorkHours(!showWorkHours)}>
+                  <span className="toggle-knob" />
+                </button>
+              </label>
+              <label className="canvas-toggle">
+                <span className="canvas-toggle-label">휴가</span>
+                <button className={`toggle-switch ${showVacation ? 'toggle-on' : ''}`} onClick={() => setShowVacation(!showVacation)}>
+                  <span className="toggle-knob" />
+                </button>
+              </label>
+              <label className="canvas-toggle">
+                <span className="canvas-toggle-label">수정</span>
+                <button className={`toggle-switch ${editMode ? 'toggle-on' : ''}`} onClick={() => setEditMode(!editMode)}>
+                  <span className="toggle-knob" />
+                </button>
+              </label>
+            </div>
+
             <div className="canvas-inner" ref={canvasInnerRef} style={{
               transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
               transformOrigin: '0 0',
               position: 'relative',
             }}>
               <BezierConnectors containerRef={canvasInnerRef} scale={scale} />
-              <OrgNode node={ORG} />
+              <OrgNode node={orgData} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} />
             </div>
 
             <div className="zoom-controls">
@@ -764,6 +944,8 @@ export default function App() {
         <OneOnOneContent Icon={Icon} />
       )}
     </div>
+    </DragContext.Provider>
+    </MoveContext.Provider>
     </ModalContext.Provider>
     </PositionsContext.Provider>
   );

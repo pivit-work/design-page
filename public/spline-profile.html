@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; }
+    body { overflow: hidden; background: transparent; }
+    canvas { width: 100vw; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas3d"></canvas>
+  <script type="module">
+    import { Application } from 'https://unpkg.com/@splinetool/runtime@1.12.74/build/runtime.js';
+
+    const params = new URLSearchParams(window.location.search);
+    const imageUrl = params.get('img');
+
+    const canvas = document.getElementById('canvas3d');
+    const app = new Application(canvas);
+
+    let splineApp = null;
+
+    app.load('https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode').then(() => {
+      splineApp = app;
+      if (imageUrl) {
+        applyTexture(app, 'profileImage', imageUrl);
+        applyTexture(app, 'profileImage-2', imageUrl);
+      }
+    });
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'setImage' && splineApp) {
+        applyTexture(splineApp, 'profileImage', e.data.url);
+        applyTexture(splineApp, 'profileImage-2', e.data.url);
+      }
+    });
+
+    function applyTexture(splineApp, objectName, imageSrc) {
+      const obj = splineApp.findObjectByName(objectName);
+      if (!obj) return;
+      const texLayer = [...Array(obj.material.layers.length)]
+        .map((_, i) => obj.material.layers[i])
+        .find((l) => l.type === 'texture');
+      if (!texLayer) return;
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imageSrc;
+      img.onload = () => {
+        texLayer.updateTexture(img);
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        texLayer.updateTexture(c.toDataURL('image/png'));
+        const tex = texLayer.texture;
+        tex.image = img;
+        texLayer.texture = tex;
+      };
+    }
+  </script>
+</body>
+</html>
