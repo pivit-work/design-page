@@ -4,9 +4,10 @@ import { MEMBER_STATUSES } from './constants';
 import { ModalContext, DragContext, MoveContext } from './contexts';
 import { usePositions, useDrag } from './hooks';
 
-export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, baseUrl = '' }) {
+export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;
-  const { openModal } = React.useContext(ModalContext);
+  const modalCtx = React.useContext(ModalContext);
+  const openModal = onMemberClick || modalCtx?.openModal;
   const { positions, updatePosition } = usePositions();
   const { moveMember } = React.useContext(MoveContext);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -93,7 +94,8 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
     }
   };
 
-  const status = MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
+  const status = member.statusColors || MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
+  const statusLabel = member.statusLabel || status.label;
   const pos = positions[memberId] || { x: 0, y: 0 };
   const wasDetached = useRef(false);
   const absX = Math.abs(pos.x);
@@ -143,7 +145,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           </>
         )}
       </div>
-      <span className="status-badge-member" style={{ background: status.badgeBg }}>{status.label}</span>
+      <span className="status-badge-member" style={{ background: status.badgeBg }}>{statusLabel}</span>
     </div>
   );
 }

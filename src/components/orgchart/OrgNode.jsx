@@ -4,7 +4,7 @@ import MemberCard from './MemberCard';
 import { DragContext } from './contexts';
 import { useDrag } from './hooks';
 
-export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, editMode, baseUrl = '' }) {
+export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, editMode, baseUrl = '', onMemberClick }) {
   const hasChildren = node.children && node.children.length > 0;
   const { isDragging, onDown, style } = useDrag(node.id);
   const { dropTarget } = React.useContext(DragContext);
@@ -24,7 +24,7 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
               {isDropTarget && dropTarget.insertIndex === i && (
                 <div className="drop-indicator" />
               )}
-              <MemberCard member={m} parentId={node.id} index={i} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} baseUrl={baseUrl} />
+              <MemberCard member={m} parentId={node.id} index={i} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
             </React.Fragment>
           ))}
           {isDropTarget && dropTarget.insertIndex >= node.members.length && (
@@ -41,7 +41,7 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
         <div className="children-row">
           {node.children.map(child => (
             <div key={child.id} className="child-branch">
-              <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} baseUrl={baseUrl} />
+              <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
             </div>
           ))}
         </div>
