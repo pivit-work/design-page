@@ -5,6 +5,7 @@ import {
   TopNav,
   Icon,
   OrgChartCanvas,
+  ProjectCanvas,
 } from './components';
 import OneOnOneContent from './OneOnOnePage';
 import './App.css';
@@ -166,19 +167,30 @@ const INITIAL_ORG = {
 /* ── Main App (thin demo — components live in ./components/orgchart) ── */
 export default function App() {
   const [currentPage, setCurrentPage] = useState('orgchart');
+  const [orgSubTab, setOrgSubTab] = useState('orgchart');
+
+  const handleNavigate = (page) => {
+    setCurrentPage(page);
+    if (page === 'orgchart') setOrgSubTab('orgchart');
+  };
 
   return (
     <div className="app">
-      <Sidebar menu={MENU} currentPage={currentPage} onNavigate={setCurrentPage} icons={ICONS} baseUrl={BASE} />
+      <Sidebar menu={MENU} currentPage={currentPage} onNavigate={handleNavigate} icons={ICONS} baseUrl={BASE} />
       <TopNav icons={ICONS} baseUrl={BASE} />
 
-      {currentPage === 'orgchart' && (
+      {currentPage === 'orgchart' && orgSubTab === 'orgchart' && (
         <OrgChartCanvas
           orgData={INITIAL_ORG}
           icons={ICONS}
           statIcons={STAT_ICONS}
           baseUrl={BASE}
+          onSubTabChange={setOrgSubTab}
         />
+      )}
+
+      {currentPage === 'orgchart' && orgSubTab === 'project' && (
+        <ProjectCanvas onSubTabChange={setOrgSubTab} statIcons={STAT_ICONS} baseUrl={BASE} />
       )}
 
       {currentPage === 'oneonone' && (

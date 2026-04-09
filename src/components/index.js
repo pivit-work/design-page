@@ -13,6 +13,7 @@ export {
   BezierConnectors,
   ProfileModal,
   OrgChartCanvas,
+  ProjectCanvas,
   LEVEL_COLORS,
   MEMBER_STATUSES,
   STATUS_KEYS,

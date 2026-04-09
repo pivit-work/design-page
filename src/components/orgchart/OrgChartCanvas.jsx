@@ -6,7 +6,7 @@ import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 import { loadPositions, savePositions } from './hooks.js';
 
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
 
@@ -135,8 +135,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       <div className="content-header">
         <div className="tab-nav">
           <span className="tab-active">조직도</span>
-          <span className="tab-inactive">프로젝트</span>
-          <span className="tab-inactive">리스트</span>
+          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
         </div>
         <div className="header-subtitle">
           <b>전체 인원</b>

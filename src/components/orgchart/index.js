@@ -4,6 +4,7 @@ export { default as OrgNode } from './OrgNode.jsx';
 export { default as BezierConnectors } from './BezierConnectors.jsx';
 export { default as ProfileModal, DEFAULT_PROFILE } from './ProfileModal.jsx';
 export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
+export { default as ProjectCanvas } from './ProjectCanvas.jsx';
 export { LEVEL_COLORS, MEMBER_STATUSES, STATUS_KEYS } from './constants.js';
 export { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 export { loadPositions, savePositions, usePositions, useDrag } from './hooks.js';

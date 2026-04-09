@@ -16,17 +16,21 @@
 
 /* Custom scrollbar on content-area */
 .content-area::-webkit-scrollbar {
-  width: 6px;
+  width: 12px;
 }
 .content-area::-webkit-scrollbar-track {
   background: transparent;
 }
 .content-area::-webkit-scrollbar-thumb {
   background: var(--border-primary);
-  border-radius: 3px;
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 .content-area::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 .content-canvas {

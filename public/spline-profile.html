@@ -24,8 +24,13 @@
     app.load('https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode').then(() => {
       splineApp = app;
       if (imageUrl) {
-        applyTexture(app, 'profileImage', imageUrl);
-        applyTexture(app, 'profileImage-2', imageUrl);
+        applyTexture(app, 'profileImage', imageUrl, () => {
+          applyTexture(app, 'profileImage-2', imageUrl, () => {
+            window.parent.postMessage({ type: 'spline-ready' }, '*');
+          });
+        });
+      } else {
+        window.parent.postMessage({ type: 'spline-ready' }, '*');
       }
     });
 
@@ -36,7 +41,7 @@
       }
     });
 
-    function applyTexture(splineApp, objectName, imageSrc) {
+    function applyTexture(splineApp, objectName, imageSrc, onDone) {
       const obj = splineApp.findObjectByName(objectName);
       if (!obj) return;
       const texLayer = [...Array(obj.material.layers.length)]
@@ -57,6 +62,7 @@
         const tex = texLayer.texture;
         tex.image = img;
         texLayer.texture = tex;
+        if (onDone) onDone();
       };
     }
   </script>

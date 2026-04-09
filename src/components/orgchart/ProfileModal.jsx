@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 
@@ -14,21 +14,37 @@ const DEFAULT_PROFILE = {
 
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
+/* Preloaded Spline iframe — stays mounted so it's instant on re-open */
 export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
+  const iframeRef = useRef(null);
+  const prevMemberRef = useRef(null);
+
+  // Listen for spline-ready message (scene + texture fully loaded)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === 'spline-ready') setSplineReady(true);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   useEffect(() => {
-    if (!member) { setSplineReady(false); setSplineActive(false); }
+    if (!member) setSplineActive(false);
+    if (member) prevMemberRef.current = member;
   }, [member]);
 
-  if (!member) return null;
-  const profile = member.profile || DEFAULT_PROFILE;
+  // The member to use for rendering (keep last member visible during close animation)
+  const displayMember = member || prevMemberRef.current;
+  const profile = displayMember ? (displayMember.profile || DEFAULT_PROFILE) : DEFAULT_PROFILE;
+  const isOpen = !!member;
 
   return (
     <>
-    <div className="modal-overlay" onClick={onClose} />
-    <div className="modal-scroll-wrap" onClick={onClose}>
+    {/* Always-mounted overlay + modal — hidden via CSS when closed */}
+    <div className="modal-overlay" onClick={onClose} style={{ display: isOpen ? '' : 'none' }} />
+    <div className="modal-scroll-wrap" onClick={onClose} style={{ display: isOpen ? '' : 'none' }}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
@@ -37,19 +53,27 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          {renderAvatar ? renderAvatar(member) : (
+          {renderAvatar ? renderAvatar(displayMember) : (
             <div
               className={`modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
               onClick={() => setSplineActive(true)}
               onMouseLeave={() => setSplineActive(false)}
             >
-              <iframe src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`} sandbox="allow-scripts" frameBorder="0" width="100%" height="100%" title="Spline 3D" style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.5s ease' }} onLoad={() => setTimeout(() => setSplineReady(true), 1500)} />
+              <iframe
+                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`}
+                sandbox="allow-scripts"
+                frameBorder="0"
+                width="100%"
+                height="100%"
+                title="Spline 3D"
+                style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
+              />
             </div>
           )}
-          <div className="modal-name">{member.name}</div>
+          <div className="modal-name">{displayMember?.name}</div>
           <div className="modal-title">{profile.title} · {profile.dept}</div>
           <div className="modal-bio">{profile.bio}</div>
-          <span className="modal-status-badge">{(MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working).label}</span>
+          <span className="modal-status-badge">{(MEMBER_STATUSES[displayMember?.status] || MEMBER_STATUSES.working).label}</span>
         </div>
 
         {/* Stats Row */}
@@ -88,7 +112,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
 
         {/* Action Buttons */}
         {(() => {
-          const isDisabled = member.status === 'resigned' || member.status === 'leave';
+          const isDisabled = displayMember?.status === 'resigned' || displayMember?.status === 'leave';
           return (
             <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
               <button className="modal-btn-feedback" disabled={isDisabled}>
