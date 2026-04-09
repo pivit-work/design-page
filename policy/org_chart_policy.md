@@ -19,8 +19,8 @@
   - 점수 컬러: 7 이상 green / 5 이상 yellow / 5 미만 red
 
 ### 현재 구현 상태
-- `adminMode` 토글로 헬스 체크 표시/숨김 처리 중 (`org_chart.jsx:466`)
-- `showWorkHours` 토글로 출퇴근 시간 표시/숨김 처리 중 (`org_chart.jsx:452`)
+- `adminMode` 토글로 헬스 체크 표시/숨김 처리 중 (`src/components/orgchart/OrgChartCanvas.jsx`)
+- `showWorkHours` 토글로 출퇴근 시간 표시/숨김 처리 중 (`src/components/orgchart/OrgChartCanvas.jsx`)
 - **현재는 토글로 모두 노출 가능** → 추후 로그인 권한 기반으로 전환 필요
 
 ### 향후 구현 방향

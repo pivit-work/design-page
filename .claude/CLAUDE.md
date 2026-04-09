@@ -27,20 +27,21 @@ src/
     orgchart/hooks.js         ← useDrag, usePositions
     orgchart/index.js         ← re-export
     index.js                  ← 전체 re-export (패키지 진입점)
-  org_chart.jsx               ← 데모 데이터 + 컴포넌트 조합 (thin wrapper)
-  org_chart.css               ← 전체 스타일
+  App.jsx                     ← 앱 진입점: 데모 데이터 + 페이지 라우팅 (thin wrapper)
+  org_chart.css               ← 조직도 + 공용 레이아웃 스타일
+  one_on_one.css              ← 1on1 페이지 스타일
 ```
 
 ### 새 컴포넌트 추가 시
 - `src/components/` 아래 적절한 디렉토리에 파일 생성
 - 데이터는 **props로 받도록** 설계 (하드코딩 금지)
 - `components/index.js`에서 export 추가
-- 데모 데이터는 `org_chart.jsx` 또는 해당 페이지 파일에 작성
+- 데모 데이터는 `App.jsx` 또는 해당 페이지 파일에 작성
 
 ### 기존 컴포넌트 수정 시
 - 해당 컴포넌트 파일만 수정
 - CSS 클래스명 변경 시 `org_chart.css`도 함께 수정
-- `org_chart.jsx`(demo wrapper)는 데이터/조합만 담당, UI 로직은 넣지 않기
+- `App.jsx`(demo wrapper)는 데이터/조합/라우팅만 담당, UI 로직은 넣지 않기
 
 ## 🔴 필수 규칙: design-system 토큰 사용
 
