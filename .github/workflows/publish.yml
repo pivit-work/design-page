@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'src/components/**'
+      - 'src/App.css'
       - 'src/org_chart.css'
+      - 'src/one_on_one.css'
       - 'src/index.css'
       - 'src/tokens.css'
       - 'src/tokens-dark.css'

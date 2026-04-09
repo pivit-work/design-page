@@ -28,8 +28,9 @@ src/
     orgchart/index.js         ← re-export
     index.js                  ← 전체 re-export (패키지 진입점)
   App.jsx                     ← 앱 진입점: 데모 데이터 + 페이지 라우팅 (thin wrapper)
-  org_chart.css               ← 조직도 + 공용 레이아웃 스타일
-  one_on_one.css              ← 1on1 페이지 스타일
+  App.css                     ← 앱 전역 스타일 (레이아웃/Sidebar/TopNav)
+  org_chart.css               ← 조직도 페이지 전용 스타일
+  one_on_one.css              ← 1on1 페이지 전용 스타일
 ```
 
 ### 새 컴포넌트 추가 시
@@ -40,7 +41,7 @@ src/
 
 ### 기존 컴포넌트 수정 시
 - 해당 컴포넌트 파일만 수정
-- CSS 클래스명 변경 시 `org_chart.css`도 함께 수정
+- CSS 클래스명 변경 시 해당 페이지 CSS(`org_chart.css`, `one_on_one.css` 등) 또는 앱 전역 CSS(`App.css`)도 함께 수정
 - `App.jsx`(demo wrapper)는 데이터/조합/라우팅만 담당, UI 로직은 넣지 않기
 
 ## 🔴 필수 규칙: design-system 토큰 사용
@@ -54,7 +55,7 @@ design-system/tokens.json → build → tokens.css (자동 생성)
                                         ↓
                                    index.css에서 alias로 매핑
                                         ↓
-                                   org_chart.css에서 사용
+                                   App.css / org_chart.css / one_on_one.css 에서 사용
 ```
 
 ### index.css의 alias 매핑 (짧은 이름 → 토큰)
@@ -99,7 +100,7 @@ design-system/tokens.json → build → tokens.css (자동 생성)
 
 1. 먼저 `tokens.css`에서 해당 값이 있는지 검색
 2. 있으면 `index.css`에 alias 추가: `--my-alias: var(--colors-xxx-xxx);`
-3. `org_chart.css`에서 `var(--my-alias)` 사용
+3. `App.css` (전역) 또는 해당 페이지 CSS(`org_chart.css`/`one_on_one.css`)에서 `var(--my-alias)` 사용
 4. `tokens.css`에 없는 값이면 하드코딩해도 되지만, 주석으로 표시: `/* TODO: token 없음 */`
 
 ## 🔴 필수 규칙: CSS 클래스명 규칙
@@ -107,7 +108,7 @@ design-system/tokens.json → build → tokens.css (자동 생성)
 - 클래스명은 **prefix 없이** 직관적으로: `.dept-card`, `.member-node`, `.org-node`
 - BEM이나 CSS Modules 사용하지 않음
 - 새 페이지 추가 시 기존 네이밍 패턴 따르기
-- 모든 스타일은 `org_chart.css` 한 파일에 (페이지가 늘면 페이지별 CSS 분리 가능)
+- 앱 전역 스타일(Sidebar/TopNav/레이아웃)은 `App.css`, 페이지별 스타일은 페이지 CSS 파일(`org_chart.css`, `one_on_one.css` 등)에 분리
 
 ## 프로젝트 실행
 

@@ -7,6 +7,7 @@ import {
   OrgChartCanvas,
 } from './components';
 import OneOnOneContent from './OneOnOnePage';
+import './App.css';
 import './org_chart.css';
 import './one_on_one.css';
 
