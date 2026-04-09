@@ -57,6 +57,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   const [showWorkHours, setShowWorkHours] = useState(true);
   const [showVacation, setShowVacation] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const openModal = useCallback((member) => {
@@ -178,6 +179,12 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
               <span className="toggle-knob" />
             </button>
           </label>
+          <label className="canvas-toggle">
+            <span className="canvas-toggle-label">어드민</span>
+            <button className={`toggle-switch ${adminMode ? 'toggle-on' : ''}`} onClick={() => setAdminMode(!adminMode)}>
+              <span className="toggle-knob" />
+            </button>
+          </label>
         </div>
 
         <div className="canvas-inner" ref={canvasInnerRef} style={{
@@ -186,7 +193,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           position: 'relative',
         }}>
           <BezierConnectors containerRef={canvasInnerRef} scale={scale} />
-          <OrgNode node={orgData} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} baseUrl={baseUrl} />
+          <OrgNode node={orgData} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} adminMode={adminMode} baseUrl={baseUrl} />
         </div>
 
         <div className="zoom-controls">

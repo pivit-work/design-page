@@ -4,7 +4,7 @@ import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
 
-export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, baseUrl = '', onMemberClick }) {
+export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;
   const modalCtx = React.useContext(ModalContext);
   const openModal = onMemberClick || modalCtx?.openModal;
@@ -144,6 +144,21 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
             </div>
           </>
         )}
+        {adminMode && member.hcScore != null && (() => {
+          const score = member.hcScore;
+          const hcColor = score >= 7 ? '#2dbd82' : score >= 5 ? '#f79009' : '#f04438';
+          return (
+            <div className="hc-score-section">
+              <div className="hc-score-bar">
+                <div className="hc-score-active" style={{ width: `${score * 10}%`, background: hcColor }} />
+              </div>
+              <div className="hc-score-info" style={{ color: hcColor }}>
+                <Icon src="/icons/check-heart.svg" size={14} color={hcColor} baseUrl={baseUrl} />
+                <span>{score}</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <span className="status-badge-member" style={{ background: status.badgeBg }}>{statusLabel}</span>
     </div>
