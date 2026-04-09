@@ -6,7 +6,7 @@ import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 import { loadPositions, savePositions } from './hooks.js';
 
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '' }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
 
@@ -59,7 +59,10 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   const [editMode, setEditMode] = useState(false);
 
   const [selectedMember, setSelectedMember] = useState(null);
-  const openModal = useCallback((member) => setSelectedMember(member), []);
+  const openModal = useCallback((member) => {
+    if (onMemberClick) onMemberClick(member);
+    else setSelectedMember(member);
+  }, [onMemberClick]);
   const closeModal = useCallback(() => setSelectedMember(null), []);
 
   const [scale, setScale] = useState(1);
@@ -127,7 +130,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     <ModalContext.Provider value={{ openModal }}>
     <MoveContext.Provider value={{ moveMember }}>
     <DragContext.Provider value={{ dropTarget, setDropTarget }}>
-      <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} />
+      {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} />}
 
       <div className="content-header">
         <div className="tab-nav">

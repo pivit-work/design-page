@@ -14,7 +14,7 @@ const DEFAULT_PROFILE = {
 
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '' }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
 
@@ -37,13 +37,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '' 
               <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div
-            className={`modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
-            onClick={() => setSplineActive(true)}
-            onMouseLeave={() => setSplineActive(false)}
-          >
-            <iframe src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`} sandbox="allow-scripts" frameBorder="0" width="100%" height="100%" title="Spline 3D" style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.5s ease' }} onLoad={() => setTimeout(() => setSplineReady(true), 1500)} />
-          </div>
+          {renderAvatar ? renderAvatar(member) : (
+            <div
+              className={`modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
+              onClick={() => setSplineActive(true)}
+              onMouseLeave={() => setSplineActive(false)}
+            >
+              <iframe src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`} sandbox="allow-scripts" frameBorder="0" width="100%" height="100%" title="Spline 3D" style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.5s ease' }} onLoad={() => setTimeout(() => setSplineReady(true), 1500)} />
+            </div>
+          )}
           <div className="modal-name">{member.name}</div>
           <div className="modal-title">{profile.title} · {profile.dept}</div>
           <div className="modal-bio">{profile.bio}</div>
