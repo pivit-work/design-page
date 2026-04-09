@@ -35,8 +35,17 @@
 .brand-count { font-weight: 600; color: var(--text-brand-secondary); }
 
 /* ── Canvas Area ── */
-.canvas-area { position: fixed; top: 177px; left: 252px; right: 40px; bottom: 40px; background: white; border-radius: 14px; overflow: hidden; user-select: none; }
-.canvas-inner { padding: 80px 40px 100px; display: inline-flex; justify-content: center; min-width: 100%; transition: transform 0.05s linear; }
+.canvas-area { position: fixed; top: 177px; left: 252px; right: 40px; bottom: 40px; background-color: white; border-radius: 14px; overflow: hidden; user-select: none; }
+.canvas-inner { padding: 80px 40px 100px; display: inline-flex; justify-content: center; min-width: 100%; transition: transform 0.05s linear; position: relative; }
+.canvas-inner::before {
+  content: '';
+  position: absolute;
+  top: -5000px; left: -5000px; right: -5000px; bottom: -5000px;
+  background-image: radial-gradient(circle, #d2d6db 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
 
 /* ── Drag Hint ── */
 .drag-hint { position: absolute; top: 16px; left: 18px; display: flex; align-items: center; gap: 12px; padding: 2px 4px; border-radius: 4px; background: var(--utility-brand-50); font-size: 12px; font-weight: 500; color: var(--text-brand-tertiary); line-height: 18px; z-index: 5; }
@@ -257,6 +266,39 @@
 }
 
 .working-time-right {
+  line-height: 20px;
+}
+
+/* ── HC Score Section ── */
+.hc-score-section {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hc-score-bar {
+  align-self: stretch;
+  height: 4px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  overflow: hidden;
+  position: relative;
+}
+
+.hc-score-active {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.hc-score-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 20px;
 }
 
