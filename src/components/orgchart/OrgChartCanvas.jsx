@@ -6,7 +6,7 @@ import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 import { loadPositions, savePositions } from './hooks.js';
 
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
 
@@ -56,7 +56,6 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
   const [showWorkHours, setShowWorkHours] = useState(true);
   const [showVacation, setShowVacation] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
 
   const [selectedMember, setSelectedMember] = useState(null);
@@ -170,12 +169,6 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           <label className="canvas-toggle">
             <span className="canvas-toggle-label">휴가</span>
             <button className={`toggle-switch ${showVacation ? 'toggle-on' : ''}`} onClick={() => setShowVacation(!showVacation)}>
-              <span className="toggle-knob" />
-            </button>
-          </label>
-          <label className="canvas-toggle">
-            <span className="canvas-toggle-label">수정</span>
-            <button className={`toggle-switch ${editMode ? 'toggle-on' : ''}`} onClick={() => setEditMode(!editMode)}>
               <span className="toggle-knob" />
             </button>
           </label>
