@@ -783,9 +783,9 @@
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--bg-quaternary);
   margin-right: -4px;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--bg-quaternary);
 }
 .pj-avatar-more {
   display: flex;
