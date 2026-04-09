@@ -27,7 +27,7 @@ const PROJECTS = [
   },
   {
     id: 'ai-pipeline',
-    name: 'AI 파이프라인',
+    name: 'AI 파이프라인 구축 및 하네스 엔지니어링',
     description: 'Whisper STT · 요약 · pgvector 검색',
     progress: 74,
     status: 'inProgress',

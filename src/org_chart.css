@@ -898,7 +898,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  white-space: nowrap;
   height: 64px;
   box-sizing: border-box;
 }
@@ -1043,10 +1042,11 @@
 .pj-th-dot {
   display: inline-block;
   width: 20px;
+  min-width: 20px;
   height: 20px;
   border-radius: 6px;
   vertical-align: middle;
-  margin-right: 12px;
+  flex-shrink: 0;
 }
 .pj-th-label { vertical-align: middle; }
 
