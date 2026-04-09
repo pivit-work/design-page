@@ -9,6 +9,7 @@
     "./components": "./src/components/index.js",
     "./components/*": "./src/components/*",
     "./styles/org-chart.css": "./src/org_chart.css",
+    "./styles/one-on-one.css": "./src/one_on_one.css",
     "./styles/tokens.css": "./src/tokens.css",
     "./styles/tokens-dark.css": "./src/tokens-dark.css",
     "./styles/index.css": "./src/index.css"

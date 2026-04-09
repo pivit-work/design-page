@@ -26,3 +26,16 @@ export {
   usePositions,
   useDrag,
 } from './orgchart/index.js';
+
+// 1on1
+export {
+  ProgressBar as OneOnOneProgressBar,
+  Tag as OneOnOneTag,
+  StatusBadge as OneOnOneStatusBadge,
+  StatCard as OneOnOneStatCard,
+  MemberCard as OneOnOneMemberCard,
+  OneOnOneDashboardCanvas,
+  PROGRESS_COLORS as ONEONONE_PROGRESS_COLORS,
+  STATUS_BADGE as ONEONONE_STATUS_BADGE,
+  TAG_TYPES as ONEONONE_TAG_TYPES,
+} from './oneonone/index.js';

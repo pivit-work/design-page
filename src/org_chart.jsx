@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 import OneOnOneContent from './OneOnOnePage';
 import './org_chart.css';
+import './one_on_one.css';
 
 /* ── Inline SVG Icon ── */
 const BASE = import.meta.env.BASE_URL;
