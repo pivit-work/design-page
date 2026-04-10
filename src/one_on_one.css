@@ -1,41 +1,7 @@
 /* ══════════════════════════════════════════════════
    1 on 1 Page Styles
+   (.content-area, .tabs-row, .tab-btn 등 공유 스타일은 App.css 로 이동됨)
    ══════════════════════════════════════════════════ */
-
-/* ── Content Area ── */
-.content-area {
-  position: fixed;
-  top: 48px;
-  left: 240px;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-top: 20px;
-}
-
-/* Custom scrollbar on content-area */
-.content-area::-webkit-scrollbar {
-  width: 12px;
-}
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-.content-area::-webkit-scrollbar-thumb {
-  background: var(--border-primary);
-  border-radius: 6px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-
-.content-canvas {
-  padding: 0 0 60px 0;
-}
 
 /* ── Page Header ── */
 .page-header {
@@ -156,63 +122,6 @@
   line-height: 1;
   letter-spacing: -2px;
   -webkit-font-smoothing: auto;
-}
-
-/* ── Tabs ── */
-.tabs-row {
-  display: flex;
-  gap: 4px;
-  padding: 0 40px 16px 0;
-  position: relative;
-}
-
-.tab-slider {
-  position: absolute;
-  top: 50%;
-  transform: translateY(calc(-50% - 8px));
-  height: 36px;
-  background: var(--bg-active);
-  border-radius: var(--radius-4xl);
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 0;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: var(--radius-4xl);
-  background: transparent;
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm);
-  font-weight: 700;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  position: relative;
-  z-index: 1;
-  transition: color 0.2s;
-}
-
-.tab-btn.tab-active {
-  color: var(--text-secondary);
-}
-
-.tab-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 10px;
-  background: var(--utility-gray-50);
-  border: 1px solid var(--utility-gray-200);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-text-xs);
-  font-weight: 500;
-  color: var(--utility-gray-700);
-  line-height: var(--line-height-text-xs);
 }
 
 /* ── Cards Grid ── */
