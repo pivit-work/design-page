@@ -235,7 +235,24 @@ function ProjectCard({ project }) {
   );
 }
 
-function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
+function collectOrgMembers(node) {
+  let result = [];
+  if (node.members) {
+    result.push(...node.members.map(m => ({
+      name: m.name,
+      email: `${m.name.toLowerCase().replace(/\s+/g, '.')}@pivit.work`,
+      avatar: m.avatar,
+      status: m.status || 'working',
+      role: m.role,
+      profile: m.profile,
+      projects: {},
+    })));
+  }
+  if (node.children) node.children.forEach(c => { result = result.concat(collectOrgMembers(c)); });
+  return result;
+}
+
+function MemberTable({ projects, stickyTop = 0, onMemberClick, orgData }) {
   const headerScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
   const titleRef = useRef(null);
@@ -243,7 +260,19 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
   const syncingRef = useRef(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrolledEnd, setScrolledEnd] = useState(false);
-  const [members, setMembers] = useState(MEMBERS);
+  const [members, setMembers] = useState(() => {
+    if (!orgData) return MEMBERS;
+    const orgMembers = collectOrgMembers(orgData);
+    // Assign random project marks to org members
+    orgMembers.forEach(m => {
+      projects.forEach(p => { m.projects[p.id] = Math.random() < 0.25; });
+    });
+    // Merge: org members first, then existing MEMBERS (deduplicate by name)
+    const orgNames = new Set(orgMembers.map(m => m.name));
+    const extra = MEMBERS.filter(m => !orgNames.has(m.name));
+    return [...orgMembers, ...extra];
+  });
+  const [visibleCount, setVisibleCount] = useState(10);
   const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
 
   const updateShadows = (el) => {
@@ -276,9 +305,13 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
   }, [projects]);
 
   const handleLoadMore = () => {
-    const projectIds = projects.map(p => p.id);
-    const newMembers = generateRandomMembers(20, projectIds);
-    setMembers(prev => [...prev, ...newMembers]);
+    const nextCount = visibleCount + 20;
+    if (nextCount >= members.length) {
+      const projectIds = projects.map(p => p.id);
+      const newMembers = generateRandomMembers(20, projectIds);
+      setMembers(prev => [...prev, ...newMembers]);
+    }
+    setVisibleCount(nextCount);
   };
 
   const onMouseDown = (e) => {
@@ -300,7 +333,8 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
     }
   };
 
-  const memberTotals = members.map(member =>
+  const visibleMembers = members.slice(0, visibleCount);
+  const memberTotals = visibleMembers.map(member =>
     projects.reduce((sum, p) => sum + (member.projects[p.id] ? 1 : 0), 0)
   );
 
@@ -327,7 +361,7 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
         {/* Table body */}
         <div className="pj-table-outer">
           <div className={`pj-name-column ${scrolled ? 'pj-name-shadow' : ''}`}>
-            {members.map((member, i) => (
+            {visibleMembers.map((member, i) => (
               <div key={i} className="pj-name-cell" onClick={() => onMemberClick && onMemberClick(member)} style={{ cursor: 'pointer' }}>
                 <div className="pj-member-info">
                   {member.avatar ? (
@@ -354,7 +388,7 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
           >
             <table className="pj-table">
               <tbody>
-                {members.map((member, i) => (
+                {visibleMembers.map((member, i) => (
                   <tr key={i}>
                     {projects.map(p => (
                       <td key={p.id} className="pj-td pj-td-project">
@@ -382,7 +416,7 @@ function MemberTable({ projects, stickyTop = 0, onMemberClick }) {
   );
 }
 
-export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '' }) {
+export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData }) {
   const [activeTab, setActiveTab] = useState('all');
   const tabsRef = useRef(null);
   const pageHeaderRef = useRef(null);
@@ -450,10 +484,10 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '' 
             ))}
           </div>
 
-          <MemberTable projects={PROJECTS} stickyTop={headerHeight} onMemberClick={setSelectedMember} />
+          <MemberTable projects={PROJECTS} stickyTop={headerHeight} onMemberClick={setSelectedMember} orgData={orgData} />
         </div>
       </div>
     </div>
-    <ProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} statIcons={statIcons} baseUrl={baseUrl} />
+    <ProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} statIcons={statIcons} baseUrl={baseUrl} findSubordinates={findSubordinates} adminMode={adminMode} />
   </>);
 }

@@ -10,6 +10,7 @@ import {
 import OneOnOneContent from './OneOnOnePage';
 import './App.css';
 import './org_chart.css';
+import './org_project.css';
 import './one_on_one.css';
 
 /* ── Assets ── */
@@ -39,6 +40,9 @@ const STAT_ICONS = {
   hc: `${BASE}badge-hc.png`,
   oneOnOne: `${BASE}badge-1on1.png`,
   workHours: `${BASE}badge-hours.png`,
+  employment: `${BASE}badge-employment.png`,
+  rank: `${BASE}badge-rank.png`,
+  workHoursAdmin: `${BASE}badge-workhours.png`,
 };
 
 const MENU = [
@@ -164,10 +168,64 @@ const INITIAL_ORG = {
   ],
 };
 
+/* ── Collect subordinates from org tree ── */
+function collectAllMembers(node) {
+  let result = [];
+  if (node.members) result.push(...node.members);
+  if (node.children) node.children.forEach(c => { result = result.concat(collectAllMembers(c)); });
+  return result;
+}
+
+function findSubordinates(orgData, member) {
+  if (!member || !member.role) return [];
+
+  // Find the node where this member belongs
+  function findMemberNode(node, target) {
+    if (node.members) {
+      const found = node.members.find(m => m.name === target.name && m.role === target.role);
+      if (found) return node;
+    }
+    if (node.children) {
+      for (const child of node.children) {
+        const result = findMemberNode(child, target);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  const parentNode = findMemberNode(orgData, member);
+  if (!parentNode) return [];
+
+  // DL(본부장): collect all members from child teams/parts
+  // TL(팀장): collect all members from child parts
+  if (member.role === 'DL' || member.role === 'TL') {
+    let subs = [];
+    if (parentNode.children) {
+      parentNode.children.forEach(child => {
+        subs = subs.concat(collectAllMembers(child));
+      });
+    }
+    // Also include same-level members (excluding self)
+    if (parentNode.members) {
+      subs.push(...parentNode.members.filter(m => m.name !== member.name));
+    }
+    return subs.map(m => ({
+      name: m.name,
+      role: m.role || '사원',
+      avatar: m.avatar,
+      online: m.status === 'working' || m.status === 'standby',
+    }));
+  }
+
+  return [];
+}
+
 /* ── Main App (thin demo — components live in ./components/orgchart) ── */
 export default function App() {
   const [currentPage, setCurrentPage] = useState('orgchart');
   const [orgSubTab, setOrgSubTab] = useState('orgchart');
+  const [adminMode, setAdminMode] = useState(false);
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
@@ -186,11 +244,14 @@ export default function App() {
           statIcons={STAT_ICONS}
           baseUrl={BASE}
           onSubTabChange={setOrgSubTab}
+          findSubordinates={(member) => findSubordinates(INITIAL_ORG, member)}
+          adminMode={adminMode}
+          onAdminModeChange={setAdminMode}
         />
       )}
 
       {currentPage === 'orgchart' && orgSubTab === 'project' && (
-        <ProjectCanvas onSubTabChange={setOrgSubTab} statIcons={STAT_ICONS} baseUrl={BASE} />
+        <ProjectCanvas onSubTabChange={setOrgSubTab} statIcons={STAT_ICONS} baseUrl={BASE} findSubordinates={(member) => findSubordinates(INITIAL_ORG, member)} adminMode={adminMode} orgData={INITIAL_ORG} />
       )}
 
       {currentPage === 'oneonone' && (

@@ -6,19 +6,26 @@ const DEFAULT_PROFILE = {
   title: '사원',
   dept: '경영지원본부',
   bio: '열정적으로 업무에 임하고 있습니다.',
-  skills: '기획 • 매니징',
-  contacts: '@user • user@pivit.com',
-  links: ['https://pivit.com'],
+  skills: '경영전략 • 기획 • 매니징 • IR',
+  contacts: '@woojin.kim\nmanager1@pivit.com',
+  links: ['https://woojin.dev', 'https://github.com/woojin-kim'],
   teamMembers: [],
+  employeeId: 'PVT-008',
+  hireDate: '2026-05-02',
+  phone: '010-1234-5678',
+  employmentType: '정규직',
+  rank: 'L3',
+  workHours: '10-7',
 };
 
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
 /* Preloaded Spline iframe — stays mounted so it's instant on re-open */
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
   const iframeRef = useRef(null);
+  const scrollWrapRef = useRef(null);
   const prevMemberRef = useRef(null);
 
   // Listen for spline-ready message (scene + texture fully loaded)
@@ -32,7 +39,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
 
   useEffect(() => {
     if (!member) setSplineActive(false);
-    if (member) prevMemberRef.current = member;
+    if (member) {
+      prevMemberRef.current = member;
+      if (scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
+    }
   }, [member]);
 
   // The member to use for rendering (keep last member visible during close animation)
@@ -44,7 +54,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     <>
     {/* Always-mounted overlay + modal — hidden via CSS when closed */}
     <div className="modal-overlay" onClick={onClose} style={{ display: isOpen ? '' : 'none' }} />
-    <div className="modal-scroll-wrap" onClick={onClose} style={{ display: isOpen ? '' : 'none' }}>
+    <div className="modal-scroll-wrap" ref={scrollWrapRef} onClick={onClose} style={{ display: isOpen ? '' : 'none' }}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
@@ -76,39 +86,42 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <span className="modal-status-badge">{(MEMBER_STATUSES[displayMember?.status] || MEMBER_STATUSES.working).label}</span>
         </div>
 
-        {/* Stats Row */}
-        {statIcons && (
+        {/* Stats Row — Admin: 고용형태/직급/업무시간, Employee: 업무시간 only */}
+        {statIcons && adminMode ? (
           <div className="modal-stats">
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-okr">
-                <img src={statIcons.okr} alt="OKR" />
+              <div className="modal-stat-icon modal-stat-employment">
+                <img src={statIcons.employment} alt="고용형태" />
               </div>
-              <div className="modal-stat-label">OKR</div>
-              <div className="modal-stat-value">70%</div>
+              <div className="modal-stat-label">고용형태</div>
+              <div className="modal-stat-value">{profile.employmentType || '정규직'}</div>
             </div>
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-hc">
-                <img src={statIcons.hc} alt="HC" />
+              <div className="modal-stat-icon modal-stat-rank">
+                <img src={statIcons.rank} alt="직급" />
               </div>
-              <div className="modal-stat-label">HC</div>
-              <div className="modal-stat-value">50%</div>
+              <div className="modal-stat-label">직급</div>
+              <div className="modal-stat-value">{profile.rank || 'L3'}</div>
             </div>
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-1on1">
-                <img src={statIcons.oneOnOne} alt="1 on 1" />
+              <div className="modal-stat-icon modal-stat-workhours-admin">
+                <img src={statIcons.workHoursAdmin} alt="업무시간" />
               </div>
-              <div className="modal-stat-label">1 on 1</div>
-              <div className="modal-stat-value">완료</div>
+              <div className="modal-stat-label">업무시간</div>
+              <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
             </div>
+          </div>
+        ) : statIcons ? (
+          <div className="modal-stats">
             <div className="modal-stat">
               <div className="modal-stat-icon modal-stat-hours">
                 <img src={statIcons.workHours} alt="업무시간" />
               </div>
               <div className="modal-stat-label">업무시간</div>
-              <div className="modal-stat-value">10-7</div>
+              <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Action Buttons */}
         {(() => {
@@ -127,6 +140,24 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           );
         })()}
 
+        {/* Admin-only: 사번/입사일/전화번호 */}
+        {adminMode && (
+          <div className="modal-info-sections">
+            <div className="modal-info-section">
+              <div className="modal-info-label">사번</div>
+              <div className="modal-info-content">{profile.employeeId || 'PVT-008'}</div>
+            </div>
+            <div className="modal-info-section">
+              <div className="modal-info-label">입사일</div>
+              <div className="modal-info-content">{profile.hireDate || '2026-05-02'}</div>
+            </div>
+            <div className="modal-info-section">
+              <div className="modal-info-label">전화번호</div>
+              <div className="modal-info-content">{profile.phone || '010-1234-5678'}</div>
+            </div>
+          </div>
+        )}
+
         {/* Info Sections */}
         <div className="modal-info-sections">
           <div className="modal-info-section">
@@ -141,33 +172,41 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             <div className="modal-info-label">링크</div>
             <div className="modal-info-content">
               {profile.links.map((link, i) => (
-                <div key={i} className="modal-info-link">{link}</div>
+                <a key={i} className="modal-info-link" href={link} target="_blank" rel="noopener noreferrer">
+                  {link}
+                  <Icon src="/icons/arrow-up-right.svg" size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                </a>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Team Members */}
-        {profile.teamMembers && profile.teamMembers.length > 0 && (
-          <div className="modal-team">
-            <div className="modal-team-header">
-              <span className="modal-team-title">직속팀원</span>
-              <span className="modal-team-count">{profile.teamMembers.length}명</span>
-            </div>
-            <div className="modal-team-grid">
-              {profile.teamMembers.map((tm, i) => (
-                <div key={i} className="modal-team-member">
-                  <div className="modal-team-avatar-wrap">
-                    <img src={tm.avatar} alt="" className="modal-team-avatar" />
-                    <span className={`modal-team-dot ${tm.online ? 'online' : 'offline'}`} />
+        {/* Team Members — dynamic from org tree or profile */}
+        {(() => {
+          const subs = findSubordinates ? findSubordinates(displayMember) : [];
+          const teamList = subs.length > 0 ? subs : (profile.teamMembers || []);
+          if (teamList.length === 0) return null;
+          return (
+            <div className="modal-team">
+              <div className="modal-team-header">
+                <span className="modal-team-title">직속팀원</span>
+                <span className="modal-team-count">{teamList.length}명</span>
+              </div>
+              <div className="modal-team-grid">
+                {teamList.map((tm, i) => (
+                  <div key={i} className="modal-team-member">
+                    <div className="modal-team-avatar-wrap">
+                      <img src={tm.avatar} alt="" className="modal-team-avatar" />
+                      <span className={`modal-team-dot ${tm.online ? 'online' : 'offline'}`} />
+                    </div>
+                    <div className="modal-team-name">{tm.name}</div>
+                    <div className="modal-team-role">{tm.role || '사원'}</div>
                   </div>
-                  <div className="modal-team-name">{tm.name}</div>
-                  <div className="modal-team-role">{tm.role}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Footer */}
         <div className="modal-footer">

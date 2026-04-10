@@ -6,7 +6,7 @@ import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 import { loadPositions, savePositions } from './hooks.js';
 
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
 
@@ -56,7 +56,8 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
   const [showWorkHours, setShowWorkHours] = useState(true);
   const [showVacation, setShowVacation] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
+  const adminMode = adminModeProp;
+  const setAdminMode = (v) => onAdminModeChange && onAdminModeChange(v);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const openModal = useCallback((member) => {
@@ -130,7 +131,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     <ModalContext.Provider value={{ openModal }}>
     <MoveContext.Provider value={{ moveMember }}>
     <DragContext.Provider value={{ dropTarget, setDropTarget }}>
-      {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} />}
+      {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} adminMode={adminMode} findSubordinates={findSubordinates} />}
 
       <div className="content-header">
         <div className="tab-nav">
@@ -172,7 +173,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
             </button>
           </label>
           <label className="canvas-toggle">
-            <span className="canvas-toggle-label">어드민</span>
+            <span className="canvas-toggle-label">Admin</span>
             <button className={`toggle-switch ${adminMode ? 'toggle-on' : ''}`} onClick={() => setAdminMode(!adminMode)}>
               <span className="toggle-knob" />
             </button>
@@ -189,10 +190,32 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         </div>
 
         <div className="zoom-controls">
-          <button className="zoom-btn" onClick={() => { const s = Math.min(scaleRef.current + 0.1, 3); scaleRef.current = s; setScale(s); }}>
+          <button className="zoom-btn" onClick={() => {
+            const canvas = canvasRef.current; if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const cx = rect.width / 2, cy = rect.height / 2;
+            const prevScale = scaleRef.current;
+            const nextScale = Math.min(prevScale + 0.1, 3);
+            const ratio = nextScale / prevScale;
+            const prevT = translateRef.current;
+            const nextT = { x: cx - ratio * (cx - prevT.x), y: cy - ratio * (cy - prevT.y) };
+            scaleRef.current = nextScale; translateRef.current = nextT;
+            setScale(nextScale); setTranslate(nextT);
+          }}>
             <Icon src={icons.plus} size={20} color="var(--text-primary)" baseUrl={baseUrl} />
           </button>
-          <button className="zoom-btn" onClick={() => { const s = Math.max(scaleRef.current - 0.1, 0.2); scaleRef.current = s; setScale(s); }}>
+          <button className="zoom-btn" onClick={() => {
+            const canvas = canvasRef.current; if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const cx = rect.width / 2, cy = rect.height / 2;
+            const prevScale = scaleRef.current;
+            const nextScale = Math.max(prevScale - 0.1, 0.2);
+            const ratio = nextScale / prevScale;
+            const prevT = translateRef.current;
+            const nextT = { x: cx - ratio * (cx - prevT.x), y: cy - ratio * (cy - prevT.y) };
+            scaleRef.current = nextScale; translateRef.current = nextT;
+            setScale(nextScale); setTranslate(nextT);
+          }}>
             <Icon src={icons.minus} size={20} color="var(--text-primary)" baseUrl={baseUrl} />
           </button>
           <button className="zoom-btn" onClick={resetView}>
