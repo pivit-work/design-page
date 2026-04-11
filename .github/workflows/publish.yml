@@ -35,6 +35,7 @@ jobs:
           npm version patch --no-git-tag-version
           git add package.json package-lock.json
           git commit -m "chore: bump version to $(node -p 'require(\"./package.json\").version')" || true
+          git pull --rebase
           git push
 
       - run: npm publish
