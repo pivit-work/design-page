@@ -234,7 +234,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar menu={MENU} currentPage={currentPage} onNavigate={handleNavigate} icons={ICONS} baseUrl={BASE} />
+      <Sidebar menu={MENU} currentPage={currentPage} onNavigate={handleNavigate} icons={ICONS} baseUrl={BASE} onFeedbackClick={() => { window.location.href = 'mailto:m@pivit.work'; }} onSettingsClick={() => handleNavigate('settings')} />
       <TopNav icons={ICONS} baseUrl={BASE} />
 
       {currentPage === 'orgchart' && orgSubTab === 'orgchart' && (

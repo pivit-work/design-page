@@ -1,6 +1,6 @@
 import Icon from '../shared/Icon.jsx';
 
-export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl = '' }) {
+export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl = '', onFeedbackClick, onSettingsClick }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-inner">
@@ -23,8 +23,8 @@ export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl 
           </nav>
         </div>
         <div className="sidebar-bottom">
-          <div className="menu-item"><Icon src={icons.send} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>의견보내기</span></div>
-          <div className="menu-item"><Icon src={icons.settings} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>설정</span></div>
+          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>의견보내기</span></div>
+          <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>설정</span></div>
         </div>
       </div>
     </aside>
