@@ -7,11 +7,11 @@
 
   /* Background Colors — linked to design system tokens */
   --bg-primary: var(--colors-background-bgPrimary);
-  --bg-primary-alt: rgba(243, 244, 246, 0.5);
-  --bg-quaternary: white;
+  --bg-primary-alt: var(--colors-background-bgPrimaryAlt);
+  --bg-quaternary: var(--colors-background-bgQuaternary);
   --bg-secondary: var(--colors-background-bgSecondary);
   --bg-active: var(--colors-background-bgActive);
-  --bg-field: #eeeff1;
+  --bg-field: var(--colors-background-bgSecondaryHover);
   --bg-brand-solid: var(--colors-background-bgBrandSolid);
   --bg-error-primary: var(--colors-background-bgErrorPrimary);
 
