@@ -488,7 +488,7 @@
   justify-content: center;
   gap: 6px;
   background: var(--colors-background-bgBrandSecondary);
-  color: var(--text-brand-tertiary);
+  color: var(--colors-text-textBrandPrimary);
   border: none;
   border-radius: 10px;
   padding: 10px 12px;
