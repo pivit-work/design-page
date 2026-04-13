@@ -129,11 +129,11 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           return (
             <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
               <button className="modal-btn-feedback" disabled={isDisabled}>
-                <Icon src="/icons-solid/send-03.svg" size={20} color="white" baseUrl={baseUrl} />
+                <Icon src="/icons-solid/send-03.svg" size={20} baseUrl={baseUrl} />
                 피드백주기
               </button>
               <button className="modal-btn-meeting" disabled={isDisabled}>
-                <Icon src="/icons-solid/calendar-heart-02.svg" size={20} color="#21a67a" baseUrl={baseUrl} />
+                <Icon src="/icons-solid/calendar-heart-02.svg" size={20} baseUrl={baseUrl} />
                 미팅잡기
               </button>
             </div>
