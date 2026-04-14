@@ -1,0 +1,1079 @@
+/* ===========================
+   Timeline Page
+   - top: 0 + padding-top 72 → title at viewport y=80 (= OneOnOne 기준 정렬)
+   - Figma Frame 50 top nav 80 자체는 design-page TopNav(68)와 12px 차이가 있어
+     그 차이는 .tl-page padding-top 72로 흡수됨 (4px 여유 = 보이지 않음)
+   - 좌 0, 우 40 — 모든 행은 각자 margin-left: 12로 X=252 정렬
+   =========================== */
+.tl-page {
+  position: fixed;
+  top: 0;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  /* grid-template-rows: auto(header) auto(tabs) auto(toolbar) 1fr(body).
+     grid은 flex와 달리 1fr 행이 컨텐츠 크기에 관계없이 남은 공간만큼만
+     할당되기 때문에 body가 viewport를 초과하지 않도록 확실히 제한된다.
+     (flex:1 + min-height:0 조합이 일부 레이아웃에서 의도대로 shrink 되지
+     않는 문제를 우회) */
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  padding: 72px 40px 20px 0;
+  font-family: var(--font-family-body);
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Page header — Figma frameGroup: padding 8 12 (=spacing-md vertical, 12 horizontal) */
+.tl-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-left: 12px;
+  padding: 8px 0;
+  flex-shrink: 0;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.tl-page-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.tl-page-title {
+  /* Display sm/Bold — 30/38, weight 700 */
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 38px;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.tl-page-title-sub {
+  color: var(--text-quaternary);
+  margin-left: 20px;
+}
+
+/* Meta "진행 중 프로젝트 · 2개" — Figma image #33:
+   Pretendard Bold 14, letter-spacing -4% (-0.04em), fill text-secondary */
+.tl-page-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: normal;
+}
+
+.tl-meta-label {
+  color: var(--text-secondary);
+}
+
+.tl-meta-sep {
+  color: var(--text-tertiary);
+}
+
+/* Count override: SemiBold (600) per earlier Figma context */
+.tl-meta-count {
+  font-weight: 600;
+  color: var(--text-brand-secondary);
+}
+
+/* Tab row — Figma frameDiv: border-bottom 1px secondary (긴 스트록), height 36
+   margin-top 20: gap from page header (Figma y=157→y=177) */
+.tl-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 0 12px;
+  padding: 0;
+  height: 36px;
+  gap: 20px;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  flex-shrink: 0;
+}
+
+.tl-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Tab — Figma .tabButtonBase: height 36, padding 4 0, text-md Medium 16/24 */
+.tl-tab {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tl-tab.is-active {
+  color: var(--text-primary);
+  /* Figma uses fg-secondary (#687079) for the underline */
+  border-bottom-color: var(--colors-foreground-fgSecondary, #687079);
+}
+
+/* Google Calendar status — Figma .frameParent2 + .googleCalendar */
+.tl-gcal-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+/* Toolbar — Figma frameParent5: gap 16, no internal vertical padding
+   margin-top 8: gap from tabs (Figma y=213→y=221) */
+.tl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 0 12px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+/* Segmented control 일/주/월 — Figma .segmentedControl */
+.tl-seg-control {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 4px;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.tl-seg-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tl-seg-item.is-active {
+  background: #fff;
+  border: 0.5px solid #f9fafb;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08);
+  color: var(--text-secondary);
+}
+
+/* Date picker — Figma .buttons5: padding 8 14, radius 8, gap 4
+   Text: Text sm/Semibold (14/20/600), fill text-secondary */
+.tl-date-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tl-date-picker:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Date nav (chevron + today) — Figma .frameParent (today: .buttons7 padding 8 14) */
+.tl-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Chevron buttons — Figma .buttons6: square padding 8.
+   "오늘" text uses text-secondary (Figma image #30) */
+.tl-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tl-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* "오늘" button — Figma .buttons7: padding 8 14 */
+.tl-nav-today {
+  padding: 8px 14px;
+}
+
+/* Filter button — Figma .buttons9: square padding 8 */
+.tl-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tl-filter-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tl-toolbar-spacer {
+  flex: 1;
+}
+
+/* + 이벤트 추가 — Figma .buttons10: padding 8 12, radius 8, semibold, bg-brand-solid */
+.tl-add-event {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.tl-add-event:hover {
+  background: #21a67a;
+}
+
+/* ===========================
+   Body: left fixed + right scrolling — Figma .content2 (radius 16)
+   margin-top 8: gap from toolbar (Figma y=257→y=265)
+   =========================== */
+.tl-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary-alt);
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 8px 0 0 12px;
+}
+
+/* ---------- Left column (fixed) ---------- */
+.tl-left {
+  display: flex;
+  flex-direction: column;
+  width: 230px;
+  flex-shrink: 0;
+  border-right: 1px solid #e6e8ea;
+  background: var(--bg-quaternary);
+  position: relative;
+  /* 뷰포트 축소 시 tl-left가 자연 컨텐츠 높이로 팽창해 바텀 버튼 블록이
+     멤버들을 덮어버리는 문제를 방지. height:100% + min-height:0 + overflow:hidden
+     이 constraint가 있어야 자식 .tl-left-mid 의 flex:1/min-height:0 이
+     실제로 작동해서 내부 스크롤이 생긴다. */
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tl-left-header {
+  height: 40px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  letter-spacing: -0.12px;
+  border-bottom: 1px solid #e6e8ea;
+  background: var(--bg-quaternary);
+  flex-shrink: 0;
+}
+
+/* 왼쪽 mid 는 자체 scroll 을 갖지 않는다. overflow:hidden 으로 시야를
+   자르고, 내부 .tl-left-mid-content 가 transform: translateY 로 오른쪽
+   scrollTop 을 mirror 한다. wheel 이벤트는 TimelineCanvas 에서 잡아 오른쪽
+   scrollTop 으로 forward. */
+.tl-left-mid {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+.tl-left-mid-content {
+  /* will-change 로 transform 을 GPU 레이어로 승격해 스크롤이 부드러움 */
+  will-change: transform;
+}
+
+.tl-left-bottom {
+  flex-shrink: 0;
+  border-top: 1px solid #e6e8ea;
+  background: var(--bg-quaternary);
+}
+
+.tl-left-bottom-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.tl-btn-group-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  letter-spacing: -0.12px;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.tl-btn-group-add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.tl-btn-add-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+}
+
+.tl-btn-add-member:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Group header row */
+.tl-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
+  box-sizing: border-box;
+}
+
+.tl-group-header-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tl-group-header-name {
+  font-weight: 600;
+  letter-spacing: -0.12px;
+}
+
+.tl-group-header-count {
+  font-weight: 400;
+}
+
+.tl-group-header-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Member row */
+.tl-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px 24px 12px;
+  background: var(--bg-quaternary);
+  border-bottom: 1px solid #f3f4f6;
+  box-sizing: border-box;
+  cursor: grab;
+}
+
+.tl-member-row:active {
+  cursor: grabbing;
+}
+
+/* Placeholder slot inserted at the drop target while dragging.
+   Wrapper keeps full row height (no layout shift), inner box has the inset
+   green dashed border + light tint per Figma. */
+.tl-member-placeholder-wrap {
+  padding: 8px 12px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.tl-member-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(45, 189, 130, 0.06);
+  border: 1.5px dashed var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-radius: 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* ===========================
+   Date picker popover (mini calendar)
+   Figma _Date picker menu: 328px wide, radius 16, shadow-3xl, padding 20 24,
+   content gap 12. Calendar cell 40x40 rounded-full.
+   =========================== */
+.tl-datepicker-popover {
+  position: fixed;
+  z-index: 9000;
+  width: 328px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondaryAlt, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  box-shadow:
+    0 32px 64px -12px rgba(10, 13, 18, 0.14),
+    0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+  overflow: hidden;
+  font-family: var(--font-family-body);
+  transition: opacity 0.12s ease;
+}
+
+.tl-datepicker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+}
+
+.tl-datepicker-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.tl-datepicker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--colors-foreground-fgSecondary, #687079);
+  font-family: inherit;
+}
+
+.tl-datepicker-nav:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tl-datepicker-month-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--colors-foreground-fgSecondary, #687079);
+}
+
+.tl-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 40px);
+  grid-auto-rows: 40px;
+  row-gap: 4px;
+  column-gap: 0;
+  width: 100%;
+}
+
+.tl-datepicker-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--colors-text-textSecondary, #687079);
+}
+
+.tl-datepicker-weekday {
+  font-weight: 500;
+  cursor: default;
+}
+
+.tl-datepicker-day {
+  cursor: pointer;
+}
+
+.tl-datepicker-day:hover:not(.is-selected) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tl-datepicker-day.is-outside {
+  color: var(--colors-text-textDisabled, #b1b6be);
+}
+
+.tl-datepicker-day.is-today {
+  font-weight: 500;
+}
+
+.tl-datepicker-day.is-selected {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ===========================
+   Meeting detail modal (popover style)
+   =========================== */
+
+/* Full-screen overlay catches outside-clicks. No backdrop tint per Figma. */
+.tl-meeting-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: transparent;
+}
+
+/* The modal card itself — fixed positioning driven by JS layout effect */
+.tl-meeting-modal {
+  position: fixed;
+  width: 520px;
+  background: var(--bg-quaternary);
+  border-radius: 16px;
+  box-shadow:
+    0 21px 120px -12px rgba(10, 13, 18, 0.14),
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font-family-body);
+  transition: opacity 0.12s ease;
+}
+
+/* Header band that holds the close button (Figma frameGroup top 60 px) */
+.tl-meeting-modal-header {
+  position: relative;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.tl-meeting-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tl-meeting-modal-close:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tl-meeting-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 0 48px 64px 48px;
+  flex-shrink: 0;
+}
+
+/* Title block: color tag + title row, then date/recurrence under */
+.tl-meeting-modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.tl-meeting-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.tl-meeting-modal-color-tag {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.tl-meeting-modal-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+  color: var(--colors-foreground-fgPrimary);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.tl-meeting-modal-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tl-meeting-modal-time p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+
+/* Sections (attendees, notification) */
+.tl-meeting-modal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tl-meeting-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-meeting-modal-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-secondary);
+}
+
+.tl-meeting-modal-attendees {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-meeting-modal-attendee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 32px;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.tl-meeting-modal-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 0.75px solid rgba(0, 0, 0, 0.08);
+}
+
+.tl-meeting-modal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tl-meeting-modal-attendee-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tl-meeting-modal-attendee-name {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+
+.tl-meeting-modal-attendee-role {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+/* Floating drag preview — fully solid, follows the cursor.
+   Rendered at body level via fixed positioning, pointer-events:none so it
+   never intercepts hit-tests for the drop target detection. */
+.tl-drag-preview {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px 24px 12px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondaryAlt, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  box-shadow:
+    0 4px 4px -2px rgba(10, 13, 18, 0.04),
+    0 24px 48px -12px rgba(10, 13, 18, 0.18);
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-family-body);
+  box-sizing: border-box;
+}
+
+.tl-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 6px;
+  height: 10px;
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.tl-member-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
+.tl-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tl-member-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-member-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-member-title {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-member-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ---------- Right column (scrollable) ---------- */
+.tl-right {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.tl-right-scroll {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  cursor: grab;
+  user-select: none;
+}
+
+.tl-right-scroll.is-dragging {
+  cursor: grabbing;
+}
+
+.tl-right-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.tl-right-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.tl-right-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tl-right-inner {
+  position: relative;
+}
+
+/* Sticky hour header — single 40 px row with hour cells */
+.tl-right-header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-quaternary);
+  border-bottom: 1px solid #e6e8ea;
+  box-sizing: border-box;
+}
+
+.tl-hour-cell {
+  display: flex;
+  align-items: center;
+  padding: 8px 20px;
+  height: 40px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  letter-spacing: -0.12px;
+  border-right: 1px solid #f3f4f6;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Body area */
+.tl-right-body {
+  position: relative;
+}
+
+/* Group header row spans full width */
+.tl-grid-group-header {
+  position: absolute;
+  left: 0;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
+  box-sizing: border-box;
+}
+
+/* Empty row background */
+.tl-grid-row {
+  position: absolute;
+  left: 0;
+  display: flex;
+  background: var(--bg-quaternary);
+  border-bottom: 1px solid #f3f4f6;
+  box-sizing: border-box;
+}
+
+.tl-grid-cell {
+  height: 100%;
+  border-right: 1px solid #f3f4f6;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* ===========================
+   Meeting block (layered)
+   =========================== */
+.tl-meeting-block {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Layer 0: gradient background — dynamic background set inline on element.
+   Top color = first participant's member.color, bottom = last participant's. */
+.tl-meeting-gradient {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  z-index: 0;
+}
+
+/* Layer 1: SVG bezier curves */
+.tl-meeting-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Layer 2: chevron marker pills at each participant row edge */
+.tl-chevron-marker {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* Layer 3: label container.
+   Holds ONLY the title pill in normal flow → its bounding box equals the pill,
+   so `translate(-50%, -50%)` centers the pill (not the pill+count combo) on
+   the meeting block's center. The count is absolutely positioned to the right
+   of the label (= right of the pill) so it overflows past the centered pill. */
+.tl-meeting-label {
+  position: absolute;
+  z-index: 3;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+/* Black pill containing the meeting title only — centered in meeting block */
+.tl-meeting-title-pill {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #1d2433;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(10, 13, 18, 0.18);
+  cursor: pointer;
+  line-height: 20px;
+  border: none;
+  font-family: inherit;
+}
+
+/* Participant count — pinned to the right edge of the pill, vertically centered.
+   Icon and number are flush together (no gap between them). */
+.tl-meeting-count {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  color: #1d2433;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.tl-meeting-count svg {
+  display: block;
+}
+
+/* NOW dashed vertical line — rendered inside the body. Starts at body local
+   y = 0 (= top of first group sub-header row) and extends through totalBodyH. */
+.tl-now-line {
+  position: absolute;
+  width: 0;
+  border-left: 1.5px dashed #ec4899;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* NOW label — rendered inside the body at the vertical center of the first
+   group sub-header row. translate(6px, -50%) puts it 6 px right of the line. */
+.tl-now-label {
+  position: absolute;
+  transform: translate(6px, -50%);
+  color: #ec4899;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  z-index: 5;
+  pointer-events: none;
+  white-space: nowrap;
+}

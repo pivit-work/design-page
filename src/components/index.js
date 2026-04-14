@@ -28,6 +28,17 @@ export {
   useDrag,
 } from './orgchart/index.js';
 
+// Timeline
+export {
+  TimelineCanvas,
+  NameColumn as TimelineNameColumn,
+  TimelineGrid,
+  MeetingBlock as TimelineMeetingBlock,
+  MEMBERS as TIMELINE_MEMBERS,
+  GROUPS as TIMELINE_GROUPS,
+  MEETINGS as TIMELINE_MEETINGS,
+} from './timeline/index.js';
+
 // 1on1
 export {
   ProgressBar as OneOnOneProgressBar,

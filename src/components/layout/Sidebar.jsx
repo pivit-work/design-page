@@ -15,7 +15,7 @@ export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl 
                   className={`menu-item ${isActive ? 'active' : ''}`}
                   onClick={() => m.page && onNavigate(m.page)}
                 >
-                  <Icon src={m.icon} size={16} color={isActive ? 'var(--text-primary)' : 'var(--text-secondary)'} baseUrl={baseUrl} />
+                  <Icon src={m.icon} size={16} color={isActive ? 'var(--colors-foreground-fgTertiaryHover)' : 'var(--colors-foreground-fgTertiary)'} baseUrl={baseUrl} />
                   <span>{m.label}</span>
                 </div>
               );
@@ -23,8 +23,8 @@ export default function Sidebar({ menu, currentPage, onNavigate, icons, baseUrl 
           </nav>
         </div>
         <div className="sidebar-bottom">
-          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>의견보내기</span></div>
-          <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--text-secondary)" baseUrl={baseUrl} /><span>설정</span></div>
+          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>의견보내기</span></div>
+          <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>설정</span></div>
         </div>
       </div>
     </aside>

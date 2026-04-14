@@ -6,12 +6,14 @@ import {
   Icon,
   OrgChartCanvas,
   ProjectCanvas,
+  TimelineCanvas,
 } from './components';
 import OneOnOneContent from './OneOnOnePage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
 import './one_on_one.css';
+import './timeline.css';
 
 /* ── Assets ── */
 const BASE = import.meta.env.BASE_URL;
@@ -46,7 +48,7 @@ const STAT_ICONS = {
 };
 
 const MENU = [
-  { icon: ICONS.calendar, label: '타임라인' },
+  { icon: ICONS.calendar, label: '타임라인', page: 'timeline' },
   { icon: ICONS.target, label: 'OKR' },
   { icon: ICONS.user, label: '원온원', page: 'oneonone' },
   { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
@@ -256,6 +258,10 @@ export default function App() {
 
       {currentPage === 'oneonone' && (
         <OneOnOneContent Icon={Icon} />
+      )}
+
+      {currentPage === 'timeline' && (
+        <TimelineCanvas icons={ICONS} baseUrl={BASE} />
       )}
     </div>
   );
