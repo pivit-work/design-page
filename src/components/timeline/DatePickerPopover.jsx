@@ -39,6 +39,10 @@ export default function DatePickerPopover({
   selectedDate,
   onSelect,
   onClose,
+  // 옵션: chevron 으로 월을 이동할 때 부모에 알림.
+  // 캘린더 탭에서는 이걸 받아 메인 월 그리드를 함께 이동시킨다.
+  // 주어지지 않으면 internal state 만 갱신 (기존 gantt 탭 동작).
+  onMonthChange,
 }) {
   const popoverRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
@@ -87,20 +91,18 @@ export default function DatePickerPopover({
   }, [onClose, anchorEl]);
 
   const prevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
+    const nextY = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const nextM = viewMonth === 0 ? 11 : viewMonth - 1;
+    setViewYear(nextY);
+    setViewMonth(nextM);
+    onMonthChange?.(nextY, nextM);
   };
   const nextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
+    const nextY = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
+    setViewYear(nextY);
+    setViewMonth(nextM);
+    onMonthChange?.(nextY, nextM);
   };
 
   const cells = buildGrid(viewYear, viewMonth);

@@ -2,9 +2,23 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
+import WeekGrid from './WeekGrid.jsx';
+import CalendarMonthView from './CalendarMonthView.jsx';
 import MeetingModal from './MeetingModal.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
-import { GROUPS as INITIAL_GROUPS, HEADER_H, BOTTOM_H, TODAY_STR } from './constants.js';
+import {
+  GROUPS as INITIAL_GROUPS,
+  HEADER_H,
+  BOTTOM_H,
+  TODAY_STR,
+  WEEK_DAY_COL_W,
+  getWeekDates,
+  getMonthDates,
+  memberPalette,
+} from './constants.js';
+
+// 주별 뷰의 day 컬럼 min width. 이 값 아래로는 줄어들지 않음(가로 스크롤 발생).
+const WEEK_DAY_COL_MIN = 130;
 
 const formatKoreanDate = (d) =>
   `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -19,7 +33,36 @@ export default function TimelineCanvas({ icons, baseUrl }) {
   const leftContentRef = useRef(null);
   const rightScrollRef = useRef(null);
 
+  // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
+  const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit, setViewUnit] = useState('day');
+  // selectedDate 는 아래 useLayoutEffect (snippetDates) 에서 참조하기 때문에
+  // 반드시 그 이전에 선언돼 있어야 함 (temporal dead zone 회피).
+  const [selectedDate, setSelectedDate] = useState(() => parseIsoDate(TODAY_STR));
+
+  // ── Segmented control sliding indicator ──────────────────────────────────
+  // design-system-docs 의 SegmentedControl 모션 참고: 활성 세그먼트의
+  // offset/size 를 측정해 indicator 박스를 절대 배치하고 transition 으로 이동.
+  const VIEW_UNITS = [
+    ['day', '일'],
+    ['week', '주'],
+    ['month', '월'],
+  ];
+  const segItemsRef = useRef([]);
+  const [segIndicator, setSegIndicator] = useState(null);
+  useLayoutEffect(() => {
+    if (currentTab !== 'gantt') return;
+    const idx = VIEW_UNITS.findIndex(([v]) => v === viewUnit);
+    const node = segItemsRef.current[idx];
+    if (!node) return;
+    setSegIndicator({
+      left: node.offsetLeft,
+      top: node.offsetTop,
+      width: node.offsetWidth,
+      height: node.offsetHeight,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewUnit, currentTab]);
 
   // ── Left column follows right's vertical scroll via transform ────────────
   //
@@ -35,23 +78,52 @@ export default function TimelineCanvas({ icons, baseUrl }) {
   // leftMid.clientHeight - HEADER_H` 로 런타임에 측정 (.tl-left-bottom 실제
   // 렌더 높이를 하드코딩하지 않기 위함).
   const [spacerH, setSpacerH] = useState(BOTTOM_H);
+  // 주/월별 day 컬럼 폭 — rightScroll.clientWidth / dayCount (min 130).
+  // 남는 공간이 있으면 fill, 좁으면 130 으로 clamp + 가로 스크롤.
+  const [dayColW, setDayColW] = useState(WEEK_DAY_COL_W);
+
+  // 주/월별 보기에서 렌더할 날짜 배열. viewUnit 이 'day' 면 빈 배열.
+  //   week  → 7일(일~토)
+  //   month → 28~31일(selectedDate 가 속한 달의 1일~말일)
+  const snippetDates =
+    viewUnit === 'week'
+      ? getWeekDates(selectedDate)
+      : viewUnit === 'month'
+      ? getMonthDates(selectedDate)
+      : [];
+  // ResizeObserver 의존성 용. viewUnit 이 같아도 월이 바뀌면 dayCount 가
+  // 변할 수 있기 때문에(예: 4월 30일 → 5월 31일) 이 값으로 effect 를 트리거.
+  const dayCount = snippetDates.length || 1;
+
   useLayoutEffect(() => {
+    if (currentTab !== 'gantt') return;
     const leftMid = leftMidRef.current;
     const rightScroll = rightScrollRef.current;
     if (!leftMid || !rightScroll) return;
     const compute = () => {
-      const target = Math.max(
+      const targetSpacer = Math.max(
         0,
         rightScroll.clientHeight - leftMid.clientHeight - HEADER_H
       );
-      setSpacerH((prev) => (prev === target ? prev : target));
+      setSpacerH((prev) => (prev === targetSpacer ? prev : targetSpacer));
+      const targetColW = Math.max(
+        WEEK_DAY_COL_MIN,
+        rightScroll.clientWidth / dayCount
+      );
+      setDayColW((prev) => (prev === targetColW ? prev : targetColW));
     };
     compute();
+    // view 가 바뀌면 새로 mount 된 grid 로 scrollTop 이 reset 되므로 왼쪽
+    // transform 도 따라 0 으로 동기화. 주→월 전환 시 가로 스크롤 위치도 리셋.
+    if (leftContentRef.current) {
+      leftContentRef.current.style.transform = `translateY(${-rightScroll.scrollTop}px)`;
+    }
     const ro = new ResizeObserver(compute);
     ro.observe(leftMid);
     ro.observe(rightScroll);
     return () => ro.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewUnit, dayCount, currentTab]);
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null); // meeting object | null
@@ -66,8 +138,28 @@ export default function TimelineCanvas({ icons, baseUrl }) {
     setOpenMeetingAnchor(null);
   };
 
+  // ── Snippet CTA state ────────────────────────────────────────────────────
+  // 'create'    → "스니핏 작성" 버튼 (아직 이번 주 스니핏 미작성)
+  // 'edit'      → "스니핏 수정" 버튼 (작성 완료 상태, 다시 수정 가능)
+  // 'requested' → "스니핏 수정 승인 요청 완료" 상태 텍스트 (비인터랙티브)
+  //
+  // NOTE: 작성/수정 모달은 아직 구현 전. 지금은 클릭 시 다음 상태로 직접
+  // 전이시켜 state 머신 플로우만 연결해둔다. 모달을 붙이면
+  // handleSnippetCreate/Edit 에서 모달을 열고, 모달의 완료/요청 콜백에서
+  // setSnippetState 를 호출하도록 바꾸면 된다.
+  const [snippetState, setSnippetState] = useState('create');
+  const handleSnippetCreate = () => {
+    // TODO: open snippet write modal. onComplete → setSnippetState('edit')
+    setSnippetState('edit');
+  };
+  const handleSnippetEdit = () => {
+    // TODO: open snippet edit modal (pre-filled).
+    //       onRequestApproval → setSnippetState('requested')
+    setSnippetState('requested');
+  };
+
   // ── Date picker state ────────────────────────────────────────────────────
-  const [selectedDate, setSelectedDate] = useState(() => parseIsoDate(TODAY_STR));
+  // (selectedDate 는 상단에서 이미 선언됨)
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerAnchor, setDatePickerAnchor] = useState(null); // DOMRect
   const dateBtnRef = useRef(null);
@@ -88,18 +180,47 @@ export default function TimelineCanvas({ icons, baseUrl }) {
     setDatePickerOpen(false);
   };
 
-  // 일별 보기에서 날짜 이동: 하루 단위.
-  // (추후 주/월 뷰에서는 viewUnit 에 따라 이동 단위를 바꿀 수 있도록 분기.)
-  const shiftSelectedDate = (deltaDays) => {
+  // 날짜 이동 단위:
+  //   캘린더 탭       → 1 개월
+  //   간트 일         → 하루
+  //   간트 주         → 7 일
+  //   간트 월         → 1 개월
+  const shiftByViewUnit = (direction) => {
     setSelectedDate((prev) => {
       const next = new Date(prev);
-      next.setDate(next.getDate() + deltaDays);
+      if (currentTab === 'calendar') next.setMonth(next.getMonth() + direction);
+      else if (viewUnit === 'week') next.setDate(next.getDate() + direction * 7);
+      else if (viewUnit === 'month') next.setMonth(next.getMonth() + direction);
+      else next.setDate(next.getDate() + direction);
       return next;
     });
   };
-  const goPrevDate = () => shiftSelectedDate(-1);
-  const goNextDate = () => shiftSelectedDate(1);
-  const goToday = () => setSelectedDate(parseIsoDate(TODAY_STR));
+  const goPrevDate = () => shiftByViewUnit(-1);
+  const goNextDate = () => shiftByViewUnit(1);
+  const goToday = () => {
+    setSelectedDate(parseIsoDate(TODAY_STR));
+    // 월별 뷰에서는 오늘 컬럼이 가로 스크롤의 중앙에 오도록 이동.
+    // setSelectedDate 이후 React 가 새 dates/dayColW 로 grid 를 commit
+    // 해야 실제 column offsetWidth 가 확정되므로 rAF 로 1 프레임 defer.
+    // rAF 콜백은 다음 페인트 직전에 실행되는데, 그 시점엔 React 의
+    // useLayoutEffect 체인(ResizeObserver → setDayColW → 재렌더)이 이미
+    // 동기적으로 전부 끝난 상태라 DOM 이 최종 값으로 settling 되어 있음.
+    if (viewUnit !== 'month') return;
+    requestAnimationFrame(() => {
+      const rightScroll = rightScrollRef.current;
+      if (!rightScroll) return;
+      // 렌더된 헤더 셀에서 실제 column 폭을 측정 → state 스테일 이슈 회피.
+      const headerCell = rightScroll.querySelector('.tl-week-header-cell');
+      if (!headerCell) return;
+      const colW = headerCell.offsetWidth;
+      const todayDate = parseIsoDate(TODAY_STR);
+      const idx = todayDate.getDate() - 1; // 1일 = index 0
+      const colCenter = idx * colW + colW / 2;
+      const target = colCenter - rightScroll.clientWidth / 2;
+      const maxScroll = rightScroll.scrollWidth - rightScroll.clientWidth;
+      rightScroll.scrollLeft = Math.max(0, Math.min(target, maxScroll));
+    });
+  };
 
   // ── Custom mouse-based drag-and-drop reorder ────────────────────────────
   // We DO NOT use the HTML5 drag-and-drop API. The native API forces a
@@ -278,6 +399,7 @@ export default function TimelineCanvas({ icons, baseUrl }) {
   // 때문에 React 의 onWheel 에서는 preventDefault 가 무시된다 → 여기서
   // passive:false 로 직접 addEventListener 한다.
   useEffect(() => {
+    if (currentTab !== 'gantt') return;
     const el = leftMidRef.current;
     if (!el) return;
     const onWheel = (e) => {
@@ -288,7 +410,7 @@ export default function TimelineCanvas({ icons, baseUrl }) {
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [currentTab]);
 
   // Horizontal drag-to-scroll on right grid
   const dragRef = useRef({
@@ -363,38 +485,55 @@ export default function TimelineCanvas({ icons, baseUrl }) {
       {/* Tab row (간트 / 캘린더) + GCal status — Figma frameDiv */}
       <div className="tl-tabs-row">
         <div className="tl-tabs">
-          <button type="button" className="tl-tab is-active">
+          <button
+            type="button"
+            className={`tl-tab ${currentTab === 'gantt' ? 'is-active' : ''}`}
+            onClick={() => setCurrentTab('gantt')}
+          >
             간트
           </button>
-          <button type="button" className="tl-tab">
+          <button
+            type="button"
+            className={`tl-tab ${currentTab === 'calendar' ? 'is-active' : ''}`}
+            onClick={() => setCurrentTab('calendar')}
+          >
             캘린더
           </button>
         </div>
         <div className="tl-gcal-status">
-          <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
+          <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
           <span>Google Calendar 연동 중</span>
           <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
         </div>
       </div>
 
-      {/* Toolbar row (일/주/월, date nav, filter, + 이벤트 추가) */}
+      {/* Toolbar row (일/주/월, date nav, filter, + 이벤트 추가)
+          캘린더 탭에서는 segmented control 숨김 — viewUnit 개념이 없음. */}
       <div className="tl-toolbar">
-        <div className="tl-seg-control">
-          {[
-            ['day', '일'],
-            ['week', '주'],
-            ['month', '월'],
-          ].map(([v, label]) => (
-            <button
-              key={v}
-              type="button"
-              className={`tl-seg-item ${viewUnit === v ? 'is-active' : ''}`}
-              onClick={() => setViewUnit(v)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {currentTab === 'gantt' && (
+          <div className="tl-seg-control" role="tablist">
+            {segIndicator && (
+              <span
+                className="tl-seg-indicator"
+                style={segIndicator}
+                aria-hidden="true"
+              />
+            )}
+            {VIEW_UNITS.map(([v, label], i) => (
+              <button
+                key={v}
+                ref={(el) => (segItemsRef.current[i] = el)}
+                type="button"
+                role="tab"
+                aria-selected={viewUnit === v}
+                className={`tl-seg-item ${viewUnit === v ? 'is-active' : ''}`}
+                onClick={() => setViewUnit(v)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button
           ref={dateBtnRef}
@@ -424,33 +563,68 @@ export default function TimelineCanvas({ icons, baseUrl }) {
 
         <div className="tl-toolbar-spacer" />
 
-        <button type="button" className="tl-add-event">
-          <Icon src={icons.plus} size={20} color="#fff" baseUrl={baseUrl} />
-          <span>이벤트 추가</span>
-        </button>
+        {currentTab === 'gantt' && viewUnit === 'day' ? (
+          <button type="button" className="tl-add-event">
+            <Icon src={icons.plus} size={20} color="#fff" baseUrl={baseUrl} />
+            <span>이벤트 추가</span>
+          </button>
+        ) : snippetState === 'create' ? (
+          <button type="button" className="tl-add-event" onClick={handleSnippetCreate}>
+            <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
+            <span>스니핏 작성</span>
+          </button>
+        ) : snippetState === 'edit' ? (
+          <button type="button" className="tl-add-event" onClick={handleSnippetEdit}>
+            <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
+            <span>스니핏 수정</span>
+          </button>
+        ) : (
+          <div className="tl-snippet-status" role="status">
+            <Icon src="/icons-solid/hand.svg" size={20} color="var(--colors-text-textBrandTertiary, #21a67a)" baseUrl={baseUrl} />
+            <span>스니핏 수정 승인 요청 완료</span>
+          </div>
+        )}
       </div>
 
-      {/* Body: left name col + right scroll grid */}
-      <div className="tl-body">
-        <NameColumn
-          ref={leftMidRef}
-          contentRef={leftContentRef}
-          icons={icons}
-          baseUrl={baseUrl}
-          groups={groups}
-          dragState={dragState}
-          dragOver={dragOver}
-          onStartDrag={startDrag}
-        />
-        <TimelineGrid
-          ref={rightScrollRef}
-          onScroll={handleRightScroll}
-          onMouseDown={handleMouseDown}
-          groups={groups}
-          onMeetingClick={handleMeetingClick}
-          spacerH={spacerH}
-        />
-      </div>
+      {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
+      {currentTab === 'calendar' ? (
+        <div className="tl-body tl-body-calendar">
+          <CalendarMonthView selectedDate={selectedDate} />
+        </div>
+      ) : (
+        <div className="tl-body">
+          <NameColumn
+            ref={leftMidRef}
+            contentRef={leftContentRef}
+            icons={icons}
+            baseUrl={baseUrl}
+            groups={groups}
+            dragState={dragState}
+            dragOver={dragOver}
+            onStartDrag={startDrag}
+          />
+          {viewUnit === 'day' ? (
+            <TimelineGrid
+              ref={rightScrollRef}
+              onScroll={handleRightScroll}
+              onMouseDown={handleMouseDown}
+              groups={groups}
+              onMeetingClick={handleMeetingClick}
+              spacerH={spacerH}
+            />
+          ) : (
+            <WeekGrid
+              ref={rightScrollRef}
+              onScroll={handleRightScroll}
+              onMouseDown={handleMouseDown}
+              groups={groups}
+              dates={snippetDates}
+              spacerH={spacerH}
+              dayColW={dayColW}
+            />
+          )}
+        </div>
+      )}
 
       {/* Meeting detail modal */}
       {openMeeting && (
@@ -461,7 +635,11 @@ export default function TimelineCanvas({ icons, baseUrl }) {
         />
       )}
 
-      {/* Date picker popover (mini calendar) */}
+      {/* Date picker popover (mini calendar)
+          캘린더 탭에서는 chevron 으로 월을 이동하면 main 월 그리드까지
+          함께 이동해야 하므로 onMonthChange 를 주입. 기타 탭에서는 mini
+          calendar 내부 view month 만 바뀌고 selectedDate 는 날짜 클릭
+          시에만 커밋됨. */}
       {datePickerOpen && (
         <DatePickerPopover
           anchorRect={datePickerAnchor}
@@ -469,6 +647,11 @@ export default function TimelineCanvas({ icons, baseUrl }) {
           selectedDate={selectedDate}
           onSelect={handleSelectDate}
           onClose={handleCloseDatePicker}
+          onMonthChange={
+            currentTab === 'calendar'
+              ? (y, m) => setSelectedDate(new Date(y, m, 1))
+              : undefined
+          }
         />
       )}
 
@@ -514,7 +697,7 @@ function DragPreview({ member, x, y, width, height }) {
       <button
         type="button"
         className="tl-member-arrow"
-        style={{ background: member.color }}
+        style={{ background: memberPalette(member).solid }}
         tabIndex={-1}
       >
         <svg width="10" height="10" viewBox="0 0 16 16" fill="none">

@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import Icon from '../shared/Icon.jsx';
-import { MEMBERS, SUBHEADER_H, ROW_H } from './constants.js';
+import { MEMBERS, SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 
 function GroupHeader({ group }) {
   return (
@@ -60,7 +60,7 @@ function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown }) {
       <button
         type="button"
         className="tl-member-arrow"
-        style={{ background: member.color }}
+        style={{ background: memberPalette(member).solid }}
         aria-label={`${member.name} 상세 보기`}
       >
         <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
@@ -94,11 +94,11 @@ function BottomButtons({ icons, baseUrl }) {
         <span>그룹 추가</span>
       </button>
       <button type="button" className="tl-btn-add-member">
-        <Icon src="/icons-solid/user-circle.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+        <Icon src="/icons-solid/user-circle.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
         <span>내부 직원 추가</span>
       </button>
       <button type="button" className="tl-btn-add-member">
-        <Icon src="/icons-solid/user-plus-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+        <Icon src="/icons-solid/user-plus-01.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
         <span>외부 직원 추가</span>
       </button>
     </div>

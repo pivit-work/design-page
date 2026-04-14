@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { memberPalette } from './constants.js';
 
 /**
  * MeetingBlock
@@ -55,9 +56,10 @@ export default function MeetingBlock({
   const leftCurveX = leftMarkerX + MARKER / 2;
   const rightCurveX = rightMarkerX + MARKER / 2;
 
-  // Dynamic gradient — top = first participant's color, bottom = last participant's color
-  const topColor = participants[0].member.color;
-  const bottomColor = participants[participants.length - 1].member.color;
+  // Dynamic gradient — top = first participant's color, bottom = last participant's color.
+  // member.color 는 이제 palette key(예: 'brand') → solid(-600) hex 를 lookup.
+  const topColor = memberPalette(participants[0].member).solid;
+  const bottomColor = memberPalette(participants[participants.length - 1].member).solid;
   const gradientStyle = {
     background: `linear-gradient(180deg, ${hexToRgba(topColor, 0.1)} 0%, ${hexToRgba(bottomColor, 0.1)} 100%)`,
   };
@@ -86,6 +88,7 @@ export default function MeetingBlock({
         {participants.map((p) => {
           const localY = p.rowCenterY - gradientTop;
           const midY = (localY + localTitleY) / 2;
+          const solid = memberPalette(p.member).solid;
           // Cubic bezier — starts vertical at the marker, ends horizontal into title center
           const leftPath = `M ${leftCurveX} ${localY} C ${leftCurveX} ${midY}, ${centerX} ${midY}, ${centerX} ${localTitleY}`;
           const rightPath = `M ${rightCurveX} ${localY} C ${rightCurveX} ${midY}, ${centerX} ${midY}, ${centerX} ${localTitleY}`;
@@ -93,14 +96,14 @@ export default function MeetingBlock({
             <g key={p.member.id}>
               <path
                 d={leftPath}
-                stroke={p.member.color}
+                stroke={solid}
                 strokeWidth="1.5"
                 fill="none"
                 strokeLinecap="round"
               />
               <path
                 d={rightPath}
-                stroke={p.member.color}
+                stroke={solid}
                 strokeWidth="1.5"
                 fill="none"
                 strokeLinecap="round"
@@ -113,11 +116,12 @@ export default function MeetingBlock({
       {/* Layer 2: chevron markers */}
       {participants.map((p) => {
         const y = p.rowCenterY - gradientTop - MARKER / 2;
+        const solid = memberPalette(p.member).solid;
         return (
           <Fragment key={p.member.id}>
             <div
               className="tl-chevron-marker"
-              style={{ left: leftMarkerX, top: y, background: p.member.color }}
+              style={{ left: leftMarkerX, top: y, background: solid }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path
@@ -131,7 +135,7 @@ export default function MeetingBlock({
             </div>
             <div
               className="tl-chevron-marker"
-              style={{ left: rightMarkerX, top: y, background: p.member.color }}
+              style={{ left: rightMarkerX, top: y, background: solid }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path

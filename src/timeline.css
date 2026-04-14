@@ -152,7 +152,8 @@
 
 /* Segmented control 일/주/월 — Figma .segmentedControl */
 .tl-seg-control {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   background: rgba(0, 0, 0, 0.03);
   padding: 4px;
@@ -160,28 +161,45 @@
   border-radius: 8px;
 }
 
+/* Sliding active indicator — design-system-docs SegmentedControl 모션 참고.
+   활성 세그먼트 위치/크기를 JS 로 측정해 style 에 주입, transition 으로 이동. */
+.tl-seg-indicator {
+  position: absolute;
+  background: var(--bg-quaternary, #ffffff);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary, #f9fafb);
+  border-radius: 6px;
+  box-shadow:
+    0 2px 4px -2px rgba(10, 13, 18, 0.06),
+    0 4px 6px -1px rgba(10, 13, 18, 0.08);
+  transition:
+    left 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    top 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    width 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    height 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .tl-seg-item {
-  display: flex;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 4px 8px;
   background: transparent;
   border: none;
-  border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
   color: var(--text-tertiary);
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  transition: color 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .tl-seg-item.is-active {
-  background: #fff;
-  border: 0.5px solid #f9fafb;
-  border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08);
   color: var(--text-secondary);
 }
 
@@ -283,6 +301,24 @@
 
 .tl-add-event:hover {
   background: #21a67a;
+}
+
+/* Snippet 수정 승인 요청 완료 상태 — 버튼이 아닌 텍스트+아이콘 표시.
+   Figma: padding 8 14, gap 4, text-brand-tertiary (#21a67a) semibold 14/20. */
+.tl-snippet-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  font-family: inherit;
+  white-space: nowrap;
+  user-select: none;
 }
 
 /* ===========================
@@ -962,6 +998,255 @@
   border-right: 1px solid #f3f4f6;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+/* ===========================
+   Calendar tab — monthly grid view (Figma timeline_gant_week/캘린더)
+   - 7 col × (header + 6 row), 가로/세로 모두 1fr 로 fill → 완전 반응형
+   - Cell: day num(+ 1일은 "X월 Y일") + 이벤트 pill 최대 2개 + "+N more..."
+   =========================== */
+.tl-body-calendar {
+  /* .tl-body 의 flex row 를 덮어써서 내부 .tl-cal 이 full fill 되도록 */
+  flex-direction: column;
+  padding: 0;
+}
+
+.tl-cal {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+  width: 100%;
+  background: var(--bg-quaternary);
+}
+
+.tl-cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--bg-quaternary);
+}
+
+.tl-cal-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--colors-text-textSecondary, #687079);
+  border-right: 1px solid #f3f4f6;
+}
+
+.tl-cal-header-cell:last-child {
+  border-right: none;
+}
+
+.tl-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.tl-cal-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-right: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--bg-quaternary);
+}
+
+.tl-cal-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.tl-cal-cell:nth-last-child(-n + 7) {
+  border-bottom: none;
+}
+
+.tl-cal-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
+.tl-cal-day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--colors-text-textSecondary, #687079);
+  border-radius: 9999px;
+  box-sizing: border-box;
+}
+
+.tl-cal-cell.is-outside .tl-cal-day-num {
+  color: var(--colors-text-textDisabled, #b1b6be);
+}
+
+.tl-cal-day-num.is-today {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tl-cal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Calendar event pill (Figma _Calendar event/Month view)
+   - 4/8 padding, rounded 8, border 1px, gap 4
+   - time(12/18 regular) + title(12/18 medium) — 단일행 ellipsis
+   - bg / bgHover 는 인라인 CSS variable (--event-bg / --event-bg-hover) 로 전달 */
+.tl-cal-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  cursor: pointer;
+  min-width: 0;
+  flex-shrink: 0;
+  background: var(--event-bg, transparent);
+  transition: background 0.12s ease;
+}
+
+.tl-cal-event:hover {
+  background: var(--event-bg-hover, var(--event-bg, transparent));
+}
+
+.tl-cal-event-time {
+  flex-shrink: 0;
+  font-weight: 400;
+  color: var(--colors-text-textSecondary, #687079);
+}
+
+.tl-cal-event-title {
+  flex: 1 1 0;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-cal-more {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray500, #8b929c);
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+/* ===========================
+   Weekly view — day header cells
+   Figma "Timeline Table header cell" (요일 + 날짜, 오늘은 녹색 원)
+   =========================== */
+.tl-week-header {
+  display: flex;
+  align-items: stretch;
+}
+
+.tl-week-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  box-sizing: border-box;
+  background: var(--bg-quaternary);
+  border-right: 1px solid #f3f4f6;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--colors-text-textSecondary, #687079);
+  flex-shrink: 0;
+}
+
+.tl-week-header-dow {
+  color: inherit;
+}
+
+.tl-week-header-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  color: inherit;
+}
+
+.tl-week-header-date.is-today {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  color: #fff;
+}
+
+/* ===========================
+   Snippet block (weekly cell content)
+   Figma _Calendar event/Day and week view
+   =========================== */
+.tl-snippet {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border: 1px solid;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  cursor: pointer;
+  /* bg / bgHover 는 inline CSS variable 로 전달받음 */
+  background: var(--snip-bg, transparent);
+  transition: background 0.12s ease;
+}
+
+.tl-snippet:hover {
+  background: var(--snip-bg-hover, var(--snip-bg, transparent));
+}
+
+.tl-snippet-text {
+  margin: 0;
+  flex: 1;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: inherit;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 /* ===========================
