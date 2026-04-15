@@ -1,29 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 // Custom mouse-based drag-and-drop reorder.
+// groups 는 외부에서 controlled 로 주입된다. 드래그 완료 시 setGroups(next) 를
+// 호출해 상위에 알린다. 내부 상태는 drag 진행 중인 floating preview 좌표만 보유.
+//
 // We DO NOT use the HTML5 drag-and-drop API. The native API forces a
 // semi-transparent drag image and has many edge cases (image elements
 // hijacking dragstart, dragend not firing when the source is removed, etc).
 // Instead we listen to mousedown/mousemove/mouseup directly and render the
 // floating preview ourselves — fully solid, fully under our control.
-export default function useTimelineDnD(initialGroups) {
-  const [groups, setGroups] = useState(initialGroups);
-  // dragState: { member, fromGroupId, fromIndex, offsetX, offsetY,
-  //              clientX, clientY, width, height } | null
+export default function useTimelineDnD({ groups, setGroups }) {
   const [dragState, setDragState] = useState(null);
-  // dragOver: { groupId, index } | null — placeholder position (filtered space)
   const [dragOver, setDragOver] = useState(null);
-  // Refs mirror state so handlers attached to window can read latest values.
   const dragStateRef = useRef(null);
   const dragOverRef = useRef(null);
+  // 최신 groups / setGroups 를 window 핸들러에서 참조할 수 있게 ref 에 미러.
+  // commit 직후에 동기화해야 핸들러가 최신 값을 본다.
+  const groupsRef = useRef(groups);
+  const setGroupsRef = useRef(setGroups);
+  useLayoutEffect(() => {
+    groupsRef.current = groups;
+    setGroupsRef.current = setGroups;
+  });
 
-  // Compute the drop target based on the current cursor (clientX, clientY).
-  // Uses elementFromPoint to find the row under the cursor. For each member
-  // row found, we check if the cursor is in the upper or lower half of that
-  // row to decide insert-before vs insert-after (in filtered space).
   const computeDropTarget = (clientX, clientY) => {
-    // The floating preview has pointer-events:none in CSS, so
-    // elementFromPoint sees the underlying row.
     const el = document.elementFromPoint(clientX, clientY);
     if (!el) return null;
 
@@ -53,7 +53,6 @@ export default function useTimelineDnD(initialGroups) {
     return null;
   };
 
-  // NameColumn calls this from each row's onMouseDown with (e, member, groupId, idx)
   const startDrag = (e, member, fromGroupId, fromIndex) => {
     e.preventDefault();
     const sourceEl = e.currentTarget;
@@ -80,7 +79,6 @@ export default function useTimelineDnD(initialGroups) {
     document.body.style.cursor = 'grabbing';
   };
 
-  // Global mousemove + mouseup listeners — attached only while dragging.
   const isDragging = dragState !== null;
   useEffect(() => {
     if (!isDragging) return;
@@ -120,17 +118,17 @@ export default function useTimelineDnD(initialGroups) {
         return;
       }
 
-      setGroups((prev) => {
-        const next = prev.map((g) => ({
-          ...g,
-          memberIds: g.memberIds.filter((id) => id !== drag.member.id),
-        }));
-        const toG = next.find((g) => g.id === target.groupId);
-        if (!toG) return prev;
+      const prevGroups = groupsRef.current;
+      const next = prevGroups.map((g) => ({
+        ...g,
+        memberIds: g.memberIds.filter((id) => id !== drag.member.id),
+      }));
+      const toG = next.find((g) => g.id === target.groupId);
+      if (toG) {
         const clamped = Math.max(0, Math.min(target.index, toG.memberIds.length));
         toG.memberIds.splice(clamped, 0, drag.member.id);
-        return next;
-      });
+        setGroupsRef.current?.(next);
+      }
 
       clear();
     };
@@ -141,7 +139,6 @@ export default function useTimelineDnD(initialGroups) {
     };
     const onUp = (e) => {
       e.preventDefault();
-      // Recompute target one final time at the cursor's current position
       moveDrag(e.clientX, e.clientY);
       endDrag(true);
     };
@@ -159,5 +156,5 @@ export default function useTimelineDnD(initialGroups) {
     };
   }, [isDragging]);
 
-  return { groups, dragState, dragOver, startDrag };
+  return { dragState, dragOver, startDrag };
 }

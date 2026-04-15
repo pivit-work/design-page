@@ -93,20 +93,27 @@ export default function TimelineCanvas({
 
   const handleHorizontalDragMouseDown = useHorizontalDragScroll(rightScrollRef);
 
-  const { groups, dragState, dragOver, startDrag } = useTimelineDnD(
+  // 그룹 state — 외부 initialGroups 가 바뀌면 동기화 (부모가 새 그룹 추가 등
+  // 외부에서 변경한 경우를 반영). "Adjusting state while rendering" 패턴으로
+  // initialGroups ref 변경 시에만 로컬 state 를 갱신.
+  const [groups, setGroupsState] = useState(
     initialGroups ?? DEFAULT_INITIAL_GROUPS
   );
+  const [syncedInitialGroups, setSyncedInitialGroups] = useState(initialGroups);
+  if (initialGroups !== syncedInitialGroups) {
+    setSyncedInitialGroups(initialGroups);
+    if (initialGroups) setGroupsState(initialGroups);
+  }
 
-  // 드래그로 그룹이 변경되면 상위에 알린다. 초기 마운트에는 호출되지 않도록
-  // ref 로 첫 렌더를 스킵.
-  const firstGroupsSync = useRef(true);
-  useEffect(() => {
-    if (firstGroupsSync.current) {
-      firstGroupsSync.current = false;
-      return;
-    }
-    onGroupsChange?.(groups);
-  }, [groups, onGroupsChange]);
+  const handleGroupsCommit = (next) => {
+    setGroupsState(next);
+    onGroupsChange?.(next);
+  };
+
+  const { dragState, dragOver, startDrag } = useTimelineDnD({
+    groups,
+    setGroups: handleGroupsCommit,
+  });
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
