@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+// Popover 좌표는 DOM 측정 결과라 state 에 담아 다시 렌더할 필요가 없다.
+// react-hooks/set-state-in-effect 회피를 위해 ref.style 에 직접 기록.
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -45,13 +47,13 @@ export default function DatePickerPopover({
   onMonthChange,
 }) {
   const popoverRef = useRef(null);
-  const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
 
   useLayoutEffect(() => {
-    if (!popoverRef.current || !anchorRect) return;
-    const m = popoverRef.current.getBoundingClientRect();
+    const el = popoverRef.current;
+    if (!el || !anchorRect) return;
+    const m = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const gap = 4;
@@ -67,7 +69,9 @@ export default function DatePickerPopover({
       top = above >= MARGIN ? above : Math.max(MARGIN, vh - m.height - MARGIN);
     }
 
-    setPos({ left, top, opacity: 1 });
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    el.style.opacity = '1';
   }, [anchorRect, viewYear, viewMonth]);
 
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function DatePickerPopover({
     <div
       ref={popoverRef}
       className="tl-datepicker-popover"
-      style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
+      style={{ left: 0, top: 0, opacity: 0 }}
       role="dialog"
     >
       <div className="tl-datepicker-content">
