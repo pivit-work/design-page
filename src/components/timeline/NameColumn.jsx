@@ -85,20 +85,20 @@ function PlaceholderRow({ groupId, index }) {
   );
 }
 
-function BottomButtons({ icons, baseUrl }) {
+function BottomButtons({ icons, baseUrl, onAddGroup, onAddInternalMember, onAddExternalMember }) {
   return (
     <div className="tl-left-bottom-inner">
-      <button type="button" className="tl-btn-group-add">
+      <button type="button" className="tl-btn-group-add" onClick={onAddGroup}>
         <span className="tl-btn-group-add-icon">
           <Icon src={icons.plus} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
         </span>
         <span>그룹 추가</span>
       </button>
-      <button type="button" className="tl-btn-add-member">
+      <button type="button" className="tl-btn-add-member" onClick={onAddInternalMember}>
         <Icon src="/icons-solid/user-circle.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
         <span>내부 직원 추가</span>
       </button>
-      <button type="button" className="tl-btn-add-member">
+      <button type="button" className="tl-btn-add-member" onClick={onAddExternalMember}>
         <Icon src="/icons-solid/user-plus-01.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
         <span>외부 직원 추가</span>
       </button>
@@ -115,6 +115,9 @@ const NameColumn = forwardRef(function NameColumn(
     dragState,
     dragOver,
     onStartDrag,
+    onAddGroup,
+    onAddInternalMember,
+    onAddExternalMember,
   },
   ref
 ) {
@@ -220,7 +223,13 @@ const NameColumn = forwardRef(function NameColumn(
         </div>
       </div>
       <div className="tl-left-bottom">
-        <BottomButtons icons={icons} baseUrl={baseUrl} />
+        <BottomButtons
+          icons={icons}
+          baseUrl={baseUrl}
+          onAddGroup={onAddGroup}
+          onAddInternalMember={onAddInternalMember}
+          onAddExternalMember={onAddExternalMember}
+        />
       </div>
     </div>
   );

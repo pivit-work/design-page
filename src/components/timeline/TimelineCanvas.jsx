@@ -63,6 +63,10 @@ export default function TimelineCanvas({
   onSnippetEdit,
   // 일 뷰에서만 보이는 "이벤트 추가" 버튼 클릭.
   onAddEvent,
+  // NameColumn 하단 버튼 3종. 미주입 시 no-op(버튼 클릭해도 아무 일 없음).
+  onAddGroup,
+  onAddInternalMember,
+  onAddExternalMember,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
@@ -349,6 +353,9 @@ export default function TimelineCanvas({
             dragState={dragState}
             dragOver={dragOver}
             onStartDrag={startDrag}
+            onAddGroup={onAddGroup}
+            onAddInternalMember={onAddInternalMember}
+            onAddExternalMember={onAddExternalMember}
           />
           {viewUnit === 'day' ? (
             <TimelineGrid
