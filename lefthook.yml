@@ -1,0 +1,6 @@
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: "*.{js,jsx}"
+      run: npx eslint {staged_files}
