@@ -1,8 +1,6 @@
 import { forwardRef } from 'react';
 import {
   GROUPS as DEFAULT_GROUPS,
-  MEMBERS,
-  SNIPPETS,
   WEEKDAY_LABELS,
   WEEK_DAY_COL_W,
   ROW_H,
@@ -13,6 +11,7 @@ import {
   formatIsoDate,
   memberPalette,
 } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 
 /**
@@ -41,11 +40,12 @@ const WeekGrid = forwardRef(function WeekGrid(
   },
   ref
 ) {
+  const { members, snippets } = useTimelineData();
   const flatRows = [];
   groups.forEach((g) => {
     flatRows.push({ type: 'groupHeader', group: g });
     g.memberIds.forEach((mid) => {
-      const m = MEMBERS.find((x) => x.id === mid);
+      const m = members.find((x) => x.id === mid);
       if (m) flatRows.push({ type: 'member', member: m });
     });
   });
@@ -67,7 +67,7 @@ const WeekGrid = forwardRef(function WeekGrid(
   const memberRowIndex = (mid) =>
     flatRows.findIndex((r) => r.type === 'member' && r.member.id === mid);
 
-  const visibleSnippets = SNIPPETS.filter((sn) => dateIsoSet.has(sn.date));
+  const visibleSnippets = snippets.filter((sn) => dateIsoSet.has(sn.date));
 
   return (
     <div className="tl-right">

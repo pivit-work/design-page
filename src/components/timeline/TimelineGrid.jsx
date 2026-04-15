@@ -1,8 +1,6 @@
 import { forwardRef } from 'react';
 import {
   GROUPS as DEFAULT_GROUPS,
-  MEMBERS,
-  MEETINGS,
   HOURS,
   HOUR_W,
   ROW_H,
@@ -12,17 +10,19 @@ import {
   TODAY_STR,
 } from './constants.js';
 import MeetingBlock from './MeetingBlock.jsx';
+import useTimelineData from './useTimelineData.js';
 
 const TimelineGrid = forwardRef(function TimelineGrid(
-  { onScroll, onMouseDown, groups = DEFAULT_GROUPS, onMeetingClick, spacerH = BOTTOM_H },
+  { onScroll, onMouseDown, groups = DEFAULT_GROUPS, onMeetingClick, spacerH = BOTTOM_H, targetDate = TODAY_STR },
   ref
 ) {
+  const { members, meetings } = useTimelineData();
   // Build flat rows parallel to NameColumn
   const flatRows = [];
   groups.forEach((g) => {
     flatRows.push({ type: 'groupHeader', group: g });
     g.memberIds.forEach((mid) => {
-      const m = MEMBERS.find((x) => x.id === mid);
+      const m = members.find((x) => x.id === mid);
       if (m) flatRows.push({ type: 'member', member: m });
     });
   });
@@ -109,7 +109,7 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                 their CURRENT group, then render one MeetingBlock instance per
                 bucket. A member that's been moved to a different group becomes
                 visually disconnected from the rest of the meeting. */}
-            {MEETINGS.filter((mt) => mt.date === TODAY_STR).flatMap((mt) => {
+            {meetings.filter((mt) => mt.date === targetDate).flatMap((mt) => {
               const originalLeft = (mt.startHour - HOURS[0]) * HOUR_W;
               const originalWidth = mt.durationH * HOUR_W;
 
@@ -118,7 +118,7 @@ const TimelineGrid = forwardRef(function TimelineGrid(
               mt.participants.forEach((pid) => {
                 const rowIdx = memberRowIndex(pid);
                 if (rowIdx < 0) return;
-                const member = MEMBERS.find((m) => m.id === pid);
+                const member = members.find((m) => m.id === pid);
                 if (!member) return;
                 const currentGroup = groups.find((g) => g.memberIds.includes(pid));
                 if (!currentGroup) return;

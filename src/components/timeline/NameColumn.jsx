@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import Icon from '../shared/Icon.jsx';
-import { MEMBERS, SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
+import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 function GroupHeader({ group }) {
   return (
@@ -117,6 +118,7 @@ const NameColumn = forwardRef(function NameColumn(
   },
   ref
 ) {
+  const { members } = useTimelineData();
   // The dragged member is rendered with display:none so it collapses out of
   // layout (other rows shift up). The placeholder is inserted at dragOver.index
   // in FILTERED space (index ignores the dragged row).
@@ -151,7 +153,7 @@ const NameColumn = forwardRef(function NameColumn(
         });
       }
 
-      const m = MEMBERS.find((x) => x.id === mid);
+      const m = members.find((x) => x.id === mid);
       if (m) {
         flatRows.push({
           type: 'member',

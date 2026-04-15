@@ -12,6 +12,7 @@
     "./styles/org-chart.css": "./src/org_chart.css",
     "./styles/org-project.css": "./src/org_project.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
+    "./styles/timeline.css": "./src/timeline.css",
     "./styles/tokens.css": "./src/tokens.css",
     "./styles/tokens-dark.css": "./src/tokens-dark.css",
     "./styles/index.css": "./src/index.css"

@@ -34,9 +34,16 @@ export {
   NameColumn as TimelineNameColumn,
   TimelineGrid,
   MeetingBlock as TimelineMeetingBlock,
+  TimelineDataProvider,
+  useTimelineData,
   MEMBERS as TIMELINE_MEMBERS,
   GROUPS as TIMELINE_GROUPS,
   MEETINGS as TIMELINE_MEETINGS,
+  SNIPPETS as TIMELINE_SNIPPETS,
+  MEMBER_COLORS as TIMELINE_MEMBER_COLORS,
+  memberPalette as timelineMemberPalette,
+  formatIsoDate as timelineFormatIsoDate,
+  TODAY_STR as TIMELINE_TODAY_STR,
 } from './timeline/index.js';
 
 // 1on1

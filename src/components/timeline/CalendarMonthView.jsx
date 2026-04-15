@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  getEventsForDate,
   SNIPPET_COLORS,
   WEEKDAY_LABELS,
   TODAY_STR,
   formatIsoDate,
 } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 // 주말(일/토) 컬럼은 그대로 보여주되 이벤트만 비움.
 const COL_COUNT = 7;
@@ -53,6 +53,7 @@ function buildMonthGrid(date) {
  * - 현재 달이 아닌 날짜는 text-disabled 로 dim
  */
 export default function CalendarMonthView({ selectedDate }) {
+  const { getEventsForDate } = useTimelineData();
   const cells = buildMonthGrid(selectedDate);
   const currentMonth = selectedDate.getMonth();
 

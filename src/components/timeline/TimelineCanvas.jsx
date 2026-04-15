@@ -11,11 +11,13 @@ import useSegmentedIndicator from './hooks/useSegmentedIndicator.js';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
+import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import {
-  GROUPS as INITIAL_GROUPS,
+  GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
   getWeekDates,
   getMonthDates,
+  formatIsoDate,
 } from './constants.js';
 
 const VIEW_UNITS = [
@@ -42,7 +44,26 @@ const getSnippetDates = (viewUnit, selectedDate) => {
   return [];
 };
 
-export default function TimelineCanvas({ icons, baseUrl }) {
+export default function TimelineCanvas({
+  icons,
+  baseUrl,
+  // 데이터 주입 — 생략하면 constants 의 mock 데이터 사용 (디자인 프리뷰 용도).
+  members,
+  meetings,
+  snippets,
+  getEventsForDate,
+  // 초기 그룹. 드래그 리오더는 내부 state 로 관리되며 변경 시 onGroupsChange 가 호출된다.
+  initialGroups,
+  onGroupsChange,
+  // 간트 일 뷰에서 미팅 필터 기준 날짜 (ISO YYYY-MM-DD). 기본값은 TODAY_STR(mock용).
+  ganttDayDate,
+  // 스니핏 CTA 상태머신은 상위에서 제어할 수도 있다. 생략 시 내부 상태 사용.
+  snippetState: snippetStateProp,
+  onSnippetCreate,
+  onSnippetEdit,
+  // 일 뷰에서만 보이는 "이벤트 추가" 버튼 클릭.
+  onAddEvent,
+}) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit, setViewUnit] = useState('day');
@@ -68,7 +89,20 @@ export default function TimelineCanvas({ icons, baseUrl }) {
 
   const handleHorizontalDragMouseDown = useHorizontalDragScroll(rightScrollRef);
 
-  const { groups, dragState, dragOver, startDrag } = useTimelineDnD(INITIAL_GROUPS);
+  const { groups, dragState, dragOver, startDrag } = useTimelineDnD(
+    initialGroups ?? DEFAULT_INITIAL_GROUPS
+  );
+
+  // 드래그로 그룹이 변경되면 상위에 알린다. 초기 마운트에는 호출되지 않도록
+  // ref 로 첫 렌더를 스킵.
+  const firstGroupsSync = useRef(true);
+  useEffect(() => {
+    if (firstGroupsSync.current) {
+      firstGroupsSync.current = false;
+      return;
+    }
+    onGroupsChange?.(groups);
+  }, [groups, onGroupsChange]);
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
@@ -90,9 +124,17 @@ export default function TimelineCanvas({ icons, baseUrl }) {
   //
   // NOTE: 작성/수정 모달은 아직 구현 전. 지금은 클릭 시 다음 상태로 직접
   // 전이시켜 state 머신 플로우만 연결해둔다.
-  const [snippetState, setSnippetState] = useState('create');
-  const handleSnippetCreate = () => setSnippetState('edit');
-  const handleSnippetEdit = () => setSnippetState('requested');
+  // snippetState: prop 으로 받으면 controlled, 없으면 내부 상태.
+  const [internalSnippetState, setInternalSnippetState] = useState('create');
+  const snippetState = snippetStateProp ?? internalSnippetState;
+  const handleSnippetCreate = () => {
+    if (onSnippetCreate) onSnippetCreate();
+    else setInternalSnippetState('edit');
+  };
+  const handleSnippetEdit = () => {
+    if (onSnippetEdit) onSnippetEdit();
+    else setInternalSnippetState('requested');
+  };
 
   // ── Date picker state ────────────────────────────────────────────────────
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -166,6 +208,12 @@ export default function TimelineCanvas({ icons, baseUrl }) {
   }, [rightScrollRef]);
 
   return (
+    <TimelineDataProvider
+      members={members}
+      meetings={meetings}
+      snippets={snippets}
+      getEventsForDate={getEventsForDate}
+    >
     <main className="tl-page">
       {/* Page header */}
       <div className="tl-page-header">
@@ -263,7 +311,7 @@ export default function TimelineCanvas({ icons, baseUrl }) {
         <div className="tl-toolbar-spacer" />
 
         {isGantt && viewUnit === 'day' ? (
-          <button type="button" className="tl-add-event">
+          <button type="button" className="tl-add-event" onClick={onAddEvent}>
             <Icon src={icons.plus} size={20} color="#fff" baseUrl={baseUrl} />
             <span>이벤트 추가</span>
           </button>
@@ -310,6 +358,7 @@ export default function TimelineCanvas({ icons, baseUrl }) {
               groups={groups}
               onMeetingClick={handleMeetingClick}
               spacerH={spacerH}
+              targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
             />
           ) : (
             <WeekGrid
@@ -362,5 +411,6 @@ export default function TimelineCanvas({ icons, baseUrl }) {
         />
       )}
     </main>
+    </TimelineDataProvider>
   );
 }

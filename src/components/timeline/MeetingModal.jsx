@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { MEMBERS } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 /**
  * MeetingModal — popover-style modal that opens when a meeting block is
@@ -9,6 +9,7 @@ import { MEMBERS } from './constants.js';
  * is anchored to the block, then clamped to keep the modal in view.
  */
 export default function MeetingModal({ meeting, anchorRect, onClose }) {
+  const { members } = useTimelineData();
   const modalRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
 
@@ -59,7 +60,7 @@ export default function MeetingModal({ meeting, anchorRect, onClose }) {
 
   // Resolve participants from member ids
   const participants = (meeting.participants || [])
-    .map((pid) => MEMBERS.find((m) => m.id === pid))
+    .map((pid) => members.find((m) => m.id === pid))
     .filter(Boolean);
 
   return (
