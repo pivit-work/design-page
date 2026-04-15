@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import React from 'react';
 import { PositionsContext } from './contexts';
 
@@ -22,36 +22,40 @@ export function usePositions() {
 export function useDrag(nodeId, onDrop, onDragMove) {
   const { positions, updatePosition } = usePositions();
   const saved = positions[nodeId] || { x: 0, y: 0 };
-  const [isDragging, setIsDragging] = useState(false);
-  const [current, setCurrent] = useState(saved);
+  // dragPos 가 null 이면 positions context 가 소스. 드래그 중에만 로컬
+  // 좌표로 덮어써서 부드러운 이동을 보장한다. (context 경유 re-render 가
+  // 느려도 이 ref/state 경로는 즉시 반영됨)
+  const [dragPos, setDragPos] = useState(null);
+  const current = dragPos ?? saved;
+  const isDragging = dragPos !== null;
+
   const startMouse = useRef({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
+  // 최신 콜백을 ref 에 기록 — 렌더 중 .current 접근을 피하기 위해
+  // useLayoutEffect 로 commit 직후 동기화.
   const onDropRef = useRef(onDrop);
-  onDropRef.current = onDrop;
   const onDragMoveRef = useRef(onDragMove);
-  onDragMoveRef.current = onDragMove;
-
-  useEffect(() => {
-    const s = positions[nodeId] || { x: 0, y: 0 };
-    if (!isDragging) setCurrent(s);
-  }, [positions, nodeId, isDragging]);
+  useLayoutEffect(() => {
+    onDropRef.current = onDrop;
+    onDragMoveRef.current = onDragMove;
+  });
 
   const onDown = (e) => {
     e.stopPropagation();
     startMouse.current = { x: e.clientX, y: e.clientY };
     startPos.current = { ...current };
-    setIsDragging(true);
+    setDragPos(current);
 
     const onMove = (ev) => {
       const nx = startPos.current.x + (ev.clientX - startMouse.current.x);
       const ny = startPos.current.y + (ev.clientY - startMouse.current.y);
       const pos = { x: nx, y: ny };
-      setCurrent(pos);
+      setDragPos(pos);
       updatePosition(nodeId, pos);
       if (onDragMoveRef.current) onDragMoveRef.current(ev, pos);
     };
     const onUp = (ev) => {
-      setIsDragging(false);
+      setDragPos(null);
       if (onDropRef.current) onDropRef.current(ev);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
