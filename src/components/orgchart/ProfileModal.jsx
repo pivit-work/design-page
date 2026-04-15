@@ -26,7 +26,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   const [splineActive, setSplineActive] = useState(false);
   const iframeRef = useRef(null);
   const scrollWrapRef = useRef(null);
-  const prevMemberRef = useRef(null);
+  // 닫힘 애니메이션 중에도 마지막 멤버 콘텐츠가 계속 보이도록 state 로 유지.
+  // "Adjusting state while rendering" 패턴으로 member prop 변화에 맞춰 갱신.
+  const [displayMember, setDisplayMember] = useState(member);
+  if (member && member !== displayMember) setDisplayMember(member);
+  // 모달이 닫히면 spline 인터랙션 상태도 리셋.
+  if (!member && splineActive) setSplineActive(false);
 
   // Listen for spline-ready message (scene + texture fully loaded)
   useEffect(() => {
@@ -37,16 +42,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  // 새 멤버로 열릴 때 스크롤 위치 초기화.
   useEffect(() => {
-    if (!member) setSplineActive(false);
-    if (member) {
-      prevMemberRef.current = member;
-      if (scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
+    if (member && scrollWrapRef.current) {
+      scrollWrapRef.current.scrollTop = 0;
     }
   }, [member]);
-
-  // The member to use for rendering (keep last member visible during close animation)
-  const displayMember = member || prevMemberRef.current;
   const profile = displayMember ? (displayMember.profile || DEFAULT_PROFILE) : DEFAULT_PROFILE;
   const isOpen = !!member;
 
