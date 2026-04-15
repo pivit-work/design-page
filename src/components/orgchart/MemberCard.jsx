@@ -97,16 +97,17 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
   const status = member.statusColors || MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
   const statusLabel = member.statusLabel || status.label;
   const pos = positions[memberId] || { x: 0, y: 0 };
-  const wasDetached = useRef(false);
   const absX = Math.abs(pos.x);
-  if (!editMode) {
-    wasDetached.current = false;
-  } else if (wasDetached.current) {
-    wasDetached.current = absX > 50;
-  } else {
-    wasDetached.current = absX > 200;
-  }
-  const isDetached = wasDetached.current;
+  // detach 히스테리시스: 200 을 넘어야 detach, 50 아래로 돌아와야 복귀.
+  // "Adjusting state while rendering" 패턴으로 state 로 관리 — ref 를
+  // 렌더 중 읽는 안티패턴을 피한다.
+  const [isDetached, setIsDetached] = useState(false);
+  const targetDetached = !editMode
+    ? false
+    : isDetached
+    ? absX > 50
+    : absX > 200;
+  if (targetDetached !== isDetached) setIsDetached(targetDetached);
 
   return (
     <div
