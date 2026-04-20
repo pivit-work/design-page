@@ -19,7 +19,7 @@
 .nav-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; letter-spacing: -0.04em; position: relative; }
 .nav-link:hover { color: var(--text-secondary); }
 .notification-dot { position: absolute; top: -2px; right: -8px; width: 6px; height: 6px; background: var(--colors-error-500); border-radius: 50%; }
-.search-bar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; background: var(--bg-field); border-radius: 10px; width: 202px; cursor: text; }
+.search-bar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; background: var(--bg-field); border: none; border-radius: 10px; width: 202px; cursor: text; box-sizing: border-box; }
 .search-kbd kbd { font-family: var(--font-family-body); font-size: 14px; font-weight: 500; color: var(--text-placeholder); background: var(--bg-active); border: 1px solid var(--border-secondary-alt); border-radius: 4px; padding: 1px 6px 1px 5px; }
 .search-placeholder { font-size: 16px; color: var(--text-placeholder); }
 

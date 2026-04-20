@@ -150,59 +150,6 @@
   flex-shrink: 0;
 }
 
-/* Segmented control 일/주/월 — Figma .segmentedControl */
-.tl-seg-control {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.03);
-  padding: 4px;
-  gap: 2px;
-  border-radius: 8px;
-}
-
-/* Sliding active indicator — design-system-docs SegmentedControl 모션 참고.
-   활성 세그먼트 위치/크기를 JS 로 측정해 style 에 주입, transition 으로 이동. */
-.tl-seg-indicator {
-  position: absolute;
-  background: var(--bg-quaternary, #ffffff);
-  border: 0.5px solid var(--colors-foreground-fgQuaternary, #f9fafb);
-  border-radius: 6px;
-  box-shadow:
-    0 2px 4px -2px rgba(10, 13, 18, 0.06),
-    0 4px 6px -1px rgba(10, 13, 18, 0.08);
-  transition:
-    left 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-    top 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-    width 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-    height 0.32s cubic-bezier(0.32, 0.72, 0, 1);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.tl-seg-item {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 20px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  transition: color 0.32s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.tl-seg-item.is-active {
-  color: var(--text-secondary);
-}
-
 /* Date picker — Figma .buttons5: padding 8 14, radius 8, gap 4
    Text: Text sm/Semibold (14/20/600), fill text-secondary */
 .tl-date-picker {
@@ -272,8 +219,53 @@
   cursor: pointer;
 }
 
-.tl-filter-btn:hover {
+.tl-filter-btn:hover,
+.tl-filter-btn.is-open {
   background: rgba(0, 0, 0, 0.05);
+}
+
+/* Filter menu popover — Figma Menu: r=10, pad 4 0, white bg, 2 drop shadows.
+   _Select menu item: outer pad 1/6, inner Content r=6 pad 8/10/8/8 gap 8. */
+.tl-filter-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 140px;
+  padding: 4px 0;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 10px;
+  box-shadow:
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
+    0 21px 120px -12px rgba(10, 13, 18, 0.14);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.12s ease;
+}
+
+.tl-filter-menu-item {
+  margin: 1px 6px;
+  padding: 8px 10px 8px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tl-filter-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.tl-filter-menu-label {
+  flex: 1;
 }
 
 .tl-toolbar-spacer {
@@ -301,6 +293,21 @@
 
 .tl-add-event:hover {
   background: #21a67a;
+}
+
+/* Secondary variant — Figma Buttons: Hierarchy=Secondary.
+   bg bgBrandSecondary (#e1fef2), text textBrandTertiary (#21a67a),
+   icon fgBrandPrimary (#2dbd82), padding 8 14, no border. */
+.tl-add-event-secondary {
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border: none;
+  padding: 8px 14px;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  box-shadow: none;
+}
+
+.tl-add-event-secondary:hover {
+  background: var(--colors-background-bgBrandSecondaryHover, #c8f5e2);
 }
 
 /* Snippet 수정 승인 요청 완료 상태 — 버튼이 아닌 텍스트+아이콘 표시.
@@ -661,6 +668,10 @@
   overflow: hidden;
   font-family: var(--font-family-body);
   transition: opacity 0.12s ease;
+}
+/* 캘린더에서 이벤트 클릭 시 여는 variant — width 410 */
+.tl-meeting-modal.is-calendar {
+  width: 410px;
 }
 
 /* Header band that holds the close button (Figma frameGroup top 60 px) */
@@ -1361,4 +1372,2056 @@
   z-index: 5;
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* ===========================
+   Group Add Modal — Figma "group add modal" (node 16713:37970)
+   panel 520x428, r=16. Portal 로 body 에 렌더.
+   =========================== */
+.tl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  background: rgba(10, 13, 18, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: tl-modal-fade 0.15s ease;
+}
+
+@keyframes tl-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tl-group-modal {
+  position: relative;
+  width: 520px;
+  max-width: 100%;
+  height: 428px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 16px;
+  box-shadow:
+    0 5px 5px -2.5px rgba(10, 13, 18, 0.04),
+    0 32px 64px -12px rgba(10, 13, 18, 0.14);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  animation: tl-modal-pop 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes tl-modal-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Top bar — Figma Frame 221: pad 20/48/0/48, just close X on the right */
+.tl-group-modal-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 20px 0 48px;
+}
+
+/* Close button — Figma Buttons/close X: 44x44, r=14, pad 8,
+   bg bgSecondary (#fcfcfd), icon fgSecondary (#687079). */
+.tl-group-modal-close {
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 14px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  color: var(--colors-foreground-fgSecondary, #687079);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+}
+
+.tl-group-modal-close:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+
+/* Content — Figma Frame 220: pad 0/48, gap 48 vertical.
+   모달이 고정 높이(428)라서 content 가 남은 공간을 채움. */
+.tl-group-modal-content {
+  padding: 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* .modal-header — gap 8 vertical */
+.tl-group-modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Title — Figma Pretendard Bold 30/38, color fgPrimary (#2c3744) */
+.tl-group-modal-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+/* Description — Figma Pretendard SemiBold 14/20, color text-secondary */
+.tl-group-modal-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Field area — Frame 210: gap 12 vertical */
+.tl-group-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Label "그룹명" — Figma Pretendard Bold 18/28, color fgPrimary */
+.tl-group-modal-label {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+/* Input — Figma "Input field" Size=sm: 424x40, r=10, pad 8/12.
+   Default: 검정 3% 투명 필 (rgba(0,0,0,0.03)), 보더 없음.
+   Focused: 1px brand green 보더 추가 (레이아웃 시프트 없음). */
+.tl-group-modal-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s, background-color 0.15s;
+  box-sizing: border-box;
+}
+
+.tl-group-modal-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Focused: Figma 스펙 — bg 유지, 2px brand border (inset shadow 로 표현) */
+.tl-group-modal-input:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+/* Footer — Figma Content: pad 24/48 대칭, gap 12, border-top 1px
+   Colors/Border/border-tertiary, 버튼 1:1 fill */
+.tl-group-modal-actions {
+  padding: 24px 48px;
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+
+.tl-group-modal-btn {
+  flex: 1;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.tl-group-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tl-group-modal-btn-secondary {
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.tl-group-modal-btn-secondary:hover:not(:disabled) {
+  background: var(--bg-primary);
+}
+
+.tl-group-modal-btn-primary {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  color: #fff;
+  border: none;
+}
+
+.tl-group-modal-btn-primary:hover:not(:disabled) {
+  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+}
+
+/* ===========================
+   Employee Add Modals (Internal / External)
+   GroupAddModal 의 쉘 클래스(tl-group-modal-*) 공유 + 본문 필드 전용 스타일.
+   Figma "add_inside_people_modal" / "add_outside_poeple_modal"
+   =========================== */
+/* Figma 내부/외부 직원 모달: 520x920 고정. body 는 상단에서 hug,
+   footer 는 자연스럽게 하단에 pin (content wrapper flex:1). */
+.tl-emp-modal {
+  height: 920px;
+  max-height: calc(100vh - 48px);
+}
+
+.tl-emp-modal-content {
+  /* group-modal-content 의 padding:0 48 + gap 48 상속. footer 를 아래로 밀기
+     위해 flex-grow. body 는 shrink 0 로 상단 hug 유지. */
+  flex: 1;
+  min-height: 0;
+}
+
+.tl-emp-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+/* Field wrapper — Figma Frame 210/261/262: gap 12 vertical */
+.tl-emp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tl-emp-label {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+/* Input — Figma Input field, 동일 스타일 (bg rgba(0,0,0,0.03) + focus brand border) */
+.tl-emp-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.tl-emp-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.tl-emp-input:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+/* Select (그룹) — Figma Select: r=10, pad 6/12, 36px height */
+.tl-emp-select-wrap {
+  position: relative;
+}
+
+.tl-emp-select {
+  width: 100%;
+  height: 36px;
+  padding: 6px 40px 6px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tl-emp-select:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+.tl-emp-select:invalid,
+.tl-emp-select option[value=""] {
+  color: var(--text-tertiary);
+}
+
+.tl-emp-select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--colors-foreground-fgSecondary, #687079);
+  pointer-events: none;
+  display: inline-flex;
+}
+
+/* Search (직원 검색) — input + dropdown menu */
+.tl-emp-search-wrap {
+  position: relative;
+}
+
+.tl-emp-search-selected {
+  min-height: 40px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.tl-emp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 2px 4px;
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+
+.tl-emp-tag-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tl-emp-tag-x {
+  border: none;
+  background: transparent;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  cursor: pointer;
+}
+
+/* Search dropdown menu — Figma Menu: pad 4 0, r=10, 2 drop shadows */
+.tl-emp-search-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 10px;
+  padding: 4px 0;
+  box-shadow:
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
+    0 21px 120px -12px rgba(10, 13, 18, 0.14);
+  z-index: 10;
+}
+
+.tl-emp-search-item {
+  width: calc(100% - 12px);
+  margin: 1px 6px;
+  padding: 8px 10px 8px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.tl-emp-search-item:hover {
+  background: var(--bg-secondary);
+}
+
+.tl-emp-search-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tl-emp-search-name {
+  font-weight: 600;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-emp-search-title {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* Color picker — Figma Frame 3: 17 색상, 28x28 원, gap 12, wrap */
+.tl-emp-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tl-emp-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.tl-emp-color-swatch:hover {
+  transform: scale(1.06);
+}
+
+.tl-emp-color-swatch.is-selected {
+  box-shadow:
+    0 0 0 2px var(--colors-background-bgPrimary_alt, #ffffff),
+    0 0 0 4px var(--swatch-ring);
+}
+
+/* ===========================
+   Event Add Modal — Figma "add event modal" (650x1266, r=16)
+   =========================== */
+.tl-event-modal {
+  width: 650px;
+  max-width: calc(100vw - 48px);
+  height: 1266px;
+  max-height: calc(100vh - 48px);
+}
+
+.tl-event-modal-content {
+  /* Figma Frame 220: pad 0/48, gap 48 vertical. Scroll 허용. */
+  padding: 0 48px;
+  gap: 48px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.tl-event-modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-event-modal-subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+.tl-event-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tl-event-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tl-event-label {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-event-count {
+  align-self: flex-end;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* 시작 / 소요 시간 row — gap 17 */
+.tl-event-row {
+  display: flex;
+  gap: 17px;
+}
+
+.tl-event-row .tl-event-field {
+  flex: 1;
+}
+
+.tl-event-select {
+  height: 40px;
+  padding: 8px 40px 8px 12px;
+}
+
+/* 요약 — radio pills Frame 316 */
+.tl-event-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Figma Inspect: 기본은 bg-secondary 필. 선택 시 brand green bg + 브랜드 텍스트 */
+.tl-event-radio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.tl-event-radio-pill:hover:not(.is-selected) {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+
+.tl-event-radio-pill.is-selected {
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+
+/* Radio dot — design-system-docs Checkbox (Type=Radio, sm) 스타일.
+   16x16 circle, 1px border. Unchecked: white bg + gray border.
+   Checked: 전체 brand green filled + 중앙 6px 흰색 dot. */
+.tl-event-radio-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--colors-border-borderPrimary, #d2d6db);
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.tl-event-radio-pill.is-selected .tl-event-radio-dot {
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+.tl-event-radio-pill.is-selected .tl-event-radio-dot::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+/* 결정 사항 — member chip Frame 320 */
+.tl-event-member-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.tl-event-member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.03);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.tl-event-member-chip:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tl-event-member-chip.is-selected {
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+
+.tl-event-member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+
+/* 외부 참석자 */
+.tl-event-external-row {
+  display: flex;
+  gap: 12px;
+}
+
+.tl-event-external-row .tl-emp-input {
+  flex: 1;
+}
+
+/* Figma: filled gray 스타일 (input field 와 동일 bg), 보더 없음 */
+.tl-event-add-btn {
+  padding: 10px 16px;
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.tl-event-add-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.tl-event-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tl-event-external-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tl-event-external-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+
+.tl-event-external-x {
+  border: none;
+  background: transparent;
+  padding: 0 4px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  cursor: pointer;
+}
+
+.tl-event-helper {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+/* Google Calendar 등록 row — checkbox hidden, 전체 row 가 클릭 영역 */
+.tl-event-gcal-row {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tl-event-gcal-check {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tl-event-gcal-icon {
+  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.tl-event-gcal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-event-gcal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-event-gcal-badge {
+  display: inline-flex;
+  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+.tl-event-gcal-check:not(:checked) ~ .tl-event-gcal-text .tl-event-gcal-badge {
+  display: none;
+}
+
+.tl-event-gcal-check:not(:checked) ~ .tl-event-gcal-icon {
+  color: var(--text-tertiary);
+}
+
+.tl-event-gcal-desc {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+/* Footer override — Figma Content: pad 24/48/48/48 (bottom 48, 다른 모달과 다름) */
+.tl-event-modal-actions {
+  padding: 24px 48px 48px 48px;
+}
+
+/* ===========================
+   Custom Select — 시스템 <select> 대체 공용 컴포넌트
+   Figma "Select" 인풋 스펙 그대로. 이후 Select UI 는 항상 이 컴포넌트 사용.
+   =========================== */
+.tl-select {
+  position: relative;
+  width: 100%;
+}
+
+.tl-select-trigger {
+  width: 100%;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.tl-select-size-sm .tl-select-trigger {
+  height: 36px;
+}
+
+.tl-select-size-md .tl-select-trigger {
+  height: 40px;
+  padding: 8px 12px;
+}
+
+.tl-select.is-open .tl-select-trigger,
+.tl-select-trigger:focus-visible {
+  outline: none;
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+.tl-select.is-disabled .tl-select-trigger {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tl-select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-select-value.is-placeholder {
+  color: var(--text-tertiary);
+}
+
+.tl-select-chevron {
+  color: var(--colors-foreground-fgSecondary, #687079);
+  display: inline-flex;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tl-select.is-open .tl-select-chevron {
+  transform: rotate(180deg);
+}
+
+/* Menu — Figma Menu: r=10, pad 4 0, 2 drop shadows */
+.tl-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px 0;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 10px;
+  box-shadow:
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
+    0 21px 120px -12px rgba(10, 13, 18, 0.14);
+  /* 트랙 제거, 얇은 thumb 만 노출. Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* WebKit (Chrome / Safari / Edge) — 트랙 투명, thumb 만 보이게 */
+.tl-select-menu::-webkit-scrollbar {
+  width: 6px;
+}
+.tl-select-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tl-select-menu::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+.tl-select-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 동일 thin scrollbar 를 다른 오버레이 메뉴/스크롤 영역에 공통 적용 */
+.tl-emp-search-menu,
+.tl-event-modal-content,
+.tl-snippet-modal-content,
+.tl-snippet-textarea,
+.tl-filter-menu {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+.tl-emp-search-menu::-webkit-scrollbar,
+.tl-event-modal-content::-webkit-scrollbar,
+.tl-snippet-modal-content::-webkit-scrollbar,
+.tl-snippet-textarea::-webkit-scrollbar,
+.tl-filter-menu::-webkit-scrollbar {
+  width: 6px;
+}
+.tl-emp-search-menu::-webkit-scrollbar-track,
+.tl-event-modal-content::-webkit-scrollbar-track,
+.tl-snippet-modal-content::-webkit-scrollbar-track,
+.tl-snippet-textarea::-webkit-scrollbar-track,
+.tl-filter-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tl-emp-search-menu::-webkit-scrollbar-thumb,
+.tl-event-modal-content::-webkit-scrollbar-thumb,
+.tl-snippet-modal-content::-webkit-scrollbar-thumb,
+.tl-snippet-textarea::-webkit-scrollbar-thumb,
+.tl-filter-menu::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+.tl-emp-search-menu::-webkit-scrollbar-thumb:hover,
+.tl-event-modal-content::-webkit-scrollbar-thumb:hover,
+.tl-snippet-modal-content::-webkit-scrollbar-thumb:hover,
+.tl-snippet-textarea::-webkit-scrollbar-thumb:hover,
+.tl-filter-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.tl-select-menu-below {
+  top: calc(100% + 4px);
+}
+
+.tl-select-menu-above {
+  bottom: calc(100% + 4px);
+}
+
+.tl-select-item {
+  width: calc(100% - 12px);
+  margin: 1px 6px;
+  padding: 8px 10px 8px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tl-select-item:hover {
+  background: var(--bg-secondary);
+}
+
+.tl-select-item.is-selected {
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+
+.tl-select-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-select-item-sub {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.tl-select-item-check {
+  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  flex-shrink: 0;
+}
+
+.tl-select-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+/* ===========================
+   Snippet Modal — Figma "content_modal" (650x920, r=16)
+   =========================== */
+.tl-snippet-modal {
+  width: 650px;
+  max-width: calc(100vw - 48px);
+  height: 920px;
+  max-height: calc(100vh - 48px);
+}
+
+/* Top bar — body 를 40px 이상 스크롤하면 "데일리 스니펫 · {date}" 타이틀 페이드인.
+   Figma Text md/Semibold (16/24) text-primary. */
+.tl-snippet-top {
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0 48px;
+}
+
+.tl-snippet-top-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-snippet-modal.is-scrolled .tl-snippet-top-title {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tl-snippet-modal-content {
+  padding: 0 48px;
+  gap: 48px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 날짜 타이틀 — 30/38 Bold */
+.tl-snippet-date {
+  margin: 0;
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+  letter-spacing: 0;
+}
+
+/* Progress bar — Figma Frame 205 (r=6, 5등분).
+   섹션 채움 수에 따라 active bar 가 그라디언트로 좌→우 확장.
+   라벨 텍스트는 fill 위에서 흰색, 밖(미채움)에서 회색. */
+.tl-snippet-progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-radius: 6px;
+  height: 36px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Figma: Linear gradient 2 stops —
+   0% Component colors/Utility/Brand/utility-brand-500 (#2dbd82)
+   100% Component colors/Utility/Purple/utility-purple-400 (#9b8afb) */
+.tl-snippet-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--componentColors-utility-brand-utilityBrand500, #2dbd82) 0%,
+    var(--componentColors-utility-purple-utilityPurple400, #9b8afb) 100%
+  );
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Segment 라벨 — Figma Text sm/Bold (14/20, weight 700), text-tertiary */
+.tl-snippet-progress-segment {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.tl-snippet-progress-segment.is-active {
+  color: #ffffff;
+}
+
+.tl-snippet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Field — Frame 210 등, gap 12 */
+.tl-snippet-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-snippet-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tl-snippet-field-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-snippet-label-hint {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* AI 생성/추출 버튼 — Figma spec: bg #f4f3ff, border rgba(0,0,0,0.03) 1px,
+   r=6, pad 6, gap 4, text #7a5af8 14/20 SemiBold, "AI" 만 gradient 텍스트 */
+.tl-snippet-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  background: #f4f3ff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #7a5af8;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.tl-snippet-ai-btn:hover {
+  background: #ebe9fe;
+}
+
+/* "AI" 텍스트만 magenta→blue 그라디언트 */
+.tl-snippet-ai-gradient {
+  background: linear-gradient(45deg, #ad00fe, #3ebaf9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 600;
+}
+
+/* Textarea — filled bg, no border, focus 시 brand green border */
+.tl-snippet-textarea {
+  width: 100%;
+  min-height: 144px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.tl-snippet-textarea::placeholder {
+  color: var(--text-tertiary);
+  white-space: pre-line;
+}
+
+.tl-snippet-textarea:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+/* Info banner — Figma spec:
+   bg linear-gradient(45deg, rgba(255,164,246,0.11), rgba(183,220,255,0.11)) over white,
+   r=6, pad 6, gap 6. 텍스트는 magenta→blue gradient (45deg, #ad00fe → #3ebaf9). */
+.tl-snippet-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
+    #ffffff;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.tl-snippet-info img {
+  flex-shrink: 0;
+}
+
+.tl-snippet-info-text {
+  background: linear-gradient(45deg, #ad00fe, #3ebaf9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.tl-snippet-count {
+  align-self: flex-end;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* Tag 입력 필드 — 선택된 태그 chip + 신규 입력을 한 필드 안에 배치.
+   Figma 스펙: bg rgba(0,0,0,0.03), r=10, flex wrap, min-height 44. */
+.tl-snippet-tag-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.tl-snippet-tag-field:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+.tl-snippet-tag-inline-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-tag-inline-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.tl-snippet-suggest-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 80px;
+}
+
+/* Tag chip — Figma Inspect: Fill bg-tertiary (#fcfcfd) + Stroke alpha-black-3
+   (rgba(0,0,0,0.03), 1px inside), r=8 pad 2/9 gap 3 */
+.tl-snippet-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 9px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.tl-snippet-tag:hover:not(:disabled):not(.tl-snippet-tag-selected) {
+  background: var(--colors-background-bgSecondary, #f9fafb);
+}
+
+.tl-snippet-tag:disabled,
+.tl-snippet-tag.is-dim {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Selected tag — Figma Inspect: Fill utility-brand (#e1fef2),
+   Stroke alpha-black-3 (rgba(0,0,0,0.03)) 1px inside, r=8 */
+.tl-snippet-tag-selected {
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border-color: rgba(0, 0, 0, 0.03);
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  cursor: default;
+}
+
+/* Figma "_Tag close X" Size=md: 16x16, pad 2, r=3, clip content */
+.tl-snippet-tag-x {
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color 0.12s;
+}
+
+.tl-snippet-tag-x:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Footer override — Figma Content: pad 24/48/48/48 */
+.tl-snippet-modal-actions {
+  padding: 24px 48px 48px 48px;
+}
+
+/* ===========================
+   Page-level Tabs (Timeline / Weekly) + Weekly View
+   Figma "timeline_gant_week" (16636:73372, 16639:77164)
+   =========================== */
+
+/* 페이지 타이틀이 Timeline/Weekly 클릭 가능한 탭 */
+.tl-page-title-tab {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 38px;
+  letter-spacing: 0;
+  color: var(--text-quaternary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.tl-page-title-tab + .tl-page-title-tab {
+  margin-left: 20px;
+}
+
+.tl-page-title-tab.is-active {
+  color: var(--text-primary);
+}
+
+.tl-page-title-tab:hover:not(.is-active) {
+  color: var(--text-secondary);
+}
+
+/* 지금 생성하기 버튼 — 보라 그라디언트 */
+/* Empty state — 리포트 자동 생성 전 중앙 배치 */
+.tl-weekly-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.tl-weekly-empty-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* Figma 지금 생성하기 버튼 — padding 10 12, gap spacing-lg(12), gradient purple→pink */
+.tl-weekly-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #8265e6 0%, #ee46bc 100%);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgba(10, 13, 18, 0.05);
+  transition: filter 0.15s ease;
+}
+
+.tl-weekly-generate-btn:hover {
+  filter: brightness(0.96);
+}
+
+.tl-weekly-generate-icon {
+  font-size: 14px;
+}
+
+/* Weekly view container — fills remaining viewport, internal scroll happens INSIDE card */
+.tl-weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0 12px 12px;
+  padding-right: 40px;
+  min-height: 0;
+  flex: 1;
+  /* tl-page grid 의 row 2(auto) 에 할당되면 내용 크기로만 shrink 된다.
+     row 2 부터 마지막 row(minmax(0,1fr))까지 span 시켜 남은 공간 전체 채움. */
+  grid-row: 2 / -1;
+}
+
+.tl-weekly-subtabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.tl-weekly-subtabs {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.tl-weekly-subtab {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tl-weekly-subtab.is-active {
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  color: var(--text-secondary);
+  box-shadow: 0 1px 2px 0 rgba(10, 13, 18, 0.05);
+}
+
+/* AI info banner — 보라 tint */
+.tl-weekly-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background:
+    linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
+    #ffffff;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: #7a5af8;
+  flex-shrink: 0;
+}
+
+.tl-weekly-info-sparkle {
+  font-size: 12px;
+  color: #ad00fe;
+}
+
+.tl-weekly-info-text {
+  flex: 1;
+}
+
+/* Main content card — flexible height, scrolls internally
+   Figma Fill: Linear Gradient · 9% (utility-brand-200, utility-brand-200, utility-gray-300) */
+.tl-weekly-card {
+  position: relative;
+  /* Figma: linear-gradient(0deg, brand-200 0%, brand-200 27.5%, gray-300 79%) @ 9% opacity
+     + border 2px utility-purple-100 */
+  background:
+    linear-gradient(0deg,
+      rgba(179, 250, 222, 0.09) 0%,
+      rgba(179, 250, 222, 0.09) 27.5%,
+      rgba(210, 214, 219, 0.09) 79%
+    ),
+    var(--colors-background-bgPrimary_alt, #ffffff);
+  border: 2px solid var(--componentColors-utility-purple-utilityPurple100, #ebe9fe);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(10, 13, 18, 0.05);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.tl-weekly-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 660px 중앙 컬럼 — 자식 섹션들이 각자 padding/border 를 가짐 */
+.tl-weekly-card-inner {
+  max-width: 660px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 각 섹션: padding 80 0 + bottom border 1px. 마지막 섹션은 border 없음. */
+.tl-weekly-card-inner > .tl-weekly-entry,
+.tl-weekly-card-inner > .tl-weekly-section {
+  padding: 80px 0;
+  border-bottom: 1px solid #e6e8ea;
+}
+.tl-weekly-card-inner > *:last-child {
+  border-bottom: none;
+}
+
+/* Intro(타이틀+메타+요약) — 상단 180, 하단 80, gap 80, 가운데 정렬 */
+.tl-weekly-card-inner > .tl-weekly-intro {
+  padding: 180px 0 80px 0;
+  border-bottom: 1px solid #e6e8ea;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 80px;
+}
+
+.tl-weekly-card-meta {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  z-index: 1;
+}
+
+/* Figma aiWeeklyReportParent: width 422, gap 21 */
+.tl-weekly-report-head {
+  width: 422px;
+  max-width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 21px;
+}
+
+.tl-weekly-report-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 36px;
+  color: var(--text-primary);
+}
+
+.tl-weekly-report-meta {
+  display: inline-flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.tl-weekly-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tl-weekly-meta-sep {
+  color: var(--text-tertiary);
+}
+
+.tl-weekly-summary {
+  align-self: stretch;
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 38px;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.tl-weekly-divider {
+  display: none;
+}
+
+
+/* 엔트리 내부 — head/desc/highlight/cards/tags 사이 spacing-xl (16px) */
+.tl-weekly-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tl-weekly-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.tl-weekly-entry-day {
+  font-weight: 700;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-weekly-entry-date {
+  font-weight: 600;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.tl-weekly-entry-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #ee46bc;
+}
+
+.tl-weekly-health-icon {
+  font-size: 14px;
+}
+
+/* Figma: KR 라벨 박스 — bg utility-blue-dark-50, radius 6, 28 높이 */
+.tl-weekly-entry-kr {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: var(--componentColors-utility-blueDark-utilityBlueDark50, #eff4ff);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+}
+
+.tl-weekly-kr-badge {
+  font-weight: 700;
+  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+}
+
+/* Figma: Text md/Medium 16/24, text-primary */
+.tl-weekly-entry-desc {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Figma: 좌측 2px stroke + 텍스트 모두 utility-gray-blue-500 */
+.tl-weekly-entry-highlight {
+  margin: 0;
+  padding: 0 12px;
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500, #4e5ba6);
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--componentColors-utility-grayBlue-utilityGrayBlue500, #4e5ba6);
+}
+
+/* 카드 1개 → full width, 2개 이상 → 2-column */
+.tl-weekly-entry-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tl-weekly-entry-cards:has(.tl-weekly-entry-card:nth-child(2)) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Figma: 326 Fill x 102 Fill, padding 12, radius 8, bg alpha-black-3.
+   아이콘 top, 텍스트 bottom (space-between). 텍스트 Text md/Medium 16/24. */
+.tl-weekly-entry-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 12px;
+  border-radius: 8px;
+  min-height: 102px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+
+.tl-weekly-entry-card.is-good {
+  color: var(--colors-text-textSuccessPrimary, #079455);
+}
+
+.tl-weekly-entry-card.is-issue {
+  color: var(--colors-text-textErrorPrimary, #d92d20);
+}
+
+.tl-weekly-entry-card-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.tl-weekly-entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Figma Tag: padding 4 10, radius 8, fill 없음, alpha-black-3 1px inside border, text-secondary sm/Medium 14/20 */
+.tl-weekly-entry-tag {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Section common */
+.tl-weekly-section {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Figma: 모든 섹션 타이틀 Text lg/Bold 18/28, text-primary */
+.tl-weekly-section-title {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-weekly-chart-avg {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.tl-weekly-recommend-tag {
+  font-size: 13px;
+  font-weight: 500;
+  color: #7a5af8;
+  background: #f4f3ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.tl-weekly-blocker-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7a5af8;
+  background: #f4f3ff;
+  padding: 1px 8px;
+  border-radius: 9999px;
+}
+
+.tl-weekly-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+/* 헬스체크 차트 — Figma: 월~금 area chart + "8.1 주 평균" 우측 정렬 */
+.tl-weekly-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-weekly-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.tl-weekly-chart-avg {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.tl-weekly-chart-avg strong {
+  color: #2dbd82;
+  font-size: 15px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.tl-weekly-chart-area {
+  width: 100%;
+  height: 120px;
+}
+
+.tl-weekly-chart-area svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tl-weekly-chart-xlabels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* 주요 태그 bar stats — 이름 / 바 / 카운트 3열 */
+.tl-weekly-tag-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-weekly-tag-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-weekly-tag-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 24px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tl-weekly-tag-name {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.tl-weekly-tag-track {
+  height: 8px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-radius: 9999px;
+  overflow: hidden;
+  display: block;
+}
+
+.tl-weekly-tag-track > span {
+  display: block;
+  height: 100%;
+  background: #2dbd82;
+  border-radius: 9999px;
+}
+
+.tl-weekly-tag-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* OKR progress — Figma: 라벨(좌) + 델타 + 값(우) → 바 */
+.tl-weekly-okr-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tl-weekly-okr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-weekly-okr-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tl-weekly-okr-label {
+  flex: 1;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tl-weekly-okr-delta {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+/* 값 — Figma Text lg/Semibold 18/28 */
+.tl-weekly-okr-value {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.tl-weekly-okr-prev {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+/* Figma: 10px 높이, radius 4 */
+.tl-weekly-okr-bar {
+  height: 10px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-radius: 4px;
+  overflow: hidden;
+  display: block;
+}
+
+.tl-weekly-okr-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* 주요 기여 / 블로커 박스 — Figma: padding 16, radius 16, gap 24, alpha-black-3 */
+.tl-weekly-box {
+  padding: 16px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Figma: 주요 기여 / 블로커 타이틀 Text lg/Semibold 18/28, text-primary */
+.tl-weekly-box-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Figma: 3개 미해결 — Text xs/Medium 12/18, fg-error-primary, 배지 아님 */
+.tl-weekly-blocker-count {
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--colors-foreground-fgErrorPrimary, #d92d20);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* 주요 기여 / 블로커 리스트 — Figma Text md/Medium 16/24, text-secondary */
+.tl-weekly-note-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Figma "AI 제안" — Text lg/Bold 18/28, utility-blue-500 */
+.tl-weekly-ai-suggest {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+}
+
+/* 다음 주 추천 */
+/* 다음 주 포커스 리스트 — Figma Text md/Medium 16/24, text-primary */
+.tl-weekly-recommend-list {
+  list-style: decimal;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* 하단 액션 */
+.tl-weekly-bottom-action {
+  padding: 80px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Figma Buttons lg Primary: padding 10×12, gap 6, radius 10, bg-brand-solid, text-white, 16/24 */
+.tl-weekly-snippet-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  border: none;
+  border-radius: 10px;
+  color: var(--text-white, #ffffff);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tl-weekly-snippet-btn:hover {
+  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+}
+
+/* 페이지 헤더 내 layout (Weekly 모드 버튼 flex 정렬) */
+.tl-page-header {
+  justify-content: space-between;
+  align-items: flex-start;
 }

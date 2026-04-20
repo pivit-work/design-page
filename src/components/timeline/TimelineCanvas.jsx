@@ -12,6 +12,7 @@ import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
+import TimelineWeeklyView from './TimelineWeeklyView.jsx';
 import {
   GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
@@ -68,6 +69,8 @@ export default function TimelineCanvas({
   onAddInternalMember,
   onAddExternalMember,
 }) {
+  // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
+  const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit, setViewUnit] = useState('day');
@@ -118,14 +121,36 @@ export default function TimelineCanvas({
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
   const [openMeetingAnchor, setOpenMeetingAnchor] = useState(null);
+  const [meetingVariant, setMeetingVariant] = useState(null); // 'calendar' | null
 
   const handleMeetingClick = (meeting, rect) => {
     setOpenMeeting(meeting);
     setOpenMeetingAnchor(rect);
+    setMeetingVariant(null);
+  };
+  // 캘린더 셀의 이벤트 pill 클릭 — 간트 미팅 모달과 동일 UI 를 variant 로 열고
+  // 캘린더 이벤트 데이터(time/title/color)를 미팅 shape 로 어댑트. width 410.
+  const handleCalendarEventClick = (ev, rect) => {
+    const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const d = parseIsoDate(ev.date);
+    const meetingShape = {
+      id: ev.id,
+      title: ev.title,
+      color: '#15b79e',
+      timeLabel: `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) · ${ev.time}`,
+      repeatLabel: '매주 일요일, 수요일',
+      participants: ['m1', 'm2', 'm3', 'm4', 'm5'],
+      organizer: 'm1',
+      notification: '30분 전',
+    };
+    setOpenMeeting(meetingShape);
+    setOpenMeetingAnchor(rect);
+    setMeetingVariant('calendar');
   };
   const handleCloseMeeting = () => {
     setOpenMeeting(null);
     setOpenMeetingAnchor(null);
+    setMeetingVariant(null);
   };
 
   // ── Snippet CTA state ────────────────────────────────────────────────────
@@ -226,11 +251,24 @@ export default function TimelineCanvas({
       getEventsForDate={getEventsForDate}
     >
     <main className="tl-page">
-      {/* Page header */}
+      {/* Page header — Timeline / Weekly 페이지 레벨 탭 */}
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
           <h1 className="tl-page-title">
-            Timeline <span className="tl-page-title-sub">Weekly</span>
+            <button
+              type="button"
+              className={`tl-page-title-tab ${pageMode === 'timeline' ? 'is-active' : ''}`}
+              onClick={() => setPageMode('timeline')}
+            >
+              Timeline
+            </button>
+            <button
+              type="button"
+              className={`tl-page-title-tab ${pageMode === 'weekly' ? 'is-active' : ''}`}
+              onClick={() => setPageMode('weekly')}
+            >
+              Weekly
+            </button>
           </h1>
           <div className="tl-page-meta">
             <span className="tl-meta-label">진행 중 프로젝트</span>
@@ -239,6 +277,10 @@ export default function TimelineCanvas({
           </div>
         </div>
       </div>
+
+      {pageMode === 'weekly' && <TimelineWeeklyView baseUrl={baseUrl} />}
+      {pageMode === 'timeline' && (
+      <>
 
       {/* Tab row (간트 / 캘린더) + GCal status */}
       <div className="tl-tabs-row">
@@ -347,7 +389,7 @@ export default function TimelineCanvas({
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
       {currentTab === 'calendar' ? (
         <div className="tl-body tl-body-calendar">
-          <CalendarMonthView selectedDate={selectedDate} />
+          <CalendarMonthView selectedDate={selectedDate} onEventClick={handleCalendarEventClick} />
         </div>
       ) : (
         <div className="tl-body">
@@ -388,12 +430,16 @@ export default function TimelineCanvas({
         </div>
       )}
 
+      </>
+      )}
+
       {/* Meeting detail modal */}
       {openMeeting && (
         <MeetingModal
           meeting={openMeeting}
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
+          variant={meetingVariant}
         />
       )}
 

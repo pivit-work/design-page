@@ -52,7 +52,7 @@ function buildMonthGrid(date) {
  * - 오늘 날짜는 녹색 원형 배경 하이라이트
  * - 현재 달이 아닌 날짜는 text-disabled 로 dim
  */
-export default function CalendarMonthView({ selectedDate }) {
+export default function CalendarMonthView({ selectedDate, onEventClick }) {
   const { getEventsForDate } = useTimelineData();
   const cells = buildMonthGrid(selectedDate);
   const currentMonth = selectedDate.getMonth();
@@ -130,6 +130,11 @@ export default function CalendarMonthView({ selectedDate }) {
                           '--event-bg': palette.bg,
                           '--event-bg-hover': palette.bgHover,
                           borderColor: palette.border,
+                          cursor: 'pointer',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
                         }}
                       >
                         <span

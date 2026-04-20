@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Sidebar,
@@ -228,6 +228,52 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('orgchart');
   const [orgSubTab, setOrgSubTab] = useState('orgchart');
   const [adminMode, setAdminMode] = useState(false);
+
+  // ── Global scrollbar auto-hide ──────────────────────────────────────────
+  // 기본적으로 모든 스크롤 가능한 요소의 thumb 는 숨김(CSS). 여기서는
+  // scroll / mousemove 이벤트를 가장 가까운 scrollable ancestor 에 올려주고
+  // 800ms 무액션 시 상태를 해제한다. 결과적으로 사용자 액션이 있을 때만
+  // 스크롤바가 자연스럽게 나타났다 사라진다.
+  useEffect(() => {
+    const timers = new WeakMap();
+    const show = (el) => {
+      if (!el || el === document || el === document.documentElement) {
+        document.documentElement.classList.add('is-scrolling');
+        clearTimeout(timers.get(document.documentElement));
+        timers.set(
+          document.documentElement,
+          setTimeout(() => document.documentElement.classList.remove('is-scrolling'), 800)
+        );
+        return;
+      }
+      el.classList.add('is-scrolling');
+      clearTimeout(timers.get(el));
+      timers.set(
+        el,
+        setTimeout(() => el.classList.remove('is-scrolling'), 800)
+      );
+    };
+    const findScrollableAncestor = (node) => {
+      let el = node;
+      while (el && el.nodeType === 1) {
+        const s = getComputedStyle(el);
+        if (/(auto|scroll|overlay)/.test(s.overflowY + s.overflow)) {
+          const scrollable = el.scrollHeight > el.clientHeight;
+          if (scrollable) return el;
+        }
+        el = el.parentElement;
+      }
+      return document.documentElement;
+    };
+    const onScroll = (e) => show(e.target === document ? document.documentElement : e.target);
+    const onMove = (e) => show(findScrollableAncestor(e.target));
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true });
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, []);
 
   const handleNavigate = (page) => {
     setCurrentPage(page);

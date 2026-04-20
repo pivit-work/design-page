@@ -8,7 +8,7 @@ import useTimelineData from './useTimelineData.js';
  * placed to its LEFT; otherwise it's placed to its RIGHT. Vertical center
  * is anchored to the block, then clamped to keep the modal in view.
  */
-export default function MeetingModal({ meeting, anchorRect, onClose }) {
+export default function MeetingModal({ meeting, anchorRect, onClose, variant }) {
   const { members } = useTimelineData();
   const modalRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
@@ -67,7 +67,7 @@ export default function MeetingModal({ meeting, anchorRect, onClose }) {
     <div className="tl-meeting-modal-overlay" onClick={onClose}>
       <div
         ref={modalRef}
-        className="tl-meeting-modal"
+        className={`tl-meeting-modal ${variant === 'calendar' ? 'is-calendar' : ''}`}
         style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

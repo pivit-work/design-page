@@ -12,7 +12,7 @@
   --bg-quaternary: var(--colors-background-bgQuaternary);
   --bg-secondary: var(--colors-background-bgSecondary);
   --bg-active: var(--colors-background-bgActive);
-  --bg-field: var(--colors-background-bgSecondaryHover);
+  --bg-field: var(--colors-background-bgField);
   --bg-brand-solid: var(--colors-background-bgBrandSolid);
   --bg-error-primary: var(--colors-background-bgErrorPrimary);
 
@@ -83,6 +83,7 @@
   --utility-blue-light-600: var(--componentColors-utility-blueLight-utilityBlueLight600);
   --utility-blue-500: var(--componentColors-utility-blue-utilityBlue500);
   --utility-blue-100: var(--componentColors-utility-blue-utilityBlue100);
+  --utility-blue-dark-50: var(--componentColors-utility-blueDark-utilityBlueDark50);
   --utility-green-50: var(--componentColors-utility-green-utilityGreen50);
   --utility-green-100: var(--componentColors-utility-green-utilityGreen100);
   --utility-green-500: var(--componentColors-utility-green-utilityGreen500);
@@ -107,3 +108,36 @@ body {
 }
 
 #root { width: 100%; height: 100%; }
+
+/* ── Global scrollbar auto-hide ──────────────────────────────────────────
+   기본은 thumb 투명(안 보임). 사용자가 스크롤/마우스 움직일 때
+   App.jsx 에서 해당 요소에 .is-scrolling 을 토글해 thumb 을 노출.
+   800ms 무액션 시 다시 투명으로 페이드. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.4s ease;
+}
+
+.is-scrolling {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.4s ease;
+}
+.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
