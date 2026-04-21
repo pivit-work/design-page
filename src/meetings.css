@@ -17,37 +17,7 @@
   gap: 40px;
 }
 
-/* Page header */
-.mtg-page-header {
-  padding: 8px 12px;
-}
-.mtg-page-title-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.mtg-page-title {
-  margin: 0;
-  font-size: 30px;
-  line-height: 38px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.mtg-page-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--text-tertiary);
-}
-.mtg-page-meta .mtg-meta-sep {
-  color: var(--text-quaternary);
-}
-.mtg-page-meta .mtg-meta-count {
-  font-weight: 600;
-  color: var(--text-brand-tertiary, #10774d);
-}
+/* 페이지 헤더는 `.tl-page-*` 공용 스타일 (timeline.css) 을 재사용. */
 
 /* Content */
 .mtg-content {
@@ -57,11 +27,11 @@
   padding: 0 12px;
 }
 
-/* Section */
+/* Section — Figma gap 20 between head and list */
 .mtg-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 .mtg-section-head {
   display: flex;
@@ -74,21 +44,30 @@
   flex-direction: column;
   gap: 4px;
 }
+/* 날짜 라벨 — Figma Text sm/Semibold 14/20, #687079 (text-secondary) */
 .mtg-section-date {
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-tertiary);
+  font-weight: 600;
+  color: var(--text-secondary, #687079);
 }
+/* 섹션 타이틀 — Figma 20/30, #596069 (text-primary) */
 .mtg-section-title {
   margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 700;
   color: var(--text-primary);
 }
-.mtg-section-head-past .mtg-section-title {
-  color: var(--text-tertiary);
-  font-weight: 500;
+/* 지난 회의 섹션 — opacity 0.5 (헤더+리스트 전체), 타이틀 14/20 semibold */
+.mtg-section-past {
+  opacity: 0.5;
+}
+.mtg-section-past .mtg-section-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-secondary, #687079);
 }
 .mtg-gcal-status {
   display: flex;
@@ -96,7 +75,7 @@
   gap: 8px;
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary, #687079);
 }
 
 /* Meeting list */
@@ -110,7 +89,7 @@
 .mtg-row {
   display: flex;
   align-items: stretch;
-  gap: 0;
+  gap: 22px;
   background: var(--colors-background-bgPrimary_alt, #ffffff);
   border-radius: 6px;
   overflow: hidden;
@@ -132,16 +111,18 @@
   border-right: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   flex-shrink: 0;
 }
+/* 시간 — 14/20 semibold text-secondary */
 .mtg-row-time-main {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-secondary, #687079);
 }
+/* 기간 "1h" — 14/20 text-tertiary */
 .mtg-row-time-dur {
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-tertiary, #b1b6be);
 }
 
 .mtg-row-body {
@@ -159,16 +140,18 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+/* 회의 제목 — 14/20 medium text-secondary */
 .mtg-row-title {
   font-size: 14px;
   line-height: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 500;
+  color: var(--text-secondary, #687079);
 }
+/* 참석자 — 14/20 regular text-secondary */
 .mtg-row-participants {
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary, #687079);
 }
 
 /* Status tags */

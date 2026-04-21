@@ -50,11 +50,11 @@ const STATUS_TAG = {
   scheduled: { label: '예정', className: 'mtg-tag-scheduled' },
 };
 
-function MeetingRow({ meeting, dimmed }) {
-  const statusTag = STATUS_TAG[meeting.status];
+function MeetingRow({ meeting }) {
+  const statusTag = meeting.status ? STATUS_TAG[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
   return (
-    <div className={`mtg-row ${isOngoing ? 'is-ongoing' : ''} ${dimmed ? 'is-dimmed' : ''}`}>
+    <div className={`mtg-row ${isOngoing ? 'is-ongoing' : ''}`}>
       <div className="mtg-row-time">
         <span className="mtg-row-time-main">{meeting.time}</span>
         <span className="mtg-row-time-dur">{meeting.duration}</span>
@@ -68,7 +68,7 @@ function MeetingRow({ meeting, dimmed }) {
         </div>
         <span className="mtg-row-participants">{meeting.participants}</span>
       </div>
-      {isOngoing && !dimmed && (
+      {isOngoing && (
         <button type="button" className="mtg-start-btn">시작</button>
       )}
     </div>
@@ -78,14 +78,14 @@ function MeetingRow({ meeting, dimmed }) {
 export default function MeetingsCanvas({ baseUrl = '' }) {
   return (
     <main className="mtg-page">
-      {/* Page header */}
-      <div className="mtg-page-header">
-        <div className="mtg-page-title-wrap">
-          <h1 className="mtg-page-title">회의 목록</h1>
-          <div className="mtg-page-meta">
-            <span>오늘회의</span>
-            <span className="mtg-meta-sep">·</span>
-            <span className="mtg-meta-count">5개</span>
+      {/* Page header — 타임라인/다른 페이지와 동일한 공용 스타일 재사용 */}
+      <div className="tl-page-header">
+        <div className="tl-page-title-wrap">
+          <h1 className="tl-page-title">회의 목록</h1>
+          <div className="tl-page-meta">
+            <span className="tl-meta-label">오늘회의</span>
+            <span className="tl-meta-sep">·</span>
+            <span className="tl-meta-count">5개</span>
           </div>
         </div>
       </div>
@@ -111,14 +111,14 @@ export default function MeetingsCanvas({ baseUrl = '' }) {
           </div>
         </section>
 
-        {/* 지난 회의 */}
-        <section className="mtg-section">
-          <header className="mtg-section-head mtg-section-head-past">
+        {/* 지난 회의 — 섹션 전체 opacity 0.5 */}
+        <section className="mtg-section mtg-section-past">
+          <header className="mtg-section-head">
             <h2 className="mtg-section-title">지난 회의</h2>
           </header>
           <div className="mtg-list">
             {PAST_MEETINGS.map((m) => (
-              <MeetingRow key={m.id} meeting={m} dimmed />
+              <MeetingRow key={m.id} meeting={m} />
             ))}
           </div>
         </section>
