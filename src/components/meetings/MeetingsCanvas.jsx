@@ -130,6 +130,7 @@ export default function MeetingsCanvas({ baseUrl = '' }) {
       {activeMeeting && (
         <MeetingInProgressModal
           meeting={activeMeeting}
+          baseUrl={baseUrl}
           onClose={() => setActiveMeeting(null)}
         />
       )}

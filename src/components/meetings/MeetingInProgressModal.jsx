@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
+import MeetingRecordContent from './MeetingRecordContent.jsx';
+import MeetingShareContent from './MeetingShareContent.jsx';
 
 /**
  * MeetingInProgressModal — "시작" 버튼 클릭 시 뜨는 회의 진행 중 모달.
@@ -23,9 +25,13 @@ function normalizeParticipants(participants) {
     .filter(Boolean);
 }
 
-export default function MeetingInProgressModal({ meeting, onClose }) {
+export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [memo, setMemo] = useState('');
+  // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
+  const [phase, setPhase] = useState('progress');
+  const isRecord = phase === 'record';
+  const isShare = phase === 'share';
   // 데모용: 고정된 샘플 타이머. 실제 연동 전엔 static.
   const timer = '00:27:07';
 
@@ -81,54 +87,80 @@ export default function MeetingInProgressModal({ meeting, onClose }) {
 
           {/* 스크롤 영역 */}
           <div className="mtg-progress-body">
-            <div className="mtg-progress-header-block">
-              <div className="mtg-progress-titlewrap">
-                <h2 id="mtg-progress-title" className="mtg-progress-title">회의 진행 중</h2>
-                <p className="mtg-progress-subtitle">{subtitle}</p>
-              </div>
-              <div className="mtg-progress-participants">
-                {participants.map((p) => (
-                  <span key={p} className="mtg-progress-pill">{p}</span>
-                ))}
-              </div>
-            </div>
+            {isShare ? (
+              <MeetingShareContent meeting={meeting} baseUrl={baseUrl} />
+            ) : isRecord ? (
+              <MeetingRecordContent meeting={meeting} baseUrl={baseUrl} />
+            ) : (
+              <>
+                <div className="mtg-progress-header-block">
+                  <div className="mtg-progress-titlewrap">
+                    <h2 id="mtg-progress-title" className="mtg-progress-title">회의 진행 중</h2>
+                    <p className="mtg-progress-subtitle">{subtitle}</p>
+                  </div>
+                  <div className="mtg-progress-participants">
+                    {participants.map((p) => (
+                      <span key={p} className="mtg-progress-pill">{p}</span>
+                    ))}
+                  </div>
+                </div>
 
-            {/* 녹음 중 + 타이머 */}
-            <div className="mtg-progress-timer">
-              <span className="mtg-progress-rec-badge">녹음 중</span>
-              <span className="mtg-progress-time">{timer}</span>
-            </div>
+                {/* 녹음 중 + 타이머 */}
+                <div className="mtg-progress-timer">
+                  <span className="mtg-progress-rec-badge">녹음 중</span>
+                  <span className="mtg-progress-time">{timer}</span>
+                </div>
 
-            {/* 실시간 메모 — 공용 .tl-snippet-textarea 재사용 (focus brand primary) */}
-            <section className="mtg-progress-section">
-              <label htmlFor="mtg-memo" className="mtg-progress-section-label">실시간 메모</label>
-              <textarea
-                id="mtg-memo"
-                className="tl-snippet-textarea mtg-progress-field"
-                placeholder="회의 중 중요한 내용을 메모하세요 (선택)"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
-            </section>
+                {/* 실시간 메모 — 공용 .tl-snippet-textarea 재사용 (focus brand primary) */}
+                <section className="mtg-progress-section">
+                  <label htmlFor="mtg-memo" className="mtg-progress-section-label">실시간 메모</label>
+                  <textarea
+                    id="mtg-memo"
+                    className="tl-snippet-textarea mtg-progress-field"
+                    placeholder="회의 중 중요한 내용을 메모하세요 (선택)"
+                    value={memo}
+                    onChange={(e) => setMemo(e.target.value)}
+                  />
+                </section>
 
-            {/* 실시간 전사 */}
-            <section className="mtg-progress-section">
-              <span className="mtg-progress-section-label">실시간 전사</span>
-              <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
-                {SAMPLE_TRANSCRIPT}
-              </div>
-            </section>
+                {/* 실시간 전사 */}
+                <section className="mtg-progress-section">
+                  <span className="mtg-progress-section-label">실시간 전사</span>
+                  <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
+                    {SAMPLE_TRANSCRIPT}
+                  </div>
+                </section>
+              </>
+            )}
           </div>
 
-          {/* Sticky bottom — 회의 종료 버튼 */}
+          {/* Sticky bottom — phase 에 따라 다른 버튼 */}
           <div className="mtg-progress-actions">
-            <button
-              type="button"
-              className="mtg-progress-end-btn"
-              onClick={() => setConfirmOpen(true)}
-            >
-              회의 종료 - AI 회의록 생성
-            </button>
+            {isShare ? (
+              <button
+                type="button"
+                className="mtg-progress-share-btn"
+                onClick={onClose}
+              >
+                공유 완료
+              </button>
+            ) : isRecord ? (
+              <button
+                type="button"
+                className="mtg-progress-share-btn"
+                onClick={() => setPhase('share')}
+              >
+                공유하기
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="mtg-progress-end-btn"
+                onClick={() => setConfirmOpen(true)}
+              >
+                회의 종료 - AI 회의록 생성
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -138,7 +170,7 @@ export default function MeetingInProgressModal({ meeting, onClose }) {
           onCancel={() => setConfirmOpen(false)}
           onConfirm={() => {
             setConfirmOpen(false);
-            onClose?.();
+            setPhase('record');
           }}
         />
       )}

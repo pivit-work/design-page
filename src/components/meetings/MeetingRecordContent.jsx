@@ -1,0 +1,265 @@
+import { useRef, useState } from 'react';
+import Icon from '../shared/Icon.jsx';
+import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
+import ActionPersonPopover from './ActionPersonPopover.jsx';
+
+const MEMBER_POOL = [
+  { name: 'SH' },
+  { name: 'David' },
+  { name: 'Juliet' },
+  { name: 'Kurt' },
+  { name: 'Ernest' },
+];
+
+// 'MM/DD' → Date 로 변환 (이번 해 기준).
+function parseMMDD(s) {
+  const now = new Date();
+  const [m, d] = s.split('/').map(Number);
+  return new Date(now.getFullYear(), (m || 1) - 1, d || 1);
+}
+function formatMMDD(date) {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}/${d}`;
+}
+
+/**
+ * MeetingRecordContent — 회의 종료 후 "생성된 회의록" 본문.
+ * MeetingInProgressModal 이 phase='record' 일 때 frame 내부에 렌더.
+ *
+ * Figma node-id=16708-33213.
+ */
+
+const DISCUSSIONS = [
+  {
+    title: 'Daily Snippet AI 기능 완료 검토',
+    body:
+      'AI 요약에는 버튼 manual trigger 방식 구현 완료. 자동 트리거 방식은 의도적으로 배제한 제품 철학 결정.\n\n• 현재 QA 미진행, 이번 주 내 완료 목표.\n• Claude API 오류 시 버튼 비활성화 + 메시지 UX 필요 (이재영).',
+  },
+  {
+    title: '1on1 준비화면 QA 일정 확정',
+    body:
+      '이번 주 금요일까지 QA 1차 완료, 주말 회귀 테스트 후 월요일 스테이징 배포로 합의.\n\n• SH 담당, 이슈는 Linear 티켓으로 즉시 기록.\n• QA 체크리스트는 Notion 에 공유.',
+  },
+  {
+    title: 'Eve 온보딩 및 UI 리뷰 계획',
+    body:
+      'Eve 첫 주 온보딩 일정 확정 — 4/10 전체 제품 데모, 4/11 코드베이스 투어, 4/12 첫 UI 리뷰 세션.\n\n• Kurt 가 멘토로 스케줄 조율.\n• 리뷰 세션은 녹화해서 이후 팀 공유.',
+  },
+  {
+    title: 'Discord QA 채널 운영 방식',
+    body:
+      'QA 전용 Discord 채널 생성 후 아래 규칙으로 운영:\n\n• 버그 리포트는 스레드로 묶어 제보자·재현 단계·스크린샷 필수.\n• 데일리 리마인더 봇으로 미해결 이슈 하이라이트.\n• 채널 owner: Kurt, 백업: David.',
+  },
+];
+
+const DECISIONS = [
+  '4월 30일 Phase 1 런치 일정 유지 확정',
+  'Discord QA 채널 이번 주 내 생성 (Kurt 담당)',
+];
+
+const ACTION_ITEMS = [
+  { title: '1on1 준비화면 QA 완료', person: 'SH', date: '04/09' },
+  { title: 'Discord QA 채널 생성', person: 'David', date: '04/09' },
+  { title: 'Jon 첫 UI 리뷰 일정 조율', person: 'Kurt', date: '04/09' },
+];
+
+export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
+  // 여러 항목 동시 펼침 허용 — Set 기반.
+  const [expanded, setExpanded] = useState(() => new Set([0]));
+  const toggleExpanded = (i) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
+  const [actions, setActions] = useState(ACTION_ITEMS);
+  // { idx, field: 'person' | 'date', rect, el } | null
+  const [openPicker, setOpenPicker] = useState(null);
+  const title = meeting?.title ?? '스프린트 리뷰';
+
+  const updateAction = (idx, patch) => {
+    setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+  };
+
+  return (
+    <>
+      <div className="mtg-record-header-block">
+        <h2 id="mtg-progress-title" className="mtg-progress-title">생성된 회의록</h2>
+        <div className="mtg-record-ai-banner">
+          <Icon
+            src="/icons-solid/ai-chat-01.svg"
+            size={14}
+            color="#ad00fe"
+            baseUrl={baseUrl}
+          />
+          <span className="mtg-record-ai-banner-text">
+            AI 회의록이 생성되었습니다. 검토 후 공유해 주세요.
+          </span>
+        </div>
+      </div>
+
+      {/* 메타 3컬럼: 회의 / 일시 / 참석 */}
+      <div className="mtg-record-meta">
+        <div className="mtg-record-meta-col mtg-record-meta-col-grow">
+          <span className="mtg-record-meta-label">회의</span>
+          <span className="mtg-record-meta-value">{title}</span>
+        </div>
+        <div className="mtg-record-meta-col">
+          <span className="mtg-record-meta-label">일시</span>
+          <span className="mtg-record-meta-value">2026.04.07 · 10:00–11:03</span>
+        </div>
+        <div className="mtg-record-meta-col">
+          <span className="mtg-record-meta-label">참석</span>
+          <span className="mtg-record-meta-value">5명</span>
+        </div>
+      </div>
+
+      {/* 요약 */}
+      <section className="mtg-progress-section mtg-record-section">
+        <span className="mtg-progress-section-label">요약</span>
+        <div className="tl-snippet-textarea mtg-record-readonly">
+          Daily Snippet AI 기능 완료 확인. 1on1 준비화면 QA 이번 주 목표. 4월 30일 Phase 1 런치 일정 재확인. Jon 온보딩 완료.
+        </div>
+      </section>
+
+      {/* 주요논의 — accordion */}
+      <section className="mtg-progress-section mtg-record-section">
+        <span className="mtg-progress-section-label">주요논의</span>
+        <ul className="mtg-record-discussion-list">
+          {DISCUSSIONS.map((d, i) => {
+            const open = expanded.has(i);
+            return (
+              <li key={d.title} className={`mtg-record-discussion-item ${open ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="mtg-record-discussion-head"
+                  onClick={() => toggleExpanded(i)}
+                  aria-expanded={open}
+                >
+                  <span className="mtg-record-discussion-title">
+                    {i + 1}. {d.title}
+                  </span>
+                  <Icon
+                    src="/icons/chevron-down.svg"
+                    size={20}
+                    color="var(--text-tertiary)"
+                    baseUrl={baseUrl}
+                    className={open ? 'mtg-record-chevron is-open' : 'mtg-record-chevron'}
+                  />
+                </button>
+                {open && d.body && (
+                  <div className="mtg-record-discussion-body">{d.body}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* 결정 사항 */}
+      <section className="mtg-progress-section mtg-record-section">
+        <span className="mtg-progress-section-label">결정 사항</span>
+        <div className="tl-snippet-textarea mtg-record-readonly">
+          <ul className="mtg-record-bullet-list">
+            {DECISIONS.map((d) => (<li key={d}>{d}</li>))}
+          </ul>
+        </div>
+      </section>
+
+      {/* 액션 아이템 */}
+      <section className="mtg-progress-section mtg-record-section">
+        <span className="mtg-progress-section-label">액션 아이템</span>
+        <ul className="mtg-record-action-list">
+          {actions.map((a, idx) => (
+            <li key={idx} className="mtg-record-action-item">
+              <span className="mtg-record-action-title">{a.title}</span>
+              <button
+                type="button"
+                className="mtg-record-action-person"
+                onClick={(e) => setOpenPicker({
+                  idx,
+                  field: 'person',
+                  rect: e.currentTarget.getBoundingClientRect(),
+                })}
+              >
+                <span className="mtg-record-action-avatar">{a.person.charAt(0)}</span>
+                <span className="mtg-record-action-name">{a.person}</span>
+              </button>
+              <button
+                type="button"
+                className="mtg-record-action-date"
+                onClick={(e) => setOpenPicker({
+                  idx,
+                  field: 'date',
+                  rect: e.currentTarget.getBoundingClientRect(),
+                })}
+              >
+                {a.date}
+              </button>
+              <button
+                type="button"
+                className="mtg-record-action-remove"
+                aria-label="제거"
+                onClick={() => setActions((prev) => prev.filter((_, i) => i !== idx))}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path
+                    d="M10.5 3.5l-7 7M3.5 3.5l7 7"
+                    stroke="var(--text-tertiary)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </li>
+          ))}
+          <li>
+            <button
+              type="button"
+              className="mtg-record-action-add"
+              onClick={() =>
+                setActions((prev) => [
+                  ...prev,
+                  { title: '새 액션 아이템', person: 'SH', date: formatMMDD(new Date()) },
+                ])
+              }
+            >
+              <Icon src="/icons/plus.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>액션 아이템 추가</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+
+      {openPicker?.field === 'person' && (
+        <ActionPersonPopover
+          anchorRect={openPicker.rect}
+          members={MEMBER_POOL}
+          selected={actions[openPicker.idx]?.person}
+          onSelect={(name) => {
+            updateAction(openPicker.idx, { person: name });
+            setOpenPicker(null);
+          }}
+          onClose={() => setOpenPicker(null)}
+        />
+      )}
+
+      {openPicker?.field === 'date' && (
+        <DatePickerPopover
+          anchorRect={openPicker.rect}
+          anchorEl={null}
+          selectedDate={parseMMDD(actions[openPicker.idx]?.date ?? '04/09')}
+          onSelect={(d) => {
+            updateAction(openPicker.idx, { date: formatMMDD(d) });
+            setOpenPicker(null);
+          }}
+          onClose={() => setOpenPicker(null)}
+        />
+      )}
+    </>
+  );
+}
