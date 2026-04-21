@@ -7,7 +7,6 @@ import CalendarMonthView from './CalendarMonthView.jsx';
 import MeetingModal from './MeetingModal.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
 import DragPreview from './DragPreview.jsx';
-import useSegmentedIndicator from './hooks/useSegmentedIndicator.js';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
@@ -26,13 +25,6 @@ import {
   getMonthDates,
   formatIsoDate,
 } from './constants.js';
-
-const VIEW_UNITS = [
-  ['day', '일'],
-  ['week', '주'],
-  ['month', '월'],
-];
-const VIEW_UNIT_VALUES = VIEW_UNITS.map(([v]) => v);
 
 const formatKoreanDate = (d) =>
   `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -79,7 +71,7 @@ export default function TimelineCanvas({
   const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
-  const [viewUnit, setViewUnit] = useState('day');
+  const [viewUnit] = useState('day');
   const [selectedDate, setSelectedDate] = useState(() => parseIsoDate(TODAY_STR));
 
   const isGantt = currentTab === 'gantt';
@@ -87,9 +79,6 @@ export default function TimelineCanvas({
   // viewUnit 이 같아도 월이 바뀌면 dayCount 가 변할 수 있기 때문에(예: 4월
   // 30일 → 5월 31일) 이 값으로 effect 를 트리거.
   const dayCount = snippetDates.length || 1;
-
-  const { itemsRef: segItemsRef, indicator: segIndicator } =
-    useSegmentedIndicator(VIEW_UNIT_VALUES, viewUnit, isGantt);
 
   const {
     leftMidRef,
@@ -364,31 +353,6 @@ export default function TimelineCanvas({
       {/* Toolbar row (일/주/월, date nav, filter, + 이벤트 추가)
           캘린더 탭에서는 segmented control 숨김 — viewUnit 개념이 없음. */}
       <div className="tl-toolbar">
-        {isGantt && (
-          <div className="tl-seg-control" role="tablist">
-            {segIndicator && (
-              <span
-                className="tl-seg-indicator"
-                style={segIndicator}
-                aria-hidden="true"
-              />
-            )}
-            {VIEW_UNITS.map(([v, label], i) => (
-              <button
-                key={v}
-                ref={(el) => (segItemsRef.current[i] = el)}
-                type="button"
-                role="tab"
-                aria-selected={viewUnit === v}
-                className={`tl-seg-item ${viewUnit === v ? 'is-active' : ''}`}
-                onClick={() => setViewUnit(v)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
         <button
           ref={dateBtnRef}
           type="button"
