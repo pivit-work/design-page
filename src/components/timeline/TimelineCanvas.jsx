@@ -425,12 +425,18 @@ export default function TimelineCanvas({
 
         <div className="tl-toolbar-spacer" />
 
-        {isGantt && viewUnit === 'day' ? (
-          <button type="button" className="tl-add-event" onClick={handleAddEventClick}>
-            <Icon src={icons.plus} size={20} color="#fff" baseUrl={baseUrl} />
+        {isGantt && viewUnit === 'day' && (
+          <button
+            type="button"
+            className="tl-add-event tl-add-event-secondary"
+            onClick={handleAddEventClick}
+          >
+            <Icon src={icons.plus} size={20} color="var(--colors-foreground-fgBrandPrimary, #2dbd82)" baseUrl={baseUrl} />
             <span>이벤트 추가</span>
           </button>
-        ) : snippetState === 'create' ? (
+        )}
+
+        {snippetState === 'create' ? (
           <button type="button" className="tl-add-event" onClick={handleSnippetCreate}>
             <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
             <span>스니핏 작성</span>

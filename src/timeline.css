@@ -150,6 +150,49 @@
   flex-shrink: 0;
 }
 
+/* Segmented control — 일/주/월 선택 (useSegmentedIndicator 가 width/left 계산) */
+.tl-seg-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 10px;
+  gap: 2px;
+}
+.tl-seg-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(10, 13, 18, 0.06);
+  transition: left 0.2s ease, width 0.2s ease;
+  pointer-events: none;
+}
+.tl-seg-item {
+  position: relative;
+  z-index: 1;
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.15s ease;
+}
+.tl-seg-item.is-active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.tl-seg-item:hover:not(.is-active) {
+  color: var(--text-secondary);
+}
+
 /* Date picker — Figma .buttons5: padding 8 14, radius 8, gap 4
    Text: Text sm/Semibold (14/20/600), fill text-secondary */
 .tl-date-picker {
