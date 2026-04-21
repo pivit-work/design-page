@@ -14,7 +14,8 @@
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  /* Figma: tl-page-header padding-bottom 8 + gap 12 = 20 (헤더→첫 섹션) */
+  gap: 12px;
 }
 
 /* 페이지 헤더는 `.tl-page-*` 공용 스타일 (timeline.css) 을 재사용. */
