@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import MeetingInProgressModal from './MeetingInProgressModal.jsx';
 
 /**
  * MeetingsCanvas — 회의록 메뉴 페이지.
@@ -50,7 +52,7 @@ const STATUS_TAG = {
   scheduled: { label: '예정', className: 'mtg-tag-scheduled' },
 };
 
-function MeetingRow({ meeting }) {
+function MeetingRow({ meeting, onStart }) {
   const statusTag = meeting.status ? STATUS_TAG[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
   return (
@@ -69,13 +71,14 @@ function MeetingRow({ meeting }) {
         <span className="mtg-row-participants">{meeting.participants}</span>
       </div>
       {isOngoing && (
-        <button type="button" className="mtg-start-btn">시작</button>
+        <button type="button" className="mtg-start-btn" onClick={() => onStart?.(meeting)}>시작</button>
       )}
     </div>
   );
 }
 
 export default function MeetingsCanvas({ baseUrl = '' }) {
+  const [activeMeeting, setActiveMeeting] = useState(null);
   return (
     <main className="mtg-page">
       {/* Page header — 타임라인/다른 페이지와 동일한 공용 스타일 재사용 */}
@@ -106,7 +109,7 @@ export default function MeetingsCanvas({ baseUrl = '' }) {
           </header>
           <div className="mtg-list">
             {TODAY_MEETINGS.map((m) => (
-              <MeetingRow key={m.id} meeting={m} />
+              <MeetingRow key={m.id} meeting={m} onStart={setActiveMeeting} />
             ))}
           </div>
         </section>
@@ -123,6 +126,13 @@ export default function MeetingsCanvas({ baseUrl = '' }) {
           </div>
         </section>
       </div>
+
+      {activeMeeting && (
+        <MeetingInProgressModal
+          meeting={activeMeeting}
+          onClose={() => setActiveMeeting(null)}
+        />
+      )}
     </main>
   );
 }
