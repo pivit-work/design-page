@@ -46,6 +46,9 @@ export {
   TODAY_STR as TIMELINE_TODAY_STR,
 } from './timeline/index.js';
 
+// Meetings (회의록)
+export { MeetingsCanvas } from './meetings/index.js';
+
 // 1on1
 export {
   ProgressBar as OneOnOneProgressBar,

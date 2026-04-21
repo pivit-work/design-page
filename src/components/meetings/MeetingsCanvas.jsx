@@ -1,0 +1,128 @@
+import Icon from '../shared/Icon.jsx';
+
+/**
+ * MeetingsCanvas — 회의록 메뉴 페이지.
+ *
+ * Figma node-id=16708-26634. 오늘 회의 / 지난 회의 리스트.
+ * 진행 중 회의는 연한 초록 배경 + 시작 버튼, 예정 회의는 흰 배경.
+ * 지난 회의는 opacity 0.5 로 dimmed.
+ */
+
+const TODAY_MEETINGS = [
+  {
+    id: 'today-1',
+    time: '10:00',
+    duration: '1h',
+    title: '스프린트 리뷰',
+    status: 'ongoing',
+    participants: 'David · Kurt',
+  },
+  {
+    id: 'today-2',
+    time: '14:00',
+    duration: '1h',
+    title: '1on1 - David & Kurt 그리고 점심식사',
+    status: 'scheduled',
+    participants: 'David · Kurt',
+  },
+  {
+    id: 'today-3',
+    time: '16:00',
+    duration: '1h',
+    title: '투자자 미팅 — Series A',
+    status: 'scheduled',
+    participants: 'David · Kurt',
+  },
+];
+
+const PAST_MEETINGS = [
+  {
+    id: 'past-1',
+    time: '16:00',
+    duration: '1h',
+    title: '투자자 미팅 — Series A',
+    participants: 'David · Kurt',
+  },
+];
+
+const STATUS_TAG = {
+  ongoing: { label: '진행 중', className: 'mtg-tag-ongoing' },
+  scheduled: { label: '예정', className: 'mtg-tag-scheduled' },
+};
+
+function MeetingRow({ meeting, dimmed }) {
+  const statusTag = STATUS_TAG[meeting.status];
+  const isOngoing = meeting.status === 'ongoing';
+  return (
+    <div className={`mtg-row ${isOngoing ? 'is-ongoing' : ''} ${dimmed ? 'is-dimmed' : ''}`}>
+      <div className="mtg-row-time">
+        <span className="mtg-row-time-main">{meeting.time}</span>
+        <span className="mtg-row-time-dur">{meeting.duration}</span>
+      </div>
+      <div className="mtg-row-body">
+        <div className="mtg-row-head">
+          <span className="mtg-row-title">{meeting.title}</span>
+          {statusTag && (
+            <span className={`mtg-tag ${statusTag.className}`}>{statusTag.label}</span>
+          )}
+        </div>
+        <span className="mtg-row-participants">{meeting.participants}</span>
+      </div>
+      {isOngoing && !dimmed && (
+        <button type="button" className="mtg-start-btn">시작</button>
+      )}
+    </div>
+  );
+}
+
+export default function MeetingsCanvas({ baseUrl = '' }) {
+  return (
+    <main className="mtg-page">
+      {/* Page header */}
+      <div className="mtg-page-header">
+        <div className="mtg-page-title-wrap">
+          <h1 className="mtg-page-title">회의 목록</h1>
+          <div className="mtg-page-meta">
+            <span>오늘회의</span>
+            <span className="mtg-meta-sep">·</span>
+            <span className="mtg-meta-count">5개</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mtg-content">
+        {/* 오늘의 회의 */}
+        <section className="mtg-section">
+          <header className="mtg-section-head">
+            <div className="mtg-section-title-wrap">
+              <span className="mtg-section-date">2026년 4월 7일 화요일</span>
+              <h2 className="mtg-section-title">오늘의 회의</h2>
+            </div>
+            <div className="mtg-gcal-status">
+              <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
+              <span>Google Calendar 연동 중</span>
+              <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+            </div>
+          </header>
+          <div className="mtg-list">
+            {TODAY_MEETINGS.map((m) => (
+              <MeetingRow key={m.id} meeting={m} />
+            ))}
+          </div>
+        </section>
+
+        {/* 지난 회의 */}
+        <section className="mtg-section">
+          <header className="mtg-section-head mtg-section-head-past">
+            <h2 className="mtg-section-title">지난 회의</h2>
+          </header>
+          <div className="mtg-list">
+            {PAST_MEETINGS.map((m) => (
+              <MeetingRow key={m.id} meeting={m} dimmed />
+            ))}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

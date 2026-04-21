@@ -1,0 +1,213 @@
+/* ─── Meetings (회의록) page ─── */
+
+.mtg-page {
+  position: fixed;
+  top: 0;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  padding: 72px 40px 20px 12px;
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  overflow: auto;
+  font-family: var(--font-family-body);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* Page header */
+.mtg-page-header {
+  padding: 8px 12px;
+}
+.mtg-page-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mtg-page-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.mtg-page-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+.mtg-page-meta .mtg-meta-sep {
+  color: var(--text-quaternary);
+}
+.mtg-page-meta .mtg-meta-count {
+  font-weight: 600;
+  color: var(--text-brand-tertiary, #10774d);
+}
+
+/* Content */
+.mtg-content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 0 12px;
+}
+
+/* Section */
+.mtg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mtg-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+.mtg-section-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mtg-section-date {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+.mtg-section-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mtg-section-head-past .mtg-section-title {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.mtg-gcal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* Meeting list */
+.mtg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Meeting row */
+.mtg-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mtg-row.is-ongoing {
+  background: #f1fffa;
+}
+.mtg-row.is-dimmed {
+  opacity: 0.5;
+}
+
+.mtg-row-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  min-width: 82px;
+  border-right: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  flex-shrink: 0;
+}
+.mtg-row-time-main {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mtg-row-time-dur {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+.mtg-row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 20px;
+  min-width: 0;
+}
+.mtg-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mtg-row-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mtg-row-participants {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+/* Status tags */
+.mtg-tag {
+  padding: 2px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+.mtg-tag-ongoing {
+  background: #e1fef2;
+  color: #10774d;
+}
+.mtg-tag-scheduled {
+  background: #fcfcfd;
+  color: var(--text-tertiary);
+}
+
+/* 시작 버튼 — Primary lg */
+.mtg-start-btn {
+  align-self: center;
+  margin-right: 20px;
+  padding: 10px 12px;
+  min-width: 56px;
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  border: none;
+  border-radius: 10px;
+  color: var(--text-white, #ffffff);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: filter 0.15s ease;
+}
+.mtg-start-btn:hover {
+  filter: brightness(0.96);
+}
