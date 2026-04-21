@@ -3468,3 +3468,107 @@
   justify-content: space-between;
   align-items: flex-start;
 }
+
+/* ─── SnippetPromptModal — 타임라인 진입 시 스니핏 작성 유도 ─── */
+.tl-snippet-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 25, 39, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 200;
+}
+
+.tl-snippet-prompt-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border-radius: 16px;
+  box-shadow:
+    0 32px 64px -12px rgba(10, 13, 18, 0.14),
+    0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tl-snippet-prompt-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tl-snippet-prompt-close:hover {
+  background: var(--colors-background-bgSecondary, #f5f5f5);
+}
+
+.tl-snippet-prompt-header {
+  padding: 24px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tl-snippet-prompt-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tl-snippet-prompt-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-prompt-actions {
+  display: flex;
+  gap: 12px;
+  padding: 32px 24px 24px;
+}
+
+.tl-snippet-prompt-btn {
+  flex: 1 0 0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tl-snippet-prompt-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  color: var(--text-secondary);
+}
+.tl-snippet-prompt-btn-secondary:hover {
+  background: var(--colors-background-bgSecondary, #f5f5f5);
+}
+
+.tl-snippet-prompt-btn-primary {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  border: none;
+  color: var(--text-white, #ffffff);
+}
+.tl-snippet-prompt-btn-primary:hover {
+  filter: brightness(0.96);
+}

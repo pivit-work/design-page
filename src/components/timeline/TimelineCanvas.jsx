@@ -18,6 +18,7 @@ import InternalEmployeeModal from './InternalEmployeeModal.jsx';
 import ExternalEmployeeModal from './ExternalEmployeeModal.jsx';
 import EventAddModal from './EventAddModal.jsx';
 import SnippetModal from './SnippetModal.jsx';
+import SnippetPromptModal from './SnippetPromptModal.jsx';
 import {
   GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
@@ -155,6 +156,8 @@ export default function TimelineCanvas({
   const [internalSnippetState, setInternalSnippetState] = useState('create');
   const snippetState = snippetStateProp ?? internalSnippetState;
   const [snippetModalOpen, setSnippetModalOpen] = useState(false);
+  // 타임라인 진입 시 자동으로 스니핏 작성 유도 프롬프트 띄움.
+  const [snippetPromptOpen, setSnippetPromptOpen] = useState(true);
   const handleSnippetCreate = () => {
     if (onSnippetCreate) onSnippetCreate();
     else setSnippetModalOpen(true);
@@ -524,6 +527,16 @@ export default function TimelineCanvas({
           baseUrl={baseUrl}
           onClose={() => setSnippetModalOpen(false)}
           onSubmit={handleSnippetSubmit}
+        />
+      )}
+
+      {snippetPromptOpen && (
+        <SnippetPromptModal
+          onCancel={() => setSnippetPromptOpen(false)}
+          onConfirm={() => {
+            setSnippetPromptOpen(false);
+            setSnippetModalOpen(true);
+          }}
         />
       )}
 
