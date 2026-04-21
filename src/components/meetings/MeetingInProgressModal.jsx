@@ -99,12 +99,12 @@ export default function MeetingInProgressModal({ meeting, onClose }) {
               <span className="mtg-progress-time">{timer}</span>
             </div>
 
-            {/* 실시간 메모 */}
+            {/* 실시간 메모 — 공용 .tl-snippet-textarea 재사용 (focus brand primary) */}
             <section className="mtg-progress-section">
               <label htmlFor="mtg-memo" className="mtg-progress-section-label">실시간 메모</label>
               <textarea
                 id="mtg-memo"
-                className="mtg-progress-textarea"
+                className="tl-snippet-textarea mtg-progress-field"
                 placeholder="회의 중 중요한 내용을 메모하세요 (선택)"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
@@ -114,7 +114,9 @@ export default function MeetingInProgressModal({ meeting, onClose }) {
             {/* 실시간 전사 */}
             <section className="mtg-progress-section">
               <span className="mtg-progress-section-label">실시간 전사</span>
-              <div className="mtg-progress-transcript">{SAMPLE_TRANSCRIPT}</div>
+              <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
+                {SAMPLE_TRANSCRIPT}
+              </div>
             </section>
           </div>
 
