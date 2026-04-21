@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import gsap from 'gsap';
 
 /**
@@ -35,7 +36,9 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
-  return (
+  // Portal 로 body 에 렌더 — tl-page 의 stacking context 에서 탈출해서
+  // 사이드바/탑네비 등 모든 상위 요소를 덮도록.
+  return createPortal(
     <div className="tl-snippet-prompt-overlay" ref={overlayRef} onClick={onCancel}>
       <div
         className="tl-snippet-prompt-modal"
@@ -88,6 +91,7 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

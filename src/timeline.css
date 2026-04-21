@@ -3478,7 +3478,8 @@
   align-items: center;
   justify-content: center;
   padding: 32px;
-  z-index: 200;
+  /* Sidebar(100), TopNav(90), MeetingModal 등 전부 위로 덮도록 최상위. */
+  z-index: 10000;
 }
 
 .tl-snippet-prompt-modal {
