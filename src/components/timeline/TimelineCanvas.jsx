@@ -13,6 +13,12 @@ import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import TimelineWeeklyView from './TimelineWeeklyView.jsx';
+import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
+import GroupAddModal from './GroupAddModal.jsx';
+import InternalEmployeeModal from './InternalEmployeeModal.jsx';
+import ExternalEmployeeModal from './ExternalEmployeeModal.jsx';
+import EventAddModal from './EventAddModal.jsx';
+import SnippetModal from './SnippetModal.jsx';
 import {
   GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
@@ -157,20 +163,68 @@ export default function TimelineCanvas({
   // 'create'    → "스니핏 작성" 버튼 (아직 이번 주 스니핏 미작성)
   // 'edit'      → "스니핏 수정" 버튼 (작성 완료 상태, 다시 수정 가능)
   // 'requested' → "스니핏 수정 승인 요청 완료" 상태 텍스트 (비인터랙티브)
-  //
-  // NOTE: 작성/수정 모달은 아직 구현 전. 지금은 클릭 시 다음 상태로 직접
-  // 전이시켜 state 머신 플로우만 연결해둔다.
-  // snippetState: prop 으로 받으면 controlled, 없으면 내부 상태.
   const [internalSnippetState, setInternalSnippetState] = useState('create');
   const snippetState = snippetStateProp ?? internalSnippetState;
+  const [snippetModalOpen, setSnippetModalOpen] = useState(false);
   const handleSnippetCreate = () => {
     if (onSnippetCreate) onSnippetCreate();
-    else setInternalSnippetState('edit');
+    else setSnippetModalOpen(true);
   };
   const handleSnippetEdit = () => {
     if (onSnippetEdit) onSnippetEdit();
-    else setInternalSnippetState('requested');
+    else setSnippetModalOpen(true);
   };
+  const handleSnippetSubmit = () => {
+    setSnippetModalOpen(false);
+    setInternalSnippetState((prev) => (prev === 'create' ? 'edit' : 'requested'));
+  };
+
+  // ── Filter menu (popover) ────────────────────────────────────────────────
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterAnchor, setFilterAnchor] = useState(null);
+  const [filterSelected, setFilterSelected] = useState(FILTER_TYPES);
+  const filterBtnRef = useRef(null);
+  const toggleFilter = () => {
+    if (filterOpen) { setFilterOpen(false); return; }
+    const el = filterBtnRef.current;
+    if (!el) return;
+    setFilterAnchor(el.getBoundingClientRect());
+    setFilterOpen(true);
+  };
+  const handleToggleFilterType = (type) => {
+    setFilterSelected((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
+  const [groupAddOpen, setGroupAddOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [externalOpen, setExternalOpen] = useState(false);
+  const [eventAddOpen, setEventAddOpen] = useState(false);
+  const handleAddGroupClick = onAddGroup ?? (() => setGroupAddOpen(true));
+  const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
+  const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
+  const handleAddEventClick = onAddEvent ?? (() => setEventAddOpen(true));
+  const handleAddGroup = (name) => {
+    handleGroupsCommit([
+      ...groups,
+      { id: `g-${Date.now()}`, label: name, memberIds: [] },
+    ]);
+    setGroupAddOpen(false);
+  };
+  const handleAddInternal = ({ memberId, groupId }) => {
+    handleGroupsCommit(
+      groups.map((g) =>
+        g.id === groupId && !g.memberIds.includes(memberId)
+          ? { ...g, memberIds: [...g.memberIds, memberId] }
+          : g
+      )
+    );
+    setInternalOpen(false);
+  };
+  const handleAddExternal = () => setExternalOpen(false);
+  const handleAddEvent = () => setEventAddOpen(false);
 
   // ── Date picker state ────────────────────────────────────────────────────
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -357,14 +411,22 @@ export default function TimelineCanvas({
           </button>
         </div>
 
-        <button type="button" className="tl-filter-btn" aria-label="필터">
+        <button
+          ref={filterBtnRef}
+          type="button"
+          className={`tl-filter-btn ${filterOpen ? 'is-open' : ''}`}
+          aria-label="필터"
+          aria-haspopup="menu"
+          aria-expanded={filterOpen}
+          onClick={toggleFilter}
+        >
           <Icon src="/icons/filter-lines.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
         </button>
 
         <div className="tl-toolbar-spacer" />
 
         {isGantt && viewUnit === 'day' ? (
-          <button type="button" className="tl-add-event" onClick={onAddEvent}>
+          <button type="button" className="tl-add-event" onClick={handleAddEventClick}>
             <Icon src={icons.plus} size={20} color="#fff" baseUrl={baseUrl} />
             <span>이벤트 추가</span>
           </button>
@@ -402,9 +464,9 @@ export default function TimelineCanvas({
             dragState={dragState}
             dragOver={dragOver}
             onStartDrag={startDrag}
-            onAddGroup={onAddGroup}
-            onAddInternalMember={onAddInternalMember}
-            onAddExternalMember={onAddExternalMember}
+            onAddGroup={handleAddGroupClick}
+            onAddInternalMember={handleAddInternalClick}
+            onAddExternalMember={handleAddExternalClick}
           />
           {viewUnit === 'day' ? (
             <TimelineGrid
@@ -440,6 +502,58 @@ export default function TimelineCanvas({
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
+        />
+      )}
+
+      {filterOpen && (
+        <FilterMenuPopover
+          anchorRect={filterAnchor}
+          anchorEl={filterBtnRef.current}
+          selected={filterSelected}
+          onToggle={handleToggleFilterType}
+          onClose={() => setFilterOpen(false)}
+          baseUrl={baseUrl}
+        />
+      )}
+
+      {groupAddOpen && (
+        <GroupAddModal
+          onClose={() => setGroupAddOpen(false)}
+          onSubmit={handleAddGroup}
+        />
+      )}
+
+      {internalOpen && (
+        <InternalEmployeeModal
+          groups={groups}
+          onClose={() => setInternalOpen(false)}
+          onSubmit={handleAddInternal}
+        />
+      )}
+
+      {externalOpen && (
+        <ExternalEmployeeModal
+          groups={groups}
+          onClose={() => setExternalOpen(false)}
+          onSubmit={handleAddExternal}
+        />
+      )}
+
+      {eventAddOpen && (
+        <EventAddModal
+          date={selectedDate}
+          baseUrl={baseUrl}
+          onClose={() => setEventAddOpen(false)}
+          onSubmit={handleAddEvent}
+        />
+      )}
+
+      {snippetModalOpen && (
+        <SnippetModal
+          date={selectedDate}
+          baseUrl={baseUrl}
+          onClose={() => setSnippetModalOpen(false)}
+          onSubmit={handleSnippetSubmit}
         />
       )}
 
