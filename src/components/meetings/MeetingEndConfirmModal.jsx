@@ -8,7 +8,7 @@ import gsap from 'gsap';
  * Figma node-id=16708-28310. 400 max, "회의 종료하기" 타이틀 + desc + 취소/종료 버튼.
  * Spring scale-up 등장 (back.out).
  */
-export default function MeetingEndConfirmModal({ onCancel, onConfirm }) {
+export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) {
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
 
@@ -49,7 +49,7 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm }) {
         <button
           type="button"
           className="mtg-end-confirm-close"
-          aria-label="닫기"
+          aria-label={labels.close}
           onClick={onCancel}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -64,10 +64,10 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm }) {
         </button>
 
         <div className="mtg-end-confirm-header">
-          <p id="mtg-end-confirm-title" className="mtg-end-confirm-title">회의 종료하기</p>
+          <p id="mtg-end-confirm-title" className="mtg-end-confirm-title">{labels.title}</p>
           <p className="mtg-end-confirm-desc">
-            정말로 종료하시는게 맞으실까요?<br />
-            종료 시 녹음 데이터를 공유 하실 수 있습니다.
+            {labels.descLine1}<br />
+            {labels.descLine2}
           </p>
         </div>
 
@@ -77,14 +77,14 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm }) {
             className="mtg-end-confirm-btn mtg-end-confirm-btn-cancel"
             onClick={onCancel}
           >
-            취소
+            {labels.cancel}
           </button>
           <button
             type="button"
             className="mtg-end-confirm-btn mtg-end-confirm-btn-danger"
             onClick={onConfirm}
           >
-            종료
+            {labels.confirm}
           </button>
         </div>
       </div>

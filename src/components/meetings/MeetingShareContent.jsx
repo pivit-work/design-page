@@ -10,35 +10,8 @@ import Icon from '../shared/Icon.jsx';
  *   - manual: 참석자 수동 선택 (체크박스)
  *   - external: 외부 링크 복사
  *
- * props 가 없으면 Figma 시안 그대로 demo 데이터를 사용 (backward compat).
+ * 모든 데이터/라벨은 caller 가 주입한다. 패키지 내부에는 fallback 이 없다.
  */
-
-const DEFAULT_CALENDAR_PARTICIPANTS = ['David', 'Kurt', 'Ernest', 'SH', 'John'];
-
-const DEFAULT_MEMBER_POOL = [
-  { name: 'SH', role: 'COO', checked: true },
-  { name: 'David', role: 'CEO', checked: true },
-  { name: 'Kurt', role: 'CTO', checked: true },
-  { name: 'Ernest', role: 'COO', checked: false },
-  { name: 'John', role: 'CDO', checked: false },
-];
-
-const DEFAULT_SHARE_URL = 'https://pivit.work/m/spr-0407';
-
-const DEFAULT_LABELS = {
-  title: '회의록 공유',
-  byParticipants: '참석자 일괄 공유',
-  byParticipantsDesc: (count) => `캘린더 기반 참석자 ${count}명에게 자동 발송`,
-  manual: '수동 선택',
-  attendees: '참석자',
-  addOthers: '그 외에 인원 추가',
-  addOthersPlaceholder: '이름 검색 또는 직접 입력 후 Enter',
-  addOthersHint: '이름 검색 또는 Enter로 직접 추가',
-  externalLink: '외부 링크',
-  externalLinkDesc: '링크를 복사하여 외부에 공유합니다',
-  copy: '복사',
-  copied: '복사됨',
-};
 
 function Checkbox({ checked, onChange }) {
   return (
@@ -67,23 +40,16 @@ function Checkbox({ checked, onChange }) {
 export default function MeetingShareContent({
   meeting,
   baseUrl = '',
-  calendarParticipants: calendarProp,
-  manualMembers: manualProp,
-  shareUrl: shareUrlProp,
-  subtitle: subtitleProp,
-  labels = {},
+  calendarParticipants,
+  manualMembers,
+  shareUrl,
+  subtitle,
+  labels,
 }) {
-  const mergedLabels = { ...DEFAULT_LABELS, ...labels };
-  const calendarParticipants = calendarProp ?? DEFAULT_CALENDAR_PARTICIPANTS;
-  const initialMembers = manualProp ?? DEFAULT_MEMBER_POOL;
-  const shareUrl = shareUrlProp ?? DEFAULT_SHARE_URL;
-
   const [mode, setMode] = useState('participants');
-  const [members, setMembers] = useState(initialMembers);
+  const [members, setMembers] = useState(manualMembers);
   const [customName, setCustomName] = useState('');
   const [copied, setCopied] = useState(false);
-  const title = meeting?.title ?? '스프린트 리뷰';
-  const subtitle = subtitleProp ?? `${title} · 2026.04.07 10:00`;
 
   const toggleMember = (name) => {
     setMembers((prev) =>
@@ -104,9 +70,7 @@ export default function MeetingShareContent({
   return (
     <>
       <div className="mtg-share-header-block">
-        <h2 id="mtg-progress-title" className="mtg-progress-title">
-          {mergedLabels.title}
-        </h2>
+        <h2 id="mtg-progress-title" className="mtg-progress-title">{labels.title}</h2>
         <p className="mtg-progress-subtitle">{subtitle}</p>
       </div>
 
@@ -125,14 +89,14 @@ export default function MeetingShareContent({
               color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
               baseUrl={baseUrl}
             />
-            <span className="mtg-share-card-title">{mergedLabels.byParticipants}</span>
+            <span className="mtg-share-card-title">{labels.byParticipants}</span>
           </div>
           {mode === 'participants' && (
             <div className="mtg-share-card-body">
               <p className="mtg-share-card-desc">
-                {typeof mergedLabels.byParticipantsDesc === 'function'
-                  ? mergedLabels.byParticipantsDesc(calendarParticipants.length)
-                  : mergedLabels.byParticipantsDesc}
+                {typeof labels.byParticipantsDesc === 'function'
+                  ? labels.byParticipantsDesc(calendarParticipants.length)
+                  : labels.byParticipantsDesc}
               </p>
               <div className="mtg-share-pill-list">
                 {calendarParticipants.map((p) => (
@@ -157,11 +121,11 @@ export default function MeetingShareContent({
               color="var(--text-secondary, #687079)"
               baseUrl={baseUrl}
             />
-            <span className="mtg-share-card-title">{mergedLabels.manual}</span>
+            <span className="mtg-share-card-title">{labels.manual}</span>
           </div>
           {mode === 'manual' && (
             <div className="mtg-share-card-body">
-              <div className="mtg-share-section-label">{mergedLabels.attendees}</div>
+              <div className="mtg-share-section-label">{labels.attendees}</div>
               <ul className="mtg-share-member-list">
                 {members.map((m) => (
                   <li key={m.name} className="mtg-share-member-row">
@@ -173,12 +137,12 @@ export default function MeetingShareContent({
                 ))}
               </ul>
               <div className="mtg-share-section-label mtg-share-section-label-sub">
-                {mergedLabels.addOthers}
+                {labels.addOthers}
               </div>
               <input
                 type="text"
                 className="tl-snippet-textarea mtg-share-input"
-                placeholder={mergedLabels.addOthersPlaceholder}
+                placeholder={labels.addOthersPlaceholder}
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 onKeyDown={(e) => {
@@ -191,7 +155,7 @@ export default function MeetingShareContent({
                   }
                 }}
               />
-              <div className="mtg-share-hint">{mergedLabels.addOthersHint}</div>
+              <div className="mtg-share-hint">{labels.addOthersHint}</div>
             </div>
           )}
         </div>
@@ -210,13 +174,11 @@ export default function MeetingShareContent({
               color="var(--text-secondary, #687079)"
               baseUrl={baseUrl}
             />
-            <span className="mtg-share-card-title">{mergedLabels.externalLink}</span>
+            <span className="mtg-share-card-title">{labels.externalLink}</span>
           </div>
           {mode === 'external' && (
             <div className="mtg-share-card-body">
-              <p className="mtg-share-card-desc">
-                {mergedLabels.externalLinkDesc}
-              </p>
+              <p className="mtg-share-card-desc">{labels.externalLinkDesc}</p>
               <div className="mtg-share-link-row">
                 <div className="mtg-share-link-url tl-snippet-textarea">{shareUrl}</div>
                 <button
@@ -224,7 +186,7 @@ export default function MeetingShareContent({
                   className="mtg-share-copy-btn"
                   onClick={handleCopy}
                 >
-                  {copied ? mergedLabels.copied : mergedLabels.copy}
+                  {copied ? labels.copied : labels.copy}
                 </button>
               </div>
             </div>

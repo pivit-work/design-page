@@ -9,57 +9,8 @@ import MeetingInProgressModal from './MeetingInProgressModal.jsx';
  * 진행 중 회의는 연한 초록 배경 + 시작 버튼, 예정 회의는 흰 배경.
  * 지난 회의는 opacity 0.5 로 dimmed.
  *
- * props 가 전달되지 않으면 Figma 시안 그대로 데모 데이터 + 한국어 라벨을 사용한다
- * (backward compat). 실서비스에서 사용할 때는 아래 props 로 주입.
+ * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
-
-const DEFAULT_TODAY_MEETINGS = [
-  {
-    id: 'today-1',
-    time: '10:00',
-    duration: '1h',
-    title: '스프린트 리뷰',
-    status: 'ongoing',
-    participants: 'David · Kurt',
-  },
-  {
-    id: 'today-2',
-    time: '14:00',
-    duration: '1h',
-    title: '1on1 - David & Kurt 그리고 점심식사',
-    status: 'scheduled',
-    participants: 'David · Kurt',
-  },
-  {
-    id: 'today-3',
-    time: '16:00',
-    duration: '1h',
-    title: '투자자 미팅 — Series A',
-    status: 'scheduled',
-    participants: 'David · Kurt',
-  },
-];
-
-const DEFAULT_PAST_MEETINGS = [
-  {
-    id: 'past-1',
-    time: '16:00',
-    duration: '1h',
-    title: '투자자 미팅 — Series A',
-    participants: 'David · Kurt',
-  },
-];
-
-const DEFAULT_LABELS = {
-  headerTitle: '회의 목록',
-  todayMetaLabel: '오늘회의',
-  todaySectionTitle: '오늘의 회의',
-  pastSectionTitle: '지난 회의',
-  gcalStatus: 'Google Calendar 연동 중',
-  ongoing: '진행 중',
-  scheduled: '예정',
-  start: '시작',
-};
 
 function MeetingRow({ meeting, onStart, statusLabels }) {
   const statusTag = meeting.status ? statusLabels[meeting.status] : null;
@@ -92,26 +43,22 @@ export default function MeetingsCanvas({
   baseUrl = '',
   todayMeetings,
   pastMeetings,
-  todayDateLabel = '2026년 4월 7일 화요일',
+  todayDateLabel,
   todayCountLabel,
-  labels = {},
+  labels,
   // 시작 버튼 클릭 훅: 호출 시 caller 가 직접 모달 렌더 + 실데이터 주입 가능.
-  // 없으면 내부 state 로 MeetingInProgressModal 을 기본 동작(demo 데이터)으로 열기.
+  // 없으면 내부 state 로 MeetingInProgressModal 을 열기(단, modal 데이터도
+  // caller 가 progressData/recordData/shareData/modalLabels 로 넘겨야 한다).
   onStartMeeting,
-  // onStartMeeting 을 쓰지 않고 기본 모달을 쓸 때, 모달 phase 별 실데이터 주입.
   progressData,
   recordData,
   shareData,
   modalLabels,
 }) {
-  const mergedLabels = { ...DEFAULT_LABELS, ...labels };
-  const resolvedToday = todayMeetings ?? DEFAULT_TODAY_MEETINGS;
-  const resolvedPast = pastMeetings ?? DEFAULT_PAST_MEETINGS;
-  const resolvedCount = todayCountLabel ?? `${resolvedToday.length}개`;
   const statusLabels = {
-    ongoing: { label: mergedLabels.ongoing, className: 'mtg-tag-ongoing' },
-    scheduled: { label: mergedLabels.scheduled, className: 'mtg-tag-scheduled' },
-    startLabel: mergedLabels.start,
+    ongoing: { label: labels.ongoing, className: 'mtg-tag-ongoing' },
+    scheduled: { label: labels.scheduled, className: 'mtg-tag-scheduled' },
+    startLabel: labels.start,
   };
 
   const [activeMeeting, setActiveMeeting] = useState(null);
@@ -120,11 +67,11 @@ export default function MeetingsCanvas({
       {/* Page header — 타임라인/다른 페이지와 동일한 공용 스타일 재사용 */}
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
-          <h1 className="tl-page-title">{mergedLabels.headerTitle}</h1>
+          <h1 className="tl-page-title">{labels.headerTitle}</h1>
           <div className="tl-page-meta">
-            <span className="tl-meta-label">{mergedLabels.todayMetaLabel}</span>
+            <span className="tl-meta-label">{labels.todayMetaLabel}</span>
             <span className="tl-meta-sep">·</span>
-            <span className="tl-meta-count">{resolvedCount}</span>
+            <span className="tl-meta-count">{todayCountLabel}</span>
           </div>
         </div>
       </div>
@@ -135,16 +82,16 @@ export default function MeetingsCanvas({
           <header className="mtg-section-head">
             <div className="mtg-section-title-wrap">
               <span className="mtg-section-date">{todayDateLabel}</span>
-              <h2 className="mtg-section-title">{mergedLabels.todaySectionTitle}</h2>
+              <h2 className="mtg-section-title">{labels.todaySectionTitle}</h2>
             </div>
             <div className="mtg-gcal-status">
               <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-              <span>{mergedLabels.gcalStatus}</span>
+              <span>{labels.gcalStatus}</span>
               <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
             </div>
           </header>
           <div className="mtg-list">
-            {resolvedToday.map((m) => (
+            {todayMeetings.map((m) => (
               <MeetingRow
                 key={m.id}
                 meeting={m}
@@ -158,10 +105,10 @@ export default function MeetingsCanvas({
         {/* 지난 회의 — 섹션 전체 opacity 0.5 */}
         <section className="mtg-section mtg-section-past">
           <header className="mtg-section-head">
-            <h2 className="mtg-section-title">{mergedLabels.pastSectionTitle}</h2>
+            <h2 className="mtg-section-title">{labels.pastSectionTitle}</h2>
           </header>
           <div className="mtg-list">
-            {resolvedPast.map((m) => (
+            {pastMeetings.map((m) => (
               <MeetingRow key={m.id} meeting={m} statusLabels={statusLabels} />
             ))}
           </div>

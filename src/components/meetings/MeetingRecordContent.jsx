@@ -9,68 +9,8 @@ import ActionPersonPopover from './ActionPersonPopover.jsx';
  *
  * Figma node-id=16708-33213.
  *
- * props 가 없으면 Figma 시안 그대로 demo 데이터를 사용 (backward compat).
+ * 모든 데이터/라벨은 caller 가 주입한다. 패키지 내부에는 fallback 이 없다.
  */
-
-const DEFAULT_MEMBER_POOL = [
-  { name: 'SH' },
-  { name: 'David' },
-  { name: 'Juliet' },
-  { name: 'Kurt' },
-  { name: 'Ernest' },
-];
-
-const DEFAULT_DISCUSSIONS = [
-  {
-    title: 'Daily Snippet AI 기능 완료 검토',
-    body:
-      'AI 요약에는 버튼 manual trigger 방식 구현 완료. 자동 트리거 방식은 의도적으로 배제한 제품 철학 결정.\n\n• 현재 QA 미진행, 이번 주 내 완료 목표.\n• Claude API 오류 시 버튼 비활성화 + 메시지 UX 필요 (이재영).',
-  },
-  {
-    title: '1on1 준비화면 QA 일정 확정',
-    body:
-      '이번 주 금요일까지 QA 1차 완료, 주말 회귀 테스트 후 월요일 스테이징 배포로 합의.\n\n• SH 담당, 이슈는 Linear 티켓으로 즉시 기록.\n• QA 체크리스트는 Notion 에 공유.',
-  },
-  {
-    title: 'Eve 온보딩 및 UI 리뷰 계획',
-    body:
-      'Eve 첫 주 온보딩 일정 확정 — 4/10 전체 제품 데모, 4/11 코드베이스 투어, 4/12 첫 UI 리뷰 세션.\n\n• Kurt 가 멘토로 스케줄 조율.\n• 리뷰 세션은 녹화해서 이후 팀 공유.',
-  },
-  {
-    title: 'Discord QA 채널 운영 방식',
-    body:
-      'QA 전용 Discord 채널 생성 후 아래 규칙으로 운영:\n\n• 버그 리포트는 스레드로 묶어 제보자·재현 단계·스크린샷 필수.\n• 데일리 리마인더 봇으로 미해결 이슈 하이라이트.\n• 채널 owner: Kurt, 백업: David.',
-  },
-];
-
-const DEFAULT_DECISIONS = [
-  '4월 30일 Phase 1 런치 일정 유지 확정',
-  'Discord QA 채널 이번 주 내 생성 (Kurt 담당)',
-];
-
-const DEFAULT_ACTION_ITEMS = [
-  { title: '1on1 준비화면 QA 완료', person: 'SH', date: '04/09' },
-  { title: 'Discord QA 채널 생성', person: 'David', date: '04/09' },
-  { title: 'Jon 첫 UI 리뷰 일정 조율', person: 'Kurt', date: '04/09' },
-];
-
-const DEFAULT_LABELS = {
-  title: '생성된 회의록',
-  aiBanner: 'AI 회의록이 생성되었습니다. 검토 후 공유해 주세요.',
-  metaMeeting: '회의',
-  metaDateTime: '일시',
-  metaAttendees: '참석',
-  summary: '요약',
-  discussions: '주요논의',
-  decisions: '결정 사항',
-  actionItems: '액션 아이템',
-  addActionItem: '액션 아이템 추가',
-  newActionItemTitle: '새 액션 아이템',
-  removeLabel: '제거',
-};
-
-const DEFAULT_SUMMARY =
-  'Daily Snippet AI 기능 완료 확인. 1on1 준비화면 QA 이번 주 목표. 4월 30일 Phase 1 런치 일정 재확인. Jon 온보딩 완료.';
 
 // 'MM/DD' → Date 로 변환 (이번 해 기준).
 function parseMMDD(s) {
@@ -87,26 +27,31 @@ function formatMMDD(date) {
 export default function MeetingRecordContent({
   meeting,
   baseUrl = '',
-  // 외부 주입 데이터
-  title: titleProp,
-  summary: summaryProp,
+  // 외부 주입 데이터 (모두 caller 필수)
+  title,
+  summary,
   dateTimeLabel,
   attendeeLabel,
-  discussions: discussionsProp,
-  decisions: decisionsProp,
-  actionItems: actionItemsProp,
+  discussions,
+  decisions,
+  actionItems,
   memberPool,
-  labels = {},
+  labels,
   onActionItemsChange,
 }) {
-  const mergedLabels = { ...DEFAULT_LABELS, ...labels };
-  const discussions = discussionsProp ?? DEFAULT_DISCUSSIONS;
-  const decisions = decisionsProp ?? DEFAULT_DECISIONS;
-  const resolvedMemberPool = memberPool ?? DEFAULT_MEMBER_POOL;
-  const resolvedTitle = titleProp ?? meeting?.title ?? '스프린트 리뷰';
-  const resolvedSummary = summaryProp ?? DEFAULT_SUMMARY;
-  const resolvedDateTime = dateTimeLabel ?? '2026.04.07 · 10:00–11:03';
-  const resolvedAttendeeLabel = attendeeLabel ?? '5명';
+  // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
+  const [internalActions, setInternalActions] = useState([]);
+  const actions = actionItems ?? internalActions;
+  // { idx, field: 'person' | 'date', rect, el } | null
+  const [openPicker, setOpenPicker] = useState(null);
+
+  const updateActions = (next) => {
+    if (actionItems === undefined) setInternalActions(next);
+    onActionItemsChange?.(next);
+  };
+  const updateAction = (idx, patch) => {
+    updateActions(actions.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+  };
 
   // 여러 항목 동시 펼침 허용 — Set 기반.
   const [expanded, setExpanded] = useState(() => new Set([0]));
@@ -118,24 +63,11 @@ export default function MeetingRecordContent({
       return next;
     });
   };
-  // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
-  const [internalActions, setInternalActions] = useState(DEFAULT_ACTION_ITEMS);
-  const actions = actionItemsProp ?? internalActions;
-  // { idx, field: 'person' | 'date', rect, el } | null
-  const [openPicker, setOpenPicker] = useState(null);
-
-  const updateActions = (next) => {
-    if (actionItemsProp === undefined) setInternalActions(next);
-    onActionItemsChange?.(next);
-  };
-  const updateAction = (idx, patch) => {
-    updateActions(actions.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
-  };
 
   return (
     <>
       <div className="mtg-record-header-block">
-        <h2 id="mtg-progress-title" className="mtg-progress-title">{mergedLabels.title}</h2>
+        <h2 id="mtg-progress-title" className="mtg-progress-title">{labels.title}</h2>
         <div className="mtg-record-ai-banner">
           <Icon
             src="/icons-solid/ai-chat-01.svg"
@@ -143,39 +75,35 @@ export default function MeetingRecordContent({
             color="#ad00fe"
             baseUrl={baseUrl}
           />
-          <span className="mtg-record-ai-banner-text">
-            {mergedLabels.aiBanner}
-          </span>
+          <span className="mtg-record-ai-banner-text">{labels.aiBanner}</span>
         </div>
       </div>
 
       {/* 메타 3컬럼: 회의 / 일시 / 참석 */}
       <div className="mtg-record-meta">
         <div className="mtg-record-meta-col mtg-record-meta-col-grow">
-          <span className="mtg-record-meta-label">{mergedLabels.metaMeeting}</span>
-          <span className="mtg-record-meta-value">{resolvedTitle}</span>
+          <span className="mtg-record-meta-label">{labels.metaMeeting}</span>
+          <span className="mtg-record-meta-value">{title}</span>
         </div>
         <div className="mtg-record-meta-col">
-          <span className="mtg-record-meta-label">{mergedLabels.metaDateTime}</span>
-          <span className="mtg-record-meta-value">{resolvedDateTime}</span>
+          <span className="mtg-record-meta-label">{labels.metaDateTime}</span>
+          <span className="mtg-record-meta-value">{dateTimeLabel}</span>
         </div>
         <div className="mtg-record-meta-col">
-          <span className="mtg-record-meta-label">{mergedLabels.metaAttendees}</span>
-          <span className="mtg-record-meta-value">{resolvedAttendeeLabel}</span>
+          <span className="mtg-record-meta-label">{labels.metaAttendees}</span>
+          <span className="mtg-record-meta-value">{attendeeLabel}</span>
         </div>
       </div>
 
       {/* 요약 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">{mergedLabels.summary}</span>
-        <div className="tl-snippet-textarea mtg-record-readonly">
-          {resolvedSummary}
-        </div>
+        <span className="mtg-progress-section-label">{labels.summary}</span>
+        <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
       </section>
 
       {/* 주요논의 — accordion */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">{mergedLabels.discussions}</span>
+        <span className="mtg-progress-section-label">{labels.discussions}</span>
         <ul className="mtg-record-discussion-list">
           {discussions.map((d, i) => {
             const open = expanded.has(i);
@@ -209,7 +137,7 @@ export default function MeetingRecordContent({
 
       {/* 결정 사항 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">{mergedLabels.decisions}</span>
+        <span className="mtg-progress-section-label">{labels.decisions}</span>
         <div className="tl-snippet-textarea mtg-record-readonly">
           <ul className="mtg-record-bullet-list">
             {decisions.map((d, i) => (<li key={`${d}-${i}`}>{d}</li>))}
@@ -219,7 +147,7 @@ export default function MeetingRecordContent({
 
       {/* 액션 아이템 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">{mergedLabels.actionItems}</span>
+        <span className="mtg-progress-section-label">{labels.actionItems}</span>
         <ul className="mtg-record-action-list">
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">
@@ -250,7 +178,7 @@ export default function MeetingRecordContent({
               <button
                 type="button"
                 className="mtg-record-action-remove"
-                aria-label={mergedLabels.removeLabel}
+                aria-label={labels.removeLabel}
                 onClick={() => updateActions(actions.filter((_, i) => i !== idx))}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -270,11 +198,11 @@ export default function MeetingRecordContent({
               type="button"
               className="mtg-record-action-add"
               onClick={() => {
-                const defaultPerson = resolvedMemberPool[0]?.name ?? '';
+                const defaultPerson = memberPool[0]?.name ?? '';
                 updateActions([
                   ...actions,
                   {
-                    title: mergedLabels.newActionItemTitle,
+                    title: labels.newActionItemTitle,
                     person: defaultPerson,
                     date: formatMMDD(new Date()),
                   },
@@ -282,7 +210,7 @@ export default function MeetingRecordContent({
               }}
             >
               <Icon src="/icons/plus.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-              <span>{mergedLabels.addActionItem}</span>
+              <span>{labels.addActionItem}</span>
             </button>
           </li>
         </ul>
@@ -291,7 +219,7 @@ export default function MeetingRecordContent({
       {openPicker?.field === 'person' && (
         <ActionPersonPopover
           anchorRect={openPicker.rect}
-          members={resolvedMemberPool}
+          members={memberPool}
           selected={actions[openPicker.idx]?.person}
           onSelect={(name) => {
             updateAction(openPicker.idx, { person: name });
@@ -305,7 +233,7 @@ export default function MeetingRecordContent({
         <DatePickerPopover
           anchorRect={openPicker.rect}
           anchorEl={null}
-          selectedDate={parseMMDD(actions[openPicker.idx]?.date ?? '04/09')}
+          selectedDate={parseMMDD(actions[openPicker.idx]?.date ?? formatMMDD(new Date()))}
           onSelect={(d) => {
             updateAction(openPicker.idx, { date: formatMMDD(d) });
             setOpenPicker(null);
