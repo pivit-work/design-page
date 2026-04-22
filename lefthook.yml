@@ -4,3 +4,10 @@ pre-commit:
     eslint:
       glob: "*.{js,jsx}"
       run: npx eslint {staged_files}
+
+pre-push:
+  commands:
+    lockfile-sync:
+      # CI 의 `npm ci` 가 package.json 과 package-lock.json 불일치로 12회 연속 실패했던 재발 방지.
+      # --dry-run 으로 실제 설치 없이 lock 파일 정합성만 검증한다.
+      run: npm ci --dry-run --ignore-scripts
