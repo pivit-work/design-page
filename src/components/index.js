@@ -47,7 +47,13 @@ export {
 } from './timeline/index.js';
 
 // Meetings (회의록)
-export { MeetingsCanvas } from './meetings/index.js';
+export {
+  MeetingsCanvas,
+  MeetingInProgressModal,
+  MeetingEndConfirmModal,
+  MeetingRecordContent,
+  MeetingShareContent,
+} from './meetings/index.js';
 
 // 1on1
 export {
