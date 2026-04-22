@@ -9,10 +9,26 @@ import MeetingShareContent from './MeetingShareContent.jsx';
  *
  * Figma node-id=16708-27390. 650x920, 녹음 중 배지 + 타이머 + 실시간 메모/전사 + "회의 종료" 버튼.
  * "회의 종료" 클릭 시 MeetingEndConfirmModal 이 그 위에 뜬다.
+ *
+ * props 가 없으면 Figma 시안 그대로 demo 데이터·한국어 라벨을 사용한다 (backward compat).
+ * 실 서비스에서는 아래 props 로 주입.
  */
 
-const SAMPLE_TRANSCRIPT =
+const DEFAULT_TRANSCRIPT =
   '"1on1 준비 화면 QA가 이번 주 안에 완료되어야 4월 30일 런치 일정을 맞출 수 있습니다. SH 담당으로 확정하고, 결과는 Discord 채널에 공유…"';
+
+const DEFAULT_LABELS = {
+  close: '닫기',
+  title: '회의 진행 중',
+  recording: '녹음 중',
+  memoLabel: '실시간 메모',
+  memoPlaceholder: '회의 중 중요한 내용을 메모하세요 (선택)',
+  transcriptLabel: '실시간 전사',
+  endButton: '회의 종료 - AI 회의록 생성',
+  shareButton: '공유하기',
+  shareDoneButton: '공유 완료',
+  startedSuffix: '시작',
+};
 
 // 참석자 이름 → 태그로 렌더할 문자열.
 // meeting.participants 가 "David · Kurt" 형식이면 split 하고, 배열이면 그대로 사용.
@@ -25,15 +41,32 @@ function normalizeParticipants(participants) {
     .filter(Boolean);
 }
 
-export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose }) {
+export default function MeetingInProgressModal({
+  meeting,
+  baseUrl = '',
+  onClose,
+  // 진행 phase props
+  timer,
+  transcript,
+  memo: memoProp,
+  onMemoChange,
+  // record/share phase 로 전달
+  recordData,
+  shareData,
+  // 라벨
+  labels = {},
+}) {
+  const mergedLabels = { ...DEFAULT_LABELS, ...labels };
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [memo, setMemo] = useState('');
+  const [internalMemo, setInternalMemo] = useState('');
+  const memo = memoProp !== undefined ? memoProp : internalMemo;
+  const handleMemoChange = onMemoChange ?? setInternalMemo;
   // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
   const [phase, setPhase] = useState('progress');
   const isRecord = phase === 'record';
   const isShare = phase === 'share';
-  // 데모용: 고정된 샘플 타이머. 실제 연동 전엔 static.
-  const timer = '00:27:07';
+  const resolvedTimer = timer ?? '00:27:07';
+  const resolvedTranscript = transcript ?? DEFAULT_TRANSCRIPT;
 
   // Figma: "David", "Kurt", "Ernest", "SH", "John" (5명).
   // meeting.participants 에 데이터 없으면 샘플.
@@ -44,7 +77,7 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
 
   const title = meeting?.title ?? '스프린트 리뷰';
   const timeLabel = meeting?.time ?? '10:00';
-  const subtitle = `${title}  •  ${timeLabel} 시작`;
+  const subtitle = `${title}  •  ${timeLabel} ${mergedLabels.startedSuffix}`;
 
   useEffect(() => {
     const onKey = (e) => {
@@ -70,7 +103,7 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
             <button
               type="button"
               className="mtg-progress-close-btn"
-              aria-label="닫기"
+              aria-label={mergedLabels.close}
               onClick={onClose}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -88,14 +121,24 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
           {/* 스크롤 영역 */}
           <div className="mtg-progress-body">
             {isShare ? (
-              <MeetingShareContent meeting={meeting} baseUrl={baseUrl} />
+              <MeetingShareContent
+                meeting={meeting}
+                baseUrl={baseUrl}
+                {...(shareData ?? {})}
+              />
             ) : isRecord ? (
-              <MeetingRecordContent meeting={meeting} baseUrl={baseUrl} />
+              <MeetingRecordContent
+                meeting={meeting}
+                baseUrl={baseUrl}
+                {...(recordData ?? {})}
+              />
             ) : (
               <>
                 <div className="mtg-progress-header-block">
                   <div className="mtg-progress-titlewrap">
-                    <h2 id="mtg-progress-title" className="mtg-progress-title">회의 진행 중</h2>
+                    <h2 id="mtg-progress-title" className="mtg-progress-title">
+                      {mergedLabels.title}
+                    </h2>
                     <p className="mtg-progress-subtitle">{subtitle}</p>
                   </div>
                   <div className="mtg-progress-participants">
@@ -107,27 +150,33 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
 
                 {/* 녹음 중 + 타이머 */}
                 <div className="mtg-progress-timer">
-                  <span className="mtg-progress-rec-badge">녹음 중</span>
-                  <span className="mtg-progress-time">{timer}</span>
+                  <span className="mtg-progress-rec-badge">
+                    {mergedLabels.recording}
+                  </span>
+                  <span className="mtg-progress-time">{resolvedTimer}</span>
                 </div>
 
                 {/* 실시간 메모 — 공용 .tl-snippet-textarea 재사용 (focus brand primary) */}
                 <section className="mtg-progress-section">
-                  <label htmlFor="mtg-memo" className="mtg-progress-section-label">실시간 메모</label>
+                  <label htmlFor="mtg-memo" className="mtg-progress-section-label">
+                    {mergedLabels.memoLabel}
+                  </label>
                   <textarea
                     id="mtg-memo"
                     className="tl-snippet-textarea mtg-progress-field"
-                    placeholder="회의 중 중요한 내용을 메모하세요 (선택)"
+                    placeholder={mergedLabels.memoPlaceholder}
                     value={memo}
-                    onChange={(e) => setMemo(e.target.value)}
+                    onChange={(e) => handleMemoChange(e.target.value)}
                   />
                 </section>
 
                 {/* 실시간 전사 */}
                 <section className="mtg-progress-section">
-                  <span className="mtg-progress-section-label">실시간 전사</span>
+                  <span className="mtg-progress-section-label">
+                    {mergedLabels.transcriptLabel}
+                  </span>
                   <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
-                    {SAMPLE_TRANSCRIPT}
+                    {resolvedTranscript}
                   </div>
                 </section>
               </>
@@ -142,7 +191,7 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
                 className="mtg-progress-share-btn"
                 onClick={onClose}
               >
-                공유 완료
+                {mergedLabels.shareDoneButton}
               </button>
             ) : isRecord ? (
               <button
@@ -150,7 +199,7 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
                 className="mtg-progress-share-btn"
                 onClick={() => setPhase('share')}
               >
-                공유하기
+                {mergedLabels.shareButton}
               </button>
             ) : (
               <button
@@ -158,7 +207,7 @@ export default function MeetingInProgressModal({ meeting, baseUrl = '', onClose 
                 className="mtg-progress-end-btn"
                 onClick={() => setConfirmOpen(true)}
               >
-                회의 종료 - AI 회의록 생성
+                {mergedLabels.endButton}
               </button>
             )}
           </div>

@@ -95,6 +95,14 @@ export default function MeetingsCanvas({
   todayDateLabel = '2026년 4월 7일 화요일',
   todayCountLabel,
   labels = {},
+  // 시작 버튼 클릭 훅: 호출 시 caller 가 직접 모달 렌더 + 실데이터 주입 가능.
+  // 없으면 내부 state 로 MeetingInProgressModal 을 기본 동작(demo 데이터)으로 열기.
+  onStartMeeting,
+  // onStartMeeting 을 쓰지 않고 기본 모달을 쓸 때, 모달 phase 별 실데이터 주입.
+  progressData,
+  recordData,
+  shareData,
+  modalLabels,
 }) {
   const mergedLabels = { ...DEFAULT_LABELS, ...labels };
   const resolvedToday = todayMeetings ?? DEFAULT_TODAY_MEETINGS;
@@ -140,7 +148,7 @@ export default function MeetingsCanvas({
               <MeetingRow
                 key={m.id}
                 meeting={m}
-                onStart={setActiveMeeting}
+                onStart={onStartMeeting ?? setActiveMeeting}
                 statusLabels={statusLabels}
               />
             ))}
@@ -160,11 +168,15 @@ export default function MeetingsCanvas({
         </section>
       </div>
 
-      {activeMeeting && (
+      {activeMeeting && !onStartMeeting && (
         <MeetingInProgressModal
           meeting={activeMeeting}
           baseUrl={baseUrl}
           onClose={() => setActiveMeeting(null)}
+          labels={modalLabels}
+          recordData={recordData}
+          shareData={shareData}
+          {...(progressData ?? {})}
         />
       )}
     </main>

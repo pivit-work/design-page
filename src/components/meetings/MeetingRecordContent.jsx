@@ -1,9 +1,18 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
 import ActionPersonPopover from './ActionPersonPopover.jsx';
 
-const MEMBER_POOL = [
+/**
+ * MeetingRecordContent — 회의 종료 후 "생성된 회의록" 본문.
+ * MeetingInProgressModal 이 phase='record' 일 때 frame 내부에 렌더.
+ *
+ * Figma node-id=16708-33213.
+ *
+ * props 가 없으면 Figma 시안 그대로 demo 데이터를 사용 (backward compat).
+ */
+
+const DEFAULT_MEMBER_POOL = [
   { name: 'SH' },
   { name: 'David' },
   { name: 'Juliet' },
@@ -11,26 +20,7 @@ const MEMBER_POOL = [
   { name: 'Ernest' },
 ];
 
-// 'MM/DD' → Date 로 변환 (이번 해 기준).
-function parseMMDD(s) {
-  const now = new Date();
-  const [m, d] = s.split('/').map(Number);
-  return new Date(now.getFullYear(), (m || 1) - 1, d || 1);
-}
-function formatMMDD(date) {
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${m}/${d}`;
-}
-
-/**
- * MeetingRecordContent — 회의 종료 후 "생성된 회의록" 본문.
- * MeetingInProgressModal 이 phase='record' 일 때 frame 내부에 렌더.
- *
- * Figma node-id=16708-33213.
- */
-
-const DISCUSSIONS = [
+const DEFAULT_DISCUSSIONS = [
   {
     title: 'Daily Snippet AI 기능 완료 검토',
     body:
@@ -53,18 +43,71 @@ const DISCUSSIONS = [
   },
 ];
 
-const DECISIONS = [
+const DEFAULT_DECISIONS = [
   '4월 30일 Phase 1 런치 일정 유지 확정',
   'Discord QA 채널 이번 주 내 생성 (Kurt 담당)',
 ];
 
-const ACTION_ITEMS = [
+const DEFAULT_ACTION_ITEMS = [
   { title: '1on1 준비화면 QA 완료', person: 'SH', date: '04/09' },
   { title: 'Discord QA 채널 생성', person: 'David', date: '04/09' },
   { title: 'Jon 첫 UI 리뷰 일정 조율', person: 'Kurt', date: '04/09' },
 ];
 
-export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
+const DEFAULT_LABELS = {
+  title: '생성된 회의록',
+  aiBanner: 'AI 회의록이 생성되었습니다. 검토 후 공유해 주세요.',
+  metaMeeting: '회의',
+  metaDateTime: '일시',
+  metaAttendees: '참석',
+  summary: '요약',
+  discussions: '주요논의',
+  decisions: '결정 사항',
+  actionItems: '액션 아이템',
+  addActionItem: '액션 아이템 추가',
+  newActionItemTitle: '새 액션 아이템',
+  removeLabel: '제거',
+};
+
+const DEFAULT_SUMMARY =
+  'Daily Snippet AI 기능 완료 확인. 1on1 준비화면 QA 이번 주 목표. 4월 30일 Phase 1 런치 일정 재확인. Jon 온보딩 완료.';
+
+// 'MM/DD' → Date 로 변환 (이번 해 기준).
+function parseMMDD(s) {
+  const now = new Date();
+  const [m, d] = s.split('/').map(Number);
+  return new Date(now.getFullYear(), (m || 1) - 1, d || 1);
+}
+function formatMMDD(date) {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${m}/${d}`;
+}
+
+export default function MeetingRecordContent({
+  meeting,
+  baseUrl = '',
+  // 외부 주입 데이터
+  title: titleProp,
+  summary: summaryProp,
+  dateTimeLabel,
+  attendeeLabel,
+  discussions: discussionsProp,
+  decisions: decisionsProp,
+  actionItems: actionItemsProp,
+  memberPool,
+  labels = {},
+  onActionItemsChange,
+}) {
+  const mergedLabels = { ...DEFAULT_LABELS, ...labels };
+  const discussions = discussionsProp ?? DEFAULT_DISCUSSIONS;
+  const decisions = decisionsProp ?? DEFAULT_DECISIONS;
+  const resolvedMemberPool = memberPool ?? DEFAULT_MEMBER_POOL;
+  const resolvedTitle = titleProp ?? meeting?.title ?? '스프린트 리뷰';
+  const resolvedSummary = summaryProp ?? DEFAULT_SUMMARY;
+  const resolvedDateTime = dateTimeLabel ?? '2026.04.07 · 10:00–11:03';
+  const resolvedAttendeeLabel = attendeeLabel ?? '5명';
+
   // 여러 항목 동시 펼침 허용 — Set 기반.
   const [expanded, setExpanded] = useState(() => new Set([0]));
   const toggleExpanded = (i) => {
@@ -75,19 +118,24 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
       return next;
     });
   };
-  const [actions, setActions] = useState(ACTION_ITEMS);
+  // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
+  const [internalActions, setInternalActions] = useState(DEFAULT_ACTION_ITEMS);
+  const actions = actionItemsProp ?? internalActions;
   // { idx, field: 'person' | 'date', rect, el } | null
   const [openPicker, setOpenPicker] = useState(null);
-  const title = meeting?.title ?? '스프린트 리뷰';
 
+  const updateActions = (next) => {
+    if (actionItemsProp === undefined) setInternalActions(next);
+    onActionItemsChange?.(next);
+  };
   const updateAction = (idx, patch) => {
-    setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+    updateActions(actions.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
   };
 
   return (
     <>
       <div className="mtg-record-header-block">
-        <h2 id="mtg-progress-title" className="mtg-progress-title">생성된 회의록</h2>
+        <h2 id="mtg-progress-title" className="mtg-progress-title">{mergedLabels.title}</h2>
         <div className="mtg-record-ai-banner">
           <Icon
             src="/icons-solid/ai-chat-01.svg"
@@ -96,7 +144,7 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
             baseUrl={baseUrl}
           />
           <span className="mtg-record-ai-banner-text">
-            AI 회의록이 생성되었습니다. 검토 후 공유해 주세요.
+            {mergedLabels.aiBanner}
           </span>
         </div>
       </div>
@@ -104,35 +152,35 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
       {/* 메타 3컬럼: 회의 / 일시 / 참석 */}
       <div className="mtg-record-meta">
         <div className="mtg-record-meta-col mtg-record-meta-col-grow">
-          <span className="mtg-record-meta-label">회의</span>
-          <span className="mtg-record-meta-value">{title}</span>
+          <span className="mtg-record-meta-label">{mergedLabels.metaMeeting}</span>
+          <span className="mtg-record-meta-value">{resolvedTitle}</span>
         </div>
         <div className="mtg-record-meta-col">
-          <span className="mtg-record-meta-label">일시</span>
-          <span className="mtg-record-meta-value">2026.04.07 · 10:00–11:03</span>
+          <span className="mtg-record-meta-label">{mergedLabels.metaDateTime}</span>
+          <span className="mtg-record-meta-value">{resolvedDateTime}</span>
         </div>
         <div className="mtg-record-meta-col">
-          <span className="mtg-record-meta-label">참석</span>
-          <span className="mtg-record-meta-value">5명</span>
+          <span className="mtg-record-meta-label">{mergedLabels.metaAttendees}</span>
+          <span className="mtg-record-meta-value">{resolvedAttendeeLabel}</span>
         </div>
       </div>
 
       {/* 요약 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">요약</span>
+        <span className="mtg-progress-section-label">{mergedLabels.summary}</span>
         <div className="tl-snippet-textarea mtg-record-readonly">
-          Daily Snippet AI 기능 완료 확인. 1on1 준비화면 QA 이번 주 목표. 4월 30일 Phase 1 런치 일정 재확인. Jon 온보딩 완료.
+          {resolvedSummary}
         </div>
       </section>
 
       {/* 주요논의 — accordion */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">주요논의</span>
+        <span className="mtg-progress-section-label">{mergedLabels.discussions}</span>
         <ul className="mtg-record-discussion-list">
-          {DISCUSSIONS.map((d, i) => {
+          {discussions.map((d, i) => {
             const open = expanded.has(i);
             return (
-              <li key={d.title} className={`mtg-record-discussion-item ${open ? 'is-open' : ''}`}>
+              <li key={d.title + i} className={`mtg-record-discussion-item ${open ? 'is-open' : ''}`}>
                 <button
                   type="button"
                   className="mtg-record-discussion-head"
@@ -161,17 +209,17 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
 
       {/* 결정 사항 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">결정 사항</span>
+        <span className="mtg-progress-section-label">{mergedLabels.decisions}</span>
         <div className="tl-snippet-textarea mtg-record-readonly">
           <ul className="mtg-record-bullet-list">
-            {DECISIONS.map((d) => (<li key={d}>{d}</li>))}
+            {decisions.map((d, i) => (<li key={`${d}-${i}`}>{d}</li>))}
           </ul>
         </div>
       </section>
 
       {/* 액션 아이템 */}
       <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">액션 아이템</span>
+        <span className="mtg-progress-section-label">{mergedLabels.actionItems}</span>
         <ul className="mtg-record-action-list">
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">
@@ -202,8 +250,8 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
               <button
                 type="button"
                 className="mtg-record-action-remove"
-                aria-label="제거"
-                onClick={() => setActions((prev) => prev.filter((_, i) => i !== idx))}
+                aria-label={mergedLabels.removeLabel}
+                onClick={() => updateActions(actions.filter((_, i) => i !== idx))}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path
@@ -221,15 +269,20 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
             <button
               type="button"
               className="mtg-record-action-add"
-              onClick={() =>
-                setActions((prev) => [
-                  ...prev,
-                  { title: '새 액션 아이템', person: 'SH', date: formatMMDD(new Date()) },
-                ])
-              }
+              onClick={() => {
+                const defaultPerson = resolvedMemberPool[0]?.name ?? '';
+                updateActions([
+                  ...actions,
+                  {
+                    title: mergedLabels.newActionItemTitle,
+                    person: defaultPerson,
+                    date: formatMMDD(new Date()),
+                  },
+                ]);
+              }}
             >
               <Icon src="/icons/plus.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-              <span>액션 아이템 추가</span>
+              <span>{mergedLabels.addActionItem}</span>
             </button>
           </li>
         </ul>
@@ -238,7 +291,7 @@ export default function MeetingRecordContent({ meeting, baseUrl = '' }) {
       {openPicker?.field === 'person' && (
         <ActionPersonPopover
           anchorRect={openPicker.rect}
-          members={MEMBER_POOL}
+          members={resolvedMemberPool}
           selected={actions[openPicker.idx]?.person}
           onSelect={(name) => {
             updateAction(openPicker.idx, { person: name });
