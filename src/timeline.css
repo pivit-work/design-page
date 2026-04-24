@@ -1072,7 +1072,10 @@
 .tl-cal {
   flex: 1 1 0;
   min-width: 0;
-  min-height: 0;
+  /* 부모 flex slot 을 채우는 기본(100%)을 유지하되, 뷰포트가 작아도 6 행 ×
+     minmax(122px) 셀이 잘리지 않도록 최소 높이 920px 를 보장. */
+  height: 100%;
+  min-height: 920px;
   display: grid;
   grid-template-rows: 40px minmax(0, 1fr);
   width: 100%;
