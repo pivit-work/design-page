@@ -14,9 +14,6 @@ export const HOURS = [
 // 주별 보기: Sun ~ Sat 요일 라벨 (getDay() 인덱스 기준)
 export const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// Today (mock) — 2026년 4월 15일 (수요일) 기준
-export const TODAY_STR = '2026-04-15';
-
 // 주별 보기에서 사용할 유틸
 export const getWeekStart = (date) => {
   const d = new Date(date);
@@ -30,6 +27,13 @@ export const formatIsoDate = (date) => {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
+
+// Today — 실 사용 환경의 "오늘" (로컬 타임존). 이전에는 mock 용으로 2026-04-15 를
+// 상수로 두었는데, 실제 배포·통합 환경에서 "오늘" 버튼이 과거 날짜로 점프하는
+// 문제가 있어 동적 계산으로 변경. 모듈 로드 시점의 날짜로 고정되며 사용자가
+// 자정을 넘어 앱을 유지하면 getTodayStr() 로 재계산해야 한다.
+export const TODAY_STR = formatIsoDate(new Date());
+export const getTodayStr = () => formatIsoDate(new Date());
 
 // 주별 보기: date 가 속한 주의 일~토 7일을 반환.
 export const getWeekDates = (date) => {

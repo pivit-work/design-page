@@ -22,9 +22,12 @@ import SnippetPromptModal from './SnippetPromptModal.jsx';
 import {
   GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
+  HOURS,
+  HOUR_W,
   getWeekDates,
   getMonthDates,
   formatIsoDate,
+  getTodayStr,
 } from './constants.js';
 
 const formatKoreanDate = (d) =>
@@ -296,7 +299,9 @@ export default function TimelineCanvas({
   const goPrevDate = () => shiftByViewUnit(-1);
   const goNextDate = () => shiftByViewUnit(1);
   const goToday = () => {
-    setSelectedDate(parseIsoDate(TODAY_STR));
+    // 항상 실시간 오늘. 장시간 세션 중 자정을 넘겨도 올바르게 동작.
+    const todayIso = getTodayStr();
+    setSelectedDate(parseIsoDate(todayIso));
     // 월별 뷰에서는 오늘 컬럼이 가로 스크롤의 중앙에 오도록 이동.
     // setSelectedDate 이후 React 가 새 dates/dayColW 로 grid 를 commit
     // 해야 실제 column offsetWidth 가 확정되므로 rAF 로 1 프레임 defer.
@@ -304,12 +309,11 @@ export default function TimelineCanvas({
     requestAnimationFrame(() => {
       const rightScroll = rightScrollRef.current;
       if (!rightScroll) return;
-      // 렌더된 헤더 셀에서 실제 column 폭을 측정 → state 스테일 이슈 회피.
       const headerCell = rightScroll.querySelector('.tl-week-header-cell');
       if (!headerCell) return;
       const colW = headerCell.offsetWidth;
-      const todayDate = parseIsoDate(TODAY_STR);
-      const idx = todayDate.getDate() - 1; // 1일 = index 0
+      const todayDate = parseIsoDate(todayIso);
+      const idx = todayDate.getDate() - 1;
       const colCenter = idx * colW + colW / 2;
       const target = colCenter - rightScroll.clientWidth / 2;
       const maxScroll = rightScroll.scrollWidth - rightScroll.clientWidth;
@@ -317,12 +321,31 @@ export default function TimelineCanvas({
     });
   };
 
-  // Scroll right grid so "current hour" is visible on first render.
+  // selectedDate 가 바뀔 때마다 간트 일 뷰의 가로 스크롤 위치를 조정.
+  //   selectedDate === 오늘 → 현재 시각(NOW)이 화면 중앙에 오도록
+  //   그 외            → 9시 시작 지점이 좌측에 오도록
+  // rAF 로 한 프레임 defer 해 grid 가 commit 된 뒤 측정한다.
   useEffect(() => {
     const sc = rightScrollRef.current;
     if (!sc) return;
-    sc.scrollLeft = 0;
-  }, [rightScrollRef]);
+    if (!isGantt || viewUnit !== 'day') return;
+    requestAnimationFrame(() => {
+      const selectedIso = formatIsoDate(selectedDate);
+      const startH = HOURS[0];
+      if (selectedIso === getTodayStr()) {
+        const now = new Date();
+        const h = now.getHours() + now.getMinutes() / 60;
+        const offset = (h - startH) * HOUR_W;
+        const target = offset - sc.clientWidth / 2;
+        const maxScroll = sc.scrollWidth - sc.clientWidth;
+        sc.scrollLeft = Math.max(0, Math.min(target, maxScroll));
+      } else {
+        const offset = (9 - startH) * HOUR_W;
+        const maxScroll = sc.scrollWidth - sc.clientWidth;
+        sc.scrollLeft = Math.max(0, Math.min(offset, maxScroll));
+      }
+    });
+  }, [selectedDate, isGantt, viewUnit, rightScrollRef]);
 
   return (
     <TimelineDataProvider

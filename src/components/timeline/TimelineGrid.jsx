@@ -8,6 +8,7 @@ import {
   SUBHEADER_H,
   BOTTOM_H,
   TODAY_STR,
+  getTodayStr,
 } from './constants.js';
 import MeetingBlock from './MeetingBlock.jsx';
 import useTimelineData from './useTimelineData.js';
@@ -42,8 +43,10 @@ const TimelineGrid = forwardRef(function TimelineGrid(
   const memberRowIndex = (mid) =>
     flatRows.findIndex((r) => r.type === 'member' && r.member.id === mid);
 
-  // Compute NOW vertical position
+  // Compute NOW vertical position — 현재 보고 있는 날짜(targetDate) 가 실제
+  // 오늘일 때만 NOW 인디케이터 표시. 다른 날짜에 NOW 가 뜨는 건 의미 없음.
   const nowLine = (() => {
+    if (targetDate !== getTodayStr()) return null;
     const now = new Date();
     const h = now.getHours() + now.getMinutes() / 60;
     const startH = HOURS[0];
