@@ -80,6 +80,9 @@ export default function TimelineCanvas({
   // 초기 selectedDate. 생략 시 TODAY_STR(데모용 고정 2026-04-15). 실 운영
   // 환경에서는 new Date() 를 넘겨 앱 진입 시 실제 오늘이 보이도록.
   initialDate,
+  // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
+  // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
+  activeProjectCount = 2,
 }) {
   // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
   const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
@@ -379,7 +382,7 @@ export default function TimelineCanvas({
           <div className="tl-page-meta">
             <span className="tl-meta-label">진행 중 프로젝트</span>
             <span className="tl-meta-sep">·</span>
-            <span className="tl-meta-count">2개</span>
+            <span className="tl-meta-count">{activeProjectCount}개</span>
           </div>
         </div>
       </div>
