@@ -1105,11 +1105,11 @@
 .tl-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* 90px 최소 — 셀이 최소 1 이벤트 + "+N more" 를 담을 수 있도록.
-     `minmax(0, 1fr)` 로만 두면 컨테이너가 작은 뷰포트에서 행이 0 근처로
-     수축해 overflow:hidden 이 모든 이벤트를 잘랐다. 파생 min 을 둬 작은
-     화면에서는 grid 자체가 스크롤되더라도 이벤트 가독성을 우선한다. */
-  grid-template-rows: repeat(6, minmax(90px, 1fr));
+  /* 122px = CELL_FIXED_H(44) + 2 events × EVENT_STEP(30) + MORE_RESERVED(18).
+     디자이너 요구 "셀마다 최소 2 이벤트 + +N more" 를 작은 뷰포트에서도
+     보장. minmax(0, 1fr) 만 두면 행이 0 으로 축소되어 overflow:hidden 이
+     이벤트/더보기를 잘랐음. */
+  grid-template-rows: repeat(6, minmax(122px, 1fr));
   min-height: 0;
   overflow-y: auto;
 }

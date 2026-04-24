@@ -23,10 +23,10 @@ const ROW_COUNT = 6;
 const CELL_FIXED_H = 44;
 const EVENT_STEP = 30;
 const MORE_RESERVED = 18;
-// 최소 1 — 2 로 두면 셀 높이가 부족한 화면(예: ~65px)에서 이벤트 2개 + "+N more"
-// 공간이 cell(overflow:hidden) 을 넘어 more 링크가 잘린다. 1 이면 최소 1 이벤트 +
-// more 가 보장되어 사용자가 숨은 이벤트 존재를 항상 확인 가능.
-const MIN_VISIBLE = 1;
+// 디자인 요구: 셀마다 최소 이벤트 pill 2개 + "+N more..." 가 항상 보이도록.
+// 이 값을 낮추면 빈 셀처럼 보일 수 있어서 2 로 유지. 대신 grid-template-rows
+// 의 minmax 를 122px 이상으로 설정해 수용 공간을 보장한다 (timeline.css).
+const MIN_VISIBLE = 2;
 
 // 선택된 달의 첫 주 일요일부터 6주(42일) 분량의 Date 배열.
 // 이전/다음 달 날짜까지 포함해서 그리드가 항상 7×6 으로 고정.
