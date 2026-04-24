@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import {
-  GROUPS as DEFAULT_GROUPS,
   HOURS,
   HOUR_W,
   ROW_H,
@@ -14,7 +13,7 @@ import MeetingBlock from './MeetingBlock.jsx';
 import useTimelineData from './useTimelineData.js';
 
 const TimelineGrid = forwardRef(function TimelineGrid(
-  { onScroll, onMouseDown, groups = DEFAULT_GROUPS, onMeetingClick, spacerH = BOTTOM_H, targetDate = TODAY_STR },
+  { onScroll, onMouseDown, groups, onMeetingClick, spacerH = BOTTOM_H, targetDate = TODAY_STR },
   ref
 ) {
   const { members, meetings } = useTimelineData();

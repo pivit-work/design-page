@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import CustomSelect from './CustomSelect.jsx';
-import { MEMBERS } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 const SUMMARY_TYPES = ['회의', '집중작업', '리뷰', '외부미팅', '기타'];
 
@@ -34,6 +34,7 @@ const DURATIONS = [
  * Footer: pad 24/48/48/48, gap 12, 버튼 2개 (271px 씩).
  */
 export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, onSubmit }) {
+  const { members: MEMBERS } = useTimelineData();
   const [summary, setSummary] = useState('회의');
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState(time);

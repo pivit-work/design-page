@@ -16,18 +16,17 @@ src/
     shared/Icon.jsx           ← 공용 SVG 아이콘
     layout/Sidebar.jsx        ← 사이드바
     layout/TopNav.jsx         ← 상단 네비
-    orgchart/DeptCard.jsx     ← 부서 카드
-    orgchart/MemberCard.jsx   ← 멤버 카드
-    orgchart/OrgNode.jsx      ← 재귀 트리 노드
-    orgchart/BezierConnectors.jsx ← SVG 연결선
-    orgchart/ProfileModal.jsx ← 프로필 모달
-    orgchart/OrgChartCanvas.jsx ← 캔버스 (줌/팬/토글)
-    orgchart/constants.js     ← 색상/상태 상수
-    orgchart/contexts.js      ← React Context
-    orgchart/hooks.js         ← useDrag, usePositions
-    orgchart/index.js         ← re-export
+    orgchart/...              ← 조직도 컴포넌트 (props 만 받음, fallback 금지)
+    timeline/...              ← 타임라인 컴포넌트
+    meetings/...              ← 회의록 컴포넌트
+    oneonone/...              ← 1on1 컴포넌트
     index.js                  ← 전체 re-export (패키지 진입점)
-  App.jsx                     ← 앱 진입점: 데모 데이터 + 페이지 라우팅 (thin wrapper)
+  App.jsx                     ← 얇은 라우터 (Sidebar/TopNav + currentPage 분기만)
+  OrgChartPage.jsx            ← 조직도 page wrapper (demo 데이터 + 조합)
+  TimelinePage.jsx            ← 타임라인 page wrapper
+  MeetingsPage.jsx            ← 회의록 page wrapper
+  OneOnOnePage.jsx            ← 1on1 page wrapper
+  timeline-demo-data.js       ← Timeline 데모 데이터 (페이지 wrapper 가 import)
   App.css                     ← 앱 전역 스타일 (레이아웃/Sidebar/TopNav)
   org_chart.css               ← 조직도 페이지 전용 스타일
   one_on_one.css              ← 1on1 페이지 전용 스타일
@@ -37,12 +36,76 @@ src/
 - `src/components/` 아래 적절한 디렉토리에 파일 생성
 - 데이터는 **props로 받도록** 설계 (하드코딩 금지)
 - `components/index.js`에서 export 추가
-- 데모 데이터는 `App.jsx` 또는 해당 페이지 파일에 작성
+- 데모 데이터는 **page wrapper** 에 작성 (아래 규칙 참조)
 
 ### 기존 컴포넌트 수정 시
 - 해당 컴포넌트 파일만 수정
 - CSS 클래스명 변경 시 해당 페이지 CSS(`org_chart.css`, `one_on_one.css` 등) 또는 앱 전역 CSS(`App.css`)도 함께 수정
-- `App.jsx`(demo wrapper)는 데이터/조합/라우팅만 담당, UI 로직은 넣지 않기
+- `App.jsx`(thin router)는 라우팅만 담당, 데이터/UI 로직은 넣지 않기
+
+## 🔴 필수 규칙: Page wrapper 패턴
+
+**모든 페이지는 `src/<Foo>Page.jsx` wrapper 로 구성한다.** `App.jsx` 는
+thin router 이며, wrapper 가 데모 데이터와 라벨·모달 상태 등을 소유하고
+순수 컴포넌트(`<FooCanvas>`) 에 props 로 내린다.
+
+pivit-work(실 프로덕트) 는 이 wrapper 를 import 하지 않고, 자신의 Page
+컴포넌트에서 동일한 `<FooCanvas>` 를 실 데이터로 렌더한다.
+
+### 페이지 wrapper 목록
+
+| 페이지 | wrapper | 순수 컴포넌트 |
+|---|---|---|
+| 조직도 | `src/OrgChartPage.jsx` | `OrgChartCanvas`, `ProjectCanvas` |
+| 타임라인 | `src/TimelinePage.jsx` | `TimelineCanvas` |
+| 회의록 | `src/MeetingsPage.jsx` | `MeetingsCanvas`, `MeetingInProgressModal` |
+| 1on1 | `src/OneOnOnePage.jsx` | `OneOnOneDashboardCanvas` |
+
+### ❌ 절대 하지 않는 것
+
+**컴포넌트 내부에 demo fallback 을 넣지 마라.** 과거 `TimelineDataProvider`
+에 `members ?? DEFAULT_MEMBERS` fallback 이 있어서 데이터를 안 넘겨도
+동작했는데, 이후 같은 패턴을 따르지 않은 `MeetingsCanvas` 는 크래시했고
+버그를 숨기는 원인이 됐다. 모든 컴포넌트는 **props 가 유일한 입력** 이다.
+
+```jsx
+// ❌ 나쁨 — 컴포넌트 안에서 demo 데이터로 fallback
+export function TimelineDataProvider({ members, ...}) {
+  const value = { members: members ?? DEFAULT_MEMBERS }; // ← 금지
+  ...
+}
+
+// ❌ 나쁨 — 컴포넌트가 demo constants 를 직접 import
+import { MEMBERS } from './constants.js';
+export default function EventAddModal() {
+  return <div>{MEMBERS.map(...)}</div>; // ← 금지
+}
+```
+
+```jsx
+// ✅ 좋음 — wrapper 가 데모 데이터 소유, 컴포넌트는 props 로만
+// src/TimelinePage.jsx
+import { MEMBERS, MEETINGS, ... } from './timeline-demo-data.js';
+export default function TimelinePage({ icons, baseUrl }) {
+  return <TimelineCanvas icons={icons} baseUrl={baseUrl} members={MEMBERS} ... />;
+}
+
+// ✅ 좋음 — 컴포넌트는 context/props 로 받아 씀
+import useTimelineData from './useTimelineData.js';
+export default function EventAddModal() {
+  const { members } = useTimelineData();
+  return <div>{members.map(...)}</div>;
+}
+```
+
+### 새 페이지 추가 체크리스트
+
+1. `src/components/<feature>/` 아래에 순수 컴포넌트 작성 (props 만 받음, 내부 fallback/demo import 금지)
+2. `src/<Feature>Page.jsx` wrapper 작성: demo 데이터 + 라벨 + 모달 상태 소유
+3. (데모 데이터가 크면) `src/<feature>-demo-data.js` 로 분리 — 현재는 Timeline 만 적용
+4. `src/App.jsx` 에 `currentPage === 'xxx' && <FeaturePage ... />` 분기 한 줄 추가
+5. 로컬에서 `npm run dev` → 해당 메뉴 클릭 → 콘솔 에러 0건 확인
+6. `npm run build` 통과 확인
 
 ## 🔴 필수 규칙: design-system 토큰 사용
 

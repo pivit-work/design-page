@@ -2,14 +2,15 @@ import { useState, useRef } from 'react';
 import EmployeeModalShell from './EmployeeModalShell.jsx';
 import ColorPicker from './ColorPicker.jsx';
 import CustomSelect from './CustomSelect.jsx';
-import { MEMBERS } from './constants.js';
+import useTimelineData from './useTimelineData.js';
 
 /**
  * InternalEmployeeModal — "내부 직원 추가".
- * 3 필드: 직원 검색(기존 MEMBERS 중 선택), 그룹(Select), 색상(ColorPicker).
+ * 3 필드: 직원 검색(TimelineDataProvider 에서 받은 members 중 선택), 그룹(Select), 색상(ColorPicker).
  * Figma "add_inside_people_modal" 기반.
  */
 export default function InternalEmployeeModal({ groups, onClose, onSubmit }) {
+  const { members } = useTimelineData();
   const [query, setQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [groupId, setGroupId] = useState('');
@@ -19,7 +20,7 @@ export default function InternalEmployeeModal({ groups, onClose, onSubmit }) {
 
   const canSubmit = !!selectedMember && !!groupId && !!color;
 
-  const filtered = MEMBERS.filter((m) =>
+  const filtered = members.filter((m) =>
     !query || m.name.includes(query) || (m.title || '').includes(query)
   );
 

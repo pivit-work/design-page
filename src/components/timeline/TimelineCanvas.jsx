@@ -20,7 +20,6 @@ import EventAddModal from './EventAddModal.jsx';
 import SnippetModal from './SnippetModal.jsx';
 import SnippetPromptModal from './SnippetPromptModal.jsx';
 import {
-  GROUPS as DEFAULT_INITIAL_GROUPS,
   TODAY_STR,
   HOURS,
   HOUR_W,
@@ -106,9 +105,7 @@ export default function TimelineCanvas({
   // 그룹 state — 외부 initialGroups 가 바뀌면 동기화 (부모가 새 그룹 추가 등
   // 외부에서 변경한 경우를 반영). "Adjusting state while rendering" 패턴으로
   // initialGroups ref 변경 시에만 로컬 state 를 갱신.
-  const [groups, setGroupsState] = useState(
-    initialGroups ?? DEFAULT_INITIAL_GROUPS
-  );
+  const [groups, setGroupsState] = useState(initialGroups ?? []);
   const [syncedInitialGroups, setSyncedInitialGroups] = useState(initialGroups);
   if (initialGroups !== syncedInitialGroups) {
     setSyncedInitialGroups(initialGroups);

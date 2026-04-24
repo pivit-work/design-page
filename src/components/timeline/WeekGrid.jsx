@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import {
-  GROUPS as DEFAULT_GROUPS,
   WEEKDAY_LABELS,
   WEEK_DAY_COL_W,
   ROW_H,
@@ -29,7 +28,7 @@ const WeekGrid = forwardRef(function WeekGrid(
   {
     onScroll,
     onMouseDown,
-    groups = DEFAULT_GROUPS,
+    groups,
     // 표시할 날짜 배열 — 호출자(TimelineCanvas) 가 viewUnit 에 맞춰 생성.
     // week → 7일(일~토), month → 28~31일(1일~말일).
     dates,

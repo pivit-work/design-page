@@ -6,10 +6,6 @@ export { default as MeetingModal } from './MeetingModal.jsx';
 export { TimelineDataProvider } from './TimelineDataContext.jsx';
 export { default as useTimelineData } from './useTimelineData.js';
 export {
-  MEMBERS,
-  GROUPS,
-  MEETINGS,
-  SNIPPETS,
   HOURS,
   HOUR_W,
   ROW_H,
@@ -23,5 +19,4 @@ export {
   formatIsoDate,
   getWeekDates,
   getMonthDates,
-  getEventsForDate,
 } from './constants.js';
