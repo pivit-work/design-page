@@ -77,13 +77,18 @@ export default function TimelineCanvas({
   // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
   // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
   gcalConnected = true,
+  // 초기 selectedDate. 생략 시 TODAY_STR(데모용 고정 2026-04-15). 실 운영
+  // 환경에서는 new Date() 를 넘겨 앱 진입 시 실제 오늘이 보이도록.
+  initialDate,
 }) {
   // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
   const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit] = useState('day');
-  const [selectedDate, setSelectedDate] = useState(() => parseIsoDate(TODAY_STR));
+  const [selectedDate, setSelectedDate] = useState(() =>
+    initialDate ?? parseIsoDate(TODAY_STR),
+  );
 
   const isGantt = currentTab === 'gantt';
   const snippetDates = getSnippetDates(viewUnit, selectedDate);
