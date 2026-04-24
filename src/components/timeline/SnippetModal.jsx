@@ -58,12 +58,25 @@ const TAG_SUGGESTIONS = [
   '기획', '회의', '개발', '디자인', '리뷰', '문서', '외부미팅', 'TaV', '번역', '산출물', '참석자',
 ];
 
-export default function SnippetModal({ date, baseUrl, onClose, onSubmit }) {
-  const [summary, setSummary] = useState('');
+// 기존 스니핏을 수정할 때 prefill 하려면 initial 에 { summary, tags,
+// sections:{what,why,value,highlights,lowlights} } 모양으로 넘긴다.
+// (partial 허용 — 없는 필드는 빈 문자열/빈 배열로 초기화)
+export default function SnippetModal({
+  date,
+  baseUrl,
+  onClose,
+  onSubmit,
+  initial,
+}) {
+  const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState(initial?.tags ? [...initial.tags] : []);
   const [sectionTexts, setSectionTexts] = useState({
-    what: '', why: '', value: '', highlights: '', lowlights: '',
+    what: initial?.sections?.what ?? '',
+    why: initial?.sections?.why ?? '',
+    value: initial?.sections?.value ?? '',
+    highlights: initial?.sections?.highlights ?? '',
+    lowlights: initial?.sections?.lowlights ?? '',
   });
   const [scrolled, setScrolled] = useState(false);
 
