@@ -38,6 +38,9 @@ export default function MeetingRecordContent({
   memberPool,
   labels,
   onActionItemsChange,
+  // caller 가 메타 섹션 바로 아래(요약 위)에 끼워넣을 수 있는 임의 노드.
+  // 녹음 플레이어, 외부 위젯 등. 패키지는 도메인을 알지 않는다.
+  headerExtra,
 }) {
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
@@ -94,6 +97,8 @@ export default function MeetingRecordContent({
           <span className="mtg-record-meta-value">{attendeeLabel}</span>
         </div>
       </div>
+
+      {headerExtra}
 
       {/* 요약 */}
       <section className="mtg-progress-section mtg-record-section">
