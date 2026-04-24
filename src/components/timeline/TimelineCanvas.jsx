@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
@@ -67,6 +67,14 @@ export default function TimelineCanvas({
   onAddGroup,
   onAddInternalMember,
   onAddExternalMember,
+  // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
+  // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
+  // meeting/event 만 간트·캘린더에 렌더된다.
+  filterSelected: filterSelectedProp,
+  onFilterChange,
+  // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
+  // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
+  gcalConnected = true,
 }) {
   // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
   const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
@@ -174,20 +182,47 @@ export default function TimelineCanvas({
   // ── Filter menu (popover) ────────────────────────────────────────────────
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterAnchor, setFilterAnchor] = useState(null);
-  const [filterSelected, setFilterSelected] = useState(FILTER_TYPES);
+  // anchorEl 을 state 로 캡처 — 렌더 중 ref.current 접근 금지 규칙 대응.
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [internalFilter, setInternalFilter] = useState(FILTER_TYPES);
+  // controlled (props) vs uncontrolled (internal) 모두 지원.
+  const filterSelected = filterSelectedProp ?? internalFilter;
   const filterBtnRef = useRef(null);
   const toggleFilter = () => {
     if (filterOpen) { setFilterOpen(false); return; }
     const el = filterBtnRef.current;
     if (!el) return;
     setFilterAnchor(el.getBoundingClientRect());
+    setFilterAnchorEl(el);
     setFilterOpen(true);
   };
   const handleToggleFilterType = (type) => {
-    setFilterSelected((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
+    const next = filterSelected.includes(type)
+      ? filterSelected.filter((t) => t !== type)
+      : [...filterSelected, type];
+    if (filterSelectedProp === undefined) setInternalFilter(next);
+    onFilterChange?.(next);
   };
+
+  // 필터가 렌더에 실제로 반영되도록 meeting/event 를 category 기준으로 거른다.
+  // meeting.category 또는 event.category 가 FilterMenuPopover 의 FILTER_TYPES
+  // (회의/1on1/집중작업/리뷰/외부미팅/기타) 중 하나의 한글 라벨이어야 한다.
+  // category 필드가 없는 레거시 데이터는 전체 통과시켜 호환성을 유지.
+  const filterSet = useMemo(() => new Set(filterSelected), [filterSelected]);
+  const filteredMeetings = useMemo(
+    () =>
+      (meetings ?? []).filter(
+        (m) => m.category == null || filterSet.has(m.category),
+      ),
+    [meetings, filterSet],
+  );
+  const wrappedGetEventsForDate = useMemo(() => {
+    if (!getEventsForDate) return getEventsForDate;
+    return (iso) =>
+      (getEventsForDate(iso) ?? []).filter(
+        (ev) => ev.category == null || filterSet.has(ev.category),
+      );
+  }, [getEventsForDate, filterSet]);
 
   // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
   const [groupAddOpen, setGroupAddOpen] = useState(false);
@@ -292,9 +327,9 @@ export default function TimelineCanvas({
   return (
     <TimelineDataProvider
       members={members}
-      meetings={meetings}
+      meetings={filteredMeetings}
       snippets={snippets}
-      getEventsForDate={getEventsForDate}
+      getEventsForDate={wrappedGetEventsForDate}
     >
     <main className="tl-page">
       {/* Page header — Timeline / Weekly 페이지 레벨 탭 */}
@@ -346,10 +381,12 @@ export default function TimelineCanvas({
             캘린더
           </button>
         </div>
-        <div className="tl-gcal-status">
+        <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-          <span>Google Calendar 연동 중</span>
-          <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+          <span>{gcalConnected ? 'Google Calendar 연동 중' : 'Google Calendar 미연동'}</span>
+          {gcalConnected && (
+            <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+          )}
         </div>
       </div>
 
@@ -481,7 +518,7 @@ export default function TimelineCanvas({
       {filterOpen && (
         <FilterMenuPopover
           anchorRect={filterAnchor}
-          anchorEl={filterBtnRef.current}
+          anchorEl={filterAnchorEl}
           selected={filterSelected}
           onToggle={handleToggleFilterType}
           onClose={() => setFilterOpen(false)}

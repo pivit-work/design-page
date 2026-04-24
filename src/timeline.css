@@ -138,6 +138,10 @@
   line-height: 18px;
   color: var(--text-secondary);
 }
+/* 연동 안 되어 있을 때 — 라벨 색을 더 흐리게(tertiary). */
+.tl-gcal-status.is-disconnected {
+  color: var(--text-tertiary);
+}
 
 /* Toolbar — Figma frameParent5: gap 16, no internal vertical padding
    margin-top 8: gap from tabs (Figma y=213→y=221) */
