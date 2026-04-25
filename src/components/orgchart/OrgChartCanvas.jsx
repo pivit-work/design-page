@@ -54,10 +54,8 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     });
   }, []);
 
-  const [showWorkHours, setShowWorkHours] = useState(true);
-  const [showVacation, setShowVacation] = useState(false);
+  // 출퇴근 시간 / 휴가는 항상 표시. adminMode 는 consumer 가 사용자 role 기반으로 제어.
   const adminMode = adminModeProp;
-  const setAdminMode = (v) => onAdminModeChange && onAdminModeChange(v);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const openModal = useCallback((member) => {
@@ -159,34 +157,13 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           <span>화면을 드래그하면 좀 더 쉽게 조직도를 보실 수 있습니다.</span>
         </div>
 
-        <div className="canvas-toggles">
-          <label className="canvas-toggle">
-            <span className="canvas-toggle-label">출퇴근 시간</span>
-            <button className={`toggle-switch ${showWorkHours ? 'toggle-on' : ''}`} onClick={() => setShowWorkHours(!showWorkHours)}>
-              <span className="toggle-knob" />
-            </button>
-          </label>
-          <label className="canvas-toggle">
-            <span className="canvas-toggle-label">휴가</span>
-            <button className={`toggle-switch ${showVacation ? 'toggle-on' : ''}`} onClick={() => setShowVacation(!showVacation)}>
-              <span className="toggle-knob" />
-            </button>
-          </label>
-          <label className="canvas-toggle">
-            <span className="canvas-toggle-label">Admin</span>
-            <button className={`toggle-switch ${adminMode ? 'toggle-on' : ''}`} onClick={() => setAdminMode(!adminMode)}>
-              <span className="toggle-knob" />
-            </button>
-          </label>
-        </div>
-
         <div className="canvas-inner" ref={canvasInnerRef} style={{
           transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
           transformOrigin: '0 0',
           position: 'relative',
         }}>
           <BezierConnectors containerRef={canvasInnerRef} scale={scale} />
-          <OrgNode node={orgData} showWorkHours={showWorkHours} showVacation={showVacation} editMode={editMode} adminMode={adminMode} baseUrl={baseUrl} />
+          <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} baseUrl={baseUrl} />
         </div>
 
         <div className="zoom-controls">
