@@ -12,11 +12,27 @@ import MeetingInProgressModal from './MeetingInProgressModal.jsx';
  * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
 
-function MeetingRow({ meeting, onStart, statusLabels }) {
+function MeetingRow({ meeting, onStart, onRowClick, statusLabels }) {
   const statusTag = meeting.status ? statusLabels[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
+  const clickable = !!onRowClick;
+  const handleRowClick = clickable ? () => onRowClick(meeting) : undefined;
+  const handleRowKeyDown = clickable
+    ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onRowClick(meeting);
+        }
+      }
+    : undefined;
   return (
-    <div className={`mtg-row ${isOngoing ? 'is-ongoing' : ''}`}>
+    <div
+      className={`mtg-row ${isOngoing ? 'is-ongoing' : ''} ${clickable ? 'is-clickable' : ''}`}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+    >
       <div className="mtg-row-time">
         <span className="mtg-row-time-main">{meeting.time}</span>
         <span className="mtg-row-time-dur">{meeting.duration}</span>
@@ -31,7 +47,15 @@ function MeetingRow({ meeting, onStart, statusLabels }) {
         <span className="mtg-row-participants">{meeting.participants}</span>
       </div>
       {isOngoing && (
-        <button type="button" className="mtg-start-btn" onClick={() => onStart?.(meeting)}>
+        <button
+          type="button"
+          className="mtg-start-btn"
+          onClick={(e) => {
+            // 부모 행 클릭과 겹치지 않도록 stopPropagation.
+            e.stopPropagation();
+            onStart?.(meeting);
+          }}
+        >
           {statusLabels.startLabel}
         </button>
       )}
@@ -50,6 +74,9 @@ export default function MeetingsCanvas({
   // 없으면 내부 state 로 MeetingInProgressModal 을 열기(단, modal 데이터도
   // caller 가 progressData/recordData/shareData/modalLabels 로 넘겨야 한다).
   onStartMeeting,
+  // 행 전체 클릭 훅: completed 회의의 기록 보기 등, 시작 버튼과 별개 동작을
+  // 연결하고 싶을 때 사용. 미지정 시 행은 클릭 불가.
+  onRowClick,
   progressData,
   recordData,
   shareData,
@@ -96,6 +123,7 @@ export default function MeetingsCanvas({
                 key={m.id}
                 meeting={m}
                 onStart={onStartMeeting ?? setActiveMeeting}
+                onRowClick={onRowClick}
                 statusLabels={statusLabels}
               />
             ))}
@@ -109,7 +137,12 @@ export default function MeetingsCanvas({
           </header>
           <div className="mtg-list">
             {pastMeetings.map((m) => (
-              <MeetingRow key={m.id} meeting={m} statusLabels={statusLabels} />
+              <MeetingRow
+                key={m.id}
+                meeting={m}
+                onRowClick={onRowClick}
+                statusLabels={statusLabels}
+              />
             ))}
           </div>
         </section>

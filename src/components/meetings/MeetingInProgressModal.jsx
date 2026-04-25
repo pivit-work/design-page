@@ -37,13 +37,17 @@ export default function MeetingInProgressModal({
   shareData,
   // 라벨 (caller 주입)
   labels,
+  // 시작 phase: 'progress' (기본) | 'record' — completed 회의의 기록 보기용.
+  initialPhase = 'progress',
+  // 회의 "종료" 확정 콜백 — status=completed 등 서버 반영을 caller 에서 처리.
+  onEnd,
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [internalMemo, setInternalMemo] = useState('');
   const memo = memoProp !== undefined ? memoProp : internalMemo;
   const handleMemoChange = onMemoChange ?? setInternalMemo;
   // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
-  const [phase, setPhase] = useState('progress');
+  const [phase, setPhase] = useState(initialPhase);
   const isRecord = phase === 'record';
   const isShare = phase === 'share';
 
@@ -191,6 +195,7 @@ export default function MeetingInProgressModal({
           onCancel={() => setConfirmOpen(false)}
           onConfirm={() => {
             setConfirmOpen(false);
+            onEnd?.();
             setPhase('record');
           }}
         />
