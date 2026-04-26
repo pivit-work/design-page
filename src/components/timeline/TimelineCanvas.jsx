@@ -83,13 +83,19 @@ export default function TimelineCanvas({
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
   activeProjectCount = 2,
+  // ── 페이지 레벨 탭 (Timeline / Weekly) — controlled or uncontrolled ──────
+  //   pageMode             'timeline' | 'weekly'  (생략 시 'timeline' 으로 시작하는 내부 state 사용)
+  //   onPageModeChange     사용자가 상단 Timeline/Weekly 탭 클릭 시
+  // 부모가 URL 라우팅으로 모드를 관리하고 싶을 때 controlled 로 사용.
+  pageMode,
+  onPageModeChange,
   // ── Weekly 탭 (AI 주간 리포트) ────────────────────────────────────────────
   // 모두 controlled — Weekly 탭이 활성화될 때만 의미가 있고, 탭 자체는
   // page-level 토글이라 Timeline 탭만 쓸 거면 무시해도 된다.
   //   weeklyPeriodTab        'lastWeek' | 'thisWeek'  (기본 'thisWeek')
   //   onWeeklyPeriodTabChange 사용자가 지난주/이번주 탭 클릭 시
   //   weeklyReport            null = 빈 상태(생성 전), 객체 = 리포트 렌더.
-  //                           shape: weekly-demo-data.js 의 DEMO_WEEKLY_REPORT 참조.
+  //                           shape: TimelineWeeklyView.jsx 상단 jsdoc 참조.
   //   weeklyIsGenerating      true 면 "지금 생성하기" 버튼이 "생성 중..." 으로 lock.
   //   onWeeklyGenerate        "지금 생성하기" 클릭 콜백.
   //   onWeeklyViewHistory     "지난 히스토리 보기" 클릭 콜백.
@@ -100,8 +106,13 @@ export default function TimelineCanvas({
   onWeeklyGenerate,
   onWeeklyViewHistory,
 }) {
-  // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
-  const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
+  // 페이지 레벨 상단 탭 — controlled prop 우선, 없으면 내부 state.
+  const [internalPageMode, setInternalPageMode] = useState('timeline'); // 'timeline' | 'weekly'
+  const effectivePageMode = pageMode ?? internalPageMode;
+  const handlePageModeChange = (next) => {
+    if (onPageModeChange) onPageModeChange(next);
+    else setInternalPageMode(next);
+  };
   // Weekly 탭 periodTab — 부모가 controlled 로 안 넘기면 내부 state 로 대체.
   const [internalWeeklyPeriodTab, setInternalWeeklyPeriodTab] = useState('thisWeek');
   const effectiveWeeklyPeriodTab = weeklyPeriodTab ?? internalWeeklyPeriodTab;
@@ -389,15 +400,15 @@ export default function TimelineCanvas({
           <h1 className="tl-page-title">
             <button
               type="button"
-              className={`tl-page-title-tab ${pageMode === 'timeline' ? 'is-active' : ''}`}
-              onClick={() => setPageMode('timeline')}
+              className={`tl-page-title-tab ${effectivePageMode === 'timeline' ? 'is-active' : ''}`}
+              onClick={() => handlePageModeChange('timeline')}
             >
               Timeline
             </button>
             <button
               type="button"
-              className={`tl-page-title-tab ${pageMode === 'weekly' ? 'is-active' : ''}`}
-              onClick={() => setPageMode('weekly')}
+              className={`tl-page-title-tab ${effectivePageMode === 'weekly' ? 'is-active' : ''}`}
+              onClick={() => handlePageModeChange('weekly')}
             >
               Weekly
             </button>
@@ -410,7 +421,7 @@ export default function TimelineCanvas({
         </div>
       </div>
 
-      {pageMode === 'weekly' && (
+      {effectivePageMode === 'weekly' && (
         <TimelineWeeklyView
           baseUrl={baseUrl}
           periodTab={effectiveWeeklyPeriodTab}
@@ -421,7 +432,7 @@ export default function TimelineCanvas({
           onViewHistory={onWeeklyViewHistory}
         />
       )}
-      {pageMode === 'timeline' && (
+      {effectivePageMode === 'timeline' && (
       <>
 
       {/* Tab row (간트 / 캘린더) + GCal status */}
