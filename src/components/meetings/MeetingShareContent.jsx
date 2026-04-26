@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -11,6 +11,13 @@ import Icon from '../shared/Icon.jsx';
  *   - external: 외부 링크 복사
  *
  * 모든 데이터/라벨은 caller 가 주입한다. 패키지 내부에는 fallback 이 없다.
+ *
+ * 부모(MeetingInProgressModal) 의 sticky bottom "공유 완료" 버튼이 내부 상태
+ * (선택된 mode + 체크된 멤버 + 외부 추가 인원) 를 알아야 하므로 ref 로 submit
+ * 시그니처 노출. 부모는 ref.current.submit() 호출 → 콜백 prop onShareSubmit
+ * 으로 payload 가 흘러나간다. payload 형태:
+ *   { method: 'all' | 'manual' | 'link', recipients: { name, role? }[] }
+ * email/userId 매핑은 caller (도메인) 책임.
  */
 
 function Checkbox({ checked, onChange }) {
@@ -37,15 +44,19 @@ function Checkbox({ checked, onChange }) {
   );
 }
 
-export default function MeetingShareContent({
-  meeting,
-  baseUrl = '',
-  calendarParticipants,
-  manualMembers,
-  shareUrl,
-  subtitle,
-  labels,
-}) {
+const MeetingShareContent = forwardRef(function MeetingShareContent(
+  {
+    meeting,
+    baseUrl = '',
+    calendarParticipants,
+    manualMembers,
+    shareUrl,
+    subtitle,
+    labels,
+    onShareSubmit,
+  },
+  ref,
+) {
   const [mode, setMode] = useState('participants');
   const [members, setMembers] = useState(manualMembers);
   const [customName, setCustomName] = useState('');
@@ -66,6 +77,36 @@ export default function MeetingShareContent({
       /* no-op in preview */
     }
   };
+
+  /**
+   * 부모 modal 의 share-done 버튼이 호출. 현재 mode/members 에서 payload 조립해
+   * onShareSubmit 으로 흘림. await 하면 비동기 share API 끝까지 대기 가능.
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      submit() {
+        if (!onShareSubmit) return undefined;
+        if (mode === 'participants') {
+          return onShareSubmit({
+            method: 'all',
+            recipients: calendarParticipants.map((name) => ({ name })),
+          });
+        }
+        if (mode === 'manual') {
+          return onShareSubmit({
+            method: 'manual',
+            recipients: members
+              .filter((m) => m.checked)
+              .map((m) => ({ name: m.name, role: m.role })),
+          });
+        }
+        // external link mode
+        return onShareSubmit({ method: 'link', recipients: [] });
+      },
+    }),
+    [mode, members, calendarParticipants, onShareSubmit],
+  );
 
   return (
     <>
@@ -195,4 +236,6 @@ export default function MeetingShareContent({
       </div>
     </>
   );
-}
+});
+
+export default MeetingShareContent;

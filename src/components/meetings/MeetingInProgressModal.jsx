@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 import MeetingRecordContent from './MeetingRecordContent.jsx';
@@ -48,8 +48,32 @@ export default function MeetingInProgressModal({
   const handleMemoChange = onMemoChange ?? setInternalMemo;
   // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
   const [phase, setPhase] = useState(initialPhase);
+  const [shareSubmitting, setShareSubmitting] = useState(false);
   const isRecord = phase === 'record';
   const isShare = phase === 'share';
+  // share content 의 imperative submit() 호출용. 내부 mode/members 상태를
+  // 외부에서 모르므로 ref 패턴으로 wiring.
+  const shareContentRef = useRef(null);
+
+  /**
+   * "공유 완료" 버튼 클릭. share content 의 submit() 호출 → caller 의
+   * onShareSubmit 이 비동기면 끝날 때까지 대기 후 모달 닫기. 호출 자체가 없거나
+   * onShareSubmit 미주입이면 그냥 닫기 (옛 동작 유지).
+   */
+  const handleShareDone = async () => {
+    if (shareSubmitting) return;
+    const ref = shareContentRef.current;
+    const result = ref?.submit?.();
+    if (result && typeof result.then === 'function') {
+      setShareSubmitting(true);
+      try {
+        await result;
+      } finally {
+        setShareSubmitting(false);
+      }
+    }
+    onClose?.();
+  };
 
   const participants = normalizeParticipants(meeting?.participants);
   const subtitle = `${meeting.title}  •  ${meeting.time} ${labels.startedSuffix}`;
@@ -97,6 +121,7 @@ export default function MeetingInProgressModal({
           <div className="mtg-progress-body">
             {isShare ? (
               <MeetingShareContent
+                ref={shareContentRef}
                 meeting={meeting}
                 baseUrl={baseUrl}
                 {...shareData}
@@ -164,7 +189,8 @@ export default function MeetingInProgressModal({
               <button
                 type="button"
                 className="mtg-progress-share-btn"
-                onClick={onClose}
+                onClick={handleShareDone}
+                disabled={shareSubmitting}
               >
                 {labels.shareDoneButton}
               </button>
