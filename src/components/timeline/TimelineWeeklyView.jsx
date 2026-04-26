@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
 
@@ -116,7 +116,22 @@ export default function TimelineWeeklyView({
           <div className="tl-weekly-card-meta">{report.generatedAt}</div>
         )}
 
-        {!report ? (
+        {isGenerating && !report ? (
+          /* Loading — Figma 16839:51130. video 296×68 mix-blend-darken + Generating... text */
+          <div className="tl-weekly-loading">
+            <div className="tl-weekly-loading-inner">
+              <video
+                className="tl-weekly-loading-video"
+                src={`${baseUrl}weekly-loader.mp4`}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+              <p className="tl-weekly-loading-text">Generating...</p>
+            </div>
+          </div>
+        ) : !report ? (
           <div className="tl-weekly-empty">
             <p className="tl-weekly-empty-text">
               아직 이번 주 리포트 자동 생성 전이에요.<br />
@@ -129,7 +144,7 @@ export default function TimelineWeeklyView({
               disabled={isGenerating}
             >
               <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
-              <span>{isGenerating ? '생성 중...' : '지금 생성하기'}</span>
+              <span>지금 생성하기</span>
             </button>
           </div>
         ) : (

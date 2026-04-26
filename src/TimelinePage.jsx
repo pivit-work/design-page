@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { TimelineCanvas } from './components';
 import {
   MEMBERS,
@@ -6,6 +7,7 @@ import {
   SNIPPETS,
   getEventsForDate,
 } from './timeline-demo-data.js';
+import { DEMO_WEEKLY_REPORT } from './components/timeline/weekly-demo-data.js';
 
 /**
  * TimelinePage — 타임라인 demo wrapper.
@@ -15,10 +17,23 @@ import {
  * 모든 데이터/초기 그룹을 주입한다. pivit-work 는 자체 Page 컴포넌트에서
  * 실 데이터로 TimelineCanvas 를 렌더하므로 이 wrapper 는 사용하지 않는다.
  *
- * Weekly 탭은 weeklyReport 미주입 → "지금 생성하기" 빈 상태로 보임.
- * 데모 wrapper 는 백엔드가 없으므로 버튼이 눌려도 아무 일도 일어나지 않는다.
+ * Weekly 탭은 데모용으로 4초 가짜 생성 후 DEMO_WEEKLY_REPORT 주입.
  */
 export default function TimelinePage({ icons, baseUrl }) {
+  const [weeklyReport, setWeeklyReport] = useState(null);
+  const [weeklyIsGenerating, setWeeklyIsGenerating] = useState(false);
+  const generateTimerRef = useRef(null);
+
+  const handleWeeklyGenerate = () => {
+    if (weeklyIsGenerating) return;
+    setWeeklyIsGenerating(true);
+    if (generateTimerRef.current) clearTimeout(generateTimerRef.current);
+    generateTimerRef.current = setTimeout(() => {
+      setWeeklyReport(DEMO_WEEKLY_REPORT);
+      setWeeklyIsGenerating(false);
+    }, 4000);
+  };
+
   return (
     <TimelineCanvas
       icons={icons}
@@ -28,6 +43,9 @@ export default function TimelinePage({ icons, baseUrl }) {
       snippets={SNIPPETS}
       getEventsForDate={getEventsForDate}
       initialGroups={GROUPS}
+      weeklyReport={weeklyReport}
+      weeklyIsGenerating={weeklyIsGenerating}
+      onWeeklyGenerate={handleWeeklyGenerate}
     />
   );
 }

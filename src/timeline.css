@@ -2833,6 +2833,47 @@
   font-size: 14px;
 }
 
+/* Loading state — Figma 16839:51130 (Content) + 16839:51131 + 16839:51252
+   - 카드 자체 그라디언트(9% opacity) 위에 비디오 mix-blend-darken
+   - Video: 296x68 (가로형), object-fit: cover, mix-blend-mode: darken
+   - Generating: 16px SemiBold, text-tertiary(#b1b6be), gap 24px, py 80px */
+.tl-weekly-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tl-weekly-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 80px 10px;
+  width: 660px;
+  max-width: 100%;
+}
+
+.tl-weekly-loading-video {
+  width: 296px;
+  height: 68px;
+  object-fit: cover;
+  mix-blend-mode: darken;
+  pointer-events: none;
+  display: block;
+}
+
+.tl-weekly-loading-text {
+  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: normal;
+  color: var(--text-tertiary, #b1b6be);
+  text-align: center;
+  margin: 0;
+}
+
 /* Weekly view container — fills remaining viewport, internal scroll happens INSIDE card */
 .tl-weekly {
   display: flex;
