@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
 import ActionPersonPopover from './ActionPersonPopover.jsx';
@@ -47,6 +47,10 @@ export default function MeetingRecordContent({
   const actions = actionItems ?? internalActions;
   // { idx, field: 'person' | 'date', rect, el } | null
   const [openPicker, setOpenPicker] = useState(null);
+  // 갓 추가된 항목의 인덱스 — title input 의 ref callback 이 마운트 시 한 번
+  // focus 한 뒤 null 로 비우는 imperative 핸들. (state 로 두면 effect 안에서
+  // setState → cascading re-render lint 룰에 걸린다.)
+  const justAddedIdxRef = useRef(null);
 
   const updateActions = (next) => {
     if (actionItems === undefined) setInternalActions(next);
@@ -156,18 +160,38 @@ export default function MeetingRecordContent({
         <ul className="mtg-record-action-list">
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">
-              <span className="mtg-record-action-title">{a.title}</span>
+              <input
+                type="text"
+                className="mtg-record-action-title"
+                value={a.title}
+                placeholder={labels.actionItemTitlePlaceholder ?? labels.newActionItemTitle ?? ''}
+                onChange={(e) => updateAction(idx, { title: e.target.value })}
+                ref={(el) => {
+                  if (el && justAddedIdxRef.current === idx) {
+                    justAddedIdxRef.current = null;
+                    el.focus();
+                  }
+                }}
+              />
               <button
                 type="button"
-                className="mtg-record-action-person"
+                className={`mtg-record-action-person${a.person ? '' : ' is-empty'}`}
                 onClick={(e) => setOpenPicker({
                   idx,
                   field: 'person',
                   rect: e.currentTarget.getBoundingClientRect(),
                 })}
               >
-                <span className="mtg-record-action-avatar">{a.person.charAt(0)}</span>
-                <span className="mtg-record-action-name">{a.person}</span>
+                {a.person ? (
+                  <>
+                    <span className="mtg-record-action-avatar">{a.person.charAt(0)}</span>
+                    <span className="mtg-record-action-name">{a.person}</span>
+                  </>
+                ) : (
+                  <span className="mtg-record-action-name mtg-record-action-name--placeholder">
+                    {labels.actionItemPersonPlaceholder ?? '담당자'}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -203,12 +227,16 @@ export default function MeetingRecordContent({
               type="button"
               className="mtg-record-action-add"
               onClick={() => {
-                const defaultPerson = memberPool[0]?.name ?? '';
+                // 신규 항목은 빈 title + 담당자 미설정 으로 시작 — 하드코딩
+                // placeholder 가 그대로 저장돼 모든 신규가 "새 액션 아이템" 으로
+                // 보이는 회귀를 방지. ref 콜백이 마운트 시 한 번 focus 한다.
+                const newIdx = actions.length;
+                justAddedIdxRef.current = newIdx;
                 updateActions([
                   ...actions,
                   {
-                    title: labels.newActionItemTitle,
-                    person: defaultPerson,
+                    title: '',
+                    person: '',
                     date: formatMMDD(new Date()),
                   },
                 ]);

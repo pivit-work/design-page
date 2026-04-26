@@ -679,16 +679,32 @@
   gap: 12px;
   padding: 6px 0;
 }
-.mtg-record-action-title {
+/* 편집 가능한 input — 평소엔 텍스트처럼 보이고 hover/focus 시만 컨테이너 분간. */
+input.mtg-record-action-title {
   flex: 1;
   min-width: 0;
+  font-family: inherit;
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
   color: var(--text-secondary, #687079);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  outline: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+input.mtg-record-action-title:hover {
+  background: var(--colors-background-bgSecondary, #f5f5f5);
+}
+input.mtg-record-action-title:focus {
+  background: var(--colors-background-bgPrimary, #ffffff);
+  border-color: var(--colors-border-borderSecondary, #e1e4e8);
+}
+input.mtg-record-action-title::placeholder {
+  color: var(--text-tertiary, #98a1b2);
+  font-weight: 500;
 }
 .mtg-record-action-person {
   display: inline-flex;
@@ -779,6 +795,18 @@
 .mtg-record-action-person:hover,
 .mtg-record-action-date:hover {
   background: var(--colors-background-bgSecondary, #f5f5f5);
+}
+
+/* 담당자 미설정 — 회색 placeholder. 아바타 동그라미를 따로 표시하지 않아
+ * 동일한 '—' 가 동그라미 안과 밖에 두 번 노출되던 문제를 회피.
+ */
+.mtg-record-action-person.is-empty {
+  color: var(--text-tertiary, #98a1b2);
+}
+.mtg-record-action-name--placeholder {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-tertiary, #98a1b2);
 }
 
 /* ActionPersonPopover */
