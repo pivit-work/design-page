@@ -70,6 +70,10 @@ export default function MeetingsCanvas({
   todayDateLabel,
   todayCountLabel,
   labels,
+  // Google Calendar 연동 여부. true (기본) 면 헤더에 초록 체크 아이콘 노출,
+  // false 면 체크 아이콘을 가리고 라벨에 경고 톤 색을 적용한다. caller 가
+  // 미지정하면 backward-compat 차원에서 연동 됨으로 간주.
+  gcalConnected = true,
   // 시작 버튼 클릭 훅: 호출 시 caller 가 직접 모달 렌더 + 실데이터 주입 가능.
   // 없으면 내부 state 로 MeetingInProgressModal 을 열기(단, modal 데이터도
   // caller 가 progressData/recordData/shareData/modalLabels 로 넘겨야 한다).
@@ -111,10 +115,12 @@ export default function MeetingsCanvas({
               <span className="mtg-section-date">{todayDateLabel}</span>
               <h2 className="mtg-section-title">{labels.todaySectionTitle}</h2>
             </div>
-            <div className="mtg-gcal-status">
+            <div className={`mtg-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
               <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
               <span>{labels.gcalStatus}</span>
-              <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+              {gcalConnected && (
+                <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+              )}
             </div>
           </header>
           <div className="mtg-list">

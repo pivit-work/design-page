@@ -78,6 +78,11 @@
   line-height: 18px;
   color: var(--text-secondary, #687079);
 }
+/* Google Calendar 미연동 — 라벨에 경고 톤. 초록 체크 아이콘은 컴포넌트 단에서
+ * 조건부 미렌더하므로 별도 hide 룰 불필요. */
+.mtg-gcal-status.is-disconnected {
+  color: var(--colors-warning-600, #ca8504);
+}
 
 /* Meeting list */
 .mtg-list {
@@ -107,8 +112,11 @@
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  padding: 12px 20px;
-  min-width: 82px;
+  padding: 12px 14px;
+  /* "어제 10:00" / "04.20 22:00" 같은 가변폭 라벨이 행마다 컬럼을 들쭉날쭉
+   * 늘리지 않도록 고정폭. wide-digit "02.28 08:08" 실측 ~77px + 좌우 padding
+   * 28px = 105px, 5px buffer 포함 110px. */
+  width: 110px;
   border-right: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   flex-shrink: 0;
 }
@@ -118,6 +126,12 @@
   line-height: 20px;
   font-weight: 600;
   color: var(--text-secondary, #687079);
+  /* "04.01" 와 "11:00" 사이 공백에서 줄바꿈되지 않도록 nowrap.
+   * tabular-nums 는 폰트가 지원하는 경우 숫자 폭을 균일하게(없어도 nowrap +
+   * 고정폭으로 wrap·overflow 모두 방지). */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 /* 기간 "1h" — 14/20 text-tertiary */
 .mtg-row-time-dur {
