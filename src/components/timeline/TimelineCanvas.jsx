@@ -83,9 +83,32 @@ export default function TimelineCanvas({
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
   activeProjectCount = 2,
+  // ── Weekly 탭 (AI 주간 리포트) ────────────────────────────────────────────
+  // 모두 controlled — Weekly 탭이 활성화될 때만 의미가 있고, 탭 자체는
+  // page-level 토글이라 Timeline 탭만 쓸 거면 무시해도 된다.
+  //   weeklyPeriodTab        'lastWeek' | 'thisWeek'  (기본 'thisWeek')
+  //   onWeeklyPeriodTabChange 사용자가 지난주/이번주 탭 클릭 시
+  //   weeklyReport            null = 빈 상태(생성 전), 객체 = 리포트 렌더.
+  //                           shape: weekly-demo-data.js 의 DEMO_WEEKLY_REPORT 참조.
+  //   weeklyIsGenerating      true 면 "지금 생성하기" 버튼이 "생성 중..." 으로 lock.
+  //   onWeeklyGenerate        "지금 생성하기" 클릭 콜백.
+  //   onWeeklyViewHistory     "지난 히스토리 보기" 클릭 콜백.
+  weeklyPeriodTab,
+  onWeeklyPeriodTabChange,
+  weeklyReport = null,
+  weeklyIsGenerating = false,
+  onWeeklyGenerate,
+  onWeeklyViewHistory,
 }) {
   // 페이지 레벨 상단 탭 — Timeline(간트/캘린더) vs Weekly(AI 리포트)
   const [pageMode, setPageMode] = useState('timeline'); // 'timeline' | 'weekly'
+  // Weekly 탭 periodTab — 부모가 controlled 로 안 넘기면 내부 state 로 대체.
+  const [internalWeeklyPeriodTab, setInternalWeeklyPeriodTab] = useState('thisWeek');
+  const effectiveWeeklyPeriodTab = weeklyPeriodTab ?? internalWeeklyPeriodTab;
+  const handleWeeklyPeriodTabChange = (next) => {
+    if (onWeeklyPeriodTabChange) onWeeklyPeriodTabChange(next);
+    else setInternalWeeklyPeriodTab(next);
+  };
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit] = useState('day');
@@ -387,7 +410,17 @@ export default function TimelineCanvas({
         </div>
       </div>
 
-      {pageMode === 'weekly' && <TimelineWeeklyView baseUrl={baseUrl} />}
+      {pageMode === 'weekly' && (
+        <TimelineWeeklyView
+          baseUrl={baseUrl}
+          periodTab={effectiveWeeklyPeriodTab}
+          onPeriodTabChange={handleWeeklyPeriodTabChange}
+          report={weeklyReport}
+          isGenerating={weeklyIsGenerating}
+          onGenerate={onWeeklyGenerate}
+          onViewHistory={onWeeklyViewHistory}
+        />
+      )}
       {pageMode === 'timeline' && (
       <>
 
