@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 
@@ -54,19 +54,35 @@ const SECTIONS = [
   },
 ];
 
-const TAG_SUGGESTIONS = [
+// `suggestedTags` prop 이 없을 때 사용하는 fallback 시드 — 호스트 앱이 추천 풀을
+// 주입하지 않아도 스니핏 모달은 빈 상태로 보이지 않도록 한다.
+const DEFAULT_SUGGESTED_TAGS = [
   '기획', '회의', '개발', '디자인', '리뷰', '문서', '외부미팅', 'TaV', '번역', '산출물', '참석자',
 ];
 
 // 기존 스니핏을 수정할 때 prefill 하려면 initial 에 { summary, tags,
 // sections:{what,why,value,highlights,lowlights} } 모양으로 넘긴다.
 // (partial 허용 — 없는 필드는 빈 문자열/빈 배열로 초기화)
+//
+// AI 통합 props (모두 optional, 0.1.66 까지의 호출자와 호환):
+//   onAiExtract({whatDidYouDo, whyDidYouDoIt, valuesAdded, highlights, lowlights})
+//     → Promise<{summary: string, tags: string[]}>
+//     "AI 요약 생성" / "AI 태그 추출" 버튼이 모두 이 콜백을 호출한다. 응답이
+//     오면 summary 와 tags 를 모두 채운다 (각각 따로 호출하기에는 같은 본문을
+//     LLM 에 두 번 보내는 낭비라 한 번의 호출로 양쪽을 받는다).
+//   suggestedTags?: string[] — 추천 칩 풀. 누락 시 DEFAULT_SUGGESTED_TAGS.
+//   onTagSelect?: (name: string) => void — 추천 칩 클릭 시 호스트에 알림.
+//     선택된 태그의 모달 내부 상태 추가는 모달이 직접 처리하므로 호스트는 보통
+//     analytics/카운트 갱신용으로만 쓴다.
 export default function SnippetModal({
   date,
   baseUrl,
   onClose,
   onSubmit,
   initial,
+  onAiExtract,
+  suggestedTags,
+  onTagSelect,
 }) {
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
@@ -79,6 +95,13 @@ export default function SnippetModal({
     lowlights: initial?.sections?.lowlights ?? '',
   });
   const [scrolled, setScrolled] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  const tagSuggestionPool =
+    Array.isArray(suggestedTags) && suggestedTags.length > 0
+      ? suggestedTags
+      : DEFAULT_SUGGESTED_TAGS;
 
   const panelRef = useRef(null);
   const contentRef = useRef(null);
@@ -135,6 +158,48 @@ export default function SnippetModal({
     }
   };
   const removeTag = (t) => setTags((prev) => prev.filter((x) => x !== t));
+
+  // AI 호출은 Summary/Tags 두 버튼이 같은 콜백을 공유한다. 응답을 받으면
+  // summary 는 덮어쓰고, tags 는 기존 선택과 합쳐 dedupe 한다 (사용자가
+  // 이미 고른 태그를 AI 가 지워버리면 안 되므로).
+  const handleAiExtract = useCallback(async () => {
+    if (!onAiExtract || aiLoading) return;
+    setAiError(null);
+    setAiLoading(true);
+    try {
+      const result = await onAiExtract({
+        whatDidYouDo: sectionTexts.what,
+        whyDidYouDoIt: sectionTexts.why,
+        valuesAdded: sectionTexts.value,
+        highlights: sectionTexts.highlights,
+        lowlights: sectionTexts.lowlights,
+      });
+      if (result?.summary) setSummary(result.summary);
+      if (Array.isArray(result?.tags)) {
+        setTags((prev) => {
+          const seen = new Set(prev);
+          const merged = [...prev];
+          for (const t of result.tags) {
+            const v = (t ?? '').trim();
+            if (v && !seen.has(v)) {
+              merged.push(v);
+              seen.add(v);
+            }
+          }
+          return merged;
+        });
+      }
+    } catch (err) {
+      setAiError(err?.message || 'AI 추출에 실패했습니다.');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [onAiExtract, aiLoading, sectionTexts]);
+
+  const handleSuggestedTagClick = (t) => {
+    addTag(t);
+    if (onTagSelect) onTagSelect(t);
+  };
 
   const handleReset = () => {
     setSummary('');
@@ -246,7 +311,13 @@ export default function SnippetModal({
                   Summary
                   <span className="tl-snippet-label-hint">AI 자동 생성 해줘요.</span>
                 </div>
-                <button type="button" className="tl-snippet-ai-btn">
+                <button
+                  type="button"
+                  className="tl-snippet-ai-btn"
+                  onClick={handleAiExtract}
+                  disabled={!onAiExtract || aiLoading}
+                  aria-busy={aiLoading || undefined}
+                >
                   <img
                     src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
                     alt=""
@@ -255,7 +326,7 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>요약 생성</span>
+                  <span>{aiLoading ? '생성 중…' : '요약 생성'}</span>
                 </button>
               </div>
               <textarea
@@ -273,7 +344,9 @@ export default function SnippetModal({
                   aria-hidden="true"
                 />
                 <span className="tl-snippet-info-text">
-                  What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.
+                  {aiError
+                    ? aiError
+                    : 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.'}
                 </span>
               </div>
             </div>
@@ -285,7 +358,13 @@ export default function SnippetModal({
                   Tags
                   <span className="tl-snippet-label-hint">AI 자동 추출 해줘요</span>
                 </div>
-                <button type="button" className="tl-snippet-ai-btn">
+                <button
+                  type="button"
+                  className="tl-snippet-ai-btn"
+                  onClick={handleAiExtract}
+                  disabled={!onAiExtract || aiLoading}
+                  aria-busy={aiLoading || undefined}
+                >
                   <img
                     src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
                     alt=""
@@ -294,7 +373,7 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>태그 추출</span>
+                  <span>{aiLoading ? '추출 중…' : '태그 추출'}</span>
                 </button>
               </div>
               {/* 필드 안에 선택된 태그 chip + 신규 입력 */}
@@ -325,14 +404,14 @@ export default function SnippetModal({
                 />
               </div>
               <div className="tl-snippet-suggest-tags">
-                {TAG_SUGGESTIONS.map((t) => {
+                {tagSuggestionPool.map((t) => {
                   const already = tags.includes(t);
                   return (
                     <button
                       key={t}
                       type="button"
                       className={`tl-snippet-tag ${already ? 'is-dim' : ''}`}
-                      onClick={() => addTag(t)}
+                      onClick={() => handleSuggestedTagClick(t)}
                       disabled={already}
                     >
                       {t}
