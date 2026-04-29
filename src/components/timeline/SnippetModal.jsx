@@ -64,23 +64,29 @@ const DEFAULT_SUGGESTED_TAGS = [
 // sections:{what,why,value,highlights,lowlights} } 모양으로 넘긴다.
 // (partial 허용 — 없는 필드는 빈 문자열/빈 배열로 초기화)
 //
-// AI 통합 props (모두 optional, 0.1.66 까지의 호출자와 호환):
-//   onAiExtract({whatDidYouDo, whyDidYouDoIt, valuesAdded, highlights, lowlights})
-//     → Promise<{summary: string, tags: string[]}>
-//     "AI 요약 생성" / "AI 태그 추출" 버튼이 모두 이 콜백을 호출한다. 응답이
-//     오면 summary 와 tags 를 모두 채운다 (각각 따로 호출하기에는 같은 본문을
-//     LLM 에 두 번 보내는 낭비라 한 번의 호출로 양쪽을 받는다).
+// AI 통합 props (모두 optional):
+//   onAiSummarize(input) → Promise<{summary: string}>
+//     "AI 요약 생성" 버튼 클릭 시 호출. summary 만 채워준다.
+//   onAiExtractTags(input) → Promise<{tags: string[]}>
+//     "AI 태그 추출" 버튼 클릭 시 호출. tags 만 채워준다 (기존 선택과 dedupe merge).
 //   suggestedTags?: string[] — 추천 칩 풀. 누락 시 DEFAULT_SUGGESTED_TAGS.
 //   onTagSelect?: (name: string) => void — 추천 칩 클릭 시 호스트에 알림.
 //     선택된 태그의 모달 내부 상태 추가는 모달이 직접 처리하므로 호스트는 보통
 //     analytics/카운트 갱신용으로만 쓴다.
+//
+//   input 형태: {whatDidYouDo, whyDidYouDoIt, valuesAdded, highlights, lowlights}
+//
+//   각 콜백이 누락되면 해당 버튼은 disabled. 두 콜백을 분리한 이유는 사용자가
+//   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
+//   때문이다.
 export default function SnippetModal({
   date,
   baseUrl,
   onClose,
   onSubmit,
   initial,
-  onAiExtract,
+  onAiSummarize,
+  onAiExtractTags,
   suggestedTags,
   onTagSelect,
 }) {
@@ -95,8 +101,10 @@ export default function SnippetModal({
     lowlights: initial?.sections?.lowlights ?? '',
   });
   const [scrolled, setScrolled] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+  const [tagsError, setTagsError] = useState(null);
 
   const tagSuggestionPool =
     Array.isArray(suggestedTags) && suggestedTags.length > 0
@@ -159,22 +167,39 @@ export default function SnippetModal({
   };
   const removeTag = (t) => setTags((prev) => prev.filter((x) => x !== t));
 
-  // AI 호출은 Summary/Tags 두 버튼이 같은 콜백을 공유한다. 응답을 받으면
-  // summary 는 덮어쓰고, tags 는 기존 선택과 합쳐 dedupe 한다 (사용자가
-  // 이미 고른 태그를 AI 가 지워버리면 안 되므로).
-  const handleAiExtract = useCallback(async () => {
-    if (!onAiExtract || aiLoading) return;
-    setAiError(null);
-    setAiLoading(true);
+  const buildAiInput = useCallback(
+    () => ({
+      whatDidYouDo: sectionTexts.what,
+      whyDidYouDoIt: sectionTexts.why,
+      valuesAdded: sectionTexts.value,
+      highlights: sectionTexts.highlights,
+      lowlights: sectionTexts.lowlights,
+    }),
+    [sectionTexts],
+  );
+
+  const handleSummarize = useCallback(async () => {
+    if (!onAiSummarize || summaryLoading) return;
+    setSummaryError(null);
+    setSummaryLoading(true);
     try {
-      const result = await onAiExtract({
-        whatDidYouDo: sectionTexts.what,
-        whyDidYouDoIt: sectionTexts.why,
-        valuesAdded: sectionTexts.value,
-        highlights: sectionTexts.highlights,
-        lowlights: sectionTexts.lowlights,
-      });
+      const result = await onAiSummarize(buildAiInput());
       if (result?.summary) setSummary(result.summary);
+    } catch (err) {
+      setSummaryError(err?.message || 'AI 요약 생성에 실패했습니다.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [onAiSummarize, summaryLoading, buildAiInput]);
+
+  // tags 는 기존 선택과 합쳐 dedupe 한다 — AI 가 사용자가 고른 태그를
+  // 지우면 안 되므로.
+  const handleExtractTags = useCallback(async () => {
+    if (!onAiExtractTags || tagsLoading) return;
+    setTagsError(null);
+    setTagsLoading(true);
+    try {
+      const result = await onAiExtractTags(buildAiInput());
       if (Array.isArray(result?.tags)) {
         setTags((prev) => {
           const seen = new Set(prev);
@@ -190,11 +215,11 @@ export default function SnippetModal({
         });
       }
     } catch (err) {
-      setAiError(err?.message || 'AI 추출에 실패했습니다.');
+      setTagsError(err?.message || 'AI 태그 추출에 실패했습니다.');
     } finally {
-      setAiLoading(false);
+      setTagsLoading(false);
     }
-  }, [onAiExtract, aiLoading, sectionTexts]);
+  }, [onAiExtractTags, tagsLoading, buildAiInput]);
 
   const handleSuggestedTagClick = (t) => {
     addTag(t);
@@ -314,9 +339,9 @@ export default function SnippetModal({
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
-                  onClick={handleAiExtract}
-                  disabled={!onAiExtract || aiLoading}
-                  aria-busy={aiLoading || undefined}
+                  onClick={handleSummarize}
+                  disabled={!onAiSummarize || summaryLoading}
+                  aria-busy={summaryLoading || undefined}
                 >
                   <img
                     src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
@@ -326,7 +351,7 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>{aiLoading ? '생성 중…' : '요약 생성'}</span>
+                  <span>{summaryLoading ? '생성 중…' : '요약 생성'}</span>
                 </button>
               </div>
               <textarea
@@ -344,8 +369,8 @@ export default function SnippetModal({
                   aria-hidden="true"
                 />
                 <span className="tl-snippet-info-text">
-                  {aiError
-                    ? aiError
+                  {summaryError
+                    ? summaryError
                     : 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.'}
                 </span>
               </div>
@@ -361,9 +386,9 @@ export default function SnippetModal({
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
-                  onClick={handleAiExtract}
-                  disabled={!onAiExtract || aiLoading}
-                  aria-busy={aiLoading || undefined}
+                  onClick={handleExtractTags}
+                  disabled={!onAiExtractTags || tagsLoading}
+                  aria-busy={tagsLoading || undefined}
                 >
                   <img
                     src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
@@ -373,7 +398,7 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>{aiLoading ? '추출 중…' : '태그 추출'}</span>
+                  <span>{tagsLoading ? '추출 중…' : '태그 추출'}</span>
                 </button>
               </div>
               {/* 필드 안에 선택된 태그 chip + 신규 입력 */}
