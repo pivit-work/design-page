@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import useTimelineData from './useTimelineData.js';
 
 /**
@@ -63,7 +64,9 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
     .map((pid) => members.find((m) => m.id === pid))
     .filter(Boolean);
 
-  return (
+  // Portal 로 body 에 렌더 — content-area(position:fixed)의 stacking context
+  // 에서 탈출해서 사이드바/탑네비 등 모든 상위 요소를 덮도록.
+  return createPortal(
     <div className="tl-meeting-modal-overlay" onClick={onClose}>
       <div
         ref={modalRef}
@@ -163,6 +166,7 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
