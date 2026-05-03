@@ -79,6 +79,14 @@ const DEFAULT_SUGGESTED_TAGS = [
 //   각 콜백이 누락되면 해당 버튼은 disabled. 두 콜백을 분리한 이유는 사용자가
 //   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
 //   때문이다.
+//
+// 자동 저장 통지:
+//   onDraftChange?: (draft, meta) => void
+//     summary/tags/sectionTexts 가 바뀌거나 textarea/input 의 blur 시점에
+//     호출된다. 호스트가 받아서 debounce 후 서버 저장 / localStorage 캐시 등
+//     원하는 채널로 보낸다. meta.source 는 'change' | 'blur'.
+//     한글 IME 조합 중에는 자모 단위 중간 상태가 호스트로 전달되지 않도록
+//     compositionStart~compositionEnd 사이의 change/blur 호출을 보류한다.
 export default function SnippetModal({
   date,
   baseUrl,
@@ -89,6 +97,7 @@ export default function SnippetModal({
   onAiExtractTags,
   suggestedTags,
   onTagSelect,
+  onDraftChange,
 }) {
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
@@ -105,6 +114,13 @@ export default function SnippetModal({
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const [tagsError, setTagsError] = useState(null);
+  // IME 조합 중 — 'change' 통지 보류 플래그. state 로 두면 compositionEnd 직후
+  // useEffect 가 자연스럽게 재실행되어 최종 결과가 호스트로 전달된다.
+  const [isComposing, setIsComposing] = useState(false);
+  const onDraftChangeRef = useRef(onDraftChange);
+  useEffect(() => {
+    onDraftChangeRef.current = onDraftChange;
+  }, [onDraftChange]);
 
   const tagSuggestionPool =
     Array.isArray(suggestedTags) && suggestedTags.length > 0
@@ -236,6 +252,30 @@ export default function SnippetModal({
   const setSectionText = (key, v) =>
     setSectionTexts((prev) => ({ ...prev, [key]: v }));
 
+  // 자동 저장 통지 — summary/tags/sectionTexts 변경 시 호스트로 'change' 발화.
+  // IME 조합 중에는 보류. compositionEnd 로 isComposing 이 false 가 되는 순간
+  // useEffect 가 재실행되어 최종 결과가 한 번 통지된다.
+  useEffect(() => {
+    if (!onDraftChangeRef.current) return;
+    if (isComposing) return;
+    onDraftChangeRef.current(
+      { summary, tags, sections: sectionTexts },
+      { source: 'change' },
+    );
+  }, [summary, tags, sectionTexts, isComposing]);
+
+  const handleFieldBlur = useCallback(() => {
+    if (!onDraftChangeRef.current) return;
+    if (isComposing) return;
+    onDraftChangeRef.current(
+      { summary, tags, sections: sectionTexts },
+      { source: 'blur' },
+    );
+  }, [summary, tags, sectionTexts, isComposing]);
+
+  const handleCompositionStart = useCallback(() => setIsComposing(true), []);
+  const handleCompositionEnd = useCallback(() => setIsComposing(false), []);
+
   const canSubmit = summary.trim() || Object.values(sectionTexts).some((v) => v.trim());
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -323,6 +363,9 @@ export default function SnippetModal({
                   placeholder={s.placeholder}
                   value={sectionTexts[s.key]}
                   onChange={(e) => setSectionText(s.key, e.target.value)}
+                  onCompositionStart={handleCompositionStart}
+                  onCompositionEnd={handleCompositionEnd}
+                  onBlur={handleFieldBlur}
                   maxLength={500}
                 />
                 <div className="tl-snippet-count">{sectionTexts[s.key].length} / 500</div>
@@ -359,6 +402,9 @@ export default function SnippetModal({
                 placeholder="관련 내용 입력하면 AI 요약이 활성화됩니다"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+                onBlur={handleFieldBlur}
               />
               <div className="tl-snippet-info">
                 <img
@@ -426,6 +472,9 @@ export default function SnippetModal({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={onTagKey}
+                  onCompositionStart={handleCompositionStart}
+                  onCompositionEnd={handleCompositionEnd}
+                  onBlur={handleFieldBlur}
                 />
               </div>
               <div className="tl-snippet-suggest-tags">
