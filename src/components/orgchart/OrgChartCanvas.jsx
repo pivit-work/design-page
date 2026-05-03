@@ -139,7 +139,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         <div className="header-subtitle">
           <b>전체 인원</b>
           <span className="dot">&#8729;</span>
-          <span className="brand-count">34명</span>
+          <span className="brand-count">{orgData?.count ?? ''}</span>
         </div>
       </div>
 
