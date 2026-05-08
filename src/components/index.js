@@ -63,3 +63,15 @@ export {
   STATUS_BADGE as ONEONONE_STATUS_BADGE,
   TAG_TYPES as ONEONONE_TAG_TYPES,
 } from './oneonone/index.js';
+
+// Manager
+export {
+  ManagerCanvas,
+  ManagerMemberCard,
+  ManagerSplineHero,
+  ManagerStatusBadge,
+  ManagerSummaryCard,
+  ManagerStatTile,
+  ManagerSectionHeading,
+  MANAGER_STATUS_COLORS,
+} from './manager/index.js';

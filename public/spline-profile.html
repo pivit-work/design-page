@@ -11,9 +11,33 @@
 <body>
   <canvas id="canvas3d"></canvas>
   <script type="module">
-    import { Application } from 'https://unpkg.com/@splinetool/runtime@1.12.74/build/runtime.js';
-
+    /* 회전 속도 조절: ?speed=0.25 같이 query 로 받으면 RAF 자체를 setTimeout 으로
+       throttle 해서 frame rate 를 줄인다 (60fps → 15fps).
+       spline runtime 이 어떤 시간 API 로 진행 계산하든 frame 자체가 적게 그려지므로
+       회전이 그 비율로 느려진다.
+       부수 효과로 가짜 timestamp 도 함께 진행해서 internal 시간 계산도 보정한다. */
     const params = new URLSearchParams(window.location.search);
+    const speed = parseFloat(params.get('speed') || '1');
+    if (Number.isFinite(speed) && speed > 0 && speed !== 1) {
+      const frameInterval = (1000 / 60) / speed; // speed 0.25 → 약 67ms (≈15fps)
+
+      const origPerfNow = performance.now.bind(performance);
+      const origDateNow = Date.now.bind(Date);
+      const perfStart = origPerfNow();
+      const dateStart = origDateNow();
+      performance.now = function () {
+        return perfStart + (origPerfNow() - perfStart) * speed;
+      };
+      Date.now = function () {
+        return dateStart + (origDateNow() - dateStart) * speed;
+      };
+
+      window.requestAnimationFrame = function (cb) {
+        return setTimeout(() => cb(performance.now()), frameInterval);
+      };
+    }
+
+    const { Application } = await import('https://unpkg.com/@splinetool/runtime@1.12.74/build/runtime.js');
     const imageUrl = params.get('img');
 
     const canvas = document.getElementById('canvas3d');

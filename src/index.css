@@ -14,6 +14,7 @@
   --bg-active: var(--colors-background-bgActive);
   --bg-field: var(--colors-background-bgField);
   --bg-brand-solid: var(--colors-background-bgBrandSolid);
+  --bg-brand-secondary: var(--colors-background-bgBrandSecondary);
   --bg-error-primary: var(--colors-background-bgErrorPrimary);
 
   /* Text Colors — linked to design system tokens */
@@ -50,7 +51,10 @@
   --line-height-text-xs: 18px;
 
   /* Spacing */
+  --spacing-4xl: 32px;
+  --spacing-3xl: 24px;
   --spacing-2xl: 20px;
+  --spacing-xl: 16px;
   --spacing-lg: 12px;
   --spacing-md: 8px;
   --spacing-sm: 6px;
@@ -74,6 +78,8 @@
   --utility-blue-600: var(--componentColors-utility-blue-utilityBlue600);
   --utility-pink-50: var(--componentColors-utility-pink-utilityPink50);
   --utility-purple-50: var(--componentColors-utility-purple-utilityPurple50);
+  --utility-purple-100: var(--componentColors-utility-purple-utilityPurple100);
+  --utility-purple-500: var(--componentColors-utility-purple-utilityPurple500);
 
   /* Component Colors — 1on1 (linked to design system tokens) */
   --utility-brand-200: var(--componentColors-utility-brand-utilityBrand200);
@@ -91,9 +97,9 @@
   --utility-error-50: var(--componentColors-utility-error-utilityError50);
   --utility-error-100: var(--componentColors-utility-error-utilityError100);
   --utility-error-500: var(--componentColors-utility-error-utilityError500);
-  --utility-gray-50: var(--componentColors-utility-gray-utilityGray50);
-  --utility-gray-200: var(--componentColors-utility-gray-utilityGray200);
-  --utility-gray-700: var(--componentColors-utility-gray-utilityGray700);
+  --utility-gray-50: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
+  --utility-gray-200: var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
+  --utility-gray-700: var(--componentColors-utility-gray-utilityGray700, #596069);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

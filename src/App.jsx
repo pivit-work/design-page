@@ -5,12 +5,14 @@ import OneOnOneContent from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
 import TimelinePage from './TimelinePage';
 import MeetingsPage from './MeetingsPage';
+import ManagerPage from './ManagerPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
 import './one_on_one.css';
 import './timeline.css';
 import './meetings.css';
+import './manager.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -26,6 +28,9 @@ const ICONS = {
   lock: '/icons-solid/lock-keyhole-square.svg',
   send: '/icons-solid/send-01.svg',
   search: '/icons/search-sm.svg',
+  userOutline: '/icons/user-03.svg',
+  messageText: '/icons/message-text-circle-02.svg',
+  summarySparkle: '/icons-solid/ai-chat-01.svg',
   plus: '/icons/plus.svg',
   minus: '/icons/minus.svg',
   refresh: '/icons/refresh-ccw-05.svg',
@@ -50,7 +55,7 @@ const MENU = [
   { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
   { icon: ICONS.file, label: '회의록', page: 'meetings' },
   { icon: ICONS.edit, label: '평가' },
-  { icon: ICONS.userEdit, label: '매니저' },
+  { icon: ICONS.userEdit, label: '매니저', page: 'manager' },
   { icon: ICONS.aiChat, label: 'AI Chat' },
   { icon: ICONS.lock, label: '어드민' },
 ];
@@ -143,6 +148,7 @@ export default function App() {
       {currentPage === 'oneonone' && <OneOnOneContent Icon={Icon} />}
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
+      {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
     </div>
   );
 }

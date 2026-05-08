@@ -1,0 +1,466 @@
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import Icon from '../shared/Icon.jsx';
+
+const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
+
+/**
+ * 매니저 페이지 멤버 카드 클릭 시 노출되는 직원 프로필 모달 (v2).
+ * Figma node 16952:13855.
+ *
+ * 구조/노출 로직/Spline 사이즈는 조직도 ProfileModal 과 완전히 동일:
+ *  - createPortal 로 document.body 에 렌더 (사이드바/헤더 위로 overlay 가 올라가도록)
+ *  - overlay + scroll-wrap + 정중앙 modal-card (width 432)
+ *  - spline-wrap 432x432 + iframe 600 scale 0.5 + margin offset (조직도와 동일)
+ *  - 닫힘 동안 마지막 멤버 콘텐츠 유지 (`displayMember`)
+ *
+ * 컨텐츠는 매니저 v2 디자인 — segment control + 종합 브리핑 + 1on1 아젠다 + KPI 4 grid.
+ */
+export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
+  const [splineReady, setSplineReady] = useState(false);
+  const [splineActive, setSplineActive] = useState(false);
+  const [activeTab, setActiveTab] = useState('ai');
+  const scrollWrapRef = useRef(null);
+
+  const [displayMember, setDisplayMember] = useState(member);
+  if (member && member !== displayMember) setDisplayMember(member);
+  // 모달이 닫히면 spline 인터랙션 상태도 리셋 (조직도 ProfileModal 과 동일).
+  if (!member && splineActive) setSplineActive(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === 'spline-ready') setSplineReady(true);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  useEffect(() => {
+    if (member && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
+  }, [member]);
+
+  useEffect(() => {
+    if (!member) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [member, onClose]);
+
+  const isOpen = !!member;
+  const profile = displayMember?.profile;
+  const agendas = profile?.agendas ?? [];
+
+  const TABS = [
+    { key: 'ai', label: 'AI 브리핑' },
+    { key: 'snippet', label: '스니핏' },
+    { key: 'health', label: '헬스 트렌드' },
+    { key: 'oneonone', label: '1on1' },
+  ];
+
+  const node = (
+    <>
+      <div
+        className="manager-modal-overlay"
+        onClick={onClose}
+        style={{ display: isOpen ? '' : 'none' }}
+      />
+      <div
+        className="manager-modal-scroll-wrap"
+        ref={scrollWrapRef}
+        onClick={onClose}
+        style={{ display: isOpen ? '' : 'none' }}
+      >
+        <div className="manager-modal-card" onClick={(e) => e.stopPropagation()}>
+          {/* Header (yellow→white gradient + spline + name + ai-rec + buttons) */}
+          <div className="manager-modal-header">
+            <button type="button" className="manager-modal-close" onClick={onClose} aria-label="닫기">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            <div
+              className={`manager-modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
+              onClick={() => setSplineActive(true)}
+              onMouseLeave={() => setSplineActive(false)}
+            >
+              <iframe
+                key={member?.id}
+                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}&speed=0.5`}
+                sandbox="allow-scripts"
+                title="Spline 3D"
+                style={{ opacity: splineReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
+              />
+            </div>
+
+            <div className="manager-modal-name">{displayMember?.name}</div>
+            <div className="manager-modal-role">{displayMember?.role}</div>
+
+            {profile?.aiRecommendation && (
+              <p className="manager-modal-ai-rec">{profile.aiRecommendation}</p>
+            )}
+
+            <div className="manager-modal-actions">
+              <button type="button" className="manager-modal-btn-primary">
+                <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+                <span>원온원</span>
+              </button>
+              <button type="button" className="manager-modal-btn-secondary">
+                <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
+                <span>메시지</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="manager-modal-body">
+            <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+
+
+            {activeTab === 'ai' && profile && (
+              <AiBriefingTab profile={profile} agendas={agendas} icons={icons} baseUrl={baseUrl} />
+            )}
+            {activeTab === 'snippet' && profile?.snippets && (
+              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} />
+            )}
+            {activeTab === 'health' && profile?.healthTrend && (
+              <HealthTrendTab trend={profile.healthTrend} />
+            )}
+            {activeTab === 'oneonone' && profile?.oneOnOne && (
+              <OneOnOneTab data={profile.oneOnOne} />
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="manager-modal-footer">
+            <span className="manager-modal-footer-text">Get Communication with</span>
+            <img src={`${baseUrl}logo.svg`} alt="Pivit" className="manager-modal-footer-logo" />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  // SSR 환경 대비 — document 가 없으면 마운트 자체를 미룬다.
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
+}
+
+/**
+ * 매니저 모달 segment control — active 탭 위치를 absolute slider 로 전환해 슬라이딩.
+ * 활성 탭 button 의 offsetLeft / offsetWidth 를 측정해서 slider 의 left/width 를 갱신.
+ */
+function Tabs({ tabs, activeTab, onChange }) {
+  const containerRef = useRef(null);
+  const buttonRefs = useRef({});
+  const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
+
+  useEffect(() => {
+    const el = buttonRefs.current[activeTab];
+    if (!el) return;
+    setSliderStyle({ left: el.offsetLeft, width: el.offsetWidth, opacity: 1 });
+  }, [activeTab, tabs]);
+
+  return (
+    <div ref={containerRef} className="manager-modal-tabs">
+      <span
+        className="manager-modal-tab-slider"
+        style={{
+          left: sliderStyle.left,
+          width: sliderStyle.width,
+          opacity: sliderStyle.opacity,
+        }}
+      />
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          ref={(el) => { if (el) buttonRefs.current[t.key] = el; }}
+          type="button"
+          className={`manager-modal-tab ${activeTab === t.key ? 'active' : ''}`}
+          onClick={() => onChange(t.key)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MetricTile({ label, value }) {
+  return (
+    <div className="manager-modal-metric-tile">
+      <p className="manager-modal-metric-label">{label}</p>
+      <p className="manager-modal-metric-value">{value}</p>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────
+   탭 별 컨텐츠
+   ──────────────────────────────────────────────── */
+
+function AiBriefingTab({ profile, agendas, icons, baseUrl }) {
+  return (
+    <div className="manager-modal-content-section">
+      <div className="manager-modal-brief-card">
+        <div className="manager-modal-brief-label-row">
+          <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+          <span className="manager-modal-brief-label">종합 브리핑</span>
+        </div>
+        <p className="manager-modal-brief-text">{profile.aiBrief}</p>
+      </div>
+
+      {agendas.map((a, i) => (
+        <div key={i} className="manager-modal-agenda-item">
+          {i === 0 && <p className="manager-modal-agenda-list-title">1on1 추천 아젠다</p>}
+          <div className="manager-modal-agenda-content">
+            <p className="manager-modal-agenda-heading">{i + 1}. {a.title}</p>
+            <p className="manager-modal-agenda-question">{a.question}</p>
+          </div>
+        </div>
+      ))}
+
+      {profile.metrics && (
+        <div className="manager-modal-metrics-section">
+          <div className="manager-modal-metrics-grid">
+            <MetricTile label="헬스 평균" value={profile.metrics.healthAvg} />
+            <MetricTile label="스니핏 연속" value={profile.metrics.snippetStreak} />
+            <MetricTile label="마지막 1on1" value={profile.metrics.lastOneOnOne} />
+            <MetricTile label="KR 달성률" value={profile.metrics.krProgress} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SnippetTab({ profile, icons, baseUrl }) {
+  return (
+    <div className="manager-modal-content-section">
+      {/* AI 요약 카드 (이번 주) */}
+      <div className="manager-modal-brief-card">
+        <div className="manager-modal-brief-label-row">
+          <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+          <span className="manager-modal-brief-label">AI 요약 · 이번 주</span>
+        </div>
+        <p className="manager-modal-brief-text">{profile.snippetsSummary || profile.aiBrief}</p>
+      </div>
+
+      {/* 스니핏 항목들 */}
+      {profile.snippets.map((s, i) => (
+        <SnippetItem key={i} snippet={s} />
+      ))}
+    </div>
+  );
+}
+
+function SnippetItem({ snippet }) {
+  return (
+    <div className="manager-modal-snippet-item">
+      <div className="manager-modal-snippet-meta">
+        <p className="manager-modal-snippet-date">{snippet.date}</p>
+        <div className="manager-modal-snippet-tags">
+          {snippet.tags?.map((t) => (
+            <span key={t} className="manager-modal-snippet-tag">{t}</span>
+          ))}
+          <span className="manager-modal-snippet-health">
+            <CheckHeartIcon size={14} />
+            <span>{snippet.healthScore}</span>
+          </span>
+        </div>
+      </div>
+      <div className="manager-modal-snippet-body">
+        <p className="manager-modal-snippet-title">{snippet.title}</p>
+        {(snippet.ups?.length || snippet.downs?.length) && (
+          <div className="manager-modal-snippet-points">
+            {snippet.ups?.map((u, i) => (
+              <span key={`u${i}`} className="manager-modal-snippet-point">
+                <ArrowUpIcon size={16} />
+                <span>{u}</span>
+                <span className="manager-modal-snippet-dot">•</span>
+              </span>
+            ))}
+            {snippet.downs?.map((d, i) => (
+              <span key={`d${i}`} className="manager-modal-snippet-point">
+                <ArrowUpIcon size={16} className="rotate-180" />
+                <span>{d}</span>
+                <span className="manager-modal-snippet-dot">•</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CheckHeartIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
+      <path
+        d="M11.6667 4.66667C11.6667 3.376 10.6573 2.33333 9.41667 2.33333C8.49 2.33333 7.69333 2.91667 7.34833 3.74C7.00333 2.91667 6.20667 2.33333 5.28 2.33333C4.03933 2.33333 3.03 3.376 3.03 4.66667C3.03 8.43367 7.34833 11 7.34833 11M9.91667 8.16667L11.0833 9.33333L13.4167 7"
+        stroke="var(--colors-text-textWarningPrimary, #dc6803)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowUpIcon({ size = 16, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+      style={className.includes('rotate-180') ? { transform: 'rotate(180deg)' } : undefined}
+    >
+      <path
+        d="M8 13.333V2.667M8 2.667L3.333 7.333M8 2.667L12.667 7.333"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function OneOnOneTab({ data }) {
+  return (
+    <div className="manager-modal-content-section">
+      {/* 마지막 원온원 1-grid */}
+      <div className="manager-modal-trend-grid manager-modal-oneonone-grid">
+        <MetricTile label="마지막 원온원" value={data.lastDate} />
+      </div>
+
+      {/* 1on1 기록 항목들 */}
+      {data.items?.map((item, i) => (
+        <div key={i} className="manager-modal-oneonone-item">
+          <p className="manager-modal-oneonone-date">{item.date}</p>
+          <p className="manager-modal-oneonone-title">{item.title}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HealthTrendTab({ trend }) {
+  return (
+    <div className="manager-modal-content-section">
+      {/* 3-grid KPI */}
+      <div className="manager-modal-trend-grid">
+        <MetricTile label="현재" value={trend.current} />
+        <MetricTile label="변화" value={trend.change} />
+        <MetricTile label="팀 평균" value={trend.teamAvg} />
+      </div>
+
+      {/* Chart */}
+      <HealthChart points={trend.points || []} teamAverage={trend.teamAverage} dates={trend.dates || []} />
+
+      {/* 감지된 플래그 */}
+      {trend.flags?.length > 0 && (
+        <div className="manager-modal-agenda-item">
+          <p className="manager-modal-agenda-list-title">감지된 플래그</p>
+          <div className="manager-modal-flags">
+            {trend.flags.map((f, i) => (
+              <p key={i} className={`manager-modal-flag manager-modal-flag-${f.severity}`}>
+                {f.label}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 헬스 트렌드 line chart (SVG).
+ * y축 0~10, x축 dates 4개, line + dots + 팀 평균 dashed line.
+ */
+function HealthChart({ points, teamAverage, dates }) {
+  const W = 336;
+  const H = 150;
+  const PAD_LEFT = 24;
+  const PAD_RIGHT = 12;
+  const Y_MAX = 10;
+
+  const xFor = (i, n) =>
+    PAD_LEFT + ((W - PAD_LEFT - PAD_RIGHT) / Math.max(1, n - 1)) * i;
+  const yFor = (v) => (H - (v / Y_MAX) * H);
+
+  const linePath = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i, points.length)} ${yFor(p.value)}`)
+    .join(' ');
+  const teamY = teamAverage != null ? yFor(teamAverage) : null;
+
+  return (
+    <div className="manager-modal-chart">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={H}
+        preserveAspectRatio="none"
+        style={{ display: 'block' }}
+      >
+        {/* y 축 grid lines */}
+        {[10, 8, 6, 4, 2, 0].map((v) => (
+          <g key={v}>
+            <text x={0} y={yFor(v) + 4} fontSize="12" fill="var(--text-tertiary)">{v}</text>
+            <line
+              x1={PAD_LEFT}
+              x2={W - PAD_RIGHT / 2}
+              y1={yFor(v)}
+              y2={yFor(v)}
+              stroke="var(--border-secondary-alt, #e6e8ea)"
+              strokeWidth="1"
+            />
+          </g>
+        ))}
+        {/* 팀 평균 dashed */}
+        {teamY != null && (
+          <line
+            x1={PAD_LEFT}
+            x2={W - PAD_RIGHT / 2}
+            y1={teamY}
+            y2={teamY}
+            stroke="var(--text-tertiary)"
+            strokeDasharray="4 4"
+            strokeWidth="1"
+          />
+        )}
+        {/* 라인 그래프 */}
+        {linePath && (
+          <path d={linePath} stroke="var(--utility-purple-500)" strokeWidth="2" fill="none" />
+        )}
+        {/* 데이터 포인트 dots */}
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={xFor(i, points.length)}
+            cy={yFor(p.value)}
+            r="4"
+            fill="var(--utility-purple-500)"
+          />
+        ))}
+      </svg>
+      {/* x축 라벨 */}
+      <div
+        className="manager-modal-chart-x-labels"
+        style={{ paddingLeft: PAD_LEFT, paddingRight: PAD_RIGHT }}
+      >
+        {dates.map((d, i) => <span key={i}>{d}</span>)}
+      </div>
+      {teamAverage != null && (
+        <div className="manager-modal-chart-legend">
+          <span className="manager-modal-chart-legend-line" />
+          <span>팀 평균 {teamAverage}</span>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -2459,9 +2459,12 @@
 
 /* Progress bar — Figma Frame 205 (r=6, 5등분).
    섹션 채움 수에 따라 active bar 가 그라디언트로 좌→우 확장.
-   라벨 텍스트는 fill 위에서 흰색, 밖(미채움)에서 회색. */
+   라벨 텍스트는 fill 위에서 흰색, 밖(미채움)에서 회색.
+   스크롤 시 컨테이너 상단에 sticky — 콘텐츠가 위로 흘러도 진척도가 항상 보이도록. */
 .tl-snippet-progress {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   background: var(--colors-background-bgSecondary, #f9fafb);

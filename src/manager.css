@@ -1,0 +1,977 @@
+/* ── Manager Page ─────────────────────────────────────────────
+   매니저 페이지 (오늘 현황 / KR 드릴다운 / 팀 스니핏 탭).
+   Figma node 16947:50004 기준.
+*/
+
+/* 페이지 컨테이너: top-nav(48px) 아래에서 시작.
+   상단 padding 은 header 안으로 옮긴다 (sticky 헤더 자체가 상단 여백 포함). */
+.manager-page {
+  position: fixed;
+  top: 48px;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 50px 60px 12px;
+  background: var(--bg-primary);
+}
+
+/* ── Header (탭 + 팀원 메타) ──
+   조직도 프로젝트 탭 (.pj-header) 과 동일하게 스크롤 시 상단 sticky.
+   Figma 가이드: 헤더 → KPI grid 사이 spacing-xl(20px). */
+.manager-page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 32px 12px 0;
+  margin-bottom: var(--spacing-2xl);
+  background: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.manager-tabs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--text-quaternary);
+}
+
+.manager-tab {
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.manager-tab.active {
+  color: var(--text-primary);
+}
+
+.manager-team-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-sm);
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.manager-team-meta-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.manager-team-meta-divider {
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.manager-team-meta-count {
+  font-weight: 600;
+  color: var(--text-brand-secondary);
+}
+
+/* ── KPI grid ──
+   Figma 가이드: KPI grid → 다음 섹션 헤딩 사이 44px. */
+.manager-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 12px;
+  margin-bottom: 44px;
+}
+
+.manager-kpi-card {
+  height: 100px;
+  border-radius: var(--radius-2xl);
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.manager-summary-card {
+  grid-column: span 3 / span 3;
+  background: var(--componentColors-utility-purple-utilityPurple100);
+}
+
+.manager-summary-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.manager-summary-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.manager-summary-text {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--utility-purple-500);
+}
+
+.manager-stat-tile {
+  background: var(--bg-quaternary);
+}
+
+.manager-stat-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.manager-stat-value {
+  font-family: var(--font-family-display);
+  font-weight: 500;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── Section heading ── */
+.manager-section {
+  padding: 0 12px;
+  margin-bottom: 56px;
+}
+
+.manager-section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: 28px;
+}
+
+.manager-section-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xl, 20px);
+  line-height: var(--line-height-text-xl, 30px);
+}
+
+.manager-section-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.manager-section-count {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+}
+
+.manager-section-subtitle {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── Member grid ── */
+.manager-member-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 33px;
+  align-items: start;
+}
+
+.manager-member-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Spline 영역 ──
+   shadow / background / radius 를 박스에 주지 않는다.
+   Spline scene 자체에 이미 헥사 그림자가 들어있어, 박스 배경을 투명하게 두면
+   spline object 모양 그대로 페이지 위에 그림자가 떨어진다.
+   카드 col 너비를 가득 차지해 헥사가 카드 정중앙에 위치하도록 한다. */
+.manager-spline-area {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 223 / 236;
+  overflow: hidden;
+  background: transparent;
+}
+
+.manager-spline-iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: none;
+  display: block;
+  background: transparent;
+  transform-origin: center center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  /* spline scene 의 hover 인터랙션을 받을 수 있도록 pointer-events 활성.
+     단 spline 영역 click 은 iframe 안에서 처리되어 부모 카드로 전파되지 않으므로,
+     모달 오픈은 카드의 spline 외 영역(이름/코멘트/배지 등) 클릭으로 트리거된다. */
+  pointer-events: auto;
+}
+
+/* (모달 열려있을 때 카드 spline 도 사용자에게 보여야 하므로 visibility 차단 안 함) */
+
+.manager-spline-iframe.is-ready {
+  opacity: 1;
+}
+
+/* ── 카드 본문 ──
+   spline area 가 헥사 그림자/여백을 포함해 카드 너비 가득 차지하므로,
+   본문(이름/코멘트/배지/버튼) 을 위로 끌어올려 헥사 바로 아래에 붙도록 한다.
+   초기에는 opacity 0, spline 인트로가 시작되는 시점(onStart) 에 함께 fade-in. */
+.manager-member-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 0 32px;
+  width: 100%;
+  margin-top: -80px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.manager-member-card.is-body-visible .manager-member-body {
+  opacity: 1;
+}
+
+.manager-member-name-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  text-align: center;
+  color: var(--text-primary);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+}
+
+.manager-member-name {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.manager-member-role {
+  font-size: var(--font-size-text-xs);
+  letter-spacing: -0.02em;
+}
+
+.manager-member-comment {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  text-align: center;
+  width: 100%;
+  word-break: keep-all;
+}
+
+/* ── 상태 배지 ── */
+.manager-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  filter: drop-shadow(0 1px 1px rgba(10, 13, 18, 0.05));
+}
+
+.manager-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+}
+
+.manager-status-label {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── 액션 버튼 ── */
+.manager-member-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.manager-member-action-btn {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: 10px 16px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manager-member-action-btn:hover {
+  background: var(--componentColors-alpha-alphaBlack5);
+}
+
+/* ────────────────────────────────────────────────
+   Manager 멤버 카드 클릭 시 노출되는 ProfileModal v2.
+   Figma node 16952:13855.
+   ──────────────────────────────────────────────── */
+
+.manager-member-card {
+  cursor: pointer;
+}
+
+/* 조직도 ProfileModal 과 동일한 overlay + scroll-wrap + 정중앙 카드 패턴. */
+.manager-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 25, 39, 0.3);
+  z-index: 1000;
+  animation: managerModalOverlayIn 0.2s ease-out;
+}
+
+.manager-modal-scroll-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  overflow-y: auto;
+}
+
+.manager-modal-scroll-wrap::-webkit-scrollbar { width: 6px; }
+.manager-modal-scroll-wrap::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+.manager-modal-scroll-wrap::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 3px; }
+.manager-modal-scroll-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+.manager-modal-card {
+  position: relative;
+  margin: 60px auto;
+  width: 432px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-4xl);
+  overflow: hidden;
+  box-shadow:
+    0 32px 64px -12px rgba(10, 13, 18, 0.14),
+    0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+  animation: managerModalCardIn 0.25s ease-out;
+}
+
+@keyframes managerModalOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes managerModalCardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header (yellow→white gradient) ──
+   조직도 modal-header 와 동일한 padding/radius. spline 432x432 가 헤더를 가득 채움. */
+.manager-modal-header {
+  background: linear-gradient(
+    197.5deg,
+    rgb(182, 125, 42) 0%,
+    rgb(225, 193, 80) 28.5%,
+    rgb(252, 236, 112) 44.7%,
+    rgb(254, 254, 246) 61.6%,
+    var(--bg-quaternary) 100%
+  );
+  padding: 30px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  border-radius: 24px 24px 0 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.manager-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 10;
+}
+
+.manager-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* spline 영역 — 조직도 modal-spline-wrap 와 완전히 동일 (432x432 + iframe 600 scale 0.5). */
+.manager-modal-spline-wrap {
+  width: 432px;
+  height: 432px;
+  margin-bottom: -30px;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.manager-modal-spline-wrap iframe {
+  width: 600px;
+  height: 600px;
+  border: none;
+  display: block;
+  transform: scale(0.5);
+  transform-origin: center center;
+  margin-left: -84px;
+  margin-top: -104px;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* 클릭 시 spline 인터랙션 활성화 (조직도 ProfileModal 과 동일 패턴). */
+.manager-modal-spline-wrap.spline-active iframe {
+  pointer-events: auto;
+}
+
+.manager-modal-name {
+  margin-top: 12px;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.manager-modal-role {
+  margin-top: 4px;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.manager-modal-ai-rec {
+  margin-top: 18px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--utility-purple-500);
+  text-align: center;
+  width: 100%;
+}
+
+.manager-modal-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: 0 12px;
+}
+
+.manager-modal-btn-primary,
+.manager-modal-btn-secondary {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.manager-modal-btn-primary {
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}
+
+.manager-modal-btn-secondary {
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+}
+
+.manager-modal-btn-primary:hover,
+.manager-modal-btn-secondary:hover {
+  filter: brightness(0.96);
+}
+
+/* ── Body — Figma contents 영역 (padding 20 32 0, gap 27) ── */
+.manager-modal-body {
+  padding: 20px 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 27px;
+  align-items: stretch;
+}
+
+.manager-modal-content-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+.manager-modal-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 44px;
+  width: 100%;
+  padding: var(--spacing-xs);
+  background: var(--componentColors-alpha-alphaBlack3);
+  border-radius: var(--radius-sm);
+}
+
+/* Active 탭 위치로 슬라이딩하는 흰 배경 indicator. */
+.manager-modal-tab-slider {
+  position: absolute;
+  top: var(--spacing-xs);
+  bottom: var(--spacing-xs);
+  background: var(--colors-foreground-fgLight, white);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary, #f9fafb);
+  border-radius: var(--radius-xs);
+  filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08));
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.manager-modal-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.manager-modal-tab.active {
+  color: var(--text-secondary);
+}
+
+/* ── AI Brief card ──
+   height fixed 대신 min-height 로 두어 텍스트가 카드 밖으로 흘러나오는 것 방지. */
+.manager-modal-brief-card {
+  background: var(--utility-purple-50);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  min-height: 100px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow: hidden;
+}
+
+.manager-modal-brief-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.manager-modal-brief-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.manager-modal-brief-text {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--utility-purple-500);
+}
+
+/* ── Agenda list ──
+   각 agenda item: padding-y 24, border-bottom. 첫 item 안에 list title 포함. */
+.manager-modal-agenda-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.manager-modal-agenda-list-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+
+.manager-modal-agenda-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+
+.manager-modal-agenda-heading {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+
+.manager-modal-agenda-question {
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+}
+
+/* ── Metrics 4-grid ── */
+.manager-modal-metrics-section {
+  padding: var(--spacing-3xl) 0;
+  width: 100%;
+}
+
+.manager-modal-metrics-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.manager-modal-metric-tile {
+  background: var(--colors-foreground-fgQuaternaryHover, #f3f4f6);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.manager-modal-metric-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manager-modal-metric-value {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xl, 20px);
+  line-height: var(--line-height-text-xl, 30px);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── Snippet tab ── */
+.manager-modal-snippet-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.manager-modal-snippet-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.manager-modal-snippet-date {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+
+.manager-modal-snippet-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.manager-modal-snippet-tag {
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-xxs) var(--spacing-md);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--utility-gray-700);
+}
+
+.manager-modal-snippet-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
+
+.manager-modal-snippet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.manager-modal-snippet-title {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+}
+
+.manager-modal-snippet-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-primary);
+}
+
+.manager-modal-snippet-point {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+}
+
+.manager-modal-snippet-dot {
+  color: var(--text-primary);
+}
+
+.manager-modal-snippet-point:last-child .manager-modal-snippet-dot {
+  display: none;
+}
+
+/* ── Health trend tab ── */
+.manager-modal-trend-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-2xl);
+}
+
+.manager-modal-chart {
+  width: 100%;
+  position: relative;
+  padding-top: 17px;
+  padding-bottom: 8px;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.manager-modal-chart-x-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+
+.manager-modal-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+
+.manager-modal-chart-legend-line {
+  display: inline-block;
+  width: 17px;
+  height: 0;
+  border-top: 1px dashed var(--text-tertiary);
+}
+
+/* ── Detected flags ── */
+.manager-modal-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.manager-modal-flag {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+
+.manager-modal-flag-critical {
+  color: var(--text-error-primary);
+}
+
+.manager-modal-flag-warning {
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
+
+/* ── 1on1 tab ── */
+.manager-modal-oneonone-grid {
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 0;
+}
+
+.manager-modal-oneonone-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.manager-modal-oneonone-date {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+
+.manager-modal-oneonone-title {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+}
+
+/* ── Empty placeholder ── */
+.manager-modal-empty {
+  width: 100%;
+  padding: 60px 0;
+  text-align: center;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── Footer ── */
+.manager-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 60px 32px;
+  opacity: 0.6;
+}
+
+.manager-modal-footer-text {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+.manager-modal-footer-logo {
+  height: 22px;
+  width: auto;
+}
