@@ -14,6 +14,7 @@ import './one_on_one.css';
 import './timeline.css';
 import './meetings.css';
 import './manager.css';
+import './report.css';
 
 const BASE = import.meta.env.BASE_URL;
 

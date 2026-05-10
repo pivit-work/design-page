@@ -1,0 +1,207 @@
+/* ── Report 페이지 전용 스타일 ─────────────────────────────────────────────
+   Figma 16883:27926.
+   페이지 레이아웃 (.report-page) 은 timeline.css 에 위치. 여기는 본문
+   (AI 배너 + 주차 리스트) 만 담당. */
+
+.report-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 16px 0 12px 12px;
+  padding-right: 28px;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* AI 안내 배너 — utility-purple-100 배경, 보라 톤 텍스트 */
+.report-ai-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  background: var(--utility-purple-100, #ebe9fe);
+  color: var(--utility-purple-500, #7a5af8);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* 주차 헤딩 — 부제(날짜 범위) + 큰 타이틀 ('이번 주') */
+.report-period-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.report-period-range {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.report-period-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--text-primary);
+}
+
+/* 리스트 컨테이너 */
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── 행 ─────────────────────────────────────────────────────────────────── */
+/* 기본 행: white bg / 90px 고정 높이 / radius 6, badge 컬럼(77px) + 본문 */
+.report-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 90px;
+  border-radius: 6px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.report-row:hover {
+  background: var(--colors-grayLight-50, #fafafa);
+}
+.report-row:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: -2px;
+}
+
+/* Active 행 (이번 주) — bg-brand-primary 그린 틴트, 자연 높이 (h:auto) */
+.report-row.is-active {
+  height: auto;
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+}
+.report-row.is-active:hover {
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+}
+
+/* 라벨 컬럼 (이번주 / 지난주 / -) */
+.report-row-badge {
+  width: 77px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  border-right: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  text-align: center;
+}
+.report-row.is-active .report-row-badge {
+  border-right-color: var(--colors-border-borderDisabledSubtle, #e6e8ea);
+}
+
+/* 본문 영역 (정보 + share 버튼) */
+.report-row-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  min-width: 0;
+}
+
+.report-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.report-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-row-date {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* "진행 중" 태그 — bg-brand-secondary 그린, brand-secondary 텍스트 */
+.report-row-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 8px;
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-brand-secondary);
+  white-space: nowrap;
+}
+
+/* 메타 라인: 스니핏·활동일·헬스 점수 */
+.report-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.report-row-meta-dot {
+  color: var(--text-primary);
+}
+
+/* 헬스 점수 — level 별 색상. Figma:
+     good    → text-brand-tertiary  (#21a67a)
+     warning → text-warning-primary (#dc6803)
+     error   → text-error-primary   (#d92d20) */
+.report-row-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.report-row-health.is-good {
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+}
+.report-row-health.is-warning {
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
+.report-row-health.is-error {
+  color: var(--colors-text-textErrorPrimary, #d92d20);
+}
+
+/* Share 버튼 — 우측 상단 */
+.report-row-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.report-row-share:hover {
+  background: var(--componentColors-alpha-alphaBlack3);
+}

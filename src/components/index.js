@@ -69,6 +69,7 @@ export {
 // Report
 export {
   ReportCanvas,
+  ReportWeeklyRow,
 } from './report/index.js';
 
 // Manager

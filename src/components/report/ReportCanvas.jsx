@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
-import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
+import ReportWeeklyRow from './ReportWeeklyRow.jsx';
 
 /**
  * ReportCanvas — "리포트" 페이지 Pure 컴포넌트.
- * Figma 16636:73372 / 16961:27311 기준.
+ * Figma node 16883:27926 기준 (Weekly 탭).
  *
  * 페이지 chrome:
  *   - 헤더: "리포트" 타이틀 + "생성된 리포트 · N개" 메타
  *   - 탭 row: Weekly / Monthly / Quarterly / Semi-annually / Annually
- *           + 우측 Google Calendar 연동 상태 (border-bottom)
- *   - segmented control: 활성 탭에 따라 케이스가 달라짐 (아래 SEG_BY_PERIOD)
- *   - 본문: TimelineWeeklyView (Weekly Report UI/데이터 형태가 모든 케이스에
- *          동일하므로 그대로 재사용)
+ *           + 우측 Google Calendar 연동 상태
+ *   - AI 안내 배너 (보라 톤)
+ *   - 본문: 활성 탭에 따라 달라짐. Weekly = 주차별 리포트 row 리스트.
+ *           Monthly/Quarterly/Semi-annually/Annually 는 추후 디자인 — 현재는
+ *           동일 리스트를 표시 (placeholder 데이터).
  *
- * 모든 데이터는 props 로 받는다 (page wrapper 가 demo/실데이터 소유).
+ * 모든 데이터는 props 로 받는다.
  */
 const PERIOD_ITEMS = [
   { value: 'weekly', label: 'Weekly' },
@@ -26,41 +26,6 @@ const PERIOD_ITEMS = [
   { value: 'annually', label: 'Annually' },
 ];
 
-// 활성 탭 별 segmented control 항목 (Figma 16961:27311 cases).
-const SEG_BY_PERIOD = {
-  weekly: [
-    { value: 'lastWeek', label: '지난주' },
-    { value: 'thisWeek', label: '이번주' },
-  ],
-  monthly: Array.from({ length: 12 }, (_, i) => ({
-    value: String(i + 1),
-    label: `${i + 1}월`,
-  })),
-  quarterly: [
-    { value: 'q1', label: '1분기' },
-    { value: 'q2', label: '2분기' },
-    { value: 'q3', label: '3분기' },
-    { value: 'q4', label: '4분기' },
-  ],
-  semiAnnually: [
-    { value: 'h1', label: '전반기' },
-    { value: 'h2', label: '후반기' },
-  ],
-  annually: [
-    { value: '2025', label: '2025년' },
-    { value: '2026', label: '2026년' },
-  ],
-};
-
-// 현재 시점(2026-05) 기준 sensible default — 활성 탭 진입 시 자동 선택.
-const SEG_DEFAULT_BY_PERIOD = {
-  weekly: 'thisWeek',
-  monthly: '5',
-  quarterly: 'q2',
-  semiAnnually: 'h1',
-  annually: '2026',
-};
-
 export default function ReportCanvas({
   baseUrl,
   // 헤더 우측 "생성된 리포트 · N개" 카운트.
@@ -68,11 +33,17 @@ export default function ReportCanvas({
   // Period 탭 — controlled or uncontrolled.
   period,
   onPeriodChange,
-  // 본문 props (TimelineWeeklyView 그대로 전달)
-  report,
-  isGenerating = false,
-  onGenerate,
-  onViewHistory,
+  // 본문 데이터
+  //   periodTitle  '이번 주' 등 큰 타이틀
+  //   periodRange  '2026년 4월 7일 ~ 4월 14일' 등 부제 (날짜 범위)
+  //   reports      ReportWeeklyRow 행 데이터 배열
+  //                shape: { id, badge, dateRange, status?, isActive?,
+  //                         snippetCount, activeDays, healthScore, healthLevel }
+  periodTitle,
+  periodRange,
+  reports = [],
+  onReportClick,
+  onReportShare,
   // Google Calendar 연동 상태. 기본 true — 연동 중 라벨.
   gcalConnected = true,
 }) {
@@ -81,13 +52,6 @@ export default function ReportCanvas({
   const handlePeriodClick = (next) => {
     if (onPeriodChange) onPeriodChange(next);
     else setInternalPeriod(next);
-  };
-
-  // 탭별 segmented 선택값을 각각 보존 — 탭을 왔다갔다 해도 마지막 선택 유지.
-  const [segByPeriod, setSegByPeriod] = useState(SEG_DEFAULT_BY_PERIOD);
-  const segValue = segByPeriod[effectivePeriod];
-  const handleSegChange = (next) => {
-    setSegByPeriod((prev) => ({ ...prev, [effectivePeriod]: next }));
   };
 
   return (
@@ -123,22 +87,44 @@ export default function ReportCanvas({
         </div>
       </div>
 
-      <div className="report-seg-row">
-        <SegmentedControl
-          items={SEG_BY_PERIOD[effectivePeriod]}
-          value={segValue}
-          onChange={handleSegChange}
-          ariaLabel="기간 선택"
-        />
-      </div>
+      <div className="report-body">
+        <div className="report-ai-banner">
+          <Icon
+            src="/icons-solid/ai-chat-01.svg"
+            size={14}
+            color="var(--utility-purple-500, #7a5af8)"
+            baseUrl={baseUrl}
+          />
+          <span>
+            AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다.
+            매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
+          </span>
+        </div>
 
-      <TimelineWeeklyView
-        baseUrl={baseUrl}
-        report={report}
-        isGenerating={isGenerating}
-        onGenerate={onGenerate}
-        onViewHistory={onViewHistory}
-      />
+        <div className="report-period-head">
+          {periodRange && <p className="report-period-range">{periodRange}</p>}
+          {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
+        </div>
+
+        <div className="report-list">
+          {reports.map((r) => (
+            <ReportWeeklyRow
+              key={r.id}
+              badge={r.badge}
+              dateRange={r.dateRange}
+              status={r.status}
+              isActive={r.isActive}
+              snippetCount={r.snippetCount}
+              activeDays={r.activeDays}
+              healthScore={r.healthScore}
+              healthLevel={r.healthLevel}
+              baseUrl={baseUrl}
+              onClick={onReportClick ? () => onReportClick(r) : undefined}
+              onShare={onReportShare ? () => onReportShare(r) : undefined}
+            />
+          ))}
+        </div>
+      </div>
     </main>
   );
 }

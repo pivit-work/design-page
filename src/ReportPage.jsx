@@ -1,35 +1,67 @@
-import { useRef, useState } from 'react';
 import { ReportCanvas } from './components';
-import { DEMO_WEEKLY_REPORT } from './components/timeline/weekly-demo-data.js';
 
 /**
  * ReportPage — "리포트" 페이지 demo wrapper.
- *
- * 기존 타임라인 페이지의 Weekly 탭에 있던 demo 데이터/생성 시뮬레이션을
- * 그대로 가져와 별도 페이지로 분리. 4초 가짜 생성 후 DEMO_WEEKLY_REPORT 주입.
+ * Figma 16883:27926 기준.
  */
+const DEMO_REPORTS = [
+  {
+    id: 'w-current',
+    badge: '이번주',
+    dateRange: '2026년 4월 7일 ~ 4월 12일',
+    status: '진행 중',
+    isActive: true,
+    snippetCount: 9,
+    activeDays: 5,
+    healthScore: 8.7,
+    healthLevel: 'good',
+  },
+  {
+    id: 'w-1',
+    badge: '지난주',
+    dateRange: '2026년 3월 31일 ~ 4월 4일',
+    snippetCount: 9,
+    activeDays: 5,
+    healthScore: 8.7,
+    healthLevel: 'good',
+  },
+  {
+    id: 'w-2',
+    badge: '-',
+    dateRange: '2026년 3월 25일 ~ 3월 30일',
+    snippetCount: 9,
+    activeDays: 5,
+    healthScore: 6.5,
+    healthLevel: 'warning',
+  },
+  {
+    id: 'w-3',
+    badge: '-',
+    dateRange: '2026년 3월 25일 ~ 3월 30일',
+    snippetCount: 9,
+    activeDays: 5,
+    healthScore: 6.5,
+    healthLevel: 'warning',
+  },
+  {
+    id: 'w-4',
+    badge: '-',
+    dateRange: '2026년 3월 25일 ~ 3월 30일',
+    snippetCount: 9,
+    activeDays: 5,
+    healthScore: 3.8,
+    healthLevel: 'error',
+  },
+];
+
 export default function ReportPage({ baseUrl }) {
-  const [report, setReport] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const generateTimerRef = useRef(null);
-
-  const handleGenerate = () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
-    if (generateTimerRef.current) clearTimeout(generateTimerRef.current);
-    generateTimerRef.current = setTimeout(() => {
-      setReport(DEMO_WEEKLY_REPORT);
-      setIsGenerating(false);
-    }, 4000);
-  };
-
   return (
     <ReportCanvas
       baseUrl={baseUrl}
       count={34}
-      report={report}
-      isGenerating={isGenerating}
-      onGenerate={handleGenerate}
+      periodTitle="이번 주"
+      periodRange="2026년 4월 7일 ~ 4월 14일"
+      reports={DEMO_REPORTS}
     />
   );
 }
