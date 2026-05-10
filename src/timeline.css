@@ -2933,9 +2933,14 @@
   padding-right: 40px;
   min-height: 0;
   flex: 1;
-  /* tl-page grid 의 row 2(auto) 에 할당되면 내용 크기로만 shrink 된다.
-     row 2 부터 마지막 row(minmax(0,1fr))까지 span 시켜 남은 공간 전체 채움. */
-  grid-row: 2 / -1;
+}
+
+/* Report 페이지 — Figma 16636:73372.
+   Timeline 페이지의 grid 레이아웃 대신 단순 flex column 으로 헤더 → 탭 row →
+   본문(TimelineWeeklyView) 을 쌓고, 본문이 남은 공간을 flex:1 로 채움. */
+.report-page {
+  display: flex;
+  flex-direction: column;
 }
 
 .tl-weekly-subtabs-row {

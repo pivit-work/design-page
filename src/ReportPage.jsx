@@ -26,6 +26,7 @@ export default function ReportPage({ baseUrl }) {
   return (
     <ReportCanvas
       baseUrl={baseUrl}
+      count={34}
       report={report}
       isGenerating={isGenerating}
       onGenerate={handleGenerate}
