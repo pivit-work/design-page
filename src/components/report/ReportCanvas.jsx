@@ -51,6 +51,10 @@ export default function ReportCanvas({
   // shape: 위 reports 행의 한 객체 (그 안의 weeklyReport 가 실제 리포트).
   selectedReport,
   onCloseReport,
+  // 생성 중 — TimelineWeeklyView 의 로딩 비디오를 띄울지 여부.
+  // 생성 버튼 클릭 직후 selectedReport 가 세팅되고 isGenerating=true 면
+  // weeklyReport 가 도착할 때까지 로딩이 보이고, 도착하면 자연스럽게 리포트로 전환.
+  isGenerating = false,
   // Google Calendar 연동 상태. 기본 true — 연동 중 라벨.
   gcalConnected = true,
 }) {
@@ -95,19 +99,6 @@ export default function ReportCanvas({
       </div>
 
       <div className="report-body">
-        <div className="report-ai-banner">
-          <Icon
-            src="/icons-solid/ai-chat-01.svg"
-            size={14}
-            color="var(--utility-purple-500, #7a5af8)"
-            baseUrl={baseUrl}
-          />
-          <span>
-            AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다.
-            매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
-          </span>
-        </div>
-
         {selectedReport ? (
           <div className="report-detail">
             <button
@@ -126,10 +117,24 @@ export default function ReportCanvas({
             <TimelineWeeklyView
               baseUrl={baseUrl}
               report={selectedReport.weeklyReport}
+              isGenerating={isGenerating}
             />
           </div>
         ) : (
           <>
+            <div className="report-ai-banner">
+              <Icon
+                src="/icons-solid/ai-chat-01.svg"
+                size={14}
+                color="var(--utility-purple-500, #7a5af8)"
+                baseUrl={baseUrl}
+              />
+              <span>
+                AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다.
+                매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
+              </span>
+            </div>
+
             <div className="report-period-head">
               {periodRange && <p className="report-period-range">{periodRange}</p>}
               {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
@@ -144,6 +149,7 @@ export default function ReportCanvas({
                   status={r.status}
                   isActive={r.isActive}
                   showGenerate={r.showGenerate}
+                  generateLabel={r.generateLabel}
                   snippetCount={r.snippetCount}
                   activeDays={r.activeDays}
                   healthScore={r.healthScore}
