@@ -10,6 +10,7 @@ import DragPreview from './DragPreview.jsx';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
+import useSegmentedIndicator from './hooks/useSegmentedIndicator.js';
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
 import GroupAddModal from './GroupAddModal.jsx';
@@ -85,6 +86,10 @@ export default function TimelineCanvas({
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
+  const { itemsRef: tabsRef, indicator: tabsIndicator } = useSegmentedIndicator(
+    ['gantt', 'calendar'],
+    currentTab,
+  );
   const [viewUnit] = useState('day');
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
@@ -372,6 +377,9 @@ export default function TimelineCanvas({
       <div className="tl-tabs-row">
         <div className="tl-tabs">
           <button
+            ref={(el) => {
+              tabsRef.current[0] = el;
+            }}
             type="button"
             className={`tl-tab ${currentTab === 'gantt' ? 'is-active' : ''}`}
             onClick={() => setCurrentTab('gantt')}
@@ -379,12 +387,22 @@ export default function TimelineCanvas({
             간트
           </button>
           <button
+            ref={(el) => {
+              tabsRef.current[1] = el;
+            }}
             type="button"
             className={`tl-tab ${currentTab === 'calendar' ? 'is-active' : ''}`}
             onClick={() => setCurrentTab('calendar')}
           >
             캘린더
           </button>
+          {tabsIndicator && (
+            <span
+              className="tl-tabs-indicator"
+              style={{ left: tabsIndicator.left, width: tabsIndicator.width }}
+              aria-hidden="true"
+            />
+          )}
         </div>
         <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />

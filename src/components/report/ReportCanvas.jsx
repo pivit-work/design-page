@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
+import useSegmentedIndicator from '../timeline/hooks/useSegmentedIndicator.js';
 
 /**
  * ReportCanvas — "리포트" 페이지 Pure 컴포넌트.
@@ -47,6 +48,11 @@ export default function ReportCanvas({
     if (onPeriodChange) onPeriodChange(next);
     else setInternalPeriod(next);
   };
+  const periodKeys = useMemo(() => PERIODS.map((p) => p.key), []);
+  const { itemsRef: tabsRef, indicator: tabsIndicator } = useSegmentedIndicator(
+    periodKeys,
+    effectivePeriod,
+  );
 
   return (
     <main className="tl-page report-page">
@@ -63,9 +69,12 @@ export default function ReportCanvas({
 
       <div className="tl-tabs-row">
         <div className="tl-tabs">
-          {PERIODS.map((p) => (
+          {PERIODS.map((p, i) => (
             <button
               key={p.key}
+              ref={(el) => {
+                tabsRef.current[i] = el;
+              }}
               type="button"
               className={`tl-tab ${effectivePeriod === p.key ? 'is-active' : ''}`}
               onClick={() => handlePeriodClick(p.key)}
@@ -73,6 +82,13 @@ export default function ReportCanvas({
               {p.label}
             </button>
           ))}
+          {tabsIndicator && (
+            <span
+              className="tl-tabs-indicator"
+              style={{ left: tabsIndicator.left, width: tabsIndicator.width }}
+              aria-hidden="true"
+            />
+          )}
         </div>
         <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon

@@ -124,6 +124,7 @@
    기본은 inline-flex (content-sized). 가로 꽉 채워야 하는 위치에서는
    .seg-control.is-block 으로 width:100% 적용. */
 .seg-control {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -136,7 +137,22 @@
   display: flex;
   width: 100%;
 }
+/* 슬라이딩 indicator — 활성 segment 위치/크기로 절대 배치되어 left/width
+   transition 으로 부드럽게 이동. 컴포넌트가 useSegmentedIndicator 훅으로
+   active item 의 offsetLeft/Top/Width/Height 를 inline style 로 전달. */
+.seg-indicator {
+  position: absolute;
+  background: var(--colors-base-white);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01);
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+  pointer-events: none;
+  z-index: 0;
+}
 .seg-item {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -150,12 +166,8 @@
   line-height: 20px;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.2s ease;
 }
 .seg-item.is-active {
-  background: var(--colors-base-white);
-  border: 0.5px solid var(--colors-foreground-fgQuaternary);
-  border-radius: 8px;
   color: var(--text-secondary);
-  box-shadow: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01);
 }

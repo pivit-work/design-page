@@ -99,12 +99,26 @@
 }
 
 .tl-tabs {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* Tab — Figma .tabButtonBase: height 36, padding 4 0, text-md Medium 16/24 */
+/* 슬라이딩 underline indicator — 활성 tab 의 offsetLeft/Width 를 inline style
+   로 받아 left/width transition 으로 부드럽게 이동.
+   .tl-tabs 안 마지막 child 로 렌더되어 absolute bottom 0 에 위치. */
+.tl-tabs-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--colors-foreground-fgSecondary);
+  transition: left 0.25s ease, width 0.25s ease;
+  pointer-events: none;
+}
+
+/* Tab — Figma .tabButtonBase: height 36, padding 4 0, text-md Medium 16/24
+   active 아래 underline 은 .tl-tabs-indicator 가 슬라이딩으로 처리. */
 .tl-tab {
   height: 36px;
   display: flex;
@@ -113,19 +127,17 @@
   padding: 4px 0;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
   color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
+  transition: color 0.2s ease;
 }
 
 .tl-tab.is-active {
   color: var(--text-primary);
-  /* Figma uses fg-secondary (#687079) for the underline */
-  border-bottom-color: var(--colors-foreground-fgSecondary, #687079);
 }
 
 /* Google Calendar status — Figma .frameParent2 + .googleCalendar */

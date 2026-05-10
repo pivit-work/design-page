@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
+import useSegmentedIndicator from './hooks/useSegmentedIndicator.js';
+
+const PERIOD_TABS = ['lastWeek', 'thisWeek'];
 
 /**
  * TimelineWeeklyView — "Weekly" 탭 AI 주간 리포트 뷰.
@@ -51,6 +54,10 @@ export default function TimelineWeeklyView({
     if (onPeriodTabChange) onPeriodTabChange(next);
     else setInternalPeriodTab(next);
   };
+  const { itemsRef: segItemsRef, indicator: segIndicator } = useSegmentedIndicator(
+    PERIOD_TABS,
+    effectivePeriodTab,
+  );
 
   // 빈 상태 → 리포트 로드 시점에서만 자식 요소들을 순차 페이드인.
   // 이미 렌더된 상태에서 report 객체만 바뀌어도 재실행되면 어색하므로
@@ -83,7 +90,22 @@ export default function TimelineWeeklyView({
       {/* Sub-tabs */}
       <div className="tl-weekly-subtabs-row">
         <div className="seg-control" role="tablist">
+          {segIndicator && (
+            <span
+              className="seg-indicator"
+              style={{
+                left: segIndicator.left,
+                top: segIndicator.top,
+                width: segIndicator.width,
+                height: segIndicator.height,
+              }}
+              aria-hidden="true"
+            />
+          )}
           <button
+            ref={(el) => {
+              segItemsRef.current[0] = el;
+            }}
             type="button"
             role="tab"
             aria-selected={effectivePeriodTab === 'lastWeek'}
@@ -93,6 +115,9 @@ export default function TimelineWeeklyView({
             지난주
           </button>
           <button
+            ref={(el) => {
+              segItemsRef.current[1] = el;
+            }}
             type="button"
             role="tab"
             aria-selected={effectivePeriodTab === 'thisWeek'}
