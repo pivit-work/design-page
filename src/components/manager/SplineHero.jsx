@@ -6,8 +6,10 @@ import { useEffect, useRef, useState } from 'react';
  * iframe + `public/spline-manager.html` 패턴. 자동 'start' 는 reset 으로 막아두고,
  * 부모로부터 'play-intro' 메시지를 받아야만 인트로 재생.
  *
- * 페이지 진입 시 viewport 안에 있는 카드만 자기 `index` 에 따라 0.2초 간격으로
- * 인트로를 재생하고, viewport 밖 카드는 즉시 final state 로 snap.
+ * 페이지 진입 시 viewport 안에 있는 카드는 자기 `index` 에 따라 0.2초 간격으로
+ * 인트로를 재생한다. viewport 밖 카드는 IntersectionObserver 로 스크롤 진입을
+ * 기다렸다가 진입 시점에 인트로를 재생한다 (브라우저가 off-screen iframe 의 RAF 를
+ * throttle 하므로, 사전에 play 를 쏘면 시작 프레임에 멈춰 보이는 문제 회피).
  *
  * spline 인트로 애니메이션이 시작되는 그 시점에 opacity 0 → 1 (0.3s) fade-in 시작.
  * 그 이전(scene 로드 / 텍스처 적용 / 대기) 동안에는 계속 opacity 0 유지.
@@ -66,26 +68,54 @@ export default function SplineHero({ scene, image, baseUrl = '', index = 0, onCl
     return () => window.removeEventListener('blur', handler);
   }, [onClick]);
 
-  // ready 후 viewport 검사. 인트로 발사 = fade-in 시작.
+  // ready 후 인트로 발사. 카드가 viewport 에 들어와 있을 때만 play 메시지를 보낸다
+  // (off-screen iframe 은 브라우저가 RAF 를 throttle 해서 시작 프레임에 멈추기 때문).
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || started) return;
     const el = containerRef.current;
     const win = iframeRef.current?.contentWindow;
     if (!el || !win) return;
 
+    let timer = null;
+    let observer = null;
+
+    const fire = (inViewportOnFire) => {
+      const delay = inViewportOnFire ? index * INTRO_DELAY_STEP : 0;
+      timer = setTimeout(() => {
+        win.postMessage({ type: 'play-intro' }, '*');
+        setStarted(true);
+        onStart?.();
+      }, delay);
+    };
+
     const rect = el.getBoundingClientRect();
-    const inViewport =
+    const inViewportNow =
       rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0;
 
-    const delay = inViewport ? index * INTRO_DELAY_STEP : 0;
-    const messageType = inViewport ? 'play-intro' : 'snap-to-end';
-    const timer = setTimeout(() => {
-      win.postMessage({ type: messageType }, '*');
-      setStarted(true);
-      onStart?.();
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [ready, index, onStart]);
+    if (inViewportNow) {
+      fire(true);
+    } else {
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              observer.disconnect();
+              observer = null;
+              fire(false);
+              break;
+            }
+          }
+        },
+        { rootMargin: '100px' },
+      );
+      observer.observe(el);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (observer) observer.disconnect();
+    };
+  }, [ready, started, index, onStart]);
 
   const params = new URLSearchParams();
   params.set('scene', scene);
