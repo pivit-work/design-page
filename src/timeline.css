@@ -3005,18 +3005,17 @@
 }
 
 /* Main content card — flexible height, scrolls internally
-   Figma Fill: Linear Gradient · 9% (utility-brand-200, utility-brand-200, utility-gray-300) */
+   Figma Fill: Linear Gradient · 9% (utility-brand-200, utility-brand-200, utility-gray-300).
+   흰색 base 깔지 않음 — 페이지 배경(bg-primary) 위에 9% 그라디언트만 얹어
+   회색 톤이 비치는 게 의도. */
 .tl-weekly-card {
   position: relative;
-  /* Figma: linear-gradient(0deg, brand-200 0%, brand-200 27.5%, gray-300 79%) @ 9% opacity
-     + border 2px utility-purple-100 */
-  background:
-    linear-gradient(0deg,
-      rgba(179, 250, 222, 0.09) 0%,
-      rgba(179, 250, 222, 0.09) 27.5%,
-      rgba(210, 214, 219, 0.09) 79%
-    ),
-    var(--colors-background-bgPrimary_alt, #ffffff);
+  background: linear-gradient(
+    0deg,
+    rgba(179, 250, 222, 0.09) 0%,
+    rgba(179, 250, 222, 0.09) 27.5%,
+    rgba(210, 214, 219, 0.09) 79%
+  );
   border: 2px solid var(--componentColors-utility-purple-utilityPurple100, #ebe9fe);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(10, 13, 18, 0.05);
