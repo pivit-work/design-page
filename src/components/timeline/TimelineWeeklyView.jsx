@@ -75,12 +75,12 @@ export default function TimelineWeeklyView({
     <div className="tl-weekly">
       {/* Sub-tabs */}
       <div className="tl-weekly-subtabs-row">
-        <div className="tl-weekly-subtabs" role="tablist">
+        <div className="seg-control" role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={periodTab === 'lastWeek'}
-            className={`tl-weekly-subtab ${periodTab === 'lastWeek' ? 'is-active' : ''}`}
+            className={`seg-item ${periodTab === 'lastWeek' ? 'is-active' : ''}`}
             onClick={() => onPeriodTabChange?.('lastWeek')}
           >
             지난주
@@ -89,7 +89,7 @@ export default function TimelineWeeklyView({
             type="button"
             role="tab"
             aria-selected={periodTab === 'thisWeek'}
-            className={`tl-weekly-subtab ${periodTab === 'thisWeek' ? 'is-active' : ''}`}
+            className={`seg-item ${periodTab === 'thisWeek' ? 'is-active' : ''}`}
             onClick={() => onPeriodTabChange?.('thisWeek')}
           >
             이번주

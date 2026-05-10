@@ -105,3 +105,47 @@
   color: var(--utility-gray-700);
   line-height: var(--line-height-text-xs);
 }
+
+/* ── Common segmented control ─────────────────────────────────────────────
+   pivit 전역 segmented control 표준. 지난주/이번주 등 동일 패턴은 모두
+   이 클래스를 쓴다. (Figma: 컨테이너 alpha-black-3 / 비선택 bg-tertiary /
+   선택 fg-light(white) + 0.5px fg-quaternary border + drop-shadow.)
+
+   기본은 inline-flex (content-sized). 가로 꽉 채워야 하는 위치에서는
+   .seg-control.is-block 으로 width:100% 적용. */
+.seg-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--colors-background-bgSecondary, rgba(0, 0, 0, 0.03));
+  font-family: inherit;
+}
+.seg-control.is-block {
+  display: flex;
+  width: 100%;
+}
+.seg-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border: none;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.seg-item.is-active {
+  background: var(--colors-foreground-fgLight, #ffffff);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary, #f9fafb);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08);
+}

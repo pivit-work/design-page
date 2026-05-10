@@ -2949,34 +2949,8 @@
   justify-content: space-between;
   flex-shrink: 0;
 }
-
-.tl-weekly-subtabs {
-  display: inline-flex;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.03);
-  padding: 4px;
-  border-radius: 8px;
-}
-
-.tl-weekly-subtab {
-  padding: 4px 12px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.tl-weekly-subtab.is-active {
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
-  color: var(--text-secondary);
-  box-shadow: 0 1px 2px 0 rgba(10, 13, 18, 0.05);
-}
+/* 지난주/이번주 segmented control 은 App.css 의 .seg-control / .seg-item 공통
+   클래스를 그대로 사용한다 (per-page 별도 스타일 금지). */
 
 /* AI info banner — 보라 tint */
 .tl-weekly-info {
