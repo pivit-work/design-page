@@ -4,6 +4,7 @@ import { Sidebar, TopNav, Icon } from './components';
 import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
 import TimelinePage from './TimelinePage';
+import ReportPage from './ReportPage';
 import MeetingsPage from './MeetingsPage';
 import ManagerPage from './ManagerPage';
 import './App.css';
@@ -59,7 +60,7 @@ const STAT_ICONS = {
 const MENU = [
   { icon: ICONS.asterisk, label: '스니핏' },
   { icon: ICONS.calendarSolid, label: '타임라인', page: 'timeline' },
-  { icon: ICONS.dotpoints, label: '리포트' },
+  { icon: ICONS.dotpoints, label: '리포트', page: 'report' },
   { icon: ICONS.target, label: 'OKR' },
   { icon: ICONS.user, label: '원온원', page: 'oneonone' },
   { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
@@ -157,6 +158,7 @@ export default function App() {
 
       {currentPage === 'oneonone' && <OneOnOnePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
+      {currentPage === 'report' && <ReportPage baseUrl={BASE} />}
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
     </div>

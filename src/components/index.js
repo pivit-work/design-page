@@ -64,6 +64,11 @@ export {
   TAG_TYPES as ONEONONE_TAG_TYPES,
 } from './oneonone/index.js';
 
+// Report
+export {
+  ReportCanvas,
+} from './report/index.js';
+
 // Manager
 export {
   ManagerCanvas,
