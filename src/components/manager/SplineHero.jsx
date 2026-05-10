@@ -98,6 +98,11 @@ export default function SplineHero({ scene, image, baseUrl = '', index = 0, onCl
 
   return (
     <div ref={containerRef} className="manager-spline-area">
+      {!started && (
+        <div className="manager-spline-spinner" aria-hidden="true">
+          <div className="manager-spline-spinner-circle" />
+        </div>
+      )}
       <iframe
         ref={iframeRef}
         className={`manager-spline-iframe ${started && scale > 0 ? 'is-ready' : ''}`}

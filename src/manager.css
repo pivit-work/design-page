@@ -242,6 +242,29 @@
   opacity: 1;
 }
 
+/* spline 로딩 + 인트로 시작 전까지 카드 영역 가운데에 스피너 표시. */
+.manager-spline-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.manager-spline-spinner-circle {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--colors-foreground-fgQuaternaryHover, #f3f4f6);
+  border-top-color: var(--text-tertiary);
+  border-radius: 50%;
+  animation: managerSpinnerSpin 0.8s linear infinite;
+}
+
+@keyframes managerSpinnerSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── 카드 본문 ──
    spline area 가 헥사 그림자/여백을 포함해 카드 너비 가득 차지하므로,
    본문(이름/코멘트/배지/버튼) 을 위로 끌어올려 헥사 바로 아래에 붙도록 한다.

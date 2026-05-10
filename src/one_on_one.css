@@ -355,3 +355,937 @@
 .date-value.next {
   color: var(--text-secondary);
 }
+
+/* ════════════════════════════════════════════════
+   1on1 페이지 v2 (Figma 16816:33877)
+   ──────────────────────────────────────────────── */
+
+.ono-page {
+  position: fixed;
+  top: 48px;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 40px 60px 24px;
+  background: var(--bg-primary);
+}
+
+/* ── Header ──
+   Figma: top-nav → 타이틀 12px, 타이틀 ↔ 매니저 라인 spacing-lg(12px),
+   매니저 라인 → 브리핑 바 10px. */
+.ono-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 32px 0 17px 0;
+  background: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ono-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.ono-title {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ono-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-sm);
+  letter-spacing: -0.04em;
+}
+
+.ono-meta-name {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ono-meta-divider {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.ono-meta-count {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  color: var(--text-brand-secondary);
+}
+
+.ono-add-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-lg);
+  background: var(--bg-brand-solid);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-white);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.ono-add-btn:hover { filter: brightness(0.96); }
+
+/* ── Briefing bar ── */
+.ono-briefing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  margin-bottom: 13px;
+}
+
+.ono-briefing-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: transparent;
+  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.ono-briefing-metrics {
+  display: flex;
+  gap: var(--spacing-3xl);
+}
+
+.ono-briefing-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--colors-text-textTertiaryHover, #8b929c);
+}
+
+/* ── Top message ── */
+.ono-message {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--colors-text-textTertiaryHover, #8b929c);
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Section heading ── */
+.ono-section {
+  margin-bottom: 0;
+}
+
+.ono-section-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding: var(--spacing-5xl) 0 var(--spacing-2xl) 0;
+}
+
+.ono-section-heading {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xl, 20px);
+  line-height: var(--line-height-text-xl, 30px);
+  color: var(--text-primary);
+  margin: 0;
+  padding: var(--spacing-5xl) 0 var(--spacing-2xl) 0;
+}
+
+.ono-section-heading-row .ono-section-heading {
+  padding: 0;
+}
+
+.ono-section-count {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xl, 20px);
+  line-height: var(--line-height-text-xl, 30px);
+}
+
+/* ── KPI grid ── */
+.ono-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ono-kpi-card {
+  height: 100px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--spacing-xxs);
+  overflow: hidden;
+}
+
+.ono-kpi-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ono-kpi-completion-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.ono-kpi-value-large {
+  font-family: var(--font-family-display);
+  font-weight: 500;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ono-kpi-side {
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.ono-kpi-value-blue {
+  font-family: 'SUIT', var(--font-family-body);
+  font-weight: 800;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--utility-blue-500);
+  white-space: nowrap;
+}
+
+.ono-kpi-bar {
+  width: 100%;
+  height: 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ono-kpi-speak-row .ono-kpi-bar {
+  flex: 1 0 0;
+  width: auto;
+}
+
+.ono-kpi-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.ono-kpi-bar-blue {
+  background: var(--componentColors-utility-blue-utilityBlue100, #d1e9ff);
+}
+
+.ono-kpi-speak-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  height: 24px;
+}
+
+.ono-kpi-speak-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-tertiary);
+  white-space: pre;
+  min-width: 36px;
+}
+
+/* ── Member card ── */
+.ono-member-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ono-member-card {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-4xl);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  min-height: 380px;
+  min-width: 300px;
+}
+
+.ono-member-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ono-member-identity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.ono-member-avatar {
+  width: 51px;
+  height: 51px;
+  border-radius: 50%;
+  border: 0.78px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+
+.ono-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ono-member-name-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.ono-member-name {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-xs);
+  line-height: var(--line-height-display-xs);
+  color: var(--text-primary);
+}
+
+.ono-member-role {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+}
+
+.ono-member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  white-space: nowrap;
+}
+
+.ono-member-badge-icon {
+  font-size: 12px;
+}
+
+.ono-member-body {
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.ono-member-health {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ono-member-health-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: var(--font-size-text-sm);
+  white-space: nowrap;
+}
+
+.ono-member-health-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+
+.ono-member-health-value {
+  font-family: 'SUIT', var(--font-family-body);
+  font-weight: 800;
+  line-height: var(--line-height-text-md);
+}
+
+.ono-member-health-bar {
+  height: 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ono-member-health-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.ono-member-comment {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+
+.ono-member-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.ono-member-schedule {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-brand-tertiary);
+  white-space: nowrap;
+}
+
+.ono-member-schedule-change {
+  margin-left: auto;
+  cursor: pointer;
+}
+
+.ono-member-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.ono-member-btn {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md) 14px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ono-member-btn:hover { background: var(--bg-secondary); }
+
+.ono-member-btn-primary {
+  background: var(--bg-brand-solid);
+  border-color: transparent;
+  color: var(--text-white);
+}
+
+.ono-member-btn-primary:hover {
+  background: var(--bg-brand-solid);
+  filter: brightness(0.96);
+}
+
+/* ════════════════════════════════════════════════
+   1on1 일정 추가 모달 (Figma 16816:27101)
+   ──────────────────────────────────────────────── */
+
+.ono-add-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 25, 39, 0.3);
+  z-index: 1000;
+  animation: onoAddModalOverlayIn 0.2s ease-out;
+}
+
+.ono-add-modal-scroll-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ono-add-modal-card {
+  width: 520px;
+  height: 920px;
+  max-height: calc(100vh - 48px);
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 21px 120px -12px rgba(10, 13, 18, 0.14),
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: onoAddModalCardIn 0.25s ease-out;
+}
+
+@keyframes onoAddModalOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes onoAddModalCardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 우상단 X ── */
+.ono-add-modal-topbar {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+}
+
+.ono-add-modal-close {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  border: none;
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ono-add-modal-close:hover { background: var(--bg-secondary); }
+
+/* ── Body ── */
+.ono-add-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 60px 48px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.ono-add-modal-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ono-add-modal-title {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+  margin: 0;
+}
+
+.ono-add-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+}
+
+/* ── Field ── */
+.ono-add-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.ono-add-modal-field-label {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+
+.ono-add-modal-row {
+  display: flex;
+  gap: 17px;
+  align-items: stretch;
+}
+
+/* ── Input ── */
+.ono-add-modal-input {
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 40px;
+}
+
+.ono-add-modal-input-with-icon {
+  padding: 10px var(--spacing-xl);
+}
+
+.ono-add-modal-input-el {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+
+.ono-add-modal-input-el::placeholder {
+  color: var(--text-placeholder);
+}
+
+.ono-add-modal-input-text {
+  flex: 1;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+}
+
+/* ── Radio group ── */
+.ono-add-modal-radio-group {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.ono-add-modal-radio {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.ono-add-modal-radio.is-active {
+  background: var(--bg-brand-secondary);
+  color: var(--colors-text-textBrandPrimary, #0b4b31);
+}
+
+.ono-add-modal-radio-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ono-add-modal-radio.is-active .ono-add-modal-radio-circle {
+  background: var(--bg-brand-solid);
+  border-color: transparent;
+}
+
+.ono-add-modal-radio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
+
+.ono-add-modal-radio-label {
+  flex: 1;
+  text-align: left;
+}
+
+/* ── Textarea ── */
+.ono-add-modal-textarea {
+  width: 100%;
+  height: 80px;
+  padding: var(--spacing-lg) 14px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
+  outline: none;
+  resize: none;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+
+.ono-add-modal-textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* ── Footer ── */
+.ono-add-modal-footer {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-3xl) var(--spacing-6xl, 48px);
+  background: var(--bg-quaternary);
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+
+.ono-add-modal-btn {
+  flex: 1 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px var(--spacing-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  cursor: pointer;
+  transition: filter 0.15s, background 0.15s;
+}
+
+.ono-add-modal-btn-secondary {
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  color: var(--text-secondary);
+}
+
+.ono-add-modal-btn-secondary:hover { background: var(--bg-secondary); }
+
+.ono-add-modal-btn-primary {
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}
+
+.ono-add-modal-btn-primary:hover:not(:disabled) { filter: brightness(0.96); }
+
+.ono-add-modal-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Popover wrapper (dropdown / datepicker 공통) ── */
+.ono-add-modal-popover-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.ono-add-modal-input {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+button.ono-add-modal-input { cursor: pointer; }
+
+/* ── Generic select menu ── */
+.ono-add-modal-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-height: 256px;
+  overflow-y: auto;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 24px -6px rgba(10, 13, 18, 0.12), 0 4px 8px -2px rgba(10, 13, 18, 0.06);
+  z-index: 1100;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ono-add-modal-menu-wide {
+  width: 100%;
+}
+
+.ono-add-modal-menu-time {
+  width: 269px;
+  right: 0;
+  left: auto;
+}
+
+.ono-add-modal-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px var(--spacing-lg);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ono-add-modal-menu-item:hover { background: var(--bg-secondary); }
+.ono-add-modal-menu-item.is-selected {
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+  font-weight: 600;
+}
+
+.ono-add-modal-menu-empty {
+  padding: 12px var(--spacing-lg);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ── Date picker ── */
+.ono-add-modal-datepicker {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 328px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 24px -6px rgba(10, 13, 18, 0.12), 0 4px 8px -2px rgba(10, 13, 18, 0.06);
+  padding: 16px;
+  z-index: 1100;
+}
+
+.ono-add-modal-datepicker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.ono-add-modal-datepicker-nav {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ono-add-modal-datepicker-nav:hover { background: var(--bg-secondary); }
+
+.ono-add-modal-datepicker-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-md);
+  color: var(--text-primary);
+}
+
+.ono-add-modal-datepicker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.ono-add-modal-datepicker-weekday {
+  text-align: center;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  padding: 8px 0;
+}
+
+.ono-add-modal-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.ono-add-modal-datepicker-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ono-add-modal-datepicker-day:hover { background: var(--bg-secondary); }
+
+.ono-add-modal-datepicker-day.is-other-month {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+
+.ono-add-modal-datepicker-day.is-today {
+  border: 1px solid var(--bg-brand-solid);
+}
+
+.ono-add-modal-datepicker-day.is-selected,
+.ono-add-modal-datepicker-day.is-selected:hover {
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}

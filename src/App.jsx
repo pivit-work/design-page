@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Sidebar, TopNav, Icon } from './components';
-import OneOnOneContent from './OneOnOnePage';
+import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
 import TimelinePage from './TimelinePage';
 import MeetingsPage from './MeetingsPage';
@@ -31,6 +31,12 @@ const ICONS = {
   userOutline: '/icons/user-03.svg',
   messageText: '/icons/message-text-circle-02.svg',
   summarySparkle: '/icons-solid/ai-chat-01.svg',
+  clockCheck: '/icons-solid/clock-check.svg',
+  activityHeart: '/icons-solid/activity-heart.svg',
+  alertTriangle: '/icons-solid/alert-triangle.svg',
+  messageSmile: '/icons-solid/message-smile-square.svg',
+  calendar: '/icons/calendar.svg',
+  chevronDown: '/icons/chevron-down.svg',
   plus: '/icons/plus.svg',
   minus: '/icons/minus.svg',
   refresh: '/icons/refresh-ccw-05.svg',
@@ -145,7 +151,7 @@ export default function App() {
         />
       )}
 
-      {currentPage === 'oneonone' && <OneOnOneContent Icon={Icon} />}
+      {currentPage === 'oneonone' && <OneOnOnePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
