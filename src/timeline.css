@@ -2947,22 +2947,22 @@
   flex: 1;
 }
 
-/* Report 페이지 — Figma 16636:73372.
-   Timeline 페이지의 grid 레이아웃 대신 단순 flex column 으로 헤더 → 탭 row →
-   본문(TimelineWeeklyView) 을 쌓고, 본문이 남은 공간을 flex:1 로 채움. */
+/* Report 페이지 — Figma 16636:73372 / 16961:27311.
+   Timeline 페이지의 grid 레이아웃 대신 단순 flex column 으로
+   헤더 → 탭 row → segmented row → 본문(TimelineWeeklyView) 을 쌓고,
+   본문이 남은 공간을 flex:1 로 채움. */
 .report-page {
   display: flex;
   flex-direction: column;
 }
 
-.tl-weekly-subtabs-row {
+/* 활성 탭 별 segmented control row — 탭 아래 12px 간격, 좌측 12px 정렬. */
+.report-seg-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  margin: 12px 0 0 12px;
   flex-shrink: 0;
 }
-/* 지난주/이번주 segmented control 은 App.css 의 .seg-control / .seg-item 공통
-   클래스를 그대로 사용한다 (per-page 별도 스타일 금지). */
 
 /* AI info banner — 보라 tint */
 .tl-weekly-info {

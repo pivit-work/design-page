@@ -1,12 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
-import SegmentedControl from '../shared/SegmentedControl.jsx';
-
-const PERIOD_TAB_ITEMS = [
-  { value: 'lastWeek', label: '지난주' },
-  { value: 'thisWeek', label: '이번주' },
-];
 
 /**
  * TimelineWeeklyView — "Weekly" 탭 AI 주간 리포트 뷰.
@@ -37,10 +31,6 @@ const buildChartPath = (healthData) => {
 
 export default function TimelineWeeklyView({
   baseUrl,
-  // Period tab — controlled or uncontrolled. 부모가 안 넘기면 내부 state 로
-  // 'thisWeek' 시작. (controlled 미주입 시 어느 버튼도 active 아닌 버그 방지)
-  periodTab,
-  onPeriodTabChange,
   // Report data — null 이면 빈 상태(생성 전), 객체면 전체 리포트 렌더.
   // shape: weekly-demo-data.js 의 DEMO_WEEKLY_REPORT 참조.
   report,
@@ -51,12 +41,6 @@ export default function TimelineWeeklyView({
 }) {
   const cardInnerRef = useRef(null);
   const prevReportIdRef = useRef(null);
-  const [internalPeriodTab, setInternalPeriodTab] = useState('thisWeek');
-  const effectivePeriodTab = periodTab ?? internalPeriodTab;
-  const handlePeriodTabChange = (next) => {
-    if (onPeriodTabChange) onPeriodTabChange(next);
-    else setInternalPeriodTab(next);
-  };
 
   // 빈 상태 → 리포트 로드 시점에서만 자식 요소들을 순차 페이드인.
   // 이미 렌더된 상태에서 report 객체만 바뀌어도 재실행되면 어색하므로
@@ -86,16 +70,6 @@ export default function TimelineWeeklyView({
 
   return (
     <div className="tl-weekly">
-      {/* Sub-tabs */}
-      <div className="tl-weekly-subtabs-row">
-        <SegmentedControl
-          items={PERIOD_TAB_ITEMS}
-          value={effectivePeriodTab}
-          onChange={handlePeriodTabChange}
-          ariaLabel="기간 선택"
-        />
-      </div>
-
       {/* AI info banner */}
       <div className="tl-weekly-info">
         <Icon
