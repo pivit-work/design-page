@@ -17,14 +17,16 @@ import './manager.css';
 const BASE = import.meta.env.BASE_URL;
 
 const ICONS = {
-  calendar: '/icons-solid/calendar-heart-01.svg',
+  asterisk: '/icons-solid/asterisk-01.svg',
+  calendarSolid: '/icons-solid/calendar.svg',
+  dotpoints: '/icons-solid/dotpoints-01.svg',
   target: '/icons-solid/target-04.svg',
   user: '/icons-solid/user-03.svg',
   layers: '/icons-solid/layers-three-01.svg',
   file: '/icons-solid/file-02.svg',
   edit: '/icons-solid/edit-02.svg',
   userEdit: '/icons-solid/user-edit.svg',
-  aiChat: '/icons/message-chat-circle.svg',
+  aiChat: '/icons-solid/ai-chat-01.svg',
   lock: '/icons-solid/lock-keyhole-square.svg',
   send: '/icons-solid/send-01.svg',
   search: '/icons/search-sm.svg',
@@ -55,7 +57,9 @@ const STAT_ICONS = {
 };
 
 const MENU = [
-  { icon: ICONS.calendar, label: '타임라인', page: 'timeline' },
+  { icon: ICONS.asterisk, label: '스니핏' },
+  { icon: ICONS.calendarSolid, label: '타임라인', page: 'timeline' },
+  { icon: ICONS.dotpoints, label: '리포트' },
   { icon: ICONS.target, label: 'OKR' },
   { icon: ICONS.user, label: '원온원', page: 'oneonone' },
   { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
