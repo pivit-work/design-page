@@ -66,7 +66,7 @@ export default function ReportWeeklyRow({
           }}
         >
           <Icon
-            src="/icons/share-01.svg"
+            src="/icons-solid/share-01.svg"
             size={20}
             color="var(--text-tertiary)"
             baseUrl={baseUrl}
