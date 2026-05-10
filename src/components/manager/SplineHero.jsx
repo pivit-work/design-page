@@ -95,18 +95,22 @@ export default function SplineHero({ scene, image, baseUrl = '', index = 0, onCl
     if (inViewportNow) {
       fire(true);
     } else {
+      // 카드가 viewport 에 충분히 들어와서 (10% 이상) iframe RAF throttle 가
+      // 풀린 뒤에 play-intro 를 보낸다. 너무 일찍 보내면 RAF 가 멈춘 상태라 시작
+      // 프레임에 그대로 멈춰버린다. requestAnimationFrame 한 틱 더 기다려 RAF
+      // 활성화를 확실히 한 뒤 발사.
       observer = new IntersectionObserver(
         (entries) => {
           for (const entry of entries) {
-            if (entry.isIntersecting) {
+            if (entry.isIntersecting && entry.intersectionRatio > 0) {
               observer.disconnect();
               observer = null;
-              fire(false);
+              requestAnimationFrame(() => fire(false));
               break;
             }
           }
         },
-        { rootMargin: '100px' },
+        { threshold: [0, 0.1] },
       );
       observer.observe(el);
     }
@@ -138,6 +142,7 @@ export default function SplineHero({ scene, image, baseUrl = '', index = 0, onCl
         className={`manager-spline-iframe ${started && scale > 0 ? 'is-ready' : ''}`}
         src={src}
         sandbox="allow-scripts"
+        loading="lazy"
         title="Spline 3D"
         style={{
           width: SCENE_VIEWPORT,
