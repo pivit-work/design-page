@@ -2646,6 +2646,53 @@
   color: var(--text-tertiary);
 }
 
+/* Health Check — 1~10 점수 버튼 (Figma 16627:58459).
+   레이블 우측에 368px 폭으로 10개 버튼이 6px 간격으로 균등 배치된다.
+   기본: bg rgba(0,0,0,0.03), text-secondary; 선택: bg #687079, white. */
+.tl-snippet-health-head {
+  align-items: center;
+}
+
+.tl-snippet-health-scores {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 368px;
+  max-width: 100%;
+}
+
+.tl-snippet-health-score {
+  flex: 1 0 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.tl-snippet-health-score:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.tl-snippet-health-score.is-selected {
+  background: var(--colors-background-bgSecondarySolid, #687079);
+  color: #ffffff;
+}
+
+.tl-snippet-health-score.is-selected:hover {
+  background: var(--colors-background-bgSecondarySolid, #687079);
+}
+
 /* Tag 입력 필드 — 선택된 태그 chip + 신규 입력을 한 필드 안에 배치.
    Figma 스펙: bg rgba(0,0,0,0.03), r=10, flex wrap, min-height 44. */
 .tl-snippet-tag-field {

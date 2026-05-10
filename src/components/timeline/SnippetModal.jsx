@@ -12,11 +12,13 @@ import Icon from '../shared/Icon.jsx';
  *     - 날짜 타이틀 (YYYY.MM.DD)
  *     - Progress bar: What / Why / Value / Highlights / Lowlights
  *       (섹션을 채우면 active bar 가 그라디언트로 오른쪽으로 확장)
+ *     - What / Why / Value / Highlights / Lowlights — 각각 textarea
+ *     - Health Check — 1~10 점수 버튼 + 영향 요인 textarea (Figma 16627:58459)
  *     - Summary — textarea + AI 요약 생성 버튼 + helper
  *     - Tags — input + AI 태그 추출 버튼 + 추천 tag chips
- *     - What / Why / Value / Highlights / Lowlights — 각각 textarea
  *   Footer (pad 24/48/48/48, gap 12) — 초기화 / 등록
  */
+const HEALTH_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const SECTIONS = [
   {
     key: 'what',
@@ -109,6 +111,10 @@ export default function SnippetModal({
     highlights: initial?.sections?.highlights ?? '',
     lowlights: initial?.sections?.lowlights ?? '',
   });
+  const [healthScore, setHealthScore] = useState(
+    typeof initial?.health?.score === 'number' ? initial.health.score : null,
+  );
+  const [healthNote, setHealthNote] = useState(initial?.health?.note ?? '');
   const [scrolled, setScrolled] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
@@ -247,6 +253,8 @@ export default function SnippetModal({
     setTagInput('');
     setTags([]);
     setSectionTexts({ what: '', why: '', value: '', highlights: '', lowlights: '' });
+    setHealthScore(null);
+    setHealthNote('');
   };
 
   const setSectionText = (key, v) =>
@@ -259,19 +267,29 @@ export default function SnippetModal({
     if (!onDraftChangeRef.current) return;
     if (isComposing) return;
     onDraftChangeRef.current(
-      { summary, tags, sections: sectionTexts },
+      {
+        summary,
+        tags,
+        sections: sectionTexts,
+        health: { score: healthScore, note: healthNote },
+      },
       { source: 'change' },
     );
-  }, [summary, tags, sectionTexts, isComposing]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing]);
 
   const handleFieldBlur = useCallback(() => {
     if (!onDraftChangeRef.current) return;
     if (isComposing) return;
     onDraftChangeRef.current(
-      { summary, tags, sections: sectionTexts },
+      {
+        summary,
+        tags,
+        sections: sectionTexts,
+        health: { score: healthScore, note: healthNote },
+      },
       { source: 'blur' },
     );
-  }, [summary, tags, sectionTexts, isComposing]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing]);
 
   const handleCompositionStart = useCallback(() => setIsComposing(true), []);
   const handleCompositionEnd = useCallback(() => setIsComposing(false), []);
@@ -285,6 +303,7 @@ export default function SnippetModal({
       summary: summary.trim(),
       tags,
       sections: sectionTexts,
+      health: { score: healthScore, note: healthNote.trim() },
     });
   };
 
@@ -371,6 +390,39 @@ export default function SnippetModal({
                 <div className="tl-snippet-count">{sectionTexts[s.key].length} / 500</div>
               </div>
             ))}
+
+            {/* Health Check — 1~10 점수 + 영향 요인 textarea (Figma 16627:58459) */}
+            <div className="tl-snippet-field">
+              <div className="tl-snippet-field-head tl-snippet-health-head">
+                <div className="tl-snippet-field-label">Health Check</div>
+                <div className="tl-snippet-health-scores" role="radiogroup" aria-label="Health Check 점수">
+                  {HEALTH_SCORES.map((n) => {
+                    const selected = healthScore === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className={`tl-snippet-health-score ${selected ? 'is-selected' : ''}`}
+                        onClick={() => setHealthScore(selected ? null : n)}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <textarea
+                className="tl-snippet-textarea"
+                placeholder="무엇이 영향을 주었나요? (선택)"
+                value={healthNote}
+                onChange={(e) => setHealthNote(e.target.value)}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+                onBlur={handleFieldBlur}
+              />
+            </div>
 
             {/* Summary */}
             <div className="tl-snippet-field">
