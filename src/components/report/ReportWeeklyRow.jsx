@@ -83,22 +83,26 @@ export default function ReportWeeklyRow({
               <span>{generateLabel}</span>
             </button>
           )}
-          <button
-            type="button"
-            className="report-row-share"
-            aria-label="공유"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare?.();
-            }}
-          >
-            <Icon
-              src="/icons-solid/share-01.svg"
-              size={20}
-              color="var(--text-tertiary)"
-              baseUrl={baseUrl}
-            />
-          </button>
+          {/* Share 는 리포트가 생성된 행(showGenerate=false) 에만 노출.
+              이번 주 미생성 상태에서는 generate 버튼만 보이도록. */}
+          {!showGenerate && (
+            <button
+              type="button"
+              className="report-row-share"
+              aria-label="공유"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare?.();
+              }}
+            >
+              <Icon
+                src="/icons-solid/share-01.svg"
+                size={20}
+                color="var(--text-tertiary)"
+                baseUrl={baseUrl}
+              />
+            </button>
+          )}
         </div>
       </div>
     </div>
