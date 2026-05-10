@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
-import useSegmentedIndicator from '../timeline/hooks/useSegmentedIndicator.js';
 
 /**
  * ReportCanvas — "리포트" 페이지 Pure 컴포넌트.
@@ -17,12 +17,12 @@ import useSegmentedIndicator from '../timeline/hooks/useSegmentedIndicator.js';
  * 모든 데이터는 props 로 받는다 (page wrapper 가 demo/실데이터 소유).
  * shape: TimelineWeeklyView.jsx 상단 jsdoc 참조.
  */
-const PERIODS = [
-  { key: 'weekly', label: 'Weekly' },
-  { key: 'monthly', label: 'Monthly' },
-  { key: 'quarterly', label: 'Quarterly' },
-  { key: 'semiAnnually', label: 'Semi-annually' },
-  { key: 'annually', label: 'Annually' },
+const PERIOD_ITEMS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'semiAnnually', label: 'Semi-annually' },
+  { value: 'annually', label: 'Annually' },
 ];
 
 export default function ReportCanvas({
@@ -48,11 +48,6 @@ export default function ReportCanvas({
     if (onPeriodChange) onPeriodChange(next);
     else setInternalPeriod(next);
   };
-  const periodKeys = useMemo(() => PERIODS.map((p) => p.key), []);
-  const { itemsRef: tabsRef, indicator: tabsIndicator } = useSegmentedIndicator(
-    periodKeys,
-    effectivePeriod,
-  );
 
   return (
     <main className="tl-page report-page">
@@ -68,28 +63,11 @@ export default function ReportCanvas({
       </div>
 
       <div className="tl-tabs-row">
-        <div className="tl-tabs">
-          {PERIODS.map((p, i) => (
-            <button
-              key={p.key}
-              ref={(el) => {
-                tabsRef.current[i] = el;
-              }}
-              type="button"
-              className={`tl-tab ${effectivePeriod === p.key ? 'is-active' : ''}`}
-              onClick={() => handlePeriodClick(p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
-          {tabsIndicator && (
-            <span
-              className="tl-tabs-indicator"
-              style={{ left: tabsIndicator.left, width: tabsIndicator.width }}
-              aria-hidden="true"
-            />
-          )}
-        </div>
+        <Tabs
+          items={PERIOD_ITEMS}
+          value={effectivePeriod}
+          onChange={handlePeriodClick}
+        />
         <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon
             src="/icons-solid/calendar-check-02.svg"

@@ -1,5 +1,7 @@
 // Shared
 export { default as Icon } from './shared/Icon.jsx';
+export { default as SegmentedControl } from './shared/SegmentedControl.jsx';
+export { default as Tabs } from './shared/Tabs.jsx';
 
 // Layout
 export { default as Sidebar } from './layout/Sidebar.jsx';
