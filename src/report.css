@@ -189,7 +189,37 @@
   color: var(--colors-text-textErrorPrimary, #d92d20);
 }
 
-/* Share 버튼 — 우측 상단 */
+/* 우측 액션 영역 — generate 버튼(active 행) + share 버튼 */
+.report-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* "지금 생성하기" 버튼 — 보라→핑크 그라디언트, 흰 텍스트.
+   Figma 16961:28104. */
+.report-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #7873f5 0%, #ec77ab 100%);
+  color: var(--colors-base-white);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.report-generate-btn:hover {
+  filter: brightness(0.96);
+}
+
+/* Share 버튼 — 우측 끝 */
 .report-row-share {
   display: inline-flex;
   align-items: center;

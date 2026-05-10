@@ -38,12 +38,14 @@ export default function ReportCanvas({
   //   periodRange  '2026년 4월 7일 ~ 4월 14일' 등 부제 (날짜 범위)
   //   reports      ReportWeeklyRow 행 데이터 배열
   //                shape: { id, badge, dateRange, status?, isActive?,
-  //                         snippetCount, activeDays, healthScore, healthLevel }
+  //                         showGenerate?, snippetCount?, activeDays?,
+  //                         healthScore?, healthLevel? }
   periodTitle,
   periodRange,
   reports = [],
   onReportClick,
   onReportShare,
+  onReportGenerate,
   // Google Calendar 연동 상태. 기본 true — 연동 중 라벨.
   gcalConnected = true,
 }) {
@@ -114,6 +116,7 @@ export default function ReportCanvas({
               dateRange={r.dateRange}
               status={r.status}
               isActive={r.isActive}
+              showGenerate={r.showGenerate}
               snippetCount={r.snippetCount}
               activeDays={r.activeDays}
               healthScore={r.healthScore}
@@ -121,6 +124,7 @@ export default function ReportCanvas({
               baseUrl={baseUrl}
               onClick={onReportClick ? () => onReportClick(r) : undefined}
               onShare={onReportShare ? () => onReportShare(r) : undefined}
+              onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
             />
           ))}
         </div>

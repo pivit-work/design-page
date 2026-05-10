@@ -11,10 +11,8 @@ const DEMO_REPORTS = [
     dateRange: '2026년 4월 7일 ~ 4월 12일',
     status: '진행 중',
     isActive: true,
-    snippetCount: 9,
-    activeDays: 5,
-    healthScore: 8.7,
-    healthLevel: 'good',
+    // 이번 주 리포트는 아직 미생성 — 통계 라인 대신 "지금 생성하기" 버튼.
+    showGenerate: true,
   },
   {
     id: 'w-1',
