@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
 
@@ -31,7 +31,8 @@ const buildChartPath = (healthData) => {
 
 export default function TimelineWeeklyView({
   baseUrl,
-  // Period tab — controlled. 부모가 주차 변경 시 새 report 를 fetch 해서 주입.
+  // Period tab — controlled or uncontrolled. 부모가 안 넘기면 내부 state 로
+  // 'thisWeek' 시작. (controlled 미주입 시 어느 버튼도 active 아닌 버그 방지)
   periodTab,
   onPeriodTabChange,
   // Report data — null 이면 빈 상태(생성 전), 객체면 전체 리포트 렌더.
@@ -44,6 +45,12 @@ export default function TimelineWeeklyView({
 }) {
   const cardInnerRef = useRef(null);
   const prevReportIdRef = useRef(null);
+  const [internalPeriodTab, setInternalPeriodTab] = useState('thisWeek');
+  const effectivePeriodTab = periodTab ?? internalPeriodTab;
+  const handlePeriodTabChange = (next) => {
+    if (onPeriodTabChange) onPeriodTabChange(next);
+    else setInternalPeriodTab(next);
+  };
 
   // 빈 상태 → 리포트 로드 시점에서만 자식 요소들을 순차 페이드인.
   // 이미 렌더된 상태에서 report 객체만 바뀌어도 재실행되면 어색하므로
@@ -79,18 +86,18 @@ export default function TimelineWeeklyView({
           <button
             type="button"
             role="tab"
-            aria-selected={periodTab === 'lastWeek'}
-            className={`seg-item ${periodTab === 'lastWeek' ? 'is-active' : ''}`}
-            onClick={() => onPeriodTabChange?.('lastWeek')}
+            aria-selected={effectivePeriodTab === 'lastWeek'}
+            className={`seg-item ${effectivePeriodTab === 'lastWeek' ? 'is-active' : ''}`}
+            onClick={() => handlePeriodTabChange('lastWeek')}
           >
             지난주
           </button>
           <button
             type="button"
             role="tab"
-            aria-selected={periodTab === 'thisWeek'}
-            className={`seg-item ${periodTab === 'thisWeek' ? 'is-active' : ''}`}
-            onClick={() => onPeriodTabChange?.('thisWeek')}
+            aria-selected={effectivePeriodTab === 'thisWeek'}
+            className={`seg-item ${effectivePeriodTab === 'thisWeek' ? 'is-active' : ''}`}
+            onClick={() => handlePeriodTabChange('thisWeek')}
           >
             이번주
           </button>

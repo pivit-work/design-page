@@ -110,11 +110,14 @@
    pivit 전역 segmented control 표준. 지난주/이번주 등 동일 패턴은 모두
    이 클래스를 쓴다.
 
-   스펙 (user 가 준 토큰 값 그대로):
-     컨테이너   bg rgba(0,0,0,0.03), padding 4, gap 2, radius 8
-     비선택      bg transparent, padding 4 8, radius 6, color #b1b6be(text-tertiary)
-     선택       bg #ffffff, 0.5px solid #f9fafb, radius 8,
-                box-shadow 0 4 6 -1 rgba(10,13,18,0.08), color #687079(text-secondary)
+   스펙 (모두 design-system 토큰 참조 — hex 하드코딩 금지):
+     컨테이너   bg --bg-active, padding 4, gap 2, radius 8
+     비선택      bg transparent, padding 4 8, radius 6,
+                color --text-tertiary
+     선택       bg --colors-base-white,
+                0.5px solid --colors-foreground-fgQuaternary, radius 8,
+                box-shadow --colors-effects-shadows-shadowLg01,
+                color --text-secondary
      글씨       14/20 Bold
 
    기본은 inline-flex (content-sized). 가로 꽉 채워야 하는 위치에서는
@@ -125,10 +128,7 @@
   gap: 2px;
   padding: 4px;
   border-radius: 8px;
-  /* user spec 의 alpha rgba(0,0,0,0.03) 은 페이지 bg 위에서 너무 옅어 선택
-     pill 이 안 보임. 시각 타깃(Figma image #11)대로 명확히 보이도록 솔리드
-     gray-200 (#e9eaeb) 사용. */
-  background: #e9eaeb;
+  background: var(--bg-active);
   font-family: inherit;
 }
 .seg-control.is-block {
@@ -147,14 +147,14 @@
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
-  color: #b1b6be;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 .seg-item.is-active {
-  background: #ffffff;
-  border: 0.5px solid #f9fafb;
+  background: var(--colors-base-white);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary);
   border-radius: 8px;
-  color: #687079;
-  box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08);
+  color: var(--text-secondary);
+  box-shadow: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01);
 }
