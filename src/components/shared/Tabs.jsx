@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import useSegmentedIndicator from './useSegmentedIndicator.js';
 
 /**
@@ -16,7 +17,7 @@ import useSegmentedIndicator from './useSegmentedIndicator.js';
  *   className 추가 클래스 (.tl-tabs 래퍼)
  */
 export default function Tabs({ items, value, onChange, className = '' }) {
-  const values = items.map((it) => it.value);
+  const values = useMemo(() => items.map((it) => it.value), [items]);
   const { itemsRef, indicator } = useSegmentedIndicator(values, value);
 
   return (

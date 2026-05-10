@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import useSegmentedIndicator from './useSegmentedIndicator.js';
 
 /**
@@ -25,7 +26,7 @@ export default function SegmentedControl({
   ariaLabel,
   className = '',
 }) {
-  const values = items.map((it) => it.value);
+  const values = useMemo(() => items.map((it) => it.value), [items]);
   const { itemsRef, indicator } = useSegmentedIndicator(values, value);
 
   return (
