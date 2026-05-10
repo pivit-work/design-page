@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { ReportCanvas } from './components';
+import { DEMO_WEEKLY_REPORT } from './components/timeline/weekly-demo-data.js';
 
 /**
  * ReportPage — "리포트" 페이지 demo wrapper.
- * Figma 16883:27926 기준.
+ * Figma 16883:27926.
+ *
+ * 행을 클릭하면 selectedReport state 가 세팅되어 ReportCanvas 가
+ * TimelineWeeklyView 디테일 뷰를 렌더 (목록 → 디테일 전환).
  */
 const DEMO_REPORTS = [
   {
@@ -11,8 +16,8 @@ const DEMO_REPORTS = [
     dateRange: '2026년 4월 7일 ~ 4월 12일',
     status: '진행 중',
     isActive: true,
-    // 이번 주 리포트는 아직 미생성 — 통계 라인 대신 "지금 생성하기" 버튼.
     showGenerate: true,
+    // 미생성 상태 — weeklyReport 없음. 클릭해도 디테일 안 열림.
   },
   {
     id: 'w-1',
@@ -22,6 +27,7 @@ const DEMO_REPORTS = [
     activeDays: 5,
     healthScore: 8.7,
     healthLevel: 'good',
+    weeklyReport: DEMO_WEEKLY_REPORT,
   },
   {
     id: 'w-2',
@@ -31,6 +37,7 @@ const DEMO_REPORTS = [
     activeDays: 5,
     healthScore: 6.5,
     healthLevel: 'warning',
+    weeklyReport: DEMO_WEEKLY_REPORT,
   },
   {
     id: 'w-3',
@@ -40,6 +47,7 @@ const DEMO_REPORTS = [
     activeDays: 5,
     healthScore: 6.5,
     healthLevel: 'warning',
+    weeklyReport: DEMO_WEEKLY_REPORT,
   },
   {
     id: 'w-4',
@@ -49,10 +57,17 @@ const DEMO_REPORTS = [
     activeDays: 5,
     healthScore: 3.8,
     healthLevel: 'error',
+    weeklyReport: DEMO_WEEKLY_REPORT,
   },
 ];
 
 export default function ReportPage({ baseUrl }) {
+  const [selectedReport, setSelectedReport] = useState(null);
+
+  const handleReportClick = (r) => {
+    if (r.weeklyReport) setSelectedReport(r);
+  };
+
   return (
     <ReportCanvas
       baseUrl={baseUrl}
@@ -60,6 +75,9 @@ export default function ReportPage({ baseUrl }) {
       periodTitle="이번 주"
       periodRange="2026년 4월 7일 ~ 4월 14일"
       reports={DEMO_REPORTS}
+      selectedReport={selectedReport}
+      onReportClick={handleReportClick}
+      onCloseReport={() => setSelectedReport(null)}
     />
   );
 }

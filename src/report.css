@@ -219,6 +219,43 @@
   filter: brightness(0.96);
 }
 
+/* 디테일 뷰 — 행 클릭 시 목록 대신 TimelineWeeklyView 렌더 */
+.report-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.report-detail-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px 6px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.report-detail-back:hover {
+  background: var(--componentColors-alpha-alphaBlack3);
+}
+
+/* 디테일 본문(TimelineWeeklyView) 의 .tl-weekly 마진 충돌 방지 — 외부에서
+   이미 padding/gap 을 주고 있어 좌측 12 마진 제거. */
+.report-detail .tl-weekly {
+  margin: 0;
+  padding-right: 0;
+}
+
 /* Share 버튼 — 우측 끝 */
 .report-row-share {
   display: inline-flex;

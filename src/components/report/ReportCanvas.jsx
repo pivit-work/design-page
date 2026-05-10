@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
 import ReportWeeklyRow from './ReportWeeklyRow.jsx';
 
 /**
@@ -46,6 +47,10 @@ export default function ReportCanvas({
   onReportClick,
   onReportShare,
   onReportGenerate,
+  // 디테일 뷰 — selectedReport 가 있으면 본문이 TimelineWeeklyView 로 전환.
+  // shape: 위 reports 행의 한 객체 (그 안의 weeklyReport 가 실제 리포트).
+  selectedReport,
+  onCloseReport,
   // Google Calendar 연동 상태. 기본 true — 연동 중 라벨.
   gcalConnected = true,
 }) {
@@ -103,31 +108,55 @@ export default function ReportCanvas({
           </span>
         </div>
 
-        <div className="report-period-head">
-          {periodRange && <p className="report-period-range">{periodRange}</p>}
-          {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
-        </div>
-
-        <div className="report-list">
-          {reports.map((r) => (
-            <ReportWeeklyRow
-              key={r.id}
-              badge={r.badge}
-              dateRange={r.dateRange}
-              status={r.status}
-              isActive={r.isActive}
-              showGenerate={r.showGenerate}
-              snippetCount={r.snippetCount}
-              activeDays={r.activeDays}
-              healthScore={r.healthScore}
-              healthLevel={r.healthLevel}
+        {selectedReport ? (
+          <div className="report-detail">
+            <button
+              type="button"
+              className="report-detail-back"
+              onClick={onCloseReport}
+            >
+              <Icon
+                src="/icons/chevron-left.svg"
+                size={16}
+                color="currentColor"
+                baseUrl={baseUrl}
+              />
+              <span>목록으로</span>
+            </button>
+            <TimelineWeeklyView
               baseUrl={baseUrl}
-              onClick={onReportClick ? () => onReportClick(r) : undefined}
-              onShare={onReportShare ? () => onReportShare(r) : undefined}
-              onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
+              report={selectedReport.weeklyReport}
             />
-          ))}
-        </div>
+          </div>
+        ) : (
+          <>
+            <div className="report-period-head">
+              {periodRange && <p className="report-period-range">{periodRange}</p>}
+              {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
+            </div>
+
+            <div className="report-list">
+              {reports.map((r) => (
+                <ReportWeeklyRow
+                  key={r.id}
+                  badge={r.badge}
+                  dateRange={r.dateRange}
+                  status={r.status}
+                  isActive={r.isActive}
+                  showGenerate={r.showGenerate}
+                  snippetCount={r.snippetCount}
+                  activeDays={r.activeDays}
+                  healthScore={r.healthScore}
+                  healthLevel={r.healthLevel}
+                  baseUrl={baseUrl}
+                  onClick={onReportClick ? () => onReportClick(r) : undefined}
+                  onShare={onReportShare ? () => onReportShare(r) : undefined}
+                  onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
