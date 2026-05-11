@@ -192,16 +192,23 @@ export default function SnippetCanvas({
             <div className="snippet-empty">
               <div className="snippet-empty-inner">
                 <img className="snippet-empty-paper" src={`${baseUrl}paper-empty.svg`} alt="" aria-hidden="true" />
-                <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
-                <p className="snippet-empty-desc">
-                  오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.
-                  <br />
-                  AI가 OKR 달성 근거로 자동 연결합니다.
-                </p>
-                <button type="button" className="snippet-empty-btn" onClick={onWriteNow}>
-                  <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-                  <span>지금 작성하기</span>
-                </button>
+                {isManagerView ? (
+                  // 매니저가 멤버의 스니핏을 볼 때 — 안내문/작성 버튼 없이 타이틀만.
+                  <p className="snippet-empty-title">아직 작성된 스니핏이 없습니다</p>
+                ) : (
+                  <>
+                    <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
+                    <p className="snippet-empty-desc">
+                      오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.
+                      <br />
+                      AI가 OKR 달성 근거로 자동 연결합니다.
+                    </p>
+                    <button type="button" className="snippet-empty-btn" onClick={onWriteNow}>
+                      <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+                      <span>지금 작성하기</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )
