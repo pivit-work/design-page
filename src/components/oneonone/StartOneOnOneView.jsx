@@ -13,6 +13,10 @@ import Icon from '../shared/Icon.jsx';
  * member shape: { name, role, avatar, badge? }
  */
 const MEMBER_SUPPORTING = '2026.04.08 · 수시 · 2026.03.06 – 2026.04.08';
+// 녹음 시작 후 sticky 미니 위젯용 더미 데이터.
+const REC_MEETING_TIME = '2026.04.08 · 11:00 ~';
+const REC_ELAPSED = '04:29';
+const REC_WAVE = [5, 5, 14, 9, 9, 12];
 
 const PREP_BARS = [
   { who: '김민준', pct: 50 },
@@ -147,6 +151,12 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
   // 아젠다"를 추가/삭제할 수 있다.
   const [mgrAgendas, setMgrAgendas] = useState(INITIAL_MGR_AGENDAS);
   const [agendaInput, setAgendaInput] = useState('');
+  // "시작하기" → 녹음 시작: 페이지 최상단으로 스크롤 + sticky 미니 녹음 위젯 노출.
+  const [recording, setRecording] = useState(false);
+  const startMeeting = () => {
+    setRecording(true);
+    document.querySelector('.ono-page')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onBack?.(); };
@@ -184,6 +194,38 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
   return (
     <div className="ono-start-view">
       <div className="ono-start-view-card">
+        {recording && (
+          <div className="ono-start-rec-wrap">
+            <div className="ono-start-rec-mini">
+              <div className="ono-start-rec-head">
+                <p className="ono-start-rec-title">1on1 녹음 중...</p>
+                <div className="ono-start-rec-member">
+                  <div className="ono-start-rec-avatar">
+                    {member?.avatar && <img src={member.avatar} alt="" />}
+                  </div>
+                  <div className="ono-start-rec-member-info">
+                    <div className="ono-start-rec-name-row">
+                      <span className="ono-start-rec-name">{member?.name ?? '김민준'}</span>
+                      <span className="ono-start-rec-badge">{member?.badge ?? 'P미팅'}</span>
+                    </div>
+                    <span className="ono-start-rec-time">{REC_MEETING_TIME}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="ono-start-rec-bar">
+                <div className="ono-start-rec-timer">
+                  <span className="ono-start-rec-elapsed">{REC_ELAPSED}</span>
+                  <div className="ono-start-rec-wave">
+                    {REC_WAVE.map((h, i) => (
+                      <span key={i} style={{ height: `${h}px` }} />
+                    ))}
+                  </div>
+                </div>
+                <button type="button" className="ono-start-rec-stop" onClick={() => setRecording(false)}>종료</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="ono-start-view-body">
           <p className="ono-start-modal-title">1on1 • 2026.04.12</p>
 
@@ -462,7 +504,7 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
           {allConfirmed ? (
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={onBack}>시작하기</button>
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
               매니저 관점 확정 후 시작 가능({confirmedCount}/4)
