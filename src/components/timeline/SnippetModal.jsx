@@ -76,7 +76,10 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     선택된 태그의 모달 내부 상태 추가는 모달이 직접 처리하므로 호스트는 보통
 //     analytics/카운트 갱신용으로만 쓴다.
 //
-//   input 형태: {whatDidYouDo, whyDidYouDoIt, valuesAdded, highlights, lowlights}
+//   input 형태: {whatDidYouDo, whyDidYouDoIt, valuesAdded, highlights, lowlights,
+//                healthScore, healthNote}
+//     healthScore: 1~10 또는 null (미선택). 호스트는 null 이면 prompt 에서 제외.
+//     healthNote:  영향 요인 자유 입력. summary 톤·컨텍스트 보강용.
 //
 //   각 콜백이 누락되면 해당 버튼은 disabled. 두 콜백을 분리한 이유는 사용자가
 //   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
@@ -201,8 +204,10 @@ export default function SnippetModal({
       valuesAdded: sectionTexts.value,
       highlights: sectionTexts.highlights,
       lowlights: sectionTexts.lowlights,
+      healthScore,
+      healthNote,
     }),
-    [sectionTexts],
+    [sectionTexts, healthScore, healthNote],
   );
 
   const handleSummarize = useCallback(async () => {
