@@ -114,6 +114,15 @@ const LAST_MONTH_SNIPPETS = Array.from({ length: 30 }, (_, i) => {
   };
 });
 
+// 매니저 모드에서 멤버별 데모 스니핏 — 멤버 인덱스에 따라 양을 다르게.
+function memberSnippetSets(memberId) {
+  const idx = DEMO_MEMBERS.findIndex((m) => m.id === memberId);
+  if (idx <= 0) return { thisMonth: DEMO_SNIPPETS, lastMonth: LAST_MONTH_SNIPPETS }; // 줄리엇
+  if (idx === 1) return { thisMonth: DEMO_SNIPPETS.slice(0, 1), lastMonth: LAST_MONTH_SNIPPETS.slice(0, 14) }; // 김지석
+  if (idx === 2) return { thisMonth: [], lastMonth: LAST_MONTH_SNIPPETS.slice(0, 7) }; // 이현서
+  return { thisMonth: [], lastMonth: [] }; // 나머지: 비어 있음
+}
+
 export default function SnippetPage({ baseUrl }) {
   const [periodTab, setPeriodTab] = useState('thisWeek');
   const [isManagerView, setIsManagerView] = useState(false);
@@ -121,11 +130,16 @@ export default function SnippetPage({ baseUrl }) {
   // 모달 — null = 닫힘. snippet 객체면 그 detail 로 prefill, true 면 새 작성.
   const [editing, setEditing] = useState(null);
 
-  // 데모 정책: "이번 달" 2건, "지난 달" 30건(임의), 나머지(이번주/전체)는
-  // 작성한 스니핏이 없는 빈 상태.
+  // 데모 정책:
+  //   멤버 본인 뷰  → 이번 달 2건 / 지난 달 30건 / 나머지 빈 상태
+  //   매니저 모드   → 선택된 멤버의 스니핏 (멤버마다 양이 다름)
+  //   공통적으로 "이번주" / "전체" 탭은 빈 상태.
+  const periodSets = isManagerView
+    ? memberSnippetSets(selectedMemberId)
+    : { thisMonth: DEMO_SNIPPETS, lastMonth: LAST_MONTH_SNIPPETS };
   const visibleSnippets =
-    periodTab === 'thisMonth' ? DEMO_SNIPPETS
-      : periodTab === 'lastMonth' ? LAST_MONTH_SNIPPETS
+    periodTab === 'thisMonth' ? periodSets.thisMonth
+      : periodTab === 'lastMonth' ? periodSets.lastMonth
         : [];
 
   return (
