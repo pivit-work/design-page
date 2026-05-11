@@ -1525,12 +1525,13 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-briefing-toggle {
   border: none;
-  padding: 5px 12px;
-  border-radius: 9999px;
+  padding: 6px;
+  border-radius: 6px;
   background: var(--utility-purple-100, #ebe9fe);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 20px;
   color: var(--utility-purple-600, #6938ef);
   cursor: pointer;
 }
