@@ -74,6 +74,46 @@ const DEMO_SNIPPETS = [
   },
 ];
 
+// "지난 달"(2026년 4월) 데모용 30건. 날짜 내림차순(4월30일 → 4월1일).
+const LM_FRAGMENTS = [
+  'API 응답 캐싱 레이어 도입으로 평균 응답시간 40% 단축. 부하 테스트 시나리오 3종 작성.',
+  '결제 모듈 리팩터링 — 트랜잭션 경계 재정의 및 멱등성 키 적용. 엣지 케이스 12건 정리.',
+  '대시보드 위젯 드래그 정렬 기능 구현. 레이아웃 직렬화 포맷 v2 설계.',
+  '온보딩 플로우 A/B 테스트 셋업. 전환율 추적 이벤트 5종 정의.',
+  '검색 인덱스 재구성 — 동의어 사전 적용 및 한국어 형태소 분석기 튜닝.',
+  '알림 발송 파이프라인 큐 분리. 재시도 정책 및 데드레터 처리 추가.',
+  '권한 모델 RBAC → ABAC 마이그레이션 1단계. 정책 평가 엔진 PoC.',
+  '모바일 웹 성능 개선 — 번들 분할, 이미지 lazy-load, LCP 1.2s 달성.',
+  '데이터 파이프라인 스키마 변경 대응. 다운스트림 영향 분석 및 마이그레이션 스크립트 작성.',
+  '신규 기능 스펙 리뷰 미팅 진행. 디자인-개발 인터페이스 정의서 v1 합의.',
+  '에러 모니터링 알림 룰 재정비. 노이즈 알림 60% 감소, 대응 SLA 명문화.',
+  '컴포넌트 라이브러리 v3 마이그레이션 — 토큰 기반 테마 적용 및 다크모드 대응.',
+];
+const LAST_MONTH_SNIPPETS = Array.from({ length: 30 }, (_, i) => {
+  const day = 30 - i;
+  const summary = `${LM_FRAGMENTS[i % LM_FRAGMENTS.length]} ${LM_FRAGMENTS[(i + 4) % LM_FRAGMENTS.length]}`;
+  return {
+    id: `lm-${day}`,
+    dateLabel: `4월${day}일`,
+    timestamp: `2026.04.${String(day).padStart(2, '0')}`,
+    recent: i === 0,
+    date: new Date(2026, 3, day),
+    summary,
+    detail: {
+      summary,
+      tags: ['개발', '회의', i % 2 ? '리뷰' : '문서'],
+      sections: {
+        what: LM_FRAGMENTS[i % LM_FRAGMENTS.length],
+        why: '제품 안정성과 사용자 경험을 개선하기 위해.',
+        value: '핵심 지표 개선 및 다음 작업 의존성 해소.',
+        highlights: '계획 대비 일정 내 마무리한 점.',
+        lowlights: '테스트 커버리지가 다소 부족했던 점.',
+      },
+      health: { score: 6 + (i % 4), note: '대체로 양호.' },
+    },
+  };
+});
+
 export default function SnippetPage({ baseUrl }) {
   const [periodTab, setPeriodTab] = useState('thisWeek');
   const [isManagerView, setIsManagerView] = useState(false);
@@ -81,9 +121,12 @@ export default function SnippetPage({ baseUrl }) {
   // 모달 — null = 닫힘. snippet 객체면 그 detail 로 prefill, true 면 새 작성.
   const [editing, setEditing] = useState(null);
 
-  // 데모 정책: "이번 달" 탭에서만 리스트가 있고, 나머지(이번주/지난 달/전체)는
-  // 작성한 스니핏이 없는 빈 상태로 보인다.
-  const visibleSnippets = periodTab === 'thisMonth' ? DEMO_SNIPPETS : [];
+  // 데모 정책: "이번 달" 2건, "지난 달" 30건(임의), 나머지(이번주/전체)는
+  // 작성한 스니핏이 없는 빈 상태.
+  const visibleSnippets =
+    periodTab === 'thisMonth' ? DEMO_SNIPPETS
+      : periodTab === 'lastMonth' ? LAST_MONTH_SNIPPETS
+        : [];
 
   return (
     <>
