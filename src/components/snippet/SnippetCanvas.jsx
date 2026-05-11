@@ -1,17 +1,19 @@
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
 import SnippetListRow from './SnippetListRow.jsx';
+import SnippetDatePicker from './SnippetDatePicker.jsx';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
- * Figma: 멤버 뷰 16960:13435 / 매니저 뷰 16960:20541.
+ * Figma: 멤버 뷰 16960:13435 / 매니저 뷰 16960:20541 / 리스트 16960:20172.
  *
  * 매니저 뷰는 멤버 뷰 위에 멤버 아바타 행이 추가된 형태. isManagerView 로 분기.
  * 그 토글은 개발 확인용 — 타이틀 옆 작은 토글 버튼으로 노출.
  *
- * 본문은 현재 빈 상태(작성한 스니핏 없음) 디자인만 구현 — paper 아이콘 +
- * 안내 문구 + "지금 작성하기" 버튼.
+ * 날짜 범위 시작/종료 버튼은 클릭 시 SnippetDatePicker 캘린더 팝오버를 띄운다
+ * (날짜 state 는 컴포넌트 내부에서 관리).
  *
  * 모든 데이터는 props 로 받는다.
  */
@@ -22,14 +24,18 @@ const PERIOD_ITEMS = [
   { value: 'all', label: '전체' },
 ];
 
+function fmtDate(d) {
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
 export default function SnippetCanvas({
   baseUrl,
   // 필터 — 기간 segmented
   periodTab,
   onPeriodTabChange,
-  // 날짜 범위 (현재는 표시만)
-  dateFrom = '',
-  dateTo = '',
+  // 날짜 범위 초기값 (Date). 생략 시 데모 기본값.
+  initialDateFrom,
+  initialDateTo,
   // 검색어 (표시만)
   searchPlaceholder = '키워드 또는 태그로 검색',
   // 통계 카드
@@ -51,6 +57,23 @@ export default function SnippetCanvas({
   onSnippetClick,
 }) {
   const isEmpty = snippets.length === 0;
+
+  const [dateFrom, setDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
+  const [dateTo, setDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
+  // 열린 picker: null | 'from' | 'to' + anchor 정보.
+  const [picker, setPicker] = useState(null);
+
+  const openPicker = (which, e) => {
+    const el = e.currentTarget;
+    setPicker({ which, rect: el.getBoundingClientRect(), el });
+  };
+  const closePicker = () => setPicker(null);
+  const handlePick = (d) => {
+    if (picker?.which === 'from') setDateFrom(d);
+    else if (picker?.which === 'to') setDateTo(d);
+    closePicker();
+  };
+
   return (
     <main className="tl-page snippet-page">
       {/* 헤더 카드 — 타이틀 + 부제 + 우측 "스니핏 작성" 버튼 */}
@@ -96,14 +119,22 @@ export default function SnippetCanvas({
             onChange={onPeriodTabChange}
             ariaLabel="기간 선택"
           />
-          <button type="button" className="snippet-date-btn">
+          <button
+            type="button"
+            className={`snippet-date-btn ${picker?.which === 'from' ? 'is-open' : ''}`}
+            onClick={(e) => openPicker('from', e)}
+          >
             <Icon src="/icons/calendar.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <span>{dateFrom || '시작일'}</span>
+            <span>{fmtDate(dateFrom)}</span>
           </button>
           <span className="snippet-date-sep">-</span>
-          <button type="button" className="snippet-date-btn">
+          <button
+            type="button"
+            className={`snippet-date-btn ${picker?.which === 'to' ? 'is-open' : ''}`}
+            onClick={(e) => openPicker('to', e)}
+          >
             <Icon src="/icons/calendar.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <span>{dateTo || '종료일'}</span>
+            <span>{fmtDate(dateTo)}</span>
           </button>
           <div className="snippet-search">
             <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
@@ -159,6 +190,16 @@ export default function SnippetCanvas({
           </div>
         )}
       </div>
+
+      {picker && (
+        <SnippetDatePicker
+          anchorRect={picker.rect}
+          anchorEl={picker.el}
+          selectedDate={picker.which === 'from' ? dateFrom : dateTo}
+          onSelect={handlePick}
+          onClose={closePicker}
+        />
+      )}
     </main>
   );
 }

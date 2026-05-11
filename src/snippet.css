@@ -247,6 +247,130 @@
   color: var(--text-primary);
 }
 
+/* ── 날짜 picker 팝오버 ─────────────────────────────────────────────────
+   Figma "_Date picker menu" (16961:24216). 월~일(Monday-first) 그리드. */
+.snippet-datepicker {
+  position: fixed;
+  z-index: 200;
+  width: 328px;
+  box-sizing: border-box;
+  background: var(--bg-quaternary, #ffffff);
+  border: 1px solid var(--border-secondary-alt, rgba(0, 0, 0, 0.08));
+  border-radius: 16px;
+  box-shadow:
+    0 32px 64px -12px var(--colors-effects-shadows-shadow3xl01, rgba(10, 13, 18, 0.14)),
+    0 5px 5px -2.5px var(--colors-effects-shadows-shadow3xl02, rgba(10, 13, 18, 0.04));
+  overflow: hidden;
+}
+.snippet-datepicker-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+}
+.snippet-datepicker-month,
+.snippet-datepicker-today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.snippet-datepicker-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.snippet-datepicker-nav:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+.snippet-datepicker-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--colors-foreground-fgSecondary, #687079);
+  white-space: nowrap;
+}
+.snippet-datepicker-today {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-radius: 8px;
+  background: var(--bg-quaternary, #ffffff);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.snippet-datepicker-today:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+.snippet-datepicker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  width: 280px;
+  row-gap: 4px;
+}
+.snippet-datepicker-cell {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.snippet-datepicker-cell.is-head {
+  cursor: default;
+}
+.snippet-datepicker-cell.is-head:hover {
+  background: transparent;
+}
+.snippet-datepicker-cell:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+.snippet-datepicker-cell.is-outside {
+  color: var(--text-disabled, #b1b6be);
+}
+.snippet-datepicker-cell.is-today {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  font-weight: 500;
+}
+.snippet-datepicker-cell.is-selected {
+  background: var(--bg-brand-solid, #2dbd82);
+  color: var(--text-white, #ffffff);
+  font-weight: 500;
+}
+.snippet-datepicker-cell.is-selected:hover {
+  background: var(--bg-brand-solid, #2dbd82);
+}
+
+.snippet-date-btn.is-open {
+  outline: 1px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: -1px;
+}
+
 /* ── 스니핏 리스트 ───────────────────────────────────────────────────────
    Figma 16960:20344. 행: 좌측 날짜 컬럼(100px, border-right) + 우측 요약
    텍스트 + 우측 끝 타임스탬프. recent 행은 그린 틴트, 그 외 white(h:90). */
