@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
+import StartOneOnOneModal from './StartOneOnOneModal.jsx';
 
 /**
  * 1on1 페이지 v2 — Figma node 16816:33877.
@@ -25,19 +26,19 @@ export default function OneOnOneCanvasV2({
   onAddClick,
 }) {
   const [addOpen, setAddOpen] = useState(false);
-  // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 모달 닫힘.
+  // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
   const [scheduleMember, setScheduleMember] = useState(null);
+  // "1on1 진행" 버튼이 눌린 멤버 — null 이면 진행 준비 모달 닫힘.
+  const [startMember, setStartMember] = useState(null);
   const handleAdd = () => {
     onAddClick?.();
     setAddOpen(true);
   };
-  // 멤버 카드의 액션 버튼 클릭 핸들러. "1on1 잡기" 면 예약 모달을 열고,
-  // 그 외엔 데이터가 제공한 onClick 을 그대로 호출.
+  // 멤버 카드의 액션 버튼 클릭 핸들러.
+  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 진행 준비 모달, 그 외 → 데이터 onClick.
   const handleMemberAction = (m, action) => {
-    if (action.label === '1on1 잡기') {
-      setScheduleMember(m);
-      return;
-    }
+    if (action.label === '1on1 잡기') { setScheduleMember(m); return; }
+    if (action.label === '1on1 진행') { setStartMember(m); return; }
     action.onClick?.();
   };
   return (
@@ -81,6 +82,18 @@ export default function OneOnOneCanvasV2({
           void data;
         }}
         icons={icons}
+        baseUrl={baseUrl}
+      />
+
+      {/* 멤버 카드 "1on1 진행" → 진행 준비 모달 */}
+      <StartOneOnOneModal
+        open={!!startMember}
+        member={startMember}
+        onClose={() => setStartMember(null)}
+        onSubmit={(data) => {
+          setStartMember(null);
+          void data;
+        }}
         baseUrl={baseUrl}
       />
 

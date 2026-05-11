@@ -1350,3 +1350,514 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--bg-brand-solid);
   color: var(--text-white);
 }
+
+/* ════════════════════════════════════════════════════════════
+   "1on1 진행" 준비 모달 — Figma 16817:39186 / 16972:15514
+   .ono-add-modal-* 의 오버레이/쉘/푸터를 재사용하고, 720px 카드 + 본문
+   섹션 스타일만 추가한다.
+   ════════════════════════════════════════════════════════════ */
+.ono-start-modal-card {
+  width: 720px;
+  max-width: calc(100vw - 48px);
+}
+.ono-start-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.ono-start-modal-title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--colors-foreground-fgPrimary, #2c3744);
+}
+
+/* 섹션 (준비도 / 매니저 관점 / Recognition) */
+.ono-start-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ono-start-section-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+
+/* 준비도 progress bars */
+.ono-start-prep {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ono-start-prep-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ono-start-prep-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.ono-start-prep-who {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ono-start-prep-pct {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.ono-start-progress-track {
+  width: 100%;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  overflow: hidden;
+}
+.ono-start-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--bg-brand-solid, #2dbd82);
+}
+
+/* CTA bar */
+.ono-start-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.ono-start-cta.is-cta {
+  background: var(--bg-brand-solid, #2dbd82);
+  color: var(--text-white);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.ono-start-cta.is-cta:hover { filter: brightness(0.96); }
+.ono-start-cta.is-done {
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  color: var(--text-secondary);
+}
+.ono-start-cta-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-brand-secondary, #10774d);
+}
+.ono-start-cta-hint {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+/* AI 브리핑 카드 */
+.ono-start-briefing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--utility-purple-50, #f4f3ff);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-briefing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ono-start-briefing-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--utility-purple-500, #7a5af8);
+}
+.ono-start-briefing-toggle {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--utility-purple-500, #7a5af8);
+  cursor: pointer;
+}
+.ono-start-briefing-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ono-start-briefing-subtitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.ono-start-briefing-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+.ono-start-briefing-badges,
+.ono-start-topic-badge { }
+.ono-start-briefing-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ono-start-topic-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 코칭 가이드 카드 */
+.ono-start-coaching-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-coaching-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.ono-start-coaching-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+/* 멤버 AI 보고서 */
+.ono-start-report {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-report-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+.ono-start-report-source {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* OKR 자가 평가 */
+.ono-start-okr {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-okr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ono-start-okr-kr {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ono-start-okr-bars {
+  display: flex;
+  gap: 20px;
+}
+.ono-start-okr-bar {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ono-start-okr-bar-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.ono-start-okr-bar-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ono-start-okr-bar-line .ono-start-progress-track { flex: 1; }
+.ono-start-okr-bar-pct {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.ono-start-okr-alert {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
+.ono-start-upward {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ono-start-upward-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.ono-start-upward-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+
+/* 매니저 관점 / Recognition 필드 */
+.ono-start-mgr {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.ono-start-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ono-start-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ono-start-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ono-start-field-label {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.ono-start-ai-draft-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  border-radius: 6px;
+  background: var(--utility-purple-50, #f4f3ff);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--utility-purple-500, #7a5af8);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ono-start-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 10px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.ono-start-textarea::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-start-textarea:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+.ono-start-ai-warn {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
+
+/* 역량 평가 5-segment 바 */
+.ono-start-caps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ono-start-cap-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ono-start-cap-label {
+  width: 110px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.ono-start-rating {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ono-start-rating-segs {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+.ono-start-rating-seg {
+  flex: 1;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-rating-seg.is-on {
+  background: var(--bg-brand-solid, #2dbd82);
+}
+.ono-start-rating-num {
+  width: 14px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.ono-start-cap-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* 아젠다 / 액션아이템 리스트 */
+.ono-start-agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ono-start-agenda-item {
+  text-align: left;
+  padding: 9px 14px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 8px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.ono-start-agenda-item:hover {
+  background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+.ono-start-agenda-item.is-on {
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--text-brand-secondary, #10774d);
+}
+.ono-start-agenda-add {
+  display: flex;
+  gap: 8px;
+}
+.ono-start-agenda-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 10px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-secondary);
+  outline: none;
+}
+.ono-start-agenda-add input::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-start-agenda-add-btn {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: 1px solid var(--border-secondary, #e6e8ea);
+  border-radius: 10px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ono-start-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 8px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+.ono-start-action-text {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.ono-start-action-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-brand-secondary, #10774d);
+}
