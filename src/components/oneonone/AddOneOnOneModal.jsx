@@ -3,14 +3,16 @@ import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 
 /**
- * "1on1 일정 추가" 모달 — Figma section 16955:18943.
+ * "1on1 일정 추가 / 1on1 잡기" 모달.
  *
- * 5개 인터랙션 상태:
- *  - 기본 (16815:16784)
- *  - 팀원 검색 dropdown (16815:18506)
- *  - 날짜 picker (16815:18667)
- *  - 시간 dropdown (16815:18813)
- *  - 미팅 시간 "직접입력" 선택 시 추가 input (16816:21585)
+ * 두 가지 모드:
+ *  1) member 미지정 — "1on1 일정 추가" (Figma 16955:18943): 상단에 팀원 검색.
+ *  2) member 지정   — "1on1 잡기" (Figma 16815:19137): 상단에 멤버 표시(아바타+
+ *     이름+배지+직무), 검색 없음. 멤버 카드의 "1on1 잡기" 버튼에서 호출.
+ *
+ * 인터랙션: 날짜 picker / 시간 dropdown / 미팅 시간 "직접입력" 시 input.
+ *
+ * member shape: { name, role, avatar, badge? }
  */
 
 const DURATION_OPTIONS = [
@@ -29,7 +31,7 @@ const TIME_OPTIONS = [
   '오후 17:00', '오후 17:30', '오후 18:00',
 ];
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, icons, baseUrl = '' }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '' }) {
   const [search, setSearch] = useState('');
   const [memberOpen, setMemberOpen] = useState(false);
   const [duration, setDuration] = useState('55');
@@ -86,44 +88,64 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, icons, baseU
 
           <div className="ono-add-modal-body" onClick={closePopovers}>
             <div className="ono-add-modal-header">
-              <h2 className="ono-add-modal-title">1on1 일정 추가</h2>
+              <h2 className="ono-add-modal-title">{member ? '1on1 잡기' : '1on1 일정 추가'}</h2>
             </div>
 
             <div className="ono-add-modal-form">
-              {/* 팀원 검색 */}
-              <Field label="팀원 검색">
-                <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
-                  <div className="ono-add-modal-input">
-                    <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
-                    <input
-                      type="text"
-                      placeholder="이름으로 검색 해주세요."
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
-                      onFocus={() => setMemberOpen(true)}
-                      className="ono-add-modal-input-el"
-                    />
+              {member ? (
+                /* "1on1 잡기" 모드 — 멤버 표시 (검색 없음) */
+                <div className="ono-add-modal-member">
+                  <div className="ono-add-modal-member-avatar">
+                    {member.avatar && <img src={member.avatar} alt="" />}
                   </div>
-                  {memberOpen && (
-                    <div className="ono-add-modal-menu ono-add-modal-menu-wide">
-                      {filteredMembers.length === 0 ? (
-                        <div className="ono-add-modal-menu-empty">검색 결과 없음</div>
-                      ) : (
-                        filteredMembers.map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            className="ono-add-modal-menu-item"
-                            onClick={() => { setSearch(m); setMemberOpen(false); }}
-                          >
-                            {m}
-                          </button>
-                        ))
+                  <div className="ono-add-modal-member-info">
+                    <div className="ono-add-modal-member-name-row">
+                      <span className="ono-add-modal-member-name">{member.name}</span>
+                      {member.badge && (
+                        <span className="ono-add-modal-member-badge">{member.badge}</span>
                       )}
                     </div>
-                  )}
+                    {member.role && (
+                      <span className="ono-add-modal-member-role">{member.role}</span>
+                    )}
+                  </div>
                 </div>
-              </Field>
+              ) : (
+                /* "1on1 일정 추가" 모드 — 팀원 검색 */
+                <Field label="팀원 검색">
+                  <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
+                    <div className="ono-add-modal-input">
+                      <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
+                      <input
+                        type="text"
+                        placeholder="이름으로 검색 해주세요."
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
+                        onFocus={() => setMemberOpen(true)}
+                        className="ono-add-modal-input-el"
+                      />
+                    </div>
+                    {memberOpen && (
+                      <div className="ono-add-modal-menu ono-add-modal-menu-wide">
+                        {filteredMembers.length === 0 ? (
+                          <div className="ono-add-modal-menu-empty">검색 결과 없음</div>
+                        ) : (
+                          filteredMembers.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              className="ono-add-modal-menu-item"
+                              onClick={() => { setSearch(m); setMemberOpen(false); }}
+                            >
+                              {m}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Field>
+              )}
 
               {/* 미팅 시간 */}
               <Field label="미팅 시간">
@@ -224,8 +246,8 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, icons, baseU
             <button
               type="button"
               className="ono-add-modal-btn ono-add-modal-btn-primary"
-              onClick={() => onSubmit?.({ search, duration, customDuration, date, time, memo })}
-              disabled={!search}
+              onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time, memo })}
+              disabled={!member && !search}
             >
               예약완료
             </button>

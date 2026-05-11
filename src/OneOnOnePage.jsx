@@ -69,6 +69,7 @@ const NEEDS_ATTENTION = [
     name: '최수현',
     role: 'Frontend Deveolper',
     avatar: PROFILES.choi,
+    badge: 'P미팅',
     severity: 'warning',
     healthScore: '7.9',
     healthSeverity: 'warning',

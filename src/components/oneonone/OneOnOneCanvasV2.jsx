@@ -25,9 +25,20 @@ export default function OneOnOneCanvasV2({
   onAddClick,
 }) {
   const [addOpen, setAddOpen] = useState(false);
+  // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 모달 닫힘.
+  const [scheduleMember, setScheduleMember] = useState(null);
   const handleAdd = () => {
     onAddClick?.();
     setAddOpen(true);
+  };
+  // 멤버 카드의 액션 버튼 클릭 핸들러. "1on1 잡기" 면 예약 모달을 열고,
+  // 그 외엔 데이터가 제공한 onClick 을 그대로 호출.
+  const handleMemberAction = (m, action) => {
+    if (action.label === '1on1 잡기') {
+      setScheduleMember(m);
+      return;
+    }
+    action.onClick?.();
   };
   return (
     <main className="ono-page">
@@ -54,6 +65,19 @@ export default function OneOnOneCanvasV2({
         onSubmit={(data) => {
           // demo: 그냥 닫기. 실제로는 API 호출 등.
           setAddOpen(false);
+          void data;
+        }}
+        icons={icons}
+        baseUrl={baseUrl}
+      />
+
+      {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
+      <AddOneOnOneModal
+        open={!!scheduleMember}
+        member={scheduleMember}
+        onClose={() => setScheduleMember(null)}
+        onSubmit={(data) => {
+          setScheduleMember(null);
           void data;
         }}
         icons={icons}
@@ -87,7 +111,13 @@ export default function OneOnOneCanvasV2({
           </div>
           <div className="ono-member-grid">
             {sec.members.map((m) => (
-              <MemberCard key={m.id} member={m} icons={icons} baseUrl={baseUrl} />
+              <MemberCard
+                key={m.id}
+                member={m}
+                icons={icons}
+                baseUrl={baseUrl}
+                onAction={handleMemberAction}
+              />
             ))}
           </div>
         </section>
@@ -189,7 +219,7 @@ const HEALTH_COLORS = {
   good: { text: 'var(--utility-green-600)', bar: 'var(--utility-green-100)' },
 };
 
-function MemberCard({ member, icons, baseUrl }) {
+function MemberCard({ member, icons, baseUrl, onAction }) {
   const badge = SEVERITY_BADGE[member.severity] ?? SEVERITY_BADGE.good;
   const healthConf = HEALTH_COLORS[member.healthSeverity] ?? HEALTH_COLORS.good;
   const healthPct = Math.max(0, Math.min(100, (parseFloat(member.healthScore) / 10) * 100));
@@ -250,7 +280,7 @@ function MemberCard({ member, icons, baseUrl }) {
               key={i}
               type="button"
               className={`ono-member-btn ${a.variant === 'primary' ? 'ono-member-btn-primary' : ''}`}
-              onClick={a.onClick}
+              onClick={() => onAction?.(member, a)}
             >
               {a.label}
             </button>
