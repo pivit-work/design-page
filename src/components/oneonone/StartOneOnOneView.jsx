@@ -40,7 +40,13 @@ const COACHING_GUIDE = [
 
 const BRIEFING_SUMMARY =
   '김민준 님은 이번 기간(3/6–4/8) 동안 KR1(전환율 15%)을 72%까지 달성했으며 A/B 테스트 적용과 온보딩 문서화가 주요 기여 요인입니다. 반면 KR2(NPS 45점)는 실제 진행률 50%로 자가 평가(55%)보다 낮게 나타났고, 고객 인터뷰 일정이 3주째 미확정 상태입니다. A팀 협업 채널 미개설이 2주 연속 블로커로 기록되었으며, 커리어 방향(PM 전환)에 대한 논의 요청이 Daily Snippet에서 2회, 이전 1on1에서 1회 확인됩니다. Health Check 기준 이번 달 몰입도는 소폭 하락(7→5) 중입니다.';
-const BRIEFING_BADGES = ['KR2 진행 지연', 'A팀 채널 블로커', 'PM 전환 논의', '몰입도 하락'];
+// 브리핑 요약 아래 플래그 배지 — 톤(색)별 + 아이콘.
+const BRIEFING_FLAGS = [
+  { label: '블로커 미해결(2건)', tone: 'error', icon: '/icons-solid/slash-circle-01.svg' },
+  { label: 'KR2 목표 대비 지연', tone: 'warning', icon: '/icons-solid/alert-triangle.svg' },
+  { label: '커리어 논의 요청', tone: 'blue', icon: '/icons-solid/message-notification-circle.svg' },
+  { label: '몰입도 하락', tone: 'purple', icon: '/icons-solid/corner-right-down.svg' },
+];
 
 const MEMBER_REPORT =
   '이번 기간(2026.03.06–04.08) 동안 온보딩 플로우 문서화를 기한 내 완료하고 팀 전체에 공유했습니다. 신규 고객 3사 온보딩을 성공적으로 진행했으며, A/B 테스트 결과를 분석해 전환율 개선안을 제안했습니다. KR1(신규 고객 전환율 15%)은 72%로 순항 중입니다. A/B 테스트 결과 적용이 주요 기여 요인이며 현재 속도 유지 시 기한 내 달성 가능합니다. KR2(NPS 45점)는 50%로, 고객 인터뷰 일정이 3주째 미확정 상태인 것이 현재 가장 큰 병목입니다. 현재 블로커는 ① A팀 협업 채널 미개설(회의록 3/19, 스니핏 2건 반복 언급) ② NPS 고객 인터뷰 일정 미확정입니다. 매니저의 A팀 리더 직접 연결 또는 채널 개설 개입과 고객 인터뷰 대상자 추천이 필요합니다. 인터뷰 진행을 위한 리서치 도구(Maze 또는 Typeform Pro) 접근 권한도 요청드립니다.';
@@ -239,10 +245,15 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
             {briefingExpanded && (
               <>
                 <div className="ono-start-briefing-block">
-                  <p className="ono-start-briefing-text">{BRIEFING_SUMMARY}</p>
+                  <div className="ono-start-briefing-text-box">
+                    <p className="ono-start-briefing-text">{BRIEFING_SUMMARY}</p>
+                  </div>
                   <div className="ono-start-briefing-badges">
-                    {BRIEFING_BADGES.map((b) => (
-                      <span key={b} className="ono-start-topic-badge">{b}</span>
+                    {BRIEFING_FLAGS.map((f) => (
+                      <span key={f.label} className={`ono-start-flag ono-start-flag-${f.tone}`}>
+                        <Icon src={f.icon} size={12} color="currentColor" baseUrl={baseUrl} />
+                        {f.label}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -320,18 +331,18 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                       ))}
                     </div>
                     <div className="ono-start-field-actions">
-                      <button type="button" className="ono-start-ai-draft-btn">
-                        <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
-                        <span>AI 초안</span>
-                      </button>
-                      {briefingExpanded && (
-                        <button
-                          type="button"
-                          className={`ono-start-confirm-btn ${confirmed[sec.key] ? 'is-on' : ''}`}
-                          onClick={() => toggleConfirm(sec.key)}
-                        >
-                          {confirmed[sec.key] ? '확정됨' : '확정'}
+                      {!briefingExpanded ? (
+                        <button type="button" className="ono-start-ai-draft-btn" onClick={generateAll}>
+                          <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
+                          <span>AI 초안</span>
                         </button>
+                      ) : confirmed[sec.key] ? (
+                        <button type="button" className="ono-start-edit-btn" onClick={() => toggleConfirm(sec.key)}>수정</button>
+                      ) : (
+                        <>
+                          <button type="button" className="ono-start-regen-btn" onClick={generateAll}>재생성</button>
+                          <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>확정</button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -342,9 +353,12 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                       ))}
                     </div>
                   )}
+                  {briefingExpanded && confirmed[sec.key] && (
+                    <span className="ono-start-confirmed-label">✓ 확정됨</span>
+                  )}
                   {sec.kind === 'textarea' ? (
                     <textarea
-                      className="ono-start-textarea"
+                      className={`ono-start-textarea ${briefingExpanded && !confirmed[sec.key] ? 'is-ai' : ''}`}
                       placeholder={TEXTAREA_PLACEHOLDER}
                       value={sectionValue(sec.key)}
                       onChange={(e) => setSectionValue(sec.key, e.target.value)}

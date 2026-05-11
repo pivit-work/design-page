@@ -1497,14 +1497,14 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-tertiary);
 }
 
-/* AI 브리핑 카드 */
+/* AI 브리핑 카드 — 연한 그라디언트 배경 위에 흰 요약 박스 + 컬러 플래그 배지 */
 .ono-start-briefing-card {
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 16px;
-  border-radius: 12px;
-  background: var(--utility-purple-50, #f4f3ff);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fdf4fb 0%, #f2f1fb 100%);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-briefing-head {
@@ -1534,21 +1534,25 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-briefing-block {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .ono-start-briefing-subtitle {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
+  line-height: 28px;
   color: var(--text-primary);
+}
+.ono-start-briefing-text-box {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--colors-base-white, #ffffff);
 }
 .ono-start-briefing-text {
   margin: 0;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
 }
-.ono-start-briefing-badges,
-.ono-start-topic-badge { }
 .ono-start-briefing-badges {
   display: flex;
   flex-wrap: wrap;
@@ -1557,15 +1561,48 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-topic-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: 9999px;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--colors-grayLight-50, #f9fafb);
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+/* 브리핑 플래그 배지 — 톤별 색상 + 12px 아이콘 */
+.ono-start-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.ono-start-flag-error {
+  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+  border-color: var(--componentColors-utility-error-utilityError200, #fecdca);
+  color: var(--componentColors-utility-error-utilityError700, #b42318);
+}
+.ono-start-flag-warning {
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+}
+.ono-start-flag-blue {
+  background: var(--componentColors-utility-blue-utilityBlue50, #eff8ff);
+  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
+  color: var(--componentColors-utility-blue-utilityBlue700, #175cd3);
+}
+.ono-start-flag-purple {
+  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
+  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
 }
 /* 매니저 관점 출처 배지 (Daily Snippet / 회의록 / 피드백 / 기존1on1) — brand 톤 */
 .ono-start-source-badge {
@@ -1588,20 +1625,21 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border-radius: 10px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  border-radius: 12px;
+  background: var(--colors-base-white, #ffffff);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-coaching-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
+  line-height: 24px;
   color: var(--text-primary);
 }
 .ono-start-coaching-body {
   margin: 0;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
 }
 
@@ -1617,8 +1655,8 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-report-text {
   margin: 0;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
 }
 .ono-start-report-source {
@@ -1689,7 +1727,7 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--colors-background-bgWarningPrimary, #fffaeb);
 }
 .ono-start-upward-label {
@@ -1755,21 +1793,47 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   flex-shrink: 0;
 }
+/* 매니저 관점 섹션 액션 버튼들 */
 .ono-start-confirm-btn {
-  padding: 4px 12px;
-  border: 1px solid var(--border-secondary, #e6e8ea);
-  border-radius: 9999px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  padding: 5px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--utility-purple-500, #7a5af8);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-white);
+  cursor: pointer;
+}
+.ono-start-regen-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--utility-purple-50, #f4f3ff);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--utility-purple-600, #6938ef);
+  cursor: pointer;
+}
+.ono-start-edit-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-radius: 8px;
+  background: var(--colors-base-white, #ffffff);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
 }
-.ono-start-confirm-btn.is-on {
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  color: var(--text-brand-secondary, #10774d);
+.ono-start-confirmed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
 }
 .ono-start-hint-badges {
   display: flex;
@@ -1781,15 +1845,19 @@ button.ono-add-modal-input { cursor: pointer; }
   min-height: 120px;
   padding: 12px 14px;
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: inherit;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
   outline: none;
   resize: vertical;
   box-sizing: border-box;
+}
+.ono-start-textarea.is-ai {
+  background: var(--utility-purple-50, #f4f3ff);
+  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
 }
 .ono-start-textarea::placeholder { color: var(--text-placeholder, #b1b6be); }
 .ono-start-textarea:focus {
