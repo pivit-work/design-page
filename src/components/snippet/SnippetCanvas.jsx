@@ -1,6 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
+import SnippetListRow from './SnippetListRow.jsx';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -44,9 +45,12 @@ export default function SnippetCanvas({
   // 작성 액션
   onWriteSnippet,
   onWriteNow,
-  // 빈 상태 여부 (현재는 항상 true — 리스트 디자인은 추후)
-  isEmpty = true,
+  // 스니핏 리스트 — 비어 있으면 빈 상태, 있으면 리스트 렌더.
+  //   shape: { id, dateLabel, summary, timestamp, recent? }
+  snippets = [],
+  onSnippetClick,
 }) {
+  const isEmpty = snippets.length === 0;
   return (
     <main className="tl-page snippet-page">
       {/* 헤더 카드 — 타이틀 + 부제 + 우측 "스니핏 작성" 버튼 */}
@@ -123,8 +127,8 @@ export default function SnippetCanvas({
           </div>
         </div>
 
-        {/* 본문 — 빈 상태 */}
-        {isEmpty && (
+        {/* 본문 — 빈 상태 또는 스니핏 리스트 */}
+        {isEmpty ? (
           <div className="snippet-empty">
             <div className="snippet-empty-inner">
               <Icon src="/icons/file-05.svg" size={48} color="var(--text-tertiary)" baseUrl={baseUrl} />
@@ -139,6 +143,19 @@ export default function SnippetCanvas({
                 <span>지금 작성하기</span>
               </button>
             </div>
+          </div>
+        ) : (
+          <div className="snippet-list">
+            {snippets.map((s) => (
+              <SnippetListRow
+                key={s.id}
+                dateLabel={s.dateLabel}
+                summary={s.summary}
+                timestamp={s.timestamp}
+                recent={s.recent}
+                onClick={onSnippetClick ? () => onSnippetClick(s) : undefined}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -76,6 +76,7 @@ export {
 export {
   SnippetCanvas,
   SnippetMemberAvatars,
+  SnippetListRow,
 } from './snippet/index.js';
 
 // Manager

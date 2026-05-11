@@ -246,6 +246,90 @@
   color: var(--text-primary);
 }
 
+/* ── 스니핏 리스트 ───────────────────────────────────────────────────────
+   Figma 16960:20344. 행: 좌측 날짜 컬럼(100px, border-right) + 우측 요약
+   텍스트 + 우측 끝 타임스탬프. recent 행은 그린 틴트, 그 외 white(h:90). */
+.snippet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.snippet-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 90px;
+  border-radius: 6px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.snippet-row:hover {
+  background: var(--colors-grayLight-50, #fafafa);
+}
+.snippet-row:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: -2px;
+}
+.snippet-row.is-recent {
+  height: auto;
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+}
+.snippet-row.is-recent:hover {
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+}
+
+/* 좌측 날짜 컬럼 */
+.snippet-row-date {
+  width: 100px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  border-right: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  text-align: center;
+}
+.snippet-row.is-recent .snippet-row-date {
+  border-right-color: var(--colors-border-borderDisabledSubtle, #e6e8ea);
+}
+
+/* 우측 본문: 요약 텍스트(2줄 truncate) + 타임스탬프 */
+.snippet-row-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  min-width: 0;
+}
+.snippet-row-summary {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.snippet-row-stamp {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
 /* 빈 상태 — 그라디언트 카드 영역 (리포트 카드와 동일 톤) */
 .snippet-empty {
   display: flex;
