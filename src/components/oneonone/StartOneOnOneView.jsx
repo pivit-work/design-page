@@ -4,13 +4,16 @@ import Icon from '../shared/Icon.jsx';
 /**
  * "1on1 진행" 준비 뷰 — Figma 16817:39186(준비1) / 16972:15514(준비2).
  *
- * 멤버 카드의 "1on1 진행" 버튼에서 진입. 모달이 아니라 원온원 페이지 안의
- * 뷰로 표시된다 (720px 중앙 카드). "AI 브리핑 및 매니저 관점 초안 전체 생성"
- * 버튼을 누르면 briefingExpanded=true 가 되어 요약 + 토픽 배지 + 코칭 가이드가
- * 펼쳐지고, 매니저 관점 textarea 가 AI 초안으로 채워진다. "접기"로 다시 닫힘.
+ * 원온원 페이지 안의 뷰 (full-width 카드, 페이지 스크롤). "AI 브리핑 및 매니저
+ * 관점 초안 전체 생성" 버튼을 누르면 briefingExpanded=true 가 되어 요약 + 토픽
+ * 배지 + 코칭 가이드가 펼쳐지고, 매니저 관점 textarea 가 AI 초안으로 채워진다.
+ * 각 매니저 관점 항목을 "확정"하면 카운트가 올라가고, 4/4 가 되면 푸터 버튼이
+ * "시작하기"로 바뀐다.
  *
  * member shape: { name, role, avatar, badge? }
  */
+const MEMBER_SUPPORTING = '2026.04.08 · 수시 · 2026.03.06 – 2026.04.08';
+
 const PREP_BARS = [
   { who: '김민준', pct: 50 },
   { who: '나(매니저)', pct: 5 },
@@ -63,15 +66,16 @@ const CAPABILITIES = [
   { key: 'selfDriven', label: '자가주도성', value: 2 },
 ];
 
-const MEMBER_AGENDAS = [
-  'A팀 협업 채널 개설 — 진행 상황과 매니저 지원이 필요한 부분',
-  'KR2(NPS) 고객 인터뷰 일정 — 대상자 추천과 리서치 도구 권한',
-  'PM 트랙 전환 가능성 — 구체적 로드맵 또는 HR 상담 연결',
+// 매니저 관점 — 확정 카운트 대상 4개 섹션. badges = AI 초안 출처 배지(첫 번째는
+// 강조), hint = (SBI 등) 보조 구조 배지.
+const SOURCE_BADGES = ['Daily Snippet', '회의록', '피드백', '기존1on1'];
+const MGR_SECTIONS = [
+  { key: 'strengths', title: '관찰한 강점', badges: SOURCE_BADGES, kind: 'textarea' },
+  { key: 'sbi', title: '개선 피드백 (SBI 형식)', badges: SOURCE_BADGES, hint: ['Situation', 'Behavior', 'Impact'], kind: 'textarea' },
+  { key: 'support', title: '지원 계획', badges: SOURCE_BADGES, kind: 'textarea' },
+  { key: 'caps', title: '역량 매니저 평가', badges: SOURCE_BADGES, kind: 'caps' },
 ];
-const EXPECTED_ACTIONS = [
-  { text: '매니저가 A팀 리더에게 직접 연락해 협업 채널 개설 — 이번 주 내', badge: '긴급' },
-  { text: 'KR2 고객 인터뷰 일정 4/15까지 확정 (책임자: 김민준)', badge: '중요' },
-];
+const TEXTAREA_PLACEHOLDER = 'AI 초안 생성 또는 직접 입력';
 
 const AI_DRAFTS = {
   strengths:
@@ -82,7 +86,17 @@ const AI_DRAFTS = {
     '① A팀 리더에게 매니저가 직접 연결 — 이번 주 내. ② NPS 고객 인터뷰 대상자 3명 추천 + 리서치 도구(Maze/Typeform Pro) 권한 신청 대행. ③ PM 전환 관련 HR 상담 일정 주선.',
 };
 
-const TOPIC_BADGES = ['업무 전문성', 'OKR', '커리어', '협업'];
+// Recognition & 피드백
+const MEMBER_AGENDAS = [
+  'A팀 협업 채널 — 블로커 해소 방안 논의',
+  'KR2 NPS — 고객 인터뷰 일정 확정',
+  '커리어 성장 기회 검토 (PM 트랙)',
+];
+const INITIAL_MGR_AGENDAS = ['KR2 집중 지원 방안 논의', 'PM 전환 로드맵 — HR 상담 연결 결정'];
+const EXPECTED_ACTIONS = [
+  { text: 'A팀 협업 채널 개설 요청', owner: '나', due: '이번주' },
+  { text: 'PM 전환 HR 상담 연결', owner: '나', due: '4/22' },
+];
 
 function ProgressBar({ pct }) {
   return (
@@ -105,40 +119,8 @@ function RatingBar({ value }) {
   );
 }
 
-function AiDraftBtn({ baseUrl }) {
-  return (
-    <button type="button" className="ono-start-ai-draft-btn">
-      <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
-      <span>AI 초안</span>
-    </button>
-  );
-}
-
-function SectionLabel({ title, badges = [], children }) {
-  return (
-    <div className="ono-start-field-head">
-      <div className="ono-start-field-label-row">
-        <span className="ono-start-field-label">{title}</span>
-        {badges.map((b) => (
-          <span key={b} className="ono-start-topic-badge">{b}</span>
-        ))}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 const AI_WARN =
   'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
-
-function AiWarn({ baseUrl }) {
-  return (
-    <p className="ono-start-ai-warn">
-      <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textWarningPrimary, #dc6803)" baseUrl={baseUrl} />
-      {AI_WARN}
-    </p>
-  );
-}
 
 export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
   const [briefingExpanded, setBriefingExpanded] = useState(false);
@@ -146,9 +128,12 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
   const [sbi, setSbi] = useState('');
   const [support, setSupport] = useState('');
   const [caps] = useState(() => Object.fromEntries(CAPABILITIES.map((c) => [c.key, c.value])));
-  const [selectedAgenda, setSelectedAgenda] = useState([]);
+  // 매니저 관점 4개 항목 확정 상태.
+  const [confirmed, setConfirmed] = useState({ strengths: false, sbi: false, support: false, caps: false });
+  // 아젠다 & 액션아이템: 멤버 제안·예상 액션은 읽기 전용. 매니저만 "매니저 추가
+  // 아젠다"를 추가/삭제할 수 있다.
+  const [mgrAgendas, setMgrAgendas] = useState(INITIAL_MGR_AGENDAS);
   const [agendaInput, setAgendaInput] = useState('');
-  const [extraAgendas, setExtraAgendas] = useState([]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onBack?.(); };
@@ -156,24 +141,31 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onBack]);
 
+  const confirmedCount = Object.values(confirmed).filter(Boolean).length;
+  const allConfirmed = confirmedCount === 4;
+
   const generateAll = () => {
     setBriefingExpanded(true);
     setStrengths(AI_DRAFTS.strengths);
     setSbi(AI_DRAFTS.sbi);
     setSupport(AI_DRAFTS.support);
   };
+  const toggleConfirm = (key) => setConfirmed((p) => ({ ...p, [key]: !p[key] }));
 
-  const toggleAgenda = (a) =>
-    setSelectedAgenda((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
-  const addAgenda = () => {
+  const removeMgrAgenda = (a) => setMgrAgendas((prev) => prev.filter((x) => x !== a));
+  const addMgrAgenda = () => {
     const v = agendaInput.trim();
     if (!v) return;
-    setExtraAgendas((prev) => [...prev, v]);
-    setSelectedAgenda((prev) => [...prev, v]);
+    setMgrAgendas((prev) => [...prev, v]);
     setAgendaInput('');
   };
 
-  const allAgendas = [...MEMBER_AGENDAS, ...extraAgendas];
+  const sectionValue = (key) => ({ strengths, sbi, support }[key] ?? '');
+  const setSectionValue = (key, v) => {
+    if (key === 'strengths') setStrengths(v);
+    else if (key === 'sbi') setSbi(v);
+    else if (key === 'support') setSupport(v);
+  };
 
   return (
     <div className="ono-start-view">
@@ -189,9 +181,9 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
             <div className="ono-add-modal-member-info">
               <div className="ono-add-modal-member-name-row">
                 <span className="ono-add-modal-member-name">{member?.name ?? '김민준'}</span>
-                {member?.badge && <span className="ono-add-modal-member-badge">{member.badge}</span>}
+                <span className="ono-add-modal-member-badge">{member?.badge ?? 'P미팅'}</span>
               </div>
-              {member?.role && <span className="ono-add-modal-member-role">{member.role}</span>}
+              <span className="ono-add-modal-member-role">{MEMBER_SUPPORTING}</span>
             </div>
           </div>
 
@@ -216,7 +208,7 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
             <div className="ono-start-cta is-done">
               <span className="ono-start-cta-left">
                 <Icon src="/icons-solid/check-circle.svg" size={20} color="var(--utility-purple-500, #7a5af8)" baseUrl={baseUrl} />
-                AI 초안 생성 완료 — 0/4 항목 확정됨
+                AI 초안 생성 완료 — {confirmedCount}/4 항목 확정됨
               </span>
               <span className="ono-start-cta-hint">검토 후 확정하세요</span>
             </div>
@@ -315,73 +307,126 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
               매니저 관점{briefingExpanded ? ' (DONE 전까지 멤버 비공개)' : ''}
             </span>
             <div className="ono-start-mgr">
-              <div className="ono-start-field">
-                <SectionLabel title="관찰한 강점" badges={TOPIC_BADGES}><AiDraftBtn baseUrl={baseUrl} /></SectionLabel>
-                <textarea className="ono-start-textarea" placeholder="멤버의 관찰된 강점을 적어주세요." value={strengths} onChange={(e) => setStrengths(e.target.value)} />
-                {briefingExpanded && <AiWarn baseUrl={baseUrl} />}
-              </div>
-              <div className="ono-start-field">
-                <SectionLabel title="개선 피드백 (SBI 형식)" badges={TOPIC_BADGES}><AiDraftBtn baseUrl={baseUrl} /></SectionLabel>
-                <textarea className="ono-start-textarea" placeholder="Situation-Behavior-Impact 형식으로 작성해주세요." value={sbi} onChange={(e) => setSbi(e.target.value)} />
-                {briefingExpanded && <AiWarn baseUrl={baseUrl} />}
-              </div>
-              <div className="ono-start-field">
-                <SectionLabel title="지원 계획" badges={TOPIC_BADGES}><AiDraftBtn baseUrl={baseUrl} /></SectionLabel>
-                <textarea className="ono-start-textarea" placeholder="매니저로서 어떤 지원을 할지 계획을 적어주세요." value={support} onChange={(e) => setSupport(e.target.value)} />
-                {briefingExpanded && <AiWarn baseUrl={baseUrl} />}
-              </div>
-              <div className="ono-start-field">
-                <SectionLabel title="역량 매니저 평가" badges={TOPIC_BADGES}><AiDraftBtn baseUrl={baseUrl} /></SectionLabel>
-                <div className="ono-start-caps">
-                  {CAPABILITIES.map((c) => (
-                    <div key={c.key} className="ono-start-cap-row">
-                      <span className="ono-start-cap-label">{c.label}</span>
-                      <RatingBar value={caps[c.key]} />
+              {MGR_SECTIONS.map((sec) => (
+                <div key={sec.key} className="ono-start-field">
+                  <div className="ono-start-field-head">
+                    <div className="ono-start-field-label-row">
+                      <span className="ono-start-field-label">{sec.title}</span>
+                      {sec.badges.map((b, i) => (
+                        <span key={b} className={`ono-start-topic-badge ${i === 0 ? 'is-source-first' : ''}`}>{b}</span>
+                      ))}
                     </div>
-                  ))}
+                    <div className="ono-start-field-actions">
+                      <button type="button" className="ono-start-ai-draft-btn">
+                        <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
+                        <span>AI 초안</span>
+                      </button>
+                      {briefingExpanded && (
+                        <button
+                          type="button"
+                          className={`ono-start-confirm-btn ${confirmed[sec.key] ? 'is-on' : ''}`}
+                          onClick={() => toggleConfirm(sec.key)}
+                        >
+                          {confirmed[sec.key] ? '확정됨' : '확정'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {sec.hint && (
+                    <div className="ono-start-hint-badges">
+                      {sec.hint.map((h) => (
+                        <span key={h} className="ono-start-topic-badge">{h}</span>
+                      ))}
+                    </div>
+                  )}
+                  {sec.kind === 'textarea' ? (
+                    <textarea
+                      className="ono-start-textarea"
+                      placeholder={TEXTAREA_PLACEHOLDER}
+                      value={sectionValue(sec.key)}
+                      onChange={(e) => setSectionValue(sec.key, e.target.value)}
+                    />
+                  ) : (
+                    <>
+                      <div className="ono-start-caps">
+                        {CAPABILITIES.map((c) => (
+                          <div key={c.key} className="ono-start-cap-row">
+                            <span className="ono-start-cap-label">{c.label}</span>
+                            <RatingBar value={caps[c.key]} />
+                          </div>
+                        ))}
+                      </div>
+                      <p className="ono-start-cap-hint">멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.</p>
+                    </>
+                  )}
+                  {briefingExpanded && (
+                    <p className="ono-start-ai-warn">
+                      <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textWarningPrimary, #dc6803)" baseUrl={baseUrl} />
+                      {AI_WARN}
+                    </p>
+                  )}
                 </div>
-                <p className="ono-start-cap-hint">멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.</p>
-                {briefingExpanded && <AiWarn baseUrl={baseUrl} />}
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Recognition & 피드백 */}
+          {/* 아젠다 & 액션아이템 — 매니저 모드 전용 뷰. 멤버 제안·예상 액션은
+              읽기 전용이며, 매니저는 "매니저 추가 아젠다"만 추가/삭제할 수 있다.
+              일반 직원 뷰는 별도(미구현). */}
           <div className="ono-start-section">
-            <span className="ono-start-section-title">Recognition & 피드백</span>
+            <span className="ono-start-section-title">아젠다 &amp; 액션아이템</span>
             <div className="ono-start-mgr">
+              {/* 멤버 제안 아젠다 — 읽기 전용 */}
               <div className="ono-start-field">
-                <SectionLabel title="멤버 제안 아젠다" />
+                <span className="ono-start-field-label">멤버 제안 아젠다</span>
                 <div className="ono-start-agenda-list">
-                  {allAgendas.map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      className={`ono-start-agenda-item ${selectedAgenda.includes(a) ? 'is-on' : ''}`}
-                      onClick={() => toggleAgenda(a)}
-                    >
-                      {a}
-                    </button>
+                  {MEMBER_AGENDAS.map((a) => (
+                    <div key={a} className="ono-start-agenda-item">
+                      <span className="ono-start-agenda-role is-member">멤버</span>
+                      <span className="ono-start-agenda-text">{a}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* 매니저 추가 아젠다 — 매니저만 추가/삭제 */}
+              <div className="ono-start-field">
+                <span className="ono-start-field-label">매니저 추가 아젠다</span>
+                <div className="ono-start-agenda-list">
+                  {mgrAgendas.map((a) => (
+                    <div key={a} className="ono-start-agenda-item is-mgr">
+                      <span className="ono-start-agenda-role is-manager">매니저</span>
+                      <span className="ono-start-agenda-text">{a}</span>
+                      <button type="button" className="ono-start-agenda-x" aria-label="삭제" onClick={() => removeMgrAgenda(a)}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="4" x2="4" y2="12" />
+                          <line x1="4" y1="4" x2="12" y2="12" />
+                        </svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
                 <div className="ono-start-agenda-add">
                   <input
                     type="text"
-                    placeholder="아젠다를 추가하세요"
+                    placeholder="논의 주제 추가 (Enter)"
                     value={agendaInput}
                     onChange={(e) => setAgendaInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAgenda(); } }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMgrAgenda(); } }}
                   />
-                  <button type="button" className="ono-start-agenda-add-btn" onClick={addAgenda}>추가</button>
+                  <button type="button" className="ono-start-agenda-add-btn" onClick={addMgrAgenda}>추가</button>
                 </div>
               </div>
+              {/* 확정 예상 액션아이템 */}
               <div className="ono-start-field">
-                <SectionLabel title="이번 미팅에서 확정할 액션아이템 (예상)" />
+                <span className="ono-start-field-label">이번 미팅에서 확정할 액션아이템 (예상)</span>
                 <div className="ono-start-agenda-list">
                   {EXPECTED_ACTIONS.map((a) => (
                     <div key={a.text} className="ono-start-action-item">
-                      <span className="ono-start-action-text">{a.text}</span>
-                      <span className="ono-start-action-badge">{a.badge}</span>
+                      <span className="ono-start-action-text">• {a.text}</span>
+                      <span className="ono-start-action-meta">
+                        <span className="ono-start-action-owner">{a.owner}</span>
+                        <span className="ono-start-action-badge">{a.due}</span>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -392,7 +437,13 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
 
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
-          <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={onBack}>시작하기</button>
+          {allConfirmed ? (
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={onBack}>시작하기</button>
+          ) : (
+            <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
+              매니저 관점 확정 후 시작 가능({confirmedCount}/4)
+            </button>
+          )}
         </div>
       </div>
     </div>

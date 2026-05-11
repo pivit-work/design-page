@@ -1356,24 +1356,20 @@ button.ono-add-modal-input { cursor: pointer; }
    모달이 아니라 원온원 페이지 안의 뷰. 720px 카드를 중앙 배치.
    ════════════════════════════════════════════════════════════ */
 .ono-start-view {
-  display: flex;
-  justify-content: center;
-  padding: 0 40px 60px 0;
+  width: 100%;
 }
 .ono-start-view-card {
-  width: 720px;
-  max-width: 100%;
+  width: 100%;
   background: var(--bg-quaternary, #ffffff);
   border-radius: 16px;
-  box-shadow:
-    0 14px 60px -2.5px var(--colors-effects-shadows-shadow3xl02, rgba(10, 13, 18, 0.04)),
-    0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01, rgba(10, 13, 18, 0.14));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  box-shadow: 0 1px 3px var(--colors-effects-shadows-shadowLg01, rgba(10, 13, 18, 0.08));
   overflow: hidden;
 }
 .ono-start-view-body {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 48px;
   padding: 40px 48px 48px;
 }
 .ono-start-view-footer {
@@ -1399,10 +1395,10 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-section-title {
   font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-tertiary);
 }
 
 /* 준비도 progress bars */
@@ -1518,11 +1514,13 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-briefing-toggle {
   border: none;
-  background: transparent;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: var(--utility-purple-100, #ebe9fe);
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--utility-purple-500, #7a5af8);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--utility-purple-600, #6938ef);
   cursor: pointer;
 }
 .ono-start-briefing-block {
@@ -1560,6 +1558,10 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 18px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+.ono-start-topic-badge.is-source-first {
+  color: var(--colors-text-textBrandTertiary, #21a67a);
+  font-weight: 600;
 }
 
 /* 코칭 가이드 카드 */
@@ -1684,7 +1686,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-mgr {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 48px;
 }
 .ono-start-field {
   display: flex;
@@ -1724,6 +1726,33 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-purple-500, #7a5af8);
   cursor: pointer;
   flex-shrink: 0;
+}
+.ono-start-field-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ono-start-confirm-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border-secondary, #e6e8ea);
+  border-radius: 9999px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ono-start-confirm-btn.is-on {
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--text-brand-secondary, #10774d);
+}
+.ono-start-hint-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .ono-start-textarea {
   width: 100%;
@@ -1804,32 +1833,67 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-tertiary);
 }
 
-/* 아젠다 / 액션아이템 리스트 */
+/* 아젠다 / 액션아이템 리스트 — 매니저 모드에서 멤버 제안·예상 액션은 읽기 전용,
+   "매니저 추가 아젠다"만 추가/삭제 가능 */
 .ono-start-agenda-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .ono-start-agenda-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-align: left;
   padding: 9px 14px;
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   border-radius: 8px;
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-family: inherit;
+}
+.ono-start-agenda-role {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.ono-start-agenda-role.is-member {
+  background: var(--utility-blue-50, #eff8ff);
+  border: 1px solid var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
+  color: var(--utility-blue-600, #1570ef);
+}
+.ono-start-agenda-role.is-manager {
+  background: var(--utility-green-100, #dcfae6);
+  border: 1px solid var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  color: var(--utility-green-600, #079455);
+}
+.ono-start-agenda-text {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   line-height: 20px;
   color: var(--text-secondary);
+}
+.ono-start-agenda-x {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-quaternary, #a4a7ae);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.ono-start-agenda-item:hover {
+.ono-start-agenda-x:hover {
   background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-}
-.ono-start-agenda-item.is-on {
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  color: var(--text-brand-secondary, #10774d);
+  color: var(--text-secondary);
 }
 .ono-start-agenda-add {
   display: flex;
@@ -1875,14 +1939,31 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 20px;
   color: var(--text-secondary);
 }
+.ono-start-action-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ono-start-action-owner {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
 .ono-start-action-badge {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   padding: 2px 9px;
   border-radius: 9999px;
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-brand-secondary, #10774d);
+  color: var(--text-secondary);
+}
+.ono-start-footer-disabled {
+  background: var(--bg-brand-solid, #2dbd82);
+  color: var(--text-white);
+  opacity: 0.45;
+  cursor: not-allowed;
 }
