@@ -1378,7 +1378,8 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding-right: 16px;
+  /* 컨텐츠 카드 상단 12px · 우측 12px 떨어진 위치 (spacing-lg) */
+  padding: 12px 12px 0 0;
   pointer-events: none;
 }
 .ono-start-rec-mini {
