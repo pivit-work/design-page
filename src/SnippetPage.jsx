@@ -81,6 +81,10 @@ export default function SnippetPage({ baseUrl }) {
   // 모달 — null = 닫힘. snippet 객체면 그 detail 로 prefill, true 면 새 작성.
   const [editing, setEditing] = useState(null);
 
+  // 데모 정책: "이번 달" 탭에서만 리스트가 있고, 나머지(이번주/지난 달/전체)는
+  // 작성한 스니핏이 없는 빈 상태로 보인다.
+  const visibleSnippets = periodTab === 'thisMonth' ? DEMO_SNIPPETS : [];
+
   return (
     <>
       <SnippetCanvas
@@ -89,15 +93,15 @@ export default function SnippetPage({ baseUrl }) {
         onPeriodTabChange={setPeriodTab}
         initialDateFrom={new Date(2026, 3, 10)}
         initialDateTo={new Date(2026, 3, 15)}
-        recordCount={DEMO_SNIPPETS.length}
-        avgHealth="7.5"
-        avgWrite="4/5"
+        recordCount={visibleSnippets.length}
+        avgHealth={visibleSnippets.length ? '7.5' : '0'}
+        avgWrite={visibleSnippets.length ? '4/5' : '0/5'}
         isManagerView={isManagerView}
         onToggleManagerView={() => setIsManagerView((v) => !v)}
         members={DEMO_MEMBERS}
         selectedMemberId={selectedMemberId}
         onSelectMember={setSelectedMemberId}
-        snippets={DEMO_SNIPPETS}
+        snippets={visibleSnippets}
         onSnippetClick={(s) => setEditing(s)}
         onWriteSnippet={() => setEditing(true)}
         onWriteNow={() => setEditing(true)}
