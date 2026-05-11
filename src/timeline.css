@@ -2809,9 +2809,42 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-/* Footer override — Figma Content: pad 24/48/48/48 */
+/* Footer — Figma 16626:54025: 좌측 "초기화" 버튼 + 우측 "자동 등록됨 HH:MM"
+   텍스트. justify-between, pad 24/48/48/48, border-top. (등록 버튼 없음 —
+   자동 저장 방식) */
 .tl-snippet-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 24px 48px 48px 48px;
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.tl-snippet-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-secondary, #e6e8ea);
+  border-radius: 10px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.tl-snippet-reset-btn:hover {
+  background: var(--bg-primary);
+}
+.tl-snippet-autosave {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  white-space: pre;
 }
 
 /* ===========================

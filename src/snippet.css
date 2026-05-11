@@ -284,10 +284,13 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color 0.15s ease;
+}
+.snippet-datepicker-nav.is-faint {
+  color: var(--text-disabled, #b1b6be);
 }
 .snippet-datepicker-nav:hover {
   background: var(--colors-background-bgPrimaryHover, #e6e8ea);

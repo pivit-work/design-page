@@ -122,17 +122,17 @@ export default function SnippetDatePicker({ anchorRect, anchorEl, selectedDate, 
   return (
     <div ref={popoverRef} className="snippet-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">
       <div className="snippet-datepicker-content">
-        {/* 월 라벨 + chevron */}
+        {/* 월 라벨 + chevron (흐린 톤) */}
         <div className="snippet-datepicker-month">
-          <button type="button" className="snippet-datepicker-nav" onClick={() => goMonth(-1)} aria-label="이전 달">
+          <button type="button" className="snippet-datepicker-nav is-faint" onClick={() => goMonth(-1)} aria-label="이전 달">
             <ChevronLeft />
           </button>
           <span className="snippet-datepicker-label">{MONTHS[viewMonth]} {viewYear}</span>
-          <button type="button" className="snippet-datepicker-nav" onClick={() => goMonth(1)} aria-label="다음 달">
+          <button type="button" className="snippet-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label="다음 달">
             <ChevronRight />
           </button>
         </div>
-        {/* Today 버튼 row */}
+        {/* Today 버튼 row (진한 chevron) */}
         <div className="snippet-datepicker-today-row">
           <button type="button" className="snippet-datepicker-nav" onClick={() => goMonth(-1)} aria-label="이전 달">
             <ChevronLeft />

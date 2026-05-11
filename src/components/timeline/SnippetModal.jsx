@@ -116,6 +116,11 @@ export default function SnippetModal({
   );
   const [healthNote, setHealthNote] = useState(initial?.health?.note ?? '');
   const [scrolled, setScrolled] = useState(false);
+  // 푸터 "자동 등록됨 HH:MM" 라벨 — 모달 마운트 시점의 시각으로 한 번 계산.
+  const [savedAtLabel] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -549,21 +554,15 @@ export default function SnippetModal({
           </div>
         </div>
 
-        <div className="tl-group-modal-actions tl-snippet-modal-actions">
+        <div className="tl-snippet-modal-actions">
           <button
             type="button"
-            className="tl-group-modal-btn tl-group-modal-btn-secondary"
+            className="tl-snippet-reset-btn"
             onClick={handleReset}
           >
             초기화
           </button>
-          <button
-            type="submit"
-            className="tl-group-modal-btn tl-group-modal-btn-primary"
-            disabled={!canSubmit}
-          >
-            등록
-          </button>
+          <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
         </div>
       </form>
     </div>,
