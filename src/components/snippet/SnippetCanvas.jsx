@@ -62,7 +62,7 @@ export default function SnippetCanvas({
               title="개발 확인용 — 매니저/멤버 뷰 전환"
             >
               <span className="snippet-view-toggle-dot" />
-              매니저 보기 {isManagerView ? 'ON' : 'OFF'}
+              매니저 모드 {isManagerView ? 'on' : 'off'}
             </button>
           </div>
           <p className="snippet-subtitle">

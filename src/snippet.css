@@ -100,12 +100,15 @@
 }
 
 /* ── 본문 ───────────────────────────────────────────────────────────────── */
+/* padding 6px(top/left) 은 첫 행 아바타의 focus-ring(box-shadow 4px) 이
+   overflow-y:auto 클립 엣지에 잘리지 않도록 한 것. margin 을 그만큼 줄여
+   시각 위치는 동일하게 유지. */
 .snippet-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 24px 0 12px 12px;
-  padding-right: 28px;
+  margin: 18px 0 12px 6px;
+  padding: 6px 28px 0 6px;
   min-height: 0;
   flex: 1;
   overflow-y: auto;
