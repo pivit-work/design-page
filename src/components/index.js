@@ -72,6 +72,12 @@ export {
   ReportWeeklyRow,
 } from './report/index.js';
 
+// Snippet (스니핏 히스토리)
+export {
+  SnippetCanvas,
+  SnippetMemberAvatars,
+} from './snippet/index.js';
+
 // Manager
 export {
   ManagerCanvas,

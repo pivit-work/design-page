@@ -5,6 +5,7 @@ import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
 import TimelinePage from './TimelinePage';
 import ReportPage from './ReportPage';
+import SnippetPage from './SnippetPage';
 import MeetingsPage from './MeetingsPage';
 import ManagerPage from './ManagerPage';
 import './App.css';
@@ -15,6 +16,7 @@ import './timeline.css';
 import './meetings.css';
 import './manager.css';
 import './report.css';
+import './snippet.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -59,7 +61,7 @@ const STAT_ICONS = {
 };
 
 const MENU = [
-  { icon: ICONS.asterisk, label: '스니핏' },
+  { icon: ICONS.asterisk, label: '스니핏', page: 'snippet' },
   { icon: ICONS.calendarSolid, label: '타임라인', page: 'timeline' },
   { icon: ICONS.dotpoints, label: '리포트', page: 'report' },
   { icon: ICONS.target, label: 'OKR' },
@@ -160,6 +162,7 @@ export default function App() {
       {currentPage === 'oneonone' && <OneOnOnePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'report' && <ReportPage baseUrl={BASE} />}
+      {currentPage === 'snippet' && <SnippetPage baseUrl={BASE} />}
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
     </div>
