@@ -191,7 +191,7 @@ export default function SnippetCanvas({
           ) : (
             <div className="snippet-empty">
               <div className="snippet-empty-inner">
-                <Icon src="/icons/file-05.svg" size={48} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                <img className="snippet-empty-paper" src={`${baseUrl}paper-empty.svg`} alt="" aria-hidden="true" />
                 <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
                 <p className="snippet-empty-desc">
                   오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.

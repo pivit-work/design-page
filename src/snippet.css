@@ -492,43 +492,44 @@
   white-space: nowrap;
 }
 
-/* 빈 상태 — 그라디언트 카드 영역 (리포트 카드와 동일 톤) */
+/* 빈 상태 — Figma 16960:14604. 배경 없음(투명), 중앙 정렬 컬럼. */
 .snippet-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
   min-height: 360px;
-  border-radius: 16px;
-  background: linear-gradient(
-    0deg,
-    rgba(179, 250, 222, 0.09) 0%,
-    rgba(179, 250, 222, 0.09) 27.5%,
-    rgba(210, 214, 219, 0.09) 79%
-  );
+  padding: 0 10px;
 }
 .snippet-empty-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 80px 10px;
+  gap: 16px;
+  padding: 80px 0;
   width: 660px;
   max-width: 100%;
   text-align: center;
 }
+/* Paper 일러스트 — viewBox 84.3×100.8 (그림자 padding 포함). 보이는 종이는
+   약 44px 폭이 되도록 84px 로 렌더. */
+.snippet-empty-paper {
+  width: 84px;
+  height: auto;
+  display: block;
+}
 .snippet-empty-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 30px;
+  line-height: 28px;
   color: var(--text-secondary);
 }
 .snippet-empty-desc {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 28px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
   color: var(--text-tertiary);
 }
 .snippet-empty-btn {
