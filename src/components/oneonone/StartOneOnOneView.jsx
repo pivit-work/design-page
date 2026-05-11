@@ -132,7 +132,10 @@ const AI_WARN =
   'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
 
 export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
+  // briefingExpanded: AI 초안이 생성됐는지(되돌리지 않음 — CTA/매니저 관점 상태 유지).
+  // briefingOpen: 브리핑 카드의 펼친 상세(요약·플래그·코칭 가이드)가 보이는지(접기/펼치기 토글).
   const [briefingExpanded, setBriefingExpanded] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
   const [strengths, setStrengths] = useState('');
   const [sbi, setSbi] = useState('');
   const [support, setSupport] = useState('');
@@ -155,6 +158,7 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
 
   const generateAll = () => {
     setBriefingExpanded(true);
+    setBriefingOpen(true);
     setStrengths(AI_DRAFTS.strengths);
     setSbi(AI_DRAFTS.sbi);
     setSupport(AI_DRAFTS.support);
@@ -235,14 +239,16 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                 <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
                 AI 브리핑
               </span>
-              {briefingExpanded ? (
-                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingExpanded(false)}>접기</button>
+              {briefingOpen ? (
+                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>접기</button>
+              ) : briefingExpanded ? (
+                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>펼치기</button>
               ) : (
                 <button type="button" className="ono-start-briefing-toggle" onClick={generateAll}>브리핑 생성</button>
               )}
             </div>
 
-            {briefingExpanded && (
+            {briefingOpen && (
               <>
                 <div className="ono-start-briefing-block">
                   <div className="ono-start-briefing-text-box">
