@@ -455,7 +455,7 @@ export default function SnippetModal({
                 </button>
               </div>
               <textarea
-                className="tl-snippet-textarea"
+                className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}`}
                 placeholder="관련 내용 입력하면 AI 요약이 활성화됩니다"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
@@ -505,7 +505,7 @@ export default function SnippetModal({
                 </button>
               </div>
               {/* 필드 안에 선택된 태그 chip + 신규 입력 */}
-              <div className="tl-snippet-tag-field">
+              <div className={`tl-snippet-tag-field ${tags.length ? 'is-ai-filled' : ''}`}>
                 {tags.map((t) => (
                   <span key={t} className="tl-snippet-tag tl-snippet-tag-selected">
                     {t}

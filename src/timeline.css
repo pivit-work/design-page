@@ -2622,6 +2622,19 @@
   box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 
+/* AI 생성 내용이 들어찬 Summary/Tags 입력 — Figma 16626:54041:
+   Fill utility-purple-50, Stroke alpha-black-5 1px. */
+.tl-snippet-textarea.is-ai-filled,
+.tl-snippet-tag-field.is-ai-filled {
+  background: var(--utility-purple-50, #f4f3ff);
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+/* 포커스 시에는 brand 강조가 우선 */
+.tl-snippet-textarea.is-ai-filled:focus,
+.tl-snippet-tag-field.is-ai-filled:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
 /* Info banner — Figma spec:
    bg linear-gradient(45deg, rgba(255,164,246,0.11), rgba(183,220,255,0.11)) over white,
    r=6, pad 6, gap 6. 텍스트는 magenta→blue gradient (45deg, #ad00fe → #3ebaf9). */
