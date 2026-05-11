@@ -1433,7 +1433,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-prep-pct {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
 }
 .ono-start-progress-track {
   width: 100%;
@@ -1445,7 +1445,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-progress-fill {
   height: 100%;
   border-radius: 9999px;
-  background: var(--bg-brand-solid, #2dbd82);
+  background: var(--componentColors-utility-blue-utilityBlue100, #d1e9ff);
 }
 
 /* CTA bar — Figma:
@@ -1567,9 +1567,19 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.ono-start-topic-badge.is-source-first {
+/* 매니저 관점 출처 배지 (Daily Snippet / 회의록 / 피드백 / 기존1on1) — brand 톤 */
+.ono-start-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--utility-brand-50, #f1fffa);
+  border: 1px solid var(--componentColors-utility-brand-utilityBrand200, #a6f4c5);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
   color: var(--colors-text-textBrandTertiary, #21a67a);
-  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* 코칭 가이드 카드 */
@@ -1660,9 +1670,9 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-okr-bar-line .ono-start-progress-track { flex: 1; }
 .ono-start-okr-bar-pct {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
   flex-shrink: 0;
 }
 .ono-start-okr-alert {
@@ -1671,23 +1681,27 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--colors-text-textWarningPrimary, #dc6803);
+  color: var(--colors-text-textErrorPrimary, #d92d20);
 }
+/* Upward Feedback — warning(연한 크림) 박스 + 주황 텍스트 */
 .ono-start-upward {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--colors-background-bgWarningPrimary, #fffaeb);
 }
 .ono-start-upward-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--colors-text-textWarningPrimary, #dc6803);
 }
 .ono-start-upward-text {
   margin: 0;
-  font-size: 14px;
-  line-height: 22px;
-  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
 }
 
 /* 매니저 관점 / Recognition 필드 */
@@ -1825,7 +1839,7 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-rating-seg.is-on {
-  background: var(--bg-brand-solid, #2dbd82);
+  background: var(--componentColors-utility-green-utilityGreen200, #a6f4c5);
 }
 .ono-start-rating-num {
   width: 14px;
@@ -1835,6 +1849,9 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-primary);
   flex-shrink: 0;
 }
+.ono-start-rating-num.is-good { color: var(--colors-text-textBrandTertiary, #21a67a); }
+.ono-start-rating-num.is-warn { color: var(--colors-text-textWarningPrimary, #dc6803); }
+.ono-start-rating-num.is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
 .ono-start-cap-hint {
   margin: 0;
   font-size: 12px;

@@ -106,6 +106,9 @@ function ProgressBar({ pct }) {
   );
 }
 
+// 매니저 평가 점수 색상: 4↑ 양호(brand), 3 주의(warning), 2↓ 위험(error).
+const ratingTone = (v) => (v >= 4 ? 'is-good' : v === 3 ? 'is-warn' : 'is-bad');
+
 function RatingBar({ value }) {
   return (
     <div className="ono-start-rating">
@@ -114,7 +117,7 @@ function RatingBar({ value }) {
           <span key={n} className={`ono-start-rating-seg ${n <= value ? 'is-on' : ''}`} />
         ))}
       </div>
-      <span className="ono-start-rating-num">{value}</span>
+      <span className={`ono-start-rating-num ${ratingTone(value)}`}>{value}</span>
     </div>
   );
 }
@@ -287,7 +290,7 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                     </div>
                     {k.alert && (
                       <p className="ono-start-okr-alert">
-                        <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textWarningPrimary, #dc6803)" baseUrl={baseUrl} />
+                        <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textErrorPrimary, #d92d20)" baseUrl={baseUrl} />
                         {k.alert}
                       </p>
                     )}
@@ -312,8 +315,8 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                   <div className="ono-start-field-head">
                     <div className="ono-start-field-label-row">
                       <span className="ono-start-field-label">{sec.title}</span>
-                      {sec.badges.map((b, i) => (
-                        <span key={b} className={`ono-start-topic-badge ${i === 0 ? 'is-source-first' : ''}`}>{b}</span>
+                      {sec.badges.map((b) => (
+                        <span key={b} className="ono-start-source-badge">{b}</span>
                       ))}
                     </div>
                     <div className="ono-start-field-actions">
