@@ -112,13 +112,14 @@ function ProgressBar({ pct }) {
   );
 }
 
-// 매니저 평가 점수 색상: 4↑ 양호(brand), 3 주의(warning), 2↓ 위험(error).
-const ratingTone = (v) => (v >= 4 ? 'is-good' : v === 3 ? 'is-warn' : 'is-bad');
+// 매니저 평가 점수 색상: 3 주의(warning), 2↓ 위험(error), 그 외(4·5)는 기본 색.
+const ratingTone = (v) => (v === 3 ? 'is-warn' : v <= 2 ? 'is-bad' : '');
 
-function RatingBar({ value }) {
+// ai=true(AI 초안 생성됨)이면 막대 색이 green → purple 로 바뀐다.
+function RatingBar({ value, ai = false }) {
   return (
     <div className="ono-start-rating">
-      <div className="ono-start-rating-segs">
+      <div className={`ono-start-rating-segs ${ai ? 'is-ai' : ''}`}>
         {[1, 2, 3, 4, 5].map((n) => (
           <span key={n} className={`ono-start-rating-seg ${n <= value ? 'is-on' : ''}`} />
         ))}
@@ -375,7 +376,7 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
                         {CAPABILITIES.map((c) => (
                           <div key={c.key} className="ono-start-cap-row">
                             <span className="ono-start-cap-label">{c.label}</span>
-                            <RatingBar value={caps[c.key]} />
+                            <RatingBar value={caps[c.key]} ai={briefingExpanded} />
                           </div>
                         ))}
                       </div>

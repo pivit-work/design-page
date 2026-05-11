@@ -1921,6 +1921,10 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rating-seg.is-on {
   background: var(--componentColors-utility-green-utilityGreen200, #a6f4c5);
 }
+/* AI 초안 생성 후엔 막대 색이 green → purple 로 */
+.ono-start-rating-segs.is-ai .ono-start-rating-seg.is-on {
+  background: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+}
 .ono-start-rating-num {
   width: 14px;
   text-align: right;
@@ -1929,7 +1933,6 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-primary);
   flex-shrink: 0;
 }
-.ono-start-rating-num.is-good { color: var(--colors-text-textBrandTertiary, #21a67a); }
 .ono-start-rating-num.is-warn { color: var(--colors-text-textWarningPrimary, #dc6803); }
 .ono-start-rating-num.is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
 .ono-start-cap-hint {
