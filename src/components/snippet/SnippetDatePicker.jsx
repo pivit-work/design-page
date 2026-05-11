@@ -132,15 +132,9 @@ export default function SnippetDatePicker({ anchorRect, anchorEl, selectedDate, 
             <ChevronRight />
           </button>
         </div>
-        {/* Today 버튼 row (진한 chevron) */}
+        {/* Today 버튼 row */}
         <div className="snippet-datepicker-today-row">
-          <button type="button" className="snippet-datepicker-nav" onClick={() => goMonth(-1)} aria-label="이전 달">
-            <ChevronLeft />
-          </button>
           <button type="button" className="snippet-datepicker-today" onClick={goToday}>Today</button>
-          <button type="button" className="snippet-datepicker-nav" onClick={() => goMonth(1)} aria-label="다음 달">
-            <ChevronRight />
-          </button>
         </div>
         {/* 그리드 */}
         <div className="snippet-datepicker-grid">

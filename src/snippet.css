@@ -297,11 +297,16 @@
   gap: 12px;
   padding: 20px 24px;
 }
-.snippet-datepicker-month,
-.snippet-datepicker-today-row {
+.snippet-datepicker-month {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+}
+.snippet-datepicker-today-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
 }
 .snippet-datepicker-nav {
