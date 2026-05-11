@@ -503,7 +503,9 @@ export default function StartOneOnOneView({ member, onBack, baseUrl = '' }) {
 
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
-          {allConfirmed ? (
+          {recording ? (
+            <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={() => setRecording(false)}>1on1 종료</button>
+          ) : allConfirmed ? (
             <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>

@@ -2220,3 +2220,10 @@ button.ono-add-modal-input { cursor: pointer; }
   opacity: 0.45;
   cursor: not-allowed;
 }
+/* 녹음 중일 때 푸터 우측 버튼: "1on1 종료" (error solid) */
+.ono-start-footer-end {
+  background: var(--colors-background-bgErrorSolid, #f04438);
+  color: var(--text-white);
+  border: none;
+  border-radius: 10px;
+}
