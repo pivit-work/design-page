@@ -118,6 +118,7 @@ export default function ReportCanvas({
               baseUrl={baseUrl}
               report={selectedReport.weeklyReport}
               isGenerating={isGenerating}
+              showInfoBanner={false}
             />
           </div>
         ) : (

@@ -38,6 +38,8 @@ export default function TimelineWeeklyView({
   isGenerating = false,
   onGenerate,
   onViewHistory,
+  // AI 안내 배너 노출 여부. 리포트 디테일 뷰에서는 false (상위에서 안 띄움).
+  showInfoBanner = true,
 }) {
   const cardInnerRef = useRef(null);
   const prevReportIdRef = useRef(null);
@@ -70,18 +72,19 @@ export default function TimelineWeeklyView({
 
   return (
     <div className="tl-weekly">
-      {/* AI info banner */}
-      <div className="tl-weekly-info">
-        <Icon
-          src="/icons-solid/ai-chat-01.svg"
-          size={14}
-          color="#ad00fe"
-          baseUrl={baseUrl}
-        />
-        <span className="tl-weekly-info-text">
-          AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다. 매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
-        </span>
-      </div>
+      {showInfoBanner && (
+        <div className="tl-weekly-info">
+          <Icon
+            src="/icons-solid/ai-chat-01.svg"
+            size={14}
+            color="#ad00fe"
+            baseUrl={baseUrl}
+          />
+          <span className="tl-weekly-info-text">
+            AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다. 매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
+          </span>
+        </div>
+      )}
 
       {/* Main content card — Figma: wide white card with 660px 중앙 컬럼 */}
       <article className="tl-weekly-card">
