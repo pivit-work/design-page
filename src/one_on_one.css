@@ -1504,7 +1504,10 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 20px;
   padding: 16px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #fdf4fb 0%, #f2f1fb 100%);
+  /* Figma "Gradient/Linear/37": Colors/Base/white 위에 11% 불투명 핑크(#FFA4F6 0%)→블루(#B7DCFF 100%) 리니어 그라디언트(45°). tokens.css 에 그라디언트 토큰 없음 */
+  background:
+    linear-gradient(45deg, rgba(255, 164, 246, 0.11) 0%, rgba(183, 220, 255, 0.11) 100%),
+    var(--colors-base-white, #ffffff);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-briefing-head {
