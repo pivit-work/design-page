@@ -1370,13 +1370,21 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 48px;
-  padding: 40px 48px 48px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 48px;
+  box-sizing: border-box;
 }
 .ono-start-view-footer {
   display: flex;
   gap: 12px;
-  padding: 24px 48px 48px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
   border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  box-sizing: border-box;
 }
 .ono-start-modal-title {
   margin: 0;
