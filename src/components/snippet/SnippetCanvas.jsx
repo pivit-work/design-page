@@ -28,6 +28,20 @@ function fmtDate(d) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+// 검색어(공백 구분 토큰)가 스니핏의 summary/dateLabel/tags 어딘가에 모두
+// 포함되면 매치. 토큰 0개면 전체 통과.
+function matchesQuery(s, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const haystack = [
+    s.summary ?? '',
+    s.dateLabel ?? '',
+    ...(s.detail?.tags ?? s.tags ?? []),
+  ].join(' ').toLowerCase();
+  return tokens.every((t) => haystack.includes(t));
+}
+
 export default function SnippetCanvas({
   baseUrl,
   // 필터 — 기간 segmented
@@ -56,12 +70,17 @@ export default function SnippetCanvas({
   snippets = [],
   onSnippetClick,
 }) {
-  const isEmpty = snippets.length === 0;
-
   const [dateFrom, setDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
   const [dateTo, setDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
   // 열린 picker: null | 'from' | 'to' + anchor 정보.
   const [picker, setPicker] = useState(null);
+  // 검색어 — summary/dateLabel/tags 로 필터 + 결과 하이라이트.
+  const [searchQuery, setSearchQuery] = useState('');
+  const hasSearch = searchQuery.trim().length > 0;
+  const filteredSnippets = hasSearch
+    ? snippets.filter((s) => matchesQuery(s, searchQuery))
+    : snippets;
+  const isEmpty = filteredSnippets.length === 0;
 
   const openPicker = (which, e) => {
     const el = e.currentTarget;
@@ -136,9 +155,14 @@ export default function SnippetCanvas({
             <Icon src="/icons/calendar.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
             <span>{fmtDate(dateTo)}</span>
           </button>
-          <div className="snippet-search">
+          <div className={`snippet-search ${hasSearch ? 'is-active' : ''}`}>
             <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <input type="text" placeholder={searchPlaceholder} readOnly />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
@@ -158,32 +182,39 @@ export default function SnippetCanvas({
           </div>
         </div>
 
-        {/* 본문 — 빈 상태 또는 스니핏 리스트 */}
+        {/* 본문 — 빈 상태 / 검색 결과 없음 / 스니핏 리스트 */}
         {isEmpty ? (
-          <div className="snippet-empty">
-            <div className="snippet-empty-inner">
-              <Icon src="/icons/file-05.svg" size={48} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
-              <p className="snippet-empty-desc">
-                오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.
-                <br />
-                AI가 OKR 달성 근거로 자동 연결합니다.
-              </p>
-              <button type="button" className="snippet-empty-btn" onClick={onWriteNow}>
-                <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-                <span>지금 작성하기</span>
-              </button>
+          hasSearch ? (
+            <div className="snippet-noresult">
+              {`"${searchQuery.trim()}"에 대한 검색 결과가 없습니다.`}
             </div>
-          </div>
+          ) : (
+            <div className="snippet-empty">
+              <div className="snippet-empty-inner">
+                <Icon src="/icons/file-05.svg" size={48} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
+                <p className="snippet-empty-desc">
+                  오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.
+                  <br />
+                  AI가 OKR 달성 근거로 자동 연결합니다.
+                </p>
+                <button type="button" className="snippet-empty-btn" onClick={onWriteNow}>
+                  <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+                  <span>지금 작성하기</span>
+                </button>
+              </div>
+            </div>
+          )
         ) : (
           <div className="snippet-list">
-            {snippets.map((s) => (
+            {filteredSnippets.map((s) => (
               <SnippetListRow
                 key={s.id}
                 dateLabel={s.dateLabel}
                 summary={s.summary}
                 timestamp={s.timestamp}
                 recent={s.recent}
+                highlight={searchQuery}
                 onClick={onSnippetClick ? () => onSnippetClick(s) : undefined}
               />
             ))}

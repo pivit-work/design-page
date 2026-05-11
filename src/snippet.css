@@ -197,8 +197,16 @@
   gap: 8px;
   width: 250px;
   padding: 8px 12px;
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--componentColors-alpha-alphaBlack3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+.snippet-search:focus-within,
+.snippet-search.is-active {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .snippet-search input {
   flex: 1;
@@ -213,6 +221,27 @@
 }
 .snippet-search input::placeholder {
   color: var(--text-placeholder, #b1b6be);
+}
+
+/* 검색어 하이라이트 — summary 안의 매치 토큰을 brand 색 강조 */
+.snippet-row-hl {
+  background: transparent;
+  color: var(--text-brand-secondary, #10774d);
+  font-weight: 700;
+}
+
+/* 검색 결과 없음 */
+.snippet-noresult {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 60px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
 /* 통계 카드 3개 — 동일 폭 그리드 */
