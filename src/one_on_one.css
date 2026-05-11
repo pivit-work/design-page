@@ -1524,10 +1524,10 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-purple-500, #7a5af8);
 }
 .ono-start-briefing-toggle {
-  border: none;
   padding: 6px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   border-radius: 6px;
-  background: var(--utility-purple-100, #ebe9fe);
+  background: var(--utility-purple-50, #f4f3ff);
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -1553,7 +1553,8 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-briefing-text {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 24px;
   color: var(--text-secondary);
 }
@@ -1642,7 +1643,8 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-coaching-body {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 24px;
   color: var(--text-secondary);
 }
@@ -1659,9 +1661,11 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-report-text {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 24px;
   color: var(--text-secondary);
+  white-space: pre-line;
 }
 .ono-start-report-source {
   margin: 0;
@@ -1799,35 +1803,38 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 /* 매니저 관점 섹션 액션 버튼들 */
 .ono-start-confirm-btn {
-  padding: 5px 12px;
+  padding: 4px 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--utility-purple-500, #7a5af8);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+  line-height: 18px;
   color: var(--text-white);
   cursor: pointer;
 }
 .ono-start-regen-btn {
-  padding: 5px 12px;
-  border: none;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  border-radius: 6px;
   background: var(--utility-purple-50, #f4f3ff);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+  line-height: 18px;
   color: var(--utility-purple-600, #6938ef);
   cursor: pointer;
 }
 .ono-start-edit-btn {
-  padding: 5px 12px;
+  padding: 4px 8px;
   border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--colors-base-white, #ffffff);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
+  line-height: 18px;
   color: var(--text-secondary);
   cursor: pointer;
 }
@@ -1852,7 +1859,8 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 12px;
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: inherit;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 24px;
   color: var(--text-secondary);
   outline: none;
