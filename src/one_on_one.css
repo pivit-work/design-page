@@ -1842,57 +1842,61 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 
 /* 아젠다 / 액션아이템 리스트 — 매니저 모드에서 멤버 제안·예상 액션은 읽기 전용,
-   "매니저 추가 아젠다"만 추가/삭제 가능 */
+   "매니저 추가 아젠다"만 추가/삭제 가능. Figma: 흰 배경(채움 없음) + border-secondary
+   외곽선 + radius-sm. */
 .ono-start-agenda-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .ono-start-agenda-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   text-align: left;
-  padding: 9px 14px;
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  padding: 8px 14px;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   border-radius: 8px;
-  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  background: transparent;
+  overflow: hidden;
 }
 .ono-start-agenda-role {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 9999px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 18px;
 }
 .ono-start-agenda-role.is-member {
-  background: var(--utility-blue-50, #eff8ff);
-  border: 1px solid var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
-  color: var(--utility-blue-600, #1570ef);
+  background: var(--componentColors-utility-blue-utilityBlue50, #eff8ff);
+  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
+  color: var(--componentColors-utility-blue-utilityBlue700, #175cd3);
 }
 .ono-start-agenda-role.is-manager {
-  background: var(--utility-green-100, #dcfae6);
-  border: 1px solid var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  color: var(--utility-green-600, #079455);
+  background: var(--componentColors-utility-success-utilitySuccess50, #ecfdf3);
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  color: var(--componentColors-utility-success-utilitySuccess700, #067647);
 }
 .ono-start-agenda-text {
   flex: 1;
   min-width: 0;
+  padding: 0 2px;
   font-size: 14px;
+  font-weight: 600;
   line-height: 20px;
   color: var(--text-secondary);
 }
 .ono-start-agenda-x {
   flex-shrink: 0;
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -1905,69 +1909,78 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-agenda-add {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 .ono-start-agenda-add input {
   flex: 1;
   min-width: 0;
-  padding: 9px 12px;
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  padding: 8px 12px;
+  border: none;
   border-radius: 10px;
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--text-secondary);
   outline: none;
 }
 .ono-start-agenda-add input::placeholder { color: var(--text-placeholder, #b1b6be); }
 .ono-start-agenda-add-btn {
   flex-shrink: 0;
-  padding: 9px 16px;
-  border: 1px solid var(--border-secondary, #e6e8ea);
+  padding: 10px 16px;
+  border: none;
   border-radius: 10px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 24px;
   color: var(--text-secondary);
   cursor: pointer;
 }
 .ono-start-action-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 14px;
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  gap: 4px;
+  padding: 8px 14px;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   border-radius: 8px;
-  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  background: transparent;
+  overflow: hidden;
 }
 .ono-start-action-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
   font-size: 14px;
+  font-weight: 600;
   line-height: 20px;
   color: var(--text-secondary);
 }
 .ono-start-action-meta {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 .ono-start-action-owner {
-  font-size: 13px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray700, #596069);
 }
 .ono-start-action-badge {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: 9999px;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray700, #596069);
 }
 .ono-start-footer-disabled {
   background: var(--bg-brand-solid, #2dbd82);
