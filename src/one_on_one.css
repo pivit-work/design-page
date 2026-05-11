@@ -1352,18 +1352,35 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 
 /* ════════════════════════════════════════════════════════════
-   "1on1 진행" 준비 모달 — Figma 16817:39186 / 16972:15514
-   .ono-add-modal-* 의 오버레이/쉘/푸터를 재사용하고, 720px 카드 + 본문
-   섹션 스타일만 추가한다.
+   "1on1 진행" 준비 뷰 — Figma 16817:39186 / 16972:15514
+   모달이 아니라 원온원 페이지 안의 뷰. 720px 카드를 중앙 배치.
    ════════════════════════════════════════════════════════════ */
-.ono-start-modal-card {
-  width: 720px;
-  max-width: calc(100vw - 48px);
+.ono-start-view {
+  display: flex;
+  justify-content: center;
+  padding: 0 40px 60px 0;
 }
-.ono-start-modal-body {
+.ono-start-view-card {
+  width: 720px;
+  max-width: 100%;
+  background: var(--bg-quaternary, #ffffff);
+  border-radius: 16px;
+  box-shadow:
+    0 14px 60px -2.5px var(--colors-effects-shadows-shadow3xl02, rgba(10, 13, 18, 0.04)),
+    0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01, rgba(10, 13, 18, 0.14));
+  overflow: hidden;
+}
+.ono-start-view-body {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  padding: 40px 48px 48px;
+}
+.ono-start-view-footer {
+  display: flex;
+  gap: 12px;
+  padding: 24px 48px 48px;
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .ono-start-modal-title {
   margin: 0;
@@ -1427,23 +1444,27 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--bg-brand-solid, #2dbd82);
 }
 
-/* CTA bar */
+/* CTA bar — Figma:
+   준비1: 보라→핑크 그라디언트(#7873f5→#ec77ab) + 흰 텍스트.
+   준비2: bg utility-purple-50 + 텍스트 purple-500, 우측 hint purple-400. */
 .ono-start-cta {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  height: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: none;
   border-radius: 10px;
   font-family: inherit;
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
+  box-sizing: border-box;
 }
 .ono-start-cta.is-cta {
-  background: var(--bg-brand-solid, #2dbd82);
+  background: linear-gradient(90deg, #7873f5 0%, #ec77ab 100%);
   color: var(--text-white);
   cursor: pointer;
   transition: filter 0.15s ease;
@@ -1451,9 +1472,13 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-cta.is-cta:hover { filter: brightness(0.96); }
 .ono-start-cta.is-done {
   justify-content: space-between;
-  padding: 0 16px;
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
-  color: var(--text-secondary);
+  background: var(--utility-purple-50, #f4f3ff);
+}
+.ono-start-cta.is-done .ono-start-cta-left {
+  color: var(--utility-purple-500, #7a5af8);
+}
+.ono-start-cta.is-done .ono-start-cta-hint {
+  color: var(--utility-purple-400, #9b8afb);
 }
 .ono-start-cta-left {
   display: inline-flex;

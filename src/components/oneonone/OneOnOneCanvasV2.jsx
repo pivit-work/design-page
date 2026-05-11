@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
-import StartOneOnOneModal from './StartOneOnOneModal.jsx';
+import StartOneOnOneView from './StartOneOnOneView.jsx';
 
 /**
  * 1on1 페이지 v2 — Figma node 16816:33877.
@@ -28,14 +28,14 @@ export default function OneOnOneCanvasV2({
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
   const [scheduleMember, setScheduleMember] = useState(null);
-  // "1on1 진행" 버튼이 눌린 멤버 — null 이면 진행 준비 모달 닫힘.
+  // "1on1 진행" 버튼이 눌린 멤버 — null 이면 대시보드, 객체면 진행 준비 뷰.
   const [startMember, setStartMember] = useState(null);
   const handleAdd = () => {
     onAddClick?.();
     setAddOpen(true);
   };
   // 멤버 카드의 액션 버튼 클릭 핸들러.
-  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 진행 준비 모달, 그 외 → 데이터 onClick.
+  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 진행 준비 뷰, 그 외 → 데이터 onClick.
   const handleMemberAction = (m, action) => {
     if (action.label === '1on1 잡기') { setScheduleMember(m); return; }
     if (action.label === '1on1 진행') { setStartMember(m); return; }
@@ -45,7 +45,7 @@ export default function OneOnOneCanvasV2({
     <main className="ono-page">
       <header className="ono-page-header">
         <div className="ono-title-block">
-          <h1 className="ono-title">{title}</h1>
+          <h1 className="ono-title">{startMember ? '원온원' : title}</h1>
           {managerName && (
             <div className="ono-meta">
               <span className="ono-meta-name">{managerName} 매니저</span>
@@ -54,67 +54,59 @@ export default function OneOnOneCanvasV2({
             </div>
           )}
         </div>
-        <button type="button" className="ono-add-btn" onClick={handleAdd}>
-          <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
-          <span>1on1 일정 추가</span>
-        </button>
+        {!startMember && (
+          <button type="button" className="ono-add-btn" onClick={handleAdd}>
+            <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+            <span>1on1 일정 추가</span>
+          </button>
+        )}
       </header>
 
-      <AddOneOnOneModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onSubmit={(data) => {
-          // demo: 그냥 닫기. 실제로는 API 호출 등.
-          setAddOpen(false);
-          void data;
-        }}
-        icons={icons}
-        baseUrl={baseUrl}
-      />
+      {startMember ? (
+        /* "1on1 진행" — 페이지 뷰로 전환 */
+        <StartOneOnOneView
+          member={startMember}
+          onBack={() => setStartMember(null)}
+          baseUrl={baseUrl}
+        />
+      ) : (
+        <>
+          <AddOneOnOneModal
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            onSubmit={(data) => { setAddOpen(false); void data; }}
+            icons={icons}
+            baseUrl={baseUrl}
+          />
 
-      {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
-      <AddOneOnOneModal
-        open={!!scheduleMember}
-        member={scheduleMember}
-        onClose={() => setScheduleMember(null)}
-        onSubmit={(data) => {
-          setScheduleMember(null);
-          void data;
-        }}
-        icons={icons}
-        baseUrl={baseUrl}
-      />
+          {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
+          <AddOneOnOneModal
+            open={!!scheduleMember}
+            member={scheduleMember}
+            onClose={() => setScheduleMember(null)}
+            onSubmit={(data) => { setScheduleMember(null); void data; }}
+            icons={icons}
+            baseUrl={baseUrl}
+          />
 
-      {/* 멤버 카드 "1on1 진행" → 진행 준비 모달 */}
-      <StartOneOnOneModal
-        open={!!startMember}
-        member={startMember}
-        onClose={() => setStartMember(null)}
-        onSubmit={(data) => {
-          setStartMember(null);
-          void data;
-        }}
-        baseUrl={baseUrl}
-      />
+          {briefing && (
+            <BriefingBar briefing={briefing} icons={icons} baseUrl={baseUrl} />
+          )}
 
-      {briefing && (
-        <BriefingBar briefing={briefing} icons={icons} baseUrl={baseUrl} />
-      )}
+          {message && <p className="ono-message">{message}</p>}
 
-      {message && <p className="ono-message">{message}</p>}
+          {kpis && (
+            <section className="ono-section">
+              <h2 className="ono-section-heading">이번 달 내 1on1 코칭 지표</h2>
+              <div className="ono-kpi-grid">
+                <CompletionKpi data={kpis.completion} />
+                <ActionRateKpi value={kpis.actionRate} />
+                <SpeakRatioKpi data={kpis.speakRatio} />
+              </div>
+            </section>
+          )}
 
-      {kpis && (
-        <section className="ono-section">
-          <h2 className="ono-section-heading">이번 달 내 1on1 코칭 지표</h2>
-          <div className="ono-kpi-grid">
-            <CompletionKpi data={kpis.completion} />
-            <ActionRateKpi value={kpis.actionRate} />
-            <SpeakRatioKpi data={kpis.speakRatio} />
-          </div>
-        </section>
-      )}
-
-      {sections.map((sec) => (
+          {sections.map((sec) => (
         <section key={sec.key} className="ono-section">
           <div className="ono-section-heading-row">
             <h2 className="ono-section-heading">{sec.title}</h2>
@@ -135,6 +127,8 @@ export default function OneOnOneCanvasV2({
           </div>
         </section>
       ))}
+        </>
+      )}
     </main>
   );
 }
