@@ -128,8 +128,15 @@ export default function StartOneOnOneView({
     return () => window.removeEventListener('keydown', onKey);
   }, [onBack]);
 
-  const confirmedCount = Object.values(confirmed).filter(Boolean).length;
-  const allConfirmed = confirmedCount === 4;
+  // 활성화된 섹션만 카운트한다. capabilities 가 비면 "역량 매니저 평가" 섹션이
+  // 렌더되지 않으므로 caps 키는 분모/분자에서 제외 — 그렇지 않으면 100% 확정 불가
+  // 능 → "시작하기" 버튼이 영원히 비활성화.
+  const activeKeys = MGR_SECTIONS
+    .filter((s) => s.kind !== 'caps' || capabilities.length > 0)
+    .map((s) => s.key);
+  const activeTotal = activeKeys.length || 1;
+  const confirmedCount = activeKeys.filter((k) => confirmed[k]).length;
+  const allConfirmed = confirmedCount === activeTotal;
 
   const handleGenerate = () => {
     if (!onGenerateDrafts || generatingDrafts) return;
@@ -214,7 +221,7 @@ export default function StartOneOnOneView({
               · 멤버: 멤버 READY view 7섹션 완료율 (외부 prop)
               · 매니저: 매니저 관점 4섹션 확정 비율 (내부 confirmedCount 자동) */}
           {(() => {
-            const managerReadyPct = Math.round((confirmedCount / 4) * 100);
+            const managerReadyPct = Math.round((confirmedCount / activeTotal) * 100);
             const managerColor =
               managerReadyPct === 100
                 ? 'var(--utility-green-600, #16A34A)'
@@ -262,7 +269,7 @@ export default function StartOneOnOneView({
             <div className="ono-start-cta is-done">
               <span className="ono-start-cta-left">
                 <Icon src="/icons-solid/check-circle.svg" size={20} color="var(--utility-purple-500, #7a5af8)" baseUrl={baseUrl} />
-                AI 초안 생성 완료 — {confirmedCount}/4 항목 확정됨
+                AI 초안 생성 완료 — {confirmedCount}/{activeTotal} 항목 확정됨
               </span>
               <span className="ono-start-cta-hint">검토 후 확정하세요</span>
             </div>
@@ -553,7 +560,7 @@ export default function StartOneOnOneView({
             <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
-              매니저 관점 확정 후 시작 가능({confirmedCount}/4)
+              매니저 관점 확정 후 시작 가능({confirmedCount}/{activeTotal})
             </button>
           )}
         </div>
