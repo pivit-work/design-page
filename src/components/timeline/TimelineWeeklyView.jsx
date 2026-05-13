@@ -323,12 +323,15 @@ export default function TimelineWeeklyView({
           </ol>
         </section>
 
-        {/* 하단 액션 */}
-        <div className="tl-weekly-bottom-action">
-          <button type="button" className="tl-weekly-snippet-btn" onClick={onViewHistory}>
-            지난 히스토리 보기
-          </button>
-        </div>
+        {/* 하단 액션 — onViewHistory 핸들러가 주입된 caller(Timeline 페이지)에서만 노출.
+            Report 페이지의 디테일 뷰처럼 다른 라우트에서 진입한 경우엔 표시하지 않는다. */}
+        {onViewHistory && (
+          <div className="tl-weekly-bottom-action">
+            <button type="button" className="tl-weekly-snippet-btn" onClick={onViewHistory}>
+              지난 히스토리 보기
+            </button>
+          </div>
+        )}
         </div>
         )}
       </article>
