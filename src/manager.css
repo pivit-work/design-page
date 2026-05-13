@@ -211,72 +211,97 @@
    초기 구현은 Spline 3D iframe 으로 헥사 + 텍스처 매핑이었지만, 다수 iframe 동시
    로딩의 첫 페인트 지연 + Spline runtime applyTexture race 로 멤버별 텍스처가
    일관되게 안 바뀌던 문제로, CSS clip-path 헥사 + <img> 로 단순화. */
+/* 헥사 outer = clip-path 적용된 ‘outline’ 레이어, hex inner = inset 으로 줄어든 본체.
+   둘을 겹쳐 outline 테두리만 보이는 효과를 만든다. (clip-path 는 border 를 그대로
+   잘라내므로 일반 border 로는 헥사 테두리 표현 불가). */
 .manager-avatar-hex {
   position: relative;
   width: 100%;
-  aspect-ratio: 223 / 236;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  aspect-ratio: 280 / 254;
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  background: var(--text-quaternary, #b1b6be);
+}
+
+/* 금색 그라데이션 본체. outline 두께 만큼 inset 으로 줄여 outer 의 가장자리만 노출 */
+.manager-avatar-hex::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
   clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
   background:
     linear-gradient(135deg,
-      #f6c545 0%,
-      #fbe09a 30%,
+      #d39c1d 0%,
+      #f5cf52 14%,
+      #fff5cf 32%,
       #ffffff 50%,
-      #fbe09a 70%,
-      #f6c545 100%);
-  outline: 2px solid var(--text-quaternary, #cfd2d8);
-  outline-offset: -10px;
+      #fff5cf 68%,
+      #f5cf52 86%,
+      #d39c1d 100%);
+  pointer-events: none;
 }
 
 .manager-avatar-hex-img {
-  width: 60%;
-  height: 60%;
+  position: absolute;
+  top: 12%;
+  bottom: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 74%;
+  width: auto;
+  max-width: 84%;
   object-fit: contain;
+  object-position: bottom;
   user-select: none;
+  pointer-events: none;
 }
 
 .manager-avatar-hex-fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -45%);
   font-family: var(--font-family-display);
-  font-size: 64px;
+  font-size: 72px;
   font-weight: 700;
-  color: var(--text-quaternary, #b1b6be);
+  color: rgba(0, 0, 0, 0.18);
   user-select: none;
+  pointer-events: none;
 }
 
 .manager-avatar-hex-star {
   position: absolute;
-  top: 18%;
+  top: 9%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
-  color: var(--text-quaternary, #b1b6be);
+  font-size: 22px;
+  color: rgba(0, 0, 0, 0.22);
   pointer-events: none;
+  z-index: 1;
 }
 
 .manager-avatar-hex-divider {
   position: absolute;
-  top: 26%;
-  left: 28%;
-  right: 28%;
+  top: 18%;
+  left: 30%;
+  right: 30%;
   height: 1px;
-  background: var(--text-quaternary, #b1b6be);
-  opacity: 0.45;
+  background: rgba(0, 0, 0, 0.18);
   pointer-events: none;
+  z-index: 1;
 }
 
 .manager-avatar-hex-label {
   position: absolute;
-  bottom: 12%;
+  bottom: 9%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-family-display);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-quaternary, #b1b6be);
-  letter-spacing: 0.04em;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.22);
+  letter-spacing: 0.05em;
   pointer-events: none;
+  z-index: 1;
 }
 
 /* ── 카드 본문 ──
