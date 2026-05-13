@@ -12,6 +12,12 @@ import StartOneOnOneView from './StartOneOnOneView.jsx';
  *  - 한줄 메시지
  *  - 코칭 지표 KPI 3-grid: 완료 횟수 / 액션 완료율 / 발화 비율
  *  - 섹션 (오늘 예정 / 주의 필요 / 양호) + 멤버 카드 그리드
+ *
+ * 외부 제어 props (pivit-work 등 실제 사용처용):
+ *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
+ *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
+ *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
+ *    내부 StartOneOnOneView 전환 대신 외부 라우팅으로 위임한다.
  */
 export default function OneOnOneCanvasV2({
   title = '1on1',
@@ -24,6 +30,9 @@ export default function OneOnOneCanvasV2({
   icons,
   baseUrl = '',
   onAddClick,
+  onScheduleSubmit,
+  members,
+  onStartMember,
 }) {
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
@@ -35,10 +44,14 @@ export default function OneOnOneCanvasV2({
     setAddOpen(true);
   };
   // 멤버 카드의 액션 버튼 클릭 핸들러.
-  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 진행 준비 뷰, 그 외 → 데이터 onClick.
+  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 외부 핸들러 우선, 그 외 → 데이터 onClick.
   const handleMemberAction = (m, action) => {
     if (action.label === '1on1 잡기') { setScheduleMember(m); return; }
-    if (action.label === '1on1 진행') { setStartMember(m); return; }
+    if (action.label === '1on1 진행') {
+      if (onStartMember) { onStartMember(m); return; }
+      setStartMember(m);
+      return;
+    }
     action.onClick?.();
   };
   return (
@@ -63,7 +76,7 @@ export default function OneOnOneCanvasV2({
       </header>
 
       {startMember ? (
-        /* "1on1 진행" — 페이지 뷰로 전환 */
+        /* "1on1 진행" — 페이지 뷰로 전환 (외부 핸들러 미지정 시 내부 fallback) */
         <StartOneOnOneView
           member={startMember}
           onBack={() => setStartMember(null)}
@@ -74,9 +87,13 @@ export default function OneOnOneCanvasV2({
           <AddOneOnOneModal
             open={addOpen}
             onClose={() => setAddOpen(false)}
-            onSubmit={(data) => { setAddOpen(false); void data; }}
+            onSubmit={(data) => {
+              if (onScheduleSubmit) onScheduleSubmit(data);
+              setAddOpen(false);
+            }}
             icons={icons}
             baseUrl={baseUrl}
+            members={members}
           />
 
           {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
@@ -84,7 +101,10 @@ export default function OneOnOneCanvasV2({
             open={!!scheduleMember}
             member={scheduleMember}
             onClose={() => setScheduleMember(null)}
-            onSubmit={(data) => { setScheduleMember(null); void data; }}
+            onSubmit={(data) => {
+              if (onScheduleSubmit) onScheduleSubmit({ ...data, member: scheduleMember });
+              setScheduleMember(null);
+            }}
             icons={icons}
             baseUrl={baseUrl}
           />
@@ -107,26 +127,26 @@ export default function OneOnOneCanvasV2({
           )}
 
           {sections.map((sec) => (
-        <section key={sec.key} className="ono-section">
-          <div className="ono-section-heading-row">
-            <h2 className="ono-section-heading">{sec.title}</h2>
-            <span className="ono-section-count" style={{ color: sec.countColor }}>
-              {sec.count}명
-            </span>
-          </div>
-          <div className="ono-member-grid">
-            {sec.members.map((m) => (
-              <MemberCard
-                key={m.id}
-                member={m}
-                icons={icons}
-                baseUrl={baseUrl}
-                onAction={handleMemberAction}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+            <section key={sec.key} className="ono-section">
+              <div className="ono-section-heading-row">
+                <h2 className="ono-section-heading">{sec.title}</h2>
+                <span className="ono-section-count" style={{ color: sec.countColor }}>
+                  {sec.count}명
+                </span>
+              </div>
+              <div className="ono-member-grid">
+                {sec.members.map((m) => (
+                  <MemberCard
+                    key={m.id}
+                    member={m}
+                    icons={icons}
+                    baseUrl={baseUrl}
+                    onAction={handleMemberAction}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </>
       )}
     </main>

@@ -31,7 +31,8 @@ const TIME_OPTIONS = [
   '오후 17:00', '오후 17:30', '오후 18:00',
 ];
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '' }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members }) {
+  const memberList = members && members.length > 0 ? members : DEMO_MEMBERS;
   const [search, setSearch] = useState('');
   const [memberOpen, setMemberOpen] = useState(false);
   const [duration, setDuration] = useState('55');
@@ -57,9 +58,9 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
   }, [open, onClose]);
 
   const filteredMembers = useMemo(() => {
-    if (!search) return DEMO_MEMBERS;
-    return DEMO_MEMBERS.filter((m) => m.includes(search));
-  }, [search]);
+    if (!search) return memberList;
+    return memberList.filter((m) => m.includes(search));
+  }, [search, memberList]);
 
   const dateLabel = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
 
