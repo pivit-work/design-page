@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Sidebar, TopNav, Icon } from './components';
+import { pageFromPath, pathFromPage, DEFAULT_PAGE } from './routing.js';
 import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
 import TimelinePage from './TimelinePage';
@@ -82,8 +83,27 @@ const MENU = [
  * 추가할 땐 `src/<FooPage>.jsx` wrapper 를 만든 뒤 여기서 분기에 걸면 된다.
  */
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('orgchart');
+  const [currentPage, setCurrentPage] = useState(() => pageFromPath(window.location.pathname, BASE) || DEFAULT_PAGE);
   const [orgSubTab, setOrgSubTab] = useState('orgchart');
+
+  // ── URL ↔ page 동기화 ────────────────────────────────────────────────
+  // 마운트 시 pathname 에 슬러그가 없거나 알 수 없는 값이면 DEFAULT_PAGE 로
+  // replaceState 하여 새로고침/공유 링크 흐름을 안정시킨다. popstate 로
+  // 브라우저 내비게이션을 currentPage 상태에 반영한다.
+  useEffect(() => {
+    const initial = pageFromPath(window.location.pathname, BASE) || DEFAULT_PAGE;
+    const initialPath = pathFromPage(initial, BASE);
+    if (window.location.pathname !== initialPath) {
+      window.history.replaceState({ page: initial }, '', initialPath);
+    }
+    const onPop = () => {
+      const next = pageFromPath(window.location.pathname, BASE) || DEFAULT_PAGE;
+      setCurrentPage(next);
+      if (next === 'orgchart') setOrgSubTab('orgchart');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // ── Global scrollbar auto-hide ──────────────────────────────────────────
   // 기본적으로 모든 스크롤 가능한 요소의 thumb 는 숨김(CSS). 여기서는
@@ -134,6 +154,10 @@ export default function App() {
   const handleNavigate = (page) => {
     setCurrentPage(page);
     if (page === 'orgchart') setOrgSubTab('orgchart');
+    const nextPath = pathFromPage(page, BASE);
+    if (nextPath && window.location.pathname !== nextPath) {
+      window.history.pushState({ page }, '', nextPath);
+    }
   };
 
   return (
