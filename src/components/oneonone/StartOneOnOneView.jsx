@@ -287,17 +287,12 @@ export default function StartOneOnOneView({
               </span>
               {briefingOpen ? (
                 <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>접기</button>
-              ) : briefingExpanded ? (
+              ) : briefing ? (
                 <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>펼치기</button>
               ) : (
-                <button
-                  type="button"
-                  className="ono-start-briefing-toggle"
-                  onClick={handleGenerate}
-                  disabled={!onGenerateDrafts || generatingDrafts}
-                >
-                  {generatingDrafts ? '생성 중...' : '브리핑 생성'}
-                </button>
+                <span className="ono-start-briefing-toggle is-disabled" aria-disabled="true">
+                  브리핑 없음
+                </span>
               )}
             </div>
 
