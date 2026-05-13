@@ -85,13 +85,17 @@ export default function StartOneOnOneView({
   // briefingExpanded: AI 초안이 채워졌는지(되돌리지 않음). aiDrafts prop 으로
   // 외부 제어 가능 — drafts 있으면 즉시 expanded.
   const [briefingExpanded, setBriefingExpanded] = useState(!!aiDrafts);
-  const [briefingOpen, setBriefingOpen] = useState(!!aiDrafts);
+  // briefingOpen: 브리핑 카드 펼침 토글. briefing 데이터가 있으면 기본 펼친 상태로
+  // 시작해서 매니저가 즉시 요약/플래그/코칭 가이드를 볼 수 있도록.
+  const [briefingOpen, setBriefingOpen] = useState(!!aiDrafts || !!briefing);
   useEffect(() => {
     if (aiDrafts) {
       setBriefingExpanded(true);
       setBriefingOpen(true);
+    } else if (briefing) {
+      setBriefingOpen(true);
     }
-  }, [aiDrafts]);
+  }, [aiDrafts, briefing]);
 
   const [strengths, setStrengths] = useState('');
   const [sbi, setSbi] = useState('');
