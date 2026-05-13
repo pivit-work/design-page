@@ -207,106 +207,68 @@
   gap: 12px;
 }
 
-/* ── 헥사 아바타 영역 ──
-   초기 구현은 Spline 3D iframe 으로 헥사 + 텍스처 매핑이었지만, 다수 iframe 동시
-   로딩의 첫 페인트 지연 + Spline runtime applyTexture race 로 멤버별 텍스처가
-   일관되게 안 바뀌던 문제로, CSS clip-path 헥사 + <img> 로 단순화. */
-/* 헥사 outer = clip-path 적용된 ‘outline’ 레이어, hex inner = inset 으로 줄어든 본체.
-   둘을 겹쳐 outline 테두리만 보이는 효과를 만든다. (clip-path 는 border 를 그대로
-   잘라내므로 일반 border 로는 헥사 테두리 표현 불가). */
-.manager-avatar-hex {
+/* ── Spline 영역 ──
+   shadow / background / radius 를 박스에 주지 않는다.
+   Spline scene 자체에 이미 헥사 그림자가 들어있어, 박스 배경을 투명하게 두면
+   spline object 모양 그대로 페이지 위에 그림자가 떨어진다.
+   카드 col 너비를 가득 차지해 헥사가 카드 정중앙에 위치하도록 한다. */
+.manager-spline-area {
   position: relative;
   width: 100%;
-  aspect-ratio: 280 / 254;
-  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
-  background: var(--text-quaternary, #b1b6be);
+  aspect-ratio: 223 / 236;
+  overflow: hidden;
+  background: transparent;
 }
 
-/* 금색 그라데이션 본체. outline 두께 만큼 inset 으로 줄여 outer 의 가장자리만 노출 */
-.manager-avatar-hex::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
-  background:
-    linear-gradient(135deg,
-      #d39c1d 0%,
-      #f5cf52 14%,
-      #fff5cf 32%,
-      #ffffff 50%,
-      #fff5cf 68%,
-      #f5cf52 86%,
-      #d39c1d 100%);
-  pointer-events: none;
-}
-
-.manager-avatar-hex-img {
-  position: absolute;
-  top: 12%;
-  bottom: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 74%;
-  width: auto;
-  max-width: 84%;
-  object-fit: contain;
-  object-position: bottom;
-  user-select: none;
-  pointer-events: none;
-}
-
-.manager-avatar-hex-fallback {
+.manager-spline-iframe {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -45%);
-  font-family: var(--font-family-display);
-  font-size: 72px;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.18);
-  user-select: none;
-  pointer-events: none;
+  border: none;
+  display: block;
+  background: transparent;
+  transform-origin: center center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  /* spline scene 의 hover 인터랙션을 받을 수 있도록 pointer-events 활성.
+     단 spline 영역 click 은 iframe 안에서 처리되어 부모 카드로 전파되지 않으므로,
+     모달 오픈은 카드의 spline 외 영역(이름/코멘트/배지 등) 클릭으로 트리거된다. */
+  pointer-events: auto;
 }
 
-.manager-avatar-hex-star {
+/* (모달 열려있을 때 카드 spline 도 사용자에게 보여야 하므로 visibility 차단 안 함) */
+
+.manager-spline-iframe.is-ready {
+  opacity: 1;
+}
+
+/* spline 로딩 + 인트로 시작 전까지 카드 영역 가운데에 스피너 표시. */
+.manager-spline-spinner {
   position: absolute;
-  top: 9%;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 22px;
-  color: rgba(0, 0, 0, 0.22);
-  pointer-events: none;
+  transform: translate(-50%, -50%);
   z-index: 1;
+  pointer-events: none;
 }
 
-.manager-avatar-hex-divider {
-  position: absolute;
-  top: 18%;
-  left: 30%;
-  right: 30%;
-  height: 1px;
-  background: rgba(0, 0, 0, 0.18);
-  pointer-events: none;
-  z-index: 1;
+.manager-spline-spinner-circle {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--colors-foreground-fgQuaternaryHover, #f3f4f6);
+  border-top-color: var(--text-tertiary);
+  border-radius: 50%;
+  animation: managerSpinnerSpin 0.8s linear infinite;
 }
 
-.manager-avatar-hex-label {
-  position: absolute;
-  bottom: 9%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font-family-display);
-  font-size: 22px;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.22);
-  letter-spacing: 0.05em;
-  pointer-events: none;
-  z-index: 1;
+@keyframes managerSpinnerSpin {
+  to { transform: rotate(360deg); }
 }
 
 /* ── 카드 본문 ──
-   기존엔 Spline 인트로 onStart 시점에 fade-in 했지만, 이제 헥사가 동기 렌더되므로
-   본문도 즉시 노출. `is-body-visible` 클래스는 호환을 위해 유지(MemberCard 가 항상 부여). */
+   spline area 가 헥사 그림자/여백을 포함해 카드 너비 가득 차지하므로,
+   본문(이름/코멘트/배지/버튼) 을 위로 끌어올려 헥사 바로 아래에 붙도록 한다.
+   초기에는 opacity 0, spline 인트로가 시작되는 시점(onStart) 에 함께 fade-in. */
 .manager-member-body {
   display: flex;
   flex-direction: column;
@@ -314,7 +276,7 @@
   gap: 18px;
   padding: 0 32px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: -80px;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
