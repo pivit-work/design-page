@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 
-const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
+// member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
+const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
 /**
  * 매니저 페이지 멤버 카드 클릭 시 노출되는 직원 프로필 모달 (v2).
@@ -86,7 +87,7 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
             >
               <iframe
                 key={member?.id}
-                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}&speed=0.5`}
+                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(displayMember?.splineImage || displayMember?.avatar || FALLBACK_IMAGE)}&speed=0.5`}
                 sandbox="allow-scripts"
                 title="Spline 3D"
                 style={{ opacity: splineReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
