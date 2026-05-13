@@ -37,6 +37,9 @@ export default function OneOnOneCanvasV2({
   aiDrafts,
   onGenerateDrafts,
   generatingDrafts,
+  /** 멤버 카드의 아바타 렌더 콜백. 외부에서 호스트 앱의 Avatar 컴포넌트(이니셜
+   *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
+  renderMemberAvatar,
 }) {
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
@@ -150,6 +153,7 @@ export default function OneOnOneCanvasV2({
                     icons={icons}
                     baseUrl={baseUrl}
                     onAction={handleMemberAction}
+                    renderAvatar={renderMemberAvatar}
                   />
                 ))}
               </div>
@@ -254,7 +258,7 @@ const HEALTH_COLORS = {
   good: { text: 'var(--utility-green-600)', bar: 'var(--utility-green-100)' },
 };
 
-function MemberCard({ member, icons, baseUrl, onAction }) {
+function MemberCard({ member, icons, baseUrl, onAction, renderAvatar }) {
   const badge = SEVERITY_BADGE[member.severity] ?? SEVERITY_BADGE.good;
   const healthConf = HEALTH_COLORS[member.healthSeverity] ?? HEALTH_COLORS.good;
   const healthPct = Math.max(0, Math.min(100, (parseFloat(member.healthScore) / 10) * 100));
@@ -264,7 +268,9 @@ function MemberCard({ member, icons, baseUrl, onAction }) {
       <div className="ono-member-top">
         <div className="ono-member-identity">
           <div className="ono-member-avatar">
-            {member.avatar && <img src={member.avatar} alt="" />}
+            {renderAvatar
+              ? renderAvatar(member)
+              : member.avatar && <img src={member.avatar} alt="" />}
           </div>
           <div className="ono-member-name-block">
             <p className="ono-member-name">{member.name}</p>
