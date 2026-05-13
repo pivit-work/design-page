@@ -7,10 +7,9 @@ const DEMO_START_DATA = {
   meetingTitle: '1on1 • 2026.04.12',
   meetingTime: '2026.04.08 · 수시 · 2026.03.06 – 2026.04.08',
   recordingMeta: { time: '2026.04.08 · 11:00 ~', elapsed: '04:29', wave: [5, 5, 14, 9, 9, 12] },
-  prepBars: [
-    { who: '김민준', pct: 50 },
-    { who: '나(매니저)', pct: 5 },
-  ],
+  // 멤버 READY view 7섹션 중 완료 — 데모용 50%.
+  // (매니저 준비도는 컴포넌트 내부 confirmedCount/4 자동 계산이므로 prop 불필요)
+  memberReadyPct: 50,
   briefing: {
     summary:
       '김민준 님은 이번 기간(3/6–4/8) 동안 KR1(전환율 15%)을 72%까지 달성했으며 A/B 테스트 적용과 온보딩 문서화가 주요 기여 요인입니다. 반면 KR2(NPS 45점)는 실제 진행률 50%로 자가 평가(55%)보다 낮게 나타났고, 고객 인터뷰 일정이 3주째 미확정 상태입니다. A팀 협업 채널 미개설이 2주 연속 블로커로 기록되었으며, 커리어 방향(PM 전환)에 대한 논의 요청이 Daily Snippet에서 2회, 이전 1on1에서 1회 확인됩니다. Health Check 기준 이번 달 몰입도는 소폭 하락(7→5) 중입니다.',

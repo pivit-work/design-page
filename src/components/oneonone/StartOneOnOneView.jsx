@@ -29,10 +29,14 @@ const AI_WARN =
   'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
 const EMPTY_HINT = '아직 수집된 데이터가 없습니다.';
 
-function ProgressBar({ pct }) {
+function ProgressBar({ pct, color }) {
+  const safePct = Math.max(0, Math.min(100, pct ?? 0));
   return (
     <div className="ono-start-progress-track">
-      <div className="ono-start-progress-fill" style={{ width: `${pct}%` }} />
+      <div
+        className="ono-start-progress-fill"
+        style={{ width: `${safePct}%`, background: color }}
+      />
     </div>
   );
 }
@@ -70,8 +74,10 @@ export default function StartOneOnOneView({
   const capabilities = useMemo(() => data?.capabilities ?? [], [data?.capabilities]);
   const memberAgendas = data?.memberAgendas ?? [];
   const initialMgrAgendas = useMemo(() => data?.initialMgrAgendas ?? [], [data?.initialMgrAgendas]);
+  // 멤버 준비도: 멤버 READY 화면(별도) 의 7 섹션 진행도. 백엔드에서 계산해 props 로
+  // 전달. null/undefined 면 "—" 로 표시. (spec §4.1.1 / §4.2.3)
+  const memberReadyPct = data?.memberReadyPct ?? null;
   const expectedActions = data?.expectedActions ?? [];
-  const prepBars = data?.prepBars ?? [];
   const meetingTime = data?.meetingTime ?? '';
   const recordingMeta = data?.recordingMeta ?? null;
   const meetingTitle = data?.meetingTitle ?? '1on1';
@@ -204,23 +210,52 @@ export default function StartOneOnOneView({
             </div>
           </div>
 
-          {/* 준비도 */}
-          {prepBars.length > 0 && (
-            <div className="ono-start-section">
-              <span className="ono-start-section-title">준비도</span>
-              <div className="ono-start-prep">
-                {prepBars.map((b) => (
-                  <div key={b.who} className="ono-start-prep-row">
-                    <div className="ono-start-prep-meta">
-                      <span className="ono-start-prep-who">{b.who}</span>
-                      <span className="ono-start-prep-pct">{b.pct}%</span>
+          {/* 준비도 — spec §4.1.1
+              · 멤버: 멤버 READY view 7섹션 완료율 (외부 prop)
+              · 매니저: 매니저 관점 4섹션 확정 비율 (내부 confirmedCount 자동) */}
+          {(() => {
+            const managerReadyPct = Math.round((confirmedCount / 4) * 100);
+            const managerColor =
+              managerReadyPct === 100
+                ? 'var(--utility-green-600, #16A34A)'
+                : managerReadyPct > 0
+                  ? 'var(--colors-text-textWarningPrimary, #d97706)'
+                  : 'var(--text-tertiary, #888)';
+            const memberColor = 'var(--text-brand-primary, #2563EB)';
+            const rows = [
+              {
+                who: member?.name ?? '팀원',
+                pct: memberReadyPct,
+                color: memberColor,
+              },
+              {
+                who: '나 (매니저)',
+                pct: managerReadyPct,
+                color: managerColor,
+              },
+            ];
+            return (
+              <div className="ono-start-section">
+                <span className="ono-start-section-title">준비도</span>
+                <div className="ono-start-prep">
+                  {rows.map((b) => (
+                    <div key={b.who} className="ono-start-prep-row">
+                      <div className="ono-start-prep-meta">
+                        <span className="ono-start-prep-who">{b.who}</span>
+                        <span
+                          className="ono-start-prep-pct"
+                          style={{ color: b.color }}
+                        >
+                          {b.pct == null ? '—' : `${b.pct}%`}
+                        </span>
+                      </div>
+                      <ProgressBar pct={b.pct} color={b.color} />
                     </div>
-                    <ProgressBar pct={b.pct} />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CTA bar */}
           {briefingExpanded ? (
