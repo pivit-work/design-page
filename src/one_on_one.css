@@ -2073,6 +2073,16 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   color: var(--text-tertiary);
 }
+/* 데이터가 아직 수집되지 않은 섹션의 placeholder */
+.ono-start-empty-hint {
+  margin: 4px 0 0;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary, #f5f7fa);
+  border: 1px dashed var(--border-secondary, #d6dae0);
+  border-radius: 8px;
+}
 
 /* 아젠다 / 액션아이템 리스트 — 매니저 모드에서 멤버 제안·예상 액션은 읽기 전용,
    "매니저 추가 아젠다"만 추가/삭제 가능. Figma: 흰 배경(채움 없음) + border-secondary

@@ -33,6 +33,10 @@ export default function OneOnOneCanvasV2({
   onScheduleSubmit,
   members,
   onStartMember,
+  startOneOnOneData,
+  aiDrafts,
+  onGenerateDrafts,
+  generatingDrafts,
 }) {
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
@@ -81,6 +85,10 @@ export default function OneOnOneCanvasV2({
           member={startMember}
           onBack={() => setStartMember(null)}
           baseUrl={baseUrl}
+          data={startOneOnOneData}
+          aiDrafts={aiDrafts}
+          onGenerateDrafts={onGenerateDrafts}
+          generatingDrafts={generatingDrafts}
         />
       ) : (
         <>
