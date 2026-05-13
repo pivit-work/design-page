@@ -8,7 +8,10 @@ import { STATUS_COLORS } from './constants.js';
  * 매니저 페이지의 멤버 카드.
  * 상단 Spline 영역 + 이름/직급 + 코멘트 + 상태 배지 + 원온원/메시지 버튼.
  *
- * spline 인트로가 시작되는 시점에 본문 영역(이름/코멘트/배지/버튼)도 함께 fade-in.
+ * 본문(이름/직급/코멘트/배지/버튼) 은 Spline 로드와 무관하게 즉시 표시한다.
+ * 큰 팀에서 모든 카드의 Spline 로딩을 기다리면 빈 그리드가 길게 노출되어
+ * 사용자가 데이터 미수신으로 오해할 수 있기 때문. Spline 헥사는 본문 위에서
+ * 자체 spinner 를 보여주다 ready 시점에 fade-in 한다.
  */
 export default function MemberCard({
   name,
@@ -25,7 +28,7 @@ export default function MemberCard({
   onMessageClick,
 }) {
   const conf = STATUS_COLORS[status] ?? STATUS_COLORS.good;
-  const [bodyVisible, setBodyVisible] = useState(false);
+  const [bodyVisible, setBodyVisible] = useState(true);
   const handleStart = useCallback(() => setBodyVisible(true), []);
 
   // 버튼 클릭 시 카드 onClick 으로 버블링되어 모달이 동시에 열리는 걸 막는다.

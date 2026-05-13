@@ -93,8 +93,8 @@ export default function ManagerCanvas({
             <MemberCard
               key={m.id}
               {...m}
-              splineScene={splineScene}
-              splineImage={splineImage}
+              splineScene={m.splineScene ?? splineScene}
+              splineImage={m.splineImage ?? splineImage}
               splineIndex={i}
               icons={icons}
               baseUrl={baseUrl}
@@ -118,8 +118,8 @@ export default function ManagerCanvas({
             <MemberCard
               key={m.id}
               {...m}
-              splineScene={splineScene}
-              splineImage={splineImage}
+              splineScene={m.splineScene ?? splineScene}
+              splineImage={m.splineImage ?? splineImage}
               splineIndex={actionQueue.members.length + i}
               icons={icons}
               baseUrl={baseUrl}
