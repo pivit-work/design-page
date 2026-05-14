@@ -80,6 +80,14 @@ const DEMO_AI_DRAFTS = {
     '(Situation) 3/19 팀 회의에서 (Behavior) A팀 협업 채널 이슈를 공유했지만 후속 에스컬레이션 없이 2주간 같은 블로커가 반복되었고 (Impact) KR2 진행이 지연되었습니다. 다음엔 블로커 발견 즉시 매니저에게 에스컬레이션해 주세요.',
   support:
     '① A팀 리더에게 매니저가 직접 연결 — 이번 주 내. ② NPS 고객 인터뷰 대상자 3명 추천 + 리서치 도구(Maze/Typeform Pro) 권한 신청 대행. ③ PM 전환 관련 HR 상담 일정 주선.',
+  // 역량 매니저 평가 AI 초안 — 5개 역량 1-5 점수.
+  capabilities: {
+    expertise: 5,
+    communication: 3,
+    problemSolving: 4,
+    teamwork: 4,
+    selfDriven: 2,
+  },
 };
 
 /* ── Asset URLs (demo-only) ──

@@ -137,18 +137,24 @@ export default function StartOneOnOneView({
   const [strengths, setStrengths] = useState('');
   const [sbi, setSbi] = useState('');
   const [support, setSupport] = useState('');
+
+  // caps: 멤버 자가진단(data.capabilities)으로 초기화 → AI 초안(aiDrafts.capabilities)
+  // 으로 덮어쓰기 → 매니저가 막대 클릭해 최종 수정.
+  const [caps, setCaps] = useState({});
+  useEffect(() => {
+    setCaps(Object.fromEntries(capabilities.map((c) => [c.key, c.value])));
+  }, [capabilities]);
+
   useEffect(() => {
     if (aiDrafts) {
       setStrengths(aiDrafts.strengths ?? '');
       setSbi(aiDrafts.sbi ?? '');
       setSupport(aiDrafts.support ?? '');
+      if (aiDrafts.capabilities) {
+        setCaps((prev) => ({ ...prev, ...aiDrafts.capabilities }));
+      }
     }
   }, [aiDrafts]);
-
-  const [caps, setCaps] = useState({});
-  useEffect(() => {
-    setCaps(Object.fromEntries(capabilities.map((c) => [c.key, c.value])));
-  }, [capabilities]);
 
   // 매니저 관점 4개 항목 확정 상태.
   const [confirmed, setConfirmed] = useState({ strengths: false, sbi: false, support: false, caps: false });
