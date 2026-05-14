@@ -220,13 +220,25 @@
   background: transparent;
 }
 
-/* `<Spline>` 컴포넌트가 렌더하는 wrapper div + canvas. spline area 를 가득 채운다.
+/* 고정 700×700 stage — react-spline 이 항상 안정적인 700 을 측정하도록.
+   stage 전체를 SplineHero 가 계산한 scale 로 줄여 area 에 맞춘다 (iframe 시절
+   700×700 iframe 을 scale 로 줄이던 것과 동일). area 의 overflow:hidden 으로
+   가로 초과분을 클립. */
+.manager-spline-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 700px;
+  height: 700px;
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+/* `<Spline>` 컴포넌트가 렌더하는 wrapper div + canvas. 700 stage 를 가득 채운다.
    intro 가 시작되는 시점(is-ready)에 opacity 0 → 1 fade-in. */
 .manager-spline-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
   background: transparent;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -277,7 +289,10 @@
   gap: 18px;
   padding: 0 32px;
   width: 100%;
-  margin-top: -80px;
+  /* spline-area 는 헥사 그림자/여백 포함해 카드 너비를 가득 차지하므로 본문을 살짝
+     끌어올려 헥사 바로 아래에 붙인다. iframe → react-spline 전환 후 헥사가 캔버스
+     하단까지 채워, 기존 -80px 은 헥사 본체를 덮었다 → -16px 으로 완화. */
+  margin-top: -16px;
   opacity: 0;
   transition: opacity 0.3s ease;
 }

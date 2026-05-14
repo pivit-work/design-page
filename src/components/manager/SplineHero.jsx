@@ -38,18 +38,25 @@ class SplineBoundary extends Component {
  * 수만큼 2MB 를 중복 파싱했다. `<Spline>` 은 번들에 런타임이 1회 포함·1회 파싱되고
  * 모든 카드가 공유한다.
  *
+ * ── 고정 700 stage + scale ──
+ * Spline scene(L6vcVdzQjJgBWFGD) 은 700×700 정사각 뷰포트 기준으로 디자인됐다.
+ * react-spline 은 자기 컨테이너를 측정해 캔버스 크기를 잡는데, `.manager-spline-area`
+ * 의 aspect-ratio 가 레이아웃 확정 후에야 계산되므로 mount 시점에 잘못된 크기를
+ * 측정해 헥사가 찌그러진다. → iframe 시절처럼 `<Spline>` 을 **고정 700×700 stage** 에
+ * 넣어 react-spline 이 항상 안정적인 700 을 측정하게 하고, stage 전체를 JS 로 계산한
+ * scale 로 줄여 `.manager-spline-area` 에 맞춘다.
+ *
  * ── 뷰포트 가상화 (mount/unmount) ──
- * WebGL 컨텍스트는 브라우저당 동시 ~16개로 제한된다. 카드가 24+ 개일 때 한 번 mount
- * 한 `<Spline>` 을 계속 유지하면 컨텍스트가 고갈돼, 스크롤로 다시 올라왔을 때 오래된
- * 컨텍스트가 lost 되어 헥사가 깨진다. 그래서 카드가 뷰포트(rootMargin 400px) 를
- * 벗어나면 `<Spline>` 을 **언마운트** 해 컨텍스트를 즉시 반납하고, 다시 들어오면
- * 재마운트한다. scene 은 18KB 라 재로드 비용이 작고 런타임은 이미 메모리에 있다.
+ * WebGL 컨텍스트는 브라우저당 동시 ~16개로 제한된다. 카드가 24+ 개일 때 mount 한
+ * `<Spline>` 을 계속 유지하면 컨텍스트가 고갈돼 깨진다. 카드가 뷰포트(rootMargin
+ * 400px) 를 벗어나면 `<Spline>` 을 언마운트해 컨텍스트를 반납하고 재진입 시 재마운트.
  *
  * ── intro ──
  * scene 로드 + 텍스처 교체가 끝나면 'start' 이벤트를 emit 해서 인트로를 재생한다.
- * 카드는 스크롤에 따라 하나씩 들어오므로 자연스럽게 stagger 된다 — 단, 초기 fold 에
- * 여러 장이 동시에 들어올 때만 index 기반으로 살짝 어긋나게(최대 6장) 한다.
+ * 카드는 스크롤에 따라 하나씩 들어오므로 자연스럽게 stagger 되고, 초기 fold 동시
+ * 진입분만 index 기반으로 살짝(최대 6장) 어긋나게 한다.
  */
+const SCENE_VIEWPORT = 700;
 const INTRO_DELAY_STEP = 120;
 const INTRO_STAGGER_CAP = 6;
 const MOUNT_ROOT_MARGIN = '400px';
@@ -104,6 +111,18 @@ export default function SplineHero({ scene, image, index = 0, onStart }) {
   const [inView, setInView] = useState(false);
   const [started, setStarted] = useState(false); // 인트로 발사 시점 = fade-in 시작
   const [failed, setFailed] = useState(false); // WebGL 실패 — 헥사를 빈 채로
+  const [size, setSize] = useState({ w: 0, h: 0 }); // .manager-spline-area 측정값
+
+  // 컨테이너 크기 측정 → 700 stage 의 scale 계산.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // 뷰포트 가상화 — 들어오면 마운트, 벗어나면 언마운트(WebGL 컨텍스트 반납).
   useEffect(() => {
@@ -142,6 +161,9 @@ export default function SplineHero({ scene, image, index = 0, onStart }) {
     }, delay);
   }, [image, index, onStart]);
 
+  // 700 stage 를 area 의 큰 변에 맞춘다 (iframe 시절 scale 계산과 동일).
+  const scale = Math.max(size.w, size.h) / SCENE_VIEWPORT;
+
   return (
     <div ref={containerRef} className="manager-spline-area">
       {!started && !failed && (
@@ -149,14 +171,19 @@ export default function SplineHero({ scene, image, index = 0, onStart }) {
           <div className="manager-spline-spinner-circle" />
         </div>
       )}
-      {inView && !failed && (
-        <SplineBoundary onFail={() => setFailed(true)}>
-          <Spline
-            scene={scene}
-            onLoad={handleLoad}
-            className={`manager-spline-canvas ${started ? 'is-ready' : ''}`}
-          />
-        </SplineBoundary>
+      {inView && !failed && scale > 0 && (
+        <div
+          className="manager-spline-stage"
+          style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
+        >
+          <SplineBoundary onFail={() => setFailed(true)}>
+            <Spline
+              scene={scene}
+              onLoad={handleLoad}
+              className={`manager-spline-canvas ${started ? 'is-ready' : ''}`}
+            />
+          </SplineBoundary>
+        </div>
       )}
     </div>
   );
