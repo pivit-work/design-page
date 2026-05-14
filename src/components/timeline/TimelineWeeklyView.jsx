@@ -251,10 +251,11 @@ export default function TimelineWeeklyView({
             <div className="tl-weekly-tag-stats">
               <div className="tl-weekly-section-title">주요 태그</div>
               <ul className="tl-weekly-tag-list">
-                {(report.tagCounts ?? []).map((t) => {
+                {(report.tagCounts ?? []).map((t, i) => {
                   const max = report.tagCounts[0]?.count || 1;
                   return (
-                    <li key={t.label} className="tl-weekly-tag-row">
+                    // label 은 표시용일 뿐 unique 보장이 없으므로 index 를 함께 키로 쓴다.
+                    <li key={`${t.label}-${i}`} className="tl-weekly-tag-row">
                       <span className="tl-weekly-tag-name">#{t.label}</span>
                       <span className="tl-weekly-tag-track">
                         <span style={{ width: `${(t.count / max) * 100}%` }} />
@@ -272,8 +273,9 @@ export default function TimelineWeeklyView({
         <section className="tl-weekly-section">
           <div className="tl-weekly-section-title">OKR 달성도 변화</div>
           <ul className="tl-weekly-okr-list">
-            {(report.okrItems ?? []).map((o) => (
-              <li key={o.label} className="tl-weekly-okr-item">
+            {(report.okrItems ?? []).map((o, i) => (
+              // KR title(label) 은 OKR 간 중복될 수 있어 unique 하지 않다. index 를 함께 키로 쓴다.
+              <li key={`${o.label}-${i}`} className="tl-weekly-okr-item">
                 <div className="tl-weekly-okr-row">
                   <span className="tl-weekly-okr-label">{o.label}</span>
                   <span className="tl-weekly-okr-delta" style={{ color: o.color }}>
