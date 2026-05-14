@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import SummaryCard from './SummaryCard.jsx';
 import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
@@ -10,6 +10,9 @@ import ProfileModal from './ProfileModal.jsx';
  * 모든 데이터는 props 로 받는다 (page wrapper 가 데모/실데이터 소유).
  *
  * 멤버 카드 클릭 시 ProfileModal v2 가 열린다 (선택된 멤버 정보 + AI 브리핑/아젠다/지표).
+ *
+ * 멤버 카드 헥사는 `<Spline>` 컴포넌트로 부모 문서에 직접 렌더된다 (iframe 아님).
+ * iframe 시절의 pause/resume·wheel-forward postMessage 핸들러는 더 이상 불필요.
  */
 export default function ManagerCanvas({
   tabs = [],
@@ -26,34 +29,9 @@ export default function ManagerCanvas({
   onMemberMessage,
 }) {
   const [openMember, setOpenMember] = useState(null);
-  const pageRef = useRef(null);
-
-  // 모달 열림/닫힘에 따라 카드 spline iframe 들에게 pause/resume 메시지 broadcast.
-  // (모달 spline 이 GPU 자원을 모두 받아 정상 속도로 회전하도록 카드 spline 시간을 freeze)
-  useEffect(() => {
-    const root = pageRef.current;
-    if (!root) return;
-    const iframes = root.querySelectorAll('.manager-spline-iframe');
-    const type = openMember ? 'pause-spline' : 'resume-spline';
-    iframes.forEach((f) => {
-      try { f.contentWindow?.postMessage({ type }, '*'); } catch (e) { /* no-op */ }
-    });
-  }, [openMember]);
-
-  // 카드 spline iframe 안에서 발생한 wheel 을 받아 페이지 스크롤로 전달.
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.data?.type !== 'spline-wheel') return;
-      const root = pageRef.current;
-      if (!root) return;
-      root.scrollBy({ top: e.data.deltaY || 0, left: e.data.deltaX || 0, behavior: 'auto' });
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
 
   return (
-    <main ref={pageRef} className={`manager-page ${openMember ? 'is-modal-open' : ''}`}>
+    <main className={`manager-page ${openMember ? 'is-modal-open' : ''}`}>
       <header className="manager-page-header">
         <div className="manager-tabs">
           {tabs.map((tab) => (
