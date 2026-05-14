@@ -1382,6 +1382,16 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 12px 12px 0 0;
   pointer-events: none;
 }
+/* PiP(Picture-in-Picture) 창에 단독 렌더될 때: sticky 해제, 전체 영역 채움. */
+.ono-start-rec-wrap.is-pip {
+  position: static;
+  height: auto;
+  justify-content: center;
+  padding: 16px;
+}
+.ono-start-rec-wrap.is-pip .ono-start-rec-mini {
+  width: 100%;
+}
 .ono-start-rec-mini {
   pointer-events: auto;
   width: 280px;

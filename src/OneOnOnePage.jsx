@@ -6,7 +6,7 @@ import OneOnOneCanvasV2 from './components/oneonone/OneOnOneCanvasV2.jsx';
 const DEMO_START_DATA = {
   meetingTitle: '1on1 • 2026.04.12',
   meetingTime: '2026.04.08 · 수시 · 2026.03.06 – 2026.04.08',
-  recordingMeta: { time: '2026.04.08 · 11:00 ~', elapsed: '04:29', wave: [5, 5, 14, 9, 9, 12] },
+  // 녹음 위젯의 경과 시간은 "시작하기" 후 컴포넌트 내부 타이머가 카운트.
   // 멤버 READY view 7섹션 중 완료 — 데모용 50%.
   // (매니저 준비도는 컴포넌트 내부 confirmedCount/4 자동 계산이므로 prop 불필요)
   memberReadyPct: 50,
@@ -53,12 +53,13 @@ const DEMO_START_DATA = {
   ],
   upwardFeedback:
     '"이번 분기 방향 공유가 명확했습니다. 우선순위가 자주 바뀌는 부분이 아쉬웠어요."',
+  // capabilities: 멤버 자가진단 value 만 override (5개 항목 label 은 컴포넌트 내장).
   capabilities: [
-    { key: 'expertise', label: '업무 전문성', value: 5 },
-    { key: 'communication', label: '커뮤니케이션', value: 3 },
-    { key: 'problemSolving', label: '문제 해결력', value: 4 },
-    { key: 'teamwork', label: '협업 / 팀워크', value: 5 },
-    { key: 'selfDriven', label: '자가주도성', value: 2 },
+    { key: 'expertise', value: 5 },
+    { key: 'communication', value: 3 },
+    { key: 'problemSolving', value: 4 },
+    { key: 'teamwork', value: 5 },
+    { key: 'selfDriven', value: 2 },
   ],
   memberAgendas: [
     'A팀 협업 채널 — 블로커 해소 방안 논의',

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 
 /**
  * "1on1 진행" 준비 뷰 — Figma 16817:39186(준비1) / 16972:15514(준비2).
@@ -28,6 +29,22 @@ const TEXTAREA_PLACEHOLDER = 'AI 초안 생성 또는 직접 입력';
 const AI_WARN =
   'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
 const EMPTY_HINT = '아직 수집된 데이터가 없습니다.';
+
+// 역량 매니저 평가 5개 항목 — 매니저가 직접 1-5 클릭으로 입력하는 고정 항목.
+// 멤버 자가진단 값은 data.capabilities 로 override (없으면 0 = 미입력).
+const DEFAULT_CAPABILITIES = [
+  { key: 'expertise', label: '업무 전문성' },
+  { key: 'communication', label: '커뮤니케이션' },
+  { key: 'problemSolving', label: '문제 해결력' },
+  { key: 'teamwork', label: '협업 / 팀워크' },
+  { key: 'selfDriven', label: '자가주도성' },
+];
+
+function formatElapsed(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 function ProgressBar({ pct, color }) {
   const safePct = Math.max(0, Math.min(100, pct ?? 0));
@@ -66,12 +83,26 @@ export default function StartOneOnOneView({
   generatingDrafts = false,
   onBack,
   baseUrl = '',
+  // ── 녹음 상태 외부 제어 (PiP 등) ──
+  // recording prop 이 주어지면 controlled, 없으면 컴포넌트 자체 state 사용.
+  recording: recordingProp,
+  onRecordingChange,
+  onStartRecording,
 }) {
   const briefing = data?.briefing ?? null;
   const memberReport = data?.memberReport ?? null;
   const okrSelf = data?.okrSelf ?? [];
   const upwardFeedback = data?.upwardFeedback ?? null;
-  const capabilities = useMemo(() => data?.capabilities ?? [], [data?.capabilities]);
+  // 역량 5개 항목은 고정. data.capabilities 는 멤버 자가진단 value 만 override.
+  const capabilities = useMemo(() => {
+    const overrides = new Map(
+      (data?.capabilities ?? []).map((c) => [c.key, c.value]),
+    );
+    return DEFAULT_CAPABILITIES.map((c) => ({
+      ...c,
+      value: overrides.get(c.key) ?? 0,
+    }));
+  }, [data?.capabilities]);
   const memberAgendas = data?.memberAgendas ?? [];
   const initialMgrAgendas = useMemo(() => data?.initialMgrAgendas ?? [], [data?.initialMgrAgendas]);
   // 멤버 준비도: 멤버 READY 화면(별도) 의 7 섹션 진행도. 백엔드에서 계산해 props 로
@@ -79,7 +110,6 @@ export default function StartOneOnOneView({
   const memberReadyPct = data?.memberReadyPct ?? null;
   const expectedActions = data?.expectedActions ?? [];
   const meetingTime = data?.meetingTime ?? '';
-  const recordingMeta = data?.recordingMeta ?? null;
   const meetingTitle = data?.meetingTitle ?? '1on1';
 
   // briefingExpanded: AI 초안이 채워졌는지(되돌리지 않음). aiDrafts prop 으로
@@ -119,10 +149,27 @@ export default function StartOneOnOneView({
   const [mgrAgendas, setMgrAgendas] = useState([]);
   useEffect(() => { setMgrAgendas(initialMgrAgendas); }, [initialMgrAgendas]);
   const [agendaInput, setAgendaInput] = useState('');
-  // "시작하기" → 녹음 시작: 페이지 최상단으로 스크롤 + sticky 미니 녹음 위젯 노출.
-  const [recording, setRecording] = useState(false);
+
+  // ── 녹음 상태 ──
+  // recording prop 이 있으면 controlled, 없으면 내부 state. "시작하기" → 녹음 시작:
+  // 페이지 최상단 스크롤 + sticky 미니 녹음 위젯 + 경과 타이머.
+  const [recordingState, setRecordingState] = useState(false);
+  const recording = recordingProp ?? recordingState;
+  const setRecording = (next) => {
+    setRecordingState(next);
+    onRecordingChange?.(next);
+  };
+  const [elapsedSec, setElapsedSec] = useState(0);
+  useEffect(() => {
+    if (!recording) return undefined;
+    const id = setInterval(() => setElapsedSec((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [recording]);
+
   const startMeeting = () => {
+    setElapsedSec(0);
     setRecording(true);
+    onStartRecording?.();
     document.querySelector('.ono-page')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -132,13 +179,9 @@ export default function StartOneOnOneView({
     return () => window.removeEventListener('keydown', onKey);
   }, [onBack]);
 
-  // 활성화된 섹션만 카운트한다. capabilities 가 비면 "역량 매니저 평가" 섹션이
-  // 렌더되지 않으므로 caps 키는 분모/분자에서 제외 — 그렇지 않으면 100% 확정 불가
-  // 능 → "시작하기" 버튼이 영원히 비활성화.
-  const activeKeys = MGR_SECTIONS
-    .filter((s) => s.kind !== 'caps' || capabilities.length > 0)
-    .map((s) => s.key);
-  const activeTotal = activeKeys.length || 1;
+  // 매니저 관점 4개 섹션 모두 확정해야 "시작하기" 활성화. caps 섹션은 항상 렌더.
+  const activeKeys = MGR_SECTIONS.map((s) => s.key);
+  const activeTotal = activeKeys.length;
   const confirmedCount = activeKeys.filter((k) => confirmed[k]).length;
   const allConfirmed = confirmedCount === activeTotal;
 
@@ -166,39 +209,13 @@ export default function StartOneOnOneView({
   return (
     <div className="ono-start-view">
       <div className="ono-start-view-card">
-        {recording && recordingMeta && (
-          <div className="ono-start-rec-wrap">
-            <div className="ono-start-rec-mini">
-              <div className="ono-start-rec-head">
-                <p className="ono-start-rec-title">1on1 녹음 중...</p>
-                <div className="ono-start-rec-member">
-                  <div className="ono-start-rec-avatar">
-                    {member?.avatar && <img src={member.avatar} alt="" />}
-                  </div>
-                  <div className="ono-start-rec-member-info">
-                    <div className="ono-start-rec-name-row">
-                      <span className="ono-start-rec-name">{member?.name ?? ''}</span>
-                      {member?.badge && (
-                        <span className="ono-start-rec-badge">{member.badge}</span>
-                      )}
-                    </div>
-                    <span className="ono-start-rec-time">{recordingMeta.time}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="ono-start-rec-bar">
-                <div className="ono-start-rec-timer">
-                  <span className="ono-start-rec-elapsed">{recordingMeta.elapsed}</span>
-                  <div className="ono-start-rec-wave">
-                    {(recordingMeta.wave ?? []).map((h, i) => (
-                      <span key={i} style={{ height: `${h}px` }} />
-                    ))}
-                  </div>
-                </div>
-                <button type="button" className="ono-start-rec-stop" onClick={() => setRecording(false)}>종료</button>
-              </div>
-            </div>
-          </div>
+        {recording && (
+          <OneOnOneRecordingWidget
+            member={member}
+            meetingTime={meetingTime}
+            elapsed={formatElapsed(elapsedSec)}
+            onStop={() => setRecording(false)}
+          />
         )}
         <div className="ono-start-view-body">
           <p className="ono-start-modal-title">{meetingTitle}</p>
@@ -407,7 +424,6 @@ export default function StartOneOnOneView({
             </span>
             <div className="ono-start-mgr">
               {MGR_SECTIONS.map((sec) => {
-                if (sec.kind === 'caps' && capabilities.length === 0) return null;
                 return (
                   <div key={sec.key} className="ono-start-field">
                     <div className="ono-start-field-head">
