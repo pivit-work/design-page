@@ -65,7 +65,7 @@ export default function OneOnOneCanvasV2({
     <main className="ono-page">
       <header className="ono-page-header">
         <div className="ono-title-block">
-          <h1 className="ono-title">{startMember ? '원온원' : title}</h1>
+          <h1 className="ono-title">{title}</h1>
           {managerName && (
             <div className="ono-meta">
               <span className="ono-meta-name">{managerName} 매니저</span>
