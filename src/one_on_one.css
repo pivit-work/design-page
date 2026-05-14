@@ -2061,6 +2061,14 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 9999px;
   background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
+/* 매니저가 직접 클릭해 평가하는 막대 — cursor + hover 피드백 (spec §4.1.5) */
+.ono-start-rating-seg.is-clickable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ono-start-rating-seg.is-clickable:hover {
+  background: var(--componentColors-alpha-alphaBlack10, rgba(0, 0, 0, 0.1));
+}
 .ono-start-rating-seg.is-on {
   background: var(--componentColors-utility-green-utilityGreen200, #a6f4c5);
 }

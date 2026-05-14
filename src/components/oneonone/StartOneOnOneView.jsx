@@ -62,12 +62,19 @@ function ProgressBar({ pct, color }) {
 const ratingTone = (v) => (v === 3 ? 'is-warn' : v <= 2 ? 'is-bad' : '');
 
 // ai=true(AI 초안 생성됨)이면 막대 색이 green → purple 로 바뀐다.
-function RatingBar({ value, ai = false }) {
+// onChange 가 주어지면 매니저가 1-5 막대를 클릭해 직접 평가 입력 (spec §4.1.5).
+function RatingBar({ value, ai = false, onChange }) {
   return (
     <div className="ono-start-rating">
       <div className={`ono-start-rating-segs ${ai ? 'is-ai' : ''}`}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <span key={n} className={`ono-start-rating-seg ${n <= value ? 'is-on' : ''}`} />
+          <span
+            key={n}
+            className={`ono-start-rating-seg ${n <= value ? 'is-on' : ''} ${onChange ? 'is-clickable' : ''}`}
+            onClick={onChange ? () => onChange(n) : undefined}
+            role={onChange ? 'button' : undefined}
+            aria-label={onChange ? `${n}점` : undefined}
+          />
         ))}
       </div>
       <span className={`ono-start-rating-num ${ratingTone(value)}`}>{value}</span>
@@ -477,7 +484,13 @@ export default function StartOneOnOneView({
                           {capabilities.map((c) => (
                             <div key={c.key} className="ono-start-cap-row">
                               <span className="ono-start-cap-label">{c.label}</span>
-                              <RatingBar value={caps[c.key]} ai={briefingExpanded} />
+                              <RatingBar
+                                value={caps[c.key] ?? 0}
+                                ai={briefingExpanded}
+                                onChange={(v) =>
+                                  setCaps((prev) => ({ ...prev, [c.key]: v }))
+                                }
+                              />
                             </div>
                           ))}
                         </div>
