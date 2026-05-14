@@ -220,25 +220,26 @@
   background: transparent;
 }
 
-.manager-spline-iframe {
+/* `<Spline>` 컴포넌트가 렌더하는 wrapper div + canvas. spline area 를 가득 채운다.
+   intro 가 시작되는 시점(is-ready)에 opacity 0 → 1 fade-in. */
+.manager-spline-canvas {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  border: none;
-  display: block;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   background: transparent;
-  transform-origin: center center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  /* spline scene 의 hover 인터랙션을 받을 수 있도록 pointer-events 활성.
-     단 spline 영역 click 은 iframe 안에서 처리되어 부모 카드로 전파되지 않으므로,
-     모달 오픈은 카드의 spline 외 영역(이름/코멘트/배지 등) 클릭으로 트리거된다. */
-  pointer-events: auto;
 }
 
-/* (모달 열려있을 때 카드 spline 도 사용자에게 보여야 하므로 visibility 차단 안 함) */
+.manager-spline-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  background: transparent;
+}
 
-.manager-spline-iframe.is-ready {
+.manager-spline-canvas.is-ready {
   opacity: 1;
 }
 
