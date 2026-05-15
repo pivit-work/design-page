@@ -202,9 +202,22 @@ const GOOD = [
  * demo 데이터 + 라벨 보유, OneOnOneCanvasV2 에 props 로 전달.
  */
 export default function OneOnOnePage({ icons, baseUrl }) {
-  // 데모: "AI 초안 전체 생성" 버튼이 항상 즉시 채워지도록 stub.
+  // 데모: AI 초안 생성 stub. section 미지정 = 전체, 지정 = 해당 섹션만 누적.
   const [aiDrafts, setAiDrafts] = useState(null);
-  const handleGenerateDrafts = () => setAiDrafts(DEMO_AI_DRAFTS);
+  const [generatingSection, setGeneratingSection] = useState(null);
+  const handleGenerateDrafts = (section) => {
+    setGeneratingSection(section ?? 'all');
+    setTimeout(() => {
+      if (!section) {
+        setAiDrafts(DEMO_AI_DRAFTS);
+      } else {
+        // design-page 섹션 키 'caps' → aiDrafts 키 'capabilities'
+        const key = section === 'caps' ? 'capabilities' : section;
+        setAiDrafts((prev) => ({ ...(prev ?? {}), [key]: DEMO_AI_DRAFTS[key] }));
+      }
+      setGeneratingSection(null);
+    }, 600);
+  };
   return (
     <OneOnOneCanvasV2
       title="1on1"
@@ -241,6 +254,7 @@ export default function OneOnOnePage({ icons, baseUrl }) {
       startOneOnOneData={DEMO_START_DATA}
       aiDrafts={aiDrafts}
       onGenerateDrafts={handleGenerateDrafts}
+      generatingSection={generatingSection}
     />
   );
 }

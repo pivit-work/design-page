@@ -10,7 +10,9 @@ import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
  * 0.1.127+ 부터는 컴포넌트가 prop 기반으로 동작:
  *   - `data`        : 멤버 사전 입력(브리핑/보고서/OKR/피드백/역량/아젠다/액션)
  *   - `aiDrafts`    : 매니저 관점 AI 초안 3개 (없으면 textarea 비어있음)
- *   - `onGenerateDrafts`/`generatingDrafts` : "AI 초안 전체 생성" 버튼 콜백
+ *   - `onGenerateDrafts(section?)` : AI 초안 생성 콜백. section 미지정 = 전체,
+ *     'strengths'|'sbi'|'support'|'caps' = 해당 섹션만.
+ *   - `generatingSection` : 현재 생성 중인 섹션 ('all'|섹션키|null).
  *
  * design-page 데모 wrapper(OneOnOnePage.jsx) 가 이 props 를 채워 기존 데모 화면을
  * 유지하고, pivit-work 등 실제 사용처는 prepareSession 결과를 변환해 넣는다.
@@ -87,7 +89,7 @@ export default function StartOneOnOneView({
   data,
   aiDrafts,
   onGenerateDrafts,
-  generatingDrafts = false,
+  generatingSection = null,
   onBack,
   baseUrl = '',
   // ── 녹음 상태 외부 제어 (PiP 등) ──
@@ -198,10 +200,12 @@ export default function StartOneOnOneView({
   const confirmedCount = activeKeys.filter((k) => confirmed[k]).length;
   const allConfirmed = confirmedCount === activeTotal;
 
-  const handleGenerate = () => {
-    if (!onGenerateDrafts || generatingDrafts) return;
-    onGenerateDrafts();
+  // section 미지정 = 전체 생성, 지정 = 해당 섹션만. 무언가 생성 중이면 무시.
+  const handleGenerate = (section) => {
+    if (!onGenerateDrafts || generatingSection) return;
+    onGenerateDrafts(section);
   };
+  const isGenerating = !!generatingSection;
   const toggleConfirm = (key) => setConfirmed((p) => ({ ...p, [key]: !p[key] }));
 
   const removeMgrAgenda = (a) => setMgrAgendas((prev) => prev.filter((x) => x !== a));
@@ -311,11 +315,13 @@ export default function StartOneOnOneView({
             <button
               type="button"
               className="ono-start-cta is-cta"
-              onClick={handleGenerate}
-              disabled={!onGenerateDrafts || generatingDrafts}
+              onClick={() => handleGenerate()}
+              disabled={!onGenerateDrafts || isGenerating}
             >
               <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
-              {generatingDrafts ? 'AI 초안 생성 중...' : 'AI 브리핑 및 매니저 관점 초안 전체 생성'}
+              {generatingSection === 'all'
+                ? 'AI 초안 생성 중...'
+                : 'AI 브리핑 및 매니저 관점 초안 전체 생성'}
             </button>
           )}
 
@@ -451,17 +457,26 @@ export default function StartOneOnOneView({
                           <button
                             type="button"
                             className="ono-start-ai-draft-btn"
-                            onClick={handleGenerate}
-                            disabled={!onGenerateDrafts || generatingDrafts}
+                            onClick={() => handleGenerate(sec.key)}
+                            disabled={!onGenerateDrafts || isGenerating}
                           >
                             <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
-                            <span>{generatingDrafts ? '생성 중' : 'AI 초안'}</span>
+                            <span>
+                              {generatingSection === sec.key ? '생성 중' : 'AI 초안'}
+                            </span>
                           </button>
                         ) : confirmed[sec.key] ? (
                           <button type="button" className="ono-start-edit-btn" onClick={() => toggleConfirm(sec.key)}>수정</button>
                         ) : (
                           <>
-                            <button type="button" className="ono-start-regen-btn" onClick={handleGenerate}>재생성</button>
+                            <button
+                              type="button"
+                              className="ono-start-regen-btn"
+                              onClick={() => handleGenerate(sec.key)}
+                              disabled={isGenerating}
+                            >
+                              {generatingSection === sec.key ? '생성 중' : '재생성'}
+                            </button>
                             <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>확정</button>
                           </>
                         )}

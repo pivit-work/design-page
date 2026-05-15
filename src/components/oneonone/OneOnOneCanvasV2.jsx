@@ -36,7 +36,7 @@ export default function OneOnOneCanvasV2({
   startOneOnOneData,
   aiDrafts,
   onGenerateDrafts,
-  generatingDrafts,
+  generatingSection,
   /** 멤버 카드의 아바타 렌더 콜백. 외부에서 호스트 앱의 Avatar 컴포넌트(이니셜
    *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
   renderMemberAvatar,
@@ -91,7 +91,7 @@ export default function OneOnOneCanvasV2({
           data={startOneOnOneData}
           aiDrafts={aiDrafts}
           onGenerateDrafts={onGenerateDrafts}
-          generatingDrafts={generatingDrafts}
+          generatingSection={generatingSection}
         />
       ) : (
         <>
