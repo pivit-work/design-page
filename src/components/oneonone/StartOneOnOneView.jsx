@@ -121,20 +121,25 @@ export default function StartOneOnOneView({
   const meetingTime = data?.meetingTime ?? '';
   const meetingTitle = data?.meetingTitle ?? '1on1';
 
-  // briefingExpanded: AI 초안이 채워졌는지(되돌리지 않음). aiDrafts prop 으로
-  // 외부 제어 가능 — drafts 있으면 즉시 expanded.
-  const [briefingExpanded, setBriefingExpanded] = useState(!!aiDrafts);
-  // briefingOpen: 브리핑 카드 펼침 토글. briefing 데이터가 있으면 기본 펼친 상태로
-  // 시작해서 매니저가 즉시 요약/플래그/코칭 가이드를 볼 수 있도록.
-  const [briefingOpen, setBriefingOpen] = useState(!!aiDrafts || !!briefing);
+  // aiGenerated: 섹션별로 AI 초안이 채워졌는지. 색/버튼 분기를 섹션 단위로
+  // 독립시킨다 — 한 섹션 생성해도 다른 섹션이 보라색으로 변하지 않게.
+  const aiGenerated = {
+    strengths: !!aiDrafts?.strengths,
+    sbi: !!aiDrafts?.sbi,
+    support: !!aiDrafts?.support,
+    caps: !!aiDrafts?.capabilities,
+  };
+  const anyAiGenerated =
+    aiGenerated.strengths ||
+    aiGenerated.sbi ||
+    aiGenerated.support ||
+    aiGenerated.caps;
+  // briefingOpen: 브리핑 카드 펼침 토글. briefing 데이터가 있거나 어느 섹션이든
+  // AI 초안이 있으면 기본 펼친 상태로 시작.
+  const [briefingOpen, setBriefingOpen] = useState(anyAiGenerated || !!briefing);
   useEffect(() => {
-    if (aiDrafts) {
-      setBriefingExpanded(true);
-      setBriefingOpen(true);
-    } else if (briefing) {
-      setBriefingOpen(true);
-    }
-  }, [aiDrafts, briefing]);
+    if (anyAiGenerated || briefing) setBriefingOpen(true);
+  }, [anyAiGenerated, briefing]);
 
   const [strengths, setStrengths] = useState('');
   const [sbi, setSbi] = useState('');
@@ -302,8 +307,8 @@ export default function StartOneOnOneView({
             );
           })()}
 
-          {/* CTA bar */}
-          {briefingExpanded ? (
+          {/* CTA bar — 한 섹션이라도 AI 초안 받았으면 "생성 완료" 상태로 전환. */}
+          {anyAiGenerated ? (
             <div className="ono-start-cta is-done">
               <span className="ono-start-cta-left">
                 <Icon src="/icons-solid/check-circle.svg" size={20} color="var(--utility-purple-500, #7a5af8)" baseUrl={baseUrl} />
@@ -439,7 +444,7 @@ export default function StartOneOnOneView({
           {/* 매니저 관점 */}
           <div className="ono-start-section">
             <span className="ono-start-section-title">
-              매니저 관점{briefingExpanded ? ' (DONE 전까지 멤버 비공개)' : ''}
+              매니저 관점{anyAiGenerated ? ' (DONE 전까지 멤버 비공개)' : ''}
             </span>
             <div className="ono-start-mgr">
               {MGR_SECTIONS.map((sec) => {
@@ -453,7 +458,7 @@ export default function StartOneOnOneView({
                         ))}
                       </div>
                       <div className="ono-start-field-actions">
-                        {!briefingExpanded ? (
+                        {!aiGenerated[sec.key] ? (
                           <button
                             type="button"
                             className="ono-start-ai-draft-btn"
@@ -489,12 +494,12 @@ export default function StartOneOnOneView({
                         ))}
                       </div>
                     )}
-                    {briefingExpanded && confirmed[sec.key] && (
+                    {aiGenerated[sec.key] && confirmed[sec.key] && (
                       <span className="ono-start-confirmed-label">✓ 확정됨</span>
                     )}
                     {sec.kind === 'textarea' ? (
                       <textarea
-                        className={`ono-start-textarea ${briefingExpanded && !confirmed[sec.key] ? 'is-ai' : ''}`}
+                        className={`ono-start-textarea ${aiGenerated[sec.key] && !confirmed[sec.key] ? 'is-ai' : ''}`}
                         placeholder={TEXTAREA_PLACEHOLDER}
                         value={sectionValue(sec.key)}
                         onChange={(e) => setSectionValue(sec.key, e.target.value)}
@@ -507,7 +512,7 @@ export default function StartOneOnOneView({
                               <span className="ono-start-cap-label">{c.label}</span>
                               <RatingBar
                                 value={caps[c.key] ?? 0}
-                                ai={briefingExpanded}
+                                ai={aiGenerated.caps}
                                 onChange={(v) =>
                                   setCaps((prev) => ({ ...prev, [c.key]: v }))
                                 }
@@ -518,7 +523,7 @@ export default function StartOneOnOneView({
                         <p className="ono-start-cap-hint">멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.</p>
                       </>
                     )}
-                    {briefingExpanded && (
+                    {aiGenerated[sec.key] && (
                       <p className="ono-start-ai-warn">
                         <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textWarningPrimary, #dc6803)" baseUrl={baseUrl} />
                         {AI_WARN}
