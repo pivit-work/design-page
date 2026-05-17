@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 
@@ -13,6 +13,12 @@ import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
  *   - `onGenerateDrafts(section?)` : AI 초안 생성 콜백. section 미지정 = 전체,
  *     'strengths'|'sbi'|'support'|'caps' = 해당 섹션만.
  *   - `generatingSection` : 현재 생성 중인 섹션 ('all'|섹션키|null).
+ *   - `initialPerspective` : 서버에 저장된 매니저 관점 (자동 저장 복원).
+ *     { strengths, sbi, support, capabilities, confirmed, mgrAgendas }.
+ *     주어지면 모든 초기 상태를 이 값으로 채우고 멤버 자가진단/initialMgrAgendas
+ *     fallback 은 건너뛴다.
+ *   - `onPerspectiveChange(perspective)` : 매니저 관점 4섹션/역량/확정/아젠다 중
+ *     하나라도 바뀔 때마다 호출. Daily Snippet 패턴의 자동 저장 훅과 연결한다.
  *
  * design-page 데모 wrapper(OneOnOnePage.jsx) 가 이 props 를 채워 기존 데모 화면을
  * 유지하고, pivit-work 등 실제 사용처는 prepareSession 결과를 변환해 넣는다.
@@ -90,6 +96,8 @@ export default function StartOneOnOneView({
   aiDrafts,
   onGenerateDrafts,
   generatingSection = null,
+  initialPerspective = null,
+  onPerspectiveChange,
   onBack,
   baseUrl = '',
   // ── 녹음 상태 외부 제어 (PiP 등) ──
@@ -141,22 +149,30 @@ export default function StartOneOnOneView({
     if (anyAiGenerated || briefing) setBriefingOpen(true);
   }, [anyAiGenerated, briefing]);
 
-  const [strengths, setStrengths] = useState('');
-  const [sbi, setSbi] = useState('');
-  const [support, setSupport] = useState('');
+  // initialPerspective 가 주어지면 모든 입력 상태를 그 값으로 복원.
+  // fallback 효과(멤버 자가진단으로 caps 리셋, initialMgrAgendas → mgrAgendas)는
+  // 복원 모드에서는 건너뛴다 — 자동 저장된 값을 멤버 초기값으로 덮어쓰면 안 되므로.
+  const hasInitialPerspective = !!initialPerspective;
 
-  // caps: 멤버 자가진단(data.capabilities)으로 초기화 → AI 초안(aiDrafts.capabilities)
-  // 으로 덮어쓰기 → 매니저가 막대 클릭해 최종 수정.
-  const [caps, setCaps] = useState({});
+  const [strengths, setStrengths] = useState(initialPerspective?.strengths ?? '');
+  const [sbi, setSbi] = useState(initialPerspective?.sbi ?? '');
+  const [support, setSupport] = useState(initialPerspective?.support ?? '');
+
+  // caps: 복원 우선 → 없으면 멤버 자가진단(data.capabilities) → AI 초안으로 덮어쓰기.
+  const [caps, setCaps] = useState(() =>
+    initialPerspective?.capabilities ??
+      Object.fromEntries(DEFAULT_CAPABILITIES.map((c) => [c.key, 0])),
+  );
   useEffect(() => {
+    if (hasInitialPerspective) return;
     setCaps(Object.fromEntries(capabilities.map((c) => [c.key, c.value])));
-  }, [capabilities]);
+  }, [capabilities, hasInitialPerspective]);
 
   useEffect(() => {
     if (aiDrafts) {
-      setStrengths(aiDrafts.strengths ?? '');
-      setSbi(aiDrafts.sbi ?? '');
-      setSupport(aiDrafts.support ?? '');
+      if (aiDrafts.strengths != null) setStrengths(aiDrafts.strengths);
+      if (aiDrafts.sbi != null) setSbi(aiDrafts.sbi);
+      if (aiDrafts.support != null) setSupport(aiDrafts.support);
       if (aiDrafts.capabilities) {
         setCaps((prev) => ({ ...prev, ...aiDrafts.capabilities }));
       }
@@ -164,11 +180,54 @@ export default function StartOneOnOneView({
   }, [aiDrafts]);
 
   // 매니저 관점 4개 항목 확정 상태.
-  const [confirmed, setConfirmed] = useState({ strengths: false, sbi: false, support: false, caps: false });
+  const [confirmed, setConfirmed] = useState(
+    initialPerspective?.confirmed ?? {
+      strengths: false,
+      sbi: false,
+      support: false,
+      caps: false,
+    },
+  );
   // 아젠다: 매니저만 추가/삭제할 수 있다.
-  const [mgrAgendas, setMgrAgendas] = useState([]);
-  useEffect(() => { setMgrAgendas(initialMgrAgendas); }, [initialMgrAgendas]);
+  const [mgrAgendas, setMgrAgendas] = useState(
+    initialPerspective?.mgrAgendas ?? [],
+  );
+  useEffect(() => {
+    if (hasInitialPerspective) return;
+    setMgrAgendas(initialMgrAgendas);
+  }, [initialMgrAgendas, hasInitialPerspective]);
   const [agendaInput, setAgendaInput] = useState('');
+
+  // 자동 저장: 매니저 관점 4섹션/역량/확정/아젠다 중 하나라도 바뀌면 부모에게 통지.
+  // 최초 마운트는 skip — 복원/초기값을 다시 PATCH 로 보내지 않기 위함.
+  // (useManagerPerspectiveAutoSave 훅이 페이로드 dedupe 도 하지만, 마운트 직후
+  // 한 번을 건너뛰면 불필요한 호출이 더 줄어든다.)
+  const perspectiveChangeRef = useRef(onPerspectiveChange);
+  useEffect(() => {
+    perspectiveChangeRef.current = onPerspectiveChange;
+  }, [onPerspectiveChange]);
+  const hasMountedRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    if (!perspectiveChangeRef.current) return;
+    perspectiveChangeRef.current({
+      strengths,
+      sbi,
+      support,
+      capabilities: {
+        expertise: caps.expertise ?? 0,
+        communication: caps.communication ?? 0,
+        problemSolving: caps.problemSolving ?? 0,
+        teamwork: caps.teamwork ?? 0,
+        selfDriven: caps.selfDriven ?? 0,
+      },
+      confirmed,
+      mgrAgendas,
+    });
+  }, [strengths, sbi, support, caps, confirmed, mgrAgendas]);
 
   // ── 녹음 상태 ──
   // recording prop 이 있으면 controlled, 없으면 내부 state. "시작하기" → 녹음 시작:
