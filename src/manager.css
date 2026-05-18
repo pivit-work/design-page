@@ -486,7 +486,10 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* spline 영역 — 조직도 modal-spline-wrap 와 완전히 동일 (432x432 + iframe 600 scale 0.5). */
+/* spline 영역 — 조직도 modal-spline-wrap 와 완전히 동일 (432x432 + stage 600 scale 0.5).
+   iframe 시절엔 spline-profile.html 을 띄웠지만, react-spline 단일 공유 런타임으로 교체
+   (SplineHero 와 동일 패턴). nginx .html rewrite 가 query 를 날려 React index 로 fallback
+   되던 dev 배포 버그가 사라진다. 시각 동일. */
 .manager-modal-spline-wrap {
   width: 432px;
   height: 432px;
@@ -497,10 +500,9 @@
   -webkit-user-select: none;
 }
 
-.manager-modal-spline-wrap iframe {
+.manager-modal-spline-stage {
   width: 600px;
   height: 600px;
-  border: none;
   display: block;
   transform: scale(0.5);
   transform-origin: center center;
@@ -508,10 +510,23 @@
   margin-top: -104px;
   pointer-events: none;
   background: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.manager-modal-spline-stage.is-ready {
+  opacity: 1;
+}
+
+.manager-modal-spline-stage canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  background: transparent;
 }
 
 /* 클릭 시 spline 인터랙션 활성화 (조직도 ProfileModal 과 동일 패턴). */
-.manager-modal-spline-wrap.spline-active iframe {
+.manager-modal-spline-wrap.spline-active .manager-modal-spline-stage {
   pointer-events: auto;
 }
 
