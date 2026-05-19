@@ -56,7 +56,7 @@ const SAMPLE_ONEONONE = {
 const URGENT_PROFILE = {
   aiBrief: '헬스 4.2로 급락, 연속 2일 스니핏 미작성. 번아웃 징후 감지 — 즉각 1on1 필요.',
   snippetsSummary: 'Auth 리팩토링 완료 후 번들 사이즈 이슈를 처리하는 과정에서 헬스가 급격히 저하됨. 야근이 이어지고 있어 업무 부하 조정이 필요해 보임.',
-  aiRecommendation: 'AI 추천 - OKR 38% 저조해서 원온원이 필요해보입니다',
+  aiRecommendation: 'AI 추천 - OKR 38% 저조해서 1on1이 필요해보입니다',
   agendas: [
     { title: '현재 업무 부하 체감 수준 확인', question: '"요즘 업무량이 어떻게 느껴져요? 어느 부분이 제일 힘들어요?"' },
     { title: 'KR2 지연 원인 파악', question: '"KR2가 좀 밀렸는데, 가장 큰 블로커가 뭔가요?"' },
@@ -112,18 +112,22 @@ const GOOD_PROFILE = {
 
 const ACTION_QUEUE_MEMBERS = [
   { id: 'action-1', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'urgent',
+    avatar: SPLINE_IMAGE,
     comment: '헬스 4.2로 급락, 연속 2일 스니핏 미작성. 번아웃 징후 감지 — 즉각 1on1 필요.',
     profile: URGENT_PROFILE },
   { id: 'action-2', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'warning',
+    avatar: SPLINE_IMAGE,
     comment: '현재 휴가 중, 스니핏 3일 공백. 헬스 9.1 안정 — 복귀 후 채용·온보딩 점검 1on1 권장.',
     profile: WARNING_PROFILE },
   { id: 'action-3', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'excellent',
+    avatar: SPLINE_IMAGE,
     comment: '12일 연속 스니핏, 헬스 8.8 팀 최고. 알고리즘 정확도 94% 달성 — 성장 목표 다음 스텝 논의 적기.',
     profile: EXCELLENT_PROFILE },
 ];
 
 const TEAM_STATUS_MEMBERS = [
   { id: 'team-1', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'good',
+    avatar: SPLINE_IMAGE,
     comment: 'pgvector 최적화로 응답시간 3배 개선. 5일 연속 스니핏, 성과·컨디션 모두 안정적.',
     profile: GOOD_PROFILE },
 ];

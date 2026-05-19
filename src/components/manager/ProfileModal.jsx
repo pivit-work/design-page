@@ -179,7 +179,7 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
             <div className="manager-modal-actions">
               <button type="button" className="manager-modal-btn-primary">
                 <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
-                <span>원온원</span>
+                <span>1on1</span>
               </button>
               <button type="button" className="manager-modal-btn-secondary">
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
@@ -408,9 +408,9 @@ function ArrowUpIcon({ size = 16, className = '' }) {
 function OneOnOneTab({ data }) {
   return (
     <div className="manager-modal-content-section">
-      {/* 마지막 원온원 1-grid */}
+      {/* 마지막 1on1 1-grid */}
       <div className="manager-modal-trend-grid manager-modal-oneonone-grid">
-        <MetricTile label="마지막 원온원" value={data.lastDate} />
+        <MetricTile label="마지막 1on1" value={data.lastDate} />
       </div>
 
       {/* 1on1 기록 항목들 */}

@@ -8,7 +8,7 @@ import MemberCard from './MemberCard.jsx';
  * (sidebar, modals, side panels) and feeds data in via props.
  *
  * @param {object} props
- * @param {string} props.title - page title (e.g. "원온원")
+ * @param {string} props.title - page title (e.g. "1on1")
  * @param {React.ReactNode} [props.subtitle] - subtitle node (e.g. "김지수 매니저 · 개발팀 5명")
  * @param {Array} props.stats - stat card defs (see StatCard)
  * @param {Array<{key:string,label:string,count?:number|null}>} props.tabs

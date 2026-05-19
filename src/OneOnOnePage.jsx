@@ -127,7 +127,7 @@ const SCHEDULED_TODAY = [
     healthScore: '4.2',
     healthSeverity: 'critical',
     comment:
-      '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 원온원을 잡아보세요. 최근 3일간 스니펫 미작성 상태입니다.',
+      '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 1on1을 잡아보세요. 최근 3일간 스니펫 미작성 상태입니다.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
     actions: [
       { label: '1on1 진행', variant: 'primary' },
@@ -146,7 +146,7 @@ const NEEDS_ATTENTION = [
     severity: 'warning',
     healthScore: '5.1',
     healthSeverity: 'warning',
-    comment: '헬스가 5.1로 주의 구간에 있습니다. 마지막 원온원이 24일 전이므로 빠른 시일 내 일정을 잡아보세요.',
+    comment: '헬스가 5.1로 주의 구간에 있습니다. 마지막 1on1이 24일 전이므로 빠른 시일 내 일정을 잡아보세요.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
     actions: [
       { label: '1on1 진행', variant: 'primary' },
@@ -224,7 +224,7 @@ export default function OneOnOnePage({ icons, baseUrl }) {
       managerName="김지수"
       teamCount={5}
       briefing={BRIEFING}
-      message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
+      message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 1on1이 3주 이상 밀려 있습니다."
       kpis={KPIS}
       sections={[
         {

@@ -11,7 +11,6 @@ import ReportWeeklyRow from './ReportWeeklyRow.jsx';
  * 페이지 chrome:
  *   - 헤더: "리포트" 타이틀 + "생성된 리포트 · N개" 메타
  *   - 탭 row: Weekly / Monthly / Quarterly / Semi-annually / Annually
- *           + 우측 Google Calendar 연동 상태
  *   - AI 안내 배너 (보라 톤)
  *   - 본문: 활성 탭에 따라 달라짐. Weekly = 주차별 리포트 row 리스트.
  *           Monthly/Quarterly/Semi-annually/Annually 는 추후 디자인 — 현재는
@@ -55,8 +54,6 @@ export default function ReportCanvas({
   // 생성 버튼 클릭 직후 selectedReport 가 세팅되고 isGenerating=true 면
   // weeklyReport 가 도착할 때까지 로딩이 보이고, 도착하면 자연스럽게 리포트로 전환.
   isGenerating = false,
-  // Google Calendar 연동 상태. 기본 true — 연동 중 라벨.
-  gcalConnected = true,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
@@ -84,18 +81,6 @@ export default function ReportCanvas({
           value={effectivePeriod}
           onChange={handlePeriodClick}
         />
-        <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
-          <Icon
-            src="/icons-solid/calendar-check-02.svg"
-            size={14}
-            color="var(--colors-foreground-fgTertiary)"
-            baseUrl={baseUrl}
-          />
-          <span>{gcalConnected ? 'Google Calendar 연동 중' : 'Google Calendar 미연동'}</span>
-          {gcalConnected && (
-            <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
-          )}
-        </div>
       </div>
 
       <div className="report-body">

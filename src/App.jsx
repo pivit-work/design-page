@@ -66,7 +66,7 @@ const MENU = [
   { icon: ICONS.calendarSolid, label: '타임라인', page: 'timeline' },
   { icon: ICONS.dotpoints, label: '리포트', page: 'report' },
   { icon: ICONS.target, label: 'OKR' },
-  { icon: ICONS.user, label: '원온원', page: 'oneonone' },
+  { icon: ICONS.user, label: '1on1', page: 'oneonone' },
   { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
   { icon: ICONS.file, label: '회의록', page: 'meetings' },
   { icon: ICONS.edit, label: '평가' },
