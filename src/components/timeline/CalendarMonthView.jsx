@@ -54,8 +54,10 @@ function buildMonthGrid(date) {
  * - 각 셀: day number(+ 1일은 "X월 Y일"), 이벤트 pill 최대 2개, "+N more..."
  * - 오늘 날짜는 녹색 원형 배경 하이라이트
  * - 현재 달이 아닌 날짜는 text-disabled 로 dim
+ * - "+N more..." 클릭 시 onMoreClick(iso, events, cellRect) 호출 — 상위에서
+ *   일별 이벤트 팝오버(DayEventsPopover)를 연다.
  */
-export default function CalendarMonthView({ selectedDate, onEventClick }) {
+export default function CalendarMonthView({ selectedDate, onEventClick, onMoreClick }) {
   const { getEventsForDate } = useTimelineData();
   const cells = buildMonthGrid(selectedDate);
   const currentMonth = selectedDate.getMonth();
@@ -156,7 +158,21 @@ export default function CalendarMonthView({ selectedDate, onEventClick }) {
                     );
                   })}
                   {moreCount > 0 && (
-                    <div className="tl-cal-more">+{moreCount} more...</div>
+                    <button
+                      type="button"
+                      className="tl-cal-more"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const cell = e.currentTarget.closest('.tl-cal-cell');
+                        onMoreClick?.(
+                          iso,
+                          events,
+                          cell.getBoundingClientRect(),
+                        );
+                      }}
+                    >
+                      +{moreCount} more...
+                    </button>
                   )}
                 </div>
               )}
