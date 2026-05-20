@@ -41,6 +41,7 @@ import {
   getMonthDates,
   formatIsoDate,
   getTodayStr,
+  SNIPPET_COLORS,
 } from './constants.js';
 
 const formatKoreanDate = (d) =>
@@ -179,10 +180,12 @@ export default function TimelineCanvas({
     const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const d = parseIsoDate(ev.date);
     const hasRealPeople = Array.isArray(ev.participants);
+    // 이벤트 색(팔레트 key)을 모달 색 태그용 hex 로 변환 — 하드코딩 teal 대신.
+    const palette = SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray;
     const meetingShape = {
       id: ev.id,
       title: ev.title,
-      color: '#15b79e',
+      color: palette.solid,
       timeLabel: `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) · ${ev.time}`,
       // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
       repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
