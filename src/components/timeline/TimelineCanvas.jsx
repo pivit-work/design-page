@@ -4,9 +4,11 @@ import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
 import WeekGrid from './WeekGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
+import CalendarWeekView from './CalendarWeekView.jsx';
 import MeetingModal from './MeetingModal.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
+import CustomSelect from './CustomSelect.jsx';
 import DragPreview from './DragPreview.jsx';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
@@ -16,6 +18,12 @@ import Tabs from '../shared/Tabs.jsx';
 const TIMELINE_TAB_ITEMS = [
   { value: 'gantt', label: '간트' },
   { value: 'calendar', label: '캘린더' },
+];
+
+// 캘린더 탭 보기 단위 — 주/월. (간트 탭의 viewUnit 과는 별개 개념)
+const CAL_VIEW_OPTIONS = [
+  { value: 'week', label: '주' },
+  { value: 'month', label: '월' },
 ];
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
@@ -33,6 +41,7 @@ import {
   getMonthDates,
   formatIsoDate,
   getTodayStr,
+  SNIPPET_COLORS,
 } from './constants.js';
 
 const formatKoreanDate = (d) =>
@@ -89,10 +98,29 @@ export default function TimelineCanvas({
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
   activeProjectCount = 2,
+  // 초기 탭 / 캘린더 보기 단위 — URL 진입점(예: /timeline/week)에서 주입.
+  initialTab,
+  initialCalViewUnit,
+  // 탭 또는 캘린더 보기 단위가 바뀔 때 호출 — { tab, calViewUnit }. 상위에서
+  // URL 동기화 등에 사용. 생략 시 내부 state 만 갱신.
+  onViewChange,
 }) {
-  // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
-  const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
+  // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
+  const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
   const [viewUnit] = useState('day');
+  // 캘린더 탭 보기 단위 — 'week' | 'month'. 간트의 viewUnit 과 독립.
+  const [calViewUnit, setCalViewUnit] = useState(initialCalViewUnit ?? 'month');
+
+  // 탭 / 캘린더 보기 단위 변경 — 내부 state 갱신 + onViewChange 통지(이벤트
+  // 핸들러 내 호출이므로 렌더 중 setState 금지 규칙과 무관).
+  const changeTab = (tab) => {
+    setCurrentTab(tab);
+    onViewChange?.({ tab, calViewUnit });
+  };
+  const changeCalViewUnit = (unit) => {
+    setCalViewUnit(unit);
+    onViewChange?.({ tab: currentTab, calViewUnit: unit });
+  };
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
   );
@@ -145,19 +173,25 @@ export default function TimelineCanvas({
     setMeetingVariant(null);
   };
   // 캘린더 셀의 이벤트 pill 클릭 — 간트 미팅 모달과 동일 UI 를 variant 로 열고
-  // 캘린더 이벤트 데이터(time/title/color)를 미팅 shape 로 어댑트. width 410.
+  // 캘린더 이벤트 데이터를 미팅 shape 로 어댑트. width 410.
+  // 참석자/주최자/알림은 caller 가 ev 에 실어 보내면 그 값을, 없으면(디자인
+  // 프리뷰의 mock 이벤트) mock 멤버로 폴백한다.
   const handleCalendarEventClick = (ev, rect) => {
     const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const d = parseIsoDate(ev.date);
+    const hasRealPeople = Array.isArray(ev.participants);
+    // 이벤트 색(팔레트 key)을 모달 색 태그용 hex 로 변환 — 하드코딩 teal 대신.
+    const palette = SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray;
     const meetingShape = {
       id: ev.id,
       title: ev.title,
-      color: '#15b79e',
+      color: palette.solid,
       timeLabel: `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) · ${ev.time}`,
-      repeatLabel: '매주 일요일, 수요일',
-      participants: ['m1', 'm2', 'm3', 'm4', 'm5'],
-      organizer: 'm1',
-      notification: '30분 전',
+      // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
+      repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
+      participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
+      organizer: ev.organizer ?? 'm1',
+      notification: ev.notification ?? '30분 전',
     };
     setOpenMeeting(meetingShape);
     setOpenMeetingAnchor(rect);
@@ -304,14 +338,18 @@ export default function TimelineCanvas({
   };
 
   // 날짜 이동 단위:
-  //   캘린더 탭       → 1 개월
+  //   캘린더 탭 주     → 7 일
+  //   캘린더 탭 월     → 1 개월
   //   간트 일         → 하루
   //   간트 주         → 7 일
   //   간트 월         → 1 개월
   const shiftByViewUnit = (direction) => {
     setSelectedDate((prev) => {
       const next = new Date(prev);
-      if (currentTab === 'calendar') next.setMonth(next.getMonth() + direction);
+      if (currentTab === 'calendar') {
+        if (calViewUnit === 'week') next.setDate(next.getDate() + direction * 7);
+        else next.setMonth(next.getMonth() + direction);
+      }
       else if (viewUnit === 'week') next.setDate(next.getDate() + direction * 7);
       else if (viewUnit === 'month') next.setMonth(next.getMonth() + direction);
       else next.setDate(next.getDate() + direction);
@@ -393,7 +431,7 @@ export default function TimelineCanvas({
         <Tabs
           items={TIMELINE_TAB_ITEMS}
           value={currentTab}
-          onChange={setCurrentTab}
+          onChange={changeTab}
         />
         <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
@@ -404,8 +442,7 @@ export default function TimelineCanvas({
         </div>
       </div>
 
-      {/* Toolbar row (일/주/월, date nav, filter, + 이벤트 추가)
-          캘린더 탭에서는 segmented control 숨김 — viewUnit 개념이 없음. */}
+      {/* Toolbar row — date picker, date nav, 캘린더 탭 보기 단위(주/월), filter */}
       <div className="tl-toolbar">
         <button
           ref={dateBtnRef}
@@ -428,6 +465,16 @@ export default function TimelineCanvas({
             <Icon src="/icons/chevron-right.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
           </button>
         </div>
+
+        {!isGantt && (
+          <CustomSelect
+            value={calViewUnit}
+            onChange={changeCalViewUnit}
+            options={CAL_VIEW_OPTIONS}
+            size="sm"
+            ariaLabel="캘린더 보기 단위"
+          />
+        )}
 
         <button
           ref={filterBtnRef}
@@ -475,11 +522,18 @@ export default function TimelineCanvas({
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
       {currentTab === 'calendar' ? (
         <div className="tl-body tl-body-calendar">
-          <CalendarMonthView
-            selectedDate={selectedDate}
-            onEventClick={handleCalendarEventClick}
-            onMoreClick={handleMoreClick}
-          />
+          {calViewUnit === 'month' ? (
+            <CalendarMonthView
+              selectedDate={selectedDate}
+              onEventClick={handleCalendarEventClick}
+              onMoreClick={handleMoreClick}
+            />
+          ) : (
+            <CalendarWeekView
+              selectedDate={selectedDate}
+              onEventClick={handleCalendarEventClick}
+            />
+          )}
         </div>
       ) : (
         <div className="tl-body">
