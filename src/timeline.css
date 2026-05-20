@@ -1081,6 +1081,22 @@
   padding: 0;
 }
 
+/* 캘린더 주간 보기 placeholder — CalendarWeekView 컴포넌트 도입 전 임시 표시. */
+.tl-cal-placeholder {
+  flex: 1 1 0;
+  min-height: 920px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 160px;
+  box-sizing: border-box;
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--colors-text-textSecondary, #687079);
+}
+
 .tl-cal {
   flex: 1 1 0;
   min-width: 0;
@@ -2322,6 +2338,13 @@
 .tl-select {
   position: relative;
   width: 100%;
+}
+
+/* 툴바 안의 보기 단위 드롭다운은 폼 입력(width:100%)과 달리 콘텐츠 폭에 맞춘다. */
+.tl-toolbar .tl-select {
+  width: auto;
+  min-width: 96px;
+  flex: 0 0 auto;
 }
 
 .tl-select-trigger {

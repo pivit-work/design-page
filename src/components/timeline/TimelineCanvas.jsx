@@ -7,6 +7,7 @@ import CalendarMonthView from './CalendarMonthView.jsx';
 import MeetingModal from './MeetingModal.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
+import CustomSelect from './CustomSelect.jsx';
 import DragPreview from './DragPreview.jsx';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
@@ -16,6 +17,12 @@ import Tabs from '../shared/Tabs.jsx';
 const TIMELINE_TAB_ITEMS = [
   { value: 'gantt', label: '간트' },
   { value: 'calendar', label: '캘린더' },
+];
+
+// 캘린더 탭 보기 단위 — 주/월. (간트 탭의 viewUnit 과는 별개 개념)
+const CAL_VIEW_OPTIONS = [
+  { value: 'week', label: '주' },
+  { value: 'month', label: '월' },
 ];
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
@@ -93,6 +100,8 @@ export default function TimelineCanvas({
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
   const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
   const [viewUnit] = useState('day');
+  // 캘린더 탭 보기 단위 — 'week' | 'month'. 간트의 viewUnit 과 독립.
+  const [calViewUnit, setCalViewUnit] = useState('month');
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
   );
@@ -304,14 +313,18 @@ export default function TimelineCanvas({
   };
 
   // 날짜 이동 단위:
-  //   캘린더 탭       → 1 개월
+  //   캘린더 탭 주     → 7 일
+  //   캘린더 탭 월     → 1 개월
   //   간트 일         → 하루
   //   간트 주         → 7 일
   //   간트 월         → 1 개월
   const shiftByViewUnit = (direction) => {
     setSelectedDate((prev) => {
       const next = new Date(prev);
-      if (currentTab === 'calendar') next.setMonth(next.getMonth() + direction);
+      if (currentTab === 'calendar') {
+        if (calViewUnit === 'week') next.setDate(next.getDate() + direction * 7);
+        else next.setMonth(next.getMonth() + direction);
+      }
       else if (viewUnit === 'week') next.setDate(next.getDate() + direction * 7);
       else if (viewUnit === 'month') next.setMonth(next.getMonth() + direction);
       else next.setDate(next.getDate() + direction);
@@ -404,8 +417,7 @@ export default function TimelineCanvas({
         </div>
       </div>
 
-      {/* Toolbar row (일/주/월, date nav, filter, + 이벤트 추가)
-          캘린더 탭에서는 segmented control 숨김 — viewUnit 개념이 없음. */}
+      {/* Toolbar row — date picker, date nav, 캘린더 탭 보기 단위(주/월), filter */}
       <div className="tl-toolbar">
         <button
           ref={dateBtnRef}
@@ -428,6 +440,16 @@ export default function TimelineCanvas({
             <Icon src="/icons/chevron-right.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
           </button>
         </div>
+
+        {!isGantt && (
+          <CustomSelect
+            value={calViewUnit}
+            onChange={setCalViewUnit}
+            options={CAL_VIEW_OPTIONS}
+            size="sm"
+            ariaLabel="캘린더 보기 단위"
+          />
+        )}
 
         <button
           ref={filterBtnRef}
@@ -475,11 +497,15 @@ export default function TimelineCanvas({
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
       {currentTab === 'calendar' ? (
         <div className="tl-body tl-body-calendar">
-          <CalendarMonthView
-            selectedDate={selectedDate}
-            onEventClick={handleCalendarEventClick}
-            onMoreClick={handleMoreClick}
-          />
+          {calViewUnit === 'month' ? (
+            <CalendarMonthView
+              selectedDate={selectedDate}
+              onEventClick={handleCalendarEventClick}
+              onMoreClick={handleMoreClick}
+            />
+          ) : (
+            <div className="tl-cal-placeholder">주간 보기는 준비 중입니다.</div>
+          )}
         </div>
       ) : (
         <div className="tl-body">
