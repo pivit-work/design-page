@@ -1,9 +1,60 @@
-import { useState, useEffect, useRef } from 'react';
+import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
+
+const PROFILE_SCENE = 'https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode';
+
+/**
+ * `<Spline>` 격리용 Error Boundary — SplineHero 와 동일 패턴.
+ * WebGL 컨텍스트 생성 실패 시 Spline 내부에서 throw 되면 부모 트리가 통째로 언마운트
+ * 되므로 boundary 로 격리해 헥사 영역만 비운다.
+ */
+class SplineBoundary extends Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onFail?.(); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
+/**
+ * Spline scene 의 'profileImage' 오브젝트 텍스처를 멤버 아바타로 교체.
+ * SplineHero 와 동일 패턴 — iframe 시절 spline-profile.html 의 applyTexture 를 동일 구현.
+ */
+function applyTexture(app, objectName, imageSrc) {
+  return new Promise((resolve) => {
+    const obj = app.findObjectByName(objectName);
+    if (!obj) { resolve(); return; }
+    const layers = obj.material?.layers;
+    if (!layers) { resolve(); return; }
+    const texLayer = [...Array(layers.length)]
+      .map((_, i) => layers[i])
+      .find((l) => l.type === 'texture');
+    if (!texLayer) { resolve(); return; }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageSrc;
+    img.onload = () => {
+      try {
+        texLayer.updateTexture(img);
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        texLayer.updateTexture(c.toDataURL('image/png'));
+        const tex = texLayer.texture;
+        tex.image = img;
+        texLayer.texture = tex;
+      } catch (e) { /* texture swap 실패 — baked 텍스처 유지 */ }
+      resolve();
+    };
+    img.onerror = () => resolve();
+  });
+}
 
 /**
  * 매니저 페이지 멤버 카드 클릭 시 노출되는 직원 프로필 모달 (v2).
@@ -12,13 +63,22 @@ const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
  * 구조/노출 로직/Spline 사이즈는 조직도 ProfileModal 과 완전히 동일:
  *  - createPortal 로 document.body 에 렌더 (사이드바/헤더 위로 overlay 가 올라가도록)
  *  - overlay + scroll-wrap + 정중앙 modal-card (width 432)
- *  - spline-wrap 432x432 + iframe 600 scale 0.5 + margin offset (조직도와 동일)
+ *  - spline-wrap 432x432 + react-spline stage 600 scale 0.5 + margin offset (조직도와 동일)
  *  - 닫힘 동안 마지막 멤버 콘텐츠 유지 (`displayMember`)
+ *
+ * Spline 은 SplineHero 와 동일하게 `@splinetool/react-spline` 단일 공유 런타임을 쓴다.
+ * iframe 시절엔 `spline-profile.html` 을 src 로 띄웠는데, nginx 의 `.html` rewrite 가
+ * query string 을 날려 React index.html 로 fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  *
  * 컨텐츠는 매니저 v2 디자인 — segment control + 종합 브리핑 + 1on1 아젠다 + KPI 4 grid.
  */
 export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
-  const [splineReady, setSplineReady] = useState(false);
+  // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
+  // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
+  // "실패한 멤버 id" 를 저장하고, displayMember?.id 와 비교해 derived 로 쓴다.
+  // 새 멤버 모달이 열리면 자동으로 false 처리되어 fade-in 이 다시 트리거된다.
+  const [splineReadyId, setSplineReadyId] = useState(null);
+  const [splineFailedId, setSplineFailedId] = useState(null);
   const [splineActive, setSplineActive] = useState(false);
   const [activeTab, setActiveTab] = useState('ai');
   const scrollWrapRef = useRef(null);
@@ -28,13 +88,22 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
   // 모달이 닫히면 spline 인터랙션 상태도 리셋 (조직도 ProfileModal 과 동일).
   if (!member && splineActive) setSplineActive(false);
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.data?.type === 'spline-ready') setSplineReady(true);
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+  const splineImage = displayMember?.splineImage || displayMember?.avatar || FALLBACK_IMAGE;
+  const splineReady = displayMember?.id != null && splineReadyId === displayMember.id;
+  const splineFailed = displayMember?.id != null && splineFailedId === displayMember.id;
+
+  const handleSplineLoad = useCallback(async (app) => {
+    const targetId = displayMember?.id ?? null;
+    if (splineImage) {
+      await applyTexture(app, 'profileImage', splineImage);
+      await applyTexture(app, 'profileImage-2', splineImage);
+    }
+    setSplineReadyId(targetId);
+  }, [splineImage, displayMember?.id]);
+
+  const handleSplineFail = useCallback(() => {
+    setSplineFailedId(displayMember?.id ?? null);
+  }, [displayMember?.id]);
 
   useEffect(() => {
     if (member && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
@@ -85,13 +154,19 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
               onClick={() => setSplineActive(true)}
               onMouseLeave={() => setSplineActive(false)}
             >
-              <iframe
-                key={member?.id}
-                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(displayMember?.splineImage || displayMember?.avatar || FALLBACK_IMAGE)}&speed=0.5`}
-                sandbox="allow-scripts"
-                title="Spline 3D"
-                style={{ opacity: splineReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
-              />
+              {isOpen && !splineFailed && (
+                <div
+                  className={`manager-modal-spline-stage ${splineReady ? 'is-ready' : ''}`}
+                >
+                  <SplineBoundary onFail={handleSplineFail}>
+                    <Spline
+                      key={member?.id}
+                      scene={PROFILE_SCENE}
+                      onLoad={handleSplineLoad}
+                    />
+                  </SplineBoundary>
+                </div>
+              )}
             </div>
 
             <div className="manager-modal-name">{displayMember?.name}</div>
