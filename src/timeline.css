@@ -2349,6 +2349,10 @@
 .tl-toolbar .tl-select-trigger {
   width: auto;
   min-width: 0;
+  /* 옆 "오늘" 버튼(.tl-nav-btn)과 동일한 타이포 */
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .tl-select-trigger {
