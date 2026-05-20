@@ -172,19 +172,23 @@ export default function TimelineCanvas({
     setMeetingVariant(null);
   };
   // 캘린더 셀의 이벤트 pill 클릭 — 간트 미팅 모달과 동일 UI 를 variant 로 열고
-  // 캘린더 이벤트 데이터(time/title/color)를 미팅 shape 로 어댑트. width 410.
+  // 캘린더 이벤트 데이터를 미팅 shape 로 어댑트. width 410.
+  // 참석자/주최자/알림은 caller 가 ev 에 실어 보내면 그 값을, 없으면(디자인
+  // 프리뷰의 mock 이벤트) mock 멤버로 폴백한다.
   const handleCalendarEventClick = (ev, rect) => {
     const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const d = parseIsoDate(ev.date);
+    const hasRealPeople = Array.isArray(ev.participants);
     const meetingShape = {
       id: ev.id,
       title: ev.title,
       color: '#15b79e',
       timeLabel: `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) · ${ev.time}`,
-      repeatLabel: '매주 일요일, 수요일',
-      participants: ['m1', 'm2', 'm3', 'm4', 'm5'],
-      organizer: 'm1',
-      notification: '30분 전',
+      // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
+      repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
+      participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
+      organizer: ev.organizer ?? 'm1',
+      notification: ev.notification ?? '30분 전',
     };
     setOpenMeeting(meetingShape);
     setOpenMeetingAnchor(rect);
