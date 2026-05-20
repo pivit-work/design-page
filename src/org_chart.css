@@ -294,17 +294,34 @@
   -webkit-user-select: none;
 }
 
-.modal-spline-wrap iframe {
+/* iframe 시절엔 spline-profile.html 을 띄웠지만 react-spline 단일 공유 런타임으로 교체
+   (manager ProfileModal·SplineHero 와 동일 패턴). 시각/사이즈 동일. */
+.modal-spline-stage {
   width: 600px;
   height: 600px;
+  display: block;
   transform: scale(0.5);
   transform-origin: center center;
   margin-left: -84px;
   margin-top: -104px;
   pointer-events: none;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.modal-spline-wrap.spline-active iframe {
+.modal-spline-stage.is-ready {
+  opacity: 1;
+}
+
+.modal-spline-stage canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  background: transparent;
+}
+
+.modal-spline-wrap.spline-active .modal-spline-stage {
   pointer-events: auto;
 }
 

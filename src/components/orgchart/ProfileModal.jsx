@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { Component, useState, useEffect, useRef, useCallback } from 'react';
+import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 
@@ -20,11 +21,67 @@ const DEFAULT_PROFILE = {
 
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
-/* Preloaded Spline iframe — stays mounted so it's instant on re-open */
+const PROFILE_SCENE = 'https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode';
+
+/**
+ * `<Spline>` 격리용 Error Boundary — manager ProfileModal·SplineHero 와 동일 패턴.
+ * WebGL 컨텍스트 생성 실패 시 Spline 내부 throw 가 부모 트리를 통째로 언마운트하므로
+ * boundary 로 격리해 헥사 영역만 비운다.
+ */
+class SplineBoundary extends Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onFail?.(); }
+  render() { return this.state.failed ? null : this.props.children; }
+}
+
+/**
+ * Spline scene 의 'profileImage' 오브젝트 텍스처를 교체 — manager ProfileModal 과 동일 구현.
+ */
+function applyTexture(app, objectName, imageSrc) {
+  return new Promise((resolve) => {
+    const obj = app.findObjectByName(objectName);
+    if (!obj) { resolve(); return; }
+    const layers = obj.material?.layers;
+    if (!layers) { resolve(); return; }
+    const texLayer = [...Array(layers.length)]
+      .map((_, i) => layers[i])
+      .find((l) => l.type === 'texture');
+    if (!texLayer) { resolve(); return; }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageSrc;
+    img.onload = () => {
+      try {
+        texLayer.updateTexture(img);
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        texLayer.updateTexture(c.toDataURL('image/png'));
+        const tex = texLayer.texture;
+        tex.image = img;
+        texLayer.texture = tex;
+      } catch (e) { /* texture swap 실패 — baked 텍스처 유지 */ }
+      resolve();
+    };
+    img.onerror = () => resolve();
+  });
+}
+
+/**
+ * 조직도 프로필 모달.
+ *
+ * Spline 은 `@splinetool/react-spline` 단일 공유 런타임으로 렌더한다 (manager
+ * ProfileModal·SplineHero 와 동일). iframe 시절엔 `spline-profile.html` 을 src 로
+ * 띄웠는데, nginx 의 `.html` rewrite 가 query string 을 날려 React index.html 로
+ * fallback 되는 버그가 있었다 (dev 배포에서만 재현).
+ */
 export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates }) {
   const [splineReady, setSplineReady] = useState(false);
+  const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
-  const iframeRef = useRef(null);
   const scrollWrapRef = useRef(null);
   // 닫힘 애니메이션 중에도 마지막 멤버 콘텐츠가 계속 보이도록 state 로 유지.
   // "Adjusting state while rendering" 패턴으로 member prop 변화에 맞춰 갱신.
@@ -33,13 +90,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   // 모달이 닫히면 spline 인터랙션 상태도 리셋.
   if (!member && splineActive) setSplineActive(false);
 
-  // Listen for spline-ready message (scene + texture fully loaded)
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.data?.type === 'spline-ready') setSplineReady(true);
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
+  // scene 로드 완료 → 텍스처 교체 → ready. PROFILE_IMAGE 가 고정이라 멤버가 바뀌어도
+  // 재로드 불필요 — Spline 은 한 번만 마운트되어 모달 재오픈 시 즉시 표시된다.
+  const handleSplineLoad = useCallback(async (app) => {
+    await applyTexture(app, 'profileImage', PROFILE_IMAGE);
+    await applyTexture(app, 'profileImage-2', PROFILE_IMAGE);
+    setSplineReady(true);
   }, []);
 
   // 새 멤버로 열릴 때 스크롤 위치 초기화.
@@ -70,15 +126,13 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               onClick={() => setSplineActive(true)}
               onMouseLeave={() => setSplineActive(false)}
             >
-              <iframe
-                src={`${baseUrl}spline-profile.html?img=${encodeURIComponent(PROFILE_IMAGE)}`}
-                sandbox="allow-scripts"
-                frameBorder="0"
-                width="100%"
-                height="100%"
-                title="Spline 3D"
-                style={{ border: 'none', opacity: splineReady ? 1 : 0, transition: 'opacity 0.3s ease' }}
-              />
+              {!splineFailed && (
+                <div className={`modal-spline-stage ${splineReady ? 'is-ready' : ''}`}>
+                  <SplineBoundary onFail={() => setSplineFailed(true)}>
+                    <Spline scene={PROFILE_SCENE} onLoad={handleSplineLoad} />
+                  </SplineBoundary>
+                </div>
+              )}
             </div>
           )}
           <div className="modal-name">{displayMember?.name}</div>
