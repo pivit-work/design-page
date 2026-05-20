@@ -4,6 +4,7 @@ import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
 import WeekGrid from './WeekGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
+import CalendarWeekView from './CalendarWeekView.jsx';
 import MeetingModal from './MeetingModal.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
@@ -96,12 +97,29 @@ export default function TimelineCanvas({
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
   activeProjectCount = 2,
+  // 초기 탭 / 캘린더 보기 단위 — URL 진입점(예: /timeline/week)에서 주입.
+  initialTab,
+  initialCalViewUnit,
+  // 탭 또는 캘린더 보기 단위가 바뀔 때 호출 — { tab, calViewUnit }. 상위에서
+  // URL 동기화 등에 사용. 생략 시 내부 state 만 갱신.
+  onViewChange,
 }) {
-  // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월 그리드 뷰.
-  const [currentTab, setCurrentTab] = useState('gantt'); // 'gantt' | 'calendar'
+  // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
+  const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
   const [viewUnit] = useState('day');
   // 캘린더 탭 보기 단위 — 'week' | 'month'. 간트의 viewUnit 과 독립.
-  const [calViewUnit, setCalViewUnit] = useState('month');
+  const [calViewUnit, setCalViewUnit] = useState(initialCalViewUnit ?? 'month');
+
+  // 탭 / 캘린더 보기 단위 변경 — 내부 state 갱신 + onViewChange 통지(이벤트
+  // 핸들러 내 호출이므로 렌더 중 setState 금지 규칙과 무관).
+  const changeTab = (tab) => {
+    setCurrentTab(tab);
+    onViewChange?.({ tab, calViewUnit });
+  };
+  const changeCalViewUnit = (unit) => {
+    setCalViewUnit(unit);
+    onViewChange?.({ tab: currentTab, calViewUnit: unit });
+  };
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
   );
@@ -406,7 +424,7 @@ export default function TimelineCanvas({
         <Tabs
           items={TIMELINE_TAB_ITEMS}
           value={currentTab}
-          onChange={setCurrentTab}
+          onChange={changeTab}
         />
         <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
@@ -444,7 +462,7 @@ export default function TimelineCanvas({
         {!isGantt && (
           <CustomSelect
             value={calViewUnit}
-            onChange={setCalViewUnit}
+            onChange={changeCalViewUnit}
             options={CAL_VIEW_OPTIONS}
             size="sm"
             ariaLabel="캘린더 보기 단위"
@@ -504,7 +522,10 @@ export default function TimelineCanvas({
               onMoreClick={handleMoreClick}
             />
           ) : (
-            <div className="tl-cal-placeholder">주간 보기는 준비 중입니다.</div>
+            <CalendarWeekView
+              selectedDate={selectedDate}
+              onEventClick={handleCalendarEventClick}
+            />
           )}
         </div>
       ) : (
