@@ -5,6 +5,7 @@ import TimelineGrid from './TimelineGrid.jsx';
 import WeekGrid from './WeekGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
 import MeetingModal from './MeetingModal.jsx';
+import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
 import DragPreview from './DragPreview.jsx';
 import useScrollMirror from './hooks/useScrollMirror.js';
@@ -166,6 +167,19 @@ export default function TimelineCanvas({
     setOpenMeeting(null);
     setOpenMeetingAnchor(null);
     setMeetingVariant(null);
+  };
+
+  // ── Day events popover state ─────────────────────────────────────────────
+  // 캘린더 셀의 "+N more" 클릭 시 해당 날짜의 전체 이벤트를 보여주는 팝오버.
+  const [dayPopover, setDayPopover] = useState(null); // { dateIso, events, anchorRect }
+  const handleMoreClick = (dateIso, events, anchorRect) => {
+    setDayPopover({ dateIso, events, anchorRect });
+  };
+  const handleCloseDayPopover = () => setDayPopover(null);
+  // 팝오버 안의 이벤트를 클릭하면 팝오버를 닫고 미팅 모달을 연다.
+  const handleDayPopoverEventClick = (ev, rect) => {
+    setDayPopover(null);
+    handleCalendarEventClick(ev, rect);
   };
 
   // ── Snippet CTA state ────────────────────────────────────────────────────
@@ -461,7 +475,11 @@ export default function TimelineCanvas({
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
       {currentTab === 'calendar' ? (
         <div className="tl-body tl-body-calendar">
-          <CalendarMonthView selectedDate={selectedDate} onEventClick={handleCalendarEventClick} />
+          <CalendarMonthView
+            selectedDate={selectedDate}
+            onEventClick={handleCalendarEventClick}
+            onMoreClick={handleMoreClick}
+          />
         </div>
       ) : (
         <div className="tl-body">
@@ -500,6 +518,17 @@ export default function TimelineCanvas({
             />
           )}
         </div>
+      )}
+
+      {/* Day events popover — 캘린더 "+N more" 클릭 시 해당 날짜 전체 이벤트 */}
+      {dayPopover && (
+        <DayEventsPopover
+          dateIso={dayPopover.dateIso}
+          events={dayPopover.events}
+          anchorRect={dayPopover.anchorRect}
+          onClose={handleCloseDayPopover}
+          onEventClick={handleDayPopoverEventClick}
+        />
       )}
 
       {/* Meeting detail modal */}
