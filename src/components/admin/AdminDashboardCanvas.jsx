@@ -10,6 +10,9 @@ import { useState } from 'react';
  */
 
 const FONT = "var(--font-family-body, 'Pretendard', sans-serif)";
+const DISPLAY_FONT = "var(--font-family-display, 'Pretendard', sans-serif)";
+// design-system shadow-sm — "약한 부상. 카드, 드롭다운". design-page 카드 표준 elevation.
+const CARD_SHADOW = '0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1)';
 
 // 요약 카드 톤 → design-page 토큰
 const STAT_TONE = {
@@ -38,8 +41,8 @@ function healthStyle(h) {
 function Card({ children, style = {} }) {
   return (
     <div style={{
-      background: 'var(--bg-quaternary)', border: '1px solid var(--border-primary)',
-      borderRadius: 16, padding: '16px 18px', ...style,
+      background: 'var(--bg-quaternary)', borderRadius: 'var(--radius-2xl, 16px)',
+      boxShadow: CARD_SHADOW, padding: '20px 22px', ...style,
     }}>
       {children}
     </div>
@@ -49,8 +52,8 @@ function Card({ children, style = {} }) {
 function SectionLabel({ children }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
-      textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10,
+      fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+      letterSpacing: '-0.01em', marginBottom: 14,
     }}>
       {children}
     </div>
@@ -127,7 +130,7 @@ export default function AdminDashboardCanvas({
   const avatar = (row) => (renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: FONT }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, fontFamily: FONT }}>
 
       {/* 헤더 — 날짜 + 팀원 초대 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
@@ -148,14 +151,17 @@ export default function AdminDashboardCanvas({
       </div>
 
       {/* 요약 카드 4개 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {stats.map((s) => (
           <div key={s.label} style={{
-            background: 'var(--bg-quaternary)', border: '1px solid var(--border-primary)',
-            borderRadius: 14, padding: '15px 17px',
+            background: 'var(--bg-quaternary)', borderRadius: 'var(--radius-2xl, 16px)',
+            boxShadow: CARD_SHADOW, padding: '18px 20px',
           }}>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontSize: 27, fontWeight: 800, color: STAT_TONE[s.tone], lineHeight: 1, marginBottom: 5 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{s.label}</div>
+            <div style={{
+              fontFamily: DISPLAY_FONT, fontSize: 30, fontWeight: 700,
+              color: STAT_TONE[s.tone], lineHeight: 1, marginBottom: 7,
+            }}>
               {s.value}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{s.sub}</div>
