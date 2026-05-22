@@ -91,3 +91,6 @@ export {
   ManagerSectionHeading,
   MANAGER_STATUS_COLORS,
 } from './manager/index.js';
+
+// Admin
+export { AdminDashboardCanvas } from './admin/index.js';
