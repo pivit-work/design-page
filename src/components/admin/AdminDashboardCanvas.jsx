@@ -71,14 +71,16 @@ function SectionLabel({ children }) {
   );
 }
 
+// design-system Button 의 size-sm + tertiary 톤 — 보더 없는 연한 회색 버튼.
 function LinkButton({ children, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        fontSize: 11, padding: '5px 12px', borderRadius: 8,
-        border: '1px solid var(--border-primary)', background: 'var(--bg-primary)',
+        display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 26,
+        fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
+        border: 'none', background: 'var(--bg-primary)',
         color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: FONT,
       }}
     >
@@ -134,8 +136,8 @@ export default function AdminDashboardCanvas({
 
   const evalPct = (done) => evalCard && evalCard.total ? Math.round((done / evalCard.total) * 100) : 0;
   const evalRows = evalCard ? [
-    { label: '셀프 리뷰 완료',   done: evalCard.selfDone,    pct: evalPct(evalCard.selfDone),    color: 'var(--utility-green-600)' },
-    { label: '매니저 평가 완료', done: evalCard.managerDone, pct: evalPct(evalCard.managerDone), color: 'var(--text-brand-tertiary)' },
+    { label: '셀프 리뷰 완료',   done: evalCard.selfDone,    pct: evalPct(evalCard.selfDone) },
+    { label: '매니저 평가 완료', done: evalCard.managerDone, pct: evalPct(evalCard.managerDone) },
   ] : [];
 
   const avatar = (row) => (renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />);
@@ -323,7 +325,7 @@ export default function AdminDashboardCanvas({
                   <div key={p.label} style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{p.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: p.color }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--utility-blue-500)' }}>
                         {p.pct}%
                         <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 4 }}>
                           {p.done}/{evalCard.total}
@@ -331,7 +333,7 @@ export default function AdminDashboardCanvas({
                       </span>
                     </div>
                     <div style={{ height: 12, background: 'var(--bg-secondary)', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${p.pct}%`, height: '100%', background: p.color, borderRadius: 4 }} />
+                      <div style={{ width: `${p.pct}%`, height: '100%', background: 'var(--utility-blue-100)', borderRadius: 4 }} />
                     </div>
                   </div>
                 ))}
@@ -369,20 +371,22 @@ export default function AdminDashboardCanvas({
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{intg.name}</span>
                   {intg.connected ? (
                     <>
-                      {intg.lastSync && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{intg.lastSync}</span>}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--utility-green-600)' }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--utility-green-600)' }}>연결됨</span>
-                      </div>
+                      {intg.lastSync && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{intg.lastSync}</span>}
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: '2px 9px',
+                        borderRadius: 'var(--radius-xs, 6px)',
+                        background: 'var(--utility-green-100)', color: 'var(--utility-green-600)',
+                      }}>연결됨</span>
                     </>
                   ) : (
                     <button
                       type="button"
                       onClick={() => onConnectIntegration && onConnectIntegration(intg.name)}
                       style={{
-                        fontSize: 10, padding: '3px 9px', borderRadius: 6,
-                        border: '1px solid var(--border-primary)', background: 'var(--bg-quaternary)',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: FONT,
+                        fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
+                        border: 'none', background: 'var(--colors-background-bgBrandSecondary, #e1fef2)',
+                        color: 'var(--colors-text-textBrandTertiary-600, #21a67a)',
+                        cursor: 'pointer', fontFamily: FONT,
                       }}
                     >
                       연결
