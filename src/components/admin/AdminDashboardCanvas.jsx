@@ -49,6 +49,21 @@ function CheckHeartIcon({ size = 14 }) {
   );
 }
 
+// 체크 아이콘 — 연결됨 상태 표시용 (currentColor 상속).
+function CheckIcon({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <path
+        d="M3 7.4L5.8 10.2L11 4.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function Card({ children, style = {} }) {
   return (
     <div style={{
@@ -316,9 +331,9 @@ export default function AdminDashboardCanvas({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>상시 평가</span>
                   <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                    background: 'var(--utility-brand-50)', border: '1px solid var(--colors-utility-brand-utilityBrand200, #c7d2fe)',
-                    color: 'var(--text-brand-tertiary)',
+                    fontSize: 11, fontWeight: 600, padding: '3px 9px',
+                    borderRadius: 'var(--radius-xs, 6px)',
+                    background: 'var(--utility-blue-100)', color: 'var(--utility-blue-600)',
                   }}>진행 중 {evalCard.inProgress}건</span>
                 </div>
                 {evalRows.map((p) => (
@@ -367,26 +382,34 @@ export default function AdminDashboardCanvas({
                   background: intg.connected ? 'var(--bg-primary)' : 'var(--bg-secondary)',
                   border: `1px solid ${intg.connected ? 'var(--border-primary)' : 'var(--bg-secondary)'}`,
                 }}>
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>{intg.icon}</span>
+                  <span style={{
+                    width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: intg.color || 'var(--text-tertiary)',
+                    color: '#fff', fontSize: 12, fontWeight: 800,
+                  }}>{intg.name.slice(0, 1)}</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{intg.name}</span>
                   {intg.connected ? (
+                    /* 연결됨: 상태 표시 (버튼 아님) — 체크 + 텍스트, 배경 없음 */
                     <>
                       {intg.lastSync && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{intg.lastSync}</span>}
                       <span style={{
-                        fontSize: 11, fontWeight: 600, padding: '2px 9px',
-                        borderRadius: 'var(--radius-xs, 6px)',
-                        background: 'var(--utility-green-100)', color: 'var(--utility-green-600)',
-                      }}>연결됨</span>
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        fontSize: 11, fontWeight: 600, color: 'var(--utility-green-600)',
+                      }}>
+                        <CheckIcon size={13} />
+                        연결됨
+                      </span>
                     </>
                   ) : (
+                    /* 연결: 액션 버튼 — 연결됨(상태)과 구분되도록 중립 회색 버튼 */
                     <button
                       type="button"
                       onClick={() => onConnectIntegration && onConnectIntegration(intg.name)}
                       style={{
                         fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
-                        border: 'none', background: 'var(--colors-background-bgBrandSecondary, #e1fef2)',
-                        color: 'var(--colors-text-textBrandTertiary-600, #21a67a)',
-                        cursor: 'pointer', fontFamily: FONT,
+                        border: 'none', background: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: FONT,
                       }}
                     >
                       연결
