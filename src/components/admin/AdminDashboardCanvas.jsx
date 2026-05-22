@@ -5,22 +5,18 @@ import { useState } from 'react';
  * pivit-specs 의 admin-dashboard-view.jsx 시안을 design-page 정본으로 포팅.
  * 모든 데이터는 props 로 받는다 (page wrapper 가 fetch·매핑 소유).
  *
- * 색·간격은 design-page 토큰을 사용한다 (시안의 슬레이트/인디고 팔레트가 아니라
- * design-page 의 브랜드 그린 + 그레이 스케일).
+ * 스타일은 design-page 정본을 따른다:
+ *  - 요약 카드: manager KPI 카드(StatTile)와 같은 톤 — 흰 카드 + soft shadow,
+ *    라벨은 작은 회색, 값은 display 폰트의 큰 다크 숫자
+ *  - 팀원 표: report(weekly digest) 표와 같은 톤 — 에어리한 행, design-page 텍스트 색
+ *  - 헬스 점수: check-heart 아이콘 + 숫자, 점수별 색 (pill 아님)
  */
 
 const FONT = "var(--font-family-body, 'Pretendard', sans-serif)";
 const DISPLAY_FONT = "var(--font-family-display, 'Pretendard', sans-serif)";
 // design-system shadow-sm — "약한 부상. 카드, 드롭다운". design-page 카드 표준 elevation.
 const CARD_SHADOW = '0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1)';
-
-// 요약 카드 톤 → design-page 토큰
-const STAT_TONE = {
-  brand: 'var(--text-brand-tertiary)',
-  green: 'var(--utility-green-600)',
-  red: 'var(--colors-error-600)',
-  purple: '#8B5CF6',
-};
+const ROW_BORDER = 'var(--colors-border-borderTertiary, #e6e8ea)';
 
 // 활동 로그 타입 → 색/배경/라벨
 const LOG_META = {
@@ -31,11 +27,26 @@ const LOG_META = {
   eval:     { color: '#F59E0B',                    bg: 'var(--colors-warning-50)', label: '평가' },
 };
 
-// 헬스체크 점수 → 알약 색
-function healthStyle(h) {
-  if (h >= 8) return { c: 'var(--utility-green-600)',  bg: 'var(--utility-green-50)',  bd: 'var(--colors-success-200)' };
-  if (h >= 6) return { c: 'var(--colors-warning-600)', bg: 'var(--colors-warning-50)', bd: 'var(--colors-warning-200)' };
-  return { c: 'var(--colors-error-600)', bg: 'var(--utility-error-50)', bd: 'var(--colors-error-200)' };
+// 헬스체크 점수 → 색 (report ReportWeeklyRow 의 good/warning/error 체계와 동일)
+function healthColor(h) {
+  if (h >= 8) return 'var(--text-brand-tertiary)';
+  if (h >= 6) return 'var(--colors-text-textWarningPrimary, #dc6803)';
+  return 'var(--colors-text-textErrorPrimary, #d92d20)';
+}
+
+// check-heart 아이콘 — design-page 의 헬스 점수 표준 아이콘 (currentColor 상속).
+function CheckHeartIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <path
+        d="M11.6667 4.66667C11.6667 3.376 10.6573 2.33333 9.41667 2.33333C8.49 2.33333 7.69333 2.91667 7.34833 3.74C7.00333 2.91667 6.20667 2.33333 5.28 2.33333C4.03933 2.33333 3.03 3.376 3.03 4.66667C3.03 8.43367 7.34833 11 7.34833 11M9.91667 8.16667L11.0833 9.33333L13.4167 7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function Card({ children, style = {} }) {
@@ -115,10 +126,10 @@ export default function AdminDashboardCanvas({
   const activeCount = activeRows.length;
 
   const stats = [
-    { label: '활성 멤버',       value: activeCount,         sub: `전체 ${teamRows.length}명 중`,             tone: 'brand' },
-    { label: '오늘 스니핏 제출', value: snippetSubmittedCount, sub: `${activeCount}명 중 ${snippetSubmittedCount}명`, tone: 'green' },
-    { label: '레드플래그',      value: redFlagCount,        sub: '즉시 확인 필요',                            tone: 'red' },
-    { label: '신규 액션 아이템', value: actionItemCount,      sub: '오늘 생성',                                tone: 'purple' },
+    { label: '활성 멤버',       value: activeCount,           sub: `전체 ${teamRows.length}명 중` },
+    { label: '오늘 스니핏 제출', value: snippetSubmittedCount, sub: `${activeCount}명 중 ${snippetSubmittedCount}명` },
+    { label: '레드플래그',      value: redFlagCount,          sub: '즉시 확인 필요' },
+    { label: '신규 액션 아이템', value: actionItemCount,       sub: '오늘 생성' },
   ];
 
   const evalPct = (done) => evalCard && evalCard.total ? Math.round((done / evalCard.total) * 100) : 0;
@@ -128,6 +139,12 @@ export default function AdminDashboardCanvas({
   ] : [];
 
   const avatar = (row) => (renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />);
+
+  const thStyle = {
+    padding: '8px 10px', textAlign: 'left', fontSize: 12, fontWeight: 600,
+    color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
+  };
+  const tdStyle = { padding: '14px 10px', verticalAlign: 'middle' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, fontFamily: FONT }}>
@@ -150,17 +167,17 @@ export default function AdminDashboardCanvas({
         </button>
       </div>
 
-      {/* 요약 카드 4개 */}
+      {/* 요약 카드 4개 — manager KPI 카드 톤: 흰 카드, 작은 라벨 + 큰 다크 숫자 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {stats.map((s) => (
           <div key={s.label} style={{
             background: 'var(--bg-quaternary)', borderRadius: 'var(--radius-2xl, 16px)',
-            boxShadow: CARD_SHADOW, padding: '18px 20px',
+            boxShadow: CARD_SHADOW, padding: '18px 22px',
           }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{s.label}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{s.label}</div>
             <div style={{
-              fontFamily: DISPLAY_FONT, fontSize: 30, fontWeight: 700,
-              color: STAT_TONE[s.tone], lineHeight: 1, marginBottom: 7,
+              fontFamily: DISPLAY_FONT, fontSize: 30, fontWeight: 600,
+              color: 'var(--text-primary)', lineHeight: 1, marginBottom: 8,
             }}>
               {s.value}
             </div>
@@ -180,98 +197,92 @@ export default function AdminDashboardCanvas({
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--bg-secondary)' }}>
+              <tr style={{ borderBottom: `1px solid ${ROW_BORDER}` }}>
                 {['이름', '부서', '오늘 스니핏', '헬스체크', '레드플래그', '상태'].map((h) => (
-                  <th key={h} style={{
-                    padding: '7px 10px', textAlign: 'left', fontSize: 10, fontWeight: 700,
-                    color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 0.5,
-                  }}>{h}</th>
+                  <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {activeRows.map((row) => {
-                const hs = row.health != null ? healthStyle(row.health) : null;
-                return (
-                  <tr key={row.id} style={{ borderBottom: '1px solid var(--bg-secondary)' }}>
-                    <td style={{ padding: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {avatar(row)}
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{row.title}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{row.dept}</span>
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <div style={{
-                          width: 7, height: 7, borderRadius: '50%',
-                          background: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--border-primary)',
-                        }} />
-                        <span style={{ fontSize: 11, color: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--text-tertiary)' }}>
-                          {row.snippetSubmitted ? '제출' : '미제출'}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      {hs ? (
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px',
-                          borderRadius: 99, width: 'fit-content', background: hs.bg, border: `1px solid ${hs.bd}`,
-                        }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: hs.c }} />
-                          <span style={{ fontSize: 11, fontWeight: 700, color: hs.c }}>{row.health}</span>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      {row.redFlag ? (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                          background: 'var(--utility-error-50)', border: '1px solid var(--colors-error-200)',
-                          color: 'var(--colors-error-600)',
-                        }}>⚠ 감지</span>
-                      ) : (
-                        <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                        background: 'var(--utility-green-50)', border: '1px solid var(--colors-success-200)',
-                        color: 'var(--utility-green-600)',
-                      }}>활성</span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {inactiveRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid var(--bg-secondary)', opacity: 0.5 }}>
-                  <td style={{ padding: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {activeRows.map((row) => (
+                <tr key={row.id} style={{ borderBottom: `1px solid ${ROW_BORDER}` }}>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                       {avatar(row)}
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{row.title}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{row.title}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '10px' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{row.dept}</span>
+                  <td style={tdStyle}>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{row.dept}</span>
                   </td>
-                  <td colSpan={3} style={{ padding: '10px' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>초대 대기 중</span>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{
+                        width: 7, height: 7, borderRadius: '50%',
+                        background: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--border-primary)',
+                      }} />
+                      <span style={{ fontSize: 13, color: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--text-tertiary)' }}>
+                        {row.snippetSubmitted ? '제출' : '미제출'}
+                      </span>
+                    </div>
                   </td>
-                  <td style={{ padding: '10px' }}>
+                  <td style={tdStyle}>
+                    {row.health != null ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        color: healthColor(row.health), fontWeight: 700, fontSize: 13,
+                      }}>
+                        <CheckHeartIcon size={14} />
+                        {row.health}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
+                    {row.redFlag ? (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                        background: 'var(--utility-error-50)', border: '1px solid var(--colors-error-200)',
+                        color: 'var(--colors-error-600)',
+                      }}>⚠ 감지</span>
+                    ) : (
+                      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
                     <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                      background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)',
+                      fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
+                      background: 'var(--utility-green-50)', border: '1px solid var(--colors-success-200)',
+                      color: 'var(--utility-green-600)',
+                    }}>활성</span>
+                  </td>
+                </tr>
+              ))}
+              {inactiveRows.map((row) => (
+                <tr key={row.id} style={{ borderBottom: `1px solid ${ROW_BORDER}`, opacity: 0.5 }}>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      {avatar(row)}
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{row.title}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{row.dept}</span>
+                  </td>
+                  <td colSpan={3} style={tdStyle}>
+                    <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>초대 대기 중</span>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
+                      background: 'var(--bg-secondary)', border: `1px solid ${ROW_BORDER}`,
                       color: 'var(--text-tertiary)',
                     }}>비활성</span>
                   </td>
@@ -279,7 +290,7 @@ export default function AdminDashboardCanvas({
               ))}
               {teamRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
+                  <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
                     팀원이 없습니다
                   </td>
                 </tr>
@@ -396,8 +407,8 @@ export default function AdminDashboardCanvas({
               return (
                 <div key={i} style={{
                   display: 'flex', gap: 10,
-                  paddingBottom: last ? 0 : 10, marginBottom: last ? 0 : 10,
-                  borderBottom: last ? 'none' : '1px solid var(--bg-secondary)',
+                  paddingBottom: last ? 0 : 11, marginBottom: last ? 0 : 11,
+                  borderBottom: last ? 'none' : `1px solid ${ROW_BORDER}`,
                 }}>
                   <span style={{ fontSize: 10, color: 'var(--text-tertiary)', width: 56, flexShrink: 0, marginTop: 1 }}>
                     {log.time}
