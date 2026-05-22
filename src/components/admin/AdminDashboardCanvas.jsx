@@ -245,9 +245,10 @@ export default function AdminDashboardCanvas({
                   <td style={tdStyle}>
                     {row.redFlag ? (
                       <span style={{
-                        fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                        background: 'var(--utility-error-50)', border: '1px solid var(--colors-error-200)',
-                        color: 'var(--colors-error-600)',
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: 12, fontWeight: 600, padding: '3px 9px',
+                        borderRadius: 'var(--radius-xs, 6px)',
+                        background: 'var(--utility-error-50)', color: 'var(--text-error-primary)',
                       }}>⚠ 감지</span>
                     ) : (
                       <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>—</span>
@@ -255,9 +256,9 @@ export default function AdminDashboardCanvas({
                   </td>
                   <td style={tdStyle}>
                     <span style={{
-                      fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-                      background: 'var(--utility-green-50)', border: '1px solid var(--colors-success-200)',
-                      color: 'var(--utility-green-600)',
+                      fontSize: 12, fontWeight: 600, padding: '3px 9px',
+                      borderRadius: 'var(--radius-xs, 6px)',
+                      background: 'var(--utility-green-100)', color: 'var(--utility-green-600)',
                     }}>활성</span>
                   </td>
                 </tr>
@@ -281,9 +282,9 @@ export default function AdminDashboardCanvas({
                   </td>
                   <td style={tdStyle}>
                     <span style={{
-                      fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99,
-                      background: 'var(--bg-secondary)', border: `1px solid ${ROW_BORDER}`,
-                      color: 'var(--text-tertiary)',
+                      fontSize: 12, fontWeight: 600, padding: '3px 9px',
+                      borderRadius: 'var(--radius-xs, 6px)',
+                      background: 'var(--bg-secondary)', color: 'var(--text-tertiary)',
                     }}>비활성</span>
                   </td>
                 </tr>
@@ -319,13 +320,18 @@ export default function AdminDashboardCanvas({
                   }}>진행 중 {evalCard.inProgress}건</span>
                 </div>
                 {evalRows.map((p) => (
-                  <div key={p.label} style={{ marginBottom: 9 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>{p.label}</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>{p.done}/{evalCard.total}</span>
+                  <div key={p.label} style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{p.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: p.color }}>
+                        {p.pct}%
+                        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 4 }}>
+                          {p.done}/{evalCard.total}
+                        </span>
+                      </span>
                     </div>
-                    <div style={{ height: 5, background: 'var(--bg-secondary)', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{ width: `${p.pct}%`, height: '100%', background: p.color, borderRadius: 99 }} />
+                    <div style={{ height: 12, background: 'var(--bg-secondary)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${p.pct}%`, height: '100%', background: p.color, borderRadius: 4 }} />
                     </div>
                   </div>
                 ))}
