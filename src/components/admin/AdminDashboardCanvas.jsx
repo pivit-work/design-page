@@ -1,135 +1,79 @@
-import { useState } from 'react';
+import Card from './Card.jsx';
+import SectionLabel from './SectionLabel.jsx';
+import LinkButton from './LinkButton.jsx';
+import AdminStatTile from './AdminStatTile.jsx';
+import AdminTeamRow from './AdminTeamRow.jsx';
+import AdminEvalCard from './AdminEvalCard.jsx';
+import AdminIntegrationRow from './AdminIntegrationRow.jsx';
+import AdminActivityLogRow from './AdminActivityLogRow.jsx';
 
 /**
- * AdminDashboardCanvas — 어드민 개요(대시보드) Pure 컴포넌트.
+ * AdminDashboardCanvas — 어드민 개요 대시보드 Pure 컴포넌트.
  * pivit-specs 의 admin-dashboard-view.jsx 시안을 design-page 정본으로 포팅.
- * 모든 데이터는 props 로 받는다 (page wrapper 가 fetch·매핑 소유).
  *
- * 스타일은 design-page 정본을 따른다:
- *  - 요약 카드: manager KPI 카드(StatTile)와 같은 톤 — 흰 카드 + soft shadow,
- *    라벨은 작은 회색, 값은 display 폰트의 큰 다크 숫자
- *  - 팀원 표: report(weekly digest) 표와 같은 톤 — 에어리한 행, design-page 텍스트 색
- *  - 헬스 점수: check-heart 아이콘 + 숫자, 점수별 색 (pill 아님)
+ * 모든 데이터·라벨은 props 로 받는다 (page wrapper 가 fetch·매핑·i18n 소유).
+ * 스타일은 design-page 토큰을 쓴 src/admin.css 클래스로 작성됨.
+ * 호스트 앱은 `@pivit-work/design-page/styles/admin.css` 를 import 해야 한다.
+ *
+ * 톤 레퍼런스:
+ *  - 요약 카드 → manager StatTile
+ *  - 헬스 점수 → ReportWeeklyRow (check-heart 아이콘 + good/warning/error 색)
+ *  - 배지 (레드플래그/활성/비활성) → 1on1 severity 배지
+ *  - 상시 평가 그래프 → 1on1 KPI 그래프 (블루)
  */
 
-const FONT = "var(--font-family-body, 'Pretendard', sans-serif)";
-const DISPLAY_FONT = "var(--font-family-display, 'Pretendard', sans-serif)";
-// design-system shadow-sm — "약한 부상. 카드, 드롭다운". design-page 카드 표준 elevation.
-const CARD_SHADOW = '0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1)';
-const ROW_BORDER = 'var(--colors-border-borderTertiary, #e6e8ea)';
-
-// 활동 로그 타입 → 색/배경/라벨
-const LOG_META = {
-  snippet:  { color: '#8B5CF6',                    bg: '#F5F3FF',                  label: '스니핏' },
-  alert:    { color: 'var(--colors-error-600)',    bg: 'var(--utility-error-50)',  label: '알림' },
-  oneonone: { color: 'var(--utility-green-600)',   bg: 'var(--utility-green-50)',  label: '1on1' },
-  meeting:  { color: 'var(--text-brand-tertiary)', bg: 'var(--utility-brand-50)',  label: '회의록' },
-  eval:     { color: '#F59E0B',                    bg: 'var(--colors-warning-50)', label: '평가' },
+const DEFAULT_LABELS = {
+  inviteButton: '+ 팀원 초대',
+  teamSectionTitle: '팀원 현황',
+  manageEmployees: '직원 관리',
+  tableHeaders: {
+    name: '이름', dept: '부서', snippet: '오늘 스니핏',
+    health: '헬스체크', redFlag: '레드플래그', status: '상태',
+  },
+  submitted: '제출',
+  notSubmitted: '미제출',
+  invitePending: '초대 대기 중',
+  activeStatus: '활성',
+  inactiveStatus: '비활성',
+  detected: '⚠ 감지',
+  emptyTeam: '팀원이 없습니다',
+  evalSectionTitle: '상시 평가',
+  evalCardHeading: '상시 평가',
+  manageEval: '평가 관리',
+  inProgressBadge: '진행 중 0건',
+  selfReviewDone: '셀프 리뷰 완료',
+  managerReviewDone: '매니저 평가 완료',
+  sendReminder: '미완료 평가 리마인더 발송',
+  emptyEval: '진행 중인 평가가 없습니다',
+  integrationsSectionTitle: '외부 연동',
+  manageIntegrations: '연동 설정',
+  connected: '연결됨',
+  connectAction: '연결',
+  activitySectionTitle: '오늘 활동 로그',
+  activityCount: '0건',
+  emptyActivity: '오늘 활동 기록이 없습니다',
+  logTypes: { snippet: '스니핏', alert: '알림', oneonone: '1on1', meeting: '회의록', eval: '평가' },
 };
 
-// 헬스체크 점수 → 색 (report ReportWeeklyRow 의 good/warning/error 체계와 동일)
-function healthColor(h) {
-  if (h >= 8) return 'var(--text-brand-tertiary)';
-  if (h >= 6) return 'var(--colors-text-textWarningPrimary, #dc6803)';
-  return 'var(--colors-text-textErrorPrimary, #d92d20)';
-}
-
-// check-heart 아이콘 — design-page 의 헬스 점수 표준 아이콘 (currentColor 상속).
-function CheckHeartIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-      <path
-        d="M11.6667 4.66667C11.6667 3.376 10.6573 2.33333 9.41667 2.33333C8.49 2.33333 7.69333 2.91667 7.34833 3.74C7.00333 2.91667 6.20667 2.33333 5.28 2.33333C4.03933 2.33333 3.03 3.376 3.03 4.66667C3.03 8.43367 7.34833 11 7.34833 11M9.91667 8.16667L11.0833 9.33333L13.4167 7"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// 체크 아이콘 — 연결됨 상태 표시용 (currentColor 상속).
-function CheckIcon({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-      <path
-        d="M3 7.4L5.8 10.2L11 4.4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function Card({ children, style = {} }) {
-  return (
-    <div style={{
-      background: 'var(--bg-quaternary)', borderRadius: 'var(--radius-2xl, 16px)',
-      boxShadow: CARD_SHADOW, padding: '20px 22px', ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function SectionLabel({ children }) {
-  return (
-    <div style={{
-      fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
-      letterSpacing: '-0.01em', marginBottom: 14,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-// design-system Button 의 size-sm + tertiary 톤 — 보더 없는 연한 회색 버튼.
-function LinkButton({ children, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 26,
-        fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
-        border: 'none', background: 'var(--bg-primary)',
-        color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: FONT,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function AvatarFallback({ row, size = 26 }) {
-  const [fail, setFail] = useState(false);
-  const color = row.avatarColor || 'var(--text-brand-tertiary)';
-  const text = row.avatarText || (row.name ? row.name.slice(0, 2) : '');
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 7, overflow: 'hidden', flexShrink: 0,
-      background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      {row.avatarPhoto && !fail
-        ? <img src={row.avatarPhoto} alt={row.name} onError={() => setFail(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <span style={{ fontSize: size * 0.34, fontWeight: 800, color }}>{text}</span>}
-    </div>
-  );
+function mergeLabels(provided) {
+  if (!provided) return DEFAULT_LABELS;
+  return {
+    ...DEFAULT_LABELS,
+    ...provided,
+    tableHeaders: { ...DEFAULT_LABELS.tableHeaders, ...(provided.tableHeaders || {}) },
+    logTypes: { ...DEFAULT_LABELS.logTypes, ...(provided.logTypes || {}) },
+  };
 }
 
 export default function AdminDashboardCanvas({
   dateLabel = '',
-  teamRows = [],            // [{ id, name, title, dept, snippetSubmitted, health, redFlag, active, avatarColor, avatarText, avatarPhoto }]
-  snippetSubmittedCount = 0,
-  redFlagCount = 0,
-  actionItemCount = 0,
-  evalCard = null,          // { inProgress, selfDone, managerDone, total }
-  integrations = [],        // [{ name, icon, connected, lastSync }]
-  activityLog = [],         // [{ time, type, actor, text }]
+  stats = [],              // [{ label, value, sub }]
+  teamRows = [],
+  evalCard = null,
+  integrations = [],
+  activityLog = [],
+  labels: providedLabels,
+  baseUrl = '',
   onInvite,
   onManageEmployees,
   onManageEval,
@@ -138,178 +82,59 @@ export default function AdminDashboardCanvas({
   onConnectIntegration,
   renderAvatar,
 }) {
-  const activeRows = teamRows.filter((r) => r.active);
-  const inactiveRows = teamRows.filter((r) => !r.active);
-  const activeCount = activeRows.length;
-
-  const stats = [
-    { label: '활성 멤버',       value: activeCount,           sub: `전체 ${teamRows.length}명 중` },
-    { label: '오늘 스니핏 제출', value: snippetSubmittedCount, sub: `${activeCount}명 중 ${snippetSubmittedCount}명` },
-    { label: '레드플래그',      value: redFlagCount,          sub: '즉시 확인 필요' },
-    { label: '신규 액션 아이템', value: actionItemCount,       sub: '오늘 생성' },
-  ];
-
-  const evalPct = (done) => evalCard && evalCard.total ? Math.round((done / evalCard.total) * 100) : 0;
-  const evalRows = evalCard ? [
-    { label: '셀프 리뷰 완료',   done: evalCard.selfDone,    pct: evalPct(evalCard.selfDone) },
-    { label: '매니저 평가 완료', done: evalCard.managerDone, pct: evalPct(evalCard.managerDone) },
-  ] : [];
-
-  const avatar = (row) => (renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />);
-
-  const thStyle = {
-    padding: '8px 10px', textAlign: 'left', fontSize: 12, fontWeight: 600,
-    color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
-  };
-  const tdStyle = { padding: '14px 10px', verticalAlign: 'middle' };
+  const labels = mergeLabels(providedLabels);
+  const headerKeys = ['name', 'dept', 'snippet', 'health', 'redFlag', 'status'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, fontFamily: FONT }}>
-
-      {/* 헤더 — 날짜 + 팀원 초대 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-        {dateLabel && (
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{dateLabel}</span>
-        )}
-        <button
-          type="button"
-          onClick={onInvite}
-          style={{
-            padding: '8px 15px', borderRadius: 8, border: 'none',
-            background: 'var(--text-brand-tertiary)', color: '#fff',
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: FONT,
-          }}
-        >
-          + 팀원 초대
+    <div className="admin-canvas">
+      <header className="admin-header">
+        {dateLabel && <span className="admin-header-date">{dateLabel}</span>}
+        <button type="button" className="admin-invite-button" onClick={onInvite}>
+          {labels.inviteButton}
         </button>
-      </div>
+      </header>
 
-      {/* 요약 카드 4개 — manager KPI 카드 톤: 흰 카드, 작은 라벨 + 큰 다크 숫자 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <div className="admin-stats-grid">
         {stats.map((s) => (
-          <div key={s.label} style={{
-            background: 'var(--bg-quaternary)', borderRadius: 'var(--radius-2xl, 16px)',
-            boxShadow: CARD_SHADOW, padding: '18px 22px',
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10 }}>{s.label}</div>
-            <div style={{
-              fontFamily: DISPLAY_FONT, fontSize: 30, fontWeight: 600,
-              color: 'var(--text-primary)', lineHeight: 1, marginBottom: 8,
-            }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{s.sub}</div>
-          </div>
+          <AdminStatTile key={s.label} label={s.label} value={s.value} sub={s.sub} />
         ))}
       </div>
 
-      {/* 2단 레이아웃 — 팀원 현황 / (상시 평가 + 외부 연동) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 16 }}>
-
-        {/* 팀원 현황 */}
+      <div className="admin-main-grid">
         <Card>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <SectionLabel>팀원 현황</SectionLabel>
-            <LinkButton onClick={onManageEmployees}>직원 관리 →</LinkButton>
+          <div className="admin-section-header">
+            <SectionLabel>{labels.teamSectionTitle}</SectionLabel>
+            <LinkButton onClick={onManageEmployees}>{labels.manageEmployees}</LinkButton>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="admin-team-table">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${ROW_BORDER}` }}>
-                {['이름', '부서', '오늘 스니핏', '헬스체크', '레드플래그', '상태'].map((h) => (
-                  <th key={h} style={thStyle}>{h}</th>
-                ))}
+              <tr>
+                {headerKeys.map((k) => <th key={k}>{labels.tableHeaders[k]}</th>)}
               </tr>
             </thead>
             <tbody>
-              {activeRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: `1px solid ${ROW_BORDER}` }}>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      {avatar(row)}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{row.title}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{row.dept}</span>
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{
-                        width: 7, height: 7, borderRadius: '50%',
-                        background: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--border-primary)',
-                      }} />
-                      <span style={{ fontSize: 13, color: row.snippetSubmitted ? 'var(--utility-green-600)' : 'var(--text-tertiary)' }}>
-                        {row.snippetSubmitted ? '제출' : '미제출'}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    {row.health != null ? (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        color: healthColor(row.health), fontWeight: 700, fontSize: 13,
-                      }}>
-                        <CheckHeartIcon size={14} />
-                        {row.health}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>—</span>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    {row.redFlag ? (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontSize: 12, fontWeight: 600, padding: '3px 9px',
-                        borderRadius: 'var(--radius-xs, 6px)',
-                        background: 'var(--utility-error-50)', color: 'var(--text-error-primary)',
-                      }}>⚠ 감지</span>
-                    ) : (
-                      <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>—</span>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 600, padding: '3px 9px',
-                      borderRadius: 'var(--radius-xs, 6px)',
-                      background: 'var(--utility-green-100)', color: 'var(--utility-green-600)',
-                    }}>활성</span>
-                  </td>
-                </tr>
+              {teamRows.filter((r) => r.active).map((row) => (
+                <AdminTeamRow
+                  key={row.id}
+                  row={row}
+                  labels={labels}
+                  baseUrl={baseUrl}
+                  renderAvatar={renderAvatar}
+                />
               ))}
-              {inactiveRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: `1px solid ${ROW_BORDER}`, opacity: 0.5 }}>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      {avatar(row)}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{row.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{row.title}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{row.dept}</span>
-                  </td>
-                  <td colSpan={3} style={tdStyle}>
-                    <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>초대 대기 중</span>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 600, padding: '3px 9px',
-                      borderRadius: 'var(--radius-xs, 6px)',
-                      background: 'var(--bg-secondary)', color: 'var(--text-tertiary)',
-                    }}>비활성</span>
-                  </td>
-                </tr>
+              {teamRows.filter((r) => !r.active).map((row) => (
+                <AdminTeamRow
+                  key={row.id}
+                  row={row}
+                  labels={labels}
+                  baseUrl={baseUrl}
+                  renderAvatar={renderAvatar}
+                />
               ))}
               {teamRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
-                    팀원이 없습니다
+                  <td colSpan={headerKeys.length} className="admin-team-empty">
+                    {labels.emptyTeam}
                   </td>
                 </tr>
               )}
@@ -317,153 +142,59 @@ export default function AdminDashboardCanvas({
           </table>
         </Card>
 
-        {/* 우측 컬럼 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="admin-side-col">
+          <AdminEvalCard
+            evalCard={evalCard}
+            labels={{
+              sectionTitle: labels.evalSectionTitle,
+              cardHeading: labels.evalCardHeading,
+              manageEval: labels.manageEval,
+              inProgressBadge: labels.inProgressBadge,
+              selfReviewDone: labels.selfReviewDone,
+              managerReviewDone: labels.managerReviewDone,
+              sendReminder: labels.sendReminder,
+              emptyEval: labels.emptyEval,
+            }}
+            onManageEval={onManageEval}
+            onSendReminder={onSendReminder}
+          />
 
-          {/* 상시 평가 */}
           <Card>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <SectionLabel>상시 평가</SectionLabel>
-              <LinkButton onClick={onManageEval}>평가 관리 →</LinkButton>
+            <div className="admin-section-header">
+              <SectionLabel>{labels.integrationsSectionTitle}</SectionLabel>
+              <LinkButton onClick={onManageIntegrations}>{labels.manageIntegrations}</LinkButton>
             </div>
-            {evalCard ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>상시 평가</span>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, padding: '3px 9px',
-                    borderRadius: 'var(--radius-xs, 6px)',
-                    background: 'var(--utility-blue-100)', color: 'var(--utility-blue-600)',
-                  }}>진행 중 {evalCard.inProgress}건</span>
-                </div>
-                {evalRows.map((p) => (
-                  <div key={p.label} style={{ marginBottom: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{p.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--utility-blue-500)' }}>
-                        {p.pct}%
-                        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', marginLeft: 4 }}>
-                          {p.done}/{evalCard.total}
-                        </span>
-                      </span>
-                    </div>
-                    <div style={{ height: 12, background: 'var(--bg-secondary)', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${p.pct}%`, height: '100%', background: 'var(--utility-blue-100)', borderRadius: 4 }} />
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={onSendReminder}
-                  style={{
-                    width: '100%', padding: '8px 0', borderRadius: 9, border: 'none',
-                    background: 'var(--utility-error-50)', fontSize: 11, fontWeight: 700,
-                    color: 'var(--colors-error-600)', cursor: 'pointer', fontFamily: FONT, marginTop: 4,
-                  }}
-                >
-                  미완료 평가 리마인더 발송
-                </button>
-              </>
-            ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>진행 중인 평가가 없습니다</div>
-            )}
-          </Card>
-
-          {/* 외부 연동 */}
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <SectionLabel>외부 연동</SectionLabel>
-              <LinkButton onClick={onManageIntegrations}>연동 설정 →</LinkButton>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div className="admin-integration-list">
               {integrations.map((intg) => (
-                <div key={intg.name} style={{
-                  display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 9,
-                  background: intg.connected ? 'var(--bg-primary)' : 'var(--bg-secondary)',
-                  border: `1px solid ${intg.connected ? 'var(--border-primary)' : 'var(--bg-secondary)'}`,
-                }}>
-                  <span style={{
-                    width: 24, height: 24, borderRadius: 6, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: intg.color || 'var(--text-tertiary)',
-                    color: '#fff', fontSize: 12, fontWeight: 800,
-                  }}>{intg.name.slice(0, 1)}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>{intg.name}</span>
-                  {intg.connected ? (
-                    /* 연결됨: 상태 표시 (버튼 아님) — 체크 + 텍스트, 배경 없음 */
-                    <>
-                      {intg.lastSync && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{intg.lastSync}</span>}
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                        fontSize: 11, fontWeight: 600, color: 'var(--utility-green-600)',
-                      }}>
-                        <CheckIcon size={13} />
-                        연결됨
-                      </span>
-                    </>
-                  ) : (
-                    /* 연결: 액션 버튼 — 연결됨(상태)과 구분되도록 중립 회색 버튼 */
-                    <button
-                      type="button"
-                      onClick={() => onConnectIntegration && onConnectIntegration(intg.name)}
-                      style={{
-                        fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
-                        border: 'none', background: 'var(--bg-primary)',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: FONT,
-                      }}
-                    >
-                      연결
-                    </button>
-                  )}
-                </div>
+                <AdminIntegrationRow
+                  key={intg.name}
+                  integration={intg}
+                  labels={{ connected: labels.connected, connectAction: labels.connectAction }}
+                  baseUrl={baseUrl}
+                  onConnect={onConnectIntegration}
+                />
               ))}
             </div>
           </Card>
         </div>
       </div>
 
-      {/* 오늘 활동 로그 */}
       <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <SectionLabel>오늘 활동 로그</SectionLabel>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{activityLog.length}건</span>
+        <div className="admin-section-header">
+          <SectionLabel>{labels.activitySectionTitle}</SectionLabel>
+          <span className="admin-activity-count">{labels.activityCount}</span>
         </div>
         {activityLog.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-tertiary)', fontSize: 12 }}>
-            오늘 활동 기록이 없습니다
-          </div>
+          <div className="admin-activity-empty">{labels.emptyActivity}</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {activityLog.map((log, i) => {
-              const lm = LOG_META[log.type] || LOG_META.meeting;
-              const last = i === activityLog.length - 1;
-              return (
-                <div key={i} style={{
-                  display: 'flex', gap: 10,
-                  paddingBottom: last ? 0 : 11, marginBottom: last ? 0 : 11,
-                  borderBottom: last ? 'none' : `1px solid ${ROW_BORDER}`,
-                }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-tertiary)', width: 56, flexShrink: 0, marginTop: 1 }}>
-                    {log.time}
-                  </span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                    background: lm.bg, color: lm.color, flexShrink: 0, height: 'fit-content', marginTop: 1,
-                  }}>
-                    {lm.label}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: log.isSystem ? 'var(--text-tertiary)' : 'var(--text-brand-tertiary)',
-                    }}>
-                      {log.actor}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{' — '}{log.text}</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="admin-activity-list">
+            {activityLog.map((log, i) => (
+              <AdminActivityLogRow
+                key={log.id ?? `${log.time}-${log.actor}-${i}`}
+                log={log}
+                logTypes={labels.logTypes}
+              />
+            ))}
           </div>
         )}
       </Card>
