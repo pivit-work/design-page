@@ -1,0 +1,497 @@
+/*
+ * admin.css — 어드민 개요 대시보드(AdminDashboardCanvas) 정본 스타일.
+ * design-page Canvas 컨벤션(manager.css 패턴)에 맞춘 BEM-ish 클래스.
+ * 색·radius·typography 는 design-page 토큰(var(--…))을 우선 사용.
+ * 동적 값(아바타 색·바 width·연동 아이콘 brand 색)만 인라인 스타일.
+ */
+
+.admin-canvas {
+  --admin-card-shadow:
+    0 1px 2px 0 var(--colors-effects-shadows-shadowSm01, rgba(10, 13, 18, 0.1)),
+    0 1px 3px 0 var(--colors-effects-shadows-shadowSm02, rgba(10, 13, 18, 0.1));
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: var(--font-family-body);
+}
+
+/* ── 헤더: 날짜 + 팀원 초대 ────────────────────────────────────────── */
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.admin-header-date {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.admin-invite-button {
+  padding: 8px 15px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: var(--text-brand-tertiary);
+  color: var(--colors-text-textWhite, #fff);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── 카드 (공용) + 섹션 헤더 ───────────────────────────────────────── */
+.admin-card {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: var(--admin-card-shadow);
+  padding: 20px 22px;
+}
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.admin-section-label {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+/* ── 작은 링크 버튼 (직원 관리, 평가 관리, 연동 설정) ─────────────── */
+.admin-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-link-button-arrow {
+  font-family: var(--font-family-body);
+}
+
+/* ── 요약 카드 4개 ─────────────────────────────────────────────────── */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.admin-stat-tile {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: var(--admin-card-shadow);
+  padding: 18px 22px;
+}
+.admin-stat-label {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+.admin-stat-value {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-display-sm, 30px);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+  margin: 0 0 8px;
+}
+.admin-stat-sub {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ── 메인 2단 + 우측 컬럼 ──────────────────────────────────────────── */
+.admin-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+.admin-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── 아바타 ─────────────────────────────────────────────────────────── */
+.admin-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.admin-avatar-text {
+  font-family: var(--font-family-body);
+  font-weight: 800;
+}
+
+/* ── 팀원 표 ────────────────────────────────────────────────────────── */
+.admin-team-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-team-table thead tr {
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-team-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.admin-team-table td {
+  padding: 14px 10px;
+  vertical-align: middle;
+}
+.admin-team-row {
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-team-row.is-inactive { opacity: 0.5; }
+
+.admin-team-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.admin-team-name {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.admin-team-title {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.admin-team-dept {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-secondary);
+}
+
+/* 스니핏 제출 표시 */
+.admin-team-snippet {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.admin-team-snippet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-primary);
+}
+.admin-team-snippet-text {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+.admin-team-snippet.is-submitted .admin-team-snippet-dot {
+  background: var(--utility-green-600);
+}
+.admin-team-snippet.is-submitted .admin-team-snippet-text {
+  color: var(--utility-green-600);
+}
+
+/* 헬스 점수 — good/warning/error 색 분기 (ReportWeeklyRow 패턴) */
+.admin-team-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+}
+.admin-team-health.is-good { color: var(--text-brand-tertiary); }
+.admin-team-health.is-warning { color: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-team-health.is-error { color: var(--colors-text-textErrorPrimary, #d92d20); }
+
+.admin-team-empty-cell {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+
+/* 배지: 레드플래그 / 활성 / 비활성 — 1on1 severity 배지 패턴 */
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-pill.is-redflag {
+  background: var(--utility-error-50);
+  color: var(--text-error-primary);
+}
+.admin-pill.is-active {
+  background: var(--utility-green-100);
+  color: var(--utility-green-600);
+}
+.admin-pill.is-inactive {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+
+.admin-team-pending {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+.admin-team-empty {
+  padding: 24px;
+  text-align: center;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+
+/* ── 상시 평가 카드 ─────────────────────────────────────────────────── */
+.admin-eval-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.admin-eval-name {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.admin-eval-inprogress {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  background: var(--utility-blue-100);
+  color: var(--utility-blue-600);
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-eval-progress-row { margin-bottom: 14px; }
+.admin-eval-progress-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.admin-eval-progress-label {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.admin-eval-progress-value {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 800;
+  color: var(--utility-blue-500);
+}
+.admin-eval-progress-fraction {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+.admin-eval-bar {
+  height: 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.admin-eval-bar-fill {
+  height: 100%;
+  background: var(--utility-blue-100);
+  border-radius: 4px;
+}
+.admin-eval-reminder-button {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 0;
+  border-radius: 9px;
+  border: none;
+  background: var(--utility-error-50);
+  color: var(--colors-error-600);
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-eval-empty {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  padding: 8px 0;
+}
+
+/* ── 외부 연동 ─────────────────────────────────────────────────────── */
+.admin-integration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.admin-integration-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-secondary);
+}
+.admin-integration-row.is-connected {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+}
+.admin-integration-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text-tertiary);
+  color: var(--colors-text-textWhite, #fff);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 800;
+}
+.admin-integration-name {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+.admin-integration-sync {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.admin-integration-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--utility-green-600);
+}
+.admin-integration-connect {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── 활동 로그 ─────────────────────────────────────────────────────── */
+.admin-activity-count {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.admin-activity-list {
+  display: flex;
+  flex-direction: column;
+}
+.admin-activity-row {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-activity-row:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+.admin-activity-time {
+  font-family: var(--font-family-body);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  width: 56px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.admin-activity-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  height: fit-content;
+  margin-top: 1px;
+  font-family: var(--font-family-body);
+  font-size: 9px;
+  font-weight: 700;
+}
+.admin-activity-tag.is-snippet  { background: var(--utility-purple-50, #f4f3ff); color: var(--utility-purple-500); }
+.admin-activity-tag.is-alert    { background: var(--utility-error-50);            color: var(--colors-error-600); }
+.admin-activity-tag.is-oneonone { background: var(--utility-green-50);            color: var(--utility-green-600); }
+.admin-activity-tag.is-meeting  { background: var(--utility-brand-50);            color: var(--text-brand-tertiary); }
+.admin-activity-tag.is-eval     { background: var(--colors-warning-50, #fffaeb);  color: var(--colors-warning-500, #f79009); }
+
+.admin-activity-body { flex: 1; }
+.admin-activity-actor {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+}
+.admin-activity-actor.is-system {
+  color: var(--text-tertiary);
+}
+.admin-activity-text {
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.admin-activity-empty {
+  text-align: center;
+  padding: 16px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
