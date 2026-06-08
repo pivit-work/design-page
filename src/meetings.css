@@ -226,7 +226,7 @@
   position: relative;
   width: 650px;
   max-width: 100%;
-  height: 920px;
+  height: 712px;
   max-height: calc(100vh - 64px);
   background: var(--colors-background-bgQuaternary, #ffffff);
   border-radius: 16px;
@@ -348,7 +348,7 @@
   margin-bottom: -5px;
 }
 
-/* 실시간 메모 / 전사 섹션 */
+/* 실시간 메모 섹션 */
 .mtg-progress-section {
   display: flex;
   flex-direction: column;
@@ -367,10 +367,6 @@
   flex: 1;
   min-height: 0;
   resize: none;
-}
-.mtg-progress-transcript {
-  overflow: auto;
-  white-space: pre-wrap;
 }
 
 /* Sticky bottom action bar */
