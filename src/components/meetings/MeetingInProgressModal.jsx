@@ -7,7 +7,7 @@ import MeetingShareContent from './MeetingShareContent.jsx';
 /**
  * MeetingInProgressModal — "시작" 버튼 클릭 시 뜨는 회의 진행 중 모달.
  *
- * Figma node-id=16708-27390. 650x920, 녹음 중 배지 + 타이머 + 실시간 메모/전사 + "회의 종료" 버튼.
+ * Figma node-id=16708-27390. 650x712, 녹음 중 배지 + 타이머 + 실시간 메모 + "회의 종료" 버튼.
  * "회의 종료" 클릭 시 MeetingEndConfirmModal 이 그 위에 뜬다.
  *
  * 모든 데이터/라벨은 caller 가 주입한다. 패키지 내부에는 fallback 이 없다.
@@ -29,7 +29,6 @@ export default function MeetingInProgressModal({
   onClose,
   // 진행 phase props — 모두 caller 주입
   timer,
-  transcript,
   memo: memoProp,
   onMemoChange,
   // record/share phase 에 그대로 forward (caller 주입)
@@ -168,16 +167,6 @@ export default function MeetingInProgressModal({
                     value={memo}
                     onChange={(e) => handleMemoChange(e.target.value)}
                   />
-                </section>
-
-                {/* 실시간 전사 */}
-                <section className="mtg-progress-section">
-                  <span className="mtg-progress-section-label">
-                    {labels.transcriptLabel}
-                  </span>
-                  <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
-                    {transcript}
-                  </div>
                 </section>
               </>
             )}
