@@ -72,8 +72,11 @@ const MENU = [
   { icon: ICONS.edit, label: '평가' },
   { icon: ICONS.userEdit, label: '매니저', page: 'manager' },
   { icon: ICONS.aiChat, label: 'AI Chat' },
-  { icon: ICONS.lock, label: '어드민' },
 ];
+
+// '어드민' 은 일상 메뉴가 아니라 컨텍스트 전환 진입점이므로 상단 MENU 가 아니라
+// 하단(의견보내기·설정 사이) bottomItem 슬롯에 둔다. pivit-work 구현과 위치를 맞춘다.
+const ADMIN_ITEM = { icon: ICONS.lock, label: '어드민' };
 
 /**
  * App — thin demo router.
@@ -168,6 +171,7 @@ export default function App() {
         onNavigate={handleNavigate}
         icons={ICONS}
         baseUrl={BASE}
+        bottomItem={{ ...ADMIN_ITEM, onClick: () => {} }}
         onFeedbackClick={() => { window.location.href = 'mailto:m@pivit.work'; }}
         onSettingsClick={() => handleNavigate('settings')}
       />
