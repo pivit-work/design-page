@@ -8,6 +8,7 @@
   "exports": {
     "./components": "./src/components/index.js",
     "./components/*": "./src/components/*",
+    "./menu": "./src/menu.js",
     "./styles/app.css": "./src/App.css",
     "./styles/org-chart.css": "./src/org_chart.css",
     "./styles/org-project.css": "./src/org_project.css",

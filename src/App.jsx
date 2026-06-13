@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Sidebar, TopNav, Icon } from './components';
+import { SIDEBAR_MENU } from './menu';
 import { pageFromPath, pathFromPage, DEFAULT_PAGE } from './routing.js';
 import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
@@ -61,22 +62,28 @@ const STAT_ICONS = {
   workHoursAdmin: `${BASE}badge-workhours.png`,
 };
 
-const MENU = [
-  { icon: ICONS.asterisk, label: '스니핏', page: 'snippet' },
-  { icon: ICONS.calendarSolid, label: '타임라인', page: 'timeline' },
-  { icon: ICONS.dotpoints, label: '리포트', page: 'report' },
-  { icon: ICONS.target, label: 'OKR' },
-  { icon: ICONS.user, label: '1on1', page: 'oneonone' },
-  { icon: ICONS.layers, label: '조직도', page: 'orgchart' },
-  { icon: ICONS.file, label: '회의록', page: 'meetings' },
-  { icon: ICONS.edit, label: '평가' },
-  { icon: ICONS.userEdit, label: '매니저', page: 'manager' },
-  { icon: ICONS.aiChat, label: 'AI Chat' },
-];
+// 사이드바 구성(항목·순서·배치·아이콘)은 menu.js 의 SIDEBAR_MENU 가 정본이다.
+// 여기서는 데모 전용 라우팅(id → 데모 페이지 슬러그)만 얹는다. 슬러그가 없는
+// 항목(OKR·평가·AI Chat·어드민)은 데모에서 비활성 — 클릭해도 이동하지 않는다.
+const DEMO_PAGES = {
+  snippet: 'snippet',
+  timeline: 'timeline',
+  report: 'report',
+  oneonone: 'oneonone',
+  orgchart: 'orgchart',
+  meetings: 'meetings',
+  manager: 'manager',
+};
 
-// '어드민' 은 일상 메뉴가 아니라 컨텍스트 전환 진입점이므로 상단 MENU 가 아니라
-// 하단(의견보내기·설정 사이) bottomItem 슬롯에 둔다. pivit-work 구현과 위치를 맞춘다.
-const ADMIN_ITEM = { icon: ICONS.lock, label: '어드민' };
+const MENU = SIDEBAR_MENU
+  .filter((m) => m.section === 'top')
+  .map((m) => (DEMO_PAGES[m.id]
+    ? { icon: m.icon, label: m.label, page: DEMO_PAGES[m.id] }
+    : { icon: m.icon, label: m.label }));
+
+// '어드민' 은 일상 메뉴가 아니라 컨텍스트 전환 진입점이라 하단(의견보내기·설정
+// 사이) bottomItem 슬롯에 둔다 — SIDEBAR_MENU 에서 section: 'bottom' 으로 정의됨.
+const ADMIN_ITEM = SIDEBAR_MENU.find((m) => m.section === 'bottom');
 
 /**
  * App — thin demo router.
@@ -171,7 +178,7 @@ export default function App() {
         onNavigate={handleNavigate}
         icons={ICONS}
         baseUrl={BASE}
-        bottomItem={{ ...ADMIN_ITEM, onClick: () => {} }}
+        bottomItem={{ icon: ADMIN_ITEM.icon, label: ADMIN_ITEM.label, onClick: () => {} }}
         onFeedbackClick={() => { window.location.href = 'mailto:m@pivit.work'; }}
         onSettingsClick={() => handleNavigate('settings')}
       />
