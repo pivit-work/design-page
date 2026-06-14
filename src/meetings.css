@@ -415,11 +415,6 @@
   min-height: 0;
   resize: none;
 }
-.mtg-progress-transcript {
-  overflow: auto;
-  white-space: pre-wrap;
-}
-
 /* Sticky bottom action bar */
 .mtg-progress-actions {
   position: absolute;
