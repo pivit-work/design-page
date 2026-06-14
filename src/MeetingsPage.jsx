@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MeetingsCanvas, MeetingInProgressModal } from './components';
+import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal } from './components';
 
 /* ── 데모 데이터 ── */
 const TODAY_MEETINGS = [
@@ -69,20 +69,23 @@ const LABELS = {
   gcalStatus: 'Google Calendar 연동 중',
   ongoing: '진행 중',
   scheduled: '예정',
+  completed: '완료',
   start: '시작',
+  generating: '회의록 생성 중..',
 };
 
 const MODAL_LABELS = {
   close: '닫기',
   title: '회의 진행 중',
   startedSuffix: '시작',
-  recording: '녹음 중',
   memoLabel: '실시간 메모',
   memoPlaceholder: '회의 중 중요한 내용을 메모하세요 (선택)',
-  transcriptLabel: '실시간 전사',
-  endButton: '회의 종료 - AI 회의록 생성',
+  endButton: '회의 종료',
   shareButton: '공유하기',
   shareDoneButton: '공유 완료',
+  recordingSuffix: '님이 녹음 중입니다.',
+  endRecordingOnly: '녹음 종료만 하기',
+  recordingStoppedText: '녹음만 종료됨.',
   endConfirm: {
     title: '회의 종료하기',
     descLine1: '정말로 종료하시는게 맞으실까요?',
@@ -175,6 +178,41 @@ const SHARE_DATA = {
   },
 };
 
+const START_LABELS = {
+  recordMethod: {
+    title: '기록 방식 선택',
+    subtitleSuffix: '시작',
+    record: { title: '직접 녹음', desc: '이 디바이스 마이크로 녹음. 회의 참여한 인원의 녹음도 동작합니다.' },
+    memo: { title: '메모만 작성', desc: '녹음 없이 주최자가 직접 기록합니다.' },
+    footnote: '발제(회의 주최자) 만 녹음을 시작·정지할 수 있습니다. 비주최자는 본 화면을 보지 않고 곧장 회의방으로 입장합니다.',
+    close: '닫기',
+  },
+  micSelect: {
+    back: '뒤로가기',
+    title: '마이크 선택',
+    subtitle: '어떤 마이크로 녹음할지 골라주세요.',
+    deviceLabel: '마이크',
+    volumeLabel: '입력 음량',
+    requestButton: '최초 이 버튼을 눌러 브라우저 마이크 권한 허용해주세요',
+    requestFootnote: '브라우저 마이크 사용 권한 허용하지 않으면 회의록 녹음 기능을 사용하실 수 없습니다.',
+    grantedText: '마이크 권한 허용 됨.',
+    startButton: '회의 시작하기',
+    failedText: '브라우저 마이크 권한 허용이 실패했습니다. 다시 시도해 주세요.',
+    failedFootnote: '브라우저 주소창 좌측 설정 아이콘 클릭하여 마이크 권한 허용하시면 됩니다.',
+    close: '닫기',
+  },
+  progress: MODAL_LABELS,
+};
+
+const MIC_DEVICES = ['MacBook Pro 내장마이크', 'AirPods Pro', '외부 USB 마이크'];
+const RECORDER_NAME = 'John Lee';
+
+const GENERATING_LABELS = {
+  title: '회의록 생성 중',
+  desc: '완료에 약 5~10분 가량 소요됩니다.',
+  confirm: '확인',
+};
+
 /**
  * MeetingsPage — 회의록 demo wrapper.
  *
@@ -183,20 +221,34 @@ const SHARE_DATA = {
  * MeetingListPage.tsx 에서 실 데이터로 동일한 MeetingsCanvas 를 렌더한다.
  */
 export default function MeetingsPage({ baseUrl }) {
+  const [todayMeetings, setTodayMeetings] = useState(TODAY_MEETINGS);
   const [activeMeeting, setActiveMeeting] = useState(null);
+  const [generatingOpen, setGeneratingOpen] = useState(false);
 
   const todayDateLabel = useMemo(() => {
     const d = new Date();
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}요일`;
   }, []);
-  const todayCountLabel = `${TODAY_MEETINGS.length}개`;
+  const todayCountLabel = `${todayMeetings.length}개`;
+
+  // 회의 종료 확정 → 진행 flow 닫고, 해당 회의를 완료+생성 중으로 표시 + 생성 중 안내.
+  const handleEnd = () => {
+    const endedId = activeMeeting?.id;
+    setTodayMeetings((prev) =>
+      prev.map((m) =>
+        m.id === endedId ? { ...m, status: 'completed', generating: true } : m
+      )
+    );
+    setActiveMeeting(null);
+    setGeneratingOpen(true);
+  };
 
   return (
     <>
       <MeetingsCanvas
         baseUrl={baseUrl}
-        todayMeetings={TODAY_MEETINGS}
+        todayMeetings={todayMeetings}
         pastMeetings={PAST_MEETINGS}
         todayDateLabel={todayDateLabel}
         todayCountLabel={todayCountLabel}
@@ -204,15 +256,24 @@ export default function MeetingsPage({ baseUrl }) {
         onStartMeeting={setActiveMeeting}
       />
       {activeMeeting && (
-        <MeetingInProgressModal
+        <MeetingStartFlow
           baseUrl={baseUrl}
           meeting={activeMeeting}
-          timer="00:12:34"
-          transcript="실시간 전사 데이터가 여기에 표시됩니다. STT 연동 후 자동으로 채워집니다."
+          labels={START_LABELS}
+          micDevices={MIC_DEVICES}
+          recorderName={RECORDER_NAME}
+          recorderAvatar="/man.png"
           recordData={RECORD_DATA}
           shareData={SHARE_DATA}
-          labels={MODAL_LABELS}
           onClose={() => setActiveMeeting(null)}
+          onEnd={handleEnd}
+        />
+      )}
+      {generatingOpen && (
+        <MeetingGeneratingModal
+          baseUrl={baseUrl}
+          labels={GENERATING_LABELS}
+          onConfirm={() => setGeneratingOpen(false)}
         />
       )}
     </>

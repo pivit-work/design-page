@@ -46,18 +46,22 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels }) {
         </div>
         <span className="mtg-row-participants">{meeting.participants}</span>
       </div>
-      {isOngoing && (
-        <button
-          type="button"
-          className="mtg-start-btn"
-          onClick={(e) => {
-            // 부모 행 클릭과 겹치지 않도록 stopPropagation.
-            e.stopPropagation();
-            onStart?.(meeting);
-          }}
-        >
-          {statusLabels.startLabel}
-        </button>
+      {meeting.generating ? (
+        <span className="mtg-row-generating">{statusLabels.generatingLabel}</span>
+      ) : (
+        isOngoing && (
+          <button
+            type="button"
+            className="mtg-start-btn"
+            onClick={(e) => {
+              // 부모 행 클릭과 겹치지 않도록 stopPropagation.
+              e.stopPropagation();
+              onStart?.(meeting);
+            }}
+          >
+            {statusLabels.startLabel}
+          </button>
+        )
       )}
     </div>
   );
@@ -89,7 +93,9 @@ export default function MeetingsCanvas({
   const statusLabels = {
     ongoing: { label: labels.ongoing, className: 'mtg-tag-ongoing' },
     scheduled: { label: labels.scheduled, className: 'mtg-tag-scheduled' },
+    completed: { label: labels.completed, className: 'mtg-tag-completed' },
     startLabel: labels.start,
+    generatingLabel: labels.generating,
   };
 
   const [activeMeeting, setActiveMeeting] = useState(null);
