@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MeetingsCanvas, MeetingInProgressModal } from './components';
+import { MeetingsCanvas, MeetingStartFlow } from './components';
 
 /* ── 데모 데이터 ── */
 const TODAY_MEETINGS = [
@@ -83,6 +83,8 @@ const MODAL_LABELS = {
   endButton: '회의 종료 - AI 회의록 생성',
   shareButton: '공유하기',
   shareDoneButton: '공유 완료',
+  recordingSuffix: '님이 녹음 중입니다.',
+  endRecordingOnly: '녹음 종료만 하기',
   endConfirm: {
     title: '회의 종료하기',
     descLine1: '정말로 종료하시는게 맞으실까요?',
@@ -175,6 +177,35 @@ const SHARE_DATA = {
   },
 };
 
+const START_LABELS = {
+  recordMethod: {
+    title: '기록 방식 선택',
+    subtitleSuffix: '시작',
+    record: { title: '직접 녹음', desc: '이 디바이스 마이크로 녹음. 회의 참여한 인원의 녹음도 동작합니다.' },
+    memo: { title: '메모만 작성', desc: '녹음 없이 주최자가 직접 기록합니다.' },
+    footnote: '발제(회의 주최자) 만 녹음을 시작·정지할 수 있습니다. 비주최자는 본 화면을 보지 않고 곧장 회의방으로 입장합니다.',
+    close: '닫기',
+  },
+  micSelect: {
+    back: '뒤로가기',
+    title: '마이크 선택',
+    subtitle: '어떤 마이크로 녹음할지 골라주세요.',
+    deviceLabel: '마이크',
+    volumeLabel: '입력 음량',
+    requestButton: '최초 이 버튼을 눌러 브라우저 마이크 권한 허용해주세요',
+    requestFootnote: '브라우저 마이크 사용 권한 허용하지 않으면 회의록 녹음 기능을 사용하실 수 없습니다.',
+    grantedText: '마이크 권한 허용 됨.',
+    startButton: '회의 시작하기',
+    failedText: '브라우저 마이크 권한 허용이 실패했습니다. 다시 시도해 주세요.',
+    failedFootnote: '브라우저 주소창 좌측 설정 아이콘 클릭하여 마이크 권한 허용하시면 됩니다.',
+    close: '닫기',
+  },
+  progress: MODAL_LABELS,
+};
+
+const MIC_DEVICES = ['MacBook Pro 내장마이크', 'AirPods Pro', '외부 USB 마이크'];
+const RECORDER_NAME = 'John Lee';
+
 /**
  * MeetingsPage — 회의록 demo wrapper.
  *
@@ -204,14 +235,16 @@ export default function MeetingsPage({ baseUrl }) {
         onStartMeeting={setActiveMeeting}
       />
       {activeMeeting && (
-        <MeetingInProgressModal
+        <MeetingStartFlow
           baseUrl={baseUrl}
           meeting={activeMeeting}
-          timer="00:12:34"
-          transcript="실시간 전사 데이터가 여기에 표시됩니다. STT 연동 후 자동으로 채워집니다."
+          labels={START_LABELS}
+          micDevices={MIC_DEVICES}
+          recorderName={RECORDER_NAME}
+          timer="00:27:07"
           recordData={RECORD_DATA}
           shareData={SHARE_DATA}
-          labels={MODAL_LABELS}
+          simulateMicFailure
           onClose={() => setActiveMeeting(null)}
         />
       )}
