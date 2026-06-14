@@ -51,6 +51,9 @@ export {
   MeetingEndConfirmModal,
   MeetingRecordContent,
   MeetingShareContent,
+  RecordMethodModal,
+  MicSelectModal,
+  MeetingStartFlow,
 } from './meetings/index.js';
 
 // 1on1
