@@ -316,36 +316,83 @@
   text-align: center;
 }
 
-/* 녹음 중 + 타이머 영역 */
-.mtg-progress-timer {
-  height: 178px;
-  padding: 16px 16px 37px;
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
-  border-radius: 8px;
+/* 녹음 중 파란 타이머 카드 (Figma 16920-37072) */
+.mtg-progress-rec-card {
+  padding: 24px 16px;
+  background: var(--utility-blue-50, #eff8ff);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0;
+  gap: 8px;
 }
-.mtg-progress-rec-badge {
-  padding: 4px 10px;
-  background: var(--colors-foreground-fgErrorPrimary, #d92d20);
-  border-radius: 20px;
-  color: #ffffff;
+.mtg-progress-rec-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mtg-progress-rec-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--utility-blue-500, #2e90fa);
+  flex-shrink: 0;
+}
+.mtg-progress-rec-name {
   font-size: 14px;
   line-height: 20px;
-  font-weight: 700;
-  margin-bottom: -5px;
-}
-.mtg-progress-time {
-  font-family: var(--font-family-display);
-  font-size: 72px;
-  line-height: 90px;
   font-weight: 500;
-  letter-spacing: -1.44px;
-  color: var(--colors-foreground-fgErrorPrimary, #d92d20);
-  margin-bottom: -5px;
+  color: var(--utility-blue-600, #1849a9);
+}
+.mtg-progress-rec-time {
+  font-family: var(--font-family-display);
+  font-size: 64px;
+  line-height: 76px;
+  font-weight: 600;
+  letter-spacing: -1.28px;
+  color: var(--utility-blue-500, #2e90fa);
+}
+.mtg-progress-rec-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+}
+.mtg-progress-rec-wave span {
+  width: 3px;
+  border-radius: 9999px;
+  background: var(--utility-blue-500, #2e90fa);
+}
+
+/* progress 하단 버튼 row (record 모드: 2버튼, memo 모드: 1버튼) */
+.mtg-progress-btn-row {
+  display: flex;
+  gap: 12px;
+}
+.mtg-progress-btn-row .mtg-progress-end-btn {
+  flex: 1;
+}
+.mtg-progress-stoprec-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.mtg-progress-stoprec-btn:hover {
+  background: var(--colors-background-bgSecondary, #f9fafb);
+}
+
+/* memo-only 모드: 메모 영역을 크게 (전사 섹션 제거분 흡수) */
+.mtg-progress-section.is-memo-only {
+  height: 480px;
 }
 
 /* 실시간 메모 / 전사 섹션 */

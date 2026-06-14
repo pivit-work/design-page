@@ -28,10 +28,12 @@ export default function MeetingInProgressModal({
   baseUrl = '',
   onClose,
   // 진행 phase props — 모두 caller 주입
+  mode = 'record',          // 'record' = 직접 녹음, 'memo' = 메모만 작성
+  recorderName,             // 'record' 모드에서 "{recorderName}님이 녹음 중입니다."
   timer,
-  transcript,
   memo: memoProp,
   onMemoChange,
+  onStopRecording,          // "녹음 종료만 하기" 클릭
   // record/share phase 에 그대로 forward (caller 주입)
   recordData,
   shareData,
@@ -148,16 +150,24 @@ export default function MeetingInProgressModal({
                   </div>
                 </div>
 
-                {/* 녹음 중 + 타이머 */}
-                <div className="mtg-progress-timer">
-                  <span className="mtg-progress-rec-badge">
-                    {labels.recording}
-                  </span>
-                  <span className="mtg-progress-time">{timer}</span>
-                </div>
+                {mode === 'record' && (
+                  <div className="mtg-progress-rec-card">
+                    <div className="mtg-progress-rec-who">
+                      <span className="mtg-progress-rec-avatar" aria-hidden="true" />
+                      <span className="mtg-progress-rec-name">
+                        {recorderName}{labels.recordingSuffix}
+                      </span>
+                    </div>
+                    <span className="mtg-progress-rec-time">{timer}</span>
+                    <div className="mtg-progress-rec-wave" aria-hidden="true">
+                      {[10, 18, 8, 22, 14, 26, 12, 20, 9].map((h, i) => (
+                        <span key={i} style={{ height: `${h}px` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* 실시간 메모 — 공용 .tl-snippet-textarea 재사용 (focus brand primary) */}
-                <section className="mtg-progress-section">
+                <section className={`mtg-progress-section ${mode === 'memo' ? 'is-memo-only' : ''}`}>
                   <label htmlFor="mtg-memo" className="mtg-progress-section-label">
                     {labels.memoLabel}
                   </label>
@@ -168,16 +178,6 @@ export default function MeetingInProgressModal({
                     value={memo}
                     onChange={(e) => handleMemoChange(e.target.value)}
                   />
-                </section>
-
-                {/* 실시간 전사 */}
-                <section className="mtg-progress-section">
-                  <span className="mtg-progress-section-label">
-                    {labels.transcriptLabel}
-                  </span>
-                  <div className="tl-snippet-textarea mtg-progress-field mtg-progress-transcript">
-                    {transcript}
-                  </div>
                 </section>
               </>
             )}
@@ -203,13 +203,24 @@ export default function MeetingInProgressModal({
                 {labels.shareButton}
               </button>
             ) : (
-              <button
-                type="button"
-                className="mtg-progress-end-btn"
-                onClick={() => setConfirmOpen(true)}
-              >
-                {labels.endButton}
-              </button>
+              <div className="mtg-progress-btn-row">
+                {mode === 'record' && (
+                  <button
+                    type="button"
+                    className="mtg-progress-stoprec-btn"
+                    onClick={onStopRecording}
+                  >
+                    {labels.endRecordingOnly}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="mtg-progress-end-btn"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  {labels.endButton}
+                </button>
+              </div>
             )}
           </div>
         </div>
