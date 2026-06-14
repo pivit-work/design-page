@@ -1168,3 +1168,173 @@ input.mtg-record-action-title::placeholder {
   font-weight: 400;
   color: var(--text-tertiary, #b1b6be);
 }
+
+/* ─── 마이크 선택 모달 ─── */
+.mtg-mic-modal {
+  position: relative;
+  width: 480px;
+  max-width: 100%;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  border-radius: 16px;
+  box-shadow:
+    0 21px 120px -12px rgba(10, 13, 18, 0.14),
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mtg-mic-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mtg-mic-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.mtg-mic-title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.mtg-mic-subtitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.mtg-mic-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mtg-mic-field-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mtg-mic-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.mtg-mic-select select {
+  width: 100%;
+  appearance: none;
+  padding: 10px 36px 10px 12px;
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-radius: 10px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.mtg-mic-select .icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+}
+.mtg-mic-volume-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mtg-mic-volume-pct {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--utility-blue-500, #2e90fa);
+}
+.mtg-mic-volume-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  overflow: hidden;
+}
+.mtg-mic-volume-fill {
+  height: 100%;
+  background: var(--utility-blue-500, #2e90fa);
+  transition: width 0.2s ease;
+}
+.mtg-mic-request-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-brand-solid, #21a67a);
+  border-radius: 10px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  color: var(--bg-brand-solid, #21a67a);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.mtg-mic-request-btn:hover {
+  background: var(--utility-brand-50, #f1fffa);
+}
+.mtg-mic-granted {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary, #b1b6be);
+}
+.mtg-mic-start-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--colors-background-bgErrorSolid, #f04438);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.mtg-mic-start-btn:hover {
+  filter: brightness(0.96);
+}
+.mtg-mic-error {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--colors-background-bgErrorSolid, #f04438);
+}
+.mtg-mic-footnote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--text-tertiary, #b1b6be);
+}
