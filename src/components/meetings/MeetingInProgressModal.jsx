@@ -30,6 +30,7 @@ export default function MeetingInProgressModal({
   // 진행 phase props — 모두 caller 주입
   mode = 'record',          // 'record' = 직접 녹음, 'memo' = 메모만 작성
   recorderName,             // 'record' 모드에서 "{recorderName}님이 녹음 중입니다."
+  recorderAvatar,           // 녹음자 썸네일 이미지 URL (없으면 단색 원)
   timer,
   memo: memoProp,
   onMemoChange,
@@ -154,7 +155,15 @@ export default function MeetingInProgressModal({
                 {mode === 'record' && !recordingStopped && (
                   <div className="mtg-progress-rec-card">
                     <div className="mtg-progress-rec-who">
-                      <span className="mtg-progress-rec-avatar" aria-hidden="true" />
+                      {recorderAvatar ? (
+                        <img
+                          className="mtg-progress-rec-avatar"
+                          src={recorderAvatar.startsWith('/') ? baseUrl + recorderAvatar.slice(1) : recorderAvatar}
+                          alt=""
+                        />
+                      ) : (
+                        <span className="mtg-progress-rec-avatar" aria-hidden="true" />
+                      )}
                       <span className="mtg-progress-rec-name">
                         {recorderName}{labels.recordingSuffix}
                       </span>

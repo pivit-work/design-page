@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RecordMethodModal from './RecordMethodModal.jsx';
 import MicSelectModal from './MicSelectModal.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
@@ -19,8 +19,8 @@ export default function MeetingStartFlow({
   baseUrl = '',
   labels,                 // { recordMethod, micSelect, progress }
   micDevices,
-  timer,
   recorderName,
+  recorderAvatar,
   recordData,
   shareData,
   simulateMicFailure = false,
@@ -35,6 +35,21 @@ export default function MeetingStartFlow({
   const [micAttempts, setMicAttempts] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState(micDevices?.[0] ?? '');
   const [memo, setMemo] = useState('');
+  const [elapsedSec, setElapsedSec] = useState(0);
+
+  // 녹음 진행 중에만 타이머 틱 (녹음만 종료/메모 모드/다른 step 에서는 정지).
+  useEffect(() => {
+    if (step !== 'progress' || mode !== 'record' || recordingStopped) return undefined;
+    const id = setInterval(() => setElapsedSec((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [step, mode, recordingStopped]);
+
+  const formatElapsed = (total) => {
+    const h = String(Math.floor(total / 3600)).padStart(2, '0');
+    const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
 
   const handleSelectMethod = (m) => {
     if (m === 'record') {
@@ -63,6 +78,7 @@ export default function MeetingStartFlow({
   const handleStart = () => {
     setMode('record');
     setRecordingStopped(false);
+    setElapsedSec(0);
     setStep('progress');
   };
 
@@ -103,7 +119,8 @@ export default function MeetingStartFlow({
       mode={mode}
       recordingStopped={recordingStopped}
       recorderName={recorderName}
-      timer={timer}
+      recorderAvatar={recorderAvatar}
+      timer={formatElapsed(elapsedSec)}
       memo={memo}
       onMemoChange={setMemo}
       onStopRecording={() => setRecordingStopped(true)}

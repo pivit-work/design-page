@@ -262,7 +262,7 @@ export default function MeetingsPage({ baseUrl }) {
           labels={START_LABELS}
           micDevices={MIC_DEVICES}
           recorderName={RECORDER_NAME}
-          timer="00:27:07"
+          recorderAvatar="/man.png"
           recordData={RECORD_DATA}
           shareData={SHARE_DATA}
           onClose={() => setActiveMeeting(null)}
