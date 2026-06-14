@@ -29,6 +29,7 @@ export default function MeetingStartFlow({
 }) {
   const [step, setStep] = useState('method');   // 'method' | 'mic' | 'progress'
   const [mode, setMode] = useState('record');   // 'record' | 'memo'
+  const [recordingStopped, setRecordingStopped] = useState(false); // record 모드 "녹음만 종료됨"
   const [micStatus, setMicStatus] = useState('initial'); // 'initial'|'granted'|'failed'
   const [micVolume, setMicVolume] = useState(0);
   const [micAttempts, setMicAttempts] = useState(0);
@@ -61,6 +62,7 @@ export default function MeetingStartFlow({
 
   const handleStart = () => {
     setMode('record');
+    setRecordingStopped(false);
     setStep('progress');
   };
 
@@ -99,11 +101,12 @@ export default function MeetingStartFlow({
       meeting={meeting}
       baseUrl={baseUrl}
       mode={mode}
+      recordingStopped={recordingStopped}
       recorderName={recorderName}
       timer={timer}
       memo={memo}
       onMemoChange={setMemo}
-      onStopRecording={() => setMode('memo')}
+      onStopRecording={() => setRecordingStopped(true)}
       recordData={recordData}
       shareData={shareData}
       labels={labels.progress}

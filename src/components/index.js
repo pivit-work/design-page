@@ -54,6 +54,7 @@ export {
   RecordMethodModal,
   MicSelectModal,
   MeetingStartFlow,
+  MeetingGeneratingModal,
 } from './meetings/index.js';
 
 // 1on1

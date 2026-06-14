@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MeetingsCanvas, MeetingStartFlow } from './components';
+import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal } from './components';
 
 /* ── 데모 데이터 ── */
 const TODAY_MEETINGS = [
@@ -69,7 +69,9 @@ const LABELS = {
   gcalStatus: 'Google Calendar 연동 중',
   ongoing: '진행 중',
   scheduled: '예정',
+  completed: '완료',
   start: '시작',
+  generating: '회의록 생성 중..',
 };
 
 const MODAL_LABELS = {
@@ -83,6 +85,7 @@ const MODAL_LABELS = {
   shareDoneButton: '공유 완료',
   recordingSuffix: '님이 녹음 중입니다.',
   endRecordingOnly: '녹음 종료만 하기',
+  recordingStoppedText: '녹음만 종료됨.',
   endConfirm: {
     title: '회의 종료하기',
     descLine1: '정말로 종료하시는게 맞으실까요?',
@@ -204,6 +207,12 @@ const START_LABELS = {
 const MIC_DEVICES = ['MacBook Pro 내장마이크', 'AirPods Pro', '외부 USB 마이크'];
 const RECORDER_NAME = 'John Lee';
 
+const GENERATING_LABELS = {
+  title: '회의록 생성 중',
+  desc: '완료에 약 5~10분 가량 소요됩니다.',
+  confirm: '확인',
+};
+
 /**
  * MeetingsPage — 회의록 demo wrapper.
  *
@@ -212,20 +221,34 @@ const RECORDER_NAME = 'John Lee';
  * MeetingListPage.tsx 에서 실 데이터로 동일한 MeetingsCanvas 를 렌더한다.
  */
 export default function MeetingsPage({ baseUrl }) {
+  const [todayMeetings, setTodayMeetings] = useState(TODAY_MEETINGS);
   const [activeMeeting, setActiveMeeting] = useState(null);
+  const [generatingOpen, setGeneratingOpen] = useState(false);
 
   const todayDateLabel = useMemo(() => {
     const d = new Date();
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}요일`;
   }, []);
-  const todayCountLabel = `${TODAY_MEETINGS.length}개`;
+  const todayCountLabel = `${todayMeetings.length}개`;
+
+  // 회의 종료 확정 → 진행 flow 닫고, 해당 회의를 완료+생성 중으로 표시 + 생성 중 안내.
+  const handleEnd = () => {
+    const endedId = activeMeeting?.id;
+    setTodayMeetings((prev) =>
+      prev.map((m) =>
+        m.id === endedId ? { ...m, status: 'completed', generating: true } : m
+      )
+    );
+    setActiveMeeting(null);
+    setGeneratingOpen(true);
+  };
 
   return (
     <>
       <MeetingsCanvas
         baseUrl={baseUrl}
-        todayMeetings={TODAY_MEETINGS}
+        todayMeetings={todayMeetings}
         pastMeetings={PAST_MEETINGS}
         todayDateLabel={todayDateLabel}
         todayCountLabel={todayCountLabel}
@@ -244,6 +267,14 @@ export default function MeetingsPage({ baseUrl }) {
           shareData={SHARE_DATA}
           simulateMicFailure
           onClose={() => setActiveMeeting(null)}
+          onEnd={handleEnd}
+        />
+      )}
+      {generatingOpen && (
+        <MeetingGeneratingModal
+          baseUrl={baseUrl}
+          labels={GENERATING_LABELS}
+          onConfirm={() => setGeneratingOpen(false)}
         />
       )}
     </>

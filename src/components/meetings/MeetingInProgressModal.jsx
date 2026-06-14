@@ -34,6 +34,7 @@ export default function MeetingInProgressModal({
   memo: memoProp,
   onMemoChange,
   onStopRecording,          // "녹음 종료만 하기" 클릭
+  recordingStopped = false, // 'record' 모드에서 녹음만 종료된 상태 (회색 카드 "녹음만 종료됨.")
   // record/share phase 에 그대로 forward (caller 주입)
   recordData,
   shareData,
@@ -150,7 +151,7 @@ export default function MeetingInProgressModal({
                   </div>
                 </div>
 
-                {mode === 'record' && (
+                {mode === 'record' && !recordingStopped && (
                   <div className="mtg-progress-rec-card">
                     <div className="mtg-progress-rec-who">
                       <span className="mtg-progress-rec-avatar" aria-hidden="true" />
@@ -164,6 +165,13 @@ export default function MeetingInProgressModal({
                         <span key={i} style={{ height: `${h}px` }} />
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {mode === 'record' && recordingStopped && (
+                  <div className="mtg-progress-rec-card is-stopped">
+                    <span className="mtg-progress-rec-time-sm">{timer}</span>
+                    <span className="mtg-progress-rec-stopped">{labels.recordingStoppedText}</span>
                   </div>
                 )}
 
@@ -204,7 +212,7 @@ export default function MeetingInProgressModal({
               </button>
             ) : (
               <div className="mtg-progress-btn-row">
-                {mode === 'record' && (
+                {mode === 'record' && !recordingStopped && (
                   <button
                     type="button"
                     className="mtg-progress-stoprec-btn"
@@ -233,7 +241,6 @@ export default function MeetingInProgressModal({
           onConfirm={() => {
             setConfirmOpen(false);
             onEnd?.();
-            setPhase('record');
           }}
         />
       )}
