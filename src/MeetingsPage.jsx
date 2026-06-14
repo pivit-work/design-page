@@ -265,7 +265,6 @@ export default function MeetingsPage({ baseUrl }) {
           timer="00:27:07"
           recordData={RECORD_DATA}
           shareData={SHARE_DATA}
-          simulateMicFailure
           onClose={() => setActiveMeeting(null)}
           onEnd={handleEnd}
         />
