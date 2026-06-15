@@ -495,3 +495,546 @@
   font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
+
+/* ============================================================
+ * 직원 관리 (AdminEmployeesCanvas) — .admin-emp-*
+ * pivit-specs admin-employees-view.jsx 시안의 design-page 포팅.
+ * 색·radius·typography 는 design-page 토큰을 우선 사용.
+ * ============================================================ */
+
+.admin-emp-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--font-family-body);
+}
+
+/* ── 탭 바 ───────────────────────────────────────────────── */
+.admin-emp-tabbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.admin-emp-tab.is-active {
+  font-weight: 700;
+  color: var(--text-brand-tertiary);
+  border-bottom-color: var(--text-brand-tertiary);
+}
+.admin-emp-tab-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+.admin-emp-tab-count.is-active {
+  background: var(--utility-brand-50);
+  color: var(--text-brand-tertiary);
+}
+.admin-emp-tab-count.is-warn {
+  background: var(--utility-error-50);
+  color: var(--text-error-primary);
+}
+
+.admin-emp-loading {
+  padding: 60px 0;
+  text-align: center;
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+
+/* ── 툴바 (검색 + 액션) ──────────────────────────────────── */
+.admin-emp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.admin-emp-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+.admin-emp-search {
+  flex: 1;
+  max-width: 360px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-primary);
+  outline: none;
+}
+.admin-emp-count {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.admin-emp-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── 버튼 (공용) — design-page admin 버튼 톤(.admin-invite-button / .admin-link-button) ── */
+.admin-emp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 15px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.admin-emp-btn.is-sm { padding: 5px 12px; min-height: 26px; font-weight: 600; }
+.admin-emp-btn.is-primary {
+  background: var(--text-brand-tertiary);
+  color: var(--colors-text-textWhite, #fff);
+}
+.admin-emp-btn.is-ghost,
+.admin-emp-btn.is-soft {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.admin-emp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 필터 바 ─────────────────────────────────────────────── */
+.admin-emp-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-filter-chip { display: flex; align-items: center; gap: 6px; }
+.admin-emp-filter-chip-label {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.admin-emp-filter-chip-select {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+}
+.admin-emp-filter-reset {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 8px;
+}
+
+/* ── 테이블 ──────────────────────────────────────────────── */
+.admin-emp-table-scroll { overflow-x: auto; }
+.admin-emp-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+.admin-emp-table thead tr {
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.admin-emp-table td {
+  padding: 14px 10px;
+  vertical-align: middle;
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-primary);
+}
+.admin-emp-table tbody tr {
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-mono { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
+.admin-emp-muted { color: var(--text-tertiary); font-size: var(--font-size-text-sm, 13px); }
+.admin-emp-dept { font-size: var(--font-size-text-sm, 13px); color: var(--text-secondary); }
+.admin-emp-manager { font-size: var(--font-size-text-sm, 13px); color: var(--text-secondary); }
+
+.admin-emp-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-family-body);
+  text-align: left;
+}
+.admin-emp-name-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-emp-empty {
+  padding: 60px 0;
+  text-align: center;
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
+
+.admin-emp-actions-cell { position: relative; }
+.admin-emp-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.admin-emp-more { min-width: 30px; }
+
+/* ── 배지 / pill — design-page .admin-pill 규격 (radius-xs 6px / 12px / 600) ── */
+.admin-emp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-emp-pill.is-amber { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
+.admin-emp-pill.is-red { background: var(--utility-error-50); color: var(--text-error-primary); }
+
+.admin-emp-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-emp-role-pill.is-admin { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
+.admin-emp-role-pill.is-manager { background: var(--utility-green-100); color: var(--utility-green-600); }
+
+.admin-emp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+.admin-emp-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.admin-emp-status.is-active { background: var(--utility-green-100); color: var(--utility-green-600); }
+.admin-emp-status.is-pending { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
+.admin-emp-status.is-on-leave { background: var(--utility-purple-50, #f4f3ff); color: var(--utility-purple-500); }
+.admin-emp-status.is-terminated { background: var(--bg-secondary); color: var(--text-tertiary); }
+.admin-emp-status.is-other { background: var(--bg-secondary); color: var(--text-tertiary); }
+
+/* ── 페이지네이션 ────────────────────────────────────────── */
+.admin-emp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg-secondary);
+}
+.admin-emp-pagination-nav { display: flex; align-items: center; gap: 6px; }
+
+/* ── 행 액션 메뉴 ────────────────────────────────────────── */
+.admin-emp-row-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 160px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 6px 20px rgba(10, 13, 18, 0.1);
+  padding: 6px;
+}
+.admin-emp-row-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.admin-emp-row-menu-item:hover { background: var(--bg-secondary); }
+.admin-emp-row-menu-item.is-danger { color: var(--text-error-primary); }
+.admin-emp-row-menu-divider { height: 1px; background: var(--bg-secondary); margin: 4px 0; }
+
+/* ── 조직 선택 드롭다운 ──────────────────────────────────── */
+.admin-emp-picker {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 260px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 8px 32px rgba(10, 13, 18, 0.12);
+  padding: 8px;
+}
+.admin-emp-picker-search {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  outline: none;
+  margin-bottom: 6px;
+}
+.admin-emp-picker-list { max-height: 220px; overflow-y: auto; }
+.admin-emp-picker-empty { padding: 16px 10px; font-size: 11px; color: var(--text-tertiary); text-align: center; }
+.admin-emp-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+}
+.admin-emp-picker-item:hover { background: var(--bg-secondary); }
+.admin-emp-picker-item-name { font-size: var(--font-size-text-xs, 12px); font-weight: 700; color: var(--text-primary); }
+.admin-emp-picker-item-path { font-size: 11px; color: var(--text-tertiary); }
+
+/* ── 미배정 관리 탭 ──────────────────────────────────────── */
+.admin-emp-unassigned { display: flex; flex-direction: column; gap: 16px; }
+.admin-emp-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--colors-warning-50, #fffaeb);
+  border: 1px solid var(--colors-warning-200, #fedf89);
+}
+.admin-emp-banner-icon { font-size: 18px; line-height: 1.2; }
+.admin-emp-banner-title { font-size: var(--font-size-text-xs, 12px); font-weight: 700; color: var(--colors-warning-700, #b54708); }
+.admin-emp-banner-body { font-size: 11px; color: var(--colors-warning-600, #dc6803); margin-top: 2px; }
+
+.admin-emp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.admin-emp-unassigned-empty { padding: 40px 20px; text-align: center; font-size: var(--font-size-text-sm, 13px); color: var(--text-tertiary); font-weight: 600; }
+.admin-emp-unassigned-list { display: flex; flex-direction: column; gap: 8px; }
+.admin-emp-unassigned-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  position: relative;
+}
+.admin-emp-unassigned-info { flex: 1; min-width: 0; }
+.admin-emp-unassigned-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.admin-emp-unassigned-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.admin-emp-unassigned-action { position: relative; }
+.admin-emp-team-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bg-secondary);
+}
+
+/* ── 편집 슬라이드 패널 ──────────────────────────────────── */
+.admin-emp-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 13, 18, 0.4);
+  z-index: 100;
+}
+.admin-emp-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 92vw;
+  background: var(--bg-quaternary);
+  z-index: 101;
+  box-shadow: -8px 0 32px rgba(10, 13, 18, 0.12);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-family-body);
+}
+.admin-emp-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+.admin-emp-panel-id { display: flex; align-items: center; gap: 10px; }
+.admin-emp-panel-name { font-size: var(--font-size-text-sm, 13px); font-weight: 800; color: var(--text-primary); }
+.admin-emp-panel-email { font-size: 11px; color: var(--text-tertiary); }
+.admin-emp-panel-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+.admin-emp-panel-body { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+.admin-emp-panel-body .admin-section-label { margin-top: 16px; }
+.admin-emp-panel-body .admin-section-label:first-child { margin-top: 0; }
+.admin-emp-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--bg-secondary);
+}
+
+.admin-emp-field-group { display: flex; flex-direction: column; gap: 12px; }
+.admin-emp-field { display: flex; flex-direction: column; gap: 6px; }
+.admin-emp-field-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+.admin-emp-input {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-primary);
+  background: var(--bg-quaternary);
+  outline: none;
+}
+
+.admin-emp-org-assign { position: relative; }
+.admin-emp-org-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+}
+.admin-emp-org-current.is-empty {
+  border-color: var(--utility-error-200, #fecdca);
+  background: var(--utility-error-50);
+}
+.admin-emp-org-current-name { font-size: var(--font-size-text-xs, 12px); font-weight: 700; color: var(--text-primary); }
+.admin-emp-org-current.is-empty .admin-emp-org-current-name { color: var(--text-error-primary); }
+.admin-emp-org-current-arrow { font-size: 11px; color: var(--text-secondary); }
+
+.admin-emp-manager-readonly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-secondary);
+}
+.admin-emp-manager-name { font-size: var(--font-size-text-xs, 12px); font-weight: 700; color: var(--text-primary); }
+.admin-emp-manager-note { font-size: 11px; color: var(--text-tertiary); }
+
+.admin-emp-status-options { display: flex; flex-direction: column; gap: 8px; }
+.admin-emp-status-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  cursor: pointer;
+}
+.admin-emp-status-option-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-primary); }
+.admin-emp-status-option-label { font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-secondary); }
+.admin-emp-status-option.is-selected.is-active { border-color: var(--utility-green-600); background: var(--utility-green-100); }
+.admin-emp-status-option.is-selected.is-active .admin-emp-status-option-dot { background: var(--utility-green-600); }
+.admin-emp-status-option.is-selected.is-active .admin-emp-status-option-label { color: var(--utility-green-600); }
+.admin-emp-status-option.is-selected.is-pending { border-color: var(--colors-warning-600, #dc6803); background: var(--colors-warning-50, #fffaeb); }
+.admin-emp-status-option.is-selected.is-pending .admin-emp-status-option-dot { background: var(--colors-warning-600, #dc6803); }
+.admin-emp-status-option.is-selected.is-pending .admin-emp-status-option-label { color: var(--colors-warning-600, #dc6803); }
+.admin-emp-status-option.is-selected.is-on-leave { border-color: var(--utility-purple-500); background: var(--utility-purple-50, #f4f3ff); }
+.admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-dot { background: var(--utility-purple-500); }
+.admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-label { color: var(--utility-purple-500); }
+.admin-emp-status-option.is-selected.is-terminated { border-color: var(--text-tertiary); background: var(--bg-secondary); }
+.admin-emp-status-option.is-selected.is-terminated .admin-emp-status-option-dot { background: var(--text-tertiary); }
