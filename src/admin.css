@@ -1038,3 +1038,68 @@
 .admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-label { color: var(--utility-purple-500); }
 .admin-emp-status-option.is-selected.is-terminated { border-color: var(--text-tertiary); background: var(--bg-secondary); }
 .admin-emp-status-option.is-selected.is-terminated .admin-emp-status-option-dot { background: var(--text-tertiary); }
+
+/* ── 초대 관리 탭 (.admin-emp-invite-*) ──────────────────── */
+.admin-emp-invite-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.admin-emp-invite-stat {
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg, 12px);
+  padding: 14px 16px;
+}
+.admin-emp-invite-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 5px;
+}
+.admin-emp-invite-stat-value {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+.admin-emp-invite-stat-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.admin-emp-invite-stat.is-pending .admin-emp-invite-stat-value { color: var(--colors-warning-600, #dc6803); }
+.admin-emp-invite-stat.is-accepted .admin-emp-invite-stat-value { color: var(--utility-green-600); }
+.admin-emp-invite-stat.is-expired .admin-emp-invite-stat-value { color: var(--text-tertiary); }
+
+/* 인라인 초대 작성 바 */
+.admin-emp-invite-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-invite-email { flex: 1; min-width: 200px; }
+
+/* 초대 상태 배지 */
+.admin-emp-invite-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-emp-invite-badge.is-pending { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
+.admin-emp-invite-badge.is-accepted { background: var(--utility-green-100); color: var(--utility-green-600); }
+.admin-emp-invite-badge.is-expired { background: var(--bg-secondary); color: var(--text-tertiary); }
+
+/* 취소 액션은 위험 톤 */
+.admin-emp-btn.admin-emp-danger { color: var(--text-error-primary); }
