@@ -19,7 +19,7 @@ import SectionLabel from './SectionLabel.jsx';
  */
 
 const DEFAULT_LABELS = {
-  tabs: { members: '전체 구성원', unassigned: '미배정 관리' },
+  tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
   search: '이름 / 이메일 / 부서 검색',
   countSuffix: '명',
   filters: { dept: '부서', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
@@ -48,6 +48,18 @@ const DEFAULT_LABELS = {
     assignOrg: '조직 배정',
     goTeamMgmt: '팀 관리 →',
     teamNote: '※ 매니저는 조직장에서 자동 계산됩니다. 조직 구조 변경은 팀 관리 화면에서 진행됩니다.',
+  },
+  invites: {
+    summaryPending: '대기중', summaryPendingSub: '수락 대기',
+    summaryAccepted: '수락됨', summaryAcceptedSub: '온보딩 진행',
+    summaryExpired: '만료됨', summaryExpiredSub: '재발송 필요',
+    filterAll: '전체', newInvite: '+ 새 초대 발송',
+    composerEmail: '초대할 이메일', composerRole: '권한', composerSend: '발송', composerCancel: '취소',
+    colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
+    copyLink: '링크 복사', resend: '재발송', cancel: '취소',
+    statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
+    empty: '해당 상태의 초대가 없습니다.',
+    linkType: '링크',
   },
   picker: { search: '조직 검색…', empty: '검색 결과 없음', none: '조직 없음' },
   panel: {
@@ -565,10 +577,155 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
   );
 }
 
+/* ── 탭 C: 초대 관리 ────────────────────────────────────── */
+const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
+
+function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onCancelInvite, onCopyInviteLink }) {
+  const [filter, setFilter] = useState('all');
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('member');
+  const [sending, setSending] = useState(false);
+
+  const counts = {
+    pending: invites.filter((i) => i.status === 'pending').length,
+    accepted: invites.filter((i) => i.status === 'accepted').length,
+    expired: invites.filter((i) => i.status === 'expired').length,
+  };
+  const filtered = invites.filter((inv) => filter === 'all' || inv.status === filter);
+
+  const filterOpts = [
+    { id: 'all', label: labels.invites.filterAll },
+    { id: 'pending', label: labels.invites.statusPending },
+    { id: 'accepted', label: labels.invites.statusAccepted },
+    { id: 'expired', label: labels.invites.statusExpired },
+  ];
+  const summary = [
+    { key: 'pending', label: labels.invites.summaryPending, value: counts.pending, sub: labels.invites.summaryPendingSub, cls: 'is-pending' },
+    { key: 'accepted', label: labels.invites.summaryAccepted, value: counts.accepted, sub: labels.invites.summaryAcceptedSub, cls: 'is-accepted' },
+    { key: 'expired', label: labels.invites.summaryExpired, value: counts.expired, sub: labels.invites.summaryExpiredSub, cls: 'is-expired' },
+  ];
+
+  const statusLabel = (s) =>
+    s === 'pending' ? labels.invites.statusPending
+      : s === 'accepted' ? labels.invites.statusAccepted
+        : labels.invites.statusExpired;
+
+  async function handleSend() {
+    if (!email.trim()) return;
+    setSending(true);
+    try {
+      await onNewInvite(email.trim(), role);
+      setEmail('');
+      setRole('member');
+      setComposerOpen(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="admin-emp-unassigned">
+      <div className="admin-emp-invite-summary">
+        {summary.map((s) => (
+          <div key={s.key} className={`admin-emp-invite-stat ${s.cls}`}>
+            <div className="admin-emp-invite-stat-label">{s.label}</div>
+            <div className="admin-emp-invite-stat-value">{s.value}</div>
+            <div className="admin-emp-invite-stat-sub">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <Card>
+        <div className="admin-emp-toolbar">
+          <FilterChip label={labels.filters.status} value={filter} options={filterOpts} onChange={setFilter} />
+          {canEdit && (
+            <button type="button" className="admin-emp-btn is-primary" onClick={() => setComposerOpen((o) => !o)}>
+              {labels.invites.newInvite}
+            </button>
+          )}
+        </div>
+
+        {composerOpen && canEdit && (
+          <div className="admin-emp-invite-composer">
+            <input
+              type="email"
+              className="admin-emp-input admin-emp-invite-email"
+              placeholder={labels.invites.composerEmail}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            />
+            <select className="admin-emp-input" value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="member">{labels.role.member}</option>
+              <option value="manager">{labels.role.manager}</option>
+              <option value="admin">{labels.role.admin}</option>
+            </select>
+            <button type="button" className="admin-emp-btn is-primary is-sm" onClick={handleSend} disabled={sending || !email.trim()}>
+              {labels.invites.composerSend}
+            </button>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); setEmail(''); }}>
+              {labels.invites.composerCancel}
+            </button>
+          </div>
+        )}
+
+        {filtered.length === 0 ? (
+          <div className="admin-emp-unassigned-empty">{labels.invites.empty}</div>
+        ) : (
+          <div className="admin-emp-table-scroll">
+            <table className="admin-emp-table">
+              <thead>
+                <tr>
+                  <th>{labels.invites.colEmail}</th>
+                  <th>{labels.invites.colInviter}</th>
+                  <th>{labels.invites.colSentAt}</th>
+                  <th>{labels.invites.colStatus}</th>
+                  <th aria-label="actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="admin-emp-mono">
+                      {inv.email || labels.invites.linkType}
+                    </td>
+                    <td className="admin-emp-muted">{inv.invitedByName || '—'}</td>
+                    <td className="admin-emp-mono admin-emp-muted">{inv.sentAt || '—'}</td>
+                    <td><span className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</span></td>
+                    <td className="admin-emp-actions-cell">
+                      <div className="admin-emp-actions">
+                        {inv.status === 'pending' && (
+                          <>
+                            {onCopyInviteLink && (
+                              <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
+                            )}
+                            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                            <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
+                          </>
+                        )}
+                        {inv.status === 'expired' && (
+                          <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                        )}
+                        {inv.status === 'accepted' && <span className="admin-emp-muted">—</span>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 /* ── 메인 ───────────────────────────────────────────────── */
 export default function AdminEmployeesCanvas({
   members = [],
   orgUnits = [],
+  invites = [],
   loading = false,
   labels: providedLabels,
   pageSize = PAGE_SIZE,
@@ -580,6 +737,10 @@ export default function AdminEmployeesCanvas({
   onInvite,
   onCsvUpload,
   onManageTeams,
+  onNewInvite,
+  onResendInvite,
+  onCancelInvite,
+  onCopyInviteLink,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('members');
@@ -589,10 +750,15 @@ export default function AdminEmployeesCanvas({
     () => members.filter((m) => m.employmentStatus !== 'terminated' && (!m.department || !m.managerName)).length,
     [members],
   );
+  const pendingInviteCount = useMemo(
+    () => invites.filter((i) => i.status === 'pending').length,
+    [invites],
+  );
 
   const tabs = [
     { id: 'members', label: labels.tabs.members, count: members.length },
     { id: 'unassigned', label: labels.tabs.unassigned, count: unassignedCount, warn: unassignedCount > 0 },
+    { id: 'invites', label: labels.tabs.invites, count: pendingInviteCount },
   ];
 
   async function handleSave(draft) {
@@ -642,7 +808,7 @@ export default function AdminEmployeesCanvas({
           onInvite={onInvite}
           onCsvUpload={onCsvUpload}
         />
-      ) : (
+      ) : tab === 'unassigned' ? (
         <UnassignedTab
           members={members}
           orgUnits={orgUnits}
@@ -650,6 +816,16 @@ export default function AdminEmployeesCanvas({
           renderAvatar={renderAvatar}
           onAssignOrgUnit={onAssignOrgUnit}
           onManageTeams={onManageTeams}
+        />
+      ) : (
+        <InvitesTab
+          invites={invites}
+          labels={labels}
+          canEdit={canEdit}
+          onNewInvite={onNewInvite}
+          onResendInvite={onResendInvite}
+          onCancelInvite={onCancelInvite}
+          onCopyInviteLink={onCopyInviteLink}
         />
       )}
 
