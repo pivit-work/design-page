@@ -1,4 +1,5 @@
 export { default as AdminDashboardCanvas } from './AdminDashboardCanvas.jsx';
+export { default as AdminEmployeesCanvas } from './AdminEmployeesCanvas.jsx';
 export { default as AdminCard } from './Card.jsx';
 export { default as AdminSectionLabel } from './SectionLabel.jsx';
 export { default as AdminLinkButton } from './LinkButton.jsx';
