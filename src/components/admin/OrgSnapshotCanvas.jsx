@@ -170,7 +170,7 @@ function OrgTreeRow({ node, depth, total, defaultOpen }) {
   return (
     <>
       <div
-        className={`admin-snap-tree-row${depth === 0 ? ' is-root' : ''}${hasChildren ? ' has-children' : ''}`}
+        className={`admin-snap-tree-row${depth === 0 ? ' is-root' : ''}${hasChildren ? ' has-children' : ''}${hasChildren && open ? ' is-open' : ''}`}
         style={{ padding: `9px 12px 9px ${12 + depth * 20}px` }}
         onClick={() => hasChildren && setOpen((o) => !o)}
       >

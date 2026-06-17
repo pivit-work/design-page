@@ -1429,8 +1429,14 @@
   transition: background 0.15s ease;
 }
 .admin-snap-tree-row.has-children { cursor: pointer; }
-.admin-snap-tree-row.is-root { background: var(--bg-secondary); }
-.admin-snap-tree-row.has-children:hover { background: var(--bg-secondary); }
+/* 펼쳐진(활성) 가지 — design-page 선택 행 컨벤션(bg-brand-primary 그린 틴트).
+   report 의 "이번 주" 행, snippet 선택 항목과 동일. 접힌 행/잎과 명확히 구분된다. */
+.admin-snap-tree-row.is-open {
+  background: var(--bg-brand-primary, #f1fffa);
+  box-shadow: inset 2px 0 0 0 var(--bg-brand-solid, #2dbd82);
+}
+.admin-snap-tree-row.is-open .admin-snap-tree-name { font-weight: 700; }
+.admin-snap-tree-row.has-children:hover:not(.is-open) { background: var(--bg-secondary); }
 .admin-snap-tree-toggle {
   width: 12px;
   flex-shrink: 0;
