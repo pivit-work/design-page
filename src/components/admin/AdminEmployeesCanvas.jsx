@@ -3,6 +3,57 @@ import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 
+/* ── 인라인 라인 아이콘 ──────────────────────────────────────
+ * emoji/타이포 글리프(⚠️ ✓ × ⋯ ▾ ← →) 대체. design-page 의 클린
+ * 라인 아이콘 톤(stroke 2, round cap/join)에 맞춘 self-contained SVG.
+ * 색은 currentColor 상속 → 버튼/배지 톤을 그대로 따른다.
+ * ------------------------------------------------------------ */
+function strokeProps(size) {
+  return {
+    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round',
+    strokeLinejoin: 'round', 'aria-hidden': true, focusable: false,
+    style: { display: 'block', flexShrink: 0 },
+  };
+}
+const IconAlert = ({ size = 18 }) => (
+  <svg {...strokeProps(size)}>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+const IconCheck = ({ size = 16 }) => (
+  <svg {...strokeProps(size)}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+const IconX = ({ size = 16 }) => (
+  <svg {...strokeProps(size)}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+);
+const IconMore = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}>
+    <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
+  </svg>
+);
+const IconChevronDown = ({ size = 14 }) => (
+  <svg {...strokeProps(size)}><polyline points="6 9 12 15 18 9" /></svg>
+);
+const IconChevronLeft = ({ size = 14 }) => (
+  <svg {...strokeProps(size)}><polyline points="15 18 9 12 15 6" /></svg>
+);
+const IconChevronRight = ({ size = 14 }) => (
+  <svg {...strokeProps(size)}><polyline points="9 18 15 12 9 6" /></svg>
+);
+const IconPlus = ({ size = 14 }) => (
+  <svg {...strokeProps(size)}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+);
+const IconSearch = ({ size = 15 }) => (
+  <svg {...strokeProps(size)}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+);
+const IconCheckmark = ({ size = 15 }) => (
+  <svg {...strokeProps(size)}><polyline points="20 6 9 17 4 12" /></svg>
+);
+
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
  * pivit-specs 의 admin-employees-view.jsx 시안을 design-page 정본으로 포팅.
@@ -25,14 +76,14 @@ const DEFAULT_LABELS = {
   filters: { dept: '부서', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
   managerFilter: { all: '전체', assigned: '배정됨', unassigned: '미배정' },
   csvUpload: 'CSV 업로드',
-  invite: '+ 구성원 초대',
+  invite: '구성원 초대',
   unassignedPill: '미배정',
-  assignManager: '+ 조직 배정',
+  assignManager: '조직 배정',
   cols: { name: '이름', email: '이메일', dept: '부서', level: '직급', manager: '매니저', joined: '입사일', status: '상태' },
   edit: '수정',
   emptyFiltered: '조건에 맞는 구성원이 없습니다.',
   loading: '불러오는 중…',
-  pagination: { prev: '← 이전', next: '다음 →', of: '/' },
+  pagination: { prev: '이전', next: '다음', of: '/' },
   menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
   status: {
     active: '재직', on_leave: '휴직', terminated: '퇴사', pending: '수습', other: '기타',
@@ -42,18 +93,18 @@ const DEFAULT_LABELS = {
     bannerTitle: '조직 또는 매니저가 배정되지 않은 구성원이 있습니다.',
     bannerBody: '온보딩에서 "나중에 배정"을 선택했거나 신규 합류 후 미배정 상태입니다. 1on1·OKR·평가가 정상 작동하려면 조직·매니저 배정이 필요합니다.',
     noOrgTitle: '조직(부서) 미배정 구성원',
-    noOrgEmpty: '모든 구성원에게 조직이 배정되었습니다 ✓',
+    noOrgEmpty: '모든 구성원에게 조직이 배정되었습니다',
     noManagerTitle: '매니저 미배정 구성원',
-    noManagerEmpty: '모든 구성원에게 매니저가 배정되었습니다 ✓',
+    noManagerEmpty: '모든 구성원에게 매니저가 배정되었습니다',
     assignOrg: '조직 배정',
-    goTeamMgmt: '팀 관리 →',
+    goTeamMgmt: '팀 관리',
     teamNote: '※ 매니저는 조직장에서 자동 계산됩니다. 조직 구조 변경은 팀 관리 화면에서 진행됩니다.',
   },
   invites: {
     summaryPending: '대기중', summaryPendingSub: '수락 대기',
     summaryAccepted: '수락됨', summaryAcceptedSub: '온보딩 진행',
     summaryExpired: '만료됨', summaryExpiredSub: '재발송 필요',
-    filterAll: '전체', newInvite: '+ 새 초대 발송',
+    filterAll: '전체', newInvite: '새 초대 발송',
     composerEmail: '초대할 이메일', composerRole: '권한', composerSend: '발송', composerCancel: '취소',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
     copyLink: '링크 복사', resend: '재발송', cancel: '취소',
@@ -65,7 +116,7 @@ const DEFAULT_LABELS = {
   panel: {
     basicInfo: '기본 정보',
     name: '이름', email: '이메일', level: '직급', joined: '입사일',
-    orgAssign: '조직 배정', orgNone: '조직 미배정', orgChange: '변경 ▾',
+    orgAssign: '조직 배정', orgNone: '조직 미배정', orgChange: '변경',
     managerSection: '매니저', managerAuto: '조직장에서 자동 계산',
     statusSection: '재직 상태',
     cancel: '취소', save: '저장',
@@ -92,12 +143,7 @@ function StatusBadge({ status, labels }) {
   const known = ['active', 'on_leave', 'terminated', 'pending', 'other'];
   const cls = known.includes(status) ? status.replace('_', '-') : 'other';
   const label = labels.status[status] || labels.status.other;
-  return (
-    <span className={`admin-emp-status is-${cls}`}>
-      <span className="admin-emp-status-dot" />
-      {label}
-    </span>
-  );
+  return <span className={`admin-emp-status is-${cls}`}>{label}</span>;
 }
 
 function RolePill({ role, labels }) {
@@ -216,7 +262,7 @@ function EditPanel({ member, orgUnits, labels, renderAvatar, onClose, onSave }) 
               <div className="admin-emp-panel-email">{draft.email}</div>
             </div>
           </div>
-          <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label="close">×</button>
+          <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label="close"><IconX size={16} /></button>
         </div>
 
         <div className="admin-emp-panel-body">
@@ -250,7 +296,7 @@ function EditPanel({ member, orgUnits, labels, renderAvatar, onClose, onSave }) 
               <span className="admin-emp-org-current-name">
                 {deptLabel || labels.panel.orgNone}
               </span>
-              <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}</span>
+              <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>
             </button>
             {pickerOpen && (
               <OrgUnitPicker
@@ -270,24 +316,28 @@ function EditPanel({ member, orgUnits, labels, renderAvatar, onClose, onSave }) 
 
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
           <div className="admin-emp-status-options">
-            {statusOrder.map((key) => (
-              <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${draft.employmentStatus === key ? ' is-selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="employmentStatus"
-                  checked={draft.employmentStatus === key}
-                  onChange={() => set('employmentStatus', key)}
-                />
-                <span className="admin-emp-status-option-dot" />
-                <span className="admin-emp-status-option-label">{labels.status[key]}</span>
-              </label>
-            ))}
+            {statusOrder.map((key) => {
+              const selected = draft.employmentStatus === key;
+              return (
+                <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="employmentStatus"
+                    className="admin-emp-sr-only"
+                    checked={selected}
+                    onChange={() => set('employmentStatus', key)}
+                  />
+                  <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
+                  <span className="admin-emp-status-option-label">{labels.status[key]}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
 
         <div className="admin-emp-panel-footer">
-          <button type="button" className="admin-emp-btn is-ghost" onClick={onClose}>{labels.panel.cancel}</button>
-          <button type="button" className="admin-emp-btn is-primary" onClick={handleSave} disabled={saving}>{labels.panel.save}</button>
+          <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
+          <button type="button" className="admin-emp-btn is-primary admin-emp-btn-block" onClick={handleSave} disabled={saving}>{labels.panel.save}</button>
         </div>
       </div>
     </>
@@ -352,12 +402,15 @@ function MembersTab({ members, labels, canEdit, pageSize, renderAvatar, onOpenEd
     <Card>
       <div className="admin-emp-toolbar">
         <div className="admin-emp-search-wrap">
-          <input
-            className="admin-emp-search"
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setPage(1); }}
-            placeholder={labels.search}
-          />
+          <div className="admin-emp-search-box">
+            <span className="admin-emp-search-icon"><IconSearch size={16} /></span>
+            <input
+              className="admin-emp-search"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              placeholder={labels.search}
+            />
+          </div>
           <span className="admin-emp-count">{filtered.length}{labels.countSuffix}</span>
         </div>
         {canEdit && (onCsvUpload || onInvite) && (
@@ -366,89 +419,69 @@ function MembersTab({ members, labels, canEdit, pageSize, renderAvatar, onOpenEd
               <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
             )}
             {onInvite && (
-              <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}>{labels.invite}</button>
+              <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
             )}
           </div>
         )}
       </div>
 
       <div className="admin-emp-filterbar">
-        <FilterChip label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        <FilterChip label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
-        <FilterChip label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
-        <FilterChip label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
         {hasFilter && (
           <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
         )}
       </div>
 
-      <div className="admin-emp-table-scroll">
-        <table className="admin-emp-table">
-          <thead>
-            <tr>
-              <th>{labels.cols.name}</th>
-              <th>{labels.cols.email}</th>
-              <th>{labels.cols.dept}</th>
-              <th>{labels.cols.level}</th>
-              <th>{labels.cols.manager}</th>
-              <th>{labels.cols.joined}</th>
-              <th>{labels.cols.status}</th>
-              <th aria-label="actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="admin-emp-empty">{labels.emptyFiltered}</td>
-              </tr>
-            ) : (
-              pageRows.map((m) => (
-                <tr key={m.id}>
-                  <td>
-                    <button type="button" className="admin-emp-name-cell" onClick={() => onOpenEdit(m)}>
-                      {renderAvatar ? renderAvatar(m, 28) : <AvatarFallback row={m} size={28} />}
-                      <span className="admin-emp-name-text">
-                        {m.name}
-                        <RolePill role={m.orgRole} labels={labels} />
-                      </span>
-                    </button>
-                  </td>
-                  <td className="admin-emp-mono">{m.email}</td>
-                  <td>
+      {pageRows.length === 0 ? (
+        <div className="admin-emp-empty">{labels.emptyFiltered}</div>
+      ) : (
+        <div className="admin-emp-list">
+          {pageRows.map((m) => (
+            <div key={m.id} className="admin-emp-row">
+              <button type="button" className="admin-emp-row-main" onClick={() => onOpenEdit(m)}>
+                {renderAvatar ? renderAvatar(m, 36) : <AvatarFallback row={m} size={36} />}
+                <div className="admin-emp-row-info">
+                  <div className="admin-emp-row-name">
+                    {m.name}
+                    <RolePill role={m.orgRole} labels={labels} />
+                  </div>
+                  <div className="admin-emp-row-meta">
+                    <span className="admin-emp-row-email">{m.email}</span>
+                    <span className="admin-emp-meta-dot" aria-hidden="true">·</span>
                     {m.department
-                      ? <span className="admin-emp-dept">{m.department}</span>
+                      ? <span>{m.department}</span>
                       : <span className="admin-emp-pill is-amber">{labels.unassignedPill}</span>}
-                  </td>
-                  <td className="admin-emp-muted">{m.title || '—'}</td>
-                  <td>
-                    {m.managerName
-                      ? <span className="admin-emp-manager">{m.managerName}</span>
-                      : <span className="admin-emp-muted">—</span>}
-                  </td>
-                  <td className="admin-emp-mono admin-emp-muted">{(m.hireDate || '').slice(0, 10) || '—'}</td>
-                  <td><StatusBadge status={m.employmentStatus} labels={labels} /></td>
-                  <td className="admin-emp-actions-cell">
-                    <div className="admin-emp-actions">
-                      <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onOpenEdit(m)}>{labels.edit}</button>
-                      <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-more" onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)} aria-label="more">⋯</button>
-                    </div>
-                    {openMenu === m.id && (
-                      <RowActionMenu
-                        labels={labels}
-                        canEdit={canEdit}
-                        onEdit={() => onOpenEdit(m)}
-                        onChangeManager={() => onOpenEdit(m)}
-                        onDeactivate={() => onDeactivate(m)}
-                        onClose={() => setOpenMenu(null)}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    {m.title && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{m.title}</span></>)}
+                    {m.managerName && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{labels.cols.manager} {m.managerName}</span></>)}
+                    {m.hireDate && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{(m.hireDate || '').slice(0, 10)}</span></>)}
+                  </div>
+                </div>
+              </button>
+              <div className="admin-emp-row-right">
+                <StatusBadge status={m.employmentStatus} labels={labels} />
+                <div className="admin-emp-actions-cell">
+                  <div className="admin-emp-actions">
+                    <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-more" onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)} aria-label="more"><IconMore size={16} /></button>
+                  </div>
+                  {openMenu === m.id && (
+                    <RowActionMenu
+                      labels={labels}
+                      canEdit={canEdit}
+                      onEdit={() => onOpenEdit(m)}
+                      onChangeManager={() => onOpenEdit(m)}
+                      onDeactivate={() => onDeactivate(m)}
+                      onClose={() => setOpenMenu(null)}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {filtered.length > 0 && (
         <div className="admin-emp-pagination">
@@ -456,9 +489,9 @@ function MembersTab({ members, labels, canEdit, pageSize, renderAvatar, onOpenEd
             {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} {labels.pagination.of} {filtered.length}{labels.countSuffix}
           </span>
           <div className="admin-emp-pagination-nav">
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>{labels.pagination.prev}</button>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.pagination.prev}</button>
             <span className="admin-emp-mono admin-emp-muted">{safePage} {labels.pagination.of} {totalPages}</span>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{labels.pagination.next}</button>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{labels.pagination.next}<IconChevronRight size={14} /></button>
           </div>
         </div>
       )}
@@ -466,20 +499,58 @@ function MembersTab({ members, labels, canEdit, pageSize, renderAvatar, onOpenEd
   );
 }
 
-function FilterChip({ label, value, options, onChange }) {
+// 커스텀 필터 드롭다운 — 네이티브 <select> 대체. design-page tl-select 시각 규격.
+// 기본값(전체/all)일 때는 필터 이름을 placeholder 로 보여주고, 값이 선택되면
+// 값 + brand(에메랄드) 활성 상태로 전환해 "부서 [전체] 직급 [전체]" 중복을 제거한다.
+function FilterDropdown({ label, value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
+  const selected = opts.find((o) => o.id === value) || null;
+  const isDefault = value === 'all' || value === '전체';
+  const triggerText = isDefault ? label : (selected ? selected.label : label);
+
   return (
-    <div className="admin-emp-filter-chip">
-      <span className="admin-emp-filter-chip-label">{label}</span>
-      <select className="admin-emp-filter-chip-select" value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((opt) => {
-          const isObj = typeof opt === 'object';
-          return (
-            <option key={isObj ? opt.id : opt} value={isObj ? opt.id : opt}>
-              {isObj ? opt.label : opt}
-            </option>
-          );
-        })}
-      </select>
+    <div ref={ref} className={`admin-emp-select${open ? ' is-open' : ''}${isDefault ? '' : ' is-active'}`}>
+      <button
+        type="button"
+        className="admin-emp-select-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="admin-emp-select-value">{triggerText}</span>
+        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu" role="listbox">
+          {opts.map((o) => {
+            const isSel = o.id === value;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="option"
+                aria-selected={isSel}
+                className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
+                onClick={() => { onChange(o.id); setOpen(false); }}
+              >
+                <span className="admin-emp-select-item-label">{o.label}</span>
+                {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -494,7 +565,7 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
   return (
     <div className="admin-emp-unassigned">
       <div className="admin-emp-banner">
-        <span className="admin-emp-banner-icon" aria-hidden="true">⚠️</span>
+        <span className="admin-emp-banner-icon" aria-hidden="true"><IconAlert size={18} /></span>
         <div>
           <div className="admin-emp-banner-title">{labels.unassigned.bannerTitle}</div>
           <div className="admin-emp-banner-body">{labels.unassigned.bannerBody}</div>
@@ -504,10 +575,10 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
       <Card>
         <div className="admin-emp-section-head">
           <SectionLabel>{labels.unassigned.noOrgTitle}</SectionLabel>
-          <span className="admin-emp-pill is-red">{labels.unassignedPill} {noOrg.length}{labels.countSuffix}</span>
+          <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noOrg.length}{labels.countSuffix}</span>
         </div>
         {noOrg.length === 0 ? (
-          <div className="admin-emp-unassigned-empty">{labels.unassigned.noOrgEmpty}</div>
+          <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.noOrgEmpty}</div>
         ) : (
           <div className="admin-emp-unassigned-list">
             {noOrg.map((m) => (
@@ -519,7 +590,7 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                     <RolePill role={m.orgRole} labels={labels} />
                   </div>
                   <div className="admin-emp-unassigned-meta">
-                    <span className="admin-emp-mono">{m.email}</span>
+                    <span className="admin-emp-row-email">{m.email}</span>
                     <span>{m.title || '—'}</span>
                     {m.hireDate && <span>{(m.hireDate || '').slice(0, 10)}</span>}
                   </div>
@@ -527,7 +598,7 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                 <StatusBadge status={m.employmentStatus} labels={labels} />
                 <div className="admin-emp-unassigned-action">
                   <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)}>
-                    {labels.unassigned.assignOrg}
+                    <IconPlus size={13} />{labels.unassigned.assignOrg}
                   </button>
                   {pickerFor === m.id && (
                     <OrgUnitPicker
@@ -550,7 +621,7 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
           <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noManager.length}{labels.countSuffix}</span>
         </div>
         {noManager.length === 0 ? (
-          <div className="admin-emp-unassigned-empty">{labels.unassigned.noManagerEmpty}</div>
+          <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.noManagerEmpty}</div>
         ) : (
           <div className="admin-emp-unassigned-list">
             {noManager.map((m) => (
@@ -559,13 +630,13 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                 <div className="admin-emp-unassigned-info">
                   <div className="admin-emp-unassigned-name">{m.name}</div>
                   <div className="admin-emp-unassigned-meta">
-                    <span className="admin-emp-mono">{m.email}</span>
+                    <span className="admin-emp-row-email">{m.email}</span>
                     <span>{m.department} · {m.title || '—'}</span>
                   </div>
                 </div>
                 <StatusBadge status={m.employmentStatus} labels={labels} />
-                <button type="button" className="admin-emp-btn is-primary is-sm" onClick={onManageTeams}>
-                  {labels.unassigned.goTeamMgmt}
+                <button type="button" className="admin-emp-btn is-soft is-sm" onClick={onManageTeams}>
+                  {labels.unassigned.goTeamMgmt}<IconChevronRight size={13} />
                 </button>
               </div>
             ))}
@@ -638,10 +709,10 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
 
       <Card>
         <div className="admin-emp-toolbar">
-          <FilterChip label={labels.filters.status} value={filter} options={filterOpts} onChange={setFilter} />
+          <FilterDropdown label={labels.filters.status} value={filter} options={filterOpts} onChange={setFilter} />
           {canEdit && (
             <button type="button" className="admin-emp-btn is-primary" onClick={() => setComposerOpen((o) => !o)}>
-              {labels.invites.newInvite}
+              <IconPlus size={14} />{labels.invites.newInvite}
             </button>
           )}
         </div>
@@ -673,47 +744,38 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
         {filtered.length === 0 ? (
           <div className="admin-emp-unassigned-empty">{labels.invites.empty}</div>
         ) : (
-          <div className="admin-emp-table-scroll">
-            <table className="admin-emp-table">
-              <thead>
-                <tr>
-                  <th>{labels.invites.colEmail}</th>
-                  <th>{labels.invites.colInviter}</th>
-                  <th>{labels.invites.colSentAt}</th>
-                  <th>{labels.invites.colStatus}</th>
-                  <th aria-label="actions" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className="admin-emp-mono">
-                      {inv.email || labels.invites.linkType}
-                    </td>
-                    <td className="admin-emp-muted">{inv.invitedByName || '—'}</td>
-                    <td className="admin-emp-mono admin-emp-muted">{inv.sentAt || '—'}</td>
-                    <td><span className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</span></td>
-                    <td className="admin-emp-actions-cell">
-                      <div className="admin-emp-actions">
-                        {inv.status === 'pending' && (
-                          <>
-                            {onCopyInviteLink && (
-                              <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
-                            )}
-                            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
-                            <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
-                          </>
-                        )}
-                        {inv.status === 'expired' && (
-                          <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
-                        )}
-                        {inv.status === 'accepted' && <span className="admin-emp-muted">—</span>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="admin-emp-list">
+            {filtered.map((inv) => (
+              <div key={inv.id} className="admin-emp-row">
+                <div className="admin-emp-row-info">
+                  <div className="admin-emp-row-name">{inv.email || labels.invites.linkType}</div>
+                  <div className="admin-emp-row-meta">
+                    <span>{labels.invites.colInviter} {inv.invitedByName || '—'}</span>
+                    {inv.sentAt && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{inv.sentAt}</span></>)}
+                  </div>
+                </div>
+                <div className="admin-emp-row-right">
+                  <span className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</span>
+                  <div className="admin-emp-actions-cell">
+                    <div className="admin-emp-actions">
+                      {inv.status === 'pending' && (
+                        <>
+                          {onCopyInviteLink && (
+                            <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
+                          )}
+                          <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                          <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
+                        </>
+                      )}
+                      {inv.status === 'expired' && (
+                        <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                      )}
+                      {inv.status === 'accepted' && <span className="admin-emp-muted">—</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Card>
@@ -791,7 +853,7 @@ export default function AdminEmployeesCanvas({
           >
             {t.label}
             <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
-              {t.warn ? '⚠ ' : ''}{t.count}
+              {t.count}
             </span>
           </button>
         ))}
