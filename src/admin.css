@@ -1268,30 +1268,32 @@
 .admin-snap-datepicker {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border-radius: 9px;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md, 10px);
   border: 1px solid var(--border-primary);
   background: var(--bg-quaternary);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .admin-snap-datepicker:hover { border-color: var(--text-tertiary); }
 .admin-snap-datepicker:focus-within {
   border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  background: var(--utility-brand-50);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-snap-datepicker-label {
   font-family: var(--font-family-body);
-  font-size: 12px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
   color: var(--text-tertiary);
 }
 .admin-snap-datepicker input {
   border: none;
   background: transparent;
   font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   outline: none;
   cursor: pointer;
@@ -1300,14 +1302,15 @@
 .admin-snap-export-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm, 8px);
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md, 10px);
   border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   font-family: var(--font-family-body);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -1360,34 +1363,38 @@
   white-space: nowrap;
 }
 
-/* ── 세그먼트 서브탭 (조직 현황/고용/직군/연령) ── */
+/* ── 세그먼트 서브탭 (조직 현황/고용/직군/연령) ──
+   design-page .seg-control 정합: 회색 트랙(alphaBlack3) + 활성 시 흰 pill +
+   리프트 그림자(shadowLg01). 트랙이 흰색에 가까우면 활성이 안 보이므로
+   트랙을 회색으로 둬 흰 pill 이 떠 보이게 한다. */
 .admin-snap-subtabs {
   display: flex;
-  gap: 4px;
-  padding: 3px;
+  gap: 2px;
+  padding: 4px;
   border-radius: var(--radius-sm, 8px);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
 }
 .admin-snap-subtab {
   flex: 1;
-  padding: 7px 12px;
+  padding: 6px 12px;
   border-radius: 6px;
   border: none;
   background: transparent;
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs, 12px);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .admin-snap-subtab:hover:not(.is-active) { color: var(--text-secondary); }
 .admin-snap-subtab.is-active {
-  background: var(--bg-quaternary);
-  color: var(--text-secondary);
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(10, 13, 18, 0.06);
+  background: var(--colors-base-white, #fff);
+  border: 0.5px solid var(--colors-foreground-fgQuaternary, #e9eaeb);
+  color: var(--text-primary);
+  box-shadow: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01, rgba(10, 13, 18, 0.08)),
+    0 2px 4px -2px rgba(10, 13, 18, 0.06);
 }
 
 /* ── 콘텐츠 카드 ── */
@@ -1433,43 +1440,47 @@
 .admin-snap-tree-name {
   flex: 1;
   font-family: var(--font-family-body);
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 .admin-snap-tree-row.is-root .admin-snap-tree-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .admin-snap-tree-count {
   font-family: var(--font-family-body);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   margin-right: 8px;
 }
 .admin-snap-tree-bar-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100px;
+  gap: 8px;
+  width: 110px;
 }
 .admin-snap-tree-bar {
   flex: 1;
-  height: 4px;
-  background: var(--border-primary);
-  border-radius: 99px;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
   overflow: hidden;
 }
 .admin-snap-tree-bar-fill {
   height: 100%;
-  border-radius: 99px;
+  border-radius: 4px;
   background: var(--bg-brand-solid, #2dbd82);
+  transition: width 0.3s ease;
 }
 .admin-snap-tree-pct {
   font-family: var(--font-family-body);
-  font-size: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
-  width: 28px;
+  width: 32px;
   text-align: right;
 }
 
@@ -1487,31 +1498,35 @@
   flex-shrink: 0;
 }
 .admin-snap-emp-type {
-  width: 70px;
+  width: 76px;
   font-family: var(--font-family-body);
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 .admin-snap-emp-bar {
   flex: 1;
-  height: 6px;
+  height: 12px;
   background: var(--bg-secondary);
-  border-radius: 99px;
+  border-radius: 4px;
   overflow: hidden;
 }
-.admin-snap-emp-bar-fill { height: 100%; border-radius: 99px; }
+.admin-snap-emp-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
 .admin-snap-emp-count {
-  width: 40px;
+  width: 44px;
   text-align: right;
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
 .admin-snap-emp-pct {
-  width: 30px;
+  width: 34px;
+  text-align: right;
   font-family: var(--font-family-body);
-  font-size: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
 }
 
