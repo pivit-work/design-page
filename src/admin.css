@@ -157,7 +157,7 @@
 }
 .admin-stat-sub {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
   margin: 0;
 }
@@ -192,7 +192,7 @@
 }
 .admin-avatar-text {
   font-family: var(--font-family-body);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* ── 팀원 표 ────────────────────────────────────────────────────────── */
@@ -239,7 +239,7 @@
 }
 .admin-team-title {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
 .admin-team-dept {
@@ -342,7 +342,7 @@
 .admin-eval-name {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-primary);
 }
 .admin-eval-inprogress {
@@ -354,7 +354,7 @@
   background: var(--colors-background-bgBrandSecondary, #e1fef2);
   color: var(--colors-text-textBrandSecondary, #10774d);
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -374,13 +374,13 @@
 .admin-eval-progress-value {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--colors-text-textBrandTertiary, #21a67a);
 }
 .admin-eval-progress-fraction {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 500;
   color: var(--text-tertiary);
   margin-left: 4px;
@@ -406,7 +406,7 @@
   background: var(--utility-error-50);
   color: var(--colors-error-600);
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -454,7 +454,7 @@
   color: var(--colors-text-textWhite, #fff);
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  font-weight: 800;
+  font-weight: 700;
 }
 /* 정식 브랜드 로고 — 화이트 타일 + 헤어라인 (컬러 로고가 깔끔히 안착) */
 .admin-integration-icon.is-logo {
@@ -477,7 +477,7 @@
 }
 .admin-integration-sync {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
 .admin-integration-status {
@@ -485,7 +485,7 @@
   align-items: center;
   gap: 3px;
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   color: var(--utility-green-600);
 }
@@ -510,7 +510,7 @@
 /* ── 활동 로그 ─────────────────────────────────────────────────────── */
 .admin-activity-count {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
 .admin-activity-list {
@@ -546,7 +546,7 @@
   height: fit-content;
   margin-top: 1px;
   font-family: var(--font-family-body);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 .admin-activity-tag.is-snippet  { background: var(--utility-purple-50, #f4f3ff); color: var(--utility-purple-500); }
@@ -558,7 +558,7 @@
 .admin-activity-body { flex: 1; }
 .admin-activity-actor {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   color: var(--text-brand-tertiary);
 }
@@ -567,7 +567,7 @@
 }
 .admin-activity-text {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: var(--font-size-text-xs, 12px);
   color: var(--text-secondary);
 }
 .admin-activity-empty {
