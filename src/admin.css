@@ -103,19 +103,20 @@
   align-items: center;
   gap: 4px;
   min-height: 26px;
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: var(--radius-sm, 8px);
-  border: none;
-  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--colors-background-bgSecondary, #f9fafb);
   color: var(--text-secondary);
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .admin-link-button:hover {
-  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  background: var(--colors-background-bgSecondaryHover, #f3f4f6);
+  border-color: var(--border-primary, #d2d6db);
   color: var(--text-primary);
 }
 .admin-link-button:hover .admin-link-button-arrow { transform: translateX(2px); }
@@ -491,17 +492,18 @@
 .admin-integration-connect {
   padding: 4px 12px;
   border-radius: var(--radius-sm, 8px);
-  border: none;
-  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--bg-quaternary, #fff);
   color: var(--text-secondary);
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .admin-integration-connect:hover {
-  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-color: var(--border-primary, #d2d6db);
   color: var(--text-primary);
 }
 
