@@ -1222,7 +1222,9 @@
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
+.admin-snap-viewtab:hover { color: var(--text-primary); }
 .admin-snap-viewtab.is-active {
   font-weight: 700;
   color: var(--text-primary);
@@ -1249,6 +1251,7 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
   font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 .admin-snap-header-sub {
@@ -1268,7 +1271,13 @@
   gap: 7px;
   padding: 5px 12px;
   border-radius: 9px;
-  border: 1.5px solid var(--text-brand-tertiary);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.admin-snap-datepicker:hover { border-color: var(--text-tertiary); }
+.admin-snap-datepicker:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
   background: var(--utility-brand-50);
 }
 .admin-snap-datepicker-label {
@@ -1282,10 +1291,12 @@
   font-family: var(--font-family-mono, 'DM Mono', monospace);
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-brand-tertiary);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
   outline: none;
   cursor: pointer;
 }
+.admin-snap-datepicker:focus-within input { color: var(--text-brand-tertiary); }
 .admin-snap-export-btn {
   display: inline-flex;
   align-items: center;
@@ -1299,6 +1310,12 @@
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.admin-snap-export-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
 }
 
 /* ── 요약 카드 4개 (좌측 컬러 보더) ── */
@@ -1313,6 +1330,7 @@
   border-left: 3px solid var(--text-brand-tertiary);
   border-radius: var(--radius-lg, 12px);
   padding: 14px 16px;
+  box-shadow: 0 1px 2px 0 rgba(10, 13, 18, 0.06), 0 1px 3px 0 rgba(10, 13, 18, 0.1);
 }
 .admin-snap-summary-card.is-accent { border-left-color: var(--text-brand-tertiary); }
 .admin-snap-summary-card.is-green { border-left-color: var(--utility-green-600); }
@@ -1328,6 +1346,7 @@
   font-family: var(--font-family-mono, 'DM Mono', monospace);
   font-size: 22px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--text-primary);
   margin: 0 0 3px;
@@ -1359,7 +1378,9 @@
   font-weight: 500;
   color: var(--text-tertiary);
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
+.admin-snap-subtab:hover:not(.is-active) { color: var(--text-secondary); }
 .admin-snap-subtab.is-active {
   background: var(--bg-quaternary);
   color: var(--text-secondary);
@@ -1397,10 +1418,11 @@
   gap: 8px;
   border-bottom: 1px solid var(--bg-secondary);
   cursor: default;
+  transition: background 0.15s ease;
 }
 .admin-snap-tree-row.has-children { cursor: pointer; }
 .admin-snap-tree-row.is-root { background: var(--bg-secondary); }
-.admin-snap-tree-row.has-children:hover { background: var(--utility-brand-50); }
+.admin-snap-tree-row.has-children:hover { background: var(--bg-secondary); }
 .admin-snap-tree-toggle {
   width: 12px;
   flex-shrink: 0;
@@ -1440,7 +1462,7 @@
 .admin-snap-tree-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: var(--text-brand-tertiary);
+  background: var(--bg-brand-solid, #2dbd82);
 }
 .admin-snap-tree-pct {
   font-family: var(--font-family-mono, 'DM Mono', monospace);
@@ -1500,7 +1522,7 @@
 }
 .admin-snap-infobox.is-accent {
   background: var(--utility-brand-50);
-  border: 1px solid var(--utility-brand-200, #c7d2fe);
+  border: 1px solid var(--utility-brand-200, #b3fade);
 }
 .admin-snap-infobox-title {
   font-family: var(--font-family-body);
@@ -1605,7 +1627,7 @@
   border-radius: 6px;
   transition: width 0.3s;
 }
-.admin-snap-age-bar-fill.is-flagged { background: var(--text-brand-tertiary); }
+.admin-snap-age-bar-fill.is-flagged { background: var(--bg-brand-solid, #2dbd82); }
 .admin-snap-age-count {
   position: absolute;
   left: 8px;
@@ -1665,6 +1687,11 @@
   outline: none;
   box-sizing: border-box;
   margin-bottom: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-snap-search:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-snap-target-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
 .admin-snap-target-item {
@@ -1678,6 +1705,7 @@
   border-radius: var(--radius-sm, 8px);
   background: transparent;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 .admin-snap-target-item:hover { background: var(--bg-secondary); }
 .admin-snap-target-item.is-selected { background: var(--utility-brand-50); }
@@ -1706,9 +1734,14 @@
   font-weight: 500;
   color: var(--text-tertiary);
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.admin-snap-chip:hover:not(.is-on) {
+  border-color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-chip.is-on {
-  border-color: var(--utility-brand-200, #c7d2fe);
+  border-color: var(--utility-brand-200, #b3fade);
   background: var(--utility-brand-50);
   color: var(--text-brand-tertiary);
   font-weight: 700;
@@ -1743,6 +1776,12 @@
   color: var(--text-primary);
   outline: none;
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-snap-input:focus,
+.admin-snap-select:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-snap-input.is-mono { font-family: var(--font-family-mono, 'DM Mono', monospace); }
 
@@ -1829,7 +1868,8 @@
   color: var(--text-tertiary);
   border: 1px solid var(--border-primary);
 }
-.admin-snap-step-badge.is-active { background: var(--text-brand-tertiary); color: var(--colors-text-textWhite, #fff); border: none; }
+.admin-snap-step-badge { transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+.admin-snap-step-badge.is-active { background: var(--bg-brand-solid, #2dbd82); color: var(--colors-text-textWhite, #fff); border: none; }
 .admin-snap-step-label {
   font-family: var(--font-family-body);
   font-size: 12px;
@@ -1838,7 +1878,7 @@
 }
 .admin-snap-step-label.is-active { font-weight: 700; color: var(--text-primary); }
 .admin-snap-step-connector { width: 40px; height: 1px; background: var(--border-primary); margin: 0 12px; }
-.admin-snap-step-connector.is-done { background: var(--text-brand-tertiary); }
+.admin-snap-step-connector.is-done { background: var(--bg-brand-solid, #2dbd82); }
 .admin-snap-step-clickable { cursor: pointer; }
 
 .admin-snap-hint {
@@ -1860,7 +1900,9 @@
   cursor: pointer;
   background: var(--bg-secondary);
   margin-bottom: 16px;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
+.admin-snap-dropzone:hover { border-color: var(--text-tertiary); background: var(--bg-primary); }
 .admin-snap-dropzone.is-loaded { background: var(--utility-green-50); border-color: var(--utility-green-200, #abefc6); }
 .admin-snap-dropzone-icon { font-size: 24px; margin-bottom: 8px; }
 .admin-snap-dropzone-title { font-family: var(--font-family-body); font-size: 13px; font-weight: 600; color: var(--text-primary); }
@@ -1941,7 +1983,7 @@
   color: var(--text-tertiary);
   border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
-.admin-snap-hist-row { border-bottom: 1px solid var(--bg-secondary); cursor: pointer; }
+.admin-snap-hist-row { border-bottom: 1px solid var(--bg-secondary); cursor: pointer; transition: background 0.15s ease; }
 .admin-snap-hist-row:hover { background: var(--bg-secondary); }
 .admin-snap-hist-row.is-selected { background: var(--utility-brand-50); }
 .admin-snap-hist-table td {
@@ -1957,7 +1999,9 @@
 .admin-snap-hist-detaillink {
   display: inline-flex; align-items: center; gap: 2px;
   font-size: 12px; color: var(--text-brand-tertiary); font-weight: 600;
+  transition: color 0.15s ease;
 }
+.admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
 
 /* 발령 유형 배지 — typeKey → tone */
 .admin-snap-type-badge {
@@ -2001,7 +2045,10 @@
 .admin-snap-hist-panel-close {
   border: none; background: transparent; cursor: pointer;
   color: var(--text-tertiary); font-size: 16px; line-height: 1; padding: 2px 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
 }
+.admin-snap-hist-panel-close:hover { color: var(--text-primary); background: var(--bg-secondary); }
 .admin-snap-hist-panel-body { padding: 14px 16px; }
 .admin-snap-hist-panel-body .admin-snap-ba-before { color: var(--text-error-primary); }
 .admin-snap-hist-panel-body .admin-snap-ba-after { color: var(--utility-green-600); }
