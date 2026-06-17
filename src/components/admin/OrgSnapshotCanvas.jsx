@@ -116,15 +116,6 @@ const TYPE_TONE = {
   typeTermination: 'gray',
 };
 
-// 고용 유형 막대 색 — 토큰 사이클
-const EMP_COLORS = [
-  'var(--text-brand-tertiary)',
-  'var(--utility-green-600)',
-  'var(--colors-warning-500, #f79009)',
-  'var(--text-secondary)',
-  'var(--utility-error-500, #f04438)',
-];
-
 /* ── CSV 헬퍼 (대량 발령 템플릿/파싱) ─────────────────────── */
 function triggerCSVDownload(csvContent, filename) {
   const BOM = '﻿';
@@ -254,25 +245,19 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
         )}
 
         {activeTab === 'employment' && (
-          <div className="admin-snap-2col">
-            <div>
-              <p className="admin-snap-subheading">{labels.employmentHeading}</p>
-              {employment.map((e, idx) => (
-                <div key={e.type} className="admin-snap-emp-row">
-                  <span className="admin-snap-emp-swatch" style={{ background: EMP_COLORS[idx % EMP_COLORS.length] }} />
-                  <span className="admin-snap-emp-type">{e.type}</span>
-                  <div className="admin-snap-emp-bar">
-                    <div className="admin-snap-emp-bar-fill" style={{ width: `${(e.count / empMax) * 100}%`, background: EMP_COLORS[idx % EMP_COLORS.length] }} />
-                  </div>
-                  <span className="admin-snap-emp-count">{e.count}{labels.countSuffix}</span>
-                  <span className="admin-snap-emp-pct">{e.pct}%</span>
+          <div>
+            <p className="admin-snap-subheading">{labels.employmentHeading}</p>
+            {employment.map((e) => (
+              <div key={e.type} className="admin-snap-emp-row">
+                <span className="admin-snap-emp-type">{e.type}</span>
+                <div className="admin-snap-emp-bar">
+                  <div className="admin-snap-emp-bar-fill" style={{ width: `${(e.count / empMax) * 100}%` }} />
                 </div>
-              ))}
-            </div>
-            <div className="admin-snap-infobox">
-              <p className="admin-snap-infobox-title">{labels.govFormatTitle}</p>
-              <div className="admin-snap-infobox-body">{labels.govFormatDesc}</div>
-            </div>
+                <span className="admin-snap-emp-count">{e.count}{labels.countSuffix}</span>
+                <span className="admin-snap-emp-pct">{e.pct}%</span>
+              </div>
+            ))}
+            <p className="admin-snap-footnote">{labels.govFormatDesc}</p>
           </div>
         )}
 
@@ -300,31 +285,30 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
           ageDist.length === 0
             ? <div className="admin-snap-empty">{labels.ageNotAvailable}</div>
             : (
-              <div className="admin-snap-2col">
-                <div>
-                  <p className="admin-snap-subheading">{labels.ageHeading}</p>
-                  {ageDist.map((a) => (
-                    <div key={a.range} className="admin-snap-age-row">
-                      <span className="admin-snap-age-label">{a.range}</span>
-                      <div className="admin-snap-age-bar">
-                        <div
-                          className={`admin-snap-age-bar-fill${a.flagged ? ' is-flagged' : ''}`}
-                          style={{ width: `${(a.count / ageMax) * 100}%` }}
-                        />
-                        <span className="admin-snap-age-count">{a.count}{labels.countSuffix}</span>
-                      </div>
-                      {a.flagLabel && <span className="admin-snap-age-badge">{a.flagLabel}</span>}
+              <div>
+                <p className="admin-snap-subheading">{labels.ageHeading}</p>
+                {ageDist.map((a) => (
+                  <div key={a.range} className="admin-snap-age-row">
+                    <span className="admin-snap-age-label">{a.range}</span>
+                    <div className="admin-snap-age-bar">
+                      <div
+                        className={`admin-snap-age-bar-fill${a.flagged ? ' is-flagged' : ''}`}
+                        style={{ width: `${(a.count / ageMax) * 100}%` }}
+                      />
                     </div>
-                  ))}
-                </div>
-                <div className="admin-snap-infobox is-accent">
-                  <p className="admin-snap-infobox-title">{labels.govAgeTitle}</p>
-                  <div className="admin-snap-infobox-body">
+                    <span className="admin-snap-age-count">{a.count}{labels.countSuffix}</span>
+                    {a.flagLabel && <span className="admin-snap-age-badge">{a.flagLabel}</span>}
+                  </div>
+                ))}
+                {ageSummary.length > 0 && (
+                  <div className="admin-snap-agesummary">
                     {ageSummary.map((s) => (
-                      <div key={s.label}>{s.label}: <span className="admin-snap-mono">{s.value}</span></div>
+                      <span key={s.label} className="admin-snap-agesummary-item">
+                        {s.label} <strong>{s.value}</strong>
+                      </span>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
             )
         )}
