@@ -38,12 +38,19 @@
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 700;
   cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
 }
+.admin-invite-button:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 2px 8px var(--colors-effects-shadows-shadowSm01, rgba(10, 13, 18, 0.1));
+}
+.admin-invite-button:active { filter: brightness(0.96); }
 
 /* ── 카드 (공용) + 섹션 헤더 ───────────────────────────────────────── */
 .admin-card {
   background: var(--bg-quaternary);
   border-radius: var(--radius-2xl, 16px);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   box-shadow: var(--admin-card-shadow);
   padding: 20px 22px;
 }
@@ -55,7 +62,7 @@
 }
 .admin-section-label {
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text-primary);
@@ -76,9 +83,16 @@
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
+.admin-link-button:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  color: var(--text-primary);
+}
+.admin-link-button:hover .admin-link-button-arrow { transform: translateX(2px); }
 .admin-link-button-arrow {
   font-family: var(--font-family-body);
+  transition: transform 0.15s ease;
 }
 
 /* ── 요약 카드 4개 ─────────────────────────────────────────────────── */
@@ -90,6 +104,7 @@
 .admin-stat-tile {
   background: var(--bg-quaternary);
   border-radius: var(--radius-2xl, 16px);
+  border: 1px solid var(--border-primary, #d2d6db);
   box-shadow: var(--admin-card-shadow);
   padding: 18px 22px;
 }
@@ -97,6 +112,7 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-secondary);
   margin: 0 0 10px;
 }
@@ -104,6 +120,8 @@
   font-family: var(--font-family-display);
   font-size: var(--font-size-display-sm, 30px);
   font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   line-height: 1;
   margin: 0 0 8px;
@@ -173,6 +191,11 @@
   border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .admin-team-row.is-inactive { opacity: 0.5; }
+/* 레드플래그 행 — 리포트/스니핏의 active-row 틴트 패턴을 경보 상태에 적용 */
+.admin-team-row.is-flagged { background: var(--colors-error-25, #fffbfa); }
+.admin-team-row.is-flagged td:first-child {
+  box-shadow: inset 3px 0 0 var(--colors-error-400, #f97066);
+}
 
 .admin-team-name-cell {
   display: flex;
@@ -228,6 +251,7 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .admin-team-health.is-good { color: var(--text-brand-tertiary); }
 .admin-team-health.is-warning { color: var(--colors-text-textWarningPrimary, #dc6803); }
@@ -246,6 +270,7 @@
   gap: 4px;
   padding: 3px 9px;
   border-radius: var(--radius-xs, 6px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
@@ -256,8 +281,8 @@
   color: var(--text-error-primary);
 }
 .admin-pill.is-active {
-  background: var(--utility-green-100);
-  color: var(--utility-green-600);
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  color: var(--colors-text-textBrandSecondary, #10774d);
 }
 .admin-pill.is-inactive {
   background: var(--bg-secondary);
@@ -295,8 +320,9 @@
   align-items: center;
   padding: 3px 9px;
   border-radius: var(--radius-xs, 6px);
-  background: var(--utility-blue-100);
-  color: var(--utility-blue-600);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  color: var(--colors-text-textBrandSecondary, #10774d);
   font-family: var(--font-family-body);
   font-size: 11px;
   font-weight: 600;
@@ -319,7 +345,8 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
   font-weight: 800;
-  color: var(--utility-blue-500);
+  font-variant-numeric: tabular-nums;
+  color: var(--colors-text-textBrandTertiary, #21a67a);
 }
 .admin-eval-progress-fraction {
   font-family: var(--font-family-body);
@@ -336,8 +363,9 @@
 }
 .admin-eval-bar-fill {
   height: 100%;
-  background: var(--utility-blue-100);
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
   border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .admin-eval-reminder-button {
   width: 100%;
@@ -351,6 +379,10 @@
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.admin-eval-reminder-button:hover {
+  background: var(--colors-background-bgErrorSecondary, #fee4e2);
 }
 .admin-eval-empty {
   font-family: var(--font-family-body);
@@ -373,10 +405,11 @@
   border-radius: 9px;
   background: var(--bg-secondary);
   border: 1px solid var(--bg-secondary);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .admin-integration-row.is-connected {
-  background: var(--bg-primary);
-  border-color: var(--border-primary);
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  border-color: var(--componentColors-utility-brand-utilityBrand200, #b3fade);
 }
 .admin-integration-icon {
   width: 24px;
@@ -423,6 +456,11 @@
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.admin-integration-connect:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  color: var(--text-primary);
 }
 
 /* ── 활동 로그 ─────────────────────────────────────────────────────── */

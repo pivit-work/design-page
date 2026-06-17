@@ -36,7 +36,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar }
 
   const level = row.health != null ? healthLevel(row.health) : null;
   return (
-    <tr className="admin-team-row">
+    <tr className={`admin-team-row${row.redFlag ? ' is-flagged' : ''}`}>
       <td>
         <div className="admin-team-name-cell">
           {avatar}
