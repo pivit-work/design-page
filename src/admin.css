@@ -414,6 +414,7 @@
 .admin-integration-icon {
   width: 24px;
   height: 24px;
+  box-sizing: border-box;
   border-radius: 6px;
   flex-shrink: 0;
   display: flex;
@@ -424,6 +425,18 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 800;
+}
+/* 정식 브랜드 로고 — 화이트 타일 + 헤어라인 (컬러 로고가 깔끔히 안착) */
+.admin-integration-icon.is-logo {
+  background: var(--bg-quaternary, #fff);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  box-shadow: 0 1px 2px var(--colors-effects-shadows-shadowXs, rgba(10, 13, 18, 0.05));
+}
+.admin-integration-icon.is-logo img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  display: block;
 }
 .admin-integration-name {
   font-family: var(--font-family-body);
