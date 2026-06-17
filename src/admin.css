@@ -2014,7 +2014,6 @@
 .admin-snap-type-badge.is-blue { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
 .admin-snap-type-badge.is-green { background: var(--utility-green-100); color: var(--utility-green-600); }
 .admin-snap-type-badge.is-amber { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
-.admin-snap-type-badge.is-purple { background: var(--utility-purple-50, #f4f3ff); color: var(--utility-purple-500); }
 .admin-snap-type-badge.is-red { background: var(--utility-error-50); color: var(--text-error-primary); }
 .admin-snap-type-badge.is-gray { background: var(--bg-secondary); color: var(--text-tertiary); }
 

@@ -109,7 +109,7 @@ const TYPE_TONE = {
   typeDeptMove: 'amber',
   typePromotion: 'green',
   typeDemotion: 'red',
-  typeEmploymentChange: 'purple',
+  typeEmploymentChange: 'amber',
   typeLocationChange: 'blue',
   typeSalaryChange: 'amber',
   typeHire: 'green',
@@ -121,7 +121,7 @@ const EMP_COLORS = [
   'var(--text-brand-tertiary)',
   'var(--utility-green-600)',
   'var(--colors-warning-500, #f79009)',
-  'var(--utility-purple-500)',
+  'var(--text-secondary)',
   'var(--utility-error-500, #f04438)',
 ];
 
