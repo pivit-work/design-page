@@ -1244,21 +1244,27 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 20px;
   flex-wrap: wrap;
 }
+/* 섹션 제목 — design-page 페이지/섹션 헤더 정합(report-period-title /
+   manager-section-title = 20px/700/30, page-subtitle = 14px/600/-0.04em). */
 .admin-snap-header-title {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
-  font-weight: 800;
+  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 .admin-snap-header-sub {
   font-family: var(--font-family-body);
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: -0.04em;
+  color: var(--text-secondary);
+  margin-top: 6px;
 }
 .admin-snap-header-actions {
   display: flex;
@@ -1321,18 +1327,23 @@
   color: var(--text-primary);
 }
 
-/* ── 요약 카드 4개 (좌측 컬러 보더) ── */
+/* ── 요약 카드 4개 — design-page .snippet-stat-card 정합 ──
+   흰 카드 + 1px 보더(그림자 X), 값은 30px/500 display(굵지 않게).
+   그림자+굵은 값은 generic 대시보드 느낌을 줘 제거/완화했다. */
 .admin-snap-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 .admin-snap-summary-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100px;
   background: var(--bg-quaternary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-2xl, 16px);
-  padding: 16px 20px;
-  box-shadow: 0 1px 2px 0 rgba(10, 13, 18, 0.06), 0 1px 3px 0 rgba(10, 13, 18, 0.1);
+  padding: 16px 24px;
 }
 /* tone 클래스(is-accent/green/purple/amber)는 더 이상 색을 입히지 않는다.
    디자이너 stat 카드(.snippet-stat-card / .manager-stat-tile)는 균일한 중립
@@ -1347,17 +1358,18 @@
 }
 .admin-snap-summary-value {
   font-family: var(--font-family-display, 'Pretendard', sans-serif);
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 38px;
   color: var(--text-primary);
   margin: 0 0 4px;
 }
 .admin-snap-summary-sub {
   font-family: var(--font-family-body);
-  font-size: 11px;
+  font-size: 12px;
+  letter-spacing: -0.01em;
   color: var(--text-tertiary);
   margin: 0;
   white-space: nowrap;
