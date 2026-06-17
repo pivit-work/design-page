@@ -12,16 +12,46 @@
 
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   font-family: var(--font-family-body);
 }
 
-/* ── 헤더: 날짜 + 팀원 초대 ────────────────────────────────────────── */
+/* ── 페이지 헤더: 타이틀+부제(좌) / 날짜+초대(우) ─ 리포트 헤더 위계 정합 ── */
 .admin-header {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.admin-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.admin-page-title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.admin-page-subtitle {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.admin-header-actions {
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 .admin-header-date {
   font-family: var(--font-family-body);
@@ -50,15 +80,14 @@
 .admin-card {
   background: var(--bg-quaternary);
   border-radius: var(--radius-2xl, 16px);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   box-shadow: var(--admin-card-shadow);
-  padding: 20px 22px;
+  padding: 22px 24px;
 }
 .admin-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 .admin-section-label {
   font-family: var(--font-family-body);
@@ -104,9 +133,8 @@
 .admin-stat-tile {
   background: var(--bg-quaternary);
   border-radius: var(--radius-2xl, 16px);
-  border: 1px solid var(--border-primary, #d2d6db);
   box-shadow: var(--admin-card-shadow);
-  padding: 18px 22px;
+  padding: 20px 22px;
 }
 .admin-stat-label {
   font-family: var(--font-family-body);
@@ -175,7 +203,7 @@
   border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .admin-team-table th {
-  padding: 8px 10px;
+  padding: 10px 12px;
   text-align: left;
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
@@ -184,7 +212,7 @@
   white-space: nowrap;
 }
 .admin-team-table td {
-  padding: 14px 10px;
+  padding: 18px 12px;
   vertical-align: middle;
 }
 .admin-team-row {
@@ -204,7 +232,7 @@
 }
 .admin-team-name {
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -215,8 +243,9 @@
 }
 .admin-team-dept {
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
+  font-size: 14px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* 스니핏 제출 표시 */
@@ -233,7 +262,7 @@
 }
 .admin-team-snippet-text {
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
+  font-size: 14px;
   color: var(--text-tertiary);
 }
 .admin-team-snippet.is-submitted .admin-team-snippet-dot {
@@ -249,7 +278,7 @@
   align-items: center;
   gap: 4px;
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
