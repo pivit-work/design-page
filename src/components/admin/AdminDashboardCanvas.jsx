@@ -23,6 +23,8 @@ import AdminActivityLogRow from './AdminActivityLogRow.jsx';
  */
 
 const DEFAULT_LABELS = {
+  pageTitle: '개요',
+  pageSubtitle: '',
   inviteButton: '+ 팀원 초대',
   teamSectionTitle: '팀원 현황',
   manageEmployees: '직원 관리',
@@ -88,10 +90,16 @@ export default function AdminDashboardCanvas({
   return (
     <div className="admin-canvas">
       <header className="admin-header">
-        {dateLabel && <span className="admin-header-date">{dateLabel}</span>}
-        <button type="button" className="admin-invite-button" onClick={onInvite}>
-          {labels.inviteButton}
-        </button>
+        <div className="admin-header-titles">
+          <h1 className="admin-page-title">{labels.pageTitle}</h1>
+          {labels.pageSubtitle && <p className="admin-page-subtitle">{labels.pageSubtitle}</p>}
+        </div>
+        <div className="admin-header-actions">
+          {dateLabel && <span className="admin-header-date">{dateLabel}</span>}
+          <button type="button" className="admin-invite-button" onClick={onInvite}>
+            {labels.inviteButton}
+          </button>
+        </div>
       </header>
 
       <div className="admin-stats-grid">

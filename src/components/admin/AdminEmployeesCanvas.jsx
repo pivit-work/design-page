@@ -726,6 +726,7 @@ export default function AdminEmployeesCanvas({
   members = [],
   orgUnits = [],
   invites = [],
+  initialTab,
   loading = false,
   labels: providedLabels,
   pageSize = PAGE_SIZE,
@@ -743,7 +744,9 @@ export default function AdminEmployeesCanvas({
   onCopyInviteLink,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const [tab, setTab] = useState('members');
+  const [tab, setTab] = useState(
+    ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
+  );
   const [editing, setEditing] = useState(null);
 
   const unassignedCount = useMemo(
