@@ -212,7 +212,10 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
         </div>
       </header>
 
-      <div className="admin-snap-summary-grid">
+      <div
+        className="admin-snap-summary-grid"
+        style={{ gridTemplateColumns: `repeat(${Math.max(1, summaryCards.length)}, minmax(0, 1fr))` }}
+      >
         {summaryCards.map((c) => (
           <div key={c.key ?? c.label} className={`admin-snap-summary-card is-${c.tone || 'accent'}`}>
             <p className="admin-snap-summary-label">{c.label}</p>
