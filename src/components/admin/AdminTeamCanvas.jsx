@@ -1,0 +1,451 @@
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import AdminTeamTreeNode from './AdminTeamTreeNode.jsx';
+import AdminTeamDetailPanel from './AdminTeamDetailPanel.jsx';
+import { PlusIcon, SearchIcon, XIcon } from './teamIcons.jsx';
+
+/**
+ * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
+ * 순수 표현: 트리·상세 데이터 + labels + 콜백을 받아 렌더. 데이터 패칭/서비스 호출은
+ * 소비 측 책임. 콜백(onCreate/Update/Delete/Move/MemberAction/AddMember)은 async 이며
+ * 실패 시 throw 하면 캔버스가 에러 토스트를 띄운다. 확인 모달·DnD 가드·토스트는 캔버스 소유.
+ */
+
+const DEFAULT_LABELS = {
+  title: '팀 관리',
+  addTopLevel: '최상위 팀 추가',
+  summary: '팀 {{teams}}개 · 구성원 {{members}}명',
+  treeSearch: '팀 검색',
+  newTeamName: '새 팀 이름',
+  noSearchResults: '검색 결과가 없습니다',
+  emptyTree: '팀이 없습니다',
+  moveTeam: '팀 이동',
+  moveTeamSub: '이동할 상위 팀을 선택하세요',
+  current: '현재',
+  noParent: '최상위(상위 팀 없음)',
+  topLevel: '최상위',
+  parentTeam: '상위 팀',
+  cancel: '취소',
+  confirm: '확인',
+  deleteTeam: '팀 삭제',
+  editTeam: '팀 편집',
+  addSubTeam: '하위 팀 추가',
+  openMenu: '메뉴 열기',
+  confirmDelete: '이 팀을 삭제하시겠습니까?',
+  confirmDeleteMembers: '소속 구성원 {{count}}명은 미배정으로 이동합니다.',
+  unassigned: '미배정',
+  unassignedSub: '아직 팀에 배정되지 않은 구성원 {{count}}명',
+  noUnassignedMembers: '미배정 구성원이 없습니다',
+  noTeamSelected: '좌측에서 팀을 선택하세요',
+  pickIcon: '아이콘 선택',
+  pickColor: '색상 선택',
+  description: '설명',
+  descriptionPlaceholder: '팀 설명을 입력하세요',
+  members: '구성원',
+  noMembers: '구성원이 없습니다',
+  searchMember: '구성원 검색하여 추가',
+  subTeams: '하위 팀',
+  leader: '팀장',
+  primary: '주 소속',
+  removeLeader: '팀장 해제',
+  setLeader: '팀장 지정',
+  setPrimary: '주 소속으로',
+  removeMember: '구성원 제거',
+  toastCreated: '팀이 생성되었습니다',
+  toastUpdated: '변경되었습니다',
+  toastDeleted: '팀이 삭제되었습니다',
+  toastMemberAdded: '구성원이 추가되었습니다',
+  toastMemberRemoved: '구성원이 제거되었습니다',
+  toastLeaderSet: '팀장으로 지정되었습니다',
+  toastLeaderUnset: '팀장이 해제되었습니다',
+  toastPrimarySet: '주 소속으로 변경되었습니다',
+  toastError: '오류가 발생했습니다',
+  toastCycleError: '하위 팀으로는 이동할 수 없습니다',
+  toastDeleteHasChildren: '하위 팀이 있어 삭제할 수 없습니다',
+};
+
+function isObj(v) { return v && typeof v === 'object' && !Array.isArray(v); }
+function mergeLabels(base, provided) {
+  if (!provided) return base;
+  const out = { ...base };
+  for (const k of Object.keys(provided)) {
+    if (isObj(provided[k])) out[k] = mergeLabels(base[k] || {}, provided[k]);
+    else if (provided[k] !== undefined) out[k] = provided[k];
+  }
+  return out;
+}
+const fill = (s, vars) => {
+  let out = s == null ? '' : String(s);
+  for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
+  return out;
+};
+
+function containsId(node, id) {
+  if (node.id === id) return true;
+  return node.children.some((c) => containsId(c, id));
+}
+function isDescendant(nodes, parentId, targetId) {
+  for (const n of nodes) {
+    if (n.id === parentId) return containsId(n, targetId);
+    if (isDescendant(n.children, parentId, targetId)) return true;
+  }
+  return false;
+}
+function findNode(nodes, id) {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const f = findNode(n.children, id);
+    if (f) return f;
+  }
+  return null;
+}
+function findParentId(nodes, id, parent = null) {
+  for (const n of nodes) {
+    if (n.id === id) return parent;
+    const f = findParentId(n.children, id, n.id);
+    if (f !== undefined && f !== null) return f;
+    if (f === null && findNode(n.children, id)) return n.id;
+  }
+  return null;
+}
+function filterTree(nodes, query) {
+  if (!query) return nodes;
+  const q = query.toLowerCase();
+  const filterNode = (node) => {
+    const filteredChildren = node.children.map(filterNode).filter(Boolean);
+    const matches = node.name.toLowerCase().includes(q);
+    if (matches || filteredChildren.length > 0) return { ...node, children: filteredChildren };
+    return null;
+  };
+  return nodes.map(filterNode).filter(Boolean);
+}
+
+function ConfirmModal({ title, body, confirmLabel, cancelLabel, onConfirm, onCancel, danger }) {
+  return (
+    <div className="tm-modal-overlay" onClick={onCancel}>
+      <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="tm-modal-title">{title}</h3>
+        <p className="tm-modal-sub">{body}</p>
+        <div className="tm-modal-actions">
+          <button type="button" className="tm-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
+          <button type="button" className={`tm-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MoveTeamModal({ tree, movingId, currentParentId, labels, onConfirm, onCancel }) {
+  const [selectedParentId, setSelectedParentId] = useState(undefined);
+  const flatOptions = [
+    { id: null, name: labels.noParent, depth: 0, disabled: currentParentId === null, current: currentParentId === null },
+  ];
+  const flatten = (nodes, depth) => {
+    for (const n of nodes) {
+      if (n.isUnassigned) continue;
+      const disabled = n.id === movingId || isDescendant([n], movingId, n.id);
+      flatOptions.push({ id: n.id, name: n.name, depth, disabled, current: n.id === currentParentId });
+      flatten(n.children, depth + 1);
+    }
+  };
+  flatten(tree, 1);
+
+  return (
+    <div className="tm-modal-overlay" style={{ zIndex: 1100 }} onClick={onCancel}>
+      <div className="tm-modal is-wide" onClick={(e) => e.stopPropagation()}>
+        <h3 className="tm-modal-title">{labels.moveTeam}</h3>
+        <p className="tm-modal-sub">{labels.moveTeamSub}</p>
+        <div className="tm-modal-list">
+          {flatOptions.map((opt) => {
+            const selectable = !opt.disabled;
+            const isSelected = selectedParentId === opt.id;
+            return (
+              <button
+                type="button"
+                key={opt.id ?? '__root__'}
+                className={`tm-modal-list-item${isSelected ? ' is-selected' : ''}`}
+                disabled={!selectable}
+                onClick={() => selectable && setSelectedParentId(opt.id)}
+                style={{ paddingLeft: 14 + opt.depth * 16 }}
+              >
+                <span className="tm-modal-list-item-name">{opt.name}</span>
+                {opt.current && <span className="tm-modal-list-badge">{labels.current}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="tm-modal-actions">
+          <button type="button" className="tm-btn is-ghost" onClick={onCancel}>{labels.cancel}</button>
+          <button
+            type="button"
+            className="tm-btn is-primary"
+            disabled={selectedParentId === undefined}
+            onClick={() => onConfirm(selectedParentId ?? null)}
+          >
+            {labels.confirm}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminTeamCanvas({
+  tree = [],
+  selectedTeam = null,
+  selectedId = '',
+  availableMembers = [],
+  totalTeams = 0,
+  totalMembers = 0,
+  loading = false,
+  labels: providedLabels,
+  renderAvatar,
+  onSelectTeam,
+  onCreateTeam,
+  onUpdateTeam,
+  onDeleteTeam,
+  onMoveTeam,
+  onMemberAction,
+  onAddMember,
+}) {
+  const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+
+  const [treeSearch, setTreeSearch] = useState('');
+  const [searchFocus, setSearchFocus] = useState(false);
+  const [draggingId, setDraggingId] = useState('');
+  const [moveModalId, setMoveModalId] = useState('');
+  const [inlineCreateParentId, setInlineCreateParentId] = useState(null);
+  const [inlineCreateValue, setInlineCreateValue] = useState('');
+  const [confirmModal, setConfirmModal] = useState(null);
+
+  // Toast (캔버스 소유)
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  const run = useCallback(async (fn, successMsg) => {
+    try {
+      await fn();
+      if (successMsg) showToast(successMsg);
+    } catch {
+      showToast(L.toastError, 'error');
+    }
+  }, [showToast, L.toastError]);
+
+  const handleCreate = useCallback(async (parentId, name) => {
+    await run(() => onCreateTeam?.(parentId, name), L.toastCreated);
+  }, [run, onCreateTeam, L.toastCreated]);
+
+  const handleUpdate = useCallback((id, patch) => {
+    void run(() => onUpdateTeam?.(id, patch), L.toastUpdated);
+  }, [run, onUpdateTeam, L.toastUpdated]);
+
+  const handleMove = useCallback((id, parentId) => {
+    void run(() => onMoveTeam?.(id, parentId), L.toastUpdated);
+  }, [run, onMoveTeam, L.toastUpdated]);
+
+  const handleAddMember = useCallback((teamId, memberId) => {
+    void run(() => onAddMember?.(teamId, memberId), L.toastMemberAdded);
+  }, [run, onAddMember, L.toastMemberAdded]);
+
+  const handleMemberAction = useCallback((action, teamId, memberId) => {
+    let msg = L.toastUpdated;
+    if (action === 'remove') msg = L.toastMemberRemoved;
+    else if (action === 'setPrimary') msg = L.toastPrimarySet;
+    else if (action === 'setLeader') {
+      const m = selectedTeam?.members?.find((x) => x.id === memberId);
+      msg = m?.isLeader ? L.toastLeaderUnset : L.toastLeaderSet;
+    }
+    void run(() => onMemberAction?.(action, teamId, memberId), msg);
+  }, [run, onMemberAction, selectedTeam, L]);
+
+  const requestDelete = useCallback((nodeId) => {
+    const node = findNode(tree, nodeId);
+    if (!node) return;
+    if (node.children && node.children.length > 0) {
+      showToast(L.toastDeleteHasChildren, 'error');
+      return;
+    }
+    let body = L.confirmDelete;
+    if (node.memberCount > 0) body += '\n' + fill(L.confirmDeleteMembers, { count: node.memberCount });
+    setConfirmModal({
+      title: L.deleteTeam,
+      body,
+      danger: true,
+      onConfirm: () => {
+        setConfirmModal(null);
+        void run(() => onDeleteTeam?.(nodeId), L.toastDeleted);
+      },
+    });
+  }, [tree, showToast, L, run, onDeleteTeam]);
+
+  // DnD
+  const handleDragStart = useCallback((id) => setDraggingId(id), []);
+  const handleDrop = useCallback((targetId) => {
+    if (!draggingId || draggingId === targetId) { setDraggingId(''); return; }
+    if (isDescendant(tree, draggingId, targetId)) {
+      setDraggingId('');
+      showToast(L.toastCycleError, 'error');
+      return;
+    }
+    const moving = draggingId;
+    setDraggingId('');
+    handleMove(moving, targetId);
+  }, [draggingId, tree, showToast, L.toastCycleError, handleMove]);
+
+  const handleContextAction = useCallback((action, nodeId) => {
+    switch (action) {
+      case 'edit': onSelectTeam?.(nodeId); break;
+      case 'addSub': setInlineCreateParentId(nodeId); setInlineCreateValue(''); break;
+      case 'delete': requestDelete(nodeId); break;
+      case 'move': setMoveModalId(nodeId); break;
+      default: break;
+    }
+  }, [onSelectTeam, requestDelete]);
+
+  const handleInlineCreateConfirm = useCallback(async () => {
+    const name = inlineCreateValue.trim();
+    const parentId = inlineCreateParentId;
+    setInlineCreateParentId(null);
+    setInlineCreateValue('');
+    if (name && parentId !== null) {
+      await handleCreate(parentId === '__root__' ? undefined : parentId, name);
+    }
+  }, [inlineCreateValue, inlineCreateParentId, handleCreate]);
+
+  const handleInlineCreateCancel = useCallback(() => {
+    setInlineCreateParentId(null);
+    setInlineCreateValue('');
+  }, []);
+
+  const filteredTree = filterTree(tree, treeSearch);
+  const movingParentId = moveModalId ? findParentId(tree, moveModalId) : null;
+
+  if (loading) {
+    return <div className="tm-loading">{L.loading ?? '...'}</div>;
+  }
+
+  return (
+    <div className="tm-root">
+      {toast && <div className={`tm-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`}>{toast.msg}</div>}
+
+      {/* Left: Tree */}
+      <div className="tm-tree-panel">
+        <div className="tm-tree-header">
+          <div className="tm-tree-header-row">
+            <h1 className="tm-tree-title">{L.title}</h1>
+            <button
+              type="button"
+              className="tm-tree-add"
+              onClick={() => { setInlineCreateParentId('__root__'); setInlineCreateValue(''); }}
+              aria-label={L.addTopLevel}
+            >
+              <PlusIcon size={16} />
+            </button>
+          </div>
+          <p className="tm-tree-summary">{fill(L.summary, { teams: totalTeams, members: totalMembers })}</p>
+        </div>
+
+        <div className="tm-tree-search">
+          <div className={`tm-search-box${searchFocus ? ' is-focus' : ''}`}>
+            <span className="tm-search-icon"><SearchIcon size={13} /></span>
+            <input
+              className="tm-search-input"
+              value={treeSearch}
+              onChange={(e) => setTreeSearch(e.target.value)}
+              onFocus={() => setSearchFocus(true)}
+              onBlur={() => setSearchFocus(false)}
+              placeholder={L.treeSearch}
+              data-testid="tree-search"
+            />
+          </div>
+        </div>
+
+        {inlineCreateParentId === '__root__' && (
+          <div className="tm-inline-create">
+            <input
+              autoFocus
+              className="tm-inline-input"
+              value={inlineCreateValue}
+              onChange={(e) => setInlineCreateValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleInlineCreateConfirm();
+                if (e.key === 'Escape') handleInlineCreateCancel();
+              }}
+              onBlur={handleInlineCreateCancel}
+              placeholder={L.newTeamName}
+              data-testid="inline-create-root-input"
+            />
+            <button type="button" className="tm-inline-cancel" onMouseDown={(e) => e.preventDefault()} onClick={handleInlineCreateCancel}><XIcon size={14} /></button>
+          </div>
+        )}
+
+        <div className="tm-tree-list">
+          {filteredTree.map((node) => (
+            <AdminTeamTreeNode
+              key={node.id}
+              node={node}
+              selectedId={selectedId}
+              labels={L}
+              onSelect={onSelectTeam}
+              onContextAction={handleContextAction}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
+              draggingId={draggingId}
+              inlineCreateParentId={inlineCreateParentId ?? undefined}
+              inlineCreateValue={inlineCreateValue}
+              onInlineCreateChange={setInlineCreateValue}
+              onInlineCreateConfirm={() => void handleInlineCreateConfirm()}
+              onInlineCreateCancel={handleInlineCreateCancel}
+            />
+          ))}
+          {filteredTree.length === 0 && (
+            <p className="tm-empty-note" style={{ padding: '12px' }}>
+              {treeSearch ? L.noSearchResults : L.emptyTree}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Detail */}
+      <AdminTeamDetailPanel
+        team={selectedTeam}
+        availableMembers={availableMembers}
+        labels={L}
+        renderAvatar={renderAvatar}
+        onUpdateTeam={handleUpdate}
+        onMemberAction={handleMemberAction}
+        onSelectSubTeam={onSelectTeam}
+        onAddMember={handleAddMember}
+        onDeleteTeam={requestDelete}
+      />
+
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          body={confirmModal.body}
+          danger={confirmModal.danger}
+          confirmLabel={L.confirm}
+          cancelLabel={L.cancel}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {moveModalId && (
+        <MoveTeamModal
+          tree={tree}
+          movingId={moveModalId}
+          currentParentId={movingParentId}
+          labels={L}
+          onConfirm={(newParentId) => { setMoveModalId(''); handleMove(moveModalId, newParentId); }}
+          onCancel={() => setMoveModalId('')}
+        />
+      )}
+    </div>
+  );
+}
