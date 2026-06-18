@@ -1,5 +1,8 @@
 export { default as AdminDashboardCanvas } from './AdminDashboardCanvas.jsx';
 export { default as AdminEmployeesCanvas } from './AdminEmployeesCanvas.jsx';
+export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
+export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
+export { TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName } from './teamIcons.jsx';
 export { default as OrgSnapshotCanvas } from './OrgSnapshotCanvas.jsx';
 export { default as AdminCard } from './Card.jsx';
 export { default as AdminSectionLabel } from './SectionLabel.jsx';

@@ -99,4 +99,7 @@ export {
 // Admin
 export { AdminDashboardCanvas } from './admin/index.js';
 export { AdminEmployeesCanvas } from './admin/index.js';
+export { AdminRbacCanvas } from './admin/index.js';
+export { AdminTeamCanvas } from './admin/index.js';
+export { TeamIcon } from './admin/index.js';
 export { OrgSnapshotCanvas } from './admin/index.js';

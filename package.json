@@ -19,6 +19,7 @@
     "./styles/manager.css": "./src/manager.css",
     "./styles/snippet.css": "./src/snippet.css",
     "./styles/admin.css": "./src/admin.css",
+    "./styles/team-management.css": "./src/team-management.css",
     "./styles/tokens.css": "./src/tokens.css",
     "./styles/tokens-dark.css": "./src/tokens-dark.css",
     "./styles/index.css": "./src/index.css"
