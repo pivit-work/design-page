@@ -5,6 +5,9 @@
  * 동적 값(아바타 색·바 width·연동 아이콘 brand 색)만 인라인 스타일.
  */
 
+/* 알림 편집 모달의 시작/종료일자 picker(SnippetDatePicker) 공용 스타일 */
+@import './datepicker.css';
+
 .admin-canvas {
   --admin-card-shadow:
     0 1px 2px 0 var(--colors-effects-shadows-shadowSm01, rgba(10, 13, 18, 0.1)),
@@ -2323,3 +2326,590 @@
   background: var(--bg-secondary);
   border-radius: 8px;
 }
+
+/* ============================================================
+ * 알림 설정 (AdminNotificationsCanvas) — .admin-notif-*
+ * pivit-specs admin-notif-settings.jsx 시안의 design-page 포팅.
+ * 타이포·간격·색·radius 는 design-page 공통 스케일(index.css 토큰)을 따른다:
+ *   font-size text-xs(12)/text-sm(14)/text-md(16)/display-xs(24)/display-sm(30)
+ *   spacing xs(4)/sm(6)/md(8)/lg(12)/xl(16)/2xl(20)/3xl(24)
+ *   radius xs(6)/sm(8)/md(10)/lg(12)/xl(14)/2xl(16)
+ *   글꼴은 Pretendard(body/display) 통일 — mono 미사용.
+ * ============================================================ */
+
+.admin-notif-canvas {
+  /* 디자이너 화면(org_chart·report·snippet)의 카드 휴지 elevation 과 동일.
+     --admin-card-shadow 는 .admin-canvas 스코프에만 정의돼 있어 여기서 다시 선언한다. */
+  --admin-card-shadow:
+    0 1px 2px 0 rgba(10, 13, 18, 0.1),
+    0 1px 3px 0 rgba(10, 13, 18, 0.1);
+
+  /* 다른 어드민 캔버스(.admin-canvas · .admin-emp-canvas)와 동일하게 풀폭 사용.
+     기존 max-width:860px + margin:auto 의 좁은 중앙 정렬을 제거. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  font-family: var(--font-family-body);
+}
+
+/* ── 요약 카드 3개 — 디자이너 snippet-stat-card idiom 정본 ──────
+   회색(bg-primary) 카드 + 고정 100px + space-between(라벨 상단·숫자 하단),
+   value weight 500·단색. 흰 카드+큰 굵은 숫자(SaaS 메트릭 타일)의 AI 느낌 제거. */
+.admin-notif-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.admin-notif-summary-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100px;
+  padding: 16px 24px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+}
+.admin-notif-summary-label {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+.admin-notif-summary-value {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-display-sm);
+  font-weight: 500;
+  line-height: 38px;
+  color: var(--text-primary);
+}
+.admin-notif-summary-value.is-good { color: var(--text-brand-secondary); }
+.admin-notif-summary-value.is-muted { color: var(--text-tertiary); }
+
+/* ── 안내 배너 ───────────────────────────────────────────── */
+.admin-notif-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: 14px var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  background: var(--bg-brand-secondary);
+  border: 1px solid var(--utility-brand-200);
+}
+.admin-notif-banner-icon {
+  color: var(--text-brand-secondary);
+  flex-shrink: 0;
+  font-size: var(--font-size-text-sm);
+}
+.admin-notif-banner-text {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-brand-secondary);
+  line-height: 1.6;
+  margin: 0;
+  word-break: keep-all;
+}
+
+/* ── 역할 필터 ───────────────────────────────────────────── */
+.admin-notif-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+.admin-notif-filter-label {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.admin-notif-filter-chip {
+  padding: 6px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+/* 활성 칩은 역할별 색 대신 브랜드 그린 단일 accent 로 통일 (팔레트 절제) */
+.admin-notif-filter-chip.is-active {
+  font-weight: 700;
+  border-color: var(--bg-brand-solid);
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  color: var(--text-brand-secondary);
+}
+
+/* ── 그룹 카드 ───────────────────────────────────────────── */
+.admin-notif-group { padding: 0; overflow: hidden; }
+.admin-notif-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-notif-group-title {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.admin-notif-group-count {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.admin-notif-rule-list {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 규칙 행 — 디자이너 report-row/snippet-row idiom (평평한 행) ───────
+   per-row 보더·그림자·radius 제거. 행 사이는 헤어라인 구분선, hover 시 배경만. */
+.admin-notif-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  transition: background-color 0.15s ease;
+}
+.admin-notif-rule:last-child {
+  border-bottom: none;
+}
+.admin-notif-rule:hover {
+  background: var(--colors-grayLight-50, #fafafa);
+}
+.admin-notif-rule.is-off {
+  opacity: 0.55;
+}
+.admin-notif-rule-main { flex: 1; min-width: 0; }
+.admin-notif-rule-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+.admin-notif-rule-label {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.admin-notif-rule-condition {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  word-break: keep-all;
+}
+.admin-notif-editable-badge {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+.admin-notif-rule-meta {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admin-notif-meta-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-quaternary);
+  margin: 0 var(--spacing-xs);
+  flex-shrink: 0;
+}
+.admin-notif-channel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.admin-notif-rule-cooldown {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  max-width: 160px;
+  text-align: right;
+}
+
+/* 역할 칩 (행 메타) — 무지개색 대신 중립 단일 톤 (팔레트 절제) */
+.admin-notif-role-chip {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
+  padding: 1px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary);
+}
+
+/* ── 전체 on/off ─────────────────────────────────────────── */
+.admin-notif-bulk { display: flex; gap: var(--spacing-lg); }
+
+/* ── 공용 버튼 ───────────────────────────────────────────── */
+.admin-notif-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-notif-btn.is-sm { padding: 6px var(--spacing-lg); border-radius: var(--radius-sm); font-size: var(--font-size-text-xs); }
+.admin-notif-btn.is-block { flex: 1; padding: var(--spacing-lg) 0; font-size: var(--font-size-text-sm); }
+.admin-notif-btn.is-primary {
+  padding: var(--spacing-md) 22px;
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+.admin-notif-btn.is-primary:hover {
+  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+}
+.admin-notif-btn.is-ghost {
+  padding: var(--spacing-md) 18px;
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  transition: background-color 0.15s ease;
+}
+.admin-notif-btn.is-ghost:hover {
+  background: var(--bg-primary);
+}
+.admin-notif-btn.is-soft {
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  transition: background-color 0.15s ease;
+}
+.admin-notif-btn.is-soft:hover {
+  background: var(--bg-primary);
+}
+.admin-notif-btn.is-danger {
+  background: var(--utility-error-50);
+  color: var(--colors-error-600);
+  border: 1px solid var(--colors-error-200, #fecdca);
+}
+
+/* ── 토글 스위치 ─────────────────────────────────────────── */
+.admin-notif-toggle {
+  width: 38px;
+  height: 22px;
+  border-radius: 99px;
+  cursor: pointer;
+  border: none;
+  background: var(--border-primary);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.admin-notif-toggle.is-on {
+  background: var(--bg-brand-solid);
+  justify-content: flex-end;
+}
+.admin-notif-toggle-knob {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-quaternary);
+  box-shadow: 0 1px 4px rgba(10, 13, 18, 0.2);
+}
+
+/* ── 모달 ────────────────────────────────────────────────── */
+.admin-notif-modal-root {
+  position: fixed;
+  inset: 0;
+  /* 앱 크롬(sidebar z:100 · top-nav z:90) 위에 떠야 한다.
+     design-page 모달 오버레이 관례(1000+)를 따른다. 80 은 크롬 아래로 깔렸던 버그값. */
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-notif-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 13, 18, 0.4);
+}
+.admin-notif-modal {
+  position: relative;
+  width: 520px;
+  max-width: 94vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 21px 120px -12px rgba(10, 13, 18, 0.14),
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
+  font-family: var(--font-family-body);
+}
+.admin-notif-modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--bg-quaternary);
+  z-index: 1;
+}
+.admin-notif-modal-title { font-size: var(--font-size-text-md); font-weight: 700; color: var(--text-primary); }
+.admin-notif-modal-desc { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-top: 2px; }
+.admin-notif-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-xl);
+  border: none;
+  background: var(--colors-background-bgTertiary, #fcfcfd);
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.admin-notif-modal-close:hover { background: var(--colors-background-bgPrimaryHover, #e6e8ea); }
+.admin-notif-modal-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+.admin-notif-modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--bg-secondary);
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-quaternary);
+}
+
+/* 모달 내부 작은 라벨 */
+.admin-notif-sl {
+  /* 디자이너 모달 라벨(.modal-info-label) idiom: 12/700, normal-case, text-secondary */
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* 활성화 토글 행 */
+.admin-notif-enable-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.admin-notif-enable-label { font-size: var(--font-size-text-sm); font-weight: 600; color: var(--text-primary); }
+
+/* 조건 파라미터 */
+.admin-notif-param-list { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.admin-notif-param-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.admin-notif-param-label {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-width: 72px;
+  font-weight: 500;
+}
+.admin-notif-param-unit { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex-shrink: 0; }
+
+/* 입력 공용 — 디자이너 textbox idiom: filled(alphaBlack3) + 미세 border, focus 시 brand */
+.admin-notif-input {
+  padding: 8px var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-family: var(--font-family-body);
+  color: var(--text-primary);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.admin-notif-input:focus {
+  border-color: var(--bg-brand-solid);
+  background: var(--bg-quaternary);
+}
+.admin-notif-input::placeholder { color: var(--text-placeholder); }
+.admin-notif-select { flex: 1; cursor: pointer; }
+.admin-notif-number { width: 72px; text-align: center; }
+.admin-notif-number.is-interval { width: 56px; }
+.admin-notif-date { width: 100%; margin-top: var(--spacing-sm); cursor: pointer; text-align: left; }
+.admin-notif-date.is-open { border-color: var(--bg-brand-solid); }
+
+/* 미리보기 박스 (brand accent) */
+.admin-notif-preview {
+  padding: var(--spacing-md) 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-brand-secondary);
+  border: 1px solid var(--utility-brand-200);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-brand-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.admin-notif-preview-mark { display: inline-flex; align-items: center; color: var(--text-brand-secondary); flex-shrink: 0; }
+
+/* 시스템 고정 박스 */
+.admin-notif-fixed {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.admin-notif-fixed-lock { display: inline-flex; align-items: center; flex-shrink: 0; }
+.admin-notif-fixed-text { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex: 1; }
+.admin-notif-fixed-tag { font-size: var(--font-size-text-xs); color: var(--text-tertiary); flex-shrink: 0; }
+
+/* cooldown 편집기 */
+.admin-notif-cooldown-box {
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.admin-notif-cooldown-edit { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.admin-notif-row-inline { display: flex; align-items: center; gap: var(--spacing-md); }
+.admin-notif-inline-label { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex-shrink: 0; }
+.admin-notif-inline-label.is-fixed { min-width: 56px; }
+.admin-notif-sub-label { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-bottom: var(--spacing-sm); }
+.admin-notif-weekdays { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
+.admin-notif-weekday {
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  font-family: var(--font-family-body);
+}
+.admin-notif-weekday:hover:not(.is-active) { background: rgba(0, 0, 0, 0.04); }
+.admin-notif-weekday.is-active {
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}
+.admin-notif-time-note {
+  padding: var(--spacing-md) 12px;
+  border-radius: var(--radius-sm);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  word-break: keep-all;
+}
+
+/* 세그먼트 버튼 */
+.admin-notif-seg {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
+  gap: var(--spacing-xs);
+}
+.admin-notif-seg-btn {
+  flex: 1;
+  padding: var(--spacing-sm) 0;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.admin-notif-seg-btn.is-active {
+  background: var(--bg-quaternary);
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(10, 13, 18, 0.06);
+}
+
+/* 수신 대상 / 채널 선택 그리드 */
+.admin-notif-picker-grid { display: flex; gap: var(--spacing-md); }
+.admin-notif-role-card,
+.admin-notif-channel-card {
+  flex: 1;
+  padding: var(--spacing-lg) 0;
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-primary);
+  transition: all 0.15s;
+  outline: none;
+}
+.admin-notif-role-card-label,
+.admin-notif-channel-label { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-tertiary); }
+.admin-notif-channel-icon { display: flex; justify-content: center; margin-bottom: var(--spacing-xs); }
+
+/* 선택된 수신 대상 카드 — 역할별 색 대신 브랜드 그린 단일 accent (팔레트 절제) */
+.admin-notif-role-card.is-active { background: var(--colors-background-bgBrandPrimary, #f1fffa); border-color: var(--bg-brand-solid); }
+.admin-notif-role-card.is-active .admin-notif-role-card-label { color: var(--text-brand-secondary); }
+
+.admin-notif-channel-card.is-active { background: var(--colors-background-bgBrandPrimary, #f1fffa); border-color: var(--bg-brand-solid); }
+.admin-notif-channel-card.is-active .admin-notif-channel-label { color: var(--text-brand-secondary); }
