@@ -680,6 +680,69 @@
   text-align: right;
 }
 
+/* ════════════════════════════════════════════════════════════
+   평가 제외 안내 (EvalCycleExcludedCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evx-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evx-dept {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evx-notice {
+  margin: 0;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-blue-50);
+  color: var(--utility-blue-600);
+  font-size: var(--font-size-text-sm, 14px);
+}
+.evx-reason.tone-success {
+  border-left: 3px solid var(--utility-green-500);
+}
+.evx-reason.tone-info {
+  border-left: 3px solid var(--utility-blue-500);
+}
+.evx-reason.tone-purple {
+  border-left: 3px solid var(--utility-purple-500);
+}
+.evx-reason.tone-neutral {
+  border-left: 3px solid var(--utility-gray-200);
+}
+.evx-reason-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+}
+.evx-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.evx-reason-msg {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  line-height: var(--line-height-text-md, 24px);
+}
+.evx-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-sm, 14px);
+  padding: var(--spacing-xs, 4px) 0;
+  border-top: 1px solid var(--bg-active);
+}
+.evx-detail-row span {
+  color: var(--text-tertiary);
+}
+.evx-detail-row b {
+  color: var(--text-primary);
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
