@@ -20,6 +20,7 @@
     "./styles/snippet.css": "./src/snippet.css",
     "./styles/admin.css": "./src/admin.css",
     "./styles/team-management.css": "./src/team-management.css",
+    "./styles/eval-cycle.css": "./src/eval-cycle.css",
     "./styles/datepicker.css": "./src/datepicker.css",
     "./styles/tokens.css": "./src/tokens.css",
     "./styles/tokens-dark.css": "./src/tokens-dark.css",

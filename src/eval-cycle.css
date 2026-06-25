@@ -1,0 +1,427 @@
+@import './index.css';
+
+/* ════════════════════════════════════════════════════════════
+   성과 평가 사이클 — HR 관리 화면 (EvalCycleHrCanvas)
+   org-chart / snippet / admin 카드 톤을 따른다. 토큰만 사용.
+   ════════════════════════════════════════════════════════════ */
+
+.evc-root {
+  position: relative;
+  padding: var(--spacing-2xl, 20px) var(--spacing-3xl, 24px) 60px;
+  max-width: 1120px;
+  margin: 0 auto;
+  font-family: var(--font-family-body, 'Pretendard', sans-serif);
+}
+
+/* ── 헤더 ── */
+.evc-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-xl, 16px);
+  margin-bottom: var(--spacing-2xl, 20px);
+}
+.evc-title {
+  font-size: var(--font-size-display-xs, 24px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.evc-summary {
+  margin: var(--spacing-xs, 4px) 0 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+
+/* ── 리스트 ── */
+.evc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+}
+
+/* ── 카드 ── */
+.evc-card {
+  background: var(--bg-quaternary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-2xl, 16px);
+  padding: var(--spacing-2xl, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+  transition: box-shadow 0.2s ease;
+}
+.evc-card:hover {
+  box-shadow: 0px 12px 32px -12px rgba(10, 13, 18, 0.12);
+}
+.evc-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evc-card-name {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.evc-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.evc-dot {
+  color: var(--text-tertiary);
+}
+
+/* ── 상태 배지 ── */
+.evc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.evc-status-badge.tone-neutral {
+  background: var(--utility-gray-50);
+  color: var(--utility-gray-700);
+}
+.evc-status-badge.tone-info {
+  background: var(--utility-blue-50);
+  color: var(--utility-blue-600);
+}
+.evc-status-badge.tone-purple {
+  background: var(--utility-purple-50);
+  color: var(--utility-purple-500);
+}
+.evc-status-badge.tone-success {
+  background: var(--utility-green-50);
+  color: var(--utility-green-600);
+}
+
+.evc-pending {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  background: var(--utility-error-50);
+  color: var(--utility-error-500);
+}
+
+/* ── 리뷰 타입 배지 ── */
+.evc-type-badges {
+  display: flex;
+  gap: var(--spacing-xs, 4px);
+  flex-wrap: wrap;
+}
+.evc-type-badge {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-full, 9999px);
+  padding: 1px var(--spacing-md, 8px);
+}
+
+/* ── 라이프사이클 스텝퍼 ── */
+.evc-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  flex-wrap: wrap;
+  padding: var(--spacing-md, 8px) 0;
+  border-top: 1px solid var(--bg-active);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evc-step {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  flex: 1;
+  min-width: 84px;
+}
+.evc-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--utility-gray-200);
+  flex-shrink: 0;
+}
+.evc-step-label {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.evc-step.is-past .evc-step-dot {
+  background: var(--utility-green-500);
+}
+.evc-step.is-past .evc-step-label {
+  color: var(--text-secondary);
+}
+.evc-step.is-current .evc-step-dot {
+  background: var(--utility-blue-500);
+  box-shadow: 0 0 0 3px var(--utility-blue-50);
+}
+.evc-step.is-current .evc-step-label {
+  color: var(--utility-blue-600);
+  font-weight: 700;
+}
+
+/* ── 회수 / 비상정지 배너 ── */
+.evc-revoke-banner,
+.evc-emergency-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-md, 10px);
+  font-size: var(--font-size-text-sm, 14px);
+}
+.evc-revoke-banner {
+  background: var(--utility-blue-light-50, var(--utility-blue-50));
+  color: var(--text-secondary);
+}
+.evc-emergency-banner {
+  background: var(--utility-error-50);
+  justify-content: flex-end;
+}
+
+/* ── 카드 하단 액션 ── */
+.evc-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+}
+.evc-completion {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-completion-label {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-completion-value {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-card-buttons {
+  display: flex;
+  gap: var(--spacing-md, 8px);
+  margin-left: auto;
+}
+
+/* ── 버튼 ── */
+.evc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs, 4px);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.evc-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.evc-btn.is-primary {
+  background: var(--bg-brand-solid);
+  color: var(--text-white, #fff);
+}
+.evc-btn.is-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.evc-btn.is-ghost {
+  background: var(--bg-secondary);
+  border-color: var(--bg-active);
+  color: var(--text-secondary);
+}
+.evc-btn.is-ghost:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+.evc-btn.is-danger {
+  background: var(--utility-error-500);
+  color: var(--text-white, #fff);
+}
+.evc-btn.is-danger-ghost {
+  background: transparent;
+  border-color: var(--utility-error-100);
+  color: var(--utility-error-500);
+}
+.evc-btn.is-warn-ghost {
+  background: transparent;
+  border-color: var(--utility-blue-100);
+  color: var(--utility-blue-600);
+}
+
+/* ── 빈 상태 ── */
+.evc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: 64px var(--spacing-2xl, 20px);
+  background: var(--bg-quaternary);
+  border: 1px dashed var(--bg-active);
+  border-radius: var(--radius-2xl, 16px);
+  text-align: center;
+}
+.evc-empty-title {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.evc-empty-sub {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-md, 8px);
+}
+.evc-loading {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* ── 모달 ── */
+.evc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 13, 18, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-xl, 16px);
+}
+.evc-modal {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: 0 20px 60px rgba(10, 13, 18, 0.24);
+  width: 100%;
+  max-width: 420px;
+  padding: var(--spacing-2xl, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evc-modal.is-wide {
+  max-width: 520px;
+}
+.evc-modal-title {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+.evc-modal-sub {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: pre-line;
+}
+.evc-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md, 8px);
+  margin-top: var(--spacing-md, 8px);
+}
+
+/* ── 폼 필드 ── */
+.evc-field-label {
+  display: block;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: var(--spacing-sm, 6px);
+}
+.evc-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+}
+.evc-input:focus {
+  outline: none;
+  border-color: var(--utility-blue-500);
+  box-shadow: 0 0 0 3px var(--utility-blue-50);
+}
+.evc-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md, 8px);
+}
+.evc-type-row {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-type-chip {
+  flex: 1;
+  padding: 8px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.evc-type-chip.is-on {
+  background: var(--utility-blue-50);
+  border-color: var(--utility-blue-500);
+  color: var(--utility-blue-600);
+}
+
+/* ── 토스트 ── */
+.evc-toast {
+  position: fixed;
+  top: var(--spacing-2xl, 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: var(--spacing-md, 8px) var(--spacing-xl, 16px);
+  border-radius: var(--radius-md, 10px);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(10, 13, 18, 0.18);
+}
+.evc-toast.is-success {
+  background: var(--utility-green-50);
+  color: var(--utility-green-600);
+}
+.evc-toast.is-error {
+  background: var(--utility-error-50);
+  color: var(--utility-error-500);
+}
