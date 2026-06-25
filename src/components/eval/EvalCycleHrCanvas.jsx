@@ -65,6 +65,15 @@ const DEFAULT_LABELS = {
   scheduleHint: '활성화한 리뷰 종류에 따라 필요한 단계만 표시됩니다. 마감일은 선택 사항입니다.',
   dueLabel: '마감',
   createDraftHint: '생성하면 준비 중 상태로 저장됩니다. 대상자 설정 후 목록에서 오픈하세요.',
+  wizardStepTargets: '대상자',
+  targetModeAll: '전체',
+  targetModeIndividual: '개별 선택',
+  targetAllNote: '전체 구성원 {{count}}명이 대상자로 포함됩니다.',
+  searchMember: '구성원 검색',
+  selectedCount: '{{count}}명 선택됨',
+  noMembers: '구성원이 없습니다',
+  targetSummaryLabel: '평가 대상',
+  targetSummaryValue: '{{count}}명',
   // confirm
   confirmRevokeTitle: '사이클을 회수하시겠습니까?',
   confirmRevokeBody: '회수하면 사이클이 준비 중 상태로 돌아가고 진행 데이터가 초기화됩니다.',
@@ -244,6 +253,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onRevoke
 
 export default function EvalCycleHrCanvas({
   cycles = [],
+  candidates = [],
   loading = false,
   labels: providedLabels,
   onCreateCycle,
@@ -363,7 +373,12 @@ export default function EvalCycleHrCanvas({
       )}
 
       {showCreate && (
-        <EvalCycleWizard labels={L} onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
+        <EvalCycleWizard
+          labels={L}
+          candidates={candidates}
+          onSubmit={handleCreate}
+          onCancel={() => setShowCreate(false)}
+        />
       )}
 
       {confirmModal && (

@@ -8,6 +8,12 @@ import { useState } from 'react';
  * 별도 수행(생성/오픈 분리). 템플릿·등급·대상자 스텝은 후속 슬라이스에서 확장.
  */
 
+const fill = (s, vars) => {
+  let out = s == null ? '' : String(s);
+  for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
+  return out;
+};
+
 const REVIEW_TYPE_KEYS = {
   self: 'reviewSelf',
   peer: 'reviewPeer',
@@ -54,7 +60,12 @@ function StepBar({ steps, current, labels: L, onJump }) {
   );
 }
 
-export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
+export default function EvalCycleWizard({
+  labels: L,
+  candidates = [],
+  onCancel,
+  onSubmit,
+}) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -62,10 +73,14 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
   const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
   const [peerAssignMode, setPeerAssignMode] = useState('ai_recommend');
   const [dues, setDues] = useState({});
+  const [includeMode, setIncludeMode] = useState('bulk');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
 
   const steps = [
     { titleKey: 'wizardStep1' },
     { titleKey: 'wizardStep2' },
+    { titleKey: 'wizardStepTargets' },
     { titleKey: 'wizardStep3' },
   ];
 
@@ -77,7 +92,27 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
       prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
     );
 
+  const toggleMember = (id) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  const targetIds =
+    includeMode === 'bulk' ? candidates.map((c) => c.id) : selectedIds;
+  const targetCount = targetIds.length;
+
+  const filteredCandidates = memberSearch.trim()
+    ? candidates.filter((c) =>
+        `${c.name} ${c.department ?? ''}`
+          .toLowerCase()
+          .includes(memberSearch.trim().toLowerCase()),
+      )
+    : candidates;
+
   const step1Valid = name.trim() && startDate && endDate && reviewTypes.length > 0;
+  const targetsValid = targetCount > 0;
+  const canAdvance =
+    (step === 0 && step1Valid) || (step === 2 && targetsValid) || step === 1;
 
   const submit = () => {
     const payload = {
@@ -90,6 +125,8 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
       selfReviewDue: dues.selfReviewDue ?? null,
       peerReviewDue: dues.peerReviewDue ?? null,
       calibrationDue: dues.calibrationDue ?? null,
+      includeMode,
+      memberIds: targetIds,
     };
     onSubmit(payload);
   };
@@ -195,6 +232,68 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
 
           {step === 2 && (
             <div className="evc-wiz-panel">
+              <div className="evc-type-row">
+                <button
+                  type="button"
+                  className={`evc-type-chip${includeMode === 'bulk' ? ' is-on' : ''}`}
+                  onClick={() => setIncludeMode('bulk')}
+                  data-testid="evc-wiz-mode-bulk"
+                >
+                  {L.targetModeAll}
+                </button>
+                <button
+                  type="button"
+                  className={`evc-type-chip${includeMode === 'individual_select' ? ' is-on' : ''}`}
+                  onClick={() => setIncludeMode('individual_select')}
+                  data-testid="evc-wiz-mode-individual"
+                >
+                  {L.targetModeIndividual}
+                </button>
+              </div>
+
+              {includeMode === 'bulk' ? (
+                <p className="evc-wiz-hint" data-testid="evc-wiz-bulk-note">
+                  {fill(L.targetAllNote, { count: candidates.length })}
+                </p>
+              ) : (
+                <>
+                  <input
+                    className="evc-input"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder={L.searchMember}
+                    data-testid="evc-wiz-member-search"
+                  />
+                  <p className="evc-wiz-hint">
+                    {fill(L.selectedCount, { count: targetCount })}
+                  </p>
+                  <div className="evc-member-list">
+                    {filteredCandidates.map((c) => (
+                      <button
+                        type="button"
+                        key={c.id}
+                        className={`evc-member-item${selectedIds.includes(c.id) ? ' is-on' : ''}`}
+                        onClick={() => toggleMember(c.id)}
+                        data-testid={`evc-wiz-member-${c.id}`}
+                      >
+                        <span className="evc-member-check" />
+                        <span className="evc-member-name">{c.name}</span>
+                        {c.department && (
+                          <span className="evc-member-dept">{c.department}</span>
+                        )}
+                      </button>
+                    ))}
+                    {filteredCandidates.length === 0 && (
+                      <p className="evc-wiz-hint">{L.noMembers}</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="evc-wiz-panel">
               <div className="evc-summary-card">
                 <div className="evc-summary-row"><span>{L.cycleName}</span><b>{name}</b></div>
                 <div className="evc-summary-row"><span>{L.period}</span><b>{startDate} ~ {endDate}</b></div>
@@ -208,6 +307,10 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
                     <b>{L[PEER_MODES.find((m) => m.key === peerAssignMode)?.label]}</b>
                   </div>
                 )}
+                <div className="evc-summary-row">
+                  <span>{L.targetSummaryLabel}</span>
+                  <b>{fill(L.targetSummaryValue, { count: targetCount })}</b>
+                </div>
                 {schedulePhases.map((p) =>
                   dues[p.key] ? (
                     <div key={p.key} className="evc-summary-row">
@@ -230,7 +333,7 @@ export default function EvalCycleWizard({ labels: L, onCancel, onSubmit }) {
             <button
               type="button"
               className="evc-btn is-primary"
-              disabled={step === 0 && !step1Valid}
+              disabled={!canAdvance}
               onClick={() => setStep(step + 1)}
               data-testid="evc-wiz-next"
             >

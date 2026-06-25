@@ -608,6 +608,53 @@
   flex-shrink: 0;
 }
 
+/* 대상자 선택 리스트 */
+.evc-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: var(--spacing-sm, 6px);
+}
+.evc-member-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-quaternary);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-family-body);
+}
+.evc-member-item.is-on {
+  border-color: var(--utility-blue-500);
+  background: var(--utility-blue-50);
+}
+.evc-member-check {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-xs, 6px);
+  border: 2px solid var(--utility-gray-200);
+  flex-shrink: 0;
+}
+.evc-member-item.is-on .evc-member-check {
+  border-color: var(--utility-blue-500);
+  background: var(--utility-blue-500);
+}
+.evc-member-name {
+  flex: 1;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-member-dept {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+
 /* 요약 카드 */
 .evc-summary-card {
   border: 1px solid var(--bg-active);
