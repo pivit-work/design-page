@@ -6,11 +6,26 @@
    ════════════════════════════════════════════════════════════ */
 
 .evc-root {
-  position: relative;
+  position: fixed;
+  top: 48px;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
   padding: var(--spacing-2xl, 20px) var(--spacing-3xl, 24px) 60px;
-  max-width: 1120px;
-  margin: 0 auto;
+  box-sizing: border-box;
+  background: var(--bg-primary);
   font-family: var(--font-family-body, 'Pretendard', sans-serif);
+}
+
+/* 내부 콘텐츠는 중앙 정렬 + 최대폭 제한 (스크롤바는 콘텐츠 영역 우측 끝) */
+.evc-header,
+.evc-list,
+.evc-empty,
+.evc-loading {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ── 헤더 ── */
