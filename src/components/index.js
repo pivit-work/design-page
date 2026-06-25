@@ -108,3 +108,4 @@ export { AdminNotificationsCanvas } from './admin/index.js';
 // Eval cycle (성과 평가)
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
 export { default as EvalCycleExcludedCanvas } from './eval/EvalCycleExcludedCanvas.jsx';
+export { default as EvalCycleMemberCanvas } from './eval/EvalCycleMemberCanvas.jsx';

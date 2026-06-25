@@ -743,6 +743,90 @@
   color: var(--text-primary);
 }
 
+/* ════════════════════════════════════════════════════════════
+   멤버 셀프 리뷰 (EvalCycleMemberCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evm-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evm-field + .evm-field {
+  margin-top: var(--spacing-lg, 12px);
+}
+.evm-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: var(--line-height-text-md, 24px);
+  color: var(--text-primary);
+}
+.evm-textarea:focus {
+  outline: none;
+  border-color: var(--utility-blue-500);
+  box-shadow: 0 0 0 3px var(--utility-blue-50);
+}
+.evm-textarea:disabled {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.evm-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  margin-top: var(--spacing-sm, 6px);
+}
+.evm-score-btns {
+  display: flex;
+  gap: var(--spacing-xs, 4px);
+}
+.evm-score-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.evm-score-btn.is-on {
+  background: var(--bg-brand-solid);
+  border-color: var(--bg-brand-solid);
+  color: var(--text-white, #fff);
+}
+.evm-score-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.evm-submit-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  max-width: 1080px;
+  margin: var(--spacing-lg, 12px) auto 0;
+  padding: var(--spacing-lg, 12px) var(--spacing-2xl, 20px);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: 0 -4px 16px rgba(10, 13, 18, 0.06);
+}
+.evm-progress {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
