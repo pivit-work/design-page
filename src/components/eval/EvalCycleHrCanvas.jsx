@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import EvalCycleWizard from './EvalCycleWizard.jsx';
 
 /**
  * EvalCycleHrCanvas — HR 성과평가 사이클 관리 화면(목록) 정본 컴포넌트.
@@ -39,7 +40,7 @@ const DEFAULT_LABELS = {
   reviewSelf: '셀프',
   reviewPeer: '동료',
   reviewLeader: '하향',
-  // create modal
+  // create modal / wizard
   createTitle: '새 평가 사이클',
   cycleName: '사이클 이름',
   cycleNamePlaceholder: '예: 2026년 상반기 정기 평가',
@@ -48,6 +49,22 @@ const DEFAULT_LABELS = {
   reviewTypes: '리뷰 종류',
   cancel: '취소',
   create: '생성',
+  // wizard
+  wizardStep1: '기본 정보',
+  wizardStep2: '단계별 일정',
+  wizardStep3: '확인 및 생성',
+  next: '다음',
+  prev: '이전',
+  peerAssignModeLabel: '동료 리뷰어 배정 방식',
+  modeAiRecommend: 'AI 추천',
+  modeSelfSelect: '본인 선택',
+  modeLeaderAssign: '리더 지정',
+  modeHrAssign: 'HR 지정',
+  recommendedBadge: '권장',
+  exceptionBadge: '예외',
+  scheduleHint: '활성화한 리뷰 종류에 따라 필요한 단계만 표시됩니다. 마감일은 선택 사항입니다.',
+  dueLabel: '마감',
+  createDraftHint: '생성하면 준비 중 상태로 저장됩니다. 대상자 설정 후 목록에서 오픈하세요.',
   // confirm
   confirmRevokeTitle: '사이클을 회수하시겠습니까?',
   confirmRevokeBody: '회수하면 사이클이 준비 중 상태로 돌아가고 진행 데이터가 초기화됩니다.',
@@ -120,76 +137,6 @@ function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfir
         <div className="evc-modal-actions">
           <button type="button" className="evc-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
           <button type="button" className={`evc-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CreateCycleModal({ labels: L, onConfirm, onCancel }) {
-  const [name, setName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
-
-  const toggleType = (t) =>
-    setReviewTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-
-  const canSubmit = name.trim() && startDate && endDate && reviewTypes.length > 0;
-
-  return (
-    <div className="evc-modal-overlay" onClick={onCancel}>
-      <div className="evc-modal is-wide" onClick={(e) => e.stopPropagation()}>
-        <h3 className="evc-modal-title">{L.createTitle}</h3>
-
-        <label className="evc-field-label" htmlFor="evc-name">{L.cycleName}</label>
-        <input
-          id="evc-name"
-          className="evc-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={L.cycleNamePlaceholder}
-          autoFocus
-          data-testid="evc-create-name"
-        />
-
-        <div className="evc-field-grid">
-          <div>
-            <label className="evc-field-label" htmlFor="evc-start">{L.startDate}</label>
-            <input id="evc-start" type="date" className="evc-input" value={startDate} onChange={(e) => setStartDate(e.target.value)} data-testid="evc-create-start" />
-          </div>
-          <div>
-            <label className="evc-field-label" htmlFor="evc-end">{L.endDate}</label>
-            <input id="evc-end" type="date" className="evc-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} data-testid="evc-create-end" />
-          </div>
-        </div>
-
-        <span className="evc-field-label">{L.reviewTypes}</span>
-        <div className="evc-type-row">
-          {['self', 'peer', 'leader'].map((t) => (
-            <button
-              type="button"
-              key={t}
-              className={`evc-type-chip${reviewTypes.includes(t) ? ' is-on' : ''}`}
-              onClick={() => toggleType(t)}
-              data-testid={`evc-type-${t}`}
-            >
-              {L[REVIEW_TYPE_KEYS[t]]}
-            </button>
-          ))}
-        </div>
-
-        <div className="evc-modal-actions">
-          <button type="button" className="evc-btn is-ghost" onClick={onCancel}>{L.cancel}</button>
-          <button
-            type="button"
-            className="evc-btn is-primary"
-            disabled={!canSubmit}
-            onClick={() => onConfirm({ name: name.trim(), startDate, endDate, reviewTypes })}
-            data-testid="evc-create-submit"
-          >
-            {L.create}
-          </button>
         </div>
       </div>
     </div>
@@ -416,7 +363,7 @@ export default function EvalCycleHrCanvas({
       )}
 
       {showCreate && (
-        <CreateCycleModal labels={L} onConfirm={handleCreate} onCancel={() => setShowCreate(false)} />
+        <EvalCycleWizard labels={L} onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
       )}
 
       {confirmModal && (

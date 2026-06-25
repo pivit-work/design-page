@@ -419,6 +419,220 @@
   color: var(--utility-blue-600);
 }
 
+/* ════════════════════════════════════════════════════════════
+   생성 마법사 (EvalCycleWizard)
+   ════════════════════════════════════════════════════════════ */
+.evc-wiz {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: 0 20px 60px rgba(10, 13, 18, 0.24);
+  width: 100%;
+  max-width: 600px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.evc-wiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2xl, 20px) var(--spacing-2xl, 20px) var(--spacing-lg, 12px);
+}
+.evc-wiz-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* 스텝 바 */
+.evc-wiz-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: 0 var(--spacing-2xl, 20px) var(--spacing-lg, 12px);
+}
+.evc-wiz-step {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: default;
+  flex: 1;
+}
+.evc-wiz-step.is-done {
+  cursor: pointer;
+}
+.evc-wiz-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  background: var(--utility-gray-50);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.evc-wiz-step.is-current .evc-wiz-step-num {
+  background: var(--bg-brand-solid);
+  color: var(--text-white, #fff);
+}
+.evc-wiz-step.is-done .evc-wiz-step-num {
+  background: var(--utility-green-50);
+  color: var(--utility-green-600);
+}
+.evc-wiz-step-label {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.evc-wiz-step.is-current .evc-wiz-step-label {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.evc-wiz-step.is-done .evc-wiz-step-label {
+  color: var(--text-secondary);
+}
+
+.evc-wiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md, 8px) var(--spacing-2xl, 20px) var(--spacing-2xl, 20px);
+}
+.evc-wiz-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-wiz-hint {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  margin: var(--spacing-sm, 6px) 0 0;
+}
+.evc-wiz-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-lg, 12px) var(--spacing-2xl, 20px) var(--spacing-2xl, 20px);
+  border-top: 1px solid var(--bg-active);
+}
+
+/* 배정 방식 라디오 리스트 */
+.evc-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-mode-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-quaternary);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-family-body);
+}
+.evc-mode-item.is-on {
+  border-color: var(--utility-blue-500);
+  background: var(--utility-blue-50);
+}
+.evc-mode-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--utility-gray-200);
+  flex-shrink: 0;
+}
+.evc-mode-item.is-on .evc-mode-radio {
+  border-color: var(--utility-blue-500);
+  background: var(--utility-blue-500);
+  box-shadow: inset 0 0 0 3px var(--bg-quaternary);
+}
+.evc-mode-name {
+  flex: 1;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-mode-badge {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  padding: 1px var(--spacing-md, 8px);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--utility-green-50);
+  color: var(--utility-green-600);
+}
+.evc-mode-badge.is-warn {
+  background: var(--utility-error-50);
+  color: var(--utility-error-500);
+}
+
+/* 일정 행 */
+.evc-sched-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) 0;
+}
+.evc-sched-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--utility-gray-50);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.evc-sched-name {
+  flex: 1;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-sched-date {
+  width: 170px;
+  flex-shrink: 0;
+}
+
+/* 요약 카드 */
+.evc-summary-card {
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-lg, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  background: var(--bg-secondary);
+}
+.evc-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-sm, 14px);
+}
+.evc-summary-row span {
+  color: var(--text-secondary);
+}
+.evc-summary-row b {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
