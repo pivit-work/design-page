@@ -827,6 +827,47 @@
   font-weight: 600;
 }
 
+/* ════════════════════════════════════════════════════════════
+   동료 리뷰어 확정 (EvalCyclePeerConfirmCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evp-nominees {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evp-nominee {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--bg-active);
+  background: var(--bg-secondary);
+}
+.evp-nominee-name {
+  flex: 1;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evp-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 6px);
+}
+.evp-remove:hover {
+  background: var(--utility-error-50);
+  color: var(--utility-error-500);
+}
+.evp-add-select {
+  max-width: 220px;
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;

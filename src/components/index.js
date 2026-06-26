@@ -109,3 +109,4 @@ export { AdminNotificationsCanvas } from './admin/index.js';
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
 export { default as EvalCycleExcludedCanvas } from './eval/EvalCycleExcludedCanvas.jsx';
 export { default as EvalCycleMemberCanvas } from './eval/EvalCycleMemberCanvas.jsx';
+export { default as EvalCyclePeerConfirmCanvas } from './eval/EvalCyclePeerConfirmCanvas.jsx';
