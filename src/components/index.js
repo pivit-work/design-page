@@ -111,3 +111,5 @@ export { default as EvalCycleExcludedCanvas } from './eval/EvalCycleExcludedCanv
 export { default as EvalCycleMemberCanvas } from './eval/EvalCycleMemberCanvas.jsx';
 export { default as EvalCyclePeerConfirmCanvas } from './eval/EvalCyclePeerConfirmCanvas.jsx';
 export { default as EvalCycleLeaderCanvas } from './eval/EvalCycleLeaderCanvas.jsx';
+export { default as EvalCycleSummaryCanvas } from './eval/EvalCycleSummaryCanvas.jsx';
+export { default as EvalCycleReportCanvas } from './eval/EvalCycleReportCanvas.jsx';

@@ -949,6 +949,112 @@
   }
 }
 
+/* ════════════════════════════════════════════════════════════
+   종합 리포트 (EvalCycleSummaryCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evs-stats {
+  display: flex;
+  gap: var(--spacing-lg, 12px);
+}
+.evs-stat {
+  flex: 1;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-2xl, 16px);
+  padding: var(--spacing-xl, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+.evs-stat-value {
+  font-size: var(--font-size-display-sm, 30px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evs-stat-label {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evs-stat-unit {
+  color: var(--text-tertiary);
+}
+.evs-dist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evs-dist-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+}
+.evs-dist-label {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evs-dist-track {
+  flex: 1;
+  height: 14px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+}
+.evs-dist-fill {
+  height: 100%;
+  background: var(--utility-blue-500);
+  border-radius: var(--radius-full, 9999px);
+}
+.evs-dist-count {
+  width: 28px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ════════════════════════════════════════════════════════════
+   내 평가 리포트 (EvalCycleReportCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evr-grade-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  padding: var(--spacing-4xl, 32px);
+  border-radius: var(--radius-2xl, 16px);
+  background: var(--utility-green-50);
+  border: 1px solid var(--utility-green-100);
+}
+.evr-grade-label {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--utility-green-600);
+  font-weight: 600;
+}
+.evr-grade-value {
+  font-size: var(--font-size-display-sm, 30px);
+  font-weight: 700;
+  color: var(--utility-green-600);
+}
+.evr-answers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evr-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evr-answer-text {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+  line-height: var(--line-height-text-md, 24px);
+  white-space: pre-wrap;
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
