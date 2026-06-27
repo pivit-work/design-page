@@ -233,7 +233,7 @@ export default function EvalCycleMemberCanvas({
               type="button"
               className="evc-btn is-primary"
               disabled={!canSubmit}
-              onClick={() => onSubmit?.()}
+              onClick={() => onSubmit?.(toItems())}
               data-testid="evm-submit"
             >
               {L.submit}

@@ -1192,6 +1192,12 @@
   text-align: left;
 }
 
+.evpt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .evl-promo-row {
   display: flex;
   align-items: center;
