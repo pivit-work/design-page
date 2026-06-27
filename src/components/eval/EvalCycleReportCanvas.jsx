@@ -63,6 +63,7 @@ function AnswerList({ answers, L }) {
 
 export default function EvalCycleReportCanvas({
   cycle,
+  published = true,
   gradeKey,
   gradeLabel,
   selfAnswers = [],
@@ -72,7 +73,7 @@ export default function EvalCycleReportCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
-  if (!gradeKey && leaderAnswers.length === 0) {
+  if (!published || (!gradeKey && leaderAnswers.length === 0)) {
     return (
       <div className="evc-root">
         <div className="evc-empty" data-testid="evr-empty">

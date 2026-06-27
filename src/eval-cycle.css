@@ -1178,6 +1178,20 @@
   color: var(--utility-green-600);
 }
 
+.evsum-irow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) 0;
+  border-bottom: 1px solid var(--bg-active);
+  font-size: var(--font-size-text-sm, 14px);
+  text-align: center;
+}
+.evsum-irow .evmon-c-name {
+  text-align: left;
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
