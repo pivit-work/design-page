@@ -1192,6 +1192,17 @@
   text-align: left;
 }
 
+.evc-select {
+  width: 100%;
+  max-width: 160px;
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  border: 1px solid var(--border-primary, var(--bg-active));
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-size-text-sm, 14px);
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;

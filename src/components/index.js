@@ -115,3 +115,4 @@ export { default as EvalCycleSummaryCanvas } from './eval/EvalCycleSummaryCanvas
 export { default as EvalCycleReportCanvas } from './eval/EvalCycleReportCanvas.jsx';
 export { default as EvalFeedbackCanvas } from './eval/EvalFeedbackCanvas.jsx';
 export { default as EvalCycleMonitoringCanvas } from './eval/EvalCycleMonitoringCanvas.jsx';
+export { default as EvalCycleCalibrationCanvas } from './eval/EvalCycleCalibrationCanvas.jsx';
