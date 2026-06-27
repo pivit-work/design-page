@@ -1101,6 +1101,83 @@
   white-space: pre-wrap;
 }
 
+/* ════════════════════════════════════════════════════════════
+   진행 현황 (EvalCycleMonitoringCanvas)
+   ════════════════════════════════════════════════════════════ */
+.evmon-controls {
+  display: flex;
+  gap: var(--spacing-md, 8px);
+}
+.evmon-completion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  margin-bottom: var(--spacing-md, 8px);
+}
+.evmon-completion-value {
+  font-size: var(--font-size-display-sm, 30px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evmon-stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evmon-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+}
+.evmon-stage-label {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evmon-stage-count {
+  width: 56px;
+  text-align: right;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evmon-table {
+  display: flex;
+  flex-direction: column;
+}
+.evmon-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) 0;
+  border-bottom: 1px solid var(--bg-active);
+  font-size: var(--font-size-text-sm, 14px);
+  text-align: center;
+}
+.evmon-row.evmon-head {
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs, 12px);
+}
+.evmon-c-name {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evmon-self {
+  color: var(--text-secondary);
+}
+.evmon-check {
+  color: var(--text-quaternary, var(--text-tertiary));
+  font-weight: 700;
+}
+.evmon-check.is-on {
+  color: var(--utility-green-600);
+}
+
 /* ── 토스트 ── */
 .evc-toast {
   position: fixed;
