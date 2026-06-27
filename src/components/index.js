@@ -104,3 +104,19 @@ export { AdminTeamCanvas } from './admin/index.js';
 export { TeamIcon } from './admin/index.js';
 export { OrgSnapshotCanvas } from './admin/index.js';
 export { AdminNotificationsCanvas } from './admin/index.js';
+
+// Eval cycle (성과 평가)
+export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
+export { default as EvalCycleExcludedCanvas } from './eval/EvalCycleExcludedCanvas.jsx';
+export { default as EvalCycleMemberCanvas } from './eval/EvalCycleMemberCanvas.jsx';
+export { default as EvalCyclePeerConfirmCanvas } from './eval/EvalCyclePeerConfirmCanvas.jsx';
+export { default as EvalCycleLeaderCanvas } from './eval/EvalCycleLeaderCanvas.jsx';
+export { default as EvalCycleSummaryCanvas } from './eval/EvalCycleSummaryCanvas.jsx';
+export { default as EvalCycleReportCanvas } from './eval/EvalCycleReportCanvas.jsx';
+export { default as EvalFeedbackCanvas } from './eval/EvalFeedbackCanvas.jsx';
+export { default as EvalCycleMonitoringCanvas } from './eval/EvalCycleMonitoringCanvas.jsx';
+export { default as EvalCycleCalibrationCanvas } from './eval/EvalCycleCalibrationCanvas.jsx';
+export { default as EvalCycleTemplateCanvas } from './eval/EvalCycleTemplateCanvas.jsx';
+export { default as EvalCyclePeerTasksCanvas } from './eval/EvalCyclePeerTasksCanvas.jsx';
+export { default as EvalFeedbackHrCanvas } from './eval/EvalFeedbackHrCanvas.jsx';
+export { default as EvalFeedbackComposeCanvas } from './eval/EvalFeedbackComposeCanvas.jsx';
