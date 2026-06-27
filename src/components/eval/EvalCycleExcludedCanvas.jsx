@@ -28,6 +28,8 @@ const DEFAULT_LABELS = {
   manualMsg: '자세한 사유는 HR 또는 담당 매니저에게 문의해 주세요.',
   roleChangeTitle: '직무 변경으로 이번 사이클 제외',
   roleChangeMsg: '평가 기간 중 직무가 변경되어 이번 사이클에서 제외됩니다. 다음 사이클부터 새로운 역할 기준으로 평가됩니다.',
+  notInScopeTitle: '이번 사이클 평가 대상에 포함되지 않았습니다',
+  notInScopeMsg: '이번 사이클은 특정 대상만 평가합니다. 다음 전사 사이클에서 참여하게 됩니다.',
 };
 
 const REASON_META = {
@@ -35,6 +37,7 @@ const REASON_META = {
   leave: { emoji: '🌿', titleKey: 'leaveTitle', msgKey: 'leaveMsg', tone: 'success' },
   manual: { emoji: 'ℹ️', titleKey: 'manualTitle', msgKey: 'manualMsg', tone: 'neutral' },
   role_change: { emoji: '🔄', titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg', tone: 'purple' },
+  not_in_scope: { emoji: '🎯', titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg', tone: 'neutral' },
 };
 
 function isObj(v) {

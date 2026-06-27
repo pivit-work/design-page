@@ -20,6 +20,9 @@ const DEFAULT_LABELS = {
   emergencyStop: '🛑 비상 정지',
   stoppedBanner: '이 사이클은 비상 정지되었습니다. 제출이 차단됩니다.',
   reopen: '재개',
+  exclude: '제외',
+  restore: '복원',
+  excludedBadge: '제외됨',
   done: '완료',
   notDone: '미완료',
   // stage keys
@@ -83,6 +86,8 @@ export default function EvalCycleMonitoringCanvas({
   onRemind,
   onEmergencyStop,
   onReopen,
+  onExclude,
+  onRestore,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const stopped = status === 'emergency_stopped';
@@ -149,20 +154,41 @@ export default function EvalCycleMonitoringCanvas({
         <section className="evc-card">
           <h3 className="evc-card-name">{L.membersTitle}</h3>
           <div className="evmon-table" role="table">
-            <div className="evmon-row evmon-head" role="row">
+            <div className="evmon-row evmon-head" role="row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto' }}>
               <span className="evmon-c-name">{L.colMember}</span>
               <span>{L.colSelf}</span>
               <span>{L.colPeer}</span>
               <span>{L.colLeader}</span>
               <span>{L.colGrade}</span>
+              <span />
             </div>
             {members.map((m) => (
-              <div className="evmon-row" role="row" key={m.memberId} data-testid="evmon-member">
-                <span className="evmon-c-name">{m.name || m.memberId}</span>
+              <div className="evmon-row" role="row" key={m.memberId} data-testid="evmon-member" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', opacity: m.excluded ? 0.55 : 1 }}>
+                <span className="evmon-c-name">
+                  {m.name || m.memberId}
+                  {m.excluded && (
+                    <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm, 6px)' }} data-testid="evmon-excluded-badge">
+                      {L.excludedBadge}
+                    </span>
+                  )}
+                </span>
                 <span className="evmon-self">{L[SELF_KEY[m.selfStatus]] ?? m.selfStatus}</span>
                 <Check ok={m.peerConfirmed} />
                 <Check ok={m.leaderSubmitted} />
                 <Check ok={m.graded} />
+                <span>
+                  {m.excluded
+                    ? onRestore && (
+                        <button type="button" className="evc-btn is-ghost" onClick={() => onRestore(m.memberId)} data-testid="evmon-restore">
+                          {L.restore}
+                        </button>
+                      )
+                    : onExclude && (
+                        <button type="button" className="evc-btn is-ghost" onClick={() => onExclude(m.memberId)} data-testid="evmon-exclude">
+                          {L.exclude}
+                        </button>
+                      )}
+                </span>
               </div>
             ))}
           </div>
