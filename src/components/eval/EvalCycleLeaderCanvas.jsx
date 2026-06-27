@@ -34,6 +34,18 @@ const DEFAULT_LABELS = {
   catStrengths: '강점',
   catImprovements: '보완점',
   catGrowthDemo: '성장',
+  // F5 evidence + assessment
+  peerEvidenceTitle: '동료 피드백 요약 (익명)',
+  peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
+  historyTitle: '과거 등급 추이',
+  historyEmpty: '등급 변경 이력이 없습니다.',
+  assessmentTitle: '승진 · 보상 · 비밀 코멘트',
+  confidentialLabel: '비밀 코멘트 (위원회 전용)',
+  confidentialPh: '캘리브레이션 위원회만 열람합니다.',
+  promotionLabel: '승진 고려 대상',
+  compLabel: '보상 메모',
+  compPh: '보상 조정 의견',
+  saveAssessment: '부가 평가 저장',
 };
 
 const DEFAULT_GRADES = [
@@ -99,16 +111,24 @@ export default function EvalCycleLeaderCanvas({
   cycle,
   selfAnswers = [],
   leaderAnswers = [],
+  peerAnswers = [],
+  gradeHistory = [],
+  assessment = null,
   gradeKey: initialGrade = null,
   gradeOptions = DEFAULT_GRADES,
+  gradeLabels = {},
   submitted = false,
   labels: providedLabels,
   onSave,
   onSubmit,
+  onSaveAssessment,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [state, setState] = useState(() => seedState(leaderAnswers));
   const [grade, setGrade] = useState(initialGrade);
+  const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
+  const [promotionReady, setPromotionReady] = useState(assessment?.promotionReady ?? false);
+  const [compensationNote, setCompensationNote] = useState(assessment?.compensationNote ?? '');
 
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
@@ -160,6 +180,33 @@ export default function EvalCycleLeaderCanvas({
                 <p className="evl-evi-text">{a.textAnswer}</p>
               </div>
             ))
+          )}
+
+          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl, 16px)' }}>{L.peerEvidenceTitle}</h3>
+          {peerAnswers.length === 0 ? (
+            <p className="evc-empty-sub" data-testid="evl-peer-empty">{L.peerEvidenceEmpty}</p>
+          ) : (
+            peerAnswers.map((a) => (
+              <div className="evl-evi-item" key={a.id} data-testid="evl-peer-item">
+                <span className="evc-field-label">{evidenceLabel(a, L)}</span>
+                <p className="evl-evi-text">{a.textAnswer}</p>
+              </div>
+            ))
+          )}
+
+          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl, 16px)' }}>{L.historyTitle}</h3>
+          {gradeHistory.length === 0 ? (
+            <p className="evc-empty-sub" data-testid="evl-history-empty">{L.historyEmpty}</p>
+          ) : (
+            <ul className="evl-history" data-testid="evl-history">
+              {gradeHistory.map((h, i) => (
+                <li key={i} className="evl-evi-text">
+                  {(h.fromGradeKey ? (gradeLabels[h.fromGradeKey] ?? h.fromGradeKey) : '—')}
+                  {' → '}
+                  {gradeLabels[h.toGradeKey] ?? h.toGradeKey}
+                </li>
+              ))}
+            </ul>
           )}
         </aside>
 
@@ -219,6 +266,58 @@ export default function EvalCycleLeaderCanvas({
                   {g.label}
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* F5 승진·보상·비밀 코멘트 */}
+          <section className="evc-card" data-testid="evl-assessment">
+            <h3 className="evc-card-name">{L.assessmentTitle}</h3>
+            <div className="evm-field">
+              <span className="evc-field-label">{L.confidentialLabel}</span>
+              <textarea
+                className="evm-textarea"
+                rows={2}
+                value={confidentialComment}
+                placeholder={L.confidentialPh}
+                onChange={(e) => setConfidentialComment(e.target.value)}
+                data-testid="evl-confidential"
+              />
+            </div>
+            <label className="evl-promo-row">
+              <input
+                type="checkbox"
+                checked={promotionReady}
+                onChange={(e) => setPromotionReady(e.target.checked)}
+                data-testid="evl-promotion"
+              />
+              <span>{L.promotionLabel}</span>
+            </label>
+            <div className="evm-field">
+              <span className="evc-field-label">{L.compLabel}</span>
+              <textarea
+                className="evm-textarea"
+                rows={2}
+                value={compensationNote}
+                placeholder={L.compPh}
+                onChange={(e) => setCompensationNote(e.target.value)}
+                data-testid="evl-comp"
+              />
+            </div>
+            <div className="evc-card-buttons">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() =>
+                  onSaveAssessment?.({
+                    confidentialComment,
+                    promotionReady,
+                    compensationNote,
+                  })
+                }
+                data-testid="evl-save-assessment"
+              >
+                {L.saveAssessment}
+              </button>
             </div>
           </section>
 
