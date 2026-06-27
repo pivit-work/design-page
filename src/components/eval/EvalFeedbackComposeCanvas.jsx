@@ -17,6 +17,12 @@ const DEFAULT_LABELS = {
   sending: '보내는 중…',
   sent: '피드백을 보냈습니다.',
   error: '전송에 실패했습니다. 내용은 그대로 유지됩니다.',
+  typeFeedback: '피드백',
+  typeRequest: '요청',
+  requestSent: '피드백 요청을 보냈습니다.',
+  aiDraft: '✨ AI 초안',
+  aiDrafting: '생성 중…',
+  aiError: 'AI 초안 생성에 실패했습니다. 내용은 그대로 유지됩니다.',
 };
 
 function isObj(v) {
@@ -36,12 +42,16 @@ export default function EvalFeedbackComposeCanvas({
   members = [],
   labels: providedLabels,
   onSend,
+  onAiDraft,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [target, setTarget] = useState('');
   const [text, setText] = useState('');
+  const [itemType, setItemType] = useState('feedback'); // feedback | request
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | sent | error
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState(false);
 
   const canSend = target && text.trim() && !busy;
 
@@ -50,13 +60,31 @@ export default function EvalFeedbackComposeCanvas({
     setBusy(true);
     setStatus('idle');
     try {
-      await onSend({ targetMemberId: target, text: text.trim() });
+      await onSend({ targetMemberId: target, text: text.trim(), itemType });
       setText('');
       setStatus('sent');
     } catch {
       setStatus('error');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleAiDraft = async () => {
+    if (!onAiDraft || !text.trim()) return;
+    setAiError(false);
+    setAiBusy(true);
+    try {
+      const recipient = members.find((m) => m.id === target);
+      const draft = await onAiDraft({
+        recipientName: recipient?.name,
+        hint: text.trim(),
+      });
+      if (draft) setText(draft);
+    } catch {
+      setAiError(true);
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -73,7 +101,7 @@ export default function EvalFeedbackComposeCanvas({
         <section className="evc-card">
           {status === 'sent' && (
             <p className="evx-notice" data-testid="evfc-sent" style={{ background: 'var(--utility-success-50)', color: 'var(--utility-success-700, var(--utility-green-600))' }}>
-              {L.sent}
+              {itemType === 'request' ? L.requestSent : L.sent}
             </p>
           )}
           {status === 'error' && (
@@ -81,6 +109,16 @@ export default function EvalFeedbackComposeCanvas({
               {L.error}
             </p>
           )}
+          {aiError && (
+            <p className="evx-notice" data-testid="evfc-ai-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+              {L.aiError}
+            </p>
+          )}
+
+          <div className="fb-tabs" data-testid="evfc-type">
+            <button type="button" className={`fb-tab${itemType === 'feedback' ? ' is-on' : ''}`} onClick={() => setItemType('feedback')} data-testid="evfc-type-feedback">{L.typeFeedback}</button>
+            <button type="button" className={`fb-tab${itemType === 'request' ? ' is-on' : ''}`} onClick={() => setItemType('request')} data-testid="evfc-type-request">{L.typeRequest}</button>
+          </div>
 
           <div className="evm-field">
             <span className="evc-field-label">{L.recipient}</span>
@@ -115,6 +153,11 @@ export default function EvalFeedbackComposeCanvas({
           </div>
 
           <div className="evc-card-buttons">
+            {onAiDraft && (
+              <button type="button" className="evc-btn is-ghost" disabled={aiBusy || !text.trim()} onClick={handleAiDraft} data-testid="evfc-ai-draft">
+                {aiBusy ? L.aiDrafting : L.aiDraft}
+              </button>
+            )}
             <button type="button" className="evc-btn is-primary" disabled={!canSend} onClick={handleSend} data-testid="evfc-send">
               {busy ? L.sending : L.send}
             </button>
