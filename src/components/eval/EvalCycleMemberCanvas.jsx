@@ -28,6 +28,9 @@ const DEFAULT_LABELS = {
   save: '임시저장',
   submit: '제출하기',
   progress: '{{filled}}/{{total}} 작성됨',
+  aiPolish: '✨ AI 다듬기',
+  aiPolishing: '다듬는 중…',
+  aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
 };
 
 const FIELDS = [
@@ -76,9 +79,12 @@ export default function EvalCycleMemberCanvas({
   labels: providedLabels,
   onSave,
   onSubmit,
+  onAiPolish,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [state, setState] = useState(() => seedState(answers));
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const submitted = status === 'submitted';
 
   if (!active) {
@@ -104,6 +110,34 @@ export default function EvalCycleMemberCanvas({
         score: state[f.key].score,
       }),
     );
+
+  const handleAiPolish = async () => {
+    if (!onAiPolish) return;
+    const items = FIELDS.map((f, i) => ({
+      index: i,
+      itemCategory: f.category,
+      growthType: f.growthType,
+      textAnswer: state[f.key].textAnswer,
+    })).filter((it) => it.textAnswer.trim());
+    if (items.length === 0) return;
+    setAiError(false);
+    setAiBusy(true);
+    try {
+      const polished = await onAiPolish(items);
+      setState((prev) => {
+        const next = { ...prev };
+        for (const p of polished) {
+          const f = FIELDS[p.index];
+          if (f) next[f.key] = { ...next[f.key], textAnswer: p.textAnswer };
+        }
+        return next;
+      });
+    } catch {
+      setAiError(true);
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   const filled = FIELDS.filter((f) => state[f.key].textAnswer.trim()).length;
   const canSubmit = filled === FIELDS.length;
@@ -173,12 +207,25 @@ export default function EvalCycleMemberCanvas({
         ))}
       </div>
 
+      {!submitted && aiError && (
+        <div className="evc-list">
+          <p className="evx-notice" data-testid="evm-ai-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+            {L.aiError}
+          </p>
+        </div>
+      )}
+
       {!submitted && (
         <div className="evm-submit-bar">
           <span className="evm-progress">
             {fill(L.progress, { filled, total: FIELDS.length })}
           </span>
           <div className="evc-card-buttons">
+            {onAiPolish && (
+              <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
+                {aiBusy ? L.aiPolishing : L.aiPolish}
+              </button>
+            )}
             <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems())} data-testid="evm-save">
               {L.save}
             </button>
