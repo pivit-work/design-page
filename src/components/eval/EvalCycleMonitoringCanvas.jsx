@@ -23,6 +23,9 @@ const DEFAULT_LABELS = {
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
+  navTemplate: '템플릿',
+  navCalibration: '캘리브레이션',
+  navReport: '종합 리포트',
   done: '완료',
   notDone: '미완료',
   // stage keys
@@ -88,10 +91,18 @@ export default function EvalCycleMonitoringCanvas({
   onReopen,
   onExclude,
   onRestore,
+  onOpenTemplate,
+  onOpenCalibration,
+  onOpenReport,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const stopped = status === 'emergency_stopped';
   const canStop = status && !['draft', 'done', 'emergency_stopped'].includes(status);
+  const navItems = [
+    onOpenTemplate && { key: 'tpl', label: L.navTemplate, on: onOpenTemplate, testid: 'evmon-nav-template' },
+    onOpenCalibration && { key: 'cal', label: L.navCalibration, on: onOpenCalibration, testid: 'evmon-nav-calibration' },
+    onOpenReport && { key: 'rep', label: L.navReport, on: onOpenReport, testid: 'evmon-nav-report' },
+  ].filter(Boolean);
 
   return (
     <div className="evc-root">
@@ -119,6 +130,16 @@ export default function EvalCycleMonitoringCanvas({
               )}
         </div>
       </header>
+
+      {navItems.length > 0 && (
+        <div className="fb-tabs" data-testid="evmon-nav">
+          {navItems.map((n) => (
+            <button type="button" key={n.key} className="fb-tab" onClick={() => n.on()} data-testid={n.testid}>
+              {n.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {stopped && (
         <p className="evx-notice" data-testid="evmon-stopped" style={{ maxWidth: 1080, margin: '0 auto 12px', background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
