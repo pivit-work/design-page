@@ -29,9 +29,9 @@ const DP = {
   radius: { md: 10, lg: 12, xl: 16 },
 };
 
-// 역할 4종 — 실제 인증 role 문자열(superuser/org_admin/manager/employee)을
-// 컬럼 키로 사용해야 권한 판정과 정합한다.
-const ROLES = ['org_admin', 'manager', 'employee', 'superuser'];
+// 역할 3종 — 실제 인증 role 문자열(org_admin/manager/employee)을
+// 컬럼 키로 사용해야 권한 판정과 정합한다. (CEO/superuser 는 이번 버전에서 미노출)
+const ROLES = ['org_admin', 'manager', 'employee'];
 
 const PERM_CATEGORIES = [
   { catKey: 'hr', ids: ['p001', 'p002', 'p003', 'p004'] },
@@ -68,7 +68,7 @@ const DEFAULT_LABELS = {
   allowed: '허용',
   blocked: '차단',
   tabs: { matrix: '전체 매트릭스', roles: '역할별 권한', visibility: '정보 공개 범위' },
-  roles: { org_admin: '어드민', manager: '매니저', employee: '멤버', superuser: 'CEO' },
+  roles: { org_admin: '어드민', manager: '매니저', employee: '멤버' },
   roleDescs: {},
   permCategories: {},
   perms: {},
