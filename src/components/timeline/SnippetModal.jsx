@@ -555,6 +555,20 @@ export default function SnippetModal({
                   );
                 })}
               </div>
+              {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
+                  패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음. */}
+              {tagsError && (
+                <div className="tl-snippet-info" role="alert">
+                  <img
+                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                    alt=""
+                    width="14"
+                    height="14"
+                    aria-hidden="true"
+                  />
+                  <span className="tl-snippet-info-text">{tagsError}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
