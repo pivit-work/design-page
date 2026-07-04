@@ -5,6 +5,8 @@ export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
 export { TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName } from './teamIcons.jsx';
 export { default as OrgSnapshotCanvas } from './OrgSnapshotCanvas.jsx';
 export { default as AdminNotificationsCanvas } from './AdminNotificationsCanvas.jsx';
+export { default as AdminIntegrationsCanvas } from './AdminIntegrationsCanvas.jsx';
+export { default as AdminAiPromptsCanvas } from './AdminAiPromptsCanvas.jsx';
 export { default as AdminCard } from './Card.jsx';
 export { default as AdminSectionLabel } from './SectionLabel.jsx';
 export { default as AdminLinkButton } from './LinkButton.jsx';

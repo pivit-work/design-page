@@ -19,6 +19,7 @@
     "./styles/manager.css": "./src/manager.css",
     "./styles/snippet.css": "./src/snippet.css",
     "./styles/admin.css": "./src/admin.css",
+    "./styles/admin-integrations.css": "./src/admin-integrations.css",
     "./styles/team-management.css": "./src/team-management.css",
     "./styles/eval-cycle.css": "./src/eval-cycle.css",
     "./styles/datepicker.css": "./src/datepicker.css",

@@ -104,6 +104,8 @@ export { AdminTeamCanvas } from './admin/index.js';
 export { TeamIcon } from './admin/index.js';
 export { OrgSnapshotCanvas } from './admin/index.js';
 export { AdminNotificationsCanvas } from './admin/index.js';
+export { AdminIntegrationsCanvas } from './admin/index.js';
+export { AdminAiPromptsCanvas } from './admin/index.js';
 
 // Eval cycle (성과 평가)
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
