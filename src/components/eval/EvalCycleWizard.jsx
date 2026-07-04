@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import SnippetDatePicker from '../snippet/SnippetDatePicker.jsx';
+import DatePicker from '../shared/DatePicker.jsx';
 
-// 'YYYY-MM-DD' 문자열 ↔ Date 변환 (SnippetDatePicker 는 Date 를 주고받는다).
+// 'YYYY-MM-DD' 문자열 ↔ Date 변환 (DatePicker 는 Date 를 주고받는다).
 const dateToIso = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -31,6 +31,7 @@ const fill = (s, vars) => {
 const REVIEW_TYPE_KEYS = {
   self: 'reviewSelf',
   peer: 'reviewPeer',
+  upward: 'reviewUpward',
   leader: 'reviewLeader',
 };
 
@@ -217,7 +218,7 @@ export default function EvalCycleWizard({
                 </div>
               </div>
               {picker && (
-                <SnippetDatePicker
+                <DatePicker
                   anchorRect={picker.rect}
                   anchorEl={picker.el}
                   selectedDate={isoToDate(picker.field === 'start' ? startDate : endDate)}
@@ -233,7 +234,7 @@ export default function EvalCycleWizard({
 
               <span className="evc-field-label">{L.reviewTypes}</span>
               <div className="evc-type-row">
-                {['self', 'peer', 'leader'].map((t) => (
+                {['self', 'peer', 'upward', 'leader'].map((t) => (
                   <button
                     type="button"
                     key={t}

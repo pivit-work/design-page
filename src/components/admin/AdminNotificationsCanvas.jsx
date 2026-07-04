@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Card from './Card.jsx';
 import Icon from '../shared/Icon.jsx';
-import SnippetDatePicker from '../snippet/SnippetDatePicker.jsx';
+import DatePicker from '../shared/DatePicker.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -313,7 +313,7 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
       </div>
 
       {picker && (
-        <SnippetDatePicker
+        <DatePicker
           anchorRect={picker.rect}
           anchorEl={picker.el}
           selectedDate={isoToDate(cd[picker.field])}

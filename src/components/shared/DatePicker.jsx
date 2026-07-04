@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /**
- * SnippetDatePicker — 날짜 picker 버튼 아래에 뜨는 미니 캘린더 팝오버.
+ * DatePicker — 날짜 picker 버튼 아래에 뜨는 미니 캘린더 팝오버.
  * Figma "_Date picker menu" (16961:24216).
  *
  * - 월~일(Monday-first) 그리드, 헤더 "January 2025" + chevron, "Today" 버튼 row.
@@ -58,7 +58,7 @@ function ChevronRight() {
   );
 }
 
-export default function SnippetDatePicker({ anchorRect, anchorEl, selectedDate, onSelect, onClose }) {
+export default function DatePicker({ anchorRect, anchorEl, selectedDate, onSelect, onClose }) {
   const popoverRef = useRef(null);
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
@@ -120,32 +120,32 @@ export default function SnippetDatePicker({ anchorRect, anchorEl, selectedDate, 
     c.year === d.getFullYear() && c.month === d.getMonth() && c.day === d.getDate();
 
   return (
-    <div ref={popoverRef} className="snippet-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">
-      <div className="snippet-datepicker-content">
+    <div ref={popoverRef} className="dp-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">
+      <div className="dp-datepicker-content">
         {/* 월 라벨 + chevron (흐린 톤) */}
-        <div className="snippet-datepicker-month">
-          <button type="button" className="snippet-datepicker-nav is-faint" onClick={() => goMonth(-1)} aria-label="이전 달">
+        <div className="dp-datepicker-month">
+          <button type="button" className="dp-datepicker-nav is-faint" onClick={() => goMonth(-1)} aria-label="이전 달">
             <ChevronLeft />
           </button>
-          <span className="snippet-datepicker-label">{MONTHS[viewMonth]} {viewYear}</span>
-          <button type="button" className="snippet-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label="다음 달">
+          <span className="dp-datepicker-label">{MONTHS[viewMonth]} {viewYear}</span>
+          <button type="button" className="dp-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label="다음 달">
             <ChevronRight />
           </button>
         </div>
         {/* Today 버튼 row */}
-        <div className="snippet-datepicker-today-row">
-          <button type="button" className="snippet-datepicker-today" onClick={goToday}>Today</button>
+        <div className="dp-datepicker-today-row">
+          <button type="button" className="dp-datepicker-today" onClick={goToday}>Today</button>
         </div>
         {/* 그리드 */}
-        <div className="snippet-datepicker-grid">
+        <div className="dp-datepicker-grid">
           {WEEKDAYS.map((w) => (
-            <div key={w} className="snippet-datepicker-cell is-head">{w}</div>
+            <div key={w} className="dp-datepicker-cell is-head">{w}</div>
           ))}
           {cells.map((c, i) => {
             const selected = sameDay(c, selectedDate) && !c.outside;
             const isToday = sameDay(c, today);
             const cls = [
-              'snippet-datepicker-cell',
+              'dp-datepicker-cell',
               c.outside ? 'is-outside' : '',
               selected ? 'is-selected' : '',
               !selected && isToday ? 'is-today' : '',
