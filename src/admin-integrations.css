@@ -1,0 +1,247 @@
+/*
+ * AdminIntegrationsCanvas — 연동(Integrations) 어드민 탭 보강 스타일.
+ *
+ * design-page 의 어드민 비주얼 언어(admin.css: admin-canvas / admin-card /
+ * admin-stat-tile / admin-header 등)를 정본으로 소비하고, 여기서는 admin.css 에
+ * 없는 "연동 특화 컨트롤"(앱 카드 본문·액션 버튼·셀렉트·동기화 테이블·토큰 양도
+ * 패널·모달)만 정의한다.
+ *
+ * pivit-work 의 frontend/src/components/integrations/integrations.css 에서 이관.
+ * 모든 값은 design-page 토큰 기준이며, 컨테이너는 .admin-canvas 안에 두어
+ * --admin-card-shadow 등의 스코프 변수를 상속받는다.
+ */
+
+/* ── 탭 ─────────────────────────────────────────────────────────────── */
+.intg-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.intg-tab {
+  padding: 9px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.intg-tab:hover { color: var(--text-secondary); }
+.intg-tab.is-active {
+  color: var(--text-brand-tertiary);
+  border-bottom-color: var(--text-brand-tertiary);
+}
+
+/* ── 요약 stat 그리드 (admin-stats-grid 와 동일, 화면 폭에 맞춰 4열) ──── */
+.intg-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* ── 앱 카드 ────────────────────────────────────────────────────────── */
+.intg-app-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.intg-app-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.intg-app-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.intg-app-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 10px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-quaternary, #fff);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  box-shadow: 0 1px 2px var(--colors-effects-shadows-shadowXs, rgba(10, 13, 18, 0.05));
+}
+.intg-app-logo img { width: 22px; height: 22px; object-fit: contain; display: block; }
+.intg-app-titles { flex: 1; min-width: 0; }
+.intg-app-name {
+  display: block;
+  font-family: var(--font-family-body);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.intg-app-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* ── 상태 배지 (admin-emp-status 값 미러) ───────────────────────────── */
+.intg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.intg-status.is-connected { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+.intg-status.is-disconnected { background: var(--bg-secondary); color: var(--text-tertiary); }
+.intg-status.is-connecting { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+.intg-status.is-error { background: var(--bg-secondary); color: var(--colors-text-textErrorPrimary, #d92d20); }
+.intg-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ── 사용처 메타 / 마지막 동기화 ────────────────────────────────────── */
+.intg-usage { font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
+.intg-meta { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; }
+.intg-meta-accent { color: var(--text-brand-tertiary); font-weight: 600; }
+
+/* ── 안내/경고/오류 박스 ────────────────────────────────────────────── */
+.intg-note { padding: 8px 12px; border-radius: var(--radius-sm, 8px); font-size: 12px; line-height: 1.5; }
+.intg-note.is-error { background: var(--utility-error-50); border: 1px solid var(--colors-error-200); color: var(--colors-error-600); }
+.intg-note.is-warning {
+  background: var(--colors-warning-50);
+  border: 1px solid var(--colors-warning-200);
+  color: var(--colors-warning-600);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+
+/* ── 진행바 ─────────────────────────────────────────────────────────── */
+.intg-progress-track { width: 100%; height: 4px; background: var(--bg-secondary); border-radius: var(--radius-full); overflow: hidden; }
+.intg-progress-fill { height: 100%; background: var(--text-brand-tertiary); border-radius: var(--radius-full); transition: width 0.3s ease; }
+
+/* ── 액션 버튼 (admin-integration-connect / admin-invite-button 미러) ── */
+.intg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.intg-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+.intg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.intg-btn-neutral {
+  background: var(--bg-quaternary, #fff);
+  border-color: var(--colors-border-borderSecondary, #e6e8ea);
+  color: var(--text-secondary);
+}
+.intg-btn-neutral:hover:not(:disabled) {
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-color: var(--border-primary, #d2d6db);
+  color: var(--text-primary);
+}
+.intg-btn-primary { background: var(--text-brand-tertiary); color: var(--colors-text-textWhite, #fff); }
+.intg-btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.intg-btn-danger {
+  background: var(--bg-quaternary, #fff);
+  border-color: var(--colors-border-borderSecondary, #e6e8ea);
+  color: var(--colors-error-600);
+}
+.intg-btn-danger:hover:not(:disabled) { background: var(--utility-error-50); border-color: var(--colors-error-200); }
+.intg-btn-sm { padding: 4px 12px; }
+
+/* ── 설정 패널 ──────────────────────────────────────────────────────── */
+.intg-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.intg-panel-title { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-family-body); font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.intg-panel-title img { width: 18px; height: 18px; object-fit: contain; }
+.intg-panel-close { border: none; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: var(--text-tertiary); }
+.intg-setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.intg-setting-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.intg-setting-check { display: flex; gap: 12px; }
+.intg-setting-check label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.intg-select {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--bg-quaternary, #fff);
+  color: var(--text-primary);
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.intg-select:focus { border-color: var(--text-brand-tertiary); box-shadow: 0 0 0 3px var(--utility-brand-50); }
+.intg-panel-save { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+/* ── 토글 ───────────────────────────────────────────────────────────── */
+.intg-toggle { width: 40px; height: 22px; border-radius: var(--radius-full); border: none; cursor: pointer; position: relative; padding: 0; background: var(--border-primary, #d2d6db); transition: background 0.2s ease; }
+.intg-toggle.is-on { background: var(--text-brand-tertiary); }
+.intg-toggle-knob { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s ease; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.2); }
+.intg-toggle.is-on .intg-toggle-knob { left: 21px; }
+
+/* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
+.intg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.intg-table th {
+  text-align: left; padding: 10px 12px; font-family: var(--font-family-body);
+  color: var(--text-tertiary); font-weight: 500; font-size: 12px;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.intg-table td { padding: 10px 12px; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); color: var(--text-primary); }
+.intg-table .num { text-align: right; font-family: var(--font-family-mono, 'DM Mono', monospace); }
+.intg-table .time { color: var(--text-tertiary); font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: 12px; }
+.intg-table .svc { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.intg-table .svc img { width: 16px; height: 16px; object-fit: contain; }
+.intg-table-empty { text-align: center; padding: 40px 0; color: var(--text-tertiary); font-size: 13px; }
+
+/* ── 개인 연동 배너 ─────────────────────────────────────────────────── */
+.intg-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 18px; border-radius: var(--radius-lg, 12px);
+  background: var(--utility-brand-50); border: 1px solid var(--utility-brand-200);
+}
+.intg-banner-msg { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+
+/* ── 토큰 양도 패널 ─────────────────────────────────────────────────── */
+.intg-owner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
+.intg-owner-id { display: flex; align-items: center; gap: 12px; }
+.intg-owner-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.intg-owner-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.intg-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--text-brand-tertiary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.intg-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
+.intg-stat-row .label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+.intg-stat-row .value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.intg-loglist-title { margin: 16px 0 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.intg-logrow { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
+.intg-logrow-info { display: flex; align-items: center; gap: 10px; }
+.intg-logrow-date { font-size: 11px; color: var(--text-tertiary); min-width: 80px; }
+.intg-logrow-desc { font-size: 12px; color: var(--text-primary); }
+.intg-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.intg-pill.is-good { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+.intg-pill.is-bad { background: var(--utility-error-50); color: var(--colors-error-600); }
+.intg-pill.is-brand { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
+.intg-loglist-footer { font-size: 11px; color: var(--text-tertiary); margin-top: 12px; font-style: italic; }
+
+/* ── 모달 ───────────────────────────────────────────────────────────── */
+.intg-modal-overlay { position: fixed; inset: 0; background: rgba(10, 13, 18, 0.45); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+.intg-modal { width: 100%; max-width: 440px; background: var(--bg-quaternary, #fff); border-radius: var(--radius-2xl, 16px); padding: 28px; box-shadow: 0 8px 40px rgba(10, 13, 18, 0.2); }
+.intg-modal-wide { max-width: 480px; max-height: 86vh; overflow-y: auto; }
+.intg-modal h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.intg-modal p { font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin: 12px 0; }
+.intg-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.intg-modal-usercard { margin: 16px 0; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-md, 10px); display: flex; align-items: center; gap: 12px; }
