@@ -1,5 +1,18 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import SnippetDatePicker from '../snippet/SnippetDatePicker.jsx';
+
+// 'YYYY-MM-DD' 문자열 ↔ Date 변환 (SnippetDatePicker 는 Date 를 주고받는다).
+const dateToIso = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+const isoToDate = (iso) => {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  return y ? new Date(y, m - 1, d) : new Date();
+};
 
 /**
  * EvalCycleWizard — 새 평가 사이클 생성 마법사.
@@ -71,6 +84,10 @@ export default function EvalCycleWizard({
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  // 날짜 picker 팝오버 상태: { field:'start'|'end', rect, el }
+  const [picker, setPicker] = useState(null);
+  const openPicker = (field) => (e) =>
+    setPicker({ field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
   const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
   const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
@@ -175,14 +192,44 @@ export default function EvalCycleWizard({
               />
               <div className="evc-field-grid">
                 <div>
-                  <label className="evc-field-label" htmlFor="evc-wiz-start">{L.startDate}</label>
-                  <input id="evc-wiz-start" type="date" className="evc-input" value={startDate} onChange={(e) => setStartDate(e.target.value)} data-testid="evc-wiz-start" />
+                  <label className="evc-field-label">{L.startDate}</label>
+                  <button
+                    type="button"
+                    className={`evc-input evc-date-btn${picker?.field === 'start' ? ' is-open' : ''}`}
+                    style={{ textAlign: 'left', cursor: 'pointer' }}
+                    onClick={openPicker('start')}
+                    data-testid="evc-wiz-start"
+                  >
+                    {startDate || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
+                  </button>
                 </div>
                 <div>
-                  <label className="evc-field-label" htmlFor="evc-wiz-end">{L.endDate}</label>
-                  <input id="evc-wiz-end" type="date" className="evc-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} data-testid="evc-wiz-end" />
+                  <label className="evc-field-label">{L.endDate}</label>
+                  <button
+                    type="button"
+                    className={`evc-input evc-date-btn${picker?.field === 'end' ? ' is-open' : ''}`}
+                    style={{ textAlign: 'left', cursor: 'pointer' }}
+                    onClick={openPicker('end')}
+                    data-testid="evc-wiz-end"
+                  >
+                    {endDate || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
+                  </button>
                 </div>
               </div>
+              {picker && (
+                <SnippetDatePicker
+                  anchorRect={picker.rect}
+                  anchorEl={picker.el}
+                  selectedDate={isoToDate(picker.field === 'start' ? startDate : endDate)}
+                  onSelect={(d) => {
+                    const iso = dateToIso(d);
+                    if (picker.field === 'start') setStartDate(iso);
+                    else setEndDate(iso);
+                    setPicker(null);
+                  }}
+                  onClose={() => setPicker(null)}
+                />
+              )}
 
               <span className="evc-field-label">{L.reviewTypes}</span>
               <div className="evc-type-row">
