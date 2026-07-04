@@ -71,7 +71,9 @@ export default function EvalCycleWizard({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
-  const [peerAssignMode, setPeerAssignMode] = useState('ai_recommend');
+  // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
+  const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
+  const [peerVisibility, setPeerVisibility] = useState(false);
   const [dues, setDues] = useState({});
   const [includeMode, setIncludeMode] = useState('bulk');
   const [selectedIds, setSelectedIds] = useState([]);
@@ -92,6 +94,13 @@ export default function EvalCycleWizard({
       prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
     );
 
+  const togglePeerMode = (key) =>
+    setPeerAssignModes((prev) =>
+      prev.includes(key)
+        ? prev.filter((x) => x !== key)
+        : [...prev, key],
+    );
+
   const toggleMember = (id) =>
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -109,7 +118,12 @@ export default function EvalCycleWizard({
       )
     : candidates;
 
-  const step1Valid = name.trim() && startDate && endDate && reviewTypes.length > 0;
+  const step1Valid =
+    name.trim() &&
+    startDate &&
+    endDate &&
+    reviewTypes.length > 0 &&
+    (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
   const canAdvance =
     (step === 0 && step1Valid) || (step === 2 && targetsValid) || step === 1;
@@ -120,7 +134,9 @@ export default function EvalCycleWizard({
       startDate,
       endDate,
       reviewTypes,
-      peerAssignMode: hasPeer ? peerAssignMode : undefined,
+      peerAssignMode: hasPeer ? peerAssignModes[0] : undefined,
+      peerAssignModes: hasPeer ? peerAssignModes : undefined,
+      peerVisibilityDefault: hasPeer ? peerVisibility : false,
       peerAssignDue: dues.peerAssignDue ?? null,
       selfReviewDue: dues.selfReviewDue ?? null,
       peerReviewDue: dues.peerReviewDue ?? null,
@@ -190,11 +206,11 @@ export default function EvalCycleWizard({
                       <button
                         type="button"
                         key={m.key}
-                        className={`evc-mode-item${peerAssignMode === m.key ? ' is-on' : ''}`}
-                        onClick={() => setPeerAssignMode(m.key)}
+                        className={`evc-mode-item${peerAssignModes.includes(m.key) ? ' is-on' : ''}`}
+                        onClick={() => togglePeerMode(m.key)}
                         data-testid={`evc-wiz-mode-${m.key}`}
                       >
-                        <span className="evc-mode-radio" />
+                        <span className="evc-member-check" />
                         <span className="evc-mode-name">{L[m.label]}</span>
                         {m.badge && (
                           <span className={`evc-mode-badge${m.badge === 'exceptionBadge' ? ' is-warn' : ''}`}>
@@ -204,6 +220,16 @@ export default function EvalCycleWizard({
                       </button>
                     ))}
                   </div>
+
+                  <label className="evl-promo-row" style={{ marginTop: 'var(--spacing-md, 8px)' }}>
+                    <input
+                      type="checkbox"
+                      checked={peerVisibility}
+                      onChange={(e) => setPeerVisibility(e.target.checked)}
+                      data-testid="evc-wiz-peer-visibility"
+                    />
+                    <span>{L.peerVisibilityLabel}</span>
+                  </label>
                 </>
               )}
             </div>
@@ -304,7 +330,17 @@ export default function EvalCycleWizard({
                 {hasPeer && (
                   <div className="evc-summary-row">
                     <span>{L.peerAssignModeLabel}</span>
-                    <b>{L[PEER_MODES.find((m) => m.key === peerAssignMode)?.label]}</b>
+                    <b>
+                      {peerAssignModes
+                        .map((k) => L[PEER_MODES.find((m) => m.key === k)?.label])
+                        .join(' · ')}
+                    </b>
+                  </div>
+                )}
+                {hasPeer && (
+                  <div className="evc-summary-row">
+                    <span>{L.peerVisibilityLabel}</span>
+                    <b>{peerVisibility ? L.peerVisibilityOn : L.peerVisibilityOff}</b>
                   </div>
                 )}
                 <div className="evc-summary-row">
