@@ -103,6 +103,7 @@ export default function SnippetModal({
   suggestedTags,
   onTagSelect,
   onDraftChange,
+  savedAt,
 }) {
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
@@ -119,11 +120,20 @@ export default function SnippetModal({
   );
   const [healthNote, setHealthNote] = useState(initial?.health?.note ?? '');
   const [scrolled, setScrolled] = useState(false);
-  // 푸터 "자동 등록됨 HH:MM" 라벨 — 모달 마운트 시점의 시각으로 한 번 계산.
-  const [savedAtLabel] = useState(() => {
+  // 푸터 "자동 등록됨 HH:MM" 라벨 — 실제 서버 저장 성공 시각(savedAt, host 제공)을 표시한다.
+  // savedAt 은 저장 성공 시에만 갱신되므로 저장 실패 시 시각이 앞서가지 않는다.
+  // 아직 한 번도 저장 안 됐으면(savedAt 없음) 모달 마운트 시각을 fallback 으로 보여준다.
+  const [mountLabel] = useState(() => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   });
+  const savedAtLabel =
+    savedAt == null
+      ? mountLabel
+      : (() => {
+          const d = new Date(savedAt);
+          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        })();
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
