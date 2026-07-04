@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * EvalFeedbackCanvas — 상시 피드백 (멤버용: 받은/보낸 + 작성).
@@ -49,7 +50,7 @@ function ComposeModal({ labels: L, candidates, onSend, onCancel }) {
   const [target, setTarget] = useState('');
   const [text, setText] = useState('');
   const canSend = target && text.trim();
-  return (
+  return createPortal(
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-modal is-wide" onClick={(e) => e.stopPropagation()}>
         <h3 className="evc-modal-title">{L.modalTitle}</h3>
@@ -92,7 +93,8 @@ function ComposeModal({ labels: L, candidates, onSend, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

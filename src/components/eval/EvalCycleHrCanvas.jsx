@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
 
 /**
@@ -138,7 +139,7 @@ function remainingRevokeHours(openedAt) {
 }
 
 function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfirm, onCancel }) {
-  return (
+  return createPortal(
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="evc-modal-title">{title}</h3>
@@ -148,7 +149,8 @@ function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfir
           <button type="button" className={`evc-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
