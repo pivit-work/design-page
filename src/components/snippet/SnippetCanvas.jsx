@@ -3,7 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
 import SnippetListRow from './SnippetListRow.jsx';
-import SnippetDatePicker from './SnippetDatePicker.jsx';
+import DatePicker from '../shared/DatePicker.jsx';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -12,7 +12,7 @@ import SnippetDatePicker from './SnippetDatePicker.jsx';
  * 매니저 뷰는 멤버 뷰 위에 멤버 아바타 행이 추가된 형태. isManagerView 로 분기.
  * 그 토글은 개발 확인용 — 타이틀 옆 작은 토글 버튼으로 노출.
  *
- * 날짜 범위 시작/종료 버튼은 클릭 시 SnippetDatePicker 캘린더 팝오버를 띄운다
+ * 날짜 범위 시작/종료 버튼은 클릭 시 DatePicker 캘린더 팝오버를 띄운다
  * (날짜 state 는 컴포넌트 내부에서 관리).
  *
  * 모든 데이터는 props 로 받는다.
@@ -230,7 +230,7 @@ export default function SnippetCanvas({
       </div>
 
       {picker && (
-        <SnippetDatePicker
+        <DatePicker
           anchorRect={picker.rect}
           anchorEl={picker.el}
           selectedDate={picker.which === 'from' ? dateFrom : dateTo}
