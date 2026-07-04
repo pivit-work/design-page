@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * EvalCycleWizard — 새 평가 사이클 생성 마법사.
@@ -147,7 +148,7 @@ export default function EvalCycleWizard({
     onSubmit(payload);
   };
 
-  return (
+  return createPortal(
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-wiz" onClick={(e) => e.stopPropagation()}>
         <div className="evc-wiz-header">
@@ -382,6 +383,7 @@ export default function EvalCycleWizard({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
