@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -17,6 +17,7 @@ const DEFAULT_LABELS = {
   competencyTitle: '역량 (How)',
   competencyPlaceholder: '역량에 대한 평가를 작성하세요.',
   scoreLabel: '평가 점수',
+  rationalePlaceholder: '점수 근거를 서술하세요.',
   growthTitle: '강점 · 보완 · 성장',
   strengthsLabel: '강점',
   strengthsPlaceholder: '강점을 작성하세요.',
@@ -54,13 +55,60 @@ const DEFAULT_GRADES = [
   { key: 'below', label: '미흡' },
 ];
 
-const FIELDS = [
+// 템플릿 미지정 사이클용 기본 폼(back-compat).
+const DEFAULT_FIELDS = [
   { key: 'work', category: 'work_achievement', growthType: null, score: false, labelKey: 'workTitle', phKey: 'workPlaceholder', single: true },
   { key: 'comp', category: 'competency', growthType: null, score: true, labelKey: 'competencyTitle', phKey: 'competencyPlaceholder', single: true },
   { key: 'str', category: 'growth', growthType: 'strengths', score: false, labelKey: 'strengthsLabel', phKey: 'strengthsPlaceholder', single: false },
   { key: 'imp', category: 'growth', growthType: 'improvements', score: false, labelKey: 'improvementsLabel', phKey: 'improvementsPlaceholder', single: false },
   { key: 'gro', category: 'growth', growthType: 'growth_demonstrated', score: false, labelKey: 'growthDemoLabel', phKey: 'growthDemoPlaceholder', single: false },
 ];
+
+// 하향(leader) 응답 폼 필드 도출 — 셀프와 동일 규칙. '최종 등급 결정' 섹션은
+// 별도 등급/평가 UI 가 처리하므로 제외. 유형별 렌더는 responseType 로 결정.
+function buildFields(template, L) {
+  if (template && Array.isArray(template.items) && template.items.length) {
+    return template.items
+      .filter((it) => it.category !== '최종 등급 결정')
+      .map((it) => {
+        const type =
+          it.responseType === 'scale'
+            ? 'rating'
+            : it.responseType === 'checkbox'
+              ? 'checkbox'
+              : 'textarea';
+        return {
+          key: it.id,
+          templateItemId: it.id,
+          category: it.category,
+          growthType: null,
+          type,
+          label: it.label,
+          placeholder: it.label,
+          section: it.category || '평가 항목',
+          requiresRationale: !!it.requiresRationale,
+          score: type === 'rating',
+        };
+      });
+  }
+  const sectionKeyByCat = {
+    work_achievement: 'workTitle',
+    competency: 'competencyTitle',
+    growth: 'growthTitle',
+  };
+  return DEFAULT_FIELDS.map((f) => ({
+    key: f.key,
+    templateItemId: null,
+    category: f.category,
+    growthType: f.growthType,
+    type: f.score ? 'rating' : 'textarea',
+    label: L[f.labelKey],
+    placeholder: L[f.phKey],
+    section: L[sectionKeyByCat[f.category] || 'workTitle'],
+    requiresRationale: false,
+    score: f.score,
+  }));
+}
 
 const EVIDENCE_CAT_KEY = {
   work_achievement: 'catWork',
@@ -85,16 +133,22 @@ function mergeLabels(base, provided) {
   return out;
 }
 
-function seedState(answers) {
+function seedState(answers, fields) {
   const state = {};
-  for (const f of FIELDS) state[f.key] = { textAnswer: '', score: null };
+  for (const f of fields) state[f.key] = { textAnswer: '', score: null, rationale: '' };
   for (const a of answers ?? []) {
-    const f = FIELDS.find(
-      (x) =>
-        x.category === a.itemCategory &&
-        (x.growthType ?? null) === (a.growthType ?? null),
+    const f = fields.find((x) =>
+      x.templateItemId
+        ? x.templateItemId === a.templateItemId
+        : x.category === a.itemCategory && (x.growthType ?? null) === (a.growthType ?? null),
     );
-    if (f) state[f.key] = { textAnswer: a.textAnswer ?? '', score: a.score ?? null };
+    if (f) {
+      state[f.key] = {
+        textAnswer: a.textAnswer ?? '',
+        score: a.score ?? null,
+        rationale: a.rationale ?? '',
+      };
+    }
   }
   return state;
 }
@@ -117,6 +171,7 @@ export default function EvalCycleLeaderCanvas({
   gradeKey: initialGrade = null,
   gradeOptions = DEFAULT_GRADES,
   gradeLabels = {},
+  template = null,
   submitted = false,
   labels: providedLabels,
   onSave,
@@ -124,30 +179,41 @@ export default function EvalCycleLeaderCanvas({
   onSaveAssessment,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const [state, setState] = useState(() => seedState(leaderAnswers));
+  const fields = useMemo(() => buildFields(template, L), [template, L]);
+  const [state, setState] = useState(() => seedState(leaderAnswers, fields));
   const [grade, setGrade] = useState(initialGrade);
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
   const [promotionReady, setPromotionReady] = useState(assessment?.promotionReady ?? false);
   const [compensationNote, setCompensationNote] = useState(assessment?.compensationNote ?? '');
 
+  useEffect(() => {
+    setState(seedState(leaderAnswers, fields));
+  }, [fields, leaderAnswers]);
+
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
   const toItems = () =>
-    FIELDS.filter((f) => state[f.key].textAnswer.trim() || state[f.key].score != null).map(
-      (f) => ({
+    fields
+      .filter((f) => state[f.key].textAnswer.trim() || state[f.key].score != null)
+      .map((f) => ({
+        templateItemId: f.templateItemId,
         itemCategory: f.category,
         growthType: f.growthType,
         textAnswer: state[f.key].textAnswer,
         score: state[f.key].score,
-      }),
-    );
+        rationale: state[f.key].rationale || null,
+      }));
 
-  const sections = [
-    { titleKey: 'workTitle', fields: FIELDS.filter((f) => f.key === 'work') },
-    { titleKey: 'competencyTitle', fields: FIELDS.filter((f) => f.key === 'comp') },
-    { titleKey: 'growthTitle', fields: FIELDS.filter((f) => f.category === 'growth') },
-  ];
+  const sections = [];
+  fields.forEach((f) => {
+    let g = sections.find((s) => s.title === f.section);
+    if (!g) {
+      g = { title: f.section, fields: [] };
+      sections.push(g);
+    }
+    g.fields.push(f);
+  });
 
   return (
     <div className="evc-root">
@@ -213,37 +279,65 @@ export default function EvalCycleLeaderCanvas({
         {/* 우: 작성 */}
         <div className="evl-form">
           {sections.map((sec) => (
-            <section className="evc-card" key={sec.titleKey}>
-              <h3 className="evc-card-name">{L[sec.titleKey]}</h3>
+            <section className="evc-card" key={sec.title}>
+              <h3 className="evc-card-name">{sec.title}</h3>
               {sec.fields.map((f) => (
                 <div className="evm-field" key={f.key}>
-                  {!f.single && <span className="evc-field-label">{L[f.labelKey]}</span>}
-                  <textarea
-                    className="evm-textarea"
-                    rows={3}
-                    value={state[f.key].textAnswer}
-                    placeholder={L[f.phKey]}
-                    disabled={submitted}
-                    onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
-                    data-testid={`evl-text-${f.key}`}
-                  />
-                  {f.score && (
-                    <div className="evm-score-row">
-                      <span className="evc-field-label">{L.scoreLabel}</span>
-                      <div className="evm-score-btns">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <button
-                            type="button"
-                            key={n}
-                            className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
-                            disabled={submitted}
-                            onClick={() => setField(f.key, { score: n })}
-                          >
-                            {n}
-                          </button>
-                        ))}
+                  {sec.fields.length > 1 && (
+                    <span className="evc-field-label">{f.label}</span>
+                  )}
+                  {f.type === 'rating' ? (
+                    <>
+                      <div className="evm-score-row">
+                        <span className="evc-field-label">{L.scoreLabel}</span>
+                        <div className="evm-score-btns">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              type="button"
+                              key={n}
+                              className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
+                              disabled={submitted}
+                              onClick={() => setField(f.key, { score: n })}
+                              data-testid={`evl-score-${f.key}-${n}`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                      {f.requiresRationale && (
+                        <textarea
+                          className="evm-textarea"
+                          rows={2}
+                          value={state[f.key].rationale}
+                          placeholder={L.rationalePlaceholder}
+                          disabled={submitted}
+                          onChange={(e) => setField(f.key, { rationale: e.target.value })}
+                          data-testid={`evl-rationale-${f.key}`}
+                        />
+                      )}
+                    </>
+                  ) : f.type === 'checkbox' ? (
+                    <label className="evl-promo-row">
+                      <input
+                        type="checkbox"
+                        checked={state[f.key].score === 1}
+                        disabled={submitted}
+                        onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
+                        data-testid={`evl-check-${f.key}`}
+                      />
+                      <span>{f.label}</span>
+                    </label>
+                  ) : (
+                    <textarea
+                      className="evm-textarea"
+                      rows={3}
+                      value={state[f.key].textAnswer}
+                      placeholder={f.placeholder}
+                      disabled={submitted}
+                      onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
+                      data-testid={`evl-text-${f.key}`}
+                    />
                   )}
                 </div>
               ))}
