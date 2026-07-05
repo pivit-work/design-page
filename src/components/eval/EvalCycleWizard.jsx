@@ -479,6 +479,27 @@ export default function EvalCycleWizard({
         ),
         templateMap: phaseTemplateMap,
       },
+      // v2 슬라이스2: 단계에 매핑된 템플릿 정의를 백엔드로 전달(clientId 로 참조).
+      evalTemplates: savedTemplates
+        .filter((t) => Object.values(phaseTemplateMap).includes(t.id))
+        .map((t) => ({
+          clientId: t.id,
+          name: t.name,
+          reviewType: t.reviewType,
+          version: t.version,
+          absolute: t.absolute,
+          ratioScope: t.ratioScope,
+          questions: t.questions.map((q) => ({
+            section: q.section,
+            text: q.text,
+            type: q.type,
+          })),
+          grades: t.grades.map((g) => ({
+            label: g.label,
+            desc: g.desc,
+            ratio: g.ratio,
+          })),
+        })),
       // 구 flat due 컬럼은 review_sequence 로 대체 — back-compat 위해 null 전달.
       peerAssignDue: null,
       selfReviewDue: null,
