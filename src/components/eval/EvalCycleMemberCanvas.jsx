@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -18,6 +18,7 @@ const DEFAULT_LABELS = {
   competencyTitle: '역량 (How)',
   competencyPlaceholder: '업무 수행 방식·협업·리더십 등 역량을 기록하세요.',
   scoreLabel: '자기 평가 점수',
+  rationalePlaceholder: '점수 근거를 서술하세요.',
   growthTitle: '강점 · 보완 · 성장',
   strengthsLabel: '강점',
   strengthsPlaceholder: '이번 기간 발휘한 강점을 기록하세요.',
@@ -33,13 +34,57 @@ const DEFAULT_LABELS = {
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
 };
 
-const FIELDS = [
+// 템플릿 미지정 사이클용 기본 폼(back-compat).
+const DEFAULT_FIELDS = [
   { key: 'work', category: 'work_achievement', growthType: null, score: false, sectionKey: 'workTitle', labelKey: 'workTitle', phKey: 'workPlaceholder' },
   { key: 'comp', category: 'competency', growthType: null, score: true, sectionKey: 'competencyTitle', labelKey: 'competencyTitle', phKey: 'competencyPlaceholder' },
   { key: 'str', category: 'growth', growthType: 'strengths', score: false, sectionKey: 'growthTitle', labelKey: 'strengthsLabel', phKey: 'strengthsPlaceholder' },
   { key: 'imp', category: 'growth', growthType: 'improvements', score: false, sectionKey: 'growthTitle', labelKey: 'improvementsLabel', phKey: 'improvementsPlaceholder' },
   { key: 'gro', category: 'growth', growthType: 'growth_demonstrated', score: false, sectionKey: 'growthTitle', labelKey: 'growthDemoLabel', phKey: 'growthDemoPlaceholder' },
 ];
+
+// 셀프 응답 폼 필드 도출 — 템플릿(eval_templates) 있으면 항목에서 동적 생성,
+// 없으면 기본 폼. 시안 buildSelfTemplate: '최종 등급 결정' 제외, grade→textarea(피평가자).
+function buildFields(template, L) {
+  if (template && Array.isArray(template.items) && template.items.length) {
+    return template.items
+      .filter((it) => it.category !== '최종 등급 결정')
+      .map((it) => {
+        // eval_template_items.responseType: text/scale/grade/checkbox → 폼 입력 유형.
+        // 시안: 피평가자는 grade 부여 대신 코멘트 → textarea.
+        const type =
+          it.responseType === 'scale'
+            ? 'rating'
+            : it.responseType === 'checkbox'
+              ? 'checkbox'
+              : 'textarea';
+        return {
+          key: it.id,
+          templateItemId: it.id,
+          category: it.category,
+          growthType: null,
+          type,
+          label: it.label,
+          placeholder: it.label,
+          section: it.category || '평가 항목',
+          requiresRationale: !!it.requiresRationale,
+          score: type === 'rating',
+        };
+      });
+  }
+  return DEFAULT_FIELDS.map((f) => ({
+    key: f.key,
+    templateItemId: null,
+    category: f.category,
+    growthType: f.growthType,
+    type: f.score ? 'rating' : 'textarea',
+    label: L[f.labelKey],
+    placeholder: L[f.phKey],
+    section: L[f.sectionKey],
+    requiresRationale: false,
+    score: f.score,
+  }));
+}
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -59,14 +104,22 @@ const fill = (s, vars) => {
   return out;
 };
 
-function seedState(answers) {
+function seedState(answers, fields) {
   const state = {};
-  for (const f of FIELDS) state[f.key] = { textAnswer: '', score: null };
+  for (const f of fields) state[f.key] = { textAnswer: '', score: null, rationale: '' };
   for (const a of answers ?? []) {
-    const f = FIELDS.find(
-      (x) => x.category === a.itemCategory && (x.growthType ?? null) === (a.growthType ?? null),
+    const f = fields.find((x) =>
+      x.templateItemId
+        ? x.templateItemId === a.templateItemId
+        : x.category === a.itemCategory && (x.growthType ?? null) === (a.growthType ?? null),
     );
-    if (f) state[f.key] = { textAnswer: a.textAnswer ?? '', score: a.score ?? null };
+    if (f) {
+      state[f.key] = {
+        textAnswer: a.textAnswer ?? '',
+        score: a.score ?? null,
+        rationale: a.rationale ?? '',
+      };
+    }
   }
   return state;
 }
@@ -75,6 +128,7 @@ export default function EvalCycleMemberCanvas({
   cycle,
   status,
   answers,
+  template = null,
   active = true,
   labels: providedLabels,
   onSave,
@@ -82,10 +136,17 @@ export default function EvalCycleMemberCanvas({
   onAiPolish,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const [state, setState] = useState(() => seedState(answers));
+  const fields = useMemo(() => buildFields(template, L), [template, L]);
+  const [state, setState] = useState(() => seedState(answers, fields));
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
   const submitted = status === 'submitted';
+
+  // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
+  // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
+  useEffect(() => {
+    setState(seedState(answers, fields));
+  }, [fields, answers]);
 
   if (!active) {
     return (
@@ -102,23 +163,27 @@ export default function EvalCycleMemberCanvas({
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
   const toItems = () =>
-    FIELDS.filter((f) => state[f.key].textAnswer.trim() || state[f.key].score != null).map(
-      (f) => ({
+    fields
+      .filter((f) => state[f.key].textAnswer.trim() || state[f.key].score != null)
+      .map((f) => ({
+        templateItemId: f.templateItemId,
         itemCategory: f.category,
         growthType: f.growthType,
         textAnswer: state[f.key].textAnswer,
         score: state[f.key].score,
-      }),
-    );
+        rationale: state[f.key].rationale || null,
+      }));
 
   const handleAiPolish = async () => {
     if (!onAiPolish) return;
-    const items = FIELDS.map((f, i) => ({
-      index: i,
-      itemCategory: f.category,
-      growthType: f.growthType,
-      textAnswer: state[f.key].textAnswer,
-    })).filter((it) => it.textAnswer.trim());
+    const items = fields
+      .map((f, i) => ({
+        index: i,
+        itemCategory: f.category,
+        growthType: f.growthType,
+        textAnswer: state[f.key].textAnswer,
+      }))
+      .filter((it) => it.textAnswer.trim());
     if (items.length === 0) return;
     setAiError(false);
     setAiBusy(true);
@@ -127,7 +192,7 @@ export default function EvalCycleMemberCanvas({
       setState((prev) => {
         const next = { ...prev };
         for (const p of polished) {
-          const f = FIELDS[p.index];
+          const f = fields[p.index];
           if (f) next[f.key] = { ...next[f.key], textAnswer: p.textAnswer };
         }
         return next;
@@ -139,15 +204,24 @@ export default function EvalCycleMemberCanvas({
     }
   };
 
-  const filled = FIELDS.filter((f) => state[f.key].textAnswer.trim()).length;
-  const canSubmit = filled === FIELDS.length;
+  // 텍스트 항목만 필수 채움 판정(척도는 점수로). requiresRationale 은 사유도 필요.
+  const textFields = fields.filter((f) => f.type !== 'rating');
+  const filled = textFields.filter((f) => state[f.key].textAnswer.trim()).length;
+  const ratingOk = fields
+    .filter((f) => f.type === 'rating')
+    .every((f) => state[f.key].score != null && (!f.requiresRationale || state[f.key].rationale.trim()));
+  const canSubmit = filled === textFields.length && ratingOk;
 
-  // 섹션 그룹핑 (growth 3필드는 한 카드)
-  const sections = [
-    { titleKey: 'workTitle', fields: FIELDS.filter((f) => f.key === 'work') },
-    { titleKey: 'competencyTitle', fields: FIELDS.filter((f) => f.key === 'comp') },
-    { titleKey: 'growthTitle', fields: FIELDS.filter((f) => f.category === 'growth') },
-  ];
+  // 섹션(section) 별 그룹핑 — 등장 순서 유지.
+  const sections = [];
+  fields.forEach((f) => {
+    let g = sections.find((s) => s.title === f.section);
+    if (!g) {
+      g = { title: f.section, fields: [] };
+      sections.push(g);
+    }
+    g.fields.push(f);
+  });
 
   return (
     <div className="evc-root">
@@ -166,40 +240,65 @@ export default function EvalCycleMemberCanvas({
 
       <div className="evc-list">
         {sections.map((sec) => (
-          <section className="evc-card" key={sec.titleKey} data-testid={`evm-section-${sec.titleKey}`}>
-            <h3 className="evc-card-name">{L[sec.titleKey]}</h3>
+          <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
+            <h3 className="evc-card-name">{sec.title}</h3>
             {sec.fields.map((f) => (
               <div className="evm-field" key={f.key}>
                 {sec.fields.length > 1 && (
-                  <span className="evc-field-label">{L[f.labelKey]}</span>
+                  <span className="evc-field-label">{f.label}</span>
                 )}
-                <textarea
-                  className="evm-textarea"
-                  rows={4}
-                  value={state[f.key].textAnswer}
-                  placeholder={L[f.phKey]}
-                  disabled={submitted}
-                  onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
-                  data-testid={`evm-text-${f.key}`}
-                />
-                {f.score && (
-                  <div className="evm-score-row">
-                    <span className="evc-field-label">{L.scoreLabel}</span>
-                    <div className="evm-score-btns">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          type="button"
-                          key={n}
-                          className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
-                          disabled={submitted}
-                          onClick={() => setField(f.key, { score: n })}
-                          data-testid={`evm-score-${f.key}-${n}`}
-                        >
-                          {n}
-                        </button>
-                      ))}
+                {f.type === 'rating' ? (
+                  <>
+                    <div className="evm-score-row">
+                      <span className="evc-field-label">{L.scoreLabel}</span>
+                      <div className="evm-score-btns">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            type="button"
+                            key={n}
+                            className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
+                            disabled={submitted}
+                            onClick={() => setField(f.key, { score: n })}
+                            data-testid={`evm-score-${f.key}-${n}`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                    {f.requiresRationale && (
+                      <textarea
+                        className="evm-textarea"
+                        rows={2}
+                        value={state[f.key].rationale}
+                        placeholder={L.rationalePlaceholder}
+                        disabled={submitted}
+                        onChange={(e) => setField(f.key, { rationale: e.target.value })}
+                        data-testid={`evm-rationale-${f.key}`}
+                      />
+                    )}
+                  </>
+                ) : f.type === 'checkbox' ? (
+                  <label className="evl-promo-row">
+                    <input
+                      type="checkbox"
+                      checked={state[f.key].score === 1}
+                      disabled={submitted}
+                      onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
+                      data-testid={`evm-check-${f.key}`}
+                    />
+                    <span>{f.label}</span>
+                  </label>
+                ) : (
+                  <textarea
+                    className="evm-textarea"
+                    rows={4}
+                    value={state[f.key].textAnswer}
+                    placeholder={f.placeholder}
+                    disabled={submitted}
+                    onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
+                    data-testid={`evm-text-${f.key}`}
+                  />
                 )}
               </div>
             ))}
@@ -218,7 +317,7 @@ export default function EvalCycleMemberCanvas({
       {!submitted && (
         <div className="evm-submit-bar">
           <span className="evm-progress">
-            {fill(L.progress, { filled, total: FIELDS.length })}
+            {fill(L.progress, { filled, total: textFields.length })}
           </span>
           <div className="evc-card-buttons">
             {onAiPolish && (
