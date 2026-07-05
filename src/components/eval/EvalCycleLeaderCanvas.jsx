@@ -214,6 +214,10 @@ export default function EvalCycleLeaderCanvas({
     }
     g.fields.push(f);
   });
+  // requiresRationale 척도 항목은 사유가 채워져야 제출 가능(시안 D4).
+  const ratingOk = fields
+    .filter((f) => f.type === 'rating')
+    .every((f) => !f.requiresRationale || (state[f.key].rationale || '').trim());
 
   return (
     <div className="evc-root">
@@ -427,7 +431,7 @@ export default function EvalCycleLeaderCanvas({
                 <button
                   type="button"
                   className="evc-btn is-primary"
-                  disabled={!grade}
+                  disabled={!grade || !ratingOk}
                   onClick={() => onSubmit?.()}
                   data-testid="evl-submit"
                 >
