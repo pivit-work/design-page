@@ -6,15 +6,9 @@ on:
     branches: [main]
     paths:
       - 'src/components/**'
-      - 'src/App.css'
-      - 'src/org_chart.css'
-      - 'src/org_project.css'
-      - 'src/one_on_one.css'
-      - 'src/timeline.css'
-      - 'src/meetings.css'
-      - 'src/index.css'
-      - 'src/tokens.css'
-      - 'src/tokens-dark.css'
+      # 최상위 스타일시트 전체 — 개별 나열은 eval-cycle.css / admin.css / report.css 등이
+      # 누락돼 해당 파일 단독 변경 시 배포가 안 되던 문제를 glob 으로 해소
+      - 'src/*.css'
       - 'package.json'
 
 permissions:
