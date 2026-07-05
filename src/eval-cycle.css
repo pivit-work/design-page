@@ -427,8 +427,8 @@
   border-radius: var(--radius-2xl, 16px);
   box-shadow: 0 20px 60px rgba(10, 13, 18, 0.24);
   width: 100%;
-  max-width: 600px;
-  max-height: 88vh;
+  max-width: 960px;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
