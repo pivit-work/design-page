@@ -118,32 +118,46 @@ const QUESTION_TYPES = [
   { id: 'grade', labelKey: 'qTypeGrade' },
   { id: 'checkbox', labelKey: 'qTypeCheckbox' },
 ];
-// 프리셋별 질문 시드(편집 가능한 콘텐츠). section·text 는 HR 이 수정하는 데이터.
+// 프리셋 카드 메타(아이콘·설명·권장).
+const TEMPLATE_PRESET_META = [
+  { id: 'simple', labelKey: 'tplVersionSimple', descKey: 'tplPresetSimpleDesc', icon: '📝' },
+  { id: 'standard', labelKey: 'tplVersionStandard', descKey: 'tplPresetStandardDesc', icon: '⭐', recommended: true },
+  { id: 'detailed', labelKey: 'tplVersionDetailed', descKey: 'tplPresetDetailedDesc', icon: '🔬' },
+];
+// 섹션별 색(시안 SECTION_COLORS): 성과=blue, 역량=purple, 성장=green, 최종등급=amber.
+const SECTION_COLORS = {
+  '성과 (What)': 'var(--utility-blue-600, #175cd3)',
+  '역량 (How)': 'var(--utility-purple-600, #6938ef)',
+  '성장 (Growth)': 'var(--utility-success-600, #079455)',
+  '최종 등급 결정': 'var(--utility-warning-600, #dc6803)',
+};
+const sectionColor = (s) => SECTION_COLORS[s] || 'var(--text-tertiary, #98a2b3)';
+// 프리셋별 질문 시드(편집 가능한 콘텐츠). ai=AI 초안 지원, requiresRationale=점수 이유 필수.
 const TEMPLATE_PRESETS = {
   simple: [
-    { id: 's1', section: '성과 (What)', text: '이번 기간 종합 코멘트를 작성해주세요.', type: 'textarea' },
+    { id: 's1', section: '성과 (What)', text: '이번 기간 종합 코멘트를 작성해주세요.', type: 'textarea', ai: true },
     { id: 's2', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
   standard: [
-    { id: 'q1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea' },
+    { id: 'q1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea', ai: true },
     { id: 'q2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
     { id: 'q3', section: '역량 (How)', text: '주도성 · 오너십', type: 'rating' },
     { id: 'q4', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
-    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea' },
-    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea' },
+    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true },
+    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true },
     { id: 'q7', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
   detailed: [
-    { id: 'd1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea' },
+    { id: 'd1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea', ai: true },
     { id: 'd2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
-    { id: 'd3', section: '성과 (What)', text: '정량 목표 달성률', type: 'rating' },
-    { id: 'd4', section: '역량 (How)', text: '주도성 / 오너십', type: 'rating' },
-    { id: 'd5', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
-    { id: 'd6', section: '역량 (How)', text: '실행력', type: 'rating' },
-    { id: 'd7', section: '역량 (How)', text: '전문성 · 문제 해결', type: 'rating' },
-    { id: 'd8', section: '역량 (How)', text: '리더십 · 영향력', type: 'rating' },
-    { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea' },
-    { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea' },
+    { id: 'd3', section: '성과 (What)', text: '정량 목표 달성률', type: 'rating', requiresRationale: true },
+    { id: 'd4', section: '역량 (How)', text: '주도성 / 오너십', type: 'rating', requiresRationale: true },
+    { id: 'd5', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating', requiresRationale: true },
+    { id: 'd6', section: '역량 (How)', text: '실행력', type: 'rating', requiresRationale: true },
+    { id: 'd7', section: '역량 (How)', text: '전문성 · 문제 해결', type: 'rating', requiresRationale: true },
+    { id: 'd8', section: '역량 (How)', text: '리더십 · 영향력', type: 'rating', requiresRationale: true },
+    { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true },
+    { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true },
     { id: 'd11', section: '성장 (Growth)', text: '성장 가능성', type: 'rating' },
     { id: 'd12', section: '최종 등급 결정', text: '승진 추천 여부', type: 'checkbox' },
     { id: 'd13', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
@@ -261,6 +275,81 @@ function AddQuestionRow({ onAdd, labels: L }) {
   );
 }
 
+// 템플릿 미리보기 모달 — 구성원이 보게 될 형태로 항목을 렌더(입력 비활성). 단일/전체 모드.
+function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) {
+  const focusQ =
+    focus && focus.questionId
+      ? questions.find((q) => q.id === focus.questionId)
+      : null;
+  const items = focusQ ? [focusQ] : questions;
+  const sections = [];
+  items.forEach((q) => {
+    let g = sections.find((s) => s.sec === q.section);
+    if (!g) {
+      g = { sec: q.section, items: [] };
+      sections.push(g);
+    }
+    g.items.push(q);
+  });
+  return createPortal(
+    <div className="evc-modal-overlay" onClick={onClose}>
+      <div className="evc-modal is-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="evc-wiz-header">
+          <h3 className="evc-modal-title">
+            {focusQ ? L.previewItemTitle : L.previewTitle}
+          </h3>
+          <button type="button" className="evc-wiz-close" onClick={onClose} aria-label={L.cancel}>
+            ✕
+          </button>
+        </div>
+        <div className="evc-preview-body">
+          {sections.map((s) => (
+            <div key={s.sec} className="evc-preview-section">
+              <div className="evc-preview-sec-title" style={{ color: sectionColor(s.sec) }}>
+                {s.sec}
+              </div>
+              {s.items.map((q) => (
+                <div key={q.id} className="evc-preview-q">
+                  <div className="evc-preview-q-text">
+                    {q.text}
+                    {q.requiresRationale && (
+                      <span className="evc-mode-badge is-warn">{L.rationaleRequired}</span>
+                    )}
+                  </div>
+                  {q.type === 'textarea' && (
+                    <textarea className="evm-textarea" rows={3} disabled placeholder={L.previewTextareaPlaceholder} />
+                  )}
+                  {q.type === 'rating' && (
+                    <div className="evc-preview-scale">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <span key={n} className="evc-preview-scale-dot">{n}</span>
+                      ))}
+                    </div>
+                  )}
+                  {q.type === 'grade' && (
+                    <div className="evc-preview-gradechips">
+                      {grades.map((g, i) => (
+                        <span key={i} className="evc-type-chip">{g.label}</span>
+                      ))}
+                    </div>
+                  )}
+                  {q.type === 'checkbox' && (
+                    <label className="evl-promo-row">
+                      <input type="checkbox" disabled />
+                      <span>{q.text}</span>
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function EvalCycleWizard({
   labels: L,
   candidates = [],
@@ -303,6 +392,9 @@ export default function EvalCycleWizard({
   const [tplAbsolute, setTplAbsolute] = useState(false); // 절대평가(상대비율 없음)
   const [tplRatioScope, setTplRatioScope] = useState('div');
   const [phaseTemplateMap, setPhaseTemplateMap] = useState({}); // { phaseId: templateId }
+  const [tplDragIdx, setTplDragIdx] = useState(null);
+  const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
+  const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
 
   const steps = [
     { titleKey: 'wizardStep1' }, // 기본 정보
@@ -368,6 +460,27 @@ export default function EvalCycleWizard({
     setTplVersion(id);
     setTplQuestions(TEMPLATE_PRESETS[id]);
   };
+  const tplIsCustomized =
+    JSON.stringify(tplQuestions) !== JSON.stringify(TEMPLATE_PRESETS[tplVersion]);
+  const tplDrop = (targetIdx) => {
+    if (tplDragIdx === null || tplDragIdx === targetIdx) {
+      setTplDragIdx(null);
+      setTplDragOverIdx(null);
+      return;
+    }
+    setTplQuestions((qs) => {
+      const next = [...qs];
+      const [moved] = next.splice(tplDragIdx, 1);
+      next.splice(targetIdx, 0, moved);
+      return next;
+    });
+    setTplDragIdx(null);
+    setTplDragOverIdx(null);
+  };
+  const toggleRationale = (id) =>
+    setTplQuestions((qs) =>
+      qs.map((q) => (q.id === id ? { ...q, requiresRationale: !q.requiresRationale } : q)),
+    );
   const removeQuestion = (id) =>
     setTplQuestions((qs) => qs.filter((q) => q.id !== id));
   const addQuestion = (section, text, type) => {
@@ -493,6 +606,7 @@ export default function EvalCycleWizard({
             section: q.section,
             text: q.text,
             type: q.type,
+            requiresRationale: !!q.requiresRationale,
           })),
           grades: t.grades.map((g) => ({
             label: g.label,
@@ -658,31 +772,89 @@ export default function EvalCycleWizard({
               />
 
               <span className="evc-field-label">{L.templateVersionLabel}</span>
-              <div className="evc-type-row">
-                {TEMPLATE_VERSIONS.map((v) => (
+              <div className="evc-tpl-presets">
+                {TEMPLATE_PRESET_META.map((p) => (
                   <button
                     type="button"
-                    key={v.id}
-                    className={`evc-type-chip${tplVersion === v.id ? ' is-on' : ''}`}
-                    onClick={() => selectTplPreset(v.id)}
-                    data-testid={`evc-tpl-version-${v.id}`}
+                    key={p.id}
+                    className={`evc-tpl-preset${tplVersion === p.id ? ' is-on' : ''}`}
+                    onClick={() => selectTplPreset(p.id)}
+                    data-testid={`evc-tpl-version-${p.id}`}
                   >
-                    {L[v.labelKey]}
+                    <span className="evc-tpl-preset-icon">{p.icon}</span>
+                    <span className="evc-tpl-preset-head">
+                      <span className="evc-tpl-preset-label">
+                        {L[p.labelKey]}
+                        {tplVersion === p.id && tplIsCustomized ? ` ${L.tplCustomized}` : ''}
+                      </span>
+                      {p.recommended && <span className="evc-mode-badge">{L.recommendedBadge}</span>}
+                    </span>
+                    <span className="evc-tpl-preset-desc">{L[p.descKey]}</span>
                   </button>
                 ))}
               </div>
 
-              <span className="evc-field-label">
-                {L.templateItemsLabel} ({tplQuestions.length})
-              </span>
+              <div className="evc-tpl-items-head">
+                <span className="evc-field-label">
+                  {L.templateItemsLabel} ({tplQuestions.length})
+                </span>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => setTplPreview('all')}
+                  data-testid="evc-tpl-preview-all"
+                >
+                  👁 {L.templatePreview}
+                </button>
+              </div>
               <div className="evc-tpl-items">
-                {tplQuestions.map((q) => (
-                  <div key={q.id} className="evc-tpl-item">
-                    <span className="evc-tpl-item-section">{q.section}</span>
+                {tplQuestions.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    draggable
+                    onDragStart={() => setTplDragIdx(idx)}
+                    onDragOver={(e) => { e.preventDefault(); setTplDragOverIdx(idx); }}
+                    onDrop={() => tplDrop(idx)}
+                    onDragEnd={() => { setTplDragIdx(null); setTplDragOverIdx(null); }}
+                    className={`evc-tpl-item${tplDragOverIdx === idx && tplDragIdx !== idx ? ' is-over' : ''}${tplDragIdx === idx ? ' is-dragging' : ''}`}
+                    data-testid={`evc-tpl-item-${q.id}`}
+                  >
+                    <span className="evc-tpl-item-handle" title={L.phaseDragHint}>
+                      <GripIcon size={12} />
+                    </span>
+                    <span
+                      className="evc-tpl-item-section"
+                      style={{
+                        color: sectionColor(q.section),
+                        background: 'color-mix(in srgb, currentColor 12%, transparent)',
+                      }}
+                    >
+                      {q.section}
+                    </span>
                     <span className="evc-tpl-item-text">{q.text}</span>
                     <span className="evc-tpl-item-type">
                       {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
                     </span>
+                    {q.ai && <span className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</span>}
+                    {q.type === 'rating' && (
+                      <button
+                        type="button"
+                        className={`evc-tpl-rationale${q.requiresRationale ? ' is-on' : ''}`}
+                        onClick={() => toggleRationale(q.id)}
+                        data-testid={`evc-tpl-rationale-${q.id}`}
+                      >
+                        ✍ {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="evc-tpl-x"
+                      onClick={() => setTplPreview({ questionId: q.id })}
+                      aria-label={L.templatePreview}
+                      data-testid={`evc-tpl-item-preview-${q.id}`}
+                    >
+                      👁
+                    </button>
                     <button
                       type="button"
                       className="evc-tpl-x"
@@ -818,6 +990,15 @@ export default function EvalCycleWizard({
                   </div>
                 )}
               </div>
+              {tplPreview && (
+                <TemplatePreviewModal
+                  questions={tplQuestions}
+                  grades={tplGrades}
+                  focus={tplPreview === 'all' ? null : tplPreview}
+                  onClose={() => setTplPreview(null)}
+                  labels={L}
+                />
+              )}
             </div>
           )}
 
