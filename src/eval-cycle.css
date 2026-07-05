@@ -576,14 +576,48 @@
   background: var(--utility-error-50);
   color: var(--utility-error-500);
 }
+.evc-mode-badge.is-muted {
+  background: var(--utility-gray-100, #f2f4f7);
+  color: var(--text-tertiary, #98a2b3);
+}
 
-/* 일정 행 */
-.evc-sched-row {
+/* 단계별 일정 카드 */
+.evc-sched-overlap-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-purple-600, #6941c6);
+  background: var(--utility-purple-50, #f4f3ff);
+  border: 1px solid var(--utility-purple-200, #d9d6fe);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  margin-bottom: var(--spacing-md, 8px);
+}
+.evc-sched-card {
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-lg, 10px);
+  padding: 14px 16px;
+  margin-bottom: var(--spacing-md, 8px);
+  background: var(--bg-primary, #fff);
+  transition: opacity 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.evc-sched-card.is-required { background: var(--bg-secondary, #f9fafb); }
+.evc-sched-card.is-off { opacity: 0.55; }
+.evc-sched-card.is-over {
+  border-color: var(--utility-brand-500, #7f56d9);
+  box-shadow: 0 0 0 1px var(--utility-brand-500, #7f56d9);
+}
+.evc-sched-card.has-overlap { border-color: var(--utility-purple-300, #bdb4fe); }
+.evc-sched-head {
   display: flex;
   align-items: center;
   gap: var(--spacing-md, 8px);
-  padding: var(--spacing-sm, 6px) 0;
 }
+.evc-sched-handle {
+  font-size: 14px;
+  color: var(--text-tertiary, #98a2b3);
+  cursor: grab;
+  flex-shrink: 0;
+}
+.evc-sched-card.is-required .evc-sched-handle { cursor: not-allowed; }
 .evc-sched-num {
   display: inline-flex;
   align-items: center;
@@ -591,21 +625,73 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--utility-gray-50);
-  color: var(--text-secondary);
+  background: var(--utility-brand-500, #7f56d9);
+  color: #fff;
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 700;
   flex-shrink: 0;
 }
+.evc-sched-card.is-off .evc-sched-num { background: var(--text-tertiary, #98a2b3); }
 .evc-sched-name {
-  flex: 1;
   font-size: var(--font-size-text-sm, 14px);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
-.evc-sched-date {
-  width: 170px;
+.evc-sched-owner {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #98a2b3);
+}
+.evc-sched-toggle {
+  margin-left: auto;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full, 9999px);
+  border: none;
+  background: var(--border-secondary, #eaecf0);
+  position: relative;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.2s;
+}
+.evc-sched-toggle.is-on { background: var(--utility-green-500, #17b26a); }
+.evc-sched-toggle.is-locked { opacity: 0.6; cursor: not-allowed; }
+.evc-sched-toggle.is-on.is-locked { background: var(--text-tertiary, #98a2b3); }
+.evc-sched-toggle-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: left 0.2s;
+}
+.evc-sched-toggle.is-on .evc-sched-toggle-dot { left: 18px; }
+.evc-sched-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--spacing-md, 8px);
+  margin-top: 10px;
+}
+.evc-sched-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+.evc-sched-tpl {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-secondary, #eaecf0);
+}
+.evc-sched-tpl-empty {
+  margin-top: var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-warning-600, #dc6803);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
 }
 
 /* 대상자 선택 리스트 */

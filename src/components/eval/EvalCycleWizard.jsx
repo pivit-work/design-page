@@ -42,15 +42,65 @@ const PEER_MODES = [
   { key: 'hr_assign', label: 'modeHrAssign', badge: 'exceptionBadge' },
 ];
 
-/** reviewTypes 에 따라 일정이 필요한 단계 목록을 도출. */
-function phasesForSchedule(reviewTypes) {
-  const has = (t) => reviewTypes.includes(t);
-  const phases = [];
-  if (has('peer')) phases.push({ key: 'peerAssignDue', statusKey: 'statusPeerAssign' });
-  if (has('self')) phases.push({ key: 'selfReviewDue', statusKey: 'statusSelfReview' });
-  if (has('peer')) phases.push({ key: 'peerReviewDue', statusKey: 'statusPeerReview' });
-  phases.push({ key: 'calibrationDue', statusKey: 'statusCalibration' });
-  return phases;
+// 단계별 일정 모델(시안 WizardStep2 ALL_PHASES). 선택 리뷰종류로 활성 단계 도출.
+//  - self·share 는 앵커(양끝 고정, DnD 불가). 중간 단계만 재배열.
+//  - required 단계(self·calibration·share)는 항상 ON. dependsOn 은 해당 유형 선택 시 활성.
+//  - 하향 단계 id 는 'leader'(리뷰종류 id 와 1:1; manager 개명은 별도 마이그레이션).
+const ALL_PHASES = [
+  { id: 'self', nameKey: 'phaseSelf', targetKey: 'ownerEvaluatee', required: true, anchor: true },
+  { id: 'peer_confirm', nameKey: 'phasePeerConfirm', targetKey: 'ownerLeader', dependsOn: 'peer' },
+  { id: 'peer', nameKey: 'phasePeer', targetKey: 'ownerPeer' },
+  { id: 'upward', nameKey: 'phaseUpward', targetKey: 'ownerEvaluatee' },
+  { id: 'leader', nameKey: 'phaseLeader', targetKey: 'ownerLeader' },
+  { id: 'calibration', nameKey: 'phaseCalibration', targetKey: 'ownerHrExec', required: true },
+  { id: 'share', nameKey: 'phaseShare', targetKey: 'ownerHr', required: true, anchor: true },
+];
+// 단계 → 평가 유형(적용 템플릿 매핑용). 이 유형 템플릿만 해당 단계에 매핑 가능.
+const PHASE_TO_REVIEW_TYPE = { self: 'self', peer: 'peer', upward: 'upward', leader: 'leader' };
+const REMINDER_OPTIONS = [
+  { value: 'end_d3_d1', labelKey: 'reminderD3D1' },
+  { value: 'end_d1', labelKey: 'reminderD1' },
+  { value: 'none', labelKey: 'reminderNone' },
+];
+
+/** 선택한 리뷰종류로 활성 단계 목록 도출. */
+function activePhasesFor(reviewTypes) {
+  return ALL_PHASES.filter(
+    (p) =>
+      p.required ||
+      reviewTypes.includes(p.id) ||
+      (p.dependsOn && reviewTypes.includes(p.dependsOn)),
+  );
+}
+
+/** 겹치는(병렬 진행) 단계 쌍. 겹침은 오류가 아니라 허용. */
+function getOverlapPairs(rows) {
+  const pairs = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    for (let j = i + 1; j < rows.length; j += 1) {
+      const a = rows[i];
+      const b = rows[j];
+      if (!a.start || !a.end || !b.start || !b.end) continue;
+      if (a.start < b.end && b.start < a.end) {
+        pairs.push({ key: [a.id, b.id].sort().join('|'), a: a.name, b: b.name });
+      }
+    }
+  }
+  return pairs;
+}
+
+/** 활성 단계에 7일 간격 초기 일정 배치(시작 09:00 · 종료 18:00, datetime-local). */
+function initSchedule(phases, baseDate) {
+  const DAY = 86400000;
+  const base = baseDate ? new Date(baseDate) : new Date();
+  const fmt = (d, hm) => `${d.toISOString().slice(0, 10)}T${hm}`;
+  const s = {};
+  phases.forEach((p, i) => {
+    const st = new Date(base.getTime() + i * 7 * DAY);
+    const en = new Date(st.getTime() + 6 * DAY);
+    s[p.id] = { start: fmt(st, '09:00'), end: fmt(en, '18:00') };
+  });
+  return s;
 }
 
 function StepBar({ steps, current, labels: L, onJump }) {
@@ -93,7 +143,13 @@ export default function EvalCycleWizard({
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
   const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
   const [peerVisibility, setPeerVisibility] = useState(false);
-  const [dues, setDues] = useState({});
+  // 단계별 일정(review_sequence) 상태
+  const [schedule, setSchedule] = useState({}); // { phaseId: { start, end } } 사용자 오버라이드
+  const [reminders, setReminders] = useState({}); // { phaseId: reminderValue }
+  const [disabledPhases, setDisabledPhases] = useState(() => new Set());
+  const [phaseOrder, setPhaseOrder] = useState([]); // 중간 단계 재배열 순서(id)
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
   const [includeMode, setIncludeMode] = useState('bulk');
   const [selectedIds, setSelectedIds] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -106,7 +162,44 @@ export default function EvalCycleWizard({
   ];
 
   const hasPeer = reviewTypes.includes('peer');
-  const schedulePhases = phasesForSchedule(reviewTypes);
+  const activePhases = activePhasesFor(reviewTypes);
+  const defaultSchedule = initSchedule(activePhases, startDate);
+  const scheduleOf = (id) => schedule[id] || defaultSchedule[id] || { start: '', end: '' };
+  const reminderOf = (id) => reminders[id] ?? 'end_d3_d1';
+  const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
+  const orderedMiddle = [
+    ...phaseOrder.filter((id) => middleIds.includes(id)),
+    ...middleIds.filter((id) => !phaseOrder.includes(id)),
+  ];
+  const displayPhases = [
+    activePhases.find((p) => p.id === 'self'),
+    ...orderedMiddle.map((id) => activePhases.find((p) => p.id === id)),
+    activePhases.find((p) => p.id === 'share'),
+  ].filter(Boolean);
+  const enabledRows = displayPhases
+    .filter((p) => !disabledPhases.has(p.id))
+    .map((p) => ({ id: p.id, name: L[p.nameKey], ...scheduleOf(p.id) }));
+  const overlapPairs = getOverlapPairs(enabledRows);
+  const overlapIds = new Set(overlapPairs.flatMap((p) => p.key.split('|')));
+
+  const updateSchedule = (id, field, value) =>
+    setSchedule((s) => ({ ...s, [id]: { ...scheduleOf(id), [field]: value } }));
+  const togglePhaseEnabled = (id) =>
+    setDisabledPhases((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const movePhase = (targetId) => {
+    if (!dragId || dragId === targetId) return;
+    const arr = [...orderedMiddle];
+    const from = arr.indexOf(dragId);
+    const to = arr.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    arr.splice(to, 0, arr.splice(from, 1)[0]);
+    setPhaseOrder(arr);
+  };
 
   const toggleType = (t) =>
     setReviewTypes((prev) =>
@@ -156,10 +249,25 @@ export default function EvalCycleWizard({
       peerAssignMode: hasPeer ? peerAssignModes[0] : undefined,
       peerAssignModes: hasPeer ? peerAssignModes : undefined,
       peerVisibilityDefault: hasPeer ? peerVisibility : false,
-      peerAssignDue: dues.peerAssignDue ?? null,
-      selfReviewDue: dues.selfReviewDue ?? null,
-      peerReviewDue: dues.peerReviewDue ?? null,
-      calibrationDue: dues.calibrationDue ?? null,
+      // v2 SSOT: 단계별 일정/순서/사용여부/리마인더를 review_sequence 로 전달.
+      reviewSequence: {
+        order: displayPhases.map((p) => p.id),
+        enabled: Object.fromEntries(
+          displayPhases.map((p) => [p.id, !disabledPhases.has(p.id)]),
+        ),
+        schedule: Object.fromEntries(
+          displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
+        ),
+        reminders: Object.fromEntries(
+          displayPhases.map((p) => [p.id, reminderOf(p.id)]),
+        ),
+        templateMap: {},
+      },
+      // 구 flat due 컬럼은 review_sequence 로 대체 — back-compat 위해 null 전달.
+      peerAssignDue: null,
+      selfReviewDue: null,
+      peerReviewDue: null,
+      calibrationDue: null,
       includeMode,
       memberIds: targetIds,
     };
@@ -287,21 +395,111 @@ export default function EvalCycleWizard({
           {step === 1 && (
             <div className="evc-wiz-panel">
               <p className="evc-wiz-hint">{L.scheduleHint}</p>
-              {schedulePhases.map((p, i) => (
-                <div key={p.key} className="evc-sched-row">
-                  <span className="evc-sched-num">{i + 1}</span>
-                  <span className="evc-sched-name">{L[p.statusKey]}</span>
-                  <input
-                    type="date"
-                    className="evc-input evc-sched-date"
-                    value={dues[p.key] ?? ''}
-                    min={startDate || undefined}
-                    max={endDate || undefined}
-                    onChange={(e) => setDues((d) => ({ ...d, [p.key]: e.target.value }))}
-                    data-testid={`evc-wiz-due-${p.key}`}
-                  />
+              {overlapPairs.length > 0 && (
+                <div className="evc-sched-overlap-note" data-testid="evc-sched-overlap">
+                  {L.scheduleOverlapNote}
                 </div>
-              ))}
+              )}
+              {(() => {
+                let n = 0;
+                return displayPhases.map((ph) => {
+                  const enabled = !disabledPhases.has(ph.id);
+                  if (enabled) n += 1;
+                  const isOver =
+                    overId === ph.id && !ph.anchor && dragId && dragId !== ph.id;
+                  const rtype = PHASE_TO_REVIEW_TYPE[ph.id];
+                  const sc = scheduleOf(ph.id);
+                  return (
+                    <div
+                      key={ph.id}
+                      draggable={!ph.anchor}
+                      onDragStart={() => { if (!ph.anchor) setDragId(ph.id); }}
+                      onDragOver={(e) => { if (!ph.anchor && dragId) { e.preventDefault(); setOverId(ph.id); } }}
+                      onDrop={() => { if (!ph.anchor) movePhase(ph.id); setDragId(null); setOverId(null); }}
+                      onDragEnd={() => { setDragId(null); setOverId(null); }}
+                      className={`evc-sched-card${ph.required ? ' is-required' : ''}${enabled ? '' : ' is-off'}${isOver ? ' is-over' : ''}${enabled && overlapIds.has(ph.id) ? ' has-overlap' : ''}`}
+                      data-testid={`evc-sched-card-${ph.id}`}
+                    >
+                      <div className="evc-sched-head">
+                        <span
+                          className="evc-sched-handle"
+                          title={ph.anchor ? L.phaseFixedHint : L.phaseDragHint}
+                        >
+                          {ph.anchor ? '🔒' : '⠿'}
+                        </span>
+                        <span className="evc-sched-num">{enabled ? n : '–'}</span>
+                        <span className="evc-sched-name">{L[ph.nameKey]}</span>
+                        <span className="evc-sched-owner">
+                          {L.ownerLabel}: {L[ph.targetKey]}
+                        </span>
+                        {ph.required && <span className="evc-mode-badge">{L.badgeRequired}</span>}
+                        {ph.anchor && <span className="evc-mode-badge is-muted">{L.badgeFixed}</span>}
+                        {!enabled && <span className="evc-mode-badge is-muted">{L.badgeUnused}</span>}
+                        {enabled && overlapIds.has(ph.id) && (
+                          <span className="evc-mode-badge is-warn">{L.badgeParallel}</span>
+                        )}
+                        <button
+                          type="button"
+                          className={`evc-sched-toggle${enabled ? ' is-on' : ''}${ph.required ? ' is-locked' : ''}`}
+                          onClick={() => { if (!ph.required) togglePhaseEnabled(ph.id); }}
+                          disabled={ph.required}
+                          aria-pressed={enabled}
+                          data-testid={`evc-sched-toggle-${ph.id}`}
+                        >
+                          <span className="evc-sched-toggle-dot" />
+                        </button>
+                      </div>
+                      {enabled && (
+                        <div className="evc-sched-fields">
+                          <label className="evc-sched-field">
+                            <span className="evc-field-label">{L.startDateTime}</span>
+                            <input
+                              type="datetime-local"
+                              className="evc-input"
+                              value={sc.start || ''}
+                              onChange={(e) => updateSchedule(ph.id, 'start', e.target.value)}
+                              data-testid={`evc-sched-start-${ph.id}`}
+                            />
+                          </label>
+                          <label className="evc-sched-field">
+                            <span className="evc-field-label">{L.endDateTime}</span>
+                            <input
+                              type="datetime-local"
+                              className="evc-input"
+                              value={sc.end || ''}
+                              min={sc.start || undefined}
+                              onChange={(e) => updateSchedule(ph.id, 'end', e.target.value)}
+                              data-testid={`evc-sched-end-${ph.id}`}
+                            />
+                          </label>
+                          <label className="evc-sched-field">
+                            <span className="evc-field-label">{L.reminderLabel}</span>
+                            <select
+                              className="evc-input"
+                              value={reminderOf(ph.id)}
+                              onChange={(e) => setReminders((r) => ({ ...r, [ph.id]: e.target.value }))}
+                              data-testid={`evc-sched-reminder-${ph.id}`}
+                            >
+                              {REMINDER_OPTIONS.map((o) => (
+                                <option key={o.value} value={o.value}>{L[o.labelKey]}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      )}
+                      {enabled && rtype && (
+                        <div className="evc-sched-tpl">
+                          <span className="evc-field-label">
+                            {L.appliedTemplate}{' '}
+                            <span className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</span>
+                          </span>
+                          <div className="evc-sched-tpl-empty">{L.templateEmptyHint}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
 
@@ -396,14 +594,15 @@ export default function EvalCycleWizard({
                   <span>{L.targetSummaryLabel}</span>
                   <b>{fill(L.targetSummaryValue, { count: targetCount })}</b>
                 </div>
-                {schedulePhases.map((p) =>
-                  dues[p.key] ? (
-                    <div key={p.key} className="evc-summary-row">
-                      <span>{L[p.statusKey]} {L.dueLabel}</span>
-                      <b>{dues[p.key]}</b>
-                    </div>
-                  ) : null,
-                )}
+                <div className="evc-summary-row">
+                  <span>{L.scheduleSummaryLabel}</span>
+                  <b>
+                    {displayPhases
+                      .filter((p) => !disabledPhases.has(p.id))
+                      .map((p) => L[p.nameKey])
+                      .join(' · ')}
+                  </b>
+                </div>
               </div>
               <p className="evc-wiz-hint">{L.createDraftHint}</p>
             </div>
