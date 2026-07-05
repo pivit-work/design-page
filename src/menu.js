@@ -20,6 +20,5 @@ export const SIDEBAR_MENU = [
   { id: 'meetings', icon: '/icons-solid/file-02.svg',             label: '회의록',   section: 'top' },
   { id: 'eval',     icon: '/icons-solid/edit-02.svg',             label: '평가',     section: 'top' },
   { id: 'manager',  icon: '/icons-solid/user-edit.svg',           label: '매니저',   section: 'top' },
-  { id: 'ai_chat',  icon: '/icons-solid/ai-chat-01.svg',          label: 'AI Chat',  section: 'top' },
   { id: 'admin',    icon: '/icons-solid/lock-keyhole-square.svg', label: '어드민',   section: 'bottom' },
 ];
