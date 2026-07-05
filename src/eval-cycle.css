@@ -904,6 +904,47 @@
 }
 .evc-preview-gradechips { display: flex; gap: var(--spacing-xs, 4px); flex-wrap: wrap; }
 
+/* 직급별 버전 매트릭스 */
+.evc-tpl-role-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-md, 8px);
+}
+.evc-tpl-rolemode { flex: 0 0 auto; }
+.evc-tpl-roles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  margin-top: var(--spacing-xs, 4px);
+}
+.evc-tpl-role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 10px);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+}
+.evc-tpl-role-name { font-size: var(--font-size-text-sm, 13px); font-weight: 700; color: var(--text-primary); }
+.evc-tpl-role-versions { display: flex; gap: var(--spacing-xs, 4px); }
+.evc-tpl-role-ver {
+  padding: 4px 10px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #475467);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+}
+.evc-tpl-role-ver.is-on {
+  border-color: var(--bg-brand-solid, #2dbd82);
+  background: color-mix(in srgb, var(--bg-brand-solid, #2dbd82) 8%, transparent);
+  color: var(--bg-brand-solid, #2dbd82);
+}
+
 /* 대상자 선택 리스트 */
 .evc-member-list {
   display: flex;

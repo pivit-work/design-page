@@ -395,6 +395,9 @@ export default function EvalCycleWizard({
   const [tplDragIdx, setTplDragIdx] = useState(null);
   const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
+  // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
+  const [roleMode, setRoleMode] = useState('uniform'); // 'uniform' | 'by_role'
+  const [roleVersions, setRoleVersions] = useState({}); // { 직급: version }
 
   const steps = [
     { titleKey: 'wizardStep1' }, // 기본 정보
@@ -456,6 +459,13 @@ export default function EvalCycleWizard({
     tplGrades.length >= MIN_GRADES &&
     tplGrades.every((g) => g.label.trim()) &&
     !tplRatioInvalid;
+  // 대상 멤버 position 에서 직급 목록 도출(중복 제거, 빈값 제외).
+  const roleLevels = [
+    ...new Set(candidates.map((c) => c.position).filter(Boolean)),
+  ];
+  const roleVersionOf = (role) => roleVersions[role] || 'standard';
+  const setRoleVersion = (role, v) =>
+    setRoleVersions((prev) => ({ ...prev, [role]: v }));
   const selectTplPreset = (id) => {
     setTplVersion(id);
     setTplQuestions(TEMPLATE_PRESETS[id]);
@@ -591,6 +601,8 @@ export default function EvalCycleWizard({
           displayPhases.map((p) => [p.id, reminderOf(p.id)]),
         ),
         templateMap: phaseTemplateMap,
+        roleMode,
+        roleVersions: roleMode === 'by_role' ? roleVersions : {},
       },
       // v2 슬라이스2: 단계에 매핑된 템플릿 정의를 백엔드로 전달(clientId 로 참조).
       evalTemplates: savedTemplates
@@ -793,6 +805,60 @@ export default function EvalCycleWizard({
                   </button>
                 ))}
               </div>
+
+              {roleLevels.length > 0 && (
+                <>
+                  <div className="evc-tpl-role-head">
+                    <span className="evc-field-label">{L.roleVersionTitle}</span>
+                    <div className="evc-type-row evc-tpl-rolemode">
+                      <button
+                        type="button"
+                        className={`evc-type-chip${roleMode === 'uniform' ? ' is-on' : ''}`}
+                        onClick={() => setRoleMode('uniform')}
+                        data-testid="evc-tpl-rolemode-uniform"
+                      >
+                        {L.roleModeUniform}
+                      </button>
+                      <button
+                        type="button"
+                        className={`evc-type-chip${roleMode === 'by_role' ? ' is-on' : ''}`}
+                        onClick={() => setRoleMode('by_role')}
+                        data-testid="evc-tpl-rolemode-byrole"
+                      >
+                        {L.roleModeByRole}
+                      </button>
+                    </div>
+                  </div>
+                  {roleMode === 'uniform' ? (
+                    <p className="evc-wiz-hint">
+                      {fill(L.roleUniformNote, {
+                        version: L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey],
+                      })}
+                    </p>
+                  ) : (
+                    <div className="evc-tpl-roles">
+                      {roleLevels.map((role) => (
+                        <div key={role} className="evc-tpl-role-row">
+                          <span className="evc-tpl-role-name">{role}</span>
+                          <div className="evc-tpl-role-versions">
+                            {TEMPLATE_VERSIONS.map((v) => (
+                              <button
+                                type="button"
+                                key={v.id}
+                                className={`evc-tpl-role-ver${roleVersionOf(role) === v.id ? ' is-on' : ''}`}
+                                onClick={() => setRoleVersion(role, v.id)}
+                                data-testid={`evc-tpl-role-${role}-${v.id}`}
+                              >
+                                {L[v.labelKey]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
 
               <div className="evc-tpl-items-head">
                 <span className="evc-field-label">
