@@ -602,8 +602,8 @@
 .evc-sched-card.is-required { background: var(--bg-secondary, #f9fafb); }
 .evc-sched-card.is-off { opacity: 0.55; }
 .evc-sched-card.is-over {
-  border-color: var(--utility-brand-500, #7f56d9);
-  box-shadow: 0 0 0 1px var(--utility-brand-500, #7f56d9);
+  border-color: var(--bg-brand-solid, #2dbd82);
+  box-shadow: 0 0 0 1px var(--bg-brand-solid, #2dbd82);
 }
 .evc-sched-card.has-overlap { border-color: var(--utility-purple-300, #bdb4fe); }
 .evc-sched-head {
@@ -626,7 +626,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--utility-brand-500, #7f56d9);
+  background: var(--bg-brand-solid, #2dbd82);
   color: #fff;
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 700;
@@ -679,6 +679,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs, 4px);
+  min-width: 0; /* grid 자식이 콘텐츠보다 좁게 줄어들 수 있게 — 리마인더 select 잘림 방지 */
+}
+.evc-sched-field > .evc-input {
+  width: 100%;
+  box-sizing: border-box;
 }
 .evc-sched-tpl {
   margin-top: 10px;

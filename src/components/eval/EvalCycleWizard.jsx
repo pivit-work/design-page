@@ -117,16 +117,16 @@ function getOverlapPairs(rows) {
   return pairs;
 }
 
-/** 활성 단계에 7일 간격 초기 일정 배치(시작 09:00 · 종료 18:00, datetime-local). */
+/** 활성 단계에 7일 간격 초기 일정(시작·종료 날짜) 배치. */
 function initSchedule(phases, baseDate) {
   const DAY = 86400000;
   const base = baseDate ? new Date(baseDate) : new Date();
-  const fmt = (d, hm) => `${d.toISOString().slice(0, 10)}T${hm}`;
+  const iso = (d) => d.toISOString().slice(0, 10);
   const s = {};
   phases.forEach((p, i) => {
     const st = new Date(base.getTime() + i * 7 * DAY);
     const en = new Date(st.getTime() + 6 * DAY);
-    s[p.id] = { start: fmt(st, '09:00'), end: fmt(en, '18:00') };
+    s[p.id] = { start: iso(st), end: iso(en) };
   });
   return s;
 }
@@ -167,6 +167,10 @@ export default function EvalCycleWizard({
   const [picker, setPicker] = useState(null);
   const openPicker = (field) => (e) =>
     setPicker({ field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
+  // 단계별 일정 date picker 팝오버: { phaseId, field:'start'|'end', rect, el }
+  const [schedPicker, setSchedPicker] = useState(null);
+  const openSchedPicker = (phaseId, field) => (e) =>
+    setSchedPicker({ phaseId, field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
   const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
   const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
@@ -479,27 +483,30 @@ export default function EvalCycleWizard({
                       </div>
                       {enabled && (
                         <div className="evc-sched-fields">
-                          <label className="evc-sched-field">
-                            <span className="evc-field-label">{L.startDateTime}</span>
-                            <input
-                              type="datetime-local"
-                              className="evc-input"
-                              value={sc.start || ''}
-                              onChange={(e) => updateSchedule(ph.id, 'start', e.target.value)}
+                          <div className="evc-sched-field">
+                            <span className="evc-field-label">{L.startDate}</span>
+                            <button
+                              type="button"
+                              className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === 'start' ? ' is-open' : ''}`}
+                              style={{ textAlign: 'left', cursor: 'pointer' }}
+                              onClick={openSchedPicker(ph.id, 'start')}
                               data-testid={`evc-sched-start-${ph.id}`}
-                            />
-                          </label>
-                          <label className="evc-sched-field">
-                            <span className="evc-field-label">{L.endDateTime}</span>
-                            <input
-                              type="datetime-local"
-                              className="evc-input"
-                              value={sc.end || ''}
-                              min={sc.start || undefined}
-                              onChange={(e) => updateSchedule(ph.id, 'end', e.target.value)}
+                            >
+                              {sc.start || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
+                            </button>
+                          </div>
+                          <div className="evc-sched-field">
+                            <span className="evc-field-label">{L.endDate}</span>
+                            <button
+                              type="button"
+                              className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === 'end' ? ' is-open' : ''}`}
+                              style={{ textAlign: 'left', cursor: 'pointer' }}
+                              onClick={openSchedPicker(ph.id, 'end')}
                               data-testid={`evc-sched-end-${ph.id}`}
-                            />
-                          </label>
+                            >
+                              {sc.end || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
+                            </button>
+                          </div>
                           <label className="evc-sched-field">
                             <span className="evc-field-label">{L.reminderLabel}</span>
                             <select
@@ -528,6 +535,18 @@ export default function EvalCycleWizard({
                   );
                 });
               })()}
+              {schedPicker && (
+                <DatePicker
+                  anchorRect={schedPicker.rect}
+                  anchorEl={schedPicker.el}
+                  selectedDate={isoToDate(scheduleOf(schedPicker.phaseId)[schedPicker.field])}
+                  onSelect={(d) => {
+                    updateSchedule(schedPicker.phaseId, schedPicker.field, dateToIso(d));
+                    setSchedPicker(null);
+                  }}
+                  onClose={() => setSchedPicker(null)}
+                />
+              )}
             </div>
           )}
 
