@@ -91,6 +91,76 @@ const REMINDER_OPTIONS = [
   { value: 'none', labelKey: 'reminderNone' },
 ];
 
+// ── 평가 템플릿(WizardStep3) 모델 ─────────────────────────────
+// 템플릿이 적용될 리뷰 종류 — 리뷰종류 id(self/peer/upward/leader)와 1:1.
+const TEMPLATE_TYPES = [
+  { id: 'self', nameKey: 'reviewSelf' },
+  { id: 'peer', nameKey: 'reviewPeer' },
+  { id: 'upward', nameKey: 'reviewUpward' },
+  { id: 'leader', nameKey: 'reviewLeader' },
+];
+// 버전 프리셋(간소형/중간형/세분화형).
+const TEMPLATE_VERSIONS = [
+  { id: 'simple', labelKey: 'tplVersionSimple' },
+  { id: 'standard', labelKey: 'tplVersionStandard' },
+  { id: 'detailed', labelKey: 'tplVersionDetailed' },
+];
+// 상대비율 적용 범위.
+const RATIO_SCOPES = [
+  { id: 'dept', labelKey: 'ratioScopeDept' },
+  { id: 'div', labelKey: 'ratioScopeDiv' },
+  { id: 'company', labelKey: 'ratioScopeCompany' },
+];
+// 질문 유형(항목 응답 방식).
+const QUESTION_TYPES = [
+  { id: 'textarea', labelKey: 'qTypeTextarea' },
+  { id: 'rating', labelKey: 'qTypeRating' },
+  { id: 'grade', labelKey: 'qTypeGrade' },
+  { id: 'checkbox', labelKey: 'qTypeCheckbox' },
+];
+// 프리셋별 질문 시드(편집 가능한 콘텐츠). section·text 는 HR 이 수정하는 데이터.
+const TEMPLATE_PRESETS = {
+  simple: [
+    { id: 's1', section: '성과 (What)', text: '이번 기간 종합 코멘트를 작성해주세요.', type: 'textarea' },
+    { id: 's2', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
+  ],
+  standard: [
+    { id: 'q1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea' },
+    { id: 'q2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
+    { id: 'q3', section: '역량 (How)', text: '주도성 · 오너십', type: 'rating' },
+    { id: 'q4', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
+    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea' },
+    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea' },
+    { id: 'q7', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
+  ],
+  detailed: [
+    { id: 'd1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea' },
+    { id: 'd2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
+    { id: 'd3', section: '성과 (What)', text: '정량 목표 달성률', type: 'rating' },
+    { id: 'd4', section: '역량 (How)', text: '주도성 / 오너십', type: 'rating' },
+    { id: 'd5', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
+    { id: 'd6', section: '역량 (How)', text: '실행력', type: 'rating' },
+    { id: 'd7', section: '역량 (How)', text: '전문성 · 문제 해결', type: 'rating' },
+    { id: 'd8', section: '역량 (How)', text: '리더십 · 영향력', type: 'rating' },
+    { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea' },
+    { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea' },
+    { id: 'd11', section: '성장 (Growth)', text: '성장 가능성', type: 'rating' },
+    { id: 'd12', section: '최종 등급 결정', text: '승진 추천 여부', type: 'checkbox' },
+    { id: 'd13', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
+  ],
+};
+// 워크스페이스 기본 등급 체계(상대비율 포함).
+const DEFAULT_GRADES = [
+  { label: '탁월', desc: '기대를 초과하는 성과를 달성함', ratio: 15 },
+  { label: '충족', desc: '기대에 부합하는 성과를 달성함', ratio: 70 },
+  { label: '미흡', desc: '기대에 미달하는 성과를 보임', ratio: 15 },
+];
+const MAX_GRADES = 10;
+const MIN_GRADES = 2;
+
+// 현재 빌더 상태 → 템플릿 요약 문자열(항목 N · 등급 M단계).
+const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0), 0);
+
 /** 선택한 리뷰종류로 활성 단계 목록 도출. */
 function activePhasesFor(reviewTypes) {
   return ALL_PHASES.filter(
@@ -153,6 +223,44 @@ function StepBar({ steps, current, labels: L, onJump }) {
   );
 }
 
+// 평가 항목 추가 폼 — section·text·type 입력 후 추가.
+function AddQuestionRow({ onAdd, labels: L }) {
+  const [section, setSection] = useState('성과 (What)');
+  const [text, setText] = useState('');
+  const [type, setType] = useState('textarea');
+  const submit = () => {
+    if (!text.trim()) return;
+    onAdd(section, text, type);
+    setText('');
+  };
+  return (
+    <div className="evc-tpl-additem">
+      <input
+        className="evc-input"
+        value={section}
+        onChange={(e) => setSection(e.target.value)}
+        placeholder={L.templateSectionPlaceholder}
+        data-testid="evc-tpl-add-section"
+      />
+      <input
+        className="evc-input"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={L.templateItemPlaceholder}
+        data-testid="evc-tpl-add-text"
+      />
+      <select className="evc-input" value={type} onChange={(e) => setType(e.target.value)}>
+        {QUESTION_TYPES.map((t) => (
+          <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
+        ))}
+      </select>
+      <button type="button" className="evc-btn is-ghost" onClick={submit} data-testid="evc-tpl-add-item">
+        {L.templateAddItem}
+      </button>
+    </div>
+  );
+}
+
 export default function EvalCycleWizard({
   labels: L,
   candidates = [],
@@ -185,12 +293,23 @@ export default function EvalCycleWizard({
   const [includeMode, setIncludeMode] = useState('bulk');
   const [selectedIds, setSelectedIds] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
+  // 평가 템플릿(step 1) — 워크스페이스 라이브러리 + 빌더 상태
+  const [savedTemplates, setSavedTemplates] = useState([]); // 이 세션 라이브러리
+  const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
+  const [tplName, setTplName] = useState('');
+  const [tplVersion, setTplVersion] = useState('standard');
+  const [tplQuestions, setTplQuestions] = useState(TEMPLATE_PRESETS.standard);
+  const [tplGrades, setTplGrades] = useState(DEFAULT_GRADES);
+  const [tplAbsolute, setTplAbsolute] = useState(false); // 절대평가(상대비율 없음)
+  const [tplRatioScope, setTplRatioScope] = useState('div');
+  const [phaseTemplateMap, setPhaseTemplateMap] = useState({}); // { phaseId: templateId }
 
   const steps = [
-    { titleKey: 'wizardStep1' },
-    { titleKey: 'wizardStep2' },
-    { titleKey: 'wizardStepTargets' },
-    { titleKey: 'wizardStep3' },
+    { titleKey: 'wizardStep1' }, // 기본 정보
+    { titleKey: 'wizardStepTemplate' }, // 평가 템플릿
+    { titleKey: 'wizardStep2' }, // 단계별 일정
+    { titleKey: 'wizardStepTargets' }, // 대상자
+    { titleKey: 'wizardStep3' }, // 확인 및 생성
   ];
 
   const hasPeer = reviewTypes.includes('peer');
@@ -238,6 +357,68 @@ export default function EvalCycleWizard({
       prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
     );
 
+  // ── 평가 템플릿 빌더 헬퍼 ──
+  const tplRatioSum = gradeSum(tplGrades);
+  const tplRatioInvalid = !tplAbsolute && tplRatioSum !== 100;
+  const tplGradesValid =
+    tplGrades.length >= MIN_GRADES &&
+    tplGrades.every((g) => g.label.trim()) &&
+    !tplRatioInvalid;
+  const selectTplPreset = (id) => {
+    setTplVersion(id);
+    setTplQuestions(TEMPLATE_PRESETS[id]);
+  };
+  const removeQuestion = (id) =>
+    setTplQuestions((qs) => qs.filter((q) => q.id !== id));
+  const addQuestion = (section, text, type) => {
+    if (!text.trim()) return;
+    setTplQuestions((qs) => [
+      ...qs,
+      { id: `c${qs.length}_${text.length}`, section, text: text.trim(), type },
+    ]);
+  };
+  const updateGrade = (i, field, value) =>
+    setTplGrades((gs) => gs.map((g, idx) => (idx === i ? { ...g, [field]: value } : g)));
+  const addGrade = () =>
+    setTplGrades((gs) => (gs.length >= MAX_GRADES ? gs : [...gs, { label: '', desc: '', ratio: 0 }]));
+  const removeGrade = (i) =>
+    setTplGrades((gs) => (gs.length <= MIN_GRADES ? gs : gs.filter((_, idx) => idx !== i)));
+  const saveTemplate = () => {
+    const name = tplName.trim();
+    if (!name || !tplGradesValid) return;
+    const tpl = {
+      id: `tpl${savedTemplates.length}_${name.length}`,
+      name,
+      reviewType: tplType,
+      version: tplVersion,
+      questions: tplQuestions,
+      grades: tplGrades,
+      absolute: tplAbsolute,
+      ratioScope: tplRatioScope,
+    };
+    setSavedTemplates((prev) => [tpl, ...prev]);
+    setTplName('');
+  };
+  const loadTemplate = (tpl) => {
+    setTplType(tpl.reviewType);
+    setTplName(tpl.name);
+    setTplVersion(tpl.version);
+    setTplQuestions(tpl.questions);
+    setTplGrades(tpl.grades);
+    setTplAbsolute(!!tpl.absolute);
+    setTplRatioScope(tpl.ratioScope || 'div');
+  };
+  const deleteTemplate = (id) => {
+    setSavedTemplates((prev) => prev.filter((t) => t.id !== id));
+    setPhaseTemplateMap((m) => {
+      const n = { ...m };
+      Object.keys(n).forEach((k) => {
+        if (n[k] === id) delete n[k];
+      });
+      return n;
+    });
+  };
+
   const togglePeerMode = (key) =>
     setPeerAssignModes((prev) =>
       prev.includes(key)
@@ -270,7 +451,10 @@ export default function EvalCycleWizard({
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
   const canAdvance =
-    (step === 0 && step1Valid) || (step === 2 && targetsValid) || step === 1;
+    (step === 0 && step1Valid) ||
+    step === 1 ||
+    step === 2 ||
+    (step === 3 && targetsValid);
 
   const submit = () => {
     const payload = {
@@ -293,7 +477,7 @@ export default function EvalCycleWizard({
         reminders: Object.fromEntries(
           displayPhases.map((p) => [p.id, reminderOf(p.id)]),
         ),
-        templateMap: {},
+        templateMap: phaseTemplateMap,
       },
       // 구 flat due 컬럼은 review_sequence 로 대체 — back-compat 위해 null 전달.
       peerAssignDue: null,
@@ -426,6 +610,198 @@ export default function EvalCycleWizard({
 
           {step === 1 && (
             <div className="evc-wiz-panel">
+              <p className="evc-wiz-hint">{L.templateHint}</p>
+
+              <span className="evc-field-label">{L.templateTypeLabel}</span>
+              <div className="evc-type-row">
+                {TEMPLATE_TYPES.map((rt) => (
+                  <button
+                    type="button"
+                    key={rt.id}
+                    className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${reviewTypes.includes(rt.id) ? '' : ' is-dim'}`}
+                    onClick={() => setTplType(rt.id)}
+                    data-testid={`evc-tpl-type-${rt.id}`}
+                  >
+                    {L[rt.nameKey]}
+                  </button>
+                ))}
+              </div>
+
+              <span className="evc-field-label">{L.templateNameLabel}</span>
+              <input
+                className="evc-input"
+                value={tplName}
+                onChange={(e) => setTplName(e.target.value)}
+                placeholder={L.templateNamePlaceholder}
+                data-testid="evc-tpl-name"
+              />
+
+              <span className="evc-field-label">{L.templateVersionLabel}</span>
+              <div className="evc-type-row">
+                {TEMPLATE_VERSIONS.map((v) => (
+                  <button
+                    type="button"
+                    key={v.id}
+                    className={`evc-type-chip${tplVersion === v.id ? ' is-on' : ''}`}
+                    onClick={() => selectTplPreset(v.id)}
+                    data-testid={`evc-tpl-version-${v.id}`}
+                  >
+                    {L[v.labelKey]}
+                  </button>
+                ))}
+              </div>
+
+              <span className="evc-field-label">
+                {L.templateItemsLabel} ({tplQuestions.length})
+              </span>
+              <div className="evc-tpl-items">
+                {tplQuestions.map((q) => (
+                  <div key={q.id} className="evc-tpl-item">
+                    <span className="evc-tpl-item-section">{q.section}</span>
+                    <span className="evc-tpl-item-text">{q.text}</span>
+                    <span className="evc-tpl-item-type">
+                      {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+                    </span>
+                    <button
+                      type="button"
+                      className="evc-tpl-x"
+                      onClick={() => removeQuestion(q.id)}
+                      aria-label={L.delete}
+                      data-testid={`evc-tpl-item-del-${q.id}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <AddQuestionRow onAdd={addQuestion} labels={L} />
+
+              <span className="evc-field-label">{L.templateGradesLabel}</span>
+              <label className="evl-promo-row">
+                <input
+                  type="checkbox"
+                  checked={tplAbsolute}
+                  onChange={(e) => setTplAbsolute(e.target.checked)}
+                  data-testid="evc-tpl-absolute"
+                />
+                <span>{L.templateAbsolute}</span>
+              </label>
+              {!tplAbsolute && (
+                <select
+                  className="evc-input"
+                  value={tplRatioScope}
+                  onChange={(e) => setTplRatioScope(e.target.value)}
+                  data-testid="evc-tpl-ratioscope"
+                >
+                  {RATIO_SCOPES.map((r) => (
+                    <option key={r.id} value={r.id}>{L[r.labelKey]}</option>
+                  ))}
+                </select>
+              )}
+              <div className="evc-tpl-grades">
+                {tplGrades.map((g, i) => (
+                  <div key={i} className="evc-tpl-grade">
+                    <input
+                      className="evc-input"
+                      value={g.label}
+                      placeholder={L.gradeLabelPlaceholder}
+                      onChange={(e) => updateGrade(i, 'label', e.target.value)}
+                      data-testid={`evc-tpl-grade-label-${i}`}
+                    />
+                    <input
+                      className="evc-input"
+                      value={g.desc}
+                      placeholder={L.gradeDescPlaceholder}
+                      onChange={(e) => updateGrade(i, 'desc', e.target.value)}
+                    />
+                    {!tplAbsolute && (
+                      <input
+                        type="number"
+                        className="evc-input evc-tpl-grade-ratio"
+                        value={g.ratio}
+                        onChange={(e) => updateGrade(i, 'ratio', Number(e.target.value))}
+                        data-testid={`evc-tpl-grade-ratio-${i}`}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="evc-tpl-x"
+                      onClick={() => removeGrade(i)}
+                      disabled={tplGrades.length <= MIN_GRADES}
+                      aria-label={L.delete}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="evc-tpl-grade-foot">
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={addGrade}
+                  disabled={tplGrades.length >= MAX_GRADES}
+                  data-testid="evc-tpl-add-grade"
+                >
+                  {L.templateAddGrade}
+                </button>
+                {!tplAbsolute && (
+                  <span className={`evc-tpl-ratiosum${tplRatioInvalid ? ' is-invalid' : ''}`}>
+                    {fill(L.templateRatioSum, { sum: tplRatioSum })}
+                  </span>
+                )}
+              </div>
+
+              <div className="evc-tpl-lib">
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  onClick={saveTemplate}
+                  disabled={!tplName.trim() || !tplGradesValid}
+                  data-testid="evc-tpl-save"
+                >
+                  {L.templateSave}
+                </button>
+                {savedTemplates.length > 0 && (
+                  <div className="evc-tpl-lib-list">
+                    {savedTemplates.map((t) => (
+                      <div key={t.id} className="evc-tpl-lib-item">
+                        <span className="evc-mode-badge">
+                          {L[TEMPLATE_TYPES.find((x) => x.id === t.reviewType)?.nameKey]}
+                        </span>
+                        <span className="evc-tpl-lib-name">{t.name}</span>
+                        <span className="evc-tpl-lib-meta">
+                          {fill(L.templateMeta, {
+                            items: t.questions.length,
+                            grades: t.grades.length,
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={() => loadTemplate(t)}
+                          data-testid={`evc-tpl-load-${t.id}`}
+                        >
+                          {L.templateLoad}
+                        </button>
+                        <button
+                          type="button"
+                          className="evc-tpl-x"
+                          onClick={() => deleteTemplate(t.id)}
+                          aria-label={L.delete}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="evc-wiz-panel">
               <p className="evc-wiz-hint">{L.scheduleHint}</p>
               {overlapPairs.length > 0 && (
                 <div className="evc-sched-overlap-note" data-testid="evc-sched-overlap">
@@ -522,15 +898,34 @@ export default function EvalCycleWizard({
                           </label>
                         </div>
                       )}
-                      {enabled && rtype && (
-                        <div className="evc-sched-tpl">
-                          <span className="evc-field-label">
-                            {L.appliedTemplate}{' '}
-                            <span className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</span>
-                          </span>
-                          <div className="evc-sched-tpl-empty">{L.templateEmptyHint}</div>
-                        </div>
-                      )}
+                      {enabled && rtype && (() => {
+                        const opts = savedTemplates.filter((t) => t.reviewType === rtype);
+                        return (
+                          <div className="evc-sched-tpl">
+                            <span className="evc-field-label">
+                              {L.appliedTemplate}{' '}
+                              <span className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</span>
+                            </span>
+                            {opts.length === 0 ? (
+                              <div className="evc-sched-tpl-empty">{L.templateEmptyHint}</div>
+                            ) : (
+                              <select
+                                className="evc-input"
+                                value={phaseTemplateMap[ph.id] || ''}
+                                onChange={(e) =>
+                                  setPhaseTemplateMap((m) => ({ ...m, [ph.id]: e.target.value }))
+                                }
+                                data-testid={`evc-sched-tpl-${ph.id}`}
+                              >
+                                <option value="">{L.templateSelectPlaceholder}</option>
+                                {opts.map((t) => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 });
@@ -550,7 +945,7 @@ export default function EvalCycleWizard({
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="evc-wiz-panel">
               <div className="evc-type-row">
                 <button
@@ -612,7 +1007,7 @@ export default function EvalCycleWizard({
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="evc-wiz-panel">
               <div className="evc-summary-card">
                 <div className="evc-summary-row"><span>{L.cycleName}</span><b>{name}</b></div>
