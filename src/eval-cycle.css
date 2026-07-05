@@ -612,8 +612,9 @@
   gap: var(--spacing-md, 8px);
 }
 .evc-sched-handle {
-  font-size: 14px;
-  color: var(--text-tertiary, #98a2b3);
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-quaternary, #d0d5dd);
   cursor: grab;
   flex-shrink: 0;
 }
