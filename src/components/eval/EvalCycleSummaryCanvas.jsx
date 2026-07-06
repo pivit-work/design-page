@@ -14,6 +14,20 @@ const DEFAULT_LABELS = {
   statSelfSubmitted: '셀프 제출',
   statGraded: '등급 확정',
   unit: '명',
+  // §4.A Tab A KPI
+  kpiTotal: '총 평가 대상',
+  kpiSubmitRate: '제출 완료율',
+  kpiExcellent: '탁월 비율',
+  kpiAvgGrade: '평균 등급',
+  guideWord: '가이드',
+  scoreWord: '스코어',
+  guidelineLabel: '가이드라인',
+  prevCompareTitle: '이전 사이클 비교',
+  prevColGrade: '등급',
+  prevColThis: '이번',
+  prevColPrev: '이전',
+  prevColDelta: '변화',
+  prevEmpty: '이전 사이클 데이터가 없습니다',
   distributionTitle: '등급 분포',
   empty: '아직 집계할 데이터가 없습니다.',
   deptTitle: '부서별 등급 확정',
@@ -52,6 +66,13 @@ export default function EvalCycleSummaryCanvas({
   selfSubmittedCount = 0,
   gradedCount = 0,
   gradeDistribution = [],
+  excellentCount = 0,
+  excellentPct = 0,
+  excellentGuidelinePct = null,
+  avgGradeScore = 0,
+  avgGradeLabel = null,
+  maxGradeScore = 0,
+  previousCycle = null,
   deptBreakdown = [],
   integrated = [],
   report = null,
@@ -64,6 +85,8 @@ export default function EvalCycleSummaryCanvas({
   const [tab, setTab] = useState('overview');
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const maxDept = Math.max(1, ...deptBreakdown.map((d) => d.count));
+  const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
+  const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
 
   const reportState = !report
     ? 'notGenerated'
@@ -127,38 +150,102 @@ export default function EvalCycleSummaryCanvas({
       <div className="evc-list">
         {tab === 'overview' && (
           <>
-            <div className="evs-stats" data-testid="evs-stats">
-              {[
-                { k: 'p', label: L.statParticipants, value: totalParticipants },
-                { k: 's', label: L.statSelfSubmitted, value: selfSubmittedCount },
-                { k: 'g', label: L.statGraded, value: gradedCount },
-              ].map((s) => (
-                <div className="evs-stat" key={s.k}>
-                  <span className="evs-stat-value">{s.value}</span>
-                  <span className="evs-stat-label">
-                    {s.label}<span className="evs-stat-unit"> {L.unit}</span>
-                  </span>
-                </div>
-              ))}
+            {/* §4.A KPI 4종 */}
+            <div className="evs-kpis" data-testid="evs-kpis">
+              <div className="evs-kpi tone-accent" data-testid="evs-kpi-total">
+                <span className="evs-kpi-value">{totalParticipants}<span className="evs-kpi-unit">{L.unit}</span></span>
+                <span className="evs-kpi-label">{L.kpiTotal}</span>
+                {cycle?.name && <span className="evs-kpi-sub">{cycle.name}</span>}
+              </div>
+              <div className="evs-kpi tone-green" data-testid="evs-kpi-submit">
+                <span className="evs-kpi-value">{submitPct}%</span>
+                <span className="evs-kpi-label">{L.kpiSubmitRate}</span>
+                <span className="evs-kpi-sub">{selfSubmittedCount}{L.unit} / {totalParticipants}{L.unit}</span>
+              </div>
+              <div className="evs-kpi tone-amber" data-testid="evs-kpi-excellent">
+                <span className="evs-kpi-value">{excellentPct}%</span>
+                <span className="evs-kpi-label">{L.kpiExcellent}</span>
+                <span className="evs-kpi-sub">
+                  {excellentCount}{L.unit}
+                  {excellentGuidelinePct != null && <> / {L.guideWord} {excellentGuidelinePct}%</>}
+                </span>
+              </div>
+              <div className="evs-kpi" data-testid="evs-kpi-avg">
+                <span className="evs-kpi-value evs-kpi-value-text">{avgGradeLabel ?? '—'}</span>
+                <span className="evs-kpi-label">{L.kpiAvgGrade}</span>
+                {maxGradeScore > 0 && (
+                  <span className="evs-kpi-sub">{L.scoreWord} {avgGradeScore.toFixed(2)} / {maxGradeScore.toFixed(2)}</span>
+                )}
+              </div>
             </div>
-            <section className="evc-card">
-              <h3 className="evc-card-name">{L.distributionTitle}</h3>
-              {gradeDistribution.length === 0 ? (
-                <p className="evc-empty-sub">{L.empty}</p>
-              ) : (
-                <div className="evs-dist">
-                  {gradeDistribution.map((d) => (
-                    <div className="evs-dist-row" key={d.gradeKey} data-testid="evs-dist-row">
-                      <span className="evs-dist-label">{gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
-                      <div className="evs-dist-track">
-                        <div className="evs-dist-fill" style={{ width: `${(d.count / maxCount) * 100}%` }} />
+
+            <div className="evs-two-col">
+              {/* 등급 분포 + 가이드라인 점선 */}
+              <section className="evc-card">
+                <h3 className="evc-card-name">{L.distributionTitle}</h3>
+                {gradeDistribution.length === 0 ? (
+                  <p className="evc-empty-sub">{L.empty}</p>
+                ) : (
+                  <div className="evs-dist">
+                    {gradeDistribution.map((d) => (
+                      <div className="evs-dist-row" key={d.gradeKey} data-testid="evs-dist-row">
+                        <span className="evs-dist-label">{d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
+                        <div className="evs-dist-body">
+                          <div className="evs-dist-track">
+                            <div className="evs-dist-fill" style={{ width: `${(d.count / maxCount) * 100}%` }} />
+                            {d.guidelinePct != null && (
+                              <div
+                                className="evs-dist-guide"
+                                style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
+                                title={`${L.guidelineLabel} ${d.guidelinePct}%`}
+                                data-testid="evs-dist-guide"
+                              />
+                            )}
+                          </div>
+                          {d.guidelinePct != null && (
+                            <span className="evs-dist-guide-cap">{L.guidelineLabel} {d.guidelinePct}%</span>
+                          )}
+                        </div>
+                        <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
                       </div>
-                      <span className="evs-dist-count">{d.count}</span>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* 이전 사이클 비교 */}
+              <section className="evc-card" data-testid="evs-prev-compare">
+                <h3 className="evc-card-name">
+                  {L.prevCompareTitle}{previousCycle?.name && <span className="evs-prev-name"> ({previousCycle.name})</span>}
+                </h3>
+                {!previousCycle ? (
+                  <p className="evc-empty-sub">{L.prevEmpty}</p>
+                ) : (
+                  <div className="evmon-table evs-prev-table">
+                    <div className="evmon-row evmon-head">
+                      <span>{L.prevColGrade}</span>
+                      <span>{L.prevColThis}</span>
+                      <span>{L.prevColPrev}</span>
+                      <span>{L.prevColDelta}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                    {gradeDistribution.map((d) => {
+                      const prev = prevPctByKey.get(d.gradeKey);
+                      const delta = prev == null ? null : d.pct - prev;
+                      return (
+                        <div className="evs-prev-row" role="row" key={d.gradeKey} data-testid="evs-prev-row">
+                          <span>{d.label ?? d.gradeKey}</span>
+                          <span className="evs-prev-num">{d.pct}%</span>
+                          <span className="evs-prev-num is-muted">{prev == null ? '—' : `${prev}%`}</span>
+                          <span className={`evs-prev-delta${delta == null || delta === 0 ? '' : delta > 0 ? ' is-up' : ' is-down'}`}>
+                            {delta == null ? '—' : delta === 0 ? '—' : delta > 0 ? `▲ +${delta}%p` : `▼ ${delta}%p`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
           </>
         )}
 
