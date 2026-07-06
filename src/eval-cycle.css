@@ -1551,6 +1551,15 @@
   border-color: var(--utility-blue-500);
   box-shadow: 0 0 0 3px var(--utility-blue-50);
 }
+/* §4.8a 미입력 항목 강조 — amber 보더로 작성 필요 안내(포커스 시 파랑 우선) */
+.evm-textarea.is-empty {
+  border-color: var(--utility-orange-300, #f7b27a);
+  background: var(--utility-orange-50, #fffaeb);
+}
+.evm-textarea.is-empty:focus {
+  border-color: var(--utility-blue-500);
+  background: var(--bg-quaternary);
+}
 .evm-textarea:disabled {
   background: var(--bg-secondary);
   color: var(--text-secondary);

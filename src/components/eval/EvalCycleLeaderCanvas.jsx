@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -186,9 +186,13 @@ export default function EvalCycleLeaderCanvas({
   const [promotionReady, setPromotionReady] = useState(assessment?.promotionReady ?? false);
   const [compensationNote, setCompensationNote] = useState(assessment?.compensationNote ?? '');
 
-  useEffect(() => {
+  // 답변/템플릿 async 로드 시 재시드 — effect-setState 대신 during-render 리셋
+  // (React 공식 "adjust state during render"), fields/leaderAnswers 참조 변경 시에만.
+  const [seededFor, setSeededFor] = useState({ fields, leaderAnswers });
+  if (seededFor.fields !== fields || seededFor.leaderAnswers !== leaderAnswers) {
+    setSeededFor({ fields, leaderAnswers });
     setState(seedState(leaderAnswers, fields));
-  }, [fields, leaderAnswers]);
+  }
 
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));

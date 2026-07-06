@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -144,9 +144,13 @@ export default function EvalCycleMemberCanvas({
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
-  useEffect(() => {
+  // effect-setState 대신 during-render 리셋(React 공식 "adjust state during render")로
+  // fields/answers 참조 변경 시에만 재시드 — 편집 중에는 유지.
+  const [seededFor, setSeededFor] = useState({ fields, answers });
+  if (seededFor.fields !== fields || seededFor.answers !== answers) {
+    setSeededFor({ fields, answers });
     setState(seedState(answers, fields));
-  }, [fields, answers]);
+  }
 
   if (!active) {
     return (
@@ -268,7 +272,7 @@ export default function EvalCycleMemberCanvas({
                     </div>
                     {f.requiresRationale && (
                       <textarea
-                        className="evm-textarea"
+                        className={`evm-textarea${!submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}`}
                         rows={2}
                         value={state[f.key].rationale}
                         placeholder={L.rationalePlaceholder}
@@ -291,7 +295,7 @@ export default function EvalCycleMemberCanvas({
                   </label>
                 ) : (
                   <textarea
-                    className="evm-textarea"
+                    className={`evm-textarea${!submitted && !state[f.key].textAnswer.trim() ? ' is-empty' : ''}`}
                     rows={4}
                     value={state[f.key].textAnswer}
                     placeholder={f.placeholder}
