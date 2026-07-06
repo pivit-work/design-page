@@ -28,6 +28,15 @@ const DEFAULT_LABELS = {
   prevColPrev: '이전',
   prevColDelta: '변화',
   prevEmpty: '이전 사이클 데이터가 없습니다',
+  // §4.A 리더별 제출 현황
+  leaderTitle: '리더별 제출 현황',
+  leaderColLeader: '리더',
+  leaderColDept: '부서',
+  leaderColDone: '완료',
+  leaderColIncomplete: '미완료',
+  leaderColDelayed: '지연',
+  leaderColProgress: '진행률',
+  leaderEmpty: '리더 데이터가 없습니다',
   // §4.A 미제출자 리마인드
   submitAllDone: '전원 제출 완료',
   submitPending: '미제출 {n}명 · 클릭 → 리마인드',
@@ -104,6 +113,7 @@ export default function EvalCycleSummaryCanvas({
   maxGradeScore = 0,
   previousCycle = null,
   nonSubmitters = [],
+  leaderStats = [],
   deptBreakdown = [],
   integrated = [],
   report = null,
@@ -338,6 +348,53 @@ export default function EvalCycleSummaryCanvas({
                 )}
               </section>
             </div>
+
+            {/* §4.A 리더별 제출 현황 */}
+            <section className="evc-card" data-testid="evs-leaders">
+              <h3 className="evc-card-name">{L.leaderTitle}</h3>
+              {leaderStats.length === 0 ? (
+                <p className="evc-empty-sub">{L.leaderEmpty}</p>
+              ) : (
+                <div className="evs-leader-table">
+                  <div className="evs-leader-row evs-leader-head">
+                    <span>{L.leaderColLeader}</span>
+                    <span>{L.leaderColDept}</span>
+                    <span className="evs-leader-num">{L.leaderColDone}</span>
+                    <span className="evs-leader-num">{L.leaderColIncomplete}</span>
+                    <span className="evs-leader-num">{L.leaderColDelayed}</span>
+                    <span>{L.leaderColProgress}</span>
+                  </div>
+                  {leaderStats.map((s) => {
+                    const incomplete = s.total - s.done;
+                    const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
+                    return (
+                      <div className="evs-leader-row" role="row" key={s.leaderId} data-testid="evs-leader-row">
+                        <span className="evs-leader-lead">
+                          <span className="evs-leader-avatar">{(s.name || '?').slice(0, 1)}</span>
+                          <span className="evs-leader-name">{s.name || s.leaderId}</span>
+                        </span>
+                        <span className="evs-leader-dept">{s.dept}</span>
+                        <span className="evs-leader-num evs-leader-done">{s.done}{L.unit}</span>
+                        <span className={`evs-leader-num${incomplete > 0 ? ' evs-leader-bad' : ' is-muted'}`}>{incomplete}{L.unit}</span>
+                        <span className="evs-leader-num">
+                          {s.delayed > 0 ? (
+                            <span className="evs-leader-delay">{s.delayed}{L.unit}</span>
+                          ) : (
+                            <span className="is-muted">—</span>
+                          )}
+                        </span>
+                        <span className="evs-leader-prog">
+                          <span className="evs-dist-track evs-leader-track">
+                            <span className={`evs-dist-fill${pct >= 100 ? ' is-full' : ''}`} style={{ width: `${pct}%` }} />
+                          </span>
+                          <span className={`evs-leader-pct${pct >= 100 ? ' is-full' : ''}`}>{pct}%</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
           </>
         )}
 
