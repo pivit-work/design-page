@@ -39,6 +39,14 @@ const DEFAULT_LABELS = {
     '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
   toastHeld: '사이클이 일시 중단되었습니다',
   toastResumed: '사이클이 재개되었습니다',
+  // §4.1.2-A 진행 중 일정 수정
+  editSchedule: '일정 수정',
+  editScheduleTitle: '단계별 일정 수정',
+  editScheduleNote:
+    '각 단계의 시작·종료 일시를 조정합니다. 단계 간 일정은 겹쳐도 됩니다(병렬 진행). 변경 시 해당 단계 담당자에게 알림이 발송됩니다.',
+  editScheduleOrderErr: '종료 일시는 시작 일시와 같거나 이후여야 합니다.',
+  editScheduleSave: '일정 저장',
+  toastScheduleSaved: '일정이 수정되었습니다',
   // status
   statusDraft: '준비 중',
   statusPeerAssign: '동료 배정',
@@ -129,6 +137,16 @@ const LIFECYCLE = [
 ];
 
 const REVIEW_TYPE_KEYS = { self: 'reviewSelf', peer: 'reviewPeer', leader: 'reviewLeader' };
+// 단계 id → 라벨 키(마법사 PHASES 와 정합). ScheduleEditModal 에서 단계명 표시.
+const PHASE_NAME_KEYS = {
+  self: 'phaseSelf',
+  peer_confirm: 'phasePeerConfirm',
+  peer: 'phasePeer',
+  upward: 'phaseUpward',
+  leader: 'phaseLeader',
+  calibration: 'phaseCalibration',
+  share: 'phaseShare',
+};
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -164,6 +182,120 @@ function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfir
   );
 }
 
+// datetime-local 값 정규화: 날짜만 저장돼 있으면 기본 시각 부여, 이미 datetime 이면 분까지 자름
+function toLocalInput(v, defTime) {
+  if (!v) return '';
+  if (v.includes('T')) return v.slice(0, 16);
+  return `${v}T${defTime}`;
+}
+
+// §4.1.2-A 진행 중 단계 일정 인라인 수정 모달
+function ScheduleEditModal({ cycle, labels: L, onCancel, onSave }) {
+  const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
+  const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
+  const [rows, setRows] = useState(() => {
+    const init = {};
+    for (const id of phases) {
+      const s = rs.schedule?.[id] ?? {};
+      init[id] = {
+        start: toLocalInput(s.start, '09:00'),
+        end: toLocalInput(s.end, '18:00'),
+      };
+    }
+    return init;
+  });
+  const setField = (id, field, value) =>
+    setRows((r) => ({ ...r, [id]: { ...r[id], [field]: value } }));
+
+  const invalid = phases.filter((id) => {
+    const r = rows[id];
+    return r?.start && r?.end && new Date(r.end) < new Date(r.start);
+  });
+  const hasError = invalid.length > 0;
+
+  const handleSave = () => {
+    if (hasError) return;
+    const schedule = {};
+    for (const id of phases) {
+      schedule[id] = { start: rows[id].start || null, end: rows[id].end || null };
+    }
+    onSave(cycle.id, schedule);
+  };
+
+  return createPortal(
+    <div className="evc-modal-overlay" onClick={onCancel}>
+      <div
+        className="evc-modal is-wide evc-sched-modal"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="evc-schedule-modal"
+      >
+        <h3 className="evc-modal-title">{L.editScheduleTitle}</h3>
+        <p className="evc-modal-sub">{cycle.name}</p>
+        <div className="evc-sched-modal-note">{L.editScheduleNote}</div>
+        <div className="evc-sched-modal-list">
+          {phases.map((id, i) => {
+            const bad = invalid.includes(id);
+            return (
+              <div
+                key={id}
+                className={`evc-sched-modal-row${bad ? ' is-bad' : ''}`}
+                data-testid={`evc-sched-row-${id}`}
+              >
+                <div className="evc-sched-modal-phase">
+                  <span className="evc-sched-modal-num">{i + 1}</span>
+                  <span className="evc-sched-modal-name">
+                    {L[PHASE_NAME_KEYS[id]] ?? id}
+                  </span>
+                </div>
+                <div className="evc-sched-modal-fields">
+                  <label className="evc-sched-modal-field">
+                    <span>{L.startDateTime ?? L.startDate}</span>
+                    <input
+                      type="datetime-local"
+                      className="evc-input"
+                      value={rows[id]?.start ?? ''}
+                      onChange={(e) => setField(id, 'start', e.target.value)}
+                      data-testid={`evc-sched-start-${id}`}
+                    />
+                  </label>
+                  <span className="evc-sched-modal-tilde">~</span>
+                  <label className="evc-sched-modal-field">
+                    <span>{L.endDateTime ?? L.endDate}</span>
+                    <input
+                      type="datetime-local"
+                      className="evc-input"
+                      value={rows[id]?.end ?? ''}
+                      min={rows[id]?.start || undefined}
+                      onChange={(e) => setField(id, 'end', e.target.value)}
+                      data-testid={`evc-sched-end-${id}`}
+                    />
+                  </label>
+                </div>
+                {bad && <div className="evc-sched-modal-err">{L.editScheduleOrderErr}</div>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="evc-modal-actions">
+          <button type="button" className="evc-btn is-ghost" onClick={onCancel}>
+            {L.cancel}
+          </button>
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            disabled={hasError}
+            onClick={handleSave}
+            data-testid="evc-sched-save"
+          >
+            {L.editScheduleSave}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function StatusBadge({ status, label }) {
   const meta = STATUS_META[status] ?? STATUS_META.draft;
   return <span className={`evc-status-badge tone-${meta.tone}`}>{label}</span>;
@@ -186,7 +318,7 @@ function LifecycleStepper({ status, labels: L }) {
   );
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, onResume }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, onResume, onEditSchedule }) {
   const isDraft = cycle.status === 'draft';
   const isDone = cycle.status === 'done';
   const isOnHold = cycle.status === 'on_hold';
@@ -253,6 +385,16 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
               {L.open}
             </button>
           )}
+          {(isActive || isOnHold) && cycle.reviewSequence && (
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => onEditSchedule(cycle)}
+              data-testid="evc-edit-schedule"
+            >
+              {L.editSchedule}
+            </button>
+          )}
           {isDone ? (
             <button type="button" className="evc-btn is-ghost" onClick={() => onViewResults(cycle)} data-testid="evc-results">
               {L.viewResults}
@@ -280,11 +422,13 @@ export default function EvalCycleHrCanvas({
   onViewResults,
   onHoldCycle,
   onResumeCycle,
+  onPatchSchedule,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [scheduleModal, setScheduleModal] = useState(null); // §4.1.2-A: 편집 대상 cycle
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -345,6 +489,12 @@ export default function EvalCycleHrCanvas({
   const handleResume = (cycle) =>
     void run(() => onResumeCycle?.(cycle.id), L.toastResumed);
 
+  // §4.1.2-A: 진행 중 단계 일정 저장
+  const handleSaveSchedule = (cycleId, schedule) => {
+    setScheduleModal(null);
+    void run(() => onPatchSchedule?.(cycleId, schedule), L.toastScheduleSaved);
+  };
+
   return (
     <div className="evc-root">
       {toast && (
@@ -385,6 +535,7 @@ export default function EvalCycleHrCanvas({
               onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
               onHold={requestHold}
               onResume={handleResume}
+              onEditSchedule={(c) => setScheduleModal(c)}
             />
           ))}
         </div>
@@ -408,6 +559,15 @@ export default function EvalCycleHrCanvas({
           danger={confirmModal.danger}
           onConfirm={confirmModal.onConfirm}
           onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {scheduleModal && (
+        <ScheduleEditModal
+          cycle={scheduleModal}
+          labels={L}
+          onCancel={() => setScheduleModal(null)}
+          onSave={handleSaveSchedule}
         />
       )}
     </div>

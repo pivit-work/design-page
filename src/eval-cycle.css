@@ -398,6 +398,87 @@
 .evc-modal.is-wide {
   max-width: 520px;
 }
+/* §4.1.2-A 진행 중 일정 수정 모달 */
+.evc-modal.evc-sched-modal {
+  max-width: 560px;
+  max-height: 86vh;
+}
+.evc-sched-modal-note {
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 14px);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-brand-secondary, var(--utility-blue-50));
+  border: 1px solid var(--border-brand, rgba(21, 112, 239, 0.15));
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.evc-sched-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+  overflow-y: auto;
+  padding: var(--spacing-xs, 2px);
+}
+.evc-sched-modal-row {
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 14px);
+}
+.evc-sched-modal-row.is-bad {
+  border-color: var(--utility-error-500, #f04438);
+  background: var(--utility-error-50, #fef3f2);
+}
+.evc-sched-modal-phase {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-md, 10px);
+}
+.evc-sched-modal-num {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--bg-brand-solid, var(--utility-blue-600));
+  color: var(--text-white, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+}
+.evc-sched-modal-name {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-sched-modal-fields {
+  display: grid;
+  grid-template-columns: 1fr 16px 1fr;
+  align-items: end;
+  gap: var(--spacing-sm, 8px);
+}
+.evc-sched-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-secondary);
+}
+.evc-sched-modal-field .evc-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.evc-sched-modal-tilde {
+  text-align: center;
+  color: var(--text-tertiary);
+  padding-bottom: var(--spacing-md, 8px);
+}
+.evc-sched-modal-err {
+  margin-top: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--utility-error-600, #d92d20);
+}
 .evc-modal-title {
   font-size: var(--font-size-text-md, 16px);
   font-weight: 700;
