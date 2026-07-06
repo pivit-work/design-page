@@ -13,6 +13,12 @@ const DEFAULT_LABELS = {
   notActive: '셀프 리뷰 기간이 아닙니다',
   notActiveSub: '셀프 리뷰 단계가 시작되면 작성할 수 있습니다.',
   submittedBanner: '제출 완료 — 마감 전까지 다시 제출할 수 있습니다.',
+  // §4.2 활동 요약 박스
+  actTitle: '아래 정보는 작성 참고용입니다 — 리뷰 기간 활동 요약',
+  actSub: '셀프 리뷰 작성 전 아래 내용을 참고하세요. 잘 기억나지 않는 성과를 확인하고 정리해보세요.',
+  actOneOnOne: '1:1 미팅',
+  actFeedback: '받은 피드백',
+  actSnippets: '스니핏 하이라이트',
   workTitle: '업적 (What)',
   workPlaceholder: '이번 기간의 핵심 성과와 결과를 기록하세요.',
   competencyTitle: '역량 (How)',
@@ -130,6 +136,7 @@ export default function EvalCycleMemberCanvas({
   answers,
   template = null,
   active = true,
+  activitySummary = null,
   labels: providedLabels,
   onSave,
   onSubmit,
@@ -235,6 +242,36 @@ export default function EvalCycleMemberCanvas({
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
         </div>
       </header>
+
+      {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
+      {!submitted && activitySummary && (() => {
+        const blocks = [
+          { key: 'oneOnOne', icon: '🤝', label: L.actOneOnOne, items: activitySummary.oneOnOne },
+          { key: 'feedback', icon: '💬', label: L.actFeedback, items: activitySummary.receivedFeedback },
+          { key: 'snippets', icon: '📝', label: L.actSnippets, items: activitySummary.snippets },
+        ].filter((b) => Array.isArray(b.items) && b.items.length > 0);
+        if (blocks.length === 0) return null;
+        return (
+          <div className="evc-list">
+            <section className="evm-activity" data-testid="evm-activity">
+              <div className="evm-activity-head">
+                <div className="evm-activity-title">{L.actTitle}</div>
+                <div className="evm-activity-sub">{L.actSub}</div>
+              </div>
+              <div className="evm-activity-grid">
+                {blocks.map((b) => (
+                  <div className="evm-activity-block" key={b.key} data-testid={`evm-activity-${b.key}`}>
+                    <div className="evm-activity-block-title">{b.icon} {b.label}</div>
+                    {b.items.map((item, i) => (
+                      <div className="evm-activity-item" key={i}>· {item}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        );
+      })()}
 
       {submitted && (
         <div className="evc-list">
