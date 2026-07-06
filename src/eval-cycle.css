@@ -2204,6 +2204,86 @@
 .evs-prev-delta.is-up { color: var(--utility-green-600, #17b26a); }
 .evs-prev-delta.is-down { color: var(--utility-error-600, #d92d20); }
 
+/* §4.A 리더별 제출 현황 테이블 */
+.evs-leader-table {
+  display: flex;
+  flex-direction: column;
+}
+.evs-leader-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 0.7fr 0.7fr 0.7fr 1.4fr;
+  gap: var(--spacing-md, 10px);
+  align-items: center;
+  padding: var(--spacing-md, 9px) 0;
+  border-top: 1px solid var(--bg-secondary, #f3f4f6);
+  font-size: var(--font-size-text-sm, 13px);
+}
+.evs-leader-head {
+  border-top: none;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.evs-leader-num { text-align: right; }
+.evs-leader-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  min-width: 0;
+}
+.evs-leader-avatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--utility-blue-500, #2e90fa);
+  color: #fff;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.evs-leader-name { font-weight: 700; color: var(--text-primary); }
+.evs-leader-dept { font-size: var(--font-size-text-xs, 11px); color: var(--text-secondary); }
+.evs-leader-done {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-weight: 700;
+  color: var(--utility-green-600, #17b26a);
+}
+.evs-leader-num.evs-leader-bad {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-weight: 700;
+  color: var(--utility-error-600, #d92d20);
+}
+.evs-leader-num.is-muted { color: var(--text-tertiary); }
+.evs-leader-delay {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--utility-error-50, #fef3f2);
+  border: 1px solid var(--utility-error-200, #fecdca);
+  color: var(--utility-error-600, #d92d20);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 600;
+}
+.evs-leader-prog {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+}
+.evs-leader-track { flex: 1; }
+.evs-dist-fill.is-full { background: var(--utility-green-500, #17b26a); }
+.evs-leader-pct {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs, 12px);
+  min-width: 34px;
+  text-align: right;
+  color: var(--utility-brand-600, #2dbd82);
+}
+.evs-leader-pct.is-full { color: var(--utility-green-600, #17b26a); }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
