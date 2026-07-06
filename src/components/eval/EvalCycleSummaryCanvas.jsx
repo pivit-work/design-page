@@ -10,6 +10,24 @@ const DEFAULT_LABELS = {
   tabOverview: '전사 요약',
   tabDept: '부서별',
   tabIntegrated: '통합 요약',
+  tabLeaderPattern: '리더별 평가 패턴',
+  // §6.C 리더별 평가 패턴
+  lpBannerLenient: '관대화 경향',
+  lpBannerStrict: '엄격화 경향',
+  lpBannerBalanced: '균형',
+  lpDistTitle: '리더별 등급 분포 비교',
+  lpCalibTitle: '캘리브레이션 전후 등급 변화',
+  lpColLeader: '리더',
+  lpColDept: '부서',
+  lpColTendency: '관대/엄격 경향',
+  lpColAdjusted: '조정된 인원',
+  lpEmpty: '팀을 담당하는 리더 데이터가 없습니다',
+  lpCalibEmpty: '이번 사이클에서 등급 조정이 없었습니다',
+  lpMajorityWarn: '과반수 리더가 관대화 경향입니다. 캘리브레이션 재검토 권장.',
+  lpTagLenient: '관대화 경향',
+  lpTagStrict: '엄격화 경향',
+  lpTagBalanced: '균형',
+  lpTagNa: '-',
   statParticipants: '평가 대상',
   statSelfSubmitted: '셀프 제출',
   statGraded: '등급 확정',
@@ -114,6 +132,7 @@ export default function EvalCycleSummaryCanvas({
   previousCycle = null,
   nonSubmitters = [],
   leaderStats = [],
+  leaderPatterns = [],
   deptBreakdown = [],
   integrated = [],
   report = null,
@@ -190,8 +209,26 @@ export default function EvalCycleSummaryCanvas({
   const tabs = [
     { key: 'overview', label: L.tabOverview },
     { key: 'dept', label: L.tabDept },
+    { key: 'leaderPattern', label: L.tabLeaderPattern },
     { key: 'integrated', label: L.tabIntegrated },
   ];
+
+  // §6.C 경향 배너 버킷 + 색.
+  const tendencyMeta = {
+    lenient: { label: L.lpBannerLenient, tone: 'amber' },
+    strict: { label: L.lpBannerStrict, tone: 'red' },
+    balanced: { label: L.lpBannerBalanced, tone: 'green' },
+  };
+  const patternBuckets = ['lenient', 'strict', 'balanced'].map((key) => ({
+    key,
+    ...tendencyMeta[key],
+    leaders: leaderPatterns.filter((p) => p.tendency === key),
+  }));
+  const lenientMajority =
+    leaderPatterns.length > 0 &&
+    patternBuckets[0].leaders.length > leaderPatterns.length / 2;
+  const tagOf = (t) =>
+    t === 'lenient' ? L.lpTagLenient : t === 'strict' ? L.lpTagStrict : t === 'balanced' ? L.lpTagBalanced : L.lpTagNa;
 
   return (
     <div className="evc-root">
@@ -417,6 +454,97 @@ export default function EvalCycleSummaryCanvas({
               </div>
             )}
           </section>
+        )}
+
+        {tab === 'leaderPattern' && (
+          leaderPatterns.length === 0 ? (
+            <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-lp-empty">{L.lpEmpty}</p></section>
+          ) : (
+            <>
+              {/* Block 1 — 경향 요약 배너 */}
+              <div className="evs-lp-banner" data-testid="evs-lp-banner">
+                {patternBuckets.map((b) => (
+                  <div className={`evs-lp-card tone-${b.tone}`} key={b.key} data-testid={`evs-lp-bucket-${b.key}`}>
+                    <div className="evs-lp-card-label">{b.label}</div>
+                    <div className="evs-lp-card-count">{b.leaders.length}{L.unit}</div>
+                    <div className="evs-lp-card-names">{b.leaders.length ? b.leaders.map((l) => l.name).join(', ') : '—'}</div>
+                  </div>
+                ))}
+              </div>
+              {lenientMajority && (
+                <p className="evs-lp-warn" data-testid="evs-lp-warn">⚠ {L.lpMajorityWarn}</p>
+              )}
+
+              {/* Block 2 — 리더별 등급 분포 비교 */}
+              <section className="evc-card">
+                <h3 className="evc-card-name">{L.lpDistTitle}</h3>
+                <div className="evs-lp-list">
+                  {leaderPatterns.map((p) => (
+                    <div className="evs-lp-row" key={p.leaderId} data-testid="evs-lp-row">
+                      <div className="evs-lp-row-head">
+                        <span className="evs-lp-lead">
+                          <span className="evs-leader-avatar">{(p.name || '?').slice(0, 1)}</span>
+                          <span>
+                            <span className="evs-leader-name">{p.name || p.leaderId}</span>
+                            <span className="evs-lp-dept"> · {p.dept}</span>
+                          </span>
+                        </span>
+                        <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>
+                          {tagOf(p.tendency)}
+                        </span>
+                      </div>
+                      <div className="evs-lp-bar" role="img">
+                        {p.gradeDistribution.map((g, i) => (
+                          g.pct > 0 && (
+                            <span
+                              key={g.gradeKey}
+                              className={`evs-lp-seg seg-${i === 0 ? 'top' : i === p.gradeDistribution.length - 1 ? 'bottom' : 'mid'}`}
+                              style={{ width: `${g.pct}%` }}
+                            />
+                          )
+                        ))}
+                      </div>
+                      <div className="evs-lp-legend">
+                        {p.gradeDistribution.map((g, i) => (
+                          <span className="evs-lp-legend-item" key={g.gradeKey}>
+                            <span className={`evs-lp-dot seg-${i === 0 ? 'top' : i === p.gradeDistribution.length - 1 ? 'bottom' : 'mid'}`} />
+                            {g.label} {g.pct}%
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Block 3 — 캘리브레이션 전후 등급 변화 */}
+              <section className="evc-card" data-testid="evs-lp-calib">
+                <h3 className="evc-card-name">{L.lpCalibTitle}</h3>
+                {leaderPatterns.every((p) => p.calibDelta === 0) ? (
+                  <p className="evc-empty-sub">{L.lpCalibEmpty}</p>
+                ) : (
+                  <div className="evs-leader-table">
+                    <div className="evs-leader-row evs-lp-calib-row evs-leader-head">
+                      <span>{L.lpColLeader}</span>
+                      <span>{L.lpColDept}</span>
+                      <span>{L.lpColTendency}</span>
+                      <span className="evs-leader-num">{L.lpColAdjusted}</span>
+                    </div>
+                    {leaderPatterns.map((p) => (
+                      <div className="evs-leader-row evs-lp-calib-row" role="row" key={p.leaderId} data-testid="evs-lp-calib-row">
+                        <span className="evs-leader-name">{p.name || p.leaderId}</span>
+                        <span className="evs-leader-dept">{p.dept}</span>
+                        <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</span>
+                        <span className={`evs-leader-num evs-lp-delta${p.calibDelta > 0 ? ' is-up' : p.calibDelta < 0 ? ' is-down' : ' is-muted'}`}>
+                          {p.calibDelta === 0 ? '—' : p.calibDelta > 0 ? `▲ ${p.calibDelta}${L.unit}` : `▼ ${Math.abs(p.calibDelta)}${L.unit}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          )
         )}
 
         {tab === 'integrated' && (

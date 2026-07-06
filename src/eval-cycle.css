@@ -2284,6 +2284,94 @@
 }
 .evs-leader-pct.is-full { color: var(--utility-green-600, #17b26a); }
 
+/* §6.C 리더별 평가 패턴 */
+.evs-lp-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md, 10px);
+}
+.evs-lp-card {
+  border-radius: var(--radius-xl, 14px);
+  padding: var(--spacing-lg, 14px) var(--spacing-xl, 16px);
+  border: 1px solid var(--bg-active, #e6e8ea);
+  background: var(--bg-primary, #fff);
+}
+.evs-lp-card.tone-amber { background: var(--utility-orange-50, #fffaeb); border-color: var(--utility-orange-200, #fedf89); }
+.evs-lp-card.tone-red { background: var(--utility-error-50, #fef3f2); border-color: var(--utility-error-200, #fecdca); }
+.evs-lp-card.tone-green { background: var(--utility-green-50, #ecfdf3); border-color: var(--utility-green-200, #abefc6); }
+.evs-lp-card-label { font-size: var(--font-size-text-xs, 11px); font-weight: 700; }
+.evs-lp-card.tone-amber .evs-lp-card-label { color: var(--utility-orange-700, #93370d); }
+.evs-lp-card.tone-red .evs-lp-card-label { color: var(--utility-error-700, #b42318); }
+.evs-lp-card.tone-green .evs-lp-card-label { color: var(--utility-green-700, #087443); }
+.evs-lp-card-count {
+  font-size: var(--font-size-display-xs, 22px);
+  font-weight: 800;
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  color: var(--text-primary);
+  margin: 2px 0;
+}
+.evs-lp-card-names { font-size: var(--font-size-text-xxs, 10px); color: var(--text-secondary); line-height: 1.5; }
+.evs-lp-warn {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-orange-50, #fffaeb);
+  border: 1px solid var(--utility-orange-200, #fedf89);
+  color: var(--utility-orange-700, #93370d);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+.evs-lp-list { display: flex; flex-direction: column; }
+.evs-lp-row { padding: var(--spacing-lg, 14px) 0; }
+.evs-lp-row + .evs-lp-row { border-top: 1px solid var(--bg-secondary, #f3f4f6); }
+.evs-lp-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 10px);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+.evs-lp-lead { display: flex; align-items: center; gap: var(--spacing-sm, 8px); }
+.evs-lp-dept { font-size: var(--font-size-text-xs, 11px); color: var(--text-secondary); font-weight: 400; }
+.evs-lp-tag {
+  padding: 2px 9px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.evs-lp-tag.tone-amber { background: var(--utility-orange-50, #fffaeb); border: 1px solid var(--utility-orange-200, #fedf89); color: var(--utility-orange-700, #93370d); }
+.evs-lp-tag.tone-red { background: var(--utility-error-50, #fef3f2); border: 1px solid var(--utility-error-200, #fecdca); color: var(--utility-error-700, #b42318); }
+.evs-lp-tag.tone-green { background: var(--utility-green-50, #ecfdf3); border: 1px solid var(--utility-green-200, #abefc6); color: var(--utility-green-700, #087443); }
+.evs-lp-tag.tone-neutral { background: var(--bg-secondary, #f3f4f6); color: var(--text-tertiary); }
+.evs-lp-bar {
+  display: flex;
+  height: 16px;
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+  background: var(--bg-secondary, #f3f4f6);
+}
+.evs-lp-seg { height: 100%; }
+.evs-lp-seg.seg-top { background: var(--utility-green-500, #17b26a); }
+.evs-lp-seg.seg-mid { background: var(--utility-brand-500, #2dbd82); }
+.evs-lp-seg.seg-bottom { background: var(--utility-error-500, #d92d20); }
+.evs-lp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 12px);
+  margin-top: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-secondary);
+}
+.evs-lp-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.evs-lp-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.evs-lp-dot.seg-top { background: var(--utility-green-500, #17b26a); }
+.evs-lp-dot.seg-mid { background: var(--utility-brand-500, #2dbd82); }
+.evs-lp-dot.seg-bottom { background: var(--utility-error-500, #d92d20); }
+.evs-lp-calib-row { grid-template-columns: 1.2fr 1.2fr auto 1fr; }
+.evs-lp-delta.is-up { color: var(--utility-green-600, #17b26a); font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
+.evs-lp-delta.is-down { color: var(--utility-error-600, #d92d20); font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
+.evs-lp-delta.is-muted { color: var(--text-tertiary); }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
