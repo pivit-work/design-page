@@ -28,6 +28,28 @@ const DEFAULT_LABELS = {
   prevColPrev: '이전',
   prevColDelta: '변화',
   prevEmpty: '이전 사이클 데이터가 없습니다',
+  // §4.A 미제출자 리마인드
+  submitAllDone: '전원 제출 완료',
+  submitPending: '미제출 {n}명 · 클릭 → 리마인드',
+  remindTitle: '미제출자 리마인드',
+  remindSubtitle: '제출 완료율 {pct}% · 미제출 {n}명',
+  remindSelectAll: '전체 선택',
+  remindSelectedOf: '선택 {sel}명 / 대상 {total}명',
+  remindLeaderDept: '{dept}',
+  remindPending: '미제출: {type}',
+  remindDue: '마감 {date}',
+  remindLast: '최근 리마인드 {date}',
+  remindNone: '없음',
+  remindSent: '발송됨 ✓',
+  remindReSendWarn: '재발송 주의',
+  remindReSendTip: '최근 24시간 내 발송 이력',
+  remindToast: '리마인드를 발송했습니다 ({n}명)',
+  remindGuardNote: '동일 대상 24시간 내 재발송 시 확인 안내',
+  remindClose: '닫기',
+  remindSend: '선택 {n}명에게 리마인드 발송',
+  pendingSelf: '셀프 리뷰',
+  pendingPeer: '동료 리뷰',
+  pendingManager: '하향 평가',
   distributionTitle: '등급 분포',
   empty: '아직 집계할 데이터가 없습니다.',
   deptTitle: '부서별 등급 확정',
@@ -49,6 +71,14 @@ const DEFAULT_LABELS = {
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
+}
+function fmt(str, vars) {
+  return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 function mergeLabels(base, provided) {
   if (!provided) return base;
@@ -73,6 +103,7 @@ export default function EvalCycleSummaryCanvas({
   avgGradeLabel = null,
   maxGradeScore = 0,
   previousCycle = null,
+  nonSubmitters = [],
   deptBreakdown = [],
   integrated = [],
   report = null,
@@ -80,6 +111,7 @@ export default function EvalCycleSummaryCanvas({
   labels: providedLabels,
   onGenerate,
   onPublish,
+  onSendReminders,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
@@ -87,6 +119,51 @@ export default function EvalCycleSummaryCanvas({
   const maxDept = Math.max(1, ...deptBreakdown.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
+
+  // §4.A 미제출자 리마인드 모달
+  const pendingCount = nonSubmitters.length;
+  const [showRemind, setShowRemind] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [sent, setSent] = useState(() => new Set());
+  const [remindBusy, setRemindBusy] = useState(false);
+  const [remindToast, setRemindToast] = useState(0);
+  // 모달 오픈 시각(재발송 가드 기준) — 이벤트 핸들러에서 캡처(렌더 중 Date.now 회피).
+  const [remindOpenedAt, setRemindOpenedAt] = useState(0);
+  const pendingTypeLabel = (t) =>
+    t === 'peer' ? L.pendingPeer : t === 'manager' ? L.pendingManager : L.pendingSelf;
+  const recentlyReminded = (iso) =>
+    iso && remindOpenedAt ? remindOpenedAt - new Date(iso).getTime() < 24 * 3600 * 1000 : false;
+
+  const openRemind = () => {
+    if (pendingCount === 0) return;
+    setRemindOpenedAt(Date.now());
+    setSelected(new Set(nonSubmitters.filter((n) => !sent.has(n.memberId)).map((n) => n.memberId)));
+    setShowRemind(true);
+  };
+  const toggleOne = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const selectableIds = nonSubmitters.filter((n) => !sent.has(n.memberId)).map((n) => n.memberId);
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set(selectableIds));
+  const handleSend = async () => {
+    const ids = [...selected];
+    if (ids.length === 0 || !onSendReminders) return;
+    setRemindBusy(true);
+    try {
+      await onSendReminders(ids);
+      setSent((prev) => new Set([...prev, ...ids]));
+      setSelected(new Set());
+      setRemindToast(ids.length);
+    } finally {
+      setRemindBusy(false);
+    }
+  };
 
   const reportState = !report
     ? 'notGenerated'
@@ -157,10 +234,25 @@ export default function EvalCycleSummaryCanvas({
                 <span className="evs-kpi-label">{L.kpiTotal}</span>
                 {cycle?.name && <span className="evs-kpi-sub">{cycle.name}</span>}
               </div>
-              <div className="evs-kpi tone-green" data-testid="evs-kpi-submit">
-                <span className="evs-kpi-value">{submitPct}%</span>
+              <div
+                className={`evs-kpi tone-green${pendingCount > 0 ? ' is-clickable' : ''}`}
+                data-testid="evs-kpi-submit"
+                role={pendingCount > 0 ? 'button' : undefined}
+                tabIndex={pendingCount > 0 ? 0 : undefined}
+                onClick={pendingCount > 0 ? openRemind : undefined}
+                onKeyDown={pendingCount > 0 ? (e) => { if (e.key === 'Enter' || e.key === ' ') openRemind(); } : undefined}
+              >
+                <span className="evs-kpi-value">
+                  {submitPct}%{pendingCount > 0 && <span className="evs-kpi-chevron"> ›</span>}
+                </span>
                 <span className="evs-kpi-label">{L.kpiSubmitRate}</span>
-                <span className="evs-kpi-sub">{selfSubmittedCount}{L.unit} / {totalParticipants}{L.unit}</span>
+                {pendingCount > 0 ? (
+                  <span className="evs-kpi-sub evs-kpi-hint">{fmt(L.submitPending, { n: pendingCount })}</span>
+                ) : selfSubmittedCount >= totalParticipants && totalParticipants > 0 ? (
+                  <span className="evs-kpi-sub">{L.submitAllDone}</span>
+                ) : (
+                  <span className="evs-kpi-sub">{selfSubmittedCount}{L.unit} / {totalParticipants}{L.unit}</span>
+                )}
               </div>
               <div className="evs-kpi tone-amber" data-testid="evs-kpi-excellent">
                 <span className="evs-kpi-value">{excellentPct}%</span>
@@ -292,6 +384,91 @@ export default function EvalCycleSummaryCanvas({
           </section>
         )}
       </div>
+
+      {/* §4.A 미제출자 리마인드 모달 */}
+      {showRemind && (
+        <div className="evs-remind-overlay" data-testid="evs-remind-modal" onClick={() => setShowRemind(false)}>
+          <div className="evs-remind" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="evs-remind-head">
+              <div>
+                <div className="evs-remind-title">{L.remindTitle}</div>
+                <div className="evs-remind-sub">
+                  {fmt(L.remindSubtitle, { pct: submitPct, n: pendingCount })}
+                  {cycle?.name && <> · {cycle.name}</>}
+                </div>
+              </div>
+              <button type="button" className="evs-remind-x" onClick={() => setShowRemind(false)} data-testid="evs-remind-close">×</button>
+            </div>
+
+            <label className="evs-remind-selectall">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} data-testid="evs-remind-selectall" />
+              <span>{L.remindSelectAll}</span>
+              <span className="evs-remind-counter">{fmt(L.remindSelectedOf, { sel: selected.size, total: selectableIds.length })}</span>
+            </label>
+
+            <div className="evs-remind-list">
+              {nonSubmitters.map((n) => {
+                const isSent = sent.has(n.memberId);
+                const warn = recentlyReminded(n.lastRemindedAt);
+                return (
+                  <div className={`evs-remind-row${isSent ? ' is-sent' : ''}`} key={n.memberId} data-testid="evs-remind-row">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(n.memberId)}
+                      disabled={isSent}
+                      onChange={() => toggleOne(n.memberId)}
+                      data-testid={`evs-remind-check-${n.memberId}`}
+                    />
+                    <span className="evs-remind-avatar" style={{ background: n.color || 'var(--utility-blue-500)' }}>
+                      {(n.name || '?').slice(0, 1)}
+                    </span>
+                    <div className="evs-remind-info">
+                      <div className="evs-remind-name">{n.name || n.memberId}</div>
+                      <div className="evs-remind-meta">
+                        {fmt(L.remindLeaderDept, { dept: n.dept })}
+                        {' · '}
+                        <span className="evs-remind-pending">{fmt(L.remindPending, { type: pendingTypeLabel(n.pendingType) })}</span>
+                        {n.dueDate && <> · {fmt(L.remindDue, { date: fmtDate(n.dueDate) })}</>}
+                        {' · '}
+                        {fmt(L.remindLast, { date: n.lastRemindedAt ? fmtDate(n.lastRemindedAt) : L.remindNone })}
+                      </div>
+                    </div>
+                    <span className="evs-remind-status">
+                      {isSent ? (
+                        <span className="evs-remind-done">{L.remindSent}</span>
+                      ) : warn ? (
+                        <span className="evs-remind-warn" title={L.remindReSendTip}>{L.remindReSendWarn}</span>
+                      ) : null}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {remindToast > 0 && (
+              <div className="evs-remind-toast" data-testid="evs-remind-toast">
+                {fmt(L.remindToast, { n: remindToast })}
+              </div>
+            )}
+
+            <div className="evs-remind-foot">
+              <span className="evs-remind-note">{L.remindGuardNote}</span>
+              <div className="evs-remind-actions">
+                <button type="button" className="evc-btn is-ghost" onClick={() => setShowRemind(false)}>{L.remindClose}</button>
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  disabled={selected.size === 0 || remindBusy}
+                  onClick={handleSend}
+                  data-testid="evs-remind-send"
+                >
+                  {fmt(L.remindSend, { n: selected.size })}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
