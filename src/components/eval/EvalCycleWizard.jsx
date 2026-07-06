@@ -85,10 +85,44 @@ const ALL_PHASES = [
 ];
 // 단계 → 평가 유형(적용 템플릿 매핑용). 이 유형 템플릿만 해당 단계에 매핑 가능.
 const PHASE_TO_REVIEW_TYPE = { self: 'self', peer: 'peer', upward: 'upward', leader: 'leader' };
-const REMINDER_OPTIONS = [
-  { value: 'end_d3_d1', labelKey: 'reminderD3D1' },
-  { value: 'end_d1', labelKey: 'reminderD1' },
-  { value: 'none', labelKey: 'reminderNone' },
+// §5.2.1 단계별 리마인더 커스텀 — 단계당 복수 리마인더 자유 설정
+const REMINDER_CHANNELS = [
+  { id: 'email', labelKey: 'reminderChEmail', icon: '✉️' },
+  { id: 'slack', labelKey: 'reminderChSlack', icon: '💬' },
+];
+const REMINDER_ANCHORS = [
+  { id: 'before_end', labelKey: 'reminderAnchorEnd' },
+  { id: 'before_start', labelKey: 'reminderAnchorStart' },
+];
+// 단계별 '미제출 당사자' 요약 라벨(받는 사람 요약용)
+const PHASE_RESPONDER_SHORT = {
+  self: 'reminderRespSelf',
+  peer: 'reminderRespPeer',
+  upward: 'reminderRespUpward',
+  leader: 'reminderRespLeader',
+  peer_confirm: 'reminderRespLeader',
+  calibration: 'reminderRespCalib',
+  share: 'reminderRespShare',
+};
+const SLACK_CHANNELS = ['#performance-review', '#hr-notice', '#team-lead', '#general'];
+let __rmSeq = 0;
+const nextRmId = () => `rm_${++__rmSeq}`;
+const makeReminder = (offset = 1, channels = ['email']) => ({
+  id: nextRmId(),
+  anchor: 'before_end',
+  offset,
+  time: '09:00',
+  channels,
+  targets: { leader: false, hr: false },
+  email: { template: 'default', subject: '', body: '' },
+  slack: { mode: 'dm', channel: SLACK_CHANNELS[0], mention: true },
+});
+// 단계 진입 시 기본 2회(종료 D-3·D-1) — "2회 이상" 요건 충족.
+// id 는 결정적(phase 배열 내 고유) — state seeding 없이도 매 렌더 동일 id 라
+// 채널 토글·삭제가 id 매칭으로 정상 동작(첫 변경 시 state 에 영속).
+const defaultReminders = () => [
+  { ...makeReminder(3, ['email']), id: 'r_default_d3' },
+  { ...makeReminder(1, ['email', 'slack']), id: 'r_default_d1' },
 ];
 
 // ── 평가 템플릿(WizardStep3) 모델 ─────────────────────────────
@@ -374,7 +408,8 @@ export default function EvalCycleWizard({
   const [peerVisibility, setPeerVisibility] = useState(false);
   // 단계별 일정(review_sequence) 상태
   const [schedule, setSchedule] = useState({}); // { phaseId: { start, end } } 사용자 오버라이드
-  const [reminders, setReminders] = useState({}); // { phaseId: reminderValue }
+  const [reminders, setReminders] = useState({}); // { phaseId: [reminderObj] }
+  const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 id
   const [disabledPhases, setDisabledPhases] = useState(() => new Set());
   const [phaseOrder, setPhaseOrder] = useState([]); // 중간 단계 재배열 순서(id)
   const [dragId, setDragId] = useState(null);
@@ -411,7 +446,7 @@ export default function EvalCycleWizard({
   const activePhases = activePhasesFor(reviewTypes);
   const defaultSchedule = initSchedule(activePhases, startDate);
   const scheduleOf = (id) => schedule[id] || defaultSchedule[id] || { start: '', end: '' };
-  const reminderOf = (id) => reminders[id] ?? 'end_d3_d1';
+  const remindersOf = (id) => reminders[id] ?? defaultReminders();
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   const orderedMiddle = [
     ...phaseOrder.filter((id) => middleIds.includes(id)),
@@ -430,6 +465,42 @@ export default function EvalCycleWizard({
 
   const updateSchedule = (id, field, value) =>
     setSchedule((s) => ({ ...s, [id]: { ...scheduleOf(id), [field]: value } }));
+
+  // §5.2.1 리마인더 편집
+  const addReminder = (pid) =>
+    setReminders((r) => ({ ...r, [pid]: [...remindersOf(pid), makeReminder(1, ['email'])] }));
+  const removeReminder = (pid, rid) =>
+    setReminders((r) => ({ ...r, [pid]: remindersOf(pid).filter((x) => x.id !== rid) }));
+  const updateReminder = (pid, rid, field, value) =>
+    setReminders((r) => ({
+      ...r,
+      [pid]: remindersOf(pid).map((x) => (x.id === rid ? { ...x, [field]: value } : x)),
+    }));
+  const patchReminder = (pid, rid, fn) =>
+    setReminders((r) => ({
+      ...r,
+      [pid]: remindersOf(pid).map((x) => (x.id === rid ? { ...x, ...fn(x) } : x)),
+    }));
+  const toggleChannel = (pid, rid, ch) =>
+    setReminders((r) => ({
+      ...r,
+      [pid]: remindersOf(pid).map((x) => {
+        if (x.id !== rid) return x;
+        const has = x.channels.includes(ch);
+        if (has && x.channels.length === 1) return x; // 최소 1채널 유지
+        return {
+          ...x,
+          channels: has ? x.channels.filter((c) => c !== ch) : [...x.channels, ch],
+        };
+      }),
+    }));
+  const toggleRmDetail = (rid) =>
+    setRmDetail((prev) => {
+      const n = new Set(prev);
+      if (n.has(rid)) n.delete(rid);
+      else n.add(rid);
+      return n;
+    });
   const togglePhaseEnabled = (id) =>
     setDisabledPhases((prev) => {
       const n = new Set(prev);
@@ -598,7 +669,9 @@ export default function EvalCycleWizard({
           displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
         ),
         reminders: Object.fromEntries(
-          displayPhases.map((p) => [p.id, reminderOf(p.id)]),
+          displayPhases
+            .filter((p) => !disabledPhases.has(p.id))
+            .map((p) => [p.id, remindersOf(p.id)]),
         ),
         templateMap: phaseTemplateMap,
         roleMode,
@@ -1151,19 +1224,115 @@ export default function EvalCycleWizard({
                               {sc.end || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
                             </button>
                           </div>
-                          <label className="evc-sched-field">
-                            <span className="evc-field-label">{L.reminderLabel}</span>
-                            <select
-                              className="evc-input"
-                              value={reminderOf(ph.id)}
-                              onChange={(e) => setReminders((r) => ({ ...r, [ph.id]: e.target.value }))}
-                              data-testid={`evc-sched-reminder-${ph.id}`}
-                            >
-                              {REMINDER_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{L[o.labelKey]}</option>
+                        </div>
+                      )}
+                      {enabled && (
+                        <div className="evc-rm-block" data-testid={`evc-rm-block-${ph.id}`}>
+                          <div className="evc-rm-head">
+                            <span className="evc-field-label">🔔 {L.reminderLabel}</span>
+                            <span className="evc-rm-count">
+                              {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
+                            </span>
+                            <span className="evc-rm-hint">{L.reminderHint}</span>
+                          </div>
+                          {remindersOf(ph.id).length === 0 ? (
+                            <div className="evc-rm-empty">{L.reminderEmpty}</div>
+                          ) : (
+                            <div className="evc-rm-list">
+                              {remindersOf(ph.id).map((rm, i) => (
+                                <div
+                                  key={rm.id}
+                                  className="evc-rm-row"
+                                  data-testid={`evc-rm-${ph.id}-${i}`}
+                                >
+                                  <div className="evc-rm-main">
+                                    <span className="evc-rm-num">{i + 1}</span>
+                                    <select
+                                      className="evc-rm-field"
+                                      value={rm.anchor}
+                                      onChange={(e) => updateReminder(ph.id, rm.id, 'anchor', e.target.value)}
+                                    >
+                                      {REMINDER_ANCHORS.map((a) => (
+                                        <option key={a.id} value={a.id}>{L[a.labelKey]}</option>
+                                      ))}
+                                    </select>
+                                    <span className="evc-rm-inline">
+                                      <span className="evc-rm-dtext">D-</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={60}
+                                        className="evc-rm-field evc-rm-offset"
+                                        value={rm.offset}
+                                        onChange={(e) =>
+                                          updateReminder(
+                                            ph.id, rm.id, 'offset',
+                                            Math.max(0, Math.min(60, Number(e.target.value) || 0)),
+                                          )}
+                                      />
+                                      <span className="evc-rm-unit">{L.reminderDay}</span>
+                                    </span>
+                                    <span className="evc-rm-inline">
+                                      <span className="evc-rm-unit">{L.reminderTime}</span>
+                                      <input
+                                        type="time"
+                                        className="evc-rm-field"
+                                        value={rm.time}
+                                        onChange={(e) => updateReminder(ph.id, rm.id, 'time', e.target.value)}
+                                      />
+                                    </span>
+                                    <span className="evc-rm-channels">
+                                      {REMINDER_CHANNELS.map((ch) => {
+                                        const on = rm.channels.includes(ch.id);
+                                        return (
+                                          <button
+                                            key={ch.id}
+                                            type="button"
+                                            className={`evc-rm-ch${on ? ' is-on' : ''}`}
+                                            onClick={() => toggleChannel(ph.id, rm.id, ch.id)}
+                                            data-testid={`evc-rm-ch-${ph.id}-${i}-${ch.id}`}
+                                          >
+                                            <span>{ch.icon}</span> {L[ch.labelKey]}
+                                          </button>
+                                        );
+                                      })}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="evc-rm-del"
+                                      onClick={() => removeReminder(ph.id, rm.id)}
+                                      title={L.reminderDelete}
+                                      data-testid={`evc-rm-del-${ph.id}-${i}`}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                  <div className="evc-rm-summary">
+                                    <span className="evc-rm-sum-label">{L.reminderRecipients}</span>
+                                    <span className="evc-rm-sum-chip is-primary">
+                                      {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
+                                    </span>
+                                    {rm.channels.map((cid) => {
+                                      const ch = REMINDER_CHANNELS.find((c) => c.id === cid);
+                                      return (
+                                        <span key={cid} className="evc-rm-sum-ch">
+                                          {ch.icon} {L[ch.labelKey]}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               ))}
-                            </select>
-                          </label>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            className="evc-rm-add"
+                            onClick={() => addReminder(ph.id)}
+                            data-testid={`evc-rm-add-${ph.id}`}
+                          >
+                            + {L.reminderAdd}
+                          </button>
                         </div>
                       )}
                       {enabled && rtype && (() => {
