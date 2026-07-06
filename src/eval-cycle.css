@@ -1923,24 +1923,137 @@
   font-weight: 600;
   color: var(--text-primary);
 }
-.evs-dist-track {
+.evs-dist-body {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evs-dist-track {
+  position: relative;
   height: 14px;
   background: var(--bg-secondary);
   border-radius: var(--radius-full, 9999px);
-  overflow: hidden;
 }
 .evs-dist-fill {
   height: 100%;
   background: var(--utility-blue-500);
   border-radius: var(--radius-full, 9999px);
+  opacity: 0.85;
+}
+/* §4.A 가이드라인 점선 */
+.evs-dist-guide {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 0;
+  border-left: 1.5px dashed var(--text-tertiary, #b1b6be);
+}
+.evs-dist-guide-cap {
+  font-size: var(--font-size-text-xxs, 9px);
+  color: var(--text-tertiary, #b1b6be);
 }
 .evs-dist-count {
-  width: 28px;
+  min-width: 52px;
   text-align: right;
   font-weight: 700;
   color: var(--text-secondary);
 }
+.evs-dist-pct {
+  font-size: var(--font-size-text-xxs, 10px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* §4.A KPI 4종 카드 */
+.evs-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md, 10px);
+}
+.evs-kpi {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--bg-active, #e6e8ea);
+  border-radius: var(--radius-xl, 14px);
+  padding: var(--spacing-lg, 14px) var(--spacing-xl, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+.evs-kpi-value {
+  font-size: var(--font-size-display-xs, 24px);
+  font-weight: 800;
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.evs-kpi-value-text {
+  font-family: inherit;
+}
+.evs-kpi-unit {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  margin-left: 2px;
+  color: var(--text-tertiary);
+}
+.evs-kpi-label {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #b1b6be);
+}
+.evs-kpi-sub {
+  font-size: var(--font-size-text-xxs, 10px);
+  color: var(--text-secondary, #687079);
+}
+.evs-kpi.tone-accent .evs-kpi-value { color: var(--utility-green-600, #17b26a); }
+.evs-kpi.tone-green .evs-kpi-value { color: var(--utility-green-600, #17b26a); }
+.evs-kpi.tone-amber .evs-kpi-value { color: var(--utility-orange-600, #dc6803); }
+
+.evs-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg, 14px);
+}
+@media (max-width: 900px) {
+  .evs-kpis { grid-template-columns: repeat(2, 1fr); }
+  .evs-two-col { grid-template-columns: 1fr; }
+}
+
+/* §4.A 이전 사이클 비교 */
+.evs-prev-name {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.evs-prev-table .evmon-head,
+.evs-prev-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: var(--spacing-md, 10px);
+  align-items: center;
+  padding: var(--spacing-sm, 6px) 0;
+}
+.evs-prev-row {
+  border-top: 1px solid var(--bg-secondary, #f3f4f6);
+  font-size: var(--font-size-text-sm, 13px);
+}
+.evs-prev-num {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-weight: 700;
+  text-align: right;
+  color: var(--text-primary);
+}
+.evs-prev-num.is-muted {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.evs-prev-delta {
+  text-align: right;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  min-width: 64px;
+}
+.evs-prev-delta.is-up { color: var(--utility-green-600, #17b26a); }
+.evs-prev-delta.is-down { color: var(--utility-error-600, #d92d20); }
 
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
