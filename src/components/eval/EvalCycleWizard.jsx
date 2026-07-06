@@ -105,6 +105,43 @@ const PHASE_RESPONDER_SHORT = {
   share: 'reminderRespShare',
 };
 const SLACK_CHANNELS = ['#performance-review', '#hr-notice', '#team-lead', '#general'];
+// ⚙ 상세(sub-slice B): 참조 대상 · 이메일 템플릿 · 슬랙 상세
+// 당사자(self)는 항상 고정 포함, 리더·HR 은 참조(에스컬레이션). 단계별 당사자 역할과
+// 겹치면 중복 억제(PHASE_RESPONDER_ROLE).
+const REMINDER_TARGETS = [
+  { id: 'self', labelKey: 'reminderTgtSelf', fixed: true },
+  { id: 'leader', labelKey: 'reminderTgtLeader', fixed: false },
+  { id: 'hr', labelKey: 'reminderTgtHr', fixed: false },
+];
+// 단계별 당사자 역할 카테고리 — 참조(리더/HR) 중복 판정용
+const PHASE_RESPONDER_ROLE = {
+  self: 'member', peer: 'member', upward: 'member',
+  leader: 'leader', peer_confirm: 'leader', calibration: 'hr', share: 'hr',
+};
+const SLACK_SEND_MODES = [
+  { id: 'dm', labelKey: 'reminderSlackDm', icon: '🧑' },
+  { id: 'channel', labelKey: 'reminderSlackChannel', icon: '＃' },
+];
+const EMAIL_TEMPLATES = [
+  { id: 'default', labelKey: 'reminderTplDefault' },
+  { id: 'urgent', labelKey: 'reminderTplUrgent' },
+  { id: 'custom', labelKey: 'reminderTplCustom' },
+];
+// 사전 정의 템플릿 미리보기(읽기 전용, §14.2 spec 에서 관리) — 변수 토큰 그대로 표시
+const EMAIL_TEMPLATE_PREVIEW = {
+  default: {
+    subject: '[{cycleName}] {stage} 마감 D-{offset}',
+    body: '{name}님, 아직 {stage}가 완료되지 않았습니다. {dueDate}까지 제출해주세요.',
+    cta: '{stage} 완료하기 → {link}',
+  },
+  urgent: {
+    subject: '[{cycleName}] {stage} 마감 임박 — {dueDate}까지',
+    body: '{name}님, {dueDate}까지 제출하지 않으면 마감 후 제출이 불가합니다. 지금 완료해주세요.',
+    cta: '지금 완료하기 → {link}',
+  },
+};
+// 치환 변수 정규 세트(SSOT: spec §14.0)
+const EMAIL_VARS = ['{name}', '{cycleName}', '{stage}', '{dueDate}', '{offset}', '{link}'];
 let __rmSeq = 0;
 const nextRmId = () => `rm_${++__rmSeq}`;
 const makeReminder = (offset = 1, channels = ['email']) => ({
@@ -1299,6 +1336,15 @@ export default function EvalCycleWizard({
                                     </span>
                                     <button
                                       type="button"
+                                      className={`evc-rm-detail-btn${rmDetail.has(rm.id) ? ' is-open' : ''}`}
+                                      onClick={() => toggleRmDetail(rm.id)}
+                                      title={L.reminderDetail}
+                                      data-testid={`evc-rm-detail-${ph.id}-${i}`}
+                                    >
+                                      ⚙ {L.reminderDetail} {rmDetail.has(rm.id) ? '▲' : '▼'}
+                                    </button>
+                                    <button
+                                      type="button"
                                       className="evc-rm-del"
                                       onClick={() => removeReminder(ph.id, rm.id)}
                                       title={L.reminderDelete}
@@ -1321,6 +1367,179 @@ export default function EvalCycleWizard({
                                       );
                                     })}
                                   </div>
+                                  {rmDetail.has(rm.id) && (
+                                    <div
+                                      className="evc-rm-detail"
+                                      data-testid={`evc-rm-detail-panel-${ph.id}-${i}`}
+                                    >
+                                      {/* 1. 수신 대상 */}
+                                      <div className="evc-rm-dsec">
+                                        <div className="evc-rm-dsec-title">👥 {L.reminderTargetsTitle}</div>
+                                        <div className="evc-rm-tgts">
+                                          {REMINDER_TARGETS.map((t) => {
+                                            const dup = !t.fixed && PHASE_RESPONDER_ROLE[ph.id] === t.id;
+                                            const on = t.fixed || (rm.targets?.[t.id] && !dup);
+                                            const disabled = t.fixed || dup;
+                                            return (
+                                              <button
+                                                key={t.id}
+                                                type="button"
+                                                disabled={disabled}
+                                                className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
+                                                onClick={() =>
+                                                  !disabled &&
+                                                  patchReminder(ph.id, rm.id, (r) => ({
+                                                    targets: { ...r.targets, [t.id]: !r.targets?.[t.id] },
+                                                  }))}
+                                                data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
+                                              >
+                                                {on ? '✓' : '+'}{' '}
+                                                {t.fixed
+                                                  ? `${L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf} · ${L.reminderTgtFixed}`
+                                                  : L[t.labelKey]}
+                                                {dup ? ` · ${L.reminderTgtDup}` : ''}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                      {/* 2. 이메일 상세 */}
+                                      {rm.channels.includes('email') && (
+                                        <div className="evc-rm-dsec is-box">
+                                          <div className="evc-rm-dsec-title">✉️ {L.reminderEmailTitle}</div>
+                                          <label className="evc-rm-dfield">
+                                            <span>{L.reminderEmailTpl}</span>
+                                            <select
+                                              className="evc-rm-field"
+                                              value={rm.email?.template ?? 'default'}
+                                              onChange={(e) =>
+                                                patchReminder(ph.id, rm.id, (r) => ({
+                                                  email: { ...r.email, template: e.target.value },
+                                                }))}
+                                              data-testid={`evc-rm-email-tpl-${ph.id}-${i}`}
+                                            >
+                                              {EMAIL_TEMPLATES.map((t) => (
+                                                <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
+                                              ))}
+                                            </select>
+                                          </label>
+                                          {(rm.email?.template ?? 'default') !== 'custom' ? (
+                                            (() => {
+                                              const tpl =
+                                                EMAIL_TEMPLATE_PREVIEW[rm.email?.template] ??
+                                                EMAIL_TEMPLATE_PREVIEW.default;
+                                              return (
+                                                <div className="evc-rm-preview">
+                                                  <div className="evc-rm-preview-tag">
+                                                    {L.reminderPreview} · {L.reminderReadonly}
+                                                  </div>
+                                                  <div className="evc-rm-preview-body">
+                                                    <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
+                                                    <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
+                                                    <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })()
+                                          ) : (
+                                            <div className="evc-rm-custom">
+                                              <input
+                                                type="text"
+                                                className="evc-rm-field evc-rm-cinput"
+                                                placeholder={L.reminderEmailSubjectPh}
+                                                value={rm.email?.subject ?? ''}
+                                                onChange={(e) =>
+                                                  patchReminder(ph.id, rm.id, (r) => ({
+                                                    email: { ...r.email, subject: e.target.value },
+                                                  }))}
+                                                data-testid={`evc-rm-email-subject-${ph.id}-${i}`}
+                                              />
+                                              <textarea
+                                                className="evc-rm-field evc-rm-cbody"
+                                                rows={4}
+                                                placeholder={L.reminderEmailBodyPh}
+                                                value={rm.email?.body ?? ''}
+                                                onChange={(e) =>
+                                                  patchReminder(ph.id, rm.id, (r) => ({
+                                                    email: { ...r.email, body: e.target.value },
+                                                  }))}
+                                                data-testid={`evc-rm-email-body-${ph.id}-${i}`}
+                                              />
+                                              <div className="evc-rm-vars">
+                                                <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
+                                                {EMAIL_VARS.map((v) => (
+                                                  <button
+                                                    key={v}
+                                                    type="button"
+                                                    className="evc-rm-var"
+                                                    onClick={() =>
+                                                      patchReminder(ph.id, rm.id, (r) => ({
+                                                        email: { ...r.email, body: (r.email?.body ?? '') + v },
+                                                      }))}
+                                                  >
+                                                    {v}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      {/* 3. 슬랙 상세 */}
+                                      {rm.channels.includes('slack') && (
+                                        <div className="evc-rm-dsec is-box">
+                                          <div className="evc-rm-dsec-title">💬 {L.reminderSlackTitle}</div>
+                                          <div className="evc-rm-tgts">
+                                            {SLACK_SEND_MODES.map((m) => {
+                                              const on = (rm.slack?.mode ?? 'dm') === m.id;
+                                              return (
+                                                <button
+                                                  key={m.id}
+                                                  type="button"
+                                                  className={`evc-rm-tgt${on ? ' is-on' : ''}`}
+                                                  onClick={() =>
+                                                    patchReminder(ph.id, rm.id, (r) => ({
+                                                      slack: { ...r.slack, mode: m.id },
+                                                    }))}
+                                                  data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
+                                                >
+                                                  <span>{m.icon}</span> {L[m.labelKey]}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                          {(rm.slack?.mode ?? 'dm') === 'channel' && (
+                                            <div className="evc-rm-slack-ch">
+                                              <select
+                                                className="evc-rm-field"
+                                                value={rm.slack?.channel ?? SLACK_CHANNELS[0]}
+                                                onChange={(e) =>
+                                                  patchReminder(ph.id, rm.id, (r) => ({
+                                                    slack: { ...r.slack, channel: e.target.value },
+                                                  }))}
+                                                data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
+                                              >
+                                                {SLACK_CHANNELS.map((c) => (
+                                                  <option key={c} value={c}>{c}</option>
+                                                ))}
+                                              </select>
+                                              <button
+                                                type="button"
+                                                className={`evc-rm-tgt${rm.slack?.mention ? ' is-on' : ''}`}
+                                                onClick={() =>
+                                                  patchReminder(ph.id, rm.id, (r) => ({
+                                                    slack: { ...r.slack, mention: !r.slack?.mention },
+                                                  }))}
+                                                data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
+                                              >
+                                                {rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>

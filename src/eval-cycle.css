@@ -861,7 +861,6 @@
   color: var(--text-brand-secondary, var(--utility-blue-600));
 }
 .evc-rm-del {
-  margin-left: auto;
   width: 26px;
   height: 26px;
   flex-shrink: 0;
@@ -872,6 +871,150 @@
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
+}
+.evc-rm-detail-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  padding: 5px 9px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-secondary, var(--utility-gray-50));
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.evc-rm-detail-btn.is-open {
+  border-color: var(--border-brand, var(--utility-blue-600));
+  background: var(--bg-brand-secondary, var(--utility-blue-50));
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+}
+.evc-rm-detail {
+  margin-top: var(--spacing-md, 8px);
+  padding-top: var(--spacing-md, 10px);
+  border-top: 1px dashed var(--border-secondary, #eaecf0);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+}
+.evc-rm-dsec-title {
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evc-rm-dsec.is-box {
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 12px);
+  background: var(--bg-secondary, var(--utility-gray-50));
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+}
+.evc-rm-tgts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-rm-tgt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.evc-rm-tgt.is-on {
+  border-color: var(--border-brand, var(--utility-blue-600));
+  background: var(--bg-brand-secondary, var(--utility-blue-50));
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+}
+.evc-rm-tgt.is-dup {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: default;
+}
+.evc-rm-tgt:disabled {
+  cursor: default;
+}
+.evc-rm-dfield {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evc-rm-preview-tag {
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-xs, 4px);
+}
+.evc-rm-preview-body {
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 12px);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+.evc-rm-preview-cta {
+  margin-top: var(--spacing-xs, 4px);
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+  font-weight: 700;
+}
+.evc-rm-custom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-rm-cinput,
+.evc-rm-cbody {
+  width: 100%;
+  box-sizing: border-box;
+}
+.evc-rm-cbody {
+  resize: vertical;
+  line-height: 1.6;
+}
+.evc-rm-vars {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 4px);
+}
+.evc-rm-vars-label {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary);
+}
+.evc-rm-var {
+  padding: 3px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  color: var(--utility-purple-500, #7a5af8);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  font-family: monospace;
+  cursor: pointer;
+}
+.evc-rm-slack-ch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+  margin-top: var(--spacing-sm, 6px);
 }
 .evc-rm-summary {
   display: flex;
