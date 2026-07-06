@@ -3,7 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 
-function GroupHeader({ group }) {
+function GroupHeader({ group, onAddMember }) {
   return (
     <div
       className="tl-group-header"
@@ -14,7 +14,12 @@ function GroupHeader({ group }) {
         <span className="tl-group-header-name">{group.label}</span>
         <span className="tl-group-header-count">{group.memberIds.length}</span>
       </div>
-      <button type="button" className="tl-group-header-add" aria-label="멤버 추가">
+      <button
+        type="button"
+        className="tl-group-header-add"
+        aria-label="멤버 추가"
+        onClick={() => onAddMember?.(group.id)}
+      >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
           <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
@@ -23,7 +28,7 @@ function GroupHeader({ group }) {
   );
 }
 
-function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown }) {
+function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown, onDetail }) {
   return (
     <div
       className="tl-member-row"
@@ -63,6 +68,7 @@ function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown }) {
         className="tl-member-arrow"
         style={{ background: memberPalette(member).solid }}
         aria-label={`${member.name} 상세 보기`}
+        onClick={() => onDetail?.(member.id)}
       >
         <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
           <path d="M6 4l4 4-4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -118,6 +124,8 @@ const NameColumn = forwardRef(function NameColumn(
     onAddGroup,
     onAddInternalMember,
     onAddExternalMember,
+    onGroupAddMember,
+    onMemberDetail,
   },
   ref
 ) {
@@ -196,7 +204,13 @@ const NameColumn = forwardRef(function NameColumn(
         <div className="tl-left-mid-content" ref={contentRef}>
           {flatRows.map((r) => {
             if (r.type === 'groupHeader') {
-              return <GroupHeader key={`g-${r.group.id}`} group={r.group} />;
+              return (
+                <GroupHeader
+                  key={`g-${r.group.id}`}
+                  group={r.group}
+                  onAddMember={onGroupAddMember}
+                />
+              );
             }
             if (r.type === 'placeholder') {
               return (
@@ -217,6 +231,7 @@ const NameColumn = forwardRef(function NameColumn(
                 filteredIdx={r.filteredIdx}
                 hidden={r.hidden}
                 onMouseDown={onStartDrag}
+                onDetail={onMemberDetail}
               />
             );
           })}

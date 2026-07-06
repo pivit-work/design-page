@@ -84,6 +84,10 @@ export default function TimelineCanvas({
   onAddGroup,
   onAddInternalMember,
   onAddExternalMember,
+  // 그룹 헤더 "멤버 추가"(+) 클릭 — 그 그룹 id 를 인자로. 미주입 시 no-op.
+  onGroupAddMember,
+  // 멤버 행 "상세 보기"(>) 클릭 — 그 멤버 id 를 인자로. 미주입 시 no-op.
+  onMemberDetail,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -549,6 +553,8 @@ export default function TimelineCanvas({
             onAddGroup={handleAddGroupClick}
             onAddInternalMember={handleAddInternalClick}
             onAddExternalMember={handleAddExternalClick}
+            onGroupAddMember={onGroupAddMember}
+            onMemberDetail={onMemberDetail}
           />
           {viewUnit === 'day' ? (
             <TimelineGrid
