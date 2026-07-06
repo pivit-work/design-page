@@ -19,6 +19,13 @@ const DEFAULT_LABELS = {
   actOneOnOne: '1:1 미팅',
   actFeedback: '받은 피드백',
   actSnippets: '스니핏 하이라이트',
+  // §4.2.1 OKR KR 달성률 수기입력
+  actKrTitle: '🎯 OKR 달성 현황 — KR별 달성률을 직접 입력하세요',
+  actKrHint: 'AI 자동 산출은 제공하지 않습니다 · 매니저 화면에 실시간 반영',
+  actKrMemoPlaceholder: '달성 근거를 간략히 메모하세요 (선택)',
+  actKrSave: '달성률 저장',
+  actKrSaved: '저장되었습니다',
+  actKrEmpty: '이 기간에 입력할 개인 KR이 없습니다.',
   workTitle: '업적 (What)',
   workPlaceholder: '이번 기간의 핵심 성과와 결과를 기록하세요.',
   competencyTitle: '역량 (How)',
@@ -130,6 +137,18 @@ function seedState(answers, fields) {
   return state;
 }
 
+// §4.2.1 KR 입력 폼 시드 — krProgress 항목별 {percent, note}.
+function seedKrState(krList) {
+  const state = {};
+  for (const kr of krList) {
+    state[kr.id] = {
+      percent: kr.percent == null ? '' : String(kr.percent),
+      note: kr.note ?? '',
+    };
+  }
+  return state;
+}
+
 export default function EvalCycleMemberCanvas({
   cycle,
   status,
@@ -137,10 +156,12 @@ export default function EvalCycleMemberCanvas({
   template = null,
   active = true,
   activitySummary = null,
+  krProgress = null,
   labels: providedLabels,
   onSave,
   onSubmit,
   onAiPolish,
+  onKrProgressSave,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const fields = useMemo(() => buildFields(template, L), [template, L]);
@@ -148,6 +169,20 @@ export default function EvalCycleMemberCanvas({
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
   const submitted = status === 'submitted';
+
+  // §4.2.1 KR 달성률 입력 — krProgress(부모 로드본)로 시드, 편집 중엔 유지.
+  const krList = useMemo(
+    () => (Array.isArray(krProgress) ? krProgress : krProgress ? [krProgress] : []),
+    [krProgress],
+  );
+  const [krState, setKrState] = useState(() => seedKrState(krList));
+  const [krSeededFor, setKrSeededFor] = useState(krList);
+  if (krSeededFor !== krList) {
+    setKrSeededFor(krList);
+    setKrState(seedKrState(krList));
+  }
+  const [krBusy, setKrBusy] = useState(false);
+  const [krSaved, setKrSaved] = useState(false);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -172,6 +207,31 @@ export default function EvalCycleMemberCanvas({
 
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+
+  const setKrField = (id, patch) =>
+    setKrState((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+
+  const clampPct = (raw) => {
+    const n = Math.round(Number(raw));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, n));
+  };
+
+  const handleKrSave = async () => {
+    if (!onKrProgressSave) return;
+    const inputs = krList.map((kr) => ({
+      krId: kr.id,
+      achievePct: clampPct(krState[kr.id]?.percent),
+      note: (krState[kr.id]?.note ?? '').trim(),
+    }));
+    setKrBusy(true);
+    try {
+      await onKrProgressSave(inputs);
+      setKrSaved(true);
+    } finally {
+      setKrBusy(false);
+    }
+  };
 
   const toItems = () =>
     fields
@@ -244,13 +304,16 @@ export default function EvalCycleMemberCanvas({
       </header>
 
       {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
-      {!submitted && activitySummary && (() => {
-        const blocks = [
-          { key: 'oneOnOne', icon: '🤝', label: L.actOneOnOne, items: activitySummary.oneOnOne },
-          { key: 'feedback', icon: '💬', label: L.actFeedback, items: activitySummary.receivedFeedback },
-          { key: 'snippets', icon: '📝', label: L.actSnippets, items: activitySummary.snippets },
-        ].filter((b) => Array.isArray(b.items) && b.items.length > 0);
-        if (blocks.length === 0) return null;
+      {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 오렌지 박스에 full-width 로 노출 */}
+      {!submitted && (activitySummary || krList.length > 0) && (() => {
+        const blocks = activitySummary
+          ? [
+              { key: 'oneOnOne', icon: '🤝', label: L.actOneOnOne, items: activitySummary.oneOnOne },
+              { key: 'feedback', icon: '💬', label: L.actFeedback, items: activitySummary.receivedFeedback },
+              { key: 'snippets', icon: '📝', label: L.actSnippets, items: activitySummary.snippets },
+            ].filter((b) => Array.isArray(b.items) && b.items.length > 0)
+          : [];
+        if (blocks.length === 0 && krList.length === 0) return null;
         return (
           <div className="evc-list">
             <section className="evm-activity" data-testid="evm-activity">
@@ -267,6 +330,67 @@ export default function EvalCycleMemberCanvas({
                     ))}
                   </div>
                 ))}
+                {krList.length > 0 && (
+                  <div className="evm-activity-block evm-kr" data-testid="evm-kr">
+                    <div className="evm-kr-head">
+                      <div className="evm-activity-block-title">{L.actKrTitle}</div>
+                      <div className="evm-kr-hint">{L.actKrHint}</div>
+                    </div>
+                    <div className="evm-kr-rows">
+                      {krList.map((kr, idx) => (
+                        <div className="evm-kr-row" key={kr.id} data-testid={`evm-kr-row-${kr.id}`}>
+                          <span className="evm-kr-idx">KR{idx + 1}</span>
+                          <span className="evm-kr-title">{kr.title}</span>
+                          <div className="evm-kr-pct">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              className="evm-kr-input"
+                              value={krState[kr.id]?.percent ?? ''}
+                              onChange={(e) => {
+                                setKrSaved(false);
+                                setKrField(kr.id, { percent: e.target.value });
+                              }}
+                              onBlur={(e) => {
+                                const v = e.target.value === '' ? '' : String(clampPct(e.target.value));
+                                setKrField(kr.id, { percent: v });
+                              }}
+                              data-testid={`evm-kr-pct-${kr.id}`}
+                            />
+                            <span className="evm-kr-pct-sign">%</span>
+                          </div>
+                          <input
+                            type="text"
+                            className="evm-kr-memo"
+                            maxLength={200}
+                            placeholder={L.actKrMemoPlaceholder}
+                            value={krState[kr.id]?.note ?? ''}
+                            onChange={(e) => {
+                              setKrSaved(false);
+                              setKrField(kr.id, { note: e.target.value });
+                            }}
+                            data-testid={`evm-kr-memo-${kr.id}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="evm-kr-actions">
+                      {krSaved && (
+                        <span className="evm-kr-saved" data-testid="evm-kr-saved">✓ {L.actKrSaved}</span>
+                      )}
+                      <button
+                        type="button"
+                        className="evm-kr-save"
+                        disabled={krBusy}
+                        onClick={handleKrSave}
+                        data-testid="evm-kr-save"
+                      >
+                        {L.actKrSave}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           </div>
