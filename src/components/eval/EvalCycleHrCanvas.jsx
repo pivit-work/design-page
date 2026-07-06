@@ -29,6 +29,16 @@ const DEFAULT_LABELS = {
   revokeAvailable: '회수 가능 · 남은 {{hours}}시간',
   revoke: '사이클 회수',
   emergencyStop: '비상 정지',
+  // §5.7.1 일시 중단/재개 (회수·비상정지 대체)
+  holdHint: '진행 중인 사이클입니다. 필요 시 일시 중단할 수 있습니다.',
+  hold: '⏸ 일시 중단',
+  onHoldBanner: '이 사이클은 일시 중단되었습니다. 구성원의 작성·제출이 차단됩니다.',
+  resume: '⏵ 재개',
+  confirmHoldTitle: '평가를 일시 중단하시겠습니까?',
+  confirmHoldBody:
+    '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
+  toastHeld: '사이클이 일시 중단되었습니다',
+  toastResumed: '사이클이 재개되었습니다',
   // status
   statusDraft: '준비 중',
   statusPeerAssign: '동료 배정',
@@ -36,7 +46,11 @@ const DEFAULT_LABELS = {
   statusPeerReview: '동료 리뷰',
   statusCalibration: '캘리브레이션',
   statusHrReview: 'HR 검수',
+  statusReportReview: '리포트 검수',
   statusDone: '완료',
+  statusOnHold: '일시 중단',
+  statusRevoked: '회수됨',
+  statusEmergency: '비상 정지',
   // review types
   reviewSelf: '셀프',
   reviewPeer: '동료',
@@ -98,7 +112,11 @@ const STATUS_META = {
   peer_review: { key: 'statusPeerReview', tone: 'info' },
   calibration: { key: 'statusCalibration', tone: 'purple' },
   hr_review: { key: 'statusHrReview', tone: 'purple' },
+  report_review: { key: 'statusReportReview', tone: 'purple' },
   done: { key: 'statusDone', tone: 'success' },
+  on_hold: { key: 'statusOnHold', tone: 'warn' },
+  revoked: { key: 'statusRevoked', tone: 'neutral' },
+  emergency_stopped: { key: 'statusEmergency', tone: 'warn' },
 };
 
 const LIFECYCLE = [
@@ -111,7 +129,6 @@ const LIFECYCLE = [
 ];
 
 const REVIEW_TYPE_KEYS = { self: 'reviewSelf', peer: 'reviewPeer', leader: 'reviewLeader' };
-const REVOKE_WINDOW_H = 24;
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -130,13 +147,6 @@ const fill = (s, vars) => {
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
   return out;
 };
-
-function remainingRevokeHours(openedAt) {
-  if (!openedAt) return null;
-  const elapsedMs = Date.now() - new Date(openedAt).getTime();
-  const remaining = REVOKE_WINDOW_H - elapsedMs / 3_600_000;
-  return remaining;
-}
 
 function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfirm, onCancel }) {
   return createPortal(
@@ -176,12 +186,14 @@ function LifecycleStepper({ status, labels: L }) {
   );
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onRevoke, onEmergency }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, onResume }) {
   const isDraft = cycle.status === 'draft';
   const isDone = cycle.status === 'done';
-  const isActive = !isDraft && !isDone;
-  const remaining = isActive ? remainingRevokeHours(cycle.openedAt) : null;
-  const canRevoke = remaining != null && remaining > 0;
+  const isOnHold = cycle.status === 'on_hold';
+  // 진행 중(active): draft·done·on_hold·회수·비상정지가 아닌 모든 단계
+  const isActive =
+    !isDraft && !isDone && !isOnHold &&
+    cycle.status !== 'revoked' && cycle.status !== 'emergency_stopped';
 
   return (
     <section className="evc-card" data-testid="evc-cycle-card">
@@ -209,18 +221,21 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onRevoke
 
       {!isDraft && <LifecycleStepper status={cycle.status} labels={L} />}
 
-      {canRevoke && (
-        <div className="evc-revoke-banner">
-          <span>{fill(L.revokeAvailable, { hours: Math.max(0, Math.ceil(remaining)) })}</span>
-          <button type="button" className="evc-btn is-warn-ghost" onClick={() => onRevoke(cycle)} data-testid="evc-revoke">
-            {L.revoke}
+      {/* §5.7.1: 진행 중 → 일시 중단(확인 모달), 일시 중단 → 재개(즉시). 회수·비상정지 대체 */}
+      {isActive && (
+        <div className="evc-hold-banner">
+          <span className="evc-hold-hint">{L.holdHint}</span>
+          <button type="button" className="evc-btn is-hold" onClick={() => onHold(cycle)} data-testid="evc-hold">
+            {L.hold}
           </button>
         </div>
       )}
-      {isActive && !canRevoke && (
-        <div className="evc-emergency-banner">
-          <button type="button" className="evc-btn is-danger-ghost" onClick={() => onEmergency(cycle)} data-testid="evc-emergency">
-            🛑 {L.emergencyStop}
+      {isOnHold && (
+        <div className="evc-onhold-banner" data-testid="evc-onhold-banner">
+          <span className="evc-onhold-icon">⏸</span>
+          <span className="evc-onhold-text">{L.onHoldBanner}</span>
+          <button type="button" className="evc-btn is-resume" onClick={() => onResume(cycle)} data-testid="evc-resume">
+            {L.resume}
           </button>
         </div>
       )}
@@ -260,11 +275,11 @@ export default function EvalCycleHrCanvas({
   labels: providedLabels,
   onCreateCycle,
   onOpenCycle,
-  onRevokeCycle,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
-  onEmergencyStop,
+  onHoldCycle,
+  onResumeCycle,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -300,19 +315,6 @@ export default function EvalCycleHrCanvas({
   const handleOpen = (cycle) =>
     void run(() => onOpenCycle?.(cycle.id), L.toastOpened);
 
-  const requestRevoke = (cycle) => {
-    setConfirmModal({
-      title: L.confirmRevokeTitle,
-      body: L.confirmRevokeBody,
-      confirmLabel: L.revoke,
-      danger: true,
-      onConfirm: () => {
-        setConfirmModal(null);
-        void run(() => onRevokeCycle?.(cycle.id), L.toastRevoked);
-      },
-    });
-  };
-
   const requestDelete = (cycle) => {
     setConfirmModal({
       title: L.confirmDeleteTitle,
@@ -326,8 +328,22 @@ export default function EvalCycleHrCanvas({
     });
   };
 
-  const handleEmergency = (cycle) =>
-    void run(() => onEmergencyStop?.(cycle.id));
+  // §5.7.1: 일시 중단은 확인 모달 후, 재개는 즉시(저위험)
+  const requestHold = (cycle) => {
+    setConfirmModal({
+      title: L.confirmHoldTitle,
+      body: L.confirmHoldBody,
+      confirmLabel: L.hold,
+      danger: false,
+      onConfirm: () => {
+        setConfirmModal(null);
+        void run(() => onHoldCycle?.(cycle.id), L.toastHeld);
+      },
+    });
+  };
+
+  const handleResume = (cycle) =>
+    void run(() => onResumeCycle?.(cycle.id), L.toastResumed);
 
   return (
     <div className="evc-root">
@@ -367,8 +383,8 @@ export default function EvalCycleHrCanvas({
               onManage={onManageCycle ? (c) => onManageCycle(c.id) : requestDelete}
               onOpen={handleOpen}
               onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
-              onRevoke={requestRevoke}
-              onEmergency={handleEmergency}
+              onHold={requestHold}
+              onResume={handleResume}
             />
           ))}
         </div>

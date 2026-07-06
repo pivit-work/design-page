@@ -124,6 +124,10 @@
   background: var(--utility-green-50);
   color: var(--utility-green-600);
 }
+.evc-status-badge.tone-warn {
+  background: var(--utility-orange-50, var(--utility-warning-50, #fef6ee));
+  color: var(--utility-orange-600, var(--utility-warning-600, #dc6803));
+}
 
 .evc-pending {
   display: inline-flex;
@@ -214,6 +218,52 @@
 .evc-emergency-banner {
   background: var(--utility-error-50);
   justify-content: flex-end;
+}
+
+/* ── §5.7.1 일시 중단(홀드) / 재개 ── */
+.evc-hold-banner,
+.evc-onhold-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  margin-bottom: var(--spacing-md, 8px);
+  border-radius: var(--radius-md, 10px);
+  font-size: var(--font-size-text-sm, 14px);
+}
+.evc-hold-banner {
+  background: var(--bg-secondary, var(--utility-gray-50));
+  border: 1px solid var(--border-secondary, var(--utility-gray-200));
+}
+.evc-hold-hint {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-onhold-banner {
+  background: var(--utility-orange-50, #fef6ee);
+  border: 1px solid var(--utility-orange-200, #f9dbaf);
+}
+.evc-onhold-icon {
+  font-size: 14px;
+}
+.evc-onhold-text {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--utility-orange-600, #dc6803);
+}
+.evc-btn.is-hold {
+  margin-left: auto;
+  border: 1px solid var(--utility-orange-600, #dc6803);
+  background: var(--utility-orange-50, #fef6ee);
+  color: var(--utility-orange-600, #dc6803);
+  white-space: nowrap;
+}
+.evc-btn.is-resume {
+  margin-left: auto;
+  border: 1px solid var(--utility-green-600, #079455);
+  background: var(--utility-green-50, #ecfdf3);
+  color: var(--utility-green-600, #079455);
+  white-space: nowrap;
 }
 
 /* ── 카드 하단 액션 ── */
