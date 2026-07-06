@@ -2007,6 +2007,155 @@
 .evs-kpi.tone-accent .evs-kpi-value { color: var(--utility-green-600, #17b26a); }
 .evs-kpi.tone-green .evs-kpi-value { color: var(--utility-green-600, #17b26a); }
 .evs-kpi.tone-amber .evs-kpi-value { color: var(--utility-orange-600, #dc6803); }
+.evs-kpi.is-clickable {
+  cursor: pointer;
+  border-color: var(--utility-green-300, #75e0a7);
+  box-shadow: 0 0 0 3px var(--utility-green-50, #ecfdf3);
+}
+.evs-kpi.is-clickable:hover {
+  border-color: var(--utility-green-500, #17b26a);
+}
+.evs-kpi-chevron {
+  color: var(--utility-green-600, #17b26a);
+}
+.evs-kpi-hint {
+  color: var(--utility-green-600, #17b26a) !important;
+  font-weight: 600;
+}
+
+/* §4.A 미제출자 리마인드 모달 */
+.evs-remind-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(16, 24, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 16px);
+}
+.evs-remind {
+  width: 100%;
+  max-width: 560px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.24);
+  overflow: hidden;
+}
+.evs-remind-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md, 10px);
+  padding: var(--spacing-xl, 16px) var(--spacing-xl, 18px);
+  border-bottom: 1px solid var(--bg-active, #e6e8ea);
+}
+.evs-remind-title {
+  font-size: var(--font-size-text-lg, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evs-remind-sub {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+.evs-remind-x {
+  border: none;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.evs-remind-selectall {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-md, 10px) var(--spacing-xl, 18px);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--bg-secondary, #f3f4f6);
+  cursor: pointer;
+}
+.evs-remind-counter {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.evs-remind-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-xs, 4px) var(--spacing-md, 10px);
+}
+.evs-remind-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 10px);
+  padding: var(--spacing-md, 10px) var(--spacing-sm, 8px);
+  border-bottom: 1px solid var(--bg-secondary, #f3f4f6);
+}
+.evs-remind-row.is-sent { opacity: 0.55; }
+.evs-remind-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.evs-remind-info { flex: 1; min-width: 0; }
+.evs-remind-name {
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evs-remind-meta {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+.evs-remind-pending {
+  color: var(--utility-orange-600, #dc6803);
+  font-weight: 600;
+}
+.evs-remind-status { flex-shrink: 0; font-size: var(--font-size-text-xs, 11px); font-weight: 600; }
+.evs-remind-done { color: var(--utility-green-600, #17b26a); }
+.evs-remind-warn { color: var(--utility-orange-600, #dc6803); }
+.evs-remind-toast {
+  margin: var(--spacing-sm, 8px) var(--spacing-xl, 18px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-green-50, #ecfdf3);
+  border: 1px solid var(--utility-green-200, #abefc6);
+  color: var(--utility-green-700, #087443);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+.evs-remind-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 10px);
+  padding: var(--spacing-lg, 14px) var(--spacing-xl, 18px);
+  border-top: 1px solid var(--bg-active, #e6e8ea);
+}
+.evs-remind-note {
+  font-size: var(--font-size-text-xxs, 10px);
+  color: var(--text-tertiary);
+}
+.evs-remind-actions {
+  display: flex;
+  gap: var(--spacing-sm, 8px);
+}
 
 .evs-two-col {
   display: grid;
