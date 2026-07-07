@@ -8,9 +8,22 @@ import { useState, useMemo } from 'react';
 const DEFAULT_LABELS = {
   title: '종합 리포트',
   tabOverview: '전사 요약',
-  tabDept: '부서별',
+  tabDept: '부서별 분석',
   tabIntegrated: '통합 요약',
   tabLeaderPattern: '리더별 평가 패턴',
+  // §5.B 부서별 분석
+  deptHeatTitle: '부서별 등급 분포 히트맵',
+  deptRankTitle: '부서별 평균 달성률 랭킹',
+  deptDetailTitle: '부서별 상세 현황',
+  deptOutlierTitle: '이상치 경고 — 캘리브레이션 재검토 권장',
+  deptColDept: '부서',
+  deptColCount: '인원',
+  deptColAvgAchieve: '평균 달성률',
+  deptColVsGuide: '탁월 비율 vs 가이드',
+  deptLegendLow: '낮음',
+  deptLegendHigh: '높음',
+  deptRankCaption: '평균 달성률 = 소속 멤버 OKR 달성률 평균',
+  deptDataEmpty: '부서 데이터가 없습니다',
   // §6.C 리더별 평가 패턴
   lpBannerLenient: '관대화 경향',
   lpBannerStrict: '엄격화 경향',
@@ -133,7 +146,8 @@ export default function EvalCycleSummaryCanvas({
   nonSubmitters = [],
   leaderStats = [],
   leaderPatterns = [],
-  deptBreakdown = [],
+  deptStats = [],
+  deptOutliers = [],
   integrated = [],
   report = null,
   gradeLabels = {},
@@ -145,7 +159,6 @@ export default function EvalCycleSummaryCanvas({
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
-  const maxDept = Math.max(1, ...deptBreakdown.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
 
@@ -229,6 +242,12 @@ export default function EvalCycleSummaryCanvas({
     patternBuckets[0].leaders.length > leaderPatterns.length / 2;
   const tagOf = (t) =>
     t === 'lenient' ? L.lpTagLenient : t === 'strict' ? L.lpTagStrict : t === 'balanced' ? L.lpTagBalanced : L.lpTagNa;
+
+  // §5.B 부서별 — 달성률 내림차순 랭킹 + 히트맵 셀 명도.
+  const rankedDepts = [...deptStats].sort((a, b) => b.avgAchieve - a.avgAchieve);
+  const heatAlpha = (pct) => (pct <= 0 ? 0 : Math.min(0.15 + (pct / 100) * 0.65, 0.8));
+  const segClass = (i, n) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
+  const vsGuideTone = (delta) => (delta > 10 ? 'red' : delta > 0 ? 'amber' : 'green');
 
   return (
     <div className="evc-root">
@@ -436,24 +455,104 @@ export default function EvalCycleSummaryCanvas({
         )}
 
         {tab === 'dept' && (
-          <section className="evc-card">
-            <h3 className="evc-card-name">{L.deptTitle}</h3>
-            {deptBreakdown.length === 0 ? (
-              <p className="evc-empty-sub">{L.deptEmpty}</p>
-            ) : (
-              <div className="evs-dist">
-                {deptBreakdown.map((d) => (
-                  <div className="evs-dist-row" key={d.dept} data-testid="evsum-dept-row">
-                    <span className="evs-dist-label">{d.dept}</span>
-                    <div className="evs-dist-track">
-                      <div className="evs-dist-fill" style={{ width: `${(d.count / maxDept) * 100}%` }} />
+          deptStats.length === 0 ? (
+            <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-dept-empty">{L.deptDataEmpty}</p></section>
+          ) : (
+            <>
+              {/* Block 1 — 이상치 경고 배너 */}
+              {deptOutliers.length > 0 && (
+                <div className="evs-dept-outlier" data-testid="evs-dept-outlier">
+                  <div className="evs-dept-outlier-title">⚠ {L.deptOutlierTitle}</div>
+                  {deptOutliers.map((o, i) => (
+                    <div className="evs-dept-outlier-row" key={i}>
+                      {o.dept} — {o.grade} 비율 {o.actual}% (가이드 {o.guide}% 대비 <span className="evs-dept-outlier-delta">+{o.delta}%p</span>)
                     </div>
-                    <span className="evs-dist-count">{d.graded}/{d.count}</span>
+                  ))}
+                </div>
+              )}
+
+              {/* Block 2 — 히트맵 + 달성률 랭킹 */}
+              <div className="evs-two-col">
+                <section className="evc-card">
+                  <h3 className="evc-card-name">{L.deptHeatTitle}</h3>
+                  <div className="evs-heat">
+                    <div className="evs-heat-row evs-heat-head" style={{ gridTemplateColumns: `1.4fr repeat(${(deptStats[0]?.gradeCounts.length || 3)}, 1fr) auto` }}>
+                      <span>{L.deptColDept}</span>
+                      {deptStats[0]?.gradeCounts.map((g, i) => (
+                        <span key={g.gradeKey} className={`evs-heat-gh ${segClass(i, deptStats[0].gradeCounts.length)}`}>{g.label}</span>
+                      ))}
+                      <span className="evs-heat-num">{L.deptColCount}</span>
+                    </div>
+                    {deptStats.map((d) => (
+                      <div className="evs-heat-row" key={d.dept} data-testid="evs-heat-row" style={{ gridTemplateColumns: `1.4fr repeat(${d.gradeCounts.length}, 1fr) auto` }}>
+                        <span className="evs-heat-dept">{d.dept}</span>
+                        {d.gradeCounts.map((g, i) => (
+                          <span className={`evs-heat-cell ${segClass(i, d.gradeCounts.length)}`} key={g.gradeKey} style={{ '--heat': heatAlpha(g.pct) }}>
+                            <span className="evs-heat-cnt">{g.count}</span>
+                            <span className="evs-heat-pct">{g.pct}%</span>
+                          </span>
+                        ))}
+                        <span className="evs-heat-num">{d.total}{L.unit}</span>
+                      </div>
+                    ))}
+                    <div className="evs-heat-legend">
+                      <span>{L.deptLegendLow}</span>
+                      {[0.15, 0.3, 0.5, 0.7, 0.85].map((a) => (
+                        <span className="evs-heat-swatch" key={a} style={{ '--heat': a }} />
+                      ))}
+                      <span>{L.deptLegendHigh}</span>
+                    </div>
                   </div>
-                ))}
+                </section>
+
+                <section className="evc-card">
+                  <h3 className="evc-card-name">{L.deptRankTitle}</h3>
+                  <div className="evs-rank">
+                    {rankedDepts.map((d, i) => (
+                      <div className="evs-rank-row" key={d.dept} data-testid="evs-rank-row">
+                        <span className={`evs-rank-num${i === 0 ? ' is-first' : ''}`}>{i + 1}</span>
+                        <span className="evs-rank-dept">{d.dept}</span>
+                        <div className="evs-rank-bar">
+                          <span className={`evs-rank-fill${i === 0 ? ' is-first' : ''}`} style={{ width: `${d.avgAchieve}%` }} />
+                        </div>
+                        <span className="evs-rank-val">{d.avgAchieve}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="evs-dist-guide-cap evs-rank-cap">{L.deptRankCaption}</p>
+                </section>
               </div>
-            )}
-          </section>
+
+              {/* Block 3 — 부서별 상세 현황 */}
+              <section className="evc-card" data-testid="evs-dept-detail">
+                <h3 className="evc-card-name">{L.deptDetailTitle}</h3>
+                <div className="evs-leader-table">
+                  <div className="evs-leader-row evs-dept-drow evs-leader-head" style={{ '--gcols': deptStats[0]?.gradeCounts.length || 3 }}>
+                    <span>{L.deptColDept}</span>
+                    <span className="evs-leader-num">{L.deptColCount}</span>
+                    {deptStats[0]?.gradeCounts.map((g) => (
+                      <span className="evs-leader-num" key={g.gradeKey}>{g.label}</span>
+                    ))}
+                    <span className="evs-leader-num">{L.deptColAvgAchieve}</span>
+                    <span className="evs-leader-num">{L.deptColVsGuide}</span>
+                  </div>
+                  {deptStats.map((d) => (
+                    <div className="evs-leader-row evs-dept-drow" role="row" key={d.dept} data-testid="evs-dept-drow" style={{ '--gcols': d.gradeCounts.length }}>
+                      <span className="evs-leader-name">{d.dept}</span>
+                      <span className="evs-leader-num is-muted">{d.total}{L.unit}</span>
+                      {d.gradeCounts.map((g, i) => (
+                        <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}{L.unit}</span>
+                      ))}
+                      <span className="evs-leader-num">{d.avgAchieve}%</span>
+                      <span className={`evs-leader-num evs-dept-vsguide tone-${vsGuideTone(d.deltaVsGuide)}`}>
+                        {d.deltaVsGuide > 0 ? `+${d.deltaVsGuide}` : d.deltaVsGuide}%p
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )
         )}
 
         {tab === 'leaderPattern' && (
