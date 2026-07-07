@@ -22,3 +22,21 @@ export const SIDEBAR_MENU = [
   { id: 'manager',  icon: '/icons-solid/user-edit.svg',           label: '매니저',   section: 'top' },
   { id: 'admin',    icon: '/icons-solid/lock-keyhole-square.svg', label: '어드민',   section: 'bottom' },
 ];
+
+// ADMIN_MENU — 어드민 콘솔 사이드바 탭의 디자인 정본(순서·그룹·아이콘·라벨).
+// SIDEBAR_MENU 와 같은 역할을 어드민 사이드바에 대해 한다: 여기 있는 탭만, 이
+// 순서·그룹으로 노출된다. pivit-work 는 이 모듈을 import 해 자기 어드민 탭
+// 레지스트리(inSpec=노출 탭)가 아이콘·그룹·순서에서 어긋나지 않았는지 드리프트
+// 테스트로 검증한다. 권한(role)·라우팅·i18n 키는 앱 소유 차원이라 여기 두지 않는다.
+// 드리프트 조인 키는 icon 경로(그룹 내 고유).
+export const ADMIN_MENU = [
+  { id: 'overview',      icon: '/icons-solid/dotpoints-01.svg',        label: '개요',            group: 'management' },
+  { id: 'members',       icon: '/icons-solid/user-03.svg',             label: '구성원 관리',      group: 'management' },
+  { id: 'snapshot',      icon: '/icons-solid/clock-check.svg',         label: '조직 스냅샷',      group: 'management' },
+  { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
+  { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
+  { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
+  { id: 'notifications', icon: '/icons-solid/alert-triangle.svg',      label: '알림 설정',        group: 'system' },
+  { id: 'integrations',  icon: '/icons-solid/link-01.svg',             label: '연동 설정',        group: 'system' },
+  { id: 'ai-prompts',    icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
+];
