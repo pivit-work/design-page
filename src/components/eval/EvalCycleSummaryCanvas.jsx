@@ -15,8 +15,20 @@ const DEFAULT_LABELS = {
   tabExec: '경영진 대시보드',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
+  execJ1: 'J1 전사 서머리',
   execJ2: 'J2 리더 평가 패턴',
   execJ3: 'J3 9블록 + 승진 요청',
+  execJ1Title: 'J1 — 전사 서머리 (등급분포·역량/업적·부서별)',
+  j1DistTitle: '전사 등급 분포',
+  j1RatioTitle: '역량 / 업적 비율 분석',
+  j1CompLabel: '역량(How) 평균',
+  j1WorkLabel: '업적(What) 평균',
+  j1RatioNote: '역량/업적 평균 점수는 하향평가(매니저) 답변 기준입니다.',
+  j1DeptTitle: '부서별 상세',
+  j1ColComp: '역량 평균',
+  j1ColWork: '업적 평균',
+  j1ColAchieve: 'OKR 달성률',
+  j1NoScore: '—',
   execJ2Title: 'J2 — 리더별 관대/엄격 평가 패턴 지표',
   execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
   nbConfidential: '이 화면은 캘리브레이션 위원회 · HR만 열람 가능합니다. 매니저·구성원 비공개.',
@@ -208,6 +220,7 @@ export default function EvalCycleSummaryCanvas({
   deptOutliers = [],
   calibResult = null,
   nineBox = null,
+  execSummary = null,
   integrated = [],
   selectedMemberId = null,
   memberDetail = null,
@@ -224,7 +237,7 @@ export default function EvalCycleSummaryCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
-  const [execSection, setExecSection] = useState('j3');
+  const [execSection, setExecSection] = useState('j1');
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -834,7 +847,7 @@ export default function EvalCycleSummaryCanvas({
           <div className="evs-exec" data-testid="evs-exec">
             <p className="evs-exec-banner">{L.execBanner}</p>
             <div className="fb-tabs evs-exec-tabs">
-              {[{ key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }].map((s) => (
+              {[{ key: 'j1', label: L.execJ1 }, { key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }].map((s) => (
                 <button
                   type="button"
                   key={s.key}
@@ -844,6 +857,88 @@ export default function EvalCycleSummaryCanvas({
                 >{s.label}</button>
               ))}
             </div>
+
+            {/* J1 — 전사 서머리 */}
+            {execSection === 'j1' && (
+              <>
+                <div className="evs-two-col">
+                  <section className="evc-card">
+                    <h3 className="evc-card-name">{L.j1DistTitle}</h3>
+                    {gradeDistribution.length === 0 ? (
+                      <p className="evc-empty-sub">{L.empty}</p>
+                    ) : (
+                      <div className="evs-dist">
+                        {gradeDistribution.map((d) => (
+                          <div className="evs-dist-row" key={d.gradeKey}>
+                            <span className="evs-dist-label">{d.label ?? d.gradeKey}</span>
+                            <div className="evs-dist-body">
+                              <div className="evs-dist-track">
+                                <div className="evs-dist-fill" style={{ width: `${(d.count / maxCount) * 100}%` }} />
+                                {d.guidelinePct != null && (
+                                  <div className="evs-dist-guide" style={{ left: `${Math.min(100, d.guidelinePct)}%` }} />
+                                )}
+                              </div>
+                              {d.guidelinePct != null && (
+                                <span className="evs-dist-guide-cap">{L.guidelineLabel} {d.guidelinePct}%</span>
+                              )}
+                            </div>
+                            <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                  <section className="evc-card" data-testid="evs-j1-ratio">
+                    <h3 className="evc-card-name">{L.j1RatioTitle}</h3>
+                    {[
+                      { label: L.j1CompLabel, val: execSummary?.competencyAvg, tone: 'purple' },
+                      { label: L.j1WorkLabel, val: execSummary?.workAchievementAvg, tone: 'accent' },
+                    ].map((r) => (
+                      <div className="evs-j1-ratio-row" key={r.label}>
+                        <span className="evs-j1-ratio-label">{r.label}</span>
+                        <div className="evs-dist-track evs-j1-ratio-track">
+                          <div className={`evs-j1-ratio-fill tone-${r.tone}`} style={{ width: `${r.val != null ? (r.val / 5) * 100 : 0}%` }} />
+                        </div>
+                        <span className="evs-j1-ratio-val">{r.val != null ? `${r.val.toFixed(1)}/5` : L.j1NoScore}</span>
+                      </div>
+                    ))}
+                    <p className="evs-dist-guide-cap evs-j1-ratio-note">{L.j1RatioNote}</p>
+                  </section>
+                </div>
+
+                <section className="evc-card" data-testid="evs-j1-dept">
+                  <h3 className="evc-card-name">{L.j1DeptTitle}</h3>
+                  {deptStats.length === 0 ? (
+                    <p className="evc-empty-sub">{L.deptDataEmpty}</p>
+                  ) : (
+                    <div className="evs-leader-table">
+                      <div className="evs-leader-row evs-j1-drow evs-leader-head">
+                        <span>{L.deptColDept}</span>
+                        <span className="evs-leader-num">{L.deptColCount}</span>
+                        {(deptStats[0]?.gradeCounts ?? []).map((g) => (
+                          <span className="evs-leader-num" key={g.gradeKey}>{g.label}</span>
+                        ))}
+                        <span className="evs-leader-num">{L.j1ColComp}</span>
+                        <span className="evs-leader-num">{L.j1ColWork}</span>
+                        <span className="evs-leader-num">{L.j1ColAchieve}</span>
+                      </div>
+                      {deptStats.map((d) => (
+                        <div className="evs-leader-row evs-j1-drow" role="row" key={d.dept} data-testid="evs-j1-dept-row" style={{ '--gcols': d.gradeCounts.length }}>
+                          <span className="evs-leader-name">{d.dept}</span>
+                          <span className="evs-leader-num is-muted">{d.total}{L.unit}</span>
+                          {d.gradeCounts.map((g, i) => (
+                            <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}</span>
+                          ))}
+                          <span className="evs-leader-num">{d.competencyAvg != null ? d.competencyAvg.toFixed(1) : L.j1NoScore}</span>
+                          <span className="evs-leader-num">{d.workAchievementAvg != null ? d.workAchievementAvg.toFixed(1) : L.j1NoScore}</span>
+                          <span className="evs-leader-num">{d.avgAchieve}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </>
+            )}
 
             {/* J2 — 리더 평가 패턴(탭 C 데이터 재사용) */}
             {execSection === 'j2' && (
