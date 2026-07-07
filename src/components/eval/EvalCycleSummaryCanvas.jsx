@@ -41,6 +41,25 @@ const DEFAULT_LABELS = {
   cwPromoNone: '—',
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
+  cwInboxTitle: '어필 재검토 인박스',
+  cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
+  cwAppealPending: '재검토 대기',
+  cwAppealReviewCta: '→ 재검토',
+  cwBackToInbox: '← 어필 목록',
+  cwAppealTitle: '어필 재검토',
+  cwAppealReasonLabel: '이의 사유 (매니저)',
+  cwAppealFromTo: '근거 확정 등급',
+  cwAppealRaisedBy: '제출 매니저',
+  cwReviewDecisionTitle: '위원회 재검토 결정',
+  cwReviewNoteLabel: '재검토 결정 사유 (필수)',
+  cwReviewNotePlaceholder: '재검토 근거를 입력하세요…',
+  cwNewGradeLabel: '재조정 등급',
+  cwAccept: '수용 (등급 재조정)',
+  cwReject: '반려',
+  cwStatusAccepted: '수용 완료',
+  cwStatusRejected: '반려 완료',
+  cwReviewedByLabel: '결정',
+  cwReviewOnlyNote: 'HR은 조회 전용입니다. 재검토는 위원회 위원만 가능합니다.',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
   execJ1: 'J1 전사 서머리',
@@ -318,6 +337,11 @@ export default function EvalCycleSummaryCanvas({
   selectedCalibSessionId = null,
   onSelectCalibSession,
   onAdjustGrade,
+  gradeAppeals = [],
+  appealCanReview = false,
+  selectedAppealId = null,
+  onSelectAppeal,
+  onReviewAppeal,
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
@@ -337,6 +361,9 @@ export default function EvalCycleSummaryCanvas({
   const [tab, setTab] = useState('overview');
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
+  // §10.G 어필 1인 재검토 폼 상태
+  const [reviewNote, setReviewNote] = useState('');
+  const [reviewGrade, setReviewGrade] = useState('');
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -1362,9 +1389,204 @@ export default function EvalCycleSummaryCanvas({
           <div className="evs-cw" data-testid="evs-calib-workspace">
             <div className="evs-cw-banner">{L.cwBanner}</div>
 
-            {!selectedCalibSessionId ? (
-              /* G1 — 내가 초대된 세션 조견표 */
+            {selectedAppealId ? (
+              /* G5 — 어필 1인 재검토 */
+              (() => {
+                const appeal = gradeAppeals.find((a) => a.id === selectedAppealId);
+                if (!appeal) return null;
+                const decided = appeal.status !== 'open';
+                const gradeOpts = gradeDistribution.map((d) => ({
+                  gradeKey: d.gradeKey,
+                  label: d.label,
+                }));
+                const submit = (decision) => {
+                  if (!reviewNote.trim()) return;
+                  onReviewAppeal?.(appeal.id, {
+                    decision,
+                    reviewNote: reviewNote.trim(),
+                    newGradeKey:
+                      decision === 'accept' ? reviewGrade || undefined : undefined,
+                  });
+                  setReviewNote('');
+                  setReviewGrade('');
+                };
+                const statusTone = decided
+                  ? appeal.status === 'accepted'
+                    ? 'green'
+                    : 'red'
+                  : 'accent';
+                const statusText = decided
+                  ? appeal.status === 'accepted'
+                    ? L.cwStatusAccepted
+                    : L.cwStatusRejected
+                  : L.cwAppealPending;
+                return (
+                  <div className="evs-cw-review" data-testid="evs-cw-review">
+                    <div className="evs-cw-review-head">
+                      <button
+                        type="button"
+                        className="evc-btn is-ghost"
+                        onClick={() => {
+                          onSelectAppeal?.(null);
+                          setReviewNote('');
+                          setReviewGrade('');
+                        }}
+                        data-testid="evs-cw-appeal-back"
+                      >
+                        {L.cwBackToInbox}
+                      </button>
+                      <div className="evs-cw-review-title">
+                        {L.cwAppealTitle} · {appeal.memberName}
+                      </div>
+                      <span className="evs-cw-review-sub">
+                        {appeal.job} · {appeal.team}
+                      </span>
+                      <span className={`evs-cw-status tone-${statusTone} evs-cw-review-status`}>
+                        {statusText}
+                      </span>
+                    </div>
+                    <div className="evc-card evs-cw-review-card">
+                      <div className="evs-cw-review-grid">
+                        <div>
+                          <div className="evs-cw-review-k">{L.cwAppealRaisedBy}</div>
+                          <div className="evs-cw-review-v">{appeal.raisedByName || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="evs-cw-review-k">{L.cwAppealFromTo}</div>
+                          <div className="evs-cw-review-v">
+                            {appeal.fromGradeLabel ? (
+                              <span className="evs-cw-badge tone-muted">
+                                {appeal.fromGradeLabel}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
+                            {appeal.toGradeLabel ? (
+                              <>
+                                {' '}
+                                <span className="evs-cw-arrow">→</span>{' '}
+                                <span className="evs-cw-badge tone-accent">
+                                  {appeal.toGradeLabel}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="evs-cw-review-reason">
+                        <div className="evs-cw-review-k">{L.cwAppealReasonLabel}</div>
+                        <div className="evs-cw-review-reason-body">{appeal.reason}</div>
+                      </div>
+
+                      {decided ? (
+                        <div className="evs-cw-review-decided">
+                          <div className="evs-cw-review-k">
+                            {L.cwReviewedByLabel}
+                            {appeal.reviewedByName ? ` · ${appeal.reviewedByName}` : ''}
+                          </div>
+                          <div className="evs-cw-review-v">{appeal.reviewNote}</div>
+                        </div>
+                      ) : appealCanReview ? (
+                        <div className="evs-cw-review-form">
+                          <div className="evs-cw-review-k">{L.cwReviewDecisionTitle}</div>
+                          <div className="evs-cw-review-row">
+                            <span className="evs-cw-review-k">{L.cwNewGradeLabel}</span>
+                            <select
+                              className="evs-cw-adjust-select"
+                              data-testid="evs-cw-review-grade"
+                              value={reviewGrade}
+                              onChange={(e) => setReviewGrade(e.target.value)}
+                            >
+                              <option value="">—</option>
+                              {gradeOpts.map((g) => (
+                                <option key={g.gradeKey} value={g.gradeKey}>
+                                  {g.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <textarea
+                            className="evs-cw-review-note"
+                            data-testid="evs-cw-review-note"
+                            placeholder={L.cwReviewNotePlaceholder}
+                            value={reviewNote}
+                            onChange={(e) => setReviewNote(e.target.value)}
+                            rows={3}
+                          />
+                          <div className="evs-cw-review-actions">
+                            <button
+                              type="button"
+                              className="evc-btn is-ghost"
+                              disabled={!reviewNote.trim()}
+                              onClick={() => submit('reject')}
+                              data-testid="evs-cw-appeal-reject"
+                            >
+                              {L.cwReject}
+                            </button>
+                            <button
+                              type="button"
+                              className="evc-btn is-primary"
+                              disabled={!reviewNote.trim()}
+                              onClick={() => submit('accept')}
+                              data-testid="evs-cw-appeal-accept"
+                            >
+                              {L.cwAccept}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="evs-cw-review-readonly">{L.cwReviewOnlyNote}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : !selectedCalibSessionId ? (
+              /* G1 — 어필 인박스 + 내가 초대된 세션 조견표 */
               <div className="evs-cw-roster">
+                <div className="evs-cw-inbox">
+                  <div className="evs-section-label">
+                    {L.cwInboxTitle}
+                    {gradeAppeals.filter((a) => a.status === 'open').length > 0
+                      ? ` (${gradeAppeals.filter((a) => a.status === 'open').length})`
+                      : ''}
+                  </div>
+                  {gradeAppeals.filter((a) => a.status === 'open').length === 0 ? (
+                    <div className="evs-cw-empty">
+                      <div className="evs-cw-empty-sub">{L.cwInboxEmpty}</div>
+                    </div>
+                  ) : (
+                    gradeAppeals
+                      .filter((a) => a.status === 'open')
+                      .map((a) => (
+                        <button
+                          type="button"
+                          key={a.id}
+                          className="evs-cw-appeal"
+                          onClick={() => onSelectAppeal?.(a.id)}
+                          data-testid="evs-cw-appeal"
+                        >
+                          <span className="evs-cw-appeal-badge">{L.cwAppealPending}</span>
+                          <div className="evs-cw-appeal-main">
+                            <div className="evs-cw-appeal-name">
+                              {a.memberName}
+                              <span className="evs-cw-appeal-sub">
+                                {' '}
+                                · {a.job} · {a.team}
+                              </span>
+                            </div>
+                            <div className="evs-cw-appeal-meta">
+                              {a.fromGradeLabel && a.toGradeLabel
+                                ? `${a.fromGradeLabel} → ${a.toGradeLabel} · `
+                                : ''}
+                              {a.raisedByName ? `${a.raisedByName} ` : ''}어필
+                            </div>
+                          </div>
+                          <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}</span>
+                        </button>
+                      ))
+                  )}
+                </div>
                 <div className="evs-section-label">{L.cwSessionsTitle}</div>
                 {calibSessions.length === 0 ? (
                   <div className="evs-cw-empty" data-testid="evs-cw-empty">
