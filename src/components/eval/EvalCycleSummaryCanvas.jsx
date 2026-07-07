@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -12,6 +12,25 @@ const DEFAULT_LABELS = {
   tabIntegrated: '피평가자 통합 요약',
   tabLeaderPattern: '리더별 평가 패턴',
   tabCalib: '캘리브레이션 결과',
+  tabExec: '경영진 대시보드',
+  // §9.F 경영진 대시보드
+  execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
+  execJ2: 'J2 리더 평가 패턴',
+  execJ3: 'J3 9블록 + 승진 요청',
+  execJ2Title: 'J2 — 리더별 관대/엄격 평가 패턴 지표',
+  execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
+  nbConfidential: '이 화면은 캘리브레이션 위원회 · HR만 열람 가능합니다. 매니저·구성원 비공개.',
+  nbTitle: '승진 × 보상 9블록 (이름 표출)',
+  nbXUrgent: '시급한 보상',
+  nbXModerate: '어느 정도 필요',
+  nbXMaintain: '현 수준 유지',
+  nbYRecommended: '승진 추천',
+  nbYNotYet: '아직 아님',
+  nbYDeferred: '판단 유보',
+  nbCaption: 'X축: 보상 조정 필요 수준 | Y축: 승진 고려 여부',
+  nbEmpty: '승진·보상 평가 데이터가 아직 제출되지 않았습니다',
+  prTitle: '승진 요청 목록',
+  prEmpty: '제출된 승진 요청이 없습니다.',
   // §7.D 캘리브레이션 결과
   cdAdjusted: '조정된 인원',
   cdUpward: '상향 조정',
@@ -188,6 +207,7 @@ export default function EvalCycleSummaryCanvas({
   deptStats = [],
   deptOutliers = [],
   calibResult = null,
+  nineBox = null,
   integrated = [],
   selectedMemberId = null,
   memberDetail = null,
@@ -200,9 +220,11 @@ export default function EvalCycleSummaryCanvas({
   onSendReminders,
   onOpenWorkspace,
   onSelectMember,
+  onNineBoxNameClick,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
+  const [execSection, setExecSection] = useState('j3');
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -269,6 +291,7 @@ export default function EvalCycleSummaryCanvas({
     { key: 'dept', label: L.tabDept },
     { key: 'leaderPattern', label: L.tabLeaderPattern },
     { key: 'calib', label: L.tabCalib },
+    { key: 'exec', label: L.tabExec },
     { key: 'integrated', label: L.tabIntegrated },
   ];
 
@@ -805,6 +828,118 @@ export default function EvalCycleSummaryCanvas({
               </div>
             </section>
           </>
+        )}
+
+        {tab === 'exec' && (
+          <div className="evs-exec" data-testid="evs-exec">
+            <p className="evs-exec-banner">{L.execBanner}</p>
+            <div className="fb-tabs evs-exec-tabs">
+              {[{ key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }].map((s) => (
+                <button
+                  type="button"
+                  key={s.key}
+                  className={`fb-tab${execSection === s.key ? ' is-on' : ''}`}
+                  onClick={() => setExecSection(s.key)}
+                  data-testid={`evs-exec-tab-${s.key}`}
+                >{s.label}</button>
+              ))}
+            </div>
+
+            {/* J2 — 리더 평가 패턴(탭 C 데이터 재사용) */}
+            {execSection === 'j2' && (
+              <section className="evc-card" data-testid="evs-exec-j2">
+                <h3 className="evc-card-name">{L.execJ2Title}</h3>
+                {leaderPatterns.length === 0 ? (
+                  <p className="evc-empty-sub">{L.lpEmpty}</p>
+                ) : (
+                  <>
+                    <div className="evs-lp-banner">
+                      {patternBuckets.map((b) => (
+                        <div className={`evs-lp-card tone-${b.tone}`} key={b.key}>
+                          <div className="evs-lp-card-label">{b.label}</div>
+                          <div className="evs-lp-card-count">{b.leaders.length}{L.unit}</div>
+                          <div className="evs-lp-card-names">{b.leaders.length ? b.leaders.map((l) => l.name).join(', ') : '—'}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="evs-lp-list">
+                      {leaderPatterns.map((p) => (
+                        <div className="evs-lp-row" key={p.leaderId}>
+                          <div className="evs-lp-row-head">
+                            <span className="evs-lp-lead">
+                              <span className="evs-leader-avatar">{(p.name || '?').slice(0, 1)}</span>
+                              <span><span className="evs-leader-name">{p.name || p.leaderId}</span><span className="evs-lp-dept"> · {p.dept}</span></span>
+                            </span>
+                            <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</span>
+                          </div>
+                          <div className="evs-lp-bar">
+                            {p.gradeDistribution.map((g, i) => (
+                              g.pct > 0 && <span key={g.gradeKey} className={`evs-lp-seg ${segClass(i, p.gradeDistribution.length)}`} style={{ width: `${g.pct}%` }} />
+                            ))}
+                          </div>
+                          <div className="evs-lp-legend">
+                            {p.gradeDistribution.map((g, i) => (
+                              <span className="evs-lp-legend-item" key={g.gradeKey}><span className={`evs-lp-dot ${segClass(i, p.gradeDistribution.length)}`} />{g.label} {g.pct}%</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
+
+            {/* J3 — 9블록 매트릭스 + 승진 요청 */}
+            {execSection === 'j3' && (
+              <>
+                <p className="evs-exec-confidential">🔒 {L.nbConfidential}</p>
+                <div className="evs-two-col evs-nb-wrap">
+                  <section className="evc-card">
+                    <h3 className="evc-card-name">{L.nbTitle}</h3>
+                    {!nineBox || nineBox.assessedCount === 0 ? (
+                      <p className="evc-empty-sub" data-testid="evs-nb-empty">{L.nbEmpty}</p>
+                    ) : (() => {
+                      const yKeys = ['recommended', 'not_yet', 'deferred'];
+                      const xKeys = ['urgent', 'moderate', 'maintain'];
+                      const yLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
+                      const xLabel = { urgent: L.nbXUrgent, moderate: L.nbXModerate, maintain: L.nbXMaintain };
+                      const yTone = { recommended: 'green', not_yet: 'neutral', deferred: 'amber' };
+                      return (
+                        <div className="evs-nb" data-testid="evs-ninebox">
+                          <div className="evs-nb-grid">
+                            <span className="evs-nb-corner" />
+                            {xKeys.map((x) => <span className="evs-nb-xhead" key={x}>{xLabel[x]}</span>)}
+                            {yKeys.map((y) => (
+                              <Fragment key={y}>
+                                <span className={`evs-nb-yhead tone-${yTone[y]}`}>{yLabel[y]}</span>
+                                {xKeys.map((x) => {
+                                  const members = nineBox.cells[y][x];
+                                  const highlight = y === 'recommended' && x === 'urgent';
+                                  return (
+                                    <div className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`} key={x} data-testid={`evs-nb-cell-${y}-${x}`}>
+                                      {members.length === 0 ? <span className="evs-nb-empty-cell">—</span> : members.map((m) => (
+                                        <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => onNineBoxNameClick && onNineBoxNameClick(m.memberId)}>{m.name || m.memberId}</button>
+                                      ))}
+                                    </div>
+                                  );
+                                })}
+                              </Fragment>
+                            ))}
+                          </div>
+                          <p className="evs-nb-caption">{L.nbCaption}</p>
+                        </div>
+                      );
+                    })()}
+                  </section>
+                  <section className="evc-card" data-testid="evs-exec-pr">
+                    <h3 className="evc-card-name">{L.prTitle}</h3>
+                    <p className="evc-empty-sub">{L.prEmpty}</p>
+                  </section>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {tab === 'integrated' && (

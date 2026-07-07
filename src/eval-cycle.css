@@ -2511,6 +2511,62 @@
 .evs-re-calib-final { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); display: flex; align-items: center; gap: var(--spacing-sm, 8px); margin-bottom: var(--spacing-sm, 6px); }
 .evs-re-calib-hist { font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); padding: 2px 0; }
 
+/* §9.F 경영진 대시보드 */
+.evs-exec { display: flex; flex-direction: column; gap: var(--spacing-md, 12px); }
+.evs-exec-banner {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-purple-50, #f4f3ff);
+  border: 1px solid var(--utility-purple-200, #d9d6fe);
+  color: var(--utility-purple-700, #5925dc);
+  font-size: var(--font-size-text-xs, 11px);
+}
+.evs-exec-tabs { margin: 0; }
+.evs-exec-confidential {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-error-50, #fef3f2);
+  border: 1px solid var(--utility-error-200, #fecdca);
+  color: var(--utility-error-700, #b42318);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+/* 9블록 매트릭스 */
+.evs-nb-grid {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  gap: 6px;
+}
+.evs-nb-corner { }
+.evs-nb-xhead { text-align: center; font-size: var(--font-size-text-xs, 11px); font-weight: 700; color: var(--text-secondary); padding-bottom: 2px; align-self: end; }
+.evs-nb-yhead {
+  writing-mode: horizontal-tb;
+  display: flex; align-items: center; justify-content: flex-end;
+  font-size: var(--font-size-text-xs, 11px); font-weight: 700; padding-right: 6px; text-align: right;
+}
+.evs-nb-yhead.tone-green { color: var(--utility-green-600, #17b26a); }
+.evs-nb-yhead.tone-amber { color: var(--utility-orange-600, #dc6803); }
+.evs-nb-yhead.tone-neutral { color: var(--text-tertiary); }
+.evs-nb-cell {
+  min-height: 60px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--bg-active, #e6e8ea);
+  padding: var(--spacing-sm, 6px);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.evs-nb-cell.x-urgent { background: var(--utility-error-50, #fef3f2); }
+.evs-nb-cell.x-moderate { background: var(--utility-orange-50, #fffaeb); }
+.evs-nb-cell.x-maintain { background: var(--bg-secondary, #f3f4f6); }
+.evs-nb-cell.is-priority { border: 2px solid var(--utility-error-500, #d92d20); }
+.evs-nb-name {
+  background: none; border: none; padding: 1px 0; text-align: left; cursor: pointer;
+  font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-primary);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.evs-nb-name:hover { color: var(--utility-brand-600, #2dbd82); }
+.evs-nb-empty-cell { color: var(--text-tertiary); font-size: var(--font-size-text-xs, 12px); }
+.evs-nb-caption { margin-top: var(--spacing-md, 10px); font-size: var(--font-size-text-xxs, 10px); color: var(--text-tertiary); }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
