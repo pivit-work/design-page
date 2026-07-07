@@ -13,6 +13,34 @@ const DEFAULT_LABELS = {
   tabLeaderPattern: '리더별 평가 패턴',
   tabCalib: '캘리브레이션 결과',
   tabExec: '경영진 대시보드',
+  tabCalibWork: '캘리브레이션 워크스페이스',
+  // §10.G 캘리브레이션 워크스페이스
+  cwBanner: '권한: 캘리브레이션 위원회=조정·확정 / HR=조회 전용. 동급자 이해상충 자동 제외.',
+  cwSessionsTitle: '내가 초대된 캘리브레이션 세션',
+  cwNoSessions: '참여할 캘리브레이션이 없습니다',
+  cwNoSessionsSub: '현재 사이클에서 초대된 세션이 없습니다. HR Admin이 세션에 초대하면 이 목록에 표시됩니다.',
+  cwSessionMeta: '대상자 {members}명 · 위원 {committee}명',
+  cwOpen: '→ 열기',
+  cwStatusDraft: '준비',
+  cwStatusInProgress: '진행 중',
+  cwStatusClosed: '완료',
+  cwBack: '← 목록',
+  cwReadOnlyBadge: 'HR 조회 전용 — 조정 불가',
+  cwColNo: '#',
+  cwColName: '이름',
+  cwColJob: '직무',
+  cwColTeam: '소속팀',
+  cwColLeader: '팀장',
+  cwColDates: '입사일/승급일',
+  cwColCurrent: '현재등급',
+  cwColTrend: '성과 추이',
+  cwColAdjust: '1차→위원회 조정',
+  cwColPromo: '승진마킹',
+  cwNoPromotion: '승급 이력 없음',
+  cwPromoRecommended: '매니저 추천',
+  cwPromoNone: '—',
+  cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
+  cwLoadingTable: '테이블을 불러오는 중…',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
   execJ1: 'J1 전사 서머리',
@@ -220,6 +248,46 @@ function mergeLabels(base, provided) {
   return out;
 }
 
+// §10.G 성과 추이 미니 선그래프 (eval_grade_history 스파크라인).
+function MiniSparkline({ trend, domain }) {
+  const scores = (trend ?? []).map((t) => (t == null ? null : t.score));
+  const valid = scores.filter((s) => s != null);
+  if (valid.length < 2) return <span className="evs-cw-spark-empty">—</span>;
+  const min = domain?.min ?? 1;
+  const max = Math.max(domain?.max ?? 3, min + 1);
+  const W = 60;
+  const H = 18;
+  const x = (i) => (scores.length > 1 ? (i / (scores.length - 1)) * W : 0);
+  const y = (v) => H - ((v - min) / (max - min)) * (H - 4) - 2;
+  const firstIdx = scores.findIndex((v) => v != null);
+  const d = scores
+    .map((v, i) =>
+      v == null ? null : `${i === firstIdx ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`,
+    )
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <svg width={W} height={H} className="evs-cw-spark" aria-hidden="true">
+      <path d={d} className="evs-cw-spark-line" fill="none" />
+      {scores.map((v, i) =>
+        v == null ? null : (
+          <circle key={i} cx={x(i)} cy={y(v)} r={2} className="evs-cw-spark-dot" />
+        ),
+      )}
+    </svg>
+  );
+}
+
+// 등급 톤: 최상위=green, 최하위=red, 그 외=accent.
+function gradeTone(gradeKey, orderedGrades) {
+  if (!gradeKey || !orderedGrades?.length) return 'muted';
+  const idx = orderedGrades.findIndex((g) => g.gradeKey === gradeKey);
+  if (idx < 0) return 'muted';
+  if (idx === 0) return 'green';
+  if (idx === orderedGrades.length - 1) return 'red';
+  return 'accent';
+}
+
 export default function EvalCycleSummaryCanvas({
   cycle,
   totalParticipants = 0,
@@ -244,6 +312,11 @@ export default function EvalCycleSummaryCanvas({
   filterPresets = [],
   execSummary = null,
   integrated = [],
+  calibSessions = [],
+  calibTable = null,
+  calibTableLoading = false,
+  selectedCalibSessionId = null,
+  onSelectCalibSession,
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
@@ -331,6 +404,7 @@ export default function EvalCycleSummaryCanvas({
     { key: 'calib', label: L.tabCalib },
     { key: 'exec', label: L.tabExec },
     { key: 'integrated', label: L.tabIntegrated },
+    { key: 'calib_work', label: L.tabCalibWork },
   ];
 
   // §6.C 경향 배너 버킷 + 색.
@@ -865,11 +939,17 @@ export default function EvalCycleSummaryCanvas({
                   )}
                   <div className="evs-cd-delegate-note">{L.cdDelegateNote}</div>
                 </div>
-                {onOpenWorkspace && (
-                  <button type="button" className="evc-btn is-primary" onClick={() => onOpenWorkspace()} data-testid="evs-cd-workspace">
-                    {L.cdOpenWorkspace}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  onClick={() => {
+                    setTab('calib_work');
+                    onOpenWorkspace?.();
+                  }}
+                  data-testid="evs-cd-workspace"
+                >
+                  {L.cdOpenWorkspace}
+                </button>
               </div>
             </section>
           </>
@@ -1274,6 +1354,181 @@ export default function EvalCycleSummaryCanvas({
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {tab === 'calib_work' && (
+          <div className="evs-cw" data-testid="evs-calib-workspace">
+            <div className="evs-cw-banner">{L.cwBanner}</div>
+
+            {!selectedCalibSessionId ? (
+              /* G1 — 내가 초대된 세션 조견표 */
+              <div className="evs-cw-roster">
+                <div className="evs-section-label">{L.cwSessionsTitle}</div>
+                {calibSessions.length === 0 ? (
+                  <div className="evs-cw-empty" data-testid="evs-cw-empty">
+                    <div className="evs-cw-empty-title">{L.cwNoSessions}</div>
+                    <div className="evs-cw-empty-sub">{L.cwNoSessionsSub}</div>
+                  </div>
+                ) : (
+                  calibSessions.map((s) => {
+                    const statusLabel =
+                      s.status === 'closed'
+                        ? L.cwStatusClosed
+                        : s.status === 'in_progress'
+                          ? L.cwStatusInProgress
+                          : L.cwStatusDraft;
+                    const tone =
+                      s.status === 'closed'
+                        ? 'green'
+                        : s.status === 'in_progress'
+                          ? 'accent'
+                          : 'muted';
+                    const closed = s.status === 'closed';
+                    return (
+                      <button
+                        type="button"
+                        key={s.id}
+                        className={`evs-cw-session${closed ? ' is-closed' : ''}`}
+                        onClick={() => onSelectCalibSession?.(s.id)}
+                        data-testid="evs-cw-session"
+                      >
+                        <div className="evs-cw-session-main">
+                          <div className="evs-cw-session-name">{s.name}</div>
+                          <div className="evs-cw-session-meta">
+                            {fmt(L.cwSessionMeta, {
+                              members: s.memberCount,
+                              committee: s.committeeCount,
+                            })}
+                          </div>
+                        </div>
+                        <span className={`evs-cw-status tone-${tone}`}>{statusLabel}</span>
+                        <span className="evs-cw-open">{L.cwOpen}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              /* G2 — 세션 9칼럼 테이블 (read-only) */
+              <div className="evs-cw-table-view">
+                <div className="evs-cw-table-head">
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost evs-cw-back"
+                    onClick={() => onSelectCalibSession?.(null)}
+                    data-testid="evs-cw-back"
+                  >
+                    {L.cwBack}
+                  </button>
+                  <div className="evs-cw-table-title">{calibTable?.session?.name ?? ''}</div>
+                  {calibTable?.readOnly && (
+                    <span className="evs-cw-readonly" data-testid="evs-cw-readonly">
+                      {L.cwReadOnlyBadge}
+                    </span>
+                  )}
+                </div>
+
+                {calibTableLoading || !calibTable ? (
+                  <div className="evs-cw-empty">
+                    <div className="evs-cw-empty-sub">{L.cwLoadingTable}</div>
+                  </div>
+                ) : calibTable.rows.length === 0 ? (
+                  <div className="evs-cw-empty">
+                    <div className="evs-cw-empty-sub">{L.cwEmptyRows}</div>
+                  </div>
+                ) : (
+                  (() => {
+                    const og = calibTable.orderedGrades ?? [];
+                    const scores = og.map((g) => g.score);
+                    const domain = {
+                      min: scores.length ? Math.min(...scores) : 1,
+                      max: scores.length ? Math.max(...scores) : 3,
+                    };
+                    return (
+                      <div className="evc-card evs-cw-table-wrap">
+                        <table className="evs-cw-table">
+                          <thead>
+                            <tr>
+                              <th>{L.cwColNo}</th>
+                              <th>{L.cwColName}</th>
+                              <th>{L.cwColJob}</th>
+                              <th>{L.cwColTeam}</th>
+                              <th>{L.cwColLeader}</th>
+                              <th>{L.cwColDates}</th>
+                              <th>{L.cwColCurrent}</th>
+                              <th>{L.cwColTrend}</th>
+                              <th>{L.cwColAdjust}</th>
+                              <th>{L.cwColPromo}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {calibTable.rows.map((row, i) => (
+                              <tr key={row.memberId} data-testid="evs-cw-row">
+                                <td className="evs-cw-num">{i + 1}</td>
+                                <td className="evs-cw-name">{row.name}</td>
+                                <td className="evs-cw-muted">{row.job || '—'}</td>
+                                <td className="evs-cw-muted">{row.team}</td>
+                                <td className="evs-cw-muted">{row.leaderName ?? '—'}</td>
+                                <td>
+                                  <div className="evs-cw-date">{row.hireDate ?? '—'}</div>
+                                  <div className="evs-cw-date is-sub">
+                                    {row.promotedAt ?? L.cwNoPromotion}
+                                  </div>
+                                </td>
+                                <td>
+                                  {row.currentGradeKey ? (
+                                    <span
+                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
+                                    >
+                                      {row.currentGradeLabel}
+                                    </span>
+                                  ) : (
+                                    <span className="evs-cw-muted">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <MiniSparkline trend={row.gradeTrend} domain={domain} />
+                                </td>
+                                <td>
+                                  <div className="evs-cw-adjust">
+                                    <span
+                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
+                                    >
+                                      {row.currentGradeLabel ?? '—'}
+                                    </span>
+                                    {row.adjusted &&
+                                    row.calibratedGradeKey !== row.currentGradeKey ? (
+                                      <>
+                                        <span className="evs-cw-arrow">→</span>
+                                        <span
+                                          className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}
+                                        >
+                                          {row.calibratedGradeLabel}
+                                        </span>
+                                      </>
+                                    ) : null}
+                                  </div>
+                                </td>
+                                <td>
+                                  {row.promotionStatus === 'recommended' ? (
+                                    <span className="evs-cw-promo tone-green">
+                                      {L.cwPromoRecommended}
+                                    </span>
+                                  ) : (
+                                    <span className="evs-cw-muted">{L.cwPromoNone}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
