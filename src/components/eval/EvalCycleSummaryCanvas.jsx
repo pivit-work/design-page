@@ -60,6 +60,14 @@ const DEFAULT_LABELS = {
   cwStatusRejected: '반려 완료',
   cwReviewedByLabel: '결정',
   cwReviewOnlyNote: 'HR은 조회 전용입니다. 재검토는 위원회 위원만 가능합니다.',
+  cwExclusionBanner: '이해상충 자동 제외 적용 중 — {n}명(위원 겸 대상자) 제외됨',
+  cwExportCsv: 'CSV',
+  cwDetailSelf: '올해 셀프 서머리',
+  cwDetailManager: '매니저 코멘트',
+  cwDetailLogs: '변경 로그',
+  cwDetailEmpty: '내용 없음',
+  cwDetailLoading: '불러오는 중…',
+  cwDetailFinal: '최종 확정',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
   execJ1: 'J1 전사 서머리',
@@ -337,6 +345,7 @@ export default function EvalCycleSummaryCanvas({
   selectedCalibSessionId = null,
   onSelectCalibSession,
   onAdjustGrade,
+  onExportCalibCsv,
   gradeAppeals = [],
   appealCanReview = false,
   selectedAppealId = null,
@@ -364,6 +373,8 @@ export default function EvalCycleSummaryCanvas({
   // §10.G 어필 1인 재검토 폼 상태
   const [reviewNote, setReviewNote] = useState('');
   const [reviewGrade, setReviewGrade] = useState('');
+  // §10.G4 캘리 테이블 행 펼침(아코디언)
+  const [expandedCalibRow, setExpandedCalibRow] = useState(null);
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -1650,7 +1661,21 @@ export default function EvalCycleSummaryCanvas({
                       {L.cwReadOnlyBadge}
                     </span>
                   )}
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost evs-cw-csv"
+                    onClick={() => onExportCalibCsv?.()}
+                    data-testid="evs-cw-csv"
+                  >
+                    {L.cwExportCsv}
+                  </button>
                 </div>
+
+                {calibTable && calibTable.excludedCount > 0 && (
+                  <div className="evs-cw-exclusion" data-testid="evs-cw-exclusion">
+                    {fmt(L.cwExclusionBanner, { n: calibTable.excludedCount })}
+                  </div>
+                )}
 
                 {calibTableLoading || !calibTable ? (
                   <div className="evs-cw-empty">
@@ -1683,11 +1708,19 @@ export default function EvalCycleSummaryCanvas({
                               <th>{L.cwColTrend}</th>
                               <th>{L.cwColAdjust}</th>
                               <th>{L.cwColPromo}</th>
+                              <th aria-label="expand"></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {calibTable.rows.map((row, i) => (
-                              <tr key={row.memberId} data-testid="evs-cw-row">
+                            {calibTable.rows.map((row, i) => {
+                              const expanded = expandedCalibRow === row.memberId;
+                              const detail =
+                                expanded && selectedMemberId === row.memberId
+                                  ? memberDetail
+                                  : null;
+                              return (
+                              <Fragment key={row.memberId}>
+                              <tr data-testid="evs-cw-row">
                                 <td className="evs-cw-num">{i + 1}</td>
                                 <td className="evs-cw-name">{row.name}</td>
                                 <td className="evs-cw-muted">{row.job || '—'}</td>
@@ -1762,8 +1795,100 @@ export default function EvalCycleSummaryCanvas({
                                     <span className="evs-cw-muted">{L.cwPromoNone}</span>
                                   )}
                                 </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="evs-cw-expand"
+                                    data-testid="evs-cw-expand"
+                                    aria-expanded={expanded}
+                                    onClick={() => {
+                                      if (expanded) {
+                                        setExpandedCalibRow(null);
+                                      } else {
+                                        setExpandedCalibRow(row.memberId);
+                                        onSelectMember?.(row.memberId);
+                                      }
+                                    }}
+                                  >
+                                    {expanded ? '−' : '+'}
+                                  </button>
+                                </td>
                               </tr>
-                            ))}
+                              {expanded && (
+                                <tr data-testid="evs-cw-detail">
+                                  <td colSpan={11} className="evs-cw-detail-cell">
+                                    {!detail ? (
+                                      <div className="evs-cw-detail-loading">
+                                        {L.cwDetailLoading}
+                                      </div>
+                                    ) : (
+                                      <div className="evs-cw-detail">
+                                        <div className="evs-cw-detail-grid">
+                                          <div>
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailSelf}
+                                            </div>
+                                            <div className="evs-cw-detail-body">
+                                              {detail.self?.answers?.filter(
+                                                (a) => a.textAnswer,
+                                              ).length
+                                                ? detail.self.answers
+                                                    .filter((a) => a.textAnswer)
+                                                    .map((a) => a.textAnswer)
+                                                    .join(' · ')
+                                                : L.cwDetailEmpty}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailManager}
+                                            </div>
+                                            <div className="evs-cw-detail-body">
+                                              {detail.manager?.answers?.filter(
+                                                (a) => a.textAnswer,
+                                              ).length
+                                                ? detail.manager.answers
+                                                    .filter((a) => a.textAnswer)
+                                                    .map((a) => a.textAnswer)
+                                                    .join(' · ')
+                                                : L.cwDetailEmpty}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {detail.calibration?.history?.length > 0 && (
+                                          <div className="evs-cw-detail-logs">
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailLogs}
+                                            </div>
+                                            {detail.calibration.history.map((h, hi) => (
+                                              <div
+                                                className="evs-cw-detail-log"
+                                                key={hi}
+                                              >
+                                                <span className="evs-cw-badge tone-muted">
+                                                  {h.fromLabel ?? '—'}
+                                                </span>
+                                                <span className="evs-cw-arrow">→</span>
+                                                <span className="evs-cw-badge tone-accent">
+                                                  {h.toLabel}
+                                                </span>
+                                                {h.note ? (
+                                                  <span className="evs-cw-detail-log-note">
+                                                    {h.note}
+                                                  </span>
+                                                ) : null}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                              </Fragment>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
