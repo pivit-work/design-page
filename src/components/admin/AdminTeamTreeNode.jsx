@@ -5,12 +5,62 @@ import {
 } from './teamIcons.jsx';
 
 /**
+ * TeamInsertZone — 형제 노드 사이의 얇은 드롭 존. 같은 부모(같은 depth)의 형제를
+ * 드래그 중일 때만 활성화되어 삽입선을 그리고, 드롭 시 재정렬된 형제 id 순서를
+ * onReorder 로 방출한다. 다른 그룹의 노드를 드래그할 때는 비활성(재부모지정은
+ * 기존처럼 노드 행에 드롭). layout shift 를 막으려고 세로 음수 마진으로 겹친다.
+ */
+export function TeamInsertZone({ siblingIds, index, depth = 0, draggingId, onReorder }) {
+  const [active, setActive] = useState(false);
+  const isSameGroup = !!draggingId && siblingIds.includes(draggingId);
+
+  const handleDragOver = (e) => {
+    if (!isSameGroup) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const handleDragEnter = (e) => {
+    if (!isSameGroup) return;
+    e.preventDefault();
+    setActive(true);
+  };
+  const handleDragLeave = () => setActive(false);
+  const handleDrop = (e) => {
+    setActive(false);
+    if (!isSameGroup) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const from = siblingIds.indexOf(draggingId);
+    const without = siblingIds.filter((id) => id !== draggingId);
+    // index 는 원본 형제 기준 삽입 슬롯(0..n). 드래그 대상이 그 앞이면 한 칸 보정.
+    const insertAt = from < index ? index - 1 : index;
+    const next = [...without.slice(0, insertAt), draggingId, ...without.slice(insertAt)];
+    const unchanged =
+      next.length === siblingIds.length && next.every((id, i) => id === siblingIds[i]);
+    if (unchanged) return;
+    onReorder?.(next);
+  };
+
+  return (
+    <div
+      className={`tm-node-insert-zone${active ? ' is-active' : ''}`}
+      style={{ marginLeft: 10 + depth * 20, marginRight: 8 }}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      aria-hidden="true"
+    />
+  );
+}
+
+/**
  * AdminTeamTreeNode — 팀 트리 노드(재귀). 확장/축소·DnD·컨텍스트 메뉴·인라인 생성.
  * 순수 표현: labels 로 문자열 주입, 콜백으로 상호작용 위임.
  */
 export default function AdminTeamTreeNode({
   node, depth = 0, selectedId, labels, onSelect, onContextAction,
-  onDragStart, onDrop, draggingId,
+  onDragStart, onDrop, onReorder, reorderEnabled = false, draggingId,
   inlineCreateParentId, inlineCreateValue, onInlineCreateChange,
   onInlineCreateConfirm, onInlineCreateCancel,
 }) {
@@ -156,29 +206,55 @@ export default function AdminTeamTreeNode({
         </div>
       )}
 
-      {expanded && hasChildren && (
-        <div>
-          {node.children.map((child) => (
-            <AdminTeamTreeNode
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              selectedId={selectedId}
-              labels={labels}
-              onSelect={onSelect}
-              onContextAction={onContextAction}
-              onDragStart={onDragStart}
-              onDrop={onDrop}
-              draggingId={draggingId}
-              inlineCreateParentId={inlineCreateParentId}
-              inlineCreateValue={inlineCreateValue}
-              onInlineCreateChange={onInlineCreateChange}
-              onInlineCreateConfirm={onInlineCreateConfirm}
-              onInlineCreateCancel={onInlineCreateCancel}
-            />
-          ))}
-        </div>
-      )}
+      {expanded && hasChildren && (() => {
+        const childIds = node.children.map((c) => c.id);
+        // 이 그룹의 형제를 드래그 중일 때만 삽입 존을 노출(같은 부모 내 재정렬).
+        const showZones = reorderEnabled && !!draggingId && childIds.includes(draggingId);
+        return (
+          <div>
+            {node.children.map((child, i) => (
+              <div key={child.id}>
+                {showZones && (
+                  <TeamInsertZone
+                    siblingIds={childIds}
+                    index={i}
+                    depth={depth + 1}
+                    draggingId={draggingId}
+                    onReorder={onReorder}
+                  />
+                )}
+                <AdminTeamTreeNode
+                  node={child}
+                  depth={depth + 1}
+                  selectedId={selectedId}
+                  labels={labels}
+                  onSelect={onSelect}
+                  onContextAction={onContextAction}
+                  onDragStart={onDragStart}
+                  onDrop={onDrop}
+                  onReorder={onReorder}
+                  reorderEnabled={reorderEnabled}
+                  draggingId={draggingId}
+                  inlineCreateParentId={inlineCreateParentId}
+                  inlineCreateValue={inlineCreateValue}
+                  onInlineCreateChange={onInlineCreateChange}
+                  onInlineCreateConfirm={onInlineCreateConfirm}
+                  onInlineCreateCancel={onInlineCreateCancel}
+                />
+              </div>
+            ))}
+            {showZones && (
+              <TeamInsertZone
+                siblingIds={childIds}
+                index={node.children.length}
+                depth={depth + 1}
+                draggingId={draggingId}
+                onReorder={onReorder}
+              />
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

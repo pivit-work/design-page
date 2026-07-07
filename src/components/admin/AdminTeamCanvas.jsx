@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import AdminTeamTreeNode from './AdminTeamTreeNode.jsx';
+import AdminTeamTreeNode, { TeamInsertZone } from './AdminTeamTreeNode.jsx';
 import AdminTeamDetailPanel from './AdminTeamDetailPanel.jsx';
 import { PlusIcon, SearchIcon, XIcon } from './teamIcons.jsx';
 
@@ -204,6 +204,7 @@ export default function AdminTeamCanvas({
   onUpdateTeam,
   onDeleteTeam,
   onMoveTeam,
+  onReorderTeam,
   onMemberAction,
   onAddMember,
 }) {
@@ -247,6 +248,13 @@ export default function AdminTeamCanvas({
   const handleMove = useCallback((id, parentId) => {
     void run(() => onMoveTeam?.(id, parentId), L.toastUpdated);
   }, [run, onMoveTeam, L.toastUpdated]);
+
+  // 같은 부모(형제) 내 재정렬: 새 형제 id 순서 전체를 방출. 소비자는 이 순서로
+  // sortOrder 를 저장한다(백엔드 reorderUnits). 검색 필터 중에는 부분집합만 보여
+  // 순서가 왜곡되므로 비활성(reorderEnabled) 처리한다.
+  const handleReorder = useCallback((orderedIds) => {
+    void run(() => onReorderTeam?.(orderedIds), L.toastUpdated);
+  }, [run, onReorderTeam, L.toastUpdated]);
 
   const handleAddMember = useCallback((teamId, memberId) => {
     void run(() => onAddMember?.(teamId, memberId), L.toastMemberAdded);
@@ -385,24 +393,39 @@ export default function AdminTeamCanvas({
         )}
 
         <div className="tm-tree-list">
-          {filteredTree.map((node) => (
-            <AdminTeamTreeNode
-              key={node.id}
-              node={node}
-              selectedId={selectedId}
-              labels={L}
-              onSelect={onSelectTeam}
-              onContextAction={handleContextAction}
-              onDragStart={handleDragStart}
-              onDrop={handleDrop}
-              draggingId={draggingId}
-              inlineCreateParentId={inlineCreateParentId ?? undefined}
-              inlineCreateValue={inlineCreateValue}
-              onInlineCreateChange={setInlineCreateValue}
-              onInlineCreateConfirm={() => void handleInlineCreateConfirm()}
-              onInlineCreateCancel={handleInlineCreateCancel}
-            />
-          ))}
+          {(() => {
+            const rootIds = filteredTree.map((n) => n.id);
+            // 재정렬은 콜백이 있고 검색 필터가 없을 때만(필터 시 부분집합이라 순서 왜곡).
+            const reorderEnabled = !!onReorderTeam && !treeSearch;
+            const showRootZones = reorderEnabled && !!draggingId && rootIds.includes(draggingId);
+            return filteredTree.map((node, i) => (
+              <div key={node.id}>
+                {showRootZones && (
+                  <TeamInsertZone siblingIds={rootIds} index={i} depth={0} draggingId={draggingId} onReorder={handleReorder} />
+                )}
+                <AdminTeamTreeNode
+                  node={node}
+                  selectedId={selectedId}
+                  labels={L}
+                  onSelect={onSelectTeam}
+                  onContextAction={handleContextAction}
+                  onDragStart={handleDragStart}
+                  onDrop={handleDrop}
+                  onReorder={handleReorder}
+                  reorderEnabled={reorderEnabled}
+                  draggingId={draggingId}
+                  inlineCreateParentId={inlineCreateParentId ?? undefined}
+                  inlineCreateValue={inlineCreateValue}
+                  onInlineCreateChange={setInlineCreateValue}
+                  onInlineCreateConfirm={() => void handleInlineCreateConfirm()}
+                  onInlineCreateCancel={handleInlineCreateCancel}
+                />
+                {showRootZones && i === filteredTree.length - 1 && (
+                  <TeamInsertZone siblingIds={rootIds} index={filteredTree.length} depth={0} draggingId={draggingId} onReorder={handleReorder} />
+                )}
+              </div>
+            ));
+          })()}
           {filteredTree.length === 0 && (
             <p className="tm-empty-note" style={{ padding: '12px' }}>
               {treeSearch ? L.noSearchResults : L.emptyTree}
