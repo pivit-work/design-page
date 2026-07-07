@@ -43,6 +43,17 @@ const DEFAULT_LABELS = {
   nbEmpty: '승진·보상 평가 데이터가 아직 제출되지 않았습니다',
   prTitle: '승진 요청 목록',
   prEmpty: '제출된 승진 요청이 없습니다.',
+  prRequester: '요청자',
+  prShowAll: '전체 목록 보기',
+  prF1: '① 평가 이력 요약',
+  prF2: '② 검토 배경·필요성',
+  prF3: '③ 레벨 역할 수행 사례',
+  prF4: '④ 추가 사항',
+  prStatusDraft: '작성 중',
+  prStatusSubmitted: '검토 대기',
+  prStatusCommittee: '위원회 검토 중',
+  prStatusApproved: '승인',
+  prStatusRejected: '반려',
   // §7.D 캘리브레이션 결과
   cdAdjusted: '조정된 인원',
   cdUpward: '상향 조정',
@@ -220,6 +231,7 @@ export default function EvalCycleSummaryCanvas({
   deptOutliers = [],
   calibResult = null,
   nineBox = null,
+  promotionRequests = [],
   execSummary = null,
   integrated = [],
   selectedMemberId = null,
@@ -238,6 +250,7 @@ export default function EvalCycleSummaryCanvas({
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
   const [execSection, setExecSection] = useState('j1');
+  const [nbSelectedMember, setNbSelectedMember] = useState(null);
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -330,6 +343,13 @@ export default function EvalCycleSummaryCanvas({
   const heatAlpha = (pct) => (pct <= 0 ? 0 : Math.min(0.15 + (pct / 100) * 0.65, 0.8));
   const segClass = (i, n) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
   const vsGuideTone = (delta) => (delta > 10 ? 'red' : delta > 0 ? 'amber' : 'green');
+  const prStatusMeta = {
+    draft: { label: L.prStatusDraft, tone: 'neutral' },
+    submitted: { label: L.prStatusSubmitted, tone: 'amber' },
+    committee_review: { label: L.prStatusCommittee, tone: 'accent' },
+    approved: { label: L.prStatusApproved, tone: 'green' },
+    rejected: { label: L.prStatusRejected, tone: 'red' },
+  };
 
   // §8 피평가자 목록 — 부서 그룹핑 + 이름 가나다.
   const revieweeGroups = (() => {
@@ -1014,7 +1034,7 @@ export default function EvalCycleSummaryCanvas({
                                   return (
                                     <div className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`} key={x} data-testid={`evs-nb-cell-${y}-${x}`}>
                                       {members.length === 0 ? <span className="evs-nb-empty-cell">—</span> : members.map((m) => (
-                                        <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => onNineBoxNameClick && onNineBoxNameClick(m.memberId)}>{m.name || m.memberId}</button>
+                                        <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
                                       ))}
                                     </div>
                                   );
@@ -1028,8 +1048,47 @@ export default function EvalCycleSummaryCanvas({
                     })()}
                   </section>
                   <section className="evc-card" data-testid="evs-exec-pr">
-                    <h3 className="evc-card-name">{L.prTitle}</h3>
-                    <p className="evc-empty-sub">{L.prEmpty}</p>
+                    <div className="evs-pr-head">
+                      <h3 className="evc-card-name">{L.prTitle}</h3>
+                      {nbSelectedMember && (
+                        <button type="button" className="evs-pr-showall" onClick={() => setNbSelectedMember(null)}>{L.prShowAll}</button>
+                      )}
+                    </div>
+                    {(() => {
+                      const list = nbSelectedMember
+                        ? promotionRequests.filter((r) => r.memberId === nbSelectedMember)
+                        : promotionRequests;
+                      if (list.length === 0) return <p className="evc-empty-sub">{L.prEmpty}</p>;
+                      return (
+                        <div className="evs-pr-list">
+                          {list.map((r) => {
+                            const meta = prStatusMeta[r.status] ?? prStatusMeta.draft;
+                            return (
+                              <div className="evs-pr-card" key={r.memberId} data-testid="evs-pr-card">
+                                <div className="evs-pr-card-head">
+                                  <div>
+                                    <span className="evs-pr-name">{r.memberName || r.memberId}</span>
+                                    <span className="evs-pr-sub"> {r.dept} · {L.prRequester}: {r.requesterName || r.requesterId}</span>
+                                  </div>
+                                  <span className={`evs-lp-tag tone-${meta.tone}`}>{meta.label}</span>
+                                </div>
+                                {[
+                                  { label: L.prF1, val: r.evalHistorySummary },
+                                  { label: L.prF2, val: r.reviewBackground },
+                                  { label: L.prF3, val: r.levelRoleExamples },
+                                  { label: L.prF4, val: r.additionalNotes },
+                                ].map((f) => f.val && (
+                                  <div className="evs-pr-field" key={f.label}>
+                                    <div className="evs-pr-field-label">{f.label}</div>
+                                    <div className="evs-pr-field-val">{f.val}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </section>
                 </div>
               </>

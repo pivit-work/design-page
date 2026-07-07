@@ -2566,6 +2566,18 @@
 .evs-nb-name:hover { color: var(--utility-brand-600, #2dbd82); }
 .evs-nb-empty-cell { color: var(--text-tertiary); font-size: var(--font-size-text-xs, 12px); }
 .evs-nb-caption { margin-top: var(--spacing-md, 10px); font-size: var(--font-size-text-xxs, 10px); color: var(--text-tertiary); }
+.evs-lp-tag.tone-accent { background: var(--utility-brand-50, #ecfdf3); border: 1px solid var(--utility-brand-200, #abefc6); color: var(--utility-brand-700, #087443); }
+/* 승진 요청 카드 */
+.evs-pr-head { display: flex; align-items: center; justify-content: space-between; }
+.evs-pr-showall { background: none; border: none; cursor: pointer; font-size: var(--font-size-text-xs, 11px); color: var(--utility-brand-600, #2dbd82); font-weight: 600; }
+.evs-pr-list { display: flex; flex-direction: column; gap: var(--spacing-md, 12px); }
+.evs-pr-card { border: 1px solid var(--bg-active, #e6e8ea); border-radius: var(--radius-lg, 12px); padding: var(--spacing-md, 12px); }
+.evs-pr-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-sm, 8px); margin-bottom: var(--spacing-sm, 8px); }
+.evs-pr-name { font-size: var(--font-size-text-sm, 14px); font-weight: 700; color: var(--text-primary); }
+.evs-pr-sub { font-size: var(--font-size-text-xs, 11px); color: var(--text-secondary); }
+.evs-pr-field { margin-top: var(--spacing-sm, 6px); }
+.evs-pr-field-label { font-size: var(--font-size-text-xs, 11px); font-weight: 700; color: var(--text-secondary); }
+.evs-pr-field-val { font-size: var(--font-size-text-xs, 12px); color: var(--text-primary); line-height: 1.6; }
 /* J1 역량/업적 비율 */
 .evs-j1-ratio-row { display: grid; grid-template-columns: 1.2fr 2fr auto; gap: var(--spacing-sm, 8px); align-items: center; margin-bottom: var(--spacing-md, 10px); }
 .evs-j1-ratio-label { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); }
