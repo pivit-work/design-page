@@ -295,12 +295,11 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
                     <span className="admin-snap-age-label">{a.range}</span>
                     <div className="admin-snap-age-bar">
                       <div
-                        className={`admin-snap-age-bar-fill${a.flagged ? ' is-flagged' : ''}`}
+                        className="admin-snap-age-bar-fill"
                         style={{ width: `${(a.count / ageMax) * 100}%` }}
                       />
                     </div>
                     <span className="admin-snap-age-count">{a.count}{labels.countSuffix}</span>
-                    {a.flagLabel && <span className="admin-snap-age-badge">{a.flagLabel}</span>}
                   </div>
                 ))}
                 {ageSummary.length > 0 && (

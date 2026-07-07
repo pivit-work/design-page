@@ -60,7 +60,7 @@ export function TeamInsertZone({ siblingIds, index, depth = 0, draggingId, onReo
  */
 export default function AdminTeamTreeNode({
   node, depth = 0, selectedId, labels, onSelect, onContextAction,
-  onDragStart, onDrop, onReorder, reorderEnabled = false, draggingId,
+  onDragStart, onDragEnd, onDrop, onReorder, reorderEnabled = false, draggingId,
   inlineCreateParentId, inlineCreateValue, onInlineCreateChange,
   onInlineCreateConfirm, onInlineCreateCancel,
 }) {
@@ -100,7 +100,11 @@ export default function AdminTeamTreeNode({
     if (!draggingId || draggingId === node.id || node.isUnassigned) return;
     onDrop?.(node.id);
   };
-  const handleDragEnd = () => { dragCounterRef.current = 0; setIsDragTarget(false); };
+  const handleDragEnd = () => {
+    dragCounterRef.current = 0;
+    setIsDragTarget(false);
+    onDragEnd?.(); // 캔버스 draggingId 해제(드래그중 opacity 잔상 제거).
+  };
 
   const showInlineCreate = inlineCreateParentId === node.id;
 
@@ -231,6 +235,7 @@ export default function AdminTeamTreeNode({
                   onSelect={onSelect}
                   onContextAction={onContextAction}
                   onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
                   onDrop={onDrop}
                   onReorder={onReorder}
                   reorderEnabled={reorderEnabled}

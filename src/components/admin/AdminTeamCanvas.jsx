@@ -253,6 +253,7 @@ export default function AdminTeamCanvas({
   // sortOrder 를 저장한다(백엔드 reorderUnits). 검색 필터 중에는 부분집합만 보여
   // 순서가 왜곡되므로 비활성(reorderEnabled) 처리한다.
   const handleReorder = useCallback((orderedIds) => {
+    setDraggingId(''); // 재정렬 드롭 후 드래그중(opacity) 상태 즉시 해제.
     void run(() => onReorderTeam?.(orderedIds), L.toastUpdated);
   }, [run, onReorderTeam, L.toastUpdated]);
 
@@ -293,6 +294,9 @@ export default function AdminTeamCanvas({
 
   // DnD
   const handleDragStart = useCallback((id) => setDraggingId(id), []);
+  // 드래그 종료(성공/취소/재정렬 무관)에 항상 발생 — 드래그중(opacity) 상태를
+  // 확실히 해제한다. 재정렬·"아무데도 안 놓기" 후 원본 행이 흐리게 남던 버그 방지.
+  const handleDragEnd = useCallback(() => setDraggingId(''), []);
   const handleDrop = useCallback((targetId) => {
     if (!draggingId || draggingId === targetId) { setDraggingId(''); return; }
     if (isDescendant(tree, draggingId, targetId)) {
@@ -410,6 +414,7 @@ export default function AdminTeamCanvas({
                   onSelect={onSelectTeam}
                   onContextAction={handleContextAction}
                   onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
                   onDrop={handleDrop}
                   onReorder={handleReorder}
                   reorderEnabled={reorderEnabled}
