@@ -2434,6 +2434,42 @@
 .evs-dept-vsguide.tone-amber { color: var(--utility-orange-600, #dc6803); }
 .evs-dept-vsguide.tone-green { color: var(--utility-green-600, #17b26a); }
 
+/* §7.D 캘리브레이션 결과 */
+.evs-cd-cards { grid-template-columns: repeat(3, 1fr); }
+.evs-cd-down .evs-kpi-value { color: var(--utility-error-600, #d92d20); }
+.evs-cd-dist { display: flex; flex-direction: column; }
+.evs-cd-grade { padding: var(--spacing-md, 12px) 0; }
+.evs-cd-grade + .evs-cd-grade { border-top: 1px solid var(--bg-secondary, #f3f4f6); }
+.evs-cd-grade-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-sm, 6px); }
+.evs-cd-grade-name { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-text-sm, 13px); font-weight: 700; color: var(--text-primary); }
+.evs-cd-delta { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 11px); font-weight: 700; }
+.evs-cd-delta.is-up { color: var(--utility-green-600, #17b26a); }
+.evs-cd-delta.is-down { color: var(--utility-error-600, #d92d20); }
+.evs-cd-pair { display: grid; grid-template-columns: 48px 1fr auto; gap: var(--spacing-sm, 8px); align-items: center; margin-bottom: 4px; }
+.evs-cd-plabel { font-size: var(--font-size-text-xs, 11px); color: var(--text-tertiary); }
+.evs-cd-track { height: 10px; position: relative; }
+.evs-cd-fill { height: 100%; border-radius: var(--radius-full, 9999px); }
+.evs-cd-fill.is-before { opacity: 0.4; }
+.evs-cd-fill.is-after { opacity: 0.9; }
+.evs-cd-fill.seg-top { background: var(--utility-green-500, #17b26a); }
+.evs-cd-fill.seg-mid { background: var(--utility-brand-500, #2dbd82); }
+.evs-cd-fill.seg-bottom { background: var(--utility-error-500, #d92d20); }
+.evs-cd-pval { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 11px); color: var(--text-secondary); min-width: 84px; text-align: right; }
+.evs-cd-summary {
+  margin-top: var(--spacing-md, 12px);
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 14px);
+  background: var(--bg-secondary, #f3f4f6);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.evs-cd-delegate { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg, 14px); flex-wrap: wrap; }
+.evs-cd-delegate-text { flex: 1; min-width: 260px; }
+.evs-cd-delegate-line { font-size: var(--font-size-text-sm, 13px); font-weight: 700; color: var(--text-primary); }
+.evs-cd-delegate-sub { font-weight: 400; color: var(--text-tertiary); }
+.evs-cd-delegate-note { font-size: var(--font-size-text-xs, 11px); color: var(--text-tertiary); margin-top: 4px; line-height: 1.6; }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
