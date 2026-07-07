@@ -11,6 +11,24 @@ const DEFAULT_LABELS = {
   tabDept: '부서별 분석',
   tabIntegrated: '통합 요약',
   tabLeaderPattern: '리더별 평가 패턴',
+  tabCalib: '캘리브레이션 결과',
+  // §7.D 캘리브레이션 결과
+  cdAdjusted: '조정된 인원',
+  cdUpward: '상향 조정',
+  cdDownward: '하향 조정',
+  cdOfTotal: '전체 {total}명 중 {pct}%',
+  cdUpwardSub: '등급 올라간 인원',
+  cdDownwardSub: '등급 내려간 인원',
+  cdDistTitle: '조정 전후 등급 분포 비교',
+  cdBefore: '조정 전',
+  cdAfter: '조정 후',
+  cdDetailTitle: '등급 조정 상세 (개별)',
+  cdEmpty: '이번 사이클에서 등급 조정이 없었습니다',
+  cdSummaryLine: '이번 사이클 조정 {n}명',
+  cdSummaryDelta: ' (상향 {u} · 하향 {d})',
+  cdDelegateNote: '구성원별 등급 변경·변경 사유·변경 로그는 캘리브레이션 워크스페이스(탭 G)에서 실명·이력 원본으로 확인합니다. 본 탭은 전사 분포·통계 관점만 제공합니다.',
+  cdOpenWorkspace: '캘리브레이션 워크스페이스 열기 →',
+  cdGuideExceed: '가이드라인 초과',
   // §5.B 부서별 분석
   deptHeatTitle: '부서별 등급 분포 히트맵',
   deptRankTitle: '부서별 평균 달성률 랭킹',
@@ -148,6 +166,7 @@ export default function EvalCycleSummaryCanvas({
   leaderPatterns = [],
   deptStats = [],
   deptOutliers = [],
+  calibResult = null,
   integrated = [],
   report = null,
   gradeLabels = {},
@@ -155,6 +174,7 @@ export default function EvalCycleSummaryCanvas({
   onGenerate,
   onPublish,
   onSendReminders,
+  onOpenWorkspace,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
@@ -223,6 +243,7 @@ export default function EvalCycleSummaryCanvas({
     { key: 'overview', label: L.tabOverview },
     { key: 'dept', label: L.tabDept },
     { key: 'leaderPattern', label: L.tabLeaderPattern },
+    { key: 'calib', label: L.tabCalib },
     { key: 'integrated', label: L.tabIntegrated },
   ];
 
@@ -644,6 +665,100 @@ export default function EvalCycleSummaryCanvas({
               </section>
             </>
           )
+        )}
+
+        {tab === 'calib' && calibResult && (
+          <>
+            {/* Block 1 — 요약 지표 3-up */}
+            <div className="evs-kpis evs-cd-cards" data-testid="evs-cd-cards">
+              <div className="evs-kpi tone-accent">
+                <span className="evs-kpi-value">{calibResult.adjustedCount}{L.unit}</span>
+                <span className="evs-kpi-label">{L.cdAdjusted}</span>
+                <span className="evs-kpi-sub">{fmt(L.cdOfTotal, { total: calibResult.total, pct: calibResult.total > 0 ? Math.round((100 * calibResult.adjustedCount) / calibResult.total) : 0 })}</span>
+              </div>
+              <div className="evs-kpi tone-green">
+                <span className="evs-kpi-value">{calibResult.upwardCount}{L.unit}</span>
+                <span className="evs-kpi-label">{L.cdUpward}</span>
+                <span className="evs-kpi-sub">{L.cdUpwardSub}</span>
+              </div>
+              <div className="evs-kpi evs-cd-down">
+                <span className="evs-kpi-value">{calibResult.downwardCount}{L.unit}</span>
+                <span className="evs-kpi-label">{L.cdDownward}</span>
+                <span className="evs-kpi-sub">{L.cdDownwardSub}</span>
+              </div>
+            </div>
+
+            {/* Block 2 — 조정 전후 등급 분포 비교 */}
+            <section className="evc-card">
+              <h3 className="evc-card-name">{L.cdDistTitle}</h3>
+              <div className="evs-cd-dist">
+                {calibResult.before.map((b, i) => {
+                  const a = calibResult.after[i] ?? { count: 0, pct: 0 };
+                  const deltaCount = a.count - b.count;
+                  const deltaPct = a.pct - b.pct;
+                  const seg = segClass(i, calibResult.before.length);
+                  const guide = i === 0 ? calibResult.afterExcellentGuidelinePct : null;
+                  return (
+                    <div className="evs-cd-grade" key={b.gradeKey} data-testid="evs-cd-grade">
+                      <div className="evs-cd-grade-head">
+                        <span className="evs-cd-grade-name">
+                          <span className={`evs-lp-dot ${seg}`} /> {b.label}
+                        </span>
+                        {deltaCount !== 0 && (
+                          <span className={`evs-cd-delta${deltaCount > 0 ? ' is-up' : ' is-down'}`}>
+                            {deltaCount > 0 ? `▲ +${deltaCount}${L.unit}` : `▼ ${deltaCount}${L.unit}`} ({deltaPct > 0 ? `+${deltaPct}` : deltaPct}%p)
+                          </span>
+                        )}
+                      </div>
+                      <div className="evs-cd-pair">
+                        <span className="evs-cd-plabel">{L.cdBefore}</span>
+                        <div className="evs-dist-track evs-cd-track">
+                          <div className={`evs-cd-fill ${seg} is-before`} style={{ width: `${b.pct}%` }} />
+                        </div>
+                        <span className="evs-cd-pval">{b.count}{L.unit} ({b.pct}%)</span>
+                      </div>
+                      <div className="evs-cd-pair">
+                        <span className="evs-cd-plabel">{L.cdAfter}</span>
+                        <div className="evs-dist-track evs-cd-track">
+                          <div className={`evs-cd-fill ${seg} is-after`} style={{ width: `${a.pct}%` }} />
+                          {guide != null && (
+                            <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} title={`${L.guidelineLabel} ${guide}%`} />
+                          )}
+                        </div>
+                        <span className="evs-cd-pval">{a.count}{L.unit} ({a.pct}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {calibResult.summary && (
+                <p className="evs-cd-summary" data-testid="evs-cd-summary">{calibResult.summary}</p>
+              )}
+            </section>
+
+            {/* Block 3 — 개별 조정 위임 카드 */}
+            <section className="evc-card">
+              <h3 className="evc-card-name">{L.cdDetailTitle}</h3>
+              <div className="evs-cd-delegate">
+                <div className="evs-cd-delegate-text">
+                  {calibResult.adjustedCount === 0 ? (
+                    <div className="evs-cd-delegate-line">{L.cdEmpty}</div>
+                  ) : (
+                    <div className="evs-cd-delegate-line">
+                      {fmt(L.cdSummaryLine, { n: calibResult.adjustedCount })}
+                      <span className="evs-cd-delegate-sub">{fmt(L.cdSummaryDelta, { u: calibResult.upwardCount, d: calibResult.downwardCount })}</span>
+                    </div>
+                  )}
+                  <div className="evs-cd-delegate-note">{L.cdDelegateNote}</div>
+                </div>
+                {onOpenWorkspace && (
+                  <button type="button" className="evc-btn is-primary" onClick={() => onOpenWorkspace()} data-testid="evs-cd-workspace">
+                    {L.cdOpenWorkspace}
+                  </button>
+                )}
+              </div>
+            </section>
+          </>
         )}
 
         {tab === 'integrated' && (
