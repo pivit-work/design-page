@@ -317,6 +317,7 @@ export default function EvalCycleSummaryCanvas({
   calibTableLoading = false,
   selectedCalibSessionId = null,
   onSelectCalibSession,
+  onAdjustGrade,
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
@@ -1497,17 +1498,37 @@ export default function EvalCycleSummaryCanvas({
                                     >
                                       {row.currentGradeLabel ?? '—'}
                                     </span>
-                                    {row.adjusted &&
-                                    row.calibratedGradeKey !== row.currentGradeKey ? (
+                                    {calibTable.readOnly ? (
+                                      row.adjusted &&
+                                      row.calibratedGradeKey !== row.currentGradeKey ? (
+                                        <>
+                                          <span className="evs-cw-arrow">→</span>
+                                          <span
+                                            className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}
+                                          >
+                                            {row.calibratedGradeLabel}
+                                          </span>
+                                        </>
+                                      ) : null
+                                    ) : (
                                       <>
                                         <span className="evs-cw-arrow">→</span>
-                                        <span
-                                          className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}
+                                        <select
+                                          className="evs-cw-adjust-select"
+                                          data-testid="evs-cw-adjust-select"
+                                          value={row.calibratedGradeKey ?? ''}
+                                          onChange={(e) =>
+                                            onAdjustGrade?.(row.memberId, e.target.value)
+                                          }
                                         >
-                                          {row.calibratedGradeLabel}
-                                        </span>
+                                          {og.map((g) => (
+                                            <option key={g.gradeKey} value={g.gradeKey}>
+                                              {g.label}
+                                            </option>
+                                          ))}
+                                        </select>
                                       </>
-                                    ) : null}
+                                    )}
                                   </div>
                                 </td>
                                 <td>
