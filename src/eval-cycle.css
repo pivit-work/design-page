@@ -2372,6 +2372,68 @@
 .evs-lp-delta.is-down { color: var(--utility-error-600, #d92d20); font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
 .evs-lp-delta.is-muted { color: var(--text-tertiary); }
 
+/* §5.B 부서별 분석 */
+.evs-dept-outlier {
+  padding: var(--spacing-md, 12px) var(--spacing-xl, 16px);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--utility-orange-50, #fffaeb);
+  border: 1px solid var(--utility-orange-200, #fedf89);
+}
+.evs-dept-outlier-title { font-size: var(--font-size-text-sm, 13px); font-weight: 700; color: var(--utility-orange-700, #93370d); margin-bottom: 4px; }
+.evs-dept-outlier-row { font-size: var(--font-size-text-xs, 12px); color: var(--utility-orange-800, #78350f); line-height: 1.6; }
+.evs-dept-outlier-delta { font-weight: 700; color: var(--utility-error-600, #d92d20); }
+
+.evs-heat { display: flex; flex-direction: column; }
+.evs-heat-row {
+  display: grid;
+  gap: var(--spacing-xs, 4px);
+  align-items: stretch;
+  margin-bottom: var(--spacing-xs, 4px);
+}
+.evs-heat-head { align-items: center; }
+.evs-heat-gh { text-align: center; font-size: var(--font-size-text-xs, 11px); font-weight: 700; }
+.evs-heat-gh.seg-top { color: var(--utility-green-600, #17b26a); }
+.evs-heat-gh.seg-mid { color: var(--utility-brand-600, #2dbd82); }
+.evs-heat-gh.seg-bottom { color: var(--utility-error-600, #d92d20); }
+.evs-heat-num { text-align: right; font-size: var(--font-size-text-xs, 11px); font-weight: 600; color: var(--text-tertiary); align-self: center; }
+.evs-heat-dept { font-size: var(--font-size-text-sm, 13px); font-weight: 600; color: var(--text-primary); align-self: center; }
+.evs-heat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm, 6px) 0;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary, #f3f4f6);
+}
+.evs-heat-cell.seg-top { background: color-mix(in srgb, var(--utility-green-500, #17b26a) calc(var(--heat) * 100%), transparent); }
+.evs-heat-cell.seg-mid { background: color-mix(in srgb, var(--utility-brand-500, #2dbd82) calc(var(--heat) * 100%), transparent); }
+.evs-heat-cell.seg-bottom { background: color-mix(in srgb, var(--utility-error-500, #d92d20) calc(var(--heat) * 100%), transparent); }
+.evs-heat-cnt { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 800; font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); }
+.evs-heat-pct { font-size: var(--font-size-text-xxs, 9px); color: var(--text-secondary); }
+.evs-heat-legend { display: flex; align-items: center; gap: 4px; margin-top: var(--spacing-sm, 8px); font-size: var(--font-size-text-xxs, 10px); color: var(--text-tertiary); }
+.evs-heat-swatch { width: 16px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--utility-brand-500, #2dbd82) calc(var(--heat) * 100%), transparent); }
+
+.evs-rank { display: flex; flex-direction: column; gap: var(--spacing-md, 10px); }
+.evs-rank-row { display: grid; grid-template-columns: auto 1.2fr 2fr auto; gap: var(--spacing-sm, 8px); align-items: center; }
+.evs-rank-num { width: 20px; text-align: center; font-weight: 700; font-size: var(--font-size-text-xs, 12px); color: var(--text-tertiary); }
+.evs-rank-num.is-first { color: var(--utility-brand-600, #2dbd82); }
+.evs-rank-dept { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); }
+.evs-rank-bar { height: 8px; border-radius: var(--radius-full, 9999px); background: var(--bg-secondary, #f3f4f6); overflow: hidden; }
+.evs-rank-fill { height: 100%; background: var(--text-secondary, #687079); opacity: 0.5; border-radius: var(--radius-full, 9999px); }
+.evs-rank-fill.is-first { background: var(--utility-brand-500, #2dbd82); opacity: 1; }
+.evs-rank-val { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 800; font-size: var(--font-size-text-sm, 13px); text-align: right; color: var(--text-primary); }
+.evs-rank-cap { margin-top: var(--spacing-md, 10px); }
+
+.evs-dept-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 1fr) 1fr 1.2fr; }
+.evs-dept-drow .seg-top-text { color: var(--utility-green-600, #17b26a); font-family: var(--font-family-mono, 'DM Mono', monospace); }
+.evs-dept-drow .seg-mid-text { color: var(--utility-brand-600, #2dbd82); font-family: var(--font-family-mono, 'DM Mono', monospace); }
+.evs-dept-drow .seg-bottom-text { color: var(--utility-error-600, #d92d20); font-family: var(--font-family-mono, 'DM Mono', monospace); }
+.evs-dept-vsguide { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
+.evs-dept-vsguide.tone-red { color: var(--utility-error-600, #d92d20); }
+.evs-dept-vsguide.tone-amber { color: var(--utility-orange-600, #dc6803); }
+.evs-dept-vsguide.tone-green { color: var(--utility-green-600, #17b26a); }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
