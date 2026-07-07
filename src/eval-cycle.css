@@ -2470,6 +2470,47 @@
 .evs-cd-delegate-sub { font-weight: 400; color: var(--text-tertiary); }
 .evs-cd-delegate-note { font-size: var(--font-size-text-xs, 11px); color: var(--text-tertiary); margin-top: 4px; line-height: 1.6; }
 
+/* §8 피평가자 통합 요약 (2열) */
+.evs-re { display: grid; grid-template-columns: 240px 1fr; gap: var(--spacing-lg, 16px); align-items: start; }
+@media (max-width: 820px) { .evs-re { grid-template-columns: 1fr; } }
+.evs-re-list { position: sticky; top: 0; max-height: 78vh; overflow-y: auto; }
+.evs-re-access { font-size: var(--font-size-text-xxs, 10px); color: var(--text-tertiary); margin-bottom: var(--spacing-sm, 8px); }
+.evs-re-groups { display: flex; flex-direction: column; gap: var(--spacing-md, 10px); }
+.evs-re-group-dept { font-size: var(--font-size-text-xxs, 10px); font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.evs-re-item {
+  display: flex; align-items: center; gap: var(--spacing-sm, 8px);
+  width: 100%; padding: var(--spacing-sm, 6px) var(--spacing-sm, 8px);
+  border: 1px solid transparent; border-radius: var(--radius-md, 8px);
+  background: none; cursor: pointer; text-align: left;
+}
+.evs-re-item:hover { background: var(--bg-secondary, #f3f4f6); }
+.evs-re-item.is-sel { background: var(--utility-brand-50, #ecfdf3); border-color: var(--utility-brand-300, #75e0a7); }
+.evs-re-item-name { flex: 1; font-size: var(--font-size-text-sm, 13px); font-weight: 600; color: var(--text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evs-re-grade {
+  padding: 1px 8px; border-radius: var(--radius-full, 9999px);
+  font-size: var(--font-size-text-xxs, 10px); font-weight: 700; white-space: nowrap;
+}
+.evs-re-grade.lg { font-size: var(--font-size-text-xs, 12px); padding: 3px 10px; }
+.evs-re-grade.seg-top { background: var(--utility-green-50, #ecfdf3); color: var(--utility-green-700, #087443); }
+.evs-re-grade.seg-mid { background: var(--utility-brand-50, #ecfdf3); color: var(--utility-brand-600, #2dbd82); }
+.evs-re-grade.seg-bottom { background: var(--utility-error-50, #fef3f2); color: var(--utility-error-700, #b42318); }
+.evs-re-detail { display: flex; flex-direction: column; gap: var(--spacing-md, 12px); }
+.evs-re-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-md, 12px); padding: var(--spacing-md, 12px) var(--spacing-lg, 16px); flex-wrap: wrap; }
+.evs-re-head-name { font-size: var(--font-size-text-lg, 16px); font-weight: 700; color: var(--text-primary); }
+.evs-re-head-dept { font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
+.evs-re-head-right { display: flex; align-items: center; gap: var(--spacing-sm, 8px); flex-wrap: wrap; }
+.evs-re-sec { }
+.evs-re-sec-self { color: var(--utility-brand-600, #2dbd82); }
+.evs-re-sec-peer { color: var(--utility-purple-600, #7a5af8); }
+.evs-re-sec-manager { color: var(--utility-green-600, #17b26a); }
+.evs-re-answers { display: flex; flex-direction: column; gap: var(--spacing-sm, 8px); }
+.evs-re-answer { display: flex; flex-direction: column; gap: 3px; padding: var(--spacing-sm, 8px) var(--spacing-md, 10px); background: var(--bg-secondary, #f3f4f6); border-radius: var(--radius-md, 8px); }
+.evs-re-score { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 11px); font-weight: 700; color: var(--utility-brand-600, #2dbd82); }
+.evs-re-atext { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); line-height: 1.6; white-space: pre-wrap; }
+.evs-re-mgrade { display: inline-block; margin-bottom: var(--spacing-sm, 8px); }
+.evs-re-calib-final { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); display: flex; align-items: center; gap: var(--spacing-sm, 8px); margin-bottom: var(--spacing-sm, 6px); }
+.evs-re-calib-hist { font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); padding: 2px 0; }
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */
