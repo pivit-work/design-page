@@ -9,7 +9,7 @@ const DEFAULT_LABELS = {
   title: '종합 리포트',
   tabOverview: '전사 요약',
   tabDept: '부서별 분석',
-  tabIntegrated: '통합 요약',
+  tabIntegrated: '피평가자 통합 요약',
   tabLeaderPattern: '리더별 평가 패턴',
   tabCalib: '캘리브레이션 결과',
   // §7.D 캘리브레이션 결과
@@ -117,6 +117,27 @@ const DEFAULT_LABELS = {
   colGrade: '등급',
   colSelf: '셀프',
   colLeader: '하향',
+  // §8 피평가자 통합 요약 (2열)
+  reListTitle: '피평가자 목록',
+  reAccessNote: '접근: 조직장(1차 검수) · HR · 위원회',
+  reEmptyList: '이 사이클에 해당하는 구성원이 없습니다.',
+  reSelectPrompt: '왼쪽 목록에서 피평가자를 선택하세요.',
+  reNoData: '이 구성원의 통합 리뷰 요약 데이터가 아직 준비되지 않았습니다.',
+  reFinalGrade: '최종 등급',
+  reAdjustedBadge: '캘리브레이션 조정됨',
+  reSelfTitle: '셀프 리뷰 요약',
+  rePeerTitle: '동료 리뷰 요약',
+  reManagerTitle: '매니저 평가 요약',
+  reCalibTitle: '캘리브레이션 결과',
+  reManagerGrade: '매니저 부여 등급',
+  reSelfEmpty: '아직 셀프 리뷰가 제출되지 않았습니다.',
+  rePeerEmpty: '아직 동료 리뷰가 충분히 수집되지 않았습니다 ({n}건).',
+  reManagerEmpty: '매니저 평가가 아직 제출되지 않았습니다.',
+  reCalibEmpty: '캘리브레이션 진행 전입니다.',
+  reCalibAdjusted: '조정 있음',
+  reCalibOriginal: '원안 확정',
+  reLoading: '불러오는 중…',
+  reScore: '점수',
   // report control
   reportNotGenerated: '리포트 미생성',
   reportGenerated: '검수 대기',
@@ -168,6 +189,9 @@ export default function EvalCycleSummaryCanvas({
   deptOutliers = [],
   calibResult = null,
   integrated = [],
+  selectedMemberId = null,
+  memberDetail = null,
+  memberDetailLoading = false,
   report = null,
   gradeLabels = {},
   labels: providedLabels,
@@ -175,6 +199,7 @@ export default function EvalCycleSummaryCanvas({
   onPublish,
   onSendReminders,
   onOpenWorkspace,
+  onSelectMember,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
@@ -269,6 +294,27 @@ export default function EvalCycleSummaryCanvas({
   const heatAlpha = (pct) => (pct <= 0 ? 0 : Math.min(0.15 + (pct / 100) * 0.65, 0.8));
   const segClass = (i, n) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
   const vsGuideTone = (delta) => (delta > 10 ? 'red' : delta > 0 ? 'amber' : 'green');
+
+  // §8 피평가자 목록 — 부서 그룹핑 + 이름 가나다.
+  const revieweeGroups = (() => {
+    const byDept = new Map();
+    for (const m of integrated) {
+      const d = m.dept || '미지정';
+      if (!byDept.has(d)) byDept.set(d, []);
+      byDept.get(d).push(m);
+    }
+    return [...byDept.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], 'ko'))
+      .map(([dept, members]) => ({
+        dept,
+        members: members.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko')),
+      }));
+  })();
+  const gradeSeg = (label) => {
+    const idx = gradeDistribution.findIndex((d) => (d.label ?? d.gradeKey) === label);
+    if (idx < 0) return 'seg-mid';
+    return idx === 0 ? 'seg-top' : idx === gradeDistribution.length - 1 ? 'seg-bottom' : 'seg-mid';
+  };
 
   return (
     <div className="evc-root">
@@ -762,25 +808,147 @@ export default function EvalCycleSummaryCanvas({
         )}
 
         {tab === 'integrated' && (
-          <section className="evc-card">
-            <h3 className="evc-card-name">{L.integratedTitle}</h3>
-            <div className="evmon-table">
-              <div className="evmon-row evmon-head">
-                <span className="evmon-c-name">{L.colMember}</span>
-                <span>{L.colGrade}</span>
-                <span>{L.colSelf}</span>
-                <span>{L.colLeader}</span>
-              </div>
-              {integrated.map((m) => (
-                <div className="evsum-irow" role="row" key={m.memberId} data-testid="evsum-integrated-row">
-                  <span className="evmon-c-name">{m.name || m.memberId}</span>
-                  <span>{m.gradeKey ? (gradeLabels[m.gradeKey] ?? m.gradeKey) : '—'}</span>
-                  <span className={m.selfSubmitted ? 'evmon-check is-on' : 'evmon-check'}>{m.selfSubmitted ? L.yes : L.no}</span>
-                  <span className={m.leaderSubmitted ? 'evmon-check is-on' : 'evmon-check'}>{m.leaderSubmitted ? L.yes : L.no}</span>
+          <div className="evs-re" data-testid="evs-reviewee">
+            {/* 좌: 피평가자 목록 */}
+            <section className="evc-card evs-re-list">
+              <h3 className="evc-card-name">{L.reListTitle}</h3>
+              <p className="evs-re-access">{L.reAccessNote}</p>
+              {integrated.length === 0 ? (
+                <p className="evc-empty-sub">{L.reEmptyList}</p>
+              ) : (
+                <div className="evs-re-groups">
+                  {revieweeGroups.map((g) => (
+                    <div className="evs-re-group" key={g.dept}>
+                      <div className="evs-re-group-dept">{g.dept}</div>
+                      {g.members.map((m) => (
+                        <button
+                          type="button"
+                          key={m.memberId}
+                          className={`evs-re-item${selectedMemberId === m.memberId ? ' is-sel' : ''}`}
+                          onClick={() => onSelectMember && onSelectMember(m.memberId)}
+                          data-testid={`evs-re-item-${m.memberId}`}
+                        >
+                          <span className="evs-leader-avatar">{(m.name || '?').slice(0, 1)}</span>
+                          <span className="evs-re-item-name">{m.name || m.memberId}</span>
+                          {m.gradeLabel && (
+                            <span className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+            </section>
+
+            {/* 우: 상세 4섹션 */}
+            <div className="evs-re-detail">
+              {memberDetailLoading ? (
+                <section className="evc-card"><p className="evc-empty-sub">{L.reLoading}</p></section>
+              ) : !selectedMemberId ? (
+                <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-re-prompt">{L.reSelectPrompt}</p></section>
+              ) : !memberDetail ? (
+                <section className="evc-card"><p className="evc-empty-sub">{L.reNoData}</p></section>
+              ) : (
+                <>
+                  <div className="evs-re-head">
+                    <div>
+                      <div className="evs-re-head-name">{memberDetail.name || memberDetail.memberId}</div>
+                      <div className="evs-re-head-dept">{memberDetail.dept}</div>
+                    </div>
+                    <div className="evs-re-head-right">
+                      {memberDetail.gradeLabel && (
+                        <span className={`evs-re-grade lg ${gradeSeg(memberDetail.gradeLabel)}`}>
+                          {L.reFinalGrade}: {memberDetail.gradeLabel}
+                        </span>
+                      )}
+                      {memberDetail.calibration?.adjusted && (
+                        <span className="evs-lp-tag tone-amber">{L.reAdjustedBadge}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* A. 셀프 */}
+                  <section className="evc-card evs-re-sec">
+                    <h3 className="evc-card-name evs-re-sec-self">{L.reSelfTitle}</h3>
+                    {memberDetail.self?.submitted && memberDetail.self.answers.length ? (
+                      <div className="evs-re-answers">
+                        {memberDetail.self.answers.map((a) => (
+                          <div className="evs-re-answer" key={a.id}>
+                            {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                            {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="evc-empty-sub">{L.reSelfEmpty}</p>
+                    )}
+                  </section>
+
+                  {/* B. 동료 (익명) */}
+                  <section className="evc-card evs-re-sec">
+                    <h3 className="evc-card-name evs-re-sec-peer">{L.rePeerTitle}</h3>
+                    {memberDetail.peer?.answers.length ? (
+                      <div className="evs-re-answers">
+                        {memberDetail.peer.answers.map((a) => (
+                          <div className="evs-re-answer" key={a.id}>
+                            {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                            {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="evc-empty-sub">{fmt(L.rePeerEmpty, { n: memberDetail.peer?.count ?? 0 })}</p>
+                    )}
+                  </section>
+
+                  {/* C. 매니저 */}
+                  <section className="evc-card evs-re-sec">
+                    <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
+                    {memberDetail.manager?.submitted ? (
+                      <>
+                        {memberDetail.manager.gradeLabel && (
+                          <span className="evs-lp-tag tone-green evs-re-mgrade">{L.reManagerGrade}: {memberDetail.manager.gradeLabel}</span>
+                        )}
+                        <div className="evs-re-answers">
+                          {memberDetail.manager.answers.map((a) => (
+                            <div className="evs-re-answer" key={a.id}>
+                              {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                              {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="evc-empty-sub">{L.reManagerEmpty}</p>
+                    )}
+                  </section>
+
+                  {/* D. 캘리브레이션 */}
+                  <section className="evc-card evs-re-sec">
+                    <h3 className="evc-card-name">{L.reCalibTitle}</h3>
+                    {memberDetail.calibration?.finalGradeLabel ? (
+                      <>
+                        <div className="evs-re-calib-final">
+                          {L.reFinalGrade}: <strong>{memberDetail.calibration.finalGradeLabel}</strong>
+                          <span className={`evs-lp-tag ${memberDetail.calibration.adjusted ? 'tone-amber' : 'tone-green'}`}>
+                            {memberDetail.calibration.adjusted ? L.reCalibAdjusted : L.reCalibOriginal}
+                          </span>
+                        </div>
+                        {memberDetail.calibration.history.map((h, i) => (
+                          <div className="evs-re-calib-hist" key={i}>
+                            {h.fromLabel ?? '—'} → <strong>{h.toLabel}</strong>{h.note ? ` · ${h.note}` : ''}
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <p className="evc-empty-sub">{L.reCalibEmpty}</p>
+                    )}
+                  </section>
+                </>
+              )}
             </div>
-          </section>
+          </div>
         )}
       </div>
 
