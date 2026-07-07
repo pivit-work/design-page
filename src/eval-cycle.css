@@ -2578,6 +2578,14 @@
 .evs-pr-field { margin-top: var(--spacing-sm, 6px); }
 .evs-pr-field-label { font-size: var(--font-size-text-xs, 11px); font-weight: 700; color: var(--text-secondary); }
 .evs-pr-field-val { font-size: var(--font-size-text-xs, 12px); color: var(--text-primary); line-height: 1.6; }
+/* J4 필터/CSV */
+.evs-j4-presets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm, 8px); margin-bottom: var(--spacing-md, 12px); }
+.evs-j4-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full, 9999px); background: var(--bg-secondary, #f3f4f6); font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-primary); }
+.evs-j4-pill-tag { font-size: var(--font-size-text-xxs, 9px); font-weight: 700; padding: 1px 6px; border-radius: var(--radius-full, 9999px); background: var(--bg-active, #e6e8ea); color: var(--text-tertiary); }
+.evs-j4-pill-tag.is-shared { background: var(--utility-brand-50, #ecfdf3); color: var(--utility-brand-700, #087443); }
+.evs-j4-save { background: none; border: 1px dashed var(--bg-active, #e6e8ea); border-radius: var(--radius-full, 9999px); padding: 4px 12px; cursor: pointer; font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
+.evs-j4-desc { font-size: var(--font-size-text-xs, 11px); color: var(--text-tertiary); line-height: 1.7; margin-bottom: var(--spacing-md, 12px); }
+.evs-j4-actions { display: flex; gap: var(--spacing-sm, 8px); }
 /* J1 역량/업적 비율 */
 .evs-j1-ratio-row { display: grid; grid-template-columns: 1.2fr 2fr auto; gap: var(--spacing-sm, 8px); align-items: center; margin-bottom: var(--spacing-md, 10px); }
 .evs-j1-ratio-label { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); }
