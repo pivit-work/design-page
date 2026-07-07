@@ -18,6 +18,15 @@ const DEFAULT_LABELS = {
   execJ1: 'J1 전사 서머리',
   execJ2: 'J2 리더 평가 패턴',
   execJ3: 'J3 9블록 + 승진 요청',
+  execJ4: 'J4 필터/CSV',
+  execJ4Title: 'J4 — 표 필터/정렬 + CSV 다운로드 (공통 컴포넌트)',
+  j4SavePreset: '+ 프리셋 저장',
+  j4Shared: '공용',
+  j4Personal: '개인',
+  j4NoPreset: '저장된 프리셋이 없습니다.',
+  j4Desc: '헤더 클릭 정렬 / 칼럼 필터 드롭다운 / AND·OR 조합 / 프리셋 불러오기 / CSV 다운로드(HR Admin 전용) — J4·G6·G4 공통 컴포넌트. 프리셋은 G 탭 캘리브레이션 워크스페이스와 동일 eval_filter_presets 엔티티 공유.',
+  j4Csv: 'CSV 다운로드 (HR Admin)',
+  j4Reset: '필터 초기화',
   execJ1Title: 'J1 — 전사 서머리 (등급분포·역량/업적·부서별)',
   j1DistTitle: '전사 등급 분포',
   j1RatioTitle: '역량 / 업적 비율 분석',
@@ -232,6 +241,7 @@ export default function EvalCycleSummaryCanvas({
   calibResult = null,
   nineBox = null,
   promotionRequests = [],
+  filterPresets = [],
   execSummary = null,
   integrated = [],
   selectedMemberId = null,
@@ -246,6 +256,8 @@ export default function EvalCycleSummaryCanvas({
   onOpenWorkspace,
   onSelectMember,
   onNineBoxNameClick,
+  onExportCsv,
+  onSaveFilterPreset,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState('overview');
@@ -867,7 +879,7 @@ export default function EvalCycleSummaryCanvas({
           <div className="evs-exec" data-testid="evs-exec">
             <p className="evs-exec-banner">{L.execBanner}</p>
             <div className="fb-tabs evs-exec-tabs">
-              {[{ key: 'j1', label: L.execJ1 }, { key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }].map((s) => (
+              {[{ key: 'j1', label: L.execJ1 }, { key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }, { key: 'j4', label: L.execJ4 }].map((s) => (
                 <button
                   type="button"
                   key={s.key}
@@ -1092,6 +1104,31 @@ export default function EvalCycleSummaryCanvas({
                   </section>
                 </div>
               </>
+            )}
+
+            {/* J4 — 필터 / CSV */}
+            {execSection === 'j4' && (
+              <section className="evc-card" data-testid="evs-exec-j4">
+                <h3 className="evc-card-name">{L.execJ4Title}</h3>
+                <div className="evs-j4-presets">
+                  {filterPresets.length === 0 ? (
+                    <span className="evc-empty-sub">{L.j4NoPreset}</span>
+                  ) : (
+                    filterPresets.map((p) => (
+                      <span className="evs-j4-pill" key={p.id} data-testid="evs-j4-pill">
+                        <span className={`evs-j4-pill-tag${p.isShared ? ' is-shared' : ''}`}>{p.isShared ? L.j4Shared : L.j4Personal}</span>
+                        {p.name}
+                      </span>
+                    ))
+                  )}
+                  <button type="button" className="evs-j4-save" onClick={() => onSaveFilterPreset && onSaveFilterPreset()} data-testid="evs-j4-save">{L.j4SavePreset}</button>
+                </div>
+                <p className="evs-j4-desc">{L.j4Desc}</p>
+                <div className="evs-j4-actions">
+                  <button type="button" className="evc-btn is-primary" onClick={() => onExportCsv && onExportCsv()} data-testid="evs-j4-csv">{L.j4Csv}</button>
+                  <button type="button" className="evc-btn is-ghost" data-testid="evs-j4-reset">{L.j4Reset}</button>
+                </div>
+              </section>
             )}
           </div>
         )}
