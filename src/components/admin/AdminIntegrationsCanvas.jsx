@@ -90,7 +90,6 @@ const DEFAULT_LABELS = {
   },
   transfer: {
     ownerLabel: '소유자',
-    slackAdmin: 'Slack Admin',
     expireToken: '토큰 만료',
     reauth: '재인증',
     tokenHistory: '토큰 이력',
@@ -113,11 +112,9 @@ const DEFAULT_LABELS = {
     },
     reauthModal: {
       title: '재인증',
-      slackAdminCheck: 'Slack Admin 확인',
-      isAdmin: '관리자 권한 확인됨',
-      notAdmin: '관리자 권한 없음',
-      notAdminWarning:
-        'Slack 워크스페이스에서 관리자 권한을 먼저 획득해야 인증할 수 있습니다.',
+      // 현재 토큰을 인증한 계정과 다른 관리자가 재인증을 시도할 때 노출되는 경고.
+      // 앞에 인증자 이름이 붙는다: "{이름}님이 인증한 상태입니다. …"
+      differentOwnerWarning: '님이 인증한 상태입니다. 정말로 다시 인증하시겠습니까?',
       cancel: '취소',
       confirm: 'Slack으로 인증하기',
       titleLabel: '직함',
@@ -566,6 +563,9 @@ function ExpireModal({ labels, onClose, onConfirm, error }) {
 
 function ReauthModal({ owner, labels, onClose, onConfirm }) {
   const L = labels.transfer.reauthModal;
+  // 현재 로그인 사용자가 토큰 소유자와 다르면 경고. 소유자 여부는 소비자가
+  // owner.isCurrentUser 로 판단해 전달한다(기본 undefined → 경고 노출: 안전측).
+  const isDifferentOwner = owner.isCurrentUser !== true;
   return (
     <Overlay onClose={onClose} testid="intg-reauth-modal">
       <h3>{L.title}</h3>
@@ -580,25 +580,15 @@ function ReauthModal({ owner, labels, onClose, onConfirm }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0 16px', fontSize: 12, color: 'var(--text-secondary)' }}>
-        <span style={{ fontWeight: 600 }}>{L.slackAdminCheck}:</span>
-        {owner.isSlackAdmin
-          ? <span className="intg-pill is-good">{L.isAdmin}</span>
-          : <span className="intg-pill is-bad">{L.notAdmin}</span>}
-      </div>
-
-      {!owner.isSlackAdmin && (
-        <div className="intg-note is-warning" style={{ marginBottom: 16 }}>{L.notAdminWarning}</div>
+      {isDifferentOwner && (
+        <div className="intg-note is-warning" style={{ margin: '12px 0 16px' }} data-testid="intg-reauth-diff-owner-warning">
+          {owner.name}{L.differentOwnerWarning}
+        </div>
       )}
 
       <div className="intg-modal-actions">
         <button type="button" className="intg-btn intg-btn-neutral" onClick={onClose}>{L.cancel}</button>
-        <button
-          type="button"
-          className="intg-btn intg-btn-primary"
-          onClick={owner.isSlackAdmin ? onConfirm : undefined}
-          disabled={!owner.isSlackAdmin}
-        >
+        <button type="button" className="intg-btn intg-btn-primary" onClick={onConfirm}>
           {L.confirm}
         </button>
       </div>
@@ -649,7 +639,6 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
             <div className="intg-owner-name">
               {owner.name}
               <span className="intg-pill is-brand">{labels.transfer.ownerLabel}</span>
-              {owner.isSlackAdmin && <span className="intg-pill is-good">{labels.transfer.slackAdmin}</span>}
             </div>
             <div className="intg-owner-sub">
               {owner.title} &middot; {transfer.connectedLabel}
