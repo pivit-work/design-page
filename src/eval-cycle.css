@@ -2566,6 +2566,16 @@
 .evs-nb-name:hover { color: var(--utility-brand-600, #2dbd82); }
 .evs-nb-empty-cell { color: var(--text-tertiary); font-size: var(--font-size-text-xs, 12px); }
 .evs-nb-caption { margin-top: var(--spacing-md, 10px); font-size: var(--font-size-text-xxs, 10px); color: var(--text-tertiary); }
+/* J1 역량/업적 비율 */
+.evs-j1-ratio-row { display: grid; grid-template-columns: 1.2fr 2fr auto; gap: var(--spacing-sm, 8px); align-items: center; margin-bottom: var(--spacing-md, 10px); }
+.evs-j1-ratio-label { font-size: var(--font-size-text-sm, 13px); color: var(--text-primary); }
+.evs-j1-ratio-track { height: 10px; }
+.evs-j1-ratio-fill { height: 100%; border-radius: var(--radius-full, 9999px); }
+.evs-j1-ratio-fill.tone-purple { background: var(--utility-purple-500, #7a5af8); }
+.evs-j1-ratio-fill.tone-accent { background: var(--utility-brand-500, #2dbd82); }
+.evs-j1-ratio-val { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; font-size: var(--font-size-text-sm, 13px); min-width: 44px; text-align: right; color: var(--text-primary); }
+.evs-j1-ratio-note { margin-top: var(--spacing-sm, 6px); }
+.evs-j1-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 0.7fr) 0.9fr 0.9fr 1fr; }
 
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
