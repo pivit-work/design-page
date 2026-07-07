@@ -162,6 +162,38 @@
 .tm-node-row.is-dragging { opacity: 0.4; }
 .tm-node-row.is-unassigned { cursor: pointer; }
 
+/* 형제 사이 재정렬 삽입 존 — 드래그 중 같은 그룹에서만 노출. 세로 음수 마진으로
+   기존 간격에 겹쳐 layout shift 없이 삽입선만 그린다. */
+.tm-node-insert-zone {
+  height: 4px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+  position: relative;
+  z-index: 1;
+}
+.tm-node-insert-zone.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-brand-tertiary);
+}
+.tm-node-insert-zone.is-active::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-brand-tertiary);
+}
+
 .tm-node-toggle {
   width: 16px;
   height: 16px;
