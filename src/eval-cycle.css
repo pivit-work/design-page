@@ -4161,3 +4161,138 @@
     flex-wrap: wrap;
   }
 }
+
+/* ── 요약 탭 G 포인터 카드(독립 워크스페이스로 유도) ── */
+.evs-cw-pointer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-2xl, 20px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--utility-purple-200, #d9d6fe);
+  background: var(--utility-purple-50, #f4f3ff);
+}
+.evs-cw-pointer-title {
+  font-size: var(--font-size-text-md, 15px);
+  font-weight: 700;
+  color: var(--utility-purple-700, #5925dc);
+}
+.evs-cw-pointer-body {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 13px);
+  line-height: 1.7;
+  color: var(--text-secondary, #475467);
+  max-width: 640px;
+}
+
+/* ── R5b: 상세 레벨혼합 경고 ── */
+.evs-cw-detail-levelmix {
+  margin-top: var(--spacing-sm, 6px);
+  padding: 6px 9px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--utility-orange-50, #fef6ee);
+  border: 1px solid var(--utility-orange-200, #f9dbaf);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--utility-orange-700, #b93815);
+}
+
+/* ── R7b: 워크스페이스 승진 9블록 모달 ── */
+.evs-cw-banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evs-cw-ninebox-btn {
+  flex-shrink: 0;
+}
+.evs-cw-ninebox-box {
+  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--spacing-2xl, 20px);
+  width: min(720px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.24);
+}
+.evs-cw-ninebox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evs-cw-ninebox-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-tertiary, #667085);
+  padding: 0 4px;
+}
+.evs-cw-ninebox-close:hover {
+  color: var(--text-primary, #101828);
+}
+
+/* ── R4b: 필터 프리셋 저장/로드 ── */
+.evs-cw-filter-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+  margin-bottom: var(--spacing-md, 8px);
+  padding-bottom: var(--spacing-md, 8px);
+  border-bottom: 1px solid var(--border-secondary, var(--utility-gray-200));
+}
+.evs-cw-filter-presets-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-filter-preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.evs-cw-filter-preset-pill:hover {
+  background: var(--utility-blue-100, #e0f2fe);
+}
+.evs-cw-filter-preset-tag {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-filter-save {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md, 8px);
+  padding-top: var(--spacing-md, 8px);
+  border-top: 1px solid var(--border-secondary, var(--utility-gray-200));
+}
+.evs-cw-filter-save-name {
+  flex: 1;
+  min-width: 180px;
+}
+.evs-cw-filter-save-shared {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary, #475467);
+  white-space: nowrap;
+  cursor: pointer;
+}
