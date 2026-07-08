@@ -3942,3 +3942,25 @@
   color: var(--text-secondary, #475467);
   margin-bottom: 8px;
 }
+
+/* R9 myRole 배지 (조견표) */
+.evs-cw-myrole {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 99px;
+  vertical-align: middle;
+}
+.evs-cw-myrole.tone-chair {
+  background: var(--utility-purple-100, #ebe9fe);
+  color: var(--utility-purple-700, #5925dc);
+}
+.evs-cw-myrole.tone-member {
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-600, #1570ef);
+}
+.evs-cw-myrole.tone-hr {
+  background: var(--utility-gray-100, #f2f4f7);
+  color: var(--text-tertiary, #667085);
+}
