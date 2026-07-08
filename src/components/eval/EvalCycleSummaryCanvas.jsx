@@ -18,6 +18,9 @@ const DEFAULT_LABELS = {
   tabCalibWork: '캘리브레이션 워크스페이스',
   // §10.G 캘리브레이션 워크스페이스
   cwBanner: '권한: 캘리브레이션 위원회=조정·확정 / HR=조회 전용. 동급자 이해상충 자동 제외.',
+  cwPointerTitle: '캘리브레이션 워크스페이스',
+  cwPointerBody: '등급 조정·확정·어필 재검토는 독립 화면인 캘리브레이션 워크스페이스에서 수행됩니다. 이 탭(캘리브레이션 결과)은 조정 결과 통계·분포만 표시합니다.',
+  cwPointerCta: '워크스페이스 열기',
   cwSessionsTitle: '내가 초대된 캘리브레이션 세션',
   cwNoSessions: '참여할 캘리브레이션이 없습니다',
   cwNoSessionsSub: '현재 사이클에서 초대된 세션이 없습니다. HR Admin이 세션에 초대하면 이 목록에 표시됩니다.',
@@ -69,6 +72,12 @@ const DEFAULT_LABELS = {
   cwFilterCancel: '취소',
   cwFilterActive: '필터 {n}명 / 전체 {total}명',
   cwFilterOn: '필터 적용 중',
+  cwFilterPresetsLabel: '저장된 프리셋',
+  cwFilterPresetShared: '공용',
+  cwFilterPresetMine: '개인',
+  cwFilterPresetNamePlaceholder: '현재 필터를 프리셋으로 저장 (이름)',
+  cwFilterPresetShareLabel: '조직 공용',
+  cwFilterPresetSave: '프리셋 저장',
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
@@ -92,7 +101,10 @@ const DEFAULT_LABELS = {
   cwExportCsv: 'CSV',
   cwDetailSelf: '올해 셀프 서머리',
   cwDetailManager: '매니저 코멘트',
+  cwDetailPeer: '동료 리뷰 요약(익명)',
+  cwDetailTrait: '강점 · 보완',
   cwDetailLogs: '변경 로그',
+  cwLevelMixWarn: '⚠ 이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
   cwDetailEmpty: '내용 없음',
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
@@ -148,6 +160,8 @@ const DEFAULT_LABELS = {
   execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
   nbConfidential: '이 화면은 캘리브레이션 위원회 · HR만 열람 가능합니다. 매니저·구성원 비공개.',
   nbTitle: '승진 × 보상 9블록 (이름 표출)',
+  nbWorkspaceOpen: '승진 9블록 보기',
+  cwClose: '닫기',
   nbXUrgent: '시급한 보상',
   nbXModerate: '어느 정도 필요',
   nbXMaintain: '현 수준 유지',
@@ -553,6 +567,8 @@ export default function EvalCycleSummaryCanvas({
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
+  // R7b 워크스페이스 내 승진 9블록 모달
+  const [showNineBox, setShowNineBox] = useState(false);
   // §10.G 어필 1인 재검토 폼 상태
   const [reviewNote, setReviewNote] = useState('');
   const [reviewGrade, setReviewGrade] = useState('');
@@ -562,6 +578,9 @@ export default function EvalCycleSummaryCanvas({
   // §6.3 R4 대상자 선별 필터
   const [showCalibFilter, setShowCalibFilter] = useState(false);
   const [calibFilter, setCalibFilter] = useState(EMPTY_CALIB_FILTER);
+  // R4b 프리셋 저장 입력
+  const [presetName, setPresetName] = useState('');
+  const [presetShared, setPresetShared] = useState(false);
   // R1(v0.3) 위원회 생성 모달
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -1602,9 +1621,128 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
 
-        {tab === 'calib_work' && (
+        {tab === 'calib_work' && !workspaceOnly && (
+          /* 요약 대시보드에서는 워크스페이스를 직접 렌더하지 않고 독립 화면으로 유도(포인터 카드). */
+          <div className="evs-cw-pointer" data-testid="evs-calib-pointer">
+            <div className="evs-cw-pointer-title">{L.cwPointerTitle}</div>
+            <p className="evs-cw-pointer-body">{L.cwPointerBody}</p>
+            <button
+              type="button"
+              className="evc-btn is-primary"
+              onClick={() => onOpenWorkspace?.()}
+              data-testid="evs-cw-pointer-cta"
+            >
+              {L.cwPointerCta}
+            </button>
+          </div>
+        )}
+
+        {tab === 'calib_work' && workspaceOnly && (
           <div className="evs-cw" data-testid="evs-calib-workspace">
-            <div className="evs-cw-banner">{L.cwBanner}</div>
+            <div className="evs-cw-banner-row">
+              <div className="evs-cw-banner">{L.cwBanner}</div>
+              {nineBox && nineBox.assessedCount > 0 && (
+                <button
+                  type="button"
+                  className="evc-btn is-ghost evs-cw-ninebox-btn"
+                  onClick={() => setShowNineBox(true)}
+                  data-testid="evs-cw-ninebox-open"
+                >
+                  {L.nbWorkspaceOpen}
+                </button>
+              )}
+            </div>
+
+            {showNineBox && nineBox && (
+              <div
+                className="evs-remind-overlay"
+                data-testid="evs-cw-ninebox-modal"
+                onClick={() => setShowNineBox(false)}
+              >
+                <div
+                  className="evs-cw-ninebox-box"
+                  role="dialog"
+                  aria-modal="true"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="evs-cw-ninebox-head">
+                    <h3 className="evc-card-name">{L.nbTitle}</h3>
+                    <button
+                      type="button"
+                      className="evs-cw-ninebox-close"
+                      onClick={() => setShowNineBox(false)}
+                      aria-label={L.cwClose}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <p className="evs-exec-confidential">🔒 {L.nbConfidential}</p>
+                  {(() => {
+                    const yKeys = ['recommended', 'not_yet', 'deferred'];
+                    const xKeys = ['urgent', 'moderate', 'maintain'];
+                    const yLabel = {
+                      recommended: L.nbYRecommended,
+                      not_yet: L.nbYNotYet,
+                      deferred: L.nbYDeferred,
+                    };
+                    const xLabel = {
+                      urgent: L.nbXUrgent,
+                      moderate: L.nbXModerate,
+                      maintain: L.nbXMaintain,
+                    };
+                    const yTone = {
+                      recommended: 'green',
+                      not_yet: 'neutral',
+                      deferred: 'amber',
+                    };
+                    return (
+                      <div className="evs-nb" data-testid="evs-cw-ninebox-grid">
+                        <div className="evs-nb-grid">
+                          <span className="evs-nb-corner" />
+                          {xKeys.map((x) => (
+                            <span className="evs-nb-xhead" key={x}>
+                              {xLabel[x]}
+                            </span>
+                          ))}
+                          {yKeys.map((y) => (
+                            <Fragment key={y}>
+                              <span className={`evs-nb-yhead tone-${yTone[y]}`}>
+                                {yLabel[y]}
+                              </span>
+                              {xKeys.map((x) => {
+                                const members = nineBox.cells[y][x];
+                                const highlight =
+                                  y === 'recommended' && x === 'urgent';
+                                return (
+                                  <div
+                                    className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`}
+                                    key={x}
+                                  >
+                                    {members.length === 0 ? (
+                                      <span className="evs-nb-empty-cell">—</span>
+                                    ) : (
+                                      members.map((m) => (
+                                        <span
+                                          className="evs-nb-name"
+                                          key={m.memberId}
+                                        >
+                                          {m.name || m.memberId}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </Fragment>
+                          ))}
+                        </div>
+                        <p className="evs-nb-caption">{L.nbCaption}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
             {selectedAppealId ? (
               /* G5 — 어필 1인 재검토 */
@@ -2168,6 +2306,20 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwColLevel}: <strong>{row.level}</strong>
                                             </div>
                                           ) : null}
+                                          {[
+                                            ...new Set(
+                                              visibleRows
+                                                .map((r) => r.level)
+                                                .filter(Boolean),
+                                            ),
+                                          ].length > 1 && (
+                                            <div
+                                              className="evs-cw-detail-levelmix"
+                                              data-testid="evs-cw-levelmix"
+                                            >
+                                              {L.cwLevelMixWarn}
+                                            </div>
+                                          )}
                                           <dl className="evs-cw-detail-facts">
                                             <div>
                                               <dt>{L.cwColCurrent}</dt>
@@ -2230,6 +2382,43 @@ export default function EvalCycleSummaryCanvas({
                                                 : L.cwDetailEmpty}
                                             </div>
                                           </div>
+                                          <div className="evs-cw-detail-block">
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailPeer}
+                                            </div>
+                                            <div className="evs-cw-detail-body">
+                                              {detail.peer?.answers?.filter(
+                                                (a) => a.textAnswer,
+                                              ).length
+                                                ? detail.peer.answers
+                                                    .filter((a) => a.textAnswer)
+                                                    .map((a) => a.textAnswer)
+                                                    .join(' · ')
+                                                : L.cwDetailEmpty}
+                                            </div>
+                                          </div>
+                                          {(() => {
+                                            const traits = [
+                                              ...(detail.self?.answers ?? []),
+                                              ...(detail.manager?.answers ?? []),
+                                              ...(detail.peer?.answers ?? []),
+                                            ].filter(
+                                              (a) => a.growthType && a.textAnswer,
+                                            );
+                                            if (!traits.length) return null;
+                                            return (
+                                              <div className="evs-cw-detail-block">
+                                                <div className="evs-cw-review-k">
+                                                  {L.cwDetailTrait}
+                                                </div>
+                                                <div className="evs-cw-detail-body">
+                                                  {traits
+                                                    .map((a) => a.textAnswer)
+                                                    .join(' · ')}
+                                                </div>
+                                              </div>
+                                            );
+                                          })()}
                                           {detail.calibration?.history?.length > 0 && (
                                             <div className="evs-cw-detail-logs">
                                               <div className="evs-cw-review-k">
@@ -2403,6 +2592,36 @@ export default function EvalCycleSummaryCanvas({
                     <div className="evs-cw-create-title">{L.cwFilterTitle}</div>
                     <div className="evs-cw-create-desc">{L.cwFilterDesc}</div>
                   </div>
+                  {filterPresets.length > 0 && (
+                    <div
+                      className="evs-cw-filter-presets"
+                      data-testid="evs-cw-filter-presets"
+                    >
+                      <span className="evs-cw-filter-presets-label">
+                        {L.cwFilterPresetsLabel}
+                      </span>
+                      {filterPresets.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="evs-cw-filter-preset-pill"
+                          onClick={() =>
+                            setCalibFilter({
+                              includeConds: p.filterConditions?.includeConds ?? {},
+                              includeOp: p.filterConditions?.includeOp ?? 'AND',
+                              excludeConds: p.filterConditions?.excludeConds ?? {},
+                            })
+                          }
+                          data-testid="evs-cw-filter-preset-pill"
+                        >
+                          {p.name}
+                          <span className="evs-cw-filter-preset-tag">
+                            {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="evs-cw-filter-body">
                     <div className="evs-cw-filter-sec">
                       <div className="evs-cw-filter-sec-head">
@@ -2441,6 +2660,44 @@ export default function EvalCycleSummaryCanvas({
                       </span>
                       {palette('excludeConds', 'red')}
                     </div>
+                  </div>
+                  <div className="evs-cw-filter-save">
+                    <input
+                      className="evs-cw-create-input evs-cw-filter-save-name"
+                      placeholder={L.cwFilterPresetNamePlaceholder}
+                      value={presetName}
+                      onChange={(e) => setPresetName(e.target.value)}
+                      data-testid="evs-cw-filter-preset-name"
+                    />
+                    <label className="evs-cw-filter-save-shared">
+                      <input
+                        type="checkbox"
+                        checked={presetShared}
+                        onChange={(e) => setPresetShared(e.target.checked)}
+                      />
+                      {L.cwFilterPresetShareLabel}
+                    </label>
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      disabled={!presetName.trim()}
+                      onClick={() => {
+                        onSaveFilterPreset?.(
+                          presetName.trim(),
+                          {
+                            includeConds: calibFilter.includeConds,
+                            includeOp: calibFilter.includeOp,
+                            excludeConds: calibFilter.excludeConds,
+                          },
+                          presetShared,
+                        );
+                        setPresetName('');
+                        setPresetShared(false);
+                      }}
+                      data-testid="evs-cw-filter-preset-save"
+                    >
+                      {L.cwFilterPresetSave}
+                    </button>
                   </div>
                   <div className="evs-cw-filter-foot">
                     <button
