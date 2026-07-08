@@ -78,6 +78,9 @@ const DEFAULT_LABELS = {
   cwFilterPresetNamePlaceholder: '현재 필터를 프리셋으로 저장 (이름)',
   cwFilterPresetShareLabel: '조직 공용',
   cwFilterPresetSave: '프리셋 저장',
+  cwExcludeMember: '이 대상 제외',
+  cwExcludedTitle: '개인 제외',
+  cwExcludedRemove: '제외 해제',
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
@@ -102,7 +105,11 @@ const DEFAULT_LABELS = {
   cwDetailSelf: '올해 셀프 서머리',
   cwDetailManager: '매니저 코멘트',
   cwDetailPeer: '동료 리뷰 요약(익명)',
+  cwDetailUpward: '상향 리뷰 요약(익명)',
+  cwDetailUpwardEmpty: '상향 리뷰 데이터가 없습니다.',
   cwDetailTrait: '강점 · 보완',
+  cwDetailTimeline: '직급·레벨 변동',
+  cwTimelineEmpty: '직급 변동 이력 없음',
   cwDetailLogs: '변경 로그',
   cwLevelMixWarn: '⚠ 이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
   cwDetailEmpty: '내용 없음',
@@ -122,6 +129,7 @@ const DEFAULT_LABELS = {
   cwCreateNamePlaceholder: '예: Engineering 팀장급 캘리브레이션',
   cwCreateTargetLabel: '① 평가 대상자 · 조직 (복수 선택)',
   cwCreateTargetHint: '선택 조직의 대상자가 자동 매핑됩니다. 대상 인원은 생성 후 조견표에 표시됩니다.',
+  cwCreatePreview: '예상 대상자 {n}명 (위원 제외)',
   cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
   cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
   cwKindLead: '조직장',
@@ -456,6 +464,7 @@ const EMPTY_CALIB_FILTER = {
   includeConds: {},
   includeOp: 'AND',
   excludeConds: {},
+  excludeIds: [], // R4b 개인(멤버) 제외
 };
 // 행에서 필터 필드값 추출. grade 는 유효등급(위원회 조정 우선).
 function calibFilterFields(rows, L) {
@@ -492,13 +501,15 @@ function condsAny(row, conds, fields) {
 }
 function rowPassesCalibFilter(row, fs, fields) {
   if (!fs) return true;
+  if (fs.excludeIds?.includes(row.memberId)) return false;
   if (condsAny(row, fs.excludeConds, fields)) return false;
   return condsMatch(row, fs.includeConds, fields, fs.includeOp);
 }
 function isCalibFilterActive(fs) {
   return (
     Object.keys(fs.includeConds || {}).length > 0 ||
-    Object.keys(fs.excludeConds || {}).length > 0
+    Object.keys(fs.excludeConds || {}).length > 0 ||
+    (fs.excludeIds || []).length > 0
   );
 }
 
@@ -540,6 +551,7 @@ export default function EvalCycleSummaryCanvas({
   committeeCandidates = [],
   sessionDeptOptions = [],
   sessionLevelOptions = [],
+  scopeRoster = [],
   onOpenCreateModal,
   onCreateSession,
   gradeAppeals = [],
@@ -2306,6 +2318,22 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwColLevel}: <strong>{row.level}</strong>
                                             </div>
                                           ) : null}
+                                          <button
+                                            type="button"
+                                            className="evc-btn is-ghost evs-cw-exclude-btn"
+                                            onClick={() =>
+                                              setCalibFilter((fs) => ({
+                                                ...fs,
+                                                excludeIds: [
+                                                  ...(fs.excludeIds || []),
+                                                  row.memberId,
+                                                ],
+                                              }))
+                                            }
+                                            data-testid="evs-cw-exclude-member"
+                                          >
+                                            {L.cwExcludeMember}
+                                          </button>
                                           {[
                                             ...new Set(
                                               visibleRows
@@ -2348,6 +2376,42 @@ export default function EvalCycleSummaryCanvas({
                                               </dd>
                                             </div>
                                           </dl>
+                                          {/* R5b 직급·레벨 변동 타임라인 */}
+                                          <div className="evs-cw-timeline">
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailTimeline}
+                                            </div>
+                                            {detail.assignmentHistory?.length ? (
+                                              <ol className="evs-cw-timeline-list">
+                                                {detail.assignmentHistory.map(
+                                                  (h, ti) => (
+                                                    <li
+                                                      className="evs-cw-timeline-item"
+                                                      key={ti}
+                                                    >
+                                                      <span className="evs-cw-timeline-at">
+                                                        {fmtDate(h.at)}
+                                                      </span>
+                                                      <span className="evs-cw-timeline-move">
+                                                        {(h.fromPosition ?? '—') +
+                                                          ' → ' +
+                                                          h.toPosition}
+                                                      </span>
+                                                      {h.note ? (
+                                                        <span className="evs-cw-timeline-note">
+                                                          {h.note}
+                                                        </span>
+                                                      ) : null}
+                                                    </li>
+                                                  ),
+                                                )}
+                                              </ol>
+                                            ) : (
+                                              <div className="evs-cw-timeline-empty">
+                                                {L.cwTimelineEmpty}
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
 
                                         {/* 중: 성과 요약 */}
@@ -2395,6 +2459,21 @@ export default function EvalCycleSummaryCanvas({
                                                     .map((a) => a.textAnswer)
                                                     .join(' · ')
                                                 : L.cwDetailEmpty}
+                                            </div>
+                                          </div>
+                                          <div className="evs-cw-detail-block">
+                                            <div className="evs-cw-review-k">
+                                              {L.cwDetailUpward}
+                                            </div>
+                                            <div className="evs-cw-detail-body">
+                                              {detail.upward?.answers?.filter(
+                                                (a) => a.textAnswer,
+                                              ).length
+                                                ? detail.upward.answers
+                                                    .filter((a) => a.textAnswer)
+                                                    .map((a) => a.textAnswer)
+                                                    .join(' · ')
+                                                : L.cwDetailUpwardEmpty}
                                             </div>
                                           </div>
                                           {(() => {
@@ -2610,6 +2689,7 @@ export default function EvalCycleSummaryCanvas({
                               includeConds: p.filterConditions?.includeConds ?? {},
                               includeOp: p.filterConditions?.includeOp ?? 'AND',
                               excludeConds: p.filterConditions?.excludeConds ?? {},
+                              excludeIds: p.filterConditions?.excludeIds ?? [],
                             })
                           }
                           data-testid="evs-cw-filter-preset-pill"
@@ -2661,6 +2741,41 @@ export default function EvalCycleSummaryCanvas({
                       {palette('excludeConds', 'red')}
                     </div>
                   </div>
+                  {calibFilter.excludeIds?.length > 0 && (
+                    <div
+                      className="evs-cw-filter-excluded"
+                      data-testid="evs-cw-filter-excluded"
+                    >
+                      <span className="evs-cw-filter-sec-title">
+                        {L.cwExcludedTitle} ({calibFilter.excludeIds.length})
+                      </span>
+                      <div className="evs-cw-filter-excluded-list">
+                        {calibFilter.excludeIds.map((mid) => {
+                          const m = calibTable.rows.find(
+                            (r) => r.memberId === mid,
+                          );
+                          return (
+                            <button
+                              key={mid}
+                              type="button"
+                              className="evs-cw-filter-excluded-pill"
+                              title={L.cwExcludedRemove}
+                              onClick={() =>
+                                setCalibFilter((fs) => ({
+                                  ...fs,
+                                  excludeIds: (fs.excludeIds || []).filter(
+                                    (x) => x !== mid,
+                                  ),
+                                }))
+                              }
+                            >
+                              {(m?.name || mid) + ' ×'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="evs-cw-filter-save">
                     <input
                       className="evs-cw-create-input evs-cw-filter-save-name"
@@ -2688,6 +2803,7 @@ export default function EvalCycleSummaryCanvas({
                             includeConds: calibFilter.includeConds,
                             includeOp: calibFilter.includeOp,
                             excludeConds: calibFilter.excludeConds,
+                            excludeIds: calibFilter.excludeIds,
                           },
                           presetShared,
                         );
@@ -2804,6 +2920,26 @@ export default function EvalCycleSummaryCanvas({
                 </>
               )}
               <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>
+              {scopeRoster.length > 0 &&
+                (() => {
+                  const committeeSet = new Set(createCommittee);
+                  const n = scopeRoster.filter(
+                    (m) =>
+                      !committeeSet.has(m.memberId) &&
+                      (createDepts.length === 0 ||
+                        createDepts.includes(m.dept)) &&
+                      (createLevels.length === 0 ||
+                        createLevels.includes(m.level)),
+                  ).length;
+                  return (
+                    <div
+                      className="evs-cw-create-preview"
+                      data-testid="evs-cw-create-preview"
+                    >
+                      {fmt(L.cwCreatePreview, { n })}
+                    </div>
+                  );
+                })()}
             </div>
 
             <div className="evs-cw-create-section evs-cw-create-section-committee">
