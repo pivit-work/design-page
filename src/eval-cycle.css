@@ -3488,3 +3488,165 @@
   gap: 8px;
   margin-top: 18px;
 }
+
+/* §4.1 R3 실시간 등급 분포 바 */
+.evs-cw-dist {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(10, 13, 18, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.evs-cw-dist-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.evs-cw-dist-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-dist-live {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--utility-blue-600, #1570ef);
+  background: var(--utility-blue-50, #eff8ff);
+  padding: 1px 8px;
+  border-radius: 99px;
+}
+.evs-cw-dist-count {
+  font-size: 11px;
+  color: var(--text-secondary, #475467);
+}
+.evs-cw-dist-bar {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bg-secondary, var(--utility-gray-50, #f9fafb));
+}
+.evs-cw-dist-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-dist-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 1px solid var(--bg-primary, #fff);
+}
+.evs-cw-dist-seg.tone-green {
+  background: var(--utility-green-500, #17b26a);
+}
+.evs-cw-dist-seg.tone-accent {
+  background: var(--utility-blue-500, #2e90fa);
+}
+.evs-cw-dist-seg.tone-red {
+  background: var(--utility-error-500, #f04438);
+}
+.evs-cw-dist-seg.tone-muted {
+  background: var(--utility-gray-400, #98a2b3);
+}
+.evs-cw-dist-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.evs-cw-dist-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--bg-secondary, var(--utility-gray-50, #f9fafb));
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+}
+.evs-cw-dist-chip.is-off.tone-green {
+  border-color: var(--utility-green-300, #75e0a7);
+}
+.evs-cw-dist-chip.is-off.tone-accent {
+  border-color: var(--utility-blue-300, #84caff);
+}
+.evs-cw-dist-chip.is-off.tone-red {
+  border-color: var(--utility-error-300, #fda29b);
+}
+.evs-cw-dist-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.evs-cw-dist-dot.tone-green {
+  background: var(--utility-green-500, #17b26a);
+}
+.evs-cw-dist-dot.tone-accent {
+  background: var(--utility-blue-500, #2e90fa);
+}
+.evs-cw-dist-dot.tone-red {
+  background: var(--utility-error-500, #f04438);
+}
+.evs-cw-dist-dot.tone-muted {
+  background: var(--utility-gray-400, #98a2b3);
+}
+.evs-cw-dist-chip-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-dist-chip-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-dist-chip-pct {
+  font-size: 11px;
+  font-weight: 800;
+}
+.evs-cw-dist-chip-pct.tone-green {
+  color: var(--utility-green-700, #087443);
+}
+.evs-cw-dist-chip-pct.tone-accent {
+  color: var(--utility-blue-600, #1570ef);
+}
+.evs-cw-dist-chip-pct.tone-red {
+  color: var(--utility-error-700, #b42318);
+}
+.evs-cw-dist-chip-pct.tone-muted {
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-dist-chip-rec {
+  font-size: 9.5px;
+  color: var(--text-tertiary, #667085);
+  border-left: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  padding-left: 6px;
+}
+.evs-cw-dist-delta {
+  margin-left: 3px;
+  font-weight: 700;
+}
+.evs-cw-dist-delta.is-off {
+  color: var(--utility-error-600, #d92d20);
+}
+.evs-cw-dist-note {
+  font-size: 9.5px;
+  color: var(--text-tertiary, #667085);
+  line-height: 1.5;
+}
