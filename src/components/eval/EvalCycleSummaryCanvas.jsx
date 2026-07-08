@@ -68,6 +68,22 @@ const DEFAULT_LABELS = {
   cwDetailEmpty: '내용 없음',
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
+  cwCreateBtn: '＋ 위원회 생성',
+  cwCreateTitle: '캘리브레이션 위원회 생성',
+  cwCreateDesc: '① 평가 대상자(조직) 선택 → ② 참여 위원 지정. HR 준비 · 조정·확정 권한은 위원회.',
+  cwCreateNameLabel: '제목',
+  cwCreateNamePlaceholder: '예: Engineering 팀장급 캘리브레이션',
+  cwCreateTargetLabel: '① 평가 대상자 · 조직 (복수 선택)',
+  cwCreateTargetHint: '선택 조직의 대상자가 자동 매핑됩니다. 대상 인원은 생성 후 조견표에 표시됩니다.',
+  cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
+  cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
+  cwKindLead: '조직장',
+  cwKindSeniorIc: '시니어 IC',
+  cwChair: '위원장',
+  cwCreateSubmit: '위원회 생성',
+  cwCreateCancel: '취소',
+  cwCreateNoCommittee: '선택 가능한 위원 후보가 없습니다.',
+  cwCreateNoDept: '조직 옵션이 없습니다.',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
   execJ1: 'J1 전사 서머리',
@@ -346,6 +362,11 @@ export default function EvalCycleSummaryCanvas({
   onSelectCalibSession,
   onAdjustGrade,
   onExportCalibCsv,
+  canCreateSession = false,
+  committeeCandidates = [],
+  sessionDeptOptions = [],
+  onOpenCreateModal,
+  onCreateSession,
   gradeAppeals = [],
   appealCanReview = false,
   selectedAppealId = null,
@@ -375,6 +396,11 @@ export default function EvalCycleSummaryCanvas({
   const [reviewGrade, setReviewGrade] = useState('');
   // §10.G4 캘리 테이블 행 펼침(아코디언)
   const [expandedCalibRow, setExpandedCalibRow] = useState(null);
+  // R1(v0.3) 위원회 생성 모달
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createDepts, setCreateDepts] = useState([]);
+  const [createCommittee, setCreateCommittee] = useState([]); // userId 배열, 순서=우선(첫=위원장)
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -1598,7 +1624,25 @@ export default function EvalCycleSummaryCanvas({
                       ))
                   )}
                 </div>
-                <div className="evs-section-label">{L.cwSessionsTitle}</div>
+                <div className="evs-cw-roster-head">
+                  <div className="evs-section-label">{L.cwSessionsTitle}</div>
+                  {canCreateSession && (
+                    <button
+                      type="button"
+                      className="evc-btn is-primary evs-cw-create-btn"
+                      onClick={() => {
+                        setShowCreate(true);
+                        setCreateName('');
+                        setCreateDepts([]);
+                        setCreateCommittee([]);
+                        onOpenCreateModal?.();
+                      }}
+                      data-testid="evs-cw-create"
+                    >
+                      {L.cwCreateBtn}
+                    </button>
+                  )}
+                </div>
                 {calibSessions.length === 0 ? (
                   <div className="evs-cw-empty" data-testid="evs-cw-empty">
                     <div className="evs-cw-empty-title">{L.cwNoSessions}</div>
@@ -1900,6 +1944,139 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
       </div>
+
+      {/* R1(v0.3) 캘리브레이션 위원회 생성 모달 */}
+      {showCreate && (
+        <div
+          className="evs-remind-overlay"
+          data-testid="evs-cw-create-modal"
+          onClick={() => setShowCreate(false)}
+        >
+          <div
+            className="evs-cw-create"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="evs-cw-create-title">{L.cwCreateTitle}</div>
+            <div className="evs-cw-create-desc">{L.cwCreateDesc}</div>
+
+            <label className="evs-cw-create-lbl">{L.cwCreateNameLabel}</label>
+            <input
+              className="evs-cw-create-input"
+              data-testid="evs-cw-create-name"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder={L.cwCreateNamePlaceholder}
+            />
+
+            <div className="evs-cw-create-section evs-cw-create-section-target">
+              <div className="evs-cw-create-lbl">{L.cwCreateTargetLabel}</div>
+              {sessionDeptOptions.length === 0 ? (
+                <div className="evs-cw-create-muted">{L.cwCreateNoDept}</div>
+              ) : (
+                <div className="evs-cw-create-chips">
+                  {sessionDeptOptions.map((d) => {
+                    const on = createDepts.includes(d);
+                    return (
+                      <button
+                        type="button"
+                        key={d}
+                        className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
+                        onClick={() =>
+                          setCreateDepts((prev) =>
+                            prev.includes(d)
+                              ? prev.filter((x) => x !== d)
+                              : [...prev, d],
+                          )
+                        }
+                      >
+                        {on ? '✓ ' : ''}
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>
+            </div>
+
+            <div className="evs-cw-create-section evs-cw-create-section-committee">
+              <div className="evs-cw-create-lbl">{L.cwCreateCommitteeLabel}</div>
+              {committeeCandidates.length === 0 ? (
+                <div className="evs-cw-create-muted">{L.cwCreateNoCommittee}</div>
+              ) : (
+                <div className="evs-cw-create-candidates">
+                  {committeeCandidates.map((c) => {
+                    const idx = createCommittee.indexOf(c.id);
+                    const on = idx >= 0;
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        className={`evs-cw-candidate${on ? ' is-on' : ''}`}
+                        data-testid="evs-cw-candidate"
+                        onClick={() =>
+                          setCreateCommittee((prev) =>
+                            prev.includes(c.id)
+                              ? prev.filter((x) => x !== c.id)
+                              : [...prev, c.id],
+                          )
+                        }
+                      >
+                        <span className="evs-cw-candidate-name">{c.name}</span>
+                        <span
+                          className={`evs-cw-candidate-kind tone-${c.kind === 'lead' ? 'accent' : 'muted'}`}
+                        >
+                          {c.kind === 'lead' ? L.cwKindLead : L.cwKindSeniorIc}
+                        </span>
+                        {c.dept ? (
+                          <span className="evs-cw-candidate-dept">{c.dept}</span>
+                        ) : null}
+                        {on && idx === 0 ? (
+                          <span className="evs-cw-candidate-chair">{L.cwChair}</span>
+                        ) : null}
+                        {on ? <span className="evs-cw-candidate-check">✓</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="evs-cw-create-hint">{L.cwCreateCommitteeHint}</div>
+            </div>
+
+            <div className="evs-cw-create-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setShowCreate(false)}
+              >
+                {L.cwCreateCancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                data-testid="evs-cw-create-submit"
+                disabled={!createName.trim() || createCommittee.length === 0}
+                onClick={() => {
+                  onCreateSession?.({
+                    name: createName.trim(),
+                    scope:
+                      createDepts.length > 0 ? { departments: createDepts } : {},
+                    committee: createCommittee.map((userId, i) => ({
+                      userId,
+                      role: i === 0 ? 'chair' : 'member',
+                    })),
+                  });
+                  setShowCreate(false);
+                }}
+              >
+                {L.cwCreateSubmit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* §4.A 미제출자 리마인드 모달 */}
       {showRemind && (
