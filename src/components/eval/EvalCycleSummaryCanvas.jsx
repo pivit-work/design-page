@@ -7,6 +7,8 @@ import { useState, useMemo, Fragment } from 'react';
 
 const DEFAULT_LABELS = {
   title: '종합 리포트',
+  workspaceTitle: '캘리브레이션 워크스페이스',
+  workspaceSubtitle: '조견표 로스터 → 9칼럼 조정 테이블 → 어필 1인 재검토',
   tabOverview: '전사 요약',
   tabDept: '부서별 분석',
   tabIntegrated: '피평가자 통합 요약',
@@ -20,6 +22,10 @@ const DEFAULT_LABELS = {
   cwNoSessions: '참여할 캘리브레이션이 없습니다',
   cwNoSessionsSub: '현재 사이클에서 초대된 세션이 없습니다. HR Admin이 세션에 초대하면 이 목록에 표시됩니다.',
   cwSessionMeta: '대상자 {members}명 · 위원 {committee}명',
+  cwRoleChair: '위원장',
+  cwRoleMember: '위원',
+  cwRoleHrView: 'HR 조회',
+  cwCreateLevelLabel: '레벨 · 직급 (복수 선택, 미선택=전 레벨)',
   cwOpen: '→ 열기',
   cwStatusDraft: '준비',
   cwStatusInProgress: '진행 중',
@@ -519,6 +525,7 @@ export default function EvalCycleSummaryCanvas({
   canCreateSession = false,
   committeeCandidates = [],
   sessionDeptOptions = [],
+  sessionLevelOptions = [],
   onOpenCreateModal,
   onCreateSession,
   gradeAppeals = [],
@@ -540,9 +547,10 @@ export default function EvalCycleSummaryCanvas({
   onNineBoxNameClick,
   onExportCsv,
   onSaveFilterPreset,
+  workspaceOnly = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
   // §10.G 어필 1인 재검토 폼 상태
@@ -558,6 +566,7 @@ export default function EvalCycleSummaryCanvas({
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createDepts, setCreateDepts] = useState([]);
+  const [createLevels, setCreateLevels] = useState([]);
   const [createCommittee, setCreateCommittee] = useState([]); // userId 배열, 순서=우선(첫=위원장)
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
@@ -685,42 +694,55 @@ export default function EvalCycleSummaryCanvas({
     <div className="evc-root">
       <header className="evc-header">
         <div>
-          <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
-        </div>
-        <div className="evmon-controls">
-          <span
-            className={`evc-status-badge tone-${reportState === 'published' ? 'success' : reportState === 'generated' ? 'info' : 'neutral'}`}
-            data-testid="evsum-report-state"
-          >
-            {reportBadge}
-          </span>
-          {reportState === 'notGenerated' && onGenerate && (
-            <button type="button" className="evc-btn is-ghost" onClick={() => onGenerate()} data-testid="evsum-generate">
-              {L.generate}
-            </button>
-          )}
-          {reportState === 'generated' && onPublish && (
-            <button type="button" className="evc-btn is-primary" onClick={() => onPublish()} data-testid="evsum-publish">
-              {L.publish}
-            </button>
+          <h1 className="evc-title">
+            {workspaceOnly ? L.workspaceTitle : L.title}
+          </h1>
+          {workspaceOnly ? (
+            <p className="evc-summary">
+              {L.workspaceSubtitle}
+              {cycle?.name ? ` · ${cycle.name}` : ''}
+            </p>
+          ) : (
+            cycle?.name && <p className="evc-summary">{cycle.name}</p>
           )}
         </div>
+        {!workspaceOnly && (
+          <div className="evmon-controls">
+            <span
+              className={`evc-status-badge tone-${reportState === 'published' ? 'success' : reportState === 'generated' ? 'info' : 'neutral'}`}
+              data-testid="evsum-report-state"
+            >
+              {reportBadge}
+            </span>
+            {reportState === 'notGenerated' && onGenerate && (
+              <button type="button" className="evc-btn is-ghost" onClick={() => onGenerate()} data-testid="evsum-generate">
+                {L.generate}
+              </button>
+            )}
+            {reportState === 'generated' && onPublish && (
+              <button type="button" className="evc-btn is-primary" onClick={() => onPublish()} data-testid="evsum-publish">
+                {L.publish}
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
-      <div className="fb-tabs">
-        {tabs.map((tt) => (
-          <button
-            type="button"
-            key={tt.key}
-            className={`fb-tab${tab === tt.key ? ' is-on' : ''}`}
-            onClick={() => setTab(tt.key)}
-            data-testid={`evsum-tab-${tt.key}`}
-          >
-            {tt.label}
-          </button>
-        ))}
-      </div>
+      {!workspaceOnly && (
+        <div className="fb-tabs">
+          {tabs.map((tt) => (
+            <button
+              type="button"
+              key={tt.key}
+              className={`fb-tab${tab === tt.key ? ' is-on' : ''}`}
+              onClick={() => setTab(tt.key)}
+              data-testid={`evsum-tab-${tt.key}`}
+            >
+              {tt.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="evc-list">
         {tab === 'overview' && (
@@ -1792,6 +1814,7 @@ export default function EvalCycleSummaryCanvas({
                         setShowCreate(true);
                         setCreateName('');
                         setCreateDepts([]);
+                        setCreateLevels([]);
                         setCreateCommittee([]);
                         onOpenCreateModal?.();
                       }}
@@ -1830,7 +1853,22 @@ export default function EvalCycleSummaryCanvas({
                         data-testid="evs-cw-session"
                       >
                         <div className="evs-cw-session-main">
-                          <div className="evs-cw-session-name">{s.name}</div>
+                          <div className="evs-cw-session-name">
+                            {s.name}
+                            {s.myRole === 'chair' ? (
+                              <span className="evs-cw-myrole tone-chair">
+                                {L.cwRoleChair}
+                              </span>
+                            ) : s.myRole === 'member' ? (
+                              <span className="evs-cw-myrole tone-member">
+                                {L.cwRoleMember}
+                              </span>
+                            ) : s.myRole == null ? (
+                              <span className="evs-cw-myrole tone-hr">
+                                {L.cwRoleHrView}
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="evs-cw-session-meta">
                             {fmt(L.cwSessionMeta, {
                               members: s.memberCount,
@@ -2481,6 +2519,33 @@ export default function EvalCycleSummaryCanvas({
                   })}
                 </div>
               )}
+              {sessionLevelOptions.length > 0 && (
+                <>
+                  <div className="evs-cw-create-lbl">{L.cwCreateLevelLabel}</div>
+                  <div className="evs-cw-create-chips">
+                    {sessionLevelOptions.map((lv) => {
+                      const on = createLevels.includes(lv);
+                      return (
+                        <button
+                          type="button"
+                          key={lv}
+                          className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
+                          onClick={() =>
+                            setCreateLevels((prev) =>
+                              prev.includes(lv)
+                                ? prev.filter((x) => x !== lv)
+                                : [...prev, lv],
+                            )
+                          }
+                        >
+                          {on ? '✓ ' : ''}
+                          {lv}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
               <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>
             </div>
 
@@ -2542,10 +2607,12 @@ export default function EvalCycleSummaryCanvas({
                 data-testid="evs-cw-create-submit"
                 disabled={!createName.trim() || createCommittee.length === 0}
                 onClick={() => {
+                  const scope = {};
+                  if (createDepts.length > 0) scope.departments = createDepts;
+                  if (createLevels.length > 0) scope.levels = createLevels;
                   onCreateSession?.({
                     name: createName.trim(),
-                    scope:
-                      createDepts.length > 0 ? { departments: createDepts } : {},
+                    scope,
                     committee: createCommittee.map((userId, i) => ({
                       userId,
                       role: i === 0 ? 'chair' : 'member',
