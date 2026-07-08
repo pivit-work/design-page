@@ -46,6 +46,18 @@ const DEFAULT_LABELS = {
   cwDistCount: '{n}명',
   cwDistRec: '권장 {pct}%',
   cwDistNote: '※ 권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
+  cwFilterBtn: '필터',
+  cwFilterTitle: '대상자 선별 필터',
+  cwFilterDesc: '메타데이터(조직·등급·직무·승진)를 조합해 대상자를 선별합니다. 같은 항목의 여러 값은 OR, 특정 조건은 제외할 수 있습니다.',
+  cwFilterInclude: '포함 조건',
+  cwFilterFieldOp: '필드 간 조합',
+  cwFilterExclude: '제외 조건',
+  cwFilterExcludeHint: '해당 값을 가진 인원 제외',
+  cwFilterApply: '적용',
+  cwFilterClear: '초기화',
+  cwFilterCancel: '취소',
+  cwFilterActive: '필터 {n}명 / 전체 {total}명',
+  cwFilterOn: '필터 적용 중',
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
@@ -407,6 +419,57 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
   );
 }
 
+// §6.3 R4 대상자 선별 필터 — 클라이언트 rows 필터.
+const EMPTY_CALIB_FILTER = {
+  includeConds: {},
+  includeOp: 'AND',
+  excludeConds: {},
+};
+// 행에서 필터 필드값 추출. grade 는 유효등급(위원회 조정 우선).
+function calibFilterFields(rows, L) {
+  const defs = [
+    { key: 'team', label: L.cwColTeam, get: (r) => r.team },
+    {
+      key: 'grade',
+      label: L.cwColCurrent,
+      get: (r) => r.calibratedGradeLabel ?? r.currentGradeLabel,
+    },
+    {
+      key: 'promo',
+      label: L.cwColPromo,
+      get: (r) =>
+        r.promotionStatus === 'recommended' ? L.cwPromoRecommended : '—',
+    },
+    { key: 'job', label: L.cwColJob, get: (r) => r.job || '—' },
+  ];
+  return defs.map((f) => ({
+    ...f,
+    values: [...new Set(rows.map(f.get).filter(Boolean))],
+  }));
+}
+function condsMatch(row, conds, fields, op) {
+  const active = fields.filter((f) => conds[f.key]?.length);
+  if (active.length === 0) return true;
+  const hit = (f) => conds[f.key].includes(f.get(row));
+  return op === 'OR' ? active.some(hit) : active.every(hit);
+}
+function condsAny(row, conds, fields) {
+  return fields.some(
+    (f) => conds[f.key]?.length && conds[f.key].includes(f.get(row)),
+  );
+}
+function rowPassesCalibFilter(row, fs, fields) {
+  if (!fs) return true;
+  if (condsAny(row, fs.excludeConds, fields)) return false;
+  return condsMatch(row, fs.includeConds, fields, fs.includeOp);
+}
+function isCalibFilterActive(fs) {
+  return (
+    Object.keys(fs.includeConds || {}).length > 0 ||
+    Object.keys(fs.excludeConds || {}).length > 0
+  );
+}
+
 export default function EvalCycleSummaryCanvas({
   cycle,
   totalParticipants = 0,
@@ -472,6 +535,9 @@ export default function EvalCycleSummaryCanvas({
   const [reviewGrade, setReviewGrade] = useState('');
   // §10.G4 캘리 테이블 행 펼침(아코디언)
   const [expandedCalibRow, setExpandedCalibRow] = useState(null);
+  // §6.3 R4 대상자 선별 필터
+  const [showCalibFilter, setShowCalibFilter] = useState(false);
+  const [calibFilter, setCalibFilter] = useState(EMPTY_CALIB_FILTER);
   // R1(v0.3) 위원회 생성 모달
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -1783,6 +1849,15 @@ export default function EvalCycleSummaryCanvas({
                   )}
                   <button
                     type="button"
+                    className={`evc-btn is-ghost evs-cw-filter-btn${isCalibFilterActive(calibFilter) ? ' is-active' : ''}`}
+                    onClick={() => setShowCalibFilter(true)}
+                    data-testid="evs-cw-filter-btn"
+                  >
+                    {L.cwFilterBtn}
+                    {isCalibFilterActive(calibFilter) ? ' ●' : ''}
+                  </button>
+                  <button
+                    type="button"
                     className="evc-btn is-ghost evs-cw-csv"
                     onClick={() => onExportCalibCsv?.()}
                     data-testid="evs-cw-csv"
@@ -1813,13 +1888,39 @@ export default function EvalCycleSummaryCanvas({
                       min: scores.length ? Math.min(...scores) : 1,
                       max: scores.length ? Math.max(...scores) : 3,
                     };
+                    const filterFields = calibFilterFields(calibTable.rows, L);
+                    const filterActive = isCalibFilterActive(calibFilter);
+                    const visibleRows = filterActive
+                      ? calibTable.rows.filter((r) =>
+                          rowPassesCalibFilter(r, calibFilter, filterFields),
+                        )
+                      : calibTable.rows;
                     return (
                       <>
                       <CalibDistributionBar
-                        rows={calibTable.rows}
+                        rows={visibleRows}
                         orderedGrades={og}
                         L={L}
                       />
+                      {filterActive && (
+                        <div
+                          className="evs-cw-filter-active"
+                          data-testid="evs-cw-filter-active"
+                        >
+                          {L.cwFilterOn} ·{' '}
+                          {fmt(L.cwFilterActive, {
+                            n: visibleRows.length,
+                            total: calibTable.rows.length,
+                          })}
+                          <button
+                            type="button"
+                            className="evs-cw-filter-clear"
+                            onClick={() => setCalibFilter(EMPTY_CALIB_FILTER)}
+                          >
+                            {L.cwFilterClear}
+                          </button>
+                        </div>
+                      )}
                       <div className="evc-card evs-cw-table-wrap">
                         <table className="evs-cw-table">
                           <thead>
@@ -1838,7 +1939,7 @@ export default function EvalCycleSummaryCanvas({
                             </tr>
                           </thead>
                           <tbody>
-                            {calibTable.rows.map((row, i) => {
+                            {visibleRows.map((row, i) => {
                               const expanded = expandedCalibRow === row.memberId;
                               const detail =
                                 expanded && selectedMemberId === row.memberId
@@ -2027,6 +2128,128 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
       </div>
+
+      {/* §6.3 R4 대상자 선별 필터 모달 */}
+      {showCalibFilter && calibTable && (
+        <div
+          className="evs-remind-overlay"
+          data-testid="evs-cw-filter-modal"
+          onClick={() => setShowCalibFilter(false)}
+        >
+          <div
+            className="evs-cw-filter"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const fields = calibFilterFields(calibTable.rows, L);
+              const toggleCond = (which, key, value) =>
+                setCalibFilter((prev) => {
+                  const conds = { ...(prev[which] || {}) };
+                  const cur = conds[key] || [];
+                  const next = cur.includes(value)
+                    ? cur.filter((v) => v !== value)
+                    : [...cur, value];
+                  if (next.length === 0) delete conds[key];
+                  else conds[key] = next;
+                  return { ...prev, [which]: conds };
+                });
+              const palette = (which, tone) => (
+                <div className="evs-cw-filter-palette">
+                  {fields.map((f) => (
+                    <div key={f.key} className="evs-cw-filter-field">
+                      <div className="evs-cw-filter-field-label">{f.label}</div>
+                      <div className="evs-cw-filter-chips">
+                        {f.values.map((v) => {
+                          const on = (calibFilter[which]?.[f.key] || []).includes(
+                            v,
+                          );
+                          return (
+                            <button
+                              type="button"
+                              key={v}
+                              className={`evs-cw-chip${on ? ` is-on tone-${tone}` : ''}`}
+                              onClick={() => toggleCond(which, f.key, v)}
+                            >
+                              {on ? (tone === 'red' ? '✕ ' : '✓ ') : ''}
+                              {v}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+              return (
+                <>
+                  <div className="evs-cw-filter-head">
+                    <div className="evs-cw-create-title">{L.cwFilterTitle}</div>
+                    <div className="evs-cw-create-desc">{L.cwFilterDesc}</div>
+                  </div>
+                  <div className="evs-cw-filter-body">
+                    <div className="evs-cw-filter-sec">
+                      <div className="evs-cw-filter-sec-head">
+                        <span className="evs-cw-filter-sec-title">
+                          {L.cwFilterInclude}
+                        </span>
+                        <div className="evs-cw-filter-op">
+                          <span className="evs-cw-filter-op-label">
+                            {L.cwFilterFieldOp}
+                          </span>
+                          {['AND', 'OR'].map((op) => (
+                            <button
+                              type="button"
+                              key={op}
+                              className={`evs-cw-filter-op-btn${calibFilter.includeOp === op ? ' is-on' : ''}`}
+                              onClick={() =>
+                                setCalibFilter((prev) => ({
+                                  ...prev,
+                                  includeOp: op,
+                                }))
+                              }
+                            >
+                              {op}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {palette('includeConds', 'accent')}
+                    </div>
+                    <div className="evs-cw-filter-sec evs-cw-filter-sec-exclude">
+                      <span className="evs-cw-filter-sec-title">
+                        {L.cwFilterExclude}{' '}
+                        <span className="evs-cw-filter-sec-hint">
+                          · {L.cwFilterExcludeHint}
+                        </span>
+                      </span>
+                      {palette('excludeConds', 'red')}
+                    </div>
+                  </div>
+                  <div className="evs-cw-filter-foot">
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      onClick={() => setCalibFilter(EMPTY_CALIB_FILTER)}
+                    >
+                      {L.cwFilterClear}
+                    </button>
+                    <button
+                      type="button"
+                      className="evc-btn is-primary"
+                      data-testid="evs-cw-filter-apply"
+                      onClick={() => setShowCalibFilter(false)}
+                    >
+                      {L.cwFilterApply}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* R1(v0.3) 캘리브레이션 위원회 생성 모달 */}
       {showCreate && (
