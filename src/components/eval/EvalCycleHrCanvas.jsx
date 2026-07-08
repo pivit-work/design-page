@@ -413,6 +413,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
 export default function EvalCycleHrCanvas({
   cycles = [],
   candidates = [],
+  committeeCandidates = [],
   loading = false,
   labels: providedLabels,
   onCreateCycle,
@@ -545,6 +546,7 @@ export default function EvalCycleHrCanvas({
         <EvalCycleWizard
           labels={L}
           candidates={candidates}
+          committeeCandidates={committeeCandidates}
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
         />

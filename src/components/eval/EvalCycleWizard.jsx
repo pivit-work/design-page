@@ -424,10 +424,14 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
 export default function EvalCycleWizard({
   labels: L,
   candidates = [],
+  committeeCandidates = [],
   onCancel,
   onSubmit,
 }) {
   const [step, setStep] = useState(0);
+  // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
+  const [committeeOn, setCommitteeOn] = useState(false);
+  const [committee, setCommittee] = useState([]);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -476,6 +480,7 @@ export default function EvalCycleWizard({
     { titleKey: 'wizardStepTemplate' }, // 평가 템플릿
     { titleKey: 'wizardStep2' }, // 단계별 일정
     { titleKey: 'wizardStepTargets' }, // 대상자
+    { titleKey: 'wizardStepCommittee' }, // R1b 경로 B — 캘리브레이션 위원회(선택)
     { titleKey: 'wizardStep3' }, // 확인 및 생성
   ];
 
@@ -681,11 +686,13 @@ export default function EvalCycleWizard({
     reviewTypes.length > 0 &&
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
+  const committeeValid = !committeeOn || committee.length > 0;
   const canAdvance =
     (step === 0 && step1Valid) ||
     step === 1 ||
     step === 2 ||
-    (step === 3 && targetsValid);
+    (step === 3 && targetsValid) ||
+    (step === 4 && committeeValid);
 
   const submit = () => {
     const payload = {
@@ -743,6 +750,14 @@ export default function EvalCycleWizard({
       calibrationDue: null,
       includeMode,
       memberIds: targetIds,
+      // R1b 경로 B — 위원회를 지금 구성하면 생성 후 캘리브레이션 세션도 함께 만든다.
+      committee:
+        committeeOn && committee.length > 0
+          ? committee.map((userId, i) => ({
+              userId,
+              role: i === 0 ? 'chair' : 'member',
+            }))
+          : undefined,
     };
     onSubmit(payload);
   };
@@ -1665,6 +1680,66 @@ export default function EvalCycleWizard({
 
           {step === 4 && (
             <div className="evc-wiz-panel">
+              <label className="evc-wiz-committee-toggle">
+                <input
+                  type="checkbox"
+                  checked={committeeOn}
+                  onChange={(e) => setCommitteeOn(e.target.checked)}
+                  data-testid="evc-wiz-committee-toggle"
+                />
+                <span>{L.wizardCommitteeEnable}</span>
+              </label>
+              <p className="evc-wiz-hint">{L.wizardCommitteeHint}</p>
+              {committeeOn && (
+                <>
+                  {committeeCandidates.length === 0 ? (
+                    <p className="evc-wiz-hint">{L.wizardCommitteeEmpty}</p>
+                  ) : (
+                    <div className="evc-wiz-committee-list">
+                      {committeeCandidates.map((c) => {
+                        const idx = committee.indexOf(c.id);
+                        const on = idx >= 0;
+                        return (
+                          <button
+                            type="button"
+                            key={c.id}
+                            className={`evc-wiz-committee-item${on ? ' is-on' : ''}`}
+                            onClick={() =>
+                              setCommittee((prev) =>
+                                prev.includes(c.id)
+                                  ? prev.filter((x) => x !== c.id)
+                                  : [...prev, c.id],
+                              )
+                            }
+                            data-testid="evc-wiz-committee-item"
+                          >
+                            <span className="evc-wiz-committee-name">
+                              {c.name}
+                              {on && idx === 0 && (
+                                <span className="evc-wiz-committee-chair">
+                                  {L.wizardCommitteeChair}
+                                </span>
+                              )}
+                            </span>
+                            <span className="evc-wiz-committee-meta">
+                              {c.kind === 'lead'
+                                ? L.wizardCommitteeLead
+                                : L.wizardCommitteeSenior}
+                              {c.dept ? ` · ${c.dept}` : ''}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="evc-wiz-hint">{L.wizardCommitteeChairHint}</p>
+                </>
+              )}
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className="evc-wiz-panel">
               <div className="evc-summary-card">
                 <div className="evc-summary-row"><span>{L.cycleName}</span><b>{name}</b></div>
                 <div className="evc-summary-row"><span>{L.period}</span><b>{startDate} ~ {endDate}</b></div>
@@ -1691,6 +1766,16 @@ export default function EvalCycleWizard({
                 <div className="evc-summary-row">
                   <span>{L.targetSummaryLabel}</span>
                   <b>{fill(L.targetSummaryValue, { count: targetCount })}</b>
+                </div>
+                <div className="evc-summary-row">
+                  <span>{L.wizardStepCommittee}</span>
+                  <b>
+                    {committeeOn && committee.length > 0
+                      ? fill(L.wizardCommitteeSummary, {
+                          count: committee.length,
+                        })
+                      : L.wizardCommitteeNone}
+                  </b>
                 </div>
                 <div className="evc-summary-row">
                   <span>{L.scheduleSummaryLabel}</span>
