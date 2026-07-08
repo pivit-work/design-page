@@ -85,6 +85,13 @@ const DEFAULT_LABELS = {
   cwDetailEmpty: '내용 없음',
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
+  cwDetailProfile: '프로필',
+  cwDetailPerf: '성과 요약',
+  cwCommentsTitle: '위원회 논의',
+  cwCommentsEmpty: '아직 논의 코멘트가 없습니다.',
+  cwCommentPlaceholder: '조정 근거·이견을 입력…',
+  cwCommentSubmit: '등록',
+  cwCommentReadonly: 'HR 조회 전용 — 위원만 논의 코멘트를 작성할 수 있습니다.',
   cwCreateBtn: '＋ 위원회 생성',
   cwCreateTitle: '캘리브레이션 위원회 생성',
   cwCreateDesc: '① 평가 대상자(조직) 선택 → ② 참여 위원 지정. HR 준비 · 조정·확정 권한은 위원회.',
@@ -501,6 +508,8 @@ export default function EvalCycleSummaryCanvas({
   onSelectCalibSession,
   onAdjustGrade,
   onExportCalibCsv,
+  calibComments = [],
+  onAddCalibComment,
   canCreateSession = false,
   committeeCandidates = [],
   sessionDeptOptions = [],
@@ -535,6 +544,7 @@ export default function EvalCycleSummaryCanvas({
   const [reviewGrade, setReviewGrade] = useState('');
   // §10.G4 캘리 테이블 행 펼침(아코디언)
   const [expandedCalibRow, setExpandedCalibRow] = useState(null);
+  const [commentDraft, setCommentDraft] = useState('');
   // §6.3 R4 대상자 선별 필터
   const [showCalibFilter, setShowCalibFilter] = useState(false);
   const [calibFilter, setCalibFilter] = useState(EMPTY_CALIB_FILTER);
@@ -2049,9 +2059,48 @@ export default function EvalCycleSummaryCanvas({
                                         {L.cwDetailLoading}
                                       </div>
                                     ) : (
-                                      <div className="evs-cw-detail">
-                                        <div className="evs-cw-detail-grid">
-                                          <div>
+                                      <div className="evs-cw-detail evs-cw-detail-3col">
+                                        {/* 좌: 프로필 */}
+                                        <div className="evs-cw-detail-profile">
+                                          <div className="evs-cw-detail-profile-name">
+                                            {row.name}
+                                          </div>
+                                          <div className="evs-cw-detail-profile-role">
+                                            {(row.job || '—') + ' · ' + row.team}
+                                          </div>
+                                          <dl className="evs-cw-detail-facts">
+                                            <div>
+                                              <dt>{L.cwColCurrent}</dt>
+                                              <dd>
+                                                {row.currentGradeLabel ? (
+                                                  <span
+                                                    className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
+                                                  >
+                                                    {row.currentGradeLabel}
+                                                  </span>
+                                                ) : (
+                                                  '—'
+                                                )}
+                                              </dd>
+                                            </div>
+                                            <div>
+                                              <dt>{L.cwColLeader}</dt>
+                                              <dd>{row.leaderName ?? '—'}</dd>
+                                            </div>
+                                            <div>
+                                              <dt>{L.cwColDates}</dt>
+                                              <dd>
+                                                {(row.hireDate ?? '—') +
+                                                  ' / ' +
+                                                  (row.promotedAt ?? L.cwNoPromotion)}
+                                              </dd>
+                                            </div>
+                                          </dl>
+                                        </div>
+
+                                        {/* 중: 성과 요약 */}
+                                        <div className="evs-cw-detail-mid">
+                                          <div className="evs-cw-detail-block">
                                             <div className="evs-cw-review-k">
                                               {L.cwDetailSelf}
                                             </div>
@@ -2066,7 +2115,7 @@ export default function EvalCycleSummaryCanvas({
                                                 : L.cwDetailEmpty}
                                             </div>
                                           </div>
-                                          <div>
+                                          <div className="evs-cw-detail-block">
                                             <div className="evs-cw-review-k">
                                               {L.cwDetailManager}
                                             </div>
@@ -2081,33 +2130,99 @@ export default function EvalCycleSummaryCanvas({
                                                 : L.cwDetailEmpty}
                                             </div>
                                           </div>
-                                        </div>
-                                        {detail.calibration?.history?.length > 0 && (
-                                          <div className="evs-cw-detail-logs">
-                                            <div className="evs-cw-review-k">
-                                              {L.cwDetailLogs}
-                                            </div>
-                                            {detail.calibration.history.map((h, hi) => (
-                                              <div
-                                                className="evs-cw-detail-log"
-                                                key={hi}
-                                              >
-                                                <span className="evs-cw-badge tone-muted">
-                                                  {h.fromLabel ?? '—'}
-                                                </span>
-                                                <span className="evs-cw-arrow">→</span>
-                                                <span className="evs-cw-badge tone-accent">
-                                                  {h.toLabel}
-                                                </span>
-                                                {h.note ? (
-                                                  <span className="evs-cw-detail-log-note">
-                                                    {h.note}
-                                                  </span>
-                                                ) : null}
+                                          {detail.calibration?.history?.length > 0 && (
+                                            <div className="evs-cw-detail-logs">
+                                              <div className="evs-cw-review-k">
+                                                {L.cwDetailLogs}
                                               </div>
-                                            ))}
+                                              {detail.calibration.history.map(
+                                                (h, hi) => (
+                                                  <div
+                                                    className="evs-cw-detail-log"
+                                                    key={hi}
+                                                  >
+                                                    <span className="evs-cw-badge tone-muted">
+                                                      {h.fromLabel ?? '—'}
+                                                    </span>
+                                                    <span className="evs-cw-arrow">
+                                                      →
+                                                    </span>
+                                                    <span className="evs-cw-badge tone-accent">
+                                                      {h.toLabel}
+                                                    </span>
+                                                    {h.note ? (
+                                                      <span className="evs-cw-detail-log-note">
+                                                        {h.note}
+                                                      </span>
+                                                    ) : null}
+                                                  </div>
+                                                ),
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* 우: 위원회 논의 코멘트 */}
+                                        <div className="evs-cw-detail-comments">
+                                          <div className="evs-cw-review-k">
+                                            {L.cwCommentsTitle}
                                           </div>
-                                        )}
+                                          <div className="evs-cw-comment-list">
+                                            {calibComments.length === 0 ? (
+                                              <div className="evs-cw-comment-empty">
+                                                {L.cwCommentsEmpty}
+                                              </div>
+                                            ) : (
+                                              calibComments.map((cm) => (
+                                                <div
+                                                  className="evs-cw-comment"
+                                                  key={cm.id}
+                                                  data-testid="evs-cw-comment"
+                                                >
+                                                  <span className="evs-cw-comment-author">
+                                                    {cm.authorName || '위원'}
+                                                  </span>
+                                                  <span className="evs-cw-comment-body">
+                                                    {cm.body}
+                                                  </span>
+                                                </div>
+                                              ))
+                                            )}
+                                          </div>
+                                          {calibTable.readOnly ? (
+                                            <div className="evs-cw-comment-readonly">
+                                              {L.cwCommentReadonly}
+                                            </div>
+                                          ) : (
+                                            <div className="evs-cw-comment-form">
+                                              <textarea
+                                                className="evs-cw-comment-input"
+                                                data-testid="evs-cw-comment-input"
+                                                value={commentDraft}
+                                                onChange={(e) =>
+                                                  setCommentDraft(e.target.value)
+                                                }
+                                                placeholder={L.cwCommentPlaceholder}
+                                                rows={2}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="evc-btn is-primary evs-cw-comment-submit"
+                                                data-testid="evs-cw-comment-submit"
+                                                disabled={!commentDraft.trim()}
+                                                onClick={() => {
+                                                  onAddCalibComment?.(
+                                                    row.memberId,
+                                                    commentDraft.trim(),
+                                                  );
+                                                  setCommentDraft('');
+                                                }}
+                                              >
+                                                {L.cwCommentSubmit}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     )}
                                   </td>
