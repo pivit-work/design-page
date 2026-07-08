@@ -41,6 +41,11 @@ const DEFAULT_LABELS = {
   cwPromoNone: '—',
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
+  cwDistTitle: '등급 분포',
+  cwDistLive: '실시간',
+  cwDistCount: '{n}명',
+  cwDistRec: '권장 {pct}%',
+  cwDistNote: '※ 권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
@@ -329,6 +334,77 @@ function gradeTone(gradeKey, orderedGrades) {
   if (idx === 0) return 'green';
   if (idx === orderedGrades.length - 1) return 'red';
   return 'accent';
+}
+
+// §4.1 실시간 등급 분포 바 — 유효등급(위원회조정 우선) 집계 + 권장비율 편차(±10%p).
+function CalibDistributionBar({ rows, orderedGrades, L }) {
+  const n = rows.length;
+  const seg = orderedGrades.map((g) => ({
+    ...g,
+    tone: gradeTone(g.gradeKey, orderedGrades),
+    count: rows.filter(
+      (r) => (r.calibratedGradeKey ?? r.currentGradeKey) === g.gradeKey,
+    ).length,
+  }));
+  const pct = (c) => (n ? Math.round((c / n) * 1000) / 10 : 0);
+  return (
+    <div className="evs-cw-dist" data-testid="evs-cw-dist">
+      <div className="evs-cw-dist-head">
+        <span className="evs-cw-dist-title">{L.cwDistTitle}</span>
+        <span className="evs-cw-dist-live">{L.cwDistLive}</span>
+        <span className="evs-cw-dist-count">{fmt(L.cwDistCount, { n })}</span>
+      </div>
+      <div className="evs-cw-dist-bar">
+        {n === 0 ? (
+          <div className="evs-cw-dist-empty">{L.cwEmptyRows}</div>
+        ) : (
+          seg.map((g) =>
+            g.count > 0 ? (
+              <div
+                key={g.gradeKey}
+                className={`evs-cw-dist-seg tone-${g.tone}`}
+                style={{ width: `${(g.count / n) * 100}%` }}
+                title={`${g.label} ${g.count} (${pct(g.count)}%)`}
+              >
+                {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
+              </div>
+            ) : null,
+          )
+        )}
+      </div>
+      <div className="evs-cw-dist-chips">
+        {seg.map((g) => {
+          const p = pct(g.count);
+          const rec = g.recommendedPct;
+          const delta = rec == null ? 0 : Math.round((p - rec) * 10) / 10;
+          const off = Math.abs(delta) >= 10;
+          return (
+            <div
+              key={g.gradeKey}
+              className={`evs-cw-dist-chip${off ? ' is-off' : ''} tone-${g.tone}`}
+            >
+              <span className={`evs-cw-dist-dot tone-${g.tone}`} />
+              <span className="evs-cw-dist-chip-label">{g.label}</span>
+              <span className="evs-cw-dist-chip-count">{g.count}</span>
+              <span className={`evs-cw-dist-chip-pct tone-${g.tone}`}>{p}%</span>
+              {rec != null && (
+                <span className="evs-cw-dist-chip-rec">
+                  {fmt(L.cwDistRec, { pct: rec })}
+                  {delta !== 0 && (
+                    <span className={`evs-cw-dist-delta${off ? ' is-off' : ''}`}>
+                      {delta > 0 ? ' ▲' : ' ▼'}
+                      {Math.abs(delta)}p
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="evs-cw-dist-note">{L.cwDistNote}</div>
+    </div>
+  );
 }
 
 export default function EvalCycleSummaryCanvas({
@@ -1738,6 +1814,12 @@ export default function EvalCycleSummaryCanvas({
                       max: scores.length ? Math.max(...scores) : 3,
                     };
                     return (
+                      <>
+                      <CalibDistributionBar
+                        rows={calibTable.rows}
+                        orderedGrades={og}
+                        L={L}
+                      />
                       <div className="evc-card evs-cw-table-wrap">
                         <table className="evs-cw-table">
                           <thead>
@@ -1936,6 +2018,7 @@ export default function EvalCycleSummaryCanvas({
                           </tbody>
                         </table>
                       </div>
+                      </>
                     );
                   })()
                 )}
