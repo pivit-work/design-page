@@ -30,6 +30,137 @@ function GripIcon({ size = 14 }) {
   );
 }
 
+// 소형 유틸리티 아이콘(인라인 SVG). 이모지 글리프 대신 currentColor·size prop 으로
+// 톤을 맞춘다. viewBox 0 0 24 24, stroke 기반(Feather 계열 표준 글리프).
+function svgProps(size) {
+  return {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': true,
+    // 인라인(텍스트 옆) 배치 시 수직 정렬. flex 컨테이너에선 무시된다.
+    style: { verticalAlign: 'middle' },
+  };
+}
+// 간소형 프리셋 — 문서(간단 코멘트).
+function DocIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="16" y2="17" />
+    </svg>
+  );
+}
+// 중간형 프리셋(권장) — 별.
+function StarIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+// 세분화형 프리셋 — 레이어(세부 척도).
+function LayersIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+// 미리보기 — 눈.
+function EyeIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+// 이메일 채널 — 봉투.
+function MailIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <polyline points="22 7 12 13 2 7" />
+    </svg>
+  );
+}
+// 슬랙 채널 — 말풍선.
+function ChatIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+// 슬랙 DM — 사람.
+function UserIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+// 슬랙 채널 모드 — 해시.
+function HashIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <line x1="4" y1="9" x2="20" y2="9" />
+      <line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" />
+      <line x1="16" y1="3" x2="14" y2="21" />
+    </svg>
+  );
+}
+// 점수 이유 필수/선택 — 연필.
+function PencilIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+// 리마인더 — 종.
+function BellIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+// 리마인더 상세 — 톱니바퀴.
+function GearIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+// 참조 대상 — 사람들.
+function UsersIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 // 'YYYY-MM-DD' 문자열 ↔ Date 변환 (DatePicker 는 Date 를 주고받는다).
 const dateToIso = (date) => {
   const y = date.getFullYear();
@@ -87,8 +218,8 @@ const ALL_PHASES = [
 const PHASE_TO_REVIEW_TYPE = { self: 'self', peer: 'peer', upward: 'upward', leader: 'leader' };
 // §5.2.1 단계별 리마인더 커스텀 — 단계당 복수 리마인더 자유 설정
 const REMINDER_CHANNELS = [
-  { id: 'email', labelKey: 'reminderChEmail', icon: '✉️' },
-  { id: 'slack', labelKey: 'reminderChSlack', icon: '💬' },
+  { id: 'email', labelKey: 'reminderChEmail', Icon: MailIcon },
+  { id: 'slack', labelKey: 'reminderChSlack', Icon: ChatIcon },
 ];
 const REMINDER_ANCHORS = [
   { id: 'before_end', labelKey: 'reminderAnchorEnd' },
@@ -119,8 +250,8 @@ const PHASE_RESPONDER_ROLE = {
   leader: 'leader', peer_confirm: 'leader', calibration: 'hr', share: 'hr',
 };
 const SLACK_SEND_MODES = [
-  { id: 'dm', labelKey: 'reminderSlackDm', icon: '🧑' },
-  { id: 'channel', labelKey: 'reminderSlackChannel', icon: '＃' },
+  { id: 'dm', labelKey: 'reminderSlackDm', Icon: UserIcon },
+  { id: 'channel', labelKey: 'reminderSlackChannel', Icon: HashIcon },
 ];
 const EMAIL_TEMPLATES = [
   { id: 'default', labelKey: 'reminderTplDefault' },
@@ -191,9 +322,9 @@ const QUESTION_TYPES = [
 ];
 // 프리셋 카드 메타(아이콘·설명·권장).
 const TEMPLATE_PRESET_META = [
-  { id: 'simple', labelKey: 'tplVersionSimple', descKey: 'tplPresetSimpleDesc', icon: '📝' },
-  { id: 'standard', labelKey: 'tplVersionStandard', descKey: 'tplPresetStandardDesc', icon: '⭐', recommended: true },
-  { id: 'detailed', labelKey: 'tplVersionDetailed', descKey: 'tplPresetDetailedDesc', icon: '🔬' },
+  { id: 'simple', labelKey: 'tplVersionSimple', descKey: 'tplPresetSimpleDesc', Icon: DocIcon },
+  { id: 'standard', labelKey: 'tplVersionStandard', descKey: 'tplPresetStandardDesc', Icon: StarIcon, recommended: true },
+  { id: 'detailed', labelKey: 'tplVersionDetailed', descKey: 'tplPresetDetailedDesc', Icon: LayersIcon },
 ];
 // 섹션별 색(시안 SECTION_COLORS): 성과=blue, 역량=purple, 성장=green, 최종등급=amber.
 const SECTION_COLORS = {
@@ -918,7 +1049,7 @@ export default function EvalCycleWizard({
                     onClick={() => selectTplPreset(p.id)}
                     data-testid={`evc-tpl-version-${p.id}`}
                   >
-                    <span className="evc-tpl-preset-icon">{p.icon}</span>
+                    <span className="evc-tpl-preset-icon"><p.Icon size={20} /></span>
                     <span className="evc-tpl-preset-head">
                       <span className="evc-tpl-preset-label">
                         {L[p.labelKey]}
@@ -995,7 +1126,7 @@ export default function EvalCycleWizard({
                   onClick={() => setTplPreview('all')}
                   data-testid="evc-tpl-preview-all"
                 >
-                  👁 {L.templatePreview}
+                  <EyeIcon size={15} /> {L.templatePreview}
                 </button>
               </div>
               <div className="evc-tpl-items">
@@ -1034,7 +1165,7 @@ export default function EvalCycleWizard({
                         onClick={() => toggleRationale(q.id)}
                         data-testid={`evc-tpl-rationale-${q.id}`}
                       >
-                        ✍ {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
+                        <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
                       </button>
                     )}
                     <button
@@ -1044,7 +1175,7 @@ export default function EvalCycleWizard({
                       aria-label={L.templatePreview}
                       data-testid={`evc-tpl-item-preview-${q.id}`}
                     >
-                      👁
+                      <EyeIcon size={15} />
                     </button>
                     <button
                       type="button"
@@ -1281,7 +1412,7 @@ export default function EvalCycleWizard({
                       {enabled && (
                         <div className="evc-rm-block" data-testid={`evc-rm-block-${ph.id}`}>
                           <div className="evc-rm-head">
-                            <span className="evc-field-label">🔔 {L.reminderLabel}</span>
+                            <span className="evc-field-label"><BellIcon size={13} /> {L.reminderLabel}</span>
                             <span className="evc-rm-count">
                               {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
                             </span>
@@ -1344,7 +1475,7 @@ export default function EvalCycleWizard({
                                             onClick={() => toggleChannel(ph.id, rm.id, ch.id)}
                                             data-testid={`evc-rm-ch-${ph.id}-${i}-${ch.id}`}
                                           >
-                                            <span>{ch.icon}</span> {L[ch.labelKey]}
+                                            <ch.Icon size={14} /> {L[ch.labelKey]}
                                           </button>
                                         );
                                       })}
@@ -1356,7 +1487,7 @@ export default function EvalCycleWizard({
                                       title={L.reminderDetail}
                                       data-testid={`evc-rm-detail-${ph.id}-${i}`}
                                     >
-                                      ⚙ {L.reminderDetail} {rmDetail.has(rm.id) ? '▲' : '▼'}
+                                      <GearIcon size={12} /> {L.reminderDetail} {rmDetail.has(rm.id) ? '▲' : '▼'}
                                     </button>
                                     <button
                                       type="button"
@@ -1377,7 +1508,7 @@ export default function EvalCycleWizard({
                                       const ch = REMINDER_CHANNELS.find((c) => c.id === cid);
                                       return (
                                         <span key={cid} className="evc-rm-sum-ch">
-                                          {ch.icon} {L[ch.labelKey]}
+                                          <ch.Icon size={13} /> {L[ch.labelKey]}
                                         </span>
                                       );
                                     })}
@@ -1389,7 +1520,7 @@ export default function EvalCycleWizard({
                                     >
                                       {/* 1. 수신 대상 */}
                                       <div className="evc-rm-dsec">
-                                        <div className="evc-rm-dsec-title">👥 {L.reminderTargetsTitle}</div>
+                                        <div className="evc-rm-dsec-title"><UsersIcon size={13} /> {L.reminderTargetsTitle}</div>
                                         <div className="evc-rm-tgts">
                                           {REMINDER_TARGETS.map((t) => {
                                             const dup = !t.fixed && PHASE_RESPONDER_ROLE[ph.id] === t.id;
@@ -1421,7 +1552,7 @@ export default function EvalCycleWizard({
                                       {/* 2. 이메일 상세 */}
                                       {rm.channels.includes('email') && (
                                         <div className="evc-rm-dsec is-box">
-                                          <div className="evc-rm-dsec-title">✉️ {L.reminderEmailTitle}</div>
+                                          <div className="evc-rm-dsec-title"><MailIcon size={13} /> {L.reminderEmailTitle}</div>
                                           <label className="evc-rm-dfield">
                                             <span>{L.reminderEmailTpl}</span>
                                             <select
@@ -1503,7 +1634,7 @@ export default function EvalCycleWizard({
                                       {/* 3. 슬랙 상세 */}
                                       {rm.channels.includes('slack') && (
                                         <div className="evc-rm-dsec is-box">
-                                          <div className="evc-rm-dsec-title">💬 {L.reminderSlackTitle}</div>
+                                          <div className="evc-rm-dsec-title"><ChatIcon size={13} /> {L.reminderSlackTitle}</div>
                                           <div className="evc-rm-tgts">
                                             {SLACK_SEND_MODES.map((m) => {
                                               const on = (rm.slack?.mode ?? 'dm') === m.id;
@@ -1518,7 +1649,7 @@ export default function EvalCycleWizard({
                                                     }))}
                                                   data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
                                                 >
-                                                  <span>{m.icon}</span> {L[m.labelKey]}
+                                                  <m.Icon size={14} /> {L[m.labelKey]}
                                                 </button>
                                               );
                                             })}
