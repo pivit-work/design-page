@@ -4367,3 +4367,56 @@
   font-weight: 700;
   color: var(--utility-blue-700, #175cd3);
 }
+
+/* ── R1b 경로 B: 위자드 위원회 스텝 ── */
+.evc-wiz-committee-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #101828);
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.evc-wiz-committee-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.evc-wiz-committee-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1.5px solid var(--border-secondary, var(--utility-gray-200));
+  background: var(--bg-primary, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+.evc-wiz-committee-item.is-on {
+  border-color: var(--utility-blue-500, #2e90fa);
+  background: var(--utility-blue-50, #eff8ff);
+}
+.evc-wiz-committee-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evc-wiz-committee-chair {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--utility-pink-50, #fdf2fa);
+  color: var(--utility-pink-600, #dd2590);
+}
+.evc-wiz-committee-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #667085);
+}
