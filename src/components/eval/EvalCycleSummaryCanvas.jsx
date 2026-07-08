@@ -30,6 +30,7 @@ const DEFAULT_LABELS = {
   cwColName: '이름',
   cwColJob: '직무',
   cwColTeam: '소속팀',
+  cwColLevel: '직급·레벨',
   cwColLeader: '팀장',
   cwColDates: '입사일/승급일',
   cwColCurrent: '현재등급',
@@ -39,6 +40,10 @@ const DEFAULT_LABELS = {
   cwNoPromotion: '승급 이력 없음',
   cwPromoRecommended: '매니저 추천',
   cwPromoNone: '—',
+  cwPromoApprove: '가',
+  cwPromoReject: '부',
+  cwPromoApproved: '위원회 승진',
+  cwPromoRejected: '승진 제외',
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
   cwDistTitle: '등급 분포',
@@ -510,6 +515,7 @@ export default function EvalCycleSummaryCanvas({
   onExportCalibCsv,
   calibComments = [],
   onAddCalibComment,
+  onSetCommitteePromotion,
   canCreateSession = false,
   committeeCandidates = [],
   sessionDeptOptions = [],
@@ -1939,6 +1945,7 @@ export default function EvalCycleSummaryCanvas({
                               <th>{L.cwColName}</th>
                               <th>{L.cwColJob}</th>
                               <th>{L.cwColTeam}</th>
+                              <th>{L.cwColLevel}</th>
                               <th>{L.cwColLeader}</th>
                               <th>{L.cwColDates}</th>
                               <th>{L.cwColCurrent}</th>
@@ -1962,6 +1969,7 @@ export default function EvalCycleSummaryCanvas({
                                 <td className="evs-cw-name">{row.name}</td>
                                 <td className="evs-cw-muted">{row.job || '—'}</td>
                                 <td className="evs-cw-muted">{row.team}</td>
+                                <td className="evs-cw-muted">{row.level || '—'}</td>
                                 <td className="evs-cw-muted">{row.leaderName ?? '—'}</td>
                                 <td>
                                   <div className="evs-cw-date">{row.hireDate ?? '—'}</div>
@@ -2024,13 +2032,62 @@ export default function EvalCycleSummaryCanvas({
                                   </div>
                                 </td>
                                 <td>
-                                  {row.promotionStatus === 'recommended' ? (
-                                    <span className="evs-cw-promo tone-green">
-                                      {L.cwPromoRecommended}
-                                    </span>
-                                  ) : (
-                                    <span className="evs-cw-muted">{L.cwPromoNone}</span>
-                                  )}
+                                  <div className="evs-cw-promo-cell">
+                                    {row.promotionStatus === 'recommended' && (
+                                      <span className="evs-cw-promo tone-green">
+                                        {L.cwPromoRecommended}
+                                      </span>
+                                    )}
+                                    {calibTable.readOnly ? (
+                                      row.committeePromotion ? (
+                                        <span
+                                          className={`evs-cw-promo tone-${row.committeePromotion === 'approved' ? 'green' : 'red'}`}
+                                        >
+                                          {row.committeePromotion === 'approved'
+                                            ? L.cwPromoApproved
+                                            : L.cwPromoRejected}
+                                        </span>
+                                      ) : row.promotionStatus !== 'recommended' ? (
+                                        <span className="evs-cw-muted">
+                                          {L.cwPromoNone}
+                                        </span>
+                                      ) : null
+                                    ) : (
+                                      <div className="evs-cw-promo-toggle">
+                                        <button
+                                          type="button"
+                                          className={`evs-cw-promo-btn${row.committeePromotion === 'approved' ? ' is-on tone-green' : ''}`}
+                                          data-testid="evs-cw-promo-approve"
+                                          title={L.cwPromoApproved}
+                                          onClick={() =>
+                                            onSetCommitteePromotion?.(
+                                              row.memberId,
+                                              row.committeePromotion === 'approved'
+                                                ? null
+                                                : 'approved',
+                                            )
+                                          }
+                                        >
+                                          {L.cwPromoApprove}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={`evs-cw-promo-btn${row.committeePromotion === 'rejected' ? ' is-on tone-red' : ''}`}
+                                          title={L.cwPromoRejected}
+                                          onClick={() =>
+                                            onSetCommitteePromotion?.(
+                                              row.memberId,
+                                              row.committeePromotion === 'rejected'
+                                                ? null
+                                                : 'rejected',
+                                            )
+                                          }
+                                        >
+                                          {L.cwPromoReject}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </td>
                                 <td>
                                   <button
@@ -2053,7 +2110,7 @@ export default function EvalCycleSummaryCanvas({
                               </tr>
                               {expanded && (
                                 <tr data-testid="evs-cw-detail">
-                                  <td colSpan={11} className="evs-cw-detail-cell">
+                                  <td colSpan={12} className="evs-cw-detail-cell">
                                     {!detail ? (
                                       <div className="evs-cw-detail-loading">
                                         {L.cwDetailLoading}
@@ -2068,6 +2125,11 @@ export default function EvalCycleSummaryCanvas({
                                           <div className="evs-cw-detail-profile-role">
                                             {(row.job || '—') + ' · ' + row.team}
                                           </div>
+                                          {row.level ? (
+                                            <div className="evs-cw-detail-profile-level">
+                                              {L.cwColLevel}: <strong>{row.level}</strong>
+                                            </div>
+                                          ) : null}
                                           <dl className="evs-cw-detail-facts">
                                             <div>
                                               <dt>{L.cwColCurrent}</dt>

@@ -3899,3 +3899,46 @@
     padding-top: 10px;
   }
 }
+
+/* §9.1 R7 승진 2축 마킹 */
+.evs-cw-promo-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+.evs-cw-promo-toggle {
+  display: flex;
+  gap: 4px;
+}
+.evs-cw-promo-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  color: var(--text-tertiary, #667085);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.evs-cw-promo-btn.is-on.tone-green {
+  border-color: var(--utility-green-500, #17b26a);
+  background: var(--utility-green-50, #ecfdf3);
+  color: var(--utility-green-700, #087443);
+}
+.evs-cw-promo-btn.is-on.tone-red {
+  border-color: var(--utility-error-500, #f04438);
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-700, #b42318);
+}
+.evs-cw-promo.tone-red {
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-700, #b42318);
+}
+.evs-cw-detail-profile-level {
+  font-size: 11px;
+  color: var(--text-secondary, #475467);
+  margin-bottom: 8px;
+}
