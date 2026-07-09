@@ -14,6 +14,14 @@ export { default as BillingMethodsCanvas } from './BillingMethodsCanvas.jsx';
 export { default as BillingHistoryCanvas } from './BillingHistoryCanvas.jsx';
 export { default as BillingSettingsCanvas } from './BillingSettingsCanvas.jsx';
 export { default as BillingContactSalesCanvas } from './BillingContactSalesCanvas.jsx';
+export {
+  TierGate,
+  UpsellCard,
+  LockBadge,
+  FEATURE_TIER,
+  TIER_RANK,
+  isAccessible,
+} from './BillingTierGate.jsx';
 export { default as AdminCard } from './Card.jsx';
 export { default as AdminSectionLabel } from './SectionLabel.jsx';
 export { default as AdminLinkButton } from './LinkButton.jsx';
