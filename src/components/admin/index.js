@@ -9,6 +9,8 @@ export { default as AdminIntegrationsCanvas } from './AdminIntegrationsCanvas.js
 export { default as AdminAiPromptsCanvas } from './AdminAiPromptsCanvas.jsx';
 export { default as BillingOverviewCanvas } from './BillingOverviewCanvas.jsx';
 export { default as BillingPlansCanvas } from './BillingPlansCanvas.jsx';
+export { default as BillingCheckoutCanvas } from './BillingCheckoutCanvas.jsx';
+export { default as BillingMethodsCanvas } from './BillingMethodsCanvas.jsx';
 export { default as AdminCard } from './Card.jsx';
 export { default as AdminSectionLabel } from './SectionLabel.jsx';
 export { default as AdminLinkButton } from './LinkButton.jsx';
