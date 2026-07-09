@@ -983,6 +983,9 @@
   gap: var(--spacing-lg, 12px);
 }
 .evc-rm-dsec-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs, 3px);
   font-size: var(--font-size-text-xs, 11px);
   font-weight: 700;
   color: var(--text-primary);
@@ -1126,6 +1129,9 @@
   color: var(--text-brand-secondary, var(--utility-blue-600));
 }
 .evc-rm-sum-ch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs, 3px);
   font-size: var(--font-size-text-xs, 11px);
   color: var(--text-secondary);
 }
