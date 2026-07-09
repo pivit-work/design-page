@@ -37,6 +37,7 @@ export const ADMIN_MENU = [
   { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
   { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
   { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
+  { id: 'billing',       icon: '/icons-solid/credit-card-02.svg',      label: '결제 · 구독',      group: 'billing' },
   { id: 'notifications', icon: '/icons-solid/alert-triangle.svg',      label: '알림 설정',        group: 'system' },
   { id: 'integrations',  icon: '/icons-solid/link-01.svg',             label: '연동 설정',        group: 'system' },
   { id: 'ai-prompts',    icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
