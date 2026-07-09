@@ -109,6 +109,8 @@ export { AdminIntegrationsCanvas } from './admin/index.js';
 export { AdminAiPromptsCanvas } from './admin/index.js';
 export { BillingOverviewCanvas } from './admin/index.js';
 export { BillingPlansCanvas } from './admin/index.js';
+export { BillingCheckoutCanvas } from './admin/index.js';
+export { BillingMethodsCanvas } from './admin/index.js';
 
 // Eval cycle (성과 평가)
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
