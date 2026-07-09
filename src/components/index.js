@@ -114,6 +114,14 @@ export { BillingMethodsCanvas } from './admin/index.js';
 export { BillingHistoryCanvas } from './admin/index.js';
 export { BillingSettingsCanvas } from './admin/index.js';
 export { BillingContactSalesCanvas } from './admin/index.js';
+export {
+  TierGate,
+  UpsellCard,
+  LockBadge,
+  FEATURE_TIER,
+  TIER_RANK,
+  isAccessible,
+} from './admin/index.js';
 
 // Eval cycle (성과 평가)
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
