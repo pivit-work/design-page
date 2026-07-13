@@ -174,6 +174,7 @@ const PERSONAL_HISTORY = [
     title: 'Phase 0 — 기반 기술 검증 및 팀 빌딩',
     percent: 54,
     barVariant: 'warning',
+    status: { label: '주의', tone: 'warning' },
     objectives: [
       { id: 'O#1', weight: '50%', title: '코어 기술 PoC 완료', percent: 86, tone: 'success' },
       { id: 'O#2', weight: '50%', title: '창업팀 구성 및 역할 정의', percent: 86, tone: 'success' },
@@ -207,9 +208,9 @@ const PERSONAL_HISTORY = [
   {
     label: '2025 Q1',
     title: '아이디어 발굴 및 초기 리서치',
-    percent: 54,
-    barVariant: 'warning',
-    status: { label: '주의', tone: 'warning' },
+    percent: 35,
+    barVariant: 'error',
+    status: { label: '위험', tone: 'error' },
     objectives: [
       { id: 'O#1', weight: '60%', title: '문제 정의 및 아이디어 검증', percent: 72, tone: 'success' },
       { id: 'O#2', weight: '40%', title: '초기 프로토타입 방향 수립', percent: 41, tone: 'error' },

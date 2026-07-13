@@ -41,8 +41,8 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
       </div>
 
       {periodTab === 'history' ? (
-        history?.map((quarter, i) => (
-          <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} defaultExpanded={i === 0} />
+        history?.map((quarter) => (
+          <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
         ))
       ) : (
         <>
