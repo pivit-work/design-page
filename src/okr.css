@@ -40,6 +40,10 @@
 .okr-group-percent.is-error { color: var(--utility-error-500); }
 .okr-group-summary { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); white-space: nowrap; }
 
+/* ── 블록 드래그 ── */
+.okr-group-card:hover, .okr-objective-row:hover, .okr-member-chip:hover { cursor: grab; }
+.okr-block-dragging { box-shadow: 0 20px 24px rgba(10, 13, 18, 0.12), 0 8px 8px rgba(10, 13, 18, 0.06) !important; z-index: 200; position: relative; cursor: grabbing !important; }
+
 /* ── 진행바 ── */
 .okr-progress-track { width: 100%; height: 10px; background: var(--utility-gray-200); border-radius: 4px; }
 .okr-progress-fill { height: 10px; border-radius: 4px; min-width: 4px; }

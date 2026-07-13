@@ -6,9 +6,9 @@ import { useRef, useEffect } from 'react';
  * BezierConnectors 와 같은 방식으로 rAF 루프에서 DOM 을 측정해 SVG path 를
  * 그린다. 좌표는 scale 로 나눠 canvas-inner 의 transform 과 무관하게 유지.
  *
- * - 루트 그룹(.okr-group-root) 하단 중앙 → 각 팀 컬럼(.okr-team-col)의
- *   그룹 카드 상단 중앙: 베지어 곡선
- * - 팀 objective 목록 하단 → 구성원 칩 목록 상단: 수직선
+ * 앵커는 드래그 가능한 블록 요소 자체를 측정한다(블록을 끌면 선이 따라옴).
+ * - 루트 마지막 objective 행 하단 중앙 → 각 팀 그룹 카드 상단 중앙: 베지어
+ * - 팀 마지막 objective 행 하단 → 첫 구성원 칩 상단: 수직선
  */
 export default function OkrConnectors({ containerRef, scale }) {
   const svgRef = useRef(null);
@@ -27,9 +27,10 @@ export default function OkrConnectors({ containerRef, scale }) {
       const centerX = (rect) => (rect.left + rect.width / 2 - containerRect.left) / s;
       let pathData = '';
 
-      const root = container.querySelector('.okr-group-root');
-      if (root) {
-        const rootRect = root.getBoundingClientRect();
+      const rootAnchor = container.querySelector('.okr-group-root .okr-objective-list .okr-objective-row:last-child')
+        || container.querySelector('.okr-group-root .okr-group-card');
+      if (rootAnchor) {
+        const rootRect = rootAnchor.getBoundingClientRect();
         const px = centerX(rootRect);
         const py = (rootRect.bottom - containerRect.top) / s;
 
@@ -45,15 +46,17 @@ export default function OkrConnectors({ containerRef, scale }) {
       }
 
       container.querySelectorAll('.okr-team-col').forEach(col => {
-        const list = col.querySelector(':scope > .okr-objective-list');
-        const members = col.querySelector(':scope > .okr-members');
-        if (!list || !members) return;
-        const listRect = list.getBoundingClientRect();
-        const membersRect = members.getBoundingClientRect();
-        const x = centerX(listRect);
-        const y1 = (listRect.bottom - containerRect.top) / s;
-        const y2 = (membersRect.top - containerRect.top) / s;
-        pathData += `M ${x} ${y1} L ${x} ${y2} `;
+        const lastRow = col.querySelector(':scope > .okr-objective-list .okr-objective-row:last-child');
+        const firstChip = col.querySelector(':scope > .okr-members .okr-member-chip');
+        if (!lastRow || !firstChip) return;
+        const rowRect = lastRow.getBoundingClientRect();
+        const chipRect = firstChip.getBoundingClientRect();
+        const x1 = centerX(rowRect);
+        const y1 = (rowRect.bottom - containerRect.top) / s;
+        const x2 = centerX(chipRect);
+        const y2 = (chipRect.top - containerRect.top) / s;
+        const midY = (y1 + y2) / 2;
+        pathData += `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2} `;
       });
 
       svg.innerHTML = `<path d="${pathData}" fill="none" stroke="var(--utility-blue-300)" stroke-width="1" stroke-dasharray="4 4"/>`;

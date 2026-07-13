@@ -7,3 +7,5 @@ export { default as OkrProgressBar } from './OkrProgressBar.jsx';
 export { default as OkrMemberChip } from './OkrMemberChip.jsx';
 export { default as OkrConnectors } from './OkrConnectors.jsx';
 export { default as OkrDetailModal } from './OkrDetailModal.jsx';
+export { OkrPositionsContext } from './contexts.js';
+export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';
