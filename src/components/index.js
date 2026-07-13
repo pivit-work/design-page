@@ -71,6 +71,19 @@ export {
   TAG_TYPES as ONEONONE_TAG_TYPES,
 } from './oneonone/index.js';
 
+// OKR
+export {
+  OkrTabNav,
+  OkrToolbar,
+  OkrDashboardCanvas,
+  OkrGroupCard,
+  ObjectiveRow,
+  OkrProgressBar,
+  OkrMemberChip,
+  OkrConnectors,
+  OkrDetailModal,
+} from './okr/index.js';
+
 // Report
 export {
   ReportCanvas,
