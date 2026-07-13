@@ -32,7 +32,7 @@ function ProgressCell({ percent, barVariant, percentLabel, status }) {
   );
 }
 
-export default function OkrObjectiveSection({ objective, icons, baseUrl = '', defaultExpanded = false, onWriteFeedback, onViewFeedback }) {
+export default function OkrObjectiveSection({ objective, icons, baseUrl = '', defaultExpanded = false, onWriteFeedback, onViewFeedback, onUpdateKr }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [openFeedback, setOpenFeedback] = useState({});
   const toggleFeedback = (i) => setOpenFeedback((prev) => ({ ...prev, [i]: !prev[i] }));
@@ -59,7 +59,7 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
 
       {expanded && objective.krs?.map((kr, i) => (
         <div className="okr-p-kr-block" key={kr.label}>
-          <div className="okr-p-row okr-p-kr-row">
+          <div className="okr-p-row okr-p-kr-row" onClick={() => onUpdateKr && onUpdateKr(kr)}>
             <div className="okr-p-col-label">
               <span className="okr-p-kr-name">{kr.label}</span>
             </div>

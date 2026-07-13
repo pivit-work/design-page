@@ -91,6 +91,7 @@ export {
   OkrObjectiveSection,
   OkrFeedbackComposeModal,
   OkrKrFeedbackModal,
+  OkrKrUpdateModal,
 } from './okr/index.js';
 
 // Report

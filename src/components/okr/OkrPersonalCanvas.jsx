@@ -5,6 +5,7 @@ import OkrOverallCard from './OkrOverallCard.jsx';
 import OkrObjectiveSection from './OkrObjectiveSection.jsx';
 import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
 import OkrKrFeedbackModal from './OkrKrFeedbackModal.jsx';
+import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -20,6 +21,7 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
   const [composeOpen, setComposeOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [krDetail, setKrDetail] = useState(null);
+  const [krUpdate, setKrUpdate] = useState(null);
 
   return (
     <div className="okr-personal-area">
@@ -56,6 +58,7 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
             defaultExpanded={i === 0}
             onWriteFeedback={() => setComposeOpen(true)}
             onViewFeedback={(kr) => kr.feedbackDetail && setKrDetail(kr.feedbackDetail)}
+            onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
           />
         ))}
       </div>
@@ -77,6 +80,14 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
           baseUrl={baseUrl}
           onClose={() => setKrDetail(null)}
           onRequestFeedback={() => setRequestOpen(true)}
+        />
+      )}
+      {krUpdate && (
+        <OkrKrUpdateModal
+          detail={krUpdate}
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setKrUpdate(null)}
         />
       )}
       {requestOpen && (

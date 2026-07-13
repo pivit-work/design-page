@@ -191,7 +191,7 @@
 
 /* Key Result 블록 — 왼쪽 32px 들여쓰기된 패널 */
 .okr-p-kr-block { margin-left: 32px; }
-.okr-p-kr-row { padding: 16px 0; background: var(--bg-secondary); }
+.okr-p-kr-row { padding: 16px 0; background: var(--bg-secondary); cursor: pointer; }
 .okr-p-kr-name { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
 .okr-p-kr-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; color: var(--text-secondary); line-height: 24px; }
 .okr-p-kr-teamlink { margin-top: 10px; display: flex; align-items: center; gap: 16px; padding: 2px 6px; background: var(--utility-blue-50); border-radius: 4px; }
@@ -232,6 +232,24 @@
 .okr-btn.is-outline { background: var(--bg-quaternary); border: 1px solid var(--border-secondary); color: var(--text-secondary); }
 .okr-btn.is-brand { background: var(--bg-brand-solid); border: none; color: var(--text-white); }
 .okr-btn.is-sm { flex: none; padding: 6px 16px; font-size: 14px; line-height: 20px; border-radius: 8px; }
+
+/* KR 달성률 업데이트 모달 */
+.okr-kru-body { padding: 60px 48px 48px; display: flex; flex-direction: column; gap: 48px; }
+.okr-kru-header { display: flex; flex-direction: column; gap: 6px; }
+.okr-kru-sub { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
+.okr-kru-method { color: var(--utility-blue-500); cursor: pointer; }
+.okr-kru-ai { position: relative; height: 159px; padding: 12px; box-sizing: border-box; background: var(--utility-purple-100); border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+.okr-kru-ai-head { display: flex; align-items: flex-start; justify-content: space-between; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
+.okr-kru-ai-label { display: flex; align-items: center; gap: 6px; }
+.okr-kru-ai-result { text-align: center; color: var(--utility-purple-500); }
+.okr-kru-ai-caption { font-size: 12px; font-weight: 500; line-height: 18px; }
+.okr-kru-ai-value { font-size: 24px; font-weight: 600; line-height: 32px; }
+.okr-kru-apply { align-self: flex-end; padding: 8px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
+.okr-kru-input-row { display: flex; align-items: center; gap: 6px; }
+.okr-kru-input { flex: 1; min-width: 0; padding: 8px 12px; background: var(--alpha-black-3); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 400; line-height: 24px; color: var(--text-primary); text-align: center; outline: none; -moz-appearance: textfield; appearance: textfield; }
+.okr-kru-input::-webkit-outer-spin-button, .okr-kru-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.okr-kru-total { font-size: 16px; font-weight: 400; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
+.okr-kru-percent { padding: 10px 16px; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-brand-tertiary); white-space: nowrap; }
 
 .okr-krfb-modal { position: relative; display: flex; flex-direction: column; width: 650px; max-width: calc(100vw - 80px); max-height: 86vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
 .okr-krfb-body { flex: 1; overflow-y: auto; padding: 60px 48px 48px; display: flex; flex-direction: column; gap: 48px; }

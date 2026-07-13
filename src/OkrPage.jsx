@@ -206,8 +206,18 @@ const PERSONAL_OKR = {
       weight: '50%',
       pic: PIC_KURT,
       krs: [
-        { ...PERSONAL_KR_BASE, label: 'Key Result 1', title: 'pgveccotr 인덱스 전략 문서 완성' },
-        { ...PERSONAL_KR_BASE, label: 'Key Result 2', title: 'pgveccotr 인덱스 전략 문서 완성' },
+        {
+          ...PERSONAL_KR_BASE,
+          label: 'Key Result 1',
+          title: 'Phase 1 UI 기획 완료 (16개 화면)',
+          updateDetail: { krLabel: 'KR #1-1', method: '개수 달성', unit: '개', total: 16, aiValue: 14, aiMeta: '신뢰도 88% · 오늘 9:12' },
+        },
+        {
+          ...PERSONAL_KR_BASE,
+          label: 'Key Result 2',
+          title: 'pgveccotr 인덱스 전략 문서 완성',
+          updateDetail: { krLabel: 'KR #1-2', method: '진척률 달성', unit: '%', total: 100, aiValue: 60, aiMeta: '신뢰도 92% · 오늘 9:12' },
+        },
       ],
     },
     {
