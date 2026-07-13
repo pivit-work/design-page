@@ -76,7 +76,7 @@ export default function OkrObjectiveSection({ objective, defaultExpanded = false
                   <span className={`okr-p-caret${openFeedback[i] ? ' is-open' : ''}`}>⌄</span>
                   <span className="okr-p-feedback-summary">{kr.feedback.summary}</span>
                 </div>
-                <span className="okr-p-feedback-write">피드백 작성</span>
+                <span className="okr-p-chip-btn">피드백 작성</span>
               </div>
               {openFeedback[i] && (
                 <div className="okr-p-feedback-comments">
@@ -88,7 +88,7 @@ export default function OkrObjectiveSection({ objective, defaultExpanded = false
                         <span className="okr-p-comment-date">{comment.date}</span>
                       </div>
                       <p className="okr-p-comment-text">{comment.text}</p>
-                      {ci === 0 && <span className="okr-p-comment-all">전체 보기</span>}
+                      {ci === kr.feedback.comments.length - 1 && <span className="okr-p-chip-btn">전체 보기</span>}
                     </div>
                   ))}
                 </div>

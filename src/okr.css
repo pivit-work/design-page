@@ -150,9 +150,9 @@
 .okr-status-text { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .okr-status-text.is-warning { color: var(--utility-warning-500); }
 .okr-status-text.is-error { color: var(--utility-error-500); }
-.okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.okr-pill.is-done { color: var(--utility-green-600); background: var(--utility-green-50); border: 1px solid var(--utility-green-100); }
-.okr-pill.is-progress { color: var(--utility-blue-600); background: var(--utility-blue-50); border: 1px solid var(--utility-blue-100); }
+.okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
+.okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
+.okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
 
 /* 테이블 헤더 */
 .okr-p-table-head { display: flex; align-items: center; padding: 8px 22px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
@@ -175,10 +175,11 @@
 .okr-p-pic { width: 90px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
 .okr-p-pic img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
 
-/* Key Result 블록 */
-.okr-p-kr-block { border-top: 1px solid var(--border-secondary); }
-.okr-p-kr-row { display: flex; align-items: center; gap: 16px; padding: 16px 22px 16px 46px; background: var(--bg-secondary); }
-.okr-p-kr-name { width: 126px; font-size: 14px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
+/* Key Result 블록 — Objective 카드 안에서 왼쪽 들여쓰기된 회색 패널 */
+.okr-p-kr-block { margin-left: 30px; }
+.okr-p-kr-row { display: flex; align-items: center; gap: 16px; padding: 24px 20px; background: var(--bg-secondary); }
+.okr-p-kr-name { width: 140px; font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; flex-shrink: 0; }
+.okr-p-kr-row .okr-p-weight { color: var(--text-tertiary); }
 .okr-p-kr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .okr-p-kr-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .okr-p-kr-title { font-size: 15px; font-weight: 500; color: var(--text-primary); line-height: 22px; }
@@ -188,23 +189,22 @@
 
 /* 피드백 */
 .okr-p-feedback { background: var(--utility-green-50); }
-.okr-p-feedback-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 22px 10px 46px; cursor: pointer; }
+.okr-p-feedback-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; cursor: pointer; }
 .okr-p-feedback-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--utility-green-600); }
 .okr-p-feedback-summary { font-size: 13px; font-weight: 600; color: var(--utility-green-600); }
-.okr-p-feedback-write { font-size: 12px; font-weight: 600; color: var(--utility-green-600); cursor: pointer; }
-.okr-p-feedback-comments { display: flex; flex-direction: column; gap: 2px; padding: 0 22px 10px 46px; }
-.okr-p-comment { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
-.okr-p-comment-author { display: flex; align-items: center; gap: 6px; width: 150px; flex-shrink: 0; }
-.okr-p-comment-author img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
-.okr-p-comment-name { font-size: 13px; font-weight: 700; color: var(--utility-green-600); white-space: nowrap; }
-.okr-p-comment-date { font-size: 12px; font-weight: 500; color: var(--utility-green-600); opacity: 0.7; }
+.okr-p-chip-btn { padding: 4px 10px; border-radius: 6px; background: var(--alpha-black-3); font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; cursor: pointer; }
+.okr-p-feedback-comments { display: flex; flex-direction: column; }
+.okr-p-comment { display: flex; align-items: center; gap: 12px; padding: 8px 20px; border-top: 1px solid var(--bg-quaternary); }
+.okr-p-comment-author { display: flex; align-items: center; gap: 8px; width: 180px; flex-shrink: 0; }
+.okr-p-comment-author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+.okr-p-comment-name { font-size: 13px; font-weight: 700; color: var(--utility-green-600); white-space: nowrap; flex: 1; }
+.okr-p-comment-date { font-size: 12px; font-weight: 600; color: var(--utility-warning-500); }
 .okr-p-comment-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--utility-green-600); line-height: 20px; }
-.okr-p-comment-all { font-size: 12px; font-weight: 600; color: var(--utility-green-600); white-space: nowrap; cursor: pointer; }
 
 /* Initiative */
-.okr-p-initiative { display: flex; align-items: center; gap: 16px; padding: 10px 22px 10px 46px; background: var(--utility-blue-50); border-top: 1px solid var(--bg-quaternary); }
-.okr-p-initiative-label { width: 126px; font-size: 13px; font-weight: 700; color: var(--utility-blue-600); flex-shrink: 0; }
-.okr-p-initiative-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--utility-blue-600); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.okr-p-initiative { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--utility-blue-50); border-top: 1px solid var(--bg-quaternary); }
+.okr-p-initiative-label { width: 140px; font-size: 13px; font-weight: 700; color: var(--utility-blue-500); flex-shrink: 0; }
+.okr-p-initiative-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--utility-blue-500); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 
 /* 분기별 KR 테이블 */
 .okr-quarter-tables { display: flex; flex-direction: column; }
