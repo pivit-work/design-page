@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import OkrBoard from './OkrBoard.jsx';
+import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
 
 /**
- * OkrStrategyCanvas — 전사 OKR 탭의 전략 캔버스.
+ * OkrStrategyCanvas — 전사 OKR 탭 (전략 캔버스/Company OKR/히스토리).
  *
  * rows: [{ id, label, sub, content: string | string[] }] — 데모 데이터는
  * wrapper(OkrPage)가 소유. content 가 배열이면 번호 목록(BIG BETS).
- * 서브탭(전략 캔버스/Company OKR/히스토리) 중 전략 캔버스만 콘텐츠가 있고,
- * [편집]으로 초록 테두리 입력 모드 전환, [저장]으로 로컬 반영한다.
+ * 전략 캔버스는 [편집]으로 초록 테두리 입력 모드 전환, [저장]으로 반영.
+ * Company OKR 서브탭은 공용 OkrBoard, 히스토리는 개인 OKR 과 동일 구조.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, icons, baseUrl = '' }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '' }) {
   const [subTab, setSubTab] = useState('canvas');
   const [rows, setRows] = useState(initialRows);
   const [editing, setEditing] = useState(false);
@@ -88,6 +90,14 @@ export default function OkrStrategyCanvas({ rows: initialRows, icons, baseUrl = 
             ))}
           </div>
         </>
+      ) : subTab === 'company' && companyBoard ? (
+        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} />
+      ) : subTab === 'history' && history ? (
+        <div className="okr-h-list">
+          {history.map((quarter) => (
+            <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
+          ))}
+        </div>
       ) : (
         <div className="okr-s-placeholder">준비 중인 화면입니다</div>
       )}

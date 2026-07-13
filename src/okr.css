@@ -99,6 +99,9 @@
 
 /* ══ 개인 OKR 탭 ══ */
 .okr-write-btn { position: fixed; top: 82px; right: 40px; z-index: 90; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
+.okr-write-btn.is-inline { position: static; }
+.okr-header-actions { position: fixed; top: 82px; right: 40px; z-index: 90; display: flex; gap: 8px; }
+.okr-ghost-btn { padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 
 /* 좌우 여백까지 스크롤 영역에 포함 — 여백 위에서 휠을 굴려도 스크롤된다 */
 .okr-personal-area { position: fixed; top: 150px; left: 240px; right: 0; bottom: 0; overflow-y: auto; padding: 12px 40px 60px 12px; display: flex; flex-direction: column; gap: 16px; }
@@ -137,7 +140,9 @@
 .okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--utility-purple-50); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-chips { display: flex; gap: 8px; }
-.okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; }
+.okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.okr-p-ai-chip-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.okr-p-ai-action { flex-shrink: 0; padding: 6px 12px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary-alt); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
 .okr-p-ai-chip-title { font-size: 16px; font-weight: 600; color: var(--utility-purple-500); line-height: 24px; }
 .okr-p-ai-chip-detail { font-size: 12px; font-weight: 400; color: var(--text-primary); line-height: 18px; }
 

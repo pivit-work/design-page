@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, OkrStrategyCanvas, Icon } from './components';
+import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, OkrTeamCanvas, OkrStrategyCanvas, Icon } from './components';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
@@ -9,6 +9,7 @@ const AVATARS = {
   김민준: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
   커트: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=face',
   박민준: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+  민현식: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
 };
 
 const TABS = [
@@ -314,6 +315,91 @@ const PERSONAL_OKR = {
   ],
 };
 
+/* ── Demo 팀/Company OKR 보드 ── */
+const TEAM_KR = {
+  label: 'Key Result',
+  title: 'Phase 1 UI 기획 완료 (16개 화면)',
+  percent: 88,
+  barVariant: 'success',
+  percentLabel: '14 / 16',
+  status: { label: '정상', tone: 'success' },
+  weight: '40%',
+  pic: PIC_KURT,
+  initiatives: [
+    { title: '인덱스 전략 비교 분석 문서', status: { label: '완료', tone: 'done' }, pic: PIC_KURT },
+    { title: 'pgveccotr 인덱스 전략 문서 완성', status: { label: '진행 중', tone: 'progress' }, pic: PIC_KURT },
+  ],
+  updateDetail: { krLabel: 'KR #1-1', method: '개수 달성', unit: '개', total: 16, aiValue: 14, aiMeta: '신뢰도 88% · 오늘 9:12' },
+};
+
+const TEAM_BOARD = {
+  insights: [
+    { title: 'OKR 달성이 위험한 KR 담당자 2명', detail: '커트 · 박민준', action: '원온원 잡기' },
+    { title: '아직 시작되지 않은 KR 2개', detail: 'KR 1-2 · KR 2-2' },
+  ],
+  overall: { percent: 29, status: { label: '위험', tone: 'error' } },
+  theme: '2026 Theme : 커트 (CTO) — 2026 {team} 팀 OKR',
+  objectives: [
+    {
+      label: 'Objective #1',
+      title: 'Phase 1 제품 완성 및 얼리 액세스 런칭',
+      percent: 54, barVariant: 'warning', percentLabel: '54%',
+      status: { label: '주의', tone: 'warning' },
+      weight: '50%',
+      pic: { name: '민현식', team: 'Product 팀', avatar: AVATARS.민현식 },
+      krs: [TEAM_KR],
+    },
+    {
+      label: 'Objective #2',
+      title: 'AI 파이프라인 (STT·요약·임베딩) 안정화',
+      percent: 35, barVariant: 'error', percentLabel: '35%',
+      status: { label: '위험', tone: 'error' },
+      weight: '50%', pic: PIC_KURT, krs: [],
+    },
+    {
+      label: 'Objective #3',
+      title: '얼리 액세스 고객 성공 및 Series A 준비',
+      percent: 25, barVariant: 'error', percentLabel: '25%',
+      status: { label: '위험', tone: 'error' },
+      weight: '50%', pic: PIC_KURT, krs: [],
+    },
+  ],
+};
+
+const COMPANY_BOARD = {
+  banner: { label: 'AI 위험 신호 큐레이션', autoChip: false },
+  insights: [
+    { title: '달성률 50% 미만 KR 8개', detail: 'KR 1-2 · KR 2-2' },
+    { title: '아직 시작되지 않은 KR 2개', detail: 'KR 1-2 · KR 2-2' },
+  ],
+  overall: { percent: 29, status: { label: '위험', tone: 'error' } },
+  theme: '2026 Theme : 커트 (CTO) — 2026 Company OKR',
+  objectives: [
+    {
+      label: 'Objective #1',
+      title: 'Phase 1 제품 완성 및 얼리 액세스 런칭',
+      percent: 86, barVariant: 'warning', percentLabel: '86%',
+      status: { label: '주의', tone: 'warning' },
+      weight: '50%', pic: PIC_KURT,
+      krs: [TEAM_KR],
+    },
+    {
+      label: 'Objective #2',
+      title: 'AI 파이프라인 (STT·요약·임베딩) 안정화',
+      percent: 35, barVariant: 'error', percentLabel: '35%',
+      status: { label: '위험', tone: 'error' },
+      weight: '50%', pic: PIC_KURT, krs: [],
+    },
+    {
+      label: 'Objective #3',
+      title: '얼리 액세스 고객 성공 및 Series A 준비',
+      percent: 25, barVariant: 'error', percentLabel: '25%',
+      status: { label: '위험', tone: 'error' },
+      weight: '50%', pic: PIC_KURT, krs: [],
+    },
+  ],
+};
+
 /* ── Demo 전략 캔버스 (전사 OKR 탭) ── */
 const STRATEGY_ROWS = [
   { id: 'mission', label: 'Mission', sub: 'Why - Purpose', content: '일하는 맥락을 기억하는 HR — 매니저와 팀원이 준비 없이 만나도 의미 있는 대화를 나누고, 그 결과가 다음 행동으로 이어지게 한다.' },
@@ -334,6 +420,15 @@ const OKR_DETAILS = {
   eng: { title: 'Engineering', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
   product: { title: 'Product', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
   people: { title: 'People', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
+};
+
+const TEAM_OKR = {
+  teams: ['Engineering', 'Product', 'People', 'Growth Squad'],
+  periodLabel: '2026년 Q1',
+  links: PERSONAL_OKR.links,
+  parents: PERSONAL_OKR.parents,
+  board: TEAM_BOARD,
+  history: PERSONAL_HISTORY,
 };
 
 /**
@@ -368,7 +463,25 @@ export default function OkrPage({ icons, baseUrl }) {
           <OkrDashboardCanvas data={{ ...OKR_TREE, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
         </>
       ) : activeTab === 'company' ? (
-        <OkrStrategyCanvas rows={STRATEGY_ROWS} icons={icons} baseUrl={baseUrl} />
+        <>
+          <div className="okr-header-actions">
+            <button className="okr-ghost-btn">OKR 설정</button>
+            <button className="okr-ghost-btn">컨텍스트 설정</button>
+            <button className="okr-write-btn is-inline">
+              <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+              <span>작성</span>
+            </button>
+          </div>
+          <OkrStrategyCanvas rows={STRATEGY_ROWS} companyBoard={COMPANY_BOARD} history={PERSONAL_HISTORY} icons={icons} baseUrl={baseUrl} />
+        </>
+      ) : activeTab === 'team' ? (
+        <>
+          <button className="okr-write-btn">
+            <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+            <span>작성</span>
+          </button>
+          <OkrTeamCanvas data={TEAM_OKR} icons={icons} baseUrl={baseUrl} />
+        </>
       ) : activeTab === 'personal' ? (
         <>
           <button className="okr-write-btn">
