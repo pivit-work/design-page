@@ -55,6 +55,7 @@ const ICONS = {
   chevronSelector: '/icons-solid/chevron-selector-vertical.svg',
   xClose: '/icons-solid/x-close.svg',
   refreshCw: '/icons-solid/refresh-cw-01.svg',
+  check: '/icons-solid/check.svg',
 };
 
 const STAT_ICONS = {

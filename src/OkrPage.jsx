@@ -16,6 +16,9 @@ const TABS = [
   { id: 'resources', label: '내 리소스' },
 ];
 
+const YEARS = ['2021', '2022', '2023', '2024', '2025', '2026'];
+const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+
 /* ── Demo OKR Tree (대시보드 캔버스) ── */
 const OKR_TREE = {
   id: 'company',
@@ -132,15 +135,21 @@ const OKR_DETAILS = {
 export default function OkrPage({ icons, baseUrl }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [openGroupId, setOpenGroupId] = useState(null);
+  const [year, setYear] = useState('2026');
+  const [quarter, setQuarter] = useState('Q1');
 
   return (
     <>
-      <OkrTabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} year="2026년" quarter="Q1" />
+      <OkrTabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} year={`${year}년`} quarter={quarter} />
 
       {activeTab === 'dashboard' ? (
         <>
-          <OkrToolbar year="2026년" quarter="Q1" icons={icons} baseUrl={baseUrl} />
-          <OkrDashboardCanvas data={OKR_TREE} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
+          <OkrToolbar
+            year={year} years={YEARS} onYearChange={setYear}
+            quarter={quarter} quarters={QUARTERS} onQuarterChange={setQuarter}
+            icons={icons} baseUrl={baseUrl}
+          />
+          <OkrDashboardCanvas data={{ ...OKR_TREE, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
         </>
       ) : (
         <div className="canvas-area okr-canvas-area okr-tab-placeholder">준비 중인 화면입니다</div>

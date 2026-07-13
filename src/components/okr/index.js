@@ -1,5 +1,6 @@
 export { default as OkrTabNav } from './OkrTabNav.jsx';
 export { default as OkrToolbar } from './OkrToolbar.jsx';
+export { default as OkrSelectMenu } from './OkrSelectMenu.jsx';
 export { default as OkrDashboardCanvas } from './OkrDashboardCanvas.jsx';
 export { default as OkrGroupCard } from './OkrGroupCard.jsx';
 export { default as OkrGroupNode } from './OkrGroupNode.jsx';

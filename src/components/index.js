@@ -75,6 +75,7 @@ export {
 export {
   OkrTabNav,
   OkrToolbar,
+  OkrSelectMenu,
   OkrDashboardCanvas,
   OkrGroupCard,
   OkrGroupNode,
