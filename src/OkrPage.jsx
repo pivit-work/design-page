@@ -241,9 +241,15 @@ export default function OkrPage({ icons, baseUrl }) {
   const [year, setYear] = useState('2026');
   const [quarter, setQuarter] = useState('Q1');
 
+  // 탭 전환 시 대시보드 상세 모달이 남아 화면을 덮지 않도록 닫는다.
+  const handleTabChange = (tab) => {
+    setOpenGroupId(null);
+    setActiveTab(tab);
+  };
+
   return (
     <>
-      <OkrTabNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} year={`${year}년`} quarter={quarter} />
+      <OkrTabNav tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} year={`${year}년`} quarter={quarter} />
 
       {activeTab === 'dashboard' ? (
         <>
