@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal } from './components';
+import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, Icon } from './components';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
   신예은: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face',
   이서현: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
   김서윤: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+  김민준: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+  커트: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=face',
+  박민준: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
 };
 
 const TABS = [
@@ -119,6 +122,106 @@ const DETAIL_QUARTERS = [
 
 const AI_SIGNALS = ['달성률 50% 미만 KR 8개', '아직 시작되지 않은 KR 2개'];
 
+/* ── Demo 개인 OKR (개인 OKR 탭) ── */
+const PIC_KURT = { name: '커트', avatar: AVATARS.커트 };
+
+const PERSONAL_KR_BASE = {
+  percent: 60,
+  barVariant: 'warning',
+  percentLabel: '60 / 100%',
+  status: { label: '주의', tone: 'warning' },
+  teamLink: {
+    team: 'Team 1-3',
+    title: 'pgveccotr 인덱스 전략 문서 완성',
+    percent: 0,
+    barVariant: 'error',
+    percentLabel: '0%',
+    status: { label: '위험', tone: 'error' },
+  },
+  weight: '40%',
+  pic: PIC_KURT,
+  feedback: {
+    summary: '커트(팀장) 1건',
+    comments: [
+      { author: '커트(팀장)', date: '04-20', avatar: AVATARS.커트, text: 'pgvector 전략 문서 잘 구성됐습니다. 벤치마크 비교 데이터도 추가해주면 더 좋을 것 같아요.' },
+      { author: '박민준', date: '04-17', avatar: AVATARS.박민준, text: '공유해주신 리뷰 내용이 실무에 많이 도움됐습니다.' },
+    ],
+  },
+  initiatives: [
+    { title: '인덱스 전략 비교 분석 문서', status: { label: '완료', tone: 'done' }, pic: PIC_KURT },
+    { title: 'pgveccotr 인덱스 전략 문서 완성', status: { label: '진행 중', tone: 'progress' }, pic: PIC_KURT },
+  ],
+};
+
+const PERSONAL_OKR = {
+  person: { name: '김민준', role: 'Engineering · Team Lead', avatar: AVATARS.김민준 },
+  periodLabel: '2026년 Q1',
+  links: [
+    { label: '회사 OKR', tone: 'blue' },
+    { label: 'Engineering 팀 OKR', tone: 'blue' },
+    { label: '개인 OKR', tone: 'purple' },
+  ],
+  parents: [
+    {
+      label: '회사 OKR',
+      title: 'Phase 1 — AI HR 제품 완성 및 얼리 액세스 런칭',
+      summary: 'O#1 Phase 1 제품 완성 · O#2 AI 파이프라인 안정화 · O#3 고객 성공 & Series A',
+    },
+    {
+      label: 'Engineering 팀 OKR',
+      title: 'API·AI 파이프라인 구현 및 인프라 구축',
+      summary: 'O#1 API 서버 안정화 · O#2 인프라 구축 · O#3 프론트엔드 Phase 1',
+    },
+  ],
+  insights: [
+    { title: '달성률 50% 미만인 KR 3개', detail: 'KR 1-2 · KR 2-2' },
+    { title: '이니셔티브 진행이 멈춘 KR 1개', detail: 'KR 1-2 · KR 2-2' },
+    { title: '아직 시작되지 않은 KR 1개', detail: 'KR 1-2 · KR 2-2' },
+  ],
+  overall: { percent: 29, status: { label: '위험', tone: 'error' } },
+  theme: '2026 Theme : 커트 (CTO) — 2026 개인 OKR',
+  objectives: [
+    {
+      label: 'Objective #1',
+      title: 'AI 파이프라인 설계 및 구현 완료',
+      teamLink: '팀Team KR 1-2 / 1-3',
+      percent: 54,
+      barVariant: 'warning',
+      percentLabel: '54%',
+      status: { label: '주의', tone: 'warning' },
+      weight: '50%',
+      pic: PIC_KURT,
+      krs: [
+        { ...PERSONAL_KR_BASE, label: 'Key Result 1', title: 'pgveccotr 인덱스 전략 문서 완성' },
+        { ...PERSONAL_KR_BASE, label: 'Key Result 2', title: 'pgveccotr 인덱스 전략 문서 완성' },
+      ],
+    },
+    {
+      label: 'Objective #2',
+      title: '엔지니어링 팀 리드 역할 수행',
+      teamLink: '팀Team KR 2-1',
+      percent: 35,
+      barVariant: 'error',
+      percentLabel: '35%',
+      status: { label: '위험', tone: 'error' },
+      weight: '30%',
+      pic: PIC_KURT,
+      krs: [],
+    },
+    {
+      label: 'Objective #3',
+      title: '성장 및 역량 개발',
+      percent: 25,
+      barVariant: 'error',
+      percentLabel: '25%',
+      status: { label: '위험', tone: 'error' },
+      weight: '20%',
+      pic: PIC_KURT,
+      krs: [],
+    },
+  ],
+};
+
 const OKR_DETAILS = {
   company: { title: 'Company OKR', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
   eng: { title: 'Engineering', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
@@ -150,6 +253,14 @@ export default function OkrPage({ icons, baseUrl }) {
             icons={icons} baseUrl={baseUrl}
           />
           <OkrDashboardCanvas data={{ ...OKR_TREE, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
+        </>
+      ) : activeTab === 'personal' ? (
+        <>
+          <button className="okr-write-btn">
+            <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+            <span>작성</span>
+          </button>
+          <OkrPersonalCanvas data={PERSONAL_OKR} icons={icons} baseUrl={baseUrl} />
         </>
       ) : (
         <div className="canvas-area okr-canvas-area okr-tab-placeholder">준비 중인 화면입니다</div>

@@ -110,6 +110,8 @@
   --utility-success-500: var(--componentColors-utility-success-utilitySuccess500);
   --utility-error-400: var(--componentColors-utility-error-utilityError400);
   --utility-warning-400: var(--componentColors-utility-warning-utilityWarning400);
+  --utility-warning-500: var(--componentColors-utility-warning-utilityWarning500);
+  --utility-gray-100: var(--componentColors-utility-gray-utilityGray100);
   --fg-primary: var(--colors-foreground-fgPrimary);
   --fg-tertiary: var(--colors-foreground-fgTertiary);
   --fg-brand-primary: var(--colors-foreground-fgBrandPrimary);

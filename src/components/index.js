@@ -84,6 +84,11 @@ export {
   OkrMemberChip,
   OkrConnectors,
   OkrDetailModal,
+  OkrPersonalCanvas,
+  OkrLinkedParents,
+  OkrAiInsights,
+  OkrOverallCard,
+  OkrObjectiveSection,
 } from './okr/index.js';
 
 // Report
