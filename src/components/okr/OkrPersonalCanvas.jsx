@@ -6,6 +6,7 @@ import OkrObjectiveSection from './OkrObjectiveSection.jsx';
 import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
 import OkrKrFeedbackModal from './OkrKrFeedbackModal.jsx';
 import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
+import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -17,7 +18,8 @@ import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
  * KR 피드백 모달 → '피드백 요청 보내기' → 요청 작성 모달.
  */
 export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
-  const { person, periodLabel, links, parents, insights, overall, theme, objectives } = data;
+  const { person, periodLabel, links, parents, insights, overall, theme, objectives, history } = data;
+  const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
   const [composeOpen, setComposeOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [krDetail, setKrDetail] = useState(null);
@@ -34,34 +36,42 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
       </div>
 
       <div className="okr-p-period">
-        <button className="okr-p-period-btn is-active">{periodLabel}</button>
-        <button className="okr-p-period-btn">히스토리</button>
+        <button className={`okr-p-period-btn${periodTab === 'current' ? ' is-active' : ''}`} onClick={() => setPeriodTab('current')}>{periodLabel}</button>
+        <button className={`okr-p-period-btn${periodTab === 'history' ? ' is-active' : ''}`} onClick={() => setPeriodTab('history')}>히스토리</button>
       </div>
 
-      <OkrLinkedParents links={links} parents={parents} />
-      <OkrAiInsights insights={insights} icons={icons} baseUrl={baseUrl} />
-      <OkrOverallCard percent={overall.percent} status={overall.status} />
+      {periodTab === 'history' ? (
+        history?.map((quarter, i) => (
+          <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} defaultExpanded={i === 0} />
+        ))
+      ) : (
+        <>
+          <OkrLinkedParents links={links} parents={parents} />
+          <OkrAiInsights insights={insights} icons={icons} baseUrl={baseUrl} />
+          <OkrOverallCard percent={overall.percent} status={overall.status} />
 
-      <div className="okr-p-table-head">
-        <span className="okr-p-theme">{theme}</span>
-        <span className="okr-p-table-col okr-p-weight-head">Weight</span>
-        <span className="okr-p-table-col okr-p-pic-head">PIC</span>
-      </div>
+          <div className="okr-p-table-head">
+            <span className="okr-p-theme">{theme}</span>
+            <span className="okr-p-table-col okr-p-weight-head">Weight</span>
+            <span className="okr-p-table-col okr-p-pic-head">PIC</span>
+          </div>
 
-      <div className="okr-p-objectives">
-        {objectives.map((objective, i) => (
-          <OkrObjectiveSection
-            key={objective.label}
-            objective={objective}
-            icons={icons}
-            baseUrl={baseUrl}
-            defaultExpanded={i === 0}
-            onWriteFeedback={() => setComposeOpen(true)}
-            onViewFeedback={(kr) => kr.feedbackDetail && setKrDetail(kr.feedbackDetail)}
-            onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
-          />
-        ))}
-      </div>
+          <div className="okr-p-objectives">
+            {objectives.map((objective, i) => (
+              <OkrObjectiveSection
+                key={objective.label}
+                objective={objective}
+                icons={icons}
+                baseUrl={baseUrl}
+                defaultExpanded={i === 0}
+                onWriteFeedback={() => setComposeOpen(true)}
+                onViewFeedback={(kr) => kr.feedbackDetail && setKrDetail(kr.feedbackDetail)}
+                onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {composeOpen && (
         <OkrFeedbackComposeModal

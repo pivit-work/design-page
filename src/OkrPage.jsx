@@ -167,9 +167,76 @@ const PERSONAL_KR_BASE = {
   },
 };
 
+/* ── Demo 개인 OKR 히스토리 (기간 칩 '히스토리') ── */
+const PERSONAL_HISTORY = [
+  {
+    label: '2025 Q2',
+    title: 'Phase 0 — 기반 기술 검증 및 팀 빌딩',
+    percent: 54,
+    barVariant: 'warning',
+    objectives: [
+      { id: 'O#1', weight: '50%', title: '코어 기술 PoC 완료', percent: 86, tone: 'success' },
+      { id: 'O#2', weight: '50%', title: '창업팀 구성 및 역할 정의', percent: 86, tone: 'success' },
+      { id: 'O#3', weight: '50%', title: '시장 조사 및 PMF 가설 수립', percent: 38, tone: 'error' },
+    ],
+    krGroups: [
+      {
+        id: 'O#1', title: '코어 기술 PoC 완료',
+        krs: [
+          { id: 'KR 1-1', title: 'Whisper STT 정확도 90% 달성', weight: '40%', status: '완료' },
+          { id: 'KR 1-2', title: 'pgvector 검색 PoC 완료', weight: '40%', status: '완료' },
+          { id: 'KR 1-3', title: 'AI 요약 프로토타입 완료', weight: '40%', status: '완료' },
+        ],
+      },
+      {
+        id: 'O#2', title: '창업팀 구성 및 역할 정의',
+        krs: [
+          { id: 'KR 2-1', title: '핵심 팀원 4명 확보', weight: '40%', status: '완료' },
+          { id: 'KR 2-2', title: '역할 및 R&R 문서 완성', weight: '40%', status: '완료' },
+        ],
+      },
+      {
+        id: 'O#3', title: '시장 조사 및 PMF 가설 수립',
+        krs: [
+          { id: 'KR 3-1', title: 'HR SaaS 시장 분석 리포트', weight: '40%', status: '완료' },
+          { id: 'KR 3-2', title: '사용자 인터뷰 10건', weight: '40%', status: '완료' },
+        ],
+      },
+    ],
+  },
+  {
+    label: '2025 Q1',
+    title: '아이디어 발굴 및 초기 리서치',
+    percent: 54,
+    barVariant: 'warning',
+    status: { label: '주의', tone: 'warning' },
+    objectives: [
+      { id: 'O#1', weight: '60%', title: '문제 정의 및 아이디어 검증', percent: 72, tone: 'success' },
+      { id: 'O#2', weight: '40%', title: '초기 프로토타입 방향 수립', percent: 41, tone: 'error' },
+    ],
+    krGroups: [
+      {
+        id: 'O#1', title: '문제 정의 및 아이디어 검증',
+        krs: [
+          { id: 'KR 1-1', title: 'HR 담당자 문제 인터뷰 15건', weight: '50%', status: '완료' },
+          { id: 'KR 1-2', title: '경쟁 제품 분석 문서 완성', weight: '50%', status: '완료' },
+        ],
+      },
+      {
+        id: 'O#2', title: '초기 프로토타입 방향 수립',
+        krs: [
+          { id: 'KR 2-1', title: '핵심 유저 시나리오 3종 정의', weight: '50%', status: '완료' },
+          { id: 'KR 2-2', title: '기술 스택 선정 및 검증 계획', weight: '50%', status: '완료' },
+        ],
+      },
+    ],
+  },
+];
+
 const PERSONAL_OKR = {
   person: { name: '김민준', role: 'Engineering · Team Lead', avatar: AVATARS.김민준 },
   periodLabel: '2026년 Q1',
+  history: PERSONAL_HISTORY,
   links: [
     { label: '회사 OKR', tone: 'blue' },
     { label: 'Engineering 팀 OKR', tone: 'blue' },

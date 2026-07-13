@@ -93,6 +93,7 @@ export {
   OkrKrFeedbackModal,
   OkrKrUpdateModal,
   OkrStrategyCanvas,
+  OkrHistoryQuarter,
 } from './okr/index.js';
 
 // Report

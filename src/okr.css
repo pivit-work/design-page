@@ -218,6 +218,30 @@
 .okr-p-pic-info { display: flex; flex-direction: column; }
 .okr-p-pic-team { font-size: 12px; font-weight: 500; color: var(--text-tertiary); line-height: 18px; }
 
+/* ══ 개인 OKR — 히스토리 ══ */
+.okr-h-quarter { background: var(--bg-quaternary); border-radius: 16px; overflow: hidden; }
+.okr-h-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px; cursor: pointer; }
+.okr-h-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.okr-h-label { font-size: 24px; font-weight: 700; line-height: 32px; color: var(--fg-primary); white-space: nowrap; }
+.okr-h-title { margin-left: 16px; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-h-body { padding: 0 28px 28px; display: flex; flex-direction: column; gap: 24px; }
+.okr-h-obj-cards { display: flex; gap: 16px; }
+.okr-h-obj-card { flex: 1; min-width: 0; background: var(--bg-secondary); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.okr-h-obj-meta { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); }
+.okr-h-obj-title { font-size: 15px; font-weight: 600; line-height: 22px; color: var(--text-primary); }
+.okr-h-obj-percent { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; }
+.okr-h-obj-percent.is-success { color: var(--utility-success-500); }
+.okr-h-obj-percent.is-error { color: var(--utility-error-500); }
+.okr-h-group { display: flex; flex-direction: column; }
+.okr-h-group-head { display: flex; align-items: center; gap: 24px; padding: 14px 0; border-bottom: 1px solid var(--border-primary); }
+.okr-h-group-id { width: 120px; flex-shrink: 0; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--fg-primary); }
+.okr-h-group-title { font-size: 15px; font-weight: 700; line-height: 22px; color: var(--text-secondary); }
+.okr-h-kr { display: flex; align-items: center; gap: 24px; padding: 10px 0; background: var(--bg-secondary); border-bottom: 1px solid var(--border-secondary); padding-left: 0; }
+.okr-h-kr-id { width: 120px; flex-shrink: 0; padding-left: 0; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
+.okr-h-kr-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-h-kr-weight { width: 60px; text-align: right; font-size: 13px; font-weight: 600; color: var(--text-tertiary); }
+.okr-h-kr .okr-pill { margin-right: 4px; }
+
 /* ══ 전사 OKR — 전략 캔버스 ══ */
 .okr-s-subtabs { display: flex; align-items: center; gap: 24px; }
 .okr-s-subtab { padding-bottom: 6px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent; }
