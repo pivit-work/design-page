@@ -115,11 +115,12 @@
 
 /* 연결된 상위 OKR */
 .okr-p-linked { background: var(--bg-quaternary); border: 1px solid var(--border-secondary-alt); border-radius: 12px; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
-.okr-p-linked-head { display: flex; align-items: center; gap: 20px; }
-.okr-p-linked-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-right: 8px; }
-.okr-p-linked-link { font-size: 13px; font-weight: 600; cursor: pointer; }
-.okr-p-linked-link.is-blue { color: var(--utility-blue-600); }
-.okr-p-linked-link.is-purple { color: var(--utility-purple-500); }
+.okr-p-linked-head { display: flex; align-items: center; gap: 12px; }
+.okr-p-linked-title { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); }
+/* 상위 OKR 태그 — 버튼이 아닌 표시용 태그 */
+.okr-p-linked-link { padding: 2px 12px; border-radius: 6px; font-size: 16px; font-weight: 500; line-height: 24px; white-space: nowrap; }
+.okr-p-linked-link.is-blue { color: var(--utility-blue-500); background: var(--utility-blue-dark-50); }
+.okr-p-linked-link.is-purple { color: var(--utility-purple-500); background: var(--utility-purple-50); }
 .okr-p-linked-cards { display: flex; gap: 12px; }
 .okr-p-linked-card { flex: 1; background: var(--utility-gray-100); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; }
 .okr-p-linked-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
@@ -128,13 +129,13 @@
 
 /* AI 인사이트 */
 .okr-p-ai { display: flex; flex-direction: column; gap: 8px; }
-.okr-p-ai-banner { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--utility-purple-50); border-radius: 6px; }
-.okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--utility-purple-500); }
-.okr-p-ai-chip-auto { padding: 1px 8px; border-radius: 4px; background: var(--utility-purple-100); font-size: 11px; font-weight: 600; color: var(--utility-purple-500); }
-.okr-p-ai-chips { display: flex; gap: 12px; }
-.okr-p-ai-chip { flex: 1; padding: 12px 16px; background: var(--utility-purple-100); border-radius: 8px; display: flex; flex-direction: column; gap: 2px; }
-.okr-p-ai-chip-title { font-size: 15px; font-weight: 600; color: var(--utility-purple-500); line-height: 22px; }
-.okr-p-ai-chip-detail { font-size: 12px; font-weight: 500; color: var(--utility-purple-500); opacity: 0.75; line-height: 18px; }
+.okr-p-ai-banner { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--utility-purple-100); border-radius: 6px; }
+.okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
+.okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--utility-purple-50); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--utility-purple-500); }
+.okr-p-ai-chips { display: flex; gap: 8px; }
+.okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; }
+.okr-p-ai-chip-title { font-size: 16px; font-weight: 600; color: var(--utility-purple-500); line-height: 24px; }
+.okr-p-ai-chip-detail { font-size: 12px; font-weight: 400; color: var(--text-primary); line-height: 18px; }
 
 /* 전체달성률 */
 .okr-p-overall { background: var(--bg-quaternary); border-radius: 12px; padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); }
