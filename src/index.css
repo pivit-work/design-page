@@ -101,6 +101,27 @@
   --utility-gray-50: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
   --utility-gray-200: var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
   --utility-gray-700: var(--componentColors-utility-gray-utilityGray700, #596069);
+
+  /* Component Colors — OKR (linked to design system tokens) */
+  --utility-blue-200: var(--componentColors-utility-blue-utilityBlue200);
+  --utility-blue-300: var(--componentColors-utility-blue-utilityBlue300);
+  --utility-blue-400: var(--componentColors-utility-blue-utilityBlue400);
+  --utility-success-400: var(--componentColors-utility-success-utilitySuccess400);
+  --utility-success-500: var(--componentColors-utility-success-utilitySuccess500);
+  --utility-error-400: var(--componentColors-utility-error-utilityError400);
+  --utility-warning-400: var(--componentColors-utility-warning-utilityWarning400);
+  --fg-primary: var(--colors-foreground-fgPrimary);
+  --fg-tertiary: var(--colors-foreground-fgTertiary);
+  --fg-brand-primary: var(--colors-foreground-fgBrandPrimary);
+  --fg-success-secondary: var(--colors-foreground-fgSuccessSecondary);
+  --bg-tertiary: var(--colors-background-bgTertiary);
+  --bg-overlay: var(--colors-background-bgOverlay);
+  --border-secondary: var(--colors-border-borderSecondary);
+  --alpha-black-3: var(--componentColors-alpha-alphaBlack3);
+
+  /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
+  --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),
+    0 14px 60px -2.5px var(--colors-effects-shadows-shadow3xl02);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

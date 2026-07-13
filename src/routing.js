@@ -11,6 +11,7 @@ export const PAGE_SLUGS = {
   orgchart: 'orgchart',
   timeline: 'timeline',
   oneonone: 'oneonone',
+  okr: 'okr',
   snippet: 'snippet',
   report: 'report',
   meetings: 'meetings',

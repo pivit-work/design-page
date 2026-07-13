@@ -10,6 +10,7 @@ import ReportPage from './ReportPage';
 import SnippetPage from './SnippetPage';
 import MeetingsPage from './MeetingsPage';
 import ManagerPage from './ManagerPage';
+import OkrPage from './OkrPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
@@ -19,6 +20,7 @@ import './meetings.css';
 import './manager.css';
 import './report.css';
 import './snippet.css';
+import './okr.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -50,6 +52,9 @@ const ICONS = {
   refresh: '/icons/refresh-ccw-05.svg',
   expand: '/icons-solid/expand-06.svg',
   settings: '/icons-solid/settings-02.svg',
+  chevronSelector: '/icons-solid/chevron-selector-vertical.svg',
+  xClose: '/icons-solid/x-close.svg',
+  refreshCw: '/icons-solid/refresh-cw-01.svg',
 };
 
 const STAT_ICONS = {
@@ -64,11 +69,12 @@ const STAT_ICONS = {
 
 // 사이드바 구성(항목·순서·배치·아이콘)은 menu.js 의 SIDEBAR_MENU 가 정본이다.
 // 여기서는 데모 전용 라우팅(id → 데모 페이지 슬러그)만 얹는다. 슬러그가 없는
-// 항목(OKR·평가·AI Chat·어드민)은 데모에서 비활성 — 클릭해도 이동하지 않는다.
+// 항목(평가·AI Chat·어드민)은 데모에서 비활성 — 클릭해도 이동하지 않는다.
 const DEMO_PAGES = {
   snippet: 'snippet',
   timeline: 'timeline',
   report: 'report',
+  okr: 'okr',
   oneonone: 'oneonone',
   orgchart: 'orgchart',
   meetings: 'meetings',
@@ -200,6 +206,7 @@ export default function App() {
       {currentPage === 'snippet' && <SnippetPage baseUrl={BASE} />}
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
+      {currentPage === 'okr' && <OkrPage icons={ICONS} baseUrl={BASE} />}
     </div>
   );
 }
