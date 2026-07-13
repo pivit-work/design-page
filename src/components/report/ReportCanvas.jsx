@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
 import ReportWeeklyRow from './ReportWeeklyRow.jsx';
+import ReportViewerModal from './ReportViewerModal.jsx';
 
 /**
  * ReportCanvas — "리포트" 페이지 Pure 컴포넌트.
@@ -83,72 +83,57 @@ export default function ReportCanvas({
         />
       </div>
 
+      {/* 생성된 리포트 보기 / 지금 생성하기 → 풀 모달 (Figma 17250:19627) */}
+      {selectedReport && (
+        <ReportViewerModal
+          baseUrl={baseUrl}
+          report={selectedReport.weeklyReport}
+          generatedAt={selectedReport.generatedAt}
+          isGenerating={isGenerating}
+          onClose={onCloseReport}
+        />
+      )}
+
       <div className="report-body">
-        {selectedReport ? (
-          <div className="report-detail">
-            <button
-              type="button"
-              className="report-detail-back"
-              onClick={onCloseReport}
-            >
-              <Icon
-                src="/icons/chevron-left.svg"
-                size={16}
-                color="currentColor"
-                baseUrl={baseUrl}
-              />
-              <span>목록으로</span>
-            </button>
-            <TimelineWeeklyView
+        <div className="report-ai-banner">
+          <Icon
+            src="/icons-solid/ai-chat-01.svg"
+            size={14}
+            color="var(--utility-purple-500, #7a5af8)"
+            baseUrl={baseUrl}
+          />
+          <span>
+            AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다.
+            매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
+          </span>
+        </div>
+
+        <div className="report-period-head">
+          {periodRange && <p className="report-period-range">{periodRange}</p>}
+          {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
+        </div>
+
+        <div className="report-list">
+          {reports.map((r) => (
+            <ReportWeeklyRow
+              key={r.id}
+              badge={r.badge}
+              dateRange={r.dateRange}
+              status={r.status}
+              isActive={r.isActive}
+              showGenerate={r.showGenerate}
+              generateLabel={r.generateLabel}
+              snippetCount={r.snippetCount}
+              activeDays={r.activeDays}
+              healthScore={r.healthScore}
+              healthLevel={r.healthLevel}
               baseUrl={baseUrl}
-              report={selectedReport.weeklyReport}
-              isGenerating={isGenerating}
-              showInfoBanner={false}
+              onClick={onReportClick ? () => onReportClick(r) : undefined}
+              onShare={onReportShare ? () => onReportShare(r) : undefined}
+              onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
             />
-          </div>
-        ) : (
-          <>
-            <div className="report-ai-banner">
-              <Icon
-                src="/icons-solid/ai-chat-01.svg"
-                size={14}
-                color="var(--utility-purple-500, #7a5af8)"
-                baseUrl={baseUrl}
-              />
-              <span>
-                AI가 이번 주 스니핏, 헬스체크, OKR 변화를 분석해 자동으로 요약합니다.
-                매주 금요일 자동 생성되며, 언제든 직접 생성할 수 있습니다.
-              </span>
-            </div>
-
-            <div className="report-period-head">
-              {periodRange && <p className="report-period-range">{periodRange}</p>}
-              {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
-            </div>
-
-            <div className="report-list">
-              {reports.map((r) => (
-                <ReportWeeklyRow
-                  key={r.id}
-                  badge={r.badge}
-                  dateRange={r.dateRange}
-                  status={r.status}
-                  isActive={r.isActive}
-                  showGenerate={r.showGenerate}
-                  generateLabel={r.generateLabel}
-                  snippetCount={r.snippetCount}
-                  activeDays={r.activeDays}
-                  healthScore={r.healthScore}
-                  healthLevel={r.healthLevel}
-                  baseUrl={baseUrl}
-                  onClick={onReportClick ? () => onReportClick(r) : undefined}
-                  onShare={onReportShare ? () => onReportShare(r) : undefined}
-                  onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
-                />
-              ))}
-            </div>
-          </>
-        )}
+          ))}
+        </div>
       </div>
     </main>
   );

@@ -104,6 +104,7 @@ export {
 export {
   ReportCanvas,
   ReportWeeklyRow,
+  ReportViewerModal,
 } from './report/index.js';
 
 // Snippet (스니핏 히스토리)

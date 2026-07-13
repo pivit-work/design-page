@@ -26,8 +26,9 @@ export default function ReportPage({ baseUrl }) {
       isActive: true,
       showGenerate: true,
       generateLabel: currentWeekReport ? '다시 생성하기' : '지금 생성하기',
-      // 생성 후엔 weeklyReport 보유 — 이번주 행 클릭 시 디테일 진입.
+      // 생성 후엔 weeklyReport 보유 — 이번주 행 클릭 시 풀 모달로 열림.
       weeklyReport: currentWeekReport,
+      generatedAt: currentWeekReport ? '2026.04.12 (금) 오후 6:00 자동 생성' : null,
     },
     {
       id: 'w-1',
@@ -38,6 +39,7 @@ export default function ReportPage({ baseUrl }) {
       healthScore: 8.7,
       healthLevel: 'good',
       weeklyReport: DEMO_WEEKLY_REPORT,
+      generatedAt: '2026.04.04 (금) 오후 6:00 자동 생성',
     },
     {
       id: 'w-2',
@@ -48,6 +50,7 @@ export default function ReportPage({ baseUrl }) {
       healthScore: 6.5,
       healthLevel: 'warning',
       weeklyReport: DEMO_WEEKLY_REPORT,
+      generatedAt: '2026.03.30 (금) 오후 6:00 자동 생성',
     },
     {
       id: 'w-3',
@@ -58,6 +61,7 @@ export default function ReportPage({ baseUrl }) {
       healthScore: 6.5,
       healthLevel: 'warning',
       weeklyReport: DEMO_WEEKLY_REPORT,
+      generatedAt: '2026.03.22 (금) 오후 6:00 자동 생성',
     },
     {
       id: 'w-4',
@@ -68,6 +72,7 @@ export default function ReportPage({ baseUrl }) {
       healthScore: 3.8,
       healthLevel: 'error',
       weeklyReport: DEMO_WEEKLY_REPORT,
+      generatedAt: '2026.03.15 (금) 오후 6:00 자동 생성',
     },
   ];
 

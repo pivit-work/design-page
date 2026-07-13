@@ -219,41 +219,73 @@
   filter: brightness(0.96);
 }
 
-/* 디테일 뷰 — 행 클릭 시 목록 대신 TimelineWeeklyView 렌더 */
-.report-detail {
+/* 리포트 풀 모달 — 행 클릭/지금 생성하기 시 오버레이 위에 뜬다 (Figma 17250:19627) */
+.report-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--colors-background-bgOverlay) 30%, transparent);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.report-detail-back {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px 6px 6px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+.report-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: calc(100vw - 56px);
+  height: calc(100vh - 56px);
+  background: var(--bg-quaternary);
+  border-radius: 16px;
+  box-shadow: var(--shadows-shadow3xl);
+  overflow: hidden;
 }
-.report-detail-back:hover {
+
+.report-modal-generated {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+.report-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.report-modal-close:hover {
   background: var(--componentColors-alpha-alphaBlack3);
 }
 
-/* 디테일 본문(TimelineWeeklyView) 의 .tl-weekly 마진 충돌 방지 — 외부에서
-   이미 padding/gap 을 주고 있어 좌측 12 마진 제거. */
-.report-detail .tl-weekly {
+.report-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px 56px 64px;
+}
+
+/* 모달 본문(TimelineWeeklyView) 의 .tl-weekly 마진 충돌 방지 */
+.report-modal-body .tl-weekly {
   margin: 0;
   padding-right: 0;
+}
+
+/* 자동 생성 시각은 모달 좌상단에서 표시 — 카드 내부 중복 라벨은 숨김 */
+.report-modal-body .tl-weekly-card-meta {
+  display: none;
 }
 
 /* Share 버튼 — 우측 끝 */
