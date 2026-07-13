@@ -14,5 +14,7 @@ export { default as OkrLinkedParents } from './OkrLinkedParents.jsx';
 export { default as OkrAiInsights } from './OkrAiInsights.jsx';
 export { default as OkrOverallCard } from './OkrOverallCard.jsx';
 export { default as OkrObjectiveSection } from './OkrObjectiveSection.jsx';
+export { default as OkrFeedbackComposeModal } from './OkrFeedbackComposeModal.jsx';
+export { default as OkrKrFeedbackModal } from './OkrKrFeedbackModal.jsx';
 export { OkrPositionsContext } from './contexts.js';
 export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';

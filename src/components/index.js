@@ -89,6 +89,8 @@ export {
   OkrAiInsights,
   OkrOverallCard,
   OkrObjectiveSection,
+  OkrFeedbackComposeModal,
+  OkrKrFeedbackModal,
 } from './okr/index.js';
 
 // Report

@@ -151,6 +151,20 @@ const PERSONAL_KR_BASE = {
     { title: '인덱스 전략 비교 분석 문서', status: { label: '완료', tone: 'done' }, pic: PIC_KURT },
     { title: 'pgveccotr 인덱스 전략 문서 완성', status: { label: '진행 중', tone: 'progress' }, pic: PIC_KURT },
   ],
+  feedbackDetail: {
+    krLabel: 'KR 2-1 · 주간 엔지니어링 리뷰 4주 연속 주도',
+    objective: 'O#2 엔지니어링 팀 리드 역할 수행',
+    comments: [
+      {
+        author: '커트', role: '매니저', roleTone: 'blue', avatar: AVATARS.커트, date: '04.15', badge: '완료',
+        text: '엔지니어링 리뷰 퀄리티가 점점 좋아지고 있습니다. 다음 리뷰에는 기술 부채 이슈를 중점적으로 다뤄주세요.',
+      },
+      {
+        author: '박민준', role: '동료', roleTone: 'gray', avatar: AVATARS.박민준, date: '04.15', badge: '완료',
+        text: '공유해주신 리뷰 내용이 실무에 많이 도움됐습니다.',
+      },
+    ],
+  },
 };
 
 const PERSONAL_OKR = {

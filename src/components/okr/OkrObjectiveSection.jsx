@@ -14,7 +14,10 @@ function Pic({ pic }) {
   return (
     <>
       <img src={pic.avatar} alt={pic.name} draggable={false} />
-      <span>{pic.name}</span>
+      <span className="okr-p-pic-info">
+        <span>{pic.name}</span>
+        {pic.team && <span className="okr-p-pic-team">{pic.team}</span>}
+      </span>
     </>
   );
 }
@@ -29,7 +32,7 @@ function ProgressCell({ percent, barVariant, percentLabel, status }) {
   );
 }
 
-export default function OkrObjectiveSection({ objective, icons, baseUrl = '', defaultExpanded = false }) {
+export default function OkrObjectiveSection({ objective, icons, baseUrl = '', defaultExpanded = false, onWriteFeedback, onViewFeedback }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [openFeedback, setOpenFeedback] = useState({});
   const toggleFeedback = (i) => setOpenFeedback((prev) => ({ ...prev, [i]: !prev[i] }));
@@ -90,7 +93,7 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
                 <div className="okr-p-col-main" />
                 <div className="okr-p-col-weight" />
                 <div className="okr-p-col-pic">
-                  <span className="okr-p-chip-btn">피드백 작성</span>
+                  <span className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</span>
                 </div>
               </div>
               {openFeedback[i] && kr.feedback.comments.map((comment, ci) => (
@@ -105,7 +108,9 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
                   </div>
                   <div className="okr-p-col-weight" />
                   <div className="okr-p-col-pic">
-                    {ci === kr.feedback.comments.length - 1 && <span className="okr-p-chip-btn">전체 보기</span>}
+                    {ci === kr.feedback.comments.length - 1 && (
+                      <span className="okr-p-chip-btn" onClick={() => onViewFeedback && onViewFeedback(kr)}>전체 보기</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -118,7 +123,7 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
                 <span className="okr-p-initiative-label">Initiative</span>
               </div>
               <div className="okr-p-col-main">
-                <span className="okr-p-initiative-title">{initiative.title}</span>
+                <span className={`okr-p-initiative-title${initiative.status.tone === 'done' ? ' is-done' : ''}`}>{initiative.title}</span>
               </div>
               <div className="okr-p-col-weight">
                 <span className={`okr-pill is-${initiative.status.tone}`}>{initiative.status.label}</span>

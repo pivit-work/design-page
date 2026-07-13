@@ -106,8 +106,12 @@
   --utility-blue-200: var(--componentColors-utility-blue-utilityBlue200);
   --utility-blue-300: var(--componentColors-utility-blue-utilityBlue300);
   --utility-blue-400: var(--componentColors-utility-blue-utilityBlue400);
+  --utility-success-50: var(--componentColors-utility-success-utilitySuccess50);
+  --utility-success-200: var(--componentColors-utility-success-utilitySuccess200);
   --utility-success-400: var(--componentColors-utility-success-utilitySuccess400);
   --utility-success-500: var(--componentColors-utility-success-utilitySuccess500);
+  --utility-success-700: var(--componentColors-utility-success-utilitySuccess700);
+  --utility-gray-500: var(--componentColors-utility-gray-utilityGray500);
   --utility-error-400: var(--componentColors-utility-error-utilityError400);
   --utility-warning-400: var(--componentColors-utility-warning-utilityWarning400);
   --utility-warning-500: var(--componentColors-utility-warning-utilityWarning500);
@@ -119,7 +123,9 @@
   --bg-tertiary: var(--colors-background-bgTertiary);
   --bg-overlay: var(--colors-background-bgOverlay);
   --border-secondary: var(--colors-border-borderSecondary);
+  --border-tertiary: var(--colors-border-borderTertiary);
   --alpha-black-3: var(--componentColors-alpha-alphaBlack3);
+  --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
 
   /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
   --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),

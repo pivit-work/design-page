@@ -1,17 +1,25 @@
+import { useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrAiInsights from './OkrAiInsights.jsx';
 import OkrOverallCard from './OkrOverallCard.jsx';
 import OkrObjectiveSection from './OkrObjectiveSection.jsx';
+import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
+import OkrKrFeedbackModal from './OkrKrFeedbackModal.jsx';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
  *
- * data: { person: { name, role, avatar }, periodLabel, links, parents,
- *   insights, overall, theme, objectives }
- * 데모 데이터는 wrapper(OkrPage)가 소유한다.
+ * data: { person, periodLabel, links, parents, insights, overall, theme,
+ *   objectives } — 데모 데이터는 wrapper(OkrPage)가 소유한다.
+ * 피드백 모달 3종(작성/전체보기/요청 작성)의 열림 상태는 UI 상태이므로
+ * 여기서 관리한다: '피드백 작성' 칩 → 작성 모달, '전체 보기' 칩 →
+ * KR 피드백 모달 → '피드백 요청 보내기' → 요청 작성 모달.
  */
 export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
   const { person, periodLabel, links, parents, insights, overall, theme, objectives } = data;
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [krDetail, setKrDetail] = useState(null);
 
   return (
     <div className="okr-personal-area">
@@ -40,9 +48,47 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
 
       <div className="okr-p-objectives">
         {objectives.map((objective, i) => (
-          <OkrObjectiveSection key={objective.label} objective={objective} icons={icons} baseUrl={baseUrl} defaultExpanded={i === 0} />
+          <OkrObjectiveSection
+            key={objective.label}
+            objective={objective}
+            icons={icons}
+            baseUrl={baseUrl}
+            defaultExpanded={i === 0}
+            onWriteFeedback={() => setComposeOpen(true)}
+            onViewFeedback={(kr) => kr.feedbackDetail && setKrDetail(kr.feedbackDetail)}
+          />
         ))}
       </div>
+
+      {composeOpen && (
+        <OkrFeedbackComposeModal
+          title="피드백 작성"
+          placeholder=""
+          submitLabel="완료"
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setComposeOpen(false)}
+        />
+      )}
+      {krDetail && (
+        <OkrKrFeedbackModal
+          detail={krDetail}
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setKrDetail(null)}
+          onRequestFeedback={() => setRequestOpen(true)}
+        />
+      )}
+      {requestOpen && (
+        <OkrFeedbackComposeModal
+          title="피드백 요청 작성"
+          placeholder="어떤 관점에서 피드백을 원하는지 적어주시면 좋아요 :)"
+          submitLabel="보내기"
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setRequestOpen(false)}
+        />
+      )}
     </div>
   );
 }
