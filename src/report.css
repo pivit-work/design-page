@@ -236,7 +236,17 @@
   flex-direction: column;
   width: calc(100vw - 56px);
   height: calc(100vh - 56px);
-  background: var(--bg-quaternary);
+  /* 시안(17250:19656): 모달 패널 자체가 bg-secondary 베이스 위 브랜드 틴트
+     그라데이션 + purple-100 2px 테두리를 가진다 */
+  background:
+    linear-gradient(
+      0deg,
+      rgba(179, 250, 222, 0.09) 0%,
+      rgba(179, 250, 222, 0.09) 27.5%,
+      rgba(210, 214, 219, 0.09) 79%
+    ),
+    var(--bg-secondary);
+  border: 2px solid var(--utility-purple-100);
   border-radius: 16px;
   box-shadow: var(--shadows-shadow3xl);
   overflow: hidden;
@@ -288,7 +298,9 @@
   padding-right: 0;
 }
 
+/* 모달 자체가 배경·테두리를 가지므로 내부 카드 프레임은 완전히 제거 */
 .report-modal-body .tl-weekly-card {
+  background: none;
   border: none;
   box-shadow: none;
 }
