@@ -41,9 +41,11 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
       </div>
 
       {periodTab === 'history' ? (
-        history?.map((quarter) => (
-          <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
-        ))
+        <div className="okr-h-list">
+          {history?.map((quarter) => (
+            <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
+          ))}
+        </div>
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
