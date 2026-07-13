@@ -218,6 +218,30 @@
 .okr-p-pic-info { display: flex; flex-direction: column; }
 .okr-p-pic-team { font-size: 12px; font-weight: 500; color: var(--text-tertiary); line-height: 18px; }
 
+/* ══ 전사 OKR — 전략 캔버스 ══ */
+.okr-s-subtabs { display: flex; align-items: center; gap: 24px; }
+.okr-s-subtab { padding-bottom: 6px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent; }
+.okr-s-subtab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
+
+.okr-s-toolbar { display: flex; align-items: center; justify-content: space-between; }
+.okr-s-toolbar-right { display: flex; gap: 8px; }
+.okr-s-ai-btn { padding: 6px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
+.okr-s-edit-btn { padding: 6px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
+.okr-s-save-btn { padding: 6px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
+
+.okr-s-card { background: var(--bg-quaternary); border-radius: 16px; display: flex; flex-direction: column; }
+.okr-s-row { display: flex; align-items: center; gap: 24px; padding: 24px 32px; }
+.okr-s-row + .okr-s-row { border-top: 1px solid var(--border-secondary); }
+.okr-s-label { width: 160px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+.okr-s-title { font-size: 20px; font-weight: 700; line-height: 28px; color: var(--fg-primary); }
+.okr-s-sub { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.okr-s-content { flex: 1; min-width: 0; }
+.okr-s-text { font-size: 15px; font-weight: 500; line-height: 24px; color: var(--text-primary); }
+.okr-s-list { margin: 0; padding-left: 20px; font-size: 15px; font-weight: 500; line-height: 24px; color: var(--text-primary); display: flex; flex-direction: column; gap: 2px; }
+.okr-s-input { width: 100%; box-sizing: border-box; padding: 10px 14px; background: var(--bg-quaternary); border: 1.5px solid var(--bg-brand-solid); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 400; line-height: 22px; color: var(--text-primary); resize: none; outline: none; }
+.okr-s-ai-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: var(--utility-purple-50); font-size: 12px; font-weight: 600; color: var(--utility-purple-500); cursor: pointer; }
+.okr-s-placeholder { padding: 80px 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
+
 /* ── 피드백 모달 (작성/요청 작성/KR 전체보기) ── */
 .okr-compose-modal { position: relative; display: flex; flex-direction: column; width: 520px; max-width: calc(100vw - 80px); background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
 .okr-compose-body { padding: 60px 48px 32px; display: flex; flex-direction: column; gap: 48px; }

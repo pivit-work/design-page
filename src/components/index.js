@@ -92,6 +92,7 @@ export {
   OkrFeedbackComposeModal,
   OkrKrFeedbackModal,
   OkrKrUpdateModal,
+  OkrStrategyCanvas,
 } from './okr/index.js';
 
 // Report

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, Icon } from './components';
+import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, OkrStrategyCanvas, Icon } from './components';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
@@ -246,6 +246,21 @@ const PERSONAL_OKR = {
   ],
 };
 
+/* ── Demo 전략 캔버스 (전사 OKR 탭) ── */
+const STRATEGY_ROWS = [
+  { id: 'mission', label: 'Mission', sub: 'Why - Purpose', content: '일하는 맥락을 기억하는 HR — 매니저와 팀원이 준비 없이 만나도 의미 있는 대화를 나누고, 그 결과가 다음 행동으로 이어지게 한다.' },
+  { id: 'vision', label: 'Vision', sub: 'What', content: '모든 팀이 일하는 방식을 스스로 개선하는 세상' },
+  { id: 'values', label: 'Values', sub: 'Why - Purpose', content: '투명성 · 맥락 우선 · 빠른 실행 · 심리적 안전' },
+  { id: 'goal', label: '2026 GOAL', sub: 'Mid-term VISION', content: '2026년 얼리 액세스 500팀 달성 및 Series A 투자 유치' },
+  { id: 'strategy', label: 'STRATEGY', sub: 'Mid-term VISION', content: 'AI 기반 1on1 자동화 → 평가 연동 → 인사 데이터 통합' },
+  { id: 'bigbets', label: 'BIG BETS', sub: 'Mid-term VISION', content: [
+    'AI 녹취·요약으로 1on1 마찰 제거',
+    '스니핏 기반 수시 평가 시스템',
+    'HR 스냅샷으로 관공서·투자사 대응 자동화',
+  ] },
+  { id: 'metrics', label: 'METRICS', sub: 'Mid-term VISION', content: 'MAU 500팀 · 1on1 완료율 80% · 고객 NPS 50+' },
+];
+
 const OKR_DETAILS = {
   company: { title: 'Company OKR', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
   eng: { title: 'Engineering', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
@@ -284,6 +299,8 @@ export default function OkrPage({ icons, baseUrl }) {
           />
           <OkrDashboardCanvas data={{ ...OKR_TREE, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
         </>
+      ) : activeTab === 'company' ? (
+        <OkrStrategyCanvas rows={STRATEGY_ROWS} icons={icons} baseUrl={baseUrl} />
       ) : activeTab === 'personal' ? (
         <>
           <button className="okr-write-btn">
