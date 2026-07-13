@@ -2,9 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import OkrConnectors from './OkrConnectors.jsx';
-import OkrGroupCard from './OkrGroupCard.jsx';
-import ObjectiveRow from './ObjectiveRow.jsx';
-import OkrMemberChip from './OkrMemberChip.jsx';
+import OkrGroupNode from './OkrGroupNode.jsx';
 import { OkrPositionsContext } from './contexts.js';
 import { loadOkrPositions, saveOkrPositions } from './hooks.js';
 
@@ -57,48 +55,13 @@ export default function OkrDashboardCanvas({ data, icons, baseUrl = '', onBlockC
         }}>
           <OkrConnectors containerRef={canvasInnerRef} scale={scale} />
           <div className="okr-tree">
-            <div className="okr-group-root">
-              <OkrGroupCard group={data} dragId={data.id} onClick={() => openGroup(data.id)} />
-              <div className="okr-objective-list">
-                {data.objectives.map((objective, i) => (
-                  <ObjectiveRow
-                    key={objective.title}
-                    objective={objective}
-                    dragId={`${data.id}:obj:${i}`}
-                    onClick={() => openGroup(data.id)}
-                  />
+            <OkrGroupNode group={data} isRoot onOpen={openGroup}>
+              <div className="okr-teams-row">
+                {data.teams.map((team) => (
+                  <OkrGroupNode key={team.id} group={team} onOpen={openGroup} />
                 ))}
               </div>
-            </div>
-            <div className="okr-teams-row">
-              {data.teams.map((team) => (
-                <div className="okr-team-col" key={team.id}>
-                  <OkrGroupCard group={team} dragId={team.id} onClick={() => openGroup(team.id)} />
-                  <div className="okr-objective-list">
-                    {team.objectives.map((objective, i) => (
-                      <ObjectiveRow
-                        key={objective.title}
-                        objective={objective}
-                        dragId={`${team.id}:obj:${i}`}
-                        onClick={() => openGroup(team.id)}
-                      />
-                    ))}
-                  </div>
-                  {team.members?.length > 0 && (
-                    <div className="okr-members">
-                      {team.members.map((member) => (
-                        <OkrMemberChip
-                          key={member.name}
-                          member={member}
-                          dragId={`${team.id}:member:${member.name}`}
-                          onClick={() => openGroup(team.id)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            </OkrGroupNode>
           </div>
         </div>
 

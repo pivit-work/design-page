@@ -77,6 +77,7 @@ export {
   OkrToolbar,
   OkrDashboardCanvas,
   OkrGroupCard,
+  OkrGroupNode,
   ObjectiveRow,
   OkrProgressBar,
   OkrMemberChip,

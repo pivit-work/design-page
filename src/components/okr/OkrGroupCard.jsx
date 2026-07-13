@@ -1,20 +1,17 @@
 import OkrProgressBar from './OkrProgressBar.jsx';
-import { useOkrDrag } from './hooks.js';
 
 /**
- * OkrGroupCard — Company OKR / 팀 요약 카드.
+ * OkrGroupCard — Company OKR / 팀 요약 카드 (그룹 헤드).
  * type 'company' 는 brand-50 배경 + 서브타이틀(기수·분기),
  * 그 외(팀)는 blue-50 배경 + Lead 표기.
- * 드래그로 자유 배치, 제자리 클릭이면 onClick(상세 모달).
+ * 드래그는 OkrGroupNode 가 소유 — 여기서는 onMouseDown 만 전달받는다.
  */
-export default function OkrGroupCard({ group, dragId, onClick }) {
-  const { isDragging, onDown, style } = useOkrDrag(dragId ?? group.id, onClick);
+export default function OkrGroupCard({ group, onMouseDown, isDragging }) {
   const isCompany = group.type === 'company';
   return (
     <div
       className={`okr-group-card ${isCompany ? 'is-company' : 'is-team'}${isDragging ? ' okr-block-dragging' : ''}`}
-      style={style}
-      onMouseDown={onDown}
+      onMouseDown={onMouseDown}
     >
       <p className="okr-group-name">{group.name}</p>
       {isCompany ? (

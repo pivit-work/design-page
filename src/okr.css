@@ -17,12 +17,16 @@
 .okr-canvas-area { top: 229px; }
 .okr-tab-placeholder { display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
 
-/* ── 트리 레이아웃 ── */
-.okr-tree { display: flex; flex-direction: column; align-items: center; gap: 79px; }
-.okr-group-root { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+/* ── 트리 레이아웃 ──
+   조직도 OrgNode 처럼 노드 래퍼(.okr-node)에 드래그 transform 이 걸린다.
+   루트 노드가 팀 노드들을 중첩하므로, 헤드를 끌면 서브트리가 함께 이동. */
+.okr-tree { display: flex; justify-content: center; }
+.okr-node { display: flex; flex-direction: column; align-items: center; }
+.okr-group-root { gap: 14px; }
+.okr-node-dragging { position: relative; z-index: 200; }
 .okr-objective-list { display: flex; flex-direction: column; gap: 8px; width: 406px; }
-.okr-teams-row { display: flex; align-items: flex-start; gap: 144px; }
-.okr-team-col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.okr-teams-row { display: flex; align-items: flex-start; gap: 144px; margin-top: 65px; }
+.okr-team-col { gap: 16px; }
 .okr-members { display: flex; flex-direction: column; gap: 8px; margin-top: 30px; }
 
 /* ── 그룹 카드 (Company / 팀) ── */

@@ -27,8 +27,8 @@ export default function OkrConnectors({ containerRef, scale }) {
       const centerX = (rect) => (rect.left + rect.width / 2 - containerRect.left) / s;
       let pathData = '';
 
-      const rootAnchor = container.querySelector('.okr-group-root .okr-objective-list .okr-objective-row:last-child')
-        || container.querySelector('.okr-group-root .okr-group-card');
+      const rootAnchor = container.querySelector('.okr-group-root > .okr-objective-list > .okr-objective-row:last-child')
+        || container.querySelector('.okr-group-root > .okr-group-card');
       if (rootAnchor) {
         const rootRect = rootAnchor.getBoundingClientRect();
         const px = centerX(rootRect);
@@ -46,7 +46,7 @@ export default function OkrConnectors({ containerRef, scale }) {
       }
 
       container.querySelectorAll('.okr-team-col').forEach(col => {
-        const lastRow = col.querySelector(':scope > .okr-objective-list .okr-objective-row:last-child');
+        const lastRow = col.querySelector(':scope > .okr-objective-list > .okr-objective-row:last-child');
         const firstChip = col.querySelector(':scope > .okr-members .okr-member-chip');
         if (!lastRow || !firstChip) return;
         const rowRect = lastRow.getBoundingClientRect();
