@@ -159,52 +159,57 @@
 .okr-p-theme { flex: 1; }
 .okr-p-table-col { width: 90px; text-align: center; color: var(--text-tertiary); font-weight: 700; }
 
-/* Objective 테이블 — 블록별 흰 카드, 카드 사이 간격 */
-.okr-p-objectives { display: flex; flex-direction: column; gap: 12px; }
-.okr-p-objective { background: var(--bg-quaternary); border-radius: 16px; overflow: hidden; }
-.okr-p-obj-row { display: flex; align-items: center; gap: 16px; padding: 30px 20px; cursor: pointer; }
-.okr-p-obj-name { display: flex; align-items: center; gap: 10px; width: 186px; font-size: 24px; font-weight: 700; line-height: 32px; color: var(--fg-primary); white-space: nowrap; flex-shrink: 0; }
-.okr-p-caret { color: var(--text-tertiary); font-size: 16px; line-height: 1; transition: transform 0.15s; }
-.okr-p-caret.is-open { transform: rotate(180deg); }
-.okr-p-obj-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.okr-p-obj-title { font-size: 18px; font-weight: 700; color: var(--text-secondary); line-height: 28px; }
-.okr-p-obj-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); line-height: 20px; }
-.okr-p-progress { display: flex; align-items: center; gap: 6px; }
-.okr-p-progress-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: -0.01em; white-space: nowrap; }
-.okr-p-weight { width: 90px; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
-.okr-p-pic { width: 90px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
-.okr-p-pic img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+/* Objective 테이블 — 하나의 흰 컨테이너, 공통 4컬럼 그리드
+   [라벨 206px | 메인 flex | Weight 105px | PIC 140px]
+   하위 블록은 왼쪽 32px 들여쓰기 — 우측 고정폭 컬럼이라 Weight/PIC 위치는 유지 */
+.okr-p-objectives { display: flex; flex-direction: column; background: var(--bg-quaternary); border-radius: 16px; overflow: hidden; }
+.okr-p-objective + .okr-p-objective { border-top: 1px solid var(--border-secondary); }
 
-/* Key Result 블록 — Objective 카드 안에서 왼쪽 들여쓰기된 회색 패널 */
-.okr-p-kr-block { margin-left: 30px; }
-.okr-p-kr-row { display: flex; align-items: center; gap: 16px; padding: 24px 20px; background: var(--bg-secondary); }
-.okr-p-kr-name { width: 140px; font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; flex-shrink: 0; }
-.okr-p-kr-row .okr-p-weight { color: var(--text-tertiary); }
-.okr-p-kr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.okr-p-kr-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.okr-p-kr-title { font-size: 15px; font-weight: 500; color: var(--text-primary); line-height: 22px; }
-.okr-p-kr-teamlink { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--utility-blue-50); border-radius: 6px; }
-.okr-p-kr-teamlink-badge { font-size: 12px; font-weight: 700; color: var(--utility-blue-600); white-space: nowrap; }
-.okr-p-kr-teamlink-title { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-p-row { display: flex; align-items: center; }
+.okr-p-col-label { width: 206px; padding-left: 20px; box-sizing: border-box; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.okr-p-col-main { flex: 1; min-width: 0; padding: 0 32px; }
+.okr-p-col-weight { width: 105px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+.okr-p-col-weight.is-muted { color: var(--text-tertiary); }
+.okr-p-col-pic { width: 140px; flex-shrink: 0; padding-left: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.okr-p-col-pic img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+
+.okr-p-heading { display: flex; align-items: center; gap: 16px; }
+.okr-p-progress { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.okr-p-progress-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); letter-spacing: -0.01em; white-space: nowrap; }
+
+/* Objective 행 */
+.okr-p-obj-row { padding: 32px 0; cursor: pointer; }
+.okr-p-obj-name { font-size: 24px; font-weight: 700; line-height: 32px; color: var(--fg-primary); white-space: nowrap; }
+.okr-p-caret { display: inline-flex; transition: transform 0.15s; }
+.okr-p-caret.is-open { transform: rotate(180deg); }
+.okr-p-obj-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: var(--text-secondary); line-height: 28px; }
+.okr-p-obj-link { margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); line-height: 20px; }
+
+/* Key Result 블록 — 왼쪽 32px 들여쓰기된 패널 */
+.okr-p-kr-block { margin-left: 32px; }
+.okr-p-kr-row { padding: 16px 0; background: var(--bg-secondary); }
+.okr-p-kr-name { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
+.okr-p-kr-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; color: var(--text-secondary); line-height: 24px; }
+.okr-p-kr-teamlink { margin-top: 10px; display: flex; align-items: center; gap: 16px; padding: 2px 6px; background: var(--utility-blue-50); border-radius: 4px; }
+.okr-p-kr-teamlink-badge { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--utility-blue-600); white-space: nowrap; }
+.okr-p-kr-teamlink-title { flex: 1; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 피드백 */
 .okr-p-feedback { background: var(--utility-green-50); }
-.okr-p-feedback-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; cursor: pointer; }
-.okr-p-feedback-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--utility-green-600); }
-.okr-p-feedback-summary { font-size: 13px; font-weight: 600; color: var(--utility-green-600); }
+.okr-p-feedback-head { padding: 9px 0; cursor: pointer; }
+.okr-p-feedback-title { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--utility-green-600); white-space: nowrap; }
+.okr-p-feedback-summary { margin-left: 6px; font-size: 14px; font-weight: 600; color: var(--utility-green-600); white-space: nowrap; }
 .okr-p-chip-btn { padding: 4px 10px; border-radius: 6px; background: var(--alpha-black-3); font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; cursor: pointer; }
-.okr-p-feedback-comments { display: flex; flex-direction: column; }
-.okr-p-comment { display: flex; align-items: center; gap: 12px; padding: 8px 20px; border-top: 1px solid var(--bg-quaternary); }
-.okr-p-comment-author { display: flex; align-items: center; gap: 8px; width: 180px; flex-shrink: 0; }
-.okr-p-comment-author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
-.okr-p-comment-name { font-size: 13px; font-weight: 700; color: var(--utility-green-600); white-space: nowrap; flex: 1; }
-.okr-p-comment-date { font-size: 12px; font-weight: 600; color: var(--utility-warning-500); }
-.okr-p-comment-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--utility-green-600); line-height: 20px; }
+.okr-p-comment { padding: 8px 0; border-top: 1px solid var(--bg-quaternary); }
+.okr-p-comment-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.okr-p-comment-name { flex: 1; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--utility-green-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.okr-p-comment-date { font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-warning-500); padding-right: 12px; }
+.okr-p-comment-text { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--utility-green-600); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Initiative */
-.okr-p-initiative { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--utility-blue-50); border-top: 1px solid var(--bg-quaternary); }
-.okr-p-initiative-label { width: 140px; font-size: 13px; font-weight: 700; color: var(--utility-blue-500); flex-shrink: 0; }
-.okr-p-initiative-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--utility-blue-500); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.okr-p-initiative { padding: 8px 0; background: var(--utility-blue-50); border-top: 1px solid var(--bg-quaternary); }
+.okr-p-initiative-label { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--utility-blue-500); }
+.okr-p-initiative-title { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--utility-blue-500); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 
 /* 분기별 KR 테이블 */
 .okr-quarter-tables { display: flex; flex-direction: column; }

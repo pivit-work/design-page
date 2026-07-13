@@ -40,7 +40,7 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
 
       <div className="okr-p-objectives">
         {objectives.map((objective, i) => (
-          <OkrObjectiveSection key={objective.label} objective={objective} defaultExpanded={i === 0} />
+          <OkrObjectiveSection key={objective.label} objective={objective} icons={icons} baseUrl={baseUrl} defaultExpanded={i === 0} />
         ))}
       </div>
     </div>
