@@ -102,6 +102,9 @@
 
 /* 좌우 여백까지 스크롤 영역에 포함 — 여백 위에서 휠을 굴려도 스크롤된다 */
 .okr-personal-area { position: fixed; top: 150px; left: 240px; right: 0; bottom: 0; overflow-y: auto; padding: 12px 40px 60px 12px; display: flex; flex-direction: column; gap: 16px; }
+/* flex 컬럼에서 섹션이 컨테이너 높이에 맞춰 찌그러지면 스크롤할 내용 자체가
+   사라진다 — 자식 축소 금지로 본래 높이를 유지시켜 넘침 → 스크롤이 생기게 한다 */
+.okr-personal-area > * { flex-shrink: 0; }
 
 /* 프로필 */
 .okr-p-profile { display: flex; align-items: center; gap: 12px; }
