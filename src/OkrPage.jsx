@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas, OkrTeamCanvas, OkrStrategyCanvas, Icon } from './components';
+import {
+  OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas,
+  OkrTeamCanvas, OkrStrategyCanvas, OkrComposeFullModal, OkrSetupWizardModal, Icon,
+} from './components';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
@@ -422,6 +425,38 @@ const OKR_DETAILS = {
   people: { title: 'People', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
 };
 
+/* ── Demo 개인 OKR 작성 모달 — 팀 OKR 미니맵 ── */
+const COMPOSE_MINIMAP = {
+  title: 'API , AI 파이프라인 구현 및 인프라 구축',
+  company: { label: '회사 OKR', title: 'Phase 1 — AI HR 제품 완성 및 얼리 액세스 런칭' },
+  groups: [
+    {
+      q: 'Q1', title: 'API 서버 안정화',
+      krs: [
+        { id: 'KR 1-1', title: '핵심 API 엔드포인트 20개 완성', percent: 62 },
+        { id: 'KR 1-2', title: 'Whisper STT 파이프라인 구현', percent: 24 },
+        { id: 'KR 1-3', title: 'pgvector 임베딩 검색 200ms 달성', percent: 8 },
+      ],
+    },
+    {
+      q: 'Q1', title: '인프라 구축',
+      krs: [
+        { id: 'KR 2-1', title: 'CI/CD 파이프라인 구성 완료', percent: 62 },
+        { id: 'KR 2-2', title: '스테이징 환경 구축 완료', percent: 24 },
+        { id: 'KR 2-3', title: '에러율 1% 미만 유지', percent: 8 },
+      ],
+    },
+    {
+      q: 'Q1', title: '프론트엔드 Phase 1',
+      krs: [
+        { id: 'KR 3-1', title: '타임라인 피드 뷰 구현', percent: 62 },
+        { id: 'KR 3-2', title: '1on1 화면 3단계 구현', percent: 24 },
+        { id: 'KR 3-3', title: '어드민 화면 구현', percent: 8 },
+      ],
+    },
+  ],
+};
+
 const TEAM_OKR = {
   teams: ['Engineering', 'Product', 'People', 'Growth Squad'],
   periodLabel: '2026년 Q1',
@@ -442,6 +477,8 @@ export default function OkrPage({ icons, baseUrl }) {
   const [openGroupId, setOpenGroupId] = useState(null);
   const [year, setYear] = useState('2026');
   const [quarter, setQuarter] = useState('Q1');
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   // 탭 전환 시 대시보드 상세 모달이 남아 화면을 덮지 않도록 닫는다.
   const handleTabChange = (tab) => {
@@ -465,9 +502,9 @@ export default function OkrPage({ icons, baseUrl }) {
       ) : activeTab === 'company' ? (
         <>
           <div className="okr-header-actions">
-            <button className="okr-ghost-btn">OKR 설정</button>
+            <button className="okr-ghost-btn" onClick={() => setSetupOpen(true)}>OKR 설정</button>
             <button className="okr-ghost-btn">컨텍스트 설정</button>
-            <button className="okr-write-btn is-inline">
+            <button className="okr-write-btn is-inline" onClick={() => setComposeOpen(true)}>
               <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
               <span>작성</span>
             </button>
@@ -476,7 +513,7 @@ export default function OkrPage({ icons, baseUrl }) {
         </>
       ) : activeTab === 'team' ? (
         <>
-          <button className="okr-write-btn">
+          <button className="okr-write-btn" onClick={() => setComposeOpen(true)}>
             <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>작성</span>
           </button>
@@ -484,7 +521,7 @@ export default function OkrPage({ icons, baseUrl }) {
         </>
       ) : activeTab === 'personal' ? (
         <>
-          <button className="okr-write-btn">
+          <button className="okr-write-btn" onClick={() => setComposeOpen(true)}>
             <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>작성</span>
           </button>
@@ -492,6 +529,13 @@ export default function OkrPage({ icons, baseUrl }) {
         </>
       ) : (
         <div className="canvas-area okr-canvas-area okr-tab-placeholder">준비 중인 화면입니다</div>
+      )}
+
+      {composeOpen && (
+        <OkrComposeFullModal minimap={COMPOSE_MINIMAP} icons={icons} baseUrl={baseUrl} onClose={() => setComposeOpen(false)} />
+      )}
+      {setupOpen && (
+        <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => setSetupOpen(false)} />
       )}
 
       <OkrDetailModal

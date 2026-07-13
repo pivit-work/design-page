@@ -21,5 +21,7 @@ export { default as OkrStrategyCanvas } from './OkrStrategyCanvas.jsx';
 export { default as OkrHistoryQuarter } from './OkrHistoryQuarter.jsx';
 export { default as OkrBoard } from './OkrBoard.jsx';
 export { default as OkrTeamCanvas } from './OkrTeamCanvas.jsx';
+export { default as OkrComposeFullModal } from './OkrComposeFullModal.jsx';
+export { default as OkrSetupWizardModal } from './OkrSetupWizardModal.jsx';
 export { OkrPositionsContext } from './contexts.js';
 export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';

@@ -52,10 +52,16 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       {subTab === 'canvas' ? (
         <>
           <div className="okr-s-toolbar">
-            <button className="okr-s-ai-btn">전략 전체 AI 자동완성</button>
+            {editing ? <span /> : <button className="okr-s-ai-btn">전략 전체 AI 자동완성</button>}
             <div className="okr-s-toolbar-right">
-              <button className="okr-s-edit-btn" onClick={() => (editing ? setEditing(false) : startEdit())}>편집</button>
-              {editing && <button className="okr-s-save-btn" onClick={save}>저장</button>}
+              {editing ? (
+                <>
+                  <button className="okr-s-edit-btn" onClick={() => setEditing(false)}>취소</button>
+                  <button className="okr-s-save-btn" onClick={save}>저장</button>
+                </>
+              ) : (
+                <button className="okr-s-edit-btn" onClick={startEdit}>편집</button>
+              )}
             </div>
           </div>
 

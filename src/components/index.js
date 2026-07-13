@@ -96,6 +96,8 @@ export {
   OkrHistoryQuarter,
   OkrBoard,
   OkrTeamCanvas,
+  OkrComposeFullModal,
+  OkrSetupWizardModal,
 } from './okr/index.js';
 
 // Report
