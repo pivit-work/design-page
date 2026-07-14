@@ -19,6 +19,17 @@ import Icon from '../shared/Icon.jsx';
  *   Footer (pad 24/48/48/48, gap 12) — 초기화 / 등록
  */
 const HEALTH_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Health Check 점수 → 색상 티어 / 라벨. pivit-specs snippet-write-view 시안과 동일:
+//   8↑ 초록(#16A34A) / 6~7 노랑(#D97706) / 6미만 빨강(#DC2626)
+//   9↑ "최고" / 8 "좋음" / 7 "보통" / 5~6 "힘듦" / 4↓ "매우 힘듦"
+const healthTier = (v) => (v >= 8 ? 'good' : v >= 6 ? 'mid' : 'low');
+const healthLabel = (v) =>
+  v >= 9 ? '최고' : v >= 8 ? '좋음' : v >= 7 ? '보통' : v >= 5 ? '힘듦' : '매우 힘듦';
+
+// What 등 텍스트 필드 글자수 제한. 90% 근접 시 카운터를 빨강으로 경고.
+const SNIPPET_MAX_LEN = 500;
+const SNIPPET_NEAR_LIMIT = SNIPPET_MAX_LEN * 0.9;
 const SECTIONS = [
   {
     key: 'what',
@@ -405,16 +416,31 @@ export default function SnippetModal({
                   onCompositionStart={handleCompositionStart}
                   onCompositionEnd={handleCompositionEnd}
                   onBlur={handleFieldBlur}
-                  maxLength={500}
+                  maxLength={SNIPPET_MAX_LEN}
                 />
-                <div className="tl-snippet-count">{sectionTexts[s.key].length} / 500</div>
+                <div
+                  className={`tl-snippet-count${
+                    sectionTexts[s.key].length > SNIPPET_NEAR_LIMIT ? ' is-near-limit' : ''
+                  }`}
+                >
+                  {sectionTexts[s.key].length} / {SNIPPET_MAX_LEN}
+                </div>
               </div>
             ))}
 
             {/* Health Check — 1~10 점수 + 영향 요인 textarea (Figma 16627:58459) */}
             <div className="tl-snippet-field">
               <div className="tl-snippet-field-head tl-snippet-health-head">
-                <div className="tl-snippet-field-label">Health Check</div>
+                <div className="tl-snippet-field-label">
+                  Health Check
+                  {healthScore != null && (
+                    <span
+                      className={`tl-snippet-health-label tl-snippet-health-label--${healthTier(healthScore)}`}
+                    >
+                      {healthLabel(healthScore)}
+                    </span>
+                  )}
+                </div>
                 <div className="tl-snippet-health-scores" role="radiogroup" aria-label="Health Check 점수">
                   {HEALTH_SCORES.map((n) => {
                     const selected = healthScore === n;
@@ -424,7 +450,9 @@ export default function SnippetModal({
                         type="button"
                         role="radio"
                         aria-checked={selected}
-                        className={`tl-snippet-health-score ${selected ? 'is-selected' : ''}`}
+                        className={`tl-snippet-health-score tl-snippet-health-score--${healthTier(
+                          n,
+                        )} ${selected ? 'is-selected' : ''}`}
                         onClick={() => setHealthScore(selected ? null : n)}
                       >
                         {n}
