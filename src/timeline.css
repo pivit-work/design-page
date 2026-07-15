@@ -1155,6 +1155,167 @@
   flex-shrink: 0;
 }
 
+/* 본인 행의 빈 셀만 클릭 가능 — 시안 crosshair 커서 */
+.tl-grid-cell.is-clickable {
+  cursor: crosshair;
+}
+
+.tl-grid-cell.is-clickable:hover {
+  background: rgba(127, 86, 217, 0.05);
+}
+
+/* ===========================
+   Cell action picker (CellPicker)
+   =========================== */
+.tl-cell-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.tl-cell-picker {
+  position: fixed;
+  width: 186px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  padding: 8px;
+  box-sizing: border-box;
+  z-index: 71;
+}
+
+.tl-cell-picker-time {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+  padding: 2px 8px 8px;
+  border-bottom: 1px solid var(--border-secondary, #eaecf0);
+  margin-bottom: 6px;
+}
+
+.tl-cell-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.tl-cell-picker-item:hover {
+  background: var(--bg-secondary, #f9fafb);
+}
+
+.tl-cell-picker-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.tl-cell-picker-ico--snip {
+  background: #eef2ff;
+}
+
+.tl-cell-picker-ico--event {
+  background: #f0fdf4;
+}
+
+.tl-cell-picker-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tl-cell-picker-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+
+.tl-cell-picker-sub {
+  font-size: 10px;
+  color: var(--text-tertiary, #667085);
+}
+
+.tl-cell-picker-divider {
+  height: 1px;
+  background: var(--border-secondary, #eaecf0);
+  margin: 2px 8px;
+}
+
+.tl-cell-picker-gcal {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-cell-picker-gcal-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(234, 67, 53, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.tl-cell-picker-gcal-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tl-cell-picker-gcal-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ea4335;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tl-cell-picker-gcal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.tl-cell-picker-gcal-dot.is-on {
+  background: #22c55e;
+}
+
+.tl-cell-picker-gcal-dot.is-off {
+  background: var(--text-tertiary, #98a2b3);
+}
+
+.tl-cell-picker-gcal-state {
+  font-size: 8px;
+  color: #16a34a;
+}
+
+.tl-cell-picker-gcal-dot.is-off + .tl-cell-picker-gcal-state {
+  color: var(--text-tertiary, #98a2b3);
+}
+
+.tl-cell-picker-gcal-sub {
+  font-size: 9px;
+  color: var(--text-tertiary, #667085);
+}
+
 /* ===========================
    Calendar tab — monthly grid view (Figma timeline_gant_week/캘린더)
    - 7 col × (header + 6 row), 가로/세로 모두 1fr 로 fill → 완전 반응형
@@ -1619,6 +1780,11 @@
   background: var(--snip-bg-hover, var(--snip-bg, transparent));
 }
 
+.tl-snippet.is-clickable:focus-visible {
+  outline: 2px solid var(--colors-border-borderBrand, #7f56d9);
+  outline-offset: 1px;
+}
+
 .tl-snippet-text {
   margin: 0;
   flex: 1;
@@ -1632,6 +1798,151 @@
   -webkit-box-orient: vertical;
   text-overflow: ellipsis;
   word-break: break-word;
+}
+
+/* ===========================
+   Snippet detail popover (SnippetPopover)
+   =========================== */
+.tl-snip-pop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tl-snip-pop {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-primary, #ffffff);
+  border: 1.5px solid var(--border-secondary, #eaecf0);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.tl-snip-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.tl-snip-pop-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.tl-snip-pop-id {
+  flex: 1;
+  min-width: 0;
+}
+
+.tl-snip-pop-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+
+.tl-snip-pop-title {
+  font-size: 10px;
+  color: var(--text-tertiary, #667085);
+}
+
+.tl-snip-pop-health {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.tl-snip-pop-health-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.tl-snip-pop-health-score {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tl-snip-pop-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-tertiary, #667085);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.tl-snip-pop-text {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-primary, #101828);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tl-snip-pop-reason {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--text-tertiary, #667085);
+}
+
+.tl-snip-pop-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.tl-snip-pop-tag {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #eef2ff;
+  color: var(--colors-text-textBrand, #6941c6);
+  border: 1px solid #c7d2fe;
+}
+
+.tl-snip-pop-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.tl-snip-pop-action {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-secondary, #f9fafb);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary, #344054);
+  cursor: pointer;
+}
+
+.tl-snip-pop-action:hover {
+  background: var(--bg-tertiary, #f2f4f7);
 }
 
 /* ===========================

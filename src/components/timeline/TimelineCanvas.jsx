@@ -6,6 +6,8 @@ import WeekGrid from './WeekGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
 import CalendarWeekView from './CalendarWeekView.jsx';
 import MeetingModal from './MeetingModal.jsx';
+import SnippetPopover from './SnippetPopover.jsx';
+import CellPicker from './CellPicker.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
 import CustomSelect from './CustomSelect.jsx';
@@ -90,6 +92,9 @@ export default function TimelineCanvas({
   onMemberDetail,
   // 현재 로그인 사용자(ME) id. 디폴트 그룹에서 본인 제거 버튼을 숨기는 데 사용.
   currentUserId,
+  // 스니핏 상세 팝오버에서 본인 스니핏의 "1on1 →"/"평가 →" 이동 — 'oneonone' | 'eval'.
+  // 미주입 시 해당 버튼 미노출.
+  onSnippetNav,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -187,6 +192,14 @@ export default function TimelineCanvas({
     groups,
     setGroups: handleGroupsCommit,
   });
+
+  // ── Snippet detail popover state ─────────────────────────────────────────
+  const [openSnippet, setOpenSnippet] = useState(null);
+  const handleSnippetClick = (snippet) => setOpenSnippet(snippet);
+
+  // ── Empty-cell picker state (본인 행 빈 셀 클릭) ──────────────────────────
+  const [cellPicker, setCellPicker] = useState(null); // { pos, hour, date } | null
+  const handleCellClick = (pos, hour, date) => setCellPicker({ pos, hour, date });
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
@@ -591,6 +604,8 @@ export default function TimelineCanvas({
               onMeetingClick={handleMeetingClick}
               spacerH={spacerH}
               targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
+              onCellClick={handleCellClick}
+              currentUserId={currentUserId}
             />
           ) : (
             <WeekGrid
@@ -601,6 +616,7 @@ export default function TimelineCanvas({
               dates={snippetDates}
               spacerH={spacerH}
               dayColW={dayColW}
+              onSnippetClick={handleSnippetClick}
             />
           )}
         </div>
@@ -624,6 +640,29 @@ export default function TimelineCanvas({
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
+        />
+      )}
+
+      {/* Snippet detail popover */}
+      {openSnippet && (
+        <SnippetPopover
+          snippet={openSnippet}
+          currentUserId={currentUserId}
+          onNav={onSnippetNav}
+          onClose={() => setOpenSnippet(null)}
+        />
+      )}
+
+      {/* Empty-cell action picker */}
+      {cellPicker && (
+        <CellPicker
+          pos={cellPicker.pos}
+          hour={cellPicker.hour}
+          date={cellPicker.date}
+          gcalConnected={gcalConnected}
+          onSnippet={handleSnippetCreate}
+          onEvent={handleAddEventClick}
+          onClose={() => setCellPicker(null)}
         />
       )}
 

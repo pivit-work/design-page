@@ -36,6 +36,8 @@ const WeekGrid = forwardRef(function WeekGrid(
     // day 컬럼 폭 — TimelineCanvas 에서 container width 기반으로 측정해 전달.
     // 기본값은 상수(168) 이지만 실제 런타임에는 max(130, containerW/N) 로 세팅됨.
     dayColW = WEEK_DAY_COL_W,
+    // 스니핏 블록 클릭 — 그 스니핏 객체를 인자로. 미주입 시 클릭 불가(no-op).
+    onSnippetClick,
   },
   ref
 ) {
@@ -153,7 +155,7 @@ const WeekGrid = forwardRef(function WeekGrid(
               return (
                 <div
                   key={sn.id}
-                  className="tl-snippet"
+                  className={`tl-snippet${onSnippetClick ? ' is-clickable' : ''}`}
                   style={{
                     left: colIdx * dayColW + 4,
                     top: rowYs[rowIdx] + 4,
@@ -165,6 +167,19 @@ const WeekGrid = forwardRef(function WeekGrid(
                     borderColor: palette.border,
                     color: palette.titleText,
                   }}
+                  {...(onSnippetClick
+                    ? {
+                        role: 'button',
+                        tabIndex: 0,
+                        onClick: () => onSnippetClick(sn),
+                        onKeyDown: (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSnippetClick(sn);
+                          }
+                        },
+                      }
+                    : null)}
                 >
                   <p className="tl-snippet-text">{sn.text}</p>
                 </div>
