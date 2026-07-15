@@ -88,6 +88,8 @@ export default function TimelineCanvas({
   onGroupAddMember,
   // 멤버 행 "상세 보기"(>) 클릭 — 그 멤버 id 를 인자로. 미주입 시 no-op.
   onMemberDetail,
+  // 현재 로그인 사용자(ME) id. 디폴트 그룹에서 본인 제거 버튼을 숨기는 데 사용.
+  currentUserId,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -159,6 +161,26 @@ export default function TimelineCanvas({
   const handleGroupsCommit = (next) => {
     setGroupsState(next);
     onGroupsChange?.(next);
+  };
+
+  // 그룹 삭제 / 이름변경 / 멤버제거 — 모두 groups 배열을 변형해 commit.
+  // 디폴트 그룹은 삭제 버튼 자체가 노출되지 않으나(방어적으로) 재확인.
+  const handleRemoveGroup = (groupId) => {
+    handleGroupsCommit(groups.filter((g) => g.id !== groupId || g.isDefault));
+  };
+  const handleRenameGroup = (groupId, label) => {
+    handleGroupsCommit(
+      groups.map((g) => (g.id === groupId ? { ...g, label } : g)),
+    );
+  };
+  const handleRemoveMember = (groupId, memberId) => {
+    handleGroupsCommit(
+      groups.map((g) =>
+        g.id === groupId
+          ? { ...g, memberIds: g.memberIds.filter((id) => id !== memberId) }
+          : g,
+      ),
+    );
   };
 
   const { dragState, dragOver, startDrag } = useTimelineDnD({
@@ -555,6 +577,10 @@ export default function TimelineCanvas({
             onAddExternalMember={handleAddExternalClick}
             onGroupAddMember={onGroupAddMember}
             onMemberDetail={onMemberDetail}
+            onRemoveGroup={handleRemoveGroup}
+            onRenameGroup={handleRenameGroup}
+            onRemoveMember={handleRemoveMember}
+            currentUserId={currentUserId}
           />
           {viewUnit === 'day' ? (
             <TimelineGrid

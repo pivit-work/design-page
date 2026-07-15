@@ -1,9 +1,16 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 
-function GroupHeader({ group, onAddMember }) {
+function GroupHeader({ group, onAddMember, onRemoveGroup, onRenameGroup }) {
+  const [editing, setEditing] = useState(false);
+  const commitRename = (value) => {
+    setEditing(false);
+    const trimmed = value.trim();
+    // 빈값·동일값이면 무시 (pivit-specs renameGroup 정책).
+    if (trimmed && trimmed !== group.label) onRenameGroup?.(group.id, trimmed);
+  };
   return (
     <div
       className="tl-group-header"
@@ -11,24 +18,59 @@ function GroupHeader({ group, onAddMember }) {
       data-tl-group={group.id}
     >
       <div className="tl-group-header-label">
-        <span className="tl-group-header-name">{group.label}</span>
+        {editing ? (
+          <input
+            className="tl-group-header-edit"
+            defaultValue={group.label}
+            autoFocus
+            aria-label="그룹 이름"
+            onBlur={(e) => commitRename(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitRename(e.currentTarget.value);
+              else if (e.key === 'Escape') setEditing(false);
+            }}
+          />
+        ) : (
+          <span
+            className={`tl-group-header-name${onRenameGroup ? ' is-editable' : ''}`}
+            onClick={onRenameGroup ? () => setEditing(true) : undefined}
+            title={onRenameGroup ? '이름 변경' : undefined}
+          >
+            {group.label}
+          </span>
+        )}
         <span className="tl-group-header-count">{group.memberIds.length}</span>
       </div>
-      <button
-        type="button"
-        className="tl-group-header-add"
-        aria-label="멤버 추가"
-        onClick={() => onAddMember?.(group.id)}
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </button>
+      <div className="tl-group-header-actions">
+        {onRemoveGroup && !group.isDefault && (
+          <button
+            type="button"
+            className="tl-group-header-remove"
+            aria-label="그룹 삭제"
+            title="그룹 삭제"
+            onClick={() => onRemoveGroup(group.id)}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+        <button
+          type="button"
+          className="tl-group-header-add"
+          aria-label="멤버 추가"
+          onClick={() => onAddMember?.(group.id)}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 2.5v7M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
 
-function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown, onDetail }) {
+function MemberRow({ member, groupId, idx, filteredIdx, hidden, canRemove, onMouseDown, onDetail, onRemove }) {
   return (
     <div
       className="tl-member-row"
@@ -63,17 +105,32 @@ function MemberRow({ member, groupId, idx, filteredIdx, hidden, onMouseDown, onD
         <div className="tl-member-name">{member.name}</div>
         <div className="tl-member-title">{member.title}</div>
       </div>
-      <button
-        type="button"
-        className="tl-member-arrow"
-        style={{ background: memberPalette(member).solid }}
-        aria-label={`${member.name} 상세 보기`}
-        onClick={() => onDetail?.(member.id)}
-      >
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-          <path d="M6 4l4 4-4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+      <div className="tl-member-actions">
+        {canRemove && (
+          <button
+            type="button"
+            className="tl-member-remove"
+            aria-label={`${member.name} 그룹에서 제거`}
+            title="이 그룹에서 제거"
+            onClick={() => onRemove?.(groupId, member.id)}
+          >
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+        <button
+          type="button"
+          className="tl-member-arrow"
+          style={{ background: memberPalette(member).solid }}
+          aria-label={`${member.name} 상세 보기`}
+          onClick={() => onDetail?.(member.id)}
+        >
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+            <path d="M6 4l4 4-4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
@@ -126,6 +183,10 @@ const NameColumn = forwardRef(function NameColumn(
     onAddExternalMember,
     onGroupAddMember,
     onMemberDetail,
+    onRemoveGroup,
+    onRenameGroup,
+    onRemoveMember,
+    currentUserId,
   },
   ref
 ) {
@@ -170,6 +231,7 @@ const NameColumn = forwardRef(function NameColumn(
           type: 'member',
           member: m,
           groupId: g.id,
+          groupIsDefault: !!g.isDefault,
           idx,
           filteredIdx: isDragged ? -1 : filteredIdx,
           hidden: isDragged,
@@ -209,6 +271,8 @@ const NameColumn = forwardRef(function NameColumn(
                   key={`g-${r.group.id}`}
                   group={r.group}
                   onAddMember={onGroupAddMember}
+                  onRemoveGroup={onRemoveGroup}
+                  onRenameGroup={onRenameGroup}
                 />
               );
             }
@@ -221,7 +285,11 @@ const NameColumn = forwardRef(function NameColumn(
                 />
               );
             }
-            // member row
+            // member row — 디폴트 그룹의 본인(ME)만 제거 버튼 미노출
+            // (pivit-specs v3.6: 사용자 그룹의 ME 는 제거 가능).
+            const canRemove =
+              !!onRemoveMember &&
+              !(r.groupIsDefault && r.member.id === currentUserId);
             return (
               <MemberRow
                 key={`m-${r.groupId}-${r.idx}-${r.member.id}`}
@@ -230,8 +298,10 @@ const NameColumn = forwardRef(function NameColumn(
                 idx={r.idx}
                 filteredIdx={r.filteredIdx}
                 hidden={r.hidden}
+                canRemove={canRemove}
                 onMouseDown={onStartDrag}
                 onDetail={onMemberDetail}
+                onRemove={onRemoveMember}
               />
             );
           })}
