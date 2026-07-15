@@ -20,8 +20,12 @@
 .okr-select-item-inner:hover { background: var(--alpha-black-3); }
 
 /* ── 캔버스 ── */
-/* 툴바 줄이 있어 조직도(177px)보다 아래에서 시작 */
-.okr-canvas-area { top: 229px; }
+/* 툴바 줄이 있어 조직도(177px)보다 아래에서 시작.
+   `.canvas-area{top:177}`(org_chart.css) 와 동일 specificity 라 스타일시트
+   주입 순서에 따라 뒤집혀 캔버스가 위로 올라오고 툴바와 드래그 안내문이
+   겹치는 문제가 있었다(소비자가 org_chart.css 를 뒤에 로드하는 경우).
+   클래스를 두 번 써 specificity 를 높여 주입 순서와 무관하게 항상 이기게 한다. */
+.okr-canvas-area.okr-canvas-area { top: 229px; }
 .okr-tab-placeholder { display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
 
 /* ── 트리 레이아웃 ──
