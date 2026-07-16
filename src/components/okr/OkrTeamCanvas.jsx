@@ -9,10 +9,19 @@ import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
  * data: { teams: [string], periodLabel, links, parents, board, history }
  * 팀 서브탭(밑줄 탭) + 기간 칩(현재/히스토리 — 히스토리는 개인과 동일 구조)
  * 아래에 공용 OkrBoard 를 렌더한다. 데모 데이터는 wrapper 소유.
+ *
+ * 서브탭 선택은 controlled/uncontrolled 를 모두 지원한다:
+ *   - activeTeam + onTeamChange 를 주면 소비자가 선택을 소유(보드를 팀별로
+ *     재조회 가능). 안 주면 기존처럼 내부 state 로 동작(non-breaking).
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '' }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange }) {
   const { teams, periodLabel, links, parents, board, history } = data;
-  const [team, setTeam] = useState(teams[1] ?? teams[0]);
+  const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
+  const team = activeTeam ?? internalTeam;
+  const selectTeam = (name) => {
+    if (onTeamChange) onTeamChange(name);
+    else setInternalTeam(name);
+  };
   const [periodTab, setPeriodTab] = useState('current');
 
   return (
@@ -22,7 +31,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '' }) {
           <span
             key={name}
             className={`okr-s-subtab${team === name ? ' is-active' : ''}`}
-            onClick={() => setTeam(name)}
+            onClick={() => selectTeam(name)}
           >
             {name}
           </span>
