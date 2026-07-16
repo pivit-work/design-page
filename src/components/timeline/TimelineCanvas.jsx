@@ -595,6 +595,7 @@ export default function TimelineCanvas({
           hour={cellPicker.hour}
           date={cellPicker.date}
           gcalConnected={gcalConnected}
+          baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
           onEvent={handleAddEventClick}
           onClose={() => setCellPicker(null)}

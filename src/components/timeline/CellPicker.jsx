@@ -1,8 +1,10 @@
 import { createPortal } from 'react-dom';
+import Icon from '../shared/Icon.jsx';
 
 /**
  * CellPicker — 타임라인 빈 셀(본인 행) 클릭 시 뜨는 액션 피커.
- * pivit-specs timeline-feed-view CellPicker 포팅: 클릭 좌표에 뜨는 186px 메뉴.
+ * 스타일은 design-page 타임라인 팝오버(FilterMenuPopover) 톤에 맞춘다:
+ *   radius 10 · 레이어드 소프트 섀도우 · 14px 타이포 · Icon 컴포넌트(SVG) + 브랜드 그린.
  *   시간 라벨 + "데일리 스니핏 작성" + "이벤트 추가" + Google Calendar 연동 상태.
  */
 const fmtHour = (h) => {
@@ -18,13 +20,14 @@ export default function CellPicker({
   hour,
   date,
   gcalConnected = false,
+  baseUrl,
   onSnippet,
   onEvent,
   onClose,
 }) {
   // 화면 오른쪽/아래 넘침 방지 — 메뉴 크기만큼 clamp.
-  const left = Math.min(pos.x, window.innerWidth - 198);
-  const top = Math.min(pos.y, window.innerHeight - 220);
+  const left = Math.min(pos.x, window.innerWidth - 244);
+  const top = Math.min(pos.y, window.innerHeight - 250);
   const dateLabel = typeof date === 'string' ? date.slice(5) : '';
 
   return createPortal(
@@ -49,14 +52,19 @@ export default function CellPicker({
             onSnippet?.();
           }}
         >
-          <span className="tl-cell-picker-ico tl-cell-picker-ico--snip">📝</span>
+          <span className="tl-cell-picker-ico">
+            <Icon
+              src="/icons-solid/file-06.svg"
+              size={18}
+              color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
+              baseUrl={baseUrl}
+            />
+          </span>
           <span className="tl-cell-picker-body">
             <span className="tl-cell-picker-title">데일리 스니핏 작성</span>
             <span className="tl-cell-picker-sub">오늘 한 일 · 헬스체크 · 태그</span>
           </span>
         </button>
-
-        <div className="tl-cell-picker-divider" />
 
         <button
           type="button"
@@ -67,7 +75,14 @@ export default function CellPicker({
             onEvent?.();
           }}
         >
-          <span className="tl-cell-picker-ico tl-cell-picker-ico--event">📅</span>
+          <span className="tl-cell-picker-ico">
+            <Icon
+              src="/icons-solid/calendar.svg"
+              size={18}
+              color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
+              baseUrl={baseUrl}
+            />
+          </span>
           <span className="tl-cell-picker-body">
             <span className="tl-cell-picker-title">이벤트 추가</span>
             <span className="tl-cell-picker-sub">회의 · 집중 작업 · 리뷰 · 외부 미팅</span>
@@ -77,7 +92,12 @@ export default function CellPicker({
         <div className="tl-cell-picker-divider" />
 
         <div className="tl-cell-picker-gcal">
-          <span className="tl-cell-picker-gcal-ico">📅</span>
+          <Icon
+            src="/icons-solid/calendar-check-02.svg"
+            size={16}
+            color="var(--colors-foreground-fgQuaternary, #98a2b3)"
+            baseUrl={baseUrl}
+          />
           <span className="tl-cell-picker-gcal-body">
             <span className="tl-cell-picker-gcal-title">
               Google Calendar
