@@ -318,6 +318,13 @@ export default function TimelineCanvas({
       { id: `g-${Date.now()}`, label: name, memberIds: [] },
     ]);
     setGroupAddOpen(false);
+    // 새 그룹은 맨 아래에 추가된다. 리스트가 길면(예: 부서 그룹 멤버 다수) 화면
+    // 밖이라 "아무 일도 안 일어난" 것처럼 보이므로, 세로 스크롤을 끝까지 내려
+    // 새 그룹이 보이게 한다. 새 행이 커밋된 뒤 측정하도록 rAF 로 defer.
+    requestAnimationFrame(() => {
+      const sc = rightScrollRef.current;
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
   };
   const handleAddInternal = ({ memberId, groupId }) => {
     handleGroupsCommit(
