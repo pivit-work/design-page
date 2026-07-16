@@ -307,7 +307,11 @@ export default function TimelineCanvas({
   const handleAddGroupClick = onAddGroup ?? (() => setGroupAddOpen(true));
   const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
   const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
-  const handleAddEventClick = onAddEvent ?? (() => setEventAddOpen(true));
+  // hour 는 셀 피커에서 클릭한 시각(정수). 툴바 버튼은 hour 없이 호출.
+  const handleAddEventClick = (hour) => {
+    if (onAddEvent) onAddEvent(hour);
+    else setEventAddOpen(true);
+  };
   const handleAddGroup = (name) => {
     handleGroupsCommit([
       ...groups,
@@ -491,7 +495,7 @@ export default function TimelineCanvas({
           <button
             type="button"
             className="tl-add-event tl-add-event-secondary"
-            onClick={handleAddEventClick}
+            onClick={() => handleAddEventClick()}
           >
             <Icon src={icons.plus} size={20} color="var(--colors-foreground-fgBrandPrimary, #2dbd82)" baseUrl={baseUrl} />
             <span>이벤트 추가</span>

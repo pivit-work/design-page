@@ -72,7 +72,7 @@ export default function CellPicker({
           role="menuitem"
           onClick={() => {
             onClose();
-            onEvent?.();
+            onEvent?.(hour);
           }}
         >
           <span className="tl-cell-picker-ico">
