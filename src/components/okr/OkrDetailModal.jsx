@@ -9,8 +9,18 @@ import OkrProgressBar from './OkrProgressBar.jsx';
  *   progressLabel, weight, krs: [{ id, title, percent, variant,
  *   valueLabel, weight }] }] }
  * detail 이 없으면 렌더하지 않는다. ESC/오버레이/X 로 닫는다.
+ *
+ * label: 위험 신호 배너 제목(기본 'AI 위험 신호').
+ * showRefresh: 우측 새로고침 아이콘 표시 여부(기본 true, non-breaking).
  */
-export default function OkrDetailModal({ detail, icons, baseUrl = '', onClose }) {
+export default function OkrDetailModal({
+  detail,
+  icons,
+  baseUrl = '',
+  onClose,
+  label = 'AI 위험 신호',
+  showRefresh = true,
+}) {
   useEffect(() => {
     if (!detail) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -33,9 +43,11 @@ export default function OkrDetailModal({ detail, icons, baseUrl = '', onClose })
             <div className="okr-ai-banner">
               <div className="okr-ai-banner-label">
                 <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                <span>AI 위험 신호</span>
+                <span>{label}</span>
               </div>
-              <Icon src={icons.refreshCw} size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+              {showRefresh && (
+                <Icon src={icons.refreshCw} size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+              )}
             </div>
             <div className="okr-ai-chips">
               {detail.aiSignals.map((signal) => (
