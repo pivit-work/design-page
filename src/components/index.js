@@ -104,6 +104,7 @@ export {
 export {
   ReportCanvas,
   ReportWeeklyRow,
+  ReportStatsRow,
   ReportViewerModal,
 } from './report/index.js';
 
