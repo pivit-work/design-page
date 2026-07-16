@@ -6,13 +6,14 @@ import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
  *
- * data: { person, periodLabel, links, parents, insights, overall, theme,
- *   objectives, history } — 데모 데이터는 wrapper(OkrPage)가 소유한다.
+ * data: { person, periodLabel, links, parents, banner?, insights, overall,
+ *   theme, objectives, history } — 데모 데이터는 wrapper(OkrPage)가 소유한다.
  * 기간 칩(현재/히스토리) 전환과 프로필·연결된 상위 OKR 를 담당하고,
- * 보드(AI 인사이트·달성률·테이블·모달)는 공용 OkrBoard 가 처리한다.
+ * 보드(인사이트·달성률·테이블·모달)는 공용 OkrBoard 가 처리한다. banner 는
+ * team/company 처럼 OkrBoard 로 전달해 라벨·새로고침 표시를 커스터마이즈한다.
  */
 export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
-  const { person, periodLabel, links, parents, insights, overall, theme, objectives, history } = data;
+  const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
   const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
 
   return (
@@ -39,7 +40,7 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '' }) {
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} />
+          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} />
         </>
       )}
     </div>
