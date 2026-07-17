@@ -46,6 +46,16 @@ const PAST_MEETINGS = [
     participants: '정은우 · Chris · 김우진 · 박은지',
   },
   {
+    // AI 생성이 실패해 멈춘 회의 — 계속 "생성 중" 이라고 하면 거짓말이라
+    // 별도 상태로 드러낸다 (기획 §4.5). 상세에서 [다시 시도] 가능.
+    id: 'p-failed',
+    time: '어제 11:00',
+    duration: '45m',
+    title: '리서치 공유',
+    participants: '박우진 · 최유나',
+    summaryFailed: true,
+  },
+  {
     id: 'p2',
     time: '어제 14:00',
     duration: '1h',
@@ -72,6 +82,7 @@ const LABELS = {
   completed: '완료',
   start: '시작',
   generating: '회의록 생성 중..',
+  summaryFailed: '회의록 생성 실패',
 };
 
 const MODAL_LABELS = {
