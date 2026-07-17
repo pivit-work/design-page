@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
-import WeekGrid from './WeekGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
 import CalendarWeekView from './CalendarWeekView.jsx';
 import MeetingModal from './MeetingModal.jsx';
+import CellPicker from './CellPicker.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
 import CustomSelect from './CustomSelect.jsx';
@@ -37,8 +37,6 @@ import {
   TODAY_STR,
   HOURS,
   HOUR_W,
-  getWeekDates,
-  getMonthDates,
   formatIsoDate,
   getTodayStr,
   SNIPPET_COLORS,
@@ -50,15 +48,6 @@ const formatKoreanDate = (d) =>
 const parseIsoDate = (s) => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d);
-};
-
-// 주/월별 보기에서 렌더할 날짜 배열. viewUnit 이 'day' 면 빈 배열.
-//   week  → 7일(일~토)
-//   month → 28~31일(selectedDate 가 속한 달의 1일~말일)
-const getSnippetDates = (viewUnit, selectedDate) => {
-  if (viewUnit === 'week') return getWeekDates(selectedDate);
-  if (viewUnit === 'month') return getMonthDates(selectedDate);
-  return [];
 };
 
 export default function TimelineCanvas({
@@ -88,6 +77,8 @@ export default function TimelineCanvas({
   onGroupAddMember,
   // 멤버 행 "상세 보기"(>) 클릭 — 그 멤버 id 를 인자로. 미주입 시 no-op.
   onMemberDetail,
+  // 현재 로그인 사용자(ME) id. 디폴트 그룹에서 본인 제거 버튼을 숨기는 데 사용.
+  currentUserId,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -111,8 +102,7 @@ export default function TimelineCanvas({
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
-  const [viewUnit] = useState('day');
-  // 캘린더 탭 보기 단위 — 'week' | 'month'. 간트의 viewUnit 과 독립.
+  // 캘린더 탭 보기 단위 — 'week' | 'month'. (간트 탭은 항상 일(day) 뷰.)
   const [calViewUnit, setCalViewUnit] = useState(initialCalViewUnit ?? 'month');
 
   // 탭 / 캘린더 보기 단위 변경 — 내부 state 갱신 + onViewChange 통지(이벤트
@@ -130,10 +120,8 @@ export default function TimelineCanvas({
   );
 
   const isGantt = currentTab === 'gantt';
-  const snippetDates = getSnippetDates(viewUnit, selectedDate);
-  // viewUnit 이 같아도 월이 바뀌면 dayCount 가 변할 수 있기 때문에(예: 4월
-  // 30일 → 5월 31일) 이 값으로 effect 를 트리거.
-  const dayCount = snippetDates.length || 1;
+  // 간트는 항상 일(day) 뷰 — 하루 단위 그리드.
+  const dayCount = 1;
 
   const {
     leftMidRef,
@@ -161,10 +149,34 @@ export default function TimelineCanvas({
     onGroupsChange?.(next);
   };
 
+  // 그룹 삭제 / 이름변경 / 멤버제거 — 모두 groups 배열을 변형해 commit.
+  // 디폴트 그룹은 삭제 버튼 자체가 노출되지 않으나(방어적으로) 재확인.
+  const handleRemoveGroup = (groupId) => {
+    handleGroupsCommit(groups.filter((g) => g.id !== groupId || g.isDefault));
+  };
+  const handleRenameGroup = (groupId, label) => {
+    handleGroupsCommit(
+      groups.map((g) => (g.id === groupId ? { ...g, label } : g)),
+    );
+  };
+  const handleRemoveMember = (groupId, memberId) => {
+    handleGroupsCommit(
+      groups.map((g) =>
+        g.id === groupId
+          ? { ...g, memberIds: g.memberIds.filter((id) => id !== memberId) }
+          : g,
+      ),
+    );
+  };
+
   const { dragState, dragOver, startDrag } = useTimelineDnD({
     groups,
     setGroups: handleGroupsCommit,
   });
+
+  // ── Empty-cell picker state (본인 행 빈 셀 클릭) ──────────────────────────
+  const [cellPicker, setCellPicker] = useState(null); // { pos, hour, date } | null
+  const handleCellClick = (pos, hour, date) => setCellPicker({ pos, hour, date });
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
@@ -295,13 +307,24 @@ export default function TimelineCanvas({
   const handleAddGroupClick = onAddGroup ?? (() => setGroupAddOpen(true));
   const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
   const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
-  const handleAddEventClick = onAddEvent ?? (() => setEventAddOpen(true));
+  // hour 는 셀 피커에서 클릭한 시각(정수). 툴바 버튼은 hour 없이 호출.
+  const handleAddEventClick = (hour) => {
+    if (onAddEvent) onAddEvent(hour);
+    else setEventAddOpen(true);
+  };
   const handleAddGroup = (name) => {
     handleGroupsCommit([
       ...groups,
       { id: `g-${Date.now()}`, label: name, memberIds: [] },
     ]);
     setGroupAddOpen(false);
+    // 새 그룹은 맨 아래에 추가된다. 리스트가 길면(예: 부서 그룹 멤버 다수) 화면
+    // 밖이라 "아무 일도 안 일어난" 것처럼 보이므로, 세로 스크롤을 끝까지 내려
+    // 새 그룹이 보이게 한다. 새 행이 커밋된 뒤 측정하도록 rAF 로 defer.
+    requestAnimationFrame(() => {
+      const sc = rightScrollRef.current;
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
   };
   const handleAddInternal = ({ memberId, groupId }) => {
     handleGroupsCommit(
@@ -354,8 +377,7 @@ export default function TimelineCanvas({
         if (calViewUnit === 'week') next.setDate(next.getDate() + direction * 7);
         else next.setMonth(next.getMonth() + direction);
       }
-      else if (viewUnit === 'week') next.setDate(next.getDate() + direction * 7);
-      else if (viewUnit === 'month') next.setMonth(next.getMonth() + direction);
+      // 간트 탭은 항상 일 단위 이동.
       else next.setDate(next.getDate() + direction);
       return next;
     });
@@ -364,25 +386,7 @@ export default function TimelineCanvas({
   const goNextDate = () => shiftByViewUnit(1);
   const goToday = () => {
     // 항상 실시간 오늘. 장시간 세션 중 자정을 넘겨도 올바르게 동작.
-    const todayIso = getTodayStr();
-    setSelectedDate(parseIsoDate(todayIso));
-    // 월별 뷰에서는 오늘 컬럼이 가로 스크롤의 중앙에 오도록 이동.
-    // setSelectedDate 이후 React 가 새 dates/dayColW 로 grid 를 commit
-    // 해야 실제 column offsetWidth 가 확정되므로 rAF 로 1 프레임 defer.
-    if (viewUnit !== 'month') return;
-    requestAnimationFrame(() => {
-      const rightScroll = rightScrollRef.current;
-      if (!rightScroll) return;
-      const headerCell = rightScroll.querySelector('.tl-week-header-cell');
-      if (!headerCell) return;
-      const colW = headerCell.offsetWidth;
-      const todayDate = parseIsoDate(todayIso);
-      const idx = todayDate.getDate() - 1;
-      const colCenter = idx * colW + colW / 2;
-      const target = colCenter - rightScroll.clientWidth / 2;
-      const maxScroll = rightScroll.scrollWidth - rightScroll.clientWidth;
-      rightScroll.scrollLeft = Math.max(0, Math.min(target, maxScroll));
-    });
+    setSelectedDate(parseIsoDate(getTodayStr()));
   };
 
   // selectedDate 가 바뀔 때마다 간트 일 뷰의 가로 스크롤 위치를 조정.
@@ -392,7 +396,7 @@ export default function TimelineCanvas({
   useEffect(() => {
     const sc = rightScrollRef.current;
     if (!sc) return;
-    if (!isGantt || viewUnit !== 'day') return;
+    if (!isGantt) return;
     requestAnimationFrame(() => {
       const selectedIso = formatIsoDate(selectedDate);
       const startH = HOURS[0];
@@ -409,7 +413,7 @@ export default function TimelineCanvas({
         sc.scrollLeft = Math.max(0, Math.min(offset, maxScroll));
       }
     });
-  }, [selectedDate, isGantt, viewUnit, rightScrollRef]);
+  }, [selectedDate, isGantt, rightScrollRef]);
 
   return (
     <TimelineDataProvider
@@ -494,11 +498,11 @@ export default function TimelineCanvas({
 
         <div className="tl-toolbar-spacer" />
 
-        {isGantt && viewUnit === 'day' && (
+        {isGantt && (
           <button
             type="button"
             className="tl-add-event tl-add-event-secondary"
-            onClick={handleAddEventClick}
+            onClick={() => handleAddEventClick()}
           >
             <Icon src={icons.plus} size={20} color="var(--colors-foreground-fgBrandPrimary, #2dbd82)" baseUrl={baseUrl} />
             <span>이벤트 추가</span>
@@ -555,28 +559,22 @@ export default function TimelineCanvas({
             onAddExternalMember={handleAddExternalClick}
             onGroupAddMember={onGroupAddMember}
             onMemberDetail={onMemberDetail}
+            onRemoveGroup={handleRemoveGroup}
+            onRenameGroup={handleRenameGroup}
+            onRemoveMember={handleRemoveMember}
+            currentUserId={currentUserId}
           />
-          {viewUnit === 'day' ? (
-            <TimelineGrid
-              ref={rightScrollRef}
-              onScroll={handleRightScroll}
-              onMouseDown={handleHorizontalDragMouseDown}
-              groups={groups}
-              onMeetingClick={handleMeetingClick}
-              spacerH={spacerH}
-              targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
-            />
-          ) : (
-            <WeekGrid
-              ref={rightScrollRef}
-              onScroll={handleRightScroll}
-              onMouseDown={handleHorizontalDragMouseDown}
-              groups={groups}
-              dates={snippetDates}
-              spacerH={spacerH}
-              dayColW={dayColW}
-            />
-          )}
+          <TimelineGrid
+            ref={rightScrollRef}
+            onScroll={handleRightScroll}
+            onMouseDown={handleHorizontalDragMouseDown}
+            groups={groups}
+            onMeetingClick={handleMeetingClick}
+            spacerH={spacerH}
+            targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
+            onCellClick={handleCellClick}
+            currentUserId={currentUserId}
+          />
         </div>
       )}
 
@@ -598,6 +596,20 @@ export default function TimelineCanvas({
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
+        />
+      )}
+
+      {/* Empty-cell action picker */}
+      {cellPicker && (
+        <CellPicker
+          pos={cellPicker.pos}
+          hour={cellPicker.hour}
+          date={cellPicker.date}
+          gcalConnected={gcalConnected}
+          baseUrl={baseUrl}
+          onSnippet={handleSnippetCreate}
+          onEvent={handleAddEventClick}
+          onClose={() => setCellPicker(null)}
         />
       )}
 

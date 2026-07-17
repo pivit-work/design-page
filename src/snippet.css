@@ -141,12 +141,24 @@
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .snippet-member-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* 사진 없는 멤버의 이니셜 폴백 — admin AvatarFallback 과 같은 규칙(color20 배경).
+   배경색과 글자색은 멤버별 color 라 인라인 스타일로 들어온다. */
+.snippet-member-avatar-text {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  user-select: none;
 }
 .snippet-member.is-selected .snippet-member-avatar {
   box-shadow:

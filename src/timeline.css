@@ -555,6 +555,57 @@
   padding: 0;
 }
 
+/* 그룹 헤더 우측 액션(삭제 × + 멤버추가 +) */
+.tl-group-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-group-header-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.tl-group-header:hover .tl-group-header-remove,
+.tl-group-header-remove:focus-visible {
+  opacity: 1;
+}
+
+.tl-group-header-remove:hover {
+  color: #ef4444;
+}
+
+/* 그룹 이름 인라인 편집 */
+.tl-group-header-name.is-editable {
+  cursor: text;
+}
+
+.tl-group-header-edit {
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: -0.12px;
+  color: var(--text-secondary);
+  background: #ffffff;
+  border: 1px solid var(--colors-border-borderBrand, #7f56d9);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: -1px 0;
+  min-width: 0;
+  max-width: 120px;
+  outline: none;
+}
+
 /* Member row */
 .tl-member-row {
   display: flex;
@@ -962,6 +1013,40 @@
   white-space: nowrap;
 }
 
+/* 멤버 행 우측 액션(제거 × + 상세 >) */
+.tl-member-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.tl-member-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.tl-member-row:hover .tl-member-remove,
+.tl-member-remove:focus-visible {
+  opacity: 1;
+}
+
+.tl-member-remove:hover {
+  color: #ef4444;
+}
+
 .tl-member-arrow {
   display: inline-flex;
   align-items: center;
@@ -1068,6 +1153,157 @@
   border-right: 1px solid #f3f4f6;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+/* 본인 행의 빈 셀만 클릭 가능 — 시안 crosshair 커서 */
+.tl-grid-cell.is-clickable {
+  cursor: crosshair;
+}
+
+.tl-grid-cell.is-clickable:hover {
+  background: rgba(127, 86, 217, 0.05);
+}
+
+/* ===========================
+   Cell action picker (CellPicker) — design-page 팝오버 톤(FilterMenuPopover)
+   =========================== */
+.tl-cell-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.tl-cell-picker {
+  position: fixed;
+  width: 236px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-radius: 10px;
+  box-shadow:
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
+    0 21px 120px -12px rgba(10, 13, 18, 0.14);
+  padding: 4px;
+  box-sizing: border-box;
+  z-index: 71;
+}
+
+.tl-cell-picker-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary, #667085);
+  padding: 6px 8px 8px;
+  margin: 0 2px 4px;
+  border-bottom: 1px solid var(--border-secondary, #eaecf0);
+}
+
+.tl-cell-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.tl-cell-picker-item:hover {
+  background: var(--bg-secondary);
+}
+
+.tl-cell-picker-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-secondary, #f9fafb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tl-cell-picker-item:hover .tl-cell-picker-ico {
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+}
+
+.tl-cell-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tl-cell-picker-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary, #101828);
+}
+
+.tl-cell-picker-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-tertiary, #667085);
+}
+
+.tl-cell-picker-divider {
+  height: 1px;
+  background: var(--border-secondary, #eaecf0);
+  margin: 4px 8px;
+}
+
+.tl-cell-picker-gcal {
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl-cell-picker-gcal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tl-cell-picker-gcal-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #344054);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tl-cell-picker-gcal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tl-cell-picker-gcal-dot.is-on {
+  background: #16a34a;
+}
+
+.tl-cell-picker-gcal-dot.is-off {
+  background: var(--text-quaternary, #98a2b3);
+}
+
+.tl-cell-picker-gcal-state {
+  font-size: 11px;
+  color: #16a34a;
+}
+
+.tl-cell-picker-gcal-dot.is-off + .tl-cell-picker-gcal-state {
+  color: var(--text-tertiary, #98a2b3);
+}
+
+.tl-cell-picker-gcal-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, #667085);
 }
 
 /* ===========================
@@ -2912,6 +3148,11 @@
   color: var(--text-tertiary);
 }
 
+/* 글자수 90% 근접 경고 — pivit-specs 시안 기준 #EF4444. */
+.tl-snippet-count.is-near-limit {
+  color: #ef4444;
+}
+
 /* Health Check — 1~10 점수 버튼 (Figma 16627:58459).
    레이블 우측에 368px 폭으로 10개 버튼이 6px 간격으로 균등 배치된다.
    기본: bg rgba(0,0,0,0.03), text-secondary; 선택: bg #687079, white. */
@@ -2957,6 +3198,50 @@
 
 .tl-snippet-health-score.is-selected:hover {
   background: var(--colors-background-bgSecondarySolid, #687079);
+}
+
+/* 점수별 색상 티어 (pivit-specs 시안 hColor). 선택된 버튼만 티어색으로 채운다.
+   generic .is-selected 규칙 뒤에 와야 동일 특이도에서 우선한다. */
+.tl-snippet-health-score--good.is-selected,
+.tl-snippet-health-score--good.is-selected:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.tl-snippet-health-score--mid.is-selected,
+.tl-snippet-health-score--mid.is-selected:hover {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.tl-snippet-health-score--low.is-selected,
+.tl-snippet-health-score--low.is-selected:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* 현재 점수 라벨 뱃지 (pivit-specs 시안 hLabel). Health Check 타이틀 옆. */
+.tl-snippet-health-label {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  border-radius: 6px;
+  color: #ffffff;
+  vertical-align: middle;
+}
+
+.tl-snippet-health-label--good {
+  background: #16a34a;
+}
+
+.tl-snippet-health-label--mid {
+  background: #d97706;
+}
+
+.tl-snippet-health-label--low {
+  background: #dc2626;
 }
 
 /* Tag 입력 필드 — 선택된 태그 chip + 신규 입력을 한 필드 안에 배치.

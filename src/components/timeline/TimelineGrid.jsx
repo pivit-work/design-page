@@ -13,7 +13,17 @@ import MeetingBlock from './MeetingBlock.jsx';
 import useTimelineData from './useTimelineData.js';
 
 const TimelineGrid = forwardRef(function TimelineGrid(
-  { onScroll, onMouseDown, groups, onMeetingClick, spacerH = BOTTOM_H, targetDate = TODAY_STR },
+  {
+    onScroll,
+    onMouseDown,
+    groups,
+    onMeetingClick,
+    spacerH = BOTTOM_H,
+    targetDate = TODAY_STR,
+    // 빈 셀 클릭 — 본인(currentUserId) 행에서만 활성. (pos{x,y}, hour, date) 인자.
+    onCellClick,
+    currentUserId,
+  },
   ref
 ) {
   const { members, meetings } = useTimelineData();
@@ -93,6 +103,8 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                   />
                 );
               }
+              // 빈 셀 클릭은 본인 행에서만 — 시안 정책(m.id==="me" 에서만 crosshair).
+              const cellClickable = !!onCellClick && r.member.id === currentUserId;
               return (
                 <div
                   key={`grr-${i}`}
@@ -100,7 +112,17 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                   style={{ top: rowY, height: ROW_H, width: totalInnerW }}
                 >
                   {HOURS.map((h) => (
-                    <div key={h} className="tl-grid-cell" style={{ width: HOUR_W }} />
+                    <div
+                      key={h}
+                      className={`tl-grid-cell${cellClickable ? ' is-clickable' : ''}`}
+                      style={{ width: HOUR_W }}
+                      {...(cellClickable
+                        ? {
+                            onClick: (e) =>
+                              onCellClick({ x: e.clientX, y: e.clientY }, h, targetDate),
+                          }
+                        : null)}
+                    />
                   ))}
                 </div>
               );
