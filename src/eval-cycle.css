@@ -4426,3 +4426,54 @@
   font-size: 11px;
   color: var(--text-tertiary, #667085);
 }
+
+/* ── 피드백 작성: 검색형 대상 선택기 (구성원 수백 명 대응) ───────── */
+.fb-combo {
+  position: relative;
+}
+.fb-combo-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: var(--spacing-xs, 4px);
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-sm, 8px);
+  box-shadow: 0 12px 32px rgba(10, 13, 18, 0.16);
+}
+.fb-combo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  cursor: pointer;
+}
+.fb-combo-item:hover,
+.fb-combo-item.is-on {
+  background: var(--bg-secondary);
+}
+.fb-combo-name {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+}
+.fb-combo-email {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.fb-combo-empty {
+  padding: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-tertiary);
+}

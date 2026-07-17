@@ -25,6 +25,8 @@ const DEFAULT_LABELS = {
   modalTitle: '피드백 작성',
   targetLabel: '대상',
   targetPlaceholder: '구성원 선택',
+  targetSearchPlaceholder: '이름·이메일·부서로 검색',
+  targetEmpty: '검색 결과가 없습니다.',
   textLabel: '내용',
   textPlaceholder: '구체적 상황·행동·영향(SBI)을 담아 작성하세요.',
   cancel: '취소',
@@ -46,30 +48,99 @@ function mergeLabels(base, provided) {
   return out;
 }
 
+/** 구성원 표시명: "이름 · 부서". 부서 없으면 이름만. */
+function memberLabel(c) {
+  return `${c.name}${c.department ? ` · ${c.department}` : ''}`;
+}
+
 function ComposeModal({ labels: L, candidates, onSend, onCancel }) {
   const [target, setTarget] = useState('');
   const [text, setText] = useState('');
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
   const canSend = target && text.trim();
+
+  const selected = useMemo(
+    () => candidates.find((c) => c.id === target) || null,
+    [candidates, target],
+  );
+
+  // 이름·부서·이메일 어디로든 검색 — 구성원이 수백 명이어도 좁혀진다.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return candidates;
+    return candidates.filter((c) =>
+      [c.name, c.department, c.email]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [candidates, query]);
+
+  const pick = (c) => {
+    setTarget(c.id);
+    setQuery('');
+    setOpen(false);
+  };
+
   return createPortal(
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-modal is-wide" onClick={(e) => e.stopPropagation()}>
         <h3 className="evc-modal-title">{L.modalTitle}</h3>
         <label className="evc-field-label" htmlFor="fb-target">{L.targetLabel}</label>
-        <select
-          id="fb-target"
-          className="evc-input"
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          data-testid="fb-target"
-        >
-          <option value="">{L.targetPlaceholder}</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.department ? ` · ${c.department}` : ''}
-            </option>
-          ))}
-        </select>
+        <div className="fb-combo">
+          <input
+            id="fb-target"
+            className="evc-input"
+            type="text"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="fb-target-list"
+            aria-autocomplete="list"
+            autoComplete="off"
+            value={open ? query : selected ? memberLabel(selected) : ''}
+            placeholder={open ? L.targetSearchPlaceholder : L.targetPlaceholder}
+            onFocus={() => {
+              setOpen(true);
+              setQuery('');
+            }}
+            // onMouseDown preventDefault 로 항목 클릭이 blur 보다 먼저 처리된다.
+            onBlur={() => setOpen(false)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setOpen(false);
+            }}
+            data-testid="fb-target"
+          />
+          {open && (
+            <ul className="fb-combo-list" id="fb-target-list" role="listbox">
+              {filtered.length === 0 ? (
+                <li className="fb-combo-empty" data-testid="fb-target-empty">
+                  {L.targetEmpty}
+                </li>
+              ) : (
+                filtered.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={c.id === target}
+                      className={`fb-combo-item${c.id === target ? ' is-on' : ''}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pick(c)}
+                      data-testid={`fb-target-opt-${c.id}`}
+                    >
+                      <span className="fb-combo-name">{memberLabel(c)}</span>
+                      {c.email && <span className="fb-combo-email">{c.email}</span>}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
+        </div>
         <label className="evc-field-label" htmlFor="fb-text">{L.textLabel}</label>
         <textarea
           id="fb-text"
