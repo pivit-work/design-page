@@ -46,7 +46,11 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels }) {
         </div>
         <span className="mtg-row-participants">{meeting.participants}</span>
       </div>
-      {meeting.generating ? (
+      {meeting.summaryFailed ? (
+        // 생성이 멈춘 상태 — "생성 중" 과 구분되지 않으면 목록이 거짓말을 한다.
+        // 상세로 들어가면 사유와 [다시 시도] 를 볼 수 있다.
+        <span className="mtg-row-failed">{statusLabels.failedLabel}</span>
+      ) : meeting.generating ? (
         <span className="mtg-row-generating">{statusLabels.generatingLabel}</span>
       ) : (
         isOngoing && (
@@ -96,6 +100,7 @@ export default function MeetingsCanvas({
     completed: { label: labels.completed, className: 'mtg-tag-completed' },
     startLabel: labels.start,
     generatingLabel: labels.generating,
+    failedLabel: labels.summaryFailed,
   };
 
   const [activeMeeting, setActiveMeeting] = useState(null);
