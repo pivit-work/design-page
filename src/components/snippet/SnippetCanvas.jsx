@@ -57,6 +57,8 @@ export default function SnippetCanvas({
   avgHealth = '-',
   avgWrite = '-',
   // 매니저 뷰 토글 + 멤버 목록
+  // showManagerToggle: 호스트가 역할 게이트를 걸 때 false (기본은 노출 — 데모 유지).
+  showManagerToggle = true,
   isManagerView = false,
   onToggleManagerView,
   members = [],
@@ -101,15 +103,17 @@ export default function SnippetCanvas({
           <div className="snippet-title-row">
             <h1 className="snippet-title">스니핏</h1>
             {/* 개발 확인용 매니저 뷰 토글 */}
-            <button
-              type="button"
-              className={`snippet-view-toggle ${isManagerView ? 'is-on' : ''}`}
-              onClick={onToggleManagerView}
-              title="개발 확인용 — 매니저/멤버 뷰 전환"
-            >
-              <span className="snippet-view-toggle-dot" />
-              매니저 모드 {isManagerView ? 'on' : 'off'}
-            </button>
+            {showManagerToggle && (
+              <button
+                type="button"
+                className={`snippet-view-toggle ${isManagerView ? 'is-on' : ''}`}
+                onClick={onToggleManagerView}
+                title="개발 확인용 — 매니저/멤버 뷰 전환"
+              >
+                <span className="snippet-view-toggle-dot" />
+                매니저 모드 {isManagerView ? 'on' : 'off'}
+              </button>
+            )}
           </div>
           <p className="snippet-subtitle">
             과거에 작성한 데일리 스니핏을 날짜별로 조회합니다.
