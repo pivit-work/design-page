@@ -1,0 +1,623 @@
+/* ══════════════════════════════════════════════════════════
+   내 설정 (MySettingsCanvas) — my-settings-view.jsx 시안 포팅
+   admin.css 프리미티브(admin-card, admin-emp-input, admin-notif-*)
+   위에 화면 고유 레이아웃/타일만 정의한다. prefix: msc-
+   ══════════════════════════════════════════════════════════ */
+
+.msc-canvas {
+  --admin-card-shadow:
+    0 1px 2px var(--colors-effects-shadows-shadowSm01, rgba(10, 13, 18, 0.06)),
+    0 1px 3px var(--colors-effects-shadows-shadowSm02, rgba(10, 13, 18, 0.1));
+  font-family: var(--font-family-body);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  min-height: 100%;
+}
+
+.msc-layout {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── 좌측 탭 내비게이션 ─────────────────────────────── */
+.msc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 20px;
+}
+
+.msc-nav-profile {
+  padding: 14px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  margin-bottom: 12px;
+  text-align: center;
+  box-shadow: var(--admin-card-shadow);
+}
+
+.msc-nav-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.msc-nav-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msc-nav-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.msc-nav-title {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.msc-nav-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-quaternary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 4px 14px;
+  margin-top: 4px;
+}
+
+.msc-nav-divider {
+  height: 1px;
+  background: var(--border-secondary-alt, var(--border-primary));
+  margin: 6px 10px;
+  border: none;
+}
+
+.msc-nav-btn {
+  padding: 9px 14px 9px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background 0.12s, color 0.12s;
+}
+
+.msc-nav-btn:hover {
+  background: var(--bg-secondary);
+}
+
+.msc-nav-btn.is-active {
+  font-weight: 700;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+
+/* ── 콘텐츠 공통 ────────────────────────────────────── */
+.msc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.msc-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.msc-field {
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.msc-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.msc-field-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+
+.msc-field-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.msc-char-count {
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.msc-input-error {
+  font-size: 11px;
+  color: var(--text-error-primary);
+  margin: 4px 0 0;
+}
+
+/* 입력은 컨테이너 폭에 맞춘다 (input 기본 size 속성 폭 방지) */
+.msc-canvas .admin-emp-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 읽기 전용 필드 — admin-emp-input 위 오버라이드 */
+.msc-canvas .admin-emp-input.is-readonly {
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  pointer-events: none;
+}
+
+/* ── 프로필 사진 ────────────────────────────────────── */
+.msc-photo-section {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.msc-photo-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 2px solid var(--text-brand-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.msc-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msc-photo-caption {
+  font-size: 10px;
+  color: var(--text-brand-secondary);
+  font-weight: 700;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.msc-photo-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.msc-photo-tile {
+  position: relative;
+  cursor: pointer;
+}
+
+.msc-photo-tile-img {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border-primary);
+  transition: border-color 0.15s;
+}
+
+.msc-photo-tile.is-active .msc-photo-tile-img {
+  border-color: var(--text-brand-tertiary);
+}
+
+.msc-photo-tile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.msc-photo-tile-check {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-solid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text-white);
+  font-weight: 800;
+}
+
+.msc-photo-tile-del {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--bg-error-primary, var(--utility-error-500, #dc2626));
+  color: var(--text-white);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+
+.msc-photo-add {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-primary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--text-quaternary);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.msc-photo-add:hover {
+  border-color: var(--text-brand-tertiary);
+  color: var(--text-brand-secondary);
+}
+
+.msc-photo-help {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── 저장 버튼 ──────────────────────────────────────── */
+.msc-save-btn {
+  padding: 12px 0;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.3s;
+  width: 100%;
+}
+
+.msc-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.msc-save-btn.is-saved {
+  background: var(--utility-green-600, #16a34a);
+}
+
+.msc-save-btn.is-error {
+  background: var(--bg-error-primary, #dc2626);
+}
+
+/* ── 공개 범위 ──────────────────────────────────────── */
+.msc-vis-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-secondary-alt, var(--border-primary));
+}
+
+.msc-vis-group-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.msc-vis-group-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.msc-vis-items {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.msc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.msc-row-label {
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.msc-vis-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+}
+
+.msc-card.is-green {
+  border-color: var(--utility-green-200, #bbf7d0);
+  border-width: 1.5px;
+}
+
+.msc-card.is-brand {
+  border-color: var(--utility-brand-200);
+  border-width: 1.5px;
+}
+
+.msc-vis-badge.is-green {
+  background: var(--utility-green-50, #f0fdf4);
+  border: 1px solid var(--utility-green-200, #bbf7d0);
+  color: var(--utility-green-600, #16a34a);
+}
+
+.msc-vis-badge.is-brand {
+  background: var(--bg-brand-secondary);
+  border: 1px solid var(--utility-brand-200);
+  color: var(--text-brand-secondary);
+}
+
+/* ── 알림 ───────────────────────────────────────────── */
+.msc-notif-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msc-notif-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.msc-notif-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ── 개인 연동 ──────────────────────────────────────── */
+.msc-intg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.msc-intg-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.msc-intg-icon img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.msc-intg-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.msc-intg-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--utility-green-50, #f0fdf4);
+  border: 1px solid var(--utility-green-200, #bbf7d0);
+  color: var(--utility-green-600, #16a34a);
+}
+
+.msc-intg-badge.is-muted {
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
+  color: var(--text-tertiary);
+}
+
+.msc-intg-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.msc-intg-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 2px;
+}
+
+.msc-intg-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.msc-intg-sub {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-secondary-alt, var(--border-primary));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msc-intg-sub-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-quaternary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.msc-intg-sub-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── 보안 ───────────────────────────────────────────── */
+.msc-session-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.msc-session-row.is-current {
+  background: var(--bg-brand-secondary);
+  border-color: var(--utility-brand-200);
+}
+
+.msc-empty-state {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.msc-danger-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-error-primary);
+  margin-bottom: 3px;
+}
+
+.msc-row-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.msc-row-sub {
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+
+/* ── 업로드 모달 ────────────────────────────────────── */
+.msc-upload-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed var(--border-primary);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-bottom: 14px;
+  min-height: 140px;
+}
+
+.msc-upload-drop.is-drag {
+  border-color: var(--text-brand-tertiary);
+  background: var(--bg-brand-secondary);
+}
+
+.msc-upload-drop.has-preview {
+  padding: 16px;
+}
+
+.msc-upload-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+  border: 2px solid var(--text-brand-tertiary);
+}
+
+.msc-upload-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.msc-upload-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.msc-upload-again {
+  font-size: 11px;
+  color: var(--text-brand-secondary);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .msc-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .msc-nav {
+    position: static;
+  }
+
+  .msc-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}

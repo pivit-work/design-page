@@ -11,6 +11,7 @@ import SnippetPage from './SnippetPage';
 import MeetingsPage from './MeetingsPage';
 import ManagerPage from './ManagerPage';
 import OkrPage from './OkrPage';
+import SettingsPage from './SettingsPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
@@ -208,6 +209,7 @@ export default function App() {
       {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'okr' && <OkrPage icons={ICONS} baseUrl={BASE} />}
+      {currentPage === 'settings' && <SettingsPage />}
     </div>
   );
 }
