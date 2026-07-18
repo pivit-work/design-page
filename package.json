@@ -20,6 +20,7 @@
     "./styles/snippet.css": "./src/snippet.css",
     "./styles/okr.css": "./src/okr.css",
     "./styles/admin.css": "./src/admin.css",
+    "./styles/settings.css": "./src/settings.css",
     "./styles/admin-integrations.css": "./src/admin-integrations.css",
     "./styles/team-management.css": "./src/team-management.css",
     "./styles/eval-cycle.css": "./src/eval-cycle.css",
