@@ -69,10 +69,42 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   }, [onMemberClick]);
   const closeModal = useCallback(() => setSelectedMember(null), []);
 
-  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView } = usePanZoom({
+  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
     ignoreSelector: '.zoom-controls, .member-node, .dept-card',
   });
   const canvasInnerRef = useRef(null);
+
+  // 초기 카메라를 root 노드가 화면 가로 중앙에 오도록 맞춘다.
+  // 트리는 canvas-inner 안에서 justify-content:center 로 가운데 정렬되므로,
+  // 인원이 많아 트리가 뷰포트보다 넓으면 root 가 오른쪽으로 밀려 초기 뷰(translate 0)
+  // 에서 빈 화면처럼 보인다. 마운트 후(레이아웃·커넥터 안정화 대기) 한 번만 보정한다.
+  const didCenterRef = useRef(false);
+  useEffect(() => { didCenterRef.current = false; }, [initialOrgData]);
+  useEffect(() => {
+    if (didCenterRef.current) return;
+    const area = canvasRef.current;
+    const inner = canvasInnerRef.current;
+    if (!area || !inner) return;
+    let raf = 0;
+    const timer = setTimeout(() => {
+      raf = requestAnimationFrame(() => {
+        // root(회사) 노드의 카드를 뷰포트 가로 중앙에 맞춘다. 트리는 비대칭이라
+        // 콘텐츠 폭의 절반이 아니라 root 카드 실제 위치를 기준으로 보정해야 한다.
+        const rootDept = inner.querySelector(':scope > .org-node > .dept-card');
+        if (!rootDept) return;
+        const areaRect = area.getBoundingClientRect();
+        const deptRect = rootDept.getBoundingClientRect();
+        if (!areaRect.width || !deptRect.width) return;
+        // 이 effect 는 마운트 직후(translate 0) 한 번만 실행되므로, root 카드 중심을
+        // 뷰포트 중심으로 옮기는 이동량이 곧 목표 translate.x 가 된다.
+        const areaCenterX = areaRect.left + areaRect.width / 2;
+        const deptCenterX = deptRect.left + deptRect.width / 2;
+        setView(1, { x: Math.round(areaCenterX - deptCenterX), y: 0 });
+        didCenterRef.current = true;
+      });
+    }, 160);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [orgData, setView, canvasRef]);
 
   return (
     <PositionsContext.Provider value={{ positions, updatePosition }}>

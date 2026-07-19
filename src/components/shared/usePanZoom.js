@@ -91,5 +91,7 @@ export default function usePanZoom({ ignoreSelector, minScale = 0.2, maxScale = 
     zoomIn,
     zoomOut,
     resetView,
+    // 초기 카메라 정렬 등에서 소비 측이 배율/이동을 직접 지정할 때 사용.
+    setView: applyView,
   };
 }
