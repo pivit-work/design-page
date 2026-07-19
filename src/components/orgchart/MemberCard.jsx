@@ -130,6 +130,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           </div>
           <span className="member-name">{member.name}</span>
           {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
+          {member.isSelf && <span className="role-badge role-badge-self">나</span>}
         </div>
         {showWorkHours && member.workHours && (
           <>

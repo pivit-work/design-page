@@ -122,6 +122,9 @@
 .role-badge-tl {
   background: var(--colors-pink-500);
 }
+.role-badge-self {
+  background: var(--colors-brand-600);
+}
 
 /* ── Vacation Image ── */
 .vacation-img {
