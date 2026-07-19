@@ -1111,7 +1111,8 @@
 .mgr-krm-alert { padding: 6px 8px; border-radius: 6px; background: var(--utility-error-50); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-error-500); }
 
 /* 기여 상세 패널 */
-.mgr-krd-panel { flex: 1; min-width: 0; padding: 32px; border-radius: 14px; background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 24px; }
+/* 스크롤 시 sticky 헤더(탭+팀원 메타) 아래에 고정 */
+.mgr-krd-panel { flex: 1; min-width: 0; position: sticky; top: 128px; padding: 32px; border-radius: 14px; background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 24px; }
 .mgr-krd-head { display: flex; align-items: center; gap: 12px; }
 .mgr-krd-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .mgr-krd-title-wrap { flex: 1; min-width: 0; }
