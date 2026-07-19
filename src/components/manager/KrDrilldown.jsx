@@ -48,36 +48,32 @@ export default function KrDrilldown({ data }) {
         </div>
       </div>
 
-      {/* Key Result 헤더 + 진행바(좌) / 달성도 추이(우) — 시안 2컬럼 배치 */}
+      {/* Key Result 히어로 — grid 로 서브텍스트와 '달성도 추이' 라벨을 같은 행에 정렬 (시안 y=421) */}
       <div className="mgr-kr-hero">
-        <div className="mgr-kr-hero-left">
-          <p className="mgr-kr-eyebrow">
-            Key Result
-            <span className={`mgr-kr-status is-${selectedKr.status.tone}`}>✓ {selectedKr.status.label}</span>
-          </p>
-          <h2 className="mgr-kr-title">{selectedKr.title} ･ {selectedKr.percent}%</h2>
-          <p className="mgr-kr-subtitle">{data.detail.subtitle}</p>
-          <div className="mgr-kr-progress">
-            <div className="mgr-kr-progress-track">
-              <div className="mgr-kr-progress-fill" style={{ width: `${selectedKr.percent}%` }} />
-            </div>
-            <div className="mgr-kr-progress-labels">
-              <span>0%</span>
-              <span>목표 100%</span>
-            </div>
+        <p className="mgr-kr-eyebrow">
+          Key Result
+          <span className={`mgr-kr-status is-${selectedKr.status.tone}`}>✓ {selectedKr.status.label}</span>
+        </p>
+        <h2 className="mgr-kr-title">{selectedKr.title} ･ {selectedKr.percent}%</h2>
+        <p className="mgr-kr-subtitle">{data.detail.subtitle}</p>
+        <p className="mgr-kr-trend-label">달성도 추이</p>
+        <div className="mgr-kr-progress">
+          <div className="mgr-kr-progress-track">
+            <div className="mgr-kr-progress-fill" style={{ width: `${selectedKr.percent}%` }} />
+          </div>
+          <div className="mgr-kr-progress-labels">
+            <span>0%</span>
+            <span>목표 100%</span>
           </div>
         </div>
-        <div className="mgr-kr-trend">
-          <p className="mgr-kr-trend-label">달성도 추이</p>
-          <div className="mgr-kr-trend-bars">
-            {data.detail.trend.map((point) => (
-              <div className="mgr-kr-trend-col" key={point.label}>
-                <span className="mgr-kr-trend-value">{point.value}%</span>
-                <div className="mgr-kr-trend-bar" style={{ height: `${Math.max((point.value / maxTrend) * 76, 8)}px` }} />
-                <span className="mgr-kr-trend-date">{point.label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="mgr-kr-trend-bars">
+          {data.detail.trend.map((point) => (
+            <div className="mgr-kr-trend-col" key={point.label}>
+              <span className="mgr-kr-trend-value">{point.value}%</span>
+              <div className="mgr-kr-trend-bar" style={{ height: `${Math.max((point.value / maxTrend) * 76, 8)}px` }} />
+              <span className="mgr-kr-trend-date">{point.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 

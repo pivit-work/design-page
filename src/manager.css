@@ -1056,19 +1056,18 @@
 .mgr-kr-status.is-error { color: var(--utility-error-500); }
 .mgr-kr-status.is-muted { color: var(--text-tertiary); }
 
-/* Key Result 히어로 — 헤더+진행바(좌) / 달성도 추이(우) 2컬럼 */
-.mgr-kr-hero { display: flex; align-items: flex-end; gap: 40px; }
-.mgr-kr-hero-left { flex: 1; min-width: 0; max-width: 576px; display: flex; flex-direction: column; gap: 4px; }
-.mgr-kr-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text-secondary); }
-.mgr-kr-title { font-size: 30px; font-weight: 700; line-height: 44px; color: var(--fg-primary); white-space: nowrap; }
-.mgr-kr-subtitle { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
-.mgr-kr-progress { display: flex; flex-direction: column; gap: 8px; margin-top: 44px; }
+/* Key Result 히어로 — grid 2컬럼(좌 576 / 우 522).
+   서브텍스트와 '달성도 추이' 라벨이 같은 행(row 3)에 온다 (시안 y=421). */
+.mgr-kr-hero { display: grid; grid-template-columns: minmax(0, 576px) 522px; grid-template-rows: auto auto auto auto; justify-content: space-between; column-gap: 40px; }
+.mgr-kr-eyebrow { grid-column: 1; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text-secondary); }
+.mgr-kr-title { grid-column: 1; font-size: 30px; font-weight: 700; line-height: 44px; color: var(--fg-primary); white-space: nowrap; }
+.mgr-kr-subtitle { grid-column: 1; grid-row: 3; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-progress { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; gap: 8px; margin-top: 44px; align-self: end; }
 .mgr-kr-progress-track { height: 12px; background: var(--utility-gray-200); border-radius: 6px; }
 .mgr-kr-progress-fill { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--utility-success-400), var(--bg-brand-solid)); }
 .mgr-kr-progress-labels { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.mgr-kr-trend { width: 522px; flex-shrink: 0; display: flex; flex-direction: column; gap: 22px; }
-.mgr-kr-trend-label { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
-.mgr-kr-trend-bars { display: flex; align-items: flex-end; gap: 8px; }
+.mgr-kr-trend-label { grid-column: 2; grid-row: 3; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
+.mgr-kr-trend-bars { grid-column: 2; grid-row: 4; margin-top: 22px; display: flex; align-items: flex-end; gap: 8px; }
 .mgr-kr-trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .mgr-kr-trend-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .mgr-kr-trend-bar { width: 100%; border-radius: 8px; background: var(--utility-success-300); }
