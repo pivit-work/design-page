@@ -1029,3 +1029,108 @@
   height: 22px;
   width: auto;
 }
+
+/* ══ KR 드릴다운 탭 (Figma 17026:23299 / 17026:24830) ══ */
+.manager-tab { cursor: pointer; }
+.manager-tab-placeholder { padding: 120px 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
+
+.mgr-kr { display: flex; flex-direction: column; gap: 24px; }
+
+/* 팀 OKR — KR 선택 카드 */
+.mgr-kr-okr { display: flex; flex-direction: column; gap: 10px; }
+.mgr-kr-okr-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-kr-okr-title { font-size: 18px; font-weight: 700; line-height: 26px; color: var(--text-primary); }
+.mgr-kr-cards { display: flex; gap: 10px; padding: 10px; background: var(--alpha-black-3); border-radius: 12px; }
+.mgr-kr-card { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; border: 1px solid transparent; }
+.mgr-kr-card.is-selected { background: var(--bg-quaternary); border-color: var(--border-secondary-alt); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); }
+.mgr-kr-card-head { display: flex; align-items: center; justify-content: space-between; }
+.mgr-kr-card-id { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+.mgr-kr-card-percent { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.mgr-kr-card-title { font-size: 13px; font-weight: 600; line-height: 19px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mgr-kr-status { font-size: 12px; font-weight: 600; }
+.mgr-kr-status.is-success { color: var(--utility-success-500); }
+.mgr-kr-status.is-warning { color: var(--utility-warning-500); }
+.mgr-kr-status.is-error { color: var(--utility-error-500); }
+
+/* Key Result 헤더 */
+.mgr-kr-header { display: flex; flex-direction: column; gap: 4px; }
+.mgr-kr-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.mgr-kr-title { font-size: 28px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
+.mgr-kr-subtitle { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
+
+/* 진행바 + 추이 */
+.mgr-kr-progress-row { display: flex; align-items: flex-end; gap: 40px; }
+.mgr-kr-progress { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.mgr-kr-progress-track { flex: 1; height: 12px; background: var(--utility-gray-200); border-radius: 6px; }
+.mgr-kr-progress-fill { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--utility-success-400), var(--bg-brand-solid)); }
+.mgr-kr-progress-target { font-size: 11px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.mgr-kr-trend { display: flex; flex-direction: column; gap: 6px; }
+.mgr-kr-trend-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-kr-trend-bars { display: flex; align-items: flex-end; gap: 8px; }
+.mgr-kr-trend-col { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 44px; }
+.mgr-kr-trend-value { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+.mgr-kr-trend-bar { width: 100%; border-radius: 6px; background: var(--utility-success-300); }
+.mgr-kr-trend-col:last-child .mgr-kr-trend-bar { background: var(--utility-success-500); }
+.mgr-kr-trend-date { font-size: 10px; font-weight: 500; color: var(--text-tertiary); }
+
+/* 팀원별 기여 — 스택바 */
+.mgr-kr-section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.mgr-kr-contrib-head { display: flex; flex-direction: column; gap: 8px; }
+.mgr-kr-contrib-caption { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-kr-stackbar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; }
+.mgr-kr-seg { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 600; color: var(--text-white); white-space: nowrap; overflow: hidden; min-width: 0; }
+.mgr-kr-seg.is-blue { background: var(--utility-blue-400); }
+.mgr-kr-seg.is-purple { background: var(--utility-purple-400); }
+.mgr-kr-seg.is-green { background: var(--utility-success-400); }
+.mgr-kr-seg.is-pink { background: var(--utility-pink-400); }
+
+/* 본문 2컬럼 */
+.mgr-kr-body { display: flex; gap: 20px; align-items: flex-start; }
+.mgr-kr-members { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* 팀원 기여 카드 */
+.mgr-krm-card { padding: 16px; border-radius: 12px; background: var(--alpha-black-3); cursor: pointer; display: flex; flex-direction: column; gap: 10px; opacity: 0.72; }
+.mgr-krm-card.is-selected { background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); opacity: 1; }
+.mgr-krm-head { display: flex; align-items: center; gap: 10px; }
+.mgr-krm-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.mgr-krm-name-wrap { flex: 1; min-width: 0; }
+.mgr-krm-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.mgr-krm-role { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-krm-percent { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.mgr-krm-caption { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-krm-initiatives { display: flex; flex-direction: column; gap: 8px; }
+.mgr-krm-initiative { display: flex; flex-direction: column; gap: 4px; }
+.mgr-krm-initiative-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.mgr-krm-bar { height: 6px; background: var(--utility-gray-200); border-radius: 3px; }
+.mgr-krm-bar-fill { height: 6px; border-radius: 3px; background: var(--utility-success-400); }
+.mgr-krm-stats { display: flex; border-top: 1px solid var(--border-secondary); padding-top: 10px; }
+.mgr-krm-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.mgr-krm-stat b { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.mgr-krm-stat span { font-size: 10px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-krm-alert { padding: 6px 10px; border-radius: 6px; background: var(--utility-error-50); font-size: 11px; font-weight: 600; color: var(--utility-error-500); }
+
+/* 기여 상세 패널 */
+.mgr-krd-panel { flex: 1; min-width: 0; padding: 20px 24px; border-radius: 12px; background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 14px; }
+.mgr-krd-head { display: flex; align-items: center; gap: 12px; }
+.mgr-krd-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.mgr-krd-title-wrap { flex: 1; min-width: 0; }
+.mgr-krd-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.mgr-krd-role { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-krd-percent { font-size: 24px; font-weight: 700; color: var(--fg-primary); }
+.mgr-krd-tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--border-secondary); }
+.mgr-krd-tab { padding-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent; }
+.mgr-krd-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
+.mgr-krd-list { display: flex; flex-direction: column; }
+.mgr-krd-snippet { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--border-secondary); }
+.mgr-krd-snippet:last-child { border-bottom: none; }
+.mgr-krd-date { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-krd-text { font-size: 14px; font-weight: 500; line-height: 21px; color: var(--text-primary); }
+.mgr-krd-tags { display: flex; gap: 6px; }
+.mgr-krd-tag { padding: 2px 8px; border-radius: 5px; background: var(--alpha-black-3); font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+.mgr-krd-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 8px; }
+.mgr-krd-key { font-size: 12px; font-weight: 700; color: var(--text-tertiary); white-space: nowrap; }
+.mgr-krd-row-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mgr-krd-due { font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.mgr-krd-pill { padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.mgr-krd-pill.is-done { color: var(--utility-success-700); background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
+.mgr-krd-pill.is-progress { color: var(--utility-blue-500); background: var(--utility-blue-50); border: 1px solid var(--utility-blue-200); }

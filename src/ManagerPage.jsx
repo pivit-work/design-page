@@ -1,13 +1,90 @@
+import { useState } from 'react';
 import { ManagerCanvas } from './components/manager/index.js';
 
 const SPLINE_SCENE = 'https://prod.spline.design/FGsE64DYYNKU7gP7/scene.splinecode';
 const SPLINE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
 const TABS = [
-  { label: '오늘 현황', active: true },
-  { label: 'KR 드릴다운' },
-  { label: '팀 스니핏' },
+  { key: 'today', label: '오늘 현황' },
+  { key: 'kr', label: 'KR 드릴다운' },
+  { key: 'snippets', label: '팀 스니핏' },
 ];
+
+/* ── KR 드릴다운 데모 데이터 — Figma 17026:23299 / 17026:24830.
+   상세 탭(스니핏/액션/Jira) 내용은 맥락에 맞춰 구성. */
+const KR_AVATARS = {
+  커트: 'https://i.pravatar.cc/200?img=12',
+  윤서윤: 'https://i.pravatar.cc/200?img=32',
+  민현식: 'https://i.pravatar.cc/200?img=53',
+  어니스트: 'https://i.pravatar.cc/200?img=59',
+};
+
+const KR_INITIATIVES = [
+  { title: '어드민 패널 완성', percent: 100 },
+  { title: 'pgvector 인덱스 최적화', percent: 50 },
+  { title: '알림 모듈 구현', percent: 20 },
+  { title: 'QA 테스트 통과', percent: 5 },
+];
+
+const krMember = (id, name, role, percent, extra = {}) => ({
+  id, name, role, percent,
+  avatar: KR_AVATARS[name],
+  initiatives: KR_INITIATIVES,
+  stats: { snippets: 4, actions: '5/4', jira: 4 },
+  alert: 'pgvector Redis 의존성 — 이번 주 해결 예정',
+  detail: {
+    snippets: [
+      { date: '2026-03-15', text: 'pgvector 인덱스 전략 초안 작성 중, Redis 캐시 의존성 이슈 발견.', tags: ['개발', '협업'] },
+      { date: '2026-03-15', text: '어드민 패널 PR 머지, PIVIT-142 완료.', tags: ['개발', '협업'] },
+      { date: '2026-03-15', text: '조직도 v2 hover 툴팁 + 클릭 모달 구현 완료.', tags: ['개발', '협업'] },
+      { date: '2026-03-16', text: 'CSV 업로드 플로우 구현. 매니저-리포터 자동 인식 로직 완료.', tags: ['개발', '협업'] },
+    ],
+    actions: [
+      { text: 'Redis 캐시 의존성 해소 방안 정리', due: '이번 주', status: { label: '진행 중', tone: 'progress' } },
+      { text: 'QA 테스트 시나리오 리뷰 요청', due: '3/20', status: { label: '진행 중', tone: 'progress' } },
+      { text: '어드민 패널 릴리즈 노트 작성', due: '3/18', status: { label: '완료', tone: 'done' } },
+      { text: '알림 모듈 스펙 확정 미팅', due: '3/17', status: { label: '완료', tone: 'done' } },
+    ],
+    jira: [
+      { key: 'PIVIT-142', title: '어드민 패널 완성', status: { label: '완료', tone: 'done' } },
+      { key: 'PIVIT-143', title: '조직도 v2 구현', status: { label: '완료', tone: 'done' } },
+      { key: 'PIVIT-144', title: 'pgvector 인덱싱', status: { label: '진행 중', tone: 'progress' } },
+      { key: 'PIVIT-145', title: '알림 모듈', status: { label: '완료', tone: 'done' } },
+    ],
+  },
+  ...extra,
+});
+
+const KR_DRILLDOWN = {
+  objective: 'Phase 1 제품 완성',
+  krs: [
+    { id: 'KR1', title: 'Phase 1 UI 기획 완료', percent: 56, status: { label: '정상', tone: 'success' } },
+    { id: 'KR2', title: 'MVP 개발 완료 및 QA 통과', percent: 35, status: { label: '주의', tone: 'warning' } },
+    { id: 'KR3', title: '내부 베타 테스트 오픈 준비', percent: 0, status: { label: '리스크', tone: 'error' } },
+  ],
+  detail: {
+    subtitle: '전체 Phase 1 화면 기획 완료, 마감: 2026-03-31',
+    trend: [
+      { label: '01-20', value: 8 },
+      { label: '02-03', value: 16 },
+      { label: '02-17', value: 28 },
+      { label: '03-03', value: 42 },
+      { label: '03-17', value: 56 },
+    ],
+  },
+  contribution: [
+    { name: '커트', percent: 80, color: 'blue' },
+    { name: '윤서윤', percent: 15, color: 'purple' },
+    { name: '민현식', percent: 3, color: 'green' },
+    { name: '어니스트', percent: 2, color: 'pink' },
+  ],
+  members: [
+    krMember('kr-m1', '커트', '백엔드 개발', 80),
+    krMember('kr-m2', '윤서윤', '프론트엔드 개발', 15),
+    krMember('kr-m3', '민현식', '풀랙 인턴십', 3),
+    krMember('kr-m4', '어니스트', '기획 스텝', 2),
+  ],
+};
 
 const KPIS = [
   { label: '팀 헬스 평균', value: '7.4' },
@@ -137,9 +214,13 @@ const TEAM_STATUS_MEMBERS = [
  * demo 데이터 + 라벨 보유, ManagerCanvas 에 props 로 전달.
  */
 export default function ManagerPage({ icons, baseUrl }) {
+  const [activeTab, setActiveTab] = useState('today');
   return (
     <ManagerCanvas
       tabs={TABS}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      krDrilldown={KR_DRILLDOWN}
       teamMemberCount={5}
       summary="박민준님 긴급 개입이 필요합니다. 이서연님도 스니핏이 3일째 비어 있어요."
       kpis={KPIS}

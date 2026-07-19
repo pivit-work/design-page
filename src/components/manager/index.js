@@ -7,3 +7,6 @@ export { default as ManagerStatTile } from './StatTile.jsx';
 export { default as ManagerSectionHeading } from './SectionHeading.jsx';
 export { default as ManagerProfileModal } from './ProfileModal.jsx';
 export { STATUS_COLORS as MANAGER_STATUS_COLORS } from './constants.js';
+export { default as ManagerKrDrilldown } from './KrDrilldown.jsx';
+export { default as ManagerKrMemberCard } from './KrMemberCard.jsx';
+export { default as ManagerKrContributionDetail } from './KrContributionDetail.jsx';

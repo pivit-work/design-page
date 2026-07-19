@@ -4,6 +4,7 @@ import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
 import MemberCard from './MemberCard.jsx';
 import ProfileModal from './ProfileModal.jsx';
+import KrDrilldown from './KrDrilldown.jsx';
 
 /**
  * 매니저 페이지 Pure 컴포넌트.
@@ -16,6 +17,9 @@ import ProfileModal from './ProfileModal.jsx';
  */
 export default function ManagerCanvas({
   tabs = [],
+  activeTab,
+  onTabChange,
+  krDrilldown,
   teamMemberCount,
   summary,
   kpis = [],
@@ -37,7 +41,8 @@ export default function ManagerCanvas({
           {tabs.map((tab) => (
             <span
               key={tab.label}
-              className={`manager-tab ${tab.active ? 'active' : ''}`}
+              className={`manager-tab ${(activeTab ? activeTab === tab.key : tab.active) ? 'active' : ''}`}
+              onClick={() => onTabChange?.(tab.key)}
             >
               {tab.label}
             </span>
@@ -52,6 +57,12 @@ export default function ManagerCanvas({
         )}
       </header>
 
+      {activeTab === 'kr' && krDrilldown ? (
+        <KrDrilldown data={krDrilldown} />
+      ) : activeTab === 'snippets' ? (
+        <div className="manager-tab-placeholder">준비 중인 화면입니다</div>
+      ) : (
+      <>
       <section className="manager-kpi-grid">
         {summary && <SummaryCard text={summary} />}
         {kpis.map((kpi) => (
@@ -108,6 +119,9 @@ export default function ManagerCanvas({
           ))}
         </div>
       </section>
+
+      </>
+      )}
 
       <ProfileModal
         member={openMember}

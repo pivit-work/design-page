@@ -125,6 +125,9 @@ export {
   ManagerSummaryCard,
   ManagerStatTile,
   ManagerSectionHeading,
+  ManagerKrDrilldown,
+  ManagerKrMemberCard,
+  ManagerKrContributionDetail,
   MANAGER_STATUS_COLORS,
 } from './manager/index.js';
 
