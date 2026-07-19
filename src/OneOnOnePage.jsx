@@ -127,10 +127,10 @@ const SCHEDULED_TODAY = [
     healthScore: '4.2',
     healthSeverity: 'critical',
     comment:
-      '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 1on1을 잡아보세요. 최근 3일간 스니펫 미작성 상태입니다.',
+      '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 원온원을 잡아보세요. 최근 3일간 스니핏 미작성 상태입니다.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
     actions: [
-      { label: '1on1 진행', variant: 'primary' },
+      { label: '1on1 진행' },
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
@@ -149,7 +149,7 @@ const NEEDS_ATTENTION = [
     comment: '헬스가 5.1로 주의 구간에 있습니다. 마지막 1on1이 24일 전이므로 빠른 시일 내 일정을 잡아보세요.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
     actions: [
-      { label: '1on1 진행', variant: 'primary' },
+      { label: '1on1 진행' },
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
@@ -224,7 +224,7 @@ export default function OneOnOnePage({ icons, baseUrl }) {
       managerName="김지수"
       teamCount={5}
       briefing={BRIEFING}
-      message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 1on1이 3주 이상 밀려 있습니다."
+      message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
       kpis={KPIS}
       sections={[
         {
@@ -237,7 +237,8 @@ export default function OneOnOnePage({ icons, baseUrl }) {
         {
           key: 'attention',
           title: '주의 필요',
-          count: NEEDS_ATTENTION.length,
+          // 시안(16816:33877): 긴급(오늘 예정)까지 포함한 '주의가 필요한 팀원 수'
+          count: SCHEDULED_TODAY.length + NEEDS_ATTENTION.length,
           countColor: 'var(--text-error-primary)',
           members: NEEDS_ATTENTION,
         },
