@@ -13,10 +13,10 @@ const TABS = [
 /* ── KR 드릴다운 데모 데이터 — Figma 17026:23299 / 17026:24830.
    상세 탭(스니핏/액션/Jira) 내용은 맥락에 맞춰 구성. */
 const KR_AVATARS = {
-  커트: 'https://i.pravatar.cc/200?img=12',
-  윤서윤: 'https://i.pravatar.cc/200?img=32',
-  민현식: 'https://i.pravatar.cc/200?img=53',
+  김시윤: 'https://i.pravatar.cc/200?img=12',
   어니스트: 'https://i.pravatar.cc/200?img=59',
+  민현식: 'https://i.pravatar.cc/200?img=53',
+  윤서율: 'https://i.pravatar.cc/200?img=32',
 };
 
 const KR_INITIATIVES = [
@@ -30,7 +30,7 @@ const krMember = (id, name, role, percent, extra = {}) => ({
   id, name, role, percent,
   avatar: KR_AVATARS[name],
   initiatives: KR_INITIATIVES,
-  stats: { snippets: 4, actions: '5/4', jira: 4 },
+  stats: { snippets: 4, actions: '1/4', jira: 4 },
   alert: 'pgvector Redis 의존성 — 이번 주 해결 예정',
   detail: {
     snippets: [
@@ -59,8 +59,8 @@ const KR_DRILLDOWN = {
   objective: 'Phase 1 제품 완성',
   krs: [
     { id: 'KR1', title: 'Phase 1 UI 기획 완료', percent: 56, status: { label: '정상', tone: 'success' } },
-    { id: 'KR2', title: 'MVP 개발 완료 및 QA 통과', percent: 35, status: { label: '주의', tone: 'warning' } },
-    { id: 'KR3', title: '내부 베타 테스트 오픈 준비', percent: 0, status: { label: '리스크', tone: 'error' } },
+    { id: 'KR2', title: 'MVP 개발 완료 및 QA 통과', percent: 35, status: { label: '위험', tone: 'warning' } },
+    { id: 'KR3', title: '내부 베타 테스트 5명 확보', percent: 0, status: { label: '미시작', tone: 'muted' } },
   ],
   detail: {
     subtitle: '전체 Phase 1 화면 기획 완료, 마감: 2026-03-31',
@@ -73,16 +73,16 @@ const KR_DRILLDOWN = {
     ],
   },
   contribution: [
-    { name: '커트', percent: 80, color: 'blue' },
-    { name: '윤서윤', percent: 15, color: 'purple' },
+    { name: '김시윤', percent: 80, color: 'blue' },
+    { name: '어니스트', percent: 15, color: 'purple' },
     { name: '민현식', percent: 3, color: 'green' },
-    { name: '어니스트', percent: 2, color: 'pink' },
+    { name: '윤서율', percent: 2, color: 'pink' },
   ],
   members: [
-    krMember('kr-m1', '커트', '백엔드 개발', 80),
-    krMember('kr-m2', '윤서윤', '프론트엔드 개발', 15),
-    krMember('kr-m3', '민현식', '풀랙 인턴십', 3),
-    krMember('kr-m4', '어니스트', '기획 스텝', 2),
+    krMember('kr-m1', '김시윤', '핵심 개발', 80),
+    krMember('kr-m2', '어니스트', '기획 스택', 15),
+    krMember('kr-m3', '민현식', '방향 의사결정', 3),
+    krMember('kr-m4', '윤서율', '검토 피드백', 2),
   ],
 };
 

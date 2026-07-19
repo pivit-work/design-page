@@ -1034,23 +1034,27 @@
 .manager-tab { cursor: pointer; }
 .manager-tab-placeholder { padding: 120px 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
 
-.mgr-kr { display: flex; flex-direction: column; gap: 24px; }
+/* 헤더(.manager-page-header)·다른 섹션과 좌우 정렬을 맞추는 12px 패딩 */
+.mgr-kr { display: flex; flex-direction: column; gap: 24px; padding: 0 12px; }
 
 /* 팀 OKR — KR 선택 카드 */
 .mgr-kr-okr { display: flex; flex-direction: column; gap: 10px; }
 .mgr-kr-okr-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
 .mgr-kr-okr-title { font-size: 18px; font-weight: 700; line-height: 26px; color: var(--text-primary); }
-.mgr-kr-cards { display: flex; gap: 10px; padding: 10px; background: var(--alpha-black-3); border-radius: 12px; }
-.mgr-kr-card { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; border: 1px solid transparent; }
-.mgr-kr-card.is-selected { background: var(--bg-quaternary); border-color: var(--border-secondary-alt); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); }
+.mgr-kr-cards { display: flex; gap: 12px; padding: 12px; background: var(--alpha-black-3); border-radius: 16px; }
+.mgr-kr-card { flex: 1; min-width: 0; padding: 14px 18px; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; border: 1px solid transparent; }
+.mgr-kr-card.is-selected { background: var(--bg-quaternary); border-color: var(--border-secondary-alt); box-shadow: 0 2px 6px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.06); }
 .mgr-kr-card-head { display: flex; align-items: center; justify-content: space-between; }
 .mgr-kr-card-id { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
 .mgr-kr-card-percent { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.mgr-kr-card-title { font-size: 13px; font-weight: 600; line-height: 19px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mgr-kr-card-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mgr-kr-card-title { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mgr-kr-card.is-selected .mgr-kr-card-title { color: var(--text-primary); }
 .mgr-kr-status { font-size: 12px; font-weight: 600; }
 .mgr-kr-status.is-success { color: var(--utility-success-500); }
 .mgr-kr-status.is-warning { color: var(--utility-warning-500); }
 .mgr-kr-status.is-error { color: var(--utility-error-500); }
+.mgr-kr-status.is-muted { color: var(--text-tertiary); }
 
 /* Key Result 헤더 */
 .mgr-kr-header { display: flex; flex-direction: column; gap: 4px; }
@@ -1077,8 +1081,8 @@
 .mgr-kr-section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .mgr-kr-contrib-head { display: flex; flex-direction: column; gap: 8px; }
 .mgr-kr-contrib-caption { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-stackbar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; }
-.mgr-kr-seg { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 600; color: var(--text-white); white-space: nowrap; overflow: hidden; min-width: 0; }
+.mgr-kr-stackbar { display: flex; gap: 4px; height: 40px; }
+.mgr-kr-seg { display: flex; align-items: center; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--text-white); white-space: nowrap; overflow: hidden; min-width: 0; }
 .mgr-kr-seg.is-blue { background: var(--utility-blue-400); }
 .mgr-kr-seg.is-purple { background: var(--utility-purple-400); }
 .mgr-kr-seg.is-green { background: var(--utility-success-400); }

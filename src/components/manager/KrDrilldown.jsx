@@ -14,8 +14,6 @@ import KrContributionDetail from './KrContributionDetail.jsx';
  * }
  * KR 선택 카드·팀원 선택은 UI 상태로 컴포넌트가 관리한다.
  */
-const STATUS_GLYPH = { success: '✓', warning: '⚠', error: '✕' };
-
 export default function KrDrilldown({ data }) {
   const [selectedKrId, setSelectedKrId] = useState(data.krs[0]?.id);
   const [selectedMemberId, setSelectedMemberId] = useState(data.members[0]?.id);
@@ -41,10 +39,10 @@ export default function KrDrilldown({ data }) {
                 <span className="mgr-kr-card-id">{kr.id}</span>
                 <span className="mgr-kr-card-percent">{kr.percent}%</span>
               </div>
-              <p className="mgr-kr-card-title">{kr.title}</p>
-              <span className={`mgr-kr-status is-${kr.status.tone}`}>
-                {STATUS_GLYPH[kr.status.tone]} {kr.status.label}
-              </span>
+              <div className="mgr-kr-card-title-row">
+                <p className="mgr-kr-card-title">{kr.title}</p>
+                <span className={`mgr-kr-status is-${kr.status.tone}`}>✓ {kr.status.label}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -54,9 +52,7 @@ export default function KrDrilldown({ data }) {
       <div className="mgr-kr-header">
         <p className="mgr-kr-eyebrow">
           Key Result
-          <span className={`mgr-kr-status is-${selectedKr.status.tone}`}>
-            {STATUS_GLYPH[selectedKr.status.tone]} {selectedKr.status.label}
-          </span>
+          <span className={`mgr-kr-status is-${selectedKr.status.tone}`}>✓ {selectedKr.status.label}</span>
         </p>
         <h2 className="mgr-kr-title">{selectedKr.title} · {selectedKr.percent}%</h2>
         <p className="mgr-kr-subtitle">{data.detail.subtitle}</p>
