@@ -6,7 +6,7 @@ import Icon from '../shared/Icon.jsx';
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
-const PROFILE_SCENE = 'https://prod.spline.design/lUTrZH2tVSyiKzPA/scene.splinecode';
+const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
 
 /**
  * `<Spline>` 격리용 Error Boundary — SplineHero 와 동일 패턴.
