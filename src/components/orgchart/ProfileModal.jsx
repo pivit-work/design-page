@@ -21,7 +21,7 @@ const DEFAULT_PROFILE = {
 
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
-const PROFILE_SCENE = 'https://prod.spline.design/DIGRMEsWMpOjBIHB/scene.splinecode';
+const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
 
 /**
  * `<Spline>` 격리용 Error Boundary — manager ProfileModal·SplineHero 와 동일 패턴.
