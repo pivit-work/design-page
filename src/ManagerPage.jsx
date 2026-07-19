@@ -1,6 +1,6 @@
 import { ManagerCanvas } from './components/manager/index.js';
 
-const SPLINE_SCENE = 'https://prod.spline.design/L6vcVdzQjJgBWFGD/scene.splinecode';
+const SPLINE_SCENE = 'https://prod.spline.design/FGsE64DYYNKU7gP7/scene.splinecode';
 const SPLINE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
 const TABS = [
