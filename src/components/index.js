@@ -56,6 +56,7 @@ export {
   MicSelectModal,
   MeetingStartFlow,
   MeetingGeneratingModal,
+  MeetingSyncToast,
 } from './meetings/index.js';
 
 // 1on1

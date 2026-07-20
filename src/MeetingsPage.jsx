@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal } from './components';
+import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal, MeetingSyncToast } from './components';
 
 /* ── 데모 데이터 ── */
 const TODAY_MEETINGS = [
@@ -235,6 +235,9 @@ export default function MeetingsPage({ baseUrl }) {
   const [todayMeetings, setTodayMeetings] = useState(TODAY_MEETINGS);
   const [activeMeeting, setActiveMeeting] = useState(null);
   const [generatingOpen, setGeneratingOpen] = useState(false);
+  // 캘린더 동기화 경고 토스트 (Figma 17420:29469) — 데모: 기본 표시,
+  // 재시도 클릭 시 재동기화됐다고 가정하고 닫는다.
+  const [syncToastOpen, setSyncToastOpen] = useState(true);
 
   const todayDateLabel = useMemo(() => {
     const d = new Date();
@@ -257,6 +260,15 @@ export default function MeetingsPage({ baseUrl }) {
 
   return (
     <>
+      {syncToastOpen && (
+        <MeetingSyncToast
+          baseUrl={baseUrl}
+          title="Google 캘린더 동기화에 문제가 있는 회의가 있어요"
+          detail="3건 · 동기화 실패"
+          onRetry={() => setSyncToastOpen(false)}
+          onClose={() => setSyncToastOpen(false)}
+        />
+      )}
       <MeetingsCanvas
         baseUrl={baseUrl}
         todayMeetings={todayMeetings}

@@ -1549,3 +1549,67 @@ input.mtg-record-action-title::placeholder {
 .mtg-generating-confirm:hover {
   filter: brightness(0.96);
 }
+
+/* ── 캘린더 동기화 경고 토스트 (Figma 17420:29469) ─────────────────────── */
+.meeting-sync-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 430px;
+  max-width: calc(100vw - 48px);
+  padding: 16px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary-alt);
+  border-radius: 12px;
+  box-shadow: var(--shadows-shadow3xl);
+}
+.meeting-sync-toast-icon { margin-top: 1px; }
+.meeting-sync-toast-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meeting-sync-toast-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.meeting-sync-toast-detail {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.meeting-sync-toast-retry {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-brand-tertiary);
+  cursor: pointer;
+}
+.meeting-sync-toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
