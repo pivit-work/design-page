@@ -1,5 +1,6 @@
 export { default as AdminDashboardCanvas } from './AdminDashboardCanvas.jsx';
 export { default as AdminEmployeesCanvas } from './AdminEmployeesCanvas.jsx';
+export { default as AdminEmployeeSheetCanvas } from './AdminEmployeeSheetCanvas.jsx';
 export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
 export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
 export { TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName } from './teamIcons.jsx';
