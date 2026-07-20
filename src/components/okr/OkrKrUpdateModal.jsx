@@ -5,12 +5,13 @@ import Icon from '../shared/Icon.jsx';
  * OkrKrUpdateModal — Key Result 달성률 업데이트 모달.
  *
  * detail: { title, krLabel('KR #1-1'), method('개수 달성'), unit('개'),
- *   total, aiValue, aiMeta('신뢰도 88% · 오늘 9:12') }
- * AI 초안 카드의 [적용]이 입력값에 AI 집계값을 반영하고,
- * 달성률(%)은 입력값/목표로 자동 계산된다. 확정/취소/ESC로 닫는다.
+ *   total, currentValue, aiValue?, aiMeta?('신뢰도 88% · 오늘 9:12') }
+ * AI 초안 카드는 aiValue 가 있을 때만 렌더한다(집계 데이터가 없으면 숨김).
+ * 입력값 초기치는 currentValue → aiValue 순으로 채우고, 달성률(%)은
+ * 입력값/목표로 자동 계산된다. 확정 시 onConfirm(값)을 부르고 닫는다.
  */
-export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose }) {
-  const [value, setValue] = useState(detail.aiValue);
+export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose, onConfirm }) {
+  const [value, setValue] = useState(detail.currentValue ?? detail.aiValue ?? '');
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -36,20 +37,22 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose 
             </div>
           </div>
 
-          <div className="okr-kru-ai">
-            <div className="okr-kru-ai-head">
-              <div className="okr-kru-ai-label">
-                <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                <span>AI 초안</span>
+          {detail.aiValue != null && (
+            <div className="okr-kru-ai">
+              <div className="okr-kru-ai-head">
+                <div className="okr-kru-ai-label">
+                  <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+                  <span>AI 초안</span>
+                </div>
+                <span>{detail.aiMeta}</span>
               </div>
-              <span>{detail.aiMeta}</span>
+              <div className="okr-kru-ai-result">
+                <p className="okr-kru-ai-caption">집계결과</p>
+                <p className="okr-kru-ai-value">{detail.aiValue}/{detail.total}{detail.unit}</p>
+              </div>
+              <button className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>적용</button>
             </div>
-            <div className="okr-kru-ai-result">
-              <p className="okr-kru-ai-caption">집계결과</p>
-              <p className="okr-kru-ai-value">{detail.aiValue}/{detail.total}{detail.unit}</p>
-            </div>
-            <button className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>적용</button>
-          </div>
+          )}
 
           <div className="okr-kru-input-row">
             <input
@@ -64,7 +67,12 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose 
         </div>
         <div className="okr-modal-footer">
           <button className="okr-btn is-outline" onClick={onClose}>취소</button>
-          <button className="okr-btn is-brand" onClick={onClose}>확정</button>
+          <button
+            className="okr-btn is-brand"
+            onClick={() => { onConfirm?.(numeric); onClose(); }}
+          >
+            확정
+          </button>
         </div>
       </div>
     </div>

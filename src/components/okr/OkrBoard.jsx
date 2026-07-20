@@ -12,7 +12,7 @@ import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
  *
  * board: { banner?, insights, overall, theme, objectives }
  */
-export default function OkrBoard({ board, icons, baseUrl = '' }) {
+export default function OkrBoard({ board, icons, baseUrl = '', onKrUpdate }) {
   const { banner, insights, overall, theme, objectives } = board;
   const [composeOpen, setComposeOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
@@ -70,6 +70,7 @@ export default function OkrBoard({ board, icons, baseUrl = '' }) {
           icons={icons}
           baseUrl={baseUrl}
           onClose={() => setKrUpdate(null)}
+          onConfirm={(value) => { if (krUpdate.krId) onKrUpdate?.(krUpdate.krId, value); }}
         />
       )}
       {requestOpen && (
