@@ -118,6 +118,7 @@
   --utility-gray-100: var(--componentColors-utility-gray-utilityGray100);
   --utility-success-300: var(--componentColors-utility-success-utilitySuccess300);
   --utility-warning-50: var(--componentColors-utility-warning-utilityWarning50);
+  --utility-error-200: var(--componentColors-utility-error-utilityError200);
   --utility-error-300: var(--componentColors-utility-error-utilityError300);
   --utility-purple-400: var(--componentColors-utility-purple-utilityPurple400);
   --utility-pink-400: var(--componentColors-utility-pink-utilityPink400);
@@ -125,6 +126,10 @@
   --fg-tertiary: var(--colors-foreground-fgTertiary);
   --fg-brand-primary: var(--colors-foreground-fgBrandPrimary);
   --fg-success-secondary: var(--colors-foreground-fgSuccessSecondary);
+  --fg-warning-secondary: var(--colors-foreground-fgWarningSecondary);
+  --fg-error-primary: var(--colors-foreground-fgErrorPrimary);
+  --fg-light: var(--colors-foreground-fgLight);
+  --fg-quaternary: var(--colors-foreground-fgQuaternary);
   --bg-tertiary: var(--colors-background-bgTertiary);
   --bg-overlay: var(--colors-background-bgOverlay);
   --border-secondary: var(--colors-border-borderSecondary);

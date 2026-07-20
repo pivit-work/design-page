@@ -62,7 +62,7 @@ export default function ManagerCanvas({
       {activeTab === 'kr' && krDrilldown ? (
         <KrDrilldown data={krDrilldown} />
       ) : activeTab === 'snippets' && teamSnippets ? (
-        <TeamSnippets data={teamSnippets} />
+        <TeamSnippets data={teamSnippets} icons={icons} baseUrl={baseUrl} />
       ) : (
       <>
       <section className="manager-kpi-grid">

@@ -10,7 +10,7 @@ import TeamSnippetFeed from './TeamSnippetFeed.jsx';
  *   members, weekHealth, aiSummary, byDate, byKr }
  * 기간 칩·레드 플래그 토글·팀원 필터는 UI 상태로 여기서 관리한다.
  */
-export default function TeamSnippets({ data }) {
+export default function TeamSnippets({ data, icons, baseUrl = '' }) {
   const [period, setPeriod] = useState('전체');
   const [redFlagOnly, setRedFlagOnly] = useState(false);
   const [memberFilter, setMemberFilter] = useState(null);
@@ -18,16 +18,18 @@ export default function TeamSnippets({ data }) {
   return (
     <div className="mgr-ts">
       <div className="mgr-ts-chips">
-        {data.periods.map((p) => (
-          <button
-            key={p}
-            type="button"
-            className={`mgr-ts-chip${period === p ? ' is-active' : ''}`}
-            onClick={() => setPeriod(p)}
-          >
-            {p}
-          </button>
-        ))}
+        <div className="mgr-ts-seg">
+          {data.periods.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`mgr-ts-seg-btn${period === p ? ' is-active' : ''}`}
+              onClick={() => setPeriod(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           className={`mgr-ts-chip is-redflag${redFlagOnly ? ' is-active' : ''}`}
@@ -49,6 +51,8 @@ export default function TeamSnippets({ data }) {
           aiSummary={data.aiSummary}
           selectedMember={memberFilter}
           onSelectMember={setMemberFilter}
+          icons={icons}
+          baseUrl={baseUrl}
         />
         <TeamSnippetFeed
           byDate={data.byDate}

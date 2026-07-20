@@ -17,7 +17,7 @@ const TS_AVATARS = {
   어니스트: 'https://i.pravatar.cc/200?img=59',
   윤서율: 'https://i.pravatar.cc/200?img=32',
   박민준: 'https://i.pravatar.cc/200?img=68',
-  정다운: 'https://i.pravatar.cc/200?img=47',
+  정다은: 'https://i.pravatar.cc/200?img=47',
 };
 
 const TEAM_SNIPPETS = {
@@ -29,23 +29,23 @@ const TEAM_SNIPPETS = {
     { name: '어니스트', avatar: TS_AVATARS.어니스트, submitted: true },
     { name: '윤서율', avatar: TS_AVATARS.윤서율, submitted: false },
     { name: '박민준', avatar: TS_AVATARS.박민준, submitted: true },
-    { name: '정다운', avatar: TS_AVATARS.정다운, submitted: true },
+    { name: '정다은', avatar: TS_AVATARS.정다은, submitted: true },
   ],
   weekHealth: [
-    { name: '김시윤', avatar: TS_AVATARS.김시윤, dots: ['good', 'good', 'warn', 'bad', 'empty'] },
-    { name: '어니스트', avatar: TS_AVATARS.어니스트, dots: ['good', 'good', 'good', 'good', 'empty'] },
+    { name: '김시윤', avatar: TS_AVATARS.김시윤, dots: ['good', 'warn', 'good', 'empty', 'empty'] },
+    { name: '어니스트', avatar: TS_AVATARS.어니스트, dots: ['good', 'good', 'good', 'empty', 'empty'] },
     { name: '윤서율', avatar: TS_AVATARS.윤서율, dots: ['good', 'good', 'empty', 'empty', 'empty'] },
-    { name: '박민준', avatar: TS_AVATARS.박민준, dots: ['warn', 'warn', 'good', 'empty', 'empty'] },
-    { name: '정다운', avatar: TS_AVATARS.정다운, dots: ['bad', 'warn', 'good', 'good', 'empty'] },
+    { name: '박민준', avatar: TS_AVATARS.박민준, dots: ['warn', 'warn', 'empty', 'empty', 'empty'] },
+    { name: '정다은', avatar: TS_AVATARS.정다은, dots: ['bad', 'warn', 'empty', 'empty', 'empty'] },
   ],
-  aiSummary: '오늘 박민준·정다운님의 헬스체크가 8대 이상입니다. 박민준님은 2일 연속 몰입도 언급 중입니다.',
+  aiSummary: '오늘 박민준·정다은님의 헬스체크가 6대 이하입니다. 박민준님은 2일 연속 블로커 언급 중입니다.',
   byDate: [
     {
       date: '3월 15일 (금)',
       items: [
         {
           member: '김시윤', role: 'CTO · Engineering', avatar: TS_AVATARS.김시윤,
-          time: '오후 6:12', submitLabel: '정시 제출', score: 8.2, tone: 'good',
+          time: '오후 6:12', submitLabel: '집중 안됨', score: 8.2, tone: 'good',
           text: 'RBAC 설계 완성. 27개 권한 항목 확정 후 커트에게 전달 완료. 어드민 패널 PR 머지.',
           tags: ['개발', '산출물'],
           kr: { okr: 'Phase 1 제품 완성', name: 'Phase 1 UI 기획', percent: 56, tone: 'good' },
@@ -57,7 +57,7 @@ const TEAM_SNIPPETS = {
       items: [
         {
           member: '박민준', role: 'Frontend Engineer', avatar: TS_AVATARS.박민준,
-          time: '오후 6:05', submitLabel: '지연 제출', score: 7.8, tone: 'warn',
+          time: '오후 6:05', submitLabel: '피로 언급', score: 7.8, tone: 'warn',
           text: 'pgvector 인덱스 전략 초안 작성 중. Redis 캐시 제약에서의 의존성 문제 발견. 내일 해결 방안 모색.',
           tags: ['개발', '이슈'],
           kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'blue' },
@@ -69,7 +69,7 @@ const TEAM_SNIPPETS = {
       items: [
         {
           member: '어니스트', role: 'Product Planner', avatar: TS_AVATARS.어니스트,
-          time: '오후 6:20', submitLabel: '정시 제출', score: 8, tone: 'good',
+          time: '오후 6:20', submitLabel: '몰입 좋음', score: 8, tone: 'good',
           text: '3차 정기 미팅 참석. DB 설계 방향 확정. OKR 기획서 v1 리뷰 완료.',
           tags: ['기획', '회의'],
           kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'blue' },
@@ -81,7 +81,7 @@ const TEAM_SNIPPETS = {
       items: [
         {
           member: '김시윤', role: 'CTO · Engineering', avatar: TS_AVATARS.김시윤,
-          time: '오후 6:20', submitLabel: '지연 제출', score: 6.5, tone: 'bad',
+          time: '오후 6:20', submitLabel: '의욕 저하, 압축 언급', score: 6.5, tone: 'bad',
           warning: '헬스체크 추이 — 매니저 확인 권장',
           text: '조직도 v2 드래그 기능 구현 중. 예상보다 복잡해서 내일로 넘길 것 같음. pgvector 이슈도 계속 막혀있음.',
           tags: ['개발', '이슈'],
