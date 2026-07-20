@@ -12,9 +12,10 @@ import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
  *
  * board: { banner?, insights, overall, theme, objectives }
  */
-export default function OkrBoard({ board, icons, baseUrl = '' }) {
+export default function OkrBoard({ board, icons, baseUrl = '', onKrUpdate, onSubmitFeedback }) {
   const { banner, insights, overall, theme, objectives } = board;
-  const [composeOpen, setComposeOpen] = useState(false);
+  // 피드백 작성 대상 KR(null=닫힘). 저장 콜백에 krId 를 전달하기 위해 kr 을 보관.
+  const [composeKr, setComposeKr] = useState(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [krDetail, setKrDetail] = useState(null);
   const [krUpdate, setKrUpdate] = useState(null);
@@ -38,21 +39,25 @@ export default function OkrBoard({ board, icons, baseUrl = '' }) {
             icons={icons}
             baseUrl={baseUrl}
             defaultExpanded={i === 0}
-            onWriteFeedback={() => setComposeOpen(true)}
+            onWriteFeedback={(kr) => setComposeKr(kr)}
             onViewFeedback={(kr) => kr.feedbackDetail && setKrDetail(kr.feedbackDetail)}
             onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
           />
         ))}
       </div>
 
-      {composeOpen && (
+      {composeKr && (
         <OkrFeedbackComposeModal
           title="피드백 작성"
           placeholder=""
           submitLabel="완료"
           icons={icons}
           baseUrl={baseUrl}
-          onClose={() => setComposeOpen(false)}
+          onClose={() => setComposeKr(null)}
+          onSubmit={(text) => {
+            const trimmed = text.trim();
+            if (trimmed && composeKr.krId) onSubmitFeedback?.(composeKr.krId, trimmed);
+          }}
         />
       )}
       {krDetail && (
@@ -70,6 +75,7 @@ export default function OkrBoard({ board, icons, baseUrl = '' }) {
           icons={icons}
           baseUrl={baseUrl}
           onClose={() => setKrUpdate(null)}
+          onConfirm={(value) => { if (krUpdate.krId) onKrUpdate?.(krUpdate.krId, value); }}
         />
       )}
       {requestOpen && (
