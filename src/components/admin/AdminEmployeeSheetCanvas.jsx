@@ -47,6 +47,14 @@ const STATUS_META = {
   pending: { label: '대기', color: '#2563EB', bg: '#EFF6FF', dot: '#60A5FA' },
 };
 const STATUS_OPTIONS = ['active', 'on_leave', 'terminated', 'pending'];
+// 권한 옵션 — admin 승격은 백엔드가 막지만(초대로만), 기존 어드민 표시를 위해 3종 노출.
+const ROLE_OPTIONS = ['admin', 'manager', 'member'];
+
+// select 셀·일괄바의 옵션 라벨(권한=ROLE_META, 상태=STATUS_META).
+function optionLabel(colId, o) {
+  if (colId === 'orgRole') return ROLE_META[o]?.label || o;
+  return STATUS_META[o]?.label || o;
+}
 
 const fmtKRW = (v) => {
   if (v === '' || v === null || v === undefined) return '—';
@@ -64,7 +72,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'email', 'department', 'title', 'employmentStatus', 'hireDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'email', 'department', 'title', 'orgRole', 'employmentStatus', 'hireDate', 'salary', 'education'];
 
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
@@ -107,7 +115,7 @@ function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
       <select ref={ref} value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={{ ...base, cursor: 'pointer' }}>
         {col.options.map((o) => (
           <option key={o} value={o}>
-            {STATUS_META[o]?.label || o}
+            {optionLabel(col.id, o)}
           </option>
         ))}
       </select>
@@ -197,7 +205,7 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'email', label: cl.email || '이메일', width: 210, type: 'text', editable: true },
       { id: 'department', label: cl.department || '부서', width: 130, type: 'text', editable: true },
       { id: 'title', label: cl.title || '직급', width: 120, type: 'text', editable: true },
-      { id: 'orgRole', label: cl.role || '권한', width: 90, type: 'readonly', editable: false },
+      { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
       { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
       { id: 'hireDate', label: cl.hireDate || '입사일', width: 120, type: 'date', editable: true },
@@ -487,7 +495,7 @@ export default function AdminEmployeeSheetCanvas({
                     <option value="">{L.bulkNoChange || '— 선택 안 함'}</option>
                     {c.options.map((o) => (
                       <option key={o} value={o}>
-                        {STATUS_META[o]?.label || o}
+                        {optionLabel(c.id, o)}
                       </option>
                     ))}
                   </select>
