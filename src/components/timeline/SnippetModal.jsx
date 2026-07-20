@@ -577,6 +577,22 @@ export default function SnippetModal({
                   onBlur={handleFieldBlur}
                 />
               </div>
+              {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
+                  패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음.
+                  추천 chip(.tl-snippet-suggest-tags, padding-bottom:80px) 앞에 두어
+                  에러가 트리거 버튼 가까이 노출되도록 한다(80px 스페이서 아래로 밀리지 않게). */}
+              {tagsError && (
+                <div className="tl-snippet-info" role="alert">
+                  <img
+                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                    alt=""
+                    width="14"
+                    height="14"
+                    aria-hidden="true"
+                  />
+                  <span className="tl-snippet-info-text">{tagsError}</span>
+                </div>
+              )}
               <div className="tl-snippet-suggest-tags">
                 {tagSuggestionPool.map((t) => {
                   const already = tags.includes(t);
@@ -593,20 +609,6 @@ export default function SnippetModal({
                   );
                 })}
               </div>
-              {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
-                  패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음. */}
-              {tagsError && (
-                <div className="tl-snippet-info" role="alert">
-                  <img
-                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
-                    alt=""
-                    width="14"
-                    height="14"
-                    aria-hidden="true"
-                  />
-                  <span className="tl-snippet-info-text">{tagsError}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

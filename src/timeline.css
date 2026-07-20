@@ -3160,6 +3160,14 @@
   align-items: center;
 }
 
+/* "Health Check" 타이틀이 넓은 라벨("매우 힘듦")에 밀려 두 줄로 접히면 badge 가
+   윗줄(baseline)로 붕 떠 misalign 된다. 타이틀을 한 줄로 고정해 badge 가 항상 타이틀
+   옆에 인라인 정렬되게 한다. 점수행(.tl-snippet-health-scores)은 flex-shrink 로
+   미세하게 좁아지며 흡수. */
+.tl-snippet-health-head .tl-snippet-field-label {
+  white-space: nowrap;
+}
+
 .tl-snippet-health-scores {
   display: flex;
   align-items: center;
@@ -3230,6 +3238,9 @@
   border-radius: 6px;
   color: #ffffff;
   vertical-align: middle;
+  /* "매우 힘듦" 등 라벨이 좁은 좌측 컬럼에서 단어 중간(매우 힘 / 듦)으로 깨지지 않도록
+     한 줄 유지. 뱃지 폭은 최대 "매우 힘듦" 수준이라 오버플로 위험 없음. */
+  white-space: nowrap;
 }
 
 .tl-snippet-health-label--good {
