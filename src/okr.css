@@ -425,6 +425,24 @@
 .okr-wz-footer { align-items: center; padding: 16px 32px; }
 .okr-wz-footer .okr-btn { flex: none; }
 .okr-wz-footer-hint { flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+/* 설정 마법사 Step2~3 (엔지니어링 포팅 — 시안 okr-setup-wizard.jsx) */
+.okr-wz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-tertiary); font-size: 12px; }
+.okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-orange-50, #FFFBEB); border: 1.5px solid var(--utility-orange-200, #FDE68A); }
+.okr-wz-draft.is-confirmed { background: var(--utility-success-50, #F0FDF4); border-color: var(--utility-success-200, #BBF7D0); }
+.okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.okr-wz-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--bg-hover); color: var(--text-secondary); }
+.okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 7px; align-items: center; padding: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.okr-wz-krno { font-size: 11px; color: var(--text-tertiary); text-align: center; }
+.okr-wz-krcell { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; min-width: 0; }
+.okr-wz-krcell.is-num, .okr-wz-krcell.is-unit { text-align: center; }
+.okr-wz-addkr { width: 100%; padding: 8px; margin-top: 4px; border: 1px dashed var(--border); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.okr-wz-krpreview { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.okr-wz-krpreview-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
+.okr-wz-krpreview-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 4px; font-size: 12px; color: var(--text-primary); }
+.okr-wz-krpreview-name { flex: 1; }
+.okr-wz-krpreview-val { font-size: 11px; color: var(--text-secondary); }
+.okr-wz-error { margin: 10px 0 0; font-size: 12px; color: var(--utility-red-600, #DC2626); }
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* 분기별 KR 테이블 */
