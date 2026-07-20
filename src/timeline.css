@@ -533,6 +533,34 @@
   white-space: nowrap;
 }
 
+/* 그룹 접기/펼치기 셰브론 — 펼침 상태는 아래(▾), 접힘 상태는 우측(▸) */
+.tl-group-header-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: -2px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.12s;
+}
+
+.tl-group-header-collapse svg {
+  transition: transform 0.12s ease;
+}
+
+.tl-group-header-collapse.is-collapsed svg {
+  transform: rotate(-90deg);
+}
+
+.tl-group-header-collapse:hover {
+  color: var(--text-secondary);
+}
+
 .tl-group-header-name {
   font-weight: 600;
   letter-spacing: -0.12px;

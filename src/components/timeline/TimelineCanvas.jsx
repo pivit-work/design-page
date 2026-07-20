@@ -174,6 +174,19 @@ export default function TimelineCanvas({
     setGroups: handleGroupsCommit,
   });
 
+  // ── 그룹 접기/펼치기 ─────────────────────────────────────────────────────
+  // 접힌 그룹 id 집합. NameColumn(왼쪽 이름 열)과 TimelineGrid(오른쪽 그리드)에
+  // 동일하게 전달해 멤버 행을 함께 숨겨야 좌우 Y 좌표가 어긋나지 않는다.
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set());
+  const handleToggleCollapse = (groupId) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
   // ── Empty-cell picker state (본인 행 빈 셀 클릭) ──────────────────────────
   const [cellPicker, setCellPicker] = useState(null); // { pos, hour, date } | null
   const handleCellClick = (pos, hour, date) => setCellPicker({ pos, hour, date });
@@ -563,6 +576,8 @@ export default function TimelineCanvas({
             onRenameGroup={handleRenameGroup}
             onRemoveMember={handleRemoveMember}
             currentUserId={currentUserId}
+            collapsedGroups={collapsedGroups}
+            onToggleCollapse={handleToggleCollapse}
           />
           <TimelineGrid
             ref={rightScrollRef}
@@ -574,6 +589,7 @@ export default function TimelineCanvas({
             targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
             onCellClick={handleCellClick}
             currentUserId={currentUserId}
+            collapsedGroups={collapsedGroups}
           />
         </div>
       )}
