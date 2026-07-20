@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Icon from '../shared/Icon.jsx';
 
 /**
  * TeamSnippetFeed — 팀 스니핏 우측 피드 패널 (날짜별/KR별 서브탭).
@@ -10,7 +11,7 @@ import { useState } from 'react';
  *   [{ member, avatar, date, score, tone, text, flagged? }] }]
  * 필터(memberFilter/redFlagOnly)는 부모가 소유하고 여기서 적용만 한다.
  */
-export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag }) {
+export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag, icons, baseUrl = '' }) {
   const [tab, setTab] = useState('date');
 
   const dateGroups = byDate
@@ -57,7 +58,10 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
       {tab === 'date' ? (
         dateGroups.map((group) => (
           <div className="mgr-ts-dategroup" key={group.date}>
-            <p className="mgr-ts-date">📅 {group.date}</p>
+            <p className="mgr-ts-date">
+              <Icon src={icons.calendarSolid} size={16} color="var(--fg-primary)" baseUrl={baseUrl} />
+              <span>{group.date}</span>
+            </p>
             {group.items.map((item) => (
               <div className="mgr-ts-card" key={item.member + item.time + item.text}>
                 <div className="mgr-ts-card-head">

@@ -1159,7 +1159,7 @@
 /* ── 좌측 사이드바 ── */
 .mgr-ts-side { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 128px; }
 .mgr-ts-roster { background: var(--alpha-black-3); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; }
-.mgr-ts-roster-head { padding: 16px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
+.mgr-ts-roster-row.is-all { min-height: 52px; }
 .mgr-ts-roster-row { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 6px; cursor: pointer; }
 .mgr-ts-roster-row.is-selected { background: var(--fg-light); border: 0.5px solid var(--fg-quaternary); box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08), 0 2px 4px -2px rgba(10, 13, 18, 0.06); }
 .mgr-ts-roster-row img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 0.75px solid var(--border-secondary-alt); }
@@ -1173,9 +1173,9 @@
 .mgr-ts-health-name { flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .mgr-ts-dots { display: flex; gap: 4px; }
 .mgr-ts-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
-.mgr-ts-dot.is-good { background: var(--fg-success-secondary); }
-.mgr-ts-dot.is-warn { background: var(--fg-warning-secondary); }
-.mgr-ts-dot.is-bad { background: var(--fg-error-primary); }
+.mgr-ts-dot.is-good { background: #53af71; /* TODO: token 없음 — Figma 17027:26133 raw */ }
+.mgr-ts-dot.is-warn { background: #e99537; /* TODO: token 없음 */ }
+.mgr-ts-dot.is-bad { background: #c83e2e; /* TODO: token 없음 */ }
 .mgr-ts-dot.is-empty { background: transparent; border: 1px solid var(--border-secondary); }
 .mgr-ts-health-divider { height: 1px; background: var(--border-secondary); margin: 0 -4px; }
 .mgr-ts-health-legend { display: flex; gap: 9px; padding: 16px; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
@@ -1187,7 +1187,7 @@
 .mgr-ts-ai-text { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--utility-purple-500); }
 
 /* ── 우측 피드 ── */
-.mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 16px; }
+.mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
 .mgr-ts-feed-tabs { display: flex; }
 .mgr-ts-feed-tab { flex: 1; text-align: center; padding-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid var(--border-secondary); }
 .mgr-ts-feed-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
@@ -1198,9 +1198,9 @@
 .mgr-ts-filter-chip.is-flag { background: var(--utility-error-50); color: var(--utility-error-500); }
 
 /* 날짜별 */
-.mgr-ts-dategroup { display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
-.mgr-ts-date { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
-.mgr-ts-card { border: 1px solid var(--border-secondary); border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+.mgr-ts-dategroup { display: flex; flex-direction: column; gap: 24px; }
+.mgr-ts-date { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--fg-primary); }
+.mgr-ts-card { border-bottom: 1px solid var(--border-secondary); padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
 .mgr-ts-card-head { display: flex; align-items: center; gap: 14px; }
 .mgr-ts-card-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .mgr-ts-card-who { flex: 1; min-width: 0; }

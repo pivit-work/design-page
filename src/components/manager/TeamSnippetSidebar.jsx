@@ -14,7 +14,12 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
   return (
     <div className="mgr-ts-side">
       <div className="mgr-ts-roster">
-        <div className="mgr-ts-roster-head">전체</div>
+        <div
+          className={`mgr-ts-roster-row is-all${selectedMember == null ? ' is-selected' : ''}`}
+          onClick={() => onSelectMember(null)}
+        >
+          <span className="mgr-ts-roster-name">전체</span>
+        </div>
         {members.map((member) => (
           <div
             key={member.name}

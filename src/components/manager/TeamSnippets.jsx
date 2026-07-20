@@ -55,6 +55,8 @@ export default function TeamSnippets({ data, icons, baseUrl = '' }) {
           baseUrl={baseUrl}
         />
         <TeamSnippetFeed
+          icons={icons}
+          baseUrl={baseUrl}
           byDate={data.byDate}
           byKr={data.byKr}
           memberFilter={memberFilter}
