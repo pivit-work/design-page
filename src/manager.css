@@ -1141,13 +1141,14 @@
 .mgr-ts { display: flex; flex-direction: column; gap: 16px; padding: 0 12px; }
 
 /* 필터 칩 행 — 기간은 세그먼트 컨트롤, 레드 플래그는 흰 원형 카운트 배지 */
-.mgr-ts-chips { display: flex; align-items: center; gap: 10px; }
-.mgr-ts-seg { display: inline-flex; padding: 4px; background: var(--alpha-black-3); border-radius: 12px; }
-.mgr-ts-seg-btn { padding: 7px 16px; background: transparent; border: none; border-radius: 9px; font-family: inherit; font-size: 15px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; }
-.mgr-ts-seg-btn.is-active { background: var(--bg-quaternary); color: var(--text-primary); font-weight: 700; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.06); }
-.mgr-ts-chip.is-redflag { display: flex; align-items: center; gap: 8px; padding: 9px 18px; background: var(--alpha-black-3); border: none; border-radius: 12px; font-family: inherit; font-size: 15px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
-.mgr-ts-chip.is-redflag b { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-quaternary); border: 1px solid var(--utility-error-300); font-size: 12px; font-weight: 700; color: var(--utility-error-500); }
-.mgr-ts-chip.is-redflag.is-active { background: var(--utility-error-50); color: var(--utility-error-500); }
+/* 컨트롤 바 — Figma 17421:18448 (세그먼트 p4 g2, 레드 플래그 p8x14 + 에러 필 카운트) */
+.mgr-ts-chips { display: flex; align-items: center; gap: 6px; }
+.mgr-ts-seg { display: inline-flex; gap: 2px; padding: 4px; background: var(--alpha-black-3); border-radius: 8px; }
+.mgr-ts-seg-btn { padding: 4px 8px; background: transparent; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-tertiary); cursor: pointer; }
+.mgr-ts-seg-btn.is-active { background: var(--fg-light); border: 0.5px solid var(--fg-quaternary); color: var(--text-secondary); filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08)); }
+.mgr-ts-chip.is-redflag { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
+.mgr-ts-chip.is-redflag b { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 999px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
+.mgr-ts-chip.is-redflag.is-active { background: var(--utility-error-50); color: var(--utility-error-700); }
 
 /* 제출 현황 */
 .mgr-ts-submit { display: flex; flex-direction: column; gap: 2px; }
