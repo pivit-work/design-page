@@ -5,34 +5,52 @@ import OkrProgressBar from './OkrProgressBar.jsx';
 /**
  * OkrComposeFullModal — 개인 OKR 작성 풀스크린 모달.
  *
- * 좌측: 팀 OKR 미니맵(회사 OKR + 팀 Objective 그룹/KR). KR 의 + 버튼을
- * 누르면 해당 팀 KR 에 연결된 Objective/KR 편집 카드가 우측에 추가되고
- * 미니맵 행이 초록으로 하이라이트된다. 우측: 비어 있으면 빈 상태 안내,
- * [직접추가/Objective 추가]로 편집 카드를 추가한다.
+ * 좌측: 팀 OKR 미니맵. KR 의 + 버튼을 누르면 해당 팀 KR 에 연결된 개인 KR 이
+ * (마지막/신규 Objective 에) 추가된다. 우측: Objective/KR 편집 폼.
+ * 가중치는 Objective 합계 100%, 각 Objective 의 KR 합계 100% 여야 저장 가능.
+ * 저장 시 onSubmit(objectives) 로 소비자에 전달한다.
  *
- * minimap: { company: { label, title }, title, groups: [{ q, title,
- *   krs: [{ id, title, percent }] }] }
+ * 시안: pivit-specs okr-individual.jsx(IndividualOKRWriter/ObjectiveWriteCard).
+ * 담당자·팀 Objective 연결·AI 생성·이니셔티브는 후속(picker/크레딧 필요).
+ *
+ * onSubmit(objectives): objectives = [{ title, weight, comOkr?, krs: [{ title,
+ *   target, unit, inputType('percent'|'binary'|'count'), weight, teamKrId? }] }]
  */
 const METHODS = [
-  { key: 'rate1', label: '% 달성률', desc: '0~100% 직접 입력' },
-  { key: 'rate2', label: '% 달성률', desc: '0~100% 직접 입력' },
-  { key: 'count', label: '개수 달성', desc: 'n/ 목표 개수' },
+  { key: 'percent', label: '% 달성률', desc: '0~100% 직접 입력', unit: '%' },
+  { key: 'binary', label: '완료 여부', desc: '달성/미달성', unit: '완료' },
+  { key: 'count', label: '개수 달성', desc: 'n / 목표 개수', unit: '개' },
 ];
 
-let objectiveSeq = 0;
+let seq = 0;
+const nextId = () => { seq += 1; return `cf-${seq}`; };
 
-function emptyObjective(linkedKr) {
-  objectiveSeq += 1;
+function emptyKr(linked) {
   return {
-    key: `obj-${objectiveSeq}`,
-    linkedKr: linkedKr || null,
-    krs: linkedKr ? [{ key: `kr-${objectiveSeq}-1`, linked: linkedKr.title }] : [],
+    key: nextId(),
+    title: '',
+    target: linked?.target ?? 100,
+    unit: linked?.unit ?? '%',
+    inputType: linked?.inputType ?? 'percent',
+    weight: '',
+    comOkr: linked ? `Team KR ${linked.no ?? ''}`.trim() : '',
+    teamKrId: linked?.id ?? null,
+  };
+}
+function emptyObjective(linkedKr) {
+  return {
+    key: nextId(),
+    title: '',
+    weight: '',
+    comOkr: '',
+    krs: linkedKr ? [emptyKr(linkedKr)] : [],
   };
 }
 
-export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onClose }) {
+export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onClose, onSubmit }) {
   const [objectives, setObjectives] = useState([]);
   const [linkedIds, setLinkedIds] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -40,17 +58,51 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const addObjective = (linkedKr) => setObjectives((prev) => [...prev, emptyObjective(linkedKr)]);
-  const removeObjective = (key) => setObjectives((prev) => prev.filter((o) => o.key !== key));
-  const addKr = (objKey) => setObjectives((prev) => prev.map((o) => (
-    o.key === objKey ? { ...o, krs: [...o.krs, { key: `${objKey}-kr-${o.krs.length + 1}` }] } : o
-  )));
-  const removeKr = (objKey, krKey) => setObjectives((prev) => prev.map((o) => (
+  const addObjective = () => setObjectives((p) => [...p, emptyObjective()]);
+  const removeObjective = (key) => setObjectives((p) => p.filter((o) => o.key !== key));
+  const patchObjective = (key, patch) => setObjectives((p) => p.map((o) => (o.key === key ? { ...o, ...patch } : o)));
+  const addKr = (objKey) => setObjectives((p) => p.map((o) => (o.key === objKey ? { ...o, krs: [...o.krs, emptyKr()] } : o)));
+  const removeKr = (objKey, krKey) => setObjectives((p) => p.map((o) => (
     o.key === objKey ? { ...o, krs: o.krs.filter((k) => k.key !== krKey) } : o
   )));
-  const linkTeamKr = (groupIdx, krIdx, kr) => {
-    setLinkedIds((prev) => ({ ...prev, [`${groupIdx}-${krIdx}`]: true }));
-    addObjective(kr);
+  const patchKr = (objKey, krKey, patch) => setObjectives((p) => p.map((o) => (
+    o.key === objKey ? { ...o, krs: o.krs.map((k) => (k.key === krKey ? { ...k, ...patch } : k)) } : o
+  )));
+
+  // 미니맵 + → 마지막 Objective(없으면 신규)에 연결 KR 추가.
+  const linkTeamKr = (gi, ki, kr) => {
+    setLinkedIds((prev) => ({ ...prev, [`${gi}-${ki}`]: true }));
+    setObjectives((prev) => {
+      if (prev.length === 0) return [emptyObjective(kr)];
+      const last = prev[prev.length - 1];
+      return prev.map((o) => (o.key === last.key ? { ...o, krs: [...o.krs, emptyKr(kr)] } : o));
+    });
+  };
+
+  const totalW = objectives.reduce((a, o) => a + (Number(o.weight) || 0), 0);
+  const krWeightOk = (o) => o.krs.length === 0 || o.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0) === 100;
+  const canSave =
+    objectives.length > 0 &&
+    totalW === 100 &&
+    objectives.every((o) => o.title.trim() && o.krs.length > 0 && o.krs.every((k) => k.title.trim()) && krWeightOk(o));
+
+  const handleSave = () => {
+    if (!canSave || saving) return;
+    const payload = objectives.map((o) => ({
+      title: o.title.trim(),
+      weight: Number(o.weight) || 0,
+      comOkr: o.comOkr || undefined,
+      krs: o.krs.map((k) => ({
+        title: k.title.trim(),
+        target: Number(k.target) || 0,
+        unit: k.unit,
+        inputType: k.inputType,
+        weight: Number(k.weight) || 0,
+        teamKrId: k.teamKrId || undefined,
+      })),
+    }));
+    setSaving(true);
+    Promise.resolve(onSubmit?.(payload)).finally(() => { setSaving(false); onClose(); });
   };
 
   return (
@@ -98,7 +150,7 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
           <div className="okr-cf-editor">
             <div className="okr-cf-editor-head">
               <p className="okr-cf-hint">좌측 팀 OKR 미니맵에서 + 를 클릭하면 해당 팀 KR에 연결된 개인 KR이 자동 추가됩니다.</p>
-              <button className="okr-cf-add-btn" onClick={() => addObjective()}>
+              <button className="okr-cf-add-btn" onClick={addObjective}>
                 <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
                 <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
               </button>
@@ -107,66 +159,130 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
             {objectives.length === 0 ? (
               <div className="okr-cf-empty">
                 <p className="okr-cf-empty-title">개인 OKR을 시작해보세요</p>
-                <p className="okr-cf-empty-desc">우측 팀 OKR 미니맵에서 + 를 클릭하거나<br />AI 생성 · 직접 추가로 시작하세요</p>
+                <p className="okr-cf-empty-desc">우측 팀 OKR 미니맵에서 + 를 클릭하거나<br />직접 추가로 시작하세요</p>
               </div>
             ) : (
-              objectives.map((objective) => (
-                <div className="okr-cf-objective" key={objective.key}>
-                  <div className="okr-cf-obj-head">
-                    <span className="okr-p-caret is-open">
-                      <Icon src={icons.chevronDown} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                    </span>
-                    <span className="okr-cf-obj-label">Objective</span>
-                    <input className="okr-cf-input" placeholder="Objective 내용" defaultValue={objective.linkedKr ? `${objective.linkedKr.title} 기여` : ''} />
-                    <button className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
-                      <Icon src={icons.xClose} size={18} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              objectives.map((objective) => {
+                const krSum = objective.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0);
+                return (
+                  <div className="okr-cf-objective" key={objective.key}>
+                    <div className="okr-cf-obj-head">
+                      <span className="okr-p-caret is-open">
+                        <Icon src={icons.chevronDown} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                      </span>
+                      <span className="okr-cf-obj-label">Objective</span>
+                      <input
+                        className="okr-cf-input"
+                        placeholder="Objective 내용"
+                        aria-label="Objective 내용"
+                        value={objective.title}
+                        onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
+                      />
+                      <button className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
+                        <Icon src={icons.xClose} size={18} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                      </button>
+                    </div>
+                    <div className="okr-cf-obj-meta">
+                      <input
+                        className="okr-cf-input is-sm"
+                        placeholder="가중치"
+                        aria-label="Objective 가중치"
+                        type="number"
+                        value={objective.weight}
+                        onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
+                      />
+                      <span className="okr-cf-unit">%</span>
+                    </div>
+
+                    {objective.krs.map((kr) => (
+                      <div className="okr-cf-kr-card" key={kr.key}>
+                        <div className="okr-cf-kr-card-head">
+                          <span className="okr-cf-bullet" />
+                          <input
+                            className="okr-cf-input"
+                            placeholder="KR 내용"
+                            aria-label="KR 내용"
+                            value={kr.title}
+                            onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
+                          />
+                          <button className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
+                            <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                          </button>
+                        </div>
+                        <div className="okr-cf-methods">
+                          {METHODS.map((method) => (
+                            <button
+                              type="button"
+                              className={`okr-cf-method${kr.inputType === method.key ? ' is-active' : ''}`}
+                              key={method.key}
+                              onClick={() => patchKr(objective.key, kr.key, { inputType: method.key, unit: method.unit })}
+                            >
+                              <p className="okr-cf-method-label">{method.label}</p>
+                              <p className="okr-cf-method-desc">{method.desc}</p>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="okr-cf-kr-meta">
+                          <input
+                            className="okr-cf-input is-sm"
+                            placeholder="목표"
+                            aria-label="KR 목표값"
+                            type="number"
+                            value={kr.target}
+                            onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
+                          />
+                          <input
+                            className="okr-cf-input is-sm"
+                            placeholder="단위"
+                            aria-label="KR 단위"
+                            value={kr.unit}
+                            onChange={(e) => patchKr(objective.key, kr.key, { unit: e.target.value })}
+                          />
+                          <input
+                            className="okr-cf-input is-sm"
+                            placeholder="가중치"
+                            aria-label="KR 가중치"
+                            type="number"
+                            value={kr.weight}
+                            onChange={(e) => patchKr(objective.key, kr.key, { weight: e.target.value })}
+                          />
+                          <span className="okr-cf-unit">%</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {objective.krs.length > 0 && (
+                      <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
+                        {krSum === 100 ? '✓ KR 가중치 100%' : `KR 가중치 합계 ${krSum}% (100% 필요)`}
+                      </div>
+                    )}
+                    <button className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
+                      <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+                      <span>KR 직접추가</span>
                     </button>
                   </div>
-                  <div className="okr-cf-obj-meta">
-                    <input className="okr-cf-input is-sm" placeholder="가중치 %" />
-                    <span className="okr-cf-unit">%</span>
-                    <div className="okr-cf-select">담당자 <span className="okr-cf-select-caret">⌄</span></div>
-                    <div className="okr-cf-select is-wide">• 팀 Objective 연결 (선택)</div>
-                  </div>
-
-                  {objective.krs.map((kr) => (
-                    <div className="okr-cf-kr-card" key={kr.key}>
-                      <div className="okr-cf-kr-card-head">
-                        <span className="okr-cf-bullet" />
-                        <input className="okr-cf-input" placeholder="KR 내용" defaultValue={kr.linked || ''} />
-                        <span className="okr-cf-improve">개선</span>
-                        <button className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
-                          <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                        </button>
-                      </div>
-                      <div className="okr-cf-methods">
-                        {METHODS.map((method, mi) => (
-                          <div className={`okr-cf-method${mi === 2 ? ' is-active' : ''}`} key={method.key}>
-                            <p className="okr-cf-method-label">{method.label}</p>
-                            <p className="okr-cf-method-desc">{method.desc}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="okr-cf-kr-meta">
-                        <input className="okr-cf-input is-sm" placeholder="100" />
-                        <input className="okr-cf-input is-sm" placeholder="개" />
-                        <input className="okr-cf-input is-sm" placeholder="가중치" />
-                        <span className="okr-cf-unit">%</span>
-                        <div className="okr-cf-select">담당자 <span className="okr-cf-select-caret">⌄</span></div>
-                        <div className="okr-cf-select">{(objective.linkedKr?.title || '팀 KR 연결').slice(0, 12)}… <span className="okr-cf-select-caret">⌄</span></div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <button className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
-                    <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-                    <span>KR 직접추가</span>
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
+
+        {objectives.length > 0 && (
+          <div className="okr-modal-footer">
+            <span className={`okr-cf-total${totalW === 100 ? ' is-ok' : ''}`}>
+              Objective 가중치 합계 {totalW}% {totalW === 100 ? '✓' : '(100% 필요)'}
+            </span>
+            <button className="okr-btn is-outline" onClick={onClose}>취소</button>
+            <button
+              className="okr-btn is-brand"
+              disabled={!canSave || saving}
+              title={!canSave ? 'Objective·KR 가중치 합이 모두 100%여야 저장할 수 있습니다.' : ''}
+              onClick={handleSave}
+            >
+              {saving ? '저장 중…' : '저장'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

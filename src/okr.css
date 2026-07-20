@@ -391,6 +391,12 @@
 .okr-cf-method-desc { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--text-tertiary); }
 .okr-cf-method.is-active .okr-cf-method-label, .okr-cf-method.is-active .okr-cf-method-desc { color: var(--text-white); }
 .okr-cf-kr-add-btn { align-self: flex-end; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+/* 작성 폼 가중치 검증 배지(엔지니어링 배선) */
+.okr-cf-krsum { align-self: flex-end; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--utility-red-50, #FEF2F2); border: 1px solid var(--utility-red-200, #FECACA); color: var(--utility-red-600, #DC2626); }
+.okr-cf-krsum.is-ok { background: var(--utility-success-50, #F0FDF4); border-color: var(--utility-success-200, #BBF7D0); color: var(--utility-success-600, #16A34A); }
+.okr-cf-total { margin-right: auto; font-size: 12px; font-weight: 700; color: var(--utility-red-600, #DC2626); }
+.okr-cf-total.is-ok { color: var(--utility-success-600, #16A34A); }
+.okr-cf-method { cursor: pointer; font-family: inherit; text-align: left; }
 
 /* ══ OKR 설정 마법사 모달 ══ */
 .okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 80px); max-height: 88vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
