@@ -3,7 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 
-function GroupHeader({ group, onAddMember, onRemoveGroup, onRenameGroup }) {
+function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemoveGroup, onRenameGroup }) {
   const [editing, setEditing] = useState(false);
   const commitRename = (value) => {
     setEditing(false);
@@ -18,6 +18,20 @@ function GroupHeader({ group, onAddMember, onRemoveGroup, onRenameGroup }) {
       data-tl-group={group.id}
     >
       <div className="tl-group-header-label">
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className={`tl-group-header-collapse${collapsed ? ' is-collapsed' : ''}`}
+            aria-label={collapsed ? '그룹 펼치기' : '그룹 접기'}
+            aria-expanded={!collapsed}
+            title={collapsed ? '펼치기' : '접기'}
+            onClick={() => onToggleCollapse(group.id)}
+          >
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
         {editing ? (
           <input
             className="tl-group-header-edit"
@@ -187,6 +201,8 @@ const NameColumn = forwardRef(function NameColumn(
     onRenameGroup,
     onRemoveMember,
     currentUserId,
+    collapsedGroups,
+    onToggleCollapse,
   },
   ref
 ) {
@@ -196,7 +212,12 @@ const NameColumn = forwardRef(function NameColumn(
   // in FILTERED space (index ignores the dragged row).
   const flatRows = [];
   groups.forEach((g) => {
-    flatRows.push({ type: 'groupHeader', group: g });
+    const collapsed = !!collapsedGroups?.has(g.id);
+    flatRows.push({ type: 'groupHeader', group: g, collapsed });
+
+    // 접힌 그룹은 멤버 행/플레이스홀더를 건너뛴다. TimelineGrid 도 동일하게
+    // 건너뛰므로 좌우 Y 좌표(스크롤 미러·미팅 블록)가 계속 동기화된다.
+    if (collapsed) return;
 
     const sourceIdx = dragState
       ? g.memberIds.indexOf(dragState.member.id)
@@ -270,6 +291,8 @@ const NameColumn = forwardRef(function NameColumn(
                 <GroupHeader
                   key={`g-${r.group.id}`}
                   group={r.group}
+                  collapsed={r.collapsed}
+                  onToggleCollapse={onToggleCollapse}
                   onAddMember={onGroupAddMember}
                   onRemoveGroup={onRemoveGroup}
                   onRenameGroup={onRenameGroup}

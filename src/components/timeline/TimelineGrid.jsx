@@ -23,14 +23,17 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     // 빈 셀 클릭 — 본인(currentUserId) 행에서만 활성. (pos{x,y}, hour, date) 인자.
     onCellClick,
     currentUserId,
+    collapsedGroups,
   },
   ref
 ) {
   const { members, meetings } = useTimelineData();
-  // Build flat rows parallel to NameColumn
+  // Build flat rows parallel to NameColumn — 접힌 그룹은 멤버 행을 생략해
+  // NameColumn 과 동일한 Y 좌표를 유지한다(스크롤 미러·미팅 블록 정렬).
   const flatRows = [];
   groups.forEach((g) => {
     flatRows.push({ type: 'groupHeader', group: g });
+    if (collapsedGroups?.has(g.id)) return;
     g.memberIds.forEach((mid) => {
       const m = members.find((x) => x.id === mid);
       if (m) flatRows.push({ type: 'member', member: m });
