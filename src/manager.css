@@ -1166,7 +1166,7 @@
 .mgr-ts-roster-name { flex: 1; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .mgr-ts-roster-status { display: flex; align-items: center; gap: 8px; }
 
-.mgr-ts-health { background: var(--bg-quaternary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 8px 4px; display: flex; flex-direction: column; }
+.mgr-ts-health { background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 8px 4px; display: flex; flex-direction: column; }
 .mgr-ts-health-head { padding: 12px 16px 8px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-health-row { display: flex; align-items: center; gap: 12px; padding: 16px; }
 .mgr-ts-health-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
@@ -1201,12 +1201,13 @@
 .mgr-ts-dategroup { display: flex; flex-direction: column; gap: 24px; }
 .mgr-ts-date { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--fg-primary); }
 .mgr-ts-card { border-bottom: 1px solid var(--border-secondary); padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
-.mgr-ts-card-head { display: flex; align-items: center; gap: 14px; }
+.mgr-ts-card-head { display: flex; align-items: center; gap: 12px; }
 .mgr-ts-card-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .mgr-ts-card-who { flex: 1; min-width: 0; }
 .mgr-ts-card-name { font-size: 18px; font-weight: 700; line-height: 26px; color: var(--fg-primary); }
 .mgr-ts-card-role { font-size: 14px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-ts-card-when { text-align: right; }
+/* 시간/컨디션은 이름 컬럼과 동일 폭의 좌측 정렬 컬럼 — 카드 중앙에서 시작 (Figma 17027:26067) */
+.mgr-ts-card-when { flex: 1; min-width: 0; text-align: left; }
 .mgr-ts-card-time { font-size: 18px; font-weight: 600; line-height: 26px; color: var(--text-primary); }
 .mgr-ts-card-submit { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
 .mgr-ts-score { min-width: 34px; text-align: center; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; }
