@@ -121,6 +121,9 @@
   --utility-error-200: var(--componentColors-utility-error-utilityError200);
   --utility-error-300: var(--componentColors-utility-error-utilityError300);
   --utility-purple-400: var(--componentColors-utility-purple-utilityPurple400);
+  --utility-warning-200: var(--componentColors-utility-warning-utilityWarning200);
+  --utility-warning-700: var(--componentColors-utility-warning-utilityWarning700);
+  --utility-error-700: var(--componentColors-utility-error-utilityError700);
   --utility-pink-400: var(--componentColors-utility-pink-utilityPink400);
   --fg-primary: var(--colors-foreground-fgPrimary);
   --fg-tertiary: var(--colors-foreground-fgTertiary);

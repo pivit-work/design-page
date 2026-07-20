@@ -99,33 +99,41 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
       ) : (
         krGroups.map((group) => (
           <div className="mgr-ts-krgroup" key={group.title}>
-            <p className={`mgr-ts-krgroup-okr is-${group.tone}`}><i /> {group.okr}</p>
-            <div className="mgr-ts-krgroup-head">
-              <h3 className="mgr-ts-krgroup-title">{group.title}</h3>
-              <span className={`mgr-ts-krgroup-percent is-${group.tone}`}>{group.percent}%</span>
-            </div>
-            <div className="mgr-ts-kr-track">
-              <div className={`mgr-ts-kr-fill is-${group.tone}`} style={{ width: `${group.percent}%` }} />
-            </div>
-            <div className="mgr-ts-krgroup-meta">
-              <span className="mgr-ts-krgroup-avatars">
-                {group.avatars.map((src, i) => <img key={i} src={src} alt="" draggable={false} />)}
-              </span>
-              <span className="mgr-ts-krgroup-members">{group.members}</span>
-              <span className="mgr-ts-krgroup-count">스니핏 {group.snippets.length}건</span>
-            </div>
-            {group.snippets.map((item) => (
-              <div className="mgr-ts-krsnippet" key={item.member + item.date + item.text}>
-                <div className="mgr-ts-krsnippet-head">
-                  {item.flagged && <span className="mgr-ts-flag">▲</span>}
-                  <img src={item.avatar} alt={item.member} draggable={false} />
-                  <span className="mgr-ts-krsnippet-name">{item.member}</span>
-                  <span className="mgr-ts-krsnippet-date">{item.date}</span>
-                  <span className={`mgr-ts-score is-${item.tone}`}>{item.score}</span>
-                </div>
-                <p className="mgr-ts-krsnippet-text">{item.text}</p>
+            <div className="mgr-ts-krgroup-hd">
+              <p className={`mgr-ts-krgroup-okr is-${group.tone}`}><i /> {group.okr}</p>
+              <div className="mgr-ts-krgroup-head">
+                <h3 className="mgr-ts-krgroup-title">{group.title}</h3>
+                <span className={`mgr-ts-krgroup-percent is-${group.tone}`}>{group.percent}%</span>
               </div>
-            ))}
+              <div className="mgr-ts-kr-track">
+                <div className={`mgr-ts-kr-fill is-${group.tone}`} style={{ width: `${group.percent}%` }} />
+              </div>
+              <div className="mgr-ts-krgroup-meta">
+                <span className="mgr-ts-krgroup-avatars">
+                  {group.avatars.map((src, i) => <img key={i} src={src} alt="" draggable={false} />)}
+                </span>
+                <span className="mgr-ts-krgroup-members">{group.members}</span>
+                <span className="mgr-ts-krgroup-count">스니핏 {group.snippets.length}건</span>
+              </div>
+            </div>
+            <div className="mgr-ts-krgroup-list">
+              {group.snippets.map((item) => (
+                <div className="mgr-ts-krsnippet" key={item.member + item.date + item.text}>
+                  {item.flagged && (
+                    <Icon src={icons.alertTriangle} size={16} color="var(--utility-error-500)" baseUrl={baseUrl} />
+                  )}
+                  <img src={item.avatar} alt={item.member} draggable={false} />
+                  <div className="mgr-ts-krsnippet-body">
+                    <div className="mgr-ts-krsnippet-head">
+                      <span className="mgr-ts-krsnippet-name">{item.member}</span>
+                      <span className="mgr-ts-krsnippet-date">{item.date}</span>
+                      <span className={`mgr-ts-score is-${item.tone}`}>{item.score}</span>
+                    </div>
+                    <p className="mgr-ts-krsnippet-text">{item.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))
       )}
