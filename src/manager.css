@@ -1154,10 +1154,10 @@
 .mgr-ts-submit-label { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
 .mgr-ts-submit-count { font-size: 28px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
 
-.mgr-ts-body { display: flex; gap: 16px; align-items: flex-start; }
+.mgr-ts-body { display: flex; gap: 10px; align-items: flex-start; }
 
 /* ── 좌측 사이드바 ── */
-.mgr-ts-side { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 128px; }
+.mgr-ts-side { width: 370px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 128px; }
 .mgr-ts-roster { background: var(--alpha-black-3); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; }
 .mgr-ts-roster-row.is-all { min-height: 52px; }
 .mgr-ts-roster-row { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 6px; cursor: pointer; }
