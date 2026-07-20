@@ -18,8 +18,10 @@ export const SIDEBAR_MENU = [
   { id: 'oneonone', icon: '/icons-solid/user-03.svg',             label: '1on1',     section: 'top' },
   { id: 'orgchart', icon: '/icons-solid/layers-three-01.svg',     label: '조직도',   section: 'top' },
   { id: 'meetings', icon: '/icons-solid/file-02.svg',             label: '회의록',   section: 'top' },
+  // '평가'(/eval)는 역할로 분기한다(스펙 eval-app.jsx 역할섹션): 매니저는 '팀 평가
+  // 관리' 허브로, 구성원은 셀프 리뷰로, HR 은 사이클 목록으로. 과거 별도 최상위였던
+  // '팀 평가'(캘리 결과 딥링크)는 중복·의미축소라 제거하고 '평가' 안으로 일원화했다.
   { id: 'eval',     icon: '/icons-solid/edit-02.svg',             label: '평가',     section: 'top' },
-  { id: 'team_eval',icon: '/icons-solid/trend-up-01.svg',         label: '팀 평가',  section: 'top' },
   { id: 'manager',  icon: '/icons-solid/user-edit.svg',           label: '매니저',   section: 'top' },
   { id: 'admin',    icon: '/icons-solid/lock-keyhole-square.svg', label: '어드민',   section: 'bottom' },
 ];
