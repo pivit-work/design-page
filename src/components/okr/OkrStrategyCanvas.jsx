@@ -11,7 +11,7 @@ import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
  * 전략 캔버스는 [편집]으로 초록 테두리 입력 모드 전환, [저장]으로 반영.
  * Company OKR 서브탭은 공용 OkrBoard, 히스토리는 개인 OKR 과 동일 구조.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback }) {
   const [subTab, setSubTab] = useState('canvas');
   const [rows, setRows] = useState(initialRows);
   const [editing, setEditing] = useState(false);
@@ -97,7 +97,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
           </div>
         </>
       ) : subTab === 'company' && companyBoard ? (
-        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} />
+        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} />
       ) : subTab === 'history' && history ? (
         <div className="okr-h-list">
           {history.map((quarter) => (
