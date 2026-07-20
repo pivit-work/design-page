@@ -131,6 +131,7 @@ export {
 // Admin
 export { AdminDashboardCanvas } from './admin/index.js';
 export { AdminEmployeesCanvas } from './admin/index.js';
+export { AdminEmployeeSheetCanvas } from './admin/index.js';
 export { AdminRbacCanvas } from './admin/index.js';
 export { AdminTeamCanvas } from './admin/index.js';
 export { TeamIcon } from './admin/index.js';
