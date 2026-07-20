@@ -183,6 +183,9 @@ export default function AdminEmployeeSheetCanvas({
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onAddEmployee,
+  // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
+  // 자체 페이지 타이틀/부제 헤더를 숨기고 저장 컨트롤만 우측 정렬로 노출한다.
+  embedded = false,
 }) {
   const L = labels;
 
@@ -382,12 +385,14 @@ export default function AdminEmployeeSheetCanvas({
 
   return (
     <div style={{ fontFamily: T.font, color: T.text }}>
-      {/* 헤더: 타이틀 + 저장 컨트롤 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: T.text }}>{L.title || '직원 일괄 편집'}</div>
-          <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{L.subtitle || '표에서 직접 수정하고 여러 명을 한 번에 편집하세요.'}</div>
-        </div>
+      {/* 헤더: 타이틀 + 저장 컨트롤 (embedded 면 타이틀 숨김, 저장 컨트롤만 우측) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: embedded ? 'flex-end' : 'space-between', marginBottom: embedded ? 10 : 16, flexWrap: 'wrap', gap: 10 }}>
+        {!embedded && (
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: T.text }}>{L.title || '직원 일괄 편집'}</div>
+            <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{L.subtitle || '표에서 직접 수정하고 여러 명을 한 번에 편집하세요.'}</div>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {saved && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 8, background: '#F0FDF4', border: '1px solid #BBF7D0' }}>

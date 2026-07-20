@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
+import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
 
 /* ── 인라인 라인 아이콘 ──────────────────────────────────────
  * emoji/타이포 글리프(⚠️ ✓ × ⋯ ▾ ← →) 대체. design-page 의 클린
@@ -223,333 +224,6 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels,
             {labels.menu.deactivate}
           </button>
         </>
-      )}
-    </div>
-  );
-}
-
-/* ── 편집 슬라이드 패널 ─────────────────────────────────── */
-function EditPanel({ member, orgUnits, labels, renderAvatar, onClose, onSave }) {
-  const [draft, setDraft] = useState(member);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  if (!member) return null;
-  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
-  const selectedUnit = orgUnits.find((u) => u.id === draft._orgUnitId) || null;
-  const deptLabel = selectedUnit ? selectedUnit.name : draft.department;
-
-  const statusOrder = ['active', 'pending', 'on_leave', 'terminated'];
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      await onSave(draft);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <>
-      <div className="admin-emp-panel-backdrop" onClick={onClose} />
-      <div className="admin-emp-panel" role="dialog" aria-modal="true">
-        <div className="admin-emp-panel-header">
-          <div className="admin-emp-panel-id">
-            {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}
-            <div>
-              <div className="admin-emp-panel-name">{draft.name}</div>
-              <div className="admin-emp-panel-email">{draft.email}</div>
-            </div>
-          </div>
-          <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label="close"><IconX size={16} /></button>
-        </div>
-
-        <div className="admin-emp-panel-body">
-          <SectionLabel>{labels.panel.basicInfo}</SectionLabel>
-          <div className="admin-emp-field-group">
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.name}</span>
-              <input className="admin-emp-input" value={draft.name || ''} onChange={(e) => set('name', e.target.value)} />
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.email}</span>
-              <input className="admin-emp-input" value={draft.email || ''} onChange={(e) => set('email', e.target.value)} />
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.level}</span>
-              <input className="admin-emp-input" value={draft.title || ''} onChange={(e) => set('title', e.target.value)} />
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.joined}</span>
-              <input type="date" className="admin-emp-input" value={(draft.hireDate || '').slice(0, 10)} onChange={(e) => set('hireDate', e.target.value)} />
-            </label>
-          </div>
-
-          <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
-          <div className="admin-emp-org-assign">
-            <button
-              type="button"
-              className={`admin-emp-org-current${deptLabel ? '' : ' is-empty'}`}
-              onClick={() => setPickerOpen((o) => !o)}
-            >
-              <span className="admin-emp-org-current-name">
-                {deptLabel || labels.panel.orgNone}
-              </span>
-              <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>
-            </button>
-            {pickerOpen && (
-              <OrgUnitPicker
-                orgUnits={orgUnits}
-                labels={labels}
-                onSelect={(id) => { set('_orgUnitId', id); setPickerOpen(false); }}
-                onClose={() => setPickerOpen(false)}
-              />
-            )}
-          </div>
-
-          <SectionLabel>{labels.panel.managerSection}</SectionLabel>
-          <div className="admin-emp-manager-readonly">
-            <span className="admin-emp-manager-name">{draft.managerName || '—'}</span>
-            <span className="admin-emp-manager-note">{labels.panel.managerAuto}</span>
-          </div>
-
-          <SectionLabel>{labels.panel.statusSection}</SectionLabel>
-          <div className="admin-emp-status-options">
-            {statusOrder.map((key) => {
-              const selected = draft.employmentStatus === key;
-              return (
-                <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="employmentStatus"
-                    className="admin-emp-sr-only"
-                    checked={selected}
-                    onChange={() => set('employmentStatus', key)}
-                  />
-                  <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
-                  <span className="admin-emp-status-option-label">{labels.status[key]}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="admin-emp-panel-footer">
-          <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
-          <button type="button" className="admin-emp-btn is-primary admin-emp-btn-block" onClick={handleSave} disabled={saving}>{labels.panel.save}</button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ── 탭 A: 전체 구성원 ──────────────────────────────────── */
-function MembersTab({ members, labels, canEdit, pageSize, renderAvatar, onOpenEdit, onDeactivate, onInvite, onCsvUpload }) {
-  const [q, setQ] = useState('');
-  const [dept, setDept] = useState('전체');
-  const [level, setLevel] = useState('전체');
-  const [mgrFilter, setMgrFilter] = useState('all');
-  const [status, setStatus] = useState('all');
-  const [page, setPage] = useState(1);
-  const [openMenu, setOpenMenu] = useState(null);
-
-  const depts = useMemo(
-    () => ['전체', ...Array.from(new Set(members.map((m) => m.department).filter(Boolean)))],
-    [members],
-  );
-  const levels = useMemo(
-    () => ['전체', ...Array.from(new Set(members.map((m) => m.title).filter(Boolean)))],
-    [members],
-  );
-  const statusOpts = [
-    { id: 'all', label: labels.filters.all },
-    { id: 'active', label: labels.status.active },
-    { id: 'pending', label: labels.status.pending },
-    { id: 'on_leave', label: labels.status.on_leave },
-    { id: 'terminated', label: labels.status.terminated },
-  ];
-  const mgrOpts = [
-    { id: 'all', label: labels.managerFilter.all },
-    { id: 'assigned', label: labels.managerFilter.assigned },
-    { id: 'unassigned', label: labels.managerFilter.unassigned },
-  ];
-
-  const filtered = useMemo(
-    () =>
-      members.filter((m) => {
-        if (q && !(m.name?.includes(q) || m.email?.includes(q) || (m.department || '').includes(q))) return false;
-        if (dept !== '전체' && m.department !== dept) return false;
-        if (level !== '전체' && m.title !== level) return false;
-        if (mgrFilter === 'assigned' && !m.managerName) return false;
-        if (mgrFilter === 'unassigned' && m.managerName) return false;
-        if (status !== 'all' && m.employmentStatus !== status) return false;
-        return true;
-      }),
-    [members, q, dept, level, mgrFilter, status],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const hasFilter = q || dept !== '전체' || level !== '전체' || mgrFilter !== 'all' || status !== 'all';
-
-  function resetFilters() {
-    setQ(''); setDept('전체'); setLevel('전체'); setMgrFilter('all'); setStatus('all'); setPage(1);
-  }
-
-  return (
-    <Card>
-      <div className="admin-emp-toolbar">
-        <div className="admin-emp-search-wrap">
-          <div className="admin-emp-search-box">
-            <span className="admin-emp-search-icon"><IconSearch size={16} /></span>
-            <input
-              className="admin-emp-search"
-              value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
-              placeholder={labels.search}
-            />
-          </div>
-          <span className="admin-emp-count">{filtered.length}{labels.countSuffix}</span>
-        </div>
-        {canEdit && (onCsvUpload || onInvite) && (
-          <div className="admin-emp-toolbar-actions">
-            {onCsvUpload && (
-              <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
-            )}
-            {onInvite && (
-              <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="admin-emp-filterbar">
-        <FilterDropdown label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
-        {hasFilter && (
-          <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
-        )}
-      </div>
-
-      {pageRows.length === 0 ? (
-        <div className="admin-emp-empty">{labels.emptyFiltered}</div>
-      ) : (
-        <div className="admin-emp-list">
-          {pageRows.map((m) => (
-            <div key={m.id} className="admin-emp-row">
-              <button type="button" className="admin-emp-row-main" onClick={() => onOpenEdit(m)}>
-                {renderAvatar ? renderAvatar(m, 36) : <AvatarFallback row={m} size={36} />}
-                <div className="admin-emp-row-info">
-                  <div className="admin-emp-row-name">
-                    {m.name}
-                    <RolePill role={m.orgRole} labels={labels} />
-                  </div>
-                  <div className="admin-emp-row-meta">
-                    <span className="admin-emp-row-email">{m.email}</span>
-                    <span className="admin-emp-meta-dot" aria-hidden="true">·</span>
-                    {m.department
-                      ? <span>{m.department}</span>
-                      : <span className="admin-emp-pill is-amber">{labels.unassignedPill}</span>}
-                    {m.title && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{m.title}</span></>)}
-                    {m.managerName && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{labels.cols.manager} {m.managerName}</span></>)}
-                    {m.hireDate && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{(m.hireDate || '').slice(0, 10)}</span></>)}
-                  </div>
-                </div>
-              </button>
-              <div className="admin-emp-row-right">
-                <StatusBadge status={m.employmentStatus} labels={labels} />
-                <div className="admin-emp-actions-cell">
-                  <div className="admin-emp-actions">
-                    <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-more" onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)} aria-label="more"><IconMore size={16} /></button>
-                  </div>
-                  {openMenu === m.id && (
-                    <RowActionMenu
-                      labels={labels}
-                      canEdit={canEdit}
-                      onEdit={() => onOpenEdit(m)}
-                      onChangeManager={() => onOpenEdit(m)}
-                      onDeactivate={() => onDeactivate(m)}
-                      onClose={() => setOpenMenu(null)}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {filtered.length > 0 && (
-        <div className="admin-emp-pagination">
-          <span className="admin-emp-muted">
-            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} {labels.pagination.of} {filtered.length}{labels.countSuffix}
-          </span>
-          <div className="admin-emp-pagination-nav">
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.pagination.prev}</button>
-            <span className="admin-emp-mono admin-emp-muted">{safePage} {labels.pagination.of} {totalPages}</span>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{labels.pagination.next}<IconChevronRight size={14} /></button>
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// 커스텀 필터 드롭다운 — 네이티브 <select> 대체. design-page tl-select 시각 규격.
-// 기본값(전체/all)일 때는 필터 이름을 placeholder 로 보여주고, 값이 선택되면
-// 값 + brand(에메랄드) 활성 상태로 전환해 "부서 [전체] 직급 [전체]" 중복을 제거한다.
-function FilterDropdown({ label, value, options, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
-  const selected = opts.find((o) => o.id === value) || null;
-  const isDefault = value === 'all' || value === '전체';
-  const triggerText = isDefault ? label : (selected ? selected.label : label);
-
-  return (
-    <div ref={ref} className={`admin-emp-select${open ? ' is-open' : ''}${isDefault ? '' : ' is-active'}`}>
-      <button
-        type="button"
-        className="admin-emp-select-trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="admin-emp-select-value">{triggerText}</span>
-        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
-      </button>
-      {open && (
-        <div className="admin-emp-select-menu" role="listbox">
-          {opts.map((o) => {
-            const isSel = o.id === value;
-            return (
-              <button
-                key={o.id}
-                type="button"
-                role="option"
-                aria-selected={isSel}
-                className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
-                onClick={() => { onChange(o.id); setOpen(false); }}
-              >
-                <span className="admin-emp-select-item-label">{o.label}</span>
-                {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
-              </button>
-            );
-          })}
-        </div>
       )}
     </div>
   );
@@ -791,25 +465,27 @@ export default function AdminEmployeesCanvas({
   initialTab,
   loading = false,
   labels: providedLabels,
-  pageSize = PAGE_SIZE,
   canEdit = true,
   renderAvatar,
-  onSaveMember,
   onAssignOrgUnit,
-  onDeactivateMember,
-  onInvite,
   onCsvUpload,
   onManageTeams,
   onNewInvite,
   onResendInvite,
   onCancelInvite,
   onCopyInviteLink,
+  // 전체 구성원 탭(스프레드시트) 배선 — 직원 일괄 편집이 여기로 통합됨.
+  sheetLabels,
+  canViewSalary = false,
+  onSaveMembers,
+  onDeleteMember,
+  onLoadSalaryHistory,
+  onAddSalaryHistory,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
-  const [editing, setEditing] = useState(null);
 
   const unassignedCount = useMemo(
     () => members.filter((m) => m.employmentStatus !== 'terminated' && (!m.department || !m.managerName)).length,
@@ -825,19 +501,6 @@ export default function AdminEmployeesCanvas({
     { id: 'unassigned', label: labels.tabs.unassigned, count: unassignedCount, warn: unassignedCount > 0 },
     { id: 'invites', label: labels.tabs.invites, count: pendingInviteCount },
   ];
-
-  async function handleSave(draft) {
-    const patch = {
-      name: draft.name,
-      email: draft.email,
-      title: draft.title,
-      hireDate: draft.hireDate || undefined,
-      employmentStatus: draft.employmentStatus,
-    };
-    if (draft._orgUnitId) patch.orgUnitIds = [draft._orgUnitId];
-    await onSaveMember(draft.id, patch);
-    setEditing(null);
-  }
 
   return (
     <div className="admin-emp-canvas">
@@ -862,16 +525,18 @@ export default function AdminEmployeesCanvas({
       {loading ? (
         <div className="admin-emp-loading">{labels.loading}</div>
       ) : tab === 'members' ? (
-        <MembersTab
+        <AdminEmployeeSheetCanvas
+          embedded
           members={members}
-          labels={labels}
+          labels={sheetLabels}
+          canViewSalary={canViewSalary}
           canEdit={canEdit}
-          pageSize={pageSize}
           renderAvatar={renderAvatar}
-          onOpenEdit={setEditing}
-          onDeactivate={(m) => onDeactivateMember && onDeactivateMember(m.id)}
-          onInvite={onInvite}
-          onCsvUpload={onCsvUpload}
+          onSaveMembers={onSaveMembers}
+          onDeleteMember={onDeleteMember}
+          onLoadSalaryHistory={onLoadSalaryHistory}
+          onAddSalaryHistory={onAddSalaryHistory}
+          onAddEmployee={onCsvUpload}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab
@@ -891,17 +556,6 @@ export default function AdminEmployeesCanvas({
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
           onCopyInviteLink={onCopyInviteLink}
-        />
-      )}
-
-      {editing && (
-        <EditPanel
-          member={editing}
-          orgUnits={orgUnits}
-          labels={labels}
-          renderAvatar={renderAvatar}
-          onClose={() => setEditing(null)}
-          onSave={handleSave}
         />
       )}
     </div>

@@ -33,7 +33,6 @@ export const SIDEBAR_MENU = [
 export const ADMIN_MENU = [
   { id: 'overview',      icon: '/icons-solid/dotpoints-01.svg',        label: '개요',            group: 'management' },
   { id: 'members',       icon: '/icons-solid/user-03.svg',             label: '구성원 관리',      group: 'management' },
-  { id: 'employee-sheet',icon: '/icons-solid/grid-01.svg',             label: '직원 일괄 편집',    group: 'management' },
   { id: 'snapshot',      icon: '/icons-solid/clock-check.svg',         label: '조직 스냅샷',      group: 'management' },
   { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
   { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
