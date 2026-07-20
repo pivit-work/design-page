@@ -10,6 +10,120 @@ const TABS = [
   { key: 'snippets', label: '팀 스니핏' },
 ];
 
+/* ── 팀 스니핏 데모 데이터 — Figma 17026:25297 / 17421:18420·19479·20057.
+   내용은 맥락에 맞춰 구성 (KR 드릴다운 탭과 팀원·KR 명칭 일관). */
+const TS_AVATARS = {
+  김시윤: 'https://i.pravatar.cc/200?img=12',
+  어니스트: 'https://i.pravatar.cc/200?img=59',
+  윤서율: 'https://i.pravatar.cc/200?img=32',
+  박민준: 'https://i.pravatar.cc/200?img=68',
+  정다운: 'https://i.pravatar.cc/200?img=47',
+};
+
+const TEAM_SNIPPETS = {
+  periods: ['오늘', '이번 주', '전체'],
+  redFlagCount: 2,
+  submitted: { done: 4, total: 5 },
+  members: [
+    { name: '김시윤', avatar: TS_AVATARS.김시윤, submitted: true, flagged: true },
+    { name: '어니스트', avatar: TS_AVATARS.어니스트, submitted: true },
+    { name: '윤서율', avatar: TS_AVATARS.윤서율, submitted: false },
+    { name: '박민준', avatar: TS_AVATARS.박민준, submitted: true },
+    { name: '정다운', avatar: TS_AVATARS.정다운, submitted: true },
+  ],
+  weekHealth: [
+    { name: '김시윤', avatar: TS_AVATARS.김시윤, dots: ['good', 'good', 'warn', 'bad', 'empty'] },
+    { name: '어니스트', avatar: TS_AVATARS.어니스트, dots: ['good', 'good', 'good', 'good', 'empty'] },
+    { name: '윤서율', avatar: TS_AVATARS.윤서율, dots: ['good', 'good', 'empty', 'empty', 'empty'] },
+    { name: '박민준', avatar: TS_AVATARS.박민준, dots: ['warn', 'warn', 'good', 'empty', 'empty'] },
+    { name: '정다운', avatar: TS_AVATARS.정다운, dots: ['bad', 'warn', 'good', 'good', 'empty'] },
+  ],
+  aiSummary: '오늘 박민준·정다운님의 헬스체크가 8대 이상입니다. 박민준님은 2일 연속 몰입도 언급 중입니다.',
+  byDate: [
+    {
+      date: '3월 15일 (금)',
+      items: [
+        {
+          member: '김시윤', role: 'CTO · Engineering', avatar: TS_AVATARS.김시윤,
+          time: '오후 6:12', submitLabel: '정시 제출', score: 8.2, tone: 'good',
+          text: 'RBAC 설계 완성. 27개 권한 항목 확정 후 커트에게 전달 완료. 어드민 패널 PR 머지.',
+          tags: ['개발', '산출물'],
+          kr: { okr: 'Phase 1 제품 완성', name: 'Phase 1 UI 기획', percent: 56, tone: 'good' },
+        },
+      ],
+    },
+    {
+      date: '3월 14일 (목)',
+      items: [
+        {
+          member: '박민준', role: 'Frontend Engineer', avatar: TS_AVATARS.박민준,
+          time: '오후 6:05', submitLabel: '지연 제출', score: 7.8, tone: 'warn',
+          text: 'pgvector 인덱스 전략 초안 작성 중. Redis 캐시 제약에서의 의존성 문제 발견. 내일 해결 방안 모색.',
+          tags: ['개발', '이슈'],
+          kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'blue' },
+        },
+      ],
+    },
+    {
+      date: '3월 13일 (수)',
+      items: [
+        {
+          member: '어니스트', role: 'Product Planner', avatar: TS_AVATARS.어니스트,
+          time: '오후 6:20', submitLabel: '정시 제출', score: 8, tone: 'good',
+          text: '3차 정기 미팅 참석. DB 설계 방향 확정. OKR 기획서 v1 리뷰 완료.',
+          tags: ['기획', '회의'],
+          kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'blue' },
+        },
+      ],
+    },
+    {
+      date: '3월 12일 (화)',
+      items: [
+        {
+          member: '김시윤', role: 'CTO · Engineering', avatar: TS_AVATARS.김시윤,
+          time: '오후 6:20', submitLabel: '지연 제출', score: 6.5, tone: 'bad',
+          warning: '헬스체크 추이 — 매니저 확인 권장',
+          text: '조직도 v2 드래그 기능 구현 중. 예상보다 복잡해서 내일로 넘길 것 같음. pgvector 이슈도 계속 막혀있음.',
+          tags: ['개발', '이슈'],
+          kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'bad' },
+        },
+      ],
+    },
+  ],
+  byKr: [
+    {
+      okr: 'Phase 1 제품 완성', tone: 'good', title: 'Phase 1 UI 기획', percent: 56,
+      members: '김시윤, 박민준, 어니스트',
+      avatars: [TS_AVATARS.김시윤, TS_AVATARS.박민준, TS_AVATARS.어니스트],
+      snippets: [
+        { member: '김시윤', avatar: TS_AVATARS.김시윤, date: '2026.03.15', score: 8.2, tone: 'good', text: 'RBAC 설계 완성. 27개 권한 항목 확정 후 커트에게 전달 완료. 어드민 패널 PR 머지.' },
+        { member: '박민준', avatar: TS_AVATARS.박민준, date: '2026.03.13', score: 6.5, tone: 'bad', flagged: true, text: '조직도 v2 드래그 기능 구현 중. 예상보다 복잡해서 내일로 넘길 것 같음. pgvector 이슈도 계속 막혀있음.' },
+        { member: '박민준', avatar: TS_AVATARS.박민준, date: '2026.03.10', score: 5.5, tone: 'bad', flagged: true, text: 'CSS 레이아웃 버그 수정 반복. 장기적으로 리팩토링 필요. 일정 부담 언급.' },
+        { member: '어니스트', avatar: TS_AVATARS.어니스트, date: '2026.03.12', score: 8.2, tone: 'good', text: '온보딩 화면 스펙 상세화. 관련 피드백 5건 정리 후 팀에 공유.' },
+      ],
+    },
+    {
+      okr: 'Phase 1 제품 완성', tone: 'blue', title: 'MVP 개발', percent: 35,
+      members: '김시윤, 박민준, 어니스트',
+      avatars: [TS_AVATARS.김시윤, TS_AVATARS.박민준, TS_AVATARS.어니스트],
+      snippets: [
+        { member: '김시윤', avatar: TS_AVATARS.김시윤, date: '2026.03.14', score: 8.2, tone: 'good', text: '데이터 스키마 100개 필드 확정. 문서화 완료 후 커트에게 공유. 오늘 목표 달성.' },
+        { member: '박민준', avatar: TS_AVATARS.박민준, date: '2026.03.11', score: 6.5, tone: 'bad', flagged: true, text: 'pgvector 인덱스 전략 초안 작성 중. Redis 캐시 의존성 문제로 진행이 막혀 있음.' },
+        { member: '어니스트', avatar: TS_AVATARS.어니스트, date: '2026.03.13', score: 8.2, tone: 'good', text: '3차 정기 미팅 참석. DB 설계 방향 확정. OKR 기획서 v1 리뷰 완료.' },
+      ],
+    },
+    {
+      okr: '얼리 액세스 100건', tone: 'bad', title: '얼리 액세스', percent: 12,
+      members: '김시윤',
+      avatars: [TS_AVATARS.김시윤],
+      snippets: [
+        { member: '김시윤', avatar: TS_AVATARS.김시윤, date: '2026.03.15', score: 8.2, tone: 'good', text: 'HR 커뮤니티 얼리 액세스 홍보 시작. 3명 등록 유도 성공.' },
+        { member: '김시윤', avatar: TS_AVATARS.김시윤, date: '2026.03.12', score: 2.3, tone: 'bad', flagged: true, text: '얼리 액세스 등록 정체. 홍보 채널이 막혀 다음 주 전략 재검토 필요.' },
+      ],
+    },
+  ],
+};
+
 /* ── KR 드릴다운 데모 데이터 — Figma 17026:23299 / 17026:24830.
    상세 탭(스니핏/액션/Jira) 내용은 맥락에 맞춰 구성. */
 const KR_AVATARS = {
@@ -221,6 +335,7 @@ export default function ManagerPage({ icons, baseUrl }) {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       krDrilldown={KR_DRILLDOWN}
+      teamSnippets={TEAM_SNIPPETS}
       teamMemberCount={5}
       summary="박민준님 긴급 개입이 필요합니다. 이서연님도 스니핏이 3일째 비어 있어요."
       kpis={KPIS}

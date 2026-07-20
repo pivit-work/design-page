@@ -129,6 +129,9 @@ export {
   ManagerKrDrilldown,
   ManagerKrMemberCard,
   ManagerKrContributionDetail,
+  ManagerTeamSnippets,
+  ManagerTeamSnippetSidebar,
+  ManagerTeamSnippetFeed,
   MANAGER_STATUS_COLORS,
 } from './manager/index.js';
 

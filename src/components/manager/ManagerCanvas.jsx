@@ -5,6 +5,7 @@ import SectionHeading from './SectionHeading.jsx';
 import MemberCard from './MemberCard.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import KrDrilldown from './KrDrilldown.jsx';
+import TeamSnippets from './TeamSnippets.jsx';
 
 /**
  * 매니저 페이지 Pure 컴포넌트.
@@ -20,6 +21,7 @@ export default function ManagerCanvas({
   activeTab,
   onTabChange,
   krDrilldown,
+  teamSnippets,
   teamMemberCount,
   summary,
   kpis = [],
@@ -59,8 +61,8 @@ export default function ManagerCanvas({
 
       {activeTab === 'kr' && krDrilldown ? (
         <KrDrilldown data={krDrilldown} />
-      ) : activeTab === 'snippets' ? (
-        <div className="manager-tab-placeholder">준비 중인 화면입니다</div>
+      ) : activeTab === 'snippets' && teamSnippets ? (
+        <TeamSnippets data={teamSnippets} />
       ) : (
       <>
       <section className="manager-kpi-grid">
