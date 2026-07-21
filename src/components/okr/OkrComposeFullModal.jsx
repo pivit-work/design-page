@@ -33,7 +33,7 @@ function emptyKr(linked) {
     unit: linked?.unit ?? '%',
     inputType: linked?.inputType ?? 'percent',
     weight: '',
-    comOkr: linked ? `Team KR ${linked.no ?? ''}`.trim() : '',
+    ownerId: '',
     teamKrId: linked?.id ?? null,
   };
 }
@@ -42,21 +42,59 @@ function emptyObjective(linkedKr) {
     key: nextId(),
     title: '',
     weight: '',
-    comOkr: '',
+    parentId: '',
     krs: linkedKr ? [emptyKr(linkedKr)] : [],
   };
 }
 
-export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onClose, onSubmit }) {
+export default function OkrComposeFullModal({
+  minimap,
+  icons,
+  baseUrl = '',
+  onClose,
+  onSubmit,
+  onGenerate,
+  members = [],
+  parentOptions = [],
+}) {
   const [objectives, setObjectives] = useState([]);
   const [linkedIds, setLinkedIds] = useState({});
   const [saving, setSaving] = useState(false);
+  const [genLoading, setGenLoading] = useState(false);
+  const [genError, setGenError] = useState(null);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  const TYPE_UNIT = { number: '개', percentage: '%', boolean: '완료' };
+  const TYPE_INPUT = { number: 'count', percentage: 'percent', boolean: 'binary' };
+  const generate = async () => {
+    if (!onGenerate) return;
+    setGenLoading(true); setGenError(null);
+    try {
+      const res = await onGenerate();
+      const draft = res?.draft ?? res;
+      const krList = (draft?.keyResults ?? []).map((k) => ({
+        key: nextId(),
+        title: k.title ?? '',
+        target: k.targetValue ?? 100,
+        unit: k.unit ?? TYPE_UNIT[k.type] ?? '',
+        inputType: TYPE_INPUT[k.type] ?? 'count',
+        weight: '',
+        ownerId: '',
+        teamKrId: null,
+      }));
+      setObjectives((p) => [
+        ...p,
+        { key: nextId(), title: draft?.objective?.title ?? '', weight: '', parentId: '', krs: krList },
+      ]);
+    } catch {
+      setGenError('AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally { setGenLoading(false); }
+  };
 
   const addObjective = () => setObjectives((p) => [...p, emptyObjective()]);
   const removeObjective = (key) => setObjectives((p) => p.filter((o) => o.key !== key));
@@ -91,13 +129,14 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
     const payload = objectives.map((o) => ({
       title: o.title.trim(),
       weight: Number(o.weight) || 0,
-      comOkr: o.comOkr || undefined,
+      parentOkrId: o.parentId || undefined,
       krs: o.krs.map((k) => ({
         title: k.title.trim(),
         target: Number(k.target) || 0,
         unit: k.unit,
         inputType: k.inputType,
         weight: Number(k.weight) || 0,
+        ownerId: k.ownerId || undefined,
         teamKrId: k.teamKrId || undefined,
       })),
     }));
@@ -150,11 +189,19 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
           <div className="okr-cf-editor">
             <div className="okr-cf-editor-head">
               <p className="okr-cf-hint">좌측 팀 OKR 미니맵에서 + 를 클릭하면 해당 팀 KR에 연결된 개인 KR이 자동 추가됩니다.</p>
-              <button className="okr-cf-add-btn" onClick={addObjective}>
-                <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
-                <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
-              </button>
+              <div className="okr-cf-head-actions">
+                {onGenerate && (
+                  <button className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
+                    {genLoading ? '생성 중…' : '✦ AI로 초안 생성'}
+                  </button>
+                )}
+                <button className="okr-cf-add-btn" onClick={addObjective}>
+                  <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
+                  <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
+                </button>
+              </div>
             </div>
+            {genError && <p className="okr-wz-error" role="alert">{genError}</p>}
 
             {objectives.length === 0 ? (
               <div className="okr-cf-empty">
@@ -192,6 +239,19 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
                         onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
                       />
                       <span className="okr-cf-unit">%</span>
+                      {parentOptions.length > 0 && (
+                        <select
+                          className="okr-cf-select-real"
+                          aria-label="상위 OKR 연결"
+                          value={objective.parentId}
+                          onChange={(e) => patchObjective(objective.key, { parentId: e.target.value })}
+                        >
+                          <option value="">상위 OKR 연결 (선택)</option>
+                          {parentOptions.map((p) => (
+                            <option key={p.id} value={p.id}>{p.label}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
 
                     {objective.krs.map((kr) => (
@@ -247,6 +307,19 @@ export default function OkrComposeFullModal({ minimap, icons, baseUrl = '', onCl
                             onChange={(e) => patchKr(objective.key, kr.key, { weight: e.target.value })}
                           />
                           <span className="okr-cf-unit">%</span>
+                          {members.length > 0 && (
+                            <select
+                              className="okr-cf-select-real"
+                              aria-label="KR 담당자"
+                              value={kr.ownerId}
+                              onChange={(e) => patchKr(objective.key, kr.key, { ownerId: e.target.value })}
+                            >
+                              <option value="">담당자</option>
+                              {members.map((m) => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -397,6 +397,8 @@
 .okr-cf-total { margin-right: auto; font-size: 12px; font-weight: 700; color: var(--utility-red-600, #DC2626); }
 .okr-cf-total.is-ok { color: var(--utility-success-600, #16A34A); }
 .okr-cf-method { cursor: pointer; font-family: inherit; text-align: left; }
+.okr-cf-select-real { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; max-width: 160px; }
+.okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ══ OKR 설정 마법사 모달 ══ */
 .okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 80px); max-height: 88vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
