@@ -379,10 +379,31 @@ function RequestBubble({ item, L }) {
   );
 }
 
-function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onClose }) {
+function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onClose }) {
   const isKr = block.type === 'kr';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
+  const [summary, setSummary] = useState(null);
+  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
+  // 활성화 조건: 스레드 아이템(피드백+요청+답변) ≥ 5 (ai-spec §11.2).
+  const threadCount = items.reduce((n, it) => n + 1 + (it.memberReply ? 1 : 0), 0);
+  const canSummarize = threadCount >= 5;
+
+  const summarize = async () => {
+    if (!onSummarize || !canSummarize) return;
+    setSummaryState('loading');
+    try {
+      const res = await onSummarize(block);
+      if (res) {
+        setSummary(res);
+        setSummaryState('idle');
+      } else {
+        setSummaryState('error');
+      }
+    } catch {
+      setSummaryState('error');
+    }
+  };
 
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.42)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
@@ -390,9 +411,32 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}</span>
           {isKr && <span style={{ fontSize: 12, color: C.sub }}>{block.progress ?? 0}%</span>}
-          <button type="button" onClick={onClose} data-testid="fbmgr-thread-close" style={{ marginLeft: 'auto', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: C.muted }}>✕</button>
+          {onSummarize && (
+            <button
+              type="button"
+              disabled={!canSummarize || summaryState === 'loading'}
+              onClick={summarize}
+              data-testid="fbmgr-summarize"
+              title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
+              style={{ marginLeft: 'auto', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+            >
+              {summaryState === 'loading' ? '⏳ 요약 중...' : '✦ 대화 요약'}
+            </button>
+          )}
+          <button type="button" onClick={onClose} data-testid="fbmgr-thread-close" style={{ marginLeft: onSummarize ? 0 : 'auto', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: C.muted }}>✕</button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {summary && (
+            <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 4 }}>✦ 대화 요약</div>
+              <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
+            </div>
+          )}
+          {summaryState === 'error' && (
+            <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 12 }}>
+              대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.
+            </div>
+          )}
           {items.length === 0 ? (
             <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
           ) : (
@@ -437,7 +481,7 @@ function groupBlocks(items, krs, initiatives) {
 }
 
 // ── 팀원 스레드 화면 ──
-function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePeriod, onSend, onAiDraft }) {
+function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize }) {
   const [openBlock, setOpenBlock] = useState(null);
   const items = useMemo(() => thread?.items || [], [thread]);
   const { krBlocks, initBlocks } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
@@ -466,7 +510,7 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
       {krBlocks.length === 0 && initBlocks.length === 0 && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
-        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onClose={() => setOpenBlock(null)} />
+        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onClose={() => setOpenBlock(null)} />
       )}
     </div>
   );
@@ -484,6 +528,7 @@ export default function EvalFeedbackComposeCanvas({
   onChangePeriod,
   onSendFeedback,
   onAiDraft,
+  onSummarize,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [toast, setToast] = useState(null);
@@ -528,6 +573,7 @@ export default function EvalFeedbackComposeCanvas({
             onChangePeriod={onChangePeriod}
             onSend={handleSend}
             onAiDraft={onAiDraft}
+            onSummarize={onSummarize}
           />
         ) : (
           <TeamListScreen team={team} L={L} onSelect={onSelectMember} />
