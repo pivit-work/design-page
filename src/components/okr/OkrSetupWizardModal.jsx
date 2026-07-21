@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -25,11 +25,12 @@ const NARRATIVE_PLACEHOLDER = {
   company: '12월 31일, 우리 회사는 ARR …억·고객 …개사를 확보하고 시리즈 A 를 마무리했다.',
 };
 
-const STEPS = [
+const BASE_STEPS = [
   { key: 'narrative', label: '미래 구술', desc: '12/31 모습' },
   { key: 'krs', label: 'KR 추출', desc: '측정 결과' },
   { key: 'objective', label: 'Objective', desc: '한 문장 도출' },
 ];
+const ALIGNMENT_STEP = { key: 'alignment', label: '정합성 확인', desc: '팀장+' };
 
 let seq = 0;
 const nextId = () => { seq += 1; return `wz-${seq}`; };
@@ -42,6 +43,8 @@ export default function OkrSetupWizardModal({
   onExtractKrs,
   onDeriveObjective,
   onSubmit,
+  onFetchAlignment,
+  onBookOneOnOne,
 }) {
   const [step, setStep] = useState(1);
   const [scope, setScope] = useState(scopeOptions[0]?.key ?? 'individual');
@@ -54,12 +57,30 @@ export default function OkrSetupWizardModal({
   const [objLoading, setObjLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [alignment, setAlignment] = useState(null);
+
+  // 개인 스코프는 정합성 단계 없음(시안). 팀+ 는 4단계.
+  const steps = useMemo(
+    () => (scope === 'individual' ? BASE_STEPS : [...BASE_STEPS, ALIGNMENT_STEP]),
+    [scope],
+  );
+  const stepKey = steps[step - 1]?.key;
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  // 정합성 단계 진입 시 팀 정렬도 조회 (동기 setState 회피 — 콜백에서만 갱신).
+  useEffect(() => {
+    if (stepKey !== 'alignment' || !onFetchAlignment) return;
+    let alive = true;
+    onFetchAlignment(scope)
+      .then((res) => { if (alive) setAlignment(res); })
+      .catch(() => { if (alive) setError('정합성 조회에 실패했습니다.'); });
+    return () => { alive = false; };
+  }, [stepKey, scope, onFetchAlignment]);
 
   const genKrs = async () => {
     setKrsLoading(true); setError(null);
@@ -90,17 +111,18 @@ export default function OkrSetupWizardModal({
   const addKr = () => { setKrs((p) => [...p, { id: nextId(), title: '', type: 'number', target: 0, current: 0, unit: '' }]); setKrsConfirmed(false); };
 
   const canNext =
-    step === 1 ? narrative.trim().length >= 30
-      : step === 2 ? krs.length > 0 && krs.every((k) => k.title.trim()) && krsConfirmed
-        : !!objective.trim() && objConfirmed;
+    stepKey === 'narrative' ? narrative.trim().length >= 30
+      : stepKey === 'krs' ? krs.length > 0 && krs.every((k) => k.title.trim()) && krsConfirmed
+        : stepKey === 'objective' ? !!objective.trim() && objConfirmed
+          : true;
 
   const nextHint =
     canNext ? ''
-      : step === 1 ? `미래 모습을 ${Math.max(0, 30 - narrative.trim().length)}자 더 입력하세요 (최소 30자)`
-        : step === 2 ? (krs.length === 0 ? 'AI로 KR 초안을 생성하세요' : 'KR 초안을 확인(✓)해야 진행됩니다')
-          : (!objective ? 'AI로 Objective 초안을 생성하세요' : 'Objective 초안을 확인(✓)해야 저장할 수 있습니다');
+      : stepKey === 'narrative' ? `미래 모습을 ${Math.max(0, 30 - narrative.trim().length)}자 더 입력하세요 (최소 30자)`
+        : stepKey === 'krs' ? (krs.length === 0 ? 'AI로 KR 초안을 생성하세요' : 'KR 초안을 확인(✓)해야 진행됩니다')
+          : (!objective ? 'AI로 Objective 초안을 생성하세요' : 'Objective 초안을 확인(✓)해야 진행됩니다');
 
-  const isLast = step === STEPS.length;
+  const isLast = step === steps.length;
 
   const handleNext = async () => {
     if (!canNext) return;
@@ -138,7 +160,7 @@ export default function OkrSetupWizardModal({
           <h2 className="okr-wz-title">OKR 설정 마법사 · KR 우선주의</h2>
 
           <div className="okr-wz-steps">
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <div
                 className={`okr-wz-step${i + 1 === step ? ' is-active' : ''}`}
                 key={s.key}
@@ -264,13 +286,41 @@ export default function OkrSetupWizardModal({
             </div>
           )}
 
+          {stepKey === 'alignment' && (
+            <div className="okr-wz-section">
+              <p className="okr-wz-step-eyebrow">STEP4 · Alignment</p>
+              <p className="okr-wz-question">팀원들의 OKR 정렬도를 확인합니다</p>
+              <p className="okr-wz-desc">미정렬 팀원에게는 1:1을 예약할 수 있습니다. (정렬 = 팀 OKR 을 상위로 연결한 개인 OKR)</p>
+              {!alignment && !error && <p className="okr-wz-empty">정합성 조회 중…</p>}
+              {alignment && (
+                <div className="okr-wz-align">
+                  {alignment.members.length === 0 && (
+                    <p className="okr-wz-empty">팀원이 없습니다.</p>
+                  )}
+                  {alignment.members.map((m) => (
+                    <div className={`okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
+                      <div className="okr-wz-align-info">
+                        <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
+                        <span className="okr-wz-align-note">{m.aligned ? '정합성 정상' : m.note}</span>
+                      </div>
+                      <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{m.aligned ? '정렬됨' : '미정렬'}</span>
+                      {!m.aligned && onBookOneOnOne && (
+                        <button className="okr-btn is-brand is-sm" onClick={() => onBookOneOnOne(m.userId)}>1:1 예약</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {error && <p className="okr-wz-error" role="alert">{error}</p>}
         </div>
 
         <div className="okr-modal-footer okr-wz-footer">
           <button className="okr-btn is-outline is-sm" disabled={step === 1} onClick={() => setStep(Math.max(1, step - 1))}>이전</button>
           <span className="okr-wz-footer-hint">
-            {nextHint ? `⚠ ${nextHint}` : `STEP ${step} / ${STEPS.length}`}
+            {nextHint ? `⚠ ${nextHint}` : `STEP ${step} / ${steps.length}`}
           </span>
           <button className="okr-btn is-brand is-sm" disabled={!canNext || saving} onClick={handleNext}>
             {saving ? '저장 중…' : isLast ? 'OKR 확정 저장' : '다음'}
