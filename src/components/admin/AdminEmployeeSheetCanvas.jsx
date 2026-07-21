@@ -111,9 +111,12 @@ function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
   };
 
   if (col.type === 'select') {
+    // 현재 값이 옵션에 없으면(카탈로그에 없는 기존/커스텀 값) 보존해 첫 옵션으로 노출.
+    const opts =
+      value && !col.options.includes(value) ? [value, ...col.options] : col.options;
     return (
       <select ref={ref} value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={{ ...base, cursor: 'pointer' }}>
-        {col.options.map((o) => (
+        {opts.map((o) => (
           <option key={o} value={o}>
             {optionLabel(col.id, o)}
           </option>
@@ -191,6 +194,9 @@ export default function AdminEmployeeSheetCanvas({
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onAddEmployee,
+  // 조직 설정의 필드 옵션(직책 카탈로그)을 직급 컬럼 드롭다운으로 연결. 비어 있으면
+  // 자유 텍스트로 폴백. 카탈로그에 없는 기존 값은 편집 시 보존한다.
+  titleOptions = [],
   // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
   // 자체 페이지 타이틀/부제 헤더를 숨기고 저장 컨트롤만 우측 정렬로 노출한다.
   embedded = false,
@@ -204,7 +210,10 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'name', label: cl.name || '이름', width: 130, type: 'text', editable: true },
       { id: 'email', label: cl.email || '이메일', width: 210, type: 'text', editable: true },
       { id: 'department', label: cl.department || '부서', width: 130, type: 'text', editable: true },
-      { id: 'title', label: cl.title || '직급', width: 120, type: 'text', editable: true },
+      // 직급: 조직 설정 필드옵션(titleOptions)이 있으면 드롭다운, 없으면 자유 텍스트.
+      titleOptions.length
+        ? { id: 'title', label: cl.title || '직급', width: 120, type: 'select', editable: true, options: titleOptions }
+        : { id: 'title', label: cl.title || '직급', width: 120, type: 'text', editable: true },
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
       { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
@@ -215,7 +224,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 170, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels]);
+  }, [canViewSalary, labels, titleOptions]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
