@@ -477,6 +477,7 @@ export default function AdminEmployeesCanvas({
   // 전체 구성원 탭(스프레드시트) 배선 — 직원 일괄 편집이 여기로 통합됨.
   sheetLabels,
   canViewSalary = false,
+  titleOptions,
   onSaveMembers,
   onDeleteMember,
   onLoadSalaryHistory,
@@ -530,6 +531,7 @@ export default function AdminEmployeesCanvas({
           members={members}
           labels={sheetLabels}
           canViewSalary={canViewSalary}
+          titleOptions={titleOptions}
           canEdit={canEdit}
           renderAvatar={renderAvatar}
           onSaveMembers={onSaveMembers}
