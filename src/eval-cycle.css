@@ -2644,6 +2644,140 @@
   white-space: pre-wrap;
 }
 
+/* ── G9: 등급 앵커 툴팁 ── */
+.evr-grade-anchor {
+  position: relative;
+  margin-top: var(--spacing-xs, 4px);
+}
+.evr-grade-anchor-btn {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.evr-grade-anchor-pop {
+  position: absolute;
+  top: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: max-content;
+  max-width: 320px;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0px 12px 32px -12px rgba(10, 13, 18, 0.18);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+/* ── G9: 자기평가 갭 ── */
+.evr-gap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evr-gap-head,
+.evr-gap-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 72px 56px;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  padding: var(--spacing-sm, 6px) 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+}
+.evr-gap-head {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evr-gap-head > span:not(:first-child),
+.evr-gap-row > span:not(:first-child) {
+  text-align: right;
+}
+
+/* ── G9: 목표(OKR) 리뷰 ── */
+.evr-okr-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+}
+.evr-okr-obj {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  padding: var(--spacing-md, 8px) 0;
+  border-top: 1px solid var(--bg-active);
+}
+.evr-okr-obj:first-child {
+  border-top: none;
+}
+.evr-okr-obj-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+}
+.evr-okr-obj-title {
+  font-weight: 700;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+}
+.evr-okr-obj-prog {
+  margin-left: auto;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+}
+.evr-okr-kr {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding-left: var(--spacing-md, 8px);
+}
+.evr-okr-kr-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evr-okr-kr-bar {
+  width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-active);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.evr-okr-kr-fill {
+  display: block;
+  height: 100%;
+}
+.evr-okr-kr-pct {
+  width: 130px;
+  text-align: right;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* ── G9: 성장 영역 & 개선 ── */
+.evr-growth-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+}
+.evr-growth-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+
 /* ════════════════════════════════════════════════════════════
    피드백 (EvalFeedbackCanvas)
    ════════════════════════════════════════════════════════════ */
