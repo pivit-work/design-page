@@ -1006,9 +1006,9 @@
 .ono-add-modal-field-label {
   font-family: var(--font-family-body);
   font-weight: 700;
-  font-size: 18px;
-  line-height: 28px;
-  color: var(--text-primary);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
 }
 
 .ono-add-modal-row {
