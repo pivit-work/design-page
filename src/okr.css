@@ -397,6 +397,8 @@
 .okr-cf-total { margin-right: auto; font-size: 12px; font-weight: 700; color: var(--utility-red-600, #DC2626); }
 .okr-cf-total.is-ok { color: var(--utility-success-600, #16A34A); }
 .okr-cf-method { cursor: pointer; font-family: inherit; text-align: left; }
+.okr-cf-select-real { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; max-width: 160px; }
+.okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ══ OKR 설정 마법사 모달 ══ */
 .okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 80px); max-height: 88vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
@@ -443,6 +445,15 @@
 .okr-wz-krpreview-name { flex: 1; }
 .okr-wz-krpreview-val { font-size: 11px; color: var(--text-secondary); }
 .okr-wz-error { margin: 10px 0 0; font-size: 12px; color: var(--utility-red-600, #DC2626); }
+.okr-wz-align { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.okr-wz-align-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); }
+.okr-wz-align-row.is-warn { border-color: var(--utility-red-200, #FECACA); background: var(--utility-red-50, #FEF2F2); }
+.okr-wz-align-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.okr-wz-align-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.okr-wz-align-role { font-size: 11px; font-weight: 400; color: var(--text-tertiary); }
+.okr-wz-align-note { font-size: 11px; color: var(--text-secondary); }
+.okr-wz-align-status { font-size: 12px; font-weight: 700; color: var(--utility-red-600, #DC2626); }
+.okr-wz-align-status.is-ok { color: var(--utility-success-600, #16A34A); }
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* 분기별 KR 테이블 */
