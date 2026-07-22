@@ -2694,6 +2694,40 @@
   font-weight: 700;
   color: var(--utility-green-600);
 }
+/* G9 AI 종합 인사이트 (2소스 근거 배지) */
+.evr-insight {
+  border-color: var(--utility-brand-200, #b2ccff);
+  background: var(--utility-brand-50, #eff4ff);
+}
+.evr-insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evr-insight-sources {
+  display: flex;
+  gap: var(--spacing-xs, 4px);
+  flex-wrap: wrap;
+}
+.evr-insight-badge {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--utility-brand-700, #004eeb);
+  background: var(--utility-brand-100, #d1e0ff);
+  border-radius: var(--radius-full, 999px);
+  padding: 2px var(--spacing-md, 8px);
+}
+.evr-insight-text {
+  margin-top: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-md, 16px);
+  line-height: 1.6;
+  color: var(--text-primary, #181d27);
+}
+.evr-insight-hint {
+  margin-top: var(--spacing-sm, 6px);
+}
 .evr-answers {
   display: flex;
   flex-direction: column;
