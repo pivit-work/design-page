@@ -151,20 +151,23 @@ export default function EvalCycleExcludedCanvas({
             <h3 className="evc-card-name">{reason.title}</h3>
           </div>
           <p className="evx-reason-msg">{reason.msg}</p>
-          <div className="evx-detail-row">
-            <span>{L.referenceDate}</span>
-            <b>
-              {exclusion.referenceDate}
-              {exclusion.referenceDateDirection
-                ? exclusion.referenceDateDirection === 'before'
-                  ? ' 이전'
-                  : ' 이후'
-                : ''}
-              {exclusion.dateMode === 'range' && exclusion.referenceDateEnd
-                ? ` ~ ${exclusion.referenceDateEnd}`
-                : ''}
-            </b>
-          </div>
+          {/* 기준일은 날짜 피커 유형에만 존재 — 개별/커스텀 등 비-날짜 제외는 행 자체를 숨김 */}
+          {exclusion.referenceDate && (
+            <div className="evx-detail-row">
+              <span>{L.referenceDate}</span>
+              <b>
+                {exclusion.referenceDate}
+                {exclusion.referenceDateDirection
+                  ? exclusion.referenceDateDirection === 'before'
+                    ? ' 이전'
+                    : ' 이후'
+                  : ''}
+                {exclusion.dateMode === 'range' && exclusion.referenceDateEnd
+                  ? ` ~ ${exclusion.referenceDateEnd}`
+                  : ''}
+              </b>
+            </div>
+          )}
           {exclusion.reason && (
             <div className="evx-detail-row">
               <span>{L.reasonNote}</span>
