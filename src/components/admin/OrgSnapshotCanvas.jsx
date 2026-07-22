@@ -23,7 +23,10 @@ const DEFAULT_LABELS = {
   statusTitle: '조직 현황',
   statusSubtitle: '인사 정보 기준 스냅샷',
   queryDate: '조회일',
+  applyDate: '적용',
   export: '내보내기 (CSV)',
+  drilldownAll: '전체 재직 구성원',
+  drilldownHint: '구성원 보기',
   tabs: { summary: '조직 현황', employment: '고용 유형', jobgroup: '직군/직무', age: '연령 구성' },
   orgTreeHeading: '조직 구성',
   noOrgStructure: '조직 구조 데이터가 없습니다',
@@ -154,10 +157,11 @@ function parseCSVLine(line) {
 /* ════════════════════════════════════════════════════════════
  * 1. 조직 현황 스냅샷
  * ════════════════════════════════════════════════════════════ */
-function OrgTreeRow({ node, depth, total, defaultOpen }) {
+function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
   const [open, setOpen] = useState(defaultOpen);
   const hasChildren = node.children && node.children.length > 0;
   const pct = total > 0 ? Math.round((node.count / total) * 100) : 0;
+  const drill = (e) => { e.stopPropagation(); onDrilldown?.({ unit: node.name, label: node.name }); };
   return (
     <>
       <div
@@ -166,7 +170,15 @@ function OrgTreeRow({ node, depth, total, defaultOpen }) {
         onClick={() => hasChildren && setOpen((o) => !o)}
       >
         <span className="admin-snap-tree-toggle">{hasChildren ? (open ? '▾' : '▸') : ''}</span>
-        <span className="admin-snap-tree-name">{node.name}</span>
+        <button
+          type="button"
+          className="admin-snap-tree-name"
+          onClick={onDrilldown ? drill : undefined}
+          title={onDrilldown ? hint : undefined}
+          style={onDrilldown ? { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' } : undefined}
+        >
+          {node.name}
+        </button>
         <span className="admin-snap-tree-count">{node.count}</span>
         <div className="admin-snap-tree-bar-wrap">
           <div className="admin-snap-tree-bar">
@@ -179,18 +191,23 @@ function OrgTreeRow({ node, depth, total, defaultOpen }) {
         </div>
       </div>
       {hasChildren && open && node.children.map((child) => (
-        <OrgTreeRow key={child.name} node={child} depth={depth + 1} total={total} defaultOpen={false} />
+        <OrgTreeRow key={child.name} node={child} depth={depth + 1} total={total} defaultOpen={false} onDrilldown={onDrilldown} hint={hint} />
       ))}
     </>
   );
 }
 
-function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onExport, activeTab, onTabChange }) {
+function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onExport, activeTab, onTabChange, onDrilldown }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
     summaryCards = [], orgTree = [], totalCount = 0,
     employment = [], jobGroups = [], ageDist = [], ageSummary = [],
   } = data;
+  // 조회일 draft — 날짜를 바꾼 뒤 '적용' 을 눌러야 조회된다(외부에서 queryDate 바뀌면 동기화).
+  const [draftDate, setDraftDate] = useState(queryDate);
+  const [seenQuery, setSeenQuery] = useState(queryDate);
+  if (queryDate !== seenQuery) { setSeenQuery(queryDate); setDraftDate(queryDate); }
+  const canApply = draftDate && draftDate !== queryDate;
   const empMax = Math.max(1, ...employment.map((e) => e.count));
   const ageMax = Math.max(1, ...ageDist.map((a) => a.count));
 
@@ -204,8 +221,22 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
         <div className="admin-snap-header-actions">
           <div className="admin-snap-datepicker">
             <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
-            <input type="date" value={queryDate} onChange={(e) => onQueryDateChange?.(e.target.value)} />
+            <input
+              type="date"
+              value={draftDate}
+              onChange={(e) => setDraftDate(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
+            />
           </div>
+          <button
+            type="button"
+            className="admin-snap-apply-btn"
+            disabled={!canApply}
+            onClick={() => canApply && onQueryDateChange?.(draftDate)}
+            style={{ padding: '7px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700, cursor: canApply ? 'pointer' : 'not-allowed', background: canApply ? 'var(--text-brand-tertiary, #4F6AF5)' : '#E2E8F0', color: canApply ? '#fff' : '#94A3B8' }}
+          >
+            {labels.applyDate}
+          </button>
           <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.(activeTab)}>
             ↓ {labels.export}
           </button>
@@ -216,13 +247,23 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
         className="admin-snap-summary-grid"
         style={{ gridTemplateColumns: `repeat(${Math.max(1, summaryCards.length)}, minmax(0, 1fr))` }}
       >
-        {summaryCards.map((c) => (
-          <div key={c.key ?? c.label} className={`admin-snap-summary-card is-${c.tone || 'accent'}`}>
-            <p className="admin-snap-summary-label">{c.label}</p>
-            <p className="admin-snap-summary-value">{c.value}</p>
-            {c.sub && <p className="admin-snap-summary-sub">{c.sub}</p>}
-          </div>
-        ))}
+        {summaryCards.map((c) => {
+          const clickable = c.drill && onDrilldown;
+          return (
+            <div
+              key={c.key ?? c.label}
+              className={`admin-snap-summary-card is-${c.tone || 'accent'}${clickable ? ' is-clickable' : ''}`}
+              onClick={clickable ? () => onDrilldown({ card: c.key, label: c.label }) : undefined}
+              role={clickable ? 'button' : undefined}
+              title={clickable ? labels.drilldownHint : undefined}
+              style={clickable ? { cursor: 'pointer' } : undefined}
+            >
+              <p className="admin-snap-summary-label">{c.label}</p>
+              <p className="admin-snap-summary-value">{c.value}</p>
+              {c.sub && <p className="admin-snap-summary-sub">{c.sub}</p>}
+            </div>
+          );
+        })}
       </div>
 
       <div className="admin-snap-subtabs">
@@ -243,7 +284,7 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
           orgTree.length === 0
             ? <div className="admin-snap-empty">{labels.noOrgStructure}</div>
             : orgTree.map((node) => (
-              <OrgTreeRow key={node.name} node={node} depth={0} total={totalCount} defaultOpen />
+              <OrgTreeRow key={node.name} node={node} depth={0} total={totalCount} defaultOpen onDrilldown={onDrilldown} hint={labels.drilldownHint} />
             ))
         )}
 
@@ -905,6 +946,7 @@ export default function OrgSnapshotCanvas({
   snapshotTab = 'summary',
   onSnapshotTabChange,
   onExportSnapshot,
+  onDrilldown,
   // 발령 공통
   members = [],
   fieldOptions = {},
@@ -954,6 +996,7 @@ export default function OrgSnapshotCanvas({
               onExport={onExportSnapshot}
               activeTab={activeTab}
               onTabChange={setTab}
+              onDrilldown={onDrilldown}
             />
           )}
           {view === 'single' && (
