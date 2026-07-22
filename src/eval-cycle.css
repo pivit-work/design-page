@@ -2778,6 +2778,125 @@
   gap: var(--spacing-xs, 4px);
 }
 
+/* ── G6: 리포트 검수/발송 (EvalReportReviewCanvas) ── */
+.evrr-counts {
+  display: flex;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evrr-count {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+}
+.evrr-count.is-pending {
+  color: var(--utility-warning-700, #b54708);
+  background: var(--utility-warning-50, #fffaeb);
+}
+.evrr-count.is-approved {
+  color: var(--utility-blue-700, #175cd3);
+  background: var(--utility-blue-50, #eff8ff);
+}
+.evrr-count.is-sent {
+  color: var(--utility-success-700, #067647);
+  background: var(--utility-success-50, #ecfdf3);
+}
+.evrr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg, 12px);
+}
+.evrr-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--spacing-md, 8px);
+}
+.evrr-table {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.evrr-row {
+  display: grid;
+  grid-template-columns: 36px 1.4fr 0.8fr 1fr 0.9fr 1.6fr;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-lg, 12px) var(--spacing-xl, 16px);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evrr-row:last-child {
+  border-bottom: none;
+}
+.evrr-head {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  font-weight: 600;
+  background: var(--bg-secondary);
+}
+.evrr-cell {
+  min-width: 0;
+}
+.evrr-name {
+  display: flex;
+  flex-direction: column;
+}
+.evrr-name-main {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evrr-name-sub {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evrr-grade,
+.evrr-leader {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evrr-badge {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  border-radius: var(--radius-md, 6px);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.evrr-badge.is-pending {
+  color: var(--utility-warning-700, #b54708);
+  background: var(--utility-warning-50, #fffaeb);
+}
+.evrr-badge.is-approved {
+  color: var(--utility-blue-700, #175cd3);
+  background: var(--utility-blue-50, #eff8ff);
+}
+.evrr-badge.is-sent {
+  color: var(--utility-success-700, #067647);
+  background: var(--utility-success-50, #ecfdf3);
+}
+.evrr-approve {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  align-items: center;
+}
+.evrr-comment {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  font-size: var(--font-size-text-sm, 14px);
+  font-family: inherit;
+}
+.evrr-muted {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evrr-table .evc-empty-sub {
+  padding: var(--spacing-3xl, 24px);
+  text-align: center;
+}
+
 /* ════════════════════════════════════════════════════════════
    피드백 (EvalFeedbackCanvas)
    ════════════════════════════════════════════════════════════ */
