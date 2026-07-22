@@ -78,7 +78,7 @@ function applyTexture(app, objectName, imageSrc) {
  * 띄웠는데, nginx 의 `.html` rewrite 가 query string 을 날려 React index.html 로
  * fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  */
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -236,8 +236,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           </div>
         </div>
 
-        {/* Team Members — dynamic from org tree or profile */}
-        {(() => {
+        {/* Team Members — dynamic from org tree or profile.
+            showSubordinates=false 면(조직 계층 맥락이 아닌 곳, 예: 어드민 개요) 섹션 숨김. */}
+        {showSubordinates && (() => {
           const subs = findSubordinates ? findSubordinates(displayMember) : [];
           const teamList = subs.length > 0 ? subs : (profile.teamMembers || []);
           if (teamList.length === 0) return null;
