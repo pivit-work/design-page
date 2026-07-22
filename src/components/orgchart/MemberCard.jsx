@@ -4,7 +4,7 @@ import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
 
-export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, editMode, adminMode, baseUrl = '', onMemberClick }) {
+export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;
   const modalCtx = React.useContext(ModalContext);
   const openModal = onMemberClick || modalCtx?.openModal;
@@ -132,6 +132,11 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
           {member.isSelf && <span className="role-badge role-badge-self">나</span>}
         </div>
+        {showGrade && (member.grade || member.position) && (
+          <div className="member-grade">
+            {[member.grade, member.position].filter(Boolean).join(' · ')}
+          </div>
+        )}
         {showWorkHours && member.workHours && (
           <>
             <div className="working-time-bar">
