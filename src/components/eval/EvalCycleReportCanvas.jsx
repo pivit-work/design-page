@@ -23,6 +23,12 @@ const DEFAULT_LABELS = {
   gapSelf: '나(셀프)',
   gapReviewed: '평가 결과',
   gapDiff: '갭',
+  insightTitle: 'AI 종합 인사이트',
+  insightHint: '여러 평가 소스를 교차 분석한 요약입니다.',
+  sourceSelf: '셀프',
+  sourceLeader: '리더',
+  sourcePeer: '동료',
+  sourceOkr: 'OKR',
   leaderTitle: '리더 코멘트',
   peerTitle: '동료 피드백 요약 (익명)',
   growthTitle: '성장 영역 & 개선',
@@ -186,6 +192,36 @@ function OkrReview({ okrReview, L }) {
   );
 }
 
+// ── AI 종합 인사이트 (G9: 최소 2소스 근거 배지) ──
+const SOURCE_KEY = {
+  self: 'sourceSelf',
+  leader: 'sourceLeader',
+  peer: 'sourcePeer',
+  okr: 'sourceOkr',
+};
+function AiInsight({ insight, L }) {
+  // 2소스 규칙: 근거 소스 2개 미만이면 노출하지 않음(백엔드도 null 반환).
+  if (!insight || !insight.insight || (insight.sources ?? []).length < 2) {
+    return null;
+  }
+  return (
+    <section className="evc-card evr-insight" data-testid="evr-insight">
+      <div className="evr-insight-head">
+        <h3 className="evc-card-name">{L.insightTitle}</h3>
+        <div className="evr-insight-sources">
+          {insight.sources.map((s) => (
+            <span className="evr-insight-badge" key={s}>
+              {L[SOURCE_KEY[s]] ?? s}
+            </span>
+          ))}
+        </div>
+      </div>
+      <p className="evr-insight-text">{insight.insight}</p>
+      <p className="evc-empty-sub evr-insight-hint">{L.insightHint}</p>
+    </section>
+  );
+}
+
 // ── 성장 영역 & 개선 ──
 function GrowthAreas({ selfAnswers, L }) {
   const byType = useMemo(() => {
@@ -231,6 +267,7 @@ export default function EvalCycleReportCanvas({
   selfAnswers = [],
   leaderAnswers = [],
   peerAnswers = [],
+  insight = null,
   labels: providedLabels,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -281,6 +318,8 @@ export default function EvalCycleReportCanvas({
             )}
           </section>
         )}
+
+        <AiInsight insight={insight} L={L} />
 
         <OkrReview okrReview={okrReview} L={L} />
 
