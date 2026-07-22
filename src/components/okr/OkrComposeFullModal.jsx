@@ -62,6 +62,7 @@ export default function OkrComposeFullModal({
   const [objectives, setObjectives] = useState([]);
   const [linkedIds, setLinkedIds] = useState({});
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState(null);
 
@@ -143,7 +144,11 @@ export default function OkrComposeFullModal({
       })),
     }));
     setSaving(true);
-    Promise.resolve(onSubmit?.(payload)).finally(() => { setSaving(false); onClose(); });
+    setSaveError(null);
+    // 성공 시에만 닫는다 — 실패 시 폼을 유지하고 인라인 에러 노출(작성 데이터 보존).
+    Promise.resolve(onSubmit?.(payload))
+      .then(() => onClose())
+      .catch(() => { setSaveError('저장에 실패했습니다. 잠시 후 다시 시도해주세요.'); setSaving(false); });
   };
 
   return (
@@ -344,8 +349,10 @@ export default function OkrComposeFullModal({
 
         {objectives.length > 0 && (
           <div className="okr-modal-footer">
-            <span className={`okr-cf-total${totalW === 100 ? ' is-ok' : ''}`}>
-              Objective 가중치 합계 {totalW}% {totalW === 100 ? '✓' : '(100% 필요)'}
+            <span className={`okr-cf-total${!saveError && totalW === 100 ? ' is-ok' : ''}`}>
+              {saveError
+                ? saveError
+                : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
             </span>
             <button className="okr-btn is-outline" onClick={onClose}>취소</button>
             <button
