@@ -25,6 +25,14 @@ const DEFAULT_LABELS = {
   statusCompleted: '제출 완료',
   statusLeaderApproved: '확정',
   statusLeaderRejected: '반려',
+  // F3 자발적 요청 대기
+  unsolicitedTitle: '자발적 리뷰 신청 대기',
+  unsolicitedSub: '팀원이 직접 신청한 동료 리뷰입니다. 채택하면 리뷰어에게 작성 요청이 발송됩니다.',
+  unsolicitedBadge: '자발적 요청',
+  volunteerArrow: '→ 리뷰 대상',
+  reasonLabel: '신청 사유',
+  adopt: '채택',
+  reject: '제외',
 };
 
 const MODE_KEY = {
@@ -140,13 +148,51 @@ function PeerGroupCard({ group, candidates, labels: L, onAddNominee, onRemoveNom
   );
 }
 
+function UnsolicitedSection({ items, L, onAdopt, onReject }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <section className="evc-card" data-testid="evp-unsolicited" style={{ borderColor: 'var(--utility-warning-200, #fedf89)' }}>
+      <div className="evc-card-head">
+        <h3 className="evc-card-name">{L.unsolicitedTitle}</h3>
+        <span className="evc-status-badge tone-warning">{items.length}</span>
+      </div>
+      <p className="evc-empty-sub">{L.unsolicitedSub}</p>
+      <div className="evp-nominees">
+        {items.map((r) => (
+          <div key={r.id} className="evp-unsol-row" data-testid={`evp-unsol-${r.id}`}>
+            <div className="evp-unsol-head">
+              <span className="evp-nominee-name">{r.volunteer?.name || r.volunteer?.id}</span>
+              <span className="evc-type-badge">{L.unsolicitedBadge}</span>
+              <span className="evp-unsol-target">{L.volunteerArrow}: {r.evaluatee?.name || r.evaluatee?.id}</span>
+            </div>
+            {r.requestReason && (
+              <p className="evp-unsol-reason"><b>{L.reasonLabel}</b> · {r.requestReason}</p>
+            )}
+            <div className="evc-card-buttons">
+              <button type="button" className="evc-btn is-ghost" onClick={() => onReject(r.id)} data-testid={`evp-reject-${r.id}`}>
+                {L.reject}
+              </button>
+              <button type="button" className="evc-btn is-primary" onClick={() => onAdopt(r.id)} data-testid={`evp-adopt-${r.id}`}>
+                {L.adopt}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function EvalCyclePeerConfirmCanvas({
   groups = [],
   candidates = [],
+  unsolicited = [],
   labels: providedLabels,
   onAddNominee,
   onRemoveNominee,
   onConfirm,
+  onAdopt,
+  onReject,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -159,7 +205,13 @@ export default function EvalCyclePeerConfirmCanvas({
         </div>
       </header>
 
-      {groups.length === 0 ? (
+      {unsolicited.length > 0 && (
+        <div className="evc-list">
+          <UnsolicitedSection items={unsolicited} L={L} onAdopt={onAdopt} onReject={onReject} />
+        </div>
+      )}
+
+      {groups.length === 0 && unsolicited.length === 0 ? (
         <div className="evc-empty" data-testid="evp-empty">
           <p className="evc-empty-title">{L.emptyTitle}</p>
           <p className="evc-empty-sub">{L.emptySub}</p>

@@ -30,8 +30,24 @@ const DEFAULT_LABELS = {
   roleChangeMsg: '평가 기간 중 직무가 변경되어 이번 사이클에서 제외됩니다. 다음 사이클부터 새로운 역할 기준으로 평가됩니다.',
   notInScopeTitle: '이번 사이클 평가 대상에 포함되지 않았습니다',
   notInScopeMsg: '이번 사이클은 특정 대상만 평가합니다. 다음 전사 사이클에서 참여하게 됩니다.',
+  // C4 날짜 기반 14종 공통 안내 + 유형 라벨.
+  dateBasedSuffix: ' 기준 평가 제외',
+  dateBasedMsg: '아래 기준일 조건에 해당하여 이번 평가 사이클에서 제외됩니다. 다음 사이클부터 참여합니다.',
+  typeLabels: {
+    hire_date: '입사일',
+    promotion_change: '직급 변경일',
+    job_change: '직무 변경일',
+    return_from_leave: '복직일',
+    location_change: '지역 이동일',
+    last_review_date: '마지막 리뷰일',
+    grade_confirmed: '등급 확정일',
+    contract_change: '계약직 전환일',
+    probation_end: '수습 종료일',
+    appointment: '인사 발령일',
+  },
 };
 
+// 체크박스/개별 유형(고정 안내문). 날짜 기반·커스텀은 렌더에서 동적 구성.
 const REASON_META = {
   probation: { emoji: '🌱', titleKey: 'probationTitle', msgKey: 'probationMsg', tone: 'success' },
   leave: { emoji: '🌿', titleKey: 'leaveTitle', msgKey: 'leaveMsg', tone: 'success' },
@@ -39,6 +55,30 @@ const REASON_META = {
   role_change: { emoji: '🔄', titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg', tone: 'purple' },
   not_in_scope: { emoji: '🎯', titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg', tone: 'neutral' },
 };
+
+/** 제외 사유 → {emoji,title,msg,tone}. 날짜 기반 14종·custom 은 동적으로 구성. */
+function resolveReason(exclusion, L) {
+  const t = exclusion.exclusionType;
+  if (REASON_META[t]) {
+    const m = REASON_META[t];
+    return { emoji: m.emoji, title: L[m.titleKey], msg: L[m.msgKey], tone: m.tone };
+  }
+  if (t === 'custom') {
+    return {
+      emoji: '🏷️',
+      title: exclusion.customLabel || L.manualTitle,
+      msg: exclusion.customDateBasis || L.dateBasedMsg,
+      tone: 'neutral',
+    };
+  }
+  const typeLabel = (L.typeLabels && L.typeLabels[t]) || t;
+  return {
+    emoji: '📅',
+    title: `${typeLabel}${L.dateBasedSuffix}`,
+    msg: L.dateBasedMsg,
+    tone: 'neutral',
+  };
+}
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -79,7 +119,7 @@ export default function EvalCycleExcludedCanvas({
     );
   }
 
-  const meta = REASON_META[exclusion.exclusionType] ?? REASON_META.manual;
+  const reason = resolveReason(exclusion, L);
 
   return (
     <div className="evc-root">
@@ -105,15 +145,25 @@ export default function EvalCycleExcludedCanvas({
         </section>
 
         {/* 제외 사유 */}
-        <section className={`evc-card evx-reason tone-${meta.tone}`} data-testid="evx-reason">
+        <section className={`evc-card evx-reason tone-${reason.tone}`} data-testid="evx-reason">
           <div className="evx-reason-head">
-            <span className="evx-emoji" aria-hidden="true">{meta.emoji}</span>
-            <h3 className="evc-card-name">{L[meta.titleKey]}</h3>
+            <span className="evx-emoji" aria-hidden="true">{reason.emoji}</span>
+            <h3 className="evc-card-name">{reason.title}</h3>
           </div>
-          <p className="evx-reason-msg">{L[meta.msgKey]}</p>
+          <p className="evx-reason-msg">{reason.msg}</p>
           <div className="evx-detail-row">
             <span>{L.referenceDate}</span>
-            <b>{exclusion.referenceDate}</b>
+            <b>
+              {exclusion.referenceDate}
+              {exclusion.referenceDateDirection
+                ? exclusion.referenceDateDirection === 'before'
+                  ? ' 이전'
+                  : ' 이후'
+                : ''}
+              {exclusion.dateMode === 'range' && exclusion.referenceDateEnd
+                ? ` ~ ${exclusion.referenceDateEnd}`
+                : ''}
+            </b>
           </div>
           {exclusion.reason && (
             <div className="evx-detail-row">

@@ -1784,6 +1784,74 @@
   font-weight: 600;
   color: var(--text-primary);
 }
+/* F3 자발적 요청 대기 */
+.evp-unsol-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  padding: var(--spacing-lg, 12px);
+  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+}
+.evp-unsol-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evp-unsol-head .evp-nominee-name {
+  flex: 0 0 auto;
+}
+.evp-unsol-target {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
+}
+.evp-unsol-reason {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+}
+.evp-unsol-reason b {
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+/* F3 자발적 신청(멤버) */
+.evpv-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+  max-height: 168px;
+  overflow-y: auto;
+  margin: var(--spacing-sm, 6px) 0 var(--spacing-lg, 12px);
+}
+.evpv-candidate {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border: 1px solid var(--bg-active);
+  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  cursor: pointer;
+}
+.evpv-candidate.is-on {
+  border-color: var(--brand-solid, #0d9488);
+  background: var(--utility-brand-50, #f0fdfa);
+}
+.evpv-cand-name {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evpv-cand-dept {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evpv-reason-warn {
+  color: var(--utility-warning-600, #dc6803) !important;
+}
 .evp-remove {
   border: none;
   background: transparent;
