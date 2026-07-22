@@ -12,12 +12,15 @@ function healthLevel(h) {
  *
  * labels: 표 셀 텍스트. 헬스 아이콘은 /icons/check-heart.svg (ReportWeeklyRow 와 동일).
  */
-export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar }) {
+export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, onRowClick }) {
   const avatar = renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />;
+  const clickable = typeof onRowClick === 'function';
+  const rowClick = clickable ? () => onRowClick(row.id) : undefined;
+  const clickProps = clickable ? { onClick: rowClick, style: { cursor: 'pointer' } } : {};
 
   if (!row.active) {
     return (
-      <tr className="admin-team-row is-inactive">
+      <tr className="admin-team-row is-inactive" {...clickProps}>
         <td>
           <div className="admin-team-name-cell">
             {avatar}
@@ -36,7 +39,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar }
 
   const level = row.health != null ? healthLevel(row.health) : null;
   return (
-    <tr className={`admin-team-row${row.redFlag ? ' is-flagged' : ''}`}>
+    <tr className={`admin-team-row${row.redFlag ? ' is-flagged' : ''}`} {...clickProps}>
       <td>
         <div className="admin-team-name-cell">
           {avatar}

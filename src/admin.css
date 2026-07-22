@@ -139,6 +139,16 @@
   border-radius: var(--radius-2xl, 16px);
   box-shadow: var(--admin-card-shadow);
   padding: 20px 22px;
+  border: 1.5px solid transparent;
+  transition: border-color .12s, box-shadow .12s, transform .12s;
+}
+.admin-stat-tile.is-clickable:hover {
+  border-color: var(--border-brand, #C7D2FE);
+  transform: translateY(-1px);
+}
+.admin-stat-tile.is-active {
+  border-color: var(--text-brand-tertiary, #4F6AF5);
+  box-shadow: 0 2px 12px rgba(79, 106, 245, .18);
 }
 .admin-stat-label {
   font-family: var(--font-family-body);
