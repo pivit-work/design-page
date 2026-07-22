@@ -463,6 +463,8 @@ export default function AdminEmployeesCanvas({
   orgUnits = [],
   invites = [],
   initialTab,
+  // 전체 구성원 탭 시트의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
+  initialSearch = '',
   loading = false,
   labels: providedLabels,
   canEdit = true,
@@ -529,6 +531,7 @@ export default function AdminEmployeesCanvas({
       ) : tab === 'members' ? (
         <AdminEmployeeSheetCanvas
           embedded
+          initialSearch={initialSearch}
           members={members}
           labels={sheetLabels}
           canViewSalary={canViewSalary}

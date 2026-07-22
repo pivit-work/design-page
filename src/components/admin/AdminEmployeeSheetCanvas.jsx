@@ -204,6 +204,8 @@ export default function AdminEmployeeSheetCanvas({
   // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
   // 자체 페이지 타이틀/부제 헤더를 숨기고 저장 컨트롤만 우측 정렬로 노출한다.
   embedded = false,
+  // 초기 검색어(딥링크용) — 개요 등에서 특정 인원으로 좁혀 진입할 때 사용.
+  initialSearch = '',
 }) {
   const L = labels;
 
@@ -243,7 +245,7 @@ export default function AdminEmployeeSheetCanvas({
   const [selected, setSelected] = useState(new Set());
   const [filterDept, setFilterDept] = useState('__all__');
   const [filterStatus, setFilterStatus] = useState('__all__');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
   const [saving, setSaving] = useState(false);
