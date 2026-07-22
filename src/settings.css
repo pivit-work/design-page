@@ -617,7 +617,253 @@
     position: static;
   }
 
-  .msc-grid-2col {
+  .msc-grid-2col,
+  .msc-grid-3col {
     grid-template-columns: 1fr;
   }
+}
+
+/* ══ 프로필 그룹 (PF1~PF4) ═══════════════════════════════ */
+
+.msc-grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 12px;
+}
+
+.msc-tab-intro {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.msc-vis-badge.is-muted {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+}
+
+/* ── 내 프로필 히어로 ── */
+.msc-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.msc-hero-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--text-brand-tertiary);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.msc-hero-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msc-hero-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.msc-hero-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.msc-hero-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.msc-hero-bio {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-secondary-alt, var(--border-primary));
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ── 읽기 전용 key/value 그리드 ── */
+.msc-pairs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.msc-pair-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-quaternary);
+  margin-bottom: 2px;
+}
+
+.msc-pair-value {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ── 평가 등급 배지 / eval 행 ── */
+.msc-eval-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.msc-grade-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ── 보상 마스킹 ── */
+.msc-comp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.msc-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.msc-amount.is-masked {
+  color: var(--text-quaternary);
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  letter-spacing: 2px;
+}
+
+.msc-reason-chip {
+  font-size: 10px;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+}
+
+/* ── 이력/목록 행 ── */
+.msc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msc-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.msc-list-row.is-current {
+  background: var(--bg-brand-secondary);
+  border-color: var(--utility-brand-200);
+}
+
+.msc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--text-quaternary);
+  flex-shrink: 0;
+}
+
+.msc-dot.is-brand {
+  background: var(--bg-brand-solid);
+}
+
+.msc-mono {
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.msc-list-del {
+  border: none;
+  background: none;
+  color: var(--text-error-primary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.msc-list-del:hover {
+  background: var(--bg-error-primary);
+}
+
+/* ── 인라인 추가 폼 / 추가 버튼 ── */
+.msc-add-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.msc-add-btn:hover {
+  border-color: var(--text-brand-tertiary);
+  color: var(--text-brand-secondary);
+}
+
+.msc-add-form {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.msc-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ── 증명서 업로드 행 ── */
+.msc-doc-upload {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── 경고 배너 (보상) ── */
+.admin-notif-banner.is-warn {
+  background: var(--bg-warning-primary, #fff7ed);
+  border-color: var(--utility-orange-200, #fed7aa);
 }

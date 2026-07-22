@@ -9,6 +9,8 @@ import Icon from '../shared/Icon.jsx';
  *  - menu 항목의 `disabled` 는 비활성(클릭 불가), `tag` 는 우측 보조 라벨.
  *  - title: 로고 아래 섹션 타이틀 (예: '어드민').
  *  - bottomItem: 하단 영역(의견보내기·설정 사이)의 추가 항목 { icon, label, onClick }.
+ *  - onLogoClick: 좌상단 Pivit 로고(아이콘+워드마크) 클릭 핸들러. 넘기면 로고가
+ *    버튼처럼 동작(홈 이동 등)하며 키보드 접근 가능. 없으면 기존처럼 비클릭 이미지.
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
@@ -21,12 +23,25 @@ export default function Sidebar({
   onSettingsClick,
   title,
   bottomItem,
+  onLogoClick,
 }) {
+  const logoImg = <img src={`${baseUrl}logo.svg`} alt="Pivit" />;
   return (
     <aside className="sidebar">
       <div className="sidebar-inner">
         <div className="sidebar-top">
-          <div className="logo-wrap"><img src={`${baseUrl}logo.svg`} alt="Pivit" /></div>
+          {onLogoClick ? (
+            <button
+              type="button"
+              className="logo-wrap logo-btn"
+              onClick={onLogoClick}
+              aria-label="Pivit 홈으로"
+            >
+              {logoImg}
+            </button>
+          ) : (
+            <div className="logo-wrap">{logoImg}</div>
+          )}
           {title && <div className="sidebar-title">{title}</div>}
           <nav className="menu-list">
             {menu.map((m, i) => {

@@ -74,8 +74,32 @@ const NOTIF_GROUPS_INIT = [
   },
 ];
 
+const MOCK_ORG = {
+  current: { manager: { name: '홍길동', title: '이사', since: '2025-09-01' }, level: 'L5', dept: 'Leadership', joinDate: '2025-09-01' },
+  managerHistory: [{ name: '이순신', title: '팀장', from: '2024-01-01', to: '2024-12-31' }],
+  appointmentHistory: [{ date: '2025-09-01', type: '입사', dept: 'Leadership', title: 'CEO' }],
+  education: [{ id: 'e1', school: '서울대학교', major: '컴퓨터공학', degree: 'bachelor', from: '2010', to: '2014', status: 'graduated', isFinal: true }],
+  career: [{ id: 'c1', company: '카카오', department: '프로덕트실', role: '프로덕트 매니저', from: '2014-07', to: '2022-08' }],
+  certifications: [{ id: 'cert1', name: 'PMP', issuer: 'PMI', credentialNo: 'PMP-1029384', issuedDate: '2019-06-01', expiryDate: '2025-06-01' }],
+  documents: [{ id: 'd1', docType: 'resume', fileName: '민현식_이력서.pdf', uploadedAt: '2025-08-20' }],
+};
+const MOCK_PERF = {
+  evalHistory: [
+    { period: '2025 H1', grade: 'S', evaluator: '홍길동', date: '2025-07-15' },
+    { period: '2024 H2', grade: 'A', evaluator: '이순신', date: '2025-01-20' },
+    { period: '2024 H1', grade: 'A+', evaluator: '이순신', date: '2024-07-10' },
+  ],
+};
+const MOCK_COMP = {
+  current: { amount: 120000000, currency: 'KRW', effectiveDate: '2025-01-01', reason: '승진(CEO)' },
+  history: [
+    { amount: 100000000, effectiveDate: '2024-01-01', endDate: '2024-12-31', reason: '연봉 조정' },
+    { amount: 85000000, effectiveDate: '2023-01-01', endDate: '2023-12-31', reason: '입사' },
+  ],
+};
+
 export default function SettingsPage() {
-  const [tab, setTab] = useState('profile');
+  const [tab, setTab] = useState('my_profile');
   const [photos, setPhotos] = useState([{ id: 'p1', url: 'https://i.pravatar.cc/150?img=11' }]);
   const [activePhotoId, setActivePhotoId] = useState('p1');
   const [saveState, setSaveState] = useState('idle');
@@ -84,12 +108,25 @@ export default function SettingsPage() {
   const [slackDm, setSlackDm] = useState(true);
   const [gcalConnected, setGcalConnected] = useState(true);
   const [pwState, setPwState] = useState({ saving: false, saved: false, error: null });
+  const [familySaveState, setFamilySaveState] = useState('idle');
+  const [family, setFamily] = useState({
+    maritalStatus: 'married',
+    emergencyContact: { name: '이하나', relation: '배우자', phone: '010-9876-5432' },
+    dependents: [{ id: 'dep1', name: '민지우', relation: 'child', dateOfBirth: '2019-05-02', isDependent: true }],
+  });
+  const [org, setOrg] = useState(MOCK_ORG);
 
   const profile = {
     name: '민현식',
+    displayName: '데이빗 민 (민현식)',
     title: 'CEO',
     email: 'david@pivit.work',
     phone: '010-1234-5678',
+    personalEmail: 'david.min@gmail.com',
+    dateOfBirth: '1988-03-14',
+    gender: 'male',
+    nationality: '대한민국',
+    address: '서울시 마포구 월드컵북로 400',
     bio: 'Pivit 공동창업자. 일하는 맥락을 기억하는 HR을 만듭니다.',
     location: '서울 마포구',
     workStart: '09:00',
@@ -97,6 +134,31 @@ export default function SettingsPage() {
     timezone: 'Asia/Seoul',
     joinDate: '2025-09-01',
   };
+
+  const myProfile = {
+    displayName: profile.displayName,
+    dept: 'Leadership',
+    bio: profile.bio,
+    basicPairs: [
+      { label: '위치', value: profile.location },
+      { label: '이메일', value: profile.email },
+      { label: '전화번호', value: profile.phone },
+    ],
+    orgPairs: [
+      { label: '현재 매니저', value: '홍길동 (이사)' },
+      { label: '레벨', value: 'L5' },
+      { label: '입사일', value: profile.joinDate },
+      { label: '소속', value: 'Leadership' },
+    ],
+    latestEval: MOCK_PERF.evalHistory[0],
+    compCurrent: { amount: MOCK_COMP.current.amount, effectiveDate: MOCK_COMP.current.effectiveDate },
+  };
+
+  let idc = 100;
+  const addOrgRecord = (type, payload) =>
+    setOrg((prev) => ({ ...prev, [type]: [...prev[type], { id: `n${++idc}`, ...payload }] }));
+  const deleteOrgRecord = (type, id) =>
+    setOrg((prev) => ({ ...prev, [type]: prev[type].filter((r) => r.id !== id) }));
 
   const handleSaveProfile = () => {
     setSaveState('saving');
@@ -143,6 +205,32 @@ export default function SettingsPage() {
       activeTab={tab}
       onTabChange={setTab}
       me={{ name: '민현식', title: 'CEO', initial: '민', color: '#EC4899' }}
+      myProfile={myProfile}
+      onEditProfile={() => setTab('profile_basic')}
+      family={family}
+      familySaveState={familySaveState}
+      onSaveFamily={(input) => {
+        setFamily((prev) => ({ ...prev, ...input }));
+        setFamilySaveState('saving');
+        setTimeout(() => {
+          setFamilySaveState('saved');
+          setTimeout(() => setFamilySaveState('idle'), 2000);
+        }, 400);
+      }}
+      onAddDependent={(input) =>
+        setFamily((prev) => ({ ...prev, dependents: [...prev.dependents, { id: `dep${Date.now()}`, isDependent: true, ...input }] }))
+      }
+      onDeleteDependent={(id) =>
+        setFamily((prev) => ({ ...prev, dependents: prev.dependents.filter((d) => d.id !== id) }))
+      }
+      org={org}
+      onAddOrgRecord={addOrgRecord}
+      onDeleteOrgRecord={deleteOrgRecord}
+      onUploadDocument={(docType, file) => addOrgRecord('documents', { docType, fileName: file.name, uploadedAt: '오늘' })}
+      onDownloadDocument={() => {}}
+      onDeleteDocument={(id) => deleteOrgRecord('documents', id)}
+      performance={MOCK_PERF}
+      compensation={MOCK_COMP}
       profile={profile}
       timezoneOptions={TIMEZONES}
       photos={photos}
