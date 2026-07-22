@@ -397,7 +397,9 @@
 .okr-cf-total { margin-right: auto; font-size: 12px; font-weight: 700; color: var(--utility-red-600, #DC2626); }
 .okr-cf-total.is-ok { color: var(--utility-success-600, #16A34A); }
 .okr-cf-method { cursor: pointer; font-family: inherit; text-align: left; }
-.okr-cf-select-real { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; max-width: 160px; }
+/* 담당자·상위연결 실 select — 정본 .okr-cf-select pill 룩에 맞춘다. */
+.okr-cf-select-real { appearance: none; -webkit-appearance: none; padding: 8px 28px 8px 12px; border: none; border-radius: 8px; background-color: var(--alpha-black-3); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; color: var(--text-secondary); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; max-width: 180px; text-overflow: ellipsis; }
+.okr-cf-select-real:focus { box-shadow: 0 0 0 2px var(--accent-alpha, rgba(79,106,245,.25)); }
 .okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ══ OKR 설정 마법사 모달 ══ */

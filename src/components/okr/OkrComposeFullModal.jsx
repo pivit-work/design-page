@@ -25,7 +25,7 @@ const METHODS = [
 let seq = 0;
 const nextId = () => { seq += 1; return `cf-${seq}`; };
 
-function emptyKr(linked) {
+function emptyKr(linked, selfId) {
   return {
     key: nextId(),
     title: '',
@@ -33,17 +33,18 @@ function emptyKr(linked) {
     unit: linked?.unit ?? '%',
     inputType: linked?.inputType ?? 'percent',
     weight: '',
-    ownerId: '',
+    // 개인 OKR 이므로 담당자 기본값은 본인 — 시안 okr-individual.jsx 의 pic=ME.name.
+    ownerId: selfId ?? '',
     teamKrId: linked?.id ?? null,
   };
 }
-function emptyObjective(linkedKr) {
+function emptyObjective(linkedKr, selfId) {
   return {
     key: nextId(),
     title: '',
     weight: '',
     parentId: '',
-    krs: linkedKr ? [emptyKr(linkedKr)] : [],
+    krs: linkedKr ? [emptyKr(linkedKr, selfId)] : [],
   };
 }
 
@@ -56,6 +57,7 @@ export default function OkrComposeFullModal({
   onGenerate,
   members = [],
   parentOptions = [],
+  selfId = '',
 }) {
   const [objectives, setObjectives] = useState([]);
   const [linkedIds, setLinkedIds] = useState({});
@@ -84,7 +86,7 @@ export default function OkrComposeFullModal({
         unit: k.unit ?? TYPE_UNIT[k.type] ?? '',
         inputType: TYPE_INPUT[k.type] ?? 'count',
         weight: '',
-        ownerId: '',
+        ownerId: selfId,
         teamKrId: null,
       }));
       setObjectives((p) => [
@@ -96,10 +98,10 @@ export default function OkrComposeFullModal({
     } finally { setGenLoading(false); }
   };
 
-  const addObjective = () => setObjectives((p) => [...p, emptyObjective()]);
+  const addObjective = () => setObjectives((p) => [...p, emptyObjective(null, selfId)]);
   const removeObjective = (key) => setObjectives((p) => p.filter((o) => o.key !== key));
   const patchObjective = (key, patch) => setObjectives((p) => p.map((o) => (o.key === key ? { ...o, ...patch } : o)));
-  const addKr = (objKey) => setObjectives((p) => p.map((o) => (o.key === objKey ? { ...o, krs: [...o.krs, emptyKr()] } : o)));
+  const addKr = (objKey) => setObjectives((p) => p.map((o) => (o.key === objKey ? { ...o, krs: [...o.krs, emptyKr(null, selfId)] } : o)));
   const removeKr = (objKey, krKey) => setObjectives((p) => p.map((o) => (
     o.key === objKey ? { ...o, krs: o.krs.filter((k) => k.key !== krKey) } : o
   )));
@@ -111,9 +113,9 @@ export default function OkrComposeFullModal({
   const linkTeamKr = (gi, ki, kr) => {
     setLinkedIds((prev) => ({ ...prev, [`${gi}-${ki}`]: true }));
     setObjectives((prev) => {
-      if (prev.length === 0) return [emptyObjective(kr)];
+      if (prev.length === 0) return [emptyObjective(kr, selfId)];
       const last = prev[prev.length - 1];
-      return prev.map((o) => (o.key === last.key ? { ...o, krs: [...o.krs, emptyKr(kr)] } : o));
+      return prev.map((o) => (o.key === last.key ? { ...o, krs: [...o.krs, emptyKr(kr, selfId)] } : o));
     });
   };
 
