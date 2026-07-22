@@ -185,6 +185,76 @@ function CellDisplay({ col, row, renderAvatar }) {
   return <span style={{ fontSize: 12, color: value ? T.text : T.muted }}>{value || '—'}</span>;
 }
 
+// ── 검색 가능한 필터 드롭다운 ───────────────────────────────
+// OrgUnitPicker/tm-add-member 패턴(검색 input + 필터된 버튼 리스트 + 바깥 클릭 닫기)을
+// 시트 톤(T 토큰)으로 옮긴 것. 컬럼별로 재사용.
+function FilterMenu({ label, value, options, onChange, allLabel, searchPlaceholder, noResult }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+  const active = value && value !== '__all__';
+  const selectedLabel = active ? (options.find((o) => o.value === value)?.label ?? value) : allLabel;
+  const ql = q.trim().toLowerCase();
+  const shown = ql ? options.filter((o) => o.label.toLowerCase().includes(ql)) : options;
+  const pick = (v) => { onChange(v); setOpen(false); setQ(''); };
+  const optBtn = (selected) => ({
+    textAlign: 'left', padding: '7px 9px', borderRadius: 7, border: 'none',
+    background: selected ? '#EEF2FF' : 'transparent', color: selected ? T.accent : T.text,
+    fontSize: 12, fontFamily: T.font, cursor: 'pointer', fontWeight: selected ? 700 : 500, whiteSpace: 'nowrap',
+  });
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9,
+          border: `1px solid ${active ? T.accent : T.border}`, fontSize: 12, fontFamily: T.font,
+          background: active ? '#EEF2FF' : T.card, color: active ? T.accent : T.text, cursor: 'pointer', outline: 'none',
+        }}
+      >
+        <span style={{ color: active ? T.accent : T.sub }}>{label}</span>
+        <span style={{ fontWeight: 700 }}>{selectedLabel}</span>
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.7 }}>
+          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, minWidth: 190, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: '0 12px 32px -8px rgba(15,23,42,.24)', padding: 6 }}>
+          <div style={{ position: 'relative', marginBottom: 4 }}>
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }}>
+              <circle cx="9" cy="9" r="6" stroke={T.muted} strokeWidth="1.8" />
+              <path d="M13.5 13.5L17 17" stroke={T.muted} strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={searchPlaceholder}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '6px 8px 6px 28px', borderRadius: 7, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font, outline: 'none', color: T.text, background: T.bg }}
+            />
+          </div>
+          <div style={{ maxHeight: 230, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <button type="button" onClick={() => pick('__all__')} style={optBtn(!active)}>{allLabel}</button>
+            {shown.map((o) => (
+              <button key={o.value} type="button" onClick={() => pick(o.value)} style={optBtn(value === o.value)}>{o.label}</button>
+            ))}
+            {shown.length === 0 && (
+              <div style={{ padding: '10px', fontSize: 12, color: T.muted, textAlign: 'center' }}>{noResult || '결과 없음'}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminEmployeeSheetCanvas({
   members = [],
   loading = false,
@@ -243,8 +313,9 @@ export default function AdminEmployeeSheetCanvas({
   const [syncedMembers, setSyncedMembers] = useState(members);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(new Set());
-  const [filterDept, setFilterDept] = useState('__all__');
-  const [filterStatus, setFilterStatus] = useState('__all__');
+  // 표에서 보이는 모든 범주형 컬럼(부서·직급·직책·권한·상태)을 필터 대상으로. 값 미지정=전체.
+  const [filters, setFilters] = useState({});
+  const setFilter = (colId, v) => setFilters((f) => ({ ...f, [colId]: v }));
   const [search, setSearch] = useState(initialSearch);
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
@@ -319,19 +390,45 @@ export default function AdminEmployeeSheetCanvas({
   }
 
   // ── 필터/정렬 ──
-  const depts = useMemo(() => ['__all__', ...Array.from(new Set(rows.map((r) => r.department).filter(Boolean)))], [rows]);
+  // 필터 가능한 범주형 컬럼(라벨은 컬럼 라벨 재사용, orgRole/상태는 meta 라벨).
+  const cl = labels.cols || {};
+  const FILTER_COLS = useMemo(() => ([
+    { id: 'department', label: cl.department || '부서' },
+    { id: 'title', label: cl.title || '직급' },
+    { id: 'position', label: cl.position || '직책' },
+    { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
+    { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
+  ]), [cl.department, cl.title, cl.position, cl.role, cl.status]);
+  // 각 필터 컬럼의 distinct 옵션(현재 rows 기준 — 존재하는 값만 노출).
+  const filterOptions = useMemo(() => {
+    const out = {};
+    for (const fc of FILTER_COLS) {
+      const vals = Array.from(new Set(rows.map((r) => r[fc.id]).filter((v) => v !== '' && v != null)));
+      out[fc.id] = vals
+        .map((v) => ({
+          value: String(v),
+          label: fc.meta === 'role' ? (ROLE_META[v]?.label || String(v))
+            : fc.meta === 'status' ? (STATUS_META[v]?.label || String(v))
+              : String(v),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+    return out;
+  }, [rows, FILTER_COLS]);
+
   let filtered = rows.filter((r) => {
-    const md = filterDept === '__all__' || r.department === filterDept;
-    const ms = filterStatus === '__all__' || r.employmentStatus === filterStatus;
+    for (const fc of FILTER_COLS) {
+      const fv = filters[fc.id];
+      if (fv && fv !== '__all__' && String(r[fc.id] ?? '') !== fv) return false;
+    }
     const q = search.trim().toLowerCase();
-    const mq =
-      !q ||
-      (r.name || '').toLowerCase().includes(q) ||
-      (r.nameEn || '').toLowerCase().includes(q) ||
-      (r.email || '').toLowerCase().includes(q) ||
-      (r.department || '').toLowerCase().includes(q) ||
-      (r.position || '').toLowerCase().includes(q);
-    return md && ms && mq;
+    if (q) {
+      const hit = ['name', 'nameEn', 'email', 'department', 'position', 'title'].some(
+        (k) => (r[k] || '').toLowerCase().includes(q),
+      );
+      if (!hit) return false;
+    }
+    return true;
   });
   if (sortCol) {
     filtered = [...filtered].sort((a, b) => {
@@ -462,22 +559,18 @@ export default function AdminEmployeeSheetCanvas({
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={L.searchPlaceholder || '이름, 이메일, 부서 검색'} style={{ width: '100%', padding: '8px 12px 8px 30px', borderRadius: 9, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font, background: T.card, outline: 'none', color: T.text }} />
         </div>
 
-        <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font, background: T.card, color: T.text, cursor: 'pointer', outline: 'none' }}>
-          {depts.map((d) => (
-            <option key={d} value={d}>
-              {d === '__all__' ? L.deptFilterAll || '전체 부서' : d}
-            </option>
-          ))}
-        </select>
-
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '8px 12px', borderRadius: 9, border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font, background: T.card, color: T.text, cursor: 'pointer', outline: 'none' }}>
-          <option value="__all__">{L.statusFilterAll || '전체 상태'}</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_META[s]?.label || s}
-            </option>
-          ))}
-        </select>
+        {FILTER_COLS.map((fc) => (
+          <FilterMenu
+            key={fc.id}
+            label={fc.label}
+            value={filters[fc.id] ?? '__all__'}
+            options={filterOptions[fc.id] || []}
+            onChange={(v) => setFilter(fc.id, v)}
+            allLabel={L.filterAll || '전체'}
+            searchPlaceholder={L.filterSearchPlaceholder || '검색'}
+            noResult={L.filterNoResult || '결과 없음'}
+          />
+        ))}
 
         <div style={{ flex: 1 }} />
 
@@ -575,11 +668,6 @@ export default function AdminEmployeeSheetCanvas({
                   <th key={c.id} onClick={() => toggleSort(c.id)} style={{ width: c.width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.6, borderBottom: `1px solid ${T.border}`, cursor: 'pointer', userSelect: 'none', background: T.bg, whiteSpace: 'nowrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {c.label}
-                      {c.sensitive && (
-                        <span title={L.sensitiveHint || '민감 정보 — 권한별 마스킹 대상'} style={{ fontSize: 10 }}>
-                          🔒
-                        </span>
-                      )}
                       {sortCol === c.id && <span style={{ color: T.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </span>
                   </th>
@@ -757,7 +845,7 @@ function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSalarySynce
             <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
               {row.name || (L.newEmployee || '신규 직원')} · {L.salaryHistoryTitle || '연봉 이력'}
             </div>
-            <div style={{ fontSize: 11, color: T.muted }}>{L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영 🔒 권한별 마스킹'}</div>
+            <div style={{ fontSize: 11, color: T.muted }}>{L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}</div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted, fontSize: 20, lineHeight: 1 }}>
             ✕
