@@ -82,6 +82,8 @@ export default function AdminDashboardCanvas({
   onSendReminder,
   onManageIntegrations,
   onConnectIntegration,
+  onStatClick,   // (id) => void — 클릭 가능한 stat 타일(팀원 현황 필터 토글)
+  onRowClick,    // (memberId) => void — 팀원 행 클릭
   renderAvatar,
 }) {
   const labels = mergeLabels(providedLabels);
@@ -104,7 +106,14 @@ export default function AdminDashboardCanvas({
 
       <div className="admin-stats-grid">
         {stats.map((s) => (
-          <AdminStatTile key={s.label} label={s.label} value={s.value} sub={s.sub} />
+          <AdminStatTile
+            key={s.label}
+            label={s.label}
+            value={s.value}
+            sub={s.sub}
+            active={!!s.active}
+            onClick={onStatClick && s.filterKey ? () => onStatClick(s.filterKey) : undefined}
+          />
         ))}
       </div>
 
@@ -128,6 +137,7 @@ export default function AdminDashboardCanvas({
                   labels={labels}
                   baseUrl={baseUrl}
                   renderAvatar={renderAvatar}
+                  onRowClick={onRowClick}
                 />
               ))}
               {teamRows.filter((r) => !r.active).map((row) => (
@@ -137,6 +147,7 @@ export default function AdminDashboardCanvas({
                   labels={labels}
                   baseUrl={baseUrl}
                   renderAvatar={renderAvatar}
+                  onRowClick={onRowClick}
                 />
               ))}
               {teamRows.length === 0 && (
