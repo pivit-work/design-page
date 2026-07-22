@@ -72,20 +72,23 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'email', 'department', 'title', 'orgRole', 'employmentStatus', 'hireDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'nameEn', 'email', 'department', 'title', 'position', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
   return (list || []).map((m) => ({
     id: m.id,
     name: m.name ?? '',
+    nameEn: m.nameEn ?? '',
     email: m.email ?? '',
     department: m.department ?? '',
     title: m.title ?? '',
+    position: m.position ?? '',
     orgRole: m.orgRole ?? 'member',
     employmentStatus: m.employmentStatus ?? 'active',
     managerName: m.managerName ?? '',
     hireDate: m.hireDate ?? '',
+    terminationDate: m.terminationDate ?? '',
     salary: m.salary ?? '',
     education: m.education ?? '',
   }));
@@ -194,9 +197,10 @@ export default function AdminEmployeeSheetCanvas({
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onAddEmployee,
-  // 조직 설정의 필드 옵션(직책 카탈로그)을 직급 컬럼 드롭다운으로 연결. 비어 있으면
-  // 자유 텍스트로 폴백. 카탈로그에 없는 기존 값은 편집 시 보존한다.
-  titleOptions = [],
+  // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
+  // gradeOptions→직급(grade 카탈로그), positionOptions→직책(position 카탈로그).
+  gradeOptions = [],
+  positionOptions = [],
   // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
   // 자체 페이지 타이틀/부제 헤더를 숨기고 저장 컨트롤만 우측 정렬로 노출한다.
   embedded = false,
@@ -206,25 +210,30 @@ export default function AdminEmployeeSheetCanvas({
   // ── 컬럼 정의 ──
   const COLUMNS = useMemo(() => {
     const cl = labels.cols || {};
+    // 필드옵션 카탈로그가 있으면 select, 없으면 자유 텍스트로 폴백.
+    const catCol = (id, label, width, options) =>
+      options.length
+        ? { id, label, width, type: 'select', editable: true, options }
+        : { id, label, width, type: 'text', editable: true };
     const base = [
-      { id: 'name', label: cl.name || '이름', width: 130, type: 'text', editable: true },
-      { id: 'email', label: cl.email || '이메일', width: 210, type: 'text', editable: true },
-      { id: 'department', label: cl.department || '부서', width: 130, type: 'text', editable: true },
-      // 직급: 조직 설정 필드옵션(titleOptions)이 있으면 드롭다운, 없으면 자유 텍스트.
-      titleOptions.length
-        ? { id: 'title', label: cl.title || '직급', width: 120, type: 'select', editable: true, options: titleOptions }
-        : { id: 'title', label: cl.title || '직급', width: 120, type: 'text', editable: true },
+      { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
+      { id: 'nameEn', label: cl.nameEn || '호칭', width: 110, type: 'text', editable: true },
+      { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
+      { id: 'department', label: cl.department || '부서', width: 120, type: 'text', editable: true },
+      catCol('title', cl.title || '직급', 110, gradeOptions),
+      catCol('position', cl.position || '직책', 110, positionOptions),
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
       { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
       { id: 'hireDate', label: cl.hireDate || '입사일', width: 120, type: 'date', editable: true },
+      { id: 'terminationDate', label: cl.terminationDate || '퇴사일', width: 120, type: 'date', editable: true },
     ];
     if (canViewSalary) {
       base.push({ id: 'salary', label: cl.salary || '연봉', width: 130, type: 'currency', editable: true, sensitive: true });
     }
-    base.push({ id: 'education', label: cl.education || '학력', width: 170, type: 'text', editable: true });
+    base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, titleOptions]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -313,7 +322,13 @@ export default function AdminEmployeeSheetCanvas({
     const md = filterDept === '__all__' || r.department === filterDept;
     const ms = filterStatus === '__all__' || r.employmentStatus === filterStatus;
     const q = search.trim().toLowerCase();
-    const mq = !q || (r.name || '').toLowerCase().includes(q) || (r.email || '').toLowerCase().includes(q) || (r.department || '').toLowerCase().includes(q);
+    const mq =
+      !q ||
+      (r.name || '').toLowerCase().includes(q) ||
+      (r.nameEn || '').toLowerCase().includes(q) ||
+      (r.email || '').toLowerCase().includes(q) ||
+      (r.department || '').toLowerCase().includes(q) ||
+      (r.position || '').toLowerCase().includes(q);
     return md && ms && mq;
   });
   if (sortCol) {
