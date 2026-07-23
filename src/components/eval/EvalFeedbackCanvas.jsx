@@ -13,32 +13,33 @@ import { createPortal } from 'react-dom';
  */
 
 // ── 색 토큰 (시안 member view C) ──
+// 디자인시스템 토큰화(전면). teal(멤버 강조)→system accent(brand), 나머지 semantic 은 hue 토큰.
 const C = {
-  bg: '#F5F4F0',
-  surface: '#FFFFFF',
-  border: '#E8E4DC',
-  borderL: '#F0EDE8',
-  text: '#1C1917',
-  sub: '#57534E',
-  muted: '#A8A29E',
-  teal: '#0D9488',
-  tealBg: '#F0FDFA',
-  tealBd: '#99F6E4',
-  blue: '#2563EB',
-  blueBg: '#EFF6FF',
-  blueBd: '#BFDBFE',
-  green: '#17b26a',
-  greenBg: '#ecfdf3',
-  greenBd: '#abefc6',
-  rose: '#E11D48',
-  roseBg: '#FFF1F2',
-  roseBd: '#FECDD3',
-  purple: '#7C3AED',
-  purpleBg: '#F5F3FF',
-  purpleBd: '#DDD6FE',
-  amber: '#C46A00',
-  amberBg: '#FFF4E0',
-  amberBd: '#F5C97A',
+  bg: 'var(--bg-primary, #F5F4F0)',
+  surface: 'var(--bg-quaternary, #FFFFFF)',
+  border: 'var(--border-secondary, #E8E4DC)',
+  borderL: 'var(--border-tertiary, #F0EDE8)',
+  text: 'var(--text-primary, #1C1917)',
+  sub: 'var(--text-secondary, #57534E)',
+  muted: 'var(--text-tertiary, #A8A29E)',
+  teal: 'var(--utility-brand-600, #0D9488)',
+  tealBg: 'var(--utility-brand-50, #F0FDFA)',
+  tealBd: 'var(--utility-brand-200, #99F6E4)',
+  blue: 'var(--utility-blue-600, #2563EB)',
+  blueBg: 'var(--utility-blue-50, #EFF6FF)',
+  blueBd: 'var(--utility-blue-200, #BFDBFE)',
+  green: 'var(--utility-success-600, #17b26a)',
+  greenBg: 'var(--utility-success-50, #ecfdf3)',
+  greenBd: 'var(--utility-success-200, #abefc6)',
+  rose: 'var(--utility-error-600, #E11D48)',
+  roseBg: 'var(--utility-error-50, #FFF1F2)',
+  roseBd: 'var(--utility-error-200, #FECDD3)',
+  purple: 'var(--utility-purple-500, #7C3AED)',
+  purpleBg: 'var(--utility-purple-50, #F5F3FF)',
+  purpleBd: 'var(--utility-purple-200, #DDD6FE)',
+  amber: 'var(--utility-warning-700, #C46A00)',
+  amberBg: 'var(--utility-warning-50, #FFF4E0)',
+  amberBd: 'var(--utility-warning-200, #F5C97A)',
 };
 const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 
@@ -205,7 +206,7 @@ function BlockCard({ block, L, onOpen }) {
       </div>
 
       {latest.length === 0 ? (
-        <p style={{ fontSize: 12, fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>
+        <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>
           {isKr ? L.emptyBlock : L.emptyBlockInit}
         </p>
       ) : (
@@ -233,7 +234,7 @@ function BlockCard({ block, L, onOpen }) {
                 </div>
                 <p
                   style={{
-                    fontSize: 12,
+                    fontSize: 'var(--font-size-text-xs, 12px)',
                     color: C.sub,
                     margin: '2px 0 0',
                     display: '-webkit-box',
@@ -258,7 +259,7 @@ function BlockCard({ block, L, onOpen }) {
         {!isMyTurn && isWaiting && (
           <Chip label={L.waiting} color={C.green} bg={C.greenBg} bd={C.greenBd} />
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: isKr ? C.teal : C.purple }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, color: isKr ? C.teal : C.purple }}>
           {L.openThread}
         </span>
       </div>
@@ -281,7 +282,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,.42)',
+        background: 'var(--bg-overlay, rgba(0,0,0,.42))',
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
@@ -308,7 +309,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
             {isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
           </span>
           {isKr && (
-            <span style={{ fontSize: 12, color: C.sub }}>{block.progress ?? 0}%</span>
+            <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>{block.progress ?? 0}%</span>
           )}
           <button
             type="button"
@@ -338,7 +339,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
 
         {isPastPeriod ? (
           !hasItems && (
-            <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 12, textAlign: 'center' }}>
+            <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>
               {L.pastReadonly}
             </div>
           )
@@ -374,7 +375,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <Avatar name={item.person?.name} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
             {!item.isRead && <Chip label={L.newBadge} color={C.teal} bg={C.tealBg} bd={C.tealBd} />}
             <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
@@ -400,7 +401,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
                 type="button"
                 onClick={() => setReplying(true)}
                 data-testid={`fbm-reply-toggle-${item.id}`}
-                style={{ border: 'none', background: 'none', color: C.teal, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                style={{ border: 'none', background: 'none', color: C.teal, fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
                 {L.replyToggle}
               </button>
@@ -509,7 +510,7 @@ function RequestCompose({ block, L, recipients, onRequest }) {
               type="button"
               onClick={() => setRecipient(r)}
               data-testid={`fbm-recipient-${r.id}`}
-              style={{ border: `1px solid ${on ? col : C.border}`, background: on ? bg : '#fff', color: on ? col : C.sub, borderRadius: 16, padding: '4px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              style={{ border: `1px solid ${on ? col : C.border}`, background: on ? bg : '#fff', color: on ? col : C.sub, borderRadius: 16, padding: '4px 12px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: 'pointer' }}
             >
               {r.name} ({r.kind === 'peer' ? L.kindPeer : L.kindManager})
             </button>
@@ -672,9 +673,9 @@ export default function EvalFeedbackCanvas({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Avatar name={meName || L.title} size={40} />
           <div>
-            <h1 className="evc-title" style={{ fontSize: 16 }}>{L.title}</h1>
+            <h1 className="evc-title" style={{ fontSize: 'var(--font-size-text-md, 16px)' }}>{L.title}</h1>
             {(meName || meRole) && (
-              <p style={{ fontSize: 12, color: C.sub, margin: 0 }}>
+              <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, margin: 0 }}>
                 {meName}{meRole ? ` · ${meRole}` : ''}
               </p>
             )}
@@ -693,11 +694,11 @@ export default function EvalFeedbackCanvas({
 
       <div className="evc-list" style={{ maxWidth: 620 }}>
         {isPastPeriod && (
-          <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 12 }}>
+          <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>
             {L.pastBanner}
           </div>
         )}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 12, color: C.sub }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>
           💬 {L.infoBanner}
         </div>
         {unread > 0 && (

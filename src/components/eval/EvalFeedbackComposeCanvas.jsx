@@ -9,28 +9,30 @@ import { createPortal } from 'react-dom';
  * (spec-feedback FB3, screen-feedback-manager.policy). 시안 feedback-manager-view.jsx.
  */
 
+// 디자인시스템 토큰화(전면) — 정기평가 캔버스와 동일한 semantic 토큰 사용.
+// 유틸리티 스케일이 sparse 해 미정의 스텝은 fallback hex 로 렌더된다.
 const C = {
-  bg: '#F7F8FA',
-  surface: '#FFFFFF',
-  border: '#E4E8EF',
-  borderL: '#F0F2F6',
-  text: '#0D1421',
-  sub: '#5A6478',
-  muted: '#9AA3B2',
-  accent: '#2dbd82',
-  accentBg: '#E1FEF2',
-  accentBd: '#B3FADE',
-  green: '#0D9E6E',
-  greenBg: '#E8F8F3',
-  greenBd: '#A7E3CE',
-  amber: '#C46A00',
-  amberBg: '#FFF4E0',
-  amberBd: '#F5C97A',
-  red: '#C0392B',
-  redBg: '#FEF0EE',
-  purple: '#7B2FBE',
-  purpleBg: '#F5EEFF',
-  purpleBd: '#D9C4F5',
+  bg: 'var(--bg-primary, #F7F8FA)',
+  surface: 'var(--bg-quaternary, #FFFFFF)',
+  border: 'var(--border-secondary, #E4E8EF)',
+  borderL: 'var(--border-tertiary, #F0F2F6)',
+  text: 'var(--text-primary, #0D1421)',
+  sub: 'var(--text-secondary, #5A6478)',
+  muted: 'var(--text-tertiary, #9AA3B2)',
+  accent: 'var(--utility-brand-600, #2dbd82)',
+  accentBg: 'var(--utility-brand-50, #E1FEF2)',
+  accentBd: 'var(--utility-brand-200, #B3FADE)',
+  green: 'var(--utility-success-600, #0D9E6E)',
+  greenBg: 'var(--utility-success-50, #E8F8F3)',
+  greenBd: 'var(--utility-success-200, #A7E3CE)',
+  amber: 'var(--utility-warning-700, #C46A00)',
+  amberBg: 'var(--utility-warning-50, #FFF4E0)',
+  amberBd: 'var(--utility-warning-200, #F5C97A)',
+  red: 'var(--utility-error-600, #C0392B)',
+  redBg: 'var(--utility-error-50, #FEF0EE)',
+  purple: 'var(--utility-purple-500, #7B2FBE)',
+  purpleBg: 'var(--utility-purple-50, #F5EEFF)',
+  purpleBd: 'var(--utility-purple-200, #D9C4F5)',
 };
 const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 
@@ -154,7 +156,7 @@ function TeamListScreen({ team, L, onSelect }) {
               {c.value}
               <span style={{ fontSize: 13 }}>{c.suffix}</span>
             </div>
-            <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{c.label}</div>
+            <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, marginTop: 2 }}>{c.label}</div>
           </div>
         ))}
       </div>
@@ -180,13 +182,13 @@ function TeamListScreen({ team, L, onSelect }) {
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, cursor: 'pointer', textAlign: 'left', fontFamily: FONT }}
               >
                 <Avatar name={m.name} size={36} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{m.name}</span>
+                <span style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{m.name}</span>
                 <Chip label={badge.label} color={badge.color} bg={badge.bg} bd={badge.bg} />
                 {m.pendingRequests > 0 && (
                   <Chip label={`📩 ${L.requestChip} ${m.pendingRequests}`} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
                 )}
-                {m.department && <span style={{ fontSize: 12, color: C.muted }}>{m.department}</span>}
-                <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
+                {m.department && <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted }}>{m.department}</span>}
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
               </button>
             );
           })}
@@ -226,7 +228,7 @@ function BlockCard({ block, L, onOpen }) {
         )}
       </div>
       {latest.length === 0 ? (
-        <p style={{ fontSize: 12, fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>{L.emptyBlock}</p>
+        <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>{L.emptyBlock}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map((it) => (
@@ -238,7 +240,7 @@ function BlockCard({ block, L, onOpen }) {
                   {it.itemType === 'request' && <Chip label={L.requestChip} color={C.accent} bg={C.accentBg} bd={C.accentBd} />}
                   <span>{fmtDate(it.sentAt)}</span>
                 </div>
-                <p style={{ fontSize: 12, color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {it.text || '(내용 없음)'}
                 </p>
               </div>
@@ -250,7 +252,7 @@ function BlockCard({ block, L, onOpen }) {
         <span style={{ fontSize: 11, color: C.muted }}>{items.length}{L.countSuffix}</span>
         {hasMyTurn && <Chip label={L.myTurn} color={C.red} bg={C.redBg} bd={C.redBg} />}
         {!hasMyTurn && hasFeedback && <Chip label={L.waiting} color={C.green} bg={C.greenBg} bd={C.greenBd} />}
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: isKr ? C.accent : C.purple }}>{L.openThread}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, color: isKr ? C.accent : C.purple }}>{L.openThread}</span>
       </div>
     </button>
   );
@@ -342,7 +344,7 @@ function FeedbackBubble({ item }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <Avatar name="나" size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>나</span>
             <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
           </div>
@@ -366,7 +368,7 @@ function RequestBubble({ item, L }) {
     <div style={{ display: 'flex', gap: 8 }}>
       <Avatar name={item.author?.name} size={30} gradient={`linear-gradient(135deg,${C.accent},#2563EB)`} />
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
           <Chip label={`📩 ${L.incomingReq}`} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
           <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
@@ -406,11 +408,11 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
   };
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.42)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay, rgba(0,0,0,.42))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
       <div onClick={(e) => e.stopPropagation()} data-testid="fbmgr-thread-modal" style={{ width: '100%', maxWidth: 760, maxHeight: '88vh', background: C.bg, borderRadius: '20px 20px 0 0', borderTop: `4px solid ${barColor}`, display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}</span>
-          {isKr && <span style={{ fontSize: 12, color: C.sub }}>{block.progress ?? 0}%</span>}
+          {isKr && <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>{block.progress ?? 0}%</span>}
           {onSummarize && (
             <button
               type="button"
@@ -418,7 +420,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
               onClick={summarize}
               data-testid="fbmgr-summarize"
               title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
-              style={{ marginLeft: 'auto', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+              style={{ marginLeft: 'auto', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
             >
               {summaryState === 'loading' ? '⏳ 요약 중...' : '✦ 대화 요약'}
             </button>
@@ -428,12 +430,12 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
         <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {summary && (
             <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, marginBottom: 4 }}>✦ 대화 요약</div>
+              <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.accent, marginBottom: 4 }}>✦ 대화 요약</div>
               <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
             </div>
           )}
           {summaryState === 'error' && (
-            <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 12 }}>
+            <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs, 12px)' }}>
               대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.
             </div>
           )}
@@ -444,7 +446,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
           )}
         </div>
         {isPastPeriod ? (
-          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 12, textAlign: 'center' }}>{L.pastReadonly}</div>
+          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>{L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
         )}
@@ -501,7 +503,7 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
         </span>
       </div>
       {thread?.isPastPeriod && (
-        <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 12 }}>{L.pastBanner}</div>
+        <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>{L.pastBanner}</div>
       )}
       {krBlocks.length > 0 && <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
       {krBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
