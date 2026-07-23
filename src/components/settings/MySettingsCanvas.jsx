@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -1712,8 +1713,8 @@ export default function MySettingsCanvas({
         </div>
       </div>
 
-      {/* ── 사진 업로드 모달 ── */}
-      {uploadOpen && (
+      {/* ── 사진 업로드 모달 (사이드바·헤더 위로 뜨도록 body 포털) ── */}
+      {uploadOpen && typeof document !== 'undefined' && createPortal(
         <div className="admin-notif-modal-root" data-testid="photo-upload-modal">
           <div className="admin-notif-modal-backdrop" onClick={closeUpload} />
           <div className="admin-notif-modal" role="dialog" aria-modal="true" aria-label={labels.upload.title}>
@@ -1775,11 +1776,12 @@ export default function MySettingsCanvas({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
-      {/* ── 계정 삭제 확인 모달 ── */}
-      {showDeleteConfirm && (
+      {/* ── 계정 삭제 확인 모달 (사이드바·헤더 위로 뜨도록 body 포털) ── */}
+      {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
         <div className="admin-notif-modal-root" data-testid="delete-account-modal">
           <div
             className="admin-notif-modal-backdrop"
@@ -1829,7 +1831,8 @@ export default function MySettingsCanvas({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
