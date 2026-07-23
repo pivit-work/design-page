@@ -123,6 +123,7 @@ const DEFAULT_LABELS = {
     section: '평가 이력',
     evaluator: '평가자',
     empty: '아직 평가 이력이 없습니다.',
+    loadError: '성과 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
   },
   compensation: {
     banner: '보상 정보는 기본적으로 가려져 있습니다. 본인·어드민·권한 매니저만 열람할 수 있습니다. "보기"를 클릭하면 해당 세션에서만 노출됩니다.',
@@ -816,7 +817,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
 }
 
 /* ═══ 성과 정보 (읽기 전용) ═══ */
-function PerformanceTab({ performance, labels }) {
+function PerformanceTab({ performance, loading, error, labels }) {
   const L = labels.performance;
   const history = (performance && performance.evalHistory) || [];
   return (
@@ -824,7 +825,15 @@ function PerformanceTab({ performance, labels }) {
       <Banner testId="performance-banner">{L.banner}</Banner>
       <Card testId="performance-card">
         <div className="admin-section-label">{L.section}</div>
-        {history.length === 0 ? (
+        {loading ? (
+          <div className="msc-skeleton-list" data-testid="performance-loading" aria-busy="true">
+            <div className="msc-skeleton-row" />
+            <div className="msc-skeleton-row" />
+            <div className="msc-skeleton-row" />
+          </div>
+        ) : error ? (
+          <div className="msc-empty-state" data-testid="performance-error">{L.loadError}</div>
+        ) : history.length === 0 ? (
           <div className="msc-empty-state" data-testid="performance-empty">{L.empty}</div>
         ) : (
           <div className="msc-list">
@@ -954,6 +963,8 @@ export default function MySettingsCanvas({
   onDeleteDocument,
   /* 성과 정보 */
   performance = null,
+  performanceLoading = false,
+  performanceError = false,
   /* 보상 정보 */
   compensation = null,
   /* 프로필 */
@@ -990,8 +1001,7 @@ export default function MySettingsCanvas({
   sessions = [],
   onEndSession,
   onLogout,
-  deleteAccountState = { loading: false, error: false },
-  onDeleteAccount,
+  logoutError = null,
   labels: providedLabels,
   baseUrl = '/',
 }) {
@@ -1051,8 +1061,6 @@ export default function MySettingsCanvas({
   }, [passwordState.saved]);
   const pwReady = Boolean(currentPw) && newPw.length >= 8 && newPw === confirmPw;
 
-  /* ── 계정 삭제 확인 모달 ── */
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const activePhoto = photos.find((p) => p.id === activePhotoId) || photos[0] || null;
   const groups = [...new Set(tabs.map((t) => t.group))];
@@ -1144,7 +1152,12 @@ export default function MySettingsCanvas({
 
           {/* ═══ 성과 정보 ═══ */}
           {activeTab === 'profile_perf' && (
-            <PerformanceTab performance={performance} labels={labels} />
+            <PerformanceTab
+              performance={performance}
+              loading={performanceLoading}
+              error={performanceError}
+              labels={labels}
+            />
           )}
 
           {/* ═══ 보상 정보 ═══ */}
@@ -1674,6 +1687,7 @@ export default function MySettingsCanvas({
                 )}
               </Card>
 
+              {/* 로그아웃 — 현재 세션만 종료(§8.4). '모든 세션 종료'(전 기기)와 구분해 빨강 강조. */}
               <Card testId="security-logout-card">
                 <div className="msc-row">
                   <div>
@@ -1682,31 +1696,18 @@ export default function MySettingsCanvas({
                   </div>
                   <button
                     type="button"
-                    className="admin-notif-btn is-soft is-sm"
+                    className="admin-notif-btn is-danger-soft is-sm"
                     onClick={() => onLogout && onLogout()}
                     data-testid="logout-btn"
                   >
                     {labels.security.logout}
                   </button>
                 </div>
-              </Card>
-
-              <Card testId="security-danger-card">
-                <div className="admin-section-label">{labels.security.dangerZone}</div>
-                <div className="msc-row">
-                  <div>
-                    <div className="msc-danger-title">{labels.security.deleteAccount}</div>
-                    <div className="msc-row-sub">{labels.security.deleteAccountDesc}</div>
-                  </div>
-                  <button
-                    type="button"
-                    className="admin-notif-btn is-danger is-sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    data-testid="delete-account-btn"
-                  >
-                    {labels.security.deleteAccountBtn}
-                  </button>
-                </div>
+                {logoutError && (
+                  <p className="msc-input-error" data-testid="logout-error" style={{ marginTop: 10 }}>
+                    {logoutError}
+                  </p>
+                )}
               </Card>
             </>
           )}
@@ -1773,61 +1774,6 @@ export default function MySettingsCanvas({
                 data-testid="photo-upload-confirm"
               >
                 {pendingFile ? labels.upload.confirm : labels.upload.confirmEmpty}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {/* ── 계정 삭제 확인 모달 (사이드바·헤더 위로 뜨도록 body 포털) ── */}
-      {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
-        <div className="admin-notif-modal-root" data-testid="delete-account-modal">
-          <div
-            className="admin-notif-modal-backdrop"
-            onClick={() => {
-              if (!deleteAccountState.loading) setShowDeleteConfirm(false);
-            }}
-          />
-          <div className="admin-notif-modal" role="dialog" aria-modal="true" aria-label={labels.security.deleteAccount}>
-            <div className="admin-notif-modal-header">
-              <div className="admin-notif-modal-title">{labels.security.deleteAccount}</div>
-              <button
-                type="button"
-                className="admin-notif-modal-close"
-                onClick={() => setShowDeleteConfirm(false)}
-                aria-label="close"
-              >
-                ×
-              </button>
-            </div>
-            <div className="admin-notif-modal-body">
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-                {labels.security.deleteConfirmMessage}
-              </p>
-              {deleteAccountState.error && (
-                <p className="msc-input-error" data-testid="delete-account-error" style={{ marginTop: 10 }}>
-                  {labels.security.deleteError}
-                </p>
-              )}
-            </div>
-            <div className="admin-notif-modal-footer">
-              <button
-                type="button"
-                className="admin-notif-btn is-soft"
-                disabled={deleteAccountState.loading}
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                {labels.security.deleteCancel}
-              </button>
-              <button
-                type="button"
-                className="admin-notif-btn is-danger"
-                disabled={deleteAccountState.loading}
-                onClick={() => onDeleteAccount && onDeleteAccount()}
-                data-testid="delete-account-confirm-btn"
-              >
-                {deleteAccountState.loading ? labels.security.deleteProcessing : labels.security.deleteConfirmBtn}
               </button>
             </div>
           </div>

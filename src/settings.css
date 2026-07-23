@@ -867,3 +867,31 @@
   background: var(--bg-warning-primary, #fff7ed);
   border-color: var(--utility-orange-200, #fed7aa);
 }
+
+/* ── 로딩 스켈레톤 (성과 등) ── */
+.msc-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.msc-skeleton-row {
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-quaternary) 37%, var(--bg-secondary) 63%);
+  background-size: 400% 100%;
+  animation: msc-shimmer 1.4s ease infinite;
+}
+@keyframes msc-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* ── 로그아웃 버튼 (현재 세션 종료 — 빨강 강조, §8.4) ── */
+.admin-notif-btn.is-danger-soft {
+  background: var(--bg-error-primary, #fef2f2);
+  border: 1px solid var(--utility-error-200, #fecaca);
+  color: var(--text-error-primary, #dc2626);
+}
+.admin-notif-btn.is-danger-soft:hover {
+  background: var(--utility-error-100, #fee4e2);
+}

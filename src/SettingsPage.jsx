@@ -300,8 +300,6 @@ export default function SettingsPage() {
       }}
       sessions={[]}
       onLogout={() => {}}
-      deleteAccountState={{ loading: false, error: false }}
-      onDeleteAccount={() => {}}
       />
     </div>
   );
