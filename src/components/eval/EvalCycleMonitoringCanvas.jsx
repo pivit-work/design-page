@@ -26,6 +26,7 @@ const DEFAULT_LABELS = {
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
+  navReportReview: '리포트 검수',
   done: '완료',
   notDone: '미완료',
   // stage keys
@@ -94,6 +95,7 @@ export default function EvalCycleMonitoringCanvas({
   onOpenTemplate,
   onOpenCalibration,
   onOpenReport,
+  onOpenReportReview,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const stopped = status === 'emergency_stopped';
@@ -102,6 +104,7 @@ export default function EvalCycleMonitoringCanvas({
     onOpenTemplate && { key: 'tpl', label: L.navTemplate, on: onOpenTemplate, testid: 'evmon-nav-template' },
     onOpenCalibration && { key: 'cal', label: L.navCalibration, on: onOpenCalibration, testid: 'evmon-nav-calibration' },
     onOpenReport && { key: 'rep', label: L.navReport, on: onOpenReport, testid: 'evmon-nav-report' },
+    onOpenReportReview && { key: 'rrv', label: L.navReportReview, on: onOpenReportReview, testid: 'evmon-nav-report-review' },
   ].filter(Boolean);
 
   return (

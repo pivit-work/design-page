@@ -52,7 +52,7 @@ const STATUS_META = {
   sent: { key: 'statusSent', cls: 'is-sent' },
 };
 
-function ReviewRow({ row, L, myUserId, canSend, checked, onToggle, onApprove }) {
+function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, onApprove }) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const isMyReport = row.leaderId === myUserId;
@@ -85,7 +85,7 @@ function ReviewRow({ row, L, myUserId, canSend, checked, onToggle, onApprove }) 
         <span className="evrr-name-main">{row.name || row.memberId}</span>
         {row.department && <span className="evrr-name-sub">{row.department}</span>}
       </div>
-      <div className="evrr-cell evrr-grade">{row.gradeKey ?? '—'}</div>
+      <div className="evrr-cell evrr-grade">{(row.gradeKey ? (gradeLabels?.[row.gradeKey] ?? row.gradeKey) : '—')}</div>
       <div className="evrr-cell evrr-leader">{row.leaderName ?? '—'}</div>
       <div className="evrr-cell evrr-status">
         <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
@@ -125,6 +125,7 @@ export default function EvalReportReviewCanvas({
   queue = null,
   cycleName,
   myUserId,
+  gradeLabels = {},
   labels: providedLabels,
   onApprove,
   onSend,
@@ -235,6 +236,7 @@ export default function EvalReportReviewCanvas({
                 key={row.memberId}
                 row={row}
                 L={L}
+                gradeLabels={gradeLabels}
                 myUserId={myUserId}
                 canSend={q.canSend}
                 checked={selected.has(row.memberId)}

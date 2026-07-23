@@ -9,9 +9,11 @@ import { useState, useMemo } from 'react';
 
 const DEFAULT_LABELS = {
   title: '하향 리뷰',
+  notActive: '진행 중인 하향 리뷰가 없습니다',
+  notActiveSub: '동료 리뷰 단계가 시작되면 이곳에서 팀원 평가를 작성할 수 있습니다.',
   evidenceTitle: '근거 · 셀프 리뷰',
   evidenceEmpty: '피평가자가 아직 셀프 리뷰를 작성하지 않았습니다.',
-  submittedBanner: '제출 완료 — 마감 전까지 다시 제출할 수 있습니다.',
+  submittedBanner: '제출이 완료되었습니다.',
   workTitle: '업적 (What)',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
   competencyTitle: '역량 (How)',
@@ -172,6 +174,7 @@ export default function EvalCycleLeaderCanvas({
   gradeOptions = DEFAULT_GRADES,
   gradeLabels = {},
   template = null,
+  active = true,
   submitted = false,
   labels: providedLabels,
   onSave,
@@ -192,6 +195,19 @@ export default function EvalCycleLeaderCanvas({
   if (seededFor.fields !== fields || seededFor.leaderAnswers !== leaderAnswers) {
     setSeededFor({ fields, leaderAnswers });
     setState(seedState(leaderAnswers, fields));
+  }
+
+  // 진행 중인 하향 리뷰 단계가 아니면(사이클 미해결) 빈 상태만 — 작동하지 않는 입력폼을
+  // 노출하지 않는다(셀프 리뷰 캔버스와 동일한 가드).
+  if (!active) {
+    return (
+      <div className="evc-root">
+        <div className="evc-empty" data-testid="evl-not-active">
+          <p className="evc-empty-title">{L.notActive}</p>
+          <p className="evc-empty-sub">{L.notActiveSub}</p>
+        </div>
+      </div>
+    );
   }
 
   const setField = (key, patch) =>
@@ -436,7 +452,7 @@ export default function EvalCycleLeaderCanvas({
                   type="button"
                   className="evc-btn is-primary"
                   disabled={!grade || !ratingOk}
-                  onClick={() => onSubmit?.()}
+                  onClick={() => onSubmit?.(toItems(), grade)}
                   data-testid="evl-submit"
                 >
                   {L.submit}
