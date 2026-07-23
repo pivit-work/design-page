@@ -6,7 +6,11 @@
 .sidebar-inner { width: 200px; height: 100%; backdrop-filter: blur(40px); border-radius: 24px; background: var(--bg-primary-alt); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-sizing: border-box; }
 .sidebar-top { display: flex; flex-direction: column; gap: 20px; }
 .logo-wrap { padding: 4px; }
-.logo-wrap img { width: 76px; height: 27px; }
+.logo-wrap img { width: 76px; height: 27px; display: block; }
+/* 로고를 클릭형(홈 이동)으로 쓸 때: 버튼 기본 스타일 초기화 */
+.logo-btn { border: none; background: none; margin: 0; cursor: pointer; display: block; border-radius: 6px; }
+.logo-btn:hover { opacity: 0.75; }
+.logo-btn:focus-visible { outline: 2px solid var(--colors-border-borderBrand, #4F6AF5); outline-offset: 2px; }
 .menu-list { display: flex; flex-direction: column; padding: 0 0 18px; border-radius: 17px; }
 .menu-item { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 8px; font-size: 14px; font-weight: 700; color: var(--text-secondary); cursor: pointer; letter-spacing: -0.04em; transition: background 0.15s; }
 .menu-item:hover { background: var(--bg-active); }

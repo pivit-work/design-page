@@ -1,0 +1,62 @@
+/* ══════════════════════════════════════════════════════════════
+ * myprofile.css — 내 프로필 페이지(`/me`) 전용 스타일.
+ *   MyProfileCanvas 가 settings.css(msc-*) + admin.css 프리미티브를 재사용하고,
+ *   페이지 고유 레이아웃(중앙 정렬 컬럼·히어로 액션·보상 안내)만 여기서 정의한다.
+ * ══════════════════════════════════════════════════════════════ */
+
+.mp-page {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 히어로 우측 액션 버튼(사진/편집) 세로 스택 */
+.mp-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 아바타 플레이스홀더(이니셜) — 배경/색은 인라인 style 로 주입 */
+.mp-hero-avatar {
+  font-size: 30px;
+}
+
+/* 섹션 라벨 옆 보조 설명(어드민 관리·민감 등) */
+.mp-section-sub {
+  font-weight: 500;
+  color: var(--text-quaternary);
+}
+
+/* 보상 카드 헤더(라벨 + 보기 토글) */
+.mp-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* bio 미작성 안내 문구 — 회색 처리 */
+.mp-bio-empty {
+  color: var(--text-quaternary);
+}
+
+/* 보상 SSOT 안내 */
+.mp-comp-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-quaternary);
+}
+
+@media (max-width: 560px) {
+  .msc-hero {
+    flex-wrap: wrap;
+  }
+  .mp-hero-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+}
