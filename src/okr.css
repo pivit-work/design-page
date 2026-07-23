@@ -87,7 +87,7 @@
 .okr-member-name { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
 
 /* ── 상세 모달 ── */
-.okr-modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 30%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.okr-modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 45%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .okr-modal { position: relative; display: flex; flex-direction: column; width: 1000px; max-width: calc(100vw - 80px); max-height: 86vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
 .okr-modal-close { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-tertiary); border: none; border-radius: 14px; cursor: pointer; z-index: 2; }
 .okr-modal-close:hover { background: var(--bg-active); }
