@@ -9,27 +9,28 @@ import { createPortal } from 'react-dom';
  * 시안 feedback-hr-view.jsx.
  */
 
+// 디자인시스템 토큰화(전면). navy(HR 강조)→system accent(brand)로 수렴(3화면 통일).
 const C = {
-  bg: '#F0F2F8',
-  surface: '#FFFFFF',
-  border: '#DDE3EE',
-  borderL: '#EEF1F8',
-  text: '#0D1421',
-  sub: '#4A5568',
-  muted: '#8896AE',
-  navy: '#1A2E6C',
-  accent: '#2dbd82',
-  accentBg: '#E1FEF2',
-  accentBd: '#B3FADE',
-  green: '#0D9E6E',
-  greenBg: '#E8F8F3',
-  greenBd: '#A7E3CE',
-  amber: '#C46A00',
-  amberBg: '#FFF4E0',
-  amberBd: '#F5C97A',
-  red: '#C0392B',
-  redBg: '#FEF0EE',
-  redBd: '#F5BCBA',
+  bg: 'var(--bg-primary, #F0F2F8)',
+  surface: 'var(--bg-quaternary, #FFFFFF)',
+  border: 'var(--border-secondary, #DDE3EE)',
+  borderL: 'var(--border-tertiary, #EEF1F8)',
+  text: 'var(--text-primary, #0D1421)',
+  sub: 'var(--text-secondary, #4A5568)',
+  muted: 'var(--text-tertiary, #8896AE)',
+  navy: 'var(--utility-brand-700, #1A2E6C)',
+  accent: 'var(--utility-brand-600, #2dbd82)',
+  accentBg: 'var(--utility-brand-50, #E1FEF2)',
+  accentBd: 'var(--utility-brand-200, #B3FADE)',
+  green: 'var(--utility-success-600, #0D9E6E)',
+  greenBg: 'var(--utility-success-50, #E8F8F3)',
+  greenBd: 'var(--utility-success-200, #A7E3CE)',
+  amber: 'var(--utility-warning-700, #C46A00)',
+  amberBg: 'var(--utility-warning-50, #FFF4E0)',
+  amberBd: 'var(--utility-warning-200, #F5C97A)',
+  red: 'var(--utility-error-600, #C0392B)',
+  redBg: 'var(--utility-error-50, #FEF0EE)',
+  redBd: 'var(--utility-error-200, #F5BCBA)',
 };
 const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 
@@ -131,11 +132,11 @@ function KpiRow({ kpi, L }) {
       {cards.map((c) => (
         <div key={c.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
           <div style={{ fontSize: 18 }}>{c.icon}</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: c.color, marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--font-size-display-xs, 24px)', fontWeight: 800, color: c.color, marginTop: 4 }}>
             {c.value}
             <span style={{ fontSize: 13, color: C.sub }}>{c.unit}</span>
           </div>
-          <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{c.label}</div>
+          <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, marginTop: 2 }}>{c.label}</div>
         </div>
       ))}
     </div>
@@ -146,15 +147,15 @@ function TeamCoverage({ teams, L }) {
   if (!teams || teams.length === 0) return null;
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>{L.teamCoverageTitle}</div>
+      <div style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text, marginBottom: 12 }}>{L.teamCoverageTitle}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {teams.map((t) => (
           <div key={t.team} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ width: 130, fontSize: 13, color: C.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.team}</span>
-            <span style={{ width: 74, fontSize: 12, color: C.muted }}>{t.covered}/{t.total} {L.teamCovered}</span>
-            <span style={{ width: 64, fontSize: 12, color: C.muted }}>{L.teamAvg} {t.avgInterval}{L.unitDays}</span>
+            <span style={{ width: 74, fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted }}>{t.covered}/{t.total} {L.teamCovered}</span>
+            <span style={{ width: 64, fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted }}>{L.teamAvg} {t.avgInterval}{L.unitDays}</span>
             <span style={{ flex: 1 }}><Bar value={t.ratePct} color={covColor(t.ratePct)} /></span>
-            <span style={{ width: 40, textAlign: 'right', fontSize: 12, fontWeight: 700, color: covColor(t.ratePct) }}>{t.ratePct}%</span>
+            <span style={{ width: 40, textAlign: 'right', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: covColor(t.ratePct) }}>{t.ratePct}%</span>
           </div>
         ))}
       </div>
@@ -166,8 +167,8 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{L.atRiskTitle}</span>
-        {atRisk.length > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: C.red, background: C.redBg, borderRadius: 6, padding: '1px 7px' }}>{atRisk.length}</span>}
+        <span style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{L.atRiskTitle}</span>
+        {atRisk.length > 0 && <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.red, background: C.redBg, borderRadius: 6, padding: '1px 7px' }}>{atRisk.length}</span>}
       </div>
       {atRisk.length === 0 ? (
         <p className="evc-empty-sub">{L.atRiskNone}</p>
@@ -182,7 +183,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.name}</div>
                   <div style={{ fontSize: 11, color: C.sub }}>{m.department || ''}</div>
                 </div>
-                <span style={{ marginLeft: 'auto', fontSize: 12, color: m.urgent ? C.red : C.amber, fontWeight: 600 }}>
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', color: m.urgent ? C.red : C.amber, fontWeight: 600 }}>
                   {m.lastFeedbackAt == null ? L.notWritten : `${m.daysSince}${L.daysOver}`}
                 </span>
                 <span style={{ fontSize: 11, color: C.muted, minWidth: 70 }}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
@@ -191,7 +192,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                   disabled={!m.managerName || sent}
                   onClick={() => onNudge({ type: 'request', targetManagerId: m.managerId, targetManagerName: m.managerName, memberId: m.id, memberName: m.name })}
                   data-testid={`fbhr-nudge-atrisk-${m.id}`}
-                  style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : '#fff', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: !m.managerName || sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: !m.managerName ? 0.5 : 1 }}
+                  style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : '#fff', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: !m.managerName || sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: !m.managerName ? 0.5 : 1 }}
                 >
                   {!m.managerName ? L.noManager : sent ? L.sent : L.nudgeManager}
                 </button>
@@ -208,23 +209,23 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
   if (!rows || rows.length === 0) return null;
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>{L.managerActivitySub}</div>
+      <div style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
+      <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted, marginBottom: 12 }}>{L.managerActivitySub}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map((r, i) => {
           const sent = isSent('encourage', r.id, null);
           return (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: i < rows.length - 1 ? `1px solid ${C.borderL}` : 'none' }}>
-              <span style={{ width: 20, fontSize: 12, color: C.muted, textAlign: 'center' }}>{i + 1}</span>
+              <span style={{ width: 20, fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted, textAlign: 'center' }}>{i + 1}</span>
               <Avatar name={r.name} size={34} />
               <div style={{ minWidth: 90 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{r.name}</div>
                 <div style={{ fontSize: 11, color: C.muted }}>{r.team}</div>
               </div>
-              <span style={{ fontSize: 12, color: C.sub, width: 80 }}>{L.colCoverage} {r.coveragePct}%</span>
-              <span style={{ fontSize: 12, color: C.sub, width: 90 }}>{L.colInterval} {r.avgInterval == null ? '—' : `${r.avgInterval}${L.unitDays}`}</span>
-              <span style={{ fontSize: 12, color: C.sub, width: 90 }}>{L.colSbi} {r.sbiPct == null ? '—' : `${r.sbiPct}%`}</span>
-              <span style={{ marginLeft: 'auto', width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor(r.activityScore)}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: scoreColor(r.activityScore) }}>
+              <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, width: 80 }}>{L.colCoverage} {r.coveragePct}%</span>
+              <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, width: 90 }}>{L.colInterval} {r.avgInterval == null ? '—' : `${r.avgInterval}${L.unitDays}`}</span>
+              <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, width: 90 }}>{L.colSbi} {r.sbiPct == null ? '—' : `${r.sbiPct}%`}</span>
+              <span style={{ marginLeft: 'auto', width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor(r.activityScore)}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 800, color: scoreColor(r.activityScore) }}>
                 {r.activityScore}
               </span>
               {r.activityScore < 70 && (
@@ -233,7 +234,7 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
                   disabled={sent}
                   onClick={() => onNudge({ type: 'encourage', targetManagerId: r.id, targetManagerName: r.name, memberId: null, memberName: null })}
                   data-testid={`fbhr-nudge-encourage-${r.id}`}
-                  style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : '#fff', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
+                  style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : '#fff', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
                 >
                   {sent ? L.sent : L.encourage}
                 </button>
@@ -266,10 +267,10 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
   };
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(13,20,33,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay, rgba(13,20,33,0.45))', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div onClick={(e) => e.stopPropagation()} data-testid="fbhr-nudge-modal" style={{ width: 380, background: C.surface, borderRadius: 14, padding: 20, fontFamily: FONT }}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: '0 0 4px' }}>{L.nudgeTitle}</h3>
-        <p style={{ fontSize: 12, color: C.sub, margin: '0 0 14px' }}>
+        <h3 style={{ fontSize: 'var(--font-size-text-md, 16px)', fontWeight: 800, color: C.text, margin: '0 0 4px' }}>{L.nudgeTitle}</h3>
+        <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, margin: '0 0 14px' }}>
           {L.nudgeTarget}: {target.targetManagerName}
           {target.memberName ? ` · ${L.nudgeMember}: ${target.memberName}` : ''}
         </p>
@@ -371,7 +372,7 @@ export default function EvalFeedbackHrCanvas({
           <p className="evc-summary">{L.subtitle}</p>
         </div>
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: covColor(d.kpi.coveragePct), background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '5px 10px' }}>
+          <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: covColor(d.kpi.coveragePct), background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '5px 10px' }}>
             {d.kpi.coveragePct >= 90 ? '✅' : d.kpi.coveragePct >= 70 ? '⚠️' : '🚨'} {L.kpiCoverage} {d.kpi.coveragePct}%
           </span>
           <button type="button" onClick={handleExport} data-testid="fbhr-csv" className="evc-btn">{L.exportCsv}</button>
