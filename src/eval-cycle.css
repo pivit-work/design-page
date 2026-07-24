@@ -128,6 +128,10 @@
   background: var(--utility-warning-50);
   color: var(--utility-warning-700);
 }
+.evc-status-badge.tone-error {
+  background: var(--utility-error-50);
+  color: var(--utility-error-700);
+}
 
 .evc-pending {
   display: inline-flex;
