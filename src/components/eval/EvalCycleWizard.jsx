@@ -699,9 +699,22 @@ export default function EvalCycleWizard({
   // ── 평가 템플릿 빌더 헬퍼 ──
   const tplRatioSum = gradeSum(tplGrades);
   const tplRatioInvalid = !tplAbsolute && tplRatioSum !== 100;
+  // 중복 등급명(공백 제거·대소문자 무시) 집합.
+  const tplDupLabels = (() => {
+    const seen = new Set();
+    const dup = new Set();
+    for (const g of tplGrades) {
+      const l = g.label.trim().toLowerCase();
+      if (!l) continue;
+      if (seen.has(l)) dup.add(l);
+      else seen.add(l);
+    }
+    return dup;
+  })();
   const tplGradesValid =
     tplGrades.length >= MIN_GRADES &&
     tplGrades.every((g) => g.label.trim()) &&
+    tplDupLabels.size === 0 &&
     !tplRatioInvalid;
   // 대상 멤버 position 에서 직급 목록 도출(중복 제거, 빈값 제외).
   const roleLevels = [
@@ -1217,7 +1230,12 @@ export default function EvalCycleWizard({
                 {tplGrades.map((g, i) => (
                   <div key={i} className="evc-tpl-grade">
                     <input
-                      className="evc-input"
+                      className={`evc-input${
+                        g.label.trim() &&
+                        tplDupLabels.has(g.label.trim().toLowerCase())
+                          ? ' is-invalid'
+                          : ''
+                      }`}
                       value={g.label}
                       placeholder={L.gradeLabelPlaceholder}
                       onChange={(e) => updateGrade(i, 'label', e.target.value)}
@@ -1263,6 +1281,14 @@ export default function EvalCycleWizard({
                 {!tplAbsolute && (
                   <span className={`evc-tpl-ratiosum${tplRatioInvalid ? ' is-invalid' : ''}`}>
                     {fill(L.templateRatioSum, { sum: tplRatioSum })}
+                  </span>
+                )}
+                {tplDupLabels.size > 0 && (
+                  <span
+                    className="evc-tpl-ratiosum is-invalid"
+                    data-testid="evc-tpl-dup-warn"
+                  >
+                    {L.templateDupWarn}
                   </span>
                 )}
               </div>

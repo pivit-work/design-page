@@ -53,6 +53,12 @@ const SELF_KEY = {
   in_progress: 'selfInProgress',
   submitted: 'selfSubmitted',
 };
+// 등급 배지 색: 탁월=초록 / 충족=파랑 / 미흡=빨강.
+const GRADE_TONE = {
+  exceeds: 'tone-success',
+  meets: 'tone-info',
+  below: 'tone-error',
+};
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -86,6 +92,7 @@ export default function EvalCycleMonitoringCanvas({
   completionPct = 0,
   members = [],
   status,
+  gradeLabels = {},
   labels: providedLabels,
   onRemind,
   onEmergencyStop,
@@ -199,7 +206,18 @@ export default function EvalCycleMonitoringCanvas({
                 <span className="evmon-self">{L[SELF_KEY[m.selfStatus]] ?? m.selfStatus}</span>
                 <Check ok={m.peerConfirmed} />
                 <Check ok={m.leaderSubmitted} />
-                <Check ok={m.graded} />
+                <span className="evmon-grade">
+                  {m.gradeKey ? (
+                    <span
+                      className={`evc-status-badge ${GRADE_TONE[m.gradeKey] ?? 'tone-neutral'}`}
+                      data-testid="evmon-grade-badge"
+                    >
+                      {gradeLabels?.[m.gradeKey] ?? m.gradeKey}
+                    </span>
+                  ) : (
+                    <Check ok={m.graded} />
+                  )}
+                </span>
                 <span>
                   {m.excluded
                     ? onRestore && (
