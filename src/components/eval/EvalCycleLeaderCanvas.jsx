@@ -14,6 +14,9 @@ const DEFAULT_LABELS = {
   notActiveSub: '동료 리뷰 단계가 시작되면 이곳에서 팀원 평가를 작성할 수 있습니다.',
   evidenceTitle: '근거 · 셀프 리뷰',
   evidenceEmpty: '피평가자가 아직 셀프 리뷰를 작성하지 않았습니다.',
+  // TC-149 셀프 미제출 안내(작성은 허용 — 게이팅 아님)
+  selfNotSubmitted:
+    '피평가자가 아직 셀프 리뷰를 제출하지 않았습니다. 셀프 리뷰 참고 없이 작성하실 수 있습니다.',
   submittedBanner: '제출이 완료되었습니다.',
   workTitle: '업적 (What)',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
@@ -188,6 +191,8 @@ export default function EvalCycleLeaderCanvas({
   template = null,
   active = true,
   submitted = false,
+  // TC-149 피평가자 셀프 미제출 시 안내(게이팅 아님 — 작성은 허용).
+  selfSubmitted = true,
   labels: providedLabels,
   onSave,
   onSubmit,
@@ -327,6 +332,11 @@ export default function EvalCycleLeaderCanvas({
         {/* 좌: 근거 */}
         <aside className="evl-evidence" data-testid="evl-evidence">
           <h3 className="evc-card-name">{L.evidenceTitle}</h3>
+          {!selfSubmitted && (
+            <p className="evl-self-pending" data-testid="evl-self-pending">
+              {L.selfNotSubmitted}
+            </p>
+          )}
           {selfAnswers.length === 0 ? (
             <p className="evc-empty-sub">{L.evidenceEmpty}</p>
           ) : (

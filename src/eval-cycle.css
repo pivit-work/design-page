@@ -1983,6 +1983,16 @@
   flex-direction: column;
   gap: var(--spacing-md, 8px);
 }
+/* TC-149 셀프 미제출 안내(근거 패널) */
+.evl-self-pending {
+  margin: 0 0 var(--spacing-md, 8px);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.5;
+}
 .evl-evi-item {
   display: flex;
   flex-direction: column;
