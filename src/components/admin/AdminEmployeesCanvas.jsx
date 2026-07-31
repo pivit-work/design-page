@@ -485,6 +485,7 @@ export default function AdminEmployeesCanvas({
   onDeleteMember,
   onLoadSalaryHistory,
   onAddSalaryHistory,
+  onLoadHrProfile,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
@@ -543,6 +544,7 @@ export default function AdminEmployeesCanvas({
           onDeleteMember={onDeleteMember}
           onLoadSalaryHistory={onLoadSalaryHistory}
           onAddSalaryHistory={onAddSalaryHistory}
+          onLoadHrProfile={onLoadHrProfile}
           onAddEmployee={onCsvUpload}
         />
       ) : tab === 'unassigned' ? (
