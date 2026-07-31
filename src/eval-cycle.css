@@ -1800,6 +1800,26 @@
   color: var(--text-secondary);
   font-weight: 600;
 }
+/* TC-135 자동저장 상태 — 진행 표시 옆 은은한 안내 */
+.evm-autosave {
+  margin-right: auto;
+  margin-left: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #98a2b3);
+  white-space: nowrap;
+}
+/* TC-136 저장 실패 배너 */
+.evm-save-error {
+  max-width: 1080px;
+  margin: var(--spacing-md, 8px) auto 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-error-50, #fef3f2);
+  border: 1px solid var(--utility-error-200, #fecdca);
+  color: var(--utility-error-700, #b42318);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+}
 
 /* ════════════════════════════════════════════════════════════
    동료 리뷰어 확정 (EvalCyclePeerConfirmCanvas)

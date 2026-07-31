@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -43,6 +43,10 @@ const DEFAULT_LABELS = {
   submit: '제출하기',
   progress: '{{filled}}/{{total}} 작성됨',
   incompleteWarn: '미입력 항목이 있습니다. 빨간 항목을 작성해주세요.',
+  // TC-135 자동저장 상태 표시
+  autoSaving: '자동 저장 중…',
+  autoSaved: '자동 저장됨 · {{time}}',
+  saveError: '저장에 실패했습니다. 작성 내용은 유지되며, 잠시 후 다시 시도됩니다.',
   aiPolish: '✨ AI 다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
@@ -187,6 +191,42 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
+  // TC-135: 30초 자동저장 — 사용자 편집 후 디바운스로 onSave 호출(early-return 앞 선언).
+  const dirtyRef = useRef(false);
+  const [autoSavedAt, setAutoSavedAt] = useState(null);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false); // TC-136 저장 실패 배너
+  useEffect(() => {
+    // 제출 완료·저장 콜백 없음·사용자 편집 없음이면 자동저장 안 함.
+    if (submitted || !onSave || !dirtyRef.current) return undefined;
+    const timer = setTimeout(() => {
+      const items = fields
+        .filter(
+          (f) => state[f.key].textAnswer.trim() || state[f.key].score != null,
+        )
+        .map((f) => ({
+          templateItemId: f.templateItemId,
+          itemCategory: f.category,
+          growthType: f.growthType,
+          textAnswer: state[f.key].textAnswer,
+          score: state[f.key].score,
+          rationale: state[f.key].rationale || null,
+        }));
+      setAutoSaving(true);
+      Promise.resolve(onSave(items))
+        .then(() => {
+          dirtyRef.current = false;
+          setAutoSavedAt(new Date());
+          setSaveError(false);
+        })
+        .catch(() => {
+          // TC-136 자동저장 실패 → 배너로 알림(dirty 유지해 다음 편집 때 재시도)
+          setSaveError(true);
+        })
+        .finally(() => setAutoSaving(false));
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [state, submitted, onSave, fields]);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -209,8 +249,10 @@ export default function EvalCycleMemberCanvas({
     );
   }
 
-  const setField = (key, patch) =>
+  const setField = (key, patch) => {
+    dirtyRef.current = true; // TC-135 사용자 편집 표시 → 자동저장 트리거
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  };
 
   const setKrField = (id, patch) =>
     setKrState((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
@@ -514,6 +556,11 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
+      {!submitted && saveError && (
+        <div className="evm-save-error" role="alert" data-testid="evm-save-error">
+          {L.saveError}
+        </div>
+      )}
       {!submitted && (
         <div className="evm-submit-bar">
           <span className="evm-progress">
@@ -525,13 +572,38 @@ export default function EvalCycleMemberCanvas({
               fill(L.progress, { filled, total: textFields.length })
             )}
           </span>
+          {(autoSaving || autoSavedAt) && (
+            <span className="evm-autosave" data-testid="evm-autosave">
+              {autoSaving
+                ? L.autoSaving
+                : fill(L.autoSaved, {
+                    time: autoSavedAt.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  })}
+            </span>
+          )}
           <div className="evc-card-buttons">
             {onAiPolish && (
               <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
                 {aiBusy ? L.aiPolishing : L.aiPolish}
               </button>
             )}
-            <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems())} data-testid="evm-save">
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() =>
+                Promise.resolve(onSave?.(toItems()))
+                  .then(() => {
+                    dirtyRef.current = false;
+                    setAutoSavedAt(new Date());
+                    setSaveError(false);
+                  })
+                  .catch(() => setSaveError(true))
+              }
+              data-testid="evm-save"
+            >
               {L.save}
             </button>
             <button
