@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -42,6 +42,7 @@ const DEFAULT_LABELS = {
   save: '임시저장',
   submit: '제출하기',
   progress: '{{filled}}/{{total}} 작성됨',
+  incompleteWarn: '미입력 항목이 있습니다. 빨간 항목을 작성해주세요.',
   aiPolish: '✨ AI 다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
@@ -183,6 +184,9 @@ export default function EvalCycleMemberCanvas({
   }
   const [krBusy, setKrBusy] = useState(false);
   const [krSaved, setKrSaved] = useState(false);
+  // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
+  const fieldRefs = useRef({});
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -282,6 +286,29 @@ export default function EvalCycleMemberCanvas({
     .filter((f) => f.type === 'rating')
     .every((f) => state[f.key].score != null && (!f.requiresRationale || state[f.key].rationale.trim()));
   const canSubmit = filled === textFields.length && ratingOk;
+
+  // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조(훅은 위에서 선언).
+  const isIncomplete = (f) => {
+    if (f.type === 'rating')
+      return (
+        state[f.key].score == null ||
+        (f.requiresRationale && !state[f.key].rationale.trim())
+      );
+    if (f.type === 'checkbox') return false;
+    return !state[f.key].textAnswer.trim();
+  };
+  const handleSubmitClick = () => {
+    const inc = fields.find(isIncomplete);
+    if (inc) {
+      setTriedSubmit(true);
+      fieldRefs.current[inc.key]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      return;
+    }
+    onSubmit?.(toItems());
+  };
 
   // 섹션(section) 별 그룹핑 — 등장 순서 유지.
   const sections = [];
@@ -408,7 +435,13 @@ export default function EvalCycleMemberCanvas({
           <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
             <h3 className="evc-card-name">{sec.title}</h3>
             {sec.fields.map((f) => (
-              <div className="evm-field" key={f.key}>
+              <div
+                className="evm-field"
+                key={f.key}
+                ref={(el) => {
+                  fieldRefs.current[f.key] = el;
+                }}
+              >
                 {sec.fields.length > 1 && (
                   <span className="evc-field-label">{f.label}</span>
                 )}
@@ -416,7 +449,9 @@ export default function EvalCycleMemberCanvas({
                   <>
                     <div className="evm-score-row">
                       <span className="evc-field-label">{L.scoreLabel}</span>
-                      <div className="evm-score-btns">
+                      <div
+                        className={`evm-score-btns${triedSubmit && state[f.key].score == null ? ' is-invalid' : ''}`}
+                      >
                         {[1, 2, 3, 4, 5].map((n) => (
                           <button
                             type="button"
@@ -433,7 +468,7 @@ export default function EvalCycleMemberCanvas({
                     </div>
                     {f.requiresRationale && (
                       <textarea
-                        className={`evm-textarea${!submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}`}
+                        className={`evm-textarea${!submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
                         rows={2}
                         value={state[f.key].rationale}
                         placeholder={L.rationalePlaceholder}
@@ -456,7 +491,7 @@ export default function EvalCycleMemberCanvas({
                   </label>
                 ) : (
                   <textarea
-                    className={`evm-textarea${!submitted && !state[f.key].textAnswer.trim() ? ' is-empty' : ''}`}
+                    className={`evm-textarea${!submitted && !state[f.key].textAnswer.trim() ? ' is-empty' : ''}${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
                     rows={4}
                     value={state[f.key].textAnswer}
                     placeholder={f.placeholder}
@@ -482,7 +517,13 @@ export default function EvalCycleMemberCanvas({
       {!submitted && (
         <div className="evm-submit-bar">
           <span className="evm-progress">
-            {fill(L.progress, { filled, total: textFields.length })}
+            {triedSubmit && !canSubmit ? (
+              <span className="evm-incomplete-warn" data-testid="evm-incomplete-warn">
+                {L.incompleteWarn}
+              </span>
+            ) : (
+              fill(L.progress, { filled, total: textFields.length })
+            )}
           </span>
           <div className="evc-card-buttons">
             {onAiPolish && (
@@ -496,8 +537,7 @@ export default function EvalCycleMemberCanvas({
             <button
               type="button"
               className="evc-btn is-primary"
-              disabled={!canSubmit}
-              onClick={() => onSubmit?.(toItems())}
+              onClick={handleSubmitClick}
               data-testid="evm-submit"
             >
               {L.submit}

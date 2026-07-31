@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -29,6 +29,7 @@ const DEFAULT_LABELS = {
   growthDemoPlaceholder: '성장 기대를 작성하세요.',
   gradeTitle: '최종 등급',
   gradeRequired: '제출하려면 최종 등급을 선택하세요.',
+  rationaleRequired: '사유가 입력되지 않은 항목이 있습니다.',
   save: '임시저장',
   submit: '제출하기',
   // category labels for evidence
@@ -196,6 +197,10 @@ export default function EvalCycleLeaderCanvas({
     setSeededFor({ fields, leaderAnswers });
     setState(seedState(leaderAnswers, fields));
   }
+  // TC-036: 미입력 자동 스크롤용 훅(early-return 앞에 선언).
+  const fieldRefs = useRef({});
+  const gradeRef = useRef(null);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   // 진행 중인 하향 리뷰 단계가 아니면(사이클 미해결) 빈 상태만 — 작동하지 않는 입력폼을
   // 노출하지 않는다(셀프 리뷰 캔버스와 동일한 가드).
@@ -238,6 +243,29 @@ export default function EvalCycleLeaderCanvas({
   const ratingOk = fields
     .filter((f) => f.type === 'rating')
     .every((f) => !f.requiresRationale || (state[f.key].rationale || '').trim());
+
+  // TC-036: 사유 미입력 상태 제출 시 자동 스크롤·빨강 강조(훅은 위에서 선언).
+  const isIncomplete = (f) =>
+    f.type === 'rating' &&
+    f.requiresRationale &&
+    !(state[f.key].rationale || '').trim();
+  const handleSubmitClick = () => {
+    const inc = fields.find(isIncomplete);
+    if (inc) {
+      setTriedSubmit(true);
+      fieldRefs.current[inc.key]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      return;
+    }
+    if (!grade) {
+      setTriedSubmit(true);
+      gradeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    onSubmit?.(toItems(), grade);
+  };
 
   return (
     <div className="evc-root">
@@ -306,7 +334,13 @@ export default function EvalCycleLeaderCanvas({
             <section className="evc-card" key={sec.title}>
               <h3 className="evc-card-name">{sec.title}</h3>
               {sec.fields.map((f) => (
-                <div className="evm-field" key={f.key}>
+                <div
+                  className="evm-field"
+                  key={f.key}
+                  ref={(el) => {
+                    fieldRefs.current[f.key] = el;
+                  }}
+                >
                   {sec.fields.length > 1 && (
                     <span className="evc-field-label">{f.label}</span>
                   )}
@@ -331,7 +365,7 @@ export default function EvalCycleLeaderCanvas({
                       </div>
                       {f.requiresRationale && (
                         <textarea
-                          className="evm-textarea"
+                          className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
                           rows={2}
                           value={state[f.key].rationale}
                           placeholder={L.rationalePlaceholder}
@@ -369,7 +403,10 @@ export default function EvalCycleLeaderCanvas({
           ))}
 
           {/* 최종 등급 */}
-          <section className="evc-card">
+          <section
+            className={`evc-card${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
+            ref={gradeRef}
+          >
             <h3 className="evc-card-name">{L.gradeTitle}</h3>
             <div className="evl-grade-row">
               {gradeOptions.map((g) => (
@@ -441,8 +478,12 @@ export default function EvalCycleLeaderCanvas({
 
           {!submitted && (
             <div className="evm-submit-bar">
-              <span className="evm-progress">
-                {grade ? '' : L.gradeRequired}
+              <span className={`evm-progress${triedSubmit && (!grade || !ratingOk) ? ' evm-incomplete-warn' : ''}`}>
+                {triedSubmit && !ratingOk
+                  ? L.rationaleRequired
+                  : grade
+                    ? ''
+                    : L.gradeRequired}
               </span>
               <div className="evc-card-buttons">
                 <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems(), grade)} data-testid="evl-save">
@@ -451,8 +492,7 @@ export default function EvalCycleLeaderCanvas({
                 <button
                   type="button"
                   className="evc-btn is-primary"
-                  disabled={!grade || !ratingOk}
-                  onClick={() => onSubmit?.(toItems(), grade)}
+                  onClick={handleSubmitClick}
                   data-testid="evl-submit"
                 >
                   {L.submit}

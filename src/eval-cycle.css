@@ -1710,6 +1710,24 @@
   border-color: var(--utility-blue-500);
   background: var(--bg-quaternary);
 }
+/* 제출 시 미입력 강조(빨강) — is-empty(amber)보다 우선 */
+.evm-textarea.is-invalid {
+  border-color: var(--utility-error-500);
+  background: var(--utility-error-50);
+}
+.evm-textarea.is-invalid:focus {
+  border-color: var(--utility-blue-500);
+  background: var(--bg-quaternary);
+}
+.evm-incomplete-warn {
+  color: var(--utility-error-600);
+  font-weight: 600;
+}
+/* 제출 시 등급 미선택 강조 */
+.evl-grade-missing {
+  border-color: var(--utility-error-500) !important;
+  box-shadow: 0 0 0 1px var(--utility-error-500);
+}
 .evm-textarea:disabled {
   background: var(--bg-secondary);
   color: var(--text-secondary);
@@ -1724,6 +1742,14 @@
 .evm-score-btns {
   display: flex;
   gap: var(--spacing-xs, 4px);
+}
+/* 제출 시 점수 미선택 강조(TC-063) */
+.evm-score-btns.is-invalid {
+  padding: 4px;
+  margin: -4px;
+  border-radius: var(--radius-sm, 8px);
+  box-shadow: 0 0 0 1px var(--utility-error-500);
+  background: var(--utility-error-50);
 }
 .evm-score-btn {
   width: 36px;
