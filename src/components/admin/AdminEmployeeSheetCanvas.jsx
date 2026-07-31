@@ -266,6 +266,9 @@ export default function AdminEmployeeSheetCanvas({
   onDeleteMember,
   onLoadSalaryHistory,
   onAddSalaryHistory,
+  // HR(어드민) 전용 — 구성원 HR 기록(신원·가족·학력·경력·자격증·증빙) 읽기 조회.
+  // 주입되면 행에 'HR' 버튼이 노출되고 읽기 전용 모달을 연다.
+  onLoadHrProfile,
   onAddEmployee,
   // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
   // gradeOptions→직급(grade 카탈로그), positionOptions→직책(position 카탈로그).
@@ -324,6 +327,7 @@ export default function AdminEmployeeSheetCanvas({
   const [barValues, setBarValues] = useState({});
   const [barApplied, setBarApplied] = useState(false);
   const [salaryHistRowId, setSalaryHistRowId] = useState(null);
+  const [hrProfileRowId, setHrProfileRowId] = useState(null);
 
   // members prop 변경 시 내부 rows 재동기화(저장 후 부모 재로드 → dirty 리셋).
   // "이전 props 와 비교해 렌더 중 상태 조정" 패턴 — effect 내 synchronous setState 회피.
@@ -718,6 +722,11 @@ export default function AdminEmployeeSheetCanvas({
                             ₩
                           </button>
                         )}
+                        {onLoadHrProfile && (
+                          <button onClick={() => setHrProfileRowId(row.id)} title={L.hrProfileTitle || 'HR 기록'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.sub, fontSize: 10, fontWeight: 700, fontFamily: T.font }}>
+                            HR
+                          </button>
+                        )}
                         {canEdit && onDeleteMember && (
                           <button onClick={() => handleDelete(row.id)} title={L.delete || '삭제'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 13, fontFamily: T.font }}>
                             ×
@@ -788,6 +797,123 @@ export default function AdminEmployeeSheetCanvas({
           onSalarySynced={(salary) => updateCell(salaryHistRowId, 'salary', salary ?? '')}
         />
       )}
+
+      {/* HR 기록 모달 (읽기 전용) */}
+      {hrProfileRowId && onLoadHrProfile && (
+        <HrProfileModal
+          row={rows.find((r) => r.id === hrProfileRowId)}
+          labels={L}
+          onLoad={onLoadHrProfile}
+          onClose={() => setHrProfileRowId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── HR 모달 표시 헬퍼(모듈 레벨 — render 내 컴포넌트 생성 금지) ──
+function HrSection({ title, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+function HrPair({ k, v }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0' }}>
+      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
+      <span style={{ color: T.text }}>{v == null || v === '' ? '—' : v}</span>
+    </div>
+  );
+}
+function HrList({ items, render, empty }) {
+  if (items.length === 0) {
+    return <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{empty}</div>;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {items.map((it, i) => (
+        <div key={it.id ?? i} style={{ fontSize: 12, color: T.text, padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}>{render(it)}</div>
+      ))}
+    </div>
+  );
+}
+
+// ── HR 기록 모달 (읽기 전용) ──────────────────────────────
+// 어드민(HR)이 구성원의 신원·가족·부양가족·학력·경력·자격증·증빙을 조회한다.
+// 편집은 향후(admin EditPanel) — 현재는 표출 전용. 입력은 본인 내 설정에서.
+function HrProfileModal({ row, labels, onLoad, onClose }) {
+  const L = labels || {};
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    // loading/error 초기값(true/false) — 모달은 열 때마다 새로 마운트되므로
+    // effect 내 동기 setState 는 하지 않는다(react-hooks/set-state-in-effect 회피).
+    let alive = true;
+    Promise.resolve(onLoad(row?.id))
+      .then((d) => { if (alive) setData(d); })
+      .catch(() => { if (alive) setError(true); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [row?.id, onLoad]);
+
+  const identity = data?.identity ?? {};
+  const family = data?.family ?? {};
+  const org = data?.org ?? {};
+  const ec = family.emergencyContact ?? {};
+  const deps = family.dependents ?? [];
+  const relLabel = (r) => (L.hrRelation && L.hrRelation[r]) || r;
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 520, maxHeight: '84vh', overflowY: 'auto', background: T.card, borderRadius: 16, padding: 22, fontFamily: T.font, boxShadow: '0 24px 64px rgba(0,0,0,.25)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{row?.name || ''} · {L.hrProfileTitle || 'HR 기록'}</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{L.hrProfileDesc || '본인·HR 전용 · 읽기 전용(입력은 본인 내 설정)'}</div>
+          </div>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 18, color: T.muted, cursor: 'pointer' }}>×</button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.loading || '불러오는 중…'}</div>
+        ) : error ? (
+          <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.hrProfileError || 'HR 기록을 불러오지 못했습니다.'}</div>
+        ) : (
+          <>
+            <HrSection title={L.hrIdentity || '개인 신원'}>
+              <HrPair k={L.hrPersonalEmail || '개인 이메일'} v={identity.personalEmail} />
+              <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
+              <HrPair k={L.hrGender || '성별'} v={identity.gender} />
+              <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
+              <HrPair k={L.hrAddress || '주소'} v={identity.address} />
+            </HrSection>
+            <HrSection title={L.hrFamily || '가족'}>
+              <HrPair k={L.hrMarital || '혼인 여부'} v={family.maritalStatus} />
+              <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
+            </HrSection>
+            <HrSection title={`${L.hrDependents || '부양가족'} (${deps.length})`}>
+              <HrList items={deps} empty={L.hrDependentsEmpty || '등록된 부양가족이 없습니다.'} render={(d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`} />
+            </HrSection>
+            <HrSection title={`${L.hrEducation || '학력'} (${(org.education ?? []).length})`}>
+              <HrList items={org.education ?? []} empty={L.hrEducationEmpty || '등록된 학력이 없습니다.'} render={(e) => [e.school, e.major, e.degree, `${e.from ?? ''}~${e.to ?? ''}`, e.status].filter(Boolean).join(' · ')} />
+            </HrSection>
+            <HrSection title={`${L.hrCareer || '경력'} (${(org.career ?? []).length})`}>
+              <HrList items={org.career ?? []} empty={L.hrCareerEmpty || '등록된 경력이 없습니다.'} render={(c) => [c.company, c.department, c.role, `${c.from ?? ''}~${c.to ?? ''}`].filter(Boolean).join(' · ')} />
+            </HrSection>
+            <HrSection title={`${L.hrCert || '자격증'} (${(org.certifications ?? []).length})`}>
+              <HrList items={org.certifications ?? []} empty={L.hrCertEmpty || '등록된 자격증이 없습니다.'} render={(c) => [c.name, c.issuer, c.issuedDate && `발급 ${c.issuedDate}`, c.expiryDate && `만료 ${c.expiryDate}`].filter(Boolean).join(' · ')} />
+            </HrSection>
+            <HrSection title={`${L.hrDocuments || '증빙서류'} (${(org.documents ?? []).length})`}>
+              <HrList items={org.documents ?? []} empty={L.hrDocumentsEmpty || '첨부된 서류가 없습니다.'} render={(d) => [d.fileName, d.docType, d.uploadedAt].filter(Boolean).join(' · ')} />
+            </HrSection>
+          </>
+        )}
+      </div>
     </div>
   );
 }
