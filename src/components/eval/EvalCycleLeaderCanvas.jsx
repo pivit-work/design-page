@@ -56,6 +56,13 @@ const DEFAULT_LABELS = {
   confidentialLabel: '비밀 코멘트 (위원회 전용)',
   confidentialPh: '캘리브레이션 위원회만 열람합니다.',
   promotionLabel: '승진 고려 대상',
+  // TC-098 승진 요청서 4항목
+  promoReqHistory: '① 평가 이력 요약 (과거 등급·성과)',
+  promoReqBackground: '② 검토 배경·필요성',
+  promoReqExamples: '③ 상위 레벨 역할 수행 사례',
+  promoReqNotes: '④ 추가 사항',
+  promoReqSubmit: '승진 요청서 제출',
+  promoReqSaved: '제출됨',
   // TC-055 승진 사유 작성 가이드
   promotionGuide:
     '승진 고려로 표시하면 위원회 검토 대상이 됩니다. 비밀 코멘트에 근거(성과·역량·기여)를 함께 남겨주세요.',
@@ -197,13 +204,28 @@ export default function EvalCycleLeaderCanvas({
   onSave,
   onSubmit,
   onSaveAssessment,
+  // TC-098 승진 요청서(4항목)
+  promotionRequest = null,
+  onSubmitPromotion,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const fields = useMemo(() => buildFields(template, L), [template, L]);
   const [state, setState] = useState(() => seedState(leaderAnswers, fields));
   const [grade, setGrade] = useState(initialGrade);
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
-  const [promotionReady, setPromotionReady] = useState(assessment?.promotionReady ?? false);
+  // 승진 고려 = 체크값 또는 이미 승진 요청서가 제출돼 있으면 켠 상태(TC-098 프리필 노출).
+  const [promotionReady, setPromotionReady] = useState(
+    (assessment?.promotionReady ?? false) || !!promotionRequest,
+  );
+  // TC-098 승진 요청서 4항목
+  const [promoForm, setPromoForm] = useState({
+    evalHistorySummary: promotionRequest?.evalHistorySummary ?? '',
+    reviewBackground: promotionRequest?.reviewBackground ?? '',
+    levelRoleExamples: promotionRequest?.levelRoleExamples ?? '',
+    additionalNotes: promotionRequest?.additionalNotes ?? '',
+  });
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoSaved, setPromoSaved] = useState(false);
   const [compensationNote, setCompensationNote] = useState(assessment?.compensationNote ?? '');
 
   // 답변/템플릿 async 로드 시 재시드 — effect-setState 대신 during-render 리셋
@@ -504,6 +526,56 @@ export default function EvalCycleLeaderCanvas({
               <p className="evl-promo-guide" data-testid="evl-promo-guide">
                 {L.promotionGuide}
               </p>
+            )}
+            {promotionReady && onSubmitPromotion && (
+              <div className="evl-promo-req" data-testid="evl-promo-req">
+                {[
+                  ['evalHistorySummary', L.promoReqHistory],
+                  ['reviewBackground', L.promoReqBackground],
+                  ['levelRoleExamples', L.promoReqExamples],
+                  ['additionalNotes', L.promoReqNotes],
+                ].map(([field, label]) => (
+                  <div className="evm-field" key={field}>
+                    <span className="evc-field-label">{label}</span>
+                    <textarea
+                      className="evm-textarea"
+                      rows={2}
+                      value={promoForm[field]}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPromoForm((f) => ({ ...f, [field]: v }));
+                        setPromoSaved(false);
+                      }}
+                      data-testid={`evl-promo-${field}`}
+                    />
+                  </div>
+                ))}
+                <div className="evc-card-buttons">
+                  {promoSaved && (
+                    <span
+                      className="evm-kr-saved"
+                      data-testid="evl-promo-saved"
+                    >
+                      ✓ {L.promoReqSaved}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    disabled={promoBusy}
+                    onClick={() => {
+                      setPromoBusy(true);
+                      Promise.resolve(onSubmitPromotion(promoForm))
+                        .then(() => setPromoSaved(true))
+                        .catch(() => {})
+                        .finally(() => setPromoBusy(false));
+                    }}
+                    data-testid="evl-promo-submit"
+                  >
+                    {L.promoReqSubmit}
+                  </button>
+                </div>
+              </div>
             )}
             <div className="evm-field">
               <span className="evc-field-label">{L.compLabel}</span>
