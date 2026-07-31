@@ -31,6 +31,9 @@ const DEFAULT_LABELS = {
   toastSent: '리포트를 발송했습니다',
   toastError: '오류가 발생했습니다',
   selectHint: '발송할 승인분을 선택하세요.',
+  // TC-093: 검수 대기 리포트가 남아 있을 때 발송 시 강조
+  incompleteSendWarn:
+    '아직 검수 대기 중인 리포트가 {count}건 있습니다. 발송은 승인된 리포트에만 적용됩니다.',
 };
 
 function isObj(v) {
@@ -192,6 +195,12 @@ export default function EvalReportReviewCanvas({
           <span className="evrr-count is-approved" data-testid="evrr-count-approved">{L.countApproved} {q.counts.leaderApproved}</span>
           <span className="evrr-count is-sent" data-testid="evrr-count-sent">{L.countSent} {q.counts.sent}</span>
         </div>
+
+        {q.canSend && q.counts.pending > 0 && (
+          <p className="evc-wiz-warn" data-testid="evrr-incomplete-warn">
+            {L.incompleteSendWarn.replace('{count}', String(q.counts.pending))}
+          </p>
+        )}
 
         {q.canSend && (
           <div className="evrr-toolbar">

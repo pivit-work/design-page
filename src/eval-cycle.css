@@ -1230,6 +1230,16 @@
   color: var(--text-tertiary, #98a2b3);
 }
 .evc-tpl-ratiosum.is-invalid { color: var(--utility-error-500, #f04438); font-weight: 700; }
+/* TC-027: 리뷰 종류 전체 OFF 경고 */
+.evc-wiz-warn {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-600, #d92d20);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+}
 .evc-tpl-lib {
   margin-top: var(--spacing-lg, 12px);
   padding-top: var(--spacing-md, 8px);
