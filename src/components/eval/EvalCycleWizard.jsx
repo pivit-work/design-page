@@ -986,6 +986,14 @@ export default function EvalCycleWizard({
                   </button>
                 ))}
               </div>
+              {reviewTypes.length === 0 && (
+                <p
+                  className="evc-wiz-warn"
+                  data-testid="evc-wiz-alltype-off"
+                >
+                  {L.allTypesOffWarn}
+                </p>
+              )}
 
               {hasPeer && (
                 <>
