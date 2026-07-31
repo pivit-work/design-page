@@ -3407,6 +3407,21 @@
   border-bottom: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
   white-space: nowrap;
 }
+/* TC-076/166 정렬 가능한 헤더 */
+.evs-cw-th-sort {
+  cursor: pointer;
+  user-select: none;
+}
+.evs-cw-th-sort:hover {
+  color: var(--text-secondary, #475467);
+  background: var(--bg-active, var(--utility-gray-100, #f2f4f7));
+}
+.evs-cw-th-sort.is-active {
+  color: var(--text-primary, #101828);
+}
+.evs-cw-th-arrow {
+  font-size: 9px;
+}
 .evs-cw-table td {
   padding: 10px;
   border-bottom: 1px solid var(--bg-secondary, var(--utility-gray-50, #f9fafb));
@@ -3481,6 +3496,7 @@
 }
 .evs-cw-spark {
   display: block;
+  cursor: help;
 }
 .evs-cw-spark-line {
   stroke: var(--utility-blue-500, #2e90fa);
