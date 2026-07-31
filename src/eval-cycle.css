@@ -1980,6 +1980,30 @@
   display: flex;
   gap: var(--spacing-sm, 6px);
 }
+/* TC-046/047 상단고정(Freeze) — 우측 작성영역 상단 sticky 슬림 헤더(§5.3.1) */
+.evl-grade-freeze {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border: 1.5px solid var(--utility-brand-500, #7f56d9);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+.evl-grade-freeze .evc-card-name {
+  display: inline-block;
+  margin: 0 var(--spacing-md, 8px) 0 0;
+  font-size: var(--font-size-text-sm, 14px);
+}
+.evl-grade-freeze .evl-grade-row {
+  display: inline-flex;
+  vertical-align: middle;
+}
+.evl-freeze-note {
+  margin: 0 0 var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--utility-brand-600, #6941c6);
+}
 .evl-grade-btn {
   flex: 1;
   padding: var(--spacing-md, 8px);

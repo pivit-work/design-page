@@ -575,6 +575,8 @@ export default function EvalCycleWizard({
   const openSchedPicker = (phaseId, field) => (e) =>
     setSchedPicker({ phaseId, field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
   const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
+  // TC-046/047 하향 최종 등급 카드 위치(상단/하단/상단고정)
+  const [gradeCardPosition, setGradeCardPosition] = useState('bottom');
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
   const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
   const [peerVisibility, setPeerVisibility] = useState(false);
@@ -862,6 +864,7 @@ export default function EvalCycleWizard({
             .map((p) => [p.id, remindersOf(p.id)]),
         ),
         templateMap: phaseTemplateMap,
+        gradeCardPosition,
         roleMode,
         roleVersions: roleMode === 'by_role' ? roleVersions : {},
       },
@@ -993,6 +996,25 @@ export default function EvalCycleWizard({
                 >
                   {L.allTypesOffWarn}
                 </p>
+              )}
+
+              {reviewTypes.includes('leader') && (
+                <div className="evc-wiz-gradepos">
+                  <span className="evc-field-label">{L.gradePosLabel}</span>
+                  <div className="evc-type-row">
+                    {['top', 'bottom', 'freeze'].map((pos) => (
+                      <button
+                        type="button"
+                        key={pos}
+                        className={`evc-type-chip${gradeCardPosition === pos ? ' is-on' : ''}`}
+                        onClick={() => setGradeCardPosition(pos)}
+                        data-testid={`evc-wiz-gradepos-${pos}`}
+                      >
+                        {L[`gradePos_${pos}`]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {hasPeer && (
