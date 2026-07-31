@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -87,6 +88,8 @@ function buildFields(template, L) {
           section: it.category || '평가 항목',
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
+          description: it.description ?? null,
+          visibleToRoles: it.visibleToRoles ?? null,
         };
       });
   }
@@ -101,6 +104,8 @@ function buildFields(template, L) {
     section: L[f.sectionKey],
     requiresRationale: false,
     score: f.score,
+    description: null,
+    visibleToRoles: null,
   }));
 }
 
@@ -167,6 +172,8 @@ export default function EvalCycleMemberCanvas({
   onSubmit,
   onAiPolish,
   onKrProgressSave,
+  // TC-053 동료 리뷰 등 타인 평가 시 항목별 공개 대상 안내 노출(셀프는 미노출)
+  showVisibility = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const fields = useMemo(() => buildFields(template, L), [template, L]);
@@ -484,8 +491,11 @@ export default function EvalCycleMemberCanvas({
                   fieldRefs.current[f.key] = el;
                 }}
               >
-                {sec.fields.length > 1 && (
-                  <span className="evc-field-label">{f.label}</span>
+                {(sec.fields.length > 1 || f.description) && (
+                  <span className="evc-field-label">
+                    {f.label}
+                    <FieldInfo description={f.description} />
+                  </span>
                 )}
                 {f.type === 'rating' ? (
                   <>
@@ -540,6 +550,12 @@ export default function EvalCycleMemberCanvas({
                     disabled={submitted}
                     onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
                     data-testid={`evm-text-${f.key}`}
+                  />
+                )}
+                {showVisibility && (
+                  <FieldVisibility
+                    visibleToRoles={f.visibleToRoles}
+                    labels={L}
                   />
                 )}
               </div>

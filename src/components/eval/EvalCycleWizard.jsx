@@ -883,6 +883,11 @@ export default function EvalCycleWizard({
             text: q.text,
             type: q.type,
             requiresRationale: !!q.requiresRationale,
+            // TC-051/052 항목 설명 · TC-053 공개 대상(피평가자 비공개 여부)
+            description: q.description?.trim() || null,
+            visibleToRoles: q.hideFromEvaluatee
+              ? ['manager', 'hr', 'committee']
+              : null,
           })),
           grades: t.grades.map((g) => ({
             label: g.label,
@@ -1211,6 +1216,24 @@ export default function EvalCycleWizard({
                         <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
                       </button>
                     )}
+                    {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만) */}
+                    <button
+                      type="button"
+                      className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
+                      onClick={() =>
+                        setTplQuestions((qs) =>
+                          qs.map((x) =>
+                            x.id === q.id
+                              ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
+                              : x,
+                          ),
+                        )
+                      }
+                      title={L.hideFromEvaluateeHint}
+                      data-testid={`evc-tpl-hide-${q.id}`}
+                    >
+                      {q.hideFromEvaluatee ? L.hideFromEvaluateeOn : L.hideFromEvaluateeOff}
+                    </button>
                     <button
                       type="button"
                       className="evc-tpl-x"
@@ -1229,6 +1252,23 @@ export default function EvalCycleWizard({
                     >
                       ✕
                     </button>
+                    {/* TC-051/052 항목 설명(작성 안내 툴팁) 입력 — 항목 아래 전체폭 */}
+                    <input
+                      type="text"
+                      className="evc-tpl-item-desc"
+                      value={q.description ?? ''}
+                      placeholder={L.itemDescPlaceholder}
+                      onChange={(e) =>
+                        setTplQuestions((qs) =>
+                          qs.map((x) =>
+                            x.id === q.id
+                              ? { ...x, description: e.target.value }
+                              : x,
+                          ),
+                        )
+                      }
+                      data-testid={`evc-tpl-desc-${q.id}`}
+                    />
                   </div>
                 ))}
               </div>

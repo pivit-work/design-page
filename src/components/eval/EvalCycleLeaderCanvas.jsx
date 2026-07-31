@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -99,6 +100,8 @@ function buildFields(template, L) {
           section: it.category || '평가 항목',
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
+          description: it.description ?? null,
+          visibleToRoles: it.visibleToRoles ?? null,
         };
       });
   }
@@ -380,8 +383,11 @@ export default function EvalCycleLeaderCanvas({
                     fieldRefs.current[f.key] = el;
                   }}
                 >
-                  {sec.fields.length > 1 && (
-                    <span className="evc-field-label">{f.label}</span>
+                  {(sec.fields.length > 1 || f.description) && (
+                    <span className="evc-field-label">
+                      {f.label}
+                      <FieldInfo description={f.description} />
+                    </span>
                   )}
                   {f.type === 'rating' ? (
                     <>
@@ -436,6 +442,10 @@ export default function EvalCycleLeaderCanvas({
                       data-testid={`evl-text-${f.key}`}
                     />
                   )}
+                  <FieldVisibility
+                    visibleToRoles={f.visibleToRoles}
+                    labels={L}
+                  />
                 </div>
               ))}
             </section>
