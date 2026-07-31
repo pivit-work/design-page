@@ -510,6 +510,23 @@
   color: var(--text-secondary);
   margin-top: var(--spacing-sm, 6px);
 }
+/* TC-051/052 항목 설명 툴팁 아이콘 */
+.evx-field-info {
+  margin-left: 4px;
+  color: var(--text-tertiary, #98a2b3);
+  font-size: 11px;
+  cursor: help;
+}
+/* TC-053 항목별 공개 대상 안내 */
+.evx-field-visibility {
+  margin: var(--spacing-sm, 6px) 0 0;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.5;
+}
+.evx-field-visibility.is-restricted {
+  color: var(--utility-warning-600, #dc6803);
+}
 .evc-input {
   width: 100%;
   box-sizing: border-box;
@@ -1163,11 +1180,22 @@
 .evc-tpl-item {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--spacing-sm, 6px);
   padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
   border: 1px solid var(--border-secondary, #eaecf0);
   border-radius: var(--radius-md, 8px);
   background: var(--bg-primary, #fff);
+}
+/* TC-051/052 항목 설명 입력 — 항목 행 아래 전체폭 */
+.evc-tpl-item-desc {
+  flex-basis: 100%;
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-secondary);
 }
 .evc-tpl-item-section {
   font-size: var(--font-size-text-xs, 12px);
