@@ -3190,6 +3190,37 @@
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-primary);
 }
+/* TC-055 승진 사유 작성 가이드 */
+.evl-promo-guide {
+  margin: 0 0 var(--spacing-md, 8px);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.5;
+}
+/* TC-054 상위(위원회) 전용 섹션 강조 */
+.evl-committee-only {
+  border-left: 3px solid var(--utility-error-500, #f04438);
+}
+.evl-committee-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs, 6px);
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-700, #b42318);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: help;
+}
+.evl-committee-hint {
+  margin: 0 0 var(--spacing-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-error-600, #d92d20);
+}
 .evl-history {
   list-style: none;
   margin: 0;
