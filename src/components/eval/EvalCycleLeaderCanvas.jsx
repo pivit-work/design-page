@@ -43,6 +43,8 @@ const DEFAULT_LABELS = {
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
   historyTitle: '과거 등급 추이',
   historyEmpty: '등급 변경 이력이 없습니다.',
+  // TC-046/047 상단고정(Freeze) 안내
+  freezeNote: '⚡ 헤더 프리즈 중 — 스크롤해도 상단 고정',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
   // TC-054 상위(위원회) 전용 섹션 배지 — 피평가자에게 노출되지 않음을 명시
   committeeOnlyBadge: '상위 전용',
@@ -273,6 +275,36 @@ export default function EvalCycleLeaderCanvas({
     onSubmit?.(toItems(), grade);
   };
 
+  // TC-046/047 최종 등급 카드 위치(HR 옵션): top·bottom·freeze(상단고정=슬림 sticky 헤더).
+  const gradePos = cycle?.reviewSequence?.gradeCardPosition ?? 'bottom';
+  const isFreeze = gradePos === 'freeze';
+  const gradeAtTop = gradePos === 'top' || isFreeze;
+  const gradeCard = (
+    <section
+      className={`evc-card evl-grade-card${isFreeze ? ' evl-grade-freeze' : ''}${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
+      ref={gradeRef}
+      data-testid="evl-grade-card"
+      data-position={gradePos}
+    >
+      {isFreeze && <p className="evl-freeze-note">{L.freezeNote}</p>}
+      <h3 className="evc-card-name">{L.gradeTitle}</h3>
+      <div className="evl-grade-row">
+        {gradeOptions.map((g) => (
+          <button
+            type="button"
+            key={g.key}
+            className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
+            disabled={submitted}
+            onClick={() => setGrade(g.key)}
+            data-testid={`evl-grade-${g.key}`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+
   return (
     <div className="evc-root">
       <header className="evc-header">
@@ -336,6 +368,7 @@ export default function EvalCycleLeaderCanvas({
 
         {/* 우: 작성 */}
         <div className="evl-form">
+          {gradeAtTop && gradeCard}
           {sections.map((sec) => (
             <section className="evc-card" key={sec.title}>
               <h3 className="evc-card-name">{sec.title}</h3>
@@ -408,27 +441,8 @@ export default function EvalCycleLeaderCanvas({
             </section>
           ))}
 
-          {/* 최종 등급 */}
-          <section
-            className={`evc-card${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
-            ref={gradeRef}
-          >
-            <h3 className="evc-card-name">{L.gradeTitle}</h3>
-            <div className="evl-grade-row">
-              {gradeOptions.map((g) => (
-                <button
-                  type="button"
-                  key={g.key}
-                  className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
-                  disabled={submitted}
-                  onClick={() => setGrade(g.key)}
-                  data-testid={`evl-grade-${g.key}`}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
-          </section>
+          {/* 최종 등급 — 하단 배치(기본)일 때만 여기 렌더 */}
+          {!gradeAtTop && gradeCard}
 
           {/* F5 승진·보상·비밀 코멘트 — TC-054 상위(위원회) 전용 */}
           <section
