@@ -44,9 +44,15 @@ const DEFAULT_LABELS = {
   historyTitle: '과거 등급 추이',
   historyEmpty: '등급 변경 이력이 없습니다.',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
+  // TC-054 상위(위원회) 전용 섹션 배지 — 피평가자에게 노출되지 않음을 명시
+  committeeOnlyBadge: '상위 전용',
+  committeeOnlyHint: '이 섹션은 캘리브레이션 위원회만 열람하며, 피평가자에게는 공개되지 않습니다.',
   confidentialLabel: '비밀 코멘트 (위원회 전용)',
   confidentialPh: '캘리브레이션 위원회만 열람합니다.',
   promotionLabel: '승진 고려 대상',
+  // TC-055 승진 사유 작성 가이드
+  promotionGuide:
+    '승진 고려로 표시하면 위원회 검토 대상이 됩니다. 비밀 코멘트에 근거(성과·역량·기여)를 함께 남겨주세요.',
   compLabel: '보상 메모',
   compPh: '보상 조정 의견',
   saveAssessment: '부가 평가 저장',
@@ -424,9 +430,22 @@ export default function EvalCycleLeaderCanvas({
             </div>
           </section>
 
-          {/* F5 승진·보상·비밀 코멘트 */}
-          <section className="evc-card" data-testid="evl-assessment">
-            <h3 className="evc-card-name">{L.assessmentTitle}</h3>
+          {/* F5 승진·보상·비밀 코멘트 — TC-054 상위(위원회) 전용 */}
+          <section
+            className="evc-card evl-committee-only"
+            data-testid="evl-assessment"
+          >
+            <h3 className="evc-card-name">
+              {L.assessmentTitle}
+              <span
+                className="evl-committee-badge"
+                title={L.committeeOnlyHint}
+                data-testid="evl-committee-badge"
+              >
+                {L.committeeOnlyBadge}
+              </span>
+            </h3>
+            <p className="evl-committee-hint">{L.committeeOnlyHint}</p>
             <div className="evm-field">
               <span className="evc-field-label">{L.confidentialLabel}</span>
               <textarea
@@ -447,6 +466,11 @@ export default function EvalCycleLeaderCanvas({
               />
               <span>{L.promotionLabel}</span>
             </label>
+            {promotionReady && (
+              <p className="evl-promo-guide" data-testid="evl-promo-guide">
+                {L.promotionGuide}
+              </p>
+            )}
             <div className="evm-field">
               <span className="evc-field-label">{L.compLabel}</span>
               <textarea

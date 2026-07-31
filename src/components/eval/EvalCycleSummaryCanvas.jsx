@@ -366,12 +366,28 @@ function MiniSparkline({ trend, domain }) {
     )
     .filter(Boolean)
     .join(' ');
+  // TC-077/167 호버 툴팁 — 각 점(사이클명: 점수)과 전체 추이를 네이티브 SVG title 로 노출.
+  const summary = (trend ?? [])
+    .filter((t) => t && t.score != null)
+    .map((t) => `${t.cycleName}: ${t.score}`)
+    .join('  ·  ');
   return (
-    <svg width={W} height={H} className="evs-cw-spark" aria-hidden="true">
+    <svg
+      width={W}
+      height={H}
+      className="evs-cw-spark"
+      role="img"
+      data-testid="evs-cw-spark"
+    >
+      <title>{summary}</title>
       <path d={d} className="evs-cw-spark-line" fill="none" />
       {scores.map((v, i) =>
         v == null ? null : (
-          <circle key={i} cx={x(i)} cy={y(v)} r={2} className="evs-cw-spark-dot" />
+          <circle key={i} cx={x(i)} cy={y(v)} r={2} className="evs-cw-spark-dot">
+            <title>
+              {trend[i]?.cycleName ? `${trend[i].cycleName}: ${v}` : String(v)}
+            </title>
+          </circle>
         ),
       )}
     </svg>
@@ -386,6 +402,65 @@ function gradeTone(gradeKey, orderedGrades) {
   if (idx === 0) return 'green';
   if (idx === orderedGrades.length - 1) return 'red';
   return 'accent';
+}
+
+// TC-076/166 캘리 테이블 정렬 — 텍스트 컬럼은 로캘 비교, 등급 컬럼은 orderedGrades 순서.
+function sortCalibRows(rows, sort, orderedGrades) {
+  if (!sort?.key) return rows;
+  const gradeRank = (key) => {
+    const idx = orderedGrades.findIndex((g) => g.gradeKey === key);
+    return idx < 0 ? Number.POSITIVE_INFINITY : idx;
+  };
+  const val = (row) => {
+    switch (sort.key) {
+      case 'name':
+        return row.name ?? '';
+      case 'job':
+        return row.job ?? '';
+      case 'team':
+        return row.team ?? '';
+      case 'level':
+        return row.level ?? '';
+      case 'leader':
+        return row.leaderName ?? '';
+      case 'hireDate':
+        return row.hireDate ?? '';
+      case 'current':
+        return gradeRank(row.calibratedGradeKey ?? row.currentGradeKey);
+      default:
+        return '';
+    }
+  };
+  const dir = sort.dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = val(a);
+    const vb = val(b);
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb), 'ko') * dir;
+  });
+}
+
+// TC-076/166 정렬 가능한 테이블 헤더 — 클릭 시 asc↔desc 토글, 현재 정렬 방향 표시.
+function SortTh({ sortKey, label, sort, onSort }) {
+  const active = sort.key === sortKey;
+  const arrow = active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  return (
+    <th
+      className={`evs-cw-th-sort${active ? ' is-active' : ''}`}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      onClick={() =>
+        onSort((prev) =>
+          prev.key === sortKey
+            ? { key: sortKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+            : { key: sortKey, dir: 'asc' },
+        )
+      }
+      data-testid={`evs-cw-th-${sortKey}`}
+    >
+      {label}
+      <span className="evs-cw-th-arrow">{arrow}</span>
+    </th>
+  );
 }
 
 // §4.1 실시간 등급 분포 바 — 유효등급(위원회조정 우선) 집계 + 권장비율 편차(±10%p).
@@ -586,6 +661,8 @@ export default function EvalCycleSummaryCanvas({
   const [reviewGrade, setReviewGrade] = useState('');
   // §10.G4 캘리 테이블 행 펼침(아코디언)
   const [expandedCalibRow, setExpandedCalibRow] = useState(null);
+  // TC-076/166 캘리 테이블 컬럼 정렬(헤더 클릭 → asc/desc 토글)
+  const [calibSort, setCalibSort] = useState({ key: null, dir: 'asc' });
   const [commentDraft, setCommentDraft] = useState('');
   // §6.3 R4 대상자 선별 필터
   const [showCalibFilter, setShowCalibFilter] = useState(false);
@@ -2094,11 +2171,12 @@ export default function EvalCycleSummaryCanvas({
                     };
                     const filterFields = calibFilterFields(calibTable.rows, L);
                     const filterActive = isCalibFilterActive(calibFilter);
-                    const visibleRows = filterActive
+                    const filteredRows = filterActive
                       ? calibTable.rows.filter((r) =>
                           rowPassesCalibFilter(r, calibFilter, filterFields),
                         )
                       : calibTable.rows;
+                    const visibleRows = sortCalibRows(filteredRows, calibSort, og);
                     return (
                       <>
                       <CalibDistributionBar
@@ -2130,13 +2208,13 @@ export default function EvalCycleSummaryCanvas({
                           <thead>
                             <tr>
                               <th>{L.cwColNo}</th>
-                              <th>{L.cwColName}</th>
-                              <th>{L.cwColJob}</th>
-                              <th>{L.cwColTeam}</th>
-                              <th>{L.cwColLevel}</th>
-                              <th>{L.cwColLeader}</th>
-                              <th>{L.cwColDates}</th>
-                              <th>{L.cwColCurrent}</th>
+                              <SortTh sortKey="name" label={L.cwColName} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="job" label={L.cwColJob} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="team" label={L.cwColTeam} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="level" label={L.cwColLevel} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="leader" label={L.cwColLeader} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="hireDate" label={L.cwColDates} sort={calibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="current" label={L.cwColCurrent} sort={calibSort} onSort={setCalibSort} />
                               <th>{L.cwColTrend}</th>
                               <th>{L.cwColAdjust}</th>
                               <th>{L.cwColPromo}</th>
