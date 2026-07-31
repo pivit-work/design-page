@@ -8,6 +8,11 @@ import { useState, useMemo, Fragment } from 'react';
 const DEFAULT_LABELS = {
   title: '종합 리포트',
   workspaceTitle: '캘리브레이션 워크스페이스',
+  // TC-095/118 조회 기간 선택기
+  periodLabel: '조회 기간',
+  periodQuarter: '분기',
+  periodHalf: '반기',
+  periodAnnual: '연간',
   workspaceSubtitle: '조견표 로스터 → 9칼럼 조정 테이블 → 어필 1인 재검토',
   tabOverview: '전사 요약',
   tabDept: '부서별 분석',
@@ -588,8 +593,62 @@ function isCalibFilterActive(fs) {
   );
 }
 
+// TC-095/118 조회 기간 선택기 — 분기/반기/연간 세그먼트 + 시점 드롭다운 → cycleId 재조회.
+const PERIOD_TYPE_KEYS = {
+  quarter: 'periodQuarter',
+  half: 'periodHalf',
+  annual: 'periodAnnual',
+};
+function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
+  if (!periods || periods.length === 0) return null;
+  const current = periods.find((p) => p.cycleId === selectedCycleId);
+  const currentType = current?.type ?? periods[0].type;
+  const typesPresent = ['quarter', 'half', 'annual'].filter((t) =>
+    periods.some((p) => p.type === t),
+  );
+  const ofType = periods.filter((p) => p.type === currentType);
+  return (
+    <div className="evc-period" data-testid="evc-period">
+      <span className="evc-period-label">{L.periodLabel}</span>
+      <div className="evc-period-seg">
+        {typesPresent.map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`evc-period-seg-btn${currentType === t ? ' is-on' : ''}`}
+            onClick={() => {
+              const latest = periods.filter((p) => p.type === t)[0];
+              if (latest && latest.cycleId !== selectedCycleId)
+                onChange?.(latest.cycleId);
+            }}
+            data-testid={`evc-period-type-${t}`}
+          >
+            {L[PERIOD_TYPE_KEYS[t]]}
+          </button>
+        ))}
+      </div>
+      <select
+        className="evc-period-select"
+        value={selectedCycleId ?? ''}
+        onChange={(e) => onChange?.(e.target.value)}
+        data-testid="evc-period-select"
+      >
+        {ofType.map((p) => (
+          <option key={p.cycleId} value={p.cycleId}>
+            {p.name} ({p.start} ~ {p.end})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function EvalCycleSummaryCanvas({
   cycle,
+  // TC-095/118 조회 기간 선택기(분기/반기/연간 → cycleId 재조회).
+  periods = [],
+  selectedCycleId = null,
+  onPeriodChange,
   totalParticipants = 0,
   selfSubmittedCount = 0,
   gradedCount = 0,
@@ -813,6 +872,12 @@ export default function EvalCycleSummaryCanvas({
           ) : (
             cycle?.name && <p className="evc-summary">{cycle.name}</p>
           )}
+          <PeriodSelector
+            periods={periods}
+            selectedCycleId={selectedCycleId}
+            onChange={onPeriodChange}
+            L={L}
+          />
         </div>
         {!workspaceOnly && (
           <div className="evmon-controls">

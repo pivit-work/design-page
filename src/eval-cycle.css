@@ -47,6 +47,50 @@
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-secondary);
 }
+/* TC-095/118 조회 기간 선택기 */
+.evc-period {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  margin-top: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evc-period-label {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+}
+.evc-period-seg {
+  display: inline-flex;
+  border: 1px solid var(--border-primary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.evc-period-seg-btn {
+  padding: 4px 12px;
+  border: none;
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  cursor: pointer;
+}
+.evc-period-seg-btn + .evc-period-seg-btn {
+  border-left: 1px solid var(--border-primary, #eaecf0);
+}
+.evc-period-seg-btn.is-on {
+  background: var(--utility-brand-50, #f9f5ff);
+  color: var(--utility-brand-700, #6941c6);
+}
+.evc-period-select {
+  padding: 4px 10px;
+  border: 1px solid var(--border-primary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-primary);
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+}
 
 /* ── 리스트 ── */
 .evc-list {
