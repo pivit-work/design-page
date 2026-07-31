@@ -286,6 +286,7 @@ const DEFAULT_LABELS = {
   remindReSendWarn: '재발송 주의',
   remindReSendTip: '최근 24시간 내 발송 이력',
   remindToast: '리마인드를 발송했습니다 ({n}명)',
+  remindErrorToast: '리마인드 발송에 실패했습니다. 다시 시도해주세요.',
   remindGuardNote: '동일 대상 24시간 내 재발송 시 확인 안내',
   remindClose: '닫기',
   remindSend: '선택 {n}명에게 리마인드 발송',
@@ -746,6 +747,7 @@ export default function EvalCycleSummaryCanvas({
   const [sent, setSent] = useState(() => new Set());
   const [remindBusy, setRemindBusy] = useState(false);
   const [remindToast, setRemindToast] = useState(0);
+  const [remindError, setRemindError] = useState(false); // TC-202 발송 실패 토스트
   // 모달 오픈 시각(재발송 가드 기준) — 이벤트 핸들러에서 캡처(렌더 중 Date.now 회피).
   const [remindOpenedAt, setRemindOpenedAt] = useState(0);
   const pendingTypeLabel = (t) =>
@@ -774,11 +776,15 @@ export default function EvalCycleSummaryCanvas({
     const ids = [...selected];
     if (ids.length === 0 || !onSendReminders) return;
     setRemindBusy(true);
+    setRemindError(false);
     try {
       await onSendReminders(ids);
       setSent((prev) => new Set([...prev, ...ids]));
       setSelected(new Set());
       setRemindToast(ids.length);
+    } catch {
+      // TC-202 실패 시 전역 에러 대신 에러 토스트(선택 유지 → 재시도 가능).
+      setRemindError(true);
     } finally {
       setRemindBusy(false);
     }
@@ -3227,6 +3233,15 @@ export default function EvalCycleSummaryCanvas({
             {remindToast > 0 && (
               <div className="evs-remind-toast" data-testid="evs-remind-toast">
                 {fmt(L.remindToast, { n: remindToast })}
+              </div>
+            )}
+            {remindError && (
+              <div
+                className="evs-remind-toast is-error"
+                role="alert"
+                data-testid="evs-remind-error"
+              >
+                {L.remindErrorToast}
               </div>
             )}
 

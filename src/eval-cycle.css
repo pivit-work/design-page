@@ -2380,6 +2380,12 @@
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
 }
+/* TC-202 리마인드 발송 실패 토스트 */
+.evs-remind-toast.is-error {
+  background: var(--utility-error-50, #fef3f2);
+  border-color: var(--utility-error-200, #fecdca);
+  color: var(--utility-error-700, #b42318);
+}
 .evs-remind-foot {
   display: flex;
   align-items: center;
