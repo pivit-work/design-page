@@ -3316,6 +3316,14 @@
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-primary);
 }
+/* TC-098 승진 요청서(4항목) */
+.evl-promo-req {
+  margin: 0 0 var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-blue-50, #eff8ff);
+}
 /* TC-055 승진 사유 작성 가이드 */
 .evl-promo-guide {
   margin: 0 0 var(--spacing-md, 8px);
