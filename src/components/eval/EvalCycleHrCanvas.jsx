@@ -424,6 +424,10 @@ export default function EvalCycleHrCanvas({
   onHoldCycle,
   onResumeCycle,
   onPatchSchedule,
+  // TC-028 사이클 설정 프리셋(위자드로 전달)
+  cyclePresets = [],
+  onSaveCyclePreset,
+  onLoadCyclePreset,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -549,6 +553,9 @@ export default function EvalCycleHrCanvas({
           committeeCandidates={committeeCandidates}
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
+          presets={cyclePresets}
+          onSavePreset={onSaveCyclePreset}
+          onLoadPreset={onLoadCyclePreset}
         />
       )}
 

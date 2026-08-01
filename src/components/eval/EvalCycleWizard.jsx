@@ -558,6 +558,10 @@ export default function EvalCycleWizard({
   committeeCandidates = [],
   onCancel,
   onSubmit,
+  // TC-028 사이클 설정 프리셋(불러오기/저장)
+  presets = [],
+  onSavePreset,
+  onLoadPreset,
 }) {
   const [step, setStep] = useState(0);
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
@@ -914,6 +918,48 @@ export default function EvalCycleWizard({
     onSubmit(payload);
   };
 
+  // TC-028 현재 위자드 설정을 프리셋으로 저장.
+  const [presetName, setPresetName] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [presetSaved, setPresetSaved] = useState(false);
+  const handleSavePreset = () => {
+    if (!onSavePreset || !presetName.trim()) return;
+    onSavePreset({
+      name: presetName.trim(),
+      reviewSequence: {
+        order: displayPhases.map((p) => p.id),
+        enabled: Object.fromEntries(
+          displayPhases.map((p) => [p.id, !disabledPhases.has(p.id)]),
+        ),
+        schedule: Object.fromEntries(
+          displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
+        ),
+        templateMap: phaseTemplateMap,
+        gradeCardPosition,
+        roleMode,
+      },
+      targetConfig: { reviewTypes, peerAssignModes, peerVisibility },
+    });
+    setPresetSaved(true);
+    setPresetName('');
+  };
+
+  // TC-028 프리셋 불러오기 → 기본 설정 프리필(리뷰종류·배정방식·공개·등급위치·일정).
+  const handleLoadPreset = async (presetId) => {
+    setSelectedPresetId(presetId);
+    if (!presetId || !onLoadPreset) return;
+    const preset = await onLoadPreset(presetId);
+    const cfg = preset?.targetConfig || {};
+    if (Array.isArray(cfg.reviewTypes)) setReviewTypes(cfg.reviewTypes);
+    if (Array.isArray(cfg.peerAssignModes))
+      setPeerAssignModes(cfg.peerAssignModes);
+    if (typeof cfg.peerVisibility === 'boolean')
+      setPeerVisibility(cfg.peerVisibility);
+    const rs = preset?.reviewSequence;
+    if (rs?.gradeCardPosition) setGradeCardPosition(rs.gradeCardPosition);
+    if (rs?.schedule) setSchedule(rs.schedule);
+  };
+
   return createPortal(
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-wiz" onClick={(e) => e.stopPropagation()}>
@@ -929,6 +975,28 @@ export default function EvalCycleWizard({
         <div className="evc-wiz-body">
           {step === 0 && (
             <div className="evc-wiz-panel">
+              {/* TC-028 저장된 설정 프리셋 불러오기 */}
+              {presets.length > 0 && onLoadPreset && (
+                <div className="evc-wiz-preset-load">
+                  <label className="evc-field-label" htmlFor="evc-wiz-preset">
+                    {L.presetLoadLabel}
+                  </label>
+                  <select
+                    id="evc-wiz-preset"
+                    className="evc-input"
+                    value={selectedPresetId}
+                    onChange={(e) => handleLoadPreset(e.target.value)}
+                    data-testid="evc-wiz-preset-load"
+                  >
+                    <option value="">{L.presetLoadPlaceholder}</option>
+                    {presets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <label className="evc-field-label" htmlFor="evc-wiz-name">{L.cycleName}</label>
               <input
                 id="evc-wiz-name"
@@ -2015,6 +2083,38 @@ export default function EvalCycleWizard({
                 </div>
               </div>
               <p className="evc-wiz-hint">{L.createDraftHint}</p>
+              {/* TC-028 이 설정을 프리셋으로 저장 */}
+              {onSavePreset && (
+                <div className="evc-wiz-preset-save" data-testid="evc-wiz-preset-save">
+                  <span className="evc-field-label">{L.presetSaveLabel}</span>
+                  <div className="evc-wiz-preset-save-row">
+                    <input
+                      className="evc-input"
+                      value={presetName}
+                      placeholder={L.presetSavePlaceholder}
+                      onChange={(e) => {
+                        setPresetName(e.target.value);
+                        setPresetSaved(false);
+                      }}
+                      data-testid="evc-wiz-preset-name"
+                    />
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      disabled={!presetName.trim()}
+                      onClick={handleSavePreset}
+                      data-testid="evc-wiz-preset-save-btn"
+                    >
+                      {L.presetSaveButton}
+                    </button>
+                  </div>
+                  {presetSaved && (
+                    <span className="evc-tpl-saved" data-testid="evc-wiz-preset-saved">
+                      ✓ {L.presetSaved}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
