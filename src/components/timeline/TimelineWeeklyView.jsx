@@ -14,14 +14,28 @@ import Icon from '../shared/Icon.jsx';
  * 데모용 형태의 샘플 데이터는 `./weekly-demo-data.js` 의 DEMO_WEEKLY_REPORT 참조.
  */
 
-// 차트 SVG path 생성 (데이터 범위 7.0~9.0 → y 좌표 변환)
+// 차트 y 도메인의 기준선. 디자인 시안이 상정한 범위이고, 데이터가 이 안에 있으면
+// 종전과 동일한 모양으로 그려진다.
+const CHART_BASE_MIN = 7;
+const CHART_BASE_MAX = 9;
+
+// 차트 SVG path 생성 (헬스 점수 → y 좌표 변환).
+//
+// y 도메인은 기준선 7.0~9.0 을 쓰되, 데이터가 그 밖으로 나가면 나간 만큼만 넓힌다.
+// 헬스는 1~10 점이라 고정 7~9 스케일에서는 6점만 되어도 y 가 뷰박스(H) 를 넘어
+// 차트 밖에 그려졌다 — SVG 에 클리핑이 없어 x축 라벨과 옆 섹션까지 침범했다.
+// 데이터가 7~9 안이면 (v-7)/2 와 결과가 같아 기존 리포트는 픽셀 단위로 동일하다.
 const buildChartPath = (healthData) => {
   const W = 300, H = 120, PAD_X = 20, PAD_Y = 16;
   const N = healthData.length;
   if (!N) return { points: [], line: '', area: '', W, H, PAD_X };
+  // 기준선을 항상 포함하므로 span >= 2 — 0 나눗셈이 생기지 않는다.
+  const min = Math.min(CHART_BASE_MIN, ...healthData);
+  const max = Math.max(CHART_BASE_MAX, ...healthData);
+  const span = max - min;
   const points = healthData.map((v, i) => {
     const x = PAD_X + (N === 1 ? 0 : (i / (N - 1)) * (W - PAD_X * 2));
-    const y = PAD_Y + (1 - (v - 7) / 2) * (H - PAD_Y * 2);
+    const y = PAD_Y + (1 - (v - min) / span) * (H - PAD_Y * 2);
     return [x, y];
   });
   const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]},${p[1]}`).join(' ');
