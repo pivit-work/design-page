@@ -1810,6 +1810,13 @@
   gap: var(--spacing-md, 10px);
   margin-top: var(--spacing-sm, 8px);
 }
+/* TC-140 달성률 미입력 경고(비차단 advisory) */
+.evm-kr-warn {
+  margin-top: var(--spacing-sm, 8px);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 600;
+  color: var(--utility-warning-700);
+}
 .evm-kr-saved {
   font-size: var(--font-size-text-xs, 11px);
   font-weight: 600;

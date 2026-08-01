@@ -27,6 +27,8 @@ const DEFAULT_LABELS = {
   actKrSave: '달성률 저장',
   actKrSaved: '저장되었습니다',
   actKrEmpty: '이 기간에 입력할 개인 KR이 없습니다.',
+  // TC-140 달성률 미입력 경고(제출은 가능)
+  actKrUnfilledWarn: '달성률 미입력 KR {{count}}개 — 제출 전 입력을 권장합니다(제출은 가능).',
   workTitle: '업적 (What)',
   workPlaceholder: '이번 기간의 핵심 성과와 결과를 기록하세요.',
   competencyTitle: '역량 (How)',
@@ -201,6 +203,11 @@ export default function EvalCycleMemberCanvas({
   }
   const [krBusy, setKrBusy] = useState(false);
   const [krSaved, setKrSaved] = useState(false);
+  // TC-140: 달성률 미입력 KR 개수(제출은 허용, 경고만 노출).
+  const krUnfilledCount = krList.filter((kr) => {
+    const p = krState[kr.id]?.percent;
+    return p == null || String(p).trim() === '';
+  }).length;
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
@@ -484,6 +491,14 @@ export default function EvalCycleMemberCanvas({
                         </div>
                       ))}
                     </div>
+                    {krUnfilledCount > 0 && (
+                      <div
+                        className="evm-kr-warn"
+                        data-testid="evm-kr-unfilled-warn"
+                      >
+                        ⚠ {fill(L.actKrUnfilledWarn, { count: krUnfilledCount })}
+                      </div>
+                    )}
                     <div className="evm-kr-actions">
                       {krSaved && (
                         <span className="evm-kr-saved" data-testid="evm-kr-saved">✓ {L.actKrSaved}</span>
