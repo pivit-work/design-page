@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -52,7 +53,7 @@ const DEFAULT_LABELS = {
   writeFeedback: '피드백 작성 ›',
   back: '← 팀 목록',
   periodLabel: '기간',
-  pastBanner: '⏰ 과거 기간을 조회 중입니다. 작성은 현재 기간에서만 가능합니다.',
+  pastBanner: '과거 기간을 조회 중입니다. 작성은 현재 기간에서만 가능합니다.',
   sectionKr: 'KEY RESULTS',
   sectionInit: 'INITIATIVES',
   emptyBlock: '이 KR에 연결된 피드백이 없어요',
@@ -63,14 +64,14 @@ const DEFAULT_LABELS = {
   incomingReq: '받은 피드백 요청',
   composePlaceholder:
     'SBI 형식을 참고해 자유롭게 작성해 주세요.\n상황(S): 언제, 어떤 맥락에서\n행동(B): 구체적으로 어떤 행동을\n영향(I): 팀/OKR에 어떤 영향이 있었는지',
-  aiDraft: '✦ AI 추천 받기',
+  aiDraft: 'AI 추천 받기',
   aiDrafting: '⏳ 생성 중...',
   aiHintIdle: 'KR 달성률·최근 스니핏 기반 추천',
   aiHintDone: 'AI 초안 — 수정 후 전달하세요',
-  aiPersonalized: '🎯 수신자 선호 스타일 반영됨',
-  aiFooter: '🤖 스니핏·OKR 데이터를 기반으로 AI가 초안을 작성했습니다',
+  aiPersonalized: '수신자 선호 스타일 반영됨',
+  aiFooter: '스니핏·OKR 데이터를 기반으로 AI가 초안을 작성했습니다',
   send: '전달 →',
-  pastReadonly: '⏰ 과거 기간은 읽기 전용입니다. 현재 기간에서만 작성할 수 있습니다.',
+  pastReadonly: '과거 기간은 읽기 전용입니다. 현재 기간에서만 작성할 수 있습니다.',
   toastSent: '피드백을 전달했습니다',
   toastError: '전송에 실패했습니다',
   aiError: 'AI 추천 생성에 실패했습니다. 직접 작성해 주세요.',
@@ -185,7 +186,7 @@ function TeamListScreen({ team, L, onSelect }) {
                 <span style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{m.name}</span>
                 <Chip label={badge.label} color={badge.color} bg={badge.bg} bd={badge.bg} />
                 {m.pendingRequests > 0 && (
-                  <Chip label={`📩 ${L.requestChip} ${m.pendingRequests}`} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+                  <Chip label={<><MailIcon size={11} /> {`${L.requestChip} ${m.pendingRequests}`}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
                 )}
                 {m.department && <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted }}>{m.department}</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
@@ -308,7 +309,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           {aiState === 'done' ? L.aiHintDone : L.aiHintIdle}
         </span>
         {aiState === 'done' && personalized && (
-          <Chip label={L.aiPersonalized} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+          <Chip label={<><TargetIcon size={11} /> {L.aiPersonalized}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
         )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {onAiDraft && (
@@ -319,7 +320,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
               data-testid="fbmgr-ai-draft"
               style={{ border: `1px solid ${C.accentBd}`, background: C.accentBg, color: C.accent, borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: aiState === 'loading' ? 'wait' : 'pointer' }}
             >
-              {aiState === 'loading' ? L.aiDrafting : L.aiDraft}
+              {aiState === 'loading' ? L.aiDrafting : <><SparkleIcon size={13} /> {L.aiDraft}</>}
             </button>
           )}
           <button
@@ -333,7 +334,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           </button>
         </span>
       </div>
-      {aiState === 'done' && <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{L.aiFooter}</p>}
+      {aiState === 'done' && <p style={{ fontSize: 11, color: C.muted, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
 }
@@ -370,7 +371,7 @@ function RequestBubble({ item, L }) {
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
-          <Chip label={`📩 ${L.incomingReq}`} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+          <Chip label={<><MailIcon size={11} /> {L.incomingReq}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
           <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
@@ -422,7 +423,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
               title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
               style={{ marginLeft: 'auto', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
             >
-              {summaryState === 'loading' ? '⏳ 요약 중...' : '✦ 대화 요약'}
+              {summaryState === 'loading' ? '⏳ 요약 중...' : <><SparkleIcon size={12} /> 대화 요약</>}
             </button>
           )}
           <button type="button" onClick={onClose} data-testid="fbmgr-thread-close" style={{ marginLeft: onSummarize ? 0 : 'auto', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: C.muted }}>✕</button>
@@ -430,7 +431,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
         <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {summary && (
             <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.accent, marginBottom: 4 }}>✦ 대화 요약</div>
+              <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
               <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
             </div>
           )}
@@ -446,7 +447,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
           )}
         </div>
         {isPastPeriod ? (
-          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>{L.pastReadonly}</div>
+          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
         )}
@@ -503,7 +504,7 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
         </span>
       </div>
       {thread?.isPastPeriod && (
-        <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>{L.pastBanner}</div>
+        <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
       )}
       {krBlocks.length > 0 && <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
       {krBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}

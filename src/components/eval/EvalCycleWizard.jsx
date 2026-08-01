@@ -1300,7 +1300,11 @@ export default function EvalCycleWizard({
                       title={L.hideFromEvaluateeHint}
                       data-testid={`evc-tpl-hide-${q.id}`}
                     >
-                      {q.hideFromEvaluatee ? L.hideFromEvaluateeOn : L.hideFromEvaluateeOff}
+                      {q.hideFromEvaluatee ? (
+                        <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
+                      ) : (
+                        <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
+                      )}
                     </button>
                     <button
                       type="button"

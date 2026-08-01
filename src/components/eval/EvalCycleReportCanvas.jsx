@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { InfoIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -307,7 +308,7 @@ export default function EvalCycleReportCanvas({
                   aria-expanded={showAnchor}
                   data-testid="evr-grade-anchor"
                 >
-                  ⓘ {L.gradeAnchorHint}
+                  <InfoIcon size={14} /> {L.gradeAnchorHint}
                 </button>
                 {showAnchor && (
                   <span className="evr-grade-anchor-pop" role="tooltip">

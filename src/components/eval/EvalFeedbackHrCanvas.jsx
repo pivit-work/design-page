@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 
 /**
  * EvalFeedbackHrCanvas — 피드백 관리 (HR 대시보드, v2 재설계).
@@ -37,7 +38,7 @@ const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 const DEFAULT_LABELS = {
   title: '피드백 관리',
   subtitle: '조직 전체 피드백 현황',
-  exportCsv: '📥 CSV 내보내기',
+  exportCsv: 'CSV 내보내기',
   kpiTotal: '전체 멤버',
   kpiCoverage: '커버리지',
   kpiInterval: '평균 주기',
@@ -47,7 +48,7 @@ const DEFAULT_LABELS = {
   teamCoverageTitle: '팀별 피드백 커버리지 (30일 기준)',
   teamCovered: '커버',
   teamAvg: '평균',
-  atRiskTitle: '⚠️ 피드백 필요 멤버',
+  atRiskTitle: '피드백 필요 멤버',
   atRiskNone: '피드백 필요 멤버가 없습니다.',
   notWritten: '미작성',
   daysOver: '일 경과',
@@ -67,8 +68,8 @@ const DEFAULT_LABELS = {
   channelCollab: '협업툴 (Slack/Discord)',
   channelEmail: '업무 이메일',
   notIntegrated: '미연동',
-  channelNone: '🚨 발송 가능한 채널이 없습니다',
-  channelEmailOnly: '⚠️ 협업툴 미연동 — 이메일로만 발송됩니다',
+  channelNone: '발송 가능한 채널이 없습니다',
+  channelEmailOnly: '협업툴 미연동 — 이메일로만 발송됩니다',
   channelHint: '선택한 채널로 동시 발송됩니다. 24시간 내 동일 알림 재발송 불가.',
   cancel: '취소',
   send: '발송',
@@ -122,10 +123,10 @@ function Bar({ value, color }) {
 
 function KpiRow({ kpi, L }) {
   const cards = [
-    { icon: '👥', label: L.kpiTotal, value: kpi.total, unit: L.unitPeople, color: C.text },
-    { icon: '✅', label: L.kpiCoverage, value: kpi.coveragePct, unit: '%', color: covColor(kpi.coveragePct) },
-    { icon: '🔄', label: L.kpiInterval, value: kpi.avgInterval, unit: L.unitDays, color: kpi.avgInterval <= 30 ? C.green : C.amber },
-    { icon: '💬', label: L.kpiReaction, value: kpi.reactionRate, unit: '%', color: kpi.reactionRate >= 70 ? C.green : C.amber },
+    { icon: <UsersIcon size={18} />, label: L.kpiTotal, value: kpi.total, unit: L.unitPeople, color: C.text },
+    { icon: <CheckCircleIcon size={18} />, label: L.kpiCoverage, value: kpi.coveragePct, unit: '%', color: covColor(kpi.coveragePct) },
+    { icon: <RefreshIcon size={18} />, label: L.kpiInterval, value: kpi.avgInterval, unit: L.unitDays, color: kpi.avgInterval <= 30 ? C.green : C.amber },
+    { icon: <ChatIcon size={18} />, label: L.kpiReaction, value: kpi.reactionRate, unit: '%', color: kpi.reactionRate >= 70 ? C.green : C.amber },
   ];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
@@ -167,7 +168,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{L.atRiskTitle}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}><AlertIcon size={16} />{L.atRiskTitle}</span>
         {atRisk.length > 0 && <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.red, background: C.redBg, borderRadius: 6, padding: '1px 7px' }}>{atRisk.length}</span>}
       </div>
       {atRisk.length === 0 ? (
@@ -285,6 +286,7 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
           {!emailAvail && <span style={{ fontSize: 11, color: C.muted }}>({L.notIntegrated})</span>}
         </label>
         <p style={{ fontSize: 11, margin: '8px 0 14px', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.muted }}>
+          {!collabAvail && <><AlertIcon size={13} /> </>}
           {!collabAvail && !emailAvail ? L.channelNone : !collabAvail ? L.channelEmailOnly : L.channelHint}
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -368,14 +370,14 @@ export default function EvalFeedbackHrCanvas({
       )}
       <header className="evc-header" style={{ maxWidth: 900, display: 'flex', alignItems: 'center' }}>
         <div>
-          <h1 className="evc-title">📋 {L.title}</h1>
+          <h1 className="evc-title"><ClipboardIcon size={20} /> {L.title}</h1>
           <p className="evc-summary">{L.subtitle}</p>
         </div>
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: covColor(d.kpi.coveragePct), background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '5px 10px' }}>
-            {d.kpi.coveragePct >= 90 ? '✅' : d.kpi.coveragePct >= 70 ? '⚠️' : '🚨'} {L.kpiCoverage} {d.kpi.coveragePct}%
+            {d.kpi.coveragePct >= 90 ? <CheckCircleIcon size={13} /> : <AlertIcon size={13} />} {L.kpiCoverage} {d.kpi.coveragePct}%
           </span>
-          <button type="button" onClick={handleExport} data-testid="fbhr-csv" className="evc-btn">{L.exportCsv}</button>
+          <button type="button" onClick={handleExport} data-testid="fbhr-csv" className="evc-btn"><DownloadIcon size={15} />{L.exportCsv}</button>
         </span>
       </header>
       <div className="evc-list" style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 14 }}>
