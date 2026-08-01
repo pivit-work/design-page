@@ -322,6 +322,65 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
   );
 }
 
+/* ── 드롭다운 필터 ──────────────────────────────────────────
+ * 전체 구성원 탭이 검색형 필터로 넘어가면서 이 컴포넌트가 파일에서 사라졌는데,
+ * 초대 관리 탭의 사용처는 남아 있어 그 탭을 열면 ReferenceError 로 화면 전체가
+ * 백지가 됐다. 스타일(admin-emp-select*)은 admin.css 에 그대로 있어, 원래
+ * 정의를 되살려 붙인다.
+ * ------------------------------------------------------------ */
+function FilterDropdown({ label, value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
+  const selected = opts.find((o) => o.id === value) || null;
+  const isDefault = value === 'all' || value === '전체';
+  const triggerText = isDefault ? label : (selected ? selected.label : label);
+
+  return (
+    <div ref={ref} className={`admin-emp-select${open ? ' is-open' : ''}${isDefault ? '' : ' is-active'}`}>
+      <button
+        type="button"
+        className="admin-emp-select-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="admin-emp-select-value">{triggerText}</span>
+        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu" role="listbox">
+          {opts.map((o) => {
+            const isSel = o.id === value;
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="option"
+                aria-selected={isSel}
+                className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
+                onClick={() => { onChange(o.id); setOpen(false); }}
+              >
+                <span className="admin-emp-select-item-label">{o.label}</span>
+                {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── 탭 C: 초대 관리 ────────────────────────────────────── */
 const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
 
