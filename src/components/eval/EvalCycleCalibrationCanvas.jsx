@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { AlertIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleCalibrationCanvas — 캘리브레이션(위원회 등급 조정).
@@ -13,7 +14,7 @@ const DEFAULT_LABELS = {
   colGrade: '등급',
   total: '대상',
   unit: '명',
-  warnHigh: '⚠ 탁월 비율이 30%를 초과합니다. 분포를 재검토하세요.',
+  warnHigh: '탁월 비율이 30%를 초과합니다. 분포를 재검토하세요.',
   empty: '등급이 확정된 구성원이 없습니다.',
   unset: '미지정',
 };
@@ -66,7 +67,8 @@ export default function EvalCycleCalibrationCanvas({
           <h3 className="evc-card-name">{L.distributionTitle}</h3>
           {warnHigh && (
             <p className="evx-notice" data-testid="evcal-warn" style={{ background: 'var(--utility-warning-50)', color: 'var(--utility-warning-700, var(--utility-warning-500))' }}>
-              {L.warnHigh}
+              <AlertIcon size={14} />
+              <span>{L.warnHigh}</span>
             </p>
           )}
           {distribution.length === 0 ? (

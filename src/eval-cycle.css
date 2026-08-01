@@ -101,17 +101,26 @@
 
 /* ── 카드 ── */
 .evc-card {
-  background: var(--bg-quaternary);
-  border: 1px solid var(--bg-active);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary, var(--bg-active));
   border-radius: var(--radius-2xl, 16px);
   padding: var(--spacing-2xl, 20px);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg, 12px);
-  transition: box-shadow 0.2s ease;
+  /* design-page 카드 언어: 은은한 resting 그림자(정지 시에도 살짝 떠 보이게) */
+  box-shadow:
+    0 1px 3px rgba(10, 13, 18, 0.1),
+    0 1px 2px rgba(10, 13, 18, 0.06);
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .evc-card:hover {
-  box-shadow: 0px 12px 32px -12px rgba(10, 13, 18, 0.12);
+  border-color: var(--border-primary, var(--bg-active));
+  box-shadow:
+    0 4px 12px rgba(10, 13, 18, 0.1),
+    0 2px 4px rgba(10, 13, 18, 0.06);
 }
 .evc-card-top {
   display: flex;
@@ -1585,11 +1594,21 @@
 }
 .evx-notice {
   margin: 0;
-  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 14px);
   border-radius: var(--radius-md, 10px);
   background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
+  color: var(--utility-blue-700);
   font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+}
+/* 제출 완료 등 긍정 확정 배너 — 초록 성공 톤(evx-notice.is-success) */
+.evx-notice.is-success {
+  background: var(--utility-success-50, #ecfdf3);
+  color: var(--utility-success-700, #067647);
+  border: 1px solid var(--utility-success-200, #abefc6);
 }
 .evx-reason.tone-success {
   border-left: 3px solid var(--utility-green-500);
@@ -1637,26 +1656,32 @@
    멤버 셀프 리뷰 (EvalCycleMemberCanvas)
    ════════════════════════════════════════════════════════════ */
 /* §4.2 활동 요약 박스 — 작성 참고용 */
-/* TC-012 지난 사이클 평가 이력 — 읽기전용 참고 박스(informational, blue) */
+/* TC-012 지난 사이클 평가 이력 — 읽기전용 참고 박스(informational, blue).
+   내용 폭에 맞춰 hug(가로로 늘어지지 않게), 콘텐츠 열 왼쪽에 정렬. */
 .evm-history {
+  width: fit-content;
+  max-width: 100%;
   background: var(--utility-blue-50);
   border: 1px solid var(--utility-blue-200);
   border-radius: var(--radius-lg, 12px);
-  padding: var(--spacing-lg, 14px) var(--spacing-xl, 16px);
+  padding: var(--spacing-md, 12px) var(--spacing-lg, 16px);
 }
 .evm-history-head {
-  margin-bottom: var(--spacing-md, 12px);
+  margin-bottom: var(--spacing-md, 10px);
 }
 .evm-history-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
   font-size: var(--font-size-text-sm, 14px);
   font-weight: 700;
   color: var(--utility-blue-700);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .evm-history-sub {
-  font-size: var(--font-size-text-xs, 11px);
-  color: var(--utility-blue-700);
-  line-height: 1.6;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-blue-600, var(--utility-blue-700));
+  line-height: 1.5;
 }
 .evm-history-rows {
   display: flex;
@@ -1722,6 +1747,9 @@
   border-radius: var(--radius-md, 8px);
 }
 .evm-activity-block-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
   font-size: var(--font-size-text-xs, 11px);
   font-weight: 700;
   color: var(--utility-warning-700);
@@ -1812,12 +1840,18 @@
 }
 /* TC-140 달성률 미입력 경고(비차단 advisory) */
 .evm-kr-warn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
   margin-top: var(--spacing-sm, 8px);
   font-size: var(--font-size-text-xs, 11px);
   font-weight: 600;
   color: var(--utility-warning-700);
 }
 .evm-kr-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
   font-size: var(--font-size-text-xs, 11px);
   font-weight: 600;
   color: var(--utility-success-600, #12b76a);

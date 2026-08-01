@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { LeafIcon, InfoIcon, RefreshIcon, TargetIcon, TagIcon, CalendarIcon } from './evalIcons';
 
 /**
  * EvalCycleExcludedCanvas — 평가 제외 안내 화면 (멤버용).
@@ -49,23 +50,23 @@ const DEFAULT_LABELS = {
 
 // 체크박스/개별 유형(고정 안내문). 날짜 기반·커스텀은 렌더에서 동적 구성.
 const REASON_META = {
-  probation: { emoji: '🌱', titleKey: 'probationTitle', msgKey: 'probationMsg', tone: 'success' },
-  leave: { emoji: '🌿', titleKey: 'leaveTitle', msgKey: 'leaveMsg', tone: 'success' },
-  manual: { emoji: 'ℹ️', titleKey: 'manualTitle', msgKey: 'manualMsg', tone: 'neutral' },
-  role_change: { emoji: '🔄', titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg', tone: 'purple' },
-  not_in_scope: { emoji: '🎯', titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg', tone: 'neutral' },
+  probation: { Icon: LeafIcon, titleKey: 'probationTitle', msgKey: 'probationMsg', tone: 'success' },
+  leave: { Icon: LeafIcon, titleKey: 'leaveTitle', msgKey: 'leaveMsg', tone: 'success' },
+  manual: { Icon: InfoIcon, titleKey: 'manualTitle', msgKey: 'manualMsg', tone: 'neutral' },
+  role_change: { Icon: RefreshIcon, titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg', tone: 'purple' },
+  not_in_scope: { Icon: TargetIcon, titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg', tone: 'neutral' },
 };
 
-/** 제외 사유 → {emoji,title,msg,tone}. 날짜 기반 14종·custom 은 동적으로 구성. */
+/** 제외 사유 → {Icon,title,msg,tone}. 날짜 기반 14종·custom 은 동적으로 구성. */
 function resolveReason(exclusion, L) {
   const t = exclusion.exclusionType;
   if (REASON_META[t]) {
     const m = REASON_META[t];
-    return { emoji: m.emoji, title: L[m.titleKey], msg: L[m.msgKey], tone: m.tone };
+    return { Icon: m.Icon, title: L[m.titleKey], msg: L[m.msgKey], tone: m.tone };
   }
   if (t === 'custom') {
     return {
-      emoji: '🏷️',
+      Icon: TagIcon,
       title: exclusion.customLabel || L.manualTitle,
       msg: exclusion.customDateBasis || L.dateBasedMsg,
       tone: 'neutral',
@@ -73,7 +74,7 @@ function resolveReason(exclusion, L) {
   }
   const typeLabel = (L.typeLabels && L.typeLabels[t]) || t;
   return {
-    emoji: '📅',
+    Icon: CalendarIcon,
     title: `${typeLabel}${L.dateBasedSuffix}`,
     msg: L.dateBasedMsg,
     tone: 'neutral',
@@ -147,7 +148,7 @@ export default function EvalCycleExcludedCanvas({
         {/* 제외 사유 */}
         <section className={`evc-card evx-reason tone-${reason.tone}`} data-testid="evx-reason">
           <div className="evx-reason-head">
-            <span className="evx-emoji" aria-hidden="true">{reason.emoji}</span>
+            <span className="evx-emoji" aria-hidden="true"><reason.Icon size={20} /></span>
             <h3 className="evc-card-name">{reason.title}</h3>
           </div>
           <p className="evx-reason-msg">{reason.msg}</p>

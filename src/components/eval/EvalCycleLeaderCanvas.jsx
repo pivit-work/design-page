@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import { ZapIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -48,7 +49,7 @@ const DEFAULT_LABELS = {
   historyTitle: '과거 등급 추이',
   historyEmpty: '등급 변경 이력이 없습니다.',
   // TC-046/047 상단고정(Freeze) 안내
-  freezeNote: '⚡ 헤더 프리즈 중 — 스크롤해도 상단 고정',
+  freezeNote: '헤더 프리즈 중 — 스크롤해도 상단 고정',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
   // TC-054 상위(위원회) 전용 섹션 배지 — 피평가자에게 노출되지 않음을 명시
   committeeOnlyBadge: '상위 전용',
@@ -316,7 +317,7 @@ export default function EvalCycleLeaderCanvas({
       data-testid="evl-grade-card"
       data-position={gradePos}
     >
-      {isFreeze && <p className="evl-freeze-note">{L.freezeNote}</p>}
+      {isFreeze && <p className="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
       <div className="evl-grade-row">
         {gradeOptions.map((g) => (
@@ -345,8 +346,8 @@ export default function EvalCycleLeaderCanvas({
       </header>
 
       {submitted && (
-        <p className="evx-notice" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
-          {L.submittedBanner}
+        <p className="evx-notice is-success" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+          ✓ {L.submittedBanner}
         </p>
       )}
 

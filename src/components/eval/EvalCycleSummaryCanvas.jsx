@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
+import { AlertIcon, LockIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -116,7 +117,7 @@ const DEFAULT_LABELS = {
   cwDetailTimeline: '직급·레벨 변동',
   cwTimelineEmpty: '직급 변동 이력 없음',
   cwDetailLogs: '변경 로그',
-  cwLevelMixWarn: '⚠ 이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
+  cwLevelMixWarn: '이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
   cwDetailEmpty: '내용 없음',
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
@@ -1095,7 +1096,7 @@ export default function EvalCycleSummaryCanvas({
               {/* Block 1 — 이상치 경고 배너 */}
               {deptOutliers.length > 0 && (
                 <div className="evs-dept-outlier" data-testid="evs-dept-outlier">
-                  <div className="evs-dept-outlier-title">⚠ {L.deptOutlierTitle}</div>
+                  <div className="evs-dept-outlier-title"><AlertIcon size={14} /> {L.deptOutlierTitle}</div>
                   {deptOutliers.map((o, i) => (
                     <div className="evs-dept-outlier-row" key={i}>
                       {o.dept} — {o.grade} 비율 {o.actual}% (가이드 {o.guide}% 대비 <span className="evs-dept-outlier-delta">+{o.delta}%p</span>)
@@ -1204,7 +1205,7 @@ export default function EvalCycleSummaryCanvas({
                 ))}
               </div>
               {lenientMajority && (
-                <p className="evs-lp-warn" data-testid="evs-lp-warn">⚠ {L.lpMajorityWarn}</p>
+                <p className="evs-lp-warn" data-testid="evs-lp-warn"><AlertIcon size={14} /> {L.lpMajorityWarn}</p>
               )}
 
               {/* Block 2 — 리더별 등급 분포 비교 */}
@@ -1524,7 +1525,7 @@ export default function EvalCycleSummaryCanvas({
             {/* J3 — 9블록 매트릭스 + 승진 요청 */}
             {execSection === 'j3' && (
               <>
-                <p className="evs-exec-confidential">🔒 {L.nbConfidential}</p>
+                <p className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</p>
                 <div className="evs-two-col evs-nb-wrap">
                   <section className="evc-card">
                     <h3 className="evc-card-name">{L.nbTitle}</h3>
@@ -1836,7 +1837,7 @@ export default function EvalCycleSummaryCanvas({
                       ×
                     </button>
                   </div>
-                  <p className="evs-exec-confidential">🔒 {L.nbConfidential}</p>
+                  <p className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</p>
                   {(() => {
                     const yKeys = ['recommended', 'not_yet', 'deferred'];
                     const xKeys = ['urgent', 'moderate', 'maintain'];
@@ -2494,7 +2495,7 @@ export default function EvalCycleSummaryCanvas({
                                               className="evs-cw-detail-levelmix"
                                               data-testid="evs-cw-levelmix"
                                             >
-                                              {L.cwLevelMixWarn}
+                                              <AlertIcon size={14} /> {L.cwLevelMixWarn}
                                             </div>
                                           )}
                                           <dl className="evs-cw-detail-facts">

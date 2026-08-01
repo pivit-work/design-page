@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
+import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleHrCanvas — HR 성과평가 사이클 관리 화면(목록) 정본 컴포넌트.
@@ -31,9 +32,9 @@ const DEFAULT_LABELS = {
   emergencyStop: '비상 정지',
   // §5.7.1 일시 중단/재개 (회수·비상정지 대체)
   holdHint: '진행 중인 사이클입니다. 필요 시 일시 중단할 수 있습니다.',
-  hold: '⏸ 일시 중단',
+  hold: '일시 중단',
   onHoldBanner: '이 사이클은 일시 중단되었습니다. 구성원의 작성·제출이 차단됩니다.',
-  resume: '⏵ 재개',
+  resume: '재개',
   confirmHoldTitle: '평가를 일시 중단하시겠습니까?',
   confirmHoldBody:
     '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
@@ -358,16 +359,16 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
         <div className="evc-hold-banner">
           <span className="evc-hold-hint">{L.holdHint}</span>
           <button type="button" className="evc-btn is-hold" onClick={() => onHold(cycle)} data-testid="evc-hold">
-            {L.hold}
+            <PauseIcon size={14} /> {L.hold}
           </button>
         </div>
       )}
       {isOnHold && (
         <div className="evc-onhold-banner" data-testid="evc-onhold-banner">
-          <span className="evc-onhold-icon">⏸</span>
+          <span className="evc-onhold-icon"><PauseIcon size={14} /></span>
           <span className="evc-onhold-text">{L.onHoldBanner}</span>
           <button type="button" className="evc-btn is-resume" onClick={() => onResume(cycle)} data-testid="evc-resume">
-            {L.resume}
+            <PlayIcon size={14} /> {L.resume}
           </button>
         </div>
       )}

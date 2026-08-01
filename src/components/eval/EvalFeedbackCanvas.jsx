@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { ChatIcon, ClockIcon } from './evalIcons';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -46,7 +47,7 @@ const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 const DEFAULT_LABELS = {
   title: '내 피드백',
   periodLabel: '기간',
-  pastBanner: '⏰ 과거 기록을 조회 중입니다. 피드백 요청은 현재 기간에서만 가능합니다.',
+  pastBanner: '과거 기록을 조회 중입니다. 피드백 요청은 현재 기간에서만 가능합니다.',
   infoBanner:
     'OKR을 달성해 가는 과정에 대한 수시 피드백 화면입니다. 목표 설정은 OKR 화면에서 진행하세요.',
   unreadSuffix: '읽지 않은 피드백',
@@ -695,11 +696,11 @@ export default function EvalFeedbackCanvas({
       <div className="evc-list" style={{ maxWidth: 620 }}>
         {isPastPeriod && (
           <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>
-            {L.pastBanner}
+            <ClockIcon size={12} /> {L.pastBanner}
           </div>
         )}
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>
-          💬 {L.infoBanner}
+          <ChatIcon size={12} /> {L.infoBanner}
         </div>
         {unread > 0 && (
           <div style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, color: C.teal, borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600 }} data-testid="fbm-unread">

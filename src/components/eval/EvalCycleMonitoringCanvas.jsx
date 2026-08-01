@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { StopIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
@@ -17,7 +18,7 @@ const DEFAULT_LABELS = {
   colGrade: '등급',
   remind: '미완료자 리마인더',
   reminded: '{{count}}명에게 리마인더 발송',
-  emergencyStop: '🛑 비상 정지',
+  emergencyStop: '비상 정지',
   stoppedBanner: '이 사이클은 비상 정지되었습니다. 제출이 차단됩니다.',
   reopen: '재개',
   exclude: '제외',
@@ -135,7 +136,7 @@ export default function EvalCycleMonitoringCanvas({
               )
             : canStop && onEmergencyStop && (
                 <button type="button" className="evc-btn is-danger-ghost" onClick={() => onEmergencyStop()} data-testid="evmon-stop">
-                  {L.emergencyStop}
+                  <StopIcon size={14} /> {L.emergencyStop}
                 </button>
               )}
         </div>

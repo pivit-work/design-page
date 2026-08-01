@@ -1,5 +1,15 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import {
+  TrendIcon,
+  TargetIcon,
+  ChatIcon,
+  NoteIcon,
+  UsersIcon,
+  SparkleIcon,
+  AlertIcon,
+  CheckCircleIcon,
+} from './evalIcons.jsx';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -21,7 +31,7 @@ const DEFAULT_LABELS = {
   actFeedback: '받은 피드백',
   actSnippets: '스니핏 하이라이트',
   // §4.2.1 OKR KR 달성률 수기입력
-  actKrTitle: '🎯 OKR 달성 현황 — KR별 달성률을 직접 입력하세요',
+  actKrTitle: 'OKR 달성 현황 — KR별 달성률을 직접 입력하세요',
   actKrHint: 'AI 자동 산출은 제공하지 않습니다 · 매니저 화면에 실시간 반영',
   actKrMemoPlaceholder: '달성 근거를 간략히 메모하세요 (선택)',
   actKrSave: '달성률 저장',
@@ -50,7 +60,7 @@ const DEFAULT_LABELS = {
   autoSaving: '자동 저장 중…',
   autoSaved: '자동 저장됨 · {{time}}',
   saveError: '저장에 실패했습니다. 작성 내용은 유지되며, 잠시 후 다시 시도됩니다.',
-  aiPolish: '✨ AI 다듬기',
+  aiPolish: 'AI 다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
   // TC-012 지난 사이클 평가 이력
@@ -394,9 +404,13 @@ export default function EvalCycleMemberCanvas({
 
       {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
       {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
+       <div className="evc-list">
         <section className="evm-history" data-testid="evm-history">
           <div className="evm-history-head">
-            <div className="evm-history-title">📈 {L.historyTitle}</div>
+            <div className="evm-history-title">
+              <TrendIcon size={15} />
+              <span>{L.historyTitle}</span>
+            </div>
             <div className="evm-history-sub">{L.historySub}</div>
           </div>
           <div className="evm-history-rows">
@@ -417,6 +431,7 @@ export default function EvalCycleMemberCanvas({
             ))}
           </div>
         </section>
+       </div>
       )}
 
       {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
@@ -424,9 +439,9 @@ export default function EvalCycleMemberCanvas({
       {!submitted && (activitySummary || krList.length > 0) && (() => {
         const blocks = activitySummary
           ? [
-              { key: 'oneOnOne', icon: '🤝', label: L.actOneOnOne, items: activitySummary.oneOnOne },
-              { key: 'feedback', icon: '💬', label: L.actFeedback, items: activitySummary.receivedFeedback },
-              { key: 'snippets', icon: '📝', label: L.actSnippets, items: activitySummary.snippets },
+              { key: 'oneOnOne', icon: <UsersIcon size={14} />, label: L.actOneOnOne, items: activitySummary.oneOnOne },
+              { key: 'feedback', icon: <ChatIcon size={14} />, label: L.actFeedback, items: activitySummary.receivedFeedback },
+              { key: 'snippets', icon: <NoteIcon size={14} />, label: L.actSnippets, items: activitySummary.snippets },
             ].filter((b) => Array.isArray(b.items) && b.items.length > 0)
           : [];
         if (blocks.length === 0 && krList.length === 0) return null;
@@ -440,7 +455,7 @@ export default function EvalCycleMemberCanvas({
               <div className="evm-activity-grid">
                 {blocks.map((b) => (
                   <div className="evm-activity-block" key={b.key} data-testid={`evm-activity-${b.key}`}>
-                    <div className="evm-activity-block-title">{b.icon} {b.label}</div>
+                    <div className="evm-activity-block-title">{b.icon}<span>{b.label}</span></div>
                     {b.items.map((item, i) => (
                       <div className="evm-activity-item" key={i}>· {item}</div>
                     ))}
@@ -449,7 +464,10 @@ export default function EvalCycleMemberCanvas({
                 {krList.length > 0 && (
                   <div className="evm-activity-block evm-kr" data-testid="evm-kr">
                     <div className="evm-kr-head">
-                      <div className="evm-activity-block-title">{L.actKrTitle}</div>
+                      <div className="evm-activity-block-title">
+                        <TargetIcon size={14} />
+                        <span>{L.actKrTitle}</span>
+                      </div>
                       <div className="evm-kr-hint">{L.actKrHint}</div>
                     </div>
                     <div className="evm-kr-rows">
@@ -496,12 +514,16 @@ export default function EvalCycleMemberCanvas({
                         className="evm-kr-warn"
                         data-testid="evm-kr-unfilled-warn"
                       >
-                        ⚠ {fill(L.actKrUnfilledWarn, { count: krUnfilledCount })}
+                        <AlertIcon size={14} />
+                        <span>{fill(L.actKrUnfilledWarn, { count: krUnfilledCount })}</span>
                       </div>
                     )}
                     <div className="evm-kr-actions">
                       {krSaved && (
-                        <span className="evm-kr-saved" data-testid="evm-kr-saved">✓ {L.actKrSaved}</span>
+                        <span className="evm-kr-saved" data-testid="evm-kr-saved">
+                          <CheckCircleIcon size={13} />
+                          <span>{L.actKrSaved}</span>
+                        </span>
                       )}
                       <button
                         type="button"
@@ -523,7 +545,10 @@ export default function EvalCycleMemberCanvas({
 
       {submitted && (
         <div className="evc-list">
-          <p className="evx-notice" data-testid="evm-submitted">{L.submittedBanner}</p>
+          <p className="evx-notice is-success" data-testid="evm-submitted">
+            <CheckCircleIcon size={16} />
+            <span>{L.submittedBanner}</span>
+          </p>
         </div>
       )}
 
@@ -651,6 +676,7 @@ export default function EvalCycleMemberCanvas({
           <div className="evc-card-buttons">
             {onAiPolish && (
               <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
+                {!aiBusy && <SparkleIcon size={15} />}
                 {aiBusy ? L.aiPolishing : L.aiPolish}
               </button>
             )}
