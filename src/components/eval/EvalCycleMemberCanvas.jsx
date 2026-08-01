@@ -51,6 +51,10 @@ const DEFAULT_LABELS = {
   aiPolish: '✨ AI 다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
+  // TC-012 지난 사이클 평가 이력
+  historyTitle: '내 평가 이력',
+  historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
+  historyEmpty: '지난 평가 이력이 아직 없습니다.',
 };
 
 // 템플릿 미지정 사이클용 기본 폼(back-compat).
@@ -167,6 +171,8 @@ export default function EvalCycleMemberCanvas({
   active = true,
   activitySummary = null,
   krProgress = null,
+  // TC-012 지난 사이클 본인 최종 등급 이력(최신순). [{cycleId,cycleName,endDate,gradeKey,gradeLabel,gradeScore}]
+  evaluationHistory = null,
   labels: providedLabels,
   onSave,
   onSubmit,
@@ -378,6 +384,33 @@ export default function EvalCycleMemberCanvas({
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
         </div>
       </header>
+
+      {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
+      {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
+        <section className="evm-history" data-testid="evm-history">
+          <div className="evm-history-head">
+            <div className="evm-history-title">📈 {L.historyTitle}</div>
+            <div className="evm-history-sub">{L.historySub}</div>
+          </div>
+          <div className="evm-history-rows">
+            {evaluationHistory.map((h) => (
+              <div
+                className="evm-history-row"
+                key={h.cycleId}
+                data-testid={`evm-history-${h.cycleId}`}
+              >
+                <span className="evm-history-cycle">{h.cycleName}</span>
+                <span className="evm-history-grade">{h.gradeLabel}</span>
+                {h.endDate && (
+                  <span className="evm-history-date">
+                    {String(h.endDate).slice(0, 7).replace('-', '.')}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
       {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 오렌지 박스에 full-width 로 노출 */}
