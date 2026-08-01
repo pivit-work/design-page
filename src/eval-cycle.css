@@ -712,6 +712,25 @@
   color: var(--text-tertiary);
   margin: var(--spacing-sm, 6px) 0 0;
 }
+/* TC-028 사이클 설정 프리셋 불러오기/저장 */
+.evc-wiz-preset-load {
+  margin-bottom: var(--spacing-lg, 12px);
+  padding-bottom: var(--spacing-md, 8px);
+  border-bottom: 1px dashed var(--border-primary, #eaecf0);
+}
+.evc-wiz-preset-save {
+  margin-top: var(--spacing-lg, 12px);
+  padding-top: var(--spacing-md, 8px);
+  border-top: 1px dashed var(--border-primary, #eaecf0);
+}
+.evc-wiz-preset-save-row {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  align-items: center;
+}
+.evc-wiz-preset-save-row .evc-input {
+  flex: 1;
+}
 .evc-wiz-footer {
   display: flex;
   justify-content: space-between;
