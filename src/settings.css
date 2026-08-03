@@ -266,21 +266,29 @@
 
 .msc-photo-tile-del {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
+  top: -6px;
+  right: -6px;
+  /* 24px = WCAG 2.5.8(AA) 최소 타깃. 이전 16px 은 사진 "선택" 클릭과 오조작이 쉬웠다. */
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-full);
   border: none;
-  background: var(--bg-error-primary, var(--utility-error-500, #dc2626));
+  /* --bg-error-primary 는 에러 "표면 틴트"(#fef3f2)라 흰 글자와 대비가 ~1.1:1 로
+     사실상 보이지 않았다. 솔리드 에러 색을 써야 한다. */
+  background: var(--utility-error-500, #f04438);
   color: var(--text-white);
-  font-size: 10px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   padding: 0;
+  /* 타일 모서리에 걸쳐도 경계가 끊겨 보이도록 배경색 링을 두른다. */
+  box-shadow: 0 0 0 2px var(--bg-quaternary);
+}
+.msc-photo-tile-del:hover {
+  background: var(--colors-error-600, #d92d20);
 }
 
 .msc-photo-add {
