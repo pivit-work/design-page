@@ -229,12 +229,21 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels,
   );
 }
 
+/**
+ * 조직(팀) 배정 여부. `department` 는 조직 단위가 없으면 레거시 텍스트 컬럼으로 폴백되므로
+ * (백엔드 listUsers) 그것만 보면 실제 미배정자를 놓친다 — 조직도에 노드가 없는 사람을
+ * 어드민이 찾지 못하던 원인. orgUnitIds 를 정본으로 쓰고, 없을 때만 department 로 폴백한다.
+ */
+function hasOrgUnit(m) {
+  return Array.isArray(m.orgUnitIds) ? m.orgUnitIds.length > 0 : !!m.department;
+}
+
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onManageTeams }) {
   const [pickerFor, setPickerFor] = useState(null);
 
-  const noOrg = members.filter((m) => !m.department && m.employmentStatus !== 'terminated');
-  const noManager = members.filter((m) => m.department && !m.managerName && m.employmentStatus !== 'terminated');
+  const noOrg = members.filter((m) => !hasOrgUnit(m) && m.employmentStatus !== 'terminated');
+  const noManager = members.filter((m) => hasOrgUnit(m) && !m.managerName && m.employmentStatus !== 'terminated');
 
   return (
     <div className="admin-emp-unassigned">
@@ -552,7 +561,7 @@ export default function AdminEmployeesCanvas({
   );
 
   const unassignedCount = useMemo(
-    () => members.filter((m) => m.employmentStatus !== 'terminated' && (!m.department || !m.managerName)).length,
+    () => members.filter((m) => m.employmentStatus !== 'terminated' && (!hasOrgUnit(m) || !m.managerName)).length,
     [members],
   );
   const pendingInviteCount = useMemo(
@@ -605,6 +614,7 @@ export default function AdminEmployeesCanvas({
           onAddSalaryHistory={onAddSalaryHistory}
           onLoadHrProfile={onLoadHrProfile}
           onAddEmployee={onCsvUpload}
+          onManageTeams={onManageTeams}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab

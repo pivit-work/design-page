@@ -46,6 +46,7 @@ const DEFAULT_LABELS = {
   subTeams: '하위 팀',
   leader: '팀장',
   primary: '주 소속',
+  openProfile: '프로필 열기',
   removeLeader: '팀장 해제',
   setLeader: '팀장 지정',
   setPrimary: '주 소속으로',
@@ -207,6 +208,7 @@ export default function AdminTeamCanvas({
   onReorderTeam,
   onMemberAction,
   onAddMember,
+  onSelectMember,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -448,6 +450,7 @@ export default function AdminTeamCanvas({
         onUpdateTeam={handleUpdate}
         onMemberAction={handleMemberAction}
         onSelectSubTeam={onSelectTeam}
+        onSelectMember={onSelectMember}
         onAddMember={handleAddMember}
         onDeleteTeam={requestDelete}
       />
