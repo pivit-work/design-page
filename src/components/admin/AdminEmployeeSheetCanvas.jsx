@@ -270,6 +270,8 @@ export default function AdminEmployeeSheetCanvas({
   // 주입되면 행에 'HR' 버튼이 노출되고 읽기 전용 모달을 연다.
   onLoadHrProfile,
   onAddEmployee,
+  // 부서 셀(파생 컬럼) 클릭 시 팀 관리로 보낸다. 미주입이면 그냥 읽기전용 셀.
+  onManageTeams,
   // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
   // gradeOptions→직급(grade 카탈로그), positionOptions→직책(position 카탈로그).
   gradeOptions = [],
@@ -294,7 +296,9 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
       { id: 'nameEn', label: cl.nameEn || '호칭', width: 110, type: 'text', editable: true },
       { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
-      { id: 'department', label: cl.department || '부서', width: 120, type: 'text', editable: true },
+      // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
+      // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
+      { id: 'department', label: cl.department || '부서', width: 120, type: 'readonly', editable: false, derived: true },
       catCol('title', cl.title || '직급', 110, gradeOptions),
       catCol('position', cl.position || '직책', 110, positionOptions),
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
@@ -701,15 +705,22 @@ export default function AdminEmployeeSheetCanvas({
                       const isEditing = editing?.rowId === row.id && editing?.colId === c.id;
                       const cellDirty = isDirty(row.id, c.id);
                       const editableCell = canEdit && c.editable;
+                      // 파생 컬럼(부서)은 편집 대신 관리 화면으로 보낸다 — 값을 바꾸는 곳이
+                      // 어디인지 알려주지 않으면 읽기전용이 그냥 막힌 셀로만 보인다.
+                      const derivedJump = c.derived && canEdit && onManageTeams;
                       return (
                         <td
                           key={c.id}
-                          onClick={() => editableCell && !isEditing && startEdit(row.id, c.id)}
+                          title={c.derived ? (L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다') : undefined}
+                          onClick={() => {
+                            if (editableCell && !isEditing) startEdit(row.id, c.id);
+                            else if (derivedJump) onManageTeams();
+                          }}
                           style={{
                             height: ROW_H,
                             padding: isEditing ? 0 : '0 12px',
                             width: c.width,
-                            cursor: editableCell ? 'text' : 'default',
+                            cursor: editableCell ? 'text' : derivedJump ? 'pointer' : 'default',
                             borderLeft: cellDirty ? '2px solid #F59E0B' : 'none',
                             background: isEditing ? '#fff' : cellDirty ? 'rgba(245,158,11,.06)' : 'transparent',
                             outline: isEditing ? `2px solid ${T.accent}` : 'none',

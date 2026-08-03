@@ -614,6 +614,7 @@ export default function AdminEmployeesCanvas({
           onAddSalaryHistory={onAddSalaryHistory}
           onLoadHrProfile={onLoadHrProfile}
           onAddEmployee={onCsvUpload}
+          onManageTeams={onManageTeams}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab
