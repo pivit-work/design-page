@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   TeamIcon, ChevronRightIcon, ChevronDownIcon, MoreVerticalIcon,
   PencilIcon, PlusIcon, FolderInputIcon, Trash2Icon, UserIcon,
@@ -54,6 +54,11 @@ export function TeamInsertZone({ siblingIds, index, depth = 0, draggingId, onReo
   );
 }
 
+function subtreeHasId(node, id) {
+  if (node.id === id) return true;
+  return (node.children || []).some((c) => subtreeHasId(c, id));
+}
+
 /**
  * AdminTeamTreeNode — 팀 트리 노드(재귀). 확장/축소·DnD·컨텍스트 메뉴·인라인 생성.
  * 순수 표현: labels 로 문자열 주입, 콜백으로 상호작용 위임.
@@ -69,9 +74,28 @@ export default function AdminTeamTreeNode({
   const [hov, setHov] = useState(false);
   const [isDragTarget, setIsDragTarget] = useState(false);
   const dragCounterRef = useRef(0);
+  const rowRef = useRef(null);
   const isSelected = selectedId === node.id;
   const hasChildren = node.children.length > 0;
   const isDragging = draggingId === node.id;
+
+  // 선택된 팀이 이 노드의 **하위**에 있으면 자동 확장한다. 상세 패널의 하위 팀 칩처럼
+  // 트리 밖에서 선택이 바뀌어도 좌측 트리가 그 위치를 드러내도록 동기화하는 장치
+  // (기본 확장은 depth<2 라 3뎁스 이하 팀은 접힌 채로 남아 선택이 보이지 않았다).
+  // "렌더 중 파생 상태 갱신"(React docs) — effect 내 setState 로 인한 연쇄 렌더 회피.
+  // autoExpandedFor 로 선택 1건당 한 번만 펼쳐, 사용자가 직접 접은 것을 되돌리지 않는다.
+  const hasSelectedDescendant =
+    !!selectedId && selectedId !== node.id && hasChildren && subtreeHasId(node, selectedId);
+  const [autoExpandedFor, setAutoExpandedFor] = useState(null);
+  if (hasSelectedDescendant && autoExpandedFor !== selectedId) {
+    setAutoExpandedFor(selectedId);
+    setExpanded(true);
+  }
+
+  // 선택된 행을 뷰포트 안으로. 긴 트리에서 확장만으로는 화면 밖에 남을 수 있다.
+  useEffect(() => {
+    if (isSelected) rowRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [isSelected]);
 
   const handleDragStart = (e) => {
     if (node.isUnassigned) return;
@@ -125,6 +149,8 @@ export default function AdminTeamTreeNode({
   return (
     <div>
       <div
+        ref={rowRef}
+        data-testid={`tm-node-${node.id}`}
         draggable={!node.isUnassigned}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}

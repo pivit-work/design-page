@@ -657,6 +657,15 @@ export default function AdminEmployeeSheetCanvas({
             {L.total || '전체'} <span style={{ color: T.accent, fontFamily: T.mono }}>{filtered.length}</span>
             {L.countUnit || '명'}
           </span>
+          {/* 재직 인원 — 조직도 루트 카드와 **같은 기준**의 숫자. 어드민 목록은 퇴사자까지
+              포함하므로 전체만 보이면 조직도와 어긋난 것처럼 읽힌다(QA: 250 vs 249). */}
+          <span style={{ fontSize: 12, fontWeight: 700, color: T.muted }}>
+            {L.active || '재직'}{' '}
+            <span style={{ fontFamily: T.mono }}>
+              {filtered.filter((r) => r.employmentStatus !== 'terminated').length}
+            </span>
+            {L.countUnit || '명'}
+          </span>
           {dirtyCount > 0 && <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>● {dirtyCount}{L.rowsUnit || '개'} {L.rowsChanging || '행 변경 중'}</span>}
           <span style={{ fontSize: 11, color: T.muted, marginLeft: 'auto' }}>{L.hint || '셀 클릭하여 편집 · Tab 이동 · Enter 다음 행 · Esc 취소'}</span>
         </div>

@@ -14,12 +14,33 @@ const fill = (s, vars) => {
 };
 
 /**
+ * 멤버 행을 "프로필 열기" 버튼으로 만드는 props. onSelectMember 가 없으면 빈 객체를
+ * 돌려 기존(정적 행) 동작을 그대로 유지한다 — 콜백 미주입 소비자에 영향 없음.
+ */
+function memberOpenProps(member, onSelectMember, labels) {
+  if (!onSelectMember) return {};
+  return {
+    role: 'button',
+    tabIndex: 0,
+    title: labels.openProfile,
+    'aria-label': `${member.name} ${labels.openProfile}`,
+    onClick: () => onSelectMember(member.id),
+    onKeyDown: (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onSelectMember(member.id);
+      }
+    },
+  };
+}
+
+/**
  * AdminTeamDetailPanel — 선택된 팀 상세(이름/설명 편집, 아이콘·색 피커, 멤버 목록,
  * 인라인 멤버 추가, 하위 팀, 삭제). 순수 표현: labels·renderAvatar·콜백 주입.
  */
 export default function AdminTeamDetailPanel({
   team, availableMembers = [], labels, renderAvatar,
-  onUpdateTeam, onMemberAction, onSelectSubTeam, onAddMember, onDeleteTeam,
+  onUpdateTeam, onMemberAction, onSelectSubTeam, onSelectMember, onAddMember, onDeleteTeam,
 }) {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -60,7 +81,11 @@ export default function AdminTeamDetailPanel({
         ) : (
           <div>
             {team.members.map((m) => (
-              <div key={m.id} className="tm-member-row">
+              <div
+                key={m.id}
+                className={`tm-member-row${onSelectMember ? ' is-clickable' : ''}`}
+                {...memberOpenProps(m, onSelectMember, labels)}
+              >
                 <div className="tm-member-avatar">{avatar(m, 36)}</div>
                 <div className="tm-member-main">
                   <div className="tm-member-name-row"><span className="tm-member-name">{m.name}</span></div>
@@ -246,6 +271,7 @@ export default function AdminTeamDetailPanel({
                 showMenu={menuMemberId === m.id}
                 onToggleMenu={() => setMenuMemberId(menuMemberId === m.id ? null : m.id)}
                 onAction={onMemberAction}
+                onSelectMember={onSelectMember}
               />
             ))}
           </div>
@@ -334,7 +360,7 @@ export default function AdminTeamDetailPanel({
   );
 }
 
-function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMenu, onAction }) {
+function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMenu, onAction, onSelectMember }) {
   const menuItems = [
     { action: 'setLeader', label: member.isLeader ? labels.removeLeader : labels.setLeader, Icon: CrownIcon },
     { action: 'setPrimary', label: labels.setPrimary, Icon: StarIcon },
@@ -342,7 +368,10 @@ function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMen
   ];
 
   return (
-    <div className="tm-member-row">
+    <div
+      className={`tm-member-row${onSelectMember ? ' is-clickable' : ''}`}
+      {...memberOpenProps(member, onSelectMember, labels)}
+    >
       <div className="tm-member-avatar">{renderAvatar(member, 36)}</div>
       <div className="tm-member-main">
         <div className="tm-member-name-row">
