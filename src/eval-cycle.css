@@ -2376,11 +2376,13 @@
   font-weight: 600;
 }
 
-/* §4.A 미제출자 리마인드 모달 */
+/* §4.A 미제출자 리마인드 모달 (종합 리포트/캘리 워크스페이스 모달 공용 오버레이)
+   z-index 는 사이드바(100)·상단 헤더(90)·컨텐츠 헤더(80)보다 위여야 한다.
+   기존 60 은 셋 다보다 낮아, portal 로 탈출시켜도 사이드바가 딤 위로 노출됐다. */
 .evs-remind-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 1000;
   background: rgba(16, 24, 40, 0.45);
   display: flex;
   align-items: center;

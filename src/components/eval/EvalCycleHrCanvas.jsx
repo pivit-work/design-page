@@ -53,6 +53,7 @@ const DEFAULT_LABELS = {
   statusPeerAssign: '동료 배정',
   statusSelfReview: '셀프 리뷰',
   statusPeerReview: '동료 리뷰',
+  statusLeaderReview: '하향 리뷰',
   statusCalibration: '캘리브레이션',
   statusHrReview: 'HR 검수',
   statusReportReview: '리포트 검수',
@@ -63,6 +64,7 @@ const DEFAULT_LABELS = {
   // review types
   reviewSelf: '셀프',
   reviewPeer: '동료',
+  reviewUpward: '상향',
   reviewLeader: '하향',
   // create modal / wizard
   createTitle: '새 평가 사이클',
@@ -106,6 +108,9 @@ const DEFAULT_LABELS = {
   confirm: '확인',
   delete: '삭제',
   // toasts
+  // 단계 전진
+  advance: '{{stage}} 단계로 진행',
+  toastAdvanced: '다음 단계로 진행했습니다',
   toastCreated: '평가 사이클이 생성되었습니다',
   toastOpened: '사이클이 오픈되었습니다',
   toastRevoked: '사이클이 회수되었습니다',
@@ -137,7 +142,14 @@ const LIFECYCLE = [
   'done',
 ];
 
-const REVIEW_TYPE_KEYS = { self: 'reviewSelf', peer: 'reviewPeer', leader: 'reviewLeader' };
+// 상향(upward)이 빠져 있어 사이클 카드 칩이 '셀프 · 하향 · 동료 · upward' 로 영문 노출됐다.
+const REVIEW_TYPE_KEYS = {
+  self: 'reviewSelf',
+  peer: 'reviewPeer',
+  upward: 'reviewUpward',
+  leader: 'reviewLeader',
+  manager: 'reviewLeader',
+};
 // 단계 id → 라벨 키(마법사 PHASES 와 정합). ScheduleEditModal 에서 단계명 표시.
 const PHASE_NAME_KEYS = {
   self: 'phaseSelf',
@@ -302,16 +314,41 @@ function StatusBadge({ status, label }) {
   return <span className={`evc-status-badge tone-${meta.tone}`}>{label}</span>;
 }
 
-function LifecycleStepper({ status, labels: L }) {
-  const currentIdx = LIFECYCLE.indexOf(status);
+/**
+ * 이 사이클이 실제로 거치는 단계. 서버가 `lifecycle` 을 내려주면 그대로 쓰고(리뷰 종류·단계
+ * ON/OFF 반영), 없으면 종래 고정 체인으로 폴백한다. draft 는 스테퍼에 표시하지 않는다.
+ */
+/**
+ * peer_review 는 '리뷰 작성' 단계로, 동료·상향·하향 리뷰가 여기서 진행된다.
+ * 동료 리뷰를 안 쓰는 사이클에서 '동료 리뷰'라고 부르면 사실과 다르므로 '하향 리뷰'로 부른다.
+ */
+function statusLabel(cycle, status, L) {
+  if (
+    status === 'peer_review' &&
+    Array.isArray(cycle?.reviewTypes) &&
+    !cycle.reviewTypes.includes('peer')
+  ) {
+    return L.statusLeaderReview;
+  }
+  return L[STATUS_META[status]?.key ?? 'statusDraft'];
+}
+
+function stepsOf(cycle) {
+  const server = Array.isArray(cycle?.lifecycle) ? cycle.lifecycle : null;
+  const steps = (server ?? LIFECYCLE).filter((s) => s !== 'draft');
+  return steps.length > 0 ? steps : LIFECYCLE;
+}
+
+function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L }) {
+  const currentIdx = steps.indexOf(status);
   return (
     <div className="evc-stepper" aria-hidden="true">
-      {LIFECYCLE.map((s, i) => {
+      {steps.map((s, i) => {
         const state = currentIdx < 0 ? 'future' : i < currentIdx ? 'past' : i === currentIdx ? 'current' : 'future';
         return (
           <div key={s} className={`evc-step is-${state}`}>
             <span className="evc-step-dot" />
-            <span className="evc-step-label">{L[STATUS_META[s].key]}</span>
+            <span className="evc-step-label">{statusLabel(cycle, s, L)}</span>
           </div>
         );
       })}
@@ -319,7 +356,7 @@ function LifecycleStepper({ status, labels: L }) {
   );
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, onResume, onEditSchedule }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResults, onHold, onResume, onEditSchedule }) {
   const isDraft = cycle.status === 'draft';
   const isDone = cycle.status === 'done';
   const isOnHold = cycle.status === 'on_hold';
@@ -333,7 +370,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
       <div className="evc-card-top">
         <div className="evc-card-head">
           <h3 className="evc-card-name">{cycle.name}</h3>
-          <StatusBadge status={cycle.status} label={L[STATUS_META[cycle.status]?.key ?? 'statusDraft']} />
+          <StatusBadge status={cycle.status} label={statusLabel(cycle, cycle.status, L)} />
           {cycle.pendingCount > 0 && (
             <span className="evc-pending">{fill(L.pending, { count: cycle.pendingCount })}</span>
           )}
@@ -352,7 +389,14 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
         )}
       </div>
 
-      {!isDraft && <LifecycleStepper status={cycle.status} labels={L} />}
+      {!isDraft && (
+        <LifecycleStepper
+          cycle={cycle}
+          status={cycle.status}
+          steps={stepsOf(cycle)}
+          labels={L}
+        />
+      )}
 
       {/* §5.7.1: 진행 중 → 일시 중단(확인 모달), 일시 중단 → 재개(즉시). 회수·비상정지 대체 */}
       {isActive && (
@@ -384,6 +428,18 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onViewResults, onHold, 
           {isDraft && (
             <button type="button" className="evc-btn is-primary" onClick={() => onOpen(cycle)} data-testid="evc-open">
               {L.open}
+            </button>
+          )}
+          {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
+              nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
+          {isActive && cycle.nextStatus && (
+            <button
+              type="button"
+              className="evc-btn is-primary"
+              onClick={() => onAdvance(cycle)}
+              data-testid="evc-advance"
+            >
+              {fill(L.advance, { stage: statusLabel(cycle, cycle.nextStatus, L) })}
             </button>
           )}
           {(isActive || isOnHold) && cycle.reviewSequence && (
@@ -419,6 +475,8 @@ export default function EvalCycleHrCanvas({
   labels: providedLabels,
   onCreateCycle,
   onOpenCycle,
+  /** 오픈된 사이클을 다음 단계로 전진. (id) => Promise */
+  onAdvanceCycle,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
@@ -464,6 +522,9 @@ export default function EvalCycleHrCanvas({
 
   const handleOpen = (cycle) =>
     void run(() => onOpenCycle?.(cycle.id), L.toastOpened);
+
+  const handleAdvance = (cycle) =>
+    void run(() => onAdvanceCycle?.(cycle.id), L.toastAdvanced);
 
   const requestDelete = (cycle) => {
     setConfirmModal({
@@ -538,6 +599,7 @@ export default function EvalCycleHrCanvas({
               labels={L}
               onManage={onManageCycle ? (c) => onManageCycle(c.id) : requestDelete}
               onOpen={handleOpen}
+              onAdvance={handleAdvance}
               onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
               onHold={requestHold}
               onResume={handleResume}
