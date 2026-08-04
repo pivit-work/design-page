@@ -410,6 +410,21 @@ const MIN_GRADES = 2;
 // 현재 빌더 상태 → 템플릿 요약 문자열(항목 N · 등급 M단계).
 const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0), 0);
 
+/**
+ * §4.1.1 대상자 범위 축. §4.1.1-D 로 직무·직군·레벨·직책이 추가됐다.
+ *
+ * 어드민 정본 어휘 주의 — 직급은 User.title, 레벨은 User.grade(G1~G6), 직책은 position.
+ * (mode 값은 백엔드 IncludeMode 와 1:1)
+ */
+const TARGET_AXES = [
+  { mode: 'by_dept', field: 'department', labelKey: 'targetModeDept', headKey: 'targetDeptLabel' },
+  { mode: 'by_grade', field: 'title', labelKey: 'targetModeGrade', headKey: 'targetGradeLabel' },
+  { mode: 'by_job_role', field: 'jobRole', labelKey: 'targetModeJobRole', headKey: 'targetJobRoleLabel' },
+  { mode: 'by_job_group', field: 'jobGroup', labelKey: 'targetModeJobGroup', headKey: 'targetJobGroupLabel' },
+  { mode: 'by_level', field: 'level', labelKey: 'targetModeLevel', headKey: 'targetLevelLabel' },
+  { mode: 'by_position', field: 'position', labelKey: 'targetModePosition', headKey: 'targetPositionLabel' },
+];
+
 /** 선택한 리뷰종류로 활성 단계 목록 도출. */
 function activePhasesFor(reviewTypes) {
   return ALL_PHASES.filter(
@@ -632,8 +647,8 @@ export default function EvalCycleWizard({
   // §4.1.1 대상자 범위 — 'bulk'(전체) | 'by_dept'(부서) | 'by_grade'(직급) | 'individual_select'(개인)
   const [includeMode, setIncludeMode] = useState('bulk');
   const [selectedIds, setSelectedIds] = useState([]);
-  const [selectedDepts, setSelectedDepts] = useState([]);
-  const [selectedGrades, setSelectedGrades] = useState([]);
+  // 축 모드별로 고른 값 — { by_dept: ['개발팀'], by_grade: ['책임'], ... }
+  const [axisValues, setAxisValues] = useState({});
   const [memberSearch, setMemberSearch] = useState('');
   // §4.1.1 제외 조건 필터(자동 탐지). 데이터 근거가 있는 두 축만 노출한다.
   const [excludeOnLeave, setExcludeOnLeave] = useState(false);
@@ -886,8 +901,17 @@ export default function EvalCycleWizard({
     setter((prev) =>
       prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value],
     );
-  const toggleDept = toggleIn(setSelectedDepts);
-  const toggleGrade = toggleIn(setSelectedGrades);
+  // 축 값 토글 — 모드별로 고른 값을 따로 기억해 두어, 모드를 바꿨다 돌아와도 유지된다.
+  const toggleAxisValue = (mode, value) =>
+    setAxisValues((prev) => {
+      const cur = prev[mode] ?? [];
+      return {
+        ...prev,
+        [mode]: cur.includes(value)
+          ? cur.filter((x) => x !== value)
+          : [...cur, value],
+      };
+    });
   // 0단계 '리뷰 & 조정' 이동. 대상 → 제외는 manual, 제외 → 대상은 자동 판정 무시(keep).
   const excludeOne = (id) => {
     setKeptIds((prev) => prev.filter((x) => x !== id));
@@ -898,21 +922,19 @@ export default function EvalCycleWizard({
     setKeptIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
-  // §4.1.1 대상자 범위 4종. 부서·직급은 후보의 department / title(직급) 축으로 좁힌다.
-  const deptOptions = [
-    ...new Set(candidates.map((c) => c.department).filter(Boolean)),
-  ];
-  const gradeOptions = [
-    ...new Set(candidates.map((c) => c.title).filter(Boolean)),
-  ];
-  const scopedCandidates =
-    includeMode === 'by_dept'
-      ? candidates.filter((c) => selectedDepts.includes(c.department))
-      : includeMode === 'by_grade'
-        ? candidates.filter((c) => selectedGrades.includes(c.title))
-        : includeMode === 'individual_select'
-          ? candidates.filter((c) => selectedIds.includes(c.id))
-          : candidates;
+  // §4.1.1 + §4.1.1-D 대상자 범위. 축은 전부 "후보의 한 필드에서 값 목록을 뽑아
+  // 고른 값만 남긴다"로 같은 모양이라, 모드별로 코드를 복제하지 않고 표로 둔다.
+  const axisOf = (mode) => TARGET_AXES.find((a) => a.mode === mode) ?? null;
+  const activeAxis = axisOf(includeMode);
+  const axisOptions = activeAxis
+    ? [...new Set(candidates.map((c) => c[activeAxis.field]).filter(Boolean))]
+    : [];
+  const axisSelected = activeAxis ? (axisValues[includeMode] ?? []) : [];
+  const scopedCandidates = activeAxis
+    ? candidates.filter((c) => axisSelected.includes(c[activeAxis.field]))
+    : includeMode === 'individual_select'
+      ? candidates.filter((c) => selectedIds.includes(c.id))
+      : candidates;
 
   // §4.1.1 제외 조건 필터 — 개별 선택 모드는 관리자가 직접 고른 명단이므로 적용하지 않는다.
   const exclusionActive = includeMode !== 'individual_select';
@@ -2061,11 +2083,10 @@ export default function EvalCycleWizard({
             <div className="evc-wiz-panel">
               <div className="evc-type-row">
                 {[
-                  ['bulk', L.targetModeAll],
-                  ['by_dept', L.targetModeDept],
-                  ['by_grade', L.targetModeGrade],
-                  ['individual_select', L.targetModeIndividual],
-                ].map(([mode, label]) => (
+                  { mode: 'bulk', labelKey: 'targetModeAll' },
+                  ...TARGET_AXES,
+                  { mode: 'individual_select', labelKey: 'targetModeIndividual' },
+                ].map(({ mode, labelKey }) => (
                   <button
                     type="button"
                     key={mode}
@@ -2073,50 +2094,33 @@ export default function EvalCycleWizard({
                     onClick={() => setIncludeMode(mode)}
                     data-testid={`evc-wiz-mode-${mode}`}
                   >
-                    {label}
+                    {L[labelKey]}
                   </button>
                 ))}
               </div>
 
-              {includeMode === 'by_dept' && (
+              {activeAxis && (
                 <>
-                  <span className="evc-field-label">{L.targetDeptLabel}</span>
-                  <div className="evc-type-row" data-testid="evc-wiz-dept-options">
-                    {deptOptions.map((d) => (
+                  <span className="evc-field-label">{L[activeAxis.headKey]}</span>
+                  <div
+                    className="evc-type-row"
+                    data-testid={`evc-wiz-axis-options-${activeAxis.mode}`}
+                  >
+                    {axisOptions.map((v) => (
                       <button
                         type="button"
-                        key={d}
-                        className={`evc-type-chip${selectedDepts.includes(d) ? ' is-on' : ''}`}
-                        onClick={() => toggleDept(d)}
-                        data-testid={`evc-wiz-dept-${d}`}
+                        key={v}
+                        className={`evc-type-chip${axisSelected.includes(v) ? ' is-on' : ''}`}
+                        onClick={() => toggleAxisValue(activeAxis.mode, v)}
+                        data-testid={`evc-wiz-axis-${v}`}
                       >
-                        {d}
+                        {v}
                       </button>
                     ))}
-                    {deptOptions.length === 0 && (
-                      <p className="evc-wiz-hint">{L.noMembers}</p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {includeMode === 'by_grade' && (
-                <>
-                  <span className="evc-field-label">{L.targetGradeLabel}</span>
-                  <div className="evc-type-row" data-testid="evc-wiz-grade-options">
-                    {gradeOptions.map((g) => (
-                      <button
-                        type="button"
-                        key={g}
-                        className={`evc-type-chip${selectedGrades.includes(g) ? ' is-on' : ''}`}
-                        onClick={() => toggleGrade(g)}
-                        data-testid={`evc-wiz-grade-${g}`}
-                      >
-                        {g}
-                      </button>
-                    ))}
-                    {gradeOptions.length === 0 && (
-                      <p className="evc-wiz-hint">{L.noMembers}</p>
+                    {axisOptions.length === 0 && (
+                      <p className="evc-wiz-hint" data-testid="evc-wiz-axis-empty">
+                        {L.targetAxisEmpty}
+                      </p>
                     )}
                   </div>
                 </>
