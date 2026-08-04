@@ -334,12 +334,43 @@ const GRADE_COLOR = {
   B: { bg: '#F8FAFC', bd: '#E2E8F0', tx: '#475569' },
   C: { bg: '#FFF7ED', bd: '#FED7AA', tx: '#C2410C' },
 };
+const CJK_CHAR = /[ㄱ-힝぀-ヿ一-鿿]/;
+
+/**
+ * 등급 라벨을 배지(정사각형) 안에 가둘 글자 크기.
+ * 등급 라벨은 사이클 템플릿에서 정의되므로 'S'/'탁월' 같은 짧은 값만 온다는 보장이
+ * 없다('해당없음', 영문 'Exceeds' 등). 기본 크기로 넘치면 배지 밖으로 글자가 삐져나오므로
+ * 폭을 추정해 축소한다. 2~3자 이하(기존 케이스)는 기본 크기 그대로라 시각 변화가 없다.
+ */
+function fitGradeFontSize(label, size) {
+  const text = String(label ?? '').trim();
+  const base = Math.round(size * 0.41); // 44px 배지 → 18px (기존 값)
+  if (!text) return base;
+  const inner = size - 8; // 좌우 패딩 4px
+  // 글자 폭 계수: CJK 는 폰트 크기와 거의 같고, 라틴·숫자는 bold 기준 약 62%.
+  const units = [...text].reduce((sum, ch) => sum + (CJK_CHAR.test(ch) ? 1 : 0.62), 0);
+  const lines = units > 2.6 ? 2 : 1; // 긴 라벨은 두 줄까지 허용
+  // 두 줄로 쪼갤 땐 줄 경계에서 남는 여백이 생기므로 0.85 로 보정한다.
+  const fitted =
+    lines === 1
+      ? Math.floor(inner / units)
+      : Math.floor((inner * lines * 0.85) / units);
+  return Math.max(9, Math.min(base, fitted));
+}
+
 function GradeBadge({ grade, size = 44 }) {
   const c = GRADE_COLOR[grade] || GRADE_COLOR.B;
   return (
     <span
       className="msc-grade-badge"
-      style={{ width: size, height: size, background: c.bg, border: `1px solid ${c.bd}`, color: c.tx }}
+      style={{
+        width: size,
+        height: size,
+        background: c.bg,
+        border: `1px solid ${c.bd}`,
+        color: c.tx,
+        fontSize: fitGradeFontSize(grade, size),
+      }}
     >
       {grade}
     </span>

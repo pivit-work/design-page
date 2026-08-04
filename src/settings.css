@@ -740,6 +740,14 @@
   font-size: 18px;
   font-weight: 800;
   flex-shrink: 0;
+  /* 긴 등급 라벨(템플릿 정의 라벨·영문 로케일)이 배지 밖으로 삐져나오지 않게 —
+     안쪽 여백 + 줄바꿈 허용 + 넘침 차단. 폰트 크기는 JSX 에서 폭에 맞춰 계산한다. */
+  box-sizing: border-box;
+  padding: 0 4px;
+  line-height: 1.05;
+  text-align: center;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 /* ── 보상 마스킹 ── */
