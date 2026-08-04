@@ -107,6 +107,39 @@
 .okr-header-actions { position: fixed; top: 82px; right: 40px; z-index: 90; display: flex; gap: 8px; }
 .okr-ghost-btn { padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 
+/* 반응형 — .tab-nav(30px · 최대 6탭)는 폭이 내용에 따라 정해지는데, 액션 버튼은
+   position:fixed 로 우측 40px 에 붙어 있어 좁은 뷰포트에서 마지막 탭("내 리소스")이
+   버튼 아래로 가려졌다. 넓은 화면 시각은 그대로 두고, 좁은 폭에서만 탭 타이포·간격을
+   줄여 겹침을 없앤다. .is-okr 로 스코프해 조직도·어드민 등 .tab-nav 를 공유하는
+   다른 화면에는 영향을 주지 않는다.
+
+   단계값은 최악 케이스(전사 탭 = 액션 버튼 3개, 예약 폭 ~319px)에서 브라우저로
+   실측해 정했다 — 각 단계는 다음 단계가 시작될 때까지 겹치지 않는다:
+     30px→ vw>1336 / 24px→ vw>1294 / 20px→ vw>1165 / 17px→ vw>1075 / 16px→ vw>1037 */
+@media (max-width: 1336px) {
+  .content-header.is-okr .tab-nav { font-size: 24px; line-height: 32px; gap: 16px; }
+}
+@media (max-width: 1290px) {
+  .content-header.is-okr .tab-nav { font-size: 20px; line-height: 28px; gap: 12px; }
+}
+@media (max-width: 1160px) {
+  .content-header.is-okr .tab-nav { font-size: 17px; line-height: 24px; gap: 10px; }
+}
+@media (max-width: 1070px) {
+  .content-header.is-okr .tab-nav { font-size: 16px; line-height: 24px; gap: 8px; }
+}
+/* 최소 단계보다도 좁으면(1037px 미만) 타이포로는 못 막는다 — 탭 줄을 가로 스크롤로
+   돌려 액션 버튼에 가려지는 대신 스크롤해서 닿을 수 있게 한다(백스톱). */
+@media (max-width: 1036px) {
+  .content-header.is-okr .tab-nav {
+    max-width: calc(100vw - 240px - 12px - 319px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .content-header.is-okr .tab-nav::-webkit-scrollbar { display: none; }
+  .content-header.is-okr .tab-nav > span { flex: 0 0 auto; }
+}
+
 /* 좌우 여백까지 스크롤 영역에 포함 — 여백 위에서 휠을 굴려도 스크롤된다 */
 .okr-personal-area { position: fixed; top: 150px; left: 240px; right: 0; bottom: 0; overflow-y: auto; padding: 12px 40px 60px 12px; display: flex; flex-direction: column; gap: 16px; }
 /* flex 컬럼에서 섹션이 컨테이너 높이에 맞춰 찌그러지면 스크롤할 내용 자체가
@@ -259,6 +292,7 @@
 .okr-s-subtab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
 
 .okr-s-toolbar { display: flex; align-items: center; justify-content: space-between; }
+.okr-s-error { font-size: 13px; font-weight: 500; line-height: 20px; color: var(--utility-error-600, #d92d20); }
 .okr-s-toolbar-right { display: flex; gap: 8px; }
 .okr-s-ai-btn { padding: 6px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
 .okr-s-edit-btn { padding: 6px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
@@ -332,6 +366,10 @@
 .okr-krfb-reply-link { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-primary); cursor: pointer; }
 .okr-krfb-reply { display: flex; flex-direction: column; gap: 12px; }
 .okr-krfb-reply-actions { display: flex; justify-content: flex-end; gap: 6px; }
+/* 등록된 답변 — 원 코멘트 아래 들여쓰기 + 좌측 라인으로 종속 관계를 표시한다. */
+.okr-krfb-reply-item { display: flex; flex-direction: column; gap: 8px; margin-left: 36px; padding-left: 12px; border-left: 2px solid var(--border-secondary-alt); }
+.okr-krfb-reply-item .okr-krfb-text { font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+.okr-krfb-reply-error { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-600, #d92d20); }
 
 /* ══ 개인 OKR 작성 풀스크린 모달 ══ */
 .okr-cf-modal { position: relative; display: flex; flex-direction: column; width: calc(100vw - 72px); height: calc(100vh - 72px); background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
