@@ -909,6 +909,29 @@
   width: 100%;
   box-sizing: border-box;
 }
+/* 단계 일정은 날짜(피커 버튼) + 시·분(time 인풋) 한 줄. 좁아지면 날짜 쪽이 먼저 줄어든다. */
+.evc-sched-dt {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  min-width: 0;
+}
+.evc-sched-dt > .evc-date-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evc-sched-dt > .evc-time-input {
+  flex: 0 0 auto;
+  width: 84px;
+  box-sizing: border-box;
+}
+.evc-sched-dt > .evc-time-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .evc-sched-tpl {
   margin-top: 10px;
   padding-top: 10px;
@@ -1551,6 +1574,106 @@
 }
 .evc-member-dept {
   font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+
+/* ── A4 프리셋 불러오기 (첫 화면 1급 노출 + 다이얼로그) ── */
+.evc-preset-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+  border-radius: var(--radius-md, 10px);
+  margin-bottom: var(--spacing-lg, 12px);
+}
+.evc-preset-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evc-preset-cta-sub {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: var(--spacing-md, 8px);
+}
+.evc-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 12px);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-quaternary);
+}
+.evc-preset-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evc-preset-item-name {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-preset-item-meta {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+
+/* ── §4.1.1 제외 조건 필터 · §4.1.2 0단계 '리뷰 & 조정' ── */
+.evc-excl-block,
+.evc-review-block {
+  margin-top: var(--spacing-lg, 12px);
+  padding-top: var(--spacing-lg, 12px);
+  border-top: 1px dashed var(--border-secondary, #eaecf0);
+}
+.evc-excl-date {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  margin-top: var(--spacing-sm, 6px);
+  flex-wrap: wrap;
+}
+.evc-excl-date > .evc-date-btn {
+  flex: 0 0 auto;
+  width: 160px;
+}
+.evc-review-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg, 12px);
+}
+.evc-review-col {
+  min-width: 0;
+}
+.evc-review-col-head {
+  display: block;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+/* 리뷰·조정 목록의 행은 선택 대상이 아니라 이동 버튼만 갖는다. */
+.evc-member-item.is-static {
+  cursor: default;
+}
+.evc-member-item.is-off {
+  background: var(--bg-tertiary, #f9fafb);
+  border-style: dashed;
+}
+.evc-member-item.is-off .evc-member-name {
   color: var(--text-tertiary);
 }
 

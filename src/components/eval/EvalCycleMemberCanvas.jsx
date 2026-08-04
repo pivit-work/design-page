@@ -63,6 +63,10 @@ const DEFAULT_LABELS = {
   aiPolish: 'AI 다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
+  // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
+  aiDraft: 'AI 초안 생성',
+  aiDrafting: '초안 만드는 중…',
+  aiDraftError: 'AI 초안 생성에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
@@ -189,6 +193,7 @@ export default function EvalCycleMemberCanvas({
   onSave,
   onSubmit,
   onAiPolish,
+  onAiDraft,
   onKrProgressSave,
   // TC-053 동료 리뷰 등 타인 평가 시 항목별 공개 대상 안내 노출(셀프는 미노출)
   showVisibility = false,
@@ -198,6 +203,8 @@ export default function EvalCycleMemberCanvas({
   const [state, setState] = useState(() => seedState(answers, fields));
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftError, setDraftError] = useState(false);
   const submitted = status === 'submitted';
 
   // §4.2.1 KR 달성률 입력 — krProgress(부모 로드본)로 시드, 편집 중엔 유지.
@@ -348,6 +355,42 @@ export default function EvalCycleMemberCanvas({
       setAiError(true);
     } finally {
       setAiBusy(false);
+    }
+  };
+
+  // §4.3 AI 초안 생성 — 다듬기와 달리 **빈 칸**을 근거로 채운다.
+  // 이미 쓴 내용은 절대 덮어쓰지 않는다(초안 때문에 작성분이 날아가면 안 된다).
+  // 채울 칸이 없으면 버튼 자체가 비활성 — '다듬기'로 넘어가면 되는 상태다.
+  const emptyTextFields = fields.filter(
+    (f) => f.type !== 'rating' && !state[f.key].textAnswer.trim(),
+  );
+  const handleAiDraft = async () => {
+    if (!onAiDraft || emptyTextFields.length === 0) return;
+    const items = emptyTextFields.map((f) => ({
+      index: fields.indexOf(f),
+      itemCategory: f.category,
+      growthType: f.growthType,
+      label: f.label ?? null,
+    }));
+    setDraftError(false);
+    setDraftBusy(true);
+    try {
+      const drafted = await onAiDraft(items);
+      setState((prev) => {
+        const next = { ...prev };
+        for (const d of drafted) {
+          const f = fields[d.index];
+          // 빈 초안은 덮어쓰지 않는다(근거가 없어 못 쓴 항목).
+          if (f && d.textAnswer?.trim()) {
+            next[f.key] = { ...next[f.key], textAnswer: d.textAnswer };
+          }
+        }
+        return next;
+      });
+    } catch {
+      setDraftError(true);
+    } finally {
+      setDraftBusy(false);
     }
   };
 
@@ -645,6 +688,14 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
+      {!submitted && draftError && (
+        <div className="evc-list">
+          <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+            {L.aiDraftError}
+          </p>
+        </div>
+      )}
+
       {!submitted && saveError && (
         <div className="evm-save-error" role="alert" data-testid="evm-save-error">
           {L.saveError}
@@ -674,6 +725,18 @@ export default function EvalCycleMemberCanvas({
             </span>
           )}
           <div className="evc-card-buttons">
+            {onAiDraft && (
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                disabled={draftBusy || emptyTextFields.length === 0}
+                onClick={handleAiDraft}
+                data-testid="evm-ai-draft"
+              >
+                {!draftBusy && <SparkleIcon size={15} />}
+                {draftBusy ? L.aiDrafting : L.aiDraft}
+              </button>
+            )}
             {onAiPolish && (
               <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
                 {!aiBusy && <SparkleIcon size={15} />}

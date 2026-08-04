@@ -158,6 +158,7 @@ const PHASE_NAME_KEYS = {
   upward: 'phaseUpward',
   leader: 'phaseLeader',
   calibration: 'phaseCalibration',
+  report_review: 'phaseReportReview',
   share: 'phaseShare',
 };
 
@@ -470,6 +471,8 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
 export default function EvalCycleHrCanvas({
   cycles = [],
   candidates = [],
+  // 발령 변경 이력 — 마법사 제외 조건('직무 변경'·'직급 변경일') 근거. 그대로 내려보낸다.
+  appointmentChanges = [],
   committeeCandidates = [],
   loading = false,
   labels: providedLabels,
@@ -613,6 +616,7 @@ export default function EvalCycleHrCanvas({
         <EvalCycleWizard
           labels={L}
           candidates={candidates}
+          appointmentChanges={appointmentChanges}
           committeeCandidates={committeeCandidates}
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
