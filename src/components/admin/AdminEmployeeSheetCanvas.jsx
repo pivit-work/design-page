@@ -72,14 +72,13 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'nameEn', 'email', 'department', 'title', 'position', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'email', 'department', 'title', 'position', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
   return (list || []).map((m) => ({
     id: m.id,
     name: m.name ?? '',
-    nameEn: m.nameEn ?? '',
     email: m.email ?? '',
     department: m.department ?? '',
     title: m.title ?? '',
@@ -294,7 +293,6 @@ export default function AdminEmployeeSheetCanvas({
         : { id, label, width, type: 'text', editable: true };
     const base = [
       { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
-      { id: 'nameEn', label: cl.nameEn || '호칭', width: 110, type: 'text', editable: true },
       { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
       // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
       // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
@@ -431,7 +429,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     const q = search.trim().toLowerCase();
     if (q) {
-      const hit = ['name', 'nameEn', 'email', 'department', 'position', 'title'].some(
+      const hit = ['name', 'email', 'department', 'position', 'title'].some(
         (k) => (r[k] || '').toLowerCase().includes(q),
       );
       if (!hit) return false;
