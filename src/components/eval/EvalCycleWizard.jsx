@@ -161,6 +161,15 @@ function UsersIcon({ size = 16 }) {
   );
 }
 
+// 단계 일정은 '날짜 + 시·분'(2026-07-02 결정). 저장 포맷은 datetime-local 과 같은
+// 'YYYY-MM-DDTHH:mm' 이며, 시각을 지정하지 않으면 시작 09:00 · 종료 18:00 을 쓴다.
+// 날짜만 저장된 기존 사이클도 그대로 읽히도록 두 포맷을 모두 받아 준다.
+const DEFAULT_TIME = { start: '09:00', end: '18:00' };
+const datePart = (v) => (v || '').slice(0, 10);
+const timePart = (v, field) =>
+  (v || '').length >= 16 ? v.slice(11, 16) : DEFAULT_TIME[field];
+const joinDateTime = (date, time) => (date ? `${date}T${time}` : '');
+
 // 'YYYY-MM-DD' 문자열 ↔ Date 변환 (DatePicker 는 Date 를 주고받는다).
 const dateToIso = (date) => {
   const y = date.getFullYear();
@@ -169,7 +178,7 @@ const dateToIso = (date) => {
   return `${y}-${m}-${d}`;
 };
 const isoToDate = (iso) => {
-  const [y, m, d] = (iso || '').split('-').map(Number);
+  const [y, m, d] = datePart(iso).split('-').map(Number);
   return y ? new Date(y, m - 1, d) : new Date();
 };
 
@@ -204,6 +213,7 @@ const PEER_MODES = [
 // 단계별 일정 모델(시안 WizardStep2 ALL_PHASES). 선택 리뷰종류로 활성 단계 도출.
 //  - self·share 는 앵커(양끝 고정, DnD 불가). 중간 단계만 재배열.
 //  - required 단계(self·calibration·share)는 항상 ON. dependsOn 은 해당 유형 선택 시 활성.
+//  - always 단계는 리뷰 종류와 무관하게 항상 목록에 있고, 토글로 끌 수 있다.
 //  - 하향 단계 id 는 'leader'(리뷰종류 id 와 1:1; manager 개명은 별도 마이그레이션).
 const ALL_PHASES = [
   { id: 'self', nameKey: 'phaseSelf', targetKey: 'ownerEvaluatee', required: true, anchor: true },
@@ -211,7 +221,10 @@ const ALL_PHASES = [
   { id: 'peer', nameKey: 'phasePeer', targetKey: 'ownerPeer' },
   { id: 'upward', nameKey: 'phaseUpward', targetKey: 'ownerEvaluatee' },
   { id: 'leader', nameKey: 'phaseLeader', targetKey: 'ownerLeader' },
-  { id: 'calibration', nameKey: 'phaseCalibration', targetKey: 'ownerHrExec', required: true },
+  // 조정·확정은 캘리브레이션 위원회 몫이고 HR 은 조회 전용(§3 재설계).
+  { id: 'calibration', nameKey: 'phaseCalibration', targetKey: 'ownerCommittee', required: true },
+  // §4.1.2 6단계 — 피평가자별 통합 요약을 조직장이 1차 검수(HR 은 열람).
+  { id: 'report_review', nameKey: 'phaseReportReview', targetKey: 'ownerLeaderHr', always: true },
   { id: 'share', nameKey: 'phaseShare', targetKey: 'ownerHr', required: true, anchor: true },
 ];
 // 단계 → 평가 유형(적용 템플릿 매핑용). 이 유형 템플릿만 해당 단계에 매핑 가능.
@@ -233,6 +246,7 @@ const PHASE_RESPONDER_SHORT = {
   leader: 'reminderRespLeader',
   peer_confirm: 'reminderRespLeader',
   calibration: 'reminderRespCalib',
+  report_review: 'reminderRespLeader',
   share: 'reminderRespShare',
 };
 const SLACK_CHANNELS = ['#performance-review', '#hr-notice', '#team-lead', '#general'];
@@ -247,7 +261,8 @@ const REMINDER_TARGETS = [
 // 단계별 당사자 역할 카테고리 — 참조(리더/HR) 중복 판정용
 const PHASE_RESPONDER_ROLE = {
   self: 'member', peer: 'member', upward: 'member',
-  leader: 'leader', peer_confirm: 'leader', calibration: 'hr', share: 'hr',
+  leader: 'leader', peer_confirm: 'leader', report_review: 'leader',
+  calibration: 'hr', share: 'hr',
 };
 const SLACK_SEND_MODES = [
   { id: 'dm', labelKey: 'reminderSlackDm', Icon: UserIcon },
@@ -400,6 +415,7 @@ function activePhasesFor(reviewTypes) {
   return ALL_PHASES.filter(
     (p) =>
       p.required ||
+      p.always ||
       reviewTypes.includes(p.id) ||
       (p.dependsOn && reviewTypes.includes(p.dependsOn)),
   );
@@ -421,7 +437,7 @@ function getOverlapPairs(rows) {
   return pairs;
 }
 
-/** 활성 단계에 7일 간격 초기 일정(시작·종료 날짜) 배치. */
+/** 활성 단계에 7일 간격 초기 일정(시작·종료 일시) 배치. 기본 시각 09:00~18:00. */
 function initSchedule(phases, baseDate) {
   const DAY = 86400000;
   const base = baseDate ? new Date(baseDate) : new Date();
@@ -430,7 +446,10 @@ function initSchedule(phases, baseDate) {
   phases.forEach((p, i) => {
     const st = new Date(base.getTime() + i * 7 * DAY);
     const en = new Date(st.getTime() + 6 * DAY);
-    s[p.id] = { start: iso(st), end: iso(en) };
+    s[p.id] = {
+      start: joinDateTime(iso(st), DEFAULT_TIME.start),
+      end: joinDateTime(iso(en), DEFAULT_TIME.end),
+    };
   });
   return s;
 }
@@ -610,9 +629,21 @@ export default function EvalCycleWizard({
   const [phaseOrder, setPhaseOrder] = useState([]); // 중간 단계 재배열 순서(id)
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
+  // §4.1.1 대상자 범위 — 'bulk'(전체) | 'by_dept'(부서) | 'by_grade'(직급) | 'individual_select'(개인)
   const [includeMode, setIncludeMode] = useState('bulk');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedDepts, setSelectedDepts] = useState([]);
+  const [selectedGrades, setSelectedGrades] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
+  // §4.1.1 제외 조건 필터(자동 탐지). 데이터 근거가 있는 두 축만 노출한다.
+  const [excludeOnLeave, setExcludeOnLeave] = useState(false);
+  const [excludeHireDate, setExcludeHireDate] = useState(false);
+  const [hireDateRef, setHireDateRef] = useState('');
+  const [hireDateDirection, setHireDateDirection] = useState('after');
+  const [hirePicker, setHirePicker] = useState(null);
+  // §4.1.2 0단계 '리뷰 & 조정' — 자동 산출 명단을 사람이 최종 가감한다.
+  const [manualExcludedIds, setManualExcludedIds] = useState([]); // 대상 → 제외
+  const [keptIds, setKeptIds] = useState([]); // 자동 제외를 되돌려 대상으로 유지
   // 평가 템플릿(step 1) — 워크스페이스 라이브러리 + 빌더 상태
   const [savedTemplates, setSavedTemplates] = useState([]); // 이 세션 라이브러리
   const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
@@ -662,6 +693,18 @@ export default function EvalCycleWizard({
 
   const updateSchedule = (id, field, value) =>
     setSchedule((s) => ({ ...s, [id]: { ...scheduleOf(id), [field]: value } }));
+  // 날짜·시각을 각각 편집해도 저장은 'YYYY-MM-DDTHH:mm' 한 값으로 유지한다.
+  const updateSchedDate = (id, field, isoDate) =>
+    updateSchedule(
+      id,
+      field,
+      joinDateTime(isoDate, timePart(scheduleOf(id)[field], field)),
+    );
+  const updateSchedTime = (id, field, hhmm) => {
+    const date = datePart(scheduleOf(id)[field]);
+    if (!date) return;
+    updateSchedule(id, field, joinDateTime(date, hhmm || DEFAULT_TIME[field]));
+  };
 
   // §5.2.1 리마인더 편집
   const addReminder = (pid) =>
@@ -839,10 +882,79 @@ export default function EvalCycleWizard({
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+  const toggleIn = (setter) => (value) =>
+    setter((prev) =>
+      prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value],
+    );
+  const toggleDept = toggleIn(setSelectedDepts);
+  const toggleGrade = toggleIn(setSelectedGrades);
+  // 0단계 '리뷰 & 조정' 이동. 대상 → 제외는 manual, 제외 → 대상은 자동 판정 무시(keep).
+  const excludeOne = (id) => {
+    setKeptIds((prev) => prev.filter((x) => x !== id));
+    setManualExcludedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+  const includeOne = (id) => {
+    setManualExcludedIds((prev) => prev.filter((x) => x !== id));
+    setKeptIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
 
-  const targetIds =
-    includeMode === 'bulk' ? candidates.map((c) => c.id) : selectedIds;
+  // §4.1.1 대상자 범위 4종. 부서·직급은 후보의 department / title(직급) 축으로 좁힌다.
+  const deptOptions = [
+    ...new Set(candidates.map((c) => c.department).filter(Boolean)),
+  ];
+  const gradeOptions = [
+    ...new Set(candidates.map((c) => c.title).filter(Boolean)),
+  ];
+  const scopedCandidates =
+    includeMode === 'by_dept'
+      ? candidates.filter((c) => selectedDepts.includes(c.department))
+      : includeMode === 'by_grade'
+        ? candidates.filter((c) => selectedGrades.includes(c.title))
+        : includeMode === 'individual_select'
+          ? candidates.filter((c) => selectedIds.includes(c.id))
+          : candidates;
+
+  // §4.1.1 제외 조건 필터 — 개별 선택 모드는 관리자가 직접 고른 명단이므로 적용하지 않는다.
+  const exclusionActive = includeMode !== 'individual_select';
+  const autoExclusions = !exclusionActive
+    ? []
+    : scopedCandidates.flatMap((c) => {
+        if (excludeOnLeave && c.employmentStatus === 'on_leave') {
+          return [{ memberId: c.id, exclusionType: 'leave' }];
+        }
+        if (excludeHireDate && hireDateRef && c.hireDate) {
+          const after = hireDateDirection === 'after';
+          const hit = after ? c.hireDate > hireDateRef : c.hireDate < hireDateRef;
+          if (hit) {
+            return [
+              {
+                memberId: c.id,
+                exclusionType: 'hire_date',
+                referenceDate: hireDateRef,
+                referenceDateDirection: hireDateDirection,
+              },
+            ];
+          }
+        }
+        return [];
+      });
+  // 0단계 '리뷰 & 조정' 에서 손으로 뺀 사람(개별 지정 제외).
+  const manualExclusions = manualExcludedIds
+    .filter((id) => scopedCandidates.some((c) => c.id === id))
+    .map((id) => ({ memberId: id, exclusionType: 'manual' }));
+  const exclusions = [
+    ...manualExclusions,
+    ...autoExclusions.filter(
+      (e) => !manualExcludedIds.includes(e.memberId) && !keptIds.includes(e.memberId),
+    ),
+  ];
+  const excludedIds = new Set(exclusions.map((e) => e.memberId));
+  const targetMembers = scopedCandidates.filter((c) => !excludedIds.has(c.id));
+  const excludedMembers = scopedCandidates.filter((c) => excludedIds.has(c.id));
+  const targetIds = targetMembers.map((c) => c.id);
   const targetCount = targetIds.length;
+  const exclusionReasonOf = (id) =>
+    exclusions.find((e) => e.memberId === id)?.exclusionType ?? 'manual';
 
   const filteredCandidates = memberSearch.trim()
     ? candidates.filter((c) =>
@@ -929,6 +1041,8 @@ export default function EvalCycleWizard({
       calibrationDue: null,
       includeMode,
       memberIds: targetIds,
+      // §4.1.1 제외 조건 필터 결과 — 소비 측이 생성 후 eval_cycle_exclusions 로 영속한다.
+      exclusions,
       // R1b 경로 B — 위원회를 지금 구성하면 생성 후 캘리브레이션 세션도 함께 만든다.
       committee:
         committeeOn && committee.length > 0
@@ -1092,25 +1206,6 @@ export default function EvalCycleWizard({
                 >
                   {L.allTypesOffWarn}
                 </p>
-              )}
-
-              {reviewTypes.includes('leader') && (
-                <div className="evc-wiz-gradepos">
-                  <span className="evc-field-label">{L.gradePosLabel}</span>
-                  <div className="evc-type-row">
-                    {['top', 'bottom', 'freeze'].map((pos) => (
-                      <button
-                        type="button"
-                        key={pos}
-                        className={`evc-type-chip${gradeCardPosition === pos ? ' is-on' : ''}`}
-                        onClick={() => setGradeCardPosition(pos)}
-                        data-testid={`evc-wiz-gradepos-${pos}`}
-                      >
-                        {L[`gradePos_${pos}`]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               )}
 
               {hasPeer && (
@@ -1458,6 +1553,27 @@ export default function EvalCycleWizard({
                 )}
               </div>
 
+              {/* §4.2.2-B 최종 등급 카드 위치는 하향 리뷰 템플릿 설정 영역 소속.
+                  기본 정보 스텝에 있던 것을 등급 체계 바로 아래로 옮겼다. */}
+              {tplType === 'leader' && (
+                <div className="evc-wiz-gradepos">
+                  <span className="evc-field-label">{L.gradePosLabel}</span>
+                  <div className="evc-type-row">
+                    {['top', 'bottom', 'freeze'].map((pos) => (
+                      <button
+                        type="button"
+                        key={pos}
+                        className={`evc-type-chip${gradeCardPosition === pos ? ' is-on' : ''}`}
+                        onClick={() => setGradeCardPosition(pos)}
+                        data-testid={`evc-wiz-gradepos-${pos}`}
+                      >
+                        {L[`gradePos_${pos}`]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="evc-tpl-lib">
                 <button
                   type="button"
@@ -1574,30 +1690,33 @@ export default function EvalCycleWizard({
                       </div>
                       {enabled && (
                         <div className="evc-sched-fields">
-                          <div className="evc-sched-field">
-                            <span className="evc-field-label">{L.startDate}</span>
-                            <button
-                              type="button"
-                              className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === 'start' ? ' is-open' : ''}`}
-                              style={{ textAlign: 'left', cursor: 'pointer' }}
-                              onClick={openSchedPicker(ph.id, 'start')}
-                              data-testid={`evc-sched-start-${ph.id}`}
-                            >
-                              {sc.start || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
-                            </button>
-                          </div>
-                          <div className="evc-sched-field">
-                            <span className="evc-field-label">{L.endDate}</span>
-                            <button
-                              type="button"
-                              className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === 'end' ? ' is-open' : ''}`}
-                              style={{ textAlign: 'left', cursor: 'pointer' }}
-                              onClick={openSchedPicker(ph.id, 'end')}
-                              data-testid={`evc-sched-end-${ph.id}`}
-                            >
-                              {sc.end || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
-                            </button>
-                          </div>
+                          {['start', 'end'].map((field) => (
+                            <div className="evc-sched-field" key={field}>
+                              <span className="evc-field-label">
+                                {field === 'start' ? L.startDateTime ?? L.startDate : L.endDateTime ?? L.endDate}
+                              </span>
+                              <div className="evc-sched-dt">
+                                <button
+                                  type="button"
+                                  className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === field ? ' is-open' : ''}`}
+                                  style={{ textAlign: 'left', cursor: 'pointer' }}
+                                  onClick={openSchedPicker(ph.id, field)}
+                                  data-testid={`evc-sched-${field}-${ph.id}`}
+                                >
+                                  {datePart(sc[field]) || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
+                                </button>
+                                <input
+                                  type="time"
+                                  className="evc-input evc-time-input"
+                                  value={timePart(sc[field], field)}
+                                  onChange={(e) => updateSchedTime(ph.id, field, e.target.value)}
+                                  disabled={!datePart(sc[field])}
+                                  aria-label={field === 'start' ? L.startTime : L.endTime}
+                                  data-testid={`evc-sched-${field}-time-${ph.id}`}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                       {enabled && (
@@ -1929,7 +2048,7 @@ export default function EvalCycleWizard({
                   anchorEl={schedPicker.el}
                   selectedDate={isoToDate(scheduleOf(schedPicker.phaseId)[schedPicker.field])}
                   onSelect={(d) => {
-                    updateSchedule(schedPicker.phaseId, schedPicker.field, dateToIso(d));
+                    updateSchedDate(schedPicker.phaseId, schedPicker.field, dateToIso(d));
                     setSchedPicker(null);
                   }}
                   onClose={() => setSchedPicker(null)}
@@ -1941,29 +2060,73 @@ export default function EvalCycleWizard({
           {step === 3 && (
             <div className="evc-wiz-panel">
               <div className="evc-type-row">
-                <button
-                  type="button"
-                  className={`evc-type-chip${includeMode === 'bulk' ? ' is-on' : ''}`}
-                  onClick={() => setIncludeMode('bulk')}
-                  data-testid="evc-wiz-mode-bulk"
-                >
-                  {L.targetModeAll}
-                </button>
-                <button
-                  type="button"
-                  className={`evc-type-chip${includeMode === 'individual_select' ? ' is-on' : ''}`}
-                  onClick={() => setIncludeMode('individual_select')}
-                  data-testid="evc-wiz-mode-individual"
-                >
-                  {L.targetModeIndividual}
-                </button>
+                {[
+                  ['bulk', L.targetModeAll],
+                  ['by_dept', L.targetModeDept],
+                  ['by_grade', L.targetModeGrade],
+                  ['individual_select', L.targetModeIndividual],
+                ].map(([mode, label]) => (
+                  <button
+                    type="button"
+                    key={mode}
+                    className={`evc-type-chip${includeMode === mode ? ' is-on' : ''}`}
+                    onClick={() => setIncludeMode(mode)}
+                    data-testid={`evc-wiz-mode-${mode}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
+
+              {includeMode === 'by_dept' && (
+                <>
+                  <span className="evc-field-label">{L.targetDeptLabel}</span>
+                  <div className="evc-type-row" data-testid="evc-wiz-dept-options">
+                    {deptOptions.map((d) => (
+                      <button
+                        type="button"
+                        key={d}
+                        className={`evc-type-chip${selectedDepts.includes(d) ? ' is-on' : ''}`}
+                        onClick={() => toggleDept(d)}
+                        data-testid={`evc-wiz-dept-${d}`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                    {deptOptions.length === 0 && (
+                      <p className="evc-wiz-hint">{L.noMembers}</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {includeMode === 'by_grade' && (
+                <>
+                  <span className="evc-field-label">{L.targetGradeLabel}</span>
+                  <div className="evc-type-row" data-testid="evc-wiz-grade-options">
+                    {gradeOptions.map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        className={`evc-type-chip${selectedGrades.includes(g) ? ' is-on' : ''}`}
+                        onClick={() => toggleGrade(g)}
+                        data-testid={`evc-wiz-grade-${g}`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                    {gradeOptions.length === 0 && (
+                      <p className="evc-wiz-hint">{L.noMembers}</p>
+                    )}
+                  </div>
+                </>
+              )}
 
               {includeMode === 'bulk' ? (
                 <p className="evc-wiz-hint" data-testid="evc-wiz-bulk-note">
                   {fill(L.targetAllNote, { count: candidates.length })}
                 </p>
-              ) : (
+              ) : includeMode !== 'individual_select' ? null : (
                 <>
                   <input
                     className="evc-input"
@@ -1996,6 +2159,151 @@ export default function EvalCycleWizard({
                     )}
                   </div>
                 </>
+              )}
+
+              {/* §4.1.1 제외 조건 필터 — 개별 선택은 관리자가 직접 고른 명단이라 적용하지 않는다. */}
+              {exclusionActive && (
+                <div className="evc-excl-block" data-testid="evc-wiz-exclusions">
+                  <span className="evc-field-label">{L.exclusionLabel}</span>
+                  <p className="evc-wiz-hint">{L.exclusionHint}</p>
+                  <label className="evl-promo-row">
+                    <input
+                      type="checkbox"
+                      checked={excludeOnLeave}
+                      onChange={(e) => setExcludeOnLeave(e.target.checked)}
+                      data-testid="evc-wiz-excl-leave"
+                    />
+                    <span>{L.exclusionOnLeave}</span>
+                  </label>
+                  <label className="evl-promo-row">
+                    <input
+                      type="checkbox"
+                      checked={excludeHireDate}
+                      onChange={(e) => setExcludeHireDate(e.target.checked)}
+                      data-testid="evc-wiz-excl-hiredate"
+                    />
+                    <span>{L.exclusionHireDate}</span>
+                  </label>
+                  {excludeHireDate && (
+                    <div className="evc-excl-date">
+                      <button
+                        type="button"
+                        className="evc-input evc-date-btn"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={(e) =>
+                          setHirePicker({
+                            rect: e.currentTarget.getBoundingClientRect(),
+                            el: e.currentTarget,
+                          })
+                        }
+                        data-testid="evc-wiz-excl-hiredate-ref"
+                      >
+                        {hireDateRef || (
+                          <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>
+                        )}
+                      </button>
+                      <div className="evc-type-row">
+                        {[
+                          ['after', L.exclusionAfter],
+                          ['before', L.exclusionBefore],
+                        ].map(([dir, label]) => (
+                          <button
+                            type="button"
+                            key={dir}
+                            className={`evc-type-chip${hireDateDirection === dir ? ' is-on' : ''}`}
+                            onClick={() => setHireDateDirection(dir)}
+                            data-testid={`evc-wiz-excl-dir-${dir}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* §4.1.2 0단계 '리뷰 & 조정' — 자동 산출된 명단을 사람이 최종 확인·가감한다. */}
+              <div className="evc-review-block" data-testid="evc-wiz-review-adjust">
+                <span className="evc-field-label">{L.targetReviewLabel}</span>
+                <p className="evc-wiz-hint" data-testid="evc-wiz-target-summary">
+                  {fill(L.targetReviewSummary, {
+                    count: targetCount,
+                    excluded: excludedMembers.length,
+                  })}
+                </p>
+                <div className="evc-review-cols">
+                  <div className="evc-review-col">
+                    <span className="evc-review-col-head">
+                      {fill(L.targetReviewIncluded, { count: targetMembers.length })}
+                    </span>
+                    <div className="evc-member-list">
+                      {targetMembers.map((c) => (
+                        <div key={c.id} className="evc-member-item is-static">
+                          <span className="evc-member-name">{c.name}</span>
+                          {c.department && (
+                            <span className="evc-member-dept">{c.department}</span>
+                          )}
+                          <button
+                            type="button"
+                            className="evc-tpl-x"
+                            onClick={() => excludeOne(c.id)}
+                            aria-label={L.targetReviewExcludeOne}
+                            title={L.targetReviewExcludeOne}
+                            data-testid={`evc-wiz-exclude-${c.id}`}
+                          >
+                            →
+                          </button>
+                        </div>
+                      ))}
+                      {targetMembers.length === 0 && (
+                        <p className="evc-wiz-hint">{L.noMembers}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="evc-review-col">
+                    <span className="evc-review-col-head">
+                      {fill(L.targetReviewExcluded, { count: excludedMembers.length })}
+                    </span>
+                    <div className="evc-member-list">
+                      {excludedMembers.map((c) => (
+                        <div key={c.id} className="evc-member-item is-static is-off">
+                          <button
+                            type="button"
+                            className="evc-tpl-x"
+                            onClick={() => includeOne(c.id)}
+                            aria-label={L.targetReviewIncludeOne}
+                            title={L.targetReviewIncludeOne}
+                            data-testid={`evc-wiz-include-${c.id}`}
+                          >
+                            ←
+                          </button>
+                          <span className="evc-member-name">{c.name}</span>
+                          <span className="evc-member-dept">
+                            {L[`exclusionType_${exclusionReasonOf(c.id)}`] ??
+                              exclusionReasonOf(c.id)}
+                          </span>
+                        </div>
+                      ))}
+                      {excludedMembers.length === 0 && (
+                        <p className="evc-wiz-hint">{L.targetReviewNoExcluded}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {hirePicker && (
+                <DatePicker
+                  anchorRect={hirePicker.rect}
+                  anchorEl={hirePicker.el}
+                  selectedDate={isoToDate(hireDateRef)}
+                  onSelect={(d) => {
+                    setHireDateRef(dateToIso(d));
+                    setHirePicker(null);
+                  }}
+                  onClose={() => setHirePicker(null)}
+                />
               )}
             </div>
           )}

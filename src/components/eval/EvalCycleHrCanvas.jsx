@@ -158,6 +158,7 @@ const PHASE_NAME_KEYS = {
   upward: 'phaseUpward',
   leader: 'phaseLeader',
   calibration: 'phaseCalibration',
+  report_review: 'phaseReportReview',
   share: 'phaseShare',
 };
 
