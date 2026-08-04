@@ -78,7 +78,9 @@ function applyTexture(app, objectName, imageSrc) {
  * 띄웠는데, nginx 의 `.html` rewrite 가 query string 을 날려 React index.html 로
  * fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  */
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true }) {
+// onFeedbackClick / onMeetingClick — 액션 버튼(피드백주기·미팅잡기) 콜백.
+// 미지정이면 지금까지처럼 아무 동작도 하지 않는다(시각·레이아웃 변화 없음).
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -183,11 +185,19 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           const isDisabled = displayMember?.status === 'resigned' || displayMember?.status === 'leave';
           return (
             <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
-              <button className="modal-btn-feedback" disabled={isDisabled}>
+              <button
+                className="modal-btn-feedback"
+                disabled={isDisabled}
+                onClick={onFeedbackClick ? () => onFeedbackClick(displayMember) : undefined}
+              >
                 <Icon src="/icons-solid/send-03.svg" size={20} baseUrl={baseUrl} />
                 피드백주기
               </button>
-              <button className="modal-btn-meeting" disabled={isDisabled}>
+              <button
+                className="modal-btn-meeting"
+                disabled={isDisabled}
+                onClick={onMeetingClick ? () => onMeetingClick(displayMember) : undefined}
+              >
                 <Icon src="/icons-solid/calendar-heart-02.svg" size={20} baseUrl={baseUrl} />
                 미팅잡기
               </button>
