@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertIcon, LockIcon } from './evalIcons.jsx';
 
 /**
@@ -1814,7 +1815,7 @@ export default function EvalCycleSummaryCanvas({
               )}
             </div>
 
-            {showNineBox && nineBox && (
+            {showNineBox && nineBox && createPortal(
               <div
                 className="evs-remind-overlay"
                 data-testid="evs-cw-ninebox-modal"
@@ -1902,7 +1903,8 @@ export default function EvalCycleSummaryCanvas({
                     );
                   })()}
                 </div>
-              </div>
+              </div>,
+              document.body,
             )}
 
             {selectedAppealId ? (
@@ -2763,7 +2765,7 @@ export default function EvalCycleSummaryCanvas({
       </div>
 
       {/* §6.3 R4 대상자 선별 필터 모달 */}
-      {showCalibFilter && calibTable && (
+      {showCalibFilter && calibTable && createPortal(
         <div
           className="evs-remind-overlay"
           data-testid="evs-cw-filter-modal"
@@ -2986,11 +2988,12 @@ export default function EvalCycleSummaryCanvas({
               );
             })()}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* R1(v0.3) 캘리브레이션 위원회 생성 모달 */}
-      {showCreate && (
+      {showCreate && createPortal(
         <div
           className="evs-remind-overlay"
           data-testid="evs-cw-create-modal"
@@ -3168,11 +3171,12 @@ export default function EvalCycleSummaryCanvas({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* §4.A 미제출자 리마인드 모달 */}
-      {showRemind && (
+      {showRemind && createPortal(
         <div className="evs-remind-overlay" data-testid="evs-remind-modal" onClick={() => setShowRemind(false)}>
           <div className="evs-remind" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="evs-remind-head">
@@ -3262,7 +3266,8 @@ export default function EvalCycleSummaryCanvas({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

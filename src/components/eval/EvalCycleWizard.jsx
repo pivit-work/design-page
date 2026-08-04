@@ -365,6 +365,24 @@ const TEMPLATE_PRESETS = {
     { id: 'd13', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
 };
+/**
+ * [F1] 동료 리뷰는 **피드백 전용**이다 — 동료 리뷰어에게는 평가권이 없으므로
+ * 등급 항목은 빼고, 점수(척도)형은 서술형으로 내려 보여준다.
+ * (서버 resolvePhaseTemplate 도 peerMode 에서 같은 강등을 하므로, 빌더가 보여주는 것과
+ *  동료가 실제로 받는 폼이 어긋나지 않게 여기서 미리 맞춘다.)
+ */
+function presetFor(version, reviewType) {
+  const base = TEMPLATE_PRESETS[version] ?? TEMPLATE_PRESETS.standard;
+  if (reviewType !== 'peer') return base;
+  return base
+    .filter((q) => q.type !== 'grade')
+    .map((q) =>
+      q.type === 'rating'
+        ? { ...q, type: 'textarea', requiresRationale: false }
+        : q,
+    );
+}
+
 // 워크스페이스 기본 등급 체계(상대비율 포함).
 const DEFAULT_GRADES = [
   { label: '탁월', desc: '기대를 초과하는 성과를 달성함', ratio: 15 },
@@ -600,7 +618,7 @@ export default function EvalCycleWizard({
   const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
   const [tplName, setTplName] = useState('');
   const [tplVersion, setTplVersion] = useState('standard');
-  const [tplQuestions, setTplQuestions] = useState(TEMPLATE_PRESETS.standard);
+  const [tplQuestions, setTplQuestions] = useState(() => presetFor('standard', 'self'));
   const [tplGrades, setTplGrades] = useState(DEFAULT_GRADES);
   const [tplAbsolute, setTplAbsolute] = useState(false); // 절대평가(상대비율 없음)
   const [tplRatioScope, setTplRatioScope] = useState('div');
@@ -731,10 +749,15 @@ export default function EvalCycleWizard({
     setRoleVersions((prev) => ({ ...prev, [role]: v }));
   const selectTplPreset = (id) => {
     setTplVersion(id);
-    setTplQuestions(TEMPLATE_PRESETS[id]);
+    setTplQuestions(presetFor(id, tplType));
   };
   const tplIsCustomized =
-    JSON.stringify(tplQuestions) !== JSON.stringify(TEMPLATE_PRESETS[tplVersion]);
+    JSON.stringify(tplQuestions) !== JSON.stringify(presetFor(tplVersion, tplType));
+  // 유형을 바꾸면(특히 동료로) 손대지 않은 프리셋은 그 유형에 맞게 다시 깐다.
+  const selectTplType = (id) => {
+    if (!tplIsCustomized) setTplQuestions(presetFor(tplVersion, id));
+    setTplType(id);
+  };
   const tplDrop = (targetIdx) => {
     if (tplDragIdx === null || tplDragIdx === targetIdx) {
       setTplDragIdx(null);
@@ -1138,7 +1161,7 @@ export default function EvalCycleWizard({
                     type="button"
                     key={rt.id}
                     className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${reviewTypes.includes(rt.id) ? '' : ' is-dim'}`}
-                    onClick={() => setTplType(rt.id)}
+                    onClick={() => selectTplType(rt.id)}
                     data-testid={`evc-tpl-type-${rt.id}`}
                   >
                     {L[rt.nameKey]}
