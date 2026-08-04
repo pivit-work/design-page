@@ -80,19 +80,31 @@ export default function OkrComposeFullModal({
     try {
       const res = await onGenerate();
       const draft = res?.draft ?? res;
-      const krList = (draft?.keyResults ?? []).map((k) => ({
+      // AI 는 가중치를 주지 않는다. 빈 값으로 두면 "합계 0% (100% 필요)" 가 떠
+      // 초안을 그대로 저장할 수 없으므로 균등 배분(합 100)으로 채워 둔다.
+      const raw = draft?.keyResults ?? [];
+      const n = raw.length || 1;
+      const base = Math.floor(100 / n);
+      const krList = raw.map((k, i) => ({
         key: nextId(),
         title: k.title ?? '',
         target: k.targetValue ?? 100,
         unit: k.unit ?? TYPE_UNIT[k.type] ?? '',
         inputType: TYPE_INPUT[k.type] ?? 'count',
-        weight: '',
+        weight: String(i === n - 1 ? 100 - base * (n - 1) : base),
         ownerId: selfId,
         teamKrId: null,
       }));
+      // Objective 가중치도 마찬가지 — 기존 Objective 가 없으면 100%.
       setObjectives((p) => [
         ...p,
-        { key: nextId(), title: draft?.objective?.title ?? '', weight: '', parentId: '', krs: krList },
+        {
+          key: nextId(),
+          title: draft?.objective?.title ?? '',
+          weight: p.length === 0 ? '100' : '',
+          parentId: '',
+          krs: krList,
+        },
       ]);
     } catch {
       setGenError('AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -184,7 +196,7 @@ export default function OkrComposeFullModal({
                       <p className="okr-cf-kr-title"><b>{kr.id}</b> {kr.title}</p>
                       <div className="okr-cf-kr-progress">
                         <OkrProgressBar percent={kr.percent} variant="success" />
-                        <span>100%</span>
+                        <span>{kr.percent}%</span>
                       </div>
                     </div>
                   </div>

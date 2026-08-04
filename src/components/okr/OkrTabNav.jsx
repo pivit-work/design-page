@@ -4,8 +4,10 @@
  * 탭 상태는 wrapper(OkrPage)가 소유한다.
  */
 export default function OkrTabNav({ tabs, activeTab, onTabChange, year, quarter }) {
+  // is-okr 은 시각 없는 스코프 훅 — okr.css 의 반응형 규칙이 .tab-nav 를 쓰는
+  // 다른 화면(조직도·어드민)까지 건드리지 않도록 한다.
   return (
-    <div className="content-header">
+    <div className="content-header is-okr">
       <div className="tab-nav">
         {tabs.map((tab) => (
           <span
