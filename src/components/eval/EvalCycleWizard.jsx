@@ -607,6 +607,9 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
 export default function EvalCycleWizard({
   labels: L,
   candidates = [],
+  // 발령 변경 이력 [{userId, field, date, before, after}] — '직무 변경'·'직급 변경일'
+  // 제외 규칙의 근거. 비면 두 규칙은 아무도 잡지 않는다(조용히 0명).
+  appointmentChanges = [],
   committeeCandidates = [],
   onCancel,
   onSubmit,
@@ -656,6 +659,12 @@ export default function EvalCycleWizard({
   const [hireDateRef, setHireDateRef] = useState('');
   const [hireDateDirection, setHireDateDirection] = useState('after');
   const [hirePicker, setHirePicker] = useState(null);
+  // 발령 이력 기반 2종 — 평가 기간 중 직무 변경 / 직급(승진) 변경일 기준
+  const [excludeRoleChange, setExcludeRoleChange] = useState(false);
+  const [excludePromotion, setExcludePromotion] = useState(false);
+  const [promotionRef, setPromotionRef] = useState('');
+  const [promotionDirection, setPromotionDirection] = useState('after');
+  const [promotionPicker, setPromotionPicker] = useState(null);
   // §4.1.2 0단계 '리뷰 & 조정' — 자동 산출 명단을 사람이 최종 가감한다.
   const [manualExcludedIds, setManualExcludedIds] = useState([]); // 대상 → 제외
   const [keptIds, setKeptIds] = useState([]); // 자동 제외를 되돌려 대상으로 유지
@@ -936,6 +945,24 @@ export default function EvalCycleWizard({
       ? candidates.filter((c) => selectedIds.includes(c.id))
       : candidates;
 
+  // 발령 이력 근거 — "이 사람의 이 필드가 언제 바뀌었나". 현재 값(candidates)만으로는
+  // 알 수 없어 소비 측이 appointmentChanges 로 넣어 준다. 비어 있으면 규칙이 아무도 못 잡는다.
+  const changedInPeriod = (userId, field) =>
+    appointmentChanges.some(
+      (a) =>
+        a.userId === userId &&
+        a.field === field &&
+        (!startDate || a.date >= startDate) &&
+        (!endDate || a.date <= endDate),
+    );
+  const changedRelativeTo = (userId, field, ref, direction) =>
+    appointmentChanges.some(
+      (a) =>
+        a.userId === userId &&
+        a.field === field &&
+        (direction === 'after' ? a.date > ref : a.date < ref),
+    );
+
   // §4.1.1 제외 조건 필터 — 개별 선택 모드는 관리자가 직접 고른 명단이므로 적용하지 않는다.
   const exclusionActive = includeMode !== 'individual_select';
   const autoExclusions = !exclusionActive
@@ -954,6 +981,24 @@ export default function EvalCycleWizard({
                 exclusionType: 'hire_date',
                 referenceDate: hireDateRef,
                 referenceDateDirection: hireDateDirection,
+              },
+            ];
+          }
+        }
+        // 평가 기간 중 직무가 바뀐 사람(발령 이력 근거). 기간은 1단계에서 고른 평가 기간.
+        if (excludeRoleChange && changedInPeriod(c.id, 'jobRole')) {
+          return [{ memberId: c.id, exclusionType: 'role_change' }];
+        }
+        // 직급(title) 변경일 기준 — 기준일 이전/이후에 승진한 사람.
+        if (excludePromotion && promotionRef) {
+          const hit = changedRelativeTo(c.id, 'title', promotionRef, promotionDirection);
+          if (hit) {
+            return [
+              {
+                memberId: c.id,
+                exclusionType: 'promotion_change',
+                referenceDate: promotionRef,
+                referenceDateDirection: promotionDirection,
               },
             ];
           }
@@ -2224,6 +2269,70 @@ export default function EvalCycleWizard({
                       </div>
                     </div>
                   )}
+                  {/* 발령 이력 기반 — 현재 값이 아니라 '언제 바뀌었나'를 본다. */}
+                  <label className="evl-promo-row">
+                    <input
+                      type="checkbox"
+                      checked={excludeRoleChange}
+                      onChange={(e) => setExcludeRoleChange(e.target.checked)}
+                      data-testid="evc-wiz-excl-rolechange"
+                    />
+                    <span>{L.exclusionRoleChange}</span>
+                  </label>
+                  <label className="evl-promo-row">
+                    <input
+                      type="checkbox"
+                      checked={excludePromotion}
+                      onChange={(e) => setExcludePromotion(e.target.checked)}
+                      data-testid="evc-wiz-excl-promotion"
+                    />
+                    <span>{L.exclusionPromotion}</span>
+                  </label>
+                  {excludePromotion && (
+                    <div className="evc-excl-date">
+                      <button
+                        type="button"
+                        className="evc-input evc-date-btn"
+                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        onClick={(e) =>
+                          setPromotionPicker({
+                            rect: e.currentTarget.getBoundingClientRect(),
+                            el: e.currentTarget,
+                          })
+                        }
+                        data-testid="evc-wiz-excl-promotion-ref"
+                      >
+                        {promotionRef || (
+                          <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>
+                        )}
+                      </button>
+                      <div className="evc-type-row">
+                        {[
+                          ['after', L.exclusionPromotedAfter],
+                          ['before', L.exclusionPromotedBefore],
+                        ].map(([dir, label]) => (
+                          <button
+                            type="button"
+                            key={dir}
+                            className={`evc-type-chip${promotionDirection === dir ? ' is-on' : ''}`}
+                            onClick={() => setPromotionDirection(dir)}
+                            data-testid={`evc-wiz-excl-promo-dir-${dir}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(excludeRoleChange || excludePromotion) &&
+                    appointmentChanges.length === 0 && (
+                      <p
+                        className="evc-wiz-warn"
+                        data-testid="evc-wiz-excl-no-history"
+                      >
+                        {L.exclusionNoHistory}
+                      </p>
+                    )}
                 </div>
               )}
 
@@ -2307,6 +2416,19 @@ export default function EvalCycleWizard({
                     setHirePicker(null);
                   }}
                   onClose={() => setHirePicker(null)}
+                />
+              )}
+
+              {promotionPicker && (
+                <DatePicker
+                  anchorRect={promotionPicker.rect}
+                  anchorEl={promotionPicker.el}
+                  selectedDate={isoToDate(promotionRef)}
+                  onSelect={(d) => {
+                    setPromotionRef(dateToIso(d));
+                    setPromotionPicker(null);
+                  }}
+                  onClose={() => setPromotionPicker(null)}
                 />
               )}
             </div>
