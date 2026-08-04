@@ -1577,6 +1577,62 @@
   color: var(--text-tertiary);
 }
 
+/* ── A4 프리셋 불러오기 (첫 화면 1급 노출 + 다이얼로그) ── */
+.evc-preset-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+  border-radius: var(--radius-md, 10px);
+  margin-bottom: var(--spacing-lg, 12px);
+}
+.evc-preset-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evc-preset-cta-sub {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: var(--spacing-md, 8px);
+}
+.evc-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 12px);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-quaternary);
+}
+.evc-preset-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evc-preset-item-name {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-preset-item-meta {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+
 /* ── §4.1.1 제외 조건 필터 · §4.1.2 0단계 '리뷰 & 조정' ── */
 .evc-excl-block,
 .evc-review-block {

@@ -1142,26 +1142,90 @@ export default function EvalCycleWizard({
         gradeCardPosition,
         roleMode,
       },
-      targetConfig: { reviewTypes, peerAssignModes, peerVisibility },
+      // A4: '대상자 조건' 까지 포함해야 프리셋이 사이클 설정 전체를 복제한다.
+      targetConfig: {
+        reviewTypes,
+        peerAssignModes,
+        peerVisibility,
+        includeMode,
+        axisValues,
+        exclusionRules: {
+          onLeave: excludeOnLeave,
+          hireDate: excludeHireDate,
+          hireDateRef,
+          hireDateDirection,
+          roleChange: excludeRoleChange,
+          promotion: excludePromotion,
+          promotionRef,
+          promotionDirection,
+        },
+      },
     });
     setPresetSaved(true);
     setPresetName('');
   };
 
   // TC-028 프리셋 불러오기 → 기본 설정 프리필(리뷰종류·배정방식·공개·등급위치·일정).
-  const handleLoadPreset = async (presetId) => {
-    setSelectedPresetId(presetId);
-    if (!presetId || !onLoadPreset) return;
-    const preset = await onLoadPreset(presetId);
+  const applyPreset = (preset) => {
     const cfg = preset?.targetConfig || {};
     if (Array.isArray(cfg.reviewTypes)) setReviewTypes(cfg.reviewTypes);
     if (Array.isArray(cfg.peerAssignModes))
       setPeerAssignModes(cfg.peerAssignModes);
     if (typeof cfg.peerVisibility === 'boolean')
       setPeerVisibility(cfg.peerVisibility);
+    // A4: 대상자 조건(범위 축·제외 규칙)도 함께 복원한다.
+    if (typeof cfg.includeMode === 'string') setIncludeMode(cfg.includeMode);
+    if (cfg.axisValues && typeof cfg.axisValues === 'object')
+      setAxisValues(cfg.axisValues);
+    const ex = cfg.exclusionRules || {};
+    setExcludeOnLeave(!!ex.onLeave);
+    setExcludeHireDate(!!ex.hireDate);
+    setHireDateRef(ex.hireDateRef || '');
+    setHireDateDirection(ex.hireDateDirection || 'after');
+    setExcludeRoleChange(!!ex.roleChange);
+    setExcludePromotion(!!ex.promotion);
+    setPromotionRef(ex.promotionRef || '');
+    setPromotionDirection(ex.promotionDirection || 'after');
     const rs = preset?.reviewSequence;
     if (rs?.gradeCardPosition) setGradeCardPosition(rs.gradeCardPosition);
     if (rs?.schedule) setSchedule(rs.schedule);
+    // 단계 순서·on/off 도 복원(저장은 하고 있었는데 복원을 빠뜨렸다).
+    if (Array.isArray(rs?.order)) {
+      setPhaseOrder(rs.order.filter((id) => id !== 'self' && id !== 'share'));
+    }
+    if (rs?.enabled && typeof rs.enabled === 'object') {
+      setDisabledPhases(
+        new Set(Object.keys(rs.enabled).filter((id) => rs.enabled[id] === false)),
+      );
+    }
+  };
+
+  // A4 불러오기 다이얼로그 — 목록에서 고르고 '이 설정으로 시작'.
+  // 이미 입력한 값이 있으면 덮어쓰기 전에 확인을 받는다.
+  const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [pendingPresetId, setPendingPresetId] = useState(null);
+  const wizardDirty =
+    !!name.trim() ||
+    !!startDate ||
+    !!endDate ||
+    includeMode !== 'bulk' ||
+    Object.keys(axisValues).length > 0;
+
+  const loadPresetById = async (presetId) => {
+    if (!presetId || !onLoadPreset) return;
+    setSelectedPresetId(presetId);
+    const preset = await onLoadPreset(presetId);
+    applyPreset(preset);
+    setPresetDialogOpen(false);
+    setPendingPresetId(null);
+  };
+
+  const startFromPreset = (presetId) => {
+    if (wizardDirty) {
+      setPendingPresetId(presetId);
+      return;
+    }
+    void loadPresetById(presetId);
   };
 
   return createPortal(
@@ -1182,23 +1246,22 @@ export default function EvalCycleWizard({
               {/* TC-028 저장된 설정 프리셋 불러오기 */}
               {presets.length > 0 && onLoadPreset && (
                 <div className="evc-wiz-preset-load">
-                  <label className="evc-field-label" htmlFor="evc-wiz-preset">
-                    {L.presetLoadLabel}
-                  </label>
-                  <select
-                    id="evc-wiz-preset"
-                    className="evc-input"
-                    value={selectedPresetId}
-                    onChange={(e) => handleLoadPreset(e.target.value)}
-                    data-testid="evc-wiz-preset-load"
-                  >
-                    <option value="">{L.presetLoadPlaceholder}</option>
-                    {presets.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="evc-preset-cta">
+                    <div className="evc-preset-cta-text">
+                      <span className="evc-field-label">{L.presetLoadLabel}</span>
+                      <span className="evc-preset-cta-sub">
+                        {fill(L.presetLoadSub, { count: presets.length })}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="evc-btn is-primary"
+                      onClick={() => setPresetDialogOpen(true)}
+                      data-testid="evc-wiz-preset-open"
+                    >
+                      {L.presetLoadOpen}
+                    </button>
+                  </div>
                 </div>
               )}
               <label className="evc-field-label" htmlFor="evc-wiz-name">{L.cycleName}</label>
@@ -2601,6 +2664,80 @@ export default function EvalCycleWizard({
           )}
         </div>
       </div>
+
+      {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
+      {presetDialogOpen && (
+        <div
+          className="evc-modal-overlay"
+          onClick={() => setPresetDialogOpen(false)}
+        >
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="evc-wiz-header">
+              <h3 className="evc-modal-title">{L.presetDialogTitle}</h3>
+              <button
+                type="button"
+                className="evc-wiz-close"
+                onClick={() => setPresetDialogOpen(false)}
+                aria-label={L.cancel}
+              >
+                ✕
+              </button>
+            </div>
+            <p className="evc-modal-sub">{L.presetDialogSub}</p>
+            <div className="evc-preset-list" data-testid="evc-wiz-preset-list">
+              {presets.map((p) => (
+                <div key={p.id} className="evc-preset-item">
+                  <div className="evc-preset-item-main">
+                    <span className="evc-preset-item-name">{p.name}</span>
+                    <span className="evc-preset-item-meta">
+                      {fill(L.presetMeta, {
+                        date: (p.createdAt ?? '').slice(0, 10),
+                        uses: p.usageCount ?? 0,
+                      })}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="evc-btn is-primary"
+                    onClick={() => startFromPreset(p.id)}
+                    data-testid={`evc-wiz-preset-start-${p.id}`}
+                  >
+                    {L.presetStart}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 덮어쓰기 확인 — 이미 입력한 값이 있을 때만 뜬다. */}
+      {pendingPresetId && (
+        <div className="evc-modal-overlay" onClick={() => setPendingPresetId(null)}>
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">{L.presetOverwriteTitle}</h3>
+            <p className="evc-modal-sub">{L.presetOverwriteBody}</p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setPendingPresetId(null)}
+                data-testid="evc-wiz-preset-overwrite-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => void loadPresetById(pendingPresetId)}
+                data-testid="evc-wiz-preset-overwrite-confirm"
+              >
+                {L.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );
