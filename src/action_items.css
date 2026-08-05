@@ -375,7 +375,54 @@
   text-align: center;
 }
 
-/* ── OKR 연관 뷰 ────────────────────────────────────────────────────── */
+/* ── OKR 연관 뷰 ──────────────────────────────────────────────────────
+   기획서 TC-MTG-033 계층: Objective 카드(레벨 배지·제목·달성도 바·연결 액션 수)
+   > KR 행(달성도 게이지·제목·액션 프로그레스·담당자) > 액션 아코디언. */
+.ai-obj { flex-shrink: 0; }
+.ai-obj + .ai-obj { margin-top: 18px; }
+.ai-obj-head { display: flex; align-items: center; gap: 10px; padding: 0 4px 8px; }
+.ai-obj-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-obj-meta { font-size: 12px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap; }
+.ai-obj-bar {
+  display: block;
+  height: 6px;
+  margin: 0 4px 10px;
+  border-radius: 9999px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  overflow: hidden;
+}
+.ai-obj-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+/* KR 행 좌측 달성도 게이지 */
+.ai-kr-gauge {
+  width: 44px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  overflow: hidden;
+}
+.ai-kr-gauge-fill {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
 .ai-kr-card {
   flex-shrink: 0;
   border: 1px solid var(--border-primary);

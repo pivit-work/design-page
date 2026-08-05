@@ -89,11 +89,14 @@ export default function MeetingsCanvas({
   // 행 전체 클릭 훅: completed 회의의 기록 보기 등, 시작 버튼과 별개 동작을
   // 연결하고 싶을 때 사용. 미지정 시 행은 클릭 불가.
   onRowClick,
+  // 액션 아이템 전체 뷰(/meetings/actions) 진입 훅. 미지정 시 링크를 숨긴다.
+  onViewActions,
   progressData,
   recordData,
   shareData,
   modalLabels,
 }) {
+  const L = { viewActions: '액션 아이템', ...labels };
   const statusLabels = {
     ongoing: { label: labels.ongoing, className: 'mtg-tag-ongoing' },
     scheduled: { label: labels.scheduled, className: 'mtg-tag-scheduled' },
@@ -116,6 +119,14 @@ export default function MeetingsCanvas({
             <span className="tl-meta-count">{todayCountLabel}</span>
           </div>
         </div>
+        {/* 액션 아이템 전체 뷰 진입 — 회의에서 나온 할 일을 모아 보는 화면
+            (user-flow-spec: /meetings/actions). onViewActions 미지정 시 숨김. */}
+        {onViewActions && (
+          <button type="button" className="mtg-actions-link" onClick={onViewActions}>
+            <Icon src="/icons-solid/file-02.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+            <span>{L.viewActions}</span>
+          </button>
+        )}
       </div>
 
       <div className="mtg-content">
