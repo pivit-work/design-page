@@ -1,0 +1,409 @@
+/* ── 액션 아이템 페이지 ──────────────────────────────────────────────────
+   스니핏 히스토리(.snippet-*)와 같은 목록 화면 문법을 따른다:
+   헤더 카드(bg-primary, r=14) → 본문(세그먼티드 · 통계 카드 · 필터 행 · 리스트).
+   자체 상단바·브레드크럼은 두지 않는다 — 화면 맥락은 사이드바가 이미 준다. */
+
+.ai-page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 헤더 카드 — 좌측 타이틀/부제, 우측 완료 진행률 */
+.ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+.ai-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ai-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 38px;
+  color: var(--text-primary);
+}
+.ai-subtitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text-secondary);
+}
+.ai-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.ai-progress-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.ai-progress-track {
+  width: 96px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  overflow: hidden;
+}
+.ai-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+
+/* 본문 — 스니핏과 같은 세로 리듬 */
+.ai-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 통계 카드 4개 — .snippet-stat-card 와 동일 규격(h=100, r=16) */
+.ai-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  flex-shrink: 0;
+}
+.ai-stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100px;
+  padding: 16px 24px;
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.ai-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+.ai-stat-value {
+  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 38px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.ai-stat-value.is-success { color: var(--text-success-primary, #067647); }
+.ai-stat-value.is-warning { color: var(--text-warning-primary, #b54708); }
+.ai-stat-value.is-error { color: var(--text-error-primary, #b42318); }
+
+/* 필터 행 — 검색 + 상태 세그먼티드 + 드롭다운 + 그룹 기준 */
+.ai-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.ai-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 250px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+.ai-search:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+.ai-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.ai-search input::placeholder { color: var(--text-placeholder, #b1b6be); }
+
+/* 드롭다운 — .snippet-date-btn 과 같은 alpha-black-3 pill */
+.ai-select {
+  appearance: none;
+  padding: 8px 28px 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--componentColors-alpha-alphaBlack3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2394A3B8' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ai-select:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: -2px;
+}
+.ai-groupby {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.ai-groupby-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.ai-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* 그룹 헤더 — 좌측 라벨, 우측 진행 */
+.ai-group { display: flex; flex-direction: column; gap: 2px; }
+.ai-group + .ai-group { margin-top: 18px; }
+.ai-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 8px;
+}
+.ai-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  flex-shrink: 0;
+}
+.ai-group-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.ai-group-progress {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* 리스트 행 — .snippet-row 문법(r=6, white, hover grayLight-50) */
+.ai-list { display: flex; flex-direction: column; gap: 2px; }
+.ai-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: var(--colors-background-bgQuaternary, #ffffff);
+  transition: background-color 0.15s ease;
+  box-sizing: border-box;
+}
+.ai-row:hover { background: var(--colors-grayLight-50, #fafafa); }
+.ai-row.is-done .ai-row-title {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+.ai-row.is-recent { background: var(--colors-background-bgBrandPrimary, #f1fffa); }
+
+.ai-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-primary);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.ai-check:hover { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); }
+.ai-check.is-checked {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+.ai-check:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: 2px;
+}
+
+.ai-row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* 배지 — 우선순위/마감. 유틸 색 토큰만 사용한다(하드코딩 금지). */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.ai-badge.is-high { color: var(--text-error-primary, #b42318); background: var(--utility-error-50, #fef3f2); }
+.ai-badge.is-medium { color: var(--text-warning-primary, #b54708); background: var(--utility-warning-50, #fffaeb); }
+.ai-badge.is-low { color: var(--text-secondary); background: var(--componentColors-alpha-alphaBlack3); }
+
+.ai-deadline {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ai-deadline.is-overdue { color: var(--text-error-primary, #b42318); }
+.ai-deadline.is-today { color: var(--text-warning-primary, #b54708); }
+
+.ai-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ai-owner-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-white, #fff);
+  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* KR 연결 — outlined pill */
+.ai-kr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: 9999px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ai-kr-btn:hover { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); color: var(--text-secondary); }
+.ai-kr-btn.is-linked {
+  border-color: transparent;
+  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  color: var(--text-brand-secondary, #10774d);
+}
+
+/* 빈 상태 — .snippet-noresult 와 동일 */
+.ai-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 60px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ── OKR 연관 뷰 ────────────────────────────────────────────────────── */
+.ai-kr-card {
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.ai-kr-card + .ai-kr-card { margin-top: 10px; }
+.ai-kr-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ai-kr-head:hover { background: var(--colors-grayLight-50, #fafafa); }
+.ai-kr-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-kr-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.ai-kr-body { padding: 0 12px 12px; }
