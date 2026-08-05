@@ -192,3 +192,4 @@ export { default as EvalCycleTemplateCanvas } from './eval/EvalCycleTemplateCanv
 export { default as EvalCyclePeerTasksCanvas } from './eval/EvalCyclePeerTasksCanvas.jsx';
 export { default as EvalFeedbackHrCanvas } from './eval/EvalFeedbackHrCanvas.jsx';
 export { default as EvalFeedbackComposeCanvas } from './eval/EvalFeedbackComposeCanvas.jsx';
+export { default as EvalShellNav } from './eval/EvalShellNav.jsx';
