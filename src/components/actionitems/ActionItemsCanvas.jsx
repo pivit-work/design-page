@@ -165,7 +165,6 @@ export default function ActionItemsCanvas({
             items={viewItems}
             value={view}
             onChange={onViewChange}
-            block
             ariaLabel={labels.title}
           />
         )}
@@ -183,7 +182,7 @@ export default function ActionItemsCanvas({
 
         <div className="ai-filter-row">
           <label className="ai-search">
-            <Icon src="/icons/search-md.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
+            <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
             <input
               type="search"
               value={search}

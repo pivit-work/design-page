@@ -52,6 +52,7 @@
   white-space: nowrap;
 }
 .ai-progress-track {
+  display: block;
   width: 96px;
   height: 6px;
   border-radius: 9999px;
@@ -59,6 +60,7 @@
   overflow: hidden;
 }
 .ai-progress-fill {
+  display: block;
   height: 100%;
   border-radius: 9999px;
   background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
@@ -73,6 +75,9 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+/* 뷰 전환 세그먼티드는 내용 폭 — flex column 안에서 늘어나지 않게 */
+.ai-body > .seg-control { align-self: flex-start; }
 
 /* 통계 카드 4개 — .snippet-stat-card 와 동일 규격(h=100, r=16) */
 .ai-stats {
@@ -187,7 +192,7 @@
 }
 
 /* 그룹 헤더 — 좌측 라벨, 우측 진행 */
-.ai-group { display: flex; flex-direction: column; gap: 2px; }
+.ai-group { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .ai-group + .ai-group { margin-top: 18px; }
 .ai-group-head {
   display: flex;
@@ -219,9 +224,10 @@
 }
 
 /* 리스트 행 — .snippet-row 문법(r=6, white, hover grayLight-50) */
-.ai-list { display: flex; flex-direction: column; gap: 2px; }
+.ai-list { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .ai-row {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 12px;
   min-height: 56px;
@@ -371,6 +377,7 @@
 
 /* ── OKR 연관 뷰 ────────────────────────────────────────────────────── */
 .ai-kr-card {
+  flex-shrink: 0;
   border: 1px solid var(--border-primary);
   border-radius: 16px;
   background: var(--bg-primary);
