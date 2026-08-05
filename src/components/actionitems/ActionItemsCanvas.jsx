@@ -21,6 +21,7 @@ const DEFAULT_LABELS = {
   groupByLabel: '묶기',
   countSuffix: '건',
   empty: '조건에 맞는 액션 아이템이 없습니다.',
+  linkedActions: '연결 액션',
 };
 
 /** 통계 값 색 — 토큰 클래스로만 표현한다(하드코딩 색 금지). */
@@ -133,13 +134,15 @@ export default function ActionItemsCanvas({
   onKrClick,
   renderDeadlineEditor,
   renderKrPicker,
-  // OKR 연관 뷰 [{ id, title, sub, expanded, items }]
-  krGroups = null,
+  // OKR 연관 뷰 — 기획서(TC-MTG-033) 계층: Objective > KR > 액션 아코디언
+  // [{ id, title, levelLabel, progress, actionCount, krs: [{ id, title, progress,
+  //    done, total, ownerName, expanded, items }] }]
+  objectives = null,
   onToggleKr,
 }) {
   const labels = { ...DEFAULT_LABELS, ...(labelsProp || {}) };
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-  const isOkrView = krGroups != null;
+  const isOkrView = objectives != null;
   const hasRows = groups.some((g) => g.items?.length);
 
   return (
@@ -238,39 +241,62 @@ export default function ActionItemsCanvas({
         </div>
 
         {isOkrView ? (
-          krGroups.length === 0 ? (
+          objectives.length === 0 ? (
             <div className="ai-empty">{labels.empty}</div>
           ) : (
-            krGroups.map((kr) => (
-              <div className="ai-kr-card" key={kr.id}>
-                <button type="button" className="ai-kr-head" onClick={() => onToggleKr?.(kr.id)}>
-                  <span className="ai-kr-title">{kr.title}</span>
-                  <span className="ai-kr-sub">{kr.sub}</span>
-                  <Icon
-                    src={kr.expanded ? '/icons/chevron-down.svg' : '/icons-solid/chevron-selector-vertical.svg'}
-                    size={16}
-                    color="var(--text-tertiary)"
-                    baseUrl={baseUrl}
-                  />
-                </button>
-                {kr.expanded && (
-                  <div className="ai-kr-body">
-                    <div className="ai-list">
-                      {kr.items.map((item) => (
-                        <ActionRow
-                          key={item.id}
-                          item={item}
-                          labels={labels}
-                          onToggle={onToggle}
-                          onKrClick={onKrClick}
-                          renderDeadlineEditor={renderDeadlineEditor}
-                          renderKrPicker={renderKrPicker}
-                        />
-                      ))}
-                    </div>
+            objectives.map((obj) => (
+              <section className="ai-obj" key={obj.id}>
+                <header className="ai-obj-head">
+                  {obj.levelLabel && <span className="ai-badge is-low">{obj.levelLabel}</span>}
+                  <span className="ai-obj-title">{obj.title}</span>
+                  <span className="ai-obj-meta">
+                    {labels.linkedActions} {obj.actionCount}
+                  </span>
+                </header>
+                {typeof obj.progress === 'number' && (
+                  <div className="ai-obj-bar">
+                    <span className="ai-obj-bar-fill" style={{ width: `${Math.min(100, obj.progress)}%` }} />
                   </div>
                 )}
-              </div>
+
+                {obj.krs.map((kr) => (
+                  <div className="ai-kr-card" key={kr.id}>
+                    <button type="button" className="ai-kr-head" onClick={() => onToggleKr?.(kr.id)} aria-expanded={!!kr.expanded}>
+                      <span className="ai-kr-gauge" aria-hidden="true">
+                        <span className="ai-kr-gauge-fill" style={{ width: `${Math.min(100, kr.progress ?? 0)}%` }} />
+                      </span>
+                      <span className="ai-kr-title">{kr.title}</span>
+                      <span className="ai-kr-sub">
+                        {kr.done}/{kr.total}
+                        {kr.ownerName ? ` · ${kr.ownerName}` : ''}
+                      </span>
+                      <Icon
+                        src={kr.expanded ? '/icons/chevron-down.svg' : '/icons-solid/chevron-selector-vertical.svg'}
+                        size={16}
+                        color="var(--text-tertiary)"
+                        baseUrl={baseUrl}
+                      />
+                    </button>
+                    {kr.expanded && (
+                      <div className="ai-kr-body">
+                        <div className="ai-list">
+                          {kr.items.map((item) => (
+                            <ActionRow
+                              key={item.id}
+                              item={item}
+                              labels={labels}
+                              onToggle={onToggle}
+                              onKrClick={onKrClick}
+                              renderDeadlineEditor={renderDeadlineEditor}
+                              renderKrPicker={renderKrPicker}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </section>
             ))
           )
         ) : !hasRows ? (

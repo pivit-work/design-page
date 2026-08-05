@@ -1613,3 +1613,26 @@ input.mtg-record-action-title::placeholder {
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* 액션 아이템 전체 뷰 진입 링크 — 헤더 우측, alpha-black-3 pill */
+.mtg-actions-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--componentColors-alpha-alphaBlack3);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mtg-actions-link:hover { color: var(--text-primary); }
+.mtg-actions-link:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: -2px;
+}
