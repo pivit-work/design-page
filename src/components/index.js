@@ -120,6 +120,9 @@ export {
 // Action items (액션 아이템)
 export { ActionItemsCanvas } from './actionitems/index.js';
 
+// Resource (리소스 투입 현황)
+export { ResourceCanvas } from './resource/index.js';
+
 // Manager
 export {
   ManagerCanvas,
