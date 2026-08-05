@@ -117,6 +117,9 @@ export {
   SnippetDatePicker,
 } from './snippet/index.js';
 
+// Action items (액션 아이템)
+export { ActionItemsCanvas } from './actionitems/index.js';
+
 // Manager
 export {
   ManagerCanvas,

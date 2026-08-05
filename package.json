@@ -18,6 +18,7 @@
     "./styles/report.css": "./src/report.css",
     "./styles/manager.css": "./src/manager.css",
     "./styles/snippet.css": "./src/snippet.css",
+    "./styles/action-items.css": "./src/action_items.css",
     "./styles/okr.css": "./src/okr.css",
     "./styles/admin.css": "./src/admin.css",
     "./styles/settings.css": "./src/settings.css",
