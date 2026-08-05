@@ -5297,3 +5297,136 @@
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-tertiary);
 }
+
+/* ════════════════════════════════════════════════════════════
+   평가 셸 서브 내비 (EvalShellNav)
+   기획서 eval-app.jsx `EvalSubNav` 포팅 — 도메인 → 섹션 → 화면 3뎁스.
+
+   평가 캔버스의 `.evc-root` 는 position:fixed 라 내비가 그 아래 깔린다.
+   그래서 내비도 같은 좌표계에 fixed 로 올리고, 셸 안에서는 `.evc-root` 의
+   top 을 내비 높이만큼 밀어 준다(`.evnav-shell .evc-root`).
+   ════════════════════════════════════════════════════════════ */
+.evnav-shell {
+  /* 1행 47px(46+구분선) + 2행 38px. 행이 접히면 값이 어긋나므로 아래에서
+     두 행 모두 nowrap 으로 고정한다. */
+  --evnav-h: 85px;
+}
+.evnav-nav {
+  /* 상단바(.top-nav)는 높이 68px · z-index 90 이다. 그 아래에 붙인다
+     (조직도 .content-header 와 같은 좌표·계층). */
+  position: fixed;
+  top: 68px;
+  left: 240px;
+  right: 0;
+  z-index: 80;
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-secondary);
+  font-family: var(--font-family-body, 'Pretendard', sans-serif);
+}
+/* 평가 셸 안에서는 캔버스를 내비 아래로 내린다 */
+.evnav-shell .evc-root {
+  top: calc(68px + var(--evnav-h));
+}
+
+.evnav-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg, 12px);
+  padding: 0 var(--spacing-3xl, 24px);
+  /* 줄바꿈되면 내비 높이가 변해 캔버스와 겹친다 — 좁아지면 가로 스크롤 */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.evnav-row::-webkit-scrollbar {
+  display: none;
+}
+.evnav-row-domain {
+  height: 46px;
+  gap: var(--spacing-2xl, 20px);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evnav-row-views {
+  min-height: 38px;
+  gap: var(--spacing-lg, 12px);
+}
+
+.evnav-title {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.evnav-domains {
+  display: flex;
+  gap: var(--spacing-xs, 4px);
+}
+.evnav-domain {
+  height: 46px;
+  padding: 0 var(--spacing-xs, 4px);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.evnav-domain:hover {
+  color: var(--text-secondary);
+}
+/* 활성 표시는 admin-integrations `.intg-tab.is-active` 와 같은 토큰을 쓴다.
+   (--utility-brand-700 은 정의돼 있지 않은 유령 토큰이라 쓰면 폴백 보라색이 샌다) */
+.evnav-domain.is-active {
+  font-weight: 700;
+  color: var(--text-brand-tertiary);
+  border-bottom-color: var(--text-brand-tertiary);
+}
+
+.evnav-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+}
+.evnav-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 var(--spacing-xs, 4px);
+  background: var(--border-primary);
+}
+.evnav-items {
+  display: flex;
+  gap: var(--spacing-xs, 4px);
+}
+.evnav-item {
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.evnav-item:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.evnav-item.is-active {
+  background: var(--utility-brand-50);
+  color: var(--text-brand-tertiary);
+  font-weight: 700;
+}
+.evnav-desc {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-quaternary, var(--text-tertiary));
+}
