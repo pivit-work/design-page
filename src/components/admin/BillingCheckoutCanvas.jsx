@@ -291,7 +291,7 @@ export default function BillingCheckoutCanvas({
         {/* 결제 진행 오버레이 (결제창 처리 / 서버 확정 대기) */}
         {busy && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: '#fff', borderRadius: 14, padding: '28px 36px',
               fontSize: 15, fontWeight: 700, color: T.text }}>
               {payState === 'processing' ? labels.overlayProcessing : labels.overlayConfirming}

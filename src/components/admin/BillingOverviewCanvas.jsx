@@ -330,7 +330,7 @@ export default function BillingOverviewCanvas({
         {/* 해지 방식 선택 모달 */}
         {cancelOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
             <Card style={{ maxWidth: 460, width: '100%' }}>
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>{labels.cancelModalTitle}</div>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>

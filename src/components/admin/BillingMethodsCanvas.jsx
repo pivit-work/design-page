@@ -281,7 +281,7 @@ export default function BillingMethodsCanvas({
       {/* 삭제 확인 모달 */}
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <Card style={{ maxWidth: 400, width: '100%' }}>
             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{labels.deleteModalTitle}</div>
             <div style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>
@@ -303,7 +303,7 @@ export default function BillingMethodsCanvas({
       {/* 결제창 처리 오버레이 (addState controlled prop) */}
       {addBusy && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: '28px 36px',
             fontSize: 15, fontWeight: 700, color: T.text }}>
             {addState === 'processing' ? labels.addProcessing : labels.addConfirming}
