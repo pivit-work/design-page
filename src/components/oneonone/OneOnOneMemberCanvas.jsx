@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -370,7 +370,9 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
 
       {session.aiBriefing && (
         <Section title={L.aiSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
-          <div className="ono-start-briefing-text-box">{session.aiBriefing.summary}</div>
+          <div className="ono-start-briefing-text-box">
+            <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
+          </div>
           {session.aiBriefing.signals?.length > 0 && (
             <div className="ono-start-briefing-badges">
               {session.aiBriefing.signals.map((s, i) => (
@@ -474,7 +476,9 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
 
       {session.aiBriefing && (
         <Section title={L.prepSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
-          <div className="ono-start-briefing-text-box">{session.aiBriefing.summary}</div>
+          <div className="ono-start-briefing-text-box">
+            <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
+          </div>
           <Blockers items={session.aiBriefing.unresolvedBlockers} L={L} icons={icons} baseUrl={baseUrl} />
         </Section>
       )}
@@ -789,15 +793,38 @@ function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, bas
 }
 
 /* ── 탭 ───────────────────────────────────────────────── */
+/**
+ * 단계 탭 — design-page 공용 탭(.tabs-row / .tab-slider / .tab-btn).
+ *
+ * 처음엔 흰 카드 + 밑줄로 그렸는데, 카드 폭 720px 중 탭이 313px 만 채워
+ * 오른쪽이 휑하게 비었다. 공용 탭은 **배경 없는 pill 슬라이더**라 애초에
+ * 채울 상자가 없다 — 1on1 대시보드·매니저·타임라인이 모두 이걸 쓴다.
+ * 부제(사전 작성/진행 중…)는 공용 탭에 자리가 없고 시안에도 없어 뺐다.
+ */
 function TabNav({ tab, onChange, enabled, L }) {
+  const rowRef = useRef(null);
+  const [slider, setSlider] = useState({ left: 0, width: 0 });
   const tabs = [
-    { id: 'prep', label: L.tabPrep, desc: L.tabPrepDesc },
-    { id: 'meeting', label: L.tabMeeting, desc: L.tabMeetingDesc },
-    { id: 'result', label: L.tabResult, desc: L.tabResultDesc },
-    { id: 'history', label: L.tabHistory, desc: L.tabHistoryDesc },
+    { id: 'prep', label: L.tabPrep },
+    { id: 'meeting', label: L.tabMeeting },
+    { id: 'result', label: L.tabResult },
+    { id: 'history', label: L.tabHistory },
   ];
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (!rowRef.current) return;
+      const active = rowRef.current.querySelector('.tab-btn.tab-active');
+      if (!active) return;
+      const row = rowRef.current.getBoundingClientRect();
+      const btn = active.getBoundingClientRect();
+      setSlider({ left: btn.left - row.left, width: btn.width });
+    });
+  }, [tab]);
+
   return (
-    <div role="tablist" className="ono-mem-tabs">
+    <div role="tablist" className="tabs-row ono-mem-tabs" ref={rowRef}>
+      <span className="tab-slider" style={{ left: slider.left, width: slider.width }} />
       {tabs.map((t) => {
         const on = tab === t.id;
         return (
@@ -806,12 +833,11 @@ function TabNav({ tab, onChange, enabled, L }) {
             type="button"
             role="tab"
             aria-selected={on}
-            className={`ono-mem-tab${on ? ' is-active' : ''}`}
+            className={`tab-btn ${on ? 'tab-active' : 'tab-inactive'}`}
             onClick={() => enabled[t.id] && onChange(t.id)}
             disabled={!enabled[t.id]}
           >
-            <span className="ono-mem-tab-label">{t.label}</span>
-            <span className="ono-mem-tab-desc">{t.desc}</span>
+            {t.label}
           </button>
         );
       })}

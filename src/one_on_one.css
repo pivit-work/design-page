@@ -2277,40 +2277,9 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 16px;
 }
 
-/* ── 단계 탭 ── */
-.ono-mem-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 6px 6px 0;
-  border-radius: 12px 12px 0 0;
-  background: var(--bg-quaternary);
-  border-bottom: 1px solid var(--border-secondary);
-}
-.ono-mem-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 8px 16px 10px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.ono-mem-tab:disabled { opacity: .4; cursor: default; }
-.ono-mem-tab.is-active { border-bottom-color: var(--utility-blue-500); }
-.ono-mem-tab-label {
-  font-size: var(--font-size-text-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-.ono-mem-tab.is-active .ono-mem-tab-label {
-  font-weight: 700;
-  color: var(--utility-blue-500);
-}
-.ono-mem-tab-desc { font-size: 11px; color: var(--text-tertiary); }
+/* ── 단계 탭 ── 공용 .tabs-row 를 쓰고 여백만 조정 */
+.ono-mem-tabs { padding: 0 0 12px; }
+.ono-mem-tabs .tab-btn:disabled { opacity: .4; cursor: default; }
 
 /* ── 세션 헤더 ── */
 .ono-mem-head {
