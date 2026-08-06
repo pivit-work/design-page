@@ -624,10 +624,12 @@ export default function BillingPlansCanvas({
           </div>
         )}
 
-        {/* 다운그레이드·플랜 변경 확인 모달 */}
+        {/* 다운그레이드·플랜 변경 확인 모달.
+            오버레이 z-index 는 사이드바(App.css `.sidebar` = 100)보다 커야
+            좌측 내비까지 덮인다. 하우스 값 1000(= org_chart.css .modal-overlay). */}
         {confirmTarget && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <Card style={{ maxWidth: 460, margin: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
                 {isDowngrade
