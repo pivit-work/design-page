@@ -74,9 +74,7 @@ const DEFAULT_LABELS = {
   startMeeting: '미팅 시작',
   elapsed: '경과', prepSummary: '준비 요약', okrStatus: 'OKR 현황', agenda: '논의 아젠다',
   pendingActions: '미완료 액션아이템',
-  recordingNotice: '이 미팅은 매니저가 녹음할 수 있습니다.',
-  privateMemoLabel: '개인 메모',
-  privateMemoGuide: '는 나만 볼 수 있습니다.',
+  recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
   privateMemo: '개인 메모',
   privateMemoDesc: '매니저에게 공유되지 않습니다.',
   memoPlaceholder: '기억하고 싶은 내용을 적어두세요',
@@ -516,10 +514,8 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
       )}
 
       <div className="ono-mem-notice">
-        <Icon src={icons.recording} size={14} color="currentColor" baseUrl={baseUrl} />
-        <span>
-          {L.recordingNotice} <strong>{L.privateMemoLabel}</strong>{L.privateMemoGuide}
-        </span>
+        <Icon src={icons.alert} size={12} color="currentColor" baseUrl={baseUrl} />
+        <span>{L.recordingNotice}</span>
       </div>
 
       <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl}>

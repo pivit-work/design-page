@@ -2623,14 +2623,15 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-mem-notice {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
   font-size: 12px;
+  font-weight: 500;
   line-height: 18px;
 }
 .ono-mem-back {
