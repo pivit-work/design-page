@@ -106,7 +106,7 @@ const DEFAULT_LABELS = {
     summaryAccepted: '수락됨', summaryAcceptedSub: '온보딩 진행',
     summaryExpired: '만료됨', summaryExpiredSub: '재발송 필요',
     filterAll: '전체', newInvite: '새 초대 발송',
-    composerEmail: '초대할 이메일', composerRole: '권한', composerSend: '발송', composerCancel: '취소',
+    composerEmail: '초대할 이메일', composerName: '이름', composerRole: '권한', composerSend: '발송', composerCancel: '취소',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
     copyLink: '링크 복사', resend: '재발송', cancel: '취소',
     statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
@@ -397,6 +397,9 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
   const [filter, setFilter] = useState('all');
   const [composerOpen, setComposerOpen] = useState(false);
   const [email, setEmail] = useState('');
+  // 지정 이메일 초대는 이름이 필수다 — users.name 이 NOT NULL 인데 초대받은 사람이
+  // 온보딩에서 이름을 입력하는 화면이 더는 없다(온보딩 §3-1).
+  const [name, setName] = useState('');
   const [role, setRole] = useState('member');
   const [sending, setSending] = useState(false);
 
@@ -424,12 +427,15 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
       : s === 'accepted' ? labels.invites.statusAccepted
         : labels.invites.statusExpired;
 
+  const nameOk = name.trim().length >= 2;
+
   async function handleSend() {
-    if (!email.trim()) return;
+    if (!email.trim() || !nameOk) return;
     setSending(true);
     try {
-      await onNewInvite(email.trim(), role);
+      await onNewInvite(email.trim(), role, name.trim());
       setEmail('');
+      setName('');
       setRole('member');
       setComposerOpen(false);
     } finally {
@@ -469,15 +475,23 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
             />
+            <input
+              type="text"
+              className="admin-emp-input"
+              placeholder={labels.invites.composerName}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            />
             <select className="admin-emp-input" value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="member">{labels.role.member}</option>
               <option value="manager">{labels.role.manager}</option>
               <option value="admin">{labels.role.admin}</option>
             </select>
-            <button type="button" className="admin-emp-btn is-primary is-sm" onClick={handleSend} disabled={sending || !email.trim()}>
+            <button type="button" className="admin-emp-btn is-primary is-sm" onClick={handleSend} disabled={sending || !email.trim() || !nameOk}>
               {labels.invites.composerSend}
             </button>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); setEmail(''); }}>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); setEmail(''); setName(''); }}>
               {labels.invites.composerCancel}
             </button>
           </div>
