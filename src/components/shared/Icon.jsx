@@ -10,10 +10,16 @@ export default function Icon({ src, size = 16, color = 'currentColor', className
   useEffect(() => {
     if (svgCache[src]) return;
     const url = src.startsWith('/') ? baseUrl + src.slice(1) : src;
-    fetch(url).then(r => r.text()).then(t => {
-      svgCache[src] = t;
-      force(n => n + 1);
-    });
+    // 실패해도 조용히 빈 아이콘으로 둔다. catch 가 없으면 오프라인·404·jsdom
+    // (상대 URL 이 유효하지 않음) 에서 unhandled rejection 이 쏟아진다.
+    fetch(url)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((t) => {
+        if (!t) return;
+        svgCache[src] = t;
+        force((n) => n + 1);
+      })
+      .catch(() => {});
   }, [src, baseUrl]);
   const colored = svg
     .replace(/fill="(?!none)[^"]*"/g, `fill="${color}"`)

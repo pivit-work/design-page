@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Icon from '../shared/Icon.jsx';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -12,14 +13,16 @@ import { useState, useEffect } from 'react';
  * `OneOnOneDashboardCanvas` · `StartOneOnOneView`). 정작 `StartOneOnOneView` 는
  * "멤버 준비도: 멤버 READY 화면(**별도**) 의 7 섹션 진행도" 라고 이 화면의 존재를
  * 전제하고 진행률만 prop 으로 받아 표시한다. 그 별도 화면이 정본에 없어서
- * pivit-work 가 시안을 보고 직접 그렸고, 그 과정에서 `#3D5AFE`·`DM Mono` 같은
- * 자체 토큰이 박혀 나머지 화면과 팔레트가 갈렸다. 이 캔버스가 그 빈자리다.
+ * pivit-work 가 시안을 보고 직접 그렸고, 그 과정에서 자체 색 토큰과 이모지
+ * 아이콘이 박혀 나머지 1on1 화면과 어긋났다.
  *
- * ## 색은 이 도메인이 이미 쓰던 토큰을 따른다
+ * ## 스타일·아이콘은 이 도메인의 기존 어휘를 따른다
  *
- * 시안의 하드코딩 색을 그대로 옮기지 않고 `one_on_one.css` 가 쓰는 토큰
- * (`--utility-blue-*` · `--utility-purple-*` · `--text-brand-*`) 으로 매핑했다.
- * 매니저 1on1 화면과 같은 팔레트를 쓰는 것이 목적이다.
+ * - 형태/색: `one_on_one.css` 의 `.ono-start-*`(매니저 진행 준비 뷰)와 같은
+ *   토큰·라운드·간격을 재사용한다. 멤버 화면에만 있는 조각(단계 탭·세션 헤더·
+ *   노트 그리드·히스토리 타임라인)만 `.ono-mem-*` 로 같은 파일에 추가했다.
+ * - 아이콘: 이모지 대신 `shared/Icon` + `/icons-solid/*.svg`. 다른 캔버스와 같은
+ *   방식이라 색·크기가 토큰을 따르고, `icons` prop 으로 교체할 수 있다.
  *
  * ## 호스트가 소유하는 것
  *
@@ -28,26 +31,26 @@ import { useState, useEffect } from 'react';
  * "All color decisions are pre-computed by the caller").
  */
 
-const C = {
-  page: 'var(--bg-primary, #F4F5F9)',
-  surface: 'var(--bg-quaternary, #FFFFFF)',
-  panel: 'var(--bg-secondary, #F4F5F9)',
-  border: 'var(--border-secondary, #E4E7EE)',
-  text: 'var(--text-primary, #111827)',
-  sub: 'var(--text-secondary, #6B7280)',
-  muted: 'var(--text-tertiary, #9CA3AF)',
-  accent: 'var(--utility-blue-500, #3D5AFE)',
-  accentBg: 'var(--utility-blue-50, #EEF1FF)',
-  ok: 'var(--utility-green-600, #059669)',
-  okBg: 'var(--utility-green-50, #ECFDF5)',
-  live: 'var(--utility-green-500, #10B981)',
-  warn: 'var(--colors-warning-600, #D97706)',
-  warnBg: 'var(--colors-warning-50, #FFFBEB)',
-  danger: 'var(--colors-error-600, #DC2626)',
-  dangerBg: 'var(--utility-error-50, #FEF2F2)',
-  purple: 'var(--utility-purple-500, #7C3AED)',
-  purpleBg: 'var(--utility-purple-50, #F5F3FF)',
-  font: 'var(--font-family-body, Pretendard, sans-serif)',
+const DEFAULT_ICONS = {
+  prevActions: '/icons-solid/clipboard-check.svg',
+  aiSummary: '/icons-solid/ai-chat-01.svg',
+  okr: '/icons-solid/target-04.svg',
+  health: '/icons-solid/activity-heart.svg',
+  topics: '/icons-solid/message-chat-circle.svg',
+  notes: '/icons-solid/file-06.svg',
+  actions: '/icons-solid/check-square.svg',
+  agenda: '/icons-solid/list.svg',
+  memo: '/icons-solid/edit-05.svg',
+  recording: '/icons-solid/microphone-01.svg',
+  alert: '/icons-solid/alert-triangle.svg',
+  history: '/icons-solid/clock-rewind.svg',
+  clock: '/icons-solid/clock.svg',
+  chevron: '/icons-solid/chevron-down.svg',
+  arrow: '/icons-solid/arrow-right.svg',
+  back: '/icons-solid/arrow-left.svg',
+  check: '/icons-solid/check.svg',
+  decisions: '/icons-solid/check-circle.svg',
+  next: '/icons-solid/calendar.svg',
 };
 
 const DEFAULT_LABELS = {
@@ -114,87 +117,71 @@ function mergeLabels(base, provided) {
 const fill = (tpl, vars) =>
   String(tpl ?? '').replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m));
 
-const card = {
-  background: C.surface,
-  borderRadius: 12,
-  border: `1px solid ${C.border}`,
-  padding: '20px 24px',
-};
-const btn = {
-  padding: '10px 20px', borderRadius: 8, fontSize: 14, fontWeight: 600,
-  cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all .15s',
-};
-const input = {
-  width: '100%', padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 8,
-  fontSize: 14, color: C.text, background: C.panel, outline: 'none',
-  fontFamily: 'inherit', boxSizing: 'border-box',
-};
-
 /* ── 공통 조각 ─────────────────────────────────────────── */
 function StatusBadge({ status, L }) {
-  const map = {
-    ready: [L.badgeReady, C.accent, C.accentBg],
-    live: [L.badgeLive, C.live, C.okBg],
-    done: [L.badgeDone, C.sub, C.panel],
-  };
-  const [label, color, bg] = map[status] || map.ready;
+  const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
   return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, background: bg, color, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      {status === 'live' && (
-        <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: C.live, animation: 'ono-pulse 1.5s infinite' }} />
-      )}
+    <span className={`ono-mem-badge is-${status}`}>
+      {status === 'live' && <span className="ono-mem-badge-dot" />}
       {label}
     </span>
   );
 }
 
 function Readiness({ value, L }) {
-  const c = value >= 80 ? C.ok : value >= 50 ? C.warn : C.danger;
+  // 준비도 톤 — 매니저 뷰의 flag 어휘를 그대로 쓴다(blue/warning/error).
+  const tone = value >= 80 ? 'blue' : value >= 50 ? 'warning' : 'error';
   const label = value >= 80 ? L.readinessComplete : value >= 50 ? L.readinessInProgress : L.readinessNeeded;
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: C.sub }}>{L.myReadiness}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: c, padding: '2px 8px', background: C.panel, borderRadius: 10 }}>{label}</span>
+    <div className="ono-start-prep">
+      {/* .ono-start-prep-row 는 세로 배치라 배지가 폭을 다 먹는다 — 가로 행은 따로 둔다. */}
+      <div className="ono-mem-readiness-top">
+        <span className="ono-start-prep-who">{L.myReadiness}</span>
+        <span className={`ono-start-flag ono-start-flag-${tone}`}>{label}</span>
       </div>
-      <div style={{ height: 6, background: C.border, borderRadius: 3 }}>
-        <div style={{ height: '100%', width: `${value}%`, background: c, borderRadius: 3, transition: 'width .5s' }} />
+      <div className="ono-start-progress-track">
+        <div className="ono-start-progress-fill" style={{ width: `${value}%` }} />
       </div>
-      <p style={{ fontSize: 11, color: C.muted, textAlign: 'right', marginTop: 2 }}>{value}%</p>
+      <span className="ono-start-prep-pct">{value}%</span>
     </div>
   );
 }
 
-function Section({ title, icon, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: 'none', border: 'none', cursor: 'pointer' }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }} aria-hidden="true">{icon}</span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{title}</span>
-        </span>
-        <span aria-hidden="true" style={{ fontSize: 11, color: C.muted, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▼</span>
-      </button>
-      {open && <div style={{ padding: '0 24px 24px', borderTop: `1px solid ${C.border}` }}>{children}</div>}
-    </div>
-  );
-}
-
-function OkrBar({ value, forecast }) {
-  const colors = { '🟢': C.ok, '🟡': C.warn, '🔴': C.danger };
-  const c = (forecast && colors[forecast]) || C.accent;
-  return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-      <span style={{ flex: 1, height: 6, background: C.border, borderRadius: 3, display: 'block' }}>
-        <span style={{ display: 'block', height: '100%', width: `${value}%`, background: c, borderRadius: 3 }} />
+function Section({ title, icon, icons, baseUrl, badge, collapsible = true, children }) {
+  const [open, setOpen] = useState(true);
+  const head = (
+    <>
+      <span className="ono-mem-card-title">
+        <Icon src={icon} size={16} color="var(--utility-blue-500)" baseUrl={baseUrl} />
+        {title}
       </span>
-      <span style={{ fontSize: 12, fontWeight: 700, color: c, minWidth: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}%</span>
-      {forecast && <span style={{ fontSize: 13 }}>{forecast}</span>}
+      {badge}
+      {collapsible && (
+        <Icon src={icons.chevron} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+      )}
+    </>
+  );
+  return (
+    <section className="ono-mem-card">
+      {collapsible ? (
+        <button type="button" className="ono-mem-card-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+          {head}
+        </button>
+      ) : (
+        <div className="ono-mem-card-head is-static">{head}</div>
+      )}
+      {(!collapsible || open) && <div className="ono-mem-card-body is-bordered">{children}</div>}
+    </section>
+  );
+}
+
+function OkrBar({ value }) {
+  return (
+    <span className="ono-start-okr-bar-line">
+      <span className="ono-start-progress-track">
+        <span className="ono-start-progress-fill" style={{ display: 'block', width: `${value}%` }} />
+      </span>
+      <span className="ono-start-okr-bar-pct">{value}%</span>
     </span>
   );
 }
@@ -208,35 +195,22 @@ function ElapsedTimer({ from }) {
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
   return (
-    <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: 15, color: C.live }}>
+    <span className="ono-mem-elapsed-value">
       {String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
     </span>
   );
 }
 
-function SectionLabel({ children }) {
-  return (
-    <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
-      {children}
-    </div>
-  );
-}
-
-function Blockers({ items, L }) {
+function Blockers({ items, L, icons, baseUrl }) {
   if (!items?.length) return null;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-      {items.map((b) => {
-        const high = b.severity === 'high';
-        return (
-          <div key={b.id} style={{ background: high ? C.dangerBg : C.warnBg, padding: 12, borderRadius: 8, borderLeft: `3px solid ${high ? C.danger : C.warn}` }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: high ? C.danger : C.warn, margin: '0 0 5px' }}>
-              {high ? L.blockerHigh : L.blockerMedium}
-            </p>
-            <p style={{ fontSize: 12, margin: 0, color: C.text }}>{b.text}</p>
-          </div>
-        );
-      })}
+    <div className="ono-start-briefing-badges">
+      {items.map((b) => (
+        <span key={b.id} className={`ono-start-flag ono-start-flag-${b.severity === 'high' ? 'error' : 'warning'}`}>
+          <Icon src={icons.alert} size={12} color="currentColor" baseUrl={baseUrl} />
+          {b.severity === 'high' ? L.blockerHigh : L.blockerMedium} · {b.text}
+        </span>
+      ))}
     </div>
   );
 }
@@ -261,28 +235,28 @@ function HealthGraph({ data, healthColor, ariaLabel }) {
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel} style={{ display: 'block' }}>
       <defs>
-        <linearGradient id="ono-hg-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={C.accent} stopOpacity={0.18} />
-          <stop offset="100%" stopColor={C.accent} stopOpacity={0.01} />
+        <linearGradient id="ono-mem-hg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--utility-blue-500)" stopOpacity={0.18} />
+          <stop offset="100%" stopColor="var(--utility-blue-500)" stopOpacity={0.01} />
         </linearGradient>
       </defs>
       {ticks.map((tk) => (
         <g key={tk}>
-          <line x1={PL} y1={toY(tk)} x2={W - PR} y2={toY(tk)} stroke={C.border} strokeWidth={0.5} />
-          <text x={PL - 6} y={toY(tk) + 3} textAnchor="end" fontSize={9} fill={C.muted}>{tk}</text>
+          <line x1={PL} y1={toY(tk)} x2={W - PR} y2={toY(tk)} stroke="var(--border-secondary)" strokeWidth={0.5} />
+          <text x={PL - 6} y={toY(tk) + 3} textAnchor="end" fontSize={9} fill="var(--text-tertiary)">{tk}</text>
         </g>
       ))}
-      <path d={area} fill="url(#ono-hg-grad)" />
-      <polyline points={pts} fill="none" stroke={C.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={area} fill="url(#ono-mem-hg)" />
+      <polyline points={pts} fill="none" stroke="var(--utility-blue-500)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       {data.map((v, i) => {
         const x = toX(i), y = toY(clamp(v)), on = hover === i;
         return (
           <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }}>
-            <circle cx={x} cy={y} r={on ? 7 : 3.5} fill={healthColor ? healthColor(v) : C.accent} stroke={C.surface} strokeWidth={on ? 2 : 1} />
+            <circle cx={x} cy={y} r={on ? 7 : 3.5} fill={healthColor ? healthColor(v) : 'var(--utility-blue-500)'} stroke="var(--bg-quaternary)" strokeWidth={on ? 2 : 1} />
             {on && (
               <g>
-                <rect x={x - 16} y={y - 24} width={32} height={18} rx={4} fill={C.text} />
-                <text x={x} y={y - 12} textAnchor="middle" fontSize={10} fontWeight={700} fill={C.surface}>{v}</text>
+                <rect x={x - 16} y={y - 24} width={32} height={18} rx={4} fill="var(--text-primary)" />
+                <text x={x} y={y - 12} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--bg-quaternary)">{v}</text>
               </g>
             )}
           </g>
@@ -294,53 +268,64 @@ function HealthGraph({ data, healthColor, ariaLabel }) {
 
 function ColHeads({ cols }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: 10, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+    <div className="ono-mem-row is-head">
       {cols.map((h) => (
-        <span key={h} style={{ fontSize: 11, fontWeight: 600, color: C.sub, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</span>
+        <span key={h} className="ono-mem-col-head">{h}</span>
       ))}
     </div>
   );
 }
 
-function NoteGrid({ sections, L }) {
+function noteSectionsOf(session, L, icons) {
+  return [
+    { key: 'summary', label: L.mainDiscussion, icon: icons.topics, content: session.aiSummary },
+    { key: 'decisions', label: L.keyDecisions, icon: icons.decisions, content: session.keyDecisions?.join('\n') },
+    { key: 'topics', label: L.topicsCovered, icon: icons.agenda, content: session.topicsCovered?.join(', ') },
+    { key: 'next', label: L.nextAgenda, icon: icons.next, content: session.nextTopics?.join(', ') },
+  ];
+}
+
+function NoteGrid({ session, L, icons, baseUrl }) {
   return (
-    <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}` }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>🗒️ {L.meetingNotes}</h2>
-      </div>
-      <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-        {sections.map(({ key, label, content }) => (
+    <Section title={L.meetingNotes} icon={icons.notes} icons={icons} baseUrl={baseUrl} collapsible={false}>
+      <div className="ono-mem-notes">
+        {noteSectionsOf(session, L, icons).map(({ key, label, icon, content }) => (
           <div key={key}>
-            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>{label}</span>
-            <div style={{ padding: '12px 14px', background: C.panel, borderRadius: 8, fontSize: 13, lineHeight: 1.7, color: C.text, minHeight: 60 }}>
-              {content || <span style={{ color: C.muted }}>—</span>}
-            </div>
+            <span className="ono-mem-note-label">
+              <Icon src={icon} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              {label}
+            </span>
+            <div className="ono-mem-note-box">{content || '—'}</div>
           </div>
         ))}
       </div>
-    </div>
+    </Section>
   );
 }
 
-function SessionHeader({ title, status, date, duration, avatar, L, gradient, children }) {
+function SessionHeader({ title, status, date, duration, avatar, L, icons, baseUrl, children, extra }) {
   return (
-    <div style={{ ...card, background: gradient || C.surface, border: `1px solid ${C.border}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+    <header className={`ono-mem-head is-${status}`}>
+      <div className="ono-mem-head-row">
         {avatar}
-        <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h1>
+        <h1 className="ono-mem-head-title">{title}</h1>
         <StatusBadge status={status} L={L} />
         {duration && (
-          <span style={{ fontSize: 11, padding: '2px 8px', background: C.panel, color: C.sub, borderRadius: 10 }}>⏱ {duration}</span>
+          <span className="ono-mem-chip">
+            <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
+            {duration}
+          </span>
         )}
+        {extra}
       </div>
-      {date && <p style={{ fontSize: 12, color: C.sub, margin: '4px 0 0' }}>{date}</p>}
+      {date && <p className="ono-mem-head-date">{date}</p>}
       {children}
-    </div>
+    </header>
   );
 }
 
 /* ── ① 준비 (READY) ───────────────────────────────────── */
-function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, formatDate, healthColor, onTopicsChange, onStart }) {
+function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart }) {
   const [draft, setDraft] = useState('');
   const topics = session.memberTopics ?? [];
   const prevActions = session.aiBriefing?.prevActions ?? [];
@@ -355,27 +340,26 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <>
       <SessionHeader
         title={fill(L.sessionWith, { name: manager.name })}
         status="ready"
         date={formatDate(session.createdAt)}
         avatar={avatar}
-        L={L}
-        gradient={`linear-gradient(135deg, ${C.accentBg}, ${C.purpleBg})`}
+        L={L} icons={icons} baseUrl={baseUrl}
       >
-        <div style={{ marginTop: 14 }}><Readiness value={readiness} L={L} /></div>
+        <Readiness value={readiness} L={L} />
       </SessionHeader>
 
       {prevActions.length > 0 && (
-        <Section title={L.prevActionCheck} icon="📋">
-          <div style={{ marginTop: 14 }}>
+        <Section title={L.prevActionCheck} icon={icons.prevActions} icons={icons} baseUrl={baseUrl}>
+          <div className="ono-mem-table">
             <ColHeads cols={[L.colAction, L.colAssignee, L.colStatus]} />
             {prevActions.map((item, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: 8, padding: '10px 0', borderBottom: `1px solid ${C.border}`, alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: C.text }}>{item.text}</span>
-                <span style={{ fontSize: 12, color: C.sub }}>{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: item.done ? C.ok : C.warn, padding: '3px 8px', borderRadius: 10, background: item.done ? C.okBg : C.warnBg }}>
+              <div className="ono-mem-row" key={i}>
+                <span className="ono-mem-cell">{item.text}</span>
+                <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+                <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>
               </div>
@@ -385,94 +369,82 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
       )}
 
       {session.aiBriefing && (
-        <Section title={L.aiSummary} icon="✨">
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 13, background: C.panel, padding: '12px 14px', borderRadius: 8, lineHeight: 1.7 }}>
-              {session.aiBriefing.summary}
+        <Section title={L.aiSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
+          <div className="ono-start-briefing-text-box">{session.aiBriefing.summary}</div>
+          {session.aiBriefing.signals?.length > 0 && (
+            <div className="ono-start-briefing-badges">
+              {session.aiBriefing.signals.map((s, i) => (
+                <span key={i} className="ono-start-topic-badge">{s}</span>
+              ))}
             </div>
-            {session.aiBriefing.signals?.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
-                {session.aiBriefing.signals.map((s, i) => (
-                  <span key={i} style={{ padding: '3px 10px', background: C.okBg, color: C.ok, borderRadius: 20, fontSize: 12, fontWeight: 500 }}>{s}</span>
-                ))}
-              </div>
-            )}
-            {session.aiBriefing.unresolvedBlockers?.length > 0 && (
-              <div style={{ marginTop: 14 }}><Blockers items={session.aiBriefing.unresolvedBlockers} L={L} /></div>
-            )}
-          </div>
+          )}
+          <Blockers items={session.aiBriefing.unresolvedBlockers} L={L} icons={icons} baseUrl={baseUrl} />
         </Section>
       )}
 
       {okrStatus.length > 0 && (
-        <Section title={L.okrContribution} icon="🎯">
-          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {okrStatus.map((kr, ki) => (
-              <div key={`${ki}-${kr.id}`} style={{ padding: '11px 14px', background: C.panel, borderRadius: 10, border: `1px solid ${C.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 11, color: C.muted, minWidth: 18 }}>KR</span>
-                  <span style={{ fontSize: 13, flex: 1 }}>{kr.title}</span>
-                  <OkrBar value={kr.progress} />
-                </div>
-              </div>
-            ))}
-          </div>
+        <Section title={L.okrContribution} icon={icons.okr} icons={icons} baseUrl={baseUrl}>
+          {okrStatus.map((kr, ki) => (
+            <div className="ono-start-okr-row" key={`${ki}-${kr.id}`}>
+              <span className="ono-start-okr-kr">{kr.title}</span>
+              <OkrBar value={kr.progress} />
+            </div>
+          ))}
         </Section>
       )}
 
       {healthHistory.length >= 2 && (
-        <Section title={L.healthCheck} icon="🩺">
-          <div style={{ marginTop: 14 }}>
-            <HealthGraph data={healthHistory} healthColor={healthColor} ariaLabel={L.healthGraph} />
-          </div>
+        <Section title={L.healthCheck} icon={icons.health} icons={icons} baseUrl={baseUrl}>
+          <HealthGraph data={healthHistory} healthColor={healthColor} ariaLabel={L.healthGraph} />
         </Section>
       )}
 
-      <div style={{ ...card, border: `2px solid ${C.accentBg}` }} data-testid="ono-topic-input">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 16 }} aria-hidden="true">💬</span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{L.topicInputTitle}</span>
-        </div>
-        <p style={{ fontSize: 11, color: C.muted, margin: '0 0 12px', lineHeight: 1.6 }}>{L.topicInputDesc}</p>
-
+      <Section title={L.topicInputTitle} icon={icons.topics} icons={icons} baseUrl={baseUrl} collapsible={false}>
+        <p className="ono-mem-hint">{L.topicInputDesc}</p>
         {topics.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          <div className="ono-mem-topics" data-testid="ono-topic-input">
             {topics.map((topic, i) => (
-              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: C.accentBg, color: C.accent, borderRadius: 20, fontSize: 13, fontWeight: 500 }}>
+              <span key={i} className="ono-mem-topic">
                 {topic}
-                <button type="button" aria-label={`${topic} 삭제`} onClick={() => onTopicsChange(topics.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+                <button
+                  type="button"
+                  className="ono-mem-topic-x"
+                  aria-label={`${topic} 삭제`}
+                  onClick={() => onTopicsChange(topics.filter((_, idx) => idx !== i))}
+                >
+                  ×
+                </button>
               </span>
             ))}
           </div>
         )}
-
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="ono-mem-input-row">
           <input
+            className="ono-mem-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTopic(); } }}
             placeholder={L.topicPlaceholder}
-            style={{ ...input, flex: 1 }}
           />
-          <button type="button" onClick={addTopic} disabled={!draft.trim()} style={{ ...btn, background: draft.trim() ? C.accent : C.border, color: draft.trim() ? C.surface : C.muted, fontSize: 13, padding: '8px 16px' }}>
+          <button type="button" className="ono-mem-btn" onClick={addTopic} disabled={!draft.trim()}>
             {L.addTopic}
           </button>
         </div>
-        {topics.length === 0 && <p style={{ marginTop: 10, fontSize: 11, color: C.muted }}>{L.topicExamples}</p>}
-      </div>
+        {topics.length === 0 && <p className="ono-mem-hint">{L.topicExamples}</p>}
+      </Section>
 
       {isHost && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
-          <span style={{ fontSize: 12, color: C.muted }}>{L.prepCompleteHint}</span>
-          <button type="button" onClick={onStart} style={{ ...btn, background: C.accent, color: C.surface, minWidth: 140 }}>{L.startMeeting}</button>
+        <div className="ono-mem-footer">
+          <span className="ono-mem-hint">{L.prepCompleteHint}</span>
+          <button type="button" className="ono-mem-btn" onClick={onStart}>{L.startMeeting}</button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
 /* ── ② 미팅 (LIVE) ────────────────────────────────────── */
-function MeetingScreen({ session, manager, avatar, L, onSaveNotes }) {
+function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNotes }) {
   const [memo, setMemo] = useState(session.memberNotes ?? '');
   const [saved, setSaved] = useState(false);
   const [startAt] = useState(() => (session.startedAt ? new Date(session.startedAt).getTime() : Date.now()));
@@ -486,274 +458,245 @@ function MeetingScreen({ session, manager, avatar, L, onSaveNotes }) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ ...card, background: C.dangerBg, border: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          {avatar}
-          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{fill(L.liveWith, { name: manager.name })}</h1>
-          <StatusBadge status="live" L={L} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: 12, color: C.sub }}>{L.elapsed}</span>
-          <ElapsedTimer from={startAt} />
-        </div>
-        <style>{'@keyframes ono-pulse{0%,100%{opacity:1}50%{opacity:.3}}'}</style>
-      </div>
+    <>
+      <SessionHeader
+        title={fill(L.liveWith, { name: manager.name })}
+        status="live"
+        avatar={avatar}
+        L={L} icons={icons} baseUrl={baseUrl}
+        extra={
+          <span className="ono-mem-elapsed">
+            {L.elapsed}
+            <ElapsedTimer from={startAt} />
+          </span>
+        }
+      />
 
       {session.aiBriefing && (
-        <div style={card}>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>📝 {L.prepSummary}</p>
-          <p style={{ fontSize: 13, background: C.panel, padding: '12px 14px', borderRadius: 8, marginBottom: 12, lineHeight: 1.7 }}>
-            {session.aiBriefing.summary}
-          </p>
-          <Blockers items={session.aiBriefing.unresolvedBlockers} L={L} />
-        </div>
+        <Section title={L.prepSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
+          <div className="ono-start-briefing-text-box">{session.aiBriefing.summary}</div>
+          <Blockers items={session.aiBriefing.unresolvedBlockers} L={L} icons={icons} baseUrl={baseUrl} />
+        </Section>
       )}
 
       {okrStatus.length > 0 && (
-        <div style={card}>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>🎯 {L.okrStatus}</p>
+        <Section title={L.okrStatus} icon={icons.okr} icons={icons} baseUrl={baseUrl}>
           {okrStatus.map((kr, ki) => (
-            <div key={`${ki}-${kr.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 10, alignItems: 'center', padding: '8px 12px', background: C.panel, borderRadius: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 13 }}>{kr.title}</span>
+            <div className="ono-start-okr-row" key={`${ki}-${kr.id}`}>
+              <span className="ono-start-okr-kr">{kr.title}</span>
               <OkrBar value={kr.progress} />
             </div>
           ))}
-        </div>
+        </Section>
       )}
 
       {session.agendaItems?.length > 0 && (
-        <div style={card}>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>📌 {L.agenda}</p>
-          {session.agendaItems.map((ag, i) => (
-            <div key={ag.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: C.panel, borderRadius: 10, marginBottom: 8, borderLeft: `3px solid ${ag.addedDuring ? C.warn : C.accent}` }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: C.border, minWidth: 24 }}>{i + 1}</span>
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 500, textDecoration: ag.checked ? 'line-through' : 'none', color: ag.checked ? C.muted : C.text }}>{ag.text}</span>
-              {ag.checked && <span style={{ fontSize: 11, color: C.ok, fontWeight: 600 }}>✓</span>}
+        <Section title={L.agenda} icon={icons.agenda} icons={icons} baseUrl={baseUrl}>
+          {session.agendaItems.map((ag) => (
+            <div className="ono-start-agenda-item" key={ag.id}>
+              <span className="ono-start-agenda-text">{ag.text}</span>
+              {ag.checked && <Icon src={icons.check} size={14} color="var(--utility-green-600)" baseUrl={baseUrl} />}
             </div>
           ))}
-        </div>
+        </Section>
       )}
 
       {prevActions.length > 0 && (
-        <div style={card}>
-          <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>⚠️ {L.pendingActions}</p>
+        <Section title={L.pendingActions} icon={icons.alert} icons={icons} baseUrl={baseUrl}>
           {prevActions.map((a, i) => (
-            <div key={i} style={{ padding: '8px 12px', background: C.warnBg, borderRadius: 8, marginBottom: 6, borderLeft: `3px solid ${C.warn}`, fontSize: 13 }}>{a.text}</div>
+            <div className="ono-start-action-item" key={i}>
+              <span className="ono-start-action-text">{a.text}</span>
+            </div>
           ))}
-        </div>
+        </Section>
       )}
 
-      <div style={{ background: C.warnBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px 16px', fontSize: 12, color: C.warn, lineHeight: 1.7 }}>
-        <strong>{L.recordingNotice}</strong><br />
-        <span style={{ fontWeight: 600 }}>{L.privateMemoLabel}</span>{L.privateMemoGuide}
+      <div className="ono-mem-notice">
+        <Icon src={icons.recording} size={14} color="currentColor" baseUrl={baseUrl} />
+        <span>
+          {L.recordingNotice} <strong>{L.privateMemoLabel}</strong>{L.privateMemoGuide}
+        </span>
       </div>
 
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 18 }} aria-hidden="true">📝</span>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>{L.privateMemo}</span>
-        </div>
-        <p style={{ fontSize: 11, color: C.muted, margin: '0 0 10px' }}>{L.privateMemoDesc}</p>
+      <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl}>
+        <p className="ono-mem-hint">{L.privateMemoDesc}</p>
         <textarea
+          className="ono-start-textarea"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           placeholder={L.memoPlaceholder}
           rows={8}
-          style={{ ...input, resize: 'vertical', lineHeight: 1.6 }}
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-          <button type="button" onClick={save} style={{ ...btn, background: saved ? C.ok : C.accent, color: C.surface, fontSize: 13, padding: '8px 18px' }}>
+        <div className="ono-mem-actions-end">
+          <button type="button" className={`ono-mem-btn${saved ? ' is-ok' : ''}`} onClick={save}>
             {saved ? L.saved : L.save}
           </button>
         </div>
-      </div>
+      </Section>
 
-      <p style={{ textAlign: 'center', padding: 10, color: C.muted, fontSize: 13 }}>{L.meetingEndByManager}</p>
-    </div>
+      <p className="ono-mem-hint ono-mem-center">{L.meetingEndByManager}</p>
+    </>
   );
 }
 
 /* ── ③ 결과 (DONE) ────────────────────────────────────── */
-function ActionRow({ item, L, deadlineOf, onToggle, muted }) {
+function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
   const dm = deadlineOf ? deadlineOf(item) : null;
   return (
     <div
+      className={`ono-mem-row${onToggle ? ' is-clickable' : ''}${muted ? ' is-muted' : ''}`}
       onClick={onToggle ? () => onToggle(item.id) : undefined}
-      style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: 10, padding: '12px 0', borderBottom: `1px solid ${C.border}`, alignItems: 'center', cursor: onToggle ? 'pointer' : 'default', opacity: muted ? 0.7 : 1 }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span className="ono-mem-cell ono-mem-cell-check">
         {onToggle && (
-          <span style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, background: item.done ? C.ok : 'transparent', border: `2px solid ${item.done ? C.ok : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {item.done && <span style={{ color: C.surface, fontSize: 10, fontWeight: 700 }}>✓</span>}
+          <span className={`ono-mem-check${item.done ? ' is-on' : ''}`}>
+            {item.done && <Icon src={icons.check} size={11} color="var(--text-white)" baseUrl={baseUrl} />}
           </span>
         )}
-        <span style={{ fontSize: 13, textDecoration: item.done && onToggle ? 'line-through' : 'none', color: item.done && onToggle ? C.muted : C.text }}>{item.text}</span>
-      </div>
-      <span style={{ fontSize: 12, color: C.sub }}>{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+        <span className={item.done && onToggle ? 'is-done' : ''}>{item.text}</span>
+      </span>
+      <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
       {dm ? (
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: dm.bg, border: `1px solid ${dm.bd}`, color: dm.color }}>{dm.label}</span>
+        <span className="ono-start-flag" style={{ background: dm.bg, borderColor: dm.bd, color: dm.color }}>
+          {dm.label}
+        </span>
       ) : (
-        <span style={{ fontSize: 12, color: C.muted }}>—</span>
+        <span className="ono-mem-cell is-sub">—</span>
       )}
     </div>
   );
 }
 
-function ResultScreen({ session, manager, avatar, L, formatDate, formatDuration, deadlineOf, onToggleAction }) {
+function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <>
       <SessionHeader
         title={fill(L.doneWith, { name: manager.name })}
         status="done"
         date={formatDate(session.createdAt)}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
         avatar={avatar}
-        L={L}
-        gradient={`linear-gradient(135deg, ${C.okBg}, ${C.accentBg})`}
+        L={L} icons={icons} baseUrl={baseUrl}
       />
 
       {session.isShared === false ? (
-        <div style={card}>
-          <div style={{ textAlign: 'center', padding: '32px 16px', color: C.muted }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }} aria-hidden="true">📋</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: C.sub, marginBottom: 4 }}>{L.managerPreparing}</div>
-            <div style={{ fontSize: 12 }}>{L.noSummary}</div>
-          </div>
+        <div className="ono-mem-empty">
+          {L.managerPreparing}
+          <div className="ono-mem-hint">{L.noSummary}</div>
         </div>
       ) : (
         <>
-          <NoteGrid
-            L={L}
-            sections={[
-              { key: 'summary', label: `💬 ${L.mainDiscussion}`, content: session.aiSummary },
-              { key: 'decisions', label: `✅ ${L.keyDecisions}`, content: session.keyDecisions?.join('\n') },
-              { key: 'topics', label: `📌 ${L.topicsCovered}`, content: session.topicsCovered?.join(', ') },
-              { key: 'nextTopics', label: `📋 ${L.nextAgenda}`, content: session.nextTopics?.join(', ') },
-            ]}
-          />
+          <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
-          <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>✅ {L.myActionItems}</h2>
-              <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>{doneCount}/{myActions.length} {L.completed}</span>
+          <Section
+            title={L.myActionItems}
+            icon={icons.actions}
+            icons={icons}
+            baseUrl={baseUrl}
+            collapsible={false}
+            badge={<span className="ono-start-topic-badge">{doneCount}/{myActions.length} {L.completed}</span>}
+          >
+            <div className="ono-start-progress-track">
+              <div className="ono-start-progress-fill" style={{ width: `${myActions.length ? (doneCount / myActions.length) * 100 : 0}%` }} />
             </div>
-            <div style={{ padding: '0 24px' }}>
-              <div style={{ height: 5, background: C.panel, borderRadius: 99, margin: '16px 0' }}>
-                <div style={{ height: '100%', borderRadius: 99, background: C.accent, width: `${myActions.length ? (doneCount / myActions.length) * 100 : 0}%`, transition: 'width .3s' }} />
-              </div>
+            <div className="ono-mem-table">
               <ColHeads cols={[L.colContent, L.colAssignee, L.colDeadline]} />
               {myActions.map((item) => (
-                <ActionRow key={item.id} item={item} L={L} deadlineOf={deadlineOf} onToggle={onToggleAction} />
+                <ActionRow key={item.id} item={item} L={L} deadlineOf={deadlineOf} onToggle={onToggleAction} icons={icons} baseUrl={baseUrl} />
               ))}
-
               {managerActions.length > 0 && (
-                <div style={{ paddingTop: 16, marginTop: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{L.managerActions}</div>
+                <>
+                  <div className="ono-mem-group-label">{L.managerActions}</div>
                   {managerActions.map((item) => (
-                    <ActionRow key={item.id} item={item} L={L} deadlineOf={deadlineOf} muted />
+                    <ActionRow key={item.id} item={item} L={L} deadlineOf={deadlineOf} muted icons={icons} baseUrl={baseUrl} />
                   ))}
-                </div>
+                </>
               )}
-
               {session.actionItems.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: C.muted, fontSize: 12 }}>{L.noActions}</div>
+                <p className="ono-mem-hint ono-mem-center">{L.noActions}</p>
               )}
             </div>
-          </div>
+          </Section>
 
           {session.emotionTone && (
-            <div style={card}>
-              <SectionLabel>{L.emotionTone}</SectionLabel>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { key: 'positive', label: L.emotionPositive, value: session.emotionTone.positive, color: C.ok },
-                  { key: 'neutral', label: L.emotionNeutral, value: session.emotionTone.neutral, color: C.muted },
-                  { key: 'negative', label: L.emotionNegative, value: session.emotionTone.negative, color: C.danger },
-                ].map((row) => {
-                  const total = session.emotionTone.positive + session.emotionTone.neutral + session.emotionTone.negative;
-                  const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
-                  return (
-                    <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 11, color: C.sub, minWidth: 28 }}>{row.label}</span>
-                      <span style={{ flex: 1, height: 8, background: C.panel, borderRadius: 99, display: 'block' }}>
-                        <span style={{ display: 'block', height: '100%', borderRadius: 99, background: row.color, width: `${pct}%`, transition: 'width .3s' }} />
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: row.color, fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <Section title={L.emotionTone} icon={icons.health} icons={icons} baseUrl={baseUrl}>
+              {[
+                { key: 'positive', label: L.emotionPositive, value: session.emotionTone.positive, color: 'var(--utility-green-600)' },
+                { key: 'neutral', label: L.emotionNeutral, value: session.emotionTone.neutral, color: 'var(--text-tertiary)' },
+                { key: 'negative', label: L.emotionNegative, value: session.emotionTone.negative, color: 'var(--colors-error-600)' },
+              ].map((row) => {
+                const total = session.emotionTone.positive + session.emotionTone.neutral + session.emotionTone.negative;
+                const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
+                return (
+                  <div className="ono-start-okr-bar-line" key={row.key}>
+                    <span className="ono-mem-cell is-sub ono-mem-tone-label">{row.label}</span>
+                    <span className="ono-start-progress-track">
+                      <span className="ono-start-progress-fill" style={{ display: 'block', width: `${pct}%`, background: row.color }} />
+                    </span>
+                    <span className="ono-start-okr-bar-pct" style={{ color: row.color }}>{pct}%</span>
+                  </div>
+                );
+              })}
+            </Section>
           )}
         </>
       )}
-    </div>
+    </>
   );
 }
 
 /* ── ④ 히스토리 (HISTORY) ─────────────────────────────── */
-function HistoryDetail({ session, manager, avatar, L, formatDate, formatDuration, onBack, onToggleAction }) {
+function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ ...card, background: `linear-gradient(135deg, ${C.accentBg}, ${C.purpleBg})`, border: `1px solid ${C.border}` }}>
-        <button type="button" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: 13, fontWeight: 600, padding: 0, marginBottom: 10 }}>
-          ← {L.backToHistory}
+    <>
+      <SessionHeader
+        title={fill(L.sessionWith, { name: manager.name })}
+        status="done"
+        date={formatDate(session.createdAt)}
+        duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
+        avatar={avatar}
+        L={L} icons={icons} baseUrl={baseUrl}
+      >
+        <button type="button" className="ono-mem-back" onClick={onBack}>
+          <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />
+          {L.backToHistory}
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          {avatar}
-          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{fill(L.sessionWith, { name: manager.name })}</h1>
-          <StatusBadge status="done" L={L} />
-          {session.durationSec > 0 && (
-            <span style={{ fontSize: 11, padding: '2px 8px', background: C.panel, color: C.sub, borderRadius: 10 }}>⏱ {formatDuration(session.durationSec)}</span>
-          )}
-        </div>
-        <p style={{ fontSize: 12, color: C.sub, margin: '4px 0 0' }}>{formatDate(session.createdAt)}</p>
-      </div>
+      </SessionHeader>
 
-      {session.aiSummary && (
-        <NoteGrid
-          L={L}
-          sections={[
-            { key: 'summary', label: `💬 ${L.mainDiscussion}`, content: session.aiSummary },
-            { key: 'decisions', label: `✅ ${L.keyDecisions}`, content: session.keyDecisions?.join('\n') },
-            { key: 'topics', label: `📌 ${L.topicsCovered}`, content: session.topicsCovered?.join(', ') },
-            { key: 'next', label: `📋 ${L.nextAgenda}`, content: session.nextTopics?.join(', ') },
-          ]}
-        />
-      )}
+      {session.aiSummary && <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />}
 
       {session.actionItems.length > 0 && (
-        <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>✅ {L.myActionItems}</h2>
-            <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>{session.actionItems.length}{L.count}</span>
-          </div>
-          <div style={{ padding: '0 24px' }}>
+        <Section
+          title={L.myActionItems}
+          icon={icons.actions}
+          icons={icons}
+          baseUrl={baseUrl}
+          collapsible={false}
+          badge={<span className="ono-start-topic-badge">{session.actionItems.length}{L.count}</span>}
+        >
+          <div className="ono-mem-table">
             <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
             {session.actionItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => onToggleAction(item.id)}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: 10, padding: '12px 0', borderBottom: `1px solid ${C.border}`, alignItems: 'center', cursor: 'pointer' }}
-              >
-                <span style={{ fontSize: 13, color: C.text }}>{item.text}</span>
-                <span style={{ fontSize: 12, color: C.sub }}>{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: item.done ? C.ok : C.warn }}>{item.done ? L.statusDone : L.statusPending}</span>
+              <div className="ono-mem-row is-clickable" key={item.id} onClick={() => onToggleAction(item.id)}>
+                <span className="ono-mem-cell">{item.text}</span>
+                <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+                <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
+                  {item.done ? L.statusDone : L.statusPending}
+                </span>
               </div>
             ))}
           </div>
-        </div>
+        </Section>
       )}
-    </div>
+    </>
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, healthHistory, L, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction }) {
+function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -761,7 +704,7 @@ function HistoryScreen({ sessions, manager, avatar, healthHistory, L, formatDate
   if (selected) {
     return (
       <HistoryDetail
-        session={selected} manager={manager} avatar={avatar} L={L}
+        session={selected} manager={manager} avatar={avatar} L={L} icons={icons} baseUrl={baseUrl}
         formatDate={formatDate} formatDuration={formatDuration}
         onBack={() => setSelectedId(null)} onToggleAction={onToggleAction}
       />
@@ -769,85 +712,79 @@ function HistoryScreen({ sessions, manager, avatar, healthHistory, L, formatDate
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>📂 {L.historyTitle}</h2>
-            <p style={{ fontSize: 12, color: C.sub, margin: '4px 0 0' }}>{fill(L.totalCount, { count: done.length })}</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <>
+      <header className="ono-mem-head">
+        <div className="ono-mem-head-row">
+          <Icon src={icons.history} size={18} color="var(--utility-blue-500)" baseUrl={baseUrl} />
+          <h1 className="ono-mem-head-title">{L.historyTitle}</h1>
+          <span className="ono-mem-elapsed">
             {avatar}
-            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{manager.name}</span>
-          </div>
+            <span className="ono-mem-cell">{manager.name}</span>
+          </span>
         </div>
-      </div>
+        <p className="ono-mem-head-date">{fill(L.totalCount, { count: done.length })}</p>
+      </header>
 
       {done.length === 0 ? (
-        <div style={card}>
-          <div style={{ textAlign: 'center', padding: '24px 0', color: C.muted, fontSize: 12 }}>{L.pastSessionsEmpty}</div>
-        </div>
+        <div className="ono-mem-empty">{L.pastSessionsEmpty}</div>
       ) : (
-        <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 19, top: 24, bottom: 24, width: 2, background: C.border, zIndex: 0 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {done.map((s, i) => {
-              const mine = s.actionItems.filter((a) => a.owner === 'member');
-              const doneCount = mine.filter((a) => a.done).length;
-              const hIdx = healthHistory.length - 1 - i;
-              const hVal = hIdx >= 0 && hIdx < healthHistory.length ? healthHistory[hIdx] : null;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSelectedId(s.id)}
-                  data-testid="ono-history-row"
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px', cursor: 'pointer', textAlign: 'left', position: 'relative', zIndex: 1, width: '100%', fontFamily: 'inherit' }}
-                >
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: i === 0 ? C.accent : C.border, border: `3px solid ${i === 0 ? C.accentBg : C.panel}`, marginTop: 4, flexShrink: 0 }} />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{formatDate(s.createdAt, 'short')}</span>
-                      {s.durationSec > 0 && (
-                        <span style={{ fontSize: 11, padding: '2px 8px', background: C.panel, color: C.sub, borderRadius: 10, marginLeft: 'auto' }}>⏱ {formatDuration(s.durationSec)}</span>
-                      )}
-                      {hVal != null && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: healthBg ? healthBg(hVal) : C.panel, border: `1px solid ${healthBorder ? healthBorder(hVal) : C.border}`, color: healthColor ? healthColor(hVal) : C.text }}>HC {hVal}</span>
-                      )}
-                    </span>
-                    {s.aiSummary && (
-                      <span style={{ display: 'block', fontSize: 12, color: C.sub, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.aiSummary.slice(0, 80)}…</span>
-                    )}
-                    {s.topicsCovered.length > 0 && (
-                      <span style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                        {s.topicsCovered.slice(0, 3).map((hl, hi) => (
-                          <span key={`${hi}-${hl}`} style={{ padding: '3px 10px', background: C.okBg, color: C.ok, borderRadius: 20, fontSize: 11, fontWeight: 500 }}>✓ {hl}</span>
-                        ))}
+        <div className="ono-mem-timeline">
+          {done.map((s, i) => {
+            const mine = s.actionItems.filter((a) => a.owner === 'member');
+            const doneCount = mine.filter((a) => a.done).length;
+            const hIdx = healthHistory.length - 1 - i;
+            const hVal = hIdx >= 0 && hIdx < healthHistory.length ? healthHistory[hIdx] : null;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className="ono-mem-hist"
+                data-testid="ono-history-row"
+                onClick={() => setSelectedId(s.id)}
+              >
+                <span className={`ono-mem-hist-dot${i === 0 ? ' is-latest' : ''}`} />
+                <span className="ono-mem-hist-body">
+                  <span className="ono-mem-hist-top">
+                    <span className="ono-mem-hist-date">{formatDate(s.createdAt, 'short')}</span>
+                    {s.durationSec > 0 && (
+                      <span className="ono-mem-chip ono-mem-push">
+                        <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
+                        {formatDuration(s.durationSec)}
                       </span>
                     )}
-                    <span style={{ display: 'flex', gap: 16 }}>
-                      {(s.keyDecisions?.length ?? 0) > 0 && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ fontSize: 11, color: C.sub }}>{L.keyDecisions}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{s.keyDecisions.length}{L.countUnit}</span>
-                        </span>
-                      )}
-                      {mine.length > 0 && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ fontSize: 11, color: C.sub }}>{L.myActionItems}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: doneCount === mine.length ? C.ok : C.warn }}>{doneCount}/{mine.length} {L.completed}</span>
-                        </span>
-                      )}
-                    </span>
+                    {hVal != null && (
+                      <span
+                        className="ono-start-flag"
+                        style={{ background: healthBg ? healthBg(hVal) : undefined, borderColor: healthBorder ? healthBorder(hVal) : undefined, color: healthColor ? healthColor(hVal) : undefined }}
+                      >
+                        HC {hVal}
+                      </span>
+                    )}
                   </span>
-                  <span aria-hidden="true" style={{ fontSize: 14, color: C.muted, marginTop: 4, flexShrink: 0 }}>→</span>
-                </button>
-              );
-            })}
-          </div>
+                  {s.aiSummary && <span className="ono-mem-hist-summary">{s.aiSummary}</span>}
+                  {s.topicsCovered.length > 0 && (
+                    <span className="ono-start-briefing-badges">
+                      {s.topicsCovered.slice(0, 3).map((hl, hi) => (
+                        <span key={`${hi}-${hl}`} className="ono-start-topic-badge">{hl}</span>
+                      ))}
+                    </span>
+                  )}
+                  <span className="ono-mem-hist-meta">
+                    {(s.keyDecisions?.length ?? 0) > 0 && (
+                      <span>{L.keyDecisions} <strong>{s.keyDecisions.length}{L.countUnit}</strong></span>
+                    )}
+                    {mine.length > 0 && (
+                      <span>{L.myActionItems} <strong>{doneCount}/{mine.length} {L.completed}</strong></span>
+                    )}
+                  </span>
+                </span>
+                <Icon src={icons.arrow} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              </button>
+            );
+          })}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -860,42 +797,24 @@ function TabNav({ tab, onChange, enabled, L }) {
     { id: 'history', label: L.tabHistory, desc: L.tabHistoryDesc },
   ];
   return (
-    <div role="tablist" style={{ display: 'flex', background: C.surface, borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
+    <div role="tablist" className="ono-mem-tabs">
       {tabs.map((t) => {
         const on = tab === t.id;
-        const can = enabled[t.id];
         return (
           <button
             key={t.id}
             type="button"
             role="tab"
             aria-selected={on}
-            onClick={() => can && onChange(t.id)}
-            disabled={!can}
-            style={{
-              padding: '10px 20px', border: 'none', cursor: can ? 'pointer' : 'default',
-              borderBottom: `3px solid ${on ? C.accent : 'transparent'}`,
-              background: 'transparent', fontFamily: 'inherit', textAlign: 'left',
-              display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1,
-              opacity: can ? 1 : 0.4,
-            }}
+            className={`ono-mem-tab${on ? ' is-active' : ''}`}
+            onClick={() => enabled[t.id] && onChange(t.id)}
+            disabled={!enabled[t.id]}
           >
-            <span style={{ fontSize: 13, fontWeight: on ? 700 : 500, color: on ? C.accent : C.sub }}>{t.label}</span>
-            <span style={{ fontSize: 10, color: C.muted }}>{t.desc}</span>
+            <span className="ono-mem-tab-label">{t.label}</span>
+            <span className="ono-mem-tab-desc">{t.desc}</span>
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function Empty({ icon, text }) {
-  return (
-    <div style={card}>
-      <div style={{ textAlign: 'center', padding: '32px 16px', color: C.muted }}>
-        <div style={{ fontSize: 28, marginBottom: 12 }} aria-hidden="true">{icon}</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>{text}</div>
-      </div>
     </div>
   );
 }
@@ -914,6 +833,8 @@ export default function OneOnOneMemberCanvas({
   okrStatus = [],
   isHost = false,
   labels: providedLabels,
+  icons: providedIcons,
+  baseUrl = '',
   /** 날짜/기간 포맷·헬스 색은 호스트가 소유한다(시간대·i18n). */
   formatDate = (v) => String(v ?? ''),
   formatDuration = (s) => `${Math.round(s / 60)}m`,
@@ -929,6 +850,7 @@ export default function OneOnOneMemberCanvas({
   onStart = () => {},
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
+  const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
   const status = session?.status ?? (resultSession ? 'done' : null);
   const enabled = {
     prep: status === 'ready' || status === null,
@@ -937,44 +859,43 @@ export default function OneOnOneMemberCanvas({
     history: true,
   };
   const avatar = renderAvatar ? renderAvatar({ name: manager.name, avatar: manager.avatar, size: 32 }) : null;
-  const smallAvatar = renderAvatar ? renderAvatar({ name: manager.name, avatar: manager.avatar, size: 28 }) : null;
+  const smallAvatar = renderAvatar ? renderAvatar({ name: manager.name, avatar: manager.avatar, size: 24 }) : null;
+  const shared = { L, icons, baseUrl, formatDate, formatDuration };
 
   return (
-    <div style={{ background: C.page, fontFamily: C.font }} data-testid="ono-member-canvas">
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px' }}>
-        <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />
+    <div className="ono-mem" data-testid="ono-member-canvas">
+      <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />
 
-        {tab === 'prep' && (session && session.status === 'ready' ? (
-          <PrepScreen
-            session={session} manager={manager} avatar={avatar} okrStatus={okrStatus}
-            healthHistory={healthHistory} isHost={isHost} L={L}
-            formatDate={formatDate} healthColor={healthColor}
-            onTopicsChange={onTopicsChange} onStart={onStart}
-          />
-        ) : <Empty icon="📝" text={L.noPrepSession} />)}
+      {tab === 'prep' && (session && session.status === 'ready' ? (
+        <PrepScreen
+          {...shared}
+          session={session} manager={manager} avatar={avatar} okrStatus={okrStatus}
+          healthHistory={healthHistory} isHost={isHost} healthColor={healthColor}
+          onTopicsChange={onTopicsChange} onStart={onStart}
+        />
+      ) : <div className="ono-mem-empty">{L.noPrepSession}</div>)}
 
-        {tab === 'meeting' && (session && session.status === 'live' ? (
-          <MeetingScreen session={session} manager={manager} avatar={avatar} L={L} onSaveNotes={onSaveNotes} />
-        ) : <Empty icon="🎙️" text={L.noLiveSession} />)}
+      {tab === 'meeting' && (session && session.status === 'live' ? (
+        <MeetingScreen {...shared} session={session} manager={manager} avatar={avatar} onSaveNotes={onSaveNotes} />
+      ) : <div className="ono-mem-empty">{L.noLiveSession}</div>)}
 
-        {tab === 'result' && (resultSession ? (
-          <ResultScreen
-            session={resultSession} manager={manager} avatar={avatar} L={L}
-            formatDate={formatDate} formatDuration={formatDuration}
-            deadlineOf={deadlineOf} onToggleAction={onToggleAction}
-          />
-        ) : <Empty icon="📋" text={L.noResultSession} />)}
+      {tab === 'result' && (resultSession ? (
+        <ResultScreen
+          {...shared}
+          session={resultSession} manager={manager} avatar={avatar}
+          deadlineOf={deadlineOf} onToggleAction={onToggleAction}
+        />
+      ) : <div className="ono-mem-empty">{L.noResultSession}</div>)}
 
-        {tab === 'history' && (
-          <HistoryScreen
-            sessions={sessions} manager={manager} avatar={smallAvatar}
-            healthHistory={healthHistory} L={L}
-            formatDate={formatDate} formatDuration={formatDuration}
-            healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
-            onToggleAction={onToggleAction}
-          />
-        )}
-      </div>
+      {tab === 'history' && (
+        <HistoryScreen
+          {...shared}
+          sessions={sessions} manager={manager} avatar={smallAvatar}
+          healthHistory={healthHistory}
+          healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
+          onToggleAction={onToggleAction}
+        />
+      )}
     </div>
   );
 }
