@@ -32,6 +32,10 @@ const DEFAULT_LABELS = {
   openMenu: '메뉴 열기',
   confirmDelete: '이 팀을 삭제하시겠습니까?',
   confirmDeleteMembers: '소속 구성원 {{count}}명은 미배정으로 이동합니다.',
+  confirmMove: '‘{{team}}’ 팀을 ‘{{parent}}’ 하위로 옮기시겠습니까?',
+  confirmMoveToRoot: '‘{{team}}’ 팀을 최상위로 옮기시겠습니까?',
+  confirmMoveSubTeams: '하위 팀 {{count}}개도 함께 이동합니다.',
+  confirmMoveMembers: '소속 구성원 {{count}}명의 소속 경로가 바뀝니다.',
   unassigned: '미배정',
   unassignedSub: '아직 팀에 배정되지 않은 구성원 {{count}}명',
   noUnassignedMembers: '미배정 구성원이 없습니다',
@@ -90,6 +94,9 @@ function isDescendant(nodes, parentId, targetId) {
     if (isDescendant(n.children, parentId, targetId)) return true;
   }
   return false;
+}
+function countDescendants(node) {
+  return (node.children || []).reduce((acc, c) => acc + 1 + countDescendants(c), 0);
 }
 function findNode(nodes, id) {
   for (const n of nodes) {
@@ -294,6 +301,28 @@ export default function AdminTeamCanvas({
     });
   }, [tree, showToast, L, run, onDeleteTeam]);
 
+  // 팀 이동은 조직 구조가 통째로 바뀌는 변경이라, 드래그로 실수 이동하는 걸 막기 위해
+  // 확인 모달을 거친다(모달로 상위 팀을 골라 '확인' 을 누르는 경로는 그 자체가 확인이므로 제외).
+  const requestMove = useCallback((nodeId, newParentId) => {
+    const node = findNode(tree, nodeId);
+    if (!node) return;
+    const parent = newParentId ? findNode(tree, newParentId) : null;
+    let body = newParentId
+      ? fill(L.confirmMove, { team: node.name, parent: parent?.name ?? '' })
+      : fill(L.confirmMoveToRoot, { team: node.name });
+    const subTeams = countDescendants(node);
+    if (subTeams > 0) body += '\n' + fill(L.confirmMoveSubTeams, { count: subTeams });
+    if (node.memberCount > 0) body += '\n' + fill(L.confirmMoveMembers, { count: node.memberCount });
+    setConfirmModal({
+      title: L.moveTeam,
+      body,
+      onConfirm: () => {
+        setConfirmModal(null);
+        handleMove(nodeId, newParentId);
+      },
+    });
+  }, [tree, L, handleMove]);
+
   // DnD
   const handleDragStart = useCallback((id) => setDraggingId(id), []);
   // 드래그 종료(성공/취소/재정렬 무관)에 항상 발생 — 드래그중(opacity) 상태를
@@ -308,8 +337,8 @@ export default function AdminTeamCanvas({
     }
     const moving = draggingId;
     setDraggingId('');
-    handleMove(moving, targetId);
-  }, [draggingId, tree, showToast, L.toastCycleError, handleMove]);
+    requestMove(moving, targetId);
+  }, [draggingId, tree, showToast, L.toastCycleError, requestMove]);
 
   const handleContextAction = useCallback((action, nodeId) => {
     switch (action) {
