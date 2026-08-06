@@ -9,8 +9,10 @@ import Icon from '../shared/Icon.jsx';
  * 아이콘: 정식 브랜드 로고(public/icons-brand/*.svg)를 화이트 타일에 올린다.
  * 로고가 없는 연동은 브랜드 색 모노그램 타일로 폴백.
  *
- * integration: { name, color?, connected?, lastSync?, logo? }
+ * integration: { name, color?, connected?, lastSync?, logo?, comingSoonLabel? }
  *   - logo: 명시 src(예: '/icons-brand/slack.svg'). 없으면 name 으로 자동 매칭.
+ *   - comingSoonLabel: 아직 구현되지 않은 연동. 주면 '연결' 버튼 대신 이 문구를
+ *     비활성 상태 텍스트로 보인다 — 연동 설정 화면의 '준비 중' 과 같은 표기(PW-22).
  * labels: { connected, connectAction }
  */
 
@@ -42,7 +44,9 @@ export default function AdminIntegrationRow({ integration, labels, baseUrl = '',
         <span className="admin-integration-icon" style={tileStyle}>{initial}</span>
       )}
       <span className="admin-integration-name">{integration.name}</span>
-      {integration.connected ? (
+      {integration.comingSoonLabel ? (
+        <span className="admin-integration-status is-muted">{integration.comingSoonLabel}</span>
+      ) : integration.connected ? (
         <>
           {integration.lastSync && <span className="admin-integration-sync">{integration.lastSync}</span>}
           <span className="admin-integration-status">

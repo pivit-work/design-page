@@ -67,6 +67,11 @@ export default function TimelineCanvas({
   snippetState: snippetStateProp,
   onSnippetCreate,
   onSnippetEdit,
+  // 진입 시 뜨는 스니핏 작성 유도 프롬프트. 주입하면 controlled — 노출 여부를
+  // 상위가 정하고(예: 오후 5시 이후·오늘 미작성·오늘 이미 닫음), 닫으면
+  // onSnippetPromptDismiss 로 통지한다. 생략하면 지금까지처럼 마운트 시 항상 뜬다.
+  snippetPromptOpen: snippetPromptOpenProp,
+  onSnippetPromptDismiss,
   // 일 뷰에서만 보이는 "이벤트 추가" 버튼 클릭.
   onAddEvent,
   // NameColumn 하단 버튼 3종. 미주입 시 no-op(버튼 클릭해도 아무 일 없음).
@@ -252,8 +257,13 @@ export default function TimelineCanvas({
   const [internalSnippetState, setInternalSnippetState] = useState('create');
   const snippetState = snippetStateProp ?? internalSnippetState;
   const [snippetModalOpen, setSnippetModalOpen] = useState(false);
-  // 타임라인 진입 시 자동으로 스니핏 작성 유도 프롬프트 띄움.
-  const [snippetPromptOpen, setSnippetPromptOpen] = useState(true);
+  // 타임라인 진입 시 자동으로 스니핏 작성 유도 프롬프트 띄움(uncontrolled 기본값).
+  const [internalSnippetPromptOpen, setInternalSnippetPromptOpen] = useState(true);
+  const snippetPromptOpen = snippetPromptOpenProp ?? internalSnippetPromptOpen;
+  const closeSnippetPrompt = () => {
+    setInternalSnippetPromptOpen(false);
+    onSnippetPromptDismiss?.();
+  };
   const handleSnippetCreate = () => {
     if (onSnippetCreate) onSnippetCreate();
     else setSnippetModalOpen(true);
@@ -683,10 +693,13 @@ export default function TimelineCanvas({
 
       {snippetPromptOpen && (
         <SnippetPromptModal
-          onCancel={() => setSnippetPromptOpen(false)}
+          onCancel={closeSnippetPrompt}
           onConfirm={() => {
-            setSnippetPromptOpen(false);
-            setSnippetModalOpen(true);
+            closeSnippetPrompt();
+            // 상위가 자체 작성 모달을 소유하면 그걸 연다(onSnippetCreate).
+            // 예전엔 항상 내부 데모 모달을 띄워, CTA 버튼과 프롬프트가 서로 다른
+            // 모달을 여는 상태였다.
+            handleSnippetCreate();
           }}
         />
       )}

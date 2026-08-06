@@ -370,6 +370,12 @@ export default function AdminEmployeeSheetCanvas({
   }
 
   function handleKeyDown(e, rowId, colId) {
+    // IME(한글) 조합 중의 Enter/Tab 은 "조합 확정" 이지 셀 이동이 아니다.
+    // 여기서 셀을 옮기면 조합 중이던 입력이 unmount 되고, 뒤이어 도착하는
+    // compositionend 의 마지막 글자가 **새로 포커스된 셀**에 들어간다.
+    // 실제 사고: 이름 칸에 '장동건' 을 치고 Tab → 이메일이
+    // 'gigantic.anteater.lhco@hidepost.net건' 이 됐다(PW-9).
+    if (e.nativeEvent?.isComposing || e.keyCode === 229) return;
     const rowIdx = filtered.findIndex((r) => r.id === rowId);
     const editableCols = COLUMNS.filter((c) => c.editable);
     const colPos = editableCols.findIndex((c) => c.id === colId);

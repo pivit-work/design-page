@@ -68,14 +68,24 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     }
   };
 
-  const runAi = async () => {
+  /**
+   * AI 자동완성. rowId 를 주면 그 행만, 없으면 전체를 채운다.
+   * 행 옆 'AI' 칩은 `cursor: pointer` 로 클릭 가능하게 그려져 있었는데 핸들러가
+   * 없어 아무 반응도 없었다(PW-14) — 같은 자동완성을 행 단위로 잇는다.
+   */
+  const runAi = async (rowId) => {
     if (!onAiAutocomplete) return;
-    setAiLoading(true);
+    setAiLoading(rowId ?? true);
     setError(null);
     try {
-      const byId = await onAiAutocomplete();
+      const byId = await onAiAutocomplete(rowId);
       const base = editing ? draft : toDraft(rows);
-      setDraft(rows.map((row, i) => byId?.[row.id] ?? base[i]));
+      setDraft(
+        rows.map((row, i) => {
+          if (rowId && row.id !== rowId) return base[i];
+          return byId?.[row.id] ?? base[i];
+        }),
+      );
       setEditing(true);
     } catch {
       setError('AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -108,8 +118,12 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         <>
           <div className="okr-s-toolbar">
             {editing ? <span /> : (
-              <button className="okr-s-ai-btn" onClick={runAi} disabled={!onAiAutocomplete || aiLoading}>
-                {aiLoading ? 'AI 자동완성 중…' : '전략 전체 AI 자동완성'}
+              <button
+                className="okr-s-ai-btn"
+                onClick={() => runAi()}
+                disabled={!onAiAutocomplete || aiLoading !== false}
+              >
+                {aiLoading === true ? 'AI 자동완성 중…' : '전략 전체 AI 자동완성'}
               </button>
             )}
             <div className="okr-s-toolbar-right">
@@ -150,10 +164,18 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                     <p className="okr-s-text">{row.content}</p>
                   )}
                 </div>
-                <span className="okr-s-ai-chip">
+                <button
+                  type="button"
+                  className="okr-s-ai-chip"
+                  title={`${row.label} AI 자동완성`}
+                  aria-label={`${row.label} AI 자동완성`}
+                  data-testid={`okr-s-ai-${row.id}`}
+                  onClick={() => runAi(row.id)}
+                  disabled={!onAiAutocomplete || aiLoading !== false}
+                >
                   <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                  <span>AI</span>
-                </span>
+                  <span>{aiLoading === row.id ? '생성 중…' : 'AI'}</span>
+                </button>
               </div>
             ))}
           </div>
