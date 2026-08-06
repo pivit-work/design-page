@@ -629,6 +629,9 @@ export default function AdminEmployeesCanvas({
           onLoadHrProfile={onLoadHrProfile}
           onAddEmployee={onCsvUpload}
           onManageTeams={onManageTeams}
+          // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).
+          orgUnitOptions={orgUnits}
+          onAssignTeam={onAssignOrgUnit}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab

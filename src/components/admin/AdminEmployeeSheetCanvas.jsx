@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
 
 /**
  * AdminEmployeeSheetCanvas — 어드민 "직원 일괄 편집(스프레드시트)" 화면 Pure 컴포넌트.
@@ -63,7 +64,8 @@ const fmtKRW = (v) => {
 };
 
 function initials(name) {
-  return name?.slice(0, 2) || '??';
+  // 한글 이름은 전체를 보인다(PW-24) — '서동현' 을 '서동' 으로 자르지 않는다.
+  return nameInitials(name) || '??';
 }
 function avatarColor(seed) {
   const colors = ['#4F6AF5', '#22C55E', '#F59E0B', '#EC4899', '#8B5CF6', '#14B8A6', '#EF4444', '#0EA5E9', '#F97316'];
@@ -147,6 +149,47 @@ function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
   return <input ref={ref} type="text" value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={base} />;
 }
 
+/**
+ * 부서 셀 인라인 팀 선택(PW-23). 부서는 팀 배정에서 파생되므로, 셀에서 팀을 고르면
+ * 그대로 배정이 바뀐다 — 예전엔 클릭 즉시 팀 관리 화면으로 이동해 버렸다.
+ */
+function TeamAssignCell({ options, unassignedLabel, onPick, onCancel }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <select
+      ref={ref}
+      defaultValue=""
+      onChange={(e) => onPick(e.target.value)}
+      onBlur={onCancel}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onCancel();
+      }}
+      style={{
+        width: '100%',
+        height: '100%',
+        padding: '0 8px',
+        border: 'none',
+        outline: 'none',
+        fontFamily: T.font,
+        fontSize: 12,
+        color: T.text,
+        background: '#fff',
+        cursor: 'pointer',
+      }}
+    >
+      <option value="">{unassignedLabel}</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // ── 셀 렌더 (읽기) ──────────────────────────────────────
 function CellDisplay({ col, row, renderAvatar }) {
   const value = row[col.id];
@@ -156,7 +199,7 @@ function CellDisplay({ col, row, renderAvatar }) {
         {renderAvatar ? (
           renderAvatar(row, 24)
         ) : (
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: avatarColor(row.id || value), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{initials(value)}</div>
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: avatarColor(row.id || value), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: nameFontSize(initials(value), 24, 0.38), fontWeight: 800, color: '#fff', flexShrink: 0, overflow: 'hidden' }}>{initials(value)}</div>
         )}
         <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{value || '—'}</span>
       </div>
@@ -271,6 +314,11 @@ export default function AdminEmployeeSheetCanvas({
   onAddEmployee,
   // 부서 셀(파생 컬럼) 클릭 시 팀 관리로 보낸다. 미주입이면 그냥 읽기전용 셀.
   onManageTeams,
+  // 부서 셀에서 **그 자리에서** 팀을 고르게 한다(PW-23). 둘 다 주어지면 화면 이동
+  // 대신 인라인 선택이 열린다 — 부서를 바꾸려고 눌렀다가 다른 화면으로 튕기지 않도록.
+  // orgUnitOptions: [{ id, name }], onAssignTeam(memberId, orgUnitId) — '' 이면 미배정.
+  orgUnitOptions = [],
+  onAssignTeam,
   // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
   // gradeOptions→직급(jobLevel 카탈로그), positionOptions→직책(jobPosition 카탈로그).
   gradeOptions = [],
@@ -317,6 +365,8 @@ export default function AdminEmployeeSheetCanvas({
   const [original, setOriginal] = useState(() => mapMembers(members));
   const [syncedMembers, setSyncedMembers] = useState(members);
   const [editing, setEditing] = useState(null);
+  // 부서 셀에서 팀 선택이 열린 행(PW-23).
+  const [assignRowId, setAssignRowId] = useState(null);
   const [selected, setSelected] = useState(new Set());
   // 표에서 보이는 모든 범주형 컬럼(부서·직급·직책·권한·상태)을 필터 대상으로. 값 미지정=전체.
   const [filters, setFilters] = useState({});
@@ -711,20 +761,31 @@ export default function AdminEmployeeSheetCanvas({
                       const editableCell = canEdit && c.editable;
                       // 파생 컬럼(부서)은 편집 대신 관리 화면으로 보낸다 — 값을 바꾸는 곳이
                       // 어디인지 알려주지 않으면 읽기전용이 그냥 막힌 셀로만 보인다.
-                      const derivedJump = c.derived && canEdit && onManageTeams;
+                      // 부서 셀: 인라인 팀 선택이 가능하면 그걸 우선한다(화면 이동은 폴백).
+                      const canAssign =
+                        c.derived && canEdit && !!onAssignTeam && orgUnitOptions.length > 0;
+                      const derivedJump = c.derived && canEdit && !canAssign && onManageTeams;
+                      const assigning = canAssign && assignRowId === row.id;
                       return (
                         <td
                           key={c.id}
-                          title={c.derived ? (L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다') : undefined}
+                          title={
+                            c.derived
+                              ? canAssign
+                                ? L.assignTeamHint || '클릭해서 팀을 배정합니다'
+                                : L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다'
+                              : undefined
+                          }
                           onClick={() => {
                             if (editableCell && !isEditing) startEdit(row.id, c.id);
+                            else if (canAssign) setAssignRowId(row.id);
                             else if (derivedJump) onManageTeams();
                           }}
                           style={{
                             height: ROW_H,
                             padding: isEditing ? 0 : '0 12px',
                             width: c.width,
-                            cursor: editableCell ? 'text' : derivedJump ? 'pointer' : 'default',
+                            cursor: editableCell ? 'text' : canAssign || derivedJump ? 'pointer' : 'default',
                             borderLeft: cellDirty ? '2px solid #F59E0B' : 'none',
                             background: isEditing ? '#fff' : cellDirty ? 'rgba(245,158,11,.06)' : 'transparent',
                             outline: isEditing ? `2px solid ${T.accent}` : 'none',
@@ -733,6 +794,16 @@ export default function AdminEmployeeSheetCanvas({
                         >
                           {isEditing ? (
                             <EditCell col={c} value={row[c.id]} autoFocus onChange={(val) => updateCell(row.id, c.id, val)} onKeyDown={(e) => handleKeyDown(e, row.id, c.id)} />
+                          ) : assigning ? (
+                            <TeamAssignCell
+                              options={orgUnitOptions}
+                              unassignedLabel={L.unassigned || '미배정'}
+                              onPick={(unitId) => {
+                                setAssignRowId(null);
+                                onAssignTeam(row.id, unitId);
+                              }}
+                              onCancel={() => setAssignRowId(null)}
+                            />
                           ) : (
                             <CellDisplay col={c} row={row} renderAvatar={renderAvatar} />
                           )}
