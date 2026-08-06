@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChatIcon, ClockIcon } from './evalIcons';
+import AvatarPhoto from './AvatarPhoto';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -106,10 +107,11 @@ function initial(name) {
   return (name || '?').trim().charAt(0) || '?';
 }
 
-function Avatar({ name, size = 30, gradient }) {
+function Avatar({ name, photo, size = 30, gradient }) {
   return (
     <span
       style={{
+        position: 'relative',
         width: size,
         height: size,
         borderRadius: '50%',
@@ -124,6 +126,7 @@ function Avatar({ name, size = 30, gradient }) {
       }}
     >
       {initial(name)}
+      <AvatarPhoto photo={photo} name={name} />
     </span>
   );
 }
@@ -216,6 +219,7 @@ function BlockCard({ block, L, onOpen }) {
             <div key={it.id} style={{ display: 'flex', gap: 8 }}>
               <Avatar
                 name={it.person?.name}
+                photo={it.person?.avatar}
                 size={22}
                 gradient={
                   it.itemType === 'feedback'
@@ -374,7 +378,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name={item.person?.name} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
+        <Avatar name={item.person?.name} photo={item.person?.avatar} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
@@ -612,6 +616,7 @@ export default function EvalFeedbackCanvas({
   items = [],
   recipients = [],
   meName = '',
+  meAvatar = null,
   meRole = '',
   labels: providedLabels,
   onReply,
@@ -672,7 +677,7 @@ export default function EvalFeedbackCanvas({
 
       <div className="evc-header" style={{ maxWidth: 620 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar name={meName || L.title} size={40} />
+          <Avatar name={meName || L.title} photo={meAvatar} size={40} />
           <div>
             <h1 className="evc-title" style={{ fontSize: 'var(--font-size-text-md, 16px)' }}>{L.title}</h1>
             {(meName || meRole) && (

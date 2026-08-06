@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
+import AvatarPhoto from './AvatarPhoto';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -104,10 +105,11 @@ function fmtDate(v) {
 function initial(name) {
   return (name || '?').trim().charAt(0) || '?';
 }
-function Avatar({ name, size = 36, gradient }) {
+function Avatar({ name, photo, size = 36, gradient }) {
   return (
     <span
       style={{
+        position: 'relative',
         width: size,
         height: size,
         borderRadius: '50%',
@@ -122,6 +124,7 @@ function Avatar({ name, size = 36, gradient }) {
       }}
     >
       {initial(name)}
+      <AvatarPhoto photo={photo} name={name} />
     </span>
   );
 }
@@ -182,7 +185,7 @@ function TeamListScreen({ team, L, onSelect }) {
                 data-testid={`fbmgr-member-${m.id}`}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, cursor: 'pointer', textAlign: 'left', fontFamily: FONT }}
               >
-                <Avatar name={m.name} size={36} />
+                <Avatar name={m.name} photo={m.avatar} size={36} />
                 <span style={{ fontSize: 'var(--font-size-text-sm, 14px)', fontWeight: 700, color: C.text }}>{m.name}</span>
                 <Chip label={badge.label} color={badge.color} bg={badge.bg} bd={badge.bg} />
                 {m.pendingRequests > 0 && (
@@ -234,7 +237,7 @@ function BlockCard({ block, L, onOpen }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map((it) => (
             <div key={it.id} style={{ display: 'flex', gap: 8 }}>
-              <Avatar name={it.itemType === 'request' ? it.author?.name : '나'} size={22} gradient={it.itemType === 'request' ? `linear-gradient(135deg,${C.accent},#2563EB)` : 'linear-gradient(135deg,#3B5BDB,#0F1E5C)'} />
+              <Avatar name={it.itemType === 'request' ? it.author?.name : '나'} photo={it.author?.avatar} size={22} gradient={it.itemType === 'request' ? `linear-gradient(135deg,${C.accent},#2563EB)` : 'linear-gradient(135deg,#3B5BDB,#0F1E5C)'} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.sub }}>
                   <span style={{ fontWeight: 700, color: C.text }}>{it.itemType === 'request' ? it.author?.name : '나'}</span>
@@ -343,7 +346,7 @@ function FeedbackBubble({ item }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name="나" size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
+        <Avatar name="나" photo={item.author?.avatar} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>나</span>
@@ -367,7 +370,7 @@ function FeedbackBubble({ item }) {
 function RequestBubble({ item, L }) {
   return (
     <div style={{ display: 'flex', gap: 8 }}>
-      <Avatar name={item.author?.name} size={30} gradient={`linear-gradient(135deg,${C.accent},#2563EB)`} />
+      <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} gradient={`linear-gradient(135deg,${C.accent},#2563EB)`} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
@@ -497,7 +500,7 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button type="button" onClick={onBack} data-testid="fbmgr-back" style={{ border: 'none', background: 'none', color: C.accent, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0 }}>{L.back}</button>
-        <Avatar name={member.name} size={30} />
+        <Avatar name={member.name} photo={member.avatar} size={30} />
         <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{member.name}</span>
         <span style={{ marginLeft: 'auto' }}>
           <PeriodSelector periodKey={thread?.periodKey} options={thread?.periodOptions} isPastPeriod={thread?.isPastPeriod} onChange={(k) => { setOpenBlock(null); onChangePeriod(k); }} L={L} />
