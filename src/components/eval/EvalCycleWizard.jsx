@@ -414,7 +414,10 @@ const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0),
  * §4.1.1 대상자 범위 축. §4.1.1-D 로 직무·직군·레벨·직책이 추가됐다.
  *
  * 인사 필드 표준(§1-3-a) 어휘 — 직급=jobLevel · 직책=jobPosition · 직군=jobFamily ·
- * 직무=jobTitle. `level` 만 User.grade(G1~G6)로 직급과 다른 별개 축이다.
+ * 직무=jobTitle.
+ *
+ * `by_level`(User.grade, G1~G6) 축은 2026-08-07 에 제거했다 — 근거 컬럼이 편집
+ * 경로 없이 시드로만 존재했고 실사용도 0건이었다.
  * (mode 값은 백엔드 IncludeMode 와 1:1 — **DB 에 저장된 값이라 바꾸지 않는다**)
  */
 const TARGET_AXES = [
@@ -422,7 +425,6 @@ const TARGET_AXES = [
   { mode: 'by_grade', field: 'jobLevel', labelKey: 'targetModeGrade', headKey: 'targetGradeLabel' },
   { mode: 'by_job_role', field: 'jobTitle', labelKey: 'targetModeJobRole', headKey: 'targetJobRoleLabel' },
   { mode: 'by_job_group', field: 'jobFamily', labelKey: 'targetModeJobGroup', headKey: 'targetJobGroupLabel' },
-  { mode: 'by_level', field: 'level', labelKey: 'targetModeLevel', headKey: 'targetLevelLabel' },
   { mode: 'by_position', field: 'jobPosition', labelKey: 'targetModePosition', headKey: 'targetPositionLabel' },
 ];
 
