@@ -41,6 +41,9 @@ export const ADMIN_MENU = [
   { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
   { id: 'billing',       icon: '/icons-solid/credit-card-02.svg',      label: '결제 · 구독',      group: 'billing' },
   { id: 'notifications', icon: '/icons-solid/alert-triangle.svg',      label: '알림 설정',        group: 'system' },
+  // 기획(arch-nav-routing-policy §1-A ④ 시스템 설정 · admin-app.jsx ADMIN_NAV_ITEMS)이
+  // '알림 설정' 바로 다음에 두는 항목 — 규칙 기반 알림 설정과 1회성 대량 발송을 나란히 둔다.
+  { id: 'messages',      icon: '/icons-solid/mail-01.svg',             label: '메시지 발송',      group: 'system' },
   { id: 'integrations',  icon: '/icons-solid/link-01.svg',             label: '연동 설정',        group: 'system' },
   { id: 'ai-prompts',    icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
 ];

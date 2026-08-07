@@ -9,6 +9,10 @@ on:
       # 최상위 스타일시트 전체 — 개별 나열은 eval-cycle.css / admin.css / report.css 등이
       # 누락돼 해당 파일 단독 변경 시 배포가 안 되던 문제를 glob 으로 해소
       - 'src/*.css'
+      # package.json 의 `exports` 에 실린 최상위 모듈(현재 ./menu -> src/menu.js).
+      # 소비자가 import 하는 계약 파일인데 필터에 없어서, menu.js 만 고친 변경이
+      # 머지는 되고 publish 는 안 도는 상태였다 — 소비자에겐 영영 반영되지 않는다.
+      - 'src/menu.js'
       - 'package.json'
 
 permissions:
