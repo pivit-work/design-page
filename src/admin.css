@@ -502,6 +502,10 @@
   font-weight: 600;
   color: var(--utility-green-600);
 }
+/* 준비 중(미구현) 연동 — 연결됨 초록이 아니라 중립 회색. */
+.admin-integration-status.is-muted {
+  color: var(--text-tertiary);
+}
 .admin-integration-connect {
   padding: 4px 12px;
   border-radius: var(--radius-sm, 8px);

@@ -94,6 +94,7 @@ export {
   OkrKrFeedbackModal,
   OkrKrUpdateModal,
   OkrStrategyCanvas,
+  OkrContextSetupCanvas,
   OkrHistoryQuarter,
   OkrBoard,
   OkrTeamCanvas,

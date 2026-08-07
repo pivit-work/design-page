@@ -80,7 +80,9 @@ function applyTexture(app, objectName, imageSrc) {
  */
 // onFeedbackClick / onMeetingClick — 액션 버튼(피드백주기·미팅잡기) 콜백.
 // 미지정이면 지금까지처럼 아무 동작도 하지 않는다(시각·레이아웃 변화 없음).
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick }) {
+// isSelf — 본인 카드. 나에게 피드백을 주거나 나와 미팅을 잡을 수는 없으므로
+// 퇴사·휴직과 같은 비활성 표시를 재사용한다(PW-28).
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick, isSelf = false }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -182,7 +184,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
 
         {/* Action Buttons */}
         {(() => {
-          const isDisabled = displayMember?.status === 'resigned' || displayMember?.status === 'leave';
+          const isDisabled =
+            isSelf ||
+            displayMember?.status === 'resigned' ||
+            displayMember?.status === 'leave';
           return (
             <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
               <button
