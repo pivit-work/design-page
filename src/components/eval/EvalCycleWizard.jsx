@@ -413,16 +413,17 @@ const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0),
 /**
  * §4.1.1 대상자 범위 축. §4.1.1-D 로 직무·직군·레벨·직책이 추가됐다.
  *
- * 어드민 정본 어휘 주의 — 직급은 User.title, 레벨은 User.grade(G1~G6), 직책은 position.
- * (mode 값은 백엔드 IncludeMode 와 1:1)
+ * 인사 필드 표준(§1-3-a) 어휘 — 직급=jobLevel · 직책=jobPosition · 직군=jobFamily ·
+ * 직무=jobTitle. `level` 만 User.grade(G1~G6)로 직급과 다른 별개 축이다.
+ * (mode 값은 백엔드 IncludeMode 와 1:1 — **DB 에 저장된 값이라 바꾸지 않는다**)
  */
 const TARGET_AXES = [
   { mode: 'by_dept', field: 'department', labelKey: 'targetModeDept', headKey: 'targetDeptLabel' },
-  { mode: 'by_grade', field: 'title', labelKey: 'targetModeGrade', headKey: 'targetGradeLabel' },
-  { mode: 'by_job_role', field: 'jobRole', labelKey: 'targetModeJobRole', headKey: 'targetJobRoleLabel' },
-  { mode: 'by_job_group', field: 'jobGroup', labelKey: 'targetModeJobGroup', headKey: 'targetJobGroupLabel' },
+  { mode: 'by_grade', field: 'jobLevel', labelKey: 'targetModeGrade', headKey: 'targetGradeLabel' },
+  { mode: 'by_job_role', field: 'jobTitle', labelKey: 'targetModeJobRole', headKey: 'targetJobRoleLabel' },
+  { mode: 'by_job_group', field: 'jobFamily', labelKey: 'targetModeJobGroup', headKey: 'targetJobGroupLabel' },
   { mode: 'by_level', field: 'level', labelKey: 'targetModeLevel', headKey: 'targetLevelLabel' },
-  { mode: 'by_position', field: 'position', labelKey: 'targetModePosition', headKey: 'targetPositionLabel' },
+  { mode: 'by_position', field: 'jobPosition', labelKey: 'targetModePosition', headKey: 'targetPositionLabel' },
 ];
 
 /** 선택한 리뷰종류로 활성 단계 목록 도출. */
@@ -807,9 +808,9 @@ export default function EvalCycleWizard({
     tplGrades.every((g) => g.label.trim()) &&
     tplDupLabels.size === 0 &&
     !tplRatioInvalid;
-  // 대상 멤버 position 에서 직급 목록 도출(중복 제거, 빈값 제외).
+  // 대상 멤버 jobPosition(직책)에서 목록 도출(중복 제거, 빈값 제외).
   const roleLevels = [
-    ...new Set(candidates.map((c) => c.position).filter(Boolean)),
+    ...new Set(candidates.map((c) => c.jobPosition).filter(Boolean)),
   ];
   const roleVersionOf = (role) => roleVersions[role] || 'standard';
   const setRoleVersion = (role, v) =>
@@ -986,12 +987,12 @@ export default function EvalCycleWizard({
           }
         }
         // 평가 기간 중 직무가 바뀐 사람(발령 이력 근거). 기간은 1단계에서 고른 평가 기간.
-        if (excludeRoleChange && changedInPeriod(c.id, 'jobRole')) {
+        if (excludeRoleChange && changedInPeriod(c.id, 'jobTitle')) {
           return [{ memberId: c.id, exclusionType: 'role_change' }];
         }
-        // 직급(title) 변경일 기준 — 기준일 이전/이후에 승진한 사람.
+        // 직급(jobLevel) 변경일 기준 — 기준일 이전/이후에 승진한 사람.
         if (excludePromotion && promotionRef) {
-          const hit = changedRelativeTo(c.id, 'title', promotionRef, promotionDirection);
+          const hit = changedRelativeTo(c.id, 'jobLevel', promotionRef, promotionDirection);
           if (hit) {
             return [
               {

@@ -72,7 +72,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'email', 'department', 'title', 'position', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'email', 'department', 'jobLevel', 'jobPosition', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
@@ -81,8 +81,8 @@ function mapMembers(list) {
     name: m.name ?? '',
     email: m.email ?? '',
     department: m.department ?? '',
-    title: m.title ?? '',
-    position: m.position ?? '',
+    jobLevel: m.jobLevel ?? '',
+    jobPosition: m.jobPosition ?? '',
     orgRole: m.orgRole ?? 'member',
     employmentStatus: m.employmentStatus ?? 'active',
     managerName: m.managerName ?? '',
@@ -272,7 +272,7 @@ export default function AdminEmployeeSheetCanvas({
   // 부서 셀(파생 컬럼) 클릭 시 팀 관리로 보낸다. 미주입이면 그냥 읽기전용 셀.
   onManageTeams,
   // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
-  // gradeOptions→직급(grade 카탈로그), positionOptions→직책(position 카탈로그).
+  // gradeOptions→직급(jobLevel 카탈로그), positionOptions→직책(jobPosition 카탈로그).
   gradeOptions = [],
   positionOptions = [],
   // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
@@ -297,8 +297,8 @@ export default function AdminEmployeeSheetCanvas({
       // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
       // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
       { id: 'department', label: cl.department || '부서', width: 120, type: 'readonly', editable: false, derived: true },
-      catCol('title', cl.title || '직급', 110, gradeOptions),
-      catCol('position', cl.position || '직책', 110, positionOptions),
+      catCol('jobLevel', cl.jobLevel || '직급', 110, gradeOptions),
+      catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
       { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
@@ -400,11 +400,11 @@ export default function AdminEmployeeSheetCanvas({
   const cl = labels.cols || {};
   const FILTER_COLS = useMemo(() => ([
     { id: 'department', label: cl.department || '부서' },
-    { id: 'title', label: cl.title || '직급' },
-    { id: 'position', label: cl.position || '직책' },
+    { id: 'jobLevel', label: cl.jobLevel || '직급' },
+    { id: 'jobPosition', label: cl.jobPosition || '직책' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.title, cl.position, cl.role, cl.status]);
+  ]), [cl.department, cl.jobLevel, cl.jobPosition, cl.role, cl.status]);
   // 각 필터 컬럼의 distinct 옵션(현재 rows 기준 — 존재하는 값만 노출).
   const filterOptions = useMemo(() => {
     const out = {};
@@ -429,7 +429,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     const q = search.trim().toLowerCase();
     if (q) {
-      const hit = ['name', 'email', 'department', 'position', 'title'].some(
+      const hit = ['name', 'email', 'department', 'jobPosition', 'jobLevel'].some(
         (k) => (r[k] || '').toLowerCase().includes(q),
       );
       if (!hit) return false;

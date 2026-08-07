@@ -34,7 +34,7 @@ const DEFAULT_LABELS = {
   employmentHeading: '고용 유형별 인원',
   govFormatTitle: '관공서 제출 양식',
   govFormatDesc: '고용 유형별 인원 수 및 인건비 추이 데이터는 내보내기 → 관공서 양식에서 서식 포맷으로 다운로드 가능합니다.',
-  jobGroupHeading: '직군별 인원 (투자사 제출용)',
+  jobFamilyHeading: '직군별 인원 (투자사 제출용)',
   noJobGroups: '직군 데이터가 없습니다',
   leaderPrefix: '리더',
   ageHeading: '연령대별 인원',
@@ -201,7 +201,7 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
     summaryCards = [], orgTree = [], totalCount = 0,
-    employment = [], jobGroups = [], ageDist = [], ageSummary = [],
+    employment = [], jobFamilies = [], ageDist = [], ageSummary = [],
   } = data;
   // 조회일 draft — 날짜를 바꾼 뒤 '적용' 을 눌러야 조회된다(외부에서 queryDate 바뀌면 동기화).
   const [draftDate, setDraftDate] = useState(queryDate);
@@ -306,12 +306,12 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
         )}
 
         {activeTab === 'jobgroup' && (
-          jobGroups.length === 0
+          jobFamilies.length === 0
             ? <div className="admin-snap-empty">{labels.noJobGroups}</div>
             : (
               <>
-                <p className="admin-snap-subheading">{labels.jobGroupHeading}</p>
-                {jobGroups.map((jg) => (
+                <p className="admin-snap-subheading">{labels.jobFamilyHeading}</p>
+                {jobFamilies.map((jg) => (
                   <div key={jg.group} className="admin-snap-jg-row">
                     <span className="admin-snap-jg-name">{jg.group}</span>
                     <div className="admin-snap-jg-pills">
