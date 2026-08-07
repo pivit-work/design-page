@@ -2261,3 +2261,398 @@ button.ono-add-modal-input { cursor: pointer; }
   border: none;
   border-radius: 10px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   1on1 멤버(구성원) 뷰 — OneOnOneMemberCanvas
+   매니저 뷰(.ono-start-*)와 같은 토큰·형태 어휘를 쓰고, 멤버 화면에만
+   있는 조각(탭·세션 헤더·노트 그리드·히스토리 타임라인)만 여기서 정의한다.
+   ══════════════════════════════════════════════════════════════ */
+.ono-mem {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 0 40px;
+  font-family: var(--font-family-body);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── 단계 탭 ── 공용 .tabs-row 를 쓰고 여백만 조정 */
+.ono-mem-tabs { padding: 0 0 12px; }
+.ono-mem-tabs .tab-btn:disabled { opacity: .4; cursor: default; }
+
+/* ── 세션 헤더 ── */
+.ono-mem-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  background:
+    linear-gradient(45deg, rgba(183, 220, 255, 0.11) 0%, rgba(211, 196, 254, 0.11) 100%),
+    var(--bg-quaternary);
+}
+.ono-mem-head.is-live {
+  background:
+    linear-gradient(45deg, rgba(255, 164, 164, 0.11) 0%, rgba(255, 214, 174, 0.11) 100%),
+    var(--bg-quaternary);
+}
+.ono-mem-head.is-done {
+  background:
+    linear-gradient(45deg, rgba(164, 255, 199, 0.11) 0%, rgba(183, 220, 255, 0.11) 100%),
+    var(--bg-quaternary);
+}
+.ono-mem-head-row { display: flex; align-items: center; gap: 10px; }
+.ono-mem-head-title {
+  margin: 0;
+  font-size: var(--font-size-text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.ono-mem-head-date {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+}
+.ono-mem-elapsed {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+}
+.ono-mem-elapsed-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--utility-green-500);
+}
+
+/* 상태 배지 — .status-badge 는 카드 안 absolute 라 인라인용을 따로 둔다. */
+.ono-mem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.ono-mem-badge.is-ready {
+  background: var(--utility-blue-50);
+  color: var(--utility-blue-600);
+}
+.ono-mem-badge.is-live {
+  background: var(--utility-green-50);
+  color: var(--utility-green-600);
+}
+.ono-mem-badge.is-done {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.ono-mem-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--utility-green-500);
+  animation: ono-mem-pulse 1.5s infinite;
+}
+@keyframes ono-mem-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+.ono-mem-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── 접히는 섹션 카드 ── */
+.ono-mem-card {
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+  overflow: hidden;
+}
+.ono-mem-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 20px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ono-mem-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ono-mem-card-body {
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ono-mem-card-body.is-bordered { border-top: 1px solid var(--border-secondary); padding-top: 16px; }
+
+/* ── 표(액션아이템 등) ── */
+.ono-mem-table { display: flex; flex-direction: column; }
+.ono-mem-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 110px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-secondary);
+}
+.ono-mem-row.is-head { padding: 8px 0; }
+.ono-mem-row.is-clickable { cursor: pointer; }
+.ono-mem-row.is-muted { opacity: .7; }
+.ono-mem-col-head {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.ono-mem-cell {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  min-width: 0;
+}
+.ono-mem-cell.is-sub { color: var(--text-secondary); }
+.ono-mem-cell.is-done { text-decoration: line-through; color: var(--text-tertiary); }
+.ono-mem-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--border-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ono-mem-check.is-on {
+  background: var(--utility-green-600);
+  border-color: var(--utility-green-600);
+}
+.ono-mem-group-label {
+  padding-top: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* ── 노트 2×2 ── */
+.ono-mem-notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.ono-mem-note-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ono-mem-note-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  min-height: 60px;
+}
+
+/* ── 주제 입력 ── */
+.ono-mem-topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.ono-mem-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--utility-blue-50);
+  border: 1px solid var(--utility-blue-100);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--utility-blue-600);
+}
+.ono-mem-topic-x {
+  border: none;
+  background: none;
+  padding: 0;
+  line-height: 1;
+  font-size: 14px;
+  color: inherit;
+  cursor: pointer;
+}
+.ono-mem-input-row { display: flex; gap: 8px; }
+.ono-mem-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 10px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: inherit;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+}
+.ono-mem-input::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-mem-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--utility-blue-500);
+  font-family: inherit;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-white);
+  cursor: pointer;
+}
+.ono-mem-btn:disabled {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+.ono-mem-btn.is-ok { background: var(--utility-green-600); }
+.ono-mem-hint { font-size: 11px; color: var(--text-tertiary); }
+
+/* ── 히스토리 타임라인 ── */
+.ono-mem-timeline { position: relative; display: flex; flex-direction: column; gap: 12px; }
+.ono-mem-timeline::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: var(--border-secondary);
+}
+.ono-mem-hist {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ono-mem-hist-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--border-secondary);
+  border: 3px solid var(--bg-secondary);
+}
+.ono-mem-hist-dot.is-latest {
+  background: var(--utility-blue-500);
+  border-color: var(--utility-blue-50);
+}
+.ono-mem-hist-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ono-mem-hist-top { display: flex; align-items: center; gap: 8px; }
+.ono-mem-hist-date {
+  font-size: var(--font-size-text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.ono-mem-hist-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ono-mem-hist-meta { display: flex; gap: 16px; font-size: 11px; color: var(--text-secondary); }
+.ono-mem-hist-meta strong { font-size: 12px; }
+
+/* ── 빈 상태 ── */
+.ono-mem-empty {
+  padding: 40px 16px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+}
+
+/* 멤버 뷰 — 위 블록에서 빠진 조각 보강 */
+.ono-mem-card-head.is-static { cursor: default; }
+.ono-mem-cell-check { display: flex; align-items: center; gap: 8px; }
+.ono-mem-cell-check .is-done { text-decoration: line-through; color: var(--text-tertiary); }
+.ono-mem-tone-label { min-width: 32px; }
+.ono-mem-center { text-align: center; }
+.ono-mem-push { margin-left: auto; }
+.ono-mem-actions-end { display: flex; justify-content: flex-end; }
+.ono-mem-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px;
+}
+.ono-mem-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+.ono-mem-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--utility-blue-600);
+  cursor: pointer;
+}
+.ono-mem-readiness-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* 그리드 셀 안의 배지는 늘어나지 않게 — grid item 기본 stretch 상쇄. */
+.ono-mem-row > .ono-start-flag { justify-self: start; }

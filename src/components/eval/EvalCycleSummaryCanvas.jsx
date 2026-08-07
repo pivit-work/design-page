@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertIcon, LockIcon } from './evalIcons.jsx';
+import AvatarPhoto from './AvatarPhoto';
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -1061,7 +1062,7 @@ export default function EvalCycleSummaryCanvas({
                     return (
                       <div className="evs-leader-row" role="row" key={s.leaderId} data-testid="evs-leader-row">
                         <span className="evs-leader-lead">
-                          <span className="evs-leader-avatar">{(s.name || '?').slice(0, 1)}</span>
+                          <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(s.name || '?').slice(0, 1)}<AvatarPhoto photo={s.avatar} name={s.name} /></span>
                           <span className="evs-leader-name">{s.name || s.leaderId}</span>
                         </span>
                         <span className="evs-leader-dept">{s.dept}</span>
@@ -1217,7 +1218,7 @@ export default function EvalCycleSummaryCanvas({
                     <div className="evs-lp-row" key={p.leaderId} data-testid="evs-lp-row">
                       <div className="evs-lp-row-head">
                         <span className="evs-lp-lead">
-                          <span className="evs-leader-avatar">{(p.name || '?').slice(0, 1)}</span>
+                          <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
                           <span>
                             <span className="evs-leader-name">{p.name || p.leaderId}</span>
                             <span className="evs-lp-dept"> · {p.dept}</span>
@@ -1500,7 +1501,7 @@ export default function EvalCycleSummaryCanvas({
                         <div className="evs-lp-row" key={p.leaderId}>
                           <div className="evs-lp-row-head">
                             <span className="evs-lp-lead">
-                              <span className="evs-leader-avatar">{(p.name || '?').slice(0, 1)}</span>
+                              <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
                               <span><span className="evs-leader-name">{p.name || p.leaderId}</span><span className="evs-lp-dept"> · {p.dept}</span></span>
                             </span>
                             <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</span>
@@ -1660,7 +1661,7 @@ export default function EvalCycleSummaryCanvas({
                           onClick={() => onSelectMember && onSelectMember(m.memberId)}
                           data-testid={`evs-re-item-${m.memberId}`}
                         >
-                          <span className="evs-leader-avatar">{(m.name || '?').slice(0, 1)}</span>
+                          <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(m.name || '?').slice(0, 1)}<AvatarPhoto photo={m.avatar} name={m.name} /></span>
                           <span className="evs-re-item-name">{m.name || m.memberId}</span>
                           {m.gradeLabel && (
                             <span className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</span>
@@ -3209,8 +3210,9 @@ export default function EvalCycleSummaryCanvas({
                       onChange={() => toggleOne(n.memberId)}
                       data-testid={`evs-remind-check-${n.memberId}`}
                     />
-                    <span className="evs-remind-avatar" style={{ background: n.color || 'var(--utility-blue-500)' }}>
+                    <span className="evs-remind-avatar" style={{ position: 'relative', background: n.color || 'var(--utility-blue-500)' }}>
                       {(n.name || '?').slice(0, 1)}
+                      <AvatarPhoto photo={n.avatar} name={n.name} />
                     </span>
                     <div className="evs-remind-info">
                       <div className="evs-remind-name">{n.name || n.memberId}</div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import AvatarPhoto from './AvatarPhoto';
 
 /**
  * EvalCycleTeamCalibrationCanvas — 매니저(팀장) 팀 캘리브레이션 결과 · 이의(어필). [R8]
@@ -150,8 +151,9 @@ export default function EvalCycleTeamCalibrationCanvas({
                   data-testid="evtcal-row"
                 >
                   <div className="evtcal-row-top">
-                    <span className="evtcal-avatar" aria-hidden="true">
-                      {initials(r.name)}
+                    <span className="evtcal-avatar" style={{ position: 'relative' }}>
+                      <span aria-hidden="true">{initials(r.name)}</span>
+                      <AvatarPhoto photo={r.avatar} name={r.name} />
                     </span>
                     <div className="evtcal-who">
                       <span className="evtcal-name">{r.name}</span>

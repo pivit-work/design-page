@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
+import AvatarPhoto from './AvatarPhoto';
 
 /**
  * EvalFeedbackHrCanvas — 피드백 관리 (HR 대시보드, v2 재설계).
@@ -95,10 +96,11 @@ function mergeLabels(base, provided) {
 function initial(name) {
   return (name || '?').trim().charAt(0) || '?';
 }
-function Avatar({ name, size = 36, color }) {
+function Avatar({ name, photo, size = 36, color }) {
   return (
-    <span style={{ width: size, height: size, borderRadius: '50%', background: color || 'linear-gradient(135deg,#3B5BDB,#0F1E5C)', color: '#fff', fontSize: size * 0.42, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color || 'linear-gradient(135deg,#3B5BDB,#0F1E5C)', color: '#fff', fontSize: size * 0.42, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       {initial(name)}
+      <AvatarPhoto photo={photo} name={name} />
     </span>
   );
 }
@@ -179,7 +181,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
             const sent = isSent('request', null, m.id);
             return (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: m.urgent ? C.redBg : C.amberBg, border: `1px solid ${m.urgent ? C.redBd : C.amberBd}`, borderRadius: 10, padding: 10 }}>
-                <Avatar name={m.name} size={32} color={m.urgent ? `linear-gradient(135deg,${C.red},#8B2318)` : `linear-gradient(135deg,${C.amber},#8A4B00)`} />
+                <Avatar name={m.name} photo={m.avatar} size={32} color={m.urgent ? `linear-gradient(135deg,${C.red},#8B2318)` : `linear-gradient(135deg,${C.amber},#8A4B00)`} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.name}</div>
                   <div style={{ fontSize: 11, color: C.sub }}>{m.department || ''}</div>
@@ -218,7 +220,7 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
           return (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: i < rows.length - 1 ? `1px solid ${C.borderL}` : 'none' }}>
               <span style={{ width: 20, fontSize: 'var(--font-size-text-xs, 12px)', color: C.muted, textAlign: 'center' }}>{i + 1}</span>
-              <Avatar name={r.name} size={34} />
+              <Avatar name={r.name} photo={r.avatar} size={34} />
               <div style={{ minWidth: 90 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{r.name}</div>
                 <div style={{ fontSize: 11, color: C.muted }}>{r.team}</div>
