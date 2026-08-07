@@ -86,28 +86,38 @@
 .rs-stat-value.is-brand { color: var(--text-brand-secondary, #10774d); }
 .rs-stat-value.is-warning { color: var(--text-warning-primary, #b54708); }
 
-/* AI 분석 배너 */
-.rs-banner {
+/* ── AI 인사이트 ──
+   OKR(.okr-ai-banner/.okr-p-ai) · 매니저(.mgr-ts-ai)와 같은 보라 블록:
+   라벨 줄(purple-100, r6, 6/16) + 본문 칩(purple-100, r8, 12).
+   AI 가 만든 문장은 관측이지 장애가 아니라서 경고색을 쓰지 않는다. */
+.rs-ai { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.rs-ai-banner {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  border: 1px solid var(--utility-warning-200, #fedf89);
-  border-radius: 14px;
-  background: var(--utility-warning-50, #fffaeb);
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  border-radius: 6px;
+  background: var(--utility-purple-100);
 }
-.rs-banner-title {
-  margin: 0 0 5px;
+.rs-ai-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  font-weight: 700;
-  color: var(--text-warning-primary, #b54708);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 18px;
+  color: var(--utility-purple-500);
 }
-.rs-banner-text {
+.rs-ai-chip {
   margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--utility-purple-100);
   font-size: 12px;
-  line-height: 1.7;
-  color: var(--text-warning-primary, #b54708);
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-purple-500);
 }
 
 .rs-toolbar {
@@ -147,20 +157,19 @@
   outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
   outline-offset: 2px;
 }
-.rs-card.is-warn { border-color: var(--utility-warning-200, #fedf89); }
+/* 인사이트가 붙은 카드는 테두리로만 구분한다 — 카드 안쪽 칩이 이미 보라라
+   테두리까지 채도를 올리면 그리드 전체가 시끄러워진다. */
+.rs-card.is-warn { border-color: var(--utility-purple-200); }
 
-.rs-card-warn {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 6px 10px;
+.rs-card-insight {
+  display: block;
+  padding: 8px 10px;
   margin-bottom: 12px;
-  border: 1px solid var(--utility-warning-200, #fedf89);
   border-radius: 8px;
-  background: var(--utility-warning-50, #fffaeb);
+  background: var(--utility-purple-100);
   font-size: 11px;
   line-height: 1.55;
-  color: var(--text-warning-primary, #b54708);
+  color: var(--utility-purple-500);
 }
 
 .rs-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
@@ -325,21 +334,14 @@
   color: var(--text-tertiary);
   margin-bottom: 8px;
 }
-.rs-insight {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-quaternary);
-  font-size: 12px;
-  line-height: 1.65;
-  color: var(--text-secondary);
+/* 'AI 인사이트' 절 제목 — 배너와 같은 보라·아이콘을 쓴다 */
+.rs-section-label.is-ai {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--utility-purple-500);
 }
-.rs-insight + .rs-insight { margin-top: 8px; }
-.rs-insight.is-warn {
-  border-color: var(--utility-warning-200, #fedf89);
-  background: var(--utility-warning-50, #fffaeb);
-  color: var(--text-warning-primary, #b54708);
-}
+.rs-ai-chip + .rs-ai-chip { margin-top: 8px; }
 
 .rs-panel-alloc {
   padding: 12px 14px;

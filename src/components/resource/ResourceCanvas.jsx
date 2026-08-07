@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import { AiSparkleIcon } from './resourceIcons.jsx';
 
 /**
  * ResourceCanvas — "리소스 투입 현황" 페이지 Pure 컴포넌트.
  *
  * 스니핏/액션 아이템과 같은 목록 화면 문법을 따른다: 헤더 카드 → 통계 카드 →
- * (경고) 배너 → 뷰 세그먼티드 → 멤버 카드 그리드 / 프로젝트 뷰, 그리고 우측
+ * AI 인사이트 → 뷰 세그먼티드 → 멤버 카드 그리드 / 프로젝트 뷰, 그리고 우측
  * 상세 패널. 자체 상단바·브레드크럼은 두지 않는다.
+ *
+ * AI 가 만든 문장(배너·카드 인사이트·패널 인사이트)은 OKR·매니저와 같은
+ * **보라 AI 블록**(okr-ai-banner / mgr-ts-ai)으로 그린다. 예전엔 앰버 경고색
+ * 박스에 ✦·⚠ 글리프를 얹었는데, ① 경고색은 진짜 경고에만 쓰는 색이라 관측일
+ * 뿐인 문장이 장애처럼 보였고 ② 글리프는 OS·폰트마다 모양이 달라 정본과
+ * 어긋났다. 아이콘은 resourceIcons.jsx 의 인라인 SVG 를 쓴다.
  *
  * 프로젝트·멤버의 식별 색은 데이터라서 인라인 스타일로 받는다(그 외 색은 전부 토큰).
  * 목표치 편집 입력 상태만 캔버스가 들고, 저장은 onSaveTarget 으로 호스트에 넘긴다.
@@ -110,12 +117,7 @@ function MemberCard({ member, projectById, labels, onSelect }) {
       data-testid="member-card"
       onClick={() => onSelect?.(member.id)}
     >
-      {warn && (
-        <span className="rs-card-warn">
-          <span aria-hidden="true">⚠</span>
-          {warn.text}
-        </span>
-      )}
+      {warn && <span className="rs-card-insight">{warn.text}</span>}
       <span className="rs-card-head">
         <Avatar member={member} size={36} />
         <span style={{ flex: 1, minWidth: 0 }}>
@@ -260,11 +262,12 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
         <div className="rs-panel-body">
           {(member.insights ?? []).length > 0 && (
             <section>
-              <div className="rs-section-label">{labels.aiInsight}</div>
+              <div className="rs-section-label is-ai">
+                <AiSparkleIcon size={12} />
+                <span>{labels.aiInsight}</span>
+              </div>
               {member.insights.map((ins, i) => (
-                <p className={`rs-insight ${ins.type === 'warn' ? 'is-warn' : ''}`.trim()} key={i}>
-                  {ins.text}
-                </p>
+                <p className="rs-ai-chip" key={i}>{ins.text}</p>
               ))}
             </section>
           )}
@@ -378,12 +381,14 @@ export default function ResourceCanvas({
         )}
 
         {banner && (
-          <div className="rs-banner" data-testid="ai-banner">
-            <span aria-hidden="true">✦</span>
-            <div>
-              <p className="rs-banner-title">{banner.title}</p>
-              <p className="rs-banner-text">{banner.text}</p>
+          <div className="rs-ai" data-testid="ai-banner">
+            <div className="rs-ai-banner">
+              <span className="rs-ai-label">
+                <AiSparkleIcon size={14} />
+                <span>{banner.title}</span>
+              </span>
             </div>
+            <p className="rs-ai-chip">{banner.text}</p>
           </div>
         )}
 
