@@ -80,6 +80,7 @@
   --utility-pink-50: var(--componentColors-utility-pink-utilityPink50);
   --utility-purple-50: var(--componentColors-utility-purple-utilityPurple50);
   --utility-purple-100: var(--componentColors-utility-purple-utilityPurple100);
+  --utility-purple-200: var(--componentColors-utility-purple-utilityPurple200);
   --utility-purple-500: var(--componentColors-utility-purple-utilityPurple500);
 
   /* Component Colors — 1on1 (linked to design system tokens) */
