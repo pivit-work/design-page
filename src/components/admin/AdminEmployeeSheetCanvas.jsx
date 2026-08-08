@@ -6,7 +6,8 @@ import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
  * pivit-specs 의 J. Admin_관리자/admin-employee-inline-edit.jsx 시안을 design-page
  * 정본으로 포팅한 것.
  *
- * 엑셀처럼 셀을 클릭해 인라인 편집하고(Tab/Enter 이동, 변경 셀 앰버 하이라이트),
+ * 엑셀처럼 셀을 클릭해 인라인 편집하고(Tab 으로 칸 이동, Enter 로 편집 종료,
+ * 변경 셀 앰버 하이라이트),
  * 체크박스로 여러 명을 선택해 "일괄 편집 바"로 여러 필드를 한 번에 적용한다.
  * 모든 변경은 클라이언트 dirty 추적 → "변경 저장" 1클릭에 onSaveMembers 로 전송.
  *
@@ -438,19 +439,27 @@ export default function AdminEmployeeSheetCanvas({
     // 실제 사고: 이름 칸에 '장동건' 을 치고 Tab → 이메일이
     // 'gigantic.anteater.lhco@hidepost.net건' 이 됐다(PW-9).
     if (e.nativeEvent?.isComposing || e.keyCode === 229) return;
-    const rowIdx = filtered.findIndex((r) => r.id === rowId);
-    const editableCols = COLUMNS.filter((c) => c.editable);
-    const colPos = editableCols.findIndex((c) => c.id === colId);
-    if (e.key === 'Enter' || e.key === 'Tab') {
+    // Enter 는 편집만 끝내고 빠진다 — 어떤 칸도 새로 열지 않는다.
+    // 예전에는 Enter 를 Tab 과 똑같이 취급해 "다음 편집 가능한 칸" 을 열었다.
+    // 값을 바꿀 생각도 없던 칸이 편집 상태로 열리니 오작동처럼 보인다(PW-9).
+    // 제보 당시엔 이름 다음이 이메일이라 이메일 칸이 열렸는데, 그 뒤 닉네임
+    // 컬럼이 끼면서 열리는 칸만 바뀌었을 뿐 증상은 같다 — 그래서 "어느 칸이
+    // 다음이냐" 가 아니라 Enter 가 칸을 여는 것 자체를 없앤다.
+    // 칸 이동은 Tab 전용이다.
+    if (e.key === 'Enter') {
       e.preventDefault();
+      stopEdit();
+      return;
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const editableCols = COLUMNS.filter((c) => c.editable);
+      const colPos = editableCols.findIndex((c) => c.id === colId);
       const nextPos = e.shiftKey ? colPos - 1 : colPos + 1;
       if (nextPos >= 0 && nextPos < editableCols.length) {
         setEditing({ rowId, colId: editableCols[nextPos].id });
-      } else if (e.key === 'Enter') {
-        const nextRow = filtered[rowIdx + 1];
-        if (nextRow) setEditing({ rowId: nextRow.id, colId });
-        else stopEdit();
       } else stopEdit();
+      return;
     }
     if (e.key === 'Escape') stopEdit();
   }
@@ -740,7 +749,7 @@ export default function AdminEmployeeSheetCanvas({
             {L.countUnit || '명'}
           </span>
           {dirtyCount > 0 && <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>● {dirtyCount}{L.rowsUnit || '개'} {L.rowsChanging || '행 변경 중'}</span>}
-          <span style={{ fontSize: 11, color: T.muted, marginLeft: 'auto' }}>{L.hint || '셀 클릭하여 편집 · Tab 이동 · Enter 다음 행 · Esc 취소'}</span>
+          <span style={{ fontSize: 11, color: T.muted, marginLeft: 'auto' }}>{L.hint || '셀 클릭하여 편집 · Tab 이동 · Enter 편집 종료 · Esc 취소'}</span>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
