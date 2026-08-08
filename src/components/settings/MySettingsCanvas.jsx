@@ -148,6 +148,8 @@ const DEFAULT_LABELS = {
     title: '직함',
     email: '이메일',
     emailReadonlyHint: '이메일은 로그인 계정입니다. 변경은 관리자에게 문의하세요.',
+    adminManagedHint:
+      '이름·닉네임·직함 등 인사 정보는 관리자가 관리합니다. 변경이 필요하면 관리자에게 문의하세요.',
     phone: '전화번호',
     phoneHint: '개인 휴대폰 번호입니다.',
     personalEmail: '개인 이메일',
@@ -1000,6 +1002,12 @@ export default function MySettingsCanvas({
   compensation = null,
   /* 프로필 */
   profile = {},
+  /**
+   * 본인이 고칠 수 없는 프로필 필드 id 목록 — 어드민(인사)이 관리하는 값.
+   * 예: ['name', 'displayName', 'title', 'phone', 'gender', 'nationality', 'location'].
+   * 비우면 전부 편집 가능(기존 동작).
+   */
+  readOnlyProfileFields = [],
   timezoneOptions = [],
   photos = [],
   activePhotoId = null,
@@ -1046,6 +1054,14 @@ export default function MySettingsCanvas({
     setDraft(profile);
   }
   const setField = (key) => (value) => setDraft((prev) => ({ ...prev, [key]: value }));
+
+  /* ── 어드민이 관리하는 필드는 본인이 못 고친다 (PW-25) ──
+     입력을 잠그기만 하면 draft 에는 원래 값이 그대로 남아 저장 페이로드에 실린다.
+     서버가 화이트리스트로 지우긴 하지만, 화면과 요청이 어긋나지 않도록 여기서도
+     같은 목록을 쓴다. */
+  const readOnlyFieldSet = new Set(readOnlyProfileFields);
+  const isReadOnly = (key) => readOnlyFieldSet.has(key);
+  const inputClass = (key) => `admin-emp-input${isReadOnly(key) ? ' is-readonly' : ''}`;
 
   /* ── 업로드 모달 ── */
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -1265,29 +1281,37 @@ export default function MySettingsCanvas({
 
               <Card testId="profile-basic-card">
                 <div className="admin-section-label">{labels.profile.basicInfo}</div>
+                {readOnlyFieldSet.size > 0 && (
+                  <Banner testId="profile-admin-managed-banner">
+                    {labels.profile.adminManagedHint}
+                  </Banner>
+                )}
                 <div className="msc-grid-2col">
                   <Field label={labels.profile.name}>
                     <input
-                      className="admin-emp-input"
+                      className={inputClass('name')}
                       value={draft.name || ''}
                       onChange={(e) => setField('name')(e.target.value)}
+                      readOnly={isReadOnly('name')}
                       aria-label={labels.profile.name}
                     />
                   </Field>
                   <Field label={labels.profile.displayName} hint={labels.profile.displayNameHint}>
                     <input
-                      className="admin-emp-input"
+                      className={inputClass('displayName')}
                       value={draft.displayName || ''}
                       onChange={(e) => setField('displayName')(e.target.value)}
-                      placeholder={labels.profile.displayNamePlaceholder}
+                      readOnly={isReadOnly('displayName')}
+                      placeholder={isReadOnly('displayName') ? '' : labels.profile.displayNamePlaceholder}
                       aria-label={labels.profile.displayName}
                     />
                   </Field>
                   <Field label={labels.profile.title}>
                     <input
-                      className="admin-emp-input"
+                      className={inputClass('title')}
                       value={draft.title || ''}
                       onChange={(e) => setField('title')(e.target.value)}
+                      readOnly={isReadOnly('title')}
                       aria-label={labels.profile.title}
                     />
                   </Field>
@@ -1303,9 +1327,10 @@ export default function MySettingsCanvas({
                   </Field>
                   <Field label={labels.profile.phone} hint={labels.profile.phoneHint}>
                     <input
-                      className="admin-emp-input"
+                      className={inputClass('phone')}
                       value={draft.phone || ''}
                       onChange={(e) => setField('phone')(e.target.value)}
+                      readOnly={isReadOnly('phone')}
                       aria-label={labels.profile.phone}
                     />
                   </Field>
@@ -1328,10 +1353,12 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.gender}>
+                    {/* select 는 readOnly 가 없다 — 잠글 때는 disabled 로 값만 보인다. */}
                     <select
-                      className="admin-emp-input"
+                      className={inputClass('gender')}
                       value={draft.gender || ''}
                       onChange={(e) => setField('gender')(e.target.value)}
+                      disabled={isReadOnly('gender')}
                       aria-label={labels.profile.gender}
                     >
                       <option value="">-</option>
@@ -1342,10 +1369,11 @@ export default function MySettingsCanvas({
                   </Field>
                   <Field label={labels.profile.nationality}>
                     <input
-                      className="admin-emp-input"
+                      className={inputClass('nationality')}
                       value={draft.nationality || ''}
                       onChange={(e) => setField('nationality')(e.target.value)}
-                      placeholder={labels.profile.nationalityPlaceholder}
+                      readOnly={isReadOnly('nationality')}
+                      placeholder={isReadOnly('nationality') ? '' : labels.profile.nationalityPlaceholder}
                       aria-label={labels.profile.nationality}
                     />
                   </Field>
@@ -1374,10 +1402,11 @@ export default function MySettingsCanvas({
                 </Field>
                 <Field label={labels.profile.location}>
                   <input
-                    className="admin-emp-input"
+                    className={inputClass('location')}
                     value={draft.location || ''}
                     onChange={(e) => setField('location')(e.target.value)}
-                    placeholder={labels.profile.locationPlaceholder}
+                    readOnly={isReadOnly('location')}
+                    placeholder={isReadOnly('location') ? '' : labels.profile.locationPlaceholder}
                     aria-label={labels.profile.location}
                   />
                 </Field>

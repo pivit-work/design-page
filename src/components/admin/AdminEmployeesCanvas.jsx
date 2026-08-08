@@ -568,6 +568,8 @@ export default function AdminEmployeesCanvas({
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onLoadHrProfile,
+  // 시트가 HR 모달을 렌더하므로 여기서 함께 내려줘야 신원 편집이 열린다(PW-25).
+  onSaveIdentity,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
@@ -627,6 +629,7 @@ export default function AdminEmployeesCanvas({
           onLoadSalaryHistory={onLoadSalaryHistory}
           onAddSalaryHistory={onAddSalaryHistory}
           onLoadHrProfile={onLoadHrProfile}
+          onSaveIdentity={onSaveIdentity}
           onAddEmployee={onCsvUpload}
           onManageTeams={onManageTeams}
           // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).

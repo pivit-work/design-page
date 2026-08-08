@@ -74,17 +74,20 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'email', 'department', 'jobLevel', 'jobPosition', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'workLocation', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
   return (list || []).map((m) => ({
     id: m.id,
     name: m.name ?? '',
+    displayName: m.displayName ?? '',
     email: m.email ?? '',
+    phone: m.phone ?? '',
     department: m.department ?? '',
     jobLevel: m.jobLevel ?? '',
     jobPosition: m.jobPosition ?? '',
+    workLocation: m.workLocation ?? '',
     orgRole: m.orgRole ?? 'member',
     employmentStatus: m.employmentStatus ?? 'active',
     managerName: m.managerName ?? '',
@@ -311,6 +314,9 @@ export default function AdminEmployeeSheetCanvas({
   // HR(어드민) 전용 — 구성원 HR 기록(신원·가족·학력·경력·자격증·증빙) 읽기 조회.
   // 주입되면 행에 'HR' 버튼이 노출되고 읽기 전용 모달을 연다.
   onLoadHrProfile,
+  // 신원 정보(개인이메일·생년월일·성별·국적·주소) 저장 — 있으면 HR 모달이 편집 모드가
+  // 된다. 성별·국적은 본인 프로필에서 잠긴 인사 정보라 여기가 유일한 입력 경로다(PW-25).
+  onSaveIdentity,
   onAddEmployee,
   // 부서 셀(파생 컬럼) 클릭 시 팀 관리로 보낸다. 미주입이면 그냥 읽기전용 셀.
   onManageTeams,
@@ -341,12 +347,18 @@ export default function AdminEmployeeSheetCanvas({
         : { id, label, width, type: 'text', editable: true };
     const base = [
       { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
+      // 닉네임(내부 호칭) — 평가·조직도·슬랙 표시명. 어드민이 관리하는 값이라 시트에서
+      // 편집한다(PW-8). 본인도 내 설정에서 볼 수 있지만 정본은 여기다.
+      { id: 'displayName', label: cl.displayName || '닉네임', width: 120, type: 'text', editable: true },
       { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
+      // 전화번호·근무지도 본인 프로필에서 잠긴 인사 정보 — 어드민이 여기서 넣는다(PW-25).
+      { id: 'phone', label: cl.phone || '전화번호', width: 130, type: 'text', editable: true },
       // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
       // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
       { id: 'department', label: cl.department || '부서', width: 120, type: 'readonly', editable: false, derived: true },
       catCol('jobLevel', cl.jobLevel || '직급', 110, gradeOptions),
       catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
+      { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
       { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
@@ -485,7 +497,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     const q = search.trim().toLowerCase();
     if (q) {
-      const hit = ['name', 'email', 'department', 'jobPosition', 'jobLevel'].some(
+      const hit = ['name', 'displayName', 'email', 'department', 'jobPosition', 'jobLevel'].some(
         (k) => (r[k] || '').toLowerCase().includes(q),
       );
       if (!hit) return false;
@@ -518,7 +530,10 @@ export default function AdminEmployeeSheetCanvas({
   }
 
   // ── 일괄 편집 바 ──
-  const barCols = COLUMNS.filter((c) => c.editable && c.id !== 'name' && c.id !== 'email');
+  // 일괄 편집 바에서 제외 — 사람마다 다른 값이라 여러 행에 같은 값을 찍는 게 의미 없다
+  // (이름·이메일과 같은 이유로 닉네임도 뺀다).
+  const PER_PERSON_COLS = new Set(['name', 'displayName', 'email', 'phone']);
+  const barCols = COLUMNS.filter((c) => c.editable && !PER_PERSON_COLS.has(c.id));
   const barActiveCount = Object.values(barValues).filter((v) => v !== '' && v !== undefined).length;
   function applyBar() {
     const fields = barCols.filter((c) => barValues[c.id] !== '' && barValues[c.id] !== undefined);
@@ -893,12 +908,13 @@ export default function AdminEmployeeSheetCanvas({
         />
       )}
 
-      {/* HR 기록 모달 (읽기 전용) */}
+      {/* HR 기록 모달 — 신원 정보는 onSaveIdentity 가 있을 때만 편집 가능 */}
       {hrProfileRowId && onLoadHrProfile && (
         <HrProfileModal
           row={rows.find((r) => r.id === hrProfileRowId)}
           labels={L}
           onLoad={onLoadHrProfile}
+          onSaveIdentity={onSaveIdentity}
           onClose={() => setHrProfileRowId(null)}
         />
       )}
@@ -939,11 +955,49 @@ function HrList({ items, render, empty }) {
 // ── HR 기록 모달 (읽기 전용) ──────────────────────────────
 // 어드민(HR)이 구성원의 신원·가족·부양가족·학력·경력·자격증·증빙을 조회한다.
 // 편집은 향후(admin EditPanel) — 현재는 표출 전용. 입력은 본인 내 설정에서.
-function HrProfileModal({ row, labels, onLoad, onClose }) {
+/**
+ * 신원 정보 편집 필드 — 값이 없어도 입력할 수 있어야 한다.
+ * 성별·국적은 본인 프로필에서 잠긴 인사 정보라(PW-25) 여기가 유일한 입력 경로다.
+ */
+function HrEditPair({ k, value, onChange, type = 'text', options }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
+      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
+      {options ? (
+        <select
+          className="admin-emp-input"
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={k}
+          style={{ flex: 1, height: 30, fontSize: 12 }}
+        >
+          <option value="">—</option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className="admin-emp-input"
+          type={type}
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={k}
+          style={{ flex: 1, height: 30, fontSize: 12 }}
+        />
+      )}
+    </div>
+  );
+}
+
+function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
   const L = labels || {};
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // 신원 정보 편집 draft — onSaveIdentity 가 없으면 읽기 전용(기존 동작).
+  const [identityDraft, setIdentityDraft] = useState(null);
+  const [identityState, setIdentityState] = useState('idle');
 
   useEffect(() => {
     // loading/error 초기값(true/false) — 모달은 열 때마다 새로 마운트되므로
@@ -957,6 +1011,34 @@ function HrProfileModal({ row, labels, onLoad, onClose }) {
   }, [row?.id, onLoad]);
 
   const identity = data?.identity ?? {};
+  // 서버 값이 들어오면 draft 를 한 번 시드한다(렌더 중 파생 — effect 불필요).
+  const [seededId, setSeededId] = useState(null);
+  if (data && seededId !== row?.id) {
+    setSeededId(row?.id ?? null);
+    setIdentityDraft({ ...identity });
+    setIdentityState('idle');
+  }
+  const idDraft = identityDraft ?? identity;
+  const setIdField = (key) => (v) => {
+    setIdentityDraft((p) => ({ ...(p ?? identity), [key]: v }));
+    setIdentityState('idle');
+  };
+  const identityDirty =
+    !!identityDraft &&
+    ['personalEmail', 'birthDate', 'gender', 'nationality', 'address'].some(
+      (k) => (identityDraft[k] ?? '') !== (identity[k] ?? ''),
+    );
+  const submitIdentity = () => {
+    setIdentityState('saving');
+    Promise.resolve(onSaveIdentity(row?.id, { ...idDraft }))
+      .then((saved) => {
+        // 서버가 돌려준 값이 정본 — 정규화(빈 문자열→null)를 화면에 반영한다.
+        if (saved) setData((d) => ({ ...(d ?? {}), identity: saved }));
+        setIdentityState('saved');
+      })
+      .catch(() => setIdentityState('error'));
+  };
+
   const family = data?.family ?? {};
   const org = data?.org ?? {};
   const ec = family.emergencyContact ?? {};
@@ -981,11 +1063,49 @@ function HrProfileModal({ row, labels, onLoad, onClose }) {
         ) : (
           <>
             <HrSection title={L.hrIdentity || '개인 신원'}>
-              <HrPair k={L.hrPersonalEmail || '개인 이메일'} v={identity.personalEmail} />
-              <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
-              <HrPair k={L.hrGender || '성별'} v={identity.gender} />
-              <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
-              <HrPair k={L.hrAddress || '주소'} v={identity.address} />
+              {onSaveIdentity ? (
+                <div data-testid="hr-identity-edit">
+                  <HrEditPair k={L.hrPersonalEmail || '개인 이메일'} type="email" value={idDraft.personalEmail} onChange={setIdField('personalEmail')} />
+                  <HrEditPair k={L.hrBirthDate || '생년월일'} type="date" value={idDraft.birthDate} onChange={setIdField('birthDate')} />
+                  <HrEditPair
+                    k={L.hrGender || '성별'}
+                    value={idDraft.gender}
+                    onChange={setIdField('gender')}
+                    options={L.hrGenderOptions || [{ value: 'male', label: '남성' }, { value: 'female', label: '여성' }, { value: 'other', label: '기타' }]}
+                  />
+                  <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
+                  <HrEditPair k={L.hrAddress || '주소'} value={idDraft.address} onChange={setIdField('address')} />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    {identityState === 'error' && (
+                      <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">
+                        {L.hrIdentitySaveError || '저장에 실패했습니다.'}
+                      </span>
+                    )}
+                    {identityState === 'saved' && (
+                      <span style={{ fontSize: 11, color: '#16A34A' }} role="status">
+                        {L.hrIdentitySaved || '저장됐습니다'}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={submitIdentity}
+                      disabled={!identityDirty || identityState === 'saving'}
+                      className="admin-btn-primary"
+                      style={{ fontSize: 12, padding: '6px 14px', opacity: !identityDirty || identityState === 'saving' ? 0.5 : 1 }}
+                    >
+                      {identityState === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrIdentitySave || '신원 정보 저장')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <HrPair k={L.hrPersonalEmail || '개인 이메일'} v={identity.personalEmail} />
+                  <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
+                  <HrPair k={L.hrGender || '성별'} v={identity.gender} />
+                  <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
+                  <HrPair k={L.hrAddress || '주소'} v={identity.address} />
+                </>
+              )}
             </HrSection>
             <HrSection title={L.hrFamily || '가족'}>
               <HrPair k={L.hrMarital || '혼인 여부'} v={family.maritalStatus} />
