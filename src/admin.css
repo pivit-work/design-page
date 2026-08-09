@@ -1916,6 +1916,248 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
+/* 관공서 기준 구간(청년 ~39세 / 장년 50+) 강조 — 제출 서식이 이 두 축을 묻는다. */
+.admin-snap-age-bar-fill.is-flagged {
+  background: var(--text-brand-tertiary, #21a67a);
+}
+.admin-snap-age-flag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--utility-brand-200, #b9f2d9);
+  background: var(--utility-brand-50, #f1fffa);
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-brand-tertiary, #21a67a);
+  white-space: nowrap;
+}
+
+/* ── 원본 명단(Raw 명단) — 인사 필드 표준 13열 ──
+   집계 아래에 붙는 "그래서 누가 있었나" 표. 열이 13개라 가로 스크롤을 표 안에
+   가둔다(페이지 본문이 가로로 밀리면 안 된다). */
+.admin-snap-roster-card {
+  margin-top: 16px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl, 16px);
+  box-shadow: var(--admin-card-shadow,
+    0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1));
+  overflow: hidden;
+}
+.admin-snap-roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+.admin-snap-roster-titlewrap {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.admin-snap-roster-title {
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.admin-snap-roster-meta {
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-snap-roster-toggle {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.admin-snap-roster-toggle:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.admin-snap-roster-scroll {
+  overflow-x: auto;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.admin-snap-roster {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+.admin-snap-roster th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+}
+.admin-snap-roster td {
+  padding: 9px 12px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--bg-secondary);
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.admin-snap-roster tbody tr:hover td { background: var(--bg-secondary); }
+.admin-snap-roster-idx {
+  width: 44px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.admin-snap-roster-name {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text-brand-tertiary, #21a67a);
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-snap-roster-name:hover { text-decoration: underline; }
+/* as-of 조회에서 현재 값과 달라진 셀 — 어디가 바뀌었는지 표에서 바로 보이게 */
+.admin-snap-roster td.is-changed {
+  background: var(--utility-amber-50, #fffaeb);
+  color: var(--utility-amber-700, #b54708);
+  font-weight: 600;
+}
+.admin-snap-roster-changed {
+  margin-left: 4px;
+  font-size: 9px;
+  vertical-align: middle;
+}
+
+/* ── 내보내기 드롭다운 (원본 명단 / 현재 탭 집계) ── */
+.admin-snap-export-wrap { position: relative; }
+.admin-snap-export-backdrop { position: fixed; inset: 0; z-index: 30; }
+.admin-snap-export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 31;
+  min-width: 240px;
+  padding: 6px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  box-shadow: 0 12px 24px -6px rgba(10, 13, 18, 0.16);
+}
+.admin-snap-export-menu button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-snap-export-menu button:hover { background: var(--bg-secondary); }
+.admin-snap-export-item-title {
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.admin-snap-export-item-hint {
+  font-family: var(--font-family-body);
+  font-size: 11.5px;
+  letter-spacing: -0.01em;
+  color: var(--text-tertiary);
+}
+
+/* ── As Of (시점별 조직 스냅샷) ── */
+.admin-snap-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.admin-snap-preset {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.admin-snap-preset:hover { background: var(--bg-secondary); }
+.admin-snap-preset.is-active {
+  border-color: var(--text-brand-tertiary, #21a67a);
+  background: var(--utility-brand-50, #f1fffa);
+  color: var(--text-brand-tertiary, #21a67a);
+}
+.admin-snap-timemachine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--utility-amber-200, #fedf89);
+  background: var(--utility-amber-50, #fffaeb);
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--utility-amber-700, #b54708);
+}
+.admin-snap-timemachine button {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--utility-amber-200, #fedf89);
+  background: var(--bg-quaternary);
+  font: inherit;
+  color: var(--utility-amber-700, #b54708);
+  cursor: pointer;
+}
+.admin-snap-comp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
 /* ── 인사발령: 대상자 + 항목 2단 ── */
 .admin-snap-appt-grid {
   display: grid;
