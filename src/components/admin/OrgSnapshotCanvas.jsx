@@ -17,7 +17,13 @@ import { useState, useMemo, useRef, useCallback } from 'react';
  */
 
 const DEFAULT_LABELS = {
-  views: { snapshot: '조직 스냅샷', single: '발령 단건', bulk: '발령 대량', history: '발령 이력' },
+  views: {
+    snapshot: '조직 스냅샷',
+    single: '발령 단건',
+    bulk: '발령 대량',
+    history: '발령 이력',
+    asof: 'As Of',
+  },
   loading: '불러오는 중…',
   // 현황 스냅샷
   statusTitle: '조직 현황',
@@ -25,6 +31,51 @@ const DEFAULT_LABELS = {
   queryDate: '조회일',
   applyDate: '적용',
   export: '내보내기 (CSV)',
+  exportRoster: '원본 명단',
+  exportRosterHint: '조회일 기준 재직자 전원 1인 1행',
+  exportSummary: '현재 탭 집계',
+  exportSummaryHint: '현재 탭의 요약 통계',
+  // 원본 명단 — 인사 필드 표준 13열(arch-core-data-model §1-3-a)
+  rosterTitle: '원본 명단',
+  rosterHint: '내보내기 CSV와 동일한 열',
+  rosterCollapse: '접기',
+  rosterExpand: '펼치기',
+  rosterEmpty: '조회일 기준 재직 인원이 없습니다',
+  roster: {
+    index: '#',
+    name: '이름',
+    employeeCode: '사번',
+    teamPath: '소속',
+    jobPosition: '직책',
+    jobLevel: '직급',
+    jobFamily: '직군',
+    jobTitle: '직무',
+    employmentType: '고용형태',
+    employmentStatus: '재직상태',
+    workLocation: '근무지',
+    managerName: '매니저',
+    hireDate: '입사일',
+    finalGrade: '확정등급',
+    salary: '연봉',
+  },
+  // As Of — 시점별 조직 스냅샷(org-snapshot-spec §5)
+  asofTitle: '시점별 조직 스냅샷',
+  asofSubtitle: '발령 이력을 되감아 그 시점의 명부를 재구성합니다',
+  asofPresetLabel: '기준 시점',
+  asofToday: '현재',
+  asofShowComp: '보상 표시',
+  asofBackToToday: '현재로 복귀',
+  asofExport: '조직 스냅샷 CSV',
+  asofEmpty: '이 시점의 스냅샷이 없습니다',
+  /** `{date}` 자리에 기준일이 들어간다. */
+  asofBanner: '{date} 시점으로 조회 중입니다',
+  asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
+  asofCards: {
+    total: '그 시점 재직',
+    joined: '이후 입사',
+    left: '이후 퇴사',
+    moved: '발령·승급 변경',
+  },
   drilldownAll: '전체 재직 구성원',
   drilldownHint: '구성원 보기',
   tabs: { summary: '조직 현황', employment: '고용 유형', jobgroup: '직군/직무', age: '연령 구성' },
@@ -154,6 +205,94 @@ function parseCSVLine(line) {
   return result;
 }
 
+/* ── 원본 명단(Raw 명단) — 인사 필드 표준 13열 ────────────────
+   조직 현황(조회일 기준)과 As Of(시점 재구성)가 같은 표를 쓴다. 열·라벨·순서를
+   한 곳에 두어 두 화면과 CSV 가 어긋나지 않게 한다("보이는 것 = 받는 것"). */
+const ROSTER_COLUMNS = [
+  'name', 'employeeCode', 'teamPath', 'jobPosition', 'jobLevel',
+  'jobFamily', 'jobTitle', 'employmentType', 'employmentStatus',
+  'workLocation', 'managerName', 'hireDate', 'finalGrade',
+];
+
+function RosterTable({ rows, labels, showSalary, changedHint, onMemberClick }) {
+  const columns = showSalary ? [...ROSTER_COLUMNS, 'salary'] : ROSTER_COLUMNS;
+  if (rows.length === 0) {
+    return <div className="admin-snap-empty">{labels.rosterEmpty}</div>;
+  }
+  return (
+    <div className="admin-snap-roster-scroll">
+      <table className="admin-snap-roster">
+        <thead>
+          <tr>
+            <th className="admin-snap-roster-idx">{labels.roster.index}</th>
+            {columns.map((c) => <th key={c}>{labels.roster[c]}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const changed = new Set(r.changedFields ?? []);
+            const clickable = !!(r.userId && onMemberClick);
+            return (
+              <tr key={r.userId ?? `${r.name}-${i}`}>
+                <td className="admin-snap-roster-idx">{i + 1}</td>
+                {columns.map((c) => (
+                  <td
+                    key={c}
+                    className={changed.has(c) ? 'is-changed' : undefined}
+                    title={changed.has(c) && changedHint ? changedHint(c, r) : undefined}
+                  >
+                    {c === 'name' && clickable ? (
+                      <button type="button" className="admin-snap-roster-name" onClick={() => onMemberClick(r.userId)}>
+                        {r.name}
+                      </button>
+                    ) : (
+                      (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
+                    )}
+                    {changed.has(c) && <span className="admin-snap-roster-changed" aria-hidden>▲</span>}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** 내보내기 — 기본은 원본 명단, 집계는 보조(org-snapshot-spec §1 "내보내기"). */
+function ExportMenu({ labels, onExportRoster, onExportSummary }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="admin-snap-export-wrap">
+      <button
+        type="button"
+        className="admin-snap-export-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        ↓ {labels.export}
+      </button>
+      {open && (
+        <>
+          <div className="admin-snap-export-backdrop" onClick={() => setOpen(false)} />
+          <div className="admin-snap-export-menu" role="menu">
+            <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportRoster?.(); }}>
+              <span className="admin-snap-export-item-title">{labels.exportRoster}</span>
+              <span className="admin-snap-export-item-hint">{labels.exportRosterHint}</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setOpen(false); onExportSummary?.(); }}>
+              <span className="admin-snap-export-item-title">{labels.exportSummary}</span>
+              <span className="admin-snap-export-item-hint">{labels.exportSummaryHint}</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════
  * 1. 조직 현황 스냅샷
  * ════════════════════════════════════════════════════════════ */
@@ -197,12 +336,20 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
   );
 }
 
-function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onExport, activeTab, onTabChange, onDrilldown }) {
+function OrgSnapshotStatusView({
+  data, labels, queryDate, onQueryDateChange, onExport, onExportRoster,
+  activeTab, onTabChange, onDrilldown, onRosterMemberClick,
+  showComp, onShowCompChange,
+}) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
     summaryCards = [], orgTree = [], totalCount = 0,
     employment = [], jobFamilies = [], ageDist = [], ageSummary = [],
+    roster = [],
   } = data;
+  const [rosterOpen, setRosterOpen] = useState(true);
+  // 연봉은 Tier3 — 응답에 값이 있어도 '보상 표시' 를 켠 뒤에만 열이 나온다(기획 §1 토글).
+  const showSalary = !!showComp && roster.some((r) => r.salary !== undefined);
   // 조회일 draft — 날짜를 바꾼 뒤 '적용' 을 눌러야 조회된다(외부에서 queryDate 바뀌면 동기화).
   const [draftDate, setDraftDate] = useState(queryDate);
   const [seenQuery, setSeenQuery] = useState(queryDate);
@@ -219,6 +366,16 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
           <div className="admin-snap-header-sub">{labels.statusSubtitle}</div>
         </div>
         <div className="admin-snap-header-actions">
+          {onShowCompChange && (
+            <label className="admin-snap-comp-toggle">
+              <input
+                type="checkbox"
+                checked={!!showComp}
+                onChange={(e) => onShowCompChange(e.target.checked)}
+              />
+              {labels.asofShowComp}
+            </label>
+          )}
           <div className="admin-snap-datepicker">
             <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
             <input
@@ -237,9 +394,11 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
           >
             {labels.applyDate}
           </button>
-          <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.(activeTab)}>
-            ↓ {labels.export}
-          </button>
+          <ExportMenu
+            labels={labels}
+            onExportRoster={() => onExportRoster?.()}
+            onExportSummary={() => onExport?.(activeTab)}
+          />
         </div>
       </header>
 
@@ -336,11 +495,13 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
                     <span className="admin-snap-age-label">{a.range}</span>
                     <div className="admin-snap-age-bar">
                       <div
-                        className="admin-snap-age-bar-fill"
+                        className={`admin-snap-age-bar-fill${a.flagLabel ? ' is-flagged' : ''}`}
                         style={{ width: `${(a.count / ageMax) * 100}%` }}
                       />
                     </div>
                     <span className="admin-snap-age-count">{a.count}{labels.countSuffix}</span>
+                    {/* 관공서 기준(청년 ~39세 / 장년 50+) 구간 강조 — 제출 서식의 핵심 축 */}
+                    {a.flagLabel && <span className="admin-snap-age-flag">{a.flagLabel}</span>}
                   </div>
                 ))}
                 {ageSummary.length > 0 && (
@@ -356,6 +517,35 @@ function OrgSnapshotStatusView({ data, labels, queryDate, onQueryDateChange, onE
             )
         )}
       </div>
+
+      {/* 원본 명단 — 집계만으로는 "실제 누가 있었나"에 답할 수 없다. 화면의 표와
+          내보내기 CSV 가 같은 열·같은 데이터를 쓴다(org-snapshot-spec §1). */}
+      <section className="admin-snap-roster-card">
+        <div className="admin-snap-roster-head">
+          <div className="admin-snap-roster-titlewrap">
+            <span className="admin-snap-roster-title">{labels.rosterTitle}</span>
+            <span className="admin-snap-roster-meta">
+              {queryDate} · {roster.length}{labels.countSuffix} · {labels.rosterHint}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="admin-snap-roster-toggle"
+            aria-expanded={rosterOpen}
+            onClick={() => setRosterOpen((v) => !v)}
+          >
+            {rosterOpen ? `${labels.rosterCollapse} ▲` : `${labels.rosterExpand} ▼`}
+          </button>
+        </div>
+        {rosterOpen && (
+          <RosterTable
+            rows={roster}
+            labels={labels}
+            showSalary={showSalary}
+            onMemberClick={onRosterMemberClick}
+          />
+        )}
+      </section>
     </div>
   );
 }
@@ -933,6 +1123,110 @@ function AppointmentHistoryView({ records, labels, onExport }) {
 }
 
 /* ════════════════════════════════════════════════════════════
+ * 5. As Of — 시점별 조직 스냅샷 (타임머신)
+ * ════════════════════════════════════════════════════════════ */
+function AsOfSnapshotView({
+  data, labels, asOfDate, today, onAsOfDateChange, showComp, onShowCompChange,
+  onExport, onRosterMemberClick,
+}) {
+  const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0 } = data;
+  const isPast = !!asOfDate && asOfDate !== today;
+  const cards = [
+    { key: 'total', value: totalMembers },
+    { key: 'joined', value: delta ? `+${delta.joinedCount}` : '—' },
+    { key: 'left', value: delta ? `-${delta.leftCount}` : '—' },
+    { key: 'moved', value: delta ? delta.movedCount + (delta.statusChangedCount ?? 0) : '—' },
+  ];
+  return (
+    <div className="admin-snap-canvas">
+      <header className="admin-snap-header">
+        <div>
+          <div className="admin-snap-header-title">{labels.asofTitle}</div>
+          <div className="admin-snap-header-sub">{labels.asofSubtitle}</div>
+        </div>
+        <div className="admin-snap-header-actions">
+          <label className="admin-snap-comp-toggle">
+            <input
+              type="checkbox"
+              checked={!!showComp}
+              onChange={(e) => onShowCompChange?.(e.target.checked)}
+            />
+            {labels.asofShowComp}
+          </label>
+          <div className="admin-snap-datepicker">
+            <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
+            {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다 */}
+            <input
+              type="date"
+              max={today}
+              value={asOfDate}
+              onChange={(e) => onAsOfDateChange?.(e.target.value)}
+            />
+          </div>
+          <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>
+            ↓ {labels.asofExport}
+          </button>
+        </div>
+      </header>
+
+      <div className="admin-snap-presets">
+        <button
+          type="button"
+          className={`admin-snap-preset${!isPast ? ' is-active' : ''}`}
+          onClick={() => onAsOfDateChange?.(today)}
+        >
+          {labels.asofToday}
+        </button>
+        {presets.map((p) => (
+          <button
+            key={p.key}
+            type="button"
+            data-testid={`asof-preset-${p.date}`}
+            className={`admin-snap-preset${asOfDate === p.date ? ' is-active' : ''}`}
+            onClick={() => onAsOfDateChange?.(p.date)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {isPast && (
+        <div className="admin-snap-timemachine" role="status">
+          <span>{String(labels.asofBanner).replace('{date}', asOfDate)}</span>
+          <button type="button" onClick={() => onAsOfDateChange?.(today)}>
+            {labels.asofBackToToday}
+          </button>
+        </div>
+      )}
+
+      <div className="admin-snap-summary-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+        {cards.map((c) => (
+          <div key={c.key} className="admin-snap-summary-card">
+            <p className="admin-snap-summary-label">{labels.asofCards[c.key]}</p>
+            <p className="admin-snap-summary-value">{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="admin-snap-content">
+        {isPast && roster.length === 0 ? (
+          <div className="admin-snap-empty">{labels.asofEmpty}</div>
+        ) : (
+          <RosterTable
+            rows={roster}
+            labels={labels}
+            showSalary={!!showComp && roster.some((r) => r.salary !== undefined)}
+            changedHint={(col, row) => `${labels.roster[col]} · ${row.name}`}
+            onMemberClick={onRosterMemberClick}
+          />
+        )}
+      </div>
+      {meta?.partial && <p className="admin-snap-footnote">{labels.asofPartialNote}</p>}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
  * Wrapper — 서브뷰 탭 + 라우팅
  * ════════════════════════════════════════════════════════════ */
 export default function OrgSnapshotCanvas({
@@ -946,7 +1240,17 @@ export default function OrgSnapshotCanvas({
   snapshotTab = 'summary',
   onSnapshotTabChange,
   onExportSnapshot,
+  onExportRoster,
   onDrilldown,
+  onRosterMemberClick,
+  // As Of (시점별 조직 스냅샷)
+  asOf = {},
+  asOfDate = '',
+  today = '',
+  onAsOfDateChange,
+  showComp = false,
+  onShowCompChange,
+  onExportAsOf,
   // 발령 공통
   members = [],
   fieldOptions = {},
@@ -966,7 +1270,11 @@ export default function OrgSnapshotCanvas({
   const activeTab = onSnapshotTabChange ? snapshotTab : internalTab;
   const setTab = onSnapshotTabChange || setInternalTab;
 
-  const viewKeys = ['snapshot', 'single', 'bulk', 'history'];
+  // As Of 는 시점 조회 전용 서브탭이다(org-snapshot-spec §5). 호스트가 배선하지
+  // 않으면(onAsOfDateChange 없음) 탭 자체를 숨겨 죽은 탭을 만들지 않는다.
+  const viewKeys = onAsOfDateChange
+    ? ['snapshot', 'single', 'bulk', 'history', 'asof']
+    : ['snapshot', 'single', 'bulk', 'history'];
 
   return (
     <div className="admin-snap-canvas">
@@ -994,9 +1302,26 @@ export default function OrgSnapshotCanvas({
               queryDate={queryDate}
               onQueryDateChange={onQueryDateChange}
               onExport={onExportSnapshot}
+              onExportRoster={onExportRoster}
               activeTab={activeTab}
               onTabChange={setTab}
               onDrilldown={onDrilldown}
+              onRosterMemberClick={onRosterMemberClick}
+              showComp={showComp}
+              onShowCompChange={onShowCompChange}
+            />
+          )}
+          {view === 'asof' && (
+            <AsOfSnapshotView
+              data={asOf}
+              labels={labels}
+              asOfDate={asOfDate}
+              today={today}
+              onAsOfDateChange={onAsOfDateChange}
+              showComp={showComp}
+              onShowCompChange={onShowCompChange}
+              onExport={onExportAsOf}
+              onRosterMemberClick={onRosterMemberClick}
             />
           )}
           {view === 'single' && (
