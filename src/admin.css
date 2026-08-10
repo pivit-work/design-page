@@ -1449,6 +1449,8 @@
   border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .admin-emp-invite-email { flex: 1; min-width: 200px; }
+/* 소속 팀은 "본부 · 실 · 팀" 경로라 다른 필드보다 길다 — 줄여도 읽히게 폭을 준다. */
+.admin-emp-invite-team { min-width: 190px; max-width: 280px; }
 
 /* 초대 상태 배지 — status 배지와 동일 규격(점 없음, radius 8) */
 .admin-emp-invite-badge {
