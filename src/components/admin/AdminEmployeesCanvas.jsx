@@ -570,6 +570,9 @@ export default function AdminEmployeesCanvas({
   onLoadHrProfile,
   // 시트가 HR 모달을 렌더하므로 여기서 함께 내려줘야 신원 편집이 열린다(PW-25).
   onSaveIdentity,
+  // 대표(CEO) 지정·해제 — 전체 구성원 탭 시트로 내려간다. 권한이 없으면 미주입.
+  onAssignCeo,
+  onReleaseCeo,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
@@ -577,7 +580,14 @@ export default function AdminEmployeesCanvas({
   );
 
   const unassignedCount = useMemo(
-    () => members.filter((m) => m.employmentStatus !== 'terminated' && (!hasOrgUnit(m) || !m.managerName)).length,
+    () =>
+      members.filter(
+        (m) =>
+          m.employmentStatus !== 'terminated' &&
+          // 대표는 조직 최상위라 상급자가 없는 게 정상이다 — 매니저 미배정으로
+          // 세면 영원히 사라지지 않는 경고가 된다(정책 §2 / §1-3-c R2).
+          (!hasOrgUnit(m) || (!m.managerName && m.isCeo !== true)),
+      ).length,
     [members],
   );
   const pendingInviteCount = useMemo(
@@ -635,6 +645,8 @@ export default function AdminEmployeesCanvas({
           // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).
           orgUnitOptions={orgUnits}
           onAssignTeam={onAssignOrgUnit}
+          onAssignCeo={onAssignCeo}
+          onReleaseCeo={onReleaseCeo}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab

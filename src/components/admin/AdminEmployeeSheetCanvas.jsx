@@ -90,6 +90,9 @@ function mapMembers(list) {
     jobPosition: m.jobPosition ?? '',
     workLocation: m.workLocation ?? '',
     orgRole: m.orgRole ?? 'member',
+    // 대표 여부는 편집 대상 컬럼이 아니라 행 상태다 — dirty 추적에 끼지 않도록
+    // COLUMNS 에 넣지 않고 행에만 실어둔다.
+    isCeo: m.isCeo === true,
     employmentStatus: m.employmentStatus ?? 'active',
     managerName: m.managerName ?? '',
     hireDate: m.hireDate ?? '',
@@ -194,19 +197,68 @@ function TeamAssignCell({ options, unassignedLabel, onPick, onCancel }) {
   );
 }
 
+/* ── 대표(CEO) ────────────────────────────────────────────
+ * 왕관은 이모지(👑)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고
+ * color 를 상속하지 않아 배지 안에서 혼자 튄다.
+ * ---------------------------------------------------------- */
+export function IconCrown({ size = 13 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8L3 7Z" />
+    </svg>
+  );
+}
+
+/**
+ * 이름 옆 대표 배지. `isCeo` 하나만 근거로 삼는다 — 권한이 대표(superuser)라거나
+ * 직책 문자열이 '대표'라는 것만으로는 붙지 않는다(정책 §2).
+ * 라벨은 로케일에 따라 '대표'(2자)↔'CEO' 로 길이가 흔들리므로 고정폭을 주지 않고
+ * 안쪽 패딩 + nowrap 으로 감싼다.
+ */
+function CeoBadge({ label }) {
+  return (
+    <span
+      title={label}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
+        boxSizing: 'border-box', padding: '1px 6px 1px 4px', borderRadius: 99,
+        background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309',
+        fontSize: 10, fontWeight: 700, lineHeight: 1.5, whiteSpace: 'nowrap',
+      }}
+    >
+      <IconCrown size={11} />
+      {label}
+    </span>
+  );
+}
+
 // ── 셀 렌더 (읽기) ──────────────────────────────────────
-function CellDisplay({ col, row, renderAvatar }) {
+function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint }) {
   const value = row[col.id];
   if (col.id === 'name') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
         {renderAvatar ? (
           renderAvatar(row, 24)
         ) : (
           <div style={{ width: 24, height: 24, borderRadius: 6, background: avatarColor(row.id || value), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: nameFontSize(initials(value), 24, 0.38), fontWeight: 800, color: '#fff', flexShrink: 0, overflow: 'hidden' }}>{initials(value)}</div>
         )}
-        <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{value || '—'}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
+        {row.isCeo && <CeoBadge label={ceoLabel || '대표'} />}
       </div>
+    );
+  }
+  // 대표는 조직 최상위라 상급자가 없다 — 조직장에서 파생된 값이 남아 있어도
+  // 매니저 칸은 '—' 로 비우고 이유를 툴팁으로 알린다(정책 §2).
+  if (col.id === 'managerName' && row.isCeo) {
+    return (
+      <span title={ceoNoManagerHint || '조직 최상위 — 상급자를 가질 수 없습니다'} style={{ fontSize: 12, color: T.muted }}>
+        —
+      </span>
     );
   }
   if (col.id === 'orgRole') {
@@ -335,6 +387,13 @@ export default function AdminEmployeeSheetCanvas({
   embedded = false,
   // 초기 검색어(딥링크용) — 개요 등에서 특정 인원으로 좁혀 진입할 때 사용.
   initialSearch = '',
+  // ── 대표(CEO) 지정·해제 (screen-admin-ceo-assign.policy.md) ──
+  // 주입되면 행에 왕관 버튼이 노출된다. 권한이 없으면 아예 주입하지 않는다 —
+  // disabled 버튼을 보여주지 않는 게 정책(§6 미표시 원칙)이다.
+  // onAssignCeo(memberId, { alsoSetJobPosition }) / onReleaseCeo(memberId)
+  // 둘 다 실패 시 throw 하면 모달이 열린 채 인라인 에러를 띄운다.
+  onAssignCeo,
+  onReleaseCeo,
 }) {
   const L = labels;
 
@@ -393,6 +452,8 @@ export default function AdminEmployeeSheetCanvas({
   const [barApplied, setBarApplied] = useState(false);
   const [salaryHistRowId, setSalaryHistRowId] = useState(null);
   const [hrProfileRowId, setHrProfileRowId] = useState(null);
+  // 대표 확인 모달 — { rowId, mode: 'assign' | 'release' }
+  const [ceoConfirm, setCeoConfirm] = useState(null);
 
   // members prop 변경 시 내부 rows 재동기화(저장 후 부모 재로드 → dirty 리셋).
   // "이전 props 와 비교해 렌더 중 상태 조정" 패턴 — effect 내 synchronous setState 회피.
@@ -519,6 +580,10 @@ export default function AdminEmployeeSheetCanvas({
       const bv = String(b[sortCol] ?? '');
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
     });
+  }
+  // 대표는 필터·정렬과 무관하게 항상 최상단(정책 §2). 정렬 후에 끌어올린다.
+  if (filtered.some((r) => r.isCeo)) {
+    filtered = [...filtered].sort((a, b) => (a.isCeo ? -1 : 0) - (b.isCeo ? -1 : 0));
   }
 
   // ── 선택 ──
@@ -829,7 +894,7 @@ export default function AdminEmployeeSheetCanvas({
                               onCancel={() => setAssignRowId(null)}
                             />
                           ) : (
-                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} />
+                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} />
                           )}
                         </td>
                       );
@@ -846,6 +911,31 @@ export default function AdminEmployeeSheetCanvas({
                             HR
                           </button>
                         )}
+                        {/* 대표 지정·해제. 권한이 없으면 콜백 자체가 주어지지 않아 버튼이
+                            아예 안 보인다(정책 §6 — disabled 대신 미표시).
+                            퇴사자는 지정 대상이 될 수 없어 disabled + 사유 툴팁(§7 E2). */}
+                        {canEdit && (onAssignCeo || onReleaseCeo) && (() => {
+                          const isCeoRow = row.isCeo === true;
+                          const resigned = row.employmentStatus === 'terminated';
+                          const disabled = !isCeoRow && resigned;
+                          return (
+                            <button
+                              data-testid={`ceo-toggle-${row.id}`}
+                              disabled={disabled}
+                              onClick={() => setCeoConfirm({ rowId: row.id, mode: isCeoRow ? 'release' : 'assign' })}
+                              title={
+                                disabled
+                                  ? (L.ceoResignedHint || '퇴사자는 대표로 지정할 수 없습니다')
+                                  : isCeoRow
+                                    ? (L.ceoRelease || '대표 지정 해제')
+                                    : (L.ceoAssign || '대표로 지정')
+                              }
+                              style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${isCeoRow ? '#FDE68A' : T.border}`, background: isCeoRow ? '#FFFBEB' : T.bg, cursor: disabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: disabled ? T.border : isCeoRow ? '#B45309' : T.muted }}
+                            >
+                              <IconCrown size={14} />
+                            </button>
+                          );
+                        })()}
                         {canEdit && onDeleteMember && (
                           <button onClick={() => handleDelete(row.id)} title={L.delete || '삭제'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 13, fontFamily: T.font }}>
                             ×
@@ -927,6 +1017,134 @@ export default function AdminEmployeeSheetCanvas({
           onClose={() => setHrProfileRowId(null)}
         />
       )}
+
+      {/* 대표(CEO) 지정·해제 확인 모달 */}
+      {ceoConfirm && (
+        <CeoConfirmModal
+          row={rows.find((r) => r.id === ceoConfirm.rowId)}
+          mode={ceoConfirm.mode}
+          currentCeoName={(rows.find((r) => r.isCeo) || {}).name || ''}
+          labels={L}
+          positionOptions={positionOptions}
+          onConfirm={(opts) =>
+            ceoConfirm.mode === 'assign'
+              ? onAssignCeo(ceoConfirm.rowId, opts)
+              : onReleaseCeo(ceoConfirm.rowId)
+          }
+          onClose={() => setCeoConfirm(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** 대표 지정/해제 확인 모달 — 정책 §4-A. 실패해도 닫지 않고 인라인 에러를 띄운다. */
+function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOptions = [], onConfirm, onClose }) {
+  const L = labels || {};
+  const assigning = mode === 'assign';
+  // 체크박스는 isCeo 와 독립된 컬럼을 함께 설정할 뿐, 자동 연동이 아니다.
+  const [alsoSetJobPosition, setAlsoSetJobPosition] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!row) return null;
+  const name = row.name || '';
+  // 조직 설정에서 '대표' 직책 옵션을 지웠으면 직책 체크박스를 쓸 수 없다(§4-A).
+  const ceoPositionLabel = L.ceoPositionValue || '대표';
+  const positionAvailable =
+    positionOptions.length === 0 || positionOptions.includes(ceoPositionLabel);
+
+  async function confirm() {
+    setBusy(true);
+    setError('');
+    try {
+      await onConfirm({ alsoSetJobPosition: alsoSetJobPosition && positionAvailable });
+      onClose();
+    } catch (e) {
+      setError((e && e.message) || L.ceoErrorGeneric || '처리하지 못했습니다. 다시 시도해 주세요.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const checkbox = (checked, onChange, label, disabled, hint) => (
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: disabled ? T.muted : T.text, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+      <input
+        type="checkbox" checked={checked} disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ marginTop: 2, accentColor: T.accent, cursor: disabled ? 'not-allowed' : 'pointer' }}
+      />
+      <span>
+        {label}
+        {hint && <span style={{ display: 'block', fontSize: 11, color: T.muted }}>{hint}</span>}
+      </span>
+    </label>
+  );
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font }}
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+    >
+      <div data-testid="ceo-confirm-modal" style={{ background: '#fff', borderRadius: 14, width: 'min(460px,100%)', boxShadow: '0 20px 60px rgba(0,0,0,.22)', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', gap: 8, color: '#B45309' }}>
+          <IconCrown size={18} />
+          <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
+            {assigning
+              ? (L.ceoAssignTitle || '{name}님을 대표로 지정합니다').replace('{name}', name)
+              : (L.ceoReleaseTitle || '{name}님의 대표 지정을 해제합니다').replace('{name}', name)}
+          </div>
+        </div>
+        <div style={{ padding: '0 22px 4px', fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
+          {assigning ? (
+            <>
+              <div>{L.ceoAssignBody || '이 구성원이 조직도의 최상위가 됩니다.'}</div>
+              {currentCeoName && currentCeoName !== name && (
+                <div data-testid="ceo-replace-note">
+                  {(L.ceoAssignReplace || '현재 대표 {name}님의 지정은 해제됩니다.').replace('{name}', currentCeoName)}
+                </div>
+              )}
+            </>
+          ) : (
+            <div>{L.ceoReleaseBody || '조직도 최상위가 비고, 이 구성원은 상급자 없는 상태가 됩니다. 권한과 직책은 자동으로 되돌리지 않습니다.'}</div>
+          )}
+        </div>
+
+        {assigning && (
+          <div style={{ margin: '14px 22px', padding: '12px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: T.bg, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {checkbox(
+              alsoSetJobPosition && positionAvailable,
+              setAlsoSetJobPosition,
+              (L.ceoAlsoSetJobPosition || "직책을 '{value}'로 함께 변경").replace('{value}', ceoPositionLabel),
+              !positionAvailable,
+              positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다 — 조직 설정에서 추가하세요."),
+            )}
+          </div>
+        )}
+
+        {assigning && (
+          <div style={{ padding: '0 22px', fontSize: 11, color: T.muted, lineHeight: 1.8 }}>
+            <div>· {L.ceoNoteManager || '대표는 상급자를 가질 수 없습니다.'}</div>
+            <div>· {L.ceoNoteRole || '권한은 바뀌지 않습니다 — 권한 관리 화면에서 따로 조정하세요.'}</div>
+            <div>· {L.ceoNoteHistory || '이 변경은 발령 이력에 기록됩니다.'}</div>
+          </div>
+        )}
+
+        {error && (
+          <div data-testid="ceo-modal-error" style={{ margin: '12px 22px 0', padding: '8px 12px', borderRadius: 6, background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ padding: '16px 22px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button onClick={onClose} disabled={busy} style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid ${T.border}`, background: '#fff', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: busy ? 'not-allowed' : 'pointer' }}>
+            {L.cancel || '취소'}
+          </button>
+          <button onClick={confirm} disabled={busy} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: busy ? T.border : assigning ? T.accent : '#DC2626', color: busy ? T.muted : '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: busy ? 'not-allowed' : 'pointer' }}>
+            {assigning ? (L.ceoAssignConfirm || '대표로 지정') : (L.ceoReleaseConfirm || '해제')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

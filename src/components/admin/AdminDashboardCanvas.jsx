@@ -55,6 +55,10 @@ const DEFAULT_LABELS = {
   activityCount: '0건',
   emptyActivity: '오늘 활동 기록이 없습니다',
   logTypes: { snippet: '스니핏', alert: '알림', oneonone: '1on1', meeting: '회의록', eval: '평가' },
+  ceoBannerTitle: '대표(CEO)가 지정되지 않았습니다',
+  ceoBannerBody: '조직도 최상위가 비어 있습니다. 대표를 지정하면 조직도와 구성원 목록에 반영됩니다.',
+  ceoBannerCta: '지정하기',
+  ceoBannerDismiss: '닫기',
 };
 
 function mergeLabels(provided) {
@@ -85,6 +89,12 @@ export default function AdminDashboardCanvas({
   onStatClick,   // (id) => void — 클릭 가능한 stat 타일(팀원 현황 필터 토글)
   onRowClick,    // (memberId) => void — 팀원 행 클릭
   renderAvatar,
+  // 대표(CEO) 미지정 안내 — 차단이 아니라 경고(amber)다. 미지정(0명)은 정상 상태이며
+  // 모든 기능이 동작한다(arch-core-data-model.md §1-3-c R2).
+  // 배너는 showCeoBanner 가 true 이고 onAssignCeo 가 있을 때만(=어드민) 뜬다.
+  showCeoBanner = false,
+  onAssignCeo,
+  onDismissCeoBanner,
 }) {
   const labels = mergeLabels(providedLabels);
   const headerKeys = ['name', 'dept', 'snippet', 'health', 'redFlag', 'status'];
@@ -103,6 +113,28 @@ export default function AdminDashboardCanvas({
           </button>
         </div>
       </header>
+
+      {showCeoBanner && onAssignCeo && (
+        <div className="admin-ceo-banner" role="status" data-testid="admin-ceo-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
+            <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8L3 7Z" />
+          </svg>
+          <div className="admin-ceo-banner-text">
+            <strong>{labels.ceoBannerTitle}</strong>
+            <span>{labels.ceoBannerBody}</span>
+          </div>
+          <button type="button" className="admin-ceo-banner-cta" onClick={onAssignCeo}>
+            {labels.ceoBannerCta}
+          </button>
+          {onDismissCeoBanner && (
+            <button type="button" className="admin-ceo-banner-dismiss" onClick={onDismissCeoBanner} aria-label={labels.ceoBannerDismiss}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="admin-stats-grid">
         {stats.map((s) => (
