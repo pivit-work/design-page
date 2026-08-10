@@ -126,6 +126,10 @@
 .role-badge-self {
   background: var(--colors-brand-600);
 }
+/* 대표(CEO) — 조직 구조상의 최상위 1인. DL/TL(직책 파생)과 구분되는 앰버 톤. */
+.role-badge-ceo {
+  background: var(--utility-warning-500, #f59e0b);
+}
 
 /* ── Vacation Image ── */
 .vacation-img {

@@ -130,6 +130,9 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           </div>
           <span className="member-name">{member.name}</span>
           {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
+          {/* 조직 구조상의 대표 1인. isCeo 만 근거로 삼는다 — 권한이 대표거나
+              직책 문자열이 '대표'인 것만으로는 붙지 않는다. */}
+          {member.isCeo && <span className="role-badge role-badge-ceo">{member.ceoLabel || '대표'}</span>}
           {member.isSelf && <span className="role-badge role-badge-self">나</span>}
         </div>
         {showGrade && (member.grade || member.position) && (
