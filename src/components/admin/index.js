@@ -3,6 +3,16 @@ export { default as AdminEmployeesCanvas } from './AdminEmployeesCanvas.jsx';
 export { default as AdminEmployeeSheetCanvas } from './AdminEmployeeSheetCanvas.jsx';
 export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
 export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
+export { default as OrgTreePicker, OrgPathLabel } from './OrgTreePicker.jsx';
+export {
+  buildOrgTree,
+  findOrgEntry,
+  primaryOrgEntry,
+  descendantIds,
+  matchesOrgSubtree,
+  ORG_PATH_SEP,
+  ORG_FILTER_UNASSIGNED,
+} from './orgTree.js';
 export { TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName } from './teamIcons.jsx';
 export { default as OrgSnapshotCanvas } from './OrgSnapshotCanvas.jsx';
 export { default as AdminNotificationsCanvas } from './AdminNotificationsCanvas.jsx';

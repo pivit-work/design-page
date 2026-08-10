@@ -147,6 +147,13 @@ export {
 export { AdminDashboardCanvas } from './admin/index.js';
 export { AdminEmployeesCanvas } from './admin/index.js';
 export { AdminEmployeeSheetCanvas } from './admin/index.js';
+export { OrgTreePicker, OrgPathLabel } from './admin/index.js';
+export {
+  buildOrgTree,
+  matchesOrgSubtree,
+  ORG_PATH_SEP,
+  ORG_FILTER_UNASSIGNED,
+} from './admin/index.js';
 export { AdminRbacCanvas } from './admin/index.js';
 export { AdminTeamCanvas } from './admin/index.js';
 export { TeamIcon } from './admin/index.js';

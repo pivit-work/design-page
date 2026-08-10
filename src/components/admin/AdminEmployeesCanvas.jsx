@@ -3,6 +3,8 @@ import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
+import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
+import { buildOrgTree, primaryOrgEntry } from './orgTree.js';
 
 /* ── 인라인 라인 아이콘 ──────────────────────────────────────
  * emoji/타이포 글리프(⚠️ ✓ × ⋯ ▾ ← →) 대체. design-page 의 클린
@@ -116,6 +118,13 @@ const DEFAULT_LABELS = {
     linkType: '링크',
   },
   picker: { search: '조직 검색…', empty: '검색 결과 없음', none: '조직 없음' },
+  // 소속 트리 팝업(OrgTreePicker) — 미배정 탭·소속 셀이 같은 라벨을 쓴다(PW-112).
+  orgPicker: {
+    title: '소속 선택', hint: '상위 조직도 선택할 수 있습니다.',
+    search: '조직 검색', empty: '검색 결과가 없어요', unassigned: '— 미배정 —',
+    none: '선택 없음 — 저장하면 미배정이 됩니다',
+    apply: '적용', cancel: '취소', expand: '펼치기', collapse: '접기',
+  },
   panel: {
     basicInfo: '기본 정보',
     name: '이름', email: '이메일', level: '직급', joined: '입사일',
@@ -154,51 +163,8 @@ function RolePill({ role, labels }) {
   return <span className={`admin-emp-role-pill is-${role}`}>{labels.role[role] || role}</span>;
 }
 
-/* ── 조직 선택 드롭다운 (검색 가능) ─────────────────────── */
-function OrgUnitPicker({ orgUnits, onSelect, onClose, labels }) {
-  const [q, setQ] = useState('');
-  const ref = useRef(null);
-  useEffect(() => {
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) onClose();
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  const candidates = orgUnits.filter(
-    (u) => q === '' || u.name.includes(q) || (u.path || '').includes(q),
-  );
-
-  return (
-    <div ref={ref} className="admin-emp-picker">
-      <input
-        autoFocus
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={labels.picker.search}
-        className="admin-emp-picker-search"
-      />
-      <div className="admin-emp-picker-list">
-        {candidates.length === 0 ? (
-          <div className="admin-emp-picker-empty">{labels.picker.empty}</div>
-        ) : (
-          candidates.map((u) => (
-            <button
-              key={u.id}
-              type="button"
-              className="admin-emp-picker-item"
-              onClick={() => onSelect(u.id)}
-            >
-              <span className="admin-emp-picker-item-name">{u.name}</span>
-              {u.path && <span className="admin-emp-picker-item-path">{u.path}</span>}
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+/* 조직 선택은 계층 트리 팝업(OrgTreePicker)으로 통일했다 — 종전의 평면 드롭다운
+   `OrgUnitPicker` 는 이름만 나열해 상하 관계를 볼 수 없었다(PW-112, §5-A). */
 
 /* ── 행 액션 메뉴 ───────────────────────────────────────── */
 function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels, canEdit }) {
@@ -243,6 +209,7 @@ function hasOrgUnit(m) {
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onManageTeams }) {
   const [pickerFor, setPickerFor] = useState(null);
+  const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
   const noOrg = members.filter((m) => !hasOrgUnit(m) && m.employmentStatus !== 'terminated');
   const noManager = members.filter((m) => hasOrgUnit(m) && !m.managerName && m.employmentStatus !== 'terminated');
@@ -286,10 +253,15 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                     <IconPlus size={13} />{labels.unassigned.assignOrg}
                   </button>
                   {pickerFor === m.id && (
-                    <OrgUnitPicker
-                      orgUnits={orgUnits}
-                      labels={labels}
-                      onSelect={(unitId) => { onAssignOrgUnit(m.id, unitId); setPickerFor(null); }}
+                    // 소속은 계층이다 — 평면 목록이면 하위 조직이 어느 본부 밑인지,
+                    // 동명이팀 중 어느 쪽인지 알 수 없다(PW-112, §5-A).
+                    <OrgTreePicker
+                      open
+                      units={orgUnits}
+                      value=""
+                      subtitle={m.name}
+                      labels={labels.orgPicker}
+                      onApply={(unitId) => { if (unitId) onAssignOrgUnit(m.id, unitId); }}
                       onClose={() => setPickerFor(null)}
                     />
                   )}
@@ -316,7 +288,15 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                   <div className="admin-emp-unassigned-name">{m.name}</div>
                   <div className="admin-emp-unassigned-meta">
                     <span className="admin-emp-row-email">{m.email}</span>
-                    <span>{m.department} · {m.title || '—'}</span>
+                    {/* 소속은 최하위 팀명만 보이면 어느 본부 밑인지 알 수 없다 — 전체 경로로 쓴다(§5-A P4).
+                        직급은 어휘 표준화(PW-36) 이후 jobLevel 이다. 옛 `title` 을 읽어 늘 '—' 였다. */}
+                    <OrgPathLabel
+                      entry={primaryOrgEntry(orgTree, m.orgUnitIds)}
+                      fallback={m.department}
+                      muted="var(--text-tertiary)"
+                      color="inherit"
+                    />
+                    <span>{m.jobLevel || m.jobPosition || '—'}</span>
                   </div>
                 </div>
                 <StatusBadge status={m.employmentStatus} labels={labels} />
