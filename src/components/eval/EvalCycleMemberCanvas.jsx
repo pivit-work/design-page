@@ -45,6 +45,7 @@ const DEFAULT_LABELS = {
   competencyPlaceholder: '업무 수행 방식·협업·리더십 등 역량을 기록하세요.',
   scoreLabel: '자기 평가 점수',
   rationalePlaceholder: '점수 근거를 서술하세요.',
+  rationaleOptionalPlaceholder: '점수 근거를 서술하세요. (선택)',
   growthTitle: '강점 · 보완 · 성장',
   strengthsLabel: '강점',
   strengthsPlaceholder: '이번 기간 발휘한 강점을 기록하세요.',
@@ -634,17 +635,22 @@ export default function EvalCycleMemberCanvas({
                         ))}
                       </div>
                     </div>
-                    {f.requiresRationale && (
-                      <textarea
-                        className={`evm-textarea${!submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
-                        rows={2}
-                        value={state[f.key].rationale}
-                        placeholder={L.rationalePlaceholder}
-                        disabled={submitted}
-                        onChange={(e) => setField(f.key, { rationale: e.target.value })}
-                        data-testid={`evm-rationale-${f.key}`}
-                      />
-                    )}
+                    {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4 —
+                        "점수 셀렉터 + 바로 아래 사유 서술 입력칸"). requiresRationale 은
+                        칸의 유무가 아니라 제출 게이팅·미입력 강조만 정한다. */}
+                    <textarea
+                      className={`evm-textarea${f.requiresRationale && !submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
+                      rows={2}
+                      value={state[f.key].rationale}
+                      placeholder={
+                        f.requiresRationale
+                          ? L.rationalePlaceholder
+                          : L.rationaleOptionalPlaceholder
+                      }
+                      disabled={submitted}
+                      onChange={(e) => setField(f.key, { rationale: e.target.value })}
+                      data-testid={`evm-rationale-${f.key}`}
+                    />
                   </>
                 ) : f.type === 'checkbox' ? (
                   <label className="evl-promo-row">

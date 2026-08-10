@@ -576,12 +576,24 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
                   {q.type === 'textarea' && (
                     <textarea className="evm-textarea" rows={3} disabled placeholder={L.previewTextareaPlaceholder} />
                   )}
+                  {/* PW-118 척도 항목은 '점수 + 바로 아래 사유 서술칸' 복합 구조다(spec-eval-cycle §4.2.2 B6/D4).
+                      requiresRationale 는 서술칸의 유무가 아니라 제출 게이팅만 정한다 —
+                      미리보기가 점수만 그리면 구성원이 보게 될 화면과 어긋난다. */}
                   {q.type === 'rating' && (
-                    <div className="evc-preview-scale">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <span key={n} className="evc-preview-scale-dot">{n}</span>
-                      ))}
-                    </div>
+                    <>
+                      <div className="evc-preview-scale">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <span key={n} className="evc-preview-scale-dot">{n}</span>
+                        ))}
+                      </div>
+                      <textarea
+                        className="evm-textarea"
+                        rows={2}
+                        disabled
+                        placeholder={L.previewRationalePlaceholder}
+                        data-testid={`evc-preview-rationale-${q.id}`}
+                      />
+                    </>
                   )}
                   {q.type === 'grade' && (
                     <div className="evc-preview-gradechips">

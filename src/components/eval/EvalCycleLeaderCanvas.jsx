@@ -25,6 +25,7 @@ const DEFAULT_LABELS = {
   competencyPlaceholder: '역량에 대한 평가를 작성하세요.',
   scoreLabel: '평가 점수',
   rationalePlaceholder: '점수 근거를 서술하세요.',
+  rationaleOptionalPlaceholder: '점수 근거를 서술하세요. (선택)',
   growthTitle: '강점 · 보완 · 성장',
   strengthsLabel: '강점',
   strengthsPlaceholder: '강점을 작성하세요.',
@@ -441,17 +442,21 @@ export default function EvalCycleLeaderCanvas({
                           ))}
                         </div>
                       </div>
-                      {f.requiresRationale && (
-                        <textarea
-                          className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
-                          rows={2}
-                          value={state[f.key].rationale}
-                          placeholder={L.rationalePlaceholder}
-                          disabled={submitted}
-                          onChange={(e) => setField(f.key, { rationale: e.target.value })}
-                          data-testid={`evl-rationale-${f.key}`}
-                        />
-                      )}
+                      {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4).
+                          requiresRationale 은 칸의 유무가 아니라 제출 게이팅만 정한다. */}
+                      <textarea
+                        className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
+                        rows={2}
+                        value={state[f.key].rationale}
+                        placeholder={
+                          f.requiresRationale
+                            ? L.rationalePlaceholder
+                            : L.rationaleOptionalPlaceholder
+                        }
+                        disabled={submitted}
+                        onChange={(e) => setField(f.key, { rationale: e.target.value })}
+                        data-testid={`evl-rationale-${f.key}`}
+                      />
                     </>
                   ) : f.type === 'checkbox' ? (
                     <label className="evl-promo-row">
