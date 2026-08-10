@@ -1110,6 +1110,21 @@ export default function MySettingsCanvas({
 
 
   const activePhoto = photos.find((p) => p.id === activePhotoId) || photos[0] || null;
+  /**
+   * 썸네일 그리드는 **대표 사진을 뺀 나머지**만 그린다.
+   *
+   * 대표는 왼쪽 '사용 중' 프리뷰에 이미 크게 떠 있는데 그리드에도 같은 사진을 한 번 더
+   * 그리면, 3장 보관 시 화면에는 이미지가 4개로 보인다("사용 중인 사진 포함 3장이라
+   * 추가 이미지는 2장으로 줄여주세요" — PW-17). 보관 상한(maxPhotos)은 대표를 포함한
+   * 전체 장수 그대로다 — 줄이는 건 표시이지 저장 수가 아니다.
+   *
+   * 단, 사진이 1장뿐이면 그 1장이 곧 대표라 그리드가 비어 삭제 버튼이 사라진다.
+   * 마지막 한 장을 지울 수단이 없어지므로 그때는 예외로 그리드에 남긴다.
+   */
+  const tilePhotos =
+    photos.length > 1 && activePhoto
+      ? photos.filter((p) => p.id !== activePhoto.id)
+      : photos;
   const groups = [...new Set(tabs.map((t) => t.group))];
 
   const saveLabel =
@@ -1230,7 +1245,7 @@ export default function MySettingsCanvas({
                   </div>
                   <div style={{ flex: 1 }}>
                     <div className="msc-photo-tiles">
-                      {photos.map((photo) => (
+                      {tilePhotos.map((photo) => (
                         <div
                           key={photo.id}
                           className={`msc-photo-tile${
