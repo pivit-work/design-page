@@ -187,7 +187,19 @@ export default function AdminTeamTreeNode({
           {node.isUnassigned ? labels.unassigned : node.name}
         </span>
 
-        <span className="tm-node-count">{node.memberCount}</span>
+        {/*
+          인원 배지. 겸직(다른 팀이 주 소속이면서 이 팀에도 속한 사람)은 인원에
+          **더하지 않고** `12 +2` 처럼 옆에 따로 붙인다 — 더하면 팀 인원을 모두
+          합쳤을 때 재직자 수를 넘는다.
+        */}
+        <span className="tm-node-count">
+          {node.memberCount}
+          {node.concurrentCount > 0 && (
+            <span className="tm-node-count-concurrent" title={labels.concurrentHint}>
+              +{node.concurrentCount}
+            </span>
+          )}
+        </span>
 
         {hov && !node.isUnassigned && onContextAction && (
           <div style={{ position: 'relative' }}>

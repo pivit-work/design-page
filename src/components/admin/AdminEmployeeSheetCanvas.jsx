@@ -86,6 +86,15 @@ function mapMembers(list) {
     email: m.email ?? '',
     phone: m.phone ?? '',
     department: m.department ?? '',
+    // 겸직(중복 소속) — 소속 셀은 행을 복제하지 않고 칩을 세로로 쌓는다.
+    // 행을 복제하면 ① 체크박스 선택·일괄 저장·페이지네이션의 단위가 사람 수와
+    // 어긋나고 ② 어느 행을 지워야 하는지 모호해진다.
+    // 형태: [{ name, isPrimary }] — 주 소속이 맨 앞. 미지정이면 department 폴백.
+    depts: Array.isArray(m.depts) && m.depts.length > 0
+      ? m.depts
+      : m.department
+        ? [{ name: m.department, isPrimary: true }]
+        : [],
     jobLevel: m.jobLevel ?? '',
     jobPosition: m.jobPosition ?? '',
     workLocation: m.workLocation ?? '',
@@ -237,8 +246,68 @@ function CeoBadge({ label }) {
 }
 
 // ── 셀 렌더 (읽기) ──────────────────────────────────────
-function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint }) {
+/**
+ * 소속 셀 — 겸직자는 **행을 늘리지 않고 이 셀만 늘어난다**.
+ *
+ * 주 소속에 `주` 배지를 달고, 겸직이 있으면 마지막에 `겸직 N` 을 붙여 이 사람이
+ * 몇 군데에 걸쳐 있는지 셀 안에서 바로 읽히게 한다. 나머지 열은 `verticalAlign: top`
+ * 이라 값이 첫 줄에 정렬돼 "소속 셀만 두꺼워지는" 형태가 된다.
+ */
+function DeptCell({ depts, primaryLabel, concurrentLabel }) {
+  if (!depts || depts.length === 0) {
+    return <span style={{ fontSize: 12, color: T.muted }}>—</span>;
+  }
+  const concurrentCount = depts.filter((d) => !d.isPrimary).length;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '4px 0', minWidth: 0 }}>
+      {depts.map((d, i) => (
+        <span
+          key={`${d.name}-${i}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            minWidth: 0,
+            fontSize: 12,
+            color: d.isPrimary ? T.text : T.sub,
+            fontWeight: d.isPrimary ? 600 : 400,
+          }}
+        >
+          {/* 폭이 고정된 셀이라 긴 팀 이름은 잘리지 않고 접힌다. */}
+          <span style={{ overflowWrap: 'anywhere' }}>{d.name}</span>
+          {d.isPrimary && depts.length > 1 && (
+            <span
+              style={{
+                flexShrink: 0,
+                fontSize: 9,
+                fontWeight: 700,
+                lineHeight: 1.4,
+                padding: '0 4px',
+                borderRadius: 3,
+                background: T.bl,
+                border: `1px solid ${T.border}`,
+                color: T.sub,
+              }}
+            >
+              {primaryLabel || '주'}
+            </span>
+          )}
+        </span>
+      ))}
+      {concurrentCount > 0 && (
+        <span style={{ fontSize: 10, color: T.muted }}>
+          {(concurrentLabel || '겸직 {count}').replace('{count}', String(concurrentCount))}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel }) {
   const value = row[col.id];
+  if (col.id === 'department') {
+    return <DeptCell depts={row.depts} primaryLabel={primaryLabel} concurrentLabel={concurrentLabel} />;
+  }
   if (col.id === 'name') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
@@ -547,7 +616,13 @@ export default function AdminEmployeeSheetCanvas({
   const filterOptions = useMemo(() => {
     const out = {};
     for (const fc of FILTER_COLS) {
-      const vals = Array.from(new Set(rows.map((r) => r[fc.id]).filter((v) => v !== '' && v != null)));
+      // 부서 옵션은 겸직 소속까지 포함해야 한다 — 겸직으로만 사람이 있는 팀이
+      // 목록에서 빠지면 그 팀으로는 걸러볼 수가 없다.
+      const raw =
+        fc.id === 'department'
+          ? rows.flatMap((r) => (r.depts || []).map((d) => d.name))
+          : rows.map((r) => r[fc.id]);
+      const vals = Array.from(new Set(raw.filter((v) => v !== '' && v != null)));
       out[fc.id] = vals
         .map((v) => ({
           value: String(v),
@@ -560,16 +635,27 @@ export default function AdminEmployeeSheetCanvas({
     return out;
   }, [rows, FILTER_COLS]);
 
+  // 소속 이름 전체(주 소속 + 겸직) — 검색·필터가 겸직 팀으로도 사람을 찾게 한다.
+  // department 하나만 보면 마케팅팀을 겸직하는 사람이 '마케팅팀' 필터에서 사라진다.
+  const deptNamesOf = (r) =>
+    (r.depts || []).map((d) => d.name).filter(Boolean);
+
   let filtered = rows.filter((r) => {
     for (const fc of FILTER_COLS) {
       const fv = filters[fc.id];
-      if (fv && fv !== '__all__' && String(r[fc.id] ?? '') !== fv) return false;
+      if (!fv || fv === '__all__') continue;
+      if (fc.id === 'department') {
+        if (!deptNamesOf(r).includes(fv)) return false;
+        continue;
+      }
+      if (String(r[fc.id] ?? '') !== fv) return false;
     }
     const q = search.trim().toLowerCase();
     if (q) {
-      const hit = ['name', 'displayName', 'email', 'department', 'jobPosition', 'jobLevel'].some(
-        (k) => (r[k] || '').toLowerCase().includes(q),
-      );
+      const hit =
+        ['name', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
+          (k) => (r[k] || '').toLowerCase().includes(q),
+        ) || deptNamesOf(r).some((n) => n.toLowerCase().includes(q));
       if (!hit) return false;
     }
     return true;
@@ -871,8 +957,15 @@ export default function AdminEmployeeSheetCanvas({
                             else if (derivedJump) onManageTeams();
                           }}
                           style={{
-                            height: ROW_H,
-                            padding: isEditing ? 0 : '0 12px',
+                            // 겸직자는 소속 셀이 여러 줄이 된다. 고정 높이 대신 최소
+                            // 높이를 주어 그 행만 늘어나게 하고, 다른 열은 top 정렬로
+                            // 값을 첫 줄에 맞춘다 — "소속 셀만 두꺼워지는" 형태.
+                            minHeight: ROW_H,
+                            height: c.id === 'department' ? undefined : ROW_H,
+                            verticalAlign: 'top',
+                            // 44px 행에 ~20px 컨텐츠라 top + 12px 는 기존 세로 중앙과
+                            // 사실상 같은 위치다 — 겸직 없는 행은 시각이 바뀌지 않는다.
+                            padding: isEditing ? 0 : '12px',
                             width: c.width,
                             cursor: editableCell ? 'text' : canAssign || derivedJump ? 'pointer' : 'default',
                             borderLeft: cellDirty ? '2px solid #F59E0B' : 'none',
@@ -894,7 +987,7 @@ export default function AdminEmployeeSheetCanvas({
                               onCancel={() => setAssignRowId(null)}
                             />
                           ) : (
-                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} />
+                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} primaryLabel={L.primaryDeptBadge} concurrentLabel={L.concurrentDeptCount} />
                           )}
                         </td>
                       );
