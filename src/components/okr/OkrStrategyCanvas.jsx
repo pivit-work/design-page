@@ -16,8 +16,17 @@ import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
  *   작성 중 내용을 삼키지 않는다.
  * onAiAutocomplete(): '전략 전체 AI 자동완성'. 행 id → 텍스트 맵을 반환하면
  *   편집 모드로 들어가며 초안을 채운다(사용자가 확인·수정 후 [저장]).
+ * canEdit: 전략 캔버스를 편집할 수 있는 사용자인가. false 면 [편집] 버튼을
+ *   **그리지 않는다**(시안 okr-company.jsx `canEdit && !editing`). 기본 true 라
+ *   데모는 지금처럼 편집을 시연한다.
+ *
+ *   왜 `onSave` 유무로 갈음하지 않는가: onSave 가 없으면 이 컴포넌트는 로컬만
+ *   바꾸는 데모 모드로 동작한다. 그런데 소비자가 "권한 없음" 을 onSave 미전달로
+ *   표현하면, 권한 없는 사용자가 회사 미션을 고치고 [저장] 을 눌러 **에러 없이
+ *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
+ *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onSubmitReply, onRequestFeedback, onSave, onAiAutocomplete }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onSubmitReply, onRequestFeedback, onSave, onAiAutocomplete, canEdit = true }) {
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -117,7 +126,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       {subTab === 'canvas' ? (
         <>
           <div className="okr-s-toolbar">
-            {editing ? <span /> : (
+            {editing || !canEdit ? <span /> : (
               <button
                 className="okr-s-ai-btn"
                 onClick={() => runAi()}
@@ -134,9 +143,9 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                     {saving ? '저장 중…' : '저장'}
                   </button>
                 </>
-              ) : (
+              ) : canEdit ? (
                 <button className="okr-s-edit-btn" onClick={startEdit}>편집</button>
-              )}
+              ) : null}
             </div>
           </div>
           {error && <p className="okr-s-error">{error}</p>}
@@ -164,18 +173,20 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                     <p className="okr-s-text">{row.content}</p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="okr-s-ai-chip"
-                  title={`${row.label} AI 자동완성`}
-                  aria-label={`${row.label} AI 자동완성`}
-                  data-testid={`okr-s-ai-${row.id}`}
-                  onClick={() => runAi(row.id)}
-                  disabled={!onAiAutocomplete || aiLoading !== false}
-                >
-                  <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                  <span>{aiLoading === row.id ? '생성 중…' : 'AI'}</span>
-                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="okr-s-ai-chip"
+                    title={`${row.label} AI 자동완성`}
+                    aria-label={`${row.label} AI 자동완성`}
+                    data-testid={`okr-s-ai-${row.id}`}
+                    onClick={() => runAi(row.id)}
+                    disabled={!onAiAutocomplete || aiLoading !== false}
+                  >
+                    <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+                    <span>{aiLoading === row.id ? '생성 중…' : 'AI'}</span>
+                  </button>
+                )}
               </div>
             ))}
           </div>
