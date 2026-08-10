@@ -870,7 +870,15 @@ export default function EvalCycleWizard({
       name,
       reviewType: tplType,
       version: tplVersion,
-      questions: tplQuestions,
+      // PW-117 셀프에는 '피평가자 공개' 토글 자체가 없다. 다른 유형에서 켠 뒤 셀프로
+      // 바꾼 경우(커스텀 항목은 유형 전환 시 유지된다) 보이지 않는 플래그가 그대로
+      // 저장돼 visibleToRoles 가 붙는 걸 여기서 끊는다.
+      questions:
+        tplType === 'self'
+          ? tplQuestions.map((q) =>
+              q.hideFromEvaluatee ? { ...q, hideFromEvaluatee: false } : q,
+            )
+          : tplQuestions,
       grades: tplGrades,
       absolute: tplAbsolute,
       ratioScope: tplRatioScope,
@@ -1535,28 +1543,32 @@ export default function EvalCycleWizard({
                         <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
                       </button>
                     )}
-                    {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만) */}
-                    <button
-                      type="button"
-                      className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
-                      onClick={() =>
-                        setTplQuestions((qs) =>
-                          qs.map((x) =>
-                            x.id === q.id
-                              ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
-                              : x,
-                          ),
-                        )
-                      }
-                      title={L.hideFromEvaluateeHint}
-                      data-testid={`evc-tpl-hide-${q.id}`}
-                    >
-                      {q.hideFromEvaluatee ? (
-                        <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
-                      ) : (
-                        <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
-                      )}
-                    </button>
+                    {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만).
+                        PW-117 셀프는 평가자=피평가자라 '피평가자 공개' 가 성립하지 않는다 —
+                        작성 화면도 셀프에는 공개 대상 안내를 띄우지 않는다(showVisibility=false). */}
+                    {tplType !== 'self' && (
+                      <button
+                        type="button"
+                        className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
+                        onClick={() =>
+                          setTplQuestions((qs) =>
+                            qs.map((x) =>
+                              x.id === q.id
+                                ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
+                                : x,
+                            ),
+                          )
+                        }
+                        title={L.hideFromEvaluateeHint}
+                        data-testid={`evc-tpl-hide-${q.id}`}
+                      >
+                        {q.hideFromEvaluatee ? (
+                          <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
+                        ) : (
+                          <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
+                        )}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="evc-tpl-x"
