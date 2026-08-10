@@ -50,6 +50,8 @@ const DEFAULT_LABELS = {
   subTeams: '하위 팀',
   leader: '팀장',
   primary: '주 소속',
+  // 인원 배지 옆 `+N` 툴팁 — 이 팀을 겸직으로 두고 있는 인원(합계에는 안 들어감).
+  concurrentHint: '겸직 인원 (인원 수에는 포함되지 않음)',
   openProfile: '프로필 열기',
   removeLeader: '팀장 해제',
   setLeader: '팀장 지정',

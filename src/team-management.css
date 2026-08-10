@@ -229,6 +229,12 @@
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
+/* 겸직 인원 — 인원 수와 붙어 보이되 합계가 아님이 드러나도록 한 톤 더 흐리게. */
+.tm-node-count-concurrent {
+  margin-left: 3px;
+  color: var(--text-quaternary, var(--text-tertiary));
+  opacity: 0.75;
+}
 .tm-node-menu-btn {
   flex-shrink: 0;
   border: none;
