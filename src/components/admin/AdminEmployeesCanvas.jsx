@@ -107,6 +107,8 @@ const DEFAULT_LABELS = {
     summaryExpired: '만료됨', summaryExpiredSub: '재발송 필요',
     filterAll: '전체', newInvite: '새 초대 발송',
     composerEmail: '초대할 이메일', composerName: '이름', composerRole: '권한', composerSend: '발송', composerCancel: '취소',
+    composerJobTitle: '직무', composerJobLevel: '직급',
+    composerTeam: '소속 팀', composerTeamNone: '선택 안 함 (가입 후 배정)',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
     copyLink: '링크 복사', resend: '재발송', cancel: '취소',
     statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
@@ -393,7 +395,13 @@ function FilterDropdown({ label, value, options, onChange }) {
 /* ── 탭 C: 초대 관리 ────────────────────────────────────── */
 const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
 
-function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onCancelInvite, onCopyInviteLink }) {
+/** 소속 팀 Select 의 첫 항목 값 — '선택 안 함(가입 후 배정)'. */
+const TEAM_UNASSIGNED = '';
+
+function InvitesTab({
+  invites, labels, canEdit, orgUnits, levelOptions,
+  onNewInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
+}) {
   const [filter, setFilter] = useState('all');
   const [composerOpen, setComposerOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -401,6 +409,12 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
   // 온보딩에서 이름을 입력하는 화면이 더는 없다(온보딩 §3-1).
   const [name, setName] = useState('');
   const [role, setRole] = useState('member');
+  // 직무·직급·소속 팀은 선택 항목이다(초대 정책 §3-1). 온보딩 초대와 같은 필드를
+  // 어드민 초대에도 둔다 — 여기에 없으면 초대로 들어온 사람이 전원 팀 미배정으로
+  // 시작하고 조직도에서 사라진다(PW-52).
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobLevel, setJobLevel] = useState('');
+  const [teamId, setTeamId] = useState(TEAM_UNASSIGNED);
   const [sending, setSending] = useState(false);
 
   const counts = {
@@ -429,14 +443,27 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
 
   const nameOk = name.trim().length >= 2;
 
+  function resetComposer() {
+    setEmail('');
+    setName('');
+    setRole('member');
+    setJobTitle('');
+    setJobLevel('');
+    setTeamId(TEAM_UNASSIGNED);
+  }
+
   async function handleSend() {
     if (!email.trim() || !nameOk) return;
     setSending(true);
     try {
-      await onNewInvite(email.trim(), role, name.trim());
-      setEmail('');
-      setName('');
-      setRole('member');
+      // 선택 항목은 **네 번째 인자의 객체**로 넘긴다 — 위치 인자를 늘리면 세 인자만
+      // 받던 기존 소비자가 조용히 깨진다.
+      await onNewInvite(email.trim(), role, name.trim(), {
+        jobTitle: jobTitle.trim() || undefined,
+        jobLevel: jobLevel || undefined,
+        teamId: teamId || undefined,
+      });
+      resetComposer();
       setComposerOpen(false);
     } finally {
       setSending(false);
@@ -470,6 +497,7 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
             <input
               type="email"
               className="admin-emp-input admin-emp-invite-email"
+              aria-label={labels.invites.composerEmail}
               placeholder={labels.invites.composerEmail}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -478,20 +506,54 @@ function InvitesTab({ invites, labels, canEdit, onNewInvite, onResendInvite, onC
             <input
               type="text"
               className="admin-emp-input"
+              aria-label={labels.invites.composerName}
               placeholder={labels.invites.composerName}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
             />
-            <select className="admin-emp-input" value={role} onChange={(e) => setRole(e.target.value)}>
+            <select className="admin-emp-input" aria-label={labels.invites.composerRole} value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="member">{labels.role.member}</option>
               <option value="manager">{labels.role.manager}</option>
               <option value="admin">{labels.role.admin}</option>
             </select>
+            <input
+              type="text"
+              className="admin-emp-input"
+              aria-label={labels.invites.composerJobTitle}
+              placeholder={labels.invites.composerJobTitle}
+              maxLength={50}
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            />
+            <select
+              className="admin-emp-input"
+              aria-label={labels.invites.composerJobLevel}
+              value={jobLevel}
+              onChange={(e) => setJobLevel(e.target.value)}
+            >
+              <option value="">{labels.invites.composerJobLevel}</option>
+              {levelOptions.map((lv) => (
+                <option key={lv} value={lv}>{lv}</option>
+              ))}
+            </select>
+            <select
+              className="admin-emp-input admin-emp-invite-team"
+              aria-label={labels.invites.composerTeam}
+              value={teamId}
+              onChange={(e) => setTeamId(e.target.value)}
+            >
+              {/* 정책 §3-1: '선택 안 함(가입 후 배정)' 이 항상 첫 항목이다. */}
+              <option value={TEAM_UNASSIGNED}>{labels.invites.composerTeamNone}</option>
+              {orgUnits.map((u) => (
+                <option key={u.id} value={u.id}>{u.path || u.name}</option>
+              ))}
+            </select>
             <button type="button" className="admin-emp-btn is-primary is-sm" onClick={handleSend} disabled={sending || !email.trim() || !nameOk}>
               {labels.invites.composerSend}
             </button>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); setEmail(''); setName(''); }}>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); resetComposer(); }}>
               {labels.invites.composerCancel}
             </button>
           </div>
@@ -662,6 +724,10 @@ export default function AdminEmployeesCanvas({
           invites={invites}
           labels={labels}
           canEdit={canEdit}
+          // 초대 작성 바의 소속 팀·직급 선택지는 이미 캔버스가 받는 값을 그대로 쓴다
+          // (조직 단위 목록 · 직급 카탈로그) — 새 prop 을 늘리지 않는다.
+          orgUnits={orgUnits}
+          levelOptions={gradeOptions ?? []}
           onNewInvite={onNewInvite}
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
