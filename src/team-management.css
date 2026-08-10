@@ -288,6 +288,12 @@
   transition: background 0.12s;
 }
 .tm-menu-item:hover { background: var(--utility-brand-50); }
+/* 조건이 안 맞아 고를 수 없는 항목 — 감추지 않고 흐리게 남겨 이유(title)를 볼 수 있게 한다. */
+.tm-menu-item.is-disabled {
+  color: var(--text-disabled, var(--text-tertiary));
+  cursor: not-allowed;
+}
+.tm-menu-item.is-disabled:hover { background: none; }
 .tm-menu-item.is-danger { color: var(--text-error-primary); }
 .tm-menu-item.is-danger:hover { background: var(--utility-error-50); }
 .tm-menu-item-icon { font-size: 14px; }
@@ -820,6 +826,33 @@
   margin: 0 0 16px;
   white-space: pre-line;
 }
+/* 선택적 부수 동작 체크박스 (예: 조직장 해제 시 권한 함께 변경) — 기본 OFF 전제. */
+.tm-modal-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.tm-modal-check input { cursor: pointer; }
+/* "이 변경이 함께 일으키는 일" 보조 안내 — 경고가 아니라 사실 나열이라 무채색이다. */
+.tm-modal-notes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+.tm-modal-notes li { position: relative; padding-left: 12px; }
+.tm-modal-notes li::before { content: '·'; position: absolute; left: 2px; }
 .tm-modal-current {
   display: flex;
   align-items: center;

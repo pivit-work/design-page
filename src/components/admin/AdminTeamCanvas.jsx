@@ -53,6 +53,18 @@ const DEFAULT_LABELS = {
   openProfile: '프로필 열기',
   removeLeader: '팀장 해제',
   setLeader: '팀장 지정',
+  // 조직장(Org Leader) 지정·해제 확인 모달
+  leaderAssignTitle: '{{name}}님을 ‘{{team}}’의 조직장으로 지정합니다',
+  leaderReleaseTitle: '‘{{team}}’의 조직장 지정을 해제합니다',
+  leaderReplaceNotice: '현재 조직장 {{name}}님의 지정은 해제됩니다.',
+  leaderPromoteNotice: '권한이 ‘매니저’로 자동 승격됩니다.',
+  leaderScopeNote: '조직장 권한 범위는 ‘{{team}}’과 그 하위 팀입니다',
+  leaderHistoryNote: '이 변경은 발령 이력에 기록됩니다',
+  leaderVacantNote: '이 팀은 조직장 미지정 상태가 됩니다 (정상 상태입니다)',
+  leaderDemoteCheckbox: '권한을 ‘멤버’로 함께 변경',
+  leaderAssignConfirm: '조직장으로 지정',
+  leaderReleaseConfirm: '해제',
+  leaderResignedHint: '퇴사자는 조직장으로 지정할 수 없습니다',
   setPrimary: '주 소속으로',
   removeMember: '구성원 제거',
   toastCreated: '팀이 생성되었습니다',
@@ -127,18 +139,93 @@ function filterTree(nodes, query) {
   return nodes.map(filterNode).filter(Boolean);
 }
 
-function ConfirmModal({ title, body, confirmLabel, cancelLabel, onConfirm, onCancel, danger }) {
+/**
+ * 확인 모달.
+ *
+ * `notes` 는 "이 변경이 함께 일으키는 일" 을 한 줄씩 나열하는 보조 안내다(· 로 시작).
+ * `checkbox` 는 선택적 부수 동작 — 조직장 해제 시의 "권한을 멤버로 함께 변경" 처럼
+ * **기본 OFF** 로 두고 사용자가 켤 때만 일어나야 하는 것에만 쓴다.
+ */
+function ConfirmModal({
+  title, body, notes, checkbox, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
+}) {
   return (
     <div className="tm-modal-overlay" onClick={onCancel}>
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="tm-modal-title">{title}</h3>
-        <p className="tm-modal-sub">{body}</p>
+        {body && <p className="tm-modal-sub">{body}</p>}
+        {checkbox && (
+          <label className="tm-modal-check">
+            <input
+              type="checkbox"
+              checked={!!checkbox.checked}
+              onChange={(e) => checkbox.onChange?.(e.target.checked)}
+            />
+            <span>{checkbox.label}</span>
+          </label>
+        )}
+        {notes && notes.length > 0 && (
+          <ul className="tm-modal-notes">
+            {notes.map((n) => <li key={n}>{n}</li>)}
+          </ul>
+        )}
         <div className="tm-modal-actions">
           <button type="button" className="tm-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
           <button type="button" className={`tm-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * 조직장 지정·해제 확인 모달.
+ *
+ * 이 조작은 누르는 사람이 보는 것보다 많은 일을 한다 — 지정은 **기존 조직장의
+ * 자격을 떼고** 대상의 권한을 매니저로 올리며, 해제는 그 팀을 조직장 없는 상태로
+ * 만든다. 그래서 "무엇이 함께 바뀌는지" 를 먼저 보여주고 확인을 받는다.
+ *
+ * 강등 체크박스는 **기본 OFF** 이며, 다른 팀 조직장을 겸하고 있거나 어드민인
+ * 대상에게는 아예 렌더하지 않는다 — 조직장 자격이 남아 있는데 권한만 떼면 즉시
+ * 모순 상태가 되고, 어드민 권한은 조직장 여부에서 파생된 것이 아니기 때문이다.
+ */
+function LeaderConfirmModal({
+  state, teamName, currentLeader, labels, demoteChecked, onDemoteChange, onConfirm, onCancel,
+}) {
+  const { member, mode } = state;
+  const assigning = mode === 'assign';
+
+  const bodyLines = [];
+  if (assigning) {
+    if (currentLeader && currentLeader.id !== member.id) {
+      bodyLines.push(fill(labels.leaderReplaceNotice, { name: currentLeader.name }));
+    }
+    // 이미 매니저 이상인 사람에게 "승격됩니다" 를 보이면 잘못된 기대를 만든다.
+    if (member.role === 'member') bodyLines.push(labels.leaderPromoteNotice);
+  }
+
+  const showDemote = !assigning
+    && !member.leadsOtherTeams
+    && member.role !== 'admin'
+    && member.role !== 'ceo';
+
+  return (
+    <ConfirmModal
+      title={assigning
+        ? fill(labels.leaderAssignTitle, { name: member.name, team: teamName })
+        : fill(labels.leaderReleaseTitle, { team: teamName })}
+      body={bodyLines.join(' ')}
+      checkbox={showDemote
+        ? { label: labels.leaderDemoteCheckbox, checked: demoteChecked, onChange: onDemoteChange }
+        : null}
+      notes={assigning
+        ? [fill(labels.leaderScopeNote, { team: teamName }), labels.leaderHistoryNote]
+        : [labels.leaderVacantNote, labels.leaderHistoryNote]}
+      confirmLabel={assigning ? labels.leaderAssignConfirm : labels.leaderReleaseConfirm}
+      cancelLabel={labels.cancel}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -226,6 +313,10 @@ export default function AdminTeamCanvas({
   const [inlineCreateParentId, setInlineCreateParentId] = useState(null);
   const [inlineCreateValue, setInlineCreateValue] = useState('');
   const [confirmModal, setConfirmModal] = useState(null);
+  // 조직장 지정·해제 확인 모달 — 체크박스 상태를 모달 밖에서 들고 있어야 확인
+  // 시점에 값을 읽을 수 있다. 열 때마다 false 로 되돌린다(M1).
+  const [leaderModal, setLeaderModal] = useState(null);
+  const [demoteChecked, setDemoteChecked] = useState(false);
 
   // Toast (캔버스 소유)
   const [toast, setToast] = useState(null);
@@ -271,15 +362,32 @@ export default function AdminTeamCanvas({
   }, [run, onAddMember, L.toastMemberAdded]);
 
   const handleMemberAction = useCallback((action, teamId, memberId) => {
+    // 조직장 지정·해제는 그 한 번의 조작이 **다른 사람의 자격과 권한까지** 바꾼다
+    // (기존 조직장 해제 + 권한 승격). 눌리자마자 반영하지 않고 확인 모달을 거친다.
+    if (action === 'setLeader') {
+      const m = selectedTeam?.members?.find((x) => x.id === memberId);
+      if (!m) return;
+      if (!m.isLeader && m.canBeLeader === false) return; // G2 — 퇴사자 지정 불가
+      setDemoteChecked(false); // M1 — 강등 체크박스는 언제나 기본 OFF
+      setLeaderModal({ teamId, member: m, mode: m.isLeader ? 'release' : 'assign' });
+      return;
+    }
     let msg = L.toastUpdated;
     if (action === 'remove') msg = L.toastMemberRemoved;
     else if (action === 'setPrimary') msg = L.toastPrimarySet;
-    else if (action === 'setLeader') {
-      const m = selectedTeam?.members?.find((x) => x.id === memberId);
-      msg = m?.isLeader ? L.toastLeaderUnset : L.toastLeaderSet;
-    }
     void run(() => onMemberAction?.(action, teamId, memberId), msg);
   }, [run, onMemberAction, selectedTeam, L]);
+
+  const commitLeaderChange = useCallback(() => {
+    if (!leaderModal) return;
+    const { teamId, member, mode } = leaderModal;
+    const alsoDemoteRole = mode === 'release' && demoteChecked;
+    setLeaderModal(null);
+    void run(
+      () => onMemberAction?.('setLeader', teamId, member.id, { alsoDemoteRole }),
+      mode === 'release' ? L.toastLeaderUnset : L.toastLeaderSet,
+    );
+  }, [leaderModal, demoteChecked, run, onMemberAction, L]);
 
   const requestDelete = useCallback((nodeId) => {
     const node = findNode(tree, nodeId);
@@ -483,6 +591,19 @@ export default function AdminTeamCanvas({
         onAddMember={handleAddMember}
         onDeleteTeam={requestDelete}
       />
+
+      {leaderModal && (
+        <LeaderConfirmModal
+          state={leaderModal}
+          teamName={selectedTeam?.name ?? ''}
+          currentLeader={selectedTeam?.members?.find((m) => m.isLeader) ?? null}
+          labels={L}
+          demoteChecked={demoteChecked}
+          onDemoteChange={setDemoteChecked}
+          onConfirm={commitLeaderChange}
+          onCancel={() => setLeaderModal(null)}
+        />
+      )}
 
       {confirmModal && (
         <ConfirmModal

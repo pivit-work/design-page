@@ -361,8 +361,17 @@ export default function AdminTeamDetailPanel({
 }
 
 function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMenu, onAction, onSelectMember }) {
+  // 퇴사자는 조직장으로 지정할 수 없다(정책 G2). 이미 조직장인 사람의 **해제**는
+  // 막지 않는다 — 퇴사 전에 지정된 자리를 내려놓는 길까지 막으면 갇힌다.
+  const leaderBlocked = !member.isLeader && member.canBeLeader === false;
   const menuItems = [
-    { action: 'setLeader', label: member.isLeader ? labels.removeLeader : labels.setLeader, Icon: CrownIcon },
+    {
+      action: 'setLeader',
+      label: member.isLeader ? labels.removeLeader : labels.setLeader,
+      Icon: CrownIcon,
+      disabled: leaderBlocked,
+      title: leaderBlocked ? labels.leaderResignedHint : undefined,
+    },
     { action: 'setPrimary', label: labels.setPrimary, Icon: StarIcon },
     { action: 'remove', label: labels.removeMember, Icon: UserMinusIcon, danger: true },
   ];
@@ -394,11 +403,13 @@ function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMen
           </button>
           {showMenu && (
             <div className="tm-menu" style={{ top: '100%', right: 0 }}>
-              {menuItems.map(({ action, label, Icon, danger }) => (
+              {menuItems.map(({ action, label, Icon, danger, disabled, title }) => (
                 <button
                   type="button"
                   key={action}
-                  className={`tm-menu-item${danger ? ' is-danger' : ''}`}
+                  className={`tm-menu-item${danger ? ' is-danger' : ''}${disabled ? ' is-disabled' : ''}`}
+                  disabled={disabled}
+                  title={title}
                   onClick={(e) => { e.stopPropagation(); onAction(action, teamId, member.id); onToggleMenu(); }}
                 >
                   <span className="tm-menu-item-icon"><Icon size={14} /></span>
