@@ -675,6 +675,9 @@ export default function EvalCycleWizard({
   const [savedTemplates, setSavedTemplates] = useState([]); // 이 세션 라이브러리
   const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
   const [tplName, setTplName] = useState('');
+  // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
+  // 방금 저장했다는 사실을 들고 있다가 안내 대신 확인 문구를 보여준다(프리셋 저장과 같은 방식).
+  const [tplSaved, setTplSaved] = useState(false);
   const [tplVersion, setTplVersion] = useState('standard');
   const [tplQuestions, setTplQuestions] = useState(() => presetFor('standard', 'self'));
   const [tplGrades, setTplGrades] = useState(DEFAULT_GRADES);
@@ -810,6 +813,17 @@ export default function EvalCycleWizard({
     tplGrades.every((g) => g.label.trim()) &&
     tplDupLabels.size === 0 &&
     !tplRatioInvalid;
+  // PW-119: 저장 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다.
+  // 막고 있는 첫 번째 사유를 골라 버튼 옆에 그대로 띄운다(위에서부터 우선).
+  const tplSaveBlockKey = !tplName.trim()
+    ? 'templateBlockName'
+    : !tplGrades.every((g) => g.label.trim())
+      ? 'templateBlockGradeLabel'
+      : tplDupLabels.size > 0
+        ? 'templateBlockDupGrade'
+        : tplRatioInvalid
+          ? 'templateBlockRatio'
+          : null;
   // 대상 멤버 jobPosition(직책)에서 목록 도출(중복 제거, 빈값 제외).
   const roleLevels = [
     ...new Set(candidates.map((c) => c.jobPosition).filter(Boolean)),
@@ -885,6 +899,7 @@ export default function EvalCycleWizard({
     };
     setSavedTemplates((prev) => [tpl, ...prev]);
     setTplName('');
+    setTplSaved(true);
   };
   const loadTemplate = (tpl) => {
     setTplType(tpl.reviewType);
@@ -1409,7 +1424,10 @@ export default function EvalCycleWizard({
               <input
                 className="evc-input"
                 value={tplName}
-                onChange={(e) => setTplName(e.target.value)}
+                onChange={(e) => {
+                  setTplName(e.target.value);
+                  setTplSaved(false);
+                }}
                 placeholder={L.templateNamePlaceholder}
                 data-testid="evc-tpl-name"
               />
@@ -1636,7 +1654,9 @@ export default function EvalCycleWizard({
                   <div key={i} className="evc-tpl-grade">
                     <input
                       className={`evc-input${
-                        g.label.trim() &&
+                        // PW-119: 빈 등급명도 저장을 막으므로 중복명과 똑같이 표시한다.
+                        // (어느 행이 문제인지 버튼 옆 안내만으로는 알 수 없다)
+                        !g.label.trim() ||
                         tplDupLabels.has(g.label.trim().toLowerCase())
                           ? ' is-invalid'
                           : ''
@@ -1729,6 +1749,23 @@ export default function EvalCycleWizard({
                 >
                   {L.templateSave}
                 </button>
+                {tplSaved ? (
+                  <span
+                    className="evc-tpl-save-hint is-ok"
+                    data-testid="evc-tpl-saved"
+                  >
+                    ✓ {L.templateSaved}
+                  </span>
+                ) : (
+                  tplSaveBlockKey && (
+                    <span
+                      className="evc-tpl-save-hint"
+                      data-testid="evc-tpl-save-hint"
+                    >
+                      {L[tplSaveBlockKey]}
+                    </span>
+                  )
+                )}
                 {savedTemplates.length > 0 && (
                   <div className="evc-tpl-lib-list">
                     {savedTemplates.map((t) => (

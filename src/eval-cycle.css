@@ -596,6 +596,16 @@
   border-color: var(--utility-blue-500);
   box-shadow: 0 0 0 3px var(--utility-blue-50);
 }
+/* PW-119: is-invalid 를 붙이는 곳(등급명 중복·빈칸)은 있었는데 규칙이 없어
+   강조가 화면에 전혀 안 나타났다. */
+.evc-input.is-invalid {
+  border-color: var(--utility-error-500, #f04438);
+  background: var(--utility-error-50, #fef3f2);
+}
+.evc-input.is-invalid:focus {
+  border-color: var(--utility-error-500, #f04438);
+  box-shadow: 0 0 0 3px var(--utility-error-50, #fef3f2);
+}
 .evc-field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1367,6 +1377,16 @@
   margin-top: var(--spacing-lg, 12px);
   padding-top: var(--spacing-md, 8px);
   border-top: 1px solid var(--border-secondary, #eaecf0);
+}
+/* PW-119: 템플릿 저장 버튼이 왜 비활성인지 버튼 옆에 알린다. */
+.evc-tpl-save-hint {
+  margin-left: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--utility-error-500, #f04438);
+}
+.evc-tpl-save-hint.is-ok {
+  color: var(--utility-success-600, #039855);
 }
 .evc-tpl-lib-list {
   display: flex;
