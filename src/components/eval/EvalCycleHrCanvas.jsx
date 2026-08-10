@@ -75,6 +75,13 @@ const DEFAULT_LABELS = {
   reviewTypes: '리뷰 종류',
   cancel: '취소',
   create: '생성',
+  // 관리(수정) 모드 — 정책 §4.3. 준비 중 사이클의 '관리'는 설정 편집으로 들어간다.
+  manageTitle: '{{name}} · 사이클 관리',
+  saveChanges: '변경사항 저장',
+  manageSaveHint:
+    '준비 중(오픈 전) 사이클의 설정을 변경합니다. 오픈 이후에는 이름·기간·평가 방식·대상자를 바꿀 수 없습니다.',
+  toastUpdated: '사이클 설정이 저장되었습니다',
+  manageLoadError: '사이클 설정을 불러오지 못했습니다',
   // wizard
   wizardStep1: '기본 정보',
   wizardStep2: '단계별 일정',
@@ -490,12 +497,21 @@ export default function EvalCycleHrCanvas({
   cyclePresets = [],
   onSaveCyclePreset,
   onLoadCyclePreset,
+  /**
+   * 준비 중(draft) 사이클 설정 수정 (정책 §4.3 관리 모드).
+   * (id, payload) => Promise. 넘기면 draft 카드의 '관리'가 편집 위자드를 연다.
+   */
+  onUpdateCycle,
+  /** 관리 모드 프리필용 상세 조회. (id) => Promise<{ cycle, participants }>. */
+  onLoadCycleDetail,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [scheduleModal, setScheduleModal] = useState(null); // §4.1.2-A: 편집 대상 cycle
+  // §4.3 관리 모드 — { cycle, participants }. 상세를 받아야 대상자까지 프리필된다.
+  const [manageTarget, setManageTarget] = useState(null);
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -565,6 +581,38 @@ export default function EvalCycleHrCanvas({
     void run(() => onPatchSchedule?.(cycleId, schedule), L.toastScheduleSaved);
   };
 
+  /**
+   * §4.3 '관리' — 준비 중 사이클은 설정 편집 위자드로, 오픈된 사이클은 종전대로
+   * 진행 현황으로 보낸다. 준비 중은 진행 현황에 볼 것이 없고(§3 오픈 전 접근 불가),
+   * 실제로 이 경로 때문에 오픈 전 사이클의 이름·기간을 고칠 방법이 아예 없었다(PW-120).
+   */
+  const canEditSettings = (cycle) =>
+    cycle.status === 'draft' && !!onUpdateCycle && !!onLoadCycleDetail;
+
+  const handleManage = (cycle) => {
+    if (!canEditSettings(cycle)) {
+      onManageCycle?.(cycle.id);
+      return;
+    }
+    void (async () => {
+      try {
+        const detail = await onLoadCycleDetail(cycle.id);
+        setManageTarget({
+          cycle: detail?.cycle ?? cycle,
+          participants: detail?.participants ?? [],
+        });
+      } catch {
+        showToast(L.manageLoadError, 'error');
+      }
+    })();
+  };
+
+  const handleUpdate = async (payload) => {
+    const id = manageTarget?.cycle?.id;
+    setManageTarget(null);
+    await run(() => onUpdateCycle?.(id, payload), L.toastUpdated);
+  };
+
   return (
     <div className="evc-root">
       {toast && (
@@ -600,7 +648,9 @@ export default function EvalCycleHrCanvas({
               key={cycle.id}
               cycle={cycle}
               labels={L}
-              onManage={onManageCycle ? (c) => onManageCycle(c.id) : requestDelete}
+              onManage={
+                onManageCycle || onUpdateCycle ? handleManage : requestDelete
+              }
               onOpen={handleOpen}
               onAdvance={handleAdvance}
               onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
@@ -623,6 +673,19 @@ export default function EvalCycleHrCanvas({
           presets={cyclePresets}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
+        />
+      )}
+
+      {manageTarget && (
+        <EvalCycleWizard
+          labels={L}
+          candidates={candidates}
+          appointmentChanges={appointmentChanges}
+          committeeCandidates={committeeCandidates}
+          cycle={manageTarget.cycle}
+          participants={manageTarget.participants}
+          onSubmit={handleUpdate}
+          onCancel={() => setManageTarget(null)}
         />
       )}
 
