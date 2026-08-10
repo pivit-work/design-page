@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
+import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
+import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED } from './orgTree.js';
 
 /**
  * AdminEmployeeSheetCanvas — 어드민 "직원 일괄 편집(스프레드시트)" 화면 Pure 컴포넌트.
@@ -86,15 +88,19 @@ function mapMembers(list) {
     email: m.email ?? '',
     phone: m.phone ?? '',
     department: m.department ?? '',
-    // 겸직(중복 소속) — 소속 셀은 행을 복제하지 않고 칩을 세로로 쌓는다.
+    // 겸직(중복 소속) — 소속 셀은 행을 복제하지 않고 칩을 세로로 쌓는다(PW-111).
     // 행을 복제하면 ① 체크박스 선택·일괄 저장·페이지네이션의 단위가 사람 수와
     // 어긋나고 ② 어느 행을 지워야 하는지 모호해진다.
-    // 형태: [{ name, isPrimary }] — 주 소속이 맨 앞. 미지정이면 department 폴백.
+    // 형태: [{ name, isPrimary, orgUnitId? }] — 주 소속이 맨 앞. 미지정이면 department 폴백.
+    // orgUnitId 가 있으면 칩을 **전체 조직 경로**로 그린다(PW-112).
     depts: Array.isArray(m.depts) && m.depts.length > 0
       ? m.depts
       : m.department
         ? [{ name: m.department, isPrimary: true }]
         : [],
+    // 소속 조직 단위 id — 소속 경로 표기·서브트리 필터의 정본(PW-112).
+    // 편집 대상 컬럼이 아니므로 EDITABLE_FIELDS 에 넣지 않는다(dirty 추적 제외).
+    orgUnitIds: Array.isArray(m.orgUnitIds) ? m.orgUnitIds.map(String) : [],
     jobLevel: m.jobLevel ?? '',
     jobPosition: m.jobPosition ?? '',
     workLocation: m.workLocation ?? '',
@@ -165,47 +171,6 @@ function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
   return <input ref={ref} type="text" value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={base} />;
 }
 
-/**
- * 부서 셀 인라인 팀 선택(PW-23). 부서는 팀 배정에서 파생되므로, 셀에서 팀을 고르면
- * 그대로 배정이 바뀐다 — 예전엔 클릭 즉시 팀 관리 화면으로 이동해 버렸다.
- */
-function TeamAssignCell({ options, unassignedLabel, onPick, onCancel }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
-  return (
-    <select
-      ref={ref}
-      defaultValue=""
-      onChange={(e) => onPick(e.target.value)}
-      onBlur={onCancel}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onCancel();
-      }}
-      style={{
-        width: '100%',
-        height: '100%',
-        padding: '0 8px',
-        border: 'none',
-        outline: 'none',
-        fontFamily: T.font,
-        fontSize: 12,
-        color: T.text,
-        background: '#fff',
-        cursor: 'pointer',
-      }}
-    >
-      <option value="">{unassignedLabel}</option>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 /* ── 대표(CEO) ────────────────────────────────────────────
  * 왕관은 이모지(👑)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고
  * color 를 상속하지 않아 배지 안에서 혼자 튄다.
@@ -247,17 +212,28 @@ function CeoBadge({ label }) {
 
 // ── 셀 렌더 (읽기) ──────────────────────────────────────
 /**
- * 소속 셀 — 겸직자는 **행을 늘리지 않고 이 셀만 늘어난다**.
+ * 소속 셀 — 겸직자는 **행을 늘리지 않고 이 셀만 늘어난다**(PW-111).
  *
  * 주 소속에 `주` 배지를 달고, 겸직이 있으면 마지막에 `겸직 N` 을 붙여 이 사람이
  * 몇 군데에 걸쳐 있는지 셀 안에서 바로 읽히게 한다. 나머지 열은 `verticalAlign: top`
  * 이라 값이 첫 줄에 정렬돼 "소속 셀만 두꺼워지는" 형태가 된다.
+ *
+ * 각 칩은 팀명이 아니라 **전체 조직 경로**로 그린다(PW-112, §5-A P4) — 팀명만으로는
+ * 어느 본부 밑인지도, 동명이팀 중 어느 쪽인지도 알 수 없다.
  */
-function DeptCell({ depts, primaryLabel, concurrentLabel }) {
+function DeptCell({ depts, primaryLabel, concurrentLabel, orgTree = [], orgUnitIds, maxWidth }) {
   if (!depts || depts.length === 0) {
     return <span style={{ fontSize: 12, color: T.muted }}>—</span>;
   }
   const concurrentCount = depts.filter((d) => !d.isPrimary).length;
+  // 칩 하나의 조직 경로. id 가 붙어 있으면 그걸로, 아니면 소속이 하나뿐인 흔한 경우에
+  // 한해 행의 orgUnitIds 로 해석한다 — 이름만으로 찾으면 동명이팀에서 틀린다.
+  const chipEntry = (d, i) => {
+    if (!orgTree.length) return null;
+    if (d.orgUnitId) return findOrgEntry(orgTree, d.orgUnitId);
+    if (depts.length === 1 && i === 0) return primaryOrgEntry(orgTree, orgUnitIds);
+    return null;
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '4px 0', minWidth: 0 }}>
       {depts.map((d, i) => (
@@ -273,8 +249,13 @@ function DeptCell({ depts, primaryLabel, concurrentLabel }) {
             fontWeight: d.isPrimary ? 600 : 400,
           }}
         >
-          {/* 폭이 고정된 셀이라 긴 팀 이름은 잘리지 않고 접힌다. */}
-          <span style={{ overflowWrap: 'anywhere' }}>{d.name}</span>
+          {/* 경로를 알면 상위는 회색·최하위만 본문 색, 모르면 종전대로 팀명만 접어서 보인다. */}
+          {(() => {
+            const entry = chipEntry(d, i);
+            return entry
+              ? <OrgPathLabel entry={entry} muted={T.muted} color="inherit" maxWidth={maxWidth} />
+              : <span style={{ overflowWrap: 'anywhere' }}>{d.name}</span>;
+          })()}
           {d.isPrimary && depts.length > 1 && (
             <span
               style={{
@@ -303,10 +284,20 @@ function DeptCell({ depts, primaryLabel, concurrentLabel }) {
   );
 }
 
-function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel }) {
+function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel, orgTree }) {
   const value = row[col.id];
   if (col.id === 'department') {
-    return <DeptCell depts={row.depts} primaryLabel={primaryLabel} concurrentLabel={concurrentLabel} />;
+    return (
+      <DeptCell
+        depts={row.depts}
+        primaryLabel={primaryLabel}
+        concurrentLabel={concurrentLabel}
+        orgTree={orgTree}
+        orgUnitIds={row.orgUnitIds}
+        // 컬럼 폭을 넘기면 앞(상위 경로)부터 생략한다 — 5depth 조직이 컬럼을 밀어내지 않도록.
+        maxWidth={col.width}
+      />
+    );
   }
   if (col.id === 'name') {
     return (
@@ -366,9 +357,13 @@ function FilterMenu({ label, value, options, onChange, allLabel, searchPlacehold
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
   const active = value && value !== '__all__';
-  const selectedLabel = active ? (options.find((o) => o.value === value)?.label ?? value) : allLabel;
+  // 선택된 값의 칩 표기는 전체 경로(pathLabel)를 쓴다 — 동명이팀을 구분해야 한다(§5-A P4).
+  const selectedOpt = options.find((o) => o.value === value);
+  const selectedLabel = active ? (selectedOpt?.pathLabel ?? selectedOpt?.label ?? value) : allLabel;
   const ql = q.trim().toLowerCase();
-  const shown = ql ? options.filter((o) => o.label.toLowerCase().includes(ql)) : options;
+  const shown = ql
+    ? options.filter((o) => (o.pathLabel ?? o.label).toLowerCase().includes(ql))
+    : options;
   const pick = (v) => { onChange(v); setOpen(false); setQ(''); };
   const optBtn = (selected) => ({
     textAlign: 'left', padding: '7px 9px', borderRadius: 7, border: 'none',
@@ -410,7 +405,16 @@ function FilterMenu({ label, value, options, onChange, allLabel, searchPlacehold
           <div style={{ maxHeight: 230, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
             <button type="button" onClick={() => pick('__all__')} style={optBtn(!active)}>{allLabel}</button>
             {shown.map((o) => (
-              <button key={o.value} type="button" onClick={() => pick(o.value)} style={optBtn(value === o.value)}>{o.label}</button>
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => pick(o.value)}
+                title={o.pathLabel || undefined}
+                // 계층 옵션(소속)은 depth 당 12px 들여쓴다 — 공백문자로 들여쓰지 않는다(§5-A P1).
+                style={{ ...optBtn(value === o.value), paddingLeft: 9 + (o.depth || 0) * 12 }}
+              >
+                {o.label}
+              </button>
             ))}
             {shown.length === 0 && (
               <div style={{ padding: '10px', fontSize: 12, color: T.muted, textAlign: 'center' }}>{noResult || '결과 없음'}</div>
@@ -466,6 +470,11 @@ export default function AdminEmployeeSheetCanvas({
 }) {
   const L = labels;
 
+  // 소속(조직) 계층 — 소속 셀 표기·트리 팝업·서브트리 필터가 같은 트리를 쓴다(PW-112).
+  // orgUnitOptions 가 parentId 를 안 주면 전부 depth 0 인 평면 트리가 되어
+  // 종전과 같은 평면 동작으로 자연히 폴백한다.
+  const orgTree = useMemo(() => buildOrgTree(orgUnitOptions), [orgUnitOptions]);
+
   // ── 컬럼 정의 ──
   const COLUMNS = useMemo(() => {
     const cl = labels.cols || {};
@@ -484,7 +493,8 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'phone', label: cl.phone || '전화번호', width: 130, type: 'text', editable: true },
       // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
       // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
-      { id: 'department', label: cl.department || '부서', width: 120, type: 'readonly', editable: false, derived: true },
+      // 소속은 최하위 팀명이 아니라 전체 경로를 보여준다(PW-112) — 한 칸 더 넓게 잡는다.
+      { id: 'department', label: cl.department || '부서', width: 180, type: 'readonly', editable: false, derived: true },
       catCol('jobLevel', cl.jobLevel || '직급', 110, gradeOptions),
       catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
       { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
@@ -616,7 +626,19 @@ export default function AdminEmployeeSheetCanvas({
   const filterOptions = useMemo(() => {
     const out = {};
     for (const fc of FILTER_COLS) {
-      // 부서 옵션은 겸직 소속까지 포함해야 한다 — 겸직으로만 사람이 있는 팀이
+      // 소속은 평면 distinct 가 아니라 **전체 조직 트리**를 옵션으로 준다(§5-A P3) —
+      // 상위 조직을 고를 수 있어야 서브트리로 거를 수 있고, 하위 조직에 아무도 없어도
+      // 그 조직이 목록에서 사라지지 않는다.
+      if (fc.id === 'department' && orgTree.length > 0) {
+        out[fc.id] = [
+          ...orgTree.map((e) => ({
+            value: e.id, label: e.name, depth: e.depth, pathLabel: e.pathLabel,
+          })),
+          { value: ORG_FILTER_UNASSIGNED, label: L.unassigned || '미배정', depth: 0 },
+        ];
+        continue;
+      }
+      // 트리를 못 받은 폴백 — 겸직 소속까지 옵션에 넣는다. 겸직으로만 사람이 있는 팀이
       // 목록에서 빠지면 그 팀으로는 걸러볼 수가 없다.
       const raw =
         fc.id === 'department'
@@ -633,7 +655,7 @@ export default function AdminEmployeeSheetCanvas({
         .sort((a, b) => a.label.localeCompare(b.label));
     }
     return out;
-  }, [rows, FILTER_COLS]);
+  }, [rows, FILTER_COLS, orgTree, L.unassigned]);
 
   // 소속 이름 전체(주 소속 + 겸직) — 검색·필터가 겸직 팀으로도 사람을 찾게 한다.
   // department 하나만 보면 마케팅팀을 겸직하는 사람이 '마케팅팀' 필터에서 사라진다.
@@ -644,6 +666,13 @@ export default function AdminEmployeeSheetCanvas({
     for (const fc of FILTER_COLS) {
       const fv = filters[fc.id];
       if (!fv || fv === '__all__') continue;
+      // 소속 필터는 선택 조직 + **하위 전체**를 포함한다(§5-A P3). 상위를 고를 수 있는데
+      // 정확히 일치만 보면 "본부로 거르기"가 0명이 되어 필터가 무의미해진다.
+      // 판정 대상은 orgUnitIds — 겸직 소속도 여기 들어 있어 함께 걸린다(PW-111).
+      if (fc.id === 'department' && orgTree.length > 0) {
+        if (!matchesOrgSubtree(r.orgUnitIds, fv, orgTree)) return false;
+        continue;
+      }
       if (fc.id === 'department') {
         if (!deptNamesOf(r).includes(fv)) return false;
         continue;
@@ -652,10 +681,14 @@ export default function AdminEmployeeSheetCanvas({
     }
     const q = search.trim().toLowerCase();
     if (q) {
+      // 상위 조직 이름으로도 찾게 한다('물류본부' → 그 아래 사람들). 겸직 팀명도 함께 본다.
+      const orgPath = orgTree.length ? (primaryOrgEntry(orgTree, r.orgUnitIds)?.pathLabel ?? '') : '';
       const hit =
-        ['name', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
+        orgPath.toLowerCase().includes(q)
+        || ['name', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
           (k) => (r[k] || '').toLowerCase().includes(q),
-        ) || deptNamesOf(r).some((n) => n.toLowerCase().includes(q));
+        )
+        || deptNamesOf(r).some((n) => n.toLowerCase().includes(q));
       if (!hit) return false;
     }
     return true;
@@ -936,11 +969,10 @@ export default function AdminEmployeeSheetCanvas({
                       const editableCell = canEdit && c.editable;
                       // 파생 컬럼(부서)은 편집 대신 관리 화면으로 보낸다 — 값을 바꾸는 곳이
                       // 어디인지 알려주지 않으면 읽기전용이 그냥 막힌 셀로만 보인다.
-                      // 부서 셀: 인라인 팀 선택이 가능하면 그걸 우선한다(화면 이동은 폴백).
+                      // 부서 셀: 조직 트리 팝업이 가능하면 그걸 우선한다(화면 이동은 폴백).
                       const canAssign =
                         c.derived && canEdit && !!onAssignTeam && orgUnitOptions.length > 0;
                       const derivedJump = c.derived && canEdit && !canAssign && onManageTeams;
-                      const assigning = canAssign && assignRowId === row.id;
                       return (
                         <td
                           key={c.id}
@@ -976,18 +1008,8 @@ export default function AdminEmployeeSheetCanvas({
                         >
                           {isEditing ? (
                             <EditCell col={c} value={row[c.id]} autoFocus onChange={(val) => updateCell(row.id, c.id, val)} onKeyDown={(e) => handleKeyDown(e, row.id, c.id)} />
-                          ) : assigning ? (
-                            <TeamAssignCell
-                              options={orgUnitOptions}
-                              unassignedLabel={L.unassigned || '미배정'}
-                              onPick={(unitId) => {
-                                setAssignRowId(null);
-                                onAssignTeam(row.id, unitId);
-                              }}
-                              onCancel={() => setAssignRowId(null)}
-                            />
                           ) : (
-                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} primaryLabel={L.primaryDeptBadge} concurrentLabel={L.concurrentDeptCount} />
+                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} primaryLabel={L.primaryDeptBadge} concurrentLabel={L.concurrentDeptCount} orgTree={orgTree} />
                           )}
                         </td>
                       );
@@ -1087,6 +1109,19 @@ export default function AdminEmployeeSheetCanvas({
           <span style={{ fontSize: 11, color: T.muted }}>{L.legendBulk || '일괄 편집 바 — 값 입력된 필드'}</span>
         </div>
       </div>
+
+      {/* 소속 선택 트리 팝업 (PW-112) — 하위 조직까지 계층으로 보고 고른다 */}
+      {assignRowId && canEdit && onAssignTeam && orgUnitOptions.length > 0 && (
+        <OrgTreePicker
+          open
+          units={orgUnitOptions}
+          value={primaryOrgEntry(orgTree, (rows.find((r) => r.id === assignRowId) || {}).orgUnitIds)?.id ?? ''}
+          subtitle={(rows.find((r) => r.id === assignRowId) || {}).name}
+          labels={L.orgPicker}
+          onApply={(unitId) => onAssignTeam(assignRowId, unitId)}
+          onClose={() => setAssignRowId(null)}
+        />
+      )}
 
       {/* 연봉 이력 모달 */}
       {salaryHistRowId && canViewSalary && (

@@ -114,7 +114,10 @@ export default function AdminTeamDetailPanel({
   const candidates = availableMembers.filter((m) => {
     if (!memberSearch) return true;
     const q = memberSearch.toLowerCase();
-    return m.name.toLowerCase().includes(q) || (m.jobTitle?.toLowerCase().includes(q) ?? false);
+    return m.name.toLowerCase().includes(q)
+      || (m.jobTitle?.toLowerCase().includes(q) ?? false)
+      // 소속 경로로도 찾게 한다 — '개발본부' 로 그 아래 사람들을 훑을 수 있어야 한다.
+      || (m.orgPath?.toLowerCase().includes(q) ?? false);
   });
 
   return (
@@ -311,6 +314,9 @@ export default function AdminTeamDetailPanel({
                       <div className="tm-add-member-result-main">
                         <p className="tm-add-member-result-name">{m.name}</p>
                         {m.jobTitle && <p className="tm-add-member-result-title">{m.jobTitle}</p>}
+                        {/* 현재 소속을 전체 경로로 — 팀명만 보면 어느 본부 밑인지,
+                            동명이팀 중 어느 쪽인지 알 수 없다(PW-112, §5-A P4). */}
+                        {m.orgPath && <p className="tm-add-member-result-title">{m.orgPath}</p>}
                       </div>
                     </button>
                   ))}
