@@ -140,6 +140,8 @@ const DEFAULT_LABELS = {
   cwCreatePreview: '예상 대상자 {n}명 (위원 제외)',
   cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
   cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
+  cwCreateCommitteeSearch: '이름으로 검색',
+  cwCreateCommitteeSearchEmpty: '검색 결과가 없습니다.',
   cwKindLead: '조직장',
   cwKindSeniorIc: '시니어 IC',
   cwChair: '위원장',
@@ -739,6 +741,22 @@ export default function EvalCycleSummaryCanvas({
   const [createDepts, setCreateDepts] = useState([]);
   const [createLevels, setCreateLevels] = useState([]);
   const [createCommittee, setCreateCommittee] = useState([]); // userId 배열, 순서=우선(첫=위원장)
+  const [committeeSearch, setCommitteeSearch] = useState('');
+  // 후보는 재직 구성원 전원(수백 명)이라 스크롤만으로는 못 찾는다 → 이름 부분일치 필터.
+  // 검색 중에는 이미 고른 위원을 선택 순서대로 상단에 고정한다. 필터에 걸려 사라지면
+  // 실수로 해제하거나 같은 사람을 다시 고르게 된다. 검색어를 비우면 원래 정렬로 복귀.
+  const visibleCommitteeCandidates = useMemo(() => {
+    const q = committeeSearch.trim().toLowerCase();
+    if (!q) return committeeCandidates;
+    const pinned = createCommittee
+      .map((id) => committeeCandidates.find((c) => c.id === id))
+      .filter(Boolean);
+    const pinnedIds = new Set(pinned.map((c) => c.id));
+    const matched = committeeCandidates.filter(
+      (c) => !pinnedIds.has(c.id) && String(c.name ?? '').toLowerCase().includes(q),
+    );
+    return [...pinned, ...matched];
+  }, [committeeCandidates, createCommittee, committeeSearch]);
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -2118,6 +2136,7 @@ export default function EvalCycleSummaryCanvas({
                         setCreateDepts([]);
                         setCreateLevels([]);
                         setCreateCommittee([]);
+                        setCommitteeSearch('');
                         onOpenCreateModal?.();
                       }}
                       data-testid="evs-cw-create"
@@ -3101,8 +3120,25 @@ export default function EvalCycleSummaryCanvas({
               {committeeCandidates.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoCommittee}</div>
               ) : (
+                <>
+                <input
+                  className="evs-cw-create-input evs-cw-create-search"
+                  value={committeeSearch}
+                  onChange={(e) => setCommitteeSearch(e.target.value)}
+                  placeholder={L.cwCreateCommitteeSearch}
+                  aria-label={L.cwCreateCommitteeSearch}
+                  data-testid="evs-cw-committee-search"
+                />
+                {visibleCommitteeCandidates.length === 0 ? (
+                  <div
+                    className="evs-cw-create-muted"
+                    data-testid="evs-cw-committee-search-empty"
+                  >
+                    {L.cwCreateCommitteeSearchEmpty}
+                  </div>
+                ) : (
                 <div className="evs-cw-create-candidates">
-                  {committeeCandidates.map((c) => {
+                  {visibleCommitteeCandidates.map((c) => {
                     const idx = createCommittee.indexOf(c.id);
                     const on = idx >= 0;
                     return (
@@ -3139,6 +3175,8 @@ export default function EvalCycleSummaryCanvas({
                     );
                   })}
                 </div>
+                )}
+                </>
               )}
               <div className="evs-cw-create-hint">{L.cwCreateCommitteeHint}</div>
             </div>
