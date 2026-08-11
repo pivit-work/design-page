@@ -16,7 +16,7 @@
  * 프로젝트 연결(`SquadProject`)은 이 캔버스 범위 밖이다 — 서버 창구가 아직 없다(PW-109/113).
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import SquadFormCard from './SquadFormCard.jsx';
 import {
   CapacityBar,
@@ -96,6 +96,22 @@ export default function SquadCanvas({
   const [delAsk, setDelAsk] = useState(null); // { squadId, typed }
   const [statusMenu, setStatusMenu] = useState(null);
   const [statusAsk, setStatusAsk] = useState(null); // { squadId, to, kind, overloads }
+
+  /**
+   * Escape 로 카드 위 레이어를 닫는다 (§4 — 메뉴·팝오버는 외부 클릭·Escape 로 닫힘).
+   * 클릭아웃 배경만 두면 키보드로는 빠져나올 수 없고, 열린 배경이 다음 클릭을 전부
+   * 가로채 화면이 멈춘 것처럼 보인다. 확인 모달은 파괴적 작업이라 Escape 로 닫지 않는다.
+   */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setStatusMenu(null);
+      setMoreMenu(null);
+      setAddTarget(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const peopleById = useMemo(() => {
     const map = new Map();
