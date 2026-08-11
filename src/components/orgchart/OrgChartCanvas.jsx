@@ -187,6 +187,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         <div className="tab-nav">
           <span className="tab-active">조직도</span>
           <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>스쿼드</span>
         </div>
         <div className="header-subtitle">
           <b>전체 인원</b>
