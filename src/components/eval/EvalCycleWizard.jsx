@@ -632,14 +632,25 @@ export default function EvalCycleWizard({
   presets = [],
   onSavePreset,
   onLoadPreset,
+  /**
+   * 관리(수정) 모드 — 기존 사이클을 넘기면 그 값으로 프리필하고 마지막 버튼이
+   * '변경사항 저장'이 된다 (정책 §4.3 "관리 → 해당 사이클 위자드 진입(관리 모드)").
+   * 넘기지 않으면 종전대로 신규 생성 모드.
+   */
+  cycle = null,
+  /** 관리 모드 대상자 프리필용 현재 참여자 [{ memberId }]. */
+  participants = [],
 }) {
+  const isManage = !!cycle;
+  const initialSeq = cycle?.reviewSequence ?? null;
+
   const [step, setStep] = useState(0);
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
   const [committeeOn, setCommitteeOn] = useState(false);
   const [committee, setCommittee] = useState([]);
-  const [name, setName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [name, setName] = useState(() => cycle?.name ?? '');
+  const [startDate, setStartDate] = useState(() => datePart(cycle?.startDate ?? ''));
+  const [endDate, setEndDate] = useState(() => datePart(cycle?.endDate ?? ''));
   // 날짜 picker 팝오버 상태: { field:'start'|'end', rect, el }
   const [picker, setPicker] = useState(null);
   const openPicker = (field) => (e) =>
@@ -648,23 +659,46 @@ export default function EvalCycleWizard({
   const [schedPicker, setSchedPicker] = useState(null);
   const openSchedPicker = (phaseId, field) => (e) =>
     setSchedPicker({ phaseId, field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
-  const [reviewTypes, setReviewTypes] = useState(['self', 'leader']);
+  const [reviewTypes, setReviewTypes] = useState(() =>
+    cycle?.reviewTypes?.length ? [...cycle.reviewTypes] : ['self', 'leader'],
+  );
   // TC-046/047 하향 최종 등급 카드 위치(상단/하단/상단고정)
-  const [gradeCardPosition, setGradeCardPosition] = useState('bottom');
+  const [gradeCardPosition, setGradeCardPosition] = useState(
+    () => initialSeq?.gradeCardPosition ?? 'bottom',
+  );
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
-  const [peerAssignModes, setPeerAssignModes] = useState(['ai_recommend']);
-  const [peerVisibility, setPeerVisibility] = useState(false);
+  const [peerAssignModes, setPeerAssignModes] = useState(() => {
+    if (cycle?.peerAssignModes?.length) return [...cycle.peerAssignModes];
+    if (cycle?.peerAssignMode) return [cycle.peerAssignMode];
+    return ['ai_recommend'];
+  });
+  const [peerVisibility, setPeerVisibility] = useState(
+    () => !!cycle?.peerVisibilityDefault,
+  );
   // 단계별 일정(review_sequence) 상태
-  const [schedule, setSchedule] = useState({}); // { phaseId: { start, end } } 사용자 오버라이드
-  const [reminders, setReminders] = useState({}); // { phaseId: [reminderObj] }
+  const [schedule, setSchedule] = useState(() => ({ ...(initialSeq?.schedule ?? {}) })); // { phaseId: { start, end } } 사용자 오버라이드
+  const [reminders, setReminders] = useState(() => ({ ...(initialSeq?.reminders ?? {}) })); // { phaseId: [reminderObj] }
   const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 id
-  const [disabledPhases, setDisabledPhases] = useState(() => new Set());
-  const [phaseOrder, setPhaseOrder] = useState([]); // 중간 단계 재배열 순서(id)
+  const [disabledPhases, setDisabledPhases] = useState(
+    () =>
+      new Set(
+        Object.entries(initialSeq?.enabled ?? {})
+          .filter(([, on]) => on === false)
+          .map(([id]) => id),
+      ),
+  );
+  const [phaseOrder, setPhaseOrder] = useState(() => [...(initialSeq?.order ?? [])]); // 중간 단계 재배열 순서(id)
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   // §4.1.1 대상자 범위 — 'bulk'(전체) | 'by_dept'(부서) | 'by_grade'(직급) | 'individual_select'(개인)
-  const [includeMode, setIncludeMode] = useState('bulk');
-  const [selectedIds, setSelectedIds] = useState([]);
+  // 관리 모드는 이미 확정된 대상자 명단이 정본이라 개별 선택으로 프리필한다
+  // (부서·직급 축으로 되돌리면 그 사이 입퇴사로 명단이 조용히 달라진다).
+  const [includeMode, setIncludeMode] = useState(() =>
+    isManage && participants.length > 0 ? 'individual_select' : 'bulk',
+  );
+  const [selectedIds, setSelectedIds] = useState(() =>
+    isManage ? participants.map((p) => p.memberId) : [],
+  );
   // 축 모드별로 고른 값 — { by_dept: ['개발팀'], by_grade: ['책임'], ... }
   const [axisValues, setAxisValues] = useState({});
   const [memberSearch, setMemberSearch] = useState('');
@@ -695,13 +729,19 @@ export default function EvalCycleWizard({
   const [tplGrades, setTplGrades] = useState(DEFAULT_GRADES);
   const [tplAbsolute, setTplAbsolute] = useState(false); // 절대평가(상대비율 없음)
   const [tplRatioScope, setTplRatioScope] = useState('div');
-  const [phaseTemplateMap, setPhaseTemplateMap] = useState({}); // { phaseId: templateId }
+  // 관리 모드에서는 이미 저장된 템플릿 매핑(서버 template id)을 그대로 이어받는다.
+  // 여기서 비우면 저장 시 매핑이 통째로 날아가 단계에 템플릿이 없는 사이클이 된다.
+  const [phaseTemplateMap, setPhaseTemplateMap] = useState(() => ({
+    ...(initialSeq?.templateMap ?? {}),
+  })); // { phaseId: templateId }
   const [tplDragIdx, setTplDragIdx] = useState(null);
   const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
   // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
-  const [roleMode, setRoleMode] = useState('uniform'); // 'uniform' | 'by_role'
-  const [roleVersions, setRoleVersions] = useState({}); // { 직급: version }
+  const [roleMode, setRoleMode] = useState(() => initialSeq?.roleMode ?? 'uniform'); // 'uniform' | 'by_role'
+  const [roleVersions, setRoleVersions] = useState(() => ({
+    ...(initialSeq?.roleVersions ?? {}),
+  })); // { 직급: version }
 
   const steps = [
     { titleKey: 'wizardStep1' }, // 기본 정보
@@ -1270,7 +1310,9 @@ export default function EvalCycleWizard({
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div className="evc-wiz" onClick={(e) => e.stopPropagation()}>
         <div className="evc-wiz-header">
-          <h3 className="evc-modal-title">{L.createTitle}</h3>
+          <h3 className="evc-modal-title" data-testid="evc-wiz-title">
+            {isManage ? fill(L.manageTitle, { name: cycle.name ?? '' }) : L.createTitle}
+          </h3>
           <button type="button" className="evc-wiz-close" onClick={onCancel} aria-label={L.cancel}>
             ✕
           </button>
@@ -1281,8 +1323,9 @@ export default function EvalCycleWizard({
         <div className="evc-wiz-body">
           {step === 0 && (
             <div className="evc-wiz-panel">
-              {/* TC-028 저장된 설정 프리셋 불러오기 */}
-              {presets.length > 0 && onLoadPreset && (
+              {/* TC-028 저장된 설정 프리셋 불러오기 — 관리 모드에서는 숨긴다
+                  (이미 값이 들어 있는 사이클을 프리셋으로 덮어쓰는 건 수정이 아니다). */}
+              {!isManage && presets.length > 0 && onLoadPreset && (
                 <div className="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
                     <div className="evc-preset-cta-text">
@@ -2670,7 +2713,9 @@ export default function EvalCycleWizard({
                   </b>
                 </div>
               </div>
-              <p className="evc-wiz-hint">{L.createDraftHint}</p>
+              <p className="evc-wiz-hint">
+                {isManage ? L.manageSaveHint : L.createDraftHint}
+              </p>
               {/* TC-028 이 설정을 프리셋으로 저장 */}
               {onSavePreset && (
                 <div className="evc-wiz-preset-save" data-testid="evc-wiz-preset-save">
@@ -2723,7 +2768,7 @@ export default function EvalCycleWizard({
             </button>
           ) : (
             <button type="button" className="evc-btn is-primary" onClick={submit} data-testid="evc-wiz-submit">
-              {L.create}
+              {isManage ? L.saveChanges : L.create}
             </button>
           )}
         </div>
