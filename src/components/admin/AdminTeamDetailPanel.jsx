@@ -115,6 +115,9 @@ export default function AdminTeamDetailPanel({
     if (!memberSearch) return true;
     const q = memberSearch.toLowerCase();
     return m.name.toLowerCase().includes(q)
+      // 표시 이름이 사내 호칭이면 본명은 화면 어디에도 없다 — 그래도 본명으로 찾을 수
+      // 있어야 한다(소비자가 fullName 으로 넘긴다). 검색 전용, 표시에는 쓰지 않는다.
+      || (m.fullName?.toLowerCase().includes(q) ?? false)
       || (m.jobTitle?.toLowerCase().includes(q) ?? false)
       // 소속 경로로도 찾게 한다 — '개발본부' 로 그 아래 사람들을 훑을 수 있어야 한다.
       || (m.orgPath?.toLowerCase().includes(q) ?? false);
