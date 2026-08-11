@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertIcon, LockIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
@@ -149,6 +149,21 @@ const DEFAULT_LABELS = {
   cwCreateCancel: '취소',
   cwCreateNoCommittee: '선택 가능한 위원 후보가 없습니다.',
   cwCreateNoDept: '조직 옵션이 없습니다.',
+  // PW-129 위원 관리 — 생성 모달을 '관리' 모드로 재사용한다(별도 화면 없음).
+  cwManageBtn: '위원 {n}명 관리',
+  cwManageTitle: '위원 관리',
+  cwManageListLabel: '참여 위원',
+  cwManageHint:
+    '위원장을 제외하면 남은 위원 중 먼저 합류한 사람이 위원장을 이어받습니다.',
+  cwManageDesc: '체크하면 위원으로 추가되고, 체크를 해제하면 제외됩니다.',
+  cwManageSubmit: '저장',
+  cwManageLocked: '확정이 완료된 위원회는 위원을 변경할 수 없습니다.',
+  cwManageNoPermission: '위원 구성 변경은 HR·관리자만 할 수 있습니다.',
+  cwManageAdjustWarn:
+    '제외하는 위원 중 등급 조정 이력이 있는 사람이 있습니다({names}). 저장하면 조정 내역은 그대로 남고 위원 자격만 해제됩니다.',
+  cwManagePastMembers: '이미 제외된 위원: {names}',
+  cwManagePastMember: '{name}(조정 {n}건 보존)',
+  cwManageAdjustCount: '조정 {n}건',
   // §9.F 경영진 대시보드
   execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
   execJ1: 'J1 전사 서머리',
@@ -694,6 +709,11 @@ export default function EvalCycleSummaryCanvas({
   scopeRoster = [],
   onOpenCreateModal,
   onCreateSession,
+  // PW-129 위원회 생성 후 위원 추가·제외.
+  // 별도 화면을 만들지 않고 위 생성 모달을 '관리' 모드로 재사용한다.
+  sessionCommittee = null,
+  onOpenCommittee,
+  onSaveCommittee,
   gradeAppeals = [],
   appealCanReview = false,
   selectedAppealId = null,
@@ -757,6 +777,63 @@ export default function EvalCycleSummaryCanvas({
     );
     return [...pinned, ...matched];
   }, [committeeCandidates, createCommittee, committeeSearch]);
+
+  // PW-129 — 같은 모달을 '위원 관리' 로 재사용한다. 관리 모드에서는 제목/설명이 바뀌고
+  // ①대상자·제목 입력이 숨으며, 후보 목록이 현재 위원으로 미리 체크된 채 열린다.
+  const [committeeManage, setCommitteeManage] = useState(false);
+  const activeCommittee = useMemo(
+    () => (sessionCommittee?.members ?? []).filter((m) => m.isActive !== false),
+    [sessionCommittee],
+  );
+  const pastCommittee = useMemo(
+    () => (sessionCommittee?.members ?? []).filter((m) => m.isActive === false),
+    [sessionCommittee],
+  );
+  // 위원 목록은 모달을 연 뒤 비동기로 도착한다. 도착 시 한 번만 체크 상태를 심는다 —
+  // 매번 덮으면 사용자가 방금 바꾼 선택이 되돌아간다.
+  const seededSessionRef = useRef(null);
+  useEffect(() => {
+    if (!showCreate || !committeeManage || !sessionCommittee) return;
+    if (seededSessionRef.current === sessionCommittee.sessionId) return;
+    seededSessionRef.current = sessionCommittee.sessionId;
+    setCreateCommittee(activeCommittee.map((m) => m.userId));
+  }, [showCreate, committeeManage, sessionCommittee, activeCommittee]);
+  const committeeLocked = committeeManage && sessionCommittee?.locked === true;
+  const committeeReadOnly =
+    committeeManage &&
+    (committeeLocked || sessionCommittee?.canManage === false);
+  // 체크가 풀린 위원 중 조정 이력이 있는 사람 — 저장 전에 경고를 보여준다.
+  const droppedWithHistory = useMemo(() => {
+    if (!committeeManage) return [];
+    const keep = new Set(createCommittee);
+    return activeCommittee.filter(
+      (m) => !keep.has(m.userId) && (m.adjustmentCount ?? 0) > 0,
+    );
+  }, [committeeManage, createCommittee, activeCommittee]);
+  const adjustmentOf = useMemo(
+    () =>
+      new Map(
+        (sessionCommittee?.members ?? []).map((m) => [
+          m.userId,
+          m.adjustmentCount ?? 0,
+        ]),
+      ),
+    [sessionCommittee],
+  );
+  const committeeDirty = useMemo(() => {
+    if (!committeeManage) return true;
+    const before = activeCommittee.map((m) => m.userId).slice().sort();
+    const after = createCommittee.slice().sort();
+    return (
+      before.length !== after.length || before.some((id, i) => id !== after[i])
+    );
+  }, [committeeManage, activeCommittee, createCommittee]);
+
+  const closeCreateModal = () => {
+    setShowCreate(false);
+    setCommitteeManage(false);
+    seededSessionRef.current = null;
+  };
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
@@ -2231,6 +2308,25 @@ export default function EvalCycleSummaryCanvas({
                     {L.cwFilterBtn}
                     {isCalibFilterActive(calibFilter) ? ' ●' : ''}
                   </button>
+                  {onOpenCommittee && (
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost evs-cw-committee-btn"
+                      onClick={() => {
+                        setShowCreate(true);
+                        setCommitteeManage(true);
+                        setCommitteeSearch('');
+                        setCreateCommittee([]);
+                        seededSessionRef.current = null;
+                        onOpenCommittee?.();
+                      }}
+                      data-testid="evs-cw-committee"
+                    >
+                      {fmt(L.cwManageBtn, {
+                        n: calibTable?.session?.committeeCount ?? 0,
+                      })}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="evc-btn is-ghost evs-cw-csv"
@@ -3017,7 +3113,7 @@ export default function EvalCycleSummaryCanvas({
         <div
           className="evs-remind-overlay"
           data-testid="evs-cw-create-modal"
-          onClick={() => setShowCreate(false)}
+          onClick={closeCreateModal}
         >
           <div
             className="evs-cw-create"
@@ -3025,18 +3121,27 @@ export default function EvalCycleSummaryCanvas({
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="evs-cw-create-title">{L.cwCreateTitle}</div>
-            <div className="evs-cw-create-desc">{L.cwCreateDesc}</div>
+            <div className="evs-cw-create-title">
+              {committeeManage ? L.cwManageTitle : L.cwCreateTitle}
+            </div>
+            <div className="evs-cw-create-desc">
+              {committeeManage ? L.cwManageDesc : L.cwCreateDesc}
+            </div>
 
-            <label className="evs-cw-create-lbl">{L.cwCreateNameLabel}</label>
-            <input
-              className="evs-cw-create-input"
-              data-testid="evs-cw-create-name"
-              value={createName}
-              onChange={(e) => setCreateName(e.target.value)}
-              placeholder={L.cwCreateNamePlaceholder}
-            />
+            {!committeeManage && (
+              <>
+                <label className="evs-cw-create-lbl">{L.cwCreateNameLabel}</label>
+                <input
+                  className="evs-cw-create-input"
+                  data-testid="evs-cw-create-name"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  placeholder={L.cwCreateNamePlaceholder}
+                />
+              </>
+            )}
 
+            {!committeeManage && (
             <div className="evs-cw-create-section evs-cw-create-section-target">
               <div className="evs-cw-create-lbl">{L.cwCreateTargetLabel}</div>
               {sessionDeptOptions.length === 0 ? (
@@ -3114,9 +3219,12 @@ export default function EvalCycleSummaryCanvas({
                   );
                 })()}
             </div>
+            )}
 
             <div className="evs-cw-create-section evs-cw-create-section-committee">
-              <div className="evs-cw-create-lbl">{L.cwCreateCommitteeLabel}</div>
+              <div className="evs-cw-create-lbl">
+                {committeeManage ? L.cwManageListLabel : L.cwCreateCommitteeLabel}
+              </div>
               {committeeCandidates.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoCommittee}</div>
               ) : (
@@ -3147,6 +3255,7 @@ export default function EvalCycleSummaryCanvas({
                         key={c.id}
                         className={`evs-cw-candidate${on ? ' is-on' : ''}`}
                         data-testid="evs-cw-candidate"
+                        disabled={committeeReadOnly}
                         onClick={() =>
                           setCreateCommittee((prev) =>
                             prev.includes(c.id)
@@ -3168,6 +3277,13 @@ export default function EvalCycleSummaryCanvas({
                         {c.dept ? (
                           <span className="evs-cw-candidate-dept">{c.dept}</span>
                         ) : null}
+                        {committeeManage && adjustmentOf.get(c.id) > 0 ? (
+                          <span className="evs-cw-candidate-dept">
+                            {fmt(L.cwManageAdjustCount, {
+                              n: adjustmentOf.get(c.id),
+                            })}
+                          </span>
+                        ) : null}
                         {on && idx === 0 ? (
                           <span className="evs-cw-candidate-chair">{L.cwChair}</span>
                         ) : null}
@@ -3178,39 +3294,105 @@ export default function EvalCycleSummaryCanvas({
                 )}
                 </>
               )}
-              <div className="evs-cw-create-hint">{L.cwCreateCommitteeHint}</div>
+              <div className="evs-cw-create-hint">
+                {committeeManage ? L.cwManageHint : L.cwCreateCommitteeHint}
+              </div>
+              {committeeManage && pastCommittee.length > 0 && (
+                <div
+                  className="evs-cw-create-hint"
+                  data-testid="evs-cw-committee-past"
+                >
+                  {fmt(L.cwManagePastMembers, {
+                    names: pastCommittee
+                      .map((m) =>
+                        fmt(L.cwManagePastMember, {
+                          name: m.name,
+                          n: m.adjustmentCount ?? 0,
+                        }),
+                      )
+                      .join(', '),
+                  })}
+                </div>
+              )}
+              {committeeManage && committeeLocked && (
+                <div
+                  className="evs-cw-exclusion"
+                  data-testid="evs-cw-committee-locked"
+                >
+                  {L.cwManageLocked}
+                </div>
+              )}
+              {committeeManage &&
+                !committeeLocked &&
+                sessionCommittee?.canManage === false && (
+                  <div
+                    className="evs-cw-exclusion"
+                    data-testid="evs-cw-committee-readonly"
+                  >
+                    {L.cwManageNoPermission}
+                  </div>
+                )}
+              {committeeManage && droppedWithHistory.length > 0 && (
+                <div
+                  className="evs-cw-exclusion"
+                  data-testid="evs-cw-committee-warn"
+                >
+                  {fmt(L.cwManageAdjustWarn, {
+                    names: droppedWithHistory.map((m) => m.name).join(', '),
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="evs-cw-create-actions">
               <button
                 type="button"
                 className="evc-btn is-ghost"
-                onClick={() => setShowCreate(false)}
+                onClick={closeCreateModal}
               >
                 {L.cwCreateCancel}
               </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                data-testid="evs-cw-create-submit"
-                disabled={!createName.trim() || createCommittee.length === 0}
-                onClick={() => {
-                  const scope = {};
-                  if (createDepts.length > 0) scope.departments = createDepts;
-                  if (createLevels.length > 0) scope.levels = createLevels;
-                  onCreateSession?.({
-                    name: createName.trim(),
-                    scope,
-                    committee: createCommittee.map((userId, i) => ({
-                      userId,
-                      role: i === 0 ? 'chair' : 'member',
-                    })),
-                  });
-                  setShowCreate(false);
-                }}
-              >
-                {L.cwCreateSubmit}
-              </button>
+              {committeeManage ? (
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  data-testid="evs-cw-committee-submit"
+                  disabled={
+                    committeeReadOnly ||
+                    createCommittee.length === 0 ||
+                    !committeeDirty
+                  }
+                  onClick={() => {
+                    onSaveCommittee?.(createCommittee);
+                    closeCreateModal();
+                  }}
+                >
+                  {L.cwManageSubmit}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  data-testid="evs-cw-create-submit"
+                  disabled={!createName.trim() || createCommittee.length === 0}
+                  onClick={() => {
+                    const scope = {};
+                    if (createDepts.length > 0) scope.departments = createDepts;
+                    if (createLevels.length > 0) scope.levels = createLevels;
+                    onCreateSession?.({
+                      name: createName.trim(),
+                      scope,
+                      committee: createCommittee.map((userId, i) => ({
+                        userId,
+                        role: i === 0 ? 'chair' : 'member',
+                      })),
+                    });
+                    closeCreateModal();
+                  }}
+                >
+                  {L.cwCreateSubmit}
+                </button>
+              )}
             </div>
           </div>
         </div>,
