@@ -2519,6 +2519,37 @@
   background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803);
   font-size: 12px; font-weight: 600;
 }
+.admin-snap-pv-status-error {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--utility-error-50, #fef3f2); color: var(--utility-error-600, #d92d20);
+  font-size: 12px; font-weight: 600;
+}
+
+/* ── 겸직(다중 소속) 대량 발령 미리보기 — org-snapshot-spec §3-A ── */
+.admin-snap-status-badge.is-error {
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-600, #d92d20);
+}
+.admin-snap-preview-table tr.is-error { background: var(--utility-error-50, #fef3f2); }
+.admin-snap-warnbox {
+  background: var(--colors-warning-50, #fffaeb);
+  border: 1px solid var(--colors-warning-200, #fedf89);
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--colors-warning-700, #b54708);
+}
+/* 제거되는 소속은 붉은 톤 — 확정 전에 눈에 띄어야 한다(B2) */
+.admin-snap-aff-add { font-size: 11px; color: var(--utility-green-600, #079455); }
+.admin-snap-aff-remove { font-size: 11px; color: var(--utility-error-600, #d92d20); }
+.admin-snap-aff-promote { font-size: 11px; font-weight: 700; color: var(--text-brand-tertiary, #21a67a); }
+.admin-snap-aff-msg { font-size: 10.5px; margin-top: 3px; white-space: normal; max-width: 280px; }
+.admin-snap-aff-msg.is-error { color: var(--utility-error-600, #d92d20); }
+.admin-snap-aff-msg.is-warn { color: var(--colors-warning-700, #b54708); }
+.admin-snap-preview-table td .admin-snap-input { min-width: 150px; margin-bottom: 0; }
 
 /* ── 발령 이력 ── */
 .admin-snap-hist-layout { display: flex; gap: 16px; }
