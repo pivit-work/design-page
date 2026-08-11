@@ -472,6 +472,52 @@ function initSchedule(phases, baseDate) {
   return s;
 }
 
+/**
+ * PW-122 프리셋 일정은 '며칠째'로 저장한다.
+ * 프리셋에 담긴 절대 일시(원본 사이클의 날짜)를 그대로 되살리면 새 사이클 기간 밖의
+ * 날짜가 들어온다 — 첫 단계 시작일을 기준(0일)으로 한 오프셋 + 시각만 남긴다.
+ */
+function scheduleToOffsets(schedule) {
+  const DAY = 86400000;
+  const entries = Object.entries(schedule || {}).filter(
+    ([, v]) => v && datePart(v.start),
+  );
+  if (entries.length === 0) return null;
+  const baseMs = Math.min(
+    ...entries.map(([, v]) => new Date(`${datePart(v.start)}T00:00`).getTime()),
+  );
+  const offsetOf = (iso) =>
+    Math.round(
+      (new Date(`${datePart(iso)}T00:00`).getTime() - baseMs) / DAY,
+    );
+  const out = {};
+  entries.forEach(([id, v]) => {
+    out[id] = {
+      startDay: offsetOf(v.start),
+      startTime: timePart(v.start, 'start'),
+      endDay: datePart(v.end) ? offsetOf(v.end) : offsetOf(v.start),
+      endTime: timePart(v.end, 'end'),
+    };
+  });
+  return out;
+}
+
+/** 오프셋 일정 + 사이클 시작일 → 실제 일시. 시작일이 없으면 되살릴 수 없다. */
+function offsetsToSchedule(offsets, baseDate) {
+  if (!offsets || !baseDate) return {};
+  const DAY = 86400000;
+  const base = new Date(`${datePart(baseDate)}T00:00`).getTime();
+  const iso = (ms) => dateToIso(new Date(ms));
+  const out = {};
+  Object.entries(offsets).forEach(([id, o]) => {
+    out[id] = {
+      start: joinDateTime(iso(base + o.startDay * DAY), o.startTime),
+      end: joinDateTime(iso(base + o.endDay * DAY), o.endTime),
+    };
+  });
+  return out;
+}
+
 function StepBar({ steps, current, labels: L, onJump }) {
   return (
     <div className="evc-wiz-steps">
@@ -677,6 +723,9 @@ export default function EvalCycleWizard({
   );
   // 단계별 일정(review_sequence) 상태
   const [schedule, setSchedule] = useState(() => ({ ...(initialSeq?.schedule ?? {}) })); // { phaseId: { start, end } } 사용자 오버라이드
+  // PW-122 프리셋에서 불러온 일정의 '며칠째' 오프셋. 사이클 시작일이 정해지면
+  // 거기에 맞춰 다시 깔린다(원본 사이클의 절대 날짜를 그대로 쓰지 않는다).
+  const [presetOffsets, setPresetOffsets] = useState(null);
   const [reminders, setReminders] = useState(() => ({ ...(initialSeq?.reminders ?? {}) })); // { phaseId: [reminderObj] }
   const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 id
   const [disabledPhases, setDisabledPhases] = useState(
@@ -755,7 +804,10 @@ export default function EvalCycleWizard({
   const hasPeer = reviewTypes.includes('peer');
   const activePhases = activePhasesFor(reviewTypes);
   const defaultSchedule = initSchedule(activePhases, startDate);
-  const scheduleOf = (id) => schedule[id] || defaultSchedule[id] || { start: '', end: '' };
+  // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(시작일 기준) > 7일 간격 기본값.
+  const presetSchedule = offsetsToSchedule(presetOffsets, startDate);
+  const scheduleOf = (id) =>
+    schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
   const remindersOf = (id) => reminders[id] ?? defaultReminders();
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   const orderedMiddle = [
@@ -1262,7 +1314,11 @@ export default function EvalCycleWizard({
         templateMap: phaseTemplateMap,
         gradeCardPosition,
         roleMode,
+        roleVersions: roleMode === 'by_role' ? roleVersions : {},
       },
+      // PW-122: 템플릿 본문까지 담아야 '템플릿을 그대로 가져옵니다' 가 사실이 된다.
+      // 여기 없으면 단계별 템플릿 매핑(templateMap)만 남아 가리킬 대상이 사라진다.
+      templateConfig: { templates: savedTemplates },
       // A4: '대상자 조건' 까지 포함해야 프리셋이 사이클 설정 전체를 복제한다.
       targetConfig: {
         reviewTypes,
@@ -1309,7 +1365,12 @@ export default function EvalCycleWizard({
     setPromotionDirection(ex.promotionDirection || 'after');
     const rs = preset?.reviewSequence;
     if (rs?.gradeCardPosition) setGradeCardPosition(rs.gradeCardPosition);
-    if (rs?.schedule) setSchedule(rs.schedule);
+    // PW-122 일정은 '며칠째'로 바꿔 들고, 사이클 시작일에 맞춰 다시 깐다.
+    // 원본 사이클의 절대 날짜를 그대로 넣으면 새 사이클 기간 밖 날짜가 박힌다.
+    if (rs?.schedule) {
+      setPresetOffsets(scheduleToOffsets(rs.schedule));
+      setSchedule({});
+    }
     // 단계 순서·on/off 도 복원(저장은 하고 있었는데 복원을 빠뜨렸다).
     if (Array.isArray(rs?.order)) {
       setPhaseOrder(rs.order.filter((id) => id !== 'self' && id !== 'share'));
@@ -1318,6 +1379,17 @@ export default function EvalCycleWizard({
       setDisabledPhases(
         new Set(Object.keys(rs.enabled).filter((id) => rs.enabled[id] === false)),
       );
+    }
+    // PW-122 템플릿 라이브러리 + 단계별 매핑 + 직급별 버전까지 복원한다.
+    // 템플릿을 먼저 되살려야 매핑(templateMap)이 가리킬 대상이 생긴다.
+    const tpl = preset?.templateConfig || {};
+    if (Array.isArray(tpl.templates)) setSavedTemplates(tpl.templates);
+    if (rs?.templateMap && typeof rs.templateMap === 'object') {
+      setPhaseTemplateMap({ ...rs.templateMap });
+    }
+    if (rs?.roleMode) setRoleMode(rs.roleMode);
+    if (rs?.roleVersions && typeof rs.roleVersions === 'object') {
+      setRoleVersions({ ...rs.roleVersions });
     }
   };
 
