@@ -4277,6 +4277,10 @@
   background: var(--utility-blue-50, #eff8ff);
   color: var(--utility-blue-600, #1570ef);
 }
+/* 위원 후보 이름 검색 — 제목 입력과 같은 인풋 스타일을 그대로 쓰고 간격만 준다 */
+.evs-cw-create-search {
+  margin-bottom: 8px;
+}
 .evs-cw-create-candidates {
   display: flex;
   flex-direction: column;
