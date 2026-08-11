@@ -780,18 +780,6 @@
   border-color: var(--utility-blue-500);
   background: var(--utility-blue-50);
 }
-.evc-mode-radio {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid var(--utility-gray-200);
-  flex-shrink: 0;
-}
-.evc-mode-item.is-on .evc-mode-radio {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-500);
-  box-shadow: inset 0 0 0 3px var(--bg-quaternary);
-}
 .evc-mode-name {
   flex: 1;
   font-size: var(--font-size-text-sm, 14px);
@@ -1575,16 +1563,36 @@
   border-color: var(--utility-blue-500);
   background: var(--utility-blue-50);
 }
+/* 목록형 다중선택 체크박스 (평가·캘리브레이션 공용).
+   선택 상태는 부모 행 클래스가 아니라 이 요소 자신의 `.is-on` 으로 준다 —
+   부모에 스코프를 걸면 같은 마크업을 다른 행 클래스에 붙였을 때 체크 상태가
+   통째로 사라진다(동료 배정 방식 목록에서 실제로 그랬다).
+   강조색은 --evc-check-accent 로 행마다 바꿀 수 있다. */
 .evc-member-check {
+  position: relative;
+  --evc-check-accent: var(--utility-blue-500, #2e90fa);
   width: 16px;
   height: 16px;
   border-radius: var(--radius-xs, 6px);
   border: 2px solid var(--utility-gray-200);
+  background: var(--bg-primary, #fff);
   flex-shrink: 0;
 }
-.evc-member-item.is-on .evc-member-check {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-500);
+.evc-member-check.is-on {
+  border-color: var(--evc-check-accent);
+  background: var(--evc-check-accent);
+}
+/* 체크 표시는 이모지·아이콘 폰트 없이 두 변으로 그린다 */
+.evc-member-check.is-on::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 8px;
+  border: solid var(--bg-primary, #fff);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 .evc-member-name {
   flex: 1;
@@ -4313,10 +4321,9 @@
   background: var(--utility-purple-100, #ebe9fe);
   color: var(--utility-purple-700, #5925dc);
 }
-.evs-cw-candidate-check {
-  margin-left: auto;
-  color: var(--utility-purple-600, #6938ef);
-  font-weight: 700;
+/* 캘리브레이션 위원 후보는 보라 강조를 쓰므로 체크박스 강조색만 갈아끼운다 */
+.evs-cw-candidate .evc-member-check {
+  --evc-check-accent: var(--utility-purple-600, #6938ef);
 }
 .evs-cw-create-hint {
   font-size: 11px;
@@ -5233,8 +5240,8 @@
 }
 .evc-wiz-committee-item {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 8px;
   padding: 10px 12px;
   border-radius: var(--radius-md, 10px);
   border: 1.5px solid var(--border-secondary, var(--utility-gray-200));
@@ -5245,6 +5252,12 @@
 .evc-wiz-committee-item.is-on {
   border-color: var(--utility-blue-500, #2e90fa);
   background: var(--utility-blue-50, #eff8ff);
+}
+.evc-wiz-committee-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 .evc-wiz-committee-name {
   display: flex;
