@@ -3119,6 +3119,10 @@ export default function EvalCycleSummaryCanvas({
                           )
                         }
                       >
+                        <span
+                          className={`evc-member-check${on ? ' is-on' : ''}`}
+                          data-testid={`evs-cw-candidate-check-${c.id}`}
+                        />
                         <span className="evs-cw-candidate-name">{c.name}</span>
                         <span
                           className={`evs-cw-candidate-kind tone-${c.kind === 'lead' ? 'accent' : 'muted'}`}
@@ -3131,7 +3135,6 @@ export default function EvalCycleSummaryCanvas({
                         {on && idx === 0 ? (
                           <span className="evs-cw-candidate-chair">{L.cwChair}</span>
                         ) : null}
-                        {on ? <span className="evs-cw-candidate-check">✓</span> : null}
                       </button>
                     );
                   })}

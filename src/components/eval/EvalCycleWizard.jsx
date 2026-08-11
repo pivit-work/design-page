@@ -1431,7 +1431,10 @@ export default function EvalCycleWizard({
                         onClick={() => togglePeerMode(m.key)}
                         data-testid={`evc-wiz-mode-${m.key}`}
                       >
-                        <span className="evc-member-check" />
+                        <span
+                          className={`evc-member-check${peerAssignModes.includes(m.key) ? ' is-on' : ''}`}
+                          data-testid={`evc-wiz-mode-check-${m.key}`}
+                        />
                         <span className="evc-mode-name">{L[m.label]}</span>
                         {m.badge && (
                           <span className={`evc-mode-badge${m.badge === 'exceptionBadge' ? ' is-warn' : ''}`}>
@@ -2366,7 +2369,10 @@ export default function EvalCycleWizard({
                         onClick={() => toggleMember(c.id)}
                         data-testid={`evc-wiz-member-${c.id}`}
                       >
-                        <span className="evc-member-check" />
+                        <span
+                          className={`evc-member-check${selectedIds.includes(c.id) ? ' is-on' : ''}`}
+                          data-testid={`evc-wiz-member-check-${c.id}`}
+                        />
                         <span className="evc-member-name">{c.name}</span>
                         {c.department && (
                           <span className="evc-member-dept">{c.department}</span>
@@ -2639,19 +2645,25 @@ export default function EvalCycleWizard({
                             }
                             data-testid="evc-wiz-committee-item"
                           >
-                            <span className="evc-wiz-committee-name">
-                              {c.name}
-                              {on && idx === 0 && (
-                                <span className="evc-wiz-committee-chair">
-                                  {L.wizardCommitteeChair}
-                                </span>
-                              )}
-                            </span>
-                            <span className="evc-wiz-committee-meta">
-                              {c.kind === 'lead'
-                                ? L.wizardCommitteeLead
-                                : L.wizardCommitteeSenior}
-                              {c.dept ? ` · ${c.dept}` : ''}
+                            <span
+                              className={`evc-member-check${on ? ' is-on' : ''}`}
+                              data-testid={`evc-wiz-committee-check-${c.id}`}
+                            />
+                            <span className="evc-wiz-committee-text">
+                              <span className="evc-wiz-committee-name">
+                                {c.name}
+                                {on && idx === 0 && (
+                                  <span className="evc-wiz-committee-chair">
+                                    {L.wizardCommitteeChair}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="evc-wiz-committee-meta">
+                                {c.kind === 'lead'
+                                  ? L.wizardCommitteeLead
+                                  : L.wizardCommitteeSenior}
+                                {c.dept ? ` · ${c.dept}` : ''}
+                              </span>
                             </span>
                           </button>
                         );
