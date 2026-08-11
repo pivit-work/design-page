@@ -40,6 +40,7 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
           <div className="tab-nav">
             <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>조직도</span>
             <span className="tab-active">프로젝트</span>
+            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>스쿼드</span>
           </div>
           <div className="header-subtitle">
             <b>프로젝트</b>
