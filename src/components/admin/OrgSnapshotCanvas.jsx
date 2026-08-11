@@ -127,6 +127,21 @@ const DEFAULT_LABELS = {
   bulkReasonPlaceholder: '일괄 발령 사유',
   bulkPreviewPending: '파일 검증 대기 중',
   confirmBulkPrefix: '발령 확정',
+  // 겸직(다중 소속) 배열 포맷 — org-snapshot-spec.md §3-A
+  affFormatTitle: '겸직은 행을 나누지 않습니다.',
+  affFormatBody: '조직경로 한 칸에 | 로 나열하세요 — 프로덕트 > 백엔드 | 플랫폼 > 데이터',
+  affFormatRule: '배열이면 주소속이 필수이고, 조직장은 조직경로에 포함된 값만 쓸 수 있습니다.',
+  affOverwriteWarning:
+    '업로드는 소속을 배열대로 덮어씁니다. 파일에 없는 기존 소속은 제거됩니다(− 표시). 한 사람의 소속 중 하나라도 실패하면 그 사람 전체를 되돌립니다.',
+  affColChange: '소속 변경',
+  affColPrimary: '주 소속',
+  affColLeader: '조직장',
+  affColRole: '권한',
+  affNoChange: '변경 없음',
+  affPromote: '멤버 → 매니저',
+  affSelectPrimary: '주 소속 선택',
+  errorCount: '제외',
+  statusError: '제외',
   // 이력
   historyEmpty: '발령 이력이 없습니다',
   historyDate: '발령일',
@@ -555,15 +570,16 @@ function OrgSnapshotStatusView({
  * ════════════════════════════════════════════════════════════ */
 function AppointmentSingleView({
   members, fieldOptions, changeableFields, selectFieldKeys, appointmentTypes,
-  labels, onSubmit,
+  labels, onSubmit, defaultDate = '',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [selectedFields, setSelectedFields] = useState(() => new Set());
   const [appointmentType, setAppointmentType] = useState('');
-  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentDate, setAppointmentDate] = useState(defaultDate);
   const [reason, setReason] = useState('');
   const [changes, setChanges] = useState({});
+  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -582,13 +598,14 @@ function AppointmentSingleView({
 
   const reset = () => {
     setSelectedMember(null); setSelectedFields(new Set());
-    setAppointmentType(''); setAppointmentDate(''); setReason('');
-    setChanges({}); setDone(false);
+    setAppointmentType(''); setAppointmentDate(defaultDate); setReason('');
+    setChanges({}); setDone(false); setSubmitError('');
   };
 
   const handleConfirm = async () => {
     if (!selectedMember) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       const changeList = Array.from(selectedFields).map((f) => ({
         field: f,
@@ -603,6 +620,9 @@ function AppointmentSingleView({
         changes: changeList,
       });
       setDone(true);
+    } catch (err) {
+      // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
+      setSubmitError(err?.message || String(err));
     } finally {
       setSubmitting(false);
     }
@@ -731,13 +751,16 @@ function AppointmentSingleView({
             <div className="admin-snap-empty-fields">{labels.noFieldsSelected}</div>
           )}
 
+          {submitError && (
+            <div className="admin-snap-warnbox" role="alert">{submitError}</div>
+          )}
           <div className="admin-snap-actions">
             <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
             <button
               type="button"
               className="admin-emp-btn is-primary"
               onClick={handleConfirm}
-              disabled={!selectedMember || selectedFields.size === 0 || submitting}
+              disabled={!selectedMember || selectedFields.size === 0 || !appointmentDate || submitting}
             >
               {labels.confirmAppointment}
             </button>
@@ -751,20 +774,53 @@ function AppointmentSingleView({
 /* ════════════════════════════════════════════════════════════
  * 3. 인사발령 대량
  * ════════════════════════════════════════════════════════════ */
-function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
+/* 상태 아이콘 — 이모지 글리프 대신 인라인 SVG(색은 부모 color 상속). */
+function StatusIcon({ tone, size = 12 }) {
+  const path = tone === 'ok'
+    ? <polyline points="20 6 9 17 4 12" />
+    : tone === 'error'
+      ? <><circle cx="12" cy="12" r="9" /><line x1="8" y1="12" x2="16" y2="12" /></>
+      : <><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {path}
+    </svg>
+  );
+}
+
+/* ── 인사 발령 — 대량 ────────────────────────────────────────
+   겸직(다중 소속)은 행을 나누지 않고 조직경로 한 칸에 `|` 배열로 넣는다
+   (org-snapshot-spec.md §3-A). 파싱·검증 규칙은 소비자가 `parseUpload` 로
+   주입한다 — 조직 트리·현재 소속·조직장 같은 판정 근거가 앱에 있기 때문이다. */
+function AppointmentBulkView({
+  members, bulkFields, labels, onSubmit, defaultDate = '',
+  parseUpload, onFixPrimary, affiliationTemplate,
+}) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
   const [file, setFile] = useState(null);
   const [reason, setReason] = useState('');
-  const [date, setDate] = useState('');
+  // 발령 일자는 비워 두지 않는다 — 빈 값으로 확정하면 서버가 400 을 돌려주는데
+  // 화면에는 아무 설명도 남지 않아 "확정이 안 눌린다" 로 보인다.
+  const [date, setDate] = useState(defaultDate);
   const [previewRows, setPreviewRows] = useState([]);
+  const [affiliationMode, setAffiliationMode] = useState(false);
+  const [parseError, setParseError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const fileInputRef = useRef(null);
 
   const fields = Array.from(selectedColumns);
   const okRows = previewRows.filter((r) => r.status === 'ok');
+  // 겸직 미리보기에서는 조직경로가 '소속 변경' 열로 이미 표현된다 — 같은 값을
+  // '변경 전/후 조직경로' 로 한 번 더 두면 늘 비어 있는 빈 열이 남는다.
+  const previewFields = affiliationMode ? fields.filter((f) => f !== 'orgPath') : fields;
   const warnRows = previewRows.filter((r) => r.status === 'warn');
+  const errorRows = previewRows.filter((r) => r.status === 'error');
+  // 확정 대상 = 정상 + 경고(진행 가능). 제외 행은 빠진다(§3-A-3).
+  const applicableRows = previewRows.filter((r) => r.status !== 'error');
 
   const toggleColumn = (f) => setSelectedColumns((prev) => {
     const next = new Set(prev);
@@ -772,15 +828,36 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
     return next;
   });
 
+  /* 템플릿 — 겸직 열(주소속·조직장)과 **실제 겸직 샘플 행**을 함께 싣는다.
+     빈 행만 주면 HR 이 구분자를 모른 채 행을 쪼개고, 그러면 뒤 행이 앞 행을
+     덮어써 겸직이 아니라 이동이 된다(B1 선언형 덮어쓰기). */
   const downloadTemplate = useCallback(() => {
     const fieldLabels = fields.map((f) => labels.fieldLabels[f] ?? f);
-    const headers = [labels.target, '사번', ...fieldLabels];
-    const sample = ['홍길동', 'EMP001', ...fieldLabels.map(() => '')];
-    triggerCSVDownload([headers.join(','), sample.join(',')].join('\n'), 'pivit_appointment_template.csv');
-  }, [fields, labels]);
+    const extraCols = affiliationTemplate?.columns ?? [];
+    const headers = [labels.target, '사번', ...fieldLabels, ...extraCols];
+    const sampleByField = affiliationTemplate?.sampleByField ?? {};
+    const sample = [
+      '홍길동', 'EMP001',
+      ...fields.map((f) => sampleByField[f] ?? ''),
+      ...(affiliationTemplate?.sample ?? extraCols.map(() => '')),
+    ];
+    const esc = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v);
+    triggerCSVDownload(
+      [headers.map(esc).join(','), sample.map(esc).join(',')].join('\n'),
+      'pivit_appointment_template.csv',
+    );
+  }, [fields, labels, affiliationTemplate]);
 
   const parseUploaded = useCallback(async (f) => {
     const text = await f.text();
+    // 소비자가 파서를 주입하면 겸직 검증(§3-A)을 그쪽 규칙으로 돌린다.
+    if (parseUpload) {
+      const parsed = parseUpload(text, { fields, fileName: f.name });
+      setPreviewRows(parsed?.rows ?? []);
+      setAffiliationMode(!!parsed?.hasAffiliationColumns);
+      setParseError(parsed?.error ?? '');
+      return;
+    }
     const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
     if (lines.length < 2) return;
     const header = parseCSVLine(lines[0]);
@@ -807,29 +884,51 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
       rows.push({ name, employeeCode: code || undefined, matchedMember: matched, changes, status: matched ? 'ok' : 'warn' });
     }
     setPreviewRows(rows);
-  }, [members, bulkFields, labels]);
+    setAffiliationMode(false);
+    setParseError('');
+  }, [members, bulkFields, labels, parseUpload, fields]);
 
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0];
-    if (f) { setFile(f); parseUploaded(f); }
+  // 파싱을 마쳐야 Step 3 으로 넘어간다 — 검증을 건너뛴 확정 경로를 두지 않는다.
+  const acceptFile = (f) => {
+    if (!f) return;
+    setFile(f);
+    Promise.resolve(parseUploaded(f)).then(() => setStep(3));
   };
+  const onFileChange = (e) => acceptFile(e.target.files?.[0]);
   const onDrop = (e) => {
     e.preventDefault();
-    const f = e.dataTransfer.files?.[0];
-    if (f) { setFile(f); parseUploaded(f); }
+    acceptFile(e.dataTransfer.files?.[0]);
+  };
+
+  /* 주 소속 인라인 수정(§3-A-3) — 소비자가 재검증한 행으로 갈아 끼운다. */
+  const fixPrimary = (row, value) => {
+    if (!onFixPrimary) return;
+    const next = onFixPrimary(row, value);
+    if (!next) return;
+    setPreviewRows((prev) => prev.map((r) => (r === row ? next : r)));
   };
 
   const handleConfirm = async () => {
-    if (okRows.length === 0) return;
+    if (applicableRows.length === 0) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await onSubmit?.({
-        rows: okRows.map((r) => ({ memberId: r.matchedMember.id, changes: r.changes })),
+        rows: applicableRows
+          .filter((r) => r.memberId || r.matchedMember)
+          .map((r) => ({
+            memberId: r.memberId ?? r.matchedMember.id,
+            changes: r.fieldChanges ?? r.changes ?? {},
+            ...(r.teams ? { affiliation: { teams: r.teams, primary: r.primary, leaders: r.leaders ?? [] } } : {}),
+          })),
         date,
         reason,
         fields,
       });
       setDone(true);
+    } catch (err) {
+      // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
+      setSubmitError(err?.message || String(err));
     } finally {
       setSubmitting(false);
     }
@@ -837,7 +936,8 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
 
   const reset = () => {
     setStep(1); setSelectedColumns(new Set()); setFile(null);
-    setReason(''); setDate(''); setPreviewRows([]); setDone(false);
+    setReason(''); setDate(defaultDate); setPreviewRows([]); setDone(false);
+    setAffiliationMode(false); setParseError(''); setSubmitError('');
   };
 
   if (done) {
@@ -845,7 +945,7 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
       <div className="admin-snap-done">
         <div className="admin-snap-done-icon">✓</div>
         <div className="admin-snap-done-title">{labels.appointmentDone}</div>
-        <div className="admin-snap-done-sub">{labels.okCount} {okRows.length}{labels.countUnit}</div>
+        <div className="admin-snap-done-sub">{labels.okCount} {applicableRows.length}{labels.countUnit}</div>
         <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
       </div>
     );
@@ -936,9 +1036,21 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
                 </>
               )}
             </div>
-            <div className="admin-snap-actions" style={{ justifyContent: 'space-between' }}>
+            {/* 겸직 포맷 안내 — 구분자를 모르면 행을 쪼개고, 그러면 뒤 행이 앞 행을 덮어쓴다(B1). */}
+            {affiliationTemplate && (
+              <div className="admin-snap-hint">
+                <strong>{labels.affFormatTitle}</strong> {labels.affFormatBody}
+                <br />
+                {labels.affFormatRule}
+              </div>
+            )}
+            {parseError && (
+              <div className="admin-snap-hint" role="alert" style={{ color: 'var(--colors-warning-600, #dc6803)' }}>
+                {parseError}
+              </div>
+            )}
+            <div className="admin-snap-actions">
               <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(1)}>← {labels.prev}</button>
-              <button type="button" className="admin-emp-btn is-primary" disabled={!file} onClick={() => setStep(3)}>{labels.next} →</button>
             </div>
           </div>
         )}
@@ -946,37 +1058,119 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
         {step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div className="admin-snap-status-badges">
-              <span className="admin-snap-status-badge is-ok">✅ {labels.okCount} {okRows.length}{labels.countUnit}</span>
+              <span className="admin-snap-status-badge is-ok">
+                <StatusIcon tone="ok" /> {labels.okCount} {okRows.length}{labels.countUnit}
+              </span>
               {warnRows.length > 0 && (
-                <span className="admin-snap-status-badge is-warn">⚠️ {labels.warnCount} {warnRows.length}{labels.countUnit}</span>
+                <span className="admin-snap-status-badge is-warn">
+                  <StatusIcon tone="warn" /> {labels.warnCount} {warnRows.length}{labels.countUnit}
+                </span>
+              )}
+              {errorRows.length > 0 && (
+                <span className="admin-snap-status-badge is-error">
+                  <StatusIcon tone="error" /> {labels.errorCount} {errorRows.length}{labels.countUnit}
+                </span>
               )}
             </div>
+            {/* B2 — 선언형 덮어쓰기의 파괴성을 확정 전에 반드시 알린다. 이 문장이 없으면
+                어드민이 "추가만 되는" 동작을 기대하고 남의 겸직을 통째로 날린다. */}
+            {affiliationMode && (
+              <div className="admin-snap-warnbox">{labels.affOverwriteWarning}</div>
+            )}
             {previewRows.length > 0 ? (
               <div className="admin-snap-preview-scroll">
                 <table className="admin-snap-preview-table">
                   <thead>
                     <tr>
                       <th>{labels.target}</th>
-                      {fields.map((f) => <th key={`b-${f}`}>{labels.fieldBefore} {labels.fieldLabels[f] ?? f}</th>)}
-                      <th aria-hidden="true" />
-                      {fields.map((f) => <th key={`a-${f}`}>{labels.fieldAfter} {labels.fieldLabels[f] ?? f}</th>)}
+                      {affiliationMode && (
+                        <>
+                          <th>{labels.affColChange}</th>
+                          <th>{labels.affColPrimary}</th>
+                          <th>{labels.affColLeader}</th>
+                          <th>{labels.affColRole}</th>
+                        </>
+                      )}
+                      {previewFields.map((f) => <th key={`b-${f}`}>{labels.fieldBefore} {labels.fieldLabels[f] ?? f}</th>)}
+                      {previewFields.length > 0 && <th aria-hidden="true" />}
+                      {previewFields.map((f) => <th key={`a-${f}`}>{labels.fieldAfter} {labels.fieldLabels[f] ?? f}</th>)}
                       <th>{labels.historyDetail}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {previewRows.map((row, i) => (
-                      <tr key={i} className={row.status === 'warn' ? 'is-warn' : undefined}>
-                        <td className="admin-snap-pv-name">{row.name}</td>
-                        {fields.map((f) => <td key={`b-${f}`} className="admin-snap-pv-before">{row.changes[f]?.before ?? '-'}</td>)}
-                        <td className="admin-snap-ba-arrow">→</td>
-                        {fields.map((f) => <td key={`a-${f}`} className="admin-snap-pv-after">{row.changes[f]?.after ?? '-'}</td>)}
-                        <td>
-                          {row.status === 'ok'
-                            ? <span className="admin-snap-pv-status-ok">✓ {labels.statusOk}</span>
-                            : <span className="admin-snap-pv-status-warn">⚠ {labels.statusWarn}</span>}
-                        </td>
-                      </tr>
-                    ))}
+                    {previewRows.map((row, i) => {
+                      const changes = row.fieldChanges ?? row.changes ?? {};
+                      return (
+                        <tr key={i} className={row.status === 'warn' ? 'is-warn' : row.status === 'error' ? 'is-error' : undefined}>
+                          <td className="admin-snap-pv-name">{row.name || '—'}</td>
+                          {affiliationMode && (
+                            <>
+                              <td>
+                                {(row.added ?? []).map((tPath) => (
+                                  <div key={`add-${tPath}`} className="admin-snap-aff-add">+ {tPath}</div>
+                                ))}
+                                {(row.removed ?? []).map((tPath) => (
+                                  <div key={`rm-${tPath}`} className="admin-snap-aff-remove">− {tPath}</div>
+                                ))}
+                                {(row.added ?? []).length === 0 && (row.removed ?? []).length === 0 && (
+                                  <span className="admin-snap-pv-before">{labels.affNoChange}</span>
+                                )}
+                              </td>
+                              <td>
+                                {/* 주소속 미지정·불일치는 여기서 바로 고칠 수 있다(§3-A-3). */}
+                                {onFixPrimary && (row.primaryOptions ?? []).length > 1 ? (
+                                  <select
+                                    className="admin-snap-input"
+                                    aria-label={labels.affSelectPrimary}
+                                    value={row.primary || ''}
+                                    onChange={(e) => fixPrimary(row, e.target.value)}
+                                  >
+                                    <option value="">{labels.affSelectPrimary}</option>
+                                    {(row.primaryOptions ?? []).map((opt) => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="admin-snap-pv-after">{row.primary || '—'}</span>
+                                )}
+                              </td>
+                              <td>
+                                {(row.leaders ?? []).length
+                                  ? (row.leaders ?? []).map((l) => <div key={l}>{l}</div>)
+                                  : <span className="admin-snap-pv-before">—</span>}
+                              </td>
+                              <td>
+                                {row.promote
+                                  ? <span className="admin-snap-aff-promote">{labels.affPromote}</span>
+                                  : <span className="admin-snap-pv-before">{labels.affNoChange}</span>}
+                              </td>
+                            </>
+                          )}
+                          {previewFields.map((f) => <td key={`b-${f}`} className="admin-snap-pv-before">{changes[f]?.before ?? '-'}</td>)}
+                          {previewFields.length > 0 && <td className="admin-snap-ba-arrow">→</td>}
+                          {previewFields.map((f) => <td key={`a-${f}`} className="admin-snap-pv-after">{changes[f]?.after ?? '-'}</td>)}
+                          <td>
+                            {row.status === 'ok' && (
+                              <span className="admin-snap-pv-status-ok"><StatusIcon tone="ok" /> {labels.statusOk}</span>
+                            )}
+                            {row.status === 'warn' && (
+                              <span className="admin-snap-pv-status-warn"><StatusIcon tone="warn" /> {labels.warnCount}</span>
+                            )}
+                            {row.status === 'error' && (
+                              <span className="admin-snap-pv-status-error"><StatusIcon tone="error" /> {labels.statusError}</span>
+                            )}
+                            {(row.messages ?? []).map((m, mi) => (
+                              <div
+                                key={mi}
+                                className={m.severity === 'error' ? 'admin-snap-aff-msg is-error' : 'admin-snap-aff-msg is-warn'}
+                              >
+                                {m.text}
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -993,10 +1187,14 @@ function AppointmentBulkView({ members, bulkFields, labels, onSubmit }) {
                 <input className="admin-snap-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={labels.bulkReasonPlaceholder} />
               </div>
             </div>
+            {submitError && (
+              <div className="admin-snap-warnbox" role="alert">{submitError}</div>
+            )}
             <div className="admin-snap-actions" style={{ justifyContent: 'space-between' }}>
               <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(2)}>← {labels.prev}</button>
-              <button type="button" className="admin-emp-btn is-primary" disabled={okRows.length === 0 || submitting} onClick={handleConfirm}>
-                {labels.confirmBulkPrefix} ({okRows.length}{labels.countUnit})
+              {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
+              <button type="button" className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting} onClick={handleConfirm}>
+                {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
               </button>
             </div>
           </div>
@@ -1260,6 +1458,16 @@ export default function OrgSnapshotCanvas({
   appointmentTypes = [],
   onSubmitSingle,
   onSubmitBulk,
+  /**
+   * 겸직 CSV 파서 주입(§3-A). `(text, {fields, fileName}) => { rows, summary,
+   * hasAffiliationColumns, error }`. 조직 트리·현재 소속·조직장 같은 판정 근거가
+   * 앱에 있으므로 검증 규칙은 소비자가 갖는다. 없으면 기존 필드 파서로 동작한다.
+   */
+  parseBulkUpload,
+  /** 미리보기에서 주 소속을 고쳤을 때 재검증한 행을 돌려준다. `(row, value) => row` */
+  onFixBulkPrimary,
+  /** 템플릿에 덧붙일 겸직 열/샘플: `{ columns: [], sample: [], sampleByField: {} }` */
+  bulkAffiliationTemplate,
   // 이력
   historyRecords = [],
   onExportHistory,
@@ -1333,6 +1541,7 @@ export default function OrgSnapshotCanvas({
               appointmentTypes={appointmentTypes}
               labels={labels}
               onSubmit={onSubmitSingle}
+              defaultDate={today}
             />
           )}
           {view === 'bulk' && (
@@ -1341,6 +1550,10 @@ export default function OrgSnapshotCanvas({
               bulkFields={bulkFields}
               labels={labels}
               onSubmit={onSubmitBulk}
+              defaultDate={today}
+              parseUpload={parseBulkUpload}
+              onFixPrimary={onFixBulkPrimary}
+              affiliationTemplate={bulkAffiliationTemplate}
             />
           )}
           {view === 'history' && (
