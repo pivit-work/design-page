@@ -305,6 +305,10 @@ export default function BillingPlansCanvas({
   vatRate = 0.1,
   canEdit = false,
   labels: providedLabels,
+  interval: intervalProp,
+  seats: seatsProp,
+  onIntervalChange,
+  onSeatsChange,
   onSelectPlanUpgrade = () => {},
   onConfirmChange = () => {},
   onNavigateCheckout = () => {},
@@ -315,12 +319,26 @@ export default function BillingPlansCanvas({
 }) {
   const labels = mergeLabels(providedLabels);
 
-  const [interval, setInterval] = useState('monthly'); // monthly | annual
-  const [seats, setSeats] = useState(activeSeats);
+  const [intervalState, setIntervalState] = useState('monthly'); // monthly | annual
+  const [seatsState, setSeatsState] = useState(activeSeats);
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [downgradeChecked, setDowngradeChecked] = useState(false);
   const [profileWarning, setProfileWarning] = useState(false);
   const [previewPlanCode, setPreviewPlanCode] = useState(null);
+
+  // 청구 주기·좌석 수는 onIntervalChange/onSeatsChange 주입 시 controlled(위임),
+  // 아니면 내부 state (BillingCheckoutCanvas 의 onSeatCountChange 와 같은 규약).
+  // 호스트가 위임받으면 화면을 떠났다 돌아와도 사용자의 선택이 유지된다.
+  const interval = onIntervalChange ? (intervalProp ?? 'monthly') : intervalState;
+  const setInterval = (v) => {
+    if (onIntervalChange) onIntervalChange(v);
+    else setIntervalState(v);
+  };
+  const seats = onSeatsChange ? (seatsProp ?? activeSeats) : seatsState;
+  const setSeats = (n) => {
+    if (onSeatsChange) onSeatsChange(n);
+    else setSeatsState(n);
+  };
 
   const setSeatsClamped = (n) => setSeats(Math.max(1, Math.min(999, isNaN(n) ? (activeSeats || 1) : n)));
 
