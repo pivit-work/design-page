@@ -1117,12 +1117,55 @@ export default function EvalCycleWizard({
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
   const committeeValid = !committeeOn || committee.length > 0;
+
+  // PW-123 평가 템플릿 게이트.
+  //
+  // 템플릿을 하나도 만들지 않고 끝까지 눌러도 사이클이 만들어졌다. 그렇게 만든 사이클은
+  // 리뷰 화면에서 templateMap[단계] 가 비어 **문항이 0개인 평가지**가 열린다(에러 없이).
+  // 그래서 "각 리뷰 단계에 적용할 템플릿이 지정됐는가"를 진행 조건으로 둔다.
+  //
+  // 매핑을 채우는 곳은 3단계(단계별 일정)지만, 매핑할 템플릿 자체는 2단계에서 만든다.
+  // 2단계에서 유형별 템플릿을 안 만들면 3단계 드롭다운이 아예 안 뜨므로(빈 상태 안내),
+  // 두 단계를 각각 막아 어디서 무엇이 모자란지 그 자리에서 알 수 있게 한다.
+  const templatePhases = displayPhases.filter(
+    (p) => PHASE_TO_REVIEW_TYPE[p.id] && !disabledPhases.has(p.id),
+  );
+  // 관리 모드는 savedTemplates 가 비어 있고 서버 template id 매핑만 들고 온다 —
+  // 이미 매핑된 단계는 라이브러리에 없어도 충족으로 본다.
+  const phasesMissingLibrary = templatePhases.filter(
+    (p) =>
+      !phaseTemplateMap[p.id] &&
+      !savedTemplates.some((t) => t.reviewType === PHASE_TO_REVIEW_TYPE[p.id]),
+  );
+  const phasesMissingTemplate = templatePhases.filter(
+    (p) => !phaseTemplateMap[p.id],
+  );
+  const templateLibraryValid = phasesMissingLibrary.length === 0;
+  const templateMapValid = phasesMissingTemplate.length === 0;
+  const phaseNames = (phases) => phases.map((p) => L[p.nameKey]).join(', ');
+
   const canAdvance =
     (step === 0 && step1Valid) ||
-    step === 1 ||
-    step === 2 ||
+    (step === 1 && templateLibraryValid) ||
+    (step === 2 && templateMapValid) ||
     (step === 3 && targetsValid) ||
     (step === 4 && committeeValid);
+
+  // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
+  // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
+  const canSubmit =
+    step1Valid && templateLibraryValid && templateMapValid && targetsValid && committeeValid;
+  const submitBlockHint = !step1Valid
+    ? L.submitBlockBasics
+    : !templateLibraryValid
+      ? L.submitBlockTemplate
+      : !templateMapValid
+        ? L.submitBlockTemplateMap
+        : !targetsValid
+          ? L.submitBlockTargets
+          : !committeeValid
+            ? L.submitBlockCommittee
+            : null;
 
   const submit = () => {
     const payload = {
@@ -2768,6 +2811,22 @@ export default function EvalCycleWizard({
           <button type="button" className="evc-btn is-ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
             {step === 0 ? L.cancel : L.prev}
           </button>
+          {/* PW-119 와 같은 방식 — 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다. */}
+          {step === 1 && !templateLibraryValid && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-template">
+              {L.blockTemplateLibrary} ({phaseNames(phasesMissingLibrary)})
+            </span>
+          )}
+          {step === 2 && !templateMapValid && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-template-map">
+              {L.blockTemplateMap} ({phaseNames(phasesMissingTemplate)})
+            </span>
+          )}
+          {step === steps.length - 1 && submitBlockHint && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-submit">
+              {submitBlockHint}
+            </span>
+          )}
           {step < steps.length - 1 ? (
             <button
               type="button"
@@ -2779,7 +2838,13 @@ export default function EvalCycleWizard({
               {L.next}
             </button>
           ) : (
-            <button type="button" className="evc-btn is-primary" onClick={submit} data-testid="evc-wiz-submit">
+            <button
+              type="button"
+              className="evc-btn is-primary"
+              disabled={!canSubmit}
+              onClick={submit}
+              data-testid="evc-wiz-submit"
+            >
               {isManage ? L.saveChanges : L.create}
             </button>
           )}
