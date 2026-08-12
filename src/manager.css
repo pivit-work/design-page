@@ -1092,6 +1092,26 @@
 .mgr-krm-stat span { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .mgr-krm-alert { padding: 6px 8px; border-radius: 6px; background: var(--utility-error-50); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-error-500); }
 
+/* 차트 온디맨드 (PW-93 · policy §7-6)
+   비선택 카드의 정적 대체 표현 · 로딩 스켈레톤 · 차트 실패 폴백.
+   상태 클래스는 요소 자신에 붙인다 — 부모(.is-selected) 스코프로 쓰면 카드를 다른
+   목록에 재사용할 때 표시가 통째로 사라진다. */
+.mgr-krm-static { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; background: var(--bg-secondary); border: 1px dashed var(--border-secondary); }
+.mgr-krm-static-summary { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.mgr-krm-static-hint { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-krm-skel { display: inline-block; border-radius: 4px; background: var(--utility-gray-200); animation: mgr-krm-skel-pulse 1.2s ease-in-out infinite; }
+.mgr-krm-skel-title { width: 96px; height: 13px; }
+.mgr-krm-skel-percent { width: 28px; height: 13px; }
+@keyframes mgr-krm-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
+.mgr-kr-trend-bars.is-skeleton .mgr-kr-trend-bar { background: var(--utility-gray-200); animation: mgr-krm-skel-pulse 1.2s ease-in-out infinite; }
+.mgr-kr-trend-error { grid-column: 2; grid-row: 4; margin-top: 22px; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
+.mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-kr-trend-retry { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-primary); background: var(--bg-primary); font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.mgr-kr-empty { padding: 24px 0; font-size: 14px; font-weight: 500; color: var(--text-tertiary); }
+
 /* 기여 상세 패널 */
 /* 스크롤 시 sticky 헤더(탭+팀원 메타) 아래에 고정 */
 .mgr-krd-panel { flex: 1; min-width: 0; position: sticky; top: 128px; padding: 32px; border-radius: 14px; background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 24px; }
