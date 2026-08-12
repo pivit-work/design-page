@@ -772,6 +772,12 @@ export default function AdminEmployeeSheetCanvas({
   // 된다. 성별·국적은 본인 프로필에서 잠긴 인사 정보라 여기가 유일한 입력 경로다(PW-25).
   onSaveIdentity,
   onAddEmployee,
+  /**
+   * [PW-114] `+ 구성원 초대` — 전체 구성원 탭의 두 번째 진입점.
+   * 초대 관리 탭의 `+ 새 초대 발송` 과 **같은 모달**을 연다. 미주입이면 버튼이 없다.
+   */
+  onInviteMember,
+  inviteLabel,
   // 부서 셀(파생 컬럼) 클릭 시 팀 관리로 보낸다. 미주입이면 그냥 읽기전용 셀.
   onManageTeams,
   // 부서 셀에서 **그 자리에서** 팀을 고르게 한다(PW-23). 둘 다 주어지면 화면 이동
@@ -1390,6 +1396,16 @@ export default function AdminEmployeeSheetCanvas({
             labels={EL}
             onPick={pickExportScope}
           />
+        )}
+
+        {canEdit && onInviteMember && (
+          <button
+            type="button"
+            onClick={onInviteMember}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1px solid ' + T.border, background: '#fff', color: T.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font }}
+          >
+            + {inviteLabel || '구성원 초대'}
+          </button>
         )}
 
         {canEdit && onAddEmployee && (
