@@ -19,6 +19,11 @@ import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
  *     fallback 은 건너뛴다.
  *   - `onPerspectiveChange(perspective)` : 매니저 관점 4섹션/역량/확정/아젠다 중
  *     하나라도 바뀔 때마다 호출. Daily Snippet 패턴의 자동 저장 훅과 연결한다.
+ *   - `onStartMeeting()` / `onEndMeeting()` : "시작하기" / "1on1 종료" 를 눌렀을 때
+ *     호출. 이 컴포넌트는 녹음 타이머만 제어하므로, 미팅을 실제로 시작·완료(요약
+ *     생성)하는 것은 소비처 몫이다. 콜백이 없으면 데모처럼 녹음 표시만 바뀐다.
+ *   - `busy` / `busyLabel` : 소비처가 종료·요약 생성을 처리하는 동안 푸터 버튼을
+ *     기존 비활성 스타일로 잠그고 문구를 바꾼다. busyLabel 미지정 시 문구는 그대로.
  *
  * design-page 데모 wrapper(OneOnOnePage.jsx) 가 이 props 를 채워 기존 데모 화면을
  * 유지하고, pivit-work 등 실제 사용처는 prepareSession 결과를 변환해 넣는다.
@@ -105,6 +110,11 @@ export default function StartOneOnOneView({
   recording: recordingProp,
   onRecordingChange,
   onStartRecording,
+  // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
+  onStartMeeting,
+  onEndMeeting,
+  busy = false,
+  busyLabel = null,
 }) {
   const briefing = data?.briefing ?? null;
   const memberReport = data?.memberReport ?? null;
@@ -249,7 +259,15 @@ export default function StartOneOnOneView({
     setElapsedSec(0);
     setRecording(true);
     onStartRecording?.();
+    // 녹음 표시는 로컬 상태지만, 미팅을 실제로 "진행 중" 으로 만드는 건 소비처다.
+    onStartMeeting?.();
     document.querySelector('.ono-page')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const endMeeting = () => {
+    setRecording(false);
+    // 종료·AI 요약 생성은 소비처가 처리한다(콜백 없으면 녹음만 멈추는 데모 동작).
+    onEndMeeting?.();
   };
 
   useEffect(() => {
@@ -295,7 +313,7 @@ export default function StartOneOnOneView({
             member={member}
             meetingTime={meetingTime}
             elapsed={formatElapsed(elapsedSec)}
-            onStop={() => setRecording(false)}
+            onStop={endMeeting}
           />
         )}
         <div className="ono-start-view-body">
@@ -672,8 +690,12 @@ export default function StartOneOnOneView({
 
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
-          {recording ? (
-            <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={() => setRecording(false)}>1on1 종료</button>
+          {busy ? (
+            <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
+              {busyLabel ?? (recording ? '1on1 종료' : '시작하기')}
+            </button>
+          ) : recording ? (
+            <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>1on1 종료</button>
           ) : allConfirmed ? (
             <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (
