@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 
 /**
@@ -11,7 +12,7 @@ import OkrProgressBar from './OkrProgressBar.jsx';
  * 저장 시 onSubmit(objectives) 로 소비자에 전달한다.
  *
  * 시안: pivit-specs okr-individual.jsx(IndividualOKRWriter/ObjectiveWriteCard).
- * 담당자·팀 Objective 연결·AI 생성·이니셔티브는 후속(picker/크레딧 필요).
+ * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A). 이니셔티브는 후속.
  *
  * onSubmit(objectives): objectives = [{ title, weight, comOkr?, krs: [{ title,
  *   target, unit, inputType('percent'|'binary'|'count'), weight, teamKrId? }] }]
@@ -327,17 +328,12 @@ export default function OkrComposeFullModal({
                           />
                           <span className="okr-cf-unit">%</span>
                           {members.length > 0 && (
-                            <select
-                              className="okr-cf-select-real"
-                              aria-label="KR 담당자"
+                            <OkrMemberPicker
+                              ariaLabel="KR 담당자"
+                              members={members}
                               value={kr.ownerId}
-                              onChange={(e) => patchKr(objective.key, kr.key, { ownerId: e.target.value })}
-                            >
-                              <option value="">담당자</option>
-                              {members.map((m) => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                              ))}
-                            </select>
+                              onChange={(id) => patchKr(objective.key, kr.key, { ownerId: id })}
+                            />
                           )}
                         </div>
                       </div>
