@@ -123,6 +123,12 @@
 .role-badge-tl {
   background: var(--colors-pink-500);
 }
+/* 파트장(PL) — 배지 색은 노드 배경(LEVEL_COLORS)과 짝을 이룬다:
+   division=blue → DL, team=pink → TL, part=purple → PL. 규칙이 이미 있는데 PL 만
+   빠져 있어, 파트 조직장에게 배경 없는 흰 글씨 배지(=안 보임)가 붙었다. */
+.role-badge-pl {
+  background: var(--utility-purple-500, #7a5af8);
+}
 .role-badge-self {
   background: var(--colors-brand-600);
 }
