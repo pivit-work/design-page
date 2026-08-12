@@ -68,6 +68,16 @@ const DEFAULT_LABELS = {
   replySend: '전송',
   replyConfirmed: '✓ 확인했습니다',
   requestTag: '요청',
+  requestTagFull: '피드백 요청',
+  requestEmptyText: '(내용 없는 요청)',
+  requestPending: '대기중',
+  requestAnswered: '응답됨',
+  requestEdit: '수정',
+  requestDelete: '취소',
+  requestEditSave: '저장',
+  requestEditCancel: '취소',
+  requestEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  requestDeleteError: '취소에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   requestCompose: '+ 피드백 요청',
   requestTextPlaceholder: '어떤 부분에 대한 피드백이 필요한지…(선택 사항)',
   requestSendPrefix: '',
@@ -76,6 +86,8 @@ const DEFAULT_LABELS = {
   kindManager: '매니저',
   kindPeer: '동료',
   toastSent: '전송했습니다',
+  toastRequestEdited: '요청을 수정했어요.',
+  toastRequestDeleted: '요청을 취소했어요. 이미 보낸 알림은 회수되지 않습니다.',
   toastError: '오류가 발생했습니다',
 };
 
@@ -273,7 +285,7 @@ function BlockCard({ block, L, onOpen }) {
 }
 
 // ── 스레드 모달 ──
-function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, onClose }) {
+function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
   const isKr = block.type === 'kr';
   const items = [...block.items].sort(
     (a, b) => new Date(a.sentAt) - new Date(b.sentAt),
@@ -336,7 +348,13 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
               it.itemType === 'feedback' ? (
                 <FeedbackBubble key={it.id} item={it} L={L} isPastPeriod={isPastPeriod} onReply={onReply} />
               ) : (
-                <RequestBubble key={it.id} item={it} L={L} />
+                <RequestBubble
+                  key={it.id}
+                  item={it}
+                  L={L}
+                  onEdit={isPastPeriod ? undefined : onEditRequest}
+                  onDelete={isPastPeriod ? undefined : onDeleteRequest}
+                />
               ),
             )
           )}
@@ -440,21 +458,137 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
   );
 }
 
-function RequestBubble({ item, L }) {
+/**
+ * 보낸 피드백 요청 버블 — 정책 §5(screen-feedback-member.policy.md).
+ * 시안 feedback-member-view.jsx RequestBubble 의 수정/삭제 동선을 그대로 옮긴다.
+ *
+ * 수정·취소는 **아직 응답되지 않은 요청**(resolvedAt 없음)에만 붙는다. 답이 온 뒤
+ * 본문을 바꾸면 답한 사람이 읽은 문장과 달라지고, 취소는 대화를 지우는 셈이 된다.
+ * 핸들러를 안 넘긴 화면에서는 버튼을 아예 그리지 않는다 — 눌리는데 저장은 안 되는
+ * '가짜 저장'을 만들지 않기 위해서다.
+ */
+function RequestBubble({ item, L, onEdit, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(item.text || '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const resolved = !!item.resolvedAt;
+  const canEdit = !!onEdit && !resolved;
+  const canDelete = !!onDelete && !resolved;
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setEditText(item.text || '');
+    setError(null);
+  };
+
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onEdit(item.id, editText.trim());
+      setEditing(false);
+    } catch {
+      // 저장 실패 시 입력을 유지한다 — 작성 중 본문을 삼키지 않는다.
+      setError(L.requestEditError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onDelete(item.id);
+    } catch {
+      setError(L.requestDeleteError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }} data-testid="fbm-request-bubble">
       <div style={{ maxWidth: '80%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.sub, justifyContent: 'flex-end', marginBottom: 3 }}>
           <span>→ {item.person?.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})</span>
           <span>{fmtDate(item.sentAt)}</span>
+          <Chip
+            label={resolved ? L.requestAnswered : L.requestPending}
+            color={resolved ? C.green : C.amber}
+            bg={resolved ? C.greenBg : C.amberBg}
+            bd={resolved ? C.greenBd : C.amberBd}
+          />
         </div>
-        <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
-          {item.text || <span style={{ color: C.muted }}>(내용 없는 요청)</span>}
-          <div style={{ marginTop: 6 }}>
-            <Chip label="피드백 요청" color={C.blue} bg="#fff" bd={C.blueBd} />
+
+        {editing ? (
+          <div style={{ background: C.surface, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 12 }}>
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              data-testid="fbm-request-edit-input"
+              style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.blueBd}`, fontSize: 12, color: C.text, resize: 'none', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.7, outline: 'none', marginBottom: 10 }}
+            />
+            {error && <p style={{ margin: '0 0 8px', fontSize: 11, color: C.rose }}>{error}</p>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 12, cursor: 'pointer' }}
+              >
+                {L.requestEditCancel}
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={busy}
+                data-testid="fbm-request-edit-save"
+                style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.blue, color: '#fff', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
+              >
+                {L.requestEditSave}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
+            {item.text || <span style={{ color: C.muted }}>{L.requestEmptyText}</span>}
+            <div style={{ marginTop: 6 }}>
+              <Chip label={L.requestTagFull} color={C.blue} bg="#fff" bd={C.blueBd} />
+            </div>
+          </div>
+        )}
       </div>
+
+      {!editing && (canEdit || canDelete) && (
+        <div style={{ display: 'flex', gap: 10 }}>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              data-testid="fbm-request-edit"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0 }}
+            >
+              {L.requestEdit}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              data-testid="fbm-request-delete"
+              style={{ background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: 11, color: C.rose, padding: 0, opacity: busy ? 0.6 : 1 }}
+            >
+              {L.requestDelete}
+            </button>
+          )}
+        </div>
+      )}
+      {!editing && error && (
+        <p style={{ margin: 0, fontSize: 11, color: C.rose }}>{error}</p>
+      )}
     </div>
   );
 }
@@ -621,6 +755,8 @@ export default function EvalFeedbackCanvas({
   labels: providedLabels,
   onReply,
   onRequest,
+  onEditRequest,
+  onDeleteRequest,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openBlock, setOpenBlock] = useState(null);
@@ -666,6 +802,19 @@ export default function EvalFeedbackCanvas({
       throw new Error('request failed');
     }
   };
+  // 수정·취소는 핸들러가 넘어온 화면에서만 노출한다(undefined 면 버블이 버튼을 숨김).
+  const handleEditRequest = onEditRequest
+    ? async (itemId, text) => {
+        await onEditRequest(itemId, text);
+        showToast(L.toastRequestEdited);
+      }
+    : undefined;
+  const handleDeleteRequest = onDeleteRequest
+    ? async (itemId) => {
+        await onDeleteRequest(itemId);
+        showToast(L.toastRequestDeleted);
+      }
+    : undefined;
 
   return (
     <div className="evc-root" style={{ background: C.bg, fontFamily: FONT }}>
@@ -748,6 +897,8 @@ export default function EvalFeedbackCanvas({
           recipients={recipients}
           onReply={handleReply}
           onRequest={handleRequest}
+          onEditRequest={handleEditRequest}
+          onDeleteRequest={handleDeleteRequest}
           onClose={() => setOpenBlock(null)}
         />
       )}
