@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
+import DatePicker from '../shared/DatePicker.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED } from './orgTree.js';
@@ -169,6 +170,53 @@ export function IconLock({ size = 12 }) {
     >
       <rect x="4" y="10" width="16" height="10" rx="2" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+/**
+ * 연봉(이력) 아이콘. 통화 글리프 `₩` 를 아이콘 자리에 쓰면 폰트에 따라 굵기·폭이
+ * 달라지고 fontSize 로만 크기가 정해져 옆 아이콘과 광학 크기가 안 맞는다.
+ * 지폐 도형으로 그려 다른 인라인 SVG 와 같은 24 그리드·같은 stroke 를 쓴다.
+ */
+export function IconSalary({ size = 14 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6 12h.01" />
+      <path d="M18 12h.01" />
+    </svg>
+  );
+}
+
+/** 일괄 적용 완료 표시. `✓`(U+2713) 는 폰트마다 굵기가 달라 배지 안에서 튄다. */
+export function IconCheck({ size = 13 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+/** 모달 닫기. `✕`(U+2715) 는 폰트마다 두께·중심이 달라 버튼 안에서 흔들린다. */
+export function IconClose({ size = 16 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </svg>
   );
 }
@@ -1411,7 +1459,12 @@ export default function AdminEmployeeSheetCanvas({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
             {barApplied ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>✓ {L.bulkApplied || '적용됨'}</span>
+                {/* 체크는 `✓`(U+2713) 글리프가 아니라 인라인 SVG — 폰트마다 굵기가
+                    달라지고 색을 상속하지 않는다. 색은 감싸는 span 이 정한다. */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#16A34A' }}>
+                  <IconCheck size={13} />
+                  {L.bulkApplied || '적용됨'}
+                </span>
               </div>
             ) : (
               <button onClick={applyBar} disabled={barActiveCount === 0} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: barActiveCount === 0 ? T.bl : T.accent, color: barActiveCount === 0 ? T.muted : '#fff', fontSize: 12, fontWeight: 700, cursor: barActiveCount === 0 ? 'not-allowed' : 'pointer', fontFamily: T.font, whiteSpace: 'nowrap', boxShadow: barActiveCount > 0 ? '0 2px 8px rgba(79,106,245,.3)' : 'none' }}>
@@ -1604,8 +1657,9 @@ export default function AdminEmployeeSheetCanvas({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         {canViewSalary && onLoadSalaryHistory && (
-                          <button onClick={() => setSalaryHistRowId(row.id)} title={L.salaryHistoryTitle || '연봉 이력'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font }}>
-                            ₩
+                          <button onClick={() => setSalaryHistRowId(row.id)} title={L.salaryHistoryTitle || '연봉 이력'} aria-label={L.salaryHistoryTitle || '연봉 이력'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.sub, fontFamily: T.font }}>
+                            {/* 통화 글리프 `₩` 대신 인라인 SVG — 옆의 왕관(IconCrown)과 광학 크기가 맞는다. */}
+                            <IconSalary size={14} />
                           </button>
                         )}
                         {onLoadHrProfile && (
@@ -2108,6 +2162,9 @@ function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSalarySynce
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ effectiveDate: '', amount: '', reason: '' });
   const [busy, setBusy] = useState(false);
+  // 날짜 picker 팝오버 앵커 — 열려 있으면 { rect, el }.
+  const [picker, setPicker] = useState(null);
+  const [addError, setAddError] = useState(false);
 
   useEffect(() => {
     // loading 초기값이 true — 모달은 열 때마다 새로 마운트되므로 여기서 다시
@@ -2128,65 +2185,85 @@ function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSalarySynce
     };
   }, [row.id, onLoad]);
 
+  // ESC 로 닫기 — 같은 파일의 SalaryExportModal 과 같은 관례.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
   const canAdd = form.effectiveDate && form.amount && !busy;
 
   async function add() {
     if (!canAdd || !onAdd) return;
     setBusy(true);
+    setAddError(false);
     try {
       const res = await onAdd(row.id, { ...form });
       if (res?.history) setHistory(res.history);
       else setHistory((prev) => [...prev, { ...form }]);
       if (res && 'salary' in res) onSalarySynced?.(res.salary);
       setForm({ effectiveDate: '', amount: '', reason: '' });
+    } catch {
+      // 저장 실패를 삼키면 "눌렀는데 아무 일도 안 난다"가 된다. 전역 에러 화면으로
+      // 튕기지 않고(입력이 날아간다) 폼 안에서 알린다 — 입력값은 그대로 남긴다.
+      setAddError(true);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: '#fff', borderRadius: 14, width: 'min(560px,100%)', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,.22)' }}>
-        <div style={{ padding: '18px 22px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>₩</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
-              {row.name || (L.newEmployee || '신규 직원')} · {L.salaryHistoryTitle || '연봉 이력'}
+    <div className="admin-modal-root" role="dialog" aria-modal="true" data-testid="salary-history-modal">
+      <div className="admin-modal-backdrop" onClick={onClose} />
+      <div className="admin-modal">
+        <div className="admin-modal-header">
+          <div className="admin-modal-headline">
+            <span className="admin-modal-headline-icon"><IconSalary size={17} /></span>
+            <div>
+              <div className="admin-modal-title">
+                {row.name || (L.newEmployee || '신규 직원')} · {L.salaryHistoryTitle || '연봉 이력'}
+              </div>
+              <div className="admin-modal-desc">
+                {L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}
+                {/* 자물쇠는 이모지가 아니라 인라인 SVG — 색은 감싸는 span 의 color 를 따른다. */}
+                <span className="admin-emp-sal-mask">
+                  <IconLock size={11} />
+                  {L.salaryHistoryMask || '권한별 마스킹'}
+                </span>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: T.muted }}>{L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted, fontSize: 20, lineHeight: 1 }}>
-            ✕
+          <button type="button" className="admin-modal-close" onClick={onClose} aria-label={L.close || '닫기'}>
+            <IconClose size={16} />
           </button>
         </div>
-        <div style={{ padding: '16px 22px', overflowY: 'auto' }}>
+        <div className="admin-modal-body">
           {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.loading || '불러오는 중…'}</div>
+            <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
           ) : sorted.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
+            <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="admin-emp-sal-table">
               <thead>
                 <tr>
-                  {[L.salaryHistEffDate || '적용일', L.salaryHistAmount || '연봉', L.salaryHistReason || '사유'].map((h, i) => (
-                    <th key={i} style={{ textAlign: i === 1 ? 'right' : 'left', padding: '6px 8px', fontSize: 11, fontWeight: 700, color: T.muted, borderBottom: `1px solid ${T.border}` }}>
-                      {h}
-                    </th>
-                  ))}
+                  <th>{L.salaryHistEffDate || '적용일'}</th>
+                  <th className="is-amount">{L.salaryHistAmount || '연봉'}</th>
+                  <th>{L.salaryHistReason || '사유'}</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((h, i) => {
                   const isLatest = i === sorted.length - 1;
                   return (
-                    <tr key={i} style={{ background: isLatest ? T.accent + '08' : 'transparent' }}>
-                      <td style={{ padding: '8px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.bl}` }}>
+                    <tr key={i} className={isLatest ? 'is-current' : undefined}>
+                      <td className="is-date">
                         {h.effectiveDate}
-                        {isLatest && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: T.accent }}>{L.salaryHistCurrent || '현재'}</span>}
+                        {isLatest && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
                       </td>
-                      <td style={{ padding: '8px', fontSize: 12, fontWeight: 600, color: T.text, textAlign: 'right', borderBottom: `1px solid ${T.bl}`, fontVariantNumeric: 'tabular-nums' }}>{fmtKRW(h.amount)}</td>
-                      <td style={{ padding: '8px', fontSize: 12, color: T.sub, borderBottom: `1px solid ${T.bl}` }}>{h.reason || '—'}</td>
+                      <td className="is-amount">{fmtKRW(h.amount)}</td>
+                      <td>{h.reason || '—'}</td>
                     </tr>
                   );
                 })}
@@ -2194,20 +2271,80 @@ function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSalarySynce
             </table>
           )}
 
-          <div style={{ marginTop: 14, padding: '12px 14px', border: `1px dashed ${T.border}`, borderRadius: 8, background: T.bg }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>+ {L.salaryHistAdd || '연봉 이력 추가'}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input type="date" value={form.effectiveDate} onChange={(e) => setForm((f) => ({ ...f, effectiveDate: e.target.value }))} style={{ flex: '1 1 130px', padding: '7px 10px', border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 12, fontFamily: T.font }} />
-              <input type="text" inputMode="numeric" placeholder={L.salaryHistAmountPh || '연봉(원)'} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))} style={{ flex: '1 1 110px', padding: '7px 10px', border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 12, textAlign: 'right', fontFamily: T.font }} />
-              <input type="text" placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} style={{ flex: '2 1 160px', padding: '7px 10px', border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 12, fontFamily: T.font }} />
-              <button onClick={add} disabled={!canAdd} style={{ padding: '7px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: canAdd ? 'pointer' : 'not-allowed', background: canAdd ? T.accent : T.border, color: canAdd ? '#fff' : T.muted }}>
+          <div className="admin-emp-sal-add">
+            <div className="admin-emp-sal-add-title">{L.salaryHistAdd || '연봉 이력 추가'}</div>
+            <div className="admin-emp-sal-add-row">
+              <div className="admin-emp-field">
+                <label className="admin-emp-field-label" htmlFor="sal-hist-date">{L.salaryHistEffDate || '적용일'}</label>
+                {/* 브라우저 기본 date 입력은 로케일에 따라 mm/dd/yyyy 로 떠서 한국어 화면과
+                    어긋난다. 다른 어드민 화면과 같은 공용 DatePicker 를 연다. */}
+                <button
+                  type="button"
+                  id="sal-hist-date"
+                  className={`admin-emp-input admin-emp-sal-date${picker ? ' is-open' : ''}${form.effectiveDate ? '' : ' is-empty'}`}
+                  onClick={(e) => setPicker(picker ? null : { rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget })}
+                >
+                  {form.effectiveDate || (L.salaryHistEffDatePh || 'YYYY-MM-DD')}
+                </button>
+              </div>
+              <div className="admin-emp-field">
+                <label className="admin-emp-field-label" htmlFor="sal-hist-amount">{L.salaryHistAmount || '연봉'}</label>
+                <input
+                  id="sal-hist-amount"
+                  className="admin-emp-input admin-emp-sal-amount"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder={L.salaryHistAmountPh || '연봉(원)'}
+                  value={form.amount}
+                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+                />
+              </div>
+              <div className="admin-emp-field is-reason">
+                <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
+                <input
+                  id="sal-hist-reason"
+                  className="admin-emp-input"
+                  type="text"
+                  placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'}
+                  value={form.reason}
+                  onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+                />
+              </div>
+              <button type="button" className="admin-emp-btn is-primary" onClick={add} disabled={!canAdd}>
                 {L.salaryHistAddBtn || '추가'}
               </button>
             </div>
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 6 }}>{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준).'}</div>
+            {addError && (
+              <div className="admin-emp-sal-error" role="alert">
+                {L.salaryHistAddError || '연봉 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
+              </div>
+            )}
+            <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준).'}</div>
           </div>
         </div>
       </div>
+      {picker && (
+        <DatePicker
+          anchorRect={picker.rect}
+          anchorEl={picker.el}
+          selectedDate={isoToDate(form.effectiveDate)}
+          onSelect={(d) => { setForm((f) => ({ ...f, effectiveDate: dateToIso(d) })); setPicker(null); }}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </div>
   );
+}
+
+// 로컬 타임존 기준 'YYYY-MM-DD' (toISOString 의 UTC off-by-one 회피).
+// AdminNotificationsCanvas 와 같은 구현 — 날짜 입력이 하루 밀리던 자리다.
+function dateToIso(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function isoToDate(iso) {
+  const [y, m, d] = (iso || '').split('-').map(Number);
+  return y ? new Date(y, m - 1, d) : new Date();
 }
