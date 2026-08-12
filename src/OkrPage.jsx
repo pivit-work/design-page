@@ -425,6 +425,17 @@ const OKR_DETAILS = {
   people: { title: 'People', aiSignals: AI_SIGNALS, quarters: DETAIL_QUARTERS },
 };
 
+/* ── Demo 개인 OKR 작성 모달 — KR 담당자 검색 드롭다운 후보(§3.8A) ── */
+const COMPOSE_MEMBERS = [
+  { id: 'm-kurt', name: '커트', role: 'Engineering · Team Lead', avatar: AVATARS.커트 },
+  { id: 'm-minjun', name: '박민준', role: 'Engineering · Member', avatar: AVATARS.박민준 },
+  { id: 'm-seoyun', name: '김서윤', role: 'Product · Member', avatar: AVATARS.김서윤 },
+  { id: 'm-yeeun', name: '신예은', role: 'Design · Team Lead', avatar: AVATARS.신예은 },
+  { id: 'm-seohyun', name: '이서현', role: 'Product · Admin', avatar: AVATARS.이서현 },
+  // 아바타가 없는 멤버 — 이니셜 폴백 확인용.
+  { id: 'm-hyunsik', name: '민현식', role: 'Sales · Member', color: '#4F6AF5' },
+];
+
 /* ── Demo 개인 OKR 작성 모달 — 팀 OKR 미니맵 ── */
 const COMPOSE_MINIMAP = {
   title: 'API , AI 파이프라인 구현 및 인프라 구축',
@@ -532,7 +543,14 @@ export default function OkrPage({ icons, baseUrl }) {
       )}
 
       {composeOpen && (
-        <OkrComposeFullModal minimap={COMPOSE_MINIMAP} icons={icons} baseUrl={baseUrl} onClose={() => setComposeOpen(false)} />
+        <OkrComposeFullModal
+          minimap={COMPOSE_MINIMAP}
+          icons={icons}
+          baseUrl={baseUrl}
+          members={COMPOSE_MEMBERS}
+          selfId="m-kurt"
+          onClose={() => setComposeOpen(false)}
+        />
       )}
       {setupOpen && (
         <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => setSetupOpen(false)} />

@@ -446,6 +446,33 @@
 .okr-cf-select-real:focus { box-shadow: 0 0 0 2px var(--utility-brand-200); }
 .okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
+/* ── 담당자(PIC) 검색 드롭다운 — okr-spec §3.8A / okr-policy §5.2B ── */
+/* 트리거는 위 .okr-cf-select-real pill 룩을 그대로 따른다(캐럿만 인라인 SVG). */
+.okr-cf-pick { position: relative; }
+.okr-cf-pick-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 8px 10px 8px 12px; border: none; border-radius: 8px; background: var(--alpha-black-3); font-family: inherit; font-size: 13px; font-weight: 500; color: var(--text-placeholder); cursor: pointer; outline: none; }
+.okr-cf-pick-trigger.is-filled { color: var(--text-secondary); }
+.okr-cf-pick-trigger:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
+.okr-cf-pick-trigger-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-cf-pick-trigger svg { flex-shrink: 0; color: var(--text-tertiary); }
+/* 패널은 fixed — .okr-cf-editor(overflow-y: auto) 안에서 열려도 잘리지 않는다. */
+.okr-cf-pick-panel { z-index: 1100; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.24); }
+.okr-cf-pick-search { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+.okr-cf-pick-search svg { position: absolute; left: 9px; color: var(--text-placeholder); pointer-events: none; }
+.okr-cf-pick-search-input { width: 100%; box-sizing: border-box; padding: 7px 9px 7px 29px; border: 1px solid var(--border-secondary); border-radius: 7px; background: var(--bg-secondary); font-family: inherit; font-size: 12px; color: var(--text-primary); outline: none; }
+.okr-cf-pick-search-input::placeholder { color: var(--text-placeholder); }
+.okr-cf-pick-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.okr-cf-pick-opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: none; border-radius: 7px; background: transparent; font-family: inherit; text-align: left; cursor: pointer; }
+.okr-cf-pick-opt:hover { background: var(--bg-secondary); }
+.okr-cf-pick-opt.is-selected { background: var(--bg-brand-secondary); }
+/* 아바타는 원형 22px + 이름/역할 2줄 (§3.8A). 폴백은 이니셜. */
+.okr-cf-pick-avatar { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); box-sizing: border-box; }
+.okr-cf-pick-avatar.is-fallback { display: flex; align-items: center; justify-content: center; color: var(--text-white); font-weight: 700; line-height: 1; overflow: hidden; }
+.okr-cf-pick-opt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.okr-cf-pick-opt-name { font-size: 12.5px; font-weight: 600; line-height: 17px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-cf-pick-opt-role { font-size: 11px; font-weight: 400; line-height: 15px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-cf-pick-check { flex-shrink: 0; color: var(--text-brand-tertiary); }
+.okr-cf-pick-empty { padding: 12px 8px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
+
 /* ══ OKR 설정 마법사 모달 ══ */
 .okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 80px); max-height: 88vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
 .okr-wz-body { flex: 1; overflow-y: auto; padding: 28px 32px 24px; display: flex; flex-direction: column; gap: 20px; }
