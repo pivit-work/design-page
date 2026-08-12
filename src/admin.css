@@ -3074,6 +3074,12 @@
   background: var(--bg-brand-solid);
   justify-content: flex-end;
 }
+/* 켤 대상이 없어 잠긴 토글. disabled 속성만 걸려 있고 보이는 모습이 그대로면
+   눌러도 반응이 없는 이유를 화면에서 알 수 없다. */
+.admin-notif-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .admin-notif-toggle-knob {
   width: 18px;
   height: 18px;

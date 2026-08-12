@@ -386,7 +386,16 @@ function ReadonlyPairs({ pairs }) {
       {pairs.map((p) => (
         <div key={p.label} className="msc-pair">
           <div className="msc-pair-label">{p.label}</div>
-          <div className="msc-pair-value">{p.value || '-'}</div>
+          {/* p.badge 는 값 옆에 붙는 짧은 상태 라벨(예: 이 값이 남에게 공개되는지).
+              값 자체는 그대로 두고 상태만 알린다 — 값을 감추면 본인도 확인할 수 없다. */}
+          <div className="msc-pair-value">
+            {p.value || '-'}
+            {p.badge && (
+              <span className={`msc-pair-badge is-${p.badgeTone || 'muted'}`} data-testid={p.badgeTestId}>
+                {p.badge}
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -1511,8 +1520,13 @@ export default function MySettingsCanvas({
                   </div>
                   <div className="msc-vis-items">
                     {group.items.map((item) => (
-                      <div key={item.key} className="msc-row">
-                        <span className="msc-row-label">{item.label}</span>
+                      <div key={item.key} className="msc-row" data-testid={`visibility-item-${item.key}`}>
+                        {/* item.sub 가 있으면 라벨 아래 보조 문구를 둔다. 값이 없어 켤 수 없는
+                            항목(item.disabled)을 목록에서 지우지 않고 이유를 남기기 위한 슬롯. */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span className="msc-row-label">{item.label}</span>
+                          {item.sub && <div className="msc-notif-sub">{item.sub}</div>}
+                        </div>
                         {group.locked ? (
                           <span className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</span>
                         ) : (
@@ -1520,6 +1534,7 @@ export default function MySettingsCanvas({
                             value={Boolean(item.on)}
                             onChange={(next) => onToggleVisibility && onToggleVisibility(item.key, next)}
                             ariaLabel={item.label}
+                            disabled={Boolean(item.disabled)}
                           />
                         )}
                       </div>

@@ -141,7 +141,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             </div>
           )}
           <div className="modal-name">{displayMember?.name}</div>
-          <div className="modal-title">{profile.title} · {profile.dept}</div>
+          {/* 둘 중 하나가 비어도 ' · ' 만 남지 않게 조립한다 — 직급·직책이 없거나
+              비공개인 사람의 카드에서 구분자가 매달려 보였다. */}
+          <div className="modal-title">{[profile.title, profile.dept].filter(Boolean).join(' · ')}</div>
           <div className="modal-bio">{profile.bio}</div>
           <span className="modal-status-badge">{(MEMBER_STATUSES[displayMember?.status] || MEMBER_STATUSES.working).label}</span>
         </div>
