@@ -9,7 +9,7 @@ const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
 
 /**
- * `<Spline>` 격리용 Error Boundary — SplineHero 와 동일 패턴.
+ * `<Spline>` 격리용 Error Boundary — 조직도 ProfileModal 과 동일 패턴.
  * WebGL 컨텍스트 생성 실패 시 Spline 내부에서 throw 되면 부모 트리가 통째로 언마운트
  * 되므로 boundary 로 격리해 헥사 영역만 비운다.
  */
@@ -22,7 +22,7 @@ class SplineBoundary extends Component {
 
 /**
  * Spline scene 의 'profileImage' 오브젝트 텍스처를 멤버 아바타로 교체.
- * SplineHero 와 동일 패턴 — iframe 시절 spline-profile.html 의 applyTexture 를 동일 구현.
+ * 조직도 ProfileModal 과 동일 패턴 — iframe 시절 spline-profile.html 의 applyTexture 를 동일 구현.
  */
 function applyTexture(app, objectName, imageSrc) {
   return new Promise((resolve) => {
@@ -66,7 +66,7 @@ function applyTexture(app, objectName, imageSrc) {
  *  - spline-wrap 432x432 + react-spline stage 600 scale 0.5 + margin offset (조직도와 동일)
  *  - 닫힘 동안 마지막 멤버 콘텐츠 유지 (`displayMember`)
  *
- * Spline 은 SplineHero 와 동일하게 `@splinetool/react-spline` 단일 공유 런타임을 쓴다.
+ * Spline 은 조직도 ProfileModal 과 동일하게 `@splinetool/react-spline` 단일 공유 런타임을 쓴다.
  * iframe 시절엔 `spline-profile.html` 을 src 로 띄웠는데, nginx 의 `.html` rewrite 가
  * query string 을 날려 React index.html 로 fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  *

@@ -1,26 +1,22 @@
 import Icon from '../shared/Icon.jsx';
-import SplineHero from './SplineHero.jsx';
+import MemberHex from './MemberHex.jsx';
 import StatusBadge from './StatusBadge.jsx';
 import { STATUS_COLORS } from './constants.js';
 
 /**
  * 매니저 페이지의 멤버 카드.
- * 상단 Spline 헥사 + 이름/직급 + 코멘트 + 상태 배지 + 원온원/메시지 버튼.
+ * 상단 2D 헥사(아바타) + 이름/직급 + 코멘트 + 상태 배지 + 원온원/메시지 버튼.
  *
- * 본문(이름/직급/코멘트/배지/버튼) 은 Spline 로드와 무관하게 즉시 표시한다.
- * Spline 헥사는 본문 위에서 자체 spinner 를 보여주다 ready 시점에 fade-in 한다.
- *
- * 클릭은 카드 div 의 onClick 으로 일원화 — SplineHero 가 `<Spline>` canvas 를
- * 부모 문서에 직접 렌더하므로 (iframe 아님) canvas 클릭도 정상 버블된다.
+ * 헥사는 CSS clip-path 로 그린다 (`MemberHex`). 예전엔 카드마다 Spline 3D 장면을
+ * 띄웠는데, 리스팅은 카드가 수십 장이라 화면 진입 비용이 카드 수에 비례해 붙었다.
+ * 클릭 시 뜨는 상세 프로필(ProfileModal) 의 3D 는 그대로다.
  */
 export default function MemberCard({
   name,
   role,
   comment,
   status,
-  splineScene,
-  splineImage,
-  splineIndex = 0,
+  avatar,
   icons,
   baseUrl = '',
   onCardClick,
@@ -36,15 +32,8 @@ export default function MemberCard({
   };
 
   return (
-    <div
-      className="manager-member-card is-body-visible"
-      onClick={onCardClick}
-    >
-      <SplineHero
-        scene={splineScene}
-        image={splineImage}
-        index={splineIndex}
-      />
+    <div className="manager-member-card" onClick={onCardClick}>
+      <MemberHex name={name} avatar={avatar} />
       <div className="manager-member-body">
         <div className="manager-member-name-block">
           <p className="manager-member-name">{name}</p>
@@ -56,11 +45,11 @@ export default function MemberCard({
         <StatusBadge status={status} />
         <div className="manager-member-actions">
           <button type="button" className="manager-member-action-btn" onClick={stop(onOneOnOneClick)}>
-            <Icon src={icons?.userOutline} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+            <Icon src={icons?.userOutline} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
             <span>원온원</span>
           </button>
           <button type="button" className="manager-member-action-btn" onClick={stop(onMessageClick)}>
-            <Icon src={icons?.messageText} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+            <Icon src={icons?.messageText} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
             <span>메시지</span>
           </button>
         </div>

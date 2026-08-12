@@ -151,7 +151,7 @@ export { ResourceCanvas } from './resource/index.js';
 export {
   ManagerCanvas,
   ManagerMemberCard,
-  ManagerSplineHero,
+  ManagerMemberHex,
   ManagerStatusBadge,
   ManagerSummaryCard,
   ManagerStatTile,

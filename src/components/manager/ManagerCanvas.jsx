@@ -13,8 +13,8 @@ import TeamSnippets from './TeamSnippets.jsx';
  *
  * 멤버 카드 클릭 시 ProfileModal v2 가 열린다 (선택된 멤버 정보 + AI 브리핑/아젠다/지표).
  *
- * 멤버 카드 헥사는 `<Spline>` 컴포넌트로 부모 문서에 직접 렌더된다 (iframe 아님).
- * iframe 시절의 pause/resume·wheel-forward postMessage 핸들러는 더 이상 불필요.
+ * 리스팅 카드의 헥사는 2D(CSS clip-path) 다 — `MemberHex` 주석 참조. 3D 는 한 번에
+ * 하나만 뜨는 ProfileModal 에만 남아 있다.
  */
 export default function ManagerCanvas({
   tabs = [],
@@ -27,8 +27,6 @@ export default function ManagerCanvas({
   kpis = [],
   actionQueue = { title: '오늘의 액션 큐', count: 0, countColor: 'var(--colors-error-500)', subtitle: '', members: [] },
   teamStatus = { title: '팀원 현황', count: 0, countColor: 'var(--colors-foreground-fgSuccessPrimary)', subtitle: '', members: [] },
-  splineScene,
-  splineImage,
   icons,
   baseUrl = '',
   onMemberOneOnOne,
@@ -80,13 +78,10 @@ export default function ManagerCanvas({
           subtitle={actionQueue.subtitle}
         />
         <div className="manager-member-grid">
-          {actionQueue.members.map((m, i) => (
+          {actionQueue.members.map((m) => (
             <MemberCard
               key={m.id}
               {...m}
-              splineScene={m.splineScene ?? splineScene}
-              splineImage={m.splineImage ?? splineImage}
-              splineIndex={i}
               icons={icons}
               baseUrl={baseUrl}
               onCardClick={() => setOpenMember(m)}
@@ -105,13 +100,10 @@ export default function ManagerCanvas({
           subtitle={teamStatus.subtitle}
         />
         <div className="manager-member-grid">
-          {teamStatus.members.map((m, i) => (
+          {teamStatus.members.map((m) => (
             <MemberCard
               key={m.id}
               {...m}
-              splineScene={m.splineScene ?? splineScene}
-              splineImage={m.splineImage ?? splineImage}
-              splineIndex={actionQueue.members.length + i}
               icons={icons}
               baseUrl={baseUrl}
               onCardClick={() => setOpenMember(m)}
