@@ -303,7 +303,7 @@
 }
 
 /* iframe 시절엔 spline-profile.html 을 띄웠지만 react-spline 단일 공유 런타임으로 교체
-   (manager ProfileModal·SplineHero 와 동일 패턴). 시각/사이즈 동일. */
+   (manager ProfileModal 과 동일 패턴). 시각/사이즈 동일. */
 .modal-spline-stage {
   width: 600px;
   height: 600px;

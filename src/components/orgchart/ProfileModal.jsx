@@ -24,7 +24,7 @@ const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
 
 /**
- * `<Spline>` 격리용 Error Boundary — manager ProfileModal·SplineHero 와 동일 패턴.
+ * `<Spline>` 격리용 Error Boundary — manager ProfileModal 과 동일 패턴.
  * WebGL 컨텍스트 생성 실패 시 Spline 내부 throw 가 부모 트리를 통째로 언마운트하므로
  * boundary 로 격리해 헥사 영역만 비운다.
  */
@@ -74,7 +74,7 @@ function applyTexture(app, objectName, imageSrc) {
  * 조직도 프로필 모달.
  *
  * Spline 은 `@splinetool/react-spline` 단일 공유 런타임으로 렌더한다 (manager
- * ProfileModal·SplineHero 와 동일). iframe 시절엔 `spline-profile.html` 을 src 로
+ * ProfileModal 과 동일). iframe 시절엔 `spline-profile.html` 을 src 로
  * 띄웠는데, nginx 의 `.html` rewrite 가 query string 을 날려 React index.html 로
  * fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  */

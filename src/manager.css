@@ -192,11 +192,13 @@
   color: var(--text-tertiary);
 }
 
-/* ── Member grid ── */
+/* ── Member grid ──
+   한 줄에 5명. 리스팅은 팀 전체를 훑는 화면이라 카드가 클수록 스크롤만 길어진다.
+   (팀원 45명 기준 3열 → 15줄, 5열 → 9줄) */
 .manager-member-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 33px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 36px 24px;
   align-items: start;
 }
 
@@ -205,100 +207,68 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
 }
 
-/* ── Spline 영역 ──
-   shadow / background / radius 를 박스에 주지 않는다.
-   Spline scene 자체에 이미 헥사 그림자가 들어있어, 박스 배경을 투명하게 두면
-   spline object 모양 그대로 페이지 위에 그림자가 떨어진다.
-   카드 col 너비를 가득 차지해 헥사가 카드 정중앙에 위치하도록 한다. */
-.manager-spline-area {
-  position: relative;
+/* ── 2D 헥사 아바타 ──
+   예전의 Spline 3D 장면(카드마다 WebGL 컨텍스트 1개) 을 CSS clip-path 로 대체.
+   모양·색은 그 장면이 렌더한 픽셀에서 실측해 옮긴 값이다 (MemberHex 주석 참조):
+   pointy-top 정육각형(폭:높이 = √3:2), 금색 면 + 메탈 링.
+
+   링은 clip-path 에 border 가 먹지 않으므로 "바깥 헥사(링 색) + 안쪽 헥사(면)"
+   두 겹으로 만든다 — padding 이 곧 링 두께다. */
+.manager-member-hex {
+  --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  --hex-ring: 3px;
+  box-sizing: border-box;
+  max-width: 100%;
+  aspect-ratio: 866 / 1000;
+  padding: var(--hex-ring);
+  background: #a7a69f;
+  clip-path: var(--hex-clip);
+}
+
+.manager-member-hex-face {
+  box-sizing: border-box;
   width: 100%;
-  aspect-ratio: 223 / 236;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  background: transparent;
+  clip-path: var(--hex-clip);
+  /* 장면의 금색 면 — 가운데가 진하고 가장자리로 갈수록 밝아지는 광택. */
+  background: linear-gradient(135deg, #fff0b0 0%, #ffd400 42%, #ffd400 62%, #fff0b0 100%);
 }
 
-/* 고정 700×700 stage — react-spline 이 항상 안정적인 700 을 측정하도록.
-   stage 전체를 SplineHero 가 계산한 scale 로 줄여 area 에 맞춘다 (iframe 시절
-   700×700 iframe 을 scale 로 줄이던 것과 동일). area 의 overflow:hidden 으로
-   가로 초과분을 클립. */
-.manager-spline-stage {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 700px;
-  height: 700px;
-  transform-origin: center center;
-  pointer-events: none;
-}
-
-/* `<Spline>` 컴포넌트가 렌더하는 wrapper div + canvas. 700 stage 를 가득 채운다.
-   intro 가 시작되는 시점(is-ready)에 opacity 0 → 1 fade-in. */
-.manager-spline-canvas {
-  width: 100% !important;
-  height: 100% !important;
-  background: transparent;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.manager-spline-canvas canvas {
-  width: 100% !important;
-  height: 100% !important;
+.manager-member-hex-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  background: transparent;
 }
 
-.manager-spline-canvas.is-ready {
-  opacity: 1;
+/* 아바타가 없는 멤버 — 이름 이니셜 (MemberTable 폴백과 동일 규칙).
+   글자 폭에 맞춰 폰트를 줄이지만(nameFontSize), 그래도 넘칠 때를 대비해 잘라낸다. */
+.manager-member-hex-initials {
+  max-width: 86%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary);
 }
 
-/* spline 로딩 + 인트로 시작 전까지 카드 영역 가운데에 스피너 표시. */
-.manager-spline-spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  pointer-events: none;
-}
-
-.manager-spline-spinner-circle {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--colors-foreground-fgQuaternaryHover, #f3f4f6);
-  border-top-color: var(--text-tertiary);
-  border-radius: 50%;
-  animation: managerSpinnerSpin 0.8s linear infinite;
-}
-
-@keyframes managerSpinnerSpin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── 카드 본문 ──
-   spline area 가 헥사 그림자/여백을 포함해 카드 너비 가득 차지하므로,
-   본문(이름/코멘트/배지/버튼) 을 위로 끌어올려 헥사 바로 아래에 붙도록 한다.
-   초기에는 opacity 0, spline 인트로가 시작되는 시점(onStart) 에 함께 fade-in. */
+/* ── 카드 본문 ── */
 .manager-member-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  padding: 0 32px;
+  gap: 10px;
+  padding: 0 4px;
   width: 100%;
-  /* spline-area 는 헥사 그림자/여백 포함해 카드 너비를 가득 차지하므로 본문을 살짝
-     끌어올려 헥사 바로 아래에 붙인다. iframe → react-spline 전환 후 헥사가 캔버스
-     하단까지 채워, 기존 -80px 은 헥사 본체를 덮었다 → -16px 으로 완화. */
-  margin-top: -16px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.manager-member-card.is-body-visible .manager-member-body {
-  opacity: 1;
 }
 
 .manager-member-name-block {
@@ -313,7 +283,7 @@
 }
 
 .manager-member-name {
-  font-size: 24px;
+  font-size: var(--font-size-text-lg, 18px);
   letter-spacing: -0.02em;
 }
 
@@ -362,7 +332,7 @@
 /* ── 액션 버튼 ── */
 .manager-member-actions {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   width: 100%;
 }
 
@@ -371,15 +341,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  padding: 10px 16px;
+  gap: var(--spacing-xs);
+  padding: 8px 6px;
   background: var(--componentColors-alpha-alphaBlack3);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-family-body);
   font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  white-space: nowrap;
   color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
@@ -393,10 +364,6 @@
    Manager 멤버 카드 클릭 시 노출되는 ProfileModal v2.
    Figma node 16952:13855.
    ──────────────────────────────────────────────── */
-
-.manager-member-card {
-  cursor: pointer;
-}
 
 /* 조직도 ProfileModal 과 동일한 overlay + scroll-wrap + 정중앙 카드 패턴. */
 .manager-modal-overlay {
@@ -488,7 +455,7 @@
 
 /* spline 영역 — 조직도 modal-spline-wrap 와 완전히 동일 (432x432 + stage 600 scale 0.5).
    iframe 시절엔 spline-profile.html 을 띄웠지만, react-spline 단일 공유 런타임으로 교체
-   (SplineHero 와 동일 패턴). nginx .html rewrite 가 query 를 날려 React index 로 fallback
+   (조직도 ProfileModal 과 동일 패턴). nginx .html rewrite 가 query 를 날려 React index 로 fallback
    되던 dev 배포 버그가 사라진다. 시각 동일. */
 .manager-modal-spline-wrap {
   width: 432px;
