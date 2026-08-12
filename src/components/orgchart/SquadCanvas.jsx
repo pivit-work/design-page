@@ -13,6 +13,12 @@
  *     핸들러 부재를 "데모 모드" 로 흡수하면 저장된 것처럼 보이는 가짜 저장이 된다.
  *  4. 이모지 글리프 대신 인라인 SVG(`squadIcons.jsx`).
  *
+ * **생김새는 프로젝트 탭(`ProjectCanvas`)이 정본이다.** 같은 조직도 안의 이웃 탭이라
+ * 카드 그리드(`pj-cards-grid`)·카드(`pj-card`)·상태 점(`pj-card-status`+`pj-status-dot`)·
+ * 진행 바(`pj-progress-bar`)·멤버 표(`pj-table`/`pj-th`/`pj-td`/`pj-member-*`)를 그대로
+ * 가져다 쓰고, 스쿼드에만 있는 조각만 `org_squad.css` 의 `sq-*` 로 정의한다.
+ * 인라인 스타일에는 **데이터에서 오는 값**(스쿼드 색·계산된 폭·팝오버 좌표)과 z 층만 남긴다.
+ *
  * 프로젝트 연결(`SquadProject`)은 이 캔버스 범위 밖이다 — 서버 창구가 아직 없다(PW-109/113).
  */
 
@@ -31,6 +37,7 @@ import {
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
   SQUAD_MODAL_Z,
+  avatarFontPx,
   capacityState,
   fmtYmd,
   isCountedStatus,
@@ -47,9 +54,6 @@ import {
   LeadStarIcon, CalendarIcon, WarningIcon, LockIcon,
   CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon,
 } from './squadIcons.jsx';
-
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
-const MONO = "'DM Mono',monospace";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -298,7 +302,7 @@ export default function SquadCanvas({
   );
 
   return (
-    <div className="content-area" data-testid="squad-canvas">
+    <div className="content-area pj-content-area" data-testid="squad-canvas">
       <div className="content-canvas">
         <div className="pj-header">
           {tabStrip}
@@ -309,51 +313,35 @@ export default function SquadCanvas({
           </div>
         </div>
 
-        <div style={{ padding: '20px 24px 32px', fontFamily: FONT }}>
+        <div className="pj-body">
           {/* 헤더 + 편집 모드 토글 */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: 16, gap: 12, flexWrap: 'wrap',
-          }}>
+          <div className="sq-toolbar">
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>스쿼드</div>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+              <p className="sq-toolbar-title">스쿼드</p>
+              <p className="sq-toolbar-desc">
                 {isEditing
                   ? (editableSet === null
                     ? '전체 스쿼드의 팀원 할당을 편집할 수 있습니다'
                     : '내 조직 구성원의 할당만 편집할 수 있습니다 (범위 밖 셀은 비활성)')
                   : '기능 조직과 평행한 한시 조직 — 스쿼드 카드와 배치 매트릭스로 구성을 확인합니다'}
-              </div>
+              </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="sq-toolbar-actions">
               {ledgerReady && !squadForm && (
                 <button
                   type="button" onClick={openSquadForm} data-testid="squad-create-open"
-                  style={{
-                    padding: '8px 14px', borderRadius: 9, border: '1.5px dashed #C7D2FE',
-                    background: '#fff', color: '#4F6AF5', cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 12, fontWeight: 700, fontFamily: FONT,
-                  }}
+                  className="sq-btn sq-btn-dashed"
                 >
-                  <PlusIcon size={12} /> 스쿼드 만들기
+                  <PlusIcon size={14} /> 스쿼드 만들기
                 </button>
               )}
               {canEditAssignments && (
                 <button
                   type="button" data-testid="squad-edit-toggle"
+                  className={`sq-btn sq-btn-toggle${editMode ? ' is-on' : ''}`}
                   onClick={() => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); }}
-                  style={{
-                    padding: '8px 16px', borderRadius: 9,
-                    border: editMode ? 'none' : '1.5px solid #C7D2FE',
-                    background: editMode ? '#4F6AF5' : '#EEF2FF',
-                    color: editMode ? '#fff' : '#4F6AF5',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: FONT,
-                    boxShadow: editMode ? '0 3px 10px rgba(79,106,245,.3)' : 'none',
-                  }}
                 >
-                  {editMode ? <CheckIcon size={12} /> : <EditIcon size={12} />}
+                  {editMode ? <CheckIcon size={14} /> : <EditIcon size={14} />}
                   {editMode ? '편집 완료' : '할당 편집'}
                 </button>
               )}
@@ -361,31 +349,14 @@ export default function SquadCanvas({
           </div>
 
           {loading && (
-            <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#94A3B8' }}>
-              스쿼드 정보를 불러오는 중…
-            </div>
+            <div className="sq-loading">스쿼드 정보를 불러오는 중…</div>
           )}
 
           {!loading && error && (
-            <div
-              data-testid="squad-error-banner"
-              style={{
-                border: '1px solid #FECACA', background: '#FEF2F2', borderRadius: 10,
-                padding: '12px 14px', marginBottom: 16,
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>
-                스쿼드 정보를 불러오지 못했습니다
-              </div>
+            <div className="sq-banner sq-banner-error" data-testid="squad-error-banner">
+              <div className="sq-banner-title">스쿼드 정보를 불러오지 못했습니다</div>
               {onRetry && (
-                <button
-                  type="button" onClick={onRetry}
-                  style={{
-                    marginTop: 8, padding: '5px 12px', borderRadius: 7, border: '1px solid #FECACA',
-                    background: '#fff', color: '#DC2626', fontSize: 11, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: FONT,
-                  }}
-                >
+                <button type="button" onClick={onRetry} className="sq-btn sq-btn-sm sq-btn-outline">
                   다시 시도
                 </button>
               )}
@@ -396,20 +367,14 @@ export default function SquadCanvas({
             <>
               {/* 완료 전환 넛지 — 자동 전이는 하지 않고 안내만. p013 미보유자에게는 미노출 */}
               {overdueSquads.length > 0 && (
-                <div
-                  data-testid="squad-overdue-banner"
-                  style={{
-                    border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 10,
-                    padding: '10px 14px', marginBottom: 16,
-                  }}
-                >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#D97706', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <WarningIcon size={12} /> 종료일이 지난 진행중 스쿼드 {overdueSquads.length}건
+                <div className="sq-banner sq-banner-warn" data-testid="squad-overdue-banner">
+                  <div className="sq-banner-title">
+                    <WarningIcon size={14} /> 종료일이 지난 진행중 스쿼드 {overdueSquads.length}건
                   </div>
-                  <div style={{ fontSize: 10, color: '#92400E', marginTop: 3, lineHeight: 1.6 }}>
+                  <div className="sq-banner-body">
                     {overdueSquads.map((sq) => `${sq.name} (${fmtYmd(sq.endDate)})`).join(' · ')}
                   </div>
-                  <div style={{ fontSize: 9, color: '#B45309', marginTop: 3 }}>
+                  <div className="sq-banner-note">
                     상태 배지에서 완료로 전환하세요 — 자동으로 바뀌지 않습니다
                   </div>
                 </div>
@@ -417,44 +382,26 @@ export default function SquadCanvas({
 
               {/* 스쿼드 0건 빈 상태 — 실제 고객 조직은 전부 여기서 시작한다 */}
               {squads.length === 0 && !squadForm && (
-                <div
-                  data-testid="squad-empty-state"
-                  style={{
-                    border: '1px dashed #E2E8F0', borderRadius: 14, padding: '32px 20px',
-                    textAlign: 'center', marginBottom: 32, background: '#F8FAFC',
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>운영 중인 스쿼드가 없습니다</div>
+                <div className="sq-empty" data-testid="squad-empty-state">
+                  <p className="sq-empty-title">운영 중인 스쿼드가 없습니다</p>
                   {ledgerReady ? (
                     <>
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                        첫 스쿼드를 만들어 팀원을 배정해보세요
-                      </div>
+                      <p className="sq-empty-desc">첫 스쿼드를 만들어 팀원을 배정해보세요</p>
                       <button
                         type="button" onClick={openSquadForm} data-testid="squad-create-open-empty"
-                        style={{
-                          marginTop: 12, padding: '8px 16px', borderRadius: 9, border: 'none',
-                          background: '#4F6AF5', color: '#fff', cursor: 'pointer',
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          fontSize: 12, fontWeight: 700, fontFamily: FONT,
-                        }}
+                        className="sq-btn sq-btn-primary"
                       >
-                        <PlusIcon size={12} /> 스쿼드 만들기
+                        <PlusIcon size={14} /> 스쿼드 만들기
                       </button>
                     </>
                   ) : (
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                      관리자가 스쿼드를 만들면 표시됩니다
-                    </div>
+                    <p className="sq-empty-desc">관리자가 스쿼드를 만들면 표시됩니다</p>
                   )}
                 </div>
               )}
 
-              {/* 카드 그리드 */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))',
-                gap: 16, marginBottom: 32,
-              }}>
+              {/* 카드 그리드 — 프로젝트 탭과 같은 격자 */}
+              <div className="pj-cards-grid">
                 {squadForm && squadForm.mode === 'create' && (
                   <SquadFormCard
                     form={squadForm} setForm={editForm} errors={errors}
@@ -492,286 +439,255 @@ export default function SquadCanvas({
                     <div
                       key={sq.id} data-testid={`squad-card-${sq.id}`}
                       onMouseEnter={() => setHov(sq.id)} onMouseLeave={() => setHov(null)}
+                      className={[
+                        'pj-card sq-card',
+                        addTarget === sq.id ? 'is-open' : '',
+                        sq.status === 'archived' ? 'is-archived' : '',
+                      ].filter(Boolean).join(' ')}
                       style={{
-                        background: '#fff', borderRadius: 14,
-                        overflow: addTarget === sq.id ? 'visible' : 'hidden',
-                        border: `1px solid ${hov === sq.id ? `${sq.color}50` : '#E2E8F0'}`,
-                        boxShadow: hov === sq.id ? `0 6px 24px ${sq.color}18` : '0 1px 4px rgba(0,0,0,.05)',
-                        transition: 'all .2s',
+                        // 스쿼드 색은 데이터라 토큰으로 표현할 수 없다 — hover 강조만 인라인
+                        boxShadow: hov === sq.id ? `0 6px 24px ${sq.color}24` : undefined,
                         transform: hov === sq.id && !overlayOpen ? 'translateY(-2px)' : 'none',
-                        // 보관 = 이력 보존용. 흐리게 구분하되 조회·할당 편집은 정상 동작한다
-                        opacity: sq.status === 'archived' ? 0.6 : 1,
                       }}
                     >
-                      <div style={{ height: 4, background: sq.color }} />
-                      <div style={{ padding: '16px 18px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{sq.name}</div>
-                            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2, lineHeight: 1.5 }}>{sq.mission}</div>
-                          </div>
+                      <span className="sq-card-strip" style={{ background: sq.color }} />
 
-                          {/* 상태 배지 = 전환 트리거 (p013). 편집 모드와 무관하게 동작 */}
-                          <div style={{ position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                            <span
-                              data-testid={`squad-status-${sq.id}`}
-                              onClick={() => canTransition && setStatusMenu((m) => (m === sq.id ? null : sq.id))}
-                              title={canTransition ? '상태 변경' : undefined}
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 2,
-                                fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
-                                background: stBadge.bg, color: stBadge.text,
-                                cursor: canTransition ? 'pointer' : 'default',
-                              }}
-                            >
-                              {stBadge.label}
-                              {canTransition && <ChevronDownIcon size={9} />}
-                            </span>
+                      <div className="sq-card-actions">
+                        {/* 상태 배지 = 전환 트리거 (p013). 편집 모드와 무관하게 동작.
+                            부품은 프로젝트 카드의 상태 표시와 같은 것을 쓴다. */}
+                        <span
+                          data-testid={`squad-status-${sq.id}`}
+                          className={`pj-card-status sq-status${canTransition ? ' is-clickable' : ''}`}
+                          onClick={() => canTransition && setStatusMenu((m) => (m === sq.id ? null : sq.id))}
+                          title={canTransition ? '상태 변경' : undefined}
+                          style={{ color: stBadge.textColor }}
+                        >
+                          <span className="pj-status-dot" style={{ background: stBadge.dotColor }} />
+                          <span>{stBadge.label}</span>
+                          {canTransition && <ChevronDownIcon size={12} />}
+                        </span>
 
-                            {ledgerReady && (
-                              <span
-                                data-testid={`squad-more-${sq.id}`}
-                                onClick={() => setMoreMenu((m) => (m === sq.id ? null : sq.id))}
-                                title="스쿼드 관리"
-                                style={{ marginLeft: 4, color: '#94A3B8', cursor: 'pointer', display: 'inline-flex' }}
-                              >
-                                <MoreIcon size={14} />
-                              </span>
-                            )}
+                        {ledgerReady && (
+                          <span
+                            data-testid={`squad-more-${sq.id}`}
+                            className="sq-more"
+                            onClick={() => setMoreMenu((m) => (m === sq.id ? null : sq.id))}
+                            title="스쿼드 관리"
+                          >
+                            <MoreIcon size={16} />
+                          </span>
+                        )}
 
-                            {moreMenu === sq.id && ledgerReady && (
-                              <>
-                                <div onClick={() => setMoreMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
-                                <div style={{
-                                  position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: SQUAD_MENU_Z,
-                                  background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8,
-                                  boxShadow: '0 6px 20px rgba(15,23,42,.12)', overflow: 'hidden', minWidth: 116,
-                                }}>
-                                  <div
-                                    data-testid={`squad-more-edit-${sq.id}`} onClick={() => openSquadEdit(sq)}
-                                    style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: '#334155', cursor: 'pointer' }}
-                                  >수정</div>
-                                  <div
-                                    data-testid={`squad-more-history-${sq.id}`}
-                                    onClick={() => { setHistFor(sq.id); setMoreMenu(null); onLoadHistory?.(sq.id); }}
-                                    style={{ padding: '7px 11px', fontSize: 11, fontWeight: 600, color: '#334155', cursor: 'pointer' }}
-                                  >이력</div>
-                                  {/* 삭제는 보관 상태에서만 활성 — 운영 중 조직의 실수 삭제 방지(§5-2-B 1번) */}
-                                  <div
-                                    data-testid={`squad-more-delete-${sq.id}`}
-                                    onClick={() => {
-                                      if (sq.status === 'archived') { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
-                                    }}
-                                    title={sq.status === 'archived' ? undefined : '보관 상태에서만 삭제할 수 있습니다'}
-                                    style={{
-                                      padding: '7px 11px', fontSize: 11, fontWeight: 600,
-                                      borderTop: '1px solid #F1F5F9',
-                                      color: sq.status === 'archived' ? '#DC2626' : '#CBD5E1',
-                                      cursor: sq.status === 'archived' ? 'pointer' : 'not-allowed',
-                                    }}
-                                  >삭제</div>
-                                </div>
-                              </>
-                            )}
-
-                            {histFor === sq.id && (
-                              <SquadHistoryPopover
-                                squad={sq}
-                                rows={history?.[sq.id]}
-                                loading={historyLoading}
-                                error={historyError}
-                                onRetry={() => onLoadHistory?.(sq.id)}
-                                onClose={() => setHistFor(null)}
-                              />
-                            )}
-
-                            {statusMenu === sq.id && canTransition && (
-                              <>
-                                <div onClick={() => setStatusMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
-                                <div
-                                  data-testid={`squad-status-menu-${sq.id}`}
-                                  style={{
-                                    position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: SQUAD_MENU_Z,
-                                    background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8,
-                                    boxShadow: '0 6px 20px rgba(15,23,42,.12)', overflow: 'hidden', minWidth: 130,
-                                  }}
-                                >
-                                  {/* 허용된 전이만 렌더 — 차단 전이는 비활성 항목으로도 보여주지 않는다 */}
-                                  {sqTransitions.map((t) => (
-                                    <div
-                                      key={t.to} data-testid={`squad-transition-${sq.id}-${t.to}`}
-                                      onClick={() => requestStatus(sq, t.to)}
-                                      style={{
-                                        padding: '7px 11px', fontSize: 11, fontWeight: 600,
-                                        color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      {t.label} <span style={{ color: '#94A3B8', fontWeight: 500 }}>→ {squadStatusLabel(t.to)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 기간 (한시 조직) */}
-                        <div style={{
-                          fontSize: 10, color: '#94A3B8', fontFamily: MONO, marginBottom: 12,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                          <CalendarIcon size={11} /> {fmtYmd(sq.startDate)} – {fmtYmd(sq.endDate)}
-                        </div>
-
-                        {/* 팀원 리소스 구성 — 스쿼드 100 기준 (매트릭스의 캐파 기준값과 분모가 다름) */}
-                        <SquadComposition squad={sq} members={members} personOf={personOf} />
-
-                        {!isEditing ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {/* 시안은 아바타를 -6px 로 겹쳐 쌓았지만, 그건 라벨이 'KR' 같은
-                                2글자 코드일 때의 간격이다. 실제 명부는 '박소율' 처럼 3~4글자
-                                한글 이름이라 겹치면 뒷글자가 가려 읽히지 않는다 — 겹치는 대신
-                                2px 로 띄우고 넘치면 줄바꿈한다(카드당 인원은 많아야 한 자릿수). */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                              {members.map((mm) => {
-                                const p = personOf(mm.userId);
-                                return (
-                                  <div
-                                    key={mm.userId}
-                                    onClick={() => p && onMemberClick?.(p)}
-                                    style={{
-                                      position: 'relative',
-                                      cursor: p && onMemberClick ? 'pointer' : 'default',
-                                    }}
-                                    title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${mm.role === 'lead' ? ' · 리드' : ''}`}
-                                  >
-                                    <div style={{
-                                      width: 26, height: 26, borderRadius: 8,
-                                      background: `${p?.color || '#94A3B8'}20`,
-                                      border: '2px solid #fff',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      fontSize: 8, fontWeight: 800, color: p?.color || '#94A3B8', fontFamily: MONO,
-                                    }}>{p?.avatar || nameOf(mm.userId).slice(0, 2)}</div>
-                                    {mm.role === 'lead' && (
-                                      <span style={{ position: 'absolute', top: -6, right: -4, color: '#F59E0B', display: 'inline-flex' }}>
-                                        <LeadStarIcon size={10} />
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <span style={{ fontSize: 10, color: '#94A3B8' }}>
-                              {members.length}명 · 리드{' '}
-                              {lead
-                                ? nameOf(lead.userId)
-                                : <em style={{ color: '#CBD5E1', fontStyle: 'normal' }}>미지정</em>}
-                            </span>
-                          </div>
-                        ) : (
-                          <div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                              {members.map((mm) => {
-                                const p = personOf(mm.userId);
-                                const editable = canEditMemberOf(mm.userId);
-                                return (
-                                  <div
-                                    key={mm.userId}
-                                    data-testid={`squad-chip-${sq.id}-${mm.userId}`}
-                                    onClick={(e) => editable && setPopover({
-                                      squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
-                                    })}
-                                    title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${editable ? '\n클릭: 투입%·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
-                                    style={{
-                                      display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 99,
-                                      background: mm.role === 'lead' ? '#FFFBEB' : '#F8FAFC',
-                                      border: `1px solid ${mm.role === 'lead' ? '#FDE68A' : '#E2E8F0'}`,
-                                      cursor: editable ? 'pointer' : 'default', opacity: editable ? 1 : 0.5,
-                                    }}
-                                  >
-                                    {mm.role === 'lead' && (
-                                      <span style={{ color: '#F59E0B', display: 'inline-flex' }}><LeadStarIcon size={9} /></span>
-                                    )}
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#334155' }}>{nameOf(mm.userId)}</span>
-                                    <span style={{ fontSize: 9, fontWeight: 700, color: p?.color || '#64748B', fontFamily: MONO }}>
-                                      {mm.allocationPct}%
-                                    </span>
-                                    {editable && onRemoveMember && (
-                                      <span
-                                        onClick={(e) => { e.stopPropagation(); unassign(sq.id, mm.userId); }}
-                                        title="배정 해제"
-                                        style={{ color: '#94A3B8', cursor: 'pointer', marginLeft: 2, display: 'inline-flex' }}
-                                      >
-                                        <CloseIcon size={9} />
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {members.length === 0 && (
-                                <span style={{ fontSize: 10, color: '#CBD5E1' }}>배정된 팀원이 없습니다</span>
-                              )}
-                            </div>
-
-                            {onUpsertMember && (addTarget === sq.id ? (
-                              <div style={{ position: 'relative' }}>
-                                <input
-                                  autoFocus value={addQuery} aria-label="팀원 검색"
-                                  onChange={(e) => setAddQuery(e.target.value)}
-                                  onKeyDown={(e) => { if (e.key === 'Escape') { setAddTarget(null); setAddQuery(''); } }}
-                                  placeholder="이름 · 팀 · 직함 검색…"
-                                  style={{
-                                    width: '100%', padding: '7px 10px', borderRadius: 8,
-                                    border: `1.5px solid ${sq.color}50`, fontSize: 11, fontFamily: FONT,
-                                    outline: 'none', boxSizing: 'border-box',
-                                  }}
-                                />
-                                <div style={{
-                                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                                  background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10,
-                                  boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 200, maxHeight: 168, overflowY: 'auto',
-                                }}>
-                                  {candidates.map((n) => (
-                                    <div
-                                      key={n.id} data-testid={`squad-add-candidate-${n.id}`}
-                                      onClick={() => { assign(sq.id, n.id); setAddTarget(null); setAddQuery(''); }}
-                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer' }}
-                                    >
-                                      <div style={{
-                                        width: 22, height: 22, borderRadius: 6, background: `${n.color || '#94A3B8'}20`, flexShrink: 0,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 7, fontWeight: 800, color: n.color || '#94A3B8', fontFamily: MONO,
-                                      }}>{n.avatar || n.name.slice(0, 2)}</div>
-                                      <div style={{ minWidth: 0 }}>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>{n.name}</span>
-                                        <span style={{ fontSize: 9, color: '#94A3B8', marginLeft: 6 }}>{n.title} · {n.team}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {candidates.length === 0 && (
-                                    <div style={{ padding: '10px 12px', fontSize: 10, color: '#94A3B8' }}>
-                                      추가할 수 있는 구성원이 없습니다{editableSet !== null ? ' (내 조직 범위 밖)' : ''}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                type="button" data-testid={`squad-add-member-${sq.id}`}
-                                onClick={() => { setAddTarget(sq.id); setAddQuery(''); }}
-                                style={{
-                                  padding: '5px 10px', borderRadius: 99, border: `1.5px dashed ${sq.color}60`,
-                                  background: '#fff', color: sq.color, cursor: 'pointer',
-                                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                                  fontSize: 10, fontWeight: 700, fontFamily: FONT,
+                        {moreMenu === sq.id && ledgerReady && (
+                          <>
+                            <div onClick={() => setMoreMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
+                            <div className="sq-menu" style={{ zIndex: SQUAD_MENU_Z }}>
+                              <div
+                                data-testid={`squad-more-edit-${sq.id}`} onClick={() => openSquadEdit(sq)}
+                                className="sq-menu-item"
+                              >수정</div>
+                              <div
+                                data-testid={`squad-more-history-${sq.id}`}
+                                onClick={() => { setHistFor(sq.id); setMoreMenu(null); onLoadHistory?.(sq.id); }}
+                                className="sq-menu-item"
+                              >이력</div>
+                              {/* 삭제는 보관 상태에서만 활성 — 운영 중 조직의 실수 삭제 방지(§5-2-B 1번) */}
+                              <div
+                                data-testid={`squad-more-delete-${sq.id}`}
+                                onClick={() => {
+                                  if (sq.status === 'archived') { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
                                 }}
-                              >
-                                <PlusIcon size={10} /> 팀원 추가
-                              </button>
-                            ))}
-                          </div>
+                                title={sq.status === 'archived' ? undefined : '보관 상태에서만 삭제할 수 있습니다'}
+                                className={`sq-menu-item sq-menu-item-danger${sq.status === 'archived' ? '' : ' is-disabled'}`}
+                              >삭제</div>
+                            </div>
+                          </>
+                        )}
+
+                        {histFor === sq.id && (
+                          <SquadHistoryPopover
+                            squad={sq}
+                            rows={history?.[sq.id]}
+                            loading={historyLoading}
+                            error={historyError}
+                            onRetry={() => onLoadHistory?.(sq.id)}
+                            onClose={() => setHistFor(null)}
+                          />
+                        )}
+
+                        {statusMenu === sq.id && canTransition && (
+                          <>
+                            <div onClick={() => setStatusMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
+                            <div
+                              data-testid={`squad-status-menu-${sq.id}`}
+                              className="sq-menu"
+                              style={{ zIndex: SQUAD_MENU_Z }}
+                            >
+                              {/* 허용된 전이만 렌더 — 차단 전이는 비활성 항목으로도 보여주지 않는다 */}
+                              {sqTransitions.map((t) => (
+                                <div
+                                  key={t.to} data-testid={`squad-transition-${sq.id}-${t.to}`}
+                                  onClick={() => requestStatus(sq, t.to)}
+                                  className="sq-menu-item"
+                                >
+                                  {t.label} <span className="sq-menu-item-to">→ {squadStatusLabel(t.to)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
                         )}
                       </div>
+
+                      <div className="pj-card-info">
+                        <p className="pj-card-name">{sq.name}</p>
+                        <p className="pj-card-desc">{sq.mission}</p>
+                      </div>
+
+                      {/* 기간 (한시 조직) */}
+                      <div className="sq-period">
+                        <CalendarIcon size={14} /> {fmtYmd(sq.startDate)} – {fmtYmd(sq.endDate)}
+                      </div>
+
+                      {/* 팀원 리소스 구성 — 스쿼드 100 기준 (매트릭스의 캐파 기준값과 분모가 다름) */}
+                      <SquadComposition squad={sq} members={members} personOf={personOf} />
+
+                      {!isEditing ? (
+                        <div className="sq-members">
+                          {/* 시안은 아바타를 -6px 로 겹쳐 쌓았지만, 그건 라벨이 'KR' 같은
+                              2글자 코드일 때의 간격이다. 실제 명부는 '박소율' 처럼 3~4글자
+                              한글 이름이라 겹치면 뒷글자가 가려 읽히지 않는다 — 겹치는 대신
+                              띄우고 넘치면 줄바꿈한다(카드당 인원은 많아야 한 자릿수). */}
+                          <div className="sq-avatar-group">
+                            {members.map((mm) => {
+                              const p = personOf(mm.userId);
+                              const tint = p?.color || null;
+                              const label = p?.avatar || nameOf(mm.userId).slice(0, 2);
+                              return (
+                                <div
+                                  key={mm.userId}
+                                  className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
+                                  onClick={() => p && onMemberClick?.(p)}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${mm.role === 'lead' ? ' · 리드' : ''}`}
+                                >
+                                  <div
+                                    className="sq-avatar"
+                                    style={{
+                                      fontSize: avatarFontPx(label, 24),
+                                      ...(tint
+                                        ? { background: `${tint}24`, color: tint }
+                                        : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+                                    }}
+                                  >{label}</div>
+                                  {mm.role === 'lead' && (
+                                    <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <span className="sq-member-count">
+                            {members.length}명 · 리드{' '}
+                            {lead
+                              ? nameOf(lead.userId)
+                              : <em className="sq-unset">미지정</em>}
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="sq-chip-row">
+                            {members.map((mm) => {
+                              const p = personOf(mm.userId);
+                              const editable = canEditMemberOf(mm.userId);
+                              return (
+                                <div
+                                  key={mm.userId}
+                                  data-testid={`squad-chip-${sq.id}-${mm.userId}`}
+                                  className={[
+                                    'sq-chip',
+                                    mm.role === 'lead' ? 'is-lead' : '',
+                                    editable ? 'is-clickable' : 'is-locked',
+                                  ].filter(Boolean).join(' ')}
+                                  onClick={(e) => editable && setPopover({
+                                    squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
+                                  })}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${editable ? '\n클릭: 투입%·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
+                                >
+                                  {mm.role === 'lead' && (
+                                    <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
+                                  )}
+                                  <span className="sq-chip-name">{nameOf(mm.userId)}</span>
+                                  <span
+                                    className="sq-chip-pct"
+                                    style={{ color: p?.color || 'var(--text-tertiary)' }}
+                                  >
+                                    {mm.allocationPct}%
+                                  </span>
+                                  {editable && onRemoveMember && (
+                                    <span
+                                      className="sq-chip-remove"
+                                      onClick={(e) => { e.stopPropagation(); unassign(sq.id, mm.userId); }}
+                                      title="배정 해제"
+                                    >
+                                      <CloseIcon size={11} />
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {members.length === 0 && (
+                              <span className="sq-chip-empty">배정된 팀원이 없습니다</span>
+                            )}
+                          </div>
+
+                          {onUpsertMember && (addTarget === sq.id ? (
+                            <div className="sq-add-wrap">
+                              <input
+                                autoFocus value={addQuery} aria-label="팀원 검색"
+                                className="sq-add-input"
+                                onChange={(e) => setAddQuery(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Escape') { setAddTarget(null); setAddQuery(''); } }}
+                                placeholder="이름 · 팀 · 직함 검색…"
+                              />
+                              <div className="sq-add-list">
+                                {candidates.map((n) => (
+                                  <div
+                                    key={n.id} data-testid={`squad-add-candidate-${n.id}`}
+                                    className="sq-add-item"
+                                    onClick={() => { assign(sq.id, n.id); setAddTarget(null); setAddQuery(''); }}
+                                  >
+                                    <div
+                                      className="sq-avatar"
+                                      style={{
+                                        fontSize: avatarFontPx(n.avatar || n.name.slice(0, 2), 24),
+                                        ...(n.color
+                                          ? { background: `${n.color}24`, color: n.color }
+                                          : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+                                      }}
+                                    >{n.avatar || n.name.slice(0, 2)}</div>
+                                    <div>
+                                      <span className="sq-add-name">{n.name}</span>{' '}
+                                      <span className="sq-add-meta">{n.title} · {n.team}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                                {candidates.length === 0 && (
+                                  <div className="sq-add-none">
+                                    추가할 수 있는 구성원이 없습니다{editableSet !== null ? ' (내 조직 범위 밖)' : ''}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button" data-testid={`squad-add-member-${sq.id}`}
+                              className="sq-btn sq-btn-sm sq-btn-dashed"
+                              onClick={() => { setAddTarget(sq.id); setAddQuery(''); }}
+                            >
+                              <PlusIcon size={12} /> 팀원 추가
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -779,96 +695,81 @@ export default function SquadCanvas({
 
               {/* ── 멤버 × 스쿼드 배치 매트릭스 ── */}
               {squads.length > 0 && (
-                <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, overflow: 'hidden' }}>
-                  <div style={{ padding: '14px 20px', borderBottom: '1px solid #F1F5F9' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>멤버 × 스쿼드 배치</div>
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                <div className="sq-panel">
+                  <div className="sq-panel-head">
+                    <p className="pj-table-title">멤버 × 스쿼드 배치</p>
+                    <p className="pj-table-subtitle">
                       {isEditing
                         ? `빈 셀 클릭 = 배정 (기본 ${DEFAULT_ASSIGN_PCT}%) · 배정 셀 클릭 = 투입%(내 캐파 100 기준) · 리드 편집`
                         : '이름 클릭 시 프로필 확인 · 셀 % = 내 캐파 100 중 이 스쿼드 비율'}
-                    </div>
+                    </p>
                   </div>
 
                   {/* 과부하 경고 배너 — 차단하지 않고 현실을 먼저 드러낸다 */}
                   {overloaded.length > 0 && (
                     <div
+                      className="sq-banner sq-banner-error sq-banner-flush"
                       data-testid="squad-overload-banner"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px',
-                        background: '#FEF2F2', borderBottom: '1px solid #FECACA', flexWrap: 'wrap',
-                      }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#DC2626', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                        <WarningIcon size={12} /> 과부하
+                      <span className="sq-banner-title">
+                        <WarningIcon size={14} /> 과부하
                       </span>
-                      <span style={{ fontSize: 11, color: '#B91C1C' }}>
+                      <span className="sq-banner-body">
                         {overloaded.map((id) => `${nameOf(id)} ${plannedTotalPct(squads, id)}%`).join(' · ')}
                         {' — 개인 캐파 100을 넘겨 배정됐습니다 (저장은 허용 · 조정은 사람이 결정)'}
                       </span>
                     </div>
                   )}
 
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+                  <div className="sq-table-scroll">
+                    <table className="pj-table sq-table">
                       <thead>
-                        <tr style={{ background: '#F8FAFC' }}>
-                          <th style={{
-                            padding: '10px 20px', textAlign: 'left', fontSize: 10, fontWeight: 700,
-                            color: '#94A3B8', letterSpacing: 0.5, borderBottom: '1px solid #F1F5F9',
-                          }}>멤버</th>
+                        <tr>
+                          <th className="pj-th sq-th-name">멤버</th>
                           {squads.map((sq) => (
-                            <th key={sq.id} style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: sq.color }} />
-                                <span style={{
-                                  fontSize: 9, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap',
-                                  maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis',
-                                }}>{sq.name}</span>
-                              </div>
+                            <th key={sq.id} className="pj-th sq-th-col">
+                              <span className="sq-th-col-inner">
+                                <span className="pj-th-dot" style={{ background: sq.color }} />
+                                <span className="pj-th-label">{sq.name}</span>
+                              </span>
                             </th>
                           ))}
-                          <th style={{
-                            padding: '10px 12px', textAlign: 'center', fontSize: 10, fontWeight: 700,
-                            color: '#94A3B8', borderBottom: '1px solid #F1F5F9', whiteSpace: 'nowrap',
-                          }}>
+                          <th className="pj-th sq-th-cap">
                             캐파 사용
-                            <div style={{ fontSize: 8, fontWeight: 600, color: '#CBD5E1', marginTop: 1 }}>내 캐파 100 기준</div>
+                            <span className="sq-th-cap-basis">내 캐파 100 기준</span>
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {rowIds.map((userId, ri) => {
+                        {rowIds.map((userId) => {
                           const p = personOf(userId);
                           const count = squadCountOf(squads, userId);
                           const total = plannedTotalPct(squads, userId);
                           const segments = planSegments(squads, userId);
                           const cst = capacityState(total);
                           const diff = total - CAPACITY;
+                          const clickable = !!(p && onMemberClick);
+                          const rowLabel = p?.avatar || nameOf(userId).slice(0, 2);
                           return (
-                            <tr
-                              key={userId} data-testid={`squad-matrix-row-${userId}`}
-                              style={{ borderBottom: ri < rowIds.length - 1 ? '1px solid #F8FAFC' : 'none' }}
-                            >
-                              <td style={{ padding: '9px 20px' }}>
+                            <tr key={userId} data-testid={`squad-matrix-row-${userId}`}>
+                              <td className="pj-td">
                                 <div
+                                  className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
                                   onClick={() => p && onMemberClick?.(p)}
-                                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: p && onMemberClick ? 'pointer' : 'default' }}
                                 >
-                                  <div style={{
-                                    width: 26, height: 26, borderRadius: 7,
-                                    background: `${p?.color || '#94A3B8'}20`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 8, fontWeight: 800, color: p?.color || '#94A3B8', fontFamily: MONO,
-                                  }}>{p?.avatar || nameOf(userId).slice(0, 2)}</div>
-                                  <span style={{
-                                    fontSize: 12, fontWeight: 600,
-                                    color: p && onMemberClick ? '#4F6AF5' : '#0F172A',
-                                    textDecoration: p && onMemberClick ? 'underline' : 'none',
-                                    textDecorationStyle: 'dotted',
-                                  }}>{nameOf(userId)}</span>
+                                  <span
+                                    className="pj-member-avatar pj-member-initials sq-avatar-lg"
+                                    style={{
+                                      fontSize: avatarFontPx(rowLabel, 40),
+                                      ...(p?.color
+                                        ? { background: `${p.color}24`, color: p.color, borderColor: 'transparent' }
+                                        : {}),
+                                    }}
+                                  >{rowLabel}</span>
+                                  <span className="pj-member-name">{nameOf(userId)}</span>
                                   {isEditing && !inScope(userId) && (
-                                    <span title="편집 권한 없음 (내 조직 아님)" style={{ color: '#CBD5E1', display: 'inline-flex' }}>
-                                      <LockIcon size={11} />
+                                    <span className="sq-lock" title="편집 권한 없음 (내 조직 아님)">
+                                      <LockIcon size={13} />
                                     </span>
                                   )}
                                 </div>
@@ -878,67 +779,54 @@ export default function SquadCanvas({
                                 const editable = canEditMemberOf(userId);
                                 const isLead = mm?.role === 'lead';
                                 return (
-                                  <td key={sq.id} style={{ padding: '9px 12px', textAlign: 'center' }}>
+                                  <td key={sq.id} className="pj-td sq-td-cell">
                                     {mm ? (
                                       <div
                                         data-testid={`squad-cell-${sq.id}-${userId}`}
+                                        className={`sq-cell${editable ? ' is-clickable' : ''}`}
                                         onClick={(e) => editable && setPopover({
                                           squadId: sq.id, userId, x: e.clientX + 8, y: e.clientY + 8,
                                         })}
                                         title={`${nameOf(userId)} · ${sq.name} — 내 캐파 100 중 ${mm.allocationPct}%${isLead ? ' · 리드' : ''}${editable ? '\n클릭: 투입%·리드 편집' : ''}`}
-                                        style={{
-                                          minWidth: 40, height: 24, borderRadius: 7,
-                                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                          gap: 2, padding: '0 7px',
-                                          background: `${sq.color}18`, border: `1px solid ${sq.color}45`,
-                                          cursor: editable ? 'pointer' : 'default',
-                                        }}
+                                        style={{ background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
                                       >
                                         {isLead && (
-                                          <span style={{ color: '#F59E0B', display: 'inline-flex' }}><LeadStarIcon size={9} /></span>
+                                          <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
                                         )}
-                                        <span style={{ fontSize: 10, fontWeight: 800, color: sq.color, fontFamily: MONO }}>
+                                        <span className="sq-cell-pct" style={{ color: sq.color }}>
                                           {mm.allocationPct}%
                                         </span>
                                       </div>
                                     ) : isEditing ? (
                                       <div
                                         data-testid={`squad-empty-cell-${sq.id}-${userId}`}
+                                        className={`sq-cell-add${editable ? '' : ' is-locked'}`}
                                         onClick={() => editable && assign(sq.id, userId)}
                                         title={editable ? `클릭: ${sq.name}에 배정 (기본 ${DEFAULT_ASSIGN_PCT}%)` : '편집 권한 없음 (내 조직 아님)'}
-                                        style={{
-                                          width: 24, height: 24, borderRadius: 7, margin: '0 auto',
-                                          background: '#F8FAFC',
-                                          border: `1px dashed ${editable ? '#CBD5E1' : '#F1F5F9'}`,
-                                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                          cursor: editable ? 'pointer' : 'not-allowed', color: '#CBD5E1',
-                                        }}
                                       >
-                                        {editable && <PlusIcon size={11} />}
+                                        {editable && <PlusIcon size={12} />}
                                       </div>
                                     ) : (
-                                      <div style={{ width: 24, height: 24, borderRadius: 7, margin: '0 auto', background: '#F8FAFC' }} />
+                                      <span className="pj-cell-dot pj-cell-dot-empty" />
                                     )}
                                   </td>
                                 );
                               })}
                               {/* 캐파 사용 — 개인 가용 100 기준. 게이지 + 잔여/초과 %p 를 함께 읽힌다 */}
-                              <td style={{ padding: '9px 12px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>
+                              <td className="pj-td sq-td-cap">
+                                <div className="sq-cap">
+                                  <div className="sq-cap-nums">
                                     <span
                                       data-testid={`squad-capacity-total-${userId}`}
-                                      style={{ fontSize: 12, fontWeight: 800, color: cst.color, fontFamily: MONO }}
+                                      className="sq-cap-total"
+                                      style={{ color: cst.color }}
                                     >
                                       {total}
                                     </span>
-                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#CBD5E1', fontFamily: MONO }}>/ 100</span>
+                                    <span className="sq-cap-max">/ 100</span>
                                   </div>
                                   <CapacityBar segments={segments} total={total} />
-                                  <span style={{
-                                    fontSize: 8, color: cst.key === 'over' ? '#DC2626' : '#94A3B8',
-                                    fontFamily: MONO, whiteSpace: 'nowrap',
-                                  }}>
+                                  <span className={`sq-cap-note${cst.key === 'over' ? ' is-over' : ''}`}>
                                     {total === 0
                                       ? '미배정'
                                       : diff > 0
@@ -952,7 +840,7 @@ export default function SquadCanvas({
                         })}
                         {rowIds.length === 0 && (
                           <tr>
-                            <td colSpan={squads.length + 2} style={{ padding: '24px 20px', textAlign: 'center', fontSize: 11, color: '#CBD5E1' }}>
+                            <td colSpan={squads.length + 2} className="sq-empty-row">
                               배정된 팀원이 없습니다 — 「할당 편집」에서 배정해보세요
                             </td>
                           </tr>
@@ -962,19 +850,19 @@ export default function SquadCanvas({
                   </div>
 
                   {/* 범례 — 두 분모를 혼동하지 않게 상시 안내한다 */}
-                  <div style={{ padding: '10px 20px', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <span style={{ color: '#F59E0B', display: 'inline-flex' }}><LeadStarIcon size={10} /></span>
+                  <div className="sq-legend">
+                    <span className="sq-legend-item">
+                      <span className="sq-lead-mark"><LeadStarIcon size={12} /></span>
                       리드 (스쿼드당 1명)
                     </span>
-                    <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                    <span className="sq-legend-item">
                       셀 % = <b>내 가용 캐파 100 중 이 스쿼드에 쓰는 비율</b> (스쿼드 내 지분·상대 비중이 아님 — 그래야 합산이 성립한다)
                     </span>
-                    <span style={{ fontSize: 10, color: '#94A3B8' }}>
-                      캐파 사용(완료·보관 스쿼드 제외): <span style={{ color: '#DC2626', fontWeight: 700 }}>&gt;100 초과</span>
+                    <span className="sq-legend-item">
+                      캐파 사용(완료·보관 스쿼드 제외): <span className="sq-legend-over">&gt;100 초과</span>
                       (빗금 = 캐파 밖) · 100 가득 · 70~99 적정 · &lt;70 여유
                     </span>
-                    <span style={{ fontSize: 10, color: '#CBD5E1' }}>실제 투입%는 「리소스 투입현황」 자기신고 값과 별개</span>
+                    <span className="sq-legend-item sq-legend-faint">실제 투입%는 「리소스 투입현황」 자기신고 값과 별개</span>
                   </div>
                 </div>
               )}
@@ -1007,64 +895,50 @@ export default function SquadCanvas({
         return (
           <div
             onClick={() => setDelAsk(null)} data-testid="squad-delete-modal"
-            style={{
-              position: 'fixed', inset: 0, background: '#0F172A55', zIndex: SQUAD_MODAL_Z,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
+            className="sq-modal-scrim"
+            style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MODAL_Z }}
           >
-            <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 20, width: 380, fontFamily: FONT }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626' }}>스쿼드를 삭제할까요?</div>
+            <div onClick={(e) => e.stopPropagation()} className="sq-modal">
+              <p className="sq-modal-title is-danger">스쿼드를 삭제할까요?</p>
 
               {/* 사라지는 것 / 남는 것을 나란히 보여준다 */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <div style={{ flex: 1, padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#DC2626', marginBottom: 3 }}>함께 삭제</div>
-                  <div style={{ fontSize: 10, color: '#B91C1C', lineHeight: 1.6 }}>
+              <div className="sq-split">
+                <div className="sq-split-col is-loss">
+                  <div className="sq-split-title">함께 삭제</div>
+                  <div className="sq-split-body">
                     팀원 배정 {(sq.members || []).length}건<br />
                     상태 이력 전체
                   </div>
                 </div>
-                <div style={{ flex: 1, padding: '8px 10px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#16A34A', marginBottom: 3 }}>보존</div>
-                  <div style={{ fontSize: 10, color: '#15803D', lineHeight: 1.6 }}>
+                <div className="sq-split-col is-kept">
+                  <div className="sq-split-title">보존</div>
+                  <div className="sq-split-body">
                     프로젝트 원장<br />
                     실제 투입% 이력
                   </div>
                 </div>
               </div>
 
-              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 10 }}>
-                되돌릴 수 없습니다. 확인을 위해 스쿼드명 <b style={{ color: '#334155' }}>{sq.name}</b> 을(를) 입력하세요.
-              </div>
+              <p className="sq-modal-note">
+                되돌릴 수 없습니다. 확인을 위해 스쿼드명 <b>{sq.name}</b> 을(를) 입력하세요.
+              </p>
               <input
                 autoFocus value={delAsk.typed} aria-label="삭제 확인용 스쿼드명"
+                className="sq-modal-input"
                 onChange={(e) => setDelAsk((d) => ({ ...d, typed: e.target.value }))}
                 placeholder={sq.name}
-                style={{
-                  width: '100%', marginTop: 6, border: '1px solid #E2E8F0', borderRadius: 6,
-                  padding: '7px 9px', fontSize: 11, outline: 'none', fontFamily: FONT, boxSizing: 'border-box',
-                }}
               />
 
-              <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+              <div className="sq-modal-actions">
                 <button
                   type="button" data-testid="squad-delete-confirm"
+                  className="sq-btn sq-btn-danger"
                   onClick={() => { if (nameOk) { onDeleteSquad?.(sq.id); setDelAsk(null); setMoreMenu(null); } }}
                   disabled={!nameOk}
-                  style={{
-                    padding: '7px 14px', borderRadius: 7, border: 'none',
-                    background: nameOk ? '#DC2626' : '#E2E8F0', color: nameOk ? '#fff' : '#94A3B8',
-                    fontSize: 11, fontWeight: 700, cursor: nameOk ? 'pointer' : 'not-allowed', fontFamily: FONT,
-                  }}
                 >삭제</button>
-                <button
-                  type="button" onClick={() => setDelAsk(null)}
-                  style={{
-                    padding: '7px 14px', borderRadius: 7, border: '1px solid #E2E8F0',
-                    background: '#fff', color: '#64748B', fontSize: 11, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: FONT,
-                  }}
-                >취소</button>
+                <button type="button" onClick={() => setDelAsk(null)} className="sq-btn sq-btn-outline">
+                  취소
+                </button>
               </div>
             </div>
           </div>
@@ -1079,53 +953,44 @@ export default function SquadCanvas({
         return (
           <div
             onClick={() => setStatusAsk(null)} data-testid="squad-status-modal"
-            style={{
-              position: 'fixed', inset: 0, background: '#0F172A55', zIndex: SQUAD_MODAL_Z,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
+            className="sq-modal-scrim"
+            style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MODAL_Z }}
           >
-            <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, padding: 20, width: 360, fontFamily: FONT }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+            <div onClick={(e) => e.stopPropagation()} className="sq-modal">
+              <p className="sq-modal-title">
                 {reopen ? '스쿼드를 재개할까요?' : '스쿼드를 보관할까요?'}
-              </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 6, lineHeight: 1.6 }}>
+              </p>
+              <p className="sq-modal-desc">
                 <b>{sq.name}</b>
                 {reopen
                   ? ' 을(를) 진행중으로 되돌립니다. 이 스쿼드 배정이 캐파 합계에 다시 포함됩니다.'
                   : ' 을(를) 보관합니다. 목록에서 흐리게 표시되며 캐파 합계에서 계속 제외됩니다. 언제든 복원할 수 있습니다.'}
-              </div>
+              </p>
 
               {/* 재개로 과부하가 새로 생기는 멤버 사전 경고 — 차단하지는 않는다 */}
               {reopen && statusAsk.overloads.length > 0 && (
-                <div style={{ marginTop: 10, padding: '9px 11px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <WarningIcon size={12} /> 재개하면 {statusAsk.overloads.length}명이 과부하(&gt;100%)가 됩니다
+                <div className="sq-warnbox">
+                  <div className="sq-warnbox-title">
+                    <WarningIcon size={14} /> 재개하면 {statusAsk.overloads.length}명이 과부하(&gt;100%)가 됩니다
                   </div>
-                  <div style={{ fontSize: 10, color: '#B91C1C', marginTop: 4, lineHeight: 1.6 }}>
+                  <div className="sq-warnbox-body">
                     {statusAsk.overloads.map((o) => `${nameOf(o.userId)} ${o.total}%`).join(' · ')}
                   </div>
-                  <div style={{ fontSize: 9, color: '#94A3B8', marginTop: 4 }}>저장은 허용됩니다 — 경고만 표시합니다</div>
+                  <div className="sq-warnbox-note">저장은 허용됩니다 — 경고만 표시합니다</div>
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
+              <div className="sq-modal-actions">
                 <button
                   type="button" data-testid="squad-status-confirm"
+                  // 재개든 보관이든 이 모달의 **확인** 은 주 동작이다 — 연한 배지처럼 두면
+                  // 비활성으로 읽혀 사용자가 취소를 누른다. 성격 차이는 본문 문구가 설명한다.
+                  className="sq-btn sq-btn-primary"
                   onClick={() => applyStatus(statusAsk.squadId, statusAsk.to)}
-                  style={{
-                    padding: '7px 14px', borderRadius: 7, border: 'none',
-                    background: reopen ? '#4F6AF5' : '#64748B', color: '#fff',
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: FONT,
-                  }}
                 >{reopen ? '재개' : '보관'}</button>
-                <button
-                  type="button" onClick={() => setStatusAsk(null)}
-                  style={{
-                    padding: '7px 14px', borderRadius: 7, border: '1px solid #E2E8F0',
-                    background: '#fff', color: '#64748B', fontSize: 11, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: FONT,
-                  }}
-                >취소</button>
+                <button type="button" onClick={() => setStatusAsk(null)} className="sq-btn sq-btn-outline">
+                  취소
+                </button>
               </div>
             </div>
           </div>
