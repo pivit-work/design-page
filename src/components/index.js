@@ -170,6 +170,7 @@ export { AdminDashboardCanvas } from './admin/index.js';
 export { AdminEmployeesCanvas } from './admin/index.js';
 export { AdminEmployeeSheetCanvas } from './admin/index.js';
 export { OrgTreePicker, OrgPathLabel } from './admin/index.js';
+export { SquadPicker, SquadCell, SQUAD_GROUPS, isVisibleSquadStatus } from './admin/index.js';
 export {
   buildOrgTree,
   matchesOrgSubtree,

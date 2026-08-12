@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
+import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED } from './orgTree.js';
 
 /**
@@ -79,6 +80,15 @@ function avatarColor(seed) {
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
 const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'workLocation', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
 
+/**
+ * 기본값으로 쓰는 **고정 빈 배열**.
+ *
+ * `prop = []` 로 두면 렌더마다 새 배열이 만들어져, 그 prop 에 걸린 useMemo 가 전부
+ * 매 렌더 다시 돈다(컬럼 정의·필터 옵션·인덱스 맵). 이 시트는 수백 행을 그리는
+ * 화면이라 그 비용이 눈에 띈다.
+ */
+const NO_SQUADS = [];
+
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
   return (list || []).map((m) => ({
@@ -101,6 +111,12 @@ function mapMembers(list) {
     // 소속 조직 단위 id — 소속 경로 표기·서브트리 필터의 정본(PW-112).
     // 편집 대상 컬럼이 아니므로 EDITABLE_FIELDS 에 넣지 않는다(dirty 추적 제외).
     orgUnitIds: Array.isArray(m.orgUnitIds) ? m.orgUnitIds.map(String) : [],
+    // 스쿼드 배정 — [{ squadId, isLead }]. 소속(기능조직)과 **다른 축**이라 별도 컬럼이다(SQ1).
+    // 시트의 일괄 저장(dirty → patch)이 아니라 즉시 반영 경로를 타므로 EDITABLE_FIELDS 밖이다:
+    // 배정은 사람 컬럼 patch 가 아니라 `SquadMember` 행의 생성·삭제·리드 교체다.
+    squads: Array.isArray(m.squads)
+      ? m.squads.map((s) => ({ squadId: String(s.squadId), isLead: s.isLead === true }))
+      : [],
     jobLevel: m.jobLevel ?? '',
     jobPosition: m.jobPosition ?? '',
     workLocation: m.workLocation ?? '',
@@ -284,8 +300,20 @@ function DeptCell({ depts, primaryLabel, concurrentLabel, orgTree = [], orgUnitI
   );
 }
 
-function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel, orgTree }) {
+function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel, orgTree, squadOptions, squadLabels, onOpenSquads, canEditSquads }) {
   const value = row[col.id];
+  if (col.squadCell) {
+    return (
+      <SquadCell
+        squads={squadOptions}
+        assignments={row.squads}
+        statusLabels={squadLabels}
+        closedLabel={squadLabels.closedCount}
+        onOpen={onOpenSquads}
+        canEdit={canEditSquads}
+      />
+    );
+  }
   if (col.id === 'department') {
     return (
       <DeptCell
@@ -451,6 +479,15 @@ export default function AdminEmployeeSheetCanvas({
   // orgUnitOptions: [{ id, name }], onAssignTeam(memberId, orgUnitId) — '' 이면 미배정.
   orgUnitOptions = [],
   onAssignTeam,
+  // ── 스쿼드 축 (arch-core-data-model.md §1-5-b) ──
+  // 소속(기능조직)과 **평행한 별도 축**이다. squadOptions 가 비면 컬럼 자체가 없다.
+  // squadOptions: [{ id, name, status }] — 원장 전체(종료·보관 포함. 표기 범위는 SQ5 가 가른다)
+  // onChangeSquads(memberId, [{ squadId, isLead }]) — 미주입이면 셀은 읽기 전용 표기만
+  // 남는다(핸들러가 없으면 편집 표면도 없다 — 데모 모드로 도는 가짜 저장 방지).
+  // 현 리드는 별도 prop 으로 받지 않고 members 의 `squads` 에서 파생한다 —
+  // 같은 사실을 두 군데서 받으면 어긋날 수 있고, "나 자신 제외" 판정도 여기서만 된다.
+  squadOptions = NO_SQUADS,
+  onChangeSquads,
   // 조직 설정 필드옵션을 컬럼 드롭다운으로 연결(비면 자유 텍스트 폴백, 기존 값 보존).
   // gradeOptions→직급(jobLevel 카탈로그), positionOptions→직책(jobPosition 카탈로그).
   gradeOptions = [],
@@ -504,12 +541,23 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'hireDate', label: cl.hireDate || '입사일', width: 120, type: 'date', editable: true },
       { id: 'terminationDate', label: cl.terminationDate || '퇴사일', width: 120, type: 'date', editable: true },
     ];
+    // 스쿼드 — 소속(기능조직) 바로 다음에 **별도 컬럼**으로 둔다(SQ1). 한 칸에 두 축을
+    // 섞으면 인원 집계의 분모가 오염되고(SQ2) 한시 조직이 상설처럼 보인다.
+    // 원장이 비어 있으면(스쿼드를 아직 안 만든 조직) 컬럼 자체를 렌더하지 않는다 —
+    // 늘 '—' 인 칸은 폭만 먹고, 눌러도 고를 게 없는 팝업이 열린다. 스쿼드를 만드는
+    // 곳은 조직도 스쿼드 뷰뿐이므로 여기서 빈 상태를 안내할 방법도 없다(SQ3).
+    if (squadOptions.length > 0) {
+      const at = base.findIndex((c) => c.id === 'department');
+      base.splice(at + 1, 0, {
+        id: 'squads', label: cl.squads || '스쿼드', width: 150, type: 'readonly', editable: false, squadCell: true,
+      });
+    }
     if (canViewSalary) {
       base.push({ id: 'salary', label: cl.salary || '연봉', width: 130, type: 'currency', editable: true, sensitive: true });
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -518,6 +566,8 @@ export default function AdminEmployeeSheetCanvas({
   const [editing, setEditing] = useState(null);
   // 부서 셀에서 팀 선택이 열린 행(PW-23).
   const [assignRowId, setAssignRowId] = useState(null);
+  // 스쿼드 셀에서 선택 팝업이 열린 행(PW-113).
+  const [squadRowId, setSquadRowId] = useState(null);
   const [selected, setSelected] = useState(new Set());
   // 표에서 보이는 모든 범주형 컬럼(부서·직급·직책·권한·상태)을 필터 대상으로. 값 미지정=전체.
   const [filters, setFilters] = useState({});
@@ -615,13 +665,16 @@ export default function AdminEmployeeSheetCanvas({
   // ── 필터/정렬 ──
   // 필터 가능한 범주형 컬럼(라벨은 컬럼 라벨 재사용, orgRole/상태는 meta 라벨).
   const cl = labels.cols || {};
+  // 스쿼드는 소속과 **다른 축**이라 필터 칩도 따로 둔다(SQ1) — 소속 필터에 스쿼드를
+  // 섞으면 "이 팀 사람" 과 "이 스쿼드 사람" 이 한 드롭다운에서 구분되지 않는다.
   const FILTER_COLS = useMemo(() => ([
     { id: 'department', label: cl.department || '부서' },
+    ...(squadOptions.length > 0 ? [{ id: 'squads', label: cl.squads || '스쿼드' }] : []),
     { id: 'jobLevel', label: cl.jobLevel || '직급' },
     { id: 'jobPosition', label: cl.jobPosition || '직책' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.jobLevel, cl.jobPosition, cl.role, cl.status]);
+  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.role, cl.status, squadOptions]);
   // 각 필터 컬럼의 distinct 옵션(현재 rows 기준 — 존재하는 값만 노출).
   const filterOptions = useMemo(() => {
     const out = {};
@@ -636,6 +689,14 @@ export default function AdminEmployeeSheetCanvas({
           })),
           { value: ORG_FILTER_UNASSIGNED, label: L.unassigned || '미배정', depth: 0 },
         ];
+        continue;
+      }
+      // 스쿼드 필터 옵션 — SQ5 대로 **종료·보관은 제외**한다. 끝난 스쿼드로 거를 수
+      // 있게 두면 셀에는 안 보이는 값으로 목록이 걸러져 "왜 이 사람이 나오지" 가 된다.
+      if (fc.id === 'squads') {
+        out[fc.id] = squadOptions
+          .filter((s) => isVisibleSquadStatus(s.status))
+          .map((s) => ({ value: String(s.id), label: s.name }));
         continue;
       }
       // 트리를 못 받은 폴백 — 겸직 소속까지 옵션에 넣는다. 겸직으로만 사람이 있는 팀이
@@ -655,12 +716,24 @@ export default function AdminEmployeeSheetCanvas({
         .sort((a, b) => a.label.localeCompare(b.label));
     }
     return out;
-  }, [rows, FILTER_COLS, orgTree, L.unassigned]);
+  }, [rows, FILTER_COLS, orgTree, L.unassigned, squadOptions]);
 
   // 소속 이름 전체(주 소속 + 겸직) — 검색·필터가 겸직 팀으로도 사람을 찾게 한다.
   // department 하나만 보면 마케팅팀을 겸직하는 사람이 '마케팅팀' 필터에서 사라진다.
   const deptNamesOf = (r) =>
     (r.depts || []).map((d) => d.name).filter(Boolean);
+
+  const squadNameById = useMemo(
+    () => new Map(squadOptions.map((s) => [String(s.id), s])),
+    [squadOptions],
+  );
+  // 검색·필터가 보는 스쿼드 이름 — SQ5 대로 화면에 보이는 것(planned·active)만이다.
+  // 셀에 안 보이는 종료 스쿼드로 검색이 걸리면 결과가 설명되지 않는다.
+  const squadNamesOf = (r) =>
+    (r.squads || [])
+      .map((a) => squadNameById.get(a.squadId))
+      .filter((s) => s && isVisibleSquadStatus(s.status))
+      .map((s) => s.name);
 
   let filtered = rows.filter((r) => {
     for (const fc of FILTER_COLS) {
@@ -677,6 +750,11 @@ export default function AdminEmployeeSheetCanvas({
         if (!deptNamesOf(r).includes(fv)) return false;
         continue;
       }
+      // 스쿼드 필터는 id 로 맞춘다 — 동명 스쿼드가 있어도 갈리고, 이름을 바꿔도 안 깨진다.
+      if (fc.id === 'squads') {
+        if (!(r.squads || []).some((a) => a.squadId === fv)) return false;
+        continue;
+      }
       if (String(r[fc.id] ?? '') !== fv) return false;
     }
     const q = search.trim().toLowerCase();
@@ -688,7 +766,9 @@ export default function AdminEmployeeSheetCanvas({
         || ['name', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
           (k) => (r[k] || '').toLowerCase().includes(q),
         )
-        || deptNamesOf(r).some((n) => n.toLowerCase().includes(q));
+        || deptNamesOf(r).some((n) => n.toLowerCase().includes(q))
+        // 스쿼드명으로도 사람을 찾는다 — 컬럼에 보이는 값은 검색으로도 닿아야 한다.
+        || squadNamesOf(r).some((n) => n.toLowerCase().includes(q));
       if (!hit) return false;
     }
     return true;
@@ -973,6 +1053,8 @@ export default function AdminEmployeeSheetCanvas({
                       const canAssign =
                         c.derived && canEdit && !!onAssignTeam && orgUnitOptions.length > 0;
                       const derivedJump = c.derived && canEdit && !canAssign && onManageTeams;
+                      // 스쿼드 셀 — 핸들러가 없으면 편집 표면 자체가 없다(읽기 전용 표기만).
+                      const canPickSquads = c.squadCell && canEdit && !!onChangeSquads;
                       return (
                         <td
                           key={c.id}
@@ -981,11 +1063,14 @@ export default function AdminEmployeeSheetCanvas({
                               ? canAssign
                                 ? L.assignTeamHint || '클릭해서 팀을 배정합니다'
                                 : L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다'
-                              : undefined
+                              : canPickSquads
+                                ? (L.squad?.cellHint || '클릭해서 스쿼드를 선택합니다')
+                                : undefined
                           }
                           onClick={() => {
                             if (editableCell && !isEditing) startEdit(row.id, c.id);
                             else if (canAssign) setAssignRowId(row.id);
+                            else if (canPickSquads) setSquadRowId(row.id);
                             else if (derivedJump) onManageTeams();
                           }}
                           style={{
@@ -993,13 +1078,15 @@ export default function AdminEmployeeSheetCanvas({
                             // 높이를 주어 그 행만 늘어나게 하고, 다른 열은 top 정렬로
                             // 값을 첫 줄에 맞춘다 — "소속 셀만 두꺼워지는" 형태.
                             minHeight: ROW_H,
-                            height: c.id === 'department' ? undefined : ROW_H,
+                            // 겸직 소속과 같은 이유로 스쿼드도 여러 줄이 된다 —
+                            // 고정 높이를 주면 두 번째 스쿼드가 셀 밖으로 잘린다.
+                            height: c.id === 'department' || c.squadCell ? undefined : ROW_H,
                             verticalAlign: 'top',
                             // 44px 행에 ~20px 컨텐츠라 top + 12px 는 기존 세로 중앙과
                             // 사실상 같은 위치다 — 겸직 없는 행은 시각이 바뀌지 않는다.
                             padding: isEditing ? 0 : '12px',
                             width: c.width,
-                            cursor: editableCell ? 'text' : canAssign || derivedJump ? 'pointer' : 'default',
+                            cursor: editableCell ? 'text' : canAssign || derivedJump || canPickSquads ? 'pointer' : 'default',
                             borderLeft: cellDirty ? '2px solid #F59E0B' : 'none',
                             background: isEditing ? '#fff' : cellDirty ? 'rgba(245,158,11,.06)' : 'transparent',
                             outline: isEditing ? `2px solid ${T.accent}` : 'none',
@@ -1009,7 +1096,20 @@ export default function AdminEmployeeSheetCanvas({
                           {isEditing ? (
                             <EditCell col={c} value={row[c.id]} autoFocus onChange={(val) => updateCell(row.id, c.id, val)} onKeyDown={(e) => handleKeyDown(e, row.id, c.id)} />
                           ) : (
-                            <CellDisplay col={c} row={row} renderAvatar={renderAvatar} ceoLabel={L.ceoBadge} ceoNoManagerHint={L.ceoNoManagerHint} primaryLabel={L.primaryDeptBadge} concurrentLabel={L.concurrentDeptCount} orgTree={orgTree} />
+                            <CellDisplay
+                              col={c}
+                              row={row}
+                              renderAvatar={renderAvatar}
+                              ceoLabel={L.ceoBadge}
+                              ceoNoManagerHint={L.ceoNoManagerHint}
+                              primaryLabel={L.primaryDeptBadge}
+                              concurrentLabel={L.concurrentDeptCount}
+                              orgTree={orgTree}
+                              squadOptions={squadOptions}
+                              squadLabels={L.squad || {}}
+                              canEditSquads={canPickSquads}
+                              onOpenSquads={() => setSquadRowId(row.id)}
+                            />
                           )}
                         </td>
                       );
@@ -1122,6 +1222,32 @@ export default function AdminEmployeeSheetCanvas({
           onClose={() => setAssignRowId(null)}
         />
       )}
+
+      {/* 스쿼드 선택 팝업 (PW-113) — 계층이 없어 상태로 묶어 고른다(SQ9) */}
+      {squadRowId && canEdit && onChangeSquads && squadOptions.length > 0 && (() => {
+        const target = rows.find((r) => r.id === squadRowId) || {};
+        // SQ10 교체 확인 문구용 — **대상 본인은 제외**한다. 자기 자신을 "기존 리드" 로
+        // 보여주면 리드를 껐다 켜는 것만으로 "누구의 지정을 해제한다" 는 문구가 뜬다.
+        const leadNames = {};
+        for (const r of rows) {
+          if (r.id === squadRowId) continue;
+          for (const a of r.squads || []) {
+            if (a.isLead) leadNames[a.squadId] = r.name;
+          }
+        }
+        return (
+          <SquadPicker
+            open
+            squads={squadOptions}
+            memberName={target.name}
+            value={target.squads || []}
+            leadNameBySquadId={leadNames}
+            labels={L.squad}
+            onApply={(next) => onChangeSquads(squadRowId, next)}
+            onClose={() => setSquadRowId(null)}
+          />
+        );
+      })()}
 
       {/* 연봉 이력 모달 */}
       {salaryHistRowId && canViewSalary && (

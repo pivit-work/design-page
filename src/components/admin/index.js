@@ -5,6 +5,12 @@ export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
 export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
 export { default as OrgTreePicker, OrgPathLabel } from './OrgTreePicker.jsx';
 export {
+  default as SquadPicker,
+  SquadCell,
+  SQUAD_GROUPS,
+  isVisibleSquadStatus,
+} from './SquadPicker.jsx';
+export {
   buildOrgTree,
   findOrgEntry,
   primaryOrgEntry,

@@ -615,6 +615,10 @@ export default function AdminEmployeesCanvas({
   // 대표(CEO) 지정·해제 — 전체 구성원 탭 시트로 내려간다. 권한이 없으면 미주입.
   onAssignCeo,
   onReleaseCeo,
+  // 스쿼드 축(§1-5-b) — 전체 구성원 탭 시트의 별도 컬럼·선택 팝업으로 내려간다.
+  // 원장 CRUD 는 조직도 스쿼드 뷰 전용이라 여기로 내려오지 않는다(SQ3).
+  squadOptions,
+  onChangeSquads,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
@@ -689,6 +693,9 @@ export default function AdminEmployeesCanvas({
           onAssignTeam={onAssignOrgUnit}
           onAssignCeo={onAssignCeo}
           onReleaseCeo={onReleaseCeo}
+          // 스쿼드는 소속과 별도 축·별도 컬럼(SQ1). 원장이 비면 컬럼 자체가 안 뜬다.
+          squadOptions={squadOptions}
+          onChangeSquads={onChangeSquads}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab
