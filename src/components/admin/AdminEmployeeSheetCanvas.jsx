@@ -107,6 +107,59 @@ function IconDownload({ size = 14 }) {
   );
 }
 
+/* 가로 스크롤 어포던스(PW-137)의 화살표. 이모지(→ ▶)가 아니라 인라인 SVG 다. */
+function IconArrowRight({ size = 12 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M4 12h15" />
+      <path d="m13 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+/**
+ * 스크롤 컨테이너의 가로 여유 추적 — "왼쪽/오른쪽에 더 있다"를 화면에 알리기 위한 상태.
+ *
+ * PW-137: 표(≈2,180px)가 화면(≈1,150px)보다 훨씬 넓은데 알리는 표시가 하나도 없어,
+ * 어드민이 연봉 이력(₩)·HR 버튼의 존재 자체를 모른 채 지나갔다. macOS 는 오버레이
+ * 스크롤바라 실제로 밀기 전까지 스크롤바도 안 보인다.
+ *
+ * scroll 이벤트만으로는 부족하다 — 컬럼 구성(연봉 권한·스쿼드 유무)이나 창 크기가
+ * 바뀌면 스크롤 없이도 여유가 생기고 사라진다. ResizeObserver 로 컨테이너와 표
+ * 양쪽의 크기 변화까지 본다.
+ */
+function useHorizontalScrollEdges(ref, layoutKey) {
+  const [edges, setEdges] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      // 소수점 폭 때문에 끝까지 밀어도 1px 이 남는다 — 1px 여유를 둬야 끝에서 꺼진다.
+      const next = { left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 };
+      setEdges((prev) => (prev.left === next.left && prev.right === next.right ? prev : next));
+    };
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (ro) {
+      ro.observe(el);
+      if (el.firstElementChild) ro.observe(el.firstElementChild);
+    }
+    return () => {
+      el.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+      if (ro) ro.disconnect();
+    };
+  }, [ref, layoutKey]);
+  return edges;
+}
+
 export function IconLock({ size = 12 }) {
   return (
     <svg
@@ -1171,6 +1224,39 @@ export default function AdminEmployeeSheetCanvas({
 
   const ROW_H = 44;
   const CHECKBOX_W = 44;
+  const ACTION_W = 70;
+
+  /* ── 가로 스크롤 고정 컬럼 (PW-137) ────────────────────────────────────
+   * 표는 화면보다 1,000px 이상 넓다. 이름(+체크박스)을 왼쪽에, 액션 칸을 오른쪽에
+   * 고정해서 (a) 연봉 이력(₩)·HR 버튼이 처음부터 늘 보이고 (b) 가로로 밀어도
+   * 지금 보는 행이 누구인지 잃지 않게 한다.
+   *
+   * 경계선·그림자는 **밀 여지가 있을 때만** 켠다 — 표가 화면에 다 들어오는 넓은
+   * 창에서는 고정 이전과 시각이 똑같아야 한다.
+   * -------------------------------------------------------------------- */
+  const scrollerRef = useRef(null);
+  const scrollEdges = useHorizontalScrollEdges(
+    scrollerRef,
+    `${COLUMNS.length}:${filtered.length}:${canEdit}`,
+  );
+  const STICKY_DIVIDER = `1px solid ${T.border}`;
+  const DIRTY_CELL_BG = 'rgba(245,158,11,.06)';
+  const DIRTY_ROW_BG = 'rgba(245,158,11,.04)';
+  const wash = (c) => `linear-gradient(${c}, ${c})`;
+  const stickyLeftCell = (left, extra) => ({
+    position: 'sticky',
+    left,
+    zIndex: 2,
+    ...(extra || {}),
+  });
+  // 마지막 왼쪽 고정 열(이름)의 오른쪽 경계 — 밀린 내용이 그 밑으로 들어감을 보인다.
+  const leftEdgeDecor = scrollEdges.left
+    ? { borderRight: STICKY_DIVIDER, boxShadow: '6px 0 10px -6px rgba(15,23,42,.28)' }
+    : null;
+  // 오른쪽 고정(액션) 열의 왼쪽 경계 — 이게 "오른쪽에 더 있다"의 신호를 겸한다.
+  const rightEdgeDecor = scrollEdges.right
+    ? { borderLeft: STICKY_DIVIDER, boxShadow: '-6px 0 10px -6px rgba(15,23,42,.28)' }
+    : null;
 
   return (
     <div style={{ fontFamily: T.font, color: T.text }}>
@@ -1358,37 +1444,80 @@ export default function AdminEmployeeSheetCanvas({
             {L.countUnit || '명'}
           </span>
           {dirtyCount > 0 && <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>● {dirtyCount}{L.rowsUnit || '개'} {L.rowsChanging || '행 변경 중'}</span>}
-          <span style={{ fontSize: 11, color: T.muted, marginLeft: 'auto' }}>{L.hint || '셀 클릭하여 편집 · Tab 이동 · Enter 편집 종료 · Esc 취소'}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', minWidth: 0 }}>
+            {/* 밀 여지가 있을 때만 뜨는 어포던스. 고정된 액션 칸의 그림자만으로는
+                "여기가 끝이 아니다"를 처음 들어온 사람이 못 읽는다(PW-137). */}
+            {scrollEdges.right && (
+              <span
+                data-testid="sheet-scroll-affordance"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                  padding: '3px 9px', borderRadius: 999, border: `1px solid ${T.border}`,
+                  background: T.bg, fontSize: 11, fontWeight: 700, color: T.sub, whiteSpace: 'nowrap',
+                }}
+              >
+                {L.scrollMore || '옆으로 더 있음'}
+                <IconArrowRight size={12} />
+              </span>
+            )}
+            <span style={{ fontSize: 11, color: T.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{L.hint || '셀 클릭하여 편집 · Tab 이동 · Enter 편집 종료 · Esc 취소'}</span>
+          </span>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: CHECKBOX_W + COLUMNS.reduce((s, c) => s + c.width, 0) + 70 }}>
+        <div ref={scrollerRef} data-testid="sheet-scroller" style={{ overflowX: 'auto' }}>
+          {/* 고정 컬럼은 border-collapse: collapse 에서 경계선이 셀과 함께 안 붙는다.
+              separate 로 바꾸고 행 구분선을 tr 에서 각 셀로 옮긴다 — 선 위치·색은 그대로다
+              (separate 에서는 tr 에 준 border 가 아예 렌더되지 않는다). */}
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: CHECKBOX_W + COLUMNS.reduce((s, c) => s + c.width, 0) + ACTION_W }}>
             <thead>
               <tr style={{ background: T.bg }}>
-                <th style={{ width: CHECKBOX_W, padding: '10px 14px', borderBottom: `1px solid ${T.border}`, background: T.bg }}>
+                <th data-testid="sheet-head-select" style={{ width: CHECKBOX_W, padding: '10px 14px', borderBottom: `1px solid ${T.border}`, background: T.bg, ...stickyLeftCell(0) }}>
                   <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: T.accent }} />
                 </th>
-                {COLUMNS.map((c) => (
-                  <th key={c.id} onClick={() => toggleSort(c.id)} style={{ width: c.width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.6, borderBottom: `1px solid ${T.border}`, cursor: 'pointer', userSelect: 'none', background: T.bg, whiteSpace: 'nowrap' }}>
+                {COLUMNS.map((c, ci) => (
+                  <th
+                    key={c.id}
+                    onClick={() => toggleSort(c.id)}
+                    data-testid={`sheet-head-${c.id}`}
+                    style={{
+                      width: c.width, padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700,
+                      color: T.muted, textTransform: 'uppercase', letterSpacing: 0.6,
+                      borderBottom: `1px solid ${T.border}`, cursor: 'pointer', userSelect: 'none',
+                      background: T.bg, whiteSpace: 'nowrap',
+                      ...(ci === 0 ? { ...stickyLeftCell(CHECKBOX_W), ...leftEdgeDecor } : null),
+                    }}
+                  >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {c.label}
                       {sortCol === c.id && <span style={{ color: T.accent }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                     </span>
                   </th>
                 ))}
-                <th style={{ width: 70, padding: '10px 12px', borderBottom: `1px solid ${T.border}`, background: T.bg }} />
+                <th data-testid="sheet-head-actions" style={{ width: ACTION_W, padding: '10px 12px', borderBottom: `1px solid ${T.border}`, background: T.bg, position: 'sticky', right: 0, zIndex: 2, ...rightEdgeDecor }} />
               </tr>
             </thead>
             <tbody>
               {filtered.map((row, ri) => {
                 const rowDirty = isRowDirty(row.id);
                 const isSel = selected.has(row.id);
+                const rowBg = isSel ? '#F5F7FF' : rowDirty ? DIRTY_ROW_BG : ri % 2 === 0 ? T.card : '#FAFBFC';
+                const rowLine = `1px solid ${T.bl}`;
+                /* 고정 셀은 tr 배경을 물려받지 못한다 — 자기 배경이 반투명하면 밑으로
+                 * 지나가는 열이 그대로 비친다. 변경(앰버) 표시는 알파 색이라, **불투명
+                 * 바탕(선택/줄무늬) 위에 같은 알파 색을 겹쳐** 칠한다. 합성 결과가
+                 * 종전과 동일해 색은 안 바뀌고 투명도만 사라진다. */
+                const stickyBase = isSel ? '#F5F7FF' : rowDirty ? T.card : ri % 2 === 0 ? T.card : '#FAFBFC';
+                const rowWash = rowDirty && !isSel ? wash(DIRTY_ROW_BG) : null;
+                const stickyBg = (cellDirty) => {
+                  const layers = [cellDirty ? wash(DIRTY_CELL_BG) : null, rowWash].filter(Boolean);
+                  return { backgroundColor: stickyBase, backgroundImage: layers.length ? layers.join(', ') : 'none' };
+                };
                 return (
-                  <tr key={row.id} style={{ borderBottom: `1px solid ${T.bl}`, background: isSel ? '#F5F7FF' : rowDirty ? 'rgba(245,158,11,.04)' : ri % 2 === 0 ? T.card : '#FAFBFC' }}>
-                    <td style={{ padding: '0 14px', textAlign: 'center', width: CHECKBOX_W }}>
+                  <tr key={row.id} style={{ background: rowBg }}>
+                    <td style={{ padding: '0 14px', textAlign: 'center', width: CHECKBOX_W, borderBottom: rowLine, ...stickyBg(false), ...stickyLeftCell(0) }}>
                       <input type="checkbox" checked={isSel} onChange={() => toggleRow(row.id)} style={{ cursor: 'pointer', accentColor: T.accent }} />
                     </td>
-                    {COLUMNS.map((c) => {
+                    {COLUMNS.map((c, ci) => {
                       const isEditing = editing?.rowId === row.id && editing?.colId === c.id;
                       const cellDirty = isDirty(row.id, c.id);
                       const editableCell = canEdit && c.editable;
@@ -1433,9 +1562,15 @@ export default function AdminEmployeeSheetCanvas({
                             width: c.width,
                             cursor: editableCell ? 'text' : canAssign || derivedJump || canPickSquads ? 'pointer' : 'default',
                             borderLeft: cellDirty ? '2px solid #F59E0B' : 'none',
-                            background: isEditing ? '#fff' : cellDirty ? 'rgba(245,158,11,.06)' : 'transparent',
+                            borderBottom: rowLine,
+                            ...(ci === 0
+                              ? (isEditing
+                                ? { backgroundColor: '#fff', backgroundImage: 'none' }
+                                : stickyBg(cellDirty))
+                              : { background: isEditing ? '#fff' : cellDirty ? DIRTY_CELL_BG : 'transparent' }),
                             outline: isEditing ? `2px solid ${T.accent}` : 'none',
                             outlineOffset: -1,
+                            ...(ci === 0 ? { ...stickyLeftCell(CHECKBOX_W), ...leftEdgeDecor } : null),
                           }}
                         >
                           {isEditing ? (
@@ -1459,7 +1594,14 @@ export default function AdminEmployeeSheetCanvas({
                         </td>
                       );
                     })}
-                    <td style={{ padding: '0 8px', textAlign: 'center' }}>
+                    <td
+                      data-testid={`sheet-actions-${row.id}`}
+                      style={{
+                        padding: '0 8px', textAlign: 'center', borderBottom: rowLine,
+                        ...stickyBg(false), position: 'sticky', right: 0, zIndex: 2,
+                        ...rightEdgeDecor,
+                      }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         {canViewSalary && onLoadSalaryHistory && (
                           <button onClick={() => setSalaryHistRowId(row.id)} title={L.salaryHistoryTitle || '연봉 이력'} style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${T.border}`, background: T.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font }}>
