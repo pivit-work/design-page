@@ -175,12 +175,18 @@ export function squadComposition(members) {
   return { totalPct, fte: Math.round(totalPct / 10) / 10, rows };
 }
 
-/** 특정 멤버의 스쿼드 내 구성비 (툴팁 등 단건 조회용). */
+/**
+ * 특정 멤버의 스쿼드 내 구성비 (툴팁 등 단건 조회용).
+ *
+ * **반드시 `squadComposition` 의 결과에서 꺼낸다.** 여기서 따로 `round(pct/total*100)` 을
+ * 하면 최대잔여법으로 보정된 범례 값과 어긋난다 — 40·40·30(합 110)이면 범례는 37·36·27
+ * 인데 단순 반올림은 36·36·27 이라, 같은 사람의 같은 값이 범례에서는 37%, 툴팁에서는
+ * 36% 로 보인다. 한 화면에서 같은 수가 달라 보이면 "합이 100" 이라는 약속보다 먼저
+ * 신뢰가 깨지므로, 구성비의 산출 지점은 하나로 묶는다(§5-3.4 · §10-A A8).
+ */
 export function sqShare(members, userId) {
-  const list = members || [];
-  const total = list.reduce((s, m) => s + (m.allocationPct || 0), 0);
-  const me = list.find((m) => m.userId === userId);
-  return total && me ? Math.round((me.allocationPct / total) * 100) : 0;
+  const { rows } = squadComposition(members);
+  return rows.find((r) => r.userId === userId)?.share || 0;
 }
 
 /** 스쿼드의 ⭐리드 배정 (없으면 null). */

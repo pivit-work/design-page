@@ -37,6 +37,7 @@ import {
   leadOf,
   planSegments,
   plannedTotalPct,
+  sqShare,
   squadCountOf,
   squadStatusMeta,
   squadStatusLabel,
@@ -642,7 +643,7 @@ export default function SquadCanvas({
                                       position: 'relative',
                                       cursor: p && onMemberClick ? 'pointer' : 'default',
                                     }}
-                                    title={`${nameOf(mm.userId)} — 개인 캐파 기준 ${mm.allocationPct}%${mm.role === 'lead' ? ' · 리드' : ''}`}
+                                    title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${mm.role === 'lead' ? ' · 리드' : ''}`}
                                   >
                                     <div style={{
                                       width: 26, height: 26, borderRadius: 8,
@@ -680,7 +681,7 @@ export default function SquadCanvas({
                                     onClick={(e) => editable && setPopover({
                                       squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
                                     })}
-                                    title={`${nameOf(mm.userId)} — 개인 캐파 기준 ${mm.allocationPct}%${editable ? '\n클릭: 투입%·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
+                                    title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${editable ? '\n클릭: 투입%·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
                                     style={{
                                       display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 99,
                                       background: mm.role === 'lead' ? '#FFFBEB' : '#F8FAFC',
