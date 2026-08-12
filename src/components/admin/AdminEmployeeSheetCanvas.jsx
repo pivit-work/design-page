@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { nameFontSize, nameInitials } from '../shared/nameInitials.js';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
@@ -497,6 +497,19 @@ function ExportMenu({ items, disabled, busy, labels, onPick }) {
   const L = labels || {};
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  // 기본은 버튼 **왼쪽 모서리** 기준. 오른쪽으로 넘칠 때만 오른쪽 정렬로 뒤집는다.
+  //
+  // 한쪽으로 고정하면 반드시 한 레이아웃에서 잘린다: 우측 정렬은 이 버튼이 툴바
+  // 왼편에 오는 좁은 화면에서 사이드바 아래로 밀려 잘렸고(브라우저 검증에서 발견),
+  // 좌측 고정은 툴바가 한 줄로 펴져 버튼이 오른쪽 끝에 붙는 넓은 화면에서 여유가
+  // 3px 밖에 없다 — 영문 로케일처럼 항목 문구가 길어지면 그대로 넘친다.
+  const [alignRight, setAlignRight] = useState(false);
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current) return;
+    const r = menuRef.current.getBoundingClientRect();
+    setAlignRight(r.right > window.innerWidth - 8);
+  }, [open, items]);
   useEffect(() => {
     if (!open) return;
     const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -530,12 +543,12 @@ function ExportMenu({ items, disabled, busy, labels, onPick }) {
       </button>
       {open && !blocked && (
         <div
+          ref={menuRef}
           data-testid="export-roster-menu"
+          data-align={alignRight ? 'right' : 'left'}
           style={{
-            // 🔴 버튼 **왼쪽 모서리** 기준으로 편다(같은 툴바의 FilterMenu 와 동일).
-            // 우측 정렬로 두면 이 버튼이 툴바 왼편에 있는 레이아웃에서 메뉴가 화면
-            // 바깥·사이드바 아래로 밀려 글자가 잘린다(브라우저 검증에서 발견).
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 60, minWidth: 260,
+            position: 'absolute', top: 'calc(100% + 4px)', zIndex: 60, minWidth: 260,
+            ...(alignRight ? { right: 0 } : { left: 0 }),
             background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
             boxShadow: '0 12px 32px -8px rgba(15,23,42,.24)', padding: 6,
           }}
