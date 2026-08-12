@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import { healthTier, healthLabel } from './snippetHealth.js';
 
 /**
  * SnippetModal — "스니펫 작성" 모달.
@@ -20,13 +21,6 @@ import assetUrl from '../shared/assetUrl.js';
  *   Footer (pad 24/48/48/48, gap 12) — 초기화 / 등록
  */
 const HEALTH_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-// Health Check 점수 → 색상 티어 / 라벨. pivit-specs snippet-write-view 시안과 동일:
-//   8↑ 초록(#16A34A) / 6~7 노랑(#D97706) / 6미만 빨강(#DC2626)
-//   9↑ "최고" / 8 "좋음" / 7 "보통" / 5~6 "힘듦" / 4↓ "매우 힘듦"
-const healthTier = (v) => (v >= 8 ? 'good' : v >= 6 ? 'mid' : 'low');
-const healthLabel = (v) =>
-  v >= 9 ? '최고' : v >= 8 ? '좋음' : v >= 7 ? '보통' : v >= 5 ? '힘듦' : '매우 힘듦';
 
 // What 등 텍스트 필드 글자수 제한. 90% 근접 시 카운터를 빨강으로 경고.
 const SNIPPET_MAX_LEN = 500;

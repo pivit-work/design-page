@@ -32,6 +32,7 @@ import InternalEmployeeModal from './InternalEmployeeModal.jsx';
 import ExternalEmployeeModal from './ExternalEmployeeModal.jsx';
 import EventAddModal from './EventAddModal.jsx';
 import SnippetModal from './SnippetModal.jsx';
+import SnippetDetailModal from './SnippetDetailModal.jsx';
 import SnippetPromptModal from './SnippetPromptModal.jsx';
 import {
   TODAY_STR,
@@ -67,6 +68,9 @@ export default function TimelineCanvas({
   snippetState: snippetStateProp,
   onSnippetCreate,
   onSnippetEdit,
+  // 스니핏 상세 팝오버의 "스니핏 전체 보기" — (snippet). 미주입이거나 해당
+  // 스니핏의 canOpen 이 false 면 버튼 자체가 렌더되지 않는다(권한은 앱이 판단).
+  onSnippetOpen,
   // 진입 시 뜨는 스니핏 작성 유도 프롬프트. 주입하면 controlled — 노출 여부를
   // 상위가 정하고(예: 오후 5시 이후·오늘 미작성·오늘 이미 닫음), 닫으면
   // onSnippetPromptDismiss 로 통지한다. 생략하면 지금까지처럼 마운트 시 항상 뜬다.
@@ -205,6 +209,15 @@ export default function TimelineCanvas({
     setOpenMeeting(meeting);
     setOpenMeetingAnchor(rect);
     setMeetingVariant(null);
+  };
+
+  // ── Snippet detail popover state ─────────────────────────────────────────
+  // 간트의 스니핏 블록 클릭 → 같은 자리에 앵커된 상세 팝오버.
+  const [openSnippet, setOpenSnippet] = useState(null);
+  const [openSnippetAnchor, setOpenSnippetAnchor] = useState(null);
+  const handleSnippetBlockClick = (snippet, rect) => {
+    setOpenSnippet(snippet);
+    setOpenSnippetAnchor(rect);
   };
   // 캘린더 셀의 이벤트 pill 클릭 — 간트 미팅 모달과 동일 UI 를 variant 로 열고
   // 캘린더 이벤트 데이터를 미팅 shape 로 어댑트. width 410.
@@ -595,6 +608,7 @@ export default function TimelineCanvas({
             onMouseDown={handleHorizontalDragMouseDown}
             groups={groups}
             onMeetingClick={handleMeetingClick}
+            onSnippetClick={handleSnippetBlockClick}
             spacerH={spacerH}
             targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
             onCellClick={handleCellClick}
@@ -622,6 +636,16 @@ export default function TimelineCanvas({
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
+        />
+      )}
+
+      {/* Snippet detail popover — 간트 스니핏 블록 클릭 */}
+      {openSnippet && (
+        <SnippetDetailModal
+          snippet={openSnippet}
+          anchorRect={openSnippetAnchor}
+          onClose={() => setOpenSnippet(null)}
+          onOpen={onSnippetOpen}
         />
       )}
 

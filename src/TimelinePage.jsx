@@ -25,6 +25,8 @@ export default function TimelinePage({ icons, baseUrl }) {
       snippets={SNIPPETS}
       getEventsForDate={getEventsForDate}
       initialGroups={GROUPS}
+      // 스니핏 상세 팝오버의 "전체 보기" — 실서비스는 /snippet/:id 로 라우팅한다.
+      onSnippetOpen={(snippet) => console.log('open snippet', snippet.id)}
     />
   );
 }
