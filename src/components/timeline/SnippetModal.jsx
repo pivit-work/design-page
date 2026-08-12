@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * SnippetModal — "스니펫 작성" 모달.
@@ -487,7 +488,7 @@ export default function SnippetModal({
                   aria-busy={summaryLoading || undefined}
                 >
                   <img
-                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                    src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
                     alt=""
                     width="14"
                     height="14"
@@ -508,7 +509,7 @@ export default function SnippetModal({
               />
               <div className="tl-snippet-info">
                 <img
-                  src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                  src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
                   alt=""
                   width="14"
                   height="14"
@@ -537,7 +538,7 @@ export default function SnippetModal({
                   aria-busy={tagsLoading || undefined}
                 >
                   <img
-                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                    src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
                     alt=""
                     width="14"
                     height="14"
@@ -584,7 +585,7 @@ export default function SnippetModal({
               {tagsError && (
                 <div className="tl-snippet-info" role="alert">
                   <img
-                    src={`${baseUrl || ''}icons-solid/ai-sparkle.png`}
+                    src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
                     alt=""
                     width="14"
                     height="14"

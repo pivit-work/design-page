@@ -4,6 +4,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
 import SnippetListRow from './SnippetListRow.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -195,7 +196,7 @@ export default function SnippetCanvas({
           ) : (
             <div className="snippet-empty">
               <div className="snippet-empty-inner">
-                <img className="snippet-empty-paper" src={`${baseUrl}paper-empty.svg`} alt="" aria-hidden="true" />
+                <img className="snippet-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" aria-hidden="true" />
                 {isManagerView ? (
                   // 매니저가 멤버의 스니핏을 볼 때 — 안내문/작성 버튼 없이 타이틀만.
                   <p className="snippet-empty-title">아직 작성된 스니핏이 없습니다</p>

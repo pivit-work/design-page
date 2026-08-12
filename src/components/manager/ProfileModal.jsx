@@ -2,6 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
@@ -210,7 +211,7 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
           {/* Footer */}
           <div className="manager-modal-footer">
             <span className="manager-modal-footer-text">Get Communication with</span>
-            <img src={`${baseUrl}logo.svg`} alt="Pivit" className="manager-modal-footer-logo" />
+            <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" className="manager-modal-footer-logo" />
           </div>
         </div>
       </div>

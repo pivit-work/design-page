@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -219,7 +220,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
       <section className="admin-card intg-app-card" data-testid={`intg-card-${app}`}>
         <div className="intg-app-head">
           <span className="intg-app-logo">
-            <img src={`${baseUrl}${logo}`} alt={brandName} loading="lazy" />
+            <img src={assetUrl(baseUrl, logo)} alt={brandName} loading="lazy" />
           </span>
           <div className="intg-app-titles">
             <span className="intg-app-name">{brandName}</span>
@@ -246,7 +247,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
     <section className="admin-card intg-app-card" data-testid={`intg-card-${app}`}>
       <div className="intg-app-head">
         <span className="intg-app-logo">
-          <img src={`${baseUrl}${logo}`} alt={brandName} loading="lazy" />
+          <img src={assetUrl(baseUrl, logo)} alt={brandName} loading="lazy" />
         </span>
         <div className="intg-app-titles">
           <span className="intg-app-name">{brandName}</span>
@@ -401,7 +402,7 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
       <div className="intg-modal intg-modal-wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-testid="intg-settings-modal">
         <div className="intg-panel-head">
           <h3 className="intg-panel-title">
-            <img src={`${baseUrl}${modal.logo}`} alt={modal.brandName} />
+            <img src={assetUrl(baseUrl, modal.logo)} alt={modal.brandName} />
             {fmt(labels.settingsPanel.title, { name: modal.brandName })}
           </h3>
           <button type="button" onClick={onClose} aria-label={labels.close} className="intg-panel-close">&times;</button>

@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * Sidebar — Pivit 공통 좌측 내비게이션.
@@ -25,7 +26,7 @@ export default function Sidebar({
   bottomItem,
   onLogoClick,
 }) {
-  const logoImg = <img src={`${baseUrl}logo.svg`} alt="Pivit" />;
+  const logoImg = <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />;
   return (
     <aside className="sidebar">
       <div className="sidebar-inner">

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 import MeetingRecordContent from './MeetingRecordContent.jsx';
 import MeetingShareContent from './MeetingShareContent.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * MeetingInProgressModal — "시작" 버튼 클릭 시 뜨는 회의 진행 중 모달.
@@ -158,7 +159,7 @@ export default function MeetingInProgressModal({
                       {recorderAvatar ? (
                         <img
                           className="mtg-progress-rec-avatar"
-                          src={recorderAvatar.startsWith('/') ? baseUrl + recorderAvatar.slice(1) : recorderAvatar}
+                          src={assetUrl(baseUrl, recorderAvatar)}
                           alt=""
                         />
                       ) : (

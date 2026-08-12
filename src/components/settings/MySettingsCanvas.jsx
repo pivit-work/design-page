@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -1572,7 +1573,7 @@ export default function MySettingsCanvas({
                   <Card key={intg.id} testId={`integration-${intg.id}`}>
                     <div className="msc-intg-row">
                       <span className="msc-intg-icon">
-                        {intg.logo ? <img src={`${baseUrl}${intg.logo}`.replace('//', '/')} alt="" /> : null}
+                        {intg.logo ? <img src={assetUrl(baseUrl, intg.logo)} alt="" /> : null}
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
