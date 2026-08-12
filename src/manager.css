@@ -194,12 +194,17 @@
 
 /* ── Member grid ──
    한 줄에 5명. 리스팅은 팀 전체를 훑는 화면이라 카드가 클수록 스크롤만 길어진다.
-   (팀원 45명 기준 3열 → 15줄, 5열 → 9줄) */
+   (팀원 45명 기준 3열 → 15줄, 5열 → 9줄)
+
+   `align-items: stretch` — 코멘트 길이가 카드마다 달라(1줄 ~ 6줄) 카드 높이가 제각각이면
+   배지·버튼 줄이 한 줄 안에서 들쭉날쭉해진다. 카드를 줄 높이에 맞춰 늘리고, 카드 안에서
+   코멘트가 남는 높이를 먹게 해서(아래 .manager-member-comment) 배지·버튼을 바닥에 맞춘다.
+   코멘트를 줄 수로 자르는 방식은 쓰지 않는다 — 매니저가 읽는 문장이라 잘리면 정보가 사라진다. */
 .manager-member-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 36px 24px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .manager-member-card {
@@ -269,6 +274,9 @@
   gap: 10px;
   padding: 0 4px;
   width: 100%;
+  /* 헥사를 뺀 카드의 남는 높이를 본문이 받는다. 이게 없으면 본문이 자기 내용 높이에서
+     멈춰, 늘어난 카드 아래쪽에 빈 공간만 남고 배지·버튼은 그대로 위에 붙는다. */
+  flex: 1 1 auto;
 }
 
 .manager-member-name-block {
@@ -300,6 +308,13 @@
   text-align: center;
   width: 100%;
   word-break: keep-all;
+  /* 본문에 남는 높이를 코멘트가 흡수한다 → 아래의 배지·버튼이 카드 바닥으로 밀려
+     한 줄 안에서 같은 y 에 선다. 글자는 상자 위쪽에 그대로 남으므로 짧은 카드의
+     코멘트 위치는 변하지 않는다(정렬만 맞추는 수정).
+     늘리는 쪽을 코멘트로 잡은 이유: 배지(.manager-status-badge)는 밖으로 export 되는
+     공용 컴포넌트라 거기에 margin-top:auto 를 박으면 다른 화면의 배치까지 흔든다.
+     min-height:auto 라 내용보다 작게 줄지는 않는다 — 긴 코멘트가 잘리지 않는다. */
+  flex: 1 1 auto;
 }
 
 /* ── 상태 배지 ── */
