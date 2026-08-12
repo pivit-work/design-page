@@ -13,8 +13,9 @@ import assetUrl from '../shared/assetUrl.js';
  * 매니저 뷰는 멤버 뷰 위에 멤버 아바타 행이 추가된 형태. isManagerView 로 분기.
  * 그 토글은 개발 확인용 — 타이틀 옆 작은 토글 버튼으로 노출.
  *
- * 날짜 범위 시작/종료 버튼은 클릭 시 DatePicker 캘린더 팝오버를 띄운다
- * (날짜 state 는 컴포넌트 내부에서 관리).
+ * 날짜 범위 시작/종료 버튼은 클릭 시 DatePicker 캘린더 팝오버를 띄운다.
+ * dateFrom/dateTo + onDateFromChange/onDateToChange 를 넘기면 호스트가 값을
+ * 소유하고(controlled), 안 넘기면 initialDateFrom/To 로 내부 state 를 쓴다(데모).
  *
  * 모든 데이터는 props 로 받는다.
  */
@@ -48,9 +49,15 @@ export default function SnippetCanvas({
   // 필터 — 기간 segmented
   periodTab,
   onPeriodTabChange,
-  // 날짜 범위 초기값 (Date). 생략 시 데모 기본값.
+  // 날짜 범위 초기값 (Date). 생략 시 데모 기본값. controlled 일 때는 무시된다.
   initialDateFrom,
   initialDateTo,
+  // 날짜 범위 — controlled. 값을 넘기면 호스트가 소유하고, 캘린더에서 고른 날짜는
+  // onDateFromChange/onDateToChange 로만 나간다(내부 state 를 쓰지 않음).
+  dateFrom: dateFromProp,
+  dateTo: dateToProp,
+  onDateFromChange,
+  onDateToChange,
   // 검색어 (표시만)
   searchPlaceholder = '키워드 또는 태그로 검색',
   // 통계 카드
@@ -73,8 +80,10 @@ export default function SnippetCanvas({
   snippets = [],
   onSnippetClick,
 }) {
-  const [dateFrom, setDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
-  const [dateTo, setDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
+  const [innerDateFrom, setInnerDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
+  const [innerDateTo, setInnerDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
+  const dateFrom = dateFromProp ?? innerDateFrom;
+  const dateTo = dateToProp ?? innerDateTo;
   // 열린 picker: null | 'from' | 'to' + anchor 정보.
   const [picker, setPicker] = useState(null);
   // 검색어 — summary/dateLabel/tags 로 필터 + 결과 하이라이트.
@@ -91,8 +100,13 @@ export default function SnippetCanvas({
   };
   const closePicker = () => setPicker(null);
   const handlePick = (d) => {
-    if (picker?.which === 'from') setDateFrom(d);
-    else if (picker?.which === 'to') setDateTo(d);
+    if (picker?.which === 'from') {
+      if (dateFromProp === undefined) setInnerDateFrom(d);
+      onDateFromChange?.(d);
+    } else if (picker?.which === 'to') {
+      if (dateToProp === undefined) setInnerDateTo(d);
+      onDateToChange?.(d);
+    }
     closePicker();
   };
 
