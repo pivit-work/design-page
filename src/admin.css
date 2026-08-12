@@ -1472,6 +1472,107 @@
 /* 취소 액션은 위험 톤 */
 .admin-emp-btn.admin-emp-danger { color: var(--text-error-primary); }
 
+/* ── 연봉 이력 모달 (.admin-emp-sal-*) ─────────────────────────
+   껍데기는 어드민 공용 `.admin-modal-*` 을 그대로 쓰고, 여기서는 이력 표와
+   추가 폼처럼 이 모달에만 있는 조각만 정의한다. 색은 전부 토큰이다 —
+   리터럴 색을 박으면 브랜드/다크 토큰을 따라가지 못하고 같은 화면 안에서
+   이 모달만 다른 앱처럼 보인다 (PW-136).
+   ──────────────────────────────────────────────────────────── */
+.admin-emp-sal-status {
+  padding: 24px 0;
+  text-align: center;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-tertiary);
+}
+.admin-emp-sal-table { width: 100%; border-collapse: collapse; }
+.admin-emp-sal-table th {
+  padding: 6px 8px;
+  font-size: var(--font-size-text-xs, 13px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-align: left;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+.admin-emp-sal-table td {
+  padding: 10px 8px;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-sal-table th.is-amount,
+.admin-emp-sal-table td.is-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.admin-emp-sal-table td.is-date { color: var(--text-primary); white-space: nowrap; }
+/* 사유 칸에 남는 폭을 몰아준다 — 안 그러면 금액이 사유 바로 옆에 붙어 읽기 어렵다. */
+.admin-emp-sal-table th:last-child,
+.admin-emp-sal-table td:last-child { width: 42%; padding-left: 16px; }
+/* 최신 행 = 현재 연봉. 브랜드 연한 배경으로 한 줄만 들어올린다. */
+.admin-emp-sal-table tr.is-current td { background: var(--bg-brand-secondary); }
+.admin-emp-sal-current {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--bg-brand-solid);
+  color: var(--colors-text-textWhite, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+/* 추가 폼 — 점선 테두리(design-page 어디에도 없는 표현) 대신 카드 톤 채움. */
+.admin-emp-sal-add {
+  /* 표와의 간격은 `.admin-modal-body` 의 gap 이 준다 — 여기서 또 주면 두 배가 된다. */
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.admin-emp-sal-add-title {
+  font-size: var(--font-size-text-xs, 13px);
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+/* 세 칸 + 버튼이 520px 모달 안에서 한 줄에 들어가도록 basis 를 좁게 잡는다 —
+   넘치면 버튼만 아래로 떨어져 폼이 두 덩이로 보인다. */
+.admin-emp-sal-add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.admin-emp-sal-add-row .admin-emp-field { flex: 1 1 104px; min-width: 0; }
+.admin-emp-sal-add-row .admin-emp-field.is-reason { flex: 2 1 130px; }
+.admin-emp-sal-add-row .admin-emp-input { padding: 10px 12px; }
+.admin-emp-sal-add-row .admin-emp-btn { min-height: 40px; flex: 0 0 auto; }
+/* 날짜 입력은 브라우저 기본 date 입력(mm/dd/yyyy)이 아니라 공용 DatePicker 를
+   여는 버튼이다 — 로케일에 따라 표기가 갈리지 않고 다른 화면과 생김새가 같다. */
+.admin-emp-sal-date { text-align: left; cursor: pointer; }
+.admin-emp-sal-date.is-open {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+.admin-emp-sal-date.is-empty { color: var(--text-placeholder, #b1b6be); }
+.admin-emp-sal-amount { text-align: right; }
+.admin-emp-sal-error {
+  margin-top: 10px;
+  font-size: var(--font-size-text-xs, 13px);
+  line-height: 18px;
+  color: var(--text-error-primary);
+}
+.admin-emp-sal-note {
+  margin-top: 10px;
+  font-size: var(--font-size-text-xs, 13px);
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+/* 헤더 설명의 마스킹 고지 — 자물쇠 SVG 는 이 span 의 color 를 상속한다. */
+.admin-emp-sal-mask {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  color: var(--text-tertiary);
+}
+
 /* ============================================================
  * 조직 스냅샷 (OrgSnapshotCanvas) — .admin-snap-*
  * pivit-specs org-snapshot-views.jsx 시안의 design-page 포팅.
@@ -2981,7 +3082,13 @@
   box-shadow: 0 1px 4px rgba(10, 13, 18, 0.2);
 }
 
-/* ── 모달 ────────────────────────────────────────────────── */
+/* ── 모달 (어드민 공용) ───────────────────────────────────────
+   `.admin-modal-*` 이 어드민 화면 공용 이름이고, `.admin-notif-modal-*` 은
+   먼저 자리잡은 알림 화면의 이름이라 **같은 선언을 공유**한다. 값을 복사해
+   두 벌로 두면 한쪽만 고쳐져 화면마다 오버레이·모서리·그림자가 갈린다
+   (PW-136: 연봉 이력 모달이 rgba(0,0,0,.45)/radius 14/z 9999 로 혼자 놀았다).
+   ──────────────────────────────────────────────────────────── */
+.admin-modal-root,
 .admin-notif-modal-root {
   position: fixed;
   inset: 0;
@@ -2992,11 +3099,13 @@
   align-items: center;
   justify-content: center;
 }
+.admin-modal-backdrop,
 .admin-notif-modal-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(10, 13, 18, 0.4);
 }
+.admin-modal,
 .admin-notif-modal {
   position: relative;
   width: 520px;
@@ -3010,6 +3119,7 @@
     0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
   font-family: var(--font-family-body);
 }
+.admin-modal-header,
 .admin-notif-modal-header {
   padding: 18px 22px 14px;
   border-bottom: 1px solid var(--bg-secondary);
@@ -3021,8 +3131,11 @@
   background: var(--bg-quaternary);
   z-index: 1;
 }
+.admin-modal-title,
 .admin-notif-modal-title { font-size: var(--font-size-text-md); font-weight: 700; color: var(--text-primary); }
+.admin-modal-desc,
 .admin-notif-modal-desc { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-top: 2px; }
+.admin-modal-close,
 .admin-notif-modal-close {
   width: 36px;
   height: 36px;
@@ -3037,13 +3150,16 @@
   flex-shrink: 0;
   transition: background-color 0.15s ease;
 }
+.admin-modal-close:hover,
 .admin-notif-modal-close:hover { background: var(--colors-background-bgPrimaryHover, #e6e8ea); }
+.admin-modal-body,
 .admin-notif-modal-body {
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2xl);
 }
+.admin-modal-footer,
 .admin-notif-modal-footer {
   padding: 14px 22px;
   border-top: 1px solid var(--bg-secondary);
@@ -3053,6 +3169,19 @@
   position: sticky;
   bottom: 0;
   background: var(--bg-quaternary);
+}
+/* 제목 왼쪽 아이콘 + 제목/설명 묶음 — 헤더의 왼쪽 절반. */
+.admin-modal-headline { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.admin-modal-headline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+  flex-shrink: 0;
 }
 
 /* 모달 내부 작은 라벨 */
