@@ -723,6 +723,30 @@
 .msc-pair-value {
   font-size: 13px;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 값 옆 상태 배지 — 라벨 길이가 로케일마다 달라지므로 줄이지 않고 감싸 흐른다. */
+.msc-pair-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.msc-pair-badge.is-on {
+  border-color: var(--colors-border-borderBrand, #a6f4c5);
+  background: var(--colors-background-bgSuccessPrimary, #edfcf2);
+  color: var(--colors-foreground-fgSuccessPrimary, #099250);
 }
 
 /* ── 평가 등급 배지 / eval 행 ── */
