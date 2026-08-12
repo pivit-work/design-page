@@ -89,6 +89,37 @@ const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 
  */
 const NO_SQUADS = [];
 
+/* ── 명부 내보내기 (screen-admin-employees-export.policy.md) ──────────
+ * 아이콘은 이모지(⭳ · 🔒)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고
+ * color 를 상속하지 않아 버튼·캡션 안에서 혼자 튄다.
+ * -------------------------------------------------------------------- */
+function IconDownload({ size = 14 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 19h16" />
+    </svg>
+  );
+}
+
+export function IconLock({ size = 12 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'inline-block', verticalAlign: '-1px', flexShrink: 0 }}
+    >
+      <rect x="4" y="10" width="16" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
 // members prop → 내부 편집 row 로 매핑(빈 값 정규화).
 function mapMembers(list) {
   return (list || []).map((m) => ({
@@ -454,6 +485,161 @@ function FilterMenu({ label, value, options, onChange, allLabel, searchPlacehold
   );
 }
 
+/**
+ * 명부 내보내기 버튼 + 범위 드롭다운 — 정책 §2-1 · §2-2.
+ *
+ * 별도 라우트·미리보기 화면을 만들지 않는다. **목록 자체가 미리보기**이고, 여기에
+ * 필드 체크박스를 또 두면 사용자가 표와 체크박스 두 곳에서 열을 관리하게 된다(§1).
+ *
+ * items: [{ id, label, caption, warn, sensitive }]
+ */
+function ExportMenu({ items, disabled, busy, labels, onPick }) {
+  const L = labels || {};
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  // 대상 0명이면 열리지도 않는다 — **빈 파일을 만들지 않는다**(E1).
+  const blocked = disabled || busy;
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        data-testid="export-roster-button"
+        disabled={blocked}
+        title={disabled ? (L.emptyTooltip || '내보낼 대상이 없습니다') : undefined}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9,
+          border: `1px solid ${T.border}`, background: T.card, fontSize: 12, fontWeight: 700,
+          color: blocked ? T.muted : T.text, fontFamily: T.font,
+          cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.6 : 1,
+        }}
+      >
+        <IconDownload size={14} />
+        {busy ? (L.preparing || '생성 중…') : (L.button || '명부 내보내기')}
+      </button>
+      {open && !blocked && (
+        <div
+          data-testid="export-roster-menu"
+          style={{
+            // 🔴 버튼 **왼쪽 모서리** 기준으로 편다(같은 툴바의 FilterMenu 와 동일).
+            // 우측 정렬로 두면 이 버튼이 툴바 왼편에 있는 레이아웃에서 메뉴가 화면
+            // 바깥·사이드바 아래로 밀려 글자가 잘린다(브라우저 검증에서 발견).
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 60, minWidth: 260,
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+            boxShadow: '0 12px 32px -8px rgba(15,23,42,.24)', padding: 6,
+          }}
+        >
+          {items.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              data-testid={`export-scope-${it.id}`}
+              onClick={() => { setOpen(false); onPick(it.id); }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 7,
+                border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: T.font,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = T.bg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>{it.label}</div>
+              <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                <span>{it.caption}</span>
+                {/* 제출용 명부에 퇴사자가 섞여 나가는 게 가장 흔한 사고다 —
+                    막지는 않고(퇴직정산·보험 상실신고 수요) amber 로 경고만 한다(E3). */}
+                {it.warn && <span style={{ color: '#B45309', fontWeight: 700 }}>· {it.warn}</span>}
+                {it.sensitive && (
+                  <span style={{ color: '#B45309', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    · <IconLock size={11} />{it.sensitive}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 연봉 포함 확인 모달 — 정책 §2-3.
+ *
+ * 열람이 이미 허용된 상태에서도 **반출에는 확인을 한 번 더** 건다. 화면에서 보는
+ * 것과 파일로 내보내는 것은 위험도가 다르다 — 파일은 화면을 떠나 메일·메신저로
+ * 재배포되고 회수 경로가 없다.
+ *
+ * 기본 포커스는 `[연봉 빼고 내보내기]` 다. 명부 요청의 대다수는 연봉이 필요 없고,
+ * 연봉 열은 다른 목적으로 켜 둔 채 잊혀 있기 쉽다 — 실수의 기본값을 안전한 쪽에 둔다.
+ */
+function SalaryExportModal({ count, columnCount, labels, onExclude, onInclude, onClose }) {
+  const L = labels || {};
+  const excludeRef = useRef(null);
+  useEffect(() => {
+    excludeRef.current?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  const fill = (s) =>
+    String(s || '').replace('{count}', count).replace('{columns}', columnCount);
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div data-testid="export-salary-modal" style={{ background: '#fff', borderRadius: 14, width: 'min(460px,100%)', boxShadow: '0 20px 60px rgba(0,0,0,.22)', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', gap: 8, color: '#B45309' }}>
+          <IconLock size={17} />
+          <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
+            {L.salaryTitle || '연봉이 포함된 명부를 내보냅니다'}
+          </div>
+        </div>
+        <div style={{ padding: '0 22px 4px', fontSize: 12, color: T.sub, lineHeight: 1.8 }}>
+          <div>{fill(L.salaryBody || '대상 {count}명 · {columns}열 · 연봉 열 포함')}</div>
+          <div style={{ color: T.muted }}>
+            {L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}
+          </div>
+        </div>
+        <div style={{ padding: '18px 22px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button
+            onClick={onClose}
+            style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid ${T.border}`, background: '#fff', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
+          >
+            {L.cancel || '취소'}
+          </button>
+          <button
+            ref={excludeRef}
+            data-testid="export-salary-exclude"
+            onClick={onExclude}
+            style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
+          >
+            {L.salaryExclude || '연봉 빼고 내보내기'}
+          </button>
+          <button
+            data-testid="export-salary-include"
+            onClick={onInclude}
+            style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #FECACA', background: '#fff', color: '#DC2626', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
+          >
+            {L.salaryInclude || '포함해 내보내기'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminEmployeeSheetCanvas({
   members = [],
   loading = false,
@@ -504,6 +690,19 @@ export default function AdminEmployeeSheetCanvas({
   // 둘 다 실패 시 throw 하면 모달이 열린 채 인라인 에러를 띄운다.
   onAssignCeo,
   onReleaseCeo,
+  // ── 명부 내보내기 (screen-admin-employees-export.policy.md) ──
+  // 주입되면 툴바에 `명부 내보내기` 버튼이 뜬다. 미주입이면 버튼 자체가 없다 —
+  // 핸들러 없는 버튼은 눌러도 아무 일이 없는 데모가 된다.
+  //
+  // onExportRoster({ scope, columns, ids, search, filters, rowCount, includeSalary })
+  //  · scope: 'view' | 'selected' | 'all'
+  //  · columns: **화면에 렌더된 열 id 를 순서 그대로**. scope='all' 이면 [](서버 표준 13열)
+  //  · filters: 화면 필터 상태 그대로(서버가 같은 조건을 다시 실행한다)
+  // 🔴 파일은 서버가 만든다 — 화면 데이터를 직렬화하면 감사 로그를 남길 주체가 없고,
+  //    목록이 서버 페이지네이션으로 바뀌는 순간 "일부만 담긴 파일"이 조용히 만들어진다.
+  onExportRoster,
+  exporting = false,
+  exportLabels = {},
 }) {
   const L = labels;
 
@@ -861,6 +1060,102 @@ export default function AdminEmployeeSheetCanvas({
     });
   }
 
+  // ── 명부 내보내기 ─────────────────────────────────────────
+  // 연봉 확인 모달이 떠 있는 동안의 대기 범위('view' | 'selected').
+  const [salaryGateScope, setSalaryGateScope] = useState(null);
+  const EL = exportLabels || {};
+  // 화면에 **렌더된 열** 그대로 — `⚙` 로 끈 열은 파일에도 없다(§4-0 (1)).
+  const visibleColumnIds = COLUMNS.map((c) => c.id);
+  const salaryVisible = visibleColumnIds.includes('salary');
+  const hasActiveFilter =
+    search.trim() !== ''
+    || Object.values(filters).some((v) => v && v !== '__all__');
+  const terminatedIn = (list) =>
+    list.filter((r) => r.employmentStatus === 'terminated').length;
+  const fillCaption = (tpl, vals) =>
+    Object.entries(vals).reduce(
+      (s, [k, v]) => s.replace(`{${k}}`, v),
+      String(tpl || ''),
+    );
+
+  function runExport(scope, includeSalary) {
+    if (!onExportRoster) return;
+    // scope='all' 은 화면 상태를 무시한다 — 필터·컬럼을 아예 보내지 않는다(§5-1).
+    if (scope === 'all') {
+      onExportRoster({
+        scope, columns: [], ids: [], search: '', filters: {},
+        rowCount: rows.length, includeSalary: false,
+      });
+      return;
+    }
+    const columns = includeSalary
+      ? visibleColumnIds
+      : visibleColumnIds.filter((id) => id !== 'salary');
+    const target = scope === 'selected'
+      ? rows.filter((r) => selected.has(r.id))
+      : filtered;
+    onExportRoster({
+      scope,
+      columns,
+      ids: scope === 'selected' ? target.map((r) => r.id) : [],
+      // 선택 범위는 선택이 이미 대상을 확정하므로 필터를 보내지 않는다(§5-1).
+      search: scope === 'selected' ? '' : search.trim(),
+      filters: scope === 'selected' ? {} : { ...filters },
+      rowCount: target.length,
+      includeSalary: includeSalary && salaryVisible,
+    });
+  }
+
+  function pickExportScope(scope) {
+    // 전체(③)는 연봉을 포함하지 않으므로 확인 모달을 띄우지 않는다(E13).
+    if (scope !== 'all' && salaryVisible) {
+      setSalaryGateScope(scope);
+      return;
+    }
+    runExport(scope, false);
+  }
+
+  const exportItems = [
+    {
+      id: 'view',
+      label: EL.scopeView || '현재 화면 그대로',
+      caption: fillCaption(EL.scopeViewCaption || '{count}명 · {columns}열', {
+        count: filtered.length,
+        columns: visibleColumnIds.length,
+      }) + (hasActiveFilter ? ` · ${EL.filtered || '필터 적용됨'}` : ''),
+      warn: terminatedIn(filtered) > 0
+        ? fillCaption(EL.terminatedIncluded || '퇴사 {count}명 포함', { count: terminatedIn(filtered) })
+        : null,
+      sensitive: salaryVisible ? (EL.salaryIncluded || '연봉 포함') : null,
+    },
+    ...(selected.size > 0
+      ? [{
+        id: 'selected',
+        label: fillCaption(EL.scopeSelected || '선택한 {count}명', { count: selected.size }),
+        caption: fillCaption(EL.scopeSelectedCaption || '체크한 행만 · {columns}열', {
+          columns: visibleColumnIds.length,
+        }),
+        warn: terminatedIn(rows.filter((r) => selected.has(r.id))) > 0
+          ? fillCaption(EL.terminatedIncluded || '퇴사 {count}명 포함', {
+            count: terminatedIn(rows.filter((r) => selected.has(r.id))),
+          })
+          : null,
+        sensitive: salaryVisible ? (EL.salaryIncluded || '연봉 포함') : null,
+      }]
+      : []),
+    {
+      id: 'all',
+      label: EL.scopeAll || '전체 구성원 (표준 13열)',
+      caption: fillCaption(EL.scopeAllCaption || '{count}명 · 필터·컬럼 설정 무시', {
+        count: rows.length,
+      }),
+      warn: terminatedIn(rows) > 0
+        ? fillCaption(EL.terminatedIncluded || '퇴사 {count}명 포함', { count: terminatedIn(rows) })
+        : null,
+      sensitive: null,
+    },
+  ];
+
   const ROW_H = 44;
   const CHECKBOX_W = 44;
 
@@ -935,12 +1230,49 @@ export default function AdminEmployeeSheetCanvas({
           </div>
         )}
 
+        {/* 명부 내보내기 — 업로드(CSV 업로드)와 방향을 라벨로 구분한다(§2-1). */}
+        {onExportRoster && (
+          <ExportMenu
+            items={exportItems}
+            // E1 — **필터 결과가 0명이면** 잠근다(전체 인원이 남아 있어도). 빈 파일을
+            // 만들지 않는 게 규칙이고, 전사 명부가 필요하면 필터를 지우고 ③ 을 쓴다.
+            // 조건을 `rows.length === 0` 까지 AND 로 묶었더니 "검색 결과 0명인데
+            // 버튼이 살아 있는" 상태가 됐다(브라우저 검증에서 발견).
+            disabled={filtered.length === 0}
+            busy={exporting}
+            labels={EL}
+            onPick={pickExportScope}
+          />
+        )}
+
         {canEdit && onAddEmployee && (
           <button onClick={onAddEmployee} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: T.font, boxShadow: '0 2px 10px rgba(79,106,245,.25)' }}>
             + {L.addEmployee || '직원 추가'}
           </button>
         )}
       </div>
+
+      {salaryGateScope && (
+        <SalaryExportModal
+          count={
+            salaryGateScope === 'selected' ? selected.size : filtered.length
+          }
+          columnCount={visibleColumnIds.length}
+          labels={EL}
+          onClose={() => setSalaryGateScope(null)}
+          onExclude={() => {
+            const scope = salaryGateScope;
+            setSalaryGateScope(null);
+            // 🔴 화면의 컬럼 토글은 끄지 않는다 — 파일 선택이 화면 상태를 바꾸지 않는다(§5-1).
+            runExport(scope, false);
+          }}
+          onInclude={() => {
+            const scope = salaryGateScope;
+            setSalaryGateScope(null);
+            runExport(scope, true);
+          }}
+        />
+      )}
 
       {/* 일괄 편집 바 */}
       {canEdit && selected.size >= 2 && (

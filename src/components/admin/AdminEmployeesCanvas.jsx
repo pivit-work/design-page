@@ -619,6 +619,12 @@ export default function AdminEmployeesCanvas({
   // 원장 CRUD 는 조직도 스쿼드 뷰 전용이라 여기로 내려오지 않는다(SQ3).
   squadOptions,
   onChangeSquads,
+  // 명부 내보내기 — 탭 A(전체 구성원)에만 둔다. 미배정·초대 탭에는 두지 않는다(E10):
+  // 미배정은 탭 A 의 `매니저=미배정` 필터로 같은 결과를 받을 수 있고,
+  // 초대는 아직 구성원이 아니라 명부의 대상이 아니다.
+  onExportRoster,
+  exporting = false,
+  exportLabels,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(
@@ -696,6 +702,9 @@ export default function AdminEmployeesCanvas({
           // 스쿼드는 소속과 별도 축·별도 컬럼(SQ1). 원장이 비면 컬럼 자체가 안 뜬다.
           squadOptions={squadOptions}
           onChangeSquads={onChangeSquads}
+          onExportRoster={onExportRoster}
+          exporting={exporting}
+          exportLabels={exportLabels}
         />
       ) : tab === 'unassigned' ? (
         <UnassignedTab
