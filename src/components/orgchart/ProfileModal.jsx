@@ -2,6 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
+import assetUrl from '../shared/assetUrl.js';
 
 const DEFAULT_PROFILE = {
   title: '사원',
@@ -282,7 +283,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         {/* Footer */}
         <div className="modal-footer">
           <span className="modal-footer-text">Get Communication with</span>
-          <img src={`${baseUrl}logo.svg`} alt="Pivit" className="modal-footer-logo" />
+          <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" className="modal-footer-logo" />
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * 외부 연동 한 줄 — 브랜드 로고 타일 + 이름 + 연결 상태.
@@ -38,7 +39,7 @@ export default function AdminIntegrationRow({ integration, labels, baseUrl = '',
     <div className={`admin-integration-row${integration.connected ? ' is-connected' : ''}`}>
       {logo ? (
         <span className="admin-integration-icon is-logo">
-          <img src={`${baseUrl}${logo}`} alt={integration.name} loading="lazy" />
+          <img src={assetUrl(baseUrl, logo)} alt={integration.name} loading="lazy" />
         </span>
       ) : (
         <span className="admin-integration-icon" style={tileStyle}>{initial}</span>

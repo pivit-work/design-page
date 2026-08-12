@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * TimelineWeeklyView — "Weekly" 탭 AI 주간 리포트 뷰.
@@ -112,7 +113,7 @@ export default function TimelineWeeklyView({
             <div className="tl-weekly-loading-inner">
               <video
                 className="tl-weekly-loading-video"
-                src={`${baseUrl}weekly-loader.mp4`}
+                src={assetUrl(baseUrl, 'weekly-loader.mp4')}
                 autoPlay
                 loop
                 muted
@@ -177,7 +178,7 @@ export default function TimelineWeeklyView({
                 <span className="tl-weekly-entry-date">{e.date}</span>
                 <span className="tl-weekly-meta-sep">·</span>
                 <span className="tl-weekly-entry-health">
-                  <img src={`${baseUrl}icons-solid/health-icon-01.svg`} width={20} height={20} alt="" aria-hidden="true" />
+                  <img src={assetUrl(baseUrl, 'icons-solid/health-icon-01.svg')} width={20} height={20} alt="" aria-hidden="true" />
                   {e.health}
                 </span>
                 {e.krTitle && (

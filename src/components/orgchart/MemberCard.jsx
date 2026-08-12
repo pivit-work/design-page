@@ -3,6 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
+import assetUrl from '../shared/assetUrl.js';
 
 export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;
@@ -121,7 +122,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
         '--member-border-color': status.borderColor,
       }}
     >
-      {showVacation && member.onVacation && <img src={`${baseUrl}vacation.png`} alt="" className="vacation-img" />}
+      {showVacation && member.onVacation && <img src={assetUrl(baseUrl, 'vacation.png')} alt="" className="vacation-img" />}
       <div className="member-content">
         <div className="member-row">
           <div className="avatar-wrap">
