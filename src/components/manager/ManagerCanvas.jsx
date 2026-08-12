@@ -21,6 +21,13 @@ export default function ManagerCanvas({
   activeTab,
   onTabChange,
   krDrilldown,
+  // KR 드릴다운 선택 제어 — 소비자가 선택된 KR/멤버 것만 불러오도록 위임한다 (§7-6).
+  selectedKrId,
+  onSelectKr,
+  selectedMemberId,
+  onSelectMember,
+  onRetryDetail,
+  krLabels,
   teamSnippets,
   teamMemberCount,
   summary,
@@ -58,7 +65,15 @@ export default function ManagerCanvas({
       </header>
 
       {activeTab === 'kr' && krDrilldown ? (
-        <KrDrilldown data={krDrilldown} />
+        <KrDrilldown
+          data={krDrilldown}
+          selectedKrId={selectedKrId}
+          onSelectKr={onSelectKr}
+          selectedMemberId={selectedMemberId}
+          onSelectMember={onSelectMember}
+          onRetryDetail={onRetryDetail}
+          labels={krLabels}
+        />
       ) : activeTab === 'snippets' && teamSnippets ? (
         <TeamSnippets data={teamSnippets} icons={icons} baseUrl={baseUrl} />
       ) : (
