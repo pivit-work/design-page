@@ -5,57 +5,10 @@ import SectionLabel from './SectionLabel.jsx';
 import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import { buildOrgTree, primaryOrgEntry } from './orgTree.js';
-
-/* ── 인라인 라인 아이콘 ──────────────────────────────────────
- * emoji/타이포 글리프(⚠️ ✓ × ⋯ ▾ ← →) 대체. design-page 의 클린
- * 라인 아이콘 톤(stroke 2, round cap/join)에 맞춘 self-contained SVG.
- * 색은 currentColor 상속 → 버튼/배지 톤을 그대로 따른다.
- * ------------------------------------------------------------ */
-function strokeProps(size) {
-  return {
-    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
-    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round',
-    strokeLinejoin: 'round', 'aria-hidden': true, focusable: false,
-    style: { display: 'block', flexShrink: 0 },
-  };
-}
-const IconAlert = ({ size = 18 }) => (
-  <svg {...strokeProps(size)}>
-    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-);
-const IconCheck = ({ size = 16 }) => (
-  <svg {...strokeProps(size)}>
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-  </svg>
-);
-const IconX = ({ size = 16 }) => (
-  <svg {...strokeProps(size)}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-);
-const IconMore = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}>
-    <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
-  </svg>
-);
-const IconChevronDown = ({ size = 14 }) => (
-  <svg {...strokeProps(size)}><polyline points="6 9 12 15 18 9" /></svg>
-);
-const IconChevronLeft = ({ size = 14 }) => (
-  <svg {...strokeProps(size)}><polyline points="15 18 9 12 15 6" /></svg>
-);
-const IconChevronRight = ({ size = 14 }) => (
-  <svg {...strokeProps(size)}><polyline points="9 18 15 12 9 6" /></svg>
-);
-const IconPlus = ({ size = 14 }) => (
-  <svg {...strokeProps(size)}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-);
-const IconSearch = ({ size = 15 }) => (
-  <svg {...strokeProps(size)}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-);
-const IconCheckmark = ({ size = 15 }) => (
-  <svg {...strokeProps(size)}><polyline points="20 6 9 17 4 12" /></svg>
-);
+import AdminInviteModal from './AdminInviteModal.jsx';
+import {
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight, IconPlus,
+} from './employeesIcons.jsx';
 
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
@@ -375,27 +328,19 @@ function FilterDropdown({ label, value, options, onChange }) {
 /* ── 탭 C: 초대 관리 ────────────────────────────────────── */
 const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
 
-/** 소속 팀 Select 의 첫 항목 값 — '선택 안 함(가입 후 배정)'. */
-const TEAM_UNASSIGNED = '';
-
+/**
+ * 탭 C 헤더의 `+ 새 초대 발송`.
+ *
+ * [2026-08-10 §8 / PW-114] 종전에는 여기에 **인라인 작성 바**(이메일 1건)가 열렸고,
+ * 탭 A 의 `+ 구성원 초대` 는 아예 핸들러가 없었다. 이제 두 진입점이 같은
+ * `AdminInviteModal` 을 연다 — 초대를 관리하다 하나 더 보내려고 탭을 옮길 필요가
+ * 없고, 겸직 소속·인사 분류도 그 자리에서 지정한다.
+ */
 function InvitesTab({
-  invites, labels, canEdit, orgUnits, levelOptions,
-  onNewInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
+  invites, labels, canEdit,
+  onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
 }) {
   const [filter, setFilter] = useState('all');
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [email, setEmail] = useState('');
-  // 지정 이메일 초대는 이름이 필수다 — users.name 이 NOT NULL 인데 초대받은 사람이
-  // 온보딩에서 이름을 입력하는 화면이 더는 없다(온보딩 §3-1).
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('member');
-  // 직무·직급·소속 팀은 선택 항목이다(초대 정책 §3-1). 온보딩 초대와 같은 필드를
-  // 어드민 초대에도 둔다 — 여기에 없으면 초대로 들어온 사람이 전원 팀 미배정으로
-  // 시작하고 조직도에서 사라진다(PW-52).
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobLevel, setJobLevel] = useState('');
-  const [teamId, setTeamId] = useState(TEAM_UNASSIGNED);
-  const [sending, setSending] = useState(false);
 
   const counts = {
     pending: invites.filter((i) => i.status === 'pending').length,
@@ -421,35 +366,6 @@ function InvitesTab({
       : s === 'accepted' ? labels.invites.statusAccepted
         : labels.invites.statusExpired;
 
-  const nameOk = name.trim().length >= 2;
-
-  function resetComposer() {
-    setEmail('');
-    setName('');
-    setRole('member');
-    setJobTitle('');
-    setJobLevel('');
-    setTeamId(TEAM_UNASSIGNED);
-  }
-
-  async function handleSend() {
-    if (!email.trim() || !nameOk) return;
-    setSending(true);
-    try {
-      // 선택 항목은 **네 번째 인자의 객체**로 넘긴다 — 위치 인자를 늘리면 세 인자만
-      // 받던 기존 소비자가 조용히 깨진다.
-      await onNewInvite(email.trim(), role, name.trim(), {
-        jobTitle: jobTitle.trim() || undefined,
-        jobLevel: jobLevel || undefined,
-        teamId: teamId || undefined,
-      });
-      resetComposer();
-      setComposerOpen(false);
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
     <div className="admin-emp-unassigned">
       <div className="admin-emp-invite-summary">
@@ -466,78 +382,11 @@ function InvitesTab({
         <div className="admin-emp-toolbar">
           <FilterDropdown label={labels.filters.status} value={filter} options={filterOpts} onChange={setFilter} />
           {canEdit && (
-            <button type="button" className="admin-emp-btn is-primary" onClick={() => setComposerOpen((o) => !o)}>
+            <button type="button" className="admin-emp-btn is-primary" onClick={onOpenInvite}>
               <IconPlus size={14} />{labels.invites.newInvite}
             </button>
           )}
         </div>
-
-        {composerOpen && canEdit && (
-          <div className="admin-emp-invite-composer">
-            <input
-              type="email"
-              className="admin-emp-input admin-emp-invite-email"
-              aria-label={labels.invites.composerEmail}
-              placeholder={labels.invites.composerEmail}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-            />
-            <input
-              type="text"
-              className="admin-emp-input"
-              aria-label={labels.invites.composerName}
-              placeholder={labels.invites.composerName}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-            />
-            <select className="admin-emp-input" aria-label={labels.invites.composerRole} value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="member">{labels.role.member}</option>
-              <option value="manager">{labels.role.manager}</option>
-              <option value="admin">{labels.role.admin}</option>
-            </select>
-            <input
-              type="text"
-              className="admin-emp-input"
-              aria-label={labels.invites.composerJobTitle}
-              placeholder={labels.invites.composerJobTitle}
-              maxLength={50}
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-            />
-            <select
-              className="admin-emp-input"
-              aria-label={labels.invites.composerJobLevel}
-              value={jobLevel}
-              onChange={(e) => setJobLevel(e.target.value)}
-            >
-              <option value="">{labels.invites.composerJobLevel}</option>
-              {levelOptions.map((lv) => (
-                <option key={lv} value={lv}>{lv}</option>
-              ))}
-            </select>
-            <select
-              className="admin-emp-input admin-emp-invite-team"
-              aria-label={labels.invites.composerTeam}
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-            >
-              {/* 정책 §3-1: '선택 안 함(가입 후 배정)' 이 항상 첫 항목이다. */}
-              <option value={TEAM_UNASSIGNED}>{labels.invites.composerTeamNone}</option>
-              {orgUnits.map((u) => (
-                <option key={u.id} value={u.id}>{u.path || u.name}</option>
-              ))}
-            </select>
-            <button type="button" className="admin-emp-btn is-primary is-sm" onClick={handleSend} disabled={sending || !email.trim() || !nameOk}>
-              {labels.invites.composerSend}
-            </button>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => { setComposerOpen(false); resetComposer(); }}>
-              {labels.invites.composerCancel}
-            </button>
-          </div>
-        )}
 
         {filtered.length === 0 ? (
           <div className="admin-emp-unassigned-empty">{labels.invites.empty}</div>
@@ -596,7 +445,23 @@ export default function AdminEmployeesCanvas({
   onAssignOrgUnit,
   onCsvUpload,
   onManageTeams,
-  onNewInvite,
+  /**
+   * 일괄 초대 발송 (PW-114). `(rows) => Promise<{sent, failed[]}>`.
+   *
+   * 미주입이면 두 진입점의 `+ 구성원 초대` 버튼이 아예 안 뜬다 — 콜백 없이 모달만
+   * 열면 design-page 가 데모 모드로 돌아 **보낸 척**을 하게 된다.
+   */
+  onSendInvites,
+  /** `{ limit, remaining }` — null 이면 좌석 조회 실패(발송은 허용, 서버가 최종 방어) */
+  seats = null,
+  /** `{ jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] }` */
+  fieldOptions,
+  /** 초대 모달 문구 — i18n 은 소비자(pivit-work)가 소유한다. */
+  inviteLabels,
+  /** 좌석 부족 배너의 `결제·구독` 이동. */
+  onGoBilling,
+  /** 딥링크 `?invite=new` 로 모달이 열린 상태로 진입(§1 URL). */
+  initialInviteOpen = false,
   onResendInvite,
   onCancelInvite,
   onCopyInviteLink,
@@ -630,6 +495,11 @@ export default function AdminEmployeesCanvas({
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
+  /* [PW-114] 초대 발송 모달 — 탭 A `+ 구성원 초대` 와 탭 C `+ 새 초대 발송` 이
+     **같은 모달**을 연다. 권한이 없거나 발송 콜백이 없으면 진입점 자체가 없다(§7). */
+  const canInvite = canEdit && typeof onSendInvites === 'function';
+  const [inviteOpen, setInviteOpen] = useState(initialInviteOpen && canInvite);
+  const openInvite = () => setInviteOpen(true);
 
   const unassignedCount = useMemo(
     () =>
@@ -693,6 +563,11 @@ export default function AdminEmployeesCanvas({
           onLoadHrProfile={onLoadHrProfile}
           onSaveIdentity={onSaveIdentity}
           onAddEmployee={onCsvUpload}
+          // [PW-114] 탭 A 의 `+ 구성원 초대` — 탭 C 와 **같은 모달**을 연다.
+          // 종전에는 이 버튼이 없어서, 온보딩을 끝낸 워크스페이스는 사람을 더
+          // 초대하려면 초대 관리 탭까지 들어가야 했다(그마저도 데모였다).
+          onInviteMember={canInvite ? openInvite : undefined}
+          inviteLabel={labels.invite}
           onManageTeams={onManageTeams}
           // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).
           orgUnitOptions={orgUnits}
@@ -719,15 +594,38 @@ export default function AdminEmployeesCanvas({
         <InvitesTab
           invites={invites}
           labels={labels}
-          canEdit={canEdit}
-          // 초대 작성 바의 소속 팀·직급 선택지는 이미 캔버스가 받는 값을 그대로 쓴다
-          // (조직 단위 목록 · 직급 카탈로그) — 새 prop 을 늘리지 않는다.
-          orgUnits={orgUnits}
-          levelOptions={gradeOptions ?? []}
-          onNewInvite={onNewInvite}
+          canEdit={canInvite}
+          onOpenInvite={openInvite}
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
           onCopyInviteLink={onCopyInviteLink}
+        />
+      )}
+
+      {/* 초대 발송 모달 — 탭 A·탭 C 두 진입점이 **공유**한다(§1).
+          직급 선택지는 캔버스가 이미 받는 `gradeOptions` 를 기본으로 쓰고,
+          직군·직무·근무지는 `fieldOptions` 로 받는다. */}
+      {inviteOpen && canInvite && (
+        <AdminInviteModal
+          open
+          onClose={() => setInviteOpen(false)}
+          onSend={onSendInvites}
+          orgUnits={orgUnits}
+          existingEmails={members
+            .filter((m) => m.employmentStatus !== 'terminated')
+            .map((m) => m.email)
+            .filter(Boolean)}
+          pendingEmails={invites
+            .filter((i) => i.status === 'pending')
+            .map((i) => i.email)
+            .filter(Boolean)}
+          seats={seats}
+          fieldOptions={{
+            jobLevel: gradeOptions ?? [],
+            ...(fieldOptions || {}),
+          }}
+          onGoBilling={onGoBilling}
+          labels={inviteLabels}
         />
       )}
     </div>

@@ -3382,3 +3382,202 @@
 
 .admin-notif-channel-card.is-active { background: var(--colors-background-bgBrandPrimary, #f1fffa); border-color: var(--bg-brand-solid); }
 .admin-notif-channel-card.is-active .admin-notif-channel-label { color: var(--text-brand-secondary); }
+
+/* ────────────────────────────────────────────────────────────
+   구성원 초대 발송 모달 (.admin-inv-*) — PW-114
+   정본: screen-admin-employees-invite.policy.md v1.0
+
+   껍데기(root/backdrop/header/body/footer)는 어드민 공용 `.admin-modal-*` 을
+   그대로 쓰고, 여기서는 폭(720px)과 초대 행·일괄 지정 바만 얹는다. 값을 복사해
+   두 벌로 두면 한쪽만 고쳐져 화면마다 오버레이·모서리·그림자가 갈린다.
+   ──────────────────────────────────────────────────────────── */
+.admin-inv-modal { width: 720px; display: flex; flex-direction: column; }
+/* 헤더·푸터가 sticky 라 본문만 스크롤한다 — 50행을 넣어도 발송 버튼이 늘 보인다. */
+.admin-inv-body { max-height: 52vh; overflow-y: auto; gap: var(--spacing-lg); }
+
+.admin-inv-banners { padding: 12px 22px 0; display: flex; flex-direction: column; gap: 8px; }
+.admin-inv-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-text-xs);
+  line-height: 1.5;
+}
+.admin-inv-banner.is-warn {
+  background: var(--colors-warning-50, #fffaeb);
+  border: 1px solid var(--colors-warning-200, #fedf89);
+  color: var(--colors-warning-700, #b54708);
+}
+.admin-inv-banner.is-error {
+  background: var(--colors-error-50, #fef3f2);
+  border: 1px solid var(--colors-error-200, #fecdca);
+  color: var(--text-error-primary);
+}
+.admin-inv-banner > span { flex: 1; min-width: 0; }
+
+/* ── 일괄 지정 바 ── */
+.admin-inv-bulk {
+  padding: 12px 22px 14px;
+  border-bottom: 1px solid var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-inv-bulk-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.admin-inv-bulk-title {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.admin-inv-bulk-fields { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.admin-inv-undo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── 필드 ── */
+.admin-inv-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.admin-inv-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.4px;
+}
+.admin-inv-input,
+.admin-inv-select,
+.admin-inv-team-search {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-secondary, #e4e7ec);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  font-size: var(--font-size-text-xs);
+  font-family: var(--font-family-body);
+}
+.admin-inv-input:focus,
+.admin-inv-select:focus,
+.admin-inv-team-search:focus { outline: 2px solid var(--bg-brand-solid); outline-offset: -1px; }
+.admin-inv-field-email { flex: 1 1 200px; }
+.admin-inv-field-name { flex: 0 1 150px; }
+
+/* ── 초대 행 ── */
+.admin-inv-row {
+  border: 1px solid var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  background: var(--bg-primary, #fff);
+}
+.admin-inv-row.is-error {
+  border-color: var(--colors-error-200, #fecdca);
+  background: var(--colors-error-25, #fffbfa);
+}
+.admin-inv-row-main { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.admin-inv-row-summary,
+.admin-inv-hint,
+.admin-inv-note {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+.admin-inv-row-summary { margin-top: 6px; }
+.admin-inv-row-error {
+  margin: 8px 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-error-primary);
+  line-height: 1.5;
+}
+.admin-inv-row-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-inv-row-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── 겸직 소속 선택 ── */
+.admin-inv-teams-block { display: flex; flex-direction: column; gap: 6px; }
+.admin-inv-teams { display: flex; flex-direction: column; gap: 6px; }
+.admin-inv-team-list {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border-secondary, #e4e7ec);
+  border-radius: var(--radius-md);
+  padding: 4px 0;
+  background: var(--bg-primary, #fff);
+}
+.admin-inv-team-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-right: 8px;
+  /* padding-left 는 depth 들여쓰기라 인라인 스타일이 준다(P1: depth당 12px). */
+}
+.admin-inv-team-row:hover { background: var(--bg-secondary); }
+/* 🔴 선택 표시는 **행 자신**이 들고 있어야 한다. 부모(.is-on) 스코프로 쓰면
+   이 목록을 다른 화면에 재사용할 때 상태 표시가 통째로 사라진다. */
+.admin-inv-team-row.is-on .admin-inv-team-name { font-weight: 700; color: var(--text-brand-secondary); }
+.admin-inv-team-check { flex-shrink: 0; accent-color: var(--bg-brand-solid); cursor: pointer; }
+.admin-inv-team-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.admin-inv-primary-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+}
+.admin-inv-primary { max-width: 320px; }
+
+.admin-inv-addrow { display: flex; align-items: center; gap: 8px; }
+.admin-inv-note { padding-top: 2px; }
+
+/* ── 푸터 ── */
+.admin-inv-footer { justify-content: space-between; align-items: center; }
+.admin-inv-summary { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.admin-inv-actions { display: flex; gap: var(--spacing-lg); }
+
+/* ── 확인 모달 — 초대 모달 **위**에 뜬다 ──
+   .admin-modal-root 가 z-index 1000 이므로 그 위 값을 준다. DOM 순서가 뒤라도
+   z-index 가 같거나 낮으면 뒤에 깔린다. */
+.admin-inv-confirm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-inv-confirm { width: 440px; }
+.admin-inv-confirm-body {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.admin-inv-confirm-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  line-height: 1.8;
+}
