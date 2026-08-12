@@ -10,7 +10,12 @@ import {
   getTodayStr,
 } from './constants.js';
 import MeetingBlock from './MeetingBlock.jsx';
+import SnippetBlock from './SnippetBlock.jsx';
 import useTimelineData from './useTimelineData.js';
+
+// 스니핏 블록 여백 — 시안(timeline-feed-view.jsx GanttView)의 주별 셀과 같은 비율.
+const SNIPPET_INSET_X = 3;
+const SNIPPET_INSET_Y = 8;
 
 const TimelineGrid = forwardRef(function TimelineGrid(
   {
@@ -22,12 +27,14 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     targetDate = TODAY_STR,
     // 빈 셀 클릭 — 본인(currentUserId) 행에서만 활성. (pos{x,y}, hour, date) 인자.
     onCellClick,
+    // 스니핏 블록 클릭 — (snippet, rect). 미주입 시 블록은 그려지되 클릭은 no-op.
+    onSnippetClick,
     currentUserId,
     collapsedGroups,
   },
   ref
 ) {
-  const { members, meetings } = useTimelineData();
+  const { members, meetings, snippets } = useTimelineData();
   // Build flat rows parallel to NameColumn — 접힌 그룹은 멤버 행을 생략해
   // NameColumn 과 동일한 Y 좌표를 유지한다(스크롤 미러·미팅 블록 정렬).
   const flatRows = [];
@@ -130,6 +137,39 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                 </div>
               );
             })}
+
+            {/* Snippet blocks — "이 멤버가 이 시각에 스니핏을 썼다".
+                미팅과 달리 구간이 아니라 한 시점이므로 블록 왼쪽 모서리를 작성
+                시각에 맞추고 폭은 한 시간 칸으로 고정한다. hour 가 없는 스니핏
+                (작성 시각을 모르는 데이터)은 시각을 지어내지 않고 건너뛴다.
+                z-index 는 미팅(3)보다 아래(2) — 미팅 곡선·타이틀이 가려지지 않게. */}
+            {(snippets || [])
+              .filter((s) => s.date === targetDate && typeof s.hour === 'number')
+              .map((s) => {
+                const rowIdx = memberRowIndex(s.memberId);
+                if (rowIdx < 0) return null;
+                const member = members.find((m) => m.id === s.memberId);
+                if (!member) return null;
+                const width = HOUR_W - SNIPPET_INSET_X * 2;
+                const rawLeft = (s.hour - HOURS[0]) * HOUR_W + SNIPPET_INSET_X;
+                // 23시대에 쓴 스니핏이 마지막 칸을 넘어가지 않도록 클램프.
+                const left = Math.max(
+                  0,
+                  Math.min(rawLeft, totalInnerW - width - SNIPPET_INSET_X)
+                );
+                return (
+                  <SnippetBlock
+                    key={s.id}
+                    snippet={s}
+                    member={member}
+                    left={left}
+                    top={rowYs[rowIdx] + SNIPPET_INSET_Y}
+                    width={width}
+                    height={ROW_H - SNIPPET_INSET_Y * 2}
+                    onClick={onSnippetClick}
+                  />
+                );
+              })}
 
             {/* Meeting blocks — POLICY: bezier curves only connect participants
                 within the SAME group. We bucket each meeting's participants by
