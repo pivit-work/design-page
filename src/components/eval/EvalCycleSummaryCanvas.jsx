@@ -38,11 +38,13 @@ const DEFAULT_LABELS = {
   cwRoleHrView: 'HR 조회',
   cwCreateLevelLabel: '레벨 · 직급 (복수 선택, 미선택=전 레벨)',
   cwOpen: '→ 열기',
-  cwStatusDraft: '준비',
+  cwStatusDraft: '예정',
   cwStatusInProgress: '진행 중',
-  cwStatusClosed: '완료',
+  cwStatusClosed: '확정 완료',
+  cwCommitBtn: '최종 확정',
+  cwClosedBadge: '확정 완료 — 조정·위원 변경 불가',
   cwBack: '← 목록',
-  cwReadOnlyBadge: 'HR 조회 전용 — 조정 불가',
+  cwReadOnlyBadge: '조회 전용 — 조정·확정은 위원장만',
   cwColNo: '#',
   cwColName: '이름',
   cwColJob: '직무',
@@ -698,6 +700,9 @@ export default function EvalCycleSummaryCanvas({
   selectedCalibSessionId = null,
   onSelectCalibSession,
   onAdjustGrade,
+  // §7.4 최종 확정 — 위원장(session.canCalibrate)에게만 버튼이 뜬다.
+  // 확정 여부는 서버가 판정하므로 여기서는 콜백 유무가 아니라 canCalibrate 로 가른다.
+  onCommitCalibSession,
   onExportCalibCsv,
   calibComments = [],
   onAddCalibComment,
@@ -2294,10 +2299,17 @@ export default function EvalCycleSummaryCanvas({
                     {L.cwBack}
                   </button>
                   <div className="evs-cw-table-title">{calibTable?.session?.name ?? ''}</div>
-                  {calibTable?.readOnly && (
-                    <span className="evs-cw-readonly" data-testid="evs-cw-readonly">
-                      {L.cwReadOnlyBadge}
+                  {calibTable?.session?.status === 'closed' ? (
+                    /* §7.4 확정 완료 — 위원장에게도 조회 전용이라 사유를 따로 밝힌다. */
+                    <span className="evs-cw-readonly" data-testid="evs-cw-closed">
+                      {L.cwClosedBadge}
                     </span>
+                  ) : (
+                    calibTable?.readOnly && (
+                      <span className="evs-cw-readonly" data-testid="evs-cw-readonly">
+                        {L.cwReadOnlyBadge}
+                      </span>
+                    )
                   )}
                   <button
                     type="button"
@@ -2335,6 +2347,18 @@ export default function EvalCycleSummaryCanvas({
                   >
                     {L.cwExportCsv}
                   </button>
+                  {/* §7.4 최종 확정 — 위원장이고 아직 확정 전일 때만.
+                      canCalibrate 는 서버가 (chair && status !== 'closed') 로 내려준다. */}
+                  {calibTable?.session?.canCalibrate && (
+                    <button
+                      type="button"
+                      className="evc-btn is-primary evs-cw-commit"
+                      onClick={() => onCommitCalibSession?.()}
+                      data-testid="evs-cw-commit"
+                    >
+                      {L.cwCommitBtn}
+                    </button>
+                  )}
                 </div>
 
                 {calibTable && calibTable.excludedCount > 0 && (
