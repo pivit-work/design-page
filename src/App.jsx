@@ -15,6 +15,7 @@ import SettingsPage from './SettingsPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
+import './org_squad.css';
 import './one_on_one.css';
 import './timeline.css';
 import './meetings.css';

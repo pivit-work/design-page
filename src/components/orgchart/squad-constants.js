@@ -28,21 +28,57 @@ export const SQUAD_MENU_Z = 10001;
 /** 확인 모달 — 메뉴보다 위. */
 export const SQUAD_MODAL_Z = 10050;
 
-/** 생성 폼 색상 팔레트 (8종). */
+/**
+ * 생성 폼 색상 팔레트 (8종) — 스쿼드의 신원색.
+ *
+ * 여기만 **리터럴 hex** 다. 스쿼드 색은 토큰이 아니라 사용자가 고르는 값이고,
+ * 카드 테두리·셀 배경에 `${color}18` 처럼 알파를 이어 붙여 쓰기 때문에 `var()` 로는
+ * 표현할 수 없다. 대신 값 자체는 디자인 토큰의 utility 500 색과 같은 것을 쓴다 —
+ * 임의의 팔레트를 쓰면 카드 위 색 띠와 매트릭스 점만 다른 앱처럼 튄다.
+ */
 export const SQUAD_PALETTE = [
-  '#4F6AF5', '#8B5CF6', '#F59E0B', '#22C55E',
-  '#EC4899', '#0EA5E9', '#EF4444', '#14B8A6',
+  '#6172f3', // utility indigo 500
+  '#7a5af8', // utility purple 500
+  '#f79009', // utility warning 500
+  '#17b26a', // utility success 500
+  '#ee46bc', // utility pink 500
+  '#0ba5ec', // utility blue-light 500
+  '#f04438', // utility error 500
+  '#2dbd82', // utility brand 500
 ];
 
 /**
  * 상태 배지 — 라벨·색 (§5-2).
+ *
+ * 프로젝트 탭의 `PROJECT_STATUSES` 와 **같은 모양·같은 필드명**이다 — 두 탭의 상태
+ * 배지가 같은 부품(`pj-card-status` + `pj-status-dot`)으로 그려지도록 맞췄다.
  * `counted` = 캐파 합계에 포함되는가. 완료·보관은 제외된다(§5-3).
  */
 export const SQUAD_STATUS = {
-  planned: { label: '준비중', bg: '#F8FAFC', text: '#94A3B8', counted: true },
-  active: { label: '진행중', bg: '#EEF2FF', text: '#4F6AF5', counted: true },
-  done: { label: '완료', bg: '#F0FDF4', text: '#16A34A', counted: false },
-  archived: { label: '보관', bg: '#F1F5F9', text: '#64748B', counted: false },
+  planned: {
+    label: '준비중',
+    dotColor: 'var(--text-tertiary)',
+    textColor: 'var(--text-tertiary)',
+    counted: true,
+  },
+  active: {
+    label: '진행중',
+    dotColor: 'var(--utility-blue-500)',
+    textColor: 'var(--utility-blue-500)',
+    counted: true,
+  },
+  done: {
+    label: '완료',
+    dotColor: 'var(--fg-brand-primary)',
+    textColor: 'var(--text-brand-tertiary)',
+    counted: false,
+  },
+  archived: {
+    label: '보관',
+    dotColor: 'var(--text-quaternary)',
+    textColor: 'var(--text-quaternary)',
+    counted: false,
+  },
 };
 
 /** 미지의 코드가 와도 원본 키를 그대로 렌더하지 않는다(라벨 폴백). */
@@ -78,6 +114,26 @@ export const SQUAD_STATUS_TRANSITIONS = {
 
 export function transitionsFrom(status) {
   return SQUAD_STATUS_TRANSITIONS[status] || [];
+}
+
+/** 한글·한자·가나 등 글자 폭이 넓은 문자. */
+const CJK_RE = /[ᄀ-ᇿ぀-ヿ㄰-㆏㐀-䶿一-鿿가-힯豈-﫿]/;
+
+/**
+ * 아바타 원 안 글자 크기 — **고정 크기 원에 가변 길이 이름이 들어온다**(CLAUDE.md).
+ *
+ * 명부 라벨은 라틴 이니셜('JD')일 수도, 한글 이름 전체('전나은')일 수도 있다. 한 크기로
+ * 박아 두면 한글 세 글자에서 줄바꿈이 나 원 밖으로 글자가 흘러나온다(실제로 그랬다).
+ * 글자 폭을 추정해 줄이되(CJK ≒ 폰트 크기, 라틴·숫자 ≒ 62%), 짧은 값은 기본 크기를
+ * 그대로 둬 시각 변화를 만들지 않는다. CSS 쪽 `nowrap`·`overflow: hidden` 이 최종 방어다.
+ */
+export function avatarFontPx(text, size) {
+  const base = Math.max(8, Math.round(size * 0.34));
+  const chars = [...String(text || '')];
+  if (chars.length === 0) return base;
+  const widthPerFontPx = chars.reduce((sum, ch) => sum + (CJK_RE.test(ch) ? 1 : 0.62), 0);
+  const available = size * 0.86; // 원 안쪽 가용 폭(좌우 여백 제외)
+  return Math.max(8, Math.min(base, Math.floor(available / widthPerFontPx)));
 }
 
 /** 기간 표기: "2026-01-05" → "26.01.05". 종료일 없으면 '미정'. */
@@ -129,13 +185,50 @@ export function cumulativePct(segments) {
   return out;
 }
 
-/** 캐파 대비 상태 — 100을 기준으로 남는지/딱 맞는지/넘는지 (§5-3.2). */
+/**
+ * 캐파 대비 상태 — 100을 기준으로 남는지/딱 맞는지/넘는지 (§5-3.2).
+ * 색은 디자인 토큰으로만 말한다(`ProjectCardGrid` 가 상태색을 `var(--…)` 문자열로
+ * 넘기는 것과 같은 방식) — 리터럴 hex 를 박으면 이 탭만 다른 팔레트로 보인다.
+ */
 export function capacityState(total) {
-  if (total > CAPACITY) return { key: 'over', label: '초과', color: '#DC2626', bg: '#FEF2F2', bd: '#FECACA' };
-  if (total === CAPACITY) return { key: 'full', label: '가득', color: '#16A34A', bg: '#F0FDF4', bd: '#BBF7D0' };
-  if (total >= 70) return { key: 'fit', label: '적정', color: '#16A34A', bg: '#F0FDF4', bd: '#BBF7D0' };
-  if (total > 0) return { key: 'slack', label: '여유', color: '#0EA5E9', bg: '#F0F9FF', bd: '#BAE6FD' };
-  return { key: 'none', label: '미배정', color: '#94A3B8', bg: '#F8FAFC', bd: '#E2E8F0' };
+  if (total > CAPACITY) {
+    return {
+      key: 'over', label: '초과',
+      color: 'var(--text-error-primary)',
+      bg: 'var(--utility-error-50)',
+      bd: 'var(--utility-error-200)',
+    };
+  }
+  if (total === CAPACITY) {
+    return {
+      key: 'full', label: '가득',
+      color: 'var(--text-brand-tertiary)',
+      bg: 'var(--utility-success-50)',
+      bd: 'var(--utility-success-200)',
+    };
+  }
+  if (total >= 70) {
+    return {
+      key: 'fit', label: '적정',
+      color: 'var(--text-brand-tertiary)',
+      bg: 'var(--utility-success-50)',
+      bd: 'var(--utility-success-200)',
+    };
+  }
+  if (total > 0) {
+    return {
+      key: 'slack', label: '여유',
+      color: 'var(--utility-blue-500)',
+      bg: 'var(--utility-blue-50)',
+      bd: 'var(--utility-blue-200)',
+    };
+  }
+  return {
+    key: 'none', label: '미배정',
+    color: 'var(--text-tertiary)',
+    bg: 'var(--bg-secondary)',
+    bd: 'var(--border-secondary)',
+  };
 }
 
 /**

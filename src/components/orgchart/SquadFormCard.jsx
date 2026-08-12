@@ -2,15 +2,15 @@
  * 스쿼드 생성·수정 공용 폼 — 모달이 아니라 **그리드 카드 자리에 인플레이스**로 뜬다
  * (한판 UX 유지, §4). mode: "create" = 그리드 첫 칸 삽입 / "edit" = 해당 카드 대체.
  *
+ * 그리드 안에서 다른 스쿼드 카드와 나란히 서므로 껍데기(`pj-card sq-card`)도 같은 것을
+ * 쓴다 — 폼만 다른 상자로 보이면 그 자리에 구멍이 난 것처럼 읽힌다.
+ *
  * `status` 필드는 의도적으로 없다 — 상태는 배지의 전환 메뉴(전이 규칙)로만 바꾼다.
  * 수정 API 로 우회하면 `진행중 → 보관` 같은 차단 전이가 뚫리기 때문이다(§7).
  */
 
 import { useState } from 'react';
 import { LeadStarIcon, CloseIcon, PlusIcon } from './squadIcons.jsx';
-
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
-const MONO = "'DM Mono',monospace";
 
 export default function SquadFormCard({
   form, setForm, errors, palette, onSubmit, onCancel, leadCandidates, submitting,
@@ -27,178 +27,142 @@ export default function SquadFormCard({
     ? (leadCandidates || []).find((n) => n.id === form.leadUserId)
     : null;
 
-  const inputBase = {
-    width: '100%', borderRadius: 6, outline: 'none', fontFamily: FONT, boxSizing: 'border-box',
-  };
-
   return (
     <div
       data-testid={editing ? 'squad-edit-form' : 'squad-create-form'}
-      style={{
-        background: '#fff', border: `1.5px solid ${form.color}60`, borderRadius: 14,
-        overflow: 'hidden', boxShadow: `0 6px 24px ${form.color}18`, fontFamily: FONT,
-      }}
+      className="pj-card sq-card sq-form"
+      style={{ boxShadow: `0 6px 24px ${form.color}24` }}
     >
-      <div style={{ height: 4, background: form.color }} />
-      <div style={{ padding: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', marginBottom: 10 }}>
-          {editing ? '스쿼드 수정' : '새 스쿼드'}
+      <span className="sq-card-strip" style={{ background: form.color }} />
+
+      <p className="sq-form-title">{editing ? '스쿼드 수정' : '새 스쿼드'}</p>
+
+      <input
+        autoFocus value={form.name} maxLength={30}
+        aria-label="스쿼드명"
+        className={`sq-field${errors.name ? ' is-invalid' : ''}`}
+        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
+        placeholder="스쿼드명 (필수)"
+      />
+      {errors.name && <div className="sq-field-error">{errors.name}</div>}
+
+      <input
+        value={form.mission} maxLength={60}
+        aria-label="미션"
+        className="sq-field"
+        onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
+        placeholder="미션 한 줄 (선택)"
+      />
+
+      <div className="sq-field-row">
+        <div>
+          <div className="sq-field-label">시작일 (필수)</div>
+          <input
+            type="date" value={form.startDate} aria-label="시작일"
+            className="sq-field sq-field-date"
+            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+          />
         </div>
+        <div>
+          <div className="sq-field-label">종료일 (선택)</div>
+          <input
+            type="date" value={form.endDate} aria-label="종료일"
+            className={`sq-field sq-field-date${errors.endDate ? ' is-invalid' : ''}`}
+            onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+          />
+        </div>
+      </div>
+      {errors.endDate && <div className="sq-field-error">{errors.endDate}</div>}
 
-        <input
-          autoFocus value={form.name} maxLength={30}
-          aria-label="스쿼드명"
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
-          placeholder="스쿼드명 (필수)"
-          style={{
-            ...inputBase, border: `1px solid ${errors.name ? '#FCA5A5' : '#E2E8F0'}`,
-            padding: '7px 9px', fontSize: 12, fontWeight: 600,
-          }}
-        />
-        {errors.name && <div style={{ fontSize: 9, color: '#DC2626', marginTop: 3 }}>{errors.name}</div>}
+      <div className="sq-swatches">
+        <span className="sq-swatches-label">색상</span>
+        {palette.map((c) => (
+          <div
+            key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
+            data-testid={`squad-color-${c}`}
+            className={`sq-swatch${form.color === c ? ' is-picked' : ''}`}
+            style={{ background: c }}
+          />
+        ))}
+      </div>
 
-        <input
-          value={form.mission} maxLength={60}
-          aria-label="미션"
-          onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
-          placeholder="미션 한 줄 (선택)"
-          style={{ ...inputBase, marginTop: 7, border: '1px solid #E2E8F0', padding: '7px 9px', fontSize: 11 }}
-        />
-
-        <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, color: '#94A3B8', marginBottom: 2 }}>시작일 (필수)</div>
-            <input
-              type="date" value={form.startDate} aria-label="시작일"
-              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              style={{ ...inputBase, border: '1px solid #E2E8F0', padding: '5px 7px', fontSize: 10, fontFamily: MONO }}
-            />
+      {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
+      {!editing && (
+        <div className="sq-lead-pick">
+          <div className="sq-field-label">
+            <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
+            팀장 (리드) — 선택
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, color: '#94A3B8', marginBottom: 2 }}>종료일 (선택)</div>
-            <input
-              type="date" value={form.endDate} aria-label="종료일"
-              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-              style={{
-                ...inputBase, border: `1px solid ${errors.endDate ? '#FCA5A5' : '#E2E8F0'}`,
-                padding: '5px 7px', fontSize: 10, fontFamily: MONO,
-              }}
-            />
-          </div>
-        </div>
-        {errors.endDate && <div style={{ fontSize: 9, color: '#DC2626', marginTop: 3 }}>{errors.endDate}</div>}
-
-        <div style={{ display: 'flex', gap: 5, marginTop: 9, alignItems: 'center' }}>
-          <span style={{ fontSize: 9, color: '#94A3B8', marginRight: 2 }}>색상</span>
-          {palette.map((c) => (
-            <div
-              key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
-              data-testid={`squad-color-${c}`}
-              style={{
-                width: 16, height: 16, borderRadius: '50%', background: c, cursor: 'pointer',
-                border: form.color === c ? '2px solid #0F172A' : '2px solid transparent',
-              }}
-            />
-          ))}
-        </div>
-
-        {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
-        {!editing && (
-          <div style={{ marginTop: 9 }}>
-            <div style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ color: '#F59E0B', display: 'inline-flex' }}><LeadStarIcon size={9} /></span>
-              팀장 (리드) — 선택
-            </div>
-            {leadPerson ? (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 8px',
-                borderRadius: 99, background: '#FFFBEB', border: '1px solid #FDE68A',
-              }}>
-                <span style={{ color: '#F59E0B', display: 'inline-flex' }}><LeadStarIcon size={10} /></span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#92400E' }}>{leadPerson.name}</span>
-                <span
-                  onClick={() => setForm((f) => ({ ...f, leadUserId: null }))}
-                  title="팀장 지정 해제"
-                  style={{ color: '#D97706', cursor: 'pointer', display: 'inline-flex' }}
-                >
-                  <CloseIcon size={10} />
-                </span>
-              </div>
-            ) : leadOpen ? (
-              <div style={{ border: '1px solid #E2E8F0', borderRadius: 8, overflow: 'hidden' }}>
-                <input
-                  autoFocus value={leadQuery} aria-label="팀장 검색"
-                  onChange={(e) => setLeadQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
-                  placeholder="이름·팀·직함 검색"
-                  style={{ ...inputBase, border: 'none', borderBottom: '1px solid #F1F5F9', padding: '6px 8px', fontSize: 11, borderRadius: 0 }}
-                />
-                <div style={{ maxHeight: 110, overflowY: 'auto' }}>
-                  {cands.map((n) => (
-                    <div
-                      key={n.id}
-                      onClick={() => { setForm((f) => ({ ...f, leadUserId: n.id })); setLeadOpen(false); setLeadQuery(''); }}
-                      style={{ padding: '6px 8px', fontSize: 11, color: '#334155', cursor: 'pointer' }}
-                    >
-                      {n.name} <span style={{ color: '#94A3B8', fontSize: 10 }}>· {n.team} {n.title}</span>
-                    </div>
-                  ))}
-                  {cands.length === 0 && (
-                    <div style={{ padding: '6px 8px', fontSize: 10, color: '#CBD5E1' }}>검색 결과가 없습니다</div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button" onClick={() => setLeadOpen(true)}
-                style={{
-                  padding: '4px 9px', borderRadius: 99, border: '1.5px dashed #FDE68A',
-                  background: '#fff', color: '#D97706', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                  fontSize: 10, fontWeight: 700, fontFamily: FONT,
-                }}
+          {leadPerson ? (
+            <div className="sq-lead-chip">
+              <span className="sq-lead-mark"><LeadStarIcon size={12} /></span>
+              <span className="sq-lead-chip-name">{leadPerson.name}</span>
+              <span
+                className="sq-lead-chip-x"
+                onClick={() => setForm((f) => ({ ...f, leadUserId: null }))}
+                title="팀장 지정 해제"
               >
-                <PlusIcon size={10} /> 팀장 지정
-              </button>
-            )}
-          </div>
-        )}
-
-        {!editing && (
-          <div style={{ fontSize: 9, color: '#CBD5E1', marginTop: 9, lineHeight: 1.5 }}>
-            상태는 <b>준비중</b>으로 생성됩니다.
-            {!form.leadUserId && ' 팀장을 지정하지 않으면 해당 조직 팀장이 이 스쿼드의 프로젝트를 편집할 수 없습니다.'}
-          </div>
-        )}
-        {editing && (
-          <div style={{ fontSize: 9, color: '#CBD5E1', marginTop: 9, lineHeight: 1.5 }}>
-            상태는 여기서 바꿀 수 없습니다 — 카드의 상태 배지에서 전환하세요.
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-          <button
-            type="button" onClick={onSubmit} disabled={submitting}
-            style={{
-              padding: '6px 14px', borderRadius: 7, border: 'none',
-              background: submitting ? '#CBD5E1' : form.color,
-              color: '#fff', fontSize: 11, fontWeight: 700,
-              cursor: submitting ? 'progress' : 'pointer', fontFamily: FONT,
-            }}
-          >
-            {editing ? '저장' : '만들기'}
-          </button>
-          <button
-            type="button" onClick={onCancel}
-            style={{
-              padding: '6px 14px', borderRadius: 7, border: '1px solid #E2E8F0', background: '#fff',
-              color: '#64748B', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: FONT,
-            }}
-          >
-            취소
-          </button>
+                <CloseIcon size={12} />
+              </span>
+            </div>
+          ) : leadOpen ? (
+            <div className="sq-lead-search">
+              <input
+                autoFocus value={leadQuery} aria-label="팀장 검색"
+                className="sq-field"
+                onChange={(e) => setLeadQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
+                placeholder="이름·팀·직함 검색"
+              />
+              <div className="sq-lead-list">
+                {cands.map((n) => (
+                  <div
+                    key={n.id}
+                    className="sq-lead-item"
+                    onClick={() => { setForm((f) => ({ ...f, leadUserId: n.id })); setLeadOpen(false); setLeadQuery(''); }}
+                  >
+                    {n.name} <span className="sq-lead-item-meta">· {n.team} {n.title}</span>
+                  </div>
+                ))}
+                {cands.length === 0 && (
+                  <div className="sq-lead-none">검색 결과가 없습니다</div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button" onClick={() => setLeadOpen(true)}
+              className="sq-btn sq-btn-sm sq-btn-outline"
+            >
+              <PlusIcon size={12} /> 팀장 지정
+            </button>
+          )}
         </div>
+      )}
+
+      {!editing && (
+        <p className="sq-form-note">
+          상태는 <b>준비중</b>으로 생성됩니다.
+          {!form.leadUserId && ' 팀장을 지정하지 않으면 해당 조직 팀장이 이 스쿼드의 프로젝트를 편집할 수 없습니다.'}
+        </p>
+      )}
+      {editing && (
+        <p className="sq-form-note">
+          상태는 여기서 바꿀 수 없습니다 — 카드의 상태 배지에서 전환하세요.
+        </p>
+      )}
+
+      <div className="sq-form-actions">
+        <button
+          type="button" onClick={onSubmit} disabled={submitting}
+          className="sq-btn sq-btn-primary"
+        >
+          {editing ? '저장' : '만들기'}
+        </button>
+        <button type="button" onClick={onCancel} className="sq-btn sq-btn-outline">
+          취소
+        </button>
       </div>
     </div>
   );
