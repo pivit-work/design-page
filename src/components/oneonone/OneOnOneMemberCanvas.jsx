@@ -51,6 +51,8 @@ const DEFAULT_ICONS = {
   check: '/icons-solid/check.svg',
   decisions: '/icons-solid/check-circle.svg',
   next: '/icons-solid/calendar.svg',
+  feedback: '/icons-solid/message-heart-circle.svg',
+  evidence: '/icons-solid/search-md.svg',
 };
 
 const DEFAULT_LABELS = {
@@ -94,6 +96,18 @@ const DEFAULT_LABELS = {
   pastSessionsEmpty: '지난 1on1 기록이 없습니다',
   backToHistory: '목록으로',
   highlights: '하이라이트', count: '건', countUnit: '건',
+  managerFeedback: '매니저 피드백',
+  feedbackStrengths: '관찰한 강점',
+  feedbackSbi: '개선 피드백 (SBI)',
+  feedbackSupport: '지원 계획',
+  evidenceToggle: '근거 발췌 {count}',
+  evidenceCaption: '이 피드백의 근거가 된 대화 발췌입니다',
+  evidenceEdited: '매니저가 본문을 다듬었습니다 — 발췌는 원본 대화 기준입니다',
+  evidenceLoading: '근거 발췌 불러오는 중…',
+  evidenceError: '근거를 불러올 수 없습니다.',
+  evidenceRetry: '다시 시도',
+  evidenceSpeakerManager: '{name} 매니저',
+  evidenceSpeakerMe: '나',
   managerPreparing: '매니저가 정리 중입니다',
   noSummary: '요약이 공유되면 여기에 표시됩니다',
   noPrepSession: '준비 중인 1on1이 없습니다',
@@ -294,6 +308,117 @@ function NoteGrid({ session, L, icons, baseUrl }) {
               {label}
             </span>
             <div className="ono-mem-note-box">{content || '—'}</div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/**
+ * 근거 발췌 토글 (PW-103 · `screen-oneonone-session.policy.md` §6.5.1).
+ *
+ * 공개된 매니저 피드백은 AI 가 대화를 압축한 결과물이라, 멤버는 결과만 받고
+ * "왜 이런 피드백인지"를 확인할 수 없었다. 항목마다 근거가 된 대화 원문을
+ * 펼쳐 볼 수 있게 한다.
+ *
+ * - 발췌 0건이면 **토글 자체를 그리지 않는다** — 빈 패널도, "근거 없음" 문구도 없다.
+ * - 항목별로 독립 토글이다. 한 항목을 펼쳐도 나머지는 접힌 채로 둔다.
+ * - 어떤 발췌가 보이는지는 서버가 이미 걸러 보낸다. 여기서 출처를 거르지 않는다.
+ */
+function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl }) {
+  const [open, setOpen] = useState(false);
+  if (!items || items.length === 0) return null;
+
+  const speakerLabel = (ev) =>
+    ev.speaker === 'host'
+      ? fill(L.evidenceSpeakerManager, { name: managerName })
+      : L.evidenceSpeakerMe;
+
+  return (
+    <div className="ono-mem-evidence">
+      <button
+        type="button"
+        className="ono-mem-evidence-toggle"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <Icon src={icons.evidence} size={12} color="currentColor" baseUrl={baseUrl} />
+        {fill(L.evidenceToggle, { count: items.length })}
+        <Icon src={icons.chevron} size={12} color="currentColor" baseUrl={baseUrl} />
+      </button>
+
+      {open && (
+        <div className="ono-mem-evidence-body">
+          <p className="ono-mem-evidence-caption">{L.evidenceCaption}</p>
+          {items.map((ev, i) => (
+            <div className="ono-mem-evidence-row" key={`${ev.timestamp ?? 'x'}-${i}`}>
+              <div className="ono-mem-evidence-meta">
+                <span className="ono-mem-evidence-speaker">{speakerLabel(ev)}</span>
+                {ev.timestamp && <span>· {ev.timestamp}</span>}
+              </div>
+              <p className="ono-mem-evidence-text">{ev.text}</p>
+            </div>
+          ))}
+          {edited && <p className="ono-mem-evidence-caption">{L.evidenceEdited}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 공개된 매니저 피드백 3항목 + 항목별 근거 발췌 (PW-103 · policy §6.5).
+ *
+ * 발췌 로딩·실패가 **본문 표시를 막지 않는다.** 본문은 먼저 그리고, 발췌 자리에만
+ * 상태 문구를 둔다 — 근거를 못 불러왔다고 피드백을 못 읽게 되면 안 된다.
+ */
+function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl }) {
+  const items = session.managerFeedback ?? [];
+  if (items.length === 0) return null;
+
+  const titleOf = (key) =>
+    ({
+      strengths: L.feedbackStrengths,
+      sbi: L.feedbackSbi,
+      support: L.feedbackSupport,
+    }[key] ?? key);
+
+  const evidenceOf = (key) => (evidence?.items ?? []).find((e) => e.key === key);
+
+  return (
+    <Section
+      title={L.managerFeedback}
+      icon={icons.feedback}
+      icons={icons}
+      baseUrl={baseUrl}
+      collapsible={false}
+    >
+      <div className="ono-mem-feedback">
+        {items.map((item) => (
+          <div className="ono-mem-feedback-box" key={item.key}>
+            <div className="ono-mem-note-label">{titleOf(item.key)}</div>
+            <p className="ono-mem-feedback-text">{item.text}</p>
+
+            {loading && <p className="ono-mem-evidence-status">{L.evidenceLoading}</p>}
+            {!loading && error && (
+              <p className="ono-mem-evidence-status">
+                {L.evidenceError}{' '}
+                <button type="button" className="ono-mem-evidence-retry" onClick={onRetry}>
+                  {L.evidenceRetry}
+                </button>
+              </p>
+            )}
+            {!loading && !error && (
+              <EvidenceToggle
+                items={evidenceOf(item.key)?.evidence}
+                managerName={managerName}
+                edited={evidenceOf(item.key)?.edited}
+                L={L}
+                icons={icons}
+                baseUrl={baseUrl}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -567,7 +692,7 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
   );
 }
 
-function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction }) {
+function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
@@ -591,6 +716,14 @@ function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate,
       ) : (
         <>
           <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
+
+          {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) */}
+          <ManagerFeedback
+            session={session}
+            managerName={manager.name}
+            L={L} icons={icons} baseUrl={baseUrl}
+            {...(feedbackEvidence || {})}
+          />
 
           <Section
             title={L.myActionItems}
@@ -650,7 +783,7 @@ function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate,
 }
 
 /* ── ④ 히스토리 (HISTORY) ─────────────────────────────── */
-function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction }) {
+function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence }) {
   return (
     <>
       <SessionHeader
@@ -668,6 +801,15 @@ function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate
       </SessionHeader>
 
       {session.aiSummary && <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />}
+
+      {/* 지난 회의록에서도 같은 규칙으로 근거 발췌를 연다 (policy §10.2·§10.7.2) */}
+      <ManagerFeedback
+        session={session}
+        managerName={manager.name}
+        L={L} icons={icons} baseUrl={baseUrl}
+        {...(feedbackEvidence || {})}
+      />
+
 
       {session.actionItems.length > 0 && (
         <Section
@@ -696,17 +838,25 @@ function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction }) {
+function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
+
+  // 어떤 회차를 펼쳤는지 호스트에 알린다 — 그 회차의 근거 발췌를 불러오게 하려면
+  // 선택 상태(여기 안에 있다)를 밖에서도 알아야 한다.
+  const select = (id) => {
+    setSelectedId(id);
+    if (onHistorySelect) onHistorySelect(id);
+  };
 
   if (selected) {
     return (
       <HistoryDetail
         session={selected} manager={manager} avatar={avatar} L={L} icons={icons} baseUrl={baseUrl}
         formatDate={formatDate} formatDuration={formatDuration}
-        onBack={() => setSelectedId(null)} onToggleAction={onToggleAction}
+        onBack={() => select(null)} onToggleAction={onToggleAction}
+        feedbackEvidence={feedbackEvidence}
       />
     );
   }
@@ -740,7 +890,7 @@ function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, bas
                 type="button"
                 className="ono-mem-hist"
                 data-testid="ono-history-row"
-                onClick={() => setSelectedId(s.id)}
+                onClick={() => select(s.id)}
               >
                 <span className={`ono-mem-hist-dot${i === 0 ? ' is-latest' : ''}`} />
                 <span className="ono-mem-hist-body">
@@ -870,6 +1020,15 @@ export default function OneOnOneMemberCanvas({
   onSaveNotes = () => {},
   onToggleAction = () => {},
   onStart = () => {},
+  /**
+   * 공개된 매니저 피드백의 근거 발췌 (PW-103).
+   * `{ evidence: { items: [{ key, edited, evidence: [...] }] }, loading, error, onRetry }`.
+   * 발췌만 여기서 오고 **본문은 세션에 이미 실려 있다** — 발췌 로딩이 본문 표시를
+   * 막지 않게 하려는 분리다 (policy §6.5.1).
+   */
+  feedbackEvidence = null,
+  /** 히스토리에서 펼친 회차 id (없으면 null) — 호스트가 그 회차 발췌를 불러오게 한다. */
+  onHistorySelect,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -906,6 +1065,7 @@ export default function OneOnOneMemberCanvas({
           {...shared}
           session={resultSession} manager={manager} avatar={avatar}
           deadlineOf={deadlineOf} onToggleAction={onToggleAction}
+          feedbackEvidence={feedbackEvidence}
         />
       ) : <div className="ono-mem-empty">{L.noResultSession}</div>)}
 
@@ -916,6 +1076,8 @@ export default function OneOnOneMemberCanvas({
           healthHistory={healthHistory}
           healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
           onToggleAction={onToggleAction}
+          feedbackEvidence={feedbackEvidence}
+          onHistorySelect={onHistorySelect}
         />
       )}
     </div>
