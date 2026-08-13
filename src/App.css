@@ -184,3 +184,10 @@
 .seg-item.is-active {
   color: var(--text-secondary);
 }
+/* 고를 수 없는 segment. 값·모양은 design-page 가 이미 쓰는 disabled 관례 그대로
+   (.tl-group-modal-btn:disabled / .intg-btn:disabled / .evc-btn:disabled 와 동일).
+   왜 못 고르는지는 컨트롤이 모른다 — caller 가 바깥에 안내 문구로 적는다. */
+.seg-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
