@@ -132,11 +132,18 @@ export default function ManagerCanvas({
       </>
       )}
 
+      {/*
+        모달 헤더의 [1on1]·[메시지] 는 카드의 같은 버튼과 같은 핸들러로 간다.
+        누르면 모달을 먼저 닫는다 — 두 동선 모두 이 화면을 떠나거나(1on1) 다른 모달을
+        띄우므로(메시지), 프로필 모달을 남겨두면 모달이 겹친다.
+      */}
       <ProfileModal
         member={openMember}
         onClose={() => setOpenMember(null)}
         baseUrl={baseUrl}
         icons={icons}
+        onOneOnOneClick={() => { const m = openMember; setOpenMember(null); onMemberOneOnOne?.(m); }}
+        onMessageClick={() => { const m = openMember; setOpenMember(null); onMemberMessage?.(m); }}
       />
     </main>
   );
