@@ -11,7 +11,9 @@ import useSegmentedIndicator from './useSegmentedIndicator.js';
  * 항상 이 컴포넌트를 사용한다. 새로 만들지 말 것.
  *
  * Props:
- *   items     [{ value, label }] — 표시될 segment 목록 (2~N)
+ *   items     [{ value, label, disabled?, title? }] — 표시될 segment 목록 (2~N)
+ *             disabled 인 항목은 고를 수 없다. 왜 못 고르는지는 caller 가 title 로
+ *             주거나 컨트롤 바깥에 안내 문구로 적는다 — 이 컴포넌트는 사유를 모른다.
  *   value     현재 선택된 value (controlled)
  *   onChange  (next) => void — segment 클릭 시 호출
  *   block     true 면 width:100% (가로 꽉 채움), false(기본) 는 content-sized
@@ -56,8 +58,14 @@ export default function SegmentedControl({
           type="button"
           role="tab"
           aria-selected={value === it.value}
+          aria-disabled={it.disabled ? 'true' : undefined}
+          disabled={it.disabled || undefined}
+          title={it.title}
           className={`seg-item ${value === it.value ? 'is-active' : ''}`}
-          onClick={() => onChange?.(it.value)}
+          onClick={() => {
+            if (it.disabled) return;
+            onChange?.(it.value);
+          }}
         >
           {it.label}
         </button>
