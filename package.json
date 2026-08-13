@@ -14,6 +14,7 @@
     "./styles/org-project.css": "./src/org_project.css",
     "./styles/org-squad.css": "./src/org_squad.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
+    "./styles/modal-shell.css": "./src/modal-shell.css",
     "./styles/timeline.css": "./src/timeline.css",
     "./styles/meetings.css": "./src/meetings.css",
     "./styles/report.css": "./src/report.css",
