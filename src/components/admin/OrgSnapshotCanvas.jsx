@@ -70,6 +70,16 @@ const DEFAULT_LABELS = {
   /** `{date}` 자리에 기준일이 들어간다. */
   asofBanner: '{date} 시점으로 조회 중입니다',
   asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
+  // 커버리지 경계 · 빈 상태 2종 (org-snapshot-spec §5-A · PW-139).
+  // C1 = 기록의 부재, C2 = 사실의 확인. 문구를 서로 바꿔 쓰지 않는다.
+  asofCoverageCaption: '',
+  asofNoRecord: '기록 없음',
+  asofOutOfRangeTitle: '기록이 시작된 날짜부터 조회할 수 있어요',
+  asofOutOfRangeBody: '그 이전 조직 기록은 Pivit 에 남아 있지 않습니다. 조직이 없었다는 뜻은 아닙니다.',
+  asofGoToCoverage: '기록 시작일로 이동',
+  asofEmptyFact: '이 시점에 재직 중인 구성원이 없습니다',
+  asofFixedCopy: '증빙 고정본',
+  asofFixedCopyHint: '이 날짜에 고정된 값입니다',
   asofCards: {
     total: '그 시점 재직',
     joined: '이후 입사',
@@ -229,7 +239,11 @@ const ROSTER_COLUMNS = [
   'workLocation', 'managerName', 'hireDate', 'finalGrade',
 ];
 
-function RosterTable({ rows, labels, showSalary, changedHint, onMemberClick }) {
+/**
+ * `rowBadge` — 이름 셀 뒤에 붙는 출처 배지(As Of 의 `증빙 고정본`, S2).
+ * AI 데이터 소스 배지가 아니라 **시점 출처 표기**라 중립색을 쓴다(정책 §8).
+ */
+function RosterTable({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge }) {
   const columns = showSalary ? [...ROSTER_COLUMNS, 'salary'] : ROSTER_COLUMNS;
   if (rows.length === 0) {
     return <div className="admin-snap-empty">{labels.rosterEmpty}</div>;
@@ -262,6 +276,11 @@ function RosterTable({ rows, labels, showSalary, changedHint, onMemberClick }) {
                       </button>
                     ) : (
                       (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
+                    )}
+                    {c === 'name' && rowBadge && (
+                      <span className="admin-snap-roster-badge" title={rowBadge.title}>
+                        {rowBadge.label}
+                      </span>
                     )}
                     {changed.has(c) && <span className="admin-snap-roster-changed" aria-hidden>▲</span>}
                   </td>
@@ -1323,18 +1342,49 @@ function AppointmentHistoryView({ records, labels, onExport }) {
 /* ════════════════════════════════════════════════════════════
  * 5. As Of — 시점별 조직 스냅샷 (타임머신)
  * ════════════════════════════════════════════════════════════ */
+/**
+ * As Of(시점별 조직 스냅샷) — org-snapshot-spec §5 · screen-admin-snapshot-asof.policy.md
+ *
+ * 🔴 빈 상태는 **두 가지뿐이고 문구가 서로 달라야 한다**(§5-A · PW-139):
+ *   C1 기록 시작 전(`out_of_range`) — 기록의 부재. 요약 카드 전부 `—`, CSV 비활성,
+ *      톤은 중립 회색(사용자가 잘못한 게 아니다. 앰버는 타임머신 배너 전용).
+ *   C2 그 시점 재직 0명(`full` 인데 명단 0) — 사실의 확인. 카드는 `0` 을 쓴다.
+ *
+ * 이 둘을 한 화면으로 보여 준 것이 PW-139 다. 분기는 **서버가 준 `meta.state`** 로
+ * 하고 `totalMembers === 0` 으로 추측하지 않는다 — 추측하면 둘이 다시 합쳐진다.
+ */
 function AsOfSnapshotView({
-  data, labels, asOfDate, today, onAsOfDateChange, showComp, onShowCompChange,
+  data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
   onExport, onRosterMemberClick,
 }) {
   const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0 } = data;
   const isPast = !!asOfDate && asOfDate !== today;
+  // 커버리지 하한은 prop 우선, 없으면 응답 메타. 옛 백엔드와 섞여도 화면이 죽지 않는다.
+  const minDate = coverageFrom || meta?.coverageFrom || undefined;
+  const isOut = meta?.state === 'out_of_range';
+  // C2 는 "재구성은 **됐는데** 그날 아무도 없었다" 이다 — 사실 주장이므로 재구성이
+  // 실제로 성공했을 때만 쓴다. 응답이 없거나 실패해서 명단이 빈 것을 C2 로 그리면
+  // "그날 아무도 없었다" 고 없는 사실을 만들어 낸다(이 티켓이 고치는 것과 같은 오류).
+  const reconstructed = meta?.state === 'full' || meta?.state === 'partial';
+  const isEmptyFact = !isOut && reconstructed && roster.length === 0;
+  // 재구성 여부를 모른 채 명단만 빈 경우 — 중립 문구로 남긴다.
+  const isEmptyUnknown = !isOut && !reconstructed && roster.length === 0 && isPast;
+  // 그 날짜의 증빙 고정본에서 온 값인가(S2). 배지는 AI 출처 표기가 아니라 시점 출처다.
+  const fromFixedCopy = meta?.reconstructedFrom === 'snapshot' && !!meta?.snapshotDate;
+
+  // ⚠️ 0 금지 규칙 — 재구성 불가일 때 숫자 0 을 쓰지 않는다. "0명" 은 "그날 아무도
+  // 없었다" 는 사실 주장이고, 실제로는 "그날은 기록이 없다" 이다.
+  const dash = '—';
   const cards = [
-    { key: 'total', value: totalMembers },
-    { key: 'joined', value: delta ? `+${delta.joinedCount}` : '—' },
-    { key: 'left', value: delta ? `-${delta.leftCount}` : '—' },
-    { key: 'moved', value: delta ? delta.movedCount + (delta.statusChangedCount ?? 0) : '—' },
+    { key: 'total', value: isOut ? dash : totalMembers },
+    { key: 'joined', value: isOut || !delta ? dash : `+${delta.joinedCount}` },
+    { key: 'left', value: isOut || !delta ? dash : `-${delta.leftCount}` },
+    {
+      key: 'moved',
+      value: isOut || !delta ? dash : delta.movedCount + (delta.statusChangedCount ?? 0),
+    },
   ];
+
   return (
     <div className="admin-snap-canvas">
       <header className="admin-snap-header">
@@ -1351,22 +1401,41 @@ function AsOfSnapshotView({
             />
             {labels.asofShowComp}
           </label>
-          <div className="admin-snap-datepicker">
-            <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
-            {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다 */}
-            <input
-              type="date"
-              max={today}
-              value={asOfDate}
-              onChange={(e) => onAsOfDateChange?.(e.target.value)}
-            />
+          <div>
+            <div className="admin-snap-datepicker">
+              <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
+              {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.
+                  min 은 커버리지 하한 — 그 이전은 어떤 소스로도 재구성할 수 없다. */}
+              <input
+                type="date"
+                min={minDate}
+                max={today}
+                value={asOfDate}
+                onChange={(e) => onAsOfDateChange?.(e.target.value)}
+              />
+            </div>
+            {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}
+            {labels.asofCoverageCaption && (
+              <div className="admin-snap-coverage-caption" data-testid="asof-coverage-caption">
+                {labels.asofCoverageCaption}
+              </div>
+            )}
           </div>
-          <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>
+          {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
+          <button
+            type="button"
+            className="admin-snap-export-btn"
+            disabled={isOut}
+            title={isOut ? labels.asofOutOfRangeTitle : undefined}
+            onClick={() => onExport?.()}
+          >
             ↓ {labels.asofExport}
           </button>
         </div>
       </header>
 
+      {/* 프리셋 — 커버리지 밖 칩은 호출부에서 걸러진다. 비활성 칩을 남기면
+          "누르면 되는데 왜 안 되지" 가 되므로 아예 렌더하지 않는다(§5). */}
       <div className="admin-snap-presets">
         <button
           type="button"
@@ -1388,7 +1457,8 @@ function AsOfSnapshotView({
         ))}
       </div>
 
-      {isPast && (
+      {/* 타임머신 배너 — 앰버는 여기에만. C1 은 중립 톤이다(§5-A) */}
+      {isPast && !isOut && (
         <div className="admin-snap-timemachine" role="status">
           <span>{String(labels.asofBanner).replace('{date}', asOfDate)}</span>
           <button type="button" onClick={() => onAsOfDateChange?.(today)}>
@@ -1401,14 +1471,41 @@ function AsOfSnapshotView({
         {cards.map((c) => (
           <div key={c.key} className="admin-snap-summary-card">
             <p className="admin-snap-summary-label">{labels.asofCards[c.key]}</p>
-            <p className="admin-snap-summary-value">{c.value}</p>
+            <p className="admin-snap-summary-value" data-testid={`asof-card-${c.key}`}>{c.value}</p>
+            {isOut && <p className="admin-snap-summary-norecord">{labels.asofNoRecord}</p>}
           </div>
         ))}
       </div>
 
       <div className="admin-snap-content">
-        {isPast && roster.length === 0 ? (
-          <div className="admin-snap-empty">{labels.asofEmpty}</div>
+        {isOut ? (
+          <div className="admin-snap-empty admin-snap-empty-coverage" data-testid="asof-empty-c1">
+            <div className="admin-snap-empty-title">{labels.asofOutOfRangeTitle}</div>
+            <div className="admin-snap-empty-body">{labels.asofOutOfRangeBody}</div>
+            <div className="admin-snap-empty-actions">
+              {minDate && (
+                <button type="button" className="admin-snap-empty-primary" onClick={() => onAsOfDateChange?.(minDate)}>
+                  {labels.asofGoToCoverage}
+                </button>
+              )}
+              <button type="button" onClick={() => onAsOfDateChange?.(today)}>
+                {labels.asofBackToToday}
+              </button>
+            </div>
+          </div>
+        ) : isEmptyFact ? (
+          <div className="admin-snap-empty" data-testid="asof-empty-c2">
+            <div className="admin-snap-empty-body">{labels.asofEmptyFact || labels.asofEmpty}</div>
+            <div className="admin-snap-empty-actions">
+              <button type="button" onClick={() => onAsOfDateChange?.(today)}>
+                {labels.asofBackToToday}
+              </button>
+            </div>
+          </div>
+        ) : isEmptyUnknown ? (
+          <div className="admin-snap-empty" data-testid="asof-empty-unknown">
+            {labels.asofEmpty}
+          </div>
         ) : (
           <RosterTable
             rows={roster}
@@ -1416,10 +1513,17 @@ function AsOfSnapshotView({
             showSalary={!!showComp && roster.some((r) => r.salary !== undefined)}
             changedHint={(col, row) => `${labels.roster[col]} · ${row.name}`}
             onMemberClick={onRosterMemberClick}
+            rowBadge={fromFixedCopy ? {
+              label: labels.asofFixedCopy,
+              title: labels.asofFixedCopyHint,
+            } : null}
           />
         )}
       </div>
-      {meta?.partial && <p className="admin-snap-footnote">{labels.asofPartialNote}</p>}
+      {/* partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A) */}
+      {meta?.state === 'partial' && !isOut && (
+        <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
+      )}
     </div>
   );
 }
@@ -1445,6 +1549,8 @@ export default function OrgSnapshotCanvas({
   asOf = {},
   asOfDate = '',
   today = '',
+  /** 조회 가능 하한 — 피커 min · C1 문구 · '기록 시작' 캡션이 공유한다(PW-139). */
+  coverageFrom = '',
   onAsOfDateChange,
   showComp = false,
   onShowCompChange,
@@ -1525,6 +1631,7 @@ export default function OrgSnapshotCanvas({
               labels={labels}
               asOfDate={asOfDate}
               today={today}
+              coverageFrom={coverageFrom}
               onAsOfDateChange={onAsOfDateChange}
               showComp={showComp}
               onShowCompChange={onShowCompChange}
