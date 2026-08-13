@@ -61,6 +61,7 @@ const DEFAULT_LABELS = {
   myTurn: '내 차례',
   waiting: '대기',
   openThread: '스레드 열기 ›',
+  truncatedHint: '… 전문 보기',
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
   newBadge: '새 피드백',
   replyToggle: '답변 달기 ↩',
@@ -167,6 +168,17 @@ function Chip({ label, color, bg, bd }) {
 }
 
 // ── 블록 카드(KR/이니셔티브 공통) ──
+/**
+ * 미리보기가 2줄 clamp 로 잘렸는지 (PW-103 · `screen-feedback-member.policy.md` §1.7.1).
+ *
+ * 잘린 걸 말없이 두면 사용자가 그 두 줄을 전문(요약본)으로 오인한다. 카드 폭 기준
+ * 2줄 ≈ 한글 70자. 경계 근처에서 "잘리지 않았는데 표시"가 나오는 쪽이 반대보다
+ * 안전하므로 보수적으로 잡는다.
+ */
+const PREVIEW_CLAMP_CHARS = 70;
+const isPreviewTruncated = (text) =>
+  typeof text === 'string' && text.length > PREVIEW_CLAMP_CHARS;
+
 function BlockCard({ block, L, onOpen }) {
   const isKr = block.type === 'kr';
   const items = block.items;
@@ -266,6 +278,15 @@ function BlockCard({ block, L, onOpen }) {
                 >
                   {it.text || (it.itemType === 'request' ? '(내용 없는 요청)' : '')}
                 </p>
+                {/* 잘림을 드러낸다 — 카드 전체가 이미 스레드 오픈 트리거라 별도 핸들러는 없다 */}
+                {isPreviewTruncated(it.text) && (
+                  <span
+                    data-testid={`fbm-truncated-${it.id}`}
+                    style={{ fontSize: 10, fontWeight: 600, color: isKr ? C.teal : C.purple }}
+                  >
+                    {L.truncatedHint}
+                  </span>
+                )}
               </div>
             </div>
           ))}

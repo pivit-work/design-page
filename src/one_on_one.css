@@ -2482,6 +2482,74 @@ button.ono-add-modal-input { cursor: pointer; }
   min-height: 60px;
 }
 
+/* ── 매니저 피드백 + 근거 발췌 (PW-103) ── */
+.ono-mem-feedback { display: flex; flex-direction: column; gap: 12px; }
+.ono-mem-feedback-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+.ono-mem-feedback-text {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  /* 발췌·본문 모두 원문 그대로 — 줄바꿈까지 살린다 (원문 도달 보장) */
+  white-space: pre-wrap;
+}
+.ono-mem-evidence {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-secondary);
+}
+.ono-mem-evidence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.ono-mem-evidence-body { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ono-mem-evidence-caption { margin: 0; font-size: 10px; color: var(--text-tertiary); }
+.ono-mem-evidence-row {
+  padding: 8px 10px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+.ono-mem-evidence-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.ono-mem-evidence-speaker { font-weight: 600; color: var(--text-secondary); }
+.ono-mem-evidence-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.ono-mem-evidence-status { margin: 10px 0 0; font-size: 11px; color: var(--text-tertiary); }
+.ono-mem-evidence-retry {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--utility-blue-500);
+  cursor: pointer;
+}
+
 /* ── 주제 입력 ── */
 .ono-mem-topics { display: flex; flex-wrap: wrap; gap: 6px; }
 .ono-mem-topic {
