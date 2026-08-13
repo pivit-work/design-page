@@ -79,6 +79,10 @@ const DEFAULT_LABELS = {
   requestEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   requestDeleteError: '취소에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   requestCompose: '+ 피드백 요청',
+  requestAlreadySuffix: '요청 대기중',
+  requestAlreadyHint: '이미 요청한 사람은 응답이 오기 전까지 다시 선택할 수 없어요.',
+  requestAllRequestedHint:
+    '이 항목의 모든 대상에게 요청했어요. 응답이 오면 다시 요청할 수 있어요.',
   requestTextPlaceholder: '어떤 부분에 대한 피드백이 필요한지…(선택 사항)',
   requestSendPrefix: '',
   requestSendSuffix: '에게 요청 전송 →',
@@ -292,6 +296,19 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
   );
   const hasItems = items.length > 0;
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
+  // 중복 요청 차단의 단위는 '스레드' 가 아니라 '수신자' 다(PW-153). 같은 KR 이라도
+  // 동료 A·B 에게 각각 요청할 수 있어야 하고, 받은 피드백이 있다고 해서 요청 자체를
+  // 막으면 안 된다. 아직 답이 오지 않은(resolvedAt 없음) 요청의 수신자만 잠근다.
+  const pendingRecipientIds = useMemo(
+    () =>
+      new Set(
+        items
+          .filter((it) => it.itemType === 'request' && !it.resolvedAt)
+          .map((it) => it.person?.id)
+          .filter(Boolean),
+      ),
+    [items],
+  );
 
   return createPortal(
     <div
@@ -361,15 +378,17 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
         </div>
 
         {isPastPeriod ? (
-          !hasItems && (
-            <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>
-              {L.pastReadonly}
-            </div>
-          )
+          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>
+            {L.pastReadonly}
+          </div>
         ) : (
-          !hasItems && (
-            <RequestCompose block={block} L={L} recipients={recipients} onRequest={onRequest} />
-          )
+          <RequestCompose
+            block={block}
+            L={L}
+            recipients={recipients}
+            lockedRecipientIds={pendingRecipientIds}
+            onRequest={onRequest}
+          />
         )}
       </div>
     </div>,
@@ -593,13 +612,30 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
   );
 }
 
-function RequestCompose({ block, L, recipients, onRequest }) {
+/**
+ * 피드백 요청 작성 — 정책 §6(screen-feedback-member.policy.md).
+ *
+ * 중복 요청은 **수신자 단위**로만 막는다(PW-153). 스레드에 아이템이 있다고 입력부를
+ * 통째로 감추면 같은 KR 에서 두 번째 동료에게 요청할 수 없고, 받은 피드백이 하나만
+ * 있어도 요청 자체가 불가능해진다. 이미 요청한 사람은 **목록에서 빼지 않고 비활성 +
+ * 사유 안내**로 남긴다 — 사라지면 "왜 이 사람이 안 보이지" 가 된다.
+ */
+function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest }) {
+  const locked = lockedRecipientIds || new Set();
+  const isLocked = (r) => locked.has(r.id);
+  const firstSelectable =
+    recipients.find((r) => r.kind === 'manager' && !isLocked(r)) ||
+    recipients.find((r) => !isLocked(r)) ||
+    null;
+
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
-  const [recipient, setRecipient] = useState(
-    recipients.find((r) => r.kind === 'manager') || recipients[0] || null,
-  );
+  const [picked, setPicked] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  // 고른 사람이 그 사이 잠기면(다른 탭에서 요청 전송 등) 자동으로 놓는다.
+  const recipient = picked && !isLocked(picked) ? picked : firstSelectable;
+  const lockedCount = recipients.filter(isLocked).length;
 
   if (recipients.length === 0) return null;
 
@@ -640,22 +676,45 @@ function RequestCompose({ block, L, recipients, onRequest }) {
     <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 96, overflowY: 'auto' }}>
         {recipients.map((r) => {
-          const on = recipient?.id === r.id;
+          const lockedR = isLocked(r);
+          const on = !lockedR && recipient?.id === r.id;
           const col = r.kind === 'peer' ? C.teal : C.blue;
           const bg = r.kind === 'peer' ? C.tealBg : C.blueBg;
+          const kindLabel = r.kind === 'peer' ? L.kindPeer : L.kindManager;
           return (
             <button
               key={r.id}
               type="button"
-              onClick={() => setRecipient(r)}
+              disabled={lockedR}
+              onClick={() => setPicked(r)}
               data-testid={`fbm-recipient-${r.id}`}
-              style={{ border: `1px solid ${on ? col : C.border}`, background: on ? bg : '#fff', color: on ? col : C.sub, borderRadius: 16, padding: '4px 12px', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: 'pointer' }}
+              data-locked={lockedR ? 'true' : undefined}
+              title={lockedR ? L.requestAlreadyHint : undefined}
+              style={{
+                border: `1px solid ${on ? col : lockedR ? C.borderL : C.border}`,
+                background: on ? bg : lockedR ? C.borderL : '#fff',
+                color: on ? col : lockedR ? C.muted : C.sub,
+                borderRadius: 16,
+                padding: '4px 12px',
+                fontSize: 'var(--font-size-text-xs, 12px)',
+                fontWeight: 600,
+                cursor: lockedR ? 'not-allowed' : 'pointer',
+              }}
             >
-              {r.name} ({r.kind === 'peer' ? L.kindPeer : L.kindManager})
+              {r.name} ({kindLabel})
+              {lockedR ? ` · ${L.requestAlreadySuffix}` : ''}
             </button>
           );
         })}
       </div>
+      {lockedCount > 0 && (
+        <p
+          data-testid="fbm-recipient-locked-hint"
+          style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.6 }}
+        >
+          {lockedCount === recipients.length ? L.requestAllRequestedHint : L.requestAlreadyHint}
+        </p>
+      )}
       <textarea
         rows={2}
         value={text}
