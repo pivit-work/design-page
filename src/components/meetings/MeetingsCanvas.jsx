@@ -91,6 +91,11 @@ export default function MeetingsCanvas({
   onRowClick,
   // 액션 아이템 전체 뷰(/meetings/actions) 진입 훅. 미지정 시 링크를 숨긴다.
   onViewActions,
+  // 캘린더 일정과 무관하게 "지금 회의를 시작" 하는 진입 훅.
+  // 시작 버튼은 오늘 회의 행에만 붙기 때문에, 캘린더가 비어 있으면 녹음 flow 로
+  // 들어갈 문이 아예 없다 — 헤더에 항상 열려 있는 문을 하나 둔다.
+  // 미지정 시 버튼을 숨긴다 (핸들러 없는 버튼은 눌러도 무동작이라 없느니만 못하다).
+  onStartAdhoc,
   progressData,
   recordData,
   shareData,
@@ -119,14 +124,23 @@ export default function MeetingsCanvas({
             <span className="tl-meta-count">{todayCountLabel}</span>
           </div>
         </div>
-        {/* 액션 아이템 전체 뷰 진입 — 회의에서 나온 할 일을 모아 보는 화면
-            (user-flow-spec: /meetings/actions). onViewActions 미지정 시 숨김. */}
-        {onViewActions && (
-          <button type="button" className="mtg-actions-link" onClick={onViewActions}>
-            <Icon src="/icons-solid/file-02.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>{L.viewActions}</span>
-          </button>
-        )}
+        <div className="mtg-header-actions">
+          {/* 액션 아이템 전체 뷰 진입 — 회의에서 나온 할 일을 모아 보는 화면
+              (user-flow-spec: /meetings/actions). onViewActions 미지정 시 숨김. */}
+          {onViewActions && (
+            <button type="button" className="mtg-actions-link" onClick={onViewActions}>
+              <Icon src="/icons-solid/file-02.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{L.viewActions}</span>
+            </button>
+          )}
+          {/* 캘린더 없이 지금 바로 녹음 — 목록 전체에서 유일하게 항상 열려 있는 진입점. */}
+          {onStartAdhoc && (
+            <button type="button" className="mtg-start-adhoc" onClick={onStartAdhoc}>
+              <Icon src="/icons-solid/microphone-01.svg" size={16} color="currentColor" baseUrl={baseUrl} />
+              <span>{L.startAdhoc}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mtg-content">
@@ -145,17 +159,34 @@ export default function MeetingsCanvas({
               )}
             </div>
           </header>
-          <div className="mtg-list">
-            {todayMeetings.map((m) => (
-              <MeetingRow
-                key={m.id}
-                meeting={m}
-                onStart={onStartMeeting ?? setActiveMeeting}
-                onRowClick={onRowClick}
-                statusLabels={statusLabels}
+          {/* 오늘 회의가 0건이면 제목 아래가 그냥 비어 버린다 — 왜 아무것도 없는지,
+              그래서 무엇을 하면 되는지를 말해 준다 (라벨은 caller 주입). */}
+          {todayMeetings.length === 0 ? (
+            <div className="mtg-empty">
+              <Icon
+                src="/icons-solid/calendar.svg"
+                size={28}
+                color="var(--text-tertiary)"
+                baseUrl={baseUrl}
               />
-            ))}
-          </div>
+              <span className="mtg-empty-title">{L.emptyToday}</span>
+              {L.emptyTodayHint && (
+                <span className="mtg-empty-hint">{L.emptyTodayHint}</span>
+              )}
+            </div>
+          ) : (
+            <div className="mtg-list">
+              {todayMeetings.map((m) => (
+                <MeetingRow
+                  key={m.id}
+                  meeting={m}
+                  onStart={onStartMeeting ?? setActiveMeeting}
+                  onRowClick={onRowClick}
+                  statusLabels={statusLabels}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* 지난 회의 — 섹션 전체 opacity 0.5 */}
