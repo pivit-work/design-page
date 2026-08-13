@@ -72,8 +72,19 @@ function applyTexture(app, objectName, imageSrc) {
  * query string 을 날려 React index.html 로 fallback 되는 버그가 있었다 (dev 배포에서만 재현).
  *
  * 컨텐츠는 매니저 v2 디자인 — segment control + 종합 브리핑 + 1on1 아젠다 + KPI 4 grid.
+ *
+ * 헤더의 [1on1]·[메시지] 는 `MemberCard` 의 같은 이름 버튼과 동일한 콜백 이름을 받는다
+ * (`onOneOnOneClick` / `onMessageClick`) — 소비자가 카드와 모달에 같은 핸들러를 물릴 수
+ * 있게 하기 위함이다. 콜백을 안 넘기면(데모) 눌러도 아무 일도 일어나지 않는다.
  */
-export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
+export default function ProfileModal({
+  member,
+  onClose,
+  baseUrl = '',
+  icons,
+  onOneOnOneClick,
+  onMessageClick,
+}) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
   // "실패한 멤버 id" 를 저장하고, displayMember?.id 와 비교해 derived 로 쓴다.
@@ -178,11 +189,11 @@ export default function ProfileModal({ member, onClose, baseUrl = '', icons }) {
             )}
 
             <div className="manager-modal-actions">
-              <button type="button" className="manager-modal-btn-primary">
+              <button type="button" className="manager-modal-btn-primary" onClick={onOneOnOneClick}>
                 <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
                 <span>1on1</span>
               </button>
-              <button type="button" className="manager-modal-btn-secondary">
+              <button type="button" className="manager-modal-btn-secondary" onClick={onMessageClick}>
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
                 <span>메시지</span>
               </button>
