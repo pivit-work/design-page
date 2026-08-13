@@ -438,6 +438,14 @@ export default function AdminEmployeesCanvas({
   initialTab,
   // 전체 구성원 탭 시트의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
+  /**
+   * 목록 보기 상태 되살리기 (PW-157) — 전체 구성원 탭 시트로 그대로 내려간다.
+   * `onTabChange` 는 탭을 옮길 때마다 부른다(딥링크의 `initialTab` 과 짝이다).
+   */
+  initialFilters,
+  initialSort,
+  onViewStateChange,
+  onTabChange,
   loading = false,
   labels: providedLabels,
   canEdit = true,
@@ -495,6 +503,11 @@ export default function AdminEmployeesCanvas({
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
+  // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
+  const goTab = (id) => {
+    setTab(id);
+    onTabChange?.(id);
+  };
   /* [PW-114] 초대 발송 모달 — 탭 A `+ 구성원 초대` 와 탭 C `+ 새 초대 발송` 이
      **같은 모달**을 연다. 권한이 없거나 발송 콜백이 없으면 진입점 자체가 없다(§7). */
   const canInvite = canEdit && typeof onSendInvites === 'function';
@@ -533,7 +546,7 @@ export default function AdminEmployeesCanvas({
             role="tab"
             aria-selected={tab === t.id}
             className={`admin-emp-tab${tab === t.id ? ' is-active' : ''}`}
-            onClick={() => setTab(t.id)}
+            onClick={() => goTab(t.id)}
           >
             {t.label}
             <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
@@ -549,6 +562,9 @@ export default function AdminEmployeesCanvas({
         <AdminEmployeeSheetCanvas
           embedded
           initialSearch={initialSearch}
+          initialFilters={initialFilters}
+          initialSort={initialSort}
+          onViewStateChange={onViewStateChange}
           members={members}
           labels={sheetLabels}
           canViewSalary={canViewSalary}

@@ -90,6 +90,9 @@ const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 
  */
 const NO_SQUADS = [];
 
+/** `initialFilters` 기본값 — NO_SQUADS 와 같은 이유로 고정 객체다. */
+const EMPTY_FILTERS = {};
+
 /* ── 명부 내보내기 (screen-admin-employees-export.policy.md) ──────────
  * 아이콘은 이모지(⭳ · 🔒)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고
  * color 를 상속하지 않아 버튼·캡션 안에서 혼자 튄다.
@@ -803,6 +806,21 @@ export default function AdminEmployeeSheetCanvas({
   embedded = false,
   // 초기 검색어(딥링크용) — 개요 등에서 특정 인원으로 좁혀 진입할 때 사용.
   initialSearch = '',
+  // ── 목록 보기 상태 되살리기 (PW-157) ──────────────────────
+  // 다른 화면에 다녀오면 시트가 언마운트돼 필터·검색·정렬이 통째로 날아간다.
+  // 소비자가 상태를 어디에 보관할지(URL 쿼리·세션)는 소비자가 정하고, 여기서는
+  // **씨앗을 받고 변경을 알려 주기만** 한다.
+  //
+  //  · initialFilters: `{ [컬럼id]: 값 }` — 마운트 시 1회만 읽는다.
+  //    지금 필터 컬럼이 아닌 키는 무시한다(옛 키가 되살아나 "필터 적용됨"으로
+  //    보이거나, 소비자가 그 키를 영영 다시 저장하는 일을 막는다).
+  //  · initialSort: `{ col, dir }`
+  //  · onViewStateChange({ search, filters, sortCol, sortDir }) — 값이 실제로
+  //    달라졌을 때만 부른다. 매 렌더 부르면 소비자가 URL 을 쓰고 → 다시 렌더되는
+  //    되먹임이 생긴다.
+  initialFilters = EMPTY_FILTERS,
+  initialSort = null,
+  onViewStateChange,
   // ── 대표(CEO) 지정·해제 (screen-admin-ceo-assign.policy.md) ──
   // 주입되면 행에 왕관 버튼이 노출된다. 권한이 없으면 아예 주입하지 않는다 —
   // disabled 버튼을 보여주지 않는 게 정책(§6 미표시 원칙)이다.
@@ -889,11 +907,15 @@ export default function AdminEmployeeSheetCanvas({
   const [squadRowId, setSquadRowId] = useState(null);
   const [selected, setSelected] = useState(new Set());
   // 표에서 보이는 모든 범주형 컬럼(부서·직급·직책·권한·상태)을 필터 대상으로. 값 미지정=전체.
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState(initialFilters);
   const setFilter = (colId, v) => setFilters((f) => ({ ...f, [colId]: v }));
   const [search, setSearch] = useState(initialSearch);
-  const [sortCol, setSortCol] = useState(null);
-  const [sortDir, setSortDir] = useState('asc');
+  // 지금 이 시트에 없는 열로는 정렬하지 않는다 — 되살린 값이 화면에 없는 열을
+  // 가리키면 표는 안 바뀌는데 헤더 화살표만 사라진 어정쩡한 상태가 된다.
+  const [sortCol, setSortCol] = useState(
+    initialSort?.col && COLUMNS.some((c) => c.id === initialSort.col) ? initialSort.col : null,
+  );
+  const [sortDir, setSortDir] = useState(initialSort?.dir === 'desc' ? 'desc' : 'asc');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [barValues, setBarValues] = useState({});
@@ -994,6 +1016,39 @@ export default function AdminEmployeeSheetCanvas({
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
   ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.role, cl.status, squadOptions]);
+  /**
+   * 실제로 걸려 있는 필터만 추린 것 — **지금 필터 컬럼인 것만** 남긴다(PW-157).
+   *
+   * `filters` 에는 되살린 값이 그대로 들어와 있어서, 지금은 없어진 옛 컬럼 키가
+   * 섞여 있을 수 있다. 그대로 두면 거르는 건 아무것도 없는데 `hasActiveFilter` 만
+   * 참이 되어 "필터 적용됨" 캡션이 뜨고, 소비자가 그 키를 계속 되저장한다.
+   * 여기서 한 번 걸러 두면 다음 변경 때 저장된 쪽도 저절로 낫는다.
+   */
+  const activeFilters = useMemo(() => {
+    const out = {};
+    for (const fc of FILTER_COLS) {
+      const v = filters[fc.id];
+      if (v && v !== '__all__') out[fc.id] = v;
+    }
+    return out;
+  }, [filters, FILTER_COLS]);
+
+  /* 보기 상태가 바뀌면 소비자에게 알린다(PW-157).
+     값이 같으면 부르지 않는다 — 소비자가 이 콜백으로 URL 을 쓰는 경우, 매번 부르면
+     쓰기 → 렌더 → 다시 쓰기의 되먹임이 된다. 콜백 자체는 ref 로 들고 있어서
+     소비자가 인라인 함수를 넘겨도 효과가 다시 돌지 않는다. */
+  const onViewStateChangeRef = useRef(onViewStateChange);
+  useEffect(() => { onViewStateChangeRef.current = onViewStateChange; }, [onViewStateChange]);
+  const viewStateKey = JSON.stringify([search, activeFilters, sortCol, sortDir]);
+  const lastViewStateKey = useRef(null);
+  useEffect(() => {
+    if (lastViewStateKey.current === viewStateKey) return;
+    lastViewStateKey.current = viewStateKey;
+    onViewStateChangeRef.current?.({
+      search, filters: activeFilters, sortCol, sortDir,
+    });
+  }, [viewStateKey, search, activeFilters, sortCol, sortDir]);
+
   // 각 필터 컬럼의 distinct 옵션(현재 rows 기준 — 존재하는 값만 노출).
   const filterOptions = useMemo(() => {
     const out = {};
@@ -1189,7 +1244,7 @@ export default function AdminEmployeeSheetCanvas({
   const salaryVisible = visibleColumnIds.includes('salary');
   const hasActiveFilter =
     search.trim() !== ''
-    || Object.values(filters).some((v) => v && v !== '__all__');
+    || Object.keys(activeFilters).length > 0;
   const terminatedIn = (list) =>
     list.filter((r) => r.employmentStatus === 'terminated').length;
   const fillCaption = (tpl, vals) =>
