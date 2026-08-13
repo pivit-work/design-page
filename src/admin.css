@@ -1626,6 +1626,72 @@
   color: var(--text-tertiary);
 }
 
+/* ── As Of 커버리지 경계 (org-snapshot-spec §5-A · PW-139) ──
+   C1(기록 시작 전)은 **중립 회색**이다. 앰버(주의)를 쓰지 않는다 — 사용자가 잘못한
+   것이 아니라 그 시점 기록이 없을 뿐이다. 앰버는 타임머신 배너 전용. */
+.admin-snap-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.admin-snap-empty-body {
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+.admin-snap-empty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.admin-snap-empty-actions button {
+  padding: 8px 14px;
+  border-radius: var(--radius-lg, 10px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.admin-snap-empty-actions .admin-snap-empty-primary {
+  background: var(--bg-brand-solid, #4f6af5);
+  border-color: transparent;
+  color: var(--text-white, #fff);
+}
+
+/* 상시 캡션 `기록 시작 {날짜}` — 경계를 만나기 전에 미리 알린다(정책 §2-1) */
+.admin-snap-coverage-caption {
+  margin-top: 4px;
+  font-size: 12px;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+
+/* 요약 카드 `—` 아래 사유 캡션. 0 을 쓰지 않는 이유를 카드가 직접 말한다. */
+.admin-snap-summary-norecord {
+  margin: 2px 0 0;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* `증빙 고정본` — AI 출처 배지가 아니라 시점 출처 표기라 중립색(정책 §8) */
+.admin-snap-roster-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: help;
+}
+
 /* ── 현황 헤더: 제목 + 조회일 + 내보내기 ── */
 .admin-snap-header {
   display: flex;
@@ -1708,10 +1774,16 @@
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.admin-snap-export-btn:hover {
+.admin-snap-export-btn:hover:not(:disabled) {
   background: var(--bg-secondary);
   border-color: var(--text-tertiary);
   color: var(--text-primary);
+}
+/* 재구성 불가 시 비활성 — 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가
+   밖으로 나간다(org-snapshot-spec §5 CSV 내보내기 · PW-139). */
+.admin-snap-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ── 요약 카드 4개 — design-page .snippet-stat-card 정합 ──
