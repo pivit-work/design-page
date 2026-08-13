@@ -11,9 +11,13 @@ import { useState } from 'react';
  * 같은 의미의 라인 아이콘으로 대체했다. 색·여백·레이아웃은 시안을 따른다.
  *
  * 순수 표현 컴포넌트: 데이터·IO 는 전부 props 로 주입받는다.
- *   sources: [{ id, type, title, url, body, fileName, fileSize, createdAt }]
+ *   sources: [{ id, type, title, url, body, fileName, fileSize, createdAt, status, statusMessage }]
  *   labels: 모든 사용자 노출 문자열(호스트가 i18n 으로 해소해 주입)
+ *   canEdit: 편집 권한(어드민). 미지정이면 편집 핸들러 유무로 추정한다(구버전 호환).
  *   onAddUrl / onAddText / onAddFile / onRemove — 미주입이면 열람 전용.
+ *   onStartOkr — 다음 퍼널(OKR 설정 마법사)로 나가는 액션. 주면 인라인 「다음 단계」
+ *     블록(§3-2A)과 하단 스티키 CTA(§6)가 함께 렌더된다 — 정책상 둘 중 하나만 두지 않는다.
+ *   onAnalyze — AI 분석(§3-3) 트리거. AI 분석 섹션이 있는 호스트만 주입한다.
  */
 
 const T = {
@@ -30,6 +34,11 @@ const T = {
   errBg: '#FEF2F2',
   errBd: '#FECACA',
   errText: '#B91C1C',
+  okBg: '#ECFDF5',
+  okBd: '#A7F3D0',
+  okText: '#047857',
+  accentFaint: '#F5F7FF',
+  accentSoft: '#C7D2FE',
 };
 
 const svgProps = {
@@ -93,17 +102,85 @@ function LockIcon({ size = 14 }) {
   );
 }
 
+function ClockIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+function CheckIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+function AlertIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+function SparkIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+      <path d="M18 16l.9 2.1L21 19l-2.1.9L18 22l-.9-2.1L15 19l2.1-.9z" />
+    </svg>
+  );
+}
+function ArrowRightIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M5 12h14" />
+      <path d="M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+function LibraryIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
 const TYPE_ICON = { file: FileIcon, url: LinkIcon, text: TextIcon };
+
+/**
+ * 소스 추출 상태(§3-2 · 데이터 모델 `ContextSource.status`).
+ * 등록만으로는 "끝났다" 를 알 수 없으므로 행이 상태를 말해 준다.
+ * 알 수 없는 값(구버전 응답 등)은 `ready` 로 본다 — 코드값이 화면에 새지 않게.
+ */
+const STATUS_META = {
+  processing: { tone: 'muted', Icon: ClockIcon, labelKey: 'statusProcessing' },
+  ready: { tone: 'ok', Icon: CheckIcon, labelKey: 'statusReady' },
+  failed: { tone: 'err', Icon: AlertIcon, labelKey: 'statusFailed' },
+};
+const normalizeStatus = (status) => (STATUS_META[status] ? status : 'ready');
+const countBy = (sources, status) =>
+  sources.filter((s) => normalizeStatus(s.status) === status).length;
 
 function Badge({ children, tone = 'default' }) {
   const tones = {
     default: { bg: '#EEF2FF', bd: '#C7D2FE', color: '#3730A3' },
     muted: { bg: '#F1F5F9', bd: '#E2E8F0', color: '#64748B' },
+    ok: { bg: T.okBg, bd: T.okBd, color: T.okText },
+    err: { bg: T.errBg, bd: T.errBd, color: T.errText },
   };
   const t = tones[tone] || tones.default;
   return (
     <span
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
         padding: '3px 8px',
         borderRadius: 99,
         background: t.bg,
@@ -111,6 +188,7 @@ function Badge({ children, tone = 'default' }) {
         color: t.color,
         fontSize: 11,
         fontWeight: 700,
+        whiteSpace: 'nowrap',
       }}
     >
       {children}
@@ -134,28 +212,52 @@ function sourceSubtitle(s, labels) {
 
 function SourceRow({ source, labels, onRemove }) {
   const Icon = TYPE_ICON[source.type] || TextIcon;
+  const status = normalizeStatus(source.status);
+  const meta = STATUS_META[status];
+  const failed = status === 'failed';
+  // 처리 중이면 "문서를 읽고 있어요…", 실패면 서버가 준 사유 — 둘 다 없으면 평소 부가정보.
+  const caption =
+    (status === 'processing' && labels.statusProcessingHint) ||
+    (failed && source.statusMessage) ||
+    sourceSubtitle(source, labels);
   return (
     <div
       data-testid={`okr-context-source-${source.id}`}
+      data-status={status}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
         gap: 12,
         padding: '12px 14px',
         borderRadius: 10,
-        border: `1px solid ${T.border}`,
-        background: T.card,
+        border: `1px solid ${failed ? T.errBd : T.border}`,
+        background: failed ? T.errBg : T.card,
       }}
     >
       <span style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}>
         <Icon size={20} />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: T.text, wordBreak: 'break-word' }}>
-          {source.title}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: T.text, wordBreak: 'break-word' }}>
+            {source.title}
+          </span>
+          <span data-testid={`okr-context-status-${source.id}`}>
+            <Badge tone={meta.tone}>
+              <meta.Icon />
+              {labels[meta.labelKey]}
+            </Badge>
+          </span>
         </div>
-        <div style={{ fontSize: 11, color: T.muted, marginTop: 3, wordBreak: 'break-all' }}>
-          {sourceSubtitle(source, labels)}
+        <div
+          style={{
+            fontSize: 11,
+            color: failed ? T.errText : T.muted,
+            marginTop: 3,
+            wordBreak: 'break-all',
+          }}
+        >
+          {caption}
         </div>
         {source.type === 'text' && source.body ? (
           <p
@@ -397,19 +499,177 @@ const primaryBtn = {
   cursor: 'pointer',
 };
 
+/** `OKR 설정 시작 →` — 인라인 블록과 스티키 푸터가 같은 모양·같은 목적지로 쓴다. */
+function StartOkrButton({ labels, onClick, disabled, testId }) {
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? labels.startOkrAdminOnly : undefined}
+      style={{
+        ...primaryBtn,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {labels.startOkr}
+      <ArrowRightIcon />
+    </button>
+  );
+}
+
+/**
+ * 다음 단계 블록 (§3-2A · PW-46) — 등록 직후 시선이 머무는 자리(리스트 바로 아래)에
+ * 다음 행동을 붙인다. 소스를 넣고 나면 "이제 뭘 하지?" 가 남던 것이 이 이슈였다.
+ *
+ * `OKR 설정 시작 →` 은 소스 추출 상태와 무관하게 **항상 활성** 이다 — 추출을 기다리느라
+ * 퍼널이 막히면 안 된다. AI 분석 버튼은 `onAnalyze` 를 주는 호스트에서만 노출한다
+ * (AI 분석 섹션이 없는 화면에 버튼만 두면 그 자체로 또 하나의 막다른 길이 된다).
+ */
+function NextStepBlock({ sources, labels, onStartOkr, onAnalyze }) {
+  const ready = countBy(sources, 'ready');
+  const processing = countBy(sources, 'processing');
+  const allFailed = ready === 0 && processing === 0;
+  const fill = (key, count) => (labels[key] || '').replace('{{count}}', String(count));
+
+  return (
+    <div
+      data-testid="okr-context-next-step"
+      style={{
+        marginTop: 4,
+        padding: '14px 16px',
+        borderRadius: 12,
+        background: allFailed ? T.errBg : T.accentFaint,
+        border: `1px solid ${allFailed ? T.errBd : T.accentSoft}`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 13,
+          fontWeight: 800,
+          marginBottom: 4,
+          color: allFailed ? T.errText : T.text,
+        }}
+      >
+        {allFailed ? <AlertIcon size={14} /> : <CheckIcon size={14} />}
+        {allFailed ? labels.nextStepFailedTitle : fill('nextStepTitle', sources.length)}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: allFailed ? T.errText : T.sub,
+          marginBottom: 12,
+          lineHeight: 1.6,
+        }}
+      >
+        {allFailed
+          ? labels.nextStepFailedDesc
+          : ready === 0
+            ? labels.nextStepProcessingDesc
+            : processing > 0
+              ? fill('nextStepPartialDesc', processing)
+              : labels.nextStepDesc}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {onAnalyze && !allFailed && (
+          <button
+            type="button"
+            data-testid="okr-context-analyze"
+            onClick={onAnalyze}
+            disabled={ready === 0}
+            title={ready === 0 ? labels.analyzeProcessingHint : undefined}
+            style={{
+              ...ghostBtn,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: ready === 0 ? T.muted : T.accent,
+              opacity: ready === 0 ? 0.6 : 1,
+              cursor: ready === 0 ? 'not-allowed' : 'pointer',
+            }}
+          >
+            <SparkIcon />
+            {labels.analyze}
+          </button>
+        )}
+        <StartOkrButton
+          labels={labels}
+          onClick={onStartOkr}
+          testId="okr-context-next-step-start"
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 하단 스티키 CTA (§6) — 화면 어디에 있든 다음 퍼널로 나갈 수 있는 전역 앵커.
+ * 인라인 블록(문맥 앵커)과 **함께** 둔다. 소스 0건이어도 활성 — 컨텍스트는 선택 사항이다.
+ */
+function StickyFooterCta({ sources, labels, canEdit, onStartOkr }) {
+  return (
+    <div
+      data-testid="okr-context-footer"
+      style={{
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 10,
+        marginTop: 14,
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 12,
+        padding: '14px 18px',
+        boxShadow: '0 -4px 16px rgba(15,23,42,.06)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        flexWrap: 'wrap',
+      }}
+    >
+      <Badge tone={sources.length > 0 ? 'ok' : 'muted'}>
+        <LibraryIcon />
+        {(labels.footerSourceCount || '').replace('{{count}}', String(sources.length))}
+      </Badge>
+      <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
+        {sources.length === 0 ? labels.footerHintEmpty : labels.footerHintSources}
+      </div>
+      <StartOkrButton
+        labels={labels}
+        onClick={onStartOkr}
+        disabled={!canEdit}
+        testId="okr-context-footer-start"
+      />
+    </div>
+  );
+}
+
 export default function OkrContextSetupCanvas({
   sources = [],
   labels = {},
   loading = false,
   error = null,
   busy = false,
+  canEdit,
   onAddUrl,
   onAddText,
   onAddFile,
   onRemove,
+  onStartOkr,
+  onAnalyze,
 }) {
   const [adding, setAdding] = useState(false);
-  const readOnly = !onAddUrl && !onAddText && !onAddFile;
+  const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
+  // 권한은 호스트가 말해 주는 게 정본이다. `canEdit` 미지정은 구버전 호출부 호환.
+  const editable = canEdit === undefined ? hasEditHandlers : canEdit;
+  const readOnly = !editable;
   const L = labels;
 
   return (
@@ -543,7 +803,27 @@ export default function OkrContextSetupCanvas({
               {L.addSource}
             </button>
           ))}
+
+        {/* 문맥 앵커 — 소스가 1건이라도 있고 편집 권한이 있을 때만(§3-2A) */}
+        {!readOnly && !loading && sources.length > 0 && onStartOkr && (
+          <NextStepBlock
+            sources={sources}
+            labels={L}
+            onStartOkr={onStartOkr}
+            onAnalyze={onAnalyze}
+          />
+        )}
       </div>
+
+      {/* 전역 앵커 — 소스 0건이어도 항상 보인다(§6). 열람자는 비활성 + 툴팁 */}
+      {onStartOkr && (
+        <StickyFooterCta
+          sources={sources}
+          labels={L}
+          canEdit={editable}
+          onStartOkr={onStartOkr}
+        />
+      )}
     </div>
   );
 }
