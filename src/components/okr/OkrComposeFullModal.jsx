@@ -14,8 +14,13 @@ import OkrProgressBar from './OkrProgressBar.jsx';
  * 시안: pivit-specs okr-individual.jsx(IndividualOKRWriter/ObjectiveWriteCard).
  * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A). 이니셔티브는 후속.
  *
- * onSubmit(objectives): objectives = [{ title, weight, comOkr?, krs: [{ title,
- *   target, unit, inputType('percent'|'binary'|'count'), weight, teamKrId? }] }]
+ * onSubmit(objectives): objectives = [{ id?, title, weight, comOkr?, krs: [{ id?,
+ *   title, target, unit, inputType('percent'|'binary'|'count'), weight, teamKrId? }] }]
+ *
+ * `initialObjectives` 를 주면 **같은 폼이 편집기로도 쓰인다** — 이미 등록된
+ * Objective/KR 을 채운 채로 열리고, 저장 payload 는 원본 `id` 를 그대로 실어 보낸다.
+ * 소비 측은 그 id 로 수정/추가/삭제를 가른다(PW-160: 등록 후 정정 수단이 없었다).
+ * 주지 않으면 지금까지와 동일하게 빈 폼으로 열린다 — 작성 경로 동작은 그대로다.
  */
 const METHODS = [
   { key: 'percent', label: '% 달성률', desc: '0~100% 직접 입력', unit: '%' },
@@ -49,6 +54,32 @@ function emptyObjective(linkedKr, selfId) {
   };
 }
 
+/**
+ * 편집 진입 시 채워 넣을 폼 상태. 숫자는 문자열로 눕힌다 — 폼 입력이 문자열을
+ * 다루고, 0 을 숫자로 두면 `value={0}` 이 '0' 으로 보이는 것까지는 같지만 이후
+ * 사용자가 지웠을 때 타입이 갈려 비교가 어긋난다.
+ */
+function seedObjective(o) {
+  return {
+    key: nextId(),
+    id: o.id,
+    title: o.title ?? '',
+    weight: o.weight == null ? '' : String(o.weight),
+    parentId: o.parentOkrId ?? '',
+    krs: (o.krs ?? []).map((k) => ({
+      key: nextId(),
+      id: k.id,
+      title: k.title ?? '',
+      target: k.target == null ? '' : String(k.target),
+      unit: k.unit ?? '',
+      inputType: k.inputType ?? 'percent',
+      weight: k.weight == null ? '' : String(k.weight),
+      ownerId: k.ownerId ?? '',
+      teamKrId: k.teamKrId ?? null,
+    })),
+  };
+}
+
 export default function OkrComposeFullModal({
   minimap,
   icons,
@@ -59,8 +90,14 @@ export default function OkrComposeFullModal({
   members = [],
   parentOptions = [],
   selfId = '',
+  initialObjectives,
 }) {
-  const [objectives, setObjectives] = useState([]);
+  // seed 는 마운트 시 1회만 — 저장 후 소비 측이 재조회해 prop 이 바뀌어도 폼을
+  // 다시 덮어쓰지 않는다(입력 중 갱신이 사용자 타이핑을 날린다). 모달은 열 때마다
+  // 마운트되므로 다음 진입에는 최신 값으로 채워진다.
+  const [objectives, setObjectives] = useState(() =>
+    (initialObjectives ?? []).map(seedObjective),
+  );
   const [linkedIds, setLinkedIds] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -135,18 +172,27 @@ export default function OkrComposeFullModal({
 
   const totalW = objectives.reduce((a, o) => a + (Number(o.weight) || 0), 0);
   const krWeightOk = (o) => o.krs.length === 0 || o.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0) === 100;
+  // 편집으로 들어와 **전부 지운** 상태. 작성이면 저장할 게 없지만, 편집이면
+  // "이 Objective 를 지운다" 는 뜻이라 저장할 수 있어야 한다 — 아니면 하나뿐인
+  // Objective 는 영영 못 지운다(빈 폼이 되는 순간 푸터가 사라졌다).
+  const emptiedFromEdit = (initialObjectives ?? []).length > 0 && objectives.length === 0;
   const canSave =
-    objectives.length > 0 &&
-    totalW === 100 &&
-    objectives.every((o) => o.title.trim() && o.krs.length > 0 && o.krs.every((k) => k.title.trim()) && krWeightOk(o));
+    emptiedFromEdit ||
+    (objectives.length > 0 &&
+      totalW === 100 &&
+      objectives.every((o) => o.title.trim() && o.krs.length > 0 && o.krs.every((k) => k.title.trim()) && krWeightOk(o)));
 
   const handleSave = () => {
     if (!canSave || saving) return;
+    // id 는 편집 진입(initialObjectives)에서만 붙는다 — 소비 측이 이 값으로
+    // "고칠 것 / 새로 만들 것" 을 가르고, payload 에서 사라진 id 를 삭제로 읽는다.
     const payload = objectives.map((o) => ({
+      ...(o.id ? { id: o.id } : {}),
       title: o.title.trim(),
       weight: Number(o.weight) || 0,
       parentOkrId: o.parentId || undefined,
       krs: o.krs.map((k) => ({
+        ...(k.id ? { id: k.id } : {}),
         title: k.title.trim(),
         target: Number(k.target) || 0,
         unit: k.unit,
@@ -159,8 +205,10 @@ export default function OkrComposeFullModal({
     setSaving(true);
     setSaveError(null);
     // 성공 시에만 닫는다 — 실패 시 폼을 유지하고 인라인 에러 노출(작성 데이터 보존).
+    // onSubmit 이 false 를 돌려주면 **소비 측이 저장을 중단한 것**이다(예: 삭제
+    // 확인창에서 취소). 실패가 아니므로 에러를 띄우지 않고 폼만 그대로 둔다.
     Promise.resolve(onSubmit?.(payload))
-      .then(() => onClose())
+      .then((result) => { if (result === false) setSaving(false); else onClose(); })
       .catch(() => { setSaveError('저장에 실패했습니다. 잠시 후 다시 시도해주세요.'); setSaving(false); });
   };
 
@@ -355,12 +403,16 @@ export default function OkrComposeFullModal({
           </div>
         </div>
 
-        {objectives.length > 0 && (
+        {(objectives.length > 0 || emptiedFromEdit) && (
           <div className="okr-modal-footer">
+            {/* 전부 지운 편집 상태에서는 가중치 합계 안내가 뜻이 없다(합계 0% 는
+                "덜 채웠다" 로 읽혀 오히려 오해를 준다) — 저장 실패만 알린다. */}
             <span className={`okr-cf-total${!saveError && totalW === 100 ? ' is-ok' : ''}`}>
               {saveError
                 ? saveError
-                : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
+                : emptiedFromEdit
+                  ? ''
+                  : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
             </span>
             <button className="okr-btn is-outline" onClick={onClose}>취소</button>
             <button
