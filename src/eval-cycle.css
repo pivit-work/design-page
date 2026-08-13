@@ -5246,11 +5246,144 @@
   cursor: pointer;
   margin-bottom: 6px;
 }
+/* PW-161 위원 후보 검색 — 후보가 138명이라 스크롤만으로는 못 찾는다 */
+.evc-wiz-committee-search {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  margin-top: 10px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary, #101828);
+}
+.evc-wiz-committee-search:disabled {
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-tertiary, #667085);
+  cursor: not-allowed;
+}
+/* 선택 요약 — 검색 필터로 카드가 가려져도 선택·위원장을 확인·해제할 수 있어야 한다.
+   그리드 위에 붙어 스크롤과 무관하게 남는다. */
+.evc-wiz-committee-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+}
+.evc-wiz-committee-summary.is-empty {
+  border-color: var(--utility-warning-300, #fec84b);
+}
+.evc-wiz-committee-summary-count {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evc-wiz-committee-summary.is-empty .evc-wiz-committee-summary-count {
+  color: var(--utility-warning-600, #dc6803);
+}
+.evc-wiz-committee-summary-hidden {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+}
+.evc-wiz-committee-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: 100%;
+}
+.evc-wiz-committee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--utility-gray-100, #f2f4f7);
+  color: var(--text-secondary, #344054);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+.evc-wiz-committee-chip.is-chair {
+  background: var(--utility-pink-50, #fdf2fa);
+  color: var(--utility-pink-600, #dd2590);
+}
+.evc-wiz-committee-chip-x {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+/* 로딩 — 카드와 같은 높이를 차지해 명단이 도착할 때 레이아웃이 튀지 않는다 */
+.evc-wiz-committee-skeleton {
+  display: block;
+  height: 57px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-secondary, var(--utility-gray-200));
+  background: var(--bg-secondary, #f9fafb);
+}
+.evc-wiz-committee-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 14px 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--utility-error-300, #fda29b);
+  background: var(--utility-error-50, #fef3f2);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-error-700, #b42318);
+}
+.evc-wiz-committee-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 24px 20px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-secondary, #f9fafb);
+  text-align: center;
+}
+.evc-wiz-committee-empty-title {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary, #344054);
+}
+.evc-wiz-committee-empty-sub {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+}
+.evc-wiz-committee-retry {
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #344054);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
 .evc-wiz-committee-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 8px;
   margin: 10px 0;
+  /* 검색이 붙어도 그리드가 모달을 끝없이 늘리지 않도록 내부 스크롤 상한 */
+  max-height: 300px;
+  overflow-y: auto;
 }
 .evc-wiz-committee-item {
   display: flex;

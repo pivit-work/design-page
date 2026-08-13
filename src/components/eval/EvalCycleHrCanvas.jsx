@@ -489,6 +489,10 @@ export default function EvalCycleHrCanvas({
   // 발령 변경 이력 — 마법사 제외 조건('직무 변경'·'직급 변경일') 근거. 그대로 내려보낸다.
   appointmentChanges = [],
   committeeCandidates = [],
+  // PW-161 — 위원 후보 조회 상태를 위자드 5단계로 그대로 흘린다.
+  committeeCandidatesLoading = false,
+  committeeCandidatesError = false,
+  onReloadCommitteeCandidates,
   loading = false,
   labels: providedLabels,
   onCreateCycle,
@@ -676,6 +680,9 @@ export default function EvalCycleHrCanvas({
           candidates={candidates}
           appointmentChanges={appointmentChanges}
           committeeCandidates={committeeCandidates}
+          committeeCandidatesLoading={committeeCandidatesLoading}
+          committeeCandidatesError={committeeCandidatesError}
+          onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           onSubmit={handleCreate}
           onCancel={() => setShowCreate(false)}
           presets={cyclePresets}
@@ -690,6 +697,9 @@ export default function EvalCycleHrCanvas({
           candidates={candidates}
           appointmentChanges={appointmentChanges}
           committeeCandidates={committeeCandidates}
+          committeeCandidatesLoading={committeeCandidatesLoading}
+          committeeCandidatesError={committeeCandidatesError}
+          onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           cycle={manageTarget.cycle}
           participants={manageTarget.participants}
           onSubmit={handleUpdate}

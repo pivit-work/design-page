@@ -672,6 +672,15 @@ export default function EvalCycleWizard({
   // 제외 규칙의 근거. 비면 두 규칙은 아무도 잡지 않는다(조용히 0명).
   appointmentChanges = [],
   committeeCandidates = [],
+  /**
+   * PW-161 — 위원 후보 명단의 조회 상태. 세 상태(로딩 / 실패 / 후보 0명)가 갈리지 않으면
+   * 조회가 실패해도 화면은 "후보가 없습니다" 로만 보여서, HR 이 조직에 후보가 없다고
+   * 오해한다. 소비자가 안 넘기면 종전대로 동작한다(전부 optional).
+   */
+  committeeCandidatesLoading = false,
+  committeeCandidatesError = false,
+  /** 조회 실패 시 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadCommitteeCandidates,
   onCancel,
   onSubmit,
   // TC-028 사이클 설정 프리셋(불러오기/저장)
@@ -694,6 +703,10 @@ export default function EvalCycleWizard({
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
   const [committeeOn, setCommitteeOn] = useState(false);
   const [committee, setCommittee] = useState([]);
+  // PW-161 위원 후보 검색. 후보는 조직장+시니어IC 전원(데모 조직 138명)이라 스크롤만으로는
+  // 못 찾는다. 검색은 '표시'만 바꾼다 — 선택과 선택 순서에는 관여하지 않으므로
+  // 위원장(= 선택 순서 첫 위원)이 검색·정렬로 옮겨가지 않는다.
+  const [committeeSearch, setCommitteeSearch] = useState('');
   const [name, setName] = useState(() => cycle?.name ?? '');
   const [startDate, setStartDate] = useState(() => datePart(cycle?.startDate ?? ''));
   const [endDate, setEndDate] = useState(() => datePart(cycle?.endDate ?? ''));
@@ -1168,7 +1181,38 @@ export default function EvalCycleWizard({
     reviewTypes.length > 0 &&
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
+  // 「다음」 판정은 **선택 위원 수**로만 한다 — 검색 결과 수와 무관하다(PW-161).
   const committeeValid = !committeeOn || committee.length > 0;
+
+  // 단계 이동 — 위원 검색어는 초기화하고 선택은 유지한다. 돌아왔을 때 예전 검색어가
+  // 남아 있으면 후보가 몇 명뿐인 것처럼 보인다.
+  const goStep = (next) => {
+    setCommitteeSearch('');
+    setStep(next);
+  };
+
+  // PW-161 위원 후보 필터 — 이름·부서·직책 부분 일치(대소문자 무시, 앞뒤 공백 trim).
+  // 단계 진입 시 1회 조회한 명단에 대한 클라이언트 필터라 타건마다 API 를 부르지 않는다.
+  const committeeQuery = committeeSearch.trim().toLowerCase();
+  const visibleCommitteeCandidates = committeeQuery
+    ? committeeCandidates.filter((c) =>
+        [c.name, c.dept, c.jobPosition].some((v) =>
+          String(v ?? '')
+            .toLowerCase()
+            .includes(committeeQuery),
+        ),
+      )
+    : committeeCandidates;
+  // 선택은 검색 결과가 아니라 위자드 상태(committee)가 소유한다. 검색 결과 밖으로 밀려난
+  // 선택 위원은 카드로는 안 보이지만 요약 바에서 확인·해제할 수 있어야 한다.
+  const visibleCommitteeIds = new Set(visibleCommitteeCandidates.map((c) => c.id));
+  const hiddenSelectedCount = committee.filter((id) => !visibleCommitteeIds.has(id)).length;
+  const committeeById = new Map(committeeCandidates.map((c) => [c.id, c]));
+  const committeeChair = committee.length > 0 ? committeeById.get(committee[0]) : null;
+  const toggleCommittee = (id) =>
+    setCommittee((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
 
   // PW-123 평가 템플릿 게이트.
   //
@@ -1433,7 +1477,7 @@ export default function EvalCycleWizard({
           </button>
         </div>
 
-        <StepBar steps={steps} current={step} labels={L} onJump={setStep} />
+        <StepBar steps={steps} current={step} labels={L} onJump={goStep} />
 
         <div className="evc-wiz-body">
           {step === 0 && (
@@ -2739,11 +2783,150 @@ export default function EvalCycleWizard({
               <p className="evc-wiz-hint">{L.wizardCommitteeHint}</p>
               {committeeOn && (
                 <>
-                  {committeeCandidates.length === 0 ? (
+                  {/* 위원 검색 — 입력 즉시 필터. 후보 명단이 아직 없거나 조회가 깨졌으면 비활성 */}
+                  <input
+                    className="evc-wiz-committee-search"
+                    value={committeeSearch}
+                    onChange={(e) => setCommitteeSearch(e.target.value)}
+                    disabled={committeeCandidatesLoading || committeeCandidatesError}
+                    placeholder={
+                      committeeCandidatesLoading
+                        ? (L.wizardCommitteeLoading ?? '위원 후보 명단을 불러오는 중…')
+                        : (L.wizardCommitteeSearch ?? '이름 · 부서 · 직책 검색')
+                    }
+                    aria-label={L.wizardCommitteeSearch ?? '이름 · 부서 · 직책 검색'}
+                    data-testid="evc-wiz-committee-search"
+                  />
+
+                  {/* 선택 요약 — 검색·조회 상태와 무관하게 항상 노출한다.
+                      검색으로 가려진 위원도 여기서 확인·해제한다(해제 경로 2개 중 하나). */}
+                  <div
+                    className={`evc-wiz-committee-summary${committee.length === 0 ? ' is-empty' : ''}`}
+                    data-testid="evc-wiz-committee-summary"
+                  >
+                    <span className="evc-wiz-committee-summary-count">
+                      {committee.length > 0
+                        ? fill(L.wizardCommitteeSummary, { count: committee.length })
+                        : (L.wizardCommitteeSelectOne ?? '위원을 1명 이상 선택하세요')}
+                    </span>
+                    {committeeChair && (
+                      <span
+                        className="evc-wiz-committee-chair"
+                        data-testid="evc-wiz-committee-summary-chair"
+                      >
+                        {`${L.wizardCommitteeChair} ${committeeChair.name}`}
+                      </span>
+                    )}
+                    {hiddenSelectedCount > 0 && (
+                      <span
+                        className="evc-wiz-committee-summary-hidden"
+                        data-testid="evc-wiz-committee-summary-hidden"
+                      >
+                        {fill(
+                          L.wizardCommitteeHiddenSelected ??
+                            '· 검색 결과 밖 {{count}}명 포함(선택 유지)',
+                          { count: hiddenSelectedCount },
+                        )}
+                      </span>
+                    )}
+                    {committee.length > 0 && (
+                      <span className="evc-wiz-committee-chips">
+                        {committee.map((id, i) => {
+                          const c = committeeById.get(id);
+                          return (
+                            <span
+                              key={id}
+                              className={`evc-wiz-committee-chip${i === 0 ? ' is-chair' : ''}`}
+                              data-testid={`evc-wiz-committee-chip-${id}`}
+                            >
+                              {c?.name ?? id}
+                              <button
+                                type="button"
+                                className="evc-wiz-committee-chip-x"
+                                onClick={() => toggleCommittee(id)}
+                                aria-label={`${c?.name ?? id} ${L.wizardCommitteeRemove ?? '위원 제거'}`}
+                                data-testid={`evc-wiz-committee-chip-remove-${id}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  {committeeCandidatesLoading ? (
+                    /* 로딩 — 카드와 같은 높이 자리를 잡아 레이아웃이 튀지 않게 한다.
+                       여기서 '후보 없음' 을 띄우면 조직에 후보가 없다는 오해를 만든다. */
+                    <div
+                      className="evc-wiz-committee-list"
+                      data-testid="evc-wiz-committee-loading"
+                      aria-busy="true"
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <span key={i} className="evc-wiz-committee-skeleton" />
+                      ))}
+                    </div>
+                  ) : committeeCandidatesError ? (
+                    /* 조회 실패 — 선택은 유지한 채 재시도만 유도한다.
+                       위원 0명이면 「다음」은 committeeValid 로 계속 차단된다. */
+                    <div
+                      className="evc-wiz-committee-error"
+                      data-testid="evc-wiz-committee-error"
+                    >
+                      <span>
+                        {fill(
+                          L.wizardCommitteeLoadError ??
+                            '위원 후보 명단을 불러오지 못했습니다. 이미 선택한 위원 {{count}}명은 그대로 유지됩니다.',
+                          { count: committee.length },
+                        )}
+                      </span>
+                      {onReloadCommitteeCandidates && (
+                        <button
+                          type="button"
+                          className="evc-wiz-committee-retry"
+                          onClick={onReloadCommitteeCandidates}
+                          data-testid="evc-wiz-committee-retry"
+                        >
+                          {L.wizardCommitteeRetry ?? '다시 시도'}
+                        </button>
+                      )}
+                    </div>
+                  ) : committeeCandidates.length === 0 ? (
                     <p className="evc-wiz-hint">{L.wizardCommitteeEmpty}</p>
+                  ) : visibleCommitteeCandidates.length === 0 ? (
+                    /* 검색 결과 0건 — 선택이 유지된다는 사실을 같이 알린다.
+                       검색으로 위원이 빠졌다고 오해하지 않게. */
+                    <div
+                      className="evc-wiz-committee-empty"
+                      data-testid="evc-wiz-committee-search-empty"
+                    >
+                      <span className="evc-wiz-committee-empty-title">
+                        {fill(
+                          L.wizardCommitteeSearchEmpty ?? '"{{query}}" 검색 결과가 없습니다.',
+                          { query: committeeSearch.trim() },
+                        )}
+                      </span>
+                      <span className="evc-wiz-committee-empty-sub">
+                        {fill(
+                          L.wizardCommitteeSearchEmptyHint ??
+                            '이름 · 부서 · 직책으로 다시 찾아보세요. 선택한 위원 {{count}}명은 검색과 무관하게 유지됩니다.',
+                          { count: committee.length },
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="evc-wiz-committee-retry"
+                        onClick={() => setCommitteeSearch('')}
+                        data-testid="evc-wiz-committee-search-reset"
+                      >
+                        {L.wizardCommitteeSearchReset ?? '검색 초기화'}
+                      </button>
+                    </div>
                   ) : (
                     <div className="evc-wiz-committee-list">
-                      {committeeCandidates.map((c) => {
+                      {visibleCommitteeCandidates.map((c) => {
                         const idx = committee.indexOf(c.id);
                         const on = idx >= 0;
                         return (
@@ -2751,13 +2934,7 @@ export default function EvalCycleWizard({
                             type="button"
                             key={c.id}
                             className={`evc-wiz-committee-item${on ? ' is-on' : ''}`}
-                            onClick={() =>
-                              setCommittee((prev) =>
-                                prev.includes(c.id)
-                                  ? prev.filter((x) => x !== c.id)
-                                  : [...prev, c.id],
-                              )
-                            }
+                            onClick={() => toggleCommittee(c.id)}
                             data-testid="evc-wiz-committee-item"
                           >
                             <span
@@ -2778,6 +2955,8 @@ export default function EvalCycleWizard({
                                   ? L.wizardCommitteeLead
                                   : L.wizardCommitteeSenior}
                                 {c.dept ? ` · ${c.dept}` : ''}
+                                {/* 직책도 검색 대상이라 카드에 보여야 '왜 이 사람이 나왔나'가 설명된다 */}
+                                {c.jobPosition ? ` · ${c.jobPosition}` : ''}
                               </span>
                             </span>
                           </button>
@@ -2880,7 +3059,7 @@ export default function EvalCycleWizard({
         </div>
 
         <div className="evc-wiz-footer">
-          <button type="button" className="evc-btn is-ghost" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+          <button type="button" className="evc-btn is-ghost" onClick={step === 0 ? onCancel : () => goStep(step - 1)}>
             {step === 0 ? L.cancel : L.prev}
           </button>
           {/* PW-119 와 같은 방식 — 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다. */}
@@ -2904,7 +3083,7 @@ export default function EvalCycleWizard({
               type="button"
               className="evc-btn is-primary"
               disabled={!canAdvance}
-              onClick={() => setStep(step + 1)}
+              onClick={() => goStep(step + 1)}
               data-testid="evc-wiz-next"
             >
               {L.next}
