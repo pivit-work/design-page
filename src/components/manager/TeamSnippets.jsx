@@ -10,7 +10,7 @@ import TeamSnippetFeed from './TeamSnippetFeed.jsx';
  *   members, weekHealth, aiSummary, byDate, byKr }
  * 기간 칩·레드 플래그 토글·팀원 필터는 UI 상태로 여기서 관리한다.
  */
-export default function TeamSnippets({ data, icons, baseUrl = '' }) {
+export default function TeamSnippets({ data, onOneOnOne, icons, baseUrl = '' }) {
   const [period, setPeriod] = useState('전체');
   const [redFlagOnly, setRedFlagOnly] = useState(false);
   const [memberFilter, setMemberFilter] = useState(null);
@@ -63,6 +63,7 @@ export default function TeamSnippets({ data, icons, baseUrl = '' }) {
           redFlagOnly={redFlagOnly}
           onClearMember={() => setMemberFilter(null)}
           onClearRedFlag={() => setRedFlagOnly(false)}
+          onOneOnOne={onOneOnOne}
         />
       </div>
     </div>
