@@ -3048,7 +3048,7 @@ export default function EvalCycleWizard({
                     </button>
                   </div>
                   {presetSaved && (
-                    <span className="evc-tpl-saved" data-testid="evc-wiz-preset-saved">
+                    <span className="evc-wiz-preset-saved" data-testid="evc-wiz-preset-saved">
                       ✓ {L.presetSaved}
                     </span>
                   )}
