@@ -825,7 +825,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-overlay);
+  /* --bg-overlay 는 불투명 색이라 그대로 쓰면 뒷 화면이 통째로 가려진다 (okr.css 와 같은 형태) */
+  background: color-mix(in srgb, var(--bg-overlay) 45%, transparent);
 }
 .sq-modal {
   width: 420px;
