@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { buildOrgTree } from './orgTree.js';
 import { IconAlert, IconPlus, IconTrash, IconX } from './employeesIcons.jsx';
 import {
-  INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, normEmail, reconcilePrimary, fmt,
+  INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, nameHasEmail, normEmail, reconcilePrimary, fmt,
 } from './inviteRules.js';
 
 /**
@@ -89,6 +89,7 @@ const DEFAULT_LABELS = {
   errPendingInvite: '초대 대기 중',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
+  errNameEmail: '이름에 이메일 주소를 넣을 수 없어요. 실명을 입력해주세요',
   errPrimaryTeam: '주 소속을 지정해주세요',
   // 발송 실패 사유(§8)
   failAlreadyMember: '이미 멤버입니다',
@@ -312,7 +313,9 @@ export default function AdminInviteModal({
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
+    // V7 은 길이 검사와 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
     if (String(r.name || '').trim().length < 2) e.push(labels.errName);
+    else if (nameHasEmail(r.name)) e.push(labels.errNameEmail);
     if (r.teamIds.length >= 2 && !r.primaryTeamId) e.push(labels.errPrimaryTeam);
     errorsByKey[r.key] = e;
   }
