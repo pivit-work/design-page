@@ -658,6 +658,12 @@
 }
 .sq-cap-total { font-size: 14px; font-weight: 600; }
 .sq-cap-max { font-size: 12px; color: var(--text-quaternary); }
+/* 초과 표식 — 색만으로 말하지 않는다(§5-3.2). 색은 부모의 `color` 를 상속한다 */
+.sq-cap-warn {
+  display: inline-flex;
+  align-self: center;
+  color: var(--text-error-primary);
+}
 .sq-cap-note {
   font-size: 12px;
   color: var(--text-tertiary);
