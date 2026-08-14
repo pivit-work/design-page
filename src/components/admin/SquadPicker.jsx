@@ -40,9 +40,18 @@ const T = {
   sub: '#64748B',
   muted: '#94A3B8',
   accent: '#4F6AF5',
-  lead: '#B45309',
-  leadBg: '#FFFBEB',
+  // PW-194 — 리드 표기는 조직도(`org_squad.css` 의 `.sq-lead-mark`)가 정본이라
+  // 같은 토큰을 탄다. 별표(표식)와 글자는 역할이 달라 색을 가른다:
+  //  · leadMark = warning-500 — 조직도 별표와 같은 주황
+  //  · lead     = warning-700 — 9~12px 글씨에 warning-500 을 쓰면 연노랑 배경에서
+  //               대비가 2.2:1 로 떨어진다
+  leadMark: 'var(--utility-warning-500, #F79009)',
+  lead: 'var(--utility-warning-700, #B45309)',
+  leadBg: 'var(--utility-warning-50, #FFFBEB)',
 };
+
+/** 조직도 별표와 맞춘 크기 — `SquadCanvas`/`SquadPieces` 의 `LeadStarIcon size={11}`. */
+const LEAD_MARK_SIZE = 11;
 
 /**
  * 상태 그룹 — SQ9 의 "계층 대신 상태" 정본 목록.
@@ -325,11 +334,15 @@ export default function SquadPicker({
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
                           fontSize: 9, fontWeight: 800, color: T.lead, background: T.leadBg,
-                          border: `1px solid #FDE68A`, borderRadius: 99, padding: '1px 7px',
+                          border: `1px solid var(--utility-warning-200, #FDE68A)`,
+                          borderRadius: 99, padding: '1px 7px',
                           cursor: 'pointer', fontFamily: T.font,
                         }}
                       >
-                        <LeadStarIcon size={9} />
+                        {/* 별표만 조직도와 같은 주황 — 칩 글자는 대비를 위해 진한 warning-700 유지 */}
+                        <span data-testid={`squad-lead-chip-mark-${id}`} style={{ color: T.leadMark, display: 'inline-flex' }}>
+                          <LeadStarIcon size={9} />
+                        </span>
                         {L.isLead}
                       </button>
                     ) : (
@@ -438,8 +451,8 @@ export function SquadCell({ squads = [], assignments = [], statusLabels = {}, cl
           >
             {/* SQ7 — 읽기 전용 표기. 색은 감싸는 span 의 color 를 아이콘이 상속한다. */}
             {a.isLead && (
-              <span data-testid={`squad-lead-badge-${a.squadId}`} title={statusLabels.lead || '스쿼드 리드'} style={{ color: T.lead, display: 'inline-flex', flexShrink: 0 }}>
-                <LeadStarIcon size={10} />
+              <span data-testid={`squad-lead-badge-${a.squadId}`} title={statusLabels.lead || '스쿼드 리드'} style={{ color: T.leadMark, display: 'inline-flex', flexShrink: 0 }}>
+                <LeadStarIcon size={LEAD_MARK_SIZE} />
               </span>
             )}
             <span style={{ fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{a.squad.name}</span>
