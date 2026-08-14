@@ -2359,15 +2359,21 @@
 
 /* ===========================
    Event Add Modal — Figma "add event modal" (650x1266, r=16)
+
+   🔴 껍데기(.tl-group-modal*, modal-shell.css)를 덮어쓰는 규칙은 반드시 껍데기
+   클래스를 함께 적어 **명시도로** 이긴다. 같은 명시도로 두면 승부가 "어느 CSS 가
+   나중에 로드됐나" 로 갈리는데, modal-shell.css 는 timeline.css 없이도 단독
+   import 되므로(채널 선택 모달 등) 그 사본이 담긴 페이지 청크가 나중에 실리면
+   껍데기 기본값(520x428)이 변형을 덮어 모달이 쪼그라든다. (PW-102)
    =========================== */
-.tl-event-modal {
+.tl-group-modal.tl-event-modal {
   width: 650px;
   max-width: calc(100vw - 48px);
   height: 1266px;
   max-height: calc(100vh - 48px);
 }
 
-.tl-event-modal-content {
+.tl-group-modal-content.tl-event-modal-content {
   /* Figma Frame 220: pad 0/48, gap 48 vertical. Scroll 허용. */
   padding: 0 48px;
   gap: 48px;
@@ -2666,7 +2672,7 @@
 }
 
 /* Footer override — Figma Content: pad 24/48/48/48 (bottom 48, 다른 모달과 다름) */
-.tl-event-modal-actions {
+.tl-group-modal-actions.tl-event-modal-actions {
   padding: 24px 48px 48px 48px;
 }
 
@@ -2896,8 +2902,11 @@
 
 /* ===========================
    Snippet Modal — Figma "content_modal" (650x920, r=16)
+
+   껍데기 덮어쓰기는 `.tl-group-modal*` 를 함께 적어 명시도로 이긴다 —
+   이유는 위 Event Add Modal 주석 참조 (PW-102).
    =========================== */
-.tl-snippet-modal {
+.tl-group-modal.tl-snippet-modal {
   width: 650px;
   max-width: calc(100vw - 48px);
   height: 920px;
@@ -2906,7 +2915,7 @@
 
 /* Top bar — body 를 40px 이상 스크롤하면 "데일리 스니펫 · {date}" 타이틀 페이드인.
    Figma Text md/Semibold (16/24) text-primary. */
-.tl-snippet-top {
+.tl-group-modal-top.tl-snippet-top {
   justify-content: space-between;
   align-items: center;
   padding: 20px 20px 0 48px;
@@ -2931,7 +2940,7 @@
   transform: translateY(0);
 }
 
-.tl-snippet-modal-content {
+.tl-group-modal-content.tl-snippet-modal-content {
   padding: 0 48px;
   gap: 48px;
   overflow-y: auto;
