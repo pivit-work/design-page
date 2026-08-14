@@ -816,6 +816,17 @@ export default function SquadCanvas({
                               <td className="pj-td sq-td-cap">
                                 <div className="sq-cap">
                                   <div className="sq-cap-nums">
+                                    {/* 초과 표식 — 「빨강」만으로 초과를 말하지 않기 위한 형태 신호(§5-3.2).
+                                        색각 이상·흑백 인쇄에서 숫자색이 죽어도 이 표식은 남는다 */}
+                                    {cst.key === 'over' && (
+                                      <span
+                                        data-testid={`squad-capacity-over-${userId}`}
+                                        className="sq-cap-warn"
+                                        title="개인 캐파 100 초과"
+                                      >
+                                        <WarningIcon size={12} />
+                                      </span>
+                                    )}
                                     <span
                                       data-testid={`squad-capacity-total-${userId}`}
                                       className="sq-cap-total"
