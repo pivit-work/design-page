@@ -30,6 +30,24 @@ export const FAIL_LABEL_KEY = {
 /** V1 이메일 형식. 서버(IsCleanEmail)가 최종 판정이라 여기서는 모양만 본다. */
 export const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
 
+/**
+ * V7 이름 칸에 이메일 주소가 들어왔는지 (PW-207 / PW-185 후속).
+ *
+ * 판정의 정본은 서버 `common/validators/person-name.decorator.ts` 의
+ * `NAME_FORBIDS_AT_PATTERN` 이다 — `@` 포함 여부만 본다. 도메인 형태까지 따지지
+ * 않는 이유도 거기 주석과 같다: `manager1@pivit` 같은 절반짜리 주입도 이름이 아니다.
+ *
+ * 화면에 두는 이유는 서버를 못 믿어서가 아니라 **일괄 발송이기 때문**이다. 초대는
+ * 여러 행을 한 요청으로 보내는데 `BulkInviteDto` 가 `@ValidateNested({ each: true })`
+ * 라 한 행이 걸리면 요청 전체가 400 이다. 50명을 넣고 발송을 눌렀을 때 한 명 때문에
+ * 전부 실패하고, 행별 실패 사유(`FAIL_LABEL_KEY`)에는 이 경우에 해당하는 코드가 없어
+ * 어느 행이 문제인지 짚어 줄 수도 없다. 보내기 전에 그 행에 인라인으로 세운다.
+ *
+ * 원래 사고가 **브라우저 자동완성이 이름 칸에 계정 값을 채워 넣는 것**이라, 이름 칸이
+ * 있는 화면은 전부 같은 자리다.
+ */
+export const nameHasEmail = (v) => String(v ?? '').includes('@');
+
 export const normEmail = (v) => String(v || '').trim().toLowerCase();
 
 /**
