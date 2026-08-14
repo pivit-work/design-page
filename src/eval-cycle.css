@@ -750,6 +750,17 @@
 .evc-wiz-preset-save-row .evc-input {
   flex: 1;
 }
+/* PW-193: 프리셋 저장 확인 문구. 입력·버튼 줄 '아래' 로 떨어지는 배치라
+   .evc-tpl-save-hint(버튼 오른쪽 인라인)와 달리 margin-top 이 필요하다. */
+.evc-wiz-preset-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  margin-top: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--utility-success-600, #039855);
+}
 .evc-wiz-footer {
   display: flex;
   justify-content: space-between;
