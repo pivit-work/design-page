@@ -208,7 +208,21 @@ const DEFAULT_LABELS = {
     loadError: '연동 정보를 불러오지 못했습니다.',
   },
   security: {
+    loginMethods: '로그인 방법',
+    loginMethodPassword: '비밀번호',
+    loginMethodPasswordSet: '설정됨',
+    loginMethodPasswordUnset: '설정 안 됨',
+    loginMethodGoogle: 'Google',
+    loginMethodGoogleUnlinked: '연결 안 됨',
+    loginMethodConnect: '연결',
+    loginMethodDisconnect: '연결 해제',
+    loginMethodBusy: '처리 중…',
     changePassword: '비밀번호 변경',
+    setPassword: '비밀번호 설정',
+    setPasswordHint:
+      'Google 로만 로그인 중입니다. 비밀번호를 설정하면 둘 다 쓸 수 있습니다.',
+    pwSet: '비밀번호 설정',
+    pwSetSaved: '✓ 설정됐습니다',
     currentPassword: '현재 비밀번호',
     currentPwPlaceholder: '현재 비밀번호 입력',
     newPassword: '새 비밀번호',
@@ -1045,6 +1059,14 @@ export default function MySettingsCanvas({
   onSyncIntegration,
   onToggleIntegrationSetting,
   /* 보안 */
+  /**
+   * 로그인 방법 — 한 계정이 비밀번호와 Google 을 함께 가질 수 있다.
+   * `null` 이면 아직 불러오는 중이라 카드 자체를 그리지 않는다.
+   */
+  loginMethods = null,
+  loginMethodsState = { busy: false, error: null, notice: null },
+  onConnectGoogleLogin,
+  onDisconnectGoogleLogin,
   passwordState = { saving: false, saved: false, error: null },
   onChangePassword,
   sessions = [],
@@ -1116,7 +1138,16 @@ export default function MySettingsCanvas({
     }
     pwSavedPrev.current = passwordState.saved;
   }, [passwordState.saved]);
-  const pwReady = Boolean(currentPw) && newPw.length >= 8 && newPw === confirmPw;
+  /**
+   * 비밀번호가 **없는** 계정(Google 전용)은 최초 설정이라 '현재 비밀번호' 가 없다.
+   * `loginMethods` 를 아직 못 받았으면 종전대로 현재 비밀번호를 요구한다 —
+   * 모르는 상태에서 칸을 지우면 비밀번호가 있는 사람이 검증 없이 제출하게 된다.
+   */
+  const needsCurrentPw = !loginMethods || loginMethods.password;
+  const pwReady =
+    (needsCurrentPw ? Boolean(currentPw) : true) &&
+    newPw.length >= 8 &&
+    newPw === confirmPw;
 
 
   const activePhoto = photos.find((p) => p.id === activePhotoId) || photos[0] || null;
@@ -1680,19 +1711,94 @@ export default function MySettingsCanvas({
           {/* ═══ 보안 ═══ */}
           {activeTab === 'security' && (
             <>
+              {/* 로그인 방법 — 비밀번호와 Google 을 한 계정에 함께 둘 수 있다.
+                  카드는 보안 탭이 이미 쓰는 조각만 재사용한다(새 시각 언어 없음). */}
+              {loginMethods && (
+                <Card testId="security-login-methods-card">
+                  <div className="admin-section-label">{labels.security.loginMethods}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    <div className="msc-row">
+                      <div>
+                        <div className="msc-row-title">{labels.security.loginMethodPassword}</div>
+                        <div className="msc-row-sub" data-testid="login-method-password-state">
+                          {loginMethods.password
+                            ? labels.security.loginMethodPasswordSet
+                            : labels.security.loginMethodPasswordUnset}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="msc-row">
+                      <div>
+                        <div className="msc-row-title">{labels.security.loginMethodGoogle}</div>
+                        <div className="msc-row-sub" data-testid="login-method-google-state">
+                          {loginMethods.google && loginMethods.google.linked
+                            ? loginMethods.google.email
+                            : labels.security.loginMethodGoogleUnlinked}
+                        </div>
+                      </div>
+                      {loginMethods.google && loginMethods.google.linked ? (
+                        <button
+                          type="button"
+                          className="admin-notif-btn is-danger-soft is-sm"
+                          disabled={loginMethodsState.busy}
+                          onClick={() => onDisconnectGoogleLogin && onDisconnectGoogleLogin()}
+                          data-testid="login-method-google-disconnect"
+                        >
+                          {loginMethodsState.busy
+                            ? labels.security.loginMethodBusy
+                            : labels.security.loginMethodDisconnect}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="admin-notif-btn is-soft is-sm"
+                          disabled={loginMethodsState.busy}
+                          onClick={() => onConnectGoogleLogin && onConnectGoogleLogin()}
+                          data-testid="login-method-google-connect"
+                        >
+                          {loginMethodsState.busy
+                            ? labels.security.loginMethodBusy
+                            : labels.security.loginMethodConnect}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {loginMethodsState.notice && (
+                    <p className="msc-row-sub" data-testid="login-method-notice" style={{ marginTop: 10 }}>
+                      {loginMethodsState.notice}
+                    </p>
+                  )}
+                  {/* 실패는 여기서 끝낸다 — 전역 에러 페이지로 튕기면 화면이 통째로 날아간다. */}
+                  {loginMethodsState.error && (
+                    <p className="msc-input-error" data-testid="login-method-error" style={{ marginTop: 10 }}>
+                      {loginMethodsState.error}
+                    </p>
+                  )}
+                </Card>
+              )}
+
               <Card testId="security-password-card">
-                <div className="admin-section-label">{labels.security.changePassword}</div>
+                <div className="admin-section-label">
+                  {needsCurrentPw ? labels.security.changePassword : labels.security.setPassword}
+                </div>
+                {!needsCurrentPw && (
+                  <p className="msc-row-sub" data-testid="pw-set-hint" style={{ marginBottom: 10 }}>
+                    {labels.security.setPasswordHint}
+                  </p>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <Field label={labels.security.currentPassword}>
-                    <input
-                      className="admin-emp-input"
-                      type="password"
-                      value={currentPw}
-                      onChange={(e) => setCurrentPw(e.target.value)}
-                      placeholder={labels.security.currentPwPlaceholder}
-                      aria-label={labels.security.currentPassword}
-                    />
-                  </Field>
+                  {needsCurrentPw && (
+                    <Field label={labels.security.currentPassword}>
+                      <input
+                        className="admin-emp-input"
+                        type="password"
+                        value={currentPw}
+                        onChange={(e) => setCurrentPw(e.target.value)}
+                        placeholder={labels.security.currentPwPlaceholder}
+                        aria-label={labels.security.currentPassword}
+                      />
+                    </Field>
+                  )}
                   <Field label={labels.security.newPassword} hint={labels.security.newPwHint}>
                     <input
                       className="admin-emp-input"
@@ -1730,15 +1836,25 @@ export default function MySettingsCanvas({
                   style={{ marginTop: 12, padding: '10px 0', fontSize: 13 }}
                   disabled={!pwReady || passwordState.saving}
                   onClick={() =>
-                    onChangePassword && onChangePassword({ currentPassword: currentPw, newPassword: newPw })
+                    onChangePassword &&
+                    onChangePassword({
+                      // 최초 설정에는 보낼 현재 비밀번호가 없다 — 빈 문자열을 보내면
+                      // 서버가 "현재 비밀번호가 올바르지 않습니다" 로 거절한다.
+                      currentPassword: needsCurrentPw ? currentPw : undefined,
+                      newPassword: newPw,
+                    })
                   }
                   data-testid="pw-save-btn"
                 >
                   {passwordState.saving
                     ? labels.security.pwSaving
                     : passwordState.saved
-                      ? labels.security.pwSaved
-                      : labels.security.pwSave}
+                      ? needsCurrentPw
+                        ? labels.security.pwSaved
+                        : labels.security.pwSetSaved
+                      : needsCurrentPw
+                        ? labels.security.pwSave
+                        : labels.security.pwSet}
                 </button>
               </Card>
 
