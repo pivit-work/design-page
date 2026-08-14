@@ -412,7 +412,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
   };
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay, rgba(0,0,0,.42))', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--bg-overlay, #111927) 45%, transparent)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
       <div onClick={(e) => e.stopPropagation()} data-testid="fbmgr-thread-modal" style={{ width: '100%', maxWidth: 760, maxHeight: '88vh', background: C.bg, borderRadius: '20px 20px 0 0', borderTop: `4px solid ${barColor}`, display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}</span>

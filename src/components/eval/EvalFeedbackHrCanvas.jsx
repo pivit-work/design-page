@@ -270,7 +270,7 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
   };
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay, rgba(13,20,33,0.45))', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--bg-overlay, #111927) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
       <div onClick={(e) => e.stopPropagation()} data-testid="fbhr-nudge-modal" style={{ width: 380, background: C.surface, borderRadius: 14, padding: 20, fontFamily: FONT }}>
         <h3 style={{ fontSize: 'var(--font-size-text-md, 16px)', fontWeight: 800, color: C.text, margin: '0 0 4px' }}>{L.nudgeTitle}</h3>
         <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, margin: '0 0 14px' }}>

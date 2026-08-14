@@ -337,7 +337,8 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--bg-overlay, rgba(0,0,0,.42))',
+        // --bg-overlay 는 불투명 색이라 그대로 쓰면 뒷 화면이 통째로 가려진다 (okr.css 와 같은 형태로 섞는다)
+        background: 'color-mix(in srgb, var(--bg-overlay, #111927) 45%, transparent)',
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
