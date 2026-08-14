@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -18,6 +18,8 @@ import { useState } from 'react';
  *   onStartOkr — 다음 퍼널(OKR 설정 마법사)로 나가는 액션. 주면 인라인 「다음 단계」
  *     블록(§3-2A)과 하단 스티키 CTA(§6)가 함께 렌더된다 — 정책상 둘 중 하나만 두지 않는다.
  *   onAnalyze — AI 분석(§3-3) 트리거. AI 분석 섹션이 있는 호스트만 주입한다.
+ *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
+ *     넘으면 `onAddFile` 을 부르지 않고 인라인 에러로 막는다(PW-163).
  */
 
 const T = {
@@ -81,6 +83,15 @@ function TextIcon({ size = 20 }) {
     <svg width={size} height={size} {...svgProps}>
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+function UploadIcon({ size = 26 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 9l5-5 5 5" />
+      <path d="M12 4v12" />
     </svg>
   );
 }
@@ -300,7 +311,148 @@ function SourceRow({ source, labels, onRemove }) {
   );
 }
 
-function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, busy }) {
+/**
+ * 드롭존 문구 폴백 — 호스트가 라벨을 아직 안 넘기는 구버전에서도 빈칸이 보이지 않게.
+ * 용량 상한은 `maxFileSize` 로 정해지므로 폴백 문구에 숫자를 박지 않는다.
+ */
+const DROPZONE_FALLBACK = {
+  dropzoneHint: '클릭하거나 파일을 끌어다 놓으세요',
+  dropzoneHere: '여기에 놓으세요',
+  dropzoneFormats: '파일 형식 제한 없음',
+  removeFile: '제거',
+  errorFileTooLarge: '파일은 최대 {{size}} 까지 올릴 수 있어요.',
+};
+
+/**
+ * 파일 소스용 드롭존(PW-163).
+ *
+ * 브라우저 기본 `<input type="file">` 은 내부 버튼을 스타일링할 수 없어, 같은 카드의
+ * 다른 입력들과 폰트·높이·모서리가 전부 어긋났다. 그래서 input 은 숨기고 클릭 가능한
+ * 점선 영역을 대신 그린다 — 이 저장소의 다른 업로드 화면(직원 CSV 임포트,
+ * 조직 스냅샷)이 이미 쓰는 패턴이다.
+ *
+ * 고른 뒤에는 파일명·용량과 [제거] 를 함께 보여 준다. 등록된 소스 행에는 용량이 보이는데
+ * 정작 고르는 시점엔 안 보여서, 잘못 골랐는지 확인할 방법이 없었다.
+ */
+function FileDropzone({ labels, file, onPick }) {
+  const inputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const L = labels;
+
+  const pickFirst = (fileList) => {
+    const next = fileList?.[0];
+    if (next) onPick(next);
+  };
+
+  const openPicker = () => inputRef.current?.click();
+
+  return (
+    <div>
+      <div
+        data-testid="okr-context-dropzone"
+        data-dragging={dragging ? 'true' : 'false'}
+        data-loaded={file ? 'true' : 'false'}
+        role="button"
+        tabIndex={0}
+        aria-label={L.typeFile}
+        onClick={openPicker}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPicker();
+          }
+        }}
+        // 기본 동작(파일을 새 탭으로 열기)을 막지 않으면 드롭이 화면을 통째로 갈아치운다.
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          pickFirst(e.dataTransfer?.files);
+        }}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+          padding: file ? '18px 16px' : '26px 16px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          boxSizing: 'border-box',
+          borderRadius: 10,
+          border: `1.5px dashed ${dragging || file ? T.accent : T.border}`,
+          background: dragging || file ? T.accentFaint : T.card,
+          transition: 'border-color .15s, background .15s',
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          aria-label={L.typeFile}
+          data-testid="okr-context-file-input"
+          onChange={(e) => pickFirst(e.target.files)}
+          style={{ display: 'none' }}
+        />
+        <span style={{ color: dragging || file ? T.accent : T.muted }}>
+          {file ? <FileIcon size={22} /> : <UploadIcon />}
+        </span>
+        {file ? (
+          <div
+            data-testid="okr-context-file-picked"
+            style={{ fontSize: 13, fontWeight: 800, color: T.text, overflowWrap: 'anywhere' }}
+          >
+            {file.name}
+            <span style={{ fontWeight: 600, color: T.sub }}>
+              {' · '}
+              {formatSize(file.size)}
+            </span>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+              {dragging
+                ? L.dropzoneHere || DROPZONE_FALLBACK.dropzoneHere
+                : L.dropzoneHint || DROPZONE_FALLBACK.dropzoneHint}
+            </div>
+            <div style={{ fontSize: 11, color: T.muted }}>
+              {L.dropzoneFormats || DROPZONE_FALLBACK.dropzoneFormats}
+            </div>
+          </>
+        )}
+      </div>
+      {file && (
+        <div style={{ marginTop: 6, textAlign: 'right' }}>
+          <button
+            type="button"
+            data-testid="okr-context-file-remove"
+            onClick={() => onPick(null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: T.font,
+              fontSize: 12,
+              fontWeight: 700,
+              color: T.sub,
+            }}
+          >
+            <TrashIcon size={13} />
+            {L.removeFile || DROPZONE_FALLBACK.removeFile}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, busy, maxFileSize }) {
   const [type, setType] = useState(null);
   const [urlVal, setUrlVal] = useState('');
   const [title, setTitle] = useState('');
@@ -331,6 +483,15 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         await onAddText({ body: body.trim(), title: title.trim() });
       } else {
         if (!file) return setError(labels.errorFileRequired);
+        // 상한 초과는 여기서 끊는다 — 안 그러면 20MB 를 다 올린 뒤에 서버가 거절한다.
+        if (maxFileSize && file.size > maxFileSize) {
+          return setError(
+            (labels.errorFileTooLarge || DROPZONE_FALLBACK.errorFileTooLarge).replace(
+              '{{size}}',
+              formatSize(maxFileSize),
+            ),
+          );
+        }
         await onAddFile({ file, title: title.trim() });
       }
       onCancel();
@@ -417,12 +578,13 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         />
       )}
       {type === 'file' && (
-        <input
-          type="file"
-          aria-label={labels.typeFile}
-          data-testid="okr-context-file-input"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          style={{ fontSize: 12, color: T.sub }}
+        <FileDropzone
+          labels={labels}
+          file={file}
+          onPick={(next) => {
+            setFile(next);
+            setError('');
+          }}
         />
       )}
       <input
@@ -664,6 +826,7 @@ export default function OkrContextSetupCanvas({
   onRemove,
   onStartOkr,
   onAnalyze,
+  maxFileSize,
 }) {
   const [adding, setAdding] = useState(false);
   const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
@@ -781,6 +944,7 @@ export default function OkrContextSetupCanvas({
               onAddUrl={onAddUrl}
               onAddText={onAddText}
               onAddFile={onAddFile}
+              maxFileSize={maxFileSize}
               onCancel={() => setAdding(false)}
             />
           ) : (
