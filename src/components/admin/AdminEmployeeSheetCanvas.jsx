@@ -2083,6 +2083,44 @@ function HrEditPair({ k, value, onChange, type = 'text', options }) {
   );
 }
 
+/**
+ * HR 기록 모달의 신원·인사 편집 필드. 렌더와 dirty 판정이 **같은 목록**을 본다 —
+ * 갈라지면 값을 고쳐도 저장 버튼이 계속 비활성인 채로 남는다.
+ * 수습 종료일·휴직 기간·병역은 PW-178 에서 더해졌다(대량 메시지 발송 대상 조건의
+ * 저장 자리이며, 이 모달이 유일한 입력 경로다).
+ */
+const HR_IDENTITY_FIELDS = [
+  'personalEmail',
+  'birthDate',
+  'gender',
+  'nationality',
+  'address',
+  'probationEndDate',
+  'leaveStartDate',
+  'leaveEndDate',
+  'militaryService',
+];
+
+/**
+ * 병역 코드 → 라벨. 읽기 전용 표시에서 코드(`completed`)가 그대로 새어 나가지
+ * 않게 한다. 목록에 없는 값은 그대로 통과시킨다(서버가 이미 라벨을 준 경우).
+ */
+function militaryLabel(value, options) {
+  if (!value) return value;
+  const list = options || MILITARY_OPTIONS;
+  const hit = list.find((o) => o.value === value);
+  return hit ? hit.label : value;
+}
+
+/** 병역 기본 선택지. 소비자가 L.hrMilitaryOptions 로 로케일 라벨을 덮는다. */
+const MILITARY_OPTIONS = [
+  { value: 'completed', label: '군필' },
+  { value: 'unfulfilled', label: '미필' },
+  { value: 'exempted', label: '면제' },
+  { value: 'serving', label: '복무중' },
+  { value: 'not_applicable', label: '해당없음' },
+];
+
 function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
   const L = labels || {};
   const [data, setData] = useState(null);
@@ -2118,7 +2156,7 @@ function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
   };
   const identityDirty =
     !!identityDraft &&
-    ['personalEmail', 'birthDate', 'gender', 'nationality', 'address'].some(
+    HR_IDENTITY_FIELDS.some(
       (k) => (identityDraft[k] ?? '') !== (identity[k] ?? ''),
     );
   const submitIdentity = () => {
@@ -2168,6 +2206,15 @@ function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
                   />
                   <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
                   <HrEditPair k={L.hrAddress || '주소'} value={idDraft.address} onChange={setIdField('address')} />
+                  <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} type="date" value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
+                  <HrEditPair k={L.hrLeaveStartDate || '휴직 시작일'} type="date" value={idDraft.leaveStartDate} onChange={setIdField('leaveStartDate')} />
+                  <HrEditPair k={L.hrLeaveEndDate || '휴직 종료일'} type="date" value={idDraft.leaveEndDate} onChange={setIdField('leaveEndDate')} />
+                  <HrEditPair
+                    k={L.hrMilitaryService || '병역'}
+                    value={idDraft.militaryService}
+                    onChange={setIdField('militaryService')}
+                    options={L.hrMilitaryOptions || MILITARY_OPTIONS}
+                  />
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
                     {identityState === 'error' && (
                       <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">
@@ -2197,6 +2244,13 @@ function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
                   <HrPair k={L.hrGender || '성별'} v={identity.gender} />
                   <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
                   <HrPair k={L.hrAddress || '주소'} v={identity.address} />
+                  <HrPair k={L.hrProbationEndDate || '수습 종료일'} v={identity.probationEndDate} />
+                  <HrPair k={L.hrLeaveStartDate || '휴직 시작일'} v={identity.leaveStartDate} />
+                  <HrPair k={L.hrLeaveEndDate || '휴직 종료일'} v={identity.leaveEndDate} />
+                  <HrPair
+                    k={L.hrMilitaryService || '병역'}
+                    v={militaryLabel(identity.militaryService, L.hrMilitaryOptions)}
+                  />
                 </>
               )}
             </HrSection>
