@@ -156,7 +156,17 @@ const DEFAULT_LABELS = {
   cwManageTitle: '위원 관리',
   cwManageListLabel: '참여 위원',
   cwManageHint:
-    '위원장을 제외하면 남은 위원 중 먼저 합류한 사람이 위원장을 이어받습니다.',
+    '위원장을 제외하려면 위원장을 이어받을 위원을 지정해야 합니다.',
+  // PW-134 위원장 이양 — 별도 화면 없이 이 모달 안에서 고른다.
+  cwManageChairTransferLabel: '위원장 이양 대상',
+  cwManageChairTransferPlaceholder: '이어받을 위원을 선택하세요',
+  cwManageChairTransferHint:
+    '{name} 님을 제외합니다. 위원장 권한(등급 조정·확정)이 선택한 위원에게 넘어갑니다.',
+  cwManageChairTransferNone:
+    '이어받을 위원이 없습니다. 위원을 먼저 추가한 뒤 제외하세요.',
+  cwManageChairAuto:
+    '위원장이 없어 자동으로 지정된 상태입니다. 필요하면 위원장을 이양하세요.',
+  cwManageSaveFailed: '위원 구성을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwManageDesc: '체크하면 위원으로 추가되고, 체크를 해제하면 제외됩니다.',
   cwManageSubmit: '저장',
   cwManageLocked: '확정이 완료된 위원회는 위원을 변경할 수 없습니다.',
@@ -834,9 +844,54 @@ export default function EvalCycleSummaryCanvas({
     );
   }, [committeeManage, activeCommittee, createCommittee]);
 
+  /**
+   * PW-134 위원장 이양 — 위원장을 명단에서 빼면 **이어받을 사람을 사람이 고른다.**
+   *
+   * 누가 위원장인지는 서버가 준 `chairUserId` 로만 판단한다. 예전에는 명단 첫 사람을
+   * 위원장으로 그렸는데(아래 `idx === 0` 배지), 그 규칙대로 이양 대상을 정하면 사용자가
+   * 고르지 않은 사람이 조용히 위원장이 된다.
+   */
+  const chairUserId = sessionCommittee?.chairUserId ?? null;
+  const [chairTransferPick, setChairTransferTo] = useState('');
+  const chairDropped =
+    committeeManage && !!chairUserId && !createCommittee.includes(chairUserId);
+  /** 저장 후에도 위원회에 남는, 조정 권한을 가질 수 있는 위원만 후보다. */
+  const chairTransferOptions = useMemo(() => {
+    if (!chairDropped) return [];
+    const keep = new Set(createCommittee);
+    return activeCommittee.filter(
+      (m) =>
+        m.userId !== chairUserId &&
+        keep.has(m.userId) &&
+        m.role !== 'hr_observer',
+    );
+  }, [chairDropped, createCommittee, activeCommittee, chairUserId]);
+  /**
+   * 고른 대상이 후보에서 빠지면(그 사람도 체크 해제) 선택이 없는 것으로 친다.
+   * effect 로 state 를 되돌리지 않고 **렌더에서 파생**한다 — 되돌리는 방식은 한 프레임
+   * 동안 "사라진 이름이 선택된 채 저장이 열린" 상태를 만든다.
+   */
+  const chairTransferTo = chairTransferOptions.some(
+    (m) => m.userId === chairTransferPick,
+  )
+    ? chairTransferPick
+    : '';
+  const chairNameOf = (userId) =>
+    (sessionCommittee?.members ?? []).find((m) => m.userId === userId)?.name ??
+    '';
+  /**
+   * 저장 실패를 모달 안에서 말한다. 예전에는 저장 클릭과 동시에 모달을 닫아서, 서버가
+   * 거부해도(위원 최소 1명·확정 완료 등) 화면에는 "아무 일도 안 일어난 것" 으로 보였다.
+   */
+  const [committeeError, setCommitteeError] = useState('');
+  const [committeeSaving, setCommitteeSaving] = useState(false);
+
   const closeCreateModal = () => {
     setShowCreate(false);
     setCommitteeManage(false);
+    setChairTransferTo('');
+    setCommitteeError('');
+    setCommitteeSaving(false);
     seededSessionRef.current = null;
   };
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
@@ -3308,7 +3363,11 @@ export default function EvalCycleSummaryCanvas({
                             })}
                           </span>
                         ) : null}
-                        {on && idx === 0 ? (
+                        {/* 관리 모드에서는 서버가 준 위원장이 정본이다. 생성 모드에서는
+                            아직 세션이 없으니 "먼저 고른 사람" 규칙이 그대로 맞다. */}
+                        {(committeeManage
+                          ? c.id === chairUserId
+                          : on && idx === 0) ? (
                           <span className="evs-cw-candidate-chair">{L.cwChair}</span>
                         ) : null}
                       </button>
@@ -3366,6 +3425,68 @@ export default function EvalCycleSummaryCanvas({
                   })}
                 </div>
               )}
+              {committeeManage && committeeError && (
+                <div
+                  className="evs-cw-exclusion"
+                  role="alert"
+                  data-testid="evs-cw-committee-error"
+                >
+                  {committeeError}
+                </div>
+              )}
+              {/* PW-134 — 위원장이 자동 지정된 상태임을 숨기지 않는다. */}
+              {committeeManage && sessionCommittee?.chairAutoAssigned && (
+                <div
+                  className="evs-cw-exclusion"
+                  data-testid="evs-cw-committee-chair-auto"
+                >
+                  {L.cwManageChairAuto}
+                </div>
+              )}
+              {/* PW-134 — 위원장을 뺄 때만 나타나는 이양 대상 선택. */}
+              {chairDropped && (
+                <div
+                  className="evs-cw-create-section evs-cw-chair-transfer"
+                  data-testid="evs-cw-chair-transfer"
+                >
+                  <div className="evs-cw-create-lbl">
+                    {L.cwManageChairTransferLabel}
+                  </div>
+                  {chairTransferOptions.length === 0 ? (
+                    <div
+                      className="evs-cw-exclusion"
+                      data-testid="evs-cw-chair-transfer-empty"
+                    >
+                      {L.cwManageChairTransferNone}
+                    </div>
+                  ) : (
+                    <>
+                      <select
+                        className="evs-cw-create-input"
+                        data-testid="evs-cw-chair-transfer-select"
+                        aria-label={L.cwManageChairTransferLabel}
+                        value={chairTransferTo}
+                        disabled={committeeReadOnly}
+                        onChange={(e) => setChairTransferTo(e.target.value)}
+                      >
+                        <option value="">
+                          {L.cwManageChairTransferPlaceholder}
+                        </option>
+                        {chairTransferOptions.map((m) => (
+                          <option key={m.userId} value={m.userId}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="evs-cw-create-hint">
+                        {fmt(L.cwManageChairTransferHint, {
+                          name: chairNameOf(chairUserId),
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="evs-cw-create-actions">
@@ -3383,12 +3504,30 @@ export default function EvalCycleSummaryCanvas({
                   data-testid="evs-cw-committee-submit"
                   disabled={
                     committeeReadOnly ||
+                    committeeSaving ||
                     createCommittee.length === 0 ||
-                    !committeeDirty
+                    !committeeDirty ||
+                    // PW-134 — 위원장을 빼는데 이어받을 사람이 정해지지 않았으면
+                    // 저장 자체를 막는다. 서버도 400 으로 막지만, 여기서 막아야
+                    // "저장을 눌렀는데 에러" 대신 "고르면 저장" 이 된다.
+                    (chairDropped && !chairTransferTo)
                   }
                   onClick={() => {
-                    onSaveCommittee?.(createCommittee);
-                    closeCreateModal();
+                    setCommitteeError('');
+                    setCommitteeSaving(true);
+                    // 성공했을 때만 닫는다 — 실패하면 사용자가 고른 명단이 그대로
+                    // 남아 있어야 다시 시도할 수 있다.
+                    Promise.resolve(
+                      onSaveCommittee?.(createCommittee, {
+                        transferChairTo: chairTransferTo || undefined,
+                      }),
+                    ).then(
+                      () => closeCreateModal(),
+                      (err) => {
+                        setCommitteeSaving(false);
+                        setCommitteeError(err?.message || L.cwManageSaveFailed);
+                      },
+                    );
                   }}
                 >
                   {L.cwManageSubmit}

@@ -4266,6 +4266,15 @@
   border: 1.5px solid var(--utility-purple-200, #d9d6fe);
   background: var(--utility-purple-50, #f4f3ff);
 }
+/* PW-134 위원장 이양 선택 — 위원 관리 패널 안에 얹히는 한 줄. 색을 새로 만들지 않고
+   패널 위에서 입력이 읽히도록 배경만 흰색으로 되돌린다. */
+.evs-cw-chair-transfer {
+  margin-top: 10px;
+  padding: 0;
+}
+.evs-cw-chair-transfer select.evs-cw-create-input {
+  background: var(--bg-primary, #ffffff);
+}
 .evs-cw-create-chips {
   display: flex;
   gap: 6px;
