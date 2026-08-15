@@ -31,7 +31,10 @@ const DEFAULT_LABELS = {
   countSuffix: '명',
   filters: { dept: '부서', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
   managerFilter: { all: '전체', assigned: '배정됨', unassigned: '미배정' },
-  csvUpload: 'CSV 업로드',
+  // `csvUpload` 라벨이 여기 있었지만 **어디서도 렌더되지 않았다** — 라벨은 CSV
+  // 업로드가 있다고 말하는데 화면에는 없는 상태가 오래 남아 있었다(PW-212).
+  // CSV 업로드는 초대 모달의 탭(`AdminInviteModal` §2-4)으로 들어갔으므로,
+  // 다음 사람이 같은 오해를 하지 않도록 죽은 라벨을 지운다.
   invite: '구성원 초대',
   unassignedPill: '미배정',
   assignManager: '조직 배정',

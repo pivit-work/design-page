@@ -62,3 +62,16 @@ export const IconTrash = ({ size = 14 }) => (
     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
   </svg>
 );
+/* CSV 업로드 탭(PW-212) — 드롭존·템플릿 다운로드. */
+export const IconUpload = ({ size = 20 }) => (
+  <svg {...strokeProps(size)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
+export const IconDownload = ({ size = 14 }) => (
+  <svg {...strokeProps(size)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);

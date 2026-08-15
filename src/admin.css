@@ -3629,6 +3629,142 @@
 .admin-inv-addrow { display: flex; align-items: center; gap: 8px; }
 .admin-inv-note { padding-top: 2px; }
 
+/* ── 모드 탭 (직접 입력 / CSV 업로드) — PW-212 §2-1 ── */
+.admin-inv-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--border-secondary);
+}
+.admin-inv-tab {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 10px 12px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  /* 선택 시 굵기가 바뀌어도 폭이 흔들리지 않게 아래 테두리 자리를 미리 잡는다 */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.admin-inv-tab:hover:not(:disabled) { color: var(--text-secondary); }
+.admin-inv-tab.is-on {
+  color: var(--text-brand-secondary);
+  border-bottom-color: var(--bg-brand-solid);
+}
+.admin-inv-tab:disabled { cursor: default; opacity: 0.6; }
+
+/* ── CSV 업로드 탭 — PW-212 §2-4 ── */
+.admin-inv-csv { display: flex; flex-direction: column; gap: 12px; }
+.admin-inv-csv-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-inv-csv-head .admin-inv-hint { flex: 1; min-width: 200px; }
+
+/* 드롭존 */
+.admin-inv-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 16px;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  text-align: center;
+}
+.admin-inv-drop:hover,
+.admin-inv-drop.is-over {
+  border-color: var(--bg-brand-solid);
+  color: var(--text-brand-secondary);
+}
+.admin-inv-drop:focus-within { outline: 2px solid var(--bg-brand-solid); outline-offset: -1px; }
+.admin-inv-drop-title { font-size: var(--font-size-text-sm); font-weight: 600; }
+/* 파일 input 은 감추되 **접근 트리에는 남긴다** — display:none 이면 라벨로 못 찾는다 */
+.admin-inv-drop-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-inv-csv-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-inv-csv-counts {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.admin-inv-csv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.admin-inv-csv-toggle input { accent-color: var(--bg-brand-solid); cursor: pointer; }
+
+.admin-inv-csv-list { display: flex; flex-direction: column; gap: 6px; }
+.admin-inv-csv-row {
+  padding: 8px 10px;
+  border: 1px solid var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* 직접 입력 탭의 오류 행(.admin-inv-row.is-error)과 같은 톤 — 한 모달 안에서
+   오류가 두 가지 색으로 보이면 어느 쪽이 더 심각한지 읽으려 하게 된다. */
+.admin-inv-csv-row.is-error {
+  border-color: var(--colors-error-200, #fecdca);
+  background: var(--colors-error-25, #fffbfa);
+}
+.admin-inv-csv-cells { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-inv-csv-email { flex: 1 1 190px; min-width: 0; }
+.admin-inv-csv-name { flex: 0 1 110px; min-width: 0; }
+.admin-inv-csv-role { flex: 0 0 96px; }
+.admin-inv-csv-org {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+/* 조직 이름은 관리자가 정하므로 길이를 가정하지 않는다 — 칩 안에서 줄바꿈시킨다 */
+.admin-inv-csv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.admin-inv-csv-fix { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-inv-csv-fix .admin-inv-field { max-width: 220px; }
+
 /* ── 푸터 ── */
 .admin-inv-footer { justify-content: space-between; align-items: center; }
 .admin-inv-summary { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
