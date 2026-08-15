@@ -129,6 +129,24 @@ function mergeLabels(base, provided) {
 const fill = (tpl, vars) =>
   String(tpl ?? '').replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m));
 
+/**
+ * 그 회차를 진행한 호스트(매니저) — **회차가 들고 있는 값이 먼저다** (PW-211).
+ *
+ * `manager` prop 은 화면 단위로 하나뿐이고 **현재** 매니저를 가리킨다. 그걸 과거
+ * 회차에 그대로 쓰면 매니저가 바뀐 구성원은 히스토리가 통째로 현재 매니저 이름으로
+ * 보인다 — 제목·아바타뿐 아니라 근거 발췌의 화자까지 남의 이름이 붙는다.
+ * (dev 실측: 김우진이 한 말이 `박우진 매니저` 로 표시)
+ *
+ * 회차에 이름이 없는 응답(구버전)에서는 화면 단위 매니저로 폴백한다.
+ */
+function hostOf(session, manager) {
+  const fallback = manager || {};
+  return {
+    name: session?.managerName || fallback.name || '',
+    avatar: session?.managerAvatar || fallback.avatar || '',
+  };
+}
+
 /* ── 공통 조각 ─────────────────────────────────────────── */
 function StatusBadge({ status, L }) {
   const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
@@ -692,19 +710,25 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
   );
 }
 
-function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence }) {
+function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
 
+  // 결과 탭이 늘 최신 회차인 것은 아니다 — 호스트가 지난 완료 회차를 넘길 수 있다.
+  const host = hostOf(session, manager);
+  const hostAvatar = renderAvatar
+    ? renderAvatar({ name: host.name, avatar: host.avatar, size: 32 })
+    : avatar;
+
   return (
     <>
       <SessionHeader
-        title={fill(L.doneWith, { name: manager.name })}
+        title={fill(L.doneWith, { name: host.name })}
         status="done"
         date={formatDate(session.createdAt)}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
-        avatar={avatar}
+        avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
       />
 
@@ -720,7 +744,7 @@ function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate,
           {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) */}
           <ManagerFeedback
             session={session}
-            managerName={manager.name}
+            managerName={host.name}
             L={L} icons={icons} baseUrl={baseUrl}
             {...(feedbackEvidence || {})}
           />
@@ -783,15 +807,21 @@ function ResultScreen({ session, manager, avatar, L, icons, baseUrl, formatDate,
 }
 
 /* ── ④ 히스토리 (HISTORY) ─────────────────────────────── */
-function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence }) {
+  // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
+  const host = hostOf(session, manager);
+  const hostAvatar = renderAvatar
+    ? renderAvatar({ name: host.name, avatar: host.avatar, size: 24 })
+    : avatar;
+
   return (
     <>
       <SessionHeader
-        title={fill(L.sessionWith, { name: manager.name })}
+        title={fill(L.sessionWith, { name: host.name })}
         status="done"
         date={formatDate(session.createdAt)}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
-        avatar={avatar}
+        avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
       >
         <button type="button" className="ono-mem-back" onClick={onBack}>
@@ -805,7 +835,7 @@ function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate
       {/* 지난 회의록에서도 같은 규칙으로 근거 발췌를 연다 (policy §10.2·§10.7.2) */}
       <ManagerFeedback
         session={session}
-        managerName={manager.name}
+        managerName={host.name}
         L={L} icons={icons} baseUrl={baseUrl}
         {...(feedbackEvidence || {})}
       />
@@ -838,7 +868,7 @@ function HistoryDetail({ session, manager, avatar, L, icons, baseUrl, formatDate
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
+function HistoryScreen({ sessions, manager, avatar, renderAvatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -853,7 +883,8 @@ function HistoryScreen({ sessions, manager, avatar, healthHistory, L, icons, bas
   if (selected) {
     return (
       <HistoryDetail
-        session={selected} manager={manager} avatar={avatar} L={L} icons={icons} baseUrl={baseUrl}
+        session={selected} manager={manager} avatar={avatar} renderAvatar={renderAvatar}
+        L={L} icons={icons} baseUrl={baseUrl}
         formatDate={formatDate} formatDuration={formatDuration}
         onBack={() => select(null)} onToggleAction={onToggleAction}
         feedbackEvidence={feedbackEvidence}
@@ -995,6 +1026,10 @@ function TabNav({ tab, onChange, enabled, L }) {
 export default function OneOnOneMemberCanvas({
   tab = 'prep',
   onTabChange,
+  /**
+   * **현재** 매니저 — 화면 단위 폴백이다. 회차별 사람 이름은 회차 페이로드의
+   * `managerName`·`managerAvatar` 가 먼저다 (PW-211, `hostOf` 참고).
+   */
   manager = { name: '', avatar: '' },
   /** 진행 중인 세션(ready|live). 없으면 null. */
   session = null,
@@ -1063,7 +1098,7 @@ export default function OneOnOneMemberCanvas({
       {tab === 'result' && (resultSession ? (
         <ResultScreen
           {...shared}
-          session={resultSession} manager={manager} avatar={avatar}
+          session={resultSession} manager={manager} avatar={avatar} renderAvatar={renderAvatar}
           deadlineOf={deadlineOf} onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
         />
@@ -1072,7 +1107,7 @@ export default function OneOnOneMemberCanvas({
       {tab === 'history' && (
         <HistoryScreen
           {...shared}
-          sessions={sessions} manager={manager} avatar={smallAvatar}
+          sessions={sessions} manager={manager} avatar={smallAvatar} renderAvatar={renderAvatar}
           healthHistory={healthHistory}
           healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
           onToggleAction={onToggleAction}
