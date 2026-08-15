@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -17,6 +17,9 @@ import { useRef, useState } from 'react';
  *   onAddUrl / onAddText / onAddFile / onRemove — 미주입이면 열람 전용.
  *   onStartOkr — 다음 퍼널(OKR 설정 마법사)로 나가는 액션. 주면 인라인 「다음 단계」
  *     블록(§3-2A)과 하단 스티키 CTA(§6)가 함께 렌더된다 — 정책상 둘 중 하나만 두지 않는다.
+ *     다만 **동시에 보이지는 않는다**: 인라인 블록이 화면 안에 있는 동안 하단 바를 접어
+ *     같은 버튼이 두 번 보이지 않게 한다(PW-46 피드백). 스크롤로 인라인 블록이 화면을
+ *     벗어나면 하단 바가 다시 나온다 — 전역 앵커 자체를 없애는 게 아니다.
  *   onAnalyze — AI 분석(§3-3) 트리거. AI 분석 섹션이 있는 호스트만 주입한다.
  *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
  *     넘으면 `onAddFile` 을 부르지 않고 인라인 에러로 막는다(PW-163).
@@ -662,9 +665,10 @@ const primaryBtn = {
 };
 
 /** `OKR 설정 시작 →` — 인라인 블록과 스티키 푸터가 같은 모양·같은 목적지로 쓴다. */
-function StartOkrButton({ labels, onClick, disabled, testId }) {
+function StartOkrButton({ labels, onClick, disabled, testId, btnRef }) {
   return (
     <button
+      ref={btnRef}
       type="button"
       data-testid={testId}
       onClick={onClick}
@@ -692,8 +696,13 @@ function StartOkrButton({ labels, onClick, disabled, testId }) {
  * `OKR 설정 시작 →` 은 소스 추출 상태와 무관하게 **항상 활성** 이다 — 추출을 기다리느라
  * 퍼널이 막히면 안 된다. AI 분석 버튼은 `onAnalyze` 를 주는 호스트에서만 노출한다
  * (AI 분석 섹션이 없는 화면에 버튼만 두면 그 자체로 또 하나의 막다른 길이 된다).
+ *
+ * `startBtnRef` 는 하단 스티키 CTA 가 **이 블록의 시작 버튼**이 화면에 보이는지 관측하는
+ * 데 쓴다(같은 버튼이 동시에 둘 보이지 않게 — `useOnScreen`). 블록 전체가 아니라 버튼을
+ * 관측한다 — 블록 위쪽 몇 px 만 걸쳐 있을 때는 정작 버튼이 화면 밖이라, 블록을 기준으로
+ * 감추면 눌러야 할 버튼이 하나도 안 보이는 구간이 생긴다.
  */
-function NextStepBlock({ sources, labels, onStartOkr, onAnalyze }) {
+function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) {
   const ready = countBy(sources, 'ready');
   const processing = countBy(sources, 'processing');
   const allFailed = ready === 0 && processing === 0;
@@ -766,6 +775,7 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze }) {
           labels={labels}
           onClick={onStartOkr}
           testId="okr-context-next-step-start"
+          btnRef={startBtnRef}
         />
       </div>
     </div>
@@ -773,8 +783,40 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze }) {
 }
 
 /**
+ * 요소가 지금 화면(뷰포트) 안에 있는지 관측한다.
+ *
+ * 초기값과 폴백은 **false(=안 보임)** 다. 모르는 동안에는 전역 앵커를 살려 두는 쪽이
+ * 안전하다 — 반대로 두면 IntersectionObserver 가 없는 환경(구형 브라우저·jsdom·SSR)에서
+ * 다음 퍼널로 나가는 버튼이 통째로 사라진다.
+ */
+function useOnScreen(ref, enabled) {
+  const [onScreen, setOnScreen] = useState(false);
+
+  useEffect(() => {
+    const el = enabled ? ref.current : null;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setOnScreen(false);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      (entries) => setOnScreen(entries.some((e) => e.isIntersecting)),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, enabled]);
+
+  return onScreen;
+}
+
+/**
  * 하단 스티키 CTA (§6) — 화면 어디에 있든 다음 퍼널로 나갈 수 있는 전역 앵커.
  * 인라인 블록(문맥 앵커)과 **함께** 둔다. 소스 0건이어도 활성 — 컨텍스트는 선택 사항이다.
+ *
+ * 다만 **동시에 둘 다 보이지는 않는다**(PW-46 피드백). 두 앵커는 모두 콘텐츠 끝에 붙어
+ * 있어서, 목록이 짧으면 같은 버튼이 100px 간격으로 두 번 나온다. 인라인 블록의 시작
+ * 버튼이 화면에 들어와 있는 동안에는 이 바를 접고, 스크롤로 그 버튼이 화면 밖으로 나가면
+ * 다시 편다 — 앵커를 하나 없애는 게 아니라 겹칠 때만 감춘다(§6 은 그대로 지킨다).
  */
 function StickyFooterCta({ sources, labels, canEdit, onStartOkr }) {
   return (
@@ -834,6 +876,12 @@ export default function OkrContextSetupCanvas({
   const editable = canEdit === undefined ? hasEditHandlers : canEdit;
   const readOnly = !editable;
   const L = labels;
+
+  // 문맥 앵커의 시작 버튼이 화면에 있는 동안에는 전역 앵커(하단 바)를 접는다 — 둘 다
+  // 콘텐츠 끝에 붙어 있어서, 감추지 않으면 같은 버튼이 나란히 두 번 보인다(PW-46 피드백).
+  const nextStepBtnRef = useRef(null);
+  const showNextStep = !readOnly && !loading && sources.length > 0 && !!onStartOkr;
+  const nextStepOnScreen = useOnScreen(nextStepBtnRef, showNextStep);
 
   return (
     <div style={{ fontFamily: T.font, maxWidth: 880 }} data-testid="okr-context-setup">
@@ -969,18 +1017,23 @@ export default function OkrContextSetupCanvas({
           ))}
 
         {/* 문맥 앵커 — 소스가 1건이라도 있고 편집 권한이 있을 때만(§3-2A) */}
-        {!readOnly && !loading && sources.length > 0 && onStartOkr && (
+        {showNextStep && (
           <NextStepBlock
             sources={sources}
             labels={L}
             onStartOkr={onStartOkr}
             onAnalyze={onAnalyze}
+            startBtnRef={nextStepBtnRef}
           />
         )}
       </div>
 
-      {/* 전역 앵커 — 소스 0건이어도 항상 보인다(§6). 열람자는 비활성 + 툴팁 */}
-      {onStartOkr && (
+      {/*
+        전역 앵커 — 소스 0건이어도, 인라인 블록이 없는 열람자에게도 남는다(§6).
+        인라인 블록이 화면에 보이는 동안만 접는다 — 같은 버튼이 나란히 두 번 보이지
+        않게(PW-46 피드백). 열람자는 비활성 + 툴팁.
+      */}
+      {onStartOkr && !nextStepOnScreen && (
         <StickyFooterCta
           sources={sources}
           labels={L}
