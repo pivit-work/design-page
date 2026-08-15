@@ -147,6 +147,23 @@ function hostOf(session, manager) {
   };
 }
 
+/**
+ * 그 회차의 헬스체크 — **회차가 들고 있는 값만 쓴다** (PW-213).
+ *
+ * 예전에는 화면 단위 `healthHistory` 를 회차 목록에 순서로 갖다 붙였다
+ * (`healthHistory[healthHistory.length - 1 - i]`). 두 배열은 짝이 아니다 —
+ * `healthHistory` 는 최근 30일 스니핏 최대 10개이고 회차 목록은 기간 제한 없는
+ * DONE 1on1 전체라, 길이도 시간 축도 다르다. 두 달 전 회차 옆에 어제 점수가 붙었고,
+ * 회차가 더 많으면 오래된 행부터 배지가 통째로 사라졌다.
+ *
+ * 값이 없으면 **숫자를 지어내지 않고 배지를 감춘다**(`null` 반환). 인덱스로 짝짓기는
+ * 순서가 어긋나는 순간 조용히 틀리므로, 없는 값은 없는 채로 두는 편이 낫다.
+ */
+function healthOf(session) {
+  const v = session?.healthScore;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
 /* ── 공통 조각 ─────────────────────────────────────────── */
 function StatusBadge({ status, L }) {
   const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
@@ -868,7 +885,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, renderAvatar, healthHistory, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
+function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -913,8 +930,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, healthHistory,
           {done.map((s, i) => {
             const mine = s.actionItems.filter((a) => a.owner === 'member');
             const doneCount = mine.filter((a) => a.done).length;
-            const hIdx = healthHistory.length - 1 - i;
-            const hVal = hIdx >= 0 && hIdx < healthHistory.length ? healthHistory[hIdx] : null;
+            const hVal = healthOf(s);
             return (
               <button
                 key={s.id}
@@ -938,7 +954,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, healthHistory,
                         className="ono-start-flag"
                         style={{ background: healthBg ? healthBg(hVal) : undefined, borderColor: healthBorder ? healthBorder(hVal) : undefined, color: healthColor ? healthColor(hVal) : undefined }}
                       >
-                        HC {hVal}
+                        HC {hVal.toFixed(1)}
                       </span>
                     )}
                   </span>
@@ -1104,11 +1120,13 @@ export default function OneOnOneMemberCanvas({
         />
       ) : <div className="ono-mem-empty">{L.noResultSession}</div>)}
 
+      {/* HistoryScreen 에는 healthHistory 를 넘기지 않는다 — 회차 배지는 회차가 들고
+          있는 값(`session.healthScore`)만 쓴다 (PW-213). 화면 단위 추이는 준비 화면
+          그래프(PrepScreen)에서 계속 쓴다. */}
       {tab === 'history' && (
         <HistoryScreen
           {...shared}
           sessions={sessions} manager={manager} avatar={smallAvatar} renderAvatar={renderAvatar}
-          healthHistory={healthHistory}
           healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
           onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
