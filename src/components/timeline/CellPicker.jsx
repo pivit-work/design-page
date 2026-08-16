@@ -72,7 +72,10 @@ export default function CellPicker({
           role="menuitem"
           onClick={() => {
             onClose();
-            onEvent?.(hour);
+            // 시각뿐 아니라 **셀의 날짜**도 함께 올려 보낸다. 시각만 넘기면 호스트가
+            // "오늘" 로 가정할 수밖에 없어, 다른 날을 띄워 놓고 클릭해도 오늘 날짜로
+            // 이벤트가 생성된다 (PW-262).
+            onEvent?.(hour, date);
           }}
         >
           <span className="tl-cell-picker-ico">

@@ -343,9 +343,10 @@ export default function TimelineCanvas({
   const handleAddGroupClick = onAddGroup ?? (() => setGroupAddOpen(true));
   const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
   const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
-  // hour 는 셀 피커에서 클릭한 시각(정수). 툴바 버튼은 hour 없이 호출.
-  const handleAddEventClick = (hour) => {
-    if (onAddEvent) onAddEvent(hour);
+  // hour 는 셀 피커에서 클릭한 시각(정수), date 는 그 셀의 날짜(`YYYY-MM-DD`).
+  // 툴바 버튼은 둘 다 없이 호출한다 — 호스트가 "오늘" 을 기본값으로 쓰면 된다.
+  const handleAddEventClick = (hour, date) => {
+    if (onAddEvent) onAddEvent(hour, date);
     else setEventAddOpen(true);
   };
   const handleAddGroup = (name) => {
