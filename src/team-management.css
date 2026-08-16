@@ -832,6 +832,21 @@
   margin: 0 0 16px;
   white-space: pre-line;
 }
+/* 선택적 부수 동작 체크박스 (예: 조직장 해제 시 권한 함께 변경) — 기본 OFF 전제. */
+.tm-modal-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.tm-modal-check input { cursor: pointer; }
 /* "이 변경이 함께 일으키는 일" 보조 안내 — 경고가 아니라 사실 나열이라 무채색이다. */
 .tm-modal-notes {
   list-style: none;
