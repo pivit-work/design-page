@@ -100,6 +100,8 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
   const pos = positions[memberId] || { x: 0, y: 0 };
   const absX = Math.abs(pos.x);
   // detach 히스테리시스: 200 을 넘어야 detach, 50 아래로 돌아와야 복귀.
+  // 단위는 **캔버스 로컬 px**(카드 폭과 같은 좌표계)이라 배율과 무관하게
+  // "카드 한 장 폭쯤 끌어냈으면 떼어낸 것" 으로 일정하게 판정된다(PW-248).
   // "Adjusting state while rendering" 패턴으로 state 로 관리 — ref 를
   // 렌더 중 읽는 안티패턴을 피한다.
   const [isDetached, setIsDetached] = useState(false);

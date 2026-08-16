@@ -24,7 +24,11 @@ export function usePositions() {
 const DRAG_THRESHOLD_PX = 4;
 
 export function useDrag(nodeId, onDrop, onDragMove) {
-  const { positions, updatePosition } = usePositions();
+  // scale 은 캔버스 배율. 카드의 translate 는 `scale(s)` 가 걸린 `.canvas-inner`
+  // **안쪽** 좌표계라, 화면에서 잰 마우스 이동량(px)을 그대로 넣으면 카드는
+  // s 배만큼만 움직여 커서와 점점 벌어진다(PW-248: 첫 화면 배율 0.5 에서
+  // 300px 끌면 카드는 150px). 화면 → 로컬 변환으로 s 를 나눠 준다.
+  const { positions, updatePosition, scale = 1 } = usePositions();
   const saved = positions[nodeId] || { x: 0, y: 0 };
   // dragPos 가 null 이면 positions context 가 소스. 드래그 중에만 로컬
   // 좌표로 덮어써서 부드러운 이동을 보장한다. (context 경유 re-render 가
@@ -43,9 +47,13 @@ export function useDrag(nodeId, onDrop, onDragMove) {
   // useLayoutEffect 로 commit 직후 동기화.
   const onDropRef = useRef(onDrop);
   const onDragMoveRef = useRef(onDragMove);
+  // 드래그 도중에도 휠로 배율이 바뀔 수 있어, onMove 클로저가 낡은 배율을
+  // 붙들지 않도록 ref 로 최신값을 읽는다.
+  const scaleRef = useRef(scale);
   useLayoutEffect(() => {
     onDropRef.current = onDrop;
     onDragMoveRef.current = onDragMove;
+    scaleRef.current = scale;
   });
 
   const onDown = (e) => {
@@ -61,8 +69,9 @@ export function useDrag(nodeId, onDrop, onDragMove) {
       if (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX) {
         didDragRef.current = true;
       }
-      const nx = startPos.current.x + dx;
-      const ny = startPos.current.y + dy;
+      const s = scaleRef.current || 1;
+      const nx = startPos.current.x + dx / s;
+      const ny = startPos.current.y + dy / s;
       const pos = { x: nx, y: ny };
       setDragPos(pos);
       updatePosition(nodeId, pos);

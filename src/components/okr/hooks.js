@@ -29,7 +29,10 @@ const CLICK_THRESHOLD = 5;
  * 호출한다(상세 모달 열기). 오프셋은 컨텍스트를 통해 저장·복원된다.
  */
 export function useOkrDrag(blockId, onClick) {
-  const { positions, updatePosition } = useOkrPositions();
+  // scale 은 캔버스 배율. 블록의 translate 는 `scale(s)` 가 걸린
+  // `.okr-canvas-inner` 안쪽 좌표계라, 화면에서 잰 마우스 이동량을 그대로
+  // 넣으면 블록이 s 배만 움직여 커서와 벌어진다(조직도 PW-248 과 동일).
+  const { positions, updatePosition, scale = 1 } = useOkrPositions();
   const saved = positions[blockId] || { x: 0, y: 0 };
   // 드래그 중에만 로컬 좌표로 덮어써 부드러운 이동을 보장한다.
   const [dragPos, setDragPos] = useState(null);
@@ -41,7 +44,12 @@ export function useOkrDrag(blockId, onClick) {
   // 최신 콜백을 ref 에 기록 — 렌더 중 .current 갱신을 피하기 위해
   // useLayoutEffect 로 commit 직후 동기화 (조직도 useDrag 와 동일).
   const onClickRef = useRef(onClick);
-  useLayoutEffect(() => { onClickRef.current = onClick; });
+  // 드래그 도중 휠 줌이 일어나도 onMove 가 최신 배율을 읽도록 ref 로 둔다.
+  const scaleRef = useRef(scale);
+  useLayoutEffect(() => {
+    onClickRef.current = onClick;
+    scaleRef.current = scale;
+  });
 
   const onDown = (e) => {
     e.stopPropagation();
@@ -50,9 +58,10 @@ export function useOkrDrag(blockId, onClick) {
     setDragPos(current);
 
     const onMove = (ev) => {
+      const s = scaleRef.current || 1;
       const pos = {
-        x: startPos.current.x + (ev.clientX - startMouse.current.x),
-        y: startPos.current.y + (ev.clientY - startMouse.current.y),
+        x: startPos.current.x + (ev.clientX - startMouse.current.x) / s,
+        y: startPos.current.y + (ev.clientY - startMouse.current.y) / s,
       };
       setDragPos(pos);
       updatePosition(blockId, pos);
