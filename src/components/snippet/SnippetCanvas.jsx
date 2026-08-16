@@ -19,8 +19,12 @@ import assetUrl from '../shared/assetUrl.js';
  *
  * 모든 데이터는 props 로 받는다.
  */
+// 기간 빠른 선택 5종 — 기획 daily-snippet-spec §11.2/§11.3 정본
+// (이번 주 / 지난 주 / 이번 달 / 지난 달 / 전체). "지난 주" 가 빠져 있어
+// "지난 월~일" 한 주를 한 번에 잡을 방법이 없었다(PW-145).
 const PERIOD_ITEMS = [
-  { value: 'thisWeek', label: '이번주' },
+  { value: 'thisWeek', label: '이번 주' },
+  { value: 'lastWeek', label: '지난 주' },
   { value: 'thisMonth', label: '이번 달' },
   { value: 'lastMonth', label: '지난 달' },
   { value: 'all', label: '전체' },
