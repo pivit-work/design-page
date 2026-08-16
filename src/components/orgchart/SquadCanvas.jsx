@@ -88,6 +88,8 @@ export default function SquadCanvas({
   onSetLead,
   onMemberClick,
   onSubTabChange,
+  // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
+  showProjectTab = true,
 }) {
   const [hov, setHov] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -296,7 +298,9 @@ export default function SquadCanvas({
   const tabStrip = (
     <div className="tab-nav">
       <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>조직도</span>
-      <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+      {showProjectTab && (
+        <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+      )}
       <span className="tab-active">스쿼드</span>
     </div>
   );

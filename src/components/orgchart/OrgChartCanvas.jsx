@@ -33,7 +33,9 @@ function collapsedBelowRoot(root) {
 // 못 읽어서 "보인다" 고 할 수 없다 — 나머지는 드래그로 본다.
 const MIN_FIT_SCALE = 0.5;
 
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false }) {
+// 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
+// (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
   const [collapsedIds, setCollapsedIds] = useState(() => collapsedBelowRoot(initialOrgData));
@@ -187,7 +189,9 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       <div className="content-header">
         <div className="tab-nav">
           <span className="tab-active">조직도</span>
-          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+          {showProjectTab && (
+            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+          )}
           <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>스쿼드</span>
         </div>
         <div className="header-subtitle">
