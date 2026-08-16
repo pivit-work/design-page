@@ -36,7 +36,8 @@ export default function OkrDashboardCanvas({ data, icons, baseUrl = '', onBlockC
   const openGroup = (groupId) => onBlockClick && onBlockClick(groupId);
 
   return (
-    <OkrPositionsContext.Provider value={{ positions, updatePosition }}>
+    // scale 은 블록 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248).
+    <OkrPositionsContext.Provider value={{ positions, updatePosition, scale }}>
       <div
         className="canvas-area okr-canvas-area"
         ref={canvasRef}

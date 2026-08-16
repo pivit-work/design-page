@@ -176,7 +176,8 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   }, [orgData, fitNonce, setView, canvasRef]);
 
   return (
-    <PositionsContext.Provider value={{ positions, updatePosition }}>
+    // scale 은 카드 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248).
+    <PositionsContext.Provider value={{ positions, updatePosition, scale }}>
     <ModalContext.Provider value={{ openModal }}>
     <MoveContext.Provider value={{ moveMember }}>
     <CollapseContext.Provider value={collapseContext}>
