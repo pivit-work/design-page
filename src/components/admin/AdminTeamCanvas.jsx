@@ -63,11 +63,7 @@ const DEFAULT_LABELS = {
   leaderScopeNote: '조직장 권한 범위는 ‘{{team}}’과 그 하위 팀입니다',
   leaderHistoryNote: '이 변경은 발령 이력에 기록됩니다',
   leaderVacantNote: '이 팀은 조직장 미지정 상태가 됩니다 (정상 상태입니다)',
-  // 조직장에서 내려오면 권한도 함께 내려간다 — 어드민이 고르는 선택이 아니라
-  // 서버가 정하는 결과이므로 체크박스가 아니라 예고 문구다(PW-183).
-  leaderDemoteNotice: '권한도 ‘멤버’로 함께 변경됩니다.',
-  leaderKeepRoleNotice: '다른 팀의 조직장을 겸하고 있어 권한은 유지됩니다.',
-  leaderReplaceDemoteNotice: '{{name}}님의 권한도 ‘멤버’로 함께 변경됩니다.',
+  leaderDemoteCheckbox: '권한을 ‘멤버’로 함께 변경',
   leaderAssignConfirm: '조직장으로 지정',
   leaderReleaseConfirm: '해제',
   leaderResignedHint: '퇴사자는 조직장으로 지정할 수 없습니다',
@@ -148,22 +144,28 @@ function filterTree(nodes, query) {
 /**
  * 확인 모달.
  *
- * `body` 는 "이 변경이 무엇을 함께 바꾸는지" 를 예고하는 문장, `notes` 는 그 밖의
- * 보조 안내를 한 줄씩 나열한다(· 로 시작).
- *
- * 부수 동작을 사용자가 고르는 체크박스는 두지 않는다 — 조직장 해제의 권한 강등이
- * 그런 체크박스였는데, 기본 OFF 라 사실상 아무도 켜지 않아 "조직장이 아닌데 매니저
- * 권한은 그대로" 인 사람이 쌓였다(PW-183). 규칙이 정해진 부수 동작은 서버가 하고
- * 모달은 결과를 예고한다.
+ * `notes` 는 "이 변경이 함께 일으키는 일" 을 한 줄씩 나열하는 보조 안내다(· 로 시작).
+ * `checkbox` 는 선택적 부수 동작 — 조직장 해제 시의 "권한을 멤버로 함께 변경" 처럼
+ * **기본 OFF** 로 두고 사용자가 켤 때만 일어나야 하는 것에만 쓴다.
  */
 function ConfirmModal({
-  title, body, notes, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
+  title, body, notes, checkbox, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
 }) {
   return (
     <div className="tm-modal-overlay" onClick={onCancel}>
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="tm-modal-title">{title}</h3>
         {body && <p className="tm-modal-sub">{body}</p>}
+        {checkbox && (
+          <label className="tm-modal-check">
+            <input
+              type="checkbox"
+              checked={!!checkbox.checked}
+              onChange={(e) => checkbox.onChange?.(e.target.checked)}
+            />
+            <span>{checkbox.label}</span>
+          </label>
+        )}
         {notes && notes.length > 0 && (
           <ul className="tm-modal-notes">
             {notes.map((n) => <li key={n}>{n}</li>)}
@@ -185,39 +187,35 @@ function ConfirmModal({
  * 자격을 떼고** 대상의 권한을 매니저로 올리며, 해제는 그 팀을 조직장 없는 상태로
  * 만든다. 그래서 "무엇이 함께 바뀌는지" 를 먼저 보여주고 확인을 받는다.
  *
- * 자리에서 내려오면 매니저 권한도 함께 내려간다(PW-183). 예전엔 이것이 기본 OFF
- * 체크박스였는데, 거의 켜지지 않아 "조직장이 아닌데 매니저 화면은 계속 보이는"
- * 사람이 쌓였다. 이제 결과가 정해져 있으므로 **고르는 체크박스가 아니라 예고
- * 문구**로 보여 준다. 두 경우는 권한이 유지되므로 예고하지 않는다:
- * - 다른 팀 조직장을 겸하고 있으면 — 조직장인데 멤버 권한인 모순 상태가 된다
- * - 어드민 이상이면 — 어드민 권한은 조직장 여부에서 파생된 것이 아니다
+ * 강등 체크박스는 **기본 OFF** 이며, 다른 팀 조직장을 겸하고 있거나 어드민인
+ * 대상에게는 아예 렌더하지 않는다 — 조직장 자격이 남아 있는데 권한만 떼면 즉시
+ * 모순 상태가 되고, 어드민 권한은 조직장 여부에서 파생된 것이 아니기 때문이다.
+ *
+ * 🔴 이 체크박스를 없애고 "서버가 자동으로 내린다" 는 예고 문구로 바꾼 적이 있다
+ * (PW-183, #231). 2026-08-16 에 되돌렸다(PW-286) — 기획서 §1-3-f L11 이 정본이고
+ * "자동 강등은 하지 않는다. 해제 시 확인 모달에서 체크박스로 제안(기본 OFF)하고
+ * 실행 여부는 어드민이 선택한다" 가 정본의 문장이다. 구현이 더 최신이라는 이유로
+ * 기획을 덮어쓰지 않는다.
  */
 function LeaderConfirmModal({
-  state, teamName, currentLeader, labels, onConfirm, onCancel,
+  state, teamName, currentLeader, labels, demoteChecked, onDemoteChange, onConfirm, onCancel,
 }) {
   const { member, mode } = state;
   const assigning = mode === 'assign';
-
-  // 조직장에서 내려오는 이 사람의 권한이 함께 내려가는지 — 판정 근거는 서버와 같다
-  // (매니저인데 다른 팀 조직장 겸직이 아닐 때만).
-  const demotes = (m) => !!m && m.role === 'manager' && !m.leadsOtherTeams;
 
   const bodyLines = [];
   if (assigning) {
     if (currentLeader && currentLeader.id !== member.id) {
       bodyLines.push(fill(labels.leaderReplaceNotice, { name: currentLeader.name }));
-      // 교체로 밀려나는 것도 그 사람에게는 조직장에서 내려오는 것이다.
-      if (demotes(currentLeader)) {
-        bodyLines.push(fill(labels.leaderReplaceDemoteNotice, { name: currentLeader.name }));
-      }
     }
     // 이미 매니저 이상인 사람에게 "승격됩니다" 를 보이면 잘못된 기대를 만든다.
     if (member.role === 'member') bodyLines.push(labels.leaderPromoteNotice);
-  } else if (demotes(member)) {
-    bodyLines.push(labels.leaderDemoteNotice);
-  } else if (member.role === 'manager' && member.leadsOtherTeams) {
-    bodyLines.push(labels.leaderKeepRoleNotice);
   }
+
+  const showDemote = !assigning
+    && !member.leadsOtherTeams
+    && member.role !== 'admin'
+    && member.role !== 'ceo';
 
   return (
     <ConfirmModal
@@ -225,6 +223,9 @@ function LeaderConfirmModal({
         ? fill(labels.leaderAssignTitle, { name: member.name, team: teamName })
         : fill(labels.leaderReleaseTitle, { team: teamName })}
       body={bodyLines.join(' ')}
+      checkbox={showDemote
+        ? { label: labels.leaderDemoteCheckbox, checked: demoteChecked, onChange: onDemoteChange }
+        : null}
       notes={assigning
         ? [fill(labels.leaderScopeNote, { team: teamName }), labels.leaderHistoryNote]
         : [labels.leaderVacantNote, labels.leaderHistoryNote]}
@@ -320,8 +321,10 @@ export default function AdminTeamCanvas({
   const [inlineCreateParentId, setInlineCreateParentId] = useState(null);
   const [inlineCreateValue, setInlineCreateValue] = useState('');
   const [confirmModal, setConfirmModal] = useState(null);
-  // 조직장 지정·해제 확인 모달.
+  // 조직장 지정·해제 확인 모달 — 체크박스 상태를 모달 밖에서 들고 있어야 확인
+  // 시점에 값을 읽을 수 있다. 열 때마다 false 로 되돌린다(M1).
   const [leaderModal, setLeaderModal] = useState(null);
+  const [demoteChecked, setDemoteChecked] = useState(false);
 
   // Toast (캔버스 소유)
   const [toast, setToast] = useState(null);
@@ -373,6 +376,7 @@ export default function AdminTeamCanvas({
       const m = selectedTeam?.members?.find((x) => x.id === memberId);
       if (!m) return;
       if (!m.isLeader && m.canBeLeader === false) return; // G2 — 퇴사자 지정 불가
+      setDemoteChecked(false); // M1 — 강등 체크박스는 언제나 기본 OFF
       setLeaderModal({ teamId, member: m, mode: m.isLeader ? 'release' : 'assign' });
       return;
     }
@@ -385,13 +389,13 @@ export default function AdminTeamCanvas({
   const commitLeaderChange = useCallback(() => {
     if (!leaderModal) return;
     const { teamId, member, mode } = leaderModal;
+    const alsoDemoteRole = mode === 'release' && demoteChecked;
     setLeaderModal(null);
-    // 권한 강등 여부는 서버가 정한다(PW-183) — 화면이 옵션으로 실어 보내지 않는다.
     void run(
-      () => onMemberAction?.('setLeader', teamId, member.id),
+      () => onMemberAction?.('setLeader', teamId, member.id, { alsoDemoteRole }),
       mode === 'release' ? L.toastLeaderUnset : L.toastLeaderSet,
     );
-  }, [leaderModal, run, onMemberAction, L]);
+  }, [leaderModal, demoteChecked, run, onMemberAction, L]);
 
   const requestDelete = useCallback((nodeId) => {
     const node = findNode(tree, nodeId);
@@ -602,6 +606,8 @@ export default function AdminTeamCanvas({
           teamName={selectedTeam?.name ?? ''}
           currentLeader={selectedTeam?.members?.find((m) => m.isLeader) ?? null}
           labels={L}
+          demoteChecked={demoteChecked}
+          onDemoteChange={setDemoteChecked}
           onConfirm={commitLeaderChange}
           onCancel={() => setLeaderModal(null)}
         />
