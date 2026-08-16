@@ -17,7 +17,9 @@ import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FIL
  *
  * 시안 대비 차이 (pivit-work 데이터 모델에 맞춤):
  *  - 권한(role) 은 읽기 전용 배지 — 권한 변경은 RBAC 화면 소관.
- *  - 매니저(managerName) 는 조직장에서 파생되는 읽기 전용 값.
+ *  - 매니저(managerId) 는 **직접 배정하는 값**이다 — 후보를 고르는 select 컬럼.
+ *    조직장 자리와는 별개 축이라 어느 쪽도 다른 쪽을 파생시키지 않는다(PW-292).
+ *    대표 행만 예외로 배정할 수 없다(조직 최상위는 상급자를 가질 수 없다).
  *  - 상태는 백엔드 employmentStatus enum(active/on_leave/terminated) 을 쓴다.
  *  - 연봉(salary) 은 canViewSalary=true(=org_admin) 일 때만 표시·편집.
  *  - 어드민 사이드 레일/브레드크럼은 앱 셸이 제공하므로 제거, content-area 안에 들어간다.
@@ -57,7 +59,15 @@ const STATUS_OPTIONS = ['active', 'on_leave', 'terminated', 'pending'];
 const ROLE_OPTIONS = ['admin', 'manager', 'member'];
 
 // select 셀·일괄바의 옵션 라벨(권한=ROLE_META, 상태=STATUS_META).
-function optionLabel(colId, o) {
+//
+// 컬럼이 `optionLabels`(값 → 라벨)를 들고 오면 그걸 먼저 쓴다. 매니저 컬럼처럼 옵션이
+// 조직 데이터에서 오는 경우 — 값은 사용자 id, 화면은 이름 — 모듈 상수로는 라벨을 만들
+// 수 없기 때문이다. 라벨이 없으면 원본 값을 그대로 두지 않고 '—' 로 — id 나 코드값이
+// 화면에 새는 것을 막는다.
+function optionLabel(col, o) {
+  const colId = typeof col === 'string' ? col : col?.id;
+  const labels = typeof col === 'string' ? null : col?.optionLabels;
+  if (labels) return labels[o] ?? (o === '' ? labels[''] ?? '—' : '—');
   if (colId === 'orgRole') return ROLE_META[o]?.label || o;
   return STATUS_META[o]?.label || o;
 }
@@ -79,7 +89,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'workLocation', 'orgRole', 'employmentStatus', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -260,6 +270,10 @@ function mapMembers(list) {
     // COLUMNS 에 넣지 않고 행에만 실어둔다.
     isCeo: m.isCeo === true,
     employmentStatus: m.employmentStatus ?? 'active',
+    // 매니저는 id 로 편집한다 — 이름은 동명이인이 있으면 사람을 특정하지 못한다.
+    // managerName 은 후보 목록에 없는 사람(퇴사한 옛 상급자·CSV 상급자_사번 폴백)을
+    // 표시하기 위한 읽기 전용 보조값이다.
+    managerId: m.managerId ?? '',
     managerName: m.managerName ?? '',
     hireDate: m.hireDate ?? '',
     terminationDate: m.terminationDate ?? '',
@@ -269,7 +283,7 @@ function mapMembers(list) {
 }
 
 // ── 인라인 편집 셀 ──────────────────────────────────────
-function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
+function EditCell({ col, row, value, onChange, onKeyDown, autoFocus }) {
   const ref = useRef(null);
   useEffect(() => {
     if (autoFocus) ref.current?.focus();
@@ -289,13 +303,16 @@ function EditCell({ col, value, onChange, onKeyDown, autoFocus }) {
 
   if (col.type === 'select') {
     // 현재 값이 옵션에 없으면(카탈로그에 없는 기존/커스텀 값) 보존해 첫 옵션으로 노출.
-    const opts =
+    let opts =
       value && !col.options.includes(value) ? [value, ...col.options] : col.options;
+    // 자기 자신은 자기 매니저가 될 수 없다 — 후보 목록은 컬럼 단위라 여기서 뺀다.
+    // 서버도 거부하지만(409), 고를 수 있게 두면 저장 후에야 실패를 알게 된다.
+    if (col.excludeSelf && row?.id) opts = opts.filter((o) => o !== row.id);
     return (
       <select ref={ref} value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={{ ...base, cursor: 'pointer' }}>
         {opts.map((o) => (
           <option key={o} value={o}>
-            {optionLabel(col.id, o)}
+            {optionLabel(col, o)}
           </option>
         ))}
       </select>
@@ -475,13 +492,22 @@ function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, prima
       </div>
     );
   }
-  // 대표는 조직 최상위라 상급자가 없다 — 조직장에서 파생된 값이 남아 있어도
-  // 매니저 칸은 '—' 로 비우고 이유를 툴팁으로 알린다(정책 §2).
-  if (col.id === 'managerName' && row.isCeo) {
+  // 대표는 조직 최상위라 상급자가 없다 — 값이 남아 있어도 매니저 칸은 '—' 로 비우고
+  // 이유를 툴팁으로 알린다(정책 §2). 대표 행은 편집 표면도 열리지 않는다.
+  if (col.id === 'managerId' && row.isCeo) {
     return (
       <span title={ceoNoManagerHint || '조직 최상위 — 상급자를 가질 수 없습니다'} style={{ fontSize: 12, color: T.muted }}>
         —
       </span>
+    );
+  }
+  // 매니저 칸은 id 를 담고 있으므로 반드시 이름으로 바꿔 그린다 — 그대로 두면 uuid 가
+  // 화면에 노출된다. 후보 목록에 없는 상급자(퇴사자·CSV 상급자_사번 폴백)는 컬럼
+  // 라벨맵에 없으므로 행이 들고 있는 `managerName` 으로 표시한다.
+  if (col.id === 'managerId') {
+    const label = value ? col.optionLabels?.[value] || row.managerName : row.managerName;
+    return (
+      <span style={{ fontSize: 12, color: label ? T.text : T.muted }}>{label || '—'}</span>
     );
   }
   if (col.id === 'orgRole') {
@@ -849,6 +875,25 @@ export default function AdminEmployeeSheetCanvas({
   // 종전과 같은 평면 동작으로 자연히 폴백한다.
   const orgTree = useMemo(() => buildOrgTree(orgUnitOptions), [orgUnitOptions]);
 
+  /**
+   * 매니저 후보 (PW-292) — 서버의 배정 규칙과 같은 조건으로 좁힌다.
+   *
+   * 고를 수 없는 사람을 목록에 남기면 저장을 눌러야 409 를 만나고, 그 사이 같은 행에서
+   * 함께 고친 다른 칸까지 되돌려야 한다. 조건이 서버와 갈리면 그때부터 화면이 거짓말을
+   * 하므로, 규칙을 바꿀 때는 `manager-assignment.ts` 와 함께 고쳐야 한다.
+   */
+  const managerCandidates = useMemo(
+    () =>
+      members
+        .filter(
+          (m) =>
+            m.employmentStatus !== 'terminated' && (m.orgRole ?? 'member') !== 'member',
+        )
+        .map((m) => ({ id: m.id, name: m.displayName || m.name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko')),
+    [members],
+  );
+
   // ── 컬럼 정의 ──
   const COLUMNS = useMemo(() => {
     const cl = labels.cols || {};
@@ -874,7 +919,22 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
-      { id: 'managerName', label: cl.manager || '매니저', width: 110, type: 'readonly', editable: false },
+      // 매니저 — 직접 배정한다(PW-292). 값은 사용자 id, 화면 라벨은 이름.
+      // 후보 조건은 서버 규칙과 같다: 재직 중 + 권한이 멤버보다 위. 자기 자신 제외는
+      // 행마다 달라 `excludeSelf` 로 셀 편집기가 처리한다.
+      {
+        id: 'managerId',
+        label: cl.manager || '매니저',
+        width: 140,
+        type: 'select',
+        editable: true,
+        excludeSelf: true,
+        options: ['', ...managerCandidates.map((m) => m.id)],
+        optionLabels: {
+          '': labels.unassigned || '— 미배정 —',
+          ...Object.fromEntries(managerCandidates.map((m) => [m.id, m.name])),
+        },
+      },
       { id: 'hireDate', label: cl.hireDate || '입사일', width: 120, type: 'date', editable: true },
       { id: 'terminationDate', label: cl.terminationDate || '퇴사일', width: 120, type: 'date', editable: true },
     ];
@@ -894,7 +954,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions, managerCandidates]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -1190,6 +1250,9 @@ export default function AdminEmployeeSheetCanvas({
         if (!selected.has(r.id)) return r;
         const patch = {};
         fields.forEach((c) => {
+          // 대표는 상급자를 가질 수 없으므로 일괄 배정 대상에서도 뺀다(PW-292).
+          // 셀 편집은 이미 잠겨 있는데 일괄바로는 들어가면 우회로가 된다.
+          if (c.id === 'managerId' && r.isCeo) return;
           patch[c.id] = barValues[c.id];
         });
         return { ...r, ...patch };
@@ -1512,9 +1575,12 @@ export default function AdminEmployeeSheetCanvas({
                 {c.type === 'select' ? (
                   <select value={val} onChange={(e) => setBarValues((prev) => ({ ...prev, [c.id]: e.target.value }))} style={{ padding: '6px 10px', borderRadius: 8, fontSize: 12, fontFamily: T.font, border: `1.5px solid ${active ? T.accent : T.border}`, background: active ? '#EEF2FF' : T.bg, color: active ? T.text : T.muted, cursor: 'pointer', outline: 'none', minWidth: 100 }}>
                     <option value="">{L.bulkNoChange || '— 선택 안 함'}</option>
-                    {c.options.map((o) => (
+                    {/* 빈 값은 이 바에서 이미 "선택 안 함" 이다 — 컬럼이 빈 옵션을
+                        갖고 있어도(매니저 미배정) 여기선 뺀다. 두면 같은 값이 두 줄로
+                        보이고, 일괄 해제와 "안 바꿈" 을 구분할 수 없다. */}
+                    {c.options.filter((o) => o !== '').map((o) => (
                       <option key={o} value={o}>
-                        {optionLabel(c.id, o)}
+                        {optionLabel(c, o)}
                       </option>
                     ))}
                   </select>
@@ -1644,7 +1710,11 @@ export default function AdminEmployeeSheetCanvas({
                     {COLUMNS.map((c, ci) => {
                       const isEditing = editing?.rowId === row.id && editing?.colId === c.id;
                       const cellDirty = isDirty(row.id, c.id);
-                      const editableCell = canEdit && c.editable;
+                      // 대표 행의 매니저 칸만 예외로 잠근다 — 조직 최상위는 상급자를
+                      // 가질 수 없다(PW-292). 서버도 거부하지만, 열리는 셀을 두면
+                      // 어드민이 고른 뒤 저장에서야 막힌다.
+                      const editableCell =
+                        canEdit && c.editable && !(c.id === 'managerId' && row.isCeo);
                       // 파생 컬럼(부서)은 편집 대신 관리 화면으로 보낸다 — 값을 바꾸는 곳이
                       // 어디인지 알려주지 않으면 읽기전용이 그냥 막힌 셀로만 보인다.
                       // 부서 셀: 조직 트리 팝업이 가능하면 그걸 우선한다(화면 이동은 폴백).
@@ -1698,7 +1768,7 @@ export default function AdminEmployeeSheetCanvas({
                           }}
                         >
                           {isEditing ? (
-                            <EditCell col={c} value={row[c.id]} autoFocus onChange={(val) => updateCell(row.id, c.id, val)} onKeyDown={(e) => handleKeyDown(e, row.id, c.id)} />
+                            <EditCell col={c} row={row} value={row[c.id]} autoFocus onChange={(val) => updateCell(row.id, c.id, val)} onKeyDown={(e) => handleKeyDown(e, row.id, c.id)} />
                           ) : (
                             <CellDisplay
                               col={c}

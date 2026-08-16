@@ -15,7 +15,8 @@ import {
  * pivit-specs 의 admin-employees-view.jsx 시안을 design-page 정본으로 포팅.
  *
  * 시안 대비 차이 (pivit-work 데이터 모델에 맞춤):
- *  - "매니저" 는 조직장에서 자동 계산되는 읽기 전용 값 (managerName). 직접 배정 UI 없음.
+ *  - "매니저"(개인 상급자)는 **직접 배정한다** — 미배정 탭의 배정 드롭다운, 전체 구성원
+ *    탭(시트)의 매니저 컬럼. 조직장 자리와는 별개 축이다(PW-292).
  *  - "미배정" 은 조직 단위(orgUnit) 기준. 배정은 orgUnit 선택으로 처리.
  *  - 탭은 2 개: 전체 구성원 / 미배정 관리. (초대 관리는 별도 트랙)
  *
@@ -62,7 +63,13 @@ const DEFAULT_LABELS = {
     noManagerEmpty: '모든 구성원에게 매니저가 배정되었습니다',
     assignOrg: '조직 배정',
     goTeamMgmt: '팀 관리',
-    teamNote: '※ 매니저는 조직장에서 자동 계산됩니다. 조직 구조 변경은 팀 관리 화면에서 진행됩니다.',
+    // PW-292 — 매니저(개인 상급자)는 여기서 직접 배정한다. 종전 문구는
+    // '매니저는 조직장에서 자동 계산됩니다' 였는데, 그 규칙 때문에 조직장이 아닌
+    // 매니저는 담당이 영구히 0명이었다. 두 축은 별개다.
+    assignManager: '매니저 배정',
+    managerSearch: '이름으로 검색',
+    managerNoCandidate: '배정할 수 있는 매니저가 없습니다',
+    teamNote: '※ 매니저(개인 상급자)와 조직장은 별개입니다. 조직장 지정은 팀 관리 화면에서 진행됩니다.',
   },
   invites: {
     summaryPending: '대기중', summaryPendingSub: '수락 대기',
@@ -101,6 +108,9 @@ function merge(base, provided) {
 }
 
 const PAGE_SIZE = 20;
+
+// 기본값으로 쓰는 **고정 빈 배열** — 매 렌더 새 배열을 만들면 하위 memo 가 매번 깨진다.
+const EMPTY_ARRAY = [];
 
 /* ── 배지 ─────────────────────────────────────────────── */
 function StatusBadge({ status, labels }) {
@@ -158,13 +168,98 @@ function hasOrgUnit(m) {
   return Array.isArray(m.orgUnitIds) ? m.orgUnitIds.length > 0 : !!m.department;
 }
 
+/**
+ * 매니저(개인 상급자) 배정 드롭다운 (PW-292).
+ *
+ * 검색을 붙이는 이유는 후보가 조직 인원수만큼 늘어나기 때문이다 — 200명 조직에서
+ * 스크롤로 사람을 찾게 하면 배정 자체를 안 하게 된다.
+ *
+ * 후보 목록은 소비자(page wrapper)가 만들어 넘긴다. 캔버스가 규칙을 갖고 있으면
+ * 서버 규칙과 갈리는 순간 화면이 거짓말을 한다.
+ */
+function ManagerPicker({ candidates, labels, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const ql = q.trim().toLowerCase();
+  const shown = ql
+    ? candidates.filter((c) => (c.label || '').toLowerCase().includes(ql))
+    : candidates;
+
+  return (
+    <div ref={ref} className={`admin-emp-select is-right${open ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        className="admin-emp-btn is-primary is-sm"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => { setOpen((o) => !o); setQ(''); }}
+      >
+        <IconPlus size={13} />{labels.unassigned.assignManager}
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu" role="listbox">
+          <input
+            type="text"
+            className="admin-emp-select-search"
+            value={q}
+            autoFocus
+            placeholder={labels.unassigned.managerSearch}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {shown.length === 0 ? (
+            <div className="admin-emp-select-empty">{labels.unassigned.managerNoCandidate}</div>
+          ) : (
+            shown.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="option"
+                aria-selected="false"
+                className="admin-emp-select-item"
+                onClick={() => { onPick(c.id); setOpen(false); }}
+              >
+                <span className="admin-emp-select-item-label">{c.label}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
-function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onManageTeams }) {
+function UnassignedTab({
+  members, orgUnits, labels, renderAvatar, onAssignOrgUnit,
+  managerCandidates = [], onAssignManager,
+}) {
   const [pickerFor, setPickerFor] = useState(null);
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
   const noOrg = members.filter((m) => !hasOrgUnit(m) && m.employmentStatus !== 'terminated');
-  const noManager = members.filter((m) => hasOrgUnit(m) && !m.managerName && m.employmentStatus !== 'terminated');
+  /**
+   * 매니저 미배정 (PW-292).
+   *
+   * 조직(팀) 배정 여부는 조건에 넣지 않는다 — 팀이 없어도 개인 상급자는 가질 수 있고,
+   * 매니저는 이제 조직장에서 파생되는 값이 아니다. 종전에는 `hasOrgUnit(m) &&` 가
+   * 붙어 있었는데, 그건 매니저가 소속 조직의 조직장에서 계산되던 시절의 전제다.
+   *
+   * 대표는 조직 최상위라 상급자를 가질 수 없으므로 이 목록의 유일한 예외다
+   * (기획 `admin-spec.md §3.3` — 예외는 `is_ceo` 뿐).
+   */
+  const noManager = members.filter(
+    (m) => !m.isCeo && !m.managerName && m.employmentStatus !== 'terminated',
+  );
 
   return (
     <div className="admin-emp-unassigned">
@@ -252,9 +347,15 @@ function UnassignedTab({ members, orgUnits, labels, renderAvatar, onAssignOrgUni
                   </div>
                 </div>
                 <StatusBadge status={m.employmentStatus} labels={labels} />
-                <button type="button" className="admin-emp-btn is-soft is-sm" onClick={onManageTeams}>
-                  {labels.unassigned.goTeamMgmt}<IconChevronRight size={13} />
-                </button>
+                {/* 미배정을 보여만 주고 그 자리에서 못 고치면 어드민이 갈 곳이 없다.
+                    핸들러가 없으면(권한 없음) 버튼 자체가 안 뜬다. */}
+                {onAssignManager && (
+                  <ManagerPicker
+                    candidates={managerCandidates.filter((c) => c.id !== m.id)}
+                    labels={labels}
+                    onPick={(managerId) => onAssignManager(m.id, managerId)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -453,6 +554,15 @@ export default function AdminEmployeesCanvas({
   onCsvUpload,
   onManageTeams,
   /**
+   * 매니저(개인 상급자) 배정 (PW-292). `(memberId, managerId) => void`.
+   *
+   * 미주입이면 미배정 탭의 배정 버튼이 아예 안 뜬다 — 눌러도 아무 일도 안 하는
+   * 버튼을 보여줄 이유가 없다(초대 발송과 같은 계약).
+   */
+  onAssignManager,
+  /** 매니저 후보 `[{ id, label }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다. */
+  managerCandidates = EMPTY_ARRAY,
+  /**
    * 일괄 초대 발송 (PW-114). `(rows) => Promise<{sent, failed[]}>`.
    *
    * 미주입이면 두 진입점의 `+ 구성원 초대` 버튼이 아예 안 뜬다 — 콜백 없이 모달만
@@ -603,7 +713,8 @@ export default function AdminEmployeesCanvas({
           labels={labels}
           renderAvatar={renderAvatar}
           onAssignOrgUnit={onAssignOrgUnit}
-          onManageTeams={onManageTeams}
+          managerCandidates={managerCandidates}
+          onAssignManager={canEdit ? onAssignManager : undefined}
         />
       ) : (
         <InvitesTab
