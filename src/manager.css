@@ -224,32 +224,46 @@
    두 겹으로 만든다 — padding 이 곧 링 두께다. */
 .manager-member-hex {
   --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  --hex-ring: 3px;
+  position: relative;
   box-sizing: border-box;
   max-width: 100%;
-  aspect-ratio: 866 / 1000;
-  padding: var(--hex-ring);
-  background: #a7a69f;
-  clip-path: var(--hex-clip);
+  aspect-ratio: 187 / 186; /* Figma 17486:22226 폴리곤 bounds */
 }
 
+/* 디자이너 정본 PNG(hex-gold.png) — 라운드 코너·링·conic 그라데이션·섀도 포함.
+   PNG 에 섀도 여백이 들어 있어 히트박스보다 크게 겹쳐 그린다 (Figma export inset 값). */
+.manager-member-hex-bg {
+  position: absolute;
+  top: -10.25%;
+  left: -5.62%;
+  /* img 는 width:auto 면 inset 을 무시하고 고유 크기로 렌더되므로 명시한다.
+     111.24% = 100 + 5.62×2, 123.17% = 100 + 10.25 + 12.92 (Figma export 여백). */
+  width: 111.24%;
+  height: 123.17%;
+  pointer-events: none;
+}
+
+/* 아바타/이니셜 레이어 — 링 안쪽(≈8px@302)만큼 인셋한 육각형으로 클리핑. */
 .manager-member-hex-face {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 2.6%;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   clip-path: var(--hex-clip);
-  /* 장면의 금색 면 — 가운데가 진하고 가장자리로 갈수록 밝아지는 광택. */
-  background: linear-gradient(135deg, #fff0b0 0%, #ffd400 42%, #ffd400 62%, #fff0b0 100%);
 }
 
+/* 직원 사진 노출 — Figma 17486:22226 실측: 사진 폭 = 헥사 폭의 105.4%,
+   상단은 헥사 top 에 정렬, 가로 중앙. face(inset 2.6%) 기준으로 환산한 값이다:
+   105.4/94.8 ≈ 111%, top (0.1%−2.6%)/94.8 ≈ −2.6%. 넘치는 부분은 육각형에 잘린다. */
 .manager-member-hex-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  position: absolute;
+  top: -2.6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 111%;
+  height: auto;
   display: block;
 }
 
@@ -1150,11 +1164,11 @@
 .mgr-ts-seg-btn.is-active { background: var(--fg-light); border: 0.5px solid var(--fg-quaternary); color: var(--text-secondary); filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08)); }
 .mgr-ts-chip.is-redflag { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 .mgr-ts-chip.is-redflag b { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 999px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
-.mgr-ts-chip.is-redflag.is-active { background: var(--utility-error-50); color: var(--utility-error-700); }
+.mgr-ts-chip.is-redflag.is-active { background: var(--bg-tertiary); }
 
 /* 제출 현황 */
 .mgr-ts-submit { display: flex; flex-direction: column; gap: 2px; }
-.mgr-ts-submit-label { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
+.mgr-ts-submit-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-submit-count { font-size: 36px; font-weight: 700; line-height: 44px; color: var(--text-primary); }
 
 .mgr-ts-body { display: flex; gap: 10px; align-items: flex-start; }
@@ -1176,9 +1190,9 @@
 .mgr-ts-health-name { flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .mgr-ts-dots { display: flex; gap: 4px; }
 .mgr-ts-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
-.mgr-ts-dot.is-good { background: #53af71; /* TODO: token 없음 — Figma 17027:26133 raw */ }
-.mgr-ts-dot.is-warn { background: #e99537; /* TODO: token 없음 */ }
-.mgr-ts-dot.is-bad { background: #c83e2e; /* TODO: token 없음 */ }
+.mgr-ts-dot.is-good { background: var(--fg-success-secondary); }
+.mgr-ts-dot.is-warn { background: var(--fg-warning-secondary); }
+.mgr-ts-dot.is-bad { background: var(--fg-error-primary); }
 .mgr-ts-dot.is-empty { background: transparent; border: 1px solid var(--border-secondary); }
 .mgr-ts-health-divider { height: 1px; background: var(--border-secondary); margin: 0 -4px; }
 .mgr-ts-health-legend { display: flex; gap: 9px; padding: 16px; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
@@ -1195,44 +1209,46 @@
 .mgr-ts-feed-tab { flex: 1; text-align: center; padding-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid var(--border-secondary); }
 .mgr-ts-feed-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
 
-.mgr-ts-filterbar { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-ts-filter-chip { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.mgr-ts-filter-chip.is-member { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
-.mgr-ts-filter-chip.is-flag { background: var(--utility-error-50); color: var(--utility-error-500); }
+/* 필터 바 — Figma 17421:19533 (칩 radius 8, brand-100/error-100 배경, 12 Medium) */
+.mgr-ts-filterbar { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
+.mgr-ts-filter-chip { padding: 3px 4px 3px 8px; border-radius: 8px; border: 1px solid var(--alpha-black-3); font-size: 12px; font-weight: 500; line-height: 18px; cursor: pointer; }
+.mgr-ts-filter-chip.is-member { background: var(--utility-brand-100); color: var(--text-brand-secondary); }
+.mgr-ts-filter-chip.is-flag { background: var(--utility-error-100); color: var(--text-error-primary); }
+.mgr-ts-filterbar-count { color: var(--text-tertiary); }
 
 /* 날짜별 */
 .mgr-ts-dategroup { display: flex; flex-direction: column; gap: 24px; }
-.mgr-ts-date { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--fg-primary); }
-.mgr-ts-card { border-bottom: 1px solid var(--border-secondary); padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
+.mgr-ts-date { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
+.mgr-ts-card { border-bottom: 0.5px solid var(--border-primary); padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
 .mgr-ts-card-head { display: flex; align-items: center; gap: 12px; }
 .mgr-ts-card-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
 .mgr-ts-card-who { flex: 1; min-width: 0; }
-.mgr-ts-card-name { font-size: 18px; font-weight: 700; line-height: 26px; color: var(--fg-primary); }
-.mgr-ts-card-role { font-size: 14px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-ts-card-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
+.mgr-ts-card-role { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 /* 시간/컨디션은 이름 컬럼과 동일 폭의 좌측 정렬 컬럼 — 카드 중앙에서 시작 (Figma 17027:26067) */
 .mgr-ts-card-when { flex: 1; min-width: 0; text-align: left; }
-.mgr-ts-card-time { font-size: 18px; font-weight: 600; line-height: 26px; color: var(--text-primary); }
-.mgr-ts-card-submit { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-ts-score { min-width: 34px; text-align: center; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; }
-.mgr-ts-score.is-good { background: var(--utility-success-50); color: var(--utility-success-500); }
-.mgr-ts-score.is-warn { background: var(--utility-warning-50); color: var(--utility-warning-500); }
-.mgr-ts-score.is-bad { background: var(--utility-error-50); color: var(--utility-error-500); }
-.mgr-ts-warning { padding: 5px 10px; border-radius: 6px; background: var(--utility-error-50); font-size: 12px; font-weight: 600; color: var(--utility-error-500); }
-.mgr-ts-card-text { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); }
+.mgr-ts-card-time { font-size: 18px; font-weight: 500; line-height: 28px; color: var(--text-primary); }
+.mgr-ts-card-submit { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+.mgr-ts-score { min-width: 34px; box-sizing: border-box; text-align: center; padding: 4px 10px; border-radius: 10px; font-size: 14px; font-weight: 500; line-height: 24px; }
+.mgr-ts-score.is-good { background: var(--utility-success-50); border: 1px solid var(--utility-success-200); color: var(--utility-success-700); }
+.mgr-ts-score.is-warn { background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); color: var(--utility-warning-700); }
+.mgr-ts-score.is-bad { background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-700); }
+.mgr-ts-warning { padding: 6px 8px; border-radius: 8px; background: var(--bg-error-primary); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
+.mgr-ts-card-text { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-tags { display: flex; gap: 8px; }
-.mgr-ts-tag { padding: 3px 12px; border-radius: 999px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.mgr-ts-tag { padding: 2px 8px; border-radius: 999px; background: var(--utility-gray-50); border: 1px solid var(--utility-gray-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-gray-700); }
 .mgr-ts-kr { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
-.mgr-ts-kr-label { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-ts-kr-row { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
-.mgr-ts-kr-name { font-weight: 700; color: var(--text-primary); }
-.mgr-ts-kr-okr { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-ts-kr-okr b { color: var(--utility-success-500); font-weight: 700; margin-left: 4px; }
-.mgr-ts-kr-track { height: 12px; background: var(--utility-gray-200); border-radius: 999px; }
-.mgr-ts-kr-fill { height: 12px; border-radius: 999px; }
+.mgr-ts-kr-label { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+.mgr-ts-kr-row { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.mgr-ts-kr-name { font-weight: 600; line-height: 20px; color: var(--text-secondary); }
+.mgr-ts-kr-okr { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.mgr-ts-kr-okr b { font-family: 'SUIT', var(--font-family-body); font-weight: 800; line-height: 24px; color: var(--text-brand-tertiary); margin-left: 12px; }
+.mgr-ts-kr-track { height: 12px; background: var(--bg-secondary); border-radius: 4px; }
+.mgr-ts-kr-fill { height: 12px; border-radius: 4px; }
 .mgr-ts-kr-fill.is-good { background: var(--utility-success-200); }
 .mgr-ts-kr-fill.is-blue { background: var(--utility-blue-200); }
 .mgr-ts-kr-fill.is-bad { background: var(--utility-error-200); }
-.mgr-ts-oneonone { align-self: flex-end; padding: 7px 16px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.mgr-ts-oneonone { align-self: flex-end; box-sizing: border-box; min-width: 127px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 
 /* KR별 — Figma 17421:18469 (그룹 py24·헤더↔리스트 32·헤더 내부 12·행 간 8) */
 .mgr-ts-krgroup { display: flex; flex-direction: column; gap: 32px; padding: 24px 0; }

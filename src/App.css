@@ -1,5 +1,9 @@
 /* ── Layout ── */
-.app { width: 100vw; height: 100vh; position: relative; overflow: hidden; background: var(--bg-primary); }
+/* 모든 페이지 최소 폭 1400px. 셸(사이드바/톱냅)과 각 페이지 루트가 전부
+   position:fixed 라 viewport 가 아닌 .app 을 containing block 으로 잡아야
+   min-width 가 전 페이지에 먹는다 — transform 이 그 역할(스펙상 transformed
+   ancestor 는 fixed 의 기준이 된다). 창이 1400 미만이면 문서가 가로 스크롤된다. */
+.app { width: 100vw; min-width: 1400px; height: 100vh; position: relative; overflow: hidden; background: var(--bg-primary); transform: translateZ(0); }
 
 /* ── Sidebar ── */
 .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; padding: 8px 20px 20px; z-index: 100; }

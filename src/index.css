@@ -84,7 +84,18 @@
   --utility-purple-500: var(--componentColors-utility-purple-utilityPurple500);
 
   /* Component Colors — 1on1 (linked to design system tokens) */
+  --utility-brand-100: var(--componentColors-utility-brand-utilityBrand100);
   --utility-brand-200: var(--componentColors-utility-brand-utilityBrand200);
+  --utility-brand-500: var(--componentColors-utility-brand-utilityBrand500);
+  --utility-brand-700: var(--componentColors-utility-brand-utilityBrand700);
+  --utility-blue-700: var(--componentColors-utility-blue-utilityBlue700);
+  --utility-indigo-50: var(--componentColors-utility-indigo-utilityIndigo50);
+  --utility-indigo-200: var(--componentColors-utility-indigo-utilityIndigo200);
+  --utility-indigo-700: var(--componentColors-utility-indigo-utilityIndigo700);
+  --utility-pink-200: var(--componentColors-utility-pink-utilityPink200);
+  --utility-pink-500: var(--componentColors-utility-pink-utilityPink500);
+  --border-brand: var(--colors-border-borderBrand);
+  --text-error-primary: var(--colors-text-textErrorPrimary);
   --utility-blue-light-50: var(--componentColors-utility-blueLight-utilityBlueLight50);
   --utility-blue-light-100: var(--componentColors-utility-blueLight-utilityBlueLight100);
   --utility-blue-light-400: var(--componentColors-utility-blueLight-utilityBlueLight400);
@@ -130,6 +141,7 @@
   --fg-tertiary: var(--colors-foreground-fgTertiary);
   --fg-brand-primary: var(--colors-foreground-fgBrandPrimary);
   --fg-success-secondary: var(--colors-foreground-fgSuccessSecondary);
+  --fg-warning-primary: var(--colors-foreground-fgWarningPrimary);
   --fg-warning-secondary: var(--colors-foreground-fgWarningSecondary);
   --fg-error-primary: var(--colors-foreground-fgErrorPrimary);
   --fg-light: var(--colors-foreground-fgLight);
@@ -140,6 +152,7 @@
   --border-tertiary: var(--colors-border-borderTertiary);
   --alpha-black-3: var(--componentColors-alpha-alphaBlack3);
   --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
+  --alpha-white-80: var(--componentColors-alpha-alphaWhite80);
 
   /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
   --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),

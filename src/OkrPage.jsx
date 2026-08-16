@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   OkrTabNav, OkrToolbar, OkrDashboardCanvas, OkrDetailModal, OkrPersonalCanvas,
-  OkrTeamCanvas, OkrStrategyCanvas, OkrComposeFullModal, OkrSetupWizardModal, Icon,
+  OkrTeamCanvas, OkrStrategyCanvas, OkrComposeFullModal, OkrSetupWizardModal,
+  OkrContextBanner, OkrContextSetupModal, OkrResourceCanvas, Icon,
 } from './components';
 
 /* ── Demo Avatars ── */
@@ -477,6 +478,163 @@ const TEAM_OKR = {
   history: PERSONAL_HISTORY,
 };
 
+/* ── Demo 내 리소스(리소스 투입) — Figma 17478:21448 외 6종.
+   segments/bullets 의 색은 식별 데이터라 토큰 var() 문자열로 실어 보낸다. */
+const RS_AVATARS = {
+  어니스트: 'https://i.pravatar.cc/200?img=59',
+  조아연: 'https://i.pravatar.cc/200?img=47',
+  조이안: 'https://i.pravatar.cc/200?img=44',
+  김시윤: 'https://i.pravatar.cc/200?img=12',
+  이서훈: 'https://i.pravatar.cc/200?img=53',
+  박민준: 'https://i.pravatar.cc/200?img=68',
+  신예은: 'https://i.pravatar.cc/200?img=31',
+  오지후: 'https://i.pravatar.cc/200?img=61',
+  최수빈: 'https://i.pravatar.cc/200?img=36',
+  김지안: 'https://i.pravatar.cc/200?img=15',
+};
+const RS_COMMENTS = [
+  { author: '김시윤', avatar: RS_AVATARS.김시윤, date: '2026.03.15', text: '어니스트, p1+p2 합이 110%인데 한쪽 우선순위 정리 필요해요. p2 비중을 50% 이하로.' },
+  { author: '어니스트', avatar: RS_AVATARS.어니스트, date: '2026.03.15', reply: true, text: '네, 가천대 파일럿 온보딩 끝나는 5월 말부터 p2를 50%로 내리겠습니다.' },
+];
+const RESOURCE_DATA = {
+  title: '리소스 투입',
+  org: '플랫폼 부문',
+  month: '2026-07',
+  owner: '어니스트',
+  role: '부문장 · Org_head',
+  my: {
+    stats: { total: 91, items: 2, kr: [2, 3], status: '과부하' },
+    aiEstimate: {
+      period: '07-03 ~ 07-09',
+      tagged: '태그된 스니핏 8/9건',
+      items: [
+        { name: 'PIVIT V2.0', pct: 60 },
+        { name: '가천대 파일럿', pct: 30 },
+        { name: 'IR 덱 준비', pct: 10 },
+      ],
+    },
+    entries: [
+      { id: 'rs-1', name: 'PIVIT V2.0', tag: '프로덕트 스쿼드', value: 56, estimate: 60 },
+      { id: 'rs-2', name: '가천대 파일럿', tag: '프로덕트 스쿼드', value: 56, estimate: 30, warn: '스니핏 기록과 차이 큼' },
+    ],
+    redFlag: '레드플래그 감지 — 헬스 3회 연속 하락 + 감정 톤 부정 비율 상승',
+    suggestions: [{ name: 'IR 덱 준비', pct: 10 }],
+    // 추가 항목들도 기본 퍼센트(스니핏 추정값)를 갖는다 — 추가 시 그 값이
+    // 슬라이더 초기값·추정치 마커로 반영된다.
+    squads: [
+      { name: 'GTM 스쿼드', items: [{ name: '추정치 적용', pct: 12 }, { name: '엔터프라이즈 세일즈', pct: 8 }] },
+      { name: 'AI 스쿼드', items: [{ name: 'AI 리포트 엔진', pct: 15 }, { name: '데이터 파이프라인', pct: 20 }] },
+      { name: '운영개선 스쿼드', items: [{ name: '온보딩 자동화', pct: 16 }, { name: '파트너 연동', pct: 5 }] },
+    ],
+    krs: [
+      { id: 'KR 1-1', title: 'UI 화면 기획 32개 완성', sub: 'O: PIVIT v2.0 제품 기획 완성 · 연결 프로젝트: PIVIT v2.0', project: 'PIVIT v2.0', pct: 25 },
+      { id: 'KR 1-2', title: '유저 플로우 맵 완성', sub: 'O: PIVIT v2.0 제품 기획 완성 · 연결 프로젝트: PIVIT v2.0', project: 'PIVIT v2.0', pct: 20 },
+      { id: 'KR 1-3', title: '사용자 인터뷰 5건 완료', sub: 'O: 가천대 파일럿 VOC 확보 · 연결 프로젝트: 가천대 파일럿', project: '가천대 파일럿', pct: 15 },
+    ],
+    comments: RS_COMMENTS,
+  },
+  team: {
+    label: '플랫폼 부문 ∙ 직속 2명',
+    stats: { total: 2, relaxed: 0, focused: 0, overloaded: 2 },
+    commentPlaceholder: '예) 어니스트 p2 우선순위 정리 필요. 5월말까지 50% 이하로 조정.',
+    // [코멘트 남기기] 로 달리는 새 코멘트의 작성자(현재 사용자) — 데모는 부문장 어니스트.
+    commentAuthor: { name: '어니스트', avatar: RS_AVATARS.어니스트 },
+    commentDate: '2026.07.10',
+    members: [
+      {
+        name: '어니스트', role: 'CPO', status: '과부하', pct: 56, avatar: RS_AVATARS.어니스트,
+        segments: [
+          { pct: 47, color: 'var(--utility-success-200)' },
+          { pct: 33, color: 'var(--utility-blue-200)' },
+        ],
+        items: [
+          { text: 'PIVIT V2.0 60%', color: 'var(--utility-green-500)' },
+          { text: '가천대 파일럿 60%', color: 'var(--utility-blue-500)' },
+        ],
+        comments: RS_COMMENTS,
+      },
+      {
+        name: '조아연', role: 'CPO', status: '과부하', pct: 56, avatar: RS_AVATARS.조아연,
+        segments: [
+          { pct: 44, color: 'var(--utility-success-200)' },
+          { pct: 24, color: 'var(--utility-blue-200)' },
+          { pct: 18, color: 'var(--utility-purple-200)' },
+        ],
+        items: [
+          { text: '데이터 파이프라인 32%', color: 'var(--utility-green-500)' },
+          { text: 'PIVIT v2.0 30%', color: 'var(--utility-blue-500)' },
+          { text: 'IR 덱 준비 43%', color: 'var(--utility-purple-500)' },
+        ],
+        // 이서훈 코멘트는 답글이 아니라 별개 코멘트 — 시안(24312)에 들여쓰기 없음.
+        comments: [
+          RS_COMMENTS[0],
+          { author: '이서훈', avatar: RS_AVATARS.이서훈, date: '2026.03.15', text: 'ㅋㅋㅋㅋ 잘 좀 하셈' },
+        ],
+      },
+    ],
+  },
+  orgView: {
+    label: '플랫폼 부문',
+    stats: { total: 12, sub: '투입인력 : 12/12명', avg: 92, overloaded: 2, missing: 0 },
+    teams: [
+      {
+        org: '플랫폼 부문', name: '플랫폼 개발팀', lead: '박민준', pct: 80, size: 5, entered: 5,
+        sub: '투입인력 : 12/12명', overloaded: 0, missing: 0,
+        segments: [
+          { pct: 20, color: 'var(--utility-success-200)' },
+          { pct: 17, color: 'var(--utility-blue-200)' },
+          { pct: 13, color: 'var(--utility-indigo-200)' },
+          { pct: 10, color: 'var(--utility-purple-200)' },
+          { pct: 8, color: 'var(--utility-pink-200)' },
+          { pct: 5, color: 'var(--utility-error-200)' },
+        ],
+        bullets: [
+          { text: 'PIVIT V2.0 60%', color: 'var(--utility-green-500)' },
+          { text: '가천대 파일럿 60%', color: 'var(--utility-blue-500)' },
+          { text: '온보딩 자동화 평균 16%', color: 'var(--utility-indigo-700)' },
+          { text: 'IR 덱 준비 평균 11%', color: 'var(--fg-warning-primary)' },
+          { text: '파트너 연동 평균 5%', color: 'var(--utility-pink-500)' },
+          { text: '엔터프라이즈 세일즈 평균 3%', color: 'var(--utility-error-700)' },
+        ],
+        members: [
+          { name: '박민준', role: 'BE', status: '여유', pct: 76, avatar: RS_AVATARS.박민준, segments: [{ pct: 33, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }] },
+          { name: '신예은', role: 'BE', status: '적정', pct: 92, avatar: RS_AVATARS.신예은, segments: [{ pct: 54, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }] },
+          { name: '오지후', role: 'BE', status: '적정', pct: 63, avatar: RS_AVATARS.오지후, segments: [{ pct: 24, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }] },
+          { name: '최수빈', role: 'BE', status: '쏠림', pct: 98, avatar: RS_AVATARS.최수빈, segments: [{ pct: 33, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }, { pct: 27, color: 'var(--utility-error-200)' }] },
+          { name: '김지안', role: 'BE', status: '쏠림', pct: 12, avatar: RS_AVATARS.김지안, segments: [{ pct: 33, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }, { pct: 27, color: 'var(--utility-error-200)' }] },
+        ],
+      },
+      {
+        org: '플랫폼 부문', name: '플랫폼 QA팀', lead: '박민준', pct: 97, size: 5, entered: 5,
+        sub: '투입인력 : 12/12명', overloaded: 0, missing: 0,
+        segments: [
+          { pct: 32, color: 'var(--utility-success-200)' },
+          { pct: 18, color: 'var(--utility-blue-200)' },
+          { pct: 8, color: 'var(--utility-indigo-200)' },
+          { pct: 6, color: 'var(--utility-purple-200)' },
+          { pct: 4, color: 'var(--utility-pink-200)' },
+        ],
+        bullets: [
+          { text: 'PIVIT V2.0 60%', color: 'var(--utility-green-500)' },
+          { text: '가천대 파일럿 60%', color: 'var(--utility-blue-500)' },
+          { text: '온보딩 자동화 평균 16%', color: 'var(--utility-indigo-700)' },
+          { text: 'IR 덱 준비 평균 11%', color: 'var(--fg-warning-primary)' },
+          { text: '파트너 연동 평균 5%', color: 'var(--utility-pink-500)' },
+          { text: '엔터프라이즈 세일즈 평균 3%', color: 'var(--utility-error-700)' },
+        ],
+        members: [
+          { name: '신예은', role: 'QA', status: '적정', pct: 92, avatar: RS_AVATARS.신예은, segments: [{ pct: 54, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }] },
+          { name: '오지후', role: 'QA', status: '적정', pct: 63, avatar: RS_AVATARS.오지후, segments: [{ pct: 24, color: 'var(--utility-success-200)' }, { pct: 30, color: 'var(--utility-blue-200)' }] },
+        ],
+      },
+    ],
+    directs: [
+      { name: '어니스트', role: 'CPO', status: '과부하', pct: 56, avatar: RS_AVATARS.어니스트, segments: [{ pct: 47, color: 'var(--utility-success-200)' }, { pct: 33, color: 'var(--utility-blue-200)' }] },
+      { name: '조이안', role: 'ML', status: '과부하', pct: 56, avatar: RS_AVATARS.조이안, segments: [{ pct: 47, color: 'var(--utility-success-200)' }, { pct: 33, color: 'var(--utility-blue-200)' }] },
+    ],
+  },
+};
+
 /**
  * OkrPage — OKR demo wrapper.
  *
@@ -490,6 +648,17 @@ export default function OkrPage({ icons, baseUrl }) {
   const [quarter, setQuarter] = useState('Q1');
   const [composeOpen, setComposeOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [ctxOpen, setCtxOpen] = useState(false);
+  // [오늘 보지 않기] — 오늘 날짜 키로 localStorage 에 기억해 당일 재방문에도 숨긴다.
+  // 배너가 안 그려지면 .app:has() 배너-공존 규칙도 함께 풀려 셸이 원위치로 올라온다.
+  const bannerKey = new Date().toISOString().slice(0, 10);
+  const [bannerHidden, setBannerHidden] = useState(
+    () => localStorage.getItem('okr-ctx-banner-hidden') === bannerKey,
+  );
+  const dismissBanner = () => {
+    localStorage.setItem('okr-ctx-banner-hidden', bannerKey);
+    setBannerHidden(true);
+  };
 
   // 탭 전환 시 대시보드 상세 모달이 남아 화면을 덮지 않도록 닫는다.
   const handleTabChange = (tab) => {
@@ -499,6 +668,11 @@ export default function OkrPage({ icons, baseUrl }) {
 
   return (
     <>
+      {/* 컨텍스트 미설정 안내 바 — Figma 17260:22116. [설정] → 컨텍스트 설정 모달,
+          [오늘 보지 않기] → 당일 숨김. */}
+      {!bannerHidden && (
+        <OkrContextBanner onSetup={() => setCtxOpen(true)} onDismiss={dismissBanner} />
+      )}
       <OkrTabNav tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} year={`${year}년`} quarter={quarter} />
 
       {activeTab === 'dashboard' ? (
@@ -514,7 +688,7 @@ export default function OkrPage({ icons, baseUrl }) {
         <>
           <div className="okr-header-actions">
             <button className="okr-ghost-btn" onClick={() => setSetupOpen(true)}>OKR 설정</button>
-            <button className="okr-ghost-btn">컨텍스트 설정</button>
+            <button className="okr-ghost-btn" onClick={() => setCtxOpen(true)}>컨텍스트 설정</button>
             <button className="okr-write-btn is-inline" onClick={() => setComposeOpen(true)}>
               <Icon src={icons.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
               <span>작성</span>
@@ -538,6 +712,8 @@ export default function OkrPage({ icons, baseUrl }) {
           </button>
           <OkrPersonalCanvas data={PERSONAL_OKR} icons={icons} baseUrl={baseUrl} />
         </>
+      ) : activeTab === 'resources' ? (
+        <OkrResourceCanvas data={RESOURCE_DATA} icons={icons} baseUrl={baseUrl} />
       ) : (
         <div className="canvas-area okr-canvas-area okr-tab-placeholder">준비 중인 화면입니다</div>
       )}
@@ -554,6 +730,14 @@ export default function OkrPage({ icons, baseUrl }) {
       )}
       {setupOpen && (
         <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => setSetupOpen(false)} />
+      )}
+      {ctxOpen && (
+        <OkrContextSetupModal
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setCtxOpen(false)}
+          onStartOkr={() => { setCtxOpen(false); setSetupOpen(true); }}
+        />
       )}
 
       <OkrDetailModal

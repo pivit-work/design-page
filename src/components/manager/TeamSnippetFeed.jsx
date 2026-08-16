@@ -56,14 +56,14 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
 
       {hasFilter && (
         <div className="mgr-ts-filterbar">
-          <span className="mgr-ts-filterbar-label">필터:</span>
+          <span className="mgr-ts-filterbar-label">필터 :</span>
           {memberFilter && (
             <span className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilter} ×</span>
           )}
           {redFlagOnly && (
             <span className="mgr-ts-filter-chip is-flag" onClick={onClearRedFlag}>레드플래그 ×</span>
           )}
-          <span className="mgr-ts-filterbar-count">· {filterCount}건</span>
+          <span className="mgr-ts-filterbar-count">{filterCount}건</span>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
                   </div>
                   <span className={`mgr-ts-score is-${item.tone}`}>{item.score}</span>
                 </div>
-                {item.warning && <div className="mgr-ts-warning">▲ {item.warning}</div>}
+                {item.warning && <div className="mgr-ts-warning">⚠ {item.warning}</div>}
                 <p className="mgr-ts-card-text">{item.text}</p>
                 <div className="mgr-ts-tags">
                   {item.tags.map((tag) => <span key={tag} className="mgr-ts-tag">#{tag}</span>)}

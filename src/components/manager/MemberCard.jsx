@@ -33,7 +33,7 @@ export default function MemberCard({
 
   return (
     <div className="manager-member-card" onClick={onCardClick}>
-      <MemberHex name={name} avatar={avatar} />
+      <MemberHex name={name} avatar={avatar} baseUrl={baseUrl} />
       <div className="manager-member-body">
         <div className="manager-member-name-block">
           <p className="manager-member-name">{name}</p>

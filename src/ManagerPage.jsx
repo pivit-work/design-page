@@ -82,7 +82,7 @@ const TEAM_SNIPPETS = {
         {
           member: '김시윤', role: 'CTO · Engineering', avatar: TS_AVATARS.김시윤,
           time: '오후 6:20', submitLabel: '의욕 저하, 압축 언급', score: 6.5, tone: 'bad',
-          warning: '헬스체크 추이 — 매니저 확인 권장',
+          warning: '헬스체크 주의 — 매니저 확인 권장',
           text: '조직도 v2 드래그 기능 구현 중. 예상보다 복잡해서 내일로 넘길 것 같음. pgvector 이슈도 계속 막혀있음.',
           tags: ['개발', '이슈'],
           kr: { okr: 'Phase 1 제품 완성', name: 'MVP 개발', percent: 35, tone: 'bad' },

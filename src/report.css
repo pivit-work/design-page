@@ -416,6 +416,11 @@
   padding-right: 0;
 }
 
+/* 컨텐츠 블록(중앙 컬럼) — 타임라인 페이지의 660 대신 모달에서는 800. */
+.report-modal-body .tl-weekly-card-inner {
+  max-width: 800px;
+}
+
 /* 모달 자체가 배경·테두리를 가지므로 내부 카드 프레임은 완전히 제거 */
 .report-modal-body .tl-weekly-card {
   background: none;

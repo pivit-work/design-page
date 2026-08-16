@@ -15,22 +15,24 @@ import Icon from '../shared/Icon.jsx';
  */
 const DEFAULT_SCOPES = [
   { key: 'individual', label: '개인', desc: '내 OKR을 직접 설계' },
-  { key: 'team', label: '팀', desc: '팀 단위 OKR — 팀장 권한' },
-  { key: 'company', label: '전사', desc: '회사 전체 OKR — 어드민' },
+  { key: 'team', label: '팀', desc: '팀 단위 OKR - 팀장 권한' },
+  { key: 'company', label: '전사', desc: '회사 전체 OKR - 어드민' },
 ];
 
 const NARRATIVE_PLACEHOLDER = {
-  individual: '12월 31일, 나는 … 을 이뤘고, 주요 지표를 … 까지 끌어올렸다.',
+  individual: '12월 31일, 나는 피빗 프론트엔드의 메인 컨트리뷰터로 자리잡았고,\n주요 화면 12개의 성능 점수를 90점 이상으로 끌어올렸다.',
   team: '12월 31일, 우리 팀은 고객 …개사·매출 …억을 달성했고, NRR …%를 유지한다.',
   company: '12월 31일, 우리 회사는 ARR …억·고객 …개사를 확보하고 시리즈 A 를 마무리했다.',
 };
 
+const NARRATIVE_MAX = 2000;
+
 const BASE_STEPS = [
-  { key: 'narrative', label: '미래 구술', desc: '12/31 모습' },
+  { key: 'narrative', label: '미래구슬', desc: '12/31 모습' },
   { key: 'krs', label: 'KR 추출', desc: '측정 결과' },
   { key: 'objective', label: 'Objective', desc: '한 문장 도출' },
 ];
-const ALIGNMENT_STEP = { key: 'alignment', label: '정합성 확인', desc: '팀장+' };
+const ALIGNMENT_STEP = { key: 'alignment', label: '정합성 확인', desc: '팀장' };
 
 let seq = 0;
 const nextId = () => { seq += 1; return `wz-${seq}`; };
@@ -45,6 +47,9 @@ export default function OkrSetupWizardModal({
   onSubmit,
   onFetchAlignment,
   onBookOneOnOne,
+  // 비전 이미지 생성 (선택): (scope, narrative) → Promise<{ imageUrl }>.
+  // 안 넘기면 버튼은 표시만 되고 placeholder 박스가 유지된다 (데모).
+  onGenerateVision,
 }) {
   const [step, setStep] = useState(1);
   const [scope, setScope] = useState(scopeOptions[0]?.key ?? 'individual');
@@ -58,12 +63,11 @@ export default function OkrSetupWizardModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [alignment, setAlignment] = useState(null);
+  const [visionImage, setVisionImage] = useState(null);
+  const [visionLoading, setVisionLoading] = useState(false);
 
-  // 개인 스코프는 정합성 단계 없음(시안). 팀+ 는 4단계.
-  const steps = useMemo(
-    () => (scope === 'individual' ? BASE_STEPS : [...BASE_STEPS, ALIGNMENT_STEP]),
-    [scope],
-  );
+  // 시안 17260:20206 — 스코프와 무관하게 4단계 스텝바를 노출한다.
+  const steps = useMemo(() => [...BASE_STEPS, ALIGNMENT_STEP], []);
   const stepKey = steps[step - 1]?.key;
 
   useEffect(() => {
@@ -81,6 +85,9 @@ export default function OkrSetupWizardModal({
       .catch(() => { if (alive) setError('정합성 조회에 실패했습니다.'); });
     return () => { alive = false; };
   }, [stepKey, scope, onFetchAlignment]);
+  // 콜백이 없으면(데모) '조회 중' 에 갇히지 않게 빈 목록을 파생값으로 쓴다 —
+  // effect 안 동기 setState 는 캐스케이드 렌더라 lint 가 막는다.
+  const alignmentView = alignment ?? (!onFetchAlignment ? { members: [] } : null);
 
   const genKrs = async () => {
     setKrsLoading(true); setError(null);
@@ -150,6 +157,17 @@ export default function OkrSetupWizardModal({
     </button>
   );
 
+  const genVision = async () => {
+    if (!onGenerateVision || visionLoading) return;
+    setVisionLoading(true); setError(null);
+    try {
+      const res = await onGenerateVision(scope, narrative);
+      setVisionImage(res?.imageUrl ?? null);
+    } catch {
+      setError('비전 이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally { setVisionLoading(false); }
+  };
+
   return (
     <div className="okr-modal-overlay" onClick={onClose}>
       <div className="okr-wz-modal" onClick={(e) => e.stopPropagation()}>
@@ -157,7 +175,7 @@ export default function OkrSetupWizardModal({
           <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
         </button>
         <div className="okr-wz-body">
-          <h2 className="okr-wz-title">OKR 설정 마법사 · KR 우선주의</h2>
+          <h2 className="okr-wz-title">OKR 설정</h2>
 
           <div className="okr-wz-steps">
             {steps.map((s, i) => (
@@ -174,30 +192,55 @@ export default function OkrSetupWizardModal({
 
           {step === 1 && (
             <>
-              <div className="okr-wz-section">
-                <p className="okr-wz-step-eyebrow">STEP1 · Backward Looking</p>
-                <p className="okr-wz-question">12월 31일, 어떤 모습이 되어 있을까요?</p>
-                <p className="okr-wz-desc">한 해가 끝나는 시점의 이상적인 모습을 구체적으로 상상해 보세요. 이 문장이 KR 초안과 Objective 요약의 재료가 됩니다.</p>
+              <div className="okr-wz-stepblock">
+                <div className="okr-wz-section">
+                  <p className="okr-wz-step-eyebrow">STEP1 - Backward Looking</p>
+                  <p className="okr-wz-question">12월 31일, 어떤 모습이 되어 있을까요?</p>
+                  <p className="okr-wz-desc">숫자·고객·팀·매출 무엇이든 좋아요. 12월의 자신을 인터뷰한다고 생각하고 과거형으로 적어주세요. AI가 이 구술에서 KR 후보를 자동 추출합니다.</p>
+                </div>
+                <div className="okr-wz-scopes">
+                  {scopeOptions.map((s) => (
+                    <div
+                      className={`okr-wz-scope${scope === s.key ? ' is-active' : ''}`}
+                      key={s.key}
+                      onClick={() => setScope(s.key)}
+                    >
+                      <p className="okr-wz-scope-label">{s.label}</p>
+                      <p className="okr-wz-scope-desc">{s.desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <textarea
+                  className="okr-textarea okr-wz-textarea"
+                  value={narrative}
+                  maxLength={NARRATIVE_MAX}
+                  onChange={(e) => setNarrative(e.target.value)}
+                  placeholder={NARRATIVE_PLACEHOLDER[scope] ?? NARRATIVE_PLACEHOLDER.team}
+                  aria-label="미래 구술"
+                />
+                <p className="okr-wz-tip">
+                  팁: 과거형으로 작성할수록 KR 추출이 더 정확해집니다. ({narrative.length} / {NARRATIVE_MAX}자)
+                </p>
               </div>
-              <div className="okr-wz-scopes">
-                {scopeOptions.map((s) => (
-                  <div
-                    className={`okr-wz-scope${scope === s.key ? ' is-active' : ''}`}
-                    key={s.key}
-                    onClick={() => setScope(s.key)}
-                  >
-                    <p className="okr-wz-scope-label">{s.label}</p>
-                    <p className="okr-wz-scope-desc">{s.desc}</p>
+
+              <div className="okr-wz-vision">
+                <div className="okr-wz-vision-head">
+                  <div className="okr-wz-section">
+                    <p className="okr-wz-vision-title">비전 이미지 (선택)</p>
+                    <p className="okr-wz-desc">구술 내용을 시각화한 비전 이미지를 생성합니다.</p>
                   </div>
-                ))}
+                  <button className="okr-wz-ai-btn" onClick={genVision} disabled={visionLoading}>
+                    {visionLoading ? '생성 중…' : 'AI 비전 이미지 생성'}
+                  </button>
+                </div>
+                <div className="okr-wz-vision-card">
+                  {visionImage ? (
+                    <img className="okr-wz-vision-img" src={visionImage} alt="AI 비전 이미지" />
+                  ) : (
+                    <div className="okr-wz-vision-box" />
+                  )}
+                </div>
               </div>
-              <textarea
-                className="okr-textarea okr-wz-textarea"
-                value={narrative}
-                onChange={(e) => setNarrative(e.target.value)}
-                placeholder={NARRATIVE_PLACEHOLDER[scope] ?? NARRATIVE_PLACEHOLDER.team}
-                aria-label="미래 구술"
-              />
             </>
           )}
 
@@ -205,7 +248,7 @@ export default function OkrSetupWizardModal({
             <div className="okr-wz-section">
               <div className="okr-wz-head">
                 <div>
-                  <p className="okr-wz-step-eyebrow">STEP2 · KR 우선주의</p>
+                  <p className="okr-wz-step-eyebrow">STEP2 - KR 우선주의</p>
                   <p className="okr-wz-question">구술에서 측정 가능한 결과를 뽑아냅니다</p>
                 </div>
                 {aiBtn(krs.length ? 'AI로 다시 추출' : 'AI로 KR 추출', genKrs, krsLoading)}
@@ -250,7 +293,7 @@ export default function OkrSetupWizardModal({
             <div className="okr-wz-section">
               <div className="okr-wz-head">
                 <div>
-                  <p className="okr-wz-step-eyebrow">STEP3 · Objective 역도출</p>
+                  <p className="okr-wz-step-eyebrow">STEP3 - Objective 역도출</p>
                   <p className="okr-wz-question">확인된 KR 로 Objective 를 한 문장으로 정리합니다</p>
                 </div>
                 {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
@@ -288,16 +331,16 @@ export default function OkrSetupWizardModal({
 
           {stepKey === 'alignment' && (
             <div className="okr-wz-section">
-              <p className="okr-wz-step-eyebrow">STEP4 · Alignment</p>
+              <p className="okr-wz-step-eyebrow">STEP4 - Alignment</p>
               <p className="okr-wz-question">팀원들의 OKR 정렬도를 확인합니다</p>
               <p className="okr-wz-desc">미정렬 팀원에게는 1:1을 예약할 수 있습니다. (정렬 = 팀 OKR 을 상위로 연결한 개인 OKR)</p>
-              {!alignment && !error && <p className="okr-wz-empty">정합성 조회 중…</p>}
-              {alignment && (
+              {!alignmentView && !error && <p className="okr-wz-empty">정합성 조회 중…</p>}
+              {alignmentView && (
                 <div className="okr-wz-align">
-                  {alignment.members.length === 0 && (
+                  {alignmentView.members.length === 0 && (
                     <p className="okr-wz-empty">팀원이 없습니다.</p>
                   )}
-                  {alignment.members.map((m) => (
+                  {alignmentView.members.map((m) => (
                     <div className={`okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
                       <div className="okr-wz-align-info">
                         <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
@@ -318,11 +361,13 @@ export default function OkrSetupWizardModal({
         </div>
 
         <div className="okr-modal-footer okr-wz-footer">
-          <button className="okr-btn is-outline is-sm" disabled={step === 1} onClick={() => setStep(Math.max(1, step - 1))}>이전</button>
           <span className="okr-wz-footer-hint">
-            {nextHint ? `⚠ ${nextHint}` : `STEP ${step} / ${steps.length}`}
+            {nextHint || `STEP ${step} / ${steps.length}`}
           </span>
-          <button className="okr-btn is-brand is-sm" disabled={!canNext || saving} onClick={handleNext}>
+          {step > 1 && (
+            <button className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>이전</button>
+          )}
+          <button className="okr-btn is-brand" disabled={!canNext || saving} onClick={handleNext}>
             {saving ? '저장 중…' : isLast ? 'OKR 확정 저장' : '다음'}
           </button>
         </div>

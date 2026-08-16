@@ -18,6 +18,13 @@ export { default as OkrFeedbackComposeModal } from './OkrFeedbackComposeModal.js
 export { default as OkrKrFeedbackModal } from './OkrKrFeedbackModal.jsx';
 export { default as OkrKrUpdateModal } from './OkrKrUpdateModal.jsx';
 export { default as OkrStrategyCanvas } from './OkrStrategyCanvas.jsx';
+export { default as OkrContextBanner } from './OkrContextBanner.jsx';
+export { default as OkrContextSetupModal } from './OkrContextSetupModal.jsx';
+export { default as OkrResourceCanvas } from './OkrResourceCanvas.jsx';
+export { default as OkrResourceMyInput } from './OkrResourceMyInput.jsx';
+export { default as OkrResourceTeam } from './OkrResourceTeam.jsx';
+export { default as OkrResourceOrg } from './OkrResourceOrg.jsx';
+export { default as OkrResourceTeamModal } from './OkrResourceTeamModal.jsx';
 export { default as OkrContextSetupCanvas } from './OkrContextSetupCanvas.jsx';
 export { default as OkrHistoryQuarter } from './OkrHistoryQuarter.jsx';
 export { default as OkrBoard } from './OkrBoard.jsx';

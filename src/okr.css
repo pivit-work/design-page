@@ -111,38 +111,9 @@
    화면이 덜 로드된 줄 안다. .okr-header-actions 안에 버튼과 나란히 놓인다. */
 .okr-readonly-badge { display: flex; align-items: center; padding: 8px 14px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
 
-/* 반응형 — .tab-nav(30px · 최대 6탭)는 폭이 내용에 따라 정해지는데, 액션 버튼은
-   position:fixed 로 우측 40px 에 붙어 있어 좁은 뷰포트에서 마지막 탭("내 리소스")이
-   버튼 아래로 가려졌다. 넓은 화면 시각은 그대로 두고, 좁은 폭에서만 탭 타이포·간격을
-   줄여 겹침을 없앤다. .is-okr 로 스코프해 조직도·어드민 등 .tab-nav 를 공유하는
-   다른 화면에는 영향을 주지 않는다.
-
-   단계값은 최악 케이스(전사 탭 = 액션 버튼 3개, 예약 폭 ~319px)에서 브라우저로
-   실측해 정했다 — 각 단계는 다음 단계가 시작될 때까지 겹치지 않는다:
-     30px→ vw>1336 / 24px→ vw>1294 / 20px→ vw>1165 / 17px→ vw>1075 / 16px→ vw>1037 */
-@media (max-width: 1336px) {
-  .content-header.is-okr .tab-nav { font-size: 24px; line-height: 32px; gap: 16px; }
-}
-@media (max-width: 1290px) {
-  .content-header.is-okr .tab-nav { font-size: 20px; line-height: 28px; gap: 12px; }
-}
-@media (max-width: 1160px) {
-  .content-header.is-okr .tab-nav { font-size: 17px; line-height: 24px; gap: 10px; }
-}
-@media (max-width: 1070px) {
-  .content-header.is-okr .tab-nav { font-size: 16px; line-height: 24px; gap: 8px; }
-}
-/* 최소 단계보다도 좁으면(1037px 미만) 타이포로는 못 막는다 — 탭 줄을 가로 스크롤로
-   돌려 액션 버튼에 가려지는 대신 스크롤해서 닿을 수 있게 한다(백스톱). */
-@media (max-width: 1036px) {
-  .content-header.is-okr .tab-nav {
-    max-width: calc(100vw - 240px - 12px - 319px);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .content-header.is-okr .tab-nav::-webkit-scrollbar { display: none; }
-  .content-header.is-okr .tab-nav > span { flex: 0 0 auto; }
-}
+/* (반응형 탭 축소 미디어쿼리 제거 — PW: 아직 responsive 미대응 방침.
+   좁은 뷰포트는 앱 셸의 min-width: 1400px + 문서 가로 스크롤이 담당하므로,
+   viewport 기준 축소가 있으면 1400 레이아웃 안에서 탭만 작아지는 오동작이 된다.) */
 
 /* 좌우 여백까지 스크롤 영역에 포함 — 여백 위에서 휠을 굴려도 스크롤된다 */
 .okr-personal-area { position: fixed; top: 150px; left: 240px; right: 0; bottom: 0; overflow-y: auto; padding: 12px 40px 60px 12px; display: flex; flex-direction: column; gap: 16px; }
@@ -473,33 +444,79 @@
 .okr-cf-pick-check { flex-shrink: 0; color: var(--text-brand-tertiary); }
 .okr-cf-pick-empty { padding: 12px 8px; font-size: 12px; color: var(--text-tertiary); text-align: center; }
 
-/* ══ OKR 설정 마법사 모달 ══ */
-.okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 80px); max-height: 88vh; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
-.okr-wz-body { flex: 1; overflow-y: auto; padding: 28px 32px 24px; display: flex; flex-direction: column; gap: 20px; }
-.okr-wz-title { font-size: 22px; font-weight: 700; line-height: 30px; color: var(--fg-primary); }
-.okr-wz-steps { display: flex; gap: 8px; }
-.okr-wz-step { flex: 1; padding: 8px 12px; border: 1px solid var(--border-secondary); border-radius: 8px; cursor: pointer; text-align: center; }
-.okr-wz-step-label { font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-secondary); }
-.okr-wz-step-desc { font-size: 10px; font-weight: 500; line-height: 14px; color: var(--text-tertiary); }
-.okr-wz-step.is-active { background: var(--utility-purple-500); border-color: var(--utility-purple-500); }
+/* ── OKR 컨텍스트 설정 배너 — Figma 17260:22116 (블루-400 풀폭 바, 최상단·오버레이 위) ── */
+/* 높이 62px = 패딩 8×2 + 타이틀 28 + 설명 18. 아래 배너-공존 규칙들이 이 값을 공유한다. */
+/* 좌측 230px 은 사이드바 영역 — 배너 내용이 본문 컬럼과 정렬된다 (Figma pl-230). */
+.okr-ctx-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 1100; display: flex; align-items: center; padding: 8px 20px 8px 230px; box-sizing: border-box; background: var(--utility-blue-400); }
+/* 배너가 떠 있으면(.okr-ctx-banner-flag 마커) 셸 전체를 배너 높이만큼 내린다 —
+   사이드바 로고·상단 메뉴·페이지 fixed 요소들이 전부 .app 기준이라 한 번에 내려간다.
+   OKR 설정 모달 높이도 배너 몫(62px)을 빼고 잡는다. */
+.app:has(.okr-ctx-banner-flag) { transform: translateY(62px) translateZ(0); height: calc(100vh - 62px); }
+.app:has(.okr-ctx-banner-flag) .okr-wz-modal { height: min(1118px, calc(100vh - 62px - 48px)); }
+.okr-ctx-banner-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 1; min-width: 0; padding: 0 20px; box-sizing: border-box; }
+.okr-ctx-banner-texts { min-width: 0; }
+.okr-ctx-banner-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-white); }
+.okr-ctx-banner-desc { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--alpha-white-80); }
+.okr-ctx-banner-actions { flex: none; display: flex; align-items: center; gap: 4px; }
+.okr-ctx-banner-btn { flex: none; padding: 4px 8px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); cursor: pointer; }
+.okr-ctx-banner-btn.is-ghost { background: var(--alpha-black-3); }
+
+/* ── OKR 컨텍스트 설정 모달 — Figma 17332:22101 (마법사와 동일 셸 + 드롭존) ── */
+.okr-ctx-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.okr-ctx-head-left { display: flex; align-items: center; gap: 12px; }
+.okr-ctx-admin-badge { padding: 2px 8px; border-radius: 999px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
+.okr-ctx-optional { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.okr-ctx-intro { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+.okr-ctx-intro-desc { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.okr-ctx-intro-note { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-primary); }
+.okr-ctx-dropzone { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 16px 24px; background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: 14px; cursor: pointer; }
+.okr-ctx-dropzone.is-dragover { border-color: var(--border-brand); }
+.okr-ctx-dropzone-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; box-sizing: border-box; border: 1px solid var(--border-primary); border-radius: 10px; background: var(--bg-primary); box-shadow: 0 1px 2px rgba(10, 13, 18, 0.05), inset 0 0 0 1px rgba(10, 13, 18, 0.18), inset 0 -2px 0 0 rgba(10, 13, 18, 0.05); color: var(--text-secondary); }
+.okr-ctx-dropzone-texts { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.okr-ctx-dropzone-action { display: flex; align-items: flex-start; gap: 4px; font-size: 14px; line-height: 20px; }
+.okr-ctx-dropzone-action b { font-weight: 600; color: var(--text-brand-secondary); }
+.okr-ctx-dropzone-ext { margin-top: 2px; color: var(--text-brand-secondary); }
+.okr-ctx-dropzone-or { font-weight: 400; color: var(--text-tertiary); }
+.okr-ctx-dropzone-hint { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); text-align: center; }
+
+/* ══ OKR 설정 모달 — Figma 17260:20206 (800 모달·조인 스텝바·비전 이미지) ══ */
+/* 높이는 가장 긴 스텝(미래구슬, 시안 1118) 기준으로 고정 — 짧은 스텝으로 넘어가도
+   모달이 줄어들지 않는다. 뷰포트가 낮으면 (100vh - 48) 로 잘리고 본문이 스크롤된다. */
+.okr-wz-modal { position: relative; display: flex; flex-direction: column; width: 800px; max-width: calc(100vw - 80px); height: min(1118px, calc(100vh - 48px)); background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
+.okr-wz-body { flex: 1; overflow-y: auto; padding: 60px 48px 48px; display: flex; flex-direction: column; gap: 48px; }
+.okr-wz-title { font-size: 30px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
+/* 스텝바 — bg-tertiary 한 몸 바에 1px alpha 경계 칸, 활성 칸은 brand→purple 그라데이션 */
+.okr-wz-steps { display: flex; background: var(--bg-tertiary); border-radius: 6px; }
+.okr-wz-step { flex: 1; padding: 8px; border: 1px solid var(--alpha-black-5); margin-right: -1px; cursor: pointer; text-align: center; }
+.okr-wz-step:last-child { margin-right: 0; }
+.okr-wz-step-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-tertiary); }
+.okr-wz-step-desc { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.okr-wz-step.is-active { background: linear-gradient(90deg, var(--utility-brand-500), var(--utility-purple-400)); border-color: transparent; border-radius: 6px; }
 .okr-wz-step.is-active .okr-wz-step-label, .okr-wz-step.is-active .okr-wz-step-desc { color: var(--text-white); }
-.okr-wz-section { display: flex; flex-direction: column; gap: 4px; }
-.okr-wz-step-eyebrow { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
-.okr-wz-question { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--fg-primary); }
+/* STEP 블록 — 헤더(gap 2) → 스코프 카드 → 텍스트영역 → 팁, 내부 gap 12 */
+.okr-wz-stepblock { display: flex; flex-direction: column; gap: 12px; }
+.okr-wz-section { display: flex; flex-direction: column; gap: 2px; }
+.okr-wz-step-eyebrow { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.okr-wz-question { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .okr-wz-desc { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.okr-wz-scopes { display: flex; gap: 10px; }
-.okr-wz-scope { flex: 1; padding: 10px 14px; border: 1px solid var(--border-secondary); border-radius: 10px; cursor: pointer; }
-.okr-wz-scope.is-active { border: 1.5px solid var(--bg-brand-solid); }
-.okr-wz-scope-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
-.okr-wz-scope-desc { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--text-tertiary); }
-.okr-wz-textarea { height: 150px; }
-.okr-wz-vision { display: flex; flex-direction: column; gap: 8px; }
-.okr-wz-vision-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-.okr-wz-ai-btn { padding: 6px 12px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-white); cursor: pointer; }
-.okr-wz-vision-box { height: 110px; background: var(--alpha-black-3); border-radius: 10px; }
-.okr-wz-footer { align-items: center; padding: 16px 32px; }
+.okr-wz-scopes { display: flex; gap: 12px; }
+.okr-wz-scope { flex: 1; box-sizing: border-box; padding: 16px; border: 2px solid transparent; border-radius: 8px; background: var(--fg-quaternary); cursor: pointer; }
+.okr-wz-scope.is-active { background: transparent; border-color: var(--border-brand); }
+.okr-wz-scope-label { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); margin-bottom: 6px; }
+.okr-wz-scope-desc { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); }
+.okr-wz-textarea { height: 250px; }
+.okr-wz-tip { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+/* 비전 이미지 (선택) */
+.okr-wz-vision { display: flex; flex-direction: column; gap: 12px; }
+.okr-wz-vision-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.okr-wz-vision-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
+.okr-wz-ai-btn { flex: none; padding: 4px 8px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); cursor: pointer; }
+.okr-wz-vision-card { box-sizing: border-box; padding: 16px; border-radius: 8px; background: var(--bg-tertiary); }
+.okr-wz-vision-box { height: 167px; background: var(--border-primary); border-radius: 8px; }
+.okr-wz-vision-img { display: block; width: 100%; height: 167px; object-fit: cover; border-radius: 8px; }
+.okr-wz-footer { align-items: center; padding: 24px 48px 48px; }
 .okr-wz-footer .okr-btn { flex: none; }
-.okr-wz-footer-hint { flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.okr-wz-footer-hint { flex: 1; text-align: left; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 /* 설정 마법사 Step2~3 (엔지니어링 포팅 — 시안 okr-setup-wizard.jsx) */
 .okr-wz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 10px; color: var(--text-tertiary); font-size: 12px; }

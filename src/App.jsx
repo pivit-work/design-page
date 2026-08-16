@@ -23,6 +23,7 @@ import './manager.css';
 import './report.css';
 import './snippet.css';
 import './okr.css';
+import './okr_resource.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -190,8 +191,9 @@ export default function App() {
         bottomItem={{ icon: ADMIN_ITEM.icon, label: ADMIN_ITEM.label, onClick: () => {} }}
         onFeedbackClick={() => { window.location.href = 'mailto:m@pivit.work'; }}
         onSettingsClick={() => handleNavigate('settings')}
+        onLogoClick={() => handleNavigate('snippet')}
       />
-      <TopNav icons={ICONS} baseUrl={BASE} />
+      <TopNav icons={ICONS} baseUrl={BASE} onHomeClick={() => handleNavigate('snippet')} />
 
       {currentPage === 'orgchart' && (
         <OrgChartPage
