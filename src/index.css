@@ -91,7 +91,10 @@
   --utility-blue-700: var(--componentColors-utility-blue-utilityBlue700);
   --utility-indigo-50: var(--componentColors-utility-indigo-utilityIndigo50);
   --utility-indigo-200: var(--componentColors-utility-indigo-utilityIndigo200);
+  --utility-indigo-500: var(--componentColors-utility-indigo-utilityIndigo500);
   --utility-indigo-700: var(--componentColors-utility-indigo-utilityIndigo700);
+  --utility-fuchsia-200: var(--componentColors-utility-fuchsia-utilityFuchsia200);
+  --utility-fuchsia-500: var(--componentColors-utility-fuchsia-utilityFuchsia500);
   --utility-pink-200: var(--componentColors-utility-pink-utilityPink200);
   --utility-pink-500: var(--componentColors-utility-pink-utilityPink500);
   --border-brand: var(--colors-border-borderBrand);

@@ -40,12 +40,22 @@ export function RsStatCard({ label, value, tone = '', sub, bar, empty = false })
   );
 }
 
-/* 스택 투입 바 — 회색 트랙(h12 radius4) 위 색 세그먼트(gap 10). Figma 17478:24216. */
+/* 스택 투입 바 — 회색 트랙(h12 radius4) 위 색 세그먼트(gap 10). Figma 17478:24216.
+   seg.label 이 있으면 hover 시 세그먼트 위에 툴팁으로 노출한다(Figma 17486:22303,
+   표시/숨김은 CSS :hover). 툴팁 색은 seg.tipColor(막대 색 계열의 -500 톤) —
+   없으면 브랜드 그린 폴백. */
 export function RsStackBar({ segments }) {
   return (
     <div className="rsx-stackbar">
       {segments.map((seg, i) => (
-        <i key={i} style={{ width: `${seg.pct}%`, background: seg.color }} />
+        <span className="rsx-stackbar-seg" key={i} style={{ width: `${seg.pct}%`, background: seg.color }}>
+          {seg.label && (
+            <span className="rsx-bar-tip" role="tooltip" style={seg.tipColor ? { '--tip-color': seg.tipColor } : undefined}>
+              <b>{seg.label}</b>
+              <i />
+            </span>
+          )}
+        </span>
       ))}
     </div>
   );

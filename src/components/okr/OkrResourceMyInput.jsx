@@ -12,10 +12,30 @@ import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx'
  * 슬라이더 값은 UI 상태(데모) — 저장은 onSave(entries) 로 위임한다.
  * 추정치 마커는 entry.estimate 위치 위에 다크 툴팁으로 뜬다.
  */
-export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, onApplyEstimates }) {
+export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, onApplyEstimates, onReply }) {
   const [entries, setEntries] = useState(data.entries);
   const [krOpen, setKrOpen] = useState(false);
   const [customName, setCustomName] = useState('');
+  // [답글 달기] — 누르면 입력바가 열리고, 등록하면 답글(들여쓰기)로 스레드에 달린다.
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [extraComments, setExtraComments] = useState([]);
+
+  const comments = [...data.comments, ...extraComments];
+  const submitReply = () => {
+    const text = replyText.trim();
+    if (!text) return;
+    setExtraComments((p) => [...p, {
+      author: data.commentAuthor?.name ?? '나',
+      avatar: data.commentAuthor?.avatar,
+      date: data.commentDate ?? '',
+      reply: true,
+      text,
+    }]);
+    setReplyText('');
+    setReplyOpen(false);
+    onReply?.(text);
+  };
 
   const patch = (id, value) => {
     const v = Math.max(0, Math.min(100, Number(value) || 0));
@@ -257,11 +277,28 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
 
       <div className="rsx-comments-section">
         <p className="rsx-section-title">매니저 코멘트</p>
-        <RsCommentThread comments={data.comments} />
-        <button type="button" className="rsx-reply-btn">
-          <Icon src={icons.messageText} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
-          <span>답글 달기</span>
-        </button>
+        <RsCommentThread comments={comments} />
+        {replyOpen ? (
+          <div className="rsx-comment-input-row">
+            <input
+              autoFocus
+              placeholder="답글을 입력하세요"
+              aria-label="답글 입력"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submitReply();
+                if (e.key === 'Escape') { setReplyOpen(false); setReplyText(''); }
+              }}
+            />
+            <button type="button" className="rsx-gray-btn is-md" onClick={submitReply}>답글 남기기</button>
+          </div>
+        ) : (
+          <button type="button" className="rsx-reply-btn" onClick={() => setReplyOpen(true)}>
+            <Icon src={icons.messageText} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
+            <span>답글 달기</span>
+          </button>
+        )}
       </div>
     </div>
   );
