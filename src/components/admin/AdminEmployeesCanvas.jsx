@@ -27,22 +27,27 @@ import {
 
 const DEFAULT_LABELS = {
   tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
-  search: '이름 / 이메일 / 부서 검색',
   countSuffix: '명',
   filters: { dept: '부서', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
-  managerFilter: { all: '전체', assigned: '배정됨', unassigned: '미배정' },
   // `csvUpload` 라벨이 여기 있었지만 **어디서도 렌더되지 않았다** — 라벨은 CSV
   // 업로드가 있다고 말하는데 화면에는 없는 상태가 오래 남아 있었다(PW-212).
   // CSV 업로드는 초대 모달의 탭(`AdminInviteModal` §2-4)으로 들어갔으므로,
   // 다음 사람이 같은 오해를 하지 않도록 죽은 라벨을 지운다.
+  //
+  // 같은 이유로 `search`·`managerFilter`·`assignManager`·`cols`·`edit`·
+  // `emptyFiltered`·`pagination`·`picker`·`panel` 도 지웠다(PW-284). 전체 구성원
+  // 탭이 이 캔버스의 자체 표에서 `AdminEmployeeSheetCanvas` 위임으로 바뀌면서
+  // (시트는 `sheetLabels` 라는 **별도 prop** 을 쓴다) 이 라벨들을 읽는 자리가
+  // 전부 사라졌는데, 기본값만 남아 있었다.
+  //
+  // 특히 `panel` 은 만들어진 적 없는 "구성원 상세 패널" 용이었고, 그 안의
+  // `managerAuto`('조직장에서 자동 계산')는 **이 제품의 핵심 규칙**을 말하는
+  // 문구였다. 코드만 보면 화면에 그 안내가 있는 것처럼 보였다. 그 규칙을 실제로
+  // 알리는 자리는 미배정 탭 아래 `unassigned.teamNote` 하나다 — 지우지 말 것.
+  // 다시 넣으려면 라벨보다 **그리는 자리가 먼저** 있어야 한다.
   invite: '구성원 초대',
   unassignedPill: '미배정',
-  assignManager: '조직 배정',
-  cols: { name: '이름', email: '이메일', dept: '부서', level: '직급', manager: '매니저', joined: '입사일', status: '상태' },
-  edit: '수정',
-  emptyFiltered: '조건에 맞는 구성원이 없습니다.',
   loading: '불러오는 중…',
-  pagination: { prev: '이전', next: '다음', of: '/' },
   menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
   status: {
     active: '재직', on_leave: '휴직', terminated: '퇴사', pending: '수습', other: '기타',
@@ -73,21 +78,12 @@ const DEFAULT_LABELS = {
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
   },
-  picker: { search: '조직 검색…', empty: '검색 결과 없음', none: '조직 없음' },
   // 소속 트리 팝업(OrgTreePicker) — 미배정 탭·소속 셀이 같은 라벨을 쓴다(PW-112).
   orgPicker: {
     title: '소속 선택', hint: '상위 조직도 선택할 수 있습니다.',
     search: '조직 검색', empty: '검색 결과가 없어요', unassigned: '— 미배정 —',
     none: '선택 없음 — 저장하면 미배정이 됩니다',
     apply: '적용', cancel: '취소', expand: '펼치기', collapse: '접기',
-  },
-  panel: {
-    basicInfo: '기본 정보',
-    name: '이름', email: '이메일', level: '직급', joined: '입사일',
-    orgAssign: '조직 배정', orgNone: '조직 미배정', orgChange: '변경',
-    managerSection: '매니저', managerAuto: '조직장에서 자동 계산',
-    statusSection: '재직 상태',
-    cancel: '취소', save: '저장',
   },
 };
 
