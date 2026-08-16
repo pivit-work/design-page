@@ -29,6 +29,17 @@ export default function ManagerCanvas({
   onRetryDetail,
   krLabels,
   teamSnippets,
+  // 팀 스니핏 본문을 소비자가 직접 그리고 싶을 때 넘기는 자리(슬롯). 넘어오면
+  // `teamSnippets` 대신 이걸 그린다.
+  //
+  // 왜 필요한가: 이 탭의 컨트롤(기간 세그먼트·레드 플래그·팀원 선택)은 **데이터를
+  // 실제로 걸러야** 의미가 있는데, 아래 `TeamSnippets` 는 기간 상태를 자기가 들고
+  // 있으면서 어디에도 쓰지 않아 기간 칩이 장식이 된다. 조회 중·조회 실패·빈 상태도
+  // 데이터를 가진 쪽만 구분할 수 있다. 그래서 실데이터를 붙이는 소비자는 필터를
+  // 적용한 뒤의 화면을 통째로 넘긴다. `teamSnippets` 경로(데모/시안)는 그대로 둔다.
+  teamSnippetsSlot,
+  // 팀 스니핏 피드 카드의 [1on1] 버튼. 없으면 그 버튼이 눌러도 아무 일이 없다.
+  onTeamSnippetOneOnOne,
   teamMemberCount,
   summary,
   kpis = [],
@@ -74,8 +85,15 @@ export default function ManagerCanvas({
           onRetryDetail={onRetryDetail}
           labels={krLabels}
         />
-      ) : activeTab === 'snippets' && teamSnippets ? (
-        <TeamSnippets data={teamSnippets} icons={icons} baseUrl={baseUrl} />
+      ) : activeTab === 'snippets' && (teamSnippetsSlot || teamSnippets) ? (
+        teamSnippetsSlot || (
+          <TeamSnippets
+            data={teamSnippets}
+            onOneOnOne={onTeamSnippetOneOnOne}
+            icons={icons}
+            baseUrl={baseUrl}
+          />
+        )
       ) : (
       <>
       <section className="manager-kpi-grid">
