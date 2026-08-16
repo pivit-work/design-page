@@ -20,6 +20,8 @@ export {
   transitionsFrom,
   planSegments,
   plannedTotalPct,
+  isCapacityUnset,
+  unsetCapacityCount,
   squadCountOf,
   capacityState,
   squadComposition,

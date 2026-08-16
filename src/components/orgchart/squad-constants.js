@@ -9,11 +9,22 @@
  * 해석한다 — 코드값이 화면에 새어 나가지 않게 하는 단일 지점이다.
  */
 
-/** 가용 캐파 — 셀 %의 분모(§5-3.1). "스쿼드 내 상대 지분" 이 아니다. */
+/** 가용 캐파 — 「캐파 사용」의 분모(§5-3.1). "스쿼드 내 상대 지분" 이 아니다. */
 export const CAPACITY = 100;
 
-/** 빈 셀 클릭·팀원 추가 시 기본 계획 투입%. */
-export const DEFAULT_ASSIGN_PCT = 20;
+/** 스쿼드 내 비중의 분모 — 그 스쿼드의 총 볼륨 100(§5-3.4). 캐파와 **다른 축**이다. */
+export const SQUAD_BASE = 100;
+
+/**
+ * 신규 배정 기본값 — **두 축 모두 0** 이다 (§5-3.7 v3.10).
+ *
+ * 종전 `캐파 20%` 는 **관리자가 남의 시간에 대해 적어 넣은 근거 없는 값**이라 폐기했다.
+ * 캐파의 소유자는 본인이고, 본인이 정하기 전까지의 사실은 「미설정」(`capacitySetBy`
+ * = null)이며 그 배정은 캐파 합계에서 빠진다. 비중을 0(미배분)으로 두는 것과 같은
+ * 이유 — 틀린 값을 사실처럼 채우지 않는다.
+ */
+export const DEFAULT_ASSIGN_PCT = 0;
+export const DEFAULT_SHARE_PCT = 0;
 
 /**
  * 카드 안에서 열리는 메뉴·팝오버의 z 층.
@@ -147,16 +158,31 @@ export function clampPct(v) {
 }
 
 /**
+ * 캐파 **미설정** 판정 — `capacitySetBy` 가 null 이면 "아직 아무도 정하지 않음" 이다.
+ *
+ * ⚠️ `0%` 와 다르다. `0%` 는 본인이 "이 스쿼드엔 시간을 안 쓴다" 고 정한 값이라 합계에
+ * 0 으로 들어가고, 미설정은 **합계에서 빠진다**. 둘을 같게 다루면 합계가 낮은 이유를
+ * 화면이 스스로 설명하지 못한다(§5-3.7 · §10-A19·A20).
+ */
+export function isCapacityUnset(member) {
+  return !member || member.capacitySetBy == null;
+}
+
+/**
  * 활성(완료·보관 제외) 스쿼드의 배정 내역 — 캐파 게이지 세그먼트 소스.
  * 캐파가 *어디로* 갔는지 한 칸에서 읽히도록 스쿼드별 색을 함께 싣는다.
+ *
+ * 🔴 소스는 `allocationPct` **한 축뿐**이다. `sharePct` 는 분모가 달라 여기 섞이면
+ * 합산 자체가 성립하지 않는다(§5-3.2).
  */
 export function planSegments(squads, userId) {
   return (squads || [])
     .filter((sq) => isCountedStatus(sq.status))
-    .map((sq) => ({
-      sq,
-      pct: (sq.members || []).find((m) => m.userId === userId)?.allocationPct || 0,
-    }))
+    .map((sq) => {
+      const mm = (sq.members || []).find((m) => m.userId === userId);
+      // 미설정은 0 으로 더하지 않고 아예 뺀다.
+      return { sq, pct: isCapacityUnset(mm) ? 0 : (mm.allocationPct || 0) };
+    })
     .filter((x) => x.pct > 0)
     .map((x) => ({ id: x.sq.id, name: x.sq.name, color: x.sq.color, pct: x.pct }));
 }
@@ -164,6 +190,19 @@ export function planSegments(squads, userId) {
 /** 계획 투입% 합계 — 활성 스쿼드만 합산. 분모가 한 사람당 하나(100)라 합산이 성립한다. */
 export function plannedTotalPct(squads, userId) {
   return planSegments(squads, userId).reduce((sum, s) => sum + s.pct, 0);
+}
+
+/**
+ * 활성 스쿼드 중 **캐파가 아직 설정되지 않은** 배정 수 — 「미설정 n곳」 표기용.
+ * 합계가 실제보다 낮게 보이는 이유를 화면이 스스로 말하게 하는 값이다(§5-3.7).
+ */
+export function unsetCapacityCount(squads, userId) {
+  return (squads || [])
+    .filter((sq) => isCountedStatus(sq.status))
+    .filter((sq) => {
+      const mm = (sq.members || []).find((m) => m.userId === userId);
+      return !!mm && isCapacityUnset(mm);
+    }).length;
 }
 
 /** 참여 중인 활성·비활성 포함 스쿼드 개수 (「캐파 사용」 열의 `n개`). */
@@ -232,54 +271,47 @@ export function capacityState(total) {
 }
 
 /**
- * 스쿼드 내 리소스 구성비 (§5-3.4) — **매트릭스 「캐파 사용」과 분모가 다른 값**이다.
- *   · 캐파 사용(매트릭스) = 개인 캐파 100 기준 → "이 사람은 과부하인가"
- *   · 구성비(여기)       = 이 스쿼드의 총 투입 100 기준 → "이 스쿼드 안에서 누가 무게를 지는가"
- * 분모가 스쿼드 하나로 고정되므로 팀원 간 비교는 성립하지만, 스쿼드를 넘는 합산은 불가.
+ * 스쿼드 카드의 두 줄 — **비중 축**(배분)과 **캐파 축**(인력)을 각각 낸다 (§5-3.4).
  *
- * 반올림은 **최대잔여법(Hamilton)** — 단순 반올림이면 36+36+27=99 처럼 잔차가 남아
- * "합이 100" 이라는 화면 약속이 깨진다. 소수부가 큰 항목부터 1%p 씩 배분한다.
- * 파생값이며 저장하지 않는다.
+ * 🔴 **비중은 저장 값을 그대로 쓴다. 캐파값에서 계산하지 않는다.**
+ *   · 캐파 사용(매트릭스) = `allocationPct` — 분모는 개인 캐파 100 → "이 사람은 과부하인가"
+ *   · 스쿼드 내 비중(여기) = `sharePct`     — 분모는 이 스쿼드의 볼륨 100 → "누가 무게를 지는가"
+ *
+ * v3.7까지는 비중을 `캐파값 ÷ Σ캐파값` 으로 **파생**시켰다. 그 식은 *"모든 스쿼드의
+ * 볼륨이 같다"* 를 몰래 가정하므로 볼륨이 다르면 틀린다(§5-3.1). 반올림 보정(최대잔여법)도
+ * 함께 폐기했다 — 정수 입력값이라 잔차 자체가 없다(§10-A8).
+ *
+ *  · `allotted` = Σ sharePct. **100을 강제하지 않는다** — 미배분(<100)·초과 배분(>100)
+ *    모두 실재하는 중간 상태이고, 숨기면 관리자가 배분이 덜 끝난 것을 못 본다.
+ *  · `capSum`/`fte` = 캐파 축. **인분(FTE) 환산이 가능한 쪽은 여기뿐이다** — 비중은
+ *    볼륨을 모르므로 인분으로 바꿀 수 없다. 그래서 카드에서도 다른 줄에 놓는다.
+ *  · 정렬은 **비중 내림차순**(리드를 위로 올리지 않는다 — 비교가 목적이다).
  */
 export function squadComposition(members) {
   const list = members || [];
-  const totalPct = list.reduce((s, m) => s + (m.allocationPct || 0), 0);
-
-  const raw = list.map((m) => (totalPct ? ((m.allocationPct || 0) / totalPct) * 100 : 0));
-  const floors = raw.map(Math.floor);
-  let remainder = (totalPct ? 100 : 0) - floors.reduce((s, v) => s + v, 0);
-  const order = raw
-    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac || a.i - b.i); // 잔여가 큰 순, 동률이면 원래 순서
-  const shares = floors.slice();
-  for (let k = 0; k < order.length && remainder > 0; k += 1, remainder -= 1) {
-    shares[order[k].i] += 1;
-  }
+  const allotted = list.reduce((s, m) => s + (m.sharePct || 0), 0);
+  const capSum = list.reduce((s, m) => s + (m.allocationPct || 0), 0);
 
   const rows = list
-    .map((m, i) => ({
+    .map((m) => ({
       userId: m.userId,
       role: m.role,
-      pct: m.allocationPct || 0, // 개인 캐파 기준 원값
-      share: shares[i], // 스쿼드 100 기준 구성비 (합계 = 정확히 100)
+      share: m.sharePct || 0, // 스쿼드 100 기준 — 저장 값 그대로
+      pct: m.allocationPct || 0, // 개인 캐파 100 기준 — 다른 축
+      capacityUnset: isCapacityUnset(m),
     }))
-    .sort((a, b) => b.pct - a.pct); // 무게 큰 순 — 비교가 목적이므로 정렬한다
+    .sort((a, b) => b.share - a.share || b.pct - a.pct);
 
-  return { totalPct, fte: Math.round(totalPct / 10) / 10, rows };
+  return { allotted, capSum, fte: Math.round(capSum / 10) / 10, rows };
 }
 
 /**
- * 특정 멤버의 스쿼드 내 구성비 (툴팁 등 단건 조회용).
- *
- * **반드시 `squadComposition` 의 결과에서 꺼낸다.** 여기서 따로 `round(pct/total*100)` 을
- * 하면 최대잔여법으로 보정된 범례 값과 어긋난다 — 40·40·30(합 110)이면 범례는 37·36·27
- * 인데 단순 반올림은 36·36·27 이라, 같은 사람의 같은 값이 범례에서는 37%, 툴팁에서는
- * 36% 로 보인다. 한 화면에서 같은 수가 달라 보이면 "합이 100" 이라는 약속보다 먼저
- * 신뢰가 깨지므로, 구성비의 산출 지점은 하나로 묶는다(§5-3.4 · §10-A A8).
+ * 특정 멤버의 스쿼드 내 비중 (툴팁 등 단건 조회용) — **저장 값을 그대로 읽는다.**
+ * 계산 경로가 없으므로 범례·툴팁·셀이 어긋날 자리도 없다(구 최대잔여법이 만들던
+ * "범례 37% · 툴팁 36%" 불일치는 파생과 함께 사라졌다).
  */
 export function sqShare(members, userId) {
-  const { rows } = squadComposition(members);
-  return rows.find((r) => r.userId === userId)?.share || 0;
+  return (members || []).find((m) => m.userId === userId)?.sharePct || 0;
 }
 
 /** 스쿼드의 ⭐리드 배정 (없으면 null). */
