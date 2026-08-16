@@ -21,7 +21,17 @@ import OkrProgressBar from './OkrProgressBar.jsx';
  * Objective/KR 을 채운 채로 열리고, 저장 payload 는 원본 `id` 를 그대로 실어 보낸다.
  * 소비 측은 그 id 로 수정/추가/삭제를 가른다(PW-160: 등록 후 정정 수단이 없었다).
  * 주지 않으면 지금까지와 동일하게 빈 폼으로 열린다 — 작성 경로 동작은 그대로다.
+ *
+ * `labels` 로 계층 문구를 바꿔 끼울 수 있다(PW-268). 이 모달은 개인 OKR 기준 문구가
+ * 박혀 있어, 조직 단위(본부·부서·팀) 탭에서 열면 "개인 OKR을 시작해보세요" 처럼
+ * 화면과 어긋난 안내가 떴다. 미주입 시 아래 기본값 그대로라 기존 화면은 불변이다.
  */
+const DEFAULT_LABELS = {
+  eyebrow: '팀 OKR 미니맵',
+  hint: '좌측 팀 OKR 미니맵에서 + 를 클릭하면 해당 팀 KR에 연결된 개인 KR이 자동 추가됩니다.',
+  emptyTitle: '개인 OKR을 시작해보세요',
+  emptyDesc: '우측 팀 OKR 미니맵에서 + 를 클릭하거나\n직접 추가로 시작하세요',
+};
 const METHODS = [
   { key: 'percent', label: '% 달성률', desc: '0~100% 직접 입력', unit: '%' },
   { key: 'binary', label: '완료 여부', desc: '달성/미달성', unit: '완료' },
@@ -91,7 +101,9 @@ export default function OkrComposeFullModal({
   parentOptions = [],
   selfId = '',
   initialObjectives,
+  labels,
 }) {
+  const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
   // seed 는 마운트 시 1회만 — 저장 후 소비 측이 재조회해 prop 이 바뀌어도 폼을
   // 다시 덮어쓰지 않는다(입력 중 갱신이 사용자 타이핑을 날린다). 모달은 열 때마다
   // 마운트되므로 다음 진입에는 최신 값으로 채워진다.
@@ -182,6 +194,25 @@ export default function OkrComposeFullModal({
       totalW === 100 &&
       objectives.every((o) => o.title.trim() && o.krs.length > 0 && o.krs.every((k) => k.title.trim()) && krWeightOk(o)));
 
+  /**
+   * 저장을 막고 있는 **지금 그 이유** (PW-268 ③).
+   *
+   * 예전엔 푸터가 Objective 가중치 합계만 말했다. 그래서 KR 을 하나도 안 넣으면
+   * `가중치 합계 100% ✓` 라는 **초록 통과 표시를 띄운 채 저장 버튼이 죽어 있었다** —
+   * 요청도 콘솔 에러도 없어서 사용자에겐 "저장 버튼이 안 먹는다" 로만 보였다.
+   * 버튼 tooltip 도 가중치 이야기만 해서 어디서도 진짜 이유를 말하지 않았다.
+   */
+  const blockReason = (() => {
+    if (canSave || objectives.length === 0) return null;
+    if (objectives.some((o) => !o.title.trim())) return 'Objective 내용을 입력해주세요.';
+    if (objectives.some((o) => o.krs.length === 0)) {
+      return 'Objective 마다 KR 을 1개 이상 추가해야 저장할 수 있습니다.';
+    }
+    if (objectives.some((o) => o.krs.some((k) => !k.title.trim()))) return 'KR 내용을 입력해주세요.';
+    if (objectives.some((o) => !krWeightOk(o))) return 'KR 가중치 합이 100% 여야 저장할 수 있습니다.';
+    return null; // 남은 건 Objective 가중치 — 아래 합계 배지가 이미 말한다.
+  })();
+
   const handleSave = () => {
     if (!canSave || saving) return;
     // id 는 편집 진입(initialObjectives)에서만 붙는다 — 소비 측이 이 값으로
@@ -220,7 +251,7 @@ export default function OkrComposeFullModal({
         </button>
 
         <div className="okr-cf-header">
-          <p className="okr-cf-eyebrow">팀 OKR 미니맵</p>
+          <p className="okr-cf-eyebrow">{L.eyebrow}</p>
           <p className="okr-cf-title">{minimap.title}</p>
         </div>
 
@@ -256,7 +287,7 @@ export default function OkrComposeFullModal({
 
           <div className="okr-cf-editor">
             <div className="okr-cf-editor-head">
-              <p className="okr-cf-hint">좌측 팀 OKR 미니맵에서 + 를 클릭하면 해당 팀 KR에 연결된 개인 KR이 자동 추가됩니다.</p>
+              <p className="okr-cf-hint">{L.hint}</p>
               <div className="okr-cf-head-actions">
                 {onGenerate && (
                   <button className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
@@ -273,8 +304,13 @@ export default function OkrComposeFullModal({
 
             {objectives.length === 0 ? (
               <div className="okr-cf-empty">
-                <p className="okr-cf-empty-title">개인 OKR을 시작해보세요</p>
-                <p className="okr-cf-empty-desc">우측 팀 OKR 미니맵에서 + 를 클릭하거나<br />직접 추가로 시작하세요</p>
+                <p className="okr-cf-empty-title">{L.emptyTitle}</p>
+                {/* 줄바꿈은 문구의 일부다 — '\n' 을 <br/> 로 편다(시안 2줄 유지). */}
+                <p className="okr-cf-empty-desc">
+                  {String(L.emptyDesc).split('\n').map((line, i) => (
+                    <span key={line}>{i > 0 && <br />}{line}</span>
+                  ))}
+                </p>
               </div>
             ) : (
               objectives.map((objective) => {
@@ -407,18 +443,29 @@ export default function OkrComposeFullModal({
           <div className="okr-modal-footer">
             {/* 전부 지운 편집 상태에서는 가중치 합계 안내가 뜻이 없다(합계 0% 는
                 "덜 채웠다" 로 읽혀 오히려 오해를 준다) — 저장 실패만 알린다. */}
-            <span className={`okr-cf-total${!saveError && totalW === 100 ? ' is-ok' : ''}`}>
+            {/* 통과 표시(✓)는 **정말 저장 가능할 때만** 초록으로 켠다 — 막혀 있는데
+                초록이면 사용자는 버튼 고장으로 읽는다(PW-268 ③). */}
+            <span
+              className={`okr-cf-total${!saveError && !blockReason && totalW === 100 ? ' is-ok' : ''}`}
+              data-testid="okr-cf-total"
+            >
               {saveError
                 ? saveError
-                : emptiedFromEdit
-                  ? ''
-                  : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
+                : blockReason
+                  ? blockReason
+                  : emptiedFromEdit
+                    ? ''
+                    : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
             </span>
             <button className="okr-btn is-outline" onClick={onClose}>취소</button>
             <button
               className="okr-btn is-brand"
               disabled={!canSave || saving}
-              title={!canSave ? 'Objective·KR 가중치 합이 모두 100%여야 저장할 수 있습니다.' : ''}
+              title={
+                !canSave
+                  ? (blockReason ?? 'Objective 가중치 합이 100%여야 저장할 수 있습니다.')
+                  : ''
+              }
               onClick={handleSave}
             >
               {saving ? '저장 중…' : '저장'}
