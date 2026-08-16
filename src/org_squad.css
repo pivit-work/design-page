@@ -385,6 +385,11 @@
   font-weight: 600;
   font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
+/* 캐파는 괄호로 — 비중과 분모가 달라 같은 무게로 쓰면 두 수가 섞여 읽힌다 */
+.sq-chip-cap {
+  color: var(--text-quaternary);
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+}
 .sq-chip-remove {
   display: inline-flex;
   color: var(--text-tertiary);
@@ -473,6 +478,50 @@
 .sq-comp-total {
   margin-left: auto;
   font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+}
+.sq-comp-total b { color: var(--text-secondary); font-weight: 600; }
+.sq-comp-total b.is-over { color: var(--text-error-primary); }
+/* 미배분·초과 표기 — 초과일 때만 빨강. 미배분은 정상적인 중간 상태라 경고색을 쓰지 않는다 */
+.sq-comp-note { margin-left: 4px; color: var(--text-quaternary); }
+.sq-comp-note.is-over { color: var(--text-error-primary); }
+
+/* 배분 바 (스쿼드 100 기준) — 캐파 게이지와 **같은 표시 규칙**을 쓰되 분모가 다르다.
+   미배분 잔여는 회색으로 남기고, 초과분은 빗금 + 100 지점 눈금으로 분리한다(§5-3.4). */
+.sq-share { position: relative; }
+.sq-share-track { display: flex; overflow: hidden; }
+.sq-share-seg { display: flex; }
+.sq-share-seg + .sq-share-seg { border-left: 1px solid var(--bg-quaternary); }
+/* 채움색은 인라인(사람별 신원색)이지만 불투명도를 낮춰 프로젝트 카드 진행 바와 같은
+   무게로 읽히게 한다 — 500 원색 그대로면 카드 한복판에 경고등이 켜진 것처럼 보인다. */
+.sq-share-fill { height: 100%; opacity: 0.55; }
+.sq-share-over { height: 100%; opacity: 0.55; }
+.sq-share-rest { height: 100%; background: var(--bg-secondary); }
+.sq-share-mark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--utility-error-500);
+}
+
+/* 캐파 축 줄 — 비중과 **분모가 다르므로** 점선으로 갈라 별도 줄에 둔다.
+   인분(FTE) 환산이 가능한 쪽은 여기뿐이다(§5-3.4). */
+.sq-comp-capline {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-secondary);
+}
+.sq-comp-capline-label { font-size: 12px; line-height: 18px; color: var(--text-quaternary); }
+.sq-comp-capline-value {
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 18px;
   color: var(--text-tertiary);
   font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
@@ -586,21 +635,55 @@
 
 /* 배정 셀 — `pj-cell-dot` 의 모서리 언어를 따르되 투입%를 싣는다 */
 .sq-cell {
+  /* 두 값을 위아래로 병기한다 — 윗줄 = 캐파 사용(합계의 재료), 아랫줄 = 스쿼드 내
+     비중(합계 밖). 한 값만 보이면 나머지를 보는 사람이 추측으로 채운다(§5-3.2). */
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
   min-width: 46px;
-  height: 26px;
-  padding: 0 8px;
+  padding: 3px 8px;
   border-radius: 6px;
   border: 1px solid transparent;
+  /* 라벨 길이가 흔들려도(로케일·긴 배지) 칸 밖으로 나가지 않게 최종 방어 */
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
 }
 .sq-cell.is-clickable { cursor: pointer; }
+/* 캐파 미설정 — "아직 아무도 정하지 않음" 을 색이 아니라 **형태**(점선)로 말한다.
+   색각 이상·흑백에서도 남고, 배경색이 없어 값이 있는 셀과 한눈에 갈린다(§5-3.7). */
+.sq-cell.is-cap-unset {
+  background: var(--bg-primary);
+  border: 1px dashed var(--text-quaternary);
+}
+.sq-cell-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
 .sq-cell-pct {
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-family-mono, 'DM Mono', monospace);
+}
+.sq-cell-pct.is-unset { color: var(--text-tertiary); }
+/* 아랫줄 = 스쿼드 내 비중. 합계에 안 들어가는 값이라 윗줄보다 약하게 둔다 */
+.sq-cell-share {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  white-space: nowrap;
+}
+/* 관리자 조정 배지 — 「누가 정했는가」를 값 옆에서 바로 읽히게 한다 */
+.sq-cell-adjusted {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--utility-warning-700);
+  background: var(--utility-warning-50);
+  border-radius: 4px;
+  padding: 0 3px;
 }
 /* 편집 모드의 빈 셀 — 누를 수 있음을 파선으로 알린다 */
 .sq-cell-add {
@@ -767,6 +850,75 @@
   line-height: 18px;
   margin-top: 6px;
 }
+/* ── 팝오버 두 축 (§5-3.3) ── */
+.sq-pop-axis {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 18px;
+  margin-bottom: 4px;
+}
+.sq-pop-axis-basis { font-weight: 400; color: var(--text-quaternary); }
+.sq-pop-axis-owner { margin-left: 4px; font-weight: 500; color: var(--text-quaternary); }
+.sq-pop-axis-owner.is-self { color: var(--text-brand-tertiary); font-weight: 600; }
+/* 읽기 전용(권한 없음) — 감추지 않고 흐리게 둔다. 내 몫을 알아야 내 캐파를 정한다 */
+.sq-pop-row.is-readonly { opacity: 0.55; }
+
+/* 두 축의 경계 — **생략 불가**. 이 화면에서 오독이 가장 잦은 지점이라 상시 노출한다 */
+.sq-pop-divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 8px;
+}
+.sq-pop-divider-line { flex: 1; height: 1px; background: var(--border-secondary); }
+.sq-pop-divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-quaternary);
+  white-space: nowrap;
+}
+.sq-pop-divider-desc {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  line-height: 16px;
+  margin-bottom: 10px;
+}
+.sq-pop-preview.is-over {
+  background: var(--utility-error-50);
+  border-color: var(--utility-error-200);
+}
+.sq-pop-preview .sq-cap-total.is-over,
+.sq-pop-preview .sq-pop-preview-state.is-over { color: var(--text-error-primary); }
+
+/* ── 「내 캐파」 요약 배너 (§5-3.7) ──
+   관리자용 [할당 편집] 토글과 무관하게 상시 노출된다 — 캐파의 소유자는 본인이므로
+   자기 값을 어디서 정하는지가 화면에 늘 보여야 한다. */
+.sq-mycap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.sq-mycap-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.sq-mycap-total {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+}
+.sq-mycap-max {
+  font-size: 12px;
+  color: var(--text-quaternary);
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+}
+.sq-mycap-note { font-size: 12px; color: var(--text-tertiary); }
+.sq-mycap-unset { color: var(--utility-warning-700); font-weight: 600; }
+.sq-mycap-owner { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
+.sq-mycap-owner b { color: var(--text-secondary); font-weight: 600; }
+
 .sq-pop-actions { display: flex; gap: 8px; }
 .sq-pop-actions .sq-btn { flex: 1; }
 .sq-btn-lead.is-on {

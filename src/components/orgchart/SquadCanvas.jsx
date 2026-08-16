@@ -32,7 +32,6 @@ import {
 } from './SquadPieces.jsx';
 import {
   CAPACITY,
-  DEFAULT_ASSIGN_PCT,
   SQUAD_PALETTE,
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
@@ -40,15 +39,16 @@ import {
   avatarFontPx,
   capacityState,
   fmtYmd,
+  isCapacityUnset,
   isCountedStatus,
   leadOf,
   planSegments,
   plannedTotalPct,
-  sqShare,
   squadCountOf,
   squadStatusMeta,
   squadStatusLabel,
   transitionsFrom,
+  unsetCapacityCount,
 } from './squad-constants.js';
 import {
   LeadStarIcon, CalendarIcon, WarningIcon, LockIcon,
@@ -56,6 +56,28 @@ import {
 } from './squadIcons.jsx';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * 셀 툴팁의 마지막 줄 — 이 셀을 눌렀을 때 무엇을 할 수 있는지.
+ * 본인 행은 «내 캐파 설정» 이 정상 경로라 관리자 문구와 다르게 안내한다(§5-3.7).
+ */
+function cellHint(isMine, editable) {
+  if (isMine) return '클릭: 내 캐파 설정';
+  return editable ? '클릭: 비중·캐파·리드 편집' : '';
+}
+
+/**
+ * 「캐파 사용」 열의 아래 문구 (§5-3.2 상태표).
+ *
+ * 합계 0 은 두 가지 이유로 생긴다 — 정말 배정이 없거나, 배정은 있는데 **캐파가 아직
+ * 아무도 정해지지 않아 합계에서 빠진** 것이다. 둘을 같은 「미배정」 으로 쓰면 왜 0인지
+ * 화면이 설명하지 못한다(§10-A19).
+ */
+function capacityNote({ total, diff, count, unsetCount }) {
+  if (total === 0) return unsetCount > 0 ? '합계 제외됨' : '미배정';
+  if (diff > 0) return `초과 ${diff}%p · ${count}개`;
+  return `여유 ${-diff}%p · ${count}개`;
+}
 
 export default function SquadCanvas({
   squads = [],
@@ -69,6 +91,14 @@ export default function SquadCanvas({
    * `null` 이면 전체 편집 가능(hr_admin). 빈 배열이면 편집 대상 없음.
    */
   editableUserIds = null,
+  /**
+   * 로그인한 본인의 userId (§5-3.7).
+   *
+   * 캐파 사용의 **소유자는 본인**이라, 이 값이 있어야 «내 행은 역할·편집 모드와 무관하게
+   * 열린다» 를 판정할 수 있다. 없으면(비로그인 미리보기 등) 본인 경로 없이 관리자
+   * 규칙만 남는다 — 「내 캐파」 배너도 뜨지 않는다.
+   */
+  currentUserId = null,
   loading = false,
   error = null,
   onRetry,
@@ -131,6 +161,14 @@ export default function SquadCanvas({
     [peopleById],
   );
 
+  /**
+   * 툴팁에 쓰는 캐파 문구. **미설정과 0% 를 구분한다** — 미설정은 합계에서 빠져 있으므로
+   * 「0%」 로 쓰면 왜 합계가 낮은지 설명이 사라진다(§5-3.7).
+   */
+  const capText = (m) => (isCapacityUnset(m)
+    ? '미설정 — 합계에서 제외됨'
+    : `${m.allocationPct}%`);
+
   // ── 권한 ──
   // 원장 관리(p013)는 **편집 모드와 무관하게 상시** 동작한다 — 스쿼드가 0건이면 편집할
   // 대상 자체가 없어 편집 모드 진입이 무의미하고, 상태 전환은 '할당' 이 아니라 조직
@@ -145,9 +183,32 @@ export default function SquadCanvas({
     (userId) => editableSet === null || editableSet.has(userId),
     [editableSet],
   );
-  const canEditMemberOf = useCallback(
+  /**
+   * 🔴 **두 축은 소유자가 다르므로 권한도 두 갈래다**(§5-3.7).
+   *
+   *  · ① 비중 — **조직**이 정한다. 편집 모드 + 조직 범위로만 판정하며, 대상이 본인이라는
+   *    사실은 권한을 주지 않는다. 리드 지정·배정 해제도 조직의 결정이라 여기를 따른다.
+   *  · ② 캐파 사용 — **본인**이 정한다. 자기 행이면 역할·편집 모드와 무관하게 열린다.
+   *    `member` 가 자기 캐파를 정하는 것이 정상 경로다.
+   *
+   * 이 갈림이 무너지면 관리자가 남의 시간을 추정해 적는 구조로 돌아간다.
+   */
+  const canEditShareOf = useCallback(
     (userId) => isEditing && inScope(userId) && !!onUpsertMember,
     [isEditing, inScope, onUpsertMember],
+  );
+  const isSelfRow = useCallback(
+    (userId) => !!currentUserId && userId === currentUserId,
+    [currentUserId],
+  );
+  const canEditCapacityOf = useCallback(
+    (userId) => (!!onUpsertMember && isSelfRow(userId)) || canEditShareOf(userId),
+    [onUpsertMember, isSelfRow, canEditShareOf],
+  );
+  /** 팝오버를 열 수 있는가 — 둘 중 하나라도 편집 가능하면 연다. */
+  const canEditMemberOf = useCallback(
+    (userId) => canEditShareOf(userId) || canEditCapacityOf(userId),
+    [canEditShareOf, canEditCapacityOf],
   );
 
   /**
@@ -224,9 +285,13 @@ export default function SquadCanvas({
   // ── 상태 전이 ──
   const transitionsFor = (sq) => (ledgerReady && onChangeStatus ? transitionsFrom(sq.status) : []);
 
-  // 재개(완료→진행중) 시 이 스쿼드 계획%가 합계에 다시 더해져 과부하가 새로 생길 수 있다
+  // 재개(완료→진행중) 시 이 스쿼드 계획%가 합계에 다시 더해져 과부하가 새로 생길 수 있다.
+  // 캐파 미설정 배정은 지금도 합계 밖이라 재개해도 더해지지 않는다.
   const reopenOverloads = (sq) => (sq.members || [])
-    .map((m) => ({ userId: m.userId, total: plannedTotalPct(squads, m.userId) + m.allocationPct }))
+    .map((m) => ({
+      userId: m.userId,
+      total: plannedTotalPct(squads, m.userId) + (isCapacityUnset(m) ? 0 : m.allocationPct),
+    }))
     .filter((x) => x.total > CAPACITY);
 
   const applyStatus = async (squadId, to) => {
@@ -253,8 +318,13 @@ export default function SquadCanvas({
     : [];
 
   // ── 배정 ──
-  const assign = (squadId, userId) =>
-    onUpsertMember?.(squadId, userId, { allocationPct: DEFAULT_ASSIGN_PCT });
+  // 신규 배정은 **아무 값도 보내지 않는다** — 서버가 비중 0(미배분) · 캐파 미설정으로
+  // 만든다(§5-3.7). 여기서 기본 캐파를 채우면 관리자가 남의 시간에 숫자를 적는 것이 된다.
+  const assign = (squadId, userId) => onUpsertMember?.(squadId, userId, {});
+  // 🔴 두 축은 각각 **자기 필드만** 보낸다. 한 호출에 둘을 같이 실으면 슬라이더 하나를
+  // 움직였을 때 다른 값이 함께 저장되고, 그 순간 두 축이 다시 묶인다(§10-A17).
+  const setShare = (squadId, userId, share) =>
+    onUpsertMember?.(squadId, userId, { sharePct: share });
   const setPct = (squadId, userId, pct) =>
     onUpsertMember?.(squadId, userId, { allocationPct: pct });
   const unassign = (squadId, userId) => {
@@ -277,6 +347,28 @@ export default function SquadCanvas({
   }, [isEditing, assignedIds, people, peopleById]);
 
   const overloaded = rowIds.filter((id) => plannedTotalPct(squads, id) > CAPACITY);
+
+  /**
+   * 「내 캐파」 요약 배너의 재료 (§5-3.7).
+   *
+   * `target` = CTA 가 열 배정. **첫 미설정**을 먼저 열고, 미설정이 없으면 캐파가 가장 큰
+   * 배정을 연다 — 배너를 눌렀는데 아무 일도 안 일어나는 상태를 만들지 않는다.
+   * 활성 스쿼드 배정이 0건이면 배너 자체를 렌더하지 않는다(보여줄 값이 없다).
+   */
+  const myCapacity = useMemo(() => {
+    if (!currentUserId) return null;
+    const active = squads.filter((sq) => isCountedStatus(sq.status));
+    const mine = active.filter((sq) => (sq.members || []).some((m) => m.userId === currentUserId));
+    if (mine.length === 0) return null;
+
+    const total = plannedTotalPct(squads, currentUserId);
+    const unset = unsetCapacityCount(squads, currentUserId);
+    const memberIn = (sq) => (sq.members || []).find((m) => m.userId === currentUserId);
+    const target = mine.find((sq) => isCapacityUnset(memberIn(sq)))
+      ?? [...mine].sort((a, b) => (memberIn(b)?.allocationPct || 0) - (memberIn(a)?.allocationPct || 0))[0];
+
+    return { total, unset, target, diff: total - CAPACITY, state: capacityState(total) };
+  }, [squads, currentUserId]);
 
   const popSquad = popover && squads.find((sq) => sq.id === popover.squadId);
   const popAssign = popSquad && (popSquad.members || []).find((m) => m.userId === popover.userId);
@@ -571,7 +663,7 @@ export default function SquadCanvas({
                                   key={mm.userId}
                                   className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
                                   onClick={() => p && onMemberClick?.(p)}
-                                  title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${mm.role === 'lead' ? ' · 리드' : ''}`}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${mm.role === 'lead' ? ' · 리드' : ''}`}
                                 >
                                   <div
                                     className="sq-avatar"
@@ -614,17 +706,22 @@ export default function SquadCanvas({
                                   onClick={(e) => editable && setPopover({
                                     squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
                                   })}
-                                  title={`${nameOf(mm.userId)} — 스쿼드 내 ${sqShare(members, mm.userId)}% · 개인 캐파 기준 ${mm.allocationPct}%${editable ? '\n클릭: 투입%·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${editable ? '\n클릭: 비중·캐파·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
                                 >
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
                                   )}
                                   <span className="sq-chip-name">{nameOf(mm.userId)}</span>
+                                  {/* 칩에도 두 축을 함께 — 비중(강조) + 캐파(괄호).
+                                      한 값만 보이면 나머지를 보는 사람이 추측으로 채운다 */}
                                   <span
                                     className="sq-chip-pct"
                                     style={{ color: p?.color || 'var(--text-tertiary)' }}
                                   >
-                                    {mm.allocationPct}%
+                                    {mm.sharePct || 0}%
+                                  </span>
+                                  <span className="sq-chip-cap">
+                                    (캐파 {isCapacityUnset(mm) ? '—' : mm.allocationPct})
                                   </span>
                                   {editable && onRemoveMember && (
                                     <span
@@ -704,10 +801,49 @@ export default function SquadCanvas({
                     <p className="pj-table-title">멤버 × 스쿼드 배치</p>
                     <p className="pj-table-subtitle">
                       {isEditing
-                        ? `빈 셀 클릭 = 배정 (기본 ${DEFAULT_ASSIGN_PCT}%) · 배정 셀 클릭 = 투입%(내 캐파 100 기준) · 리드 편집`
-                        : '이름 클릭 시 프로필 확인 · 셀 % = 내 캐파 100 중 이 스쿼드 비율'}
+                        ? '빈 셀 클릭 = 배정 (비중 미배분 · 캐파 미설정) · 배정 셀 클릭 = 비중·캐파·리드 편집'
+                        : '셀 윗줄 = 개인 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖)'}
                     </p>
                   </div>
+
+                  {/* ── 「내 캐파」 요약 배너 (§5-3.7) ──
+                      캐파의 소유자는 본인이므로, 본인이 자기 값을 어디서 정하는지가 화면에
+                      늘 보여야 한다. 관리자용 [할당 편집] 토글과 무관하게 상시 노출한다. */}
+                  {myCapacity && (
+                    <div className="sq-mycap" data-testid="squad-my-capacity-banner">
+                      <span className="sq-mycap-label">내 캐파 사용</span>
+                      <span className="sq-mycap-total" style={{ color: myCapacity.state.color }}>
+                        {myCapacity.total}
+                      </span>
+                      <span className="sq-mycap-max">/ 100</span>
+                      <span className="sq-mycap-note">
+                        {myCapacity.diff > 0
+                          ? `초과 ${myCapacity.diff}%p`
+                          : `여유 ${-myCapacity.diff}%p`}
+                        {myCapacity.unset > 0 && (
+                          <span className="sq-mycap-unset"> · 미설정 {myCapacity.unset}곳</span>
+                        )}
+                      </span>
+                      <span className="sq-mycap-owner">
+                        이 값은 <b>본인이 정한다</b> — 스쿼드 볼륨이 나오기 전까지 자동 계산하지 않는다
+                      </span>
+                      {myCapacity.target && (
+                        <button
+                          type="button"
+                          className="sq-btn sq-btn-sm sq-btn-primary"
+                          data-testid="squad-my-capacity-cta"
+                          onClick={() => setPopover({
+                            squadId: myCapacity.target.id,
+                            userId: currentUserId,
+                            x: window.innerWidth / 2,
+                            y: 220,
+                          })}
+                        >
+                          {myCapacity.unset > 0 ? '내 캐파 설정 →' : '조정 →'}
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* 과부하 경고 배너 — 차단하지 않고 현실을 먼저 드러낸다 */}
                   {overloaded.length > 0 && (
@@ -752,6 +888,8 @@ export default function SquadCanvas({
                           const segments = planSegments(squads, userId);
                           const cst = capacityState(total);
                           const diff = total - CAPACITY;
+                          // 미설정은 합계에서 빠져 있다 — 합계가 낮은 이유를 화면이 스스로 말한다
+                          const unsetCount = unsetCapacityCount(squads, userId);
                           const clickable = !!(p && onMemberClick);
                           const rowLabel = p?.avatar || nameOf(userId).slice(0, 2);
                           return (
@@ -781,34 +919,82 @@ export default function SquadCanvas({
                               {squads.map((sq) => {
                                 const mm = (sq.members || []).find((x) => x.userId === userId);
                                 const editable = canEditMemberOf(userId);
+                                // 🔴 **배정을 새로 만드는 것은 조직의 결정**이다(§5-3.7) —
+                                // 본인 여부로 열리는 것은 이미 있는 내 배정의 캐파뿐이다.
+                                // 서버도 같은 규칙이라, 여기서 열어 두면 403 만 돌아온다.
+                                const canAssign = canEditShareOf(userId);
                                 const isLead = mm?.role === 'lead';
+                                const capUnset = !!mm && isCapacityUnset(mm);
+                                const mine = isSelfRow(userId);
                                 return (
                                   <td key={sq.id} className="pj-td sq-td-cell">
                                     {mm ? (
                                       <div
                                         data-testid={`squad-cell-${sq.id}-${userId}`}
-                                        className={`sq-cell${editable ? ' is-clickable' : ''}`}
+                                        className={[
+                                          'sq-cell',
+                                          editable ? 'is-clickable' : '',
+                                          // 미설정은 **형태**로 말한다 — 색이 죽어도 점선은 남는다(§5-3.7)
+                                          capUnset ? 'is-cap-unset' : '',
+                                        ].filter(Boolean).join(' ')}
                                         onClick={(e) => editable && setPopover({
                                           squadId: sq.id, userId, x: e.clientX + 8, y: e.clientY + 8,
                                         })}
-                                        title={`${nameOf(userId)} · ${sq.name} — 내 캐파 100 중 ${mm.allocationPct}%${isLead ? ' · 리드' : ''}${editable ? '\n클릭: 투입%·리드 편집' : ''}`}
-                                        style={{ background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
+                                        title={[
+                                          `${nameOf(userId)} · ${sq.name}`,
+                                          `개인 캐파 사용 ${capText(mm)} (내 캐파 100 기준 — 오른쪽 합계의 재료)`,
+                                          `스쿼드 내 비중 ${mm.sharePct || 0}% (이 스쿼드 100 기준 — 합계에 들어가지 않음)`,
+                                          mm.capacitySetBy === 'manager' ? '관리자가 조정한 값' : '',
+                                          isLead ? '리드' : '',
+                                          cellHint(mine, editable),
+                                        ].filter(Boolean).join('\n')}
+                                        style={capUnset
+                                          ? undefined
+                                          : { background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
                                       >
-                                        {isLead && (
-                                          <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
-                                        )}
-                                        <span className="sq-cell-pct" style={{ color: sq.color }}>
-                                          {mm.allocationPct}%
+                                        {/* 윗줄 = 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖).
+                                            한 값만 보이면 나머지를 보는 사람이 추측으로 채우고,
+                                            그 추측이 두 축을 하나로 뭉갠다(§5-3.2) */}
+                                        <span className="sq-cell-top">
+                                          {isLead && (
+                                            <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
+                                          )}
+                                          {capUnset ? (
+                                            <span
+                                              className="sq-cell-pct is-unset"
+                                              data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
+                                              title="캐파 사용이 아직 설정되지 않았습니다"
+                                            >—</span>
+                                          ) : (
+                                            <span className="sq-cell-pct" style={{ color: sq.color }}>
+                                              {mm.allocationPct}%
+                                            </span>
+                                          )}
+                                          {mm.capacitySetBy === 'manager' && (
+                                            <span
+                                              className="sq-cell-adjusted"
+                                              data-testid={`squad-cell-adjusted-${sq.id}-${userId}`}
+                                              title="관리자가 조정한 값입니다"
+                                            >조정</span>
+                                          )}
+                                        </span>
+                                        <span
+                                          className="sq-cell-share"
+                                          data-testid={`squad-cell-share-${sq.id}-${userId}`}
+                                        >
+                                          {mm.sharePct ? `스쿼드 ${mm.sharePct}%` : '스쿼드 —'}
                                         </span>
                                       </div>
                                     ) : isEditing ? (
                                       <div
                                         data-testid={`squad-empty-cell-${sq.id}-${userId}`}
-                                        className={`sq-cell-add${editable ? '' : ' is-locked'}`}
-                                        onClick={() => editable && assign(sq.id, userId)}
-                                        title={editable ? `클릭: ${sq.name}에 배정 (기본 ${DEFAULT_ASSIGN_PCT}%)` : '편집 권한 없음 (내 조직 아님)'}
+                                        className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
+                                        onClick={() => canAssign && assign(sq.id, userId)}
+                                        title={canAssign
+                                          ? `클릭: ${sq.name}에 배정 (비중 미배분 · 캐파 미설정 — 캐파는 본인이 정한다)`
+                                          : '편집 권한 없음 (내 조직 아님)'}
                                       >
-                                        {editable && <PlusIcon size={12} />}
+                                        {canAssign && <PlusIcon size={12} />}
                                       </div>
                                     ) : (
                                       <span className="pj-cell-dot pj-cell-dot-empty" />
@@ -842,11 +1028,12 @@ export default function SquadCanvas({
                                   </div>
                                   <CapacityBar segments={segments} total={total} />
                                   <span className={`sq-cap-note${cst.key === 'over' ? ' is-over' : ''}`}>
-                                    {total === 0
-                                      ? '미배정'
-                                      : diff > 0
-                                        ? `초과 ${diff}%p · ${count}개`
-                                        : `여유 ${-diff}%p · ${count}개`}
+                                    {unsetCount > 0 && (
+                                      <span data-testid={`squad-capacity-unset-${userId}`}>
+                                        미설정 {unsetCount}곳 ·{' '}
+                                      </span>
+                                    )}
+                                    {capacityNote({ total, diff, count, unsetCount })}
                                   </span>
                                 </div>
                               </td>
@@ -871,13 +1058,20 @@ export default function SquadCanvas({
                       리드 (스쿼드당 1명)
                     </span>
                     <span className="sq-legend-item">
-                      셀 % = <b>내 가용 캐파 100 중 이 스쿼드에 쓰는 비율</b> (스쿼드 내 지분·상대 비중이 아님 — 그래야 합산이 성립한다)
+                      셀 <b>윗줄</b> = 내 가용 캐파 100 중 이 스쿼드에 쓰는 비율(합산 대상) · <b>아랫줄</b> = 이 스쿼드 100 중 내 비중 —
+                      <b> 서로 파생되지 않는 별개 값</b>이다 (스쿼드마다 절대 볼륨이 달라 한쪽에서 다른 쪽을 계산할 수 없다)
                     </span>
                     <span className="sq-legend-item">
                       캐파 사용(완료·보관 스쿼드 제외): <span className="sq-legend-over">&gt;100 초과</span>
                       (빗금 = 캐파 밖) · 100 가득 · 70~99 적정 · &lt;70 여유
                     </span>
-                    <span className="sq-legend-item sq-legend-faint">실제 투입%는 「리소스 투입현황」 자기신고 값과 별개</span>
+                    <span className="sq-legend-item">
+                      소유자가 다르다 — <b>비중은 조직</b>이 정하고 <b>캐파 사용은 본인</b>이 정한다 ·
+                      점선 <b>—</b> = 미설정(합계 제외) · <b>조정</b> 배지 = 관리자가 대신 정한 값
+                    </span>
+                    <span className="sq-legend-item sq-legend-faint">
+                      스쿼드 내 비중은 「캐파 사용」 합계에 들어가지 않는다 · 실제 투입%는 「리소스 투입현황」 자기신고 값과 별개
+                    </span>
                   </div>
                 </div>
               )}
@@ -894,7 +1088,14 @@ export default function SquadCanvas({
           assignment={popAssign}
           personName={nameOf(popover.userId)}
           othersPct={plannedTotalPct(squads.filter((sq) => sq.id !== popSquad.id), popover.userId)}
+          othersShare={(popSquad.members || [])
+            .filter((m) => m.userId !== popover.userId)
+            .reduce((t, m) => t + (m.sharePct || 0), 0)}
           counted={isCountedStatus(popSquad.status)}
+          canEditShare={canEditShareOf(popover.userId)}
+          canEditCapacity={canEditCapacityOf(popover.userId)}
+          isSelf={isSelfRow(popover.userId)}
+          onSetShare={(share) => setShare(popover.squadId, popover.userId, share)}
           onSetPct={(pct) => setPct(popover.squadId, popover.userId, pct)}
           onToggleLead={() => toggleLead(popover.squadId, popover.userId, popAssign.role === 'lead')}
           onRemove={() => unassign(popover.squadId, popover.userId)}

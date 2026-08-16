@@ -12,6 +12,7 @@
 import { useEffect } from 'react';
 import {
   CAPACITY,
+  SQUAD_BASE,
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
   capacityState,
@@ -62,48 +63,113 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
 }
 
 /**
- * 팀원 리소스 구성 — **스쿼드 100 기준** 구성비 (§5-3.4).
- * 매트릭스의 캐파 사용과 분모가 다르므로 구성비(강조)와 캐파 원값(괄호)을 항상 병기한다.
+ * 배분 바 — 트랙 전체 = `max(100, 배분 합계)` (§5-3.4).
+ *
+ * 캐파 게이지(`CapacityBar`)와 **같은 규칙**으로 초과분에 빗금을 치고 100 지점에 눈금을
+ * 긋는다. 다른 점은 분모다 — 여기는 **이 스쿼드의 볼륨 100**, 저기는 **그 사람의 캐파
+ * 100**. 미배분(합계 < 100)은 잔여 구간을 회색으로 남겨 "아직 안 나눈 몫"을 숨기지 않는다.
+ */
+export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
+  const scale = Math.max(SQUAD_BASE, allotted);
+  const pc = (v) => (v / scale) * 100;
+  const filled = (rows || []).filter((r) => r.share > 0);
+  // 각 세그먼트가 100을 넘긴 몫(빗금 구간)을 알려면 "끝나는 지점"이 필요하다.
+  const cumulative = cumulativePct(filled.map((r) => ({ pct: r.share })));
+
+  return (
+    <div className="sq-share" data-testid="squad-share-bar">
+      <div className="sq-share-track pj-progress-bar" style={{ height }}>
+        {filled.map((r, i) => {
+          const over = Math.max(0, Math.min(r.share, cumulative[i] - SQUAD_BASE));
+          const c = colorOf(r.userId);
+          return (
+            <div
+              key={r.userId}
+              className="sq-share-seg"
+              title={`${r.label} — 스쿼드 내 비중 ${r.share}% · 개인 캐파 사용 ${r.pct}%`}
+              style={{ width: `${pc(r.share)}%` }}
+            >
+              <div
+                className="sq-share-fill"
+                style={{ width: `${((r.share - over) / r.share) * 100}%`, background: c }}
+              />
+              <div
+                className="sq-share-over"
+                style={{
+                  width: `${(over / r.share) * 100}%`,
+                  background: `repeating-linear-gradient(45deg, ${c}, ${c} 2px, var(--utility-error-200) 2px, var(--utility-error-200) 4px)`,
+                }}
+              />
+            </div>
+          );
+        })}
+        {allotted < SQUAD_BASE && (
+          <div
+            className="sq-share-rest"
+            data-testid="squad-share-unallotted"
+            title={`미배분 ${SQUAD_BASE - allotted}%p`}
+            style={{ width: `${pc(SQUAD_BASE - allotted)}%` }}
+          />
+        )}
+      </div>
+      {allotted > SQUAD_BASE && (
+        <div className="sq-share-mark" title="스쿼드 100%" style={{ left: `${pc(SQUAD_BASE)}%` }} />
+      )}
+    </div>
+  );
+}
+
+/** `배분 완료` / `초과 n%p` / `미배분 n%p` — 카드·팝오버가 같은 문구를 쓴다. */
+function allotmentNote(allotted) {
+  const diff = allotted - SQUAD_BASE;
+  if (diff === 0) return '배분 완료';
+  return diff > 0 ? `초과 ${diff}%p` : `미배분 ${-diff}%p`;
+}
+
+/**
+ * 팀원 리소스 구성 — **스쿼드 100 기준 비중** (§5-3.4).
+ *
+ * 🔴 소스는 `sharePct` **원값**이다. 캐파값에서 계산하지 않는다(§5-3.1).
+ * 캐파 축(합계·인분)은 분모가 달라 **별도 줄**로 내린다 — 두 줄을 붙여 놓은 것이
+ * 종전 오독의 출발점이었다. 인분(FTE) 환산이 가능한 쪽은 캐파뿐이다.
  */
 export function SquadComposition({ squad, members, personOf }) {
-  const { totalPct, fte, rows } = squadComposition(members);
+  const { allotted, capSum, fte, rows } = squadComposition(members);
   if (!members || members.length === 0) return null;
 
   const colorOf = (userId) => personOf(userId)?.color || squad.color;
   const nameOf = (userId) => personOf(userId)?.name || '알 수 없는 구성원';
+  const over = allotted > SQUAD_BASE;
 
   return (
     <div data-testid="squad-composition">
       <div className="sq-comp-head">
         <span className="sq-comp-title">팀원 리소스 구성</span>
         <span className="sq-comp-basis">스쿼드 100 기준</span>
-        <span className="sq-comp-total">총 투입 {totalPct}% · 약 {fte.toFixed(1)}인분</span>
+        <span className="sq-comp-total" data-testid="squad-allotment">
+          배분 <b className={over ? 'is-over' : undefined}>{allotted}</b> / 100
+          <span className={`sq-comp-note${over ? ' is-over' : ''}`}>{allotmentNote(allotted)}</span>
+        </span>
       </div>
 
-      {totalPct === 0 ? (
-        <div className="sq-comp-none">배정된 투입%가 없습니다 (전원 0%)</div>
+      {allotted === 0 ? (
+        // 캐파는 잡혀 있는데 배분만 안 된 상태가 실제로 존재한다 — 아래 캐파 줄은 그대로 둔다(§10-A9).
+        <div className="sq-comp-none">배분된 비중이 없습니다 (전원 0%)</div>
       ) : (
         <>
-          {/* 100% 스택 바 — 세그먼트 폭은 반올림 전 정확한 비율로 그린다.
-              트랙은 프로젝트 카드의 진행 바를 그대로 쓴다. */}
-          <div className="pj-progress-bar">
-            {rows.filter((r) => r.pct > 0).map((r) => (
-              <div
-                key={r.userId}
-                className="sq-seg"
-                title={`${nameOf(r.userId)} — 스쿼드 내 ${r.share}% (개인 캐파 기준 ${r.pct}%)`}
-                style={{ width: `${(r.pct / totalPct) * 100}%`, background: colorOf(r.userId) }}
-              />
-            ))}
-          </div>
+          <ShareBar
+            rows={rows.map((r) => ({ ...r, label: nameOf(r.userId) }))}
+            allotted={allotted}
+            colorOf={colorOf}
+          />
 
-          {/* 범례 — 구성비를 크게, 캐파 원값은 괄호로 병기해 두 수를 혼동하지 않게 한다 */}
+          {/* 범례 — 비중을 크게, 캐파 사용은 괄호로 병기해 두 축을 혼동하지 않게 한다 */}
           <div className="sq-comp-legend">
             {rows.map((r) => (
               <span
                 key={r.userId}
                 className="sq-comp-item"
-                title={`${nameOf(r.userId)} — 스쿼드 내 비중 ${r.share}% · 개인 캐파 기준 ${r.pct}%`}
+                title={`${nameOf(r.userId)} — 스쿼드 내 비중 ${r.share}% · 개인 캐파 사용 ${r.capacityUnset ? '미설정' : `${r.pct}%`}`}
               >
                 <span className="sq-comp-swatch" style={{ background: colorOf(r.userId) }} />
                 {r.role === 'lead' && (
@@ -111,24 +177,47 @@ export function SquadComposition({ squad, members, personOf }) {
                 )}
                 <span className="sq-comp-name">{nameOf(r.userId)}</span>
                 <span className="sq-comp-share">{r.share}%</span>
-                <span className="sq-comp-raw">({r.pct})</span>
+                <span className="sq-comp-raw">(캐파 {r.capacityUnset ? '—' : r.pct})</span>
               </span>
             ))}
           </div>
         </>
       )}
+
+      {/* 캐파 축 — 분모가 달라 같은 줄에 두지 않는다. 인분 환산이 가능한 쪽은 여기뿐이다 */}
+      <div
+        className="sq-comp-capline"
+        data-testid="squad-capsum"
+        title="스쿼드 내 비중과 분모가 다른 값입니다 (사람마다의 캐파 100 기준 합)"
+      >
+        <span className="sq-comp-capline-label">이 스쿼드가 쓰는 인력</span>
+        <span className="sq-comp-capline-value">캐파 합 {capSum}% · 약 {fte.toFixed(1)}인분</span>
+      </div>
     </div>
   );
 }
 
 /**
- * 배정 편집 팝오버 — 계획 투입% · 리드 지정 · 배정 해제.
- * `othersPct` = 이 사람이 **다른 활성 스쿼드**에 이미 쓰고 있는 캐파. 편집 중 합계를
- * 실시간으로 보여줘 내 조정이 어디에 얹히는지 드러낸다(§5-3.3).
+ * 배정 편집 팝오버 — **슬라이더 2개**(① 스쿼드 내 비중 · ② 개인 캐파 사용) · 리드 지정 ·
+ * 배정 해제 (§5-3.3 · §5-3.7).
+ *
+ * 🔴 **두 슬라이더는 완전히 독립이다.** 한쪽을 움직여도 다른 쪽 값과 미리보기는 갱신되지
+ * 않는다 — 스쿼드 볼륨(절대 공수) 원장이 없어 둘 사이의 변환식이 성립하지 않기 때문이다.
+ * 한쪽이 다른 쪽을 따라 움직이면 그 순간 폐기한 파생 산식이 되살아난 것이고, 그것이
+ * 버그다(§10-A17). 두 슬라이더 사이의 구분 캡션도 **생략할 수 없다** — 이 화면에서 오독이
+ * 가장 잦은 지점이라 상시 노출한다.
+ *
+ * 권한도 축마다 다르다 — ① 비중은 조직이 정하고(`canEditShare`), ② 캐파는 본인이
+ * 정한다(`canEditCapacity`). 본인에게 ①을 **감추지 않고 읽기 전용으로** 보여주는 이유:
+ * 내 캐파를 정하려면 내가 이 스쿼드에서 어느 정도 몫을 지는지 알아야 한다.
+ *
+ * `othersPct`   = 이 사람이 **다른 활성 스쿼드**에 이미 쓰고 있는 캐파
+ * `othersShare` = **이 스쿼드의 다른 팀원들**이 이미 가져간 비중
  */
 export function SquadAssignPopover({
-  pos, squad, assignment, personName, othersPct = 0, counted = true,
-  onSetPct, onToggleLead, onRemove, onClose,
+  pos, squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
+  canEditShare = true, canEditCapacity = true, isSelf = false,
+  onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -139,8 +228,15 @@ export function SquadAssignPopover({
   const isLead = assignment.role === 'lead';
   const W = 272;
   const x = Math.max(8, Math.min(pos.x, window.innerWidth - W - 16));
-  const y = Math.max(8, Math.min(pos.y, window.innerHeight - 210));
+  const y = Math.max(8, Math.min(pos.y, window.innerHeight - 340));
 
+  const sharePct = assignment.sharePct || 0;
+  // ① 배분 합계는 **스쿼드 상태와 무관**하다 — 그 스쿼드 안의 사실이기 때문(§5-3.3).
+  const allotted = othersShare + sharePct;
+  const shareOver = allotted > SQUAD_BASE;
+
+  const capacityUnset = assignment.capacitySetBy == null;
+  // ② 캐파 합계는 완료·보관 스쿼드를 뺀다 — 분모가 "지금 이 사람의 시간" 이라서다.
   const total = othersPct + (counted ? assignment.allocationPct : 0);
   const cst = capacityState(total);
   const diff = total - CAPACITY;
@@ -159,27 +255,102 @@ export function SquadAssignPopover({
             {personName} <span className="sq-pop-x">×</span> {squad.name}
           </p>
           <p className="sq-pop-desc">
-            내 캐파 100 중 이 스쿼드에 쓰는 비율 · 리드 지정 (스쿼드당 1명)
+            분모가 다른 두 값을 따로 정합니다 · 리드 지정 (스쿼드당 1명)
           </p>
 
-          <div className="sq-pop-row">
+          {/* ① 스쿼드 내 비중 — 분모는 이 스쿼드의 볼륨 100 */}
+          <p className="sq-pop-axis">
+            ① 스쿼드 내 비중 <span className="sq-pop-axis-basis">이 스쿼드 100 기준</span>
+            {!canEditShare && <span className="sq-pop-axis-owner">· 조직이 정하는 값</span>}
+          </p>
+          <div className={`sq-pop-row${canEditShare ? '' : ' is-readonly'}`}>
+            <input
+              type="range" min={0} max={100} step={5} value={sharePct} disabled={!canEditShare}
+              aria-label="스쿼드 내 비중"
+              onChange={(e) => onSetShare?.(clampPct(e.target.value))}
+              style={{ flex: 1, accentColor: squad.color }}
+            />
+            <input
+              type="number" min={0} max={100} value={sharePct} disabled={!canEditShare}
+              aria-label="스쿼드 내 비중 직접 입력"
+              className="sq-pop-num"
+              onChange={(e) => onSetShare?.(clampPct(e.target.value))}
+            />
+            <span className="sq-pop-unit">%</span>
+          </div>
+
+          {/* 배분 미리보기 — 다른 팀원(회색) + 나(스쿼드색). 분모는 이 스쿼드 100 */}
+          <div className={`sq-pop-preview${shareOver ? ' is-over' : ''}`} data-testid="squad-pop-share-preview">
+            <div className="sq-pop-preview-head">
+              <span className="sq-pop-preview-label">이 스쿼드 배분</span>
+              <span className={`sq-cap-total${shareOver ? ' is-over' : ''}`}>{allotted}</span>
+              <span className="sq-cap-max">/ 100</span>
+              <span className={`sq-pop-preview-state${shareOver ? ' is-over' : ''}`}>
+                {allotmentNote(allotted)}
+              </span>
+            </div>
+            <ShareBar
+              rows={[
+                { userId: 'others', label: '다른 팀원', share: othersShare, pct: 0 },
+                { userId: assignment.userId, label: personName, share: sharePct, pct: assignment.allocationPct },
+              ]}
+              allotted={allotted}
+              colorOf={(id) => (id === 'others' ? 'var(--text-quaternary)' : squad.color)}
+              height={7}
+            />
+          </div>
+
+          {/* 두 축의 경계 — 생략 불가. 이 화면에서 오독이 가장 잦은 지점이다(§5-3.3) */}
+          <div className="sq-pop-divider" data-testid="squad-pop-axis-divider">
+            <span className="sq-pop-divider-line" />
+            <span className="sq-pop-divider-label">두 값은 연동되지 않습니다</span>
+            <span className="sq-pop-divider-line" />
+          </div>
+          <p className="sq-pop-divider-desc">
+            스쿼드 볼륨(절대 공수)이 정해지기 전까지 캐파 사용은 직접 정합니다 — 비중을 바꿔도 아래 값은 그대로입니다.
+          </p>
+
+          {/* ② 개인 캐파 사용 — 분모는 이 사람의 캐파 100 */}
+          <p className="sq-pop-axis">
+            ② 개인 캐파 사용 <span className="sq-pop-axis-basis">내 캐파 100 기준</span>
+            {isSelf
+              ? <span className="sq-pop-axis-owner is-self">· 내가 정하는 값</span>
+              : <span className="sq-pop-axis-owner">· 본인 대신 조정</span>}
+          </p>
+          {capacityUnset && (
+            <p className="sq-pop-note">
+              아직 설정되지 않았습니다 — 저장하기 전까지 캐파 합계에 포함되지 않습니다.
+            </p>
+          )}
+          {assignment.capacitySetBy === 'manager' && !capacityUnset && (
+            <p className="sq-pop-note">
+              관리자가 조정한 값입니다. 본인이 다시 저장하면 본인 설정으로 돌아갑니다.
+            </p>
+          )}
+          <div className={`sq-pop-row${canEditCapacity ? '' : ' is-readonly'}`}>
             <input
               type="range" min={0} max={100} step={5} value={assignment.allocationPct}
-              aria-label="계획 투입%"
-              onChange={(e) => onSetPct(clampPct(e.target.value))}
+              disabled={!canEditCapacity}
+              aria-label="개인 캐파 사용"
+              onChange={(e) => onSetPct?.(clampPct(e.target.value))}
               style={{ flex: 1, accentColor: squad.color }}
             />
             <input
               type="number" min={0} max={100} value={assignment.allocationPct}
-              aria-label="계획 투입% 직접 입력"
+              disabled={!canEditCapacity}
+              aria-label="개인 캐파 사용 직접 입력"
               className="sq-pop-num"
-              onChange={(e) => onSetPct(clampPct(e.target.value))}
+              onChange={(e) => onSetPct?.(clampPct(e.target.value))}
             />
             <span className="sq-pop-unit">%</span>
           </div>
 
           {/* 캐파 영향 미리보기 — 이 값이 그 사람의 100 중 어디에 놓이는지 즉시 보여준다 */}
-          <div className="sq-pop-preview" style={{ background: cst.bg, borderColor: cst.bd }}>
+          <div
+            className="sq-pop-preview"
+            data-testid="squad-pop-capacity-preview"
+            style={{ background: cst.bg, borderColor: cst.bd }}
+          >
             <div className="sq-pop-preview-head">
               <span className="sq-pop-preview-label">캐파 사용</span>
               <span className="sq-cap-total" style={{ color: cst.color }}>{total}</span>
@@ -191,32 +362,41 @@ export function SquadAssignPopover({
             <CapacityBar
               segments={[
                 { id: 'others', name: '다른 스쿼드', color: 'var(--text-quaternary)', pct: othersPct },
-                { id: squad.id, name: squad.name, color: squad.color, pct: counted ? assignment.allocationPct : 0 },
+                { id: squad.id, name: squad.name, color: squad.color, pct: counted && !capacityUnset ? assignment.allocationPct : 0 },
               ].filter((s) => s.pct > 0)}
               total={total} width={240} height={8}
             />
             {!counted && (
               <div className="sq-pop-note">
-                이 스쿼드는 {squadStatusLabel(squad.status)} 상태라 캐파 합계에 포함되지 않습니다.
+                이 스쿼드는 {squadStatusLabel(squad.status)} 상태라 캐파 합계에 포함되지 않습니다. (비중은 상태와 무관하게 계산됩니다)
+              </div>
+            )}
+            {/* §5-3.6 — 안내는 이 한 조합에만. 「비중 50 · 캐파 10」 은 정상이라 경고하지 않는다 */}
+            {sharePct > 0 && assignment.allocationPct === 0 && !capacityUnset && (
+              <div className="sq-pop-note">
+                비중은 잡혀 있는데 캐파 사용이 0입니다 — 저장은 되지만 과부하 판단에 반영되지 않습니다.
               </div>
             )}
           </div>
 
-          <div className="sq-pop-actions">
-            <button
-              type="button" onClick={onToggleLead}
-              className={`sq-btn sq-btn-sm sq-btn-outline sq-btn-lead${isLead ? ' is-on' : ''}`}
-            >
-              {isLead ? <LeadStarIcon size={12} /> : <LeadStarOutlineIcon size={12} />}
-              {isLead ? '리드 해제' : '리드 지정'}
-            </button>
-            <button
-              type="button" onClick={onRemove}
-              className="sq-btn sq-btn-sm sq-btn-unassign"
-            >
-              배정 해제
-            </button>
-          </div>
+          {/* 리드 지정·배정 해제는 조직의 결정이라 ① 권한을 따른다 — 본인에게는 미노출 */}
+          {canEditShare && (
+            <div className="sq-pop-actions">
+              <button
+                type="button" onClick={onToggleLead}
+                className={`sq-btn sq-btn-sm sq-btn-outline sq-btn-lead${isLead ? ' is-on' : ''}`}
+              >
+                {isLead ? <LeadStarIcon size={12} /> : <LeadStarOutlineIcon size={12} />}
+                {isLead ? '리드 해제' : '리드 지정'}
+              </button>
+              <button
+                type="button" onClick={onRemove}
+                className="sq-btn sq-btn-sm sq-btn-unassign"
+              >
+                배정 해제
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>
