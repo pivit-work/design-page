@@ -37,7 +37,8 @@ const DEFAULT_LABELS = {
   invitePending: '초대 대기 중',
   activeStatus: '활성',
   inactiveStatus: '비활성',
-  detected: '⚠ 감지',
+  // 경고 표시는 AdminTeamRow 가 인라인 SVG 로 그린다 — 라벨에 ⚠ 를 섞지 않는다(PW-298).
+  detected: '감지',
   emptyTeam: '팀원이 없습니다',
   evalSectionTitle: '상시 평가',
   evalCardHeading: '상시 평가',
