@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
+import { fill, hostOf, healthOf } from './sessionHelpers.js';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -133,45 +134,6 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
-/** `{name}` 자리표시자 치환 — 호스트가 i18n 보간을 이미 했으면 그대로 지나간다. */
-const fill = (tpl, vars) =>
-  String(tpl ?? '').replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m));
-
-/**
- * 그 회차를 진행한 호스트(매니저) — **회차가 들고 있는 값이 먼저다** (PW-211).
- *
- * `manager` prop 은 화면 단위로 하나뿐이고 **현재** 매니저를 가리킨다. 그걸 과거
- * 회차에 그대로 쓰면 매니저가 바뀐 구성원은 히스토리가 통째로 현재 매니저 이름으로
- * 보인다 — 제목·아바타뿐 아니라 근거 발췌의 화자까지 남의 이름이 붙는다.
- * (dev 실측: 김우진이 한 말이 `박우진 매니저` 로 표시)
- *
- * 회차에 이름이 없는 응답(구버전)에서는 화면 단위 매니저로 폴백한다.
- */
-function hostOf(session, manager) {
-  const fallback = manager || {};
-  return {
-    name: session?.managerName || fallback.name || '',
-    avatar: session?.managerAvatar || fallback.avatar || '',
-  };
-}
-
-/**
- * 그 회차의 헬스체크 — **회차가 들고 있는 값만 쓴다** (PW-213).
- *
- * 예전에는 화면 단위 `healthHistory` 를 회차 목록에 순서로 갖다 붙였다
- * (`healthHistory[healthHistory.length - 1 - i]`). 두 배열은 짝이 아니다 —
- * `healthHistory` 는 최근 30일 스니핏 최대 10개이고 회차 목록은 기간 제한 없는
- * DONE 1on1 전체라, 길이도 시간 축도 다르다. 두 달 전 회차 옆에 어제 점수가 붙었고,
- * 회차가 더 많으면 오래된 행부터 배지가 통째로 사라졌다.
- *
- * 값이 없으면 **숫자를 지어내지 않고 배지를 감춘다**(`null` 반환). 인덱스로 짝짓기는
- * 순서가 어긋나는 순간 조용히 틀리므로, 없는 값은 없는 채로 두는 편이 낫다.
- */
-function healthOf(session) {
-  const v = session?.healthScore;
-  return typeof v === 'number' && Number.isFinite(v) ? v : null;
-}
-
 /* ── 공통 조각 ─────────────────────────────────────────── */
 function StatusBadge({ status, L }) {
   const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
@@ -202,7 +164,7 @@ function Readiness({ value, L }) {
   );
 }
 
-function Section({ title, icon, icons, baseUrl, badge, collapsible = true, children }) {
+export function Section({ title, icon, icons, baseUrl, badge, collapsible = true, children }) {
   const [open, setOpen] = useState(true);
   const head = (
     <>
@@ -321,7 +283,7 @@ function HealthGraph({ data, healthColor, ariaLabel }) {
   );
 }
 
-function ColHeads({ cols }) {
+export function ColHeads({ cols }) {
   return (
     <div className="ono-mem-row is-head">
       {cols.map((h) => (
@@ -340,7 +302,7 @@ function noteSectionsOf(session, L, icons) {
   ];
 }
 
-function NoteGrid({ session, L, icons, baseUrl }) {
+export function NoteGrid({ session, L, icons, baseUrl }) {
   return (
     <Section title={L.meetingNotes} icon={icons.notes} icons={icons} baseUrl={baseUrl} collapsible={false}>
       <div className="ono-mem-notes">
@@ -496,7 +458,7 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump })
  * 발췌 로딩·실패가 **본문 표시를 막지 않는다.** 본문은 먼저 그리고, 발췌 자리에만
  * 상태 문구를 둔다 — 근거를 못 불러왔다고 피드백을 못 읽게 되면 안 된다.
  */
-function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump }) {
+export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump }) {
   const items = session.managerFeedback ?? [];
   if (items.length === 0) return null;
 
@@ -550,7 +512,7 @@ function ManagerFeedback({ session, evidence, loading, error, onRetry, managerNa
   );
 }
 
-function SessionHeader({ title, status, date, duration, avatar, L, icons, baseUrl, children, extra }) {
+export function SessionHeader({ title, status, date, duration, avatar, L, icons, baseUrl, children, extra }) {
   return (
     <header className={`ono-mem-head is-${status}`}>
       <div className="ono-mem-head-row">
@@ -820,7 +782,7 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
  * 대화 분위기 — 결과 탭과 회의록 풀버전(PW-81)이 같은 규격으로 그린다.
  * 두 화면이 각자 그리면 한쪽만 고쳐지는 일이 생긴다.
  */
-function EmotionTone({ session, L, icons, baseUrl }) {
+export function EmotionTone({ session, L, icons, baseUrl }) {
   const tone = session.emotionTone;
   const total = tone.positive + tone.neutral + tone.negative;
   const rows = [

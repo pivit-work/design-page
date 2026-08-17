@@ -93,6 +93,7 @@ export {
   MemberCard as OneOnOneMemberCard,
   OneOnOneDashboardCanvas,
   OneOnOneMemberCanvas,
+  OneOnOneMemberMeetingsCanvas,
   PROGRESS_COLORS as ONEONONE_PROGRESS_COLORS,
   STATUS_BADGE as ONEONONE_STATUS_BADGE,
   TAG_TYPES as ONEONONE_TAG_TYPES,
