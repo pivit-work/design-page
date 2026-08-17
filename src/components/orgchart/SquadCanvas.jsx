@@ -36,9 +36,11 @@ import {
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
   SQUAD_MODAL_Z,
+  CAPACITY_IDLE_HINT,
   avatarFontPx,
   capacityState,
   fmtYmd,
+  isCapacityIdle,
   isCapacityUnset,
   isCountedStatus,
   leadOf,
@@ -706,10 +708,18 @@ export default function SquadCanvas({
                                   onClick={(e) => editable && setPopover({
                                     squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
                                   })}
-                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${editable ? '\n클릭: 비중·캐파·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${isCapacityIdle(mm) ? `\n${CAPACITY_IDLE_HINT}` : ''}${editable ? '\n클릭: 비중·캐파·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
                                 >
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
+                                  )}
+                                  {isCapacityIdle(mm) && (
+                                    <span
+                                      className="sq-idle-dot"
+                                      data-testid={`squad-chip-cap-idle-${sq.id}-${mm.userId}`}
+                                      title={CAPACITY_IDLE_HINT}
+                                      aria-hidden
+                                    />
                                   )}
                                   <span className="sq-chip-name">{nameOf(mm.userId)}</span>
                                   {/* 칩에도 두 축을 함께 — 비중(강조) + 캐파(괄호).
@@ -925,6 +935,9 @@ export default function SquadCanvas({
                                 const canAssign = canEditShareOf(userId);
                                 const isLead = mm?.role === 'lead';
                                 const capUnset = !!mm && isCapacityUnset(mm);
+                                // 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 상태.
+                                // 오류가 아니라 안내 대상이다(§5-3.6 · §10-A15).
+                                const capIdle = isCapacityIdle(mm);
                                 const mine = isSelfRow(userId);
                                 return (
                                   <td key={sq.id} className="pj-td sq-td-cell">
@@ -945,6 +958,7 @@ export default function SquadCanvas({
                                           `개인 캐파 사용 ${capText(mm)} (내 캐파 100 기준 — 오른쪽 합계의 재료)`,
                                           `스쿼드 내 비중 ${mm.sharePct || 0}% (이 스쿼드 100 기준 — 합계에 들어가지 않음)`,
                                           mm.capacitySetBy === 'manager' ? '관리자가 조정한 값' : '',
+                                          capIdle ? CAPACITY_IDLE_HINT : '',
                                           isLead ? '리드' : '',
                                           cellHint(mine, editable),
                                         ].filter(Boolean).join('\n')}
@@ -982,6 +996,14 @@ export default function SquadCanvas({
                                           className="sq-cell-share"
                                           data-testid={`squad-cell-share-${sq.id}-${userId}`}
                                         >
+                                          {capIdle && (
+                                            <span
+                                              className="sq-idle-dot"
+                                              data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
+                                              title={CAPACITY_IDLE_HINT}
+                                              aria-hidden
+                                            />
+                                          )}
                                           {mm.sharePct ? `스쿼드 ${mm.sharePct}%` : '스쿼드 —'}
                                         </span>
                                       </div>
