@@ -1,5 +1,6 @@
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar, RsBullets } from './OkrResourcePieces.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrResourceOrg — 내 리소스 '조직 현황' 뷰 (부문장).
@@ -20,8 +21,8 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam }
         <RsStatCard label="미입력" value={data.stats.missing} empty={data.stats.missing === 0} />
       </div>
 
-      {data.teams.map((team) => (
-        <div className="rsx-member is-team" key={team.name}>
+      {data.teams.map((team, i) => (
+        <div className="rsx-member is-team" key={rowKey(team, i)}>
           <div className="rsx-member-main">
             <div className="rsx-member-head">
               <div className="rsx-member-who">
@@ -54,8 +55,8 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam }
 
       <div className="rsx-directs">
         <p className="rsx-add-eyebrow">직속 구성원</p>
-        {data.directs.map((member) => (
-          <div className="rsx-member is-slim" key={member.name}>
+        {data.directs.map((member, i) => (
+          <div className="rsx-member is-slim" key={rowKey(member, i)}>
             <div className="rsx-member-main">
               <div className="rsx-member-head">
                 <div className="rsx-member-who">

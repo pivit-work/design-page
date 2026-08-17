@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrResourceMyInput — 내 리소스 '내 입력' 뷰.
@@ -95,8 +96,8 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
           </button>
         </div>
         <ul className="rsx-ai-banner-list">
-          {data.aiEstimate.items.map((item) => (
-            <li key={item.name}>{item.name} {item.pct}%</li>
+          {data.aiEstimate.items.map((item, i) => (
+            <li key={rowKey(item, i)}>{item.name} {item.pct}%</li>
           ))}
         </ul>
         <p className="rsx-ai-banner-note">추정은 참고치입니다. 적용 후 슬라이더로 보정하고 저장해야 반영됩니다.</p>
@@ -173,11 +174,11 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
         </div>
         <div className="rsx-add-suggest">
           <RsAiLabel>스니핏에 기록됐지만 목록에 없는 프로젝트</RsAiLabel>
-          {data.suggestions.filter((s) => !has(s.name)).map((s) => (
+          {data.suggestions.filter((s) => !has(s.name)).map((s, i) => (
             <button
               type="button"
               className="rsx-suggest-chip"
-              key={s.name}
+              key={rowKey(s, i)}
               onClick={() => addEntry(s.name, { estimate: s.pct })}
             >
               + {s.name} 추정 {s.pct}%
@@ -190,15 +191,15 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
             {data.squads
               .map((squad) => ({ ...squad, items: squad.items.filter((item) => !has(item.name)) }))
               .filter((squad) => squad.items.length > 0)
-              .map((squad) => (
-                <div className="rsx-squad" key={squad.name}>
+              .map((squad, si) => (
+                <div className="rsx-squad" key={rowKey(squad, si)}>
                   <p className="rsx-squad-name">{squad.name}</p>
                   <div className="rsx-squad-items">
-                    {squad.items.map((item) => (
+                    {squad.items.map((item, ii) => (
                       <button
                         type="button"
                         className="rsx-chip-btn"
-                        key={item.name}
+                        key={rowKey(item, ii)}
                         onClick={() => addEntry(item.name, { estimate: item.pct, tag: squad.name })}
                       >
                         <Icon src={icons.plus} size={14} color="var(--text-primary)" baseUrl={baseUrl} />

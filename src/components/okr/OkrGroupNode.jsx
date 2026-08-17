@@ -2,6 +2,7 @@ import OkrGroupCard from './OkrGroupCard.jsx';
 import ObjectiveRow from './ObjectiveRow.jsx';
 import OkrMemberChip from './OkrMemberChip.jsx';
 import { useOkrDrag } from './hooks.js';
+import rowKey from './rowKey.js';
 
 /**
  * OkrGroupNode — 그룹(회사/팀) 서브트리 노드.
@@ -23,7 +24,7 @@ export default function OkrGroupNode({ group, isRoot = false, onOpen, children }
       <div className="okr-objective-list">
         {group.objectives.map((objective, i) => (
           <ObjectiveRow
-            key={objective.title}
+            key={rowKey(objective, i, 'title')}
             objective={objective}
             dragId={`${group.id}:obj:${i}`}
             onClick={() => onOpen(group.id)}
@@ -32,11 +33,11 @@ export default function OkrGroupNode({ group, isRoot = false, onOpen, children }
       </div>
       {group.members?.length > 0 && (
         <div className="okr-members">
-          {group.members.map((member) => (
+          {group.members.map((member, i) => (
             <OkrMemberChip
-              key={member.name}
+              key={rowKey(member, i)}
               member={member}
-              dragId={`${group.id}:member:${member.name}`}
+              dragId={`${group.id}:member:${rowKey(member, i)}`}
               onClick={() => onOpen(group.id)}
             />
           ))}

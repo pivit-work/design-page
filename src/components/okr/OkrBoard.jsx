@@ -6,6 +6,7 @@ import OkrObjectiveSection from './OkrObjectiveSection.jsx';
 import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
 import OkrKrFeedbackModal from './OkrKrFeedbackModal.jsx';
 import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrBoard — AI 인사이트 + 전체달성률 + Objective 테이블 + 피드백/업데이트
@@ -62,7 +63,7 @@ export default function OkrBoard({
       <div className="okr-p-objectives">
         {objectives.map((objective, i) => (
           <OkrObjectiveSection
-            key={objective.label}
+            key={rowKey(objective, i, 'label')}
             objective={objective}
             icons={icons}
             baseUrl={baseUrl}

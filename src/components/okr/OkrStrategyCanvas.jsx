@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrStrategyCanvas — 전사 OKR 탭 (전략 캔버스/Company OKR/히스토리).
@@ -167,7 +168,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                     />
                   ) : Array.isArray(row.content) ? (
                     <ol className="okr-s-list">
-                      {row.content.map((line) => <li key={line}>{line}</li>)}
+                      {row.content.map((line, li) => <li key={rowKey(line, li)}>{line}</li>)}
                     </ol>
                   ) : (
                     <p className="okr-s-text">{row.content}</p>
@@ -195,8 +196,8 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onSubmitReply={onSubmitReply} onRequestFeedback={onRequestFeedback} />
       ) : subTab === 'history' && history ? (
         <div className="okr-h-list">
-          {history.map((quarter) => (
-            <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
+          {history.map((quarter, i) => (
+            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
           ))}
         </div>
       ) : (
