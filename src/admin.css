@@ -914,6 +914,24 @@
 .admin-emp-select-item.is-selected { color: var(--text-brand-tertiary); }
 .admin-emp-select-item-label { flex: 1; }
 .admin-emp-select-item-check { display: inline-flex; color: var(--text-brand-tertiary); }
+/* 매니저 후보의 조직장 병기 (PW-300). 조직 경로는 길어질 수 있어 이름과 같은 줄에
+   두면 팝업 폭을 밀어낸다 — flex-basis 100% 로 **다음 줄**에 접어 넣는다.
+   (`:has()` 대신 wrap 을 쓰는 이유: 병기가 없는 후보는 두 번째 줄 자체가 안 생긴다.) */
+.admin-emp-select-item { flex-wrap: wrap; }
+.admin-emp-select-item-sub {
+  flex-basis: 100%;
+  display: flex;
+  /* 경로가 두 줄로 접히면 `center` 는 아이콘을 줄 사이에 띄운다 — 첫 줄에 붙인다. */
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+/* 아이콘은 첫 글자 줄에 맞춘다(11px 아이콘 vs 16px 줄높이). */
+.admin-emp-select-item-sub > svg { margin-top: 2px; }
 /* 매니저 배정 드롭다운의 검색·빈 상태 (PW-292). 소속 트리 팝업의 검색칸
    (.admin-emp-picker-search) 과 같은 규격 — 두 팝업이 나란히 보이는 화면이라
    서로 다른 입력칸으로 보이면 안 된다. */
@@ -1228,6 +1246,27 @@
   margin-top: 3px;
 }
 .admin-emp-unassigned-action { position: relative; }
+/* 일괄 배정·원클릭 조직장 배정 (PW-300).
+   섹션 헤더는 `space-between` 이라 자식이 늘면 배지가 가운데로 밀린다 — 배지와 액션을
+   한 묶음으로 감싸 헤더의 자식 수를 2개로 유지한다(기존 시각 유지). */
+.admin-emp-section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-emp-unassigned-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.admin-emp-unassigned-check {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: var(--bg-brand-solid);
+  cursor: pointer;
+}
 .admin-emp-team-note {
   font-size: 13px;
   line-height: 18px;

@@ -7,7 +7,7 @@ import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import { buildOrgTree, primaryOrgEntry } from './orgTree.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import {
-  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight, IconPlus,
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight, IconPlus, IconUser,
 } from './employeesIcons.jsx';
 
 /**
@@ -67,9 +67,17 @@ const DEFAULT_LABELS = {
     // '매니저는 조직장에서 자동 계산됩니다' 였는데, 그 규칙 때문에 조직장이 아닌
     // 매니저는 담당이 영구히 0명이었다. 두 축은 별개다.
     assignManager: '매니저 배정',
-    managerSearch: '이름으로 검색',
+    managerSearch: '이름·조직으로 검색',
     managerNoCandidate: '배정할 수 있는 매니저가 없습니다',
     teamNote: '※ 매니저(개인 상급자)와 조직장은 별개입니다. 조직장 지정은 팀 관리 화면에서 진행됩니다.',
+    // PW-300 — 기획 §3.3 의 일괄 배정·원클릭 조직장 배정.
+    // `{name}`·`{count}` 는 캔버스가 치환한다(i18next 의 `{{}}` 와 겹치지 않게 중괄호 1개).
+    bulkStart: '일괄 배정',
+    bulkCancel: '취소',
+    bulkAssign: '선택 {count}명에게 매니저 배정',
+    bulkSelectAll: '전체 선택',
+    bulkClearAll: '전체 해제',
+    assignToLeader: '{name}(조직장)로',
   },
   invites: {
     summaryPending: '대기중', summaryPendingSub: '수락 대기',
@@ -111,6 +119,16 @@ const PAGE_SIZE = 20;
 
 // 기본값으로 쓰는 **고정 빈 배열** — 매 렌더 새 배열을 만들면 하위 memo 가 매번 깨진다.
 const EMPTY_ARRAY = [];
+const EMPTY_OBJECT = {};
+
+/* 라벨 안의 `{key}` 를 값으로 바꾼다. i18next 는 `{{key}}` 를 쓰므로 소비자가 넘긴
+   문장에서 이 자리는 치환되지 않은 채로 도착한다 — 이름·인원수를 아는 쪽이 여기다. */
+function fill(template, vars) {
+  return Object.keys(vars).reduce(
+    (acc, k) => acc.split(`{${k}}`).join(String(vars[k])),
+    String(template ?? ''),
+  );
+}
 
 /* ── 배지 ─────────────────────────────────────────────── */
 function StatusBadge({ status, labels }) {
@@ -176,8 +194,15 @@ function hasOrgUnit(m) {
  *
  * 후보 목록은 소비자(page wrapper)가 만들어 넘긴다. 캔버스가 규칙을 갖고 있으면
  * 서버 규칙과 갈리는 순간 화면이 거짓말을 한다.
+ *
+ * 후보 행에는 `leadLabel`(그 사람이 조직장인 조직 경로)을 병기한다(PW-300, 기획 §3.1) —
+ * 어느 조직을 맡는지가 배정 판단의 근거이고, 이름만 있으면 동명이인을 가를 수 없다.
+ * 문자열은 소비자가 만든다(캔버스는 여전히 규칙을 갖지 않는다).
+ *
+ * `trigger` 로 여는 버튼을 갈아끼운다 — 개별 배정은 `+ 매니저 배정`, 일괄 배정은
+ * `선택 N명에게 매니저 배정` 이 같은 드롭다운을 연다.
  */
-function ManagerPicker({ candidates, labels, onPick }) {
+function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -191,8 +216,13 @@ function ManagerPicker({ candidates, labels, onPick }) {
   }, [open]);
 
   const ql = q.trim().toLowerCase();
+  // 조직 경로로도 찾게 한다 — "인사팀 팀장이 누구였더라" 가 실제 배정 경로다.
+  // 화면에 보이는 문자열은 검색으로도 닿아야 한다(시트 검색과 같은 원칙).
   const shown = ql
-    ? candidates.filter((c) => (c.label || '').toLowerCase().includes(ql))
+    ? candidates.filter(
+      (c) => (c.label || '').toLowerCase().includes(ql)
+        || (c.leadLabel || '').toLowerCase().includes(ql),
+    )
     : candidates;
 
   return (
@@ -202,9 +232,10 @@ function ManagerPicker({ candidates, labels, onPick }) {
         className="admin-emp-btn is-primary is-sm"
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => { setOpen((o) => !o); setQ(''); }}
+        disabled={disabled}
+        onClick={() => { if (!disabled) { setOpen((o) => !o); setQ(''); } }}
       >
-        <IconPlus size={13} />{labels.unassigned.assignManager}
+        {trigger ?? (<><IconPlus size={13} />{labels.unassigned.assignManager}</>)}
       </button>
       {open && (
         <div className="admin-emp-select-menu" role="listbox">
@@ -229,6 +260,11 @@ function ManagerPicker({ candidates, labels, onPick }) {
                 onClick={() => { onPick(c.id); setOpen(false); }}
               >
                 <span className="admin-emp-select-item-label">{c.label}</span>
+                {c.leadLabel && (
+                  <span className="admin-emp-select-item-sub">
+                    <IconUser size={11} />{c.leadLabel}
+                  </span>
+                )}
               </button>
             ))
           )}
@@ -241,9 +277,21 @@ function ManagerPicker({ candidates, labels, onPick }) {
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({
   members, orgUnits, labels, renderAvatar, onAssignOrgUnit,
-  managerCandidates = [], onAssignManager,
+  managerCandidates = [], onAssignManager, onAssignManagerBulk,
+  orgLeaderByMember = EMPTY_OBJECT,
 }) {
   const [pickerFor, setPickerFor] = useState(null);
+  /* 일괄 배정 모드(PW-300, 기획 §3.3). 온보딩 직후 조직은 전원이 미배정이라
+     개별 배정은 인원수만큼의 클릭이 된다. 모드를 나가면 선택은 비운다 —
+     보이지 않는 선택이 남아 있으면 다음에 들어와서 엉뚱한 사람을 배정한다. */
+  const [bulkMode, setBulkMode] = useState(false);
+  const [picked, setPicked] = useState(() => new Set());
+  const exitBulk = () => { setBulkMode(false); setPicked(new Set()); };
+  const togglePick = (id) => setPicked((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
   const noOrg = members.filter((m) => !hasOrgUnit(m) && m.employmentStatus !== 'terminated');
@@ -322,7 +370,48 @@ function UnassignedTab({
       <Card>
         <div className="admin-emp-section-head">
           <SectionLabel>{labels.unassigned.noManagerTitle}</SectionLabel>
-          <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noManager.length}{labels.countSuffix}</span>
+          {/* 배지와 액션을 한 묶음으로 — 헤더가 `space-between` 이라 자식이 셋이 되면
+              배지가 가운데로 밀려 기존 시각이 바뀐다. */}
+          <div className="admin-emp-section-head-actions">
+            <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noManager.length}{labels.countSuffix}</span>
+            {/* 일괄 배정 진입은 대상이 있을 때만 — 0명일 때 버튼만 남으면 눌러도 할 게 없다. */}
+            {onAssignManagerBulk && noManager.length > 0 && (
+            <>
+              {bulkMode ? (
+                <>
+                  <button
+                    type="button"
+                    className="admin-emp-btn is-sm"
+                    onClick={() => setPicked(
+                      picked.size === noManager.length ? new Set() : new Set(noManager.map((m) => m.id)),
+                    )}
+                  >
+                    {picked.size === noManager.length
+                      ? labels.unassigned.bulkClearAll
+                      : labels.unassigned.bulkSelectAll}
+                  </button>
+                  <ManagerPicker
+                    candidates={managerCandidates.filter((c) => !picked.has(c.id))}
+                    labels={labels}
+                    disabled={picked.size === 0}
+                    trigger={fill(labels.unassigned.bulkAssign, { count: picked.size })}
+                    onPick={(managerId) => {
+                      onAssignManagerBulk(Array.from(picked), managerId);
+                      exitBulk();
+                    }}
+                  />
+                  <button type="button" className="admin-emp-btn is-sm" onClick={exitBulk}>
+                    {labels.unassigned.bulkCancel}
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="admin-emp-btn is-sm" onClick={() => setBulkMode(true)}>
+                  {labels.unassigned.bulkStart}
+                </button>
+              )}
+            </>
+            )}
+          </div>
         </div>
         {noManager.length === 0 ? (
           <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.noManagerEmpty}</div>
@@ -330,6 +419,15 @@ function UnassignedTab({
           <div className="admin-emp-unassigned-list">
             {noManager.map((m) => (
               <div key={m.id} className="admin-emp-unassigned-row">
+                {bulkMode && (
+                  <input
+                    type="checkbox"
+                    className="admin-emp-unassigned-check"
+                    checked={picked.has(m.id)}
+                    onChange={() => togglePick(m.id)}
+                    aria-label={m.name}
+                  />
+                )}
                 {renderAvatar ? renderAvatar(m, 32) : <AvatarFallback row={m} size={32} />}
                 <div className="admin-emp-unassigned-info">
                   <div className="admin-emp-unassigned-name">{m.name}</div>
@@ -348,13 +446,30 @@ function UnassignedTab({
                 </div>
                 <StatusBadge status={m.employmentStatus} labels={labels} />
                 {/* 미배정을 보여만 주고 그 자리에서 못 고치면 어드민이 갈 곳이 없다.
-                    핸들러가 없으면(권한 없음) 버튼 자체가 안 뜬다. */}
-                {onAssignManager && (
-                  <ManagerPicker
-                    candidates={managerCandidates.filter((c) => c.id !== m.id)}
-                    labels={labels}
-                    onPick={(managerId) => onAssignManager(m.id, managerId)}
-                  />
+                    핸들러가 없으면(권한 없음) 버튼 자체가 안 뜬다.
+                    일괄 배정 모드에서는 행마다 배정 버튼을 숨긴다 — 체크로 고르는 중에
+                    개별 배정이 함께 보이면 어느 쪽이 반영되는지 알 수 없다. */}
+                {onAssignManager && !bulkMode && (
+                  <div className="admin-emp-unassigned-action-group">
+                    {/* 원클릭 조직장 배정(PW-300, 기획 §3.3). 대부분의 사람은 상급자가
+                        소속 조직장이므로, 이 한 번이 200명 드롭다운을 대신한다.
+                        본인이 그 조직 조직장이면 소비자가 아예 내려주지 않는다. */}
+                    {orgLeaderByMember[m.id] && (
+                      <button
+                        type="button"
+                        className="admin-emp-btn is-sm"
+                        onClick={() => onAssignManager(m.id, orgLeaderByMember[m.id].id)}
+                      >
+                        <IconUser size={12} />
+                        {fill(labels.unassigned.assignToLeader, { name: orgLeaderByMember[m.id].name })}
+                      </button>
+                    )}
+                    <ManagerPicker
+                      candidates={managerCandidates.filter((c) => c.id !== m.id)}
+                      labels={labels}
+                      onPick={(managerId) => onAssignManager(m.id, managerId)}
+                    />
+                  </div>
                 )}
               </div>
             ))}
@@ -560,8 +675,26 @@ export default function AdminEmployeesCanvas({
    * 버튼을 보여줄 이유가 없다(초대 발송과 같은 계약).
    */
   onAssignManager,
-  /** 매니저 후보 `[{ id, label }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다. */
+  /**
+   * 여러 명에게 한 매니저를 일괄 배정 (PW-300, 기획 §3.3). `(memberIds, managerId) => void`.
+   *
+   * 미주입이면 "일괄 배정" 진입 버튼이 아예 안 뜬다 — 개별 배정만 남는다.
+   * 소비자는 **한 번의 저장 호출**로 보내야 한다. 사람 수만큼 요청을 쪼개면 중간에
+   * 실패했을 때 어디까지 반영됐는지가 화면과 어긋난다.
+   */
+  onAssignManagerBulk,
+  /**
+   * 매니저 후보 `[{ id, label, leadLabel? }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다.
+   * `leadLabel` 은 그 후보가 조직장인 조직 경로 — 배정 판단 근거로 후보 행에 병기된다.
+   */
   managerCandidates = EMPTY_ARRAY,
+  /**
+   * 미배정 행의 **주 소속 조직장** `{ [memberId]: { id, name } }` (PW-300).
+   *
+   * 자기 자신이 그 조직의 조직장인 사람은 소비자가 아예 빼고 넘긴다(자기 상급자 금지,
+   * 기획 §3.3) — 캔버스가 그 규칙을 갖고 있으면 조직장 판정이 두 곳으로 갈린다.
+   */
+  orgLeaderByMember = EMPTY_OBJECT,
   /**
    * 일괄 초대 발송 (PW-114). `(rows) => Promise<{sent, failed[]}>`.
    *
@@ -715,6 +848,8 @@ export default function AdminEmployeesCanvas({
           onAssignOrgUnit={onAssignOrgUnit}
           managerCandidates={managerCandidates}
           onAssignManager={canEdit ? onAssignManager : undefined}
+          onAssignManagerBulk={canEdit ? onAssignManagerBulk : undefined}
+          orgLeaderByMember={orgLeaderByMember}
         />
       ) : (
         <InvitesTab

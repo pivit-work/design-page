@@ -27,6 +27,13 @@ export const IconCheck = ({ size = 16 }) => (
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
   </svg>
 );
+/* 사람 — 기획서가 `👤` 로 적은 자리(매니저 후보의 조직장 병기, 원클릭 조직장 배정)에
+   쓴다. 이모지는 OS 마다 모양이 갈리고 `color` 를 상속하지 않아 버튼 톤과 어긋난다. */
+export const IconUser = ({ size = 13 }) => (
+  <svg {...strokeProps(size)}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+  </svg>
+);
 export const IconX = ({ size = 16 }) => (
   <svg {...strokeProps(size)}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 );

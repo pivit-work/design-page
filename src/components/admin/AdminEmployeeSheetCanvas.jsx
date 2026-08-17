@@ -55,6 +55,11 @@ const STATUS_META = {
   pending: { label: '대기', color: '#2563EB', bg: '#EFF6FF', dot: '#60A5FA' },
 };
 const STATUS_OPTIONS = ['active', 'on_leave', 'terminated', 'pending'];
+
+/* 매니저 배정 여부 필터의 값(PW-300). 사람 id 와 절대 겹치지 않도록 `__`로 감싼다 —
+   소비자가 이 값을 URL·저장 상태에 그대로 싣기 때문에(PW-157) 실제 id 와 구분돼야 한다. */
+export const MANAGER_FILTER_ASSIGNED = '__manager_assigned__';
+export const MANAGER_FILTER_UNASSIGNED = '__manager_unassigned__';
 // 권한 옵션 — admin 승격은 백엔드가 막지만(초대로만), 기존 어드민 표시를 위해 3종 노출.
 const ROLE_OPTIONS = ['admin', 'manager', 'member'];
 
@@ -1074,8 +1079,12 @@ export default function AdminEmployeeSheetCanvas({
     { id: 'jobLevel', label: cl.jobLevel || '직급' },
     { id: 'jobPosition', label: cl.jobPosition || '직책' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
+    // 매니저는 사람 이름으로 거르는 축이 아니다(PW-300, 기획 §3.1) — 어드민이 알고 싶은
+    // 것은 "누가 상급자냐" 가 아니라 **"아직 상급자가 없는 사람이 누구냐"** 다. 그래서
+    // distinct 이름이 아니라 배정됨/미배정 2종 고정 옵션이다.
+    { id: 'managerId', label: cl.manager || '매니저', meta: 'assigned' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.role, cl.status, squadOptions]);
+  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.role, cl.manager, cl.status, squadOptions]);
   /**
    * 실제로 걸려 있는 필터만 추린 것 — **지금 필터 컬럼인 것만** 남긴다(PW-157).
    *
@@ -1125,6 +1134,16 @@ export default function AdminEmployeeSheetCanvas({
         ];
         continue;
       }
+      // 매니저 필터는 값이 아니라 **상태** 2종이다(PW-300). 사람 이름을 distinct 로
+      // 뽑으면 조직 인원수만큼 옵션이 생기는데, 정작 찾고 싶은 "미배정" 은 값이 없어서
+      // 그 목록에 아예 나타나지 않는다.
+      if (fc.meta === 'assigned') {
+        out[fc.id] = [
+          { value: MANAGER_FILTER_ASSIGNED, label: L.filterAssigned || '배정됨' },
+          { value: MANAGER_FILTER_UNASSIGNED, label: L.filterUnassigned || '미배정' },
+        ];
+        continue;
+      }
       // 스쿼드 필터 옵션 — SQ5 대로 **종료·보관은 제외**한다. 끝난 스쿼드로 거를 수
       // 있게 두면 셀에는 안 보이는 값으로 목록이 걸러져 "왜 이 사람이 나오지" 가 된다.
       if (fc.id === 'squads') {
@@ -1150,7 +1169,7 @@ export default function AdminEmployeeSheetCanvas({
         .sort((a, b) => a.label.localeCompare(b.label));
     }
     return out;
-  }, [rows, FILTER_COLS, orgTree, L.unassigned, squadOptions]);
+  }, [rows, FILTER_COLS, orgTree, L.unassigned, L.filterAssigned, L.filterUnassigned, squadOptions]);
 
   // 소속 이름 전체(주 소속 + 겸직) — 검색·필터가 겸직 팀으로도 사람을 찾게 한다.
   // department 하나만 보면 마케팅팀을 겸직하는 사람이 '마케팅팀' 필터에서 사라진다.
@@ -1182,6 +1201,17 @@ export default function AdminEmployeeSheetCanvas({
       }
       if (fc.id === 'department') {
         if (!deptNamesOf(r).includes(fv)) return false;
+        continue;
+      }
+      /* 매니저 배정 여부(PW-300).
+         대표는 **어느 쪽에도 걸리지 않는다** — 조직 최상위라 상급자가 없는 게 정상이고
+         (`arch-core-data-model.md §1-3-c` R4), 미배정으로 세면 없앨 방법이 없는 경고가
+         된다. 탭 B 의 미배정 목록·카운트가 대표를 빼는 것과 같은 기준을 쓴다. */
+      if (fc.meta === 'assigned') {
+        if (r.isCeo) return false;
+        const has = Boolean(r.managerId || r.managerName);
+        if (fv === MANAGER_FILTER_ASSIGNED && !has) return false;
+        if (fv === MANAGER_FILTER_UNASSIGNED && has) return false;
         continue;
       }
       // 스쿼드 필터는 id 로 맞춘다 — 동명 스쿼드가 있어도 갈리고, 이름을 바꿔도 안 깨진다.
