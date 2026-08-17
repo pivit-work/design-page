@@ -114,7 +114,9 @@ export default function App() {
     const initial = pageFromPath(window.location.pathname, BASE) || DEFAULT_PAGE;
     const initialPath = pathFromPage(initial, BASE);
     if (window.location.pathname !== initialPath) {
-      window.history.replaceState({ page: initial }, '', initialPath);
+      // 쿼리는 보존한다. 상태 스위처가 선택한 knob 을 `?knobs=` 로 싣는데, 여기서
+      // 경로만 넣으면 주소창에서 지워져 "깨진 화면을 링크로 공유" 가 성립하지 않는다.
+      window.history.replaceState({ page: initial }, '', `${initialPath}${window.location.search}`);
     }
     const onPop = () => {
       const next = pageFromPath(window.location.pathname, BASE) || DEFAULT_PAGE;
