@@ -12,6 +12,10 @@ import rowKey from './rowKey.js';
  *
  * 슬라이더 값은 UI 상태(데모) — 저장은 onSave(entries) 로 위임한다.
  * 추정치 마커는 entry.estimate 위치 위에 다크 툴팁으로 뜬다.
+ *
+ * `data.aiEstimate` 가 없으면 추정 배너를 통째로 내린다. 근거가 될 스니핏이 모자란
+ * 달에도 배너를 그리면 항목 0개짜리 목록과 눌러도 아무 일이 없는 [추정치 적용] 이
+ * 남아, 고장으로 읽힌다.
  */
 export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, onApplyEstimates, onReply }) {
   const [entries, setEntries] = useState(data.entries);
@@ -43,16 +47,20 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
     setEntries((p) => p.map((e) => (e.id === id ? { ...e, value: v } : e)));
   };
   const remove = (id) => setEntries((p) => p.filter((e) => e.id !== id));
-  // 추가되는 항목도 기본 퍼센트·추정치를 갖고 시작한다 — 0% 로 들어오면
-  // "반영 안 된 항목" 으로 읽혀서, 스니핏 추정값(없으면 10%)을 초기값으로 쓴다.
+  // 추가되는 항목도 기본 퍼센트를 갖고 시작한다 — 0% 로 들어오면 "반영 안 된 항목"
+  // 으로 읽혀서, 스니핏 추정값(없으면 10%)을 초기값으로 쓴다.
+  //
+  // 🔴 추정치 **마커**는 추정값이 실제로 있을 때만 단다. 없는데 10% 자리에 세우면
+  // 근거 없는 위치에 "추정 10%" 가 서서, 사람이 그 눈금에 맞춰 값을 정하게 된다.
+  // (KR·직접 입력 항목은 스니핏 태그 대상이 아니라 추정 자체가 없다.)
   const addEntry = (name, extra = {}) => {
     if (!name || has(name)) return;
-    const estimate = extra.estimate ?? 10;
+    const estimate = extra.estimate ?? null;
     setEntries((p) => [...p, {
       id: `rs-${name}`,
       name,
       tag: extra.tag ?? null,
-      value: extra.value ?? estimate,
+      value: extra.value ?? estimate ?? 10,
       estimate,
     }]);
   };
@@ -73,35 +81,37 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
         <RsStatCard label="상태" value={data.stats.status} tone={data.stats.status === '과부하' ? 'bad' : ''} />
       </div>
 
-      <div className="rsx-ai-banner">
-        <div className="rsx-ai-banner-bar">
-          <div className="rsx-ai-banner-info">
-            <RsAiLabel>스니핏 기반 추정</RsAiLabel>
-            <span>{data.aiEstimate.period}</span>
-            <span>{data.aiEstimate.tagged}</span>
+      {data.aiEstimate && (
+        <div className="rsx-ai-banner">
+          <div className="rsx-ai-banner-bar">
+            <div className="rsx-ai-banner-info">
+              <RsAiLabel>스니핏 기반 추정</RsAiLabel>
+              <span>{data.aiEstimate.period}</span>
+              <span>{data.aiEstimate.tagged}</span>
+            </div>
+            <button
+              type="button"
+              className="rsx-purple-btn"
+              onClick={() => {
+                // 기본 동작(데모): 추정치를 각 항목 값으로 반영. 호스트 콜백이 있으면 위임.
+                if (onApplyEstimates) { onApplyEstimates(data.aiEstimate.items); return; }
+                setEntries((p) => p.map((e) => {
+                  const est = data.aiEstimate.items.find((it) => it.name === e.name);
+                  return est ? { ...e, value: est.pct } : e;
+                }));
+              }}
+            >
+              추정치 적용
+            </button>
           </div>
-          <button
-            type="button"
-            className="rsx-purple-btn"
-            onClick={() => {
-              // 기본 동작(데모): 추정치를 각 항목 값으로 반영. 호스트 콜백이 있으면 위임.
-              if (onApplyEstimates) { onApplyEstimates(data.aiEstimate.items); return; }
-              setEntries((p) => p.map((e) => {
-                const est = data.aiEstimate.items.find((it) => it.name === e.name);
-                return est ? { ...e, value: est.pct } : e;
-              }));
-            }}
-          >
-            추정치 적용
-          </button>
+          <ul className="rsx-ai-banner-list">
+            {data.aiEstimate.items.map((item, i) => (
+              <li key={rowKey(item, i)}>{item.name} {item.pct}%</li>
+            ))}
+          </ul>
+          <p className="rsx-ai-banner-note">추정은 참고치입니다. 적용 후 슬라이더로 보정하고 저장해야 반영됩니다.</p>
         </div>
-        <ul className="rsx-ai-banner-list">
-          {data.aiEstimate.items.map((item, i) => (
-            <li key={rowKey(item, i)}>{item.name} {item.pct}%</li>
-          ))}
-        </ul>
-        <p className="rsx-ai-banner-note">추정은 참고치입니다. 적용 후 슬라이더로 보정하고 저장해야 반영됩니다.</p>
-      </div>
+      )}
 
       {entries.map((entry) => (
         <div className="rsx-entry" key={entry.id}>
