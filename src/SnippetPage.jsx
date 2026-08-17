@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { SnippetCanvas } from './components';
 import SnippetModal from './components/timeline/SnippetModal.jsx';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, modalKnob, resize, useKnobs } from './devtools/knobs.js';
+import { stressListMixed } from './devtools/stress.js';
 
 /**
  * SnippetPage — "스니핏" (스니핏 히스토리) demo wrapper.
@@ -123,7 +126,23 @@ function memberSnippetSets(memberId) {
   return { thisMonth: [], lastMonth: [] }; // 나머지: 비어 있음
 }
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   멤버 이름은 매니저 뷰 아바타 행에 고정 폭으로 들어간다 — 이름이 길어지면
+   행이 어떻게 되는지 보려면 라벨 knob 을 돌린다. */
+const KNOBS = [
+  VOLUME_KNOB,
+  LABEL_KNOB,
+  modalKnob([
+    { value: 'write', label: '새 작성' },
+    { value: 'edit', label: '기존 스니핏' },
+  ]),
+];
+const SWITCHER_NOTE = '항목 수: 목록의 스니핏 / 라벨: 멤버 이름·태그 / 모달: 스니핏 작성·편집';
+
 export default function SnippetPage({ baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const labelMode = knobs.labels;
+
   const [periodTab, setPeriodTab] = useState('thisWeek');
   const [isManagerView, setIsManagerView] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState(DEMO_MEMBERS[0].id);
@@ -137,14 +156,34 @@ export default function SnippetPage({ baseUrl }) {
   const periodSets = isManagerView
     ? memberSnippetSets(selectedMemberId)
     : { thisMonth: DEMO_SNIPPETS, lastMonth: LAST_MONTH_SNIPPETS };
-  const visibleSnippets =
+  const periodSnippets =
     periodTab === 'thisMonth' ? periodSets.thisMonth
       : periodTab === 'lastMonth' ? periodSets.lastMonth
         : [];
 
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ── */
+  const visibleSnippets = resize(periodSnippets, knobs.volume, {
+    count: 120,
+    clone: (s, i) => ({ ...s, id: `${s.id}-x${i}` }),
+  });
+  const members = stressListMixed(DEMO_MEMBERS, labelMode, { textKeys: ['name'] });
+
+  // 모달 knob: 클릭 경로(목록 행 클릭 / 작성 버튼)를 타지 않고 바로 연다.
+  // 'edit' 은 prefill 이 필요해 스니핏이 하나라도 있어야 성립한다.
+  const knobModal =
+    knobs.modal === 'write' ? true
+      : knobs.modal === 'edit' ? (visibleSnippets[0] ?? DEMO_SNIPPETS[0]) : null;
+  const openModal = knobModal ?? editing;
+
+  const closeModal = () => {
+    setEditing(null);
+    if (knobs.modal !== 'default') setKnob('modal', 'default');
+  };
+
   return (
     <>
       <SnippetCanvas
+        key={knobKey(knobs)}
         baseUrl={baseUrl}
         periodTab={periodTab}
         onPeriodTabChange={setPeriodTab}
@@ -155,7 +194,7 @@ export default function SnippetPage({ baseUrl }) {
         avgWrite={visibleSnippets.length ? '4/5' : '0/5'}
         isManagerView={isManagerView}
         onToggleManagerView={() => setIsManagerView((v) => !v)}
-        members={DEMO_MEMBERS}
+        members={members}
         selectedMemberId={selectedMemberId}
         onSelectMember={setSelectedMemberId}
         snippets={visibleSnippets}
@@ -163,15 +202,22 @@ export default function SnippetPage({ baseUrl }) {
         onWriteSnippet={() => setEditing(true)}
         onWriteNow={() => setEditing(true)}
       />
-      {editing && (
+      {openModal && (
         <SnippetModal
           baseUrl={baseUrl}
-          date={editing !== true ? editing.date : undefined}
-          initial={editing !== true ? editing.detail : undefined}
-          onClose={() => setEditing(null)}
-          onSubmit={() => setEditing(null)}
+          date={openModal !== true ? openModal.date : undefined}
+          initial={openModal !== true ? openModal.detail : undefined}
+          onClose={closeModal}
+          onSubmit={closeModal}
         />
       )}
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
+      />
     </>
   );
 }

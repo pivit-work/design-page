@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { ManagerCanvas } from './components/manager/index.js';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
+import { stressList, stressListMixed } from './devtools/stress.js';
 
 const SPLINE_SCENE = 'https://prod.spline.design/FGsE64DYYNKU7gP7/scene.splinecode';
 const SPLINE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
@@ -323,40 +326,85 @@ const TEAM_STATUS_MEMBERS = [
     profile: GOOD_PROFILE },
 ];
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   액션 버튼 개수 knob 은 여기에 두지 않는다. MemberCard 는 [원온원]·[메시지]
+   두 개를 하드코딩으로 그리고 `actions` prop 을 받지 않는다 — 액션이 4개 이상일
+   때 버튼이 쪼개지던 사고(345fbc2)의 자리는 지금은 1on1 페이지 쪽이다. */
+const KNOBS = [VOLUME_KNOB, LABEL_KNOB];
+const SWITCHER_NOTE = '항목 수: 액션 큐·팀원 현황·KR 기여자 / 라벨: 이름·역할·KR 제목';
+
+const sizeMembers = (list, volume) =>
+  resize(list, volume, { count: 24, clone: (m, i) => ({ ...m, id: `${m.id}-x${i}` }) });
+
 /**
  * 매니저 페이지 wrapper.
  * demo 데이터 + 라벨 보유, ManagerCanvas 에 props 로 전달.
  */
 export default function ManagerPage({ icons, baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const { volume, labels: labelMode } = knobs;
   const [activeTab, setActiveTab] = useState('today');
+
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ── */
+  const stressMembers = (list) => stressListMixed(list, labelMode, { textKeys: ['name'], codeKeys: ['role'] });
+  const actionMembers = stressMembers(sizeMembers(ACTION_QUEUE_MEMBERS, volume));
+  const statusMembers = stressMembers(sizeMembers(TEAM_STATUS_MEMBERS, volume));
+  const krDrilldown = {
+    ...KR_DRILLDOWN,
+    krs: stressListMixed(KR_DRILLDOWN.krs, labelMode, { textKeys: ['title'] }),
+    members: stressMembers(resize(KR_DRILLDOWN.members, volume, { count: 24, clone: (m, i) => ({ ...m, id: `${m.id}-x${i}` }) })),
+    contribution: stressListMixed(KR_DRILLDOWN.contribution, labelMode, { textKeys: ['name'] }),
+  };
+  const teamSnippets = {
+    ...TEAM_SNIPPETS,
+    members: stressListMixed(
+      resize(TEAM_SNIPPETS.members, volume, { count: 24, clone: (m, i) => ({ ...m, name: `${m.name}${i}` }) }),
+      labelMode,
+      { textKeys: ['name'] },
+    ),
+    weekHealth: stressListMixed(TEAM_SNIPPETS.weekHealth, labelMode, { textKeys: ['name'] }),
+    byDate: resize(TEAM_SNIPPETS.byDate, volume, { count: 20, clone: (d, i) => ({ ...d, date: `${d.date} (${i})` }) }),
+    byKr: resize(TEAM_SNIPPETS.byKr, volume, { count: 16, clone: (k, i) => ({ ...k, title: `${k.title} ${i}` }) }),
+  };
+
   return (
-    <ManagerCanvas
-      tabs={TABS}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      krDrilldown={KR_DRILLDOWN}
-      teamSnippets={TEAM_SNIPPETS}
-      teamMemberCount={5}
-      summary="박민준님 긴급 개입이 필요합니다. 이서연님도 스니핏이 3일째 비어 있어요."
-      kpis={KPIS}
-      actionQueue={{
-        title: '오늘의 액션 큐',
-        count: 3,
-        countColor: 'var(--colors-error-500)',
-        subtitle: '지금 당장 뭐 해야 해요',
-        members: ACTION_QUEUE_MEMBERS,
-      }}
-      teamStatus={{
-        title: '팀원 현황',
-        count: 1,
-        countColor: 'var(--colors-foreground-fgSuccessPrimary)',
-        subtitle: '나머지는 괜찮습니다',
-        members: TEAM_STATUS_MEMBERS,
-      }}
-      splineScene={SPLINE_SCENE}
-      splineImage={SPLINE_IMAGE}
-      icons={icons}
-      baseUrl={baseUrl}
-    />
+    <>
+      <ManagerCanvas
+        key={knobKey(knobs)}
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        krDrilldown={krDrilldown}
+        teamSnippets={teamSnippets}
+        teamMemberCount={teamSnippets.members.length}
+        summary="박민준님 긴급 개입이 필요합니다. 이서연님도 스니핏이 3일째 비어 있어요."
+        kpis={KPIS}
+        actionQueue={{
+          title: '오늘의 액션 큐',
+          count: actionMembers.length,
+          countColor: 'var(--colors-error-500)',
+          subtitle: '지금 당장 뭐 해야 해요',
+          members: actionMembers,
+        }}
+        teamStatus={{
+          title: '팀원 현황',
+          count: statusMembers.length,
+          countColor: 'var(--colors-foreground-fgSuccessPrimary)',
+          subtitle: '나머지는 괜찮습니다',
+          members: statusMembers,
+        }}
+        splineScene={SPLINE_SCENE}
+        splineImage={SPLINE_IMAGE}
+        icons={icons}
+        baseUrl={baseUrl}
+      />
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
+      />
+    </>
   );
 }

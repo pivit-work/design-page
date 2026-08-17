@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { ReportCanvas } from './components';
 import { DEMO_WEEKLY_REPORT } from './components/timeline/weekly-demo-data.js';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, modalKnob, resize, useKnobs } from './devtools/knobs.js';
+import { stress, stressText } from './devtools/stress.js';
 
 /**
  * ReportPage — "리포트" 페이지 demo wrapper.
@@ -15,7 +18,25 @@ import { DEMO_WEEKLY_REPORT } from './components/timeline/weekly-demo-data.js';
 const WEEKLY_SUMMARY =
   '이번 주는 Phase 1 기획 완성도를 높이는 데 집중한 한 주였습니다. IA 구조 정의, 어드민 클릭 액션 정의, RBAC 설계 등 핵심 산출물이 완성됐으며, 팀 전체 회의 2회를 통해 방향성이 정렬됐습니다. 헬스체크는 주 평균 8.1로 안정적이었고, 수요일 이후 꾸준히 유지됐습니다.';
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   '진행 중' 배지는 상태 코드(in_progress)를 사람이 읽는 라벨로 해석해 그린
+   자리다 — 해석이 끊기면 원본 키가 그대로 나온다. 라벨 knob 의 '미해석 코드값'
+   이 그 화면이다. */
+const STATUS_ALT = { long: '이번 주 진행 중 (마감 전)', latin: 'In Progress', raw: 'in_progress' };
+const KNOBS = [
+  VOLUME_KNOB,
+  LABEL_KNOB,
+  modalKnob([
+    { value: 'view', label: '리포트 보기' },
+    { value: 'generating', label: '생성 중' },
+  ]),
+];
+const SWITCHER_NOTE = '항목 수: 리포트 목록 행 / 라벨: 상태 배지·기간 라벨 / 모달: 리포트 전체 보기·생성 중';
+
 export default function ReportPage({ baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const { volume, labels: labelMode } = knobs;
+
   const [period, setPeriod] = useState('weekly');
   const [currentWeekReport, setCurrentWeekReport] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -26,7 +47,7 @@ export default function ReportPage({ baseUrl }) {
     {
       id: 'w-current',
       dateRange: '2026년 5월 11일 ~ 5월 15일',
-      status: '진행 중',
+      status: stress('진행 중', labelMode, STATUS_ALT),
       isActive: true,
       showGenerate: true,
       generateLabel: currentWeekReport ? '다시 생성하기' : '지금 생성하기',
@@ -153,6 +174,36 @@ export default function ReportPage({ baseUrl }) {
 
   const content = PERIOD_CONTENT[period] ?? PERIOD_CONTENT.weekly;
 
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ──
+     'many' 복제본은 첫 행(생성 버튼을 가진 이번 주 행)까지 함께 늘리면 화면이
+     거짓말이 되므로, 복제본에서는 showGenerate / isCurrent 를 떼고 기간 라벨만
+     흔든다. */
+  const rows = resize(content.rows, volume, {
+    count: 60,
+    clone: (r, i) => ({
+      ...r,
+      id: `${r.id}-x${i}`,
+      showGenerate: false,
+      isActive: false,
+      isCurrent: false,
+      dateRange: r.dateRange ? `${r.dateRange} (${i + 1})` : r.dateRange,
+      periodLabel: r.periodLabel ? `${r.periodLabel}-${i + 1}` : r.periodLabel,
+    }),
+  }).map((r) => (r.periodLabel ? { ...r, periodLabel: stressText(r.periodLabel, labelMode) } : r));
+
+  // 모달 knob: 목록 행을 클릭하지 않고 바로 연다.
+  const modalRow = weeklyRows.find((r) => r.weeklyReport) ?? weeklyRows[1];
+  const effSelected =
+    knobs.modal === 'view' ? modalRow
+      : knobs.modal === 'generating' ? { ...weeklyRows[0], weeklyReport: null }
+        : selectedReport;
+  const effGenerating = knobs.modal === 'generating' ? true : isGenerating;
+
+  const closeReport = () => {
+    setSelectedReport(null);
+    if (knobs.modal !== 'default') setKnob('modal', 'default');
+  };
+
   const handleReportClick = (r) => {
     if (r.weeklyReport) setSelectedReport(r);
   };
@@ -174,21 +225,33 @@ export default function ReportPage({ baseUrl }) {
   };
 
   return (
-    <ReportCanvas
-      baseUrl={baseUrl}
-      count={34}
-      period={period}
-      onPeriodChange={setPeriod}
-      bannerText={content.bannerText}
-      periodTitle={content.periodTitle}
-      periodRange={content.periodRange}
-      listType={content.listType}
-      reports={content.rows}
-      selectedReport={selectedReport}
-      isGenerating={isGenerating}
-      onReportClick={handleReportClick}
-      onCloseReport={() => setSelectedReport(null)}
-      onReportGenerate={handleGenerate}
-    />
+    <>
+      <ReportCanvas
+        key={knobKey(knobs)}
+        baseUrl={baseUrl}
+        // 기본값에서는 원래 픽스처 값(34)을 그대로 — 스위처를 건드리지 않은 화면은
+        // 지금까지와 한 글자도 달라지면 안 된다. knob 을 돌렸을 때만 실제 행 수를 쓴다.
+        count={volume === 'default' ? 34 : rows.length}
+        period={period}
+        onPeriodChange={setPeriod}
+        bannerText={content.bannerText}
+        periodTitle={content.periodTitle}
+        periodRange={content.periodRange}
+        listType={content.listType}
+        reports={rows}
+        selectedReport={effSelected}
+        isGenerating={effGenerating}
+        onReportClick={handleReportClick}
+        onCloseReport={closeReport}
+        onReportGenerate={handleGenerate}
+      />
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
+      />
+    </>
   );
 }
