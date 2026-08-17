@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import OneOnOneCanvasV2 from './components/oneonone/OneOnOneCanvasV2.jsx';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { ASYNC_KNOB, LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
+import { stressListMixed } from './devtools/stress.js';
 
 /* ── StartOneOnOneView 데모 데이터 ──
    실제 구현에서는 pivit-work 의 prepareSession API 결과 등으로 채운다. */
@@ -197,11 +200,43 @@ const GOOD = [
   },
 ];
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   비동기 knob 에 '실패' 가 없는 건 의도다. OneOnOneCanvasV2 는 AI 초안 생성
+   실패를 표현할 prop 자체가 없다 (generatingSection / aiDrafts 둘뿐) — 즉
+   실패 화면이 컴포넌트 계약에 존재하지 않는다. 없는 상태를 있는 척 흉내 내지
+   않고, 없다는 사실이 스위처에서 보이게 둔다. */
+const ONEONONE_ASYNC_KNOB = {
+  ...ASYNC_KNOB,
+  options: ASYNC_KNOB.options.filter((o) => o.value !== 'error'),
+};
+/* '아주 많음' 은 멤버 수만 늘리지 않고 카드의 액션 버튼도 5개로 늘린다 —
+   액션이 4개 이상일 때 버튼이 글자 단위로 쪼개지던 사고(345fbc2)가 이 자리다.
+   OneOnOneCanvasV2 는 `member.actions` 를 그대로 렌더하므로 재현이 가능하다. */
+const MANY_ACTIONS = [
+  { label: '1on1 진행' },
+  { label: '스니핏 요청' },
+  { label: '노트' },
+  { label: '피드백 요청' },
+  { label: '평가 이력 보기' },
+];
+
+const KNOBS = [VOLUME_KNOB, LABEL_KNOB, ONEONONE_ASYNC_KNOB];
+const SWITCHER_NOTE = '항목 수: 오늘 예정·주의 필요·양호 팀원 (아주 많음이면 카드 액션도 5개) / 라벨: 이름·직무 / 비동기: AI 초안 생성 중 (실패는 캔버스 prop 에 없음)';
+
+const sizeMembers = (list, volume) =>
+  resize(list, volume, {
+    count: 20,
+    clone: (m, i) => ({ ...m, id: `${m.id}-x${i}`, actions: MANY_ACTIONS }),
+  });
+
 /**
  * 1on1 페이지 wrapper — Figma node 16816:33877.
  * demo 데이터 + 라벨 보유, OneOnOneCanvasV2 에 props 로 전달.
  */
 export default function OneOnOnePage({ icons, baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const { volume, labels: labelMode } = knobs;
+
   // 데모: AI 초안 생성 stub. section 미지정 = 전체, 지정 = 해당 섹션만 누적.
   const [aiDrafts, setAiDrafts] = useState(null);
   const [generatingSection, setGeneratingSection] = useState(null);
@@ -218,44 +253,62 @@ export default function OneOnOnePage({ icons, baseUrl }) {
       setGeneratingSection(null);
     }, 600);
   };
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ── */
+  const stressMembers = (list) => stressListMixed(sizeMembers(list, volume), labelMode, { textKeys: ['name'], codeKeys: ['role'] });
+  const today = stressMembers(SCHEDULED_TODAY);
+  const attention = stressMembers(NEEDS_ATTENTION);
+  const good = stressMembers(GOOD);
+  // 'loading' 은 0.6초 만에 지나가 버리는 생성 중 상태를 붙잡아 둔다.
+  const effGenerating = knobs.async === 'loading' ? 'all' : generatingSection;
+
   return (
-    <OneOnOneCanvasV2
-      title="1on1"
-      managerName="김지수"
-      teamCount={5}
-      briefing={BRIEFING}
-      message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
-      kpis={KPIS}
-      sections={[
-        {
-          key: 'today',
-          title: '오늘 예정',
-          count: SCHEDULED_TODAY.length,
-          countColor: 'var(--text-brand-secondary)',
-          members: SCHEDULED_TODAY,
-        },
-        {
-          key: 'attention',
-          title: '주의 필요',
-          // 시안(16816:33877): 긴급(오늘 예정)까지 포함한 '주의가 필요한 팀원 수'
-          count: SCHEDULED_TODAY.length + NEEDS_ATTENTION.length,
-          countColor: 'var(--text-error-primary)',
-          members: NEEDS_ATTENTION,
-        },
-        {
-          key: 'good',
-          title: '양호',
-          count: GOOD.length,
-          countColor: 'var(--colors-foreground-fgSuccessPrimary)',
-          members: GOOD,
-        },
-      ]}
-      icons={icons}
-      baseUrl={baseUrl}
-      startOneOnOneData={DEMO_START_DATA}
-      aiDrafts={aiDrafts}
-      onGenerateDrafts={handleGenerateDrafts}
-      generatingSection={generatingSection}
-    />
+    <>
+      <OneOnOneCanvasV2
+        key={knobKey(knobs)}
+        title="1on1"
+        managerName="김지수"
+        teamCount={today.length + attention.length + good.length}
+        briefing={BRIEFING}
+        message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
+        kpis={KPIS}
+        sections={[
+          {
+            key: 'today',
+            title: '오늘 예정',
+            count: today.length,
+            countColor: 'var(--text-brand-secondary)',
+            members: today,
+          },
+          {
+            key: 'attention',
+            title: '주의 필요',
+            // 시안(16816:33877): 긴급(오늘 예정)까지 포함한 '주의가 필요한 팀원 수'
+            count: today.length + attention.length,
+            countColor: 'var(--text-error-primary)',
+            members: attention,
+          },
+          {
+            key: 'good',
+            title: '양호',
+            count: good.length,
+            countColor: 'var(--colors-foreground-fgSuccessPrimary)',
+            members: good,
+          },
+        ]}
+        icons={icons}
+        baseUrl={baseUrl}
+        startOneOnOneData={DEMO_START_DATA}
+        aiDrafts={knobs.async === 'loading' ? null : aiDrafts}
+        onGenerateDrafts={handleGenerateDrafts}
+        generatingSection={effGenerating}
+      />
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
+      />
+    </>
   );
 }

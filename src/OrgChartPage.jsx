@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { OrgChartCanvas, ProjectCanvas } from './components';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, useKnobs } from './devtools/knobs.js';
+import { stress, stressText } from './devtools/stress.js';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
@@ -161,6 +164,63 @@ function findSubordinates(orgData, member) {
   return [];
 }
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   조직도 노드는 폭이 정해진 카드다. 팀 이름·직급은 관리자가 정의하는 값이라
+   길이가 흔들리고, 노드 하나에 멤버가 몇 명까지 들어가는지도 조직마다 다르다. */
+const NODE_TYPE_ALT = { long: '전략기획총괄본부', latin: 'Division', raw: 'division' };
+const ROLE_ALT = { long: '디비전 리드 (본부장)', latin: 'Division Lead', raw: 'division_lead' };
+
+const KNOBS = [VOLUME_KNOB, LABEL_KNOB];
+const SWITCHER_NOTE = '항목 수: 노드별 멤버·하위 조직 (0개면 회사 노드만 남는다) / 라벨: 조직 이름·직급·구성원 이름';
+
+/**
+ * 조직 트리 전체에 knob 을 적용한다. volume 은 노드마다 멤버·자식 수를 바꾸고,
+ * labels 는 이름·타입·직급을 스트레스한다. 기본값에서는 원본을 그대로 돌려준다.
+ */
+function shapeOrg(node, volume, labelMode) {
+  // 기본값에서는 원본 트리를 그대로 — 새 객체를 만들면 픽스처를 마운트 시점에
+  // state 로 스냅샷하는 OrgChartCanvas 와 굳이 어긋나게 된다.
+  if ((!volume || volume === 'default') && (!labelMode || labelMode === 'default')) return node;
+
+  const stressed = {
+    ...node,
+    // 조직 이름·사람 이름은 사용자가 적는 자유 입력이라 코드값 폴백이 없다 → stressText.
+    name: stressText(node.name, labelMode),
+    type: stress(node.type, labelMode, NODE_TYPE_ALT),
+  };
+
+  let members = node.members ?? [];
+  let children = node.children ?? [];
+
+  if (volume === 'empty') {
+    members = [];
+    children = [];
+  } else if (volume === 'one') {
+    members = members.slice(0, 1);
+    children = children.slice(0, 1);
+  } else if (volume === 'many' && members.length > 0) {
+    // 한 노드에 멤버 15명 — 카드가 세로로 늘어나는지, 이름 줄이 깨지는지 본다.
+    members = Array.from({ length: 15 }, (_, i) => {
+      const base = members[i % members.length];
+      return { ...base, name: `${base.name}${i + 1}`, selected: i === 0 ? base.selected : undefined };
+    });
+  }
+
+  if (labelMode && labelMode !== 'default') {
+    members = members.map((m) => ({
+      ...m,
+      name: stressText(m.name, labelMode),
+      role: m.role ? stress(m.role, labelMode, ROLE_ALT) : m.role,
+    }));
+  }
+
+  return {
+    ...stressed,
+    ...(node.members ? { members } : {}),
+    ...(node.children ? { children: children.map((c) => shapeOrg(c, volume, labelMode)) } : {}),
+  };
+}
+
 /**
  * OrgChartPage — 조직도 demo wrapper.
  *
@@ -169,32 +229,53 @@ function findSubordinates(orgData, member) {
  * 일 때 이 컴포넌트만 마운트한다.
  */
 export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubTabChange }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const [adminMode, setAdminMode] = useState(false);
-  const subordinates = (member) => findSubordinates(INITIAL_ORG, member);
+
+  const orgData = useMemo(() => shapeOrg(INITIAL_ORG, knobs.volume, knobs.labels), [knobs.volume, knobs.labels]);
+  const subordinates = (member) => findSubordinates(orgData, member);
+
+  const switcher = (
+    <StateSwitcher
+      spec={KNOBS}
+      values={knobs}
+      onChange={setKnob}
+      onReset={resetKnobs}
+      note={SWITCHER_NOTE}
+    />
+  );
 
   if (subTab === 'project') {
     return (
-      <ProjectCanvas
-        onSubTabChange={onSubTabChange}
-        statIcons={statIcons}
-        baseUrl={baseUrl}
-        findSubordinates={subordinates}
-        adminMode={adminMode}
-        orgData={INITIAL_ORG}
-      />
+      <>
+        <ProjectCanvas
+          key={knobKey(knobs)}
+          onSubTabChange={onSubTabChange}
+          statIcons={statIcons}
+          baseUrl={baseUrl}
+          findSubordinates={subordinates}
+          adminMode={adminMode}
+          orgData={orgData}
+        />
+        {switcher}
+      </>
     );
   }
 
   return (
-    <OrgChartCanvas
-      orgData={INITIAL_ORG}
-      icons={icons}
-      statIcons={statIcons}
-      baseUrl={baseUrl}
-      onSubTabChange={onSubTabChange}
-      findSubordinates={subordinates}
-      adminMode={adminMode}
-      onAdminModeChange={setAdminMode}
-    />
+    <>
+      <OrgChartCanvas
+        key={knobKey(knobs)}
+        orgData={orgData}
+        icons={icons}
+        statIcons={statIcons}
+        baseUrl={baseUrl}
+        onSubTabChange={onSubTabChange}
+        findSubordinates={subordinates}
+        adminMode={adminMode}
+        onAdminModeChange={setAdminMode}
+      />
+      {switcher}
+    </>
   );
 }

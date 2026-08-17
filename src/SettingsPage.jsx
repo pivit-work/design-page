@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { MySettingsCanvas } from './components/settings/index.js';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { ASYNC_KNOB, LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
+import { stress, stressText } from './devtools/stress.js';
 import './admin.css';
 import './settings.css';
 
@@ -98,7 +101,27 @@ const MOCK_COMP = {
   ],
 };
 
+/* ── 상태 스위처 ──────────────────────────────────────────────────────────
+   등급 배지는 40×40 고정 칸에 관리자가 정의한 라벨이 들어오는 자리다 — 실제로
+   긴 라벨이 배지를 넘쳐 사후 수정이 들어갔던 곳(c8dc555). 등급별로 "그 자리에
+   실제로 들어올 법한 값" 을 명시해 둔다. */
+const GRADE_ALT = {
+  S: { long: '기대 이상 달성', latin: 'Exceeds Expectations', raw: 'exceeds' },
+  A: { long: '기대 충족', latin: 'Meets Expectations', raw: 'meets_expectations' },
+  'A+': { long: '기대 상회 달성', latin: 'Above Expectations', raw: 'above_expectations' },
+};
+const TITLE_ALT = { long: '최고프로덕트책임자 겸 공동창업자', latin: 'Chief Product Officer', raw: 'chief_product_officer' };
+const DEPT_ALT = { long: '리더십·전략기획 총괄본부', latin: 'Leadership & Strategy Division', raw: 'leadership_division' };
+
+const KNOBS = [LABEL_KNOB, ASYNC_KNOB, VOLUME_KNOB];
+const SWITCHER_NOTE = '라벨: 등급 배지·직함·부서 / 비동기: 프로필·가족·비밀번호 저장 / 항목 수: 사진·부양가족·평가 이력·학력·경력·자격·문서';
+
 export default function SettingsPage() {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const labelMode = knobs.labels;
+  const asyncMode = knobs.async;
+  const volume = knobs.volume;
+
   const [tab, setTab] = useState('my_profile');
   const [photos, setPhotos] = useState([{ id: 'p1', url: 'https://i.pravatar.cc/150?img=11' }]);
   const [activePhotoId, setActivePhotoId] = useState('p1');
@@ -119,7 +142,7 @@ export default function SettingsPage() {
   const profile = {
     name: '민현식',
     displayName: '데이빗 민 (민현식)',
-    title: 'CEO',
+    title: stress('CEO', labelMode, TITLE_ALT),
     email: 'david@pivit.work',
     phone: '010-1234-5678',
     personalEmail: 'david.min@gmail.com',
@@ -135,9 +158,45 @@ export default function SettingsPage() {
     joinDate: '2025-09-01',
   };
 
+  /* ── knob 적용 ──────────────────────────────────────────────────────────
+     기본값(knob 미조작)에서는 아래 파생값이 모두 원본과 동일하다. */
+  const dept = stress('Leadership', labelMode, DEPT_ALT);
+  const evalHistory = resize(
+    MOCK_PERF.evalHistory.map((e) => ({ ...e, grade: stress(e.grade, labelMode, GRADE_ALT[e.grade]) })),
+    volume,
+    { count: 24, clone: (e, i) => ({ ...e, period: `${2025 - Math.floor(i / 2)} H${(i % 2) + 1}` }) },
+  );
+  const viewOrg = {
+    ...org,
+    education: resize(org.education, volume, { count: 12, clone: (r, i) => ({ ...r, id: `edu-x${i}` }) }),
+    career: resize(org.career, volume, { count: 12, clone: (r, i) => ({ ...r, id: `car-x${i}` }) }),
+    certifications: resize(org.certifications, volume, { count: 12, clone: (r, i) => ({ ...r, id: `cert-x${i}` }) }),
+    documents: resize(org.documents, volume, { count: 12, clone: (r, i) => ({ ...r, id: `doc-x${i}` }) }),
+    current: { ...org.current, dept },
+  };
+  const viewFamily = {
+    ...family,
+    dependents: resize(family.dependents, volume, { count: 12, clone: (d, i) => ({ ...d, id: `dep-x${i}` }) }),
+  };
+  const viewPhotos = resize(photos, volume, { count: 5, clone: (p, i) => ({ ...p, id: `${p.id}-x${i}` }) });
+  const viewActivePhotoId = viewPhotos.some((p) => p.id === activePhotoId)
+    ? activePhotoId
+    : (viewPhotos[0]?.id ?? null);
+
+  // 비동기 knob 은 시뮬레이션 상태를 덮어쓴다 — 0.5초 만에 지나가 버리는
+  // '저장 중' 을 붙잡아 두고, 코드에 경로가 없는 '실패' 를 만들어 낸다.
+  const effProfileSave = asyncMode === 'loading' ? 'saving' : asyncMode === 'error' ? 'error' : saveState;
+  const effFamilySave = asyncMode === 'loading' ? 'saving' : asyncMode === 'error' ? 'error' : familySaveState;
+  const effPwState =
+    asyncMode === 'loading'
+      ? { saving: true, saved: false, error: null }
+      : asyncMode === 'error'
+        ? { saving: false, saved: false, error: '현재 비밀번호가 일치하지 않습니다.' }
+        : pwState;
+
   const myProfile = {
     displayName: profile.displayName,
-    dept: 'Leadership',
+    dept,
     bio: profile.bio,
     basicPairs: [
       { label: '위치', value: profile.location },
@@ -145,12 +204,12 @@ export default function SettingsPage() {
       { label: '전화번호', value: profile.phone },
     ],
     orgPairs: [
-      { label: '현재 매니저', value: '홍길동 (이사)' },
+      { label: '현재 매니저', value: stressText('홍길동 (이사)', labelMode) },
       { label: '레벨', value: 'L5' },
       { label: '입사일', value: profile.joinDate },
-      { label: '소속', value: 'Leadership' },
+      { label: '소속', value: dept },
     ],
-    latestEval: MOCK_PERF.evalHistory[0],
+    latestEval: evalHistory[0] ?? null,
     compCurrent: { amount: MOCK_COMP.current.amount, effectiveDate: MOCK_COMP.current.effectiveDate },
   };
 
@@ -202,13 +261,14 @@ export default function SettingsPage() {
   return (
     <div className="content-area">
       <MySettingsCanvas
+      key={knobKey(knobs)}
       activeTab={tab}
       onTabChange={setTab}
-      me={{ name: '민현식', title: 'CEO', initial: '민', color: '#EC4899' }}
+      me={{ name: '민현식', title: profile.title, initial: '민', color: '#EC4899' }}
       myProfile={myProfile}
       onEditProfile={() => setTab('profile_basic')}
-      family={family}
-      familySaveState={familySaveState}
+      family={viewFamily}
+      familySaveState={effFamilySave}
       onSaveFamily={(input) => {
         setFamily((prev) => ({ ...prev, ...input }));
         setFamilySaveState('saving');
@@ -223,18 +283,18 @@ export default function SettingsPage() {
       onDeleteDependent={(id) =>
         setFamily((prev) => ({ ...prev, dependents: prev.dependents.filter((d) => d.id !== id) }))
       }
-      org={org}
+      org={viewOrg}
       onAddOrgRecord={addOrgRecord}
       onDeleteOrgRecord={deleteOrgRecord}
       onUploadDocument={(docType, file) => addOrgRecord('documents', { docType, fileName: file.name, uploadedAt: '오늘' })}
       onDownloadDocument={() => {}}
       onDeleteDocument={(id) => deleteOrgRecord('documents', id)}
-      performance={MOCK_PERF}
+      performance={{ ...MOCK_PERF, evalHistory }}
       compensation={MOCK_COMP}
       profile={profile}
       timezoneOptions={TIMEZONES}
-      photos={photos}
-      activePhotoId={activePhotoId}
+      photos={viewPhotos}
+      activePhotoId={viewActivePhotoId}
       maxPhotos={5}
       minPhotos={0}
       onSelectPhoto={setActivePhotoId}
@@ -250,7 +310,7 @@ export default function SettingsPage() {
           return next;
         });
       }}
-      profileSaveState={saveState}
+      profileSaveState={effProfileSave}
       onSaveProfile={handleSaveProfile}
       visibilityGroups={[
         {
@@ -290,7 +350,7 @@ export default function SettingsPage() {
       onDisconnectIntegration={(id) => id === 'google' && setGcalConnected(false)}
       onSyncIntegration={() => {}}
       onToggleIntegrationSetting={(id, key, next) => key === 'slack_dm' && setSlackDm(next)}
-      passwordState={pwState}
+      passwordState={effPwState}
       onChangePassword={() => {
         setPwState({ saving: true, saved: false, error: null });
         setTimeout(() => {
@@ -300,6 +360,13 @@ export default function SettingsPage() {
       }}
       sessions={[]}
       onLogout={() => {}}
+      />
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
       />
     </div>
   );

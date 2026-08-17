@@ -4,6 +4,9 @@ import {
   OkrTeamCanvas, OkrStrategyCanvas, OkrComposeFullModal, OkrSetupWizardModal,
   OkrContextBanner, OkrContextSetupModal, OkrResourceCanvas, Icon,
 } from './components';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, modalKnob, resize, useKnobs } from './devtools/knobs.js';
+import { stressText, stressListMixed } from './devtools/stress.js';
 
 /* ── Demo Avatars ── */
 const AVATARS = {
@@ -639,6 +642,40 @@ const RESOURCE_DATA = {
   },
 };
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   이 페이지는 이미 useState 9개로 탭·모달을 페이지 안에서 바꾸고 있었다 —
+   나머지 데모 페이지에 넓힌 방식의 선례다. 여기서는 그 위에 픽스처 knob
+   (항목 수·라벨)과, 클릭 경로 없이 모달 4종을 여는 knob 을 얹는다. */
+const KNOBS = [
+  VOLUME_KNOB,
+  LABEL_KNOB,
+  modalKnob([
+    { value: 'compose', label: 'OKR 작성' },
+    { value: 'setup', label: '설정 마법사' },
+    { value: 'context', label: '컨텍스트 설정' },
+    { value: 'detail', label: '블록 상세' },
+  ]),
+];
+const SWITCHER_NOTE = '항목 수: Objective·팀 카드 / 라벨: 팀 이름·리드·Objective 제목 / 모달: 작성·설정 마법사·컨텍스트·블록 상세';
+
+/** 대시보드 트리에 knob 적용. 기본값에서는 원본 참조를 그대로 돌려준다. */
+function shapeTree(tree, volume, labelMode) {
+  const isDefault = (v) => !v || v === 'default';
+  if (isDefault(volume) && isDefault(labelMode)) return tree;
+  const shapeObjectives = (list) =>
+    stressListMixed(resize(list, volume, { count: 12, clone: (o, i) => ({ ...o, title: `${o.title} ${i + 1}` }) }), labelMode, { textKeys: ['title'] });
+  return {
+    ...tree,
+    name: stressText(tree.name, labelMode),
+    objectives: shapeObjectives(tree.objectives ?? []),
+    teams: stressListMixed(
+      resize(tree.teams ?? [], volume, { count: 10, clone: (t, i) => ({ ...t, id: `${t.id}-x${i}`, name: `${t.name} ${i + 1}` }) }),
+      labelMode,
+      { textKeys: ['name', 'lead'] },
+    ).map((t) => ({ ...t, objectives: shapeObjectives(t.objectives ?? []) })),
+  };
+}
+
 /**
  * OkrPage — OKR demo wrapper.
  *
@@ -646,6 +683,9 @@ const RESOURCE_DATA = {
  * 내린다. 대시보드 외 탭은 시안이 나오면 채운다(현재 placeholder).
  */
 export default function OkrPage({ icons, baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const { volume, labels: labelMode } = knobs;
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [openGroupId, setOpenGroupId] = useState(null);
   const [year, setYear] = useState('2026');
@@ -670,6 +710,16 @@ export default function OkrPage({ icons, baseUrl }) {
     setActiveTab(tab);
   };
 
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ── */
+  const tree = shapeTree(OKR_TREE, volume, labelMode);
+  const clearModalKnob = () => {
+    if (knobs.modal !== 'default') setKnob('modal', 'default');
+  };
+  const effCompose = knobs.modal === 'compose' ? true : composeOpen;
+  const effSetup = knobs.modal === 'setup' ? true : setupOpen;
+  const effCtx = knobs.modal === 'context' ? true : ctxOpen;
+  const effDetailId = knobs.modal === 'detail' ? Object.keys(OKR_DETAILS)[0] : openGroupId;
+
   return (
     <>
       {/* 컨텍스트 미설정 안내 바 — Figma 17260:22116. [설정] → 컨텍스트 설정 모달,
@@ -686,7 +736,7 @@ export default function OkrPage({ icons, baseUrl }) {
             quarter={quarter} quarters={QUARTERS} onQuarterChange={setQuarter}
             icons={icons} baseUrl={baseUrl}
           />
-          <OkrDashboardCanvas data={{ ...OKR_TREE, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
+          <OkrDashboardCanvas key={knobKey(knobs)} data={{ ...tree, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
         </>
       ) : activeTab === 'company' ? (
         <>
@@ -722,33 +772,41 @@ export default function OkrPage({ icons, baseUrl }) {
         <div className="canvas-area okr-canvas-area okr-tab-placeholder">준비 중인 화면입니다</div>
       )}
 
-      {composeOpen && (
+      {effCompose && (
         <OkrComposeFullModal
           minimap={COMPOSE_MINIMAP}
           icons={icons}
           baseUrl={baseUrl}
           members={COMPOSE_MEMBERS}
           selfId="m-kurt"
-          onClose={() => setComposeOpen(false)}
+          onClose={() => { setComposeOpen(false); clearModalKnob(); }}
         />
       )}
-      {setupOpen && (
-        <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => setSetupOpen(false)} />
+      {effSetup && (
+        <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => { setSetupOpen(false); clearModalKnob(); }} />
       )}
-      {ctxOpen && (
+      {effCtx && (
         <OkrContextSetupModal
           icons={icons}
           baseUrl={baseUrl}
-          onClose={() => setCtxOpen(false)}
-          onStartOkr={() => { setCtxOpen(false); setSetupOpen(true); }}
+          onClose={() => { setCtxOpen(false); clearModalKnob(); }}
+          onStartOkr={() => { setCtxOpen(false); clearModalKnob(); setSetupOpen(true); }}
         />
       )}
 
       <OkrDetailModal
-        detail={openGroupId ? OKR_DETAILS[openGroupId] : null}
+        detail={effDetailId ? OKR_DETAILS[effDetailId] : null}
         icons={icons}
         baseUrl={baseUrl}
-        onClose={() => setOpenGroupId(null)}
+        onClose={() => { setOpenGroupId(null); clearModalKnob(); }}
+      />
+
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
       />
     </>
   );

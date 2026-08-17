@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal, MeetingSyncToast } from './components';
+import StateSwitcher from './devtools/StateSwitcher.jsx';
+import { LABEL_KNOB, VOLUME_KNOB, knobKey, modalKnob, resize, useKnobs } from './devtools/knobs.js';
+import { stressListMixed } from './devtools/stress.js';
 
 /* ── 데모 데이터 ── */
 const TODAY_MEETINGS = [
@@ -224,6 +227,31 @@ const GENERATING_LABELS = {
   confirm: '확인',
 };
 
+/* ── 상태 스위처 ─────────────────────────────────────────────────────────
+   '실패' 상태는 이미 픽스처(p-failed)에 있어 별도 knob 을 두지 않는다. 대신
+   여기서만 볼 수 있는 건 동기화 경고 토스트와 진행/생성 모달이라, 그걸 연다.
+
+   상태 배지('진행 중'·'예정'·'완료')는 회의의 status 코드를 LABELS 로 해석해
+   그린다. 해석이 끊기면 코드가 그대로 나오므로, 라벨 knob 의 '미해석 코드값'
+   에서는 LABELS 를 원본 코드로 바꿔 그 화면을 만든다. */
+const RAW_STATUS_LABELS = {
+  ongoing: 'ongoing',
+  scheduled: 'scheduled',
+  completed: 'completed',
+  generating: 'generating_summary',
+  summaryFailed: 'summary_failed',
+};
+const KNOBS = [
+  VOLUME_KNOB,
+  LABEL_KNOB,
+  modalKnob([
+    { value: 'start', label: '회의 진행' },
+    { value: 'generating', label: '회의록 생성 중' },
+    { value: 'toast', label: '동기화 경고만' },
+  ]),
+];
+const SWITCHER_NOTE = '항목 수: 오늘·지난 회의 목록 / 라벨: 회의 제목·참석자·상태 배지 / 모달: 진행 플로우·생성 중 안내·동기화 토스트';
+
 /**
  * MeetingsPage — 회의록 demo wrapper.
  *
@@ -232,6 +260,9 @@ const GENERATING_LABELS = {
  * MeetingListPage.tsx 에서 실 데이터로 동일한 MeetingsCanvas 를 렌더한다.
  */
 export default function MeetingsPage({ baseUrl }) {
+  const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
+  const { volume, labels: labelMode } = knobs;
+
   const [todayMeetings, setTodayMeetings] = useState(TODAY_MEETINGS);
   const [activeMeeting, setActiveMeeting] = useState(null);
   const [generatingOpen, setGeneratingOpen] = useState(false);
@@ -244,11 +275,31 @@ export default function MeetingsPage({ baseUrl }) {
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}요일`;
   }, []);
-  const todayCountLabel = `${todayMeetings.length}개`;
+  /* ── knob 적용 — 기본값에서는 원본 그대로 ── */
+  const stressMeetings = (list, count) =>
+    stressListMixed(
+      resize(list, volume, { count, clone: (m, i) => ({ ...m, id: `${m.id}-x${i}` }) }),
+      labelMode,
+      { textKeys: ['title', 'participants'] },
+    );
+  const viewToday = stressMeetings(todayMeetings, 30);
+  const viewPast = stressMeetings(PAST_MEETINGS, 40);
+  const viewLabels = labelMode === 'raw' ? { ...LABELS, ...RAW_STATUS_LABELS } : LABELS;
+  const todayCountLabel = `${viewToday.length}개`;
+
+  // 모달 knob: 목록에서 [시작] 을 누르지 않고 바로 연다.
+  const effActive = knobs.modal === 'start' ? (viewToday[0] ?? TODAY_MEETINGS[0]) : activeMeeting;
+  const effGeneratingOpen = knobs.modal === 'generating' ? true : generatingOpen;
+  const effToastOpen = knobs.modal === 'toast' ? true : syncToastOpen;
+
+  const clearModalKnob = () => {
+    if (knobs.modal !== 'default') setKnob('modal', 'default');
+  };
 
   // 회의 종료 확정 → 진행 flow 닫고, 해당 회의를 완료+생성 중으로 표시 + 생성 중 안내.
   const handleEnd = () => {
-    const endedId = activeMeeting?.id;
+    const endedId = effActive?.id;
+    clearModalKnob();
     setTodayMeetings((prev) =>
       prev.map((m) =>
         m.id === endedId ? { ...m, status: 'completed', generating: true } : m
@@ -258,47 +309,60 @@ export default function MeetingsPage({ baseUrl }) {
     setGeneratingOpen(true);
   };
 
+  const closeToast = () => {
+    setSyncToastOpen(false);
+    clearModalKnob();
+  };
+
   return (
     <>
-      {syncToastOpen && (
+      {effToastOpen && (
         <MeetingSyncToast
           baseUrl={baseUrl}
           title="Google 캘린더 동기화에 문제가 있는 회의가 있어요"
           detail="3건 · 동기화 실패"
-          onRetry={() => setSyncToastOpen(false)}
-          onClose={() => setSyncToastOpen(false)}
+          onRetry={closeToast}
+          onClose={closeToast}
         />
       )}
       <MeetingsCanvas
+        key={knobKey(knobs)}
         baseUrl={baseUrl}
-        todayMeetings={todayMeetings}
-        pastMeetings={PAST_MEETINGS}
+        todayMeetings={viewToday}
+        pastMeetings={viewPast}
         todayDateLabel={todayDateLabel}
         todayCountLabel={todayCountLabel}
-        labels={LABELS}
+        labels={viewLabels}
         onStartMeeting={setActiveMeeting}
       />
-      {activeMeeting && (
+      {effActive && (
         <MeetingStartFlow
           baseUrl={baseUrl}
-          meeting={activeMeeting}
+          meeting={effActive}
           labels={START_LABELS}
           micDevices={MIC_DEVICES}
           recorderName={RECORDER_NAME}
           recorderAvatar="/man.png"
           recordData={RECORD_DATA}
           shareData={SHARE_DATA}
-          onClose={() => setActiveMeeting(null)}
+          onClose={() => { setActiveMeeting(null); clearModalKnob(); }}
           onEnd={handleEnd}
         />
       )}
-      {generatingOpen && (
+      {effGeneratingOpen && (
         <MeetingGeneratingModal
           baseUrl={baseUrl}
           labels={GENERATING_LABELS}
-          onConfirm={() => setGeneratingOpen(false)}
+          onConfirm={() => { setGeneratingOpen(false); clearModalKnob(); }}
         />
       )}
+      <StateSwitcher
+        spec={KNOBS}
+        values={knobs}
+        onChange={setKnob}
+        onReset={resetKnobs}
+        note={SWITCHER_NOTE}
+      />
     </>
   );
 }
