@@ -168,6 +168,29 @@ export function isCapacityUnset(member) {
   return !member || member.capacitySetBy == null;
 }
 
+/** 「비중 > 0 · 캐파 = 0」 안내 문구 — 셀·칩 툴팁이 같은 문장을 쓴다(§5-3.6). */
+export const CAPACITY_IDLE_HINT = '캐파 사용이 지정되지 않았습니다';
+
+/**
+ * 「비중 > 0 · 캐파 = 0」 판정 — **안내 대상**이지 오류가 아니다(§5-3.6 · §10-A15).
+ *
+ * 조직이 배분은 해 놨는데 그 시간이 **누구의 캐파에도 잡혀 있지 않다**는 뜻이라,
+ * 과부하 판정에서 통째로 빠진다. 저장은 막지 않고 표시만 한다.
+ *
+ * ⚠️ 미설정(`capacitySetBy = null`)은 여기 **들어오지 않는다.** 그쪽은 점선 `—` 로
+ * 따로 표시되고 캐파 합계에서 빠진다. 「아직 아무도 안 정함」 과 「본인이 0 으로 정함」
+ * 을 같은 표시로 묶으면 두 상태를 구별할 수 없게 된다(§10-A19·A20).
+ *
+ * ⚠️ 「비중 50 · 캐파 10」 같은 조합에는 **아무것도 붙지 않는다**(§10-A14) — 볼륨이
+ * 작은 스쿼드에서 큰 몫을 지면 정상적으로 나오는 값이고, 여기에 경고를 붙이는 순간
+ * v3.7 의 파생 가정이 되살아난다.
+ */
+export function isCapacityIdle(member) {
+  if (!member) return false;
+  if (isCapacityUnset(member)) return false;
+  return (member.sharePct || 0) > 0 && (member.allocationPct || 0) === 0;
+}
+
 /**
  * 활성(완료·보관 제외) 스쿼드의 배정 내역 — 캐파 게이지 세그먼트 소스.
  * 캐파가 *어디로* 갔는지 한 칸에서 읽히도록 스쿼드별 색을 함께 싣는다.
@@ -299,6 +322,8 @@ export function squadComposition(members) {
       share: m.sharePct || 0, // 스쿼드 100 기준 — 저장 값 그대로
       pct: m.allocationPct || 0, // 개인 캐파 100 기준 — 다른 축
       capacityUnset: isCapacityUnset(m),
+      // 판정은 여기 한 곳에서만 한다 — 셀·칩·범례가 각자 다시 계산하면 갈라진다.
+      capacityIdle: isCapacityIdle(m),
     }))
     .sort((a, b) => b.share - a.share || b.pct - a.pct);
 

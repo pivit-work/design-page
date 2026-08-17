@@ -676,6 +676,22 @@
   font-family: var(--font-family-mono, 'DM Mono', monospace);
   white-space: nowrap;
 }
+/* 「비중 > 0 · 캐파 = 0」 회색 점 (§5-3.6 · §10-A15).
+   경고가 아니라 **안내**라서 빨강·노랑을 쓰지 않는다 — 이 조합은 오류가 아니고,
+   경고색을 주면 「고쳐야 하는 값」 으로 읽혀 폐기한 파생 가정이 되살아난다.
+   자리는 셀·칩·범례 세 곳이 공유하며, 크기가 작아 폭을 거의 먹지 않는다. */
+.sq-idle-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--text-quaternary);
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+/* 범례에서는 값 **뒤에** 붙으므로 여백을 반대로 준다 */
+.sq-comp-item .sq-idle-dot { margin-right: 0; margin-left: 2px; }
 /* 관리자 조정 배지 — 「누가 정했는가」를 값 옆에서 바로 읽히게 한다 */
 .sq-cell-adjusted {
   font-size: 9px;

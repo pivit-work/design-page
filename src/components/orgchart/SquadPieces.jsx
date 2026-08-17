@@ -12,6 +12,7 @@
 import { useEffect } from 'react';
 import {
   CAPACITY,
+  CAPACITY_IDLE_HINT,
   SQUAD_BASE,
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
@@ -169,7 +170,11 @@ export function SquadComposition({ squad, members, personOf }) {
               <span
                 key={r.userId}
                 className="sq-comp-item"
-                title={`${nameOf(r.userId)} — 스쿼드 내 비중 ${r.share}% · 개인 캐파 사용 ${r.capacityUnset ? '미설정' : `${r.pct}%`}`}
+                data-testid={`squad-comp-item-${r.userId}`}
+                title={[
+                  `${nameOf(r.userId)} — 스쿼드 내 비중 ${r.share}% · 개인 캐파 사용 ${r.capacityUnset ? '미설정' : `${r.pct}%`}`,
+                  r.capacityIdle ? CAPACITY_IDLE_HINT : '',
+                ].filter(Boolean).join('\n')}
               >
                 <span className="sq-comp-swatch" style={{ background: colorOf(r.userId) }} />
                 {r.role === 'lead' && (
@@ -178,6 +183,16 @@ export function SquadComposition({ squad, members, personOf }) {
                 <span className="sq-comp-name">{nameOf(r.userId)}</span>
                 <span className="sq-comp-share">{r.share}%</span>
                 <span className="sq-comp-raw">(캐파 {r.capacityUnset ? '—' : r.pct})</span>
+                {/* 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 자리(§10-A15).
+                    차단이 아니라 «여기 아직 안 정해졌다» 를 표에서 짚어 주는 표식이다 */}
+                {r.capacityIdle && (
+                  <span
+                    className="sq-idle-dot"
+                    data-testid={`squad-comp-cap-idle-${r.userId}`}
+                    title={CAPACITY_IDLE_HINT}
+                    aria-hidden
+                  />
+                )}
               </span>
             ))}
           </div>
