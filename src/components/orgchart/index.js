@@ -21,6 +21,8 @@ export {
   planSegments,
   plannedTotalPct,
   isCapacityUnset,
+  isCapacityIdle,
+  CAPACITY_IDLE_HINT,
   unsetCapacityCount,
   squadCountOf,
   capacityState,
