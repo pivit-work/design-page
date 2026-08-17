@@ -2555,7 +2555,73 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
   white-space: pre-wrap;
 }
+.ono-mem-evidence-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--utility-blue-500);
+  cursor: pointer;
+}
+.ono-mem-evidence-jump:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
 .ono-mem-evidence-status { margin: 10px 0 0; font-size: 11px; color: var(--text-tertiary); }
+
+/* ── 대화 원문 (STT 스크립트) — 회의록 풀버전 (PW-81) ── */
+.ono-mem-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.ono-mem-transcript-note {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+.ono-mem-transcript-line {
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+/* 발췌에서 건너온 발화 — 어디로 왔는지 1.5초만 알린다. */
+.ono-mem-transcript-line.is-hit {
+  border-color: var(--utility-blue-200);
+  background: var(--utility-blue-50);
+}
+.ono-mem-transcript-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.ono-mem-transcript-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .ono-mem-evidence-retry {
   padding: 0;
   border: none;
