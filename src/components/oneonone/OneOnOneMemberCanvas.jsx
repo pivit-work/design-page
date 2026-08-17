@@ -53,6 +53,7 @@ const DEFAULT_ICONS = {
   next: '/icons-solid/calendar.svg',
   feedback: '/icons-solid/message-heart-circle.svg',
   evidence: '/icons-solid/search-md.svg',
+  transcript: '/icons-solid/message-text-square-02.svg',
 };
 
 const DEFAULT_LABELS = {
@@ -108,6 +109,13 @@ const DEFAULT_LABELS = {
   evidenceRetry: '다시 시도',
   evidenceSpeakerManager: '{name} 매니저',
   evidenceSpeakerMe: '나',
+  evidenceJump: '전문에서 보기',
+  evidenceJumpMissing: '해당 구간을 찾을 수 없습니다',
+  viewModeFull: '열람 모드 · 풀버전',
+  recheckNeeded: '재점검 필요',
+  transcriptTitle: 'STT 스크립트',
+  transcriptNotShared: '대화 원문은 매니저가 공개하지 않았습니다',
+  transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
   managerPreparing: '매니저가 정리 중입니다',
   noSummary: '요약이 공유되면 여기에 표시됩니다',
   noPrepSession: '준비 중인 1on1이 없습니다',
@@ -351,6 +359,70 @@ function NoteGrid({ session, L, icons, baseUrl }) {
 }
 
 /**
+ * 발화 한 줄의 앵커 id — 서버가 발췌에 붙이는 `anchor` 와 **같은 규칙**이다
+ * (`feedback-evidence.util.ts#toAnchor`: `stt-` + timestamp 의 `:` 를 `-` 로).
+ * 규칙이 갈리면 「전문에서 보기」가 조용히 아무 데도 못 간다.
+ */
+const transcriptAnchor = (line) =>
+  `stt-${String(line?.timestamp ?? '').replace(/:/g, '-')}`;
+
+/**
+ * 대화 원문(STT 스크립트) — 회의록 풀버전의 "원본" (PW-81 · policy §10.7.2).
+ *
+ * 요약이 원문의 자리를 대신하지 않도록, 공개된 회차는 발화를 **전량** 그린다.
+ * 잘라 놓고 "미리보기" 라고 부르지 않는다.
+ *
+ * 공개되지 않은 회차에서도 **섹션 자체는 그린다.** 숨기면 구성원은 "원문이 원래
+ * 없는 것" 과 "매니저가 공개하지 않은 것" 을 구분할 수 없다.
+ */
+function TranscriptSection({ session, managerName, L, icons, baseUrl, hit, containerRef }) {
+  const lines = session.sttTranscript ?? [];
+  const shared = session.sttShared === true;
+  const speakerLabel = (line) =>
+    line.speaker === 'host'
+      ? fill(L.evidenceSpeakerManager, { name: managerName })
+      : L.evidenceSpeakerMe;
+
+  return (
+    <Section
+      title={L.transcriptTitle}
+      icon={icons.transcript}
+      icons={icons}
+      baseUrl={baseUrl}
+      collapsible={false}
+    >
+      <div className="ono-mem-transcript" ref={containerRef} data-testid="ono-transcript">
+        {!shared ? (
+          <p className="ono-mem-transcript-note" data-testid="ono-transcript-locked">
+            {L.transcriptNotShared}
+          </p>
+        ) : lines.length === 0 ? (
+          <p className="ono-mem-transcript-note">{L.transcriptEmpty}</p>
+        ) : (
+          lines.map((line, i) => {
+            const anchor = transcriptAnchor(line);
+            return (
+              <div
+                key={`${anchor}-${i}`}
+                data-anchor={anchor}
+                data-testid="ono-transcript-line"
+                className={`ono-mem-transcript-line${hit === anchor ? ' is-hit' : ''}`}
+              >
+                <span className="ono-mem-transcript-meta">
+                  <span className="ono-mem-evidence-speaker">{speakerLabel(line)}</span>
+                  {line.timestamp && <span>· {line.timestamp}</span>}
+                </span>
+                <p className="ono-mem-transcript-text">{line.text}</p>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Section>
+  );
+}
+
+/**
  * 근거 발췌 토글 (PW-103 · `screen-oneonone-session.policy.md` §6.5.1).
  *
  * 공개된 매니저 피드백은 AI 가 대화를 압축한 결과물이라, 멤버는 결과만 받고
@@ -361,7 +433,7 @@ function NoteGrid({ session, L, icons, baseUrl }) {
  * - 항목별로 독립 토글이다. 한 항목을 펼쳐도 나머지는 접힌 채로 둔다.
  * - 어떤 발췌가 보이는지는 서버가 이미 걸러 보낸다. 여기서 출처를 거르지 않는다.
  */
-function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl }) {
+function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump }) {
   const [open, setOpen] = useState(false);
   if (!items || items.length === 0) return null;
 
@@ -393,6 +465,22 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl }) {
                 {ev.timestamp && <span>· {ev.timestamp}</span>}
               </div>
               <p className="ono-mem-evidence-text">{ev.text}</p>
+              {/* 전문 공개(PW-81)된 회차에서만 원문의 그 자리로 보낸다. 앵커에 해당하는
+                  발화가 전문에 없으면 비활성으로 그린다 — 눌러 놓고 아무 일도 안
+                  일어나면 화면이 고장 난 것처럼 보인다. */}
+              {jump?.enabled && (
+                <button
+                  type="button"
+                  className="ono-mem-evidence-jump"
+                  data-testid="ono-evidence-jump"
+                  disabled={!jump.has(ev.anchor)}
+                  title={jump.has(ev.anchor) ? undefined : L.evidenceJumpMissing}
+                  onClick={() => jump.to(ev.anchor)}
+                >
+                  {L.evidenceJump}
+                  <Icon src={icons.arrow} size={12} color="currentColor" baseUrl={baseUrl} />
+                </button>
+              )}
             </div>
           ))}
           {edited && <p className="ono-mem-evidence-caption">{L.evidenceEdited}</p>}
@@ -408,7 +496,7 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl }) {
  * 발췌 로딩·실패가 **본문 표시를 막지 않는다.** 본문은 먼저 그리고, 발췌 자리에만
  * 상태 문구를 둔다 — 근거를 못 불러왔다고 피드백을 못 읽게 되면 안 된다.
  */
-function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl }) {
+function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump }) {
   const items = session.managerFeedback ?? [];
   if (items.length === 0) return null;
 
@@ -452,6 +540,7 @@ function ManagerFeedback({ session, evidence, loading, error, onRetry, managerNa
                 L={L}
                 icons={icons}
                 baseUrl={baseUrl}
+                jump={jump}
               />
             )}
           </div>
@@ -727,6 +816,36 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
   );
 }
 
+/**
+ * 대화 분위기 — 결과 탭과 회의록 풀버전(PW-81)이 같은 규격으로 그린다.
+ * 두 화면이 각자 그리면 한쪽만 고쳐지는 일이 생긴다.
+ */
+function EmotionTone({ session, L, icons, baseUrl }) {
+  const tone = session.emotionTone;
+  const total = tone.positive + tone.neutral + tone.negative;
+  const rows = [
+    { key: 'positive', label: L.emotionPositive, value: tone.positive, color: 'var(--utility-green-600)' },
+    { key: 'neutral', label: L.emotionNeutral, value: tone.neutral, color: 'var(--text-tertiary)' },
+    { key: 'negative', label: L.emotionNegative, value: tone.negative, color: 'var(--colors-error-600)' },
+  ];
+  return (
+    <Section title={L.emotionTone} icon={icons.health} icons={icons} baseUrl={baseUrl}>
+      {rows.map((row) => {
+        const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
+        return (
+          <div className="ono-start-okr-bar-line" key={row.key}>
+            <span className="ono-mem-cell is-sub ono-mem-tone-label">{row.label}</span>
+            <span className="ono-start-progress-track">
+              <span className="ono-start-progress-fill" style={{ display: 'block', width: `${pct}%`, background: row.color }} />
+            </span>
+            <span className="ono-start-okr-bar-pct" style={{ color: row.color }}>{pct}%</span>
+          </div>
+        );
+      })}
+    </Section>
+  );
+}
+
 function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
@@ -797,25 +916,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
           </Section>
 
           {session.emotionTone && (
-            <Section title={L.emotionTone} icon={icons.health} icons={icons} baseUrl={baseUrl}>
-              {[
-                { key: 'positive', label: L.emotionPositive, value: session.emotionTone.positive, color: 'var(--utility-green-600)' },
-                { key: 'neutral', label: L.emotionNeutral, value: session.emotionTone.neutral, color: 'var(--text-tertiary)' },
-                { key: 'negative', label: L.emotionNegative, value: session.emotionTone.negative, color: 'var(--colors-error-600)' },
-              ].map((row) => {
-                const total = session.emotionTone.positive + session.emotionTone.neutral + session.emotionTone.negative;
-                const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
-                return (
-                  <div className="ono-start-okr-bar-line" key={row.key}>
-                    <span className="ono-mem-cell is-sub ono-mem-tone-label">{row.label}</span>
-                    <span className="ono-start-progress-track">
-                      <span className="ono-start-progress-fill" style={{ display: 'block', width: `${pct}%`, background: row.color }} />
-                    </span>
-                    <span className="ono-start-okr-bar-pct" style={{ color: row.color }}>{pct}%</span>
-                  </div>
-                );
-              })}
-            </Section>
+            <EmotionTone session={session} L={L} icons={icons} baseUrl={baseUrl} />
           )}
         </>
       )}
@@ -824,12 +925,48 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
 }
 
 /* ── ④ 히스토리 (HISTORY) ─────────────────────────────── */
+/**
+ * 회의록 **풀버전** 상세 (PW-81 · policy §10.7.2 · TC-1ON1-115).
+ *
+ * 예전에는 여기가 목록 행에 이미 보이던 AI 요약을 상자 몇 개로 되풀이하는
+ * **요약 발췌본**이었다. 지난 회의를 열어도 실제로 오간 대화는 어디에도 없었다.
+ * 기획은 이 화면을 "DONE 회의록 전체" 로 정의한다 — 요약 전문 · 결정사항 ·
+ * 재점검 필요 · 대화 분위기 · OKR 당시 스냅샷 · 피드백 · 액션 · **대화 원문**.
+ *
+ * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
+ */
 function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
     ? renderAvatar({ name: host.name, avatar: host.avatar, size: 24 })
     : avatar;
+
+  // 근거 발췌 → 전문 딥링크 (PW-103 이 대상이 없어 남겨 둔 것).
+  const transcriptRef = useRef(null);
+  const [hit, setHit] = useState(null);
+  const anchors = new Set((session.sttTranscript ?? []).map(transcriptAnchor));
+  const jump = {
+    enabled: session.sttShared === true,
+    has: (anchor) => !!anchor && anchors.has(anchor),
+    to: (anchor) => {
+      if (!anchor || !anchors.has(anchor)) return;
+      setHit(anchor);
+      transcriptRef.current
+        ?.querySelector(`[data-anchor="${anchor}"]`)
+        ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    },
+  };
+  // 하이라이트는 1.5초 뒤 스스로 꺼진다 — 어디로 왔는지 알리는 게 목적이지
+  // 그 줄을 계속 표시해 두려는 게 아니다.
+  useEffect(() => {
+    if (!hit) return undefined;
+    const id = setTimeout(() => setHit(null), 1500);
+    return () => clearTimeout(id);
+  }, [hit]);
+
+  const okrSnapshot = session.aiBriefing?.okrStatus ?? [];
+  const blockers = session.aiBriefing?.unresolvedBlockers ?? [];
 
   return (
     <>
@@ -840,6 +977,9 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
         avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
+        extra={
+          <span className="ono-mem-chip" data-testid="ono-view-mode">{L.viewModeFull}</span>
+        }
       >
         <button type="button" className="ono-mem-back" onClick={onBack}>
           <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />
@@ -849,11 +989,33 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
 
       {session.aiSummary && <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />}
 
+      {blockers.length > 0 && (
+        <Section title={L.recheckNeeded} icon={icons.alert} icons={icons} baseUrl={baseUrl}>
+          <Blockers items={blockers} L={L} icons={icons} baseUrl={baseUrl} />
+        </Section>
+      )}
+
+      {session.emotionTone && (
+        <EmotionTone session={session} L={L} icons={icons} baseUrl={baseUrl} />
+      )}
+
+      {okrSnapshot.length > 0 && (
+        <Section title={L.okrStatus} icon={icons.okr} icons={icons} baseUrl={baseUrl}>
+          {okrSnapshot.map((kr, ki) => (
+            <div className="ono-start-okr-row" key={`${ki}-${kr.id}`}>
+              <span className="ono-start-okr-kr">{kr.title}</span>
+              <OkrBar value={kr.progress} />
+            </div>
+          ))}
+        </Section>
+      )}
+
       {/* 지난 회의록에서도 같은 규칙으로 근거 발췌를 연다 (policy §10.2·§10.7.2) */}
       <ManagerFeedback
         session={session}
         managerName={host.name}
         L={L} icons={icons} baseUrl={baseUrl}
+        jump={jump}
         {...(feedbackEvidence || {})}
       />
 
@@ -881,6 +1043,15 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           </div>
         </Section>
       )}
+
+      {/* 회의록의 "원본" — 요약이 원문의 자리를 대신하지 않게 (PW-81) */}
+      <TranscriptSection
+        session={session}
+        managerName={host.name}
+        L={L} icons={icons} baseUrl={baseUrl}
+        hit={hit}
+        containerRef={transcriptRef}
+      />
     </>
   );
 }
