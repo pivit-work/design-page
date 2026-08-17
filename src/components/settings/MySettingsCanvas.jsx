@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import assetUrl from '../shared/assetUrl.js';
+import { InfoIcon, LockIcon, AlertTriangleIcon } from './settingsIcons.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -305,7 +306,7 @@ function Banner({ children, testId }) {
   return (
     <div className="admin-notif-banner" data-testid={testId}>
       <span className="admin-notif-banner-icon" aria-hidden="true">
-        ℹ
+        <InfoIcon size={16} />
       </span>
       <p className="admin-notif-banner-text">{children}</p>
     </div>
@@ -922,7 +923,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
   return (
     <>
       <div className="admin-notif-banner is-warn" data-testid="compensation-banner">
-        <span className="admin-notif-banner-icon" aria-hidden="true">🔒</span>
+        <span className="admin-notif-banner-icon" aria-hidden="true"><LockIcon size={16} /></span>
         <p className="admin-notif-banner-text">{L.banner}</p>
       </div>
       {!hasAny ? (
@@ -1674,7 +1675,7 @@ export default function MySettingsCanvas({
                     {intg.warning && (
                       <div className="admin-notif-banner" style={{ marginTop: 12 }} data-testid={`integration-warning-${intg.id}`}>
                         <span className="admin-notif-banner-icon" aria-hidden="true">
-                          ⚠
+                          <AlertTriangleIcon size={16} />
                         </span>
                         <p className="admin-notif-banner-text">{intg.warning}</p>
                       </div>
