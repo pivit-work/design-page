@@ -2928,6 +2928,12 @@
   color: var(--text-brand-secondary);
   flex-shrink: 0;
   font-size: var(--font-size-text-sm);
+  /* 아이콘 자리에는 인라인 SVG 가 들어온다. 배너가 align-items: flex-start 라
+     인라인 span 그대로면 SVG 가 첫 줄 텍스트보다 위로 뜬다 — 텍스트 한 줄 높이
+     (font-size-text-sm × line-height 1.6) 만큼 상자를 잡고 그 안에서 가운데 맞춘다. */
+  display: inline-flex;
+  align-items: center;
+  height: calc(var(--font-size-text-sm) * 1.6);
 }
 .admin-notif-banner-text {
   font-size: var(--font-size-text-sm);
