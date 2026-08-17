@@ -168,14 +168,20 @@ function Chip({ label, color, bg, bd }) {
 }
 
 // ── 블록 카드(KR/이니셔티브 공통) ──
+/** KR 진행률 바 폭. 카드가 1080px 로 넓어져 40px 는 점처럼 보였다 (PW-218). */
+const PROGRESS_BAR_W = 96;
 /**
  * 미리보기가 2줄 clamp 로 잘렸는지 (PW-103 · `screen-feedback-member.policy.md` §1.7.1).
  *
- * 잘린 걸 말없이 두면 사용자가 그 두 줄을 전문(요약본)으로 오인한다. 카드 폭 기준
- * 2줄 ≈ 한글 70자. 경계 근처에서 "잘리지 않았는데 표시"가 나오는 쪽이 반대보다
- * 안전하므로 보수적으로 잡는다.
+ * 잘린 걸 말없이 두면 사용자가 그 두 줄을 전문(요약본)으로 오인한다. 경계 근처에서
+ * "잘리지 않았는데 표시"가 나오는 쪽이 반대보다 안전하므로 보수적으로 잡는다.
+ *
+ * 🔴 이 값은 **카드 폭에 매여 있다** — 폭을 바꾸면 같이 바꿔야 한다. 안 그러면
+ * 잘리지도 않은 글에 '… 전문 보기' 가 붙는다. 카드 1080px, 좌우 패딩 18px, 아바타
+ * 22px + 간격 8px → 본문 약 1014px. 12px 한글 기준 한 줄 ≈ 84자, 2줄 ≈ 168자이고
+ * 여기에 기존과 같은 보수 비율(≈76%)을 적용했다. (620px 시절 값은 70자였다.)
  */
-const PREVIEW_CLAMP_CHARS = 70;
+const PREVIEW_CLAMP_CHARS = 128;
 const isPreviewTruncated = (text) =>
   typeof text === 'string' && text.length > PREVIEW_CLAMP_CHARS;
 
@@ -209,7 +215,8 @@ function BlockCard({ block, L, onOpen }) {
         border: `1px solid ${C.border}`,
         borderLeft: `3px solid ${barColor}`,
         borderRadius: 12,
-        padding: 14,
+        // 카드가 1080px 폭으로 넓어졌다 — 좌우 패딩만 소폭 키워 글이 테두리에 붙지 않게 한다 (PW-218)
+        padding: '14px 18px',
         cursor: 'pointer',
         fontFamily: FONT,
       }}
@@ -229,7 +236,7 @@ function BlockCard({ block, L, onOpen }) {
         )}
         {isKr && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 40, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
+            <span style={{ width: PROGRESS_BAR_W, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
               <span style={{ display: 'block', width: `${block.progress ?? 0}%`, height: '100%', background: barColor }} />
             </span>
             <span style={{ fontSize: 11, color: C.sub }}>{block.progress ?? 0}%</span>
@@ -905,7 +912,9 @@ export default function EvalFeedbackCanvas({
         </div>
       )}
 
-      <div className="evc-header" style={{ maxWidth: 620 }}>
+      {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
+          같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
+      <div className="evc-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Avatar name={meName || L.title} photo={meAvatar} size={40} />
           <div>
@@ -928,7 +937,7 @@ export default function EvalFeedbackCanvas({
         </div>
       </div>
 
-      <div className="evc-list" style={{ maxWidth: 620 }}>
+      <div className="evc-list">
         {isPastPeriod && (
           <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>
             <ClockIcon size={12} /> {L.pastBanner}
@@ -945,7 +954,7 @@ export default function EvalFeedbackCanvas({
 
         {krBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
               {L.sectionKr}
             </div>
             {krBlocks.map((b) => (
@@ -956,7 +965,7 @@ export default function EvalFeedbackCanvas({
 
         {initBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionInit}
             </div>
             {initBlocks.map((b) => (

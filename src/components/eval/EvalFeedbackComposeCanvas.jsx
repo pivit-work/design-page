@@ -203,6 +203,9 @@ function TeamListScreen({ team, L, onSelect }) {
 }
 
 // ── 블록 카드(매니저) ──
+/** KR 진행률 바 폭. 카드가 1080px 로 넓어져 40px 는 점처럼 보였다 (PW-218). */
+const PROGRESS_BAR_W = 96;
+
 function BlockCard({ block, L, onOpen }) {
   const isKr = block.type === 'kr';
   const items = block.items;
@@ -217,14 +220,15 @@ function BlockCard({ block, L, onOpen }) {
       type="button"
       onClick={() => onOpen(block)}
       data-testid={`fbmgr-block-${block.key}`}
-      style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${barColor}`, borderRadius: 12, padding: 14, cursor: 'pointer', fontFamily: FONT }}
+      // 카드가 1080px 폭으로 넓어졌다 — 좌우 패딩만 소폭 키운다 (PW-218)
+      style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${barColor}`, borderRadius: 12, padding: '14px 18px', cursor: 'pointer', fontFamily: FONT }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         {isKr ? <Chip label={block.badge} color={C.accent} bg={C.accentBg} bd={C.accentBd} /> : <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>}
         {isKr && <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{block.title}</span>}
         {isKr && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 40, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
+            <span style={{ width: PROGRESS_BAR_W, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
               <span style={{ display: 'block', width: `${block.progress ?? 0}%`, height: '100%', background: barColor }} />
             </span>
             <span style={{ fontSize: 11, color: C.sub }}>{block.progress ?? 0}%</span>
@@ -561,13 +565,15 @@ export default function EvalFeedbackComposeCanvas({
       {toast && (
         <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>
       )}
-      <header className="evc-header" style={{ maxWidth: 720 }}>
+      {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
+          같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
+      <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
           <p className="evc-summary">{L.subtitle}</p>
         </div>
       </header>
-      <div className="evc-list" style={{ maxWidth: 720 }}>
+      <div className="evc-list">
         {selectedMember ? (
           <ThreadScreen
             member={selectedMember}

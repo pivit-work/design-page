@@ -370,7 +370,9 @@ export default function EvalFeedbackHrCanvas({
       {toast && (
         <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>
       )}
-      <header className="evc-header" style={{ maxWidth: 900, display: 'flex', alignItems: 'center' }}>
+      {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
+          같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
+      <header className="evc-header" style={{ display: 'flex', alignItems: 'center' }}>
         <div>
           <h1 className="evc-title"><ClipboardIcon size={20} /> {L.title}</h1>
           <p className="evc-summary">{L.subtitle}</p>
@@ -382,7 +384,7 @@ export default function EvalFeedbackHrCanvas({
           <button type="button" onClick={handleExport} data-testid="fbhr-csv" className="evc-btn"><DownloadIcon size={15} />{L.exportCsv}</button>
         </span>
       </header>
-      <div className="evc-list" style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="evc-list" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <KpiRow kpi={d.kpi} L={L} />
         <TeamCoverage teams={d.teams} L={L} />
         <AtRiskMembers atRisk={d.atRisk} L={L} onNudge={(t) => setNudgeTarget(t)} isSent={isSent} />
