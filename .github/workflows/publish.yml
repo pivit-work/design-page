@@ -30,6 +30,11 @@ jobs:
           node-version: 20
           registry-url: https://npm.pkg.github.com
 
+      # 소비자(pivit-work)가 닿을 수 없는 스타일시트를 담은 채 publish 되는 것을 막는다.
+      # 버전 bump 전에 세워서, 실패해도 버전 번호를 태우지 않는다. (PW-294)
+      - name: Check css exports
+        run: npm run check:exports
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'
