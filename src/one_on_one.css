@@ -2807,3 +2807,124 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 /* 그리드 셀 안의 배지는 늘어나지 않게 — grid item 기본 stretch 상쇄. */
 .ono-mem-row > .ono-start-flag { justify-self: start; }
+
+/* ── 매니저: 팀원의 지난 1on1 (OneOnOneMemberMeetingsCanvas) ──────────── */
+.ono-past-top-back { margin-bottom: 12px; }
+
+/* 리스트 행은 통째로 누르는 버튼이 아니다 — 행 안에 [회의록]·[대화 분석]
+   두 진입점이 있어서, 행 자체를 클릭 대상으로 만들면 어디로 갈지 모호해진다. */
+.ono-mem-hist.is-static { cursor: default; }
+
+.ono-past-row-actions { display: flex; gap: 8px; margin-top: 2px; }
+.ono-past-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ono-past-link:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+/* ── 발화 비율 ── */
+.ono-past-ratio { display: flex; align-items: center; gap: 24px; }
+.ono-past-donut { width: 90px; height: 90px; flex-shrink: 0; }
+.ono-past-ratio-rows { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.ono-past-ratio-label { min-width: 44px; }
+.ono-past-ratio-min { min-width: 44px; text-align: right; }
+
+.ono-past-guide {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--utility-blue-200, var(--border-secondary));
+  border-radius: 10px;
+  background: var(--utility-blue-50, var(--bg-secondary));
+}
+.ono-past-guide-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--utility-blue-700, var(--text-primary));
+  margin-bottom: 4px;
+}
+.ono-past-guide-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--utility-blue-700, var(--text-secondary));
+}
+.ono-past-guide-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--utility-error-50, var(--bg-secondary));
+  color: var(--colors-error-600);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── 회차별 추이 ── */
+.ono-past-trend {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 148px;
+  padding: 8px 4px 0;
+}
+.ono-past-trend-guide {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40%;
+  border-top: 1px dashed var(--border-secondary);
+  pointer-events: none;
+}
+.ono-past-trend-guide-label {
+  position: absolute;
+  right: 0;
+  top: -14px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.ono-past-trend-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+.ono-past-trend-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  width: 100%;
+  justify-content: center;
+}
+.ono-past-trend-bar {
+  width: 12px;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+.ono-past-trend-bar.is-manager { background: var(--utility-blue-500); }
+.ono-past-trend-bar.is-manager.is-over { background: var(--colors-error-600); }
+.ono-past-trend-bar.is-member { background: var(--utility-green-600); }
+.ono-past-trend-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
