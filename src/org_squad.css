@@ -799,15 +799,32 @@
 .sq-legend-faint { color: var(--text-quaternary); }
 
 /* ── Assign popover ── */
+/* 3단 구조 — 헤더 고정 / 본문만 스크롤 / 액션 하단 고정 (§5-3.8 · PW-109).
+   높이는 인라인 `maxHeight`(assignPopoverVertical)가 정한다 — 여기서 상수로 박지 않는다. */
 .sq-pop {
+  display: flex;
+  flex-direction: column;
   background: var(--bg-quaternary);
   border: 1px solid var(--border-secondary);
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(10, 13, 18, 0.14), 0 4px 10px rgba(10, 13, 18, 0.05);
   overflow: hidden;
 }
-.sq-pop-strip { height: 3px; }
-.sq-pop-body { padding: 14px 16px; }
+.sq-pop-strip { height: 3px; flex-shrink: 0; }
+.sq-pop-head { padding: 14px 16px 0; flex-shrink: 0; }
+/* `min-height: 0` 이 빠지면 flex 자식이 내용 높이 아래로 줄지 않아 스크롤이 걸리지 않는다 */
+.sq-pop-body {
+  padding: 0 16px 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sq-pop-foot {
+  flex-shrink: 0;
+  padding: 10px 16px 12px;
+  background: var(--bg-quaternary);
+  border-top: 1px solid var(--border-secondary);
+}
 .sq-pop-title {
   font-size: 14px;
   font-weight: 600;
@@ -969,7 +986,8 @@
   line-height: 20px;
   margin-bottom: 10px;
 }
-.sq-hist-list { display: flex; flex-direction: column; gap: 10px; }
+/* append-only 감사 로그 — 행이 쌓이기만 하므로 반드시 넘친다(§5-3.8). 높이는 인라인 maxHeight */
+.sq-hist-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
 .sq-hist-row { display: flex; gap: 8px; align-items: flex-start; }
 .sq-hist-dot {
   width: 6px;
