@@ -13,9 +13,12 @@ import { useEffect } from 'react';
 import {
   CAPACITY,
   CAPACITY_IDLE_HINT,
+  HIST_LIST_MAX_H,
+  POP_W,
   SQUAD_BASE,
   SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
+  assignPopoverVertical,
   capacityState,
   clampPct,
   cumulativePct,
@@ -241,9 +244,10 @@ export function SquadAssignPopover({
   }, [onClose]);
 
   const isLead = assignment.role === 'lead';
-  const W = 272;
-  const x = Math.max(8, Math.min(pos.x, window.innerWidth - W - 16));
-  const y = Math.max(8, Math.min(pos.y, window.innerHeight - 340));
+  const x = Math.max(8, Math.min(pos.x, window.innerWidth - POP_W - 16));
+  // 세로 배치는 **가용 공간을 재서** 고른다 — 높이를 상수로 가정하면 뷰포트 하단에서
+  // ②·액션이 화면 밖으로 밀려나고 스크롤도 걸리지 않는다(§5-3.8 · PW-109).
+  const vert = assignPopoverVertical(pos.y, window.innerHeight);
 
   const sharePct = assignment.sharePct || 0;
   // ① 배분 합계는 **스쿼드 상태와 무관**하다 — 그 스쿼드 안의 사실이기 때문(§5-3.3).
@@ -262,17 +266,22 @@ export function SquadAssignPopover({
       <div
         data-testid="squad-assign-popover"
         className="sq-pop"
-        style={{ position: 'fixed', left: x, top: y, width: W, zIndex: SQUAD_MENU_Z }}
+        style={{ position: 'fixed', left: x, ...vert, width: POP_W, zIndex: SQUAD_MENU_Z }}
       >
         <div className="sq-pop-strip" style={{ background: squad.color }} />
-        <div className="sq-pop-body">
+        {/* 헤더 — 함께 흘려보내지 않는다. 스크롤 중 대상을 잃으면 잘못된 사람의 값을 바꾼다(§5-3.8) */}
+        <div className="sq-pop-head">
           <p className="sq-pop-title">
             {personName} <span className="sq-pop-x">×</span> {squad.name}
           </p>
           <p className="sq-pop-desc">
             분모가 다른 두 값을 따로 정합니다 · 리드 지정 (스쿼드당 1명)
           </p>
+        </div>
 
+        {/* 본문 — 넘치는 만큼 여기만 스크롤한다. `min-height: 0` 이 없으면 flex 자식이
+            줄지 않아 스크롤이 걸리지 않는다(§5-3.8) */}
+        <div className="sq-pop-body" data-testid="squad-assign-popover-body">
           {/* ① 스쿼드 내 비중 — 분모는 이 스쿼드의 볼륨 100 */}
           <p className="sq-pop-axis">
             ① 스쿼드 내 비중 <span className="sq-pop-axis-basis">이 스쿼드 100 기준</span>
@@ -394,8 +403,13 @@ export function SquadAssignPopover({
             )}
           </div>
 
-          {/* 리드 지정·배정 해제는 조직의 결정이라 ① 권한을 따른다 — 본인에게는 미노출 */}
-          {canEditShare && (
+        </div>
+
+        {/* 액션 — 하단 고정. 본문과 함께 흘려보내면 팝오버가 길어졌을 때 화면 밖으로
+            밀려나고, 액션이 안 보이는 상태는 편집을 끝낼 수 없는 상태와 같다(§5-3.8).
+            리드 지정·배정 해제는 조직의 결정이라 ① 권한을 따른다 — 본인에게는 미노출 */}
+        {canEditShare && (
+          <div className="sq-pop-foot" data-testid="squad-assign-popover-actions">
             <div className="sq-pop-actions">
               <button
                 type="button" onClick={onToggleLead}
@@ -411,8 +425,8 @@ export function SquadAssignPopover({
                 배정 해제
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );
@@ -421,6 +435,9 @@ export function SquadAssignPopover({
 /**
  * 상태 전이 이력 팝오버 — append-only 감사 로그(§5-2-A).
  * 생성 행(`fromStatus: null`)이 항상 있으므로 0건일 수 없다.
+ *
+ * 행이 지워지지 않고 **쌓이기만 하므로** 오래된 스쿼드는 반드시 넘친다 — 목록에
+ * `maxHeight` + 스크롤을 건다(§5-3.8, 배정 편집 팝오버와 같은 규칙).
  */
 export function SquadHistoryPopover({ squad, rows, loading, error, onRetry, onClose }) {
   useEffect(() => {
@@ -448,7 +465,11 @@ export function SquadHistoryPopover({ squad, rows, loading, error, onRetry, onCl
           </div>
         )}
         {!loading && !error && (
-          <div className="sq-hist-list">
+          <div
+            className="sq-hist-list"
+            data-testid="squad-history-list"
+            style={{ maxHeight: HIST_LIST_MAX_H }}
+          >
             {(rows || []).map((h, i) => (
               <div key={`${h.changedAt}-${i}`} className="sq-hist-row">
                 <span

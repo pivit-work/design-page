@@ -343,3 +343,45 @@ export function sqShare(members, userId) {
 export function leadOf(squad) {
   return (squad?.members || []).find((m) => m.role === 'lead') || null;
 }
+
+/**
+ * ── 팝오버 오버플로 규격 (§5-3.8, v3.11 · PW-109) ────────────────────────────
+ *
+ * **팝오버 높이를 상수로 가정하지 않는다.** 배정 편집 팝오버는 슬라이더 2개·미리보기
+ * 2개·구분 캡션에 더해 출처 안내(`미설정` / `관리자 조정` / `완료 스쿼드 제외`)가
+ * 조건부로 붙어 **높이가 상태에 따라 변한다**. 종전 코드는 내용 높이를 `340px` 로
+ * 가정하고 `top` 만 클램프했는데, v3.8·v3.10 을 거치며 실제 높이가 그 값을 넘어섰다.
+ * 컨테이너는 `overflow: hidden` 이고 배경 스크롤도 잠겨 있어, 뷰포트 하단 행에서는
+ * ② 캐파 슬라이더와 액션 행에 **도달할 방법이 아예 없었다** — 편집을 시작할 수는
+ * 있는데 끝낼 수가 없는 상태였다.
+ */
+export const POP_W = 272; // 팝오버 폭
+export const POP_GUTTER = 8; // 뷰포트 가장자리 최소 여백
+export const POP_ANCHOR_GAP = 10; // 위로 뒤집을 때 클릭 지점과 띄우는 간격
+export const POP_MIN_H = 240; // 이 높이도 안 나오는 쪽에는 붙이지 않는다 (뒤집기 기준)
+
+/**
+ * 배정 편집 팝오버의 **세로 배치**를 고른다 (§5-3.8).
+ *
+ * | # | 조건 | 배치 |
+ * |---|---|---|
+ * | 1 | 클릭 지점 아래 공간 ≥ `POP_MIN_H` | 기본 — 아래에 붙이고 `maxHeight = 아래 공간` |
+ * | 2 | 아래는 모자라고 위가 더 큼 | 위로 뒤집는다 — 하단을 클릭 지점에 붙인다 |
+ * | 3 | 위·아래 모두 최소 높이 미만 | 앵커를 포기하고 뷰포트에 맞춘다 |
+ *
+ * 🔴 어느 배치든 `maxHeight` 를 **반드시 함께** 돌려준다. 위치만 옮기고 높이를 열어
+ * 두면 같은 버그가 다른 좌표에서 재발한다. 넘치는 만큼은 본문만 스크롤한다.
+ */
+export function assignPopoverVertical(anchorY, viewportH) {
+  const spaceBelow = viewportH - anchorY - POP_GUTTER;
+  const spaceAbove = anchorY - POP_ANCHOR_GAP - POP_GUTTER;
+  if (Math.max(spaceBelow, spaceAbove) < POP_MIN_H) {
+    // 초단신 뷰포트 — 앵커를 포기한다. 앵커에 붙이는 것보다 조작 가능한 것이 먼저다.
+    return { top: POP_GUTTER, maxHeight: Math.max(0, viewportH - POP_GUTTER * 2) };
+  }
+  if (spaceBelow >= POP_MIN_H) return { top: anchorY, maxHeight: spaceBelow };
+  return { bottom: viewportH - anchorY + POP_ANCHOR_GAP, maxHeight: spaceAbove };
+}
+
+/** 상태 이력 팝오버 목록의 최대 높이 — append-only 감사 로그라 행이 쌓이기만 한다(§5-3.8). */
+export const HIST_LIST_MAX_H = 220;
