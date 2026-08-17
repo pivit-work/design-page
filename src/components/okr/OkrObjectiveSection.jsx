@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrObjectiveSection — 개인 OKR Objective 행 + 펼침 콘텐츠.
@@ -58,7 +59,7 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
       </div>
 
       {expanded && objective.krs?.map((kr, i) => (
-        <div className="okr-p-kr-block" key={kr.label}>
+        <div className="okr-p-kr-block" key={rowKey(kr, i, 'label')}>
           <div className="okr-p-row okr-p-kr-row" onClick={() => onUpdateKr && onUpdateKr(kr)}>
             <div className="okr-p-col-label">
               <span className="okr-p-kr-name">{kr.label}</span>
@@ -97,7 +98,7 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
                 </div>
               </div>
               {openFeedback[i] && kr.feedback.comments.map((comment, ci) => (
-                <div className="okr-p-row okr-p-comment" key={comment.author + comment.date}>
+                <div className="okr-p-row okr-p-comment" key={rowKey(comment, ci, 'author')}>
                   <div className="okr-p-col-label">
                     <img className="okr-p-comment-avatar" src={comment.avatar} alt={comment.author} draggable={false} />
                     <span className="okr-p-comment-name">{comment.author}</span>
@@ -117,8 +118,8 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
             </div>
           )}
 
-          {kr.initiatives?.map((initiative) => (
-            <div className="okr-p-row okr-p-initiative" key={initiative.title}>
+          {kr.initiatives?.map((initiative, ii) => (
+            <div className="okr-p-row okr-p-initiative" key={rowKey(initiative, ii, 'title')}>
               <div className="okr-p-col-label">
                 <span className="okr-p-initiative-label">Initiative</span>
               </div>

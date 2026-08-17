@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar, RsBullets, RsCommentThread } from './OkrResourcePieces.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrResourceTeam — 내 리소스 '팀 현황' 뷰 (직속 팀원).
@@ -18,9 +19,12 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment }
   const [added, setAdded] = useState({});
   const toggle = (id) => setOpenIds((p) => ({ ...p, [id]: !p[id] }));
 
-  const commentsOf = (member) => [...member.comments, ...(added[member.name] ?? [])];
-  const submit = (member) => {
-    const text = (drafts[member.name] ?? '').trim();
+  // 펼침·초안·추가 코멘트는 모두 rowKey 로 담는다. 이름으로 담으면 동명이인 둘이
+  // 한 칸을 나눠 써서, 한 명을 펼치면 둘 다 펼쳐지고 초안·코멘트가 섞인다 (PW-308).
+  const commentsOf = (member, i) => [...member.comments, ...(added[rowKey(member, i)] ?? [])];
+  const submit = (member, i) => {
+    const rk = rowKey(member, i);
+    const text = (drafts[rk] ?? '').trim();
     if (!text) return;
     const comment = {
       author: data.commentAuthor?.name ?? '나',
@@ -28,8 +32,8 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment }
       date: data.commentDate ?? '',
       text,
     };
-    setAdded((p) => ({ ...p, [member.name]: [...(p[member.name] ?? []), comment] }));
-    setDrafts((p) => ({ ...p, [member.name]: '' }));
+    setAdded((p) => ({ ...p, [rk]: [...(p[rk] ?? []), comment] }));
+    setDrafts((p) => ({ ...p, [rk]: '' }));
     onComment?.(member, text);
   };
 
@@ -43,8 +47,10 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment }
         <RsStatCard label="과부하" value={data.stats.overloaded} tone={data.stats.overloaded > 0 ? 'bad' : ''} />
       </div>
 
-      {data.members.map((member) => (
-        <div className="rsx-member-group" key={member.name}>
+      {data.members.map((member, i) => {
+        const rk = rowKey(member, i);
+        return (
+        <div className="rsx-member-group" key={rk}>
           <div className="rsx-member">
             <div className="rsx-member-main">
               <div className="rsx-member-head">
@@ -60,38 +66,39 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment }
                 <RsStackBar segments={member.segments} />
                 <div className="rsx-member-meta">
                   <p>항목 {member.items.length}</p>
-                  <p>코멘트 {commentsOf(member).length}</p>
+                  <p>코멘트 {commentsOf(member, i).length}</p>
                 </div>
               </div>
               <RsBullets items={member.items} />
             </div>
             <button
               type="button"
-              className={`rsx-caret-btn${openIds[member.name] ? ' is-open' : ''}`}
-              onClick={() => toggle(member.name)}
-              aria-label={`${member.name} 코멘트 ${openIds[member.name] ? '접기' : '펼치기'}`}
+              className={`rsx-caret-btn${openIds[rk] ? ' is-open' : ''}`}
+              onClick={() => toggle(rk)}
+              aria-label={`${member.name} 코멘트 ${openIds[rk] ? '접기' : '펼치기'}`}
             >
               <Icon src={icons.chevronDown} size={24} color="var(--text-tertiary)" baseUrl={baseUrl} />
             </button>
           </div>
-          {openIds[member.name] && (
+          {openIds[rk] && (
             <div className="rsx-member-panel">
               <p className="rsx-section-title">매니저 코멘트</p>
-              <RsCommentThread comments={commentsOf(member)} />
+              <RsCommentThread comments={commentsOf(member, i)} />
               <div className="rsx-comment-input-row">
                 <input
                   placeholder={data.commentPlaceholder}
                   aria-label={`${member.name} 코멘트 입력`}
-                  value={drafts[member.name] ?? ''}
-                  onChange={(e) => setDrafts((p) => ({ ...p, [member.name]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') submit(member); }}
+                  value={drafts[rk] ?? ''}
+                  onChange={(e) => setDrafts((p) => ({ ...p, [rk]: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') submit(member, i); }}
                 />
-                <button type="button" className="rsx-gray-btn is-md" onClick={() => submit(member)}>코멘트 남기기</button>
+                <button type="button" className="rsx-gray-btn is-md" onClick={() => submit(member, i)}>코멘트 남기기</button>
               </div>
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

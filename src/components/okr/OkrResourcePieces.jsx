@@ -1,4 +1,5 @@
 import { AiSparkleIcon } from '../resource/resourceIcons.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrResourcePieces — 내 리소스(리소스 투입) 탭의 작은 공용 조각들.
@@ -65,8 +66,8 @@ export function RsStackBar({ segments }) {
 export function RsBullets({ items }) {
   return (
     <ul className="rsx-bullets">
-      {items.map((item) => (
-        <li key={item.text} style={{ color: item.color }}>{item.text}</li>
+      {items.map((item, i) => (
+        <li key={rowKey(item, i, 'text')} style={{ color: item.color }}>{item.text}</li>
       ))}
     </ul>
   );
@@ -87,7 +88,7 @@ export function RsCommentThread({ comments }) {
   return (
     <div className="rsx-comments">
       {comments.map((c, i) => (
-        <div className={`rsx-comment${c.reply ? ' is-reply' : ''}`} key={`${c.author}-${i}`}>
+        <div className={`rsx-comment${c.reply ? ' is-reply' : ''}`} key={rowKey(c, i, 'author')}>
           <img src={c.avatar} alt={c.author} draggable={false} />
           <div className="rsx-comment-body">
             <div className="rsx-comment-head">

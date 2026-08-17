@@ -2,6 +2,7 @@ import { useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -33,8 +34,8 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '', onKrUpdat
 
       {periodTab === 'history' ? (
         <div className="okr-h-list">
-          {history?.map((quarter) => (
-            <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
+          {history?.map((quarter, i) => (
+            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
           ))}
         </div>
       ) : (

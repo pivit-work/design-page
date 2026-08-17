@@ -2,6 +2,7 @@ import { useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrTeamCanvas — 팀 OKR 탭 콘텐츠.
@@ -27,9 +28,9 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
   return (
     <div className="okr-personal-area">
       <div className="okr-s-subtabs">
-        {teams.map((name) => (
+        {teams.map((name, i) => (
           <span
-            key={name}
+            key={rowKey(name, i)}
             className={`okr-s-subtab${team === name ? ' is-active' : ''}`}
             onClick={() => selectTeam(name)}
           >
@@ -45,8 +46,8 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
 
       {periodTab === 'history' ? (
         <div className="okr-h-list">
-          {history?.map((quarter) => (
-            <OkrHistoryQuarter key={quarter.label} quarter={quarter} icons={icons} baseUrl={baseUrl} />
+          {history?.map((quarter, i) => (
+            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
           ))}
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrAiInsights — 인사이트 배너 + 인사이트 칩 목록.
@@ -23,8 +24,8 @@ export default function OkrAiInsights({ banner = {}, insights, icons, baseUrl = 
         )}
       </div>
       <div className="okr-p-ai-chips">
-        {insights.map((insight) => (
-          <div className="okr-p-ai-chip" key={insight.title}>
+        {insights.map((insight, i) => (
+          <div className="okr-p-ai-chip" key={rowKey(insight, i, 'title')}>
             <div className="okr-p-ai-chip-main">
               <p className="okr-p-ai-chip-title">{insight.title}</p>
               <p className="okr-p-ai-chip-detail">{insight.detail}</p>

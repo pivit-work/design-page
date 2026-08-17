@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrComposeFullModal — 개인 OKR 작성 풀스크린 모달.
@@ -262,13 +263,13 @@ export default function OkrComposeFullModal({
               <p className="okr-cf-company-title">{minimap.company.title}</p>
             </div>
             {minimap.groups.map((group, gi) => (
-              <div className="okr-cf-group" key={group.title}>
+              <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
                 <div className="okr-cf-group-head">
                   <span className="okr-cf-group-q">{group.q}</span>
                   <span className="okr-cf-group-title">{group.title}</span>
                 </div>
                 {group.krs.map((kr, ki) => (
-                  <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={kr.id + kr.title}>
+                  <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
                     <button className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
                       <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
                     </button>
@@ -308,7 +309,7 @@ export default function OkrComposeFullModal({
                 {/* 줄바꿈은 문구의 일부다 — '\n' 을 <br/> 로 편다(시안 2줄 유지). */}
                 <p className="okr-cf-empty-desc">
                   {String(L.emptyDesc).split('\n').map((line, i) => (
-                    <span key={line}>{i > 0 && <br />}{line}</span>
+                    <span key={rowKey(line, i)}>{i > 0 && <br />}{line}</span>
                   ))}
                 </p>
               </div>

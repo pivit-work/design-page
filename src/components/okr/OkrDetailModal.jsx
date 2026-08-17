@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrDetailModal — 대시보드 블록 클릭 시 뜨는 OKR 상세 모달.
@@ -50,15 +51,15 @@ export default function OkrDetailModal({
               )}
             </div>
             <div className="okr-ai-chips">
-              {detail.aiSignals.map((signal) => (
-                <div className="okr-ai-chip" key={signal}>{signal}</div>
+              {detail.aiSignals.map((signal, si) => (
+                <div className="okr-ai-chip" key={rowKey(signal, si)}>{signal}</div>
               ))}
             </div>
           </div>
 
           <div className="okr-quarter-tables">
-            {detail.quarters.map((quarter) => (
-              <div className="okr-quarter-table" key={quarter.q}>
+            {detail.quarters.map((quarter, qi) => (
+              <div className="okr-quarter-table" key={rowKey(quarter, qi, 'q')}>
                 <div className="okr-qrow is-head">
                   <div className="okr-qcell-label">
                     <span className="okr-q-name">{quarter.q}</span>

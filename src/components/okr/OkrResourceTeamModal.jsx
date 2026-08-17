@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar } from './OkrResourcePieces.jsx';
+import rowKey from './rowKey.js';
 
 /**
  * OkrResourceTeamModal — 조직 현황의 팀 상세 모달.
@@ -38,8 +39,8 @@ export default function OkrResourceTeamModal({ team, icons, baseUrl = '', onClos
             <RsStatCard label="미입력" value={team.missing} />
           </div>
           <div className="rsx-modal-members">
-            {team.members.map((member) => (
-              <div className="rsx-member is-slim" key={member.name}>
+            {team.members.map((member, i) => (
+              <div className="rsx-member is-slim" key={rowKey(member, i)}>
                 <div className="rsx-member-main">
                   <div className="rsx-member-head">
                     <div className="rsx-member-who">
