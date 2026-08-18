@@ -27,6 +27,7 @@ import {
   squadStatusLabel,
 } from './squad-constants.js';
 import { LeadStarIcon, LeadStarOutlineIcon } from './squadIcons.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 
 /**
  * 캐파 게이지 — 트랙 전체 = max(100, 합계).
@@ -470,16 +471,23 @@ export function SquadAssignPopover({
  * 행이 지워지지 않고 **쌓이기만 하므로** 오래된 스쿼드는 반드시 넘친다 — 목록에
  * `maxHeight` + 스크롤을 건다(§5-3.8, 배정 편집 팝오버와 같은 규칙).
  */
-export function SquadHistoryPopover({ squad, rows, loading, error, onRetry, onClose }) {
+export function SquadHistoryPopover({
+  anchorSelector = null, squad, rows, loading, error, onRetry, onClose,
+}) {
   const boxRef = useRef(null);
   // 백드롭 없이 바깥 클릭·Escape 로 닫는다 — 이력을 보는 동안에도 뒤 화면은 움직인다(PW-109).
   // 이력은 `⋯ > 이력` 메뉴 항목에서 열리고 그 항목은 곧바로 사라지므로 제외할 트리거가 없다.
   useDismissLayer(onClose, boxRef);
 
+  // 배치는 `AnchoredLayer` 가 카드 우상단 액션 줄을 실측해서 준다 (PW-313).
+  // 종전에는 `.sq-hist { position: absolute; top: calc(100% + 6px) }` 뿐이라 카드의
+  // `overflow: hidden` 에 잘리고, 창이 낮으면 300px 짜리 팝오버가 화면 아래로 넘어갔다.
   return (
     <>
-      <div
-        ref={boxRef}
+      <AnchoredLayer
+        anchorSelector={anchorSelector}
+        align="right"
+        panelRef={boxRef}
         data-testid="squad-history-popover"
         className="sq-hist"
         style={{ zIndex: SQUAD_MENU_Z }}
@@ -521,7 +529,7 @@ export function SquadHistoryPopover({ squad, rows, loading, error, onRetry, onCl
             )}
           </div>
         )}
-      </div>
+      </AnchoredLayer>
     </>
   );
 }

@@ -1,5 +1,7 @@
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import { pointAnchor } from '../shared/anchoredPlacement.js';
 
 /**
  * CellPicker — 타임라인 빈 셀(본인 행) 클릭 시 뜨는 액션 피커.
@@ -25,17 +27,25 @@ export default function CellPicker({
   onEvent,
   onClose,
 }) {
-  // 화면 오른쪽/아래 넘침 방지 — 메뉴 크기만큼 clamp.
-  const left = Math.min(pos.x, window.innerWidth - 244);
-  const top = Math.min(pos.y, window.innerHeight - 250);
   const dateLabel = typeof date === 'string' ? date.slice(5) : '';
 
-  return createPortal(
-    <div className="tl-cell-picker-overlay" onClick={onClose}>
-      <div
+  // 배치는 `AnchoredLayer` 가 클릭 지점을 앵커로 삼아 실측한다 (PW-313).
+  // 종전에는 `window.innerHeight - 250` 처럼 **팝오버 높이를 상수로 가정**했는데,
+  // Google Calendar 안내가 조건부로 붙어 실제 높이가 흔들린다. 낮은 창에서 아래쪽
+  // 셀을 누르면 '이벤트 추가' 가 화면 밖에 남았다.
+  //
+  // 백드롭과 패널은 **형제**여야 한다. 패널을 백드롭 안에 두면(포털이라도) React
+  // 이벤트가 트리를 타고 올라가 백드롭의 onClick 이 함께 불려 바로 닫힌다.
+  return (
+    <>
+      {createPortal(
+        <div className="tl-cell-picker-overlay" onClick={onClose} />,
+        document.body,
+      )}
+      <AnchoredLayer
+        anchorRect={pointAnchor(pos.x, pos.y)}
         className="tl-cell-picker"
-        style={{ left, top }}
-        onClick={(e) => e.stopPropagation()}
+        data-testid="timeline-cell-picker"
         role="menu"
         aria-label="셀 액션 선택"
       >
@@ -114,8 +124,7 @@ export default function CellPicker({
             </span>
           </span>
         </div>
-      </div>
-    </div>,
-    document.body,
+      </AnchoredLayer>
+    </>
   );
 }
