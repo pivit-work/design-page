@@ -22,7 +22,7 @@
  * 프로젝트 연결(`SquadProject`)은 이 캔버스 범위 밖이다 — 서버 창구가 아직 없다(PW-109/113).
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import SquadFormCard from './SquadFormCard.jsx';
 import {
   CapacityBar,
@@ -33,9 +33,10 @@ import {
 import {
   CAPACITY,
   SQUAD_PALETTE,
-  SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
   SQUAD_MODAL_Z,
+  SQUAD_ANCHOR_MORE,
+  SQUAD_ANCHOR_STATUS,
   CAPACITY_IDLE_HINT,
   avatarFontPx,
   capacityState,
@@ -56,6 +57,7 @@ import {
   LeadStarIcon, CalendarIcon, WarningIcon, LockIcon,
   CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon,
 } from './squadIcons.jsx';
+import { useDismissLayer } from './hooks.js';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -135,6 +137,37 @@ export default function SquadCanvas({
   const [delAsk, setDelAsk] = useState(null); // { squadId, typed }
   const [statusMenu, setStatusMenu] = useState(null);
   const [statusAsk, setStatusAsk] = useState(null); // { squadId, to, kind, overloads }
+
+  // 카드 메뉴는 **백드롭 없이** 바깥 클릭으로 닫는다 — 전면 백드롭은 뒤 화면 스크롤을
+  // 통째로 죽인다(PW-109 · `useDismissLayer`). `position: absolute` 라 스크롤은 카드와
+  // 함께 자연히 따라간다.
+  /**
+   * 셀·칩을 눌러 배정 편집 팝오버를 연다 (PW-109).
+   *
+   * 같은 앵커를 다시 누르면 **닫힌다** — 종전에는 전면 백드롭이 그 클릭을 삼켜 닫히는
+   * 것처럼 보였는데, 백드롭을 걷어냈으므로 토글을 여기서 직접 준다. 다른 앵커를 누르면
+   * 한 번 닫았다 다시 누를 것 없이 **그 셀로 갈아탄다**.
+   *
+   * `anchorEl` 은 배경 스크롤을 따라가기 위한 실측 대상이다.
+   */
+  const openAssignPopover = useCallback((squadId, userId, e, dx = 0, dy = 10) => {
+    const el = e.currentTarget;
+    // 기준 좌표는 여는 순간 여기서 잰다 — 팝오버가 렌더 중 ref 를 읽지 않게 한다.
+    const anchorRect = el.getBoundingClientRect();
+    // 노드가 아니라 **셀렉터**를 넘긴다 — 값을 저장하면 이 셀이 다시 그려져 노드가
+    // 바뀌는데, 옛 노드를 붙들면 팝오버가 앵커를 잃고 저 혼자 닫힌다(PW-109).
+    const anchorSelector = el.dataset.testid ? `[data-testid="${el.dataset.testid}"]` : null;
+    setPopover((cur) => (cur && cur.squadId === squadId && cur.userId === userId
+      ? null
+      : { squadId, userId, x: e.clientX + dx, y: e.clientY + dy, anchorSelector, anchorRect }));
+  }, []);
+
+  const moreMenuRef = useRef(null);
+  const statusMenuRef = useRef(null);
+  const closeMoreMenu = useCallback(() => setMoreMenu(null), []);
+  const closeStatusMenu = useCallback(() => setStatusMenu(null), []);
+  useDismissLayer(closeMoreMenu, moreMenuRef, SQUAD_ANCHOR_MORE, moreMenu != null);
+  useDismissLayer(closeStatusMenu, statusMenuRef, SQUAD_ANCHOR_STATUS, statusMenu != null);
 
   /**
    * Escape 로 카드 위 레이어를 닫는다 (§4 — 메뉴·팝오버는 외부 클릭·Escape 로 닫힘).
@@ -446,7 +479,12 @@ export default function SquadCanvas({
             </div>
           </div>
 
-          {loading && (
+          {/* 🔴 다시 불러오는 동안 **목록을 걷어내지 않는다** (PW-109).
+              걷어내면 스크롤 높이가 0 으로 줄어 컨테이너의 `scrollTop` 이 0 으로
+              리셋된다 — 슬라이더를 한 칸 움직여 저장할 때마다 화면이 맨 위로
+              튀고, 열어 둔 팝오버는 앵커를 잃는다. 안내는 **첫 조회**(아직 보여줄
+              것이 없을 때)에만 띄운다. */}
+          {loading && squads.length === 0 && (
             <div className="sq-loading">스쿼드 정보를 불러오는 중…</div>
           )}
 
@@ -461,7 +499,7 @@ export default function SquadCanvas({
             </div>
           )}
 
-          {!loading && !error && (
+          {!error && (loading ? squads.length > 0 : true) && (
             <>
               {/* 완료 전환 넛지 — 자동 전이는 하지 않고 안내만. p013 미보유자에게는 미노출 */}
               {overdueSquads.length > 0 && (
@@ -556,6 +594,7 @@ export default function SquadCanvas({
                         <span
                           data-testid={`squad-status-${sq.id}`}
                           className={`pj-card-status sq-status${canTransition ? ' is-clickable' : ''}`}
+                          data-squad-popover-anchor="status"
                           onClick={() => canTransition && setStatusMenu((m) => (m === sq.id ? null : sq.id))}
                           title={canTransition ? '상태 변경' : undefined}
                           style={{ color: stBadge.textColor }}
@@ -569,6 +608,7 @@ export default function SquadCanvas({
                           <span
                             data-testid={`squad-more-${sq.id}`}
                             className="sq-more"
+                            data-squad-popover-anchor="more"
                             onClick={() => setMoreMenu((m) => (m === sq.id ? null : sq.id))}
                             title="스쿼드 관리"
                           >
@@ -578,8 +618,7 @@ export default function SquadCanvas({
 
                         {moreMenu === sq.id && ledgerReady && (
                           <>
-                            <div onClick={() => setMoreMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
-                            <div className="sq-menu" style={{ zIndex: SQUAD_MENU_Z }}>
+                            <div className="sq-menu" style={{ zIndex: SQUAD_MENU_Z }} ref={moreMenuRef}>
                               <div
                                 data-testid={`squad-more-edit-${sq.id}`} onClick={() => openSquadEdit(sq)}
                                 className="sq-menu-item"
@@ -615,11 +654,11 @@ export default function SquadCanvas({
 
                         {statusMenu === sq.id && canTransition && (
                           <>
-                            <div onClick={() => setStatusMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
                             <div
                               data-testid={`squad-status-menu-${sq.id}`}
                               className="sq-menu"
                               style={{ zIndex: SQUAD_MENU_Z }}
+                              ref={statusMenuRef}
                             >
                               {/* 허용된 전이만 렌더 — 차단 전이는 비활성 항목으로도 보여주지 않는다 */}
                               {sqTransitions.map((t) => (
@@ -705,9 +744,8 @@ export default function SquadCanvas({
                                     mm.role === 'lead' ? 'is-lead' : '',
                                     editable ? 'is-clickable' : 'is-locked',
                                   ].filter(Boolean).join(' ')}
-                                  onClick={(e) => editable && setPopover({
-                                    squadId: sq.id, userId: mm.userId, x: e.clientX, y: e.clientY + 10,
-                                  })}
+                                  data-squad-popover-anchor="assign"
+                                  onClick={(e) => editable && openAssignPopover(sq.id, mm.userId, e, 0, 10)}
                                   title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${isCapacityIdle(mm) ? `\n${CAPACITY_IDLE_HINT}` : ''}${editable ? '\n클릭: 비중·캐파·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
                                 >
                                   {mm.role === 'lead' && (
@@ -950,9 +988,8 @@ export default function SquadCanvas({
                                           // 미설정은 **형태**로 말한다 — 색이 죽어도 점선은 남는다(§5-3.7)
                                           capUnset ? 'is-cap-unset' : '',
                                         ].filter(Boolean).join(' ')}
-                                        onClick={(e) => editable && setPopover({
-                                          squadId: sq.id, userId, x: e.clientX + 8, y: e.clientY + 8,
-                                        })}
+                                        data-squad-popover-anchor="assign"
+                                        onClick={(e) => editable && openAssignPopover(sq.id, userId, e, 8, 8)}
                                         title={[
                                           `${nameOf(userId)} · ${sq.name}`,
                                           `개인 캐파 사용 ${capText(mm)} (내 캐파 100 기준 — 오른쪽 합계의 재료)`,
@@ -1106,6 +1143,8 @@ export default function SquadCanvas({
       {popover && popSquad && popAssign && (
         <SquadAssignPopover
           pos={popover}
+          anchorSelector={popover.anchorSelector || null}
+          anchorRect={popover.anchorRect || null}
           squad={popSquad}
           assignment={popAssign}
           personName={nameOf(popover.userId)}
