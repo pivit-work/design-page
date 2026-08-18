@@ -234,7 +234,7 @@ export function SquadComposition({ squad, members, personOf }) {
  * `othersShare` = **이 스쿼드의 다른 팀원들**이 이미 가져간 비중
  */
 export function SquadAssignPopover({
-  pos, anchorEl = null, anchorRect = null,
+  pos, anchorSelector = null, anchorRect = null,
   squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
   canEditShare = true, canEditCapacity = true, isSelf = false,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
@@ -254,7 +254,15 @@ export function SquadAssignPopover({
   // 기준 좌표(`anchorRect`)는 **열 때 부모가 재서 넘긴다.** 여기서 ref 에 담아 두면
   // 렌더 중 ref 를 읽게 되고, 그러면 배치가 렌더 순서에 좌우된다. `pos`(클릭 지점)를
   // 기준으로 삼는 것은 §5-3.8 그대로다 — 따라가는 것은 그 기준점 자체다.
-  const live = anchorEl ? anchorEl.getBoundingClientRect() : null;
+  //
+  // 🔴 앵커는 **DOM 노드가 아니라 셀렉터로** 들고 있다가 매번 다시 찾는다. 노드를
+  // 그대로 붙들면 슬라이더를 한 번 움직여 저장하는 순간(부모가 목록을 다시 그린다)
+  // 그 노드가 문서에서 떨어져 나가고, 떨어진 노드의 `getBoundingClientRect()` 는
+  // 전부 0 이라 **「앵커가 화면 밖」으로 오판해 팝오버가 저 혼자 닫힌다.**
+  const anchorEl = anchorSelector ? document.querySelector(anchorSelector) : null;
+  const rect = anchorEl ? anchorEl.getBoundingClientRect() : null;
+  // 폭·높이가 0 이면 아직 그려지지 않았거나 숨겨진 것이다 — 그 값으로 배치를 옮기지 않는다.
+  const live = rect && (rect.width > 0 || rect.height > 0) ? rect : null;
   const origin = live && anchorRect
     ? { x: pos.x + (live.left - anchorRect.left), y: pos.y + (live.top - anchorRect.top) }
     : pos;

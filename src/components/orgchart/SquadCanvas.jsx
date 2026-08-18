@@ -151,12 +151,15 @@ export default function SquadCanvas({
    * `anchorEl` 은 배경 스크롤을 따라가기 위한 실측 대상이다.
    */
   const openAssignPopover = useCallback((squadId, userId, e, dx = 0, dy = 10) => {
-    const anchorEl = e.currentTarget;
+    const el = e.currentTarget;
     // 기준 좌표는 여는 순간 여기서 잰다 — 팝오버가 렌더 중 ref 를 읽지 않게 한다.
-    const anchorRect = anchorEl.getBoundingClientRect();
+    const anchorRect = el.getBoundingClientRect();
+    // 노드가 아니라 **셀렉터**를 넘긴다 — 값을 저장하면 이 셀이 다시 그려져 노드가
+    // 바뀌는데, 옛 노드를 붙들면 팝오버가 앵커를 잃고 저 혼자 닫힌다(PW-109).
+    const anchorSelector = el.dataset.testid ? `[data-testid="${el.dataset.testid}"]` : null;
     setPopover((cur) => (cur && cur.squadId === squadId && cur.userId === userId
       ? null
-      : { squadId, userId, x: e.clientX + dx, y: e.clientY + dy, anchorEl, anchorRect }));
+      : { squadId, userId, x: e.clientX + dx, y: e.clientY + dy, anchorSelector, anchorRect }));
   }, []);
 
   const moreMenuRef = useRef(null);
@@ -476,7 +479,12 @@ export default function SquadCanvas({
             </div>
           </div>
 
-          {loading && (
+          {/* 🔴 다시 불러오는 동안 **목록을 걷어내지 않는다** (PW-109).
+              걷어내면 스크롤 높이가 0 으로 줄어 컨테이너의 `scrollTop` 이 0 으로
+              리셋된다 — 슬라이더를 한 칸 움직여 저장할 때마다 화면이 맨 위로
+              튀고, 열어 둔 팝오버는 앵커를 잃는다. 안내는 **첫 조회**(아직 보여줄
+              것이 없을 때)에만 띄운다. */}
+          {loading && squads.length === 0 && (
             <div className="sq-loading">스쿼드 정보를 불러오는 중…</div>
           )}
 
@@ -491,7 +499,7 @@ export default function SquadCanvas({
             </div>
           )}
 
-          {!loading && !error && (
+          {!error && (loading ? squads.length > 0 : true) && (
             <>
               {/* 완료 전환 넛지 — 자동 전이는 하지 않고 안내만. p013 미보유자에게는 미노출 */}
               {overdueSquads.length > 0 && (
@@ -1135,7 +1143,7 @@ export default function SquadCanvas({
       {popover && popSquad && popAssign && (
         <SquadAssignPopover
           pos={popover}
-          anchorEl={popover.anchorEl || null}
+          anchorSelector={popover.anchorSelector || null}
           anchorRect={popover.anchorRect || null}
           squad={popSquad}
           assignment={popAssign}
