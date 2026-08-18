@@ -103,8 +103,16 @@ export default function OkrComposeFullModal({
   selfId = '',
   initialObjectives,
   labels,
+  showCompanyCard = true,
 }) {
   const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
+  // 미니맵은 **나보다 위** 를 보여주는 자리다. 전사 OKR 처럼 위가 없는 작성 경로에서는
+  // 회사 카드가 곧 "지금 쓰고 있는 것" 이라, 고를 수 없는 상위 후보처럼 보인다.
+  // 기본값은 지금 동작(그린다)이라 다른 화면의 시안은 그대로다.
+  //
+  // 회사 카드도 상위 그룹도 없으면 미니맵 열 자체를 접는다 — 안 접으면 좌측에
+  // 300px 짜리 빈 자리가 남아, 편집 영역이 이유 없이 안쪽으로 밀린 것처럼 보인다.
+  const hasMinimap = showCompanyCard || (minimap.groups ?? []).length > 0;
   // seed 는 마운트 시 1회만 — 저장 후 소비 측이 재조회해 prop 이 바뀌어도 폼을
   // 다시 덮어쓰지 않는다(입력 중 갱신이 사용자 타이핑을 날린다). 모달은 열 때마다
   // 마운트되므로 다음 진입에는 최신 값으로 채워진다.
@@ -257,34 +265,38 @@ export default function OkrComposeFullModal({
         </div>
 
         <div className="okr-cf-body">
-          <div className="okr-cf-minimap">
-            <div className="okr-cf-company">
-              <p className="okr-cf-company-label">{minimap.company.label}</p>
-              <p className="okr-cf-company-title">{minimap.company.title}</p>
-            </div>
-            {minimap.groups.map((group, gi) => (
-              <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
-                <div className="okr-cf-group-head">
-                  <span className="okr-cf-group-q">{group.q}</span>
-                  <span className="okr-cf-group-title">{group.title}</span>
+          {hasMinimap && (
+            <div className="okr-cf-minimap">
+              {showCompanyCard && (
+                <div className="okr-cf-company">
+                  <p className="okr-cf-company-label">{minimap.company.label}</p>
+                  <p className="okr-cf-company-title">{minimap.company.title}</p>
                 </div>
-                {group.krs.map((kr, ki) => (
-                  <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
-                    <button className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
-                      <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
-                    </button>
-                    <div className="okr-cf-kr-main">
-                      <p className="okr-cf-kr-title"><b>{kr.id}</b> {kr.title}</p>
-                      <div className="okr-cf-kr-progress">
-                        <OkrProgressBar percent={kr.percent} variant="success" />
-                        <span>{kr.percent}%</span>
+              )}
+              {minimap.groups.map((group, gi) => (
+                <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
+                  <div className="okr-cf-group-head">
+                    <span className="okr-cf-group-q">{group.q}</span>
+                    <span className="okr-cf-group-title">{group.title}</span>
+                  </div>
+                  {group.krs.map((kr, ki) => (
+                    <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
+                      <button className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
+                        <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
+                      </button>
+                      <div className="okr-cf-kr-main">
+                        <p className="okr-cf-kr-title"><b>{kr.id}</b> {kr.title}</p>
+                        <div className="okr-cf-kr-progress">
+                          <OkrProgressBar percent={kr.percent} variant="success" />
+                          <span>{kr.percent}%</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="okr-cf-editor">
             <div className="okr-cf-editor-head">
