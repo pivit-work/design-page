@@ -1203,8 +1203,10 @@
   z-index: 70;
 }
 
+/* 배치(position·좌표·높이 상한)는 CSS 가 아니라 `AnchoredLayer` 가 실측해서 준다
+   (PW-313). 여기에는 **면**만 남긴다 — 여기서 위치를 다시 정하면 뷰포트 클램프를
+   덮어써 낮은 창에서 팝오버가 화면 밖으로 나간다. */
 .tl-cell-picker {
-  position: fixed;
   width: 236px;
   background: var(--colors-background-bgPrimary_alt, #ffffff);
   border-radius: 10px;

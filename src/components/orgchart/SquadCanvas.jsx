@@ -58,6 +58,7 @@ import {
   CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon,
 } from './squadIcons.jsx';
 import { useDismissLayer } from './hooks.js';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -588,7 +589,10 @@ export default function SquadCanvas({
                     >
                       <span className="sq-card-strip" style={{ background: sq.color }} />
 
-                      <div className="sq-card-actions">
+                      {/* 카드 메뉴·이력 팝오버의 **앵커**. 여기 붙여야 종전 CSS
+                          (`top: calc(100% + 6px); right: 0`) 와 같은 자리에 뜬다 —
+                          트리거(⋯ · 상태 배지) 각각에 붙이면 자리가 미묘하게 달라진다. */}
+                      <div className="sq-card-actions" data-testid={`squad-actions-${sq.id}`}>
                         {/* 상태 배지 = 전환 트리거 (p013). 편집 모드와 무관하게 동작.
                             부품은 프로젝트 카드의 상태 표시와 같은 것을 쓴다. */}
                         <span
@@ -618,7 +622,13 @@ export default function SquadCanvas({
 
                         {moreMenu === sq.id && ledgerReady && (
                           <>
-                            <div className="sq-menu" style={{ zIndex: SQUAD_MENU_Z }} ref={moreMenuRef}>
+                            <AnchoredLayer
+                              anchorSelector={`[data-testid="squad-actions-${sq.id}"]`}
+                              align="right"
+                              panelRef={moreMenuRef}
+                              className="sq-menu"
+                              style={{ zIndex: SQUAD_MENU_Z }}
+                            >
                               <div
                                 data-testid={`squad-more-edit-${sq.id}`} onClick={() => openSquadEdit(sq)}
                                 className="sq-menu-item"
@@ -637,12 +647,13 @@ export default function SquadCanvas({
                                 title={sq.status === 'archived' ? undefined : '보관 상태에서만 삭제할 수 있습니다'}
                                 className={`sq-menu-item sq-menu-item-danger${sq.status === 'archived' ? '' : ' is-disabled'}`}
                               >삭제</div>
-                            </div>
+                            </AnchoredLayer>
                           </>
                         )}
 
                         {histFor === sq.id && (
                           <SquadHistoryPopover
+                            anchorSelector={`[data-testid="squad-actions-${sq.id}"]`}
                             squad={sq}
                             rows={history?.[sq.id]}
                             loading={historyLoading}
@@ -654,11 +665,13 @@ export default function SquadCanvas({
 
                         {statusMenu === sq.id && canTransition && (
                           <>
-                            <div
+                            <AnchoredLayer
+                              anchorSelector={`[data-testid="squad-actions-${sq.id}"]`}
+                              align="right"
+                              panelRef={statusMenuRef}
                               data-testid={`squad-status-menu-${sq.id}`}
                               className="sq-menu"
                               style={{ zIndex: SQUAD_MENU_Z }}
-                              ref={statusMenuRef}
                             >
                               {/* 허용된 전이만 렌더 — 차단 전이는 비활성 항목으로도 보여주지 않는다 */}
                               {sqTransitions.map((t) => (
@@ -670,7 +683,7 @@ export default function SquadCanvas({
                                   {t.label} <span className="sq-menu-item-to">→ {squadStatusLabel(t.to)}</span>
                                 </div>
                               ))}
-                            </div>
+                            </AnchoredLayer>
                           </>
                         )}
                       </div>
