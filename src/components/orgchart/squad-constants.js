@@ -35,6 +35,16 @@ export const DEFAULT_SHARE_PCT = 0;
  * 회귀 가드: `designPageOverlayZ.drift.test.ts`.
  */
 export const SQUAD_MENU_BACKDROP_Z = 10000;
+
+/**
+ * 팝오버·메뉴를 여는 트리거를 표시하는 셀렉터 (PW-109).
+ *
+ * 바깥 클릭 감지에서 **트리거 자신은 제외**해야 한다 — 제외하지 않으면 `mousedown`
+ * 이 닫고 이어진 `click` 이 다시 열어, 트리거를 눌러도 닫히지 않는다.
+ */
+export const SQUAD_ANCHOR_ASSIGN = '[data-squad-popover-anchor="assign"]';
+export const SQUAD_ANCHOR_MORE = '[data-squad-popover-anchor="more"]';
+export const SQUAD_ANCHOR_STATUS = '[data-squad-popover-anchor="status"]';
 export const SQUAD_MENU_Z = 10001;
 /** 확인 모달 — 메뉴보다 위. */
 export const SQUAD_MODAL_Z = 10050;

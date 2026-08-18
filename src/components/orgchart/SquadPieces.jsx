@@ -9,15 +9,16 @@
  * 구성비 스택 바의 트랙은 프로젝트 카드의 진행 바(`pj-progress-bar`)를 그대로 쓴다.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useDismissLayer, useViewportTick } from './hooks.js';
 import {
   CAPACITY,
   CAPACITY_IDLE_HINT,
   HIST_LIST_MAX_H,
   POP_W,
   SQUAD_BASE,
-  SQUAD_MENU_BACKDROP_Z,
   SQUAD_MENU_Z,
+  SQUAD_ANCHOR_ASSIGN,
   assignPopoverVertical,
   capacityState,
   clampPct,
@@ -233,21 +234,43 @@ export function SquadComposition({ squad, members, personOf }) {
  * `othersShare` = **이 스쿼드의 다른 팀원들**이 이미 가져간 비중
  */
 export function SquadAssignPopover({
-  pos, squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
+  pos, anchorEl = null, anchorRect = null,
+  squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
   canEditShare = true, canEditCapacity = true, isSelf = false,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  const boxRef = useRef(null);
+  // 바깥 클릭·Escape — 백드롭을 깔지 않는다. 깔면 뒤 화면 스크롤이 통째로 죽는다(PW-109).
+  useDismissLayer(onClose, boxRef, SQUAD_ANCHOR_ASSIGN);
+  // 배경이 스크롤되면 다시 그린다 — 아래에서 앵커를 실측해 따라간다.
+  useViewportTick();
 
   const isLead = assignment.role === 'lead';
-  const x = Math.max(8, Math.min(pos.x, window.innerWidth - POP_W - 16));
+
+  // 앵커(셀·칩)가 열 때 자리에서 얼마나 움직였는지를 재서 팝오버도 같은 만큼 옮긴다.
+  // 따라가지 않으면 배경 스크롤이 팝오버를 엉뚱한 행 위에 남긴다 — 배경을 잠그던
+  // 종전 방식(§5-3.8)이 막으려던 것이 바로 이것이다(PW-109).
+  //
+  // 기준 좌표(`anchorRect`)는 **열 때 부모가 재서 넘긴다.** 여기서 ref 에 담아 두면
+  // 렌더 중 ref 를 읽게 되고, 그러면 배치가 렌더 순서에 좌우된다. `pos`(클릭 지점)를
+  // 기준으로 삼는 것은 §5-3.8 그대로다 — 따라가는 것은 그 기준점 자체다.
+  const live = anchorEl ? anchorEl.getBoundingClientRect() : null;
+  const origin = live && anchorRect
+    ? { x: pos.x + (live.left - anchorRect.left), y: pos.y + (live.top - anchorRect.top) }
+    : pos;
+
+  // 앵커가 뷰포트를 완전히 벗어나면 닫는다 — 보이지 않는 셀의 값을 고치고 있는 상태를
+  // 만들지 않는다. 값은 조작 즉시 저장되므로 닫혀도 잃는 것이 없다.
+  const anchorGone = !!live && (live.bottom <= 0 || live.top >= window.innerHeight);
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; });
+  useEffect(() => { if (anchorGone) closeRef.current(); }, [anchorGone]);
+
+  const x = Math.max(8, Math.min(origin.x, window.innerWidth - POP_W - 16));
   // 세로 배치는 **가용 공간을 재서** 고른다 — 높이를 상수로 가정하면 뷰포트 하단에서
   // ②·액션이 화면 밖으로 밀려나고 스크롤도 걸리지 않는다(§5-3.8 · PW-109).
-  const vert = assignPopoverVertical(pos.y, window.innerHeight);
+  // 따라가는 중에도 매번 다시 계산해야 한다 — 안 그러면 따라가다 화면 밖으로 나간다.
+  const vert = assignPopoverVertical(origin.y, window.innerHeight);
 
   const sharePct = assignment.sharePct || 0;
   // ① 배분 합계는 **스쿼드 상태와 무관**하다 — 그 스쿼드 안의 사실이기 때문(§5-3.3).
@@ -262,8 +285,8 @@ export function SquadAssignPopover({
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
       <div
+        ref={boxRef}
         data-testid="squad-assign-popover"
         className="sq-pop"
         style={{ position: 'fixed', left: x, ...vert, width: POP_W, zIndex: SQUAD_MENU_Z }}
@@ -440,16 +463,15 @@ export function SquadAssignPopover({
  * `maxHeight` + 스크롤을 건다(§5-3.8, 배정 편집 팝오버와 같은 규칙).
  */
 export function SquadHistoryPopover({ squad, rows, loading, error, onRetry, onClose }) {
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  const boxRef = useRef(null);
+  // 백드롭 없이 바깥 클릭·Escape 로 닫는다 — 이력을 보는 동안에도 뒤 화면은 움직인다(PW-109).
+  // 이력은 `⋯ > 이력` 메뉴 항목에서 열리고 그 항목은 곧바로 사라지므로 제외할 트리거가 없다.
+  useDismissLayer(onClose, boxRef);
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MENU_BACKDROP_Z }} />
       <div
+        ref={boxRef}
         data-testid="squad-history-popover"
         className="sq-hist"
         style={{ zIndex: SQUAD_MENU_Z }}

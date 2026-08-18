@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import React from 'react';
 import { PositionsContext } from './contexts';
 
@@ -93,4 +93,68 @@ export function useDrag(nodeId, onDrop, onDragMove) {
   };
 
   return { isDragging, onDown, style, didDragRef };
+}
+
+/**
+ * 바깥 클릭·Escape 로 닫는 레이어 — **화면을 덮는 백드롭을 쓰지 않는다** (PW-109).
+ *
+ * 종전에는 `position: fixed; inset: 0` 인 투명 백드롭에 `onClick={onClose}` 를 달아
+ * 바깥 클릭을 받았다. 그 백드롭은 클릭만 막는 것이 아니다 — 그 위에서 굴린 휠은
+ * **문서(viewport)로 체이닝**되는데 앱 셸의 `body` 는 `overflow: hidden` 이라 실제
+ * 스크롤러(`.content-area`)까지 도달하지 못한다. 스크롤바 드래그·키보드 스크롤도
+ * 함께 죽는다. 그래서 팝오버를 열면 **뒤 화면 전체가 잠긴 것처럼** 보였다
+ * (제보 2026-08-18). 브라우저 실측: 백드롭에 `pointer-events: none` 을 주는 순간
+ * `scrollTop` 이 12922 → 13222 로 움직였다.
+ *
+ * 🔴 `anchorSelector` 로 **트리거 자신을 바깥에서 제외한다.** 제외하지 않으면
+ * `mousedown` 이 닫고 이어진 `click` 이 다시 열어, 트리거를 눌러도 닫히지 않는다.
+ *
+ * 이 훅은 앵커에 붙는 패널의 것이다. 화면 전체를 점유하는 **모달**에는 쓰지 않는다 —
+ * 모달은 뒤를 막는 것이 목적이다.
+ */
+export function useDismissLayer(onClose, panelRef, anchorSelector, enabled = true) {
+  // 부모가 매 렌더 새 `onClose` 를 넘겨도 리스너를 떼었다 붙이지 않는다.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const onDown = (e) => {
+      const t = e.target;
+      if (panelRef?.current && t instanceof Node && panelRef.current.contains(t)) return;
+      if (anchorSelector && t instanceof Element && t.closest(anchorSelector)) return;
+      onCloseRef.current();
+    };
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current(); };
+    // `document` 가 아니라 `window` — 요소에서 시작한 이벤트는 window 까지 올라온다.
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [panelRef, anchorSelector, enabled]);
+}
+
+/**
+ * 뒤 화면이 스크롤될 때마다 다시 렌더시키는 티커 (PW-109).
+ *
+ * 배경 스크롤을 살리면 `position: fixed` 팝오버는 앵커에서 떨어진다 — 배경이 300px
+ * 움직이는 동안 셀은 `top 827 → 527` 로 올라가는데 팝오버는 제자리에 남아, **엉뚱한
+ * 행 위에 뜬 채로** 그 행의 값을 고치고 있게 된다. 팝오버가 앵커를 따라가야 배경을
+ * 잠글 이유가 사라진다.
+ *
+ * capture 로 받아야 내부 스크롤 컨테이너(`.content-area`·배치표)의 스크롤도 잡힌다.
+ */
+export function useViewportTick() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick((t) => t + 1);
+    window.addEventListener('scroll', bump, true);
+    window.addEventListener('resize', bump);
+    return () => {
+      window.removeEventListener('scroll', bump, true);
+      window.removeEventListener('resize', bump);
+    };
+  }, []);
 }
