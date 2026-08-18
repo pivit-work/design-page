@@ -20,6 +20,8 @@ import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FIL
  *  - 매니저(managerId) 는 **직접 배정하는 값**이다 — 후보를 고르는 select 컬럼.
  *    조직장 자리와는 별개 축이라 어느 쪽도 다른 쪽을 파생시키지 않는다(PW-292).
  *    대표 행만 예외로 배정할 수 없다(조직 최상위는 상급자를 가질 수 없다).
+ *    `managerName` 만 있고 `managerId` 가 없는 행은 CSV `상급자_사번` 폴백이라
+ *    **배정이 아니다** — 셀과 드롭다운 양쪽에서 그 사실을 표기한다(PW-314).
  *  - 상태는 백엔드 employmentStatus enum(active/on_leave/terminated) 을 쓴다.
  *  - 연봉(salary) 은 canViewSalary=true(=org_admin) 일 때만 표시·편집.
  *  - 어드민 사이드 레일/브레드크럼은 앱 셸이 제공하므로 제거, content-area 안에 들어간다.
@@ -313,11 +315,19 @@ function EditCell({ col, row, value, onChange, onKeyDown, autoFocus }) {
     // 자기 자신은 자기 매니저가 될 수 없다 — 후보 목록은 컬럼 단위라 여기서 뺀다.
     // 서버도 거부하지만(409), 고를 수 있게 두면 저장 후에야 실패를 알게 된다.
     if (col.excludeSelf && row?.id) opts = opts.filter((o) => o !== row.id);
+    // 「미배정」 인데 표에는 이름이 보이는 행(CSV 상급자_사번 폴백, PW-314)은 빈 옵션
+    // 라벨에 그 이름을 함께 적는다. 그냥 「미배정」 이면 값이 지워진 것으로 읽힌다.
+    const derivedName =
+      col.id === 'managerId' && !row?.managerId && row?.managerName
+        ? row.managerName
+        : null;
     return (
       <select ref={ref} value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={{ ...base, cursor: 'pointer' }}>
         {opts.map((o) => (
           <option key={o} value={o}>
-            {optionLabel(col, o)}
+            {o === '' && derivedName
+              ? (col.unassignedDerivedLabel || '미배정 (CSV 상급자: {name})').replace('{name}', derivedName)
+              : optionLabel(col, o)}
           </option>
         ))}
       </select>
@@ -379,6 +389,51 @@ function CeoBadge({ label }) {
     >
       <IconCrown size={11} />
       {label}
+    </span>
+  );
+}
+
+/* ── 직접 지정이 아닌 매니저 이름 (PW-314) ───────────────
+ * CSV 임포트의 `상급자_사번` 을 풀어 만든 **표시 전용** 이름을 그린다.
+ * 정본은 `users.managerId` 이고 이 이름은 아직 배정이 아니므로, 이름만 그리면
+ * 셀을 열었을 때의 「미배정」 과 어긋나 값이 지워진 것처럼 읽힌다.
+ *
+ * 구분은 색만으로 하지 않는다 — 톤을 낮추는 동시에 아이콘을 붙이고, 문장은
+ * `title` 로 준다(호버·스크린리더 양쪽에서 읽힌다). 아이콘은 이모지가 아니라
+ * `currentColor` 를 상속하는 인라인 SVG 라 감싼 요소의 톤을 그대로 따른다.
+ *
+ * 폭 140px 안에서 이름 길이가 흔들려도(로케일·긴 이름) 아이콘이 밀려나지
+ * 않도록 이름만 줄이고 아이콘은 `flexShrink: 0` 으로 고정한다.
+ * ---------------------------------------------------------- */
+function IconInfo({ size = 12 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4M12 8h.01" />
+    </svg>
+  );
+}
+
+function DerivedManagerCell({ name, hint }) {
+  const title = hint
+    ? hint.replace('{name}', name)
+    : `${name} — CSV 상급자_사번에서 온 이름입니다. 아직 매니저로 배정되지 않았습니다.`;
+  return (
+    <span
+      title={title}
+      aria-label={title}
+      data-manager-derived="true"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%',
+        fontSize: 12, color: T.muted,
+      }}
+    >
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      <IconInfo size={12} />
     </span>
   );
 }
@@ -457,7 +512,7 @@ function DeptCell({ depts, primaryLabel, concurrentLabel, orgTree = [], orgUnitI
   );
 }
 
-function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, primaryLabel, concurrentLabel, orgTree, squadOptions, squadLabels, onOpenSquads, canEditSquads }) {
+function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, managerFallbackHint, primaryLabel, concurrentLabel, orgTree, squadOptions, squadLabels, onOpenSquads, canEditSquads }) {
   const value = row[col.id];
   if (col.squadCell) {
     return (
@@ -509,8 +564,16 @@ function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, prima
   // 매니저 칸은 id 를 담고 있으므로 반드시 이름으로 바꿔 그린다 — 그대로 두면 uuid 가
   // 화면에 노출된다. 후보 목록에 없는 상급자(퇴사자·CSV 상급자_사번 폴백)는 컬럼
   // 라벨맵에 없으므로 행이 들고 있는 `managerName` 으로 표시한다.
+  //
+  // 🔴 이름이 보인다고 다 배정된 게 아니다(PW-314). `managerId` 없이 `managerName`
+  // 만 있는 행은 CSV 임포트의 `상급자_사번` 을 사번→이름으로 푼 **표시 전용 폴백**이다.
+  // 표식 없이 그냥 이름만 그리면, 셀을 열었을 때 드롭다운이 「미배정」 인 것을 보고
+  // "값이 지워졌다" 로 읽는다 — 실제로 그 제보로 이 티켓이 열렸다.
   if (col.id === 'managerId') {
     const label = value ? col.optionLabels?.[value] || row.managerName : row.managerName;
+    if (!value && label) {
+      return <DerivedManagerCell name={label} hint={managerFallbackHint} />;
+    }
     return (
       <span style={{ fontSize: 12, color: label ? T.text : T.muted }}>{label || '—'}</span>
     );
@@ -939,6 +1002,8 @@ export default function AdminEmployeeSheetCanvas({
           '': labels.unassigned || '— 미배정 —',
           ...Object.fromEntries(managerCandidates.map((m) => [m.id, m.name])),
         },
+        // CSV 폴백 이름만 있는 행의 빈 옵션 라벨(PW-314). `{name}` 자리에 그 이름이 들어간다.
+        unassignedDerivedLabel: labels.managerFallbackUnassigned,
       },
       { id: 'hireDate', label: cl.hireDate || '입사일', width: 120, type: 'date', editable: true },
       { id: 'terminationDate', label: cl.terminationDate || '퇴사일', width: 120, type: 'date', editable: true },
@@ -1806,6 +1871,7 @@ export default function AdminEmployeeSheetCanvas({
                               renderAvatar={renderAvatar}
                               ceoLabel={L.ceoBadge}
                               ceoNoManagerHint={L.ceoNoManagerHint}
+                              managerFallbackHint={L.managerFallbackHint}
                               primaryLabel={L.primaryDeptBadge}
                               concurrentLabel={L.concurrentDeptCount}
                               orgTree={orgTree}
