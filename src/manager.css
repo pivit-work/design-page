@@ -642,10 +642,20 @@
   z-index: 0;
 }
 
+/* 탭이 5개가 되면(액션 아이템 탭 신설, PW-182) 432px 카드 안에서 라벨이 서로
+   밀린다. 4개일 때의 생김새는 그대로 두고, 5개일 때만 가로 여백을 줄인다. */
+.manager-modal-tabs.is-compact .manager-modal-tab {
+  padding-left: var(--spacing-xxs, 2px);
+  padding-right: var(--spacing-xxs, 2px);
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+}
+
 .manager-modal-tab {
   position: relative;
   z-index: 1;
   flex: 1 0 0;
+  white-space: nowrap;
   height: 100%;
   display: flex;
   align-items: center;
@@ -989,6 +999,73 @@
   font-size: var(--font-size-text-md);
   line-height: var(--line-height-text-md);
   color: var(--text-secondary);
+}
+
+/* ── 액션 아이템 탭 (PW-182) ──
+   팀원 1명분 · 읽기 전용. 행은 1on1 기록 항목과 같은 리듬(구분선 + 세로 여백)을
+   쓰되, 한 줄에 체크·제목·출처·마감이 들어가야 해서 가로 배치다. */
+.manager-modal-action-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-modal-action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  width: 100%;
+}
+
+.manager-modal-action-check {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-xs);
+  border: 1.5px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+}
+
+.manager-modal-action-row.is-done .manager-modal-action-check {
+  background: var(--colors-foreground-fgSuccessPrimary, #17b26a);
+  border-color: var(--colors-foreground-fgSuccessPrimary, #17b26a);
+  color: var(--colors-foreground-fgLight, #fff);
+}
+
+.manager-modal-action-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.manager-modal-action-row.is-done .manager-modal-action-title {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.manager-modal-action-source,
+.manager-modal-action-deadline {
+  flex: 0 0 auto;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.manager-modal-action-deadline.is-overdue {
+  color: var(--colors-text-textErrorPrimary, #d92d20);
 }
 
 /* ── Empty placeholder ── */

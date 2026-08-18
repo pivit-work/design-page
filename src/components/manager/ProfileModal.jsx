@@ -132,11 +132,16 @@ export default function ProfileModal({
   const profile = displayMember?.profile;
   const agendas = profile?.agendas ?? [];
 
+  // 「액션 아이템」 탭은 액션 아이템 전체 화면이 본인 담당분으로 고정되면서
+  // 매니저가 팀원 이행을 볼 경로가 사라진 것을 팀원 1명 단위로 되살린 자리다
+  // (PW-182). 데이터가 없으면 탭 자체를 내지 않는다 — 호스트가 아직 안 실어
+  // 보내는 화면에서 빈 탭이 늘어나지 않게.
   const TABS = [
     { key: 'ai', label: 'AI 브리핑' },
     { key: 'snippet', label: '스니핏' },
     { key: 'health', label: '헬스 트렌드' },
     { key: 'oneonone', label: '1on1' },
+    ...(profile?.actionItems ? [{ key: 'action', label: '액션 아이템' }] : []),
   ];
 
   const node = (
@@ -217,6 +222,9 @@ export default function ProfileModal({
             {activeTab === 'oneonone' && profile?.oneOnOne && (
               <OneOnOneTab data={profile.oneOnOne} />
             )}
+            {activeTab === 'action' && profile?.actionItems && (
+              <ActionItemsTab data={profile.actionItems} />
+            )}
           </div>
 
           {/* Footer */}
@@ -250,7 +258,10 @@ function Tabs({ tabs, activeTab, onChange }) {
   }, [activeTab, tabs]);
 
   return (
-    <div ref={containerRef} className="manager-modal-tabs">
+    <div
+      ref={containerRef}
+      className={`manager-modal-tabs ${tabs.length > 4 ? 'is-compact' : ''}`.trim()}
+    >
       <span
         className="manager-modal-tab-slider"
         style={{
@@ -414,6 +425,77 @@ function ArrowUpIcon({ size = 16, className = '' }) {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+/**
+ * 팀원 상세 패널 「액션 아이템」 탭 (PW-182).
+ *
+ * **읽기 전용이다.** 체크 표시는 상태를 보여줄 뿐이고 클릭에 반응하지 않는다 —
+ * 상태는 담당자 본인만 바꾼다. 매니저가 팀원 할 일을 대신 관리하는 도구가 되면
+ * 위임이 깨진다는 것이 이 화면의 전제다.
+ *
+ * 시안: `pivit-specs/기획서-UX-UI-UserFlow/I. 매니저-뷰/manager-view.jsx`
+ * `DetailActionTab` — 3-그리드 요약 + 항목 행(체크·제목·우선순위·마감).
+ */
+function ActionItemsTab({ data }) {
+  const items = data.items ?? [];
+  const summary = data.summary ?? {};
+
+  return (
+    <div className="manager-modal-content-section">
+      <div className="manager-modal-trend-grid">
+        <MetricTile label="전체" value={summary.total ?? 0} />
+        <MetricTile label="미완료" value={summary.open ?? 0} />
+        <MetricTile label="완료" value={summary.done ?? 0} />
+      </div>
+
+      {items.length === 0 ? (
+        <p className="manager-modal-empty">{data.emptyLabel}</p>
+      ) : (
+        <div className="manager-modal-action-list">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`manager-modal-action-row ${item.done ? 'is-done' : ''}`.trim()}
+            >
+              {/* 체크박스가 아니라 상태 표시다 — button 이 아니므로 눌러도 반응하지 않는다. */}
+              <span
+                className="manager-modal-action-check"
+                role="img"
+                aria-label={item.done ? '완료' : '미완료'}
+              >
+                {item.done && (
+                  <svg width="9" height="7" viewBox="0 0 9 7" aria-hidden>
+                    <polyline
+                      points="1,4 3.5,6.5 8,1"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span className="manager-modal-action-title">{item.title}</span>
+              {item.sourceLabel && (
+                <span className="manager-modal-action-source">{item.sourceLabel}</span>
+              )}
+              {item.deadlineLabel && (
+                <span
+                  className={`manager-modal-action-deadline ${
+                    item.overdue ? 'is-overdue' : ''
+                  }`.trim()}
+                >
+                  {item.deadlineLabel}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
