@@ -49,8 +49,28 @@ export default function ManagerCanvas({
   baseUrl = '',
   onMemberOneOnOne,
   onMemberMessage,
+  /**
+   * 프로필 모달이 열리고 닫힐 때 알린다 (열림=member, 닫힘=null).
+   *
+   * 팀원 상세 패널의 「액션 아이템」 탭(PW-182)처럼 **열었을 때만** 부르면 되는
+   * 데이터가 있어서다. 팀원 전원 것을 미리 받으면 팀 규모만큼 조회가 나가고
+   * 대부분은 쓰이지 않는다.
+   */
+  onMemberOpen,
 }) {
-  const [openMember, setOpenMember] = useState(null);
+  // 🔴 열린 멤버는 **id 로** 기억하고 객체는 지금 props 에서 다시 찾는다.
+  // 객체를 통째로 state 에 담아 두면, 모달이 열린 뒤 소비자가 그 멤버의 데이터를
+  // 채워 넣어도(예: 「액션 아이템」 탭을 연 뒤에 읽어 오는 PW-182) 모달은 클릭 순간의
+  // 낡은 객체를 계속 들고 있어 화면이 갱신되지 않는다.
+  const [openMemberId, setOpenMemberId] = useState(null);
+  const openMember =
+    openMemberId == null
+      ? null
+      : [...(actionQueue?.members ?? []), ...(teamStatus?.members ?? [])].find(
+          (m) => m.id === openMemberId,
+        ) ?? null;
+  const openProfile = (m) => { setOpenMemberId(m?.id ?? null); onMemberOpen?.(m); };
+  const closeProfile = () => { setOpenMemberId(null); onMemberOpen?.(null); };
 
   return (
     <main className={`manager-page ${openMember ? 'is-modal-open' : ''}`}>
@@ -117,7 +137,7 @@ export default function ManagerCanvas({
               {...m}
               icons={icons}
               baseUrl={baseUrl}
-              onCardClick={() => setOpenMember(m)}
+              onCardClick={() => openProfile(m)}
               onOneOnOneClick={() => onMemberOneOnOne?.(m)}
               onMessageClick={() => onMemberMessage?.(m)}
             />
@@ -139,7 +159,7 @@ export default function ManagerCanvas({
               {...m}
               icons={icons}
               baseUrl={baseUrl}
-              onCardClick={() => setOpenMember(m)}
+              onCardClick={() => openProfile(m)}
               onOneOnOneClick={() => onMemberOneOnOne?.(m)}
               onMessageClick={() => onMemberMessage?.(m)}
             />
@@ -157,11 +177,11 @@ export default function ManagerCanvas({
       */}
       <ProfileModal
         member={openMember}
-        onClose={() => setOpenMember(null)}
+        onClose={closeProfile}
         baseUrl={baseUrl}
         icons={icons}
-        onOneOnOneClick={() => { const m = openMember; setOpenMember(null); onMemberOneOnOne?.(m); }}
-        onMessageClick={() => { const m = openMember; setOpenMember(null); onMemberMessage?.(m); }}
+        onOneOnOneClick={() => { const m = openMember; closeProfile(); onMemberOneOnOne?.(m); }}
+        onMessageClick={() => { const m = openMember; closeProfile(); onMemberMessage?.(m); }}
       />
     </main>
   );
