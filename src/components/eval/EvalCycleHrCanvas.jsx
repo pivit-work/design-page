@@ -516,6 +516,14 @@ export default function EvalCycleHrCanvas({
   onUpdateCycle,
   /** 관리 모드 프리필용 상세 조회. (id) => Promise<{ cycle, participants }>. */
   onLoadCycleDetail,
+  /**
+   * PW-122 — 조직 평가 템플릿 라이브러리. 그대로 위자드 2단계로 흘린다.
+   * 넘기지 않으면 위자드가 종전대로 세션 로컬로 동작한다(시각 동일).
+   */
+  libraryTemplates = null,
+  onSaveTemplate,
+  onDeleteTemplate,
+  templateSaveError = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -688,6 +696,10 @@ export default function EvalCycleHrCanvas({
           presets={cyclePresets}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
+          libraryTemplates={libraryTemplates}
+          onSaveTemplate={onSaveTemplate}
+          onDeleteTemplate={onDeleteTemplate}
+          templateSaveError={templateSaveError}
         />
       )}
 
@@ -704,6 +716,10 @@ export default function EvalCycleHrCanvas({
           participants={manageTarget.participants}
           onSubmit={handleUpdate}
           onCancel={() => setManageTarget(null)}
+          libraryTemplates={libraryTemplates}
+          onSaveTemplate={onSaveTemplate}
+          onDeleteTemplate={onDeleteTemplate}
+          templateSaveError={templateSaveError}
         />
       )}
 

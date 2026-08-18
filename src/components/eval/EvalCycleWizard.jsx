@@ -695,6 +695,21 @@ export default function EvalCycleWizard({
   cycle = null,
   /** 관리 모드 대상자 프리필용 현재 참여자 [{ memberId }]. */
   participants = [],
+  /**
+   * PW-122 — **조직 평가 템플릿 라이브러리**. 배열을 넘기면 2단계의 저장된 템플릿 목록이
+   * 이 값(서버 자산)이 되고, 「템플릿 저장」이 `onSaveTemplate` 으로 즉시 서버에 등재된다.
+   *
+   * 넘기지 않으면(`null`) 종전대로 **마법사 세션 로컬**로 동작한다 — 마법사를 닫으면
+   * 사라지고 다른 사이클에서 불러올 수 없다. 그게 정확히 PW-122 의 증상이었다.
+   * 시각은 어느 쪽이든 같다.
+   */
+  libraryTemplates = null,
+  /** 저장 요청. 저장된 템플릿을 돌려주면 성공, falsy 면 실패로 보고 입력을 유지한다. */
+  onSaveTemplate,
+  /** 라이브러리에서 내리기(보관·삭제는 라이브러리 화면에서 한다). */
+  onDeleteTemplate,
+  /** 저장 실패 사유(이름 중복 등). 부모가 서버 문구를 그대로 넘긴다. */
+  templateSaveError = null,
 }) {
   const isManage = !!cycle;
   const initialSeq = cycle?.reviewSequence ?? null;
@@ -780,7 +795,14 @@ export default function EvalCycleWizard({
   const [manualExcludedIds, setManualExcludedIds] = useState([]); // 대상 → 제외
   const [keptIds, setKeptIds] = useState([]); // 자동 제외를 되돌려 대상으로 유지
   // 평가 템플릿(step 1) — 워크스페이스 라이브러리 + 빌더 상태
-  const [savedTemplates, setSavedTemplates] = useState([]); // 이 세션 라이브러리
+  // 세션 로컬 라이브러리(레거시 경로). `libraryTemplates` 를 넘기면 쓰이지 않는다.
+  const [localTemplates, setLocalTemplates] = useState([]);
+  /**
+   * PW-122 — 저장된 템플릿의 **출처**. 라이브러리 모드면 조직 자산(서버), 아니면 세션 로컬.
+   * 아래 모든 읽기(목록·단계 매핑 후보·검증)는 이 하나만 본다.
+   */
+  const libraryMode = Array.isArray(libraryTemplates);
+  const savedTemplates = libraryMode ? libraryTemplates : localTemplates;
   const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
   const [tplName, setTplName] = useState('');
   // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
@@ -1014,7 +1036,17 @@ export default function EvalCycleWizard({
       absolute: tplAbsolute,
       ratioScope: tplRatioScope,
     };
-    setSavedTemplates((prev) => [tpl, ...prev]);
+    if (libraryMode) {
+      // 🔴 마법사를 끝내거나 사이클을 오픈해야 등재되는 지연 저장은 금지다 —
+      // 사용자가 "저장했는데 없다" 고 느끼는 지점이 정확히 여기다(정책 §3).
+      Promise.resolve(onSaveTemplate?.(tpl)).then((saved) => {
+        if (!saved) return; // 실패 사유는 templateSaveError 로 온다. 입력은 남긴다.
+        setTplName('');
+        setTplSaved(true);
+      });
+      return;
+    }
+    setLocalTemplates((prev) => [tpl, ...prev]);
     setTplName('');
     setTplSaved(true);
   };
@@ -1028,7 +1060,8 @@ export default function EvalCycleWizard({
     setTplRatioScope(tpl.ratioScope || 'div');
   };
   const deleteTemplate = (id) => {
-    setSavedTemplates((prev) => prev.filter((t) => t.id !== id));
+    if (libraryMode) Promise.resolve(onDeleteTemplate?.(id));
+    else setLocalTemplates((prev) => prev.filter((t) => t.id !== id));
     setPhaseTemplateMap((m) => {
       const n = { ...m };
       Object.keys(n).forEach((k) => {
@@ -1292,7 +1325,13 @@ export default function EvalCycleWizard({
         roleVersions: roleMode === 'by_role' ? roleVersions : {},
       },
       // v2 슬라이스2: 단계에 매핑된 템플릿 정의를 백엔드로 전달(clientId 로 참조).
-      evalTemplates: savedTemplates
+      //
+      // PW-122 라이브러리 모드에서는 **보내지 않는다.** 템플릿은 이미 조직 자산으로
+      // 저장돼 있고 `templateMap` 이 그 실제 id 를 가리킨다. 여기서 또 보내면 같은
+      // 평가지가 사이클마다 복제돼 라이브러리가 무의미해진다.
+      evalTemplates: libraryMode
+        ? []
+        : savedTemplates
         .filter((t) => Object.values(phaseTemplateMap).includes(t.id))
         .map((t) => ({
           clientId: t.id,
@@ -1427,7 +1466,10 @@ export default function EvalCycleWizard({
     // PW-122 템플릿 라이브러리 + 단계별 매핑 + 직급별 버전까지 복원한다.
     // 템플릿을 먼저 되살려야 매핑(templateMap)이 가리킬 대상이 생긴다.
     const tpl = preset?.templateConfig || {};
-    if (Array.isArray(tpl.templates)) setSavedTemplates(tpl.templates);
+    // 라이브러리 모드에서는 템플릿의 정본이 서버 목록이라 프리셋 사본으로 덮지 않는다.
+    // (프리셋의 templateMap 은 그대로 라이브러리 id 를 가리킨다.)
+    if (!libraryMode && Array.isArray(tpl.templates))
+      setLocalTemplates(tpl.templates);
     if (rs?.templateMap && typeof rs.templateMap === 'object') {
       setPhaseTemplateMap({ ...rs.templateMap });
     }
@@ -1966,7 +2008,18 @@ export default function EvalCycleWizard({
                 >
                   {L.templateSave}
                 </button>
-                {tplSaved ? (
+                {templateSaveError ? (
+                  /* PW-122 — 서버가 거절한 사유(이름 중복 등)를 여기서 말한다. 전역
+                     에러 페이지로 튕기면 작성 중이던 사이클 설정이 통째로 날아간다. */
+                  <span
+                    /* 기본 .evc-tpl-save-hint 가 이미 오류색이라 별도 클래스가 필요 없다. */
+                    className="evc-tpl-save-hint"
+                    role="alert"
+                    data-testid="evc-tpl-save-error"
+                  >
+                    {templateSaveError}
+                  </span>
+                ) : tplSaved ? (
                   <span
                     className="evc-tpl-save-hint is-ok"
                     data-testid="evc-tpl-saved"
