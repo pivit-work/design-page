@@ -666,6 +666,14 @@ export default function AdminEmployeesCanvas({
   canEdit = true,
   renderAvatar,
   onAssignOrgUnit,
+  /**
+   * 소속(겸직) 집합 치환 — `(memberId, { unitIds, primaryUnitId }) => void` (PW-368).
+   *
+   * 스프레드시트 탭의 소속 셀이 이걸 쓴다. 미주입이면 종전처럼 `onAssignOrgUnit`
+   * 단일 선택으로 열리는데, 그 경로는 **겸직자의 나머지 소속을 지운다** —
+   * 겸직을 다루는 화면이라면 반드시 이 prop 을 준다.
+   */
+  onChangeAffiliations,
   onCsvUpload,
   onManageTeams,
   /**
@@ -834,6 +842,8 @@ export default function AdminEmployeesCanvas({
           // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).
           orgUnitOptions={orgUnits}
           onAssignTeam={onAssignOrgUnit}
+          // 소속 셀의 정본 경로 — 배열 치환(PW-368). 주어지면 팝업이 다중 선택으로 열린다.
+          onChangeAffiliations={onChangeAffiliations}
           onAssignCeo={onAssignCeo}
           onReleaseCeo={onReleaseCeo}
           // 스쿼드는 소속과 별도 축·별도 컬럼(SQ1). 원장이 비면 컬럼 자체가 안 뜬다.
