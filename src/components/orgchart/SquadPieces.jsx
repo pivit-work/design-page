@@ -227,9 +227,11 @@ export function SquadComposition({ squad, members, personOf }) {
  * 버그다(§10-A17). 두 슬라이더 사이의 구분 캡션도 **생략할 수 없다** — 이 화면에서 오독이
  * 가장 잦은 지점이라 상시 노출한다.
  *
- * 권한도 축마다 다르다 — ① 비중은 조직이 정하고(`canEditShare`), ② 캐파는 본인이
- * 정한다(`canEditCapacity`). 본인에게 ①을 **감추지 않고 읽기 전용으로** 보여주는 이유:
- * 내 캐파를 정하려면 내가 이 스쿼드에서 어느 정도 몫을 지는지 알아야 한다.
+ * 권한도 축마다 다르다 — ① 비중은 조직이 정하고(`canEditShare`), ② 캐파는 **본인만**
+ * 정한다(`canEditCapacity`, 대행 없음). 잠긴 값을 **감추지 않고 읽기 전용으로** 보여주는
+ * 이유는 양쪽 모두 같다: 내 캐파를 정하려면 내 비중을 알아야 하고, 배분을 정하려면 상대의
+ * 캐파를 알아야 한다. 잠근 자리에는 **사유 한 줄**을 반드시 붙인다 — 비활성 슬라이더만
+ * 있고 이유가 없으면 사용자는 버그로 읽는다(§5-3.9 2·3).
  *
  * `othersPct`   = 이 사람이 **다른 활성 스쿼드**에 이미 쓰고 있는 캐파
  * `othersShare` = **이 스쿼드의 다른 팀원들**이 이미 가져간 비중
@@ -238,6 +240,7 @@ export function SquadAssignPopover({
   pos, anchorSelector = null, anchorRect = null,
   squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
   canEditShare = true, canEditCapacity = true, isSelf = false,
+  canRequestCapacity = false, capacityRequested = false, onRequestCapacity,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
   const boxRef = useRef(null);
@@ -371,16 +374,18 @@ export function SquadAssignPopover({
             ② 개인 캐파 사용 <span className="sq-pop-axis-basis">내 캐파 100 기준</span>
             {isSelf
               ? <span className="sq-pop-axis-owner is-self">· 내가 정하는 값</span>
-              : <span className="sq-pop-axis-owner">· 본인 대신 조정</span>}
+              : <span className="sq-pop-axis-owner">· 본인만 정하는 값</span>}
           </p>
           {capacityUnset && (
             <p className="sq-pop-note">
               아직 설정되지 않았습니다 — 저장하기 전까지 캐파 합계에 포함되지 않습니다.
             </p>
           )}
-          {assignment.capacitySetBy === 'manager' && !capacityUnset && (
-            <p className="sq-pop-note">
-              관리자가 조정한 값입니다. 본인이 다시 저장하면 본인 설정으로 돌아갑니다.
+          {/* 잠긴 이유를 문장으로 말한다 — 자격이 무엇이든 결론은 하나로 끝난다(§5-3.9 6) */}
+          {!canEditCapacity && (
+            <p className="sq-pop-note" data-testid="squad-pop-capacity-locked">
+              이 값은 본인만 정합니다. 같은 비중이라도 그것이 그 사람의 100 중 얼마인지는
+              다른 스쿼드·숙련도·병행 업무가 정하기 때문입니다 — 관리자도 요청만 보냅니다.
             </p>
           )}
           <div className={`sq-pop-row${canEditCapacity ? '' : ' is-readonly'}`}>
@@ -434,6 +439,22 @@ export function SquadAssignPopover({
               </div>
             )}
           </div>
+
+          {/* 🔴 값을 대신 넣는 버튼은 두지 않는다 — 남는 조치는 이 요청 하나다(§5-3.9 4).
+              미설정이 아닌 배정에는 요청할 이유가 없어 버튼도 뜨지 않는다. */}
+          {canRequestCapacity && capacityUnset && (
+            <button
+              type="button"
+              className="sq-btn sq-btn-sm sq-btn-outline sq-pop-cap-request"
+              data-testid="squad-pop-capacity-request"
+              disabled={capacityRequested}
+              onClick={onRequestCapacity}
+            >
+              {capacityRequested
+                ? '요청됨 — 본인이 설정하면 반영됩니다'
+                : '캐파 설정 요청 보내기'}
+            </button>
+          )}
 
         </div>
 
