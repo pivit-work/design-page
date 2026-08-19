@@ -39,11 +39,17 @@ export const ADMIN_MENU = [
   { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
   { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
   { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
+  // 기획 정본(arch-nav-routing-policy §1-A)의 «② 평가 운영» 그룹 — 관리 다음, 시스템 앞.
+  // 화면은 평가 셸의 사이클 목록이고, 어드민 레일은 그 진입점만 갖는다.
+  { id: 'eval-cycle',    icon: '/icons-solid/clipboard-check.svg',     label: '평가 사이클',      group: 'eval-ops' },
   { id: 'billing',       icon: '/icons-solid/credit-card-02.svg',      label: '결제 · 구독',      group: 'billing' },
   { id: 'notifications', icon: '/icons-solid/alert-triangle.svg',      label: '알림 설정',        group: 'system' },
   // 기획(arch-nav-routing-policy §1-A ④ 시스템 설정 · admin-app.jsx ADMIN_NAV_ITEMS)이
   // '알림 설정' 바로 다음에 두는 항목 — 규칙 기반 알림 설정과 1회성 대량 발송을 나란히 둔다.
   { id: 'messages',      icon: '/icons-solid/mail-01.svg',             label: '메시지 발송',      group: 'system' },
   { id: 'integrations',  icon: '/icons-solid/link-01.svg',             label: '연동 설정',        group: 'system' },
+  // Log in As(임퍼소네이션) — 기획 정본이 «③ 시스템» 의 연동 설정과 AI 프롬프트 설정
+  // 사이에 둔다(2026-07-02 평가 HR 화면에서 이관).
+  { id: 'login-as',      icon: '/icons-solid/user-circle.svg',         label: 'Log in As',        group: 'system' },
   { id: 'ai-prompts',    icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
 ];
