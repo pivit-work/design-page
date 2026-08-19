@@ -16,7 +16,13 @@ import rowKey from './rowKey.js';
  * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A). 이니셔티브는 후속.
  *
  * onSubmit(objectives): objectives = [{ id?, title, weight, comOkr?, krs: [{ id?,
- *   title, target, unit, inputType('percent'|'binary'|'count'), weight, teamKrId? }] }]
+ *   title, target, unit, inputType('percent'|'binary'|'count'), weight, parentKrIds? }] }]
+ *
+ * 상위 KR 참조는 **`parentKrIds: string[]`** 다 (0~다, N:M). 한 KR 이 상위 성과
+ * 여러 곳에 기여하는 것이 정상이라 단일값으로 두면 그중 하나를 임의로 버린다.
+ * 미니맵 항목은 표시용 번호(`id`, 예: `KR 1`)와 **실제 참조 id**(`krId`)를 따로 갖는다 —
+ * 표시 번호는 그룹마다 겹쳐서 참조로 쓸 수 없다. 구 단일 필드 `teamKrId` 는
+ * `initialObjectives` 읽기에서만 하위호환으로 승격해 받는다(쓰기는 신 필드로만 한다).
  *
  * `initialObjectives` 를 주면 **같은 폼이 편집기로도 쓰인다** — 이미 등록된
  * Objective/KR 을 채운 채로 열리고, 저장 payload 는 원본 `id` 를 그대로 실어 보낸다.
@@ -43,6 +49,9 @@ let seq = 0;
 const nextId = () => { seq += 1; return `cf-${seq}`; };
 
 function emptyKr(linked, selfId) {
+  // 참조는 표시 번호(`id`)가 아니라 실제 KR id(`krId`)로 잡는다 — `KR 1` 은 그룹마다
+  // 겹쳐서 소비 측이 어느 상위인지 되찾을 수 없다.
+  const parentId = linked?.krId ?? null;
   return {
     key: nextId(),
     title: '',
@@ -52,7 +61,7 @@ function emptyKr(linked, selfId) {
     weight: '',
     // 개인 OKR 이므로 담당자 기본값은 본인 — 시안 okr-individual.jsx 의 pic=ME.name.
     ownerId: selfId ?? '',
-    teamKrId: linked?.id ?? null,
+    parentKrIds: parentId ? [parentId] : [],
   };
 }
 function emptyObjective(linkedKr, selfId) {
@@ -86,7 +95,8 @@ function seedObjective(o) {
       inputType: k.inputType ?? 'percent',
       weight: k.weight == null ? '' : String(k.weight),
       ownerId: k.ownerId ?? '',
-      teamKrId: k.teamKrId ?? null,
+      // 하위호환 읽기 — 구 단일 필드는 원소 1개짜리 배열로 승격한다.
+      parentKrIds: k.parentKrIds ?? (k.teamKrId ? [k.teamKrId] : []),
     })),
   };
 }
@@ -152,7 +162,7 @@ export default function OkrComposeFullModal({
         inputType: TYPE_INPUT[k.type] ?? 'count',
         weight: String(i === n - 1 ? 100 - base * (n - 1) : base),
         ownerId: selfId,
-        teamKrId: null,
+        parentKrIds: [],
       }));
       // Objective 가중치도 마찬가지 — 기존 Objective 가 없으면 100%.
       setObjectives((p) => [
@@ -239,7 +249,9 @@ export default function OkrComposeFullModal({
         inputType: k.inputType,
         weight: Number(k.weight) || 0,
         ownerId: k.ownerId || undefined,
-        teamKrId: k.teamKrId || undefined,
+        // 빈 배열도 그대로 보낸다 — 「마지막 상위를 끊었다」는 의미 있는 값이라
+        // undefined 로 접으면 소비 측이 "안 바뀜" 으로 읽어 연결이 살아남는다.
+        parentKrIds: k.parentKrIds ?? [],
       })),
     }));
     setSaving(true);
