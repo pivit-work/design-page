@@ -13,6 +13,12 @@ import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
  *   - `onGenerateDrafts(section?)` : AI 초안 생성 콜백. section 미지정 = 전체,
  *     'strengths'|'sbi'|'support'|'caps' = 해당 섹션만.
  *   - `generatingSection` : 현재 생성 중인 섹션 ('all'|섹션키|null).
+ *   - `aiFailures` : 초안 생성이 실패한 대상별 상태 (policy §7.5 · PW-321).
+ *     `{ [key]: { reason, retryLeft } }`, key 는 'all'|'strengths'|'sbi'|'support'|'caps'.
+ *     reason 은 'timeout'|'model_error'|'quota_exceeded' (판별 불가 시 'model_error').
+ *     retryLeft 는 남은 `다시 시도` 횟수. 이 prop 을 주지 않으면 동작이 이전과 같다.
+ *     상태 4종(idle/loading/success/failed)은 별도 prop 이 아니라 여기서 파생한다 —
+ *     generatingSection → loading, aiDrafts → success, aiFailures → failed.
  *   - `initialPerspective` : 서버에 저장된 매니저 관점 (자동 저장 복원).
  *     { strengths, sbi, support, capabilities, confirmed, mgrAgendas }.
  *     주어지면 모든 초기 상태를 이 값으로 채우고 멤버 자가진단/initialMgrAgendas
@@ -39,6 +45,73 @@ const MGR_SECTIONS = [
   { key: 'caps', title: '역량 매니저 평가', badges: SOURCE_BADGES, kind: 'caps' },
 ];
 const TEXTAREA_PLACEHOLDER = 'AI 초안 생성 또는 직접 입력';
+// ── AI 초안 실패 (policy §7.5 · PW-321) ─────────────────────────────────────
+// AI 호출은 반드시 실패한다 — 타임아웃·모델 오류·한도 초과는 장애가 아니라 정상
+// 범위 안의 결과다. 실패를 그릴 자리가 없어서 지금까지 침묵으로 끝났다.
+const AI_FAIL_TARGETS = {
+  all: 'AI 브리핑 및 매니저 관점 초안',
+  strengths: '관찰한 강점',
+  sbi: '개선 피드백',
+  support: '지원 계획',
+  caps: '역량 매니저 평가',
+};
+// 사유는 3분류, 행동은 2가지 — 한도 초과만 `다시 시도` 가 잠긴다 (§7.5.5).
+const AI_FAIL_MESSAGES = {
+  timeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
+  model_error: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  quota_exceeded:
+    '이번 달 조직 AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
+};
+const AI_FAIL_DEFAULT_REASON = 'model_error';
+const AI_FAIL_EXHAUSTED =
+  '여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.';
+const AI_FAIL_HINT = '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.';
+const AI_FAIL_QUOTA_TOOLTIP = 'AI 사용 한도가 복구되면 다시 시도할 수 있습니다';
+
+/**
+ * 인라인 실패 박스 — 실패한 대상 **안**, 입력 바로 위 (policy §7.5.3).
+ *
+ * 전역 오류 페이지로 보내지 않는 이유는 소비처 몫이지만, 그렇게 흡수한 실패를
+ * **말할 자리**가 여기다. 침묵은 실패 표시가 아니다 — 눌렀는데 아무 변화가 없으면
+ * 버튼이 고장난 것으로 읽힌다(§7.5.4 「조용히 빈 초안」 기각 사유).
+ *
+ * 박스의 구조·색은 사유와 무관하게 같다. 달라지는 것은 본문 문구와 버튼 활성뿐.
+ */
+function AiFailBox({ targetKey, failure, onRetry, busy }) {
+  const reason = AI_FAIL_MESSAGES[failure?.reason]
+    ? failure.reason
+    : AI_FAIL_DEFAULT_REASON;
+  const quota = reason === 'quota_exceeded';
+  // 한도 초과는 재시도 카운트를 쓰지 않으므로 소진 문구로 넘어가지 않는다.
+  const exhausted = !quota && (failure?.retryLeft ?? 0) <= 0;
+  const disabled = quota || exhausted || busy;
+  const message = exhausted ? AI_FAIL_EXHAUSTED : AI_FAIL_MESSAGES[reason];
+  return (
+    <div
+      className="ono-start-failbox"
+      role="alert"
+      data-testid={`ono-start-failbox-${targetKey}`}
+      data-reason={reason}
+    >
+      <span className="ono-start-failbox-title">
+        ⚠ {AI_FAIL_TARGETS[targetKey] ?? targetKey} 생성에 실패했습니다
+      </span>
+      <p className="ono-start-failbox-msg">{message}</p>
+      <div className="ono-start-failbox-actions">
+        <button
+          type="button"
+          className="ono-start-failbox-retry"
+          onClick={() => onRetry?.(targetKey)}
+          disabled={disabled}
+          title={quota ? AI_FAIL_QUOTA_TOOLTIP : undefined}
+        >
+          다시 시도
+        </button>
+        <span className="ono-start-failbox-hint">{AI_FAIL_HINT}</span>
+      </div>
+    </div>
+  );
+}
 const AI_WARN =
   'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
 const EMPTY_HINT = '아직 수집된 데이터가 없습니다.';
@@ -101,6 +174,7 @@ export default function StartOneOnOneView({
   aiDrafts,
   onGenerateDrafts,
   generatingSection = null,
+  aiFailures = null,
   initialPerspective = null,
   onPerspectiveChange,
   onBack,
@@ -288,6 +362,9 @@ export default function StartOneOnOneView({
     onGenerateDrafts(section);
   };
   const isGenerating = !!generatingSection;
+  // 실패 박스의 `다시 시도` — 'all' 은 섹션 미지정 호출로 되돌린다.
+  const retryGenerate = (key) => handleGenerate(key === 'all' ? undefined : key);
+  const failureOf = (key) => aiFailures?.[key] ?? null;
   const toggleConfirm = (key) => setConfirmed((p) => ({ ...p, [key]: !p[key] }));
 
   const removeMgrAgenda = (a) => setMgrAgendas((prev) => prev.filter((x) => x !== a));
@@ -405,6 +482,16 @@ export default function StartOneOnOneView({
                 ? 'AI 초안 생성 중...'
                 : 'AI 브리핑 및 매니저 관점 초안 전체 생성'}
             </button>
+          )}
+
+          {/* 전체 생성 실패 — 눌린 버튼 바로 아래에서 말한다 (policy §7.5.3). */}
+          {failureOf('all') && (
+            <AiFailBox
+              targetKey="all"
+              failure={failureOf('all')}
+              onRetry={retryGenerate}
+              busy={isGenerating}
+            />
           )}
 
           {/* AI 브리핑 카드 */}
@@ -573,6 +660,16 @@ export default function StartOneOnOneView({
                     )}
                     {aiGenerated[sec.key] && confirmed[sec.key] && (
                       <span className="ono-start-confirmed-label">✓ 확정됨</span>
+                    )}
+                    {/* 실패는 해당 필드 안, 입력 바로 위에 붙는다. 이미 받은 초안이
+                        있으면 지우지 않고 그 위에 얹는다 (재생성 실패 · §7.5.2). */}
+                    {failureOf(sec.key) && (
+                      <AiFailBox
+                        targetKey={sec.key}
+                        failure={failureOf(sec.key)}
+                        onRetry={retryGenerate}
+                        busy={isGenerating}
+                      />
                     )}
                     {sec.kind === 'textarea' ? (
                       <textarea

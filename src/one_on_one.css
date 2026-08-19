@@ -2016,6 +2016,66 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-wrap: wrap;
   gap: 8px;
 }
+/* ── AI 초안 실패 박스 (policy §7.5.3 · PW-321) ──────────────────────────────
+   실패한 대상 안, 입력 바로 위. 사유가 달라도 구조·색은 같다 — 달라지는 것은
+   본문 문구와 `다시 시도` 활성 여부뿐이다. */
+.ono-start-failbox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--componentColors-utility-error-utilityError200, #fecdca);
+  border-radius: 12px;
+  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+}
+.ono-start-failbox-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  overflow-wrap: anywhere;
+}
+.ono-start-failbox-msg {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  overflow-wrap: anywhere;
+}
+.ono-start-failbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ono-start-failbox-retry {
+  flex: none;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--componentColors-utility-error-utilityError600, #d92d20);
+  color: var(--text-white, #fff);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+}
+.ono-start-failbox-retry:disabled {
+  background: var(--componentColors-utility-gray-utilityGray200, #eaecf0);
+  color: var(--text-quaternary, #98a2b3);
+  cursor: not-allowed;
+}
+.ono-start-failbox-hint {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
 .ono-start-textarea {
   width: 100%;
   min-height: 120px;
