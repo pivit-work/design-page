@@ -72,6 +72,10 @@ const ROLE_OPTIONS = ['admin', 'manager', 'member'];
 // 수 없기 때문이다. 라벨이 없으면 원본 값을 그대로 두지 않고 '—' 로 — id 나 코드값이
 // 화면에 새는 것을 막는다.
 function optionLabel(col, o) {
+  // 값을 비우는 선택지(직군·직렬·직무처럼 지울 수 있어야 하는 컬럼)의 라벨.
+  // `optionLabels` 는 값 목록이 고정된 컬럼(권한·상태)용이라, 워크스페이스가
+  // 등록하는 값에는 쓸 수 없다 — 표에 없는 값이 전부 '—' 로 뭉개진다.
+  if (o === '' && typeof col === 'object' && col?.emptyLabel) return col.emptyLabel;
   const colId = typeof col === 'string' ? col : col?.id;
   const labels = typeof col === 'string' ? null : col?.optionLabels;
   if (labels) return labels[o] ?? (o === '' ? labels[''] ?? '—' : '—');
@@ -96,7 +100,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -109,6 +113,30 @@ const NO_SQUADS = [];
 
 /** `initialFilters` 기본값 — NO_SQUADS 와 같은 이유로 고정 객체다. */
 const EMPTY_FILTERS = {};
+
+/** 직군>직렬>직무 축의 기본값 — 같은 이유로 고정 객체다. */
+const EMPTY_JOB_AXIS = {
+  families: [], ladders: [], duties: [], laddersByFamily: {}, dutiesByLadder: {},
+};
+
+/**
+ * 상위 값으로 하위 선택지를 좁힌다(§1-3-d · §1-3-j).
+ *
+ * - 상위가 비어 있으면 좁히지 않는다 — 아직 안 정한 사람에게 빈 목록을 주면
+ *   위에서부터 고르라는 안내 없이 막힌 것처럼 보인다.
+ * - 매핑 자체가 없으면(조회 실패·구버전) 역시 좁히지 않는다.
+ * - 매핑이 있는데 하위가 0건이면 **빈 목록 그대로** 둔다. 그 직렬에 직무가 아직
+ *   없다는 사실을 전체 목록으로 덮으면, 고른 값이 저장에서 거부된다.
+ */
+function narrowByParent(all, map, parentValue) {
+  if (!parentValue) return all;
+  if (!map || Object.keys(map).length === 0) return all;
+  const children = map[parentValue];
+  if (!children) return [];
+  // 카탈로그(활성 값)와 교집합 — 비활성된 값이 매핑에만 남아 새로 선택되면 안 된다(D5).
+  const active = new Set(all);
+  return children.filter((c) => active.has(c));
+}
 
 /* ── 명부 내보내기 (screen-admin-employees-export.policy.md) ──────────
  * 아이콘은 이모지(⭳ · 🔒)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고
@@ -271,6 +299,11 @@ function mapMembers(list) {
       : [],
     jobLevel: m.jobLevel ?? '',
     jobPosition: m.jobPosition ?? '',
+    // 직군 > 직렬 > 직무 3단 (arch-core-data-model §1-3-a 7·8·19).
+    // ⚠ `jobTitle` 은 직무가 아니라 **직렬**이다(2026-08-10 M5-b, 키 이름만 남았다).
+    jobFamily: m.jobFamily ?? '',
+    jobTitle: m.jobTitle ?? '',
+    jobDuty: m.jobDuty ?? '',
     workLocation: m.workLocation ?? '',
     orgRole: m.orgRole ?? 'member',
     // 대표 여부는 편집 대상 컬럼이 아니라 행 상태다 — dirty 추적에 끼지 않도록
@@ -309,9 +342,13 @@ function EditCell({ col, row, value, onChange, onKeyDown, autoFocus }) {
   };
 
   if (col.type === 'select') {
-    // 현재 값이 옵션에 없으면(카탈로그에 없는 기존/커스텀 값) 보존해 첫 옵션으로 노출.
+    /* 옵션이 **행에 따라 다른** 컬럼(직렬·직무)은 그 행의 상위 값으로 좁힌 목록을
+       쓴다(§1-3-d · §1-3-j). 좁히기가 없는 컬럼은 종전처럼 컬럼 목록 그대로다. */
+    const colOptions = col.optionsForRow ? col.optionsForRow(row) : col.options;
+    // 현재 값이 옵션에 없으면(카탈로그에 없는 기존/커스텀 값, 나중에 매핑이 끊긴 값)
+    // 보존해 첫 옵션으로 노출한다 — 셀을 여는 것만으로 값을 잃으면 안 된다.
     let opts =
-      value && !col.options.includes(value) ? [value, ...col.options] : col.options;
+      value && !colOptions.includes(value) ? [value, ...colOptions] : colOptions;
     // 자기 자신은 자기 매니저가 될 수 없다 — 후보 목록은 컬럼 단위라 여기서 뺀다.
     // 서버도 거부하지만(409), 고를 수 있게 두면 저장 후에야 실패를 알게 된다.
     if (col.excludeSelf && row?.id) opts = opts.filter((o) => o !== row.id);
@@ -895,6 +932,22 @@ export default function AdminEmployeeSheetCanvas({
   // gradeOptions→직급(jobLevel 카탈로그), positionOptions→직책(jobPosition 카탈로그).
   gradeOptions = [],
   positionOptions = [],
+  /**
+   * 직군 > 직렬 > 직무 3단 축 (arch-core-data-model §1-3-a 7·8·19 · §1-3-d · §1-3-j).
+   *
+   * 셋을 **한 prop 으로 받는다** — 값 목록과 매핑이 따로 오면 "직렬 목록은 새것,
+   * 매핑은 옛것" 인 중간 상태가 생겨 고를 수 있는 값이 저장에서 거부된다.
+   *
+   *   families            : 직군 값 목록(활성)
+   *   ladders             : 직렬 값 목록(활성, 전체)
+   *   duties              : 직무 값 목록(활성, 전체)
+   *   laddersByFamily     : { 직군값: [직렬값] }
+   *   dutiesByLadder      : { 직렬값: [직무값] }
+   *
+   * 매핑을 못 받았으면(조회 실패·구버전) **좁히지 않고 전체를 보여준다.** 빈 목록으로
+   * 떨어뜨리면 고를 게 없어 값을 넣지 못하는데, 화면은 그 이유를 말해주지 못한다.
+   */
+  jobAxis = EMPTY_JOB_AXIS,
   // embedded=true 면 다른 캔버스(AdminEmployeesCanvas 전체구성원 탭) 안에 들어가는 모드 —
   // 자체 페이지 타이틀/부제 헤더를 숨기고 저장 컨트롤만 우측 정렬로 노출한다.
   embedded = false,
@@ -966,10 +1019,26 @@ export default function AdminEmployeeSheetCanvas({
   const COLUMNS = useMemo(() => {
     const cl = labels.cols || {};
     // 필드옵션 카탈로그가 있으면 select, 없으면 자유 텍스트로 폴백.
-    const catCol = (id, label, width, options) =>
-      options.length
-        ? { id, label, width, type: 'select', editable: true, options }
-        : { id, label, width, type: 'text', editable: true };
+    // `extra` 는 select 로 뜰 때만 붙인다 — 텍스트 폴백에 optionsForRow 를 달아 두면
+    // 아무 데도 쓰이지 않는 죽은 필드가 된다.
+    const catCol = (id, label, width, options, extra) => {
+      if (!options.length) {
+        return { id, label, width, type: 'text', editable: true };
+      }
+      // 값을 비울 수 있어야 하는 컬럼은 `emptyLabel` 로 빈 선택지를 얻는다.
+      // 🔴 빈 선택지는 **좁힌 목록에도** 붙어야 한다 — 안 붙이면 직렬을 고른 뒤에는
+      //    직무를 비울 방법이 사라진다(직렬을 바꿔 조합이 어긋난 그때가 정확히
+      //    비워야 하는 순간이다).
+      const withEmpty = (list) => (extra?.emptyLabel ? ['', ...list] : list);
+      return {
+        id, label, width, type: 'select', editable: true,
+        ...extra,
+        options: withEmpty(options),
+        ...(extra?.optionsForRow
+          ? { optionsForRow: (row) => withEmpty(extra.optionsForRow(row)) }
+          : null),
+      };
+    };
     const base = [
       { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
       // 닉네임(내부 호칭) — 평가·조직도·슬랙 표시명. 어드민이 관리하는 값이라 시트에서
@@ -984,6 +1053,22 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'department', label: cl.department || '부서', width: 180, type: 'readonly', editable: false, derived: true },
       catCol('jobLevel', cl.jobLevel || '직급', 110, gradeOptions),
       catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
+      /* 직군 > 직렬 > 직무 (§1-3-a 7·8·19). 위에서 아래로 좁혀지는 3단이다 —
+         직군을 고르면 그 직군의 직렬만, 직렬을 고르면 그 직렬에 매핑된 직무만
+         고를 수 있다. 매핑에 없는 조합은 서버가 400 으로 막으므로(INV-3 · INV-8),
+         고를 수 있는 값과 저장되는 값을 여기서 미리 맞춘다.
+         주의: `jobTitle` 은 직무가 아니라 **직렬**이다(M5-b, 키 이름만 남았다). */
+      catCol('jobFamily', cl.jobFamily || '직군', 110, jobAxis.families, { emptyLabel: '—' }),
+      catCol('jobTitle', cl.jobTitle || '직렬', 110, jobAxis.ladders, {
+        emptyLabel: '—',
+        optionsForRow: (row) =>
+          narrowByParent(jobAxis.ladders, jobAxis.laddersByFamily, row?.jobFamily),
+      }),
+      catCol('jobDuty', cl.jobDuty || '직무', 120, jobAxis.duties, {
+        emptyLabel: '—',
+        optionsForRow: (row) =>
+          narrowByParent(jobAxis.duties, jobAxis.dutiesByLadder, row?.jobTitle),
+      }),
       { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
@@ -1024,7 +1109,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions, managerCandidates]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions, managerCandidates, jobAxis]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -1038,7 +1123,30 @@ export default function AdminEmployeeSheetCanvas({
   const [selected, setSelected] = useState(new Set());
   // 표에서 보이는 모든 범주형 컬럼(부서·직급·직책·권한·상태)을 필터 대상으로. 값 미지정=전체.
   const [filters, setFilters] = useState(initialFilters);
-  const setFilter = (colId, v) => setFilters((f) => ({ ...f, [colId]: v }));
+  /**
+   * 필터 변경 — 3단 축(직군 > 직렬 > 직무)은 **상위를 바꾸면 어긋난 하위를 푼다.**
+   *
+   * 안 풀면 `직군=개발` + `직렬=HR` 처럼 아무도 안 걸리는 조합이 남아 목록이 0명이
+   * 되는데, 화면에는 두 칩이 나란히 멀쩡해 보여서 사람이 원인을 못 찾는다.
+   * 하위가 새 상위 아래에도 있으면 그대로 둔다 — 멀쩡한 선택을 지우지 않는다.
+   */
+  const setFilter = (colId, v) => setFilters((f) => {
+    const next = { ...f, [colId]: v };
+    const cascade = [
+      { child: 'jobTitle', parent: 'jobFamily', map: jobAxis.laddersByFamily },
+      { child: 'jobDuty', parent: 'jobTitle', map: jobAxis.dutiesByLadder },
+    ];
+    // 위에서 아래 순서로 훑는다 — 직군을 바꿔 직렬이 풀리면 직무도 이어서 풀려야 한다.
+    for (const { child, parent, map } of cascade) {
+      const parentValue = next[parent];
+      const childValue = next[child];
+      if (!childValue || childValue === '__all__') continue;
+      if (!parentValue || parentValue === '__all__') continue;
+      const allowed = narrowByParent([childValue], map, parentValue);
+      if (!allowed.includes(childValue)) next[child] = '__all__';
+    }
+    return next;
+  });
   const [search, setSearch] = useState(initialSearch);
   // 지금 이 시트에 없는 열로는 정렬하지 않는다 — 되살린 값이 화면에 없는 열을
   // 가리키면 표는 안 바뀌는데 헤더 화살표만 사라진 어정쩡한 상태가 된다.
@@ -1143,13 +1251,19 @@ export default function AdminEmployeeSheetCanvas({
     ...(squadOptions.length > 0 ? [{ id: 'squads', label: cl.squads || '스쿼드' }] : []),
     { id: 'jobLevel', label: cl.jobLevel || '직급' },
     { id: 'jobPosition', label: cl.jobPosition || '직책' },
+    /* 직군 > 직렬 > 직무 — 셀 편집과 **같은 3단**이다(§1-3-a 직무 열 주석).
+       상위 필터를 걸면 하위 필터의 후보가 그 아래로 좁혀진다. 종전 "직렬 필터 +
+       직급 필터로 대체" 규칙은 직무가 저장 필드가 되면서 폐기됐다(2026-08-16). */
+    { id: 'jobFamily', label: cl.jobFamily || '직군' },
+    { id: 'jobTitle', label: cl.jobTitle || '직렬', parentFilter: 'jobFamily' },
+    { id: 'jobDuty', label: cl.jobDuty || '직무', parentFilter: 'jobTitle' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     // 매니저는 사람 이름으로 거르는 축이 아니다(PW-300, 기획 §3.1) — 어드민이 알고 싶은
     // 것은 "누가 상급자냐" 가 아니라 **"아직 상급자가 없는 사람이 누구냐"** 다. 그래서
     // distinct 이름이 아니라 배정됨/미배정 2종 고정 옵션이다.
     { id: 'managerId', label: cl.manager || '매니저', meta: 'assigned' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.role, cl.manager, cl.status, squadOptions]);
+  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.jobFamily, cl.jobTitle, cl.jobDuty, cl.role, cl.manager, cl.status, squadOptions]);
   /**
    * 실제로 걸려 있는 필터만 추린 것 — **지금 필터 컬럼인 것만** 남긴다(PW-157).
    *
@@ -1223,7 +1337,18 @@ export default function AdminEmployeeSheetCanvas({
         fc.id === 'department'
           ? rows.flatMap((r) => (r.depts || []).map((d) => d.name))
           : rows.map((r) => r[fc.id]);
-      const vals = Array.from(new Set(raw.filter((v) => v !== '' && v != null)));
+      let vals = Array.from(new Set(raw.filter((v) => v !== '' && v != null).map(String)));
+      /* 상위 필터가 걸려 있으면 후보를 그 아래로 좁힌다(§1-3-d · §1-3-j).
+         좁히지 않으면 `직렬=HR` 로 걸어 둔 채 `직무=웹 퍼블리싱` 을 고를 수 있고,
+         그 조합은 아무도 안 걸려 늘 0명이다 — 사람은 필터가 고장 났다고 읽는다. */
+      if (fc.parentFilter) {
+        const parentValue = filters[fc.parentFilter];
+        const map = fc.id === 'jobTitle' ? jobAxis.laddersByFamily : jobAxis.dutiesByLadder;
+        if (parentValue && parentValue !== '__all__') {
+          const allowed = new Set(narrowByParent(vals, map, parentValue));
+          vals = vals.filter((v) => allowed.has(String(v)));
+        }
+      }
       out[fc.id] = vals
         .map((v) => ({
           value: String(v),
@@ -1234,7 +1359,7 @@ export default function AdminEmployeeSheetCanvas({
         .sort((a, b) => a.label.localeCompare(b.label));
     }
     return out;
-  }, [rows, FILTER_COLS, orgTree, L.unassigned, L.filterAssigned, L.filterUnassigned, squadOptions]);
+  }, [rows, FILTER_COLS, orgTree, L.unassigned, L.filterAssigned, L.filterUnassigned, squadOptions, filters, jobAxis]);
 
   // 소속 이름 전체(주 소속 + 겸직) — 검색·필터가 겸직 팀으로도 사람을 찾게 한다.
   // department 하나만 보면 마케팅팀을 겸직하는 사람이 '마케팅팀' 필터에서 사라진다.

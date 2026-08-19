@@ -35,7 +35,7 @@ const DEFAULT_LABELS = {
   exportRosterHint: '조회일 기준 재직자 전원 1인 1행',
   exportSummary: '현재 탭 집계',
   exportSummaryHint: '현재 탭의 요약 통계',
-  // 원본 명단 — 인사 필드 표준 13열(arch-core-data-model §1-3-a)
+  // 원본 명단 — 인사 필드 표준 14열(arch-core-data-model §1-3-a)
   rosterTitle: '원본 명단',
   rosterHint: '내보내기 CSV와 동일한 열',
   rosterCollapse: '접기',
@@ -49,7 +49,11 @@ const DEFAULT_LABELS = {
     jobPosition: '직책',
     jobLevel: '직급',
     jobFamily: '직군',
-    jobTitle: '직무',
+    // 🔴 `jobTitle` 은 **직렬**이다 (2026-08-10 M5-b 승격, 키 이름만 남았다).
+    //    직무는 아래 `jobDuty` 하나뿐 — 한 표에 '직무' 헤더가 두 번 나오면
+    //    어느 칸이 무엇인지 사람이 구분할 수 없다(PW-189 어휘 정정 · PW-323).
+    jobTitle: '직렬',
+    jobDuty: '직무',
     employmentType: '고용형태',
     employmentStatus: '재직상태',
     workLocation: '근무지',
@@ -230,12 +234,15 @@ function parseCSVLine(line) {
   return result;
 }
 
-/* ── 원본 명단(Raw 명단) — 인사 필드 표준 13열 ────────────────
+/* ── 원본 명단(Raw 명단) — 인사 필드 표준 14열 ────────────────
    조직 현황(조회일 기준)과 As Of(시점 재구성)가 같은 표를 쓴다. 열·라벨·순서를
-   한 곳에 두어 두 화면과 CSV 가 어긋나지 않게 한다("보이는 것 = 받는 것"). */
+   한 곳에 두어 두 화면과 CSV 가 어긋나지 않게 한다("보이는 것 = 받는 것").
+
+   직무(`jobDuty`)는 직렬(`jobTitle`) 바로 뒤다 — 직렬에 매달린 값이라 떨어뜨려
+   놓으면 표에서 상하 관계가 안 보인다(§1-3-a 표시 열 · PW-323). */
 const ROSTER_COLUMNS = [
   'name', 'employeeCode', 'teamPath', 'jobPosition', 'jobLevel',
-  'jobFamily', 'jobTitle', 'employmentType', 'employmentStatus',
+  'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'employmentStatus',
   'workLocation', 'managerName', 'hireDate', 'finalGrade',
 ];
 
