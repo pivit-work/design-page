@@ -92,6 +92,12 @@ const DEFAULT_LABELS = {
   noActions: '액션아이템이 없습니다',
   transcriptTitle: '대화 원문',
   transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
+  transcriptProcessing: '대화 원문을 만드는 중입니다',
+  transcriptFailed: '대화 원문을 만들지 못했습니다.',
+  transcriptRetry: '다시 시도',
+  transcriptRetrying: '다시 시도하는 중…',
+  transcriptRetryError: '다시 시도하지 못했습니다.',
+  transcriptNoRecording: '녹음되지 않아 대화 원문이 없습니다',
 
   analysisTitle: '대화 분석',
   analysisDesc: '대화 기록 기반 발화 비율 · 회차별 추이',
@@ -340,16 +346,72 @@ function ListScreen({
 
 /* ── ② 회의록 (읽기 전용) ─────────────────────────────── */
 /**
+ * 대화 원문이 비어 있는 이유를 말한다 (PW-329).
+ *
+ * 예전엔 셋을 모두 "이 회차에는 대화 기록이 없습니다" 로 보여줬다. 그러면 매니저는
+ * 기다려야 하는지(전사 중), 다시 눌러야 하는지(실패), 아무 일도 없었던 것인지
+ * (녹음 없음) 구분할 수 없다. 표시 형태는 같은 캔버스의 근거 발췌 상태 표시
+ * (`ono-mem-evidence-*`)를 그대로 쓴다 — 새 시각 요소를 만들지 않는다.
+ */
+function TranscriptStatus({ status, retrying, error, onRetry, L }) {
+  if (status === 'processing' || retrying) {
+    return (
+      <p className="ono-mem-evidence-status ono-mem-center" role="status" data-testid="ono-past-stt-processing">
+        {retrying ? L.transcriptRetrying : L.transcriptProcessing}
+      </p>
+    );
+  }
+
+  if (status === 'failed') {
+    return (
+      <p className="ono-mem-evidence-status ono-mem-center" data-testid="ono-past-stt-failed">
+        {error ? L.transcriptRetryError : L.transcriptFailed}{' '}
+        {onRetry && (
+          <button
+            type="button"
+            className="ono-mem-evidence-retry"
+            onClick={onRetry}
+            data-testid="ono-past-stt-retry"
+          >
+            {L.transcriptRetry}
+          </button>
+        )}
+      </p>
+    );
+  }
+
+  // 녹음이 올라온 적 없음 — 마이크 권한 거부도 여기다 (기획 §15-4 의 정상 동작).
+  if (!status) {
+    return (
+      <p className="ono-mem-hint ono-mem-center" data-testid="ono-past-stt-none">
+        {L.transcriptNoRecording}
+      </p>
+    );
+  }
+
+  // completed 인데 발화가 없는 경우 — 조용한 녹음 등.
+  return <p className="ono-mem-hint ono-mem-center">{L.transcriptEmpty}</p>;
+}
+
+
+/**
  * 대화 원문 — 매니저는 자기 회차의 전문을 그대로 본다. 멤버 화면의
  * `TranscriptSection` 은 공개 여부(`sttShared`)로 가리지만, 여기서는 가릴 대상이
  * 없다(본인이 공개 여부를 정하는 쪽이다).
  */
-function PastTranscript({ session, L, icons, baseUrl }) {
+function PastTranscript({ session, L, icons, baseUrl, transcription }) {
   const lines = session.sttTranscript ?? [];
+  const { retrying = false, error = false, onRetry } = transcription || {};
   return (
     <Section title={L.transcriptTitle} icon={icons.transcript} icons={icons} baseUrl={baseUrl}>
       {lines.length === 0 ? (
-        <p className="ono-mem-hint ono-mem-center">{L.transcriptEmpty}</p>
+        <TranscriptStatus
+          status={session.sttStatus ?? null}
+          retrying={retrying}
+          error={error}
+          onRetry={onRetry}
+          L={L}
+        />
       ) : (
         <div className="ono-mem-transcript">
           {lines.map((line, i) => (
@@ -377,6 +439,7 @@ function RecordScreen({
   formatDate,
   formatDuration,
   feedbackEvidence,
+  transcription,
   onBackToList,
 }) {
   const host = hostOf(session, null);
@@ -439,7 +502,13 @@ function RecordScreen({
         )}
       </Section>
 
-      <PastTranscript session={session} L={L} icons={icons} baseUrl={baseUrl} />
+      <PastTranscript
+        session={session}
+        L={L}
+        icons={icons}
+        baseUrl={baseUrl}
+        transcription={transcription}
+      />
     </>
   );
 }
@@ -546,6 +615,7 @@ export default function OneOnOneMemberMeetingsCanvas({
   healthBorder,
   renderAvatar,
   feedbackEvidence,
+  transcription,
   loading = false,
   error = false,
   onRetry,
@@ -596,6 +666,7 @@ export default function OneOnOneMemberMeetingsCanvas({
           formatDate={formatDate}
           formatDuration={formatDuration}
           feedbackEvidence={feedbackEvidence}
+          transcription={transcription}
           onBackToList={onBackToList}
         />
       ) : screen === 'analysis' ? (
