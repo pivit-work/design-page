@@ -2678,6 +2678,12 @@ button.ono-add-modal-input { cursor: pointer; }
   max-height: 420px;
   overflow-y: auto;
 }
+/* 결과 탭(DONE)의 "스크립트 미리보기" — 기획서 §4-4·§5-3 (maxHeight 160·overflowY auto).
+   발화를 잘라 내지 않고 높이만 줄인다. 스크롤하면 전량이 그대로 있고, 근거 발췌의
+   딥링크도 이 안에서 목표 발화까지 움직인다. */
+.ono-mem-transcript.is-preview {
+  max-height: 160px;
+}
 .ono-mem-transcript-note {
   margin: 0;
   padding: 16px;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { fill, hostOf, healthOf } from './sessionHelpers.js';
 
@@ -115,6 +115,7 @@ const DEFAULT_LABELS = {
   viewModeFull: '열람 모드 · 풀버전',
   recheckNeeded: '재점검 필요',
   transcriptTitle: 'STT 스크립트',
+  transcriptPreviewTitle: 'STT 스크립트 미리보기',
   transcriptNotShared: '대화 원문은 매니저가 공개하지 않았습니다',
   transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
   managerPreparing: '매니저가 정리 중입니다',
@@ -164,8 +165,24 @@ function Readiness({ value, L }) {
   );
 }
 
-export function Section({ title, icon, icons, baseUrl, badge, collapsible = true, children }) {
-  const [open, setOpen] = useState(true);
+/**
+ * 카드 섹션.
+ *
+ * 접힘은 기본적으로 **섹션이 스스로** 쥔다. 다만 근거 발췌의 「전문에서 보기」처럼
+ * 밖에서 펼쳐 줘야 하는 자리가 있어 `open`/`onOpenChange` 로 제어권을 넘길 수 있다
+ * (`open` 을 주면 controlled, 안 주면 지금까지와 똑같이 자체 state).
+ * `defaultOpen` 은 uncontrolled 일 때의 시작 상태다 — 미리보기는 접힌 채 시작한다.
+ */
+export function Section({
+  title, icon, icons, baseUrl, badge, collapsible = true,
+  defaultOpen = true, open: openProp, onOpenChange, children,
+}) {
+  const [selfOpen, setSelfOpen] = useState(defaultOpen);
+  const open = openProp === undefined ? selfOpen : openProp;
+  const setOpen = (next) => {
+    if (openProp === undefined) setSelfOpen(next);
+    if (onOpenChange) onOpenChange(next);
+  };
   const head = (
     <>
       <span className="ono-mem-card-title">
@@ -325,8 +342,59 @@ export function NoteGrid({ session, L, icons, baseUrl }) {
  * (`feedback-evidence.util.ts#toAnchor`: `stt-` + timestamp 의 `:` 를 `-` 로).
  * 규칙이 갈리면 「전문에서 보기」가 조용히 아무 데도 못 간다.
  */
-const transcriptAnchor = (line) =>
+export const transcriptAnchor = (line) =>
   `stt-${String(line?.timestamp ?? '').replace(/:/g, '-')}`;
+
+/**
+ * 근거 발췌 → 대화 원문 딥링크의 배선 한 벌 (PW-103 · PW-327).
+ *
+ * 앵커 집합·하이라이트·스크롤·접힌 섹션 펼치기가 화면마다 따로 적혀 있으면 한 곳만
+ * 고쳐지고 나머지는 조용히 어긋난다. 실제로 결과 탭은 이 배선이 통째로 빠져 있어
+ * 「전문에서 보기」가 렌더조차 되지 않았다(PW-327).
+ *
+ * - `alwaysEnabled` — 매니저 화면용. 매니저는 자기 회차의 전문을 늘 보므로
+ *   `sttShared` 로 잠그지 않는다(공개 여부를 정하는 쪽이 본인이다). 대신 전사가
+ *   아예 없는 회차에서는 갈 곳이 없으니 그대로 끈다.
+ * - `collapsed` — 미리보기처럼 접힌 채 시작하는 섹션. 딥링크는 **펼치고 나서** 간다.
+ *
+ * 주의: 스크롤을 `to()` 안에서 바로 하면 안 된다. 접힌 섹션은 그 시점에 본문이 DOM 에
+ * 없어 `querySelector` 가 null 이다. 앵커를 state 에 넣고 **렌더 뒤 effect** 에서
+ * 옮긴다.
+ */
+export function useTranscriptJump(session, { alwaysEnabled = false, collapsed = false } = {}) {
+  const containerRef = useRef(null);
+  const [hit, setHit] = useState(null);
+  const [open, setOpen] = useState(!collapsed);
+
+  const lines = session?.sttTranscript;
+  const anchors = useMemo(
+    () => new Set((lines ?? []).map(transcriptAnchor)),
+    [lines],
+  );
+  const has = useCallback((anchor) => !!anchor && anchors.has(anchor), [anchors]);
+  const to = useCallback((anchor) => {
+    if (!anchor || !anchors.has(anchor)) return;
+    setOpen(true);
+    setHit(anchor);
+  }, [anchors]);
+
+  // 하이라이트는 1.5초 뒤 스스로 꺼진다 — 어디로 왔는지 알리는 게 목적이지
+  // 그 줄을 계속 표시해 두려는 게 아니다.
+  useEffect(() => {
+    if (!hit) return undefined;
+    containerRef.current
+      ?.querySelector(`[data-anchor="${hit}"]`)
+      ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const id = setTimeout(() => setHit(null), 1500);
+    return () => clearTimeout(id);
+  }, [hit]);
+
+  const enabled = alwaysEnabled
+    ? (lines ?? []).length > 0
+    : session?.sttShared === true;
+
+  return { hit, open, setOpen, containerRef, jump: { enabled, has, to } };
+}
 
 /**
  * 대화 원문(STT 스크립트) — 회의록 풀버전의 "원본" (PW-81 · policy §10.7.2).
@@ -336,8 +404,17 @@ const transcriptAnchor = (line) =>
  *
  * 공개되지 않은 회차에서도 **섹션 자체는 그린다.** 숨기면 구성원은 "원문이 원래
  * 없는 것" 과 "매니저가 공개하지 않은 것" 을 구분할 수 없다.
+ *
+ * `preview` 는 결과 탭(DONE)용이다 — 기획서 §4-4·§5-3 이 그 자리를 "스크립트
+ * 미리보기(접기/펼치기 · maxHeight 160 · overflowY auto)" 로 정의한다. 히스토리
+ * 탭의 회의록 상세는 계속 풀버전이다(policy §10.7.2) — 서로 다른 화면이라 충돌이
+ * 아니다. 미리보기라고 해서 **발화를 잘라 내지는 않는다.** 높이를 줄여 접어 둘 뿐,
+ * 스크롤하면 전량이 그대로 있다.
  */
-function TranscriptSection({ session, managerName, L, icons, baseUrl, hit, containerRef }) {
+function TranscriptSection({
+  session, managerName, L, icons, baseUrl, hit, containerRef,
+  preview = false, open, onOpenChange,
+}) {
   const lines = session.sttTranscript ?? [];
   const shared = session.sttShared === true;
   const speakerLabel = (line) =>
@@ -347,13 +424,19 @@ function TranscriptSection({ session, managerName, L, icons, baseUrl, hit, conta
 
   return (
     <Section
-      title={L.transcriptTitle}
+      title={preview ? L.transcriptPreviewTitle : L.transcriptTitle}
       icon={icons.transcript}
       icons={icons}
       baseUrl={baseUrl}
-      collapsible={false}
+      collapsible={preview}
+      open={preview ? open : undefined}
+      onOpenChange={preview ? onOpenChange : undefined}
     >
-      <div className="ono-mem-transcript" ref={containerRef} data-testid="ono-transcript">
+      <div
+        className={`ono-mem-transcript${preview ? ' is-preview' : ''}`}
+        ref={containerRef}
+        data-testid="ono-transcript"
+      >
         {!shared ? (
           <p className="ono-mem-transcript-note" data-testid="ono-transcript-locked">
             {L.transcriptNotShared}
@@ -815,6 +898,9 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
 
   // 결과 탭이 늘 최신 회차인 것은 아니다 — 호스트가 지난 완료 회차를 넘길 수 있다.
   const host = hostOf(session, manager);
+  // 근거 발췌 → 전문 딥링크 (PW-327). 결과 탭의 전문은 **접힌 미리보기**라
+  // `collapsed` 로 시작하고, 딥링크가 펼친 뒤 그 발화로 옮긴다.
+  const transcript = useTranscriptJump(session, { collapsed: true });
   const hostAvatar = renderAvatar
     ? renderAvatar({ name: host.name, avatar: host.avatar, size: 32 })
     : avatar;
@@ -839,11 +925,12 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
         <>
           <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
-          {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) */}
+          {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) + 전문 딥링크 (PW-327) */}
           <ManagerFeedback
             session={session}
             managerName={host.name}
             L={L} icons={icons} baseUrl={baseUrl}
+            jump={transcript.jump}
             {...(feedbackEvidence || {})}
           />
 
@@ -880,6 +967,18 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
           {session.emotionTone && (
             <EmotionTone session={session} L={L} icons={icons} baseUrl={baseUrl} />
           )}
+
+          {/* 대화 전문 미리보기 — 발췌의 「전문에서 보기」가 갈 곳 (기획서 §5-3) */}
+          <TranscriptSection
+            session={session}
+            managerName={host.name}
+            L={L} icons={icons} baseUrl={baseUrl}
+            preview
+            hit={transcript.hit}
+            containerRef={transcript.containerRef}
+            open={transcript.open}
+            onOpenChange={transcript.setOpen}
+          />
         </>
       )}
     </>
@@ -905,27 +1004,8 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
     : avatar;
 
   // 근거 발췌 → 전문 딥링크 (PW-103 이 대상이 없어 남겨 둔 것).
-  const transcriptRef = useRef(null);
-  const [hit, setHit] = useState(null);
-  const anchors = new Set((session.sttTranscript ?? []).map(transcriptAnchor));
-  const jump = {
-    enabled: session.sttShared === true,
-    has: (anchor) => !!anchor && anchors.has(anchor),
-    to: (anchor) => {
-      if (!anchor || !anchors.has(anchor)) return;
-      setHit(anchor);
-      transcriptRef.current
-        ?.querySelector(`[data-anchor="${anchor}"]`)
-        ?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-    },
-  };
-  // 하이라이트는 1.5초 뒤 스스로 꺼진다 — 어디로 왔는지 알리는 게 목적이지
-  // 그 줄을 계속 표시해 두려는 게 아니다.
-  useEffect(() => {
-    if (!hit) return undefined;
-    const id = setTimeout(() => setHit(null), 1500);
-    return () => clearTimeout(id);
-  }, [hit]);
+  // 여기는 풀버전이라 전문이 늘 펼쳐져 있다 — 결과 탭과 배선만 공유한다(PW-327).
+  const transcript = useTranscriptJump(session);
 
   const okrSnapshot = session.aiBriefing?.okrStatus ?? [];
   const blockers = session.aiBriefing?.unresolvedBlockers ?? [];
@@ -977,7 +1057,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         session={session}
         managerName={host.name}
         L={L} icons={icons} baseUrl={baseUrl}
-        jump={jump}
+        jump={transcript.jump}
         {...(feedbackEvidence || {})}
       />
 
@@ -1011,8 +1091,8 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         session={session}
         managerName={host.name}
         L={L} icons={icons} baseUrl={baseUrl}
-        hit={hit}
-        containerRef={transcriptRef}
+        hit={transcript.hit}
+        containerRef={transcript.containerRef}
       />
     </>
   );
