@@ -184,6 +184,12 @@ export default function StartOneOnOneView({
   recording: recordingProp,
   onRecordingChange,
   onStartRecording,
+  // ── 녹음 일시정지 (선택) ──
+  // paused prop 이 주어지면 controlled. 콜백을 하나도 주지 않으면 녹음 위젯은
+  // 일시정지 버튼을 그리지 않는다 (일시정지를 지원하지 않는 소비처의 기존 화면).
+  paused = false,
+  onPause,
+  onResume,
   // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
   onStartMeeting,
   onEndMeeting,
@@ -323,11 +329,13 @@ export default function StartOneOnOneView({
     onRecordingChange?.(next);
   };
   const [elapsedSec, setElapsedSec] = useState(0);
+  // 일시정지 동안에는 세지 않는다 — 화면 경과 시간이 실제 녹음 길이보다 앞서면
+  // 전사 발화 시각(HH:MM:SS)을 앵커로 쓰는 근거 발췌와 어긋난다.
   useEffect(() => {
-    if (!recording) return undefined;
+    if (!recording || paused) return undefined;
     const id = setInterval(() => setElapsedSec((s) => s + 1), 1000);
     return () => clearInterval(id);
-  }, [recording]);
+  }, [recording, paused]);
 
   const startMeeting = () => {
     setElapsedSec(0);
@@ -390,6 +398,9 @@ export default function StartOneOnOneView({
             member={member}
             meetingTime={meetingTime}
             elapsed={formatElapsed(elapsedSec)}
+            paused={paused}
+            onPause={onPause}
+            onResume={onResume}
             onStop={endMeeting}
           />
         )}
