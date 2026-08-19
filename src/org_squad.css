@@ -888,6 +888,14 @@
   line-height: 18px;
   margin-top: 6px;
 }
+/* 「캐파 설정 요청」 — 잠긴 ② 아래 전폭 버튼. 관리자에게 남은 유일한 조치라 눈에 띄되
+   저장 액션(리드·해제)과 섞이지 않게 본문 안에 둔다 (§5-3.9 4). */
+.sq-pop-cap-request {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center;
+}
+.sq-pop-cap-request:disabled { opacity: 0.55; }
 /* ── 팝오버 두 축 (§5-3.3) ── */
 .sq-pop-axis {
   font-size: 12px;

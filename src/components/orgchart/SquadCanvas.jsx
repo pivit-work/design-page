@@ -68,7 +68,9 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
  */
 function cellHint(isMine, editable) {
   if (isMine) return '클릭: 내 캐파 설정';
-  return editable ? '클릭: 비중·캐파·리드 편집' : '';
+  // 타인 셀에서 열리는 것은 ①·③ 뿐이다 — 「캐파 편집」 을 약속하면 비활성 슬라이더가
+  // 버그로 읽힌다(§5-3.9 2).
+  return editable ? '클릭: 비중·리드 편집 (캐파는 본인만)' : '';
 }
 
 /**
@@ -119,6 +121,14 @@ export default function SquadCanvas({
   onDeleteSquad,
   onChangeStatus,
   onUpsertMember,
+  /**
+   * 「캐파 설정 요청」 — 남의 캐파에 대해 ①·③ 권한자가 할 수 있는 **유일한 조치**(§5-3.9).
+   *
+   * 안 넘기면 팝오버의 요청 버튼이 아예 뜨지 않는다. 값을 대신 넣는 경로는 어디에도 두지
+   * 않는다 — 두는 순간 캐파의 주인이 관리자로 되돌아간다.
+   * `(squadId, userId) => Promise<void>`
+   */
+  onRequestCapacity,
   onRemoveMember,
   onSetLead,
   onMemberClick,
@@ -220,14 +230,17 @@ export default function SquadCanvas({
     [editableSet],
   );
   /**
-   * 🔴 **두 축은 소유자가 다르므로 권한도 두 갈래다**(§5-3.7).
+   * 🔴 **두 축은 소유자가 다르므로 권한도 두 갈래다**(§5-3.7 · §5-3.9).
    *
    *  · ① 비중 — **조직**이 정한다. 편집 모드 + 조직 범위로만 판정하며, 대상이 본인이라는
    *    사실은 권한을 주지 않는다. 리드 지정·배정 해제도 조직의 결정이라 여기를 따른다.
-   *  · ② 캐파 사용 — **본인**이 정한다. 자기 행이면 역할·편집 모드와 무관하게 열린다.
-   *    `member` 가 자기 캐파를 정하는 것이 정상 경로다.
+   *  · ② 캐파 사용 — **본인 단독**이다. 판정식은 `요청자 == 대상자` **하나뿐**이며,
+   *    관리자 자격을 겹쳐도 넓어지지 않는다. `member` 가 자기 캐파를 정하는 것이 정상 경로다.
    *
-   * 이 갈림이 무너지면 관리자가 남의 시간을 추정해 적는 구조로 돌아간다.
+   * 🔴 종전에는 ②를 «본인 **또는** 조직 범위» 로 판정했다(관리자 대행). 그런데 스쿼드
+   *    리드는 대개 그 팀의 매니저를 겸하므로, 그 반쪽으로 「리드는 캐파를 못 고친다」 가
+   *    자격 이름만 바꿔 그대로 통과했다. 관리자도 그 사람의 100 을 모른다는 점은 리드와
+   *    같으므로 대행을 폐기한다 — 남는 조치는 [캐파 설정 요청] 하나다.
    */
   const canEditShareOf = useCallback(
     (userId) => isEditing && inScope(userId) && !!onUpsertMember,
@@ -238,8 +251,13 @@ export default function SquadCanvas({
     [currentUserId],
   );
   const canEditCapacityOf = useCallback(
-    (userId) => (!!onUpsertMember && isSelfRow(userId)) || canEditShareOf(userId),
-    [onUpsertMember, isSelfRow, canEditShareOf],
+    (userId) => !!onUpsertMember && isSelfRow(userId),
+    [onUpsertMember, isSelfRow],
+  );
+  /** 「캐파 설정 요청」 을 보낼 수 있는가 — ①·③ 권한자에게만(본인은 직접 정한다). */
+  const canRequestCapacityOf = useCallback(
+    (userId) => !!onRequestCapacity && !isSelfRow(userId) && inScope(userId),
+    [onRequestCapacity, isSelfRow, inScope],
   );
   /** 팝오버를 열 수 있는가 — 둘 중 하나라도 편집 가능하면 연다. */
   const canEditMemberOf = useCallback(
@@ -363,6 +381,19 @@ export default function SquadCanvas({
     onUpsertMember?.(squadId, userId, { sharePct: share });
   const setPct = (squadId, userId, pct) =>
     onUpsertMember?.(squadId, userId, { allocationPct: pct });
+  /**
+   * 요청은 **한 번**만 의미가 있다 — 눌린 셀을 로컬에 기억해 버튼을 곧바로 `요청됨` 으로
+   * 잠근다. 서버가 이미 요청된 배정을 409 로 돌려주더라도 사용자에게는 성공과 같아야
+   * 하므로(§7), 실패해도 잠금을 풀지 않는다.
+   */
+  const [capacityRequested, setCapacityRequested] = useState(() => new Set());
+  const requestCapacity = (squadId, userId) => {
+    setCapacityRequested((prev) => new Set(prev).add(`${squadId}:${userId}`));
+    return onRequestCapacity?.(squadId, userId);
+  };
+  const isCapacityRequested = (squadId, userId, assignment) =>
+    capacityRequested.has(`${squadId}:${userId}`) || !!assignment?.capacityRequested;
+
   const unassign = (squadId, userId) => {
     setPopover(null);
     return onRemoveMember?.(squadId, userId);
@@ -1007,7 +1038,6 @@ export default function SquadCanvas({
                                           `${nameOf(userId)} · ${sq.name}`,
                                           `개인 캐파 사용 ${capText(mm)} (내 캐파 100 기준 — 오른쪽 합계의 재료)`,
                                           `스쿼드 내 비중 ${mm.sharePct || 0}% (이 스쿼드 100 기준 — 합계에 들어가지 않음)`,
-                                          mm.capacitySetBy === 'manager' ? '관리자가 조정한 값' : '',
                                           capIdle ? CAPACITY_IDLE_HINT : '',
                                           isLead ? '리드' : '',
                                           cellHint(mine, editable),
@@ -1033,13 +1063,6 @@ export default function SquadCanvas({
                                             <span className="sq-cell-pct" style={{ color: sq.color }}>
                                               {mm.allocationPct}%
                                             </span>
-                                          )}
-                                          {mm.capacitySetBy === 'manager' && (
-                                            <span
-                                              className="sq-cell-adjusted"
-                                              data-testid={`squad-cell-adjusted-${sq.id}-${userId}`}
-                                              title="관리자가 조정한 값입니다"
-                                            >조정</span>
                                           )}
                                         </span>
                                         <span
@@ -1138,8 +1161,9 @@ export default function SquadCanvas({
                       (빗금 = 캐파 밖) · 100 가득 · 70~99 적정 · &lt;70 여유
                     </span>
                     <span className="sq-legend-item">
-                      소유자가 다르다 — <b>비중은 조직</b>이 정하고 <b>캐파 사용은 본인</b>이 정한다 ·
-                      점선 <b>—</b> = 미설정(합계 제외) · <b>조정</b> 배지 = 관리자가 대신 정한 값
+                      소유자가 다르다 — <b>비중은 조직</b>이 정하고 <b>캐파 사용은 본인만</b> 정한다
+                      (리드·관리자는 대신 정할 수 없고 <b>[캐파 설정 요청]</b>만 보낸다) ·
+                      점선 <b>—</b> = 미설정(합계 제외)
                     </span>
                     <span className="sq-legend-item sq-legend-faint">
                       스쿼드 내 비중은 「캐파 사용」 합계에 들어가지 않는다 · 실제 투입%는 「리소스 투입현황」 자기신고 값과 별개
@@ -1168,6 +1192,9 @@ export default function SquadCanvas({
           counted={isCountedStatus(popSquad.status)}
           canEditShare={canEditShareOf(popover.userId)}
           canEditCapacity={canEditCapacityOf(popover.userId)}
+          canRequestCapacity={canRequestCapacityOf(popover.userId)}
+          capacityRequested={isCapacityRequested(popover.squadId, popover.userId, popAssign)}
+          onRequestCapacity={() => requestCapacity(popover.squadId, popover.userId)}
           isSelf={isSelfRow(popover.userId)}
           onSetShare={(share) => setShare(popover.squadId, popover.userId, share)}
           onSetPct={(pct) => setPct(popover.squadId, popover.userId, pct)}
