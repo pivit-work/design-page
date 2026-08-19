@@ -7,6 +7,8 @@ import {
   ManagerFeedback,
   SessionHeader,
   EmotionTone,
+  transcriptAnchor,
+  useTranscriptJump,
 } from './OneOnOneMemberCanvas.jsx';
 
 /**
@@ -399,7 +401,7 @@ function TranscriptStatus({ status, retrying, error, onRetry, L }) {
  * `TranscriptSection` 은 공개 여부(`sttShared`)로 가리지만, 여기서는 가릴 대상이
  * 없다(본인이 공개 여부를 정하는 쪽이다).
  */
-function PastTranscript({ session, L, icons, baseUrl, transcription }) {
+function PastTranscript({ session, L, icons, baseUrl, transcription, hit, containerRef }) {
   const lines = session.sttTranscript ?? [];
   const { retrying = false, error = false, onRetry } = transcription || {};
   return (
@@ -413,16 +415,26 @@ function PastTranscript({ session, L, icons, baseUrl, transcription }) {
           L={L}
         />
       ) : (
-        <div className="ono-mem-transcript">
-          {lines.map((line, i) => (
-            <div className="ono-mem-transcript-line" key={`${line.timestamp}-${i}`}>
-              <div className="ono-mem-transcript-meta">
-                <span>{line.speaker === 'host' ? L.roleManager : L.roleMember}</span>
-                <span>{line.timestamp}</span>
+        /* 발화마다 앵커를 단다 — 근거 발췌의 「전문에서 보기」가 여기로 온다(PW-327).
+           앵커 규칙은 서버(`feedback-evidence.util.ts#toAnchor`)와 같아야 한다. */
+        <div className="ono-mem-transcript" ref={containerRef} data-testid="ono-transcript">
+          {lines.map((line, i) => {
+            const anchor = transcriptAnchor(line);
+            return (
+              <div
+                className={`ono-mem-transcript-line${hit === anchor ? ' is-hit' : ''}`}
+                data-anchor={anchor}
+                data-testid="ono-transcript-line"
+                key={`${anchor}-${i}`}
+              >
+                <div className="ono-mem-transcript-meta">
+                  <span>{line.speaker === 'host' ? L.roleManager : L.roleMember}</span>
+                  <span>{line.timestamp}</span>
+                </div>
+                <p className="ono-mem-transcript-text">{line.text}</p>
               </div>
-              <p className="ono-mem-transcript-text">{line.text}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Section>
@@ -432,6 +444,7 @@ function PastTranscript({ session, L, icons, baseUrl, transcription }) {
 function RecordScreen({
   session,
   memberName,
+  managerName,
   renderAvatar,
   L,
   icons,
@@ -442,8 +455,13 @@ function RecordScreen({
   transcription,
   onBackToList,
 }) {
-  const host = hostOf(session, null);
+  const host = hostOf(session, { name: managerName });
   const actions = session.actionItems ?? [];
+  // 근거 발췌 → 대화 원문 딥링크 (PW-327).
+  // 여기서는 `sttShared` 로 잠그지 않는다 — 전문 공개는 **멤버에게** 보일지의 스위치이고,
+  // 매니저는 자기 회차의 전문을 늘 본다(바로 아래 PastTranscript 가 그대로 그린다).
+  // 같은 조건을 여기 걸면 자기가 공개하지 않은 회차에서 자기 화면의 딥링크가 사라진다.
+  const transcript = useTranscriptJump(session, { alwaysEnabled: true });
   return (
     <>
       <SessionHeader
@@ -471,6 +489,7 @@ function RecordScreen({
         L={L}
         icons={icons}
         baseUrl={baseUrl}
+        jump={transcript.jump}
         {...(feedbackEvidence || {})}
       />
 
@@ -508,6 +527,8 @@ function RecordScreen({
         icons={icons}
         baseUrl={baseUrl}
         transcription={transcription}
+        hit={transcript.hit}
+        containerRef={transcript.containerRef}
       />
     </>
   );
@@ -595,6 +616,12 @@ function AnalysisScreen({
 /* ── 캔버스 ───────────────────────────────────────────── */
 export default function OneOnOneMemberMeetingsCanvas({
   memberName = '',
+  /**
+   * 지금 보고 있는 매니저의 이름 — 근거 발췌 화자 라벨("{name} 매니저")에 쓴다.
+   * 매니저 자기 목록 응답에는 `managerName` 이 비어 오므로(자기 자신이라 서버가
+   * 채우지 않는다) 호스트가 넘긴다. 회차에 이름이 실려 있으면 그쪽이 먼저다(PW-211).
+   */
+  managerName = '',
   /** 'list' | 'record' | 'analysis'. 라우팅은 호스트가 쥔다 — 뒤로가기가 동작해야 한다. */
   view = 'list',
   /** 완료 회차만, 최신이 먼저. 필터·정렬은 호스트가 한다. */
@@ -659,6 +686,7 @@ export default function OneOnOneMemberMeetingsCanvas({
         <RecordScreen
           session={session}
           memberName={memberName}
+          managerName={managerName}
           renderAvatar={renderAvatar}
           L={L}
           icons={I}
