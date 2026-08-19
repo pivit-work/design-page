@@ -100,7 +100,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -274,6 +274,7 @@ function mapMembers(list) {
   return (list || []).map((m) => ({
     id: m.id,
     name: m.name ?? '',
+    nickname: m.nickname ?? '',
     displayName: m.displayName ?? '',
     email: m.email ?? '',
     phone: m.phone ?? '',
@@ -1041,9 +1042,15 @@ export default function AdminEmployeeSheetCanvas({
     };
     const base = [
       { id: 'name', label: cl.name || '이름', width: 120, type: 'text', editable: true },
-      // 닉네임(내부 호칭) — 평가·조직도·슬랙 표시명. 어드민이 관리하는 값이라 시트에서
-      // 편집한다(PW-8). 본인도 내 설정에서 볼 수 있지만 정본은 여기다.
-      { id: 'displayName', label: cl.displayName || '닉네임', width: 120, type: 'text', editable: true },
+      /* 이름 표기 두 열은 **다른 값**이다(arch-core-data-model §1-1-c, PW-364).
+         · 닉네임(`nickname`)  = 사내 호칭의 **원값**. 예 `데이빗`. 슬랙 멘션·AI 문장·
+           인사말이 이 값을 그대로 쓴다 — 표시 문자열의 괄호 앞을 잘라 쓰지 않는다.
+         · 표시 이름(`displayName`) = 화면에 찍히는 **조합 문자열**. 예 `데이빗(민현식)`.
+           비워 두면 화면이 `닉네임(본명)` 으로 알아서 조합한다.
+         이름(1) 바로 뒤에 둔다 — 사내에서 사람을 찾는 실제 키가 호칭인 조직이 대상이다.
+         어드민이 관리하는 값이라 시트에서 편집한다(PW-8). */
+      { id: 'nickname', label: cl.nickname || '닉네임', width: 110, type: 'text', editable: true },
+      { id: 'displayName', label: cl.displayName || '표시 이름', width: 130, type: 'text', editable: true },
       { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
       // 전화번호·근무지도 본인 프로필에서 잠긴 인사 정보 — 어드민이 여기서 넣는다(PW-25).
       { id: 'phone', label: cl.phone || '전화번호', width: 130, type: 'text', editable: true },
@@ -1417,7 +1424,7 @@ export default function AdminEmployeeSheetCanvas({
       const orgPath = orgTree.length ? (primaryOrgEntry(orgTree, r.orgUnitIds)?.pathLabel ?? '') : '';
       const hit =
         orgPath.toLowerCase().includes(q)
-        || ['name', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
+        || ['name', 'nickname', 'displayName', 'email', 'jobPosition', 'jobLevel'].some(
           (k) => (r[k] || '').toLowerCase().includes(q),
         )
         || deptNamesOf(r).some((n) => n.toLowerCase().includes(q))
@@ -1459,7 +1466,7 @@ export default function AdminEmployeeSheetCanvas({
   // ── 일괄 편집 바 ──
   // 일괄 편집 바에서 제외 — 사람마다 다른 값이라 여러 행에 같은 값을 찍는 게 의미 없다
   // (이름·이메일과 같은 이유로 닉네임도 뺀다).
-  const PER_PERSON_COLS = new Set(['name', 'displayName', 'email', 'phone']);
+  const PER_PERSON_COLS = new Set(['name', 'nickname', 'displayName', 'email', 'phone']);
   const barCols = COLUMNS.filter((c) => c.editable && !PER_PERSON_COLS.has(c.id));
   const barActiveCount = Object.values(barValues).filter((v) => v !== '' && v !== undefined).length;
   function applyBar() {
