@@ -720,6 +720,9 @@ export default function AdminEmployeesCanvas({
   canViewSalary = false,
   gradeOptions,
   positionOptions,
+  // 직군 > 직렬 > 직무 3단 축 — 시트로 그대로 내려간다(PW-323). 여기서 빠뜨리면
+  // 세 컬럼이 카탈로그 없는 자유 텍스트로 폴백해, 좁히기도 드롭다운도 사라진다.
+  jobAxis,
   onSaveMembers,
   onDeleteMember,
   onLoadSalaryHistory,
@@ -812,6 +815,7 @@ export default function AdminEmployeesCanvas({
           canViewSalary={canViewSalary}
           gradeOptions={gradeOptions}
           positionOptions={positionOptions}
+          jobAxis={jobAxis}
           canEdit={canEdit}
           renderAvatar={renderAvatar}
           onSaveMembers={onSaveMembers}
