@@ -282,9 +282,15 @@ function mapMembers(list) {
     // 겸직(중복 소속) — 소속 셀은 행을 복제하지 않고 칩을 세로로 쌓는다(PW-111).
     // 행을 복제하면 ① 체크박스 선택·일괄 저장·페이지네이션의 단위가 사람 수와
     // 어긋나고 ② 어느 행을 지워야 하는지 모호해진다.
-    // 형태: [{ name, isPrimary, orgUnitId? }] — 주 소속이 맨 앞. 미지정이면 department 폴백.
+    // 형태: [{ name, isPrimary, orgUnitId? }] — 주 소속이 맨 앞.
     // orgUnitId 가 있으면 칩을 **전체 조직 경로**로 그린다(PW-112).
-    depts: Array.isArray(m.depts) && m.depts.length > 0
+    //
+    // 🔴 `depts` 를 배열로 주면 **빈 배열도 그대로 존중**한다 — 「소속 없음」이다(MC8).
+    // 예전엔 빈 배열도 `department` 텍스트로 폴백해서, 소속을 뗀 사람의 셀에 옛 팀
+    // 이름이 남았다(미배정 탭·조직도는 미배정인데 이 셀만 팀 이름, PW-368).
+    // 조직 단위를 쓰는지 아는 것은 호출부뿐이라, 판정을 여기서 대신하지 않는다.
+    // `depts` 를 아예 안 주는 호출부(데모·옛 화면)에만 텍스트 부서가 폴백이다.
+    depts: Array.isArray(m.depts)
       ? m.depts
       : m.department
         ? [{ name: m.department, isPrimary: true }]
@@ -920,6 +926,16 @@ export default function AdminEmployeeSheetCanvas({
   // orgUnitOptions: [{ id, name }], onAssignTeam(memberId, orgUnitId) — '' 이면 미배정.
   orgUnitOptions = [],
   onAssignTeam,
+  /**
+   * 소속(겸직) 집합 치환 — `onChangeAffiliations(memberId, { unitIds, primaryUnitId })`.
+   *
+   * 🔴 소속 셀의 **정본 경로**다(PW-368, `admin-spec.md §3.8.3-B`). 이 셀은 겸직을
+   * 칩으로 쌓아 보여주는데, 편집이 `onAssignTeam` 단일 값이면 하나를 고르는 순간
+   * 나머지 소속이 조용히 사라진다. 주입되면 팝업이 다중 선택으로 열린다.
+   *
+   * `onAssignTeam` 은 이 prop 이 없는 옛 호출부를 위한 폴백으로만 남는다.
+   */
+  onChangeAffiliations,
   // ── 스쿼드 축 (arch-core-data-model.md §1-5-b) ──
   // 소속(기능조직)과 **평행한 별도 축**이다. squadOptions 가 비면 컬럼 자체가 없다.
   // squadOptions: [{ id, name, status }] — 원장 전체(종료·보관 포함. 표기 범위는 SQ5 가 가른다)
@@ -1946,7 +1962,10 @@ export default function AdminEmployeeSheetCanvas({
                       // 어디인지 알려주지 않으면 읽기전용이 그냥 막힌 셀로만 보인다.
                       // 부서 셀: 조직 트리 팝업이 가능하면 그걸 우선한다(화면 이동은 폴백).
                       const canAssign =
-                        c.derived && canEdit && !!onAssignTeam && orgUnitOptions.length > 0;
+                        c.derived
+                        && canEdit
+                        && (!!onChangeAffiliations || !!onAssignTeam)
+                        && orgUnitOptions.length > 0;
                       const derivedJump = c.derived && canEdit && !canAssign && onManageTeams;
                       // 스쿼드 셀 — 핸들러가 없으면 편집 표면 자체가 없다(읽기 전용 표기만).
                       const canPickSquads = c.squadCell && canEdit && !!onChangeSquads;
@@ -2121,17 +2140,34 @@ export default function AdminEmployeeSheetCanvas({
       </div>
 
       {/* 소속 선택 트리 팝업 (PW-112) — 하위 조직까지 계층으로 보고 고른다 */}
-      {assignRowId && canEdit && onAssignTeam && orgUnitOptions.length > 0 && (
-        <OrgTreePicker
-          open
-          units={orgUnitOptions}
-          value={primaryOrgEntry(orgTree, (rows.find((r) => r.id === assignRowId) || {}).orgUnitIds)?.id ?? ''}
-          subtitle={(rows.find((r) => r.id === assignRowId) || {}).name}
-          labels={L.orgPicker}
-          onApply={(unitId) => onAssignTeam(assignRowId, unitId)}
-          onClose={() => setAssignRowId(null)}
-        />
-      )}
+      {assignRowId && canEdit && (onChangeAffiliations || onAssignTeam) && orgUnitOptions.length > 0 && (() => {
+        const target = rows.find((r) => r.id === assignRowId) || {};
+        // 겸직 초기 선택은 소속 칩이 들고 있는 조직 id 에서 읽는다 — 이름으로 맞추면
+        // 동명이팀에서 틀린다. id 가 없는 레거시 행(텍스트 부서)은 선택이 비어 열린다.
+        const chips = (target.depts || []).filter((d) => d.orgUnitId);
+        const fallbackPrimary = primaryOrgEntry(orgTree, target.orgUnitIds)?.id ?? '';
+        const selectedIds = chips.length > 0
+          ? chips.map((d) => d.orgUnitId)
+          : (fallbackPrimary ? [fallbackPrimary] : []);
+        const primaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+        return (
+          <OrgTreePicker
+            open
+            units={orgUnitOptions}
+            multi={!!onChangeAffiliations}
+            selectedIds={selectedIds}
+            primaryId={primaryUnitId}
+            value={fallbackPrimary}
+            subtitle={target.name}
+            labels={L.orgPicker}
+            onApply={(payload) => {
+              if (onChangeAffiliations) onChangeAffiliations(assignRowId, payload);
+              else onAssignTeam(assignRowId, payload);
+            }}
+            onClose={() => setAssignRowId(null)}
+          />
+        );
+      })()}
 
       {/* 스쿼드 선택 팝업 (PW-113) — 계층이 없어 상태로 묶어 고른다(SQ9) */}
       {squadRowId && canEdit && onChangeSquads && squadOptions.length > 0 && (() => {

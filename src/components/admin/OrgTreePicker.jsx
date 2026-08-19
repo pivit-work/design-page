@@ -19,7 +19,19 @@ import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
  *  · 접근성: role="tree" + aria-level. 들여쓰기는 시각 표현일 뿐이므로 계층을
  *       별도로 전달한다. 키보드 ↑↓ 이동 / → 펼침 / ← 접기 / Enter 선택
  *
- * 겸직(다중 선택)·조직장 지정은 이 컴포넌트의 책임이 아니다(PW-111·PW-110).
+ * 겸직(다중 선택) — `multi` (PW-368)
+ *  · 정본 `admin-spec.md §3.8.3-B`. 소속 셀은 겸직을 칩으로 쌓아 **보여주는데** 편집만
+ *    단일 선택이면, 하나를 고르는 순간 나머지 소속이 조용히 사라진다. 그래서 편집도
+ *    배열이어야 한다.
+ *  · 체크박스로 여러 조직을 고르고, 그중 하나를 `[주 소속으로]` 로 지정한다.
+ *    1곳만 고르면 **자동으로** 주 소속이다 — 한 곳뿐인데 따로 누르게 하면 대부분
+ *    주 소속 없는 상태를 만든다.
+ *  · 주 소속을 체크 해제하면 **남은 첫 조직**이 주 소속이 된다(B1). 선택이 비지 않는다.
+ *  · 전부 해제하면 「선택 없음」 문구로 미배정이 된다고 **적용 전에** 고지한다(B2).
+ *
+ * 조직장(매니저) 지정은 이 컴포넌트의 책임이 아니다(PW-110). 시트의 소속 팝업에 두지
+ * 않는 것은 의도다 — 남의 자격을 떼고 권한을 승격시키는 파괴적 동작이라 확인 모달이
+ * 따라붙고, 수십 행을 훑는 편집 화면의 성격이 아니다(§3.8.3-B 「의도적으로 다른 점」).
  */
 
 const T = {
@@ -46,6 +58,13 @@ const DEFAULT_LABELS = {
   cancel: '취소',
   expand: '펼치기',
   collapse: '접기',
+  // 겸직(다중 선택) 전용 — PW-368
+  multiHint: '여러 조직을 고를 수 있습니다. 주 소속은 한 곳입니다.',
+  primary: '주 소속',
+  makePrimary: '주 소속으로',
+  makePrimaryTitle: '이 조직을 주 소속으로 지정합니다',
+  selectedCount: '선택 {count}곳',
+  clearAll: '모두 해제',
 };
 
 /** 접힘 여부 — 조상 중 하나라도 접혀 있으면 숨긴다. 검색 중에는 접힘을 무시한다. */
@@ -57,8 +76,18 @@ function isHidden(entry, collapsed, searching) {
 export default function OrgTreePicker({
   open = true,
   units = [],
-  /** 현재 선택된 조직 id ('' 이면 미배정) */
+  /** 현재 선택된 조직 id ('' 이면 미배정). `multi` 면 무시된다. */
   value = '',
+  /**
+   * 겸직(다중 선택) 모드 — PW-368. 켜면 `selectedIds`·`primaryId` 를 읽고
+   * `onApply({ unitIds, primaryUnitId })` 로 돌려준다. 끄면 종전과 같이
+   * 단일 선택이며 `onApply(unitId)` 다.
+   */
+  multi = false,
+  /** multi 모드의 현재 소속 id 배열 — 주 소속이 맨 앞일 필요는 없다. */
+  selectedIds = [],
+  /** multi 모드의 현재 주 소속 id. */
+  primaryId = '',
   onApply,
   onClose,
   labels: providedLabels,
@@ -69,8 +98,24 @@ export default function OrgTreePicker({
   const tree = useMemo(() => buildOrgTree(units), [units]);
 
   const initial = value != null ? String(value) : '';
-  const [syncedValue, setSyncedValue] = useState(initial);
+  // multi 의 초기값은 배열이라 `!==` 비교로는 매 렌더가 "바뀜" 이 된다 — 문자열 키로 굳힌다.
+  const initialMulti = useMemo(
+    () => (selectedIds || []).map(String).filter(Boolean),
+    [selectedIds],
+  );
+  const initialPrimary = primaryId != null ? String(primaryId) : '';
+  const syncKey = multi
+    ? `m:${initialMulti.join(',')}|${initialPrimary}`
+    : `s:${initial}`;
+
+  const [syncedValue, setSyncedValue] = useState(syncKey);
   const [sel, setSel] = useState(initial);
+  // multi: 고른 조직 id 배열. **선택 순서를 보존**한다 — 주 소속이 빠졌을 때
+  // "남은 첫 조직" 이 무엇인지가 이 순서로 정해진다(B1).
+  const [picked, setPicked] = useState(initialMulti);
+  const [primary, setPrimary] = useState(
+    initialPrimary || initialMulti[0] || '',
+  );
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState({});
   const [activeIdx, setActiveIdx] = useState(0);
@@ -78,9 +123,11 @@ export default function OrgTreePicker({
 
   // 대상이 바뀌면(다른 행에서 같은 팝업을 재사용) 현재 값으로 초기화한다.
   // "이전 props 와 비교해 렌더 중 상태 조정" 패턴 — effect 안 setState 는 캐스케이드 렌더가 된다.
-  if (syncedValue !== initial) {
-    setSyncedValue(initial);
+  if (syncedValue !== syncKey) {
+    setSyncedValue(syncKey);
     setSel(initial);
+    setPicked(initialMulti);
+    setPrimary(initialPrimary || initialMulti[0] || '');
     setQuery('');
     setCollapsed({});
     setActiveIdx(0);
@@ -122,6 +169,34 @@ export default function OrgTreePicker({
   const selEntry = findOrgEntry(tree, sel);
   const toggleCollapse = (id) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
 
+  /**
+   * 다중 선택 토글 (PW-368).
+   *
+   * 주 소속 규칙을 **선택을 바꾸는 그 자리에서** 함께 맞춘다. 따로 두면 「주 소속이
+   * 선택 밖을 가리키는」 중간 상태가 화면에 생기고, 그게 서버에서 422 로 돌아온다.
+   *  · 처음 고른 한 곳은 자동으로 주 소속
+   *  · 주 소속을 해제하면 남은 **첫 조직**이 주 소속
+   *  · 전부 해제하면 주 소속도 비운다(= 미배정)
+   */
+  const togglePick = (id) => {
+    if (!id) return;
+    setPicked((prev) => {
+      const on = prev.includes(id);
+      const next = on ? prev.filter((x) => x !== id) : [...prev, id];
+      setPrimary((cur) => {
+        if (next.length === 0) return '';
+        if (!on) return cur && next.includes(cur) ? cur : next[0];
+        return cur === id || !next.includes(cur) ? next[0] : cur;
+      });
+      return next;
+    });
+  };
+
+  const clearAll = () => {
+    setPicked([]);
+    setPrimary('');
+  };
+
   const onKeyDown = (e) => {
     if (navRows.length === 0) return;
     const cur = navRows[cursor];
@@ -137,7 +212,13 @@ export default function OrgTreePicker({
       if (cur && !collapsed[cur]) { e.preventDefault(); toggleCollapse(cur); }
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      setSel(cur ?? '');
+      // multi 에서 Enter 는 체크 토글이다 — 단일 모드의 "이 하나로 정한다" 와 다르다.
+      if (multi) {
+        if (cur) togglePick(cur);
+        else clearAll();
+      } else {
+        setSel(cur ?? '');
+      }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose?.();
@@ -191,7 +272,15 @@ export default function OrgTreePicker({
             {labels.title}
             {subtitle && <span style={{ marginLeft: 6, fontWeight: 600, color: T.sub }}>{subtitle}</span>}
           </h3>
-          <p style={{ margin: '4px 0 10px', fontSize: 11, color: T.muted, lineHeight: 1.5 }}>{labels.hint}</p>
+          <p style={{ margin: '4px 0 10px', fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
+            {labels.hint}
+            {multi && (
+              <>
+                <br />
+                <span data-testid="org-tree-picker-multi-hint">{labels.multiHint}</span>
+              </>
+            )}
+          </p>
           <input
             autoFocus
             value={query}
@@ -253,10 +342,24 @@ export default function OrgTreePicker({
                 ) : (
                   <span style={{ width: 16, flexShrink: 0 }} />
                 )}
+                {multi && !ghost && (
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(e.id)}
+                    onChange={() => { togglePick(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
+                    aria-label={e.pathLabel}
+                    data-testid={`org-tree-check-${e.id}`}
+                    style={{ cursor: 'pointer', accentColor: T.accent, flexShrink: 0, marginRight: 2 }}
+                  />
+                )}
                 <button
                   type="button"
                   disabled={ghost}
-                  onClick={() => { setSel(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
+                  onClick={() => {
+                    if (multi) togglePick(e.id);
+                    else setSel(e.id);
+                    if (navIdx >= 0) setActiveIdx(navIdx);
+                  }}
                   title={e.pathLabel}
                   style={{
                     ...rowStyle(selected, ghost),
@@ -268,6 +371,34 @@ export default function OrgTreePicker({
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
                 </button>
+                {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
+                {multi && picked.includes(e.id) && (
+                  primary === e.id ? (
+                    <span
+                      data-testid={`org-tree-primary-badge-${e.id}`}
+                      style={{
+                        flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
+                        padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
+                        background: '#EEF2FF', border: `1px solid #C7D2FE`, color: T.accent,
+                      }}
+                    >
+                      {labels.primary}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`org-tree-make-primary-${e.id}`}
+                      onClick={() => setPrimary(e.id)}
+                      title={labels.makePrimaryTitle}
+                      style={{
+                        flexShrink: 0, fontSize: 10, color: T.muted, background: 'none',
+                        border: 'none', cursor: 'pointer', fontFamily: T.font, padding: '0 2px',
+                      }}
+                    >
+                      {labels.makePrimary}
+                    </button>
+                  )
+                )}
               </div>
             );
           })}
@@ -276,29 +407,70 @@ export default function OrgTreePicker({
             <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{labels.empty}</p>
           )}
 
-          {/* P7 — 미배정은 항상 최하단, 들여쓰기 0 */}
-          <div role="treeitem" aria-level={1} aria-selected={sel === ''}>
+          {/* P7 — 미배정은 항상 최하단, 들여쓰기 0.
+              multi 에서는 「미배정을 고른다」가 아니라 **모두 해제**다 — 선택을 비우는
+              것이 곧 미배정이므로 같은 뜻을 두 조작으로 두지 않는다. */}
+          <div role="treeitem" aria-level={1} aria-selected={multi ? picked.length === 0 : sel === ''}>
             <button
               type="button"
-              onClick={() => { setSel(''); setActiveIdx(navRows.length - 1); }}
+              data-testid={multi ? 'org-tree-clear-all' : undefined}
+              onClick={() => {
+                if (multi) clearAll();
+                else setSel('');
+                setActiveIdx(navRows.length - 1);
+              }}
               style={{
-                ...rowStyle(sel === '', false),
+                ...rowStyle(multi ? picked.length === 0 : sel === '', false),
                 marginTop: 4,
                 borderTop: `1px solid ${T.border}`,
                 borderRadius: 0,
-                color: sel === '' ? T.accent : T.sub,
+                color: (multi ? picked.length === 0 : sel === '') ? T.accent : T.sub,
                 outline: cursor === navRows.length - 1 ? `2px solid ${T.accent}` : 'none',
                 outlineOffset: -2,
               }}
             >
-              {labels.unassigned}
+              {multi ? labels.clearAll : labels.unassigned}
             </button>
           </div>
         </div>
 
         {/* 선택 요약 — 전체 경로로 보여준다(동명이팀 구분, P4) */}
         <div style={{ padding: '10px 20px', borderTop: `1px solid ${T.border}`, background: T.bg }}>
-          {selEntry ? (
+          {multi ? (
+            picked.length === 0 ? (
+              // B2 — 적용 버튼을 누르기 **전에** 미배정이 된다고 말한다.
+              <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>{labels.none}</span>
+            ) : (
+              <div data-testid="org-tree-picker-selection" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: T.sub, marginRight: 2 }}>
+                  {String(labels.selectedCount).split('{count}').join(String(picked.length))}
+                </span>
+                {picked.map((id) => {
+                  const entry = findOrgEntry(tree, id);
+                  const isPrimary = id === primary;
+                  return (
+                    <span
+                      key={id}
+                      data-testid={`org-tree-picked-${id}`}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
+                        color: isPrimary ? T.accent : T.sub, background: T.card,
+                        border: `1px solid ${isPrimary ? '#C7D2FE' : T.border}`,
+                        borderRadius: 99, padding: '2px 9px', boxSizing: 'border-box',
+                        overflowWrap: 'anywhere',
+                        fontWeight: isPrimary ? 700 : 500,
+                      }}
+                    >
+                      {entry ? entry.pathLabel : id}
+                      {isPrimary && (
+                        <span style={{ fontSize: 9, fontWeight: 800 }}>{labels.primary}</span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            )
+          ) : selEntry ? (
             <span
               data-testid="org-tree-picker-selection"
               style={{
@@ -328,7 +500,13 @@ export default function OrgTreePicker({
           </button>
           <button
             type="button"
-            onClick={() => { onApply?.(sel); onClose?.(); }}
+            onClick={() => {
+              // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
+              // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
+              if (multi) onApply?.({ unitIds: picked, primaryUnitId: picked.length ? primary : null });
+              else onApply?.(sel);
+              onClose?.();
+            }}
             style={{
               padding: '7px 16px', borderRadius: 8, border: 'none', background: T.accent,
               color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer',
