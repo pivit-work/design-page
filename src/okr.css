@@ -206,6 +206,24 @@
 .okr-p-obj-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: var(--text-secondary); line-height: 28px; }
 .okr-p-obj-link { margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); line-height: 20px; }
 
+/* 미정렬 배지 — 팀 보드 Objective 행 · 대시보드 Objective 요약 행이 공유한다.
+   같은 뜻에 다른 배지를 만들면 사용자가 둘을 구별해야 한다. warning 토큰만 쓰고
+   새 시각 언어를 만들지 않는다. 배지 안 문자열은 길이가 흔들리므로(집계 수·보조 문구)
+   box-sizing/overflow 로 최종 방어한다. */
+.okr-unaligned-badge {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  box-sizing: border-box; max-width: 100%; flex-shrink: 0;
+  margin-top: 2px; padding: 3px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 800; line-height: 14px;
+  color: var(--utility-warning-600, #dc6803);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  overflow: hidden; overflow-wrap: anywhere;
+}
+.okr-unaligned-badge .okr-unaligned-note { font-weight: 400; }
+/* 좁은 요약 행(대시보드 트리)용 — 색·글자 규격은 같고 모서리·패딩만 줄인다. */
+.okr-unaligned-badge.is-pill { margin-top: 0; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
+
 /* Key Result 블록 — 왼쪽 32px 들여쓰기된 패널 */
 .okr-p-kr-block { margin-left: 32px; }
 .okr-p-kr-row { padding: 16px 0; background: var(--bg-secondary); cursor: pointer; }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
+import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
 
 /**
@@ -53,6 +54,12 @@ export default function OkrObjectiveSection({ objective, icons, baseUrl = '', de
             <ProgressCell {...objective} />
           </div>
           {objective.teamLink && <p className="okr-p-obj-link">↑ {objective.teamLink}</p>}
+          {/* 미정렬 배지 — 하위 KR 이 상위 KR 을 하나도 가리키지 않을 때만.
+              판정은 소비자(어댑터)가 이미 끝낸 뒤 boolean 으로 넘긴다: 이 컴포넌트는
+              표시용 라벨을 판정에 섞을 수 없어야 한다. 기본값 false 라 기존 소비처는 그대로다. */}
+          {objective.unaligned && (
+            <OkrUnalignedBadge note="회사 OKR 미연결" title="상위 KR 에 연결된 하위 KR 이 없습니다" />
+          )}
         </div>
         <div className="okr-p-col-weight">{objective.weight}</div>
         <div className="okr-p-col-pic"><Pic pic={objective.pic} /></div>
