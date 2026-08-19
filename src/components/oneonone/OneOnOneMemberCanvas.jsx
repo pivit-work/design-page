@@ -76,6 +76,14 @@ const DEFAULT_LABELS = {
   addTopic: '추가', topicExamples: '예) 커리어 방향 · 업무 부하 · 협업 이슈',
   prepCompleteHint: '준비가 끝나면 매니저가 미팅을 시작합니다.',
   startMeeting: '미팅 시작',
+  /* 「준비 완료」 — 상태를 넘기는 버튼이 아니라 **매니저에게 알리는** 버튼이다.
+     시안 `1on1-member-view.jsx` READY 푸터의 `준비 완료 → 매니저에게 알림`. */
+  memberReady: '준비 완료',
+  memberReadyHint: '준비를 마쳤다고 매니저에게 알립니다.',
+  memberReadySent: '매니저에게 알렸습니다',
+  memberReadySentHint: '작성한 내용이 매니저에게 공유되었습니다.',
+  memberReadyFailed: '준비 완료를 보내지 못했습니다.',
+  memberReadyRetry: '다시 시도',
   elapsed: '경과', prepSummary: '준비 요약', okrStatus: 'OKR 현황', agenda: '논의 아젠다',
   pendingActions: '미완료 액션아이템',
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
@@ -617,7 +625,7 @@ export function SessionHeader({ title, status, date, duration, avatar, L, icons,
 }
 
 /* ── ① 준비 (READY) ───────────────────────────────────── */
-function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart }) {
+function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady }) {
   const [draft, setDraft] = useState('');
   const topics = session.memberTopics ?? [];
   const prevActions = session.aiBriefing?.prevActions ?? [];
@@ -727,12 +735,70 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
         {topics.length === 0 && <p className="ono-mem-hint">{L.topicExamples}</p>}
       </Section>
 
-      {isHost && (
+      {/* 🔴 푸터의 버튼은 «누가 보고 있는가» 로 갈린다.
+          호스트(매니저가 자기 회차를 열었을 때)는 「미팅 시작」 — 상태를 넘긴다.
+          멤버는 「준비 완료」 — **상태를 넘기지 않고 매니저에게 알린다.**
+          두 사람이 같은 버튼을 나눠 갖지 않는다는 규칙이 여기서 지켜진다. */}
+      {isHost ? (
         <div className="ono-mem-footer">
           <span className="ono-mem-hint">{L.prepCompleteHint}</span>
           <button type="button" className="ono-mem-btn" onClick={onStart}>{L.startMeeting}</button>
         </div>
+      ) : (
+        <MemberReadyFooter
+          sent={!!session.memberReadyAt}
+          state={memberReady}
+          onClick={onMemberReady}
+          L={L}
+        />
       )}
+    </>
+  );
+}
+
+/**
+ * 멤버 READY 푸터 — 「준비 완료」.
+ *
+ * 이미 보낸 회차에서는 비활성으로 두고 문구를 바꾼다. 눌러도 아무 변화가 없으면
+ * 사용자는 버튼이 고장난 것으로 읽는다.
+ *
+ * 실패는 **이 자리 안에서** 말한다 — 준비 화면에는 사용자가 방금 적은 주제가 있어,
+ * 전역 오류 화면으로 보내면 그것을 날린다 (PW-321 과 같은 규칙, 같은 실패 박스).
+ */
+function MemberReadyFooter({ sent, state, onClick, L }) {
+  const busy = !!state?.busy;
+  const error = state?.error;
+  return (
+    <>
+      {error && (
+        <div className="ono-start-failbox" role="alert" data-testid="ono-mem-ready-error">
+          <span className="ono-start-failbox-title">{L.memberReadyFailed}</span>
+          <div className="ono-start-failbox-actions">
+            <button
+              type="button"
+              className="ono-start-failbox-retry"
+              onClick={onClick}
+              disabled={busy}
+            >
+              {L.memberReadyRetry}
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="ono-mem-footer">
+        <span className="ono-mem-hint">
+          {sent ? L.memberReadySentHint : L.memberReadyHint}
+        </span>
+        <button
+          type="button"
+          className={`ono-mem-btn${sent ? ' is-ok' : ''}`}
+          onClick={onClick}
+          disabled={sent || busy}
+          data-testid="ono-mem-ready-btn"
+        >
+          {sent ? L.memberReadySent : L.memberReady}
+        </button>
+      </div>
     </>
   );
 }
@@ -1284,6 +1350,10 @@ export default function OneOnOneMemberCanvas({
   onSaveNotes = () => {},
   onToggleAction = () => {},
   onStart = () => {},
+  /** 멤버 「준비 완료」 — 매니저에게 알림만 간다. 상태는 바뀌지 않는다. */
+  onMemberReady = () => {},
+  /** 「준비 완료」 진행/실패 상태 — `{ busy, error }`. 호스트가 소유한다. */
+  memberReady = null,
   /**
    * 공개된 매니저 피드백의 근거 발췌 (PW-103).
    * `{ evidence: { items: [{ key, edited, evidence: [...] }] }, loading, error, onRetry }`.
@@ -1317,6 +1387,7 @@ export default function OneOnOneMemberCanvas({
           session={session} manager={manager} avatar={avatar} okrStatus={okrStatus}
           healthHistory={healthHistory} isHost={isHost} healthColor={healthColor}
           onTopicsChange={onTopicsChange} onStart={onStart}
+          onMemberReady={onMemberReady} memberReady={memberReady}
         />
       ) : <div className="ono-mem-empty">{L.noPrepSession}</div>)}
 
