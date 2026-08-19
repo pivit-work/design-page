@@ -40,6 +40,7 @@ const DEFAULT_ICONS = {
   back: '/icons-solid/arrow-left.svg',
   clock: '/icons-solid/clock.svg',
   history: '/icons-solid/clock-rewind.svg',
+  pattern: '/icons-solid/refresh-ccw-01.svg',
   record: '/icons-solid/file-06.svg',
   analysis: '/icons-solid/message-chat-circle.svg',
   notes: '/icons-solid/file-06.svg',
@@ -74,6 +75,10 @@ const DEFAULT_LABELS = {
   memberTalk: '멤버 발화',
   actionsDone: '액션 {done}/{total}',
   noRatio: '대화 기록 없음',
+
+  /* 반복 패턴 감지 — 매니저 화면에만 있는 DONE 산출물 (PW-370). */
+  recurringPatterns: '반복 패턴 감지',
+  recurringPatternsDesc: '여러 회차에 걸쳐 되풀이되는 것만 모았습니다',
 
   recordTitle: '{name}님과의 1on1',
   recordTitleNoName: '1on1 회의록',
@@ -441,6 +446,38 @@ function PastTranscript({ session, L, icons, baseUrl, transcription, hit, contai
   );
 }
 
+/**
+ * 반복 패턴 감지 (PW-370) — **매니저 화면에만 있는** DONE 산출물.
+ *
+ * 이 화면이 곧 매니저 전용이라 여기 두는 것으로 수신자 구분이 성립한다. 서버도
+ * 멤버 응답에서 `recurringPatterns` 를 제거하므로 이중으로 막힌다.
+ *
+ * 패턴이 없으면 **섹션 자체를 그리지 않는다.** 빈 섹션은 「아직 안 돌았다」와
+ * 「반복이 없다」를 구분해 주지 못한다.
+ */
+function RecurringPatterns({ session, L, icons, baseUrl }) {
+  const patterns = session.recurringPatterns ?? [];
+  if (patterns.length === 0) return null;
+  return (
+    <Section
+      title={L.recurringPatterns}
+      icon={icons.pattern}
+      icons={icons}
+      baseUrl={baseUrl}
+    >
+      <p className="ono-mem-hint">{L.recurringPatternsDesc}</p>
+      <div className="ono-past-patterns" data-testid="ono-past-patterns">
+        {patterns.map((text, i) => (
+          <div className="ono-past-pattern" key={i}>
+            <Icon src={icons.pattern} size={14} color="currentColor" baseUrl={baseUrl} />
+            <span className="ono-past-pattern-text">{text}</span>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 function RecordScreen({
   session,
   memberName,
@@ -482,6 +519,8 @@ function RecordScreen({
       </SessionHeader>
 
       <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
+
+      <RecurringPatterns session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
       <ManagerFeedback
         session={session}

@@ -3029,3 +3029,30 @@ button.ono-add-modal-input { cursor: pointer; }
   text-overflow: ellipsis;
   max-width: 100%;
 }
+
+/* ── 반복 패턴 감지 (PW-370) ──
+   회차를 가로지르는 관측이라 «이번 회차의 사실»(결정·재점검)과 색으로 구분한다 —
+   시안 `1on1-manager-view.jsx` 의 보라 박스. 매니저 화면에만 나온다. */
+.ono-past-patterns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ono-past-pattern {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-purple-50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+.ono-past-pattern-text {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
