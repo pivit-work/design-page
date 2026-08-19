@@ -1531,6 +1531,41 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-white);
   cursor: pointer;
 }
+/* 일시정지 / 재개 토글. 종료(빨강) 옆이라 amber 로 구분한다 —
+   280px 폭에 타이머(68) + 이 버튼(40) + 종료(90) 가 들어간다. */
+.ono-start-rec-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 10px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  /* SVG 는 currentColor 를 상속한다 — 색은 여기서만 준다. */
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  cursor: pointer;
+}
+.ono-start-rec-pause:hover {
+  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+}
+/* 일시정지 중: 경과 시간·파형이 "돌고 있다" 로 보이지 않게 amber 로 얼린다. */
+.ono-start-rec-mini.is-paused .ono-start-rec-elapsed {
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+}
+.ono-start-rec-mini.is-paused .ono-start-rec-wave span {
+  background: var(--componentColors-utility-warning-utilityWarning300, #fec84b);
+}
+.ono-start-rec-paused-note {
+  margin: 0;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+}
 .ono-start-view-body {
   display: flex;
   flex-direction: column;
