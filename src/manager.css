@@ -184,6 +184,79 @@
   font-weight: 500;
 }
 
+/* ── 빈 상태 ─────────────────────────────────────────────────
+   두 층위가 있다.
+   · `.manager-team-empty`  — 팀 레벨. 조회 범위 안 팀원이 0명일 때 KPI 아래 한 장.
+   · `.manager-section-empty` — 섹션 레벨. 팀원은 있는데 그 분류가 비었을 때 한 줄.
+   새 시각 언어를 만들지 않는다 — 카드 반경·본문 타이포는 이 화면의 기존 규격
+   (KPI 카드 radius, 사유 문장 14/24)을 그대로 쓴다. */
+.manager-team-empty-section {
+  /* 섹션 사이 간격(56px)보다 좁게 — 카드가 KPI 그리드에 붙어 그 아래를 설명한다. */
+  margin-bottom: 44px;
+}
+
+.manager-team-empty {
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  padding: 36px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.manager-team-empty-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  /* 팀명·조직명이 문구에 들어오므로 길이를 가정하지 않는다. */
+  overflow-wrap: anywhere;
+}
+
+.manager-team-empty-desc {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.manager-team-empty-action {
+  margin-top: 8px;
+  height: 36px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.manager-team-empty-action:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.manager-section-empty {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
 .manager-section-subtitle {
   font-family: var(--font-family-body);
   font-weight: 600;

@@ -43,6 +43,17 @@ export default function ManagerCanvas({
   teamMemberCount,
   summary,
   kpis = [],
+  /**
+   * 팀 레벨 빈 상태 — 조회 범위 안 팀원이 **0명**일 때만 넘어온다
+   * (`{ title, description, actionLabel?, onAction? }`). 없으면 아무것도 그리지 않는다.
+   *
+   * 아래 섹션들의 `emptyText`(= 「팀원은 있는데 이 분류가 비었다」)와 **층위가 다르다.**
+   * 팀원이 0명이면 섹션 문구는 0명 상황을 설명하지 못하고 둘이 나란히 뜨면 서로
+   * 모순돼 보이므로, 그때는 소비자가 `emptyText` 를 넘기지 않고 이 카드 한 장만 준다.
+   *
+   * 문구·라벨은 전부 소비자가 만든다 — 이 패키지는 i18n 을 모른다.
+   */
+  teamEmpty,
   actionQueue = { title: '오늘의 액션 큐', count: 0, countColor: 'var(--colors-error-500)', subtitle: '', members: [] },
   teamStatus = { title: '팀원 현황', count: 0, countColor: 'var(--colors-foreground-fgSuccessPrimary)', subtitle: '', members: [] },
   icons,
@@ -123,6 +134,26 @@ export default function ManagerCanvas({
         ))}
       </section>
 
+      {/* 팀 레벨 빈 상태 — KPI 그리드 바로 아래, 섹션들보다 위.
+          0명의 사유는 화면에서 한 번만 말한다. */}
+      {teamEmpty && (
+        <section className="manager-section manager-team-empty-section">
+          <div className="manager-team-empty" data-testid="manager-team-empty">
+            <p className="manager-team-empty-title">{teamEmpty.title}</p>
+            <p className="manager-team-empty-desc">{teamEmpty.description}</p>
+            {teamEmpty.actionLabel && (
+              <button
+                type="button"
+                className="manager-team-empty-action"
+                onClick={teamEmpty.onAction}
+              >
+                {teamEmpty.actionLabel}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="manager-section">
         <SectionHeading
           title={actionQueue.title}
@@ -130,6 +161,12 @@ export default function ManagerCanvas({
           countColor={actionQueue.countColor}
           subtitle={actionQueue.subtitle}
         />
+        {/* 섹션 레벨 빈 상태 — 「팀원은 있는데 이 분류가 비었다」.
+            팀원 자체가 0명이면 소비자가 `emptyText` 를 넘기지 않는다(위 `teamEmpty` 참조).
+            헤딩·카운트 0 은 어느 경우든 그대로 둔다 — 숨기면 고장난 것처럼 보인다. */}
+        {actionQueue.members.length === 0 && actionQueue.emptyText ? (
+          <p className="manager-section-empty">{actionQueue.emptyText}</p>
+        ) : (
         <div className="manager-member-grid">
           {actionQueue.members.map((m) => (
             <MemberCard
@@ -143,6 +180,7 @@ export default function ManagerCanvas({
             />
           ))}
         </div>
+        )}
       </section>
 
       <section className="manager-section">
@@ -152,6 +190,9 @@ export default function ManagerCanvas({
           countColor={teamStatus.countColor}
           subtitle={teamStatus.subtitle}
         />
+        {teamStatus.members.length === 0 && teamStatus.emptyText ? (
+          <p className="manager-section-empty">{teamStatus.emptyText}</p>
+        ) : (
         <div className="manager-member-grid">
           {teamStatus.members.map((m) => (
             <MemberCard
@@ -165,6 +206,7 @@ export default function ManagerCanvas({
             />
           ))}
         </div>
+        )}
       </section>
 
       </>
