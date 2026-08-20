@@ -227,9 +227,10 @@ export function SquadComposition({ squad, members, personOf }) {
  * 버그다(§10-A17). 두 슬라이더 사이의 구분 캡션도 **생략할 수 없다** — 이 화면에서 오독이
  * 가장 잦은 지점이라 상시 노출한다.
  *
- * 권한도 축마다 다르다 — ① 비중은 조직이 정하고(`canEditShare`), ② 캐파는 **본인만**
- * 정한다(`canEditCapacity`, 대행 없음). 잠긴 값을 **감추지 않고 읽기 전용으로** 보여주는
- * 이유는 양쪽 모두 같다: 내 캐파를 정하려면 내 비중을 알아야 하고, 배분을 정하려면 상대의
+ * 권한도 축마다 다르다 — ① 비중·③ 배정은 **그 스쿼드의 ⭐리드**가 주인이고 조직 범위와
+ * 합집합으로 판정하며(`canEditShare`·`canManageMember`), ② 캐파는 **본인만** 정하고
+ * (`canEditCapacity`, 대행 없음), ④ 리드 지정은 **조직만** 한다(`canAssignLead`).
+ * 잠긴 값을 **감추지 않고 읽기 전용으로** 보여주는 이유는 양쪽 모두 같다: 내 캐파를 정하려면 내 비중을 알아야 하고, 배분을 정하려면 상대의
  * 캐파를 알아야 한다. 잠근 자리에는 **사유 한 줄**을 반드시 붙인다 — 비활성 슬라이더만
  * 있고 이유가 없으면 사용자는 버그로 읽는다(§5-3.9 2·3).
  *
@@ -246,6 +247,16 @@ export function SquadAssignPopover({
   pos, anchorSelector = null, anchorRect = null,
   squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
   canEditShare = true, canEditCapacity = true, isSelf = false,
+  /**
+   * ③ 배정·해제 — ①과 같은 축이지만 **④(리드 지정)와는 다른 축**이라 따로 받는다.
+   * 기본값을 `canEditShare` 로 흘려보내지 않고 명시 prop 으로 둔 이유: 리드는 ③을 갖고
+   * ④는 못 갖는데, 한 값으로 묶어 두면 리드에게 「리드 지정」 버튼이 함께 열린다(§5-3.9).
+   */
+  canManageMember = true,
+  /** ④ ⭐리드 지정·해제 — 조직 범위만(`hr_admin`·`manager`). **리드 제외**. */
+  canAssignLead = true,
+  /** 지금 이 팝오버를 **리드 자격으로** 열었는가 — ① 캡션을 그 자격에 맞춰 말한다. */
+  viaLead = false,
   canRequestCapacity = false, capacityRequested = false, onRequestCapacity,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
@@ -326,7 +337,13 @@ export function SquadAssignPopover({
           {/* ① 스쿼드 내 비중 — 분모는 이 스쿼드의 볼륨 100 */}
           <p className="sq-pop-axis">
             ① 스쿼드 내 비중 <span className="sq-pop-axis-basis">이 스쿼드 100 기준</span>
-            {!canEditShare && <span className="sq-pop-axis-owner">· 조직이 정하는 값</span>}
+            {/* 이 값의 주인은 **그 스쿼드의 리드**다(§5-3.9 ①) — 자격에 따라 말이 달라진다.
+                잠긴 쪽에 「조직이 정하는 값」 이라고 쓰면 실제 주인을 가리키지 못한다. */}
+            {canEditShare
+              ? (viaLead
+                ? <span className="sq-pop-axis-owner is-self">· 리드인 내가 정하는 값</span>
+                : <span className="sq-pop-axis-owner">· 리드 대신 조정</span>)
+              : <span className="sq-pop-axis-owner">· 스쿼드 리드가 정하는 값</span>}
           </p>
           <div className={`sq-pop-row${canEditShare ? '' : ' is-readonly'}`}>
             <div className="rsx-slider" style={{ '--rsx-slider-fill': squad.color }}>
@@ -476,23 +493,28 @@ export function SquadAssignPopover({
 
         {/* 액션 — 하단 고정. 본문과 함께 흘려보내면 팝오버가 길어졌을 때 화면 밖으로
             밀려나고, 액션이 안 보이는 상태는 편집을 끝낼 수 없는 상태와 같다(§5-3.8).
-            리드 지정·배정 해제는 조직의 결정이라 ① 권한을 따른다 — 본인에게는 미노출 */}
-        {canEditShare && (
+            **두 버튼의 권한 축이 다르다**(§5-3.9): 배정 해제는 스쿼드 구성이라 ③
+            (리드 포함), 리드 지정은 위임을 옮기는 행위라 ④(조직만, 리드 제외)를 따른다. */}
+        {(canManageMember || canAssignLead) && (
           <div className="sq-pop-foot" data-testid="squad-assign-popover-actions">
             <div className="sq-pop-actions">
-              <button
-                type="button" onClick={onToggleLead}
-                className={`sq-btn sq-btn-sm sq-btn-outline sq-btn-lead${isLead ? ' is-on' : ''}`}
-              >
-                {isLead ? <LeadStarIcon size={12} /> : <LeadStarOutlineIcon size={12} />}
-                {isLead ? '리드 해제' : '리드 지정'}
-              </button>
-              <button
-                type="button" onClick={onRemove}
-                className="sq-btn sq-btn-sm sq-btn-unassign"
-              >
-                배정 해제
-              </button>
+              {canAssignLead && (
+                <button
+                  type="button" onClick={onToggleLead}
+                  className={`sq-btn sq-btn-sm sq-btn-outline sq-btn-lead${isLead ? ' is-on' : ''}`}
+                >
+                  {isLead ? <LeadStarIcon size={12} /> : <LeadStarOutlineIcon size={12} />}
+                  {isLead ? '리드 해제' : '리드 지정'}
+                </button>
+              )}
+              {canManageMember && (
+                <button
+                  type="button" onClick={onRemove}
+                  className="sq-btn sq-btn-sm sq-btn-unassign"
+                >
+                  배정 해제
+                </button>
+              )}
             </div>
           </div>
         )}
