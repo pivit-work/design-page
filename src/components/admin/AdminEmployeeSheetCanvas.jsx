@@ -255,6 +255,20 @@ export function IconCheck({ size = 13 }) {
   );
 }
 
+/** 더하기. `+` 글리프는 폰트마다 두께·수직 중심이 달라 버튼 라벨 옆에서 흔들린다. */
+export function IconPlusSmall({ size = 12 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
 /** 모달 닫기. `✕`(U+2715) 는 폰트마다 두께·중심이 달라 버튼 안에서 흔들린다. */
 export function IconClose({ size = 16 }) {
   return (
@@ -936,6 +950,22 @@ export default function AdminEmployeeSheetCanvas({
    * `onAssignTeam` 은 이 prop 이 없는 옛 호출부를 위한 폴백으로만 남는다.
    */
   onChangeAffiliations,
+  /**
+   * 일괄 소속 **추가** — `onAppendAffiliations(memberIds, unitIds)` (PW-373).
+   *
+   * 🔴 «추가» 밖에 없다. 일괄 편집 바에서 소속을 교체하면 선택한 겸직자 전원의
+   * 나머지 소속이 한 번에 사라지는데, 그것이 PW-326·PW-368 의 발단이었다
+   * (`admin-spec.md §3.8.3-B` 「일괄 편집 바」). 빼는 조작은 사람마다 따져야 하므로
+   * **행별 트리 팝업**(`onChangeAffiliations`)에서만 한다.
+   *
+   * 소속은 다른 일괄 필드와 달리 dirty → 「변경 저장」 경로를 타지 않는다 — 셀 편집과
+   * 같은 **즉시 반영**이라 별도 버튼으로 가른다. 미주입이면 바에 소속 칸 자체가 없다.
+   *
+   * 🔴 **건너뛴 인원(퇴사자 등) 안내는 소비자의 몫이다.** 여기서 그리지 않는 이유는
+   * 소비자가 적용 후 목록을 다시 불러오면 `members` 가 갈리면서 선택이 풀리고 바
+   * 자체가 사라지기 때문이다 — 이 자리에 문구를 두면 실제로는 뜨지 않는다.
+   */
+  onAppendAffiliations,
   // ── 스쿼드 축 (arch-core-data-model.md §1-5-b) ──
   // 소속(기능조직)과 **평행한 별도 축**이다. squadOptions 가 비면 컬럼 자체가 없다.
   // squadOptions: [{ id, name, status }] — 원장 전체(종료·보관 포함. 표기 범위는 SQ5 가 가른다)
@@ -1181,6 +1211,9 @@ export default function AdminEmployeeSheetCanvas({
   const [saved, setSaved] = useState(false);
   const [barValues, setBarValues] = useState({});
   const [barApplied, setBarApplied] = useState(false);
+  // 일괄 «소속 추가» (PW-373) — 트리 팝업 열림 / 진행 중.
+  const [bulkOrgOpen, setBulkOrgOpen] = useState(false);
+  const [bulkOrgBusy, setBulkOrgBusy] = useState(false);
   const [salaryHistRowId, setSalaryHistRowId] = useState(null);
   const [hrProfileRowId, setHrProfileRowId] = useState(null);
   // 대표 확인 모달 — { rowId, mode: 'assign' | 'release' }
@@ -1504,6 +1537,27 @@ export default function AdminEmployeeSheetCanvas({
     setBarValues({});
     setBarApplied(true);
     setTimeout(() => setBarApplied(false), 2000);
+  }
+
+  /**
+   * 일괄 «소속 추가» — 선택한 행들에 조직을 **더한다** (PW-373 · §3.8.3-B B3).
+   *
+   * 다른 일괄 필드처럼 dirty 로 쌓아 두지 않고 **즉시** 반영한다. 소속은 시트의
+   * patch 계약(`EDITABLE_FIELDS`)에 없는 값이라, 여기서만 쌓아 두면 「변경 저장」이
+   * 그것을 실어 보내지 못하고 조용히 사라진다.
+   */
+  async function applyBulkOrgAppend(unitIds) {
+    if (!onAppendAffiliations || !unitIds || unitIds.length === 0) return;
+    const memberIds = rows.filter((r) => selected.has(r.id)).map((r) => r.id);
+    if (memberIds.length === 0) return;
+    setBulkOrgBusy(true);
+    try {
+      await onAppendAffiliations(memberIds, unitIds);
+      setBarApplied(true);
+      setTimeout(() => setBarApplied(false), 2000);
+    } finally {
+      setBulkOrgBusy(false);
+    }
   }
 
   // ── 저장/초기화 ──
@@ -1835,6 +1889,29 @@ export default function AdminEmployeeSheetCanvas({
               </div>
             );
           })}
+          {/* 소속 «추가» — PW-373 · §3.8.3-B 「일괄 편집 바」.
+              다른 필드와 달리 «값을 찍는» 것이 아니라 **더하는** 것이라 별도 버튼이다.
+              교체·제거 선택지를 두지 않는 것이 이 칸의 요점이다. */}
+          {onAppendAffiliations && orgUnitOptions.length > 0 && (
+            <>
+              <div style={{ width: 1, height: 28, background: T.border, flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {L.bulkOrgLabel || '소속'}
+                </span>
+                <button
+                  type="button"
+                  data-testid="sheet-bulk-org-append"
+                  onClick={() => setBulkOrgOpen(true)}
+                  disabled={bulkOrgBusy}
+                  style={{ padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${T.border}`, background: T.bg, fontSize: 12, fontWeight: 600, color: T.sub, cursor: bulkOrgBusy ? 'wait' : 'pointer', fontFamily: T.font, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                >
+                  <IconPlusSmall size={12} />
+                  {bulkOrgBusy ? (L.bulkOrgBusy || '추가 중…') : (L.bulkOrgAppend || '소속 추가')}
+                </button>
+              </div>
+            </>
+          )}
           <div style={{ width: 1, height: 28, background: T.border, flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
             {barApplied ? (
@@ -1858,6 +1935,21 @@ export default function AdminEmployeeSheetCanvas({
             )}
           </div>
         </div>
+      )}
+
+      {/* 일괄 «소속 추가» 팝업 — 주 소속을 고르지 않는다(추가 전용, PW-373) */}
+      {bulkOrgOpen && canEdit && onAppendAffiliations && orgUnitOptions.length > 0 && (
+        <OrgTreePicker
+          open
+          units={orgUnitOptions}
+          multi
+          primarySelectable={false}
+          selectedIds={[]}
+          labels={L.orgPicker}
+          subtitle={String(L.bulkOrgSubtitle || '선택 {count}명').split('{count}').join(String(selected.size))}
+          onApply={(payload) => applyBulkOrgAppend(payload?.unitIds || [])}
+          onClose={() => setBulkOrgOpen(false)}
+        />
       )}
 
       {/* 테이블 */}
