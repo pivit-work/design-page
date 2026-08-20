@@ -491,14 +491,38 @@ function groupBlocks(items, krs, initiatives) {
 }
 
 // ── 팀원 스레드 화면 ──
-function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize }) {
+function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, openTarget, onOpenTargetHandled }) {
   const [openBlock, setOpenBlock] = useState(null);
+  // 딥링크로 열린 모달을 사용자가 닫았는가 — 닫은 뒤 재조회로 되살아나지 않게.
+  const [linkDismissed, setLinkDismissed] = useState(false);
   const items = useMemo(() => thread?.items || [], [thread]);
   const { krBlocks, initBlocks } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
+
+  // 딥링크 진입(OKR 타인 KR 「전체 보기」 → `/feedback/team?member=…&kr=…`).
+  // 멤버 뷰와 같은 규칙 — 열 블록은 **파생값**이고 state 로 복사하지 않는다.
+  // 비교는 문자열 일치다(id 는 UUID 일 수 있다).
+  const linkedBlock = useMemo(() => {
+    if (linkDismissed || !openTarget?.type || !openTarget?.id) return null;
+    const key = `${openTarget.type}:${openTarget.id}`;
+    return [...krBlocks, ...initBlocks].find((b) => b.key === key) || null;
+  }, [openTarget, krBlocks, initBlocks, linkDismissed]);
+
+  // 도착 결과를 한 번만 알린다. 소비 측은 스레드 로딩이 끝난 뒤에 `openTarget` 을
+  // 넘겨야 한다 — 로딩 중에 넘기면 «찾을 수 없음» 으로 잘못 판정된다.
+  const notified = useRef(null);
+  useEffect(() => {
+    if (!openTarget?.type || !openTarget?.id) return;
+    const key = `${openTarget.type}:${openTarget.id}`;
+    if (notified.current === key) return;
+    notified.current = key;
+    onOpenTargetHandled?.(Boolean(linkedBlock));
+  }, [openTarget, linkedBlock, onOpenTargetHandled]);
+
   const liveBlock = useMemo(() => {
-    if (!openBlock) return null;
-    return [...krBlocks, ...initBlocks].find((b) => b.key === openBlock.key) || openBlock;
-  }, [openBlock, krBlocks, initBlocks]);
+    const active = openBlock || linkedBlock;
+    if (!active) return null;
+    return [...krBlocks, ...initBlocks].find((b) => b.key === active.key) || active;
+  }, [openBlock, linkedBlock, krBlocks, initBlocks]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -520,7 +544,7 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
       {krBlocks.length === 0 && initBlocks.length === 0 && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
-        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onClose={() => setOpenBlock(null)} />
+        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
       )}
     </div>
   );
@@ -535,6 +559,8 @@ export default function EvalFeedbackComposeCanvas({
   labels: providedLabels,
   onSelectMember,
   onBack,
+  openTarget = null,
+  onOpenTargetHandled,
   onChangePeriod,
   onSendFeedback,
   onAiDraft,
@@ -586,6 +612,8 @@ export default function EvalFeedbackComposeCanvas({
             onSend={handleSend}
             onAiDraft={onAiDraft}
             onSummarize={onSummarize}
+            openTarget={openTarget}
+            onOpenTargetHandled={onOpenTargetHandled}
           />
         ) : (
           <TeamListScreen team={team} L={L} onSelect={onSelectMember} />

@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import OkrAiInsights from './OkrAiInsights.jsx';
 import OkrOverallCard from './OkrOverallCard.jsx';
 import OkrObjectiveSection from './OkrObjectiveSection.jsx';
 import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
-import OkrKrFeedbackModal from './OkrKrFeedbackModal.jsx';
 import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
 import rowKey from './rowKey.js';
 
@@ -18,6 +17,13 @@ import rowKey from './rowKey.js';
  * 캔버스 루트(.okr-personal-area)가 position:fixed 라 스태킹 컨텍스트를 만들고,
  * 그 안에 렌더된 오버레이는 z-index:1000 이어도 사이드바(100)·헤더(90) 아래에
  * 갇힌다 — 딤이 안 덮이고 클릭까지 통과했다.
+ *
+ * 🔴 「전체 보기」 는 이 보드 안에서 모달을 열지 않는다 (PW-144). 피드백 스레드
+ * 전체와 「보낸 요청」 의 정본은 수시 피드백 화면이고, OKR 은 그쪽으로 보내기만
+ * 한다 — `onViewAllFeedback(kr)` 으로 소비 측에 넘긴다. 같은 정보를 두 화면에 두면
+ * 어느 쪽이 정본인지 사용자가 판단해야 하고, 특히 옛 모달 안의 요청 발송 폼은
+ * 「이미 스레드가 있는 KR 에 중복 요청 금지」 규칙 바깥에 있어 중복 요청을 실제로
+ * 통과시켰다. 옛 패널은 `OkrKrFeedbackModal.jsx` 에 레거시로만 남아 있다.
  */
 export default function OkrBoard({
   board,
@@ -25,29 +31,12 @@ export default function OkrBoard({
   baseUrl = '',
   onKrUpdate,
   onSubmitFeedback,
-  onSubmitReply,
-  onRequestFeedback,
+  onViewAllFeedback,
 }) {
   const { banner, insights, overall, theme, objectives } = board;
   // 피드백 작성 대상 KR(null=닫힘). 저장 콜백에 krId 를 전달하기 위해 kr 을 보관.
   const [composeKr, setComposeKr] = useState(null);
-  // 피드백 요청 대상 KR(null=닫힘) — 요청 저장에 krId 가 필요하다.
-  const [requestKr, setRequestKr] = useState(null);
-  // 피드백 상세는 스냅샷이 아니라 **열려 있는 KR id** 로 들고, 현재 board 에서
-  // 매번 다시 찾는다. 스냅샷으로 들면 답변을 달아 board 를 재조회해도 모달이
-  // 옛 코멘트 목록을 계속 보여준다(등록했는데 안 보이는 것처럼 읽힌다).
-  const [krDetailId, setKrDetailId] = useState(null);
   const [krUpdate, setKrUpdate] = useState(null);
-
-  const krDetail = useMemo(() => {
-    if (!krDetailId) return null;
-    for (const objective of objectives) {
-      for (const kr of objective.krs ?? []) {
-        if (kr.feedbackDetail && kr.krId === krDetailId) return kr.feedbackDetail;
-      }
-    }
-    return null;
-  }, [krDetailId, objectives]);
 
   return (
     <>
@@ -69,7 +58,7 @@ export default function OkrBoard({
             baseUrl={baseUrl}
             defaultExpanded={i === 0}
             onWriteFeedback={(kr) => setComposeKr(kr)}
-            onViewFeedback={(kr) => kr.feedbackDetail && setKrDetailId(kr.krId)}
+            onViewFeedback={(kr) => onViewAllFeedback?.(kr)}
             onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
           />
         ))}
@@ -90,17 +79,6 @@ export default function OkrBoard({
         />,
         document.body,
       )}
-      {krDetail && createPortal(
-        <OkrKrFeedbackModal
-          detail={krDetail}
-          icons={icons}
-          baseUrl={baseUrl}
-          onClose={() => setKrDetailId(null)}
-          onSubmitReply={onSubmitReply}
-          onRequestFeedback={() => setRequestKr(krDetail)}
-        />,
-        document.body,
-      )}
       {krUpdate && createPortal(
         <OkrKrUpdateModal
           detail={krUpdate}
@@ -108,21 +86,6 @@ export default function OkrBoard({
           baseUrl={baseUrl}
           onClose={() => setKrUpdate(null)}
           onConfirm={(value) => { if (krUpdate.krId) onKrUpdate?.(krUpdate.krId, value); }}
-        />,
-        document.body,
-      )}
-      {requestKr && createPortal(
-        <OkrFeedbackComposeModal
-          title="피드백 요청 작성"
-          placeholder="어떤 관점에서 피드백을 원하는지 적어주시면 좋아요 :)"
-          submitLabel="보내기"
-          icons={icons}
-          baseUrl={baseUrl}
-          onClose={() => setRequestKr(null)}
-          onSubmit={(text) => {
-            const trimmed = text.trim();
-            if (trimmed && requestKr.krId) onRequestFeedback?.(requestKr.krId, trimmed);
-          }}
         />,
         document.body,
       )}
