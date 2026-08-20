@@ -37,6 +37,12 @@ export const ADMIN_MENU = [
   { id: 'members',       icon: '/icons-solid/user-03.svg',             label: '구성원 관리',      group: 'management' },
   { id: 'snapshot',      icon: '/icons-solid/clock-check.svg',         label: '조직 스냅샷',      group: 'management' },
   { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
+  // 기획(arch-nav-routing-policy §1-A 「① 관리」 · 시안 admin-workspace-settings.jsx 의
+  // ADMIN_NAV_GROUPS)이 '조직 설정' 바로 다음, '팀 관리' 앞에 두는 항목이다.
+  // 조직 설정(필드 옵션·계층)이 '조직을 어떻게 쪼개는가' 라면 이쪽은 '회사가 어떤
+  // 기준값으로 도는가'(근무·휴가·승인 정책) — 인접하지만 다른 축이라 아이콘도 나눈다.
+  // 아이콘은 시안이 명시한 회사(건물) — icons-solid 세트의 building-05.
+  { id: 'workspace-settings', icon: '/icons-solid/building-05.svg',     label: '워크스페이스 설정', group: 'management' },
   { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
   { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
   // 기획 정본(arch-nav-routing-policy §1-A)의 «② 평가 운영» 그룹 — 관리 다음, 시스템 앞.
