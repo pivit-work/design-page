@@ -4,10 +4,11 @@ import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
-import { buildOrgTree, primaryOrgEntry } from './orgTree.js';
+import { buildOrgTree, findOrgEntry, primaryOrgEntry } from './orgTree.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import {
-  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight, IconPlus, IconUser,
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
+  IconMore, IconPlus, IconSearch, IconUser, IconX,
 } from './employeesIcons.jsx';
 
 /**
@@ -29,7 +30,8 @@ import {
 const DEFAULT_LABELS = {
   tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
   countSuffix: '명',
-  filters: { dept: '부서', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
+  // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
+  filters: { dept: '소속', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
   // `csvUpload` 라벨이 여기 있었지만 **어디서도 렌더되지 않았다** — 라벨은 CSV
   // 업로드가 있다고 말하는데 화면에는 없는 상태가 오래 남아 있었다(PW-212).
   // CSV 업로드는 초대 모달의 탭(`AdminInviteModal` §2-4)으로 들어갔으므로,
@@ -47,7 +49,37 @@ const DEFAULT_LABELS = {
   // 알리는 자리는 미배정 탭 아래 `unassigned.teamNote` 하나다 — 지우지 말 것.
   // 다시 넣으려면 라벨보다 **그리는 자리가 먼저** 있어야 한다.
   invite: '구성원 초대',
+  csvUpload: 'CSV 업로드',
   unassignedPill: '미배정',
+  concurrentCount: '겸직 {count}',
+  // 뷰 토글 · 목록 뷰 (PW-373) — `#104` 이전 라벨을 되살렸다. 자리가 다시 생겼으므로
+  // 「그리는 자리가 먼저」 규칙을 지킨 복원이다.
+  viewSwitch: { list: '목록', sheet: '스프레드시트', aria: '보기 전환' },
+  listSearch: '이름·이메일·소속 검색',
+  listEmptyFiltered: '조건에 맞는 구성원이 없습니다',
+  listRowMenu: '행 메뉴',
+  listManagerFilter: { assigned: '매니저 있음', unassigned: '매니저 미배정', prefix: '매니저' },
+  listPagination: { of: '/', prev: '이전', next: '다음' },
+  panel: {
+    basicInfo: '기본 정보',
+    name: '이름',
+    email: '업무 이메일',
+    emailReadOnly: '로그인 키라 스프레드시트에서만 바꿉니다',
+    level: '직급',
+    position: '직책',
+    joined: '입사일',
+    none: '— 미지정 —',
+    orgAssign: '소속',
+    orgNone: '미배정',
+    orgChange: '변경',
+    managerSection: '매니저',
+    managerWhere: '매니저 배정은 «미배정 관리» 탭에서 합니다',
+    statusSection: '재직 상태',
+    close: '닫기',
+    cancel: '취소',
+    save: '저장',
+    saving: '저장 중…',
+  },
   loading: '불러오는 중…',
   menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
   status: {
@@ -646,6 +678,464 @@ function InvitesTab({
 }
 
 /* ── 메인 ───────────────────────────────────────────────── */
+/** 필터의 «전체» sentinel. 라벨(`'전체'`)을 값으로 쓰면 로케일을 바꾸는 순간
+    「필터 안 걸림」 판정이 깨진다. */
+const ALL = 'all';
+
+/* ── 뷰 토글 (PW-373) ──────────────────────────────────────
+   정본 `admin-spec.md` §1.1 · §3.8 — 직원 관리는 **한 메뉴 안의 두 뷰**다.
+   목록(단건 상세 편집) ↔ 스프레드시트(다건 일괄 편집).
+
+   2026-07-19 정기미팅 [F] 는 «뷰 토글로 통합» 을 정했는데, 하루 뒤 구현(#104)이
+   목록을 **삭제하고** 시트로 대체해 버렸다. 그 뒤 한 사람의 정보를 고치려는 사람도
+   수십 행짜리 표에서 자기 행을 찾아야 했다. 여기서 목록을 되살리고 토글로 나란히 둔다. */
+function EmployeesViewSwitch({ mode, onChange, labels }) {
+  const options = [
+    { id: 'list', label: labels.viewSwitch.list },
+    { id: 'sheet', label: labels.viewSwitch.sheet },
+  ];
+  return (
+    <div className="admin-emp-viewswitch" role="tablist" aria-label={labels.viewSwitch.aria}>
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="tab"
+          aria-selected={mode === o.id}
+          data-testid={`employees-view-tab-${o.id}`}
+          className={`admin-emp-viewswitch-btn${mode === o.id ? ' is-active' : ''}`}
+          onClick={() => onChange(o.id)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 목록 행의 소속 표기 — 주 소속을 전체 경로로, 겸직은 개수로.
+ *
+ * 시트의 소속 셀과 **같은 값**(`depts` / `orgUnitIds`)에서 그린다. 한쪽만 다른 값을
+ * 읽으면 두 뷰가 같은 사람을 다르게 그린다(§3.8 「데이터 계약은 두 뷰가 같다」).
+ */
+function ListDeptLabel({ member, orgTree, labels }) {
+  const list = Array.isArray(member.depts) && member.depts.length > 0
+    ? member.depts
+    : member.department
+      ? [{ name: member.department, isPrimary: true }]
+      : [];
+  if (list.length === 0) {
+    return <span className="admin-emp-pill is-amber">{labels.unassignedPill}</span>;
+  }
+  const primary = list.find((d) => d.isPrimary) || list[0];
+  const entry = primary.orgUnitId
+    ? findOrgEntry(orgTree, primary.orgUnitId)
+    : primaryOrgEntry(orgTree, member.orgUnitIds);
+  return (
+    <span className="admin-emp-row-dept">
+      <OrgPathLabel entry={entry} fallback={primary.name} />
+      {list.length > 1 && (
+        <span className="admin-emp-row-dept-more">
+          {String(labels.concurrentCount).split('{count}').join(String(list.length - 1))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/* ── 목록 뷰 ─────────────────────────────────────────────
+   `#104` 가 지운 카드 목록의 복원. 시각은 삭제 이전 정본과 기존 `.admin-emp-*`
+   토큰 그대로다 — 어드민 화면이라 디자이너 선행 없이 진행하되, 새로 디자인하지는 않는다. */
+function EmployeesListView({
+  members, orgUnits, labels, canEdit, pageSize, renderAvatar,
+  onOpenEdit, onDeactivate, onInvite, onCsvUpload,
+}) {
+  const [q, setQ] = useState('');
+  const [dept, setDept] = useState(ALL);
+  const [level, setLevel] = useState(ALL);
+  // ALL 은 `'all'` 이다 — 라벨을 sentinel 로 쓰면(옛 `'전체'`) 로케일을 바꾸는 순간
+  // 「필터 안 걸림」 판정이 깨진다.
+  const [mgrFilter, setMgrFilter] = useState('all');
+  const [status, setStatus] = useState('all');
+  const [page, setPage] = useState(1);
+  const [openMenu, setOpenMenu] = useState(null);
+
+  const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
+
+  /** 그 사람의 소속 이름 전부 — 겸직까지 매칭해야 겸직으로만 그 조직인 사람이 안 사라진다. */
+  const deptNamesOf = (m) => {
+    const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : [];
+    const names = list.map((d) => d.name).filter(Boolean);
+    if (names.length === 0 && m.department) names.push(m.department);
+    return names;
+  };
+
+  const allLabel = labels.filters.all;
+  const depts = useMemo(() => {
+    const seen = new Set();
+    for (const m of members) {
+      const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : [];
+      const names = list.map((d) => d.name).filter(Boolean);
+      if (names.length === 0 && m.department) names.push(m.department);
+      for (const n of names) seen.add(n);
+    }
+    return [
+      { id: ALL, label: allLabel },
+      ...[...seen].map((n) => ({ id: n, label: n })),
+    ];
+  }, [members, allLabel]);
+  const levels = useMemo(
+    () => [
+      { id: ALL, label: allLabel },
+      ...[...new Set(members.map((m) => m.jobLevel).filter(Boolean))].map((n) => ({ id: n, label: n })),
+    ],
+    [members, allLabel],
+  );
+  const statusOpts = [
+    { id: 'all', label: labels.filters.all },
+    { id: 'active', label: labels.status.active },
+    { id: 'pending', label: labels.status.pending },
+    { id: 'on_leave', label: labels.status.on_leave },
+    { id: 'terminated', label: labels.status.terminated },
+  ];
+  const mgrOpts = [
+    { id: 'all', label: labels.filters.all },
+    { id: 'assigned', label: labels.listManagerFilter.assigned },
+    { id: 'unassigned', label: labels.listManagerFilter.unassigned },
+  ];
+
+  const filtered = useMemo(
+    () =>
+      members.filter((m) => {
+        const names = deptNamesOf(m);
+        if (q) {
+          const hay = `${m.name || ''} ${m.email || ''} ${names.join(' ')}`.toLowerCase();
+          if (!hay.includes(q.toLowerCase())) return false;
+        }
+        if (dept !== ALL && !names.includes(dept)) return false;
+        if (level !== ALL && m.jobLevel !== level) return false;
+        if (mgrFilter === 'assigned' && !m.managerName) return false;
+        if (mgrFilter === 'unassigned' && m.managerName) return false;
+        if (status !== 'all' && m.employmentStatus !== status) return false;
+        return true;
+      }),
+    [members, q, dept, level, mgrFilter, status],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const hasFilter = q || dept !== ALL || level !== ALL || mgrFilter !== 'all' || status !== 'all';
+
+  function resetFilters() {
+    setQ(''); setDept(ALL); setLevel(ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
+  }
+
+  return (
+    <Card>
+      <div className="admin-emp-toolbar">
+        <div className="admin-emp-search-wrap">
+          <div className="admin-emp-search-box">
+            <span className="admin-emp-search-icon"><IconSearch size={16} /></span>
+            <input
+              className="admin-emp-search"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              placeholder={labels.listSearch}
+              aria-label={labels.listSearch}
+            />
+          </div>
+          <span className="admin-emp-count">{filtered.length}{labels.countSuffix}</span>
+        </div>
+        {canEdit && (onCsvUpload || onInvite) && (
+          <div className="admin-emp-toolbar-actions">
+            {onCsvUpload && (
+              <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
+            )}
+            {onInvite && (
+              <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="admin-emp-filterbar">
+        <FilterDropdown label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
+        {hasFilter && (
+          <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
+        )}
+      </div>
+
+      {pageRows.length === 0 ? (
+        <div className="admin-emp-empty">{labels.listEmptyFiltered}</div>
+      ) : (
+        <div className="admin-emp-list">
+          {pageRows.map((m) => (
+            <div key={m.id} className="admin-emp-row">
+              <button type="button" className="admin-emp-row-main" onClick={() => onOpenEdit(m)}>
+                {renderAvatar ? renderAvatar(m, 36) : <AvatarFallback row={m} size={36} />}
+                <div className="admin-emp-row-info">
+                  <div className="admin-emp-row-name">
+                    {m.displayName || m.name}
+                    <RolePill role={m.orgRole} labels={labels} />
+                  </div>
+                  <div className="admin-emp-row-meta">
+                    <span className="admin-emp-row-email">{m.email}</span>
+                    <span className="admin-emp-meta-dot" aria-hidden="true">·</span>
+                    <ListDeptLabel member={m} orgTree={orgTree} labels={labels} />
+                    {m.jobLevel && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{m.jobLevel}</span></>)}
+                    {m.managerName && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{labels.listManagerFilter.prefix} {m.managerName}</span></>)}
+                    {m.hireDate && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{(m.hireDate || '').slice(0, 10)}</span></>)}
+                  </div>
+                </div>
+              </button>
+              <div className="admin-emp-row-right">
+                <StatusBadge status={m.employmentStatus} labels={labels} />
+                <div className="admin-emp-actions-cell">
+                  <div className="admin-emp-actions">
+                    <button
+                      type="button"
+                      className="admin-emp-btn is-ghost is-sm admin-emp-more"
+                      onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)}
+                      aria-label={labels.listRowMenu}
+                    >
+                      <IconMore size={16} />
+                    </button>
+                  </div>
+                  {openMenu === m.id && (
+                    <RowActionMenu
+                      labels={labels}
+                      canEdit={canEdit && !!onDeactivate}
+                      onEdit={() => onOpenEdit(m)}
+                      onChangeManager={() => onOpenEdit(m)}
+                      onDeactivate={() => onDeactivate?.(m)}
+                      onClose={() => setOpenMenu(null)}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="admin-emp-pagination">
+          <span className="admin-emp-muted">
+            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} {labels.listPagination.of} {filtered.length}{labels.countSuffix}
+          </span>
+          <div className="admin-emp-pagination-nav">
+            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.listPagination.prev}</button>
+            <span className="admin-emp-mono admin-emp-muted">{safePage} {labels.listPagination.of} {totalPages}</span>
+            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{labels.listPagination.next}<IconChevronRight size={14} /></button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * 슬라이드오버 단건 편집 패널 — 목록 뷰의 «단건 상세 편집» (§3.2).
+ *
+ * 저장은 시트와 **같은 patch 계약**(`onSaveMembers([{ id, ...changed }])`)을 쓴다.
+ * 소속도 시트와 **같은 배열 원자 치환**(`onChangeAffiliations`)을 탄다 — 두 뷰가 같은
+ * 값을 다른 계약으로 쓰면 한쪽이 다른 쪽을 덮어쓴다.
+ *
+ * 이메일은 **읽기 전용**이다. 로그인 키라 확인 모달이 따라붙는데(§3.2-A), 그 경로의
+ * 정본은 시트다. 여기에 두 번째 진입점을 만들면 확인 절차가 갈린다.
+ */
+function EmployeesEditPanel({
+  member, orgUnits, labels, renderAvatar, canEdit,
+  gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
+}) {
+  const [draft, setDraft] = useState(member);
+  const [syncedId, setSyncedId] = useState(member?.id);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
+  // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
+  if (member && syncedId !== member.id) {
+    setSyncedId(member.id);
+    setDraft(member);
+    setPickerOpen(false);
+  }
+
+  const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
+
+  if (!member) return null;
+  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
+  const statusOrder = ['active', 'pending', 'on_leave', 'terminated'];
+  // 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 orgUnitIds 폴백.
+  const chips = (member.depts || []).filter((d) => d.orgUnitId);
+  const fallbackPrimary = primaryOrgEntry(orgTree, member.orgUnitIds)?.id ?? '';
+  const selectedIds = chips.length > 0 ? chips.map((d) => d.orgUnitId) : (fallbackPrimary ? [fallbackPrimary] : []);
+  const primaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+  const primaryEntry = primaryUnitId ? findOrgEntry(orgTree, primaryUnitId) : null;
+
+  /** 바뀐 칸만 담은 patch — 시트의 dirty → patch 와 같은 모양이다. */
+  function buildPatch() {
+    const patch = { id: draft.id };
+    for (const f of ['name', 'jobLevel', 'jobPosition', 'hireDate', 'employmentStatus']) {
+      if ((draft[f] ?? '') !== (member[f] ?? '')) patch[f] = draft[f] ?? '';
+    }
+    return patch;
+  }
+  const patch = buildPatch();
+  const dirty = Object.keys(patch).length > 1;
+
+  async function handleSave() {
+    if (!dirty) { onClose(); return; }
+    setSaving(true);
+    try {
+      await onSave([patch]);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="admin-emp-panel-backdrop" onClick={onClose} />
+      <div className="admin-emp-panel" role="dialog" aria-modal="true" data-testid="employees-edit-panel">
+        <div className="admin-emp-panel-header">
+          <div className="admin-emp-panel-id">
+            {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}
+            <div>
+              <div className="admin-emp-panel-name">{draft.displayName || draft.name}</div>
+              <div className="admin-emp-panel-email">{draft.email}</div>
+            </div>
+          </div>
+          <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label={labels.panel.close}><IconX size={16} /></button>
+        </div>
+
+        <div className="admin-emp-panel-body">
+          <SectionLabel>{labels.panel.basicInfo}</SectionLabel>
+          <div className="admin-emp-field-group">
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.name}</span>
+              <input className="admin-emp-input" value={draft.name || ''} disabled={!canEdit} onChange={(e) => set('name', e.target.value)} />
+            </label>
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.email}</span>
+              {/* 로그인 키 — 이 화면에서 고치지 않는다(§3.2-A, 확인 모달은 시트가 정본) */}
+              <input className="admin-emp-input" value={draft.email || ''} readOnly disabled />
+              <span className="admin-emp-manager-note">{labels.panel.emailReadOnly}</span>
+            </label>
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.level}</span>
+              {gradeOptions.length > 0 ? (
+                <select className="admin-emp-input" value={draft.jobLevel || ''} disabled={!canEdit} onChange={(e) => set('jobLevel', e.target.value)}>
+                  <option value="">{labels.panel.none}</option>
+                  {gradeOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input className="admin-emp-input" value={draft.jobLevel || ''} disabled={!canEdit} onChange={(e) => set('jobLevel', e.target.value)} />
+              )}
+            </label>
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.position}</span>
+              {positionOptions.length > 0 ? (
+                <select className="admin-emp-input" value={draft.jobPosition || ''} disabled={!canEdit} onChange={(e) => set('jobPosition', e.target.value)}>
+                  <option value="">{labels.panel.none}</option>
+                  {positionOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input className="admin-emp-input" value={draft.jobPosition || ''} disabled={!canEdit} onChange={(e) => set('jobPosition', e.target.value)} />
+              )}
+            </label>
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.joined}</span>
+              <input type="date" className="admin-emp-input" value={(draft.hireDate || '').slice(0, 10)} disabled={!canEdit} onChange={(e) => set('hireDate', e.target.value)} />
+            </label>
+          </div>
+
+          <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
+          <div className="admin-emp-org-assign">
+            <button
+              type="button"
+              className={`admin-emp-org-current${primaryEntry || member.department ? '' : ' is-empty'}`}
+              disabled={!canEdit || !onChangeAffiliations}
+              onClick={() => setPickerOpen(true)}
+              data-testid="employees-panel-org"
+            >
+              <span className="admin-emp-org-current-name">
+                <OrgPathLabel entry={primaryEntry} fallback={member.department || labels.panel.orgNone} />
+                {selectedIds.length > 1 && (
+                  <span className="admin-emp-row-dept-more">
+                    {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
+                  </span>
+                )}
+              </span>
+              <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>
+            </button>
+            {pickerOpen && onChangeAffiliations && (
+              <OrgTreePicker
+                open
+                units={orgUnits}
+                multi
+                selectedIds={selectedIds}
+                primaryId={primaryUnitId}
+                subtitle={draft.name}
+                labels={labels.orgPicker}
+                onApply={(payload) => onChangeAffiliations(member.id, payload)}
+                onClose={() => setPickerOpen(false)}
+              />
+            )}
+          </div>
+
+          <SectionLabel>{labels.panel.managerSection}</SectionLabel>
+          <div className="admin-emp-manager-readonly">
+            <span className="admin-emp-manager-name">{draft.managerName || '—'}</span>
+            {/* 매니저(개인 상급자) 배정 자리는 미배정 탭이다 — 두 곳에 두면 규칙이 갈린다. */}
+            <span className="admin-emp-manager-note">{labels.panel.managerWhere}</span>
+          </div>
+
+          <SectionLabel>{labels.panel.statusSection}</SectionLabel>
+          <div className="admin-emp-status-options">
+            {statusOrder.map((key) => {
+              const selected = draft.employmentStatus === key;
+              return (
+                <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="employmentStatus"
+                    className="admin-emp-sr-only"
+                    checked={selected}
+                    disabled={!canEdit}
+                    onChange={() => set('employmentStatus', key)}
+                  />
+                  <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
+                  <span className="admin-emp-status-option-label">{labels.status[key]}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="admin-emp-panel-footer">
+          <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
+          <button
+            type="button"
+            className="admin-emp-btn is-primary admin-emp-btn-block"
+            onClick={handleSave}
+            disabled={saving || !canEdit || !dirty}
+          >
+            {saving ? labels.panel.saving : labels.panel.save}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function AdminEmployeesCanvas({
   members = [],
   orgUnits = [],
@@ -661,6 +1151,19 @@ export default function AdminEmployeesCanvas({
   initialSort,
   onViewStateChange,
   onTabChange,
+  /**
+   * 「전체 구성원」 탭의 뷰 (PW-373) — `'list'`(목록) | `'sheet'`(스프레드시트).
+   *
+   * 정본 `admin-spec.md §1.1 · §3.8` 은 직원 관리를 **한 메뉴 두 뷰**로 정의한다.
+   * 어느 뷰를 보고 있었는지는 소비자가 URL·저장된 상태로 들고 있을 수 있게
+   * `onViewModeChange` 로 알린다.
+   */
+  initialViewMode = 'sheet',
+  onViewModeChange,
+  /** 목록 뷰 한 쪽에 보여 줄 인원 수. */
+  pageSize = 20,
+  /** 목록 뷰 행 메뉴의 «비활성화». 미주입이면 그 항목이 없다. */
+  onDeactivateMember,
   loading = false,
   labels: providedLabels,
   canEdit = true,
@@ -733,6 +1236,8 @@ export default function AdminEmployeesCanvas({
   jobAxis,
   onSaveMembers,
   onDeleteMember,
+  /** 일괄 «소속 추가» — 스프레드시트 뷰의 일괄 편집 바로 그대로 내려간다(PW-373). */
+  onAppendAffiliations,
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onLoadHrProfile,
@@ -756,6 +1261,27 @@ export default function AdminEmployeesCanvas({
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
+  // 「전체 구성원」 탭의 두 뷰 (PW-373). 목록 ↔ 스프레드시트.
+  const [viewMode, setViewMode] = useState(initialViewMode === 'list' ? 'list' : 'sheet');
+  /**
+   * **한 번 마운트한 뷰는 다시 언마운트하지 않는다** (§3.8.3-B B5).
+   *
+   * 조건부 렌더로 갈아끼우면 토글 한 번에 미저장 변경이 되돌릴 경고 없이 사라진다.
+   * 다만 **처음부터 둘 다** 그리지는 않는다 — 한 번도 열지 않은 뷰는 아직 잃을 값이
+   * 없고, 수백 행짜리 표를 두 벌 그리는 값을 사람이 보지도 않은 채 치르게 된다.
+   * 한 번이라도 연 뒤로는 계속 살아 있으므로 B5 는 양방향으로 성립한다.
+   */
+  const [mountedViews, setMountedViews] = useState(
+    () => new Set([initialViewMode === 'list' ? 'list' : 'sheet']),
+  );
+  // 목록 뷰에서 편집 패널이 열린 구성원 id. 패널은 두 뷰 **바깥**에 그린다 —
+  // 감춰진 뷰 안에 두면 시트로 토글했을 때 패널까지 `hidden` 에 함께 묻힌다.
+  const [editMemberId, setEditMemberId] = useState(null);
+  const goView = (id) => {
+    setMountedViews((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
+    setViewMode(id);
+    onViewModeChange?.(id);
+  };
   // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
   const goTab = (id) => {
     setTab(id);
@@ -812,6 +1338,29 @@ export default function AdminEmployeesCanvas({
       {loading ? (
         <div className="admin-emp-loading">{labels.loading}</div>
       ) : tab === 'members' ? (
+        <>
+          <EmployeesViewSwitch mode={viewMode} onChange={goView} labels={labels} />
+          {/* 🔴 두 뷰를 **동시에 마운트**한다(§3.8.3-B B5). 조건부 렌더로 갈아끼우면
+              토글 한 번에 미저장 변경이 되돌릴 경고 없이 사라진다. 감춘 쪽은
+              `hidden` 이라 접근성 트리·탭 이동에서도 함께 빠진다. */}
+          {mountedViews.has('list') && (
+          <div hidden={viewMode !== 'list'} data-testid="employees-view-list">
+            <EmployeesListView
+              members={members}
+              orgUnits={orgUnits}
+              labels={labels}
+              canEdit={canEdit}
+              pageSize={pageSize}
+              renderAvatar={renderAvatar}
+              onOpenEdit={(m) => setEditMemberId(m.id)}
+              onDeactivate={canEdit ? onDeactivateMember : undefined}
+              onInvite={canInvite ? openInvite : undefined}
+              onCsvUpload={onCsvUpload}
+            />
+          </div>
+          )}
+          {mountedViews.has('sheet') && (
+          <div hidden={viewMode !== 'sheet'} data-testid="employees-view-sheet">
         <AdminEmployeeSheetCanvas
           embedded
           initialSearch={initialSearch}
@@ -852,7 +1401,12 @@ export default function AdminEmployeesCanvas({
           onExportRoster={onExportRoster}
           exporting={exporting}
           exportLabels={exportLabels}
+          // 일괄 «소속 추가» — 추가 전용이다(PW-373 · §3.8.3-B 「일괄 편집 바」).
+          onAppendAffiliations={onAppendAffiliations}
         />
+          </div>
+          )}
+        </>
       ) : tab === 'unassigned' ? (
         <UnassignedTab
           members={members}
@@ -876,6 +1430,29 @@ export default function AdminEmployeesCanvas({
           onCopyInviteLink={onCopyInviteLink}
         />
       )}
+
+      {/* 목록 뷰의 단건 편집 패널 — 두 뷰 바깥에 그린다(위 hidden 주석 참조).
+          `members` 가 갱신되면 그 최신 행으로 다시 찾는다 — 저장 직후 부모가
+          재조회하면 옛 객체를 붙들고 있던 패널이 방금 저장한 값을 안 보여준다.
+          탭을 옮기면 감춘다 — 미배정·초대 탭 위에 남의 화면의 패널이 떠 있으면 안 된다. */}
+      {editMemberId && tab === 'members' && (() => {
+        const target = members.find((m) => m.id === editMemberId);
+        if (!target) return null;
+        return (
+          <EmployeesEditPanel
+            member={target}
+            orgUnits={orgUnits}
+            labels={labels}
+            canEdit={canEdit}
+            renderAvatar={renderAvatar}
+            gradeOptions={gradeOptions ?? EMPTY_ARRAY}
+            positionOptions={positionOptions ?? EMPTY_ARRAY}
+            onClose={() => setEditMemberId(null)}
+            onSave={onSaveMembers}
+            onChangeAffiliations={onChangeAffiliations}
+          />
+        );
+      })()}
 
       {/* 초대 발송 모달 — 탭 A·탭 C 두 진입점이 **공유**한다(§1).
           직급 선택지는 캔버스가 이미 받는 `gradeOptions` 를 기본으로 쓰고,

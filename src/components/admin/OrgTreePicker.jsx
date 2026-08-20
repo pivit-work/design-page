@@ -65,6 +65,9 @@ const DEFAULT_LABELS = {
   makePrimaryTitle: '이 조직을 주 소속으로 지정합니다',
   selectedCount: '선택 {count}곳',
   clearAll: '모두 해제',
+  // 추가 전용(`primarySelectable={false}`) 전용 — PW-373
+  appendHint: '고른 조직이 더해집니다. 기존 소속과 주 소속은 그대로 남습니다.',
+  appendNone: '고른 조직이 없습니다 — 적용해도 아무것도 더해지지 않습니다',
 };
 
 /** 접힘 여부 — 조상 중 하나라도 접혀 있으면 숨긴다. 검색 중에는 접힘을 무시한다. */
@@ -88,6 +91,15 @@ export default function OrgTreePicker({
   selectedIds = [],
   /** multi 모드의 현재 주 소속 id. */
   primaryId = '',
+  /**
+   * 주 소속을 고를 수 있는가 — 기본 true (PW-373).
+   *
+   * **추가 전용** 경로(일괄 편집 바의 «소속 추가»)에서 false 로 끈다. 그 경로는
+   * 여러 사람에게 조직을 더하기만 하는데, 주 소속은 사람마다 이미 다르다 —
+   * 팝업에서 하나를 고르게 하면 「선택한 전원의 주 소속을 이걸로 바꾼다」는 뜻이
+   * 되고, 그게 정본이 금지한 일괄 교체다(§3.8.3-B 「일괄 편집 바」).
+   */
+  primarySelectable = true,
   onApply,
   onClose,
   labels: providedLabels,
@@ -277,7 +289,9 @@ export default function OrgTreePicker({
             {multi && (
               <>
                 <br />
-                <span data-testid="org-tree-picker-multi-hint">{labels.multiHint}</span>
+                <span data-testid="org-tree-picker-multi-hint">
+                  {primarySelectable ? labels.multiHint : labels.appendHint}
+                </span>
               </>
             )}
           </p>
@@ -372,7 +386,7 @@ export default function OrgTreePicker({
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
                 </button>
                 {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
-                {multi && picked.includes(e.id) && (
+                {multi && primarySelectable && picked.includes(e.id) && (
                   primary === e.id ? (
                     <span
                       data-testid={`org-tree-primary-badge-${e.id}`}
@@ -439,7 +453,10 @@ export default function OrgTreePicker({
           {multi ? (
             picked.length === 0 ? (
               // B2 — 적용 버튼을 누르기 **전에** 미배정이 된다고 말한다.
-              <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>{labels.none}</span>
+              // 추가 전용에서는 아무것도 비우지 않으므로 «미배정» 이라고 말하면 거짓말이다.
+              <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>
+                {primarySelectable ? labels.none : labels.appendNone}
+              </span>
             ) : (
               <div data-testid="org-tree-picker-selection" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: T.sub, marginRight: 2 }}>
@@ -447,7 +464,7 @@ export default function OrgTreePicker({
                 </span>
                 {picked.map((id) => {
                   const entry = findOrgEntry(tree, id);
-                  const isPrimary = id === primary;
+                  const isPrimary = primarySelectable && id === primary;
                   return (
                     <span
                       key={id}
@@ -503,7 +520,13 @@ export default function OrgTreePicker({
             onClick={() => {
               // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
               // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
-              if (multi) onApply?.({ unitIds: picked, primaryUnitId: picked.length ? primary : null });
+              if (multi) {
+                onApply?.({
+                  unitIds: picked,
+                  // 추가 전용은 주 소속을 고르지 않는다 — 서버가 사람마다 유지한다.
+                  primaryUnitId: primarySelectable && picked.length ? primary : null,
+                });
+              }
               else onApply?.(sel);
               onClose?.();
             }}
