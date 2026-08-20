@@ -99,6 +99,12 @@ export default function SquadCanvas({
    */
   editableUserIds = null,
   /**
+   * 내가 **⭐리드인 스쿼드의 id 목록**(§5-3.9 ①③). 조직 역할과 무관한 **데이터 파생
+   * 자격**이라 `editableUserIds`(조직 축)와 별개로 받는다 — 리드는 자기 스쿼드 안에서는
+   * 조직 서브트리 밖 사람도 배분·구성할 수 있기 때문이다(크로스펑셔널 전제).
+   */
+  leadSquadIds = null,
+  /**
    * 로그인한 본인의 userId (§5-3.7).
    *
    * 캐파 사용의 **소유자는 본인**이라, 이 값이 있어야 «내 행은 역할·편집 모드와 무관하게
@@ -230,21 +236,38 @@ export default function SquadCanvas({
     [editableSet],
   );
   /**
-   * 🔴 **두 축은 소유자가 다르므로 권한도 두 갈래다**(§5-3.7 · §5-3.9).
+   * 🔴 **한 배정 안에서 값마다 주인이 달라 권한이 네 갈래다**(§5-3.7 · §5-3.9, v3.12·v3.13).
    *
-   *  · ① 비중 — **조직**이 정한다. 편집 모드 + 조직 범위로만 판정하며, 대상이 본인이라는
-   *    사실은 권한을 주지 않는다. 리드 지정·배정 해제도 조직의 결정이라 여기를 따른다.
+   *  · ① 비중 — **그 스쿼드의 ⭐리드**가 주인이다. 리드(자기 스쿼드 전원) ∪ 조직 범위의
+   *    합집합이며, 판정 단위가 **셀(스쿼드 × 사람)** 이다. 본인이라는 사실은 권한이 아니다.
    *  · ② 캐파 사용 — **본인 단독**이다. 판정식은 `요청자 == 대상자` **하나뿐**이며,
    *    관리자 자격을 겹쳐도 넓어지지 않는다. `member` 가 자기 캐파를 정하는 것이 정상 경로다.
+   *  · ③ 배정·해제 — ①과 같은 축. 비중만 정하고 사람을 못 넣으면 한시 조직을 못 굴린다.
+   *  · ④ ⭐리드 지정·해제 — **조직 범위만**. 리드는 제외된다.
    *
    * 🔴 종전에는 ②를 «본인 **또는** 조직 범위» 로 판정했다(관리자 대행). 그런데 스쿼드
    *    리드는 대개 그 팀의 매니저를 겸하므로, 그 반쪽으로 「리드는 캐파를 못 고친다」 가
    *    자격 이름만 바꿔 그대로 통과했다. 관리자도 그 사람의 100 을 모른다는 점은 리드와
    *    같으므로 대행을 폐기한다 — 남는 조치는 [캐파 설정 요청] 하나다.
    */
+  const leadSet = useMemo(
+    () => (leadSquadIds === null ? new Set() : new Set(leadSquadIds)),
+    [leadSquadIds],
+  );
+  /** 내가 **이 스쿼드의** ⭐리드인가 — 자격이 스쿼드마다 따로 선다. */
+  const isLeadOf = useCallback((squadId) => leadSet.has(squadId), [leadSet]);
+
+  /**
+   * ① 비중 · ③ 배정·해제 — 리드(자기 스쿼드 전원) ∪ 조직 범위의 **합집합**.
+   *
+   * 🔴 **판정 단위가 행(사람)이 아니라 셀(스쿼드 × 사람)이다**(§5-3.9 화면 규칙 1).
+   * 조직 범위만으로 판정하면 리드에게 **전 행이 잠긴 것처럼** 보이고, 반대로 리드 자격을
+   * 사람 단위로 풀면 내가 리드가 아닌 스쿼드 열까지 열려 서버 403 만 돌아온다.
+   */
   const canEditShareOf = useCallback(
-    (userId) => isEditing && inScope(userId) && !!onUpsertMember,
-    [isEditing, inScope, onUpsertMember],
+    (squadId, userId) =>
+      isEditing && (isLeadOf(squadId) || inScope(userId)) && !!onUpsertMember,
+    [isEditing, isLeadOf, inScope, onUpsertMember],
   );
   const isSelfRow = useCallback(
     (userId) => !!currentUserId && userId === currentUserId,
@@ -254,14 +277,27 @@ export default function SquadCanvas({
     (userId) => !!onUpsertMember && isSelfRow(userId),
     [onUpsertMember, isSelfRow],
   );
-  /** 「캐파 설정 요청」 을 보낼 수 있는가 — ①·③ 권한자에게만(본인은 직접 정한다). */
-  const canRequestCapacityOf = useCallback(
-    (userId) => !!onRequestCapacity && !isSelfRow(userId) && inScope(userId),
-    [onRequestCapacity, isSelfRow, inScope],
+  /**
+   * ④ ⭐리드 지정·해제 — **조직 범위만**. 리드 자격은 여기에 **들어오지 않는다**(§5-3.9).
+   * ④는 위임 자체를 옮기는 행위라, 리드가 리드를 지명할 수 있으면 조직이 준 위임이 조직
+   * 밖에서 순환한다. ①③과 **다른 판정**이어야 하는 이유가 이것이다.
+   */
+  const canSetLeadOf = useCallback(
+    (userId) => isEditing && inScope(userId) && !!onSetLead,
+    [isEditing, inScope, onSetLead],
   );
-  /** 팝오버를 열 수 있는가 — 둘 중 하나라도 편집 가능하면 연다. */
+  /** 「캐파 설정 요청」 을 보낼 수 있는가 — ①③ 권한자에게만(본인은 직접 정한다). */
+  const canRequestCapacityOf = useCallback(
+    (squadId, userId) =>
+      !!onRequestCapacity &&
+      !isSelfRow(userId) &&
+      (isLeadOf(squadId) || inScope(userId)),
+    [onRequestCapacity, isSelfRow, isLeadOf, inScope],
+  );
+  /** 팝오버를 열 수 있는가 — 둘 중 하나라도 편집 가능하면 연다(안에서 축별로 다시 잠근다). */
   const canEditMemberOf = useCallback(
-    (userId) => canEditShareOf(userId) || canEditCapacityOf(userId),
+    (squadId, userId) =>
+      canEditShareOf(squadId, userId) || canEditCapacityOf(userId),
     [canEditShareOf, canEditCapacityOf],
   );
 
@@ -778,7 +814,7 @@ export default function SquadCanvas({
                           <div className="sq-chip-row">
                             {members.map((mm) => {
                               const p = personOf(mm.userId);
-                              const editable = canEditMemberOf(mm.userId);
+                              const editable = canEditMemberOf(sq.id, mm.userId);
                               return (
                                 <div
                                   key={mm.userId}
@@ -1010,11 +1046,11 @@ export default function SquadCanvas({
                               </td>
                               {squads.map((sq) => {
                                 const mm = (sq.members || []).find((x) => x.userId === userId);
-                                const editable = canEditMemberOf(userId);
+                                const editable = canEditMemberOf(sq.id, userId);
                                 // 🔴 **배정을 새로 만드는 것은 조직의 결정**이다(§5-3.7) —
                                 // 본인 여부로 열리는 것은 이미 있는 내 배정의 캐파뿐이다.
                                 // 서버도 같은 규칙이라, 여기서 열어 두면 403 만 돌아온다.
-                                const canAssign = canEditShareOf(userId);
+                                const canAssign = canEditShareOf(sq.id, userId);
                                 const isLead = mm?.role === 'lead';
                                 const capUnset = !!mm && isCapacityUnset(mm);
                                 // 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 상태.
@@ -1190,9 +1226,12 @@ export default function SquadCanvas({
             .filter((m) => m.userId !== popover.userId)
             .reduce((t, m) => t + (m.sharePct || 0), 0)}
           counted={isCountedStatus(popSquad.status)}
-          canEditShare={canEditShareOf(popover.userId)}
+          canEditShare={canEditShareOf(popover.squadId, popover.userId)}
+          canManageMember={canEditShareOf(popover.squadId, popover.userId)}
+          canAssignLead={canSetLeadOf(popover.userId)}
+          viaLead={isLeadOf(popover.squadId)}
           canEditCapacity={canEditCapacityOf(popover.userId)}
-          canRequestCapacity={canRequestCapacityOf(popover.userId)}
+          canRequestCapacity={canRequestCapacityOf(popover.squadId, popover.userId)}
           capacityRequested={isCapacityRequested(popover.squadId, popover.userId, popAssign)}
           onRequestCapacity={() => requestCapacity(popover.squadId, popover.userId)}
           isSelf={isSelfRow(popover.userId)}
