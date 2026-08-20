@@ -4,6 +4,8 @@ import DatePicker from '../shared/DatePicker.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED } from './orgTree.js';
+// 직군>직렬>직무 좁히기는 목록 뷰 필터 칩도 쓴다 — 공용 모듈이 한 벌이다(PW-400).
+import { narrowByParent } from './jobAxis.js';
 
 /**
  * AdminEmployeeSheetCanvas — 어드민 "직원 일괄 편집(스프레드시트)" 화면 Pure 컴포넌트.
@@ -119,24 +121,6 @@ const EMPTY_JOB_AXIS = {
   families: [], ladders: [], duties: [], laddersByFamily: {}, dutiesByLadder: {},
 };
 
-/**
- * 상위 값으로 하위 선택지를 좁힌다(§1-3-d · §1-3-j).
- *
- * - 상위가 비어 있으면 좁히지 않는다 — 아직 안 정한 사람에게 빈 목록을 주면
- *   위에서부터 고르라는 안내 없이 막힌 것처럼 보인다.
- * - 매핑 자체가 없으면(조회 실패·구버전) 역시 좁히지 않는다.
- * - 매핑이 있는데 하위가 0건이면 **빈 목록 그대로** 둔다. 그 직렬에 직무가 아직
- *   없다는 사실을 전체 목록으로 덮으면, 고른 값이 저장에서 거부된다.
- */
-function narrowByParent(all, map, parentValue) {
-  if (!parentValue) return all;
-  if (!map || Object.keys(map).length === 0) return all;
-  const children = map[parentValue];
-  if (!children) return [];
-  // 카탈로그(활성 값)와 교집합 — 비활성된 값이 매핑에만 남아 새로 선택되면 안 된다(D5).
-  const active = new Set(all);
-  return children.filter((c) => active.has(c));
-}
 
 /* ── 명부 내보내기 (screen-admin-employees-export.policy.md) ──────────
  * 아이콘은 이모지(⭳ · 🔒)가 아니라 인라인 SVG 다 — OS·폰트마다 모양이 달라지고

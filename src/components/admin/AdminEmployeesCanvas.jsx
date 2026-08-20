@@ -3,12 +3,13 @@ import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
+import { narrowByParent } from './jobAxis.js';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import { buildOrgTree, findOrgEntry, primaryOrgEntry } from './orgTree.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
-  IconMore, IconPlus, IconSearch, IconUser, IconX,
+  IconMore, IconPlus, IconSearch, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 
 /**
@@ -31,7 +32,24 @@ const DEFAULT_LABELS = {
   tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
   countSuffix: '명',
   // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
-  filters: { dept: '소속', level: '직급', manager: '매니저', status: '상태', all: '전체', reset: '필터 초기화' },
+  /* 목록 뷰의 필터 칩 11종 (PW-400 · §3.1).
+     🔴 정본 12종 중 「직종」(`job_category`)만 빠져 있다 — 이 코드베이스에 저장 컬럼이
+        아직 없어서다. 없는 필드로 칩을 만들면 늘 0건인 축이 생긴다(E6). */
+  filters: {
+    dept: '소속(기능조직)',
+    squad: '스쿼드',
+    position: '직책',
+    level: '직급',
+    family: '직군',
+    ladder: '직렬',
+    duty: '직무',
+    workLocation: '근무지',
+    employmentType: '고용형태',
+    manager: '매니저',
+    status: '재직상태',
+    all: '전체',
+    reset: '필터 초기화',
+  },
   // `csvUpload` 라벨이 여기 있었지만 **어디서도 렌더되지 않았다** — 라벨은 CSV
   // 업로드가 있다고 말하는데 화면에는 없는 상태가 오래 남아 있었다(PW-212).
   // CSV 업로드는 초대 모달의 탭(`AdminInviteModal` §2-4)으로 들어갔으므로,
@@ -58,8 +76,51 @@ const DEFAULT_LABELS = {
   listSearch: '이름·이메일·소속 검색',
   listEmptyFiltered: '조건에 맞는 구성원이 없습니다',
   listRowMenu: '행 메뉴',
-  listManagerFilter: { assigned: '매니저 있음', unassigned: '매니저 미배정', prefix: '매니저' },
+  listManagerFilter: {
+    assigned: '매니저 있음',
+    unassigned: '매니저 미배정',
+    prefix: '매니저',
+    /* 미배정 행의 그 자리 배정 버튼 (PW-400 §추가①). 배정된 행은 읽기 전용이라
+       이 문구가 뜨지 않는다 — 바꾸려면 행 `⋯` 의 「매니저 변경」 을 거친다. */
+    assign: '+ 매니저 배정',
+    /* 대표 행 — 상급자를 가질 수 없다. 「미배정」 으로 그리면 영원히 처리되지 않는
+       빨간 칸이 남는다(§1-3-c R4). */
+    ceoTop: '조직 최상위 — 대표는 상급자를 가질 수 없습니다',
+  },
   listPagination: { of: '/', prev: '이전', next: '다음' },
+  /* 목록 뷰 표의 열 이름과 ⚙ 컬럼 표시 설정 (PW-400).
+     🔴 `dept` 는 「부서」 가 아니라 「소속(기능조직)」 이다 — 스쿼드 열과 나란히 두면
+        두 축이 같은 것처럼 읽힌다(SQ1). 시트 뷰의 같은 열도 같은 이름을 쓴다. */
+  listCols: {
+    trigger: '컬럼',
+    title: '표시할 열',
+    cols: {
+      name: '이름',
+      nickname: '닉네임',
+      displayName: '표시 이름',
+      email: '이메일',
+      phone: '전화번호',
+      employeeCode: '사번',
+      dept: '소속(기능조직)',
+      squads: '스쿼드',
+      jobPosition: '직책',
+      jobLevel: '직급',
+      /* 직위 ≠ 직급. 직급은 내부 등급(Senior), 직위는 국내식 호칭(과장)이다(PW-400). */
+      jobRank: '직위',
+      jobFamily: '직군',
+      /* ⚠ `jobTitle` 은 직무가 아니라 **직렬**이다(2026-08-10 M5-b). */
+      jobTitle: '직렬',
+      jobDuty: '직무',
+      employmentType: '고용형태',
+      employmentStatus: '재직상태',
+      workLocation: '근무지',
+      manager: '매니저',
+      hireDate: '입사일',
+      terminationDate: '퇴사일',
+      education: '학력',
+      salary: '연봉',
+    },
+  },
   panel: {
     basicInfo: '기본 정보',
     name: '이름',
@@ -745,21 +806,198 @@ function ListDeptLabel({ member, orgTree, labels }) {
 }
 
 /* ── 목록 뷰 ─────────────────────────────────────────────
-   `#104` 가 지운 카드 목록의 복원. 시각은 삭제 이전 정본과 기존 `.admin-emp-*`
-   토큰 그대로다 — 어드민 화면이라 디자이너 선행 없이 진행하되, 새로 디자인하지는 않는다. */
+   정본 `admin-spec.md §3.1` 의 **표**다. `#104` 가 지운 뒤 PW-373 이 카드-행으로
+   되살렸는데, 카드-행에는 「열」 이라는 개념이 없어 ⚙ 컬럼 표시 설정·명부 내보내기
+   열 1:1·필터 축이 함께 빌 수밖에 없었다(PW-400). 그래서 표로 되돌린다.
+
+   시각은 새로 만들지 않는다 — 기존 `.admin-emp-*` 토큰과 Pretendard 를 그대로 쓰고,
+   mono 는 페이지 카운터에만 남긴다. 어드민 화면이라 디자이너 선행 없이 진행한다
+   (CLAUDE.md 「어드민 화면은 예외」). */
+
+/**
+ * 선택 열(⚙) 카탈로그 — **저장 값이 있는 열만** 넣는다.
+ *
+ * 🔴 정본 시안에는 직종·직함·근무지(국가)·FTE·담당 HRBP·근무 일정처럼 이 코드베이스에
+ *    저장 컬럼이 아직 없는 열이 함께 있다. 없는 필드로 열·필터를 만들면 늘 비어 있는
+ *    칸이 생기고, 그건 「이 회사는 안 쓰는 값」 과 구분되지 않는다(E6 — 없는 필드는
+ *    열도 필터도 만들지 않는다). 컬럼이 생기는 티켓에서 여기 한 줄씩 는다.
+ */
+const LIST_OPTIONAL_COLS = [
+  { id: 'employeeCode', width: 100 },
+  { id: 'nickname', width: 110 },
+  { id: 'displayName', width: 130 },
+  { id: 'phone', width: 130 },
+  /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 별개 축이다(PW-400). */
+  { id: 'jobRank', width: 90 },
+  { id: 'workLocation', width: 110 },
+  { id: 'terminationDate', width: 110 },
+  { id: 'education', width: 120 },
+  /** 연봉(T3) — 기본 숨김. 켤 수 있는 사람도 `canViewSalary` 로 한 번 더 걸린다. */
+  { id: 'salary', width: 120 },
+];
+
+/**
+ * ⚙ 기본값 — **연봉만 숨김**이고 나머지는 켜져 있다.
+ *
+ * 시안의 2026-08-13 결정을 따른다: 「시트 기준으로 필드를 채워도 목록 표가 예전
+ * 그대로면 적용됐는지를 사람이 확인할 수 없다. 좁으면 ⚙ 에서 끄면 된다. 연봉만
+ * 기본 숨김을 유지한다 — 반출 사고를 막기 위해서다.」
+ *
+ * ⚠ `admin-spec.md §3.1` 본문은 사번·근무지를 기본 숨김이라 적는다. 문서 ↔ 시안
+ *   판정은 기획(PW-401)에 넘겼고, 답이 다르게 나오면 이 상수 한 줄로 뒤집힌다.
+ */
+const LIST_DEFAULT_OPT_COLS = Object.fromEntries(
+  LIST_OPTIONAL_COLS.map((c) => [c.id, c.id !== 'salary']),
+);
+
+/** 필터의 «전체» sentinel. 🔴 라벨(`'전체'`)을 쓰면 로케일을 바꾸는 순간 판정이 깨진다. */
+const LIST_ALL = ALL;
+
+/** 결측 칸 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다(조직 스냅샷과 같은 규칙). */
+function Dash() {
+  return <span className="admin-emp-cell-dash" aria-hidden="true">—</span>;
+}
+
+function TextCell({ value }) {
+  return value ? <span className="admin-emp-cell-text">{value}</span> : <Dash />;
+}
+
+/** 유니크 값 → FilterDropdown 선택지. 값이 없는 필드는 「전체」 하나만 남는다. */
+function optionsOf(members, pick, allLabel) {
+  const seen = new Set();
+  for (const m of members) {
+    const v = pick(m);
+    if (v) seen.add(v);
+  }
+  return [
+    { id: LIST_ALL, label: allLabel },
+    ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((v) => ({ id: v, label: v })),
+  ];
+}
+
+/**
+ * ⚙ 컬럼 표시 설정.
+ *
+ * 어떤 열을 켜 둘지는 「이 사람이 이 화면을 어떻게 쓰는가」 라서, 상태를 캔버스가
+ * 들고 있으면 화면을 떠나는 순간 사라진다. `value`/`onChange` 로 소비자가 들고
+ * 있게 하고(=새로고침 후에도 남는다), 미주입이면 내부 상태로 폴백한다.
+ */
+function ColumnMenu({ cols, value, onChange, labels }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className={`admin-emp-select is-right${open ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        className="admin-emp-btn is-ghost is-sm"
+        aria-haspopup="true"
+        aria-expanded={open}
+        data-testid="employees-list-colmenu-trigger"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <IconSettings size={14} />{labels.listCols.trigger}
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu is-cols" data-testid="employees-list-colmenu">
+          <div className="admin-emp-select-title">{labels.listCols.title}</div>
+          {cols.map((c) => (
+            <label key={c.id} className="admin-emp-select-check">
+              <input
+                type="checkbox"
+                checked={value[c.id] !== false}
+                data-testid={`employees-list-col-${c.id}`}
+                onChange={() => onChange({ ...value, [c.id]: value[c.id] === false })}
+              />
+              <span>{labels.listCols.cols[c.id] || c.id}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 매니저(개인 상급자) 셀 — 배정 여부로 세 갈래 (§3.1 · §3.2).
+ *
+ * 시트는 모든 행이 `<select>` 라 검색도 조직장 경로도 없다. 목록 뷰는 **배정된 행을
+ * 읽기 전용**으로 두고, 바꾸려면 행 `⋯` 의 「매니저 변경」 을 거치게 한다 — 표에서
+ * 스치듯 바뀌면 안 되는 값이라서다. 미배정만 그 자리에서 채운다.
+ */
+function ListManagerCell({ member, labels, candidates, onAssignManager, renderAvatar }) {
+  if (member.managerName) {
+    return (
+      <span className="admin-emp-cell-manager" data-testid={`employees-list-manager-${member.id}`}>
+        {renderAvatar
+          ? renderAvatar({ name: member.managerName }, 20)
+          : <AvatarFallback row={{ name: member.managerName }} size={20} />}
+        <span className="admin-emp-cell-text">{member.managerName}</span>
+      </span>
+    );
+  }
+  // 대표는 상급자를 가질 수 없다 — 「미배정」 경고를 띄우면 영원히 못 지우는 빨간 칸이 된다.
+  if (member.isCeo) {
+    return (
+      <span
+        className="admin-emp-cell-dash"
+        title={labels.listManagerFilter.ceoTop}
+        data-testid={`employees-list-manager-${member.id}`}
+      >
+        —
+      </span>
+    );
+  }
+  if (!onAssignManager) return <Dash />;
+  return (
+    <span data-testid={`employees-list-manager-${member.id}`}>
+      <ManagerPicker
+        candidates={candidates.filter((c) => c.id !== member.id)}
+        labels={labels}
+        onPick={(managerId) => onAssignManager(member.id, managerId)}
+        trigger={<span className="admin-emp-manager-need">{labels.listManagerFilter.assign}</span>}
+      />
+    </span>
+  );
+}
+
 function EmployeesListView({
-  members, orgUnits, labels, canEdit, pageSize, renderAvatar,
-  onOpenEdit, onDeactivate, onInvite, onCsvUpload,
+  members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis,
+  canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
+  leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
+  onOpenEdit, onDeactivate, onAssignManager, onInvite, onCsvUpload,
 }) {
   const [q, setQ] = useState('');
-  const [dept, setDept] = useState(ALL);
-  const [level, setLevel] = useState(ALL);
+  const [dept, setDept] = useState(LIST_ALL);
+  const [squad, setSquad] = useState(LIST_ALL);
+  const [position, setPosition] = useState(LIST_ALL);
+  const [level, setLevel] = useState(LIST_ALL);
+  const [family, setFamily] = useState(LIST_ALL);
+  const [ladder, setLadder] = useState(LIST_ALL);
+  const [duty, setDuty] = useState(LIST_ALL);
+  const [location, setLocation] = useState(LIST_ALL);
+  const [empType, setEmpType] = useState(LIST_ALL);
   // ALL 은 `'all'` 이다 — 라벨을 sentinel 로 쓰면(옛 `'전체'`) 로케일을 바꾸는 순간
   // 「필터 안 걸림」 판정이 깨진다.
   const [mgrFilter, setMgrFilter] = useState('all');
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
+  // 소속 팝업을 연 구성원 id. 조직장 지정([매니저로])이 사는 유일한 자리다(PW-400).
+  const [deptPickerFor, setDeptPickerFor] = useState(null);
+  // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
+  // 내부 상태로 폴백한다.
+  const [ownOptCols, setOwnOptCols] = useState(LIST_DEFAULT_OPT_COLS);
+  const optCols = providedOptCols ?? ownOptCols;
+  const setOptCols = onOptColsChange ?? setOwnOptCols;
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
@@ -770,28 +1008,58 @@ function EmployeesListView({
     if (names.length === 0 && m.department) names.push(m.department);
     return names;
   };
+  const squadNamesOf = (m) => (Array.isArray(m.squads) ? m.squads : [])
+    .map((s) => s.name || s.squadName)
+    .filter(Boolean);
 
   const allLabel = labels.filters.all;
   const depts = useMemo(() => {
     const seen = new Set();
-    for (const m of members) {
-      const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : [];
-      const names = list.map((d) => d.name).filter(Boolean);
-      if (names.length === 0 && m.department) names.push(m.department);
-      for (const n of names) seen.add(n);
-    }
+    for (const m of members) for (const n of deptNamesOf(m)) seen.add(n);
     return [
-      { id: ALL, label: allLabel },
-      ...[...seen].map((n) => ({ id: n, label: n })),
+      { id: LIST_ALL, label: allLabel },
+      ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((n) => ({ id: n, label: n })),
     ];
   }, [members, allLabel]);
-  const levels = useMemo(
-    () => [
-      { id: ALL, label: allLabel },
-      ...[...new Set(members.map((m) => m.jobLevel).filter(Boolean))].map((n) => ({ id: n, label: n })),
-    ],
-    [members, allLabel],
+  const squads = useMemo(() => {
+    const seen = new Set();
+    for (const m of members) for (const n of squadNamesOf(m)) seen.add(n);
+    return [
+      { id: LIST_ALL, label: allLabel },
+      ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((n) => ({ id: n, label: n })),
+    ];
+  }, [members, allLabel]);
+  const positions = useMemo(() => optionsOf(members, (m) => m.jobPosition, allLabel), [members, allLabel]);
+  const levels = useMemo(() => optionsOf(members, (m) => m.jobLevel, allLabel), [members, allLabel]);
+  const locations = useMemo(() => optionsOf(members, (m) => m.workLocation, allLabel), [members, allLabel]);
+  const empTypes = useMemo(() => optionsOf(members, (m) => m.employmentType, allLabel), [members, allLabel]);
+
+  /* 직군 → 직렬 → 직무 3단. 카탈로그(`jobAxis`)가 있으면 그걸 쓰고, 없으면 구성원이
+     실제로 가진 값에서 모은다 — 카탈로그가 비어도 필터가 사라지지는 않게. */
+  const axis = jobAxis || {};
+  const families = useMemo(
+    () => (axis.families?.length
+      ? [{ id: LIST_ALL, label: allLabel }, ...axis.families.map((v) => ({ id: v, label: v }))]
+      : optionsOf(members, (m) => m.jobFamily, allLabel)),
+    [axis.families, members, allLabel],
   );
+  const ladders = useMemo(() => {
+    const narrowed = family !== LIST_ALL
+      ? narrowByParent(axis.ladders ?? [], axis.laddersByFamily, family)
+      : axis.ladders;
+    return narrowed?.length
+      ? [{ id: LIST_ALL, label: allLabel }, ...narrowed.map((v) => ({ id: v, label: v }))]
+      : optionsOf(members, (m) => m.jobTitle, allLabel);
+  }, [axis.ladders, axis.laddersByFamily, family, members, allLabel]);
+  const duties = useMemo(() => {
+    const narrowed = ladder !== LIST_ALL
+      ? narrowByParent(axis.duties ?? [], axis.dutiesByLadder, ladder)
+      : axis.duties;
+    return narrowed?.length
+      ? [{ id: LIST_ALL, label: allLabel }, ...narrowed.map((v) => ({ id: v, label: v }))]
+      : optionsOf(members, (m) => m.jobDuty, allLabel);
+  }, [axis.duties, axis.dutiesByLadder, ladder, members, allLabel]);
+
   const statusOpts = [
     { id: 'all', label: labels.filters.all },
     { id: 'active', label: labels.status.active },
@@ -813,23 +1081,199 @@ function EmployeesListView({
           const hay = `${m.name || ''} ${m.email || ''} ${names.join(' ')}`.toLowerCase();
           if (!hay.includes(q.toLowerCase())) return false;
         }
-        if (dept !== ALL && !names.includes(dept)) return false;
-        if (level !== ALL && m.jobLevel !== level) return false;
+        if (dept !== LIST_ALL && !names.includes(dept)) return false;
+        if (squad !== LIST_ALL && !squadNamesOf(m).includes(squad)) return false;
+        if (position !== LIST_ALL && m.jobPosition !== position) return false;
+        if (level !== LIST_ALL && m.jobLevel !== level) return false;
+        if (family !== LIST_ALL && m.jobFamily !== family) return false;
+        if (ladder !== LIST_ALL && m.jobTitle !== ladder) return false;
+        if (duty !== LIST_ALL && m.jobDuty !== duty) return false;
+        if (location !== LIST_ALL && m.workLocation !== location) return false;
+        if (empType !== LIST_ALL && m.employmentType !== empType) return false;
         if (mgrFilter === 'assigned' && !m.managerName) return false;
-        if (mgrFilter === 'unassigned' && m.managerName) return false;
+        // 대표는 상급자를 가질 수 없으므로 「매니저 미배정」 대상이 아니다 — 넣으면
+        // 영원히 처리되지 않는 한 건이 목록에 남는다.
+        if (mgrFilter === 'unassigned' && (m.managerName || m.isCeo)) return false;
         if (status !== 'all' && m.employmentStatus !== status) return false;
         return true;
       }),
-    [members, q, dept, level, mgrFilter, status],
+    [members, q, dept, squad, position, level, family, ladder, duty, location, empType, mgrFilter, status],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
+  const ordered = useMemo(
+    () => [...filtered].sort((a, b) => (b.isCeo ? 1 : 0) - (a.isCeo ? 1 : 0)),
+    [filtered],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const hasFilter = q || dept !== ALL || level !== ALL || mgrFilter !== 'all' || status !== 'all';
+  const pageRows = ordered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
+    || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
+    || location !== LIST_ALL || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all';
 
   function resetFilters() {
-    setQ(''); setDept(ALL); setLevel(ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
+    setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
+    setFamily(LIST_ALL); setLadder(LIST_ALL); setDuty(LIST_ALL); setLocation(LIST_ALL);
+    setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
+  }
+
+  /** 직군을 바꾸면 그 밑에 속하지 않게 된 직렬·직무 필터를 푼다 — 안 풀면 0건인 채 이유가 안 보인다. */
+  function changeFamily(v) {
+    setFamily(v);
+    if (v !== LIST_ALL && ladder !== LIST_ALL
+      && !narrowByParent(axis.ladders ?? [], axis.laddersByFamily, v).includes(ladder)) {
+      setLadder(LIST_ALL);
+      setDuty(LIST_ALL);
+    }
+    setPage(1);
+  }
+  function changeLadder(v) {
+    setLadder(v);
+    if (v !== LIST_ALL && duty !== LIST_ALL
+      && !narrowByParent(axis.duties ?? [], axis.dutiesByLadder, v).includes(duty)) {
+      setDuty(LIST_ALL);
+    }
+    setPage(1);
+  }
+
+  const cl = labels.listCols.cols;
+  // 연봉 열은 ⚙ 로 켜도 열람 권한이 없으면 뜨지 않는다 — 두 겹으로 막는다.
+  const optOn = (id) => optCols[id] !== false && (id !== 'salary' || canViewSalary);
+  const cols = [
+    { id: 'name', label: cl.name, width: 200 },
+    ...(optOn('nickname') ? [{ id: 'nickname', label: cl.nickname, width: 110 }] : []),
+    ...(optOn('displayName') ? [{ id: 'displayName', label: cl.displayName, width: 130 }] : []),
+    { id: 'email', label: cl.email, width: 200 },
+    ...(optOn('phone') ? [{ id: 'phone', label: cl.phone, width: 130 }] : []),
+    ...(optOn('employeeCode') ? [{ id: 'employeeCode', label: cl.employeeCode, width: 100 }] : []),
+    // 🔴 「부서」 가 아니라 「소속(기능조직)」 이다 — 스쿼드와 나란히 두면 두 축이 같은
+    //    것처럼 읽힌다(SQ1). 시트 뷰의 같은 열도 같은 이름을 쓴다.
+    { id: 'dept', label: cl.dept, width: 180 },
+    { id: 'squads', label: cl.squads, width: 150 },
+    { id: 'jobPosition', label: cl.jobPosition, width: 100 },
+    { id: 'jobLevel', label: cl.jobLevel, width: 100 },
+    ...(optOn('jobRank') ? [{ id: 'jobRank', label: cl.jobRank, width: 90 }] : []),
+    { id: 'jobFamily', label: cl.jobFamily, width: 100 },
+    { id: 'jobTitle', label: cl.jobTitle, width: 120 },
+    { id: 'jobDuty', label: cl.jobDuty, width: 140 },
+    { id: 'employmentType', label: cl.employmentType, width: 100 },
+    { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
+    ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
+    { id: 'manager', label: cl.manager, width: 150 },
+    { id: 'hireDate', label: cl.hireDate, width: 110 },
+    ...(optOn('terminationDate') ? [{ id: 'terminationDate', label: cl.terminationDate, width: 110 }] : []),
+    ...(optOn('education') ? [{ id: 'education', label: cl.education, width: 120 }] : []),
+    ...(optOn('salary') ? [{ id: 'salary', label: cl.salary, width: 120 }] : []),
+    { id: 'actions', label: '', width: 90 },
+  ];
+  // 열이 스물 가까이 늘면 고정 minWidth 로는 칸이 눌려 글자가 세로로 쪼개진다.
+  // **보이는 열 폭의 합**으로 잡고, 넘치는 만큼은 가로 스크롤로 읽는다.
+  const minWidth = cols.reduce((n, c) => n + c.width, 0);
+
+  const optionalForMenu = LIST_OPTIONAL_COLS.filter((c) => c.id !== 'salary' || canViewSalary);
+
+  /* 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 `orgUnitIds` 폴백.
+     이름으로 맞추면 동명이팀에서 틀린다(PW-112). */
+  const deptPicker = deptPickerFor ? members.find((m) => m.id === deptPickerFor) : null;
+  const deptChips = (deptPicker?.depts || []).filter((d) => d.orgUnitId);
+  const deptFallbackPrimary = deptPicker
+    ? (primaryOrgEntry(orgTree, deptPicker.orgUnitIds)?.id ?? '')
+    : '';
+  const deptPickerSelected = deptChips.length > 0
+    ? deptChips.map((d) => d.orgUnitId)
+    : (deptFallbackPrimary ? [deptFallbackPrimary] : []);
+  const deptPickerPrimary = deptChips.find((d) => d.isPrimary)?.orgUnitId || deptFallbackPrimary;
+
+  function cell(m, id) {
+    switch (id) {
+      case 'name':
+        return (
+          <button type="button" className="admin-emp-cell-name" onClick={() => onOpenEdit(m)}>
+            {renderAvatar ? renderAvatar(m, 28) : <AvatarFallback row={m} size={28} />}
+            <span className="admin-emp-cell-name-text">
+              {m.displayName || m.name}
+              <RolePill role={m.orgRole} labels={labels} />
+            </span>
+          </button>
+        );
+      case 'nickname': return <TextCell value={m.nickname} />;
+      case 'displayName': return <TextCell value={m.displayName} />;
+      case 'email': return <TextCell value={m.email} />;
+      case 'phone': return <TextCell value={m.phone} />;
+      case 'employeeCode': return <TextCell value={m.employeeCode} />;
+      case 'dept': {
+        const label = <ListDeptLabel member={m} orgTree={orgTree} labels={labels} />;
+        // 팝업을 여는 경로는 소속을 **고칠 수 있을 때만** 연다 — 못 고치는 사람에게
+        // 눌리는 셀을 주면 눌러 보고 아무 일도 안 일어나는 자리가 된다.
+        if (!canEdit || !onChangeAffiliations) return label;
+        return (
+          <button
+            type="button"
+            className="admin-emp-cell-dept"
+            onClick={() => setDeptPickerFor(m.id)}
+            data-testid={`employees-list-dept-${m.id}`}
+          >
+            {label}
+          </button>
+        );
+      }
+      case 'squads': {
+        const names = squadNamesOf(m);
+        return names.length ? <TextCell value={names.join(', ')} /> : <Dash />;
+      }
+      case 'jobPosition': return <TextCell value={m.jobPosition} />;
+      case 'jobLevel': return <TextCell value={m.jobLevel} />;
+      case 'jobRank': return <TextCell value={m.jobRank} />;
+      case 'jobFamily': return <TextCell value={m.jobFamily} />;
+      case 'jobTitle': return <TextCell value={m.jobTitle} />;
+      case 'jobDuty': return <TextCell value={m.jobDuty} />;
+      case 'employmentType': return <TextCell value={m.employmentType} />;
+      case 'employmentStatus': return <StatusBadge status={m.employmentStatus} labels={labels} />;
+      case 'workLocation': return <TextCell value={m.workLocation} />;
+      case 'manager':
+        return (
+          <ListManagerCell
+            member={m}
+            labels={labels}
+            candidates={managerCandidates}
+            onAssignManager={canEdit ? onAssignManager : undefined}
+            renderAvatar={renderAvatar}
+          />
+        );
+      case 'hireDate': return <TextCell value={(m.hireDate || '').slice(0, 10)} />;
+      case 'terminationDate': return <TextCell value={(m.terminationDate || '').slice(0, 10)} />;
+      case 'education': return <TextCell value={m.education} />;
+      case 'salary': return <TextCell value={m.salary} />;
+      case 'actions':
+        return (
+          <div className="admin-emp-actions-cell">
+            <div className="admin-emp-actions">
+              <button
+                type="button"
+                className="admin-emp-btn is-ghost is-sm admin-emp-more"
+                onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)}
+                aria-label={labels.listRowMenu}
+                data-testid={`employees-list-rowmenu-${m.id}`}
+              >
+                <IconMore size={16} />
+              </button>
+            </div>
+            {openMenu === m.id && (
+              <RowActionMenu
+                labels={labels}
+                canEdit={canEdit && !!onDeactivate}
+                onEdit={() => onOpenEdit(m)}
+                onChangeManager={() => onOpenEdit(m)}
+                onDeactivate={() => onDeactivate?.(m)}
+                onClose={() => setOpenMenu(null)}
+              />
+            )}
+          </div>
+        );
+      default: return <Dash />;
+    }
   }
 
   return (
@@ -846,23 +1290,29 @@ function EmployeesListView({
               aria-label={labels.listSearch}
             />
           </div>
-          <span className="admin-emp-count">{filtered.length}{labels.countSuffix}</span>
+          <span className="admin-emp-count">{ordered.length}{labels.countSuffix}</span>
         </div>
-        {canEdit && (onCsvUpload || onInvite) && (
-          <div className="admin-emp-toolbar-actions">
-            {onCsvUpload && (
-              <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
-            )}
-            {onInvite && (
-              <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
-            )}
-          </div>
-        )}
+        <div className="admin-emp-toolbar-actions">
+          <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} />
+          {canEdit && onCsvUpload && (
+            <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
+          )}
+          {canEdit && onInvite && (
+            <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
+          )}
+        </div>
       </div>
 
       <div className="admin-emp-filterbar">
         <FilterDropdown label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
         <FilterDropdown label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
+        <FilterDropdown label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
+        <FilterDropdown label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
+        <FilterDropdown label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
         <FilterDropdown label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
         <FilterDropdown label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
         {hasFilter && (
@@ -870,63 +1320,65 @@ function EmployeesListView({
         )}
       </div>
 
-      {pageRows.length === 0 ? (
-        <div className="admin-emp-empty">{labels.listEmptyFiltered}</div>
-      ) : (
-        <div className="admin-emp-list">
-          {pageRows.map((m) => (
-            <div key={m.id} className="admin-emp-row">
-              <button type="button" className="admin-emp-row-main" onClick={() => onOpenEdit(m)}>
-                {renderAvatar ? renderAvatar(m, 36) : <AvatarFallback row={m} size={36} />}
-                <div className="admin-emp-row-info">
-                  <div className="admin-emp-row-name">
-                    {m.displayName || m.name}
-                    <RolePill role={m.orgRole} labels={labels} />
-                  </div>
-                  <div className="admin-emp-row-meta">
-                    <span className="admin-emp-row-email">{m.email}</span>
-                    <span className="admin-emp-meta-dot" aria-hidden="true">·</span>
-                    <ListDeptLabel member={m} orgTree={orgTree} labels={labels} />
-                    {m.jobLevel && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{m.jobLevel}</span></>)}
-                    {m.managerName && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{labels.listManagerFilter.prefix} {m.managerName}</span></>)}
-                    {m.hireDate && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{(m.hireDate || '').slice(0, 10)}</span></>)}
-                  </div>
-                </div>
-              </button>
-              <div className="admin-emp-row-right">
-                <StatusBadge status={m.employmentStatus} labels={labels} />
-                <div className="admin-emp-actions-cell">
-                  <div className="admin-emp-actions">
-                    <button
-                      type="button"
-                      className="admin-emp-btn is-ghost is-sm admin-emp-more"
-                      onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)}
-                      aria-label={labels.listRowMenu}
-                    >
-                      <IconMore size={16} />
-                    </button>
-                  </div>
-                  {openMenu === m.id && (
-                    <RowActionMenu
-                      labels={labels}
-                      canEdit={canEdit && !!onDeactivate}
-                      onEdit={() => onOpenEdit(m)}
-                      onChangeManager={() => onOpenEdit(m)}
-                      onDeactivate={() => onDeactivate?.(m)}
-                      onClose={() => setOpenMenu(null)}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* 표는 이 컨테이너 안에서만 가로로 흐른다 — 페이지가 통째로 옆으로 밀리면
+          스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다(PW-400 §3). */}
+      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap">
+        <table className="admin-emp-table" style={{ minWidth }}>
+          <thead>
+            <tr>
+              {cols.map((c) => (
+                <th key={c.id} style={{ width: c.width }} scope="col">{c.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.length === 0 ? (
+              <tr>
+                <td colSpan={cols.length} className="admin-emp-empty">{labels.listEmptyFiltered}</td>
+              </tr>
+            ) : pageRows.map((m) => (
+              <tr key={m.id} data-testid={`employees-list-row-${m.id}`}>
+                {cols.map((c) => (
+                  <td key={c.id} data-col={c.id}>{cell(m, c.id)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 소속(기능조직) 팝업 — 겸직 다중 선택 + [매니저로].
+          🔴 이 화면이 조직장 지정이 사는 **유일한 자리**다(PW-326 확정). 시트의 같은
+             팝업에는 `onToggleLeader` 를 주지 않아 버튼이 뜨지 않는다. */}
+      {deptPicker && (
+        <OrgTreePicker
+          open
+          multi
+          units={orgUnits}
+          subtitle={deptPicker.displayName || deptPicker.name}
+          selectedIds={deptPickerSelected}
+          primaryId={deptPickerPrimary}
+          leaderUnitIds={(leaderUnitIdsByMember || {})[deptPicker.id] || []}
+          // 조직장 지정은 서버 한 번의 변경이라 「적용」 을 기다리지 않고 그 자리에서 보낸다 —
+          // 소속 선택과 묶으면 취소를 눌렀을 때 무엇이 되돌아가는지가 흐려진다.
+          onToggleLeader={onToggleOrgLeader
+            ? (unitId, next) => onToggleOrgLeader(deptPicker.id, unitId, next)
+            : undefined}
+          // L6 — 퇴사자는 조직장이 될 수 없다. 감추지 않고 이유를 남긴다.
+          canBeLeader={deptPicker.employmentStatus !== 'terminated'}
+          onApply={({ unitIds, primaryUnitId }) => {
+            onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId });
+            setDeptPickerFor(null);
+          }}
+          onClose={() => setDeptPickerFor(null)}
+          labels={labels.orgPicker}
+        />
       )}
 
-      {filtered.length > 0 && (
+      {ordered.length > 0 && (
         <div className="admin-emp-pagination">
           <span className="admin-emp-muted">
-            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} {labels.listPagination.of} {filtered.length}{labels.countSuffix}
+            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, ordered.length)} {labels.listPagination.of} {ordered.length}{labels.countSuffix}
           </span>
           <div className="admin-emp-pagination-nav">
             <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.listPagination.prev}</button>
@@ -1164,6 +1616,29 @@ export default function AdminEmployeesCanvas({
   pageSize = 20,
   /** 목록 뷰 행 메뉴의 «비활성화». 미주입이면 그 항목이 없다. */
   onDeactivateMember,
+  /**
+   * 목록 뷰 ⚙ 컬럼 표시 설정 `{ [colId]: boolean }` (PW-400).
+   *
+   * 상태를 **소비자가 들고 있는 게 정본**이다 — 캔버스가 들고 있으면 화면을 떠나는
+   * 순간 사라져서, 20여 개 열을 매번 다시 켜야 한다. 미주입이면 내부 상태로
+   * 폴백하므로 옛 호출부도 그대로 돈다.
+   */
+  listOptCols,
+  onListOptColsChange,
+  /**
+   * 그 구성원이 **조직장인 조직 id 목록** `{ [memberId]: string[] }` (PW-400).
+   *
+   * `orgLeaderByMember`(그 사람의 상급 조직장)와 방향이 반대다 — 헷갈리지 말 것.
+   * 소속 팝업의 `[매니저로]` 가 이 값으로 「이미 매니저」 상태를 그린다.
+   */
+  leaderUnitIdsByMember,
+  /**
+   * 조직장 지정·해제 `(memberId, unitId, next: boolean) => void` (PW-400).
+   *
+   * 미주입이면 소속 팝업에 `[매니저로]` 가 **아예 뜨지 않는다**. 권한 자동 승격과
+   * 「팀당 1명」 은 서버 규칙이다 — 캔버스가 흉내 내면 두 곳으로 갈린다.
+   */
+  onToggleOrgLeader,
   loading = false,
   labels: providedLabels,
   canEdit = true,
@@ -1352,8 +1827,19 @@ export default function AdminEmployeesCanvas({
               canEdit={canEdit}
               pageSize={pageSize}
               renderAvatar={renderAvatar}
+              // 직군>직렬>직무 좁히기는 시트와 **같은 축**을 쓴다 — 한쪽만 다른 카탈로그를
+              // 읽으면 두 뷰에서 고를 수 있는 값이 갈린다.
+              jobAxis={jobAxis}
+              canViewSalary={canViewSalary}
+              managerCandidates={managerCandidates}
+              optCols={listOptCols}
+              onOptColsChange={onListOptColsChange}
+              leaderUnitIdsByMember={leaderUnitIdsByMember}
+              onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
+              onChangeAffiliations={onChangeAffiliations}
               onOpenEdit={(m) => setEditMemberId(m.id)}
               onDeactivate={canEdit ? onDeactivateMember : undefined}
+              onAssignManager={onAssignManager}
               onInvite={canInvite ? openInvite : undefined}
               onCsvUpload={onCsvUpload}
             />

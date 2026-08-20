@@ -29,9 +29,14 @@ import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
  *  · 주 소속을 체크 해제하면 **남은 첫 조직**이 주 소속이 된다(B1). 선택이 비지 않는다.
  *  · 전부 해제하면 「선택 없음」 문구로 미배정이 된다고 **적용 전에** 고지한다(B2).
  *
- * 조직장(매니저) 지정은 이 컴포넌트의 책임이 아니다(PW-110). 시트의 소속 팝업에 두지
- * 않는 것은 의도다 — 남의 자격을 떼고 권한을 승격시키는 파괴적 동작이라 확인 모달이
- * 따라붙고, 수십 행을 훑는 편집 화면의 성격이 아니다(§3.8.3-B 「의도적으로 다른 점」).
+ * 조직장(매니저) 지정 — `onToggleLeader` (PW-400)
+ *  · **주입한 호출부에만** `[매니저로]` 가 뜬다. 미주입이면 버튼 자체가 없다.
+ *  · 시트의 소속 팝업에는 **주입하지 않는다** — 남의 자격을 떼고 권한을 승격시키는
+ *    파괴적 단건 동작이라 확인이 따라붙는데, 수십 행을 훑는 편집 화면의 성격이 아니다
+ *    (PW-110 · PW-326 David 확정 · §3.8.3-B 「의도적으로 다른 점」).
+ *  · 그래서 이 버튼이 서는 자리는 **목록 뷰의 소속 팝업 하나**다. 목록 뷰가 표가 아니던
+ *    동안에는 두 뷰 어디에도 없었다.
+ *  · 소속한(=체크된) 조직에만 뜬다(L3). 소속하지 않은 조직의 장이 되는 경로는 없다.
  */
 
 const T = {
@@ -63,6 +68,12 @@ const DEFAULT_LABELS = {
   primary: '주 소속',
   makePrimary: '주 소속으로',
   makePrimaryTitle: '이 조직을 주 소속으로 지정합니다',
+  // 조직장 지정 — PW-400
+  makeLeader: '매니저로',
+  makeLeaderTitle: '이 조직의 매니저(조직장)로 지정합니다. 권한이 매니저로 오르고 팀당 1명만 유지됩니다',
+  leaderBadge: '매니저',
+  leaderBadgeTitle: '이 조직의 조직장입니다. 눌러서 해제합니다 (권한은 유지)',
+  leaderBlocked: '퇴사자는 조직장으로 지정할 수 없습니다',
   selectedCount: '선택 {count}곳',
   clearAll: '모두 해제',
   // 추가 전용(`primarySelectable={false}`) 전용 — PW-373
@@ -100,6 +111,22 @@ export default function OrgTreePicker({
    * 되고, 그게 정본이 금지한 일괄 교체다(§3.8.3-B 「일괄 편집 바」).
    */
   primarySelectable = true,
+  /**
+   * 조직장(매니저)인 조직 id 배열 (PW-400). `onToggleLeader` 와 짝이다.
+   */
+  leaderUnitIds = [],
+  /**
+   * 조직장 지정·해제 `(unitId, next: boolean) => void`.
+   *
+   * 미주입이면 `[매니저로]` 버튼이 **아예 뜨지 않는다** — 눌러도 아무 일 없는 버튼을
+   * 두지 않는다. 시트의 소속 팝업이 바로 이 경우다.
+   */
+  onToggleLeader,
+  /**
+   * 조직장으로 지정할 수 있는 대상인가 (L6). 퇴사자면 false.
+   * 버튼을 감추지 않고 **비활성 + 이유**로 남긴다 — 없으면 「왜 나만 안 되지」 가 된다.
+   */
+  canBeLeader = true,
   onApply,
   onClose,
   labels: providedLabels,
@@ -144,6 +171,13 @@ export default function OrgTreePicker({
     setCollapsed({});
     setActiveIdx(0);
   }
+
+  // props 배열은 매 렌더 새 참조라 `.includes` 판정만 쓰고 상태로 들지 않는다 —
+  // 조직장 자리의 정본은 서버이고, 팝업은 그 값을 그릴 뿐이다.
+  const leaderIds = useMemo(
+    () => (leaderUnitIds || []).map(String).filter(Boolean),
+    [leaderUnitIds],
+  );
 
   const q = query.trim().toLowerCase();
   const searching = q.length > 0;
@@ -410,6 +444,41 @@ export default function OrgTreePicker({
                       }}
                     >
                       {labels.makePrimary}
+                    </button>
+                  )
+                )}
+                {/* 이 조직의 매니저(조직장) 지정 — 소속한 조직에만 노출(L3).
+                    해제해도 권한은 그대로 둔다(L11) — 조직장 해제와 권한 강등은 별개 결정이다. */}
+                {multi && onToggleLeader && picked.includes(e.id) && (
+                  leaderIds.includes(e.id) ? (
+                    <button
+                      type="button"
+                      data-testid={`org-tree-leader-badge-${e.id}`}
+                      onClick={() => onToggleLeader(e.id, false)}
+                      title={labels.leaderBadgeTitle}
+                      style={{
+                        flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
+                        padding: '1px 7px', borderRadius: 99, boxSizing: 'border-box',
+                        background: T.bg, border: `1px solid ${T.border}`, color: T.text,
+                        cursor: 'pointer', fontFamily: T.font,
+                      }}
+                    >
+                      {labels.leaderBadge}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`org-tree-make-leader-${e.id}`}
+                      disabled={!canBeLeader}
+                      onClick={() => canBeLeader && onToggleLeader(e.id, true)}
+                      title={canBeLeader ? labels.makeLeaderTitle : labels.leaderBlocked}
+                      style={{
+                        flexShrink: 0, fontSize: 10, color: canBeLeader ? T.muted : T.border,
+                        background: 'none', border: 'none', fontFamily: T.font, padding: '0 2px',
+                        cursor: canBeLeader ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      {labels.makeLeader}
                     </button>
                   )
                 )}
