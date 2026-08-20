@@ -1026,6 +1026,136 @@
 .admin-emp-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .admin-emp-more { min-width: 30px; }
 
+/* ── 구성원 목록 표 (PW-400) ────────────────────────────────
+ * 정본 `admin-spec.md §3.1` 의 표. 아래 카드-행(`.admin-emp-row`)은 미배정 탭이
+ * 계속 쓰므로 남겨 둔다 — 목록 뷰만 표로 돌아왔다.
+ *
+ * 시각 언어는 카드-행 그대로다: Pretendard(모노 아님) · 토큰 색 · 부드러운 행 hover.
+ * 표로 돌아온 이유는 순전히 구조다 — ⚙ 컬럼 표시 설정·명부 내보내기 열 1:1·필터
+ * 축이 전부 「열」 위에 서 있어서, 열이라는 개념이 없으면 함께 빈다.
+ */
+.admin-emp-table-wrap {
+  /* 🔴 가로 스크롤은 **이 컨테이너 안에서만** 일어난다. 페이지가 통째로 옆으로
+     밀리면 표 맨 아래의 스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다 —
+     페이지네이션(한 쪽 20행)과 짝이 되어야 막대가 늘 보인다. */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.admin-emp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: var(--font-family-body);
+}
+.admin-emp-table th {
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  /* 좁은 칸에서 헤더가 세로로 쪼개지지 않게. 넘치는 만큼은 가로 스크롤로 읽는다. */
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-primary);
+}
+.admin-emp-table td {
+  padding: 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bg-secondary);
+  /* 셀은 줄바꿈하지 않는다 — 20열짜리 표에서 줄바꿈을 허용하면 행 높이가 제각각이
+     되어 눈이 가로줄을 따라가지 못한다. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 행 액션 메뉴가 `position: absolute` 로 뜨는 칸 — 여기만 넘침을 허용한다.
+   전 칸에 허용하면 잘림 표시가 사라져 값이 옆 칸을 침범한 것처럼 보인다. */
+.admin-emp-table td[data-col='actions'] { overflow: visible; }
+/* 매니저 칸의 배정 드롭다운도 셀 밖으로 열린다. */
+.admin-emp-table td[data-col='manager'] { overflow: visible; }
+.admin-emp-table tbody tr:hover { background: var(--colors-grayLight-50, #fafafa); }
+.admin-emp-table tbody tr:last-child td { border-bottom: none; }
+
+.admin-emp-cell-text {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+/* 결측 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다. */
+.admin-emp-cell-dash { font-size: 13px; color: var(--text-tertiary); }
+
+.admin-emp-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-family-body);
+  min-width: 0;
+}
+.admin-emp-cell-name-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.admin-emp-cell-name:hover .admin-emp-cell-name-text { color: var(--text-brand-tertiary); }
+
+.admin-emp-cell-manager { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+
+/* 소속 칸 — 누르면 겸직 팝업이 열린다. 셀 전체가 눌리는 자리라는 걸 hover 로만 알린다
+   (표의 색 신호는 상태 배지 하나라는 규칙을 지킨다). */
+.admin-emp-cell-dept {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-family-body);
+  min-width: 0;
+}
+.admin-emp-cell-dept:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* 미배정 행의 「+ 매니저 배정」 — 경고 톤. 채우지 않고 텍스트 색으로만 알린다
+   (상태 배지가 행의 유일한 채움 색이라는 규칙을 지킨다). */
+.admin-emp-manager-need {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+  white-space: nowrap;
+}
+
+/* ⚙ 컬럼 표시 설정 메뉴 — 매니저 피커와 같은 `.admin-emp-select-menu` 셸을 쓴다. */
+.admin-emp-select-menu.is-cols { width: 200px; padding: 8px; }
+.admin-emp-select-title {
+  padding: 2px 6px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.admin-emp-select-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.admin-emp-select-check:hover { background: var(--bg-secondary); }
+
 /* ── 구성원 리스트 (카드-행) — design-page report/meetings 행 패턴 ──
  * <table> 가로 스크롤·1px 그리드 줄·mono 폰트를 버리고, 2px 간격 flex 카드-행으로.
  * 1줄: 이름 + 역할, 2줄: 이메일·부서·직급·매니저·입사일 메타 (전부 Pretendard).
