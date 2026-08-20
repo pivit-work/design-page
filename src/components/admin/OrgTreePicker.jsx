@@ -29,6 +29,19 @@ import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
  *  · 주 소속을 체크 해제하면 **남은 첫 조직**이 주 소속이 된다(B1). 선택이 비지 않는다.
  *  · 전부 해제하면 「선택 없음」 문구로 미배정이 된다고 **적용 전에** 고지한다(B2).
  *
+ * 유지되는 상위 경로 — `retainedIds` (PW-404)
+ *  · 선택(`selectedIds`)은 **단말 소속**만 담는다. 서버가 배정 행 중 「다른 행의 조상」을
+ *    접기 때문이다(CSV import 가 본부·부서·팀마다 행을 만들어서, 안 접으면 겸직이 아닌
+ *    사람도 소속 3곳으로 보인다).
+ *  · 그래서 「선택 2곳」인데 서버가 아는 행은 3개인 상황이 생긴다. 화면이 그 한 행을
+ *    말하지 않으면 **적용해도 지켜지는지 알 방법이 없다** — 실제로 어드민이 「상위 소속이
+ *    함께 떨어질까 봐」 올바른 조작을 포기했다(PW-404).
+ *  · `retainedIds` 로 그 접힌 행을 받아, **지금 고른 조직의 조상인 동안** 「유지」 로
+ *    표시한다. 체크박스는 켜진 채 **잠근다** — 하위 조직에 속한 이상 끌 수 없는데
+ *    끌 수 있는 것처럼 그리면 거짓말이다.
+ *  · 유지되는 개수는 「선택 N곳」에 **더하지 않는다.** 소속 셀과 팝업이 같은 「소속」
+ *    (주 소속 + 겸직 단말)을 말해야 한다 — 한쪽만 조상을 세면 두 뷰가 다른 숫자를 말한다.
+ *
  * 조직장(매니저) 지정 — `onToggleLeader` (PW-400)
  *  · **주입한 호출부에만** `[매니저로]` 가 뜬다. 미주입이면 버튼 자체가 없다.
  *  · 시트의 소속 팝업에는 **주입하지 않는다** — 남의 자격을 떼고 권한을 승격시키는
@@ -76,6 +89,10 @@ const DEFAULT_LABELS = {
   leaderBlocked: '퇴사자는 조직장으로 지정할 수 없습니다',
   selectedCount: '선택 {count}곳',
   clearAll: '모두 해제',
+  // 유지되는 상위 경로 — PW-404
+  retainedBadge: '유지',
+  retainedBadgeTitle: '하위 조직에 속해 있어 이 상위 조직은 그대로 유지됩니다. 따로 끌 수 없습니다',
+  retainedSuffix: '상위 경로 {count}곳 유지',
   // 추가 전용(`primarySelectable={false}`) 전용 — PW-373
   appendHint: '고른 조직이 더해집니다. 기존 소속과 주 소속은 그대로 남습니다.',
   appendNone: '고른 조직이 없습니다 — 적용해도 아무것도 더해지지 않습니다',
@@ -111,6 +128,14 @@ export default function OrgTreePicker({
    * 되고, 그게 정본이 금지한 일괄 교체다(§3.8.3-B 「일괄 편집 바」).
    */
   primarySelectable = true,
+  /**
+   * 배정 행 중 **선택에 나타나지 않는 조상 행** id 배열 (PW-404).
+   *
+   * 호출부가 `orgUnitIds`(원본 행) − `selectedIds`(단말) 로 만들어 넘긴다. 팝업은 이 중
+   * **지금 고른 조직의 조상인 것만** 「유지」로 표시한다 — 조상이 아니게 된 행은 적용 시
+   * 실제로 정리되므로, 그때는 유지라고 말하면 안 된다.
+   */
+  retainedIds = [],
   /**
    * 조직장(매니저)인 조직 id 배열 (PW-400). `onToggleLeader` 와 짝이다.
    */
@@ -178,6 +203,26 @@ export default function OrgTreePicker({
     () => (leaderUnitIds || []).map(String).filter(Boolean),
     [leaderUnitIds],
   );
+
+  /**
+   * 지금 「유지」로 표시할 조상 행 (PW-404).
+   *
+   * `retainedIds` 를 그대로 쓰지 않는다 — 고른 조직이 바뀌어 더 이상 조상이 아니게 되면
+   * 서버는 그 행을 **정리한다.** 화면이 계속 「유지」라고 말하면 적용 결과와 어긋난다.
+   * 명시적으로 고른 것(`picked`)은 「선택」이지 「유지」가 아니므로 뺀다.
+   */
+  const retainedActive = useMemo(() => {
+    const pool = new Set((retainedIds || []).map(String).filter(Boolean));
+    if (pool.size === 0) return new Set();
+    const out = new Set();
+    for (const id of picked) {
+      const entry = findOrgEntry(tree, id);
+      for (const anc of entry?.ancestorIds || []) {
+        if (pool.has(anc) && !picked.includes(anc)) out.add(anc);
+      }
+    }
+    return out;
+  }, [retainedIds, picked, tree]);
 
   const q = query.trim().toLowerCase();
   const searching = q.length > 0;
@@ -391,19 +436,29 @@ export default function OrgTreePicker({
                   <span style={{ width: 16, flexShrink: 0 }} />
                 )}
                 {multi && !ghost && (
+                  // PW-404 — 유지되는 상위 경로는 **켜진 채 잠근다.** 하위 조직에 속한 이상
+                  // 끌 수 없는데 끌 수 있는 것처럼 그리면, 눌러도 안 꺼지는 체크박스가 된다.
                   <input
                     type="checkbox"
-                    checked={picked.includes(e.id)}
+                    checked={picked.includes(e.id) || retainedActive.has(e.id)}
+                    disabled={retainedActive.has(e.id)}
                     onChange={() => { togglePick(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
-                    aria-label={e.pathLabel}
+                    aria-label={retainedActive.has(e.id)
+                      ? `${e.pathLabel} — ${labels.retainedBadgeTitle}`
+                      : e.pathLabel}
                     data-testid={`org-tree-check-${e.id}`}
-                    style={{ cursor: 'pointer', accentColor: T.accent, flexShrink: 0, marginRight: 2 }}
+                    style={{
+                      cursor: retainedActive.has(e.id) ? 'not-allowed' : 'pointer',
+                      accentColor: T.accent, flexShrink: 0, marginRight: 2,
+                    }}
                   />
                 )}
                 <button
                   type="button"
                   disabled={ghost}
                   onClick={() => {
+                    // 유지되는 상위 경로는 토글 대상이 아니다 — 체크박스와 같은 규칙(PW-404).
+                    if (multi && retainedActive.has(e.id)) return;
                     if (multi) togglePick(e.id);
                     else setSel(e.id);
                     if (navIdx >= 0) setActiveIdx(navIdx);
@@ -419,6 +474,20 @@ export default function OrgTreePicker({
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
                 </button>
+                {/* 유지되는 상위 경로 (PW-404) — 왜 체크가 켜져 있고 못 끄는지를 말한다. */}
+                {multi && retainedActive.has(e.id) && (
+                  <span
+                    data-testid={`org-tree-retained-badge-${e.id}`}
+                    title={labels.retainedBadgeTitle}
+                    style={{
+                      flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
+                      padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
+                      background: T.bg, border: `1px dashed ${T.border}`, color: T.sub,
+                    }}
+                  >
+                    {labels.retainedBadge}
+                  </span>
+                )}
                 {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
                 {multi && primarySelectable && picked.includes(e.id) && (
                   primary === e.id ? (
@@ -531,6 +600,17 @@ export default function OrgTreePicker({
                 <span style={{ fontSize: 11, color: T.sub, marginRight: 2 }}>
                   {String(labels.selectedCount).split('{count}').join(String(picked.length))}
                 </span>
+                {retainedActive.size > 0 && (
+                  // 「선택 N곳」에 더하지 않고 **따로** 적는다 — 소속 셀은 단말만 세므로,
+                  // 여기서 합치면 같은 사람을 두 화면이 다른 숫자로 말하게 된다(PW-404).
+                  <span
+                    data-testid="org-tree-picker-retained"
+                    title={labels.retainedBadgeTitle}
+                    style={{ fontSize: 11, color: T.sub, marginRight: 2 }}
+                  >
+                    · {String(labels.retainedSuffix).split('{count}').join(String(retainedActive.size))}
+                  </span>
+                )}
                 {picked.map((id) => {
                   const entry = findOrgEntry(tree, id);
                   const isPrimary = primarySelectable && id === primary;
