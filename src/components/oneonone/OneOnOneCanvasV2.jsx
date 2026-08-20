@@ -4,6 +4,23 @@ import AddOneOnOneModal from './AddOneOnOneModal.jsx';
 import StartOneOnOneView from './StartOneOnOneView.jsx';
 
 /**
+ * 액션의 «정체» 를 로케일과 무관한 키로 정한다.
+ *
+ * 라벨은 번역·문구 수정으로 언제든 바뀌는 값이라 동작의 식별자가 될 수 없다. 실제로
+ * 영어 라벨('Schedule 1on1'·'Start 1on1')이 한국어 하드코딩 비교에 걸리지 않아 두
+ * 버튼이 눌러도 아무 일이 없었다 (PW-407).
+ *
+ * `kind` 를 아직 주지 않는 기존 호출부(디자인 프리뷰 App.jsx 등)를 위해 한국어 라벨
+ * 비교를 폴백으로 남긴다.
+ */
+function resolveActionKind(action) {
+  if (action?.kind) return action.kind;
+  if (action?.label === '1on1 잡기') return 'book';
+  if (action?.label === '1on1 진행') return 'start';
+  return undefined;
+}
+
+/**
  * 1on1 페이지 v2 — Figma node 16816:33877.
  *
  * 구조:
@@ -18,6 +35,11 @@ import StartOneOnOneView from './StartOneOnOneView.jsx';
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
  *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
  *    내부 StartOneOnOneView 전환 대신 외부 라우팅으로 위임한다.
+ *
+ * 멤버 카드 액션(`section.members[].actions[]`)은 `kind` 로 정체를 밝힌다:
+ *  - `kind: 'book'`  → 캔버스 내부 예약 모달을 연다
+ *  - `kind: 'start'` → onStartMember(member) (미지정 시 내부 StartOneOnOneView)
+ *  - 그 외/미지정   → action.onClick?.() 으로 호스트에 위임
  */
 export default function OneOnOneCanvasV2({
   title = '1on1',
@@ -51,10 +73,11 @@ export default function OneOnOneCanvasV2({
     setAddOpen(true);
   };
   // 멤버 카드의 액션 버튼 클릭 핸들러.
-  //   "1on1 잡기" → 예약 모달, "1on1 진행" → 외부 핸들러 우선, 그 외 → 데이터 onClick.
+  //   'book' → 예약 모달, 'start' → 외부 핸들러 우선, 그 외 → 데이터 onClick.
   const handleMemberAction = (m, action) => {
-    if (action.label === '1on1 잡기') { setScheduleMember(m); return; }
-    if (action.label === '1on1 진행') {
+    const kind = resolveActionKind(action);
+    if (kind === 'book') { setScheduleMember(m); return; }
+    if (kind === 'start') {
       if (onStartMember) { onStartMember(m); return; }
       setStartMember(m);
       return;
