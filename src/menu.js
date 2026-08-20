@@ -32,19 +32,22 @@ export const SIDEBAR_MENU = [
 // 레지스트리(inSpec=노출 탭)가 아이콘·그룹·순서에서 어긋나지 않았는지 드리프트
 // 테스트로 검증한다. 권한(role)·라우팅·i18n 키는 앱 소유 차원이라 여기 두지 않는다.
 // 드리프트 조인 키는 icon 경로(그룹 내 고유).
+// id 는 기획 정본 arch-nav-routing-policy §1-A 의 어드민 경로 마지막 세그먼트와
+// 같게 쓴다 (`/admin/employees` → `employees`). 앱이 이 id 로 `/admin/<id>` 를
+// 만들지는 않지만, 정본 표와 이름이 갈리면 어느 쪽이 맞는지 알 수 없어진다.
 export const ADMIN_MENU = [
   { id: 'overview',      icon: '/icons-solid/dotpoints-01.svg',        label: '개요',            group: 'management' },
-  { id: 'members',       icon: '/icons-solid/user-03.svg',             label: '구성원 관리',      group: 'management' },
+  { id: 'employees',     icon: '/icons-solid/user-03.svg',             label: '구성원 관리',      group: 'management' },
   { id: 'snapshot',      icon: '/icons-solid/clock-check.svg',         label: '조직 스냅샷',      group: 'management' },
-  { id: 'org',           icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
+  { id: 'field-options', icon: '/icons-solid/settings-02.svg',         label: '조직 설정',        group: 'management' },
   // 기획(arch-nav-routing-policy §1-A 「① 관리」 · 시안 admin-workspace-settings.jsx 의
   // ADMIN_NAV_GROUPS)이 '조직 설정' 바로 다음, '팀 관리' 앞에 두는 항목이다.
   // 조직 설정(필드 옵션·계층)이 '조직을 어떻게 쪼개는가' 라면 이쪽은 '회사가 어떤
   // 기준값으로 도는가'(근무·휴가·승인 정책) — 인접하지만 다른 축이라 아이콘도 나눈다.
   // 아이콘은 시안이 명시한 회사(건물) — icons-solid 세트의 building-05.
   { id: 'workspace-settings', icon: '/icons-solid/building-05.svg',     label: '워크스페이스 설정', group: 'management' },
-  { id: 'team-mgmt',     icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
-  { id: 'permissions',   icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
+  { id: 'team-management', icon: '/icons-solid/user-edit.svg',           label: '팀 관리',          group: 'management' },
+  { id: 'rbac',          icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 관리',        group: 'management' },
   // 기획 정본(arch-nav-routing-policy §1-A)의 «② 평가 운영» 그룹 — 관리 다음, 시스템 앞.
   // 화면은 평가 셸의 사이클 목록이고, 어드민 레일은 그 진입점만 갖는다.
   { id: 'eval-cycle',    icon: '/icons-solid/clipboard-check.svg',     label: '평가 사이클',      group: 'eval-ops' },
@@ -57,5 +60,5 @@ export const ADMIN_MENU = [
   // Log in As(임퍼소네이션) — 기획 정본이 «③ 시스템» 의 연동 설정과 AI 프롬프트 설정
   // 사이에 둔다(2026-07-02 평가 HR 화면에서 이관).
   { id: 'login-as',      icon: '/icons-solid/user-circle.svg',         label: 'Log in As',        group: 'system' },
-  { id: 'ai-prompts',    icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
+  { id: 'ai-tuning',     icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
 ];
