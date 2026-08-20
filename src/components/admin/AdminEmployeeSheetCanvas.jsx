@@ -2226,6 +2226,12 @@ export default function AdminEmployeeSheetCanvas({
           ? chips.map((d) => d.orgUnitId)
           : (fallbackPrimary ? [fallbackPrimary] : []);
         const primaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+        // 선택에 안 나오는 배정 행 = 서버가 접은 상위 경로 (PW-404). 목록 뷰의 같은 팝업과
+        // 같은 것을 말해야 한다 — 두 뷰가 다르면 어느 쪽이 맞는지 아무도 모른다.
+        const pickedSet = new Set(selectedIds.map(String));
+        const retainedIds = (Array.isArray(target.orgUnitIds) ? target.orgUnitIds : [])
+          .map(String)
+          .filter((id) => id && !pickedSet.has(id));
         return (
           <OrgTreePicker
             open
@@ -2233,6 +2239,7 @@ export default function AdminEmployeeSheetCanvas({
             multi={!!onChangeAffiliations}
             selectedIds={selectedIds}
             primaryId={primaryUnitId}
+            retainedIds={retainedIds}
             value={fallbackPrimary}
             subtitle={target.name}
             labels={L.orgPicker}

@@ -775,6 +775,23 @@ function EmployeesViewSwitch({ mode, onChange, labels }) {
 }
 
 /**
+ * 서버가 접은 상위 경로 행 (PW-404) — 배정 행(`orgUnitIds`) 중 선택(단말)에 없는 것.
+ *
+ * 서버는 「다른 배정 행의 조상」인 단위를 접어서 내려준다(CSV import 가 본부·부서·팀마다
+ * 행을 만들기 때문). 그래서 「선택 2곳」인데 서버가 아는 행은 3개인 상황이 생기고,
+ * 화면이 그 한 행을 말하지 않으면 적용해도 지켜지는지 알 방법이 없다.
+ *
+ * 여기서는 **차집합만** 낸다 — 그중 무엇이 실제로 「유지」인지(= 지금 고른 조직의 조상인지)는
+ * 고르는 동안 바뀌므로 팝업이 판정한다.
+ */
+function retainedOrgIds(member, selectedIds) {
+  const rows = Array.isArray(member?.orgUnitIds) ? member.orgUnitIds : [];
+  if (rows.length === 0) return [];
+  const picked = new Set((selectedIds || []).map(String));
+  return rows.map(String).filter((id) => id && !picked.has(id));
+}
+
+/**
  * 목록 행의 소속 표기 — 주 소속을 전체 경로로, 겸직은 개수로.
  *
  * 시트의 소속 셀과 **같은 값**(`depts` / `orgUnitIds`)에서 그린다. 한쪽만 다른 값을
@@ -1194,6 +1211,9 @@ function EmployeesListView({
     ? deptChips.map((d) => d.orgUnitId)
     : (deptFallbackPrimary ? [deptFallbackPrimary] : []);
   const deptPickerPrimary = deptChips.find((d) => d.isPrimary)?.orgUnitId || deptFallbackPrimary;
+  /* 선택에 안 나오는 배정 행 = 서버가 접은 상위 경로 (PW-404). 팝업이 「유지」로 말한다 —
+     안 말하면 「선택 2곳」인데 서버는 3행이라, 적용하면 상위 소속이 떨어지는 줄 안다. */
+  const deptPickerRetained = retainedOrgIds(deptPicker, deptPickerSelected);
 
   /**
    * 행 액션 메뉴를 연다 — **아래 공간이 없으면 위로 편다** (PW-306 · PW-400).
@@ -1396,6 +1416,7 @@ function EmployeesListView({
           subtitle={deptPicker.displayName || deptPicker.name}
           selectedIds={deptPickerSelected}
           primaryId={deptPickerPrimary}
+          retainedIds={deptPickerRetained}
           leaderUnitIds={(leaderUnitIdsByMember || {})[deptPicker.id] || []}
           // 조직장 지정은 서버 한 번의 변경이라 「적용」 을 기다리지 않고 그 자리에서 보낸다 —
           // 소속 선택과 묶으면 취소를 눌렀을 때 무엇이 되돌아가는지가 흐려진다.
@@ -1467,6 +1488,8 @@ function EmployeesEditPanel({
   const fallbackPrimary = primaryOrgEntry(orgTree, member.orgUnitIds)?.id ?? '';
   const selectedIds = chips.length > 0 ? chips.map((d) => d.orgUnitId) : (fallbackPrimary ? [fallbackPrimary] : []);
   const primaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+  /* 목록 행 팝업과 같은 계산 — 두 자리가 다른 말을 하면 안 된다 (PW-404). */
+  const retainedIds = retainedOrgIds(member, selectedIds);
   const primaryEntry = primaryUnitId ? findOrgEntry(orgTree, primaryUnitId) : null;
 
   /** 바뀐 칸만 담은 patch — 시트의 dirty → patch 와 같은 모양이다. */
@@ -1573,6 +1596,7 @@ function EmployeesEditPanel({
                 multi
                 selectedIds={selectedIds}
                 primaryId={primaryUnitId}
+                retainedIds={retainedIds}
                 subtitle={draft.name}
                 labels={labels.orgPicker}
                 onApply={(payload) => onChangeAffiliations(member.id, payload)}
