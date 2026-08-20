@@ -24,6 +24,7 @@
     "./styles/resource.css": "./src/resource.css",
     "./styles/okr.css": "./src/okr.css",
     "./styles/okr-resource.css": "./src/okr_resource.css",
+    "./styles/form-controls.css": "./src/form-controls.css",
     "./styles/admin.css": "./src/admin.css",
     "./styles/settings.css": "./src/settings.css",
     "./styles/myprofile.css": "./src/myprofile.css",

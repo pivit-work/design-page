@@ -233,6 +233,12 @@ export function SquadComposition({ squad, members, personOf }) {
  * 캐파를 알아야 한다. 잠근 자리에는 **사유 한 줄**을 반드시 붙인다 — 비활성 슬라이더만
  * 있고 이유가 없으면 사용자는 버그로 읽는다(§5-3.9 2·3).
  *
+ * 두 축의 슬라이더·숫자 입력은 **여기서 그리지 않는다** — `form-controls.css` 의 공용
+ * 부품(`.rsx-slider` · `.rsx-entry-input`)을 그대로 쓴다. 종전에는 네이티브 range 에
+ * `accentColor` 만 얹어 OS·브라우저 기본 위젯이 그대로 노출됐고, 같은 «퍼센트 배분»
+ * 도메인인데 OKR › 내 리소스 탭과 다른 앱처럼 보였다(PW-402). 트랙 채움색만
+ * `--rsx-slider-fill` 로 스쿼드 신원색을 주입한다.
+ *
  * `othersPct`   = 이 사람이 **다른 활성 스쿼드**에 이미 쓰고 있는 캐파
  * `othersShare` = **이 스쿼드의 다른 팀원들**이 이미 가져간 비중
  */
@@ -323,19 +329,23 @@ export function SquadAssignPopover({
             {!canEditShare && <span className="sq-pop-axis-owner">· 조직이 정하는 값</span>}
           </p>
           <div className={`sq-pop-row${canEditShare ? '' : ' is-readonly'}`}>
-            <input
-              type="range" min={0} max={100} step={5} value={sharePct} disabled={!canEditShare}
-              aria-label="스쿼드 내 비중"
-              onChange={(e) => onSetShare?.(clampPct(e.target.value))}
-              style={{ flex: 1, accentColor: squad.color }}
-            />
-            <input
-              type="number" min={0} max={100} value={sharePct} disabled={!canEditShare}
-              aria-label="스쿼드 내 비중 직접 입력"
-              className="sq-pop-num"
-              onChange={(e) => onSetShare?.(clampPct(e.target.value))}
-            />
-            <span className="sq-pop-unit">%</span>
+            <div className="rsx-slider" style={{ '--rsx-slider-fill': squad.color }}>
+              <div className="rsx-slider-track"><i style={{ width: `${sharePct}%` }} /></div>
+              <input
+                type="range" min={0} max={100} step={5} value={sharePct} disabled={!canEditShare}
+                aria-label="스쿼드 내 비중"
+                onChange={(e) => onSetShare?.(clampPct(e.target.value))}
+              />
+              <span className="rsx-slider-ball" style={{ left: `${sharePct}%` }} />
+            </div>
+            <div className="rsx-entry-input">
+              <input
+                type="number" min={0} max={100} value={sharePct} disabled={!canEditShare}
+                aria-label="스쿼드 내 비중 직접 입력"
+                onChange={(e) => onSetShare?.(clampPct(e.target.value))}
+              />
+              <span>%</span>
+            </div>
           </div>
 
           {/* 배분 미리보기 — 다른 팀원(회색) + 나(스쿼드색). 분모는 이 스쿼드 100 */}
@@ -389,21 +399,27 @@ export function SquadAssignPopover({
             </p>
           )}
           <div className={`sq-pop-row${canEditCapacity ? '' : ' is-readonly'}`}>
-            <input
-              type="range" min={0} max={100} step={5} value={assignment.allocationPct}
-              disabled={!canEditCapacity}
-              aria-label="개인 캐파 사용"
-              onChange={(e) => onSetPct?.(clampPct(e.target.value))}
-              style={{ flex: 1, accentColor: squad.color }}
-            />
-            <input
-              type="number" min={0} max={100} value={assignment.allocationPct}
-              disabled={!canEditCapacity}
-              aria-label="개인 캐파 사용 직접 입력"
-              className="sq-pop-num"
-              onChange={(e) => onSetPct?.(clampPct(e.target.value))}
-            />
-            <span className="sq-pop-unit">%</span>
+            <div className="rsx-slider" style={{ '--rsx-slider-fill': squad.color }}>
+              <div className="rsx-slider-track">
+                <i style={{ width: `${assignment.allocationPct}%` }} />
+              </div>
+              <input
+                type="range" min={0} max={100} step={5} value={assignment.allocationPct}
+                disabled={!canEditCapacity}
+                aria-label="개인 캐파 사용"
+                onChange={(e) => onSetPct?.(clampPct(e.target.value))}
+              />
+              <span className="rsx-slider-ball" style={{ left: `${assignment.allocationPct}%` }} />
+            </div>
+            <div className="rsx-entry-input">
+              <input
+                type="number" min={0} max={100} value={assignment.allocationPct}
+                disabled={!canEditCapacity}
+                aria-label="개인 캐파 사용 직접 입력"
+                onChange={(e) => onSetPct?.(clampPct(e.target.value))}
+              />
+              <span>%</span>
+            </div>
           </div>
 
           {/* 캐파 영향 미리보기 — 이 값이 그 사람의 100 중 어디에 놓이는지 즉시 보여준다 */}

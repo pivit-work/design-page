@@ -7,7 +7,12 @@
 
    색은 전부 디자인 토큰이다 — 리터럴 색을 박으면 다크 토큰·브랜드 변경을
    따라가지 못하고, 같은 조직도 안에서 이 탭만 다른 앱처럼 보인다.
+
+   같은 이유로 «퍼센트 값을 고르는 입력» 도 여기서 다시 그리지 않는다 —
+   `form-controls.css` 의 공용 슬라이더·숫자 입력을 그대로 쓴다(PW-402).
    ══════════════════════════════════════════════════ */
+
+@import './form-controls.css';
 
 /* ── Toolbar (제목 + 편집 모드 토글) ── */
 .sq-toolbar {
@@ -843,25 +848,14 @@
   line-height: 18px;
   margin: 2px 0 12px;
 }
+/* 값 편집 한 줄 — 슬라이더 + 숫자 입력을 나란히 놓는 자리만 정한다.
+   부품 자체(`.rsx-slider` · `.rsx-entry-input`)는 `form-controls.css` 소관이다. */
 .sq-pop-row {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
 }
-.sq-pop-num {
-  width: 58px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-quaternary);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
-  text-align: right;
-}
-.sq-pop-unit { font-size: 12px; color: var(--text-tertiary); }
 
 .sq-pop-preview {
   margin-bottom: 12px;
