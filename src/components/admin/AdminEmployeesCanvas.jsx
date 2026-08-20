@@ -240,7 +240,7 @@ function RolePill({ role, labels }) {
    `OrgUnitPicker` 는 이름만 나열해 상하 관계를 볼 수 없었다(PW-112, §5-A). */
 
 /* ── 행 액션 메뉴 ───────────────────────────────────────── */
-function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels, canEdit }) {
+function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels, canEdit, openUp = false }) {
   const ref = useRef(null);
   useEffect(() => {
     function handler(e) {
@@ -251,7 +251,7 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels,
   }, [onClose]);
 
   return (
-    <div ref={ref} className="admin-emp-row-menu">
+    <div ref={ref} className={`admin-emp-row-menu${openUp ? ' is-up' : ''}`}>
       <button type="button" className="admin-emp-row-menu-item" onClick={() => { onEdit(); onClose(); }}>
         {labels.menu.edit}
       </button>
@@ -933,13 +933,17 @@ function ColumnMenu({ cols, value, onChange, labels }) {
  * 읽기 전용**으로 두고, 바꾸려면 행 `⋯` 의 「매니저 변경」 을 거치게 한다 — 표에서
  * 스치듯 바뀌면 안 되는 값이라서다. 미배정만 그 자리에서 채운다.
  */
-function ListManagerCell({ member, labels, candidates, onAssignManager, renderAvatar }) {
+function ListManagerCell({ member, labels, candidates, onAssignManager, renderAvatar, managerRow }) {
   if (member.managerName) {
     return (
       <span className="admin-emp-cell-manager" data-testid={`employees-list-manager-${member.id}`}>
-        {renderAvatar
-          ? renderAvatar({ name: member.managerName }, 20)
-          : <AvatarFallback row={{ name: member.managerName }} size={20} />}
+        {/* 🔴 아바타는 **사진이 있을 때만** 붙인다.
+            이 제품의 아바타는 한글 이름을 이니셜로 줄이지 않고 **전체를 보인다**
+            (PW-24, `AvatarFallback`). 그래서 정본대로 「아바타 + 이름」 을 그리면
+            사진 없는 사람은 동그라미 안 「박우진」 옆에 또 「박우진」 이 붙어
+            한 칸에 이름이 두 번 찍힌다(브라우저 실측에서 잡았다).
+            사진이 있으면 얼굴 + 이름이라 겹치지 않으므로 그대로 둔다. */}
+        {managerRow?.avatarPhoto && renderAvatar ? renderAvatar(managerRow, 20) : null}
         <span className="admin-emp-cell-text">{member.managerName}</span>
       </span>
     );
@@ -991,6 +995,9 @@ function EmployeesListView({
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
+  // 행 액션 메뉴가 위로 열려야 하는가 — 아래 공간을 재서 정한다(아래 `openRowMenu`).
+  const [menuUp, setMenuUp] = useState(false);
+  const tableWrapRef = useRef(null);
   // 소속 팝업을 연 구성원 id. 조직장 지정([매니저로])이 사는 유일한 자리다(PW-400).
   const [deptPickerFor, setDeptPickerFor] = useState(null);
   // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
@@ -1000,6 +1007,8 @@ function EmployeesListView({
   const setOptCols = onOptColsChange ?? setOwnOptCols;
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
+  /** 매니저 칸이 상급자의 **실제 행**(아바타 사진·이니셜)을 찾는 색인. */
+  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
   /** 그 사람의 소속 이름 전부 — 겸직까지 매칭해야 겸직으로만 그 조직인 사람이 안 사라진다. */
   const deptNamesOf = (m) => {
@@ -1186,6 +1195,33 @@ function EmployeesListView({
     : (deptFallbackPrimary ? [deptFallbackPrimary] : []);
   const deptPickerPrimary = deptChips.find((d) => d.isPrimary)?.orgUnitId || deptFallbackPrimary;
 
+  /**
+   * 행 액션 메뉴를 연다 — **아래 공간이 없으면 위로 편다** (PW-306 · PW-400).
+   *
+   * 표는 세로로 잘리는 스크롤 컨테이너(`.admin-emp-table-wrap`) 안에 있다. 마지막
+   * 행에서 아래로 펴면 메뉴 아랫부분이 그 컨테이너에 **잘려서 눌리지 않는다** —
+   * 조상의 `overflow` 는 z-index 로 못 뚫는다. 첫 행은 아래가 넉넉해 늘 멀쩡하므로
+   * 이 결함은 마지막 행에서만 드러난다.
+   *
+   * 실측(1512×900, 138명): 마지막 행 메뉴가 컨테이너 바닥(806px)을 93px 넘어가
+   * `document.elementFromPoint` 가 메뉴 대신 컨테이너를 집었다.
+   */
+  const MENU_HEIGHT_PX = 120;   // 항목 3개 + 구분선 실측치(110)에 여유를 더한 값
+  function openRowMenu(id, trigger) {
+    if (openMenu === id) { setOpenMenu(null); return; }
+    const wrap = tableWrapRef.current;
+    const btn = trigger?.getBoundingClientRect?.();
+    // 측정할 수 없으면(jsdom 등) 종전대로 아래로 편다 — 방향 판정이 없다고
+    // 메뉴가 안 열리면 안 된다.
+    if (wrap && btn) {
+      const room = wrap.getBoundingClientRect().bottom - btn.bottom;
+      setMenuUp(room < MENU_HEIGHT_PX);
+    } else {
+      setMenuUp(false);
+    }
+    setOpenMenu(id);
+  }
+
   function cell(m, id) {
     switch (id) {
       case 'name':
@@ -1240,6 +1276,7 @@ function EmployeesListView({
             candidates={managerCandidates}
             onAssignManager={canEdit ? onAssignManager : undefined}
             renderAvatar={renderAvatar}
+            managerRow={m.managerId ? memberById.get(m.managerId) : undefined}
           />
         );
       case 'hireDate': return <TextCell value={(m.hireDate || '').slice(0, 10)} />;
@@ -1253,7 +1290,7 @@ function EmployeesListView({
               <button
                 type="button"
                 className="admin-emp-btn is-ghost is-sm admin-emp-more"
-                onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)}
+                onClick={(e) => openRowMenu(m.id, e.currentTarget)}
                 aria-label={labels.listRowMenu}
                 data-testid={`employees-list-rowmenu-${m.id}`}
               >
@@ -1263,6 +1300,7 @@ function EmployeesListView({
             {openMenu === m.id && (
               <RowActionMenu
                 labels={labels}
+                openUp={menuUp}
                 canEdit={canEdit && !!onDeactivate}
                 onEdit={() => onOpenEdit(m)}
                 onChangeManager={() => onOpenEdit(m)}
@@ -1322,7 +1360,7 @@ function EmployeesListView({
 
       {/* 표는 이 컨테이너 안에서만 가로로 흐른다 — 페이지가 통째로 옆으로 밀리면
           스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다(PW-400 §3). */}
-      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap">
+      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap" ref={tableWrapRef}>
         <table className="admin-emp-table" style={{ minWidth }}>
           <thead>
             <tr>
