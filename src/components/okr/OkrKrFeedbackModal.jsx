@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 
 /**
+ * ⚠️ [레거시] 2026-08-18 PW-144 결정으로 **진입점이 제거됐다.** 어디서도 렌더하지
+ * 않는다 — `OkrBoard` 의 「전체 보기」 는 이제 수시 피드백 KR 스레드로 보낸다.
+ *
+ * 내린 이유: 피드백 스레드 전체와 「보낸 요청」 의 정본은 수시 피드백 화면이고, 같은
+ * 정보를 두 화면에 두면 어느 쪽이 정본인지 사용자가 판단해야 한다. 특히 이 모달 하단의
+ * 「피드백 요청 보내기」 는 수시 피드백의 「이미 스레드가 있는 KR 에 중복 요청 금지」
+ * 규칙 바깥이라 중복 요청을 실제로 통과시켰다.
+ *
+ * 되살리려면 PW-144 결정을 먼저 뒤집어야 한다. 참고용으로만 남긴다.
+ *
  * OkrKrFeedbackModal — KR 피드백 전체보기 모달.
  *
  * detail: { krId, krLabel, objective, comments: [{ id, author, role, roleTone

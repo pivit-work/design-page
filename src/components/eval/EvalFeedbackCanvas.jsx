@@ -845,9 +845,13 @@ export default function EvalFeedbackCanvas({
   onRequest,
   onEditRequest,
   onDeleteRequest,
+  openTarget = null,
+  onOpenTargetHandled,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openBlock, setOpenBlock] = useState(null);
+  // 딥링크로 열린 모달을 사용자가 닫았는가 — 닫은 뒤 목록이 갱신돼도 되살아나지 않게.
+  const [linkDismissed, setLinkDismissed] = useState(false);
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
   const showToast = useCallback((msg, type = 'success') => {
@@ -865,12 +869,45 @@ export default function EvalFeedbackCanvas({
     (i) => i.itemType === 'feedback' && !i.isRead,
   ).length;
 
+  // 딥링크 진입(OKR 「전체 보기」 → `/feedback?kr=…`). `openTarget` 이 가리키는
+  // 블록을 열고, 결과를 소비 측에 알린다(URL 파라미터 정리·«찾을 수 없음» 안내는
+  // 소비 측 소관 — 이 캔버스는 라우터를 모른다).
+  //
+  // ⚠️ 비교는 **문자열 일치**다. id 는 불투명 문자열이라(데모 `kr1`, 실제 UUID)
+  // 숫자로 캐스팅하면 UUID 환경에서 전량 불일치한다.
+  // 딥링크로 열 블록은 **파생값**이다 — state 로 복사하지 않는다. 복사하면 열기가
+  // 이펙트 안의 setState 가 되어 렌더가 한 번 더 돌고, 목록이 갱신될 때마다 사용자가
+  // 닫은 모달이 되살아난다.
+  //
+  // ⚠️ 비교는 **문자열 일치**다. id 는 불투명 문자열이라(데모 `kr1`, 실제 UUID)
+  // 숫자로 캐스팅하면 UUID 환경에서 전량 불일치한다.
+  const linkedBlock = useMemo(() => {
+    if (linkDismissed || !openTarget?.type || !openTarget?.id) return null;
+    const key = `${openTarget.type}:${openTarget.id}`;
+    return [...krBlocks, ...initBlocks].find((b) => b.key === key) || null;
+  }, [openTarget, krBlocks, initBlocks, linkDismissed]);
+
+  // 도착 결과를 소비 측에 **한 번만** 알린다 — URL 파라미터 정리와 «찾을 수 없음»
+  // 안내는 소비 측 소관이다(이 캔버스는 라우터를 모른다).
+  //
+  // 🔴 소비 측은 목록·KR 로딩이 끝난 뒤에 `openTarget` 을 넘겨야 한다. 로딩 중에
+  // 넘기면 아직 블록이 없어 «찾을 수 없음» 으로 잘못 판정된다.
+  const notified = useRef(null);
+  useEffect(() => {
+    if (!openTarget?.type || !openTarget?.id) return;
+    const key = `${openTarget.type}:${openTarget.id}`;
+    if (notified.current === key) return;
+    notified.current = key;
+    onOpenTargetHandled?.(Boolean(linkedBlock));
+  }, [openTarget, linkedBlock, onOpenTargetHandled]);
+
   // 모달이 열려 있으면 최신 items 로 블록을 다시 찾아 반영(답변/요청 후 재조회 대비).
   const liveBlock = useMemo(() => {
-    if (!openBlock) return null;
+    const active = openBlock || linkedBlock;
+    if (!active) return null;
     const all = [...krBlocks, ...initBlocks];
-    return all.find((b) => b.key === openBlock.key) || openBlock;
-  }, [openBlock, krBlocks, initBlocks]);
+    return all.find((b) => b.key === active.key) || active;
+  }, [openBlock, linkedBlock, krBlocks, initBlocks]);
 
   const handleReply = async (itemId, text) => {
     try {
@@ -989,7 +1026,7 @@ export default function EvalFeedbackCanvas({
           onRequest={handleRequest}
           onEditRequest={handleEditRequest}
           onDeleteRequest={handleDeleteRequest}
-          onClose={() => setOpenBlock(null)}
+          onClose={() => { setOpenBlock(null); setLinkDismissed(true); }}
         />
       )}
     </div>
