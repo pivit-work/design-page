@@ -336,12 +336,16 @@ export default function AdminTeamCanvas({
   }, []);
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
+  // 소비자가 던진 메시지를 그대로 보여준다. 삼키면 서버가 왜 거절했는지가 사라진다 —
+  // 순환 참조 이동(409 TEAM_CYCLIC_PARENT)은 "어느 고리가 문제인지" 를 문구로만
+  // 전달할 수 있고, 트리에 깊이 상한이 없어 사람이 눈으로는 못 찾는다(PW-426).
+  // 메시지가 없으면(네트워크 끊김 등) 기존 기본 문구 그대로다.
   const run = useCallback(async (fn, successMsg) => {
     try {
       await fn();
       if (successMsg) showToast(successMsg);
-    } catch {
-      showToast(L.toastError, 'error');
+    } catch (err) {
+      showToast(err?.message || L.toastError, 'error');
     }
   }, [showToast, L.toastError]);
 
