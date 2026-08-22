@@ -294,6 +294,32 @@ export default function SquadCanvas({
       (isLeadOf(squadId) || inScope(userId)),
     [onRequestCapacity, isSelfRow, isLeadOf, inScope],
   );
+  /**
+   * 이 사용자가 **조직 축**(hr_admin 전체 / manager 서브트리)을 조금이라도 갖고 있는가.
+   * 리드 전용 사용자(`editableUserIds: []`)와 관리자를 가르는 값이라, 「왜 잠겼는가」를
+   * 말할 때 이것이 없으면 리드에게 「내 조직 아님」 이라는 엉뚱한 사유가 붙는다.
+   */
+  const hasOrgAxis = editableSet === null || editableSet.size > 0;
+  /**
+   * ③ 배정 권한이 **이 스쿼드에 대해** 있는가 — 「팀원 추가」 버튼을 낼지 정한다.
+   * 정본 :175 「권한이 없으면 버튼 대신 `이 스쿼드의 구성은 리드·관리자가 정합니다` 캡션」.
+   * 후보가 언제나 비는 버튼은 막다른 길이라 버튼 자체를 내지 않는다.
+   */
+  const canAddToSquad = useCallback(
+    (squadId) => isEditing && !!onUpsertMember && (isLeadOf(squadId) || hasOrgAxis),
+    [isEditing, onUpsertMember, isLeadOf, hasOrgAxis],
+  );
+  /**
+   * 잠긴 자리(셀·칩)의 **사유**. 판정이 합집합이므로 잠겼다는 건 두 조건이 **모두** 실패
+   * 했다는 뜻인데, 조직 축을 가진 사람과 리드만 가진 사람은 고칠 수 있는 조건이 다르다.
+   * 실패하지 않은 조건을 사유로 말하면 사용자가 못 고치는 것을 고치려 든다(PW-423).
+   */
+  const lockReason = useCallback(
+    () => (hasOrgAxis
+      ? '편집 권한 없음 (내 조직 아님)'
+      : '편집 권한 없음 (내가 리드인 스쿼드가 아님)'),
+    [hasOrgAxis],
+  );
   /** 팝오버를 열 수 있는가 — 둘 중 하나라도 편집 가능하면 연다(안에서 축별로 다시 잠근다). */
   const canEditMemberOf = useCallback(
     (squadId, userId) =>
@@ -476,11 +502,27 @@ export default function SquadCanvas({
   const popSquad = popover && squads.find((sq) => sq.id === popover.squadId);
   const popAssign = popSquad && (popSquad.members || []).find((m) => m.userId === popover.userId);
 
+  /**
+   * 「팀원 추가」 검색 후보 — **조직 전체 − 이미 배정 − ③ 권한 밖**(정본 :175).
+   *
+   * 🔴 판정은 매트릭스 빈 셀(`canEditShareOf`)과 **같은 합집합**이어야 한다. 종전에는
+   * `inScope` 만 봐서, 조직 축이 없는 `member` 역할 리드에게는 후보가 **0명**이었고
+   * 매니저를 겸한 리드는 자기 서브트리만 보였다 — 스쿼드는 크로스펑셔널 조직이라
+   * 후보를 리드의 팀으로 좁히면 구성 자체가 불가능하다(§5-3.9 · 엣지 57, PW-423).
+   *
+   * 같은 행위(배정 생성)의 두 표면이 다른 축으로 판정하면 한쪽에서만 되는 상태가 남는다.
+   * 「조직 전체」의 경계는 **워크스페이스**이며, 그 밖은 서버가 404 로 막는다.
+   */
   const candidatesFor = (sq) => {
     const q = addQuery.trim().toLowerCase();
+    const openToAll = isLeadOf(sq.id);
     return people.filter(
       (n) => !(sq.members || []).some((m) => m.userId === n.id)
-        && inScope(n.id)
+        // 비활성(퇴사·휴직)은 후보가 아니다 — 서버가 422 로 막는 사람을 목록에 두면
+        // 고를 수 있는 것처럼 보였다가 눌러야 안 된다는 걸 안다(§10-32-B · 엣지 13).
+        // 이미 배정된 사람의 값 조정은 종전대로 막지 않는다(위 필터가 이미 제외).
+        && n.employmentStatus !== 'resigned' && n.employmentStatus !== 'on_leave'
+        && (openToAll || inScope(n.id))
         && (q === '' || `${n.name} ${n.nameEn || ''} ${n.team || ''} ${n.dept || ''} ${n.title || ''}`.toLowerCase().includes(q)),
     );
   };
@@ -826,7 +868,7 @@ export default function SquadCanvas({
                                   ].filter(Boolean).join(' ')}
                                   data-squad-popover-anchor="assign"
                                   onClick={(e) => editable && openAssignPopover(sq.id, mm.userId, e, 0, 10)}
-                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${isCapacityIdle(mm) ? `\n${CAPACITY_IDLE_HINT}` : ''}${editable ? '\n클릭: 비중·캐파·리드 편집' : '\n편집 권한 없음 (내 조직 아님)'}`}
+                                  title={`${nameOf(mm.userId)} — 스쿼드 내 비중 ${mm.sharePct || 0}% · 개인 캐파 사용 ${capText(mm)}${isCapacityIdle(mm) ? `\n${CAPACITY_IDLE_HINT}` : ''}${editable ? '\n클릭: 비중·캐파·리드 편집' : `\n${lockReason()}`}`}
                                 >
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
@@ -868,7 +910,11 @@ export default function SquadCanvas({
                             )}
                           </div>
 
-                          {onUpsertMember && (addTarget === sq.id ? (
+                          {!canAddToSquad(sq.id) ? (
+                            /* 정본 :175 — 권한이 없으면 버튼 대신 캡션. 후보가 언제나
+                               비는 버튼을 두면 눌러 보고 나서야 못 한다는 걸 안다. */
+                            <p className="sq-add-caption">이 스쿼드의 구성은 리드·관리자가 정합니다</p>
+                          ) : (addTarget === sq.id ? (
                             <div className="sq-add-wrap">
                               <input
                                 autoFocus value={addQuery} aria-label="팀원 검색"
@@ -901,7 +947,9 @@ export default function SquadCanvas({
                                 ))}
                                 {candidates.length === 0 && (
                                   <div className="sq-add-none">
-                                    추가할 수 있는 구성원이 없습니다{editableSet !== null ? ' (내 조직 범위 밖)' : ''}
+                                    {/* 사유는 **이 자리에서 실제로 후보를 지운 조건**만 말한다.
+                                        리드에게는 조직 범위가 사유가 아니다(PW-423). */}
+                                    추가할 수 있는 구성원이 없습니다{editableSet !== null && !isLeadOf(sq.id) ? ' (내 조직 범위 밖)' : ''}
                                   </div>
                                 )}
                               </div>
@@ -1037,7 +1085,12 @@ export default function SquadCanvas({
                                     }}
                                   >{rowLabel}</span>
                                   <span className="pj-member-name">{nameOf(userId)}</span>
-                                  {isEditing && !inScope(userId) && (
+                                  {/* 🔴 자물쇠는 **그 행에 열린 셀이 하나도 없을 때만** 선다 —
+                                      §5-3.9 화면 규칙 1 은 행 단위 잠금 표시를 금지한다. 조직 축만
+                                      보고 세우면, 자기 스쿼드 열이 열려 있는 리드에게 전 행이 잠긴
+                                      것처럼 보인다 — 한 화면이 「잠겼다」와 「눌린다」를 동시에
+                                      말하게 된다(PW-423). */}
+                                  {isEditing && !inScope(userId) && leadSet.size === 0 && (
                                     <span className="sq-lock" title="편집 권한 없음 (내 조직 아님)">
                                       <LockIcon size={13} />
                                     </span>
@@ -1123,7 +1176,7 @@ export default function SquadCanvas({
                                         onClick={() => canAssign && assign(sq.id, userId)}
                                         title={canAssign
                                           ? `클릭: ${sq.name}에 배정 (비중 미배분 · 캐파 미설정 — 캐파는 본인이 정한다)`
-                                          : '편집 권한 없음 (내 조직 아님)'}
+                                          : lockReason()}
                                       >
                                         {canAssign && <PlusIcon size={12} />}
                                       </div>
