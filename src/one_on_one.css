@@ -3474,3 +3474,308 @@ button.ono-add-modal-input { cursor: pointer; }
   margin: 10px 0 0;
   color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
 }
+
+/* ══ 매니저 DONE 단계 (PW-430) ═══════════════════════════════════════════
+   시안: `1on1-manager-view.jsx` `phase === "done"`. 섹션 껍데기는 회의록과 같은
+   `.ono-mem-card` 를 그대로 쓰고, 여기서는 DONE 에만 있는 조각만 정의한다. */
+
+.ono-done-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── AI 분석 상태 배너 (policy §6.1) ──
+   4분기가 **같은 구조**로 서고 색과 문구만 갈린다 — 상태가 바뀔 때 배너가 자리를
+   옮기면 매니저가 화면이 튀는 것으로 읽는다. */
+.ono-done-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  padding: 14px 18px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.ono-done-banner.is-ok {
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  background: var(--utility-success-50, #ecfdf3);
+  color: var(--utility-green-600, #16a34a);
+}
+.ono-done-banner.is-busy {
+  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-700, #175cd3);
+}
+.ono-done-banner.is-bad {
+  border-color: var(--componentColors-utility-error-utilityError200, #fecdca);
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--colors-text-textErrorPrimary, #d92d20);
+}
+.ono-done-banner-btn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-primary, #fff);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ono-done-banner-btn:disabled { opacity: 0.6; cursor: default; }
+.ono-done-banner-error { font-size: 11px; font-weight: 400; }
+
+.ono-done-spinner {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.85;
+  animation: ono-done-spin 0.7s linear infinite;
+}
+@keyframes ono-done-spin { to { transform: rotate(360deg); } }
+/* 「움직임 줄이기」 를 켠 사용자에게 무한 회전은 그 자체로 접근성 문제다.
+   상태 표시는 색·문구가 이미 하고 있으므로 회전만 끈다. */
+@media (prefers-reduced-motion: reduce) {
+  .ono-done-spinner { animation: none; }
+}
+
+/* ── AI 미팅 요약 ── */
+.ono-done-summary {
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ono-done-block { margin-top: 14px; }
+.ono-done-block-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.ono-done-block-label.is-ok { color: var(--utility-green-600, #16a34a); }
+.ono-done-block-label.is-warn { color: var(--colors-text-textWarningPrimary, #b54708); }
+.ono-done-block-label.is-ai { color: var(--utility-purple-500, #7a5af8); }
+
+.ono-done-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-primary, #fff);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.ono-done-item.is-ok {
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  color: var(--utility-green-600, #16a34a);
+}
+.ono-done-item.is-warn {
+  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--colors-text-textWarningPrimary, #b54708);
+}
+.ono-done-item.is-ai {
+  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--utility-purple-50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+.ono-done-item > span:last-child { color: var(--text-secondary); }
+
+/* ── 대화 분위기 ── */
+.ono-done-sentiment {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+/* 점수는 원 안에 들어간다 — 0~100 이라 최대 3자리다. 고정 크기 컨테이너이므로
+   자릿수가 늘어도 넘치지 않게 안쪽 여백과 `overflow` 로 막아 둔다. */
+.ono-done-score {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  font-size: 18px;
+  font-weight: 600;
+  overflow: hidden;
+}
+.ono-done-score.is-ok { color: var(--utility-green-600, #16a34a); }
+.ono-done-score.is-warn { color: var(--colors-text-textWarningPrimary, #b54708); }
+.ono-done-score.is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
+
+.ono-done-sentiment-bars { flex: 1; min-width: 0; }
+.ono-done-sentiment-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.ono-done-sentiment-seg.is-ok { background: var(--utility-green-600, #16a34a); }
+.ono-done-sentiment-seg.is-mute { background: var(--border-secondary); }
+.ono-done-sentiment-seg.is-bad { background: var(--colors-text-textErrorPrimary, #d92d20); }
+.ono-done-sentiment-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.ono-done-sentiment-legend .is-ok { color: var(--utility-green-600, #16a34a); }
+.ono-done-sentiment-legend .is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
+
+/* ── 매니저 피드백 공개 상태 (읽기 전용 · PW-430/PW-274) ── */
+.ono-done-share-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
+}
+.ono-done-share-badge {
+  box-sizing: border-box;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.ono-done-share-badge.is-on {
+  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--utility-purple-50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+
+/* ── 액션아이템 ── */
+.ono-done-count { font-size: 12px; color: var(--text-tertiary); }
+.ono-done-actions { display: flex; flex-direction: column; gap: 6px; }
+.ono-done-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm, 7px);
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+}
+.ono-done-action.is-done { background: var(--bg-secondary); }
+.ono-done-action.is-done .ono-done-action-text {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+.ono-done-action-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.ono-done-action-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.ono-done-action-add input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 11px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm, 7px);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.ono-done-action-add-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-sm, 7px);
+  background: var(--text-primary);
+  color: var(--bg-primary, #fff);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ono-done-action-add-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* 보조 호출 실패는 전역 오류 페이지가 아니라 **그 카드 안**에서 말한다 — 작성 중인
+   메모·입력을 들고 나가지 않기 위해서다. */
+.ono-done-inline-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--colors-text-textErrorPrimary, #d92d20);
+}
+
+/* ── 다음 1on1 ── */
+.ono-done-memo {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm, 7px);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 20px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}
+.ono-done-book {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-purple-50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ono-done-book.is-done {
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  background: var(--utility-success-50, #ecfdf3);
+  color: var(--utility-green-600, #16a34a);
+  cursor: default;
+}
