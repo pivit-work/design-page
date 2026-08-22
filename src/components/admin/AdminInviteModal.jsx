@@ -4,7 +4,8 @@ import {
   IconAlert, IconDownload, IconPlus, IconTrash, IconUpload, IconX,
 } from './employeesIcons.jsx';
 import {
-  INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, nameHasEmail, normEmail, reconcilePrimary, fmt,
+  INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, jobPairIssue, ladderLocked, laddersForFamily,
+  nameHasEmail, normEmail, reconcilePrimary, fmt,
 } from './inviteRules.js';
 import {
   INVITE_CSV_MAX_ROWS, INVITE_OPTION_COLUMNS, ROLE_LABEL_KEY,
@@ -27,7 +28,14 @@ import {
  *  · 겸직 다중 소속 + 주 소속(소속 2개 이상이면 주 소속 필수, §2-3·§4-3)
  *  · **조직장은 여기서 지정하지 않는다** — 가입 전에는 team_members 행이 없어
  *    "그 팀 소속자만 조직장"(§1-3-f L3)을 만족할 수 없다
- *  · 직무·직함 필드 없음 — 직무는 직렬+직급 파생, 직함은 쓰기 권한 제한 필드
+ *  · **인사 축은 직급·직군·직렬·근무지 4종**(+권한). 직렬은 직군에 매달린 2단
+ *    선택이고, 직무(`job_duty`)·직종·직함은 초대에서 받지 않는다
+ *    — 2026-08-22 David 결정(PW-412), 정본 정책서 §2-2 v1.4
+ *
+ * 🔴 **이 축은 이미 두 번 뒤집혔다.** 「초대에서 직렬 제외」(2026-08-12)는 직군 칸이
+ *    없는 **온보딩 초대 한정** 결정이고, 「초대 모달에 직무 칸이 있다」(2026-08-16)는
+ *    라벨만 `직무` 였던 직렬 칸을 본 오독이었다(PW-189 라벨 정정). 여기를 고치기 전에
+ *    정책서 §2-2 확정 배너를 먼저 읽을 것.
  *  · 좌석은 발송이 아니라 **가입 수락 시점**에 증가한다 → 헤더 문구가 미래형
  *  · 부분 성공은 모달을 **유지**한다(§3) — 닫으면 실패분의 이름·소속 입력이
  *    사라져 처음부터 다시 입력해야 한다
@@ -57,7 +65,9 @@ const DEFAULT_LABELS = {
   roleAdmin: '어드민',
   jobLevel: '직급',
   jobFamily: '직군',
-  jobTitle: '직무',
+  // ⚠ 키는 `jobTitle` 이지만 값은 **직렬**이다(M5-b 승격). 라벨을 `직무` 로 두었던
+  // 것이 PW-412 의 문서·구현 혼선을 만든 직접 원인이라 기본값도 정정한다.
+  jobTitle: '직렬',
   workLocation: '근무지',
   unset: '미지정',
   optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
@@ -97,6 +107,9 @@ const DEFAULT_LABELS = {
   errName: '이름을 입력해주세요',
   errNameEmail: '이름에 이메일 주소를 넣을 수 없어요. 실명을 입력해주세요',
   errPrimaryTeam: '주 소속을 지정해주세요',
+  // V7 — (직군, 직렬) 쌍(INV-3)
+  errLadderNeedsFamily: '직군을 먼저 선택해주세요',
+  errJobPair: '직군에 없는 직렬입니다',
   // 발송 실패 사유(§8)
   failAlreadyMember: '이미 멤버입니다',
   failPendingExists: '이미 초대 대기 중입니다',
@@ -107,6 +120,7 @@ const DEFAULT_LABELS = {
   failInvalidEmail: '유효하지 않은 이메일',
   failDuplicate: '이 발송에 중복된 이메일이에요',
   failSendFailed: '발송에 실패했어요',
+  failInvalidJobPair: '직군에 없는 직렬입니다',
   failUnknown: '발송에 실패했어요',
   // 어드민 확인 모달(§6-1)
   adminConfirmTitle: '어드민 권한으로 초대합니다',
@@ -146,13 +160,15 @@ const DEFAULT_LABELS = {
   csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
   csvErrUnknownOption: "{column} '{value}'는 조직 설정에 없는 값이에요",
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
+  csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
+  csvErrJobPair: '직군에 없는 직렬입니다',
   // 템플릿 헤더 — 파일에 그대로 실린다
   csvColEmail: '이메일',
   csvColName: '이름',
   csvColRole: '역할',
   csvColJobLevel: '직급',
   csvColJobFamily: '직군',
-  csvColJobTitle: '직무',
+  csvColJobTitle: '직렬',
   csvColWorkLocation: '근무지',
   csvColOrgPath: '조직경로',
   csvColPrimaryPath: '주소속',
@@ -285,10 +301,14 @@ function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }
  *  · 조직경로 — 못 찾은 경로마다 조직 select
  */
 function CsvStagingRow({
-  row, errors, tree, fieldOptions, labels, sending, onPatch, onResolvePath,
+  row, errors, tree, fieldOptions, laddersByFamily, labels, sending, onPatch, onResolvePath,
 }) {
   const pathLabelOf = (id) => tree.find((e) => e.id === id)?.pathLabel ?? id;
+  /* 쌍이 어긋난 행은 **직군·직렬 두 칸 모두** 고칠 수 있어야 한다 — 값 자체는 옵션
+     목록에 있으니 아래 «옵션에 없는 값» 검사에는 걸리지 않는다(PW-412 E18·V7). */
+  const pairIssue = jobPairIssue(laddersByFamily, row.jobFamily, row.jobTitle);
   const optionCols = INVITE_OPTION_COLUMNS.filter((c) => {
+    if (pairIssue && (c.key === 'jobFamily' || c.key === 'jobTitle')) return true;
     const list = fieldOptions[c.option];
     const v = String(row[c.key] || '').trim();
     if (!v) return false;
@@ -296,6 +316,11 @@ function CsvStagingRow({
       (o) => String(o).trim().toLowerCase() === v.toLowerCase(),
     ));
   });
+  /** 직렬 선택지는 그 행의 직군 하위로 좁힌다 — 고른 값이 곧 저장되는 값이어야 한다. */
+  const optionsFor = (c) =>
+    (c.key === 'jobTitle'
+      ? laddersForFamily(laddersByFamily, row.jobFamily, fieldOptions.jobTitle)
+      : fieldOptions[c.option]) || [];
 
   return (
     <div className={`admin-inv-csv-row${errors.length > 0 ? ' is-error' : ''}`}>
@@ -365,7 +390,7 @@ function CsvStagingRow({
               >
                 {/* 파일에 있던 값을 그대로 보여준다 — 무엇을 고치는 중인지 잃지 않는다 */}
                 <option value="">{row[c.key]}</option>
-                {(fieldOptions[c.option] || []).map((o) => (
+                {optionsFor(c).map((o) => (
                   <option key={o} value={o}>{o}</option>
                 ))}
               </select>
@@ -422,8 +447,16 @@ export default function AdminInviteModal({
   pendingEmails = [],
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
   seats = null,
-  /** { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] } */
+  /** { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] } — `jobTitle` 은 **직렬** */
   fieldOptions = {},
+  /**
+   * 직군 값 → 그 직군의 직렬 값 목록 (§1-3-d 매핑, INV-3).
+   *
+   * 직렬 Select 를 이 표로 좁히고, 직군을 고르기 전에는 잠근다. **비어 있으면
+   * 좁히지 않는다** — 매핑 조회 실패로 선택지를 0으로 만들면 값을 아예 넣지 못하는데
+   * 화면은 그 이유를 말해주지 못한다. 그 경우 서버(422 INVALID_JOB_PAIR)가 판정한다.
+   */
+  laddersByFamily = {},
   onGoBilling,
   maxRows = INVITE_MAX_ROWS,
   labels: providedLabels,
@@ -490,8 +523,23 @@ export default function AdminInviteModal({
   const activeRows = isCsv ? csvRows : rows;
   const setActiveRows = isCsv ? setCsvRows : setRows;
 
+  /**
+   * 행 한 칸 수정.
+   *
+   * **직군을 바꾸면 그 행의 직렬을 정리한다(E19).** 구 직군의 직렬이 남으면
+   * `(직군, 직렬)` 쌍(INV-3)을 깬 값이 그대로 발송된다. 새 직군에서도 유효한
+   * 직렬이면 남긴다 — CSV 스테이징에서 «직군을 고쳐 쌍을 맞추는» 것이 정상 경로라,
+   * 무조건 지우면 어드민이 파일에 적어 넣은 직렬이 말없이 사라진다.
+   */
   const patch = (key, p) =>
-    setActiveRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...p, failReason: null } : r)));
+    setActiveRows((rs) => rs.map((r) => {
+      if (r.key !== key) return r;
+      const next = { ...r, ...p, failReason: null };
+      if (p.jobFamily !== undefined && p.jobTitle === undefined) {
+        if (jobPairIssue(laddersByFamily, next.jobFamily, next.jobTitle)) next.jobTitle = '';
+      }
+      return next;
+    }));
 
   /** 해석하지 못한 조직경로 하나를 고른 조직으로 바꾼다(§2-4 화면 내 수정). */
   const resolveCsvPath = (key, rawPath, teamId) => {
@@ -538,7 +586,13 @@ export default function AdminInviteModal({
     if (r.teamIds.length >= 2 && !r.primaryTeamId) e.push(labels.errPrimaryTeam);
     // CSV 에만 있는 사유(역할·옵션·조직경로 해석 실패)는 매 렌더 다시 만든다 —
     // 파싱 때 굳혀 두면 셀에서 고친 뒤에도 옛 사유가 남는다.
-    if (isCsv) e.push(...csvRowIssues(r, { fieldOptions, labels }));
+    // (직군, 직렬) 쌍(V7)도 두 탭 모두 본다 — CSV 는 csvRowIssues 가 함께 본다.
+    if (isCsv) e.push(...csvRowIssues(r, { fieldOptions, labels, laddersByFamily }));
+    else {
+      const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
+      if (pair === 'family') e.push(labels.errLadderNeedsFamily);
+      else if (pair === 'pair') e.push(labels.errJobPair);
+    }
     errorsByKey[r.key] = e;
   }
 
@@ -666,7 +720,9 @@ export default function AdminInviteModal({
         role: r.role,
         jobLevel: r.jobLevel || undefined,
         jobFamily: r.jobFamily || undefined,
-        jobTitle: r.jobTitle || undefined,
+        // 계약 키는 `jobLadder` 다(arch-admin-data-model 초대 발송 API · PW-412).
+        // 행 모델의 `jobTitle` 은 컬럼 이름이 남은 것일 뿐 값은 직렬이다.
+        jobLadder: r.jobTitle || undefined,
         workLocation: r.workLocation || undefined,
         teamIds: r.teamIds.length ? r.teamIds : undefined,
         teamId: r.primaryTeamId || undefined,
@@ -735,12 +791,20 @@ export default function AdminInviteModal({
       <OptionSelect
         id="inv-bulk-jobFamily" label={labels.jobFamily} labels={labels}
         value={bulk.jobFamily} options={fieldOptions.jobFamily}
-        onChange={(v) => setBulk({ ...bulk, jobFamily: v })}
+        onChange={(v) => setBulk((b) => ({
+          ...b,
+          jobFamily: v,
+          // 직군을 바꾸면 그 직군에 없는 직렬은 버린다(E19)
+          jobTitle: jobPairIssue(laddersByFamily, v, b.jobTitle) ? '' : b.jobTitle,
+        }))}
       />
       <OptionSelect
         id="inv-bulk-jobTitle" label={labels.jobTitle} labels={labels}
-        value={bulk.jobTitle} options={fieldOptions.jobTitle}
-        onChange={(v) => setBulk({ ...bulk, jobTitle: v })}
+        value={bulk.jobTitle}
+        options={laddersForFamily(laddersByFamily, bulk.jobFamily, fieldOptions.jobTitle)}
+        // 직군을 고르기 전에는 직렬을 고를 수 없다 — 직군 없는 직렬은 INV-3 위반 값이다
+        disabled={ladderLocked(laddersByFamily, bulk.jobFamily)}
+        onChange={(v) => setBulk((b) => ({ ...b, jobTitle: v }))}
       />
       <OptionSelect
         id="inv-bulk-workLocation" label={labels.workLocation} labels={labels}
@@ -949,6 +1013,7 @@ export default function AdminInviteModal({
                           errors={errorsByKey[r.key]}
                           tree={tree}
                           fieldOptions={fieldOptions}
+                          laddersByFamily={laddersByFamily}
                           labels={labels}
                           sending={sending}
                           onPatch={patch}
@@ -1062,7 +1127,9 @@ export default function AdminInviteModal({
                       />
                       <OptionSelect
                         id={`inv-${r.key}-jobTitle`} label={labels.jobTitle} labels={labels}
-                        value={r.jobTitle} options={fieldOptions.jobTitle} disabled={sending}
+                        value={r.jobTitle}
+                        options={laddersForFamily(laddersByFamily, r.jobFamily, fieldOptions.jobTitle)}
+                        disabled={sending || ladderLocked(laddersByFamily, r.jobFamily)}
                         onChange={(v) => patch(r.key, { jobTitle: v })}
                       />
                       <OptionSelect

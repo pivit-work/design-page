@@ -27,8 +27,11 @@ export const INVITE_CSV_MAX_ROWS = 500;
  * 템플릿 열 — **초대 모달이 실제로 지원하는 필드만** 담는다.
  *
  * `조직장` 이 없는 이유: 가입 전에는 `team_members` 행이 없어 "그 팀 소속자만
- * 조직장"(L3)을 만족할 수 없다. `직종`(job_category)이 없는 이유: 직접 입력 탭에도
- * 그 필드가 없어, 두 탭의 필드 집합을 같게 유지한다.
+ * 조직장"(L3)을 만족할 수 없다. `직종`(job_category)·`직무`(job_duty)가 없는 이유:
+ * 직접 입력 탭에도 그 필드가 없어, 두 탭의 필드 집합을 같게 유지한다
+ * (직무는 초대에서 받지 않는다 — PW-412 확정).
+ *
+ * ⚠ `jobTitle` 은 이름과 달리 **직렬(`job_ladder`)** 이다(2026-08-10 M5-b 승격).
  *
  * `key` 는 행 모델의 필드명, `labelKey` 는 헤더 문구를 주는 라벨 키다. 헤더를 라벨로
  * 받는 이유는 en 로케일에서 한국어 헤더가 새지 않게 하기 위해서다.
@@ -61,6 +64,8 @@ export const ROLE_LABEL_KEY = {
   manager: 'roleManager',
   admin: 'roleAdmin',
 };
+
+import { jobPairIssue } from './inviteRules.js';
 
 const normalize = (v) => String(v ?? '').trim();
 
@@ -309,12 +314,13 @@ export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
 }
 
 /**
- * CSV 행의 **파일 유래** 문제 — 이메일·이름·중복 같은 공통 검증(V1~V7)은 모달이
- * 직접 입력 탭과 공유하는 코드로 따로 본다. 여기서는 CSV 에만 있는 세 가지만 본다.
+ * CSV 행의 **파일 유래** 문제 — 이메일·이름·중복 같은 공통 검증(V1~V6)은 모달이
+ * 직접 입력 탭과 공유하는 코드로 따로 본다. 여기서는 CSV 에서 문제가 되는 것만 본다:
+ * 해석 못 한 역할·옵션에 없는 값·못 찾은 조직경로, 그리고 `(직군, 직렬)` 쌍(V7).
  *
  * 렌더마다 다시 계산한다 — 셀에서 값을 고치면 그 즉시 사유가 사라져야 한다.
  */
-export function csvRowIssues(row, { fieldOptions = {}, labels = {} } = {}) {
+export function csvRowIssues(row, { fieldOptions = {}, labels = {}, laddersByFamily = {} } = {}) {
   const issues = [];
   if (!row.role) {
     issues.push(fmtCsv(labels.csvErrUnknownRole, { value: row.rawRole || '' }));
@@ -327,6 +333,12 @@ export function csvRowIssues(row, { fieldOptions = {}, labels = {} } = {}) {
       }));
     }
   }
+  /* (직군, 직렬) 쌍 — INV-3 (PW-412 · E18·V7).
+     직렬 값만 조용히 버리지 않는다. 어드민이 지정한 값이 말없이 사라지는 것이
+     행 하나를 고치게 하는 것보다 나쁘고, 서버는 어차피 422 로 되돌린다. */
+  const pair = jobPairIssue(laddersByFamily, row.jobFamily, row.jobTitle);
+  if (pair === 'family') issues.push(labels.csvErrLadderNeedsFamily);
+  else if (pair === 'pair') issues.push(labels.csvErrJobPair);
   for (const p of row.unresolvedPaths || []) {
     issues.push(fmtCsv(labels.csvErrOrgPathNotFound, { path: p }));
   }

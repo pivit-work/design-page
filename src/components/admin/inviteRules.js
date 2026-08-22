@@ -25,6 +25,7 @@ export const FAIL_LABEL_KEY = {
   INVALID_EMAIL: 'failInvalidEmail',
   DUPLICATE_IN_REQUEST: 'failDuplicate',
   SEND_FAILED: 'failSendFailed',
+  INVALID_JOB_PAIR: 'failInvalidJobPair',
 };
 
 /** V1 이메일 형식. 서버(IsCleanEmail)가 최종 판정이라 여기서는 모양만 본다. */
@@ -72,4 +73,57 @@ export function fmt(template, vars) {
   return String(template ?? '').replace(/\{(\w+)\}/g, (m, k) =>
     vars[k] === undefined || vars[k] === null ? m : String(vars[k]),
   );
+}
+
+/* ── (직군, 직렬) 쌍 — INV-3 (PW-412) ────────────────────────────────────────
+ *
+ * 직렬은 직군에 매달린 값이다. 초대가 직렬을 받기로 확정되면서(2026-08-22 David
+ * 결정) 이 쌍 검증이 초대 경로에도 존재하게 됐다 — 직군 없이 직렬만 저장하면
+ * `(job_family, job_ladder)` 불변식이 깨진다.
+ *
+ * 화면이 2단 연동으로 먼저 막지만, **서버가 최종 판정**이다(422 INVALID_JOB_PAIR).
+ * CSV 업로드나 「직군을 바꾼 뒤 남은 직렬」처럼 연동 UI 를 우회하는 경로가 있다.
+ */
+
+/** 값 비교 정규화 — 공백·대소문자 차이로 쌍이 어긋나 보이지 않게 한다. */
+const foldValue = (v) => String(v ?? '').trim().toLowerCase();
+
+/**
+ * 그 직군에 매달린 직렬 목록. 직군이 비면 **빈 목록**이다 — 전체 목록으로
+ * 폴백하면 직군 없는 직렬(INV-3 위반 값)을 고를 수 있게 된다.
+ *
+ * 매핑을 못 받았을 때(`laddersByFamily` 가 통째로 비었을 때)는 좁히지 않고
+ * `allLadders` 를 그대로 쓴다 — 매핑은 보조 정보라 조회 실패로 선택지를 0으로
+ * 만들면 값을 아예 넣지 못하는데 화면은 그 이유를 말해주지 못한다.
+ */
+export function laddersForFamily(laddersByFamily, family, allLadders = []) {
+  const map = laddersByFamily || {};
+  if (Object.keys(map).length === 0) return allLadders;
+  const f = String(family ?? '').trim();
+  if (!f) return [];
+  const hit = Object.keys(map).find((k) => foldValue(k) === foldValue(f));
+  return hit ? map[hit] || [] : [];
+}
+
+/** 직렬 Select 를 잠글지 — 직군을 고르기 전에는 고를 수 없다. */
+export function ladderLocked(laddersByFamily, family) {
+  const map = laddersByFamily || {};
+  if (Object.keys(map).length === 0) return false; // 매핑 미수신 시 잠그지 않는다
+  return !String(family ?? '').trim();
+}
+
+/**
+ * 쌍 위반 사유 — `null` 이면 통과.
+ *  · `'family'` — 직렬은 있는데 직군이 없다
+ *  · `'pair'`   — 쌍이 매핑에 없다
+ * 직렬이 비어 있으면 언제나 통과다(직렬은 선택 입력).
+ */
+export function jobPairIssue(laddersByFamily, family, ladder) {
+  const l = String(ladder ?? '').trim();
+  if (!l) return null;
+  if (!String(family ?? '').trim()) return 'family';
+  const map = laddersByFamily || {};
+  if (Object.keys(map).length === 0) return null; // 매핑 미수신 — 서버가 판정한다
+  const list = laddersForFamily(map, family, []);
+  return list.some((o) => foldValue(o) === foldValue(l)) ? null : 'pair';
 }

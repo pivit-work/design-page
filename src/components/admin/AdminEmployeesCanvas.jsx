@@ -1917,8 +1917,13 @@ export default function AdminEmployeesCanvas({
   onSendInvites,
   /** `{ limit, remaining }` — null 이면 좌석 조회 실패(발송은 허용, 서버가 최종 방어) */
   seats = null,
-  /** `{ jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] }` */
+  /** `{ jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] }` — `jobTitle` 은 **직렬** */
   fieldOptions,
+  /**
+   * 직군 값 → 그 직군의 직렬 값 목록(§1-3-d). 초대 모달이 직렬 Select 를 이 표로
+   * 좁히고 직군 미선택 시 잠근다(INV-3 · PW-412). 비면 좁히지 않는다.
+   */
+  laddersByFamily,
   /** 초대 모달 문구 — i18n 은 소비자(pivit-work)가 소유한다. */
   inviteLabels,
   /** 좌석 부족 배너의 `결제·구독` 이동. */
@@ -2175,7 +2180,8 @@ export default function AdminEmployeesCanvas({
 
       {/* 초대 발송 모달 — 탭 A·탭 C 두 진입점이 **공유**한다(§1).
           직급 선택지는 캔버스가 이미 받는 `gradeOptions` 를 기본으로 쓰고,
-          직군·직무·근무지는 `fieldOptions` 로 받는다. */}
+          직군·직렬·근무지는 `fieldOptions` 로, 직군↔직렬 매핑은 `laddersByFamily`
+          로 받는다(직렬 2단 연동 · PW-412). */}
       {inviteOpen && canInvite && (
         <AdminInviteModal
           open
@@ -2195,6 +2201,7 @@ export default function AdminEmployeesCanvas({
             jobLevel: gradeOptions ?? [],
             ...(fieldOptions || {}),
           }}
+          laddersByFamily={laddersByFamily}
           onGoBilling={onGoBilling}
           labels={inviteLabels}
         />
