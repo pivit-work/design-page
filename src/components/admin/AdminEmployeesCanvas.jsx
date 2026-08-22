@@ -151,8 +151,11 @@ const DEFAULT_LABELS = {
   },
   loading: '불러오는 중…',
   menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
+  // 재직상태 4종(§3.2.1) + 폴백. `pending` 이 「수습」 이던 것은 enum 에 `probation` 이
+  // 없어 자리를 메우던 것이고, PW-422 에서 실제 값이 생겨 제자리를 찾았다.
   status: {
-    active: '재직', on_leave: '휴직', terminated: '퇴사', pending: '수습', other: '기타',
+    active: '재직', probation: '수습', on_leave: '휴직', terminated: '퇴사',
+    pending: '대기', other: '기타',
   },
   role: { admin: '어드민', manager: '매니저', member: '멤버' },
   unassigned: {
@@ -232,8 +235,12 @@ function fill(template, vars) {
 }
 
 /* ── 배지 ─────────────────────────────────────────────── */
+/**
+ * 4종(§3.2.1) + 폴백. 표에 없는 값은 **회색 「기타」로 그린다** — 칸을 비우면 데이터가
+ * 사라진 것처럼 보이고, 코드값(`probation`)을 그대로 흘리면 화면에 영문이 샌다.
+ */
 function StatusBadge({ status, labels }) {
-  const known = ['active', 'on_leave', 'terminated', 'pending', 'other'];
+  const known = ['active', 'probation', 'on_leave', 'terminated', 'pending', 'other'];
   const cls = known.includes(status) ? status.replace('_', '-') : 'other';
   const label = labels.status[status] || labels.status.other;
   return <span className={`admin-emp-status is-${cls}`}>{label}</span>;
@@ -1129,10 +1136,12 @@ function EmployeesListView({
       : optionsOf(members, (m) => m.jobDuty, allLabel);
   }, [axis.duties, axis.dutiesByLadder, ladder, members, allLabel]);
 
+  // 4종만 축으로 둔다. 「대기」(`pending`)는 탭 C 소관이라 여기 목록에 없고,
+  // 「기타」(`other`)는 마이그레이션 잔여라 칩을 만들면 「있으나 마나 한 칩」이 는다.
   const statusOpts = [
     { id: 'all', label: labels.filters.all },
     { id: 'active', label: labels.status.active },
-    { id: 'pending', label: labels.status.pending },
+    { id: 'probation', label: labels.status.probation },
     { id: 'on_leave', label: labels.status.on_leave },
     { id: 'terminated', label: labels.status.terminated },
   ];
@@ -1171,6 +1180,11 @@ function EmployeesListView({
         // 영원히 처리되지 않는 한 건이 목록에 남는다.
         if (mgrFilter === 'unassigned' && (m.managerName || m.isCeo)) return false;
         if (status !== 'all' && m.employmentStatus !== status) return false;
+        // 가입 대기(`pending`)는 여기 목록에 세우지 않는다(§3.2.1 · PW-422). 탭 C(초대
+        // 관리)가 이미 담당하는데 두 곳에 뜨면 체크박스 선택·일괄 처리·페이지네이션의
+        // 단위가 「사람 수」와 어긋난다. 값이 남아 있는 잔여 행은 스프레드시트 뷰에서
+        // 여전히 보이고 고칠 수 있다 — 아예 못 보게 만들지는 않는다.
+        if (m.employmentStatus === 'pending') return false;
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
@@ -1647,7 +1661,9 @@ function EmployeesEditPanel({
   if (!member) return null;
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
-  const statusOrder = ['active', 'pending', 'on_leave', 'terminated'];
+  // §3.2.1 재직상태 4종. `pending`(가입 대기)·`other`(마이그레이션 잔여)는 사람이 고르는
+  // 값이 아니라 선택지에 두지 않는다 — 고를 수 있게 두면 탭 C 와 담당이 겹친다.
+  const statusOrder = ['active', 'probation', 'on_leave', 'terminated'];
   // 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 orgUnitIds 폴백.
   const chips = (member.depts || []).filter((d) => d.orgUnitId);
   const fallbackPrimary = primaryOrgEntry(orgTree, member.orgUnitIds)?.id ?? '';
