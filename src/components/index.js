@@ -94,6 +94,7 @@ export {
   StatCard as OneOnOneStatCard,
   MemberCard as OneOnOneMemberCard,
   OneOnOneDashboardCanvas,
+  LiveGuideCard as OneOnOneLiveGuideCard,
   OneOnOneMemberCanvas,
   OneOnOneMemberMeetingsCanvas,
   PROGRESS_COLORS as ONEONONE_PROGRESS_COLORS,

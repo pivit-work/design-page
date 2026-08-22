@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
+import LiveGuideCard from './LiveGuideCard.jsx';
 
 /**
  * "1on1 진행" 준비 뷰 — Figma 16817:39186(준비1) / 16972:15514(준비2).
@@ -33,6 +34,12 @@ import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
  *
  * design-page 데모 wrapper(OneOnOnePage.jsx) 가 이 props 를 채워 기존 데모 화면을
  * 유지하고, pivit-work 등 실제 사용처는 prepareSession 결과를 변환해 넣는다.
+ *
+ *   - `liveGuide` : LIVE 대화 내비게이터 카드의 props 묶음 (PW-429). 주면 멤버 블록
+ *     아래·준비도 위에 카드를 그린다. 주지 않으면 아무 것도 그리지 않는다 — READY·DONE
+ *     화면과 **멤버 화면에는 존재 자체가 노출되면 안 되므로**, 렌더 여부를 소비처가
+ *     쥔다(정책 §5.2.1: `phase === live` AND 뷰어가 매니저). 값은 `LiveGuideCard` 의
+ *     props 를 그대로 통과시킨다.
  *
  * member shape: { name, role, avatar, badge? }
  */
@@ -193,6 +200,8 @@ export default function StartOneOnOneView({
   // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
   onStartMeeting,
   onEndMeeting,
+  // ── LIVE 대화 내비게이터 (PW-429). null 이면 카드를 그리지 않는다 ──
+  liveGuide = null,
   busy = false,
   busyLabel = null,
 }) {
@@ -235,9 +244,21 @@ export default function StartOneOnOneView({
   // briefingOpen: 브리핑 카드 펼침 토글. briefing 데이터가 있거나 어느 섹션이든
   // AI 초안이 있으면 기본 펼친 상태로 시작.
   const [briefingOpen, setBriefingOpen] = useState(anyAiGenerated || !!briefing);
-  useEffect(() => {
+  // 🔴 effect 가 아니라 **렌더 중 조정**이다 (react.dev "You Might Not Need an Effect"
+  // 의 prop 변경 시 state 리셋 패턴). 판정과 dep 비교는 예전 effect 와 같다 —
+  // `[anyAiGenerated, briefing]` 중 하나라도 바뀐 렌더에서만 다시 펼친다.
+  // effect 로 두면 접힌 상태가 한 프레임 그려졌다 펼쳐져 카드가 깜빡인다.
+  const [prevBriefingDeps, setPrevBriefingDeps] = useState({
+    anyAiGenerated,
+    briefing,
+  });
+  if (
+    prevBriefingDeps.anyAiGenerated !== anyAiGenerated ||
+    prevBriefingDeps.briefing !== briefing
+  ) {
+    setPrevBriefingDeps({ anyAiGenerated, briefing });
     if (anyAiGenerated || briefing) setBriefingOpen(true);
-  }, [anyAiGenerated, briefing]);
+  }
 
   // initialPerspective 가 주어지면 모든 입력 상태를 그 값으로 복원.
   // fallback 효과(멤버 자가진단으로 caps 리셋, initialMgrAgendas → mgrAgendas)는
@@ -253,12 +274,31 @@ export default function StartOneOnOneView({
     initialPerspective?.capabilities ??
       Object.fromEntries(DEFAULT_CAPABILITIES.map((c) => [c.key, 0])),
   );
-  useEffect(() => {
-    if (hasInitialPerspective) return;
-    setCaps(Object.fromEntries(capabilities.map((c) => [c.key, c.value])));
-  }, [capabilities, hasInitialPerspective]);
+  // 위와 같은 이유로 렌더 중 조정. dep 비교도 `[capabilities, hasInitialPerspective]`
+  // 그대로다 — `capabilities` 는 useMemo 라 data 가 바뀔 때만 identity 가 바뀐다.
+  // `null` 초기값은 「아직 한 번도 안 맞췄다」는 뜻이다 — 예전 effect 가 **마운트에서도**
+  // 돌았으므로 첫 렌더에서 한 번은 반드시 맞춰야 한다. 현재 값으로 초기화하면 첫 렌더가
+  // 통째로 건너뛰어져 초기 동기화가 사라진다.
+  const [prevCapsDeps, setPrevCapsDeps] = useState(null);
+  if (
+    prevCapsDeps === null ||
+    prevCapsDeps.capabilities !== capabilities ||
+    prevCapsDeps.hasInitialPerspective !== hasInitialPerspective
+  ) {
+    setPrevCapsDeps({ capabilities, hasInitialPerspective });
+    if (!hasInitialPerspective) {
+      setCaps(Object.fromEntries(capabilities.map((c) => [c.key, c.value])));
+    }
+  }
 
-  useEffect(() => {
+  // 새 초안이 도착한 렌더에서만 입력을 덮어쓴다 (dep 은 `[aiDrafts]` 그대로).
+  // 부분 생성은 소비처가 누적 머지해 새 객체로 주므로 identity 비교로 충분하다.
+  // 마운트 시점에 이미 초안이 주어질 수 있다(복원·재렌더). `undefined` 센티널로
+  // 첫 렌더에서 반드시 한 번 맞춘다 — `aiDrafts` 자체는 `null` 일 수 있어 `null` 은
+  // 센티널로 못 쓴다.
+  const [prevAiDrafts, setPrevAiDrafts] = useState(undefined);
+  if (prevAiDrafts !== aiDrafts) {
+    setPrevAiDrafts(aiDrafts);
     if (aiDrafts) {
       if (aiDrafts.strengths != null) setStrengths(aiDrafts.strengths);
       if (aiDrafts.sbi != null) setSbi(aiDrafts.sbi);
@@ -267,7 +307,7 @@ export default function StartOneOnOneView({
         setCaps((prev) => ({ ...prev, ...aiDrafts.capabilities }));
       }
     }
-  }, [aiDrafts]);
+  }
 
   // 매니저 관점 4개 항목 확정 상태.
   const [confirmed, setConfirmed] = useState(
@@ -282,10 +322,15 @@ export default function StartOneOnOneView({
   const [mgrAgendas, setMgrAgendas] = useState(
     initialPerspective?.mgrAgendas ?? [],
   );
-  useEffect(() => {
-    if (hasInitialPerspective) return;
-    setMgrAgendas(initialMgrAgendas);
-  }, [initialMgrAgendas, hasInitialPerspective]);
+  const [prevAgendaDeps, setPrevAgendaDeps] = useState(null);
+  if (
+    prevAgendaDeps === null ||
+    prevAgendaDeps.initialMgrAgendas !== initialMgrAgendas ||
+    prevAgendaDeps.hasInitialPerspective !== hasInitialPerspective
+  ) {
+    setPrevAgendaDeps({ initialMgrAgendas, hasInitialPerspective });
+    if (!hasInitialPerspective) setMgrAgendas(initialMgrAgendas);
+  }
   const [agendaInput, setAgendaInput] = useState('');
 
   // 자동 저장: 매니저 관점 4섹션/역량/확정/아젠다 중 하나라도 바뀌면 부모에게 통지.
@@ -424,6 +469,11 @@ export default function StartOneOnOneView({
               )}
             </div>
           </div>
+
+          {/* LIVE 대화 내비게이터 — 매니저 전용, LIVE 최상단 (policy §5.2.1).
+              렌더 판정(단계·역할)은 소비처가 한다: 이 컴포넌트는 READY·LIVE·DONE 을
+              구분하지 않으므로, 여기서 그리기로 정하면 READY 화면에도 새어 나온다. */}
+          {liveGuide && <LiveGuideCard {...liveGuide} baseUrl={liveGuide.baseUrl ?? baseUrl} />}
 
           {/* 준비도 — spec §4.1.1
               · 멤버: 멤버 READY view 7섹션 완료율 (외부 prop)
