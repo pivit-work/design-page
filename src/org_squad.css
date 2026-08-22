@@ -412,6 +412,15 @@
   color: var(--text-quaternary);
 }
 
+/* ③ 배정 권한이 없는 스쿼드 — 「팀원 추가」 버튼 대신 서는 캡션(정본 :175).
+   빈 상태 캡션(.sq-chip-empty)과 같은 취급이다 — 새 시각 언어를 만들지 않는다. */
+.sq-add-caption {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-quaternary);
+}
+
 /* 팀원 추가 — 검색 입력 + 후보 목록 */
 .sq-add-wrap { position: relative; }
 .sq-add-input {
