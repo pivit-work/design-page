@@ -71,16 +71,19 @@ export function isVisibleSquadStatus(status) {
 const DEFAULT_LABELS = {
   title: '스쿼드 선택',
   hint: '스쿼드는 기능조직과 평행한 한시 조직축입니다. 계층이 없어 상태별로 묶어 보여줍니다.',
-  leadHint: '소속한 스쿼드에는 [매니저로] 버튼이 뜹니다 — 스쿼드당 리드 1명만 유지됩니다.',
+  leadHint: '소속한 스쿼드에는 [리드로] 버튼이 뜹니다 — 스쿼드당 리드 1명만 유지됩니다.',
   ledgerHint: '스쿼드 생성·상태 전환·삭제, 계획 투입%는 조직도 스쿼드 뷰에서 합니다.',
   search: '스쿼드 검색',
   empty: '검색 결과가 없어요',
   groupActive: '진행중',
   groupPlanned: '준비중',
   groupClosed: '종료·보관',
-  makeLead: '매니저로',
-  isLead: '매니저',
-  makeLeadTitle: '이 스쿼드의 매니저(리드)로 지정합니다',
+  // 라벨은 PW-422 에서 「매니저로」 → 「리드로」. 소속 트리 팝업의 `[조직장으로]` 와
+  // 달리 스쿼드 리드는 권한(`role`)을 올리지 않는다(SQ11) — 두 버튼이 같은 말을 쓰면
+  // 어드민이 「누르면 권한이 바뀐다」 와 「안 바뀐다」 를 구분할 근거가 화면에 없다.
+  makeLead: '리드로',
+  isLead: '리드',
+  makeLeadTitle: '이 스쿼드의 리드로 지정합니다 (계정 권한은 바뀌지 않습니다)',
   releaseLeadTitle: '스쿼드 리드 지정을 해제합니다',
   selectedCount: '선택 {count}개 (종료·보관 제외)',
   apply: '적용',
@@ -324,7 +327,7 @@ export default function SquadPicker({
                     />
                     <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{sq.name}</span>
 
-                    {/* 매니저(스쿼드 리드) — 배정된 스쿼드에만 노출된다. */}
+                    {/* 스쿼드 리드 — 배정된 스쿼드에만 노출된다. */}
                     {on && (row.isLead ? (
                       <button
                         type="button"

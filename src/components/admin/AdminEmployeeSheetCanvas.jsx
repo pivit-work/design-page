@@ -55,14 +55,21 @@ const ROLE_META = {
   member: { label: '멤버', color: '#D97706', bg: '#FFFBEB', bd: '#FDE68A' },
 };
 
-// 백엔드 employmentStatus enum 기반.
+// 백엔드 employmentStatus enum 기반. 표에 없는 값이 오면 「기타」로 그린다(PW-422) —
+// 예전에는 `m.label || value` 로 폴백해 화면에 `probation`·`other` 같은 코드값이 샜다.
 const STATUS_META = {
   active: { label: '재직중', color: '#16A34A', bg: '#F0FDF4', dot: '#22C55E' },
+  probation: { label: '수습', color: '#D97706', bg: '#FFFBEB', dot: '#F59E0B' },
   on_leave: { label: '휴직', color: '#D97706', bg: '#FFFBEB', dot: '#F59E0B' },
   terminated: { label: '퇴사', color: '#94A3B8', bg: '#F8FAFC', dot: '#CBD5E1' },
   pending: { label: '대기', color: '#2563EB', bg: '#EFF6FF', dot: '#60A5FA' },
+  other: { label: '기타', color: '#94A3B8', bg: '#F8FAFC', dot: '#CBD5E1' },
 };
-const STATUS_OPTIONS = ['active', 'on_leave', 'terminated', 'pending'];
+/** 알 수 없는 값도 사람이 읽는 라벨로 떨어뜨린다 — 코드값을 화면에 흘리지 않는다. */
+const statusMeta = (v) => STATUS_META[v] || STATUS_META.other;
+// 사람이 **고르는** 값은 §3.2.1 의 4종뿐이다. `pending`(가입 대기)은 초대 관리 소관이고
+// `other` 는 마이그레이션 잔여라 선택지가 아니다 — 둘 다 위 표에는 남아 표시는 된다.
+const STATUS_OPTIONS = ['active', 'probation', 'on_leave', 'terminated'];
 
 /* 매니저 배정 여부 필터의 값(PW-300). 사람 id 와 절대 겹치지 않도록 `__`로 감싼다 —
    소비자가 이 값을 URL·저장 상태에 그대로 싣기 때문에(PW-157) 실제 id 와 구분돼야 한다. */
@@ -600,11 +607,12 @@ function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, manag
     );
   }
   if (col.id === 'employmentStatus') {
-    const m = STATUS_META[value] || {};
+    if (!value) return <span style={{ fontSize: 12, color: T.muted }}>—</span>;
+    const m = statusMeta(value);
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <div style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot || T.muted, flexShrink: 0 }} />
-        <span style={{ fontSize: 11, color: m.color || T.sub, fontWeight: 600 }}>{m.label || value || '—'}</span>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot, flexShrink: 0 }} />
+        <span style={{ fontSize: 11, color: m.color, fontWeight: 600 }}>{m.label}</span>
       </div>
     );
   }
@@ -1198,7 +1206,7 @@ export default function AdminEmployeeSheetCanvas({
         .map((v) => ({
           value: String(v),
           label: fc.meta === 'role' ? (ROLE_META[v]?.label || String(v))
-            : fc.meta === 'status' ? (STATUS_META[v]?.label || String(v))
+            : fc.meta === 'status' ? statusMeta(v).label
               : String(v),
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
