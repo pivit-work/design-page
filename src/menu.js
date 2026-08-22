@@ -15,7 +15,11 @@ export const SIDEBAR_MENU = [
   { id: 'timeline', icon: '/icons-solid/calendar.svg',            label: '타임라인', section: 'top' },
   { id: 'report',   icon: '/icons-solid/dotpoints-01.svg',        label: '리포트',   section: 'top' },
   { id: 'okr',      icon: '/icons-solid/target-04.svg',           label: 'OKR',      section: 'top' },
-  { id: 'oneonone', icon: '/icons-solid/user-03.svg',             label: '1on1',     section: 'top' },
+  // 라벨은 «원온원» 이다 — «1on1» 이 아니다 (기획 정본 arch-nav-routing-policy §1
+  // 상단 5번 · §1-E B-1 · 2026-08-22 PW-419). 정본의 라벨 자체가 실물 앱 관측에서
+  // 나온 값이라, 앱 표기(원온원)와 어긋난 쪽이 design-page 였다. pivit-work 는
+  // i18n ko 라벨이 이미 «원온원» 이고, `SideNav.drift.test` 가 두 값을 대조한다.
+  { id: 'oneonone', icon: '/icons-solid/user-03.svg',             label: '원온원',   section: 'top' },
   { id: 'orgchart', icon: '/icons-solid/layers-three-01.svg',     label: '조직도',   section: 'top' },
   { id: 'meetings', icon: '/icons-solid/file-02.svg',             label: '회의록',   section: 'top' },
   // '평가'(/eval)는 역할로 분기한다(스펙 eval-app.jsx 역할섹션): 매니저는 '팀 평가
