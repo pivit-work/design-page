@@ -59,6 +59,25 @@ export default function OkrConnectors({ containerRef, scale }) {
         pathData += `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2} `;
       });
 
+      // 팀 → 개인 노드 (PW-413). 팀 컬럼의 마지막 Objective 행(없으면 빈 자리
+      // 플레이스홀더, 그것도 없으면 카드)에서 각 개인 카드 상단으로 잇는다.
+      container.querySelectorAll('.okr-team-col').forEach(col => {
+        const anchor = col.querySelector(':scope > .okr-objective-list > .okr-objective-row:last-child')
+          || col.querySelector(':scope > .okr-objective-empty')
+          || col.querySelector(':scope > .okr-group-card');
+        if (!anchor) return;
+        const anchorRect = anchor.getBoundingClientRect();
+        const ax = centerX(anchorRect);
+        const ay = (anchorRect.bottom - containerRect.top) / s;
+        col.querySelectorAll(':scope > .okr-persons-row > .okr-person-col > .okr-group-card').forEach(card => {
+          const cardRect = card.getBoundingClientRect();
+          const cx = centerX(cardRect);
+          const cy = (cardRect.top - containerRect.top) / s;
+          const midY = (ay + cy) / 2;
+          pathData += `M ${ax} ${ay} C ${ax} ${midY}, ${cx} ${midY}, ${cx} ${cy} `;
+        });
+      });
+
       svg.innerHTML = `<path d="${pathData}" fill="none" stroke="var(--utility-blue-300)" stroke-width="1" stroke-dasharray="4 4"/>`;
       rafRef.current = requestAnimationFrame(draw);
     };
