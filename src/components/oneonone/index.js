@@ -8,4 +8,5 @@ export { default as LiveGuideCard } from './LiveGuideCard.jsx';
 export { formatLiveElapsed } from './sessionHelpers.js';
 export { default as OneOnOneMemberCanvas } from './OneOnOneMemberCanvas.jsx';
 export { default as OneOnOneMemberMeetingsCanvas } from './OneOnOneMemberMeetingsCanvas.jsx';
+export { default as DoneOneOnOneView } from './DoneOneOnOneView.jsx';
 export { PROGRESS_COLORS, STATUS_BADGE, TAG_TYPES } from './constants.js';
