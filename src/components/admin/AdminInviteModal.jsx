@@ -71,6 +71,8 @@ const DEFAULT_LABELS = {
   workLocation: '근무지',
   unset: '미지정',
   optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
+  // 직렬이 직군 때문에 잠겼을 때 — 「옵션 없음」이라고 하면 원인을 잘못 가리킨다
+  ladderNeedsFamily: '직군을 먼저 선택하세요',
   email: '이메일',
   emailPlaceholder: 'name@company.com',
   name: '이름',
@@ -207,8 +209,15 @@ const EMPTY_BULK = {
   primaryTeamId: '',
 };
 
-/** 옵션 목록 → Select 항목. 값이 비어 있어도 '미지정' 은 항상 남긴다. */
-function OptionSelect({ id, label, value, onChange, options, labels, disabled }) {
+/**
+ * 옵션 목록 → Select 항목. 값이 비어 있어도 '미지정' 은 항상 남긴다.
+ *
+ * `placeholder` 는 **비활성 사유를 그 칸에서 말하기 위한 것**이다. 직렬은 직군을
+ * 고르기 전까지 잠기는데(INV-3 · PW-412), 그때 목록이 비었다고 `옵션 없음 — 조직
+ * 설정에서 추가` 를 띄우면 원인을 엉뚱한 곳으로 가리킨다 — 조직 설정에는 직렬이
+ * 멀쩡히 있고, 어드민이 할 일은 직군을 먼저 고르는 것이다.
+ */
+function OptionSelect({ id, label, value, onChange, options, labels, disabled, placeholder }) {
   const list = Array.isArray(options) ? options.filter(Boolean) : [];
   return (
     <label className="admin-inv-field">
@@ -220,7 +229,9 @@ function OptionSelect({ id, label, value, onChange, options, labels, disabled })
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">{list.length === 0 ? labels.optionsEmpty : labels.unset}</option>
+        <option value="">
+          {placeholder || (list.length === 0 ? labels.optionsEmpty : labels.unset)}
+        </option>
         {list.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
@@ -804,6 +815,9 @@ export default function AdminInviteModal({
         options={laddersForFamily(laddersByFamily, bulk.jobFamily, fieldOptions.jobTitle)}
         // 직군을 고르기 전에는 직렬을 고를 수 없다 — 직군 없는 직렬은 INV-3 위반 값이다
         disabled={ladderLocked(laddersByFamily, bulk.jobFamily)}
+        placeholder={
+          ladderLocked(laddersByFamily, bulk.jobFamily) ? labels.ladderNeedsFamily : undefined
+        }
         onChange={(v) => setBulk((b) => ({ ...b, jobTitle: v }))}
       />
       <OptionSelect
@@ -1130,6 +1144,11 @@ export default function AdminInviteModal({
                         value={r.jobTitle}
                         options={laddersForFamily(laddersByFamily, r.jobFamily, fieldOptions.jobTitle)}
                         disabled={sending || ladderLocked(laddersByFamily, r.jobFamily)}
+                        placeholder={
+                          ladderLocked(laddersByFamily, r.jobFamily)
+                            ? labels.ladderNeedsFamily
+                            : undefined
+                        }
                         onChange={(v) => patch(r.key, { jobTitle: v })}
                       />
                       <OptionSelect
