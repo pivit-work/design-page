@@ -12,6 +12,15 @@
 .okr-icon-btn { display: flex; align-items: center; justify-content: center; padding: 8px; background: var(--alpha-black-3); border: none; border-radius: 8px; cursor: pointer; }
 .okr-select-btn:hover, .okr-icon-btn:hover, .okr-select-btn.is-open { background: var(--bg-active); }
 
+/* ── 하위 계층 셀렉터 + 현재 뎁스 표시 (PW-413 · §3.4-A T3-a·T3-c) ──
+   뎁스 문구는 컨트롤이 아니라 **설명**이라 셀렉터(14/600)보다 한 단계 약하게 둔다. */
+.okr-level-seg { display: flex; gap: 2px; padding: 3px; background: var(--alpha-black-3); border-radius: 8px; }
+.okr-level-seg-btn { height: 30px; padding: 0 12px; border: none; border-radius: 6px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); cursor: pointer; }
+.okr-level-seg-btn:hover { color: var(--text-secondary); }
+.okr-level-seg-btn.is-active { background: var(--bg-primary); font-weight: 700; color: var(--text-primary); }
+.okr-depth-label { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); white-space: nowrap; }
+.okr-policy-chip { padding: 3px 9px; border: 1px solid var(--utility-warning-200); border-radius: 99px; background: var(--utility-warning-50); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-warning-700); white-space: nowrap; }
+
 /* ── 연도/분기 드롭다운 메뉴 ── */
 .okr-select-wrap { position: relative; }
 .okr-select-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 100%; max-height: 256px; overflow-y: auto; background: var(--bg-quaternary); border: 1px solid var(--border-secondary-alt); border-radius: 10px; padding: 4px 0; box-shadow: var(--shadows-shadow3xl); z-index: 100; }
@@ -40,11 +49,26 @@
 .okr-team-col { gap: 16px; }
 .okr-members { display: flex; flex-direction: column; gap: 8px; margin-top: 30px; }
 
+/* ── 개인 계층 (PW-413 · okr-policy.md §3.4-A T3-b) ──
+   개인 노드는 조직 노드 규격(is-team)을 그대로 축소해 재사용한다 —
+   새 시각 언어를 만들지 않는다. 시안: pivit-specs `F. OKR/okr-dashboard.jsx`. */
+.okr-persons-row { display: flex; align-items: flex-start; justify-content: center; gap: 32px; margin-top: 48px; }
+.okr-person-col { gap: 12px; }
+.okr-person-col .okr-objective-list { width: 170px; }
+.okr-person-col .okr-group-card { min-width: 150px; }
+.okr-person-col .okr-group-name { font-size: 16px; line-height: 24px; }
+
+/* 「비어 있다」를 화면이 말한다 — 지우면 「OKR 을 안 세웠다」와 「트리에서 빠졌다」가
+   같아 보인다(§3.4-A T2). 개인 계층 전체가 비면 플레이스홀더 1개만 둔다(T3-b). */
+.okr-objective-empty { align-items: center; justify-content: center; padding: 10px 12px; background: var(--bg-secondary); border: 1px dashed var(--border-secondary-alt); border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); text-align: center; }
+.okr-persons-empty { width: 150px; padding: 18px 10px; border: 1px dashed var(--border-secondary-alt); border-radius: 12px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); text-align: center; }
+
 /* ── 그룹 카드 (Company / 팀) ── */
 .okr-group-card { min-width: 170px; padding: 20px 22px; border-radius: 12px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: box-shadow 0.2s; }
 .okr-group-card:hover { box-shadow: 0 4px 12px rgba(10, 13, 18, 0.12), 0 2px 4px rgba(10, 13, 18, 0.06); }
 .okr-group-card.is-company { background: var(--utility-brand-50); }
 .okr-group-card.is-team { background: var(--utility-blue-50); }
+.okr-group-card.is-person { background: var(--bg-primary); }
 .okr-group-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); white-space: nowrap; }
 .okr-group-sub { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; line-height: 24px; white-space: nowrap; }
 .okr-sub-period { color: var(--text-secondary); }
