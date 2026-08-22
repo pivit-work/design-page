@@ -51,7 +51,6 @@ export const ADMIN_MENU = [
   // 기획 정본(arch-nav-routing-policy §1-A)의 «② 평가 운영» 그룹 — 관리 다음, 시스템 앞.
   // 화면은 평가 셸의 사이클 목록이고, 어드민 레일은 그 진입점만 갖는다.
   { id: 'eval-cycle',    icon: '/icons-solid/clipboard-check.svg',     label: '평가 사이클',      group: 'eval-ops' },
-  { id: 'billing',       icon: '/icons-solid/credit-card-02.svg',      label: '결제 · 구독',      group: 'billing' },
   { id: 'notifications', icon: '/icons-solid/alert-triangle.svg',      label: '알림 설정',        group: 'system' },
   // 기획(arch-nav-routing-policy §1-A ④ 시스템 설정 · admin-app.jsx ADMIN_NAV_ITEMS)이
   // '알림 설정' 바로 다음에 두는 항목 — 규칙 기반 알림 설정과 1회성 대량 발송을 나란히 둔다.
@@ -61,4 +60,11 @@ export const ADMIN_MENU = [
   // 사이에 둔다(2026-07-02 평가 HR 화면에서 이관).
   { id: 'login-as',      icon: '/icons-solid/user-circle.svg',         label: 'Log in As',        group: 'system' },
   { id: 'ai-tuning',     icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
+  // 결제·구독 — «③ 시스템» 그룹의 **마지막 항목**이고, 결제 전용 그룹 헤더는 만들지
+  // 않는다 (arch-nav-routing-policy §1-A v1.18 · 2026-08-22 PW-375 안 C 확정).
+  // 누르면 결제 셸(billing-app.jsx)이 어드민 캔버스에 렌더되고, 결제 화면 7개 사이의
+  // 이동은 그 셸의 상단 탭이 담당한다 — 그래서 레일에는 /admin/billing 하나만 둔다.
+  // 종전 group: 'billing' 은 정본에 없는 네 번째 그룹이었다. 항목 자체를 지우면
+  // 결제 화면에 딥링크 말고 들어갈 문이 없어지므로, 지우는 것이 아니라 옮긴다.
+  { id: 'billing',       icon: '/icons-solid/credit-card-02.svg',      label: '결제 · 구독',      group: 'system' },
 ];
