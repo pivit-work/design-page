@@ -1,11 +1,19 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
 import { narrowByParent } from './jobAxis.js';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
-import { buildOrgTree, findOrgEntry, primaryOrgEntry } from './orgTree.js';
+import {
+  buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
+} from './orgTree.js';
+import { isVisibleSquadStatus } from './SquadPicker.jsx';
+import {
+  MANAGER_FILTER_ASSIGNED, MANAGER_FILTER_UNASSIGNED,
+} from './AdminEmployeeSheetCanvas.jsx';
+import { ExportMenu, SalaryExportModal } from './employeeExport.jsx';
+import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
@@ -620,6 +628,9 @@ function FilterDropdown({ label, value, options, onChange }) {
                 role="option"
                 aria-selected={isSel}
                 className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
+                // 계층 옵션(소속)은 depth 당 12px 들여쓴다 — 공백문자로 들여쓰지
+                // 않는다(시트의 같은 목록과 같은 규칙, §5-A P1).
+                style={o.depth ? { paddingLeft: 10 + o.depth * 12 } : undefined}
                 onClick={() => { onChange(o.id); setOpen(false); }}
               >
                 <span className="admin-emp-select-item-label">{o.label}</span>
@@ -995,6 +1006,11 @@ function EmployeesListView({
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
   leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
   onOpenEdit, onDeactivate, onAssignManager, onInvite, onCsvUpload,
+  /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
+     못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
+  squadOptions = [],
+  // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
+  onExportRoster, exporting = false, exportLabels,
 }) {
   const [q, setQ] = useState('');
   const [dept, setDept] = useState(LIST_ALL);
@@ -1034,27 +1050,54 @@ function EmployeesListView({
     if (names.length === 0 && m.department) names.push(m.department);
     return names;
   };
-  const squadNamesOf = (m) => (Array.isArray(m.squads) ? m.squads : [])
-    .map((s) => s.name || s.squadName)
-    .filter(Boolean);
+  /** 그 사람의 소속 조직 id 전부 — 주 소속·겸직 칩과 배정 행(계층 포함)을 합친다. */
+  const deptIdsOf = (m) => {
+    const fromChips = (Array.isArray(m.depts) ? m.depts : [])
+      .map((d) => d.orgUnitId).filter(Boolean).map(String);
+    const fromRows = (Array.isArray(m.orgUnitIds) ? m.orgUnitIds : []).map(String);
+    return [...new Set([...fromChips, ...fromRows])];
+  };
+  /* 스쿼드는 **원장에서** 이름을 얻는다 — 배정 값은 `{ squadId, isLead }` 뿐이다.
+     SQ5 대로 종료·보관 스쿼드는 셀에도 필터에도 넣지 않는다: 셀에 안 보이는 값으로
+     목록이 걸러지면 "왜 이 사람이 나오지" 가 된다. */
+  const squadById = useMemo(
+    () => new Map((squadOptions || []).map((sq) => [String(sq.id), sq])),
+    [squadOptions],
+  );
+  const visibleSquadsOf = useCallback(
+    (m) => (Array.isArray(m.squads) ? m.squads : [])
+      .map((a) => squadById.get(String(a.squadId ?? a.id)))
+      .filter((sq) => sq && isVisibleSquadStatus(sq.status)),
+    [squadById],
+  );
+  const squadNamesOf = (m) => visibleSquadsOf(m).map((sq) => sq.name).filter(Boolean);
 
   const allLabel = labels.filters.all;
+  /* 소속 옵션은 평면 distinct 가 아니라 **조직 트리 전체**다(§5-A P3) — 시트와 같은
+     규칙이다. 이름으로 거르면 (a) 동명 조직이 섞이고 (b) 상위 조직을 골랐을 때
+     화면은 그 조직에 직접 붙은 사람만 남기는데 서버 반출은 하위 전원을 담아
+     **화면과 파일이 갈린다**(PW-411). 판정도 옵션도 id 로 통일한다. */
   const depts = useMemo(() => {
-    const seen = new Set();
-    for (const m of members) for (const n of deptNamesOf(m)) seen.add(n);
+    if (orgTree.length === 0) {
+      const seen = new Set();
+      for (const m of members) for (const n of deptNamesOf(m)) seen.add(n);
+      return [
+        { id: LIST_ALL, label: allLabel },
+        ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((n) => ({ id: n, label: n })),
+      ];
+    }
     return [
       { id: LIST_ALL, label: allLabel },
-      ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((n) => ({ id: n, label: n })),
+      ...orgTree.map((e) => ({ id: e.id, label: e.name, depth: e.depth })),
+      { id: ORG_FILTER_UNASSIGNED, label: labels.unassignedPill, depth: 0 },
     ];
-  }, [members, allLabel]);
-  const squads = useMemo(() => {
-    const seen = new Set();
-    for (const m of members) for (const n of squadNamesOf(m)) seen.add(n);
-    return [
-      { id: LIST_ALL, label: allLabel },
-      ...[...seen].sort((a, b) => a.localeCompare(b, 'ko')).map((n) => ({ id: n, label: n })),
-    ];
-  }, [members, allLabel]);
+  }, [orgTree, members, allLabel, labels.unassignedPill]);
+  const squads = useMemo(() => [
+    { id: LIST_ALL, label: allLabel },
+    ...(squadOptions || [])
+      .filter((sq) => isVisibleSquadStatus(sq.status))
+      .map((sq) => ({ id: String(sq.id), label: sq.name })),
+  ], [squadOptions, allLabel]);
   const positions = useMemo(() => optionsOf(members, (m) => m.jobPosition, allLabel), [members, allLabel]);
   const levels = useMemo(() => optionsOf(members, (m) => m.jobLevel, allLabel), [members, allLabel]);
   const locations = useMemo(() => optionsOf(members, (m) => m.workLocation, allLabel), [members, allLabel]);
@@ -1107,8 +1150,15 @@ function EmployeesListView({
           const hay = `${m.name || ''} ${m.email || ''} ${names.join(' ')}`.toLowerCase();
           if (!hay.includes(q.toLowerCase())) return false;
         }
-        if (dept !== LIST_ALL && !names.includes(dept)) return false;
-        if (squad !== LIST_ALL && !squadNamesOf(m).includes(squad)) return false;
+        // 소속은 선택 조직 + **하위 전체**(서브트리)를 포함한다 — id 판정이라 동명
+        // 조직·이름 접두 오탐이 없다. 트리를 못 받은 조직만 이름 폴백으로 남는다.
+        if (dept !== LIST_ALL) {
+          if (orgTree.length > 0) {
+            if (!matchesOrgSubtree(deptIdsOf(m), dept, orgTree)) return false;
+          } else if (!names.includes(dept)) return false;
+        }
+        if (squad !== LIST_ALL
+          && !visibleSquadsOf(m).some((sq) => String(sq.id) === squad)) return false;
         if (position !== LIST_ALL && m.jobPosition !== position) return false;
         if (level !== LIST_ALL && m.jobLevel !== level) return false;
         if (family !== LIST_ALL && m.jobFamily !== family) return false;
@@ -1123,7 +1173,8 @@ function EmployeesListView({
         if (status !== 'all' && m.employmentStatus !== status) return false;
         return true;
       }),
-    [members, q, dept, squad, position, level, family, ladder, duty, location, empType, mgrFilter, status],
+    // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
+    [members, q, dept, squad, position, level, family, ladder, duty, location, empType, mgrFilter, status, orgTree, visibleSquadsOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1199,6 +1250,87 @@ function EmployeesListView({
   const minWidth = cols.reduce((n, c) => n + c.width, 0);
 
   const optionalForMenu = LIST_OPTIONAL_COLS.filter((c) => c.id !== 'salary' || canViewSalary);
+
+  /* ── 명부 내보내기 (PW-411 · screen-admin-employees-export.policy.md) ──────
+   * 🔴 이 뷰의 **자기 상태**로 payload 를 만든다. 종전에는 버튼이 시트 쪽에만 있어,
+   *    목록을 보고 있어도 「현재 화면 그대로」 가 시트의 열·시트의 필터를 셌다.
+   * ------------------------------------------------------------------------ */
+
+  // 화면 열 id → 반출 열 키. 「이름이 같아서 그냥 보내면 된다」 가 아니다 —
+  // `dept`·`manager` 는 반출 카탈로그에서 다른 이름이고, `actions` 는 열이 아니다.
+  const EXPORT_COLUMN_BY_LIST_COL = {
+    dept: 'department',
+    manager: 'managerName',
+    actions: null,
+  };
+  const exportColumns = cols
+    .map((c) => (c.id in EXPORT_COLUMN_BY_LIST_COL ? EXPORT_COLUMN_BY_LIST_COL[c.id] : c.id))
+    .filter(Boolean);
+  const salaryVisible = exportColumns.includes('salary');
+
+  /* 필터 11축 → 반출 조건. 키는 **시트의 컬럼 id** 로 맞춘다 — 소비자
+     (`employeeExportParams.ts`)가 그 이름으로 서버 파라미터를 번역하고, 그 표에 없는
+     키는 **보내지지 않는다.** 새 필터를 더하면 여기와 그 표를 함께 고쳐야 한다. */
+  const exportFilters = {};
+  if (dept !== LIST_ALL) exportFilters.department = dept;
+  if (squad !== LIST_ALL) exportFilters.squads = squad;
+  if (position !== LIST_ALL) exportFilters.jobPosition = position;
+  if (level !== LIST_ALL) exportFilters.jobLevel = level;
+  if (family !== LIST_ALL) exportFilters.jobFamily = family;
+  if (ladder !== LIST_ALL) exportFilters.jobTitle = ladder;
+  if (duty !== LIST_ALL) exportFilters.jobDuty = duty;
+  if (location !== LIST_ALL) exportFilters.workLocation = location;
+  if (empType !== LIST_ALL) exportFilters.employmentType = empType;
+  if (status !== 'all') exportFilters.employmentStatus = status;
+  // 매니저는 사람 이름이 아니라 **상태 2종**이다(PW-300). 시트와 같은 sentinel 을 써야
+  // 소비자의 번역표를 두 벌로 만들지 않는다.
+  if (mgrFilter === 'assigned') exportFilters.managerName = MANAGER_FILTER_ASSIGNED;
+  if (mgrFilter === 'unassigned') exportFilters.managerName = MANAGER_FILTER_UNASSIGNED;
+
+  const [salaryGateScope, setSalaryGateScope] = useState(null);
+
+  function runExport(scope, includeSalary) {
+    if (!onExportRoster) return;
+    // 전체(③)는 화면 상태를 무시한다 — 필터·검색어·열을 아예 보내지 않는다(§5-1).
+    if (scope === 'all') {
+      onExportRoster({
+        scope, columns: [], ids: [], search: '', filters: {},
+        rowCount: members.length, includeSalary: false,
+      });
+      return;
+    }
+    onExportRoster({
+      scope,
+      columns: includeSalary ? exportColumns : exportColumns.filter((id) => id !== 'salary'),
+      // 목록 뷰에는 행 체크박스가 없어 「선택한 N명」 범위 자체가 없다 — ids 는 늘 빈다.
+      ids: [],
+      search: q.trim(),
+      filters: { ...exportFilters },
+      // 페이지네이션은 무시한다 — 현재 페이지 20행이 아니라 **필터 결과 전체**다(§4-0).
+      rowCount: ordered.length,
+      includeSalary: includeSalary && salaryVisible,
+    });
+  }
+
+  function pickExportScope(scope) {
+    // 전체(③)는 연봉을 포함하지 않으므로 확인 모달을 띄우지 않는다(E13).
+    if (scope !== 'all' && salaryVisible) {
+      setSalaryGateScope(scope);
+      return;
+    }
+    runExport(scope, false);
+  }
+
+  /* ②「선택한 N명」 은 체크한 행이 있을 때만 렌더되는 항목이고(§2-2), 목록 뷰에는
+     행 체크박스가 없다 — `selectedRows` 를 주지 않아 항목이 아예 나오지 않는다. */
+  const exportItems = buildExportItems({
+    labels: exportLabels,
+    viewRows: ordered,
+    allRows: members,
+    columnCount: exportColumns.length,
+    hasActiveFilter: Boolean(hasFilter),
+    salaryVisible,
+  });
 
   /* 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 `orgUnitIds` 폴백.
      이름으로 맞추면 동명이팀에서 틀린다(PW-112). */
@@ -1352,6 +1484,19 @@ function EmployeesListView({
         </div>
         <div className="admin-emp-toolbar-actions">
           <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} />
+          {/* 「⚙ 컬럼」 과 「CSV 업로드」 **사이**다(정책 §2-1) — 업로드와 방향이
+              헷갈리지 않게 라벨도 「명부 내보내기」 로 둔다. */}
+          {onExportRoster && (
+            <ExportMenu
+              items={exportItems}
+              // E1 — **필터 결과가 0명이면** 잠근다(전체 인원이 남아 있어도).
+              // 빈 파일을 만들지 않는 게 규칙이고, 전사 명부는 ③ 으로 받는다.
+              disabled={ordered.length === 0}
+              busy={exporting}
+              labels={exportLabels}
+              onPick={pickExportScope}
+            />
+          )}
           {canEdit && onCsvUpload && (
             <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
           )}
@@ -1431,6 +1576,26 @@ function EmployeesListView({
           }}
           onClose={() => setDeptPickerFor(null)}
           labels={labels.orgPicker}
+        />
+      )}
+
+      {salaryGateScope && (
+        <SalaryExportModal
+          count={ordered.length}
+          columnCount={exportColumns.length}
+          labels={exportLabels}
+          onClose={() => setSalaryGateScope(null)}
+          onExclude={() => {
+            const scope = salaryGateScope;
+            setSalaryGateScope(null);
+            // 🔴 화면의 ⚙ 토글은 끄지 않는다 — 파일 선택이 화면 상태를 바꾸지 않는다(§5-1).
+            runExport(scope, false);
+          }}
+          onInclude={() => {
+            const scope = salaryGateScope;
+            setSalaryGateScope(null);
+            runExport(scope, true);
+          }}
         />
       )}
 
@@ -1904,6 +2069,12 @@ export default function AdminEmployeesCanvas({
               onAssignManager={onAssignManager}
               onInvite={canInvite ? openInvite : undefined}
               onCsvUpload={onCsvUpload}
+              // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
+              squadOptions={squadOptions}
+              // 명부 내보내기 — 시트와 같은 콜백·같은 부품을 쓴다(PW-411).
+              onExportRoster={onExportRoster}
+              exporting={exporting}
+              exportLabels={exportLabels}
             />
           </div>
           )}
