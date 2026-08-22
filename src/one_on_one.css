@@ -3056,3 +3056,421 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
+
+/* ── LIVE: AI 대화 내비게이터 (PW-429) ─────────────────────────────────────────
+   시안: pivit-specs `D. 1on1-기획/1on1-manager-view.jsx` L841~ `LiveGuideCard`.
+   시안이 인라인 style 로 박아 둔 색을 이 저장소의 토큰으로 옮긴다 — 보라 = utility
+   purple, 주황 = utility warning, 빨강 = utility error, 초록 = utility success.
+
+   🔴 고정 크기 컨테이너에 가변 길이 문자열이 들어온다: 단계 제목·멘트·주의 포인트는
+   전부 AI 가 쓴 문장이고 로케일에 따라 길이가 갈린다. 스테퍼 pill·인용 박스에
+   `overflow-wrap: anywhere` 를 걸어 두는 이유다.                                */
+
+.ono-guide-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(135deg, rgba(127, 86, 217, 0.06) 0%, rgba(127, 86, 217, 0.02) 100%),
+    var(--colors-base-white, #ffffff);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+}
+
+.ono-guide-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ono-guide-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+.ono-guide-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.ono-guide-tag-purple {
+  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+}
+.ono-guide-tag-amber {
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+}
+.ono-guide-head-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ono-guide-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--componentColors-utility-error-utilityError600, #d92d20);
+}
+.ono-guide-mini-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  font-family: inherit;
+  white-space: nowrap;
+}
+.ono-guide-mini-btn:disabled {
+  cursor: not-allowed;
+  border-color: var(--colors-border-borderSecondary, #e9eaeb);
+  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+}
+
+/* 실패 (§7.5.3) — 사유가 무엇이든 박스 구조·색은 같다. 문구와 버튼만 갈린다. */
+.ono-guide-fail {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+  border: 0.5px solid var(--componentColors-utility-error-utilityError200, #fecdca);
+}
+.ono-guide-fail-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--componentColors-utility-error-utilityError700, #b42318);
+}
+.ono-guide-fail-body {
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0 0 8px;
+  color: var(--colors-text-textTertiary, #535862);
+}
+.ono-guide-fail-btn {
+  font-size: 11px;
+  padding: 5px 14px;
+  background: var(--componentColors-utility-error-utilityError600, #d92d20);
+  color: var(--colors-base-white, #ffffff);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+.ono-guide-fail-btn:disabled {
+  cursor: not-allowed;
+  background: var(--componentColors-utility-gray-utilityGray300, #d5d7da);
+}
+
+/* 미생성 — 수동 트리거 */
+.ono-guide-intro {
+  font-size: 12px;
+  line-height: 1.65;
+  margin: 10px 0;
+  color: var(--colors-text-textTertiary, #535862);
+}
+.ono-guide-sources {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.ono-guide-source {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+}
+.ono-guide-generate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  color: var(--colors-base-white, #ffffff);
+}
+
+.ono-guide-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+.ono-guide-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 2px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-top-color: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  animation: ono-guide-spin 0.7s linear infinite;
+}
+@keyframes ono-guide-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* 모션을 줄이라고 한 사용자에게 회전을 강요하지 않는다. */
+@media (prefers-reduced-motion: reduce) {
+  .ono-guide-spinner {
+    animation: none;
+  }
+}
+
+/* 스테퍼 */
+.ono-guide-stepper {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.ono-guide-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  background: var(--colors-base-white, #ffffff);
+  color: var(--colors-text-textTertiary, #535862);
+  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.ono-guide-step.is-done {
+  background: var(--componentColors-utility-success-utilitySuccess50, #ecfdf3);
+  color: var(--componentColors-utility-success-utilitySuccess700, #067647);
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+}
+/* 현재 단계가 완료 표시를 이긴다 — 지금 어디인지가 먼저 읽혀야 한다. */
+.ono-guide-step.is-current {
+  font-weight: 600;
+  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  color: var(--colors-base-white, #ffffff);
+  border-color: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+}
+.ono-guide-step-num {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* 페이스 */
+.ono-guide-pace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 12px;
+  border-radius: 7px;
+  margin-bottom: 12px;
+  background: var(--colors-base-white, #ffffff);
+  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+}
+.ono-guide-pace.is-late {
+  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+}
+.ono-guide-pace-text {
+  font-size: 11px;
+  color: var(--colors-text-textTertiary, #535862);
+}
+.ono-guide-pace-late {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+}
+
+/* 현재 단계 상세 */
+.ono-guide-stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.ono-guide-stage-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colors-text-textPrimary, #181d27);
+  overflow-wrap: anywhere;
+}
+.ono-guide-stage-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--colors-text-textTertiary, #535862);
+}
+.ono-guide-goal {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 10px;
+  color: var(--colors-text-textTertiary, #535862);
+}
+
+.ono-guide-section-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  color: var(--colors-text-textTertiary, #535862);
+}
+.ono-guide-section-label-purple {
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+
+.ono-guide-scripts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+/* 좌측 보라 액센트 3px — 시안의 `boxShadow: inset 3px 0 0` 을 그대로 옮긴다. */
+.ono-guide-script {
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 1.65;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  background: var(--colors-base-white, #ffffff);
+  color: var(--colors-text-textSecondary, #414651);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  box-shadow: inset 3px 0 0 var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+}
+
+.ono-guide-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.ono-guide-question {
+  display: flex;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--colors-text-textSecondary, #414651);
+  overflow-wrap: anywhere;
+}
+.ono-guide-question-prefix {
+  flex-shrink: 0;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+}
+
+.ono-guide-watchouts {
+  padding: 9px 12px;
+  border-radius: 7px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+}
+.ono-guide-watchout {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  overflow-wrap: anywhere;
+}
+.ono-guide-watchout + .ono-guide-watchout {
+  margin-top: 5px;
+}
+
+.ono-guide-nav {
+  display: flex;
+  gap: 8px;
+}
+.ono-guide-nav-prev,
+.ono-guide-nav-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+.ono-guide-nav-prev {
+  flex: 1;
+  background: var(--colors-base-white, #ffffff);
+  color: var(--colors-text-textTertiary, #535862);
+  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+}
+.ono-guide-nav-prev:disabled {
+  cursor: not-allowed;
+  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+}
+.ono-guide-nav-next {
+  flex: 2;
+  border: none;
+  font-weight: 500;
+  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  color: var(--colors-base-white, #ffffff);
+}
+.ono-guide-nav-next.is-all-done {
+  background: var(--componentColors-utility-success-utilitySuccess600, #079455);
+}
+
+.ono-guide-footnote {
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+}

@@ -45,3 +45,20 @@ export function healthOf(session) {
   const v = session?.healthScore;
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
+
+/**
+ * LIVE 경과 시간 — `MM:SS` (1시간 미만) / `H:MM:SS` (1시간 이상).
+ *
+ * 시안 `1on1-manager-view.jsx` 의 `fmtLiveElapsed` 를 그대로 옮긴 것. 1on1 은 보통
+ * 1시간 이내라 기본은 `MM:SS` 이고, 길어질 때만 시가 붙는다 — 늘 `H:MM:SS` 로 두면
+ * 55분짜리 회의 내내 앞자리 `0:` 이 붙어 읽는 비용만 는다.
+ */
+export function formatLiveElapsed(sec) {
+  const total = Math.max(0, Math.floor(Number(sec) || 0));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
