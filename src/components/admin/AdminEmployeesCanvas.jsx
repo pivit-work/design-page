@@ -8,7 +8,7 @@ import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
-import { isVisibleSquadStatus } from './SquadPicker.jsx';
+import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import {
   MANAGER_FILTER_ASSIGNED, MANAGER_FILTER_UNASSIGNED,
 } from './AdminEmployeeSheetCanvas.jsx';
@@ -203,6 +203,16 @@ const DEFAULT_LABELS = {
     search: '조직 검색', empty: '검색 결과가 없어요', unassigned: '— 미배정 —',
     none: '선택 없음 — 저장하면 미배정이 됩니다',
     apply: '적용', cancel: '취소', expand: '펼치기', collapse: '접기',
+  },
+  /* 스쿼드 셀·선택 팝업(PW-438) — 목록 뷰가 시트 뷰와 **같은 부품**을 쓰므로 문구도
+     같다. 여기 기본값을 두는 것은 라벨을 안 넘겼을 때 화면이 비지 않게 하기 위함이고,
+     소비자는 시트에 넘기던 `sheetLabels.squad` 를 그대로 넘기면 된다.
+     🔴 계획 투입%(SQ6) 문구는 여기 없다 — 넣어 두면 언젠가 화면에 %가 다시 붙는다. */
+  squadPicker: {
+    cellHint: '클릭해서 스쿼드를 선택합니다',
+    planned: '준비중',
+    lead: '스쿼드 리드',
+    closedCount: '종료 {count}',
   },
 };
 
@@ -1016,6 +1026,10 @@ function EmployeesListView({
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
   squadOptions = [],
+  /* 스쿼드 배정 편집(PW-438). 정본 §3.1 은 이 뷰에도 「셀 클릭 → SquadPicker」 를
+     정해 뒀는데 시트에만 있었다 — 목록의 스쿼드 칸은 눌러도 아무 일이 없는 죽은
+     자리였다. 미주입이면 셀은 **눌리지 않는 표기**로 남는다(소속 셀과 같은 규칙). */
+  onChangeSquads,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels,
 }) {
@@ -1040,6 +1054,8 @@ function EmployeesListView({
   const tableWrapRef = useRef(null);
   // 소속 팝업을 연 구성원 id. 조직장 지정([매니저로])이 사는 유일한 자리다(PW-400).
   const [deptPickerFor, setDeptPickerFor] = useState(null);
+  // 스쿼드 팝업을 연 구성원 id (PW-438). 시트와 **같은 `SquadPicker`** 를 연다.
+  const [squadPickerFor, setSquadPickerFor] = useState(null);
   // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
   // 내부 상태로 폴백한다.
   const [ownOptCols, setOwnOptCols] = useState(LIST_DEFAULT_OPT_COLS);
@@ -1078,6 +1094,9 @@ function EmployeesListView({
     [squadById],
   );
   const squadNamesOf = (m) => visibleSquadsOf(m).map((sq) => sq.name).filter(Boolean);
+  /* 스쿼드 셀·팝업 문구(PW-438). 시트 뷰가 쓰는 것과 **같은 라벨 묶음**이라
+     소비자는 한 벌만 넘기면 된다 — 두 벌이면 「리드로」 가 한쪽만 번역된다. */
+  const squadPickerLabels = labels.squadPicker || {};
 
   const allLabel = labels.filters.all;
   /* 소속 옵션은 평면 distinct 가 아니라 **조직 트리 전체**다(§5-A P3) — 시트와 같은
@@ -1422,8 +1441,34 @@ function EmployeesListView({
         );
       }
       case 'squads': {
-        const names = squadNamesOf(m);
-        return names.length ? <TextCell value={names.join(', ')} /> : <Dash />;
+        /* 시트 뷰와 **같은 부품**으로 그린다(PW-438) — ⭐리드 표식 · `준비중` 배지 ·
+           `종료 N`(SQ5·SQ7). 종전에는 이름을 쉼표로 이어 붙인 한 줄이라 리드가
+           누구인지도 준비중인지도 화면에서 사라져 있었다. 두 뷰가 각자 그리면
+           별 색·배지 문구가 한쪽만 바뀐다. */
+        const chips = (
+          <SquadCell
+            squads={squadOptions}
+            assignments={Array.isArray(m.squads) ? m.squads : []}
+            statusLabels={squadPickerLabels}
+            closedLabel={squadPickerLabels.closedCount}
+          />
+        );
+        /* 팝업을 여는 경로는 스쿼드를 **고칠 수 있을 때만** 연다 — 소속 셀과 같은
+           규칙이다. 못 고치는 사람에게 눌리는 셀을 주면 다시 죽은 자리가 된다.
+           `SquadCell` 자체의 `onClick` 대신 `<button>` 으로 감싸는 이유는 키보드로도
+           닿아야 하기 때문이다(div 클릭은 Tab 으로 도달하지 않는다). */
+        if (!canEdit || !onChangeSquads || squadOptions.length === 0) return chips;
+        return (
+          <button
+            type="button"
+            className="admin-emp-cell-squads"
+            onClick={() => setSquadPickerFor(m.id)}
+            title={squadPickerLabels.cellHint}
+            data-testid={`employees-list-squads-${m.id}`}
+          >
+            {chips}
+          </button>
+        );
       }
       case 'jobPosition': return <TextCell value={m.jobPosition} />;
       case 'jobLevel': return <TextCell value={m.jobLevel} />;
@@ -1592,6 +1637,36 @@ function EmployeesListView({
           labels={labels.orgPicker}
         />
       )}
+
+      {/* 스쿼드 선택 팝업 (PW-438) — 시트 뷰와 **같은 `SquadPicker`** 다.
+          정본 §3.1 이 이 뷰에 정해 둔 「셀 클릭 → 팝업」 경로이며, 리드 교체
+          확인 모달(SQ10)·승격 안내 없음(SQ11)까지 부품이 그대로 들고 온다. */}
+      {squadPickerFor && canEdit && onChangeSquads && squadOptions.length > 0 && (() => {
+        const target = members.find((m) => m.id === squadPickerFor) || {};
+        /* SQ10 교체 확인 문구용 — **대상 본인은 제외**한다. 자기 자신을 「기존 리드」
+           로 보여 주면 리드를 껐다 켜는 것만으로 남의 지정을 해제한다는 문구가 뜬다.
+           목록은 페이지 단위로 자르지만 여기서는 **전체 명부**를 훑는다 — 다음
+           페이지에 있는 현 리드를 놓치면 확인 문구가 조용히 빈다. */
+        const leadNames = {};
+        for (const other of members) {
+          if (other.id === squadPickerFor) continue;
+          for (const a of Array.isArray(other.squads) ? other.squads : []) {
+            if (a.isLead) leadNames[String(a.squadId)] = other.displayName || other.name;
+          }
+        }
+        return (
+          <SquadPicker
+            open
+            squads={squadOptions}
+            memberName={target.displayName || target.name}
+            value={Array.isArray(target.squads) ? target.squads : []}
+            leadNameBySquadId={leadNames}
+            labels={squadPickerLabels}
+            onApply={(next) => onChangeSquads(squadPickerFor, next)}
+            onClose={() => setSquadPickerFor(null)}
+          />
+        );
+      })()}
 
       {salaryGateScope && (
         <SalaryExportModal
@@ -2092,6 +2167,9 @@ export default function AdminEmployeesCanvas({
               onCsvUpload={onCsvUpload}
               // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
               squadOptions={squadOptions}
+              // 스쿼드 배정 편집 — 시트와 **같은 콜백**이다(PW-438). 목록에만 없어서
+              // 스쿼드 칸이 눌러도 아무 일이 없는 죽은 자리였다.
+              onChangeSquads={onChangeSquads}
               // 명부 내보내기 — 시트와 같은 콜백·같은 부품을 쓴다(PW-411).
               onExportRoster={onExportRoster}
               exporting={exporting}

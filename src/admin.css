@@ -1134,8 +1134,11 @@
 .admin-emp-cell-manager { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 
 /* 소속 칸 — 누르면 겸직 팝업이 열린다. 셀 전체가 눌리는 자리라는 걸 hover 로만 알린다
-   (표의 색 신호는 상태 배지 하나라는 규칙을 지킨다). */
-.admin-emp-cell-dept {
+   (표의 색 신호는 상태 배지 하나라는 규칙을 지킨다).
+   스쿼드 칸(PW-438)도 같은 규칙이라 **한 정의를 공유**한다 — 두 벌로 두면 「눌리는
+   칸」 의 생김새가 한쪽만 바뀐다. */
+.admin-emp-cell-dept,
+.admin-emp-cell-squads {
   display: block;
   width: 100%;
   padding: 0;
@@ -1146,7 +1149,8 @@
   font-family: var(--font-family-body);
   min-width: 0;
 }
-.admin-emp-cell-dept:hover { text-decoration: underline; text-underline-offset: 3px; }
+.admin-emp-cell-dept:hover,
+.admin-emp-cell-squads:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* 미배정 행의 「+ 매니저 배정」 — 경고 톤. 채우지 않고 텍스트 색으로만 알린다
    (상태 배지가 행의 유일한 채움 색이라는 규칙을 지킨다). */
