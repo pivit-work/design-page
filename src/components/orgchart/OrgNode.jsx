@@ -6,17 +6,20 @@ import { useDrag } from './hooks.js';
 
 export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const hasChildren = node.children && node.children.length > 0;
+  // 멤버만 있는 팀/파트 카드도 접을 수 있다 — 시안(17501:19709)에서 파트 카드가
+  // 멤버 리스트를 접는다. 접힘은 멤버·하위 조직을 함께 숨긴다.
+  const hasBelow = hasChildren || (node.members && node.members.length > 0);
   const { isDragging, onDown, style, didDragRef } = useDrag(node.id);
   const { dropTarget } = React.useContext(DragContext);
   const isDropTarget = dropTarget && dropTarget.targetNodeId === node.id;
 
   // 접기/펼치기. context 가 없으면(단독 사용) 항상 펼친 상태로 동작한다.
   const collapse = React.useContext(CollapseContext);
-  const isCollapsed = hasChildren && !!collapse?.isCollapsed(node.id);
+  const isCollapsed = hasBelow && !!collapse?.isCollapsed(node.id);
   const onDeptClick = () => {
     // 카드를 끌어 옮긴 직후에도 click 이 뒤따라 온다 — 그건 토글이 아니다.
     if (didDragRef.current) return;
-    if (!hasChildren || !collapse) return;
+    if (!hasBelow || !collapse) return;
     collapse.toggleCollapse(node.id);
   };
 
@@ -31,10 +34,11 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
         onMouseDown={onDown}
         onClick={onDeptClick}
         isDragging={isDragging}
-        isCollapsible={hasChildren && !!collapse}
+        isCollapsible={hasBelow && !!collapse}
         isCollapsed={isCollapsed}
+        onToggle={() => collapse?.toggleCollapse(node.id)}
       />
-      {node.members && (
+      {node.members && !isCollapsed && (
         <div className={`members-list ${isDropTarget ? 'drop-target' : ''}`}>
           {node.members.map((m, i) => (
             <React.Fragment key={`${node.id}_${m.name}_${i}`}>

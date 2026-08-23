@@ -693,16 +693,11 @@ export default function OkrPage({ icons, baseUrl }) {
   const [composeOpen, setComposeOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [ctxOpen, setCtxOpen] = useState(false);
-  // [오늘 보지 않기] — 오늘 날짜 키로 localStorage 에 기억해 당일 재방문에도 숨긴다.
-  // 배너가 안 그려지면 .app:has() 배너-공존 규칙도 함께 풀려 셸이 원위치로 올라온다.
-  const bannerKey = new Date().toISOString().slice(0, 10);
-  const [bannerHidden, setBannerHidden] = useState(
-    () => localStorage.getItem('okr-ctx-banner-hidden') === bannerKey,
-  );
-  const dismissBanner = () => {
-    localStorage.setItem('okr-ctx-banner-hidden', bannerKey);
-    setBannerHidden(true);
-  };
+  // [오늘 보지 않기] — 지금 화면에서만 닫는다(저장 안 함). 다른 메뉴로 나갔다
+  // 돌아오면 OkrPage 가 재마운트되므로 배너가 다시 보인다. 배너가 안 그려지면
+  // .app:has() 배너-공존 규칙도 함께 풀려 셸이 원위치로 올라온다.
+  const [bannerHidden, setBannerHidden] = useState(false);
+  const dismissBanner = () => setBannerHidden(true);
 
   // 탭 전환 시 대시보드 상세 모달이 남아 화면을 덮지 않도록 닫는다.
   const handleTabChange = (tab) => {

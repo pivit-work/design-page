@@ -44,8 +44,15 @@
 .connector-svg path { fill: none; stroke: var(--border-primary); stroke-width: 1; }
 
 /* ── Dept Card ── */
-.dept-card { min-width: 138px; padding: 20px 22px; border-radius: 12px; box-shadow: 0 1px 3px rgba(10,13,18,0.1), 0 1px 2px rgba(10,13,18,0.1); display: flex; flex-direction: column; gap: 1px; cursor: pointer; transition: box-shadow 0.2s; }
+.dept-card { position: relative; min-width: 138px; padding: 20px 22px; border-radius: 12px; box-shadow: 0 1px 3px rgba(10,13,18,0.1), 0 1px 2px rgba(10,13,18,0.1); display: flex; flex-direction: column; gap: 1px; cursor: pointer; transition: box-shadow 0.2s; }
 .dept-card:hover { box-shadow: 0 4px 12px rgba(10,13,18,0.12), 0 2px 4px rgba(10,13,18,0.06); cursor: grab; }
+/* 하위 접기/펼치기 토글 — 카드 하단 중앙에 반쯤 걸친 흰 원 + chevron(17px).
+   펼침 ∧ (Figma 16558:19978) / 접힘 ∨ (17501:19709, rotate 180). 노드별 독립 토글. */
+.dept-toggle { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); box-sizing: border-box; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0; background: var(--bg-quaternary); border: 0.5px solid var(--border-secondary); border-radius: 32px; box-shadow: 0 1px 3px rgba(10,13,18,0.1); color: var(--text-secondary); cursor: pointer; z-index: 3; }
+.dept-toggle svg { transition: transform 0.15s; }
+.dept-toggle.is-collapsed svg { transform: rotate(180deg); }
+/* 접힘 상태는 아래로 퍼지는 3중 드롭섀도가 더 강하다 (Figma 17501:19709). */
+.dept-toggle.is-collapsed { box-shadow: 0 20px 24px -4px rgba(10, 13, 18, 0.08), 0 8px 8px -4px rgba(10, 13, 18, 0.03), 0 3px 3px -1.5px rgba(10, 13, 18, 0.04); }
 .card-dragging { box-shadow: 0 20px 24px rgba(10,13,18,0.12), 0 8px 8px rgba(10,13,18,0.06) !important; z-index: 200; cursor: grabbing !important; outline: 2px solid var(--bg-brand-solid); outline-offset: -2px; border-radius: 12px; }
 .dept-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .dept-meta { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; line-height: 24px; }
