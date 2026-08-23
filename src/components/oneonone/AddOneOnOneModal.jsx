@@ -13,6 +13,10 @@ import Icon from '../shared/Icon.jsx';
  * 인터랙션: 날짜 picker / 시간 dropdown / 미팅 시간 "직접입력" 시 input.
  *
  * member shape: { name, role, avatar, badge? }
+ *
+ * defaultDate: 날짜 칸의 기본값(Date). 호스트 앱은 «사용자 시간대의 내일» 을 넘긴다.
+ *   생략하면 브라우저 로컬 기준 내일로 폴백한다 — 어느 쪽이든 «지나간 날짜» 가
+ *   기본값으로 남지 않는다.
  */
 
 const DURATION_OPTIONS = [
@@ -23,6 +27,25 @@ const DURATION_OPTIONS = [
 
 const DEMO_MEMBERS = ['김서윤', '김정호', '최수현', '김유진', '윤다희', '이서현', '신예린'];
 
+/* ── 날짜 기본값 ──────────────────────────────────────────────
+   날짜 picker 는 Date 를 로컬 getter(`getFullYear/getMonth/getDate`)로만 읽고 쓴다.
+   그래서 여기서도 «로컬 달력일» 만 다루고, 프롭 비교는 달력일 문자열로 한다 —
+   호스트가 매 렌더 새 Date 객체를 넘겨도 «같은 날» 이면 같은 키라, 모달이 열려 있는
+   동안 사용자가 고른 날짜를 기본값으로 되돌리지 않는다. */
+function dayKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function dayKeyToDate(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m, d);
+}
+
+/** 브라우저 로컬 기준 «내일» 의 달력일 키. */
+function tomorrowKey(now = new Date()) {
+  return dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+}
+
 const TIME_OPTIONS = [
   '오전 09:00', '오전 09:30', '오전 10:00', '오전 10:30',
   '오전 11:00', '오전 11:30', '오후 12:00', '오후 12:30',
@@ -31,13 +54,17 @@ const TIME_OPTIONS = [
   '오후 17:00', '오후 17:30', '오후 18:00',
 ];
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate }) {
   const memberList = members && members.length > 0 ? members : DEMO_MEMBERS;
   const [search, setSearch] = useState('');
   const [memberOpen, setMemberOpen] = useState(false);
   const [duration, setDuration] = useState('55');
   const [customDuration, setCustomDuration] = useState('');
-  const [date, setDate] = useState(new Date(2026, 3, 10)); // 2026-04-10
+  /* 날짜 기본값은 «마운트 시점» 에 잡는다. 이 모달은 닫혀도 언마운트되지 않고
+     display 로만 숨기 때문에, 열 때마다 새로 잡히게 하려면 호출부가 열림 상태를
+     `key` 에 실어야 한다 (`OneOnOneCanvasV2` 가 그렇게 한다). */
+  const defaultKey = defaultDate ? dayKey(defaultDate) : '';
+  const [date, setDate] = useState(() => dayKeyToDate(defaultKey || tomorrowKey()));
   const [dateOpen, setDateOpen] = useState(false);
   const [time, setTime] = useState('오전 10:00');
   const [timeOpen, setTimeOpen] = useState(false);
