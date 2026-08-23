@@ -33,6 +33,8 @@ function resolveActionKind(action) {
  * 외부 제어 props (pivit-work 등 실제 사용처용):
  *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
+ *  - scheduleDefaultDate: 예약 모달 날짜 칸의 기본값(Date). 호스트가 «사용자 시간대의
+ *    내일» 을 계산해 넘긴다. 미지정 시 모달이 브라우저 로컬 기준 내일로 폴백한다.
  *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
  *    내부 StartOneOnOneView 전환 대신 외부 라우팅으로 위임한다.
  *
@@ -54,6 +56,7 @@ export default function OneOnOneCanvasV2({
   onAddClick,
   onScheduleSubmit,
   members,
+  scheduleDefaultDate,
   onStartMember,
   startOneOnOneData,
   aiDrafts,
@@ -118,7 +121,10 @@ export default function OneOnOneCanvasV2({
         />
       ) : (
         <>
+          {/* `key` 에 열림 상태를 실어 «열 때마다» 새 폼으로 마운트한다 — 날짜
+              기본값(내일)이 지난번에 연 값으로 굳지 않게 한다. */}
           <AddOneOnOneModal
+            key={`add-${addOpen}`}
             open={addOpen}
             onClose={() => setAddOpen(false)}
             onSubmit={(data) => {
@@ -128,10 +134,12 @@ export default function OneOnOneCanvasV2({
             icons={icons}
             baseUrl={baseUrl}
             members={members}
+            defaultDate={scheduleDefaultDate}
           />
 
           {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
           <AddOneOnOneModal
+            key={`book-${scheduleMember ? scheduleMember.name : ''}`}
             open={!!scheduleMember}
             member={scheduleMember}
             onClose={() => setScheduleMember(null)}
@@ -141,6 +149,7 @@ export default function OneOnOneCanvasV2({
             }}
             icons={icons}
             baseUrl={baseUrl}
+            defaultDate={scheduleDefaultDate}
           />
 
           {briefing && (
