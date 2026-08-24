@@ -19,6 +19,14 @@ import ManagerAssignModal from './ManagerAssignModal.jsx';
  */
 function resolveActionKind(action) {
   if (action?.kind) return action.kind;
+  // 🔴 라벨 폴백은 **디자인 프리뷰 전용**이다. 소비처가 `onClick` 을 준 액션에는
+  // 적용하지 않는다 — 적용하면 호스트가 정해 둔 목적지를 캔버스가 가로챈다.
+  //
+  // 실제로 그랬다: 「노트」 라벨 폴백이 생기면서 pivit-work 의 매니저 노트 패널
+  // (기획 §16.1 이 정본으로 확정한 «카드 → 우측 슬라이드 패널»)이 한국어에서만
+  // 캔버스 내부 모달로 바뀌었다. 영어 라벨에서는 폴백이 안 걸려 원래대로 동작해,
+  // **로케일에 따라 목적지가 갈리는** 상태였다.
+  if (action?.onClick) return undefined;
   if (action?.label === '1on1 잡기') return 'book';
   if (action?.label === '1on1 진행') return 'start';
   if (action?.label === '노트') return 'note';
