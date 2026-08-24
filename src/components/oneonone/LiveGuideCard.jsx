@@ -33,6 +33,10 @@ import { formatLiveElapsed } from './sessionHelpers.js';
  *   두고 페이스 줄을 계산하지 않는다 (PW-478 · policy §5.0 T2). 값은 소비처가 서버
  *   `recordingStartedAt` 에서 파생해 내려 준다 — 이 카드가 자기 타이머를 돌리지 않는다.
  * - `paceHidden` — 녹음 없이 진행하는 회차. 페이스 줄 전체를 감춘다 (T4).
+ * - `summaryOnly` — READY 자리(policy §4.1.2-A). 생성 후 **7단계 제목·권장 시간**만
+ *   보이고 스크립트 전문·스테퍼·페이스·네비게이션은 그리지 않는다. 준비 화면은 읽는
+ *   자리가 아니라 「준비됐는지」를 보는 자리다. `LIVE 전용` 태그도 달지 않는다 —
+ *   그 자리에서는 사실이 아니기 때문이다.
  * - `labels` — 소비처(i18n)가 주는 문구 묶음. 안 주면 한국어 기본값.
  */
 
@@ -105,6 +109,7 @@ export default function LiveGuideCard({
   maxRegen = DEFAULT_MAX_REGEN,
   elapsedSec = null,
   paceHidden = false,
+  summaryOnly = false,
   memberName = '',
   sourceLabels = [],
   onGenerate,
@@ -171,7 +176,9 @@ export default function LiveGuideCard({
           <Icon src="/icons-solid/stars-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
           {L.title}
         </span>
-        <span className="ono-guide-tag ono-guide-tag-purple">{L.liveOnly}</span>
+        {!summaryOnly && (
+          <span className="ono-guide-tag ono-guide-tag-purple">{L.liveOnly}</span>
+        )}
         {generated && guide?.isFallback && (
           <span
             className="ono-guide-tag ono-guide-tag-amber"
@@ -202,7 +209,7 @@ export default function LiveGuideCard({
               {regenLeft <= 0 ? L.regenExhausted : L.regen(regenLeft)}
             </button>
           )}
-          {generated && (
+          {generated && !summaryOnly && (
             <button
               type="button"
               className="ono-guide-mini-btn"
@@ -283,8 +290,25 @@ export default function LiveGuideCard({
         </div>
       )}
 
+      {/* ── 생성 후 · 요약만 (READY 자리 — policy §4.1.2-A) ──
+             준비 화면은 스크립트 전문을 펼쳐 두지 않는다. 「무엇이 준비됐는지」만
+             보이면 되고, 읽는 것은 미팅 중 LIVE 카드에서 한다. ── */}
+      {generated && !loading && summaryOnly && (
+        <ol className="ono-guide-summary" data-testid="ono-live-guide-summary">
+          {stages.map((s, i) => (
+            <li key={s.id} className="ono-guide-summary-row">
+              <span className="ono-guide-step-num">{s.order ?? i + 1}</span>
+              <span className="ono-guide-summary-title">{s.title}</span>
+              <span className="ono-guide-stage-time">
+                {(s.timeRange ?? [0, 0])[0]}–{(s.timeRange ?? [0, 0])[1]}분
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
       {/* ── 생성 후 ── */}
-      {generated && !loading && !collapsed && stage && (
+      {generated && !loading && !summaryOnly && !collapsed && stage && (
         <>
           {/* 스테퍼 — 클릭으로 자유 이동. 순서를 강제하지 않는다 */}
           <div className="ono-guide-stepper">
