@@ -1504,7 +1504,40 @@
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs, 4px);
 }
-.evc-preview-scale { display: flex; gap: var(--spacing-sm, 6px); }
+.evc-preview-scale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-preview-scale-anchor,
+.evc-preview-scale-of {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  max-width: 140px;
+  overflow-wrap: anywhere;
+}
+.evc-preview-options { display: flex; flex-direction: column; gap: var(--spacing-xs, 4px); }
+/* PW-433 ⑥ 가이드 문구 — 툴팁 표식과 상시 표시 */
+.evc-preview-guide-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  font-size: 10px;
+  color: var(--text-tertiary, #98a2b3);
+  cursor: help;
+}
+.evc-preview-guide-inline {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-xs, 4px);
+}
 .evc-preview-scale-dot {
   width: 28px;
   height: 28px;
@@ -2106,8 +2139,28 @@
   gap: var(--spacing-md, 8px);
   margin-top: var(--spacing-sm, 6px);
 }
+/* PW-433 ① 척도가 최대 10칸 + 양끝 문구까지 늘어난다. 고정 폭을 가정하면 넘친다. */
 .evm-score-btns {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 4px);
+}
+.evm-score-anchor {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  max-width: 140px;
+  overflow-wrap: anywhere;
+}
+.evm-score-of {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  margin-left: 2px;
+}
+/* PW-433 ③ 체크박스 선택지 목록(구글 폼 구조) */
+.evm-options {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-xs, 4px);
 }
 /* 제출 시 점수 미선택 강조(TC-063) */
@@ -5630,3 +5683,134 @@
   font-size: var(--font-size-text-xs, 12px);
   color: var(--text-quaternary, var(--text-tertiary));
 }
+
+/* ── PW-433 항목 설정 패널 · 등급 서열 이동 ─────────────────────────────
+   policy §5.11-A~D · §5.12 · §5.4.4 */
+
+/* 등급 행: 이동 버튼 + 순번이 앞에 붙어 4열 → 6열이 된다. */
+.evc-tpl-grade {
+  grid-template-columns: 20px 16px 100px 1fr 72px auto;
+}
+.evc-tpl-grade-move {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.evc-tpl-grade-arrow {
+  width: 20px;
+  height: 14px;
+  padding: 0;
+  line-height: 1;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-xs, 4px);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary, #98a2b3);
+  font-size: 9px;
+  cursor: pointer;
+}
+.evc-tpl-grade-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.evc-tpl-grade-no {
+  font-size: var(--font-size-text-xs, 10px);
+  font-weight: 700;
+  color: var(--text-tertiary, #98a2b3);
+  text-align: center;
+}
+.evc-tpl-grade-note {
+  margin: 0 0 var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.6;
+}
+
+/* 행 요약 배지 — 패널을 열지 않아도 설정을 읽을 수 있어야 한다. */
+.evc-tpl-item-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary, #98a2b3);
+  font-size: var(--font-size-text-xs, 10px);
+  font-weight: 600;
+}
+.evc-tpl-x.is-on { color: var(--utility-blue-600); }
+
+/* 설정 패널 — 항목 행 «바로 아래», 좌측 들여쓰기 + 강조 좌측 테두리. */
+.evc-tpl-settings {
+  flex-basis: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 2px 22px;
+  padding: var(--spacing-lg, 12px) var(--spacing-lg, 14px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  border-left: 3px solid var(--utility-blue-500, #2e90fa);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-blue-50, #eff8ff);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 12px);
+  cursor: default;
+}
+.evc-tpl-set-block + .evc-tpl-set-block { padding-top: var(--spacing-md, 10px); }
+.evc-tpl-set-block.is-last {
+  border-top: 1px solid var(--utility-blue-200, #b2ddff);
+  padding-top: var(--spacing-lg, 12px);
+}
+.evc-tpl-set-title {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evc-tpl-set-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+  margin-top: var(--spacing-sm, 6px);
+}
+/* 칩이 행 전체를 차지하지 않게 — .evc-type-chip 의 flex:1 을 여기서만 눕힌다. */
+.evc-tpl-set-row .evc-type-chip {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  font-size: var(--font-size-text-xs, 11px);
+}
+.evc-tpl-set-row .evc-type-chip.is-warn {
+  background: var(--utility-warning-50, #fffaeb);
+  border-color: var(--utility-warning-500, #f79009);
+  color: var(--utility-warning-600, #dc6803);
+}
+.evc-tpl-set-num { width: 60px; text-align: right; }
+.evc-tpl-set-note {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  font-weight: 400;
+}
+.evc-tpl-set-help {
+  margin: var(--spacing-sm, 6px) 0 0;
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.6;
+}
+.evc-tpl-set-help.is-warn { color: var(--utility-warning-600, #dc6803); }
+.evc-tpl-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+}
+.evc-tpl-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-tpl-option .evc-input { flex: 1; min-width: 0; }
+.evc-tpl-option-mark {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-tertiary, #98a2b3);
+  font-size: var(--font-size-text-xs, 12px);
+}
+.evc-tpl-set-foot { display: flex; justify-content: flex-end; }

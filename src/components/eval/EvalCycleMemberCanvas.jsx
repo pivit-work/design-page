@@ -111,6 +111,13 @@ function buildFields(template, L) {
           score: type === 'rating',
           description: it.description ?? null,
           visibleToRoles: it.visibleToRoles ?? null,
+          // PW-433 ①③ — 척도 길이·양끝 의미·선택지는 **항목이 들고 온다**. 화면이
+          // 5점을 고정하면 설계자가 정한 7점 척도가 작성 화면에서 5점으로 보인다.
+          scaleMax: it.scaleMax ?? null,
+          scaleAnchorMin: it.scaleAnchorMin ?? null,
+          scaleAnchorMax: it.scaleAnchorMax ?? null,
+          options: it.options ?? null,
+          allowMultiple: !!it.allowMultiple,
         };
       });
   }
@@ -127,6 +134,11 @@ function buildFields(template, L) {
     score: f.score,
     description: null,
     visibleToRoles: null,
+    scaleMax: null,
+    scaleAnchorMin: null,
+    scaleAnchorMax: null,
+    options: null,
+    allowMultiple: false,
   }));
 }
 
@@ -148,9 +160,23 @@ const fill = (s, vars) => {
   return out;
 };
 
+/* ── PW-433 항목 단위 설정을 읽는 쪽 ─────────────────────────────────────
+   설계자가 정한 값이 없으면 예전과 같이 5점·제목 1개 체크로 읽는다. */
+const DEFAULT_SCALE_MAX = 5;
+const scaleMaxOf = (f) => f?.scaleMax || DEFAULT_SCALE_MAX;
+/** 라벨이 빈 선택지는 렌더하지 않는다 (policy §5.11-B). */
+const filledOptions = (f) => (f?.options || []).filter((o) => o.label?.trim());
+const selectedOptions = (v) => v?.checkedOptions?.selected ?? [];
+/** 복수 허용이 꺼져 있으면 라디오처럼 하나만 남긴다. */
+const toggleOption = (cur, oid, allowMultiple) => {
+  if (!allowMultiple) return cur.includes(oid) ? [] : [oid];
+  return cur.includes(oid) ? cur.filter((x) => x !== oid) : [...cur, oid];
+};
+
 function seedState(answers, fields) {
   const state = {};
-  for (const f of fields) state[f.key] = { textAnswer: '', score: null, rationale: '' };
+  for (const f of fields)
+    state[f.key] = { textAnswer: '', score: null, rationale: '', checkedOptions: null };
   for (const a of answers ?? []) {
     const f = fields.find((x) =>
       x.templateItemId
@@ -162,6 +188,7 @@ function seedState(answers, fields) {
         textAnswer: a.textAnswer ?? '',
         score: a.score ?? null,
         rationale: a.rationale ?? '',
+        checkedOptions: a.checkedOptions ?? null,
       };
     }
   }
@@ -240,7 +267,10 @@ export default function EvalCycleMemberCanvas({
     const timer = setTimeout(() => {
       const items = fields
         .filter(
-          (f) => state[f.key].textAnswer.trim() || state[f.key].score != null,
+          (f) =>
+            state[f.key].textAnswer.trim() ||
+            state[f.key].score != null ||
+            selectedOptions(state[f.key]).length > 0,
         )
         .map((f) => ({
           templateItemId: f.templateItemId,
@@ -249,6 +279,7 @@ export default function EvalCycleMemberCanvas({
           textAnswer: state[f.key].textAnswer,
           score: state[f.key].score,
           rationale: state[f.key].rationale || null,
+          checkedOptions: state[f.key].checkedOptions,
         }));
       setAutoSaving(true);
       Promise.resolve(onSave(items))
@@ -319,7 +350,12 @@ export default function EvalCycleMemberCanvas({
 
   const toItems = () =>
     fields
-      .filter((f) => state[f.key].textAnswer.trim() || state[f.key].score != null)
+      .filter(
+        (f) =>
+          state[f.key].textAnswer.trim() ||
+          state[f.key].score != null ||
+          selectedOptions(state[f.key]).length > 0,
+      )
       .map((f) => ({
         templateItemId: f.templateItemId,
         itemCategory: f.category,
@@ -327,6 +363,7 @@ export default function EvalCycleMemberCanvas({
         textAnswer: state[f.key].textAnswer,
         score: state[f.key].score,
         rationale: state[f.key].rationale || null,
+        checkedOptions: state[f.key].checkedOptions,
       }));
 
   const handleAiPolish = async () => {
@@ -621,7 +658,10 @@ export default function EvalCycleMemberCanvas({
                       <div
                         className={`evm-score-btns${triedSubmit && state[f.key].score == null ? ' is-invalid' : ''}`}
                       >
-                        {[1, 2, 3, 4, 5].map((n) => (
+                        {f.scaleAnchorMin && (
+                          <span className="evm-score-anchor">{f.scaleAnchorMin}</span>
+                        )}
+                        {Array.from({ length: scaleMaxOf(f) }, (_, i) => i + 1).map((n) => (
                           <button
                             type="button"
                             key={n}
@@ -633,6 +673,10 @@ export default function EvalCycleMemberCanvas({
                             {n}
                           </button>
                         ))}
+                        {f.scaleAnchorMax && (
+                          <span className="evm-score-anchor">{f.scaleAnchorMax}</span>
+                        )}
+                        <span className="evm-score-of">/ {scaleMaxOf(f)}</span>
                       </div>
                     </div>
                     {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4 —
@@ -653,16 +697,46 @@ export default function EvalCycleMemberCanvas({
                     />
                   </>
                 ) : f.type === 'checkbox' ? (
-                  <label className="evl-promo-row">
-                    <input
-                      type="checkbox"
-                      checked={state[f.key].score === 1}
-                      disabled={submitted}
-                      onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
-                      data-testid={`evm-check-${f.key}`}
-                    />
-                    <span>{f.label}</span>
-                  </label>
+                  /* PW-433 ③ 제목 + 선택지 2층. 선택지를 정한 적 없는 구 항목은
+                     제목 1개짜리 단일 체크로 폴백한다(마이그레이션이 값을 지어내지 않는다). */
+                  filledOptions(f).length > 0 ? (
+                    <div className="evm-options" data-testid={`evm-options-${f.key}`}>
+                      {filledOptions(f).map((o) => (
+                        <label className="evl-promo-row" key={o.id}>
+                          <input
+                            type={f.allowMultiple ? 'checkbox' : 'radio'}
+                            name={`evm-opt-${f.key}`}
+                            checked={selectedOptions(state[f.key]).includes(o.id)}
+                            disabled={submitted}
+                            onChange={() =>
+                              setField(f.key, {
+                                checkedOptions: {
+                                  selected: toggleOption(
+                                    selectedOptions(state[f.key]),
+                                    o.id,
+                                    !!f.allowMultiple,
+                                  ),
+                                },
+                              })
+                            }
+                            data-testid={`evm-option-${f.key}-${o.id}`}
+                          />
+                          <span>{o.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <label className="evl-promo-row">
+                      <input
+                        type="checkbox"
+                        checked={state[f.key].score === 1}
+                        disabled={submitted}
+                        onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
+                        data-testid={`evm-check-${f.key}`}
+                      />
+                      <span>{f.label}</span>
+                    </label>
+                  )
                 ) : (
                   <textarea
                     className={`evm-textarea${!submitted && !state[f.key].textAnswer.trim() ? ' is-empty' : ''}${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}

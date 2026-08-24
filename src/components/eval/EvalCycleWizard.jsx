@@ -335,6 +335,81 @@ const QUESTION_TYPES = [
   { id: 'grade', labelKey: 'qTypeGrade' },
   { id: 'checkbox', labelKey: 'qTypeCheckbox' },
 ];
+
+/* ── PW-433 항목 단위 설정 ───────────────────────────────────────────────
+   어니스트 지적 6건 중 ①③⑤⑥ 은 화면 결함이 아니라 **저장할 자리가 없어서** 생긴 것이었다.
+   정본: screen-eval-cycle-hr.policy.md §5.11-A(척도) · §5.11-B(선택지) · §5.11-D(가이드) · §5.12(공개 범위) */
+
+// [①] 척도 길이 = 설계자 입력. 시작값 1 고정 · 간격 1 · 끝값만 받는다.
+//   시작값·간격까지 열면 같은 「3점 척도」가 회사마다 0~2 / 1~3 으로 갈려 점수를 비교할 수 없다.
+const SCALE_MAX_MIN = 2; // 2점보다 짧은 척도는 척도가 아니다
+const SCALE_MAX_MAX = 10; // 10점을 넘으면 응답자가 눈금을 구분하지 못한다
+const DEFAULT_SCALE_MAX = 5; // 설정 이전 항목이 읽히는 값 — 5점 고정이던 시절과 같다
+const SCALE_PRESETS = [3, 5, 7, 10];
+const clampScaleMax = (v) =>
+  Math.min(SCALE_MAX_MAX, Math.max(SCALE_MAX_MIN, Math.round(+v) || SCALE_MAX_MIN));
+const scaleMaxOf = (q) => q?.scaleMax || DEFAULT_SCALE_MAX;
+
+// [③] 체크박스 = 제목 + 선택지 목록(구글 폼 구조).
+const DEFAULT_CHECK_OPTIONS = [
+  { id: 'o1', label: '' },
+  { id: 'o2', label: '' },
+];
+const CHECK_MIN_OPTIONS = 1;
+const CHECK_MAX_OPTIONS = 20;
+/** 선택지가 없는 **기존 항목은 구 동작(제목 1개 단일 체크)으로 폴백**한다. */
+const filledOptions = (q) => (q?.options || []).filter((o) => o.label.trim());
+
+// [⑥] 가이드 문구 표시 방식 — 「공개 범위」와 다른 축임을 화면에서 갈라 준다.
+const GUIDE_DISPLAYS = [
+  { id: 'hidden', labelKey: 'guideDisplayHidden' },
+  { id: 'tooltip', labelKey: 'guideDisplayTooltip' },
+  { id: 'inline', labelKey: 'guideDisplayInline' },
+];
+
+// [⑤] 결과 공개 범위 — 「누가 작성하는가」가 아니라 「이 답변을 누가 보는가」.
+const DISCLOSURE_AUDIENCES = [
+  { id: 'evaluatee', labelKey: 'audienceEvaluatee' },
+  { id: 'manager', labelKey: 'audienceManager' },
+  { id: 'upper', labelKey: 'audienceUpper' },
+  { id: 'hr', labelKey: 'audienceHr' },
+  { id: 'calibration_committee', labelKey: 'audienceCommittee' },
+];
+const IDENTITY_OPTIONS = [
+  { id: 'named', labelKey: 'identityNamed', descKey: 'identityNamedDesc' },
+  { id: 'role_only', labelKey: 'identityRoleOnly', descKey: 'identityRoleOnlyDesc' },
+  { id: 'anonymous', labelKey: 'identityAnonymous', descKey: 'identityAnonymousDesc' },
+];
+const DEFAULT_MIN_RESPONSES = 3;
+/**
+ * 리뷰 유형별 기본값 (policy §5.12.3).
+ * - 셀프는 작성자=피평가자라 설정 자체가 성립하지 않는다 → null(블록 미표시)
+ * - 동료에 「피평가자」가 없는 이유: 공개는 조직이 준비됐을 때 **켜는 것**이지 기본값이 아니다
+ * - 상향에 「차상위 조직장」이 없는 이유: 「아무에게도 공개 안 함」이 기본인 회사가 있다
+ *   (David 확정 2026-08-23 — 초안 ON 에서 뒤집힘)
+ */
+const DEFAULT_DISCLOSURE = {
+  self: null,
+  peer: {
+    audience: ['manager', 'hr', 'calibration_committee'],
+    identity: 'anonymous',
+    minResponses: DEFAULT_MIN_RESPONSES,
+    aiSummaryOnly: false,
+  },
+  upward: {
+    audience: ['hr'],
+    identity: 'anonymous',
+    minResponses: DEFAULT_MIN_RESPONSES,
+    aiSummaryOnly: false,
+  },
+  leader: {
+    audience: ['evaluatee', 'hr', 'calibration_committee'],
+    identity: 'named',
+    minResponses: null,
+    aiSummaryOnly: false,
+  },
+};
+
 // 프리셋 카드 메타(아이콘·설명·권장).
 const TEMPLATE_PRESET_META = [
   { id: 'simple', labelKey: 'tplVersionSimple', descKey: 'tplPresetSimpleDesc', Icon: DocIcon },
@@ -578,6 +653,282 @@ function AddQuestionRow({ onAdd, labels: L }) {
   );
 }
 
+/**
+ * PW-433 — 항목 설정 패널 (policy §5.11-C).
+ *
+ * 항목 행 **바로 아래**에 열리고, 한 번에 하나만 열린다. 구성은
+ * ① 유형별 설정(척도 §5.11-A / 선택지 §5.11-B) → ② 작성 가이드 문구(§5.11-D)
+ * → ③ 결과 공개 범위(§5.12).
+ *
+ * 🔴 **저장 버튼이 없다.** 입력은 편집 버퍼에만 반영되고 템플릿 저장·사이클 생성 때 한 번에
+ * 영속화된다. 그래서 로딩 상태·스피너도 두지 않는다.
+ * 🔴 범위 밖 숫자는 **에러가 아니라 클램프**다 — 입력 중 빨간 테두리가 깜빡이지 않게 한다.
+ */
+function ItemSettingsPanel({
+  q,
+  labels: L,
+  reviewType,
+  disclosureSupported,
+  disclosure,
+  options,
+  onPatch,
+  onPatchOption,
+  onAddOption,
+  onRemoveOption,
+  onPatchDisclosure,
+  onToggleAudience,
+  onClose,
+}) {
+  const scaleMax = scaleMaxOf(q);
+  const guideDisplay = q.descriptionDisplay || 'tooltip';
+  return (
+    <div className="evc-tpl-settings" data-testid={`evc-tpl-settings-${q.id}`}>
+      {q.type === 'rating' && (
+        <div className="evc-tpl-set-block">
+          <div className="evc-tpl-set-title">{L.scaleSettingsTitle}</div>
+          <div className="evc-tpl-set-row">
+            <span className="evc-tpl-set-note">{L.scaleFrom}</span>
+            <input
+              type="number"
+              className="evc-input evc-tpl-set-num"
+              value={scaleMax}
+              min={SCALE_MAX_MIN}
+              max={SCALE_MAX_MAX}
+              onChange={(e) => onPatch(q.id, { scaleMax: clampScaleMax(e.target.value) })}
+              data-testid={`evc-tpl-scalemax-${q.id}`}
+            />
+            <span className="evc-tpl-set-note">{L.scaleStepFixed}</span>
+            {SCALE_PRESETS.map((n) => (
+              <button
+                type="button"
+                key={n}
+                className={`evc-type-chip${scaleMax === n ? ' is-on' : ''}`}
+                onClick={() => onPatch(q.id, { scaleMax: n })}
+                data-testid={`evc-tpl-scale-preset-${q.id}-${n}`}
+              >
+                {fill(L.scalePresetChip, { n })}
+              </button>
+            ))}
+          </div>
+          {/* 숫자만으로는 '5점이 좋은 쪽인지'조차 알 수 없다 — 역방향 척도를 쓰는 조직이 있다. */}
+          <div className="evc-tpl-set-row">
+            <span className="evc-tpl-set-note">{L.scaleAnchorMinLabel}</span>
+            <input
+              className="evc-input"
+              value={q.scaleAnchorMin || ''}
+              placeholder={L.scaleAnchorMinPlaceholder}
+              onChange={(e) => onPatch(q.id, { scaleAnchorMin: e.target.value })}
+              data-testid={`evc-tpl-anchor-min-${q.id}`}
+            />
+            <span className="evc-tpl-set-note">
+              {fill(L.scaleAnchorMaxLabel, { max: scaleMax })}
+            </span>
+            <input
+              className="evc-input"
+              value={q.scaleAnchorMax || ''}
+              placeholder={L.scaleAnchorMaxPlaceholder}
+              onChange={(e) => onPatch(q.id, { scaleAnchorMax: e.target.value })}
+              data-testid={`evc-tpl-anchor-max-${q.id}`}
+            />
+          </div>
+          <p className="evc-tpl-set-help">{L.scaleFrozenAfterOpen}</p>
+        </div>
+      )}
+
+      {q.type === 'checkbox' && (
+        <div className="evc-tpl-set-block">
+          <div className="evc-tpl-set-title">{L.optionsTitle}</div>
+          <p className="evc-tpl-set-help">{L.optionsTitleHelp}</p>
+          <div className="evc-tpl-options">
+            {options.map((o, oi) => (
+              <div key={o.id} className="evc-tpl-option">
+                <span className="evc-tpl-option-mark">{q.allowMultiple ? '☐' : '○'}</span>
+                <input
+                  className="evc-input"
+                  value={o.label}
+                  placeholder={fill(L.optionPlaceholder, { n: oi + 1 })}
+                  onChange={(e) => onPatchOption(q, o.id, e.target.value)}
+                  data-testid={`evc-tpl-option-${q.id}-${oi}`}
+                />
+                <button
+                  type="button"
+                  className="evc-tpl-x"
+                  onClick={() => onRemoveOption(q, o.id)}
+                  disabled={options.length <= CHECK_MIN_OPTIONS}
+                  aria-label={L.delete}
+                  data-testid={`evc-tpl-option-del-${q.id}-${oi}`}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="evc-tpl-set-row">
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => onAddOption(q)}
+              disabled={options.length >= CHECK_MAX_OPTIONS}
+              data-testid={`evc-tpl-option-add-${q.id}`}
+            >
+              {L.optionAdd}
+            </button>
+            <label className="evl-promo-row">
+              <input
+                type="checkbox"
+                checked={!!q.allowMultiple}
+                onChange={(e) => onPatch(q.id, { allowMultiple: e.target.checked })}
+                data-testid={`evc-tpl-allowmultiple-${q.id}`}
+              />
+              <span>{L.optionsAllowMultiple}</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* ② 가이드 문구 — 「노출 여부」는 이 축이고 「누가 보는가」는 아래 축이다. */}
+      <div className="evc-tpl-set-block">
+        <div className="evc-tpl-set-title">{L.guideTitle}</div>
+        <input
+          className="evc-input"
+          value={q.description ?? ''}
+          placeholder={L.itemDescPlaceholder}
+          onChange={(e) => onPatch(q.id, { description: e.target.value })}
+          data-testid={`evc-tpl-desc-${q.id}`}
+        />
+        <div className="evc-tpl-set-row">
+          <span className="evc-tpl-set-note">{L.guideDisplayLabel}</span>
+          {GUIDE_DISPLAYS.map((o) => (
+            <button
+              type="button"
+              key={o.id}
+              className={`evc-type-chip${guideDisplay === o.id ? ' is-on' : ''}`}
+              onClick={() => onPatch(q.id, { descriptionDisplay: o.id })}
+              data-testid={`evc-tpl-guide-${q.id}-${o.id}`}
+            >
+              {L[o.labelKey]}
+            </button>
+          ))}
+        </div>
+        {/* 이 오독이 티켓에 실제로 적혀 있었다 — 고정 노출한다 (policy §5.11-D). */}
+        <p className="evc-tpl-set-help" data-testid={`evc-tpl-guide-axis-note-${q.id}`}>
+          {L.guideAxisNote}
+        </p>
+      </div>
+
+      {/* ③ 결과 공개 범위 — D7 배지가 「보여 주기만」 하던 그 목록을 여기서 정한다. */}
+      <div className="evc-tpl-set-block is-last">
+        <div className="evc-tpl-set-title">
+          {L.disclosureTitle} <span className="evc-tpl-set-note">{L.disclosureTitleHint}</span>
+        </div>
+        {!disclosureSupported ? (
+          <p className="evc-tpl-set-help" data-testid={`evc-tpl-disclosure-self-${q.id}`}>
+            {L.disclosureSelfNote}
+          </p>
+        ) : (
+          <>
+            <div className="evc-tpl-set-row">
+              {DISCLOSURE_AUDIENCES.map((a) => {
+                const on = (disclosure.audience || []).includes(a.id);
+                // 상향 리뷰의 '직속 조직장' = 평가 대상 본인. 켤 수는 있으나 무엇을 켜는지 알린다.
+                const isTargetSelf = reviewType === 'upward' && a.id === 'manager';
+                return (
+                  <button
+                    type="button"
+                    key={a.id}
+                    className={`evc-type-chip${on ? ' is-on' : ''}${isTargetSelf && on ? ' is-warn' : ''}`}
+                    onClick={() => onToggleAudience(q, a.id)}
+                    title={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}
+                    data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
+                  >
+                    {L[a.labelKey]}
+                    {isTargetSelf && on ? ' ⚠' : ''}
+                  </button>
+                );
+              })}
+            </div>
+            {reviewType === 'upward' && (disclosure.audience || []).includes('manager') && (
+              <p
+                className="evc-tpl-set-help is-warn"
+                data-testid={`evc-tpl-upward-warn-${q.id}`}
+              >
+                {L.audienceManagerIsTargetHint}
+              </p>
+            )}
+            {/* 「보이는가」와 「누가 썼는지 보이는가」는 다른 축이다. */}
+            <div className="evc-tpl-set-row">
+              <span className="evc-tpl-set-note">{L.identityLabel}</span>
+              {IDENTITY_OPTIONS.map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  className={`evc-type-chip${(disclosure.identity || 'anonymous') === o.id ? ' is-on' : ''}`}
+                  onClick={() => onPatchDisclosure(q, { identity: o.id })}
+                  title={L[o.descKey]}
+                  data-testid={`evc-tpl-identity-${q.id}-${o.id}`}
+                >
+                  {L[o.labelKey]}
+                </button>
+              ))}
+            </div>
+            {/* 인원이 적으면 익명이 익명이 아니게 된다. */}
+            <div className="evc-tpl-set-row">
+              <label className="evl-promo-row">
+                <input
+                  type="checkbox"
+                  checked={disclosure.minResponses != null}
+                  onChange={(e) =>
+                    onPatchDisclosure(q, {
+                      minResponses: e.target.checked ? DEFAULT_MIN_RESPONSES : null,
+                    })
+                  }
+                  data-testid={`evc-tpl-minresponses-on-${q.id}`}
+                />
+                <span>{L.minResponsesLabel}</span>
+              </label>
+              {disclosure.minResponses != null && (
+                <input
+                  type="number"
+                  className="evc-input evc-tpl-set-num"
+                  value={disclosure.minResponses}
+                  min={2}
+                  max={20}
+                  onChange={(e) =>
+                    onPatchDisclosure(q, {
+                      minResponses: Math.min(20, Math.max(2, Math.round(+e.target.value) || 2)),
+                    })
+                  }
+                  data-testid={`evc-tpl-minresponses-${q.id}`}
+                />
+              )}
+            </div>
+            <label className="evl-promo-row">
+              <input
+                type="checkbox"
+                checked={!!disclosure.aiSummaryOnly}
+                onChange={(e) => onPatchDisclosure(q, { aiSummaryOnly: e.target.checked })}
+                data-testid={`evc-tpl-aisummary-${q.id}`}
+              />
+              <span>{L.aiSummaryOnlyLabel}</span>
+            </label>
+          </>
+        )}
+      </div>
+
+      <div className="evc-tpl-set-foot">
+        <button
+          type="button"
+          className="evc-btn is-ghost"
+          onClick={onClose}
+          data-testid={`evc-tpl-settings-close-${q.id}`}
+        >
+          {L.itemSettingsClose}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // 템플릿 미리보기 모달 — 구성원이 보게 될 형태로 항목을 렌더(입력 비활성). 단일/전체 모드.
 function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) {
   const focusQ =
@@ -615,10 +966,17 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
                 <div key={q.id} className="evc-preview-q">
                   <div className="evc-preview-q-text">
                     {q.text}
+                    {/* PW-433 ⑥ 가이드 문구를 어떻게 보여줄지는 설계자가 정한다. */}
+                    {q.description && (q.descriptionDisplay || 'tooltip') === 'tooltip' && (
+                      <span className="evc-preview-guide-mark" title={q.description}>?</span>
+                    )}
                     {q.requiresRationale && (
                       <span className="evc-mode-badge is-warn">{L.rationaleRequired}</span>
                     )}
                   </div>
+                  {q.description && (q.descriptionDisplay || 'tooltip') === 'inline' && (
+                    <div className="evc-preview-guide-inline">{q.description}</div>
+                  )}
                   {q.type === 'textarea' && (
                     <textarea className="evm-textarea" rows={3} disabled placeholder={L.previewTextareaPlaceholder} />
                   )}
@@ -627,10 +985,19 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
                       미리보기가 점수만 그리면 구성원이 보게 될 화면과 어긋난다. */}
                   {q.type === 'rating' && (
                     <>
+                      {/* PW-433 ① 미리보기는 설정한 척도를 **그대로** 그린다.
+                          여기가 5점 고정이면 버그다 (policy §5.11-A 「미리보기 정합」). */}
                       <div className="evc-preview-scale">
-                        {[1, 2, 3, 4, 5].map((n) => (
+                        {q.scaleAnchorMin && (
+                          <span className="evc-preview-scale-anchor">{q.scaleAnchorMin}</span>
+                        )}
+                        {Array.from({ length: scaleMaxOf(q) }, (_, i) => i + 1).map((n) => (
                           <span key={n} className="evc-preview-scale-dot">{n}</span>
                         ))}
+                        {q.scaleAnchorMax && (
+                          <span className="evc-preview-scale-anchor">{q.scaleAnchorMax}</span>
+                        )}
+                        <span className="evc-preview-scale-of">/ {scaleMaxOf(q)}</span>
                       </div>
                       <textarea
                         className="evm-textarea"
@@ -648,12 +1015,30 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
                       ))}
                     </div>
                   )}
-                  {q.type === 'checkbox' && (
-                    <label className="evl-promo-row">
-                      <input type="checkbox" disabled />
-                      <span>{q.text}</span>
-                    </label>
-                  )}
+                  {/* PW-433 ③ 제목 하나가 체크박스가 되던 구조 → 제목 + 선택지 N개.
+                      선택지를 정한 적 없는 구 항목은 구 동작으로 폴백하고 그 사실을 표기한다. */}
+                  {q.type === 'checkbox' &&
+                    (filledOptions(q).length > 0 ? (
+                      <div className="evc-preview-options">
+                        {filledOptions(q).map((o) => (
+                          <label key={o.id} className="evl-promo-row">
+                            <input type={q.allowMultiple ? 'checkbox' : 'radio'} disabled />
+                            <span>{o.label}</span>
+                          </label>
+                        ))}
+                        <span className="evc-preview-scale-of">
+                          {q.allowMultiple ? L.optionsMultiHint : L.optionsSingleHint}
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="evl-promo-row">
+                        <input type="checkbox" disabled />
+                        <span>{q.text}</span>
+                        <span className="evc-preview-scale-of" data-testid={`evc-preview-nooptions-${q.id}`}>
+                          {L.optionsUnset}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               ))}
             </div>
@@ -746,9 +1131,6 @@ export default function EvalCycleWizard({
     if (cycle?.peerAssignMode) return [cycle.peerAssignMode];
     return ['ai_recommend'];
   });
-  const [peerVisibility, setPeerVisibility] = useState(
-    () => !!cycle?.peerVisibilityDefault,
-  );
   // 단계별 일정(review_sequence) 상태
   const [schedule, setSchedule] = useState(() => ({ ...(initialSeq?.schedule ?? {}) })); // { phaseId: { start, end } } 사용자 오버라이드
   // PW-122 프리셋에서 불러온 일정의 '며칠째' 오프셋. 사이클 시작일이 정해지면
@@ -818,6 +1200,10 @@ export default function EvalCycleWizard({
   const [phaseTemplateMap, setPhaseTemplateMap] = useState(() => ({
     ...(initialSeq?.templateMap ?? {}),
   })); // { phaseId: templateId }
+  /* PW-433 — 항목 설정 패널. **한 번에 하나만** 연다. 행에는 이미 드래그 핸들·섹션 배지·
+     질문·유형 배지·AI 배지·이유 토글·버튼 3개가 있어 설정을 더 붙이면 행이 읽히지 않는다
+     (policy §5.11-C). */
+  const [tplEditingId, setTplEditingId] = useState(null);
   const [tplDragIdx, setTplDragIdx] = useState(null);
   const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
@@ -1004,13 +1390,79 @@ export default function EvalCycleWizard({
     setTplQuestions((qs) => qs.filter((q) => q.id !== id));
   const addQuestion = (section, text, type) => {
     if (!text.trim()) return;
+    const id = `c${Date.now()}_${text.length}`;
     setTplQuestions((qs) => [
       ...qs,
-      { id: `c${qs.length}_${text.length}`, section, text: text.trim(), type },
+      {
+        id,
+        section,
+        text: text.trim(),
+        type,
+        /*
+         * PW-433 ③ — 새 체크박스는 **빈 선택지 목록을 실제로 들고** 태어난다.
+         * 🔴 `options` 를 비워 두면(undefined) 저장 페이로드에도 안 실려, 서버가
+         * 「선택지를 정한 적 없는 구 항목」으로 보고 통과시킨다 — 화면엔 빈 선택지 칸이
+         * 두 개 떠 있는데 저장은 조용히 성공하고, 만들어진 항목은 제목 1개짜리 구 체크박스가
+         * 된다. 티켓이 신고한 바로 그 증상이다. 목록을 들려 보내야 §5.11-B 저장 차단이 걸린다.
+         */
+        ...(type === 'checkbox' ? { options: DEFAULT_CHECK_OPTIONS } : null),
+      },
     ]);
+    // PW-433 §5.11-B — 척도·체크박스는 추가 설정 없이는 미완성인 유형이라 패널을 바로 연다.
+    if (type === 'rating' || type === 'checkbox') setTplEditingId(id);
   };
+
+  /* ── PW-433 항목 단위 설정 ──────────────────────────────────────────────
+     🔴 이 핸들러들은 **API 를 호출하지 않는다.** 편집 버퍼만 고치고, 영속화는
+     `템플릿 저장` 또는 사이클 생성 한 번뿐이다 — 항목마다 저장 요청을 보내면
+     위자드 이탈 시 반쯤 저장된 템플릿이 남는다 (policy §5.11-C 「API 호출」). */
+  const patchQuestion = (id, patch) =>
+    setTplQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+
+  const checkOptionsOf = (q) =>
+    q.options && q.options.length ? q.options : DEFAULT_CHECK_OPTIONS;
+  const patchCheckOption = (q, oid, label) =>
+    patchQuestion(q.id, {
+      options: checkOptionsOf(q).map((o) => (o.id === oid ? { ...o, label } : o)),
+    });
+  const addCheckOption = (q) => {
+    const cur = checkOptionsOf(q);
+    if (cur.length >= CHECK_MAX_OPTIONS) return;
+    patchQuestion(q.id, { options: [...cur, { id: `o${Date.now()}`, label: '' }] });
+  };
+  const removeCheckOption = (q, oid) => {
+    const cur = checkOptionsOf(q);
+    if (cur.length <= CHECK_MIN_OPTIONS) return;
+    patchQuestion(q.id, { options: cur.filter((o) => o.id !== oid) });
+  };
+
+  // 셀프 템플릿은 작성자=피평가자라 「피평가자 공개」가 성립하지 않는다.
+  const disclosureSupported = tplType !== 'self';
+  const disclosureOf = (q) =>
+    q.disclosure || DEFAULT_DISCLOSURE[tplType] || DEFAULT_DISCLOSURE.leader;
+  const patchDisclosure = (q, patch) =>
+    patchQuestion(q.id, { disclosure: { ...disclosureOf(q), ...patch } });
+  const toggleAudience = (q, aid) => {
+    const cur = disclosureOf(q).audience || [];
+    patchDisclosure(q, {
+      audience: cur.includes(aid) ? cur.filter((x) => x !== aid) : [...cur, aid],
+    });
+  };
+
   const updateGrade = (i, field, value) =>
     setTplGrades((gs) => gs.map((g, idx) => (idx === i ? { ...g, [field]: value } : g)));
+  /**
+   * PW-433 ④ 등급 서열 이동. **배열 순서가 곧 서열**이라 행을 통째로 맞바꾼다 —
+   * 등급명·설명·비율이 함께 움직인다 (policy §5.4.4).
+   */
+  const moveGrade = (i, dir) =>
+    setTplGrades((gs) => {
+      const to = i + dir;
+      if (to < 0 || to >= gs.length) return gs;
+      const next = [...gs];
+      [next[i], next[to]] = [next[to], next[i]];
+      return next;
+    });
   const addGrade = () =>
     setTplGrades((gs) => (gs.length >= MAX_GRADES ? gs : [...gs, { label: '', desc: '', ratio: 0 }]));
   const removeGrade = (i) =>
@@ -1304,7 +1756,6 @@ export default function EvalCycleWizard({
       reviewTypes,
       peerAssignMode: hasPeer ? peerAssignModes[0] : undefined,
       peerAssignModes: hasPeer ? peerAssignModes : undefined,
-      peerVisibilityDefault: hasPeer ? peerVisibility : false,
       // v2 SSOT: 단계별 일정/순서/사용여부/리마인더를 review_sequence 로 전달.
       reviewSequence: {
         order: displayPhases.map((p) => p.id),
@@ -1406,7 +1857,6 @@ export default function EvalCycleWizard({
       targetConfig: {
         reviewTypes,
         peerAssignModes,
-        peerVisibility,
         includeMode,
         axisValues,
         exclusionRules: {
@@ -1431,8 +1881,6 @@ export default function EvalCycleWizard({
     if (Array.isArray(cfg.reviewTypes)) setReviewTypes(cfg.reviewTypes);
     if (Array.isArray(cfg.peerAssignModes))
       setPeerAssignModes(cfg.peerAssignModes);
-    if (typeof cfg.peerVisibility === 'boolean')
-      setPeerVisibility(cfg.peerVisibility);
     // A4: 대상자 조건(범위 축·제외 규칙)도 함께 복원한다.
     if (typeof cfg.includeMode === 'string') setIncludeMode(cfg.includeMode);
     if (cfg.axisValues && typeof cfg.axisValues === 'object')
@@ -1646,15 +2094,16 @@ export default function EvalCycleWizard({
                     ))}
                   </div>
 
-                  <label className="evl-promo-row" style={{ marginTop: 'var(--spacing-md, 8px)' }}>
-                    <input
-                      type="checkbox"
-                      checked={peerVisibility}
-                      onChange={(e) => setPeerVisibility(e.target.checked)}
-                      data-testid="evc-wiz-peer-visibility"
-                    />
-                    <span>{L.peerVisibilityLabel}</span>
-                  </label>
+                  {/* PW-433 C안(David 확정 2026-08-23) — 사이클 토글 F2 는 폐지됐다.
+                      공개 범위는 항목마다 다를 수 있어 사이클 하나의 ON/OFF 로는 표현되지 않는다.
+                      🔴 자리를 비우지 않는 이유: 스위치를 조용히 없애면 쓰던 사람이
+                      사라진 스위치를 찾는다 (policy §5.2.3 「화면 처리」). */}
+                  <p
+                    className="evc-wiz-hint"
+                    data-testid="evc-wiz-peer-visibility-moved"
+                  >
+                    {L.peerVisibilityMovedNote}
+                  </p>
                 </>
               )}
             </div>
@@ -1768,125 +2217,16 @@ export default function EvalCycleWizard({
                 </>
               )}
 
-              <div className="evc-tpl-items-head">
-                <span className="evc-field-label">
-                  {L.templateItemsLabel} ({tplQuestions.length})
-                </span>
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  onClick={() => setTplPreview('all')}
-                  data-testid="evc-tpl-preview-all"
-                >
-                  <EyeIcon size={15} /> {L.templatePreview}
-                </button>
-              </div>
-              <div className="evc-tpl-items">
-                {tplQuestions.map((q, idx) => (
-                  <div
-                    key={q.id}
-                    draggable
-                    onDragStart={() => setTplDragIdx(idx)}
-                    onDragOver={(e) => { e.preventDefault(); setTplDragOverIdx(idx); }}
-                    onDrop={() => tplDrop(idx)}
-                    onDragEnd={() => { setTplDragIdx(null); setTplDragOverIdx(null); }}
-                    className={`evc-tpl-item${tplDragOverIdx === idx && tplDragIdx !== idx ? ' is-over' : ''}${tplDragIdx === idx ? ' is-dragging' : ''}`}
-                    data-testid={`evc-tpl-item-${q.id}`}
-                  >
-                    <span className="evc-tpl-item-handle" title={L.phaseDragHint}>
-                      <GripIcon size={12} />
-                    </span>
-                    <span
-                      className="evc-tpl-item-section"
-                      style={{
-                        color: sectionColor(q.section),
-                        background: 'color-mix(in srgb, currentColor 12%, transparent)',
-                      }}
-                    >
-                      {q.section}
-                    </span>
-                    <span className="evc-tpl-item-text">{q.text}</span>
-                    <span className="evc-tpl-item-type">
-                      {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
-                    </span>
-                    {q.ai && <span className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</span>}
-                    {q.type === 'rating' && (
-                      <button
-                        type="button"
-                        className={`evc-tpl-rationale${q.requiresRationale ? ' is-on' : ''}`}
-                        onClick={() => toggleRationale(q.id)}
-                        data-testid={`evc-tpl-rationale-${q.id}`}
-                      >
-                        <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
-                      </button>
-                    )}
-                    {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만).
-                        PW-117 셀프는 평가자=피평가자라 '피평가자 공개' 가 성립하지 않는다 —
-                        작성 화면도 셀프에는 공개 대상 안내를 띄우지 않는다(showVisibility=false). */}
-                    {tplType !== 'self' && (
-                      <button
-                        type="button"
-                        className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
-                        onClick={() =>
-                          setTplQuestions((qs) =>
-                            qs.map((x) =>
-                              x.id === q.id
-                                ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
-                                : x,
-                            ),
-                          )
-                        }
-                        title={L.hideFromEvaluateeHint}
-                        data-testid={`evc-tpl-hide-${q.id}`}
-                      >
-                        {q.hideFromEvaluatee ? (
-                          <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
-                        ) : (
-                          <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
-                        )}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="evc-tpl-x"
-                      onClick={() => setTplPreview({ questionId: q.id })}
-                      aria-label={L.templatePreview}
-                      data-testid={`evc-tpl-item-preview-${q.id}`}
-                    >
-                      <EyeIcon size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="evc-tpl-x"
-                      onClick={() => removeQuestion(q.id)}
-                      aria-label={L.delete}
-                      data-testid={`evc-tpl-item-del-${q.id}`}
-                    >
-                      ✕
-                    </button>
-                    {/* TC-051/052 항목 설명(작성 안내 툴팁) 입력 — 항목 아래 전체폭 */}
-                    <input
-                      type="text"
-                      className="evc-tpl-item-desc"
-                      value={q.description ?? ''}
-                      placeholder={L.itemDescPlaceholder}
-                      onChange={(e) =>
-                        setTplQuestions((qs) =>
-                          qs.map((x) =>
-                            x.id === q.id
-                              ? { ...x, description: e.target.value }
-                              : x,
-                          ),
-                        )
-                      }
-                      data-testid={`evc-tpl-desc-${q.id}`}
-                    />
-                  </div>
-                ))}
-              </div>
-              <AddQuestionRow onAdd={addQuestion} labels={L} />
-
+              {/* PW-433 ② 기준 정보(등급 체계)가 평가 항목보다 **위**에 온다.
+                  등급은 아래 '등급 라벨' 항목의 **선택지 재료**다 — 재료를 나중에 정하면
+                  항목을 만드는 시점에 선택지가 비어 있다. 2026-06-28 A7 에서 이미 지적됐으나
+                  그때는 안내 문구만 붙이고 배치는 그대로 뒀다 (policy §5.4-0-A). */}
               <span className="evc-field-label">{L.templateGradesLabel}</span>
+              {/* A7(2026-06-28) 관계 안내 — PW-433 ② 로 배치가 뒤집혔으므로 방향도 반대로 고친다.
+                  「위 평가 항목」이 아니라 「아래 평가 항목」이다. */}
+              <p className="evc-tpl-grade-note" data-testid="evc-tpl-grade-note">
+                {L.gradesFeedItemsNote}
+              </p>
               <label className="evl-promo-row">
                 <input
                   type="checkbox"
@@ -1911,6 +2251,37 @@ export default function EvalCycleWizard({
               <div className="evc-tpl-grades">
                 {tplGrades.map((g, i) => (
                   <div key={i} className="evc-tpl-grade">
+                    {/* PW-433 ④ 등급에도 서열이 있다 — 목록의 위에서 아래가 곧 상위 → 하위다.
+                        드래그가 아니라 ▲▼ 인 이유: 행 안에 입력 필드가 3개라 드래그 핸들이
+                        텍스트 선택과 충돌한다 (policy §5.4.4). */}
+                    <div className="evc-tpl-grade-move">
+                      <button
+                        type="button"
+                        className="evc-tpl-grade-arrow"
+                        onClick={() => moveGrade(i, -1)}
+                        disabled={i === 0}
+                        aria-label={L.gradeMoveUp}
+                        title={L.gradeMoveUp}
+                        data-testid={`evc-tpl-grade-up-${i}`}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        className="evc-tpl-grade-arrow"
+                        onClick={() => moveGrade(i, 1)}
+                        disabled={i === tplGrades.length - 1}
+                        aria-label={L.gradeMoveDown}
+                        title={L.gradeMoveDown}
+                        data-testid={`evc-tpl-grade-down-${i}`}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    {/* 순번을 적어 두지 않으면 이동 결과를 눈으로 확인할 수 없다. */}
+                    <span className="evc-tpl-grade-no" data-testid={`evc-tpl-grade-no-${i}`}>
+                      {i + 1}
+                    </span>
                     <input
                       className={`evc-input${
                         // PW-119: 빈 등급명도 저장을 막으므로 중복명과 똑같이 표시한다.
@@ -1997,6 +2368,156 @@ export default function EvalCycleWizard({
                   </div>
                 </div>
               )}
+
+              <div className="evc-tpl-items-head">
+                <span className="evc-field-label">
+                  {L.templateItemsLabel} ({tplQuestions.length})
+                </span>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => setTplPreview('all')}
+                  data-testid="evc-tpl-preview-all"
+                >
+                  <EyeIcon size={15} /> {L.templatePreview}
+                </button>
+              </div>
+              <div className="evc-tpl-items">
+                {tplQuestions.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    draggable
+                    onDragStart={() => setTplDragIdx(idx)}
+                    onDragOver={(e) => { e.preventDefault(); setTplDragOverIdx(idx); }}
+                    onDrop={() => tplDrop(idx)}
+                    onDragEnd={() => { setTplDragIdx(null); setTplDragOverIdx(null); }}
+                    className={`evc-tpl-item${tplDragOverIdx === idx && tplDragIdx !== idx ? ' is-over' : ''}${tplDragIdx === idx ? ' is-dragging' : ''}`}
+                    data-testid={`evc-tpl-item-${q.id}`}
+                  >
+                    <span className="evc-tpl-item-handle" title={L.phaseDragHint}>
+                      <GripIcon size={12} />
+                    </span>
+                    <span
+                      className="evc-tpl-item-section"
+                      style={{
+                        color: sectionColor(q.section),
+                        background: 'color-mix(in srgb, currentColor 12%, transparent)',
+                      }}
+                    >
+                      {q.section}
+                    </span>
+                    <span className="evc-tpl-item-text">{q.text}</span>
+                    <span className="evc-tpl-item-type">
+                      {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+                    </span>
+                    {/* PW-433 — 패널을 열지 않아도 무엇이 설정됐는지 행에서 읽혀야 한다
+                        (policy §5.11-C 「행 요약 배지」). */}
+                    {q.type === 'rating' && (
+                      <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-scale-${q.id}`}>
+                        {fill(L.scaleRangeBadge, { max: scaleMaxOf(q) })}
+                      </span>
+                    )}
+                    {q.type === 'checkbox' && (
+                      <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-options-${q.id}`}>
+                        {fill(L.optionsCountBadge, { count: filledOptions(q).length })}
+                        {q.allowMultiple ? ` · ${L.optionsMultiBadge}` : ''}
+                      </span>
+                    )}
+                    {q.description && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
+                      <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
+                        {L.guideBadge}
+                      </span>
+                    )}
+                    {q.ai && <span className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</span>}
+                    {q.type === 'rating' && (
+                      <button
+                        type="button"
+                        className={`evc-tpl-rationale${q.requiresRationale ? ' is-on' : ''}`}
+                        onClick={() => toggleRationale(q.id)}
+                        data-testid={`evc-tpl-rationale-${q.id}`}
+                      >
+                        <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
+                      </button>
+                    )}
+                    {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만).
+                        PW-117 셀프는 평가자=피평가자라 '피평가자 공개' 가 성립하지 않는다 —
+                        작성 화면도 셀프에는 공개 대상 안내를 띄우지 않는다(showVisibility=false). */}
+                    {tplType !== 'self' && (
+                      <button
+                        type="button"
+                        className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
+                        onClick={() =>
+                          setTplQuestions((qs) =>
+                            qs.map((x) =>
+                              x.id === q.id
+                                ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
+                                : x,
+                            ),
+                          )
+                        }
+                        title={L.hideFromEvaluateeHint}
+                        data-testid={`evc-tpl-hide-${q.id}`}
+                      >
+                        {q.hideFromEvaluatee ? (
+                          <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
+                        ) : (
+                          <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
+                        )}
+                      </button>
+                    )}
+                    {/* PW-433 — 개정 전에는 동작 없는 버튼이었다(policy §5.11-C). */}
+                    <button
+                      type="button"
+                      className={`evc-tpl-x${tplEditingId === q.id ? ' is-on' : ''}`}
+                      onClick={() =>
+                        setTplEditingId(tplEditingId === q.id ? null : q.id)
+                      }
+                      aria-label={L.itemSettings}
+                      title={L.itemSettings}
+                      aria-expanded={tplEditingId === q.id}
+                      data-testid={`evc-tpl-item-settings-${q.id}`}
+                    >
+                      <PencilIcon size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="evc-tpl-x"
+                      onClick={() => setTplPreview({ questionId: q.id })}
+                      aria-label={L.templatePreview}
+                      data-testid={`evc-tpl-item-preview-${q.id}`}
+                    >
+                      <EyeIcon size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="evc-tpl-x"
+                      onClick={() => removeQuestion(q.id)}
+                      aria-label={L.delete}
+                      data-testid={`evc-tpl-item-del-${q.id}`}
+                    >
+                      ✕
+                    </button>
+                    {tplEditingId === q.id && (
+                      <ItemSettingsPanel
+                        q={q}
+                        labels={L}
+                        reviewType={tplType}
+                        disclosureSupported={disclosureSupported}
+                        disclosure={disclosureOf(q)}
+                        options={checkOptionsOf(q)}
+                        onPatch={patchQuestion}
+                        onPatchOption={patchCheckOption}
+                        onAddOption={addCheckOption}
+                        onRemoveOption={removeCheckOption}
+                        onPatchDisclosure={patchDisclosure}
+                        onToggleAudience={toggleAudience}
+                        onClose={() => setTplEditingId(null)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <AddQuestionRow onAdd={addQuestion} labels={L} />
 
               <div className="evc-tpl-lib">
                 <button
@@ -3040,12 +3561,6 @@ export default function EvalCycleWizard({
                         .map((k) => L[PEER_MODES.find((m) => m.key === k)?.label])
                         .join(' · ')}
                     </b>
-                  </div>
-                )}
-                {hasPeer && (
-                  <div className="evc-summary-row">
-                    <span>{L.peerVisibilityLabel}</span>
-                    <b>{peerVisibility ? L.peerVisibilityOn : L.peerVisibilityOff}</b>
                   </div>
                 )}
                 <div className="evc-summary-row">
