@@ -8,3 +8,4 @@ export { default as MicSelectModal } from './MicSelectModal.jsx';
 export { default as MeetingStartFlow } from './MeetingStartFlow.jsx';
 export { default as MeetingGeneratingModal } from './MeetingGeneratingModal.jsx';
 export { default as MeetingSyncToast } from './MeetingSyncToast.jsx';
+export { default as MeetingRecordingWidget } from './MeetingRecordingWidget.jsx';

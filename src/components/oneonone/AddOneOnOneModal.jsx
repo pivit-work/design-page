@@ -46,7 +46,8 @@ function tomorrowKey(now = new Date()) {
   return dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
 }
 
-const TIME_OPTIONS = [
+// 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
+export const TIME_OPTIONS = [
   '오전 09:00', '오전 09:30', '오전 10:00', '오전 10:30',
   '오전 11:00', '오전 11:30', '오후 12:00', '오후 12:30',
   '오후 13:00', '오후 13:30', '오후 14:00', '오후 14:30',
@@ -302,8 +303,12 @@ function Field({ label, children }) {
    ──────────────────────────────────────────────── */
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-function DatePickerPopover({ value, onChange }) {
-  const [view, setView] = useState(new Date(value.getFullYear(), value.getMonth(), 1));
+export function DatePickerPopover({ value, onChange }) {
+  // value 는 null 허용(미선택) — 뷰는 오늘 기준 달, 선택 하이라이트는 없음.
+  const [view, setView] = useState(() => {
+    const base = value ?? new Date();
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  });
   const popoverRef = useRef(null);
 
   const grid = useMemo(() => buildMonthGrid(view), [view]);
@@ -336,7 +341,7 @@ function DatePickerPopover({ value, onChange }) {
       <div className="ono-add-modal-datepicker-grid">
         {grid.map((d, i) => {
           const isCurrent = d.getMonth() === view.getMonth();
-          const isSelected = isSameDay(d, value);
+          const isSelected = value ? isSameDay(d, value) : false;
           const isToday = isSameDay(d, today);
           return (
             <button

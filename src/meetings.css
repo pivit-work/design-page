@@ -341,54 +341,59 @@
   text-align: center;
 }
 
-/* 녹음 중 파란 타이머 카드 (Figma 16920-37072) */
+/* 녹음 중 타이머 카드 — Figma 16905:29521 (브랜드 그린 테마) */
 .mtg-progress-rec-card {
-  padding: 24px 16px;
-  background: var(--utility-blue-50, #eff8ff);
-  border-radius: 12px;
+  padding: 16px 16px 32px;
+  background: var(--utility-brand-50, #f1fffa);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .mtg-progress-rec-who {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 .mtg-progress-rec-avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--utility-blue-500, #2e90fa);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  background: var(--utility-brand-200, #b2f2dc);
   object-fit: cover;
   flex-shrink: 0;
 }
 .mtg-progress-rec-name {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
-  color: var(--utility-blue-600, #1849a9);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--text-primary, #596069);
+}
+.mtg-progress-rec-name b {
+  font-weight: 600;
+  color: var(--utility-brand-600, #21a67a);
 }
 .mtg-progress-rec-time {
   font-family: var(--font-family-display);
-  font-size: 64px;
-  line-height: 76px;
-  font-weight: 600;
-  letter-spacing: -1.28px;
-  color: var(--utility-blue-500, #2e90fa);
+  font-size: 60px;
+  line-height: 72px;
+  font-weight: 500;
+  letter-spacing: -1.2px;
+  color: var(--utility-brand-600, #21a67a);
 }
 .mtg-progress-rec-wave {
   display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 28px;
+  align-items: flex-end;
+  gap: 6px;
+  height: 20px;
 }
 .mtg-progress-rec-wave span {
-  width: 3px;
-  border-radius: 9999px;
-  background: var(--utility-blue-500, #2e90fa);
-  transform-origin: center;
+  width: 4px;
+  border-radius: 6px;
+  background: var(--utility-brand-600, #21a67a);
+  transform-origin: bottom;
   animation: mtg-wave 0.9s ease-in-out infinite;
 }
 .mtg-progress-rec-wave span:nth-child(1) { animation-delay: 0s; }
@@ -400,6 +405,8 @@
 .mtg-progress-rec-wave span:nth-child(7) { animation-delay: 0.06s; }
 .mtg-progress-rec-wave span:nth-child(8) { animation-delay: 0.42s; }
 .mtg-progress-rec-wave span:nth-child(9) { animation-delay: 0.22s; }
+/* 실시간 마이크 반영 중(is-live) — 데모 애니메이션을 끄고 JS 높이를 그대로 쓴다 */
+.mtg-progress-rec-wave.is-live span { animation: none; transition: height 0.06s linear; }
 @keyframes mtg-wave {
   0%, 100% { transform: scaleY(0.35); }
   50% { transform: scaleY(1); }
@@ -1697,3 +1704,46 @@ input.mtg-record-action-title::placeholder {
   color: var(--text-tertiary);
   max-width: 420px;
 }
+
+/* ═══ 녹음 유지 미니 위젯 (MeetingRecordingWidget) — Figma 16817:40938 ═══
+   회의 진행 중 모달을 dimmed 클릭으로 접었을 때 우측 하단에 뜬다. */
+.mtg-rec-widget {
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  width: 241px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--alpha-black-5);
+  border-radius: 20px;
+  box-shadow:
+    0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03, rgba(10, 13, 18, 0.04)),
+    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02, rgba(10, 13, 18, 0.03)),
+    0 20px 24px -4px var(--colors-effects-shadows-shadowXl01, rgba(10, 13, 18, 0.08));
+  z-index: 1100;
+}
+.mtg-rec-widget-expand { position: absolute; top: 13px; right: 13px; width: 20px; height: 20px; padding: 0; border: none; background: transparent; cursor: pointer; }
+.mtg-rec-widget-head { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.mtg-rec-widget-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
+.mtg-rec-widget-meta { display: flex; flex-direction: column; gap: 6px; }
+.mtg-rec-widget-name-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
+.mtg-rec-widget-tag { padding: 2px 9px; border-radius: 8px; background: var(--bg-brand-secondary); border: 1px solid var(--alpha-black-3); font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-brand-secondary); }
+.mtg-rec-widget-people { display: flex; gap: 4px; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); }
+.mtg-rec-widget-bar { background: var(--bg-quaternary); border-radius: 8px; padding: 8px 8px 8px 16px; display: flex; align-items: center; justify-content: space-between; }
+.mtg-rec-widget-timer { width: 68px; display: flex; flex-direction: column; align-items: center; }
+.mtg-rec-widget-time { width: 100%; font-family: var(--font-family-display); font-size: 24px; line-height: 32px; font-weight: 600; color: var(--utility-blue-600); }
+.mtg-rec-widget-wave { display: flex; align-items: flex-end; gap: 6px; height: 14px; }
+.mtg-rec-widget-wave span { width: 4px; border-radius: 6px; background: var(--utility-blue-500); }
+.mtg-rec-widget-wave.is-live span { transition: height 0.06s linear; }
+.mtg-rec-widget-stop { width: 90px; padding: 10px 12px; border: none; border-radius: 10px; background: var(--colors-background-bgErrorSolid, #f04438); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
+
+/* 녹음 진행 중(위젯 축소 상태) 행의 비활성 [진행 중] 버튼 — Figma 16817:40731 */
+.mtg-start-btn.is-inprogress {
+  background: var(--colors-background-bgDisabled, #f3f4f6);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+.mtg-start-btn.is-inprogress:hover { filter: none; }

@@ -4,6 +4,7 @@ import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 import MeetingRecordContent from './MeetingRecordContent.jsx';
 import MeetingShareContent from './MeetingShareContent.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import useMicWave from '../shared/useMicWave.js';
 
 /**
  * MeetingInProgressModal — "시작" 버튼 클릭 시 뜨는 회의 진행 중 모달.
@@ -44,10 +45,21 @@ export default function MeetingInProgressModal({
   labels,
   // 시작 phase: 'progress' (기본) | 'record' — completed 회의의 기록 보기용.
   initialPhase = 'progress',
+  /** dimmed 클릭 핸들러 override — 녹음 중엔 caller 가 모달을 닫는 대신
+   *  미니 위젯으로 축소한다 (16817:40938). 미지정 시 기존처럼 onClose. */
+  onOverlayClick,
   // 회의 "종료" 확정 콜백 — status=completed 등 서버 반영을 caller 에서 처리.
   onEnd,
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // 녹음 중 파형 — 1on1 녹음 위젯과 같은 실시간 마이크 이퀄라이저 (9막대·28px).
+  const waveRef = useRef(null);
+  useMicWave(waveRef, {
+    enabled: mode === 'record' && !recordingStopped,
+    barCount: 6,
+    minPx: 3,
+    maxPx: 20,
+  });
   const [internalMemo, setInternalMemo] = useState('');
   const memo = memoProp !== undefined ? memoProp : internalMemo;
   const handleMemoChange = onMemoChange ?? setInternalMemo;
@@ -95,7 +107,7 @@ export default function MeetingInProgressModal({
 
   return createPortal(
     <>
-      <div className="mtg-progress-overlay" onClick={onClose}>
+      <div className="mtg-progress-overlay" onClick={onOverlayClick ?? onClose}>
         <div
           className="mtg-progress-modal"
           role="dialog"
@@ -166,12 +178,12 @@ export default function MeetingInProgressModal({
                         <span className="mtg-progress-rec-avatar" aria-hidden="true" />
                       )}
                       <span className="mtg-progress-rec-name">
-                        {recorderName}{labels.recordingSuffix}
+                        <b>{recorderName}</b>{labels.recordingSuffix}
                       </span>
                     </div>
                     <span className="mtg-progress-rec-time">{timer}</span>
-                    <div className="mtg-progress-rec-wave" aria-hidden="true">
-                      {[10, 18, 8, 22, 14, 26, 12, 20, 9].map((h, i) => (
+                    <div className="mtg-progress-rec-wave" aria-hidden="true" ref={waveRef}>
+                      {[5, 5, 20, 12, 9, 12].map((h, i) => (
                         <span key={i} style={{ height: `${h}px` }} />
                       ))}
                     </div>

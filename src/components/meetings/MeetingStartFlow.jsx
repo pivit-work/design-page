@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import RecordMethodModal from './RecordMethodModal.jsx';
 import MicSelectModal from './MicSelectModal.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
+import MeetingRecordingWidget from './MeetingRecordingWidget.jsx';
+import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 
 /**
  * MeetingStartFlow — 회의 "시작" 클릭 후 시작 flow 오케스트레이터.
@@ -36,6 +38,10 @@ export default function MeetingStartFlow({
   const [selectedDevice, setSelectedDevice] = useState(micDevices?.[0] ?? '');
   const [memo, setMemo] = useState('');
   const [elapsedSec, setElapsedSec] = useState(0);
+  // 녹음 진행 중 dimmed 클릭 → 모달만 접고 우하단 미니 위젯으로 축소 (16817:40938).
+  // 녹음/타이머는 계속된다.
+  const [minimized, setMinimized] = useState(false);
+  const [widgetEndConfirm, setWidgetEndConfirm] = useState(false);
 
   // 녹음 진행 중에만 타이머 틱 (녹음만 종료/메모 모드/다른 step 에서는 정지).
   useEffect(() => {
@@ -49,6 +55,12 @@ export default function MeetingStartFlow({
     const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
     const s = String(total % 60).padStart(2, '0');
     return `${h}:${m}:${s}`;
+  };
+  // 미니 위젯은 mm:ss (Figma 16817:40938 — 68px 타이머 칸)
+  const formatElapsedShort = (total) => {
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   const handleSelectMethod = (m) => {
@@ -112,6 +124,31 @@ export default function MeetingStartFlow({
     );
   }
 
+  if (minimized) {
+    return (
+      <>
+        <MeetingRecordingWidget
+          meeting={meeting}
+          elapsed={formatElapsedShort(elapsedSec)}
+          baseUrl={baseUrl}
+          labels={labels.recordingWidget}
+          onExpand={() => setMinimized(false)}
+          onStop={() => setWidgetEndConfirm(true)}
+        />
+        {widgetEndConfirm && (
+          <MeetingEndConfirmModal
+            labels={labels.progress.endConfirm}
+            onCancel={() => setWidgetEndConfirm(false)}
+            onConfirm={() => {
+              setWidgetEndConfirm(false);
+              onEnd?.();
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <MeetingInProgressModal
       meeting={meeting}
@@ -128,6 +165,9 @@ export default function MeetingStartFlow({
       shareData={shareData}
       labels={labels.progress}
       onClose={onClose}
+      onOverlayClick={
+        mode === 'record' && !recordingStopped ? () => setMinimized(true) : undefined
+      }
       onEnd={onEnd}
     />
   );

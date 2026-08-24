@@ -94,6 +94,7 @@ export {
   StatCard as OneOnOneStatCard,
   MemberCard as OneOnOneMemberCard,
   OneOnOneDashboardCanvas,
+  OneOnOneDetailModal,
   LiveGuideCard as OneOnOneLiveGuideCard,
   OneOnOneMemberCanvas,
   OneOnOneMemberMeetingsCanvas,

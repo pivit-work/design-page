@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import useMicWave from '../shared/useMicWave.js';
+
 /**
  * 1on1 진행 중 녹음 미니 위젯 — Figma 16972:15514.
  *
@@ -8,7 +11,9 @@
  *   - member       : { name, avatar, badge? }
  *   - meetingTime  : "2026.04.08 · 11:00 ~" 같은 시작 시각 라벨 (선택)
  *   - elapsed      : "04:29" 포맷 경과 시간 문자열. 외부에서 타이머로 갱신.
- *   - wave         : 파형 막대 높이 배열 (선택, 기본 정적 패턴)
+ *   - wave         : 파형 막대 높이 배열 (선택). 지정 시 실시간 마이크 분석 대신
+ *                    이 값을 그대로 그린다 (호스트가 자체 오디오 파이프라인을
+ *                    가진 경우).
  *   - paused       : 녹음 일시정지 여부. true 면 제목·타이머·파형이 정지 색으로 바뀌고
  *                    「재개」 버튼과 안내 문구가 뜬다.
  *   - onPause      : "일시정지" 버튼 클릭 콜백. 없으면 일시정지 버튼 자체를 그리지
@@ -16,9 +21,17 @@
  *   - onResume     : "재개" 버튼 클릭 콜백
  *   - onStop       : "종료" 버튼 클릭 콜백
  *   - variant      : 'sticky' (기본) | 'pip' — pip 은 위치 고정 스타일 제거
+ *
+ * 이퀄라이저: wave prop 이 없으면 마이크 입력을 AnalyserNode 로 분석해 6개
+ * 막대 높이를 실시간(rAF) 반영한다. 마이크 권한이 없으면 CSS 데모 애니메이션
+ * 폴백이 그대로 남는다.
  */
 
-const DEFAULT_WAVE = [5, 5, 14, 9, 9, 12];
+// 기본 정적 패턴 — Figma 16817:40677 (막대 4×h, 최대 20px)
+export const DEFAULT_WAVE = [5, 5, 20, 12, 9, 12];
+// 마이크 분석/튜닝(게이트·게인)은 shared/useMicWave.js 로 옮겼다 —
+// 회의 진행 중 모달 등 다른 소비처와 공유한다.
+export { default as useMicWave } from '../shared/useMicWave.js';
 
 /* 일시정지 — 세로 막대 둘. 색은 부모의 currentColor 를 상속한다. */
 function PauseIcon() {
@@ -71,6 +84,9 @@ export default function OneOnOneRecordingWidget({
   variant = 'sticky',
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
+  // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
+  const waveRef = useRef(null);
+  useMicWave(waveRef, { enabled: !wave || wave.length === 0, paused });
   // 일시정지 토글은 소비처가 콜백을 준 경우에만 노출한다 — 콜백 없이 버튼만 뜨면
   // 눌러도 아무 일이 없어 "녹음이 멈췄나?" 를 더 헷갈리게 만든다.
   const canPause = !!onPause || !!onResume;
@@ -103,7 +119,7 @@ export default function OneOnOneRecordingWidget({
         <div className="ono-start-rec-bar">
           <div className="ono-start-rec-timer">
             <span className="ono-start-rec-elapsed">{elapsed ?? '00:00'}</span>
-            <div className="ono-start-rec-wave">
+            <div className="ono-start-rec-wave" ref={waveRef}>
               {bars.map((h, i) => (
                 <span key={i} style={{ height: `${h}px` }} />
               ))}

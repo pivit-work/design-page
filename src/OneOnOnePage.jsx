@@ -120,6 +120,70 @@ const KPIS = {
   speakRatio: { manager: 35, member: 62 },
 };
 
+/* ── 사원 카드 클릭 → 완료된 1on1 상세(열람모드) 모달 데모 데이터.
+   Figma 17413:26357 외 3종의 내용을 멤버별로 끼워 넣는다(멤버·매니저만 치환). */
+const MANAGER = { name: '김지수 매니저', avatar: P0 };
+const makeDetail = (name, avatar) => ({
+  member: { name, avatar },
+  manager: MANAGER,
+  status: 'DONE',
+  summary: {
+    text: `이번 1on1에서 Q2 OKR 달성률(72%)과 블로커 2건을 논의했습니다. 커리어 성장 목표로 시니어 레벨 이동을 위한 리더십 역량 강화 방향을 합의했습니다. 전반적으로 긍정적인 분위기에서 대화가 진행되었으며, 다음 미팅 전 블로커 해결 방안을 문서화하기로 했습니다.`,
+    decisions: [
+      '블로커 2건 — 다음 주 내 해결 방안 공유',
+      '리더십 역량 강화를 위한 소규모 프로젝트 리드 기회 제공',
+    ],
+    recheck: 'KR2 목표 달성률이 전월 대비 8%p 하락 — 원인 파악 필요',
+  },
+  actions: [
+    { title: '블로커 해결 방안 문서화', owner: name, date: '2026-04-28', done: true },
+    { title: '블로커 해결 방안 문서화', owner: name, date: '2026-04-28', done: true },
+    { title: 'KR2 달성률 하락 원인 분석 보고서 작성', owner: name, date: '2026-04-28', done: false },
+  ],
+  analysis: {
+    speaking: { manager: 35, member: 65 },
+    note: '이상적인 발화 비율은 매니저 30~40% / 멤버 60~70%입니다. 멤버가 충분히 이야기할 수 있는 환경을 만들어주세요.',
+    mood: { positive: 62, neutral: 24, negative: 11 },
+  },
+  feedback: {
+    visibility: '공개됨',
+    strength: '복잡한 기술 문제를 명확하게 분해하여 팀원들에게 설명하는 능력이 탁월합니다.',
+    growth: '스프린트 리뷰 시 리스크를 더 일찍 공유해주시면 팀 전체가 대응할 시간을 확보할 수 있습니다.',
+  },
+});
+
+/* ── 최초 1on1 진행 셋업 플로우 데모 — 매니저(퍼실리테이터) 후보 (Figma 17416:27850).
+   시안의 후보 구성(추천 1 + 일반 1)을 따른다. */
+const MANAGER_CANDIDATES = [
+  { id: 'mc-1', name: '김민준', role: 'Engineering Manager', avatar: 'https://i.pravatar.cc/200?img=52', recommended: true },
+  { id: 'mc-2', name: '박민경', role: 'Engineering Manager', avatar: 'https://i.pravatar.cc/200?img=44' },
+];
+
+/* ── 매니저 노트 데모 데이터 — Figma 17414:27470.
+   시안 텍스트(김민준 카드)를 첫 멤버에 쓰고 나머지는 맥락에 맞게 생성. */
+const NOTES = {
+  seo: {
+    memo: '직접적인 피드백 선호. 데이터 근거 있을 때 수용성 높음.\n성과 인정받고 싶은 욕구 강함.',
+    messages: ['다음 1on1 때 커리어 목표 재점검 필요', 'Q2 OKR 블로커 확인'],
+  },
+  kim: {
+    memo: '신중한 성격으로 결정 전 충분한 검토 시간이 필요. 서면 피드백을 더 편안해함.',
+    messages: ['1on1 주기 단축 여부 논의', '온보딩 멘토 역할 제안해보기'],
+  },
+  choi: {
+    memo: '업무 몰입도가 높지만 스코프 관리에 어려움. 위임과 우선순위 조정 코칭 필요.',
+    messages: ['업무량 130% — 이번 주 업무 조정 논의'],
+  },
+  yu: {
+    memo: '자기주도적이고 안정적. 도전적인 과제를 줄 때 성장 동기가 커짐.',
+    messages: ['신규 프로젝트 리드 기회 제안'],
+  },
+  yun: {
+    memo: '팀 분위기 메이커. 성과 공유에 적극적이며 공개 칭찬에 동기부여가 큼.',
+    messages: ['KR 진척 85% — 격려 메시지 전달'],
+  },
+};
+
 const SCHEDULED_TODAY = [
   {
     id: 'today-1',
@@ -137,6 +201,8 @@ const SCHEDULED_TODAY = [
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
+    detail: makeDetail('김서윤', PROFILES.seo),
+    note: NOTES.seo,
   },
 ];
 
@@ -156,6 +222,8 @@ const NEEDS_ATTENTION = [
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
+    detail: makeDetail('김정호', PROFILES.kim),
+    note: NOTES.kim,
   },
   {
     id: 'attn-2',
@@ -172,6 +240,8 @@ const NEEDS_ATTENTION = [
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
+    detail: makeDetail('최수현', PROFILES.choi),
+    note: NOTES.choi,
   },
 ];
 
@@ -186,6 +256,8 @@ const GOOD = [
     healthSeverity: 'good',
     comment: '최근 2주간 안정적인 컨디션을 유지하고 있습니다. 현재 상태를 유지해주세요.',
     actions: [{ label: '노트' }],
+    detail: makeDetail('김유진', PROFILES.yu),
+    note: NOTES.yu,
   },
   {
     id: 'good-2',
@@ -197,6 +269,8 @@ const GOOD = [
     healthSeverity: 'good',
     comment: 'KR 진척률이 85%로 순조롭습니다. 격려 메시지를 보내보세요.',
     actions: [{ label: '노트' }],
+    detail: makeDetail('윤다희', PROFILES.yun),
+    note: NOTES.yun,
   },
 ];
 
@@ -297,6 +371,7 @@ export default function OneOnOnePage({ icons, baseUrl }) {
         ]}
         icons={icons}
         baseUrl={baseUrl}
+        managerCandidates={MANAGER_CANDIDATES}
         startOneOnOneData={DEMO_START_DATA}
         aiDrafts={knobs.async === 'loading' ? null : aiDrafts}
         onGenerateDrafts={handleGenerateDrafts}

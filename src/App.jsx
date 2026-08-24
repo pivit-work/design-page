@@ -211,7 +211,12 @@ export default function App() {
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'report' && <ReportPage baseUrl={BASE} />}
       {currentPage === 'snippet' && <SnippetPage baseUrl={BASE} />}
-      {currentPage === 'meetings' && <MeetingsPage baseUrl={BASE} />}
+      {/* 회의록은 언마운트하지 않는다 — 녹음 미니 위젯(body portal)이 다른
+          페이지로 이동해도 그 자리에 유지되어야 한다. 페이지 UI 는 wrapper 의
+          display 로만 숨기고, 포털류(토스트·상태 스위처)는 active 로 가린다. */}
+      <div style={{ display: currentPage === 'meetings' ? 'contents' : 'none' }}>
+        <MeetingsPage baseUrl={BASE} active={currentPage === 'meetings'} />
+      </div>
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'okr' && <OkrPage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'settings' && <SettingsPage />}

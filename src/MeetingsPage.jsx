@@ -94,7 +94,7 @@ const MODAL_LABELS = {
   startedSuffix: '시작',
   memoLabel: '실시간 메모',
   memoPlaceholder: '회의 중 중요한 내용을 메모하세요 (선택)',
-  endButton: '회의 종료',
+  endButton: '종료하고 회의록 만들기',
   shareButton: '공유하기',
   shareDoneButton: '공유 완료',
   recordingSuffix: '님이 녹음 중입니다.',
@@ -103,7 +103,6 @@ const MODAL_LABELS = {
   endConfirm: {
     title: '회의 종료하기',
     descLine1: '정말로 종료하시는게 맞으실까요?',
-    descLine2: '종료 시 녹음 데이터를 공유 하실 수 있습니다.',
     cancel: '취소',
     confirm: '종료',
     close: '닫기',
@@ -216,6 +215,12 @@ const START_LABELS = {
     close: '닫기',
   },
   progress: MODAL_LABELS,
+  recordingWidget: {
+    title: '회의 녹음중...',
+    tag: '진행 중',
+    stop: '종료',
+    expand: '크게 보기',
+  },
 };
 
 const MIC_DEVICES = ['MacBook Pro 내장마이크', 'AirPods Pro', '외부 USB 마이크'];
@@ -259,7 +264,13 @@ const SWITCHER_NOTE = '항목 수: 오늘·지난 회의 목록 / 라벨: 회의
  * 회의 목록, 라벨, 진행·기록·공유 모달용 데이터를 주입한다. pivit-work 는
  * MeetingListPage.tsx 에서 실 데이터로 동일한 MeetingsCanvas 를 렌더한다.
  */
-export default function MeetingsPage({ baseUrl }) {
+/**
+ * active: 현재 라우트가 회의록인지. App 이 이 페이지를 언마운트하지 않고 숨기는
+ * 동안(녹음 위젯 유지), body 로 포털되는 토스트·상태 스위처가 다른 페이지에
+ * 새어 나오지 않도록 active 일 때만 렌더한다. 녹음 플로우(위젯 포함)와 생성 중
+ * 안내는 페이지와 무관하게 계속 떠 있어야 하므로 가리지 않는다.
+ */
+export default function MeetingsPage({ baseUrl, active = true }) {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const { volume, labels: labelMode } = knobs;
 
@@ -316,7 +327,7 @@ export default function MeetingsPage({ baseUrl }) {
 
   return (
     <>
-      {effToastOpen && (
+      {active && effToastOpen && (
         <MeetingSyncToast
           baseUrl={baseUrl}
           title="Google 캘린더 동기화에 문제가 있는 회의가 있어요"
@@ -334,6 +345,7 @@ export default function MeetingsPage({ baseUrl }) {
         todayCountLabel={todayCountLabel}
         labels={viewLabels}
         onStartMeeting={setActiveMeeting}
+        startingMeetingId={effActive?.id}
       />
       {effActive && (
         <MeetingStartFlow
@@ -356,13 +368,15 @@ export default function MeetingsPage({ baseUrl }) {
           onConfirm={() => { setGeneratingOpen(false); clearModalKnob(); }}
         />
       )}
-      <StateSwitcher
-        spec={KNOBS}
-        values={knobs}
-        onChange={setKnob}
-        onReset={resetKnobs}
-        note={SWITCHER_NOTE}
-      />
+      {active && (
+        <StateSwitcher
+          spec={KNOBS}
+          values={knobs}
+          onChange={setKnob}
+          onReset={resetKnobs}
+          note={SWITCHER_NOTE}
+        />
+      )}
     </>
   );
 }

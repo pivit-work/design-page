@@ -66,8 +66,8 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) 
         <div className="mtg-end-confirm-header">
           <p id="mtg-end-confirm-title" className="mtg-end-confirm-title">{labels.title}</p>
           <p className="mtg-end-confirm-desc">
-            {labels.descLine1}<br />
-            {labels.descLine2}
+            {labels.descLine1}
+            {labels.descLine2 && (<><br />{labels.descLine2}</>)}
           </p>
         </div>
 

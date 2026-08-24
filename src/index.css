@@ -87,8 +87,14 @@
   --utility-brand-100: var(--componentColors-utility-brand-utilityBrand100);
   --utility-brand-200: var(--componentColors-utility-brand-utilityBrand200);
   --utility-brand-500: var(--componentColors-utility-brand-utilityBrand500);
+  --utility-brand-600: var(--componentColors-utility-brand-utilityBrand600);
   --utility-brand-700: var(--componentColors-utility-brand-utilityBrand700);
   --utility-blue-700: var(--componentColors-utility-blue-utilityBlue700);
+  --utility-green-200: var(--componentColors-utility-green-utilityGreen200);
+  --utility-green-400: var(--componentColors-utility-green-utilityGreen400);
+  --utility-success-600: var(--componentColors-utility-success-utilitySuccess600);
+  --bg-success-primary: var(--colors-background-bgSuccessPrimary);
+  --bg-warning-primary: var(--colors-background-bgWarningPrimary);
   --utility-indigo-50: var(--componentColors-utility-indigo-utilityIndigo50);
   --utility-indigo-200: var(--componentColors-utility-indigo-utilityIndigo200);
   --utility-indigo-500: var(--componentColors-utility-indigo-utilityIndigo500);

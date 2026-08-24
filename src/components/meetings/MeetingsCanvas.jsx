@@ -12,7 +12,7 @@ import MeetingInProgressModal from './MeetingInProgressModal.jsx';
  * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
 
-function MeetingRow({ meeting, onStart, onRowClick, statusLabels }) {
+function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting }) {
   const statusTag = meeting.status ? statusLabels[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
   const clickable = !!onRowClick;
@@ -52,6 +52,12 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels }) {
         <span className="mtg-row-failed">{statusLabels.failedLabel}</span>
       ) : meeting.generating ? (
         <span className="mtg-row-generating">{statusLabels.generatingLabel}</span>
+      ) : isStarting ? (
+        // 이미 이 회의의 녹음이 진행 중(모달이 위젯으로 축소된 상태) —
+        // Figma 16817:40731: 비활성 [진행 중] 버튼으로 중복 시작을 막는다.
+        <button type="button" className="mtg-start-btn is-inprogress" disabled>
+          {statusLabels.ongoing.label}
+        </button>
       ) : (
         isOngoing && (
           <button
@@ -96,6 +102,9 @@ export default function MeetingsCanvas({
   // 들어갈 문이 아예 없다 — 헤더에 항상 열려 있는 문을 하나 둔다.
   // 미지정 시 버튼을 숨긴다 (핸들러 없는 버튼은 눌러도 무동작이라 없느니만 못하다).
   onStartAdhoc,
+  /** 시작 flow 가 이미 열려 있는(녹음 진행 중) 회의 id — 해당 행의 [시작] 을
+   *  비활성 [진행 중] 버튼으로 바꾼다 (Figma 16817:40731). */
+  startingMeetingId,
   progressData,
   recordData,
   shareData,
@@ -183,6 +192,7 @@ export default function MeetingsCanvas({
                   onStart={onStartMeeting ?? setActiveMeeting}
                   onRowClick={onRowClick}
                   statusLabels={statusLabels}
+                  isStarting={m.id === startingMeetingId}
                 />
               ))}
             </div>

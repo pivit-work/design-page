@@ -2,6 +2,10 @@ import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
 import StartOneOnOneView from './StartOneOnOneView.jsx';
+import OneOnOneDetailModal from './OneOnOneDetailModal.jsx';
+import ManagerNoteModal from './ManagerNoteModal.jsx';
+import MicPermissionModal from './MicPermissionModal.jsx';
+import ManagerAssignModal from './ManagerAssignModal.jsx';
 
 /**
  * 액션의 «정체» 를 로케일과 무관한 키로 정한다.
@@ -17,6 +21,7 @@ function resolveActionKind(action) {
   if (action?.kind) return action.kind;
   if (action?.label === '1on1 잡기') return 'book';
   if (action?.label === '1on1 진행') return 'start';
+  if (action?.label === '노트') return 'note';
   return undefined;
 }
 
@@ -58,6 +63,13 @@ export default function OneOnOneCanvasV2({
   members,
   scheduleDefaultDate,
   onStartMember,
+  // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
+  onMemberClick,
+  /** 최초 '1on1 진행' 시 매니저 지정 모달(17416:27850)에 노출할 후보 목록.
+   *  [{ id, name, role, avatar, recommended }] — 비면 셋업 플로우를 건너뛴다. */
+  managerCandidates,
+  /** 마이크 권한 모달의 [설정 열기] — 브라우저 설정은 JS로 못 열어 호스트에 위임. */
+  onOpenMicSettings,
   startOneOnOneData,
   aiDrafts,
   onGenerateDrafts,
@@ -71,6 +83,19 @@ export default function OneOnOneCanvasV2({
   const [scheduleMember, setScheduleMember] = useState(null);
   // "1on1 진행" 버튼이 눌린 멤버 — null 이면 대시보드, 객체면 진행 준비 뷰.
   const [startMember, setStartMember] = useState(null);
+  // 카드 본문 클릭으로 여는 완료된 1on1 상세(열람모드) 모달 — Figma 17413:26357.
+  const [detailMember, setDetailMember] = useState(null);
+  // '노트' 버튼으로 여는 매니저 노트 모달 — Figma 17414:27470. 열 때 해당 멤버 선택.
+  const [noteMember, setNoteMember] = useState(null);
+  // 최초 '1on1 진행' 셋업 플로우 — 마이크 권한(17416:27675) → 매니저 지정(17416:27850)
+  // 을 통과해야 진행 뷰로 이동한다. 한 번 완료하면 이 세션에서는 다시 묻지 않는다.
+  const [setupDone, setSetupDone] = useState(false);
+  const [setupStep, setSetupStep] = useState(null); // null | 'mic' | 'manager'
+  const [pendingStart, setPendingStart] = useState(null);
+  const handleMemberClick = (m) => {
+    if (onMemberClick) { onMemberClick(m); return; }
+    if (m.detail) setDetailMember(m);
+  };
   const handleAdd = () => {
     onAddClick?.();
     setAddOpen(true);
@@ -81,12 +106,30 @@ export default function OneOnOneCanvasV2({
     const kind = resolveActionKind(action);
     if (kind === 'book') { setScheduleMember(m); return; }
     if (kind === 'start') {
-      if (onStartMember) { onStartMember(m); return; }
-      setStartMember(m);
+      if (!setupDone && managerCandidates?.length) {
+        setPendingStart(m);
+        setSetupStep('mic');
+        return;
+      }
+      proceedStart(m);
       return;
     }
+    if (kind === 'note') { setNoteMember(m); return; }
     action.onClick?.();
   };
+  const proceedStart = (m) => {
+    if (onStartMember) { onStartMember(m); return; }
+    setStartMember(m);
+  };
+  // 셋업 완료(확인/나중에 공통) — 진행 뷰로 이동.
+  const finishSetup = () => {
+    setSetupDone(true);
+    setSetupStep(null);
+    if (pendingStart) proceedStart(pendingStart);
+    setPendingStart(null);
+  };
+  // 모달 X/오버레이 닫기 — 진행하지 않고 대시보드에 남는다.
+  const cancelSetup = () => { setSetupStep(null); setPendingStart(null); };
   return (
     <main className="ono-page">
       <header className="ono-page-header">
@@ -185,6 +228,7 @@ export default function OneOnOneCanvasV2({
                     icons={icons}
                     baseUrl={baseUrl}
                     onAction={handleMemberAction}
+                    onCardClick={(onMemberClick || m.detail) ? () => handleMemberClick(m) : undefined}
                     renderAvatar={renderMemberAvatar}
                   />
                 ))}
@@ -192,6 +236,41 @@ export default function OneOnOneCanvasV2({
             </section>
           ))}
         </>
+      )}
+      {detailMember && (
+        <OneOnOneDetailModal
+          detail={detailMember.detail}
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setDetailMember(null)}
+          onScheduleNext={() => setDetailMember(null)}
+        />
+      )}
+      {setupStep === 'mic' && (
+        <MicPermissionModal
+          onClose={cancelSetup}
+          onComplete={() => setSetupStep('manager')}
+          onOpenSettings={onOpenMicSettings}
+        />
+      )}
+      {setupStep === 'manager' && (
+        <ManagerAssignModal
+          candidates={managerCandidates}
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={cancelSetup}
+          onConfirm={finishSetup}
+          onLater={finishSetup}
+        />
+      )}
+      {noteMember && (
+        <ManagerNoteModal
+          members={sections.flatMap((sec) => sec.members)}
+          initialMemberId={noteMember.id}
+          icons={icons}
+          baseUrl={baseUrl}
+          onClose={() => setNoteMember(null)}
+        />
       )}
     </main>
   );
@@ -290,13 +369,16 @@ const HEALTH_COLORS = {
   good: { text: 'var(--utility-green-600)', bar: 'var(--utility-green-100)' },
 };
 
-function MemberCard({ member, icons, baseUrl, onAction, renderAvatar }) {
+function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvatar }) {
   const badge = SEVERITY_BADGE[member.severity] ?? SEVERITY_BADGE.good;
   const healthConf = HEALTH_COLORS[member.healthSeverity] ?? HEALTH_COLORS.good;
   const healthPct = Math.max(0, Math.min(100, (parseFloat(member.healthScore) / 10) * 100));
 
   return (
-    <div className="ono-member-card">
+    <div
+      className={`ono-member-card${onCardClick ? ' is-clickable' : ''}`}
+      onClick={onCardClick}
+    >
       <div className="ono-member-top">
         <div className="ono-member-identity">
           <div className="ono-member-avatar">
@@ -353,7 +435,7 @@ function MemberCard({ member, icons, baseUrl, onAction, renderAvatar }) {
               key={i}
               type="button"
               className={`ono-member-btn ${a.variant === 'primary' ? 'ono-member-btn-primary' : ''}`}
-              onClick={() => onAction?.(member, a)}
+              onClick={(e) => { e.stopPropagation(); onAction?.(member, a); }}
             >
               {a.label}
             </button>
