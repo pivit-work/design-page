@@ -70,7 +70,7 @@ const DEFAULT_LABELS = {
   jobTitle: '직렬',
   workLocation: '근무지',
   unset: '미지정',
-  optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
+  optionsEmpty: '옵션 없음 — 직군/직렬/직무 설정에서 추가',
   // 직렬이 직군 때문에 잠겼을 때 — 「옵션 없음」이라고 하면 원인을 잘못 가리킨다
   ladderNeedsFamily: '직군을 먼저 선택하세요',
   email: '이메일',
@@ -160,7 +160,7 @@ const DEFAULT_LABELS = {
   // 초과분을 잘라내지 않고 업로드 자체를 거부한다(§5 V10)
   csvErrTooManyRows: '{count}행이라 올릴 수 없어요. 한 번에 최대 {max}행까지 가능합니다 — 파일을 나눠 올려주세요.',
   csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
-  csvErrUnknownOption: "{column} '{value}'는 조직 설정에 없는 값이에요",
+  csvErrUnknownOption: "{column} '{value}'는 직군/직렬/직무 설정에 없는 값이에요",
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
