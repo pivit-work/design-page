@@ -346,6 +346,13 @@
   overflow: hidden;
   line-height: 1;
 }
+/* 같은 자리에 사진이 들어올 때 — 크기·테두리는 `.pj-member-avatar` 가 이미 정한다.
+   여기서는 세로/가로 비율이 다른 원본이 찌그러지지 않게 잘라 채우기만 얹는다
+   (프로젝트 탭의 `<img className="pj-member-avatar">` 와 같은 규약). */
+.sq-avatar-photo {
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
 /* 리드 별 — 줄 안에 놓이는 기본형과, 아바타 모서리에 얹히는 배지형 */
 .sq-lead-mark {
   display: inline-flex;
@@ -620,7 +627,19 @@
 .sq-table-scroll { overflow-x: auto; }
 .pj-table.sq-table { min-width: 640px; }
 
-.pj-th.sq-th-name { width: 240px; }
+/* 🔴 `width` 는 표에서 **희망값**일 뿐 하한이 아니다.
+   이 표는 `table-layout: auto` 라 열 폭을 내용에서 계산한다. 스쿼드 열이 늘어 표가
+   컨테이너보다 넓어지면 브라우저는 하한이 없는 열부터 min-content 까지 줄이는데,
+   한글은 글자 사이 어디서나 줄바꿈되므로 min-content 가 **글자 하나 폭**이다 —
+   그래서 이름이 `조/용/호` 로 세로로 섰다. 이웃 열(`.sq-th-col` 140 ·
+   `.sq-th-cap` 168 + nowrap)에는 하한이 있어 이 열만 줄어들었다.
+   기준은 같은 디자인 언어를 쓰는 프로젝트 탭의 이름 칸 `.pj-sticky-name-hdr` 로,
+   `width` 와 `min-width` 를 함께 건다. */
+.pj-th.sq-th-name {
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+}
 .pj-th.sq-th-col {
   min-width: 140px;
   text-align: center;
@@ -748,6 +767,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 아바타는 안 줄고(`flex-shrink: 0`) 이름만 줄어든다 — 줄어든 이름이 접히지 않고
+     말줄임으로 끊기려면 flex 자식의 기본 하한(min-content)을 풀어야 한다. */
+  min-width: 0;
+  /* 🔴 위쪽 하한의 **짝**이다. 하한만 걸면 이번엔 반대로, 이름이 긴 사람 하나 때문에
+     열이 240 → 375px 로 늘어 스쿼드 열을 옆으로 밀어낸다(실측). 표는 열 폭을 칸의
+     max-content 로도 계산하므로, 칸 안쪽에 상한을 둬야 열이 선언한 폭에 머문다.
+     값은 열 폭 240 에서 `.pj-td` 좌우 패딩 24×2 를 뺀 것이다. */
+  max-width: 192px;
+}
+/* 위 `min-width` 로도 자리가 모자라면, 세로로 쌓지 말고 한 줄을 유지한 채 끊는다.
+   고정 폭 칸에 가변 길이 이름이 들어온다(CLAUDE.md) — 마지막 방어선이다. */
+.sq-name-cell .pj-member-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sq-name-cell.is-clickable { cursor: pointer; }
 .sq-name-cell.is-clickable .pj-member-name {
