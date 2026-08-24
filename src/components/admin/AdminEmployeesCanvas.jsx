@@ -38,6 +38,16 @@ import {
 
 const DEFAULT_LABELS = {
   tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
+  /** 협의 단가 계약 좌석 안내 (PW-344 ⑤) — **차단이 아니라 과금**이라는 사실을 문구가 밝힌다. */
+  contract: {
+    seatsLabel: '계약 좌석',
+    seatsValue: (min, max) => (max == null ? `${min}명 이상` : `${min}~${max}명`),
+    billedLabel: '청구 좌석',
+    billedValue: (seats) => `${seats}명`,
+    underMinReason: (min) => `(약정 하한 ${min}좌석으로 청구)`,
+    overMax: (max, unit) =>
+      `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 계속 가능하며, 초과분은 ₩${Number(unit || 0).toLocaleString('ko-KR')} 단가로 청구되고 영업팀에 통지됩니다.`,
+  },
   countSuffix: '명',
   // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
   /* 목록 뷰의 필터 칩 11종 (PW-400 · §3.1).
@@ -2019,6 +2029,18 @@ export default function AdminEmployeesCanvas({
   inviteLabels,
   /** 좌석 부족 배너의 `결제·구독` 이동. */
   onGoBilling,
+  /**
+   * 협의 단가 **계약** 좌석 안내 (PW-344 ⑤). `accepted` 견적이 있을 때만 채워지고,
+   * 정가 플랜은 `null` 이라 계약 표기가 하나도 뜨지 않는다.
+   *
+   * 🔴 **차단이 아니라 안내다.** 이 값은 어떤 `disabled` 조건에도 들어가지 않는다 —
+   * 계약 상한을 넘어도 초대·재직 전환은 그대로 된다. Free 좌석 상한 게이팅
+   * (`seats.remaining`)과 경로가 다르다: 협의 계약 고객은 이미 결제 중이고, 초과분은
+   * 초과 단가로 청구될 뿐이다. 서버도 계약 상한으로 402 를 내지 않는다.
+   *
+   * `{ minSeats, maxSeats, overageSeatPrice, seatPrice, activeSeats, billedSeats }`
+   */
+  contract = null,
   /** 딥링크 `?invite=new` 로 모달이 열린 상태로 진입(§1 URL). */
   initialInviteOpen = false,
   onResendInvite,
@@ -2056,6 +2078,14 @@ export default function AdminEmployeesCanvas({
   exportLabels,
 }) {
   const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // 협의 단가 계약 표기 (PW-344 ⑤). 판정은 표기용이며 **어떤 disabled 조건에도
+  // 들어가지 않는다** — 위 prop 주석의 이유 그대로다.
+  const contractOverMax =
+    Boolean(contract) &&
+    contract.maxSeats != null &&
+    contract.activeSeats > contract.maxSeats;
+  const contractUnderMin =
+    Boolean(contract) && contract.activeSeats < contract.minSeats;
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
@@ -2115,6 +2145,43 @@ export default function AdminEmployeesCanvas({
 
   return (
     <div className="admin-emp-canvas">
+      {/* 협의 단가 계약 좌석 안내 (PW-344 ⑤). 정가 플랜에는 이 배너가 아예 없다. */}
+      {contract && (
+        <div
+          data-testid="employees-contract-banner"
+          style={{
+            border: `1px solid ${contractOverMax ? '#FDE68A' : '#E2E8F0'}`,
+            background: contractOverMax ? '#FFFBEB' : '#F8FAFC',
+            borderRadius: 12,
+            padding: '11px 14px',
+            marginBottom: 12,
+            fontSize: 12.5,
+            lineHeight: 1.7,
+            color: '#0F172A',
+          }}
+        >
+          <span style={{ color: '#64748B' }}>{labels.contract.seatsLabel} </span>
+          <b>{labels.contract.seatsValue(contract.minSeats, contract.maxSeats)}</b>
+          <span style={{ color: '#64748B' }}> · {labels.contract.billedLabel} </span>
+          <b>{labels.contract.billedValue(contract.billedSeats)}</b>
+          {contractUnderMin && (
+            <span style={{ color: '#94A3B8' }}>
+              {' '}
+              {labels.contract.underMinReason(contract.minSeats)}
+            </span>
+          )}
+          {/* 🔴 상한 초과는 **경고 줄**이지 차단이 아니다. 배경을 red 로 물들이면
+              문구와 무관하게 「막혔다」로 읽히므로 amber 로 둔다. */}
+          {contractOverMax && (
+            <div style={{ marginTop: 6, color: '#B45309', fontWeight: 600 }}>
+              {labels.contract.overMax(
+                contract.maxSeats,
+                contract.overageSeatPrice ?? contract.seatPrice,
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div className="admin-emp-tabbar" role="tablist">
         {tabs.map((t) => (
           <button

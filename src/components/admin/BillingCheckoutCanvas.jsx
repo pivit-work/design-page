@@ -75,6 +75,29 @@ const DEFAULT_LABELS = {
 
   overlayProcessing: '결제창 처리 중...',
   overlayConfirming: '결제 확인 중... (구독 활성화까지 잠시 걸릴 수 있습니다)',
+
+  // ── 협의 단가 (PW-344 ④) ────────────────────────────────
+  negotiatedTag: '협의 단가 적용',
+  negotiatedContract: (start, end, min, max, validUntil) =>
+    `계약 기간 ${start} ~ ${end} · 계약 좌석 ${max == null ? `${min}명 이상` : `${min}~${max}명`} · 견적 유효기간 ${validUntil}`,
+  negotiatedMinSeatsNote: (min) => `약정 최소 좌석 ${min}명 기준으로 청구됩니다.`,
+  negotiatedSeatRange: (min, max) =>
+    max == null ? `계약 좌석 ${min}명 이상` : `계약 좌석 ${min}~${max}명`,
+  negotiatedSeatOutOfRange: (min, max) =>
+    max == null
+      ? `계약 좌석 하한(${min}명)보다 적습니다`
+      : `계약 좌석 범위를 벗어났습니다 (${min}~${max}명)`,
+  negotiatedOverageLine: (seats, unit) => `계약 범위 초과 ${seats}좌석 × ${won(unit)}`,
+  negotiatedSeatBasisNote: (min) =>
+    `금액은 결제일 기준 활성 좌석 수로 산정하되, 약정 최소 좌석(${min}명) 아래로는 내려가지 않습니다.`,
+  negotiatedSuccessNote: ' · 협의 단가 적용',
+  quoteBlockedTitleExpired: '견적이 만료되었습니다',
+  quoteBlockedTitleSuperseded: '견적이 변경되었습니다',
+  quoteBlockedBodyExpired:
+    '협의 단가 견적의 유효기간이 지났습니다. 영업팀에 문의해 새 견적을 받아 주세요.',
+  quoteBlockedBodySuperseded:
+    '새 조건으로 견적이 다시 발행됐습니다. 플랜 화면에서 새 조건을 확인한 뒤 다시 진행해 주세요.',
+  quoteBlockedCta: '플랜 화면으로',
 };
 
 function mergeLabels(provided) {
@@ -111,6 +134,15 @@ export default function BillingCheckoutCanvas({
   failReason = '',
   canEdit = true,
   labels: providedLabels,
+  /**
+   * 협의 단가 견적 (PW-344 ④). `?quote={id}` 로 진입했을 때 **서버가 재검증한 결과**를
+   * 그대로 받는다 — 화면이 유효성을 판단하지 않는다.
+   *
+   * `{ quoteId, seatPrice, listPriceRef, overageSeatPrice, billingInterval,
+   *    minSeats, maxSeats, contractStart, contractEnd, validUntil,
+   *    blocked: null | 'expired' | 'superseded' }`
+   */
+  quote = null,
   onPay,
   onSeatCountChange,
   onEditProfile,
@@ -123,18 +155,44 @@ export default function BillingCheckoutCanvas({
   const [agreeRefund, setAgreeRefund] = useState(false);
   const [seatCountState, setSeatCountState] = useState(order.seatCount || 1);
 
+  // 협의 단가 모드 (PW-344 ④). `blocked` 는 **서버 재검증 결과**다 — 화면이 유효기간을
+  // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
+  const quoteBlocked = quote ? quote.blocked ?? null : null;
+  const quoteOk = Boolean(quote) && !quoteBlocked;
+
+  // 협의 단가 모드에서는 플랜·주기·단가가 견적에서 확정돼 오고, 화면에서 조정 가능한
+  // 값은 좌석뿐이다.
+  const minSeats = quoteOk ? quote.minSeats : 1;
+  const maxSeats = quoteOk && quote.maxSeats != null ? quote.maxSeats : 999;
+
   // 좌석 수: onSeatCountChange 주입 시 controlled(위임), 아니면 내부 state
   const seatCount = onSeatCountChange ? (order.seatCount || 1) : seatCountState;
   const setSeatsClamped = (n) => {
-    const clamped = Math.max(1, Math.min(999, isNaN(n) ? (order.seatCount || 1) : n));
+    const clamped = Math.max(minSeats, Math.min(maxSeats, isNaN(n) ? (order.seatCount || 1) : n));
     if (onSeatCountChange) onSeatCountChange(clamped);
     else setSeatCountState(clamped);
   };
 
   const hasProfile = !!profile && !!profile.bizRegNo;
 
-  // 금액: 서버 재계산값(amounts) 우선, 없으면 seatCount 로 계산
-  const subtotal = amounts ? amounts.subtotal : seatCount * order.unitPrice;
+  // 단가는 협의 단가가 정가를 대체한다(`pricing-policy.md §8.2` 단가 결정 순서).
+  const unitPrice = quoteOk ? quote.seatPrice : order.unitPrice;
+  const overageUnit = quoteOk ? (quote.overageSeatPrice ?? quote.seatPrice) : unitPrice;
+  // 청구 좌석은 하한을 밑돌지 않고, 상한 초과분은 초과 단가로 별도 라인이 된다.
+  const billedSeats = quoteOk ? Math.max(seatCount, minSeats) : seatCount;
+  const baseSeats =
+    quoteOk && quote.maxSeats != null ? Math.min(billedSeats, quote.maxSeats) : billedSeats;
+  const overSeats = billedSeats - baseSeats;
+  const seatOutOfRange =
+    quoteOk && (seatCount < minSeats || (quote.maxSeats != null && seatCount > quote.maxSeats));
+  const showStrike =
+    quoteOk && quote.listPriceRef != null && quote.seatPrice < quote.listPriceRef;
+
+  // 🔴 금액: **서버 재계산값(`amounts`) 이 언제나 우선**이다. 아래 계산은 서버 응답이
+  // 아직 없을 때의 미리보기일 뿐이며, 협의 단가에서도 그 규약은 같다.
+  const subtotal = amounts
+    ? amounts.subtotal
+    : baseSeats * unitPrice + overSeats * overageUnit;
   const vat = amounts ? amounts.vat : Math.round(subtotal * vatRate);
   const total = amounts ? amounts.total : subtotal + vat;
 
@@ -155,8 +213,28 @@ export default function BillingCheckoutCanvas({
 
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 24px' }}>{labels.pageTitle}</h1>
 
-        {/* 성공 화면 */}
-        {payState === 'success' ? (
+        {/* 견적이 막힌 상태 (PW-344 ④) — 만료·대체. **결제 UI 를 아예 그리지 않는다.**
+            옛 단가로 결제할 수 있다고 읽히면 안 된다. */}
+        {quoteBlocked && payState !== 'success' ? (
+          <Card style={{ background: T.amberBg, border: '1px solid #FDE68A' }}>
+            <div style={{ fontWeight: 800, color: T.amber, marginBottom: 6 }}>
+              {quoteBlocked === 'expired'
+                ? labels.quoteBlockedTitleExpired
+                : labels.quoteBlockedTitleSuperseded}
+            </div>
+            <div style={{ fontSize: 13, color: T.text, marginBottom: 14 }}>
+              {quoteBlocked === 'expired'
+                ? labels.quoteBlockedBodyExpired
+                : labels.quoteBlockedBodySuperseded}
+            </div>
+            <button type="button" onClick={onBackToPlans}
+              style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
+                borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
+                color: T.text, cursor: 'pointer' }}>
+              {labels.quoteBlockedCta}
+            </button>
+          </Card>
+        ) : payState === 'success' ? (
           <Card style={{ textAlign: 'center', padding: 40 }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: T.greenBg,
               color: T.green, fontSize: 28, display: 'flex', alignItems: 'center',
@@ -165,7 +243,8 @@ export default function BillingCheckoutCanvas({
               {isRenewal ? labels.successTitleRenewal : labels.successTitleNew}
             </div>
             <div style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              {labels.successSummary(order.planLabel, seatCount, total)}
+              {labels.successSummary(order.planLabel, billedSeats, total)}
+              {quoteOk && labels.negotiatedSuccessNote}
               {isRenewal && labels.successReconciled}
             </div>
             <div style={{ fontSize: 13, color: T.muted, marginBottom: 24 }}>
@@ -181,36 +260,83 @@ export default function BillingCheckoutCanvas({
           <>
             {/* 주문 요약 */}
             <Card style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 13, color: T.sub, fontWeight: 700, marginBottom: 12 }}>{labels.orderSummary}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 13, color: T.sub, fontWeight: 700 }}>{labels.orderSummary}</div>
+                {quoteOk && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: T.accent,
+                    padding: '3px 10px', borderRadius: 999 }}>{labels.negotiatedTag}</span>
+                )}
+              </div>
+              {/* 계약 요약 — 견적에서 확정돼 오며 화면에서 바꿀 수 없다 (PW-344 ④). */}
+              {quoteOk && (
+                <div style={{ fontSize: 12, color: T.sub, marginBottom: 12, paddingBottom: 12,
+                  borderBottom: `1px solid ${T.border}`, lineHeight: 1.7 }}>
+                  {labels.negotiatedContract(
+                    quote.contractStart, quote.contractEnd,
+                    quote.minSeats, quote.maxSeats, quote.validUntil,
+                  )}
+                  {quote.minSeats > 1 && (
+                    <div>{labels.negotiatedMinSeatsNote(quote.minSeats)}</div>
+                  )}
+                </div>
+              )}
               {/* 결제 좌석 수 선택 */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, color: T.sub }}>{labels.seatPriceLine(order.planLabel, order.unitPrice)}</span>
+                <span style={{ fontSize: 14, color: T.sub }}>
+                  {/* 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다 —
+                      인상 계약에 「할인」을 붙이면 계약 조건을 잘못 말하는 것이다. */}
+                  {showStrike && (
+                    <span style={{ color: T.muted, textDecoration: 'line-through', marginRight: 4 }}>
+                      {won(quote.listPriceRef)}
+                    </span>
+                  )}
+                  {labels.seatPriceLine(order.planLabel, unitPrice)}
+                </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button type="button" onClick={() => setSeatsClamped(seatCount - 1)} disabled={seatCount <= 1}
+                  <button type="button" onClick={() => setSeatsClamped(seatCount - 1)} disabled={seatCount <= minSeats}
                     aria-label={labels.seatDecrease}
                     style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
                       background: '#fff', fontSize: 17, fontWeight: 700, color: T.text,
-                      cursor: seatCount <= 1 ? 'not-allowed' : 'pointer', opacity: seatCount <= 1 ? 0.4 : 1 }}>−</button>
-                  <input type="number" min={1} value={seatCount}
+                      cursor: seatCount <= minSeats ? 'not-allowed' : 'pointer', opacity: seatCount <= minSeats ? 0.4 : 1 }}>−</button>
+                  <input type="number" min={minSeats} max={maxSeats} value={seatCount}
                     onChange={(e) => setSeatsClamped(parseInt(e.target.value, 10))}
                     style={{ width: 60, textAlign: 'center', fontSize: 16, fontWeight: 800,
                       border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 4px' }} />
-                  <button type="button" onClick={() => setSeatsClamped(seatCount + 1)}
+                  <button type="button" onClick={() => setSeatsClamped(seatCount + 1)} disabled={seatCount >= maxSeats}
                     aria-label={labels.seatIncrease}
                     style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
-                      background: '#fff', fontSize: 17, fontWeight: 700, color: T.text, cursor: 'pointer' }}>+</button>
+                      background: '#fff', fontSize: 17, fontWeight: 700, color: T.text,
+                      cursor: seatCount >= maxSeats ? 'not-allowed' : 'pointer', opacity: seatCount >= maxSeats ? 0.4 : 1 }}>+</button>
                   <span style={{ fontSize: 13, color: T.sub }}>{labels.seatUnit}</span>
                 </div>
               </div>
+              {/* 계약 좌석 범위 안내 (PW-344 ④). */}
+              {quoteOk && (
+                <div style={{ fontSize: 12, color: seatOutOfRange ? T.red : T.muted, marginTop: 2, marginBottom: 6 }}>
+                  {seatOutOfRange
+                    ? labels.negotiatedSeatOutOfRange(minSeats, quote.maxSeats)
+                    : labels.negotiatedSeatRange(minSeats, quote.maxSeats)}
+                </div>
+              )}
+              {/* 계약 상한 초과분은 초과 단가로 별도 라인이 된다 — 차단이 아니라 과금이다. */}
+              {overSeats > 0 && (
+                <Row
+                  label={labels.negotiatedOverageLine(overSeats, overageUnit)}
+                  value={won(overSeats * overageUnit)}
+                />
+              )}
               <Row label={labels.subtotal} value={won(subtotal)} />
               <Row label={labels.vat(vatRate)} value={won(vat)} />
               <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
               <Row label={labels.payNow} value={won(total)} strong />
               <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
-                {order.interval === 'annual'
+                {(quoteOk ? quote.billingInterval : order.interval) === 'annual'
                   ? labels.intervalNoteAnnual
                   : labels.intervalNoteMonthly}{' '}
-                {labels.seatBasisNote}
+                {quoteOk
+                  ? labels.negotiatedSeatBasisNote(minSeats)
+                  : labels.seatBasisNote}
               </div>
             </Card>
 
