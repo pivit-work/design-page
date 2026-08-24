@@ -28,7 +28,11 @@ import { formatLiveElapsed } from './sessionHelpers.js';
  * - `failReason` — `'timeout' | 'model_error' | 'quota_exceeded'` (§7.5.5).
  *   판별 불가면 생략 → 모델 오류 문구가 기본값.
  * - `retryLeft` — 남은 `다시 시도` 횟수 (§7.5.6). 0 이면 버튼이 잠기고 문구가 바뀐다.
- * - `maxRegen` / `elapsedSec` / `memberName` / `sourceLabels` / `onGenerate`
+ * - `maxRegen` / `memberName` / `sourceLabels` / `onGenerate`
+ * - `elapsedSec` — 세션 경과(초). **`null` 이면 아직 녹음 전**이라 타이머를 `--:--` 로
+ *   두고 페이스 줄을 계산하지 않는다 (PW-478 · policy §5.0 T2). 값은 소비처가 서버
+ *   `recordingStartedAt` 에서 파생해 내려 준다 — 이 카드가 자기 타이머를 돌리지 않는다.
+ * - `paceHidden` — 녹음 없이 진행하는 회차. 페이스 줄 전체를 감춘다 (T4).
  * - `labels` — 소비처(i18n)가 주는 문구 묶음. 안 주면 한국어 기본값.
  */
 
@@ -36,6 +40,8 @@ import { formatLiveElapsed } from './sessionHelpers.js';
 const DEFAULT_STAGE_COUNT = 7;
 const DEFAULT_TOTAL_MIN = 55;
 const DEFAULT_MAX_REGEN = 3;
+/** t0(녹음 시작) 이전의 경과 표시 — 0 이 없는 상태에서 시계를 돌리지 않는다 (PW-478). */
+const NO_CLOCK = '--:--';
 
 /**
  * 기본 문구 (한국어). 소비처가 `labels` 로 덮어쓴다 — pivit-work 는 i18n 을 통과시킨다.
@@ -66,8 +72,10 @@ const DEFAULT_LABELS = {
     `아이스브레이킹부터 랩업까지, ${name} 님 데이터 기반의 단계별 진행 스크립트를 생성합니다. READY 산출물을 재구성하며 실시간 대화는 분석하지 않습니다.`,
   generate: (min, count) => `진행 스크립트 생성 — ${min}분 · ${count}단계`,
   generating: '진행 스크립트를 구성하는 중...',
+  // 뒤 값은 **세션 총 경과**다. 종전 문구 「경과 N분」은 현재 단계에 머문 시간으로
+  // 읽혀, 단계를 옮겨도 리셋되지 않는 값에 잘못된 이름이 붙어 있었다 (PW-478 §5.2.1).
   pace: (from, to, elapsed) =>
-    `현재 단계 권장 ${from}–${to}분 · 경과 ${elapsed}분`,
+    `현재 단계 권장 ${from}–${to}분 · 시작 후 ${elapsed}분`,
   paceLate: (late) => `권장 페이스보다 ${late}분 초과 — 다음 단계 전환을 고려하세요`,
   scriptSection: '이렇게 말해보세요',
   questionSection: '추천 질문',
@@ -95,7 +103,8 @@ export default function LiveGuideCard({
   failReason = null,
   retryLeft = null,
   maxRegen = DEFAULT_MAX_REGEN,
-  elapsedSec = 0,
+  elapsedSec = null,
+  paceHidden = false,
   memberName = '',
   sourceLabels = [],
   onGenerate,
@@ -129,9 +138,16 @@ export default function LiveGuideCard({
   const stage = stages[safeIdx] ?? null;
   const isLast = safeIdx === stages.length - 1;
   const allDone = generated && doneIds.length === stages.length;
-  const elapsedMin = Math.floor(Math.max(0, elapsedSec) / 60);
+  // 🔴 `elapsedSec === null` 은 **아직 t0 가 없다**는 뜻이다 (PW-478 · policy §5.0 T2).
+  // 0 으로 뭉개면 화면이 `00:00` 을 그려 「아직 안 세고 있다」와 「막 시작했다」가 같은
+  // 모습이 된다 — 그리고 페이스 힌트가 대화가 아니라 **대기 시간**을 세기 시작한다.
+  const clockRunning = typeof elapsedSec === 'number';
+  const elapsedMin = clockRunning ? Math.floor(Math.max(0, elapsedSec) / 60) : 0;
   const [from, to] = stage?.timeRange ?? [0, 0];
   const lateMin = elapsedMin - to;
+  // 녹음 없이 진행하는 미팅은 페이스 줄 **전체를 감춘다** (T4). 시계를 「LIVE 진입」으로
+  // 되돌리지 않는다 — 그것이 이 변경이 없애려는 두 번째 축이다.
+  const showPace = clockRunning && !paceHidden;
   const regenCount = guide?.regenCount ?? 0;
   const regenLeft = Math.max(0, maxRegen - regenCount);
   const guideTotalMin = guide?.totalMin ?? totalMin;
@@ -172,7 +188,7 @@ export default function LiveGuideCard({
               color="currentColor"
               baseUrl={baseUrl}
             />
-            {formatLiveElapsed(elapsedSec)}
+            {clockRunning ? formatLiveElapsed(elapsedSec) : NO_CLOCK}
           </span>
           {generated && !loading && (
             <button
@@ -302,8 +318,10 @@ export default function LiveGuideCard({
             })}
           </div>
 
-          {/* 페이스 — 안내만 한다. 자동 전환·강제 종료는 없다 (TC-1ON1-105) */}
-          <div className={`ono-guide-pace${lateMin > 0 ? ' is-late' : ''}`}>
+          {/* 페이스 — 안내만 한다. 자동 전환·강제 종료는 없다 (TC-1ON1-105).
+              t0 가 없거나 녹음 없이 진행하는 회차에서는 줄 전체를 감춘다 (PW-478 §5.0). */}
+          {showPace && (
+          <div className={`ono-guide-pace${lateMin > 0 ? ' is-late' : ''}`} data-testid="ono-live-guide-pace">
             <span className="ono-guide-pace-text">
               {L.pace(from, to, elapsedMin)}
             </span>
@@ -319,6 +337,7 @@ export default function LiveGuideCard({
               </span>
             )}
           </div>
+          )}
 
           {/* 현재 단계 */}
           <div className="ono-guide-stage-head">

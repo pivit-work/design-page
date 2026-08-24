@@ -41,8 +41,18 @@ import LiveGuideCard from './LiveGuideCard.jsx';
  *     쥔다(정책 §5.2.1: `phase === live` AND 뷰어가 매니저). 값은 `LiveGuideCard` 의
  *     props 를 그대로 통과시킨다.
  *
+ *   - `readyGuide` : READY 단계의 진행 스크립트 카드 props (PW-478 · policy §4.1.2-A).
+ *     AI 브리핑 아래에 그린다. 입력이 전부 READY 산출물이라 LIVE 를 기다릴 이유가
+ *     없었고, 그 대기가 ① 아이스브레이킹의 권장 구간을 미팅 시간으로 갉아먹었다.
+ *   - `elapsedSec` : 세션 경과(초). 주면 자체 타이머를 돌리지 않는다. `null` = 녹음 전.
+ *   - `startBlocked` / `onStartBlocked` : 「시작하기」를 가로채 소비처가 안내를 띄운다.
+ *     버튼을 잠그는 것이 **아니다** — 잠그는 안은 기획에서 미채택이다(policy §5.1).
+ *
  * member shape: { name, role, avatar, badge? }
  */
+
+/** t0(녹음 시작) 이전의 경과 표시 (PW-478 · policy §5.0 T2). */
+const NO_CLOCK = '--:--';
 
 const SOURCE_BADGES = ['Daily Snippet', '회의록', '피드백', '기존1on1'];
 const MGR_SECTIONS = [
@@ -202,6 +212,21 @@ export default function StartOneOnOneView({
   onEndMeeting,
   // ── LIVE 대화 내비게이터 (PW-429). null 이면 카드를 그리지 않는다 ──
   liveGuide = null,
+  // ── READY 진행 스크립트 카드 (PW-478 · policy §4.1.2-A) ──
+  // 같은 `LiveGuideCard` 를 AI 브리핑 **아래**에 한 번 더 그린다. null 이면 안 그린다 —
+  // LIVE 카드와 마찬가지로 단계·역할 판정은 소비처가 쥔다.
+  readyGuide = null,
+  // ── 세션 경과 (PW-478 · policy §5.0) ──
+  // 주면 controlled — 이 컴포넌트가 자기 타이머를 돌리지 않고 이 값을 그대로 쓴다.
+  // `null` 이면 아직 t0 가 없다는 뜻이라 녹음 위젯이 `--:--` 를 보인다.
+  elapsedSec: elapsedSecProp,
+  // ── 시작 전 확인 (PW-478 · policy §5.1) ──
+  // `startBlocked` 면 「시작하기」가 미팅을 시작하는 대신 `onStartBlocked()` 만 부른다.
+  // 소비처가 안내를 띄우고, 사용자가 「그대로 시작」을 고르면 소비처가 직접 시작한다.
+  // 🔴 버튼을 `disabled` 로 잠그지 않는다 — 상대가 앞에 앉은 화면에서 「AI 가 준비될
+  // 때까지 시작할 수 없음」은 도구가 대화를 막는 것이다(미채택안).
+  startBlocked = false,
+  onStartBlocked,
   busy = false,
   busyLabel = null,
 }) {
@@ -373,17 +398,29 @@ export default function StartOneOnOneView({
     setRecordingState(next);
     onRecordingChange?.(next);
   };
-  const [elapsedSec, setElapsedSec] = useState(0);
+  // 🔴 `elapsedSec` 을 주면 **자체 타이머를 돌리지 않는다** (PW-478 · policy §5.0 T1).
+  // 예전에는 여기서 1초씩 더했는데, 소비처의 헤더 타이머는 서버 시각에서 파생해서
+  // 같은 클릭에서 출발하고도 왕복 지연만큼 벌어졌다 — dev 에서 `00:27` ↔ `00:26`.
+  // 자리마다 따로 세는 한 한 자리를 고쳐도 나머지가 남는다.
+  const controlledElapsed = elapsedSecProp !== undefined;
+  const [ownElapsedSec, setOwnElapsedSec] = useState(0);
   // 일시정지 동안에는 세지 않는다 — 화면 경과 시간이 실제 녹음 길이보다 앞서면
   // 전사 발화 시각(HH:MM:SS)을 앵커로 쓰는 근거 발췌와 어긋난다.
   useEffect(() => {
-    if (!recording || paused) return undefined;
-    const id = setInterval(() => setElapsedSec((s) => s + 1), 1000);
+    if (controlledElapsed || !recording || paused) return undefined;
+    const id = setInterval(() => setOwnElapsedSec((s) => s + 1), 1000);
     return () => clearInterval(id);
-  }, [recording, paused]);
+  }, [controlledElapsed, recording, paused]);
+  const elapsedSec = controlledElapsed ? elapsedSecProp : ownElapsedSec;
 
   const startMeeting = () => {
-    setElapsedSec(0);
+    // 스크립트를 안 만든 채 시작하려는 경우 — 소비처가 안내를 띄운다 (policy §5.1).
+    // 여기서 녹음 상태를 먼저 켜면 안내 뒤에 녹음 위젯이 이미 떠 있게 된다.
+    if (startBlocked) {
+      onStartBlocked?.();
+      return;
+    }
+    setOwnElapsedSec(0);
     setRecording(true);
     onStartRecording?.();
     // 녹음 표시는 로컬 상태지만, 미팅을 실제로 "진행 중" 으로 만드는 건 소비처다.
@@ -442,7 +479,9 @@ export default function StartOneOnOneView({
           <OneOnOneRecordingWidget
             member={member}
             meetingTime={meetingTime}
-            elapsed={formatElapsed(elapsedSec)}
+            elapsed={
+              elapsedSec === null ? NO_CLOCK : formatElapsed(elapsedSec)
+            }
             paused={paused}
             onPause={onPause}
             onResume={onResume}
@@ -604,6 +643,19 @@ export default function StartOneOnOneView({
                   </div>
                 )}
               </>
+            )}
+
+            {/* 진행 스크립트 (READY 생성 — policy §4.1.2-A · PW-478).
+                AI 브리핑 **아래**다: 브리핑이 이 스크립트의 입력이라 읽는 순서가 생성
+                순서와 같다. 준비도 카운터에는 들어가지 않는다 — 조력 콘텐츠이지 준비
+                항목이 아니라서, 세면 「AI 를 눌러야 준비가 끝난다」가 된다. */}
+            {readyGuide && (
+              <div className="ono-start-briefing-block" data-testid="ono-ready-guide-slot">
+                <LiveGuideCard
+                  {...readyGuide}
+                  baseUrl={readyGuide.baseUrl ?? baseUrl}
+                />
+              </div>
             )}
 
             <div className="ono-start-briefing-block">
