@@ -95,6 +95,25 @@ const DEFAULT_LABELS = {
     `사용분이 결제액 이상이라 환불 대상 금액이 없습니다(${months}개월 사용). 기간말 해지를 권장합니다.`,
   monthlyNoRefundNote: '월간 구독은 중도 환불이 없습니다. 기간말 해지로 남은 기간까지 사용하세요.',
   close: '닫기',
+
+  // ── 협의 단가 계약 (PW-344 ⑤) ────────────────────────────
+  contractBadge: '협의 단가 계약',
+  contractSeatsLabel: '계약 좌석',
+  contractSeatsValue: (min, max) => (max == null ? `${min}명 이상` : `${min}~${max}명`),
+  contractMinNote: (min) => `최소 ${min}명은 청구 하한`,
+  contractPeriodLabel: '계약 기간',
+  contractPeriodNote: '종료 시 동일 단가 자동 갱신',
+  contractBilledSeatsLabel: '청구 좌석',
+  contractBilledSeatsValue: (seats) => `${seats}명`,
+  contractBilledSeatsNote: (base, over, underMin) =>
+    over > 0 ? `기본 ${base} + 초과 ${over}` : underMin ? '약정 하한 적용' : '활성 좌석 기준',
+  contractOverMaxNotice: (max, over, unit) =>
+    `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 계속 가능하며, 초과 ${over}좌석은 ${won(unit)} 단가로 청구되고 영업팀에 통지됩니다.`,
+  contractUnderMinNotice: (seats, min) =>
+    `활성 좌석(${seats}명)이 약정 최소 좌석보다 적어 ${min}명 기준으로 청구됩니다. 구성원을 줄여도 청구 금액은 이 하한 아래로 내려가지 않습니다.`,
+  contractRenewSoonNotice: (days) =>
+    `계약 종료까지 D-${days} 입니다. 별도 조치가 없으면 현재 협의 단가 그대로 자동 갱신됩니다 — 구독이 끊기지 않습니다. 조건을 다시 협의하려면 영업팀에 문의해 주세요.`,
+  contractContactSales: '영업팀 문의',
 };
 
 function mergeLabels(provided) {
@@ -151,6 +170,16 @@ export default function BillingOverviewCanvas({
   refundQuote = { eligible: false, reason: 'none' },
   canEdit = false,
   labels: providedLabels,
+  /**
+   * 협의 단가 **계약** (PW-344 ⑤). `accepted` 견적이 있을 때만 채워지고, 정가 플랜은
+   * `null` 이라 계약 표기가 하나도 뜨지 않는다 — 수락되지 않은 견적이 계약처럼 보이면
+   * 「견적은 결제가 아니다」 불변식이 화면에서 깨진다.
+   *
+   * `{ seatPrice, minSeats, maxSeats, overageSeatPrice, contractStart, contractEnd,
+   *    billedSeats, overageSeats, daysUntilContractEnd }`
+   */
+  contract = null,
+  onNavigateContactSales,
   onNavigateMethods,
   onNavigatePlans,
   onNavigateMembers,
@@ -172,6 +201,17 @@ export default function BillingOverviewCanvas({
   // 좌석 한도 근접 경고: Free 플랜에서만 (활성 좌석 ≥ 상한×0.8)
   const nearLimit = sub.planCode === 'free' && plan.seatLimit != null
     && sub.seats >= plan.seatLimit * 0.8;
+
+  // 협의 단가 계약 (PW-344 ⑤). 값은 전부 **서버 재계산값**이며 화면이 산식을 갖지 않는다.
+  const contractUnderMin = Boolean(contract) && sub.seats < contract.minSeats;
+  const contractOverSeats = contract?.overageSeats ?? 0;
+  const contractOverageUnit = contract
+    ? (contract.overageSeatPrice ?? contract.seatPrice)
+    : 0;
+  // D-30 부터는 재협의 알림 구간이다. 만료돼도 구독은 **끊기지 않고** 동일 단가로
+  // 자동 갱신된다 — 갱신 실패가 곧 이 카드가 없애려는 미과금 상태다.
+  const contractRenewSoon =
+    Boolean(contract) && contract.daysUntilContractEnd <= 30;
 
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
   const handleRefund = () => { setCancelOpen(false); onCancelRefund?.(); };
@@ -227,11 +267,15 @@ export default function BillingOverviewCanvas({
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <span style={{ fontSize: 22, fontWeight: 800 }}>{plan.label}</span>
                 <Badge color={statusMeta.color} bg={statusMeta.bg}>{statusLabel}</Badge>
+                {/* 청구 단가가 플랜 정가와 다른 이유를 한눈에 말한다 (PW-344 ⑤). */}
+                {contract && <Badge color={T.accent} bg="#EEF2FF">{labels.contractBadge}</Badge>}
               </div>
               <div style={{ fontSize: 13, color: T.sub }}>
+                {/* 플랜 카탈로그의 `seatPrice` 는 **시작가**이지 청구 단가가 아니다 —
+                    협의 계약이면 계약 단가를 보여 준다. */}
                 {sub.planCode === 'free'
                   ? labels.freeSeatPrice(plan.seatLimit)
-                  : labels.paidSeatPrice(plan.seatPrice)}
+                  : labels.paidSeatPrice(contract ? contract.seatPrice : plan.seatPrice)}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -275,6 +319,73 @@ export default function BillingOverviewCanvas({
               {labels.nearLimitWarning}
             </div>
           )}
+          {/* 협의 단가 계약 정보 (PW-344 ⑤) — 정가 플랜에는 이 블록이 아예 없다. */}
+          {contract && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}`,
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, fontSize: 12 }}>
+              <div>
+                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractSeatsLabel}</div>
+                <div style={{ fontWeight: 700 }}>
+                  {labels.contractSeatsValue(contract.minSeats, contract.maxSeats)}
+                </div>
+                <div style={{ color: T.muted }}>{labels.contractMinNote(contract.minSeats)}</div>
+              </div>
+              <div>
+                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractPeriodLabel}</div>
+                <div style={{ fontWeight: 700 }}>{contract.contractStart} ~ {contract.contractEnd}</div>
+                <div style={{ color: T.muted }}>{labels.contractPeriodNote}</div>
+              </div>
+              <div>
+                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractBilledSeatsLabel}</div>
+                <div style={{ fontWeight: 700 }}>
+                  {labels.contractBilledSeatsValue(contract.billedSeats)}
+                </div>
+                <div style={{ color: T.muted }}>
+                  {labels.contractBilledSeatsNote(
+                    contract.billedSeats - contractOverSeats,
+                    contractOverSeats,
+                    contractUnderMin,
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 계약 좌석 상한 초과 — **차단하지 않는다.** 협의 계약 고객은 이미 결제 중이라
+              Free 좌석 상한 게이팅과 경로가 다르다. */}
+          {contractOverSeats > 0 && (
+            <div style={{ marginTop: 10, padding: '10px 14px', background: T.amberBg,
+              border: '1px solid #FDE68A', borderRadius: 10, fontSize: 12, color: T.text }}>
+              {labels.contractOverMaxNotice(
+                contract.maxSeats, contractOverSeats, contractOverageUnit,
+              )}
+            </div>
+          )}
+
+          {/* 약정 최소 좌석 미만 — 구성원을 줄였는데 금액이 그대로인 이유를 화면이 밝힌다.
+              없으면 그 질문이 문의로 온다. */}
+          {contractUnderMin && (
+            <div style={{ fontSize: 12, color: T.amber, marginTop: 10 }}>
+              {labels.contractUnderMinNotice(sub.seats, contract.minSeats)}
+            </div>
+          )}
+
+          {/* 계약 만료 임박 — 만료를 「종료」로 읽히게 쓰지 않는다. */}
+          {contractRenewSoon && (
+            <div style={{ marginTop: 10, padding: '10px 14px', background: '#EEF2FF',
+              border: `1px solid ${T.accent}`, borderRadius: 10, fontSize: 12, color: T.text,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span>
+                {labels.contractRenewSoonNotice(Math.max(0, contract.daysUntilContractEnd))}
+              </span>
+              <button type="button" onClick={onNavigateContactSales} disabled={!canEdit}
+                style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                  fontSize: 12, cursor: canEdit ? 'pointer' : 'not-allowed', padding: 0, whiteSpace: 'nowrap' }}>
+                {labels.contractContactSales}
+              </button>
+            </div>
+          )}
+
           {/* 좌석 조정 동선 안내 */}
           <div style={{ fontSize: 12, color: T.muted, marginTop: 10, display: 'flex',
             justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -294,7 +405,11 @@ export default function BillingOverviewCanvas({
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.nextBillingLabel}</div>
               <div style={{ fontSize: 20, fontWeight: 800 }}>{won(sub.periodAmount)}</div>
               <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
-                {labels.nextBillingSub(sub.nextBillingAt, sub.seats, plan.seatPrice)}
+                {labels.nextBillingSub(
+                  sub.nextBillingAt,
+                  contract ? contract.billedSeats : sub.seats,
+                  contract ? contract.seatPrice : plan.seatPrice,
+                )}
               </div>
             </Card>
             <Card>

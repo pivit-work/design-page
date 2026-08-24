@@ -99,6 +99,36 @@ const DEFAULT_LABELS = {
   cancelButton: '취소',
   confirmDowngradeCta: '다운그레이드 확인',
   confirmChangeCta: '변경 확인',
+
+  // ── 협의 단가 견적 (PW-344) ──────────────────────────────
+  quoteExpiredTitle: '견적이 만료되었습니다',
+  quoteExpiredBody:
+    '협의 단가 견적의 유효기간이 지났습니다. 영업팀에 문의해 새 견적을 받아 주세요.',
+  quoteExpiredCta: '영업팀 문의하기',
+  quoteCardTitle: '협의 단가 적용됨 — Pro · Enterprise',
+  quoteCardTitleRenewal: '갱신 견적 — 다음 계약 기간 조건',
+  quoteValidBadge: (days) => `유효기간 D-${days}`,
+  quoteExpiredBadge: '만료',
+  quotePerSeat: '/ 좌석 / 월 (부가세 별도)',
+  quoteNegotiatedTag: '협의 단가 적용',
+  quoteContractSeats: '계약 좌석',
+  quoteContractSeatsValue: (min, max) =>
+    max == null ? `${min}명 이상` : `${min}~${max}명`,
+  quoteMinSeatsNote: (min) => `최소 ${min}명은 청구 하한`,
+  quoteContractPeriod: '계약 기간',
+  quoteContractPeriodNote: '종료 시 동일 단가 자동 갱신',
+  quoteInterval: '청구 주기',
+  quoteIntervalAnnual: '연간 (1년분 선결제)',
+  quoteIntervalMonthly: '월간',
+  quoteValidUntil: '견적 유효기간',
+  quoteOverMaxNotice: (max, price) =>
+    `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 차단되지 않으며, 초과분은 ${won(price)} 단가로 청구되고 영업팀에 통지됩니다.`,
+  quoteRenewalNote:
+    '동의하면 다음 계약 기간부터 위 조건이 적용됩니다. 현재 기간에는 소급되지 않습니다.',
+  quotePayNote: (seats) =>
+    `결제 시 ${seats}좌석 기준으로 청구됩니다. 결제 전까지 유료 기능은 열리지 않습니다.`,
+  quotePayCta: '결제하기',
+  quoteAcceptRenewalCta: '갱신 조건에 동의',
 };
 
 function mergeLabels(provided) {
@@ -155,8 +185,98 @@ function FeatureIcon({ status }) {
   return <span style={{ color: T.muted, fontSize: 15 }}>–</span>;
 }
 
+// ── 협의 단가 카드 (PW-344) ─────────────────────────────────
+//
+// 새 시각 언어를 만들지 않는다 — 이 파일의 Card/Badge/Btn/Divider 를 그대로 조합하고,
+// 보라 계열(T.purple/T.purpleBg)은 기존 「Pro 커스텀 견적」 카드가 쓰던 색을 승계한다.
+//
+// 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다. 인상 계약에 취소선·
+// 「할인」 문구를 붙이면 계약 조건을 잘못 말하는 것이 된다.
+function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels }) {
+  const dLeft = quote.daysUntilValidUntil;
+  const urgent = dLeft != null && dLeft <= 7;
+  const showStrike =
+    quote.listPriceRef != null && quote.seatPrice < quote.listPriceRef;
+
+  return (
+    <Card style={{ marginBottom: 24, background: T.purpleBg, border: `1px solid ${T.purple}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontWeight: 800, color: T.purple }}>
+          {quote.isRenewal ? labels.quoteCardTitleRenewal : labels.quoteCardTitle}
+        </div>
+        <Badge color={urgent ? '#fff' : T.purple} bg={urgent ? T.amber : '#fff'}>
+          {dLeft != null && dLeft > 0
+            ? labels.quoteValidBadge(dLeft)
+            : labels.quoteExpiredBadge}
+        </Badge>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+        {showStrike && (
+          <span style={{ fontSize: 14, color: T.muted, textDecoration: 'line-through' }}>
+            {won(quote.listPriceRef)}
+          </span>
+        )}
+        <span style={{ fontSize: 26, fontWeight: 800 }}>{won(quote.seatPrice)}</span>
+        <span style={{ fontSize: 13, color: T.sub }}>{labels.quotePerSeat}</span>
+      </div>
+
+      <Divider />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, fontSize: 13 }}>
+        <div>
+          <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteContractSeats}</div>
+          <div style={{ fontWeight: 700 }}>
+            {labels.quoteContractSeatsValue(quote.minSeats, quote.maxSeats)}
+          </div>
+          <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteMinSeatsNote(quote.minSeats)}</div>
+        </div>
+        <div>
+          <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteContractPeriod}</div>
+          <div style={{ fontWeight: 700 }}>{quote.contractStart} ~ {quote.contractEnd}</div>
+          <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteContractPeriodNote}</div>
+        </div>
+        <div>
+          <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteInterval}</div>
+          <div style={{ fontWeight: 700 }}>
+            {quote.billingInterval === 'annual'
+              ? labels.quoteIntervalAnnual
+              : labels.quoteIntervalMonthly}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteValidUntil}</div>
+          <div style={{ fontWeight: 700 }}>{quote.validUntil}</div>
+        </div>
+      </div>
+
+      {/* 계약 좌석 범위 초과 — **차단하지 않고** 초과 단가로 과금한다. Free 좌석 상한
+          게이팅과 경로가 다르다(협의 계약 고객은 이미 결제 중이다). */}
+      {seatsOverMax && (
+        <div style={{ marginTop: 14, padding: '10px 14px', background: T.amberBg,
+          border: '1px solid #FDE68A', borderRadius: 10, fontSize: 12, color: T.text }}>
+          {labels.quoteOverMaxNotice(
+            quote.maxSeats,
+            quote.overageSeatPrice ?? quote.seatPrice,
+          )}
+        </div>
+      )}
+
+      <div style={{ marginTop: 14, fontSize: 12, color: T.sub }}>
+        {quote.isRenewal ? labels.quoteRenewalNote : labels.quotePayNote(billedSeats)}
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <Btn onClick={onPay} disabled={!canEdit}>
+          {quote.isRenewal ? labels.quoteAcceptRenewalCta : labels.quotePayCta}
+        </Btn>
+      </div>
+    </Card>
+  );
+}
+
 // ── 4티어 플랜 카드 ──────────────────────────────────────────
-function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels }) {
+function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice }) {
   const price = interval === 'annual' && plan.seatPriceAnnual != null
     ? plan.seatPriceAnnual
     : plan.seatPrice;
@@ -188,7 +308,19 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
       <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{plan.label}</div>
       <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>{plan.tagline}</div>
 
-      {isFree ? (
+      {/* 협의 단가가 등록돼 있으면 커스텀 플랜의 「커스텀 견적」 대신 그 단가를 보여 준다
+          (PW-344 ④) — 고객이 얼마를 내는지 모르는 채로 결제 버튼을 누르게 두지 않는다. */}
+      {plan.isCustom && negotiatedPrice != null ? (
+        <div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>
+            {won(negotiatedPrice)}
+            <span style={{ fontSize: 13, fontWeight: 500, color: T.sub }}>{labels.perSeatMonth}</span>
+          </div>
+          <div style={{ fontSize: 12, color: T.purple, fontWeight: 700, marginTop: 2 }}>
+            {labels.quoteNegotiatedTag}
+          </div>
+        </div>
+      ) : isFree ? (
         <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{labels.freePrice}</div>
       ) : plan.isCustom ? (
         <div>
@@ -239,7 +371,14 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
           <Btn onClick={onAction} fullWidth
             disabled={!canEdit || isCurrent}
             kind={isCurrent ? 'secondary' : 'primary'}>
-            {isCurrent ? labels.ctaCurrentPlan : isCustomCta ? labels.ctaContactSales : labels.ctaChangePlan}
+            {isCurrent
+              ? labels.ctaCurrentPlan
+              : isCustomCta
+                ? /* 유효 견적이 있으면 커스텀 플랜의 CTA 가 [영업팀 문의] 에서
+                     [결제하기] 로 바뀐다 (PW-344 ④). 견적이 없거나 만료·대체됐으면
+                     종전 그대로다 — 결제할 방법이 없는데 결제 버튼을 두면 안 된다. */
+                  (negotiatedPrice != null ? labels.quotePayCta : labels.ctaContactSales)
+                : labels.ctaChangePlan}
           </Btn>
         </div>
       )}
@@ -316,6 +455,22 @@ export default function BillingPlansCanvas({
   onNavigateBillingSettings = () => {},
   onNavigateMembers = () => {},
   onNavigateBillingOverview = () => {},
+  /**
+   * 협의 단가 견적 1건 또는 `null` (PW-344 ④). 워크스페이스당 유효 견적은 최대 1건이라
+   * 목록·선택 UI 를 두지 않는다.
+   *
+   * ⚠️ 견적이 있어도 유료 기능·유료 좌석은 열리지 않는다 — 첫 선결제 성공까지 구독
+   * 상태는 그대로다. 이 캔버스는 **결제로 가는 길만** 연다.
+   *
+   * `{ quoteId, planCode, seatPrice, listPriceRef, overageSeatPrice, billingInterval,
+   *    minSeats, maxSeats, contractStart, contractEnd, validUntil,
+   *    daysUntilValidUntil, expired, isRenewal }`
+   */
+  quote = null,
+  /** 견적으로 체크아웃에 들어간다. 딥링크 `?quote={id}` 와 같은 지점이다. */
+  onQuoteCheckout = () => {},
+  /** 갱신 견적 동의 — 체크아웃을 재경유하지 않는다(빌링키·첫 결제가 이미 있다). */
+  onAcceptQuoteRenewal = () => {},
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -379,8 +534,15 @@ export default function BillingPlansCanvas({
     setPreviewPlanCode(plan.code);
     const targetRank = plan.tierRank ?? 0;
 
-    // Pro·Enterprise: 영업팀 문의 화면으로
+    // Pro·Enterprise: 유효 견적이 있으면 **결제 경로**, 없으면 종전대로 영업팀 문의.
+    // 이 갈림길이 이 카드의 핵심이다 — 견적이 없으면 결제할 방법이 없어 운영이 콘솔
+    // 밖에서 플랜을 부여하게 되고, 그게 미과금 기업을 만들었다.
     if (plan.isCustom) {
+      if (validQuote && validQuote.planCode === plan.code) {
+        if (validQuote.isRenewal) onAcceptQuoteRenewal(validQuote.quoteId);
+        else onQuoteCheckout(validQuote.quoteId);
+        return;
+      }
       onNavigateContactSales();
       return;
     }
@@ -419,6 +581,19 @@ export default function BillingPlansCanvas({
 
   const showProCard = Boolean(currentPlan?.isCustom || previewPlan?.isCustom);
 
+  // ── 협의 단가 (PW-344 ④) ───────────────────────────────────
+  // 만료 견적의 **단가는 화면에 남기지 않는다** — 옛 금액을 보여 주면 고객이 그 값으로
+  // 결제할 수 있다고 읽는다. 만료는 「단가 없는 안내」로만 말한다.
+  const quoteExpired = Boolean(quote?.expired);
+  const validQuote = quote && !quoteExpired ? quote : null;
+  const quoteBilledSeats = validQuote
+    ? Math.max(seats, validQuote.minSeats)
+    : seats;
+  const quoteSeatsOverMax =
+    Boolean(validQuote) &&
+    validQuote.maxSeats != null &&
+    seats > validQuote.maxSeats;
+
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
       <div style={{ maxWidth: 1080, margin: '0 auto' }}>
@@ -436,6 +611,17 @@ export default function BillingPlansCanvas({
           {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.readOnlyBadge}</Badge>}
         </div>
         <p style={{ color: T.sub, fontSize: 14, marginTop: 4, marginBottom: 24 }}>{labels.pageSubtitle}</p>
+
+        {/* 견적 만료 안내 (PW-344 ④) — 만료 견적의 단가는 여기에 쓰지 않는다. */}
+        {quoteExpired && (
+          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
+            <div style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.quoteExpiredTitle}</div>
+            <div style={{ fontSize: 13, color: T.text, marginBottom: 12 }}>{labels.quoteExpiredBody}</div>
+            <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit}>
+              {labels.quoteExpiredCta}
+            </Btn>
+          </Card>
+        )}
 
         {/* 해지 예약 상태 안내 */}
         {subscription.cancelAtPeriodEnd && (
@@ -477,6 +663,22 @@ export default function BillingPlansCanvas({
           )}
         </div>
 
+        {/* 협의 단가 카드 (PW-344 ④) — 유효 견적이 있을 때만. */}
+        {validQuote && (
+          <QuoteCard
+            quote={validQuote}
+            canEdit={canEdit}
+            billedSeats={quoteBilledSeats}
+            seatsOverMax={quoteSeatsOverMax}
+            labels={labels}
+            onPay={() =>
+              validQuote.isRenewal
+                ? onAcceptQuoteRenewal(validQuote.quoteId)
+                : onQuoteCheckout(validQuote.quoteId)
+            }
+          />
+        )}
+
         {/* 4티어 플랜 카드 */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
           {plans.map((plan) => (
@@ -490,6 +692,11 @@ export default function BillingPlansCanvas({
               featureKeys={featureKeys}
               featureLabelMap={featureLabelMap}
               labels={labels}
+              negotiatedPrice={
+                plan.isCustom && validQuote && validQuote.planCode === plan.code
+                  ? validQuote.seatPrice
+                  : null
+              }
               onAction={() => onPlanAction(plan)}
             />
           ))}
