@@ -10,7 +10,12 @@
 
 .tm-root {
   display: flex;
-  height: calc(100vh - 168px);
+  /* 높이는 «뷰포트에서 위쪽 크롬을 뺀 것» 인데, 그 크롬 높이는 **호스트가 안다**.
+     기본값 168px 은 캔버스 위에 아무것도 없던 시절의 값이라, 호스트가 제목·탭바를
+     얹으면 그만큼 캔버스가 화면 아래로 밀려난다(pivit-work PW-447 「조직단위 설정」의
+     팀 탭이 그랬다). 호스트가 `--tm-root-height` 로 자기 크롬을 반영할 수 있게 뚫는다.
+     **기본값은 그대로**라 이 변수를 주지 않는 호출부의 시각은 바뀌지 않는다. */
+  height: var(--tm-root-height, calc(100vh - 168px));
   min-height: 480px;
   background: var(--bg-quaternary);
   border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
