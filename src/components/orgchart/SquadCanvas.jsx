@@ -88,6 +88,12 @@ function capacityNote({ total, diff, count, unsetCount }) {
 
 export default function SquadCanvas({
   squads = [],
+  /**
+   * 명부. 항목의 `avatar` 는 **이름 글자**(이니셜 규칙)이고, 프로필 **사진 주소**는
+   * 별도 필드 `photoUrl` 이다 — 한 필드에 두 뜻을 담으면 소비처가 글자로 그릴지
+   * 이미지로 그릴지 알 수 없다. 사진이 없는 사람은 `photoUrl` 이 비어 있고, 그때만
+   * 이름 글자 동그라미를 그린다.
+   */
   people = [],
   /** `p013` — 스쿼드 원장 생성·수정·상태 전환·삭제 (hr_admin 전용). */
   canManageLedger = false,
@@ -1080,6 +1086,10 @@ export default function SquadCanvas({
                           const unsetCount = unsetCapacityCount(squads, userId);
                           const clickable = !!(p && onMemberClick);
                           const rowLabel = p?.avatar || nameOf(userId).slice(0, 2);
+                          // 사진이 있으면 사진, 없으면 이름 글자 — 이웃 탭 「프로젝트」의
+                          // `MemberTable` 과 같은 갈래다. `avatar` 는 **이니셜 문자열**이라
+                          // 이미지로 못 쓴다(같은 필드에 두 뜻을 담지 않는다).
+                          const photo = p?.photoUrl || null;
                           return (
                             <tr key={userId} data-testid={`squad-matrix-row-${userId}`}>
                               <td className="pj-td">
@@ -1087,6 +1097,13 @@ export default function SquadCanvas({
                                   className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
                                   onClick={() => p && onMemberClick?.(p)}
                                 >
+                                  {photo ? (
+                                    <img
+                                      src={photo}
+                                      alt=""
+                                      className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
+                                    />
+                                  ) : (
                                   <span
                                     className="pj-member-avatar pj-member-initials sq-avatar-lg"
                                     style={{
@@ -1096,7 +1113,10 @@ export default function SquadCanvas({
                                         : {}),
                                     }}
                                   >{rowLabel}</span>
-                                  <span className="pj-member-name">{nameOf(userId)}</span>
+                                  )}
+                                  {/* 자리가 모자라 말줄임으로 끊긴 이름도 읽을 수 있어야 한다 —
+                                      끊긴 채 확인할 방법이 없으면 그건 그것대로 결함이다. */}
+                                  <span className="pj-member-name" title={nameOf(userId)}>{nameOf(userId)}</span>
                                   {/* 🔴 자물쇠는 **그 행에 열린 셀이 하나도 없을 때만** 선다 —
                                       §5-3.9 화면 규칙 1 은 행 단위 잠금 표시를 금지한다. 조직 축만
                                       보고 세우면, 자기 스쿼드 열이 열려 있는 리드에게 전 행이 잠긴
