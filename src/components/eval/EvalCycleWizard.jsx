@@ -85,6 +85,22 @@ function EyeIcon({ size = 16 }) {
     </svg>
   );
 }
+// 불러온 원본 표시 — 클립.
+function PaperclipIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+// 전체 목록에서 찾기 — 폴더.
+function FolderIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
 // 이메일 채널 — 봉투.
 function MailIcon({ size = 16 }) {
   return (
@@ -540,6 +556,9 @@ const DEFAULT_GRADES = [
 ];
 const MAX_GRADES = 10;
 const MIN_GRADES = 2;
+/* PW-434 ⑤ 상단 「저장된 템플릿에서 시작」 블록에 인라인으로 펴는 카드 수 상한.
+   블록은 목록이 아니라 진입점이라 전량 탐색은 「전체 목록에서 찾기」가 맡는다. */
+const MAX_START_TEMPLATES = 4;
 
 // 현재 빌더 상태 → 템플릿 요약 문자열(항목 N · 등급 M단계).
 const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0), 0);
@@ -1215,7 +1234,11 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
   });
   return createPortal(
     <div className="evc-modal-overlay" onClick={onClose}>
-      <div className="evc-modal is-wide" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="evc-modal is-wide"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="evc-tpl-preview-modal"
+      >
         <div className="evc-wiz-header">
           <h3 className="evc-modal-title">
             {focusQ ? L.previewItemTitle : L.previewTitle}
@@ -1318,6 +1341,274 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
   );
 }
 
+/**
+ * PW-434 ② 저장 템플릿 간이 미리보기 — 「템플릿 이름으로 어떤 템플릿인지 확인이 불가하여
+ * 내용을 확인해서 불러올 가능성이 큼」(티켓 원문). 불러오기 목록의 **행 아래 인라인**으로 편다.
+ *
+ * 전체 미리보기(`TemplatePreviewModal`)를 여기서 쓰지 않는 이유가 둘이다 —
+ *   ① 이 목록 자체가 이미 모달이라 그 위에 모달을 또 띄우면 닫기 동선이 꼬인다,
+ *   ② 전체 미리보기는 *구성원이 보게 될 형태*라 입력 컨트롤까지 그려서
+ *      「무엇이 들었는지 확인」 목적에는 무겁다.
+ * 여기서는 읽기 전용 목록만 보여 준다 (policy §5.10.1 「불러오기 전 미리보기」).
+ */
+function TemplateBriefPreview({ tpl, labels: L }) {
+  const groups = [];
+  (tpl.questions || []).forEach((q) => {
+    let g = groups.find((x) => x.sec === q.section);
+    if (!g) {
+      g = { sec: q.section, items: [] };
+      groups.push(g);
+    }
+    g.items.push(q);
+  });
+  return (
+    <div className="evc-tpl-peek" data-testid={`evc-tpl-peek-${tpl.id}`}>
+      <div>
+        <p className="evc-tpl-peek-title">
+          {fill(L.tplPeekItems, { count: (tpl.questions || []).length })}
+        </p>
+        <div className="evc-tpl-peek-secs">
+          {groups.map((g) => (
+            <div key={g.sec}>
+              <div className="evc-tpl-peek-sec">
+                <span
+                  className="evc-tpl-peek-dot"
+                  style={{ background: sectionColor(g.sec) }}
+                />
+                <span className="evc-tpl-peek-sec-name">{g.sec}</span>
+                <span className="evc-tpl-peek-sec-count">{g.items.length}</span>
+              </div>
+              <div className="evc-tpl-peek-items">
+                {g.items.map((q, i) => (
+                  <div key={q.id || i} className="evc-tpl-peek-item">
+                    {/* 항목 본문이다. 여기가 비면 미리보기가 존재할 이유가 없어진다
+                        (policy `screen-eval-template-library.policy.md` 엣지 21). */}
+                    <span className="evc-tpl-peek-item-text">{q.text}</span>
+                    <span className="evc-tpl-peek-item-type">
+                      {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+                    </span>
+                    {q.ai && <span className="evc-tpl-peek-item-ai">{L.tplPeekAi}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="evc-tpl-peek-title">
+          {fill(L.tplPeekGrades, { count: (tpl.grades || []).length })}
+          {tpl.absolute ? ` · ${L.templateAbsolute}` : ''}
+        </p>
+        <div className="evc-preview-gradechips">
+          {(tpl.grades || []).map((g, i) => (
+            <span key={i} className="evc-tpl-peek-grade" title={g.desc || undefined}>
+              {g.label}
+              {!tpl.absolute && ` ${g.ratio}%`}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PW-434 ②④ 전체 목록에서 찾기 — 상단 「저장된 템플릿에서 시작」 블록이 못 담는 전량을 본다.
+ *
+ * - 기본 노출은 **지금 편집 중인 평가 유형 블록 1개**다. 3단계 「적용 템플릿」 셀렉트는 이미
+ *   유형 일치본만 보여 주고 있었으므로 같은 축을 같게 맞춘 것이다 (policy §5.10.1 「유형 범위」).
+ *   다른 유형을 참고로 볼 길은 토글로 남긴다 — 끊지 않는다.
+ * - ⚠ 유형 필터와 **사이클 필터는 다른 축**이다. 사이클 필터는 여전히 걸지 않는다(PW-122).
+ * - PW-435 정합: 「다른 유형도 보기」가 여는 것은 **목록**이지 **권한**이 아니다. 사이클에
+ *   포함되지 않은 유형은 **열람만** 되고 불러올 수 없다.
+ */
+function TemplatePickerModal({
+  templates,
+  currentType,
+  cycleTypes,
+  onLoad,
+  onClose,
+  labels: L,
+}) {
+  const [q, setQ] = useState('');
+  const [allTypes, setAllTypes] = useState(false);
+  // 한 번에 하나만 연다 — 여러 개를 동시에 펴면 목록이 다시 스크롤 지옥이 된다.
+  const [peekId, setPeekId] = useState(null);
+
+  const pool = templates.filter((t) => (t.status || 'active') === 'active');
+  const typePool = allTypes
+    ? pool
+    : pool.filter((t) => (t.reviewType || 'self') === currentType);
+  const otherTypeCount = pool.length - pool.filter(
+    (t) => (t.reviewType || 'self') === currentType,
+  ).length;
+  const kw = q.trim().toLowerCase();
+  const matched = kw
+    ? typePool.filter((t) => t.name.toLowerCase().includes(kw))
+    : typePool;
+  const blocks = allTypes
+    ? TEMPLATE_TYPES
+    : TEMPLATE_TYPES.filter((rt) => rt.id === currentType);
+  const currentTypeName = L[TEMPLATE_TYPES.find((rt) => rt.id === currentType)?.nameKey] || '';
+
+  return createPortal(
+    <div className="evc-modal-overlay" onClick={onClose}>
+      <div
+        className="evc-modal is-wide evc-tpl-picker"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="evc-tpl-picker"
+      >
+        <div className="evc-wiz-header">
+          <h3 className="evc-modal-title">{L.tplPickerTitle}</h3>
+          <button type="button" className="evc-wiz-close" onClick={onClose} aria-label={L.cancel}>
+            ✕
+          </button>
+        </div>
+        <p className="evc-modal-sub">
+          {fill(L.tplPickerSub, { type: currentTypeName })}
+        </p>
+
+        {pool.length === 0 ? (
+          <div className="evc-empty" data-testid="evc-tpl-picker-empty">
+            {L.tplPickerEmpty}
+          </div>
+        ) : (
+          <>
+            <div className="evc-tpl-picker-search">
+              <SearchIcon size={14} />
+              <input
+                className="evc-input"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={L.tplPickerSearchPlaceholder}
+                data-testid="evc-tpl-picker-search"
+              />
+            </div>
+            <div className="evc-tpl-picker-scope">
+              <span className="evc-tpl-picker-scope-note" data-testid="evc-tpl-picker-scope">
+                {allTypes
+                  ? fill(L.tplPickerScopeAll, { count: pool.length })
+                  : fill(L.tplPickerScopeOne, { type: currentTypeName, count: typePool.length })}
+              </span>
+              <button
+                type="button"
+                className="evc-tpl-picker-toggle"
+                onClick={() => setAllTypes((v) => !v)}
+                disabled={!allTypes && otherTypeCount === 0}
+                title={!allTypes && otherTypeCount === 0 ? L.tplPickerNoOtherTypes : undefined}
+                data-testid="evc-tpl-picker-alltypes"
+              >
+                {allTypes
+                  ? fill(L.tplPickerOnlyCurrent, { type: currentTypeName })
+                  : fill(L.tplPickerShowOther, { count: otherTypeCount })}
+              </button>
+            </div>
+
+            {kw && matched.length === 0 && (
+              <div className="evc-empty" data-testid="evc-tpl-picker-nomatch">
+                {fill(L.tplPickerNoMatch, { keyword: q })}
+              </div>
+            )}
+
+            <div className="evc-tpl-picker-blocks">
+              {blocks.map((rt) => {
+                const items = matched.filter((t) => (t.reviewType || 'self') === rt.id);
+                if (kw && items.length === 0) return null;
+                const inCycle = cycleTypes.includes(rt.id);
+                return (
+                  <div key={rt.id} data-testid={`evc-tpl-picker-block-${rt.id}`}>
+                    <div className="evc-tpl-picker-block-head">
+                      <span className="evc-tpl-picker-block-name">{L[rt.nameKey]}</span>
+                      <span className="evc-tpl-picker-block-count">{items.length}</span>
+                      {/* PW-435 ③ 유형 카드와 같은 문구를 쓴다 — 두 자리가 다르게 말하면
+                          규칙으로 안 읽힌다. */}
+                      {!inCycle && (
+                        <span className="evc-tpl-picker-block-lock">
+                          <LockIcon size={11} /> {L.tplPickerViewOnly}
+                        </span>
+                      )}
+                    </div>
+                    {items.length === 0 ? (
+                      <div className="evc-tpl-picker-block-empty">{L.tplPickerBlockEmpty}</div>
+                    ) : (
+                      <div className="evc-tpl-picker-rows">
+                        {items.map((t) => {
+                          const open = peekId === t.id;
+                          const loadable = cycleTypes.includes(t.reviewType || 'self');
+                          return (
+                            <div
+                              key={t.id}
+                              className={`evc-tpl-picker-row${open ? ' is-open' : ''}`}
+                            >
+                              <div className="evc-tpl-picker-row-main">
+                                <div className="evc-tpl-picker-row-info">
+                                  <div className="evc-tpl-picker-row-name">
+                                    <span className="evc-tpl-lib-name">{t.name}</span>
+                                    {t.isDefault && (
+                                      <span className="evc-mode-badge">{L.tplDefaultBadge}</span>
+                                    )}
+                                    {(t.revision || 1) > 1 && (
+                                      <span className="evc-tpl-rev-badge">v{t.revision}</span>
+                                    )}
+                                  </div>
+                                  <div className="evc-tpl-lib-meta">
+                                    {L[TEMPLATE_VERSIONS.find((v) => v.id === t.version)?.labelKey] || t.version}
+                                    {' · '}
+                                    {fill(L.templateMeta, {
+                                      items: (t.questions || []).length,
+                                      grades: (t.grades || []).length,
+                                    })}
+                                    {' · '}
+                                    {t.usageCount > 0
+                                      ? fill(L.tplUsageCount, { count: t.usageCount })
+                                      : L.tplNeverUsed}
+                                  </div>
+                                </div>
+                                <div className="evc-tpl-picker-row-actions">
+                                  {/* PW-435 ③ 막는 자리는 «불러오기»(쓰기)이고 «미리보기»(읽기)는
+                                      열어 둔다 — 내용을 보는 것 자체는 해롭지 않고, 「이름만으로
+                                      판별이 안 되니 내용을 본다」는 이 카드의 목적은 참고 열람에도
+                                      그대로 유효하다. */}
+                                  <button
+                                    type="button"
+                                    className={`evc-btn is-ghost${open ? ' is-on' : ''}`}
+                                    onClick={() => setPeekId(open ? null : t.id)}
+                                    aria-expanded={open}
+                                    data-testid={`evc-tpl-peek-btn-${t.id}`}
+                                  >
+                                    <EyeIcon size={13} /> {L.templatePreview}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="evc-btn is-ghost"
+                                    onClick={() => onLoad(t)}
+                                    disabled={!loadable}
+                                    title={loadable ? undefined : L.tplLoadBlockedNotInCycle}
+                                    data-testid={`evc-tpl-picker-load-${t.id}`}
+                                  >
+                                    {L.templateLoad}
+                                  </button>
+                                </div>
+                              </div>
+                              {open && <TemplateBriefPreview tpl={t} labels={L} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function EvalCycleWizard({
   labels: L,
   candidates = [],
@@ -1365,7 +1656,21 @@ export default function EvalCycleWizard({
   libraryTemplates = null,
   /** 저장 요청. 저장된 템플릿을 돌려주면 성공, falsy 면 실패로 보고 입력을 유지한다. */
   onSaveTemplate,
-  /** 라이브러리에서 내리기(보관·삭제는 라이브러리 화면에서 한다). */
+  /**
+   * PW-434 — 라이브러리 «조회 상태». `libraryTemplates` 만으로는 「저장된 게 없다」와
+   * 「못 불러왔다」가 화면에서 똑같아진다. 둘은 다른 사실이고, 전자로 보이면 설계자가
+   * **이미 있는 템플릿을 처음부터 다시 만든다** (policy §5.10.1 「상단 시작 블록 로딩·조회 실패」).
+   * 안 넘기면 종전대로 'ready' 다.
+   */
+  libraryStatus = 'ready',
+  /** 조회 실패 시 「다시 시도」. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadLibraryTemplates,
+  /**
+   * @deprecated PW-434 — 마법사는 더 이상 템플릿을 지우지 않는다. 조직 자산을 사이클 작업
+   * 도중에 지우는 사고를 막기 위해 삭제·보관은 「평가 템플릿」 화면에서만 한다
+   * (policy §5.10.1 「위자드에서는 삭제하지 않는다」, 2026-08-16). 기존 소비자가 그대로
+   * 넘겨도 깨지지 않게 prop 만 남긴다.
+   */
   onDeleteTemplate,
   /** 저장 실패 사유(이름 중복 등). 부모가 서버 문구를 그대로 넘긴다. */
   templateSaveError = null,
@@ -1493,6 +1798,20 @@ export default function EvalCycleWizard({
   const [tplDragIdx, setTplDragIdx] = useState(null);
   const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
+  /**
+   * PW-434 ⑤ 「전체 목록에서 찾기」 모달 · ② 상단 카드에서 «불러오기 전» 여는 전체 미리보기.
+   * `tplPeek` 는 «남의 템플릿» 을 읽기 전용으로 보는 것이라 편집 버퍼(`tplPreview`)와
+   * 상태를 나눈다 — 한 상태로 겸하면 미리보기가 편집 중인 항목을 덮어쓴 것처럼 보인다.
+   */
+  const [tplPickerOpen, setTplPickerOpen] = useState(false);
+  const [tplPeek, setTplPeek] = useState(null); // 상단 카드 미리보기 대상 템플릿
+  /**
+   * PW-434 ③ 어느 라이브러리 원본에서 왔는지. 고정 컨텍스트 바가 이걸 읽는다
+   * (policy §5.10-C). `snapshot` 은 불러온 직후의 항목 스냅샷 — 이후 항목이 바뀌면
+   * `(수정됨)` 을 병기한다. 불러오기는 서버 복제가 아니라 편집 버퍼 프리필이므로
+   * 여기서 원본을 다시 건드리지 않는다 (policy §5.10.1).
+   */
+  const [tplLoadedFrom, setTplLoadedFrom] = useState(null);
   // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
   const [roleMode, setRoleMode] = useState(() => initialSeq?.roleMode ?? 'uniform'); // 'uniform' | 'by_role'
   const [roleVersions, setRoleVersions] = useState(() => ({
@@ -1648,6 +1967,26 @@ export default function EvalCycleWizard({
   };
   const tplIsCustomized =
     JSON.stringify(tplQuestions) !== JSON.stringify(presetFor(tplVersion, tplType));
+  /**
+   * PW-434 ⑤ 상단 「저장된 템플릿에서 시작」 블록의 후보 — **지금 편집 중인 유형**만.
+   * `기본 지정` 을 앞세우고 그다음 사용 횟수 내림차순이며, 최대 4장만 편다.
+   * 이 블록은 목록이 아니라 **진입점**이다 — 전량은 「전체 목록에서 찾기」가 맡는다
+   * (policy §5.10.1 「상단 시작 블록 구성」).
+   */
+  const startTemplates = savedTemplates
+    .filter(
+      (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === tplType,
+    )
+    .slice()
+    .sort(
+      (a, b) =>
+        (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0) ||
+        (b.usageCount || 0) - (a.usageCount || 0),
+    )
+    .slice(0, MAX_START_TEMPLATES);
+  // 불러온 뒤 항목을 고쳤는가 — 고정 바의 `(수정됨)` 병기 판정 (policy §5.10-C).
+  const tplLoadedEdited =
+    !!tplLoadedFrom && JSON.stringify(tplQuestions) !== tplLoadedFrom.snapshot;
   // 유형을 바꾸면(특히 동료로) 손대지 않은 프리셋은 그 유형에 맞게 다시 깐다.
   const selectTplType = (id) => {
     if (!tplIsCustomized) setTplQuestions(presetFor(tplVersion, id));
@@ -1788,25 +2127,37 @@ export default function EvalCycleWizard({
     setTplName('');
     setTplSaved(true);
   };
+  /**
+   * 라이브러리에서 불러오기 — 서버 복제가 아니라 **편집 버퍼 프리필**이다. 이후 항목을 고쳐도
+   * 라이브러리 원본은 바뀌지 않는다 (policy §5.10.1 「불러오기 = 프리필」).
+   *
+   * 🔴 PW-435 ③ × PW-434 ④ 접점 — 불러오기는 **두 번째 `setTplType` 경로**다. 1단계에서 고르지
+   * 않은 평가 종류는 유형 카드 클릭으로는 못 가게 막혀 있는데(`selectTplType` 호출 자체가
+   * 비활성), 불러오기에는 같은 가드가 없어서 「하향만 켠 사이클에서 셀프용 템플릿을 만드는」
+   * 상황이 그대로 재현됐다. 각각은 맞고 **합치면 뚫린 자리**다.
+   *
+   * ⚠ 가드를 «화면» 이 아니라 «함수» 에 둔다. 이 함수를 부르는 진입점이 둘이기 때문이다 —
+   * ① 상단 「저장된 템플릿에서 시작」 카드 ② 「전체 목록에서 찾기」 모달의 행. ①은 현재 유형만
+   * 노출해 지금은 안전하지만, 화면에만 두면 **다음 진입점이 생길 때 또 뚫린다.**
+   */
   const loadTemplate = (tpl) => {
-    setTplType(tpl.reviewType);
+    const type = tpl.reviewType || 'self';
+    if (!reviewTypes.includes(type)) return;
+    setTplType(type);
     setTplName(tpl.name);
     setTplVersion(tpl.version);
     setTplQuestions(tpl.questions);
     setTplGrades(tpl.grades);
     setTplAbsolute(!!tpl.absolute);
     setTplRatioScope(tpl.ratioScope || 'div');
-  };
-  const deleteTemplate = (id) => {
-    if (libraryMode) Promise.resolve(onDeleteTemplate?.(id));
-    else setLocalTemplates((prev) => prev.filter((t) => t.id !== id));
-    setPhaseTemplateMap((m) => {
-      const n = { ...m };
-      Object.keys(n).forEach((k) => {
-        if (n[k] === id) delete n[k];
-      });
-      return n;
+    // PW-434 ③ 고정 바가 읽는 출처. 스냅샷을 함께 들고 있어야 «그 뒤에 고쳤는지» 를 말할 수 있다.
+    setTplLoadedFrom({
+      name: tpl.name,
+      revision: tpl.revision || 1,
+      snapshot: JSON.stringify(tpl.questions),
     });
+    setTplPickerOpen(false);
+    setTplPeek(null);
   };
 
   const togglePeerMode = (key) =>
@@ -2565,6 +2916,58 @@ export default function EvalCycleWizard({
 
           {step === 1 && (
             <div className="evc-wiz-panel">
+              {/* PW-434 ③ 편집 컨텍스트 고정 바 — 「템플릿을 수정시 내가 지금 어떤 템플릿을
+                  수정하는지 확인이 필요함 · 스크롤을 내리면 위의 선택된 부분이 안보이다 보니
+                  어떤 항목인지 헷갈릴 수 있음」(티켓 원문).
+                  2단계는 유형·버전·직급·등급·항목이 한 화면에 세로로 쌓이는데, 시간을 오래 쓰는
+                  곳은 맨 아래 항목이고 «지금 무엇을 만드는가» 는 전부 맨 위에 있었다.
+                  고정 오프셋 top:94 는 통합 셸 헤더(sticky top:0, h60)와 평가 서브내비
+                  (sticky top:60)가 상단을 덮기 때문이다 — top:0 이면 그 아래로 들어가 안 보인다.
+                  끌 수 없다: 끌 수 있으면 꺼 둔 사람에게 원래 문제가 그대로 돌아온다.
+                  정책: screen-eval-cycle-hr.policy.md §5.10-C */}
+              <div className="evc-tpl-ctxbar" data-testid="evc-tpl-ctxbar">
+                <div className="evc-tpl-ctxbar-info">
+                  <span className="evc-tpl-ctxbar-label">{L.tplEditingNow}</span>
+                  <span className="evc-tpl-ctxbar-type" data-testid="evc-tpl-ctxbar-type">
+                    {fill(L.tplForType, {
+                      type: L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
+                    })}
+                  </span>
+                  <span className="evc-tpl-ctxbar-version">
+                    {L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey] || tplVersion}
+                    {tplIsCustomized ? ` ${L.tplCustomized}` : ''}
+                    {roleMode === 'by_role' ? ` · ${L.roleModeByRole}` : ''}
+                  </span>
+                  <span className="evc-tpl-ctxbar-meta">
+                    {fill(L.templateMeta, {
+                      items: tplQuestions.length,
+                      grades: tplGrades.length,
+                    })}
+                  </span>
+                  {/* 어느 라이브러리 원본에서 왔는지도 여기서 항상 보인다. 종전에는 이 정보가
+                      아예 없었고, 시안에서는 항목 목록 «아래» 라 정작 항목을 고치는 동안에는
+                      화면 밖이었다 (policy §5.10.1 「불러오기 = 프리필」). */}
+                  {tplLoadedFrom && (
+                    <span className="evc-tpl-ctxbar-from" data-testid="evc-tpl-ctxbar-from">
+                      <PaperclipIcon size={12} /> {tplLoadedFrom.name} v{tplLoadedFrom.revision}
+                      {tplLoadedEdited && (
+                        <strong className="evc-tpl-ctxbar-edited">{L.tplCustomized}</strong>
+                      )}
+                    </span>
+                  )}
+                </div>
+                {/* 스크롤 위치와 무관하게 닿아야 한다 — 하단 액션바의 미리보기와 같은 동작이며
+                    중복 배치는 의도다 (policy §5.10-C 「우측 액션」). */}
+                <button
+                  type="button"
+                  className="evc-btn is-ghost evc-tpl-ctxbar-preview"
+                  onClick={() => setTplPreview('all')}
+                  data-testid="evc-tpl-ctxbar-preview"
+                >
+                  <EyeIcon size={13} /> {L.templatePreview}
+                </button>
+              </div>
+
               <p className="evc-wiz-hint">{L.templateHint}</p>
 
               <span className="evc-field-label">{L.templateTypeLabel}</span>
@@ -2581,6 +2984,114 @@ export default function EvalCycleWizard({
                   </button>
                 ))}
               </div>
+
+              {/* PW-434 ⑤ 저장된 템플릿에서 시작 — 평가 유형 «바로 다음», 등급·항목보다 위.
+                  「다 작성한 후에 이전 템플릿을 불러올 수 있다고 인지하기 보다는 셋팅전에 과거
+                  이력을 먼저 점검하고 불러 올 수 있다면 더 용이」(티켓 원문).
+                  🔴 이건 새 요구가 아니라 **결정 복원**이다 — spec-eval-cycle.md §4.2.2-C 의
+                  2026-06-27 A4 결정(「템플릿 빌더 상단에도」)이 2026-07-03 에 미리보기·저장·
+                  불러오기 셋을 같은 성격으로 보고 하단 액션바로 함께 내리면서 뒤집혔다.
+                  다시 아래로 내리지 말 것. 저장(💾)은 «마무리» 행위라 하단에 그대로 둔다.
+                  정책: screen-eval-cycle-hr.policy.md §5.10.1 「노출 위치」 */}
+              <div className="evc-tpl-start-head">
+                <span className="evc-field-label">
+                  {L.tplStartTitle}
+                  <span className="evc-tpl-start-optional">{L.tplStartOptional}</span>
+                </span>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost evc-tpl-start-browse"
+                  onClick={() => setTplPickerOpen(true)}
+                  data-testid="evc-tpl-start-browse"
+                >
+                  <FolderIcon size={13} /> {L.tplBrowseAll}
+                </button>
+              </div>
+              <p className="evc-wiz-hint">
+                {fill(L.tplStartHint, {
+                  type: L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
+                })}
+              </p>
+              {libraryStatus === 'loading' ? (
+                /* 카드 자리에 스켈레톤 2칸 — 레이아웃이 튀지 않게. */
+                <div className="evc-tpl-start-cards" data-testid="evc-tpl-start-loading">
+                  <div className="evc-tpl-start-card is-skeleton" />
+                  <div className="evc-tpl-start-card is-skeleton" />
+                </div>
+              ) : libraryStatus === 'error' ? (
+                /* 🔴 빈 상태 문구로 대체하지 않는다 — 「저장된 게 없다」와 「못 불러왔다」는
+                   다른 사실이고, 전자로 보이면 이미 있는 템플릿을 처음부터 다시 만든다.
+                   실패해도 아래 등급·항목 구성은 정상 진행한다(이 블록은 선택 경로다). */
+                <div className="evc-tpl-start-error" role="alert" data-testid="evc-tpl-start-error">
+                  <span>{L.tplStartLoadFailed}</span>
+                  {onReloadLibraryTemplates && (
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      onClick={() => onReloadLibraryTemplates()}
+                      data-testid="evc-tpl-start-retry"
+                    >
+                      {L.tplStartRetry}
+                    </button>
+                  )}
+                </div>
+              ) : startTemplates.length === 0 ? (
+                /* 저장된 것이 없어도 블록을 숨기지 않는다 — 숨기면 「저장하면 다음에 쓸 수
+                   있다」는 사실 자체가 전달되지 않는다 (policy §5.10.1 「빈 상태」). */
+                <p className="evc-tpl-start-empty" data-testid="evc-tpl-start-empty">
+                  {fill(L.tplStartEmpty, {
+                    type: L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
+                  })}
+                </p>
+              ) : (
+                <div className="evc-tpl-start-cards" data-testid="evc-tpl-start-cards">
+                  {startTemplates.map((t) => (
+                    <div key={t.id} className="evc-tpl-start-card">
+                      <div className="evc-tpl-start-card-name">
+                        <span className="evc-tpl-lib-name" title={t.name}>{t.name}</span>
+                        {t.isDefault && (
+                          <span className="evc-mode-badge">{L.tplDefaultBadge}</span>
+                        )}
+                        {(t.revision || 1) > 1 && (
+                          <span className="evc-tpl-rev-badge">v{t.revision}</span>
+                        )}
+                      </div>
+                      <div className="evc-tpl-lib-meta">
+                        {L[TEMPLATE_VERSIONS.find((v) => v.id === t.version)?.labelKey] || t.version}
+                        {' · '}
+                        {fill(L.templateMeta, {
+                          items: (t.questions || []).length,
+                          grades: (t.grades || []).length,
+                        })}
+                        {' · '}
+                        {t.usageCount > 0
+                          ? fill(L.tplUsageCount, { count: t.usageCount })
+                          : L.tplNeverUsed}
+                      </div>
+                      <div className="evc-tpl-start-card-actions">
+                        {/* 모달 밖이므로 여기서는 전체 미리보기 모달을 그대로 쓴다. 불러오기 전이라
+                            현재 편집 버퍼는 건드리지 않는다 (policy §5.10.1). */}
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={() => setTplPeek(t)}
+                          data-testid={`evc-tpl-start-peek-${t.id}`}
+                        >
+                          <EyeIcon size={13} /> {L.templatePreview}
+                        </button>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={() => loadTemplate(t)}
+                          data-testid={`evc-tpl-load-${t.id}`}
+                        >
+                          {L.templateLoad}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <span className="evc-field-label">{L.templateNameLabel}</span>
               <input
@@ -2974,6 +3485,9 @@ export default function EvalCycleWizard({
               <AddQuestionRow onAdd={addQuestion} labels={L} />
 
               <div className="evc-tpl-lib">
+                {/* PW-434 ⑤ 하단에는 «저장» 만 남는다 — 저장은 «다 만든 뒤» 의 행위다.
+                    미리보기는 「평가 항목 구성」 섹션 헤더(`evc-tpl-preview-all`)와 2단계
+                    고정 바 두 곳에 이미 있다. 불러오기 목록은 최상단으로 올라갔다. */}
                 <button
                   type="button"
                   className="evc-btn is-primary"
@@ -3011,47 +3525,40 @@ export default function EvalCycleWizard({
                     </span>
                   )
                 )}
-                {savedTemplates.length > 0 && (
-                  <div className="evc-tpl-lib-list">
-                    {savedTemplates.map((t) => (
-                      <div key={t.id} className="evc-tpl-lib-item">
-                        <span className="evc-mode-badge">
-                          {L[TEMPLATE_TYPES.find((x) => x.id === t.reviewType)?.nameKey]}
-                        </span>
-                        <span className="evc-tpl-lib-name">{t.name}</span>
-                        <span className="evc-tpl-lib-meta">
-                          {fill(L.templateMeta, {
-                            items: t.questions.length,
-                            grades: t.grades.length,
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          className="evc-btn is-ghost"
-                          onClick={() => loadTemplate(t)}
-                          data-testid={`evc-tpl-load-${t.id}`}
-                        >
-                          {L.templateLoad}
-                        </button>
-                        <button
-                          type="button"
-                          className="evc-tpl-x"
-                          onClick={() => deleteTemplate(t.id)}
-                          aria-label={L.delete}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
+              {/* PW-434 ⑤ 하단 액션바에는 «미리보기 · 템플릿 저장» 만 남는다. 불러오기 목록은
+                  2단계 최상단 「저장된 템플릿에서 시작」 블록으로 올라갔다 — 불러오기는 «시작»
+                  행위이고 저장은 «마무리» 행위인데, 둘을 같은 자리에 묶어 두면 다 만든 뒤에야
+                  불러오기의 존재를 알게 된다. 삭제(✕)도 함께 사라진다: 조직 자산을 사이클 작업
+                  도중에 지우는 사고를 막기 위해 삭제·보관은 「평가 템플릿」 화면에서만 한다
+                  (policy §5.10.1, 2026-08-16). */}
               {tplPreview && (
                 <TemplatePreviewModal
                   questions={tplQuestions}
                   grades={tplGrades}
                   focus={tplPreview === 'all' ? null : tplPreview}
                   onClose={() => setTplPreview(null)}
+                  labels={L}
+                />
+              )}
+              {/* PW-434 ② 상단 카드에서 여는 «남의 템플릿» 미리보기. 읽기만 한다 — 불러오기
+                  전이므로 편집 중인 항목·등급은 그대로다. */}
+              {tplPeek && (
+                <TemplatePreviewModal
+                  questions={tplPeek.questions || []}
+                  grades={tplPeek.grades || []}
+                  focus={null}
+                  onClose={() => setTplPeek(null)}
+                  labels={L}
+                />
+              )}
+              {tplPickerOpen && (
+                <TemplatePickerModal
+                  templates={savedTemplates}
+                  currentType={tplType}
+                  cycleTypes={reviewTypes}
+                  onLoad={loadTemplate}
+                  onClose={() => setTplPickerOpen(false)}
                   labels={L}
                 />
               )}
