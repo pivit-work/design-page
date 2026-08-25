@@ -1017,6 +1017,146 @@
   padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
 }
 
+/* ── PW-441 3단계 적용 템플릿 — 읽기 전용 표기 (policy §5.2.4) ────────────────
+   여기서 고르게 하지 않는다. 확정본은 «텍스트» 로 적고, 이동은 오른쪽 버튼으로만. */
+.evc-sched-tpl-fixed {
+  margin-top: var(--spacing-xs, 4px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px);
+  min-width: 0;
+}
+.evc-sched-tpl-name {
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+  /* 템플릿 이름은 사용자가 짓는 값이라 길이를 통제할 수 없다 — 넘치면 줄바꿈시킨다. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evc-sched-tpl-goto {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.evc-sched-tpl-unset {
+  margin-top: var(--spacing-xs, 4px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-warning-600, #dc6803);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+}
+
+/* ── PW-441 §5.10-D 2단계 「이 사이클에 적용할 템플릿」 ────────────────────────
+   시각 규격은 §9-D-1 「선택 요약 바」(= .evc-tpl-ctxbar)를 그대로 이어 쓴다. */
+.evc-tpl-confirm {
+  margin-top: var(--spacing-lg, 10px);
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+}
+.evc-tpl-confirm-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px);
+}
+.evc-tpl-confirm-note {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary, #98a2b3);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evc-tpl-confirm-open {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.evc-tpl-confirm-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-sm, 6px) 0;
+  border-top: 1px dashed var(--border-secondary, #eaecf0);
+  min-width: 0;
+}
+.evc-tpl-confirm-row.is-editing {
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: var(--radius-sm, 6px);
+  padding-left: var(--spacing-sm, 6px);
+  padding-right: var(--spacing-sm, 6px);
+}
+.evc-tpl-confirm-state {
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.evc-tpl-confirm-state.is-none {
+  background: var(--bg-secondary, #f2f4f7);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  color: var(--text-tertiary, #667085);
+}
+.evc-tpl-confirm-state.is-done {
+  background: var(--utility-success-50, #ecfdf3);
+  border: 1px solid var(--utility-success-200, #abefc6);
+  color: var(--utility-success-700, #067647);
+}
+/* 노랑은 「아직 반영되지 않았다」는 뜻이다 — 절대규칙 3 의 미확인 색 용법과 같다. */
+.evc-tpl-confirm-state.is-dirty {
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  color: var(--utility-warning-700, #b54708);
+}
+.evc-tpl-confirm-name {
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 600;
+  color: var(--text-primary, #101828);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evc-tpl-confirm-select {
+  margin-left: auto;
+  max-width: 220px;
+}
+.evc-tpl-confirm-skeleton {
+  margin-left: auto;
+  width: 140px;
+  height: 28px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary, #f2f4f7);
+}
+.evc-tpl-confirm-error {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-error-600, #d92d20);
+}
+/* 6단계 요약 — 유형별 조합을 한 줄씩. */
+.evc-summary-tpl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+.evc-summary-tpl-item.is-warn {
+  color: var(--utility-warning-700, #b54708);
+}
+
 /* ── §5.2.1 단계별 리마인더 커스텀 ── */
 .evc-rm-block {
   margin-top: 10px;

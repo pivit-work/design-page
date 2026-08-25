@@ -1808,6 +1808,20 @@ export default function EvalCycleWizard({
   /** 조회 실패 시 「다시 시도」. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadLibraryTemplates,
   /**
+   * PW-441 §5.10-D — 「라이브러리 열기 →」. 2단계 확정 블록 머리에서 조직 템플릿 화면
+   * (`/eval/admin/templates`)을 새 탭으로 연다. design-page 는 라우터를 모르므로 이동은
+   * 소비 측이 맡는다. 안 넘기면 링크를 숨긴다 — 사이클 밖에도 만드는 자리가 있다는
+   * 사실을 «보여 주는» 것이 이 링크의 목적이라, 갈 수 없으면 없는 편이 낫다.
+   */
+  onOpenTemplateLibrary,
+  /**
+   * PW-441 — 「확정하러 가기」로 열 때의 도착 지점 `{ step, tplType }`.
+   * 오픈이 미확정으로 막히면 그 유형을 고치러 보내야 하는데, 단계만 옮기고 유형을
+   * 안 맞추면 도착해서 또 찾아야 한다 (policy §5.2.4 엣지 4).
+   * 초안 이어쓰기(`draftStep`)가 있으면 그쪽이 우선이다 — 사용자가 쓰던 자리가 먼저다.
+   */
+  landing = null,
+  /**
    * @deprecated PW-434 — 마법사는 더 이상 템플릿을 지우지 않는다. 조직 자산을 사이클 작업
    * 도중에 지우는 사고를 막기 위해 삭제·보관은 「평가 템플릿」 화면에서만 한다
    * (policy §5.10.1 「위자드에서는 삭제하지 않는다」, 2026-08-16). 기존 소비자가 그대로
@@ -1882,7 +1896,7 @@ export default function EvalCycleWizard({
   const isDraftResume = !!D;
 
   const [step, setStep] = useState(() =>
-    isDraftResume ? clampStep(draftStep) : 0,
+    isDraftResume ? clampStep(draftStep) : clampStep(landing?.step ?? 0),
   );
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
   const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn);
@@ -2021,6 +2035,7 @@ export default function EvalCycleWizard({
     const initialTypes = D?.reviewTypes ?? cycle?.reviewTypes ?? ['self', 'leader'];
     const saved = D?.tplType;
     if (saved && initialTypes.includes(saved)) return saved;
+    if (landing?.tplType && initialTypes.includes(landing.tplType)) return landing.tplType;
     return (
       TEMPLATE_TYPES.map((t) => t.id).find((id) => initialTypes.includes(id)) ??
       'self'
@@ -2308,7 +2323,8 @@ export default function EvalCycleWizard({
    * 이 파일은 `useEffect` 를 쓰지 않는다(PW-440 — 이펙트로 뒤늦게 덮어쓰면 사용자가
    * 이미 고친 값을 되돌린다). 상태가 바뀌는 **그 자리**에서 정리한다.
    */
-  const toggleType = (t) => {
+  const applyTypeToggle = (t) => {
+    const turningOff = reviewTypes.includes(t);
     setReviewTypes((prev) => {
       const next = prev.includes(t)
         ? prev.filter((x) => x !== t)
@@ -2325,6 +2341,31 @@ export default function EvalCycleWizard({
       }
       return next;
     });
+    /**
+     * [PW-441 §5.2.4 엣지 1] 유형을 끄면 그 유형의 «적용 템플릿 확정» 도 함께 버린다.
+     * 조용히 살려 두면 되살렸을 때 **해제했는데 살아 있는** 상태가 된다 — 사용자가
+     * 확정한 적 없다고 여기는 평가지가 그대로 오픈된다.
+     */
+    if (turningOff) {
+      setPhaseTemplateMap((m) => {
+        if (!(t in m)) return m;
+        const next = { ...m };
+        delete next[t];
+        return next;
+      });
+    }
+    setPendingTypeOff(null);
+  };
+  /**
+   * 1단계 평가 종류 끄기는 «확정된 유형» 일 때만 먼저 묻는다. 확정이 함께 풀리는 것은
+   * 화면 어디에도 안 보이는 결과라, 끄고 나서 알게 하면 늦다 (policy §5.2.4 엣지 1).
+   */
+  const toggleType = (t) => {
+    if (reviewTypes.includes(t) && confirmRowOf(t)?.confirmed) {
+      setPendingTypeOff(t);
+      return;
+    }
+    applyTypeToggle(t);
   };
 
   // ── 평가 템플릿 빌더 헬퍼 ──
@@ -2391,6 +2432,95 @@ export default function EvalCycleWizard({
   // 불러온 뒤 항목을 고쳤는가 — 고정 바의 `(수정됨)` 병기 판정 (policy §5.10-C).
   const tplLoadedEdited =
     !!tplLoadedFrom && JSON.stringify(tplQuestions) !== tplLoadedFrom.snapshot;
+
+  /* ── PW-441 §5.10-D 「이 사이클에 적용할 템플릿」 유형별 확정 ────────────────────
+     구조가 이렇다 — 단계 id 와 평가 유형 id 가 같고(`PHASE_TO_REVIEW_TYPE` 는 항등),
+     유형당 리뷰 단계는 정확히 1개다. 그래서 «확정» 은 `phaseTemplateMap[유형]` 한 칸이며,
+     3단계가 물어보던 것과 **같은 값**이다. 묻는 자리만 2단계로 옮긴다 (policy §5.2.4). */
+
+  /** 저장 시 셀프에 걸리는 정규화(PW-117)를 비교에도 똑같이 적용한다 — 안 그러면
+      저장 직후인데도 「수정 중」으로 보인다. */
+  const normalizeQuestions = (qs, type) =>
+    type === 'self'
+      ? (qs || []).map((q) => (q.hideFromEvaluatee ? { ...q, hideFromEvaluatee: false } : q))
+      : qs || [];
+  const templateById = new Map(savedTemplates.map((t) => [t.id, t]));
+  /**
+   * 확정이 가리키는 템플릿을 «없다» 고 단정해도 되는 때인가.
+   * 조회 중·조회 실패에는 판단하지 않는다 — 못 불러온 것을 삭제됐다고 말하면
+   * 사용자가 멀쩡한 확정을 다시 한다 (policy §5.10-D 엣지 1-A·2).
+   */
+  const libraryResolved = libraryStatus === 'ready';
+  /** 오픈된 사이클을 관리로 열면 확정은 이미 스냅샷으로 옮겨 갔다 — 읽기 전용 (엣지 7). */
+  const confirmReadOnly = isManage && !!cycle?.status && cycle.status !== 'draft';
+  /** 1단계에서 고른 유형만, 1단계 칩과 같은 순서로. 고르지 않은 유형은 행 자체가 없다. */
+  const confirmRows = TEMPLATE_TYPES.filter((rt) => reviewTypes.includes(rt.id)).map((rt) => {
+    const id = phaseTemplateMap[rt.id] || '';
+    const tpl = id ? templateById.get(id) : null;
+    // 확정이 가리키던 템플릿이 라이브러리에서 사라졌으면 «미확정» 으로 되돌린다 (엣지 3).
+    const confirmed = !!id && (!!tpl || !libraryResolved);
+    const editing = rt.id === tplType;
+    const dirty =
+      confirmed &&
+      !!tpl &&
+      editing &&
+      JSON.stringify(normalizeQuestions(tplQuestions, rt.id)) !==
+        JSON.stringify(normalizeQuestions(tpl.questions, rt.id));
+    return {
+      type: rt.id,
+      nameKey: rt.nameKey,
+      id,
+      tpl: tpl || null,
+      confirmed,
+      dirty,
+      archived: (tpl?.status || 'active') === 'archived',
+      editing,
+      options: savedTemplates.filter(
+        (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === rt.id,
+      ),
+    };
+  });
+  const confirmRowOf = (type) => confirmRows.find((r) => r.type === type) || null;
+  /** 아직 확정되지 않은 유형 — 6단계 경고와 오픈 차단이 같은 값을 본다. */
+  const unconfirmedTypes = confirmRows.filter((r) => !r.confirmed).map((r) => r.type);
+  const templateNameOf = (row) =>
+    row?.tpl ? `${row.tpl.name} v${row.tpl.revision || 1}` : '';
+
+  /** 확정 갈아 끼우기 확인 — `{ type, from, to, run }`. */
+  const [pendingConfirmSwap, setPendingConfirmSwap] = useState(null);
+  /** 확정된 평가 유형을 1단계에서 끄려는 시도 — 유형 id. */
+  const [pendingTypeOff, setPendingTypeOff] = useState(null);
+
+  /**
+   * 유형 확정 = `phaseTemplateMap[유형]` 에 템플릿 id 를 적는 일.
+   *
+   * 확정 시점은 셋뿐이고 전부 명시적 행위다 — 저장 성공 · 불러오기 완료 · 행 셀렉트
+   * 직접 선택 (policy §5.10-D). 이미 다른 템플릿으로 확정돼 있으면 **조용히 갈아 끼우지
+   * 않는다** — 확정은 사이클의 내용을 정하는 행위라 편집 버퍼 교체보다 무겁다.
+   *
+   * `apply` 는 확정과 «함께» 일어나야 하는 나머지 작업(불러오기의 버퍼 프리필)이다.
+   * 확인 다이얼로그에서 취소하면 확정도 `apply` 도 일어나지 않는다.
+   */
+  const confirmTemplateFor = (type, tpl, apply) => {
+    if (!tpl?.id) return;
+    const prevId = phaseTemplateMap[type];
+    const run = () => {
+      apply?.();
+      setPhaseTemplateMap((m) => ({ ...m, [type]: tpl.id }));
+      setPendingConfirmSwap(null);
+    };
+    if (prevId && prevId !== tpl.id) {
+      const prev = templateById.get(prevId);
+      setPendingConfirmSwap({
+        type,
+        from: prev?.name || L.tplConfirmUnknown,
+        to: tpl.name,
+        run,
+      });
+      return;
+    }
+    run();
+  };
   /**
    * 편집 중인 평가 유형 전환. 유형을 바꾸면(특히 동료로) 손대지 않은 프리셋은
    * 그 유형에 맞게 다시 깐다.
@@ -2532,12 +2662,16 @@ export default function EvalCycleWizard({
         if (!saved) return; // 실패 사유는 templateSaveError 로 온다. 입력은 남긴다.
         setTplName('');
         setTplSaved(true);
+        // PW-441 §5.10-D — 저장 «성공» 이 곧 이 사이클의 그 유형 확정이다.
+        // 서버가 돌려준 id 로 확정해야 한다(로컬 임시 id 로 적으면 가리킬 대상이 없다).
+        confirmTemplateFor(tplType, saved);
       });
       return;
     }
     setLocalTemplates((prev) => [tpl, ...prev]);
     setTplName('');
     setTplSaved(true);
+    confirmTemplateFor(tplType, tpl);
   };
   /**
    * 라이브러리에서 불러오기 — 서버 복제가 아니라 **편집 버퍼 프리필**이다. 이후 항목을 고쳐도
@@ -2555,21 +2689,26 @@ export default function EvalCycleWizard({
   const loadTemplate = (tpl) => {
     const type = tpl.reviewType || 'self';
     if (!reviewTypes.includes(type)) return;
-    setTplType(type);
-    setTplName(tpl.name);
-    setTplVersion(tpl.version);
-    setTplQuestions(tpl.questions);
-    setTplGrades(tpl.grades);
-    setTplAbsolute(!!tpl.absolute);
-    setTplRatioScope(tpl.ratioScope || 'div');
-    // PW-434 ③ 고정 바가 읽는 출처. 스냅샷을 함께 들고 있어야 «그 뒤에 고쳤는지» 를 말할 수 있다.
-    setTplLoadedFrom({
-      name: tpl.name,
-      revision: tpl.revision || 1,
-      snapshot: JSON.stringify(tpl.questions),
-    });
+    // 모달은 먼저 닫는다 — 확정 갈아 끼우기 확인이 그 위에 겹쳐 뜨면 안 된다.
     setTplPickerOpen(false);
     setTplPeek(null);
+    // PW-441 §5.10-D — 불러오기 «완료» 가 곧 확정이다. 이미 다른 것으로 확정돼 있으면
+    // 버퍼 프리필까지 통째로 확인 뒤로 미룬다(취소하면 화면이 그대로 남는다).
+    confirmTemplateFor(type, tpl, () => {
+      setTplType(type);
+      setTplName(tpl.name);
+      setTplVersion(tpl.version);
+      setTplQuestions(tpl.questions);
+      setTplGrades(tpl.grades);
+      setTplAbsolute(!!tpl.absolute);
+      setTplRatioScope(tpl.ratioScope || 'div');
+      // PW-434 ③ 고정 바가 읽는 출처. 스냅샷을 함께 들고 있어야 «그 뒤에 고쳤는지» 를 말할 수 있다.
+      setTplLoadedFrom({
+        name: tpl.name,
+        revision: tpl.revision || 1,
+        snapshot: JSON.stringify(tpl.questions),
+      });
+    });
   };
 
   const togglePeerMode = (key) =>
@@ -3026,6 +3165,15 @@ export default function EvalCycleWizard({
   };
 
   /**
+   * [PW-441] 3단계·6단계에서 2단계로 되돌려 보낼 때. **단계만 옮기고 유형을 안 맞추면
+   * 도착해서 또 찾아야 한다** — 편집 대상 유형까지 함께 맞춘다 (policy §5.2.4).
+   */
+  const goToTemplateStep = (type) => {
+    if (type) selectTplType(type);
+    goStep(1);
+  };
+
+  /**
    * PW-440 ③ — 이탈 시도. 구 동작은 바깥 클릭·`✕` 에서 **경고 한 줄 없이** 닫혔다
    * (제보 본문 마지막 문장이 이것이다). 이제 세 갈래로 묻는다.
    *
@@ -3072,54 +3220,43 @@ export default function EvalCycleWizard({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  // PW-123 평가 템플릿 게이트.
-  //
-  // 템플릿을 하나도 만들지 않고 끝까지 눌러도 사이클이 만들어졌다. 그렇게 만든 사이클은
-  // 리뷰 화면에서 templateMap[단계] 가 비어 **문항이 0개인 평가지**가 열린다(에러 없이).
-  // 그래서 "각 리뷰 단계에 적용할 템플릿이 지정됐는가"를 진행 조건으로 둔다.
-  //
-  // 매핑을 채우는 곳은 3단계(단계별 일정)지만, 매핑할 템플릿 자체는 2단계에서 만든다.
-  // 2단계에서 유형별 템플릿을 안 만들면 3단계 드롭다운이 아예 안 뜨므로(빈 상태 안내),
-  // 두 단계를 각각 막아 어디서 무엇이 모자란지 그 자리에서 알 수 있게 한다.
-  const templatePhases = displayPhases.filter(
-    (p) => PHASE_TO_REVIEW_TYPE[p.id] && !disabledPhases.has(p.id),
-  );
-  // 관리 모드는 savedTemplates 가 비어 있고 서버 template id 매핑만 들고 온다 —
-  // 이미 매핑된 단계는 라이브러리에 없어도 충족으로 본다.
-  const phasesMissingLibrary = templatePhases.filter(
-    (p) =>
-      !phaseTemplateMap[p.id] &&
-      !savedTemplates.some((t) => t.reviewType === PHASE_TO_REVIEW_TYPE[p.id]),
-  );
-  const phasesMissingTemplate = templatePhases.filter(
-    (p) => !phaseTemplateMap[p.id],
-  );
-  const templateLibraryValid = phasesMissingLibrary.length === 0;
-  const templateMapValid = phasesMissingTemplate.length === 0;
-  const phaseNames = (phases) => phases.map((p) => L[p.nameKey]).join(', ');
+  /**
+   * PW-123 평가 템플릿 게이트 — **자리를 옮겼다 (PW-441).**
+   *
+   * 종전에는 2단계(라이브러리에 유형별 템플릿이 있는가)와 3단계(단계마다 템플릿이
+   * 지정됐는가)에서 `다음` 을 비활성화했다. 그런데 3단계는 이제 템플릿을 묻지 않고
+   * 2단계 확정분을 표시만 한다(policy §5.2.4). 묻지 않는 자리에서 막으면 사용자는
+   * 무엇을 해야 잠금이 풀리는지 알 수 없다.
+   *
+   * 그래서 마법사 안에서는 **막지 않는다.** 위자드는 순서대로 끝까지 훑어보는 흐름이라
+   * 중간에서 막으면 뒤 단계(대상자·위원회)를 확인하지 못한 채 갇힌다. 대신 6단계에
+   * 미확정 경고를 남기고, **차단은 오픈 버튼**으로 옮긴다 — 오픈이 평가지를 스냅샷으로
+   * 얼리는 시점이라 확정본이 실제로 필요해지는 자리다 (policy §5.2.4 엣지 4).
+   *
+   * PW-123 이 막으려던 「문항 0개짜리 평가지」는 그대로 막힌다. 초안(`draft`) 사이클은
+   * 리뷰 화면을 열지 않고, 서버도 같은 자리(오픈 전이)에서 다시 본다.
+   */
+  const unconfirmedTypeNames = unconfirmedTypes
+    .map((t) => L[REVIEW_TYPE_KEYS[t]] || t)
+    .join(', ');
 
   const canAdvance =
     (step === 0 && step1Valid) ||
-    (step === 1 && templateLibraryValid) ||
-    (step === 2 && templateMapValid) ||
+    step === 1 ||
+    step === 2 ||
     (step === 3 && targetsValid) ||
     (step === 4 && committeeValid);
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
-  const canSubmit =
-    step1Valid && templateLibraryValid && templateMapValid && targetsValid && committeeValid;
+  const canSubmit = step1Valid && targetsValid && committeeValid;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
-    : !templateLibraryValid
-      ? L.submitBlockTemplate
-      : !templateMapValid
-        ? L.submitBlockTemplateMap
-        : !targetsValid
-          ? L.submitBlockTargets
-          : !committeeValid
-            ? L.submitBlockCommittee
-            : null;
+    : !targetsValid
+      ? L.submitBlockTargets
+      : !committeeValid
+        ? L.submitBlockCommittee
+        : null;
 
   const submit = () => {
     const payload = {
@@ -3573,6 +3710,122 @@ export default function EvalCycleWizard({
                 >
                   <EyeIcon size={13} /> {L.templatePreview}
                 </button>
+              </div>
+
+              {/* PW-441 §5.10-D 「이 사이클에 적용할 템플릿」 — 유형별 확정.
+                  2단계는 유형을 «한 번에 하나씩» 편집하는 화면이라(`tplType` 단일 상태),
+                  지금까지 몇 유형을 확정했는지 보여 주는 자리가 **아예 없었다.** 그 자리를
+                  만드는 것이 이 블록이고, 만들고 나면 3단계에서 물을 것이 없어진다(§5.2.4).
+                  시각은 §9-D-1 「선택 요약 바」 규격을 그대로 이어 쓴다 — 새 시각 언어를
+                  만들지 않는다. */}
+              <div className="evc-tpl-confirm" data-testid="evc-tpl-confirm">
+                <div className="evc-tpl-confirm-head">
+                  <span className="evc-field-label">{L.tplConfirmTitle}</span>
+                  {/* 「범용 양식이면 별도 탭이 낫지 않나」 — 이미 그렇다. 위자드에서 저장한
+                      템플릿도 그 즉시 조직 라이브러리 자산이 된다(§5.10.1). 구조는 이미 그
+                      모양이고 **그 사실이 화면에 안 보이는 것**이 문제라, 한 줄로 드러낸다. */}
+                  <span className="evc-tpl-confirm-note">{L.tplConfirmLibraryNote}</span>
+                  {onOpenTemplateLibrary && (
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost evc-tpl-confirm-open"
+                      onClick={() => onOpenTemplateLibrary()}
+                      data-testid="evc-tpl-confirm-open-library"
+                    >
+                      {L.tplConfirmOpenLibrary} <ArrowRightIcon size={12} />
+                    </button>
+                  )}
+                </div>
+                {confirmRows.map((row) => (
+                  <div
+                    key={row.type}
+                    className={`evc-tpl-confirm-row${row.editing ? ' is-editing' : ''}`}
+                    data-testid={`evc-tpl-confirm-row-${row.type}`}
+                  >
+                    <span className="evc-mode-badge">{L[row.nameKey]}</span>
+                    {/* 상태 배지는 라이브러리 조회를 «기다리지 않고» 먼저 그린다 —
+                        확정 여부는 위자드가 이미 아는 사실인데 덮으면 「모른다」로 보인다
+                        (엣지 1-A). */}
+                    <span
+                      className={`evc-tpl-confirm-state is-${
+                        row.confirmed ? (row.dirty ? 'dirty' : 'done') : 'none'
+                      }`}
+                      data-testid={`evc-tpl-confirm-state-${row.type}`}
+                    >
+                      {row.confirmed
+                        ? row.dirty
+                          ? L.tplConfirmStateDirty
+                          : L.tplConfirmStateDone
+                        : L.tplConfirmStateNone}
+                    </span>
+                    <span
+                      className="evc-tpl-confirm-name"
+                      data-testid={`evc-tpl-confirm-name-${row.type}`}
+                    >
+                      {row.confirmed ? templateNameOf(row) || L.tplConfirmUnknown : ''}
+                    </span>
+                    {row.archived && (
+                      <span className="evc-mode-badge is-warn">{L.tplConfirmArchived}</span>
+                    )}
+                    {!confirmReadOnly && (
+                      <>
+                        {libraryStatus === 'loading' ? (
+                          <span
+                            className="evc-tpl-confirm-skeleton"
+                            data-testid={`evc-tpl-confirm-loading-${row.type}`}
+                          />
+                        ) : libraryStatus === 'error' ? (
+                          /* 「없다」와 「못 불러왔다」는 다른 사실이다 — 빈 상태로 대체하지 않는다. */
+                          <span
+                            className="evc-tpl-confirm-error"
+                            role="alert"
+                            data-testid={`evc-tpl-confirm-error-${row.type}`}
+                          >
+                            {L.tplStartLoadFailed}
+                            {onReloadLibraryTemplates && (
+                              <button
+                                type="button"
+                                className="evc-btn is-ghost"
+                                onClick={() => onReloadLibraryTemplates()}
+                                data-testid={`evc-tpl-confirm-retry-${row.type}`}
+                              >
+                                {L.tplStartRetry}
+                              </button>
+                            )}
+                          </span>
+                        ) : row.options.length >= 2 ? (
+                          /* 후보가 둘 이상일 때만 편다 — 하나뿐인 질문을 두 번 묻지 않기 위해
+                             3단계에서 걷어낸 선택권이 여기로 옮겨 온 것이다. */
+                          <select
+                            className="evc-input evc-tpl-confirm-select"
+                            value={row.confirmed ? row.id : ''}
+                            onChange={(e) => {
+                              const picked = row.options.find((t) => t.id === e.target.value);
+                              if (picked) confirmTemplateFor(row.type, picked);
+                            }}
+                            data-testid={`evc-tpl-confirm-select-${row.type}`}
+                          >
+                            <option value="">{L.templateSelectPlaceholder}</option>
+                            {row.options.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={() => selectTplType(row.type)}
+                          disabled={row.editing}
+                          data-testid={`evc-tpl-confirm-edit-${row.type}`}
+                        >
+                          {L.tplConfirmEdit}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
 
               <p className="evc-wiz-hint">{L.templateHint}</p>
@@ -4767,30 +5020,63 @@ export default function EvalCycleWizard({
                           </button>
                         </div>
                       )}
+                      {/* [PW-441 §5.2.4] 여기서 **고르게 하지 않는다.** 고를 재료(항목·등급)는
+                          2단계에만 있어서, 3단계에서 고르게 하면 또 왕복한다. 2단계에서 확정한
+                          것을 읽기 전용으로 적기만 하고, 바꾸려면 2단계로 보낸다. */}
                       {enabled && rtype && (() => {
-                        const opts = savedTemplates.filter((t) => t.reviewType === rtype);
+                        const row = confirmRowOf(rtype);
                         return (
                           <div className="evc-sched-tpl">
                             <span className="evc-field-label">
                               {L.appliedTemplate}{' '}
                               <span className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</span>
                             </span>
-                            {opts.length === 0 ? (
-                              <div className="evc-sched-tpl-empty">{L.templateEmptyHint}</div>
-                            ) : (
-                              <select
-                                className="evc-input"
-                                value={phaseTemplateMap[ph.id] || ''}
-                                onChange={(e) =>
-                                  setPhaseTemplateMap((m) => ({ ...m, [ph.id]: e.target.value }))
-                                }
+                            {row?.confirmed ? (
+                              <div
+                                className="evc-sched-tpl-fixed"
                                 data-testid={`evc-sched-tpl-${ph.id}`}
                               >
-                                <option value="">{L.templateSelectPlaceholder}</option>
-                                {opts.map((t) => (
-                                  <option key={t.id} value={t.id}>{t.name}</option>
-                                ))}
-                              </select>
+                                {/* 표기 «전체» 를 링크로 만들지 않는다 — 읽기 전용이라는 신호와
+                                    어긋난다. 이동은 오른쪽 버튼으로만 (엣지 6). */}
+                                <span className="evc-sched-tpl-name">
+                                  {templateNameOf(row) || L.tplConfirmUnknown}
+                                </span>
+                                {row.archived && (
+                                  <span
+                                    className="evc-mode-badge is-warn"
+                                    data-testid={`evc-sched-tpl-archived-${ph.id}`}
+                                  >
+                                    {L.tplConfirmArchived}
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  className="evc-btn is-ghost evc-sched-tpl-goto"
+                                  onClick={() => goToTemplateStep(rtype)}
+                                  data-testid={`evc-sched-tpl-change-${ph.id}`}
+                                >
+                                  {L.tplConfirmGoChange} <ArrowRightIcon size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                className="evc-sched-tpl-unset"
+                                data-testid={`evc-sched-tpl-unset-${ph.id}`}
+                              >
+                                <span>
+                                  {fill(L.tplConfirmMissing, {
+                                    type: L[REVIEW_TYPE_KEYS[rtype]],
+                                  })}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="evc-btn is-ghost evc-sched-tpl-goto"
+                                  onClick={() => goToTemplateStep(rtype)}
+                                  data-testid={`evc-sched-tpl-goto-${ph.id}`}
+                                >
+                                  {L.tplConfirmGoSet} <ArrowRightIcon size={12} />
+                                </button>
+                              </div>
                             )}
                           </div>
                         );
@@ -5644,6 +5930,26 @@ export default function EvalCycleWizard({
                       : L.wizardCommitteeNone}
                   </b>
                 </div>
+                {/* [PW-441 §5.2.4] 단계별 조합 요약은 유지하되, 미확정 안내가 가리키는
+                    단계를 «2단계» 로 고친다 — 안내가 가리키는 단계가 실제와 다르면 그
+                    안내는 사용자를 없는 곳으로 보낸다 (엣지 7). */}
+                <div className="evc-summary-row" data-testid="evc-wiz-summary-templates">
+                  <span>{L.appliedTemplate}</span>
+                  <b className="evc-summary-tpl">
+                    {confirmRows.map((row) => (
+                      <span
+                        key={row.type}
+                        className={`evc-summary-tpl-item${row.confirmed ? '' : ' is-warn'}`}
+                        data-testid={`evc-wiz-summary-tpl-${row.type}`}
+                      >
+                        {L[row.nameKey]}{' '}
+                        {row.confirmed
+                          ? templateNameOf(row) || L.tplConfirmUnknown
+                          : L.tplConfirmSummaryMissing}
+                      </span>
+                    ))}
+                  </b>
+                </div>
                 <div className="evc-summary-row">
                   <span>{L.scheduleSummaryLabel}</span>
                   <b>
@@ -5709,16 +6015,6 @@ export default function EvalCycleWizard({
           {step === 0 && reviewTypes.length === 0 && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-types">
               {L.blockReviewTypes}
-            </span>
-          )}
-          {step === 1 && !templateLibraryValid && (
-            <span className="evc-wiz-block" data-testid="evc-wiz-block-template">
-              {L.blockTemplateLibrary} ({phaseNames(phasesMissingLibrary)})
-            </span>
-          )}
-          {step === 2 && !templateMapValid && (
-            <span className="evc-wiz-block" data-testid="evc-wiz-block-template-map">
-              {L.blockTemplateMap} ({phaseNames(phasesMissingTemplate)})
             </span>
           )}
           {step === steps.length - 1 && submitBlockHint && (
@@ -5890,6 +6186,74 @@ export default function EvalCycleWizard({
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [PW-441 §5.10-D] 확정 갈아 끼우기 — 조용히 바꾸지 않는다. 확정은 사이클의
+          내용을 정하는 행위라 편집 버퍼 교체보다 무겁다. */}
+      {pendingConfirmSwap && (
+        <div className="evc-modal-overlay" onClick={() => setPendingConfirmSwap(null)}>
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">{L.tplConfirmSwapTitle}</h3>
+            <p className="evc-modal-sub" data-testid="evc-tpl-confirm-swap-body">
+              {fill(L.tplConfirmSwapBody, {
+                type: L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]],
+                from: pendingConfirmSwap.from,
+                to: pendingConfirmSwap.to,
+              })}
+            </p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setPendingConfirmSwap(null)}
+                data-testid="evc-tpl-confirm-swap-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => pendingConfirmSwap.run()}
+                data-testid="evc-tpl-confirm-swap-ok"
+              >
+                {L.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [PW-441 §5.2.4 엣지 1] 확정된 평가 종류를 끄면 확정도 함께 풀린다 —
+          화면 어디에도 안 보이는 결과라 끄기 «전에» 말한다. */}
+      {pendingTypeOff && (
+        <div className="evc-modal-overlay" onClick={() => setPendingTypeOff(null)}>
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">
+              {fill(L.tplTypeOffTitle, { type: L[REVIEW_TYPE_KEYS[pendingTypeOff]] })}
+            </h3>
+            <p className="evc-modal-sub" data-testid="evc-wiz-type-off-body">
+              {fill(L.tplTypeOffBody, { type: L[REVIEW_TYPE_KEYS[pendingTypeOff]] })}
+            </p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setPendingTypeOff(null)}
+                data-testid="evc-wiz-type-off-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => applyTypeToggle(pendingTypeOff)}
+                data-testid="evc-wiz-type-off-ok"
+              >
+                {L.confirm}
+              </button>
             </div>
           </div>
         </div>
