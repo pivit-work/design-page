@@ -40,11 +40,15 @@ import {
  * i18n 라벨(`labels`) · 날짜 포맷(사용자 시간대) · 아바타 · 서버 호출 전부.
  * 캔버스는 계산하지도 저장하지도 않는다 — 받은 값을 그리고 콜백을 부른다.
  *
- * ## 피드백은 읽기 전용이다 (PW-274)
+ * ## 피드백 공개는 이 화면이 유일한 자리다 (PW-432)
  *
- * 기획서 §6.4.2 는 이 자리에 「공개」 버튼을 두지만, 비공개로 되돌리는 경로가 제품에
- * 없다 — PW-274 가 그 쌍을 만들었다가 자리 판단 때문에 되돌리기까지 함께 걷어냈다.
- * 회수할 수 없는 공개 버튼을 붙이지 않는다. 지금 공개돼 있는지만 배지로 말한다.
+ * 기획서 §6.4.2 는 이 자리에 「공개」 버튼을 둔다. PW-430 은 되돌리는 경로가 제품에
+ * 없어서 배지만 남겼는데(PW-274 가 그 쌍을 만들었다가 자리 판단 때문에 되돌리기까지
+ * 함께 걷어냈다), PW-432 가 되돌리기를 되살리면서 컨트롤을 붙였다.
+ *
+ * 컨트롤은 `share` prop 을 받았을 때만 그린다 — 안 넘기면 지금까지처럼 배지만 나온다.
+ * 공개를 다루는 자리를 여기 하나로 둔다. 대시보드 팀원 카드·별도 관리 모달로 갈라지면
+ * 어느 쪽이 정답인지 사라진다(PW-274 가 그렇게 되돌려졌다).
  */
 
 const DEFAULT_ICONS = {
@@ -104,6 +108,24 @@ const DEFAULT_LABELS = {
   feedbackSupport: '지원 계획',
   shareOn: '멤버에게 공개됨',
   shareOff: '비공개',
+
+  /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ── */
+  shareCta: '{name} 님에게 피드백 공개',
+  shareCtaNoName: '팀원에게 피드백 공개',
+  shareConfirmTitle: '피드백을 {name} 님에게 공개하시겠습니까?',
+  shareConfirmTitleNoName: '피드백을 팀원에게 공개하시겠습니까?',
+  /* 🔴 기획서 원문은 «공개 후에는 취소할 수 없습니다» 지만, 되돌리기가 생긴 뒤로는
+     사실이 아니다. 문구를 되돌릴 수 있다는 사실에 맞춘다 (PW-432). */
+  shareConfirmNotice:
+    '피드백 본문과 근거 발췌를 볼 수 있게 됩니다. 나중에 공개를 취소할 수 있습니다.',
+  shareConfirm: '공개',
+  shareCancel: '취소',
+  shareBusy: '공개하는 중…',
+  shareDone: '피드백이 팀원에게 공개되었습니다',
+  unshareCta: '공개 취소',
+  unshareBusy: '되돌리는 중…',
+  shareFailed: '공개하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  unshareFailed: '공개를 되돌리지 못했습니다. 잠시 후 다시 시도해 주세요.',
   evidenceToggle: '근거 발췌 {count}',
   evidenceCaption: '이 피드백의 근거가 된 대화 발췌입니다',
   evidenceEdited: '본문을 수정했습니다 — 발췌는 원본 대화 기준입니다',
@@ -480,6 +502,121 @@ function NextMemoCard({ value, L, icons, baseUrl, memo }) {
   );
 }
 
+/**
+ * 피드백 공개 컨트롤 (PW-432 · policy §6.4.2).
+ *
+ * 정본 시안 `1on1-manager-view.jsx` 의 `shareState` 블록이 **비공개 → 확인 → 공개됨**
+ * 셋을 그리고, 거기에 **공개 취소**를 더한다. 되돌릴 수 없는 공개는 두지 않는다는 것이
+ * 이 티켓의 전제라, 공개와 되돌리기는 늘 같은 자리에 함께 있다.
+ *
+ * ## 확인 단계는 화면이 소유한다
+ *
+ * "정말 공개할까요" 는 서버에 물을 것이 없다 — 호스트가 상태를 들고 있으면 소비처마다
+ * 확인 단계를 다시 구현하게 되고, 그러다 한 곳에서 빠지면 그 화면만 확인 없이 공개된다.
+ *
+ * ## 낙관적으로 바꾸지 않는다
+ *
+ * 공개 여부는 `session.isShared` 하나로 그린다. 호출이 실패했는데 화면만 「공개됨」으로
+ * 가면 매니저는 공개된 줄 안다 — 그 오해의 대가가 큰 종류의 글이다. 실패는 그 자리에
+ * 문구로 알리고(전역 오류 화면으로 튕기지 않는다) 직전 모습을 유지한다.
+ */
+function ShareControl({ shared, memberName, L, share }) {
+  // 확인 단계를 통과했는지. 공개에 **성공**하면 아래 `shared` 분기가 이 값과 무관하게
+  // 그려지므로 여기서 되돌릴 필요가 없고, **실패**하면 켜진 채 남아야 한다 — 확인
+  // 박스를 닫아 버리면 매니저가 처음부터 다시 눌러야 한다.
+  const [confirming, setConfirming] = useState(false);
+
+  const busy = !!share?.busy;
+
+  if (shared) {
+    return (
+      <div className="ono-done-share-control" data-testid="ono-done-share-control" data-state="shared">
+        <div className="ono-done-share-done">
+          <span className="ono-done-share-done-text">{L.shareDone}</span>
+          <button
+            type="button"
+            className="ono-done-share-undo"
+            onClick={() => {
+              // 되돌리면 다시 비공개 분기로 내려간다. 확인 단계를 여기서 같이 접지
+              // 않으면, 앞서 공개할 때 켜 둔 값이 남아 있어 CTA 대신 확인 박스가
+              // 열린 채로 돌아온다.
+              setConfirming(false);
+              share?.onUnshare?.();
+            }}
+            disabled={busy}
+            data-testid="ono-done-unshare"
+          >
+            {busy ? L.unshareBusy : L.unshareCta}
+          </button>
+        </div>
+        {share?.error && (
+          <p className="ono-done-inline-error" role="alert" data-testid="ono-done-share-error">
+            {L.unshareFailed}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (confirming) {
+    return (
+      <div className="ono-done-share-control" data-testid="ono-done-share-control" data-state="confirming">
+        <div className="ono-done-share-confirm" data-testid="ono-done-share-confirm">
+          <p className="ono-done-share-confirm-title">
+            {memberName
+              ? fill(L.shareConfirmTitle, { name: memberName })
+              : L.shareConfirmTitleNoName}
+          </p>
+          <p className="ono-done-share-confirm-notice">{L.shareConfirmNotice}</p>
+          <div className="ono-done-share-confirm-actions">
+            <button
+              type="button"
+              className="ono-done-share-go"
+              onClick={() => share?.onShare?.()}
+              disabled={busy}
+              data-testid="ono-done-share-confirm-go"
+            >
+              {busy ? L.shareBusy : L.shareConfirm}
+            </button>
+            <button
+              type="button"
+              className="ono-done-share-abort"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              data-testid="ono-done-share-confirm-cancel"
+            >
+              {L.shareCancel}
+            </button>
+          </div>
+        </div>
+        {share?.error && (
+          <p className="ono-done-inline-error" role="alert" data-testid="ono-done-share-error">
+            {L.shareFailed}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="ono-done-share-control" data-testid="ono-done-share-control" data-state="before">
+      <button
+        type="button"
+        className="ono-done-share-cta"
+        onClick={() => setConfirming(true)}
+        disabled={busy}
+        data-testid="ono-done-share"
+      >
+        {memberName ? fill(L.shareCta, { name: memberName }) : L.shareCtaNoName}
+      </button>
+      {/* 이 분기에는 실패 문구가 없다 — 공개가 실패하면 확인 박스가 열린 채로 남고,
+          되돌리기가 실패하면 공개됨 분기에 머문다. 여기까지 내려왔다는 것은 실패한
+          일이 없다는 뜻이다. 지난 실패 문구를 여기서 다시 띄우면, 방금 성공적으로
+          되돌린 매니저에게 「되돌리지 못했습니다」가 보인다. */}
+    </div>
+  );
+}
+
 export default function DoneOneOnOneView({
   session,
   /** 화면 단위 매니저 — 회차에 이름이 없을 때의 폴백 (PW-211). */
@@ -509,6 +646,13 @@ export default function DoneOneOnOneView({
   memo,
   /** `{ done, onBook() }` — 다음 1on1 예약 */
   booking,
+  /**
+   * `{ busy, error, onShare(), onUnshare() }` — 피드백 공개/되돌리기 (PW-432).
+   *
+   * **안 넘기면 지금까지처럼 공개 여부 배지만 그린다** — 컨트롤 없이 이 캔버스를 쓰던
+   * 소비처가 그대로 살아 있어야 해서다. 공개 여부 자체는 `session.isShared` 로 읽는다.
+   */
+  share,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -575,8 +719,7 @@ export default function DoneOneOnOneView({
 
       <SentimentCard session={session} L={L} icons={I} baseUrl={baseUrl} />
 
-      {/* 피드백은 읽기 전용이다 — 공개/공개취소 버튼은 두지 않는다 (PW-274).
-          지금 공개돼 있는지만 배지로 말한다. */}
+      {/* 피드백이 없는 회차에는 공개할 것도 없다 — 카드 자체를 그리지 않는다. */}
       {has(session.managerFeedback) && (
         <div className="ono-done-feedback-wrap" data-testid="ono-done-feedback">
           <div className="ono-done-share-row">
@@ -596,6 +739,14 @@ export default function DoneOneOnOneView({
             jump={transcript.jump}
             {...(feedbackEvidence || {})}
           />
+          {share && (
+            <ShareControl
+              shared={!!session.isShared}
+              memberName={memberName}
+              L={L}
+              share={share}
+            />
+          )}
         </div>
       )}
 

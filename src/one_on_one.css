@@ -3720,6 +3720,126 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
 }
 
+/* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ─────────────────────────────────────
+   시안 `1on1-manager-view.jsx` 의 `shareState` 블록: 보라 버튼 → 보라 확인 박스 →
+   보라 완료 박스. 완료 박스에는 시안에 없던 「공개 취소」가 붙는다 — 되돌릴 수 없는
+   공개를 두지 않는 것이 이 기능의 전제라서다.
+
+   버튼 라벨에는 팀원 이름이 들어가고 로케일에 따라 길이가 크게 흔들린다
+   («김민준 님에게 피드백 공개» ↔ «Share feedback with Alexandra»). 고정 폭을 주지 않고
+   `box-sizing: border-box` + `overflow-wrap: anywhere` 로 넘침을 막는다. */
+.ono-done-share-control {
+  margin-top: 14px;
+}
+.ono-done-share-cta {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--utility-purple-500, #7a5af8);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-white, #ffffff);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.ono-done-share-cta:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ono-done-share-confirm {
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: 8px;
+  background: var(--utility-purple-50, #f4f3ff);
+}
+.ono-done-share-confirm-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  overflow-wrap: anywhere;
+}
+.ono-done-share-confirm-notice {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--utility-purple-600, #6938ef);
+  overflow-wrap: anywhere;
+}
+.ono-done-share-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+.ono-done-share-go,
+.ono-done-share-abort {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.ono-done-share-go {
+  border: none;
+  background: var(--utility-purple-500, #7a5af8);
+  font-weight: 600;
+  color: var(--text-white, #ffffff);
+}
+.ono-done-share-abort {
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--colors-base-white, #ffffff);
+  color: var(--text-secondary);
+}
+.ono-done-share-go:disabled,
+.ono-done-share-abort:disabled,
+.ono-done-share-undo:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ono-done-share-done {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: 8px;
+  background: var(--utility-purple-50, #f4f3ff);
+}
+.ono-done-share-done-text {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  overflow-wrap: anywhere;
+}
+.ono-done-share-undo {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border-radius: 7px;
+  background: var(--colors-base-white, #ffffff);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--utility-purple-600, #6938ef);
+  cursor: pointer;
+}
+
 /* ── 액션아이템 ── */
 .ono-done-count { font-size: 12px; color: var(--text-tertiary); }
 .ono-done-actions { display: flex; flex-direction: column; gap: 6px; }
