@@ -486,6 +486,8 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
 export default function EvalCycleHrCanvas({
   cycles = [],
   candidates = [],
+  /** PW-443 — 마법사 4 대상자의 조직 트리 원본 `[{ id, name, parentId }]`. */
+  orgUnits = [],
   // 발령 변경 이력 — 마법사 제외 조건('직무 변경'·'직급 변경일') 근거. 그대로 내려보낸다.
   appointmentChanges = [],
   committeeCandidates = [],
@@ -686,6 +688,7 @@ export default function EvalCycleHrCanvas({
         <EvalCycleWizard
           labels={L}
           candidates={candidates}
+          orgUnits={orgUnits}
           appointmentChanges={appointmentChanges}
           committeeCandidates={committeeCandidates}
           committeeCandidatesLoading={committeeCandidatesLoading}
@@ -707,6 +710,7 @@ export default function EvalCycleHrCanvas({
         <EvalCycleWizard
           labels={L}
           candidates={candidates}
+          orgUnits={orgUnits}
           appointmentChanges={appointmentChanges}
           committeeCandidates={committeeCandidates}
           committeeCandidatesLoading={committeeCandidatesLoading}
