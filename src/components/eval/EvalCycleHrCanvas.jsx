@@ -39,6 +39,7 @@ const DEFAULT_LABELS = {
   confirmHoldBody:
     '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
   // PW-440 — 작성 중 초안 카드
+  statusWritingDraft: '초안',
   draftResume: '이어서 작성',
   draftDelete: '초안 삭제',
   draftCardMeta: '{{step}}/{{total}}단계 · {{stamp}} 저장',
@@ -421,7 +422,13 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
       <div className="evc-card-top">
         <div className="evc-card-head">
           <h3 className="evc-card-name">{cycle.name}</h3>
-          <StatusBadge status={cycle.status} label={statusLabel(cycle, cycle.status, L)} />
+          {/* PW-440 — 작성 중 초안과 «준비 중»(6단계를 다 통과해 만들어 둔) 사이클은 같은
+              `draft` 상태를 쓴다. 배지까지 같은 글자면 목록에서 둘을 가릴 수 없다 —
+              카드 전체에서 가장 먼저 읽히는 자리라 여기서 갈라 준다. */}
+          <StatusBadge
+            status={cycle.status}
+            label={isWizardDraft ? L.statusWritingDraft : statusLabel(cycle, cycle.status, L)}
+          />
           {cycle.pendingCount > 0 && (
             <span className="evc-pending">{fill(L.pending, { count: cycle.pendingCount })}</span>
           )}
