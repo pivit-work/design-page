@@ -171,8 +171,12 @@ export default function AdminRbacCanvas({
   const [selectedRole, setSelectedRole] = useState('org_admin');
 
   const getMatrix = (roleId, permId) => matrix[roleId]?.[permId] ?? false;
+  // 분자는 «이 화면이 나열하는 27개» 안에서만 센다. 분모가 ALL_PERM_IDS.length 이므로
+  // 목록 밖 권한까지 세면 「28 / 27개」처럼 분자가 분모를 넘는다.
+  // 소비 측 매트릭스에는 이 화면에 없는 권한이 정상적으로 들어온다 — pivit-work 서버는
+  // p013(스쿼드 원장 관리)을 실제로 판정하지만, 이 화면의 권한 목록에서는 빠져 있다.
   const countPerms = (roleId) =>
-    Object.values(matrix[roleId] ?? {}).filter(Boolean).length;
+    ALL_PERM_IDS.filter((permId) => matrix[roleId]?.[permId]).length;
 
   const cardStyle = {
     background: DP.surface,
