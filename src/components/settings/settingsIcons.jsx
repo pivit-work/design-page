@@ -60,3 +60,14 @@ export function AlertTriangleIcon({ size = 16 }) {
     </svg>
   );
 }
+
+/** 🕘 이력 — 시계 + 되감기 화살. 변경 이력 탭의 안내 배너. */
+export function HistoryIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 4 3 9 8 9" />
+      <polyline points="12 8 12 12 14.5 13.5" />
+    </svg>
+  );
+}
