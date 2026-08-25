@@ -453,12 +453,15 @@ export function SquadAssignPopover({
                 {total === 0 ? '미배정' : diff > 0 ? `초과 ${diff}%p` : `여유 ${-diff}%p`}
               </span>
             </div>
+            {/* 폭은 상자에 맡긴다 — 숫자로 박으면 팝오버 폭(POP_W)이 바뀔 때마다 어긋난다.
+                실제로 272 시절엔 이 막대가 상자보다 10px 넓어 본문에 가로 스크롤이
+                생겼다(PW-402 가 별건으로 남겨 둔 것). */}
             <CapacityBar
               segments={[
                 { id: 'others', name: '다른 스쿼드', color: 'var(--text-quaternary)', pct: othersPct },
                 { id: squad.id, name: squad.name, color: squad.color, pct: counted && !capacityUnset ? assignment.allocationPct : 0 },
               ].filter((s) => s.pct > 0)}
-              total={total} width={240} height={8}
+              total={total} width="100%" height={8}
             />
             {!counted && (
               <div className="sq-pop-note">
