@@ -38,6 +38,14 @@ const DEFAULT_LABELS = {
   confirmHoldTitle: '평가를 일시 중단하시겠습니까?',
   confirmHoldBody:
     '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
+  // PW-440 — 작성 중 초안 카드
+  draftResume: '이어서 작성',
+  draftDelete: '초안 삭제',
+  draftCardMeta: '{{step}}/{{total}}단계 · {{stamp}} 저장',
+  confirmDraftDeleteTitle: '이 초안을 삭제하시겠습니까?',
+  confirmDraftDeleteBody: '작성한 설정이 사라집니다. 되돌릴 수 없습니다.',
+  draftLoadError: '초안을 불러올 수 없습니다.',
+  toastDraftSaved: '초안이 저장되어 있습니다.',
   toastHeld: '사이클이 일시 중단되었습니다',
   toastResumed: '사이클이 재개되었습니다',
   // §4.1.2-A 진행 중 일정 수정
@@ -189,6 +197,23 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
+/** 위자드 단계 수 — 초안 카드의 「N/6단계」 표기가 이 값을 쓴다 (PW-440). */
+const WIZARD_STEP_COUNT = 6;
+
+/**
+ * `2026-08-23T18:20:00Z` → `08/23 18:20` (PW-440).
+ *
+ * 24시간제로 적는다(정책 §5.2.2). 초안이 여럿 쌓였을 때 어느 것이 최신인지 훑어
+ * 가려야 하는 자리라 「오후 6:20」 보다 자릿수가 고른 편이 읽힌다.
+ */
+function stampDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 const fill = (s, vars) => {
   let out = s == null ? '' : String(s);
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
@@ -372,8 +397,18 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L }) {
   );
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResults, onHold, onResume, onEditSchedule }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft }) {
   const isDraft = cycle.status === 'draft';
+  /**
+   * PW-440 — 「작성하다 만 초안」인가.
+   *
+   * 🔴 앱에서 `draft` 는 두 가지다 — 6단계를 다 통과해 «생성»까지 누른 «준비 중»
+   * 사이클과, 위자드를 채우다 만 초안. **가르는 근거는 `draftState` 의 유무**다.
+   * 둘을 같이 다루면 준비 중 사이클에서 「오픈」이 사라지고(§5.1 검증을 거친 사이클을
+   * 열 길이 없어진다), 반대로 초안에 「오픈」을 두면 필수값 미완 사이클이 목록에서
+   * 곧장 열려 단계별 검증이 통째로 무력해진다.
+   */
+  const isWizardDraft = isDraft && !!cycle.draftState && !!onResumeDraft;
   const isDone = cycle.status === 'done';
   const isOnHold = cycle.status === 'on_hold';
   // 진행 중(active): draft·done·on_hold·회수·비상정지가 아닌 모든 단계
@@ -434,14 +469,48 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
       )}
 
       <div className="evc-card-actions">
-        {typeof cycle.completionPct === 'number' && (
-          <div className="evc-completion">
-            <span className="evc-completion-label">{L.completion}</span>
-            <span className="evc-completion-value">{cycle.completionPct}%</span>
+        {/* PW-440 — 작성 중 초안에 완료율은 뜻이 없다(아직 아무도 평가하지 않는다).
+            그 자리에 「어느 단계까지 갔고 언제 저장했나」를 적는다 — 초안이 여럿일 때
+            어느 것을 이어야 할지 가리는 근거가 그 둘이다. */}
+        {isWizardDraft ? (
+          <div className="evc-draft-meta" data-testid="evc-draft-meta">
+            {fill(L.draftCardMeta, {
+              step: (cycle.draftStep ?? 0) + 1,
+              total: WIZARD_STEP_COUNT,
+              stamp: stampDateShort(cycle.draftSavedAt),
+            })}
+            {cycle.draftSavedByName ? ` · ${cycle.draftSavedByName}` : ''}
           </div>
+        ) : (
+          typeof cycle.completionPct === 'number' && (
+            <div className="evc-completion">
+              <span className="evc-completion-label">{L.completion}</span>
+              <span className="evc-completion-value">{cycle.completionPct}%</span>
+            </div>
+          )
         )}
         <div className="evc-card-buttons">
-          {isDraft && (
+          {isWizardDraft && (
+            <>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => onResumeDraft(cycle)}
+                data-testid="evc-draft-resume"
+              >
+                {L.draftResume}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => onDeleteDraft(cycle)}
+                data-testid="evc-draft-delete"
+              >
+                {L.draftDelete}
+              </button>
+            </>
+          )}
+          {isDraft && !isWizardDraft && (
             <button type="button" className="evc-btn is-primary" onClick={() => onOpen(cycle)} data-testid="evc-open">
               {L.open}
             </button>
@@ -473,9 +542,13 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
               {L.viewResults}
             </button>
           ) : (
-            <button type="button" className="evc-btn is-ghost" onClick={() => onManage(cycle)} data-testid="evc-manage">
-              {L.manage}
-            </button>
+            /* PW-440 — 작성 중 초안에서 「관리」는 「이어서 작성」과 이름만 다른 같은
+               동작이다. 둘을 나란히 두면 어느 쪽이 이어쓰기인지 가릴 수 없다. */
+            !isWizardDraft && (
+              <button type="button" className="evc-btn is-ghost" onClick={() => onManage(cycle)} data-testid="evc-manage">
+                {L.manage}
+              </button>
+            )
           )}
         </div>
       </div>
@@ -526,10 +599,31 @@ export default function EvalCycleHrCanvas({
   onSaveTemplate,
   onDeleteTemplate,
   templateSaveError = null,
+  /**
+   * PW-440 — 위자드 초안 저장. `({ draftState, draftStep, name }) =>
+   * Promise<{ cycleId, savedAt } | null>`.
+   *
+   * 넘기지 않으면 초안 기능이 통째로 꺼진다(종전 동작). 넘기면 위자드에 자동 저장·
+   * `임시저장`·이탈 확인이 붙고, 목록의 작성 중 초안 카드에 「이어서 작성」이 생긴다.
+   */
+  onSaveDraft,
+  /** PW-440 — 저장된 초안 읽기. `(cycleId) => Promise<{ draftState, draftStep, draftSavedAt, draftSavedByName }>`. */
+  onLoadDraft,
+  /** PW-440 — 초안 삭제. 없으면 `onDeleteCycle` 로 떨어진다. */
+  onDeleteDraft,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
   const [showCreate, setShowCreate] = useState(false);
+  /**
+   * PW-440 — 지금 위자드가 다루는 초안. `null` 이면 새로 쓰는 중이다.
+   *
+   * `cycleId` 를 여기 들고 있어야 두 번째 저장부터 «갱신»이 된다 — 없으면 매 단계마다
+   * 새 초안 카드가 하나씩 생긴다.
+   */
+  const [draftSession, setDraftSession] = useState(null);
+  /** 이어쓰기로 열 때 위자드에 넘길 복원값. `null` 이면 새로 쓰는 중이다. */
+  const [resumeTarget, setResumeTarget] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [scheduleModal, setScheduleModal] = useState(null); // §4.1.2-A: 편집 대상 cycle
   // §4.3 관리 모드 — { cycle, participants }. 상세를 받아야 대상자까지 프리필된다.
@@ -557,7 +651,19 @@ export default function EvalCycleHrCanvas({
   );
 
   const handleCreate = async (payload) => {
-    setShowCreate(false);
+    /**
+     * PW-440 — 초안을 이어 쓰다 「생성」을 누르면 **그 초안이 사이클이 된다.**
+     *
+     * 🔴 여기서 새로 만들면 목록에 사이클이 둘 생긴다 — 방금 만든 것과, 이어쓰던
+     * 초안 카드. 사용자는 자기가 쓰던 것이 왜 그대로 남아 있는지 알 수 없다.
+     * 초안 레코드는 이미 있으므로 «갱신»이 맞다.
+     */
+    const draftCycleId = draftSession?.cycleId;
+    closeWizard();
+    if (draftCycleId && onUpdateCycle) {
+      await run(() => onUpdateCycle(draftCycleId, payload), L.toastCreated);
+      return;
+    }
     await run(() => onCreateCycle?.(payload), L.toastCreated);
   };
 
@@ -635,6 +741,100 @@ export default function EvalCycleHrCanvas({
     await run(() => onUpdateCycle?.(id, payload), L.toastUpdated);
   };
 
+  /**
+   * PW-440 — 위자드가 부르는 초안 저장. 첫 저장에서 받은 사이클 id 를 여기 붙들어
+   * 두 번째 저장부터 «갱신»이 되게 한다.
+   *
+   * 🔴 실패를 **던지지 않는다.** 던지면 위자드가 통째로 닫히면서 작성 중이던 설정이
+   * 날아간다 — 이 카드가 없애려는 바로 그 일이다. `null` 로 알리고 위자드가 푸터에
+   * 인라인으로 표시한다.
+   */
+  const handleSaveDraft = async ({ draftState, draftStep, name }) => {
+    if (!onSaveDraft) return null;
+    try {
+      const saved = await onSaveDraft({
+        cycleId: draftSession?.cycleId,
+        // 낙관적 잠금 키 — 그 사이 다른 HR 이 저장했으면 서버가 거절한다.
+        baseSavedAt: draftSession?.savedAt ?? null,
+        draftState,
+        draftStep,
+        name,
+      });
+      if (!saved) return null;
+      setDraftSession({ cycleId: saved.cycleId, savedAt: saved.savedAt });
+      return saved;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * PW-440 — 「이어서 작성」. **머물던 단계에서** 연다.
+   *
+   * 🔴 초안을 못 읽으면 **빈 위자드를 열지 않는다.** 빈 화면을 열면 사용자가 그 위에
+   * 새로 쓰다가 저장 시점에 원래 초안을 덮는다(§5.1-A-6).
+   */
+  const handleResumeDraft = (cycle) => {
+    void (async () => {
+      try {
+        const draft = onLoadDraft
+          ? await onLoadDraft(cycle.id)
+          : {
+              draftState: cycle.draftState,
+              draftStep: cycle.draftStep,
+              draftSavedAt: cycle.draftSavedAt,
+              draftSavedByName: cycle.draftSavedByName,
+            };
+        if (!draft?.draftState) {
+          showToast(L.draftLoadError, 'error');
+          return;
+        }
+        setDraftSession({
+          cycleId: cycle.id,
+          savedAt: draft.draftSavedAt ?? null,
+        });
+        setResumeTarget(draft);
+        setShowCreate(true);
+      } catch {
+        showToast(L.draftLoadError, 'error');
+      }
+    })();
+  };
+
+  const requestDeleteDraft = (cycle) => {
+    setConfirmModal({
+      title: L.confirmDraftDeleteTitle,
+      body: L.confirmDraftDeleteBody,
+      confirmLabel: L.delete,
+      danger: true,
+      onConfirm: () => {
+        setConfirmModal(null);
+        void run(
+          () => (onDeleteDraft ?? onDeleteCycle)?.(cycle.id),
+          L.toastDeleted,
+        );
+      },
+    });
+  };
+
+  /** 위자드를 닫는다 — 초안 세션과 복원값을 함께 비운다(다음에 열면 새 초안이다). */
+  const closeWizard = () => {
+    setShowCreate(false);
+    setResumeTarget(null);
+    setDraftSession(null);
+  };
+
+  /**
+   * PW-440 — 사용자가 위자드를 닫을 때. 이번 세션에 한 번이라도 저장했으면
+   * **저장돼 있다는 사실을 알린다.** 닫히고 나면 화면에는 목록만 남아서, 저장이
+   * 됐는지 아닌지가 카드를 유심히 보기 전까지 드러나지 않는다 (§5.1-A-5).
+   */
+  const cancelWizard = () => {
+    const hadDraft = !!draftSession;
+    closeWizard();
+    if (hadDraft) showToast(L.toastDraftSaved);
+  };
+
   return (
     <div className="evc-root">
       {toast && (
@@ -679,6 +879,8 @@ export default function EvalCycleHrCanvas({
               onHold={requestHold}
               onResume={handleResume}
               onEditSchedule={(c) => setScheduleModal(c)}
+              onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
+              onDeleteDraft={requestDeleteDraft}
             />
           ))}
         </div>
@@ -695,7 +897,12 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           onSubmit={handleCreate}
-          onCancel={() => setShowCreate(false)}
+          onCancel={cancelWizard}
+          onSaveDraft={onSaveDraft ? handleSaveDraft : undefined}
+          draftState={resumeTarget?.draftState ?? null}
+          draftStep={resumeTarget?.draftStep ?? 0}
+          draftSavedAt={resumeTarget?.draftSavedAt ?? null}
+          draftSavedByName={resumeTarget?.draftSavedByName ?? null}
           presets={cyclePresets}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
