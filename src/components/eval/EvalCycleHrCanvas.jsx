@@ -603,6 +603,10 @@ export default function EvalCycleHrCanvas({
    * 넘기지 않으면 위자드가 종전대로 세션 로컬로 동작한다(시각 동일).
    */
   libraryTemplates = null,
+  /** PW-434 — 라이브러리 조회 상태('loading'|'ready'|'error')와 재시도. 마법사 2단계
+      「저장된 템플릿에서 시작」 블록이 「없다」와 「못 불러왔다」를 갈라 그린다. */
+  libraryStatus = 'ready',
+  onReloadLibraryTemplates,
   onSaveTemplate,
   onDeleteTemplate,
   templateSaveError = null,
@@ -914,6 +918,8 @@ export default function EvalCycleHrCanvas({
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
           libraryTemplates={libraryTemplates}
+          libraryStatus={libraryStatus}
+          onReloadLibraryTemplates={onReloadLibraryTemplates}
           onSaveTemplate={onSaveTemplate}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
@@ -935,6 +941,8 @@ export default function EvalCycleHrCanvas({
           onSubmit={handleUpdate}
           onCancel={() => setManageTarget(null)}
           libraryTemplates={libraryTemplates}
+          libraryStatus={libraryStatus}
+          onReloadLibraryTemplates={onReloadLibraryTemplates}
           onSaveTemplate={onSaveTemplate}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
