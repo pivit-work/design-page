@@ -824,6 +824,17 @@ export default function EvalCycleHrCanvas({
     setDraftSession(null);
   };
 
+  /**
+   * PW-440 — 사용자가 위자드를 닫을 때. 이번 세션에 한 번이라도 저장했으면
+   * **저장돼 있다는 사실을 알린다.** 닫히고 나면 화면에는 목록만 남아서, 저장이
+   * 됐는지 아닌지가 카드를 유심히 보기 전까지 드러나지 않는다 (§5.1-A-5).
+   */
+  const cancelWizard = () => {
+    const hadDraft = !!draftSession;
+    closeWizard();
+    if (hadDraft) showToast(L.toastDraftSaved);
+  };
+
   return (
     <div className="evc-root">
       {toast && (
@@ -886,7 +897,7 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           onSubmit={handleCreate}
-          onCancel={closeWizard}
+          onCancel={cancelWizard}
           onSaveDraft={onSaveDraft ? handleSaveDraft : undefined}
           draftState={resumeTarget?.draftState ?? null}
           draftStep={resumeTarget?.draftStep ?? 0}
