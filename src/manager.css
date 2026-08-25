@@ -1141,6 +1141,97 @@
   color: var(--colors-text-textErrorPrimary, #d92d20);
 }
 
+/* ── 인사 정보 탭 (PW-452) ──
+   조직장이 팀원의 인사 항목을 읽는 자리. 값은 전부 호스트가 만들어 넘긴 문자열이라
+   여기서는 라벨/값 두 칸만 그린다. 값이 길어질 수 있어(주소·학교명·자격증명)
+   `overflow-wrap: anywhere` 로 칸 밖으로 나가지 않게 막는다. */
+.manager-modal-hr-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding-bottom: var(--spacing-3xl);
+}
+
+.manager-modal-hr-section-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+.manager-modal-hr-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.manager-modal-hr-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  width: 100%;
+}
+
+.manager-modal-hr-label {
+  /* 라벨 칸은 고정폭이되 넘치면 줄바꿈한다 — 로케일이 바뀌면 라벨이 길어진다
+     (`고용형태` 4자 ↔ `Employment type` 15자). */
+  flex: 0 0 108px;
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.manager-modal-hr-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.manager-modal-hr-failure {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-3xl) 0;
+}
+
+.manager-modal-hr-failure-text {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.manager-modal-hr-retry {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+
 /* ── Empty placeholder ── */
 .manager-modal-empty {
   width: 100%;

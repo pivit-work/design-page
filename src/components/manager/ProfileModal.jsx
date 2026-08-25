@@ -84,6 +84,7 @@ export default function ProfileModal({
   icons,
   onOneOnOneClick,
   onMessageClick,
+  onHrProfileRetry,
 }) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
@@ -142,6 +143,10 @@ export default function ProfileModal({
     { key: 'health', label: '헬스 트렌드' },
     { key: 'oneonone', label: '1on1' },
     ...(profile?.actionItems ? [{ key: 'action', label: '액션 아이템' }] : []),
+    // 「인사 정보」 탭 (PW-452) — 조직장이 팀원의 인사 항목을 여기서 본다.
+    // 액션 아이템 탭과 같은 규칙으로 **데이터가 없으면 탭 자체를 내지 않는다**:
+    // 아직 안 실어 보내는 화면에서 빈 탭이 늘어나지 않게.
+    ...(profile?.hrProfile ? [{ key: 'hr', label: '인사 정보' }] : []),
   ];
 
   const node = (
@@ -224,6 +229,9 @@ export default function ProfileModal({
             )}
             {activeTab === 'action' && profile?.actionItems && (
               <ActionItemsTab data={profile.actionItems} />
+            )}
+            {activeTab === 'hr' && profile?.hrProfile && (
+              <HrProfileTab data={profile.hrProfile} onRetry={onHrProfileRetry} />
             )}
           </div>
 
@@ -494,6 +502,83 @@ function ActionItemsTab({ data }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 「인사 정보」 탭 (PW-452).
+ *
+ * 이 컴포넌트는 **아무것도 판정하지 않는다.** 어떤 항목을 보여줄지·값이 비었을 때
+ * 무엇을 적을지는 전부 호스트가 정해 문자열로 넘긴다 — 무엇을 볼 수 있는가는
+ * 서버가 정하는 것이고, 화면이 그 자리를 되메우면 그 판정이 무효가 되기 때문이다.
+ * 그래서 여기서 「값이 없으면 이렇게 대신 그린다」를 하지 않는다.
+ *
+ * 실패가 두 층이다:
+ *  - `error` — 인사 정보를 통째로 못 받았다. 탭 안에서만 말한다.
+ *  - `personalError` — 나머지는 받았는데 **개인 정보 자리만** 못 받았다.
+ *    그 자리에만 문구를 두고 위쪽 항목은 정상으로 그린다.
+ */
+function HrProfileTab({ data, onRetry }) {
+  if (data.loading) {
+    return (
+      <div className="manager-modal-content-section">
+        <p className="manager-modal-empty">{data.loadingLabel}</p>
+      </div>
+    );
+  }
+
+  if (data.error) {
+    return (
+      <div className="manager-modal-content-section">
+        <HrProfileFailure notice={data.error} onRetry={onRetry} />
+      </div>
+    );
+  }
+
+  const sections = data.sections ?? [];
+
+  return (
+    <div className="manager-modal-content-section">
+      {sections.map((section) => (
+        <div className="manager-modal-hr-section" key={section.key}>
+          <p className="manager-modal-hr-section-title">{section.title}</p>
+          <dl className="manager-modal-hr-list">
+            {(section.rows ?? []).map((row) => (
+              <div className="manager-modal-hr-row" key={row.key}>
+                <dt className="manager-modal-hr-label">{row.label}</dt>
+                <dd className="manager-modal-hr-value">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+
+      {data.personalError && (
+        <div className="manager-modal-hr-section">
+          <p className="manager-modal-hr-section-title">
+            {data.personalError.title}
+          </p>
+          <HrProfileFailure notice={data.personalError} onRetry={onRetry} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HrProfileFailure({ notice, onRetry }) {
+  return (
+    <div className="manager-modal-hr-failure">
+      <p className="manager-modal-hr-failure-text">{notice.message}</p>
+      {notice.retryLabel && (
+        <button
+          type="button"
+          className="manager-modal-hr-retry"
+          onClick={onRetry}
+        >
+          {notice.retryLabel}
+        </button>
       )}
     </div>
   );
