@@ -7003,3 +7003,23 @@
   font-weight: 400;
   color: var(--text-tertiary);
 }
+
+/* 「저장된 게 없다」와 「못 불러왔다」는 다른 사실이다 — 색으로도 가른다 (PW-435 ⑥). */
+.evc-rm-saved-error {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-error-primary, var(--utility-red-600));
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+}
+.evc-rm-saved-retry {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}

@@ -633,6 +633,10 @@ export default function EvalCycleHrCanvas({
    * 이 캔버스는 전달만 한다(위자드 로컬에 두면 닫을 때 사라진다).
    */
   savedMessages = [],
+  /** PW-435 ⑥ — 저장 문구 조회 상태('loading'|'ready'|'error')와 재시도.
+      「저장된 게 없다」와 「못 불러왔다」를 갈라 그리기 위한 값이다. */
+  savedMessagesStatus = 'ready',
+  onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
   /**
@@ -949,6 +953,8 @@ export default function EvalCycleHrCanvas({
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}
+          savedMessagesStatus={savedMessagesStatus}
+          onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
         />
@@ -975,6 +981,8 @@ export default function EvalCycleHrCanvas({
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}
+          savedMessagesStatus={savedMessagesStatus}
+          onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
         />
