@@ -154,6 +154,14 @@ const DEFAULT_LABELS = {
     managerSection: '매니저',
     managerWhere: '매니저 배정은 «미배정 관리» 탭에서 합니다',
     statusSection: '재직 상태',
+    /* 재직 상태별 날짜 칸 (§3.2.1). 상태를 고르면 그 칸이 라디오 바로 아래에 뜬다. */
+    probationEnd: '수습 종료일',
+    leaveStart: '휴직 시작일',
+    leaveEnd: '휴직 종료일',
+    resignedAt: '퇴사일',
+    statusDateLoading: '불러오는 중…',
+    statusDateLoadError: '날짜를 불러오지 못했습니다. 패널을 닫았다 다시 열어 주세요.',
+    statusDateSaveError: '날짜를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
     close: '닫기',
     cancel: '취소',
     save: '저장',
@@ -1715,6 +1723,37 @@ function EmployeesListView({
 }
 
 /**
+ * 재직 상태별 날짜 칸 (§3.2.1) — 상태를 고르면 그 상태의 날짜 칸이 즉시 노출된다.
+ *
+ * 🔴 **칸은 두 자리에 있어도 저장 경로는 하나다.** 같은 값을 두 화면이 각자의 경로로
+ * 쓰면 한쪽이 다른 쪽을 덮는다(소속이 실제로 그랬다 — PW-368). 그래서 필드마다
+ * «누구의 저장 경로를 타는가»(`via`)를 여기에 못박는다:
+ *
+ *  · `identity` — 수습 종료일·휴직 시작/종료일. HR 기록 모달과 **같은** 신원 저장
+ *    경로(`onSaveIdentity`)를 탄다. 이 패널은 그 값의 두 번째 입력 «자리»일 뿐,
+ *    두 번째 «경로» 를 만들지 않는다.
+ *  · `member` — 퇴사일. 구성원 저장 patch(`onSave`)가 정본이고, 시트의 퇴사일 열과
+ *    같은 경로다. 서버는 명시된 퇴사일을 존중하고, 안 보내면 전환 시각으로 채운다.
+ */
+const STATUS_DATE_FIELDS = {
+  active: [],
+  probation: [{ field: 'probationEndDate', label: 'probationEnd', via: 'identity' }],
+  on_leave: [
+    { field: 'leaveStartDate', label: 'leaveStart', via: 'identity' },
+    { field: 'leaveEndDate', label: 'leaveEnd', via: 'identity' },
+  ],
+  terminated: [{ field: 'terminationDate', label: 'resignedAt', via: 'member' }],
+};
+
+/** 신원 저장 경로가 들고 있는 날짜 칸 — 패널이 따로 불러와야 하는 값들. */
+const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDate'];
+
+/** 구성원 저장 patch 로 나가는 날짜 칸 — 비우면 `''` 이 아니라 `null` 이다. */
+const DATE_PATCH_FIELDS = new Set(['hireDate', 'terminationDate']);
+
+const toDateInput = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
+
+/**
  * 슬라이드오버 단건 편집 패널 — 목록 뷰의 «단건 상세 편집» (§3.2).
  *
  * 저장은 시트와 **같은 patch 계약**(`onSaveMembers([{ id, ...changed }])`)을 쓴다.
@@ -1727,11 +1766,22 @@ function EmployeesListView({
 function EmployeesEditPanel({
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
+  onLoadHrProfile, onSaveIdentity,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  /**
+   * 신원 저장 경로가 들고 있는 날짜(수습 종료일·휴직 시작/종료일)는 구성원 목록 응답에
+   * 실려 오지 않는다 — HR 전용 값이라 별도 조회 경로에만 있다. 패널이 열릴 때 한 번
+   * 불러와 «지금 값» 을 보여준다. 안 불러오면 이미 채워 둔 날짜가 빈칸으로 보이고,
+   * 저장을 누르는 순간 멀쩡한 값을 지우게 된다.
+   */
+  const [identity, setIdentity] = useState(null);
+  const [identityDraft, setIdentityDraft] = useState(null);
+  const [identityState, setIdentityState] = useState('idle');
+  const [dateError, setDateError] = useState('');
 
   // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
   // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
@@ -1739,7 +1789,34 @@ function EmployeesEditPanel({
     setSyncedId(member.id);
     setDraft(member);
     setPickerOpen(false);
+    setIdentity(null);
+    setIdentityDraft(null);
+    setIdentityState('idle');
+    setDateError('');
   }
+
+  const memberId = member?.id;
+  useEffect(() => {
+    if (!memberId || !onLoadHrProfile) return undefined;
+    let alive = true;
+    setIdentityState('loading');
+    Promise.resolve(onLoadHrProfile(memberId))
+      .then((profile) => {
+        if (!alive) return;
+        const src = profile?.identity || {};
+        const loaded = {};
+        for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
+        setIdentity(loaded);
+        setIdentityDraft(loaded);
+        setIdentityState('ready');
+      })
+      .catch(() => {
+        if (!alive) return;
+        // 전역 오류 화면으로 튕기지 않는다 — 편집 중이던 다른 칸까지 날아간다.
+        setIdentityState('error');
+      });
+    return () => { alive = false; };
+  }, [memberId, onLoadHrProfile]);
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
@@ -1758,22 +1835,70 @@ function EmployeesEditPanel({
   const retainedIds = retainedOrgIds(member, selectedIds);
   const primaryEntry = primaryUnitId ? findOrgEntry(orgTree, primaryUnitId) : null;
 
+  /* 지금 고른 상태가 데리고 오는 날짜 칸 (§3.2.1). `active` 는 빈 배열이라 아무것도
+     안 뜬다 — 「추가 필드 없음」 이 그 상태의 규정이다. */
+  const dateFields = (STATUS_DATE_FIELDS[draft.employmentStatus] || []).filter(
+    // 신원 경로가 없는 호출부(어드민 아님)에는 그 칸을 그리지 않는다. 읽을 수도 저장할
+    // 수도 없는 값을 빈칸으로 두면 「비어 있다」 로 읽혀 더 나쁘다.
+    (f) => f.via === 'member' || Boolean(onLoadHrProfile),
+  );
+  const identityBusy = identityState === 'loading';
+  const identityBroken = identityState === 'error';
+  const dateValue = (f) =>
+    f.via === 'identity'
+      ? (identityDraft?.[f.field] ?? '')
+      : toDateInput(draft[f.field]);
+  const setDateValue = (f, v) => {
+    setDateError('');
+    if (f.via === 'identity') setIdentityDraft((d) => ({ ...(d || {}), [f.field]: v }));
+    else set(f.field, v);
+  };
+
   /** 바뀐 칸만 담은 patch — 시트의 dirty → patch 와 같은 모양이다. */
   function buildPatch() {
     const patch = { id: draft.id };
-    for (const f of ['name', 'jobLevel', 'jobPosition', 'hireDate', 'employmentStatus']) {
-      if ((draft[f] ?? '') !== (member[f] ?? '')) patch[f] = draft[f] ?? '';
+    for (const f of ['name', 'jobLevel', 'jobPosition', 'hireDate', 'employmentStatus', 'terminationDate']) {
+      if ((draft[f] ?? '') === (member[f] ?? '')) continue;
+      /* 날짜를 비운 것은 `''` 이 아니라 `null` 로 보낸다 — 날짜 칸에 빈 문자열이
+         들어가면 저장이 통째로 실패한다. `null` 은 「지웠다」 는 뜻이라 서버도 그렇게
+         읽는다(퇴사일은 명시값이 있으면 자동 채움을 건너뛴다). */
+      patch[f] = DATE_PATCH_FIELDS.has(f) ? (draft[f] || null) : (draft[f] ?? '');
     }
     return patch;
   }
+  /** 신원 저장 경로로 나가야 하는 날짜만 담은 patch — 바뀐 칸만. */
+  function buildIdentityPatch() {
+    if (!identity || !identityDraft) return {};
+    const out = {};
+    for (const f of IDENTITY_DATE_FIELDS) {
+      if ((identityDraft[f] ?? '') !== (identity[f] ?? '')) out[f] = identityDraft[f] || null;
+    }
+    return out;
+  }
   const patch = buildPatch();
-  const dirty = Object.keys(patch).length > 1;
+  const identityPatch = buildIdentityPatch();
+  const identityDirty = Object.keys(identityPatch).length > 0;
+  const dirty = Object.keys(patch).length > 1 || identityDirty;
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
     setSaving(true);
+    setDateError('');
     try {
-      await onSave([patch]);
+      /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
+         종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
+         실패는 **인라인으로만** 알리고 패널을 열어 둔다 — 닫으면 방금 친 날짜가 사라진다. */
+      if (identityDirty && onSaveIdentity) {
+        try {
+          await onSaveIdentity(member.id, identityPatch);
+        } catch {
+          setDateError(labels.panel.statusDateSaveError);
+          return;
+        }
+        setIdentity((prev) => ({ ...(prev || {}), ...identityDraft }));
+      }
+      // 구성원 저장은 종전 그대로 — 실패를 삼키지 않는다(호출부가 토스트·확인을 띄운다).
+      if (Object.keys(patch).length > 1) await onSave([patch]);
       onClose();
     } finally {
       setSaving(false);
@@ -1898,6 +2023,37 @@ function EmployeesEditPanel({
               );
             })}
           </div>
+
+          {/* 고른 상태의 날짜 칸 (§3.2.1). 라디오 **바로 아래**에 둔다 — 다른 화면을
+              열어 채우게 하면 상태만 바뀌고 날짜는 비는 조합이 그대로 남는다. */}
+          {dateFields.length > 0 && (
+            <div className="admin-emp-status-dates" data-testid="employees-panel-status-dates">
+              {dateFields.map((f) => (
+                <label className="admin-emp-field" key={f.field}>
+                  <span className="admin-emp-field-label">{labels.panel[f.label]}</span>
+                  <input
+                    type="date"
+                    className="admin-emp-input"
+                    data-testid={`employees-panel-date-${f.field}`}
+                    value={dateValue(f)}
+                    disabled={!canEdit || (f.via === 'identity' && identityState !== 'ready')}
+                    onChange={(e) => setDateValue(f, e.target.value)}
+                  />
+                </label>
+              ))}
+              {dateFields.some((f) => f.via === 'identity') && identityBusy && (
+                <span className="admin-emp-status-date-note">{labels.panel.statusDateLoading}</span>
+              )}
+              {dateFields.some((f) => f.via === 'identity') && identityBroken && (
+                <span className="admin-emp-status-date-note is-error" role="alert">
+                  {labels.panel.statusDateLoadError}
+                </span>
+              )}
+              {dateError && (
+                <span className="admin-emp-status-date-note is-error" role="alert">{dateError}</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="admin-emp-panel-footer">
@@ -2335,6 +2491,10 @@ export default function AdminEmployeesCanvas({
             onClose={() => setEditMemberId(null)}
             onSave={onSaveMembers}
             onChangeAffiliations={onChangeAffiliations}
+            /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
+               미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
+            onLoadHrProfile={onLoadHrProfile}
+            onSaveIdentity={onSaveIdentity}
           />
         );
       })()}
