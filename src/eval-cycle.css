@@ -1738,6 +1738,548 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg, 12px);
 }
+
+/* ── PW-443 리뷰 & 조정 — 조직 트리 + 5축 필터 + 대상/제외 3분할 ─────────────── */
+.evc-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+/* 3값 카운터. 대상 0명이면 경고 틴트로 바뀐다. */
+.evc-review-counter {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.evc-review-counter.is-warn {
+  color: var(--utility-warning-700, #b54708);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  border-radius: var(--radius-sm, 8px);
+  padding: 2px var(--spacing-md, 8px);
+}
+
+/* 검색줄 — 이름 검색 · 필터 버튼 · 활성 칩 · 초기화 */
+.evc-review-searchbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md, 8px);
+}
+.evc-review-search {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+}
+.evc-review-search > .evc-input {
+  width: 100%;
+  padding-left: 30px;
+  padding-right: 28px;
+}
+.evc-review-search-icon {
+  position: absolute;
+  left: 10px;
+  display: inline-flex;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+.evc-review-search-clear {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+}
+
+.evc-filter-anchor {
+  position: relative;
+}
+.evc-filter-btn,
+.evc-filter-chip,
+.evc-filter-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  height: 29px;
+  padding: 0 var(--spacing-lg, 12px);
+  border-radius: 999px;
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.evc-filter-btn {
+  border: 1px solid var(--bg-active);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+}
+.evc-filter-btn.is-on {
+  border-color: var(--bg-brand-solid, #2dbd82);
+  background: color-mix(in srgb, var(--bg-brand-solid, #2dbd82) 8%, transparent);
+  color: var(--bg-brand-solid, #2dbd82);
+}
+.evc-filter-btn-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bg-brand-solid, #2dbd82);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.evc-filter-chip {
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-700, #175cd3);
+  padding-right: var(--spacing-md, 8px);
+}
+.evc-filter-chip-x {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.evc-filter-reset {
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  padding: 0 var(--spacing-sm, 6px);
+  text-decoration: underline;
+}
+
+/* 2단 팝오버 — 좌 축 목록 / 우 값 체크박스. 「적용」으로 확정한다. */
+.evc-filter-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.evc-filter-pop {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 6px);
+  /* 오른쪽 끝에 맞춘다 — 필터 버튼이 검색줄 오른쪽에 있어 왼쪽 정렬하면 팝오버가
+     모달 밖으로 나가 값 목록이 통째로 잘린다(브라우저 실측에서 잡혔다). */
+  right: 0;
+  width: 380px;
+  max-width: min(380px, 90vw);
+  display: flex;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 12px 32px rgb(16 24 40 / 12%);
+  overflow: hidden;
+}
+.evc-filter-axes {
+  flex: 0 0 120px;
+  width: 120px;
+  border-right: 1px solid var(--bg-active);
+  background: var(--bg-secondary);
+  padding: var(--spacing-xs, 4px);
+}
+.evc-filter-axis {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--spacing-md, 8px);
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+}
+.evc-filter-axis.is-on {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.evc-filter-axis-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.evc-filter-axis-n {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bg-brand-solid, #2dbd82);
+}
+.evc-filter-values {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.evc-filter-multi {
+  margin: 0;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px) var(--spacing-xs, 4px);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.evc-filter-value-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0 var(--spacing-xs, 4px) var(--spacing-xs, 4px);
+}
+.evc-filter-value {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  height: 32px;
+  padding: 0 var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.evc-filter-value-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evc-filter-value-n {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.evc-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-top: 1px solid var(--bg-active);
+}
+.evc-filter-clear,
+.evc-filter-apply {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+}
+.evc-filter-clear {
+  color: var(--text-secondary);
+}
+.evc-filter-apply {
+  font-weight: 700;
+  color: var(--bg-brand-solid, #2dbd82);
+}
+
+/* 3분할 */
+.evc-review-split {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-lg, 12px);
+  margin-top: var(--spacing-lg, 12px);
+}
+.evc-review-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-secondary);
+}
+.evc-org-tree {
+  /* 조직 계층이 3단 이상이면 팀 이름이 `People팀 · 인사파트` 로 길어진다. */
+  flex: 0 0 248px;
+}
+.evc-review-roster {
+  flex: 1 1 auto;
+}
+.evc-review-excluded {
+  flex: 0 0 190px;
+}
+.evc-review-pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evc-review-pane-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evc-review-pane-action {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bg-brand-solid, #2dbd82);
+}
+.evc-review-pane-body {
+  flex: 1;
+  min-height: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--spacing-xs, 4px);
+}
+.evc-review-pane-foot {
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+  border-top: 1px solid var(--bg-active);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.evc-review-pane-foot.is-right {
+  display: flex;
+  justify-content: flex-end;
+}
+.evc-review-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  height: 27px;
+  padding: 0 var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  border-radius: 999px;
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.evc-review-empty {
+  margin: var(--spacing-lg, 12px);
+  padding: 28px var(--spacing-xl, 20px);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-tertiary, #f9fafb);
+  text-align: center;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-review-empty > p {
+  margin: 0 0 var(--spacing-md, 8px);
+}
+
+/* 3상태 체크박스 */
+.evc-tri-check {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: var(--radius-xs, 4px);
+  border: 1.5px solid var(--bg-active);
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.evc-tri-check.is-on,
+.evc-tri-check.is-partial {
+  border-color: var(--bg-brand-solid, #2dbd82);
+  background: var(--bg-brand-solid, #2dbd82);
+}
+.evc-tri-check.is-on::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.evc-tri-check.is-partial::after {
+  content: '';
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+
+/* 조직 트리 행 */
+.evc-org-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  height: 34px;
+  padding: 0 var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+}
+.evc-org-row.is-dept {
+  padding-left: var(--spacing-xl, 20px);
+}
+.evc-org-row.is-dept.is-on {
+  background: color-mix(in srgb, var(--bg-brand-solid, #2dbd82) 8%, transparent);
+}
+.evc-org-row.is-team {
+  padding-left: 44px;
+}
+.evc-org-caret {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-tertiary);
+}
+.evc-org-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.evc-org-row.is-root .evc-org-name,
+.evc-org-row.is-dept .evc-org-name {
+  font-weight: 600;
+}
+.evc-org-n {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* 대상 명단 — 부서·팀 그룹 */
+.evc-roster-group-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  height: 35px;
+  padding: 0 var(--spacing-lg, 12px);
+  background: var(--bg-tertiary, #f9fafb);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evc-roster-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evc-roster-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  min-height: 44px;
+  padding: var(--spacing-sm, 6px) var(--spacing-lg, 12px);
+  border-bottom: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+}
+.evc-roster-who {
+  flex: 1;
+  min-width: 0;
+}
+.evc-roster-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evc-roster-meta {
+  display: block;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.evc-roster-badge {
+  flex: 0 0 auto;
+  padding: 2px var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--utility-success-200, #abefc6);
+  background: var(--utility-success-50, #ecfdf3);
+  color: var(--utility-success-700, #067647);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.evc-roster-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  border: 0;
+  background: none;
+  padding: 2px var(--spacing-xs, 4px);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.evc-roster-move.is-out {
+  color: var(--utility-error-600, #d92d20);
+}
+.evc-roster-move.is-in {
+  color: var(--bg-brand-solid, #2dbd82);
+}
+
+/* 제외 패널 — 접히지 않는다. 사유는 되돌려도 남는다. */
+.evc-excluded-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--spacing-sm, 6px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  border-radius: var(--radius-sm, 8px);
+}
+.evc-excluded-reason {
+  grid-column: 2;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.evc-excluded-reason.is-manual {
+  color: var(--utility-warning-700, #b54708);
+}
+
+@media (width <= 900px) {
+  .evc-review-split {
+    flex-wrap: wrap;
+  }
+  .evc-org-tree,
+  .evc-review-excluded {
+    flex: 1 1 100%;
+  }
+}
 .evc-review-col {
   min-width: 0;
 }
