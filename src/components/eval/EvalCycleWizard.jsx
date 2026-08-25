@@ -1845,6 +1845,17 @@ export default function EvalCycleWizard({
    */
   savedMessages = [],
   /**
+   * PW-435 ⑥ — 저장 문구 «조회 상태»(`'loading' | 'ready' | 'error'`).
+   *
+   * 🔴 `savedMessages` 만으로는 **「저장된 게 없다」와 「못 불러왔다」가 화면에서
+   * 똑같아진다.** 둘은 다른 사실이고, 전자로 보이면 설계자가 **이미 저장해 둔 문구를
+   * 처음부터 다시 쓴다** — PW-122·PW-434 가 템플릿 라이브러리에서 겪은 그 자리다
+   * (policy §5.10.1). 안 넘기면 종전대로 'ready' 다.
+   */
+  savedMessagesStatus = 'ready',
+  /** 조회 실패 시 「다시 시도」. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadSavedMessages,
+  /**
    * PW-435 ⑥ — 저장 요청. `({ phaseId, name, subject, body }) => Promise<saved | null>`.
    * 안 넘기면 [이 문구 저장] 버튼을 숨긴다.
    */
@@ -2161,7 +2172,8 @@ export default function EvalCycleWizard({
       patchMessage(pid, rm.id, { template });
       return;
     }
-    const last = savedForPhase(pid)[0];
+    // 못 불러온 상태에서는 프리필하지 않는다 — 「없어서 비었다」로 단정하는 셈이다.
+    const last = savedMessagesStatus === 'ready' ? savedForPhase(pid)[0] : null;
     patchMessage(pid, rm.id, {
       template,
       subject: last?.subject ?? '',
@@ -4483,7 +4495,27 @@ export default function EvalCycleWizard({
                                                 결과 발송 단계에 뜨면 도움이 되지 않는다. */}
                                             <div className="evc-rm-saved" data-testid={`evc-rm-saved-${ph.id}-${i}`}>
                                               <span className="evc-rm-vars-label">{L.reminderSavedLabel}</span>
-                                              {savedForPhase(ph.id).length === 0 ? (
+                                              {savedMessagesStatus === 'loading' ? (
+                                                <span className="evc-rm-saved-empty">{L.reminderSavedLoading}</span>
+                                              ) : savedMessagesStatus === 'error' ? (
+                                                /* 🔴 「없다」로 보이면 이미 저장해 둔 문구를 처음부터 다시 쓴다. */
+                                                <span
+                                                  className="evc-rm-saved-error"
+                                                  data-testid={`evc-rm-saved-error-${ph.id}-${i}`}
+                                                >
+                                                  {L.reminderSavedLoadError}
+                                                  {onReloadSavedMessages && (
+                                                    <button
+                                                      type="button"
+                                                      className="evc-rm-saved-retry"
+                                                      onClick={onReloadSavedMessages}
+                                                      data-testid={`evc-rm-saved-retry-${ph.id}-${i}`}
+                                                    >
+                                                      {L.reminderSavedRetry}
+                                                    </button>
+                                                  )}
+                                                </span>
+                                              ) : savedForPhase(ph.id).length === 0 ? (
                                                 <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
                                               ) : (
                                                 <select
