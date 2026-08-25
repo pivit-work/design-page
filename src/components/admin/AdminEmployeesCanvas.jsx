@@ -166,6 +166,28 @@ const DEFAULT_LABELS = {
     cancel: '취소',
     save: '저장',
     saving: '저장 중…',
+    /* 개인정보 변경 이력 탭 (PW-460 §2-D) */
+    tabInfo: '정보',
+    tabHistory: '변경 이력',
+    historyLoadError: '이력을 불러오지 못했습니다.',
+    historyRetry: '다시 시도',
+    historyEmpty: '아직 변경 이력이 없습니다.',
+    historyEmptyHint: '휴대폰·주소·가족 정보 등 개인정보가 바뀌면 여기에 쌓입니다.',
+    historyBySelf: '본인',
+    historyAdded: '추가',
+    historyRemoved: '삭제',
+    historyPurged: '파기됨',
+    historyWithheld: '변경됨',
+    historyNone: '—',
+  },
+  /* 개인정보를 바꾸는 저장에서 사유를 받는 모달 (PW-460 §2-D-4) */
+  changeReason: {
+    title: '개인정보를 변경합니다',
+    lead: '남이 바꾼 기록이라 사유를 남깁니다. 이력에 그대로 보입니다.',
+    label: '변경 사유',
+    placeholder: '본인 요청 · 서류 대조 후 정정 등',
+    cancel: '취소',
+    submit: '변경 저장',
   },
   loading: '불러오는 중…',
   menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
@@ -1763,10 +1785,151 @@ const toDateInput = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
  * 이메일은 **읽기 전용**이다. 로그인 키라 확인 모달이 따라붙는데(§3.2-A), 그 경로의
  * 정본은 시트다. 여기에 두 번째 진입점을 만들면 확인 절차가 갈린다.
  */
+/**
+ * 개인정보 변경 이력 목록 — 어드민 「구성원 편집 패널 > 변경 이력」 탭 (PW-460 §2-D).
+ *
+ * 표가 아니라 카드형인 이유는 패널 폭이 좁아 `이전 → 이후` 두 값을 나란히 놓아야 하기
+ * 때문이다. **읽기 전용이다** — 행을 눌러도 아무 일이 일어나지 않고 되돌리기·삭제가 없다.
+ *
+ * 값 자리의 세 상태를 회색으로 뭉개지 않는다. 「아무도 못 본다」(파기됨)와 「애초에 안
+ * 적었다」(변경됨)는 원인이 달라서, 보는 사람이 다음에 할 수 있는 일도 다르다.
+ */
+function PersonalHistoryList({ state, labels, onRetry }) {
+  const L = labels.panel;
+
+  if (state.status === 'loading' || state.status === 'idle') {
+    return (
+      <div className="admin-emp-hist-skeleton" aria-busy="true" data-testid="employees-history-loading">
+        <div className="admin-emp-hist-skeleton-row" />
+        <div className="admin-emp-hist-skeleton-row" />
+        <div className="admin-emp-hist-skeleton-row" />
+      </div>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div className="admin-emp-hist-empty" data-testid="employees-history-error">
+        <div>{L.historyLoadError}</div>
+        <button type="button" className="admin-emp-btn is-secondary" style={{ marginTop: 10 }}
+          onClick={onRetry} data-testid="employees-history-retry">{L.historyRetry}</button>
+      </div>
+    );
+  }
+
+  const items = (state.page && state.page.items) || [];
+  if (items.length === 0) {
+    return (
+      <div className="admin-emp-hist-empty" data-testid="employees-history-empty">
+        <div>{L.historyEmpty}</div>
+        {/* CTA 를 두지 않는다 — 이력은 만들러 가는 것이 아니다. */}
+        <div className="admin-emp-hist-empty-hint">{L.historyEmptyHint}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-emp-hist-list" data-testid="employees-history-list">
+      {items.map((h) => (
+        <div key={h.id} className="admin-emp-hist-row" data-testid={`employees-history-row-${h.id}`}>
+          <div className="admin-emp-hist-when">{h.changedAt}</div>
+          <div className="admin-emp-hist-main">
+            <div className="admin-emp-hist-head">
+              <span className="admin-emp-hist-field">
+                {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
+              </span>
+              {h.changeKind === 'add' && <span className="admin-emp-hist-chip">{L.historyAdded}</span>}
+              {h.changeKind === 'remove' && <span className="admin-emp-hist-chip">{L.historyRemoved}</span>}
+            </div>
+            <div className="admin-emp-hist-values">
+              {h.state === 'purged' ? L.historyPurged
+                : h.state === 'withheld' ? L.historyWithheld
+                  : (
+                    <>
+                      {/* 이전 값에 취소선을 긋지 않는다 — 「지워진 값」으로 읽힌다. */}
+                      <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
+                      {' → '}
+                      <span className="admin-emp-hist-after">{h.after || L.historyNone}</span>
+                    </>
+                  )}
+            </div>
+            <div className="admin-emp-hist-who">
+              {h.actor && h.actor.name ? h.actor.name : L.historyNone}
+              {h.actor && h.actor.isSelf && <span className="admin-emp-hist-chip is-self">{L.historyBySelf}</span>}
+            </div>
+            {/* 사유가 없으면 줄 자체를 그리지 않는다 — 「사유 없음」을 매 행에 반복하지 않는다. */}
+            {h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 변경 사유 모달 — **저장하는 순간에 받는다**(§2-D-4).
+ *
+ * 🔴 언제 뜨는지를 이 화면이 스스로 판단하지 않는다. 어떤 항목이 이력 대상인지는 서버가
+ * 정하고, 서버가 사유 없이 온 저장을 거부하면(422) 그때 이 모달이 뜬다. 화면이 목록을
+ * 따로 들면 그 목록이 낡는 순간 **모달이 안 뜨고 저장만 실패**한다.
+ *
+ * 사유는 «저장 1회» 단위로 하나다 — 한 번에 세 항목을 고치면 세 기록이 같은 사유를
+ * 공유한다. 항목마다 받으면 「수정」·「.」 같은 형식적 입력을 유발한다. 기본값을 채우지
+ * 않는 것도 같은 이유다: **사유가 있는데 믿을 수 없는 것이 사유가 없는 것보다 나쁘다.**
+ */
+function ChangeReasonModal({ prompt, labels }) {
+  const L = labels.changeReason;
+  const [reason, setReason] = useState('');
+  const canSubmit = reason.trim().length > 0;
+  return (
+    /* 🔴 `admin-notif-modal-root` 를 빼면 안 된다. 배경(`…-backdrop`)은
+       `position: absolute; z-index: auto` 라 스스로 뜨지 못한다 — 앱 크롬(사이드바 z:100)
+       아래로 깔리고 조상의 `overflow: hidden` 에 잘린다. 뜨는 일은 이 래퍼가 한다
+       (`position: fixed; z-index: 1000`). 편집 패널(z:101) 위에 서는 것도 이 값 덕이다. */
+    <div className="admin-notif-modal-root" data-testid="change-reason-modal">
+      <div className="admin-notif-modal-backdrop" onClick={prompt.onCancel} />
+      <div className="admin-notif-modal" role="dialog" aria-modal="true">
+        <div className="admin-notif-modal-header">
+          <div className="admin-notif-modal-title">{L.title}</div>
+        </div>
+        <div className="admin-notif-modal-body">
+          {/* 어떤 항목이 걸렸는지 보여 준다 — 개수만 알리면 무엇을 고쳤는지 모른 채
+              사유를 쓰게 된다. 서버가 준 목록을 그대로 세운다. */}
+          <div className="admin-emp-reason-fields">
+            {(prompt.fields || []).map((f) => (
+              <span key={f.key} className="admin-emp-hist-chip">{f.label}</span>
+            ))}
+          </div>
+          <label className="admin-emp-field">
+            <span className="admin-emp-field-label">{L.label}</span>
+            <input
+              className="admin-emp-input"
+              value={reason}
+              autoFocus
+              placeholder={L.placeholder}
+              onChange={(e) => setReason(e.target.value)}
+              data-testid="change-reason-input"
+            />
+          </label>
+          <p className="admin-emp-reason-lead">{L.lead}</p>
+        </div>
+        <div className="admin-notif-modal-footer">
+          <button type="button" className="admin-emp-btn is-secondary" onClick={prompt.onCancel}
+            data-testid="change-reason-cancel">{L.cancel}</button>
+          <button type="button" className="admin-emp-btn is-primary" disabled={!canSubmit}
+            onClick={() => prompt.onSubmit(reason.trim())}
+            data-testid="change-reason-submit">{L.submit}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EmployeesEditPanel({
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
+  onLoadPersonalHistory,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
@@ -1780,8 +1943,23 @@ function EmployeesEditPanel({
    */
   const [identity, setIdentity] = useState(null);
   const [identityDraft, setIdentityDraft] = useState(null);
-  const [identityState, setIdentityState] = useState('idle');
+  /**
+   * 🔴 `loading` 으로 «바꾸는» 것은 효과 밖에서 한다 — 효과 본문에서 setState 를 부르면
+   * 렌더가 연쇄한다. 패널이 열리는 순간과 다른 사람으로 갈아끼우는 순간이 곧 조회
+   * 시점이므로, 그 두 자리에서 `loading` 을 세우고 효과는 조회만 한다.
+   * 조회 경로가 없으면(어드민 아님) 처음부터 `idle` 이라 영영 「불러오는 중」이 되지 않는다.
+   */
+  const [identityState, setIdentityState] = useState(
+    onLoadHrProfile ? 'loading' : 'idle',
+  );
   const [dateError, setDateError] = useState('');
+  /**
+   * 패널 안의 탭 — `info`(편집) / `history`(조회). 편집 흐름과 조회 흐름을 섞지 않는다.
+   * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
+   * 한가운데를 읽기 전용 표가 끊는다.
+   */
+  const [panelTab, setPanelTab] = useState('info');
+  const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
 
   // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
   // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
@@ -1791,15 +1969,19 @@ function EmployeesEditPanel({
     setPickerOpen(false);
     setIdentity(null);
     setIdentityDraft(null);
-    setIdentityState('idle');
+    setIdentityState(onLoadHrProfile ? 'loading' : 'idle');
     setDateError('');
+    /* 다음 사람을 열었을 때 이력 탭이 먼저 뜨면 「내가 뭘 누른 거지」가 된다. */
+    setPanelTab('info');
+    setHistoryState({ status: 'idle', page: null });
   }
 
   const memberId = member?.id;
   useEffect(() => {
-    if (!memberId || !onLoadHrProfile) return undefined;
+    if (identityState !== 'loading' || !memberId || !onLoadHrProfile) {
+      return undefined;
+    }
     let alive = true;
-    setIdentityState('loading');
     Promise.resolve(onLoadHrProfile(memberId))
       .then((profile) => {
         if (!alive) return;
@@ -1816,7 +1998,22 @@ function EmployeesEditPanel({
         setIdentityState('error');
       });
     return () => { alive = false; };
-  }, [memberId, onLoadHrProfile]);
+  }, [identityState, memberId, onLoadHrProfile]);
+
+  /* 이력은 탭에 «처음 들어갈 때» 한 번만 부른다 — 패널을 여는 대부분의 이유가 편집이라
+     열자마자 부르면 안 볼 목록을 매번 조회하게 된다. 실패해도 편집 탭은 그대로 돈다.
+     `loading` 으로 «바꾸는» 것은 버튼을 누른 자리에서 하고, 효과는 조회만 한다 —
+     효과 본문에서 setState 를 부르면 렌더가 연쇄한다. */
+  useEffect(() => {
+    if (historyState.status !== 'loading' || !memberId || !onLoadPersonalHistory) {
+      return undefined;
+    }
+    let alive = true;
+    Promise.resolve(onLoadPersonalHistory(memberId, {}))
+      .then((page) => { if (alive) setHistoryState({ status: 'ready', page }); })
+      .catch(() => { if (alive) setHistoryState({ status: 'error', page: null }); });
+    return () => { alive = false; };
+  }, [historyState.status, memberId, onLoadPersonalHistory]);
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
@@ -1920,7 +2117,41 @@ function EmployeesEditPanel({
           <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label={labels.panel.close}><IconX size={16} /></button>
         </div>
 
+        {/* 탭 바 — 본문 스크롤 «밖» 이라 아래로 내려도 고정이다.
+            건수 배지를 달지 않는다: 이력이 많은 것은 문제 신호가 아니라 오래 다닌
+            사람이라는 뜻이라 주의를 끌 이유가 없다. */}
+        {onLoadPersonalHistory && (
+          <div className="admin-emp-panel-tabs" role="tablist" data-testid="employees-panel-tabs">
+            {[['info', labels.panel.tabInfo], ['history', labels.panel.tabHistory]].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={panelTab === id}
+                className={`admin-emp-panel-tab${panelTab === id ? ' is-active' : ''}`}
+                onClick={() => {
+                  setPanelTab(id);
+                  if (id === 'history' && historyState.status === 'idle') {
+                    setHistoryState({ status: 'loading', page: null });
+                  }
+                }}
+                data-testid={`employees-panel-tab-${id}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="admin-emp-panel-body">
+          {panelTab === 'history' ? (
+            <PersonalHistoryList
+              state={historyState}
+              labels={labels}
+              onRetry={() => setHistoryState({ status: 'loading', page: null })}
+            />
+          ) : (
+          <>
           <SectionLabel>{labels.panel.basicInfo}</SectionLabel>
           <div className="admin-emp-field-group">
             <label className="admin-emp-field">
@@ -2054,19 +2285,25 @@ function EmployeesEditPanel({
               )}
             </div>
           )}
+          </>
+          )}
         </div>
 
-        <div className="admin-emp-panel-footer">
-          <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
-          <button
-            type="button"
-            className="admin-emp-btn is-primary admin-emp-btn-block"
-            onClick={handleSave}
-            disabled={saving || !canEdit || !dirty}
-          >
-            {saving ? labels.panel.saving : labels.panel.save}
-          </button>
-        </div>
+        {/* 이력 탭은 읽기 전용이라 저장 줄을 그리지 않는다 — 누를 수 없는 버튼을 두면
+            「여기서도 고칠 수 있나」로 읽힌다. */}
+        {panelTab === 'info' && (
+          <div className="admin-emp-panel-footer">
+            <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
+            <button
+              type="button"
+              className="admin-emp-btn is-primary admin-emp-btn-block"
+              onClick={handleSave}
+              disabled={saving || !canEdit || !dirty}
+            >
+              {saving ? labels.panel.saving : labels.panel.save}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
@@ -2219,6 +2456,18 @@ export default function AdminEmployeesCanvas({
   onLoadHrProfile,
   // 시트가 HR 모달을 렌더하므로 여기서 함께 내려줘야 신원 편집이 열린다(PW-25).
   onSaveIdentity,
+  /**
+   * 개인정보 변경 이력 조회 (PW-460 §2-D). `(memberId, query) => Promise<{items, …}>`.
+   * 미주입이면 편집 패널에 「변경 이력」 탭을 그리지 않는다 — 읽을 수 없는 탭을 두면
+   * 「비어 있다」로 읽혀 더 나쁘다.
+   */
+  onLoadPersonalHistory,
+  /**
+   * 변경 사유를 받아야 할 때 호출부가 세우는 값 — `{ fields, onSubmit, onCancel }`.
+   * 🔴 «언제» 필요한지는 서버가 정한다(422). 화면이 대상 필드 목록을 따로 들면 그 목록이
+   * 낡는 순간 모달이 안 뜨고 저장만 실패한다.
+   */
+  changeReasonPrompt = null,
   // 대표(CEO) 지정·해제 — 전체 구성원 탭 시트로 내려간다. 권한이 없으면 미주입.
   onAssignCeo,
   onReleaseCeo,
@@ -2495,9 +2744,15 @@ export default function AdminEmployeesCanvas({
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
             onSaveIdentity={onSaveIdentity}
+            onLoadPersonalHistory={onLoadPersonalHistory}
           />
         );
       })()}
+
+      {/* 변경 사유 모달 — 서버가 「사유가 필요하다」고 답했을 때만 뜬다(§2-D-4). */}
+      {changeReasonPrompt && (
+        <ChangeReasonModal prompt={changeReasonPrompt} labels={labels} />
+      )}
 
       {/* 초대 발송 모달 — 탭 A·탭 C 두 진입점이 **공유**한다(§1).
           직급 선택지는 캔버스가 이미 받는 `gradeOptions` 를 기본으로 쓰고,

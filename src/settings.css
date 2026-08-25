@@ -939,3 +939,89 @@
 .admin-notif-btn.is-danger-soft:hover {
   background: var(--utility-error-100, #fee4e2);
 }
+
+/* ── 변경 이력 탭 (PW-460 §2-D) ─────────────────────────
+   새 시각 언어를 만들지 않는다 — 배너·버튼·행은 이 파일이 이미 쓰는 부품이고,
+   여기 있는 것은 그 부품을 이 탭 배치에 얹는 데 필요한 최소한이다. */
+.msc-hist-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.msc-hist-filter-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  background: var(--border-primary);
+}
+
+.msc-hist-date {
+  flex-shrink: 0;
+  min-width: 76px;
+}
+
+.msc-hist-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 배지는 폭이 고정이 아니다 — 항목 이름·사유는 사람이 넣는 값이라 길이를 가정하지
+   않는다. 넘치면 줄바꿈으로 흘리고 잘라내지 않는다. */
+.msc-hist-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.msc-hist-badge.is-self {
+  background: var(--bg-brand-secondary);
+  border-color: var(--utility-brand-200);
+  color: var(--text-brand-secondary);
+}
+
+.msc-hist-badge.is-hr {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.msc-hist-values {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.msc-hist-reason {
+  flex-shrink: 0;
+  max-width: 40%;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.msc-hist-more {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.msc-hist-note {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 12px;
+  line-height: 1.6;
+}

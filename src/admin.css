@@ -4085,3 +4085,147 @@
   color: var(--text-tertiary);
   line-height: 1.8;
 }
+
+/* ── 구성원 편집 패널: 「변경 이력」 탭 (PW-460 §2-D) ─────────
+   새 시각 언어를 만들지 않는다 — 탭 바는 이 파일이 이미 쓰는 `role="tablist"` 패턴을
+   그대로 재사용하고, 색·타이포는 토큰이다. */
+.admin-emp-panel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.admin-emp-panel-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 10px 4px;
+  margin-right: 12px;
+  font: inherit;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.admin-emp-panel-tab.is-active {
+  color: var(--text-brand-secondary, var(--text-primary));
+  font-weight: 700;
+  border-bottom-color: var(--text-brand-secondary, var(--text-primary));
+}
+
+.admin-emp-hist-list { display: flex; flex-direction: column; gap: 8px; }
+
+.admin-emp-hist-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-secondary);
+}
+
+.admin-emp-hist-when {
+  flex-shrink: 0;
+  min-width: 74px;
+  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.admin-emp-hist-main { flex: 1; min-width: 0; }
+
+.admin-emp-hist-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-emp-hist-field {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* 칩에 들어오는 값은 관리자·사용자가 정한 항목 이름이라 길이를 가정하지 않는다.
+   넘치면 잘라내지 말고 흘려서 줄바꿈한다 — 잘리면 어느 항목인지 못 읽는다. */
+.admin-emp-hist-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 99px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.admin-emp-hist-chip.is-self {
+  background: var(--bg-brand-secondary);
+  border-color: var(--utility-brand-200);
+  color: var(--text-brand-secondary);
+  margin-left: 6px;
+}
+
+.admin-emp-hist-values {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* 이전 값에 취소선을 쓰지 않는다 — 「지워진 값」으로 읽힌다. 톤으로만 가른다. */
+.admin-emp-hist-before { color: var(--text-tertiary); }
+.admin-emp-hist-after { color: var(--text-primary); font-weight: 600; }
+
+.admin-emp-hist-who {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.admin-emp-hist-reason {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-primary);
+  overflow-wrap: anywhere;
+}
+
+.admin-emp-hist-empty {
+  padding: 28px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.admin-emp-hist-empty-hint { margin-top: 6px; font-size: 11px; }
+
+.admin-emp-hist-skeleton { display: flex; flex-direction: column; gap: 8px; }
+
+.admin-emp-hist-skeleton-row {
+  height: 56px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-secondary);
+}
+
+.admin-emp-reason-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.admin-emp-reason-lead {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 8px 0 0;
+  line-height: 1.6;
+}

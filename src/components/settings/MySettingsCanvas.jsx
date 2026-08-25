@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import assetUrl from '../shared/assetUrl.js';
-import { InfoIcon, LockIcon, AlertTriangleIcon } from './settingsIcons.jsx';
+import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon } from './settingsIcons.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -30,10 +30,34 @@ const DEFAULT_LABELS = {
     profile_org: '조직 정보',
     profile_perf: '성과 정보',
     profile_comp: '보상 정보',
+    profile_history: '변경 이력',
     visibility: '공개 범위',
     notifications: '알림',
     integrations: '개인 연동',
     security: '보안',
+  },
+  history: {
+    banner:
+      '연락처·주소·가족·학력 등 개인정보 항목의 변경 이력입니다. 본인과 인사 담당자만 볼 수 있습니다.',
+    bannerScope:
+      '연봉은 보상 정보 탭에, 근태·휴가·복리후생은 각 화면에 이력이 있어 여기에는 표시하지 않습니다.',
+    allFields: '전체',
+    periods: { all: '전체 기간', '3m': '최근 3개월', '1y': '최근 1년' },
+    byMe: '본인',
+    byHr: 'HR',
+    added: '추가',
+    removed: '삭제',
+    purged: '파기됨',
+    withheld: '변경됨',
+    none: '—',
+    empty: '아직 기록된 변경이 없습니다.',
+    emptyFiltered: '조건에 맞는 변경이 없습니다.',
+    clearFilter: '필터 해제',
+    loadError: '이력을 불러오지 못했습니다.',
+    retry: '다시 시도',
+    more: '더 보기',
+    readOnly:
+      '변경 이력은 읽기 전용입니다 — 본인도 인사 담당자도 기록을 지우거나 고칠 수 없습니다.',
   },
   myProfile: {
     edit: '편집',
@@ -984,6 +1008,139 @@ function CompensationTab({ compensation, isAdmin, labels }) {
   );
 }
 
+
+/**
+ * 변경 이력 탭 — 비발령성 개인정보의 변경 기록 (PW-460 §2-D).
+ *
+ * `pivit-specs` `K. 내-설정/my-settings-view.jsx` 의 `HistoryTab` 시안을 이 캔버스의
+ * 기존 부품으로 옮긴 것이다. **새 시각 언어를 만들지 않는다** — 배너는
+ * `admin-notif-banner`, 필터는 `admin-notif-btn`, 행은 `msc-list-row`(발령 이력 행과
+ * 같은 부품), 배지는 `msc-hist-badge` 다.
+ *
+ * ⛔ **읽기 전용이다.** 값을 되돌리거나 행을 지우는 UI 를 두지 않는다. 지울 수 있으면
+ * 감사 추적이 아니다. 되돌리려면 원래 탭에서 다시 고치고, 그 되돌림도 한 줄 더 쌓인다.
+ *
+ * 값 자리의 세 상태를 회색으로 뭉개지 않는다 — 셋이 같아 보이면 보는 사람이 다음에
+ * 무엇을 할 수 있는지 판단할 수 없다.
+ *   normal   지금 보인다
+ *   withheld 애초에 값을 안 적었다 (「변경됨」)
+ *   purged   익명화로 파기됐다 (「파기됨」) — 되돌릴 값 자체가 없다
+ */
+function HistoryTab({
+  history,
+  loading,
+  error,
+  labels,
+  field,
+  period,
+  onFieldChange,
+  onPeriodChange,
+  onRetry,
+  onLoadMore,
+}) {
+  const L = labels.history;
+  const items = (history && history.items) || [];
+  const fields = (history && history.fields) || [];
+  const hasMore = Boolean(history && history.nextCursor);
+  const isFiltered = field !== 'all' || period !== 'all';
+
+  const chip = (active) => `admin-notif-btn is-sm ${active ? 'is-primary' : 'is-soft'}`;
+
+  return (
+    <>
+      <div className="admin-notif-banner" data-testid="history-banner">
+        <span className="admin-notif-banner-icon" aria-hidden="true"><HistoryIcon size={16} /></span>
+        <p className="admin-notif-banner-text">
+          {L.banner}
+          <br />
+          {/* 「없는 것」을 누락으로 읽지 않도록 범위를 먼저 밝힌다. */}
+          {L.bannerScope}
+        </p>
+      </div>
+
+      <Card testId="history-card">
+        <div className="msc-hist-filters" data-testid="history-filters">
+          <button type="button" className={chip(field === 'all')}
+            onClick={() => onFieldChange && onFieldChange('all')}
+            data-testid="history-field-all">{L.allFields}</button>
+          {/* 이력이 «실제로 있는» 항목만 세운다 — 전 대상 필드를 나열하면 대부분이 빈 옵션이 된다. */}
+          {fields.map((f) => (
+            <button key={f.key} type="button" className={chip(field === f.key)}
+              onClick={() => onFieldChange && onFieldChange(f.key)}
+              data-testid={`history-field-${f.key}`}>{f.label}</button>
+          ))}
+          <span className="msc-hist-filter-sep" aria-hidden="true" />
+          {['all', '3m', '1y'].map((p) => (
+            <button key={p} type="button" className={chip(period === p)}
+              onClick={() => onPeriodChange && onPeriodChange(p)}
+              data-testid={`history-period-${p}`}>{L.periods[p]}</button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="msc-skeleton-list" data-testid="history-loading" aria-busy="true">
+            <div className="msc-skeleton-row" />
+            <div className="msc-skeleton-row" />
+            <div className="msc-skeleton-row" />
+          </div>
+        ) : error ? (
+          <div className="msc-empty-state" data-testid="history-error">
+            <div>{L.loadError}</div>
+            <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+              onClick={onRetry} data-testid="history-retry">{L.retry}</button>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="msc-empty-state" data-testid="history-empty">
+            {/* 0건과 «필터 결과» 0건은 문구를 가른다 — 같으면 이력이 아예 없는 것으로 읽힌다. */}
+            <div>{isFiltered ? L.emptyFiltered : L.empty}</div>
+            {isFiltered && (
+              <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+                onClick={() => { onFieldChange && onFieldChange('all'); onPeriodChange && onPeriodChange('all'); }}
+                data-testid="history-clear-filter">{L.clearFilter}</button>
+            )}
+          </div>
+        ) : (
+          <div className="msc-list">
+            {items.map((h) => (
+              <div key={h.id} className="msc-list-row" data-testid={`history-row-${h.id}`}>
+                <span className="msc-mono msc-hist-date">{h.changedAt}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="msc-hist-head">
+                    <span className="msc-notif-label" style={{ display: 'inline' }}>
+                      {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
+                    </span>
+                    <span className={`msc-hist-badge ${h.actor && h.actor.isSelf ? 'is-self' : 'is-hr'}`}
+                      data-testid={`history-actor-${h.id}`}>
+                      {h.actor && h.actor.isSelf ? L.byMe : L.byHr}
+                    </span>
+                    {h.changeKind === 'add' && <span className="msc-hist-badge">{L.added}</span>}
+                    {h.changeKind === 'remove' && <span className="msc-hist-badge">{L.removed}</span>}
+                  </div>
+                  <div className="msc-notif-sub msc-hist-values" data-testid={`history-values-${h.id}`}>
+                    {h.state === 'purged' ? L.purged
+                      : h.state === 'withheld' ? L.withheld
+                        : `${h.before || L.none} → ${h.after || L.none}`}
+                  </div>
+                </div>
+                {/* 사유는 본인 편집에서 선택 입력이라 비어 있을 수 있다 — 빈 사유로 행을 감추지 않고,
+                    「사유 없음」을 매 행에 반복해 적지도 않는다. 줄 자체를 그리지 않는다. */}
+                {h.reason && <span className="msc-hist-reason">{h.reason}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {hasMore && !loading && (
+          <button type="button" className="admin-notif-btn is-sm is-soft msc-hist-more"
+            onClick={onLoadMore} data-testid="history-more">{L.more}</button>
+        )}
+
+        <div className="msc-hist-note">{L.readOnly}</div>
+      </Card>
+    </>
+  );
+}
+
 /* ══════════════════════════════════════════════════════ */
 
 export default function MySettingsCanvas({
@@ -1023,6 +1180,16 @@ export default function MySettingsCanvas({
   performance = null,
   performanceLoading = false,
   performanceError = false,
+  /* 변경 이력 (PW-460) */
+  history = null,
+  historyLoading = false,
+  historyError = false,
+  historyField = 'all',
+  historyPeriod = 'all',
+  onHistoryFieldChange,
+  onHistoryPeriodChange,
+  onHistoryRetry,
+  onHistoryLoadMore,
   /* 보상 정보 */
   compensation = null,
   /* 프로필 */
@@ -1267,6 +1434,22 @@ export default function MySettingsCanvas({
           {/* ═══ 보상 정보 ═══ */}
           {activeTab === 'profile_comp' && (
             <CompensationTab compensation={compensation} isAdmin={isAdmin} labels={labels} />
+          )}
+
+          {/* ═══ 변경 이력 (PW-460) ═══ */}
+          {activeTab === 'profile_history' && (
+            <HistoryTab
+              history={history}
+              loading={historyLoading}
+              error={historyError}
+              labels={labels}
+              field={historyField}
+              period={historyPeriod}
+              onFieldChange={onHistoryFieldChange}
+              onPeriodChange={onHistoryPeriodChange}
+              onRetry={onHistoryRetry}
+              onLoadMore={onHistoryLoadMore}
+            />
           )}
 
           {/* ═══ 기본 정보 ═══ */}
