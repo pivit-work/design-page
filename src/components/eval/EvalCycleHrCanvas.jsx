@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
+import { stampScheduleDateTime } from './evalScheduleStamp.js';
 
 /**
  * EvalCycleHrCanvas — HR 성과평가 사이클 관리 화면(목록) 정본 컴포넌트.
@@ -312,6 +313,15 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave }) {
                       onChange={(e) => setField(id, 'start', e.target.value)}
                       data-testid={`evc-sched-start-${id}`}
                     />
+                    {/* [PW-435 ①] 위자드 3단계와 **같은 표기**. 같은 값을 두 화면이
+                        다르게 보이면 그 자체가 혼선이다. */}
+                    <span
+                      className="evc-sched-stamp"
+                      data-testid={`evc-sched-modal-stamp-start-${id}`}
+                    >
+                      {stampScheduleDateTime(rows[id]?.start, L)}
+                      <span className="evc-sched-stamp-tag">{L.scheduleStampStart}</span>
+                    </span>
                   </label>
                   <span className="evc-sched-modal-tilde">~</span>
                   <label className="evc-sched-modal-field">
@@ -324,6 +334,13 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave }) {
                       onChange={(e) => setField(id, 'end', e.target.value)}
                       data-testid={`evc-sched-end-${id}`}
                     />
+                    <span
+                      className="evc-sched-stamp is-end"
+                      data-testid={`evc-sched-modal-stamp-end-${id}`}
+                    >
+                      {stampScheduleDateTime(rows[id]?.end, L)}
+                      <span className="evc-sched-stamp-tag">{L.scheduleStampEnd}</span>
+                    </span>
                   </label>
                 </div>
                 {bad && <div className="evc-sched-modal-err">{L.editScheduleOrderErr}</div>}
@@ -610,6 +627,14 @@ export default function EvalCycleHrCanvas({
   onSaveTemplate,
   onDeleteTemplate,
   templateSaveError = null,
+  /**
+   * PW-435 ⑥ — 단계별 저장 리마인더 문구와 그 저장·AI 다듬기 콜백. 그대로 위자드
+   * 3단계로 흘린다. 저장 단위가 **조직 × 단계**라 화면 컨테이너가 소유하고,
+   * 이 캔버스는 전달만 한다(위자드 로컬에 두면 닫을 때 사라진다).
+   */
+  savedMessages = [],
+  onSaveMessage,
+  onPolishMessage,
   /**
    * PW-440 — 위자드 초안 저장. `({ draftState, draftStep, name }) =>
    * Promise<{ cycleId, savedAt } | null>`.
@@ -923,6 +948,9 @@ export default function EvalCycleHrCanvas({
           onSaveTemplate={onSaveTemplate}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
+          savedMessages={savedMessages}
+          onSaveMessage={onSaveMessage}
+          onPolishMessage={onPolishMessage}
         />
       )}
 
@@ -946,6 +974,9 @@ export default function EvalCycleHrCanvas({
           onSaveTemplate={onSaveTemplate}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
+          savedMessages={savedMessages}
+          onSaveMessage={onSaveMessage}
+          onPolishMessage={onPolishMessage}
         />
       )}
 

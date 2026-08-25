@@ -6792,3 +6792,214 @@
   font-size: var(--font-size-text-xs, 12px);
 }
 .evc-tpl-set-foot { display: flex; justify-content: flex-end; }
+
+/* ── PW-435 ① 단계 일정 확정 표기 ─────────────────────────────────────────
+   `datetime-local` 위젯의 시각 표기는 브라우저·OS 로케일이 정한다. ko-KR 에서는
+   12시간제로 그려지고 칸이 좁으면 시·분이 잘려 「오전」만 남는다 — 그래서 값을
+   우리가 한 줄 더 적는다. `monospace` 인 이유는 자릿수가 흔들리면 여러 단계를
+   세로로 훑어 비교할 수 없기 때문이다. */
+.evc-sched-stamp {
+  display: block;
+  margin-top: var(--spacing-xxs, 3px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 마감은 강조 — 되묻게 되는 쪽이 언제나 마감 시각이다. */
+.evc-sched-stamp.is-end {
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+}
+.evc-sched-stamp-tag {
+  margin-left: var(--spacing-xs, 4px);
+  font-family: inherit;
+  font-weight: 400;
+  color: var(--text-quaternary, var(--text-tertiary));
+}
+
+/* ── PW-435 ④ 건너뛴 단계 — 표에서 지우지 않고 「미사용」으로 남긴다 ────────── */
+.evc-wiz-step.is-skipped {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.evc-wiz-step-skip {
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.evc-wiz-skipped {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-2xl, 20px);
+  background: var(--bg-secondary, var(--utility-gray-50));
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+}
+.evc-wiz-skipped-title {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-wiz-skipped-body {
+  margin: 0;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+
+/* ── PW-435 ⑤ 메시지 블록 — 채널보다 «위» ───────────────────────────────── */
+.evc-rm-dsec.is-message {
+  border-color: var(--border-brand, var(--utility-blue-600));
+}
+.evc-rm-dsec-note {
+  margin-left: var(--spacing-xs, 4px);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+/* 한 벌의 문구가 채널마다 어떻게 그려지는가 — 「슬랙 문구는 어디서 확인하나」의 답 */
+.evc-rm-render {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 6px);
+  margin-bottom: var(--spacing-md, 8px);
+}
+.evc-rm-render-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evc-rm-render-desc {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+.evc-rm-dsec-lines {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  line-height: 1.8;
+}
+.evc-rm-dsec-lines strong {
+  color: var(--text-primary);
+}
+.evc-rm-slack-sep {
+  margin-top: var(--spacing-md, 10px);
+  padding-top: var(--spacing-md, 8px);
+  border-top: 1px dashed var(--border-secondary, #eaecf0);
+}
+
+/* ── PW-435 ⑥ 저장 문구 · AI 다듬기 ─────────────────────────────────────── */
+.evc-rm-saved {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  flex-wrap: wrap;
+}
+.evc-rm-saved-empty {
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-tertiary);
+}
+.evc-rm-msg-actions {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.evc-rm-ai,
+.evc-rm-save-msg {
+  padding: 5px 11px;
+  border-radius: var(--radius-sm, 7px);
+  font-size: var(--font-size-text-xs, 11.5px);
+  font-weight: 700;
+  font-family: inherit;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.evc-rm-ai {
+  border-color: var(--border-brand, var(--utility-blue-600));
+  background: var(--bg-brand-secondary, var(--utility-blue-50));
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+}
+.evc-rm-ai:disabled,
+.evc-rm-save-msg:disabled {
+  border-color: var(--border-secondary, #eaecf0);
+  background: var(--bg-secondary, var(--utility-gray-50));
+  color: var(--text-quaternary, var(--text-tertiary));
+  cursor: not-allowed;
+}
+/* AI 실패는 인라인으로만 알린다 — 전역 오류 화면으로 넘어가면 작성 중이던 문구가 날아간다. */
+.evc-rm-ai-error {
+  margin: var(--spacing-xs, 4px) 0 0;
+  font-size: var(--font-size-text-xs, 11px);
+  color: var(--text-error-primary, var(--utility-red-600));
+}
+/* 노랑 = 미확인. [적용] 전에는 본문을 건드리지 않는다. */
+.evc-rm-ai-draft {
+  margin-top: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+}
+.evc-rm-ai-draft-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--utility-warning-700, #b54708);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evc-rm-ai-draft-body {
+  margin-top: var(--spacing-xs, 4px);
+  white-space: pre-wrap;
+}
+.evc-rm-ai-warn {
+  margin: 0 0 var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-error-primary, var(--utility-red-600));
+}
+.evc-rm-ai-actions {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  margin-top: var(--spacing-md, 8px);
+}
+.evc-btn.is-sm {
+  padding: 5px 12px;
+  font-size: var(--font-size-text-xs, 11.5px);
+}
+
+/* ── PW-435 ③ 사이클에 없는 평가 유형 — 흐리게가 아니라 «못 누른다» ────────────
+   종전엔 `is-dim`(opacity 0.5)으로 그리면서 onClick 이 살아 있었다. 눌리면
+   사용자는 눌러도 되는 줄 안다 — 실제로 그렇게 눌려서 하향만 켠 사이클에
+   셀프용 템플릿이 만들어졌다. */
+.evc-type-chip.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.evc-type-chip.is-locked:hover {
+  background: inherit;
+}
+.evc-type-chip-lock {
+  margin-left: var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-xs, 10.5px);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
+// [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
+import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import { CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square (인라인 SVG).
@@ -246,6 +248,7 @@ const timePart = (v, field) =>
   (v || '').length >= 16 ? v.slice(11, 16) : DEFAULT_TIME[field];
 const joinDateTime = (date, time) => (date ? `${date}T${time}` : '');
 
+
 // 'YYYY-MM-DD' 문자열 ↔ Date 변환 (DatePicker 는 Date 를 주고받는다).
 const dateToIso = (date) => {
   const y = date.getFullYear();
@@ -286,23 +289,45 @@ const PEER_MODES = [
   { key: 'hr_assign', label: 'modeHrAssign', badge: 'exceptionBadge' },
 ];
 
-// 단계별 일정 모델(시안 WizardStep2 ALL_PHASES). 선택 리뷰종류로 활성 단계 도출.
-//  - self·share 는 앵커(양끝 고정, DnD 불가). 중간 단계만 재배열.
-//  - required 단계(self·calibration·share)는 항상 ON. dependsOn 은 해당 유형 선택 시 활성.
-//  - always 단계는 리뷰 종류와 무관하게 항상 목록에 있고, 토글로 끌 수 있다.
-//  - 하향 단계 id 는 'leader'(리뷰종류 id 와 1:1; manager 개명은 별도 마이그레이션).
+/**
+ * 단계별 일정 모델(정책 §5.2.1). 축이 **둘**이다 — 하나로 합치지 않는다.
+ *
+ *  - `listedBy` — **등재 조건**. 「이 단계가 목록에 나타나는가」
+ *      · `'types'`  1단계에서 고른 평가 종류에 있어야 나타난다
+ *      · `'always'` 평가 종류와 무관하게 항상 나타난다(운영 절차라 `types` 에 없다)
+ *  - `required` — **필수 여부**. 「토글로 끌 수 있는가」. 지금은 `share` 하나뿐이다
+ *
+ * 🔴 PW-435 ②③④ — 종전에는 `required: true` 하나가 «나타난다» 와 «끌 수 없다» 를
+ * 동시에 뜻했다. 그래서 **1단계에서 셀프 리뷰를 고르지 않아도 셀프 단계가 나타나고
+ * 끌 수도 없었다.** 축이 둘인데 값이 하나였던 것이 지적 셋의 공통 뿌리였다.
+ *
+ * 캘리브레이션의 **기본값은 ON 을 유지**한다 — 요구는 «끌 수 있게» 이지 «기본을 꺼라»
+ * 가 아니다. 기본을 OFF 로 두면 쓰는 조직이 매번 켜야 하는 반대 방향의 같은 불편이다.
+ * 결과 발송만 필수로 남긴 근거는 «끄면 피평가자가 결과를 영영 못 보고 사이클 종결
+ * 판정(§6)이 성립하지 않는다» 이다.
+ *
+ *  - self·share 는 앵커(양끝 고정, DnD 불가). 중간 단계만 재배열.
+ *  - 하향 단계 id 는 'leader'(리뷰종류 id 와 1:1; manager 개명은 별도 마이그레이션).
+ */
 const ALL_PHASES = [
-  { id: 'self', nameKey: 'phaseSelf', targetKey: 'ownerEvaluatee', required: true, anchor: true },
-  { id: 'peer_confirm', nameKey: 'phasePeerConfirm', targetKey: 'ownerLeader', dependsOn: 'peer' },
-  { id: 'peer', nameKey: 'phasePeer', targetKey: 'ownerPeer' },
-  { id: 'upward', nameKey: 'phaseUpward', targetKey: 'ownerEvaluatee' },
-  { id: 'leader', nameKey: 'phaseLeader', targetKey: 'ownerLeader' },
+  { id: 'self', nameKey: 'phaseSelf', targetKey: 'ownerEvaluatee', listedBy: 'types', anchor: true },
+  { id: 'peer_confirm', nameKey: 'phasePeerConfirm', targetKey: 'ownerLeader', listedBy: 'types', dependsOn: 'peer' },
+  { id: 'peer', nameKey: 'phasePeer', targetKey: 'ownerPeer', listedBy: 'types' },
+  { id: 'upward', nameKey: 'phaseUpward', targetKey: 'ownerEvaluatee', listedBy: 'types' },
+  { id: 'leader', nameKey: 'phaseLeader', targetKey: 'ownerLeader', listedBy: 'types' },
   // 조정·확정은 캘리브레이션 위원회 몫이고 HR 은 조회 전용(§3 재설계).
-  { id: 'calibration', nameKey: 'phaseCalibration', targetKey: 'ownerCommittee', required: true },
+  // 평가 종류가 아니라 운영 절차라 항상 등재되지만, 필수는 아니다(PW-435 ④).
+  { id: 'calibration', nameKey: 'phaseCalibration', targetKey: 'ownerCommittee', listedBy: 'always' },
   // §4.1.2 6단계 — 피평가자별 통합 요약을 조직장이 1차 검수(HR 은 열람).
-  { id: 'report_review', nameKey: 'phaseReportReview', targetKey: 'ownerLeaderHr', always: true },
-  { id: 'share', nameKey: 'phaseShare', targetKey: 'ownerHr', required: true, anchor: true },
+  { id: 'report_review', nameKey: 'phaseReportReview', targetKey: 'ownerLeaderHr', listedBy: 'always' },
+  { id: 'share', nameKey: 'phaseShare', targetKey: 'ownerHr', listedBy: 'always', required: true, anchor: true },
 ];
+/** 캘리브레이션 단계 id — 이 단계가 꺼지면 위자드 5단계(위원회)를 건너뛴다. */
+const CALIBRATION_PHASE_ID = 'calibration';
+/** 위자드 5단계(캘리브레이션 위원회)의 0-based 인덱스. */
+const COMMITTEE_STEP_INDEX = 4;
+/** 위자드 3단계(단계별 일정)의 0-based 인덱스 — 건너뛴 5단계의 안내가 여기로 돌려보낸다. */
+const SCHEDULE_STEP_INDEX = 2;
 // 단계 → 평가 유형(적용 템플릿 매핑용). 이 유형 템플릿만 해당 단계에 매핑 가능.
 const PHASE_TO_REVIEW_TYPE = { self: 'self', peer: 'peer', upward: 'upward', leader: 'leader' };
 // §5.2.1 단계별 리마인더 커스텀 — 단계당 복수 리마인더 자유 설정
@@ -344,13 +369,26 @@ const SLACK_SEND_MODES = [
   { id: 'dm', labelKey: 'reminderSlackDm', Icon: UserIcon },
   { id: 'channel', labelKey: 'reminderSlackChannel', Icon: HashIcon },
 ];
-const EMAIL_TEMPLATES = [
+/**
+ * 리마인더 문구 [PW-435 ⑤] — **채널이 아니라 리마인더가 갖는다.**
+ *
+ * 🔴 종전 구조는 `reminders[].email.{template,subject,body}` 였다. 문구가 **이메일의
+ * 소유물**이라, 슬랙만 켠 리마인더는 문구를 정할 자리도 확인할 자리도 없었다.
+ * 제보의 「슬랙의 문구는 어디서 확인해야할지 고민됨」은 화면이 그렇게 보인 게 아니라
+ * **실제로 그랬다.** 문구를 `message` 로 올리고 `email`·`slack` 에는 «어디로 보내는가»
+ * 만 남긴다.
+ *
+ * 매체가 달라 문구가 늘 같을 수는 없다(이메일은 제목이 필수, 슬랙 DM 에는 제목 개념이
+ * 없다). 그래도 **기본은 공통 1벌**이다 — 채널마다 2벌을 강제하면 한쪽만 고치고 잊는
+ * 어긋남이 생긴다. 다른 문구가 필요한 조직에만 `slackSeparate` 로 분기를 연다.
+ */
+const MESSAGE_TEMPLATES = [
   { id: 'default', labelKey: 'reminderTplDefault' },
   { id: 'urgent', labelKey: 'reminderTplUrgent' },
   { id: 'custom', labelKey: 'reminderTplCustom' },
 ];
 // 사전 정의 템플릿 미리보기(읽기 전용, §14.2 spec 에서 관리) — 변수 토큰 그대로 표시
-const EMAIL_TEMPLATE_PREVIEW = {
+const MESSAGE_TEMPLATE_PREVIEW = {
   default: {
     subject: '[{cycleName}] {stage} 마감 D-{offset}',
     body: '{name}님, 아직 {stage}가 완료되지 않았습니다. {dueDate}까지 제출해주세요.',
@@ -362,8 +400,51 @@ const EMAIL_TEMPLATE_PREVIEW = {
     cta: '지금 완료하기 → {link}',
   },
 };
+/**
+ * 한 벌의 문구가 채널마다 어떻게 그려지는가 — **「슬랙 문구는 어디서 확인하나」에 대한
+ * 화면상의 답이 이 줄이다.** 켠 채널만 나열한다.
+ */
+const CHANNEL_RENDER = [
+  { id: 'email', Icon: MailIcon, labelKey: 'reminderChEmail', descKey: 'reminderRenderEmail' },
+  { id: 'slack', Icon: ChatIcon, labelKey: 'reminderChSlack', descKey: 'reminderRenderSlack' },
+];
 // 치환 변수 정규 세트(SSOT: spec §14.0)
-const EMAIL_VARS = ['{name}', '{cycleName}', '{stage}', '{dueDate}', '{offset}', '{link}'];
+const MESSAGE_VARS = ['{name}', '{cycleName}', '{stage}', '{dueDate}', '{offset}', '{link}'];
+/** 본문에 쓰인 치환 변수 집합 — AI 가 변수를 지우거나 지어내지 않았는지 본다 [PW-435 ⑥]. */
+const collectVars = (text) => new Set(String(text ?? '').match(/\{[a-zA-Z]+\}/g) ?? []);
+const sameVars = (a, b) => {
+  const x = collectVars(a);
+  const y = collectVars(b);
+  return x.size === y.size && [...x].every((t) => y.has(t));
+};
+const EMPTY_MESSAGE = {
+  template: 'default',
+  subject: '',
+  body: '',
+  slackSeparate: false,
+  slackBody: '',
+};
+/**
+ * 구 형태(`email.{template,subject,body}`)로 저장된 리마인더를 `message` 로 읽어 올린다.
+ *
+ * 이 함수가 없으면 **이 변경 전에 만든 사이클의 문구가 화면에서 사라진다** — 저장은
+ * 그대로 있는데 읽는 자리가 옮겨갔기 때문이다. 서버 마이그레이션과 별개로 화면도 두
+ * 형태를 다 읽는다(마이그레이션 전에 열린 탭이 있을 수 있다).
+ */
+function normalizeReminder(rm) {
+  if (!rm || rm.message) return rm;
+  const legacy = rm.email ?? {};
+  return {
+    ...rm,
+    message: {
+      ...EMPTY_MESSAGE,
+      template: legacy.template ?? 'default',
+      subject: legacy.subject ?? '',
+      body: legacy.body ?? '',
+    },
+    email: {},
+  };
+}
 let __rmSeq = 0;
 const nextRmId = () => `rm_${++__rmSeq}`;
 const makeReminder = (offset = 1, channels = ['email']) => ({
@@ -373,7 +454,10 @@ const makeReminder = (offset = 1, channels = ['email']) => ({
   time: '09:00',
   channels,
   targets: { leader: false, hr: false },
-  email: { template: 'default', subject: '', body: '' },
+  // [PW-435 ⑤] 문구는 채널 공통 1벌. 구: email.{template,subject,body}
+  message: { ...EMPTY_MESSAGE },
+  // 수신은 members.email 자동, CC 는 targets 연동 — 편집 필드가 없다.
+  email: {},
   slack: { mode: 'dm', channel: SLACK_CHANNELS[0], mention: true },
 });
 // 단계 진입 시 기본 2회(종료 D-3·D-1) — "2회 이상" 요건 충족.
@@ -828,12 +912,16 @@ function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, 
   );
 }
 
-/** 선택한 리뷰종류로 활성 단계 목록 도출. */
+/**
+ * 목록에 등재할 단계 도출 — **`listedBy` 만 본다**(정책 §5.2.1).
+ *
+ * `required` 를 여기서 보면 안 된다. 「끌 수 없다」가 「항상 나타난다」로 새어 들어가
+ * 고르지 않은 평가 종류의 단계가 일정에 뜬다 — PW-435 ②③ 이 그 증상이었다.
+ */
 function activePhasesFor(reviewTypes) {
   return ALL_PHASES.filter(
     (p) =>
-      p.required ||
-      p.always ||
+      p.listedBy === 'always' ||
       reviewTypes.includes(p.id) ||
       (p.dependsOn && reviewTypes.includes(p.dependsOn)),
   );
@@ -918,21 +1006,37 @@ function offsetsToSchedule(offsets, baseDate) {
   return out;
 }
 
-function StepBar({ steps, current, labels: L, onJump }) {
+/**
+ * 단계 표. `isSkipped(i)` 인 단계는 [PW-435 ④] **지우지 않고** 「미사용」으로 남긴다 —
+ * 지우면 뒤 번호가 밀려 무엇이 빠졌는지 알 수 없다. 번호도 그대로 둔다.
+ */
+function StepBar({ steps, current, labels: L, onJump, isSkipped = () => false }) {
   return (
     <div className="evc-wiz-steps">
       {steps.map((s, i) => {
-        const state = i < current ? 'done' : i === current ? 'current' : 'future';
+        const skipped = isSkipped(i);
+        const state = skipped
+          ? 'skipped'
+          : i < current
+            ? 'done'
+            : i === current
+              ? 'current'
+              : 'future';
         return (
           <button
             type="button"
             key={s.titleKey}
             className={`evc-wiz-step is-${state}`}
             onClick={() => state === 'done' && onJump(i)}
-            disabled={state === 'future'}
+            disabled={state === 'future' || skipped}
+            title={skipped ? L.stepSkippedHint : undefined}
+            data-testid={`evc-wiz-step-${i}`}
           >
-            <span className="evc-wiz-step-num">{state === 'done' ? '✓' : i + 1}</span>
+            <span className="evc-wiz-step-num">
+              {skipped ? '–' : state === 'done' ? '✓' : i + 1}
+            </span>
             <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
+            {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
           </button>
         );
       })}
@@ -1730,6 +1834,29 @@ export default function EvalCycleWizard({
   draftSavedAt: draftSavedAtProp = null,
   /** PW-440 — 마지막으로 저장한 사람 이름. 표시용. */
   draftSavedByName = null,
+  /**
+   * PW-435 ⑥ — **단계별 저장 문구**(조직 자산). `[{ id, phaseId, name, subject, body,
+   * usageCount, savedAt }]`.
+   *
+   * 소유는 **화면 컨테이너**다. 위자드 로컬 `useState` 로 두면 사이클이 닫힐 때 사라져
+   * 「회사가 원하는 형태로 저장된 걸 계속 쓴다」는 요구를 만족시키지 못한다
+   * (PW-122 에서 `savedTemplates` 를 그렇게 뒀던 전례를 되풀이하지 않는다).
+   * 안 넘기면 저장 문구 목록이 비어 있는 상태로 동작한다.
+   */
+  savedMessages = [],
+  /**
+   * PW-435 ⑥ — 저장 요청. `({ phaseId, name, subject, body }) => Promise<saved | null>`.
+   * 안 넘기면 [이 문구 저장] 버튼을 숨긴다.
+   */
+  onSaveMessage,
+  /**
+   * PW-435 ⑥ — AI 문구 다듬기. `({ phaseId, subject, body }) => Promise<{subject, body}|null>`.
+   *
+   * design-page 는 네트워크를 모른다 — 호출은 소비 측이 넘긴다. 안 넘기면 버튼을 숨긴다.
+   * 🔴 **실패가 위자드를 넘어뜨리면 안 된다** — 작성 중이던 문구가 통째로 날아간다.
+   * 실패는 인라인 안내로만 알린다.
+   */
+  onPolishMessage,
 }) {
   const isManage = !!cycle;
   const initialSeq = cycle?.reviewSequence ?? null;
@@ -1872,7 +1999,22 @@ export default function EvalCycleWizard({
    */
   const libraryMode = Array.isArray(libraryTemplates);
   const savedTemplates = libraryMode ? libraryTemplates : localTemplates;
-  const [tplType, setTplType] = useState(() => D?.tplType ?? 'self'); // 빌더가 편집중인 평가 유형
+  /**
+   * 빌더가 편집 중인 평가 유형.
+   *
+   * [PW-435 ③] 초기값을 `'self'` 로 굳히면 **셀프를 고르지 않은 사이클이 셀프 편집
+   * 화면으로 열린다** — 카드를 막아도 이미 그 유형에 들어와 있는 셈이라 무의미하다.
+   * 사이클에 포함된 유형 중 첫 번째로 연다.
+   */
+  const [tplType, setTplType] = useState(() => {
+    const initialTypes = D?.reviewTypes ?? cycle?.reviewTypes ?? ['self', 'leader'];
+    const saved = D?.tplType;
+    if (saved && initialTypes.includes(saved)) return saved;
+    return (
+      TEMPLATE_TYPES.map((t) => t.id).find((id) => initialTypes.includes(id)) ??
+      'self'
+    );
+  });
   const [tplName, setTplName] = useState(() => D?.tplName ?? '');
   // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
   // 방금 저장했다는 사실을 들고 있다가 안내 대신 확인 문구를 보여준다(프리셋 저장과 같은 방식).
@@ -1934,7 +2076,8 @@ export default function EvalCycleWizard({
   const presetSchedule = offsetsToSchedule(presetOffsets, startDate);
   const scheduleOf = (id) =>
     schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
-  const remindersOf = (id) => reminders[id] ?? defaultReminders();
+  // 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
+  const remindersOf = (id) => (reminders[id] ?? defaultReminders()).map(normalizeReminder);
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   const orderedMiddle = [
     ...phaseOrder.filter((id) => middleIds.includes(id)),
@@ -2001,6 +2144,130 @@ export default function EvalCycleWizard({
       else n.add(rid);
       return n;
     });
+
+  // ── 리마인더 문구 [PW-435 ⑤⑥] ────────────────────────────────────────────
+  /** 구 형태(`email.{subject,body}`)로 저장된 것도 여기서 `message` 로 읽는다. */
+  const messageOf = (rm) => normalizeReminder(rm)?.message ?? EMPTY_MESSAGE;
+  const patchMessage = (pid, rid, patch) =>
+    patchReminder(pid, rid, (r) => ({ message: { ...messageOf(r), ...patch }, email: {} }));
+  /**
+   * 템플릿 전환. **커스텀으로 바꾸는 순간** 그 단계의 가장 최근 저장 문구를 채운다
+   * ([PW-435 ⑥] "커스텀 선택시 이전에 저장된 문구가 계속 보이면 좋을 듯함").
+   * 🔴 이미 쓰던 내용이 있으면 덮지 않는다 — 작성 중이던 글을 지우는 쪽이 더 큰 손해다.
+   */
+  const setMessageTemplate = (pid, rm, template) => {
+    const cur = messageOf(rm);
+    if (template !== 'custom' || cur.subject || cur.body) {
+      patchMessage(pid, rm.id, { template });
+      return;
+    }
+    const last = savedForPhase(pid)[0];
+    patchMessage(pid, rm.id, {
+      template,
+      subject: last?.subject ?? '',
+      body: last?.body ?? '',
+    });
+  };
+  /** 이 «단계» 의 저장 문구만, 최근 저장순. 다른 단계 문구는 섞지 않는다. */
+  const savedForPhase = (pid) =>
+    (savedMessages ?? [])
+      .filter((m) => m.phaseId === pid)
+      .slice()
+      .sort((a, b) => String(b.savedAt ?? '').localeCompare(String(a.savedAt ?? '')));
+  const loadSavedMessage = (pid, rm, savedId) => {
+    if (!savedId) return;
+    const m = savedForPhase(pid).find((x) => x.id === savedId);
+    if (!m) return;
+    const cur = messageOf(rm);
+    // 작성 중이던 글이 있으면 확인하고 바꾼다.
+    if ((cur.subject || cur.body) && !window.confirm(L.reminderSavedOverwrite)) return;
+    patchMessage(pid, rm.id, { subject: m.subject ?? '', body: m.body ?? '' });
+  };
+  const saveCurrentMessage = async (ph, rm) => {
+    if (!onSaveMessage) return;
+    const cur = messageOf(rm);
+    const name = window.prompt(L.reminderSavePrompt, fill(L.reminderSaveNameDefault, { phase: L[ph.nameKey] }));
+    if (!name || !name.trim()) return;
+    const dup = savedForPhase(ph.id).find((m) => m.name === name.trim());
+    if (dup && !window.confirm(L.reminderSaveDuplicate)) return;
+    try {
+      await onSaveMessage({
+        id: dup?.id ?? null,
+        phaseId: ph.id,
+        name: name.trim(),
+        subject: cur.subject ?? '',
+        body: cur.body ?? '',
+      });
+    } catch {
+      // 저장 실패가 작성 중 문구를 날리면 안 된다. 화면은 그대로 둔다.
+    }
+  };
+
+  /**
+   * AI 문구 다듬기 [PW-435 ⑥]. **누를 때만** 돈다(자동 실행 없음).
+   * 결과는 본문에 바로 쓰지 않고 「미확인」 초안으로 리마인더별로 보관한다 —
+   * [적용]을 눌러야 본문이 바뀐다.
+   */
+  const [aiDraft, setAiDraft] = useState({});
+  const [aiBusy, setAiBusy] = useState(() => new Set());
+  const [aiError, setAiError] = useState(() => new Set());
+  const markSet = (setter, rid, on) =>
+    setter((prev) => {
+      const n = new Set(prev);
+      if (on) n.add(rid);
+      else n.delete(rid);
+      return n;
+    });
+  const clearAiDraft = (rid) =>
+    setAiDraft((prev) => {
+      const n = { ...prev };
+      delete n[rid];
+      return n;
+    });
+  const runAiPolish = async (ph, rm) => {
+    if (!onPolishMessage) return;
+    const cur = messageOf(rm);
+    markSet(setAiBusy, rm.id, true);
+    markSet(setAiError, rm.id, false);
+    try {
+      const out = await onPolishMessage({
+        phaseId: ph.id,
+        phaseName: L[ph.nameKey],
+        subject: cur.subject ?? '',
+        body: cur.body ?? '',
+      });
+      if (!out) {
+        markSet(setAiError, rm.id, true);
+        return;
+      }
+      // 치환 변수가 원본과 달라졌으면 경고를 붙인다 — AI 가 {link} 를 지우면
+      // 받는 사람이 갈 곳을 잃고, 없던 변수를 지어내면 치환되지 않은 채 나간다.
+      const varsOk = sameVars(
+        `${cur.subject ?? ''} ${cur.body ?? ''}`,
+        `${out.subject ?? ''} ${out.body ?? ''}`,
+      );
+      setAiDraft((prev) => ({ ...prev, [rm.id]: { ...out, varsOk } }));
+    } catch {
+      // 🔴 AI 실패가 리마인더 저장·사이클 진행을 막지 않는다(§9 절대규칙).
+      markSet(setAiError, rm.id, true);
+    } finally {
+      markSet(setAiBusy, rm.id, false);
+    }
+  };
+  const applyAiDraft = (pid, rid) => {
+    const d = aiDraft[rid];
+    if (!d) return;
+    patchMessage(pid, rid, { subject: d.subject ?? '', body: d.body ?? '' });
+    clearAiDraft(rid);
+  };
+
+  /** 이메일 블록의 참조(CC) 요약 — 켠 참조 대상만, 당사자와 겹치는 역할은 뺀다. */
+  const ccSummary = (pid, rm) => {
+    const names = REMINDER_TARGETS.filter(
+      (t) => !t.fixed && rm.targets?.[t.id] && PHASE_RESPONDER_ROLE[pid] !== t.id,
+    ).map((t) => L[t.labelKey]);
+    return names.length ? names.join(' · ') : L.reminderEmailCcNone;
+  };
   const togglePhaseEnabled = (id) =>
     setDisabledPhases((prev) => {
       const n = new Set(prev);
@@ -2018,10 +2285,35 @@ export default function EvalCycleWizard({
     setPhaseOrder(arr);
   };
 
-  const toggleType = (t) =>
-    setReviewTypes((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
-    );
+  /**
+   * 1단계 평가 종류 켜고 끄기.
+   *
+   * 🔴 [PW-435 ③] 지금 «편집 중인» 유형을 끄면 2단계가 «사이클에 없는 유형» 을 열어
+   * 둔 채로 남는다. 그 카드는 잠겨 있으니 빠져나올 수도 없고, 그대로 저장하면 결국
+   * 하향만 켠 사이클에 셀프용 템플릿이 저장된다 — 카드를 막은 이유가 그것이었다.
+   * 그래서 종류를 끄는 자리에서 편집 대상을 남은 유형으로 옮긴다.
+   *
+   * 이 파일은 `useEffect` 를 쓰지 않는다(PW-440 — 이펙트로 뒤늦게 덮어쓰면 사용자가
+   * 이미 고친 값을 되돌린다). 상태가 바뀌는 **그 자리**에서 정리한다.
+   */
+  const toggleType = (t) => {
+    setReviewTypes((prev) => {
+      const next = prev.includes(t)
+        ? prev.filter((x) => x !== t)
+        : [...prev, t];
+      if (!next.includes(tplType)) {
+        const fallback = TEMPLATE_TYPES.map((x) => x.id).find((id) =>
+          next.includes(id),
+        );
+        // 남은 유형이 없으면(0종) 그대로 둔다 — 1단계 [다음]이 이미 막는다.
+        if (fallback) {
+          if (!tplIsCustomized) setTplQuestions(presetFor(tplVersion, fallback));
+          setTplType(fallback);
+        }
+      }
+      return next;
+    });
+  };
 
   // ── 평가 템플릿 빌더 헬퍼 ──
   const tplRatioSum = gradeSum(tplGrades);
@@ -2087,8 +2379,16 @@ export default function EvalCycleWizard({
   // 불러온 뒤 항목을 고쳤는가 — 고정 바의 `(수정됨)` 병기 판정 (policy §5.10-C).
   const tplLoadedEdited =
     !!tplLoadedFrom && JSON.stringify(tplQuestions) !== tplLoadedFrom.snapshot;
-  // 유형을 바꾸면(특히 동료로) 손대지 않은 프리셋은 그 유형에 맞게 다시 깐다.
+  /**
+   * 편집 중인 평가 유형 전환. 유형을 바꾸면(특히 동료로) 손대지 않은 프리셋은
+   * 그 유형에 맞게 다시 깐다.
+   *
+   * 🔴 [PW-435 ③] 가드를 화면(버튼 `disabled`)에만 두지 않고 **여기에도** 둔다.
+   * `setTplType` 을 부르는 진입점은 이 함수와 `loadTemplate` 둘이고, 화면에만 두면
+   * 다음 진입점이 생길 때 또 뚫린다 — PW-434 의 「다른 유형도 보기」가 정확히 그랬다.
+   */
   const selectTplType = (id) => {
+    if (!reviewTypes.includes(id)) return;
     if (!tplIsCustomized) setTplQuestions(presetFor(tplVersion, id));
     setTplType(id);
   };
@@ -2564,8 +2864,14 @@ export default function EvalCycleWizard({
     reviewTypes.length > 0 &&
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
-  // 「다음」 판정은 **선택 위원 수**로만 한다 — 검색 결과 수와 무관하다(PW-161).
-  const committeeValid = !committeeOn || committee.length > 0;
+  /**
+   * [PW-435 ④] 캘리브레이션 단계를 끄면 위원회 단계 자체를 건너뛰므로 **진행 차단을
+   * 해제**한다. 안 그러면 «하지 않는 단계» 때문에 사이클을 만들 수 없다.
+   *
+   * 「다음」 판정은 **선택 위원 수**로만 한다 — 검색 결과 수와 무관하다(PW-161).
+   */
+  const calibrationOn = !disabledPhases.has(CALIBRATION_PHASE_ID);
+  const committeeValid = !calibrationOn || !committeeOn || committee.length > 0;
 
   /**
    * PW-440 ② — 초안에 담을 것을 한 곳에서 모은다.
@@ -2685,11 +2991,26 @@ export default function EvalCycleWizard({
 
   // 단계 이동 — 위원 검색어는 초기화하고 선택은 유지한다. 돌아왔을 때 예전 검색어가
   // 남아 있으면 후보가 몇 명뿐인 것처럼 보인다.
+  /**
+   * [PW-435 ④] 이 사이클에서 쓰지 않는 단계인가. 지금은 캘리브레이션 OFF 시 5단계 하나다.
+   *
+   * 이 판정이 성립하려면 단계 ON/OFF 집합을 **위자드가 소유**해야 한다. 3단계 로컬에
+   * 두면 위자드가 「캘리브레이션이 꺼졌다」를 알 방법이 없어 건너뛸 수 없다.
+   */
+  const isSkipped = (i) => i === COMMITTEE_STEP_INDEX && !calibrationOn;
+  /** `from` 에서 `dir`(+1/-1) 방향으로 건너뛴 단계를 지나 처음 만나는 단계. */
+  const seekStep = (from, dir) => {
+    let i = clampStep(from);
+    while (i > 0 && i < steps.length - 1 && isSkipped(i)) i += dir;
+    return clampStep(i);
+  };
+
   const goStep = (next) => {
     setCommitteeSearch('');
-    setStep(next);
+    const target = seekStep(next, next > step ? 1 : -1);
+    setStep(target);
     // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
-    if (draftEnabled) void saveDraft({ step: next });
+    if (draftEnabled) void saveDraft({ step: target });
   };
 
   /**
@@ -3040,7 +3361,13 @@ export default function EvalCycleWizard({
           </div>
         )}
 
-        <StepBar steps={steps} current={step} labels={L} onJump={goStep} />
+        <StepBar
+          steps={steps}
+          current={step}
+          labels={L}
+          onJump={goStep}
+          isSkipped={isSkipped}
+        />
 
         <div className="evc-wiz-body">
           {step === 0 && (
@@ -3240,17 +3567,29 @@ export default function EvalCycleWizard({
 
               <span className="evc-field-label">{L.templateTypeLabel}</span>
               <div className="evc-type-row">
-                {TEMPLATE_TYPES.map((rt) => (
-                  <button
-                    type="button"
-                    key={rt.id}
-                    className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${reviewTypes.includes(rt.id) ? '' : ' is-dim'}`}
-                    onClick={() => selectTplType(rt.id)}
-                    data-testid={`evc-tpl-type-${rt.id}`}
-                  >
-                    {L[rt.nameKey]}
-                  </button>
-                ))}
+                {TEMPLATE_TYPES.map((rt) => {
+                  // [PW-435 ③] 「흐리게」는 상태 표시일 뿐 금지가 아니다 — 눌리면
+                  // 사용자는 눌러도 되는 줄 안다. 실제로 그렇게 눌려서, 하향만 켠
+                  // 사이클에서 셀프용 템플릿이 만들어졌다. 여기서 막는다.
+                  const inCycle = reviewTypes.includes(rt.id);
+                  return (
+                    <button
+                      type="button"
+                      key={rt.id}
+                      disabled={!inCycle}
+                      className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${inCycle ? '' : ' is-locked'}`}
+                      onClick={() => selectTplType(rt.id)}
+                      title={inCycle ? undefined : L.tplTypeNotInCycleHint}
+                      data-testid={`evc-tpl-type-${rt.id}`}
+                    >
+                      {!inCycle && <LockIcon size={11} />}
+                      {L[rt.nameKey]}
+                      {!inCycle && (
+                        <span className="evc-type-chip-lock">{L.tplTypeNotInCycle}</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* PW-434 ⑤ 저장된 템플릿에서 시작 — 평가 유형 «바로 다음», 등급·항목보다 위.
@@ -3874,6 +4213,13 @@ export default function EvalCycleWizard({
                           {L.ownerLabel}: {L[ph.targetKey]}
                         </span>
                         {ph.required && <span className="evc-mode-badge">{L.badgeRequired}</span>}
+                        {/* [PW-435 ④] 캘리브레이션처럼 «항상 등재되지만 필수가 아닌» 단계는
+                            두 성질을 동시에 드러내야 오해가 없다 — 「선택」 배지를 단다. */}
+                        {!ph.required && ph.listedBy === 'always' && (
+                          <span className="evc-mode-badge is-muted" data-testid={`evc-sched-optional-${ph.id}`}>
+                            {L.badgeOptional}
+                          </span>
+                        )}
                         {ph.anchor && <span className="evc-mode-badge is-muted">{L.badgeFixed}</span>}
                         {!enabled && <span className="evc-mode-badge is-muted">{L.badgeUnused}</span>}
                         {enabled && overlapIds.has(ph.id) && (
@@ -3884,6 +4230,8 @@ export default function EvalCycleWizard({
                           className={`evc-sched-toggle${enabled ? ' is-on' : ''}${ph.required ? ' is-locked' : ''}`}
                           onClick={() => { if (!ph.required) togglePhaseEnabled(ph.id); }}
                           disabled={ph.required}
+                          /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
+                          title={ph.required ? L.phaseRequiredHint : undefined}
                           aria-pressed={enabled}
                           data-testid={`evc-sched-toggle-${ph.id}`}
                         >
@@ -3917,6 +4265,17 @@ export default function EvalCycleWizard({
                                   data-testid={`evc-sched-${field}-time-${ph.id}`}
                                 />
                               </div>
+                              {/* [PW-435 ①] 위젯이 「오전」으로만 보여 준 값을 24시간제로 한 줄 더 적는다.
+                                  마감은 강조 — 되묻게 되는 쪽이 언제나 마감 시각이다. */}
+                              <div
+                                className={`evc-sched-stamp${field === 'end' ? ' is-end' : ''}`}
+                                data-testid={`evc-sched-stamp-${field}-${ph.id}`}
+                              >
+                                {stampScheduleDateTime(sc[field], L)}
+                                <span className="evc-sched-stamp-tag">
+                                  {field === 'start' ? L.scheduleStampStart : L.scheduleStampEnd}
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -3934,7 +4293,10 @@ export default function EvalCycleWizard({
                             <div className="evc-rm-empty">{L.reminderEmpty}</div>
                           ) : (
                             <div className="evc-rm-list">
-                              {remindersOf(ph.id).map((rm, i) => (
+                              {remindersOf(ph.id).map((rm, i) => {
+                                // 구 형태(email.{subject,body})로 저장된 것도 여기서 message 로 읽는다.
+                                const msg = messageOf(rm);
+                                return (
                                 <div
                                   key={rm.id}
                                   className="evc-rm-row"
@@ -4061,92 +4423,252 @@ export default function EvalCycleWizard({
                                           })}
                                         </div>
                                       </div>
-                                      {/* 2. 이메일 상세 */}
+                                      {/* ── 2. 메시지 (채널 공통) — 이메일·슬랙보다 «위» [PW-435 ⑤]
+                                          종전에는 이 블록이 '이메일 발송 설정' 안에 있어 문구가
+                                          이메일에 종속돼 보였고, 슬랙만 켠 리마인더는 문구를 확인할
+                                          자리가 아예 없었다. 채널과 무관하게 항상 보인다. */}
+                                      <div className="evc-rm-dsec is-box is-message">
+                                        <div className="evc-rm-dsec-title">
+                                          <PencilIcon size={13} /> {L.reminderMessageTitle}
+                                          <span className="evc-rm-dsec-note">{L.reminderMessageNote}</span>
+                                        </div>
+                                        {/* 이 문구가 어느 채널로 어떻게 나가는지 — 켠 채널만 나열한다 */}
+                                        <div className="evc-rm-render" data-testid={`evc-rm-render-${ph.id}-${i}`}>
+                                          {CHANNEL_RENDER.filter((c) => rm.channels.includes(c.id)).map((c) => (
+                                            <span
+                                              key={c.id}
+                                              className="evc-rm-render-chip"
+                                              data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}
+                                            >
+                                              <c.Icon size={12} /> {L[c.labelKey]}
+                                              <span className="evc-rm-render-desc">· {L[c.descKey]}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                        <label className="evc-rm-dfield">
+                                          <span>{L.reminderMessageTpl}</span>
+                                          <select
+                                            className="evc-rm-field"
+                                            value={msg.template}
+                                            onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
+                                            data-testid={`evc-rm-msg-tpl-${ph.id}-${i}`}
+                                          >
+                                            {MESSAGE_TEMPLATES.map((t) => (
+                                              <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
+                                            ))}
+                                          </select>
+                                        </label>
+                                        {msg.template !== 'custom' ? (
+                                          (() => {
+                                            const tpl =
+                                              MESSAGE_TEMPLATE_PREVIEW[msg.template] ??
+                                              MESSAGE_TEMPLATE_PREVIEW.default;
+                                            return (
+                                              <div className="evc-rm-preview">
+                                                <div className="evc-rm-preview-tag">
+                                                  {L.reminderPreview} · {L.reminderReadonly}
+                                                </div>
+                                                <div className="evc-rm-preview-body">
+                                                  <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
+                                                  <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
+                                                  <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })()
+                                        ) : (
+                                          <div className="evc-rm-custom">
+                                            {/* [PW-435 ⑥] 이 «단계» 에 저장해 둔 문구 — 커스텀을 고르면 항상 보인다.
+                                                다른 단계의 문구는 섞지 않는다: 셀프 리뷰 독촉 문구가
+                                                결과 발송 단계에 뜨면 도움이 되지 않는다. */}
+                                            <div className="evc-rm-saved" data-testid={`evc-rm-saved-${ph.id}-${i}`}>
+                                              <span className="evc-rm-vars-label">{L.reminderSavedLabel}</span>
+                                              {savedForPhase(ph.id).length === 0 ? (
+                                                <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
+                                              ) : (
+                                                <select
+                                                  className="evc-rm-field"
+                                                  value=""
+                                                  onChange={(e) => loadSavedMessage(ph.id, rm, e.target.value)}
+                                                  data-testid={`evc-rm-saved-pick-${ph.id}-${i}`}
+                                                >
+                                                  <option value="">
+                                                    {fill(L.reminderSavedPick, { count: savedForPhase(ph.id).length })}
+                                                  </option>
+                                                  {savedForPhase(ph.id).map((m) => (
+                                                    <option key={m.id} value={m.id}>
+                                                      {m.name} · {fill(L.reminderSavedUsage, { count: m.usageCount ?? 0 })}
+                                                    </option>
+                                                  ))}
+                                                </select>
+                                              )}
+                                            </div>
+                                            <input
+                                              type="text"
+                                              className="evc-rm-field evc-rm-cinput"
+                                              placeholder={L.reminderEmailSubjectPh}
+                                              value={msg.subject}
+                                              onChange={(e) =>
+                                                patchMessage(ph.id, rm.id, { subject: e.target.value })}
+                                              data-testid={`evc-rm-msg-subject-${ph.id}-${i}`}
+                                            />
+                                            <textarea
+                                              className="evc-rm-field evc-rm-cbody"
+                                              rows={4}
+                                              placeholder={L.reminderEmailBodyPh}
+                                              value={msg.body}
+                                              onChange={(e) =>
+                                                patchMessage(ph.id, rm.id, { body: e.target.value })}
+                                              data-testid={`evc-rm-msg-body-${ph.id}-${i}`}
+                                            />
+                                            <div className="evc-rm-vars">
+                                              <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
+                                              {MESSAGE_VARS.map((v) => (
+                                                <button
+                                                  key={v}
+                                                  type="button"
+                                                  className="evc-rm-var"
+                                                  onClick={() =>
+                                                    patchMessage(ph.id, rm.id, {
+                                                      body: (messageOf(rm).body ?? '') + v,
+                                                    })}
+                                                >
+                                                  {v}
+                                                </button>
+                                              ))}
+                                            </div>
+                                            {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음). */}
+                                            <div className="evc-rm-msg-actions">
+                                              {onPolishMessage && (
+                                                <button
+                                                  type="button"
+                                                  className="evc-rm-ai"
+                                                  disabled={(!msg.body && !msg.subject) || aiBusy.has(rm.id)}
+                                                  title={
+                                                    !msg.body && !msg.subject
+                                                      ? L.reminderAiEmptyHint
+                                                      : L.reminderAiHint
+                                                  }
+                                                  onClick={() => void runAiPolish(ph, rm)}
+                                                  data-testid={`evc-rm-ai-${ph.id}-${i}`}
+                                                >
+                                                  {aiBusy.has(rm.id) ? L.reminderAiBusy : L.reminderAiPolish}
+                                                </button>
+                                              )}
+                                              {onSaveMessage && (
+                                                <button
+                                                  type="button"
+                                                  className="evc-rm-save-msg"
+                                                  disabled={!msg.body}
+                                                  title={msg.body ? L.reminderSaveHint : L.reminderSaveEmptyHint}
+                                                  onClick={() => void saveCurrentMessage(ph, rm)}
+                                                  data-testid={`evc-rm-save-msg-${ph.id}-${i}`}
+                                                >
+                                                  {L.reminderSaveMessage}
+                                                </button>
+                                              )}
+                                            </div>
+                                            {aiError.has(rm.id) && (
+                                              <p
+                                                className="evc-rm-ai-error"
+                                                data-testid={`evc-rm-ai-error-${ph.id}-${i}`}
+                                              >
+                                                {L.reminderAiFailed}
+                                              </p>
+                                            )}
+                                            {/* AI 초안 = 미확인(노랑). [적용] 전에는 본문을 건드리지 않는다. */}
+                                            {aiDraft[rm.id] && (
+                                              <div
+                                                className="evc-rm-ai-draft"
+                                                data-testid={`evc-rm-ai-draft-${ph.id}-${i}`}
+                                              >
+                                                <div className="evc-rm-ai-draft-head">
+                                                  {L.reminderAiDraftTitle}
+                                                  <span className="evc-mode-badge is-warn">{L.reminderAiUnconfirmed}</span>
+                                                </div>
+                                                {!aiDraft[rm.id].varsOk && (
+                                                  <p
+                                                    className="evc-rm-ai-warn"
+                                                    data-testid={`evc-rm-ai-varwarn-${ph.id}-${i}`}
+                                                  >
+                                                    {L.reminderAiVarWarn}
+                                                  </p>
+                                                )}
+                                                <div className="evc-rm-preview-body">
+                                                  <div><strong>{L.reminderEmailSubject}</strong> {aiDraft[rm.id].subject}</div>
+                                                  <div className="evc-rm-ai-draft-body">{aiDraft[rm.id].body}</div>
+                                                </div>
+                                                <div className="evc-rm-ai-actions">
+                                                  <button
+                                                    type="button"
+                                                    className="evc-btn is-primary is-sm"
+                                                    onClick={() => applyAiDraft(ph.id, rm.id)}
+                                                    data-testid={`evc-rm-ai-apply-${ph.id}-${i}`}
+                                                  >
+                                                    {L.reminderAiApply}
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    className="evc-btn is-ghost is-sm"
+                                                    onClick={() => clearAiDraft(rm.id)}
+                                                    data-testid={`evc-rm-ai-discard-${ph.id}-${i}`}
+                                                  >
+                                                    {L.reminderAiDiscard}
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                        {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있다 */}
+                                        {rm.channels.includes('email') && rm.channels.includes('slack') && (
+                                          <div className="evc-rm-slack-sep">
+                                            <label className="evl-promo-row">
+                                              <input
+                                                type="checkbox"
+                                                checked={!!msg.slackSeparate}
+                                                onChange={(e) =>
+                                                  patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
+                                                data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
+                                              />
+                                              <span>
+                                                {L.reminderSlackSeparate}
+                                                <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
+                                              </span>
+                                            </label>
+                                            {msg.slackSeparate && (
+                                              <textarea
+                                                className="evc-rm-field evc-rm-cbody"
+                                                rows={3}
+                                                placeholder={L.reminderSlackBodyPh}
+                                                value={msg.slackBody}
+                                                onChange={(e) =>
+                                                  patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
+                                                data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
+                                              />
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
                                       {rm.channels.includes('email') && (
                                         <div className="evc-rm-dsec is-box">
                                           <div className="evc-rm-dsec-title"><MailIcon size={13} /> {L.reminderEmailTitle}</div>
-                                          <label className="evc-rm-dfield">
-                                            <span>{L.reminderEmailTpl}</span>
-                                            <select
-                                              className="evc-rm-field"
-                                              value={rm.email?.template ?? 'default'}
-                                              onChange={(e) =>
-                                                patchReminder(ph.id, rm.id, (r) => ({
-                                                  email: { ...r.email, template: e.target.value },
-                                                }))}
-                                              data-testid={`evc-rm-email-tpl-${ph.id}-${i}`}
-                                            >
-                                              {EMAIL_TEMPLATES.map((t) => (
-                                                <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
-                                              ))}
-                                            </select>
-                                          </label>
-                                          {(rm.email?.template ?? 'default') !== 'custom' ? (
-                                            (() => {
-                                              const tpl =
-                                                EMAIL_TEMPLATE_PREVIEW[rm.email?.template] ??
-                                                EMAIL_TEMPLATE_PREVIEW.default;
-                                              return (
-                                                <div className="evc-rm-preview">
-                                                  <div className="evc-rm-preview-tag">
-                                                    {L.reminderPreview} · {L.reminderReadonly}
-                                                  </div>
-                                                  <div className="evc-rm-preview-body">
-                                                    <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
-                                                    <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
-                                                    <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
-                                                  </div>
-                                                </div>
-                                              );
-                                            })()
-                                          ) : (
-                                            <div className="evc-rm-custom">
-                                              <input
-                                                type="text"
-                                                className="evc-rm-field evc-rm-cinput"
-                                                placeholder={L.reminderEmailSubjectPh}
-                                                value={rm.email?.subject ?? ''}
-                                                onChange={(e) =>
-                                                  patchReminder(ph.id, rm.id, (r) => ({
-                                                    email: { ...r.email, subject: e.target.value },
-                                                  }))}
-                                                data-testid={`evc-rm-email-subject-${ph.id}-${i}`}
-                                              />
-                                              <textarea
-                                                className="evc-rm-field evc-rm-cbody"
-                                                rows={4}
-                                                placeholder={L.reminderEmailBodyPh}
-                                                value={rm.email?.body ?? ''}
-                                                onChange={(e) =>
-                                                  patchReminder(ph.id, rm.id, (r) => ({
-                                                    email: { ...r.email, body: e.target.value },
-                                                  }))}
-                                                data-testid={`evc-rm-email-body-${ph.id}-${i}`}
-                                              />
-                                              <div className="evc-rm-vars">
-                                                <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
-                                                {EMAIL_VARS.map((v) => (
-                                                  <button
-                                                    key={v}
-                                                    type="button"
-                                                    className="evc-rm-var"
-                                                    onClick={() =>
-                                                      patchReminder(ph.id, rm.id, (r) => ({
-                                                        email: { ...r.email, body: (r.email?.body ?? '') + v },
-                                                      }))}
-                                                  >
-                                                    {v}
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
+                                          <div className="evc-rm-dsec-lines" data-testid={`evc-rm-email-lines-${ph.id}-${i}`}>
+                                            <div>· <strong>{L.reminderEmailToLabel}</strong> {L.reminderEmailToValue}</div>
+                                            <div>· <strong>{L.reminderEmailCcLabel}</strong> {ccSummary(ph.id, rm)}</div>
+                                            <div>· <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}</div>
+                                          </div>
                                         </div>
                                       )}
-                                      {/* 3. 슬랙 상세 */}
+                                      {/* ── 4. 슬랙 발송 설정 — 이메일과 같은 층. 문구는 위 메시지가 갖는다 */}
                                       {rm.channels.includes('slack') && (
                                         <div className="evc-rm-dsec is-box">
                                           <div className="evc-rm-dsec-title"><ChatIcon size={13} /> {L.reminderSlackTitle}</div>
+                                          <div className="evc-rm-dsec-lines" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
+                                            · <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}
+                                            {msg.slackSeparate ? ` ${L.reminderSlackOwnCopy}` : ` ${L.reminderSlackSameCopy}`}
+                                          </div>
                                           <div className="evc-rm-tgts">
                                             {SLACK_SEND_MODES.map((m) => {
                                               const on = (rm.slack?.mode ?? 'dm') === m.id;
@@ -4199,7 +4721,8 @@ export default function EvalCycleWizard({
                                     </div>
                                   )}
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                           <button
@@ -4837,7 +5360,25 @@ export default function EvalCycleWizard({
             </div>
           )}
 
-          {step === 4 && (
+          {/* [PW-435 ④] 캘리브레이션을 끈 상태에서 이 단계에 직접 들어온 경우.
+              위원회 설정은 **지우지 않는다** — 다시 켜면 그대로 살아난다. */}
+          {step === 4 && !calibrationOn && (
+            <div className="evc-wiz-panel">
+              <div className="evc-wiz-skipped" data-testid="evc-wiz-committee-skipped">
+                <p className="evc-wiz-skipped-title">{L.committeeSkippedTitle}</p>
+                <p className="evc-wiz-skipped-body">{L.committeeSkippedBody}</p>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => goStep(SCHEDULE_STEP_INDEX)}
+                  data-testid="evc-wiz-committee-skipped-back"
+                >
+                  {L.committeeSkippedBack}
+                </button>
+              </div>
+            </div>
+          )}
+          {step === 4 && calibrationOn && (
             <div className="evc-wiz-panel">
               <label className="evc-wiz-committee-toggle">
                 <input
@@ -5130,6 +5671,14 @@ export default function EvalCycleWizard({
           </button>
 
           {/* PW-119 와 같은 방식 — 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다. */}
+          {/* [PW-435 ②] 평가 종류 0종. 단계가 평가 종류를 따르게 된 이상 0종 사이클에는
+              결과 발송만 남는다 — 평가할 것이 없는데 결과만 보내는 사이클이다.
+              **필수를 푸는 쪽이 이 검증을 함께 세운다**(종전엔 셀프가 필수라 0종이 성립할 수 없었다). */}
+          {step === 0 && reviewTypes.length === 0 && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-types">
+              {L.blockReviewTypes}
+            </span>
+          )}
           {step === 1 && !templateLibraryValid && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-template">
               {L.blockTemplateLibrary} ({phaseNames(phasesMissingLibrary)})
