@@ -2030,6 +2030,11 @@ export default function AdminEmployeeSheetCanvas({
             value={fallbackPrimary}
             subtitle={target.name}
             labels={L.orgPicker}
+            /* 이 팝업에는 `[조직장으로]` 가 없다(§3.8.3-B). 목록 뷰의 같은 팝업과 생김새가
+               완전히 같아서, 없다는 사실만 두면 고장으로 읽힌다 — 어디서 하는지 말해 준다.
+               일괄 «소속 추가» 팝업(위)에는 넘기지 않는다: 거기는 소속을 더하는 자리지
+               조직장을 다루는 자리가 아니다. (PW-422) */
+            leaderHint={L.orgPicker?.leaderElsewhereHint || '조직장 지정은 목록 보기에서 합니다.'}
             onApply={(payload) => {
               if (onChangeAffiliations) onChangeAffiliations(assignRowId, payload);
               else onAssignTeam(assignRowId, payload);

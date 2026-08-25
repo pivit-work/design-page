@@ -53,6 +53,8 @@ import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
  *  · 그래서 이 버튼이 서는 자리는 **목록 뷰의 소속 팝업 하나**다. 목록 뷰가 표가 아니던
  *    동안에는 두 뷰 어디에도 없었다.
  *  · 소속한(=체크된) 조직에만 뜬다(L3). 소속하지 않은 조직의 장이 되는 경로는 없다.
+ *  · 버튼이 없는 호출부는 `leaderHint` 로 **어디서 하는지**를 말한다(PW-422). 두 뷰의
+ *    팝업이 똑같이 생겨서, 안내가 없으면 버튼이 빠진 것이 고장으로 읽힌다.
  */
 
 const T = {
@@ -155,6 +157,18 @@ export default function OrgTreePicker({
    * 버튼을 감추지 않고 **비활성 + 이유**로 남긴다 — 없으면 「왜 나만 안 되지」 가 된다.
    */
   canBeLeader = true,
+  /**
+   * 조직장 지정 버튼이 **없는 호출부**가, 그럼 어디서 하는지를 말해 주는 한 줄 (PW-422).
+   *
+   * 미주입이면 아무것도 그리지 않는다 — 버튼이 있는 팝업에서는 틀린 안내가 된다.
+   * 시트의 **행별** 소속 팝업만 넘긴다. 일괄 «소속 추가» 팝업은 애초에 소속을 더하는
+   * 자리라 조직장 이야기를 꺼낼 맥락이 아니다.
+   *
+   * 왜 필요한가 — 목록 뷰와 시트가 **같은 팝업**을 쓰는데 버튼만 한쪽에 없다. 생김새가
+   * 같으니 없는 쪽에서는 「고장」으로 읽힌다(2026-08-24 실제 제보). 기획 결정(§3.8.3-B)
+   * 은 그대로 두고, 없는 이유 대신 **갈 곳**을 알려 준다.
+   */
+  leaderHint,
   onApply,
   onClose,
   labels: providedLabels,
@@ -373,6 +387,16 @@ export default function OrgTreePicker({
                 <br />
                 <span data-testid="org-tree-picker-multi-hint">
                   {primarySelectable ? labels.multiHint : labels.appendHint}
+                </span>
+              </>
+            )}
+            {leaderHint && (
+              <>
+                <br />
+                {/* 색을 따로 주지 않는다 — 감싸는 안내문(T.muted)과 같은 회색이어야
+                    「팝업이 하는 말」로 읽힌다. 여기만 진하게 하면 경고로 보인다. */}
+                <span data-testid="org-tree-picker-leader-hint">
+                  {leaderHint}
                 </span>
               </>
             )}
