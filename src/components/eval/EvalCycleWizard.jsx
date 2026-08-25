@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
-import { InfoIcon } from './evalIcons.jsx';
+import { CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square (인라인 SVG).
 function LockIcon({ size = 13 }) {
@@ -2358,9 +2358,11 @@ export default function EvalCycleWizard({
 
   const leaveWithSave = async () => {
     const result = await saveDraft();
+    // 🔴 실패하면 다이얼로그도 위자드도 닫지 않는다. 닫으면 입력이 사라지는데,
+    // 사용자는 「임시저장하고 나가기」를 눌렀으니 저장된 줄 안다 — 가장 나쁜 실패다.
+    if (!result) return;
     setLeaveAsk(false);
-    // 저장이 실패했으면 닫지 않는다 — 닫으면 입력이 사라진다.
-    if (result) onCancel?.();
+    onCancel?.();
   };
 
   // PW-161 위원 후보 필터 — 이름·부서·직책 부분 일치(대소문자 무시, 앞뒤 공백 trim).
@@ -4644,15 +4646,22 @@ export default function EvalCycleWizard({
                 className={`evc-wiz-draft-state${draftError ? ' is-error' : ''}`}
                 data-testid="evc-wiz-draft-state"
               >
-                {draftError
-                  ? L.draftSaveFailed
-                  : draftSaving
-                    ? L.draftSaving
-                    : !draftSavedAt
-                      ? ''
-                      : draftDirty
-                        ? fill(L.draftUnsaved, { time: stampTime(draftSavedAt) })
-                        : fill(L.draftSaved, { time: stampTime(draftSavedAt) })}
+                {draftError ? (
+                  L.draftSaveFailed
+                ) : draftSaving ? (
+                  L.draftSaving
+                ) : !draftSavedAt ? (
+                  ''
+                ) : draftDirty ? (
+                  fill(L.draftUnsaved, { time: stampTime(draftSavedAt) })
+                ) : (
+                  <>
+                    {/* 아이콘은 이모지가 아니라 인라인 SVG 다 — 번역 문자열에 ✓ 를 넣으면
+                        OS·폰트마다 모양이 갈리고 색을 상속하지 못한다. */}
+                    <CheckCircleIcon size={13} />{' '}
+                    {fill(L.draftSaved, { time: stampTime(draftSavedAt) })}
+                  </>
+                )}
               </span>
             )}
             {/* 수동 저장은 «한 단계 안에 오래 머무는 경우»를 위한 보조 수단이다.
