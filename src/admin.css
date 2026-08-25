@@ -1629,6 +1629,15 @@
   border: 0;
 }
 .admin-emp-status-options { display: flex; flex-direction: column; gap: 8px; }
+/* 재직 상태별 날짜 칸 (§3.2.1) — 라디오 묶음 바로 아래에 붙는다. 기존 입력 칸
+   (.admin-emp-field/.admin-emp-input) 규격 그대로라 새 시각 요소가 생기지 않는다. */
+.admin-emp-status-dates { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.admin-emp-status-date-note {
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+.admin-emp-status-date-note.is-error { color: var(--colors-text-textErrorPrimary, #d92d20); }
 .admin-emp-status-option {
   display: flex;
   align-items: center;
