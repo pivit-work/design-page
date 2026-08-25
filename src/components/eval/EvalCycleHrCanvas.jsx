@@ -109,12 +109,38 @@ const DEFAULT_LABELS = {
   dueLabel: '마감',
   createDraftHint: '생성하면 준비 중 상태로 저장됩니다. 대상자 설정 후 목록에서 오픈하세요.',
   // PW-123 평가 템플릿 게이트 — 진행/생성이 막힌 사유를 버튼 옆에 그대로 띄운다.
+  // 🔴 [PW-441] 템플릿 관련 두 문구(`blockTemplateLibrary`·`blockTemplateMap`·
+  // `submitBlockTemplate`·`submitBlockTemplateMap`)는 더 이상 쓰지 않는다 — 마법사는
+  // 미확정으로 막지 않고, 차단은 오픈 버튼으로 옮겼다(policy §5.2.4). 소비자가 계속
+  // 넘겨도 깨지지 않게 키만 남긴다.
   blockTemplateLibrary: '이 단계에서 쓸 평가 템플릿을 만들어 저장하세요',
   blockTemplateMap: '적용할 템플릿을 지정하지 않은 단계가 있습니다',
   submitBlockBasics: '1단계 기본 정보를 완성하세요',
   submitBlockTemplate: '2단계에서 평가 템플릿을 만들어 저장하세요',
   submitBlockTemplateMap: '3단계에서 각 리뷰 단계에 템플릿을 지정하세요',
   submitBlockTargets: '4단계에서 대상자를 1명 이상 선택하세요',
+  /* ── PW-441 §5.10-D 「이 사이클에 적용할 템플릿」 ─────────────────────────── */
+  tplConfirmTitle: '이 사이클에 적용할 템플릿',
+  tplConfirmLibraryNote:
+    '여기서 만든 템플릿은 조직 라이브러리에 남아 다음 평가에서도 쓸 수 있습니다',
+  tplConfirmOpenLibrary: '라이브러리 열기',
+  tplConfirmStateNone: '미확정',
+  tplConfirmStateDone: '확정',
+  tplConfirmStateDirty: '확정 · 수정 중',
+  tplConfirmEdit: '이 유형 편집',
+  tplConfirmUnknown: '이름을 확인할 수 없는 템플릿',
+  tplConfirmArchived: '보관된 템플릿',
+  tplConfirmSwapTitle: '적용 템플릿을 바꿉니다',
+  tplConfirmSwapBody: '{{type}} 적용 템플릿을 「{{from}}」 → 「{{to}}」 로 바꿉니다.',
+  tplConfirmGoChange: '2단계에서 변경',
+  tplConfirmGoSet: '2단계에서 확정하기',
+  tplConfirmMissing: '{{type}}용 템플릿이 아직 확정되지 않았습니다',
+  tplConfirmSummaryMissing: '미확정 — 2단계에서 템플릿을 확정하세요',
+  tplTypeOffTitle: '{{type}} 평가를 끕니다',
+  tplTypeOffBody: '{{type}} 적용 템플릿 확정도 함께 해제됩니다. 다시 켜면 새로 확정해야 합니다.',
+  // 오픈 차단 — 3단계에서 막던 것을 여기로 옮겼다(policy §5.2.4 엣지 4).
+  openBlockTemplate: '{{type}}용 템플릿이 확정되지 않아 평가지를 만들 수 없습니다',
+  openBlockTemplateGo: '확정하러 가기',
   submitBlockCommittee: '5단계 캘리브레이션 위원회 구성을 완성하세요',
   wizardStepTargets: '대상자',
   targetModeAll: '전체',
@@ -624,6 +650,11 @@ export default function EvalCycleHrCanvas({
       「저장된 템플릿에서 시작」 블록이 「없다」와 「못 불러왔다」를 갈라 그린다. */
   libraryStatus = 'ready',
   onReloadLibraryTemplates,
+  /**
+   * PW-441 §5.10-D — 마법사 2단계 확정 블록의 「라이브러리 열기 →」. 조직 템플릿 화면을
+   * 새 탭으로 여는 일은 라우터를 아는 소비 측이 맡는다. 안 넘기면 링크를 숨긴다.
+   */
+  onOpenTemplateLibrary,
   onSaveTemplate,
   onDeleteTemplate,
   templateSaveError = null,
@@ -668,6 +699,8 @@ export default function EvalCycleHrCanvas({
   const [scheduleModal, setScheduleModal] = useState(null); // §4.1.2-A: 편집 대상 cycle
   // §4.3 관리 모드 — { cycle, participants }. 상세를 받아야 대상자까지 프리필된다.
   const [manageTarget, setManageTarget] = useState(null);
+  /** [PW-441] 미확정으로 오픈이 막힌 사이클 — `{ cycle, types }`. */
+  const [openBlock, setOpenBlock] = useState(null);
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -707,8 +740,32 @@ export default function EvalCycleHrCanvas({
     await run(() => onCreateCycle?.(payload), L.toastCreated);
   };
 
-  const handleOpen = (cycle) =>
+  /**
+   * [PW-441 §5.2.4 엣지 4] 오픈이 «미확정» 을 막는 자리다.
+   *
+   * 종전에는 마법사 3단계에서 `다음` 버튼을 잠가 막았다. 그런데 3단계는 이제 템플릿을
+   * 묻지 않고 2단계 확정분을 표시만 한다 — 묻지 않는 자리에서 막으면 무엇을 해야
+   * 풀리는지 알 수 없고, 뒤 단계(대상자·위원회)를 확인하지도 못한 채 갇힌다.
+   * 그래서 **평가지가 실제로 필요해지는 시점**인 오픈으로 옮겼다. 서버도 같은 자리에서
+   * 다시 본다(오픈 전이) — 여기 검사는 «가기 전에 알려 주는» 몫이다.
+   */
+  const missingTemplateTypesOf = (cycle) => {
+    const seq = cycle?.reviewSequence ?? null;
+    const map = seq?.templateMap ?? {};
+    const types = cycle?.reviewTypes?.length ? cycle.reviewTypes : [];
+    return types.filter(
+      (t) => seq?.enabled?.[t] !== false && !String(map[t] ?? '').trim(),
+    );
+  };
+
+  const handleOpen = (cycle) => {
+    const missing = missingTemplateTypesOf(cycle);
+    if (missing.length > 0) {
+      setOpenBlock({ cycle, types: missing });
+      return;
+    }
     void run(() => onOpenCycle?.(cycle.id), L.toastOpened);
+  };
 
   const handleAdvance = (cycle) =>
     void run(() => onAdvanceCycle?.(cycle.id), L.toastAdvanced);
@@ -757,7 +814,7 @@ export default function EvalCycleHrCanvas({
   const canEditSettings = (cycle) =>
     cycle.status === 'draft' && !!onUpdateCycle && !!onLoadCycleDetail;
 
-  const handleManage = (cycle) => {
+  const handleManage = (cycle, landing = null) => {
     if (!canEditSettings(cycle)) {
       onManageCycle?.(cycle.id);
       return;
@@ -768,6 +825,7 @@ export default function EvalCycleHrCanvas({
         setManageTarget({
           cycle: detail?.cycle ?? cycle,
           participants: detail?.participants ?? [],
+          landing,
         });
       } catch {
         showToast(L.manageLoadError, 'error');
@@ -938,6 +996,7 @@ export default function EvalCycleHrCanvas({
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           onSubmit={handleCreate}
           onCancel={cancelWizard}
+          onOpenTemplateLibrary={onOpenTemplateLibrary}
           onSaveDraft={onSaveDraft ? handleSaveDraft : undefined}
           draftState={resumeTarget?.draftState ?? null}
           draftStep={resumeTarget?.draftStep ?? 0}
@@ -972,8 +1031,10 @@ export default function EvalCycleHrCanvas({
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           cycle={manageTarget.cycle}
           participants={manageTarget.participants}
+          landing={manageTarget.landing ?? null}
           onSubmit={handleUpdate}
           onCancel={() => setManageTarget(null)}
+          onOpenTemplateLibrary={onOpenTemplateLibrary}
           libraryTemplates={libraryTemplates}
           libraryStatus={libraryStatus}
           onReloadLibraryTemplates={onReloadLibraryTemplates}
@@ -986,6 +1047,46 @@ export default function EvalCycleHrCanvas({
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
         />
+      )}
+
+      {/* [PW-441] 미확정 오픈 차단. 「안 됩니다」로 끝내지 않고 **고치러 갈 자리**까지
+          같이 준다 — 어느 유형이 비었는지는 여기서만 알 수 있다. */}
+      {openBlock && (
+        <div className="evc-modal-overlay" onClick={() => setOpenBlock(null)}>
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">{L.open}</h3>
+            <p className="evc-modal-sub" data-testid="evc-open-block-body">
+              {fill(L.openBlockTemplate, {
+                type: openBlock.types
+                  .map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t)
+                  .join(', '),
+              })}
+            </p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setOpenBlock(null)}
+                data-testid="evc-open-block-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => {
+                  const target = openBlock;
+                  setOpenBlock(null);
+                  // 2단계로, 그리고 «비어 있는 그 유형» 으로 보낸다.
+                  handleManage(target.cycle, { step: 1, tplType: target.types[0] });
+                }}
+                data-testid="evc-open-block-go"
+              >
+                {L.openBlockTemplateGo}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmModal && (
