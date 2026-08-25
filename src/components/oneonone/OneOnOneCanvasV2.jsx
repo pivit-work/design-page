@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
 import StartOneOnOneView from './StartOneOnOneView.jsx';
+import OneOnOnePageHeader from './OneOnOnePageHeader.jsx';
 import OneOnOneDetailModal from './OneOnOneDetailModal.jsx';
 import ManagerNoteModal from './ManagerNoteModal.jsx';
 import MicPermissionModal from './MicPermissionModal.jsx';
@@ -140,24 +141,16 @@ export default function OneOnOneCanvasV2({
   const cancelSetup = () => { setSetupStep(null); setPendingStart(null); };
   return (
     <main className="ono-page">
-      <header className="ono-page-header">
-        <div className="ono-title-block">
-          <h1 className="ono-title">{title}</h1>
-          {managerName && (
-            <div className="ono-meta">
-              <span className="ono-meta-name">{managerName} 매니저</span>
-              <span className="ono-meta-divider">∙</span>
-              <span className="ono-meta-count">팀원 {teamCount}명</span>
-            </div>
-          )}
-        </div>
+      {/* 제목 줄은 `OneOnOnePageHeader` 하나로 모았다 — 진행 화면(pivit-work
+          /one-on-one)이 같은 모양을 손으로 다시 그리고 있었다 (PW-477). */}
+      <OneOnOnePageHeader title={title} managerName={managerName} teamCount={teamCount}>
         {!startMember && (
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>1on1 일정 추가</span>
           </button>
         )}
-      </header>
+      </OneOnOnePageHeader>
 
       {startMember ? (
         /* "1on1 진행" — 페이지 뷰로 전환 (외부 핸들러 미지정 시 내부 fallback) */
