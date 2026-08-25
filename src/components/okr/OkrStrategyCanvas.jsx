@@ -27,7 +27,7 @@ import rowKey from './rowKey.js';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onSave, onAiAutocomplete, canEdit = true }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction }) {
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -193,7 +193,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
           </div>
         </>
       ) : subTab === 'company' && companyBoard ? (
-        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} />
+        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} />
       ) : subTab === 'history' && history ? (
         <div className="okr-h-list">
           {history.map((quarter, i) => (

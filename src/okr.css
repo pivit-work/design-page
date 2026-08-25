@@ -174,6 +174,7 @@
 .okr-p-ai { display: flex; flex-direction: column; gap: 8px; }
 .okr-p-ai-banner { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--utility-purple-100); border-radius: 6px; }
 .okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
+.okr-p-ai-refresh { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--utility-purple-50); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-chips { display: flex; gap: 8px; }
 .okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }

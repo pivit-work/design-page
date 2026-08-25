@@ -15,7 +15,7 @@ import rowKey from './rowKey.js';
  *   - activeTeam + onTeamChange 를 주면 소비자가 선택을 소유(보드를 팀별로
  *     재조회 가능). 안 주면 기존처럼 내부 state 로 동작(non-breaking).
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onRefreshInsights, onInsightAction }) {
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -53,7 +53,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ ...board, theme: board.theme.replace('{team}', team) }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} />
+          <OkrBoard board={{ ...board, theme: board.theme.replace('{team}', team) }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} />
         </>
       )}
     </div>
