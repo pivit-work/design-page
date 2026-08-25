@@ -13,7 +13,7 @@ import rowKey from './rowKey.js';
  * 보드(인사이트·달성률·테이블·모달)는 공용 OkrBoard 가 처리한다. banner 는
  * team/company 처럼 OkrBoard 로 전달해 라벨·새로고침 표시를 커스터마이즈한다.
  */
-export default function OkrPersonalCanvas({ data, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback }) {
+export default function OkrPersonalCanvas({ data, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onRefreshInsights, onInsightAction }) {
   const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
   const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
 
@@ -41,7 +41,7 @@ export default function OkrPersonalCanvas({ data, icons, baseUrl = '', onKrUpdat
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} />
+          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} />
         </>
       )}
     </div>
