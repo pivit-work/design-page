@@ -2446,6 +2446,14 @@ export default function EvalCycleWizard({
       : qs || [];
   const templateById = new Map(savedTemplates.map((t) => [t.id, t]));
   /**
+   * 확정한 «그 순간의 편집 버퍼» 지문. `확정 · 수정 중` 은 이것과 현재 버퍼를 견준다.
+   *
+   * 🔴 확정된 템플릿의 `questions` 와 직접 견주면 안 된다 — 서버는 저장하면서 항목에 id 를
+   * 붙이고 기본값을 채워 돌려주므로, **방금 저장했는데도 「수정 중」으로 보인다**
+   * (브라우저 검증에서 실제로 그랬다). 견줄 대상은 서버 응답이 아니라 우리가 보낸 버퍼다.
+   */
+  const [confirmSnapshot, setConfirmSnapshot] = useState({});
+  /**
    * 확정이 가리키는 템플릿을 «없다» 고 단정해도 되는 때인가.
    * 조회 중·조회 실패에는 판단하지 않는다 — 못 불러온 것을 삭제됐다고 말하면
    * 사용자가 멀쩡한 확정을 다시 한다 (policy §5.10-D 엣지 1-A·2).
@@ -2460,12 +2468,14 @@ export default function EvalCycleWizard({
     // 확정이 가리키던 템플릿이 라이브러리에서 사라졌으면 «미확정» 으로 되돌린다 (엣지 3).
     const confirmed = !!id && (!!tpl || !libraryResolved);
     const editing = rt.id === tplType;
+    // 지문이 없으면(초안 이어쓰기·관리 모드 프리필) 판단하지 않는다 — 모르는 것을
+    // 「수정 중」으로 말하면 확정이 안 된 것처럼 읽힌다.
+    const snapshot = confirmSnapshot[rt.id];
     const dirty =
       confirmed &&
-      !!tpl &&
       editing &&
-      JSON.stringify(normalizeQuestions(tplQuestions, rt.id)) !==
-        JSON.stringify(normalizeQuestions(tpl.questions, rt.id));
+      snapshot !== undefined &&
+      snapshot !== JSON.stringify(normalizeQuestions(tplQuestions, rt.id));
     return {
       type: rt.id,
       nameKey: rt.nameKey,
@@ -2501,12 +2511,16 @@ export default function EvalCycleWizard({
    * `apply` 는 확정과 «함께» 일어나야 하는 나머지 작업(불러오기의 버퍼 프리필)이다.
    * 확인 다이얼로그에서 취소하면 확정도 `apply` 도 일어나지 않는다.
    */
-  const confirmTemplateFor = (type, tpl, apply) => {
+  const confirmTemplateFor = (type, tpl, apply, bufferQuestions) => {
     if (!tpl?.id) return;
     const prevId = phaseTemplateMap[type];
+    const snapshot = JSON.stringify(
+      normalizeQuestions(bufferQuestions ?? tpl.questions, type),
+    );
     const run = () => {
       apply?.();
       setPhaseTemplateMap((m) => ({ ...m, [type]: tpl.id }));
+      setConfirmSnapshot((m) => ({ ...m, [type]: snapshot }));
       setPendingConfirmSwap(null);
     };
     if (prevId && prevId !== tpl.id) {
@@ -2664,7 +2678,7 @@ export default function EvalCycleWizard({
         setTplSaved(true);
         // PW-441 §5.10-D — 저장 «성공» 이 곧 이 사이클의 그 유형 확정이다.
         // 서버가 돌려준 id 로 확정해야 한다(로컬 임시 id 로 적으면 가리킬 대상이 없다).
-        confirmTemplateFor(tplType, saved);
+        confirmTemplateFor(tplType, saved, undefined, tpl.questions);
       });
       return;
     }
