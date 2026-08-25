@@ -768,6 +768,57 @@
   padding: var(--spacing-lg, 12px) var(--spacing-2xl, 20px) var(--spacing-2xl, 20px);
   border-top: 1px solid var(--bg-active);
 }
+/* PW-440 — 푸터 오른쪽 묶음: 저장 상태 · 임시저장 · 다음/생성.
+   왼쪽 취소/이전과 space-between 으로 갈리고, 이 안에서는 오른쪽 정렬이다. */
+.evc-wiz-footer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  margin-left: auto;
+}
+/* 마지막 저장 시각. 버튼 왼쪽에 붙는 보조 표기라 색·크기를 낮춘다. */
+.evc-wiz-draft-state {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.evc-wiz-draft-state.is-error {
+  color: var(--utility-error-500, #f04438);
+}
+/* 이어쓰기 안내 배너 — 헤더와 단계 표 사이. */
+.evc-wiz-draft-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  margin: 0 var(--spacing-2xl, 20px) var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  border-radius: var(--radius-md, 8px);
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+}
+/* 이탈 확인 다이얼로그의 「무슨 일이 일어나는지」 목록. */
+.evc-wiz-hint-list {
+  margin: var(--spacing-sm, 6px) 0 0;
+  padding-left: var(--spacing-2xl, 20px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  line-height: 1.7;
+}
+/* 초안 카드의 「N/6단계 · 저장 시각」 — 완료율 자리를 대신한다.
+   작성 중인 초안에 완료율은 뜻이 없다(PW-440 정책 §4.1-A). */
+.evc-draft-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
 /* PW-123 — 진행/생성이 막힌 사유. 두 버튼 사이(가운데)에 놓인다. */
 .evc-wiz-block {
   align-self: center;

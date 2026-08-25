@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
+import { InfoIcon } from './evalIcons.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square (인라인 SVG).
 function LockIcon({ size = 13 }) {
@@ -565,6 +566,43 @@ const REVIEW_AXIS_KEYS = REVIEW_AXES.map((a) => a.key);
 /** 축별 선택값의 빈 상태. 축이 늘어도 여기 한 곳만 본다. */
 const emptyAxisSel = () =>
   REVIEW_AXIS_KEYS.reduce((acc, k) => ({ ...acc, [k]: [] }), {});
+
+/** 위자드 단계 수 — 초안이 담는 단계 번호도 이 범위 안이다 (PW-440). */
+const WIZARD_STEP_COUNT = 6;
+
+/**
+ * 저장돼 있던 단계를 위자드가 열 수 있는 범위로 눕힌다 (PW-440).
+ *
+ * 단계 수가 바뀐 뒤에 저장된 초안을 열면(7단계 시절 저장분) 없는 단계가 온다. 그대로
+ * 열면 아무것도 안 그려진 빈 화면이 뜨므로, 마지막 단계로 눕혀 이어쓰기를 살린다.
+ */
+function clampStep(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(Math.max(Math.trunc(n), 0), WIZARD_STEP_COUNT - 1);
+}
+
+/** `2026-08-23T18:20:00Z` → `18:20`. 시각이 없거나 못 읽으면 빈 문자열. */
+function stampTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * 초안 배너의 일시 — `2026-08-23 18:20`.
+ *
+ * 24시간제로 적는다(정책 §5.2.2). 「오후 6:20」 은 목록에 초안이 여럿일 때 어느 것이
+ * 최신인지 훑어 가리기 어렵다.
+ */
+function stampDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 /** 「아직 손대지 않음」 상태에서 쓰는 안정 참조 — 매 렌더 새 배열/Set 을 만들지 않는다. */
 const EMPTY_ORG_SEL = new Set();
@@ -1369,21 +1407,54 @@ export default function EvalCycleWizard({
   onDeleteTemplate,
   /** 저장 실패 사유(이름 중복 등). 부모가 서버 문구를 그대로 넘긴다. */
   templateSaveError = null,
+  /**
+   * PW-440 — 초안 저장. `({ draftState, draftStep, name }) => Promise<{ savedAt } | null>`.
+   *
+   * 넘기지 않으면 종전대로 동작한다 — 저장도 이탈 확인도 없다. 넘기면 `다음 →`·
+   * `← 이전` 마다 자동 저장이 붙고 푸터에 `임시저장` 버튼이 생긴다.
+   *
+   * 관리(수정) 모드에서는 **무시한다.** 그 화면의 변경은 즉시 반영이라 초안 개념이
+   * 성립하지 않고, 버튼을 남기면 오픈된 사이클을 초안으로 되돌리는 것처럼 읽힌다.
+   */
+  onSaveDraft,
+  /** PW-440 — 이어쓰기로 열 때 복원할 초안. `collectDraft()` 가 만든 그 모양 그대로. */
+  draftState = null,
+  /** PW-440 — 저장돼 있던 단계(0-based). 1단계로 되돌리면 「처음부터 다시」가 재현된다. */
+  draftStep = 0,
+  /** PW-440 — 마지막 저장 시각(ISO). 배너·푸터 표기와 낙관적 잠금 키에 쓴다. */
+  draftSavedAt: draftSavedAtProp = null,
+  /** PW-440 — 마지막으로 저장한 사람 이름. 표시용. */
+  draftSavedByName = null,
 }) {
   const isManage = !!cycle;
   const initialSeq = cycle?.reviewSequence ?? null;
+  /**
+   * PW-440 — 초안 기능이 켜졌는가. 관리 모드에서는 항상 꺼진다(§5.1-A-1).
+   *
+   * `D` 는 «이어쓰기로 열렸을 때 복원할 값»이다. 상태 초기화에서만 읽고 그 뒤로는 보지
+   * 않는다 — 이펙트로 뒤늦게 덮어쓰면 사용자가 이미 고친 값을 되돌리게 된다.
+   */
+  const draftEnabled = !!onSaveDraft && !isManage;
+  const D = draftEnabled && draftState ? draftState : null;
+  const isDraftResume = !!D;
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() =>
+    isDraftResume ? clampStep(draftStep) : 0,
+  );
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
-  const [committeeOn, setCommitteeOn] = useState(false);
-  const [committee, setCommittee] = useState([]);
+  const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn);
+  const [committee, setCommittee] = useState(() => [...(D?.committee ?? [])]);
   // PW-161 위원 후보 검색. 후보는 조직장+시니어IC 전원(데모 조직 138명)이라 스크롤만으로는
   // 못 찾는다. 검색은 '표시'만 바꾼다 — 선택과 선택 순서에는 관여하지 않으므로
   // 위원장(= 선택 순서 첫 위원)이 검색·정렬로 옮겨가지 않는다.
   const [committeeSearch, setCommitteeSearch] = useState('');
-  const [name, setName] = useState(() => cycle?.name ?? '');
-  const [startDate, setStartDate] = useState(() => datePart(cycle?.startDate ?? ''));
-  const [endDate, setEndDate] = useState(() => datePart(cycle?.endDate ?? ''));
+  const [name, setName] = useState(() => D?.name ?? cycle?.name ?? '');
+  const [startDate, setStartDate] = useState(() =>
+    datePart(D?.startDate ?? cycle?.startDate ?? ''),
+  );
+  const [endDate, setEndDate] = useState(() =>
+    datePart(D?.endDate ?? cycle?.endDate ?? ''),
+  );
   // 날짜 picker 팝오버 상태: { field:'start'|'end', rect, el }
   const [picker, setPicker] = useState(null);
   const openPicker = (field) => (e) =>
@@ -1392,35 +1463,43 @@ export default function EvalCycleWizard({
   const [schedPicker, setSchedPicker] = useState(null);
   const openSchedPicker = (phaseId, field) => (e) =>
     setSchedPicker({ phaseId, field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
-  const [reviewTypes, setReviewTypes] = useState(() =>
-    cycle?.reviewTypes?.length ? [...cycle.reviewTypes] : ['self', 'leader'],
-  );
+  const [reviewTypes, setReviewTypes] = useState(() => {
+    if (D?.reviewTypes) return [...D.reviewTypes];
+    return cycle?.reviewTypes?.length ? [...cycle.reviewTypes] : ['self', 'leader'];
+  });
   // TC-046/047 하향 최종 등급 카드 위치(상단/하단/상단고정)
   const [gradeCardPosition, setGradeCardPosition] = useState(
-    () => initialSeq?.gradeCardPosition ?? 'bottom',
+    () => D?.gradeCardPosition ?? initialSeq?.gradeCardPosition ?? 'bottom',
   );
   // v2: 동료 리뷰어 지정 방식 다중선택(시안 peerAssign[]) + 결과 본인 공개 기본값
   const [peerAssignModes, setPeerAssignModes] = useState(() => {
+    if (D?.peerAssignModes) return [...D.peerAssignModes];
     if (cycle?.peerAssignModes?.length) return [...cycle.peerAssignModes];
     if (cycle?.peerAssignMode) return [cycle.peerAssignMode];
     return ['ai_recommend'];
   });
   // 단계별 일정(review_sequence) 상태
-  const [schedule, setSchedule] = useState(() => ({ ...(initialSeq?.schedule ?? {}) })); // { phaseId: { start, end } } 사용자 오버라이드
+  const [schedule, setSchedule] = useState(() => ({
+    ...(D?.schedule ?? initialSeq?.schedule ?? {}),
+  })); // { phaseId: { start, end } } 사용자 오버라이드
   // PW-122 프리셋에서 불러온 일정의 '며칠째' 오프셋. 사이클 시작일이 정해지면
   // 거기에 맞춰 다시 깔린다(원본 사이클의 절대 날짜를 그대로 쓰지 않는다).
-  const [presetOffsets, setPresetOffsets] = useState(null);
-  const [reminders, setReminders] = useState(() => ({ ...(initialSeq?.reminders ?? {}) })); // { phaseId: [reminderObj] }
+  const [presetOffsets, setPresetOffsets] = useState(() => D?.presetOffsets ?? null);
+  const [reminders, setReminders] = useState(() => ({
+    ...(D?.reminders ?? initialSeq?.reminders ?? {}),
+  })); // { phaseId: [reminderObj] }
   const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 id
-  const [disabledPhases, setDisabledPhases] = useState(
-    () =>
-      new Set(
-        Object.entries(initialSeq?.enabled ?? {})
-          .filter(([, on]) => on === false)
-          .map(([id]) => id),
-      ),
-  );
-  const [phaseOrder, setPhaseOrder] = useState(() => [...(initialSeq?.order ?? [])]); // 중간 단계 재배열 순서(id)
+  const [disabledPhases, setDisabledPhases] = useState(() => {
+    if (D?.disabledPhases) return new Set(D.disabledPhases);
+    return new Set(
+      Object.entries(initialSeq?.enabled ?? {})
+        .filter(([, on]) => on === false)
+        .map(([id]) => id),
+    );
+  });
+  const [phaseOrder, setPhaseOrder] = useState(() => [
+    ...(D?.phaseOrder ?? initialSeq?.order ?? []),
+  ]); // 중간 단계 재배열 순서(id)
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   /**
@@ -1430,9 +1509,10 @@ export default function EvalCycleWizard({
    * `targetScope = { orgIds, manualExclude, manualInclude }` 한 곳이고, 필터·검색·
    * 접힘 상태는 담지 않는다(보기 조건이지 대상자 정의가 아니다).
    */
-  const [orgSelEdit, setOrgSelEdit] = useState(() =>
-    cycle?.targetScope?.orgIds ? new Set(cycle.targetScope.orgIds) : null,
-  );
+  const [orgSelEdit, setOrgSelEdit] = useState(() => {
+    if (D?.orgIds) return new Set(D.orgIds);
+    return cycle?.targetScope?.orgIds ? new Set(cycle.targetScope.orgIds) : null;
+  });
   const [treeCollapsed, setTreeCollapsed] = useState(() => new Set());
   const [groupCollapsed, setGroupCollapsed] = useState(() => new Set());
   // 필터·검색은 **표시만** 거른다. 카운터 세 값과 저장되는 대상자는 흔들리지 않는다.
@@ -1442,49 +1522,67 @@ export default function EvalCycleWizard({
   /** 직전 수동 조정 스냅샷 — 「모두 제외」·그룹 제외를 1회 되돌린다. */
   const [undoSnapshot, setUndoSnapshot] = useState(null);
   // §4.1.1 제외 조건 필터(자동 탐지). 데이터 근거가 있는 두 축만 노출한다.
-  const [excludeOnLeave, setExcludeOnLeave] = useState(false);
-  const [excludeHireDate, setExcludeHireDate] = useState(false);
-  const [hireDateRef, setHireDateRef] = useState('');
-  const [hireDateDirection, setHireDateDirection] = useState('after');
+  const [excludeOnLeave, setExcludeOnLeave] = useState(() => !!D?.exclusionRules?.onLeave);
+  const [excludeHireDate, setExcludeHireDate] = useState(
+    () => !!D?.exclusionRules?.hireDate,
+  );
+  const [hireDateRef, setHireDateRef] = useState(
+    () => D?.exclusionRules?.hireDateRef ?? '',
+  );
+  const [hireDateDirection, setHireDateDirection] = useState(
+    () => D?.exclusionRules?.hireDateDirection ?? 'after',
+  );
   const [hirePicker, setHirePicker] = useState(null);
   // 발령 이력 기반 2종 — 평가 기간 중 직무 변경 / 직급(승진) 변경일 기준
-  const [excludeRoleChange, setExcludeRoleChange] = useState(false);
-  const [excludePromotion, setExcludePromotion] = useState(false);
-  const [promotionRef, setPromotionRef] = useState('');
-  const [promotionDirection, setPromotionDirection] = useState('after');
+  const [excludeRoleChange, setExcludeRoleChange] = useState(
+    () => !!D?.exclusionRules?.roleChange,
+  );
+  const [excludePromotion, setExcludePromotion] = useState(
+    () => !!D?.exclusionRules?.promotion,
+  );
+  const [promotionRef, setPromotionRef] = useState(
+    () => D?.exclusionRules?.promotionRef ?? '',
+  );
+  const [promotionDirection, setPromotionDirection] = useState(
+    () => D?.exclusionRules?.promotionDirection ?? 'after',
+  );
   const [promotionPicker, setPromotionPicker] = useState(null);
   // §4.1.2 0단계 '리뷰 & 조정' — 자동 산출 명단을 사람이 최종 가감한다.
   /* 셋 다 `null` = 「아직 사람이 손대지 않았다」. 저장된 `targetScope` 가 없는 구 사이클은
      참여자로부터 환산한 값이 그 자리를 대신한다(아래 legacyScope). */
   const [manualExcludedEdit, setManualExcludedEdit] = useState(
-    () => cycle?.targetScope?.manualExclude ?? null,
+    () => D?.manualExclude ?? cycle?.targetScope?.manualExclude ?? null,
   ); // 대상 → 제외
   const [keptEdit, setKeptEdit] = useState(
-    () => cycle?.targetScope?.manualInclude ?? null,
+    () => D?.manualInclude ?? cycle?.targetScope?.manualInclude ?? null,
   ); // 자동 제외를 되돌려 대상으로 유지
   // 평가 템플릿(step 1) — 워크스페이스 라이브러리 + 빌더 상태
   // 세션 로컬 라이브러리(레거시 경로). `libraryTemplates` 를 넘기면 쓰이지 않는다.
-  const [localTemplates, setLocalTemplates] = useState([]);
+  const [localTemplates, setLocalTemplates] = useState(() => [
+    ...(D?.localTemplates ?? []),
+  ]);
   /**
    * PW-122 — 저장된 템플릿의 **출처**. 라이브러리 모드면 조직 자산(서버), 아니면 세션 로컬.
    * 아래 모든 읽기(목록·단계 매핑 후보·검증)는 이 하나만 본다.
    */
   const libraryMode = Array.isArray(libraryTemplates);
   const savedTemplates = libraryMode ? libraryTemplates : localTemplates;
-  const [tplType, setTplType] = useState('self'); // 빌더가 편집중인 평가 유형
-  const [tplName, setTplName] = useState('');
+  const [tplType, setTplType] = useState(() => D?.tplType ?? 'self'); // 빌더가 편집중인 평가 유형
+  const [tplName, setTplName] = useState(() => D?.tplName ?? '');
   // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
   // 방금 저장했다는 사실을 들고 있다가 안내 대신 확인 문구를 보여준다(프리셋 저장과 같은 방식).
   const [tplSaved, setTplSaved] = useState(false);
-  const [tplVersion, setTplVersion] = useState('standard');
-  const [tplQuestions, setTplQuestions] = useState(() => presetFor('standard', 'self'));
-  const [tplGrades, setTplGrades] = useState(DEFAULT_GRADES);
-  const [tplAbsolute, setTplAbsolute] = useState(false); // 절대평가(상대비율 없음)
-  const [tplRatioScope, setTplRatioScope] = useState('div');
+  const [tplVersion, setTplVersion] = useState(() => D?.tplVersion ?? 'standard');
+  const [tplQuestions, setTplQuestions] = useState(
+    () => D?.tplQuestions ?? presetFor('standard', 'self'),
+  );
+  const [tplGrades, setTplGrades] = useState(() => D?.tplGrades ?? DEFAULT_GRADES);
+  const [tplAbsolute, setTplAbsolute] = useState(() => !!D?.tplAbsolute); // 절대평가(상대비율 없음)
+  const [tplRatioScope, setTplRatioScope] = useState(() => D?.tplRatioScope ?? 'div');
   // 관리 모드에서는 이미 저장된 템플릿 매핑(서버 template id)을 그대로 이어받는다.
   // 여기서 비우면 저장 시 매핑이 통째로 날아가 단계에 템플릿이 없는 사이클이 된다.
   const [phaseTemplateMap, setPhaseTemplateMap] = useState(() => ({
-    ...(initialSeq?.templateMap ?? {}),
+    ...(D?.templateMap ?? initialSeq?.templateMap ?? {}),
   })); // { phaseId: templateId }
   /* PW-433 — 항목 설정 패널. **한 번에 하나만** 연다. 행에는 이미 드래그 핸들·섹션 배지·
      질문·유형 배지·AI 배지·이유 토글·버튼 3개가 있어 설정을 더 붙이면 행이 읽히지 않는다
@@ -1494,9 +1592,11 @@ export default function EvalCycleWizard({
   const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
   // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
-  const [roleMode, setRoleMode] = useState(() => initialSeq?.roleMode ?? 'uniform'); // 'uniform' | 'by_role'
+  const [roleMode, setRoleMode] = useState(
+    () => D?.roleMode ?? initialSeq?.roleMode ?? 'uniform',
+  ); // 'uniform' | 'by_role'
   const [roleVersions, setRoleVersions] = useState(() => ({
-    ...(initialSeq?.roleVersions ?? {}),
+    ...(D?.roleVersions ?? initialSeq?.roleVersions ?? {}),
   })); // { 직급: version }
 
   const steps = [
@@ -2116,11 +2216,151 @@ export default function EvalCycleWizard({
   // 「다음」 판정은 **선택 위원 수**로만 한다 — 검색 결과 수와 무관하다(PW-161).
   const committeeValid = !committeeOn || committee.length > 0;
 
+  /**
+   * PW-440 ② — 초안에 담을 것을 한 곳에서 모은다.
+   *
+   * 🔴 **담는 것과 안 담는 것의 경계가 이 함수다.**
+   * 담는다: 1~5단계의 «설정» 과 머문 단계.
+   * 안 담는다: 필터·검색·트리 접힘 같은 **보기 조건**(§5.5.3 규칙 1 — 「지금 무엇을
+   * 보고 있나」이지 대상자 정의가 아니다), 아직 [적용]하지 않은 AI 초안(절대규칙 3),
+   * 열려 있는 팝오버·모달의 미확정 입력(모달은 [확인]으로 본문에 반영된 뒤에야 대상).
+   *
+   * 라이브러리 템플릿은 **참조 id 로만** 담는다(`templateMap`). 본문을 스냅샷하면
+   * PW-122 가 세운 2계층(라이브러리 원본 ↔ 오픈 시 사이클 스냅샷)이 3계층이 된다.
+   * 세션 로컬 템플릿(라이브러리를 안 쓰는 소비자)만 본문째 담는다 — 그건 위자드가
+   * 소유한 값이라 여기 없으면 어디에도 남지 않는다.
+   *
+   * `Set` 은 배열로 눕힌다 — JSON 으로 오가는 값이라 `Set` 은 `{}` 가 된다.
+   */
+  const collectDraft = () => ({
+    step,
+    // 1단계
+    name,
+    startDate,
+    endDate,
+    reviewTypes,
+    peerAssignModes,
+    // 2단계 — 템플릿 빌더 + 유형별 적용 템플릿
+    tplType,
+    tplName,
+    tplVersion,
+    tplQuestions,
+    tplGrades,
+    tplAbsolute,
+    tplRatioScope,
+    templateMap: phaseTemplateMap,
+    roleMode,
+    roleVersions,
+    localTemplates: libraryMode ? [] : localTemplates,
+    // 3단계 — 일정·순서·ON/OFF·리마인더
+    schedule,
+    presetOffsets,
+    reminders,
+    disabledPhases: [...disabledPhases],
+    phaseOrder,
+    gradeCardPosition,
+    // 4단계 — 제외 조건 + 조직 선택 + 수동 가감
+    exclusionRules: {
+      onLeave: excludeOnLeave,
+      hireDate: excludeHireDate,
+      hireDateRef,
+      hireDateDirection,
+      roleChange: excludeRoleChange,
+      promotion: excludePromotion,
+      promotionRef,
+      promotionDirection,
+    },
+    orgIds: [...orgSel],
+    manualExclude: manualExcludedIds,
+    manualInclude: keptIds,
+    // 5단계 — 위원회
+    committeeOn,
+    committee,
+  });
+
+  /* 저장 상태. `savedSnapshot` 은 마지막으로 서버에 보낸 초안의 JSON 이다 —
+     「저장 이후 바뀐 것이 있나」를 값으로 판정한다(플래그로 두면 되돌린 편집까지
+     «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다). */
+  const [draftSavedAt, setDraftSavedAt] = useState(
+    () => (isDraftResume ? draftSavedAtProp : null),
+  );
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    isDraftResume && draftState ? JSON.stringify(draftState) : null,
+  );
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftError, setDraftError] = useState(false);
+  /* 이탈 확인 다이얼로그. null 이면 안 떠 있다. */
+  const [leaveAsk, setLeaveAsk] = useState(false);
+
+  const draftSnapshot = draftEnabled ? JSON.stringify(collectDraft()) : null;
+  /* 저장 이후 바뀐 것이 있나. 한 번도 저장 안 했으면 「입력이 있으면 변경」으로 본다. */
+  const draftDirty = draftEnabled && draftSnapshot !== savedSnapshot;
+
+  /**
+   * PW-440 ① — 초안 저장. 저장 계기는 셋이다: 단계 이동(자동) · `임시저장`(수동) ·
+   * 이탈 시도.
+   *
+   * 🔴 **이동을 막지 않는다.** 저장을 기다렸다 렌더하면 매 단계마다 화면이 멈춘 것처럼
+   * 보인다. 실패해도 이미 일어난 이동은 되돌리지 않고 푸터에만 알린다(§5.1-A-1).
+   */
+  const saveDraft = async (overrides) => {
+    if (!draftEnabled) return null;
+    const payload = { ...collectDraft(), ...(overrides ?? {}) };
+    const snapshot = JSON.stringify(payload);
+    setDraftSaving(true);
+    setDraftError(false);
+    try {
+      const result = await onSaveDraft({
+        draftState: payload,
+        draftStep: clampStep(payload.step),
+        name: payload.name,
+      });
+      if (!result) {
+        setDraftError(true);
+        return null;
+      }
+      setDraftSavedAt(result.savedAt ?? null);
+      setSavedSnapshot(snapshot);
+      return result;
+    } catch {
+      // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
+      // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
+      setDraftError(true);
+      return null;
+    } finally {
+      setDraftSaving(false);
+    }
+  };
+
   // 단계 이동 — 위원 검색어는 초기화하고 선택은 유지한다. 돌아왔을 때 예전 검색어가
   // 남아 있으면 후보가 몇 명뿐인 것처럼 보인다.
   const goStep = (next) => {
     setCommitteeSearch('');
     setStep(next);
+    // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
+    if (draftEnabled) void saveDraft({ step: next });
+  };
+
+  /**
+   * PW-440 ③ — 이탈 시도. 구 동작은 바깥 클릭·`✕` 에서 **경고 한 줄 없이** 닫혔다
+   * (제보 본문 마지막 문장이 이것이다). 이제 세 갈래로 묻는다.
+   *
+   * 저장 이후 바뀐 것이 없으면 묻지 않는다 — 저장된 것을 두고 「사라집니다」라고
+   * 묻는 것은 거짓이다(§5.1-A-5).
+   */
+  const requestClose = () => {
+    if (draftEnabled && draftDirty) {
+      setLeaveAsk(true);
+      return;
+    }
+    onCancel?.();
+  };
+
+  const leaveWithSave = async () => {
+    const result = await saveDraft();
+    setLeaveAsk(false);
+    // 저장이 실패했으면 닫지 않는다 — 닫으면 입력이 사라진다.
+    if (result) onCancel?.();
   };
 
   // PW-161 위원 후보 필터 — 이름·부서·직책 부분 일치(대소문자 무시, 앞뒤 공백 trim).
@@ -2410,16 +2650,42 @@ export default function EvalCycleWizard({
   };
 
   return createPortal(
-    <div className="evc-modal-overlay" onClick={onCancel}>
+    <div className="evc-modal-overlay" onClick={requestClose}>
       <div className="evc-wiz" onClick={(e) => e.stopPropagation()}>
         <div className="evc-wiz-header">
           <h3 className="evc-modal-title" data-testid="evc-wiz-title">
-            {isManage ? fill(L.manageTitle, { name: cycle.name ?? '' }) : L.createTitle}
+            {isManage
+              ? fill(L.manageTitle, { name: cycle.name ?? '' })
+              : isDraftResume
+                ? fill(L.draftResumeTitle, { name: name || L.draftUntitled })
+                : L.createTitle}
           </h3>
-          <button type="button" className="evc-wiz-close" onClick={onCancel} aria-label={L.cancel}>
+          <button
+            type="button"
+            className="evc-wiz-close"
+            onClick={requestClose}
+            aria-label={L.cancel}
+          >
             ✕
           </button>
         </div>
+
+        {/* PW-440 — 이어쓰기로 열렸다는 사실과 «언제·누가» 저장했는지를 먼저 알린다.
+            이게 없으면 값이 채워진 채 열린 화면이 「내가 만들다 만 것」인지
+            「누가 만들어 둔 것」인지 구분되지 않는다. */}
+        {isDraftResume && (
+          <div className="evc-wiz-draft-banner" data-testid="evc-wiz-draft-banner">
+            <InfoIcon size={14} />
+            <span>
+              {fill(L.draftResumeBanner, {
+                stamp: stampDateTime(draftSavedAtProp),
+              })}
+              {draftSavedByName
+                ? ` · ${fill(L.draftSavedBy, { name: draftSavedByName })}`
+                : ''}
+            </span>
+          </div>
+        )}
 
         <StepBar steps={steps} current={step} labels={L} onJump={goStep} />
 
@@ -4346,9 +4612,14 @@ export default function EvalCycleWizard({
         </div>
 
         <div className="evc-wiz-footer">
-          <button type="button" className="evc-btn is-ghost" onClick={step === 0 ? onCancel : () => goStep(step - 1)}>
+          <button
+            type="button"
+            className="evc-btn is-ghost"
+            onClick={step === 0 ? requestClose : () => goStep(step - 1)}
+          >
             {step === 0 ? L.cancel : L.prev}
           </button>
+
           {/* PW-119 와 같은 방식 — 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다. */}
           {step === 1 && !templateLibraryValid && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-template">
@@ -4365,29 +4636,121 @@ export default function EvalCycleWizard({
               {submitBlockHint}
             </span>
           )}
-          {step < steps.length - 1 ? (
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              disabled={!canAdvance}
-              onClick={() => goStep(step + 1)}
-              data-testid="evc-wiz-next"
-            >
-              {L.next}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              disabled={!canSubmit}
-              onClick={submit}
-              data-testid="evc-wiz-submit"
-            >
-              {isManage ? L.saveChanges : L.create}
-            </button>
-          )}
+          <div className="evc-wiz-footer-right">
+            {/* PW-440 — 「어디까지 저장됐나」를 그 자리에서 읽을 수 있어야 한다.
+                저장이 보이지 않으면 사용자는 저장됐다고 믿지 않는다. */}
+            {draftEnabled && (
+              <span
+                className={`evc-wiz-draft-state${draftError ? ' is-error' : ''}`}
+                data-testid="evc-wiz-draft-state"
+              >
+                {draftError
+                  ? L.draftSaveFailed
+                  : draftSaving
+                    ? L.draftSaving
+                    : !draftSavedAt
+                      ? ''
+                      : draftDirty
+                        ? fill(L.draftUnsaved, { time: stampTime(draftSavedAt) })
+                        : fill(L.draftSaved, { time: stampTime(draftSavedAt) })}
+              </span>
+            )}
+            {/* 수동 저장은 «한 단계 안에 오래 머무는 경우»를 위한 보조 수단이다.
+                필수값이 비어도 항상 활성 — 초안은 부분 저장이 정상이다. */}
+            {draftEnabled && (
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => void saveDraft()}
+                disabled={draftSaving}
+                data-testid="evc-wiz-draft-save"
+              >
+                {L.draftSaveNow}
+              </button>
+            )}
+            {step < steps.length - 1 ? (
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                disabled={!canAdvance}
+                onClick={() => goStep(step + 1)}
+                data-testid="evc-wiz-next"
+              >
+                {L.next}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                disabled={!canSubmit}
+                onClick={submit}
+                data-testid="evc-wiz-submit"
+              >
+                {isManage ? L.saveChanges : L.create}
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
+          🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
+          외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
+      {leaveAsk && (
+        <div
+          className="evc-modal-overlay"
+          onClick={() => setLeaveAsk(false)}
+          data-testid="evc-wiz-leave-ask"
+        >
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="evc-wiz-header">
+              <h3 className="evc-modal-title">{L.draftLeaveTitle}</h3>
+            </div>
+            <div className="evc-wiz-body">
+              <p className="evc-wiz-hint">{L.draftLeaveBody}</p>
+              <ul className="evc-wiz-hint-list">
+                <li>{L.draftLeaveHint1}</li>
+                <li>{L.draftLeaveHint2}</li>
+              </ul>
+              {draftError && (
+                <p className="evc-wiz-block" data-testid="evc-wiz-leave-error">
+                  {L.draftSaveFailed}
+                </p>
+              )}
+            </div>
+            <div className="evc-wiz-footer">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setLeaveAsk(false)}
+                data-testid="evc-wiz-leave-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => {
+                  setLeaveAsk(false);
+                  onCancel?.();
+                }}
+                data-testid="evc-wiz-leave-discard"
+              >
+                {L.draftLeaveDiscard}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                disabled={draftSaving}
+                onClick={() => void leaveWithSave()}
+                data-testid="evc-wiz-leave-save"
+              >
+                {L.draftLeaveSave}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
       {presetDialogOpen && (
