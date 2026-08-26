@@ -50,11 +50,14 @@ const DEFAULT_LABELS = {
   },
   countSuffix: '명',
   // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
-  /* 목록 뷰의 필터 칩 11종 (PW-400 · §3.1).
-     🔴 정본 12종 중 「직종」(`job_category`)만 빠져 있다 — 이 코드베이스에 저장 컬럼이
-        아직 없어서다. 없는 필드로 칩을 만들면 늘 0건인 축이 생긴다(E6). */
+  /* 목록 뷰의 필터 칩 (PW-400 · §3.1).
+     「직종」은 저장 컬럼이 없어 오래 빠져 있었는데 PW-502 에서 생겼다. 다만 이 칩은
+     **워크스페이스가 직종을 쓰기로 한 회사에서만** 선다(§2-1-A) — 안 쓰는 회사에
+     세우면 늘 0건인 축이 생긴다(E6, 빠져 있던 것과 같은 이유다). */
   filters: {
     dept: '소속(기능조직)',
+    jobCategory: '직종',
+    businessTitle: '직함',
     squad: '스쿼드',
     position: '직책',
     level: '직급',
@@ -127,6 +130,10 @@ const DEFAULT_LABELS = {
       jobLevel: '직급',
       /* 직위 ≠ 직급. 직급은 내부 등급(Senior), 직위는 국내식 호칭(과장)이다(PW-400). */
       jobRank: '직위',
+      /* 직종 ≠ 직군. 직종은 근로 형태 대분류(사무직), 직군은 직렬 묶음(개발)이다. */
+      jobCategory: '직종',
+      /* 직함 ≠ 직급·직위. 명함에 찍히는 대외 명칭이다(전무). */
+      businessTitle: '직함',
       jobFamily: '직군',
       /* ⚠ `jobTitle` 은 직무가 아니라 **직렬**이다(2026-08-10 M5-b). */
       jobTitle: '직렬',
@@ -909,11 +916,19 @@ function ListDeptLabel({ member, orgTree, labels }) {
 /**
  * 선택 열(⚙) 카탈로그 — **저장 값이 있는 열만** 넣는다.
  *
- * 🔴 정본 시안에는 직종·직함·근무지(국가)·FTE·담당 HRBP·근무 일정처럼 이 코드베이스에
- *    저장 컬럼이 아직 없는 열이 함께 있다. 없는 필드로 열·필터를 만들면 늘 비어 있는
- *    칸이 생기고, 그건 「이 회사는 안 쓰는 값」 과 구분되지 않는다(E6 — 없는 필드는
- *    열도 필터도 만들지 않는다). 컬럼이 생기는 티켓에서 여기 한 줄씩 는다.
+ * 🔴 정본 시안에는 FTE·담당 HRBP·근무 일정처럼 이 코드베이스에 저장 컬럼이 아직 없는
+ *    열이 함께 있다. 없는 필드로 열·필터를 만들면 늘 비어 있는 칸이 생기고, 그건
+ *    「이 회사는 안 쓰는 값」 과 구분되지 않는다(E6 — 없는 필드는 열도 필터도 만들지
+ *    않는다). 컬럼이 생기는 티켓에서 여기 한 줄씩 는다.
+ *
+ * `optionalField` 가 붙은 열은 **워크스페이스가 켠 회사에서만** 후보가 된다(PW-502).
+ * 저장 컬럼은 있지만 그 회사가 「우리는 안 쓴다」고 정한 열이라, ⚙ 메뉴에 남겨 두면
+ * 켤 수 없는 항목을 보여주게 된다(§1-3-a M8).
  */
+/** 안 받았을 때의 기본 — 선택 적용 항목이 하나도 안 켜진 상태. 모듈 상수라 매 렌더
+ *  새 객체가 되지 않는다. */
+const NO_OPTIONAL_FIELDS = {};
+
 const LIST_OPTIONAL_COLS = [
   { id: 'employeeCode', width: 100 },
   { id: 'nickname', width: 110 },
@@ -921,6 +936,10 @@ const LIST_OPTIONAL_COLS = [
   { id: 'phone', width: 130 },
   /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 별개 축이다(PW-400). */
   { id: 'jobRank', width: 90 },
+  /** 직종 — 근로 형태 대분류(사무직·연구직). 선택 적용 항목이다(PW-502). */
+  { id: 'jobCategory', width: 100, optionalField: 'job_category' },
+  /** 직함 — 명함용 대외 명칭(전무). 직급·직위와 세 축 모두 별개다(PW-502). */
+  { id: 'businessTitle', width: 110, optionalField: 'business_title' },
   /** 근무 위치 3층 — 국가 > 도시 > 빌딩(PW-503). 시트 뷰와 같은 세 열이다. */
   { id: 'workCountry', width: 110 },
   { id: 'workLocation', width: 110 },
@@ -1082,6 +1101,9 @@ function EmployeesListView({
   onChangeSquads,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels,
+  /* 워크스페이스가 켠 선택 적용 항목 — `{ job_category, business_title }` (PW-502).
+     안 받으면 둘 다 꺼진 것으로 본다: 그 열도, ⚙ 메뉴의 후보도 없다. */
+  optionalFields = NO_OPTIONAL_FIELDS,
 }) {
   const [q, setQ] = useState('');
   const [dept, setDept] = useState(LIST_ALL);
@@ -1094,6 +1116,10 @@ function EmployeesListView({
   const [location, setLocation] = useState(LIST_ALL);
   // 근무 위치 3층 — 국가·빌딩은 도시와 **서로 좁히지 않는다**(나라와 사옥을 잇는
   // 표가 기획서에 없다). 직군>직렬>직무처럼 부모를 바꿔도 자식을 풀지 않는다.
+  // 직종·직함 — 선택 적용 항목이라 **켠 회사에서만** 칩이 선다(PW-502). 직종은
+  // 직군의 상위 계층이지만 매핑이 없어 직군 필터를 좁히지 않는다(겸직에서 막힌다).
+  const [category, setCategory] = useState(LIST_ALL);
+  const [bizTitle, setBizTitle] = useState(LIST_ALL);
   const [country, setCountry] = useState(LIST_ALL);
   const [building, setBuilding] = useState(LIST_ALL);
   const [empType, setEmpType] = useState(LIST_ALL);
@@ -1181,6 +1207,8 @@ function EmployeesListView({
   const positions = useMemo(() => optionsOf(members, (m) => m.jobPosition, allLabel), [members, allLabel]);
   const levels = useMemo(() => optionsOf(members, (m) => m.jobLevel, allLabel), [members, allLabel]);
   const locations = useMemo(() => optionsOf(members, (m) => m.workLocation, allLabel), [members, allLabel]);
+  const categories = useMemo(() => optionsOf(members, (m) => m.jobCategory, allLabel), [members, allLabel]);
+  const bizTitles = useMemo(() => optionsOf(members, (m) => m.businessTitle, allLabel), [members, allLabel]);
   const countries = useMemo(() => optionsOf(members, (m) => m.workCountry, allLabel), [members, allLabel]);
   const buildings = useMemo(() => optionsOf(members, (m) => m.workBuilding, allLabel), [members, allLabel]);
   const empTypes = useMemo(() => optionsOf(members, (m) => m.employmentType, allLabel), [members, allLabel]);
@@ -1249,6 +1277,8 @@ function EmployeesListView({
         if (ladder !== LIST_ALL && m.jobTitle !== ladder) return false;
         if (duty !== LIST_ALL && m.jobDuty !== duty) return false;
         if (location !== LIST_ALL && m.workLocation !== location) return false;
+        if (category !== LIST_ALL && m.jobCategory !== category) return false;
+        if (bizTitle !== LIST_ALL && m.businessTitle !== bizTitle) return false;
         if (country !== LIST_ALL && m.workCountry !== country) return false;
         if (building !== LIST_ALL && m.workBuilding !== building) return false;
         if (empType !== LIST_ALL && m.employmentType !== empType) return false;
@@ -1265,7 +1295,7 @@ function EmployeesListView({
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
-    [members, q, dept, squad, position, level, family, ladder, duty, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf],
+    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1279,12 +1309,14 @@ function EmployeesListView({
   const pageRows = ordered.slice((safePage - 1) * pageSize, safePage * pageSize);
   const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
     || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
+    || category !== LIST_ALL || bizTitle !== LIST_ALL
     || location !== LIST_ALL || country !== LIST_ALL || building !== LIST_ALL
     || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all';
 
   function resetFilters() {
     setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
     setFamily(LIST_ALL); setLadder(LIST_ALL); setDuty(LIST_ALL); setLocation(LIST_ALL);
+    setCategory(LIST_ALL); setBizTitle(LIST_ALL);
     setCountry(LIST_ALL); setBuilding(LIST_ALL);
     setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
   }
@@ -1310,7 +1342,20 @@ function EmployeesListView({
 
   const cl = labels.listCols.cols;
   // 연봉 열은 ⚙ 로 켜도 열람 권한이 없으면 뜨지 않는다 — 두 겹으로 막는다.
-  const optOn = (id) => optCols[id] !== false && (id !== 'salary' || canViewSalary);
+  /**
+   * 이 열을 지금 보여도 되는가 — 세 겹이다.
+   *   ① ⚙ 에서 켜져 있는가
+   *   ② 연봉은 열람 권한이 있는가 (⚙ 로 켜도 권한이 없으면 안 뜬다)
+   *   ③ 선택 적용 항목이면 **워크스페이스가 그 항목을 쓰기로 했는가** (PW-502)
+   * ③ 을 ⚙ 로 대신할 수 없다 — ⚙ 는 「내가 지금 보고 싶은가」이고, ③ 은 「이 회사가
+   * 이 항목을 쓰는가」다. 안 쓰는 회사에는 켤 수 있는 항목으로도 보이면 안 된다.
+   */
+  const optOn = (id) => {
+    if (optCols[id] === false) return false;
+    if (id === 'salary' && !canViewSalary) return false;
+    const field = LIST_OPTIONAL_COLS.find((c) => c.id === id)?.optionalField;
+    return !field || optionalFields[field] === true;
+  };
   const cols = [
     { id: 'name', label: cl.name, width: 200 },
     ...(optOn('nickname') ? [{ id: 'nickname', label: cl.nickname, width: 110 }] : []),
@@ -1325,11 +1370,15 @@ function EmployeesListView({
     { id: 'jobPosition', label: cl.jobPosition, width: 100 },
     { id: 'jobLevel', label: cl.jobLevel, width: 100 },
     ...(optOn('jobRank') ? [{ id: 'jobRank', label: cl.jobRank, width: 90 }] : []),
+    /* 직종 — 인사 분류의 꼭대기라 직군 바로 앞이다(직종 > 직군 > 직렬 > 직무). */
+    ...(optOn('jobCategory') ? [{ id: 'jobCategory', label: cl.jobCategory, width: 100 }] : []),
     { id: 'jobFamily', label: cl.jobFamily, width: 100 },
     { id: 'jobTitle', label: cl.jobTitle, width: 120 },
     { id: 'jobDuty', label: cl.jobDuty, width: 140 },
     { id: 'employmentType', label: cl.employmentType, width: 100 },
     { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
+    /* 직함 — 직무 뒤·근무 위치 앞. 정본 §2-1 표의 자리다. */
+    ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
     ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
@@ -1344,7 +1393,13 @@ function EmployeesListView({
   // **보이는 열 폭의 합**으로 잡고, 넘치는 만큼은 가로 스크롤로 읽는다.
   const minWidth = cols.reduce((n, c) => n + c.width, 0);
 
-  const optionalForMenu = LIST_OPTIONAL_COLS.filter((c) => c.id !== 'salary' || canViewSalary);
+  // 켤 수 없는 항목은 메뉴에도 두지 않는다 — 연봉(권한 없음)도, 이 회사가 안 쓰기로
+  // 한 선택 적용 항목도 마찬가지다(§1-3-a M8).
+  const optionalForMenu = LIST_OPTIONAL_COLS.filter(
+    (c) =>
+      (c.id !== 'salary' || canViewSalary) &&
+      (!c.optionalField || optionalFields[c.optionalField] === true),
+  );
 
   /* ── 명부 내보내기 (PW-411 · screen-admin-employees-export.policy.md) ──────
    * 🔴 이 뷰의 **자기 상태**로 payload 를 만든다. 종전에는 버튼이 시트 쪽에만 있어,
@@ -1375,6 +1430,8 @@ function EmployeesListView({
   if (ladder !== LIST_ALL) exportFilters.jobTitle = ladder;
   if (duty !== LIST_ALL) exportFilters.jobDuty = duty;
   if (location !== LIST_ALL) exportFilters.workLocation = location;
+  if (category !== LIST_ALL) exportFilters.jobCategory = category;
+  if (bizTitle !== LIST_ALL) exportFilters.businessTitle = bizTitle;
   if (country !== LIST_ALL) exportFilters.workCountry = country;
   if (building !== LIST_ALL) exportFilters.workBuilding = building;
   if (empType !== LIST_ALL) exportFilters.employmentType = empType;
@@ -1543,6 +1600,8 @@ function EmployeesListView({
       case 'employmentType': return <TextCell value={m.employmentType} />;
       case 'employmentStatus': return <StatusBadge status={m.employmentStatus} labels={labels} />;
       case 'workLocation': return <TextCell value={m.workLocation} />;
+      case 'jobCategory': return <TextCell value={m.jobCategory} />;
+      case 'businessTitle': return <TextCell value={m.businessTitle} />;
       case 'workCountry': return <TextCell value={m.workCountry} />;
       case 'workBuilding': return <TextCell value={m.workBuilding} />;
       case 'manager':
@@ -1639,6 +1698,12 @@ function EmployeesListView({
         <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
         <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
         <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        {optionalFields.job_category === true && (
+          <FilterDropdown testId="list-filter-jobCategory" label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
+        )}
+        {optionalFields.business_title === true && (
+          <FilterDropdown testId="list-filter-businessTitle" label={labels.filters.businessTitle} value={bizTitle} options={bizTitles} onChange={(v) => { setBizTitle(v); setPage(1); }} />
+        )}
         <FilterDropdown testId="list-filter-workCountry" label={labels.filters.workCountry} value={country} options={countries} onChange={(v) => { setCountry(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-workLocation" label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-workBuilding" label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
@@ -2482,6 +2547,17 @@ export default function AdminEmployeesCanvas({
       근무 위치는 국가 > 도시 > 빌딩 세 층이고, 도시는 예부터 자유 텍스트 열이다. */
   countryOptions,
   buildingOptions,
+  /** 직종·직함 카탈로그 — 시트의 두 열로 그대로 내려간다(PW-502). */
+  categoryOptions,
+  businessTitleOptions,
+  /**
+   * 워크스페이스가 켠 선택 적용 항목 — `{ job_category, business_title }` (PW-502).
+   *
+   * 직종·직함은 **쓰지 않는 회사가 더 많아** 회사가 켜야 나타난다(§2-1-A, 기본 꺼짐).
+   * 두 뷰(목록·스프레드시트)에 **같은 값**을 내려 준다 — 한쪽에만 주면 시트에서는
+   * 채울 수 있는데 목록에서는 보이지 않는, 설명할 수 없는 상태가 생긴다.
+   */
+  optionalFields,
   // 직군 > 직렬 > 직무 3단 축 — 시트로 그대로 내려간다(PW-323). 여기서 빠뜨리면
   // 세 컬럼이 카탈로그 없는 자유 텍스트로 폴백해, 좁히기도 드롭다운도 사라진다.
   jobAxis,
@@ -2680,6 +2756,9 @@ export default function AdminEmployeesCanvas({
               // 스쿼드 배정 편집 — 시트와 **같은 콜백**이다(PW-438). 목록에만 없어서
               // 스쿼드 칸이 눌러도 아무 일이 없는 죽은 자리였다.
               onChangeSquads={onChangeSquads}
+              // 선택 적용 항목 — 시트와 **같은 값**을 준다(PW-502). 한쪽에만 주면
+              // 시트에서는 채울 수 있는데 목록에는 안 보이는 상태가 생긴다.
+              optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
               // 명부 내보내기 — 시트와 같은 콜백·같은 부품을 쓴다(PW-411).
               onExportRoster={onExportRoster}
               exporting={exporting}
@@ -2704,6 +2783,9 @@ export default function AdminEmployeesCanvas({
           employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
           countryOptions={countryOptions ?? EMPTY_ARRAY}
           buildingOptions={buildingOptions ?? EMPTY_ARRAY}
+          categoryOptions={categoryOptions ?? EMPTY_ARRAY}
+          businessTitleOptions={businessTitleOptions ?? EMPTY_ARRAY}
+          optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
           jobAxis={jobAxis}
           canEdit={canEdit}
           renderAvatar={renderAvatar}

@@ -113,7 +113,11 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'workLocation', 'workCountry', 'workBuilding', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+/** 안 받았을 때의 기본 — 선택 적용 항목이 하나도 안 켜진 상태. 매 렌더 새 객체를
+ *  만들면 `useMemo` 의존성이 매번 바뀌므로 모듈 상수로 둔다. */
+const NO_OPTIONAL_FIELDS = {};
+
+const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobCategory', 'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType', 'workLocation', 'workCountry', 'workBuilding', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -398,6 +402,8 @@ function mapMembers(list) {
     jobLevel: m.jobLevel ?? '',
     /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 **별개 축**이다(§1-3-g). */
     jobRank: m.jobRank ?? '',
+    jobCategory: m.jobCategory ?? '',
+    businessTitle: m.businessTitle ?? '',
     jobPosition: m.jobPosition ?? '',
     // 직군 > 직렬 > 직무 3단 (arch-core-data-model §1-3-a 7·8·19).
     // ⚠ `jobTitle` 은 직무가 아니라 **직렬**이다(2026-08-10 M5-b, 키 이름만 남았다).
@@ -918,6 +924,23 @@ export default function AdminEmployeeSheetCanvas({
   countryOptions = [],
   buildingOptions = [],
   /**
+   * 직종(`jobCategory`) · 직함(`businessTitle`) 카탈로그 — 조직 설정 > 필드 옵션.
+   *
+   * 다른 카탈로그와 같은 규칙이되, 이 둘은 **선택 적용 항목**이라 워크스페이스가 켠
+   * 곳에서만 열이 선다(`optionalFields`). 못 받으면 자유 텍스트로 폴백한다.
+   */
+  categoryOptions = [],
+  businessTitleOptions = [],
+  /**
+   * 워크스페이스가 켠 선택 적용 항목 — `{ job_category: bool, business_title: bool }`.
+   *
+   * 직종·직함은 쓰지 않는 회사가 더 많아 회사가 켜야 나타난다(§2-1-A, 기본 꺼짐).
+   * 켜지 않은 회사에 열을 세우면 **아무도 채우지 않는 빈 칸**이 생기고, 그건 「이
+   * 회사는 안 쓰는 값」과 구분되지 않는다(E6 — 없는 필드는 열도 필터도 만들지 않는다).
+   * 안 받으면 둘 다 꺼진 것으로 본다 — 종전 화면과 정확히 같아진다.
+   */
+  optionalFields = NO_OPTIONAL_FIELDS,
+  /**
    * 직군 > 직렬 > 직무 3단 축 (arch-core-data-model §1-3-a 7·8·19 · §1-3-d · §1-3-j).
    *
    * 셋을 **한 prop 으로 받는다** — 값 목록과 매핑이 따로 오면 "직렬 목록은 새것,
@@ -1050,6 +1073,13 @@ export default function AdminEmployeeSheetCanvas({
          직위(국내식 호칭 과장)는 헷갈리는 두 축이라 나란히 두는 편이 읽기 쉽다. */
       catCol('jobRank', cl.jobRank || '직위', 100, rankOptions, { emptyLabel: '—' }),
       catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
+      /* 직종 — 인사 분류의 **꼭대기**다(직종 > 직군 > 직렬 > 직무, §1-3-a). 직군 바로
+         앞에 두어 그 순서가 표에서 그대로 읽히게 한다. 직군과 상하 관계이긴 하나
+         매핑을 두지 않으므로((직종, 직군) 조합을 강제하면 겸직·전환배치에서 막힌다)
+         근무 위치 3층처럼 서로 좁히지 않는 독립 목록이다. */
+      ...(optionalFields.job_category === true
+        ? [catCol('jobCategory', cl.jobCategory || '직종', 100, categoryOptions, { emptyLabel: '—' })]
+        : []),
       /* 직군 > 직렬 > 직무 (§1-3-a 7·8·19). 위에서 아래로 좁혀지는 3단이다 —
          직군을 고르면 그 직군의 직렬만, 직렬을 고르면 그 직렬에 매핑된 직무만
          고를 수 있다. 매핑에 없는 조합은 서버가 400 으로 막으므로(INV-3 · INV-8),
@@ -1066,6 +1096,16 @@ export default function AdminEmployeeSheetCanvas({
         optionsForRow: (row) =>
           narrowByParent(jobAxis.duties, jobAxis.dutiesByLadder, row?.jobTitle),
       }),
+      /* 직함 — 명함에 찍히는 **대외 명칭**. 직급(내부 등급 Senior)·직위(국내식 호칭
+         과장)와 세 축 모두 별개라 목록을 합치지 않는다. 직무 뒤·근무 위치 앞이 정본
+         §2-1 표의 자리다.
+         값을 붙이는 **권한이 좁다** — HR 과 그 구성원이 속한 조직의 조직장만이고,
+         그 밖의 저장은 서버가 403 으로 막는다(V8). 화면은 권한을 판정하지 않고 값
+         그대로 보낸다: 소속·조직장 관계는 서버만 알고 있어서, 화면이 흉내 내면 두
+         판정이 갈린다. */
+      ...(optionalFields.business_title === true
+        ? [catCol('businessTitle', cl.businessTitle || '직함', 110, businessTitleOptions, { emptyLabel: '—' })]
+        : []),
       /* 근무 위치 3층 — 국가 > 도시 > 빌딩(§1-3-g 45·46·47). 위에서 아래로 좁혀지는
          축이지만 직군>직렬>직무와 달리 **매핑이 없다** — 나라와 사옥을 잇는 표를
          기획서가 두지 않았다. 그래서 서로 좁히지 않고 각각 독립 목록이다.
@@ -1116,7 +1156,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions, rankOptions, employmentTypeOptions, countryOptions, buildingOptions, squadOptions, managerCandidates, jobAxis]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, rankOptions, employmentTypeOptions, countryOptions, buildingOptions, categoryOptions, businessTitleOptions, optionalFields, squadOptions, managerCandidates, jobAxis]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
