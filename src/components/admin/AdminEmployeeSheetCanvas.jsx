@@ -198,7 +198,7 @@ function useHorizontalScrollEdges(ref, layoutKey) {
  * (`screen-admin-employees-spreadsheet.policy.md §6`), 쪽을 나누면 일괄 편집의 선택
  * 단위가 사람 수와 어긋난다.
  *
- * 빼는 값을 상수로 박지 않고 **상자의 실제 화면 위치를 재서** 정한다 — 이 화면의 툴바는
+ * 빼는 값을 상수로 박지 않고 **상자의 실제 자리를 재서** 정한다 — 이 화면의 툴바는
  * 필터 칩이 12개라 창 너비에 따라 한 줄이 되기도 두 줄이 되기도 한다. 상수로 잡으면
  * 한쪽 너비에서는 상자가 화면보다 길어져 증상이 그대로 돌아온다.
  * 잴 수 없는 환경(jsdom·초기 렌더)에서는 `null` 을 돌려 높이 제한을 걸지 않는다.
@@ -209,17 +209,23 @@ function useViewportBoundedHeight(ref, bottomGap, layoutKey) {
     const el = ref.current;
     if (!el || typeof window === 'undefined') return undefined;
     const measure = () => {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      const vh = window.innerHeight || 0;
-      if (!vh || !Number.isFinite(top)) return;
-      // 상자가 화면 위쪽에 붙어 있을 때(=페이지를 안 내린 상태) 남는 높이.
-      const next = Math.max(MIN_SHEET_BOX_H, Math.round(vh - top - bottomGap));
+      const room = measureBoxRoom(el);
+      if (!room) return;
+      // 상자 **위**(탭·툴바·필터 칩)와 **아래**(요약 줄·범례·패딩)를 둘 다 뺀다.
+      // 아래를 안 빼면 상자만 딱 맞고 그 밑의 요약 줄 때문에 화면이 조금 밀린다 —
+      // 실제로 64px 이 남아 있었고, 데모를 찍다 잡았다.
+      const next = Math.max(
+        MIN_SHEET_BOX_H,
+        Math.round(room.viewH - room.above - room.below - bottomGap),
+      );
       setMaxHeight((prev) => (prev === next ? prev : next));
     };
     measure();
     window.addEventListener('resize', measure);
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     if (ro && el.parentElement) ro.observe(el.parentElement);
+    // 상자 아래 요약 줄은 필터 결과에 따라 높이가 바뀐다 — 그때도 다시 재야 한다.
+    if (ro && el.parentElement?.parentElement) ro.observe(el.parentElement.parentElement);
     return () => {
       window.removeEventListener('resize', measure);
       if (ro) ro.disconnect();
@@ -228,9 +234,65 @@ function useViewportBoundedHeight(ref, bottomGap, layoutKey) {
   return maxHeight;
 }
 
+/**
+ * 표 상자 **아래**에 이미 자리를 잡은 것들의 높이 합 — 요약 줄 · 범례 · 아래 패딩.
+ *
+ * 🔴 `scrollHeight` 로 재면 안 된다. 내용이 다 들어가는 순간 `scrollHeight` 가
+ *    `clientHeight` 로 채워져서, 「상자 아래에 남은 것」과 「그냥 빈 자리」가 구분되지
+ *    않는다. 그러면 한 번 작아진 상자가 창을 키워도 영영 안 커지는 고정점에 갇힌다
+ *    (720 → 900 으로 늘려도 260px 에 그대로 있었다). 그래서 형제와 패딩을 직접 훑어
+ *    **자리를 잡은 것만** 센다.
+ */
+function spaceBelowBox(el, stopAt) {
+  let below = 0;
+  let node = el;
+  while (node && node !== stopAt) {
+    for (let sib = node.nextElementSibling; sib; sib = sib.nextElementSibling) {
+      const st = window.getComputedStyle(sib);
+      // 흐름에서 빠진 것은 자리를 차지하지 않는다(숨김·떠 있는 레이어).
+      if (st.display === 'none' || st.position === 'fixed' || st.position === 'absolute') continue;
+      below += sib.getBoundingClientRect().height
+        + (parseFloat(st.marginTop) || 0)
+        + (parseFloat(st.marginBottom) || 0);
+    }
+    const parent = node.parentElement;
+    if (!parent) break;
+    const ps = window.getComputedStyle(parent);
+    below += (parseFloat(ps.paddingBottom) || 0) + (parseFloat(ps.borderBottomWidth) || 0);
+    node = parent;
+  }
+  return below;
+}
+
+/**
+ * 상자가 쓸 수 있는 높이의 재료를 잰다 — `{ viewH, above, below }`.
+ *
+ * 🔴 세로로 흐르는 것이 `window` 라고 가정하면 안 된다. 어드민 화면은 본문 컨테이너
+ *    (`flex:1; overflow-y:auto`)가 흐르고 `window` 는 꿈쩍도 하지 않는다. 조상을
+ *    거슬러 올라가 **실제로 흐르는 것**을 찾아 그 기준으로 잰다.
+ */
+function measureBoxRoom(el) {
+  let scroller = el.parentElement;
+  while (scroller && scroller !== document.body) {
+    const st = window.getComputedStyle(scroller);
+    if (/(auto|scroll)/.test(st.overflowY)) break;
+    scroller = scroller.parentElement;
+  }
+  const usingDoc = !scroller || scroller === document.body;
+  const viewH = usingDoc ? window.innerHeight || 0 : scroller.clientHeight;
+  if (!viewH) return null;
+  const stopAt = usingDoc ? document.body : scroller;
+  const scTop = usingDoc ? 0 : scroller.getBoundingClientRect().top;
+  const scScrollTop = usingDoc ? window.scrollY || 0 : scroller.scrollTop;
+  const above = el.getBoundingClientRect().top - scTop + scScrollTop;
+  const below = spaceBelowBox(el, stopAt);
+  if (!Number.isFinite(above) || !Number.isFinite(below)) return null;
+  return { viewH, above: Math.max(0, above), below: Math.max(0, below) };
+}
+
 /** 상자가 이보다 낮아지면 표를 읽을 수 없다 — 그때는 페이지가 세로로 밀리는 편이 낫다. */
 const MIN_SHEET_BOX_H = 260;
-/** 상자 아래 남겨 둘 여백 — 카드 패딩 + 가로 막대 두께. 브라우저 실측값이다. */
+/** 상자 바닥에 남겨 둘 여백 — 가로 막대가 카드 테두리에 붙지 않게. */
 const SHEET_BOX_BOTTOM_GAP = 28;
 
 /**
