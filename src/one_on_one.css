@@ -3943,6 +3943,35 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-green-600, #16a34a);
   cursor: default;
 }
+/* 액션아이템 Slack 알림 — 예약 버튼과 같은 자리·같은 크기의 보조 동작이라
+   보라 강조 대신 기본 카드 톤으로 둔다 (시안 1on1-manager-view.jsx §9). */
+.ono-done-notify {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ono-done-notify:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.ono-done-notify.is-done {
+  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  background: var(--utility-success-50, #ecfdf3);
+  color: var(--utility-green-600, #16a34a);
+  cursor: default;
+}
 
 /* ══ 1on1 상세(열람모드) 모달 — Figma 17413:26357/26611/26771/26956 ══ */
 .ood-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 30%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
