@@ -12,6 +12,9 @@ import assetUrl from '../shared/assetUrl.js';
  *  - bottomItem: 하단 영역(의견보내기·설정 사이)의 추가 항목 { icon, label, onClick }.
  *  - onLogoClick: 좌상단 Pivit 로고(아이콘+워드마크) 클릭 핸들러. 넘기면 로고가
  *    버튼처럼 동작(홈 이동 등)하며 키보드 접근 가능. 없으면 기존처럼 비클릭 이미지.
+ *  - feedbackLabel / settingsLabel: 하단 고정 두 항목의 글자. 상단 항목은 menu 데이터로
+ *    들어와 호스트가 번역할 수 있지만 이 둘은 여기에 박혀 있어, 영어 사용자에게도
+ *    한국어로 보였다(PW-469). 호스트가 번역을 넘길 자리를 낸다 — 안 넘기면 종전 그대로다.
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
@@ -25,6 +28,8 @@ export default function Sidebar({
   title,
   bottomItem,
   onLogoClick,
+  feedbackLabel = '의견보내기',
+  settingsLabel = '설정',
 }) {
   const logoImg = <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />;
   return (
@@ -67,14 +72,14 @@ export default function Sidebar({
           </nav>
         </div>
         <div className="sidebar-bottom">
-          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>의견보내기</span></div>
+          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{feedbackLabel}</span></div>
           {bottomItem && (
             <div className="menu-item" onClick={bottomItem.onClick}>
               <Icon src={bottomItem.icon} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
               <span>{bottomItem.label}</span>
             </div>
           )}
-          <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>설정</span></div>
+          <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{settingsLabel}</span></div>
         </div>
       </div>
     </aside>
