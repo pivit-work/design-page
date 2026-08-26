@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertIcon, LockIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
 /**
@@ -140,6 +140,19 @@ const DEFAULT_LABELS = {
   cwCreateTargetLabel: '① 평가 대상자 · 조직 (복수 선택)',
   cwCreateTargetHint: '선택 조직의 대상자가 자동 매핑됩니다. 대상 인원은 생성 후 조견표에 표시됩니다.',
   cwCreatePreview: '예상 대상자 {n}명 (위원 제외)',
+  // PW-444 — 카운트만으로는 「이 15명이 누구인지」를 볼 수 없어 개인을 뺄 수도 더할 수도 없다.
+  cwCreateRosterFound: '· 검색 {n}명',
+  cwCreateRosterHint: '· 위원 본인은 대상에서 빠집니다',
+  cwCreateRosterSearch: '명단에서 찾기 — 이름 · 조직 · 직급',
+  cwCreateRosterEmpty: '대상자가 없습니다. 조직·직급 선택을 넓히거나 개별로 추가하세요.',
+  cwCreateRosterSearchEmpty: '검색 결과가 없습니다. 대상자 {n}명은 그대로 유지됩니다.',
+  cwCreateAddSearch: '개별 대상자 추가 — 이름 · 조직 · 직급 검색',
+  cwCreateAddCta: '추가',
+  cwCreateAddedTag: '추가',
+  cwCreateExclude: '대상자 제외',
+  cwCreateExcludedCount: '제외한 대상자 {n}명',
+  cwCreateRestore: '되돌리기',
+  cwCreateSearchReset: '검색 초기화',
   cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
   cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
   cwCreateCommitteeSearch: '이름으로 검색',
@@ -775,6 +788,12 @@ export default function EvalCycleSummaryCanvas({
   const [createName, setCreateName] = useState('');
   const [createDepts, setCreateDepts] = useState([]);
   const [createLevels, setCreateLevels] = useState([]);
+  /* PW-444 — 자동 매핑에 대한 사람 손. 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원.
+     서버 resolveTargets 와 같은 식이라야 화면과 저장 결과가 갈리지 않는다. */
+  const [createAdded, setCreateAdded] = useState([]);
+  const [createExcluded, setCreateExcluded] = useState([]);
+  const [createRosterSearch, setCreateRosterSearch] = useState('');
+  const [createAddSearch, setCreateAddSearch] = useState('');
   const [createCommittee, setCreateCommittee] = useState([]); // userId 배열, 순서=우선(첫=위원장)
   const [committeeSearch, setCommitteeSearch] = useState('');
   // 후보는 재직 구성원 전원(수백 명)이라 스크롤만으로는 못 찾는다 → 이름 부분일치 필터.
@@ -792,6 +811,76 @@ export default function EvalCycleSummaryCanvas({
     );
     return [...pinned, ...matched];
   }, [committeeCandidates, createCommittee, committeeSearch]);
+
+  /* ── PW-444 위원회 생성 모달 ① 대상자 명단 ──
+     종전에는 「예상 대상자 N명」 카운트만 있었다. 카운트만으로는 그 N명이 누구인지
+     확인할 수 없고, 확인할 수 없으니 개인을 빼거나 더할 수도 없었다
+     (`addedMemberIds`·`excludedMemberIds` 는 서버에 자리가 있는데 값을 만드는
+     화면이 어디에도 없었다). 규칙은 서버 `matchesScope` 와 같다 —
+     **고르지 않은 축으로는 자르지 않는다**(빈 축 = 전체). */
+  const createCommitteeSet = new Set(createCommittee);
+  const createAddedSet = new Set(createAdded);
+  const createExcludedSet = new Set(createExcluded);
+  const matchesCreateScope = (m) =>
+    (createDepts.length === 0 || createDepts.includes(m.dept)) &&
+    (createLevels.length === 0 || createLevels.includes(m.level));
+  /* 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원(§8 이해상충). */
+  const createRoster = scopeRoster.filter(
+    (m) =>
+      !createExcludedSet.has(m.memberId) &&
+      !createCommitteeSet.has(m.memberId) &&
+      (matchesCreateScope(m) || createAddedSet.has(m.memberId)),
+  );
+  const createRosterIds = new Set(createRoster.map((m) => m.memberId));
+  /* 되돌리기 목록에는 «조건에 걸렸는데 사람이 뺀» 사람만 — 개별 추가 취소는 제외가 아니다. */
+  const createExcludedMembers = scopeRoster.filter(
+    (m) => createExcludedSet.has(m.memberId) && matchesCreateScope(m),
+  );
+  const createRosterQuery = createRosterSearch.trim().toLowerCase();
+  /* 명단 검색은 표시만 바꾼다 — 제외·추가 상태도 인원 수도 검색어와 무관하다. */
+  const visibleCreateRoster = createRosterQuery
+    ? createRoster.filter((m) =>
+        [m.name, m.dept, m.level].some((v) =>
+          String(v ?? '')
+            .toLowerCase()
+            .includes(createRosterQuery),
+        ),
+      )
+    : createRoster;
+  const createAddQuery = createAddSearch.trim().toLowerCase();
+  const createAddResults = createAddQuery
+    ? scopeRoster
+        .filter(
+          (m) =>
+            !createRosterIds.has(m.memberId) &&
+            !createCommitteeSet.has(m.memberId) &&
+            [m.name, m.dept, m.level].some((v) =>
+              String(v ?? '')
+                .toLowerCase()
+                .includes(createAddQuery),
+            ),
+        )
+        .slice(0, 6)
+    : [];
+  const excludeFromCreateRoster = (m) => {
+    /* 개별 추가분은 추가를 취소하면 사라진다. 조건에도 걸리는 사람이면 제외까지 함께 —
+       추가만 지우면 조건 매칭으로 되살아나 눌러도 아무 일이 없어 보인다. */
+    setCreateAdded((prev) => prev.filter((x) => x !== m.memberId));
+    if (matchesCreateScope(m)) {
+      setCreateExcluded((prev) =>
+        prev.includes(m.memberId) ? prev : [...prev, m.memberId],
+      );
+    }
+  };
+  const restoreToCreateRoster = (id) =>
+    setCreateExcluded((prev) => prev.filter((x) => x !== id));
+  const addToCreateRoster = (m) => {
+    setCreateAdded((prev) =>
+      prev.includes(m.memberId) ? prev : [...prev, m.memberId],
+    );
+    setCreateExcluded((prev) => prev.filter((x) => x !== m.memberId));
+    setCreateAddSearch('');
+  };
 
   // PW-129 — 같은 모달을 '위원 관리' 로 재사용한다. 관리 모드에서는 제목/설명이 바뀌고
   // ①대상자·제목 입력이 숨으며, 후보 목록이 현재 위원으로 미리 체크된 채 열린다.
@@ -889,6 +978,10 @@ export default function EvalCycleSummaryCanvas({
   const closeCreateModal = () => {
     setShowCreate(false);
     setCommitteeManage(false);
+    setCreateAdded([]);
+    setCreateExcluded([]);
+    setCreateRosterSearch('');
+    setCreateAddSearch('');
     setChairTransferTo('');
     setCommitteeError('');
     setCommitteeSaving(false);
@@ -3277,26 +3370,160 @@ export default function EvalCycleSummaryCanvas({
                 </>
               )}
               <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>
-              {scopeRoster.length > 0 &&
-                (() => {
-                  const committeeSet = new Set(createCommittee);
-                  const n = scopeRoster.filter(
-                    (m) =>
-                      !committeeSet.has(m.memberId) &&
-                      (createDepts.length === 0 ||
-                        createDepts.includes(m.dept)) &&
-                      (createLevels.length === 0 ||
-                        createLevels.includes(m.level)),
-                  ).length;
-                  return (
+              {scopeRoster.length > 0 && (
+                <div className="evs-cw-roster">
+                  <div
+                    className="evs-cw-create-preview"
+                    data-testid="evs-cw-create-preview"
+                  >
+                    {fmt(L.cwCreatePreview, { n: createRoster.length })}
+                    {createRosterQuery && (
+                      <span className="evs-cw-roster-sub">
+                        {fmt(L.cwCreateRosterFound, {
+                          n: visibleCreateRoster.length,
+                        })}
+                      </span>
+                    )}
+                    <span className="evs-cw-roster-sub">
+                      {L.cwCreateRosterHint}
+                    </span>
+                  </div>
+
+                  {/* 개별 추가 — 조직·직급으로는 안 걸리는 사람을 이름으로 더한다 */}
+                  <div className="evs-cw-roster-add">
+                    <input
+                      className="evs-cw-create-input"
+                      value={createAddSearch}
+                      onChange={(e) => setCreateAddSearch(e.target.value)}
+                      placeholder={L.cwCreateAddSearch}
+                      aria-label={L.cwCreateAddSearch}
+                      data-testid="evs-cw-roster-add-search"
+                    />
+                    {createAddResults.length > 0 && (
+                      <div
+                        className="evs-cw-roster-add-results"
+                        data-testid="evs-cw-roster-add-results"
+                      >
+                        {createAddResults.map((m) => (
+                          <button
+                            type="button"
+                            key={m.memberId}
+                            className="evs-cw-roster-add-row"
+                            onClick={() => addToCreateRoster(m)}
+                            data-testid={`evs-cw-roster-add-${m.memberId}`}
+                          >
+                            <span className="evs-cw-roster-name">
+                              {m.name || m.memberId}
+                            </span>
+                            <span className="evs-cw-roster-meta">
+                              {[m.dept, m.level].filter(Boolean).join(' · ')}
+                            </span>
+                            <span className="evs-cw-roster-cta">
+                              {L.cwCreateAddCta}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 명단 검색 — 명단이 길 때만. 뺄 사람을 눈으로 찾을 수 없다 */}
+                  {createRoster.length > 5 && (
+                    <input
+                      className="evs-cw-create-input"
+                      value={createRosterSearch}
+                      onChange={(e) => setCreateRosterSearch(e.target.value)}
+                      placeholder={L.cwCreateRosterSearch}
+                      aria-label={L.cwCreateRosterSearch}
+                      data-testid="evs-cw-roster-search"
+                    />
+                  )}
+
+                  {createRoster.length === 0 ? (
                     <div
-                      className="evs-cw-create-preview"
-                      data-testid="evs-cw-create-preview"
+                      className="evs-cw-create-muted"
+                      data-testid="evs-cw-roster-empty"
                     >
-                      {fmt(L.cwCreatePreview, { n })}
+                      {L.cwCreateRosterEmpty}
                     </div>
-                  );
-                })()}
+                  ) : visibleCreateRoster.length === 0 ? (
+                    <div
+                      className="evs-cw-create-muted"
+                      data-testid="evs-cw-roster-search-empty"
+                    >
+                      {fmt(L.cwCreateRosterSearchEmpty, {
+                        n: createRoster.length,
+                      })}
+                    </div>
+                  ) : (
+                    <ul className="evs-cw-roster-list">
+                      {visibleCreateRoster.map((m, i) => (
+                        <li
+                          key={m.memberId}
+                          className="evs-cw-roster-row"
+                          data-testid="evs-cw-roster-row"
+                        >
+                          <span className="evs-cw-roster-num">{i + 1}</span>
+                          <span className="evs-cw-roster-name">
+                            {m.name || m.memberId}
+                          </span>
+                          <span className="evs-cw-roster-meta">
+                            {[m.dept, m.level].filter(Boolean).join(' · ')}
+                          </span>
+                          {createAddedSet.has(m.memberId) && (
+                            <span className="evs-cw-roster-tag">
+                              {L.cwCreateAddedTag}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="evs-cw-roster-x"
+                            onClick={() => excludeFromCreateRoster(m)}
+                            aria-label={`${m.name || m.memberId} ${L.cwCreateExclude}`}
+                            data-testid={`evs-cw-roster-remove-${m.memberId}`}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* 제외한 사람은 계속 보여 준다 — 조용히 사라지면 실수로 뺀 사람을
+                      다시 찾을 방법이 없다(정책 §7.A-1 누락 인원 트래킹). */}
+                  {createExcludedMembers.length > 0 && (
+                    <div
+                      className="evs-cw-roster-excluded"
+                      data-testid="evs-cw-roster-excluded"
+                    >
+                      <div className="evs-cw-roster-excluded-head">
+                        {fmt(L.cwCreateExcludedCount, {
+                          n: createExcludedMembers.length,
+                        })}
+                      </div>
+                      <div className="evs-cw-roster-excluded-chips">
+                        {createExcludedMembers.map((m) => (
+                          <span
+                            key={m.memberId}
+                            className="evs-cw-roster-excluded-chip"
+                          >
+                            {m.name || m.memberId}
+                            <button
+                              type="button"
+                              className="evs-cw-roster-restore"
+                              onClick={() => restoreToCreateRoster(m.memberId)}
+                              aria-label={`${m.name || m.memberId} ${L.cwCreateRestore}`}
+                              data-testid={`evs-cw-roster-restore-${m.memberId}`}
+                            >
+                              <RefreshIcon size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             )}
 
@@ -3537,7 +3764,13 @@ export default function EvalCycleSummaryCanvas({
                   type="button"
                   className="evc-btn is-primary"
                   data-testid="evs-cw-create-submit"
-                  disabled={!createName.trim() || createCommittee.length === 0}
+                  /* PW-444 — 대상 0명이면 서버가 400 으로 끊는다. 여기서 같은 것을
+                     보지 않으면 「생성」을 눌러야 실패를 알게 된다. */
+                  disabled={
+                    !createName.trim() ||
+                    createCommittee.length === 0 ||
+                    (scopeRoster.length > 0 && createRoster.length === 0)
+                  }
                   onClick={() => {
                     const scope = {};
                     if (createDepts.length > 0) scope.departments = createDepts;
@@ -3545,6 +3778,10 @@ export default function EvalCycleSummaryCanvas({
                     onCreateSession?.({
                       name: createName.trim(),
                       scope,
+                      // PW-444 — 명단에서 손으로 더하고 뺀 결과. 서버 유효 대상 계산식
+                      // (조건 매칭 ∪ 추가) − 제외 의 두 항이다.
+                      addedMemberIds: createAdded,
+                      excludedMemberIds: createExcluded,
                       committee: createCommittee.map((userId, i) => ({
                         userId,
                         role: i === 0 ? 'chair' : 'member',

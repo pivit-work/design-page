@@ -1905,6 +1905,34 @@ export default function EvalCycleWizard({
   // 못 찾는다. 검색은 '표시'만 바꾼다 — 선택과 선택 순서에는 관여하지 않으므로
   // 위원장(= 선택 순서 첫 위원)이 검색·정렬로 옮겨가지 않는다.
   const [committeeSearch, setCommitteeSearch] = useState('');
+  /**
+   * PW-444 ① 위원회의 «대상».
+   *
+   * 종전에는 이 단계가 위원만 골랐고, 소비 측이 세션을 만들 때 대상 조건을 빈 값으로
+   * 보냈다. 서버는 대상 조건이 비면 사이클 참여자 전원을 대상으로 보므로, 위자드로
+   * 만든 위원회는 **언제나 전원 소관**이었고 조직·직급으로 나눌 방법이 없었다.
+   *
+   * 축은 워크스페이스 「＋ 위원회 생성」 모달과 **같은 값**을 쓴다
+   * (`scope.departments` · `scope.levels`) — 한 세션을 어느 경로로 만들었는지가
+   * 뒤에 드러나면 안 된다(spec-calibration.md §3.3 2경로 일치).
+   */
+  const [committeeName, setCommitteeName] = useState(() => D?.committeeName ?? '');
+  const [committeeDepts, setCommitteeDepts] = useState(() => [
+    ...(D?.committeeDepts ?? []),
+  ]);
+  const [committeeLevels, setCommitteeLevels] = useState(() => [
+    ...(D?.committeeLevels ?? []),
+  ]);
+  /* 자동 매핑에 대한 사람 손. 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원. */
+  const [committeeAdded, setCommitteeAdded] = useState(() => [
+    ...(D?.committeeAdded ?? []),
+  ]);
+  const [committeeExcluded, setCommitteeExcluded] = useState(() => [
+    ...(D?.committeeExcluded ?? []),
+  ]);
+  /* 명단 검색·추가 검색은 «보기 조건»이라 초안에 담지 않는다(collectDraft 규칙 1). */
+  const [committeeRosterSearch, setCommitteeRosterSearch] = useState('');
+  const [committeeAddSearch, setCommitteeAddSearch] = useState('');
   const [name, setName] = useState(() => D?.name ?? cycle?.name ?? '');
   const [startDate, setStartDate] = useState(() =>
     datePart(D?.startDate ?? cycle?.startDate ?? ''),
@@ -2888,6 +2916,100 @@ export default function EvalCycleWizard({
   const exclusionReasonOf = (id) =>
     exclusions.find((e) => e.memberId === id)?.exclusionType ?? 'manual';
 
+  /* ── PW-444 위원회 ① 대상 — 「그 사이클의 대상자 풀」을 조직·직급으로 자른다 ──
+     축의 값 목록도 조직도 전체가 아니라 **대상자 풀에서** 뽑는다. 전체에서 뽑으면
+     이 사이클에 아무도 없는 조직이 칩으로 떠서, 골라도 명단이 0명인 자리가 생긴다.
+     서버 조회를 새로 만들지 않는다 — 위자드에는 아직 사이클이 없어 세션 명단을 받을
+     길이 없고, 필요한 값(조직·직급)은 후보 명단에 이미 들어 있다. */
+  /* 🔴 «조직» 은 `department` 가 아니라 `hrDepartment` 다.
+     `department` 는 조직도의 소속 «단위 이름» 이고(프로필 표시용), 서버의 캘리브레이션
+     대상 판정(`matchesScope`)·캘리브레이션 표의 「조직」 열·부서별 통계는 전부 인사
+     정보의 소속 «컬럼 원값» 을 본다. 둘이 다른 조직에서 `department` 로 자르면
+     화면은 N명을 보여 주는데 서버는 아무도 못 잡는다(실측으로 확인했다). */
+  const committeeDeptOf = (m) => m.hrDepartment;
+  const committeeDeptOptions = [
+    ...new Set(targetMembers.map(committeeDeptOf).filter(Boolean)),
+  ];
+  const committeeLevelOptions = [
+    ...new Set(targetMembers.map((c) => c.jobPosition).filter(Boolean)),
+  ];
+  const committeeSelectedIds = new Set(committee);
+  const committeeAddedSet = new Set(committeeAdded);
+  const committeeExcludedSet = new Set(committeeExcluded);
+  /* 서버 `matchesScope` 와 같은 규칙 — **고르지 않은 축으로는 자르지 않는다**(빈 축 = 전체).
+     화면이 서버와 다른 규칙을 쓰면 「명단엔 12명인데 실제 대상은 40명」이 된다. */
+  const matchesCommitteeScope = (m) =>
+    (committeeDepts.length === 0 ||
+      committeeDepts.includes(committeeDeptOf(m))) &&
+    (committeeLevels.length === 0 || committeeLevels.includes(m.jobPosition));
+  /* 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원.
+     위원을 빼는 이유는 §8 이해상충 — 본인 등급을 본인이 조정할 수 없다. 서버도
+     생성 시 같은 자리에서 위원을 뺀다(eval-calibration.service.ts createCalibrationSession). */
+  const committeeRoster = targetMembers.filter(
+    (m) =>
+      !committeeExcludedSet.has(m.id) &&
+      !committeeSelectedIds.has(m.id) &&
+      (matchesCommitteeScope(m) || committeeAddedSet.has(m.id)),
+  );
+  const committeeRosterIds = new Set(committeeRoster.map((m) => m.id));
+  /* 제외 목록에는 «조건에 걸렸는데 사람이 뺀» 사람만 둔다. 개별 추가를 취소한 것은
+     제외가 아니라 추가 철회라, 되돌리기 목록에 두면 뭘 되돌리는지 알 수 없다. */
+  const committeeExcludedMembers = targetMembers.filter(
+    (m) => committeeExcludedSet.has(m.id) && matchesCommitteeScope(m),
+  );
+  const committeeRosterQuery = committeeRosterSearch.trim().toLowerCase();
+  /* 명단 검색은 **표시만** 바꾼다 — 제외·추가 상태도 인원 수도 검색어와 무관하다. */
+  const visibleCommitteeRoster = committeeRosterQuery
+    ? committeeRoster.filter((m) =>
+        [m.name, committeeDeptOf(m), m.jobPosition].some((v) =>
+          String(v ?? '')
+            .toLowerCase()
+            .includes(committeeRosterQuery),
+        ),
+      )
+    : committeeRoster;
+  const committeeAddQuery = committeeAddSearch.trim().toLowerCase();
+  /* 개별 추가 후보 — 이미 명단에 있거나 위원인 사람은 뺀다. 드롭다운이라 6명까지만. */
+  const committeeAddResults = committeeAddQuery
+    ? targetMembers
+        .filter(
+          (m) =>
+            !committeeRosterIds.has(m.id) &&
+            !committeeSelectedIds.has(m.id) &&
+            [m.name, committeeDeptOf(m), m.jobPosition].some((v) =>
+              String(v ?? '')
+                .toLowerCase()
+                .includes(committeeAddQuery),
+            ),
+        )
+        .slice(0, 6)
+    : [];
+  const toggleCommitteeDept = (d) =>
+    setCommitteeDepts((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+    );
+  const toggleCommitteeLevel = (lv) =>
+    setCommitteeLevels((prev) =>
+      prev.includes(lv) ? prev.filter((x) => x !== lv) : [...prev, lv],
+    );
+  const excludeFromRoster = (m) => {
+    /* 개별 추가분은 추가를 취소하면 사라진다. 조건에도 걸리는 사람이면 제외까지 함께 —
+       추가만 지우면 조건 매칭으로 곧바로 되살아나서, 눌러도 아무 일이 없어 보인다. */
+    setCommitteeAdded((prev) => prev.filter((x) => x !== m.id));
+    if (matchesCommitteeScope(m)) {
+      setCommitteeExcluded((prev) =>
+        prev.includes(m.id) ? prev : [...prev, m.id],
+      );
+    }
+  };
+  const restoreToRoster = (id) =>
+    setCommitteeExcluded((prev) => prev.filter((x) => x !== id));
+  const addToRoster = (m) => {
+    setCommitteeAdded((prev) => (prev.includes(m.id) ? prev : [...prev, m.id]));
+    setCommitteeExcluded((prev) => prev.filter((x) => x !== m.id));
+    setCommitteeAddSearch('');
+  };
+
   /* ── 필터·검색 — 표시만 거른다(카운터 3값과 저장분은 흔들리지 않는다) ────────── */
   /** 축의 값 목록. 직렬은 고른 직군 아래로 좁는다(직군 → 직렬은 부모–자식). */
   const axisValuesFor = (axisKey, sel) => {
@@ -3036,7 +3158,16 @@ export default function EvalCycleWizard({
    * 「다음」 판정은 **선택 위원 수**로만 한다 — 검색 결과 수와 무관하다(PW-161).
    */
   const calibrationOn = !disabledPhases.has(CALIBRATION_PHASE_ID);
-  const committeeValid = !calibrationOn || !committeeOn || committee.length > 0;
+  /* PW-444 — 위원회를 켰으면 **제목 · 대상 1명 이상 · 위원 1명 이상**이 다 있어야 한다
+     (정책 §7.A-1 검증). 대상은 「조직을 몇 개 골랐나」가 아니라 «유효 대상자 수»로 본다 —
+     서버도 대상 0명이면 400 으로 끊으므로, 여기서 같은 것을 보지 않으면 마지막 생성에서만
+     터진다. 조직·직급을 하나도 안 고르면 대상은 사이클 대상자 전원이라 0명이 아니다. */
+  const committeeValid =
+    !calibrationOn ||
+    !committeeOn ||
+    (committee.length > 0 &&
+      committeeName.trim().length > 0 &&
+      committeeRoster.length > 0);
 
   /**
    * PW-440 ② — 초안에 담을 것을 한 곳에서 모은다.
@@ -3095,9 +3226,14 @@ export default function EvalCycleWizard({
     orgIds: [...orgSel],
     manualExclude: manualExcludedIds,
     manualInclude: keptIds,
-    // 5단계 — 위원회
+    // 5단계 — 위원회 (구성 + PW-444 대상)
     committeeOn,
     committee,
+    committeeName,
+    committeeDepts,
+    committeeLevels,
+    committeeAdded,
+    committeeExcluded,
   });
 
   /* 저장 상태. `savedSnapshot` 은 마지막으로 서버에 보낸 초안의 JSON 이다 —
@@ -3171,7 +3307,11 @@ export default function EvalCycleWizard({
   };
 
   const goStep = (next) => {
+    /* 검색어는 초기화하고 선택·대상은 유지한다(§7.A-2). 돌아왔을 때 예전 검색어가
+       남아 있으면 후보가·대상자가 몇 명뿐인 것처럼 보인다. */
     setCommitteeSearch('');
+    setCommitteeRosterSearch('');
+    setCommitteeAddSearch('');
     const target = seekStep(next, next > step ? 1 : -1);
     setStep(target);
     // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
@@ -3359,6 +3499,24 @@ export default function EvalCycleWizard({
               role: i === 0 ? 'chair' : 'member',
             }))
           : undefined,
+      /* PW-444 — 위원회의 제목과 대상. 소비 측이 캘리브레이션 세션 생성에 그대로 싣는다.
+         고르지 않은 축은 아예 싣지 않는다 — 빈 배열을 보내면 「그 축으로 아무도 안 걸린다」
+         로 읽힐 여지가 생긴다(서버는 빈 축 = 전체로 본다). */
+      committeeName:
+        committeeOn && committee.length > 0 ? committeeName.trim() : undefined,
+      committeeScope:
+        committeeOn && committee.length > 0
+          ? {
+              ...(committeeDepts.length > 0
+                ? { departments: committeeDepts }
+                : {}),
+              ...(committeeLevels.length > 0 ? { levels: committeeLevels } : {}),
+            }
+          : undefined,
+      committeeAddedMemberIds:
+        committeeOn && committee.length > 0 ? committeeAdded : undefined,
+      committeeExcludedMemberIds:
+        committeeOn && committee.length > 0 ? committeeExcluded : undefined,
     };
     onSubmit(payload);
   };
@@ -5724,6 +5882,296 @@ export default function EvalCycleWizard({
               <p className="evc-wiz-hint">{L.wizardCommitteeHint}</p>
               {committeeOn && (
                 <>
+                  {/* PW-444 ① 대상 — **먼저** 정한다. 누구를 조정할지가 정해져야
+                      그 등급을 누가 조정할지(② 위원)를 고를 수 있다(정책 §7.A-1 대상 우선). */}
+                  <div className="evc-wiz-calibscope" data-testid="evc-wiz-calibscope">
+                    <div className="evc-wiz-calibscope-head">
+                      <span className="evc-wiz-calibscope-badge">1</span>
+                      <span className="evc-wiz-calibscope-title">
+                        {L.wizardCommitteeTargetTitle ?? '대상 · 조직 / 직급'}
+                      </span>
+                    </div>
+
+                    <label
+                      className="evc-wiz-calibscope-label"
+                      htmlFor="evc-wiz-committee-name"
+                    >
+                      {L.wizardCommitteeNameLabel ?? '위원회 제목'}
+                    </label>
+                    <input
+                      id="evc-wiz-committee-name"
+                      className={`evc-wiz-calibscope-name${committeeName.trim() ? '' : ' is-blank'}`}
+                      value={committeeName}
+                      onChange={(e) => setCommitteeName(e.target.value)}
+                      placeholder={
+                        L.wizardCommitteeNamePlaceholder ??
+                        '예: Engineering 팀장급 캘리브레이션'
+                      }
+                      data-testid="evc-wiz-committee-name"
+                    />
+
+                    {committeeDeptOptions.length > 0 && (
+                      <>
+                        <div className="evc-wiz-calibscope-label">
+                          {L.wizardCommitteeDeptLabel ??
+                            '조직 (복수 선택 · 고르지 않으면 전 조직)'}
+                        </div>
+                        <div className="evc-wiz-calibscope-chips">
+                          {committeeDeptOptions.map((d) => {
+                            const on = committeeDepts.includes(d);
+                            return (
+                              <button
+                                type="button"
+                                key={d}
+                                className={`evc-wiz-calibscope-chip${on ? ' is-on' : ''}`}
+                                aria-pressed={on}
+                                onClick={() => toggleCommitteeDept(d)}
+                                data-testid={`evc-wiz-committee-dept-${d}`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    {committeeLevelOptions.length > 0 && (
+                      <>
+                        <div className="evc-wiz-calibscope-label">
+                          {L.wizardCommitteeLevelLabel ??
+                            '직급 (복수 선택 · 고르지 않으면 전 직급)'}
+                        </div>
+                        <div className="evc-wiz-calibscope-chips">
+                          {committeeLevelOptions.map((lv) => {
+                            const on = committeeLevels.includes(lv);
+                            return (
+                              <button
+                                type="button"
+                                key={lv}
+                                className={`evc-wiz-calibscope-chip${on ? ' is-on' : ''}`}
+                                aria-pressed={on}
+                                onClick={() => toggleCommitteeLevel(lv)}
+                                data-testid={`evc-wiz-committee-level-${lv}`}
+                              >
+                                {lv}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    {/* 실시간 대상자 명단 — 고르는 즉시 바뀐다. 카운트만 두면
+                        「이 15명이 누구인지」를 확인할 방법이 없다(정책 §7.A-1). */}
+                    <div className="evc-wiz-calibscope-roster">
+                      <div
+                        className="evc-wiz-calibscope-roster-head"
+                        data-testid="evc-wiz-committee-roster-count"
+                      >
+                        <span className="evc-wiz-calibscope-roster-count">
+                          {fill(
+                            L.wizardCommitteeRosterCount ?? '대상자 {{count}}명',
+                            { count: committeeRoster.length },
+                          )}
+                        </span>
+                        {committeeRosterQuery && (
+                          <span className="evc-wiz-calibscope-roster-sub">
+                            {fill(
+                              L.wizardCommitteeRosterFiltered ?? '· 검색 {{count}}명',
+                              { count: visibleCommitteeRoster.length },
+                            )}
+                          </span>
+                        )}
+                        <span className="evc-wiz-calibscope-roster-sub">
+                          {L.wizardCommitteeRosterHint ?? '· 위원 본인은 대상에서 빠집니다'}
+                        </span>
+                      </div>
+
+                      {/* 개별 추가 — 조직·직급으로는 안 걸리는 사람을 이름으로 더한다 */}
+                      <div className="evc-wiz-calibscope-add">
+                        <input
+                          className="evc-wiz-calibscope-add-input"
+                          value={committeeAddSearch}
+                          onChange={(e) => setCommitteeAddSearch(e.target.value)}
+                          placeholder={
+                            L.wizardCommitteeAddSearch ??
+                            '개별 대상자 추가 — 이름 · 조직 · 직급 검색'
+                          }
+                          aria-label={
+                            L.wizardCommitteeAddSearch ??
+                            '개별 대상자 추가 — 이름 · 조직 · 직급 검색'
+                          }
+                          data-testid="evc-wiz-committee-add-search"
+                        />
+                        {committeeAddResults.length > 0 && (
+                          <div
+                            className="evc-wiz-calibscope-add-results"
+                            data-testid="evc-wiz-committee-add-results"
+                          >
+                            {committeeAddResults.map((m) => (
+                              <button
+                                type="button"
+                                key={m.id}
+                                className="evc-wiz-calibscope-add-row"
+                                onClick={() => addToRoster(m)}
+                                data-testid={`evc-wiz-committee-add-${m.id}`}
+                              >
+                                <span className="evc-wiz-calibscope-row-name">
+                                  {m.name}
+                                </span>
+                                <span className="evc-wiz-calibscope-row-meta">
+                                  {[committeeDeptOf(m), m.jobPosition]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                </span>
+                                <span className="evc-wiz-calibscope-add-cta">
+                                  {L.wizardCommitteeAddCta ?? '추가'}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 명단 검색 — 명단이 길 때만. 뺄 사람을 눈으로 찾을 수 없다 */}
+                      {committeeRoster.length > 5 && (
+                        <div className="evc-wiz-calibscope-find">
+                          <SearchIcon size={13} />
+                          <input
+                            className="evc-wiz-calibscope-find-input"
+                            value={committeeRosterSearch}
+                            onChange={(e) => setCommitteeRosterSearch(e.target.value)}
+                            placeholder={
+                              L.wizardCommitteeRosterSearch ??
+                              '명단에서 찾기 — 이름 · 조직 · 직급'
+                            }
+                            aria-label={
+                              L.wizardCommitteeRosterSearch ??
+                              '명단에서 찾기 — 이름 · 조직 · 직급'
+                            }
+                            data-testid="evc-wiz-committee-roster-search"
+                          />
+                          {committeeRosterQuery && (
+                            <button
+                              type="button"
+                              className="evc-wiz-calibscope-find-x"
+                              onClick={() => setCommitteeRosterSearch('')}
+                              aria-label={L.wizardCommitteeSearchReset ?? '검색 초기화'}
+                              data-testid="evc-wiz-committee-roster-search-reset"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {committeeRoster.length === 0 ? (
+                        <p
+                          className="evc-wiz-calibscope-empty"
+                          data-testid="evc-wiz-committee-roster-empty"
+                        >
+                          {L.wizardCommitteeRosterEmpty ??
+                            '대상자가 없습니다. 조직·직급 선택을 넓히거나 개별로 추가하세요.'}
+                        </p>
+                      ) : visibleCommitteeRoster.length === 0 ? (
+                        <p
+                          className="evc-wiz-calibscope-empty"
+                          data-testid="evc-wiz-committee-roster-search-empty"
+                        >
+                          {fill(
+                            L.wizardCommitteeRosterSearchEmpty ??
+                              '"{{query}}" 검색 결과가 없습니다. 대상자 {{count}}명은 그대로 유지됩니다.',
+                            {
+                              query: committeeRosterSearch.trim(),
+                              count: committeeRoster.length,
+                            },
+                          )}
+                        </p>
+                      ) : (
+                        <ul className="evc-wiz-calibscope-list">
+                          {visibleCommitteeRoster.map((m, i) => (
+                            <li
+                              key={m.id}
+                              className="evc-wiz-calibscope-row"
+                              data-testid="evc-wiz-committee-roster-row"
+                            >
+                              <span className="evc-wiz-calibscope-row-num">
+                                {i + 1}
+                              </span>
+                              <span className="evc-wiz-calibscope-row-name">
+                                {m.name}
+                              </span>
+                              <span className="evc-wiz-calibscope-row-meta">
+                                {[committeeDeptOf(m), m.jobPosition]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </span>
+                              {committeeAddedSet.has(m.id) && (
+                                <span className="evc-wiz-calibscope-row-tag">
+                                  {L.wizardCommitteeAddedTag ?? '추가'}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="evc-wiz-calibscope-row-x"
+                                onClick={() => excludeFromRoster(m)}
+                                aria-label={`${m.name} ${L.wizardCommitteeExclude ?? '대상자 제외'}`}
+                                data-testid={`evc-wiz-committee-roster-remove-${m.id}`}
+                              >
+                                ×
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* 제외한 사람은 계속 보여 준다 — 조용히 사라지면 실수로 뺀 사람을
+                          다시 찾을 방법이 없다(정책 §7.A-1 누락 인원 트래킹). */}
+                      {committeeExcludedMembers.length > 0 && (
+                        <div
+                          className="evc-wiz-calibscope-excluded"
+                          data-testid="evc-wiz-committee-excluded"
+                        >
+                          <div className="evc-wiz-calibscope-excluded-head">
+                            {fill(
+                              L.wizardCommitteeExcludedCount ??
+                                '제외한 대상자 {{count}}명',
+                              { count: committeeExcludedMembers.length },
+                            )}
+                          </div>
+                          <div className="evc-wiz-calibscope-excluded-chips">
+                            {committeeExcludedMembers.map((m) => (
+                              <span
+                                key={m.id}
+                                className="evc-wiz-calibscope-excluded-chip"
+                              >
+                                {m.name}
+                                <button
+                                  type="button"
+                                  className="evc-wiz-calibscope-restore"
+                                  onClick={() => restoreToRoster(m.id)}
+                                  aria-label={`${m.name} ${L.wizardCommitteeRestore ?? '되돌리기'}`}
+                                  data-testid={`evc-wiz-committee-restore-${m.id}`}
+                                >
+                                  <UndoIcon size={12} />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ② 참여 위원 — 대상이 정해진 뒤에 고른다 */}
+                  <div className="evc-wiz-calibscope-head is-committee">
+                    <span className="evc-wiz-calibscope-badge is-committee">2</span>
+                    <span className="evc-wiz-calibscope-title">
+                      {L.wizardCommitteeMembersTitle ?? '참여 위원'}
+                    </span>
+                  </div>
+
                   {/* 위원 검색 — 입력 즉시 필터. 후보 명단이 아직 없거나 조회가 깨졌으면 비활성 */}
                   <input
                     className="evc-wiz-committee-search"

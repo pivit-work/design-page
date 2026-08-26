@@ -6429,6 +6429,425 @@
   color: var(--utility-blue-700, #175cd3);
 }
 
+/* ── PW-444: 워크스페이스 「＋ 위원회 생성」 모달의 대상자 명단 ──
+   위자드(.evc-wiz-calibscope-*)와 같은 구성이다. 두 경로가 같은 방식으로 동작해야
+   한다는 §3.3 2경로 일치. */
+.evs-cw-roster {
+  margin-top: 6px;
+}
+.evs-cw-roster-sub {
+  margin-left: 5px;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 400;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-roster-add {
+  position: relative;
+  margin-top: 6px;
+}
+.evs-cw-roster-add-results {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  max-height: 172px;
+  overflow-y: auto;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+}
+.evs-cw-roster-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid var(--border-secondary, var(--utility-gray-100, #f2f4f7));
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evs-cw-roster-cta {
+  margin-left: auto;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--utility-blue-700, #175cd3);
+}
+.evs-cw-roster-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.evs-cw-roster-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary, #f9fafb);
+}
+.evs-cw-roster-num {
+  min-width: 18px;
+  font-size: 10px;
+  color: var(--text-tertiary, #667085);
+  font-variant-numeric: tabular-nums;
+}
+.evs-cw-roster-name {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-roster-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #667085);
+  /* 조직·직급은 회사가 정하는 값이라 길이가 흔들린다 — 넘치면 잘라 준다. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evs-cw-roster-tag {
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--utility-blue-100, #d1e9ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.evs-cw-roster-x {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #667085);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.evs-cw-roster-excluded {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--utility-error-200, #fecdca);
+  background: var(--utility-error-50, #fef3f2);
+}
+.evs-cw-roster-excluded-head {
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--utility-error-700, #b42318);
+}
+.evs-cw-roster-excluded-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.evs-cw-roster-excluded-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--utility-error-200, #fecdca);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #344054);
+  font-size: 11px;
+  font-weight: 600;
+}
+.evs-cw-roster-restore {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--utility-blue-700, #175cd3);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── PW-444: 위자드 위원회 스텝 ① 대상(조직·직급) + 실시간 대상자 명단 ──
+   워크스페이스 「＋ 위원회 생성」 모달(.evs-cw-create-*)과 같은 축·같은 값을 다룬다. */
+.evc-wiz-calibscope {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--utility-blue-200, #b2ddff);
+  background: var(--utility-blue-50, #eff8ff);
+}
+.evc-wiz-calibscope-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.evc-wiz-calibscope-head.is-committee {
+  margin-top: 14px;
+}
+.evc-wiz-calibscope-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--utility-blue-600, #1570ef);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.evc-wiz-calibscope-badge.is-committee {
+  background: var(--utility-pink-600, #dd2590);
+}
+.evc-wiz-calibscope-title {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evc-wiz-calibscope-label {
+  display: block;
+  margin: 10px 0 5px;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-secondary, #344054);
+}
+.evc-wiz-calibscope-name {
+  width: 100%;
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary, #101828);
+}
+/* 제목이 비면 「다음」이 막히므로, 어디가 막는지 보이게 테두리로 표시한다. */
+.evc-wiz-calibscope-name.is-blank {
+  border-color: var(--utility-warning-300, #fec84b);
+}
+.evc-wiz-calibscope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.evc-wiz-calibscope-chip {
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #344054);
+  font-size: var(--font-size-text-xs, 12px);
+  font-family: inherit;
+  cursor: pointer;
+}
+.evc-wiz-calibscope-chip.is-on {
+  border-color: var(--utility-blue-600, #1570ef);
+  background: var(--utility-blue-100, #d1e9ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-weight: 700;
+}
+.evc-wiz-calibscope-roster {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--utility-blue-200, #b2ddff);
+}
+.evc-wiz-calibscope-roster-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.evc-wiz-calibscope-roster-count {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--utility-blue-700, #175cd3);
+}
+.evc-wiz-calibscope-roster-sub {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+}
+.evc-wiz-calibscope-add {
+  position: relative;
+  margin-bottom: 6px;
+}
+.evc-wiz-calibscope-add-input,
+.evc-wiz-calibscope-find-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary, #101828);
+}
+/* 추가 후보 드롭다운 — 명단 위에 겹쳐 뜬다. */
+.evc-wiz-calibscope-add-results {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: 34px;
+  max-height: 172px;
+  overflow-y: auto;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  background: var(--bg-primary, #fff);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+}
+.evc-wiz-calibscope-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid var(--border-secondary, var(--utility-gray-100, #f2f4f7));
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evc-wiz-calibscope-add-cta {
+  margin-left: auto;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--utility-blue-700, #175cd3);
+}
+.evc-wiz-calibscope-find {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--text-tertiary, #667085);
+}
+.evc-wiz-calibscope-find-x {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #667085);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.evc-wiz-calibscope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.evc-wiz-calibscope-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-primary, #fff);
+}
+.evc-wiz-calibscope-row-num {
+  min-width: 18px;
+  font-size: 10px;
+  color: var(--text-tertiary, #667085);
+  font-variant-numeric: tabular-nums;
+}
+.evc-wiz-calibscope-row-name {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evc-wiz-calibscope-row-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #667085);
+  /* 조직·직급은 길이가 흔들리는 값이라(회사가 정한다) 넘치면 잘라 준다. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evc-wiz-calibscope-row-tag {
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--utility-blue-100, #d1e9ff);
+  color: var(--utility-blue-700, #175cd3);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.evc-wiz-calibscope-row-x {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #667085);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.evc-wiz-calibscope-empty {
+  margin: 6px 0 0;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+}
+.evc-wiz-calibscope-excluded {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--utility-error-200, #fecdca);
+  background: var(--utility-error-50, #fef3f2);
+}
+.evc-wiz-calibscope-excluded-head {
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--utility-error-700, #b42318);
+}
+.evc-wiz-calibscope-excluded-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.evc-wiz-calibscope-excluded-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--utility-error-200, #fecdca);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #344054);
+  font-size: 11px;
+  font-weight: 600;
+}
+.evc-wiz-calibscope-restore {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--utility-blue-700, #175cd3);
+  cursor: pointer;
+  padding: 0;
+}
+
 /* ── R1b 경로 B: 위자드 위원회 스텝 ── */
 .evc-wiz-committee-toggle {
   display: flex;
