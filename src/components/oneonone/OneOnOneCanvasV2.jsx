@@ -35,6 +35,32 @@ function resolveActionKind(action) {
 }
 
 /**
+ * 캔버스에 박혀 있는 고정 문구의 한국어 기본값. 호스트가 `labels` 로 키별로 덮어쓴다
+ * (PW-505). 안 넘긴 키는 종전 한국어 그대로라 기존 화면은 변화가 없다.
+ *
+ * 사람 수·팀원 수처럼 «숫자가 낀» 문구는 여기 두지 않는다 — 언어마다 숫자 자리가
+ * 달라서, 조립은 문장을 아는 호스트가 해야 한다. 그쪽은 `teamCountLabel`
+ * (헤더)·`section.countLabel`(섹션) 로 완성된 글자를 받는다.
+ */
+export const DEFAULT_LABELS = {
+  addSchedule: '1on1 일정 추가',
+  coachingHeading: '이번 달 내 1on1 코칭 지표',
+  briefingTeamHealth: '팀 헬스 평균',
+  briefingRedFlags: '레드 플래그',
+  briefingOneOnOneAvg: '1on1 평균',
+  kpiCompletion: '완료 횟수',
+  kpiActionRate: '액션 완료율',
+  kpiSpeakRatio: '발화 비율',
+  speakManager: '매니저',
+  speakMember: '멤  버',
+  severityUrgent: '긴급',
+  severityWarning: '주의',
+  severityGood: '양호',
+  severityPraise: '칭찬',
+  scheduleChange: '일정변경',
+};
+
+/**
  * 1on1 페이지 v2 — Figma node 16816:33877.
  *
  * 구조:
@@ -49,6 +75,10 @@ function resolveActionKind(action) {
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
  *  - locale / scheduleLabels: 예약 모달 안 글자의 로케일·번역. 그대로 AddOneOnOneModal
  *    에 넘긴다 (PW-469). 미지정 시 한국어 기본값 — 종전과 같은 화면이다.
+ *  - labels: 예약 모달 «바깥», 즉 이 캔버스 본문에 박힌 고정 문구의 번역 (PW-505).
+ *    키는 `DEFAULT_LABELS` 참조. 안 넘긴 키는 한국어 기본값이다.
+ *  - managerLabel / teamCountLabel: 제목 줄의 「매니저」·「팀원 N명」. 숫자가 껴 있어
+ *    호스트가 완성된 글자를 넘긴다. 그대로 OneOnOnePageHeader 로 간다.
  *  - scheduleDefaultDate: 예약 모달 날짜 칸의 기본값(Date). 호스트가 «사용자 시간대의
  *    내일» 을 계산해 넘긴다. 미지정 시 모달이 브라우저 로컬 기준 내일로 폴백한다.
  *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
@@ -74,6 +104,11 @@ export default function OneOnOneCanvasV2({
   members,
   locale = 'ko',
   scheduleLabels,
+  /** 캔버스 본문 고정 문구의 번역 (PW-505). 키는 DEFAULT_LABELS 참조. */
+  labels,
+  /** 제목 줄 「매니저」·「팀원 N명」 — 숫자가 껴 있어 호스트가 완성해 넘긴다. */
+  managerLabel,
+  teamCountLabel,
   scheduleDefaultDate,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
@@ -91,6 +126,7 @@ export default function OneOnOneCanvasV2({
    *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
   renderMemberAvatar,
 }) {
+  const L = { ...DEFAULT_LABELS, ...labels };
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
   const [scheduleMember, setScheduleMember] = useState(null);
@@ -147,11 +183,17 @@ export default function OneOnOneCanvasV2({
     <main className="ono-page">
       {/* 제목 줄은 `OneOnOnePageHeader` 하나로 모았다 — 진행 화면(pivit-work
           /one-on-one)이 같은 모양을 손으로 다시 그리고 있었다 (PW-477). */}
-      <OneOnOnePageHeader title={title} managerName={managerName} teamCount={teamCount}>
+      <OneOnOnePageHeader
+        title={title}
+        managerName={managerName}
+        teamCount={teamCount}
+        managerLabel={managerLabel}
+        teamCountLabel={teamCountLabel}
+      >
         {!startMember && (
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
-            <span>1on1 일정 추가</span>
+            <span>{L.addSchedule}</span>
           </button>
         )}
       </OneOnOnePageHeader>
@@ -205,18 +247,18 @@ export default function OneOnOneCanvasV2({
           />
 
           {briefing && (
-            <BriefingBar briefing={briefing} icons={icons} baseUrl={baseUrl} />
+            <BriefingBar briefing={briefing} icons={icons} baseUrl={baseUrl} labels={L} />
           )}
 
           {message && <p className="ono-message">{message}</p>}
 
           {kpis && (
             <section className="ono-section">
-              <h2 className="ono-section-heading">이번 달 내 1on1 코칭 지표</h2>
+              <h2 className="ono-section-heading">{L.coachingHeading}</h2>
               <div className="ono-kpi-grid">
-                <CompletionKpi data={kpis.completion} />
-                <ActionRateKpi value={kpis.actionRate} />
-                <SpeakRatioKpi data={kpis.speakRatio} />
+                <CompletionKpi data={kpis.completion} labels={L} />
+                <ActionRateKpi value={kpis.actionRate} labels={L} />
+                <SpeakRatioKpi data={kpis.speakRatio} labels={L} />
               </div>
             </section>
           )}
@@ -226,7 +268,7 @@ export default function OneOnOneCanvasV2({
               <div className="ono-section-heading-row">
                 <h2 className="ono-section-heading">{sec.title}</h2>
                 <span className="ono-section-count" style={{ color: sec.countColor }}>
-                  {sec.count}명
+                  {sec.countLabel ?? `${sec.count}명`}
                 </span>
               </div>
               <div className="ono-member-grid">
@@ -239,6 +281,7 @@ export default function OneOnOneCanvasV2({
                     onAction={handleMemberAction}
                     onCardClick={(onMemberClick || m.detail) ? () => handleMemberClick(m) : undefined}
                     renderAvatar={renderMemberAvatar}
+                    labels={L}
                   />
                 ))}
               </div>
@@ -285,7 +328,7 @@ export default function OneOnOneCanvasV2({
   );
 }
 
-function BriefingBar({ briefing, icons, baseUrl }) {
+function BriefingBar({ briefing, icons, baseUrl, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-briefing-bar">
       <div className="ono-briefing-title">
@@ -296,21 +339,21 @@ function BriefingBar({ briefing, icons, baseUrl }) {
         {briefing.metrics?.teamHealth != null && (
           <span className="ono-briefing-metric">
             <Icon src={icons?.activityHeart} size={14} color="var(--utility-pink-500, #ee46bc)" baseUrl={baseUrl} />
-            <span>팀 헬스 평균</span>
+            <span>{labels.briefingTeamHealth}</span>
             <span>{briefing.metrics.teamHealth}</span>
           </span>
         )}
         {briefing.metrics?.redFlags != null && (
           <span className="ono-briefing-metric">
             <Icon src={icons?.alertTriangle} size={14} color="var(--colors-error-500)" baseUrl={baseUrl} />
-            <span>레드 플래그</span>
+            <span>{labels.briefingRedFlags}</span>
             <span>{briefing.metrics.redFlags}</span>
           </span>
         )}
         {briefing.metrics?.oneOnOneAvg != null && (
           <span className="ono-briefing-metric">
             <Icon src={icons?.messageSmile} size={14} color="var(--colors-foreground-fgSuccessPrimary)" baseUrl={baseUrl} />
-            <span>1on1 평균</span>
+            <span>{labels.briefingOneOnOneAvg}</span>
             <span>{briefing.metrics.oneOnOneAvg}</span>
           </span>
         )}
@@ -319,10 +362,10 @@ function BriefingBar({ briefing, icons, baseUrl }) {
   );
 }
 
-function CompletionKpi({ data }) {
+function CompletionKpi({ data, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-kpi-card">
-      <p className="ono-kpi-label">완료 횟수</p>
+      <p className="ono-kpi-label">{labels.kpiCompletion}</p>
       <div className="ono-kpi-completion-row">
         <p className="ono-kpi-value-large">{data.current}/{data.total}</p>
         <p className="ono-kpi-side">{data.label}</p>
@@ -331,10 +374,10 @@ function CompletionKpi({ data }) {
   );
 }
 
-function ActionRateKpi({ value }) {
+function ActionRateKpi({ value, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-kpi-card">
-      <p className="ono-kpi-label">액션 완료율</p>
+      <p className="ono-kpi-label">{labels.kpiActionRate}</p>
       <p className="ono-kpi-value-blue">{value}%</p>
       <div className="ono-kpi-bar">
         <div className="ono-kpi-bar-fill ono-kpi-bar-blue" style={{ width: `${value}%` }} />
@@ -343,12 +386,12 @@ function ActionRateKpi({ value }) {
   );
 }
 
-function SpeakRatioKpi({ data }) {
+function SpeakRatioKpi({ data, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-kpi-card">
-      <p className="ono-kpi-label">발화 비율</p>
-      <SpeakRow label="매니저" value={data.manager} />
-      <SpeakRow label="멤  버" value={data.member} />
+      <p className="ono-kpi-label">{labels.kpiSpeakRatio}</p>
+      <SpeakRow label={labels.speakManager} value={data.manager} />
+      <SpeakRow label={labels.speakMember} value={data.member} />
     </div>
   );
 }
@@ -366,10 +409,10 @@ function SpeakRow({ label, value }) {
 }
 
 const SEVERITY_BADGE = {
-  urgent: { label: '긴급', bg: 'var(--utility-error-50)', color: 'var(--text-error-primary)', icon: '⚠' },
-  warning: { label: '주의', bg: 'var(--componentColors-utility-warning-utilityWarning100, #fef0c7)', color: 'var(--colors-text-textWarningPrimary, #dc6803)', icon: '⚠' },
-  good: { label: '양호', bg: 'var(--utility-green-100)', color: 'var(--utility-green-600)', icon: null },
-  praise: { label: '칭찬', bg: 'var(--utility-blue-100)', color: 'var(--utility-blue-600)', icon: null },
+  urgent: { labelKey: 'severityUrgent', bg: 'var(--utility-error-50)', color: 'var(--text-error-primary)', icon: '⚠' },
+  warning: { labelKey: 'severityWarning', bg: 'var(--componentColors-utility-warning-utilityWarning100, #fef0c7)', color: 'var(--colors-text-textWarningPrimary, #dc6803)', icon: '⚠' },
+  good: { labelKey: 'severityGood', bg: 'var(--utility-green-100)', color: 'var(--utility-green-600)', icon: null },
+  praise: { labelKey: 'severityPraise', bg: 'var(--utility-blue-100)', color: 'var(--utility-blue-600)', icon: null },
 };
 
 const HEALTH_COLORS = {
@@ -378,7 +421,7 @@ const HEALTH_COLORS = {
   good: { text: 'var(--utility-green-600)', bar: 'var(--utility-green-100)' },
 };
 
-function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvatar }) {
+function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvatar, labels = DEFAULT_LABELS }) {
   const badge = SEVERITY_BADGE[member.severity] ?? SEVERITY_BADGE.good;
   const healthConf = HEALTH_COLORS[member.healthSeverity] ?? HEALTH_COLORS.good;
   const healthPct = Math.max(0, Math.min(100, (parseFloat(member.healthScore) / 10) * 100));
@@ -402,7 +445,7 @@ function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvata
         </div>
         <div className="ono-member-badge" style={{ background: badge.bg, color: badge.color }}>
           {badge.icon && <span className="ono-member-badge-icon">{badge.icon}</span>}
-          <span>{badge.label}</span>
+          <span>{labels[badge.labelKey]}</span>
         </div>
       </div>
 
@@ -434,7 +477,7 @@ function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvata
             <span>•</span>
             <span>{member.schedule.duration}</span>
             {member.schedule.changeable && (
-              <span className="ono-member-schedule-change">일정변경</span>
+              <span className="ono-member-schedule-change">{labels.scheduleChange}</span>
             )}
           </div>
         )}
