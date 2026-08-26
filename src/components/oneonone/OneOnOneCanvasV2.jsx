@@ -47,6 +47,8 @@ function resolveActionKind(action) {
  * 외부 제어 props (pivit-work 등 실제 사용처용):
  *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
+ *  - locale / scheduleLabels: 예약 모달 안 글자의 로케일·번역. 그대로 AddOneOnOneModal
+ *    에 넘긴다 (PW-469). 미지정 시 한국어 기본값 — 종전과 같은 화면이다.
  *  - scheduleDefaultDate: 예약 모달 날짜 칸의 기본값(Date). 호스트가 «사용자 시간대의
  *    내일» 을 계산해 넘긴다. 미지정 시 모달이 브라우저 로컬 기준 내일로 폴백한다.
  *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
@@ -70,6 +72,8 @@ export default function OneOnOneCanvasV2({
   onAddClick,
   onScheduleSubmit,
   members,
+  locale = 'ko',
+  scheduleLabels,
   scheduleDefaultDate,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
@@ -179,6 +183,8 @@ export default function OneOnOneCanvasV2({
             baseUrl={baseUrl}
             members={members}
             defaultDate={scheduleDefaultDate}
+            locale={locale}
+            labels={scheduleLabels}
           />
 
           {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
@@ -194,6 +200,8 @@ export default function OneOnOneCanvasV2({
             icons={icons}
             baseUrl={baseUrl}
             defaultDate={scheduleDefaultDate}
+            locale={locale}
+            labels={scheduleLabels}
           />
 
           {briefing && (
