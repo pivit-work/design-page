@@ -113,7 +113,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'department', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -187,6 +187,53 @@ function useHorizontalScrollEdges(ref, layoutKey) {
 }
 
 /**
+ * 표 상자를 **뷰포트 높이에 맞춰 자른다** (PW-463).
+ *
+ * 🔴 이 화면의 원래 제보가 「아래쪽에 옆으로 지나가는 스크롤이 있는데 안 보인다」였다.
+ *    막대가 없는 게 아니라 **표 맨 아래에 있는데 표가 화면보다 훨씬 길어서** 화면 밖에
+ *    남는 것이다 — 구성원 140명이면 표 아래 끝이 화면에서 6,000px 넘게 밑이다.
+ *    상자 높이를 잘라 두면 가로 막대가 늘 상자 바닥, 즉 화면 안에 있다.
+ *
+ * 쪽 나누기로 풀지 않는다 — 맨 위 체크박스가 「걸러진 행 전체」를 고르는 규칙이라
+ * (`screen-admin-employees-spreadsheet.policy.md §6`), 쪽을 나누면 일괄 편집의 선택
+ * 단위가 사람 수와 어긋난다.
+ *
+ * 빼는 값을 상수로 박지 않고 **상자의 실제 화면 위치를 재서** 정한다 — 이 화면의 툴바는
+ * 필터 칩이 12개라 창 너비에 따라 한 줄이 되기도 두 줄이 되기도 한다. 상수로 잡으면
+ * 한쪽 너비에서는 상자가 화면보다 길어져 증상이 그대로 돌아온다.
+ * 잴 수 없는 환경(jsdom·초기 렌더)에서는 `null` 을 돌려 높이 제한을 걸지 않는다.
+ */
+function useViewportBoundedHeight(ref, bottomGap, layoutKey) {
+  const [maxHeight, setMaxHeight] = useState(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === 'undefined') return undefined;
+    const measure = () => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const vh = window.innerHeight || 0;
+      if (!vh || !Number.isFinite(top)) return;
+      // 상자가 화면 위쪽에 붙어 있을 때(=페이지를 안 내린 상태) 남는 높이.
+      const next = Math.max(MIN_SHEET_BOX_H, Math.round(vh - top - bottomGap));
+      setMaxHeight((prev) => (prev === next ? prev : next));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (ro && el.parentElement) ro.observe(el.parentElement);
+    return () => {
+      window.removeEventListener('resize', measure);
+      if (ro) ro.disconnect();
+    };
+  }, [ref, bottomGap, layoutKey]);
+  return maxHeight;
+}
+
+/** 상자가 이보다 낮아지면 표를 읽을 수 없다 — 그때는 페이지가 세로로 밀리는 편이 낫다. */
+const MIN_SHEET_BOX_H = 260;
+/** 상자 아래 남겨 둘 여백 — 카드 패딩 + 가로 막대 두께. 브라우저 실측값이다. */
+const SHEET_BOX_BOTTOM_GAP = 28;
+
+/**
  * 연봉(이력) 아이콘. 통화 글리프 `₩` 를 아이콘 자리에 쓰면 폰트에 따라 굵기·폭이
  * 달라지고 fontSize 로만 크기가 정해져 옆 아이콘과 광학 크기가 안 맞는다.
  * 지폐 도형으로 그려 다른 인라인 SVG 와 같은 24 그리드·같은 stroke 를 쓴다.
@@ -256,6 +303,10 @@ function mapMembers(list) {
     displayName: m.displayName ?? '',
     email: m.email ?? '',
     phone: m.phone ?? '',
+    /* 사번·직위·고용형태 — 목록 뷰에만 있던 세 열이다(PW-400 → PW-463).
+       한 메뉴 안의 두 보기가 서로 다른 값을 보여주면 어느 쪽이 맞는지 화면이
+       말해 주지 못한다(`admin-spec.md §3.8` 「데이터 계약은 두 뷰가 같다」). */
+    employeeCode: m.employeeCode ?? '',
     department: m.department ?? '',
     // 겸직(중복 소속) — 소속 셀은 행을 복제하지 않고 칩을 세로로 쌓는다(PW-111).
     // 행을 복제하면 ① 체크박스 선택·일괄 저장·페이지네이션의 단위가 사람 수와
@@ -283,12 +334,16 @@ function mapMembers(list) {
       ? m.squads.map((s) => ({ squadId: String(s.squadId), isLead: s.isLead === true }))
       : [],
     jobLevel: m.jobLevel ?? '',
+    /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 **별개 축**이다(§1-3-g). */
+    jobRank: m.jobRank ?? '',
     jobPosition: m.jobPosition ?? '',
     // 직군 > 직렬 > 직무 3단 (arch-core-data-model §1-3-a 7·8·19).
     // ⚠ `jobTitle` 은 직무가 아니라 **직렬**이다(2026-08-10 M5-b, 키 이름만 남았다).
     jobFamily: m.jobFamily ?? '',
     jobTitle: m.jobTitle ?? '',
     jobDuty: m.jobDuty ?? '',
+    /** 고용형태 — 정규직·계약직. 재직상태(`employmentStatus`)와 다른 축이다. */
+    employmentType: m.employmentType ?? '',
     workLocation: m.workLocation ?? '',
     orgRole: m.orgRole ?? 'member',
     // 대표 여부는 편집 대상 컬럼이 아니라 행 상태다 — dirty 추적에 끼지 않도록
@@ -626,7 +681,7 @@ function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, manag
 // ── 검색 가능한 필터 드롭다운 ───────────────────────────────
 // OrgUnitPicker/tm-add-member 패턴(검색 input + 필터된 버튼 리스트 + 바깥 클릭 닫기)을
 // 시트 톤(T 토큰)으로 옮긴 것. 컬럼별로 재사용.
-function FilterMenu({ label, value, options, onChange, allLabel, searchPlaceholder, noResult }) {
+function FilterMenu({ testId, label, value, options, onChange, allLabel, searchPlaceholder, noResult }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -654,6 +709,7 @@ function FilterMenu({ label, value, options, onChange, allLabel, searchPlacehold
     <div ref={ref} style={{ position: 'relative' }}>
       <button
         type="button"
+        data-testid={testId}
         onClick={() => setOpen((v) => !v)}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9,
@@ -777,6 +833,15 @@ export default function AdminEmployeeSheetCanvas({
   gradeOptions = [],
   positionOptions = [],
   /**
+   * 직위(`jobRank`) · 고용형태(`employmentType`) 카탈로그 — 조직 설정 > 필드 옵션.
+   *
+   * 목록 뷰에만 있던 두 열을 여기에도 세운다(PW-463). 카탈로그를 못 받았으면
+   * **자유 텍스트로 폴백**한다(`catCol` 규칙) — 빈 select 로 떨어뜨리면 고를 값이
+   * 없어 기존 값을 지우는 것 말고는 할 수 있는 게 없다.
+   */
+  rankOptions = [],
+  employmentTypeOptions = [],
+  /**
    * 직군 > 직렬 > 직무 3단 축 (arch-core-data-model §1-3-a 7·8·19 · §1-3-d · §1-3-j).
    *
    * 셋을 **한 prop 으로 받는다** — 값 목록과 매핑이 따로 오면 "직렬 목록은 새것,
@@ -897,11 +962,17 @@ export default function AdminEmployeeSheetCanvas({
       { id: 'email', label: cl.email || '이메일', width: 200, type: 'text', editable: true },
       // 전화번호·근무지도 본인 프로필에서 잠긴 인사 정보 — 어드민이 여기서 넣는다(PW-25).
       { id: 'phone', label: cl.phone || '전화번호', width: 130, type: 'text', editable: true },
+      /* 사번 — 목록 뷰와 같은 자리(전화번호 뒤 · 소속 앞)에 둔다. 조직 안에서 유일한
+         값이라 서버가 중복을 400 으로 막는다 — 화면은 값 그대로를 보내고 실패를 알린다. */
+      { id: 'employeeCode', label: cl.employeeCode || '사번', width: 110, type: 'text', editable: true },
       // 부서는 조직 단위 배정에서 파생되는 값이라 직접 편집하지 않는다. 텍스트를 고쳐도
       // 조직 단위가 있는 구성원에게는 반영되지 않아 죽은 입력이 된다(팀 이동은 팀 관리에서).
       // 소속은 최하위 팀명이 아니라 전체 경로를 보여준다(PW-112) — 한 칸 더 넓게 잡는다.
       { id: 'department', label: cl.department || '부서', width: 180, type: 'readonly', editable: false, derived: true },
       catCol('jobLevel', cl.jobLevel || '직급', 110, gradeOptions),
+      /* 직위 — §3.1 정본표의 삽입 위치가 「직급 뒤」다. 직급(내부 등급 Senior)과
+         직위(국내식 호칭 과장)는 헷갈리는 두 축이라 나란히 두는 편이 읽기 쉽다. */
+      catCol('jobRank', cl.jobRank || '직위', 100, rankOptions, { emptyLabel: '—' }),
       catCol('jobPosition', cl.jobPosition || '직책', 110, positionOptions),
       /* 직군 > 직렬 > 직무 (§1-3-a 7·8·19). 위에서 아래로 좁혀지는 3단이다 —
          직군을 고르면 그 직군의 직렬만, 직렬을 고르면 그 직렬에 매핑된 직무만
@@ -921,7 +992,10 @@ export default function AdminEmployeeSheetCanvas({
       }),
       { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
-      { id: 'employmentStatus', label: cl.status || '상태', width: 100, type: 'select', editable: true, options: STATUS_OPTIONS },
+      /* 고용형태 — 재직상태 바로 앞. 목록 뷰도 이 둘을 붙여 두었다. 둘은 다른 축이다:
+         고용형태는 «어떤 계약으로 일하는가»(정규직·계약직), 재직상태는 «지금 다니는가». */
+      catCol('employmentType', cl.employmentType || '고용형태', 110, employmentTypeOptions, { emptyLabel: '—' }),
+      { id: 'employmentStatus', label: cl.status || '재직상태', width: 110, type: 'select', editable: true, options: STATUS_OPTIONS },
       // 매니저 — 직접 배정한다(PW-292). 값은 사용자 id, 화면 라벨은 이름.
       // 후보 조건은 서버 규칙과 같다: 재직 중 + 권한이 멤버보다 위. 자기 자신 제외는
       // 행마다 달라 `excludeSelf` 로 셀 편집기가 처리한다.
@@ -959,7 +1033,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions, squadOptions, managerCandidates, jobAxis]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, rankOptions, employmentTypeOptions, squadOptions, managerCandidates, jobAxis]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -1110,13 +1184,18 @@ export default function AdminEmployeeSheetCanvas({
     { id: 'jobFamily', label: cl.jobFamily || '직군' },
     { id: 'jobTitle', label: cl.jobTitle || '직렬', parentFilter: 'jobFamily' },
     { id: 'jobDuty', label: cl.jobDuty || '직무', parentFilter: 'jobTitle' },
+    /* 근무지·고용형태 — 목록 뷰 필터 11종과 맞춘다(PW-463 · §3.8.5 「후속으로 §3.1
+       필터 칩과 통일한다」). 근무지는 열은 있는데 필터만 없었고, 고용형태는 둘 다
+       없었다. 「직종」은 두 뷰 모두 없다 — 저장할 자리가 아직 없어서다(E6). */
+    { id: 'workLocation', label: cl.workLocation || '근무지' },
+    { id: 'employmentType', label: cl.employmentType || '고용형태' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     // 매니저는 사람 이름으로 거르는 축이 아니다(PW-300, 기획 §3.1) — 어드민이 알고 싶은
     // 것은 "누가 상급자냐" 가 아니라 **"아직 상급자가 없는 사람이 누구냐"** 다. 그래서
     // distinct 이름이 아니라 배정됨/미배정 2종 고정 옵션이다.
     { id: 'managerId', label: cl.manager || '매니저', meta: 'assigned' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.jobFamily, cl.jobTitle, cl.jobDuty, cl.role, cl.manager, cl.status, squadOptions]);
+  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.jobFamily, cl.jobTitle, cl.jobDuty, cl.workLocation, cl.employmentType, cl.role, cl.manager, cl.status, squadOptions]);
   /**
    * 실제로 걸려 있는 필터만 추린 것 — **지금 필터 컬럼인 것만** 남긴다(PW-157).
    *
@@ -1475,10 +1554,10 @@ export default function AdminEmployeeSheetCanvas({
    * 창에서는 고정 이전과 시각이 똑같아야 한다.
    * -------------------------------------------------------------------- */
   const scrollerRef = useRef(null);
-  const scrollEdges = useHorizontalScrollEdges(
-    scrollerRef,
-    `${COLUMNS.length}:${filtered.length}:${canEdit}`,
-  );
+  const layoutKey = `${COLUMNS.length}:${filtered.length}:${canEdit}`;
+  const scrollEdges = useHorizontalScrollEdges(scrollerRef, layoutKey);
+  // 표 상자를 화면 높이에 맞춰 자른다 — 가로 막대가 화면 밖으로 나가지 않게(PW-463).
+  const boxMaxHeight = useViewportBoundedHeight(scrollerRef, SHEET_BOX_BOTTOM_GAP, layoutKey);
   const STICKY_DIVIDER = `1px solid ${T.border}`;
   const DIRTY_CELL_BG = 'rgba(245,158,11,.06)';
   const DIRTY_ROW_BG = 'rgba(245,158,11,.04)';
@@ -1489,6 +1568,18 @@ export default function AdminEmployeeSheetCanvas({
     zIndex: 2,
     ...(extra || {}),
   });
+  /**
+   * 열 이름 줄은 상자 위에 붙는다 (PW-463 · 정책서 §3 ⑧).
+   * 상자가 세로로 잘리는 순간(위 `boxMaxHeight`) 열 이름이 따라 올라가지 않으면
+   * 23열짜리 표에서 지금 보는 칸이 무슨 값인지 알 수 없다.
+   *
+   * z 층이 셋이라는 점이 함정이다. 본문의 왼쪽·오른쪽 고정 셀(z 2)이 헤더 위로
+   * 올라오면 안 되므로 헤더는 z 3, 헤더 안에서도 **가로로도 고정된 모서리 칸**은
+   * 나머지 헤더 칸 위에 떠야 해서 z 4 다. 한 층으로 두면 가로로 밀 때 이름 칸이
+   * 헤더 글자를 덮는다.
+   */
+  const stickyHeadCell = { position: 'sticky', top: 0, zIndex: 3 };
+  const stickyHeadCorner = { ...stickyHeadCell, zIndex: 4 };
   // 마지막 왼쪽 고정 열(이름)의 오른쪽 경계 — 밀린 내용이 그 밑으로 들어감을 보인다.
   const leftEdgeDecor = scrollEdges.left
     ? { borderRight: STICKY_DIVIDER, boxShadow: '6px 0 10px -6px rgba(15,23,42,.28)' }
@@ -1546,6 +1637,7 @@ export default function AdminEmployeeSheetCanvas({
         {FILTER_COLS.map((fc) => (
           <FilterMenu
             key={fc.id}
+            testId={`sheet-filter-${fc.id}`}
             label={fc.label}
             value={filters[fc.id] ?? '__all__'}
             options={filterOptions[fc.id] || []}
@@ -1760,14 +1852,23 @@ export default function AdminEmployeeSheetCanvas({
           </span>
         </div>
 
-        <div ref={scrollerRef} data-testid="sheet-scroller" style={{ overflowX: 'auto' }}>
+        <div
+          ref={scrollerRef}
+          data-testid="sheet-scroller"
+          style={{
+            // 가로·세로 **둘 다** 이 상자 안에서만 흐른다. 가로만 열어 두면 세로는
+            // 페이지가 밀려서, 정작 상자 바닥의 가로 막대가 화면 밖으로 나간다.
+            overflow: 'auto',
+            ...(boxMaxHeight ? { maxHeight: boxMaxHeight } : null),
+          }}
+        >
           {/* 고정 컬럼은 border-collapse: collapse 에서 경계선이 셀과 함께 안 붙는다.
               separate 로 바꾸고 행 구분선을 tr 에서 각 셀로 옮긴다 — 선 위치·색은 그대로다
               (separate 에서는 tr 에 준 border 가 아예 렌더되지 않는다). */}
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: CHECKBOX_W + COLUMNS.reduce((s, c) => s + c.width, 0) + ACTION_W }}>
             <thead>
               <tr style={{ background: T.bg }}>
-                <th data-testid="sheet-head-select" style={{ width: CHECKBOX_W, padding: '10px 14px', borderBottom: `1px solid ${T.border}`, background: T.bg, ...stickyLeftCell(0) }}>
+                <th data-testid="sheet-head-select" style={{ width: CHECKBOX_W, padding: '10px 14px', borderBottom: `1px solid ${T.border}`, background: T.bg, ...stickyLeftCell(0), ...stickyHeadCorner }}>
                   <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: T.accent }} />
                 </th>
                 {COLUMNS.map((c, ci) => (
@@ -1780,7 +1881,8 @@ export default function AdminEmployeeSheetCanvas({
                       color: T.muted, textTransform: 'uppercase', letterSpacing: 0.6,
                       borderBottom: `1px solid ${T.border}`, cursor: 'pointer', userSelect: 'none',
                       background: T.bg, whiteSpace: 'nowrap',
-                      ...(ci === 0 ? { ...stickyLeftCell(CHECKBOX_W), ...leftEdgeDecor } : null),
+                      ...stickyHeadCell,
+                      ...(ci === 0 ? { ...stickyLeftCell(CHECKBOX_W), ...leftEdgeDecor, ...stickyHeadCorner } : null),
                     }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1789,7 +1891,7 @@ export default function AdminEmployeeSheetCanvas({
                     </span>
                   </th>
                 ))}
-                <th data-testid="sheet-head-actions" style={{ width: ACTION_W, padding: '10px 12px', borderBottom: `1px solid ${T.border}`, background: T.bg, position: 'sticky', right: 0, zIndex: 2, ...rightEdgeDecor }} />
+                <th data-testid="sheet-head-actions" style={{ width: ACTION_W, padding: '10px 12px', borderBottom: `1px solid ${T.border}`, background: T.bg, position: 'sticky', right: 0, ...rightEdgeDecor, ...stickyHeadCorner }} />
               </tr>
             </thead>
             <tbody>

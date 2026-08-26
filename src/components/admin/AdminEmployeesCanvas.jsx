@@ -645,7 +645,7 @@ function UnassignedTab({
  * 백지가 됐다. 스타일(admin-emp-select*)은 admin.css 에 그대로 있어, 원래
  * 정의를 되살려 붙인다.
  * ------------------------------------------------------------ */
-function FilterDropdown({ label, value, options, onChange }) {
+function FilterDropdown({ testId, label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -667,6 +667,7 @@ function FilterDropdown({ label, value, options, onChange }) {
       <button
         type="button"
         className="admin-emp-select-trigger"
+        data-testid={testId}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -1606,17 +1607,17 @@ function EmployeesListView({
       </div>
 
       <div className="admin-emp-filterbar">
-        <FilterDropdown label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
-        <FilterDropdown label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
-        <FilterDropdown label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
-        <FilterDropdown label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-dept" label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-squads" label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobPosition" label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobLevel" label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
+        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
+        <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workLocation" label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-employmentType" label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-managerId" label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-employmentStatus" label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
         {hasFilter && (
           <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
         )}
@@ -1629,7 +1630,9 @@ function EmployeesListView({
           <thead>
             <tr>
               {cols.map((c) => (
-                <th key={c.id} style={{ width: c.width }} scope="col">{c.label}</th>
+                /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
+                   읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
+                <th key={c.id} data-testid={`list-head-${c.id}`} style={{ width: c.width }} scope="col">{c.label}</th>
               ))}
             </tr>
           </thead>
@@ -2444,6 +2447,10 @@ export default function AdminEmployeesCanvas({
   canViewSalary = false,
   gradeOptions,
   positionOptions,
+  /** 직위·고용형태 카탈로그 — 시트의 두 열로 그대로 내려간다(PW-463).
+      빠뜨리면 두 열이 자유 텍스트로 폴백해 목록 뷰와 고를 수 있는 값이 갈린다. */
+  rankOptions,
+  employmentTypeOptions,
   // 직군 > 직렬 > 직무 3단 축 — 시트로 그대로 내려간다(PW-323). 여기서 빠뜨리면
   // 세 컬럼이 카탈로그 없는 자유 텍스트로 폴백해, 좁히기도 드롭다운도 사라진다.
   jobAxis,
@@ -2662,6 +2669,8 @@ export default function AdminEmployeesCanvas({
           canViewSalary={canViewSalary}
           gradeOptions={gradeOptions}
           positionOptions={positionOptions}
+          rankOptions={rankOptions ?? EMPTY_ARRAY}
+          employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
           jobAxis={jobAxis}
           canEdit={canEdit}
           renderAvatar={renderAvatar}
