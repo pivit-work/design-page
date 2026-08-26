@@ -65,6 +65,7 @@ const DEFAULT_ICONS = {
   transcript: '/icons-solid/message-text-square-02.svg',
   memo: '/icons-solid/file-06.svg',
   calendar: '/icons-solid/calendar.svg',
+  slack: '/icons-solid/message-chat-circle.svg',
   chevron: '/icons-solid/chevron-down.svg',
   arrow: '/icons-solid/arrow-right.svg',
 };
@@ -161,9 +162,29 @@ const DEFAULT_LABELS = {
   nextMemoError: '사전 메모를 저장하지 못했습니다.',
   bookNext: '다음 1on1 예약하기 — 55분 기본값',
   bookNextDone: '다음 1on1 예약 완료',
+
+  /* ── 액션아이템 Slack 알림 (oneonone-spec §4-4 「다음 단계」) ── */
+  notifySlack: 'Slack 알림 발송',
+  notifySlackBusy: '보내는 중…',
+  notifySlackDone: 'Slack 알림 발송 완료',
+  // 🔴 «보냈다» 로 초록으로 바꾸지 않는 세 경우. 왜 못 보냈는지를 갈라 말하지 않으면
+  // 매니저는 자기가 뭘 해야 하는지 알 수 없다 — 회사가 연동해야 하는 문제인지,
+  // 그 팀원의 계정 문제인지, 그냥 다시 눌러 보면 되는 문제인지가 전부 다르다.
+  notifySlackNoIntegration: '회사 Slack 이 연결돼 있지 않아 보내지 못했습니다.',
+  notifySlackUnmatched: '팀원의 Slack 계정을 찾지 못해 보내지 못했습니다.',
+  notifySlackFailed: 'Slack 으로 보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+  notifySlackEmpty: '보낼 액션아이템이 없습니다.',
 };
 
 const mergeLabels = (base, extra) => ({ ...base, ...(extra || {}) });
+
+/** Slack 발송 실패 사유 → 라벨 키. 모르는 사유는 일반 실패 문구로 떨어진다. */
+const SLACK_ERROR_LABEL = {
+  no_integration: 'notifySlackNoIntegration',
+  unmatched: 'notifySlackUnmatched',
+  failed: 'notifySlackFailed',
+  empty: 'notifySlackEmpty',
+};
 
 /** 값이 하나라도 있는가 — 빈 섹션을 그리지 않기 위한 판정. */
 const has = (v) => Array.isArray(v) && v.length > 0;
@@ -647,6 +668,14 @@ export default function DoneOneOnOneView({
   /** `{ done, onBook() }` — 다음 1on1 예약 */
   booking,
   /**
+   * `{ busy, done, error, onSend() }` — 액션아이템 Slack 알림 (oneonone-spec §4-4).
+   *
+   * **안 넘기면 버튼을 그리지 않는다** — 보낼 경로가 없는 소비처에서 눌러도 아무 일이
+   * 없는 버튼이 생기지 않도록. `error` 는 문구가 아니라 **사유**다
+   * (`no_integration` | `unmatched` | `failed` | `empty`) — 문구는 `labels` 로 온다.
+   */
+  slack,
+  /**
    * `{ busy, error, onShare(), onUnshare() }` — 피드백 공개/되돌리기 (PW-432).
    *
    * **안 넘기면 지금까지처럼 공개 여부 배지만 그린다** — 컨트롤 없이 이 캔버스를 쓰던
@@ -796,6 +825,44 @@ export default function DoneOneOnOneView({
         />
         {booking?.done ? L.bookNextDone : L.bookNext}
       </button>
+
+      {slack && (
+        <>
+          <button
+            type="button"
+            className={`ono-done-notify${slack.done ? ' is-done' : ''}`}
+            data-testid="ono-done-notify-slack"
+            disabled={!!slack.busy}
+            onClick={() => {
+              if (slack.done || slack.busy) return;
+              slack.onSend?.();
+            }}
+          >
+            <Icon
+              src={slack.done ? I.check : I.slack}
+              size={16}
+              color="currentColor"
+              baseUrl={baseUrl}
+            />
+            {slack.done
+              ? L.notifySlackDone
+              : slack.busy
+                ? L.notifySlackBusy
+                : L.notifySlack}
+          </button>
+          {slack.error && (
+            <p
+              className="ono-done-inline-error"
+              role="alert"
+              data-testid="ono-done-notify-slack-error"
+            >
+              {SLACK_ERROR_LABEL[slack.error]
+                ? L[SLACK_ERROR_LABEL[slack.error]]
+                : L.notifySlackFailed}
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }
