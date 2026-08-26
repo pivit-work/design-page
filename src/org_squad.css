@@ -595,7 +595,13 @@
 /* ── Capacity gauge ──
    트랙 전체 = max(100, 합계). 100 지점에 눈금을 그어 초과분을 분리하고,
    초과분은 빗금을 덧대 "캐파 밖" 임을 색만으로 말하지 않는다(§5-3.2). */
-.sq-gauge { position: relative; }
+.sq-gauge {
+  position: relative;
+  /* 폭이 숫자로 박혀도 상자를 넘지 않는다 — 넘치면 팝오버 본문에 가로 스크롤이 생긴다.
+     실제로 배정 편집 팝오버에서 막대 240px 이 212px 상자에 들어가 10px 스크롤이 났다
+     (PW-470). 부르는 쪽이 폭을 어떻게 주든 여기서 한 번 더 막는다. */
+  max-width: 100%;
+}
 .sq-gauge-track {
   display: flex;
   border-radius: 4px;
