@@ -61,7 +61,9 @@ const DEFAULT_LABELS = {
     family: '직군',
     ladder: '직렬',
     duty: '직무',
-    workLocation: '근무지',
+    workLocation: '근무지(도시)',
+    workCountry: '근무지(국가)',
+    workBuilding: '근무 위치(빌딩)',
     employmentType: '고용형태',
     manager: '매니저',
     status: '재직상태',
@@ -131,7 +133,11 @@ const DEFAULT_LABELS = {
       jobDuty: '직무',
       employmentType: '고용형태',
       employmentStatus: '재직상태',
-      workLocation: '근무지',
+      /* 근무 위치 3층 — 국가 > 도시 > 빌딩(§1-3-g 45·46·47 · PW-503). 도시 이름에
+         층위를 안 밝히면 세 열이 전부 「근무지」 로 보인다. */
+      workLocation: '근무지(도시)',
+      workCountry: '근무지(국가)',
+      workBuilding: '근무 위치(빌딩)',
       manager: '매니저',
       hireDate: '입사일',
       terminationDate: '퇴사일',
@@ -915,7 +921,10 @@ const LIST_OPTIONAL_COLS = [
   { id: 'phone', width: 130 },
   /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 별개 축이다(PW-400). */
   { id: 'jobRank', width: 90 },
+  /** 근무 위치 3층 — 국가 > 도시 > 빌딩(PW-503). 시트 뷰와 같은 세 열이다. */
+  { id: 'workCountry', width: 110 },
   { id: 'workLocation', width: 110 },
+  { id: 'workBuilding', width: 120 },
   { id: 'terminationDate', width: 110 },
   { id: 'education', width: 120 },
   /** 연봉(T3) — 기본 숨김. 켤 수 있는 사람도 `canViewSalary` 로 한 번 더 걸린다. */
@@ -1083,6 +1092,10 @@ function EmployeesListView({
   const [ladder, setLadder] = useState(LIST_ALL);
   const [duty, setDuty] = useState(LIST_ALL);
   const [location, setLocation] = useState(LIST_ALL);
+  // 근무 위치 3층 — 국가·빌딩은 도시와 **서로 좁히지 않는다**(나라와 사옥을 잇는
+  // 표가 기획서에 없다). 직군>직렬>직무처럼 부모를 바꿔도 자식을 풀지 않는다.
+  const [country, setCountry] = useState(LIST_ALL);
+  const [building, setBuilding] = useState(LIST_ALL);
   const [empType, setEmpType] = useState(LIST_ALL);
   // ALL 은 `'all'` 이다 — 라벨을 sentinel 로 쓰면(옛 `'전체'`) 로케일을 바꾸는 순간
   // 「필터 안 걸림」 판정이 깨진다.
@@ -1168,6 +1181,8 @@ function EmployeesListView({
   const positions = useMemo(() => optionsOf(members, (m) => m.jobPosition, allLabel), [members, allLabel]);
   const levels = useMemo(() => optionsOf(members, (m) => m.jobLevel, allLabel), [members, allLabel]);
   const locations = useMemo(() => optionsOf(members, (m) => m.workLocation, allLabel), [members, allLabel]);
+  const countries = useMemo(() => optionsOf(members, (m) => m.workCountry, allLabel), [members, allLabel]);
+  const buildings = useMemo(() => optionsOf(members, (m) => m.workBuilding, allLabel), [members, allLabel]);
   const empTypes = useMemo(() => optionsOf(members, (m) => m.employmentType, allLabel), [members, allLabel]);
 
   /* 직군 → 직렬 → 직무 3단. 카탈로그(`jobAxis`)가 있으면 그걸 쓰고, 없으면 구성원이
@@ -1234,6 +1249,8 @@ function EmployeesListView({
         if (ladder !== LIST_ALL && m.jobTitle !== ladder) return false;
         if (duty !== LIST_ALL && m.jobDuty !== duty) return false;
         if (location !== LIST_ALL && m.workLocation !== location) return false;
+        if (country !== LIST_ALL && m.workCountry !== country) return false;
+        if (building !== LIST_ALL && m.workBuilding !== building) return false;
         if (empType !== LIST_ALL && m.employmentType !== empType) return false;
         if (mgrFilter === 'assigned' && !m.managerName) return false;
         // 대표는 상급자를 가질 수 없으므로 「매니저 미배정」 대상이 아니다 — 넣으면
@@ -1248,7 +1265,7 @@ function EmployeesListView({
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
-    [members, q, dept, squad, position, level, family, ladder, duty, location, empType, mgrFilter, status, orgTree, visibleSquadsOf],
+    [members, q, dept, squad, position, level, family, ladder, duty, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1262,11 +1279,13 @@ function EmployeesListView({
   const pageRows = ordered.slice((safePage - 1) * pageSize, safePage * pageSize);
   const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
     || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
-    || location !== LIST_ALL || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all';
+    || location !== LIST_ALL || country !== LIST_ALL || building !== LIST_ALL
+    || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all';
 
   function resetFilters() {
     setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
     setFamily(LIST_ALL); setLadder(LIST_ALL); setDuty(LIST_ALL); setLocation(LIST_ALL);
+    setCountry(LIST_ALL); setBuilding(LIST_ALL);
     setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
   }
 
@@ -1311,7 +1330,9 @@ function EmployeesListView({
     { id: 'jobDuty', label: cl.jobDuty, width: 140 },
     { id: 'employmentType', label: cl.employmentType, width: 100 },
     { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
+    ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
+    ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
     { id: 'manager', label: cl.manager, width: 150 },
     { id: 'hireDate', label: cl.hireDate, width: 110 },
     ...(optOn('terminationDate') ? [{ id: 'terminationDate', label: cl.terminationDate, width: 110 }] : []),
@@ -1354,6 +1375,8 @@ function EmployeesListView({
   if (ladder !== LIST_ALL) exportFilters.jobTitle = ladder;
   if (duty !== LIST_ALL) exportFilters.jobDuty = duty;
   if (location !== LIST_ALL) exportFilters.workLocation = location;
+  if (country !== LIST_ALL) exportFilters.workCountry = country;
+  if (building !== LIST_ALL) exportFilters.workBuilding = building;
   if (empType !== LIST_ALL) exportFilters.employmentType = empType;
   if (status !== 'all') exportFilters.employmentStatus = status;
   // 매니저는 사람 이름이 아니라 **상태 2종**이다(PW-300). 시트와 같은 sentinel 을 써야
@@ -1520,6 +1543,8 @@ function EmployeesListView({
       case 'employmentType': return <TextCell value={m.employmentType} />;
       case 'employmentStatus': return <StatusBadge status={m.employmentStatus} labels={labels} />;
       case 'workLocation': return <TextCell value={m.workLocation} />;
+      case 'workCountry': return <TextCell value={m.workCountry} />;
+      case 'workBuilding': return <TextCell value={m.workBuilding} />;
       case 'manager':
         return (
           <ListManagerCell
@@ -1614,7 +1639,9 @@ function EmployeesListView({
         <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
         <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
         <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workCountry" label={labels.filters.workCountry} value={country} options={countries} onChange={(v) => { setCountry(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-workLocation" label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workBuilding" label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-employmentType" label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-managerId" label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-employmentStatus" label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
@@ -2451,6 +2478,10 @@ export default function AdminEmployeesCanvas({
       빠뜨리면 두 열이 자유 텍스트로 폴백해 목록 뷰와 고를 수 있는 값이 갈린다. */
   rankOptions,
   employmentTypeOptions,
+  /** 근무지(국가)·근무 위치(빌딩) 카탈로그 — 시트의 두 열로 그대로 내려간다(PW-503).
+      근무 위치는 국가 > 도시 > 빌딩 세 층이고, 도시는 예부터 자유 텍스트 열이다. */
+  countryOptions,
+  buildingOptions,
   // 직군 > 직렬 > 직무 3단 축 — 시트로 그대로 내려간다(PW-323). 여기서 빠뜨리면
   // 세 컬럼이 카탈로그 없는 자유 텍스트로 폴백해, 좁히기도 드롭다운도 사라진다.
   jobAxis,
@@ -2671,6 +2702,8 @@ export default function AdminEmployeesCanvas({
           positionOptions={positionOptions}
           rankOptions={rankOptions ?? EMPTY_ARRAY}
           employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
+          countryOptions={countryOptions ?? EMPTY_ARRAY}
+          buildingOptions={buildingOptions ?? EMPTY_ARRAY}
           jobAxis={jobAxis}
           canEdit={canEdit}
           renderAvatar={renderAvatar}

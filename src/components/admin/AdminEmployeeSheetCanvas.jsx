@@ -113,7 +113,7 @@ function avatarColor(seed) {
 }
 
 // dirty 추적·패치 대상이 되는 편집 가능 필드(백엔드 UpdateUserDto 매핑).
-const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'workLocation', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'workLocation', 'workCountry', 'workBuilding', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -406,7 +406,11 @@ function mapMembers(list) {
     jobDuty: m.jobDuty ?? '',
     /** 고용형태 — 정규직·계약직. 재직상태(`employmentStatus`)와 다른 축이다. */
     employmentType: m.employmentType ?? '',
+    // 근무 위치 3층 — 국가 > 도시 > 빌딩 (arch-core-data-model §1-3-g 45·46·47).
+    // 한 칸에 섞어 담으면 「서울」과 「대한민국」과 「강남 사옥」이 같은 목록이 된다.
+    workCountry: m.workCountry ?? '',
     workLocation: m.workLocation ?? '',
+    workBuilding: m.workBuilding ?? '',
     orgRole: m.orgRole ?? 'member',
     // 대표 여부는 편집 대상 컬럼이 아니라 행 상태다 — dirty 추적에 끼지 않도록
     // COLUMNS 에 넣지 않고 행에만 실어둔다.
@@ -904,6 +908,16 @@ export default function AdminEmployeeSheetCanvas({
   rankOptions = [],
   employmentTypeOptions = [],
   /**
+   * 근무지(국가) · 근무 위치(빌딩) 카탈로그 — 조직 설정 > 필드 옵션.
+   *
+   * 근무 위치는 세 층이다 — 국가 > 도시 > 빌딩. 도시(`workLocation`)는 예부터
+   * 자유 텍스트 열이라 그대로 두고, 새로 세우는 두 열만 카탈로그를 받는다.
+   * 못 받으면 `catCol` 규칙대로 자유 텍스트로 폴백한다 — 빈 select 로 떨어뜨리면
+   * 고를 값이 없어 기존 값을 지우는 것 말고는 할 수 있는 게 없다.
+   */
+  countryOptions = [],
+  buildingOptions = [],
+  /**
    * 직군 > 직렬 > 직무 3단 축 (arch-core-data-model §1-3-a 7·8·19 · §1-3-d · §1-3-j).
    *
    * 셋을 **한 prop 으로 받는다** — 값 목록과 매핑이 따로 오면 "직렬 목록은 새것,
@@ -1052,7 +1066,14 @@ export default function AdminEmployeeSheetCanvas({
         optionsForRow: (row) =>
           narrowByParent(jobAxis.duties, jobAxis.dutiesByLadder, row?.jobTitle),
       }),
-      { id: 'workLocation', label: cl.workLocation || '근무지', width: 110, type: 'text', editable: true },
+      /* 근무 위치 3층 — 국가 > 도시 > 빌딩(§1-3-g 45·46·47). 위에서 아래로 좁혀지는
+         축이지만 직군>직렬>직무와 달리 **매핑이 없다** — 나라와 사옥을 잇는 표를
+         기획서가 두지 않았다. 그래서 서로 좁히지 않고 각각 독립 목록이다.
+         도시는 예부터 자유 텍스트 열이라 그대로 둔다(기존 값을 select 로 바꾸면
+         카탈로그에 없는 값이 지워진 것처럼 보인다). */
+      catCol('workCountry', cl.workCountry || '근무지(국가)', 110, countryOptions, { emptyLabel: '—' }),
+      { id: 'workLocation', label: cl.workLocation || '근무지(도시)', width: 110, type: 'text', editable: true },
+      catCol('workBuilding', cl.workBuilding || '근무 위치(빌딩)', 120, buildingOptions, { emptyLabel: '—' }),
       { id: 'orgRole', label: cl.role || '권한', width: 100, type: 'select', editable: true, options: ROLE_OPTIONS },
       /* 고용형태 — 재직상태 바로 앞. 목록 뷰도 이 둘을 붙여 두었다. 둘은 다른 축이다:
          고용형태는 «어떤 계약으로 일하는가»(정규직·계약직), 재직상태는 «지금 다니는가». */
@@ -1095,7 +1116,7 @@ export default function AdminEmployeeSheetCanvas({
     }
     base.push({ id: 'education', label: cl.education || '학력', width: 160, type: 'text', editable: true });
     return base;
-  }, [canViewSalary, labels, gradeOptions, positionOptions, rankOptions, employmentTypeOptions, squadOptions, managerCandidates, jobAxis]);
+  }, [canViewSalary, labels, gradeOptions, positionOptions, rankOptions, employmentTypeOptions, countryOptions, buildingOptions, squadOptions, managerCandidates, jobAxis]);
 
   // ── 상태 ──
   const [rows, setRows] = useState(() => mapMembers(members));
@@ -1249,7 +1270,9 @@ export default function AdminEmployeeSheetCanvas({
     /* 근무지·고용형태 — 목록 뷰 필터 11종과 맞춘다(PW-463 · §3.8.5 「후속으로 §3.1
        필터 칩과 통일한다」). 근무지는 열은 있는데 필터만 없었고, 고용형태는 둘 다
        없었다. 「직종」은 두 뷰 모두 없다 — 저장할 자리가 아직 없어서다(E6). */
-    { id: 'workLocation', label: cl.workLocation || '근무지' },
+    { id: 'workCountry', label: cl.workCountry || '근무지(국가)' },
+    { id: 'workLocation', label: cl.workLocation || '근무지(도시)' },
+    { id: 'workBuilding', label: cl.workBuilding || '근무 위치(빌딩)' },
     { id: 'employmentType', label: cl.employmentType || '고용형태' },
     { id: 'orgRole', label: cl.role || '권한', meta: 'role' },
     // 매니저는 사람 이름으로 거르는 축이 아니다(PW-300, 기획 §3.1) — 어드민이 알고 싶은
@@ -1257,7 +1280,7 @@ export default function AdminEmployeeSheetCanvas({
     // distinct 이름이 아니라 배정됨/미배정 2종 고정 옵션이다.
     { id: 'managerId', label: cl.manager || '매니저', meta: 'assigned' },
     { id: 'employmentStatus', label: cl.status || '상태', meta: 'status' },
-  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.jobFamily, cl.jobTitle, cl.jobDuty, cl.workLocation, cl.employmentType, cl.role, cl.manager, cl.status, squadOptions]);
+  ]), [cl.department, cl.squads, cl.jobLevel, cl.jobPosition, cl.jobFamily, cl.jobTitle, cl.jobDuty, cl.workCountry, cl.workLocation, cl.workBuilding, cl.employmentType, cl.role, cl.manager, cl.status, squadOptions]);
   /**
    * 실제로 걸려 있는 필터만 추린 것 — **지금 필터 컬럼인 것만** 남긴다(PW-157).
    *
