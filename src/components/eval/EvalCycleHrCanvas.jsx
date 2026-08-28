@@ -1050,44 +1050,53 @@ export default function EvalCycleHrCanvas({
       )}
 
       {/* [PW-441] 미확정 오픈 차단. 「안 됩니다」로 끝내지 않고 **고치러 갈 자리**까지
-          같이 준다 — 어느 유형이 비었는지는 여기서만 알 수 있다. */}
-      {openBlock && (
-        <div className="evc-modal-overlay" onClick={() => setOpenBlock(null)}>
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">{L.open}</h3>
-            <p className="evc-modal-sub" data-testid="evc-open-block-body">
-              {fill(L.openBlockTemplate, {
-                type: openBlock.types
-                  .map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t)
-                  .join(', '),
-              })}
-            </p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setOpenBlock(null)}
-                data-testid="evc-open-block-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                onClick={() => {
-                  const target = openBlock;
-                  setOpenBlock(null);
-                  // 2단계로, 그리고 «비어 있는 그 유형» 으로 보낸다.
-                  handleManage(target.cycle, { step: 1, tplType: target.types[0] });
-                }}
-                data-testid="evc-open-block-go"
-              >
-                {L.openBlockTemplateGo}
-              </button>
+          같이 준다 — 어느 유형이 비었는지는 여기서만 알 수 있다.
+
+          [PW-513] 포털로 body 에 건다. 이 캔버스의 뿌리 `.evc-root` 는 `position: fixed`
+          라 **자기 스태킹 컨텍스트를 만든다** — 그 안에 두면 막의 z-index 를 아무리
+          올려도 바깥의 `.sidebar`(100)·`.top-nav`(90)·`.evnav-nav`(80) 뒤로 깔린다.
+          뿌리 자신이 `z-index: auto`(=0) 로 겨루기 때문이다. 그러면 창이 떠 있는데
+          왼쪽 메뉴와 위쪽 바만 밝게 남아 «저기는 누를 수 있다» 로 읽힌다.
+          같은 파일의 `ConfirmModal` 이 이미 같은 이유로 포털을 쓴다. */}
+      {openBlock &&
+        createPortal(
+          <div className="evc-modal-overlay" onClick={() => setOpenBlock(null)}>
+            <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+              <h3 className="evc-modal-title">{L.open}</h3>
+              <p className="evc-modal-sub" data-testid="evc-open-block-body">
+                {fill(L.openBlockTemplate, {
+                  type: openBlock.types
+                    .map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t)
+                    .join(', '),
+                })}
+              </p>
+              <div className="evc-modal-actions">
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => setOpenBlock(null)}
+                  data-testid="evc-open-block-cancel"
+                >
+                  {L.cancel}
+                </button>
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  onClick={() => {
+                    const target = openBlock;
+                    setOpenBlock(null);
+                    // 2단계로, 그리고 «비어 있는 그 유형» 으로 보낸다.
+                    handleManage(target.cycle, { step: 1, tplType: target.types[0] });
+                  }}
+                  data-testid="evc-open-block-go"
+                >
+                  {L.openBlockTemplateGo}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
       {confirmModal && (
         <ConfirmModal
