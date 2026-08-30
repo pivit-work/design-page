@@ -671,6 +671,15 @@ export default function EvalCycleHrCanvas({
   onSaveMessage,
   onPolishMessage,
   /**
+   * PW-530 ④ — 조직의 슬랙 공개 채널 목록과 그 조회 상태.
+   *
+   * 🔴 이 캔버스는 **전달만 한다.** 여기서 빠뜨리면 위자드는 prop 을 «안 받은» 것으로
+   * 보고 데모 채널 넷으로 되돌아간다 — 조회에 실패했는데도 그 조직에 없는
+   * `#performance-review` 가 고를 수 있게 보인다. 실제로 그렇게 새어 나갔다.
+   */
+  slackChannels,
+  slackChannelsStatus = 'ready',
+  /**
    * PW-440 — 위자드 초안 저장. `({ draftState, draftStep, name }) =>
    * Promise<{ cycleId, savedAt } | null>`.
    *
@@ -1016,6 +1025,8 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          slackChannels={slackChannels}
+          slackChannelsStatus={slackChannelsStatus}
         />
       )}
 
@@ -1046,6 +1057,8 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          slackChannels={slackChannels}
+          slackChannelsStatus={slackChannelsStatus}
         />
       )}
 

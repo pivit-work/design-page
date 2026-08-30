@@ -1429,6 +1429,19 @@
   gap: var(--spacing-sm, 6px);
   margin-top: var(--spacing-sm, 6px);
 }
+/* [PW-530 ④] 채널 칸은 남는 폭을 먹되 줄어들 수 있어야 한다 — `min-width: 0` 이 없으면
+   긴 채널명이 flex 항목의 기본 최소폭에 걸려 멘션 버튼을 밀어낸다. */
+.evc-rm-slack-ch > input.evc-rm-field {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+/* 목록 상태 안내(불러오는 중 / 못 불러옴 / 목록에 없는 이름)는 입력칸·멘션 버튼과 같은
+   줄에 끼지 않고 아래 줄에 통째로 놓는다. */
+.evc-rm-slack-ch > .evc-rm-dsec-note {
+  flex-basis: 100%;
+  margin-left: 0;
+  font-size: var(--font-size-text-xs, 11px);
+}
 .evc-rm-summary {
   display: flex;
   align-items: center;
