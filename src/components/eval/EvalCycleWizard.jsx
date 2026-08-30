@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
@@ -417,7 +417,21 @@ const PHASE_RESPONDER_SHORT = {
   report_review: 'reminderRespLeader',
   share: 'reminderRespShare',
 };
+/**
+ * 이 파일 «안» 의 채널 목록은 **디자인 데모용 예시값**이다 [PW-530 ④].
+ *
+ * 정책 §5.2.1 은 「워크스페이스 **연동 채널 목록**에서 선택 · 연동 API로 로드」로 정해
+ * 두었으므로, 제품에서는 소비 측이 `slackChannels` prop 으로 실제 채널을 넘긴다.
+ * 넘기지 않으면(= design-page 데모) 아래 넷으로 동작한다.
+ */
 const SLACK_CHANNELS = ['#performance-review', '#hr-notice', '#team-lead', '#general'];
+/** 채널 이름을 항상 `#` 하나로 시작하게 맞춘다 — API 는 `#` 없이 준다. */
+const normalizeChannel = (c) => {
+  const name = typeof c === 'string' ? c : c?.name ?? '';
+  const trimmed = String(name).trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+};
 // ⚙ 상세(sub-slice B): 참조 대상 · 이메일 템플릿 · 슬랙 상세
 // 당사자(self)는 항상 고정 포함, 리더·HR 은 참조(에스컬레이션). 단계별 당사자 역할과
 // 겹치면 중복 억제(PHASE_RESPONDER_ROLE).
@@ -475,8 +489,29 @@ const CHANNEL_RENDER = [
   { id: 'email', Icon: MailIcon, labelKey: 'reminderChEmail', descKey: 'reminderRenderEmail' },
   { id: 'slack', Icon: ChatIcon, labelKey: 'reminderChSlack', descKey: 'reminderRenderSlack' },
 ];
-// 치환 변수 정규 세트(SSOT: spec §14.0)
-const MESSAGE_VARS = ['{name}', '{cycleName}', '{stage}', '{dueDate}', '{offset}', '{link}'];
+/**
+ * 치환 변수 정규 세트(SSOT: `spec-eval-cycle.md §14.0`).
+ *
+ * 🔴 PW-530 ② — 종전에는 토큰 문자열만 담은 배열이었다. 그래서 화면에 **이름밖에**
+ * 못 그렸고, 인사담당자는 `{offset}` 이 「3」인지 「3일 전」인지, `{link}` 가 어디로
+ * 가는 주소인지 알 수 없었다(어니스트: "저도 offset 과 link 가 어떠한 내용이
+ * 들어가는지 모르겠더라구요"). 토큰에 «뜻»과 «예시»를 붙인다.
+ *
+ * 문안은 여기 두지 않고 **소비 측 i18n** 에서 온다(`descKey`·`sampleKey`) — 이 파일은
+ * 한국어 문안의 소유자가 아니다. 키가 없으면 칩은 이름만 그린다(설명이 없다고 화면이
+ * 깨지지는 않는다).
+ *
+ * `sample` 은 §14.0 표의 「예시 값」이며 **샘플 보기(PW-530 ③)의 치환 값**이기도 하다 —
+ * 설명과 샘플이 다른 값을 쓰면 같은 화면 안에서 어긋난다.
+ */
+const MESSAGE_VAR_INFO = [
+  { token: '{name}', descKey: 'reminderVarNameDesc', sampleKey: 'reminderVarNameSample' },
+  { token: '{cycleName}', descKey: 'reminderVarCycleDesc', sampleKey: 'reminderVarCycleSample' },
+  { token: '{stage}', descKey: 'reminderVarStageDesc', sampleKey: 'reminderVarStageSample' },
+  { token: '{dueDate}', descKey: 'reminderVarDueDesc', sampleKey: 'reminderVarDueSample' },
+  { token: '{offset}', descKey: 'reminderVarOffsetDesc', sampleKey: 'reminderVarOffsetSample' },
+  { token: '{link}', descKey: 'reminderVarLinkDesc', sampleKey: 'reminderVarLinkSample' },
+];
 /** 본문에 쓰인 치환 변수 집합 — AI 가 변수를 지우거나 지어내지 않았는지 본다 [PW-435 ⑥]. */
 const collectVars = (text) => new Set(String(text ?? '').match(/\{[a-zA-Z]+\}/g) ?? []);
 const sameVars = (a, b) => {
@@ -484,6 +519,22 @@ const sameVars = (a, b) => {
   const y = collectVars(b);
   return x.size === y.size && [...x].every((t) => y.has(t));
 };
+/**
+ * 치환 변수를 §14.0 「예시 값」으로 채운 문장 [PW-530 ③].
+ *
+ * 어니스트: "메시지 작성 후 실제 발송되는 샘플로 팝업이나 레이어 형태로 보여주어도
+ * 좋을 것 같아요." 종전 미리보기는 **고정 템플릿의 원문**만 보여 줬다 — 커스텀으로
+ * 직접 쓴 문구는 확인할 자리가 없었고, 어느 경우에도 `{offset}` 이 그대로 남은 모습만
+ * 볼 수 있었다. 「받는 사람이 볼 모습」은 사람이 머릿속에서 합성해야 했다.
+ *
+ * 예시 값이 없는 토큰은 **그대로 둔다** — 지어낸 값으로 채우면 「이렇게 나가는구나」로
+ * 읽히기 때문이다. 뜻을 모르는 자리는 모른다고 보이는 편이 낫다.
+ */
+const fillSampleVars = (text, L) =>
+  MESSAGE_VAR_INFO.reduce(
+    (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
+    String(text ?? ''),
+  );
 const EMPTY_MESSAGE = {
   template: 'default',
   subject: '',
@@ -1949,6 +2000,15 @@ export default function EvalCycleWizard({
    * 실패는 인라인 안내로만 알린다.
    */
   onPolishMessage,
+  /**
+   * PW-530 ④ — 조직의 슬랙 공개 채널 목록. `['#a', ...]` 또는 `[{ name: 'a' }, ...]`.
+   *
+   * design-page 는 네트워크를 모른다 — 소비 측이 `GET /integrations/slack/channels` 로
+   * 읽어 넘긴다. 안 넘기면 데모 목록(`SLACK_CHANNELS`)으로 동작한다.
+   */
+  slackChannels,
+  /** 채널 목록 «조회 상태»(`'loading' | 'ready' | 'error'`). 안 넘기면 'ready'. */
+  slackChannelsStatus = 'ready',
 }) {
   const isManage = !!cycle;
   const initialSeq = cycle?.reviewSequence ?? null;
@@ -2433,61 +2493,289 @@ export default function EvalCycleWizard({
   };
 
   /**
-   * AI 문구 다듬기 [PW-435 ⑥]. **누를 때만** 돈다(자동 실행 없음).
-   * 결과는 본문에 바로 쓰지 않고 「미확인」 초안으로 리마인더별로 보관한다 —
-   * [적용]을 눌러야 본문이 바뀐다.
+   * AI 문구 다듬기 [PW-435 ⑥ · PW-530 ①]. **누를 때만** 돈다(자동 실행 없음).
+   * 결과는 본문에 바로 쓰지 않고 「미확인」 초안으로 보관한다 — [적용]을 눌러야
+   * 본문이 바뀐다.
+   *
+   * 🔴 PW-530 ① — 키가 «리마인더 id» 였다. 그러면 한 리마인더 안에 편집할 칸이 둘일 때
+   * (공통 문구 + 슬랙 전용 문구) **뒤에 다듬은 것이 앞의 초안을 덮어쓴다.** 이메일
+   * 초안을 아직 [적용]하지 않은 채 슬랙을 다듬으면 앞의 결과가 소리 없이 사라지는
+   * 것이다. 키를 «리마인더 id + 칸» 으로 넓혀 둘이 공존하게 한다.
    */
   const [aiDraft, setAiDraft] = useState({});
   const [aiBusy, setAiBusy] = useState(() => new Set());
   const [aiError, setAiError] = useState(() => new Set());
-  const markSet = (setter, rid, on) =>
+  const markSet = (setter, key, on) =>
     setter((prev) => {
       const n = new Set(prev);
-      if (on) n.add(rid);
-      else n.delete(rid);
+      if (on) n.add(key);
+      else n.delete(key);
       return n;
     });
-  const clearAiDraft = (rid) =>
+  const clearAiDraft = (key) =>
     setAiDraft((prev) => {
       const n = { ...prev };
-      delete n[rid];
+      delete n[key];
       return n;
     });
-  const runAiPolish = async (ph, rm) => {
+  /**
+   * 한 리마인더 안의 «편집 칸» 정의 [PW-530 ①].
+   *
+   * 이메일 칸과 슬랙 전용 칸은 도구가 같아야 한다 — 어니스트: "슬랙은 다른 문구
+   * 보내기로 할 때 별도 변수 삽입과 AI 문구 다듬기 기능이 없는데, 동일한 기능을
+   * 제공하는 거라면 넣어 두면 좋을 것 같아요." 다른 것은 **제목의 유무** 하나뿐이라
+   * 그것만 데이터로 가른다(슬랙 메시지에는 제목 개념이 없다).
+   */
+  const MSG_SLOTS = {
+    email: { field: 'body', hasSubject: true },
+    slack: { field: 'slackBody', hasSubject: false },
+  };
+  const slotKey = (rid, slot) => `${rid}::${slot}`;
+  const runAiPolish = async (ph, rm, slot = 'email') => {
     if (!onPolishMessage) return;
+    const conf = MSG_SLOTS[slot];
     const cur = messageOf(rm);
-    markSet(setAiBusy, rm.id, true);
-    markSet(setAiError, rm.id, false);
+    const key = slotKey(rm.id, slot);
+    const curSubject = conf.hasSubject ? cur.subject ?? '' : '';
+    const curBody = cur[conf.field] ?? '';
+    markSet(setAiBusy, key, true);
+    markSet(setAiError, key, false);
     try {
       const out = await onPolishMessage({
         phaseId: ph.id,
         phaseName: L[ph.nameKey],
-        subject: cur.subject ?? '',
-        body: cur.body ?? '',
+        // 슬랙에는 제목이 없다 — 빈 제목을 «보내» 두면 AI 가 제목을 지어내 돌려주고,
+        // 그 제목은 붙일 자리가 없어 조용히 버려진다. 아예 보내지 않는다.
+        channel: slot,
+        subject: curSubject,
+        body: curBody,
       });
       if (!out) {
-        markSet(setAiError, rm.id, true);
+        markSet(setAiError, key, true);
         return;
       }
       // 치환 변수가 원본과 달라졌으면 경고를 붙인다 — AI 가 {link} 를 지우면
       // 받는 사람이 갈 곳을 잃고, 없던 변수를 지어내면 치환되지 않은 채 나간다.
       const varsOk = sameVars(
-        `${cur.subject ?? ''} ${cur.body ?? ''}`,
-        `${out.subject ?? ''} ${out.body ?? ''}`,
+        `${curSubject} ${curBody}`,
+        `${conf.hasSubject ? out.subject ?? '' : ''} ${out.body ?? ''}`,
       );
-      setAiDraft((prev) => ({ ...prev, [rm.id]: { ...out, varsOk } }));
+      setAiDraft((prev) => ({ ...prev, [key]: { ...out, slot, varsOk } }));
     } catch {
       // 🔴 AI 실패가 리마인더 저장·사이클 진행을 막지 않는다(§9 절대규칙).
-      markSet(setAiError, rm.id, true);
+      markSet(setAiError, key, true);
     } finally {
-      markSet(setAiBusy, rm.id, false);
+      markSet(setAiBusy, key, false);
     }
   };
-  const applyAiDraft = (pid, rid) => {
-    const d = aiDraft[rid];
+  const applyAiDraft = (pid, rid, slot = 'email') => {
+    const conf = MSG_SLOTS[slot];
+    const key = slotKey(rid, slot);
+    const d = aiDraft[key];
     if (!d) return;
-    patchMessage(pid, rid, { subject: d.subject ?? '', body: d.body ?? '' });
-    clearAiDraft(rid);
+    const patch = { [conf.field]: d.body ?? '' };
+    if (conf.hasSubject) patch.subject = d.subject ?? '';
+    patchMessage(pid, rid, patch);
+    clearAiDraft(key);
+  };
+
+  /**
+   * 고를 수 있는 슬랙 채널 [PW-530 ④].
+   *
+   * 🔴 **못 읽었을 때 데모 목록으로 떨어지지 않는다.** 그러면 그 조직에 없는
+   * `#performance-review` 를 고르게 되고, 리마인더는 «있지도 않은 채널» 로 발송을
+   * 시도한다. 조회 실패·미연결은 «목록 없음 + 직접 입력» 이 정직한 상태다.
+   * prop 자체를 안 넘긴 경우(= design-page 데모)에만 예시 목록을 쓴다.
+   */
+  const channelOptions = useMemo(() => {
+    if (slackChannels == null) return SLACK_CHANNELS;
+    const seen = new Set();
+    const out = [];
+    for (const c of slackChannels) {
+      const name = normalizeChannel(c);
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      out.push(name);
+    }
+    return out;
+  }, [slackChannels]);
+
+  /** 샘플 보기(PW-530 ③)를 펼친 리마인더 — 누를 때만 열린다. */
+  const [sampleOpen, setSampleOpen] = useState(() => new Set());
+  const toggleSample = (rid) =>
+    setSampleOpen((prev) => {
+      const n = new Set(prev);
+      if (n.has(rid)) n.delete(rid);
+      else n.add(rid);
+      return n;
+    });
+
+  /**
+   * 문구 편집 도구 한 벌 — 변수 칩 · AI 다듬기 · 미확인 초안 카드 [PW-530 ①].
+   *
+   * 이메일 본문과 슬랙 전용 본문이 **같은 부품**을 쓴다. 종전에는 이 마크업이
+   * `template === 'custom'` 분기 안에 한 벌만 인라인으로 있어서, 슬랙 전용 칸에는
+   * 도구가 하나도 없었다. 갈리는 것은 «제목이 있는가» 뿐이므로 `MSG_SLOTS` 가 그것만
+   * 데이터로 갖고 마크업은 하나로 둔다 — 두 벌로 두면 한쪽만 고치는 어긋남이 생긴다.
+   *
+   * `extraActions` 는 그 칸에만 있는 버튼(이메일 칸의 [이 문구 저장])이다. 저장 문구는
+   * 제목+본문 한 벌이라 슬랙 전용 본문에는 담을 자리가 없다.
+   */
+  const renderMessageTools = (ph, rm, i, slot, extraActions = null) => {
+    const conf = MSG_SLOTS[slot];
+    const key = slotKey(rm.id, slot);
+    const sfx = slot === 'email' ? '' : `-${slot}`;
+    const msg = messageOf(rm);
+    const value = msg[conf.field] ?? '';
+    const draft = aiDraft[key];
+    const busy = aiBusy.has(key);
+    const canPolish = conf.hasSubject ? !!value || !!msg.subject : !!value;
+    return (
+      <>
+        <div className="evc-rm-vars">
+          <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
+          {MESSAGE_VAR_INFO.map((v) => {
+            /* [PW-530 ②] 뜻·예시가 i18n 에 없으면 이름만 그린다 — 설명이 빠졌다고
+               칩이 사라지거나 `undefined` 가 보이면 안 된다. */
+            const desc = L[v.descKey];
+            const sample = L[v.sampleKey];
+            const hint = desc
+              ? sample
+                ? `${v.token} — ${desc} · ${L.reminderVarEg} ${sample}`
+                : `${v.token} — ${desc}`
+              : v.token;
+            return (
+              <button
+                key={v.token}
+                type="button"
+                className="evc-rm-var"
+                title={hint}
+                aria-label={hint}
+                onClick={() =>
+                  patchMessage(ph.id, rm.id, {
+                    [conf.field]: (messageOf(rm)[conf.field] ?? '') + v.token,
+                  })}
+                data-testid={`evc-rm-var${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
+              >
+                {v.token}
+              </button>
+            );
+          })}
+        </div>
+        {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음). */}
+        <div className="evc-rm-msg-actions">
+          {onPolishMessage && (
+            <button
+              type="button"
+              className="evc-rm-ai"
+              disabled={!canPolish || busy}
+              title={canPolish ? L.reminderAiHint : L.reminderAiEmptyHint}
+              onClick={() => void runAiPolish(ph, rm, slot)}
+              data-testid={`evc-rm-ai${sfx}-${ph.id}-${i}`}
+            >
+              {busy ? L.reminderAiBusy : L.reminderAiPolish}
+            </button>
+          )}
+          {extraActions}
+        </div>
+        {aiError.has(key) && (
+          <p className="evc-rm-ai-error" data-testid={`evc-rm-ai-error${sfx}-${ph.id}-${i}`}>
+            {L.reminderAiFailed}
+          </p>
+        )}
+        {/* AI 초안 = 미확인(노랑). [적용] 전에는 본문을 건드리지 않는다. */}
+        {draft && (
+          <div className="evc-rm-ai-draft" data-testid={`evc-rm-ai-draft${sfx}-${ph.id}-${i}`}>
+            <div className="evc-rm-ai-draft-head">
+              {L.reminderAiDraftTitle}
+              <span className="evc-mode-badge is-warn">{L.reminderAiUnconfirmed}</span>
+            </div>
+            {!draft.varsOk && (
+              <p className="evc-rm-ai-warn" data-testid={`evc-rm-ai-varwarn${sfx}-${ph.id}-${i}`}>
+                {L.reminderAiVarWarn}
+              </p>
+            )}
+            <div className="evc-rm-preview-body">
+              {/* 슬랙 초안에는 제목 줄을 그리지 않는다 — 슬랙에 제목이 없어서
+                  보낸 적도 받은 적도 없는 값이다. */}
+              {conf.hasSubject && (
+                <div><strong>{L.reminderEmailSubject}</strong> {draft.subject}</div>
+              )}
+              <div className="evc-rm-ai-draft-body">{draft.body}</div>
+            </div>
+            <div className="evc-rm-ai-actions">
+              <button
+                type="button"
+                className="evc-btn is-primary is-sm"
+                onClick={() => applyAiDraft(ph.id, rm.id, slot)}
+                data-testid={`evc-rm-ai-apply${sfx}-${ph.id}-${i}`}
+              >
+                {L.reminderAiApply}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-ghost is-sm"
+                onClick={() => clearAiDraft(key)}
+                data-testid={`evc-rm-ai-discard${sfx}-${ph.id}-${i}`}
+              >
+                {L.reminderAiDiscard}
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  /**
+   * 「받는 사람이 볼 모습」 샘플 [PW-530 ③].
+   *
+   * 켠 채널마다 **그 채널의 렌더링 규칙대로** 그린다(정책 §5.2.1 「채널별 렌더링 안내」):
+   * 이메일은 제목 → 본문 → 버튼, 슬랙은 굵은 첫 줄 → 메시지. 종전에는 그 규칙이 «글»로만
+   * 적혀 있어서, 내가 쓴 문구와 합성하는 일을 사람이 했다.
+   *
+   * 슬랙 전용 문구가 켜져 있으면 슬랙 쪽은 그 문구로 그린다 — 안 그러면 「따로 쓴 글」과
+   * 「샘플」이 어긋나 샘플을 믿을 수 없게 된다.
+   */
+  const renderMessageSample = (ph, rm, i) => {
+    const msg = messageOf(rm);
+    const tpl = MESSAGE_TEMPLATE_PREVIEW[msg.template] ?? MESSAGE_TEMPLATE_PREVIEW.default;
+    const isCustom = msg.template === 'custom';
+    const base = {
+      subject: isCustom ? msg.subject ?? '' : tpl.subject,
+      body: isCustom ? msg.body ?? '' : tpl.body,
+      cta: isCustom ? '' : tpl.cta,
+    };
+    const slackBody =
+      msg.slackSeparate && (msg.slackBody ?? '') ? msg.slackBody : base.body;
+    const f = (t) => fillSampleVars(t, L);
+    return (
+      <div className="evc-rm-preview" data-testid={`evc-rm-sample-${ph.id}-${i}`}>
+        <div className="evc-rm-preview-tag">
+          {L.reminderSampleTitle} · {L.reminderSampleNote}
+        </div>
+        {rm.channels.includes('email') && (
+          <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-email-${ph.id}-${i}`}>
+            <div><strong>{L.reminderEmailSubject}</strong> {f(base.subject) || L.reminderSampleEmpty}</div>
+            <div><strong>{L.reminderEmailBody}</strong> {f(base.body) || L.reminderSampleEmpty}</div>
+            {base.cta && <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>}
+          </div>
+        )}
+        {rm.channels.includes('slack') && (
+          <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-slack-${ph.id}-${i}`}>
+            {/* 슬랙에는 제목 칸이 없다. 제목은 «굵은 첫 줄» 로 그려진다 — 슬랙 전용
+                문구를 쓰는 경우에는 그 첫 줄이 곧 본문의 첫 줄이라 따로 뽑지 않는다. */}
+            {!msg.slackSeparate && f(base.subject) && (
+              <div><strong>{f(base.subject)}</strong></div>
+            )}
+            <div>{f(slackBody) || L.reminderSampleEmpty}</div>
+            {!msg.slackSeparate && base.cta && (
+              <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   /** 이메일 블록의 참조(CC) 요약 — 켠 참조 대상만, 당사자와 겹치는 역할은 뺀다. */
@@ -5189,41 +5477,12 @@ export default function EvalCycleWizard({
                                                 patchMessage(ph.id, rm.id, { body: e.target.value })}
                                               data-testid={`evc-rm-msg-body-${ph.id}-${i}`}
                                             />
-                                            <div className="evc-rm-vars">
-                                              <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
-                                              {MESSAGE_VARS.map((v) => (
-                                                <button
-                                                  key={v}
-                                                  type="button"
-                                                  className="evc-rm-var"
-                                                  onClick={() =>
-                                                    patchMessage(ph.id, rm.id, {
-                                                      body: (messageOf(rm).body ?? '') + v,
-                                                    })}
-                                                >
-                                                  {v}
-                                                </button>
-                                              ))}
-                                            </div>
-                                            {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음). */}
-                                            <div className="evc-rm-msg-actions">
-                                              {onPolishMessage && (
-                                                <button
-                                                  type="button"
-                                                  className="evc-rm-ai"
-                                                  disabled={(!msg.body && !msg.subject) || aiBusy.has(rm.id)}
-                                                  title={
-                                                    !msg.body && !msg.subject
-                                                      ? L.reminderAiEmptyHint
-                                                      : L.reminderAiHint
-                                                  }
-                                                  onClick={() => void runAiPolish(ph, rm)}
-                                                  data-testid={`evc-rm-ai-${ph.id}-${i}`}
-                                                >
-                                                  {aiBusy.has(rm.id) ? L.reminderAiBusy : L.reminderAiPolish}
-                                                </button>
-                                              )}
-                                              {onSaveMessage && (
+                                            {renderMessageTools(
+                                              ph,
+                                              rm,
+                                              i,
+                                              'email',
+                                              onSaveMessage ? (
                                                 <button
                                                   type="button"
                                                   className="evc-rm-save-msg"
@@ -5234,57 +5493,7 @@ export default function EvalCycleWizard({
                                                 >
                                                   {L.reminderSaveMessage}
                                                 </button>
-                                              )}
-                                            </div>
-                                            {aiError.has(rm.id) && (
-                                              <p
-                                                className="evc-rm-ai-error"
-                                                data-testid={`evc-rm-ai-error-${ph.id}-${i}`}
-                                              >
-                                                {L.reminderAiFailed}
-                                              </p>
-                                            )}
-                                            {/* AI 초안 = 미확인(노랑). [적용] 전에는 본문을 건드리지 않는다. */}
-                                            {aiDraft[rm.id] && (
-                                              <div
-                                                className="evc-rm-ai-draft"
-                                                data-testid={`evc-rm-ai-draft-${ph.id}-${i}`}
-                                              >
-                                                <div className="evc-rm-ai-draft-head">
-                                                  {L.reminderAiDraftTitle}
-                                                  <span className="evc-mode-badge is-warn">{L.reminderAiUnconfirmed}</span>
-                                                </div>
-                                                {!aiDraft[rm.id].varsOk && (
-                                                  <p
-                                                    className="evc-rm-ai-warn"
-                                                    data-testid={`evc-rm-ai-varwarn-${ph.id}-${i}`}
-                                                  >
-                                                    {L.reminderAiVarWarn}
-                                                  </p>
-                                                )}
-                                                <div className="evc-rm-preview-body">
-                                                  <div><strong>{L.reminderEmailSubject}</strong> {aiDraft[rm.id].subject}</div>
-                                                  <div className="evc-rm-ai-draft-body">{aiDraft[rm.id].body}</div>
-                                                </div>
-                                                <div className="evc-rm-ai-actions">
-                                                  <button
-                                                    type="button"
-                                                    className="evc-btn is-primary is-sm"
-                                                    onClick={() => applyAiDraft(ph.id, rm.id)}
-                                                    data-testid={`evc-rm-ai-apply-${ph.id}-${i}`}
-                                                  >
-                                                    {L.reminderAiApply}
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className="evc-btn is-ghost is-sm"
-                                                    onClick={() => clearAiDraft(rm.id)}
-                                                    data-testid={`evc-rm-ai-discard-${ph.id}-${i}`}
-                                                  >
-                                                    {L.reminderAiDiscard}
-                                                  </button>
-                                                </div>
-                                              </div>
+                                              ) : null,
                                             )}
                                           </div>
                                         )}
@@ -5305,18 +5514,38 @@ export default function EvalCycleWizard({
                                               </span>
                                             </label>
                                             {msg.slackSeparate && (
-                                              <textarea
-                                                className="evc-rm-field evc-rm-cbody"
-                                                rows={3}
-                                                placeholder={L.reminderSlackBodyPh}
-                                                value={msg.slackBody}
-                                                onChange={(e) =>
-                                                  patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
-                                                data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
-                                              />
+                                              <>
+                                                <textarea
+                                                  className="evc-rm-field evc-rm-cbody"
+                                                  rows={3}
+                                                  placeholder={L.reminderSlackBodyPh}
+                                                  value={msg.slackBody}
+                                                  onChange={(e) =>
+                                                    patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
+                                                  data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
+                                                />
+                                                {/* [PW-530 ①] 이메일 본문과 **같은 도구**. 종전에는 이 칸만
+                                                    도구가 없어 변수를 손으로 쳐야 했고, 오타가 나면 치환되지
+                                                    않은 `{likn}` 이 그대로 발송됐다. */}
+                                                {renderMessageTools(ph, rm, i, 'slack')}
+                                              </>
                                             )}
                                           </div>
                                         )}
+                                        {/* [PW-530 ③] 「작성된 메시지 샘플 보기」 — 누를 때만 연다.
+                                            항상 펼쳐 두면 이미 긴 ⚙ 상세가 더 길어진다. */}
+                                        <div className="evc-rm-msg-actions">
+                                          <button
+                                            type="button"
+                                            className="evc-rm-save-msg"
+                                            onClick={() => toggleSample(rm.id)}
+                                            aria-expanded={sampleOpen.has(rm.id)}
+                                            data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
+                                          >
+                                            {sampleOpen.has(rm.id) ? L.reminderSampleHide : L.reminderSampleShow}
+                                          </button>
+                                        </div>
+                                        {sampleOpen.has(rm.id) && renderMessageSample(ph, rm, i)}
                                       </div>
                                       {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
                                       {rm.channels.includes('email') && (
@@ -5356,21 +5585,34 @@ export default function EvalCycleWizard({
                                               );
                                             })}
                                           </div>
-                                          {(rm.slack?.mode ?? 'dm') === 'channel' && (
+                                          {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
+                                            /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
+                                               드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
+                                               방식을 «쳐서 좁히는» 방식으로 바꾼다. 브라우저 기본
+                                               `datalist` 를 쓴다 — 새 시각 부품을 만들지 않으면서
+                                               타이핑 필터를 얻는다. */
+                                            const value = rm.slack?.channel ?? '';
+                                            const listId = `evc-rm-slack-ch-list-${ph.id}-${i}`;
+                                            const known = channelOptions.some((c) => c === value);
+                                            return (
                                             <div className="evc-rm-slack-ch">
-                                              <select
+                                              <input
+                                                type="text"
                                                 className="evc-rm-field"
-                                                value={rm.slack?.channel ?? SLACK_CHANNELS[0]}
+                                                list={listId}
+                                                placeholder={L.reminderSlackChannelPh}
+                                                value={value}
                                                 onChange={(e) =>
                                                   patchReminder(ph.id, rm.id, (r) => ({
-                                                    slack: { ...r.slack, channel: e.target.value },
+                                                    slack: { ...r.slack, channel: normalizeChannel(e.target.value) },
                                                   }))}
                                                 data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
-                                              >
-                                                {SLACK_CHANNELS.map((c) => (
-                                                  <option key={c} value={c}>{c}</option>
+                                              />
+                                              <datalist id={listId} data-testid={`evc-rm-slack-channel-list-${ph.id}-${i}`}>
+                                                {channelOptions.map((c) => (
+                                                  <option key={c} value={c} />
                                                 ))}
-                                              </select>
+                                              </datalist>
                                               <button
                                                 type="button"
                                                 className={`evc-rm-tgt${rm.slack?.mention ? ' is-on' : ''}`}
@@ -5382,8 +5624,26 @@ export default function EvalCycleWizard({
                                               >
                                                 {rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
                                               </button>
+                                              {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
+                                                  슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
+                                                  떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
+                                              <span
+                                                className="evc-rm-dsec-note"
+                                                data-testid={`evc-rm-slack-channel-note-${ph.id}-${i}`}
+                                              >
+                                                {slackChannelsStatus === 'loading'
+                                                  ? L.reminderSlackChannelLoading
+                                                  : slackChannelsStatus === 'error'
+                                                  ? L.reminderSlackChannelLoadError
+                                                  : channelOptions.length === 0
+                                                  ? L.reminderSlackChannelNone
+                                                  : value && !known
+                                                  ? L.reminderSlackChannelUnknown
+                                                  : fill(L.reminderSlackChannelCount, { count: channelOptions.length })}
+                                              </span>
                                             </div>
-                                          )}
+                                            );
+                                          })()}
                                         </div>
                                       )}
                                     </div>
