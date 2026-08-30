@@ -23,6 +23,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import SquadFormCard from './SquadFormCard.jsx';
 import {
   CapacityBar,
@@ -548,6 +549,23 @@ export default function SquadCanvas({
     </div>
   );
 
+  /**
+   * 🔴 왜 확인 모달을 포털로 띄우나 (PW-533 · 원인은 PW-513 과 같다)
+   *
+   * 이 캔버스의 뿌리 `.content-area` 는 App.css 에서 `position: fixed` 다 — 그래서
+   * **자기 스태킹 컨텍스트를 만든다.** 그 안에 둔 막은 `z-index` 를 아무리 올려도
+   * 바깥의 `.sidebar`(100)·`.top-nav`(90) 를 넘지 못한다. 바깥에서 겨루는 것은 막이
+   * 아니라 뿌리이고, 뿌리는 `z-index: auto`(=0) 라 언제나 지기 때문이다.
+   *
+   * 실제로 그랬다 — 막의 z 는 `SQUAD_MODAL_Z`(10050) 인데도 확인 모달을 열면 왼쪽
+   * 메뉴와 위쪽 바만 밝게 남아 「저기는 아직 누를 수 있다」로 읽혔다(브라우저에서
+   * 메뉴 좌표를 찍으면 막이 아니라 메뉴가 잡혔다).
+   *
+   * 그래서 아래 두 확인 모달(삭제·상태 전환)은 `createPortal(…, document.body)` 로
+   * 이 뿌리 **밖**에 그린다. 메뉴·팝오버는 이미 `AnchoredLayer` 가 같은 이유로 포털을
+   * 쓰고 있다 — 새 막을 여기 추가할 때도 반드시 포털을 거쳐야 한다.
+   * 회귀 가드: pivit-work `SquadViewPanel.modalLayer.test.tsx`.
+   */
   return (
     <div className="content-area pj-content-area" data-testid="squad-canvas">
       <div className="content-canvas">
@@ -1333,7 +1351,8 @@ export default function SquadCanvas({
         const sq = squads.find((s) => s.id === delAsk.squadId);
         if (!sq) return null;
         const nameOk = delAsk.typed.trim() === sq.name;
-        return (
+        // [PW-533] 막을 `document.body` 로 포털한다 — 아래 「왜 포털인가」 참고.
+        return createPortal(
           <div
             onClick={() => setDelAsk(null)} data-testid="squad-delete-modal"
             className="sq-modal-scrim"
@@ -1382,7 +1401,8 @@ export default function SquadCanvas({
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         );
       })()}
 
@@ -1391,7 +1411,8 @@ export default function SquadCanvas({
         const sq = squads.find((s) => s.id === statusAsk.squadId);
         if (!sq) return null;
         const reopen = statusAsk.kind === 'reopen';
-        return (
+        // [PW-533] 막을 `document.body` 로 포털한다 — 아래 「왜 포털인가」 참고.
+        return createPortal(
           <div
             onClick={() => setStatusAsk(null)} data-testid="squad-status-modal"
             className="sq-modal-scrim"
@@ -1434,7 +1455,8 @@ export default function SquadCanvas({
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         );
       })()}
     </div>
