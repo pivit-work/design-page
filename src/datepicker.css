@@ -54,6 +54,14 @@
 .dp-datepicker-nav:hover {
   background: var(--colors-background-bgPrimaryHover, #e6e8ea);
 }
+/* 하한보다 앞 달로는 넘길 수 없다(PW-528 ②) — 넘겨 봐야 전부 비활성이라 헛걸음이다. */
+.dp-datepicker-nav:disabled,
+.dp-datepicker-nav:disabled:hover {
+  color: var(--text-disabled, #b1b6be);
+  background: transparent;
+  cursor: default;
+  opacity: 0.4;
+}
 .dp-datepicker-label {
   font-size: 14px;
   font-weight: 600;
@@ -126,4 +134,12 @@
 }
 .dp-datepicker-cell.is-selected:hover {
   background: var(--bg-brand-solid, #2dbd82);
+}
+/* PW-528 ② 하한(minDate) 이전 날짜 — 「고를 수 없다」가 보여야 한다.
+   is-outside 와 같은 흐린 톤을 쓰되 hover 반응까지 없앤다(눌리는 것처럼 보이면 안 된다). */
+.dp-datepicker-cell.is-disabled,
+.dp-datepicker-cell.is-disabled:hover {
+  color: var(--text-disabled, #b1b6be);
+  background: transparent;
+  cursor: default;
 }

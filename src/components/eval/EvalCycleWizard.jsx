@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
@@ -260,6 +260,73 @@ const isoToDate = (iso) => {
   const [y, m, d] = datePart(iso).split('-').map(Number);
   return y ? new Date(y, m - 1, d) : new Date();
 };
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PW-528 — 날짜 칸의 값 검증.
+
+   ① 종전에는 「채워졌는가」(`startDate && endDate`)만 봤다. 그래서 시작 8/30 ·
+      종료 8/6 처럼 순서가 뒤집힌 값도 그대로 다음 단계로 넘어갔다.
+   ③ 그리고 날짜 칸이 <button> 이라 달력으로만 고를 수 있었다. 직접 칠 수 있게 되면
+      「2026-0」 처럼 «치는 중» 인 값이 들어오므로, 온전한 날짜인지 따로 봐야 한다.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** 「YYYY-MM-DD」 모양이면서 달력에 실제로 있는 날인가(2026-02-30 을 걸러낸다). */
+const isIsoDate = (v) => {
+  if (!ISO_DATE_RE.test(v || '')) return false;
+  const [y, m, d] = v.split('-').map(Number);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const probe = new Date(y, m - 1, d);
+  return probe.getMonth() === m - 1 && probe.getDate() === d;
+};
+/**
+ * 종료가 시작보다 앞인가. 둘 다 온전한 값일 때만 판정한다 — 치는 중인 값을 오류로
+ * 만들면 「2026-」 까지 쳤을 뿐인데 빨개진다.
+ * 자릿수가 고정된 ISO 라 문자열 비교로 충분하다(시각이 붙어 있어도 앞 10자만 본다).
+ */
+const rangeOutOfOrder = (start, end) => {
+  const s = datePart(start);
+  const e = datePart(end);
+  return isIsoDate(s) && isIsoDate(e) && e < s;
+};
+/** 단계 일정은 날짜+시각이라 같은 날이면 시각까지 본다. */
+const dateTimeOutOfOrder = (start, end) => {
+  if (!datePart(start) || !datePart(end)) return false;
+  if (!isIsoDate(datePart(start)) || !isIsoDate(datePart(end))) return false;
+  return joinDateTime(datePart(end), timePart(end, 'end')) <
+    joinDateTime(datePart(start), timePart(start, 'start'));
+};
+
+/**
+ * DateField — 「달력으로 고르기」와 「직접 치기」를 둘 다 받는 날짜 칸 (PW-528 ③).
+ *
+ * 종전 <button> 과 **보이는 모양이 같다** — 같은 `evc-input evc-date-btn` 상자이고,
+ * 눌렀을 때 달력이 뜨는 것도 그대로다. 달라진 것은 캐럿이 생겨 값을 칠 수 있다는 것뿐.
+ * 먼 날짜로 가려고 달을 여러 번 넘길 필요가 없어진다.
+ */
+function DateField({ value, onType, onOpen, isOpen, invalid, testId, ariaLabel, className }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      className={[
+        'evc-input evc-date-btn',
+        className || '',
+        isOpen ? 'is-open' : '',
+        invalid ? 'is-invalid' : '',
+      ].filter(Boolean).join(' ')}
+      value={value}
+      onChange={(e) => onType(e.target.value)}
+      onClick={onOpen}
+      placeholder="YYYY-MM-DD"
+      maxLength={10}
+      aria-label={ariaLabel}
+      aria-invalid={invalid || undefined}
+      data-testid={testId}
+    />
+  );
+}
 
 /**
  * EvalCycleWizard — 새 평가 사이클 생성 마법사.
@@ -1948,6 +2015,66 @@ export default function EvalCycleWizard({
   const [schedPicker, setSchedPicker] = useState(null);
   const openSchedPicker = (phaseId, field) => (e) =>
     setSchedPicker({ phaseId, field, rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget });
+
+  /* PW-528 ③ — 직접 치는 중인 글자.
+     확정값(startDate/endDate)에는 «온전한 날짜»만 담는다. 아래 단계 일정 배치·프리셋
+     되살리기·생성 payload 가 전부 그 값을 그대로 쓰기 때문에, 「2026-0」 같은 중간
+     상태를 흘리면 일정이 엉뚱한 날에 깔린다. 그래서 치는 글자는 여기 따로 담고,
+     온전해지는 순간에만 확정값으로 올린다. null 이면 확정값을 그대로 보여 준다. */
+  const [dateDraft, setDateDraft] = useState({ start: null, end: null });
+  const dateShown = (field) =>
+    dateDraft[field] ?? (field === 'start' ? startDate : endDate);
+  const setCommitted = (field, iso) =>
+    (field === 'start' ? setStartDate : setEndDate)(iso);
+  const typeDate = (field) => (raw) => {
+    setDateDraft((prev) => ({ ...prev, [field]: raw }));
+    if (raw === '' || isIsoDate(raw)) setCommitted(field, raw);
+  };
+  /** 달력으로 고르면 치던 글자는 버린다 — 화면에 둘이 어긋나 보이면 안 된다. */
+  const pickDateValue = (field, iso) => {
+    setDateDraft((prev) => ({ ...prev, [field]: null }));
+    setCommitted(field, iso);
+  };
+  /* 「형식이 틀렸다」와 「순서가 뒤집혔다」를 나눠 표시한다 — 고쳐야 할 곳이 다르다.
+     비어 있는 것은 오류가 아니다(아직 안 채운 것이라 처음부터 빨갛게 두면 소음이다). */
+  const dateFormatBad = (field) => {
+    const shown = dateShown(field);
+    return !!shown && !isIsoDate(shown);
+  };
+  const dateOrderBad = rangeOutOfOrder(startDate, endDate);
+  const dateFieldInvalid = (field) =>
+    dateFormatBad(field) || (field === 'end' && dateOrderBad);
+  const datesUsable =
+    !dateFormatBad('start') && !dateFormatBad('end') && !dateOrderBad;
+
+  /* PW-528 ④ — 꼭 채워야 하는 칸에는 이름 옆에 「(필수)」를 붙인다.
+     design-page 가 이미 쓰는 표기다(AdminInviteModal 「이름 (필수)」·
+     SquadFormCard 「시작일 (필수)」·EvalCycleSummaryCanvas 「재검토 결정 사유 (필수)」).
+     문구를 못 받으면 아무것도 안 붙인다 — 없던 글자가 영어로 새어 나오면 안 된다. */
+  const req = (label) => (L.requiredSuffix ? `${label} ${L.requiredSuffix}` : label);
+
+  /* PW-528 ③ — 달력 문구를 화면 언어로 넘긴다. 안 넘기면 DatePicker 가 지금까지의
+     영어 표기를 그대로 쓴다(다른 화면의 달력은 건드리지 않는다).
+
+     테스트·기존 호출부는 라벨을 Proxy 로 넘겨 «어떤 키를 물어도 문자열»을 돌려주기도
+     한다. 그래서 있는지가 아니라 «배열 12개·7개인지»로 판정한다 — 문자열을 그대로
+     넘기면 달력이 렌더 중에 터진다. */
+  const pickerLabels =
+    Array.isArray(L.calendarMonths) &&
+    L.calendarMonths.length === 12 &&
+    Array.isArray(L.calendarWeekdays) &&
+    L.calendarWeekdays.length === 7
+      ? {
+          months: L.calendarMonths,
+          weekdays: L.calendarWeekdays,
+          today: typeof L.calendarToday === 'string' ? L.calendarToday : undefined,
+          monthLabel: (y, m) =>
+            fill(L.calendarMonthLabel ?? '{{month}} {{year}}', {
+              year: y,
+              month: L.calendarMonths[m],
+            }),
+        }
+      : undefined;
   const [reviewTypes, setReviewTypes] = useState(() => {
     if (D?.reviewTypes) return [...D.reviewTypes];
     return cycle?.reviewTypes?.length ? [...cycle.reviewTypes] : ['self', 'leader'];
@@ -2073,6 +2200,14 @@ export default function EvalCycleWizard({
   // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
   // 방금 저장했다는 사실을 들고 있다가 안내 대신 확인 문구를 보여준다(프리셋 저장과 같은 방식).
   const [tplSaved, setTplSaved] = useState(false);
+  /* PW-528 ④ 저장 차단 안내 → 템플릿 이름 칸으로 데려가기. */
+  const tplNameRef = useRef(null);
+  const focusTplName = () => {
+    const el = tplNameRef.current;
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus();
+  };
   const [tplVersion, setTplVersion] = useState(() => D?.tplVersion ?? 'standard');
   const [tplQuestions, setTplQuestions] = useState(
     () => D?.tplQuestions ?? presetFor('standard', 'self'),
@@ -2162,6 +2297,45 @@ export default function EvalCycleWizard({
     if (!date) return;
     updateSchedule(id, field, joinDateTime(date, hhmm || DEFAULT_TIME[field]));
   };
+
+  /* PW-528 ③ — 단계 날짜도 직접 칠 수 있다. 1단계와 같은 이유로 «치는 중»인 글자는
+     확정값과 따로 담는다: 단계 일정은 시각이 붙은 'YYYY-MM-DDTHH:mm' 로 저장되고
+     오버랩 판정·리마인더·24시간제 표기가 전부 그 값을 읽기 때문이다. */
+  const [schedDraft, setSchedDraft] = useState({});
+  const draftKey = (id, field) => `${id}:${field}`;
+  const schedShown = (id, field) =>
+    schedDraft[draftKey(id, field)] ?? datePart(scheduleOf(id)[field]);
+  const typeSchedDate = (id, field) => (raw) => {
+    setSchedDraft((prev) => ({ ...prev, [draftKey(id, field)]: raw }));
+    if (raw === '' || isIsoDate(raw)) updateSchedDate(id, field, raw);
+  };
+  const pickSchedDate = (id, field, iso) => {
+    setSchedDraft((prev) => {
+      const next = { ...prev };
+      delete next[draftKey(id, field)];
+      return next;
+    });
+    updateSchedDate(id, field, iso);
+  };
+  const schedFormatBad = (id, field) => {
+    const shown = schedShown(id, field);
+    return !!shown && !isIsoDate(shown);
+  };
+  /** 이 단계의 종료가 시작보다 앞인가(단계 «안»의 순서만 본다 — 겹침은 정상이다). */
+  const schedOrderBad = (id) => {
+    const sc = scheduleOf(id);
+    return dateTimeOutOfOrder(sc.start, sc.end);
+  };
+  const schedFieldInvalid = (id, field) =>
+    schedFormatBad(id, field) || (field === 'end' && schedOrderBad(id));
+  /* 켜져 있는 단계만 본다 — 끈 단계는 일정 입력 자체를 감추므로(§5.2.1 OFF 표현)
+     거기 남아 있는 옛 값 때문에 진행이 막히면 영문을 알 수 없다. */
+  const scheduleValid = enabledRows.every(
+    (r) =>
+      !schedFormatBad(r.id, 'start') &&
+      !schedFormatBad(r.id, 'end') &&
+      !schedOrderBad(r.id),
+  );
 
   // §5.2.1 리마인더 편집
   const addReminder = (pid) =>
@@ -3148,6 +3322,9 @@ export default function EvalCycleWizard({
     name.trim() &&
     startDate &&
     endDate &&
+    /* PW-528 ① 「채워졌는가」만으로는 부족하다 — 거꾸로 된 기간(종료 < 시작)과
+       치다 만 값(「2026-0」)이 그대로 통과해 저장됐다. */
+    datesUsable &&
     reviewTypes.length > 0 &&
     (!hasPeer || peerAssignModes.length > 0);
   const targetsValid = targetCount > 0;
@@ -3397,20 +3574,25 @@ export default function EvalCycleWizard({
   const canAdvance =
     (step === 0 && step1Valid) ||
     step === 1 ||
-    step === 2 ||
+    /* PW-528 ① 3단계는 템플릿 때문에 막지 않는다(위 주석)는 결정은 그대로 두되,
+       «거꾸로 된 일정»은 막는다 — 그건 미완성이 아니라 틀린 값이라서 뒤 단계에서
+       고칠 수 있는 것이 아니다. 겹침은 여전히 통과시킨다(병렬 진행이 정상). */
+    (step === 2 && scheduleValid) ||
     (step === 3 && targetsValid) ||
     (step === 4 && committeeValid);
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
-  const canSubmit = step1Valid && targetsValid && committeeValid;
+  const canSubmit = step1Valid && scheduleValid && targetsValid && committeeValid;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
-    : !targetsValid
-      ? L.submitBlockTargets
-      : !committeeValid
-        ? L.submitBlockCommittee
-        : null;
+    : !scheduleValid
+      ? L.submitBlockSchedule ?? L.dateOrderError
+      : !targetsValid
+        ? L.submitBlockTargets
+        : !committeeValid
+          ? L.submitBlockCommittee
+          : null;
 
   const submit = () => {
     const payload = {
@@ -3715,7 +3897,9 @@ export default function EvalCycleWizard({
                   </div>
                 </div>
               )}
-              <label className="evc-field-label" htmlFor="evc-wiz-name">{L.cycleName}</label>
+              <label className="evc-field-label" htmlFor="evc-wiz-name">
+                {req(L.cycleName)}
+              </label>
               <input
                 id="evc-wiz-name"
                 className="evc-input"
@@ -3727,39 +3911,58 @@ export default function EvalCycleWizard({
               />
               <div className="evc-field-grid">
                 <div>
-                  <label className="evc-field-label">{L.startDate}</label>
-                  <button
-                    type="button"
-                    className={`evc-input evc-date-btn${picker?.field === 'start' ? ' is-open' : ''}`}
-                    style={{ textAlign: 'left', cursor: 'pointer' }}
-                    onClick={openPicker('start')}
-                    data-testid="evc-wiz-start"
-                  >
-                    {startDate || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
-                  </button>
+                  <label className="evc-field-label">{req(L.startDate)}</label>
+                  <DateField
+                    value={dateShown('start')}
+                    onType={typeDate('start')}
+                    onOpen={openPicker('start')}
+                    isOpen={picker?.field === 'start'}
+                    invalid={dateFieldInvalid('start')}
+                    ariaLabel={L.startDate}
+                    testId="evc-wiz-start"
+                  />
                 </div>
                 <div>
-                  <label className="evc-field-label">{L.endDate}</label>
-                  <button
-                    type="button"
-                    className={`evc-input evc-date-btn${picker?.field === 'end' ? ' is-open' : ''}`}
-                    style={{ textAlign: 'left', cursor: 'pointer' }}
-                    onClick={openPicker('end')}
-                    data-testid="evc-wiz-end"
-                  >
-                    {endDate || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
-                  </button>
+                  <label className="evc-field-label">{req(L.endDate)}</label>
+                  <DateField
+                    value={dateShown('end')}
+                    onType={typeDate('end')}
+                    onOpen={openPicker('end')}
+                    isOpen={picker?.field === 'end'}
+                    invalid={dateFieldInvalid('end')}
+                    ariaLabel={L.endDate}
+                    testId="evc-wiz-end"
+                  />
                 </div>
               </div>
+              {/* PW-528 ① — 왜 다음으로 못 가는지를 그 자리에서 말한다. 종전에는
+                  「다음」이 그냥 살아 있어서 거꾸로 된 기간이 그대로 저장됐다. */}
+              {(dateFormatBad('start') || dateFormatBad('end') || dateOrderBad) && (
+                <p className="evc-wiz-warn" role="alert" data-testid="evc-wiz-date-error">
+                  {dateOrderBad ? L.dateOrderError : L.dateFormatError}
+                </p>
+              )}
               {picker && (
                 <DatePicker
                   anchorRect={picker.rect}
                   anchorEl={picker.el}
                   selectedDate={isoToDate(picker.field === 'start' ? startDate : endDate)}
+                  labels={pickerLabels}
+                  /* PW-528 ② 종료일은 시작일 이전으로 못 간다. 시작일에는 하한이 없다 —
+                     지난 기간을 평가하는 사이클을 막으면 안 된다. */
+                  minDate={
+                    picker.field === 'end' && isIsoDate(startDate)
+                      ? isoToDate(startDate)
+                      : undefined
+                  }
+                  /* 값이 비어 있으면 오늘이 아니라 «시작일이 있는 달»에서 연다. */
+                  initialMonth={
+                    picker.field === 'end' && !endDate && isIsoDate(startDate)
+                      ? isoToDate(startDate)
+                      : undefined
+                  }
                   onSelect={(d) => {
-                    const iso = dateToIso(d);
-                    if (picker.field === 'start') setStartDate(iso);
-                    else setEndDate(iso);
+                    pickDateValue(picker.field, dateToIso(d));
                     setPicker(null);
                   }}
                   onClose={() => setPicker(null)}
@@ -4137,9 +4340,13 @@ export default function EvalCycleWizard({
                 </div>
               )}
 
-              <span className="evc-field-label">{L.templateNameLabel}</span>
+              <span className="evc-field-label">{req(L.templateNameLabel)}</span>
               <input
-                className="evc-input"
+                ref={tplNameRef}
+                /* PW-528 ④ — 저장이 막혀 있는 동안 «어느 칸» 때문인지 그 칸에 표시한다.
+                   종전에는 저장 버튼 옆에만 「템플릿 이름을 입력해야…」가 떴는데, 정작
+                   그 칸은 화면 한참 위라 어디를 채우라는 것인지 찾아야 했다. */
+                className={`evc-input${tplSaveBlockKey === 'templateBlockName' ? ' is-invalid' : ''}`}
                 value={tplName}
                 onChange={(e) => {
                   setTplName(e.target.value);
@@ -4561,12 +4768,16 @@ export default function EvalCycleWizard({
                   </span>
                 ) : (
                   tplSaveBlockKey && (
-                    <span
-                      className="evc-tpl-save-hint"
+                    /* 안내를 누르면 채워야 할 칸으로 데려간다(PW-528 ④). 읽고 나서
+                       스스로 찾아 올라가야 하는 안내는 안내가 아니다. */
+                    <button
+                      type="button"
+                      className="evc-tpl-save-hint is-link"
+                      onClick={focusTplName}
                       data-testid="evc-tpl-save-hint"
                     >
                       {L[tplSaveBlockKey]}
-                    </span>
+                    </button>
                   )
                 )}
               </div>
@@ -4683,15 +4894,15 @@ export default function EvalCycleWizard({
                                 {field === 'start' ? L.startDateTime ?? L.startDate : L.endDateTime ?? L.endDate}
                               </span>
                               <div className="evc-sched-dt">
-                                <button
-                                  type="button"
-                                  className={`evc-input evc-date-btn${schedPicker?.phaseId === ph.id && schedPicker?.field === field ? ' is-open' : ''}`}
-                                  style={{ textAlign: 'left', cursor: 'pointer' }}
-                                  onClick={openSchedPicker(ph.id, field)}
-                                  data-testid={`evc-sched-${field}-${ph.id}`}
-                                >
-                                  {datePart(sc[field]) || <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>}
-                                </button>
+                                <DateField
+                                  value={schedShown(ph.id, field)}
+                                  onType={typeSchedDate(ph.id, field)}
+                                  onOpen={openSchedPicker(ph.id, field)}
+                                  isOpen={schedPicker?.phaseId === ph.id && schedPicker?.field === field}
+                                  invalid={schedFieldInvalid(ph.id, field)}
+                                  ariaLabel={field === 'start' ? L.startDate : L.endDate}
+                                  testId={`evc-sched-${field}-${ph.id}`}
+                                />
                                 <input
                                   type="time"
                                   className="evc-input evc-time-input"
@@ -5257,18 +5468,30 @@ export default function EvalCycleWizard({
                   );
                 });
               })()}
-              {schedPicker && (
-                <DatePicker
-                  anchorRect={schedPicker.rect}
-                  anchorEl={schedPicker.el}
-                  selectedDate={isoToDate(scheduleOf(schedPicker.phaseId)[schedPicker.field])}
-                  onSelect={(d) => {
-                    updateSchedDate(schedPicker.phaseId, schedPicker.field, dateToIso(d));
-                    setSchedPicker(null);
-                  }}
-                  onClose={() => setSchedPicker(null)}
-                />
-              )}
+              {schedPicker && (() => {
+                /* PW-528 ② — 단계 «안»의 종료일도 그 단계 시작일을 하한으로 삼는다
+                   (정책 §4.5 「종료일 min = 해당 단계 시작일」과 같은 규칙).
+                   단계 «간» 겹침은 여전히 자유다 — 병렬 진행이 정상이라서다(§5.2.2). */
+                const phaseStart = datePart(scheduleOf(schedPicker.phaseId).start);
+                const bound =
+                  schedPicker.field === 'end' && isIsoDate(phaseStart) ? phaseStart : null;
+                const own = datePart(scheduleOf(schedPicker.phaseId)[schedPicker.field]);
+                return (
+                  <DatePicker
+                    anchorRect={schedPicker.rect}
+                    anchorEl={schedPicker.el}
+                    selectedDate={isoToDate(scheduleOf(schedPicker.phaseId)[schedPicker.field])}
+                    labels={pickerLabels}
+                    minDate={bound ? isoToDate(bound) : undefined}
+                    initialMonth={bound && !own ? isoToDate(bound) : undefined}
+                    onSelect={(d) => {
+                      pickSchedDate(schedPicker.phaseId, schedPicker.field, dateToIso(d));
+                      setSchedPicker(null);
+                    }}
+                    onClose={() => setSchedPicker(null)}
+                  />
+                );
+              })()}
             </div>
           )}
 
