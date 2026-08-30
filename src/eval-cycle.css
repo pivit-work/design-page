@@ -761,6 +761,11 @@
   font-weight: 600;
   color: var(--utility-success-600, #039855);
 }
+/* PW-531: 같은 자리에서 실패도 말한다 — 색만 갈린다(성공/실패가 다른 곳에 뜨면
+   방금 누른 것의 결과인지 알 수 없다). */
+.evc-wiz-preset-saved.is-error {
+  color: var(--utility-error-500, #f04438);
+}
 .evc-wiz-footer {
   display: flex;
   justify-content: space-between;

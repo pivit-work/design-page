@@ -3889,7 +3889,21 @@ export default function EvalCycleWizard({
           ? L.submitBlockCommittee
           : null;
 
-  const submit = () => {
+  /**
+   * PW-531 — 「생성」의 결과를 기다린다.
+   *
+   * 🔴 종전에는 `onSubmit(payload)` 를 던져 두고 소비 측이 «먼저 창을 닫은 뒤» 저장을
+   * 시작했다. 저장은 한 번에 끝나지 않는다(사이클 → 대상자 → 목록 다시 읽기) — 그
+   * 몇 초 동안 사용자가 보는 것은 «창이 닫혔다» 뿐이고, 성공 안내는 한참 뒤에 왔다가
+   * 3초 만에 사라졌다. 그래서 「눌렀는데 아무 일도 안 일어났다」로 읽힌다(PW-531 제보).
+   * 실패하면 더 나쁘다 — 6단계까지 채운 입력이 이미 사라진 뒤였다. 정책 §5.7 은
+   * 「실패 시 위자드 유지」로 정해 두었다.
+   */
+  const [submitting, setSubmitting] = useState(false);
+  const [submitFailed, setSubmitFailed] = useState(false);
+
+  const submit = async () => {
+    if (submitting) return;
     const payload = {
       name: name.trim(),
       startDate,
@@ -3995,53 +4009,81 @@ export default function EvalCycleWizard({
       committeeExcludedMemberIds:
         committeeOn && committee.length > 0 ? committeeExcluded : undefined,
     };
-    onSubmit(payload);
+    setSubmitFailed(false);
+    setSubmitting(true);
+    try {
+      await onSubmit(payload);
+    } catch {
+      // 소비 측이 실패를 던지면 창을 닫지 않는다 — 입력이 그대로 남아 다시 누를 수 있다.
+      setSubmitFailed(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // TC-028 현재 위자드 설정을 프리셋으로 저장.
   const [presetName, setPresetName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState('');
-  const [presetSaved, setPresetSaved] = useState(false);
-  const handleSavePreset = () => {
-    if (!onSavePreset || !presetName.trim()) return;
-    onSavePreset({
-      name: presetName.trim(),
-      reviewSequence: {
-        order: displayPhases.map((p) => p.id),
-        enabled: Object.fromEntries(
-          displayPhases.map((p) => [p.id, !disabledPhases.has(p.id)]),
-        ),
-        schedule: Object.fromEntries(
-          displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
-        ),
-        templateMap: phaseTemplateMap,
-        gradeCardPosition,
-        roleMode,
-        roleVersions: roleMode === 'by_role' ? roleVersions : {},
-      },
-      // PW-122: 템플릿 본문까지 담아야 '템플릿을 그대로 가져옵니다' 가 사실이 된다.
-      // 여기 없으면 단계별 템플릿 매핑(templateMap)만 남아 가리킬 대상이 사라진다.
-      templateConfig: { templates: savedTemplates },
-      // A4: '대상자 조건' 까지 포함해야 프리셋이 사이클 설정 전체를 복제한다.
-      targetConfig: {
-        reviewTypes,
-        peerAssignModes,
-        // 대상자 «조건» 은 이제 조직 선택이다. 프리셋은 사이클 설정의 복제라 함께 담는다.
-        orgIds: [...orgSel],
-        exclusionRules: {
-          onLeave: excludeOnLeave,
-          hireDate: excludeHireDate,
-          hireDateRef,
-          hireDateDirection,
-          roleChange: excludeRoleChange,
-          promotion: excludePromotion,
-          promotionRef,
-          promotionDirection,
+  /**
+   * PW-531 — 저장이 «실제로» 끝난 뒤에만 저장됐다고 말하고, 무엇을 저장했는지 이름을
+   * 함께 보여 준다.
+   *
+   * 🔴 종전에는 응답을 기다리지 않고 곧바로 「✓ 저장됨」을 띄우고 이름 칸을 비웠다.
+   * 그래서 (가) 저장이 실패해도 성공한 것처럼 보였고 (나) 이름이 사라져 무엇을
+   * 저장했는지 확인할 방법이 없었다(PW-531 제보).
+   */
+  const [presetSavedName, setPresetSavedName] = useState('');
+  const [presetSaving, setPresetSaving] = useState(false);
+  const [presetSaveFailed, setPresetSaveFailed] = useState(false);
+  const handleSavePreset = async () => {
+    const trimmed = presetName.trim();
+    if (!onSavePreset || !trimmed || presetSaving) return;
+    setPresetSaveFailed(false);
+    setPresetSaving(true);
+    try {
+      await onSavePreset({
+        name: trimmed,
+        reviewSequence: {
+          order: displayPhases.map((p) => p.id),
+          enabled: Object.fromEntries(
+            displayPhases.map((p) => [p.id, !disabledPhases.has(p.id)]),
+          ),
+          schedule: Object.fromEntries(
+            displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
+          ),
+          templateMap: phaseTemplateMap,
+          gradeCardPosition,
+          roleMode,
+          roleVersions: roleMode === 'by_role' ? roleVersions : {},
         },
-      },
-    });
-    setPresetSaved(true);
-    setPresetName('');
+        // PW-122: 템플릿 본문까지 담아야 '템플릿을 그대로 가져옵니다' 가 사실이 된다.
+        // 여기 없으면 단계별 템플릿 매핑(templateMap)만 남아 가리킬 대상이 사라진다.
+        templateConfig: { templates: savedTemplates },
+        // A4: '대상자 조건' 까지 포함해야 프리셋이 사이클 설정 전체를 복제한다.
+        targetConfig: {
+          reviewTypes,
+          peerAssignModes,
+          // 대상자 «조건» 은 이제 조직 선택이다. 프리셋은 사이클 설정의 복제라 함께 담는다.
+          orgIds: [...orgSel],
+          exclusionRules: {
+            onLeave: excludeOnLeave,
+            hireDate: excludeHireDate,
+            hireDateRef,
+            hireDateDirection,
+            roleChange: excludeRoleChange,
+            promotion: excludePromotion,
+            promotionRef,
+            promotionDirection,
+          },
+        },
+      });
+      setPresetSavedName(trimmed);
+      setPresetName('');
+    } catch {
+      setPresetSaveFailed(true);
+    } finally {
+      setPresetSaving(false);
+    }
   };
 
   // TC-028 프리셋 불러오기 → 기본 설정 프리필(리뷰종류·배정방식·공개·등급위치·일정).
@@ -6919,6 +6961,10 @@ export default function EvalCycleWizard({
               {onSavePreset && (
                 <div className="evc-wiz-preset-save" data-testid="evc-wiz-preset-save">
                   <span className="evc-field-label">{L.presetSaveLabel}</span>
+                  {/* PW-531 — 무엇이 함께 저장되고 다음에 어디서 꺼내 쓰는지를 «저장하는
+                      그 자리» 에 적는다. 정책 v2.26 §5.9.5 가 저장 범위 표기를 요구한다.
+                      이것이 없으면 저장은 됐는데 어디로 갔는지 알 수 없다(PW-531 제보). */}
+                  <p className="evc-wiz-hint">{L.presetSaveHint}</p>
                   <div className="evc-wiz-preset-save-row">
                     <input
                       className="evc-input"
@@ -6926,23 +6972,32 @@ export default function EvalCycleWizard({
                       placeholder={L.presetSavePlaceholder}
                       onChange={(e) => {
                         setPresetName(e.target.value);
-                        setPresetSaved(false);
+                        setPresetSavedName('');
+                        setPresetSaveFailed(false);
                       }}
                       data-testid="evc-wiz-preset-name"
                     />
                     <button
                       type="button"
                       className="evc-btn is-ghost"
-                      disabled={!presetName.trim()}
+                      disabled={!presetName.trim() || presetSaving}
                       onClick={handleSavePreset}
                       data-testid="evc-wiz-preset-save-btn"
                     >
-                      {L.presetSaveButton}
+                      {presetSaving ? L.presetSaving : L.presetSaveButton}
                     </button>
                   </div>
-                  {presetSaved && (
+                  {presetSavedName && (
                     <span className="evc-wiz-preset-saved" data-testid="evc-wiz-preset-saved">
-                      ✓ {L.presetSaved}
+                      ✓ {fill(L.presetSavedNamed, { name: presetSavedName })}
+                    </span>
+                  )}
+                  {presetSaveFailed && (
+                    <span
+                      className="evc-wiz-preset-saved is-error"
+                      data-testid="evc-wiz-preset-save-failed"
+                    >
+                      {L.presetSaveFailed}
                     </span>
                   )}
                 </div>
@@ -6975,6 +7030,16 @@ export default function EvalCycleWizard({
             </span>
           )}
           <div className="evc-wiz-footer-right">
+            {/* PW-531 — 「생성」이 실패하면 «누른 자리 옆»에서 말한다. 토스트만으로는
+                모달 위를 잠깐 스쳐 지나가 놓치고, 그때 위자드는 이미 닫힌 뒤였다. */}
+            {submitFailed && (
+              <span
+                className="evc-wiz-draft-state is-error"
+                data-testid="evc-wiz-submit-failed"
+              >
+                {L.submitFailed}
+              </span>
+            )}
             {/* PW-440 — 「어디까지 저장됐나」를 그 자리에서 읽을 수 있어야 한다.
                 저장이 보이지 않으면 사용자는 저장됐다고 믿지 않는다. */}
             {draftEnabled && (
@@ -7027,11 +7092,15 @@ export default function EvalCycleWizard({
               <button
                 type="button"
                 className="evc-btn is-primary"
-                disabled={!canSubmit}
+                disabled={!canSubmit || submitting}
                 onClick={submit}
                 data-testid="evc-wiz-submit"
               >
-                {isManage ? L.saveChanges : L.create}
+                {submitting
+                  ? L.submitting
+                  : isManage
+                    ? L.saveChanges
+                    : L.create}
               </button>
             )}
           </div>

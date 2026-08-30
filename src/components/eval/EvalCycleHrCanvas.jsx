@@ -85,12 +85,26 @@ const DEFAULT_LABELS = {
   reviewTypes: '리뷰 종류',
   cancel: '취소',
   create: '생성',
+  // PW-531 — 저장이 끝날 때까지 버튼이 「생성 중…」으로 잠긴다. 눌렀는지 안 눌렸는지를
+  // 화면이 말해 주지 않으면 사용자는 «아무 일도 안 일어났다» 로 읽는다.
+  submitting: '저장 중…',
+  submitFailed: '저장하지 못했습니다. 다시 시도해 주세요.',
   // 관리(수정) 모드 — 정책 §4.3. 준비 중 사이클의 '관리'는 설정 편집으로 들어간다.
   manageTitle: '{{name}} · 사이클 관리',
   saveChanges: '변경사항 저장',
   manageSaveHint:
     '준비 중(오픈 전) 사이클의 설정을 변경합니다. 오픈 이후에는 이름·기간·평가 방식·대상자를 바꿀 수 없습니다.',
   toastUpdated: '사이클 설정이 저장되었습니다',
+  // PW-531 — 프리셋 저장 자리. 「무엇이 저장되고 어디서 다시 쓰나」를 그 자리에 적는다
+  // (정책 v2.26 §5.9.5 「저장 범위를 그 자리에 표기」).
+  presetSaveLabel: '이 설정을 프리셋으로 저장',
+  presetSavePlaceholder: '프리셋 이름 (예: 2025 하반기 설정)',
+  presetSaveHint:
+    '지금 설정한 리뷰 종류 · 단계별 일정 · 평가지 · 대상자 조건을 묶어 둡니다. 다음에 새 평가 사이클을 만들 때 1단계 「저장된 설정 불러오기」에서 그대로 가져올 수 있습니다. 사이클 이름과 기간은 저장하지 않습니다.',
+  presetSaveButton: '프리셋 저장',
+  presetSaving: '저장 중…',
+  presetSavedNamed: '「{{name}}」 (으)로 저장했습니다',
+  presetSaveFailed: '프리셋을 저장하지 못했습니다. 다시 시도해 주세요.',
   manageLoadError: '사이클 설정을 불러오지 못했습니다',
   // wizard
   wizardStep1: '기본 정보',
@@ -740,13 +754,31 @@ export default function EvalCycleHrCanvas({
      * 초안 카드. 사용자는 자기가 쓰던 것이 왜 그대로 남아 있는지 알 수 없다.
      * 초안 레코드는 이미 있으므로 «갱신»이 맞다.
      */
+    /**
+     * PW-531 — 🔴 **저장이 끝난 뒤에 닫는다.**
+     *
+     * 종전에는 `closeWizard()` 가 저장 «앞»에 있었다. 저장은 한 번에 끝나지 않아서
+     * (사이클 저장 → 대상자 반영 → 목록 다시 읽기) 다 끝나기까지 몇 초가 걸리는데,
+     * 그 몇 초 동안 화면에는 아무 일도 일어나지 않고 성공 안내만 한참 뒤에 왔다가
+     * 3초 만에 사라졌다 — 「생성을 눌렀는데 아무 액션 없이 화면이 닫혔다」(PW-531).
+     * 실패는 더 나빴다: 6단계까지 채운 입력이 이미 사라진 뒤에 오류만 떴다.
+     * 정책 §5.7 은 「성공하면 목록 · 실패하면 위자드 유지」로 정해 두었다.
+     *
+     * 실패를 **다시 던진다** — 위자드가 그걸 받아 열린 채로 사유를 적는다.
+     */
     const draftCycleId = draftSession?.cycleId;
-    closeWizard();
-    if (draftCycleId && onUpdateCycle) {
-      await run(() => onUpdateCycle(draftCycleId, payload), L.toastCreated);
-      return;
+    try {
+      if (draftCycleId && onUpdateCycle) {
+        await onUpdateCycle(draftCycleId, payload);
+      } else {
+        await onCreateCycle?.(payload);
+      }
+    } catch (err) {
+      showToast(L.toastError, 'error');
+      throw err;
     }
-    await run(() => onCreateCycle?.(payload), L.toastCreated);
+    closeWizard();
+    showToast(L.toastCreated);
   };
 
   /**
@@ -842,10 +874,20 @@ export default function EvalCycleHrCanvas({
     })();
   };
 
+  /**
+   * PW-531 — 「변경사항 저장」도 «생성»과 같은 버튼·같은 자리다. 여기도 저장이 끝난
+   * 뒤에 닫는다(종전에는 `setManageTarget(null)` 이 저장 앞에 있었다).
+   */
   const handleUpdate = async (payload) => {
     const id = manageTarget?.cycle?.id;
+    try {
+      await onUpdateCycle?.(id, payload);
+    } catch (err) {
+      showToast(L.toastError, 'error');
+      throw err;
+    }
     setManageTarget(null);
-    await run(() => onUpdateCycle?.(id, payload), L.toastUpdated);
+    showToast(L.toastUpdated);
   };
 
   /**
