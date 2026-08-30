@@ -576,7 +576,14 @@ const makeReminder = (offset = 1, channels = ['email']) => ({
   message: { ...EMPTY_MESSAGE },
   // 수신은 members.email 자동, CC 는 targets 연동 — 편집 필드가 없다.
   email: {},
-  slack: { mode: 'dm', channel: SLACK_CHANNELS[0], mention: true },
+  /**
+   * 🔴 [PW-530 ④] 채널의 기본값은 «빈 값» 이다. 종전에는 데모 목록의 첫 항목
+   * (`#performance-review`)이 새 리마인더마다 미리 채워져 있었다 — 그 조직에 그런
+   * 채널이 없어도 그렇다. 「채널 게시」로 바꾸는 순간 **없는 채널이 이미 골라진 상태**가
+   * 되고, 그대로 저장하면 리마인더가 있지도 않은 곳으로 발송을 시도한다.
+   * 기본이 DM 이라 빈 값이어도 잃는 것이 없다.
+   */
+  slack: { mode: 'dm', channel: '', mention: true },
 });
 // 단계 진입 시 기본 2회(종료 D-3·D-1) — "2회 이상" 요건 충족.
 // id 는 결정적(phase 배열 내 고유) — state seeding 없이도 매 렌더 동일 id 라
