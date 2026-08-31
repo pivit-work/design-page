@@ -5,7 +5,7 @@ import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import { buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED } from './orgTree.js';
 // 직군>직렬>직무 좁히기는 목록 뷰 필터 칩도 쓴다 — 공용 모듈이 한 벌이다(PW-400).
-import { narrowByParent } from './jobAxis.js';
+import { narrowByParent, invalidPairRowIds, isValidPair } from './jobAxis.js';
 /* 명부 내보내기 부품은 목록 뷰와 **공유**한다(PW-411). 여기 로컬 함수로 두면 목록
    뷰에서 쓸 수 없어, 두 뷰를 동시에 마운트하는 구조에서 감춘 쪽 버튼이 눌리게 된다. */
 import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
@@ -130,6 +130,27 @@ const NO_SQUADS = [];
 
 /** `initialFilters` 기본값 — NO_SQUADS 와 같은 이유로 고정 객체다. */
 const EMPTY_FILTERS = {};
+
+/**
+ * 경고 삼각형 — 「연결되지 않은 인사 분류 조합」 요약 앞에 선다.
+ *
+ * 이모지 글리프가 아니라 인라인 SVG 다. OS·폰트마다 모양이 갈리고, 컬러 이모지는
+ * 흑백 UI 에서 혼자 튀며, `color` 를 상속하지 않아 켜짐/꺼짐에 따라 색을 줄 수가 없다.
+ * 색은 감싸는 버튼의 `color` 에서 온다.
+ */
+function IconWarning({ size = 12 }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden focusable={false} style={{ flexShrink: 0 }}
+    >
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
 
 /** 직군>직렬>직무 축의 기본값 — 같은 이유로 고정 객체다. */
 const EMPTY_JOB_AXIS = {
@@ -1195,6 +1216,11 @@ export default function AdminEmployeeSheetCanvas({
     return next;
   });
   const [search, setSearch] = useState(initialSearch);
+  /* [PW-491 · §3.8.5-A] 「연결되지 않은 인사 분류 조합 N건」 요약을 눌렀을 때 그 행만 본다.
+     2026-07-19 [F] 승격 당시 연결 작업 5개 중 «(5) 상단 요약 클릭 → 필터» 가 이 자리다.
+     주의 — 주소창에는 아무것도 붙이지 않는다 — 이동이 없어 재현할 «이동» 이 없고, 이 수는
+     저장 전 편집 상태에서 계산되므로 링크를 만들면 받는 사람에게는 0건이 된다. */
+  const [onlyInvalid, setOnlyInvalid] = useState(false);
   // 지금 이 시트에 없는 열로는 정렬하지 않는다 — 되살린 값이 화면에 없는 열을
   // 가리키면 표는 안 바뀌는데 헤더 화살표만 사라진 어정쩡한 상태가 된다.
   const [sortCol, setSortCol] = useState(
@@ -1236,6 +1262,39 @@ export default function AdminEmployeeSheetCanvas({
   }
   const dirtyRows = rows.filter((r) => isRowDirty(r.id));
   const dirtyCount = dirtyRows.length;
+
+  /* ── 연결되지 않은 인사 분류 조합 (§3.8.3-A) ────────────────────────────
+   * (직군, 직렬) · (직렬, 직무) 두 쌍을 본다. 좁혀 주는 드롭다운은 «새로 어긋나게
+   * 만들기»만 막으므로, 상위를 나중에 바꿨거나 CSV 로 들어왔거나 조직 설정에서 연결이
+   * 끊긴 값은 그대로 남아 **저장에서만** 400 으로 거부됐다. 화면이 먼저 알린다. */
+  const invalidRowIds = useMemo(() => invalidPairRowIds(rows, jobAxis), [rows, jobAxis]);
+  const invalidCount = invalidRowIds.size;
+  const badPairOf = (row) => ({
+    jobTitle: invalidRowIds.has(row.id)
+      && !isValidPair(jobAxis.laddersByFamily, row.jobFamily, row.jobTitle),
+    jobDuty: invalidRowIds.has(row.id)
+      && !isValidPair(jobAxis.dutiesByLadder, row.jobTitle, row.jobDuty),
+  });
+
+  /* ⛔ 불변식 ② — 켜짐 상태를 «끄지» 않는다. 실제로 좁힐지는 「아직 남아 있는가」를
+     함께 넣어 판정한다. 상태를 꺼 버리면 `되돌리기` 로 무효 조합이 되살아났을 때
+     필터가 함께 살아나지 않아, 화면이 방금 전과 다르게 동작한다. */
+  const showOnlyInvalid = onlyInvalid && invalidCount > 0;
+
+  /* ⛔ 불변식 ① — 고칠 것을 보여 주려고 켠 필터가 고칠 것을 감추면 안 된다.
+     그래서 검색·필터 칩과 AND 로 걸지 않고, 켜는 순간 그것들을 «해제»한다.
+     AND 로 걸면 「저장할 수 없습니다」라고 말해 놓고 눌렀더니 빈 표가 나오는 조합이
+     생기고, 그때 어드민은 그 행이 다른 필터에 가려져 무엇을 고쳐야 하는지 알 수 없다. */
+  function toggleOnlyInvalid() {
+    const next = !onlyInvalid;
+    setOnlyInvalid(next);
+    if (next) {
+      // 되살린 뷰 상태(`initialFilters`)로 되돌리는 게 아니라 **비운다** — 그 안에도
+      // 문제 행을 가리는 값이 들어 있을 수 있다.
+      setSearch('');
+      setFilters(EMPTY_FILTERS);
+    }
+  }
 
   function updateCell(rowId, colId, val) {
     setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, [colId]: val } : r)));
@@ -1435,7 +1494,9 @@ export default function AdminEmployeeSheetCanvas({
       .filter((s) => s && isVisibleSquadStatus(s.status))
       .map((s) => s.name);
 
-  let filtered = rows.filter((r) => {
+  let filtered = (showOnlyInvalid ? rows.filter((r) => invalidRowIds.has(r.id)) : rows).filter((r) => {
+    // 켜져 있으면 아래 필터·검색을 통과시킨다 — 해제는 «켜는 시점»에 한 번 한다.
+    if (showOnlyInvalid) return true;
     for (const fc of FILTER_COLS) {
       const fv = filters[fc.id];
       if (!fv || fv === '__all__') continue;
@@ -1564,6 +1625,9 @@ export default function AdminEmployeeSheetCanvas({
   // ── 저장/초기화 ──
   async function saveChanges() {
     if (!onSaveMembers || dirtyCount === 0 || saving) return;
+    // 버튼이 이미 막혀 있지만 함수 쪽에서도 막는다 — 저장을 부르는 자리가 늘어났을 때
+    // 「버튼만 막힌」 상태가 되면 요약이 한 말과 실제 동작이 갈린다(§3.8.3-A).
+    if (invalidCount > 0) return;
     const patches = dirtyRows.map((r) => {
       const patch = { id: r.id };
       EDITABLE_FIELDS.forEach((f) => {
@@ -1686,6 +1750,10 @@ export default function AdminEmployeeSheetCanvas({
   const STICKY_DIVIDER = `1px solid ${T.border}`;
   const DIRTY_CELL_BG = 'rgba(245,158,11,.06)';
   const DIRTY_ROW_BG = 'rgba(245,158,11,.04)';
+  /* 어긋난 조합 표시색 — 변경(앰버)과 갈리는 붉은 계열이고, 변경 표시와 같은 방식으로
+     테두리 + 옅은 바탕 두 겹이다. 셀 안의 값을 가리지 않을 만큼만 옅게 준다. */
+  const INVALID_PAIR_LINE = '#D92D20';
+  const INVALID_PAIR_BG = 'rgba(217,45,32,.06)';
   const wash = (c) => `linear-gradient(${c}, ${c})`;
   const stickyLeftCell = (left, extra) => ({
     position: 'sticky',
@@ -1739,7 +1807,17 @@ export default function AdminEmployeeSheetCanvas({
               <button onClick={resetChanges} disabled={saving} style={{ padding: '7px 13px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.bg, fontSize: 12, color: T.sub, cursor: 'pointer', fontFamily: T.font }}>
                 {L.revert || '되돌리기'}
               </button>
-              <button onClick={saveChanges} disabled={saving} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', fontFamily: T.font, boxShadow: '0 2px 10px rgba(79,106,245,.3)', opacity: saving ? 0.7 : 1 }}>
+              {/* 어긋난 조합이 남아 있으면 저장 자체를 막는다(§3.8.3-A). 요약이
+                  「저장할 수 없습니다」라고 말해 놓고 저장이 되면 화면이 거짓말을 한다.
+                  서버도 400 으로 막지만, 그때는 무엇이 몇 건인지 알 수 없다. */}
+              <button
+                onClick={saveChanges}
+                disabled={saving || invalidCount > 0}
+                title={invalidCount > 0
+                  ? (L.invalidPairSaveBlocked || '연결되지 않은 직군·직렬 / 직렬·직무 조합을 먼저 고치세요')
+                  : undefined}
+                style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: invalidCount > 0 ? T.bl : T.accent, color: invalidCount > 0 ? T.muted : '#fff', fontSize: 12, fontWeight: 700, cursor: invalidCount > 0 ? 'not-allowed' : saving ? 'wait' : 'pointer', fontFamily: T.font, boxShadow: invalidCount > 0 ? 'none' : '0 2px 10px rgba(79,106,245,.3)', opacity: saving ? 0.7 : 1 }}
+              >
                 {saving ? L.saving || '저장 중…' : L.save || '변경 저장'}
               </button>
             </>
@@ -2035,6 +2113,9 @@ export default function AdminEmployeeSheetCanvas({
                   const layers = [cellDirty ? wash(DIRTY_CELL_BG) : null, rowWash].filter(Boolean);
                   return { backgroundColor: stickyBase, backgroundImage: layers.length ? layers.join(', ') : 'none' };
                 };
+                /* 어긋난 인사 분류 조합(§3.8.3-A) — 값을 «비우지 않고» 표시만 한다.
+                   수십 행을 한꺼번에 다루는 화면에서 자동 초기화는 되돌릴 수 없는 손실이다. */
+                const badPair = badPairOf(row);
                 return (
                   <tr key={row.id} style={{ background: rowBg }}>
                     <td style={{ padding: '0 14px', textAlign: 'center', width: CHECKBOX_W, borderBottom: rowLine, ...stickyBg(false), ...stickyLeftCell(0) }}>
@@ -2063,13 +2144,17 @@ export default function AdminEmployeeSheetCanvas({
                         <td
                           key={c.id}
                           title={
-                            c.derived
-                              ? canAssign
-                                ? L.assignTeamHint || '클릭해서 팀을 배정합니다'
-                                : L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다'
-                              : canPickSquads
-                                ? (L.squad?.cellHint || '클릭해서 스쿼드를 선택합니다')
-                                : undefined
+                            badPair[c.id]
+                              ? (c.id === 'jobDuty'
+                                ? L.invalidDutyPairHint || '이 직렬에 속하지 않는 직무입니다'
+                                : L.invalidLadderPairHint || '이 직군에 속하지 않는 직렬입니다')
+                              : c.derived
+                                ? canAssign
+                                  ? L.assignTeamHint || '클릭해서 팀을 배정합니다'
+                                  : L.derivedDepartmentHint || '부서는 팀 배정에서 관리됩니다'
+                                : canPickSquads
+                                  ? (L.squad?.cellHint || '클릭해서 스쿼드를 선택합니다')
+                                  : undefined
                           }
                           onClick={() => {
                             if (editableCell && !isEditing) startEdit(row.id, c.id);
@@ -2097,8 +2182,10 @@ export default function AdminEmployeeSheetCanvas({
                               ? (isEditing
                                 ? { backgroundColor: '#fff', backgroundImage: 'none' }
                                 : stickyBg(cellDirty))
-                              : { background: isEditing ? '#fff' : cellDirty ? DIRTY_CELL_BG : 'transparent' }),
-                            outline: isEditing ? `2px solid ${T.accent}` : 'none',
+                              : { background: isEditing ? '#fff' : badPair[c.id] ? INVALID_PAIR_BG : cellDirty ? DIRTY_CELL_BG : 'transparent' }),
+                            outline: isEditing
+                              ? `2px solid ${T.accent}`
+                              : badPair[c.id] ? `2px solid ${INVALID_PAIR_LINE}` : 'none',
                             outlineOffset: -1,
                             ...(ci === 0 ? { ...stickyLeftCell(CHECKBOX_W), ...leftEdgeDecor } : null),
                           }}
@@ -2210,6 +2297,45 @@ export default function AdminEmployeeSheetCanvas({
               </>
             )}
           </span>
+
+          {/* 어긋난 인사 분류 조합 요약(§3.8.3-A) — 그리고 그걸 «눌러» 그 행만 본다(§3.8.5-A).
+              N=0 이면 아예 렌더하지 않으므로 누를 대상도 없다. */}
+          {invalidCount > 0 && (
+            <button
+              type="button"
+              data-testid="sheet-invalid-pair-summary"
+              onClick={toggleOnlyInvalid}
+              aria-pressed={showOnlyInvalid}
+              title={showOnlyInvalid
+                ? (L.invalidPairShowAllHint || '전체 행으로 돌아갑니다')
+                : (L.invalidPairFilterHint || '이 조합이 있는 행만 봅니다 — 검색·필터는 해제됩니다')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: 7, cursor: 'pointer', fontFamily: T.font,
+                fontSize: 11, fontWeight: 700,
+                color: showOnlyInvalid ? '#fff' : INVALID_PAIR_LINE,
+                background: showOnlyInvalid ? INVALID_PAIR_LINE : INVALID_PAIR_BG,
+                border: `1px solid ${INVALID_PAIR_LINE}`,
+              }}
+            >
+              <IconWarning size={12} />
+              {(L.invalidPairSummary || '연결되지 않은 인사 분류 조합 {count}건 — 저장할 수 없습니다')
+                .split('{count}').join(String(invalidCount))}
+              {' · '}
+              {showOnlyInvalid
+                ? (L.invalidPairShowAll || '전체 보기')
+                : (L.invalidPairShowOnly || '이 행만 보기')}
+            </button>
+          )}
+
+          {/* 켜져 있는 동안 «지금 무엇을 보고 있는지»를 밝힌다 — 안 밝히면
+              「내가 걸어 둔 필터가 사라졌다」로 읽힌다. */}
+          {showOnlyInvalid && (
+            <span data-testid="sheet-invalid-pair-notice" style={{ fontSize: 11, color: T.muted }}>
+              {(L.invalidPairFilterNotice || '문제 행 {count}건만 보는 중 · 다른 필터는 해제됨')
+                .split('{count}').join(String(invalidCount))}
+            </span>
+          )}
         </div>
       </div>
 
