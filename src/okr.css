@@ -156,6 +156,18 @@
 .okr-p-period-btn { padding: 6px 14px; border: none; border-radius: 9px; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; }
 .okr-p-period-btn.is-active { background: var(--bg-quaternary); color: var(--text-primary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); }
 
+/* 액션 줄 — 좌: 기간 세그먼트 · 우: 공개 범위 셀렉터 (PW-522 · okr-policy.md §3.3-A B V1)
+   🔴 개인 캔버스 전용 클래스다. 위 `.okr-p-period` 는 이름과 달리 팀 축(OkrTeamCanvas)도
+   함께 쓰므로 그 선언을 고쳐 「우측」을 만들면 팀 화면에도 같은 자리가 생긴다 — 전사·팀은
+   전체 공개 «고정»이라 고를 것이 없다(§3.3-A E-0 V-E1). 그래서 감싸는 줄만 새로 둔다. */
+.okr-p-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+/* 세그먼트의 `align-self: flex-start` 는 세로 축이라, 행으로 감싸면 2px 위로 붙는다.
+   선언을 고치지 않고 이 줄 안에서만 가운데로 되돌린다. */
+.okr-p-actions > .okr-p-period { align-self: center; }
+/* 우측 셀렉터라 메뉴도 오른쪽 끝에 맞춘다 — 왼쪽 정렬이면 화면 밖으로 밀린다. */
+.okr-p-visibility .okr-select-menu { left: auto; right: 0; }
+.okr-p-visibility .okr-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* 연결된 상위 OKR */
 .okr-p-linked { border: 2px solid var(--utility-purple-100); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .okr-p-linked-head { display: flex; align-items: center; gap: 12px; }
