@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
-import { ZapIcon } from './evalIcons.jsx';
+import { AlertIcon, ZapIcon } from './evalIcons.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -35,6 +35,11 @@ const DEFAULT_LABELS = {
   growthDemoPlaceholder: '성장 기대를 작성하세요.',
   gradeTitle: '최종 등급',
   gradeRequired: '제출하려면 최종 등급을 선택하세요.',
+  // PW-486 캘리브레이션을 끈 사이클 — 조정 단계가 없다는 사실을 채점 «전에» 알린다.
+  // 「뒤에서 조정된다」고 믿고 매긴 등급과 「이게 최종」임을 알고 매긴 등급은 다르다.
+  calibOffGradeNote:
+    '이 사이클은 캘리브레이션을 사용하지 않습니다 — 지금 고른 등급이 그대로 최종 등급이 됩니다.',
+  calibOffSubmittedNote: '제출한 등급이 최종 등급으로 확정되었습니다.',
   rationaleRequired: '사유가 입력되지 않은 항목이 있습니다.',
   save: '임시저장',
   submit: '제출하기',
@@ -223,6 +228,12 @@ export default function EvalCycleLeaderCanvas({
   template = null,
   active = true,
   submitted = false,
+  /**
+   * PW-486 — 이 사이클이 캘리브레이션(등급 조정) 단계를 쓰는가.
+   * 판정 축은 `eval_cycles.review_sequence.enabled.calibration` 이고, **값이 없으면 켠 것**
+   * 이다(호출부가 그렇게 넘긴다). 기본 `true` 라 켠 사이클의 렌더는 종전과 동일하다.
+   */
+  calibrationEnabled = true,
   // TC-149 피평가자 셀프 미제출 시 안내(게이팅 아님 — 작성은 허용).
   selfSubmitted = true,
   labels: providedLabels,
@@ -349,6 +360,11 @@ export default function EvalCycleLeaderCanvas({
     >
       {isFreeze && <p className="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
+      {!calibrationEnabled && (
+        <p className="evl-calib-off-note" data-testid="evl-calib-off-note">
+          <AlertIcon size={14} /> {L.calibOffGradeNote}
+        </p>
+      )}
       <div className="evl-grade-row">
         {gradeOptions.map((g) => (
           <button
@@ -378,6 +394,9 @@ export default function EvalCycleLeaderCanvas({
       {submitted && (
         <p className="evx-notice is-success" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
           ✓ {L.submittedBanner}
+          {!calibrationEnabled && (
+            <span data-testid="evl-submitted-calib-off"> {L.calibOffSubmittedNote}</span>
+          )}
         </p>
       )}
 

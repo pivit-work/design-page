@@ -3570,6 +3570,19 @@
   display: inline-flex;
   vertical-align: middle;
 }
+/* PW-486 캘리브레이션을 끈 사이클 — 최종 등급 카드의 경고 캡션(amber). */
+.evl-calib-off-note {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  margin: 0 0 var(--spacing-md, 10px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 10px);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+}
 .evl-freeze-note {
   margin: 0 0 var(--spacing-sm, 6px);
   font-size: var(--font-size-text-xs, 12px);
@@ -6058,6 +6071,22 @@
 }
 
 /* ── R8: 매니저 팀 캘리브레이션 결과 · 이의(어필) (EvalCycleTeamCalibrationCanvas) ── */
+/* PW-486 캘리브레이션을 끈 사이클 — 본문을 대신하는 안내 카드. */
+.evtcal-calib-off {
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+}
+.evtcal-calib-off-body {
+  margin: var(--spacing-md, 10px) 0 0;
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.evtcal-released {
+  margin: 0 0 var(--spacing-md, 12px);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+}
 .evtcal-redirect {
   background: var(--utility-purple-50, #f4f3ff);
   border: 1px solid var(--utility-purple-200, #d9d6fe);
@@ -6255,6 +6284,41 @@
 }
 
 /* ── 요약 탭 G 포인터 카드(독립 워크스페이스로 유도) ── */
+/* PW-486 캘리브레이션을 끈 사이클 — 탭 본문을 대신하는 안내 카드. */
+.evs-calib-off {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md, 10px);
+  padding: var(--spacing-2xl, 20px);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  background: var(--utility-warning-50, #fffaeb);
+}
+.evs-calib-off-title {
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  color: var(--utility-warning-700, #b54708);
+}
+.evs-calib-off-body {
+  margin: 0;
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+/* 진행 중 해제 안내 띠 — 조정 이력이 남아 있어 켠 것처럼 그리는 사이클에만 뜬다. */
+.evs-calib-released {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  margin: 0 0 var(--spacing-md, 10px);
+  padding: var(--spacing-md, 10px) var(--spacing-lg, 14px);
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-warning-50, #fffaeb);
+  color: var(--utility-warning-700, #b54708);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+}
 .evs-cw-pointer {
   display: flex;
   flex-direction: column;

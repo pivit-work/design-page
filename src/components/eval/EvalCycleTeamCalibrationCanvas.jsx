@@ -38,6 +38,13 @@ const DEFAULT_LABELS = {
   appealReasonTitle: '접수된 이의 사유',
   appealReviewTitle: '위원회 재검토 결과',
   empty: '표시할 팀 캘리브레이션 결과가 없습니다.',
+  // PW-486 캘리브레이션을 끈 사이클 — 이의는 「1차 제출 등급 ↔ 위원회 확정 등급」의 차이에
+  // 제기하는 것인데 끈 사이클에서는 두 값이 항상 같다. 창구를 열어 두면 팀장이 자기가 매긴
+  // 등급에 자기가 이의를 제기하는 구조가 된다(§12.3).
+  calibOffTitle: '이 사이클은 캘리브레이션을 사용하지 않습니다',
+  calibOffBody:
+    '하향 리뷰에서 제출하신 등급이 그대로 최종 등급이 됩니다. 위원회 조정·결과 통보·이의(어필) 절차가 없습니다.',
+  calibReleasedBanner: '이 사이클은 진행 중 캘리브레이션이 해제되었습니다.',
 };
 
 function isObj(v) {
@@ -73,6 +80,14 @@ export default function EvalCycleTeamCalibrationCanvas({
   rows = [],
   orderedGrades = [],
   adjustedCount = 0,
+  /**
+   * PW-486 — 이 사이클이 캘리브레이션 단계를 쓰는가. 기본 `true` 라 켠 사이클은 종전과
+   * 동일하다. 진행 중 껐지만 조정 이력이 남았으면 호출부가 `true` 로 넘기고
+   * `calibrationReleased` 로 해제 사실만 알린다.
+   */
+  calibrationEnabled = true,
+  /** 진행 중 해제됐고 조정 이력이 남아 있다 — 켠 것과 같이 그리되 안내 띠를 얹는다. */
+  calibrationReleased = false,
   labels: providedLabels,
   onAppeal,
 }) {
@@ -100,8 +115,27 @@ export default function EvalCycleTeamCalibrationCanvas({
     }
   };
 
+  // PW-486 끈 사이클 — 본문 전체를 안내 카드 한 장으로 대체한다. 리다이렉트 안내도
+  // 결과표도 이의 창구도 두지 않는다: 갈 워크스페이스도, 비교할 두 값도 없다.
+  if (!calibrationEnabled) {
+    return (
+      <div className="evc-root">
+        <section className="evc-card evtcal-calib-off" data-testid="evtcal-calib-off">
+          <h3 className="evc-card-name">{L.calibOffTitle}</h3>
+          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
+          <p className="evtcal-calib-off-body">{L.calibOffBody}</p>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="evc-root">
+      {calibrationReleased && (
+        <p className="evx-notice evtcal-released" data-testid="evtcal-released">
+          {L.calibReleasedBanner}
+        </p>
+      )}
       {/* 리다이렉트 안내 — 조정·확정은 위원회 워크스페이스로 일원화 */}
       <section className="evc-card evtcal-redirect" data-testid="evtcal-redirect">
         <div className="evtcal-redirect-head">
