@@ -29,6 +29,14 @@ const DEFAULT_LABELS = {
   cwPointerTitle: '캘리브레이션 워크스페이스',
   cwPointerBody: '등급 조정·확정·어필 재검토는 독립 화면인 캘리브레이션 워크스페이스에서 수행됩니다. 이 탭(캘리브레이션 결과)은 조정 결과 통계·분포만 표시합니다.',
   cwPointerCta: '워크스페이스 열기',
+  // PW-486 캘리브레이션을 끈 사이클 — 탭을 지우지 않고 «왜 없는지»를 이 자리에 적는다.
+  // 「없음」·「0건」·빈 차트로 두지 않는다: 「조정 0건」은 「조정했는데 아무도 안 바뀌었다」
+  // 로도 읽혀 두 사실이 화면에서 구별되지 않는다.
+  calibOffTitle: '이 사이클은 캘리브레이션을 사용하지 않았습니다',
+  calibOffBody:
+    '평가 사이클 설정(3단계 단계별 일정)에서 캘리브레이션 단계가 꺼져 있어, 하향 리뷰에서 제출된 등급이 조정 없이 그대로 최종 등급이 되었습니다. 조정 건수·전후 분포 비교·위원회 조정 이력은 생성되지 않습니다.',
+  calibOffCta: '사이클 설정 열기',
+  calibReleasedBanner: '이 사이클은 진행 중 캘리브레이션이 해제되었습니다.',
   cwSessionsTitle: '내가 초대된 캘리브레이션 세션',
   cwNoSessions: '참여할 캘리브레이션이 없습니다',
   cwNoSessionsSub: '현재 사이클에서 초대된 세션이 없습니다. HR Admin이 세션에 초대하면 이 목록에 표시됩니다.',
@@ -712,6 +720,18 @@ export default function EvalCycleSummaryCanvas({
   deptStats = [],
   deptOutliers = [],
   calibResult = null,
+  /**
+   * PW-486 — 이 사이클이 캘리브레이션 단계를 쓰는가. 기본 `true` 라 켠 사이클은 종전과
+   * 동일하게 그려진다. 판정과 「값이 없으면 켠 것」 규칙은 호출부가 가진다.
+   * 진행 중 껐지만 조정 이력이 남은 사이클은 호출부가 `true` 로 넘기고
+   * `calibrationReleased` 로 해제 사실만 알린다 — 실제로 일어난 조정을 없던 일로 만들지
+   * 않기 위해서다.
+   */
+  calibrationEnabled = true,
+  /** 진행 중 해제됐고 조정 이력이 남아 있다 — 켠 것과 같이 그리되 안내 띠를 얹는다. */
+  calibrationReleased = false,
+  /** 끈 사이클 안내 카드의 «사이클 설정 열기» — HR 권한자에게만 넘어온다. */
+  onOpenCycleSettings,
   nineBox = null,
   promotionRequests = [],
   filterPresets = [],
@@ -1175,6 +1195,13 @@ export default function EvalCycleSummaryCanvas({
       )}
 
       <div className="evc-list">
+        {/* PW-486 §15.6③ 진행 중 껐지만 조정 이력이 남은 사이클 — 켠 것과 같이 그리되
+            해제 사실을 알린다. 실제로 일어난 조정을 「사용하지 않았습니다」로 덮지 않는다. */}
+        {calibrationReleased && (
+          <p className="evs-calib-released" data-testid="evs-calib-released">
+            <AlertIcon size={14} /> {L.calibReleasedBanner}
+          </p>
+        )}
         {tab === 'overview' && (
           <>
             {/* §4.A KPI 4종 */}
@@ -1530,7 +1557,24 @@ export default function EvalCycleSummaryCanvas({
           )
         )}
 
-        {tab === 'calib' && calibResult && (
+        {tab === 'calib' && !calibrationEnabled && (
+          <div className="evs-calib-off" data-testid="evs-calib-off">
+            <div className="evs-calib-off-title">{L.calibOffTitle}</div>
+            <p className="evs-calib-off-body">{L.calibOffBody}</p>
+            {onOpenCycleSettings && (
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => onOpenCycleSettings()}
+                data-testid="evs-calib-off-settings"
+              >
+                {L.calibOffCta}
+              </button>
+            )}
+          </div>
+        )}
+
+        {tab === 'calib' && calibrationEnabled && calibResult && (
           <>
             {/* Block 1 — 요약 지표 3-up */}
             <div className="evs-kpis evs-cd-cards" data-testid="evs-cd-cards">
@@ -2036,15 +2080,26 @@ export default function EvalCycleSummaryCanvas({
           /* 요약 대시보드에서는 워크스페이스를 직접 렌더하지 않고 독립 화면으로 유도(포인터 카드). */
           <div className="evs-cw-pointer" data-testid="evs-calib-pointer">
             <div className="evs-cw-pointer-title">{L.cwPointerTitle}</div>
-            <p className="evs-cw-pointer-body">{L.cwPointerBody}</p>
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              onClick={() => onOpenWorkspace?.()}
-              data-testid="evs-cw-pointer-cta"
-            >
-              {L.cwPointerCta}
-            </button>
+            {/* PW-486 끈 사이클 — 이동 안내 «위에» 미사용 안내를 얹고, 이동 버튼은 없앤다.
+                살려 두면 빈 워크스페이스로 보내게 된다(§15.6⑤). */}
+            {!calibrationEnabled ? (
+              <div className="evs-calib-off" data-testid="evs-calib-off-workspace">
+                <div className="evs-calib-off-title">{L.calibOffTitle}</div>
+                <p className="evs-calib-off-body">{L.calibOffBody}</p>
+              </div>
+            ) : (
+              <>
+                <p className="evs-cw-pointer-body">{L.cwPointerBody}</p>
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  onClick={() => onOpenWorkspace?.()}
+                  data-testid="evs-cw-pointer-cta"
+                >
+                  {L.cwPointerCta}
+                </button>
+              </>
+            )}
           </div>
         )}
 
