@@ -240,3 +240,19 @@ export { default as EvalCyclePeerTasksCanvas } from './eval/EvalCyclePeerTasksCa
 export { default as EvalFeedbackHrCanvas } from './eval/EvalFeedbackHrCanvas.jsx';
 export { default as EvalFeedbackComposeCanvas } from './eval/EvalFeedbackComposeCanvas.jsx';
 export { default as EvalShellNav } from './eval/EvalShellNav.jsx';
+// [PW-527] 마법사 2단계와 「평가 템플릿」 화면이 **나눠 쓰는** 부품 둘.
+// 항목 설정판(척도·선택지·가이드·공개 범위)과 평가지 렌더는 한 곳에서만 정의한다 —
+// 같은 판이 두 화면에 각각 생기면 다음에 한쪽만 고쳐져 갈라진다 (정책 §6.2·§6.3).
+export { default as EvalTemplateItemSettings } from './eval/EvalTemplateItemSettings.jsx';
+export { default as EvalSheetBody } from './eval/EvalSheetBody.jsx';
+export { EvalTemplateGradeRows, EvalTemplateItemRow } from './eval/EvalTemplateBuilder.jsx';
+export {
+  DEFAULT_DISCLOSURE,
+  DEFAULT_SCALE_MAX,
+  QUESTION_TYPES,
+  SCALE_MAX_MAX,
+  SCALE_MAX_MIN,
+  clampScaleMax,
+  filledOptions,
+  scaleMaxOf,
+} from './eval/evalTemplateItemModel.js';

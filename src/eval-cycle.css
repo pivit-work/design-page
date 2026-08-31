@@ -2069,6 +2069,28 @@
   font-weight: 700;
   margin-bottom: var(--spacing-sm, 6px);
 }
+/* [PW-527 ③] 보기 전용 미리보기의 머리말 — 비활성 위젯만 두면 「고장」으로 읽힌다. */
+/* [PW-527 ①] 항목 이름을 그 줄에서 고치는 화면(평가 템플릿 [편집] 창)의 입력칸.
+   행 안에서 남은 폭을 먹되, 배지·버튼이 밀려나지 않게 최소 폭을 준다. */
+.evc-tpl-item-input {
+  flex: 1 1 160px;
+  min-width: 120px;
+}
+.evc-preview-readonly {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  flex-wrap: wrap;
+}
+/* 항목이 0개인 템플릿 — 등급·사용 이력은 그대로 그린다(엣지 26). */
+.evc-preview-empty {
+  padding: var(--spacing-2xl, 20px);
+  border: 1px dashed var(--border-secondary, #e4e7ec);
+  border-radius: var(--radius-lg, 12px);
+  text-align: center;
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}
 .evc-preview-q { margin-bottom: var(--spacing-md, 10px); }
 .evc-preview-q-text {
   display: flex;
