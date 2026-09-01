@@ -4,6 +4,12 @@ import { useState, useMemo } from 'react';
  * EvalCycleTemplateCanvas — 평가 템플릿 빌더.
  * 항목(추가/삭제·분류·응답유형·라벨) + 등급(추가/삭제·키·라벨·비율) + 절대/상대 토글.
  * onSave(dto) — { name, isAbsolute, finalGradePosition, items, grades }.
+ *
+ * `toolbar` — 헤더 아래에 놓을 호출부 노드(선택). 사이클 평가지는 단계마다 평가지가
+ * 갈리므로 그 단계를 고르는 자리가 필요한데, 이 캔버스의 `.evc-root` 는
+ * `position: fixed` 라 **호출부가 바깥에 무엇을 놓아도 본문 칸 밖으로 나가** 왼쪽 메뉴
+ * 아래에 깔린다. 그래서 안쪽에 자리를 낸다. 안 주면 아무것도 그리지 않으므로
+ * 기존 화면의 시각은 그대로다. (PW-535 ④)
  */
 
 const DEFAULT_LABELS = {
@@ -52,6 +58,7 @@ export default function EvalCycleTemplateCanvas({
   responseOptions = [],
   editable = true,
   labels: providedLabels,
+  toolbar = null,
   onSave,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -113,6 +120,8 @@ export default function EvalCycleTemplateCanvas({
           </button>
         )}
       </header>
+
+      {toolbar}
 
       {!editable && (
         <p className="evx-notice" data-testid="evtpl-readonly" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
