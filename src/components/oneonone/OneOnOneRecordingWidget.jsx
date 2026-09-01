@@ -21,6 +21,9 @@ import useMicWave from '../shared/useMicWave.js';
  *   - onResume     : "재개" 버튼 클릭 콜백
  *   - onStop       : "종료" 버튼 클릭 콜백
  *   - variant      : 'sticky' (기본) | 'pip' — pip 은 위치 고정 스타일 제거
+ *   - notice       : 녹음 바 아래에 한 줄로 덧붙일 안내(문자열 또는 노드). 없으면
+ *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
+ *                    이 컴포넌트는 「어떻게 보이는가」만 정한다.
  *
  * 이퀄라이저: wave prop 이 없으면 마이크 입력을 AnalyserNode 로 분석해 6개
  * 막대 높이를 실시간(rAF) 반영한다. 마이크 권한이 없으면 CSS 데모 애니메이션
@@ -82,6 +85,7 @@ export default function OneOnOneRecordingWidget({
   onResume,
   onStop,
   variant = 'sticky',
+  notice = null,
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
@@ -144,6 +148,14 @@ export default function OneOnOneRecordingWidget({
         {paused && (
           <p className="ono-start-rec-paused-note" role="status">
             녹취가 일시정지되었습니다.
+          </p>
+        )}
+        {/* 녹음이 아직 이 브라우저에만 있다는 사전 고지. 브라우저의 이탈 확인창은
+            자기 문구를 띄우고 커스텀 메시지를 무시하므로, "무엇을 잃는가" 는 화면이
+            미리 말해야 닿는다. 문구는 소비처가 준다(로케일이 소비처에 있다). */}
+        {notice && (
+          <p className="ono-start-rec-notice" role="status">
+            {notice}
           </p>
         )}
       </div>

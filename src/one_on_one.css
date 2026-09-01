@@ -1583,6 +1583,26 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 600;
   color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
 }
+/* 녹음이 아직 이 브라우저에만 있다는 사전 고지 (기획 policy §5.5 W3).
+   위 일시정지 안내와 같은 warning 계열이라 새 시각 언어가 아니다 — 다만 「지금 잃을 수
+   있다」는 상시 사실이라 배경·테두리를 줘서 한 줄 배너로 세운다. 강조는 <strong> 이
+   맡는다(소비처가 문구 안에서 준다). */
+.ono-start-rec-notice {
+  margin: 0;
+  padding: 6px 10px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  /* 고정 폭 안에 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.ono-start-rec-notice strong {
+  font-weight: 600;
+}
 .ono-start-view-body {
   display: flex;
   flex-direction: column;

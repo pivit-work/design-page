@@ -207,6 +207,9 @@ export default function StartOneOnOneView({
   paused = false,
   onPause,
   onResume,
+  // 녹음 위젯 바로 아래 한 줄로 붙는 안내 (선택). 문구·노출 조건은 소비처가 쥔다 —
+  // 「이 녹음은 업로드 전까지 이 브라우저에만 있다」처럼 소비처만 아는 사실이다.
+  recordingNotice = null,
   // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
   onStartMeeting,
   onEndMeeting,
@@ -486,6 +489,7 @@ export default function StartOneOnOneView({
             onPause={onPause}
             onResume={onResume}
             onStop={endMeeting}
+            notice={recordingNotice}
           />
         )}
         <div className="ono-start-view-body">
