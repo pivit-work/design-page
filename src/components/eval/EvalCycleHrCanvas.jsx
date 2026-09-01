@@ -286,7 +286,13 @@ function toLocalInput(v, defTime) {
 }
 
 // §4.1.2-A 진행 중 단계 일정 인라인 수정 모달
-function ScheduleEditModal({ cycle, labels: L, onCancel, onSave }) {
+/**
+ * §4.1.2-A 진행 중 단계 일정 인라인 수정 모달.
+ *
+ * [PW-529 ③-c] `onGoToReportReview` — 「결과 발송」이 무엇을 하는 자리인지 적고,
+ * 실제로 보내는 화면(리포트 검수)으로 보낸다. 진행 중 사이클이라 갈 대상이 특정된다.
+ */
+function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportReview }) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
   const [rows, setRows] = useState(() => {
@@ -328,6 +334,22 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave }) {
         <h3 className="evc-modal-title">{L.editScheduleTitle}</h3>
         <p className="evc-modal-sub">{cycle.name}</p>
         <div className="evc-sched-modal-note">{L.editScheduleNote}</div>
+        {/* [PW-529 ③-b·③-c] 마법사 3단계와 «같은 문안» 이되, 링크는 여기에만 산다. */}
+        {L.shareGuide && (
+          <div className="evc-sched-modal-note" data-testid="evc-sched-modal-share-guide">
+            {L.shareGuide}
+            {onGoToReportReview && (
+              <button
+                type="button"
+                className="evc-linkish"
+                onClick={onGoToReportReview}
+                data-testid="evc-sched-modal-share-link"
+              >
+                {L.shareGuideLink}
+              </button>
+            )}
+          </div>
+        )}
         <div className="evc-sched-modal-list">
           {phases.map((id, i) => {
             const bad = invalid.includes(id);
@@ -641,6 +663,15 @@ export default function EvalCycleHrCanvas({
   onDeleteCycle,
   onManageCycle,
   onViewResults,
+  /**
+   * [PW-529 ③-c · 정책 §5.2.1-C] 「일정 수정」 창의 결과 발송 안내에서 «리포트 검수»
+   * 화면으로 보낸다. `(cycle) => void`.
+   *
+   * 링크는 **여기에만** 둔다 — 마법사 3단계에도 같은 안내가 있지만 그쪽은 사이클을
+   * 아직 열지 않은 시점이라 갈 대상이 없어 죽은 링크가 된다. 안 넘기면 링크 없이
+   * 안내 문장만 보인다(종전 시각과 같다).
+   */
+  onGoToReportReview,
   onHoldCycle,
   onResumeCycle,
   onPatchSchedule,
@@ -684,6 +715,11 @@ export default function EvalCycleHrCanvas({
   onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
+  /**
+   * PW-529 — 마법사 3단계에서 리마인더 「당사자」를 끌 때 한 번 묻는 확인.
+   * `() => Promise<boolean>`. 그대로 위자드로 흘린다(이 캔버스는 전달만 한다).
+   */
+  onConfirmSelfOff,
   /**
    * PW-530 ④ — 조직의 슬랙 공개 채널 목록과 그 조회 상태.
    *
@@ -1067,6 +1103,7 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
         />
@@ -1099,6 +1136,7 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
         />
@@ -1171,6 +1209,14 @@ export default function EvalCycleHrCanvas({
           labels={L}
           onCancel={() => setScheduleModal(null)}
           onSave={handleSaveSchedule}
+          onGoToReportReview={
+            onGoToReportReview
+              ? () => {
+                  setScheduleModal(null);
+                  onGoToReportReview(scheduleModal);
+                }
+              : undefined
+          }
         />
       )}
     </div>

@@ -443,13 +443,25 @@ const normalizeChannel = (c) => {
   return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
 };
 // ⚙ 상세(sub-slice B): 참조 대상 · 이메일 템플릿 · 슬랙 상세
-// 당사자(self)는 항상 고정 포함, 리더·HR 은 참조(에스컬레이션). 단계별 당사자 역할과
-// 겹치면 중복 억제(PHASE_RESPONDER_ROLE).
+// 당사자(self) + 리더·HR 참조(에스컬레이션). 단계별 당사자 역할과 겹치면 중복 억제.
+//
+// [PW-529 · David 확정 2026-08-31] 당사자 «고정» 을 푼다 (정책 §5.2.1-B).
+//   구: self 는 fixed:true 라 «끌 수 없었고», 그래서 「당사자 없이 리더·HR 에게만」 가는
+//   리마인더를 만들 수 없었다. 이제 기본 켬이되 해제할 수 있다.
+//   ⚠️ 수신자만 연 것이 아니다 — 셋이 함께 움직인다:
+//     ① 하한: self·leader·hr 이 모두 꺼지면 저장 차단(수신자 0명)
+//     ② 문구: self 를 끄면 그 리마인더는 「독촉」이 아니라 「현황 보고」다 → 후보가 갈린다
+//     ③ 중복 억제: 「역할 동일」 → 「당사자 켜짐 && 역할 동일」로 «좁아진다»
 const REMINDER_TARGETS = [
-  { id: 'self', labelKey: 'reminderTgtSelf', fixed: true },
-  { id: 'leader', labelKey: 'reminderTgtLeader', fixed: false },
-  { id: 'hr', labelKey: 'reminderTgtHr', fixed: false },
+  { id: 'self', labelKey: 'reminderTgtSelf' },
+  { id: 'leader', labelKey: 'reminderTgtLeader' },
+  { id: 'hr', labelKey: 'reminderTgtHr' },
 ];
+/**
+ * 당사자를 «켰는가» — 구 데이터에는 `self` 키가 아예 없다(개정 전에는 고정이라 필드가
+ * 없었다). `!== false` 로 읽어 옛 사이클을 전부 「켬」으로 해석한다.
+ */
+const isSelfTargetOn = (targets) => targets?.self !== false;
 // 단계별 당사자 역할 카테고리 — 참조(리더/HR) 중복 판정용
 const PHASE_RESPONDER_ROLE = {
   self: 'member', peer: 'member', upward: 'member',
@@ -478,6 +490,17 @@ const MESSAGE_TEMPLATES = [
   { id: 'urgent', labelKey: 'reminderTplUrgent' },
   { id: 'custom', labelKey: 'reminderTplCustom' },
 ];
+/**
+ * 현황 보고형 문구 — **당사자를 끈 리마인더의 후보** [PW-529 · 정책 §5.2.1-B].
+ *
+ * 사전 정의 2종(`기본 리마인더`·`마감 임박`)은 「아직 제출하지 않으셨습니다」 같은
+ * **2인칭 독촉문**이다. 당사자를 껐는데 후보를 그대로 두면 **HR 담당자가 그 문장을
+ * 받는다** — 받는 사람을 바꾸면 «무엇을 말하는가»도 바뀐다. 후보 자체를 갈아 끼운다.
+ */
+const REPORT_TEMPLATES = [
+  { id: 'report', labelKey: 'reminderTplReport' },
+  { id: 'custom', labelKey: 'reminderTplCustom' },
+];
 // 사전 정의 템플릿 미리보기(읽기 전용, §14.2 spec 에서 관리) — 변수 토큰 그대로 표시
 const MESSAGE_TEMPLATE_PREVIEW = {
   default: {
@@ -489,6 +512,13 @@ const MESSAGE_TEMPLATE_PREVIEW = {
     subject: '[{cycleName}] {stage} 마감 임박 — {dueDate}까지',
     body: '{name}님, {dueDate}까지 제출하지 않으면 마감 후 제출이 불가합니다. 지금 완료해주세요.',
     cta: '지금 완료하기 → {link}',
+  },
+  /* [PW-529] 당사자를 끈 리마인더용 — 「제출하세요」가 아니라 「지금 이런 상황입니다」다.
+     받는 사람이 미제출자 본인이 아니므로 2인칭 독촉문을 쓸 수 없다. */
+  report: {
+    subject: '[{cycleName}] {stage} 진행 현황 — {dueDate} 마감 D-{offset}',
+    body: '{stage} 미제출 {pendingCount}명입니다. ({pendingList})',
+    cta: '진행 현황 보기 → {link}',
   },
 };
 /**
@@ -522,6 +552,21 @@ const MESSAGE_VAR_INFO = [
   { token: '{offset}', descKey: 'reminderVarOffsetDesc', sampleKey: 'reminderVarOffsetSample' },
   { token: '{link}', descKey: 'reminderVarLinkDesc', sampleKey: 'reminderVarLinkSample' },
 ];
+/**
+ * 보고형 전용 치환 변수 [PW-529 · 정책 §5.2.1-B].
+ *
+ * 당사자를 끈 리마인더는 「아직 안 내셨습니다」가 아니라 「몇 명이 안 냈습니다」를 말한다.
+ * 그 문장을 쓰려면 «미제출 인원»과 «미제출 명단»을 넣을 자리가 있어야 하는데, 종전
+ * 정규 세트에는 둘 다 없었다 — 받는 사람만 열고 변수는 안 열면 문구를 손으로 쓸 수도
+ * 없다. 당사자를 켠 리마인더에는 보이지 않는다(쓸 자리가 없다).
+ */
+const REPORT_VAR_INFO = [
+  { token: '{pendingCount}', descKey: 'reminderVarPendingCountDesc', sampleKey: 'reminderVarPendingCountSample' },
+  { token: '{pendingList}', descKey: 'reminderVarPendingListDesc', sampleKey: 'reminderVarPendingListSample' },
+];
+/** 그 리마인더가 실제로 쓸 수 있는 변수 목록 — 당사자를 껐으면 보고형 둘이 더 붙는다. */
+const varsFor = (targets) =>
+  isSelfTargetOn(targets) ? MESSAGE_VAR_INFO : [...MESSAGE_VAR_INFO, ...REPORT_VAR_INFO];
 /** 본문에 쓰인 치환 변수 집합 — AI 가 변수를 지우거나 지어내지 않았는지 본다 [PW-435 ⑥]. */
 const collectVars = (text) => new Set(String(text ?? '').match(/\{[a-zA-Z]+\}/g) ?? []);
 const sameVars = (a, b) => {
@@ -541,7 +586,8 @@ const sameVars = (a, b) => {
  * 읽히기 때문이다. 뜻을 모르는 자리는 모른다고 보이는 편이 낫다.
  */
 const fillSampleVars = (text, L) =>
-  MESSAGE_VAR_INFO.reduce(
+  // [PW-529] 보고형 변수도 함께 채운다 — 안 채우면 「샘플 보기」에 {pendingCount} 가 그대로 남는다.
+  [...MESSAGE_VAR_INFO, ...REPORT_VAR_INFO].reduce(
     (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
     String(text ?? ''),
   );
@@ -1572,6 +1618,16 @@ export default function EvalCycleWizard({
    */
   onPolishMessage,
   /**
+   * PW-529 — 리마인더 「당사자」를 «끌» 때 한 번 묻는 확인. `() => Promise<boolean>`.
+   *
+   * 🔴 **브라우저 기본 확인 창을 쓰지 않는 이유가 있다.** 사용자가 「이 사이트가 추가
+   * 대화상자를 표시하지 못하게 함」을 한 번 체크하면, 그 뒤로 기본 확인 창은 아무것도
+   * 띄우지 않고 즉시 거짓을 반환한다 — 칩이 그냥 «안 눌리는» 것으로 보이고 에러도
+   * 로그도 남지 않는다. 그래서 확인 수단은 소비 측이 넘긴다(pivit-work 은 공용 확인
+   * 모달을 쓴다). 안 넘기면 design-page 단독 데모에서만 기본 확인 창으로 떨어진다.
+   */
+  onConfirmSelfOff,
+  /**
    * PW-530 ④ — 조직의 슬랙 공개 채널 목록. `['#a', ...]` 또는 `[{ name: 'a' }, ...]`.
    *
    * design-page 는 네트워크를 모른다 — 소비 측이 `GET /integrations/slack/channels` 로
@@ -1967,6 +2023,24 @@ export default function EvalCycleWizard({
       !schedFormatBad(r.id, 'end') &&
       !schedOrderBad(r.id),
   );
+  /**
+   * [PW-529 · 정책 §5.2.1-B 하한] 받는 사람이 0명인 리마인더가 하나라도 있으면 막는다.
+   *
+   * 당사자 고정이 풀린 뒤로는 self·leader·hr 을 «전부» 끌 수 있게 됐다. 그대로 저장하면
+   * 예약해 둔 리마인더가 아무에게도 안 가는데, 화면에는 멀쩡히 한 줄로 남아 있어
+   * 「보내기로 해 뒀다」로 읽힌다. 켠 단계만 본다 — 끈 단계는 리마인더 칸 자체가 안 보인다.
+   */
+  const reminderRecipientCount = (pid, rm) => {
+    const selfOn = isSelfTargetOn(rm.targets);
+    const responderRole = PHASE_RESPONDER_ROLE[pid] ?? 'member';
+    const cc = ['leader', 'hr'].filter(
+      (id) => rm.targets?.[id] && !(selfOn && responderRole === id),
+    ).length;
+    return (selfOn ? 1 : 0) + cc;
+  };
+  const remindersValid = enabledRows.every((r) =>
+    remindersOf(r.id).every((rm) => reminderRecipientCount(r.id, rm) > 0),
+  );
 
   // §5.2.1 리마인더 편집
   const addReminder = (pid) =>
@@ -2003,6 +2077,15 @@ export default function EvalCycleWizard({
       else n.add(rid);
       return n;
     });
+
+  /**
+   * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 데모 폴백.
+   * `Promise<boolean>` 으로 통일해 호출부가 한 모양으로 `await` 한다.
+   */
+  const confirmSelfOff = async () =>
+    onConfirmSelfOff
+      ? Boolean(await onConfirmSelfOff())
+      : window.confirm(L.reminderSelfOffConfirm);
 
   // ── 리마인더 문구 [PW-435 ⑤⑥] ────────────────────────────────────────────
   /** 구 형태(`email.{subject,body}`)로 저장된 것도 여기서 `message` 로 읽는다. */
@@ -2205,7 +2288,7 @@ export default function EvalCycleWizard({
       <>
         <div className="evc-rm-vars">
           <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
-          {MESSAGE_VAR_INFO.map((v) => {
+          {varsFor(rm.targets).map((v) => {
             /* [PW-530 ②] 뜻·예시가 i18n 에 없으면 이름만 그린다 — 설명이 빠졌다고
                칩이 사라지거나 `undefined` 가 보이면 안 된다. */
             const desc = L[v.descKey];
@@ -2349,10 +2432,19 @@ export default function EvalCycleWizard({
     );
   };
 
-  /** 이메일 블록의 참조(CC) 요약 — 켠 참조 대상만, 당사자와 겹치는 역할은 뺀다. */
+  /**
+   * 이메일 블록의 참조(CC) 요약 — 켠 참조 대상만, 당사자와 겹치는 역할은 뺀다.
+   *
+   * ⚠️ [PW-529] 「겹친다」의 판정이 **당사자를 켰을 때만** 성립한다. 당사자를 껐으면
+   * 그 역할은 아무 데도 없으므로 참조로 세워야 한다 — 안 그러면 아무도 안 받는다.
+   */
   const ccSummary = (pid, rm) => {
+    const selfOn = isSelfTargetOn(rm.targets);
     const names = REMINDER_TARGETS.filter(
-      (t) => !t.fixed && rm.targets?.[t.id] && PHASE_RESPONDER_ROLE[pid] !== t.id,
+      (t) =>
+        t.id !== 'self' &&
+        rm.targets?.[t.id] &&
+        !(selfOn && PHASE_RESPONDER_ROLE[pid] === t.id),
     ).map((t) => L[t.labelKey]);
     return names.length ? names.join(' · ') : L.reminderEmailCcNone;
   };
@@ -3436,18 +3528,21 @@ export default function EvalCycleWizard({
     /* PW-528 ① 3단계는 템플릿 때문에 막지 않는다(위 주석)는 결정은 그대로 두되,
        «거꾸로 된 일정»은 막는다 — 그건 미완성이 아니라 틀린 값이라서 뒤 단계에서
        고칠 수 있는 것이 아니다. 겹침은 여전히 통과시킨다(병렬 진행이 정상). */
-    (step === 2 && scheduleValid) ||
+    (step === 2 && scheduleValid && remindersValid) ||
     (step === 3 && targetsValid) ||
     (step === 4 && committeeValid);
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
-  const canSubmit = step1Valid && scheduleValid && targetsValid && committeeValid;
+  const canSubmit =
+    step1Valid && scheduleValid && remindersValid && targetsValid && committeeValid;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
     : !scheduleValid
       ? L.submitBlockSchedule ?? L.dateOrderError
-      : !targetsValid
+      : !remindersValid
+        ? L.reminderNoRecipientErr
+        : !targetsValid
         ? L.submitBlockTargets
         : !committeeValid
           ? L.submitBlockCommittee
@@ -4684,6 +4779,16 @@ export default function EvalCycleWizard({
                           <span className="evc-sched-toggle-dot" />
                         </button>
                       </div>
+                      {/* [PW-529 ③-b · 정책 §5.2.1-C] 「결과 발송」이 무엇을 하는 자리인지 적는다.
+                          이름만 보면 여기서 리포트가 나가는 줄 알게 되는데, 실제로는 «언제 보낼지»를
+                          잡아 두는 일정이고 그 단계의 리마인더는 발송 담당(HR)에게 간다.
+                          ⛔ 여기에는 링크를 두지 않는다 — 위자드는 사이클을 아직 열지 않은 시점이라
+                             갈 대상이 없어 죽은 링크가 된다. 링크는 진행 중 사이클의 일정 수정 창에만 둔다. */}
+                      {enabled && ph.id === 'share' && L.phaseShareGuide && (
+                        <p className="evc-sched-guide" data-testid="evc-sched-guide-share">
+                          {L.phaseShareGuide}
+                        </p>
+                      )}
                       {enabled && (
                         <div className="evc-sched-fields">
                           {['start', 'end'].map((field) => (
@@ -4742,6 +4847,19 @@ export default function EvalCycleWizard({
                               {remindersOf(ph.id).map((rm, i) => {
                                 // 구 형태(email.{subject,body})로 저장된 것도 여기서 message 로 읽는다.
                                 const msg = messageOf(rm);
+                                /* [PW-529 · 정책 §5.2.1-B] 당사자를 껐는가에 따라 셋이 함께 갈린다 —
+                                   중복 억제 · 문구 후보 · 슬랙 @멘션. 한 자리에서 계산해 내려보낸다. */
+                                const selfOn = isSelfTargetOn(rm.targets);
+                                const responderRole = PHASE_RESPONDER_ROLE[ph.id] ?? 'member';
+                                // ⚠️ 「이미 당사자에 포함」이라는 억제는 **당사자를 켰을 때만** 성립한다.
+                                //    구 규칙(역할만 비교)을 그대로 두면 하향 리뷰에서 당사자(리더)를 껐을 때
+                                //    +리더 도 비활성이라 **아무도 받지 않는** 리마인더가 만들어진다.
+                                const dupTarget = (id) => selfOn && responderRole === id;
+                                const ccCount = ['leader', 'hr'].filter(
+                                  (id) => rm.targets?.[id] && !dupTarget(id),
+                                ).length;
+                                const recipientCount = (selfOn ? 1 : 0) + ccCount;
+                                const noRecipient = recipientCount === 0;
                                 return (
                                 <div
                                   key={rm.id}
@@ -4821,9 +4939,20 @@ export default function EvalCycleWizard({
                                   </div>
                                   <div className="evc-rm-summary">
                                     <span className="evc-rm-sum-label">{L.reminderRecipients}</span>
-                                    <span className="evc-rm-sum-chip is-primary">
-                                      {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
-                                    </span>
+                                    {/* [PW-529] 당사자를 끄면 접힌 줄에도 그렇게 보여야 한다 —
+                                        펼치지 않으면 「당사자에게 간다」로 오해한다. */}
+                                    {selfOn ? (
+                                      <span className="evc-rm-sum-chip is-primary">
+                                        {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
+                                      </span>
+                                    ) : (
+                                      <span
+                                        className="evc-rm-sum-chip"
+                                        data-testid={`evc-rm-sum-noself-${ph.id}-${i}`}
+                                      >
+                                        {noRecipient ? L.reminderRecipientNone : ccSummary(ph.id, rm)}
+                                      </span>
+                                    )}
                                     {rm.channels.map((cid) => {
                                       const ch = REMINDER_CHANNELS.find((c) => c.id === cid);
                                       return (
@@ -4843,31 +4972,60 @@ export default function EvalCycleWizard({
                                         <div className="evc-rm-dsec-title"><UsersIcon size={13} /> {L.reminderTargetsTitle}</div>
                                         <div className="evc-rm-tgts">
                                           {REMINDER_TARGETS.map((t) => {
-                                            const dup = !t.fixed && PHASE_RESPONDER_ROLE[ph.id] === t.id;
-                                            const on = t.fixed || (rm.targets?.[t.id] && !dup);
-                                            const disabled = t.fixed || dup;
+                                            const isSelf = t.id === 'self';
+                                            const dup = !isSelf && dupTarget(t.id);
+                                            const on = isSelf ? selfOn : Boolean(rm.targets?.[t.id]) && !dup;
+                                            // [PW-529] 당사자도 이제 끌 수 있다 — 막는 것은 중복뿐이다.
+                                            const disabled = dup;
                                             return (
                                               <button
                                                 key={t.id}
                                                 type="button"
                                                 disabled={disabled}
                                                 className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
-                                                onClick={() =>
-                                                  !disabled &&
+                                                onClick={async () => {
+                                                  if (disabled) return;
+                                                  /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
+                                                     바꾼다(독촉 → 현황 보고). 한 번 확인한다.
+                                                     켜는 쪽은 되돌리는 것이라 묻지 않는다. */
+                                                  if (isSelf && selfOn && !(await confirmSelfOff())) return;
                                                   patchReminder(ph.id, rm.id, (r) => ({
-                                                    targets: { ...r.targets, [t.id]: !r.targets?.[t.id] },
-                                                  }))}
+                                                    targets: {
+                                                      ...r.targets,
+                                                      [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
+                                                    },
+                                                  }));
+                                                }}
+                                                title={dup ? L.reminderTgtDupHint : undefined}
                                                 data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
                                               >
                                                 {on ? '✓' : '+'}{' '}
-                                                {t.fixed
-                                                  ? `${L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf} · ${L.reminderTgtFixed}`
+                                                {isSelf
+                                                  ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
                                                   : L[t.labelKey]}
                                                 {dup ? ` · ${L.reminderTgtDup}` : ''}
                                               </button>
                                             );
                                           })}
                                         </div>
+                                        {/* [PW-529] 하한 — 아무도 받지 않는 리마인더는 저장할 수 없다 (정책 §5.2.1-B) */}
+                                        {noRecipient && (
+                                          <div
+                                            className="evc-rm-tgt-error"
+                                            data-testid={`evc-rm-no-recipient-${ph.id}-${i}`}
+                                          >
+                                            {L.reminderNoRecipientErr}
+                                          </div>
+                                        )}
+                                        {/* [PW-529] 당사자가 빠지면 「독촉」이 아니라 「현황 보고」다 */}
+                                        {!selfOn && !noRecipient && (
+                                          <div
+                                            className="evc-rm-tgt-note"
+                                            data-testid={`evc-rm-report-mode-${ph.id}-${i}`}
+                                          >
+                                            {L.reminderReportModeNote}
+                                          </div>
+                                        )}
                                       </div>
                                       {/* ── 2. 메시지 (채널 공통) — 이메일·슬랙보다 «위» [PW-435 ⑤]
                                           종전에는 이 블록이 '이메일 발송 설정' 안에 있어 문구가
@@ -4899,7 +5057,9 @@ export default function EvalCycleWizard({
                                             onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
                                             data-testid={`evc-rm-msg-tpl-${ph.id}-${i}`}
                                           >
-                                            {MESSAGE_TEMPLATES.map((t) => (
+                                            {/* [PW-529] 후보 집합이 「당사자를 켰는가」로 갈린다 —
+                                                당사자를 끄면 2인칭 독촉문 2종이 빠지고 보고형이 선다. */}
+                                            {(selfOn ? MESSAGE_TEMPLATES : REPORT_TEMPLATES).map((t) => (
                                               <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
                                             ))}
                                           </select>
@@ -5123,16 +5283,24 @@ export default function EvalCycleWizard({
                                                   <option key={c} value={c} />
                                                 ))}
                                               </datalist>
+                                              {/* [PW-529 ②] @멘션이 부르는 것은 «받는 사람 명단» 이지
+                                                  「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
+                                                  부를 대상이 없다 — 켜 둘 수 없게 막는다.
+                                                  참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
                                               <button
                                                 type="button"
-                                                className={`evc-rm-tgt${rm.slack?.mention ? ' is-on' : ''}`}
+                                                disabled={!selfOn}
+                                                className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
                                                 onClick={() =>
+                                                  selfOn &&
                                                   patchReminder(ph.id, rm.id, (r) => ({
                                                     slack: { ...r.slack, mention: !r.slack?.mention },
                                                   }))}
+                                                title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
                                                 data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
                                               >
-                                                {rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                                                {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                                                {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
                                               </button>
                                               {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
                                                   슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로

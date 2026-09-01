@@ -469,6 +469,21 @@
   color: var(--text-secondary);
   line-height: 1.7;
 }
+/* [PW-529 ③-c] 일정 수정 창의 「결과 발송」 안내 안에 놓이는 링크. */
+.evc-linkish {
+  display: inline-block;
+  border: 0;
+  background: none;
+  padding: 0;
+  /* 안내 문장이 끝난 «다음» 에 오는 버튼이라 앞에 한 칸을 띄운다 —
+     붙여 두면 「…합니다.리포트 검수 화면 열기」로 읽힌다. */
+  margin-left: var(--spacing-sm, 6px);
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+  text-decoration: underline;
+  cursor: pointer;
+}
 .evc-sched-modal-list {
   display: flex;
   flex-direction: column;
@@ -900,6 +915,17 @@
 }
 .evc-sched-card.is-required { background: var(--bg-secondary, #f9fafb); }
 .evc-sched-card.is-off { opacity: 0.55; }
+/* [PW-529 ③-b] 「결과 발송」 단계 카드의 안내 — 여기서 리포트가 나가는 게 아니라는 말. */
+.evc-sched-guide {
+  margin: 0 0 var(--spacing-md, 8px);
+  padding: 8px 11px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary, var(--utility-gray-50));
+  border: 1px solid var(--border-secondary, #eaecf0);
+  font-size: var(--font-size-text-xs, 11.5px);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
 .evc-sched-card.is-over {
   border-color: var(--bg-brand-solid, #2dbd82);
   box-shadow: 0 0 0 1px var(--bg-brand-solid, #2dbd82);
@@ -1362,6 +1388,30 @@
 }
 .evc-rm-tgt:disabled {
   cursor: default;
+}
+/* [PW-529] 받는 사람 0명 — 저장이 막힌다. 오류 색으로 세운다. */
+.evc-rm-tgt-error {
+  margin-top: var(--spacing-sm, 6px);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--utility-error-50, #fef3f2);
+  border: 1px solid var(--utility-error-500, #f04438);
+  color: var(--utility-error-500, #f04438);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  line-height: 1.6;
+}
+/* [PW-529] 당사자가 빠져 「현황 보고」가 된 리마인더 — 막지는 않고 알린다. */
+.evc-rm-tgt-note {
+  margin-top: var(--spacing-sm, 6px);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-500, #f79009);
+  color: var(--utility-warning-700, #b54708);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+  line-height: 1.6;
 }
 .evc-rm-dfield {
   display: flex;
