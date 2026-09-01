@@ -77,6 +77,14 @@ const DEFAULT_LABELS = {
   toastLeaderSet: '팀장으로 지정되었습니다',
   toastLeaderUnset: '팀장이 해제되었습니다',
   toastPrimarySet: '주 소속으로 변경되었습니다',
+  // 계층 배정 (PW-540) — 계층 «목록» 관리가 아니라 이 단위에 «배정»하는 자리다.
+  level: '계층',
+  levelUnassigned: '계층 미지정',
+  levelArchivedOption: '{{name}} (보관됨)',
+  levelHint: '계층 이름은 「계층」 탭에서 관리합니다. 여기서는 이 단위에 배정만 합니다.',
+  levelLoadFailed: '계층 목록을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.',
+  toastLevelChanged: '‘{{team}}’의 계층을 ‘{{level}}’(으)로 바꿨습니다',
+  toastLevelCleared: '‘{{team}}’의 계층을 ‘미지정’으로 되돌렸습니다',
   toastError: '오류가 발생했습니다',
   toastCycleError: '하위 팀으로는 이동할 수 없습니다',
   toastDeleteHasChildren: '하위 팀이 있어 삭제할 수 없습니다',
@@ -300,6 +308,14 @@ export default function AdminTeamCanvas({
   totalTeams = 0,
   totalMembers = 0,
   loading = false,
+  /**
+   * 조직 계층 목록(rank 순 · 보관분 제외) — 상세 패널의 계층 Select 옵션 (PW-540).
+   * 안 넘기면 Select 는 「계층 미지정」 하나만 가진 채로 그려진다(계층이 0개인 조직도
+   * 정상 상태라 「계층을 먼저 만드세요」로 막지 않는다).
+   */
+  levels = [],
+  /** 계층 목록 조회가 «실패»했다 — 계층이 0개인 것(정상)과 구분해야 한다 (PW-540). */
+  levelsUnavailable = false,
   labels: providedLabels,
   renderAvatar,
   onSelectTeam,
@@ -360,6 +376,20 @@ export default function AdminTeamCanvas({
   const handleMove = useCallback((id, parentId) => {
     void run(() => onMoveTeam?.(id, parentId), L.toastUpdated);
   }, [run, onMoveTeam, L.toastUpdated]);
+
+  /**
+   * 계층 배정 (PW-540). 🔴 `run` 을 쓰지 않고 **다시 던진다** — 실패 사유를 토스트로
+   * 흘리면 3초 뒤 사라져서 「왜 안 됐는지」가 남지 않는다. 이 조작은 서버가 400 으로
+   * 되돌리는 것이 정상 응답(계층 역전 검증)이므로, 상세 패널이 Select 를 직전 값으로
+   * 되돌리고 그 자리에 사유를 붙인다.
+   */
+  const handleChangeLevel = useCallback(async (id, levelId, teamName) => {
+    await onUpdateTeam?.(id, { levelId });
+    const level = levels.find((l) => l.id === levelId);
+    showToast(level
+      ? fill(L.toastLevelChanged, { team: teamName, level: level.name })
+      : fill(L.toastLevelCleared, { team: teamName }));
+  }, [onUpdateTeam, levels, showToast, L.toastLevelChanged, L.toastLevelCleared]);
 
   // 같은 부모(형제) 내 재정렬: 새 형제 id 순서 전체를 방출. 소비자는 이 순서로
   // sortOrder 를 저장한다(백엔드 reorderUnits). 검색 필터 중에는 부분집합만 보여
@@ -595,8 +625,11 @@ export default function AdminTeamCanvas({
         team={selectedTeam}
         availableMembers={availableMembers}
         labels={L}
+        levels={levels}
+        levelsUnavailable={levelsUnavailable}
         renderAvatar={renderAvatar}
         onUpdateTeam={handleUpdate}
+        onChangeLevel={handleChangeLevel}
         onMemberAction={handleMemberAction}
         onSelectSubTeam={onSelectTeam}
         onSelectMember={onSelectMember}

@@ -39,8 +39,8 @@ function memberOpenProps(member, onSelectMember, labels) {
  * 인라인 멤버 추가, 하위 팀, 삭제). 순수 표현: labels·renderAvatar·콜백 주입.
  */
 export default function AdminTeamDetailPanel({
-  team, availableMembers = [], labels, renderAvatar,
-  onUpdateTeam, onMemberAction, onSelectSubTeam, onSelectMember, onAddMember, onDeleteTeam,
+  team, availableMembers = [], labels, levels = [], levelsUnavailable = false, renderAvatar,
+  onUpdateTeam, onChangeLevel, onMemberAction, onSelectSubTeam, onSelectMember, onAddMember, onDeleteTeam,
 }) {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
@@ -51,6 +51,27 @@ export default function AdminTeamDetailPanel({
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberSearchOpen, setMemberSearchOpen] = useState(false);
+  // 계층 배정 (PW-540). 🔴 낙관적 업데이트를 쓰지 않는다 — 서버가 400 으로 되돌리는
+  // 것이 «정상 응답»이다(계층 역전 검증). 그래서 정본은 언제나 서버가 준 `team.levelId`
+  // 이고, 로컬 값은 요청이 도는 동안만 그 앞에 선다. 팀이 바뀌거나 서버 값이 바뀌면
+  // 아래 `levelKey` 가 달라져 로컬 값이 저절로 버려진다 — effect 로 되돌리지 않는다.
+  const teamLevelId = team?.levelId ?? '';
+  const levelKey = `${team?.id ?? ''}:${teamLevelId}`;
+  const [levelEdit, setLevelEdit] = useState({ key: '', value: '', err: '' });
+  const levelLocal = levelEdit.key === levelKey ? levelEdit : null;
+  const levelValue = levelLocal ? levelLocal.value : teamLevelId;
+  const levelErr = levelLocal ? levelLocal.err : '';
+
+  const changeLevel = async (nextLevelId) => {
+    setLevelEdit({ key: levelKey, value: nextLevelId, err: '' });
+    try {
+      await onChangeLevel?.(team.id, nextLevelId || null, team.name);
+    } catch (err) {
+      // 직전 값(= 서버가 아직 들고 있는 값)으로 되돌리고, 사유는 Select 바로 아래에
+      // 남긴다. 토스트로 흘리면 3초 뒤 사라져 「왜 안 됐는지」가 남지 않는다.
+      setLevelEdit({ key: levelKey, value: teamLevelId, err: err?.message || labels.toastError });
+    }
+  };
 
   const avatar = (m, size) =>
     (renderAvatar ? renderAvatar(m, size) : <span className="tm-avatar-fallback" style={{ width: size, height: size }}>{(m.name || '?').charAt(0)}</span>);
@@ -226,6 +247,49 @@ export default function AdminTeamDetailPanel({
             </div>
           )}
         </div>
+      </div>
+
+      {/* 계층 — 자리는 «상위 팀 breadcrumb 바로 아래»다 (PW-540 ②A · 정책서 §2-M-3).
+           상위 팀과 계층은 둘 다 «구조» 속성이라 붙여 두고, 이름·설명은 표시 속성이라
+           그 아래로 간다.
+           ⛔ 이것은 계층 «목록»을 이 화면에 되살린 것이 아니다 — 목록(이름·순서·보관)의
+              편집 주인은 여전히 「계층」 탭이고, 여기는 단위에 «배정»하는 자리다. */}
+      <div className="tm-section">
+        <label className="tm-section-label" htmlFor="tm-level-select">{labels.level}</label>
+        <select
+          id="tm-level-select"
+          className={`tm-level-select${levelValue ? '' : ' is-unset'}${levelErr ? ' is-invalid' : ''}`}
+          data-testid="tm-level-select"
+          value={levelValue}
+          /* 목록을 못 받았으면 «고를 수 없게» 둔다. 열어 두면 선택지가 「계층 미지정」
+             하나뿐이라, 관리자가 그것을 고르는 순간 멀쩡한 배정이 지워진다. */
+          disabled={levelsUnavailable}
+          onChange={(e) => { void changeLevel(e.target.value); }}
+        >
+          {/* 미지정은 «정상» 선택지다 — 경고 톤을 쓰지 않는다 (조직장 미지정과 같은 규칙) */}
+          <option value="">{labels.levelUnassigned}</option>
+          {levels.map((l) => (
+            <option key={l.id} value={l.id}>{l.name}</option>
+          ))}
+          {/* 목록에 없는 계층에 «이미» 배정돼 있으면 현재값만 남긴다. 빈칸으로 두면 아직
+              배정돼 있는 값을 「미지정」으로 오독한다 (정책서 §10 N2).
+              🔴 「(보관됨)」은 **목록을 실제로 받아 본 뒤에만** 붙인다 — 목록을 못 받은
+              상태에서 붙이면 멀쩡히 살아 있는 계층을 보관된 것으로 잘못 부른다. */}
+          {teamLevelId && !levels.some((l) => l.id === teamLevelId) && (
+            <option value={teamLevelId}>
+              {levelsUnavailable || levels.length === 0
+                ? (team.levelName || team.type || teamLevelId)
+                : fill(labels.levelArchivedOption, { name: team.levelName || team.type || teamLevelId })}
+            </option>
+          )}
+        </select>
+        {levelErr ? (
+          <p className="tm-level-error" role="alert" data-testid="tm-level-error">{levelErr}</p>
+        ) : levelsUnavailable ? (
+          <p className="tm-level-error" role="alert" data-testid="tm-level-unavailable">{labels.levelLoadFailed}</p>
+        ) : (
+          <p className="tm-level-hint">{labels.levelHint}</p>
+        )}
       </div>
 
       {/* 설명 */}

@@ -515,6 +515,37 @@
 }
 .tm-section-head .tm-section-label { margin: 0; }
 
+/* 계층 배정 (PW-540) — 단위에 계층을 «배정»하는 한 줄. 새 시각 언어를 만들지 않고
+   이 패널이 이미 쓰는 값(설명 textarea 의 테두리·반경, breadcrumb 의 보조 텍스트)만
+   조합한다. */
+.tm-level-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm, 8px);
+  outline: none;
+  cursor: pointer;
+}
+.tm-level-select:focus { border-color: var(--text-brand-tertiary); box-shadow: 0 0 0 3px var(--utility-brand-50); }
+/* 미지정은 «정상» 상태다 — 경고색이 아니라 보조 텍스트 색을 쓴다. */
+.tm-level-select.is-unset { color: var(--text-tertiary); font-weight: 500; }
+.tm-level-select.is-invalid { border-color: var(--utility-error-500, #d92d20); }
+.tm-level-hint,
+.tm-level-error {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+.tm-level-hint { color: var(--text-tertiary); }
+.tm-level-error { color: var(--utility-error-600, #b42318); }
+
 /* 설명 */
 .tm-desc-display {
   font-family: var(--font-family-body);
