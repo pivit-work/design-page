@@ -591,6 +591,21 @@ const fillSampleVars = (text, L) =>
     (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
     String(text ?? ''),
   );
+/**
+ * 당사자를 켜고 끌 때 문구 템플릿을 «후보 안으로» 옮긴다 [PW-529].
+ *
+ * 사전 정의 문구는 두 벌이 갈려 있다 — 독촉형(`default`·`urgent`)과 보고형(`report`).
+ * 후보 목록만 바꾸면 고른 값이 남은 쪽에 없는 채로 남아, 셀렉트는 첫 항목을 보여주는데
+ * 실제 저장값·미리보기는 옛 문구다. 「HR 이 「아직 제출하지 않으셨습니다」를 받는다」가
+ * 화면만 바뀐 채 그대로 일어난다.
+ *
+ * `custom` 은 옮기지 않는다 — 직접 쓴 제목·본문이 있고, 그걸 지우는 쪽이 더 큰 손해다.
+ */
+const migrateTemplate = (msg, selfOff) => {
+  if (msg.template === 'custom') return msg;
+  if (selfOff) return { ...msg, template: 'report' };
+  return { ...msg, template: msg.template === 'report' ? 'default' : msg.template };
+};
 const EMPTY_MESSAGE = {
   template: 'default',
   subject: '',
@@ -4994,6 +5009,15 @@ export default function EvalCycleWizard({
                                                       ...r.targets,
                                                       [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
                                                     },
+                                                    /* 🔴 후보 집합만 갈아 끼우면 «고른 값» 은 그대로 남는다.
+                                                       그러면 셀렉트는 「현황 보고」로 보이는데 실제로 나가는 것은
+                                                       2인칭 독촉문이다 — 이 절이 막으려던 바로 그 사고가
+                                                       화면만 바뀐 채 그대로 일어난다. 값도 함께 옮긴다.
+                                                       커스텀은 건드리지 않는다(직접 쓴 글을 지우지 않는다). */
+                                                    ...(isSelf
+                                                      ? // `selfOn` 은 «누르기 전» 값이다 — 켜져 있었으면 지금 끄는 것이다.
+                                                        { message: migrateTemplate(messageOf(r), selfOn) }
+                                                      : null),
                                                   }));
                                                 }}
                                                 title={dup ? L.reminderTgtDupHint : undefined}
