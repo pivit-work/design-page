@@ -282,9 +282,14 @@
 .report-mrow-summary {
   flex: 1;
   min-width: 0;
-  margin: 0;
+  /* 아래쪽 여백만 «칸 바깥»(margin)으로 뺀다. `overflow: hidden` 이 잘라 내는
+     경계는 안쪽 여백(padding)까지 포함하므로, 아래 여백이 안쪽에 있으면
+     -webkit-line-clamp 로 감춘 네 번째 줄이 그 14px 자리에 반쯤 비쳐 보인다
+     (PW-573). 이 칸에는 배경·테두리가 없어(배경은 부모 .report-mrow) 여백을
+     밖으로 빼도 칠해지는 면이 달라지지 않는다 — 높이·간격·글자 위치 그대로. */
+  margin: 0 0 14px;
   align-self: center;
-  padding: 14px 20px;
+  padding: 14px 20px 0;
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
