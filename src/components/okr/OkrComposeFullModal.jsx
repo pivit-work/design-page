@@ -108,6 +108,7 @@ export default function OkrComposeFullModal({
   onClose,
   onSubmit,
   onGenerate,
+  onRefineKr,
   members = [],
   parentOptions = [],
   selfId = '',
@@ -134,6 +135,11 @@ export default function OkrComposeFullModal({
   const [saveError, setSaveError] = useState(null);
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState(null);
+  // KR 행 리파인(✦ 개선) — 로딩·오류를 **행 단위**로 잡는다. 한 번에 한 행만
+  // 도는 것이 규칙이라(okr-policy §5.3 R-E5) 키 하나면 충분하고, 오류도 그 행
+  // 안에 그려야 해서(INV-R2) 어느 행 것인지 함께 들고 있어야 한다.
+  const [refiningKey, setRefiningKey] = useState(null);
+  const [refineError, setRefineError] = useState(null); // { key, message }
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -190,6 +196,50 @@ export default function OkrComposeFullModal({
   const patchKr = (objKey, krKey, patch) => setObjectives((p) => p.map((o) => (
     o.key === objKey ? { ...o, krs: o.krs.map((k) => (k.key === krKey ? { ...k, ...patch } : k)) } : o
   )));
+
+  /**
+   * KR 한 줄을 AI 로 다듬는다 (okr-policy §5.3 · PW-523).
+   *
+   * 세트 생성(onGenerate)과 갈리는 지점은 **무엇을 남기는가** 다. 세트 생성은
+   * Objective 를 통째로 새로 쌓아 그 안의 KR 이 새 key 를 받으므로, 손으로 매어 둔
+   * 상위 KR 연결(parentKrIds)과 고른 달성 방식(inputType)이 그 줄에 남지 않는다.
+   * 리파인은 title·target·unit 만 갈아끼우고 나머지는 건드리지 않는다.
+   *
+   * 확인 단계를 두지 않는다 — 응답이 오면 바로 그 줄에 들어간다(§5.3 R-E6 ·
+   * 2026-09-01 확정). 되돌림 비용이 「한 줄 다시 쓰기」라 확인 단계가 더 비싸다.
+   */
+  const refineKr = async (objKey, kr) => {
+    if (!onRefineKr || refiningKey || !kr.title.trim()) return;
+    const objective = objectives.find((o) => o.key === objKey);
+    setRefiningKey(kr.key);
+    setRefineError(null);
+    try {
+      const res = await onRefineKr({
+        objectiveTitle: objective?.title ?? '',
+        title: kr.title,
+        target: kr.target,
+        unit: kr.unit,
+      });
+      const next = res?.refined ?? res;
+      const title = typeof next?.title === 'string' ? next.title.trim() : '';
+      // 빈 title 로 덮으면 멀쩡한 줄이 빈 KR 이 된다 — 부분 덮어쓰기를 통째로
+      // 포기한다(§5.3 R-E3). target·unit 만 오는 응답도 마찬가지로 버린다.
+      if (!title) throw new Error('empty-title');
+      const patch = { title };
+      if (next.target !== undefined && next.target !== null && next.target !== '') {
+        patch.target = next.target;
+      }
+      if (typeof next.unit === 'string' && next.unit.trim()) patch.unit = next.unit.trim();
+      // 기다리는 사이 그 행을 지웠으면 key 가 없어 아무 행도 안 바뀐다(§5.3 R-E4).
+      patchKr(objKey, kr.key, patch);
+    } catch {
+      // 실패는 상태를 만들지 않는다(INV-R1) — 위 patchKr 에 닿지 못하므로 어떤
+      // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2).
+      setRefineError({ key: kr.key, message: 'KR 개선에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    } finally {
+      setRefiningKey(null);
+    }
+  };
 
   // 미니맵 + → 마지막 Objective(없으면 신규)에 연결 KR 추가.
   const linkTeamKr = (gi, ki, kr) => {
@@ -384,7 +434,7 @@ export default function OkrComposeFullModal({
                     </div>
 
                     {objective.krs.map((kr) => (
-                      <div className="okr-cf-kr-card" key={kr.key}>
+                      <div className={`okr-cf-kr-card${refiningKey === kr.key ? ' is-refining' : ''}`} key={kr.key}>
                         <div className="okr-cf-kr-card-head">
                           <span className="okr-cf-bullet" />
                           <input
@@ -394,10 +444,24 @@ export default function OkrComposeFullModal({
                             value={kr.title}
                             onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
                           />
+                          {onRefineKr && (
+                            <button
+                              type="button"
+                              className="okr-wz-ai-btn"
+                              title="AI로 KR 개선"
+                              disabled={!kr.title.trim() || refiningKey !== null}
+                              onClick={() => refineKr(objective.key, kr)}
+                            >
+                              {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
+                            </button>
+                          )}
                           <button className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
                             <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
                           </button>
                         </div>
+                        {refineError?.key === kr.key && (
+                          <p className="okr-wz-error" role="alert">{refineError.message}</p>
+                        )}
                         <div className="okr-cf-methods">
                           {METHODS.map((method) => (
                             <button
