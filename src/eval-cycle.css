@@ -895,6 +895,70 @@
   color: var(--text-tertiary, #98a2b3);
 }
 
+/* [PW-536] 1단계 종료일 아래 안내 — 이 기간이 「무엇을 평가하는가」임을 알린다 */
+.evc-field-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.5;
+  margin: var(--spacing-sm, 6px) 0 0;
+}
+
+/* [PW-536] 일정 시작일(D0) — 단계별 일정의 기준점 */
+.evc-sched-anchor {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+  padding: var(--spacing-lg, 12px) 14px;
+  margin-bottom: var(--spacing-lg, 12px);
+  border: 1px solid var(--utility-brand-200, #d9d6fe);
+  border-radius: var(--radius-lg, 10px);
+  background: var(--utility-brand-50, #f4f3ff);
+}
+.evc-sched-anchor-label {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-sched-anchor-input {
+  width: 150px;
+  flex: 0 0 auto;
+}
+.evc-sched-anchor-badge {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  padding: 1px var(--spacing-md, 8px);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--utility-brand-100, #ebe9fe);
+  color: var(--utility-brand-600, #6941c6);
+}
+.evc-sched-anchor-badge.is-manual {
+  background: var(--utility-purple-100, #ebe9fe);
+  color: var(--utility-purple-600, #6941c6);
+}
+.evc-sched-anchor-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #98a2b3);
+  line-height: 1.5;
+}
+.evc-sched-anchor-note > strong {
+  color: var(--utility-purple-600, #6941c6);
+}
+.evc-sched-anchor-reset {
+  margin-left: auto;
+  padding: 5px var(--spacing-lg, 12px);
+  border: 1px solid var(--border-primary, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #475467);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  cursor: pointer;
+}
+.evc-sched-anchor-reset:hover {
+  background: var(--bg-secondary, #f9fafb);
+}
+
 /* 단계별 일정 카드 */
 .evc-sched-overlap-note {
   font-size: var(--font-size-text-xs, 12px);
