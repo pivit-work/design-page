@@ -1049,18 +1049,60 @@ function getOverlapPairs(rows) {
   return pairs;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   PW-536 — 일정 시작일(D0). 정책 §5.2.1-A (2026-08-18).
+
+   대상 기간(*무엇을 평가하는가*)과 운영 일정(*언제 진행하는가*)은 다른 축이다.
+   종전에는 단계 일정을 **대상 기간 시작일**에서 깔았고, 그래서 상반기(1/1~6/30)를
+   평가하는 사이클을 만들면 셀프 리뷰가 이미 지나간 1월에 잡혔다. 기준점을 따로 둔다.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/** 하루(ms). 날짜 산술의 단위. */
+const DAY_MS = 86400000;
+
+/** 'YYYY-MM-DD' 에 n일을 더한다. 로컬 자정 기준이라 시간대에 흔들리지 않는다. */
+function addDaysIso(iso, n) {
+  const base = isoToDate(iso);
+  return dateToIso(new Date(base.getTime() + n * DAY_MS));
+}
+
+/** 토·일이면 다음 월요일로 민다. 그 밖의 날은 그대로. */
+function nextWeekdayIso(iso) {
+  const day = isoToDate(iso).getDay(); // 0=일 … 6=토
+  if (day === 0) return addDaysIso(iso, 1);
+  if (day === 6) return addDaysIso(iso, 2);
+  return iso;
+}
+
+/**
+ * 일정 시작일(D0)의 기본값.
+ *   ① 대상 기간 종료일 다음 날 → ② 그 날이 오늘보다 과거면 오늘 → ③ 주말이면 다음 월요일.
+ *
+ * ②가 없으면 지난 기간(예: 상반기)을 평가하는 사이클에서 리뷰 일정이 **전부 과거**로 깔린다.
+ * 날짜는 **로컬 기준**으로 만든다 — `toISOString()`(UTC)은 KST 에서 하루가 밀린다.
+ */
+function defaultScheduleStart(periodEnd, today = new Date()) {
+  const todayIso = dateToIso(today);
+  const dayAfter = isIsoDate(datePart(periodEnd))
+    ? addDaysIso(datePart(periodEnd), 1)
+    : todayIso;
+  return nextWeekdayIso(dayAfter < todayIso ? todayIso : dayAfter);
+}
+
 /** 활성 단계에 7일 간격 초기 일정(시작·종료 일시) 배치. 기본 시각 09:00~18:00. */
 function initSchedule(phases, baseDate) {
-  const DAY = 86400000;
-  const base = baseDate ? new Date(baseDate) : new Date();
-  const iso = (d) => d.toISOString().slice(0, 10);
+  // 🔴 로컬 자정 기준으로 만든다. 종전에는 `new Date(baseDate)`(UTC 자정 해석) 뒤
+  //   `toISOString()` 으로 되돌려, KST 에서 6/30 이 6/29 로 하루 밀렸다(정책 §5.2.1-A).
+  const base = isIsoDate(datePart(baseDate))
+    ? isoToDate(baseDate)
+    : new Date(new Date().setHours(0, 0, 0, 0));
   const s = {};
   phases.forEach((p, i) => {
-    const st = new Date(base.getTime() + i * 7 * DAY);
-    const en = new Date(st.getTime() + 6 * DAY);
+    const st = new Date(base.getTime() + i * 7 * DAY_MS);
+    const en = new Date(st.getTime() + 6 * DAY_MS);
     s[p.id] = {
-      start: joinDateTime(iso(st), DEFAULT_TIME.start),
-      end: joinDateTime(iso(en), DEFAULT_TIME.end),
+      start: joinDateTime(dateToIso(st), DEFAULT_TIME.start),
+      end: joinDateTime(dateToIso(en), DEFAULT_TIME.end),
     };
   });
   return s;
@@ -1796,9 +1838,27 @@ export default function EvalCycleWizard({
   const [schedule, setSchedule] = useState(() => ({
     ...(D?.schedule ?? initialSeq?.schedule ?? {}),
   })); // { phaseId: { start, end } } 사용자 오버라이드
-  // PW-122 프리셋에서 불러온 일정의 '며칠째' 오프셋. 사이클 시작일이 정해지면
+  // PW-122 프리셋에서 불러온 일정의 '며칠째' 오프셋. 일정 시작일이 정해지면
   // 거기에 맞춰 다시 깔린다(원본 사이클의 절대 날짜를 그대로 쓰지 않는다).
   const [presetOffsets, setPresetOffsets] = useState(() => D?.presetOffsets ?? null);
+  /* PW-536 — 일정 시작일(D0). 정책 §5.2.1-A.
+     HR 이 직접 지정하기 전에는 «대상 기간 종료일» 을 따라가므로, 직접 지정한 값과
+     「지정했는가」를 따로 담는다. 실제로 쓰는 값은 아래 `scheduleStart` 파생값이다. */
+  const [scheduleStartRaw, setScheduleStartRaw] = useState(() =>
+    datePart(D?.scheduleStart ?? ''),
+  );
+  const [scheduleStartTouched, setScheduleStartTouched] = useState(
+    () => !!D?.scheduleStartTouched,
+  );
+  const [d0Draft, setD0Draft] = useState(null); // 「치는 중」인 글자(확정값과 분리)
+  const [d0Picker, setD0Picker] = useState(null); // 일정 시작일 달력
+  const [pendingRebase, setPendingRebase] = useState(null); // 재배치 확인 대기
+  /* 직접 고친 단계 — 어떤 재배치에서도 덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」).
+     관리 모드로 열면 이미 정해진 일정이 들어오는데, 그건 사람이 정한 값이라 보호한다. */
+  const [scheduleDirty, setScheduleDirty] = useState(() => {
+    if (D?.scheduleDirty) return [...D.scheduleDirty];
+    return Object.keys(initialSeq?.schedule ?? {});
+  });
   const [reminders, setReminders] = useState(() => ({
     ...(D?.reminders ?? initialSeq?.reminders ?? {}),
   })); // { phaseId: [reminderObj] }
@@ -1962,9 +2022,15 @@ export default function EvalCycleWizard({
 
   const hasPeer = reviewTypes.includes('peer');
   const activePhases = activePhasesFor(reviewTypes);
-  const defaultSchedule = initSchedule(activePhases, startDate);
-  // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(시작일 기준) > 7일 간격 기본값.
-  const presetSchedule = offsetsToSchedule(presetOffsets, startDate);
+  /* PW-536 — 단계 일정의 기준점은 «대상 기간 시작일» 이 아니라 일정 시작일(D0)이다.
+     직접 지정하기 전에는 대상 기간 종료일을 따라 다시 계산된다(§5.2.1-A 「자동 추적」). */
+  const scheduleStart =
+    scheduleStartTouched && isIsoDate(scheduleStartRaw)
+      ? scheduleStartRaw
+      : defaultScheduleStart(endDate);
+  const defaultSchedule = initSchedule(activePhases, scheduleStart);
+  // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(D0 기준) > 7일 간격 기본값.
+  const presetSchedule = offsetsToSchedule(presetOffsets, scheduleStart);
   const scheduleOf = (id) =>
     schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
   // 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
@@ -1985,8 +2051,14 @@ export default function EvalCycleWizard({
   const overlapPairs = getOverlapPairs(enabledRows);
   const overlapIds = new Set(overlapPairs.flatMap((p) => p.key.split('|')));
 
-  const updateSchedule = (id, field, value) =>
+  /* 단계 일정을 손으로 고치면 그 단계는 「직접 수정」이 된다 — 이후 어떤 재배치에서도
+     덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」). */
+  const markScheduleDirty = (id) =>
+    setScheduleDirty((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  const updateSchedule = (id, field, value) => {
+    markScheduleDirty(id);
     setSchedule((s) => ({ ...s, [id]: { ...scheduleOf(id), [field]: value } }));
+  };
   // 날짜·시각을 각각 편집해도 저장은 'YYYY-MM-DDTHH:mm' 한 값으로 유지한다.
   const updateSchedDate = (id, field, isoDate) =>
     updateSchedule(
@@ -2038,6 +2110,70 @@ export default function EvalCycleWizard({
       !schedFormatBad(r.id, 'end') &&
       !schedOrderBad(r.id),
   );
+
+  /* ── PW-536 일정 시작일(D0) ─────────────────────────────────────────────
+     화면에 보이는 단계 중 「직접 수정」인 것만 센다. 꺼졌다 켜졌다 하며 목록에서
+     빠진 옛 단계까지 세면 「현재 N개」가 화면과 안 맞는다. */
+  const dirtyShown = displayPhases
+    .filter((p) => scheduleDirty.includes(p.id))
+    .map((p) => p.id);
+  const d0Shown = d0Draft ?? scheduleStart;
+  /**
+   * 일정 시작일을 확정한다.
+   *
+   * 이 컴포넌트의 일정은 «직접 고친 값(schedule) > 프리셋 > D0 기준 기본 배치» 순으로
+   * 읽히므로, D0 만 바꾸면 직접 고치지 않은 단계는 저절로 다시 깔린다. 그래서
+   * 「예」에는 따로 할 일이 없고, **「아니오」(전부 유지)일 때만** 지금 보이는 날짜를
+   * 굳혀 둔다 — 굳히지 않으면 새 기준점으로 밀려 버린다.
+   */
+  const commitScheduleStart = (iso) => {
+    if (!isIsoDate(iso) || iso === scheduleStart) {
+      // 비우거나 반쪽인 값은 무시하고 직전 값을 유지한다(§5.2.1-A 엣지 「D0를 비움」).
+      setScheduleStartTouched(true);
+      setScheduleStartRaw(isIsoDate(iso) ? iso : scheduleStart);
+      return;
+    }
+    setScheduleStartTouched(true);
+    setScheduleStartRaw(iso);
+    if (dirtyShown.length === 0) return; // 보호할 것이 없으면 묻지 않고 다시 깐다
+    /* 보호된 단계가 있으면 한 번 묻는다. 「그대로 두기」를 고를 수 있어야 하므로
+       지금 보이는 날짜를 함께 들고 간다 — 기준점이 바뀐 뒤에는 다시 못 만든다. */
+    setPendingRebase({
+      count: dirtyShown.length,
+      frozen: Object.fromEntries(
+        displayPhases.map((ph) => [ph.id, scheduleOf(ph.id)]),
+      ),
+      ids: displayPhases.map((ph) => ph.id),
+    });
+  };
+  /** 「그대로 두기」 — 지금 날짜를 굳힌다. 굳히지 않으면 새 기준점으로 밀린다. */
+  const keepScheduleAsIs = () => {
+    if (!pendingRebase) return;
+    setSchedule(pendingRebase.frozen);
+    setScheduleDirty(pendingRebase.ids);
+    setPendingRebase(null);
+  };
+  const typeD0 = (raw) => {
+    setD0Draft(raw);
+    if (isIsoDate(raw)) commitScheduleStart(raw);
+  };
+  const pickD0 = (iso) => {
+    setD0Draft(null);
+    commitScheduleStart(iso);
+  };
+  /** 「전체 다시 배치」 — 보호를 전부 풀어 D0 기준 기본 배치로 되돌린다. */
+  const rebaseAllSchedule = () => {
+    setScheduleDirty([]);
+    setSchedule({});
+    setSchedDraft({});
+  };
+  /* 지난 날짜 판정은 **날짜 기준**이다. 시각까지 비교하면 오늘 09:00 시작 단계가
+     오전에 이미 경고로 뜬다(§5.2.1-A 「과거 날짜」). 차단하지는 않는다. */
+  const todayIso = dateToIso(new Date());
+  const isPastPhase = (id) => {
+    const start = datePart(scheduleOf(id).start);
+    return !!start && start < todayIso;
+  };
   /**
    * [PW-529 · 정책 §5.2.1-B 하한] 받는 사람이 0명인 리마인더가 하나라도 있으면 막는다.
    *
@@ -3350,6 +3486,11 @@ export default function EvalCycleWizard({
     localTemplates: libraryMode ? [] : localTemplates,
     // 3단계 — 일정·순서·ON/OFF·리마인더
     schedule,
+    /* [PW-536] 기준점과 「직접 고친 단계」를 함께 담는다. 없으면 이어쓰기 직후의
+       재배치가 사용자가 고쳐 둔 날짜를 덮는다(정책 §5.1-A 저장 범위 3단계). */
+    scheduleStart,
+    scheduleStartTouched,
+    scheduleDirty,
     presetOffsets,
     reminders,
     disabledPhases: [...disabledPhases],
@@ -3920,30 +4061,45 @@ export default function EvalCycleWizard({
                 autoFocus
                 data-testid="evc-wiz-name"
               />
+              {/* [PW-536] 1단계의 두 칸은 «무엇을 평가하는가» 다. 단계 일정 칸과 라벨을
+                  나눠 둔다 — 같은 `startDate` 를 쓰면 3단계 일정 칸의 이름표까지
+                  「평가 대상 기간」이 된다. */}
               <div className="evc-field-grid">
                 <div>
-                  <label className="evc-field-label">{req(L.startDate)}</label>
+                  <label className="evc-field-label">
+                    {req(L.periodStartDate ?? L.startDate)}
+                  </label>
                   <DateField
                     value={dateShown('start')}
                     onType={typeDate('start')}
                     onOpen={openPicker('start')}
                     isOpen={picker?.field === 'start'}
                     invalid={dateFieldInvalid('start')}
-                    ariaLabel={L.startDate}
+                    ariaLabel={L.periodStartDate ?? L.startDate}
                     testId="evc-wiz-start"
                   />
                 </div>
                 <div>
-                  <label className="evc-field-label">{req(L.endDate)}</label>
+                  <label className="evc-field-label">
+                    {req(L.periodEndDate ?? L.endDate)}
+                  </label>
                   <DateField
                     value={dateShown('end')}
                     onType={typeDate('end')}
                     onOpen={openPicker('end')}
                     isOpen={picker?.field === 'end'}
                     invalid={dateFieldInvalid('end')}
-                    ariaLabel={L.endDate}
+                    ariaLabel={L.periodEndDate ?? L.endDate}
                     testId="evc-wiz-end"
                   />
+                  {/* [PW-536 · 정책 §5.2.1-A] 이 기간은 «무엇을 평가하는가» 다.
+                      «언제 진행하는가» 는 3단계 「일정 시작일」이 정한다 — 두 축이
+                      다르다는 것을 값을 넣는 그 자리에서 알린다. */}
+                  {L.periodScheduleHint && (
+                    <p className="evc-field-note" data-testid="evc-wiz-period-hint">
+                      {L.periodScheduleHint}
+                    </p>
+                  )}
                 </div>
               </div>
               {/* PW-528 ① — 왜 다음으로 못 가는지를 그 자리에서 말한다. 종전에는
@@ -4731,6 +4887,66 @@ export default function EvalCycleWizard({
           {step === 2 && (
             <div className="evc-wiz-panel">
               <p className="evc-wiz-hint">{L.scheduleHint}</p>
+              {/* PW-536 — 일정 시작일(D0). 모든 단계 일정의 기준점(정책 §5.2.1-A).
+                  대상 기간(무엇을 평가하는가)과 운영 일정(언제 진행하는가)은 다른 축이라
+                  기준점을 여기 따로 둔다. */}
+              <div className="evc-sched-anchor" data-testid="evc-sched-anchor">
+                <span className="evc-sched-anchor-label">{L.scheduleAnchorLabel}</span>
+                <DateField
+                  value={d0Shown}
+                  onType={typeD0}
+                  onOpen={(e) => {
+                    const el = e.currentTarget;
+                    setD0Picker({ rect: el.getBoundingClientRect(), el });
+                  }}
+                  isOpen={!!d0Picker}
+                  ariaLabel={L.scheduleAnchorLabel}
+                  className="evc-sched-anchor-input"
+                  testId="evc-sched-anchor-date"
+                />
+                <span
+                  className={`evc-sched-anchor-badge${scheduleStartTouched ? ' is-manual' : ''}`}
+                  data-testid="evc-sched-anchor-badge"
+                >
+                  {scheduleStartTouched
+                    ? L.scheduleAnchorManual
+                    : L.scheduleAnchorAuto}
+                </span>
+                <span className="evc-sched-anchor-note">
+                  {L.scheduleAnchorNote}
+                  {dirtyShown.length > 0 && (
+                    <strong data-testid="evc-sched-anchor-dirty">
+                      {' '}
+                      {fill(L.scheduleAnchorDirtyCount ?? '(현재 {{count}}개)', {
+                        count: dirtyShown.length,
+                      })}
+                    </strong>
+                  )}
+                </span>
+                {dirtyShown.length > 0 && (
+                  <button
+                    type="button"
+                    className="evc-sched-anchor-reset"
+                    onClick={rebaseAllSchedule}
+                    data-testid="evc-sched-anchor-reset"
+                  >
+                    {L.scheduleAnchorResetAll}
+                  </button>
+                )}
+              </div>
+              {d0Picker && (
+                <DatePicker
+                  anchorRect={d0Picker.rect}
+                  anchorEl={d0Picker.el}
+                  selectedDate={isoToDate(scheduleStart)}
+                  labels={pickerLabels}
+                  onSelect={(d) => {
+                    pickD0(dateToIso(d));
+                    setD0Picker(null);
+                  }}
+                  onClose={() => setD0Picker(null)}
+                />
+              )}
               {overlapPairs.length > 0 && (
                 <div className="evc-sched-overlap-note" data-testid="evc-sched-overlap">
                   {L.scheduleOverlapNote}
@@ -4780,6 +4996,25 @@ export default function EvalCycleWizard({
                         {!enabled && <span className="evc-mode-badge is-muted">{L.badgeUnused}</span>}
                         {enabled && overlapIds.has(ph.id) && (
                           <span className="evc-mode-badge is-warn">{L.badgeParallel}</span>
+                        )}
+                        {/* [PW-536 · 정책 §5.2.1-A] 직접 고친 단계는 재배치에서 빠진다는
+                            것을 그 자리에서 알린다 — 「전체 다시 배치」를 눌러야 풀린다. */}
+                        {enabled && scheduleDirty.includes(ph.id) && (
+                          <span
+                            className="evc-mode-badge is-muted"
+                            data-testid={`evc-sched-dirty-${ph.id}`}
+                          >
+                            {L.scheduleAnchorPhaseDirty}
+                          </span>
+                        )}
+                        {/* 지난 날짜는 알리되 막지 않는다 — 소급 사이클을 막으면 안 된다. */}
+                        {enabled && isPastPhase(ph.id) && (
+                          <span
+                            className="evc-mode-badge is-warn"
+                            data-testid={`evc-sched-past-${ph.id}`}
+                          >
+                            {L.schedulePastBadge}
+                          </span>
                         )}
                         <button
                           type="button"
@@ -6894,6 +7129,39 @@ export default function EvalCycleWizard({
                 data-testid="evc-tpl-confirm-swap-ok"
               >
                 {L.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [PW-536 · 정책 §5.2.1-A] 기준점을 바꾸면 손대지 않은 단계가 다시 깔린다 —
+          직접 고쳐 둔 것이 있을 때만 묻는다. 「그대로 두기」는 지금 날짜를 굳힌다. */}
+      {pendingRebase && (
+        <div className="evc-modal-overlay" onClick={keepScheduleAsIs}>
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">{L.scheduleAnchorRebaseTitle}</h3>
+            <p className="evc-modal-sub" data-testid="evc-sched-rebase-body">
+              {fill(L.scheduleAnchorRebaseBody ?? '', {
+                count: pendingRebase.count,
+              })}
+            </p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={keepScheduleAsIs}
+                data-testid="evc-sched-rebase-keep"
+              >
+                {L.scheduleAnchorRebaseKeep}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                onClick={() => setPendingRebase(null)}
+                data-testid="evc-sched-rebase-ok"
+              >
+                {L.scheduleAnchorRebaseOk}
               </button>
             </div>
           </div>
