@@ -327,9 +327,21 @@ function noteSectionsOf(session, L, icons) {
   ];
 }
 
-export function NoteGrid({ session, L, icons, baseUrl }) {
+/**
+ * 회의록 카드. `recordingPlayer` 를 받으면 **카드 안 첫 행**에 그린다 (PW-584).
+ *
+ * 정본: `screen-oneonone-session.policy.md` §19.2 「STT 완료 배너 바로 아래 · AI 미팅
+ * 요약 카드 «위» … 카드를 새로 만들지 않고 Divider 로 나눈다」 ·
+ * `arch-design-tokens.md` §9-P-4 ⓑ. 원음은 요약의 **근거**라 요약보다 앞에 온다.
+ *
+ * 🔴 재생기 자체는 이 캔버스가 그리지 않는다 — 자리만 연다. 무엇을 그릴지(재생기 ·
+ * 「녹음되지 않았습니다」 · 아무것도 안 그림)는 «누가 들을 수 있는가» 판정이라
+ * 소비처가 소유한다. 안 넘기면 지금까지처럼 회의록만 나온다.
+ */
+export function NoteGrid({ session, L, icons, baseUrl, recordingPlayer }) {
   return (
     <Section title={L.meetingNotes} icon={icons.notes} icons={icons} baseUrl={baseUrl} collapsible={false}>
+      {recordingPlayer}
       <div className="ono-mem-notes">
         {noteSectionsOf(session, L, icons).map(({ key, label, icon, content }) => (
           <div key={key}>
@@ -957,7 +969,7 @@ export function EmotionTone({ session, L, icons, baseUrl }) {
   );
 }
 
-function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence }) {
+function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
@@ -989,7 +1001,13 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
         </div>
       ) : (
         <>
-          <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
+          <NoteGrid
+            session={session}
+            L={L}
+            icons={icons}
+            baseUrl={baseUrl}
+            recordingPlayer={renderRecordingPlayer?.(session)}
+          />
 
           {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) + 전문 딥링크 (PW-327) */}
           <ManagerFeedback
@@ -1062,7 +1080,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
  *
  * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
  */
-function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence, renderRecordingPlayer }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
@@ -1075,6 +1093,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
 
   const okrSnapshot = session.aiBriefing?.okrStatus ?? [];
   const blockers = session.aiBriefing?.unresolvedBlockers ?? [];
+  const player = renderRecordingPlayer ? renderRecordingPlayer(session) : null;
 
   return (
     <>
@@ -1095,7 +1114,17 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         </button>
       </SessionHeader>
 
-      {session.aiSummary && <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />}
+      {/* 요약이 없어도 재생기가 있으면 카드를 그린다 (PW-584) — 그러지 않으면
+          「요약은 못 만들었는데 녹음은 있는」 회차에서 원음을 들을 자리가 사라진다. */}
+      {(session.aiSummary || player) && (
+        <NoteGrid
+          session={session}
+          L={L}
+          icons={icons}
+          baseUrl={baseUrl}
+          recordingPlayer={player}
+        />
+      )}
 
       {blockers.length > 0 && (
         <Section title={L.recheckNeeded} icon={icons.alert} icons={icons} baseUrl={baseUrl}>
@@ -1164,7 +1193,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect }) {
+function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -1184,6 +1213,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
         formatDate={formatDate} formatDuration={formatDuration}
         onBack={() => select(null)} onToggleAction={onToggleAction}
         feedbackEvidence={feedbackEvidence}
+        renderRecordingPlayer={renderRecordingPlayer}
       />
     );
   }
@@ -1363,6 +1393,20 @@ export default function OneOnOneMemberCanvas({
   feedbackEvidence = null,
   /** 히스토리에서 펼친 회차 id (없으면 null) — 호스트가 그 회차 발췌를 불러오게 한다. */
   onHistorySelect,
+  /**
+   * `(session) => node | null` — 그 회차의 **녹음 재생기** (PW-584).
+   *
+   * 회의록 카드 안 첫 행에 그린다(policy §19.2 · `arch-design-tokens.md` §9-P-4 ⓑ).
+   * 회차마다 답이 달라서 노드가 아니라 **함수**로 받는다 — 결과 탭과 히스토리 상세가
+   * 서로 다른 회차를 그리고, 「누가 이 회차를 들을 수 있는가」는 회차 단위로 갈린다
+   * (`oneonone-spec.md` §9-B 확정 ②': 매니저는 언제나 · 팀원은 그 회차의 `sttShared`
+   * 가 켜진 때만).
+   *
+   * 🔴 `null` 을 돌려주면 **자리 자체가 생기지 않는다** — 「들을 수 없습니다」류의
+   * 안내를 두면 녹음이 있다는 사실이 새기 때문이다(INV-P5). 안 넘기면 지금까지처럼
+   * 재생기 없이 그린다.
+   */
+  renderRecordingPlayer,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -1401,6 +1445,7 @@ export default function OneOnOneMemberCanvas({
           session={resultSession} manager={manager} avatar={avatar} renderAvatar={renderAvatar}
           deadlineOf={deadlineOf} onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
+          renderRecordingPlayer={renderRecordingPlayer}
         />
       ) : <div className="ono-mem-empty">{L.noResultSession}</div>)}
 
@@ -1415,6 +1460,7 @@ export default function OneOnOneMemberCanvas({
           onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
           onHistorySelect={onHistorySelect}
+          renderRecordingPlayer={renderRecordingPlayer}
         />
       )}
     </div>
