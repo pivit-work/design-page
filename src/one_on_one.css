@@ -1603,6 +1603,61 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-notice strong {
   font-weight: 600;
 }
+/* 마이크가 꺼진 채 되살아난 회차 (기획 policy §5.4.5 · PW-556).
+   녹음 바를 그리지 않으므로 카드에는 안내 한 줄만 남는다 — 위젯이 있던 자리에 그대로
+   서서 「여기서 녹음이 돌고 있었다」를 잇는다. 색은 위 warning 계열 그대로다. */
+.ono-start-rec-mini.is-idle {
+  gap: 0;
+}
+.ono-start-rec-notice.is-actionable {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  font-size: 12px;
+}
+.ono-start-rec-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* 다시 시작은 「녹음 시작」과 같은 동작이라 같은 붉은 계열을 쓴다 — 종료 버튼과
+   같은 토큰이되 안내 줄 안에 들어가야 해서 크기만 줄인다. */
+.ono-start-rec-restart {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--colors-background-bgErrorSolid, #f04438);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-white, #fff);
+  cursor: pointer;
+  /* 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
+  overflow-wrap: anywhere;
+}
+.ono-start-rec-notice-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.ono-start-rec-notice-close:hover {
+  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+}
 .ono-start-view-body {
   display: flex;
   flex-direction: column;
@@ -2720,6 +2775,21 @@ button.ono-add-modal-input { cursor: pointer; }
    딥링크도 이 안에서 목표 발화까지 움직인다. */
 .ono-mem-transcript.is-preview {
   max-height: 160px;
+}
+/* 갈린 회차의 전문 기준점 한 줄 (기획 policy §5.4.4 R6 · PW-556).
+   위 녹음 안내와 같은 warning 계열이다 — 「무언가 어긋난 채로 남아 있다」를 말하는
+   자리라 정보(회색)로 그리면 그냥 부연으로 읽힌다. */
+.ono-mem-transcript-offset {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 6px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  /* 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
+  overflow-wrap: anywhere;
 }
 .ono-mem-transcript-note {
   margin: 0;
