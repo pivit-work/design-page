@@ -12,7 +12,7 @@ import MeetingInProgressModal from './MeetingInProgressModal.jsx';
  * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
 
-function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting }) {
+function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, startLock }) {
   const statusTag = meeting.status ? statusLabels[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
   const clickable = !!onRowClick;
@@ -59,7 +59,22 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting }) 
           {statusLabels.ongoing.label}
         </button>
       ) : (
-        isOngoing && (
+        isOngoing &&
+        (startLock ? (
+          // 진행 중인 1on1 이 있어 마이크를 쥘 수 없다 (PW-579 · policy §5.8 X1·X6).
+          // 🔴 위의 `isStarting` 잠금(= 이 회의가 이미 녹음 중 · PW-557)과 **다른 건**이라
+          // 분기를 합치지 않는다. 사유가 다르면 사용자가 할 일도 다르다.
+          // 라벨은 그대로 두고 비활성으로만 둔다 — 회의록 쪽 잠긴 버튼 문구는 기획서가
+          // 정하지 않았고, 이유는 목록 위 배너와 툴팁이 말한다.
+          <button
+            type="button"
+            className="mtg-start-btn is-locked"
+            disabled
+            title={startLock.tooltip || undefined}
+          >
+            {statusLabels.startLabel}
+          </button>
+        ) : (
           <button
             type="button"
             className="mtg-start-btn"
@@ -71,7 +86,7 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting }) 
           >
             {statusLabels.startLabel}
           </button>
-        )
+        ))
       )}
     </div>
   );
@@ -105,6 +120,19 @@ export default function MeetingsCanvas({
   /** 시작 flow 가 이미 열려 있는(녹음 진행 중) 회의 id — 해당 행의 [시작] 을
    *  비활성 [진행 중] 버튼으로 바꾼다 (Figma 16817:40731). */
   startingMeetingId,
+  /**
+   * 진행 중인 1on1 때문에 **회의 녹음을 시작할 수 없는** 상태 (PW-579 · policy §5.8).
+   *
+   * `{ notice, actionLabel, onAction, tooltip }`. 주면 오늘 회의 행의 [시작] 과
+   * 헤더의 [회의 시작] 이 모두 잠기고, 목록 위에 이유와 갈 곳을 담은 배너가 선다.
+   *
+   * 🔴 `startingMeetingId`(이 회의가 이미 녹음 중 · PW-557)와 **다른 축**이다. 그쪽은
+   * 「그 한 행」의 중복 시작을 막고, 이쪽은 「마이크를 이미 다른 곳이 쥐고 있다」라서
+   * **모든 시작 자리**를 막는다. 문구도 다르다.
+   *
+   * 문구·이동 동작은 소비처가 쥔다 — 어느 회차가 돌고 있는지는 여기서 알 수 없다.
+   */
+  startLock = null,
   progressData,
   recordData,
   shareData,
@@ -143,8 +171,16 @@ export default function MeetingsCanvas({
             </button>
           )}
           {/* 캘린더 없이 지금 바로 녹음 — 목록 전체에서 유일하게 항상 열려 있는 진입점. */}
+          {/* 캘린더 없이 지금 바로 녹음하는 문도 같은 규칙으로 잠근다 — 여기를 열어
+              두면 잠금이 목록 행에만 걸리고 이 버튼으로 그대로 뚫린다. */}
           {onStartAdhoc && (
-            <button type="button" className="mtg-start-adhoc" onClick={onStartAdhoc}>
+            <button
+              type="button"
+              className={`mtg-start-adhoc ${startLock ? 'is-locked' : ''}`}
+              onClick={startLock ? undefined : onStartAdhoc}
+              disabled={!!startLock}
+              title={startLock?.tooltip || undefined}
+            >
               <Icon src="/icons-solid/microphone-01.svg" size={16} color="currentColor" baseUrl={baseUrl} />
               <span>{L.startAdhoc}</span>
             </button>
@@ -152,6 +188,25 @@ export default function MeetingsCanvas({
         </div>
       </div>
 
+      {/* 진행 중인 1on1 잠금 안내 (PW-579 · policy §5.8 X4 · 회의록 §5.6).
+          🔴 목록 «위»에 둔다 — 잠긴 버튼은 행마다 흩어져 있어서, 이유를 행 옆에만 두면
+          오늘 회의가 여러 개일 때 같은 문장이 여러 번 반복된다. 갈 곳(진행 중인 1on1)도
+          하나뿐이라 한 자리에 있는 편이 맞다.
+          시각은 새로 만들지 않았다 — 이 화면의 구글 동기화 배너와 같은 계열이다. */}
+      {startLock?.notice && (
+        <div className="mtg-lock-banner" role="status">
+          <span className="mtg-lock-banner-text">{startLock.notice}</span>
+          {startLock.actionLabel && startLock.onAction && (
+            <button
+              type="button"
+              className="mtg-lock-banner-action"
+              onClick={startLock.onAction}
+            >
+              {startLock.actionLabel}
+            </button>
+          )}
+        </div>
+      )}
       <div className="mtg-content">
         {/* 오늘의 회의 */}
         <section className="mtg-section">
@@ -193,6 +248,7 @@ export default function MeetingsCanvas({
                   onRowClick={onRowClick}
                   statusLabels={statusLabels}
                   isStarting={m.id === startingMeetingId}
+                  startLock={startLock}
                 />
               ))}
             </div>

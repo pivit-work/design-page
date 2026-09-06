@@ -50,6 +50,11 @@ import LiveGuideCard from './LiveGuideCard.jsx';
  *     않는다 — 접은 모습은 소비처가 그린다.
  *   - `startBlocked` / `onStartBlocked` : 「시작하기」를 가로채 소비처가 안내를 띄운다.
  *     버튼을 잠그는 것이 **아니다** — 잠그는 안은 기획에서 미채택이다(policy §5.1).
+ *   - `startLocked` / `startLockedLabel` / `startLockedTitle` / `startLockedNotice` /
+ *     `startLockedActionLabel` / `onStartLockedAction` : 회의록 녹음과의 동시 실행
+ *     잠금 (PW-579 · policy §5.8). `startBlocked` 와 달리 **실제로 잠근다** — 마이크가
+ *     이미 다른 녹음에 잡혀 있고, 그것은 이 화면에서 풀 수 없다. 준비도(0/4) 문구를
+ *     이기며, 푸터 위에 이유와 갈 곳을 담은 안내 배너를 함께 그린다.
  *
  * member shape: { name, role, avatar, badge? }
  */
@@ -249,6 +254,27 @@ export default function StartOneOnOneView({
   // 소비처가 안내를 띄우고, 사용자가 「그대로 시작」을 고르면 소비처가 직접 시작한다.
   // 🔴 버튼을 `disabled` 로 잠그지 않는다 — 상대가 앞에 앉은 화면에서 「AI 가 준비될
   // 때까지 시작할 수 없음」은 도구가 대화를 막는 것이다(미채택안).
+  // ── 회의록 녹음과의 동시 실행 잠금 (PW-579 · policy §5.8) ──
+  // 🔴 `startBlocked`(스크립트 미생성 안내)와 **다른 축**이다. 그쪽은 «막지 않고
+  // 알리는» 것이고 이쪽은 **실제로 잠근다** — 마이크라는 자원이 이미 다른 녹음에
+  // 잡혀 있어서, 이 화면에서는 풀 수 없다.
+  //
+  // 잠금이 걸리면 관점 준비도(0/4) 문구를 **이긴다**(§5.8.3). 준비도는 여기서 채울
+  // 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리기 때문이다.
+  //
+  // 문구·조건·이동 동작은 전부 소비처가 쥔다 — 「무엇이 녹음 중인가」는 이 컴포넌트가
+  // 알 수 없는 사실이다.
+  startLocked = false,
+  /** 잠긴 푸터 버튼의 라벨. 예) 「회의 녹음 종료 후 시작 가능」 */
+  startLockedLabel = null,
+  /** 잠긴 푸터 버튼의 툴팁. 예) 「진행 중인 회의 녹음을 종료하면 시작할 수 있습니다」 */
+  startLockedTitle = null,
+  /** 푸터 위 안내 배너 본문. 노드로 줘도 된다(강조는 소비처가 <strong> 으로). */
+  startLockedNotice = null,
+  /** 잠금을 푸는 화면으로 가는 버튼의 라벨. 없으면 버튼을 안 그린다. */
+  startLockedActionLabel = null,
+  /** 그 버튼을 눌렀을 때. 없으면 버튼을 안 그린다 — 눌러도 무동작인 버튼은 없느니만 못하다. */
+  onStartLockedAction,
   startBlocked = false,
   onStartBlocked,
   busy = false,
@@ -438,6 +464,10 @@ export default function StartOneOnOneView({
   const elapsedSec = controlledElapsed ? elapsedSecProp : ownElapsedSec;
 
   const startMeeting = () => {
+    // 회의록 녹음이 돌고 있으면 아무 일도 일어나지 않는다 (PW-579 · policy §5.8 X3).
+    // 버튼이 이미 `disabled` 지만, 프로그램적 호출·키보드 경로까지 여기서 막는다 —
+    // 뚫리면 두 녹음이 같은 소리를 두 기록에 쌓는다.
+    if (startLocked) return;
     // 스크립트를 안 만든 채 시작하려는 경우 — 소비처가 안내를 띄운다 (policy §5.1).
     // 여기서 녹음 상태를 먼저 켜면 안내 뒤에 녹음 위젯이 이미 떠 있게 된다.
     if (startBlocked) {
@@ -934,6 +964,25 @@ export default function StartOneOnOneView({
           </div>
         </div>
 
+        {/* 회의록 녹음과의 동시 실행 잠금 안내 (PW-579 · policy §5.8 X4).
+            🔴 «왜 잠겼는지»만이 아니라 «어디로 가면 풀리는지»를 함께 둔다 — 잠금을 푸는
+            동작이 다른 화면에 있어서, 링크가 없으면 매니저는 갈 곳을 모른 채 멈춘다.
+            시각은 새로 만들지 않았다: 녹음 사전 고지(`.ono-start-rec-notice`)와 같은
+            warning 계열이다. */}
+        {startLocked && startLockedNotice && !recording && (
+          <div className="ono-start-lock-notice" role="status">
+            <span className="ono-start-lock-notice-text">{startLockedNotice}</span>
+            {startLockedActionLabel && onStartLockedAction && (
+              <button
+                type="button"
+                className="ono-start-lock-notice-action"
+                onClick={onStartLockedAction}
+              >
+                {startLockedActionLabel}
+              </button>
+            )}
+          </div>
+        )}
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
           {busy ? (
@@ -942,6 +991,18 @@ export default function StartOneOnOneView({
             </button>
           ) : recording ? (
             <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>1on1 종료</button>
+          ) : startLocked ? (
+            /* 🔴 준비도(0/4) 분기보다 **위**에 있어야 한다 (policy §5.8.3). 준비도는 이
+               화면에서 채울 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리므로,
+               지금 무엇을 해야 하는지를 버튼이 말한다. */
+            <button
+              type="button"
+              className="ono-add-modal-btn ono-start-footer-disabled"
+              disabled
+              title={startLockedTitle ?? undefined}
+            >
+              {startLockedLabel ?? '시작하기'}
+            </button>
           ) : allConfirmed ? (
             <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (
