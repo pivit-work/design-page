@@ -1740,6 +1740,18 @@ input.mtg-record-action-title::placeholder {
 .mtg-rec-widget-wave.is-live span { transition: height 0.06s linear; }
 .mtg-rec-widget-stop { width: 90px; padding: 10px 12px; border: none; border-radius: 10px; background: var(--colors-background-bgErrorSolid, #f04438); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 
+/* ── 대화 내비게이터 한 줄 (PW-578 · 1on1 이 이 위젯을 함께 쓴다) ──────────────
+   policy §5.7.4 (ㄱ) 「한 몸」 — 녹음 줄 «아래 한 줄»로만 붙는다. 스크립트 전문은
+   여기 오지 않는다(N1). 새 색을 만들지 않고 이 파일이 이미 쓰는 토큰만 쓴다. */
+.mtg-rec-widget-guide { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 8px; background: var(--bg-quaternary); }
+.mtg-rec-widget-guide-head { display: flex; align-items: center; gap: 6px; }
+.mtg-rec-widget-guide-stage { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mtg-rec-widget-guide-count { flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.mtg-rec-widget-guide-close { flex-shrink: 0; width: 18px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.mtg-rec-widget-guide-pace { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--componentColors-utility-warning-utilityWarning700, #b54708); }
+.mtg-rec-widget-guide-next { width: 100%; padding: 6px 10px; border: 1px solid var(--alpha-black-5); border-radius: 8px; background: var(--bg-secondary); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.mtg-rec-widget-guide-next:disabled { color: var(--text-tertiary); cursor: default; }
+
 /* 녹음 진행 중(위젯 축소 상태) 행의 비활성 [진행 중] 버튼 — Figma 16817:40731 */
 .mtg-start-btn.is-inprogress {
   background: var(--colors-background-bgDisabled, #f3f4f6);

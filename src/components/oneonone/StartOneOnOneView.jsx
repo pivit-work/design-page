@@ -45,6 +45,9 @@ import LiveGuideCard from './LiveGuideCard.jsx';
  *     AI 브리핑 아래에 그린다. 입력이 전부 READY 산출물이라 LIVE 를 기다릴 이유가
  *     없었고, 그 대기가 ① 아이스브레이킹의 권장 구간을 미팅 시간으로 갉아먹었다.
  *   - `elapsedSec` : 세션 경과(초). 주면 자체 타이머를 돌리지 않는다. `null` = 녹음 전.
+ *   - `onCollapseRecording` / `recordingCollapsed` : 녹음 바의 「접기」 (PW-578).
+ *     콜백을 주지 않으면 버튼이 없고, `recordingCollapsed` 면 녹음 바 자체를 그리지
+ *     않는다 — 접은 모습은 소비처가 그린다.
  *   - `startBlocked` / `onStartBlocked` : 「시작하기」를 가로채 소비처가 안내를 띄운다.
  *     버튼을 잠그는 것이 **아니다** — 잠그는 안은 기획에서 미채택이다(policy §5.1).
  *
@@ -220,6 +223,14 @@ export default function StartOneOnOneView({
   recordingRestartLabel,
   onRecordingNoticeClose,
   recordingNoticeCloseLabel,
+  // 녹음 바를 손으로 접는다 (PW-578 · policy §5.7.3). 콜백이 없으면 버튼도 없다 —
+  // 접은 뒤의 모습(앱 안 최소화 위젯)을 그리는 것은 소비처 몫이라, 소비처가
+  // 준비되지 않았는데 버튼만 있으면 눌러도 아무 일이 없다.
+  onCollapseRecording,
+  collapseRecordingLabel,
+  // 접힌 상태 (PW-578). 접히면 녹음 바를 그리지 않는다 — 접은 모습(앱 안 최소화
+  // 위젯)은 소비처가 그리므로, 여기까지 남으면 같은 회차의 위젯이 둘이 된다.
+  recordingCollapsed = false,
   // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
   onStartMeeting,
   onEndMeeting,
@@ -488,7 +499,7 @@ export default function StartOneOnOneView({
   return (
     <div className="ono-start-view">
       <div className="ono-start-view-card">
-        {recording && (
+        {recording && !recordingCollapsed && (
           <OneOnOneRecordingWidget
             member={member}
             meetingTime={meetingTime}
@@ -509,6 +520,8 @@ export default function StartOneOnOneView({
             {...(recordingNoticeCloseLabel
               ? { closeLabel: recordingNoticeCloseLabel }
               : null)}
+            onCollapse={onCollapseRecording}
+            collapseLabel={collapseRecordingLabel}
           />
         )}
         <div className="ono-start-view-body">
