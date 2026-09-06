@@ -34,6 +34,8 @@ export default function OkrBoard({
   onViewAllFeedback,
   onRefreshInsights,
   onInsightAction,
+  onToggleInitiative,
+  canEditInitiative = false,
 }) {
   const { banner, insights, overall, theme, objectives } = board;
   // 피드백 작성 대상 KR(null=닫힘). 저장 콜백에 krId 를 전달하기 위해 kr 을 보관.
@@ -69,6 +71,8 @@ export default function OkrBoard({
             onWriteFeedback={(kr) => setComposeKr(kr)}
             onViewFeedback={(kr) => onViewAllFeedback?.(kr)}
             onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
+            onToggleInitiative={onToggleInitiative}
+            canEditInitiative={canEditInitiative}
           />
         ))}
       </div>
