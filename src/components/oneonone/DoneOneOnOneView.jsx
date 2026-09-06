@@ -234,13 +234,27 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry }) {
   );
 }
 
-/** 요약 · 결정사항 · 재점검 · 반복 패턴. 아직 요약이 없으면 자리표시만 남긴다. */
-function SummaryCard({ session, L, icons, baseUrl, pending }) {
+/**
+ * 요약 · 결정사항 · 재점검 · 반복 패턴. 아직 요약이 없으면 자리표시만 남긴다.
+ *
+ * `recordingPlayer` 를 받으면 **카드 안 첫 행**에 그린다 (PW-584) — 원음은 요약의
+ * **근거**라 요약보다 앞에 온다(policy §19.2 · `arch-design-tokens.md` §9-P-4 ⓑ).
+ * 🔴 재생기가 있으면 요약이 아직 없어도 카드를 그린다. 그러지 않으면 「요약은 못
+ * 만들었는데 녹음은 있는」 회차에서 원음을 들을 자리가 통째로 사라진다.
+ */
+function SummaryCard({ session, L, icons, baseUrl, pending, recordingPlayer }) {
   const summary = session.aiSummary ?? '';
   const decisions = session.keyDecisions ?? [];
   const followUps = session.nextTopics ?? [];
   const patterns = session.recurringPatterns ?? [];
-  if (!summary && !has(decisions) && !has(followUps) && !has(patterns) && !pending) {
+  if (
+    !summary &&
+    !has(decisions) &&
+    !has(followUps) &&
+    !has(patterns) &&
+    !pending &&
+    !recordingPlayer
+  ) {
     return null;
   }
   return (
@@ -251,6 +265,7 @@ function SummaryCard({ session, L, icons, baseUrl, pending }) {
       baseUrl={baseUrl}
       collapsible={false}
     >
+      {recordingPlayer}
       <div className="ono-done-summary" data-testid="ono-done-summary">
         {summary ? summary : <span className="ono-mem-hint">{L.summaryPending}</span>}
       </div>
@@ -682,6 +697,15 @@ export default function DoneOneOnOneView({
    * 소비처가 그대로 살아 있어야 해서다. 공개 여부 자체는 `session.isShared` 로 읽는다.
    */
   share,
+  /**
+   * 그 회차의 **녹음 재생기** 노드 (PW-584). AI 미팅 요약 카드 «안» 첫 행에 그린다.
+   *
+   * 이 화면은 회차가 하나뿐이라 함수가 아니라 노드로 받는다(멤버 캔버스는 회차가
+   * 여럿이라 함수다). 🔴 안 넘기면 **자리 자체가 생기지 않는다** — 「들을 수
+   * 없습니다」류의 안내를 두면 녹음이 있다는 사실이 새기 때문이다(§9-B INV-P5).
+   * 매니저는 규정상 언제나 들을 수 있지만, 그 판정을 여기서 하지는 않는다.
+   */
+  recordingPlayer,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -744,6 +768,7 @@ export default function DoneOneOnOneView({
         icons={I}
         baseUrl={baseUrl}
         pending={isDonePending(bannerState)}
+        recordingPlayer={recordingPlayer}
       />
 
       <SentimentCard session={session} L={L} icons={I} baseUrl={baseUrl} />

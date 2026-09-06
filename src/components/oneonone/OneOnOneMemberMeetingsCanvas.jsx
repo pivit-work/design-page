@@ -491,6 +491,7 @@ function RecordScreen({
   feedbackEvidence,
   transcription,
   onBackToList,
+  renderRecordingPlayer,
 }) {
   const host = hostOf(session, { name: managerName });
   const actions = session.actionItems ?? [];
@@ -518,7 +519,13 @@ function RecordScreen({
         </button>
       </SessionHeader>
 
-      <NoteGrid session={session} L={L} icons={icons} baseUrl={baseUrl} />
+      <NoteGrid
+        session={session}
+        L={L}
+        icons={icons}
+        baseUrl={baseUrl}
+        recordingPlayer={renderRecordingPlayer?.(session)}
+      />
 
       <RecurringPatterns session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
@@ -689,6 +696,14 @@ export default function OneOnOneMemberMeetingsCanvas({
   onBackToList,
   onOpenRecord,
   onOpenAnalysis,
+  /**
+   * `(session) => node | null` — 그 회차의 **녹음 재생기** (PW-584).
+   *
+   * 회의록 카드 안 첫 행에 그린다(policy §19.2 · `arch-design-tokens.md` §9-P-4 ⓑ).
+   * 노드가 아니라 함수인 것은 `OneOnOneMemberCanvas` 와 같은 이유다 — 「누가 이 회차를
+   * 들을 수 있는가」는 회차 단위로 갈린다. `null` 이면 자리 자체가 생기지 않는다.
+   */
+  renderRecordingPlayer,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
   const I = { ...DEFAULT_ICONS, ...(icons || {}) };
@@ -735,6 +750,7 @@ export default function OneOnOneMemberMeetingsCanvas({
           feedbackEvidence={feedbackEvidence}
           transcription={transcription}
           onBackToList={onBackToList}
+          renderRecordingPlayer={renderRecordingPlayer}
         />
       ) : screen === 'analysis' ? (
         <AnalysisScreen
