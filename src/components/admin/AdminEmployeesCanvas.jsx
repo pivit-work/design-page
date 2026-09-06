@@ -139,6 +139,8 @@ const DEFAULT_LABELS = {
       jobTitle: '직렬',
       jobDuty: '직무',
       employmentType: '고용형태',
+      /* FTE — 풀타임 환산 비율 %. 고용형태와 다른 축이다(PW-481). */
+      ftePercent: 'FTE',
       employmentStatus: '재직상태',
       /* 근무 위치 3층 — 국가 > 도시 > 빌딩(§1-3-g 45·46·47 · PW-503). 도시 이름에
          층위를 안 밝히면 세 열이 전부 「근무지」 로 보인다. */
@@ -940,6 +942,8 @@ const LIST_OPTIONAL_COLS = [
   { id: 'jobCategory', width: 100, optionalField: 'job_category' },
   /** 직함 — 명함용 대외 명칭(전무). 직급·직위와 세 축 모두 별개다(PW-502). */
   { id: 'businessTitle', width: 110, optionalField: 'business_title' },
+  /** FTE — 풀타임 환산 비율 %. 고용형태와 다른 축이다(PW-481 · §1-3-g 32번). */
+  { id: 'ftePercent', width: 80 },
   /** 근무 위치 3층 — 국가 > 도시 > 빌딩(PW-503). 시트 뷰와 같은 세 열이다. */
   { id: 'workCountry', width: 110 },
   { id: 'workLocation', width: 110 },
@@ -1376,6 +1380,8 @@ function EmployeesListView({
     { id: 'jobTitle', label: cl.jobTitle, width: 120 },
     { id: 'jobDuty', label: cl.jobDuty, width: 140 },
     { id: 'employmentType', label: cl.employmentType, width: 100 },
+    /* FTE — 시트 뷰와 같은 자리(고용형태 뒤)다. 정본표 §1-3-g 의 31·32 순서. */
+    ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
     { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
     /* 직함 — 직무 뒤·근무 위치 앞. 정본 §2-1 표의 자리다. */
     ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
@@ -1598,6 +1604,9 @@ function EmployeesListView({
       case 'jobTitle': return <TextCell value={m.jobTitle} />;
       case 'jobDuty': return <TextCell value={m.jobDuty} />;
       case 'employmentType': return <TextCell value={m.employmentType} />;
+      /* 미입력(`null`)은 «—» 다 — 0% 가 아니다. `value || ''` 로 쓰면 나중에 0 이
+         허용될 때 미입력과 같은 모양이 되어 조용히 틀린다. */
+      case 'ftePercent': return <TextCell value={m.ftePercent === null || m.ftePercent === undefined ? '' : `${m.ftePercent}%`} />;
       case 'employmentStatus': return <StatusBadge status={m.employmentStatus} labels={labels} />;
       case 'workLocation': return <TextCell value={m.workLocation} />;
       case 'jobCategory': return <TextCell value={m.jobCategory} />;
