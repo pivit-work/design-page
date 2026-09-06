@@ -211,6 +211,12 @@
 .okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
 .okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
 .okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
+/* 실행 항목 상태 배지를 눌러 넘길 수 있을 때만 붙는다 (okr-policy §9.2A · PW-501).
+   🔴 권한이 없을 때는 이 클래스가 안 붙을 뿐, 색·opacity 는 그대로다 —
+   흐린 배지는 「눌리는데 안 되는 화면」으로 읽혀 고장으로 보인다(§2F.5 G3). */
+.okr-pill.is-toggleable { cursor: pointer; transition: opacity .15s; }
+.okr-pill.is-toggleable:hover { opacity: .75; }
+.okr-pill.is-toggleable:focus-visible { outline: 2px solid var(--utility-brand-200); outline-offset: 1px; }
 
 /* 테이블 헤더 */
 .okr-p-table-head { display: flex; align-items: center; padding: 8px 22px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
@@ -464,6 +470,18 @@
 .okr-cf-method-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .okr-cf-method-desc { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--text-tertiary); }
 .okr-cf-method.is-active .okr-cf-method-label, .okr-cf-method.is-active .okr-cf-method-desc { color: var(--text-white); }
+/* 실행 항목(Initiative) 편집 블록 — okr-policy §4A.3.
+   새 시각 언어를 만들지 않는다: 블록은 KR 카드 안쪽 톤, 라벨은 보기 모드
+   Initiative 라벨과 같은 색, 추가 버튼은 `okr-cf-kr-add-btn` 을 한 단계 축소한 점선판. */
+.okr-cf-init { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--utility-blue-50); border: 1px solid var(--border-secondary-alt); border-radius: 10px; }
+.okr-cf-init-label { font-size: 11px; font-weight: 700; line-height: 16px; letter-spacing: .5px; text-transform: uppercase; color: var(--utility-blue-500); }
+.okr-cf-init-row { display: flex; align-items: center; gap: 6px; }
+.okr-cf-init-status { flex: none; padding: 6px 8px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; outline: none; }
+.okr-cf-init-status:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
+.okr-cf-input.is-init { padding: 6px 10px; font-size: 13px; background: var(--bg-quaternary); }
+.okr-cf-input.is-init.is-done { text-decoration: line-through; color: var(--text-tertiary); }
+.okr-cf-init-empty { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.okr-cf-init-add { align-self: flex-start; padding: 5px 11px; background: var(--bg-quaternary); border: 1px dashed var(--border-brand); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-brand-secondary); cursor: pointer; }
 .okr-cf-kr-add-btn { align-self: flex-end; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
 /* 작성 폼 가중치 검증 배지(엔지니어링 배선) */
 .okr-cf-krsum { align-self: flex-end; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-500); }

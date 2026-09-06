@@ -13,7 +13,8 @@ import rowKey from './rowKey.js';
  * 저장 시 onSubmit(objectives) 로 소비자에 전달한다.
  *
  * 시안: pivit-specs okr-individual.jsx(IndividualOKRWriter/ObjectiveWriteCard).
- * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A). 이니셔티브는 후속.
+ * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A).
+ * KR 마다 실행 항목(Initiative) 편집 블록을 둔다 — okr-policy §4A · okr-spec §3.7 (PW-501).
  *
  * onSubmit(objectives): objectives = [{ id?, title, weight, comOkr?, krs: [{ id?,
  *   title, target, unit, inputType('percent'|'binary'|'count'), weight, parentKrIds? }] }]
@@ -39,6 +40,16 @@ const DEFAULT_LABELS = {
   emptyTitle: '개인 OKR을 시작해보세요',
   emptyDesc: '우측 팀 OKR 미니맵에서 + 를 클릭하거나\n직접 추가로 시작하세요',
 };
+/**
+ * 실행 항목 상태 3단 — 서버 `kr_initiatives.status` 와 같은 값이다
+ * (okr-policy §9.2A v8.2). 2상태(체크박스)로는 `in_progress` 를 만들 수 없어
+ * 종전 완료 체크박스를 select 로 바꿨다.
+ */
+const INIT_STATUS = [
+  { key: 'todo', label: '예정' },
+  { key: 'in_progress', label: '진행 중' },
+  { key: 'done', label: '완료' },
+];
 const METHODS = [
   { key: 'percent', label: '% 달성률', desc: '0~100% 직접 입력', unit: '%' },
   { key: 'binary', label: '완료 여부', desc: '달성/미달성', unit: '완료' },
@@ -62,7 +73,13 @@ function emptyKr(linked, selfId) {
     // 개인 OKR 이므로 담당자 기본값은 본인 — 시안 okr-individual.jsx 의 pic=ME.name.
     ownerId: selfId ?? '',
     parentKrIds: parentId ? [parentId] : [],
+    initiatives: [],
   };
+}
+
+/** 새 실행 항목 행. 기본 상태는 서버 DB 기본값과 같은 `todo` 다 (okr-policy §4A.4). */
+function emptyInitiative() {
+  return { key: nextId(), title: '', status: 'todo', ownerId: '' };
 }
 function emptyObjective(linkedKr, selfId) {
   return {
@@ -97,6 +114,13 @@ function seedObjective(o) {
       ownerId: k.ownerId ?? '',
       // 하위호환 읽기 — 구 단일 필드는 원소 1개짜리 배열로 승격한다.
       parentKrIds: k.parentKrIds ?? (k.teamKrId ? [k.teamKrId] : []),
+      initiatives: (k.initiatives ?? []).map((i) => ({
+        key: nextId(),
+        id: i.id,
+        title: i.title ?? '',
+        status: i.status ?? 'todo',
+        ownerId: i.ownerId ?? '',
+      })),
     })),
   };
 }
@@ -169,6 +193,7 @@ export default function OkrComposeFullModal({
         weight: String(i === n - 1 ? 100 - base * (n - 1) : base),
         ownerId: selfId,
         parentKrIds: [],
+        initiatives: [],
       }));
       // Objective 가중치도 마찬가지 — 기존 Objective 가 없으면 100%.
       setObjectives((p) => [
@@ -196,6 +221,18 @@ export default function OkrComposeFullModal({
   const patchKr = (objKey, krKey, patch) => setObjectives((p) => p.map((o) => (
     o.key === objKey ? { ...o, krs: o.krs.map((k) => (k.key === krKey ? { ...k, ...patch } : k)) } : o
   )));
+
+  // 실행 항목(Initiative) — 새 배열을 만들어 갈아끼운다. 원본을 변형하면 같은 KR 의
+  // 다른 행이나 이웃 KR 이 함께 바뀐다(okr-policy §4A.4 · TC-OKR-142).
+  const initsOf = (kr) => kr.initiatives ?? [];
+  const addInitiative = (objKey, kr) =>
+    patchKr(objKey, kr.key, { initiatives: [...initsOf(kr), emptyInitiative()] });
+  const removeInitiative = (objKey, kr, initKey) =>
+    patchKr(objKey, kr.key, { initiatives: initsOf(kr).filter((i) => i.key !== initKey) });
+  const patchInitiative = (objKey, kr, initKey, patch) =>
+    patchKr(objKey, kr.key, {
+      initiatives: initsOf(kr).map((i) => (i.key === initKey ? { ...i, ...patch } : i)),
+    });
 
   /**
    * KR 한 줄을 AI 로 다듬는다 (okr-policy §5.3 · PW-523).
@@ -302,6 +339,16 @@ export default function OkrComposeFullModal({
         // 빈 배열도 그대로 보낸다 — 「마지막 상위를 끊었다」는 의미 있는 값이라
         // undefined 로 접으면 소비 측이 "안 바뀜" 으로 읽어 연결이 살아남는다.
         parentKrIds: k.parentKrIds ?? [],
+        // 실행 항목은 **빈 행까지 그대로** 싣는다. 「내용이 빈 행은 저장하지 않는다」는
+        // 규정(okr-policy §4A I-E1)은 소비 측이 판정한다 — 여기서 걸러 버리면 이미
+        // 저장돼 있던 항목의 내용을 지운 것이 payload 에서 «사라진 것»과 구별되지 않아
+        // 소비 측이 삭제로 읽는다.
+        initiatives: (k.initiatives ?? []).map((i) => ({
+          ...(i.id ? { id: i.id } : {}),
+          title: i.title.trim(),
+          status: i.status,
+          ownerId: i.ownerId || undefined,
+        })),
       })),
     }));
     setSaving(true);
@@ -508,6 +555,67 @@ export default function OkrComposeFullModal({
                               onChange={(id) => patchKr(objective.key, kr.key, { ownerId: id })}
                             />
                           )}
+                        </div>
+
+                        {/* 실행 항목(Initiative) — okr-policy §4A · okr-spec §3.7 (PW-501).
+                            🔴 **0건이어도 그린다.** 종전에는 이 블록을 「1건 이상일 때만」
+                            그려서, 실행 항목이 없는 KR 에는 더할 자리 자체가 없었다 —
+                            만들 수 없으니 0건이고 0건이니 만들 칸이 안 뜨는 닫힌 고리였고,
+                            그것이 dev 조직 핵심결과가 전부 0건이던 화면 쪽 원인이다.
+                            자리는 KR 카드 «안»이다 — Objective 단위로 올리면 「어느 KR 의
+                            실행 항목인가」를 다시 물어야 한다(§4A.1 E1). */}
+                        <div className="okr-cf-init" data-testid="okr-cf-init">
+                          <p className="okr-cf-init-label">Initiatives</p>
+                          {initsOf(kr).map((init) => (
+                            <div className="okr-cf-init-row" key={init.key}>
+                              <select
+                                className="okr-cf-init-status"
+                                aria-label="실행 항목 상태"
+                                value={init.status}
+                                onChange={(e) => patchInitiative(objective.key, kr, init.key, { status: e.target.value })}
+                              >
+                                {INIT_STATUS.map((st) => (
+                                  <option key={st.key} value={st.key}>{st.label}</option>
+                                ))}
+                              </select>
+                              <input
+                                className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
+                                placeholder="실행 항목 내용"
+                                aria-label="실행 항목 내용"
+                                value={init.title}
+                                onChange={(e) => patchInitiative(objective.key, kr, init.key, { title: e.target.value })}
+                              />
+                              {members.length > 0 && (
+                                <OkrMemberPicker
+                                  ariaLabel="실행 항목 담당자"
+                                  members={members}
+                                  value={init.ownerId}
+                                  onChange={(id) => patchInitiative(objective.key, kr, init.key, { ownerId: id })}
+                                />
+                              )}
+                              {/* 삭제 확인 창을 두지 않는다 — 저장 전 로컬 편집이고
+                                  되돌림 비용이 「한 줄 다시 쓰기」다(§4A.4). */}
+                              <button
+                                type="button"
+                                className="okr-cf-x"
+                                aria-label="실행 항목 삭제"
+                                onClick={() => removeInitiative(objective.key, kr, init.key)}
+                              >
+                                <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                              </button>
+                            </div>
+                          ))}
+                          {initsOf(kr).length === 0 && (
+                            /* 버튼만 있으면 「실행 항목이라는 것이 있는지」가 안 읽힌다(§4A.2). */
+                            <p className="okr-cf-init-empty">아직 실행 항목이 없습니다. 아래에서 추가하세요.</p>
+                          )}
+                          <button
+                            type="button"
+                            className="okr-cf-init-add"
+                            onClick={() => addInitiative(objective.key, kr)}
+                          >
+                            + Initiative 추가
+                          </button>
                         </div>
                       </div>
                     ))}
