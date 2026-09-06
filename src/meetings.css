@@ -1752,6 +1752,55 @@ input.mtg-record-action-title::placeholder {
 .mtg-rec-widget-guide-next { width: 100%; padding: 6px 10px; border: 1px solid var(--alpha-black-5); border-radius: 8px; background: var(--bg-secondary); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .mtg-rec-widget-guide-next:disabled { color: var(--text-tertiary); cursor: default; }
 
+/* 진행 중인 1on1 때문에 잠긴 시작 버튼 (PW-579 · policy §5.8 · 회의록 §5.6).
+   🔴 위의 `.is-inprogress`(이 회의가 이미 녹음 중 · PW-557)와 **같은 비활성 모습**을
+   쓰되 클래스를 갈라 둔다 — 사유가 다르고, 한쪽 규칙을 고칠 때 다른 쪽이 딸려가면
+   안 된다. 라벨은 그대로 두므로 「눌리지 않는다」는 사실만 시각으로 말한다. */
+.mtg-start-btn.is-locked {
+  background: var(--colors-background-bgDisabled, #f3f4f6);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+.mtg-start-btn.is-locked:hover { filter: none; }
+.mtg-start-adhoc.is-locked { cursor: not-allowed; }
+
+/* 잠긴 이유와 갈 곳을 담은 배너 — 목록 위 한 줄 (policy §5.8 X4).
+   1on1 쪽 잠금 안내(`.ono-start-lock-notice`)와 **같은 warning 계열**이다. 두 화면이
+   같은 사건을 말하므로 모습이 갈리면 사용자가 다른 일로 읽는다. */
+.mtg-lock-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.mtg-lock-banner-text { flex: 1; min-width: 0; }
+.mtg-lock-banner-text strong { font-weight: 600; }
+.mtg-lock-banner-action {
+  flex: none;
+  padding: 5px 12px;
+  background: transparent;
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+}
+.mtg-lock-banner-action:hover {
+  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+}
+
 /* 녹음 진행 중(위젯 축소 상태) 행의 비활성 [진행 중] 버튼 — Figma 16817:40731 */
 .mtg-start-btn.is-inprogress {
   background: var(--colors-background-bgDisabled, #f3f4f6);

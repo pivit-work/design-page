@@ -1677,6 +1677,55 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-notice-close:hover {
   background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
 }
+/* 회의록 녹음과의 동시 실행 잠금 안내 (PW-579 · policy §5.8 X4).
+   푸터 「1on1 시작하기」 바로 위에 서서, 왜 잠겼는지와 어디로 가면 풀리는지를 한 줄로
+   말한다. 색은 위 `.ono-start-rec-notice` 와 **같은 warning 계열**이다 — 새 시각 언어를
+   만들지 않았다(policy §5.8.3 「시각 — 새로 만들지 않았다」).
+   가로로 눕히되 `flex-wrap` 을 둔다: 로케일에 따라 문장이 길어지면 버튼이 아래로
+   내려가야 하고, 안 그러면 좁은 화면에서 이동 버튼이 잘려 갈 곳이 사라진다. */
+.ono-start-lock-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  /* 🔴 푸터와 **같은 폭·같은 정렬**로 선다(`.ono-start-view-footer` 와 같은 값).
+     이 줄은 카드 바로 아래 자식이라, 폭을 안 묶으면 카드 전체를 가로지르면서 자기가
+     설명하는 버튼보다 넓어진다 — 어느 버튼 이야기인지가 눈으로 끊긴다. */
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 8px;
+  padding: 8px 12px;
+  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.ono-start-lock-notice-text {
+  flex: 1;
+  min-width: 0;
+}
+.ono-start-lock-notice-text strong {
+  font-weight: 600;
+}
+.ono-start-lock-notice-action {
+  flex: none;
+  padding: 4px 10px;
+  background: transparent;
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+}
+.ono-start-lock-notice-action:hover {
+  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+}
 .ono-start-view-body {
   display: flex;
   flex-direction: column;
