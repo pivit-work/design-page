@@ -153,6 +153,9 @@ const DEFAULT_LABELS = {
   /* ── STT 스크립트 미리보기 ── */
   transcriptTitle: '스크립트 미리보기',
   transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
+  /* 갈린 회차의 기준점 (PW-556 R6). 인자는 «초»다 — 분 환산은 소비처가 한다. */
+  transcriptOffsetNotice: (sec) =>
+    `이 전문은 미팅 시작 후 ${Math.ceil(sec / 60)}분부터 기록됐습니다.`,
 
   /* ── 다음 1on1 (policy §6.6) ── */
   nextMemoTitle: '다음 1on1 사전 메모',
@@ -445,6 +448,34 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
   );
 }
 
+/**
+ * 저장된 소리가 미팅 시작보다 늦게 시작된 회차의 기준점 한 줄 (PW-556 · policy §5.4.4 R6).
+ *
+ * 새로고침·탭 재진입으로 녹음이 한 번 끊긴 회차는 **복귀 이후만** 파일로 남는다. 그런데
+ * 화면의 경과는 서버 t0 에서 이어 세므로(§5.0 T5) 두 축이 갈린 채로 남고, 근거 발췌의
+ * 「전문에서 보기」를 읽는 사람은 그 사실을 알 길이 없다. 감추지 않고 적는다.
+ *
+ * **갈리지 않은 회차에는 그리지 않는다.** 「0분부터」를 적으면 그것이 「갈렸다」는
+ * 뜻이 되어 읽는 사람을 속인다.
+ *
+ * 분 환산은 소비처가 한다 — 올림/반올림은 로케일이 아니라 문구의 뜻에 걸린 판단이라
+ * 라벨 함수와 같은 곳에 있어야 한다.
+ */
+function TranscriptOffsetNotice({ session, L }) {
+  const offset = session?.audioStartOffsetSec;
+  if (!offset || offset <= 0) return null;
+  if (typeof L?.transcriptOffsetNotice !== 'function') return null;
+  return (
+    <p
+      className="ono-mem-transcript-offset"
+      role="status"
+      data-testid="ono-transcript-offset"
+    >
+      {L.transcriptOffsetNotice(offset)}
+    </p>
+  );
+}
+
 /** 스크립트 미리보기 — 접기/펼치기. 대화 원문이 없으면 섹션 자체를 그리지 않는다. */
 function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding }) {
   const lines = session.sttTranscript ?? [];
@@ -459,6 +490,7 @@ function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding }) {
       open={jumpBinding?.open}
       onOpenChange={jumpBinding?.onOpenChange}
     >
+      <TranscriptOffsetNotice session={session} L={L} />
       <div
         className="ono-mem-transcript is-preview"
         ref={jumpBinding?.containerRef}

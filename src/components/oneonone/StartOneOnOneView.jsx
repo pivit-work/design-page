@@ -210,6 +210,16 @@ export default function StartOneOnOneView({
   // 녹음 위젯 바로 아래 한 줄로 붙는 안내 (선택). 문구·노출 조건은 소비처가 쥔다 —
   // 「이 녹음은 업로드 전까지 이 브라우저에만 있다」처럼 소비처만 아는 사실이다.
   recordingNotice = null,
+  // ── 마이크 없이 되살아난 진행 중 화면 (PW-556 · policy §5.4.5) ──
+  // 🔴 `recording` 과 갈라 둔다. `recording` 은 **회차가 진행 중인가**라서 화면 아래
+  // 「1on1 종료」를 결정하고, 이쪽은 **이 브라우저가 마이크를 잡고 있는가**라서 위젯이
+  // 「녹음 중」이라고 말해도 되는지를 결정한다. 하나로 묶으면 되살린 화면에서 종료
+  // 버튼이 「시작하기」로 되돌아가거나, 마이크 없는 화면이 「녹음 중」을 말한다.
+  recordingIdle = false,
+  onRestartRecording,
+  recordingRestartLabel,
+  onRecordingNoticeClose,
+  recordingNoticeCloseLabel,
   // ── 미팅 시작·종료를 소비처가 서버에 반영하기 위한 콜백 ──
   onStartMeeting,
   onEndMeeting,
@@ -490,6 +500,15 @@ export default function StartOneOnOneView({
             onResume={onResume}
             onStop={endMeeting}
             notice={recordingNotice}
+            idle={recordingIdle}
+            onStart={onRestartRecording}
+            {...(recordingRestartLabel
+              ? { startLabel: recordingRestartLabel }
+              : null)}
+            onNoticeClose={onRecordingNoticeClose}
+            {...(recordingNoticeCloseLabel
+              ? { closeLabel: recordingNoticeCloseLabel }
+              : null)}
           />
         )}
         <div className="ono-start-view-body">

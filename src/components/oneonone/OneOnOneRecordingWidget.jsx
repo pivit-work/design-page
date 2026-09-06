@@ -24,6 +24,19 @@ import useMicWave from '../shared/useMicWave.js';
  *   - notice       : 녹음 바 아래에 한 줄로 덧붙일 안내(문자열 또는 노드). 없으면
  *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
  *                    이 컴포넌트는 「어떻게 보이는가」만 정한다.
+ *   - idle         : 마이크를 잡고 있지 않은 상태. 녹음 바(제목·경과·파형·일시정지·
+ *                    종료)를 통째로 그리지 않고 `notice` 줄만 남긴다.
+ *
+ *                    화면이 「녹음 중」이라고 말하는 동안에는 실제로 마이크가 열려
+ *                    있어야 한다 (기획 policy §5.4.4 R1). 새로고침·탭 재진입으로
+ *                    되살린 회차에는 마이크가 없는데, 회차가 진행 중이라는 이유로
+ *                    이 위젯을 그리면 화면이 사실이 아닌 것을 말하게 된다.
+ *   - onStart      : `idle` 일 때 안내 줄 안에 그리는 다시 시작 버튼의 콜백. 없으면
+ *                    버튼 자체를 그리지 않는다 — 눌러도 아무 일이 없는 버튼은 「녹음이
+ *                    안 되는구나」를 더 헷갈리게 만든다.
+ *   - startLabel   : 그 버튼의 문구. 로케일은 소비처에 있다.
+ *   - onNoticeClose: 안내를 닫는 콜백. 없으면 닫기 버튼을 그리지 않는다.
+ *   - closeLabel   : 닫기 버튼의 접근성 이름.
  *
  * 이퀄라이저: wave prop 이 없으면 마이크 입력을 AnalyserNode 로 분석해 6개
  * 막대 높이를 실시간(rAF) 반영한다. 마이크 권한이 없으면 CSS 데모 애니메이션
@@ -86,14 +99,73 @@ export default function OneOnOneRecordingWidget({
   onStop,
   variant = 'sticky',
   notice = null,
+  idle = false,
+  onStart,
+  startLabel = '녹음 다시 시작',
+  onNoticeClose,
+  closeLabel = '안내 닫기',
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
+  // 🔴 `idle` 에서는 켜지 않는다. 마이크가 없는 화면에서 분석기를 열면 브라우저가
+  // 권한 프롬프트를 예고 없이 띄우고, 파형은 어차피 그리지 않는다.
   const waveRef = useRef(null);
-  useMicWave(waveRef, { enabled: !wave || wave.length === 0, paused });
+  useMicWave(waveRef, {
+    enabled: !idle && (!wave || wave.length === 0),
+    paused,
+  });
   // 일시정지 토글은 소비처가 콜백을 준 경우에만 노출한다 — 콜백 없이 버튼만 뜨면
   // 눌러도 아무 일이 없어 "녹음이 멈췄나?" 를 더 헷갈리게 만든다.
   const canPause = !!onPause || !!onResume;
+
+  // 마이크가 없는 화면 — 남기는 것은 안내 한 줄과 다시 시작 버튼뿐이다. 제목·경과·
+  // 파형·종료를 여기서 그리면 그 자체가 「녹음 중」이라는 주장이 된다(R1).
+  if (idle) {
+    return (
+      <div className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}>
+        <div className="ono-start-rec-mini is-idle" data-testid="ono-rec-idle">
+          <div className="ono-start-rec-notice is-actionable" role="status">
+            <span className="ono-start-rec-notice-text">{notice}</span>
+            <div className="ono-start-rec-notice-actions">
+              {onStart && (
+                <button
+                  type="button"
+                  className="ono-start-rec-restart"
+                  onClick={onStart}
+                >
+                  {startLabel}
+                </button>
+              )}
+              {onNoticeClose && (
+                <button
+                  type="button"
+                  className="ono-start-rec-notice-close"
+                  aria-label={closeLabel}
+                  onClick={onNoticeClose}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}
