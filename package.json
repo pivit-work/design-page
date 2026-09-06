@@ -1,6 +1,6 @@
 {
   "name": "@pivit-work/design-page",
-  "version": "0.1.522",
+  "version": "0.1.523",
   "type": "module",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
