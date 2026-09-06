@@ -167,6 +167,10 @@
 /* 우측 셀렉터라 메뉴도 오른쪽 끝에 맞춘다 — 왼쪽 정렬이면 화면 밖으로 밀린다. */
 .okr-p-visibility .okr-select-menu { left: auto; right: 0; }
 .okr-p-visibility .okr-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 목표가 0건일 때 본문 자리에 서는 안내 (PW-560). 문구 스타일은 공용
+   `.okr-tab-placeholder` 를 그대로 쓰고, 여기서는 본문 자리로서의 여백만 준다 —
+   그 공용 선언은 화면 전체를 채우는 자리에서도 쓰여 고치면 다른 탭이 함께 움직인다. */
+.okr-p-empty { padding: 48px 0; }
 
 /* 연결된 상위 OKR */
 .okr-p-linked { border: 2px solid var(--utility-purple-100); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }

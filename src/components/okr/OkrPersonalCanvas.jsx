@@ -27,6 +27,16 @@ import rowKey from './rowKey.js';
  * 값과 옵션은 호출부가 소유한다(`visibility` / `visibilityOptions`). 옵션을 주지
  * 않으면 셀렉터를 아예 그리지 않으므로, 이 부품을 쓰는 다른 화면이 생겨도 자동으로
  * 노출되지 않는다.
+ *
+ * ## 목표가 0건일 때 (PW-560)
+ *
+ * `emptyMessage` 를 주면 **본문 자리에만** 그 문구를 그린다 — 프로필과 액션 줄(모드
+ * 세그먼트 + 공개 범위 셀렉터)은 그대로 선다. 🔴 이게 이 prop 이 있는 이유다: 호출부가
+ * 「목표가 없으니 캔버스를 통째로 안내 문구로 바꾸는」 방식을 쓰면 공개 범위를 고를
+ * 자리가 함께 사라져, 첫 목표를 쓰기 전에 미리 「본인만」으로 둘 수 없다
+ * (`okr-policy.md §3.3-A E-0` 「개인 목표 0건」 · David 2026-09-06 확정).
+ *
+ * 문구는 호출부가 소유한다(i18n). 주지 않으면 종전대로 상위 OKR + 보드를 그린다.
  */
 export default function OkrPersonalCanvas({
   data,
@@ -44,6 +54,7 @@ export default function OkrPersonalCanvas({
   onVisibilityChange,
   visibilityDisabled = false,
   visibilityAriaLabel = '개인 OKR 공개 범위',
+  emptyMessage,
 }) {
   const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
   const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
@@ -119,7 +130,9 @@ export default function OkrPersonalCanvas({
         )}
       </div>
 
-      {periodTab === 'history' ? (
+      {emptyMessage ? (
+        <div className="okr-tab-placeholder okr-p-empty">{emptyMessage}</div>
+      ) : periodTab === 'history' ? (
         <div className="okr-h-list">
           {history?.map((quarter, i) => (
             <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
