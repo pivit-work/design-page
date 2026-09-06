@@ -1428,6 +1428,7 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-rec-mini {
   pointer-events: auto;
+  position: relative;
   width: 280px;
   display: flex;
   flex-direction: column;
@@ -1566,6 +1567,24 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-rec-pause:hover {
   background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+}
+/* 손으로 접기 (PW-578 · policy §5.7.3). 회의록 미니 위젯의 우상단 maximize 와 같은
+   자리·같은 크기 — 접기와 펼치기가 같은 모서리에서 일어난다. */
+.ono-start-rec-collapse {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  /* SVG 는 currentColor 를 상속한다 — 색은 여기서만 준다. */
+  color: var(--fg-tertiary);
+  cursor: pointer;
 }
 /* 일시정지 중: 경과 시간·파형이 "돌고 있다" 로 보이지 않게 amber 로 얼린다. */
 .ono-start-rec-mini.is-paused .ono-start-rec-elapsed {

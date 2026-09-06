@@ -24,6 +24,11 @@ import useMicWave from '../shared/useMicWave.js';
  *   - notice       : 녹음 바 아래에 한 줄로 덧붙일 안내(문자열 또는 노드). 없으면
  *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
  *                    이 컴포넌트는 「어떻게 보이는가」만 정한다.
+ *   - onCollapse   : 「접기」 버튼 클릭 콜백 (PW-578 · policy §5.7.3 첫째 물음).
+ *                    **없으면 버튼 자체를 그리지 않는다** — 접을 곳이 없는 소비처에
+ *                    눌러도 아무 일이 없는 버튼을 남기지 않기 위해서다. 접은 뒤의
+ *                    모습(앱 안 최소화 위젯)은 소비처가 그린다.
+ *   - collapseLabel: 그 버튼의 접근성 라벨. 로케일은 소비처에 있다.
  *
  * 이퀄라이저: wave prop 이 없으면 마이크 입력을 AnalyserNode 로 분석해 6개
  * 막대 높이를 실시간(rAF) 반영한다. 마이크 권한이 없으면 CSS 데모 애니메이션
@@ -52,6 +57,29 @@ function PauseIcon() {
     >
       <line x1="9" y1="5" x2="9" y2="19" />
       <line x1="15" y1="5" x2="15" y2="19" />
+    </svg>
+  );
+}
+
+/* 접기 — 네 귀를 안으로 모으는 화살표 둘 (icons-solid/minimize-01.svg 와 같은 뜻).
+   색은 부모의 currentColor 를 상속한다 — SVG 안에 색을 박지 않는다. */
+function MinimizeIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 3 14 10" />
+      <path d="M14 4v6h6" />
+      <path d="M3 21l7-7" />
+      <path d="M10 20v-6H4" />
     </svg>
   );
 }
@@ -86,6 +114,8 @@ export default function OneOnOneRecordingWidget({
   onStop,
   variant = 'sticky',
   notice = null,
+  onCollapse,
+  collapseLabel = '접기',
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
@@ -99,6 +129,19 @@ export default function OneOnOneRecordingWidget({
       className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}
     >
       <div className={`ono-start-rec-mini ${paused ? 'is-paused' : ''}`}>
+        {/* 손으로 접기 (PW-578). 회의록 미니 위젯의 «우상단 maximize» 와 같은 자리에
+            둔다 — 두 위젯을 오가는 동작이 같은 모서리에서 일어나야 익힐 것이 하나다. */}
+        {onCollapse && (
+          <button
+            type="button"
+            className="ono-start-rec-collapse"
+            aria-label={collapseLabel}
+            title={collapseLabel}
+            onClick={onCollapse}
+          >
+            <MinimizeIcon />
+          </button>
+        )}
         <div className="ono-start-rec-head">
           <p className="ono-start-rec-title">
             {paused ? '1on1 녹음 일시정지됨' : '1on1 녹음 중...'}

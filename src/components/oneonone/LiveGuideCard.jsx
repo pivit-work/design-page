@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { formatLiveElapsed } from './sessionHelpers.js';
 
@@ -14,6 +14,11 @@ import { formatLiveElapsed } from './sessionHelpers.js';
  * **단계 진행 상태(현재 단계·완료 체크·접힘)는 여기 클라이언트 state 다** — 정본이
  * 「서버 저장 없음」으로 못 박았다. 가이드 자체(`guide`)와 생성/실패/한도는 소비처가
  * 서버와 주고받아 prop 으로 내려 준다.
+ *
+ * 다만 **주인은 소비처일 수도 있다** (PW-578 · policy §5.7 N3). `stageIdx`·`doneIds` 를
+ * 주면 이 카드는 그 값을 그리고 바뀔 때 `onStageChange` 로 알린다 — 카드가 사라지는
+ * 자리(앱 안 다른 메뉴로 이동)에서도 진행 위치가 남아야 하기 때문이다. 서버 저장은
+ * 여전히 하지 않는다. 안 주면 지금까지처럼 카드가 스스로 쥔다.
  *
  * 재생성하면 진행 상태가 1단계로 초기화된다 — `guide.generatedAt` 이 바뀌는 것으로
  * 판정한다. 「새 대본을 받았는데 완료 체크는 옛 대본의 것」이 남으면 스테퍼가 거짓말을
@@ -112,6 +117,10 @@ export default function LiveGuideCard({
   summaryOnly = false,
   memberName = '',
   sourceLabels = [],
+  // 단계 진행을 소비처가 쥘 때 (PW-578 · policy §5.7 N3). 둘 다 안 주면 자체 state.
+  stageIdx: stageIdxProp,
+  doneIds: doneIdsProp,
+  onStageChange,
   onGenerate,
   labels: labelsProp,
   baseUrl = '',
@@ -120,9 +129,22 @@ export default function LiveGuideCard({
   const stages = guide?.stages ?? [];
   const generated = stages.length > 0;
 
-  const [stageIdx, setStageIdx] = useState(0);
-  const [doneIds, setDoneIds] = useState([]);
+  const [ownStageIdx, setOwnStageIdx] = useState(0);
+  const [ownDoneIds, setOwnDoneIds] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
+  // 소비처가 값을 주면 그쪽이 정본이다 — 둘 중 하나만 주는 것은 허용하지 않는다
+  // (한쪽만 밖에 있으면 「3단계인데 완료는 5개」 같은 갈린 상태가 만들어진다).
+  const controlledStage =
+    stageIdxProp !== undefined && doneIdsProp !== undefined;
+  const stageIdx = controlledStage ? stageIdxProp : ownStageIdx;
+  const doneIds = controlledStage ? doneIdsProp : ownDoneIds;
+  const applyStage = (nextIdx, nextDoneIds) => {
+    if (controlledStage) onStageChange?.({ stageIdx: nextIdx, doneIds: nextDoneIds });
+    else {
+      setOwnStageIdx(nextIdx);
+      setOwnDoneIds(nextDoneIds);
+    }
+  };
 
   // 재생성 = 새 대본. 진행 상태를 1단계로 되돌린다 (policy §5.2.1 · TC-1ON1-107).
   // `generatedAt` 이 축인 것은, 재생성해도 단계 id·개수는 같아 내용으로는 구분되지
@@ -135,9 +157,44 @@ export default function LiveGuideCard({
   const [prevVersion, setPrevVersion] = useState(version);
   if (version !== prevVersion) {
     setPrevVersion(version);
-    setStageIdx(0);
-    setDoneIds([]);
+    // 🔴 controlled 여도 «렌더 중»에 소비처를 부르지 않는다 — 부모를 렌더 도중
+    // 갱신하는 것이 되어 React 가 경고하고, 소비처가 리셋을 못 받으면 옛 단계가
+    // 새 대본 위에 남는다. 그래서 controlled 일 때의 리셋은 아래 effect 가 한다.
+    if (!controlledStage) {
+      setOwnStageIdx(0);
+      setOwnDoneIds([]);
+    }
   }
+  // 🔴 controlled 일 때의 리셋만 여기서 한다. 렌더 중에 부모를 갱신할 수 없어서다.
+  // 의존성은 «대본 버전» 하나여야 한다 — 단계를 옮길 때마다 돌면 소비처의 값을 도로
+  // 0 으로 민다. 그래서 콜백은 ref 로 읽고 의존성에 넣지 않는다.
+  const resetRef = useRef(null);
+  useEffect(() => {
+    resetRef.current = controlledStage
+      ? () => {
+          if (stageIdxProp === 0 && (doneIdsProp?.length ?? 0) === 0) return;
+          onStageChange?.({ stageIdx: 0, doneIds: [] });
+        }
+      : null;
+  });
+  /**
+   * 🔴 **재생성일 때만** 소비처에 리셋을 알린다.
+   *
+   * 「대본이 바뀌었나」를 마운트에서도 참으로 보면, 카드가 다시 그려지는 것만으로
+   * 진행 위치가 ① 로 밀린다. 소비처가 값을 밖에 들고 있는 이유가 바로 그 경우
+   * (앱 안 다른 메뉴에 갔다 돌아옴)라, 그러면 이 prop 이 아무 일도 못 한다.
+   *
+   * `null → 값` 도 재생성이 아니다 — 회차를 다시 불러오는 동안 가이드가 잠깐 비었다가
+   * 채워지는 정상 경로이고, 여기서 리셋하면 돌아온 매니저의 단계가 매번 사라진다.
+   */
+  const notifiedVersionRef = useRef(version);
+  useEffect(() => {
+    const prev = notifiedVersionRef.current;
+    notifiedVersionRef.current = version;
+    if (prev == null || version == null || prev === version) return;
+    // 위 effect 가 먼저 돈다(선언 순서) — 대본이 바뀐 렌더에서도 최신 값을 부른다.
+    resetRef.current?.();
+  }, [version]);
 
   const safeIdx = Math.min(stageIdx, Math.max(0, stages.length - 1));
   const stage = stages[safeIdx] ?? null;
@@ -164,8 +221,8 @@ export default function LiveGuideCard({
 
   const completeStage = () => {
     if (!stage) return;
-    setDoneIds((prev) => (prev.includes(stage.id) ? prev : [...prev, stage.id]));
-    if (safeIdx < stages.length - 1) setStageIdx(safeIdx + 1);
+    const nextDone = doneIds.includes(stage.id) ? doneIds : [...doneIds, stage.id];
+    applyStage(safeIdx < stages.length - 1 ? safeIdx + 1 : safeIdx, nextDone);
   };
 
   return (
@@ -323,7 +380,7 @@ export default function LiveGuideCard({
                     isDone ? ' is-done' : ''
                   }`}
                   aria-current={isCurrent ? 'step' : undefined}
-                  onClick={() => setStageIdx(i)}
+                  onClick={() => applyStage(i, doneIds)}
                   data-testid={`ono-live-guide-step-${s.id}`}
                 >
                   {isDone ? (
@@ -431,7 +488,7 @@ export default function LiveGuideCard({
             <button
               type="button"
               className="ono-guide-nav-prev"
-              onClick={() => setStageIdx(Math.max(0, safeIdx - 1))}
+              onClick={() => applyStage(Math.max(0, safeIdx - 1), doneIds)}
               disabled={safeIdx === 0}
               data-testid="ono-live-guide-prev"
             >
