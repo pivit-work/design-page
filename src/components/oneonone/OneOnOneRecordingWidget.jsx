@@ -25,7 +25,8 @@ import useMicWave from '../shared/useMicWave.js';
  *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
  *                    이 컴포넌트는 「어떻게 보이는가」만 정한다.
  *   - idle         : 마이크를 잡고 있지 않은 상태. 녹음 바(제목·경과·파형·일시정지·
- *                    종료)를 통째로 그리지 않고 `notice` 줄만 남긴다.
+ *                    종료)를 통째로 그리지 않고 `notice` 줄만 남긴다. `notice` 도
+ *                    `onStart` 도 없으면 **아무것도 그리지 않는다**.
  *
  *                    화면이 「녹음 중」이라고 말하는 동안에는 실제로 마이크가 열려
  *                    있어야 한다 (기획 policy §5.4.4 R1). 새로고침·탭 재진입으로
@@ -120,6 +121,12 @@ export default function OneOnOneRecordingWidget({
 
   // 마이크가 없는 화면 — 남기는 것은 안내 한 줄과 다시 시작 버튼뿐이다. 제목·경과·
   // 파형·종료를 여기서 그리면 그 자체가 「녹음 중」이라는 주장이 된다(R1).
+  //
+  // 할 말도 할 일도 없으면 **아무것도 그리지 않는다.** 빈 카드는 「무언가 있었는데
+  // 비었다」로 읽히고, 잃은 것이 없는 회차(녹음을 아예 시작하지 않은 회차)에까지
+  // 자리를 남기면 그 자리가 곧 일상이 된다.
+  if (idle && !notice && !onStart) return null;
+
   if (idle) {
     return (
       <div className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}>
