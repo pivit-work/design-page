@@ -117,7 +117,7 @@ function avatarColor(seed) {
  *  만들면 `useMemo` 의존성이 매번 바뀌므로 모듈 상수로 둔다. */
 const NO_OPTIONAL_FIELDS = {};
 
-const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobCategory', 'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType', 'workLocation', 'workCountry', 'workBuilding', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
+const EDITABLE_FIELDS = ['name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode', 'department', 'jobLevel', 'jobRank', 'jobPosition', 'jobCategory', 'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType', 'ftePercent', 'workLocation', 'workCountry', 'workBuilding', 'orgRole', 'employmentStatus', 'managerId', 'hireDate', 'terminationDate', 'salary', 'education'];
 
 /**
  * 기본값으로 쓰는 **고정 빈 배열**.
@@ -438,6 +438,9 @@ function mapMembers(list) {
     workCountry: m.workCountry ?? '',
     workLocation: m.workLocation ?? '',
     workBuilding: m.workBuilding ?? '',
+    // 숫자를 문자열로 담는다 — 시트의 모든 셀 값이 문자열이라 한 칸만 숫자면
+    // 「고쳤는가」 비교(원본 대조)가 타입 때문에 늘 참이 된다.
+    ftePercent: m.ftePercent === null || m.ftePercent === undefined ? '' : String(m.ftePercent),
     orgRole: m.orgRole ?? 'member',
     // 대표 여부는 편집 대상 컬럼이 아니라 행 상태다 — dirty 추적에 끼지 않도록
     // COLUMNS 에 넣지 않고 행에만 실어둔다.
@@ -506,7 +509,7 @@ function EditCell({ col, row, value, onChange, onKeyDown, autoFocus }) {
   if (col.type === 'date') {
     return <input ref={ref} type="date" value={value ?? ''} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} style={{ ...base, padding: '0 8px' }} />;
   }
-  if (col.type === 'currency') {
+  if (col.type === 'currency' || col.type === 'percent') {
     return (
       <input
         ref={ref}
@@ -767,6 +770,12 @@ function CellDisplay({ col, row, renderAvatar, ceoLabel, ceoNoManagerHint, manag
   if (col.type === 'currency') {
     const has = value !== '' && value !== null && value !== undefined;
     return <span style={{ fontSize: 12, fontWeight: has ? 600 : 400, color: has ? T.text : T.muted, fontVariantNumeric: 'tabular-nums' }}>{fmtKRW(value)}</span>;
+  }
+  /* 비율 칸(FTE) — 값에 `%` 를 붙여 그린다. 숫자만 두면 옆 칸의 사번·연차와 단위가
+     구분되지 않는다. 미입력은 «—» 이고 0% 가 아니다 — 인원 산정에서 둘은 다른 값이다. */
+  if (col.type === 'percent') {
+    const has = value !== '' && value !== null && value !== undefined;
+    return <span style={{ fontSize: 12, fontWeight: has ? 600 : 400, color: has ? T.text : T.muted, fontVariantNumeric: 'tabular-nums' }}>{has ? `${value}%` : '—'}</span>;
   }
   return <span style={{ fontSize: 12, color: value ? T.text : T.muted }}>{value || '—'}</span>;
 }
@@ -1139,6 +1148,12 @@ export default function AdminEmployeeSheetCanvas({
       /* 고용형태 — 재직상태 바로 앞. 목록 뷰도 이 둘을 붙여 두었다. 둘은 다른 축이다:
          고용형태는 «어떤 계약으로 일하는가»(정규직·계약직), 재직상태는 «지금 다니는가». */
       catCol('employmentType', cl.employmentType || '고용형태', 110, employmentTypeOptions, { emptyLabel: '—' }),
+      /* FTE — 풀타임 환산 비율 %(1~100). 정본표(§1-3-g)에서 고용형태 바로 다음 자리다.
+         고용형태와 **다른 축**이라 붙여 둔다 — 정규직인 채로 주 3일 근무가 되는 전환이
+         있고, 그때 고용형태는 그대로인데 인건비·인원 산정만 바뀐다.
+         범위 검사는 서버가 한다(1~100). 화면은 숫자만 받고 값 그대로 보낸다 —
+         여기서 범위를 흉내 내면 나중에 규칙이 바뀔 때 두 판정이 갈린다. */
+      { id: 'ftePercent', label: cl.ftePercent || 'FTE', width: 90, type: 'percent', editable: true },
       { id: 'employmentStatus', label: cl.status || '재직상태', width: 110, type: 'select', editable: true, options: STATUS_OPTIONS },
       // 매니저 — 직접 배정한다(PW-292). 값은 사용자 id, 화면 라벨은 이름.
       // 후보 조건은 서버 규칙과 같다: 재직 중 + 권한이 멤버보다 위. 자기 자신 제외는
