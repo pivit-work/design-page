@@ -2,17 +2,17 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
-import AdminEmployeeSheetCanvas from './AdminEmployeeSheetCanvas.jsx';
 import { narrowByParent } from './jobAxis.js';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
-import {
-  MANAGER_FILTER_ASSIGNED, MANAGER_FILTER_UNASSIGNED,
-} from './AdminEmployeeSheetCanvas.jsx';
 import { ExportMenu, SalaryExportModal } from './employeeExport.jsx';
+/* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
+import {
+  HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown,
+} from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import {
@@ -80,9 +80,9 @@ const DEFAULT_LABELS = {
   //
   // 같은 이유로 `search`·`managerFilter`·`assignManager`·`cols`·`edit`·
   // `emptyFiltered`·`pagination`·`picker`·`panel` 도 지웠다(PW-284). 전체 구성원
-  // 탭이 이 캔버스의 자체 표에서 `AdminEmployeeSheetCanvas` 위임으로 바뀌면서
-  // (시트는 `sheetLabels` 라는 **별도 prop** 을 쓴다) 이 라벨들을 읽는 자리가
-  // 전부 사라졌는데, 기본값만 남아 있었다.
+  // 탭이 이 캔버스의 자체 표에서 시트 위임으로 바뀌면서 이 라벨들을 읽는 자리가
+  // 전부 사라졌는데, 기본값만 남아 있었다. (그 시트는 PW-576 으로 폐기됐고, 목록
+  // 표가 다시 이 캔버스 안에 있다 — 되살릴 때는 「그리는 자리가 먼저」다.)
   //
   // 특히 `panel` 은 만들어진 적 없는 "구성원 상세 패널" 용이었고, 그 안의
   // `managerAuto`('조직장에서 자동 계산')는 **이 제품의 핵심 규칙**을 말하는
@@ -93,9 +93,9 @@ const DEFAULT_LABELS = {
   csvUpload: 'CSV 업로드',
   unassignedPill: '미배정',
   concurrentCount: '겸직 {count}',
-  // 뷰 토글 · 목록 뷰 (PW-373) — `#104` 이전 라벨을 되살렸다. 자리가 다시 생겼으므로
+  // 목록 뷰 (PW-373) — `#104` 이전 라벨을 되살렸다. 자리가 다시 생겼으므로
   // 「그리는 자리가 먼저」 규칙을 지킨 복원이다.
-  viewSwitch: { list: '목록', sheet: '스프레드시트', aria: '보기 전환' },
+  // 「목록 / 스프레드시트」 보기 전환 라벨(`viewSwitch`)은 PW-576 으로 함께 걷었다.
   listSearch: '이름·이메일·소속 검색',
   listEmptyFiltered: '조건에 맞는 구성원이 없습니다',
   listRowMenu: '행 메뉴',
@@ -158,11 +158,44 @@ const DEFAULT_LABELS = {
     basicInfo: '기본 정보',
     name: '이름',
     email: '업무 이메일',
-    emailReadOnly: '로그인 키라 스프레드시트에서만 바꿉니다',
+    /* 로그인 키라 저장 전에 확인 창이 뜬다(§3.2-A). 종전에는 이 칸이 읽기 전용이었고
+       고치는 자리가 스프레드시트뿐이었는데, 그 화면이 폐기돼(PW-576) 여기가 유일한
+       입력 경로가 됐다. 확인 창은 호출부의 저장 경로가 그대로 띄운다. */
+    emailNote: '로그인·슬랙·캘린더가 이 주소로 사람을 찾습니다. 바꾸면 저장 전에 확인 창이 뜹니다',
     level: '직급',
     position: '직책',
     joined: '입사일',
     none: '— 미지정 —',
+    /* PW-576 — 폐기된 스프레드시트에서만 고칠 수 있던 칸들이 여기로 왔다.
+       라벨은 그 화면의 열 이름을 그대로 쓴다(같은 값을 다른 이름으로 부르지 않는다). */
+    nickname: '닉네임',
+    displayName: '표시 이름',
+    phone: '전화번호',
+    employeeCode: '사번',
+    jobRank: '직위',
+    jobCategory: '직종',
+    jobFamily: '직군',
+    jobLadder: '직렬',
+    jobDuty: '직무',
+    businessTitle: '직함',
+    employmentType: '고용형태',
+    classifySection: '인사 분류',
+    workSection: '근무',
+    workCountry: '근무지(국가)',
+    workLocation: '근무지(도시)',
+    workBuilding: '근무 위치(빌딩)',
+    ftePercent: 'FTE (%)',
+    roleSection: '권한',
+    role: '권한',
+    roleNote: '조직장으로 지정하면 «멤버» 는 «매니저» 로 자동으로 올라갑니다',
+    roles: { admin: '어드민', manager: '매니저', member: '멤버' },
+    paySection: '보상',
+    salary: '연봉',
+    salaryHistory: '연봉 이력',
+    recordSection: '기록',
+    education: '학력',
+    hrProfile: 'HR 기록',
+    hrProfileHint: '학력·경력·자격증·부양가족·서류·신원 정보',
     orgAssign: '소속',
     orgNone: '미배정',
     orgChange: '변경',
@@ -205,7 +238,16 @@ const DEFAULT_LABELS = {
     submit: '변경 저장',
   },
   loading: '불러오는 중…',
-  menu: { edit: '수정', changeManager: '조직 배정', deactivate: '비활성화' },
+  menu: {
+    edit: '수정', changeManager: '조직 배정', deactivate: '비활성화',
+    /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다) */
+    assignCeo: '대표로 지정', releaseCeo: '대표 지정 해제', ceoBadge: '대표',
+  },
+  /* 기록 창 3종(HR 기록 · 연봉 이력 · 대표 확인)의 문구.
+     폐기된 스프레드시트가 `sheetLabels` 로 받던 것과 **같은 묶음**이라 소비자는
+     그때 넘기던 객체를 그대로 넘기면 된다(PW-576). 창 안쪽에 한국어 기본값이
+     들어 있어 안 넘겨도 렌더는 된다. */
+  records: {},
   // 재직상태 4종(§3.2.1) + 폴백. `pending` 이 「수습」 이던 것은 enum 에 `probation` 이
   // 없어 자리를 메우던 것이고, PW-422 에서 실제 값이 생겨 제자리를 찾았다.
   status: {
@@ -261,7 +303,7 @@ const DEFAULT_LABELS = {
   },
   /* 스쿼드 셀·선택 팝업(PW-438) — 목록 뷰가 시트 뷰와 **같은 부품**을 쓰므로 문구도
      같다. 여기 기본값을 두는 것은 라벨을 안 넘겼을 때 화면이 비지 않게 하기 위함이고,
-     소비자는 시트에 넘기던 `sheetLabels.squad` 를 그대로 넘기면 된다.
+     소비자는 폐기된 시트에 넘기던 `sheetLabels.squad` 를 그대로 넘기면 된다.
      🔴 계획 투입%(SQ6) 문구는 여기 없다 — 넣어 두면 언젠가 화면에 %가 다시 붙는다. */
   squadPicker: {
     cellHint: '클릭해서 스쿼드를 선택합니다',
@@ -320,7 +362,7 @@ function RolePill({ role, labels }) {
    `OrgUnitPicker` 는 이름만 나열해 상하 관계를 볼 수 없었다(PW-112, §5-A). */
 
 /* ── 행 액션 메뉴 ───────────────────────────────────────── */
-function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels, canEdit, openUp = false }) {
+function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, onClose, labels, canEdit, openUp = false }) {
   const ref = useRef(null);
   useEffect(() => {
     function handler(e) {
@@ -338,6 +380,20 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onClose, labels,
       <button type="button" className="admin-emp-row-menu-item" onClick={() => { onChangeManager(); onClose(); }}>
         {labels.menu.changeManager}
       </button>
+      {/* 대표(CEO) 지정·해제 (§3.6-A) — 폐기된 스프레드시트에만 있던 자리다(PW-576).
+          정본이 정한 위치가 여기 «⋯ 더보기» 다. 지정 경로가 없으면(어드민 아님 ·
+          퇴사자 행) 항목 자체를 그리지 않는다 — 눌러도 막히는 자리를 두지 않는다. */}
+      {onCeo && (
+        <button
+          type="button"
+          className="admin-emp-row-menu-item"
+          data-testid={`employees-row-ceo-${ceoMode}`}
+          onClick={() => { onCeo(ceoMode); onClose(); }}
+        >
+          <IconCrown size={13} />
+          {ceoMode === 'assign' ? labels.menu.assignCeo : labels.menu.releaseCeo}
+        </button>
+      )}
       {canEdit && (
         <>
           <div className="admin-emp-row-menu-divider" />
@@ -827,36 +883,17 @@ function InvitesTab({
     「필터 안 걸림」 판정이 깨진다. */
 const ALL = 'all';
 
-/* ── 뷰 토글 (PW-373) ──────────────────────────────────────
-   정본 `admin-spec.md` §1.1 · §3.8 — 직원 관리는 **한 메뉴 안의 두 뷰**다.
-   목록(단건 상세 편집) ↔ 스프레드시트(다건 일괄 편집).
+/* 매니저 배정 여부 필터의 값(PW-300). 사람 id 와 절대 겹치지 않도록 `__`로 감싼다 —
+   소비자가 이 값을 URL·저장 상태에 그대로 싣기 때문에(PW-157) 실제 id 와 구분돼야 한다.
+   PW-576 으로 스프레드시트 뷰가 폐기되면서 그 파일에 있던 정의를 여기로 옮겼다. */
+export const MANAGER_FILTER_ASSIGNED = '__manager_assigned__';
+export const MANAGER_FILTER_UNASSIGNED = '__manager_unassigned__';
 
-   2026-07-19 정기미팅 [F] 는 «뷰 토글로 통합» 을 정했는데, 하루 뒤 구현(#104)이
-   목록을 **삭제하고** 시트로 대체해 버렸다. 그 뒤 한 사람의 정보를 고치려는 사람도
-   수십 행짜리 표에서 자기 행을 찾아야 했다. 여기서 목록을 되살리고 토글로 나란히 둔다. */
-function EmployeesViewSwitch({ mode, onChange, labels }) {
-  const options = [
-    { id: 'list', label: labels.viewSwitch.list },
-    { id: 'sheet', label: labels.viewSwitch.sheet },
-  ];
-  return (
-    <div className="admin-emp-viewswitch" role="tablist" aria-label={labels.viewSwitch.aria}>
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          role="tab"
-          aria-selected={mode === o.id}
-          data-testid={`employees-view-tab-${o.id}`}
-          className={`admin-emp-viewswitch-btn${mode === o.id ? ' is-active' : ''}`}
-          onClick={() => onChange(o.id)}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+/* ── 보기 전환 «폐기» (PW-576) ─────────────────────────────
+   여기에 «목록 / 스프레드시트» 보기 전환(`EmployeesViewSwitch`)이 있었다.
+   2026-09-02 정기미팅 §1 (David) 이 스프레드시트 뷰를 폐기해 오갈 곳이 하나뿐이라
+   함께 걷었다 — 기획서 `admin-spec.md` §3.8 이 묘비다.
+   ⛔ 되살리지 말 것: 세그먼트만 되돌리면 없는 화면을 가리키는 버튼이 된다. */
 
 /**
  * 서버가 접은 상위 경로 행 (PW-404) — 배정 행(`orgUnitIds`) 중 선택(단말)에 없는 것.
@@ -1105,32 +1142,44 @@ function EmployeesListView({
   onChangeSquads,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels,
+  /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다). 미주입이면 행 메뉴에
+     그 항목이 아예 없다 — 권한 없는 사람에게 눌리는 자리를 만들지 않는다. */
+  onOpenCeo,
+  /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
+     들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
+     키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
+  initialSearch = '', initialFilters = EMPTY_OBJECT, onViewStateChange,
   /* 워크스페이스가 켠 선택 적용 항목 — `{ job_category, business_title }` (PW-502).
      안 받으면 둘 다 꺼진 것으로 본다: 그 열도, ⚙ 메뉴의 후보도 없다. */
   optionalFields = NO_OPTIONAL_FIELDS,
 }) {
-  const [q, setQ] = useState('');
-  const [dept, setDept] = useState(LIST_ALL);
-  const [squad, setSquad] = useState(LIST_ALL);
-  const [position, setPosition] = useState(LIST_ALL);
-  const [level, setLevel] = useState(LIST_ALL);
-  const [family, setFamily] = useState(LIST_ALL);
-  const [ladder, setLadder] = useState(LIST_ALL);
-  const [duty, setDuty] = useState(LIST_ALL);
-  const [location, setLocation] = useState(LIST_ALL);
+  /* 씨앗은 소비자가 되살려 준 값이다(PW-157). 없으면 종전과 같은 기본값. */
+  const [q, setQ] = useState(initialSearch || '');
+  const [dept, setDept] = useState(initialFilters['department'] ?? LIST_ALL);
+  const [squad, setSquad] = useState(initialFilters['squads'] ?? LIST_ALL);
+  const [position, setPosition] = useState(initialFilters['jobPosition'] ?? LIST_ALL);
+  const [level, setLevel] = useState(initialFilters['jobLevel'] ?? LIST_ALL);
+  const [family, setFamily] = useState(initialFilters['jobFamily'] ?? LIST_ALL);
+  const [ladder, setLadder] = useState(initialFilters['jobTitle'] ?? LIST_ALL);
+  const [duty, setDuty] = useState(initialFilters['jobDuty'] ?? LIST_ALL);
+  const [location, setLocation] = useState(initialFilters['workLocation'] ?? LIST_ALL);
   // 근무 위치 3층 — 국가·빌딩은 도시와 **서로 좁히지 않는다**(나라와 사옥을 잇는
   // 표가 기획서에 없다). 직군>직렬>직무처럼 부모를 바꿔도 자식을 풀지 않는다.
   // 직종·직함 — 선택 적용 항목이라 **켠 회사에서만** 칩이 선다(PW-502). 직종은
   // 직군의 상위 계층이지만 매핑이 없어 직군 필터를 좁히지 않는다(겸직에서 막힌다).
-  const [category, setCategory] = useState(LIST_ALL);
-  const [bizTitle, setBizTitle] = useState(LIST_ALL);
-  const [country, setCountry] = useState(LIST_ALL);
-  const [building, setBuilding] = useState(LIST_ALL);
-  const [empType, setEmpType] = useState(LIST_ALL);
+  const [category, setCategory] = useState(initialFilters['jobCategory'] ?? LIST_ALL);
+  const [bizTitle, setBizTitle] = useState(initialFilters['businessTitle'] ?? LIST_ALL);
+  const [country, setCountry] = useState(initialFilters['workCountry'] ?? LIST_ALL);
+  const [building, setBuilding] = useState(initialFilters['workBuilding'] ?? LIST_ALL);
+  const [empType, setEmpType] = useState(initialFilters['employmentType'] ?? LIST_ALL);
   // ALL 은 `'all'` 이다 — 라벨을 sentinel 로 쓰면(옛 `'전체'`) 로케일을 바꾸는 순간
   // 「필터 안 걸림」 판정이 깨진다.
-  const [mgrFilter, setMgrFilter] = useState('all');
-  const [status, setStatus] = useState('all');
+  const [mgrFilter, setMgrFilter] = useState(
+    initialFilters.managerName === MANAGER_FILTER_ASSIGNED ? 'assigned'
+      : initialFilters.managerName === MANAGER_FILTER_UNASSIGNED ? 'unassigned'
+      : 'all',
+  );
+  const [status, setStatus] = useState(initialFilters.employmentStatus ?? 'all');
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
   // 행 액션 메뉴가 위로 열려야 하는가 — 아래 공간을 재서 정한다(아래 `openRowMenu`).
@@ -1177,9 +1226,11 @@ function EmployeesListView({
       .filter((sq) => sq && isVisibleSquadStatus(sq.status)),
     [squadById],
   );
-  const squadNamesOf = (m) => visibleSquadsOf(m).map((sq) => sq.name).filter(Boolean);
-  /* 스쿼드 셀·팝업 문구(PW-438). 시트 뷰가 쓰는 것과 **같은 라벨 묶음**이라
-     소비자는 한 벌만 넘기면 된다 — 두 벌이면 「리드로」 가 한쪽만 번역된다. */
+  const squadNamesOf = useCallback(
+    (m) => visibleSquadsOf(m).map((sq) => sq.name).filter(Boolean),
+    [visibleSquadsOf],
+  );
+  /* 스쿼드 셀·팝업 문구(PW-438). 소비자는 한 벌만 넘긴다. */
   const squadPickerLabels = labels.squadPicker || {};
 
   const allLabel = labels.filters.all;
@@ -1263,7 +1314,12 @@ function EmployeesListView({
       members.filter((m) => {
         const names = deptNamesOf(m);
         if (q) {
-          const hay = `${m.name || ''} ${m.email || ''} ${names.join(' ')}`.toLowerCase();
+          /* 스쿼드명도 검색에 걸린다(§3.1 · SQ1) — 셀에 보이는 값은 검색으로도
+             닿아야 한다. 폐기된 스프레드시트 뷰에만 있던 규칙이라(PW-576) 목록만
+             남기면 스쿼드 이름으로 사람을 못 찾게 된다. 보이는 것(진행중·준비중)만
+             센다 — 셀에 안 나오는 종료 스쿼드로 검색되면 왜 걸렸는지 알 수 없다. */
+          const squadNames = squadNamesOf(m).join(' ');
+          const hay = `${m.name || ''} ${m.email || ''} ${names.join(' ')} ${squadNames}`.toLowerCase();
           if (!hay.includes(q.toLowerCase())) return false;
         }
         // 소속은 선택 조직 + **하위 전체**(서브트리)를 포함한다 — id 판정이라 동명
@@ -1293,13 +1349,13 @@ function EmployeesListView({
         if (status !== 'all' && m.employmentStatus !== status) return false;
         // 가입 대기(`pending`)는 여기 목록에 세우지 않는다(§3.2.1 · PW-422). 탭 C(초대
         // 관리)가 이미 담당하는데 두 곳에 뜨면 체크박스 선택·일괄 처리·페이지네이션의
-        // 단위가 「사람 수」와 어긋난다. 값이 남아 있는 잔여 행은 스프레드시트 뷰에서
-        // 여전히 보이고 고칠 수 있다 — 아예 못 보게 만들지는 않는다.
+        // 단위가 「사람 수」와 어긋난다. (구 서술 「잔여 행은 스프레드시트 뷰에서
+        // 볼 수 있다」는 그 뷰가 폐기돼 성립하지 않는다 — PW-576.)
         if (m.employmentStatus === 'pending') return false;
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
-    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf],
+    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf, squadNamesOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1447,6 +1503,26 @@ function EmployeesListView({
   if (mgrFilter === 'assigned') exportFilters.managerName = MANAGER_FILTER_ASSIGNED;
   if (mgrFilter === 'unassigned') exportFilters.managerName = MANAGER_FILTER_UNASSIGNED;
 
+  /* 보던 상태가 바뀌면 소비자에게 알린다 (PW-157 · PW-576 로 시트에서 옮겨 왔다).
+     `exportFilters` 를 그대로 재사용한다 — 반출 조건과 되살릴 조건이 같은 것이어야
+     「보이는 것 = 받는 것」이 성립하고, 두 벌로 두면 한쪽만 고쳐져 갈린다.
+
+     값이 같으면 부르지 않는다 — 소비자가 이 콜백으로 주소를 쓰기 때문에 매번 부르면
+     쓰기 → 렌더 → 다시 쓰기의 되먹임이 된다. 콜백은 ref 로 들고 있어서 소비자가
+     인라인 함수를 넘겨도 효과가 다시 돌지 않는다.
+     목록 뷰에는 사람이 고르는 정렬이 없다(대표 최상단 고정뿐) — `sortCol` 은 늘 null 이다. */
+  const onViewStateChangeRef = useRef(onViewStateChange);
+  useEffect(() => { onViewStateChangeRef.current = onViewStateChange; }, [onViewStateChange]);
+  const viewStateKey = JSON.stringify([q, exportFilters]);
+  const lastViewStateKey = useRef(null);
+  useEffect(() => {
+    if (lastViewStateKey.current === viewStateKey) return;
+    lastViewStateKey.current = viewStateKey;
+    onViewStateChangeRef.current?.({
+      search: q, filters: JSON.parse(viewStateKey)[1], sortCol: null, sortDir: 'asc',
+    });
+  }, [viewStateKey, q]);
+
   const [salaryGateScope, setSalaryGateScope] = useState(null);
 
   function runExport(scope, includeSalary) {
@@ -1542,6 +1618,8 @@ function EmployeesListView({
             {renderAvatar ? renderAvatar(m, 28) : <AvatarFallback row={m} size={28} />}
             <span className="admin-emp-cell-name-text">
               {m.displayName || m.name}
+              {/* 👑 대표 배지 — 이름 «뒤», 조직장 👤(소속 칩)와 자리를 나눈다(§3.1 L8). */}
+              {m.isCeo && <CeoBadge label={labels.menu.ceoBadge} />}
               <RolePill role={m.orgRole} labels={labels} />
             </span>
           </button>
@@ -1650,6 +1728,14 @@ function EmployeesListView({
                 onEdit={() => onOpenEdit(m)}
                 onChangeManager={() => onOpenEdit(m)}
                 onDeactivate={() => onDeactivate?.(m)}
+                /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
+                   두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
+                onCeo={
+                  onOpenCeo && m.employmentStatus !== 'terminated'
+                    ? (mode) => onOpenCeo(m, mode)
+                    : undefined
+                }
+                ceoMode={m.isCeo ? 'release' : 'assign'}
                 onClose={() => setOpenMenu(null)}
               />
             )}
@@ -1877,6 +1963,76 @@ const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDat
 /** 구성원 저장 patch 로 나가는 날짜 칸 — 비우면 `''` 이 아니라 `null` 이다. */
 const DATE_PATCH_FIELDS = new Set(['hireDate', 'terminationDate']);
 
+/**
+ * 패널이 고치는 칸 전량 (PW-576) — 렌더와 patch 판정이 **같은 목록**을 본다.
+ * 갈라지면 화면에는 칸이 있는데 저장이 안 되거나, 그 반대가 된다.
+ *
+ * 종전에는 여섯 칸(이름·직급·직책·입사일·재직상태·퇴사일)뿐이었고 나머지는 전부
+ * 스프레드시트 뷰에만 있었다. 그 뷰가 폐기되면서(2026-09-02 정기미팅 §1) 이 목록이
+ * 구성원 값을 고치는 **유일한 자리**가 됐다 — 기획서 §3.2 가 규정한 모양이다.
+ * 목록은 폐기된 시트의 `EDITABLE_FIELDS` 를 그대로 물려받되, 다른 자리에 정본이 있는
+ * 넷은 뺐다: `department`(소속 팝업) · `managerId`(미배정 탭·행 배정) ·
+ * `employmentStatus`/`hireDate`/`terminationDate`(재직 상태 절이 이미 다룬다).
+ */
+const PANEL_PATCH_FIELDS = [
+  'name', 'nickname', 'displayName', 'email', 'phone', 'employeeCode',
+  'jobLevel', 'jobRank', 'jobPosition', 'jobCategory',
+  'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType',
+  'workCountry', 'workLocation', 'workBuilding', 'ftePercent',
+  'orgRole', 'salary', 'education',
+  'hireDate', 'employmentStatus', 'terminationDate',
+];
+
+/** 권한 select 의 값 — 시트와 같은 3종. admin 승격은 서버가 초대로만 허용한다. */
+const PANEL_ROLE_OPTIONS = ['admin', 'manager', 'member'];
+
+/**
+ * 패널의 칸 배치 (§3.2). `kind` 는 그리는 법이고, `catalog` 는 소비자가 넘긴 선택지
+ * 이름이다. 카탈로그를 못 받으면 **자유 텍스트로 떨어진다** — 조회 실패가 값 입력을
+ * 막지 않게 하려는 것이고, 폐기된 시트가 쓰던 규칙 그대로다.
+ */
+const PANEL_FIELD_GROUPS = [
+  {
+    id: 'basic', labelKey: 'basicInfo',
+    fields: [
+      { key: 'name', labelKey: 'name', kind: 'text' },
+      { key: 'email', labelKey: 'email', kind: 'text', note: 'emailNote' },
+      { key: 'nickname', labelKey: 'nickname', kind: 'text' },
+      { key: 'displayName', labelKey: 'displayName', kind: 'text' },
+      { key: 'phone', labelKey: 'phone', kind: 'text' },
+      { key: 'employeeCode', labelKey: 'employeeCode', kind: 'text' },
+      { key: 'hireDate', labelKey: 'joined', kind: 'date' },
+    ],
+  },
+  {
+    id: 'classify', labelKey: 'classifySection',
+    fields: [
+      { key: 'jobLevel', labelKey: 'level', kind: 'select', catalog: 'gradeOptions' },
+      { key: 'jobRank', labelKey: 'jobRank', kind: 'select', catalog: 'rankOptions' },
+      { key: 'jobPosition', labelKey: 'position', kind: 'select', catalog: 'positionOptions' },
+      // 직종·직함은 회사가 켠 경우에만 칸이 선다(§3.1 ⚙ 정본표의 «선택 적용 필드»).
+      { key: 'jobCategory', labelKey: 'jobCategory', kind: 'select', catalog: 'categoryOptions', optionalKey: 'job_category' },
+      // 직군 > 직렬 > 직무 3단 — 위를 고르면 아래 선택지가 좁아진다(INV-3·INV-8).
+      { key: 'jobFamily', labelKey: 'jobFamily', kind: 'select', catalog: 'jobFamilies' },
+      { key: 'jobTitle', labelKey: 'jobLadder', kind: 'select', catalog: 'jobLadders', narrowBy: 'jobFamily' },
+      { key: 'jobDuty', labelKey: 'jobDuty', kind: 'select', catalog: 'jobDuties', narrowBy: 'jobTitle' },
+      { key: 'businessTitle', labelKey: 'businessTitle', kind: 'select', catalog: 'businessTitleOptions', optionalKey: 'business_title' },
+      { key: 'employmentType', labelKey: 'employmentType', kind: 'select', catalog: 'employmentTypeOptions' },
+    ],
+  },
+  {
+    id: 'work', labelKey: 'workSection',
+    fields: [
+      { key: 'workCountry', labelKey: 'workCountry', kind: 'select', catalog: 'countryOptions' },
+      // 도시는 예부터 자유 텍스트다 — select 로 바꾸면 카탈로그에 없는 기존 값이
+      // 지워진 것처럼 보인다.
+      { key: 'workLocation', labelKey: 'workLocation', kind: 'text' },
+      { key: 'workBuilding', labelKey: 'workBuilding', kind: 'select', catalog: 'buildingOptions' },
+      { key: 'ftePercent', labelKey: 'ftePercent', kind: 'number' },
+    ],
+  },
+];
+
 const toDateInput = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
 
 /**
@@ -2034,6 +2190,11 @@ function EmployeesEditPanel({
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
   onLoadPersonalHistory,
+  /* PW-576 — 폐기된 스프레드시트 뷰가 받던 카탈로그가 그대로 내려온다.
+     못 받으면 그 칸이 자유 텍스트가 될 뿐 값은 보존된다. */
+  rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
+  countryOptions, buildingOptions, jobAxis, optionalFields,
+  canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
@@ -2121,8 +2282,34 @@ function EmployeesEditPanel({
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
+  /* 기록 창 셋 — 폐기된 시트에서 옮겨 온 그대로다(PW-576). 여는 자리만 바뀌었다. */
+  const [hrOpen, setHrOpen] = useState(false);
+  const [salaryOpen, setSalaryOpen] = useState(false);
+
   if (!member) return null;
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+
+  /* 칸이 읽는 선택지 — 이름 하나로 찾게 모아 둔다. `PANEL_FIELD_GROUPS` 의
+     `catalog` 가 이 키를 가리킨다. */
+  const axis = jobAxis || { families: [], ladders: [], duties: [], laddersByFamily: {}, dutiesByLadder: {} };
+  const catalogs = {
+    gradeOptions, positionOptions, rankOptions, categoryOptions,
+    businessTitleOptions, employmentTypeOptions, countryOptions, buildingOptions,
+    jobFamilies: axis.families,
+    jobLadders: axis.ladders,
+    jobDuties: axis.duties,
+  };
+  const narrowMaps = {
+    jobTitle: [axis.ladders, axis.laddersByFamily],
+    jobDuty: [axis.duties, axis.dutiesByLadder],
+  };
+  /** 회사가 끈 선택 적용 항목은 칸 자체를 그리지 않는다 — 켤 수 없는 칸을 보여주지 않는다. */
+  const fieldOn = (f) => !f.optionalKey || (optionalFields || {})[f.optionalKey] === true;
+  const optionsFor = (f) => {
+    if (!f.narrowBy) return catalogs[f.catalog] || [];
+    const [all, byParent] = narrowMaps[f.key] || [];
+    return narrowByParent(all || [], byParent || {}, draft[f.narrowBy]);
+  };
 
   // §3.2.1 재직상태 4종. `pending`(가입 대기)·`other`(마이그레이션 잔여)는 사람이 고르는
   // 값이 아니라 선택지에 두지 않는다 — 고를 수 있게 두면 탭 C 와 담당이 겹친다.
@@ -2158,7 +2345,7 @@ function EmployeesEditPanel({
   /** 바뀐 칸만 담은 patch — 시트의 dirty → patch 와 같은 모양이다. */
   function buildPatch() {
     const patch = { id: draft.id };
-    for (const f of ['name', 'jobLevel', 'jobPosition', 'hireDate', 'employmentStatus', 'terminationDate']) {
+    for (const f of PANEL_PATCH_FIELDS) {
       if ((draft[f] ?? '') === (member[f] ?? '')) continue;
       /* 날짜를 비운 것은 `''` 이 아니라 `null` 로 보낸다 — 날짜 칸에 빈 문자열이
          들어가면 저장이 통째로 실패한다. `null` 은 「지웠다」 는 뜻이라 서버도 그렇게
@@ -2256,43 +2443,75 @@ function EmployeesEditPanel({
             />
           ) : (
           <>
-          <SectionLabel>{labels.panel.basicInfo}</SectionLabel>
+          {/* 칸은 `PANEL_FIELD_GROUPS` 한 곳에서 온다 — 렌더와 저장 판정이 같은
+              목록을 봐야 「화면엔 있는데 저장이 안 되는 칸」이 안 생긴다(PW-576). */}
+          {PANEL_FIELD_GROUPS.map((g) => {
+            const shown = g.fields.filter(fieldOn);
+            if (shown.length === 0) return null;
+            return (
+              <div key={g.id}>
+                <SectionLabel>{labels.panel[g.labelKey]}</SectionLabel>
+                <div className="admin-emp-field-group">
+                  {shown.map((f) => {
+                    const opts = f.kind === 'select' ? optionsFor(f) : null;
+                    return (
+                      <label className="admin-emp-field" key={f.key}>
+                        <span className="admin-emp-field-label">{labels.panel[f.labelKey]}</span>
+                        {f.kind === 'select' && opts.length > 0 ? (
+                          <select
+                            className="admin-emp-input"
+                            value={draft[f.key] || ''}
+                            disabled={!canEdit}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(e) => set(f.key, e.target.value)}
+                          >
+                            <option value="">{labels.panel.none}</option>
+                            {/* 저장된 값이 카탈로그에서 사라졌어도 선택지에 남긴다 —
+                                없으면 select 가 «미지정» 으로 보여, 다른 칸만 고쳐
+                                저장해도 멀쩡한 값이 지워진다. */}
+                            {(opts.includes(draft[f.key]) || !draft[f.key]
+                              ? opts
+                              : [draft[f.key], ...opts]
+                            ).map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input
+                            className="admin-emp-input"
+                            type={f.kind === 'date' ? 'date' : f.kind === 'number' ? 'number' : 'text'}
+                            value={f.kind === 'date' ? (draft[f.key] || '').slice(0, 10) : (draft[f.key] ?? '')}
+                            disabled={!canEdit}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(e) => set(f.key, e.target.value)}
+                          />
+                        )}
+                        {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 권한 — 시트의 «권한» 열이 여기로 왔다(PW-576). 조직장 지정에 따른 자동
+              승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
+          <SectionLabel>{labels.panel.roleSection}</SectionLabel>
           <div className="admin-emp-field-group">
             <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.name}</span>
-              <input className="admin-emp-input" value={draft.name || ''} disabled={!canEdit} onChange={(e) => set('name', e.target.value)} />
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.email}</span>
-              {/* 로그인 키 — 이 화면에서 고치지 않는다(§3.2-A, 확인 모달은 시트가 정본) */}
-              <input className="admin-emp-input" value={draft.email || ''} readOnly disabled />
-              <span className="admin-emp-manager-note">{labels.panel.emailReadOnly}</span>
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.level}</span>
-              {gradeOptions.length > 0 ? (
-                <select className="admin-emp-input" value={draft.jobLevel || ''} disabled={!canEdit} onChange={(e) => set('jobLevel', e.target.value)}>
-                  <option value="">{labels.panel.none}</option>
-                  {gradeOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input className="admin-emp-input" value={draft.jobLevel || ''} disabled={!canEdit} onChange={(e) => set('jobLevel', e.target.value)} />
-              )}
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.position}</span>
-              {positionOptions.length > 0 ? (
-                <select className="admin-emp-input" value={draft.jobPosition || ''} disabled={!canEdit} onChange={(e) => set('jobPosition', e.target.value)}>
-                  <option value="">{labels.panel.none}</option>
-                  {positionOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input className="admin-emp-input" value={draft.jobPosition || ''} disabled={!canEdit} onChange={(e) => set('jobPosition', e.target.value)} />
-              )}
-            </label>
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.joined}</span>
-              <input type="date" className="admin-emp-input" value={(draft.hireDate || '').slice(0, 10)} disabled={!canEdit} onChange={(e) => set('hireDate', e.target.value)} />
+              <span className="admin-emp-field-label">{labels.panel.role}</span>
+              <select
+                className="admin-emp-input"
+                value={draft.orgRole || ''}
+                disabled={!canEdit}
+                data-testid="employees-panel-orgRole"
+                onChange={(e) => set('orgRole', e.target.value)}
+              >
+                <option value="">{labels.panel.none}</option>
+                {PANEL_ROLE_OPTIONS.map((r) => (
+                  <option key={r} value={r}>{labels.panel.roles?.[r] || r}</option>
+                ))}
+              </select>
+              <span className="admin-emp-manager-note">{labels.panel.roleNote}</span>
             </label>
           </div>
 
@@ -2389,9 +2608,88 @@ function EmployeesEditPanel({
               )}
             </div>
           )}
+
+          {/* 보상 — 연봉 열람 권한이 없으면 칸도 이력 버튼도 그리지 않는다(T3).
+              값을 «—» 로 가려 두면 「비어 있다」로 읽혀 덮어쓰는 사고가 난다. */}
+          {canViewSalary && (
+            <>
+              <SectionLabel>{labels.panel.paySection}</SectionLabel>
+              <div className="admin-emp-field-group">
+                <label className="admin-emp-field">
+                  <span className="admin-emp-field-label">{labels.panel.salary}</span>
+                  <input
+                    className="admin-emp-input"
+                    value={draft.salary ?? ''}
+                    disabled={!canEdit}
+                    data-testid="employees-panel-salary"
+                    onChange={(e) => set('salary', e.target.value)}
+                  />
+                </label>
+                {onLoadSalaryHistory && (
+                  <button
+                    type="button"
+                    className="admin-emp-btn is-ghost admin-emp-btn-block"
+                    onClick={() => setSalaryOpen(true)}
+                    data-testid="employees-panel-salary-history"
+                  >
+                    <IconSalary size={14} />{labels.panel.salaryHistory}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* 기록 — HR 기록 창은 조회 경로가 있을 때만 연다(어드민 전용).
+              폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}
+          <SectionLabel>{labels.panel.recordSection}</SectionLabel>
+          <div className="admin-emp-field-group">
+            <label className="admin-emp-field">
+              <span className="admin-emp-field-label">{labels.panel.education}</span>
+              <input
+                className="admin-emp-input"
+                value={draft.education ?? ''}
+                disabled={!canEdit}
+                data-testid="employees-panel-education"
+                onChange={(e) => set('education', e.target.value)}
+              />
+            </label>
+            {onLoadHrProfile && (
+              <button
+                type="button"
+                className="admin-emp-btn is-ghost admin-emp-btn-block"
+                onClick={() => setHrOpen(true)}
+                data-testid="employees-panel-hr-profile"
+              >
+                {labels.panel.hrProfile}
+                <span className="admin-emp-manager-note">{labels.panel.hrProfileHint}</span>
+              </button>
+            )}
+          </div>
           </>
           )}
         </div>
+
+        {/* 기록 창 둘 — 패널 «안» 이 아니라 패널과 나란히 그린다. 패널 본문은 스크롤
+            영역이라 그 안에 두면 창이 잘린다. */}
+        {hrOpen && onLoadHrProfile && (
+          <HrProfileModal
+            row={draft}
+            labels={labels.records}
+            onLoad={onLoadHrProfile}
+            onSaveIdentity={canEdit ? onSaveIdentity : undefined}
+            onClose={() => setHrOpen(false)}
+          />
+        )}
+        {salaryOpen && onLoadSalaryHistory && (
+          <SalaryHistoryModal
+            row={draft}
+            labels={labels.records}
+            onLoad={onLoadSalaryHistory}
+            onAdd={canEdit ? onAddSalaryHistory : undefined}
+            onClose={() => setSalaryOpen(false)}
+            onSalarySynced={(v) => set('salary', v)}
+          />
+        )}
 
         {/* 이력 탭은 읽기 전용이라 저장 줄을 그리지 않는다 — 누를 수 없는 버튼을 두면
             「여기서도 고칠 수 있나」로 읽힌다. */}
@@ -2418,25 +2716,21 @@ export default function AdminEmployeesCanvas({
   orgUnits = [],
   invites = [],
   initialTab,
-  // 전체 구성원 탭 시트의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
+  // 전체 구성원 탭의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
   /**
-   * 목록 보기 상태 되살리기 (PW-157) — 전체 구성원 탭 시트로 그대로 내려간다.
+   * 보던 상태 되살리기 (PW-157) — 목록 표로 내려간다.
    * `onTabChange` 는 탭을 옮길 때마다 부른다(딥링크의 `initialTab` 과 짝이다).
+   *
+   * ⛔ `initialSort` 는 **없다** (PW-576). 사람이 고르는 정렬은 폐기된 스프레드시트
+   * 뷰에만 있었고, 목록 표의 정렬은 «대표 최상단 고정» 하나뿐이라 되살릴 것이 없다.
+   * `onViewStateChange` 는 그래서 `sortCol: null` 을 늘 함께 준다.
    */
   initialFilters,
-  initialSort,
   onViewStateChange,
   onTabChange,
-  /**
-   * 「전체 구성원」 탭의 뷰 (PW-373) — `'list'`(목록) | `'sheet'`(스프레드시트).
-   *
-   * 정본 `admin-spec.md §1.1 · §3.8` 은 직원 관리를 **한 메뉴 두 뷰**로 정의한다.
-   * 어느 뷰를 보고 있었는지는 소비자가 URL·저장된 상태로 들고 있을 수 있게
-   * `onViewModeChange` 로 알린다.
-   */
-  initialViewMode = 'sheet',
-  onViewModeChange,
+  /* ⛔ `initialViewMode`·`onViewModeChange` 폐기 (PW-576) — 「전체 구성원」 탭은
+     목록 한 화면이라 오갈 뷰가 없다. 2026-09-02 정기미팅 §1 (David). */
   /** 목록 뷰 한 쪽에 보여 줄 인원 수. */
   pageSize = 20,
   /** 목록 뷰 행 메뉴의 «비활성화». 미주입이면 그 항목이 없다. */
@@ -2478,7 +2772,8 @@ export default function AdminEmployeesCanvas({
    */
   onChangeAffiliations,
   onCsvUpload,
-  onManageTeams,
+  /* ⛔ `onManageTeams` 폐기 (PW-576) — 폐기된 시트의 「팀 관리로」 링크가 쓰던 것이다.
+     목록 표에는 그 링크가 없고, 조직 편집은 소속 팝업 안내가 가리킨다. */
   /**
    * 매니저(개인 상급자) 배정 (PW-292). `(memberId, managerId) => void`.
    *
@@ -2543,8 +2838,10 @@ export default function AdminEmployeesCanvas({
   onResendInvite,
   onCancelInvite,
   onCopyInviteLink,
-  // 전체 구성원 탭(스프레드시트) 배선 — 직원 일괄 편집이 여기로 통합됨.
-  sheetLabels,
+  /* 기록 창 3종(HR 기록 · 연봉 이력 · 대표 확인)의 문구 (PW-576).
+     폐기된 스프레드시트가 `sheetLabels` 로 받던 것과 **같은 묶음**이다 — 소비자는
+     그때 넘기던 객체를 그대로 넘기면 된다. 창 셋이 시트에서 이 캔버스로 옮겨 왔다. */
+  recordLabels,
   canViewSalary = false,
   gradeOptions,
   positionOptions,
@@ -2567,13 +2864,15 @@ export default function AdminEmployeesCanvas({
    * 채울 수 있는데 목록에서는 보이지 않는, 설명할 수 없는 상태가 생긴다.
    */
   optionalFields,
-  // 직군 > 직렬 > 직무 3단 축 — 시트로 그대로 내려간다(PW-323). 여기서 빠뜨리면
-  // 세 컬럼이 카탈로그 없는 자유 텍스트로 폴백해, 좁히기도 드롭다운도 사라진다.
+  // 직군 > 직렬 > 직무 3단 축 (PW-323). 편집 패널의 3단 연동 select 와 목록 필터가
+  // 같은 축을 읽는다. 빠뜨리면 좁히기가 사라지고 자유 텍스트로 폴백한다.
   jobAxis,
   onSaveMembers,
-  onDeleteMember,
-  /** 일괄 «소속 추가» — 스프레드시트 뷰의 일괄 편집 바로 그대로 내려간다(PW-373). */
-  onAppendAffiliations,
+  /* ⛔ `onDeleteMember` 폐기 (PW-576) — 행을 지우는 것은 폐기된 시트에만 있었다.
+     목록 행의 파괴적 동작은 «비활성화»(`onDeactivateMember`) 하나다(§3.1 행 액션). */
+  /* ⛔ `onAppendAffiliations`(일괄 «소속 추가») 폐기 (PW-576) — 여러 명을 체크해
+     한꺼번에 처리하던 자리가 시트와 함께 사라졌다. 목록 표에 행 체크박스와
+     「일괄 처리」 드롭다운을 세우는 것은 **PW-608** 이며, 그때 이 계약이 돌아온다. */
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onLoadHrProfile,
@@ -2605,7 +2904,13 @@ export default function AdminEmployeesCanvas({
   exporting = false,
   exportLabels,
 }) {
-  const labels = useMemo(() => merge(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  /* `recordLabels` 는 기록 창 3종의 문구다 — 폐기된 시트가 `sheetLabels` 로 받던
+     묶음이라 소비자가 그것을 그대로 넘길 수 있게 별도 prop 으로 받고, 여기서 한 번만
+     합쳐 `labels.records` 로 내려보낸다(PW-576). */
+  const labels = useMemo(
+    () => merge(merge(DEFAULT_LABELS, providedLabels), recordLabels ? { records: recordLabels } : null),
+    [providedLabels, recordLabels],
+  );
   // 협의 단가 계약 표기 (PW-344 ⑤). 판정은 표기용이며 **어떤 disabled 조건에도
   // 들어가지 않는다** — 위 prop 주석의 이유 그대로다.
   const contractOverMax =
@@ -2617,27 +2922,11 @@ export default function AdminEmployeesCanvas({
   const [tab, setTab] = useState(
     ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
   );
-  // 「전체 구성원」 탭의 두 뷰 (PW-373). 목록 ↔ 스프레드시트.
-  const [viewMode, setViewMode] = useState(initialViewMode === 'list' ? 'list' : 'sheet');
-  /**
-   * **한 번 마운트한 뷰는 다시 언마운트하지 않는다** (§3.8.3-B B5).
-   *
-   * 조건부 렌더로 갈아끼우면 토글 한 번에 미저장 변경이 되돌릴 경고 없이 사라진다.
-   * 다만 **처음부터 둘 다** 그리지는 않는다 — 한 번도 열지 않은 뷰는 아직 잃을 값이
-   * 없고, 수백 행짜리 표를 두 벌 그리는 값을 사람이 보지도 않은 채 치르게 된다.
-   * 한 번이라도 연 뒤로는 계속 살아 있으므로 B5 는 양방향으로 성립한다.
-   */
-  const [mountedViews, setMountedViews] = useState(
-    () => new Set([initialViewMode === 'list' ? 'list' : 'sheet']),
-  );
-  // 목록 뷰에서 편집 패널이 열린 구성원 id. 패널은 두 뷰 **바깥**에 그린다 —
-  // 감춰진 뷰 안에 두면 시트로 토글했을 때 패널까지 `hidden` 에 함께 묻힌다.
+  // 편집 패널이 열린 구성원 id. 패널은 표 **바깥**에 그린다 — 표 안에 두면 탭을
+  // 옮길 때 패널까지 함께 묻힌다.
   const [editMemberId, setEditMemberId] = useState(null);
-  const goView = (id) => {
-    setMountedViews((prev) => (prev.has(id) ? prev : new Set([...prev, id])));
-    setViewMode(id);
-    onViewModeChange?.(id);
-  };
+  /* 대표(CEO) 지정·해제 확인 창 (§3.6-A · PW-576). 행 «⋯» 메뉴가 연다. */
+  const [ceoConfirm, setCeoConfirm] = useState(null);
   // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
   const goTab = (id) => {
     setTab(id);
@@ -2731,105 +3020,50 @@ export default function AdminEmployeesCanvas({
       {loading ? (
         <div className="admin-emp-loading">{labels.loading}</div>
       ) : tab === 'members' ? (
-        <>
-          <EmployeesViewSwitch mode={viewMode} onChange={goView} labels={labels} />
-          {/* 🔴 두 뷰를 **동시에 마운트**한다(§3.8.3-B B5). 조건부 렌더로 갈아끼우면
-              토글 한 번에 미저장 변경이 되돌릴 경고 없이 사라진다. 감춘 쪽은
-              `hidden` 이라 접근성 트리·탭 이동에서도 함께 빠진다. */}
-          {mountedViews.has('list') && (
-          <div hidden={viewMode !== 'list'} data-testid="employees-view-list">
+        <div data-testid="employees-view-list">
             <EmployeesListView
-              members={members}
-              orgUnits={orgUnits}
-              labels={labels}
-              canEdit={canEdit}
-              pageSize={pageSize}
-              renderAvatar={renderAvatar}
-              // 직군>직렬>직무 좁히기는 시트와 **같은 축**을 쓴다 — 한쪽만 다른 카탈로그를
-              // 읽으면 두 뷰에서 고를 수 있는 값이 갈린다.
-              jobAxis={jobAxis}
-              canViewSalary={canViewSalary}
-              managerCandidates={managerCandidates}
-              optCols={listOptCols}
-              onOptColsChange={onListOptColsChange}
-              leaderUnitIdsByMember={leaderUnitIdsByMember}
-              onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
-              onChangeAffiliations={onChangeAffiliations}
-              onOpenEdit={(m) => setEditMemberId(m.id)}
-              onDeactivate={canEdit ? onDeactivateMember : undefined}
-              onAssignManager={onAssignManager}
-              onInvite={canInvite ? openInvite : undefined}
-              onCsvUpload={onCsvUpload}
-              // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
-              squadOptions={squadOptions}
-              // 스쿼드 배정 편집 — 시트와 **같은 콜백**이다(PW-438). 목록에만 없어서
-              // 스쿼드 칸이 눌러도 아무 일이 없는 죽은 자리였다.
-              onChangeSquads={onChangeSquads}
-              // 선택 적용 항목 — 시트와 **같은 값**을 준다(PW-502). 한쪽에만 주면
-              // 시트에서는 채울 수 있는데 목록에는 안 보이는 상태가 생긴다.
-              optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
-              // 명부 내보내기 — 시트와 같은 콜백·같은 부품을 쓴다(PW-411).
-              onExportRoster={onExportRoster}
-              exporting={exporting}
-              exportLabels={exportLabels}
-            />
-          </div>
-          )}
-          {mountedViews.has('sheet') && (
-          <div hidden={viewMode !== 'sheet'} data-testid="employees-view-sheet">
-        <AdminEmployeeSheetCanvas
-          embedded
-          initialSearch={initialSearch}
-          initialFilters={initialFilters}
-          initialSort={initialSort}
-          onViewStateChange={onViewStateChange}
-          members={members}
-          labels={sheetLabels}
-          canViewSalary={canViewSalary}
-          gradeOptions={gradeOptions}
-          positionOptions={positionOptions}
-          rankOptions={rankOptions ?? EMPTY_ARRAY}
-          employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
-          countryOptions={countryOptions ?? EMPTY_ARRAY}
-          buildingOptions={buildingOptions ?? EMPTY_ARRAY}
-          categoryOptions={categoryOptions ?? EMPTY_ARRAY}
-          businessTitleOptions={businessTitleOptions ?? EMPTY_ARRAY}
-          optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
-          jobAxis={jobAxis}
-          canEdit={canEdit}
-          renderAvatar={renderAvatar}
-          onSaveMembers={onSaveMembers}
-          onDeleteMember={onDeleteMember}
-          onLoadSalaryHistory={onLoadSalaryHistory}
-          onAddSalaryHistory={onAddSalaryHistory}
-          onLoadHrProfile={onLoadHrProfile}
-          onSaveIdentity={onSaveIdentity}
-          onAddEmployee={onCsvUpload}
-          // [PW-114] 탭 A 의 `+ 구성원 초대` — 탭 C 와 **같은 모달**을 연다.
-          // 종전에는 이 버튼이 없어서, 온보딩을 끝낸 워크스페이스는 사람을 더
-          // 초대하려면 초대 관리 탭까지 들어가야 했다(그마저도 데모였다).
-          onInviteMember={canInvite ? openInvite : undefined}
-          inviteLabel={labels.invite}
-          onManageTeams={onManageTeams}
-          // 부서 셀에서 바로 팀을 고를 수 있게 — 미배정 탭과 같은 배정 핸들러를 쓴다(PW-23).
-          orgUnitOptions={orgUnits}
-          onAssignTeam={onAssignOrgUnit}
-          // 소속 셀의 정본 경로 — 배열 치환(PW-368). 주어지면 팝업이 다중 선택으로 열린다.
-          onChangeAffiliations={onChangeAffiliations}
-          onAssignCeo={onAssignCeo}
-          onReleaseCeo={onReleaseCeo}
-          // 스쿼드는 소속과 별도 축·별도 컬럼(SQ1). 원장이 비면 컬럼 자체가 안 뜬다.
-          squadOptions={squadOptions}
-          onChangeSquads={onChangeSquads}
-          onExportRoster={onExportRoster}
-          exporting={exporting}
-          exportLabels={exportLabels}
-          // 일괄 «소속 추가» — 추가 전용이다(PW-373 · §3.8.3-B 「일괄 편집 바」).
-          onAppendAffiliations={onAppendAffiliations}
-        />
-          </div>
-          )}
-        </>
+            members={members}
+            orgUnits={orgUnits}
+            labels={labels}
+            canEdit={canEdit}
+            pageSize={pageSize}
+            renderAvatar={renderAvatar}
+            // 직군>직렬>직무 좁히기 — 편집 패널의 3단 연동 select 와 같은 축이다.
+            jobAxis={jobAxis}
+            canViewSalary={canViewSalary}
+            managerCandidates={managerCandidates}
+            optCols={listOptCols}
+            onOptColsChange={onListOptColsChange}
+            leaderUnitIdsByMember={leaderUnitIdsByMember}
+            onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
+            onChangeAffiliations={onChangeAffiliations}
+            onOpenEdit={(m) => setEditMemberId(m.id)}
+            onDeactivate={canEdit ? onDeactivateMember : undefined}
+            onAssignManager={onAssignManager}
+            onInvite={canInvite ? openInvite : undefined}
+            onCsvUpload={onCsvUpload}
+            // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
+            squadOptions={squadOptions}
+            // 스쿼드 배정 편집(PW-438) — 없으면 스쿼드 칸이 죽은 자리가 된다.
+            onChangeSquads={onChangeSquads}
+            // 선택 적용 항목(PW-502) — 회사가 켠 것만 열이 선다.
+            optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
+            // 명부 내보내기(PW-411).
+            onExportRoster={onExportRoster}
+            exporting={exporting}
+            exportLabels={exportLabels}
+            /* 보던 상태 되살리기 (PW-157) — 시트가 들고 있던 계약이 목록으로 왔다. */
+            initialSearch={initialSearch}
+            initialFilters={initialFilters ?? EMPTY_OBJECT}
+            onViewStateChange={onViewStateChange}
+            /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
+            onOpenCeo={
+              canEdit && onAssignCeo && onReleaseCeo
+                ? (m, mode) => setCeoConfirm({ row: m, mode })
+                : undefined
+            }
+          />
+        </div>
       ) : tab === 'unassigned' ? (
         <UnassignedTab
           members={members}
@@ -2878,6 +3112,20 @@ export default function AdminEmployeesCanvas({
             onLoadHrProfile={onLoadHrProfile}
             onSaveIdentity={onSaveIdentity}
             onLoadPersonalHistory={onLoadPersonalHistory}
+            /* PW-576 — 폐기된 시트가 받던 카탈로그·기록 콜백이 그대로 패널로 간다.
+               같은 값을 두 화면이 다른 목록으로 고르던 상태가 없어졌으므로, 여기가
+               그 값들을 고치는 유일한 자리다. */
+            rankOptions={rankOptions ?? EMPTY_ARRAY}
+            categoryOptions={categoryOptions ?? EMPTY_ARRAY}
+            businessTitleOptions={businessTitleOptions ?? EMPTY_ARRAY}
+            employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
+            countryOptions={countryOptions ?? EMPTY_ARRAY}
+            buildingOptions={buildingOptions ?? EMPTY_ARRAY}
+            jobAxis={jobAxis}
+            optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
+            canViewSalary={canViewSalary}
+            onLoadSalaryHistory={onLoadSalaryHistory}
+            onAddSalaryHistory={onAddSalaryHistory}
           />
         );
       })()}
@@ -2891,6 +3139,24 @@ export default function AdminEmployeesCanvas({
           직급 선택지는 캔버스가 이미 받는 `gradeOptions` 를 기본으로 쓰고,
           직군·직렬·근무지는 `fieldOptions` 로, 직군↔직렬 매핑은 `laddersByFamily`
           로 받는다(직렬 2단 연동 · PW-412). */}
+      {/* 대표 지정·해제 확인 창 — 폐기된 시트에서 옮겨 온 그대로다(PW-576 · §3.6-A).
+          실패해도 닫지 않고 창 안에 사유를 띄운다. */}
+      {ceoConfirm && onAssignCeo && onReleaseCeo && (
+        <CeoConfirmModal
+          row={ceoConfirm.row}
+          mode={ceoConfirm.mode}
+          currentCeoName={members.find((m) => m.isCeo && m.id !== ceoConfirm.row.id)?.name}
+          labels={labels.records}
+          positionOptions={positionOptions ?? EMPTY_ARRAY}
+          onConfirm={(opts) =>
+            ceoConfirm.mode === 'assign'
+              ? onAssignCeo(ceoConfirm.row.id, opts)
+              : onReleaseCeo(ceoConfirm.row.id)
+          }
+          onClose={() => setCeoConfirm(null)}
+        />
+      )}
+
       {inviteOpen && canInvite && (
         <AdminInviteModal
           open
