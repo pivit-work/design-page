@@ -7,7 +7,8 @@ import KrContributionDetail from './KrContributionDetail.jsx';
  * Figma 17026:23299 / 17026:24830.
  *
  * data: {
- *   objective, krs: [{ id, title, percent, status: { label, tone } }],
+ *   objective, objectives: [{ id, label, title, percent, krCount }],
+ *   krs: [{ id, title, percent, status: { label, tone } }],
  *   detail: { subtitle, trend: [{ label, value }], loading?, error? },
  *   contribution: [{ name, percent, color }],
  *   members: [KrMemberCard member + detail],
@@ -23,6 +24,14 @@ import KrContributionDetail from './KrContributionDetail.jsx';
  *   · 이미 선택된 항목을 다시 클릭하면 no-op — 콜백을 부르지 않아 재조회가 없다.
  *   · 로딩 중에는 차트와 같은 높이의 스켈레톤, 실패 시 인라인 에러 + [다시 시도].
  *     숫자·진행 바는 실패해도 그대로 보인다.
+ *
+ * 2026-09-07 PW-604 — Objective 축 (policy §7-1-A).
+ *   · `data.objectives` 가 **2개 이상**이면 KR 칩 줄 위에 Objective 칩 줄을 한 단 더 그린다.
+ *     칩 = `O{n}` · 제목 · **`KR {k}개` 배지** · 진척률. 그 배지가 「분류」를 드러내는 장치라
+ *     빼면 어디에 KR 이 몇 개 있는지 다시 안 보인다.
+ *   · **1개면 그리지 않는다** — 종전 단일 Objective 카드 그대로다(회귀 없음).
+ *   · 위계는 트랙 배경(액센트 틴트)과 선택 칩 좌측 액센트 바로 낸다 — KR 칩과 같은
+ *     트랙 문법을 쓰고 새 시각 언어를 만들지 않는다.
  */
 
 const DEFAULT_LABELS = {
@@ -35,10 +44,14 @@ const DEFAULT_LABELS = {
   retry: '다시 시도',
   krEmpty: '팀 KR이 설정되지 않았습니다.',
   membersEmpty: '이 KR에 연결된 팀원이 없습니다.',
+  objectiveSummary: (count, krCount) => `Objective ${count}개 · KR ${krCount}개`,
+  krCountBadge: (count) => `KR ${count}개`,
 };
 
 export default function KrDrilldown({
   data,
+  selectedObjectiveId,
+  onSelectObjective,
   selectedKrId,
   onSelectKr,
   selectedMemberId,
@@ -47,11 +60,22 @@ export default function KrDrilldown({
   labels,
 }) {
   const l = { ...DEFAULT_LABELS, ...labels };
+  const objectives = data.objectives ?? [];
+  const [innerObjectiveId, setInnerObjectiveId] = useState(objectives[0]?.id);
   const [innerKrId, setInnerKrId] = useState(data.krs[0]?.id);
   const [innerMemberId, setInnerMemberId] = useState(data.members[0]?.id);
 
+  const objectiveId = selectedObjectiveId !== undefined ? selectedObjectiveId : innerObjectiveId;
   const krId = selectedKrId !== undefined ? selectedKrId : innerKrId;
   const memberId = selectedMemberId !== undefined ? selectedMemberId : innerMemberId;
+
+  // 재클릭 no-op — KR·멤버와 같은 규칙. Objective 전환은 KR 목록을 통째로 바꾸므로
+  // 소비자가 KR 선택을 초기화한다(§7-1-A · EC-KR-15).
+  const selectObjective = (id) => {
+    if (id === objectiveId) return;
+    if (selectedObjectiveId === undefined) setInnerObjectiveId(id);
+    onSelectObjective?.(id);
+  };
 
   // 재클릭 no-op — 같은 id 면 콜백도 setState 도 하지 않아 재렌더·재조회가 없다 (§7-6).
   const selectKr = (id) => {
@@ -75,12 +99,46 @@ export default function KrDrilldown({
   const trend = detail.trend ?? [];
   const maxTrend = Math.max(...trend.map((t) => t.value), 1);
 
+  const totalKrCount = objectives.reduce((sum, o) => sum + (o.krCount ?? 0), 0);
+  const selectedObjective = objectives.find((o) => o.id === objectiveId) ?? objectives[0];
+
   return (
     <div className="mgr-kr">
-      {/* 팀 OKR — KR 선택 카드 */}
+      {/* 팀 OKR — Objective 가 여럿이면 1단 칩 줄, 하나면 종전 제목 그대로 (§7-1-A) */}
       <div className="mgr-kr-okr">
         <p className="mgr-kr-okr-label">{l.objectiveLabel}</p>
-        <p className="mgr-kr-okr-title">{data.objective}</p>
+        {objectives.length > 1 ? (
+          <>
+            <p className="mgr-kr-obj-summary" data-testid="kr-objective-summary">
+              {l.objectiveSummary(objectives.length, totalKrCount)}
+            </p>
+            <div
+              className={`mgr-kr-obj-track${objectives.length > 4 ? ' is-wrap' : ''}`}
+              data-testid="kr-objective-track"
+            >
+              {objectives.map((o, i) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  className={`mgr-kr-obj-chip${o.id === selectedObjective?.id ? ' is-selected' : ''}`}
+                  onClick={() => selectObjective(o.id)}
+                >
+                  <span className="mgr-kr-obj-head">
+                    <span className="mgr-kr-obj-id">{o.label ?? `O${i + 1}`}</span>
+                    <span className="mgr-kr-obj-percent">{o.percent}%</span>
+                  </span>
+                  <span className="mgr-kr-obj-title-row">
+                    <span className="mgr-kr-obj-title">{o.title}</span>
+                    {/* 「분류」를 드러내는 장치 — 빼면 KR 이 어디에 몇 개 있는지 안 보인다 */}
+                    <span className="mgr-kr-obj-badge">{l.krCountBadge(o.krCount ?? 0)}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="mgr-kr-okr-title">{data.objective}</p>
+        )}
         <div className="mgr-kr-cards">
           {data.krs.map((kr) => (
             <div
