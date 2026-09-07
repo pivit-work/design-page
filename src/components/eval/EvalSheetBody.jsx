@@ -1,4 +1,11 @@
-import { filledOptions, groupBySection, scaleMaxOf, sectionColor } from './evalTemplateItemModel.js';
+import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
+import {
+  filledOptions,
+  groupBySection,
+  isNoteItem,
+  scaleMaxOf,
+  sectionColor,
+} from './evalTemplateItemModel.js';
 
 /**
  * 평가지 본문 — **구성원이 실제로 받는 화면 그대로** 그린다. 입력 위젯은 그리되 비활성이다.
@@ -65,7 +72,13 @@ export default function EvalSheetBody({
               {s.sec}
             </div>
           )}
-          {s.items.map((q) => (
+          {s.items.map((q) =>
+            /* [PW-602 ④] 설명 항목 — 입력 위젯 없이 그리고 **번호를 매기지 않는다.**
+               문항이 아니라 글이다(policy §5.11-F 「작성 화면」). 본문이 비면
+               `EvalNoteBlock` 이 스스로 아무것도 그리지 않는다. */
+            isNoteItem(q) ? (
+              <EvalNoteBlock key={q.id} item={q} testId={`evc-sheet-note-${q.id}`} />
+            ) : (
             <div key={q.id} className="evc-preview-q" data-testid={`evc-sheet-q-${q.id}`}>
               <div className="evc-preview-q-text">
                 {q.text}
@@ -77,8 +90,16 @@ export default function EvalSheetBody({
                   <span className="evc-mode-badge is-warn">{L.rationaleRequired}</span>
                 )}
               </div>
+              {/* [PW-602 ③④] 상시 표시는 설명 본문과 **같은 렌더러**로 그린다 — 같은 필드라
+                  부분집합을 두 벌 두지 않는다(policy §5.11-F 「같은 규칙을 §5.11-D 에도 쓴다」).
+                  ⚠️ 「툴팁」 표시는 브라우저 말풍선(`title=`)이라 서식이 그려질 자리가 없다 —
+                     서식이 실제로 보이는 곳은 이 상시 표시와 설명 항목 본문 둘이다. */}
               {q.description && (q.descriptionDisplay || 'tooltip') === 'inline' && (
-                <div className="evc-preview-guide-inline">{q.description}</div>
+                <EvalMarkdownLite
+                  text={q.description}
+                  className="evc-md evc-preview-guide-inline"
+                  testId={`evc-sheet-guide-inline-${q.id}`}
+                />
               )}
               {q.type === 'textarea' && (
                 <textarea
@@ -148,7 +169,8 @@ export default function EvalSheetBody({
                   </label>
                 ))}
             </div>
-          ))}
+            ),
+          )}
         </div>
       ))}
       {showGrades && (

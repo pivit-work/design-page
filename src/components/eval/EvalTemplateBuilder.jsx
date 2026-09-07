@@ -1,5 +1,24 @@
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
-import { QUESTION_TYPES, fill, filledOptions, scaleMaxOf, sectionColor } from './evalTemplateItemModel.js';
+import {
+  QUESTION_TYPES,
+  fill,
+  filledOptions,
+  isNoteItem,
+  scaleMaxOf,
+  sectionColor,
+} from './evalTemplateItemModel.js';
+
+/**
+ * [PW-602 ④] 설명 항목의 행 제목. 제목은 «선택»이라 비어 있을 수 있는데, 그때 행이
+ * 통째로 빈칸이면 무엇이 놓였는지 알 수 없다 — 본문 첫 줄을 대신 보여 주고, 본문도
+ * 없으면 `(본문 없음)` 이라고 적는다(저장은 막지 않는다 — 작성 중일 수 있다).
+ */
+const noteRowText = (q, L) =>
+  q.text ||
+  String(q.description ?? '')
+    .split('\n')
+    .find((l) => l.trim()) ||
+  L.noteEmptyBody;
 
 /**
  * 평가지 빌더의 두 몸통 — **등급 체계 줄**과 **평가 항목 줄**.
@@ -110,6 +129,52 @@ export function EvalTemplateGradeRows({
   );
 }
 
+/**
+ * 항목 목록 아래의 «추가» 줄 — 질문 추가 · 설명 추가.
+ *
+ * ## 왜 부품으로 옮겼나 (PW-602 ④)
+ *
+ * 「평가 템플릿」 화면의 [편집] 창에는 유형 셀렉트가 없어 항목이 늘 서술형으로 태어난다.
+ * 설명 항목은 응답 유형이 아니라 **다른 축**(`itemKind`)이라 셀렉트에 값을 하나 더하는
+ * 것으로 표현되지 않고, 별도의 «만드는 자리»가 필요하다.
+ *
+ * 그 자리를 호출부에서 각자 그리면 두 화면의 추가 줄이 갈라진다 — 마법사와 [편집] 창이
+ * 같은 빌더여야 한다는 것이 §6.3 이고, 그것이 이 파일이 존재하는 이유다. 시각은 기존
+ * `.evc-tpl-additem` 그대로이며 새로 만든 모양이 없다.
+ */
+export function EvalTemplateAddRow({
+  labels: L,
+  onAddItem,
+  onAddNote,
+  icon = null,
+  testPrefix = 'evc-tpl',
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        className="evc-tpl-additem"
+        onClick={onAddItem}
+        data-testid={`${testPrefix}-add-item`}
+      >
+        {icon}
+        {L.addItem}
+      </button>
+      {onAddNote && (
+        <button
+          type="button"
+          className="evc-tpl-additem"
+          onClick={onAddNote}
+          data-testid={`${testPrefix}-add-note`}
+        >
+          {icon}
+          {L.addNote}
+        </button>
+      )}
+    </>
+  );
+}
+
 /* ── 평가 항목 ───────────────────────────────────────────────────────── */
 
 /**
@@ -148,6 +213,8 @@ export function EvalTemplateItemRow({
   actions = null,
   showSection = true,
   showText = true,
+  /** [PW-602 ①] 잠긴 단계에서는 설정 패널의 유형 안내를 띄우지 않는다 (policy §5.11-E). */
+  phaseLocked = false,
   /**
    * 작성자 표기가 실명이 아닐 때 `공개 익명`·`공개 관계만` 배지를 함께 그린다 (PW-482).
    * 마법사 행에는 그 자리에 별도 토글(피평가자 숨김)이 이미 있어 기본값은 끔이다.
@@ -189,16 +256,23 @@ export function EvalTemplateItemRow({
           data-testid={textInput.testId}
         />
       )}
-      {showText && !textInput && <span className="evc-tpl-item-text">{q.text}</span>}
+      {showText && !textInput && (
+        <span className={`evc-tpl-item-text${isNoteItem(q) && !q.text ? ' is-muted' : ''}`}>
+          {isNoteItem(q) ? noteRowText(q, L) : q.text}
+        </span>
+      )}
+      {/* [PW-602 ④] 설명은 응답 «유형»이 없다 — 다른 축(itemKind)이라 배지도 따로 찍는다. */}
       <span className="evc-tpl-item-type">
-        {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+        {isNoteItem(q)
+          ? L.qKindNote
+          : L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
       </span>
-      {q.type === 'rating' && (
+      {q.type === 'rating' && !isNoteItem(q) && (
         <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-scale-${q.id}`}>
           {fill(L.scaleRangeBadge, { max: scaleMaxOf(q) })}
         </span>
       )}
-      {q.type === 'checkbox' && (
+      {q.type === 'checkbox' && !isNoteItem(q) && (
         <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-options-${q.id}`}>
           {fill(L.optionsCountBadge, { count: filledOptions(q).length })}
           {q.allowMultiple ? ` · ${L.optionsMultiBadge}` : ''}
@@ -218,7 +292,7 @@ export function EvalTemplateItemRow({
             })}
           </span>
         )}
-      {q.description && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
+      {q.description && !isNoteItem(q) && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
         <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
           {L.guideBadge}
         </span>
@@ -264,6 +338,7 @@ export function EvalTemplateItemRow({
           onPatchDisclosure={onPatchDisclosure}
           onToggleAudience={onToggleAudience}
           onClose={onToggleSettings}
+          phaseLocked={phaseLocked}
         />
       )}
     </div>

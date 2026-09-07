@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
+import { isNoteItem } from './evalTemplateItemModel.js';
 import { AlertIcon, ZapIcon } from './evalIcons.jsx';
 
 /**
@@ -100,6 +102,19 @@ function buildFields(template, L) {
     return template.items
       .filter((it) => it.category !== '최종 등급 결정')
       .map((it) => {
+        // [PW-602 ④] 설명 항목은 답을 받지 않는다 — 폼 필드가 아니라 «글»이다.
+        // 아래에서 걸러 내므로 진행률·필수 검증이 자동으로 세지 않는다(불변식 ②).
+        if (isNoteItem(it)) {
+          return {
+            key: it.id,
+            templateItemId: it.id,
+            category: it.category,
+            type: 'note',
+            section: it.category || '평가 항목',
+            text: it.label ?? null,
+            description: it.description ?? null,
+          };
+        }
         const type =
           it.responseType === 'scale'
             ? 'rating'
@@ -118,6 +133,9 @@ function buildFields(template, L) {
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
           description: it.description ?? null,
+          // [PW-602 ③] 표시 방식(표시 안 함 / 툴팁 / 항목 아래 상시)을 실제로 따른다.
+          // 개정 전에는 이 값이 화면에 닿지 않아 늘 툴팁이었다(§5.11-D).
+          descriptionDisplay: it.descriptionDisplay || 'tooltip',
           visibleToRoles: it.visibleToRoles ?? null,
           // PW-433 ①③ — 척도 길이·앵커·선택지는 항목이 들고 온다.
           scaleMax: it.scaleMax ?? null,
@@ -245,7 +263,10 @@ export default function EvalCycleLeaderCanvas({
   onSubmitPromotion,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const fields = useMemo(() => buildFields(template, L), [template, L]);
+  // 평가지에 놓인 순서 그대로의 항목 전부 — 질문과 설명이 섞여 있다.
+  const entries = useMemo(() => buildFields(template, L), [template, L]);
+  /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
+  const fields = useMemo(() => entries.filter((f) => f.type !== 'note'), [entries]);
   const [state, setState] = useState(() => seedState(leaderAnswers, fields));
   const [grade, setGrade] = useState(initialGrade);
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
@@ -311,7 +332,8 @@ export default function EvalCycleLeaderCanvas({
       }));
 
   const sections = [];
-  fields.forEach((f) => {
+  // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다.
+  entries.forEach((f) => {
     let g = sections.find((s) => s.title === f.section);
     if (!g) {
       g = { title: f.section, fields: [] };
@@ -457,7 +479,11 @@ export default function EvalCycleLeaderCanvas({
           {sections.map((sec) => (
             <section className="evc-card" key={sec.title}>
               <h3 className="evc-card-name">{sec.title}</h3>
-              {sec.fields.map((f) => (
+              {sec.fields.map((f) =>
+                /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
+                f.type === 'note' ? (
+                  <EvalNoteBlock key={f.key} item={f} testId={`evl-note-${f.key}`} />
+                ) : (
                 <div
                   className="evm-field"
                   key={f.key}
@@ -468,8 +494,17 @@ export default function EvalCycleLeaderCanvas({
                   {(sec.fields.length > 1 || f.description) && (
                     <span className="evc-field-label">
                       {f.label}
-                      <FieldInfo description={f.description} />
+                      {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
+                        <FieldInfo description={f.description} />
+                      )}
                     </span>
+                  )}
+                  {f.description && (f.descriptionDisplay || 'tooltip') === 'inline' && (
+                    <EvalMarkdownLite
+                      text={f.description}
+                      className="evc-md evm-field-guide"
+                      testId={`evl-guide-${f.key}`}
+                    />
                   )}
                   {f.type === 'rating' ? (
                     <>
@@ -569,7 +604,8 @@ export default function EvalCycleLeaderCanvas({
                     labels={L}
                   />
                 </div>
-              ))}
+                ),
+              )}
             </section>
           ))}
 

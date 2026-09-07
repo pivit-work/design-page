@@ -245,14 +245,25 @@ export { default as EvalShellNav } from './eval/EvalShellNav.jsx';
 // 같은 판이 두 화면에 각각 생기면 다음에 한쪽만 고쳐져 갈라진다 (정책 §6.2·§6.3).
 export { default as EvalTemplateItemSettings } from './eval/EvalTemplateItemSettings.jsx';
 export { default as EvalSheetBody } from './eval/EvalSheetBody.jsx';
-export { EvalTemplateGradeRows, EvalTemplateItemRow } from './eval/EvalTemplateBuilder.jsx';
+export {
+  EvalTemplateAddRow,
+  EvalTemplateGradeRows,
+  EvalTemplateItemRow,
+} from './eval/EvalTemplateBuilder.jsx';
+// [PW-602 ③④] 평가지 안의 «글» 을 그리는 유일한 렌더러 — 설명 항목 본문과 항목 가이드
+// 문구가 같은 필드라 부분집합·정화도 한 벌만 둔다 (정책 §5.11-D·§5.11-F).
+export { default as EvalNoteBlock, EvalMarkdownLite } from './eval/EvalNoteBlock.jsx';
 export {
   DEFAULT_DISCLOSURE,
   DEFAULT_SCALE_MAX,
+  NOTE_KIND,
+  QUESTION_KIND,
   QUESTION_TYPES,
   SCALE_MAX_MAX,
   SCALE_MAX_MIN,
   clampScaleMax,
   filledOptions,
+  isNoteItem,
+  questionItems,
   scaleMaxOf,
 } from './eval/evalTemplateItemModel.js';

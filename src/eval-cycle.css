@@ -1650,6 +1650,9 @@
   color: var(--text-primary);
   min-width: 0;
 }
+/* [PW-602 ④] 설명 항목은 제목이 선택이라, 제목 없이 본문 첫 줄이 대신 설 때 흐리게 둔다 —
+   어드민이 지은 이름과 «대신 보여 주는 글»을 눈으로 가를 수 있어야 한다. */
+.evc-tpl-item-text.is-muted { color: var(--text-tertiary, #98a2b3); }
 .evc-tpl-item-type {
   font-size: var(--font-size-text-xs, 11px);
   color: var(--text-tertiary, #98a2b3);
@@ -7815,4 +7818,86 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+}
+
+/* ── [PW-602 ③④] 설명 항목 · 마크다운 부분집합 ────────────────────────────
+   평가지 안의 «글». 설명 항목 본문(§5.11-F)과 항목 가이드 문구(§5.11-D)가 같은
+   렌더러를 쓰므로 스타일도 한 벌만 둔다. 시각 사양은 기획 폴더의 `eval-app.jsx`
+   시안(`NoteBlock`·`MdLite`)을 그대로 옮긴 것이다. */
+.evc-note {
+  padding: var(--spacing-lg, 12px) var(--spacing-lg, 14px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary);
+  /* 왼쪽 띠 — 문항이 아니라 «안내»임을 번호 없이 알린다. */
+  border-left: 3px solid var(--utility-blue-200, #b2ddff);
+}
+.evc-note-title {
+  font-size: var(--font-size-text-sm, 12.5px);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm, 6px);
+}
+.evc-md {
+  font-size: var(--font-size-text-sm, 12.5px);
+  color: var(--text-secondary, #475467);
+  line-height: 1.75;
+}
+.evc-md > :last-child { margin-bottom: 0; }
+.evc-md p { margin: 0 0 var(--spacing-sm, 8px); }
+.evc-md ul,
+.evc-md ol { margin: 0 0 var(--spacing-sm, 8px); padding-left: 20px; }
+.evc-md li { margin-bottom: var(--spacing-xxs, 3px); }
+.evc-md a { color: var(--utility-blue-600, #175cd3); }
+.evc-md code {
+  padding: 1px 4px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--bg-tertiary, #f2f4f7);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+/* 표는 «블록 안에서만» 가로로 흐른다. 평가지 본문이 가로로 밀리면 문항이 잘린다. */
+.evc-md-tablewrap {
+  overflow-x: auto;
+  margin: 0 0 var(--spacing-sm, 8px);
+}
+.evc-md table { border-collapse: collapse; font-size: var(--font-size-text-xs, 12px); }
+.evc-md th,
+.evc-md td {
+  border: 1px solid var(--border-secondary, #eaecf0);
+  padding: 4px 8px;
+  text-align: left;
+}
+.evc-md th {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* 항목 설정 패널 — ⓪ 유형 안내(§5.11-E). «컨트롤이 아니다» — 배지와 문구뿐이다. */
+.evc-tpl-kind-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm, 8px);
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-secondary);
+}
+.evc-tpl-kind-note .evc-tpl-item-type { flex-shrink: 0; }
+.evc-tpl-set-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.6;
+}
+/* 설명 본문 미리보기 — 입력 바로 아래에서 서식이 어떻게 나오는지 보여 준다. */
+.evc-tpl-note-preview {
+  margin-top: var(--spacing-md, 10px);
+  padding-top: var(--spacing-md, 10px);
+  border-top: 1px solid var(--utility-blue-200, #b2ddff);
+}
+/* [PW-602 ③] 항목 아래 «상시 표시» 가이드 문구. 툴팁과 달리 서식이 실제로 그려지는 자리다. */
+.evm-field-guide {
+  margin-bottom: var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-xs, 11.5px);
+  color: var(--text-tertiary, #98a2b3);
 }
