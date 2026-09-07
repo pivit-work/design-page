@@ -986,10 +986,12 @@ const LIST_OPTIONAL_COLS = [
   { id: 'nickname', width: 110 },
   { id: 'displayName', width: 130 },
   { id: 'phone', width: 130 },
-  /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 별개 축이다(PW-400). */
-  { id: 'jobRank', width: 90 },
-  /** 직종 — 근로 형태 대분류(사무직·연구직). 선택 적용 항목이다(PW-502). */
+  /** 직종 — 근로 형태 대분류(사무직·연구직). 선택 적용 항목이고 인사 분류의
+   *  꼭대기라 ⚙ 목록에서도 직군 쪽 덩어리 앞이다(PW-502 · PW-547). */
   { id: 'jobCategory', width: 100, optionalField: 'job_category' },
+  /** 직위 — 국내식 호칭(과장). 직급(`jobLevel` = Senior)과 별개 축이다(PW-400).
+   *  ② 덩어리에서 직급 뒤·직함 앞이다(PW-547). */
+  { id: 'jobRank', width: 90 },
   /** 직함 — 명함용 대외 명칭(전무). 직급·직위와 세 축 모두 별개다(PW-502). */
   { id: 'businessTitle', width: 110, optionalField: 'business_title' },
   /** FTE — 풀타임 환산 비율 %. 고용형태와 다른 축이다(PW-481 · §1-3-g 32번). */
@@ -1585,20 +1587,24 @@ function EmployeesListView({
     //    것처럼 읽힌다(SQ1). 시트 뷰의 같은 열도 같은 이름을 쓴다.
     { id: 'dept', label: cl.dept, width: 180 },
     { id: 'squads', label: cl.squads, width: 150 },
-    { id: 'jobPosition', label: cl.jobPosition, width: 100 },
-    { id: 'jobLevel', label: cl.jobLevel, width: 100 },
-    ...(optOn('jobRank') ? [{ id: 'jobRank', label: cl.jobRank, width: 90 }] : []),
-    /* 직종 — 인사 분류의 꼭대기라 직군 바로 앞이다(직종 > 직군 > 직렬 > 직무). */
+    /* 🔴 인사 분류 8열은 «두 덩어리» 순서다 (PW-547 · 2026-08-30 정기미팅 §7 ·
+       David 확정). ① 직종 → 직군 → 직렬 → 직무 «일의 분류» 다음에
+       ② 직책 → 직급 → 직위 → 직함 «사람의 위치·호칭».
+       종전에는 직책·직급이 직군·직렬 앞이라 두 축이 섞여 읽혔다.
+       `jobTitle` 은 **직렬**의 옛 열 id 다(2026-08-10 M5-b, 이름만 남았다). */
     ...(optOn('jobCategory') ? [{ id: 'jobCategory', label: cl.jobCategory, width: 100 }] : []),
     { id: 'jobFamily', label: cl.jobFamily, width: 100 },
     { id: 'jobTitle', label: cl.jobTitle, width: 120 },
     { id: 'jobDuty', label: cl.jobDuty, width: 140 },
+    { id: 'jobPosition', label: cl.jobPosition, width: 100 },
+    { id: 'jobLevel', label: cl.jobLevel, width: 100 },
+    ...(optOn('jobRank') ? [{ id: 'jobRank', label: cl.jobRank, width: 90 }] : []),
+    /* 직함 — ② 덩어리의 맨 뒤(대외 명칭). 근무 위치 앞이라는 자리는 그대로다. */
+    ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
     { id: 'employmentType', label: cl.employmentType, width: 100 },
     /* FTE — 시트 뷰와 같은 자리(고용형태 뒤)다. 정본표 §1-3-g 의 31·32 순서. */
     ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
     { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
-    /* 직함 — 직무 뒤·근무 위치 앞. 정본 §2-1 표의 자리다. */
-    ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
     ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
@@ -1971,14 +1977,16 @@ function EmployeesListView({
       <div className="admin-emp-filterbar">
         <FilterDropdown testId="list-filter-dept" label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-squads" label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobPosition" label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobLevel" label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
-        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
-        <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        {/* 🔴 필터 칩도 표 열과 같은 «두 덩어리» 순서다 (PW-547). 칩과 열의 순서가
+            어긋나면 「직군으로 좁혀 놓고 표에서 직군 열을 찾는」 동작이 매번 어긋난다. */}
         {optionalFields.job_category === true && (
           <FilterDropdown testId="list-filter-jobCategory" label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
         )}
+        <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
+        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
+        <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobPosition" label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobLevel" label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
         {optionalFields.business_title === true && (
           <FilterDropdown testId="list-filter-businessTitle" label={labels.filters.businessTitle} value={bizTitle} options={bizTitles} onChange={(v) => { setBizTitle(v); setPage(1); }} />
         )}
@@ -2225,16 +2233,22 @@ const PANEL_FIELD_GROUPS = [
   },
   {
     id: 'classify', labelKey: 'classifySection',
+    /* 🔴 입력 칸의 순서는 «두 덩어리»다 (PW-547 · 2026-08-30 정기미팅 §7 · David 확정).
+       ① 직종 → 직군 → 직렬 → 직무 «일의 분류» 다음에
+       ② 직책 → 직급 → 직위 → 직함 «사람의 위치·호칭».
+       ① 을 먼저 두어야 직군을 고를 때 아래 두 칸의 선택지가 좁아지는 흐름이
+       위에서 아래로 읽힌다. 종전에는 직급·직위·직책이 맨 위라, 고르는 순서와
+       칸이 놓인 순서가 반대였다. */
     fields: [
-      { key: 'jobLevel', labelKey: 'level', kind: 'select', catalog: 'gradeOptions' },
-      { key: 'jobRank', labelKey: 'jobRank', kind: 'select', catalog: 'rankOptions' },
-      { key: 'jobPosition', labelKey: 'position', kind: 'select', catalog: 'positionOptions' },
       // 직종·직함은 회사가 켠 경우에만 칸이 선다(§3.1 ⚙ 정본표의 «선택 적용 필드»).
       { key: 'jobCategory', labelKey: 'jobCategory', kind: 'select', catalog: 'categoryOptions', optionalKey: 'job_category' },
       // 직군 > 직렬 > 직무 3단 — 위를 고르면 아래 선택지가 좁아진다(INV-3·INV-8).
       { key: 'jobFamily', labelKey: 'jobFamily', kind: 'select', catalog: 'jobFamilies' },
       { key: 'jobTitle', labelKey: 'jobLadder', kind: 'select', catalog: 'jobLadders', narrowBy: 'jobFamily' },
       { key: 'jobDuty', labelKey: 'jobDuty', kind: 'select', catalog: 'jobDuties', narrowBy: 'jobTitle' },
+      { key: 'jobPosition', labelKey: 'position', kind: 'select', catalog: 'positionOptions' },
+      { key: 'jobLevel', labelKey: 'level', kind: 'select', catalog: 'gradeOptions' },
+      { key: 'jobRank', labelKey: 'jobRank', kind: 'select', catalog: 'rankOptions' },
       { key: 'businessTitle', labelKey: 'businessTitle', kind: 'select', catalog: 'businessTitleOptions', optionalKey: 'business_title' },
       { key: 'employmentType', labelKey: 'employmentType', kind: 'select', catalog: 'employmentTypeOptions' },
     ],
