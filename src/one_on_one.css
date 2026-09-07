@@ -1660,6 +1660,14 @@ button.ono-add-modal-input { cursor: pointer; }
   /* 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
   overflow-wrap: anywhere;
 }
+/* 회의록 녹음이 도는 동안의 잠김 (PW-605 · policy §5.8.3 「잠그는 층」 ②).
+   버튼을 지우지 않고 잠근 채로 둔다 — 사라진 버튼은 「고장」으로 읽히고, 무엇이
+   잠겼는지도 함께 사라진다. 잠긴 모습은 이 파일의 다른 잠긴 버튼과 같은 값이다
+   (`.ono-add-modal-btn-primary:disabled`). 이유는 위 안내 문장이 말한다. */
+.ono-start-rec-restart:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .ono-start-rec-notice-close {
   display: inline-flex;
   align-items: center;
