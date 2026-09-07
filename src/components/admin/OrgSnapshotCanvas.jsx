@@ -239,10 +239,16 @@ function parseCSVLine(line) {
    한 곳에 두어 두 화면과 CSV 가 어긋나지 않게 한다("보이는 것 = 받는 것").
 
    직무(`jobDuty`)는 직렬(`jobTitle`) 바로 뒤다 — 직렬에 매달린 값이라 떨어뜨려
-   놓으면 표에서 상하 관계가 안 보인다(§1-3-a 표시 열 · PW-323). */
+   놓으면 표에서 상하 관계가 안 보인다(§1-3-a 표시 열 · PW-323).
+
+   🔴 직군·직렬·직무가 직책·직급 «앞»이다 (PW-547 · 2026-08-30 정기미팅 §7 ·
+   David 확정). 「일의 분류」와 「사람의 위치」 두 덩어리를 섞지 않는다. 같은 순서를
+   pivit-work 의 `orgSnapshotMappers.ROSTER_COLUMNS`(CSV)와 백엔드
+   `STANDARD_COLUMNS`(명부 반출)가 함께 쓴다 — 셋이 같이 움직여야 한다. */
 const ROSTER_COLUMNS = [
-  'name', 'employeeCode', 'teamPath', 'jobPosition', 'jobLevel',
-  'jobFamily', 'jobTitle', 'jobDuty', 'employmentType', 'employmentStatus',
+  'name', 'employeeCode', 'teamPath',
+  'jobFamily', 'jobTitle', 'jobDuty', 'jobPosition', 'jobLevel',
+  'employmentType', 'employmentStatus',
   'workLocation', 'managerName', 'hireDate', 'finalGrade',
 ];
 
