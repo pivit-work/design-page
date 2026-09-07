@@ -3,7 +3,7 @@
  * Figma 17026:23299.
  *
  * member: { id, name, role, percent, avatar,
- *   initiatives: [{ title, percent }], initiativeCount?, initiativeAvg?,
+ *   initiatives: [{ title, percent, status }], initiativeCount?, initiativeAvg?,
  *   initiativesLoading?, stats: { snippets, actions, jira }, alert? }
  * 선택된 카드만 흰 배경, 나머지는 회색 dim.
  *
@@ -11,7 +11,13 @@
  *   Initiative 진행률 바는 **선택된 카드 1세트만** 마운트한다. 팀원이 20명이면
  *   예전엔 카드 20개가 각자 바를 그려 마운트가 누적됐다.
  *   비선택 카드는 바 대신 "Initiative n건 · 평균 m%" 정적 요약 한 줄만 그린다.
+ *
+ * 2026-09-07 PW-604 — Initiative 바를 **상태별 색**으로 그린다 (policy §7-3).
+ *   done 초록 · in_progress 파랑 · todo 회색. `status` 가 안 오면 종전 단색 그대로다.
  */
+
+/** policy §7-3 의 3단 상태. 서버 `kr_initiatives.status` 와 같은 표기다. */
+const INITIATIVE_STATUSES = ['todo', 'in_progress', 'done'];
 
 const DEFAULT_LABELS = {
   initiativeCaption: '개인 Initiative 진행률',
@@ -69,17 +75,25 @@ export default function KrMemberCard({ member, selected = false, onClick, labels
             </div>
           ) : initiatives.length > 0 ? (
             <div className="mgr-krm-initiatives" data-testid="kr-initiative-chart">
-              {initiatives.map((item) => (
-                <div className="mgr-krm-initiative" key={item.title}>
-                  <div className="mgr-krm-initiative-row">
-                    <span className="mgr-krm-initiative-title">{item.title}</span>
-                    <span className="mgr-krm-initiative-percent">{item.percent}%</span>
+              {initiatives.map((item) => {
+                // 모르는 값이 오면 색을 지어내지 않고 기본(단색)으로 둔다.
+                const tone = INITIATIVE_STATUSES.includes(item.status) ? item.status : null;
+                return (
+                  <div className="mgr-krm-initiative" key={item.title}>
+                    <div className="mgr-krm-initiative-row">
+                      <span className="mgr-krm-initiative-title">{item.title}</span>
+                      <span className="mgr-krm-initiative-percent">{item.percent}%</span>
+                    </div>
+                    <div className="mgr-krm-bar">
+                      <div
+                        className={`mgr-krm-bar-fill${tone ? ` is-${tone}` : ''}`}
+                        data-status={tone ?? undefined}
+                        style={{ width: `${item.percent}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="mgr-krm-bar">
-                    <div className="mgr-krm-bar-fill" style={{ width: `${item.percent}%` }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="mgr-krm-empty">{l.initiativeEmpty}</p>
