@@ -6045,7 +6045,7 @@ export default function EvalCycleWizard({
                   </label>
                   {excludeEmploymentType && (
                     <div className="evc-excl-date" data-testid="evc-wiz-excl-employment-values">
-                      <div className="evc-type-row">
+                      <div className="evc-type-row evc-excl-values">
                         {employmentTypeOptions.length === 0 ? (
                           <span className="evc-wiz-hint">
                             {L.targetFilterNoValues}

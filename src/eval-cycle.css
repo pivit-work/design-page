@@ -2489,6 +2489,18 @@
   flex: 0 0 auto;
   width: 160px;
 }
+/* PW-443 3차 — 고용유형 «값 체크» 줄. `.evc-type-row` 를 그대로 쓰면 칩이 `flex: 1` 이라
+   좁은 조건 행 안에서 내용보다 작게 줄어들어 「정규 직」처럼 낱말이 잘려 감긴다.
+   값은 관리자 정의·로케일 전환으로 길이가 흔들리므로(「정규직」 ↔ 「Full-time」)
+   칩을 내용 너비로 두고 줄바꿈은 «칩 단위»로만 일어나게 한다. */
+.evc-excl-values {
+  flex-wrap: wrap;
+}
+.evc-excl-values > .evc-type-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 6px 12px;
+}
 .evc-review-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
