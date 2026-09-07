@@ -111,6 +111,19 @@ const DEFAULT_LABELS = {
     ceoTop: '조직 최상위 — 대표는 상급자를 가질 수 없습니다',
   },
   listPagination: { of: '/', prev: '이전', next: '다음' },
+  /* 행 선택 · 「일괄 처리」 드롭다운 (PW-608 · 기획 §3.1).
+     스프레드시트 뷰가 폐기되며(PW-576) 갈 곳이 없어진 「여러 명을 골라 하는 조작」이
+     이 뷰로 왔다. 라벨의 `{count}` 는 **고른 사람 수**다 — 화면에 보이는 행 수가
+     아니다(고른 뒤 필터를 바꿔도 선택은 남는다). */
+  listBulk: {
+    selectRow: '이 사람 선택',
+    selectPage: '이 쪽 전체 선택',
+    trigger: '일괄 처리 ({count})',
+    /* 「변경」이 아니라 「추가」다 — 교체를 허용하면 겸직인 사람의 나머지 소속이
+       한 번에 사라진다(PW-326). 서버 계약에도 교체 파라미터가 없다. */
+    orgAppend: '소속 일괄 추가',
+    orgAppendSubtitle: '선택 {count}명',
+  },
   /* 목록 뷰 표의 열 이름과 ⚙ 컬럼 표시 설정 (PW-400).
      🔴 `dept` 는 「부서」 가 아니라 「소속(기능조직)」 이다 — 스쿼드 열과 나란히 두면
         두 축이 같은 것처럼 읽힌다(SQ1). 시트 뷰의 같은 열도 같은 이름을 쓴다. */
@@ -1037,6 +1050,67 @@ function optionsOf(members, pick, allLabel) {
  * 들고 있으면 화면을 떠나는 순간 사라진다. `value`/`onChange` 로 소비자가 들고
  * 있게 하고(=새로고침 후에도 남는다), 미주입이면 내부 상태로 폴백한다.
  */
+/**
+ * 「일괄 처리 (N)」 드롭다운 — 기획 §3.1 상단 액션 바 (PW-608).
+ *
+ * 필터 칩(`FilterDropdown`)과 **같은 셸**을 쓴다. 툴바에 두 종류의 드롭다운이 나란히
+ * 서면 어느 쪽이 값을 고르는 것이고 어느 쪽이 일을 시키는 것인지 모양으로 구분되지
+ * 않는다 — 그래서 셸은 같게 두고 `is-active`(브랜드 색)로 «지금 고른 사람이 있다»만
+ * 말한다. 시안(`admin-app.jsx`)이 이 칸을 강조색 알약으로 그린 것과 같은 뜻이다.
+ *
+ * 🔴 `items` 가 비면 **드롭다운 자체를 렌더하지 않는다.** 권한이 없거나 처리를 주입하지
+ * 않으면 항목이 0개가 되는데, 그때 트리거만 남으면 눌러도 아무것도 없는 버튼이 된다.
+ *
+ * 이 카드가 세우는 항목은 「소속 일괄 추가」 하나다 — 나머지 3종(매니저 일괄 배정 ·
+ * 상태 일괄 변경 · 일괄 비활성화)은 PW-610 이 이 배열에 더한다.
+ */
+function BulkMenu({ count, items, labels }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+  /* 고른 사람이 0명이 되면 이 컴포넌트가 통째로 사라진다 — 열려 있던 메뉴도 `open`
+     상태와 함께 버려지므로 따로 닫아 줄 필요가 없다. */
+  if (count === 0 || items.length === 0) return null;
+  return (
+    <div ref={ref} className={`admin-emp-select is-right is-active${open ? ' is-open' : ''}`}>
+      <button
+        type="button"
+        className="admin-emp-select-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        data-testid="employees-list-bulk-trigger"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="admin-emp-select-value">{fill(labels.listBulk.trigger, { count })}</span>
+        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu" role="menu" data-testid="employees-list-bulk-menu">
+          {items.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              role="menuitem"
+              className="admin-emp-select-item"
+              data-testid={`employees-list-bulk-${it.id}`}
+              onClick={() => { setOpen(false); it.onPick(); }}
+            >
+              <span className="admin-emp-select-item-label">{it.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ColumnMenu({ cols, value, onChange, labels }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -1145,6 +1219,14 @@ function EmployeesListView({
   /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다). 미주입이면 행 메뉴에
      그 항목이 아예 없다 — 권한 없는 사람에게 눌리는 자리를 만들지 않는다. */
   onOpenCeo,
+  /* 고른 사람 id 집합과 그 변경 통지 (PW-608). 캔버스가 들고 있어야 새로고침을
+     넘어 살아남는다 — 위 `ownSelectedIds` 주석 참고. */
+  selectedIds: providedSelectedIds, onSelectedIdsChange,
+  /* 일괄 «소속 추가» (PW-608 · §3.1 「일괄 처리」 드롭다운). 폐기된 스프레드시트의
+     일괄 편집 바가 갖고 있던 계약을 그대로 승계한다 — `(memberIds, unitIds)` 를 받아
+     **추가 전용** 서버 경로를 탄다. 미주입이면 드롭다운 항목이 없고, 항목이 하나도
+     없으면 드롭다운 자체가 뜨지 않는다. */
+  onAppendAffiliations,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -1189,6 +1271,21 @@ function EmployeesListView({
   const [deptPickerFor, setDeptPickerFor] = useState(null);
   // 스쿼드 팝업을 연 구성원 id (PW-438). 시트와 **같은 `SquadPicker`** 를 연다.
   const [squadPickerFor, setSquadPickerFor] = useState(null);
+  /* 고른 사람 (PW-608). **id 를 기억한다 — 화면에 보이는 행이 아니다.**
+     체크한 뒤 필터를 바꾸거나 쪽을 넘겨도 선택이 살아 있어야 「선택한 N명」 내보내기가
+     화면과 무관하게 그 사람들을 담는다(정책 §9 E5). 행 배열로 들고 있으면 필터가
+     걸리는 순간 조용히 사라진다.
+
+     🔴 **정본은 바깥(캔버스)이다.** 이 뷰는 새로고침 때마다 통째로 사라졌다 다시
+     생긴다 — 캔버스가 `loading` 이면 로딩 문구로 갈아 끼우기 때문이고, 소속·매니저를
+     한 번 고치기만 해도 그 새로고침이 돈다. 여기서 들고 있으면 그때마다 체크가
+     **말없이 풀린다**(브라우저 검증에서 잡았다: 일괄 추가를 적용한 직후 선택이 0 이 됐다).
+     미주입일 때만 자기 상태로 폴백한다 — ⚙ 열 설정과 같은 규칙이다. */
+  const [ownSelectedIds, setOwnSelectedIds] = useState(() => new Set());
+  const selectedIds = providedSelectedIds ?? ownSelectedIds;
+  const setSelectedIds = onSelectedIdsChange ?? setOwnSelectedIds;
+  // 「소속 일괄 추가」 팝업 열림 (PW-608).
+  const [bulkOrgOpen, setBulkOrgOpen] = useState(false);
   // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
   // 내부 상태로 폴백한다.
   const [ownOptCols, setOwnOptCols] = useState(LIST_DEFAULT_OPT_COLS);
@@ -1367,6 +1464,65 @@ function EmployeesListView({
   const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pageRows = ordered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  /* ── 행 선택 (PW-608 · 기획 §3.1) ─────────────────────────────────────────
+   * 체크박스는 **편집 권한이 있을 때만** 세운다. 골라도 할 수 있는 일이 없는 선택을
+   * 만들지 않는다 — 내보내기 범위 ② 도 어드민 전용이라 권한 없는 사람에게는 체크칸이
+   * 아무 데도 닿지 않는다.
+   * -------------------------------------------------------------------------- */
+  const selectable = canEdit === true;
+  /* 고른 사람 중 **아직 명부에 있는 사람**만 센다. 필터로 화면에서 사라진 사람은 그대로
+     세지만(정책 §9 E5), 명부에서 아예 없어진 사람(퇴사 처리·삭제)까지 세면 화면의 N 과
+     파일의 행 수가 갈린다. */
+  const selectedRows = useMemo(
+    () => (selectable ? members.filter((m) => selectedIds.has(m.id)) : []),
+    [selectable, members, selectedIds],
+  );
+  const selectedCount = selectedRows.length;
+  /* 헤더 체크박스는 **지금 보고 있는 쪽**만 켜고 끈다. 안 보이는 쪽까지 켜면 「몇 명을
+     골랐나」를 화면이 말해 주지 않은 채 숫자만 뛴다. */
+  const pageAllChecked = pageRows.length > 0 && pageRows.every((m) => selectedIds.has(m.id));
+  function toggleRow(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function togglePage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (pageAllChecked) pageRows.forEach((m) => next.delete(m.id));
+      else pageRows.forEach((m) => next.add(m.id));
+      return next;
+    });
+  }
+
+  /**
+   * 일괄 «소속 추가» 적용 (PW-608 · PW-373 계약 승계).
+   *
+   * 🔴 각자의 「기존 + 추가」를 여기서 합성하지 않는다. 합성이 틀리는 순간이 곧 소속
+   * 소실이고 그것이 PW-326 의 발단이었다 — 고른 사람 id 와 고른 조직 id 만 넘긴다.
+   */
+  async function applyBulkOrgAppend(unitIds) {
+    setBulkOrgOpen(false);
+    if (!onAppendAffiliations || !unitIds || unitIds.length === 0) return;
+    const memberIds = selectedRows.map((m) => m.id);
+    if (memberIds.length === 0) return;
+    await onAppendAffiliations(memberIds, unitIds);
+  }
+
+  /* 드롭다운 항목. 처리를 주입받지 못한 항목은 배열에 들어가지 않고, 배열이 비면
+     `BulkMenu` 가 트리거째 렌더하지 않는다. */
+  const bulkItems = [];
+  if (selectable && onAppendAffiliations && orgUnits.length > 0) {
+    bulkItems.push({
+      id: 'org-append',
+      label: labels.listBulk.orgAppend,
+      onPick: () => setBulkOrgOpen(true),
+    });
+  }
   const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
     || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
     || category !== LIST_ALL || bizTitle !== LIST_ALL
@@ -1417,6 +1573,8 @@ function EmployeesListView({
     return !field || optionalFields[field] === true;
   };
   const cols = [
+    /* 체크박스 — 상시 컬럼 **첫 항목**이다(§3.1). 권한이 없으면 열째 없다. */
+    ...(selectable ? [{ id: 'select', label: '', width: 40 }] : []),
     { id: 'name', label: cl.name, width: 200 },
     ...(optOn('nickname') ? [{ id: 'nickname', label: cl.nickname, width: 110 }] : []),
     ...(optOn('displayName') ? [{ id: 'displayName', label: cl.displayName, width: 130 }] : []),
@@ -1474,6 +1632,8 @@ function EmployeesListView({
     dept: 'department',
     manager: 'managerName',
     actions: null,
+    // 체크박스는 표시용이라 파일의 열이 아니다(정책 §4-1 표 「체크박스 → 제외」).
+    select: null,
   };
   const exportColumns = cols
     .map((c) => (c.id in EXPORT_COLUMN_BY_LIST_COL ? EXPORT_COLUMN_BY_LIST_COL[c.id] : c.id))
@@ -1538,12 +1698,15 @@ function EmployeesListView({
     onExportRoster({
       scope,
       columns: includeSalary ? exportColumns : exportColumns.filter((id) => id !== 'salary'),
-      // 목록 뷰에는 행 체크박스가 없어 「선택한 N명」 범위 자체가 없다 — ids 는 늘 빈다.
-      ids: [],
-      search: q.trim(),
-      filters: { ...exportFilters },
+      /* ②「선택한 N명」 은 **고른 사람 id 기준**이다 — 검색어·필터를 함께 보내지 않는다.
+         체크한 뒤 필터를 바꿔 그 행이 화면에서 사라져도 파일에는 그대로 담겨야 하고,
+         조건을 함께 보내면 서버가 교집합을 내 그 사람들이 빠진다(정책 §9 E5). */
+      ids: scope === 'selected' ? selectedRows.map((m) => m.id) : [],
+      search: scope === 'selected' ? '' : q.trim(),
+      filters: scope === 'selected' ? {} : { ...exportFilters },
       // 페이지네이션은 무시한다 — 현재 페이지 20행이 아니라 **필터 결과 전체**다(§4-0).
-      rowCount: ordered.length,
+      // ② 만 필터 결과가 아니라 «고른 사람 수»를 센다.
+      rowCount: scope === 'selected' ? selectedCount : ordered.length,
       includeSalary: includeSalary && salaryVisible,
     });
   }
@@ -1557,8 +1720,10 @@ function EmployeesListView({
     runExport(scope, false);
   }
 
-  /* ②「선택한 N명」 은 체크한 행이 있을 때만 렌더되는 항목이고(§2-2), 목록 뷰에는
-     행 체크박스가 없다 — `selectedRows` 를 주지 않아 항목이 아예 나오지 않는다. */
+  /* ②「선택한 N명」 은 체크한 행이 있을 때만 렌더되는 항목이다(§2-2). 목록 뷰에도
+     행 체크박스가 생겼으므로(PW-608) 고른 사람이 있으면 항목이 나온다 — 정책서가
+     PW-411 시점에 적어 둔 「목록 뷰에는 체크박스가 없어 안 나온다」 는 그때의 관측이고
+     PW-576 이 그 어긋남을 표시하며 «미조사» 로 남겨 둔 자리다. */
   const exportItems = buildExportItems({
     labels: exportLabels,
     viewRows: ordered,
@@ -1566,6 +1731,7 @@ function EmployeesListView({
     columnCount: exportColumns.length,
     hasActiveFilter: Boolean(hasFilter),
     salaryVisible,
+    selectedRows,
   });
 
   /* 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 `orgUnitIds` 폴백.
@@ -1612,6 +1778,20 @@ function EmployeesListView({
 
   function cell(m, id) {
     switch (id) {
+      /* 행 체크박스 (PW-608). 이름 칸의 버튼과 달리 **편집 패널을 열지 않는다** —
+         고르는 동작과 여는 동작이 같은 행에 나란히 있으므로 서로를 삼키지 않게
+         체크박스는 자기 칸 안에서만 눌린다. */
+      case 'select':
+        return (
+          <input
+            type="checkbox"
+            className="admin-emp-row-check"
+            checked={selectedIds.has(m.id)}
+            onChange={() => toggleRow(m.id)}
+            data-testid={`employees-list-check-${m.id}`}
+            aria-label={`${m.displayName || m.name} — ${labels.listBulk.selectRow}`}
+          />
+        );
       case 'name':
         return (
           <button type="button" className="admin-emp-cell-name" onClick={() => onOpenEdit(m)}>
@@ -1762,6 +1942,9 @@ function EmployeesListView({
           <span className="admin-emp-count">{ordered.length}{labels.countSuffix}</span>
         </div>
         <div className="admin-emp-toolbar-actions">
+          {/* 「일괄 처리 (N)」 — 고른 사람이 있을 때만 뜬다(§3.1). 시안과 같이 ⚙ 컬럼
+              **앞**이다: 고르는 동작의 결과라 선택 상태 가까이 있어야 읽힌다. */}
+          <BulkMenu count={selectedCount} items={bulkItems} labels={labels} />
           <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} />
           {/* 「⚙ 컬럼」 과 「CSV 업로드」 **사이**다(정책 §2-1) — 업로드와 방향이
               헷갈리지 않게 라벨도 「명부 내보내기」 로 둔다. */}
@@ -1819,7 +2002,20 @@ function EmployeesListView({
               {cols.map((c) => (
                 /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
                    읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
-                <th key={c.id} data-testid={`list-head-${c.id}`} style={{ width: c.width }} scope="col">{c.label}</th>
+                <th key={c.id} data-testid={`list-head-${c.id}`} style={{ width: c.width }} scope="col">
+                  {c.id === 'select' ? (
+                    /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
+                       몇 명을 골랐는지 말해 주지 않은 채 숫자만 뛴다. */
+                    <input
+                      type="checkbox"
+                      className="admin-emp-row-check"
+                      checked={pageAllChecked}
+                      onChange={togglePage}
+                      data-testid="employees-list-check-all"
+                      aria-label={labels.listBulk.selectPage}
+                    />
+                  ) : c.label}
+                </th>
               ))}
             </tr>
           </thead>
@@ -1868,6 +2064,27 @@ function EmployeesListView({
         />
       )}
 
+      {/* 일괄 «소속 추가» 팝업 (PW-608) — 폐기된 스프레드시트의 같은 팝업을 그대로
+          가져왔다. 두 가지가 단건 소속 팝업과 다르다:
+            · `selectedIds={[]}` — 고른 사람마다 소속이 달라 「지금 상태」를 그릴 수 없다.
+              빈 채로 열어 **더할 것만** 고르게 한다.
+            · `primarySelectable={false}` — 주 소속은 이 조작으로 바뀌지 않는다. 칸을
+              두면 「여러 명의 주 소속을 한 번에 갈아 끼운다」로 읽힌다.
+          조직장 지정(`onToggleLeader`)도 주지 않는다 — 사람마다 따져야 하는 조작이다. */}
+      {bulkOrgOpen && selectable && onAppendAffiliations && orgUnits.length > 0 && (
+        <OrgTreePicker
+          open
+          multi
+          primarySelectable={false}
+          units={orgUnits}
+          selectedIds={[]}
+          subtitle={fill(labels.listBulk.orgAppendSubtitle, { count: selectedCount })}
+          onApply={({ unitIds }) => applyBulkOrgAppend(unitIds)}
+          onClose={() => setBulkOrgOpen(false)}
+          labels={labels.orgPicker}
+        />
+      )}
+
       {/* 스쿼드 선택 팝업 (PW-438) — 시트 뷰와 **같은 `SquadPicker`** 다.
           정본 §3.1 이 이 뷰에 정해 둔 「셀 클릭 → 팝업」 경로이며, 리드 교체
           확인 모달(SQ10)·승격 안내 없음(SQ11)까지 부품이 그대로 들고 온다. */}
@@ -1900,7 +2117,9 @@ function EmployeesListView({
 
       {salaryGateScope && (
         <SalaryExportModal
-          count={ordered.length}
+          // ② 를 고른 채 연봉 확인 창을 열면 «고른 사람 수»가 맞다 — 필터 결과 수를
+          // 보여주면 창이 말한 인원과 실제 파일의 행 수가 갈린다.
+          count={salaryGateScope === 'selected' ? selectedCount : ordered.length}
           columnCount={exportColumns.length}
           labels={exportLabels}
           onClose={() => setSalaryGateScope(null)}
@@ -2870,9 +3089,12 @@ export default function AdminEmployeesCanvas({
   onSaveMembers,
   /* ⛔ `onDeleteMember` 폐기 (PW-576) — 행을 지우는 것은 폐기된 시트에만 있었다.
      목록 행의 파괴적 동작은 «비활성화»(`onDeactivateMember`) 하나다(§3.1 행 액션). */
-  /* ⛔ `onAppendAffiliations`(일괄 «소속 추가») 폐기 (PW-576) — 여러 명을 체크해
-     한꺼번에 처리하던 자리가 시트와 함께 사라졌다. 목록 표에 행 체크박스와
-     「일괄 처리」 드롭다운을 세우는 것은 **PW-608** 이며, 그때 이 계약이 돌아온다. */
+  /* 일괄 «소속 추가» — `(memberIds, unitIds) => Promise` (PW-373 → PW-576 로 잠시
+     사라졌다가 PW-608 로 돌아왔다). 목록 표의 행 체크박스로 여러 명을 고른 뒤
+     「일괄 처리」 드롭다운에서 부른다. 서버 계약은 **추가 전용**이라 교체 파라미터가
+     없다 — 교체를 허용하면 겸직인 사람의 나머지 소속이 한 번에 사라진다(PW-326).
+     미주입이면 드롭다운에 그 항목이 없다. */
+  onAppendAffiliations,
   onLoadSalaryHistory,
   onAddSalaryHistory,
   onLoadHrProfile,
@@ -2925,6 +3147,12 @@ export default function AdminEmployeesCanvas({
   // 편집 패널이 열린 구성원 id. 패널은 표 **바깥**에 그린다 — 표 안에 두면 탭을
   // 옮길 때 패널까지 함께 묻힌다.
   const [editMemberId, setEditMemberId] = useState(null);
+
+  /* 목록 표에서 고른 사람 (PW-608).
+     🔴 **목록 뷰가 아니라 여기가 정본이다.** 아래에서 `loading` 일 때 그 뷰를 로딩
+     문구로 갈아 끼우므로, 뷰 안에 두면 새로고침 한 번에 체크가 말없이 풀린다 —
+     소속·매니저를 한 번 고치기만 해도 그 새로고침이 돈다. */
+  const [listSelectedIds, setListSelectedIds] = useState(() => new Set());
   /* 대표(CEO) 지정·해제 확인 창 (§3.6-A · PW-576). 행 «⋯» 메뉴가 연다. */
   const [ceoConfirm, setCeoConfirm] = useState(null);
   // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
@@ -3056,6 +3284,12 @@ export default function AdminEmployeesCanvas({
             initialSearch={initialSearch}
             initialFilters={initialFilters ?? EMPTY_OBJECT}
             onViewStateChange={onViewStateChange}
+            /* 고른 사람 (PW-608) — 새로고침으로 이 뷰가 사라졌다 다시 생겨도 남는다. */
+            selectedIds={listSelectedIds}
+            onSelectedIdsChange={setListSelectedIds}
+            /* 일괄 «소속 추가» (PW-608) — 미주입이면 「일괄 처리」 드롭다운에 항목이
+               없고, 항목이 하나도 없으면 드롭다운 자체가 뜨지 않는다. */
+            onAppendAffiliations={canEdit ? onAppendAffiliations : undefined}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo
