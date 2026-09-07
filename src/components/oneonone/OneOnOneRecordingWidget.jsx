@@ -36,6 +36,13 @@ import useMicWave from '../shared/useMicWave.js';
  *                    버튼 자체를 그리지 않는다 — 눌러도 아무 일이 없는 버튼은 「녹음이
  *                    안 되는구나」를 더 헷갈리게 만든다.
  *   - startLabel   : 그 버튼의 문구. 로케일은 소비처에 있다.
+ *   - startDisabled: 그 버튼을 잠근다. 마이크라는 자원이 이미 다른 녹음에 잡혀 있고
+ *                    그것은 이 화면에서 풀 수 없을 때 쓴다 — 버튼을 «지우지» 않는
+ *                    이유는, 사라진 버튼이 「고장」으로 읽히기 때문이다. 잠긴 이유는
+ *                    `notice` 가 말한다(소비처가 문구를 바꿔 준다).
+ *   - startDisabledTitle : 잠긴 버튼에 마우스를 올렸을 때의 설명. 🔴 **잠겼을 때만**
+ *                    붙인다 — 열려 있는 버튼에 「…하면 시작할 수 있습니다」가 뜨면
+ *                    눌리는 버튼이 못 누르는 것처럼 읽힌다.
  *   - onNoticeClose: 안내를 닫는 콜백. 없으면 닫기 버튼을 그리지 않는다.
  *   - closeLabel   : 닫기 버튼의 접근성 이름.
  *   - onCollapse   : 「접기」 버튼 클릭 콜백 (PW-578 · policy §5.7.3 첫째 물음).
@@ -131,6 +138,8 @@ export default function OneOnOneRecordingWidget({
   idle = false,
   onStart,
   startLabel = '녹음 다시 시작',
+  startDisabled = false,
+  startDisabledTitle,
   onNoticeClose,
   closeLabel = '안내 닫기',
   onCollapse,
@@ -169,6 +178,10 @@ export default function OneOnOneRecordingWidget({
                   type="button"
                   className="ono-start-rec-restart"
                   onClick={onStart}
+                  disabled={startDisabled}
+                  {...(startDisabled && startDisabledTitle
+                    ? { title: startDisabledTitle }
+                    : null)}
                 >
                   {startLabel}
                 </button>

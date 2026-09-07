@@ -226,6 +226,8 @@ export default function StartOneOnOneView({
   recordingIdle = false,
   onRestartRecording,
   recordingRestartLabel,
+  restartLocked = false,
+  restartLockedTitle,
   onRecordingNoticeClose,
   recordingNoticeCloseLabel,
   // 녹음 바를 손으로 접는다 (PW-578 · policy §5.7.3). 콜백이 없으면 버튼도 없다 —
@@ -546,6 +548,8 @@ export default function StartOneOnOneView({
             {...(recordingRestartLabel
               ? { startLabel: recordingRestartLabel }
               : null)}
+            startDisabled={restartLocked}
+            startDisabledTitle={restartLockedTitle}
             onNoticeClose={onRecordingNoticeClose}
             {...(recordingNoticeCloseLabel
               ? { closeLabel: recordingNoticeCloseLabel }
