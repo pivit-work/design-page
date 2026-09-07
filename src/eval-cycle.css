@@ -2911,6 +2911,24 @@
 .evc-org-row.is-dept .evc-org-name {
   font-weight: 600;
 }
+/* PW-443 규칙 11 — 조직 «이름» 은 「그 조직만 보기」 손잡이다(체크박스와 다른 조작).
+   버튼이지만 트리 행에서는 텍스트로 읽혀야 해서 크롬을 벗기고 텍스트 정렬만 맞춘다. */
+.evc-org-name-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evc-org-name-btn:hover {
+  text-decoration: underline;
+}
+.evc-org-name-btn.is-focused {
+  color: var(--brand-solid, #0d9488);
+  font-weight: 600;
+}
 .evc-org-n {
   font-size: 11px;
   color: var(--text-tertiary);
