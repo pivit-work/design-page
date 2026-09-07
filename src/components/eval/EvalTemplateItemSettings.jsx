@@ -1,3 +1,4 @@
+import EvalNoteBlock from './EvalNoteBlock.jsx';
 import {
   CHECK_MAX_OPTIONS,
   CHECK_MIN_OPTIONS,
@@ -5,13 +6,18 @@ import {
   DISCLOSURE_AUDIENCES,
   GUIDE_DISPLAYS,
   IDENTITY_OPTIONS,
+  QUESTION_TYPES,
   SCALE_MAX_MAX,
   SCALE_MAX_MIN,
   SCALE_PRESETS,
   clampScaleMax,
   fill,
+  isNoteItem,
   scaleMaxOf,
 } from './evalTemplateItemModel.js';
+
+/** 가이드 문구가 이보다 길면 「툴팁을 권합니다」 힌트를 띄운다 — 차단하지 않는다(§5.11-D). */
+const GUIDE_LONG_AT = 200;
 
 /**
  * 평가 «항목 하나»의 설정판 — 척도 길이·양끝 의미(§5.11-A) · 체크 선택지·복수 선택(§5.11-B) ·
@@ -46,11 +52,73 @@ export default function EvalTemplateItemSettings({
   onPatchDisclosure,
   onToggleAudience,
   onClose,
+  /**
+   * [PW-602 ①] 이 단계가 잠겨 있는가(제출이 1건이라도 있는가 — policy §5.10.3 L1·L2).
+   *
+   * 잠긴 화면에는 유형 안내를 **띄우지 않는다.** 그 자리에는 이미 잠금 사유 문구가 있고,
+   * 두 안내가 겹치면 「삭제하면 되나」로 읽히는데 잠긴 단계에서는 **삭제도 막혀 있다** —
+   * 할 수 없는 일을 시키는 안내가 된다.
+   */
+  phaseLocked = false,
 }) {
   const scaleMax = scaleMaxOf(q);
   const guideDisplay = q.descriptionDisplay || 'tooltip';
+  const isNote = isNoteItem(q);
+
+  // [PW-602 ④] 설명 항목 — 유형별 설정·가이드 표시 방식·결과 공개 범위를 **띄우지 않는다.**
+  // 답이 없으므로 그 축들이 성립하지 않는다(데이터 모델 CHECK 가 같은 것을 NULL 로 강제한다).
+  // 여기에 「비활성으로 그리기」를 고르지 않은 이유: 비활성 컨트롤은 「지금은 못 쓴다」로
+  // 읽히는데, 이 축들은 «나중에도» 성립하지 않는다.
+  if (isNote) {
+    return (
+      <div className="evc-tpl-settings" data-testid={`evc-tpl-settings-${q.id}`}>
+        <div className="evc-tpl-set-block is-last">
+          <div className="evc-tpl-set-title">
+            {L.noteBodyTitle} <span className="evc-tpl-set-note">{L.noteBodyHint}</span>
+          </div>
+          <textarea
+            className="evc-input evc-tpl-set-textarea"
+            rows={5}
+            value={q.description ?? ''}
+            placeholder={L.noteBodyPlaceholder}
+            onChange={(e) => onPatch(q.id, { description: e.target.value })}
+            data-testid={`evc-tpl-note-body-${q.id}`}
+          />
+          <p className="evc-tpl-set-help">{L.noteFormatHelp}</p>
+          {String(q.description ?? '').trim() && (
+            <div className="evc-tpl-note-preview">
+              <p className="evc-tpl-set-note">{L.notePreviewLabel}</p>
+              <EvalNoteBlock item={q} testId={`evc-tpl-note-preview-${q.id}`} />
+            </div>
+          )}
+        </div>
+        <div className="evc-tpl-set-foot">
+          <button
+            type="button"
+            className="evc-btn is-ghost"
+            onClick={onClose}
+            data-testid={`evc-tpl-settings-close-${q.id}`}
+          >
+            {L.itemSettingsClose}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="evc-tpl-settings" data-testid={`evc-tpl-settings-${q.id}`}>
+      {/* ⓪ 유형 안내 — [PW-602 ①] policy §5.11-E.
+          «컨트롤이 아니다» — 배지와 문구뿐이고 누를 수 있는 것을 두지 않는다.
+          유형은 항목을 만들 때만 정해지며, 바꾸려면 지우고 새로 만든다. */}
+      {!phaseLocked && (
+        <div className="evc-tpl-kind-note" data-testid={`evc-tpl-kind-note-${q.id}`}>
+          <span className="evc-tpl-item-type">
+            {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+          </span>
+          <span className="evc-tpl-set-note">{L.responseTypeFixedNote}</span>
+        </div>
+      )}
       {q.type === 'rating' && (
         <div className="evc-tpl-set-block">
           <div className="evc-tpl-set-title">{L.scaleSettingsTitle}</div>
@@ -77,6 +145,14 @@ export default function EvalTemplateItemSettings({
                 {fill(L.scalePresetChip, { n })}
               </button>
             ))}
+            {/* [PW-602 ②] 칩은 «바로가기»이지 선택지가 아니다 — policy §5.11-A.
+                어드민이 숫자 입력을 «보고도» 「3·5·7·10만 적용될 것 같다」고 읽었다.
+                칩 넷이 나란히 강조돼 있으면 그 넷이 목록으로 읽히므로 상시 문구로 갈라 준다.
+                (칩에 없는 값이면 위 map 의 `scaleMax === n` 이 전부 거짓이라 넷 다 꺼진
+                 채로 그려진다 — 고장이 아니라 정상 상태다.) */}
+            <span className="evc-tpl-set-note" data-testid={`evc-tpl-scale-anyvalue-${q.id}`}>
+              {fill(L.scaleAnyValueNote, { min: SCALE_MAX_MIN, max: SCALE_MAX_MAX })}
+            </span>
           </div>
           {/* 숫자만으로는 '5점이 좋은 쪽인지'조차 알 수 없다 — 역방향 척도를 쓰는 조직이 있다. */}
           <div className="evc-tpl-set-row">
@@ -157,13 +233,24 @@ export default function EvalTemplateItemSettings({
       {/* ② 가이드 문구 — 「노출 여부」는 이 축이고 「누가 보는가」는 아래 축이다. */}
       <div className="evc-tpl-set-block">
         <div className="evc-tpl-set-title">{L.guideTitle}</div>
-        <input
-          className="evc-input"
+        {/* [PW-602 ③] 여러 줄 입력 — policy §5.11-D.
+            저장은 처음부터 제약이 없었다(`description` 은 TEXT). 막고 있던 것은
+            한 줄 `<input>` 하나뿐이라 **데이터 모델 변경이 0건**이다. */}
+        <textarea
+          className="evc-input evc-tpl-set-textarea"
+          rows={3}
           value={q.description ?? ''}
           placeholder={L.itemDescPlaceholder}
           onChange={(e) => onPatch(q.id, { description: e.target.value })}
           data-testid={`evc-tpl-desc-${q.id}`}
         />
+        {/* 상한을 새로 두지 않는다 — 길면 상시 표시가 평가지를 밀어내므로 «표시 방식»으로
+            다룬다. 차단이 아니라 권유다(§5.11-D 「길이」). */}
+        {(q.description ?? '').length > GUIDE_LONG_AT && (
+          <p className="evc-tpl-set-help" data-testid={`evc-tpl-guide-long-${q.id}`}>
+            {L.guideLongHint}
+          </p>
+        )}
         <div className="evc-tpl-set-row">
           <span className="evc-tpl-set-note">{L.guideDisplayLabel}</span>
           {GUIDE_DISPLAYS.map((o) => (

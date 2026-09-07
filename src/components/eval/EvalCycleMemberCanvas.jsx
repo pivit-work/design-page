@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
+import { isNoteItem } from './evalTemplateItemModel.js';
 import {
   TrendIcon,
   TargetIcon,
@@ -90,6 +92,20 @@ function buildFields(template, L) {
     return template.items
       .filter((it) => it.category !== '최종 등급 결정')
       .map((it) => {
+        // [PW-602 ④] 설명 항목은 답을 받지 않는다 — 폼 필드가 아니라 «글»이다.
+        // 아래 `questionFields` 가 이것들을 걸러 내므로, 진행률·미입력·필수 검증은
+        // 계수 자리를 하나하나 고치지 않아도 자동으로 설명을 세지 않는다(불변식 ②).
+        if (isNoteItem(it)) {
+          return {
+            key: it.id,
+            templateItemId: it.id,
+            category: it.category,
+            type: 'note',
+            section: it.category || '평가 항목',
+            text: it.label ?? null,
+            description: it.description ?? null,
+          };
+        }
         // eval_template_items.responseType: text/scale/grade/checkbox → 폼 입력 유형.
         // 시안: 피평가자는 grade 부여 대신 코멘트 → textarea.
         const type =
@@ -110,6 +126,10 @@ function buildFields(template, L) {
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
           description: it.description ?? null,
+          // [PW-602 ③] 가이드 문구를 «어떻게» 보여줄지는 설계자가 정한다(§5.11-D).
+          // 개정 전 이 화면은 이 값을 통째로 무시하고 늘 툴팁으로만 그렸다 — 「표시 안 함」도
+          // 「항목 아래 상시 표시」도 화면에 닿지 않았고, 서식이 그려질 자리가 아예 없었다.
+          descriptionDisplay: it.descriptionDisplay || 'tooltip',
           visibleToRoles: it.visibleToRoles ?? null,
           // PW-433 ①③ — 척도 길이·양끝 의미·선택지는 **항목이 들고 온다**. 화면이
           // 5점을 고정하면 설계자가 정한 7점 척도가 작성 화면에서 5점으로 보인다.
@@ -133,6 +153,7 @@ function buildFields(template, L) {
     requiresRationale: false,
     score: f.score,
     description: null,
+    descriptionDisplay: 'tooltip',
     visibleToRoles: null,
     scaleMax: null,
     scaleAnchorMin: null,
@@ -227,7 +248,14 @@ export default function EvalCycleMemberCanvas({
   showVisibility = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const fields = useMemo(() => buildFields(template, L), [template, L]);
+  // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
+  const entries = useMemo(() => buildFields(template, L), [template, L]);
+  /**
+   * [PW-602 ④ 불변식 ②] 답을 받는 항목만. 아래의 상태 시드·진행률·미입력·필수 검증은
+   * 전부 이것을 본다 — 계수 자리를 하나씩 고치는 대신 **들어오는 자리에서 한 번** 가른다.
+   * 「미입력에서 뺀다」로만 적으면 진행률과 배지가 남는다(policy §5.11-F).
+   */
+  const fields = useMemo(() => entries.filter((f) => f.type !== 'note'), [entries]);
   const [state, setState] = useState(() => seedState(answers, fields));
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
@@ -465,7 +493,8 @@ export default function EvalCycleMemberCanvas({
 
   // 섹션(section) 별 그룹핑 — 등장 순서 유지.
   const sections = [];
-  fields.forEach((f) => {
+  // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다(맨 앞·사이·맨 뒤).
+  entries.forEach((f) => {
     let g = sections.find((s) => s.title === f.section);
     if (!g) {
       g = { title: f.section, fields: [] };
@@ -637,7 +666,11 @@ export default function EvalCycleMemberCanvas({
         {sections.map((sec) => (
           <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
             <h3 className="evc-card-name">{sec.title}</h3>
-            {sec.fields.map((f) => (
+            {sec.fields.map((f) =>
+              /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
+              f.type === 'note' ? (
+                <EvalNoteBlock key={f.key} item={f} testId={`evm-note-${f.key}`} />
+              ) : (
               <div
                 className="evm-field"
                 key={f.key}
@@ -648,8 +681,19 @@ export default function EvalCycleMemberCanvas({
                 {(sec.fields.length > 1 || f.description) && (
                   <span className="evc-field-label">
                     {f.label}
-                    <FieldInfo description={f.description} />
+                    {/* [PW-602 ③] 표시 방식 셋을 실제로 따른다 — 「표시 안 함」이면 아무것도,
+                        「툴팁」이면 ⓘ 말풍선, 「항목 아래 상시」면 아래 블록으로. */}
+                    {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
+                      <FieldInfo description={f.description} />
+                    )}
                   </span>
+                )}
+                {f.description && (f.descriptionDisplay || 'tooltip') === 'inline' && (
+                  <EvalMarkdownLite
+                    text={f.description}
+                    className="evc-md evm-field-guide"
+                    testId={`evm-guide-${f.key}`}
+                  />
                 )}
                 {f.type === 'rating' ? (
                   <>
@@ -755,7 +799,8 @@ export default function EvalCycleMemberCanvas({
                   />
                 )}
               </div>
-            ))}
+              ),
+            )}
           </section>
         ))}
       </div>

@@ -14,9 +14,12 @@ import {
   DEFAULT_CHECK_OPTIONS,
   DEFAULT_DISCLOSURE,
   DEFAULT_MIN_RESPONSES,
+  NOTE_KIND,
   QUESTION_TYPES,
   fill,
   filledOptions,
+  isNoteItem,
+  questionItems,
   scaleMaxOf,
   sectionColor,
 } from './evalTemplateItemModel.js';
@@ -1192,13 +1195,24 @@ function StepBar({ steps, current, labels: L, onJump, isSkipped = () => false })
   );
 }
 
-// 평가 항목 추가 폼 — section·text·type 입력 후 추가.
+/**
+ * 평가 항목 추가 폼 — section·text·type 입력 후 추가.
+ *
+ * [PW-602 ①] 유형은 **여기서만** 정해진다. 만든 뒤에는 바꾸는 경로가 없으므로
+ * (policy §5.11-E 불변식) 그 사실을 이 줄에서 말한다 — 항목을 만들고 나서 알면 늦다.
+ *
+ * [PW-602 ④] 「설명」은 **다섯 번째 응답 유형이 아니다.** 다른 축(`itemKind`)이고,
+ * 같은 셀렉트에 두는 이유는 설계자가 «항목을 추가할 때» 한자리에서 고르기 때문뿐이다.
+ */
 function AddQuestionRow({ onAdd, labels: L }) {
   const [section, setSection] = useState('성과 (What)');
   const [text, setText] = useState('');
   const [type, setType] = useState('textarea');
+  const isNote = type === NOTE_KIND;
+  // 설명은 제목이 «선택»이라 비어 있어도 추가된다 — 본문은 설정 패널에서 적는다.
+  const canAdd = isNote || !!text.trim();
   const submit = () => {
-    if (!text.trim()) return;
+    if (!canAdd) return;
     onAdd(section, text, type);
     setText('');
   };
@@ -1215,17 +1229,34 @@ function AddQuestionRow({ onAdd, labels: L }) {
         className="evc-input"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={L.templateItemPlaceholder}
+        placeholder={isNote ? L.noteTitlePlaceholder : L.templateItemPlaceholder}
         data-testid="evc-tpl-add-text"
       />
-      <select className="evc-input" value={type} onChange={(e) => setType(e.target.value)}>
+      <select
+        className="evc-input"
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        aria-label={L.templateItemTypeLabel}
+        data-testid="evc-tpl-add-type"
+      >
         {QUESTION_TYPES.map((t) => (
           <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
         ))}
+        <option value={NOTE_KIND}>{L.qKindNoteOption}</option>
       </select>
-      <button type="button" className="evc-btn is-ghost" onClick={submit} data-testid="evc-tpl-add-item">
+      <button
+        type="button"
+        className="evc-btn is-ghost"
+        onClick={submit}
+        disabled={!canAdd}
+        data-testid="evc-tpl-add-item"
+      >
         {L.templateAddItem}
       </button>
+      {/* [PW-602 ①] policy §5.11-E — 유형은 «여기서만» 정해진다. */}
+      <span className="evc-tpl-set-note" data-testid="evc-tpl-add-type-fixed-note">
+        {L.responseTypeChooseNowNote}
+      </span>
     </div>
   );
 }
@@ -1299,7 +1330,9 @@ function TemplateBriefPreview({ tpl, labels: L }) {
     <div className="evc-tpl-peek" data-testid={`evc-tpl-peek-${tpl.id}`}>
       <div>
         <p className="evc-tpl-peek-title">
-          {fill(L.tplPeekItems, { count: (tpl.questions || []).length })}
+          {/* [PW-602 ④ 불변식 ②] 설명 항목은 어떤 완성도 계수에도 들어가지 않는다.
+              🔴 계수는 «자리마다» 따로 세어진다 — 이 파일에만 네 자리가 있다. */}
+          {fill(L.tplPeekItems, { count: questionItems(tpl.questions).length })}
         </p>
         <div className="evc-tpl-peek-secs">
           {groups.map((g) => (
@@ -1310,16 +1343,28 @@ function TemplateBriefPreview({ tpl, labels: L }) {
                   style={{ background: sectionColor(g.sec) }}
                 />
                 <span className="evc-tpl-peek-sec-name">{g.sec}</span>
-                <span className="evc-tpl-peek-sec-count">{g.items.length}</span>
+                {/* [PW-602 ④ 불변식 ②] 「항목 N개」는 «물어보는» 항목의 수다.
+                    계수는 자리마다 따로 세어지므로 세는 자리마다 이 함수를 거친다. */}
+                <span className="evc-tpl-peek-sec-count">{questionItems(g.items).length}</span>
               </div>
               <div className="evc-tpl-peek-items">
                 {g.items.map((q, i) => (
                   <div key={q.id || i} className="evc-tpl-peek-item">
                     {/* 항목 본문이다. 여기가 비면 미리보기가 존재할 이유가 없어진다
                         (policy `screen-eval-template-library.policy.md` 엣지 21). */}
-                    <span className="evc-tpl-peek-item-text">{q.text}</span>
+                    <span className="evc-tpl-peek-item-text">
+                      {isNoteItem(q)
+                        ? q.text ||
+                          String(q.description ?? '')
+                            .split('\n')
+                            .find((l) => l.trim()) ||
+                          L.noteEmptyBody
+                        : q.text}
+                    </span>
                     <span className="evc-tpl-peek-item-type">
-                      {L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
+                      {isNoteItem(q)
+                        ? L.qKindNote
+                        : L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
                     </span>
                     {q.ai && <span className="evc-tpl-peek-item-ai">{L.tplPeekAi}</span>}
                   </div>
@@ -1489,8 +1534,9 @@ function TemplatePickerModal({
                                   <div className="evc-tpl-lib-meta">
                                     {L[TEMPLATE_VERSIONS.find((v) => v.id === t.version)?.labelKey] || t.version}
                                     {' · '}
+                                    {/* [PW-602 ④ 불변식 ②] 「항목 N」은 물어보는 항목의 수다. */}
                                     {fill(L.templateMeta, {
-                                      items: (t.questions || []).length,
+                                      items: questionItems(t.questions).length,
                                       grades: (t.grades || []).length,
                                     })}
                                     {' · '}
@@ -2874,8 +2920,19 @@ export default function EvalCycleWizard({
   const removeQuestion = (id) =>
     setTplQuestions((qs) => qs.filter((q) => q.id !== id));
   const addQuestion = (section, text, type) => {
-    if (!text.trim()) return;
+    // [PW-602 ④] 설명 항목은 제목이 «선택»이다 — 본문(설정 패널)이 실체다.
+    const isNote = type === NOTE_KIND;
+    if (!isNote && !text.trim()) return;
     const id = `c${Date.now()}_${text.length}`;
+    if (isNote) {
+      setTplQuestions((qs) => [
+        ...qs,
+        { id, section, text: text.trim(), itemKind: NOTE_KIND, type: null, ai: false },
+      ]);
+      // 본문 없이는 아무것도 아닌 항목이라 설정 패널을 바로 연다.
+      setTplEditingId(id);
+      return;
+    }
     setTplQuestions((qs) => [
       ...qs,
       {
@@ -3765,6 +3822,9 @@ export default function EvalCycleWizard({
             section: q.section,
             text: q.text,
             type: q.type,
+            // [PW-602 ④] 갈래를 빠뜨리면 설명 항목이 «서술형 문항»으로 저장돼
+            // 답을 요구하는 빈 칸이 된다.
+            itemKind: isNoteItem(q) ? NOTE_KIND : 'question',
             requiresRationale: !!q.requiresRationale,
             // TC-051/052 항목 설명 · TC-053 공개 대상(피평가자 비공개 여부)
             description: q.description?.trim() || null,
@@ -4225,8 +4285,9 @@ export default function EvalCycleWizard({
                     {roleMode === 'by_role' ? ` · ${L.roleModeByRole}` : ''}
                   </span>
                   <span className="evc-tpl-ctxbar-meta">
+                    {/* [PW-602 ④ 불변식 ②] 설명은 세지 않는다. */}
                     {fill(L.templateMeta, {
-                      items: tplQuestions.length,
+                      items: questionItems(tplQuestions).length,
                       grades: tplGrades.length,
                     })}
                   </span>
@@ -4473,8 +4534,9 @@ export default function EvalCycleWizard({
                       <div className="evc-tpl-lib-meta">
                         {L[TEMPLATE_VERSIONS.find((v) => v.id === t.version)?.labelKey] || t.version}
                         {' · '}
+                        {/* [PW-602 ④ 불변식 ②] 「항목 N」은 물어보는 항목의 수다. */}
                         {fill(L.templateMeta, {
-                          items: (t.questions || []).length,
+                          items: questionItems(t.questions).length,
                           grades: (t.grades || []).length,
                         })}
                         {' · '}

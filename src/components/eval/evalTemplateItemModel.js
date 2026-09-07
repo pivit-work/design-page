@@ -25,6 +25,28 @@ export const fill = (s, vars) => {
   return out;
 };
 
+/**
+ * [PW-602 ④] 항목의 «갈래» — 질문인가 설명인가. `response_type` 과 **다른 축**이다.
+ *
+ * 응답 유형 ENUM 에 다섯 번째 값을 더하지 않은 것이 이 설계의 핵심이다. 값을 더하면
+ * 응답 유형으로 분기하는 소비처가 **아무 분기에도 안 걸린 채 조용히** 지나가 답 없는
+ * 항목이 「미입력」으로 잡힌다. 축을 가르면 소비처가 맨 위에서 한 번 갈라 처리하고,
+ * `note` 를 모르는 소비처는 응답 유형이 비어 있어 **시끄럽게** 깨진다.
+ *
+ * 정본: `screen-eval-cycle-hr.policy.md` §5.11-F · `arch-eval-cycle-data-model.md` v2.21
+ */
+export const NOTE_KIND = 'note';
+export const QUESTION_KIND = 'question';
+/** 설명 항목인가. 갈래가 없는 옛 항목은 질문으로 읽는다(DEFAULT 와 같다). */
+export const isNoteItem = (q) => q?.itemKind === NOTE_KIND || q?.kind === NOTE_KIND;
+/**
+ * 완성도 계수에 들어가는 항목만 (불변식 ②).
+ *
+ * 🔴 「미입력에서 뺀다」로만 적으면 **진행률과 배지가 남는다** — 계수는 자리마다 따로
+ * 세어지기 때문이다. 세는 자리는 전부 이 함수를 거친다.
+ */
+export const questionItems = (items) => (items || []).filter((q) => !isNoteItem(q));
+
 // 질문 유형(항목 응답 방식).
 export const QUESTION_TYPES = [
   { id: 'textarea', labelKey: 'qTypeTextarea' },
