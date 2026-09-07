@@ -1967,6 +1967,20 @@ export default function EvalCycleWizard({
     () => D?.exclusionRules?.promotionDirection ?? 'after',
   );
   const [promotionPicker, setPromotionPicker] = useState(null);
+  /* §5.3.1 15번 (v2.46 · PW-443 3차) — 고용유형 조건. **날짜가 아닌 첫 조건**이라
+     날짜 자리에 값 체크가 들어간다. 그래서 블록 이름에서 «날짜 기준» 을 뗐다.
+     조건(규칙)과 필터+일괄(수동)의 역할 구분은 정책 §5.5.6 E21 — 여기서 뺀 사람은
+     조건을 지우면 함께 풀리고, 사유가 조건 이름(`고용유형 · 인턴`)으로 남는다. */
+  const [excludeEmploymentType, setExcludeEmploymentType] = useState(
+    () => !!D?.exclusionRules?.employmentType,
+  );
+  const [employmentTypeValues, setEmploymentTypeValues] = useState(
+    () => D?.exclusionRules?.employmentTypeValues ?? [],
+  );
+  /* 규칙 11 (v2.45 · 어니스트 2026-08-30 ②) — 조직 «초점». 트리 행의 손잡이가 둘이다:
+     체크박스 = 대상 조직 선별(저장된다), 조직 **이름** 클릭 = 그 조직만 보기(표시만).
+     찾기와 고르기를 한 손잡이에 두면 «제외할 사람을 찾는» 동작이 대상을 건드린다. */
+  const [orgFocus, setOrgFocus] = useState(null);
   // §4.1.2 0단계 '리뷰 & 조정' — 자동 산출 명단을 사람이 최종 가감한다.
   /* 셋 다 `null` = 「아직 사람이 손대지 않았다」. 저장된 `targetScope` 가 없는 구 사이클은
      참여자로부터 환산한 값이 그 자리를 대신한다(아래 legacyScope). */
@@ -3098,12 +3112,28 @@ export default function EvalCycleWizard({
       prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value],
     );
   // 「리뷰 & 조정」 이동. 대상 → 제외는 manual, 제외 → 대상은 자동 판정 무시(keep).
+  /* 규칙 5 · E17 (v2.45 · 어니스트 2026-08-30 ③) — **되돌리기는 반대편 목록에 «넣는»
+     것이 아니라 자기 목록에서 «빼는» 것이다.**
+
+     종전 구현은 어느 쪽을 되돌리든 `keptIds` 에 넣어, 실수로 뺐다가 되돌린 사람에게도
+     「수동 포함」 배지가 붙었다. 그 배지는 «규칙을 사람이 뒤집었다»는 뜻이라, 뒤집은
+     것이 없는 사람에게 붙으면 다음 사람이 그를 «규칙 예외»로 읽는다.
+
+     불변식: `manualInclude ⊆ 규칙 제외자` · `manualExclude ∩ 규칙 제외자 = ∅`. */
   const excludeOne = (id) => {
-    setKeptIds((prev) => prev.filter((x) => x !== id));
+    // 「수동 포함」 상태의 규칙 제외자를 다시 빼면 **규칙 사유로 돌아간다**(수동 제외 아님).
+    if (keptIds.includes(id)) {
+      setKeptIds((prev) => prev.filter((x) => x !== id));
+      return;
+    }
     setManualExcludedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
   const includeOne = (id) => {
-    setManualExcludedIds((prev) => prev.filter((x) => x !== id));
+    // 수동 제외를 되돌리면 **배지 없이 원상**이다.
+    if (manualExcludedIds.includes(id)) {
+      setManualExcludedIds((prev) => prev.filter((x) => x !== id));
+      return;
+    }
     setKeptIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
@@ -3127,6 +3157,16 @@ export default function EvalCycleWizard({
   const unassignedCount = candidates.filter(
     (c) => bucketOf(c) === UNASSIGNED_ORG_ID,
   ).length;
+  /** 부서 행이 한 번에 켜고 끄는 단위들. */
+  const unitsOfDeptRaw = (d) => [
+    ...(d.selfSelectable ? [d.id] : []),
+    ...d.teams.map((t) => t.id),
+  ];
+  /** 트리가 아는 단위 전부 — 「전체」 체크와 초기 전체 선택(규칙 10)이 이걸 쓴다. */
+  const allUnitIdsRaw = [
+    ...orgTree.flatMap(unitsOfDeptRaw),
+    ...(unassignedCount > 0 ? [UNASSIGNED_ORG_ID] : []),
+  ];
 
   /**
    * 구 사이클 환산 — 「대상 범위」 모드로 저장돼 `targetScope` 가 없는 사이클을 관리로 열 때.
@@ -3153,7 +3193,19 @@ export default function EvalCycleWizard({
         .map((c) => c.id),
     };
   })();
-  const orgSel = orgSelEdit ?? legacyScope?.orgIds ?? EMPTY_ORG_SEL;
+  /* 규칙 10 · E14 (v2.45 · 어니스트 2026-08-30 ①) — **새 사이클은 전 조직 체크로 연다.**
+     제외 조건 외 인원은 기본 평가 대상이므로, 아무도 안 골라진 채 열리면 HR 이
+     「누구를 평가하나」가 아니라 「어디서부터 시작하나」를 먼저 묻게 된다.
+
+     🔴 관리 모드에는 걸지 않는다 — 환산할 근거가 없는 구 사이클(E13)은 «조직 미선택»
+     으로 열려야 한다. 거기에 전체 선택을 씌우면 저장돼 있던 대상자가 조용히 «전원» 이 된다.
+     🔴 상태가 아니라 파생값이다 — 후보·조직 목록이 늦게 도착해도 도착하는 렌더에서
+     바로 맞는 값이 나온다. 그리고 HR 이 전부 해제하면 `orgSelEdit` 이 빈 Set(널이 아님)
+     이라 여기로 안 떨어진다 — 「전부 해제」가 다음 렌더에 도로 켜지지 않는다. */
+  const initialAllScope =
+    !isManage && allUnitIdsRaw.length > 0 ? new Set(allUnitIdsRaw) : null;
+  const orgSel =
+    orgSelEdit ?? legacyScope?.orgIds ?? initialAllScope ?? EMPTY_ORG_SEL;
   const manualExcludedIds =
     manualExcludedEdit ?? legacyScope?.manualExclude ?? EMPTY_IDS;
   const keptIds = keptEdit ?? EMPTY_IDS;
@@ -3165,11 +3217,7 @@ export default function EvalCycleWizard({
     setManualExcludedEdit(typeof next === 'function' ? next(manualExcludedIds) : next);
   const setKeptIds = (next) =>
     setKeptEdit(typeof next === 'function' ? next(keptIds) : next);
-  /** 부서 행이 한 번에 켜고 끄는 단위들. */
-  const unitsOfDept = (d) => [
-    ...(d.selfSelectable ? [d.id] : []),
-    ...d.teams.map((t) => t.id),
-  ];
+  const unitsOfDept = unitsOfDeptRaw;
   const scopedCandidates = candidates.filter((c) => orgSel.has(bucketOf(c)));
 
   // 발령 이력 근거 — "이 사람의 이 필드가 언제 바뀌었나". 현재 값(candidates)만으로는
@@ -3215,6 +3263,23 @@ export default function EvalCycleWizard({
         if (excludeRoleChange && changedInPeriod(c.id, 'jobTitle')) {
           return [{ memberId: c.id, exclusionType: 'role_change' }];
         }
+        /* §5.3.1 15번 — 고용유형 조건. 값 여럿을 고르면 그중 하나라도 해당하면 제외다.
+           사유에 값을 함께 실어야 제외 패널이 `고용유형 · 인턴` 으로 적을 수 있다. */
+        if (
+          excludeEmploymentType &&
+          employmentTypeValues.length > 0 &&
+          c.employmentType &&
+          employmentTypeValues.includes(c.employmentType)
+        ) {
+          return [
+            {
+              memberId: c.id,
+              exclusionType: 'employment_type',
+              exclFieldLabel: 'employment_type',
+              exclFieldValue: c.employmentType,
+            },
+          ];
+        }
         // 직급(jobLevel) 변경일 기준 — 기준일 이전/이후에 승진한 사람.
         if (excludePromotion && promotionRef) {
           const hit = changedRelativeTo(c.id, 'jobLevel', promotionRef, promotionDirection);
@@ -3246,8 +3311,22 @@ export default function EvalCycleWizard({
   const excludedMembers = scopedCandidates.filter((c) => excludedIds.has(c.id));
   const targetIds = targetMembers.map((c) => c.id);
   const targetCount = targetIds.length;
-  const exclusionReasonOf = (id) =>
-    exclusions.find((e) => e.memberId === id)?.exclusionType ?? 'manual';
+  const exclusionOf = (id) => exclusions.find((e) => e.memberId === id);
+  const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
+  /* 규칙 5 — 「수동 포함」 배지를 붙일 수 있는 사람. 규칙이 뺀 사람만이다. */
+  const ruleExcludedIds = new Set(autoExclusions.map((e) => e.memberId));
+  /* 고용유형 조건의 값 목록 — 평가 모듈이 자기 목록을 갖지 않는다(§5.5.2). 구성원이
+     실제로 가진 값에서 뽑는다. 「해당 N명」은 조건이 실제로 도는 모집단(고른 조직)에서 센다. */
+  const employmentTypeOptions = [
+    ...new Set(candidates.map((c) => c.employmentType).filter(Boolean)),
+  ];
+  const employmentTypeHitCount = scopedCandidates.filter(
+    (c) => c.employmentType && employmentTypeValues.includes(c.employmentType),
+  ).length;
+  /* E20 — 값을 전부 체크하면 대상이 0명이 된다. 막지는 않는다(고치는 중일 수 있다). */
+  const employmentTypeAllChecked =
+    employmentTypeOptions.length > 0 &&
+    employmentTypeOptions.every((v) => employmentTypeValues.includes(v));
 
   /* ── PW-444 위원회 ① 대상 — 「그 사이클의 대상자 풀」을 조직·직급으로 자른다 ──
      축의 값 목록도 조직도 전체가 아니라 **대상자 풀에서** 뽑는다. 전체에서 뽑으면
@@ -3369,16 +3448,56 @@ export default function EvalCycleWizard({
     // 검색은 이름만 본다 — 부서·직책까지 걸면 조직 트리·축 필터와 뜻이 겹친다(E8).
     return !q || (c.name ?? '').toLowerCase().includes(q);
   };
-  const visibleTargets = targetMembers.filter((c) => axisHit(c) && nameHit(c));
+  /* 규칙 11 — 초점은 «필터와 같은 층» 이다. 표시만 거르고 카운터·저장은 안 건드린다.
+     부서에 초점을 두면 그 아래 팀까지 함께 보인다(트리에서 부서를 고른 것과 같은 범위). */
+  const focusUnitIds = (() => {
+    if (!orgFocus) return null;
+    const dept = orgTree.find((d) => d.id === orgFocus);
+    return new Set(dept ? unitsOfDept(dept) : [orgFocus]);
+  })();
+  const focusHit = (c) => !focusUnitIds || focusUnitIds.has(bucketOf(c));
+  /** 초점 조직의 이름 — 칩과 E16 안내에 쓴다. */
+  const focusName = (() => {
+    if (!orgFocus) return '';
+    if (orgFocus === UNASSIGNED_ORG_ID) return L.targetOrgUnassigned;
+    const dept = orgTree.find((d) => d.id === orgFocus);
+    if (dept) return dept.name;
+    for (const d of orgTree) {
+      const team = d.teams.find((t) => t.id === orgFocus);
+      if (team) return team.name;
+    }
+    return '';
+  })();
+  /* E16 — 체크 안 한 조직에 초점을 두면 「대상 조직이 아닙니다」다. 「필터 결과 0명」과
+     문구를 가른다 — 원인이 다르고, 처방도 다르다(초기화 vs 대상에 포함). */
+  const focusOffTarget =
+    !!orgFocus && !!focusUnitIds && ![...focusUnitIds].some((id) => orgSel.has(id));
+  const visibleTargets = targetMembers.filter(
+    (c) => axisHit(c) && nameHit(c) && focusHit(c),
+  );
+  /* 규칙 12 (v2.46) — **같은 필터가 제외 패널에도 걸린다.** 규칙으로 뺀 사람(예: 고용유형
+     조건의 인턴)은 중앙 명단에 아예 없어서, 패널에 필터가 안 걸리면 「인턴만 골라
+     되돌리기」를 할 자리가 없다(E18). 헤더의 `제외 N명` 은 카운터 값 그대로다. */
+  const visibleExcluded = excludedMembers.filter(
+    (c) => axisHit(c) && nameHit(c) && focusHit(c),
+  );
+  const hiddenExcludedCount = excludedMembers.length - visibleExcluded.length;
   const activeFilterCount = REVIEW_AXIS_KEYS.reduce(
     (n, k) => n + (reviewFilters[k] ?? []).length,
     0,
   );
-  const anyReviewFilter = activeFilterCount > 0 || reviewQuery.trim().length > 0;
+  /* 「지금 무언가로 좁혀져 있나」 — 일괄 버튼의 라벨(규칙 4)과 `초기화` 노출을 가른다.
+     초점은 축이 아니라서 필터 버튼의 개수 배지에는 세지 않는다. */
+  const anyReviewFilter =
+    activeFilterCount > 0 || reviewQuery.trim().length > 0 || !!orgFocus;
   const clearReviewFilters = () => {
     setReviewFilters(emptyAxisSel());
     setReviewQuery('');
+    setOrgFocus(null);
   };
+  /** 트리 행 이름 클릭 — 같은 이름을 다시 누르면 풀린다. */
+  const toggleOrgFocus = (unitId) =>
+    setOrgFocus((prev) => (prev === unitId ? null : unitId));
   /** 활성 필터 칩 — 축마다 하나. 값이 여럿이면 `직급 · 책임 외 1` 로 접는다. */
   const filterChips = REVIEW_AXES.filter(
     (a) => (reviewFilters[a.key] ?? []).length > 0,
@@ -3408,22 +3527,27 @@ export default function EvalCycleWizard({
     if (on === 0) return 'off';
     return on === ids.length ? 'on' : 'partial';
   };
-  const allUnitIds = [
-    ...orgTree.flatMap(unitsOfDept),
-    ...(unassignedCount > 0 ? [UNASSIGNED_ORG_ID] : []),
-  ];
+  const allUnitIds = allUnitIdsRaw;
   const rootState =
     orgSel.size === 0
       ? 'off'
       : allUnitIds.every((id) => orgSel.has(id))
         ? 'on'
         : 'partial';
-  const toggleUnits = (ids, turnOn) =>
+  const toggleUnits = (ids, turnOn) => {
+    /* E15 — 초점을 둔 조직을 대상에서 빼면 초점도 함께 푼다. 남겨 두면 «대상도 아닌
+       조직만 보는» 빈 화면이 된다. 반대로 «미체크 조직 이름을 누른» 경우(E16)는
+       초점이 그대로 걸린 채 안내가 뜬다 — 조작이 다르므로 여기서만 푼다. */
+    if (!turnOn && orgFocus && focusUnitIds) {
+      const removing = new Set(ids);
+      if ([...focusUnitIds].every((id) => removing.has(id))) setOrgFocus(null);
+    }
     setOrgSel((prev) => {
       const next = new Set(prev);
       ids.forEach((id) => (turnOn ? next.add(id) : next.delete(id)));
       return next;
     });
+  };
 
   /* ── 중앙 명단 그룹 — 부서 · 팀 단위. 조직 설정 순서 그대로 세운다(정렬 컨트롤 없음). */
   const reviewGroups = [];
@@ -3459,14 +3583,23 @@ export default function EvalCycleWizard({
     setUndoSnapshot({ manual: [...manualExcludedIds], kept: [...keptIds] });
     const ids = list.map((c) => c.id);
     if (toExcluded) {
+      /* 「수동 포함」이던 사람은 규칙 제외로 되돌아갈 뿐 수동 제외가 되지 않는다(규칙 5). */
+      const kept = new Set(keptIds);
       setKeptIds((prev) => prev.filter((x) => !ids.includes(x)));
+      const toManual = ids.filter((id) => !kept.has(id));
       setManualExcludedIds((prev) => [
         ...prev,
-        ...ids.filter((id) => !prev.includes(id)),
+        ...toManual.filter((id) => !prev.includes(id)),
       ]);
     } else {
+      /* 수동 제외를 되돌리면 배지 없이 원상, 규칙 제외를 되돌려야 「수동 포함」이다. */
+      const manual = new Set(manualExcludedIds);
       setManualExcludedIds((prev) => prev.filter((x) => !ids.includes(x)));
-      setKeptIds((prev) => [...prev, ...ids.filter((id) => !prev.includes(id))]);
+      const toKept = ids.filter((id) => !manual.has(id));
+      setKeptIds((prev) => [
+        ...prev,
+        ...toKept.filter((id) => !prev.includes(id)),
+      ]);
     }
   };
   const undoMove = () => {
@@ -3563,6 +3696,8 @@ export default function EvalCycleWizard({
       promotion: excludePromotion,
       promotionRef,
       promotionDirection,
+      employmentType: excludeEmploymentType,
+      employmentTypeValues,
     },
     orgIds: [...orgSel],
     manualExclude: manualExcludedIds,
@@ -3949,6 +4084,8 @@ export default function EvalCycleWizard({
             promotion: excludePromotion,
             promotionRef,
             promotionDirection,
+            employmentType: excludeEmploymentType,
+            employmentTypeValues,
           },
         },
       });
@@ -3978,6 +4115,10 @@ export default function EvalCycleWizard({
     setExcludePromotion(!!ex.promotion);
     setPromotionRef(ex.promotionRef || '');
     setPromotionDirection(ex.promotionDirection || 'after');
+    setExcludeEmploymentType(!!ex.employmentType);
+    setEmploymentTypeValues(
+      Array.isArray(ex.employmentTypeValues) ? ex.employmentTypeValues : [],
+    );
     const rs = preset?.reviewSequence;
     if (rs?.gradeCardPosition) setGradeCardPosition(rs.gradeCardPosition);
     // PW-122 일정은 '며칠째'로 바꿔 들고, 사이클 시작일에 맞춰 다시 깐다.
@@ -4019,7 +4160,11 @@ export default function EvalCycleWizard({
     !!name.trim() ||
     !!startDate ||
     !!endDate ||
-    orgSel.size > 0;
+    /* 🔴 PW-443 2차 ① — 「고른 조직이 있나」로는 더 이상 못 잰다. 새 사이클이 전 조직
+       체크로 열리므로(규칙 10) `orgSel.size > 0` 은 손대지 않아도 늘 참이고, 그러면
+       **빈 마법사에서 「이전 설정에서 시작」을 눌러도 「작성 중인 내용이 덮어씌워집니다」**
+       를 묻는다. 사람이 손댔는지는 편집 상태가 안다 — `null` = 손대지 않음. */
+    orgSelEdit !== null;
 
   const loadPresetById = async (presetId) => {
     if (!presetId || !onLoadPreset) return;
@@ -5882,6 +6027,71 @@ export default function EvalCycleWizard({
                         {L.exclusionNoHistory}
                       </p>
                     )}
+                  {/* §5.3.1 15번 (v2.46) — 고용유형. **날짜가 아닌 첫 조건**이라 날짜
+                      자리에 값 체크가 선다. 조건(규칙)과 필터+일괄(수동)의 갈림은 E21 —
+                      「인턴은 평가하지 않는다」 같은 정책은 여기, 이번 사이클만의 예외는
+                      아래 명단에서 필터로 좁혀 「보이는 N명 제외」로. */}
+                  <label
+                    className="evl-promo-row"
+                    title={L.exclusionEmploymentTypeHint}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={excludeEmploymentType}
+                      onChange={(e) => setExcludeEmploymentType(e.target.checked)}
+                      data-testid="evc-wiz-excl-employment"
+                    />
+                    <span>{L.exclusionEmploymentType}</span>
+                  </label>
+                  {excludeEmploymentType && (
+                    <div className="evc-excl-date" data-testid="evc-wiz-excl-employment-values">
+                      <div className="evc-type-row">
+                        {employmentTypeOptions.length === 0 ? (
+                          <span className="evc-wiz-hint">
+                            {L.targetFilterNoValues}
+                          </span>
+                        ) : (
+                          employmentTypeOptions.map((v) => (
+                            <button
+                              type="button"
+                              key={v}
+                              className={`evc-type-chip${
+                                employmentTypeValues.includes(v) ? ' is-on' : ''
+                              }`}
+                              aria-pressed={employmentTypeValues.includes(v)}
+                              onClick={() =>
+                                setEmploymentTypeValues((prev) =>
+                                  prev.includes(v)
+                                    ? prev.filter((x) => x !== v)
+                                    : [...prev, v],
+                                )
+                              }
+                              data-testid={`evc-wiz-excl-employment-${v}`}
+                            >
+                              {v}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                      <span
+                        className="evc-wiz-hint"
+                        data-testid="evc-wiz-excl-employment-count"
+                      >
+                        {fill(L.exclusionEmploymentTypeHit, {
+                          count: employmentTypeHitCount,
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* E20 — 값을 전부 고르면 아무도 안 남는다. 막지는 않는다. */}
+                  {excludeEmploymentType && employmentTypeAllChecked && (
+                    <p
+                      className="evc-wiz-warn"
+                      data-testid="evc-wiz-excl-employment-all"
+                    >
+                      {L.exclusionEmploymentTypeAll}
+                    </p>
+                  )}
                 </div>
 
               {/* ── 「리뷰 & 조정」 [PW-443] ─────────────────────────────────────────
@@ -5974,6 +6184,29 @@ export default function EvalCycleWizard({
                       />
                     )}
                   </div>
+                  {/* 규칙 11 — 조직 초점도 필터와 같은 층이라 같은 자리에 칩으로 선다. */}
+                  {orgFocus && (
+                    <span
+                      className="evc-filter-chip"
+                      data-testid="evc-wiz-focus-chip"
+                    >
+                      {fill(L.targetFilterChip, {
+                        axis: L.targetOrgFocusAxis,
+                        value: focusName,
+                      })}
+                      <button
+                        type="button"
+                        className="evc-filter-chip-x"
+                        onClick={() => setOrgFocus(null)}
+                        aria-label={fill(L.targetFilterChipRemove, {
+                          axis: L.targetOrgFocusAxis,
+                        })}
+                        data-testid="evc-wiz-focus-chip-x"
+                      >
+                        <CloseIcon size={10} />
+                      </button>
+                    </span>
+                  )}
                   {filterChips.map((chip) => (
                     <span
                       key={chip.key}
@@ -6033,7 +6266,14 @@ export default function EvalCycleWizard({
                           label={L.targetOrgAll}
                           onToggle={() => toggleUnits(allUnitIds, rootState !== 'on')}
                         />
-                        <span className="evc-org-name">{L.targetOrgAll}</span>
+                        <button
+                          type="button"
+                          className="evc-org-name evc-org-name-btn"
+                          onClick={() => setOrgFocus(null)}
+                          data-testid="evc-wiz-org-focus-all"
+                        >
+                          {L.targetOrgAll}
+                        </button>
                         <span className="evc-org-n">{candidates.length}</span>
                       </div>
                       {orgTree.map((d) => {
@@ -6072,9 +6312,19 @@ export default function EvalCycleWizard({
                                   toggleUnits(unitsOfDept(d), state !== 'on')
                                 }
                               />
-                              <span className="evc-org-name" title={d.name}>
+                              {/* 규칙 11 — 이름은 «그 조직만 보기». 체크는 안 건드린다. */}
+                              <button
+                                type="button"
+                                className={`evc-org-name evc-org-name-btn${
+                                  orgFocus === d.id ? ' is-focused' : ''
+                                }`}
+                                title={fill(L.targetOrgFocusHint, { name: d.name })}
+                                aria-pressed={orgFocus === d.id}
+                                onClick={() => toggleOrgFocus(d.id)}
+                                data-testid={`evc-wiz-org-focus-${d.id}`}
+                              >
                                 {d.name}
-                              </span>
+                              </button>
                               <span className="evc-org-n">{deptCount(d)}</span>
                             </div>
                             {open &&
@@ -6088,9 +6338,18 @@ export default function EvalCycleWizard({
                                       toggleUnits([t.id], !orgSel.has(t.id))
                                     }
                                   />
-                                  <span className="evc-org-name" title={t.name}>
+                                  <button
+                                    type="button"
+                                    className={`evc-org-name evc-org-name-btn${
+                                      orgFocus === t.id ? ' is-focused' : ''
+                                    }`}
+                                    title={fill(L.targetOrgFocusHint, { name: t.name })}
+                                    aria-pressed={orgFocus === t.id}
+                                    onClick={() => toggleOrgFocus(t.id)}
+                                    data-testid={`evc-wiz-org-focus-${t.id}`}
+                                  >
                                     {t.name}
-                                  </span>
+                                  </button>
                                   <span className="evc-org-n">{countOfUnit(t.id)}</span>
                                 </div>
                               ))}
@@ -6112,9 +6371,20 @@ export default function EvalCycleWizard({
                               )
                             }
                           />
-                          <span className="evc-org-name" title={L.targetOrgUnassigned}>
+                          <button
+                            type="button"
+                            className={`evc-org-name evc-org-name-btn${
+                              orgFocus === UNASSIGNED_ORG_ID ? ' is-focused' : ''
+                            }`}
+                            title={fill(L.targetOrgFocusHint, {
+                              name: L.targetOrgUnassigned,
+                            })}
+                            aria-pressed={orgFocus === UNASSIGNED_ORG_ID}
+                            onClick={() => toggleOrgFocus(UNASSIGNED_ORG_ID)}
+                            data-testid={`evc-wiz-org-focus-${UNASSIGNED_ORG_ID}`}
+                          >
                             {L.targetOrgUnassigned}
-                          </span>
+                          </button>
                           <span className="evc-org-n">{unassignedCount}</span>
                         </div>
                       )}
@@ -6133,6 +6403,9 @@ export default function EvalCycleWizard({
                       <span className="evc-review-pane-title">
                         {fill(L.targetReviewIncluded, { count: targetCount })}
                       </span>
+                      {/* 규칙 4 (v2.46) — 일괄은 원래 «보이는 것»에만 걸렸는데 버튼이 그
+                          사실을 말하지 않았다. 좁혀져 있으면 몇 명에게 걸리는지를 라벨에
+                          박는다 — 그래야 「필터로 좁힌 뒤 한 번에 빼기」가 눈에 보인다. */}
                       {visibleTargets.length > 0 && (
                         <button
                           type="button"
@@ -6140,12 +6413,33 @@ export default function EvalCycleWizard({
                           onClick={() => moveMany(visibleTargets, true)}
                           data-testid="evc-wiz-exclude-all"
                         >
-                          {L.targetExcludeAll}
+                          {anyReviewFilter
+                            ? fill(L.targetExcludeVisible, {
+                                count: visibleTargets.length,
+                              })
+                            : L.targetExcludeAll}
                         </button>
                       )}
                     </div>
                     <div className="evc-review-pane-body">
-                      {scopedCandidates.length === 0 ? (
+                      {focusOffTarget ? (
+                        /* E16 — 「필터 결과 0명」과 문구를 가른다. 원인이 다르고
+                           처방도 다르다(초기화가 아니라 「대상에 포함」이다). */
+                        <div
+                          className="evc-review-empty"
+                          data-testid="evc-wiz-focus-off-target"
+                        >
+                          <p>{fill(L.targetFocusOffTarget, { name: focusName })}</p>
+                          <button
+                            type="button"
+                            className="evc-filter-reset"
+                            onClick={() => toggleUnits([...focusUnitIds], true)}
+                            data-testid="evc-wiz-focus-include"
+                          >
+                            {L.targetFocusInclude}
+                          </button>
+                        </div>
+                      ) : scopedCandidates.length === 0 ? (
                         <p className="evc-review-empty" data-testid="evc-wiz-pick-org">
                           {L.targetPickOrg}
                         </p>
@@ -6259,15 +6553,41 @@ export default function EvalCycleWizard({
                   {/* ⑤ 제외 패널 — 접히지 않는다. 「무엇을 뺐나」는 항상 보여야 한다. */}
                   <div className="evc-review-pane evc-review-excluded">
                     <div className="evc-review-pane-head">
+                      {/* 규칙 12 — 헤더의 수는 «카운터 값» 이다. 필터가 걸려도 안 변한다.
+                          제외가 없어지는 것이 아니라 지금 안 보일 뿐이다. */}
                       <span className="evc-review-pane-title">
                         {fill(L.targetReviewExcluded, { count: excludedMembers.length })}
                       </span>
+                      {/* 규칙 12 (v2.46) — 되돌리는 쪽에도 일괄을 준다. 규칙으로 뺀 사람은
+                          중앙 명단에 없어서, 이 버튼이 없으면 「인턴만 골라 되돌리기」를
+                          할 자리가 없다(E18). */}
+                      {visibleExcluded.length > 0 && (
+                        <button
+                          type="button"
+                          className="evc-review-pane-action"
+                          onClick={() => moveMany(visibleExcluded, false)}
+                          data-testid="evc-wiz-include-all"
+                        >
+                          {anyReviewFilter
+                            ? fill(L.targetIncludeVisible, {
+                                count: visibleExcluded.length,
+                              })
+                            : L.targetIncludeAll}
+                        </button>
+                      )}
                     </div>
                     <div className="evc-review-pane-body">
                       {excludedMembers.length === 0 ? (
                         <p className="evc-review-empty">{L.targetReviewNoExcluded}</p>
+                      ) : visibleExcluded.length === 0 ? (
+                        <p
+                          className="evc-review-empty"
+                          data-testid="evc-wiz-excluded-noresult"
+                        >
+                          {L.targetExcludedNoResult}
+                        </p>
                       ) : (
-                        excludedMembers.map((c) => (
+                        visibleExcluded.map((c) => (
                           <div key={c.id} className="evc-excluded-row">
                             <button
                               type="button"
@@ -6291,13 +6611,25 @@ export default function EvalCycleWizard({
                             >
                               {exclusionReasonOf(c.id) === 'manual'
                                 ? L.targetManualExclude
-                                : (L[`exclusionType_${exclusionReasonOf(c.id)}`] ??
-                                  exclusionReasonOf(c.id))}
+                                : exclusionReasonOf(c.id) === 'employment_type'
+                                  ? fill(L.targetReasonEmploymentType, {
+                                      value: exclusionOf(c.id)?.exclFieldValue ?? '',
+                                    })
+                                  : (L[`exclusionType_${exclusionReasonOf(c.id)}`] ??
+                                    exclusionReasonOf(c.id))}
                             </span>
                           </div>
                         ))
                       )}
                     </div>
+                    {hiddenExcludedCount > 0 && (
+                      <div
+                        className="evc-review-pane-foot"
+                        data-testid="evc-wiz-excluded-hidden"
+                      >
+                        {fill(L.targetExcludedHidden, { count: hiddenExcludedCount })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
