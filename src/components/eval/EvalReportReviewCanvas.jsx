@@ -130,6 +130,13 @@ export default function EvalReportReviewCanvas({
   myUserId,
   gradeLabels = {},
   labels: providedLabels,
+  /**
+   * `toolbar` — 헤더 아래에 놓을 호출부 노드(선택). 사이클 안 형제 화면으로 오가는 탭
+   * 줄이 이 자리에 선다. 이 캔버스의 `.evc-root` 는 `position: fixed` 라 호출부가
+   * 바깥에 놓으면 본문 칸을 벗어나므로 안쪽에 자리를 낸다. 안 주면 아무것도 그리지
+   * 않으므로 기존 시각은 그대로다. (PW-606)
+   */
+  toolbar = null,
   onApprove,
   onSend,
 }) {
@@ -188,6 +195,8 @@ export default function EvalReportReviewCanvas({
           <p className="evc-summary">{cycleName || L.subtitle}</p>
         </div>
       </header>
+
+      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       <div className="evc-list">
         <div className="evrr-counts">

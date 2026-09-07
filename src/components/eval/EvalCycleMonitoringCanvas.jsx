@@ -211,6 +211,16 @@ export default function EvalCycleMonitoringCanvas({
   onOpenReport,
   onOpenReportReview,
   /**
+   * `toolbar` — 헤더 아래에 놓을 호출부 노드(선택). 사이클 안 형제 화면으로 오가는 탭
+   * 줄이 이 자리에 선다. 이 캔버스의 `.evc-root` 는 `position: fixed` 라 호출부가
+   * 바깥에 놓으면 본문 칸을 벗어난다.
+   *
+   * 위 `onOpen*` 네 콜백이 그리는 줄과 «같은 자리»다. 그 줄은 이 화면에만 있고 불이
+   * 들어오는 칸이 없어서, 하나를 누르면 형제 화면으로 돌아올 길이 사라졌다 — 호출부는
+   * 콜백 대신 `toolbar` 로 탭 줄을 넘긴다. 콜백 쪽은 단독 프리뷰를 위해 남겨 둔다. (PW-606)
+   */
+  toolbar = null,
+  /**
    * [PW-534] 이 사이클에서 «열로 세울» 단계 — `[{ key, label }]` (정책 §6.2.1).
    *
    * 비어 있으면 개정 전 3종 고정 열(셀프·동료 확정·하향)로 그린다. 아직 이 값을
@@ -283,6 +293,8 @@ export default function EvalCycleMonitoringCanvas({
               )}
         </div>
       </header>
+
+      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {navItems.length > 0 && (
         <div className="fb-tabs" data-testid="evmon-nav">

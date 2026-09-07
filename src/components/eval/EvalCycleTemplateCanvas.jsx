@@ -121,7 +121,7 @@ export default function EvalCycleTemplateCanvas({
         )}
       </header>
 
-      {toolbar}
+      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {!editable && (
         <p className="evx-notice" data-testid="evtpl-readonly" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>

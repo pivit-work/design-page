@@ -781,6 +781,13 @@ export default function EvalCycleSummaryCanvas({
   onNineBoxNameClick,
   onExportCsv,
   onSaveFilterPreset,
+  /**
+   * `toolbar` — 헤더 아래(이 화면 고유 탭 줄 위)에 놓을 호출부 노드(선택). 사이클 안
+   * 형제 화면으로 오가는 탭 줄이 이 자리에 선다. 이 캔버스의 `.evc-root` 는
+   * `position: fixed` 라 호출부가 바깥에 놓으면 본문 칸을 벗어난다. 안 주면 아무것도
+   * 그리지 않으므로 기존 시각은 그대로다. (PW-606)
+   */
+  toolbar = null,
   workspaceOnly = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -1177,6 +1184,8 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
       </header>
+
+      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {!workspaceOnly && (
         <div className="fb-tabs">
