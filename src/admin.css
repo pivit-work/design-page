@@ -1079,6 +1079,22 @@
   white-space: nowrap;
   border-bottom: 1px solid var(--border-primary);
 }
+/* 행 선택 체크박스 (PW-608). 칸이 40px 이라 좌우 여백을 줄여 체크박스가 이름 칸을
+   밀지 않게 한다. 소속 셀이 겸직으로 두꺼워져도 체크박스는 **첫 줄**에 붙는다 —
+   다른 셀의 `vertical-align: top` 규칙과 같은 이유다(§3.1 겸직 표기). */
+.admin-emp-table th[data-testid='list-head-select'],
+.admin-emp-table td[data-col='select'] {
+  padding-left: 12px;
+  padding-right: 4px;
+  vertical-align: top;
+}
+.admin-emp-row-check {
+  width: 15px;
+  height: 15px;
+  margin: 2px 0 0;
+  accent-color: var(--text-brand-tertiary);
+  cursor: pointer;
+}
 .admin-emp-table td {
   padding: 10px;
   vertical-align: middle;
