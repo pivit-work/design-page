@@ -540,22 +540,30 @@ const CHANNEL_RENDER = [
  * 🔴 PW-530 ② — 종전에는 토큰 문자열만 담은 배열이었다. 그래서 화면에 **이름밖에**
  * 못 그렸고, 인사담당자는 `{offset}` 이 「3」인지 「3일 전」인지, `{link}` 가 어디로
  * 가는 주소인지 알 수 없었다(어니스트: "저도 offset 과 link 가 어떠한 내용이
- * 들어가는지 모르겠더라구요"). 토큰에 «뜻»과 «예시»를 붙인다.
+ * 들어가는지 모르겠더라구요"). 토큰에 «뜻»과 «예시»를 붙였다.
  *
- * 문안은 여기 두지 않고 **소비 측 i18n** 에서 온다(`descKey`·`sampleKey`) — 이 파일은
- * 한국어 문안의 소유자가 아니다. 키가 없으면 칩은 이름만 그린다(설명이 없다고 화면이
- * 깨지지는 않는다).
+ * 🔴 **PW-530 2차 — `labelKey` 를 더한다.** 1차는 뜻을 `title`(툴팁)에만 담았다. 궁금해서
+ * 마우스를 올리는 사람에게는 답이 됐지만 **훑는 사람에게는 있는 줄도 몰랐고**, 화면에
+ * 그려진 글자는 여전히 `{offset}` 하나였다 — 어니스트가 제기한 「인사담당자는 개발자가
+ * 아니다」에 반만 답한 셈이다. 이제 칩은 «사람 말 이름 + 작은 토큰»을 함께 그린다.
+ * 토큰은 지우지 않는다: 본문에 실제로 들어가는 글자가 그것이고, 오타를 눈으로 대조할
+ * 근거도 그것이다. 툴팁은 그대로 두어 긴 설명을 맡는다.
  *
- * `sample` 은 §14.0 표의 「예시 값」이며 **샘플 보기(PW-530 ③)의 치환 값**이기도 하다 —
- * 설명과 샘플이 다른 값을 쓰면 같은 화면 안에서 어긋난다.
+ * 문안은 여기 두지 않고 **소비 측 i18n** 에서 온다(`labelKey`·`descKey`·`sampleKey`) —
+ * 이 파일은 한국어 문안의 소유자가 아니다. 키가 없으면 칩은 토큰만 그린다(문안이
+ * 빠졌다고 화면이 깨지지는 않는다).
+ *
+ * `sample` 은 §14.0 표의 「예시 값」이며 **샘플 보기와 「이 문구에 쓴 변수」 줄이 함께
+ * 쓰는 치환 값**이다 — 세 자리가 다른 값을 쓰면 같은 화면 안에서 한 변수가 서로 다른
+ * 값으로 보인다.
  */
 const MESSAGE_VAR_INFO = [
-  { token: '{name}', descKey: 'reminderVarNameDesc', sampleKey: 'reminderVarNameSample' },
-  { token: '{cycleName}', descKey: 'reminderVarCycleDesc', sampleKey: 'reminderVarCycleSample' },
-  { token: '{stage}', descKey: 'reminderVarStageDesc', sampleKey: 'reminderVarStageSample' },
-  { token: '{dueDate}', descKey: 'reminderVarDueDesc', sampleKey: 'reminderVarDueSample' },
-  { token: '{offset}', descKey: 'reminderVarOffsetDesc', sampleKey: 'reminderVarOffsetSample' },
-  { token: '{link}', descKey: 'reminderVarLinkDesc', sampleKey: 'reminderVarLinkSample' },
+  { token: '{name}', labelKey: 'reminderVarNameLabel', descKey: 'reminderVarNameDesc', sampleKey: 'reminderVarNameSample' },
+  { token: '{cycleName}', labelKey: 'reminderVarCycleLabel', descKey: 'reminderVarCycleDesc', sampleKey: 'reminderVarCycleSample' },
+  { token: '{stage}', labelKey: 'reminderVarStageLabel', descKey: 'reminderVarStageDesc', sampleKey: 'reminderVarStageSample' },
+  { token: '{dueDate}', labelKey: 'reminderVarDueLabel', descKey: 'reminderVarDueDesc', sampleKey: 'reminderVarDueSample' },
+  { token: '{offset}', labelKey: 'reminderVarOffsetLabel', descKey: 'reminderVarOffsetDesc', sampleKey: 'reminderVarOffsetSample' },
+  { token: '{link}', labelKey: 'reminderVarLinkLabel', descKey: 'reminderVarLinkDesc', sampleKey: 'reminderVarLinkSample' },
 ];
 /**
  * 보고형 전용 치환 변수 [PW-529 · 정책 §5.2.1-B].
@@ -566,8 +574,8 @@ const MESSAGE_VAR_INFO = [
  * 없다. 당사자를 켠 리마인더에는 보이지 않는다(쓸 자리가 없다).
  */
 const REPORT_VAR_INFO = [
-  { token: '{pendingCount}', descKey: 'reminderVarPendingCountDesc', sampleKey: 'reminderVarPendingCountSample' },
-  { token: '{pendingList}', descKey: 'reminderVarPendingListDesc', sampleKey: 'reminderVarPendingListSample' },
+  { token: '{pendingCount}', labelKey: 'reminderVarPendingCountLabel', descKey: 'reminderVarPendingCountDesc', sampleKey: 'reminderVarPendingCountSample' },
+  { token: '{pendingList}', labelKey: 'reminderVarPendingListLabel', descKey: 'reminderVarPendingListDesc', sampleKey: 'reminderVarPendingListSample' },
 ];
 /** 그 리마인더가 실제로 쓸 수 있는 변수 목록 — 당사자를 껐으면 보고형 둘이 더 붙는다. */
 const varsFor = (targets) =>
@@ -596,6 +604,21 @@ const fillSampleVars = (text, L) =>
     (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
     String(text ?? ''),
   );
+/**
+ * 이 문구에 «실제로 쓴» 변수만 추린다 [PW-530 2차].
+ *
+ * 🔴 정규 세트 전량을 늘 펼치지 않는 이유는 1차와 같다 — ⚙ 상세가 이미 길다. 쓴 것만
+ * 그리면 대개 두세 줄이고, 그 두세 줄이 「내가 넣은 `{offset}` 은 3 이 된다」를 낱개로
+ * 확인시켜 준다. 종전에는 이 확인이 **샘플 안에서 문장에 섞여서만** 가능했다.
+ *
+ * 값은 `fillSampleVars` 와 **같은 `sampleKey`** 에서 온다 — 다른 상수를 쓰면 같은 화면
+ * 안에서 한 변수가 「3」과 「3일 전」으로 갈린다.
+ */
+const usedVarsIn = (vars, text) => {
+  const t = String(text ?? '');
+  return vars.filter((v) => t.includes(v.token));
+};
+
 /**
  * 당사자를 켜고 끌 때 문구 템플릿을 «후보 안으로» 옮긴다 [PW-529].
  *
@@ -2467,10 +2490,18 @@ export default function EvalCycleWizard({
     return out;
   }, [slackChannels]);
 
-  /** 샘플 보기(PW-530 ③)를 펼친 리마인더 — 누를 때만 열린다. */
-  const [sampleOpen, setSampleOpen] = useState(() => new Set());
+  /**
+   * 샘플 보기(PW-530 ③)를 **접은** 리마인더 [PW-530 2차].
+   *
+   * 🔴 1차는 「누를 때만 연다」였고 근거는 «자리를 아낀다» 하나였다. 그런데 접힌 샘플은
+   * **문구를 고치는 동안 보이지 않는다** — 샘플의 값어치는 고치면서 보는 데 있다. 기본을
+   * 펼침으로 뒤집고, 담는 집합의 뜻도 뒤집는다(열린 것 모음 → 접은 것 모음). 접을 길은
+   * 남긴다: 자리를 아끼고 싶은 사람의 선택지를 뺏지는 않는다.
+   */
+  const [sampleShut, setSampleShut] = useState(() => new Set());
+  const sampleIsOpen = (rid) => !sampleShut.has(rid);
   const toggleSample = (rid) =>
-    setSampleOpen((prev) => {
+    setSampleShut((prev) => {
       const n = new Set(prev);
       if (n.has(rid)) n.delete(rid);
       else n.add(rid);
@@ -2497,13 +2528,21 @@ export default function EvalCycleWizard({
     const draft = aiDraft[key];
     const busy = aiBusy.has(key);
     const canPolish = conf.hasSubject ? !!value || !!msg.subject : !!value;
+    const slotVars = varsFor(rm.targets);
+    /* 「쓴 변수」의 판정 범위는 그 칸이 실제로 내보내는 글 전체다. 이메일 칸은 제목도
+       함께 나가므로 제목에만 쓴 변수도 «썼다» 로 센다. */
+    const usedVars = usedVarsIn(
+      slotVars,
+      conf.hasSubject ? `${msg.subject ?? ''}\n${value}` : value,
+    );
     return (
       <>
         <div className="evc-rm-vars">
           <span className="evc-rm-vars-label">{L.reminderVarInsert}</span>
-          {varsFor(rm.targets).map((v) => {
+          {slotVars.map((v) => {
             /* [PW-530 ②] 뜻·예시가 i18n 에 없으면 이름만 그린다 — 설명이 빠졌다고
                칩이 사라지거나 `undefined` 가 보이면 안 된다. */
+            const label = L[v.labelKey];
             const desc = L[v.descKey];
             const sample = L[v.sampleKey];
             const hint = desc
@@ -2515,19 +2554,48 @@ export default function EvalCycleWizard({
               <button
                 key={v.token}
                 type="button"
-                className="evc-rm-var"
+                /* [PW-530 2차] 사람 말 이름이 있으면 «이름 + 작은 토큰» 병기.
+                   이름이 없으면 종전처럼 토큰만 — 문안이 빠져도 칩은 살아 있다. */
+                className={`evc-rm-var${label ? ' is-labeled' : ''}`}
                 title={hint}
-                aria-label={hint}
+                aria-label={label ? `${label} — ${hint}` : hint}
                 onClick={() =>
                   patchMessage(ph.id, rm.id, {
                     [conf.field]: (messageOf(rm)[conf.field] ?? '') + v.token,
                   })}
                 data-testid={`evc-rm-var${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
               >
-                {v.token}
+                {label ? (
+                  <>
+                    {label}
+                    <span className="evc-rm-var-tok">{v.token}</span>
+                  </>
+                ) : (
+                  v.token
+                )}
               </button>
             );
           })}
+        </div>
+        {/* [PW-530 2차] 이 칸에 «실제로 쓴» 변수만 값과 함께. 이메일 칸은 제목까지 센다 —
+            제목에만 쓴 변수가 「안 쓴 것」으로 보이면 안 된다. */}
+        <div className="evc-rm-used" data-testid={`evc-rm-used${sfx}-${ph.id}-${i}`}>
+          <span className="evc-rm-vars-label">{L.reminderUsedVarsTitle}</span>
+          {usedVars.length === 0 ? (
+            <span className="evc-rm-used-empty">{L.reminderUsedVarsEmpty}</span>
+          ) : (
+            usedVars.map((v) => (
+              <span
+                key={v.token}
+                className="evc-rm-used-line"
+                data-testid={`evc-rm-used${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
+              >
+                <span className="evc-rm-used-name">{L[v.labelKey] ?? v.token}</span>
+                <span className="evc-rm-used-arrow">→</span>
+                <span className="evc-rm-used-val">{L[v.sampleKey] ?? v.token}</span>
+              </span>
+            ))
+          )}
         </div>
         {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음). */}
         <div className="evc-rm-msg-actions">
@@ -2613,8 +2681,23 @@ export default function EvalCycleWizard({
       body: isCustom ? msg.body ?? '' : tpl.body,
       cta: isCustom ? '' : tpl.cta,
     };
+    /*
+     * 🔴 슬랙 본문의 세 갈래 [PW-530 2차]. 종전에는 앞의 둘이 한 갈래로 접혀 있었다.
+     *  (a) 전용 문구를 안 켰다      → 공통 본문이 나간다
+     *  (b) 켰고 내용이 있다          → 그 문구가 나간다
+     *  (c) 켰는데 비어 있다          → 공통 본문이 나간다 **(기획서 §5.2.1 엣지: 폴백)**
+     * (c) 를 (a) 와 같은 화면으로 그리면 「슬랙 자리에 이메일 미리보기가 나왔다」로
+     * 읽힌다(어니스트 2026-09-07). 폴백을 없애는 것이 아니라 **폴백을 말하게** 한다 —
+     * 실제로 그 문구가 나가므로 「보낼 내용이 없다」고 하면 그것이 거짓말이 된다.
+     */
+    const slackFellBack = !!msg.slackSeparate && !(msg.slackBody ?? '').trim();
     const slackBody =
-      msg.slackSeparate && (msg.slackBody ?? '') ? msg.slackBody : base.body;
+      msg.slackSeparate && (msg.slackBody ?? '').trim() ? msg.slackBody : base.body;
+    const slackTagKey = !msg.slackSeparate
+      ? 'reminderSampleChSlackShared'
+      : slackFellBack
+        ? 'reminderSampleChSlackOwnEmpty'
+        : 'reminderSampleChSlackOwn';
     const f = (t) => fillSampleVars(t, L);
     return (
       <div className="evc-rm-preview" data-testid={`evc-rm-sample-${ph.id}-${i}`}>
@@ -2623,6 +2706,11 @@ export default function EvalCycleWizard({
         </div>
         {rm.channels.includes('email') && (
           <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-email-${ph.id}-${i}`}>
+            {/* [PW-530 2차] 상자마다 «어느 채널인가» 를 글자로. 종전에는 `data-testid`
+                뿐이라 두 상자가 같은 내용을 그리면 사람이 구분할 수 없었다. */}
+            <span className="evc-rm-preview-ch" data-testid={`evc-rm-sample-ch-email-${ph.id}-${i}`}>
+              {L.reminderSampleChEmail}
+            </span>
             <div><strong>{L.reminderEmailSubject}</strong> {f(base.subject) || L.reminderSampleEmpty}</div>
             <div><strong>{L.reminderEmailBody}</strong> {f(base.body) || L.reminderSampleEmpty}</div>
             {base.cta && <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>}
@@ -2630,14 +2718,29 @@ export default function EvalCycleWizard({
         )}
         {rm.channels.includes('slack') && (
           <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-slack-${ph.id}-${i}`}>
-            {/* 슬랙에는 제목 칸이 없다. 제목은 «굵은 첫 줄» 로 그려진다 — 슬랙 전용
-                문구를 쓰는 경우에는 그 첫 줄이 곧 본문의 첫 줄이라 따로 뽑지 않는다. */}
-            {!msg.slackSeparate && f(base.subject) && (
+            <span className="evc-rm-preview-ch" data-testid={`evc-rm-sample-ch-slack-${ph.id}-${i}`}>
+              {L[slackTagKey]}
+            </span>
+            {/* 🔴 슬랙은 제목을 «굵은 첫 줄» 로, CTA 를 «링크» 로 그린다
+                (기획서 §5.2.1 「채널별 렌더링 안내」). 개인 DM 과 채널 게시가 같은 모양이라
+                이 한 벌이 두 경우 모두에 대해 참이다. 종전에는 전용 문구를 켜면 굵은 첫
+                줄과 CTA 를 숨겼는데, 실제 슬랙은 전용 문구를 쓰든 아니든 둘 다 붙인다. */}
+            {f(base.subject) && (
               <div><strong>{f(base.subject)}</strong></div>
             )}
             <div>{f(slackBody) || L.reminderSampleEmpty}</div>
-            {!msg.slackSeparate && base.cta && (
-              <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>
+            {base.cta && (
+              /* 이메일은 «버튼», 슬랙은 «링크» 다(§5.2.1). 같은 말을 두 상자에 쓰면
+                 슬랙 샘플이 이메일 미리보기처럼 읽힌다 — 이 카드가 고치는 바로 그 오해다. */
+              <div className="evc-rm-preview-cta">[{L.reminderSlackCta}] {f(base.cta)}</div>
+            )}
+            {slackFellBack && (
+              <div
+                className="evc-rm-preview-note"
+                data-testid={`evc-rm-sample-slack-fallback-${ph.id}-${i}`}
+              >
+                {L.reminderSampleSlackFallback}
+              </div>
             )}
           </div>
         )}
@@ -5670,20 +5773,21 @@ export default function EvalCycleWizard({
                                             )}
                                           </div>
                                         )}
-                                        {/* [PW-530 ③] 「작성된 메시지 샘플 보기」 — 누를 때만 연다.
-                                            항상 펼쳐 두면 이미 긴 ⚙ 상세가 더 길어진다. */}
+                                        {/* [PW-530 2차] 샘플은 **처음부터 펼쳐** 둔다 — 접혀 있으면
+                                            문구를 고치는 동안 안 보이고, 샘플은 고치면서 봐야 값이 있다.
+                                            접는 길은 남긴다. */}
                                         <div className="evc-rm-msg-actions">
                                           <button
                                             type="button"
                                             className="evc-rm-save-msg"
                                             onClick={() => toggleSample(rm.id)}
-                                            aria-expanded={sampleOpen.has(rm.id)}
+                                            aria-expanded={sampleIsOpen(rm.id)}
                                             data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
                                           >
-                                            {sampleOpen.has(rm.id) ? L.reminderSampleHide : L.reminderSampleShow}
+                                            {sampleIsOpen(rm.id) ? L.reminderSampleHide : L.reminderSampleShow}
                                           </button>
                                         </div>
-                                        {sampleOpen.has(rm.id) && renderMessageSample(ph, rm, i)}
+                                        {sampleIsOpen(rm.id) && renderMessageSample(ph, rm, i)}
                                       </div>
                                       {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
                                       {rm.channels.includes('email') && (
