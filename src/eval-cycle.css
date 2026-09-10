@@ -1703,6 +1703,15 @@
   margin-bottom: var(--spacing-md, 8px);
 }
 .evc-tpl-additem .evc-input { min-width: 0; }
+/* [PW-602] 항목 목록 아래 «추가» 줄 (EvalTemplateAddRow).
+   🔴 버튼에 `.evc-tpl-additem` 을 붙이면 안 된다 — 그건 위의 «격자 줄» 이지 버튼 모양이
+   아니다. 버튼은 `.evc-btn`, 줄은 이 클래스가 맡는다. 아래 여백은 `.evc-tpl-additem` 이
+   갖고 있던 값 그대로다. */
+.evc-tpl-addrow {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  margin-bottom: var(--spacing-md, 8px);
+}
 .evc-tpl-grades {
   display: flex;
   flex-direction: column;
