@@ -1741,8 +1741,27 @@ export default function EvalCycleWizard({
   slackChannels,
   /** 채널 목록 «조회 상태»(`'loading' | 'ready' | 'error'`). 안 넘기면 'ready'. */
   slackChannelsStatus = 'ready',
+  /**
+   * PW-534 ㉮ — **한 단계만 인라인으로 그린다** (정책 §4.6).
+   *
+   * 사이클 관리 화면의 탭 ③④⑤(단계별 일정 · 대상자 · 캘리브레이션 위원회)는 위자드
+   * 2~4단계와 «같은 입력»이다. 그 입력을 두 벌로 만들면 규칙이 두 곳에 생겨 반드시
+   * 한쪽이 뒤처진다 — 그래서 같은 컴포넌트를 단계 하나만 열어 쓴다.
+   *
+   * 숫자를 넘기면 그 단계 하나만 그린다. 이때:
+   *   · 모달 오버레이·포털을 쓰지 않는다 — 이미 열려 있는 화면 «안»의 한 칸이다
+   *   · 단계 표(StepBar)·이전/다음·초안 저장이 사라진다 — 갈 곳이 한 곳뿐이다
+   *   · 푸터에 저장 버튼 하나만 남는다
+   *
+   * ⛔ 넘기지 않으면(`null`) 종전 그대로다. 기존 경로의 시각은 바뀌지 않는다.
+   */
+  singleStep = null,
+  /** 인라인일 때 저장 버튼에 쓸 문구 키(없으면 `saveChanges`). */
+  singleStepSaveLabel = null,
 }) {
   const isManage = !!cycle;
+  /** 인라인 단일 단계인가. 숫자 0 도 유효한 단계라 `!= null` 로 판정한다. */
+  const isSingleStep = singleStep != null;
   const initialSeq = cycle?.reviewSequence ?? null;
   /**
    * PW-440 — 초안 기능이 켜졌는가. 관리 모드에서는 항상 꺼진다(§5.1-A-1).
@@ -1755,7 +1774,13 @@ export default function EvalCycleWizard({
   const isDraftResume = !!D;
 
   const [step, setStep] = useState(() =>
-    isDraftResume ? clampStep(draftStep) : clampStep(landing?.step ?? 0),
+    // 단일 단계면 그 단계에 고정된다 — 초안·랜딩은 «어느 단계로 열까» 를 정하는 값이라
+    // 갈 곳이 하나뿐인 화면에서는 뜻이 없다.
+    isSingleStep
+      ? clampStep(singleStep)
+      : isDraftResume
+        ? clampStep(draftStep)
+        : clampStep(landing?.step ?? 0),
   );
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
   const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn);
@@ -4185,9 +4210,18 @@ export default function EvalCycleWizard({
     void loadPresetById(presetId);
   };
 
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={requestClose}>
-      <div className="evc-wiz" onClick={(e) => e.stopPropagation()}>
+  /**
+   * 위자드 본체. 창으로 뜰 때와 «화면 안 한 칸» 으로 뜰 때가 이 노드를 함께 쓴다
+   * (PW-534 ㉮) — 입력을 두 벌로 만들면 규칙이 두 곳에 생긴다.
+   */
+  const wizardShell = (
+    <div
+      className={`evc-wiz${isSingleStep ? ' is-inline' : ''}`}
+      onClick={isSingleStep ? undefined : (e) => e.stopPropagation()}
+    >
+      {/* 단일 단계에는 제목 줄이 없다 — 화면 머리가 이미 「{사이클명} · 사이클 관리」를
+          말하고 있고, 그 아래 또 제목을 두면 층이 하나 더 있는 것으로 읽힌다. */}
+      {!isSingleStep && (
         <div className="evc-wiz-header">
           <h3 className="evc-modal-title" data-testid="evc-wiz-title">
             {isManage
@@ -4205,11 +4239,12 @@ export default function EvalCycleWizard({
             ✕
           </button>
         </div>
+      )}
 
         {/* PW-440 — 이어쓰기로 열렸다는 사실과 «언제·누가» 저장했는지를 먼저 알린다.
             이게 없으면 값이 채워진 채 열린 화면이 「내가 만들다 만 것」인지
             「누가 만들어 둔 것」인지 구분되지 않는다. */}
-        {isDraftResume && (
+        {!isSingleStep && isDraftResume && (
           <div className="evc-wiz-draft-banner" data-testid="evc-wiz-draft-banner">
             <InfoIcon size={14} />
             <span>
@@ -4223,13 +4258,16 @@ export default function EvalCycleWizard({
           </div>
         )}
 
-        <StepBar
-          steps={steps}
-          current={step}
-          labels={L}
-          onJump={goStep}
-          isSkipped={isSkipped}
-        />
+        {/* 갈 곳이 한 곳뿐이면 단계 표는 «누를 수 없는 표» 가 된다. */}
+        {!isSingleStep && (
+          <StepBar
+            steps={steps}
+            current={step}
+            labels={L}
+            onJump={goStep}
+            isSkipped={isSkipped}
+          />
+        )}
 
         <div className="evc-wiz-body">
           {step === 0 && (
@@ -7291,13 +7329,16 @@ export default function EvalCycleWizard({
         </div>
 
         <div className="evc-wiz-footer">
-          <button
-            type="button"
-            className="evc-btn is-ghost"
-            onClick={step === 0 ? requestClose : () => goStep(step - 1)}
-          >
-            {step === 0 ? L.cancel : L.prev}
-          </button>
+          {/* 단일 단계에는 「이전」도 「취소」도 없다 — 나가는 길은 탭 줄이다. */}
+          {!isSingleStep && (
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={step === 0 ? requestClose : () => goStep(step - 1)}
+            >
+              {step === 0 ? L.cancel : L.prev}
+            </button>
+          )}
 
           {/* PW-119 와 같은 방식 — 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다. */}
           {/* [PW-435 ②] 평가 종류 0종. 단계가 평가 종류를 따르게 된 이상 0종 사이클에는
@@ -7308,7 +7349,7 @@ export default function EvalCycleWizard({
               {L.blockReviewTypes}
             </span>
           )}
-          {step === steps.length - 1 && submitBlockHint && (
+          {(isSingleStep || step === steps.length - 1) && submitBlockHint && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-submit">
               {submitBlockHint}
             </span>
@@ -7326,7 +7367,7 @@ export default function EvalCycleWizard({
             )}
             {/* PW-440 — 「어디까지 저장됐나」를 그 자리에서 읽을 수 있어야 한다.
                 저장이 보이지 않으면 사용자는 저장됐다고 믿지 않는다. */}
-            {draftEnabled && (
+            {!isSingleStep && draftEnabled && (
               <span
                 className={`evc-wiz-draft-state${draftError ? ' is-error' : ''}`}
                 data-testid="evc-wiz-draft-state"
@@ -7351,7 +7392,7 @@ export default function EvalCycleWizard({
             )}
             {/* 수동 저장은 «한 단계 안에 오래 머무는 경우»를 위한 보조 수단이다.
                 필수값이 비어도 항상 활성 — 초안은 부분 저장이 정상이다. */}
-            {draftEnabled && (
+            {!isSingleStep && draftEnabled && (
               <button
                 type="button"
                 className="evc-btn is-ghost"
@@ -7362,7 +7403,7 @@ export default function EvalCycleWizard({
                 {L.draftSaveNow}
               </button>
             )}
-            {step < steps.length - 1 ? (
+            {!isSingleStep && step < steps.length - 1 ? (
               <button
                 type="button"
                 className="evc-btn is-primary"
@@ -7382,15 +7423,26 @@ export default function EvalCycleWizard({
               >
                 {submitting
                   ? L.submitting
-                  : isManage
-                    ? L.saveChanges
-                    : L.create}
+                  : isSingleStep
+                    ? (singleStepSaveLabel ?? L.saveChanges)
+                    : isManage
+                      ? L.saveChanges
+                      : L.create}
               </button>
             )}
           </div>
         </div>
-      </div>
+    </div>
+  );
 
+  /**
+   * 위자드 «위에» 뜨는 창들. 인라인일 때는 화면 안 한 칸 옆에 두면 안 된다 —
+   * 본문 칸(`.content-area`)이 `position: fixed` 라 자기 스태킹 컨텍스트를 만들어,
+   * 그 안에서 그린 막은 왼쪽 메뉴·위쪽 바를 덮지 못한다(PW-513). 그래서 인라인일 때는
+   * 이 묶음만 화면 맨 바깥으로 꺼낸다.
+   */
+  const wizardOverlays = (
+    <>
       {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
@@ -7624,6 +7676,23 @@ export default function EvalCycleWizard({
           </div>
         </div>
       )}
+    </>
+  );
+
+  // 화면 안 한 칸으로 뜰 때 — 오버레이도 포털도 쓰지 않는다. 위에 뜨는 창들만 꺼낸다.
+  if (isSingleStep) {
+    return (
+      <>
+        {wizardShell}
+        {createPortal(wizardOverlays, document.body)}
+      </>
+    );
+  }
+
+  return createPortal(
+    <div className="evc-modal-overlay" onClick={requestClose}>
+      {wizardShell}
+      {wizardOverlays}
     </div>,
     document.body,
   );

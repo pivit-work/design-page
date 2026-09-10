@@ -221,6 +221,15 @@ export default function EvalCycleMonitoringCanvas({
    */
   toolbar = null,
   /**
+   * PW-534 ㉮ — 화면 머리에 붙일 층 표시(보통 「사이클 관리」). 사이클 관리 화면의
+   * 탭으로 열렸을 때 `{사이클명} · 사이클 관리` 로 읽히게 한다 (정책 §4.6.3).
+   *
+   * 셸 서브네비와 관리 탭 줄에 **같은 이름이 둘**(진행 현황 · 리포트) 있어서, 이 표시가
+   * 없으면 「지금 한 사이클 «안»에 있다」가 화면에 드러나지 않는다.
+   * 안 넘기면 종전 그대로 사이클 이름만 보인다.
+   */
+  manageSuffix = null,
+  /**
    * [PW-534] 이 사이클에서 «열로 세울» 단계 — `[{ key, label }]` (정책 §6.2.1).
    *
    * 비어 있으면 개정 전 3종 고정 열(셀프·동료 확정·하향)로 그린다. 아직 이 값을
@@ -272,7 +281,14 @@ export default function EvalCycleMonitoringCanvas({
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
+          {cycle?.name && (
+            <p className="evc-summary" data-testid="evc-manage-context">
+              {cycle.name}
+              {manageSuffix && (
+                <span className="evc-manage-suffix"> · {manageSuffix}</span>
+              )}
+            </p>
+          )}
         </div>
         <div className="evmon-controls">
           {!stopped && onRemind && (

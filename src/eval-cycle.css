@@ -7967,3 +7967,157 @@
   font-size: var(--font-size-text-xs, 11.5px);
   color: var(--text-tertiary, #98a2b3);
 }
+
+/* ── 사이클 관리 화면 (PW-534 ㉮ · 정책 §4.6) ──
+   헤더 한 줄에 사이클 이름 · 층 표시 · 상태 배지가 함께 선다. 층 표시(「· 사이클 관리」)가
+   빠지면 셸 서브네비의 「진행 현황」·「리포트」와 관리 탭의 같은 이름이 구분되지 않는다. */
+.evc-manage-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md, 8px);
+  flex-wrap: wrap;
+}
+.evc-manage-suffix {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-tertiary, #667085);
+}
+/* 잠금 안내 — 아이콘과 문장이 여러 줄에서도 위쪽으로 정렬된다. */
+.evc-manage-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md, 8px);
+}
+.evc-manage-lock svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ── 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5) ── */
+.evrs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px);
+  margin-top: var(--spacing-lg, 12px);
+}
+.evrs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  height: 32px;
+  padding: 0 var(--spacing-lg, 12px);
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border-primary, #d0d5dd);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-sm, 14px);
+  cursor: pointer;
+}
+.evrs-chip.is-on {
+  border-color: var(--brand-600, #7f56d9);
+  background: var(--brand-50, #f9f5ff);
+  color: var(--brand-700, #6941c6);
+  font-weight: 700;
+}
+/* 잠긴 칩은 «보이되 눌리지 않는다». 숨기면 그 섹션이 리포트에 없는 것으로 읽힌다. */
+.evrs-chip.is-locked {
+  cursor: not-allowed;
+}
+.evrs-chip input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+.evrs-chip-req {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+  font-weight: 400;
+}
+
+.evrs-timeline {
+  list-style: none;
+  margin: var(--spacing-lg, 12px) 0 0;
+  padding: 0;
+  border: 1px solid var(--border-secondary, #eaecf0);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+.evrs-timeline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-lg, 12px) var(--spacing-xl, 16px);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evrs-timeline-row + .evrs-timeline-row {
+  border-top: 1px solid var(--border-secondary, #eaecf0);
+}
+.evrs-timeline-row.is-now {
+  background: var(--brand-50, #f9f5ff);
+}
+.evrs-timeline-when {
+  flex: none;
+  min-width: 140px;
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+}
+.evrs-timeline-row.is-now .evrs-timeline-when {
+  color: var(--brand-700, #6941c6);
+}
+.evrs-timeline-who {
+  flex: none;
+  min-width: 56px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evrs-timeline-what {
+  flex: 1;
+  line-height: 1.6;
+}
+.evrs-timeline-now {
+  flex: none;
+  font-weight: 700;
+  color: var(--brand-700, #6941c6);
+  white-space: nowrap;
+}
+
+.evrs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-lg, 12px);
+}
+.evrs-save-error {
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--utility-error-600, #d92d20);
+}
+
+/* 좁은 화면에서 시점 표가 옆으로 밀리지 않게 한 줄씩 쌓는다. */
+@media (max-width: 720px) {
+  .evrs-timeline-row {
+    flex-wrap: wrap;
+  }
+  .evrs-timeline-when,
+  .evrs-timeline-who {
+    min-width: 0;
+  }
+}
+
+/* ── 위자드를 «화면 안 한 칸» 으로 쓸 때 (PW-534 ㉮ · 정책 §4.6) ──
+   창으로 뜰 때의 규격(그림자·최대 높이·자체 스크롤)은 «창이라서» 필요한 값이다.
+   화면 안 한 칸에서 그대로 쓰면 카드 안에 또 하나의 창이 뜬 것처럼 보이고, 본문이
+   제 높이만큼 늘어나지 못해 «칸 안의 스크롤»이 하나 더 생긴다. */
+.evc-wiz.is-inline {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  max-height: none;
+}
+.evc-wiz.is-inline > .evc-wiz-body {
+  overflow-y: visible;
+  padding: 0;
+}
+.evc-wiz.is-inline > .evc-wiz-footer {
+  padding: var(--spacing-xl, 16px) 0 0;
+}
