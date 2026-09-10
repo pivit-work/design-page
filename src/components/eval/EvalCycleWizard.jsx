@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
+// [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
+import { isPastScheduleStart } from './evalSchedulePast.js';
 import { CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
@@ -2228,12 +2230,12 @@ export default function EvalCycleWizard({
     setSchedDraft({});
   };
   /* 지난 날짜 판정은 **날짜 기준**이다. 시각까지 비교하면 오늘 09:00 시작 단계가
-     오전에 이미 경고로 뜬다(§5.2.1-A 「과거 날짜」). 차단하지는 않는다. */
-  const todayIso = dateToIso(new Date());
-  const isPastPhase = (id) => {
-    const start = datePart(scheduleOf(id).start);
-    return !!start && start < todayIso;
-  };
+     오전에 이미 경고로 뜬다(§5.2.1-A 「과거 날짜」). 차단하지는 않는다.
+
+     [PW-614] 판정을 여기 인라인으로 두었더니, 같은 값을 고치는 «일정 수정 창»에는
+     그 판정이 아예 없는 채로 남았다(정책 §5.2.1-B 「같은 값을 두 화면이 다르게 보이면
+     그 자체가 버그」). 공용 모듈로 옮겨 두 화면이 같은 함수를 쓴다. */
+  const isPastPhase = (id) => isPastScheduleStart(scheduleOf(id).start);
   /**
    * [PW-529 · 정책 §5.2.1-B 하한] 받는 사람이 0명인 리마인더가 하나라도 있으면 막는다.
    *

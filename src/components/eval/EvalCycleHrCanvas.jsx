@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
+import { isPastScheduleStart, phaseHasTemplate } from './evalSchedulePast.js';
 
 /**
  * EvalCycleHrCanvas — HR 성과평가 사이클 관리 화면(목록) 정본 컴포넌트.
@@ -58,6 +59,12 @@ const DEFAULT_LABELS = {
   editScheduleOrderErr: '종료 일시는 시작 일시와 같거나 이후여야 합니다.',
   editScheduleSave: '일정 저장',
   toastScheduleSaved: '일정이 수정되었습니다',
+  // PW-614 · 정책 §5.2.1-A — 지난 날짜는 «알리되 막지 않는다». 대상 기간을 벗어난 것
+  // 자체는 경고하지 않는다(운영 일정이 대상 기간 뒤에 놓이는 것이 기본값이다).
+  // 배지 문구는 마법사 3단계와 같은 키를 쓴다 — 같은 값이 두 화면에서 다르게 보이면 버그다.
+  schedulePastBadge: '지난 날짜',
+  schedulePastLockNote:
+    '시작 일시가 이미 지났습니다. 저장하면 이 단계의 평가지가 잠겨 문항을 고칠 수 없습니다.',
   // status
   statusDraft: '준비 중',
   statusPeerAssign: '동료 배정',
@@ -315,13 +322,49 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
   });
   const hasError = invalid.length > 0;
 
-  const handleSave = () => {
-    if (hasError) return;
+  /**
+   * [PW-614 · 정책 §5.2.1-A] 지난 날짜는 «알리되 막지 않는다».
+   *
+   * 🔴 **대상 기간(`cycle.startDate`~`endDate`)과 견주지 않는다.** 그 두 날짜는 «무엇을
+   * 평가하는가»이고 단계 일정은 «언제 진행하는가»라, 단계 일정이 대상 기간 뒤에 놓이는
+   * 것이 기본값이다(기준점 D0 = 대상 기간 종료 다음 날). 대상 기간 안으로 가두면 기본값으로
+   * 만든 사이클이 전부 저장 불가가 된다. 정책도 「대상 기간 초과를 경고하지 않는다」이다.
+   *
+   * 판정과 「평가지를 갖는 단계」 목록은 마법사 3단계와 **같은 모듈**을 쓴다.
+   */
+  const isPast = (id) => isPastScheduleStart(rows[id]?.start);
+
+  /**
+   * PW-614 — 저장이 끝난 뒤에 닫는다. 소비 측(`handleSaveSchedule`)이 결과를 기다리므로
+   * 여기서는 그 프로미스를 붙들어 «저장 중»을 그리고, 실패하면 창을 연 채 사유를 적는다.
+   * 종전에는 던져 놓고 바로 닫혀 고쳐 넣던 일시가 오류 뜨기 전에 이미 사라졌다.
+   */
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  /* 🔴 단발 보장은 `saving` «상태»로는 못 한다. 한 틱 안에 들어온 두 번째 클릭은 아직
+     리렌더 전이라 `saving` 이 false 로 보이고, 버튼의 `disabled` 도 아직 안 붙어 있다.
+     즉시 값이 바뀌는 ref 로 잠근다. */
+  const inFlight = useRef(false);
+
+  const handleSave = async () => {
+    if (hasError || inFlight.current) return;
+    inFlight.current = true;
     const schedule = {};
     for (const id of phases) {
       schedule[id] = { start: rows[id].start || null, end: rows[id].end || null };
     }
-    onSave(cycle.id, schedule);
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      await onSave(cycle.id, schedule);
+    } catch {
+      // 사유는 «누른 자리 옆»에 적는다 — 토스트는 스쳐 지나가고, 그때 창은 이미 닫힌 뒤였다.
+      setSaveFailed(true);
+      setSaving(false);
+      inFlight.current = false;
+    }
+    // 성공하면 소비 측이 이 창을 걷어 간다. 여기서 `setSaving(false)` 를 부르면
+    // 이미 사라진 컴포넌트에 상태를 쓰게 된다.
   };
 
   return createPortal(
@@ -353,6 +396,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
         <div className="evc-sched-modal-list">
           {phases.map((id, i) => {
             const bad = invalid.includes(id);
+            const past = isPast(id);
             return (
               <div
                 key={id}
@@ -364,6 +408,15 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                   <span className="evc-sched-modal-name">
                     {L[PHASE_NAME_KEYS[id]] ?? id}
                   </span>
+                  {/* [PW-614] 마법사 3단계와 같은 배지. 알리기만 하고 저장은 막지 않는다. */}
+                  {past && (
+                    <span
+                      className="evc-mode-badge is-warn"
+                      data-testid={`evc-sched-modal-past-${id}`}
+                    >
+                      {L.schedulePastBadge}
+                    </span>
+                  )}
                 </div>
                 <div className="evc-sched-modal-fields">
                   <label className="evc-sched-modal-field">
@@ -406,22 +459,44 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                   </label>
                 </div>
                 {bad && <div className="evc-sched-modal-err">{L.editScheduleOrderErr}</div>}
+                {/* [PW-614] 지난 날짜가 그냥 지난 날짜가 아닌 단계 — 시작일이 도래하면 그
+                    단계 평가지가 잠긴다(PW-535 잠금의 L1). 평가지가 없는 단계
+                    (캘리브레이션·요약 검수·결과 발송)에는 잠길 것이 없어 적지 않는다. */}
+                {past && phaseHasTemplate(id) && (
+                  <div
+                    className="evc-sched-modal-warn"
+                    data-testid={`evc-sched-modal-lock-note-${id}`}
+                  >
+                    {L.schedulePastLockNote}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
         <div className="evc-modal-actions">
-          <button type="button" className="evc-btn is-ghost" onClick={onCancel}>
+          {/* PW-614 — 실패 사유는 «누른 자리 옆»에 남긴다. 토스트는 스쳐 지나간다. */}
+          {saveFailed && (
+            <span className="evc-sched-modal-err" data-testid="evc-sched-save-failed">
+              {L.submitFailed}
+            </span>
+          )}
+          <button
+            type="button"
+            className="evc-btn is-ghost"
+            onClick={onCancel}
+            disabled={saving}
+          >
             {L.cancel}
           </button>
           <button
             type="button"
             className="evc-btn is-primary"
-            disabled={hasError}
+            disabled={hasError || saving}
             onClick={handleSave}
             data-testid="evc-sched-save"
           >
-            {L.editScheduleSave}
+            {saving ? L.submitting : L.editScheduleSave}
           </button>
         </div>
       </div>
@@ -877,10 +952,29 @@ export default function EvalCycleHrCanvas({
   const handleResume = (cycle) =>
     void run(() => onResumeCycle?.(cycle.id), L.toastResumed);
 
-  // §4.1.2-A: 진행 중 단계 일정 저장
-  const handleSaveSchedule = (cycleId, schedule) => {
+  /**
+   * §4.1.2-A: 진행 중 단계 일정 저장.
+   *
+   * PW-614 — 🔴 **저장이 끝난 뒤에 닫는다.** 종전에는 `setScheduleModal(null)` 이 저장
+   * «앞»에 있었다. 저장은 한 번에 끝나지 않고(일정 patch → 목록 다시 읽기) 실측 2.85초가
+   * 걸리는데, 그 사이 창은 이미 사라져 있고 성공 안내는 한참 뒤 다른 자리에 떴다가 3초
+   * 만에 없어진다 — 누른 사람에게 그 시간은 통째로 「아무 일도 안 일어남」이다. 실패는 더
+   * 나쁘다: 고쳐 넣던 일시가 오류가 뜨기 전에 이미 사라진다.
+   *
+   * 사이클 「생성」·「변경사항 저장」이 같은 이유로 이미 고쳐진 자리다(PW-531,
+   * `handleCreate`·`handleUpdate`). 이 자리에만 그 손질이 안 들어가 있었다.
+   *
+   * 실패를 다시 던지는 이유: 모달이 그 프로미스를 붙들어 「저장 중」을 풀고 사유를 적는다.
+   */
+  const handleSaveSchedule = async (cycleId, schedule) => {
+    try {
+      await onPatchSchedule?.(cycleId, schedule);
+    } catch (err) {
+      showToast(L.toastError, 'error');
+      throw err;
+    }
     setScheduleModal(null);
-    void run(() => onPatchSchedule?.(cycleId, schedule), L.toastScheduleSaved);
+    showToast(L.toastScheduleSaved);
   };
 
   /**
