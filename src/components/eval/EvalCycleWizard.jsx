@@ -1773,15 +1773,18 @@ export default function EvalCycleWizard({
   const D = draftEnabled && draftState ? draftState : null;
   const isDraftResume = !!D;
 
-  const [step, setStep] = useState(() =>
-    // 단일 단계면 그 단계에 고정된다 — 초안·랜딩은 «어느 단계로 열까» 를 정하는 값이라
-    // 갈 곳이 하나뿐인 화면에서는 뜻이 없다.
-    isSingleStep
-      ? clampStep(singleStep)
-      : isDraftResume
-        ? clampStep(draftStep)
-        : clampStep(landing?.step ?? 0),
+  const [stepState, setStep] = useState(() =>
+    isDraftResume ? clampStep(draftStep) : clampStep(landing?.step ?? 0),
   );
+  /**
+   * 🔴 단일 단계에서 `step` 은 **상태가 아니라 prop 이다.**
+   *
+   * 상태로 두고 초기값으로만 받으면, 소비 측이 같은 자리에서 `singleStep` 만 바꿔도
+   * (사이클 관리에서 탭을 옮길 때가 정확히 그렇다) React 가 같은 컴포넌트를 재사용해
+   * **탭은 바뀌었는데 본문은 이전 단계 그대로**가 된다. 브라우저에서 실제로 그랬다 —
+   * 위원회 탭에 대상자 내용이 떴다.
+   */
+  const step = isSingleStep ? clampStep(singleStep) : stepState;
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
   const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn);
   const [committee, setCommittee] = useState(() => [...(D?.committee ?? [])]);
