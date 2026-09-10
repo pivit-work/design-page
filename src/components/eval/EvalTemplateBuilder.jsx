@@ -139,8 +139,19 @@ export function EvalTemplateGradeRows({
  * 것으로 표현되지 않고, 별도의 «만드는 자리»가 필요하다.
  *
  * 그 자리를 호출부에서 각자 그리면 두 화면의 추가 줄이 갈라진다 — 마법사와 [편집] 창이
- * 같은 빌더여야 한다는 것이 §6.3 이고, 그것이 이 파일이 존재하는 이유다. 시각은 기존
- * `.evc-tpl-additem` 그대로이며 새로 만든 모양이 없다.
+ * 같은 빌더여야 한다는 것이 §6.3 이고, 그것이 이 파일이 존재하는 이유다.
+ *
+ * ## 🔴 버튼은 `.evc-btn` 이다 — `.evc-tpl-additem` 이 아니다 (PW-602 되돌림)
+ *
+ * 처음 만들 때 두 버튼에 `.evc-tpl-additem` 을 붙이고 「기존 모양 그대로라 새로 만든
+ * 모양이 없다」고 적었는데, **그 클래스는 버튼의 모양이 아니라 «줄» 의 모양**이다
+ * (`display: grid` + `grid-template-columns: 100px 1fr 96px auto` — 마법사의 항목 추가
+ * 폼에서 입력칸 셋과 버튼을 한 줄에 세우는 틀). 버튼에 붙이면 버튼이 폭을 꽉 채운
+ * 격자가 되고, 아이콘이 첫 칸에 글자가 둘째 칸에 떨어지며, 테두리·배경·여백은
+ * 하나도 안 들어와 브라우저 기본 버튼으로 보인다.
+ *
+ * 이 파일 안에서 «버튼» 의 모양은 언제나 `.evc-btn` 이다. 줄을 세우는 것은 감싸는
+ * `.evc-tpl-addrow` 가 한다 — 모양(버튼)과 배치(줄)를 다른 요소가 맡는다.
  */
 export function EvalTemplateAddRow({
   labels: L,
@@ -150,10 +161,10 @@ export function EvalTemplateAddRow({
   testPrefix = 'evc-tpl',
 }) {
   return (
-    <>
+    <div className="evc-tpl-addrow">
       <button
         type="button"
-        className="evc-tpl-additem"
+        className="evc-btn is-ghost"
         onClick={onAddItem}
         data-testid={`${testPrefix}-add-item`}
       >
@@ -163,7 +174,7 @@ export function EvalTemplateAddRow({
       {onAddNote && (
         <button
           type="button"
-          className="evc-tpl-additem"
+          className="evc-btn is-ghost"
           onClick={onAddNote}
           data-testid={`${testPrefix}-add-note`}
         >
@@ -171,7 +182,7 @@ export function EvalTemplateAddRow({
           {L.addNote}
         </button>
       )}
-    </>
+    </div>
   );
 }
 

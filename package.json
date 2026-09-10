@@ -41,6 +41,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "check:exports": "node scripts/check-css-exports.mjs",
+    "check:classnames": "node scripts/check-classnames.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },
