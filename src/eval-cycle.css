@@ -1548,6 +1548,81 @@
   font-family: monospace;
   cursor: pointer;
 }
+/* [PW-530 2차] 사람 말 이름 + 작은 토큰 병기 칩.
+   새 시각 언어를 만들지 않는다 — `.evc-rm-var` 의 변형자로 얹고, 글자만 본문 서체로
+   돌린다(이름은 사람이 읽는 말이라 monospace 가 맞지 않는다). */
+.evc-rm-var.is-labeled {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-sm, 6px);
+  font-family: inherit;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-primary);
+  background: var(--bg-secondary, #f9fafb);
+  padding: 4px 9px;
+}
+.evc-rm-var-tok {
+  font-family: monospace;
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 400;
+  color: var(--utility-purple-500, #7a5af8);
+}
+/* [PW-530 2차] 「이 문구에 쓴 변수」 줄 — 샘플이 쓰는 가라앉은 상자 계열을 따른다. */
+.evc-rm-used {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  /* 항목 사이는 «이름 → 값» 안쪽 간격보다 넓어야 한다 — 같으면 세 쌍이 한 문장으로
+     붙어 읽힌다(브라우저 실측에서 그랬다). */
+  gap: var(--spacing-xs, 4px) var(--spacing-xl, 16px);
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 10px);
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: var(--radius-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+}
+.evc-rm-used-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-xs, 4px);
+}
+.evc-rm-used-name {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.evc-rm-used-arrow {
+  color: var(--text-tertiary);
+}
+/* 값은 «치환된 뒤» 를 뜻하므로 샘플의 확인 계열 색을 쓴다. 길이가 제각각이라
+   (`/eval/me/cycle/2026-h1`) 줄바꿈을 막지 않는다 — 고정폭 상자가 아니다. */
+.evc-rm-used-val {
+  color: var(--text-success-primary, #067647);
+  background: var(--bg-success-primary, #ecfdf3);
+  border-radius: var(--radius-xs, 4px);
+  padding: 0 5px;
+  word-break: break-all;
+}
+.evc-rm-used-empty {
+  color: var(--text-tertiary);
+}
+/* [PW-530 2차] 샘플 상자의 채널 이름표 — 종전에는 `data-testid` 뿐이라 두 상자가 같은
+   내용을 그리면 어느 쪽이 슬랙인지 알 수 없었다. */
+.evc-rm-preview-ch {
+  display: inline-block;
+  margin-bottom: var(--spacing-xs, 4px);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs, 4px);
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 11px);
+  font-weight: 700;
+}
+/* 폴백 안내 — 경고가 아니라 «왜 위 문구가 보이는지» 를 말하는 줄이다. */
+.evc-rm-preview-note {
+  margin-top: var(--spacing-xs, 4px);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-text-xs, 11px);
+  line-height: 1.6;
+}
 .evc-rm-slack-ch {
   display: flex;
   align-items: center;
