@@ -123,6 +123,23 @@ const DEFAULT_LABELS = {
        한 번에 사라진다(PW-326). 서버 계약에도 교체 파라미터가 없다. */
     orgAppend: '소속 일괄 추가',
     orgAppendSubtitle: '선택 {count}명',
+    /* 나머지 3종 (PW-610 · 기획 §3.1). 드롭다운의 나열 순서도 그 절 그대로다 —
+       매니저 일괄 배정 / 소속 일괄 추가 / 상태 일괄 변경 / 일괄 비활성화. */
+    managerAssign: '매니저 일괄 배정',
+    /* 대표는 상급자를 가질 수 없다(§3.3 · 서버도 `target_is_ceo` 로 거절한다).
+       조용히 빼면 「배정했다」 는 말과 실제 인원이 어긋나므로 **몇 명이 빠지는지**
+       창에 적는다. */
+    managerCeoExcluded: '대표 {count}명은 상급자를 가질 수 없어 제외됩니다',
+    managerAllCeo: '고른 사람이 대표뿐이라 배정할 대상이 없습니다',
+    statusChange: '상태 일괄 변경',
+    /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
+       않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
+       🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
+    seatDrop: '좌석 {count}개가 줄어듭니다',
+    deactivate: '일괄 비활성화',
+    deactivateBody: '{count}명을 퇴사 처리합니다. 목록에서 사라지지는 않습니다.',
+    apply: '적용',
+    cancel: '취소',
   },
   /* 목록 뷰 표의 열 이름과 ⚙ 컬럼 표시 설정 (PW-400).
      🔴 `dept` 는 「부서」 가 아니라 「소속(기능조직)」 이다 — 스쿼드 열과 나란히 두면
@@ -1023,6 +1040,26 @@ const LIST_DEFAULT_OPT_COLS = Object.fromEntries(
 /** 필터의 «전체» sentinel. 🔴 라벨(`'전체'`)을 쓰면 로케일을 바꾸는 순간 판정이 깨진다. */
 const LIST_ALL = ALL;
 
+/**
+ * 재직 상태 4종과 그 순서 (`admin-spec.md §3.2.1`).
+ *
+ * 편집 패널의 라디오와 「상태 일괄 변경」 창이 **이 하나를 함께 쓴다** — 목록이 둘로
+ * 갈리면 한쪽에서만 고를 수 있는 상태가 생긴다. `pending`·`other` 는 여기 없다:
+ * 가입 대기는 초대 관리 탭 몫이고(§3.2.1), `other` 는 데이터 정리 대상이라 사람이
+ * 골라 넣을 값이 아니다.
+ */
+const STATUS_ORDER = ['active', 'probation', 'on_leave', 'terminated'];
+
+/**
+ * 좌석을 차지하는 사람만 센다 — 서버 `member-status.ts` 의 `isBillableSeat` 와 같은
+ * 기준이다(재직만). 휴직·수습·대기는 명부에는 있지만 좌석은 소모하지 않으므로,
+ * 그들을 퇴사 처리해도 줄어드는 좌석은 0 이다. 두 기준이 갈리면 화면이 말한 숫자와
+ * 다음 청구서가 어긋난다.
+ */
+function seatsHeldBy(rows) {
+  return rows.filter((m) => m.employmentStatus === 'active').length;
+}
+
 /** 결측 칸 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다(조직 스냅샷과 같은 규칙). */
 function Dash() {
   return <span className="admin-emp-cell-dash" aria-hidden="true">—</span>;
@@ -1110,6 +1147,231 @@ function BulkMenu({ count, items, labels }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 일괄 처리 창 셋의 공통 껍데기 (PW-610).
+ *
+ * 🔴 `admin-notif-modal-root` 를 빼면 안 된다 — 배경(`…-backdrop`)은
+ * `position: absolute; z-index: auto` 라 스스로 뜨지 못하고, 앱 크롬(사이드바 z:100)
+ * 아래로 깔려 왼쪽 메뉴가 밝게 남는다. 뜨는 일은 이 래퍼가 한다
+ * (`position: fixed; z-index: 1000`). `ChangeReasonModal` 이 같은 이유로 같은 껍데기를 쓴다.
+ */
+function BulkActionModal({ testId, title, subtitle, children, footer, onClose }) {
+  return (
+    <div className="admin-notif-modal-root" data-testid={testId}>
+      <div className="admin-notif-modal-backdrop" onClick={onClose} />
+      <div className="admin-notif-modal" role="dialog" aria-modal="true">
+        <div className="admin-notif-modal-header">
+          <div>
+            <div className="admin-notif-modal-title">{title}</div>
+            {subtitle && <div className="admin-notif-modal-desc">{subtitle}</div>}
+          </div>
+        </div>
+        <div className="admin-notif-modal-body">{children}</div>
+        <div className="admin-notif-modal-footer">{footer}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 「매니저 일괄 배정」 창 (PW-610 · 기획 §3.1 → §3.3 과 같은 플로우).
+ *
+ * 탭 B(미배정 관리)의 일괄 배정과 **같은 후보 계약**을 쓴다 — 후보 목록도 조직장 경로
+ * 병기(`leadLabel`)도 소비자가 만들어 넘긴 것 그대로다. 캔버스가 배정 규칙을 갖고
+ * 있으면 서버 규칙과 갈리는 순간 화면이 거짓말을 한다.
+ *
+ * 두 가지를 여기서 뺀다:
+ *   · **고른 사람** — 자기 자신을 상급자로 둘 수 없다(서버도 거절한다).
+ *   · **대표(CEO)** — 상급자를 가질 수 없다(§3.3 · 서버 `target_is_ceo`).
+ *     조용히 빼지 않고 **몇 명이 빠지는지** 적는다. 안 적으면 「3명 배정」 을 눌렀는데
+ *     2명만 바뀐 이유를 아무도 모른다.
+ *
+ * 「매니저 없음」 선택지는 두지 않는다(§3.3) — 이 창은 배정만 한다.
+ */
+function BulkManagerModal({ selectedRows, candidates, labels, onClose, onApply }) {
+  const [q, setQ] = useState('');
+  const L = labels.listBulk;
+  const targets = selectedRows.filter((m) => !m.isCeo);
+  const ceoCount = selectedRows.length - targets.length;
+  const pickedIds = new Set(selectedRows.map((m) => m.id));
+  const ql = q.trim().toLowerCase();
+  const pool = candidates.filter((c) => !pickedIds.has(c.id));
+  // 조직 경로로도 찾게 한다 — 「인사팀 팀장이 누구였더라」 가 실제 배정 경로다.
+  const shown = ql
+    ? pool.filter(
+      (c) => (c.label || '').toLowerCase().includes(ql)
+        || (c.leadLabel || '').toLowerCase().includes(ql),
+    )
+    : pool;
+
+  return (
+    <BulkActionModal
+      testId="employees-list-bulk-manager-modal"
+      title={L.managerAssign}
+      subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
+      onClose={onClose}
+      footer={(
+        <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+          data-testid="employees-list-bulk-manager-cancel">{L.cancel}</button>
+      )}
+    >
+      {ceoCount > 0 && (
+        <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-manager-ceo-note">
+          {fill(L.managerCeoExcluded, { count: ceoCount })}
+        </p>
+      )}
+      {targets.length === 0 ? (
+        <div className="admin-emp-select-empty" data-testid="employees-list-bulk-manager-empty">
+          {L.managerAllCeo}
+        </div>
+      ) : (
+        <>
+          <input
+            type="text"
+            className="admin-emp-select-search"
+            value={q}
+            autoFocus
+            placeholder={labels.unassigned.managerSearch}
+            aria-label={labels.unassigned.managerSearch}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {shown.length === 0 ? (
+            <div className="admin-emp-select-empty">{labels.unassigned.managerNoCandidate}</div>
+          ) : (
+            <div className="admin-emp-select-menu is-inline" role="listbox">
+              {shown.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="option"
+                  aria-selected="false"
+                  className="admin-emp-select-item"
+                  data-testid={`employees-list-bulk-manager-option-${c.id}`}
+                  onClick={() => { onClose(); onApply(targets.map((m) => m.id), c.id); }}
+                >
+                  <span className="admin-emp-select-item-label">{c.label}</span>
+                  {c.leadLabel && (
+                    <span className="admin-emp-select-item-sub">
+                      <IconUser size={11} />{c.leadLabel}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </BulkActionModal>
+  );
+}
+
+/**
+ * 「상태 일괄 변경」 창 (PW-610 · 기획 §3.1 → §3.2.1 의 4종).
+ *
+ * 상태 **하나만** 바꾼다. 수습 종료일·휴직 시작/종료일·퇴사일을 받는 칸은 두지 않는다 —
+ * 그 날짜들은 사람마다 다르고 §3.2.1 이 **편집 패널의 항목**으로 정해 뒀다. 여러 명에게
+ * 같은 휴직 시작일을 물리는 칸은 기획서가 정한 적이 없다. 퇴사일은 서버가 오늘로 채운다.
+ *
+ * 「퇴사」 를 고르면 줄어드는 좌석 수가 같은 창 안에 뜬다(§3.7) — 좌석이 움직이는 조작을
+ * 아무 말 없이 태우지 않는다. 「일괄 비활성화」 와 끝값이 같으므로 안내도 같다.
+ */
+function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
+  const [picked, setPicked] = useState(null);
+  const L = labels.listBulk;
+  const seatDrop = seatsHeldBy(selectedRows);
+
+  return (
+    <BulkActionModal
+      testId="employees-list-bulk-status-modal"
+      title={L.statusChange}
+      subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
+      onClose={onClose}
+      footer={(
+        <>
+          <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+            data-testid="employees-list-bulk-status-cancel">{L.cancel}</button>
+          <button
+            type="button"
+            className="admin-emp-btn is-primary"
+            disabled={!picked}
+            data-testid="employees-list-bulk-status-apply"
+            onClick={() => { onClose(); onApply(selectedRows.map((m) => m.id), picked); }}
+          >
+            {L.apply}
+          </button>
+        </>
+      )}
+    >
+      <div className="admin-emp-status-options">
+        {STATUS_ORDER.map((key) => {
+          const selected = picked === key;
+          return (
+            <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
+              <input
+                type="radio"
+                name="bulkEmploymentStatus"
+                className="admin-emp-sr-only"
+                checked={selected}
+                data-testid={`employees-list-bulk-status-${key}`}
+                onChange={() => setPicked(key)}
+              />
+              <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
+              <span className="admin-emp-status-option-label">{labels.status[key]}</span>
+            </label>
+          );
+        })}
+      </div>
+      {picked === 'terminated' && (
+        <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-status-seatdrop">
+          {fill(L.seatDrop, { count: seatDrop })}
+        </p>
+      )}
+    </BulkActionModal>
+  );
+}
+
+/**
+ * 「일괄 비활성화」 확인 창 (PW-610 · 기획 §3.1 · §3.7).
+ *
+ * 되돌리기 어려운 조작이라 바로 적용하지 않는다. 창은 **몇 명이 퇴사 처리되는지**와
+ * **좌석이 몇 개 줄어드는지**를 함께 적는다 — 둘은 같은 수가 아니다(이미 퇴사·휴직인
+ * 사람은 좌석을 차지하지 않는다).
+ *
+ * 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④).
+ */
+function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
+  const L = labels.listBulk;
+  const seatDrop = seatsHeldBy(selectedRows);
+  return (
+    <BulkActionModal
+      testId="employees-list-bulk-deactivate-modal"
+      title={L.deactivate}
+      onClose={onClose}
+      footer={(
+        <>
+          <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+            data-testid="employees-list-bulk-deactivate-cancel">{L.cancel}</button>
+          <button
+            type="button"
+            className="admin-emp-btn is-primary admin-emp-danger"
+            data-testid="employees-list-bulk-deactivate-apply"
+            onClick={() => { onClose(); onApply(selectedRows.map((m) => m.id)); }}
+          >
+            {L.deactivate}
+          </button>
+        </>
+      )}
+    >
+      <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-deactivate-body">
+        {fill(L.deactivateBody, { count: selectedRows.length })}
+      </p>
+      <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-deactivate-seatdrop">
+        {fill(L.seatDrop, { count: seatDrop })}
+      </p>
+    </BulkActionModal>
   );
 }
 
@@ -1229,6 +1491,14 @@ function EmployeesListView({
      **추가 전용** 서버 경로를 탄다. 미주입이면 드롭다운 항목이 없고, 항목이 하나도
      없으면 드롭다운 자체가 뜨지 않는다. */
   onAppendAffiliations,
+  /* 「일괄 처리」 드롭다운의 나머지 3종 (PW-610 · §3.1). 넷 다 **주입받은 것만** 항목이
+     되고, 항목이 하나도 없으면 드롭다운 자체가 뜨지 않는다.
+       · `onAssignManagerBulk(memberIds, managerId)` — 탭 B 의 일괄 배정과 **같은 계약**이다.
+         대표는 이 뷰가 대상에서 빼고 넘긴다(§3.3 · 서버도 `target_is_ceo` 로 거절한다).
+       · `onBulkChangeStatus(memberIds, status)` — 재직 상태 4종 중 하나(§3.2.1).
+         날짜는 함께 넘기지 않는다 — 사람마다 다르고 편집 패널의 항목이다.
+       · `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다. */
+  onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -1288,6 +1558,9 @@ function EmployeesListView({
   const setSelectedIds = onSelectedIdsChange ?? setOwnSelectedIds;
   // 「소속 일괄 추가」 팝업 열림 (PW-608).
   const [bulkOrgOpen, setBulkOrgOpen] = useState(false);
+  /* 열려 있는 일괄 처리 창 (PW-610) — `'manager' | 'status' | 'deactivate' | null`.
+     셋을 각각의 boolean 으로 두면 둘이 동시에 열리는 조합이 생긴다. */
+  const [bulkModal, setBulkModal] = useState(null);
   // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
   // 내부 상태로 폴백한다.
   const [ownOptCols, setOwnOptCols] = useState(LIST_DEFAULT_OPT_COLS);
@@ -1515,14 +1788,40 @@ function EmployeesListView({
     await onAppendAffiliations(memberIds, unitIds);
   }
 
-  /* 드롭다운 항목. 처리를 주입받지 못한 항목은 배열에 들어가지 않고, 배열이 비면
-     `BulkMenu` 가 트리거째 렌더하지 않는다. */
+  /* 드롭다운 항목 (PW-608 에서 1종 → PW-610 에서 4종).
+     처리를 주입받지 못한 항목은 배열에 들어가지 않고, 배열이 비면 `BulkMenu` 가
+     트리거째 렌더하지 않는다.
+
+     🔴 나열 순서는 기획서 §3.1 그대로다 — 매니저 일괄 배정 / 소속 일괄 추가 /
+     상태 일괄 변경 / 일괄 비활성화. 파괴적인 것(비활성화)이 맨 아래인 것도 그 절이
+     정한 순서이고, 손이 미끄러져 눌리는 자리에 두지 않는다는 뜻이다. */
   const bulkItems = [];
+  if (selectable && onAssignManagerBulk) {
+    bulkItems.push({
+      id: 'manager-assign',
+      label: labels.listBulk.managerAssign,
+      onPick: () => setBulkModal('manager'),
+    });
+  }
   if (selectable && onAppendAffiliations && orgUnits.length > 0) {
     bulkItems.push({
       id: 'org-append',
       label: labels.listBulk.orgAppend,
       onPick: () => setBulkOrgOpen(true),
+    });
+  }
+  if (selectable && onBulkChangeStatus) {
+    bulkItems.push({
+      id: 'status-change',
+      label: labels.listBulk.statusChange,
+      onPick: () => setBulkModal('status'),
+    });
+  }
+  if (selectable && onBulkDeactivate) {
+    bulkItems.push({
+      id: 'deactivate',
+      label: labels.listBulk.deactivate,
+      onPick: () => setBulkModal('deactivate'),
     });
   }
   const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
@@ -2093,6 +2392,34 @@ function EmployeesListView({
         />
       )}
 
+      {/* 일괄 처리 창 3종 (PW-610). 고른 사람이 0명이 되면 창도 함께 닫는다 —
+          드롭다운은 사라지는데 창만 남으면 대상 없는 「적용」 버튼이 남는다. */}
+      {bulkModal === 'manager' && selectable && onAssignManagerBulk && selectedCount > 0 && (
+        <BulkManagerModal
+          selectedRows={selectedRows}
+          candidates={managerCandidates}
+          labels={labels}
+          onClose={() => setBulkModal(null)}
+          onApply={onAssignManagerBulk}
+        />
+      )}
+      {bulkModal === 'status' && selectable && onBulkChangeStatus && selectedCount > 0 && (
+        <BulkStatusModal
+          selectedRows={selectedRows}
+          labels={labels}
+          onClose={() => setBulkModal(null)}
+          onApply={onBulkChangeStatus}
+        />
+      )}
+      {bulkModal === 'deactivate' && selectable && onBulkDeactivate && selectedCount > 0 && (
+        <BulkDeactivateModal
+          selectedRows={selectedRows}
+          labels={labels}
+          onClose={() => setBulkModal(null)}
+          onApply={onBulkDeactivate}
+        />
+      )}
+
       {/* 스쿼드 선택 팝업 (PW-438) — 시트 뷰와 **같은 `SquadPicker`** 다.
           정본 §3.1 이 이 뷰에 정해 둔 「셀 클릭 → 팝업」 경로이며, 리드 교체
           확인 모달(SQ10)·승격 안내 없음(SQ11)까지 부품이 그대로 들고 온다. */}
@@ -2546,7 +2873,7 @@ function EmployeesEditPanel({
 
   // §3.2.1 재직상태 4종. `pending`(가입 대기)·`other`(마이그레이션 잔여)는 사람이 고르는
   // 값이 아니라 선택지에 두지 않는다 — 고를 수 있게 두면 탭 C 와 담당이 겹친다.
-  const statusOrder = ['active', 'probation', 'on_leave', 'terminated'];
+  const statusOrder = STATUS_ORDER;
   // 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 orgUnitIds 폴백.
   const chips = (member.depts || []).filter((d) => d.orgUnitId);
   const fallbackPrimary = primaryOrgEntry(orgTree, member.orgUnitIds)?.id ?? '';
@@ -3022,6 +3349,12 @@ export default function AdminEmployeesCanvas({
    * 실패했을 때 어디까지 반영됐는지가 화면과 어긋난다.
    */
   onAssignManagerBulk,
+  /* 목록 뷰 「일괄 처리」 드롭다운의 나머지 2종 (PW-610 · §3.1).
+     `onBulkChangeStatus(memberIds, status)` — 재직 상태 4종 중 하나로 바꾼다(§3.2.1).
+     `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다(§3.7).
+     미주입이면 그 항목이 드롭다운에 없다. */
+  onBulkChangeStatus,
+  onBulkDeactivate,
   /**
    * 매니저 후보 `[{ id, label, leadLabel? }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다.
    * `leadLabel` 은 그 후보가 조직장인 조직 경로 — 배정 판단 근거로 후보 행에 병기된다.
@@ -3304,6 +3637,11 @@ export default function AdminEmployeesCanvas({
             /* 일괄 «소속 추가» (PW-608) — 미주입이면 「일괄 처리」 드롭다운에 항목이
                없고, 항목이 하나도 없으면 드롭다운 자체가 뜨지 않는다. */
             onAppendAffiliations={canEdit ? onAppendAffiliations : undefined}
+            /* 「일괄 처리」 나머지 3종 (PW-610 · §3.1). 매니저 일괄 배정은 탭 B 가 쓰던
+               **같은 콜백**을 그대로 탄다 — 두 화면이 다른 경로로 배정하면 규칙이 갈린다. */
+            onAssignManagerBulk={canEdit ? onAssignManagerBulk : undefined}
+            onBulkChangeStatus={canEdit ? onBulkChangeStatus : undefined}
+            onBulkDeactivate={canEdit ? onBulkDeactivate : undefined}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo
