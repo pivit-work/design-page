@@ -25,6 +25,9 @@ const DEFAULT_LABELS = {
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
+  // [PW-534 ㉯] 오픈 뒤 합류한 대상자 (정책 §5.3.6)
+  joinedBadge: '중도 합류',
+  joinedTooltip: '{{at}} 합류',
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
@@ -386,6 +389,19 @@ export default function EvalCycleMonitoringCanvas({
                   {m.excluded && (
                     <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm, 6px)' }} data-testid="evmon-excluded-badge">
                       {L.excludedBadge}
+                    </span>
+                  )}
+                  {/* PW-534 ㉯ — 오픈 «뒤» 합류한 사람 (정책 §5.3.6).
+                      지난 단계가 전부 미제출인 것이 «안 낸 것» 이 아니라 «있지도 않았던
+                      것» 이다. 표시가 없으면 독촉 명단에서 둘이 섞인다. */}
+                  {m.joinedAt && (
+                    <span
+                      className="evc-status-badge tone-info"
+                      style={{ marginLeft: 'var(--spacing-sm, 6px)' }}
+                      title={fill(L.joinedTooltip, { at: fmtSubmittedAt(m.joinedAt) })}
+                      data-testid="evmon-joined-badge"
+                    >
+                      {L.joinedBadge}
                     </span>
                   )}
                 </span>
