@@ -25,6 +25,9 @@ const DEFAULT_LABELS = {
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
+  // [PW-534 ㉯] 오픈 뒤 합류한 대상자 (정책 §5.3.6)
+  joinedBadge: '중도 합류',
+  joinedTooltip: '{{at}} 합류',
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
@@ -221,6 +224,15 @@ export default function EvalCycleMonitoringCanvas({
    */
   toolbar = null,
   /**
+   * PW-534 ㉮ — 화면 머리에 붙일 층 표시(보통 「사이클 관리」). 사이클 관리 화면의
+   * 탭으로 열렸을 때 `{사이클명} · 사이클 관리` 로 읽히게 한다 (정책 §4.6.3).
+   *
+   * 셸 서브네비와 관리 탭 줄에 **같은 이름이 둘**(진행 현황 · 리포트) 있어서, 이 표시가
+   * 없으면 「지금 한 사이클 «안»에 있다」가 화면에 드러나지 않는다.
+   * 안 넘기면 종전 그대로 사이클 이름만 보인다.
+   */
+  manageSuffix = null,
+  /**
    * [PW-534] 이 사이클에서 «열로 세울» 단계 — `[{ key, label }]` (정책 §6.2.1).
    *
    * 비어 있으면 개정 전 3종 고정 열(셀프·동료 확정·하향)로 그린다. 아직 이 값을
@@ -272,7 +284,14 @@ export default function EvalCycleMonitoringCanvas({
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
+          {cycle?.name && (
+            <p className="evc-summary" data-testid="evc-manage-context">
+              {cycle.name}
+              {manageSuffix && (
+                <span className="evc-manage-suffix"> · {manageSuffix}</span>
+              )}
+            </p>
+          )}
         </div>
         <div className="evmon-controls">
           {!stopped && onRemind && (
@@ -370,6 +389,19 @@ export default function EvalCycleMonitoringCanvas({
                   {m.excluded && (
                     <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm, 6px)' }} data-testid="evmon-excluded-badge">
                       {L.excludedBadge}
+                    </span>
+                  )}
+                  {/* PW-534 ㉯ — 오픈 «뒤» 합류한 사람 (정책 §5.3.6).
+                      지난 단계가 전부 미제출인 것이 «안 낸 것» 이 아니라 «있지도 않았던
+                      것» 이다. 표시가 없으면 독촉 명단에서 둘이 섞인다. */}
+                  {m.joinedAt && (
+                    <span
+                      className="evc-status-badge tone-info"
+                      style={{ marginLeft: 'var(--spacing-sm, 6px)' }}
+                      title={fill(L.joinedTooltip, { at: fmtSubmittedAt(m.joinedAt) })}
+                      data-testid="evmon-joined-badge"
+                    >
+                      {L.joinedBadge}
                     </span>
                   )}
                 </span>
