@@ -93,6 +93,10 @@ const DEFAULT_LABELS = {
   csvUpload: 'CSV 업로드',
   unassignedPill: '미배정',
   concurrentCount: '겸직 {count}',
+  // 소속 칸의 주 소속 배지 · 검색/소속 필터 결과 수의 축 표기 (admin-spec §3.1 · PW-630).
+  primaryBadge: '주',
+  listCountAxis: '주·겸직 소속 {count}명',
+  listCountSubtree: '하위 포함',
   // 목록 뷰 (PW-373) — `#104` 이전 라벨을 되살렸다. 자리가 다시 생겼으므로
   // 「그리는 자리가 먼저」 규칙을 지킨 복원이다.
   // 「목록 / 스프레드시트」 보기 전환 라벨(`viewSwitch`)은 PW-576 으로 함께 걷었다.
@@ -943,7 +947,15 @@ function retainedOrgIds(member, selectedIds) {
 }
 
 /**
- * 목록 행의 소속 표기 — 주 소속을 전체 경로로, 겸직은 개수로.
+ * 목록 행의 소속 표기 — 소속을 **전부** 세로로 쌓고, 주 소속에 `주` 배지, 아래에 `겸직 N`.
+ *
+ * 정본 `admin-spec.md` §3.1 「겸직(중복 소속) 표기」다. 예전에는 주 소속 하나와 `겸직 N`
+ * 숫자만 그렸는데, 소속 필터는 겸직까지 매칭하므로(`deptIdsOf`) 「전략기획팀」으로 거른
+ * 목록에 UX/UI·B/E팀만 적힌 사람이 섞여 **왜 걸렸는지를 화면에서 복원할 수 없었다**(PW-630).
+ * 같은 화면의 스쿼드 필터가 이미 지키는 원칙 — 셀에 안 보이는 값으로 거르지 않는다 — 을
+ * 소속 칸에도 적용한 것이다.
+ *
+ * 행을 복제하지 않는다 — 이 셀만 겸직 수만큼 늘어난다(§3.1).
  *
  * 시트의 소속 셀과 **같은 값**(`depts` / `orgUnitIds`)에서 그린다. 한쪽만 다른 값을
  * 읽으면 두 뷰가 같은 사람을 다르게 그린다(§3.8 「데이터 계약은 두 뷰가 같다」).
@@ -958,12 +970,23 @@ function ListDeptLabel({ member, orgTree, labels }) {
     return <span className="admin-emp-pill is-amber">{labels.unassignedPill}</span>;
   }
   const primary = list.find((d) => d.isPrimary) || list[0];
-  const entry = primary.orgUnitId
-    ? findOrgEntry(orgTree, primary.orgUnitId)
-    : primaryOrgEntry(orgTree, member.orgUnitIds);
+  // 주 소속이 맨 위다 — 서버가 준 순서에 기대면 겸직이 먼저 올 수 있다.
+  const stacked = [primary, ...list.filter((d) => d !== primary)];
+  const entryOf = (d) => {
+    if (d.orgUnitId) return findOrgEntry(orgTree, d.orgUnitId);
+    // id 없는 옛 값은 주 소속만 배정 행에서 경로를 복원할 수 있다.
+    return d === primary ? primaryOrgEntry(orgTree, member.orgUnitIds) : null;
+  };
   return (
-    <span className="admin-emp-row-dept">
-      <OrgPathLabel entry={entry} fallback={primary.name} />
+    <span className="admin-emp-row-depts" data-testid="list-dept-cell">
+      {stacked.map((d, i) => (
+        <span key={d.orgUnitId ?? `${d.name}-${i}`} className="admin-emp-row-dept">
+          <OrgPathLabel entry={entryOf(d)} fallback={d.name} />
+          {d === primary && (
+            <span className="admin-inv-primary-badge">{labels.primaryBadge}</span>
+          )}
+        </span>
+      ))}
       {list.length > 1 && (
         <span className="admin-emp-row-dept-more">
           {String(labels.concurrentCount).split('{count}').join(String(list.length - 1))}
@@ -2244,7 +2267,18 @@ function EmployeesListView({
               aria-label={labels.listSearch}
             />
           </div>
-          <span className="admin-emp-count">{ordered.length}{labels.countSuffix}</span>
+          {/* 검색·소속 필터가 걸리면 결과 수에 «어느 축으로 셌는지»를 적는다
+              (admin-spec §3.1 · PW-630). 둘 다 겸직까지 매칭하는데 맨 `3명` 만 보이면
+              조직도 카드(`직속 N명`)와 나란히 놓았을 때 정상 차이가 결함으로 읽힌다.
+              ⛔ 값은 그대로다 — 겸직자를 빼면 이름으로 못 찾는 사람이 생긴다. */}
+          <span className="admin-emp-count" data-testid="list-count">
+            {q || dept !== LIST_ALL
+              ? String(labels.listCountAxis).split('{count}').join(String(ordered.length))
+              : `${ordered.length}${labels.countSuffix}`}
+            {dept !== LIST_ALL && findOrgEntry(orgTree, dept)?.hasChildren
+              ? ` · ${labels.listCountSubtree}`
+              : null}
+          </span>
         </div>
         <div className="admin-emp-toolbar-actions">
           {/* 「일괄 처리 (N)」 — 고른 사람이 있을 때만 뜬다(§3.1). 시안과 같이 ⚙ 컬럼
