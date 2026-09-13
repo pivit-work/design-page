@@ -2979,8 +2979,18 @@ function EmployeesEditPanel({
         }
         setIdentity((prev) => ({ ...(prev || {}), ...identityDraft }));
       }
-      // 구성원 저장은 종전 그대로 — 실패를 삼키지 않는다(호출부가 토스트·확인을 띄운다).
-      if (Object.keys(patch).length > 1) await onSave([patch]);
+      /* 구성원 저장이 실패하거나 사용자가 확인 창에서 [취소]를 누르면 호출부가 되던진다 —
+         알림·확인 창은 호출부가 이미 띄웠다. 되던지는 이유는 «저장이 안 됐는데 패널이
+         닫히는 것» 을 막기 위해서다. 그러니 여기서 **받아서** 패널을 열어 둔다(방금 친
+         값이 남는다). 받지 않고 흘려보내면 [저장] 클릭의 처리되지 않은 오류로 기록돼,
+         사용자가 고른 [취소]까지 피드백 제보에 버그처럼 섞인다(PW-647). */
+      if (Object.keys(patch).length > 1) {
+        try {
+          await onSave([patch]);
+        } catch {
+          return;
+        }
+      }
       onClose();
     } finally {
       setSaving(false);
