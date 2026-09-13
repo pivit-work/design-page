@@ -748,7 +748,15 @@
   box-shadow: 0 1px 2px rgba(10, 13, 18, 0.06);
 }
 
-/* 목록 행의 소속 — 주 소속 경로 + 겸직 개수. 시트의 소속 셀과 같은 값에서 그린다. */
+/* 목록 행의 소속 — 소속 칩 세로 스택 + 주 배지 + 겸직 개수(admin-spec §3.1 · PW-630).
+   겸직 수만큼 이 셀만 늘어난다. 배지는 초대 모달의 주 소속 배지를 그대로 쓴다. */
+.admin-emp-row-depts {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
 .admin-emp-row-dept {
   display: inline-flex;
   align-items: baseline;
