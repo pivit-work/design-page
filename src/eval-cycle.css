@@ -47,6 +47,13 @@
   margin-bottom: var(--spacing-lg, 12px);
 }
 
+/* 평가지 화면에서 단계 줄(알약)이 설 때 — 단계 줄 → 아래 안내·카드 간격을 위 줄 → 단계 줄
+   간격(20px)보다 넓힌다. 아래가 더 좁으면 단계 줄이 위 줄이 아니라 아래 카드에 딸린 것처럼
+   읽힌다 (PW-640). 단계 줄이 없는 화면(단계 하나·다른 관리 탭)은 종전 12px 그대로다. */
+.evtpl-toolbar:has(.seg-control) {
+  margin-bottom: var(--spacing-4xl, 32px);
+}
+
 /* ── 헤더 ── */
 .evc-header {
   display: flex;

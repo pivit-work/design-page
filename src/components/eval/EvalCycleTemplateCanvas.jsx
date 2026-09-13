@@ -9,7 +9,10 @@ import { useState, useMemo } from 'react';
  * 갈리므로 그 단계를 고르는 자리가 필요한데, 이 캔버스의 `.evc-root` 는
  * `position: fixed` 라 **호출부가 바깥에 무엇을 놓아도 본문 칸 밖으로 나가** 왼쪽 메뉴
  * 아래에 깔린다. 그래서 안쪽에 자리를 낸다. 안 주면 아무것도 그리지 않으므로
- * 기존 화면의 시각은 그대로다. (PW-535 ④)
+ * 기존 화면의 시각은 그대로다. (PW-535 ④) *
+ * `labels.editableNotice` — 편집할 수 있을 때 잠김 안내와 **같은 자리·같은 모양**으로 적는
+ * 한 줄(선택). 오픈된 사이클의 시작 전 단계가 「지금은 고칠 수 있다」를 말하는 자리다.
+ * 비워 두면 그리지 않는다. (PW-640)
  */
 
 const DEFAULT_LABELS = {
@@ -34,6 +37,7 @@ const DEFAULT_LABELS = {
   catLabel: '분류',
   respLabel: '응답',
   readOnly: '오픈된 사이클은 템플릿을 편집할 수 없습니다.',
+  editableNotice: '',
 };
 
 function isObj(v) {
@@ -137,11 +141,17 @@ export default function EvalCycleTemplateCanvas({
         )}
       </header>
 
-      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
+      {toolbar && <div className="evc-toolbar evtpl-toolbar">{toolbar}</div>}
 
       {!editable && (
         <p className="evx-notice" data-testid="evtpl-readonly" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
           {L.readOnly}
+        </p>
+      )}
+
+      {editable && L.editableNotice && (
+        <p className="evx-notice" data-testid="evtpl-editable-notice" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+          {L.editableNotice}
         </p>
       )}
 
