@@ -13,7 +13,11 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
       aria-expanded={isCollapsible ? !isCollapsed : undefined}
       data-collapsed={isCollapsible ? String(!!isCollapsed) : undefined}
     >
-      <div className="dept-name">{node.name}</div>
+      <div className="dept-title">
+        <div className="dept-name">{node.name}</div>
+        {/* 대표 직속 조직(§5.6) — 문구는 소비자가 로케일로 준다(staffLabel). */}
+        {node.isStaff && <span className="role-badge role-badge-staff">{node.staffLabel || '대표 직속'}</span>}
+      </div>
       <div className="dept-meta">
         <span className="dept-type">{node.type}</span>
         {node.count && <span className="dept-count" style={{ color: lc.countColor }}>{node.count}</span>}

@@ -61,6 +61,13 @@ const CHRIS_PROFILE = {
 const INITIAL_ORG = {
   id: 'company', name: 'SAMSUNG 물산', type: '회사', count: '34명', level: 'company',
   children: [
+    // 대표 직속 조직(isStaff) — 최상위 조직 줄이 아니라 회사 카드 아래 세로선의 곁가지에 선다.
+    {
+      id: 'ceo-staff', name: 'CEO 스태프', type: '실', count: '직속 1명', level: 'division', isStaff: true,
+      members: [
+        { name: '이서진', avatar: AVATARS.이서진, status: 'working', role: 'DL', workHours: '9 → 6', attendance: 60, hcScore: 6.1, profile: DEFAULT_PROFILE },
+      ],
+    },
     {
       id: 'mgmt', name: '경영지원본부', type: '본부', count: '직속 2명', level: 'division',
       members: [

@@ -39,6 +39,13 @@
 .members-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .has-children { margin-bottom: 0; }
 
+/* 대표 직속 곁가지(org-chart-public-card-spec.md §5.6) — 회사 카드 아래 폭 0 블록.
+   블록이 폭을 갖지 않아 회사 카드가 가운데에 남고, 조직마다 세로선에서 28px 오른쪽으로
+   뻗어 위아래(간격 12)로 선다. 세로선·가지 선은 BezierConnectors 가 긋는다. */
+.staff-branches { width: 0; align-self: center; display: flex; flex-direction: column; gap: 12px; padding-top: 24px; position: relative; }
+.staff-branch { margin-left: 28px; width: max-content; position: relative; }
+.staff-branch > .org-node { align-items: flex-start; }
+
 /* SVG connector overlay */
 .connector-svg { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
 .connector-svg path { fill: none; stroke: var(--border-primary); stroke-width: 1; }
@@ -55,6 +62,8 @@
 .dept-toggle.is-collapsed { box-shadow: 0 20px 24px -4px rgba(10, 13, 18, 0.08), 0 8px 8px -4px rgba(10, 13, 18, 0.03), 0 3px 3px -1.5px rgba(10, 13, 18, 0.04); }
 .card-dragging { box-shadow: 0 20px 24px rgba(10,13,18,0.12), 0 8px 8px rgba(10,13,18,0.06) !important; z-index: 200; cursor: grabbing !important; outline: 2px solid var(--bg-brand-solid); outline-offset: -2px; border-radius: 12px; }
 .dept-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
+/* 이름 줄 — 대표 직속 배지(§5.6)가 이름 옆에 붙는다. 배지는 줄지 않고 이름이 줄어든다. */
+.dept-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* 계층 이름·인원은 각각 한 덩어리다. 좁은 카드(파트)에 「직속 6명 +1 겸직」이 붙으면 한 줄
    flex 가 넘쳐 계층 이름이 「파 / 트」로 한 글자씩 끊겼다(PW-630). 모자라면 인원이 통째로
    다음 줄로 내려간다 — 한 줄에 들어가는 카드는 모양이 그대로다. */
@@ -145,6 +154,10 @@
 /* 대표(CEO) — 조직 구조상의 최상위 1인. DL/TL(직책 파생)과 구분되는 앰버 톤. */
 .role-badge-ceo {
   background: var(--utility-warning-500, #f59e0b);
+}
+/* 대표 직속 조직(org-chart-public-card-spec.md §5.6) — 조직장·대표 배지와 섞이지 않는 무채색. */
+.role-badge-staff {
+  background: var(--text-secondary);
 }
 
 /* ── Vacation Image ── */
