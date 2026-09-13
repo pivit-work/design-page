@@ -225,6 +225,8 @@ export { MyProfileCanvas } from './myprofile/index.js';
 // Eval cycle (성과 평가)
 export { default as EvalCycleHrCanvas } from './eval/EvalCycleHrCanvas.jsx';
 export { default as EvalCycleExcludedCanvas } from './eval/EvalCycleExcludedCanvas.jsx';
+// PW-534 — 오픈 뒤 대상자 제외의 사유 입력 창 (정책 §5.3.6)
+export { default as EvalExcludeReasonModal } from './eval/EvalExcludeReasonModal.jsx';
 export { default as EvalCycleMemberCanvas } from './eval/EvalCycleMemberCanvas.jsx';
 export { default as EvalCyclePeerConfirmCanvas } from './eval/EvalCyclePeerConfirmCanvas.jsx';
 export { default as EvalCycleLeaderCanvas } from './eval/EvalCycleLeaderCanvas.jsx';
