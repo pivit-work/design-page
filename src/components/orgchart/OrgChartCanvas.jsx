@@ -15,18 +15,40 @@ import { loadPositions, savePositions } from './hooks.js';
  * 37개 중 1개만 들어왔다). 전체가 들어오게 축소하면 배율이 8.7% 라 글자를
  * 읽을 수 없다. 그래서 루트만 펼치고 아래는 접은 채 시작하고, 사용자가
  * 필요한 가지만 눌러서 내려간다.
+ *
+ * **사람만 있는 조직도 접는다** — 하위 조직만 세면 사람만 있는 최상위 조직이 펼쳐진 채
+ * 열려, 기획서의 「회사 카드 + 최상위 조직 카드까지 · 그 안은 접힘」과 어긋난다
+ * (pivit-specs org-chart-public-card-spec.md §5.4 · TC-ORG-105).
  */
 function collapsedBelowRoot(root) {
   const ids = new Set();
   const walk = (node) => {
     if (!node?.children?.length) return;
     for (const child of node.children) {
-      if (child.children?.length) ids.add(child.id);
+      if (child.children?.length || child.members?.length) ids.add(child.id);
       walk(child);
     }
   };
   walk(root);
   return ids;
+}
+
+/** 지금 곡선이다 — 누르면 직각으로. */
+function CurveLineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 19 C 4 9, 20 15, 20 5" />
+    </svg>
+  );
+}
+
+/** 지금 직각이다 — 누르면 곡선으로. */
+function OrthoLineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 19 V12 H20 V5" />
+    </svg>
+  );
 }
 
 // 첫 화면이 트리를 담도록 축소할 때의 하한. 이보다 더 줄이면 카드 글자를
@@ -35,9 +57,12 @@ const MIN_FIT_SCALE = 0.5;
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel = '연결선 모양 바꾸기 (곡선 ↔ 직각)' }) {
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
+  // 연결선 곡선(기본) ↔ 직각 — 세션 상태다. 새로고침하면 곡선으로 돌아온다(§5.1).
+  // 되돌리기(↺)는 트리 모양을 되돌리는 버튼이라 이 값은 건드리지 않는다.
+  const [lineStyle, setLineStyle] = useState('curve');
   const [collapsedIds, setCollapsedIds] = useState(() => collapsedBelowRoot(initialOrgData));
 
   // 외부 데이터가 바뀌면 로컬 편집 상태를 재초기화 (render 중 조정 패턴)
@@ -217,7 +242,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           transformOrigin: '0 0',
           position: 'relative',
         }}>
-          <BezierConnectors containerRef={canvasInnerRef} scale={scale} />
+          <BezierConnectors containerRef={canvasInnerRef} scale={scale} lineStyle={lineStyle} />
           <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} showGrade={showGrade} baseUrl={baseUrl} />
         </div>
 
@@ -230,6 +255,18 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           </button>
           <button className="zoom-btn" onClick={() => { resetView(); resetPositions(); setCollapsedIds(collapsedBelowRoot(initialOrgData)); refitView(); }}>
             <Icon src={icons.refresh} size={20} color="var(--text-primary)" baseUrl={baseUrl} />
+          </button>
+          {/* 네 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다). */}
+          <button
+            type="button"
+            className="zoom-btn zoom-btn-line-style"
+            title={lineStyleLabel}
+            aria-label={lineStyleLabel}
+            data-line-style={lineStyle}
+            style={{ color: 'var(--text-primary)' }}
+            onClick={() => setLineStyle(prev => (prev === 'ortho' ? 'curve' : 'ortho'))}
+          >
+            {lineStyle === 'ortho' ? <OrthoLineIcon /> : <CurveLineIcon />}
           </button>
         </div>
       </div>
