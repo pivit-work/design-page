@@ -162,6 +162,21 @@ const DEFAULT_LABELS = {
   // 오픈 차단 — 3단계에서 막던 것을 여기로 옮겼다(policy §5.2.4 엣지 4).
   openBlockTemplate: '{{type}}용 템플릿이 확정되지 않아 평가지를 만들 수 없습니다',
   openBlockTemplateGo: '확정하러 가기',
+  // [PW-637] 오픈 확인 창 — 기획서 시안 `OpenConfirmModal` 의 문구를 그대로 옮겼다.
+  // 셋째 줄만 다르다: 시안의 「오픈 후 대상자·템플릿 변경은 불가합니다」는 정책 §4.6 ·
+  // §5.3.6 · §5.10.3 (2026-09-01 ~ 09-08 확정) 이전 규칙이라 지금 규칙으로 고쳐 썼다.
+  openConfirmTitle: '평가 사이클을 오픈합니까?',
+  openConfirmSub: '오픈 후에는 진행 중 언제든 {{hold}}할 수 있습니다.',
+  openConfirmSubHold: '일시 중단·재개',
+  openConfirmPolicyTitle: '오픈 후 정책',
+  openConfirmPolicyNotify: "오픈 즉시 구성원에게 '평가가 시작되었습니다' 알림이 발송됩니다",
+  openConfirmPolicyHold: '진행 중 언제든 일시 중단·재개 가능 (작성 데이터 보존, 재개 시 이어서 작성)',
+  openConfirmPolicyEdit:
+    '오픈 후에도 대상자는 캘리브레이션 시작 전까지 추가·제외(이후엔 제외만), 평가 템플릿은 아직 시작하지 않은 단계만 고칠 수 있습니다',
+  openConfirmCheck: '대상자 설정 및 템플릿을 최종 확인했습니다',
+  openConfirmSubmit: '오픈하기',
+  openConfirmSubmitting: '오픈하는 중…',
+  openConfirmFailed: '평가 오픈에 실패했습니다. 다시 시도해 주세요.',
   submitBlockCommittee: '5단계 캘리브레이션 위원회 구성을 완성하세요',
   wizardStepTargets: '대상자',
   targetModeAll: '전체',
@@ -278,6 +293,130 @@ function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfir
         <div className="evc-modal-actions">
           <button type="button" className="evc-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
           <button type="button" className={`evc-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * [PW-637] 오픈 확인 창 — 기획서 시안(`eval-app.jsx` 의 `OpenConfirmModal`)을 옮겼다.
+ *
+ * 시안에서는 만들기 창 마지막 「평가 오픈하기」에 붙어 있었다. 그 뒤 만들기 창은 「생성」까지만
+ * 하고 오픈은 목록 카드의 「오픈」으로 옮겨 갔는데 이 창이 따라오지 않아, 누르는 순간 대상자
+ * 전원에게 알림이 나갔다(되돌릴 수 없다). 그래서 카드의 「오픈」 앞에 둔다.
+ *
+ * - 체크박스를 켜야 「오픈하기」가 눌린다(시안 그대로).
+ * - 요청이 끝날 때까지 창을 연 채 잠근다. 성공하면 소비 측이 걷어 가고, 실패하면 창에
+ *   실패 문구와 — 던진 값에 `userMessage`(사람이 읽는 사유)가 있으면 — 그 사유를 적는다.
+ *   `err.message` 는 쓰지 않는다: HTTP 라이브러리의 영어 기본 문구가 그대로 샌다.
+ * - 진행 중에는 「취소」·바깥 클릭을 받지 않는다. 닫혀도 요청은 이미 나갔으므로
+ *   「아무것도 안 바뀌었다」로 읽히면 거짓이 된다.
+ * - [PW-513] 포털로 body 에 건다 — 이유는 아래 `openBlock` 주석과 같다.
+ */
+function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
+  const [checked, setChecked] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [failure, setFailure] = useState(null);
+  /* 한 틱 안의 두 번째 클릭은 아직 `submitting` 이 false 로 보인다 — ref 로 잠근다
+     (`ScheduleEditModal` 과 같은 이유). */
+  const inFlight = useRef(false);
+  const [subHead, ...subTail] = String(L.openConfirmSub ?? '').split('{{hold}}');
+
+  const cancel = () => {
+    if (!inFlight.current) onCancel();
+  };
+
+  const submit = async () => {
+    if (!checked || inFlight.current) return;
+    inFlight.current = true;
+    setSubmitting(true);
+    setFailure(null);
+    try {
+      await onConfirm(cycle);
+    } catch (err) {
+      const reason =
+        typeof err?.userMessage === 'string' && err.userMessage.trim()
+          ? err.userMessage.trim()
+          : null;
+      setFailure({ reason });
+      setSubmitting(false);
+      inFlight.current = false;
+    }
+  };
+
+  return createPortal(
+    <div className="evc-modal-overlay" onClick={cancel} data-testid="evc-open-confirm-overlay">
+      <div
+        className="evc-modal evc-open-confirm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="evc-open-confirm-title"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="evc-open-confirm"
+      >
+        <div className="evc-open-confirm-head">
+          <h3 id="evc-open-confirm-title" className="evc-modal-title">{L.openConfirmTitle}</h3>
+          <p className="evc-modal-sub">
+            {subHead}
+            {subTail.length > 0 && (
+              <strong className="evc-open-confirm-em">{L.openConfirmSubHold}</strong>
+            )}
+            {subTail.join('')}
+          </p>
+        </div>
+
+        <div className="evc-open-confirm-body">
+          <div className="evc-open-confirm-policy" data-testid="evc-open-confirm-policy">
+            <div className="evc-open-confirm-policy-title">{L.openConfirmPolicyTitle}</div>
+            <ul className="evc-open-confirm-policy-list">
+              <li>{L.openConfirmPolicyNotify}</li>
+              <li>{L.openConfirmPolicyHold}</li>
+              <li>{L.openConfirmPolicyEdit}</li>
+            </ul>
+          </div>
+
+          <label className={`evc-open-confirm-check${checked ? ' is-on' : ''}`}>
+            <input
+              type="checkbox"
+              className="evc-open-confirm-input"
+              checked={checked}
+              disabled={submitting}
+              onChange={(e) => setChecked(e.target.checked)}
+              data-testid="evc-open-confirm-check"
+            />
+            <span className={`evc-member-check${checked ? ' is-on' : ''}`} aria-hidden="true" />
+            <span className="evc-open-confirm-check-label">{L.openConfirmCheck}</span>
+          </label>
+
+          {failure && (
+            <div className="evc-open-confirm-error" role="alert" data-testid="evc-open-confirm-error">
+              <div>{L.openConfirmFailed}</div>
+              {failure.reason && <div data-testid="evc-open-confirm-reason">{failure.reason}</div>}
+            </div>
+          )}
+        </div>
+
+        <div className="evc-modal-actions evc-open-confirm-foot">
+          <button
+            type="button"
+            className="evc-btn is-ghost"
+            onClick={cancel}
+            disabled={submitting}
+            data-testid="evc-open-confirm-cancel"
+          >
+            {L.cancel}
+          </button>
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            onClick={submit}
+            disabled={!checked || submitting}
+            data-testid="evc-open-confirm-submit"
+          >
+            {submitting ? L.openConfirmSubmitting : L.openConfirmSubmit}
+          </button>
         </div>
       </div>
     </div>,
@@ -732,6 +871,10 @@ export default function EvalCycleHrCanvas({
   loading = false,
   labels: providedLabels,
   onCreateCycle,
+  /**
+   * 준비 중 사이클 오픈. `(id) => Promise`. [PW-637] 카드의 「오픈」은 확인 창을 거쳐 이걸
+   * 부른다. 실패하면 throw — 던진 값의 `userMessage`(사람이 읽는 사유)를 창에 적는다.
+   */
   onOpenCycle,
   /** 오픈된 사이클을 다음 단계로 전진. (id) => Promise */
   onAdvanceCycle,
@@ -835,6 +978,8 @@ export default function EvalCycleHrCanvas({
   const [manageTarget, setManageTarget] = useState(null);
   /** [PW-441] 미확정으로 오픈이 막힌 사이클 — `{ cycle, types }`. */
   const [openBlock, setOpenBlock] = useState(null);
+  /** [PW-637] 오픈 확인 창을 띄운 사이클. */
+  const [openConfirm, setOpenConfirm] = useState(null);
 
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
@@ -916,7 +1061,15 @@ export default function EvalCycleHrCanvas({
       setOpenBlock({ cycle, types: missing });
       return;
     }
-    void run(() => onOpenCycle?.(cycle.id), L.toastOpened);
+    // [PW-637] 차단을 통과하면 곧바로 열지 않고 확인 창을 먼저 띄운다 — 오픈은 알림을 보낸다.
+    setOpenConfirm(cycle);
+  };
+
+  /** [PW-637] 확인 창의 「오픈하기」. 실패는 다시 던져 창이 열린 채 사유를 적게 한다. */
+  const handleConfirmOpen = async (cycle) => {
+    await onOpenCycle?.(cycle.id);
+    setOpenConfirm(null);
+    showToast(L.toastOpened);
   };
 
   const handleAdvance = (cycle) =>
@@ -1284,6 +1437,15 @@ export default function EvalCycleHrCanvas({
           </div>,
           document.body,
         )}
+
+      {openConfirm && (
+        <OpenConfirmModal
+          cycle={openConfirm}
+          labels={L}
+          onCancel={() => setOpenConfirm(null)}
+          onConfirm={handleConfirmOpen}
+        />
+      )}
 
       {confirmModal && (
         <ConfirmModal
