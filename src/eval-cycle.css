@@ -597,6 +597,104 @@
   margin-top: var(--spacing-md, 8px);
 }
 
+/* [PW-637] 오픈 확인 창 — 기획서 시안 `OpenConfirmModal` 을 옮겼다.
+   시안처럼 머리·본문·바닥을 선으로 가르므로 `.evc-modal` 의 안쪽 여백·간격을 걷고
+   구역마다 준다. 정책 상자의 노랑은 «되돌릴 수 없는 일이 따라온다» 는 주의 표시다. */
+.evc-modal.evc-open-confirm {
+  max-width: 460px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.evc-open-confirm-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 4px);
+  padding: var(--spacing-2xl, 20px) var(--spacing-3xl, 24px) var(--spacing-xl, 16px);
+  border-bottom: 1px solid var(--border-secondary, #eaecf0);
+}
+.evc-open-confirm-em {
+  color: var(--utility-warning-700, #b54708);
+  font-weight: 700;
+}
+.evc-open-confirm-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl, 16px);
+  padding: var(--spacing-xl, 16px) var(--spacing-3xl, 24px);
+}
+.evc-open-confirm-policy {
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.evc-open-confirm-policy-title {
+  margin-bottom: var(--spacing-xs, 4px);
+  font-weight: 700;
+  color: var(--utility-warning-700, #b54708);
+}
+.evc-open-confirm-policy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.evc-open-confirm-policy-list li::before {
+  content: '· ';
+}
+.evc-open-confirm-check {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 10px);
+  border: 1.5px solid var(--border-primary, #eaecf0);
+  background: var(--bg-secondary, #f9fafb);
+  cursor: pointer;
+}
+.evc-open-confirm-check.is-on {
+  border-color: var(--utility-blue-500, #2e90fa);
+  background: var(--utility-blue-50, #eff8ff);
+}
+.evc-open-confirm-check .evc-member-check {
+  margin-top: 2px;
+}
+/* 실제 체크박스는 보이지 않게만 두고 초점·키보드는 살린다(`display: none` 이면 탭으로 못 간다). */
+.evc-open-confirm-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+.evc-open-confirm-input:focus-visible + .evc-member-check {
+  outline: 2px solid var(--utility-blue-500, #2e90fa);
+  outline-offset: 2px;
+}
+.evc-open-confirm-check-label {
+  font-size: var(--font-size-text-sm, 13px);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.evc-open-confirm-check.is-on .evc-open-confirm-check-label {
+  font-weight: 600;
+  color: var(--utility-blue-700, #175cd3);
+}
+.evc-open-confirm-error {
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.5;
+  color: var(--utility-error-600, #d92d20);
+}
+.evc-modal-actions.evc-open-confirm-foot {
+  margin-top: 0;
+  padding: 14px var(--spacing-3xl, 24px);
+  border-top: 1px solid var(--border-secondary, #eaecf0);
+}
+
 /* ── 폼 필드 ── */
 .evc-field-label {
   display: block;
