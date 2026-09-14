@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 
 export const FILTER_TYPES = ['회의', '1on1', '집중작업', '리뷰', '외부미팅', '기타'];
@@ -8,6 +9,16 @@ export const FILTER_TYPES = ['회의', '1on1', '집중작업', '리뷰', '외부
  * Figma _Select menu item 구조: content padding 8/10/8/8, radius 6,
  * 선택 시 우측에 16x16 브랜드 체크 아이콘 노출.
  * DatePickerPopover 와 동일한 앵커 배치/외부 클릭 닫기 패턴을 따른다.
+ *
+ * 항목 두 모드:
+ *   - `items` 미주입 — 레거시. FILTER_TYPES 한글 라벨 자체가 id.
+ *   - `items=[{ id, label, color? }]` — 시안(timeline-app.jsx FilterDropdown) 형태.
+ *     맨 위 「전체」 행(`allLabel`, `onToggleAll`) + 구분선 + 항목마다 색 점.
+ * 목록이 창 높이보다 길면 목록 안에서 스크롤한다(CSS max-height).
+ *
+ * document.body 로 포털한다 — 앱 셸(.app)이 transform 을 가져 그 안의 position: fixed 가
+ * 창이 아니라 스크롤되는 셸 기준으로 잡힌다. 셸 안에 두면 스크롤한 만큼 버튼에서 어긋난다
+ * (CellPicker 와 같은 이유).
  */
 export default function FilterMenuPopover({
   anchorRect,
@@ -16,30 +27,54 @@ export default function FilterMenuPopover({
   onToggle,
   onClose,
   baseUrl,
+  items,
+  allLabel = '전체',
+  onToggleAll,
 }) {
   const popoverRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
 
-  useLayoutEffect(() => {
-    if (!popoverRef.current || !anchorRect) return;
+  // 목록은 position: fixed 라 열린 채로 화면이 스크롤되면 버튼에서 떨어져 남는다.
+  // anchorEl 이 있으면 스크롤·창 크기 변경 때마다 버튼의 현재 위치로 다시 잰다.
+  const place = useCallback(() => {
+    const a = anchorEl ? anchorEl.getBoundingClientRect() : anchorRect;
+    if (!popoverRef.current || !a) return;
     const m = popoverRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const gap = 4;
     const MARGIN = 8;
 
-    let left = anchorRect.left;
+    let left = a.left;
     if (left + m.width > vw - MARGIN) left = vw - m.width - MARGIN;
     if (left < MARGIN) left = MARGIN;
 
-    let top = anchorRect.bottom + gap;
+    let top = a.bottom + gap;
     if (top + m.height > vh - MARGIN) {
-      const above = anchorRect.top - m.height - gap;
+      const above = a.top - m.height - gap;
       top = above >= MARGIN ? above : Math.max(MARGIN, vh - m.height - MARGIN);
     }
 
-    setPos({ left, top, opacity: 1 });
-  }, [anchorRect]);
+    setPos((prev) =>
+      prev.left === left && prev.top === top && prev.opacity === 1
+        ? prev
+        : { left, top, opacity: 1 },
+    );
+  }, [anchorEl, anchorRect]);
+
+  useLayoutEffect(() => {
+    place();
+  }, [place]);
+
+  useEffect(() => {
+    if (!anchorEl) return undefined;
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [anchorEl, place]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -58,36 +93,64 @@ export default function FilterMenuPopover({
     };
   }, [anchorEl, onClose]);
 
-  return (
+  const rows = items ?? FILTER_TYPES.map((type) => ({ id: type, label: type }));
+  const allOn = rows.every((row) => selected.includes(row.id));
+
+  const checkIcon = (
+    <Icon
+      src="/icons-solid/check.svg"
+      size={16}
+      color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
+      baseUrl={baseUrl}
+    />
+  );
+
+  return createPortal(
     <div
       ref={popoverRef}
       className="tl-filter-menu"
       role="menu"
       style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
     >
-      {FILTER_TYPES.map((type) => {
-        const isSelected = selected.includes(type);
+      {items && onToggleAll && (
+        <>
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={allOn}
+            className={`tl-filter-menu-item tl-filter-menu-all ${allOn ? 'is-selected' : ''}`}
+            onClick={onToggleAll}
+          >
+            <span className="tl-filter-menu-label">{allLabel}</span>
+            {allOn && checkIcon}
+          </button>
+          <div className="tl-filter-menu-divider" role="separator" />
+        </>
+      )}
+      {rows.map((row) => {
+        const isSelected = selected.includes(row.id);
         return (
           <button
-            key={type}
+            key={row.id}
             type="button"
             role="menuitemcheckbox"
             aria-checked={isSelected}
             className={`tl-filter-menu-item ${isSelected ? 'is-selected' : ''}`}
-            onClick={() => onToggle(type)}
+            onClick={() => onToggle(row.id)}
           >
-            <span className="tl-filter-menu-label">{type}</span>
-            {isSelected && (
-              <Icon
-                src="/icons-solid/check.svg"
-                size={16}
-                color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
-                baseUrl={baseUrl}
+            {row.color && (
+              <span
+                className="tl-filter-menu-dot"
+                style={{ background: row.color }}
+                aria-hidden="true"
               />
             )}
+            <span className="tl-filter-menu-label">{row.label}</span>
+            {isSelected && checkIcon}
           </button>
         );
       })}
-    </div>
+    </div>,
+    document.body,
   );
 }

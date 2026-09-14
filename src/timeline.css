@@ -300,6 +300,40 @@
   display: flex;
   flex-direction: column;
   transition: opacity 0.12s ease;
+  /* 항목이 많거나(프로젝트) 창이 낮아도 목록이 창 밖으로 잘리지 않게 — 넘치면 목록 안에서 스크롤. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.tl-filter-menu-divider {
+  flex-shrink: 0;
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--colors-border-borderSecondary, #eaecf0);
+}
+
+.tl-filter-menu-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tl-filter-menu-all .tl-filter-menu-label {
+  font-weight: 600;
+}
+
+/* 툴바 라벨 필터(「보기」) — 트리거는 .tl-select sm 을 그대로 쓰고,
+   일부만 선택되면 선택된 항목의 색 점을 라벨 옆에 붙인다(시안 FilterDropdown). */
+.tl-filter-dropdown-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.tl-filter-dropdown-dots .tl-filter-menu-dot {
+  width: 6px;
+  height: 6px;
 }
 
 .tl-filter-menu-item {
