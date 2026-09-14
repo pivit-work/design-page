@@ -27,6 +27,7 @@ const CAL_VIEW_OPTIONS = [
 ];
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
+import FilterDropdown from './FilterDropdown.jsx';
 import GroupAddModal from './GroupAddModal.jsx';
 import InternalEmployeeModal from './InternalEmployeeModal.jsx';
 import ExternalEmployeeModal from './ExternalEmployeeModal.jsx';
@@ -93,6 +94,11 @@ export default function TimelineCanvas({
   // meeting/event 만 간트·캘린더에 렌더된다.
   filterSelected: filterSelectedProp,
   onFilterChange,
+  // 라벨 필터 드롭다운(시안 timeline-app.jsx 의 「보기」·「프로젝트」). 배열을 주면
+  // 아이콘 필터 버튼 대신 항목마다 FilterDropdown 을 그리고, 위의 category 거르기는
+  // 끈다 — 무엇을 거를지는 호스트가 meetings/snippets/getEventsForDate 를 걸러서 넘긴다.
+  // [{ key, label, items: [{ id, label, color? }], selected: string[], onChange(ids), allLabel? }]
+  viewFilters,
   // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
   // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
   gcalConnected = true,
@@ -319,21 +325,24 @@ export default function TimelineCanvas({
   // meeting.category 또는 event.category 가 FilterMenuPopover 의 FILTER_TYPES
   // (회의/1on1/집중작업/리뷰/외부미팅/기타) 중 하나의 한글 라벨이어야 한다.
   // category 필드가 없는 레거시 데이터는 전체 통과시켜 호환성을 유지.
+  // viewFilters 를 받으면 거르기는 호스트 몫이라 여기서는 그대로 통과시킨다.
+  const hasViewFilters = Array.isArray(viewFilters) && viewFilters.length > 0;
   const filterSet = useMemo(() => new Set(filterSelected), [filterSelected]);
   const filteredMeetings = useMemo(
     () =>
       (meetings ?? []).filter(
-        (m) => m.category == null || filterSet.has(m.category),
+        (m) => hasViewFilters || m.category == null || filterSet.has(m.category),
       ),
-    [meetings, filterSet],
+    [meetings, filterSet, hasViewFilters],
   );
   const wrappedGetEventsForDate = useMemo(() => {
     if (!getEventsForDate) return getEventsForDate;
+    if (hasViewFilters) return getEventsForDate;
     return (iso) =>
       (getEventsForDate(iso) ?? []).filter(
         (ev) => ev.category == null || filterSet.has(ev.category),
       );
-  }, [getEventsForDate, filterSet]);
+  }, [getEventsForDate, filterSet, hasViewFilters]);
 
   // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
   const [groupAddOpen, setGroupAddOpen] = useState(false);
@@ -521,17 +530,32 @@ export default function TimelineCanvas({
           />
         )}
 
-        <button
-          ref={filterBtnRef}
-          type="button"
-          className={`tl-filter-btn ${filterOpen ? 'is-open' : ''}`}
-          aria-label="필터"
-          aria-haspopup="menu"
-          aria-expanded={filterOpen}
-          onClick={toggleFilter}
-        >
-          <Icon src="/icons/filter-lines.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
-        </button>
+        {hasViewFilters ? (
+          viewFilters.map((filter) => (
+            <FilterDropdown
+              key={filter.key}
+              testId={`tl-filter-dropdown-${filter.key}`}
+              label={filter.label}
+              items={filter.items}
+              selected={filter.selected}
+              onChange={filter.onChange}
+              allLabel={filter.allLabel}
+              baseUrl={baseUrl}
+            />
+          ))
+        ) : (
+          <button
+            ref={filterBtnRef}
+            type="button"
+            className={`tl-filter-btn ${filterOpen ? 'is-open' : ''}`}
+            aria-label="필터"
+            aria-haspopup="menu"
+            aria-expanded={filterOpen}
+            onClick={toggleFilter}
+          >
+            <Icon src="/icons/filter-lines.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
+          </button>
+        )}
 
         <div className="tl-toolbar-spacer" />
 
