@@ -2630,6 +2630,23 @@ const PANEL_FIELD_GROUPS = [
 const toDateInput = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
 
 /**
+ * 구성원 저장 거절에서 «창 안에 보일 사유» 를 꺼낸다 (PW-727 · §3.5-A).
+ *
+ * 호출부는 저장이 안 됐으면 되던진다(PW-185 · PW-647). 그중 **서버가 저장을 거절한**
+ * 경우에만 `panelError: { message, fields }` 를 실어 보낸다 — `fields` 는 이 패널의 칸
+ * 키(`jobFamily`·`jobTitle`·`jobDuty` …)다. 사용자가 확인 창에서 [취소]를 고른 거절에는
+ * 실리지 않으므로 아무것도 그리지 않는다(`null`).
+ */
+function panelErrorOf(e) {
+  const pe = e && typeof e === 'object' ? e.panelError : null;
+  if (!pe || typeof pe.message !== 'string' || !pe.message) return null;
+  return {
+    message: pe.message,
+    fields: Array.isArray(pe.fields) ? pe.fields.filter((f) => typeof f === 'string') : [],
+  };
+}
+
+/**
  * 슬라이드오버 단건 편집 패널 — 목록 뷰의 «단건 상세 편집» (§3.2).
  *
  * 저장은 시트와 **같은 patch 계약**(`onSaveMembers([{ id, ...changed }])`)을 쓴다.
@@ -2813,6 +2830,12 @@ function EmployeesEditPanel({
   );
   const [dateError, setDateError] = useState('');
   /**
+   * 서버가 구성원 저장을 거절한 사유(PW-727) — `{ message, fields }` 또는 `null`.
+   * 알림은 몇 초 뒤 사라지므로, 창을 열어 둔 채 **문제 칸 아래**(칸을 모르면 저장 줄
+   * 바로 위)에 남긴다. 기획서 §3.5-A 「해당 필드 하단 인라인 에러 · 패널을 닫지 않는다」.
+   */
+  const [saveError, setSaveError] = useState(null);
+  /**
    * 패널 안의 탭 — `info`(편집) / `history`(조회). 편집 흐름과 조회 흐름을 섞지 않는다.
    * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
    * 한가운데를 읽기 전용 표가 끊는다.
@@ -2830,6 +2853,7 @@ function EmployeesEditPanel({
     setIdentityDraft(null);
     setIdentityState(onLoadHrProfile ? 'loading' : 'idle');
     setDateError('');
+    setSaveError(null);
     /* 다음 사람을 열었을 때 이력 탭이 먼저 뜨면 「내가 뭘 누른 거지」가 된다. */
     setPanelTab('info');
     setHistoryState({ status: 'idle', page: null });
@@ -2881,7 +2905,12 @@ function EmployeesEditPanel({
   const [salaryOpen, setSalaryOpen] = useState(false);
 
   if (!member) return null;
-  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+  const set = (k, v) => {
+    setDraft((d) => ({ ...d, [k]: v }));
+    // 문제 칸을 고치기 시작하면 그 칸의 사유는 거둔다 — 고친 뒤에도 빨간 글이 남아 있으면
+    // 「아직 틀렸다」로 읽힌다. 칸을 모르는 사유는 다시 저장할 때까지 둔다.
+    setSaveError((prev) => (prev && prev.fields.includes(k) ? null : prev));
+  };
 
   /* 칸이 읽는 선택지 — 이름 하나로 찾게 모아 둔다. `PANEL_FIELD_GROUPS` 의
      `catalog` 가 이 키를 가리킨다. */
@@ -2899,6 +2928,10 @@ function EmployeesEditPanel({
   };
   /** 회사가 끈 선택 적용 항목은 칸 자체를 그리지 않는다 — 켤 수 없는 칸을 보여주지 않는다. */
   const fieldOn = (f) => !f.optionalKey || (optionalFields || {})[f.optionalKey] === true;
+  /** 지금 이 패널에 서 있는 칸 키 — 거절 사유를 칸 아래에 붙일 수 있는지 가른다(PW-727). */
+  const shownFieldKeys = new Set(
+    PANEL_FIELD_GROUPS.flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key)),
+  );
   const optionsFor = (f) => {
     if (!f.narrowBy) return catalogs[f.catalog] || [];
     const [all, byParent] = narrowMaps[f.key] || [];
@@ -2966,6 +2999,7 @@ function EmployeesEditPanel({
     if (!dirty) { onClose(); return; }
     setSaving(true);
     setDateError('');
+    setSaveError(null);
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
@@ -2987,7 +3021,10 @@ function EmployeesEditPanel({
       if (Object.keys(patch).length > 1) {
         try {
           await onSave([patch]);
-        } catch {
+        } catch (e) {
+          /* 서버가 거절한 경우엔 사유를 창 안에 남긴다(PW-727). 되던진 거절이 «저장 0명 +
+             오류» 정상 응답에서 온 것이어도 호출부가 같은 모양으로 실어 보낸다. */
+          setSaveError(panelErrorOf(e));
           return;
         }
       }
@@ -3089,6 +3126,15 @@ function EmployeesEditPanel({
                           />
                         )}
                         {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
+                        {saveError && saveError.fields.includes(f.key) && (
+                          <span
+                            className="admin-emp-status-date-note is-error"
+                            role="alert"
+                            data-testid={`employees-panel-error-${f.key}`}
+                          >
+                            {saveError.message}
+                          </span>
+                        )}
                       </label>
                     );
                   })}
@@ -3297,6 +3343,13 @@ function EmployeesEditPanel({
 
         {/* 이력 탭은 읽기 전용이라 저장 줄을 그리지 않는다 — 누를 수 없는 버튼을 두면
             「여기서도 고칠 수 있나」로 읽힌다. */}
+        {/* 칸을 짚지 못한 거절 사유(PW-727) — 저장 버튼 바로 위. 칸을 짚었어도 그 칸이
+            이 패널에 안 서 있으면(선택 적용 필드가 꺼짐 등) 여기로 온다. */}
+        {panelTab === 'info' && saveError && !saveError.fields.some((k) => shownFieldKeys.has(k)) && (
+          <div className="admin-emp-panel-save-error" role="alert" data-testid="employees-panel-save-error">
+            {saveError.message}
+          </div>
+        )}
         {panelTab === 'info' && (
           <div className="admin-emp-panel-footer">
             <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
