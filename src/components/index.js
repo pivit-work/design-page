@@ -138,6 +138,7 @@ export {
   OkrTeamCanvas,
   OkrComposeFullModal,
   OkrSetupWizardModal,
+  OkrWizardEntryButton,
 } from './okr/index.js';
 
 // Report

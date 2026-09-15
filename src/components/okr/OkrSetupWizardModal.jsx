@@ -5,19 +5,27 @@ import Icon from '../shared/Icon.jsx';
  * OkrSetupWizardModal — OKR 설정 마법사 (Backward Looking).
  *
  * 시안 pivit-specs okr-setup-wizard.jsx 를 정본에 포팅.
- * 3단계: ① 미래 구술 → ② AI KR 추출·검토 → ③ AI Objective 역도출 → 저장.
- * (시안 STEP4 정합성 확인은 팀원 정렬 데이터·1on1 연동 필요 → 후속.)
+ * 단계: ① 미래 구술 → ② AI KR 추출·검토 → ③ AI Objective 역도출 → ④ 정합성 확인(조직 단위) → 저장.
  *
- * AI/저장은 소비자 콜백으로 배선한다:
- *  - onExtractKrs(scope, narrative) → Promise<{ keyResults: [{title,type,targetValue,unit}] }>
- *  - onDeriveObjective(scope, krs) → Promise<{ objective: { title } }>
- *  - onSubmit({ level, objective, krs }) → OKR 생성
+ * 🔴 단위는 마법사 안에서 고르지 않는다 — **연 화면이 단위다** (정책서
+ * screen-okr-setup-wizard §2A · 시안 okr-app.jsx `ScopeContext`/`BlockedBody`).
+ *  - scope      — 진입 단위(고정). 구술 예시·저장 level 에 쓴다.
+ *  - scopeCard  — 1단계 「단위 고정」 카드 문구 { label, desc, badge } (§2A.3).
+ *  - targets    — 같은 계층 안의 대상 조직 [{ id, name }]. 1개면 이름만, 2개 이상이면 셀렉트.
+ *  - blocked    — 쓸 수 없는 진입이면 { title, desc } — 본문 대신 사유 카드 + [닫기] (§2A.4).
+ *  - showAlignment — 정합성 단계를 그릴지. 개인 단위·구성원은 3단계다(§2 · §7).
+ *
+ * AI/저장은 소비자 콜백으로 배선한다 — 전부 고른 대상 조직(targetId)을 함께 받는다:
+ *  - onExtractKrs(scope, narrative, targetId) → Promise<{ keyResults: [{title,type,targetValue,unit}] }>
+ *  - onDeriveObjective(scope, krs, targetId) → Promise<{ objective: { title } }>
+ *  - onFetchAlignment(scope, targetId) → Promise<{ members }>
+ *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성
  */
-const DEFAULT_SCOPES = [
-  { key: 'individual', label: '개인', desc: '내 OKR을 직접 설계' },
-  { key: 'team', label: '팀', desc: '팀 단위 OKR - 팀장 권한' },
-  { key: 'company', label: '전사', desc: '회사 전체 OKR - 어드민' },
-];
+const DEFAULT_SCOPE_CARD = {
+  individual: { label: '개인 OKR', desc: '내 OKR을 직접 설계', badge: '단위 고정' },
+  team: { label: '팀 OKR', desc: '팀 단위 OKR — 팀장 권한', badge: '단위 고정' },
+  company: { label: '전사 OKR', desc: '회사 전체 OKR — 어드민', badge: '단위 고정' },
+};
 
 const NARRATIVE_PLACEHOLDER = {
   individual: '12월 31일, 나는 피빗 프론트엔드의 메인 컨트리뷰터로 자리잡았고,\n주요 화면 12개의 성능 점수를 90점 이상으로 끌어올렸다.',
@@ -41,7 +49,15 @@ export default function OkrSetupWizardModal({
   icons,
   baseUrl = '',
   onClose,
-  scopeOptions = DEFAULT_SCOPES,
+  scope = 'individual',
+  scopeCard,
+  targets = [],
+  targetId,
+  onTargetChange,
+  targetLabel = '대상 조직',
+  blocked = null,
+  closeLabel = '닫기',
+  showAlignment = scope !== 'individual',
   onExtractKrs,
   onDeriveObjective,
   onSubmit,
@@ -52,7 +68,7 @@ export default function OkrSetupWizardModal({
   onGenerateVision,
 }) {
   const [step, setStep] = useState(1);
-  const [scope, setScope] = useState(scopeOptions[0]?.key ?? 'individual');
+  const card = scopeCard ?? DEFAULT_SCOPE_CARD[scope] ?? DEFAULT_SCOPE_CARD.team;
   const [narrative, setNarrative] = useState('');
   const [krs, setKrs] = useState([]);
   const [krsConfirmed, setKrsConfirmed] = useState(false);
@@ -66,8 +82,11 @@ export default function OkrSetupWizardModal({
   const [visionImage, setVisionImage] = useState(null);
   const [visionLoading, setVisionLoading] = useState(false);
 
-  // 시안 17260:20206 — 스코프와 무관하게 4단계 스텝바를 노출한다.
-  const steps = useMemo(() => [...BASE_STEPS, ALIGNMENT_STEP], []);
+  // 정합성 확인은 조직 단위 전용 — 개인 단위·구성원은 스텝 칩 자체를 그리지 않는다(§2).
+  const steps = useMemo(
+    () => (showAlignment ? [...BASE_STEPS, ALIGNMENT_STEP] : BASE_STEPS),
+    [showAlignment],
+  );
   const stepKey = steps[step - 1]?.key;
 
   useEffect(() => {
@@ -78,13 +97,22 @@ export default function OkrSetupWizardModal({
 
   // 정합성 단계 진입 시 팀 정렬도 조회 (동기 setState 회피 — 콜백에서만 갱신).
   useEffect(() => {
-    if (stepKey !== 'alignment' || !onFetchAlignment) return;
+    if (stepKey !== 'alignment' || !onFetchAlignment || blocked) return;
     let alive = true;
-    onFetchAlignment(scope)
+    onFetchAlignment(scope, targetId)
       .then((res) => { if (alive) setAlignment(res); })
       .catch(() => { if (alive) setError('정합성 조회에 실패했습니다.'); });
     return () => { alive = false; };
-  }, [stepKey, scope, onFetchAlignment]);
+  }, [stepKey, scope, targetId, onFetchAlignment, blocked]);
+
+  // 대상 조직을 바꾸면 그 조직 기준으로 다시 확인해야 한다 — 초안은 남기되 미확인으로
+  // 되돌리고, 앞 조직의 정렬도는 버린다(정책서 §8 「대상 조직 변경 후」).
+  const changeTarget = (id) => {
+    setKrsConfirmed(false);
+    setObjConfirmed(false);
+    setAlignment(null);
+    onTargetChange?.(id);
+  };
   // 콜백이 없으면(데모) '조회 중' 에 갇히지 않게 빈 목록을 파생값으로 쓴다 —
   // effect 안 동기 setState 는 캐스케이드 렌더라 lint 가 막는다.
   const alignmentView = alignment ?? (!onFetchAlignment ? { members: [] } : null);
@@ -92,7 +120,7 @@ export default function OkrSetupWizardModal({
   const genKrs = async () => {
     setKrsLoading(true); setError(null);
     try {
-      const res = await onExtractKrs?.(scope, narrative);
+      const res = await onExtractKrs?.(scope, narrative, targetId);
       const list = (res?.keyResults ?? []).map((k) => ({
         id: nextId(), title: k.title, type: k.type ?? 'number',
         target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '',
@@ -106,7 +134,7 @@ export default function OkrSetupWizardModal({
   const genObjective = async () => {
     setObjLoading(true); setError(null);
     try {
-      const res = await onDeriveObjective?.(scope, krs.map((k) => ({ title: k.title, targetValue: Number(k.target) || 0, unit: k.unit })));
+      const res = await onDeriveObjective?.(scope, krs.map((k) => ({ title: k.title, targetValue: Number(k.target) || 0, unit: k.unit })), targetId);
       setObjective(res?.objective?.title ?? ''); setObjConfirmed(false);
     } catch {
       setError('Objective 역도출에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -138,6 +166,7 @@ export default function OkrSetupWizardModal({
     try {
       await onSubmit?.({
         level: scope,
+        targetId,
         objective: objective.trim(),
         krs: krs.map((k) => ({
           title: k.title.trim(), type: k.type,
@@ -177,6 +206,12 @@ export default function OkrSetupWizardModal({
         <div className="okr-wz-body">
           <h2 className="okr-wz-title">OKR 설정</h2>
 
+          {blocked ? (
+            <div className="okr-wz-blocked" role="alert">
+              <p className="okr-wz-blocked-title">{blocked.title}</p>
+              {blocked.desc && <p className="okr-wz-blocked-desc">{blocked.desc}</p>}
+            </div>
+          ) : (<>
           <div className="okr-wz-steps">
             {steps.map((s, i) => (
               <div
@@ -198,17 +233,27 @@ export default function OkrSetupWizardModal({
                   <p className="okr-wz-question">12월 31일, 어떤 모습이 되어 있을까요?</p>
                   <p className="okr-wz-desc">숫자·고객·팀·매출 무엇이든 좋아요. 12월의 자신을 인터뷰한다고 생각하고 과거형으로 적어주세요. AI가 이 구술에서 KR 후보를 자동 추출합니다.</p>
                 </div>
-                <div className="okr-wz-scopes">
-                  {scopeOptions.map((s) => (
-                    <div
-                      className={`okr-wz-scope${scope === s.key ? ' is-active' : ''}`}
-                      key={s.key}
-                      onClick={() => setScope(s.key)}
+                {/* 단위 고정 카드 — 구 3택 자리. 클릭 대상이 아니다(§2A.3). */}
+                <div className="okr-wz-scope-fixed" data-testid="okr-wz-scope-fixed">
+                  <div className="okr-wz-scope-fixed-text">
+                    <p className="okr-wz-scope-label">
+                      {card.label}
+                      <span className="okr-wz-scope-badge">{card.badge}</span>
+                    </p>
+                    <p className="okr-wz-scope-desc">{card.desc}</p>
+                  </div>
+                  {targets.length > 1 ? (
+                    <select
+                      className="okr-wz-target-select"
+                      value={targetId ?? ''}
+                      aria-label={targetLabel}
+                      onChange={(e) => changeTarget(e.target.value)}
                     >
-                      <p className="okr-wz-scope-label">{s.label}</p>
-                      <p className="okr-wz-scope-desc">{s.desc}</p>
-                    </div>
-                  ))}
+                      {targets.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                  ) : targets.length === 1 ? (
+                    <span className="okr-wz-target-name">{targets[0].name}</span>
+                  ) : null}
                 </div>
                 <textarea
                   className="okr-textarea okr-wz-textarea"
@@ -358,18 +403,28 @@ export default function OkrSetupWizardModal({
           )}
 
           {error && <p className="okr-wz-error" role="alert">{error}</p>}
+          </>)}
         </div>
 
         <div className="okr-modal-footer okr-wz-footer">
-          <span className="okr-wz-footer-hint">
-            {nextHint || `STEP ${step} / ${steps.length}`}
-          </span>
-          {step > 1 && (
-            <button className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>이전</button>
+          {blocked ? (
+            <>
+              <span className="okr-wz-footer-hint" />
+              <button className="okr-btn is-outline" onClick={onClose}>{closeLabel}</button>
+            </>
+          ) : (
+            <>
+              <span className="okr-wz-footer-hint">
+                {nextHint || `STEP ${step} / ${steps.length}`}
+              </span>
+              {step > 1 && (
+                <button className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>이전</button>
+              )}
+              <button className="okr-btn is-brand" disabled={!canNext || saving} onClick={handleNext}>
+                {saving ? '저장 중…' : isLast ? 'OKR 확정 저장' : '다음'}
+              </button>
+            </>
           )}
-          <button className="okr-btn is-brand" disabled={!canNext || saving} onClick={handleNext}>
-            {saving ? '저장 중…' : isLast ? 'OKR 확정 저장' : '다음'}
-          </button>
         </div>
       </div>
     </div>

@@ -31,5 +31,6 @@ export { default as OkrBoard } from './OkrBoard.jsx';
 export { default as OkrTeamCanvas } from './OkrTeamCanvas.jsx';
 export { default as OkrComposeFullModal } from './OkrComposeFullModal.jsx';
 export { default as OkrSetupWizardModal } from './OkrSetupWizardModal.jsx';
+export { default as OkrWizardEntryButton } from './OkrWizardEntryButton.jsx';
 export { OkrPositionsContext } from './contexts.js';
 export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';
