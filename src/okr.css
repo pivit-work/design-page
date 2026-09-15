@@ -129,6 +129,14 @@
 .okr-write-btn { position: fixed; top: 82px; right: 40px; z-index: 90; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
 .okr-write-btn.is-inline { position: static; }
 .okr-header-actions { position: fixed; top: 82px; right: 40px; z-index: 90; display: flex; gap: 8px; }
+/* [{단위} OKR 작성] / [OKR 작성 ▾] — 시안 okr-app.jsx OkrTabNav 액션 (정책서 §2A.2).
+   .okr-header-actions 안에 [작성]·[편집] 과 나란히 선다. */
+.okr-wz-entry { position: relative; display: flex; }
+.okr-wz-entry-btn { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; white-space: nowrap; }
+.okr-wz-entry-btn:disabled { background: var(--bg-brand-secondary); color: var(--text-quaternary); cursor: not-allowed; }
+.okr-wz-entry-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 190px; padding: 4px; background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: 8px; box-shadow: var(--shadows-shadow-lg, 0 12px 16px -4px rgba(10, 13, 18, 0.08)); }
+.okr-wz-entry-item { height: 34px; padding: 0 10px; border: none; border-radius: 8px; background: transparent; font-family: inherit; font-size: 14px; font-weight: 600; text-align: left; color: var(--text-primary); cursor: pointer; white-space: nowrap; }
+.okr-wz-entry-item:hover { background: var(--bg-secondary); }
 .okr-ghost-btn { padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 /* 작성 권한이 없는 사용자에게 '왜 버튼이 없는지' 를 알리는 배지 (시안 okr-company.jsx
    §2A.6 — 작성 권한 없음 = 회색 '읽기 전용'). 버튼만 조용히 사라지면 사용자는
@@ -584,6 +592,17 @@
 .okr-wz-scope.is-active { background: transparent; border-color: var(--border-brand); }
 .okr-wz-scope-label { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); margin-bottom: 6px; }
 .okr-wz-scope-desc { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); }
+/* 단위 고정 카드 — 구 3택 자리 (시안 okr-app.jsx ScopeContext · 정책서 §2A.3).
+   브랜드 보더 + 브랜드 틴트 = 구 3택의 선택 카드와 같은 시각. 클릭 대상이 아니다. */
+.okr-wz-scope-fixed { display: flex; align-items: center; gap: 12px; box-sizing: border-box; padding: 16px; border: 2px solid var(--border-brand); border-radius: 8px; background: var(--utility-brand-50); }
+.okr-wz-scope-fixed-text { flex: 1; min-width: 0; }
+.okr-wz-scope-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-brand-secondary); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-brand-secondary); vertical-align: middle; white-space: nowrap; }
+.okr-wz-target-select { flex: none; max-width: 220px; height: 36px; padding: 0 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-primary); font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.okr-wz-target-name { flex: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text-brand-secondary); }
+/* 진입 차단 — 본문 대신 사유 카드 (시안 BlockedBody · 정책서 §2A.4) */
+.okr-wz-blocked { display: flex; flex-direction: column; gap: 6px; padding: 40px 20px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 8px; background: var(--bg-secondary); }
+.okr-wz-blocked-title { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--text-primary); }
+.okr-wz-blocked-desc { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .okr-wz-textarea { height: 250px; }
 .okr-wz-tip { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 /* 비전 이미지 (선택) */
