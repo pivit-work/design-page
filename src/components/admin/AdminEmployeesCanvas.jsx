@@ -2836,6 +2836,19 @@ function EmployeesEditPanel({
    */
   const [saveError, setSaveError] = useState(null);
   /**
+   * 사유를 띄운 뒤 그 자리로 스크롤한다(PW-727). [저장하기]는 패널 맨 아래에 있고 문제
+   * 칸(직군 등)은 대개 한참 위라, 스크롤이 맨 위에 머물러 있으면 사유가 창 안에 있어도
+   * **화면 밖**이다 — 알림이 사라지면 결국 아무것도 안 보인다(로컬 브라우저로 확인).
+   */
+  const panelRef = useRef(null);
+  useEffect(() => {
+    if (!saveError || !panelRef.current) return;
+    const target = panelRef.current.querySelector(
+      '[data-testid^="employees-panel-error-"], [data-testid="employees-panel-save-error"]',
+    );
+    target?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, [saveError]);
+  /**
    * 패널 안의 탭 — `info`(편집) / `history`(조회). 편집 흐름과 조회 흐름을 섞지 않는다.
    * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
    * 한가운데를 읽기 전용 표가 끊는다.
@@ -3037,7 +3050,7 @@ function EmployeesEditPanel({
   return (
     <>
       <div className="admin-emp-panel-backdrop" onClick={onClose} />
-      <div className="admin-emp-panel" role="dialog" aria-modal="true" data-testid="employees-edit-panel">
+      <div ref={panelRef} className="admin-emp-panel" role="dialog" aria-modal="true" data-testid="employees-edit-panel">
         <div className="admin-emp-panel-header">
           <div className="admin-emp-panel-id">
             {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}
