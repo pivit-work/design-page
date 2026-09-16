@@ -1651,6 +1651,17 @@ export default function EvalCycleWizard({
   /** 관리 모드 대상자 프리필용 현재 참여자 [{ memberId }]. */
   participants = [],
   /**
+   * PW-700 — 관리 모드에서 이 사이클에 **실제로 남아 있는 제외 기록**
+   * (`[{ memberId, exclusionType, referenceDate?, referenceDateDirection?, exclFieldValue? }]`).
+   *
+   * 넘기면, 제외 조건을 사이클에 저장된 값에서 **건드리지 않은 동안** 규칙 제외를 지금
+   * 인사 정보로 다시 판정하지 않고 이 기록대로 보인다. 오픈 뒤 인사 정보가 바뀐 사람
+   * (예: 오픈 뒤 휴직)을 아무것도 안 바꾼 저장이 조용히 빼거나 넣지 않게 하려는 것이다.
+   * 조건을 바꾸면 그때부터 지금 인사 정보로 다시 판정한다. 수동 제외(`manual`)는 보지 않는다.
+   * 안 넘기면(`null`) 종전대로 늘 다시 판정한다.
+   */
+  recordedExclusions = null,
+  /**
    * PW-122 — **조직 평가 템플릿 라이브러리**. 배열을 넘기면 2단계의 저장된 템플릿 목록이
    * 이 값(서버 자산)이 되고, 「템플릿 저장」이 `onSaveTemplate` 으로 즉시 서버에 등재된다.
    *
@@ -1995,29 +2006,35 @@ export default function EvalCycleWizard({
   /** 직전 수동 조정 스냅샷 — 「모두 제외」·그룹 제외를 1회 되돌린다. */
   const [undoSnapshot, setUndoSnapshot] = useState(null);
   // §4.1.1 제외 조건 필터(자동 탐지). 데이터 근거가 있는 두 축만 노출한다.
-  const [excludeOnLeave, setExcludeOnLeave] = useState(() => !!D?.exclusionRules?.onLeave);
+  /**
+   * PW-700 — 제외 조건의 초기값. 이어쓰기면 초안, **관리(오픈된 사이클)면 사이클에 저장된
+   * 조건**이다. 종전에는 초안만 읽어, 오픈된 사이클의 대상자 탭이 늘 조건이 꺼진 채 열렸고
+   * 조건으로 빠진 사람이 대상으로 보였다(그대로 저장하면 다시 대상에 들어갔다).
+   */
+  const R = D?.exclusionRules ?? (isManage ? cycle?.targetScope?.exclusionRules : null) ?? null;
+  const [excludeOnLeave, setExcludeOnLeave] = useState(() => !!R?.onLeave);
   const [excludeHireDate, setExcludeHireDate] = useState(
-    () => !!D?.exclusionRules?.hireDate,
+    () => !!R?.hireDate,
   );
   const [hireDateRef, setHireDateRef] = useState(
-    () => D?.exclusionRules?.hireDateRef ?? '',
+    () => R?.hireDateRef ?? '',
   );
   const [hireDateDirection, setHireDateDirection] = useState(
-    () => D?.exclusionRules?.hireDateDirection ?? 'after',
+    () => R?.hireDateDirection ?? 'after',
   );
   const [hirePicker, setHirePicker] = useState(null);
   // 발령 이력 기반 2종 — 평가 기간 중 직무 변경 / 직급(승진) 변경일 기준
   const [excludeRoleChange, setExcludeRoleChange] = useState(
-    () => !!D?.exclusionRules?.roleChange,
+    () => !!R?.roleChange,
   );
   const [excludePromotion, setExcludePromotion] = useState(
-    () => !!D?.exclusionRules?.promotion,
+    () => !!R?.promotion,
   );
   const [promotionRef, setPromotionRef] = useState(
-    () => D?.exclusionRules?.promotionRef ?? '',
+    () => R?.promotionRef ?? '',
   );
   const [promotionDirection, setPromotionDirection] = useState(
-    () => D?.exclusionRules?.promotionDirection ?? 'after',
+    () => R?.promotionDirection ?? 'after',
   );
   const [promotionPicker, setPromotionPicker] = useState(null);
   /* §5.3.1 15번 (v2.46 · PW-443 3차) — 고용유형 조건. **날짜가 아닌 첫 조건**이라
@@ -2025,10 +2042,10 @@ export default function EvalCycleWizard({
      조건(규칙)과 필터+일괄(수동)의 역할 구분은 정책 §5.5.6 E21 — 여기서 뺀 사람은
      조건을 지우면 함께 풀리고, 사유가 조건 이름(`고용유형 · 인턴`)으로 남는다. */
   const [excludeEmploymentType, setExcludeEmploymentType] = useState(
-    () => !!D?.exclusionRules?.employmentType,
+    () => !!R?.employmentType,
   );
   const [employmentTypeValues, setEmploymentTypeValues] = useState(
-    () => D?.exclusionRules?.employmentTypeValues ?? [],
+    () => R?.employmentTypeValues ?? [],
   );
   /* 규칙 11 (v2.45 · 어니스트 2026-08-30 ②) — 조직 «초점». 트리 행의 손잡이가 둘이다:
      체크박스 = 대상 조직 선별(저장된다), 조직 **이름** 클릭 = 그 조직만 보기(표시만).
@@ -3313,7 +3330,9 @@ export default function EvalCycleWizard({
    * 값이 나오고, 이펙트로 상태를 뒤늦게 덮어쓰는 경로가 없다.
    */
   const legacyScope = (() => {
-    if (!isManage || cycle?.targetScope || participants.length === 0) return null;
+    /* PW-700 — 옛 사이클에 제외 조건만 저장되면 `targetScope` 는 있지만 조직 키가 없다.
+       판정은 «조직 선택이 저장돼 있나» 로 한다. */
+    if (!isManage || cycle?.targetScope?.orgIds || participants.length === 0) return null;
     const memberIds = participants.map((p) => p.memberId);
     const units = new Set(
       candidates.filter((c) => memberIds.includes(c.id)).map(bucketOf),
@@ -3374,7 +3393,7 @@ export default function EvalCycleWizard({
   // §4.1.1 제외 조건 필터 — 개별 선택 모드는 관리자가 직접 고른 명단이므로 적용하지 않는다.
   // 구 '개별 선택' 모드가 사라져 제외 조건을 끄는 분기도 함께 없어졌다 —
   // 모집단은 언제나 조직 트리가 정하고, 조건은 그 위에서 항상 돈다.
-  const autoExclusions = scopedCandidates.flatMap((c) => {
+  const liveAutoExclusions = scopedCandidates.flatMap((c) => {
         if (excludeOnLeave && c.employmentStatus === 'on_leave') {
           return [{ memberId: c.id, exclusionType: 'leave' }];
         }
@@ -3429,6 +3448,31 @@ export default function EvalCycleWizard({
         }
         return [];
       });
+  /* PW-700 — 지금 화면의 제외 조건 한 벌. 저장(targetScope · 초안 · 프리셋)과 «건드렸나» 판정이 같이 쓴다. */
+  const exclusionRulesNow = {
+    onLeave: excludeOnLeave,
+    hireDate: excludeHireDate,
+    hireDateRef,
+    hireDateDirection,
+    roleChange: excludeRoleChange,
+    promotion: excludePromotion,
+    promotionRef,
+    promotionDirection,
+    employmentType: excludeEmploymentType,
+    employmentTypeValues,
+  };
+  /* 처음 열린 순간의 조건. 되돌려 원래 값과 같아지면 다시 기록대로 보인다. */
+  const [openedRulesKey] = useState(() => JSON.stringify(exclusionRulesNow));
+  const rulesPinned =
+    isManage &&
+    Array.isArray(recordedExclusions) &&
+    JSON.stringify(exclusionRulesNow) === openedRulesKey;
+  const scopedIdSet = new Set(scopedCandidates.map((c) => c.id));
+  const autoExclusions = rulesPinned
+    ? recordedExclusions.filter(
+        (e) => e.exclusionType !== 'manual' && scopedIdSet.has(e.memberId),
+      )
+    : liveAutoExclusions;
   // 0단계 '리뷰 & 조정' 에서 손으로 뺀 사람(개별 지정 제외).
   const manualExclusions = manualExcludedIds
     .filter((id) => scopedCandidates.some((c) => c.id === id))
@@ -4115,6 +4159,9 @@ export default function EvalCycleWizard({
       // 필터·검색은 담지 않는다 — 보기 조건이지 대상자 정의가 아니다.
       targetScope: {
         orgIds: [...orgSel],
+        /* PW-700 — 오픈 뒤 대상자 탭이 «오픈 때 쓴 조건»을 그대로 보이려면 조건이 사이클에
+           남아 있어야 한다. 초안에만 두면 오픈과 함께 사라진다. */
+        exclusionRules: exclusionRulesNow,
         manualExclude: manualExcludedIds.filter((id) =>
           scopedCandidates.some((c) => c.id === id),
         ),
