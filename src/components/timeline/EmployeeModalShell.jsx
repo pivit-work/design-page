@@ -7,6 +7,8 @@ import ModalShell from '../shared/ModalShell.jsx';
  * 껍데기 자체는 `shared/ModalShell` 로 올라갔다(매니저 화면도 같은 걸 쓴다).
  * 여기는 **직원 추가 모달의 고정값**만 얹는 얇은 래퍼다 — 520x920 변형 클래스와
  * '취소'/'추가'/'닫기' 문구. 렌더 결과 DOM 은 승격 전과 동일해야 한다.
+ *
+ * 문구 셋은 호출부가 바꿔 줄 수 있다(화면 언어 — PW-762). 안 주면 위 한국어 그대로다.
  */
 export default function EmployeeModalShell({
   title,
@@ -14,6 +16,9 @@ export default function EmployeeModalShell({
   canSubmit,
   onClose,
   onSubmit,
+  submitLabel = '추가',
+  cancelLabel = '취소',
+  closeLabel = '닫기',
   children,
 }) {
   return (
@@ -21,9 +26,9 @@ export default function EmployeeModalShell({
       title={title}
       description={description}
       titleId="tl-emp-modal-title"
-      submitLabel="추가"
-      cancelLabel="취소"
-      closeLabel="닫기"
+      submitLabel={submitLabel}
+      cancelLabel={cancelLabel}
+      closeLabel={closeLabel}
       canSubmit={canSubmit}
       onClose={onClose}
       onSubmit={onSubmit}

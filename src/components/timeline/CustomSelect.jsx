@@ -19,6 +19,7 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
  *     disabled?
  *     id? name?         // label for/htmlFor
  *     ariaLabel?
+ *     emptyLabel?       // 옵션이 0개일 때 메뉴 안 문구 (기본 '옵션이 없습니다')
  *   />
  */
 export default function CustomSelect({
@@ -30,6 +31,7 @@ export default function CustomSelect({
   disabled = false,
   id,
   ariaLabel,
+  emptyLabel = '옵션이 없습니다',
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -100,7 +102,7 @@ export default function CustomSelect({
           role="listbox"
         >
           {options.length === 0 ? (
-            <div className="tl-select-empty">옵션이 없습니다</div>
+            <div className="tl-select-empty">{emptyLabel}</div>
           ) : (
             options.map((opt) => {
               const isSel = opt.value === value;
