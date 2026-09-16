@@ -122,6 +122,15 @@ export default function SquadCanvas({
   loading = false,
   error = null,
   onRetry,
+  /**
+   * 저장·삭제·상태 전환 등 **조작이 실패했을 때** 부모가 보여줄 문구(PW-761).
+   * 조회 실패(`error`)와 달리 목록은 그대로 두고 띠만 얹는다. 비우면 띠가 사라진다.
+   */
+  actionError = null,
+  /** 실패 띠의 닫기. 안 넘기면 닫기 버튼을 그리지 않는다. */
+  onDismissActionError,
+  /** 닫기 버튼 문구 — 호스트가 번역해 넘긴다. */
+  actionErrorDismissLabel = '닫기',
   /** 서버가 돌려준 폼 인라인 에러 — `{ name?, endDate? }` (409/422). */
   serverFormErrors = null,
   submitting = false,
@@ -624,6 +633,17 @@ export default function SquadCanvas({
               )}
             </div>
           </div>
+
+          {actionError && (
+            <div className="sq-banner sq-banner-error" data-testid="squad-action-error" role="alert">
+              <div className="sq-banner-title">{actionError}</div>
+              {onDismissActionError && (
+                <button type="button" onClick={onDismissActionError} className="sq-btn sq-btn-sm sq-btn-outline">
+                  {actionErrorDismissLabel}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* 🔴 다시 불러오는 동안 **목록을 걷어내지 않는다** (PW-109).
               걷어내면 스크롤 높이가 0 으로 줄어 컨테이너의 `scrollTop` 이 0 으로

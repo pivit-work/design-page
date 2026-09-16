@@ -83,7 +83,10 @@ function applyTexture(app, objectName, imageSrc) {
 // 미지정이면 지금까지처럼 아무 동작도 하지 않는다(시각·레이아웃 변화 없음).
 // isSelf — 본인 카드. 나에게 피드백을 주거나 나와 미팅을 잡을 수는 없으므로
 // 퇴사·휴직과 같은 비활성 표시를 재사용한다(PW-28).
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick, isSelf = false }) {
+// resolvePhoto — 구성원 사진을 3D 아바타에 입힐 때 쓴다. `(member) => url | null | Promise<url | null>`.
+// 미지정이면 지금까지처럼 기본 사진(PROFILE_IMAGE)을 입힌다. 사진을 못 구하면(null·실패) 기본 사진.
+// 새 멤버로 열리면 그 사람 사진이 입혀질 때까지 무대를 숨겨 앞사람 얼굴이 비치지 않게 한다.
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick, isSelf = false }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -95,13 +98,37 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   // 모달이 닫히면 spline 인터랙션 상태도 리셋.
   if (!member && splineActive) setSplineActive(false);
 
-  // scene 로드 완료 → 텍스처 교체 → ready. PROFILE_IMAGE 가 고정이라 멤버가 바뀌어도
-  // 재로드 불필요 — Spline 은 한 번만 마운트되어 모달 재오픈 시 즉시 표시된다.
+  // scene 로드 완료 → 텍스처 교체 → ready. Spline 은 한 번만 마운트되어 모달 재오픈 시
+  // 즉시 표시된다 — 멤버가 바뀌면 씬은 그대로 두고 텍스처만 갈아 끼운다.
+  const splineAppRef = useRef(null);
+  const [sceneLoaded, setSceneLoaded] = useState(false);
+  // 사진이 입혀진 멤버. resolvePhoto 를 쓸 때는 이 값이 지금 멤버와 같아야 무대를 보인다.
+  const [texturedFor, setTexturedFor] = useState(null);
   const handleSplineLoad = useCallback(async (app) => {
+    splineAppRef.current = app;
     await applyTexture(app, 'profileImage', PROFILE_IMAGE);
     await applyTexture(app, 'profileImage-2', PROFILE_IMAGE);
+    setSceneLoaded(true);
     setSplineReady(true);
   }, []);
+
+  useEffect(() => {
+    const app = splineAppRef.current;
+    if (!resolvePhoto || !member || !sceneLoaded || !app) return undefined;
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => resolvePhoto(member))
+      .catch(() => null)
+      .then(async (src) => {
+        if (cancelled) return;
+        await applyTexture(app, 'profileImage', src || PROFILE_IMAGE);
+        await applyTexture(app, 'profileImage-2', src || PROFILE_IMAGE);
+        if (!cancelled) setTexturedFor(member);
+      });
+    return () => { cancelled = true; };
+  }, [resolvePhoto, member, sceneLoaded]);
+
+  const stageReady = splineReady && (!resolvePhoto || texturedFor === displayMember);
 
   // 새 멤버로 열릴 때 스크롤 위치 초기화.
   useEffect(() => {
@@ -132,7 +159,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               onMouseLeave={() => setSplineActive(false)}
             >
               {!splineFailed && (
-                <div className={`modal-spline-stage ${splineReady ? 'is-ready' : ''}`}>
+                <div className={`modal-spline-stage ${stageReady ? 'is-ready' : ''}`}>
                   <SplineBoundary onFail={() => setSplineFailed(true)}>
                     <Spline scene={PROFILE_SCENE} onLoad={handleSplineLoad} />
                   </SplineBoundary>
