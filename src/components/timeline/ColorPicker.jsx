@@ -5,9 +5,9 @@ import { EMPLOYEE_COLOR_PALETTE } from './employeeModalConstants.js';
  * 17 color palette, 28x28 원, gap 12, wrap 허용. 선택된 색상은
  * 2px offset ring (Figma 에 나타난 선택 표시) 으로 강조.
  */
-export default function ColorPicker({ value, onChange }) {
+export default function ColorPicker({ value, onChange, ariaLabel = '색상 선택' }) {
   return (
-    <div className="tl-emp-color-picker" role="radiogroup" aria-label="색상 선택">
+    <div className="tl-emp-color-picker" role="radiogroup" aria-label={ariaLabel}>
       {EMPLOYEE_COLOR_PALETTE.map((hex) => {
         const isSelected = value === hex;
         return (
