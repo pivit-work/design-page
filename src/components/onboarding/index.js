@@ -1,0 +1,52 @@
+// 온보딩(회사 개설·초대 가입) 부품 — 시안 pivit-specs `8. onboarding/onboarding-app.jsx`.
+// 스타일: `@pivit-work/design-page/styles/onboarding.css`
+export {
+  OnboardingShell,
+  OnboardingCenter,
+  OnboardingBrandPanel,
+  OnboardingScrollPane,
+  OnboardingTopBar,
+  OnboardingContent,
+  OnboardingCard,
+  OnboardingProgress,
+} from './OnboardingFrame.jsx';
+export {
+  OnbField,
+  OnbInput,
+  OnbSelect,
+  OnbButton,
+  OnbGoogleButton,
+  OnbTextButton,
+  OnbRemoveButton,
+  OnbDivider,
+  OnbChoiceGrid,
+  OnbChoice,
+  OnbChip,
+  OnbTag,
+  OnbPasswordStrength,
+} from './OnboardingControls.jsx';
+export {
+  OnbStepHeader,
+  OnbStack,
+  OnbText,
+  OnbNotice,
+  OnbBadge,
+  OnbSummary,
+  OnbCopyLine,
+  OnbBox,
+  OnbTwoColumns,
+  OnbGridFull,
+  OnbTabsRow,
+  OnbDropzone,
+  OnbCheckList,
+  OnbCheckRow,
+  OnbBrandTile,
+  OnbIntegrationCard,
+  OnbSectionTitle,
+  OnbCompleteBody,
+  OnbCompleteMark,
+  OnbReveal,
+  OnbSummaryList,
+  OnbConfetti,
+} from './OnboardingBlocks.jsx';
+export { OnbSpinner } from './onboardingIcons.jsx';

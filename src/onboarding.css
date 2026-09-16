@@ -1,0 +1,481 @@
+/* ══════════════════════════════════════════════════════════════
+   Onboarding — 회사 개설·초대 가입 화면 (prefix: onb-)
+
+   시안: pivit-specs `기획서-UX-UI-UserFlow/8. onboarding/onboarding-app.jsx`
+   (OnboardingScreen 의 Input · Button · Spinner · ProgressBar · Divider · Tag ·
+   LeftPanel · RequestSummary · 단계 카드). 컴포넌트는 `components/onboarding/`.
+
+   색은 시안의 토큰 표(window.PIVIT.color)를 이 저장소의 CSS 변수로 옮겼다.
+   · 시안 온보딩은 파랑(#2563EB)을 따로 브랜드로 쓴다 — 전역 브랜드(초록)와 다르다.
+     그래서 `--onb-brand` 로 묶어 두고 리터럴은 여기 한 곳에만 둔다.
+   · 선호 설정 단계의 칩만 시안이 전역 브랜드(P.color.brand)를 쓴다 → `.onb-chip`.
+   ══════════════════════════════════════════════════════════════ */
+
+.onb-shell,
+.onb-center {
+  --onb-brand: #2563eb;
+  --onb-brand-dark: #1d4ed8;
+  --onb-brand-light: var(--colors-background-bgBrandPrimary, #f1fffa);
+  --onb-brand-ring: color-mix(in srgb, #2563eb 9%, transparent);
+  --onb-brand-border: color-mix(in srgb, #2563eb 20%, transparent);
+  --onb-brand-pill-border: #bfdbfe;
+  --onb-panel: var(--colors-foreground-fgPrimary, #2c3744);
+  --onb-surface: #ffffff;
+  --onb-bg: var(--colors-background-bgSecondary, #f9fafb);
+  --onb-text: var(--colors-foreground-fgPrimary, #2c3744);
+  --onb-sub: var(--colors-text-textSecondary, #687079);
+  --onb-muted: var(--colors-text-textTertiary, #b1b6be);
+  --onb-border: var(--colors-border-borderSecondary, #e6e8ea);
+  --onb-readonly: #f3f3f1;
+  --onb-error: var(--colors-background-bgErrorSolid, #f04438);
+  --onb-error-bg: var(--colors-background-bgErrorPrimary, #fef3f2);
+  --onb-error-border: var(--utility-error-200, #fecdca);
+  --onb-success: var(--colors-background-bgSuccessSolid, #079455);
+  --onb-success-bg: var(--colors-background-bgSuccessPrimary, #ecfdf3);
+  --onb-success-border: var(--utility-success-200, #abefc6);
+  --onb-warn: var(--colors-background-bgWarningSolid, #dc6803);
+  --onb-warn-bg: var(--colors-background-bgWarningPrimary, #fffaeb);
+  --onb-warn-border: var(--utility-warning-200, #fedf89);
+  --onb-radius: 14px;
+  --onb-radius-sm: 8px;
+  --onb-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.04), 0 20px 60px rgba(0, 0, 0, 0.12);
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  color: var(--onb-text);
+}
+
+.onb-shell *,
+.onb-center * { box-sizing: border-box; }
+
+/* ── 화면 틀 ─────────────────────────────────────────────
+   height(minHeight 아님) — 전역 CSS 가 body 를 overflow:hidden + 100vh 로 묶어 두므로
+   100vh 를 넘겨 자라면 넘친 만큼이 잘리고 페이지 스크롤도 안 생긴다. 스크롤은
+   오른쪽 칸(.onb-scroll)이 맡는다. */
+.onb-shell { display: flex; height: 100vh; background: var(--onb-bg); }
+
+/* 전체 화면 가운데 — 불러오는 중 · 초대 만료/무효 · 계정 불일치 */
+.onb-center {
+  display: flex; min-height: 100vh; align-items: center; justify-content: center;
+  padding: 40px 16px; background: var(--onb-bg);
+}
+.onb-center-body { width: 100%; max-width: 400px; text-align: center; }
+
+/* ── 왼쪽 안내 패널 (시안 LeftPanel) ── */
+.onb-panel {
+  position: relative; overflow: hidden; flex-shrink: 0;
+  width: 420px; min-height: 100vh; padding: 48px 44px;
+  display: flex; flex-direction: column;
+  background: var(--onb-panel);
+}
+.onb-panel-grid {
+  position: absolute; inset: 0; opacity: 0.04; pointer-events: none;
+  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.onb-panel-glow {
+  position: absolute; top: -80px; left: -80px; width: 360px; height: 360px; border-radius: 50%;
+  background: radial-gradient(circle, #2563eb33 0%, transparent 70%); pointer-events: none;
+}
+.onb-panel-body { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
+.onb-panel-logo { margin-bottom: auto; font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -0.05em; }
+.onb-panel-logo i { font-style: normal; color: var(--onb-brand); }
+.onb-panel-copy { margin: auto 0; }
+.onb-panel-eyebrow {
+  margin: 0 0 16px; font-size: 13px; font-weight: 600; color: var(--onb-brand);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.onb-panel-title {
+  margin: 0 0 20px; font-size: 32px; font-weight: 800; color: #fff;
+  line-height: 1.25; letter-spacing: -0.04em; white-space: pre-line;
+}
+.onb-panel-sub {
+  margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.5); line-height: 1.65;
+  letter-spacing: -0.01em; white-space: pre-line;
+}
+.onb-panel-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 40px; }
+.onb-panel-pill {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: -0.01em;
+  background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── 오른쪽 스크롤 칸 ── */
+.onb-scroll {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;
+  background: var(--onb-bg);
+}
+
+/* 위쪽 머리 — 스크롤해도 진행 표시가 보이게 고정. 배경이 불투명해야 내용이 그 아래로
+   깔끔히 사라진다. 구분선은 실제로 내용이 밑에 깔릴 때만(.is-scrolled). */
+.onb-topbar {
+  position: sticky; top: 0; z-index: 1; flex-shrink: 0;
+  padding: 24px 32px; background: var(--onb-bg);
+  border-bottom: 1px solid transparent; transition: border-color 0.15s;
+}
+.onb-topbar.is-scrolled { border-bottom-color: var(--onb-border); }
+/* 뒤로가기(좌) + 진행 표시(가운데) + 보이지 않는 짝(우). 둘을 따로 절대배치하면 좁은
+   창에서 진행 표시가 뒤로가기 위로 올라탄다 — 한 격자에 묶는다. 좌우 레일 폭이 같아야
+   가운데 칸이 정중앙에 온다. */
+.onb-topbar-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.onb-topbar-center { display: flex; justify-content: center; min-width: 0; }
+.onb-back {
+  align-self: center; display: flex; align-items: center; gap: 4px; padding: 0;
+  background: none; border: none; cursor: pointer; white-space: nowrap;
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--onb-sub);
+}
+.onb-back:hover { color: var(--onb-text); }
+.onb-back.is-ghost { visibility: hidden; pointer-events: none; }
+
+/* 내용 칸 — 짧은 단계는 세로 가운데, 긴 단계는 전부 스크롤로 닿는다.
+   margin:auto 0 은 justify-content:center 대신이다(넘치면 0 으로 접혀 위가 잘리지 않는다). */
+.onb-content { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; width: 100%; padding: 40px 32px; }
+.onb-column { width: 100%; max-width: 480px; margin: auto 0; }
+
+/* 단계 카드 (시안 Step card) */
+.onb-card {
+  background: var(--onb-surface); border: 1px solid var(--onb-border);
+  border-radius: var(--onb-radius); box-shadow: var(--onb-shadow-lg);
+  padding: 36px 40px;
+}
+.onb-card > * + * { margin-top: 0; }
+
+@media (max-width: 560px) {
+  .onb-topbar { padding: 16px; }
+  .onb-content { padding: 24px 16px; }
+  .onb-card { padding: 28px 20px; }
+}
+
+/* ── 진행 표시 (시안 ProgressBar) ── */
+.onb-progress { display: flex; align-items: center; gap: 6px; width: 100%; max-width: 480px; min-width: 0; }
+.onb-progress-step { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.onb-progress-step.is-stretch { flex: 1; }
+.onb-progress-dot {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  background: var(--onb-border); color: var(--onb-muted); transition: all 0.3s;
+}
+.onb-progress-dot.is-done,
+.onb-progress-dot.is-current { background: var(--onb-brand); color: #fff; }
+.onb-progress-line { flex: 1; min-width: 0; height: 2px; border-radius: 1px; background: var(--onb-border); transition: background 0.3s; }
+.onb-progress-line.is-done { background: var(--onb-brand); }
+
+/* ── 단계 제목 ── */
+.onb-head { margin-bottom: 32px; }
+.onb-head.is-tight { margin-bottom: 24px; }
+.onb-head:last-child { margin-bottom: 0; }
+.onb-head.is-center { text-align: center; }
+.onb-head-icon { display: flex; margin-bottom: 12px; color: var(--onb-brand); }
+.onb-head.is-center .onb-head-icon { justify-content: center; }
+.onb-head-badge { display: flex; margin-bottom: 12px; }
+.onb-head.is-center .onb-head-badge { justify-content: center; }
+.onb-title { margin: 0 0 8px; font-size: 26px; font-weight: 800; color: var(--onb-text); letter-spacing: -0.04em; line-height: 1.3; }
+.onb-title.is-md { font-size: 24px; }
+.onb-desc { margin: 0; font-size: 14px; color: var(--onb-sub); line-height: 1.7; letter-spacing: -0.01em; }
+
+.onb-tone-brand { color: var(--onb-brand); }
+.onb-tone-success { color: var(--onb-success); }
+.onb-tone-warning { color: var(--onb-warn); }
+.onb-tone-error { color: var(--onb-error); }
+.onb-tone-muted { color: var(--onb-muted); }
+.onb-tone-sub { color: var(--onb-sub); }
+.onb-tone-strong { color: var(--onb-text); }
+
+/* ── 쌓기 ── */
+.onb-stack { display: flex; flex-direction: column; min-width: 0; }
+.onb-stack.is-row { flex-direction: row; align-items: center; }
+.onb-stack.is-wrap { flex-wrap: wrap; }
+.onb-stack.is-center { align-items: center; }
+.onb-stack.is-justify-center { justify-content: center; }
+.onb-stack.is-between { justify-content: space-between; }
+.onb-stack.is-start { align-items: flex-start; }
+.onb-stack.is-fill > * { flex: 1; min-width: 0; }
+.onb-stack.is-grow { flex: 1; }
+.onb-gap-2 { gap: 2px; } .onb-gap-4 { gap: 4px; } .onb-gap-6 { gap: 6px; } .onb-gap-8 { gap: 8px; }
+.onb-gap-10 { gap: 10px; } .onb-gap-12 { gap: 12px; } .onb-gap-16 { gap: 16px; } .onb-gap-20 { gap: 20px; }
+.onb-gap-24 { gap: 24px; }
+
+
+/* ── 글씨 ── */
+.onb-text { margin: 0; letter-spacing: -0.01em; line-height: 1.6; overflow-wrap: anywhere; }
+.onb-text b, .onb-text strong { color: var(--onb-text); font-weight: 700; }
+.onb-text.is-center { text-align: center; }
+.onb-text.is-mono { font-family: 'DM Mono', ui-monospace, monospace; word-break: break-all; }
+.onb-text.is-flex { display: flex; align-items: center; gap: 6px; }
+.onb-size-10 { font-size: 10.5px; } .onb-size-11 { font-size: 11.5px; } .onb-size-12 { font-size: 12px; }
+.onb-size-13 { font-size: 13px; } .onb-size-14 { font-size: 14px; } .onb-size-15 { font-size: 15px; }
+.onb-weight-500 { font-weight: 500; } .onb-weight-600 { font-weight: 600; } .onb-weight-700 { font-weight: 700; }
+
+/* ── 입력 칸 (시안 Input) ── */
+.onb-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.onb-label { font-size: 13px; font-weight: 600; color: var(--onb-text); letter-spacing: -0.01em; }
+.onb-label-req { color: var(--onb-error); margin-left: 2px; }
+.onb-label-opt { font-size: 11px; font-weight: 400; color: var(--onb-muted); margin-left: 4px; }
+.onb-field-msg { margin: 0; font-size: 12px; letter-spacing: -0.01em; line-height: 1.5; color: var(--onb-sub); overflow-wrap: anywhere; }
+.onb-field-msg.is-error { color: var(--onb-error); }
+.onb-field-msg.is-warning { color: var(--onb-warn); }
+.onb-field-msg.is-success { color: var(--onb-success); }
+.onb-field-msg.is-muted { color: var(--onb-muted); }
+
+.onb-input-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
+.onb-input {
+  width: 100%; min-width: 0; padding: 12px 14px;
+  font-family: inherit; font-size: 15px; color: var(--onb-text); letter-spacing: -0.01em;
+  background: var(--onb-surface); border: 1.5px solid var(--onb-border); border-radius: var(--onb-radius-sm);
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.onb-input::placeholder { color: var(--onb-muted); }
+.onb-input:focus { border-color: var(--onb-brand); box-shadow: 0 0 0 3px var(--onb-brand-ring); }
+.onb-input[readonly], .onb-input:disabled { background: var(--onb-readonly); }
+.onb-input[readonly]:focus { border-color: var(--onb-border); box-shadow: none; }
+.onb-input.is-invalid, .onb-input.is-invalid:focus { border-color: var(--onb-error); box-shadow: none; }
+.onb-input.is-warning { border-color: var(--onb-warn); }
+.onb-input.has-prefix { padding-left: 32px; }
+.onb-input.has-suffix { padding-right: 96px; }
+.onb-input-affix { position: absolute; font-size: 13px; color: var(--onb-muted); pointer-events: none; }
+.onb-input-affix.is-prefix { left: 14px; }
+.onb-input-affix.is-suffix { right: 14px; }
+.onb-input.is-sm { padding: 6px 10px; font-size: 12px; border-width: 1px; border-radius: 6px; }
+.onb-input.is-auto { width: auto; }
+.onb-input.is-name { width: 110px; flex: none; }
+
+.onb-select {
+  width: 100%; min-width: 0; padding: 6px 10px; font-family: inherit; font-size: 12px; color: var(--onb-text);
+  background: var(--onb-surface); border: 1px solid var(--onb-border); border-radius: 6px; outline: none;
+}
+.onb-select:focus { border-color: var(--onb-brand); }
+
+/* ── 버튼 (시안 Button) ── */
+.onb-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 20px; font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: -0.02em;
+  border-radius: var(--onb-radius-sm); border: 1.5px solid transparent; cursor: pointer; text-decoration: none;
+  white-space: nowrap; transition: background 0.15s, transform 0.1s;
+}
+.onb-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.onb-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.onb-btn.is-busy { cursor: wait; }
+.onb-btn.is-busy:disabled { opacity: 0.8; }
+.onb-btn.is-lg { padding: 14px 24px; font-size: 16px; }
+.onb-btn.is-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+.onb-btn.is-full { width: 100%; }
+.onb-btn.is-grow { flex: 1; min-width: 0; }
+.onb-btn-primary { background: var(--onb-brand); color: #fff; }
+.onb-btn-primary:hover:not(:disabled) { background: var(--onb-brand-dark); }
+.onb-btn-outlined { background: transparent; color: var(--onb-text); border: 1.5px solid var(--onb-border); }
+.onb-btn-outlined:hover:not(:disabled) { background: var(--onb-bg); }
+.onb-btn-surface { background: var(--onb-surface); color: var(--onb-text); border: 1.5px solid var(--onb-border); }
+.onb-btn-surface:hover:not(:disabled) { background: var(--onb-bg); }
+.onb-btn-ghost { background: transparent; color: var(--onb-sub); }
+.onb-btn-ghost:hover:not(:disabled) { background: var(--onb-bg); }
+.onb-btn-danger { background: var(--onb-error-bg); color: var(--onb-error); border: 1.5px solid var(--onb-error-border); }
+.onb-btn-pill {
+  padding: 5px 11px; font-size: 11.5px; border-radius: 20px;
+  background: var(--onb-surface); color: var(--onb-sub); border: 1px solid var(--onb-border);
+}
+.onb-btn-pill.is-on { color: var(--onb-success); }
+.onb-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* 글자 버튼 — 다시 보내기 · 이메일 변경 · 템플릿 받기 · 로그인 */
+.onb-link {
+  display: inline-flex; align-items: center; gap: 4px; padding: 0;
+  background: none; border: none; cursor: pointer; text-decoration: none;
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--onb-brand);
+}
+.onb-link.is-muted { color: var(--onb-sub); font-weight: 500; }
+.onb-link.is-sm { font-size: 12px; }
+.onb-link:disabled { cursor: default; color: var(--onb-muted); }
+
+.onb-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0;
+  background: none; border: none; cursor: pointer; color: var(--onb-muted);
+}
+.onb-icon-btn:hover { color: var(--onb-text); }
+
+/* ── 구분선 (시안 Divider) ── */
+.onb-divider { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+.onb-divider i { flex: 1; height: 1px; background: var(--onb-border); }
+.onb-divider span { font-size: 12px; font-weight: 500; color: var(--onb-muted); }
+
+/* ── 스피너 (시안 Spinner) ── */
+@keyframes onb-spin { to { transform: rotate(360deg); } }
+.onb-spinner { animation: onb-spin 0.8s linear infinite; flex-shrink: 0; }
+
+/* ── 안내 상자 ── */
+.onb-notice {
+  padding: 12px 14px; border-radius: var(--onb-radius-sm); border: 1px solid transparent;
+  font-size: 12.5px; line-height: 1.7; letter-spacing: -0.01em; overflow-wrap: anywhere;
+}
+.onb-notice.is-center { text-align: center; }
+.onb-notice-title { margin: 0 0 4px; font-size: 11.5px; font-weight: 700; }
+.onb-notice.has-title .onb-notice-body { font-size: 13px; line-height: 1.6; color: var(--onb-text); }
+.onb-notice-info { background: var(--onb-brand-light); border-color: var(--onb-brand-border); color: var(--onb-text); }
+.onb-notice-info .onb-notice-title { color: var(--onb-brand); }
+.onb-notice-error { background: var(--onb-error-bg); border-color: var(--onb-error-border); color: var(--onb-error); }
+.onb-notice-error .onb-notice-title { color: var(--onb-error); }
+.onb-notice-warning { background: var(--onb-warn-bg); border-color: var(--onb-warn-border); color: var(--onb-warn); }
+.onb-notice-warning .onb-notice-title { color: var(--onb-warn); }
+.onb-notice-success { background: var(--onb-success-bg); border-color: var(--onb-success-border); color: var(--onb-text); }
+.onb-notice-neutral { background: var(--onb-surface); border-color: var(--onb-border); color: var(--onb-sub); font-size: 12px; }
+.onb-notice-subtle { background: var(--onb-bg); border-color: var(--onb-border); color: var(--onb-sub); font-size: 13px; }
+.onb-notice-hero { padding: 32px 24px; border-radius: var(--onb-radius); border-width: 1.5px; text-align: center; }
+
+/* ── 상태 배지 (시안 승인 대기 배지) ── */
+.onb-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+.onb-badge-brand { background: var(--onb-brand-light); color: var(--onb-brand); border-color: color-mix(in srgb, #2563eb 27%, transparent); }
+.onb-badge-warning { background: var(--onb-warn-bg); color: var(--onb-warn); border-color: var(--onb-warn-border); }
+
+/* ── 선택 버튼 격자 (시안 팀 규모·요청 플랜) ── */
+.onb-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.onb-choice {
+  padding: 10px 14px; border-radius: var(--onb-radius-sm); text-align: left;
+  font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+  background: var(--onb-surface); color: var(--onb-text); border: 1.5px solid var(--onb-border);
+  transition: all 0.15s;
+}
+.onb-choice.is-selected { background: var(--onb-brand-light); color: var(--onb-brand); border-color: var(--onb-brand); }
+
+/* ── 칩 (시안 선호 설정 ChipGroup — 전역 브랜드색) ── */
+.onb-chip {
+  padding: 6px 14px; border-radius: 99px; font-family: inherit; font-size: 13px; font-weight: 400; cursor: pointer;
+  background: #fff; color: var(--onb-sub); border: 1.5px solid var(--onb-border);
+}
+.onb-chip.is-selected {
+  background: var(--colors-background-bgBrandSecondary, #e1fef2); color: var(--colors-background-bgBrandSolid, #2dbd82);
+  border-color: var(--colors-background-bgBrandSolid, #2dbd82); font-weight: 700;
+}
+.onb-chip:disabled { cursor: not-allowed; opacity: 0.5; color: var(--colors-text-textDisabled, #b1b6be); }
+
+/* ── 태그 (시안 Tag) ── */
+.onb-tag {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
+  font-size: 13px; font-weight: 500; overflow-wrap: anywhere;
+  background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
+}
+.onb-tag.is-grow { flex: 1; }
+.onb-tag button { padding: 0; line-height: 1; background: none; border: none; cursor: pointer; color: inherit; display: inline-flex; }
+
+/* ── 섹션 제목 (시안 SectionDivider) ── */
+.onb-section { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.onb-section-row { display: flex; align-items: center; gap: 10px; }
+.onb-section-title { font-size: 13px; font-weight: 800; color: var(--onb-text); letter-spacing: -0.02em; }
+.onb-section-row i { flex: 1; height: 1px; background: var(--onb-border); }
+.onb-section-desc { font-size: 12px; color: var(--onb-muted); }
+
+/* ── 요청 요약 (시안 RequestSummary) ── */
+.onb-summary { border: 1px solid var(--onb-border); border-radius: var(--onb-radius-sm); overflow: hidden; background: var(--onb-surface); }
+.onb-summary-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 13px; }
+.onb-summary-row + .onb-summary-row { border-top: 1px solid var(--onb-border); }
+.onb-summary-row span { font-size: 12px; color: var(--onb-sub); flex-shrink: 0; }
+.onb-summary-row b { font-size: 12.5px; font-weight: 600; color: var(--onb-text); text-align: right; word-break: break-all; }
+
+/* ── 주소 복사 줄 (시안 승인 완료의 워크스페이스 주소) ── */
+.onb-copy {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-radius: var(--onb-radius-sm); border: 1px solid var(--onb-success-border); background: var(--onb-success-bg);
+}
+.onb-copy span { font-size: 14px; font-weight: 700; color: var(--onb-text); word-break: break-all; }
+
+/* ── 묶음 상자 — 일괄 지정 · 초대 한 줄 · 링크 표시 · CSV 한 줄 ── */
+.onb-box { padding: 10px 12px; border-radius: var(--onb-radius-sm); border: 1px solid var(--onb-border); background: var(--onb-surface); min-width: 0; }
+.onb-box.is-subtle { background: var(--onb-bg); }
+.onb-box.is-warning { border-color: var(--onb-warn-border); }
+.onb-box.is-error { background: var(--onb-error-bg); border-color: var(--onb-error-border); }
+.onb-box.is-compact { padding: 6px 10px; border-radius: 6px; }
+.onb-box-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.onb-box-grid.is-tight { gap: 6px; }
+.onb-box-grid > .is-full { grid-column: 1 / -1; }
+
+/* 탭 줄 — 탭 부품(Tabs)을 담는 줄. 줄 아래 선만 여기서 긋는다. */
+.onb-tabs-row { border-bottom: 1px solid var(--onb-border); margin-bottom: 20px; }
+
+/* ── 파일 올리는 곳 (시안 CSV 탭) ── */
+.onb-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 24px;
+  text-align: center; cursor: pointer; border-radius: var(--onb-radius);
+  border: 2px dashed var(--onb-border); background: var(--onb-bg); transition: all 0.2s;
+}
+.onb-drop.is-over { border-color: var(--onb-brand); background: var(--onb-brand-light); }
+.onb-drop-icon { display: flex; color: var(--onb-muted); }
+.onb-drop.is-over .onb-drop-icon { color: var(--onb-brand); }
+.onb-drop-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--onb-text); }
+.onb-drop-desc { margin: 0; font-size: 12px; color: var(--onb-muted); }
+.onb-drop-file { margin: 0; font-size: 12px; font-weight: 600; color: var(--onb-brand); }
+.onb-drop input { display: none; }
+
+/* ── 고르는 목록 — Slack 구성원 ── */
+.onb-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--onb-border); border-radius: var(--onb-radius-sm); background: var(--onb-surface); }
+.onb-check-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; }
+.onb-check-row + .onb-check-row { border-top: 1px solid var(--onb-border); }
+.onb-check-row.is-disabled { cursor: not-allowed; opacity: 0.55; }
+.onb-check-row input { accent-color: var(--onb-brand); }
+.onb-check-main { flex: 1; min-width: 0; }
+.onb-check-title { display: block; font-size: 13px; color: var(--onb-text); }
+.onb-check-title small { font-size: 11px; color: var(--onb-muted); margin-left: 6px; }
+.onb-check-sub { display: block; font-size: 11px; color: var(--onb-muted); overflow-wrap: anywhere; }
+.onb-check-note { font-size: 11px; color: var(--onb-warn); flex-shrink: 0; }
+
+/* ── 연동 카드 (시안 StepIntegrations) ── */
+.onb-integ {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-radius: var(--onb-radius-sm);
+  border: 1.5px solid var(--onb-border); background: var(--onb-surface); cursor: pointer; transition: all 0.2s;
+}
+.onb-integ:focus-visible { outline: 2px solid var(--onb-brand); outline-offset: 2px; }
+.onb-integ.is-connected { border-color: var(--onb-success-border); background: var(--onb-success-bg); }
+.onb-integ.is-disabled { cursor: default; opacity: 0.6; background: var(--onb-bg); }
+.onb-integ-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.onb-integ-name { margin: 0; font-size: 13px; font-weight: 700; color: var(--onb-text); letter-spacing: -0.02em; }
+.onb-integ-desc { margin: 0; font-size: 11px; color: var(--onb-muted); }
+.onb-integ-state { font-size: 11px; font-weight: 700; color: var(--onb-success); white-space: nowrap; }
+.onb-integ-state.is-soon { font-weight: 500; color: var(--onb-muted); }
+.onb-integ-action {
+  padding: 5px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 6px;
+  background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
+}
+/* 브랜드 로고 타일 — 흰 타일 + 가는 테두리 + 옅은 그림자 (연동 화면과 같은 규격) */
+.onb-brand-tile {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-quaternary, #fff); border: 1px solid var(--onb-border);
+  box-shadow: 0 1px 2px var(--colors-effects-shadows-shadowXs, rgba(10, 13, 18, 0.05));
+}
+
+/* ── 비밀번호 강도 막대 (시안 StepAccount) ── */
+.onb-strength { display: flex; gap: 4px; align-items: center; }
+.onb-strength i { flex: 1; height: 3px; border-radius: 2px; background: var(--onb-border); transition: background 0.2s; }
+.onb-strength.is-1 i:nth-child(-n + 1) { background: var(--onb-error); }
+.onb-strength.is-2 i:nth-child(-n + 2) { background: var(--onb-warn); }
+.onb-strength.is-3 i:nth-child(-n + 3) { background: var(--onb-brand); }
+.onb-strength.is-4 i:nth-child(-n + 4) { background: var(--onb-success); }
+
+/* ── 완료 (시안 StepComplete) ── */
+.onb-complete { position: relative; overflow: hidden; text-align: center; padding-top: 20px; }
+.onb-reveal { opacity: 0; transform: translateY(16px); transition: all 0.4s; }
+.onb-reveal.is-shown { opacity: 1; transform: translateY(0); }
+.onb-mark {
+  width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: var(--onb-success);
+  background: var(--onb-success-bg); border: 2px solid var(--onb-success-border);
+  opacity: 0; transform: scale(0.5); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+}
+.onb-mark.is-shown { opacity: 1; transform: scale(1); }
+.onb-summary-list { padding: 16px 20px; border-radius: 10px; background: var(--onb-bg); text-align: left; }
+.onb-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.onb-confetti i { position: absolute; top: -10px; border-radius: 2px; opacity: 0; animation-name: onb-confetti-fall; animation-timing-function: ease-out; animation-fill-mode: forwards; }
+@keyframes onb-confetti-fall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(300px) rotate(720deg); }
+}
+
+/* ── 여백 — 부품 자신의 margin 초기화보다 뒤에 둬야 이긴다 ── */
+.onb-mt-4 { margin-top: 4px; } .onb-mt-8 { margin-top: 8px; } .onb-mt-12 { margin-top: 12px; }
+.onb-mt-16 { margin-top: 16px; } .onb-mt-20 { margin-top: 20px; } .onb-mt-24 { margin-top: 24px; }
+.onb-mt-28 { margin-top: 28px; }
+.onb-mb-8 { margin-bottom: 8px; } .onb-mb-12 { margin-bottom: 12px; } .onb-mb-16 { margin-bottom: 16px; }
+.onb-mb-20 { margin-bottom: 20px; } .onb-mb-24 { margin-bottom: 24px; }
