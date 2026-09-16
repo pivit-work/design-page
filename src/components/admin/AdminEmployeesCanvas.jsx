@@ -2,7 +2,8 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
-import { narrowByParent } from './jobAxis.js';
+import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
+import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
@@ -189,6 +190,8 @@ const DEFAULT_LABELS = {
     },
   },
   panel: {
+    /* 직군 → 직렬 → 직무 3단 연동 안내·빈 목록 사유 (§3.5-A · PW-748) */
+    ...JOB_AXIS_DEFAULT_LABELS,
     basicInfo: '기본 정보',
     name: '이름',
     email: '업무 이메일',
@@ -2806,6 +2809,9 @@ function EmployeesEditPanel({
   rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
   countryOptions, buildingOptions, jobAxis, optionalFields,
   canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
+  /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
+     미주입이면 사유 글만 남고 버튼은 없다. */
+  onOpenFieldOptions,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
@@ -2835,6 +2841,12 @@ function EmployeesEditPanel({
    * 바로 위)에 남긴다. 기획서 §3.5-A 「해당 필드 하단 인라인 에러 · 패널을 닫지 않는다」.
    */
   const [saveError, setSaveError] = useState(null);
+  /**
+   * 직군·직렬·직무 연동 안내(§3.5-A · PW-748) — `applyJobAxisChange` 의 notice.
+   * 위 칸을 바꿔 아래 칸이 비워졌거나 위 칸이 자동으로 채워졌을 때 한 번 띄운다.
+   * 안내 없이 비우면 «고른 값이 왜 사라졌지» 가 되고, 안 비우면 저장에서야 거절된다.
+   */
+  const [axisNotice, setAxisNotice] = useState(null);
   /**
    * 사유를 띄운 뒤 그 자리로 스크롤한다(PW-727). [저장하기]는 패널 맨 아래에 있고 문제
    * 칸(직군 등)은 대개 한참 위라, 스크롤이 맨 위에 머물러 있으면 사유가 창 안에 있어도
@@ -2867,6 +2879,7 @@ function EmployeesEditPanel({
     setIdentityState(onLoadHrProfile ? 'loading' : 'idle');
     setDateError('');
     setSaveError(null);
+    setAxisNotice(null);
     /* 다음 사람을 열었을 때 이력 탭이 먼저 뜨면 「내가 뭘 누른 거지」가 된다. */
     setPanelTab('info');
     setHistoryState({ status: 'idle', page: null });
@@ -2949,6 +2962,18 @@ function EmployeesEditPanel({
     if (!f.narrowBy) return catalogs[f.catalog] || [];
     const [all, byParent] = narrowMaps[f.key] || [];
     return narrowByParent(all || [], byParent || {}, draft[f.narrowBy]);
+  };
+  /* 직군·직렬·직무 세 칸은 `JobAxisSelect` 가 그리고, 고른 결과는 세 칸을 한꺼번에 고친다
+     (§3.5-A · PW-748). 직렬 칸 키가 아직 `jobTitle` 이라 여기서 이름을 맞춘다. */
+  const AXIS_LEVEL_OF = { jobFamily: 'family', jobTitle: 'ladder', jobDuty: 'duty' };
+  const AXIS_KEY_OF = { family: 'jobFamily', ladder: 'jobTitle', duty: 'jobDuty' };
+  const axisValues = { family: draft.jobFamily || '', ladder: draft.jobTitle || '', duty: draft.jobDuty || '' };
+  const pickAxis = (level, value, group) => {
+    const { next, notice } = applyJobAxisChange(axis, axisValues, level, value, group);
+    const changed = Object.keys(next).filter((l) => next[l] !== axisValues[l]).map((l) => AXIS_KEY_OF[l]);
+    setDraft((d) => ({ ...d, jobFamily: next.family, jobTitle: next.ladder, jobDuty: next.duty }));
+    setSaveError((prev) => (prev && prev.fields.some((k) => changed.includes(k) || k === AXIS_KEY_OF[level]) ? null : prev));
+    setAxisNotice(notice);
   };
 
   // §3.2.1 재직상태 4종. `pending`(가입 대기)·`other`(마이그레이션 잔여)는 사람이 고르는
@@ -3107,11 +3132,26 @@ function EmployeesEditPanel({
                 <SectionLabel>{labels.panel[g.labelKey]}</SectionLabel>
                 <div className="admin-emp-field-group">
                   {shown.map((f) => {
-                    const opts = f.kind === 'select' ? optionsFor(f) : null;
+                    const opts = f.kind === 'select' && !AXIS_LEVEL_OF[f.key] ? optionsFor(f) : null;
+                    const axisLevel = AXIS_LEVEL_OF[f.key];
                     return (
                       <label className="admin-emp-field" key={f.key}>
                         <span className="admin-emp-field-label">{labels.panel[f.labelKey]}</span>
-                        {f.kind === 'select' && opts.length > 0 ? (
+                        {axisLevel ? (
+                          /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다 — 적어 넣은 값은
+                             저장에서 거절된다(PW-748). 사유 + [조직 설정 →] 를 그린다. */
+                          <JobAxisSelect
+                            level={axisLevel}
+                            values={axisValues}
+                            jobAxis={axis}
+                            labels={labels.panel}
+                            onPick={pickAxis}
+                            onOpenFieldOptions={onOpenFieldOptions}
+                            className="admin-emp-input"
+                            disabled={!canEdit}
+                            testId={`employees-panel-${f.key}`}
+                          />
+                        ) : f.kind === 'select' && opts.length > 0 ? (
                           <select
                             className="admin-emp-input"
                             value={draft[f.key] || ''}
@@ -3139,6 +3179,15 @@ function EmployeesEditPanel({
                           />
                         )}
                         {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
+                        {axisLevel && axisNotice && axisNotice.field === axisLevel && (
+                          <span
+                            className={`admin-emp-manager-note admin-emp-axis-notice${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
+                            role="status"
+                            data-testid="employees-panel-axis-notice"
+                          >
+                            {jobAxisNoticeText(axisNotice, labels.panel)}
+                          </span>
+                        )}
                         {saveError && saveError.fields.includes(f.key) && (
                           <span
                             className="admin-emp-status-date-note is-error"
@@ -3543,6 +3592,8 @@ export default function AdminEmployeesCanvas({
   // 직군 > 직렬 > 직무 3단 축 (PW-323). 편집 패널의 3단 연동 select 와 목록 필터가
   // 같은 축을 읽는다. 빠뜨리면 좁히기가 사라지고 자유 텍스트로 폴백한다.
   jobAxis,
+  /* 직군·직렬·직무에 고를 값이 없을 때 편집 창의 [조직 설정 →] 이 부른다 (§3.5-A · PW-748). */
+  onOpenFieldOptions,
   onSaveMembers,
   /* ⛔ `onDeleteMember` 폐기 (PW-576) — 행을 지우는 것은 폐기된 시트에만 있었다.
      목록 행의 파괴적 동작은 «비활성화»(`onDeactivateMember`) 하나다(§3.1 행 액션). */
@@ -3818,6 +3869,7 @@ export default function AdminEmployeesCanvas({
             countryOptions={countryOptions ?? EMPTY_ARRAY}
             buildingOptions={buildingOptions ?? EMPTY_ARRAY}
             jobAxis={jobAxis}
+            onOpenFieldOptions={onOpenFieldOptions}
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
             canViewSalary={canViewSalary}
             onLoadSalaryHistory={onLoadSalaryHistory}

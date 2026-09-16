@@ -1706,6 +1706,10 @@
   color: var(--text-tertiary);
 }
 .admin-emp-status-date-note.is-error { color: var(--colors-text-textErrorPrimary, #d92d20); }
+/* 직군 → 직렬 → 직무 3단 연동 (§3.5-A · PW-748) — 고를 값이 없을 때의 사유 + [조직 설정 →],
+   위 칸을 바꿔 아래 칸이 비워졌을 때의 안내. 기존 안내 글자 규격을 그대로 쓴다. */
+.admin-emp-axis-empty { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.admin-emp-axis-notice.is-warn { color: var(--colors-warning-700, #b54708); }
 .admin-emp-status-option {
   display: flex;
   align-items: center;

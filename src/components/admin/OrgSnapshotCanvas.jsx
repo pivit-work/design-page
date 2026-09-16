@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
+import JobAxisSelect from './JobAxisSelect.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -17,6 +19,8 @@ import { useState, useMemo, useRef, useCallback } from 'react';
  */
 
 const DEFAULT_LABELS = {
+  /* 직군 → 직렬 → 직무 3단 연동 안내·빈 목록 사유 (§3.5-A · PW-748) */
+  ...JOB_AXIS_DEFAULT_LABELS,
   views: {
     snapshot: '조직 스냅샷',
     single: '발령 단건',
@@ -600,8 +604,13 @@ function OrgSnapshotStatusView({
 /* ════════════════════════════════════════════════════════════
  * 2. 인사발령 단건
  * ════════════════════════════════════════════════════════════ */
+/** 발령 항목 키 ↔ 3단 축 단계. 직렬 항목 키는 `jobLadder` 다(대시보드가 넘기는 이름). */
+const AXIS_LEVEL_OF_FIELD = { jobFamily: 'family', jobLadder: 'ladder', jobDuty: 'duty' };
+const AXIS_FIELD_OF_LEVEL = { family: 'jobFamily', ladder: 'jobLadder', duty: 'jobDuty' };
+
 function AppointmentSingleView({
   members, fieldOptions, changeableFields, selectFieldKeys, appointmentTypes,
+  jobAxis, onOpenFieldOptions,
   labels, onSubmit, defaultDate = '',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -614,6 +623,40 @@ function AppointmentSingleView({
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  /** 3단 연동 안내 — `applyJobAxisChange` 의 notice (PW-748) */
+  const [axisNotice, setAxisNotice] = useState(null);
+
+  /**
+   * 세 칸의 «발령 뒤» 값 — 체크한 항목은 고른 값, 안 체크한 항목은 그 사람의 지금 값.
+   * 직렬만 바꾸는 발령이면 그 사람의 지금 직군으로 좁히고, 지금 직무가 새 직렬에 안
+   * 맞는지도 이 값으로 본다(PW-748). 체크만 하고 아직 안 고른 칸은 빈 값이다.
+   */
+  const axisValues = {};
+  for (const level of ['family', 'ladder', 'duty']) {
+    const f = AXIS_FIELD_OF_LEVEL[level];
+    axisValues[level] = selectedFields.has(f)
+      ? (changes[f] ?? '')
+      : (selectedMember?.fieldValues?.[f] ?? '');
+  }
+  const pickAxis = (level, value, group) => {
+    const { next, notice } = applyJobAxisChange(jobAxis, axisValues, level, value, group);
+    // 바뀌는 칸은 «변경 후» 에 싣고, 체크 안 된 칸이면 항목을 함께 체크한다 — 직렬만 바꿨는데
+    // 지금 직무가 새 직렬에 없으면 직무를 비우는 것까지 이 발령에 들어가야 저장된다.
+    const touched = ['family', 'ladder', 'duty'].filter(
+      (l) => l === level || next[l] !== axisValues[l],
+    );
+    setChanges((p) => {
+      const out = { ...p };
+      for (const l of touched) out[AXIS_FIELD_OF_LEVEL[l]] = next[l];
+      return out;
+    });
+    setSelectedFields((prev) => {
+      const out = new Set(prev);
+      for (const l of touched) out.add(AXIS_FIELD_OF_LEVEL[l]);
+      return out;
+    });
+    setAxisNotice(notice);
+  };
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return members;
@@ -631,7 +674,7 @@ function AppointmentSingleView({
   const reset = () => {
     setSelectedMember(null); setSelectedFields(new Set());
     setAppointmentType(''); setAppointmentDate(defaultDate); setReason('');
-    setChanges({}); setDone(false); setSubmitError('');
+    setChanges({}); setDone(false); setSubmitError(''); setAxisNotice(null);
   };
 
   const handleConfirm = async () => {
@@ -687,7 +730,7 @@ function AppointmentSingleView({
                 key={m.id}
                 type="button"
                 className={`admin-snap-target-item${selectedMember?.id === m.id ? ' is-selected' : ''}`}
-                onClick={() => setSelectedMember(m)}
+                onClick={() => { setSelectedMember(m); setAxisNotice(null); }}
               >
                 <div>
                   <div className="admin-snap-target-name">{m.name}</div>
@@ -748,6 +791,7 @@ function AppointmentSingleView({
                 <tbody>
                   {Array.from(selectedFields).map((f) => {
                     const opts = fieldOptions[f] ?? [];
+                    const axisLevel = jobAxis ? AXIS_LEVEL_OF_FIELD[f] : null;
                     const useSelect = selectFieldKeys.includes(f) && opts.length > 0;
                     return (
                       <tr key={f}>
@@ -755,7 +799,32 @@ function AppointmentSingleView({
                         <td className="admin-snap-ba-before">{selectedMember.fieldValues?.[f] || '—'}</td>
                         <td className="admin-snap-ba-arrow">→</td>
                         <td>
-                          {useSelect ? (
+                          {axisLevel ? (
+                            /* §3.5-A — 위 칸으로 좁히고, 고를 값이 없으면 자유 입력 대신 사유 +
+                               [조직 설정 →]. 적어 넣은 값은 발령 확정에서 거절된다(PW-748). */
+                            <>
+                              <JobAxisSelect
+                                level={axisLevel}
+                                values={axisValues}
+                                jobAxis={jobAxis}
+                                labels={labels}
+                                placeholder={labels.selectPlaceholder}
+                                onPick={pickAxis}
+                                onOpenFieldOptions={onOpenFieldOptions}
+                                className="admin-snap-select"
+                                testId={`appointment-single-${f}`}
+                              />
+                              {axisNotice && axisNotice.field === axisLevel && (
+                                <div
+                                  className={`admin-snap-aff-msg${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
+                                  role="status"
+                                  data-testid="appointment-single-axis-notice"
+                                >
+                                  {jobAxisNoticeText(axisNotice, labels)}
+                                </div>
+                              )}
+                            </>
+                          ) : useSelect ? (
                             <select
                               className="admin-snap-select"
                               value={changes[f] ?? ''}
@@ -1575,6 +1644,14 @@ export default function OrgSnapshotCanvas({
   bulkFields = [],
   selectFieldKeys = [],
   appointmentTypes = [],
+  /**
+   * 직군 > 직렬 > 직무 3단 축 `{ families, ladders, duties, laddersByFamily, dutiesByLadder }`
+   * (PW-748). 발령 단건의 「변경 후」 세 칸이 이것으로 좁혀지고 서로 연동한다
+   * (org-snapshot-spec §2 → admin-spec §3.5-A). 미주입이면 종전처럼 평면 목록이다.
+   */
+  jobAxis,
+  /** 세 칸에 고를 값이 없을 때 [조직 설정 →] 이 부른다. 미주입이면 버튼 없이 사유만 */
+  onOpenFieldOptions,
   onSubmitSingle,
   onSubmitBulk,
   /**
@@ -1659,6 +1736,8 @@ export default function OrgSnapshotCanvas({
               changeableFields={changeableFields}
               selectFieldKeys={selectFieldKeys}
               appointmentTypes={appointmentTypes}
+              jobAxis={jobAxis}
+              onOpenFieldOptions={onOpenFieldOptions}
               labels={labels}
               onSubmit={onSubmitSingle}
               defaultDate={today}
