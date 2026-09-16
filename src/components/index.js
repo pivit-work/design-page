@@ -220,6 +220,9 @@ export {
 // 내 설정
 export { MySettingsCanvas } from './settings/index.js';
 
+// Notifications (알림 센터)
+export { NotificationCenterCanvas } from './notifications/index.js';
+
 // 내 프로필 (읽기 전용 표출, `/me`)
 export { MyProfileCanvas } from './myprofile/index.js';
 
