@@ -66,7 +66,9 @@ const DEFAULT_LABELS = {
   manageMembers: '구성원 관리 →',
 
   nextBillingLabel: '다음 청구',
-  nextBillingSub: (date, seats, price) => `${date} · ${seats}좌석 × ${won(price)}`,
+  // 연간은 다음 갱신 때 1년분이 나간다 — 금액이 1년분이니 줄도 개월 수를 말한다 (PW-757).
+  nextBillingSub: (date, seats, price, months = 1) =>
+    `${date} · ${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
   methodLabel: '기본 결제수단',
   methodDisplay: (brand, last4) => `${brand} ···· ${last4}`,
   methodExp: (exp) => `유효기간 ${exp}`,
@@ -165,7 +167,11 @@ export default function BillingOverviewCanvas({
     planCode: 'free', status: 'free', seats: 0, cancelAtPeriodEnd: false,
     interval: 'monthly', nextBillingAt: null, periodAmount: 0, method: null,
   },
-  plan = { label: '', seatPrice: 0, seatLimit: null },
+  /**
+   * `seatPriceAnnual` 은 연간 할인 단가(월 환산)다. 연간 구독이면 좌석 단가를 이 값으로
+   * 말한다 — 정가 월 단가를 보이면 실제 청구 단가와 다르다 (PW-757).
+   */
+  plan = { label: '', seatPrice: 0, seatPriceAnnual: null, seatLimit: null },
   upgradeTargetLabel = null,
   refundQuote = { eligible: false, reason: 'none' },
   canEdit = false,
@@ -195,6 +201,10 @@ export default function BillingOverviewCanvas({
   const quote = refundQuote;
   const statusMeta = STATUS_META[sub.status] || STATUS_META.free;
   const statusLabel = labels.statusLabels[sub.status] || labels.statusLabels.free;
+  // 이 구독이 실제로 내는 좌석당 월 단가 — 연간이면 연간 할인 단가 (PW-757).
+  const planUnitPrice = sub.interval === 'annual' && plan.seatPriceAnnual != null
+    ? plan.seatPriceAnnual
+    : plan.seatPrice;
   const seatPct = plan.seatLimit
     ? Math.min(100, Math.round((sub.seats / plan.seatLimit) * 100))
     : null;
@@ -275,7 +285,7 @@ export default function BillingOverviewCanvas({
                     협의 계약이면 계약 단가를 보여 준다. */}
                 {sub.planCode === 'free'
                   ? labels.freeSeatPrice(plan.seatLimit)
-                  : labels.paidSeatPrice(contract ? contract.seatPrice : plan.seatPrice)}
+                  : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -408,7 +418,8 @@ export default function BillingOverviewCanvas({
                 {labels.nextBillingSub(
                   sub.nextBillingAt,
                   contract ? contract.billedSeats : sub.seats,
-                  contract ? contract.seatPrice : plan.seatPrice,
+                  contract ? contract.seatPrice : planUnitPrice,
+                  sub.interval === 'annual' ? 12 : 1,
                 )}
               </div>
             </Card>

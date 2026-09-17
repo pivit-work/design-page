@@ -76,9 +76,12 @@ const DEFAULT_LABELS = {
   estimateTitle: '예상 청구액',
   estimateTitleUpgrade: (label) => `${label} 업그레이드 시 예상 청구액`,
   estimateSubnote: (seats) => `(선택 ${seats}명 기준 미리보기 · 실제 청구는 재직 좌석 · 확정 단가)`,
-  estimateLineItem: (seats, unit) => `${seats}좌석 × ${won(unit)} / 좌석 / 월`,
+  estimateLineItem: (seats, unit, months = 1) =>
+    `${seats}좌석 × ${won(unit)} / 좌석 / 월${months > 1 ? ` × ${months}개월` : ''}`,
   vatLabel: '부가세 (10%)',
   monthlyTotalLabel: '월 예상 합계',
+  // 연간은 1년분을 선결제한다 — 합계도 1년분이다 (PW-757, 결제하기 화면 합계와 같은 금액).
+  annualTotalLabel: '1년분 예상 합계',
   annualEstimateNote: '연간 체감 단가 적용 기준 — 연 35% 할인(확정)',
   estimateFootnote: '* 표시 금액은 현재 좌석 기준 예상치입니다. 실제 청구 금액은 청구일 서버 재계산값이 적용됩니다.',
   proCardTitle: 'Pro · Enterprise — 커스텀 견적',
@@ -525,7 +528,9 @@ export default function BillingPlansCanvas({
   const unitPrice = interval === 'annual' && billingPlan?.seatPriceAnnual != null
     ? billingPlan.seatPriceAnnual
     : (billingPlan?.seatPrice ?? 0);
-  const subtotal = seats * unitPrice;
+  // 한 주기분 — 월간 1개월, 연간 12개월 (spec-billing.md §2.3 선결제 원칙, PW-757).
+  const periodMonths = interval === 'annual' ? 12 : 1;
+  const subtotal = seats * unitPrice * periodMonths;
   const vat = Math.round(subtotal * vatRate);
   const total = subtotal + vat;
 
@@ -803,7 +808,7 @@ export default function BillingPlansCanvas({
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              <span>{labels.estimateLineItem(seats, unitPrice)}</span>
+              <span>{labels.estimateLineItem(seats, unitPrice, periodMonths)}</span>
               <span style={{ color: T.text, fontWeight: 600 }}>{won(subtotal)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 8 }}>
@@ -812,7 +817,7 @@ export default function BillingPlansCanvas({
             </div>
             <Divider />
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 800 }}>
-              <span>{labels.monthlyTotalLabel}</span>
+              <span>{periodMonths > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel}</span>
               <span>{won(total)}</span>
             </div>
             {interval === 'annual' && (
