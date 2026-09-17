@@ -5,7 +5,8 @@ import Icon from '../shared/Icon.jsx';
  * OkrSetupWizardModal — OKR 설정 마법사 (Backward Looking).
  *
  * 시안 pivit-specs okr-setup-wizard.jsx 를 정본에 포팅.
- * 단계: ① 미래 구술 → ② AI KR 추출·검토 → ③ AI Objective 역도출 → ④ 정합성 확인(조직 단위) → 저장.
+ * 단계: ① 미래 구술 → ② AI Objective 도출·확인 → ③ AI KR 추출·검토 → ④ 정합성 확인(조직 단위) → 저장.
+ * (정책서 v2.1 · PW-734 — 구술에서 Objective 를 먼저 확정하고, 그 문장을 재료로 KR 을 뽑는다.)
  *
  * 🔴 단위는 마법사 안에서 고르지 않는다 — **연 화면이 단위다** (정책서
  * screen-okr-setup-wizard §2A · 시안 okr-app.jsx `ScopeContext`/`BlockedBody`).
@@ -16,8 +17,8 @@ import Icon from '../shared/Icon.jsx';
  *  - showAlignment — 정합성 단계를 그릴지. 개인 단위·구성원은 3단계다(§2 · §7).
  *
  * AI/저장은 소비자 콜백으로 배선한다 — 전부 고른 대상 조직(targetId)을 함께 받는다:
- *  - onExtractKrs(scope, narrative, targetId) → Promise<{ keyResults: [{title,type,targetValue,unit}] }>
- *  - onDeriveObjective(scope, krs, targetId) → Promise<{ objective: { title } }>
+ *  - onDeriveObjective(scope, narrative, targetId) → Promise<{ objective: { title } }>
+ *  - onExtractKrs(scope, narrative, objective, targetId) → Promise<{ keyResults: [{title,type,targetValue,unit}] }>
  *  - onFetchAlignment(scope, targetId) → Promise<{ members }>
  *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성
  */
@@ -35,10 +36,11 @@ const NARRATIVE_PLACEHOLDER = {
 
 const NARRATIVE_MAX = 2000;
 
+// 순서는 정책서 v2.1 §1 — 미래 구술 → Objective → KR 추출 (PW-734).
 const BASE_STEPS = [
-  { key: 'narrative', label: '미래구슬', desc: '12/31 모습' },
-  { key: 'krs', label: 'KR 추출', desc: '측정 결과' },
+  { key: 'narrative', label: '미래 구술', desc: '12/31 모습' },
   { key: 'objective', label: 'Objective', desc: '한 문장 도출' },
+  { key: 'krs', label: 'KR 추출', desc: '측정 결과' },
 ];
 const ALIGNMENT_STEP = { key: 'alignment', label: '정합성 확인', desc: '팀장' };
 
@@ -120,7 +122,8 @@ export default function OkrSetupWizardModal({
   const genKrs = async () => {
     setKrsLoading(true); setError(null);
     try {
-      const res = await onExtractKrs?.(scope, narrative, targetId);
+      // KR 은 확정 Objective 를 재는 것이다 — 구술과 함께 싣는다(§6 · PW-734).
+      const res = await onExtractKrs?.(scope, narrative, objective.trim(), targetId);
       const list = (res?.keyResults ?? []).map((k) => ({
         id: nextId(), title: k.title, type: k.type ?? 'number',
         target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '',
@@ -131,13 +134,22 @@ export default function OkrSetupWizardModal({
     } finally { setKrsLoading(false); }
   };
 
+  // Objective 가 바뀌면 미확인으로 되돌린다. 이미 뽑은 KR 은 남기되 옛 Objective 를
+  // 기준으로 확인한 것이므로 함께 미확인으로 되돌린다(정책서 §8 · PW-734).
+  const changeObjective = (text) => {
+    setObjective(text);
+    setObjConfirmed(false);
+    setKrsConfirmed(false);
+  };
+
   const genObjective = async () => {
     setObjLoading(true); setError(null);
     try {
-      const res = await onDeriveObjective?.(scope, krs.map((k) => ({ title: k.title, targetValue: Number(k.target) || 0, unit: k.unit })), targetId);
-      setObjective(res?.objective?.title ?? ''); setObjConfirmed(false);
+      // 이 시점엔 KR 이 없다 — 재료는 구술뿐이다(§6 · PW-734).
+      const res = await onDeriveObjective?.(scope, narrative, targetId);
+      changeObjective(res?.objective?.title ?? '');
     } catch {
-      setError('Objective 역도출에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setError('Objective 작성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setObjLoading(false); }
   };
 
@@ -154,8 +166,8 @@ export default function OkrSetupWizardModal({
   const nextHint =
     canNext ? ''
       : stepKey === 'narrative' ? `미래 모습을 ${Math.max(0, 30 - narrative.trim().length)}자 더 입력하세요 (최소 30자)`
-        : stepKey === 'krs' ? (krs.length === 0 ? 'AI로 KR 초안을 생성하세요' : 'KR 초안을 확인(✓)해야 진행됩니다')
-          : (!objective ? 'AI로 Objective 초안을 생성하세요' : 'Objective 초안을 확인(✓)해야 진행됩니다');
+        : stepKey === 'objective' ? (!objective.trim() ? 'AI로 Objective 초안을 생성하세요' : 'Objective 초안을 확인(✓)해야 다음으로 진행됩니다')
+          : (krs.length === 0 ? 'AI로 KR 초안을 생성하세요' : 'KR 초안을 확인(✓)해야 다음으로 진행됩니다');
 
   const isLast = step === steps.length;
 
@@ -231,7 +243,7 @@ export default function OkrSetupWizardModal({
                 <div className="okr-wz-section">
                   <p className="okr-wz-step-eyebrow">STEP1 - Backward Looking</p>
                   <p className="okr-wz-question">12월 31일, 어떤 모습이 되어 있을까요?</p>
-                  <p className="okr-wz-desc">숫자·고객·팀·매출 무엇이든 좋아요. 12월의 자신을 인터뷰한다고 생각하고 과거형으로 적어주세요. AI가 이 구술에서 KR 후보를 자동 추출합니다.</p>
+                  <p className="okr-wz-desc">숫자·고객·팀·매출 무엇이든 좋아요. 12월의 자신을 인터뷰한다고 생각하고 과거형으로 적어주세요. 이 문장이 KR 초안과 Objective 요약의 재료가 됩니다.</p>
                 </div>
                 {/* 단위 고정 카드 — 구 3택 자리. 클릭 대상이 아니다(§2A.3). */}
                 <div className="okr-wz-scope-fixed" data-testid="okr-wz-scope-fixed">
@@ -289,18 +301,58 @@ export default function OkrSetupWizardModal({
             </>
           )}
 
-          {step === 2 && (
+          {stepKey === 'objective' && (
             <div className="okr-wz-section">
               <div className="okr-wz-head">
                 <div>
-                  <p className="okr-wz-step-eyebrow">STEP2 - KR 우선주의</p>
-                  <p className="okr-wz-question">구술에서 측정 가능한 결과를 뽑아냅니다</p>
+                  <p className="okr-wz-step-eyebrow">STEP2 - Objective</p>
+                  <p className="okr-wz-question">구술을 한 문장 Objective로 정리합니다</p>
+                </div>
+                {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
+              </div>
+              <div className={`okr-wz-draft${objConfirmed ? ' is-confirmed' : ''}`}>
+                <div className="okr-wz-draft-head">
+                  <span className="okr-wz-badge">
+                    {objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력'}
+                  </span>
+                  {!objConfirmed && objective.trim() && (
+                    <button className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</button>
+                  )}
+                </div>
+                <textarea
+                  className="okr-textarea"
+                  value={objective}
+                  rows={2}
+                  aria-label="Objective"
+                  placeholder="Objective 를 직접 입력하거나 위 버튼으로 AI 생성하세요."
+                  onChange={(e) => changeObjective(e.target.value)}
+                />
+              </div>
+              {/* 근거가 된 미래 구술 — 이 문장에서 Objective 를 뽑았다는 근거(§3-2 · PW-734). */}
+              <div className="okr-wz-source" data-testid="okr-wz-narrative-source">
+                <p className="okr-wz-source-title">근거가 된 미래 구술</p>
+                <p className="okr-wz-source-body">{narrative.trim() || '(구술 미입력)'}</p>
+              </div>
+            </div>
+          )}
+
+          {stepKey === 'krs' && (
+            <div className="okr-wz-section">
+              <div className="okr-wz-head">
+                <div>
+                  <p className="okr-wz-step-eyebrow">STEP3 - Key Results</p>
+                  <p className="okr-wz-question">Objective를 무엇으로 측정할지 정합니다</p>
                 </div>
                 {aiBtn(krs.length ? 'AI로 다시 추출' : 'AI로 KR 추출', genKrs, krsLoading)}
               </div>
+              {/* 확정 Objective — KR 이 무엇을 재는지 늘 보이게 둔다(§3-3 · PW-734). */}
+              <div className="okr-wz-objective-banner" data-testid="okr-wz-objective-banner">
+                <span className="okr-wz-objective-banner-tag">OBJECTIVE</span>
+                <span className="okr-wz-objective-banner-text">{objective.trim() || '(Objective 미확정)'}</span>
+              </div>
               {krs.length === 0 && !krsLoading && (
                 <div className="okr-wz-empty">
-                  <p>위 버튼을 눌러 AI 추천 KR 을 받아보세요. 구술이 길수록 정확해집니다.</p>
+                  <p>위 버튼을 눌러 AI 추천 KR 을 받아보세요. Objective 가 구체적일수록 더 정확한 KR 이 추출됩니다.</p>
                   <button className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</button>
                 </div>
               )}
@@ -331,46 +383,6 @@ export default function OkrSetupWizardModal({
                   <button className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</button>
                 </div>
               )}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="okr-wz-section">
-              <div className="okr-wz-head">
-                <div>
-                  <p className="okr-wz-step-eyebrow">STEP3 - Objective 역도출</p>
-                  <p className="okr-wz-question">확인된 KR 로 Objective 를 한 문장으로 정리합니다</p>
-                </div>
-                {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
-              </div>
-              <div className={`okr-wz-draft${objConfirmed ? ' is-confirmed' : ''}`}>
-                <div className="okr-wz-draft-head">
-                  <span className="okr-wz-badge">
-                    {objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력'}
-                  </span>
-                  {!objConfirmed && objective.trim() && (
-                    <button className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</button>
-                  )}
-                </div>
-                <textarea
-                  className="okr-textarea"
-                  value={objective}
-                  rows={2}
-                  aria-label="Objective"
-                  placeholder="Objective 를 직접 입력하거나 위 버튼으로 AI 생성하세요."
-                  onChange={(e) => { setObjective(e.target.value); setObjConfirmed(false); }}
-                />
-              </div>
-              <div className="okr-wz-krpreview">
-                <p className="okr-wz-krpreview-title">연결되는 KR ({krs.length}개)</p>
-                {krs.map((k, i) => (
-                  <div className="okr-wz-krpreview-row" key={k.id}>
-                    <span className="okr-wz-krno">KR {i + 1}</span>
-                    <span className="okr-wz-krpreview-name">{k.title || '(지표명 미입력)'}</span>
-                    <span className="okr-wz-krpreview-val">{k.current} → {k.target} {k.unit}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 

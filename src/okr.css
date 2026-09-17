@@ -628,6 +628,12 @@
 .okr-wz-krcell { padding: 6px 8px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; min-width: 0; }
 .okr-wz-krcell.is-num, .okr-wz-krcell.is-unit { text-align: center; }
 .okr-wz-addkr { width: 100%; padding: 8px; margin-top: 4px; border: 1px dashed var(--border-secondary); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.okr-wz-source { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
+.okr-wz-source-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
+.okr-wz-source-body { margin: 0; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 12px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.okr-wz-objective-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
+.okr-wz-objective-banner-tag { flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--utility-success-700); }
+.okr-wz-objective-banner-text { font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
 .okr-wz-krpreview { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
 .okr-wz-krpreview-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
 .okr-wz-krpreview-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 4px; font-size: 12px; color: var(--text-primary); }
