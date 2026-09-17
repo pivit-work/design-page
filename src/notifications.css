@@ -1,163 +1,166 @@
 /* ══════════════════════════════════════════════════════════
-   알림 센터 (NotificationCenterCanvas)
-   시안: pivit-specs K. 내-설정/settings-app.jsx 의 NotificationCenterViewScreen
-   prefix: ncc-
+   알림 센터 (NotificationCenterCanvas) — prefix: ncc-
+   무엇을 보여 주나: pivit-specs K. 내-설정/settings-app.jsx 의 NotificationCenterViewScreen
+   생김새: 스니핏 히스토리(snippet.css)와 같은 화면 문법 — 머리 카드 · 공용 탭(SegmentedControl) ·
+   목록 줄 · 버튼 치수를 그쪽에 맞춘다 (PW-765 2차). 색은 index.css 의 짧은 이름만 쓴다.
    ══════════════════════════════════════════════════════════ */
 
-.ncc-canvas {
-  font-family: var(--font-family-body);
-  color: var(--text-primary);
+/* 청록(스니핏 분류) — 짧은 이름이 없어 teal 팔레트를 여기서 이름 붙인다.
+   teal 팔레트는 어두운 화면에서도 값이 같아서, 다른 분류(utility-*)처럼 어두운 화면 값을 따로 준다. */
+.ncc-page {
+  display: flex;
+  flex-direction: column;
+  --ncc-teal-50: var(--colors-teal-50);
+  --ncc-teal-200: var(--colors-teal-200);
+  --ncc-teal-600: var(--colors-teal-600);
+}
+[data-theme="dark"] .ncc-page {
+  --ncc-teal-50: var(--colors-teal-950);
+  --ncc-teal-200: var(--colors-teal-800);
+  --ncc-teal-600: var(--colors-teal-400);
 }
 
-.ncc-wrap {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 28px 20px 80px;
-}
-
-/* ── 헤더 ─────────────────────────────────────────────── */
-.ncc-head {
+/* ── 머리 카드 — .snippet-header 와 같은 치수 ─────────────── */
+.ncc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 20px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: var(--bg-primary);
+  flex-shrink: 0;
 }
-
-.ncc-head-title {
+.ncc-title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
-
 .ncc-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--colors-text-textPrimary);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 38px;
+  color: var(--text-primary);
+}
+.ncc-count {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.ncc-count {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 7px;
+/* ── 버튼 — .snippet-empty-btn / .snippet-date-btn 과 같은 모양 ── */
+.ncc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--alpha-black-3);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+.ncc-btn:hover {
+  background: var(--alpha-black-5);
+}
+.ncc-btn:disabled {
+  background: var(--alpha-black-3);
+  color: var(--text-disabled);
+  cursor: default;
+}
+.ncc-btn-sm {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* ── 본문 — .snippet-body 와 같은 여백·스크롤 ─────────────── */
+.ncc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 18px 0 12px 6px;
+  padding: 6px 28px 0 6px;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+.ncc-filter-row {
+  display: flex;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+/* 탭 라벨 안의 안 읽은 수 */
+.ncc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.ncc-tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: var(--radius-full);
   background: var(--bg-brand-solid);
   color: var(--text-white);
   font-size: 11px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ncc-markall {
-  padding: 7px 14px;
-  border-radius: 9px;
-  border: 1px solid var(--colors-border-borderSecondary);
-  background: var(--colors-background-bgQuaternary, #fff);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.ncc-markall:disabled {
-  background: var(--colors-background-bgPrimary);
-  color: var(--text-tertiary);
-  cursor: default;
-}
-
-/* ── 분류 탭 ──────────────────────────────────────────── */
-.ncc-filters {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-  padding: 5px;
-  background: var(--colors-background-bgQuaternary, #fff);
-  border: 1px solid var(--colors-border-borderSecondary);
-  border-radius: var(--radius-lg);
-  overflow-x: auto;
-}
-
-.ncc-filter {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.ncc-filter.is-active {
-  background: var(--bg-brand-solid);
-  color: var(--text-white);
   font-weight: 700;
-}
-
-.ncc-filter-count {
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--radius-full);
-  background: var(--utility-blue-600);
-  color: var(--text-white);
-  font-size: 9px;
-  font-weight: 800;
+  line-height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.ncc-filter.is-active .ncc-filter-count {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* ── 알림 목록 카드 ───────────────────────────────────── */
+/* ── 목록 줄 — .snippet-row 와 같은 모양 ──────────────────── */
 .ncc-list {
-  margin-bottom: 16px;
-  background: var(--colors-background-bgQuaternary, #fff);
-  border: 1px solid var(--colors-border-borderSecondary);
-  border-radius: var(--radius-2xl);
-  overflow: hidden;
-}
-
-.ncc-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 18px;
-  background: var(--colors-background-bgQuaternary, #fff);
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.ncc-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 90px;
+  padding: 16px 20px;
+  border-radius: 6px;
+  background: var(--bg-quaternary);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background-color 0.15s ease;
 }
-
-.ncc-item:last-child {
-  border-bottom: none;
+.ncc-row:hover {
+  background: var(--bg-secondary);
 }
-
-.ncc-item:hover {
-  background: var(--colors-background-bgPrimary);
-}
-
-.ncc-item.is-unread {
-  background: var(--utility-blue-50);
-}
-
-.ncc-item:focus-visible {
-  outline: 2px solid var(--colors-border-borderBrand);
+.ncc-row:focus-visible {
+  outline: 2px solid var(--fg-brand-primary);
   outline-offset: -2px;
+}
+/* 안 읽음 — 강조(brand) 색 틴트 */
+.ncc-row.is-unread,
+.ncc-row.is-unread:hover {
+  background: var(--utility-brand-50);
 }
 
 /* 분류 아이콘 — 색은 감싸는 요소의 color 로 준다 */
@@ -165,204 +168,147 @@
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
   border: 1px solid;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-
 .ncc-cat-eval {
-  color: var(--componentColors-utility-orange-utilityOrange600);
-  background: var(--componentColors-utility-orange-utilityOrange50);
-  border-color: var(--componentColors-utility-orange-utilityOrange200);
+  color: var(--utility-orange-600);
+  background: var(--utility-orange-50);
+  border-color: var(--utility-orange-200);
 }
-
 .ncc-cat-feedback {
-  color: var(--componentColors-utility-purple-utilityPurple600);
-  background: var(--componentColors-utility-purple-utilityPurple50);
-  border-color: var(--componentColors-utility-purple-utilityPurple200);
+  color: var(--utility-purple-600);
+  background: var(--utility-purple-50);
+  border-color: var(--utility-purple-200);
 }
-
 .ncc-cat-oneonone {
-  color: var(--componentColors-utility-green-utilityGreen600);
-  background: var(--componentColors-utility-green-utilityGreen50);
-  border-color: var(--componentColors-utility-green-utilityGreen200);
+  color: var(--utility-green-600);
+  background: var(--utility-green-50);
+  border-color: var(--utility-green-200);
 }
-
 .ncc-cat-okr {
-  color: var(--componentColors-utility-blue-utilityBlue600);
-  background: var(--componentColors-utility-blue-utilityBlue50);
-  border-color: var(--componentColors-utility-blue-utilityBlue200);
+  color: var(--utility-blue-600);
+  background: var(--utility-blue-50);
+  border-color: var(--utility-blue-200);
 }
-
-/* 청록 — 디자인 토큰에 teal 계열이 없어 시안 값을 그대로 쓴다 */
 .ncc-cat-snippet {
-  color: #0d9488;
-  background: #f0fdfa;
-  border-color: #99f6e4;
+  color: var(--ncc-teal-600);
+  background: var(--ncc-teal-50);
+  border-color: var(--ncc-teal-200);
 }
-
 .ncc-cat-system {
-  color: var(--componentColors-utility-gray-utilityGray600);
-  background: var(--componentColors-utility-gray-utilityGray50);
-  border-color: var(--componentColors-utility-gray-utilityGray200);
+  color: var(--utility-gray-600);
+  background: var(--utility-gray-50);
+  border-color: var(--utility-gray-200);
 }
 
-.ncc-item-main {
+.ncc-row-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-
-.ncc-item-title {
-  margin-bottom: 3px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--colors-text-textPrimary);
+.ncc-row-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.ncc-item.is-unread .ncc-item-title {
+.ncc-row.is-unread .ncc-row-title {
   font-weight: 700;
 }
-
-.ncc-item-body {
-  margin-bottom: 5px;
-  font-size: 12px;
-  line-height: 1.6;
+.ncc-row-body {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
   color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
-
-.ncc-item-time {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.ncc-item-side {
+.ncc-row-side {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  padding-top: 2px;
 }
-
+.ncc-row-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
 .ncc-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: var(--utility-blue-600);
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-solid);
 }
 
-.ncc-action {
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--colors-border-borderSecondary);
-  background: var(--colors-background-bgQuaternary, #fff);
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  opacity: 0.85;
-  transition: all 0.12s;
-}
-
-.ncc-item:hover .ncc-action {
-  opacity: 1;
-}
-
-/* ── 빈 상태 ──────────────────────────────────────────── */
+/* ── 빈 상태 — .snippet-empty 와 같은 모양 ────────────────── */
 .ncc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  padding: 0 10px;
+}
+.ncc-empty-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 16px;
-  padding: 60px 24px;
+  padding: 80px 0;
+  width: 660px;
+  max-width: 100%;
   text-align: center;
 }
-
-.ncc-empty-art {
-  position: relative;
-  width: 72px;
-  height: 72px;
-}
-
-.ncc-empty-ring {
-  position: absolute;
-  border-radius: 50%;
-}
-
-.ncc-empty-ring-1 {
-  inset: 0;
-  background: var(--componentColors-utility-brand-utilityBrand50);
-  opacity: 0.5;
-}
-
-.ncc-empty-ring-2 {
-  inset: 10px;
-  background: var(--componentColors-utility-brand-utilityBrand200);
-  opacity: 0.4;
-}
-
-.ncc-empty-ring-3 {
-  inset: 20px;
-  background: var(--bg-brand-solid);
-  opacity: 0.2;
-}
-
 .ncc-empty-bell {
-  position: absolute;
-  inset: 0;
-  display: flex;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--utility-brand-50);
+  color: var(--text-brand-secondary);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-brand-secondary);
 }
-
 .ncc-empty-title {
-  margin-bottom: -10px;
-  font-size: 15px;
+  margin: 0;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--colors-text-textPrimary);
+  line-height: 28px;
+  color: var(--text-secondary);
 }
-
-.ncc-empty-body {
-  max-width: 320px;
-  font-size: 12px;
-  line-height: 1.7;
+.ncc-empty-desc {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
   color: var(--text-tertiary);
   white-space: pre-line;
 }
 
-/* ── 알림 설정 버튼 ───────────────────────────────────── */
+/* ── 알림 설정 ────────────────────────────────────────────── */
 .ncc-foot {
   display: flex;
   justify-content: center;
-}
-
-.ncc-settings {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--colors-border-borderSecondary);
-  background: var(--colors-background-bgQuaternary, #fff);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.12s;
+  padding-bottom: 12px;
+  flex-shrink: 0;
 }
