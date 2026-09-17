@@ -74,12 +74,12 @@ export function isAccessible(currentTier, requiredTier) {
  * LockBadge — 메뉴/버튼 옆에 부착하는 작은 잠금 배지.
  * requiredTier: "starter" | "growth" | "pro" / size: "sm"(기본) | "md"
  */
-export function LockBadge({ requiredTier, size = 'sm', labels }) {
+export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
   const isSm = size === 'sm';
   const tierLabel = labels?.[requiredTier] ?? TIER_LABEL[requiredTier];
   return (
     <span
-      title={`${tierLabel} 플랜부터 제공`}
+      title={title ?? `${tierLabel} 플랜부터 제공`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -274,6 +274,22 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
       </button>
       <div style={{ fontSize: 11, color: T.muted }}>
         {labels?.footer ?? '업그레이드 후 즉시 활성화됩니다'}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * UpsellScreen — 잠긴 기능 화면을 통째로 대신하는 본문.
+ * 본문 칸(`.content-area`) 안 가운데 680px 폭에 UpsellCard 를 놓는다. 칸 없이 카드만
+ * 두면 고정 위쪽 바 아래로 깔려 위가 잘리고, 반투명 왼쪽 메뉴 뒤로 카드의 흰 배경이
+ * 비친다. props 는 UpsellCard 와 같다.
+ */
+export function UpsellScreen(props) {
+  return (
+    <div className="content-area">
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 16px' }}>
+        <UpsellCard {...props} />
       </div>
     </div>
   );

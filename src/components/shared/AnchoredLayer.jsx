@@ -30,10 +30,25 @@ export default function AnchoredLayer({
   anchorSelector,
   /** 앵커 요소를 직접 줄 때(셀렉터가 없을 때만 쓴다). */
   anchorEl,
+  /**
+   * 앵커 요소의 ref 객체. 잴 때마다 `.current` 를 읽는다 — 호스트가 렌더 중에 ref 를
+   * 읽지 않아도 되게 하는 자리다. `anchorEl` 보다 뒤, 셀렉터보다도 뒤에 본다.
+   */
+  anchorRef,
   /** 점 앵커(클릭 좌표) 등, 사각형을 직접 줄 때. 위 둘보다 우선한다. */
   anchorRect,
   align = 'left',
   gap = ANCHOR_GAP,
+  /**
+   * 높이 **상한**. 남은 화면 공간과 비교해 작은 쪽이 적용된다 — `style.maxHeight` 로
+   * 주면 뷰포트 클램프를 덮어써 화면이 낮을 때 패널이 밖으로 나가므로 이 prop 으로 준다.
+   */
+  maxHeight: cap,
+  /** 고정 폭. 주면 실측 폭 대신 이 값으로 배치한다. */
+  width,
+  minWidth,
+  /** 패널 폭을 앵커 폭 이상으로 맞춘다(트리거와 같은 너비의 드롭다운). */
+  matchAnchorWidth = false,
   /** 바깥 클릭 감지(`useDismissLayer`) 등에 쓸 패널 노드 ref. */
   panelRef,
   className,
@@ -61,28 +76,40 @@ export default function AnchoredLayer({
       ? { top: rTop, bottom: rBottom, left: rLeft, right: rRight }
       : (anchorSelector
         ? document.querySelector(anchorSelector)
-        : anchorEl
+        : anchorEl ?? anchorRef?.current
       )?.getBoundingClientRect();
     if (!anchor) return;
 
     // 높이는 `getBoundingClientRect` 가 아니라 **콘텐츠 높이**로 잰다. 이미 걸어 둔
     // maxHeight 안에서 재면 잰 값이 그 제한에 갇혀, 다시 재는 순간 "더 낮아도 되네"
     // 로 판정이 흔들린다(스크롤·리사이즈마다 위/아래가 튄다).
-    const contentH = el.scrollHeight + (el.offsetHeight - el.clientHeight);
-    const contentW = el.getBoundingClientRect().width || el.offsetWidth;
-
-    setPos(
-      placeAnchored({
-        anchor,
-        contentH,
-        contentW,
-        viewportW: window.innerWidth,
-        viewportH: window.innerHeight,
-        align,
-        gap,
-      }),
+    const contentH = Math.min(
+      el.scrollHeight + (el.offsetHeight - el.clientHeight),
+      cap ?? Number.POSITIVE_INFINITY,
     );
-  }, [align, anchorEl, anchorSelector, gap, hasRect, rTop, rBottom, rLeft, rRight]);
+    const measuredW = width ?? (el.getBoundingClientRect().width || el.offsetWidth);
+    const contentW = Math.max(
+      measuredW,
+      minWidth ?? 0,
+      matchAnchorWidth ? anchor.right - anchor.left : 0,
+    );
+
+    const placed = placeAnchored({
+      anchor,
+      contentH,
+      contentW,
+      viewportW: window.innerWidth,
+      viewportH: window.innerHeight,
+      align,
+      gap,
+    });
+    setPos({
+      ...placed,
+      // 호출부의 상한은 **상한**일 뿐이다 — 남은 공간과 비교해 작은 쪽을 쓴다.
+      maxHeight: Math.min(placed.maxHeight, cap ?? Number.POSITIVE_INFINITY),
+      boxWidth: contentW,
+    });
+  }, [align, anchorEl, anchorRef, anchorSelector, gap, hasRect, rTop, rBottom, rLeft, rRight, cap, width, minWidth, matchAnchorWidth]);
 
   // 배치는 effect 가 아니라 ref 콜백에서 한다 — 패널이 DOM 에 붙는 순간 크기를 알 수
   // 있고, effect 안 setState 로 캐스케이드 렌더를 만들지 않는다.
@@ -130,6 +157,8 @@ export default function AnchoredLayer({
         position: 'fixed',
         left: pos?.left ?? 0,
         top: pos?.top ?? 0,
+        width,
+        minWidth: matchAnchorWidth ? (pos?.boxWidth || minWidth) : minWidth,
         maxHeight: pos?.maxHeight,
         // 실측 전에는 안 보이게 둔다 — (0,0) 에 한 프레임 번쩍이는 것을 막는다.
         opacity: pos ? 1 : 0,
