@@ -2708,6 +2708,24 @@
   background: var(--utility-brand-50, #f1fffa);
   color: var(--text-brand-tertiary, #21a67a);
 }
+/* 조직 현황 과거 조회 안내 띠 — 뷰 탭 위 (PW-760, 앱이 캔버스 밖에 그리던 띠를 옮김) */
+.admin-snap-asof-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  /* 캔버스가 자식 사이를 16px 로 띄운다 — 예전 캔버스 밖 띠의 아래 여백 10px 에 맞춰 당긴다 */
+  margin: 0 0 -6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-family: var(--font-family-body);
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--utility-amber-50, #fffaeb);
+  border: 1px solid var(--utility-amber-200, #fedf89);
+  color: var(--utility-amber-700, #b54708);
+}
+.admin-snap-asof-note strong { font-weight: 700; }
 .admin-snap-timemachine {
   display: flex;
   align-items: center;

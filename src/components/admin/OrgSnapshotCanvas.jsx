@@ -1667,6 +1667,12 @@ export default function OrgSnapshotCanvas({
   // 이력
   historyRecords = [],
   onExportHistory,
+  /**
+   * 뷰 탭 위 안내 띠 `{ title, body }` (PW-760). 조직 현황을 과거 날짜로 조회했을 때
+   * 「그 시점 스냅샷이 없어 가장 가까운 기록으로 재구성했다」를 앱이 문장으로 만들어 넘긴다 —
+   * 재구성 상태 판정은 서버 응답을 읽는 앱의 몫이다. 없으면 안 그린다.
+   */
+  notice = null,
   labels: providedLabels,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
@@ -1682,6 +1688,12 @@ export default function OrgSnapshotCanvas({
 
   return (
     <div className="admin-snap-canvas">
+      {notice && (
+        <div className="admin-snap-asof-note" role="status">
+          {notice.title && <strong>{notice.title}</strong>}
+          {notice.body && <span>{notice.body}</span>}
+        </div>
+      )}
       <div className="admin-snap-viewtabs">
         {viewKeys.map((v) => (
           <button
