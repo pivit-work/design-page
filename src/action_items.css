@@ -461,3 +461,32 @@
   white-space: nowrap;
 }
 .ai-kr-body { padding: 0 12px 12px; }
+
+/*
+ * 빈 상태 (ActionItemsEmptyState · `screen-action-items.policy.md §5-2`).
+ *
+ * `.ai-empty` 는 문구 한 줄을 가운데 놓는 flex 상자다. 여기에 두 줄 + 행동 버튼
+ * (`검색 지우기` / `필터 초기화`)을 넣어야 해서, 안쪽에 세로 스택을 한 겹 둔다.
+ * pivit-work 가 index.css 에 칠하던 값을 그대로 옮겼다 (PW-766).
+ */
+.ai-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-empty-state .ai-empty-title {
+  margin: 0;
+}
+
+.ai-empty-state .ai-empty-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-quaternary, var(--text-tertiary));
+}
+
+.ai-empty-state .ai-kr-btn {
+  margin-top: 4px;
+}

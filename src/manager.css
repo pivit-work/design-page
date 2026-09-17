@@ -1563,3 +1563,9 @@
 .mgr-krm-bar-fill.is-done { background: var(--utility-success-500); }
 .mgr-krm-bar-fill.is-in_progress { background: var(--utility-blue-500); }
 .mgr-krm-bar-fill.is-todo { background: var(--componentColors-utility-gray-utilityGray400); }
+
+/* 팀 스니핏 — 조회 상태 (TeamSnippets `loading` · `feedNotice` · TeamSnippetFeed `emptyLabel`).
+   pivit-work 가 직접 칠하던 값을 옮겼다 (PW-766). 빈 문구는 매니저 시안의 「해당하는 스니핏이 없습니다」 자리. */
+.mgr-ts-feedcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.mgr-ts-loading { padding: 48px; text-align: center; color: var(--text-tertiary); }
+.mgr-ts-empty { padding: 24px; text-align: center; font-size: 14px; color: var(--text-tertiary); }

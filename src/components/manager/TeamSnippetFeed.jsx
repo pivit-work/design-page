@@ -22,8 +22,11 @@ import Icon from '../shared/Icon.jsx';
  * onOneOnOne: 카드의 [1on1 제안] 핸들러. 해당 item 을 그대로 돌려준다 — 소비자가
  * 자기 식별자(예: memberId)를 item 에 실어 두고 그것으로 이동한다. 안 넘기면 버튼은
  * 표시만 되고 아무 일도 하지 않는다(데모).
+ *
+ * emptyLabel: 걸러진 결과가 0건일 때 피드 안에 띄우는 문구(매니저 시안 「해당하는 스니핏이
+ * 없습니다」). 안 넘기면 아무것도 그리지 않는다 — 조회 실패 중에는 「없다」고 말하면 안 된다.
  */
-export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '' }) {
+export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '', emptyLabel, emptyTestId }) {
   const [tab, setTab] = useState('date');
 
   const dateGroups = byDate
@@ -65,6 +68,10 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
           )}
           <span className="mgr-ts-filterbar-count">{filterCount}건</span>
         </div>
+      )}
+
+      {emptyLabel && filterCount === 0 && (
+        <p className="mgr-ts-empty" data-testid={emptyTestId}>{emptyLabel}</p>
       )}
 
       {tab === 'date' ? (

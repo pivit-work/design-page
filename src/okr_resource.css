@@ -176,3 +176,17 @@ body:has(.okr-ctx-banner) > .okr-modal-overlay .rsx-modal { height: min(1056px, 
 .rsx-modal-size { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
 .rsx-modal-members { display: flex; flex-direction: column; gap: 24px; }
 .rsx-modal-members .rsx-member { padding: 16px 0; border-radius: 16px; }
+
+/* 저장·코멘트 실패 문구 (OkrResourceCanvas `actionError`) — 헤더 위에 인라인으로 선다.
+   pivit-work 가 캔버스 바깥에 겹쳐 칠하던 값을 옮겼다 (PW-766). */
+.okr-resource-action-error {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border-error, #f97066);
+  border-radius: 8px;
+  background: var(--bg-error-primary, #fef3f2);
+  color: var(--text-error-primary, #b42318);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: pre-line;
+}

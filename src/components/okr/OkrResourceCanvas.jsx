@@ -19,6 +19,10 @@ import OkrResourceTeamModal from './OkrResourceTeamModal.jsx';
  * 범위가 사람마다 다른데 — 구성원은 자기 입력만, 매니저는 팀까지, 조직장은 조직까지 —
  * 탭을 항상 3개 그리면 눌렀을 때 권한 오류만 나오는 탭이 남는다. 판정 자체는 호스트
  * (서버 권한)가 하고, 여기서는 받은 목록만 그린다.
+ *
+ * `placeholder` 를 주면 헤더·본문 대신 같은 자리(`.rsx-area`)에 그것만 그린다 — 불러오는 중·
+ * 불러오기 실패처럼 `data` 가 아직 없을 때. `actionError` 는 저장·코멘트 실패 문구로,
+ * 헤더 위에 인라인으로 띄운다(전역 오류 화면으로 보내면 방금 맞춘 슬라이더 값이 날아간다).
  */
 const VIEWS = [
   { value: 'my', label: '내 입력' },
@@ -35,13 +39,24 @@ export default function OkrResourceCanvas({
   onComment,
   onApplyEstimates,
   onReply,
+  placeholder,
+  actionError,
 }) {
   const items = views?.length ? VIEWS.filter((v) => views.includes(v.value)) : VIEWS;
   const [view, setView] = useState(items[0]?.value ?? 'my');
   const [openTeam, setOpenTeam] = useState(null);
 
+  if (placeholder != null) {
+    return <div className="rsx-area">{placeholder}</div>;
+  }
+
   return (
     <div className="rsx-area">
+      {actionError && (
+        <p className="okr-resource-action-error" role="alert">
+          {actionError}
+        </p>
+      )}
       <div className="rsx-head">
         <p className="rsx-title">{data.title}</p>
         <div className="rsx-meta">
