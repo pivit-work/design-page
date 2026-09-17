@@ -1185,15 +1185,31 @@ function offsetsToSchedule(offsets, baseDate) {
 /**
  * 단계 표. `isSkipped(i)` 인 단계는 [PW-435 ④] **지우지 않고** 「미사용」으로 남긴다 —
  * 지우면 뒤 번호가 밀려 무엇이 빠졌는지 알 수 없다. 번호도 그대로 둔다.
+ *
+ * [PW-531] 칸마다 **눌러서 그 단계로 바로 간다** — 지나온 단계만이 아니라 앞 단계도,
+ * 「미사용」 칸도 (policy §5.1 「완료/미완료 무관, 자유 이동」 · §5.2.1 ④). 종전에는 지나온
+ * 칸만 눌려서, 「준비 중」 사이클의 대상자만 고치려 해도 1→2→3→4 를 「다음」으로 걸어야
+ * 했고, 앞 칸은 눌리는 모양인데 안 눌렸다. 비워 둔 단계를 건너뛰어도 「생성」이 같은
+ * 조건을 다시 보므로(`canSubmit`) 게이트는 풀리지 않는다.
  */
-function StepBar({ steps, current, labels: L, onJump, isSkipped = () => false }) {
+function StepBar({
+  steps,
+  current,
+  labels: L,
+  onJump,
+  isSkipped = () => false,
+  isComplete = () => true,
+}) {
   return (
     <div className="evc-wiz-steps">
       {steps.map((s, i) => {
         const skipped = isSkipped(i);
+        /* [PW-531] 앞 칸이라고 ✓ 를 찍지 않는다. 칸을 눌러 건너뛸 수 있게 되자, 비워 둔
+           1단계가 ✓ 로 «완료»처럼 보였다. ✓ 는 그 단계의 필수 입력이 채워졌을 때만이다
+           (policy §5.1 표 「필수 입력 완료 조건」). */
         const state = skipped
           ? 'skipped'
-          : i < current
+          : i < current && isComplete(i)
             ? 'done'
             : i === current
               ? 'current'
@@ -1203,8 +1219,8 @@ function StepBar({ steps, current, labels: L, onJump, isSkipped = () => false })
             type="button"
             key={s.titleKey}
             className={`evc-wiz-step is-${state}`}
-            onClick={() => state === 'done' && onJump(i)}
-            disabled={state === 'future' || skipped}
+            onClick={() => state !== 'current' && onJump(i)}
+            aria-current={state === 'current' ? 'step' : undefined}
             title={skipped ? L.stepSkippedHint : undefined}
             data-testid={`evc-wiz-step-${i}`}
           >
@@ -3959,13 +3975,18 @@ export default function EvalCycleWizard({
     return clampStep(i);
   };
 
-  const goStep = (next) => {
+  /**
+   * `exact` — 단계 표에서 칸을 직접 누른 경우. 「미사용」 칸도 건너뛰지 않고 그 자리로
+   * 간다 — 들어가면 왜 쓰지 않는지 안내가 있다(policy §5.2.1 ④). `다음`·`이전` 은
+   * 건너뛴다.
+   */
+  const goStep = (next, { exact = false } = {}) => {
     /* 검색어는 초기화하고 선택·대상은 유지한다(§7.A-2). 돌아왔을 때 예전 검색어가
        남아 있으면 후보가·대상자가 몇 명뿐인 것처럼 보인다. */
     setCommitteeSearch('');
     setCommitteeRosterSearch('');
     setCommitteeAddSearch('');
-    const target = seekStep(next, next > step ? 1 : -1);
+    const target = exact ? clampStep(next) : seekStep(next, next > step ? 1 : -1);
     setStep(target);
     // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
     if (draftEnabled) void saveDraft({ step: target });
@@ -4061,6 +4082,20 @@ export default function EvalCycleWizard({
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
   const canSubmit =
     step1Valid && scheduleValid && remindersValid && targetsValid && committeeValid;
+  /**
+   * [PW-531] 단계 표의 ✓ 판정 — `다음` 을 막는 조건과 같은 것을 단계별로 본다.
+   * 2단계(템플릿)는 경고만 하고 진행을 막지 않으므로(§5.1 표) 늘 완료로 친다.
+   */
+  const isStepComplete = (i) =>
+    i === 0
+      ? step1Valid
+      : i === 2
+        ? scheduleValid && remindersValid
+        : i === 3
+          ? targetsValid
+          : i === 4
+            ? committeeValid
+            : true;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
     : !scheduleValid
@@ -4417,8 +4452,9 @@ export default function EvalCycleWizard({
             steps={steps}
             current={step}
             labels={L}
-            onJump={goStep}
+            onJump={(i) => goStep(i, { exact: true })}
             isSkipped={isSkipped}
+            isComplete={isStepComplete}
           />
         )}
 
