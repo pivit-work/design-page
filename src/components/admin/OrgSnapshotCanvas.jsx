@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
+import { IconUpload } from './employeesIcons.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -122,6 +123,9 @@ const DEFAULT_LABELS = {
   fieldAfter: '변경 후',
   noFieldsSelected: '변경 항목을 선택해주세요',
   cancel: '취소',
+  // 「발령 완료」 화면의 버튼 — 이미 확정한 뒤라 되돌릴 것이 없다. 「취소」로 두면
+  // 방금 한 발령을 무르는 버튼으로 읽힌다(PW-785).
+  close: '닫기',
   confirmAppointment: '발령 확정',
   appointmentDone: '발령 완료',
   // 대량
@@ -708,7 +712,7 @@ function AppointmentSingleView({
       <div className="admin-snap-done">
         <div className="admin-snap-done-icon">✓</div>
         <div className="admin-snap-done-title">{labels.appointmentDone}</div>
-        <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
+        <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.close}</button>
       </div>
     );
   }
@@ -1047,7 +1051,7 @@ function AppointmentBulkView({
         <div className="admin-snap-done-icon">✓</div>
         <div className="admin-snap-done-title">{labels.appointmentDone}</div>
         <div className="admin-snap-done-sub">{labels.okCount} {applicableRows.length}{labels.countUnit}</div>
-        <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
+        <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.close}</button>
       </div>
     );
   }
@@ -1127,7 +1131,7 @@ function AppointmentBulkView({
               onDragOver={(e) => e.preventDefault()}
             >
               <input ref={fileInputRef} type="file" accept=".xlsx,.csv" onChange={onFileChange} style={{ display: 'none' }} />
-              <div className="admin-snap-dropzone-icon">📄</div>
+              <div className="admin-snap-dropzone-icon"><IconUpload size={24} /></div>
               {file ? (
                 <div className="admin-snap-dropzone-title">{file.name}</div>
               ) : (
