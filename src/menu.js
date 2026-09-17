@@ -94,6 +94,11 @@ export const ADMIN_MENU = [
   // Log in As(임퍼소네이션) — 기획 정본이 «시스템» 의 연동 설정과 AI 프롬프트 설정
   // 사이에 둔다(2026-07-02 평가 HR 화면에서 이관).
   { id: 'login-as',      icon: '/icons-solid/user-circle.svg',         label: 'Log in As',        group: 'system' },
+  // 감사 로그 — [L] 2026-09-17 (pivit-work PW-738 · 커트 결정 (가)). 「개인정보 접속기록」 탭이
+  // 생기면서 레일에서 찾을 수 있어야 해 Log in As 바로 아래에 올라왔다. 화면은 두 탭
+  // (개인정보 접속기록 · 대신 로그인)이고, 대신 로그인 기록은 Log in As 화면에도 남아 있다.
+  // ⚠️ 기획 정본 arch-nav-routing-policy §1-A 에는 아직 이 행이 없다 — 기획 등재 대기.
+  { id: 'audit-log',     icon: '/icons-solid/clock-rewind.svg',        label: '감사 로그',        group: 'system' },
   { id: 'ai-tuning',     icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
   // 결제·구독 — «시스템» 그룹의 **마지막 항목**이고, 결제 전용 그룹 헤더는 만들지
   // 않는다 (arch-nav-routing-policy §1-A v1.18 · 2026-08-22 PW-375 안 C 확정).
