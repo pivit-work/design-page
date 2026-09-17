@@ -93,13 +93,27 @@ export default function EvalCycleManageCanvas({
         {loading ? (
           /* 탭 줄은 즉시 그리고 본문만 기다린다 — 탭 줄이 늦게 뜨면 화면이 두 번
              튄다(정책 §4.6.6). */
-          <section className="evc-card" data-testid="evmg-loading">
-            {L.loading}
-          </section>
+          <EvalCycleManageBodyLoading label={L.loading} />
         ) : (
           children
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * 틀 안에서 «본문만» 기다릴 때의 자리 (PW-696).
+ *
+ * 틀이 사이클을 읽는 동안에는 틀이 직접 그리지만, 사이클을 읽은 뒤 탭 본문이 자기 값을
+ * 따로 읽는 동안(진행 현황의 구성원 현황 등)은 본문이 이것을 그린다. 틀의 `loading` 으로
+ * 돌리면 본문이 닫혔다 다시 열려 읽기를 처음부터 되풀이한다 — 같은 모양을 두 벌 짓지 않으려고
+ * 여기서 내보낸다.
+ */
+export function EvalCycleManageBodyLoading({ label = DEFAULT_LABELS.loading }) {
+  return (
+    <section className="evc-card" data-testid="evmg-loading">
+      {label}
+    </section>
   );
 }

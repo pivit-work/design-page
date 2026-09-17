@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * EvalCycleTemplateCanvas — 평가 템플릿 빌더.
@@ -72,6 +72,23 @@ export default function EvalCycleTemplateCanvas({
    * 안 넘기면 종전 그대로 사이클 이름만 보인다.
    */
   manageSuffix = null,
+  /**
+   * PW-696 — 사이클 관리 화면의 «본문»으로만 그린다.
+   *
+   * 틀(`EvalCycleManageCanvas` — 사이클 이름 머리 · 관리 탭 줄 · 잠금 안내)은 호출부가 한 번만
+   * 그리고, 이 캔버스는 그 안의 본문만 맡는다. 켜면 `.evc-root`·머리·`.evc-list` 를 그리지
+   * 않고, `toolbar`(단계 줄)와 「템플릿 저장」 버튼이 본문 맨 위 한 줄에 선다.
+   * 안 켜면 종전 그대로다.
+   */
+  embedded = false,
+  /**
+   * PW-696 — 저장하지 않은 값이 생기거나 사라질 때마다 `true`/`false` 로 부른다.
+   *
+   * 사이클 관리의 다른 탭을 누르면 이 캔버스가 닫혀 고치던 값이 사라진다. 호출부가 그 전에
+   * 묻게 하려면 «고친 게 있는지» 를 알아야 하는데, 값은 이 캔버스 안에만 있다.
+   * 기준은 props 로 받은 값이다 — 저장 뒤 호출부가 서버 값을 다시 넘기면 `false` 로 돌아온다.
+   */
+  onDirtyChange,
   onSave,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -95,6 +112,46 @@ export default function EvalCycleTemplateCanvas({
           { gradeKey: 'meets', label: '충족', ratio: '' },
         ],
   );
+
+  // 고친 게 있는가 — 상태와 «props 로 받은 값» 을 같은 모양으로 펴서 견준다. 기준을 첫 렌더에
+  // 한 번 찍어 두면 저장 뒤에도 그 옛 값과 견줘 계속 「고친 게 있다」가 된다.
+  const baseline = useMemo(
+    () =>
+      snapshotOf({
+        name: template?.name ?? '기본 평가 템플릿',
+        isAbsolute: template?.isAbsolute ?? true,
+        position: template?.finalGradePosition ?? 'bottom',
+        items: initItems.length
+          ? initItems
+          : [{ category: categoryOptions[0]?.key ?? '', responseType: 'text', label: '' }],
+        grades: initGrades.length
+          ? initGrades
+          : [
+              { gradeKey: 'exceeds', label: '탁월', ratio: '' },
+              { gradeKey: 'meets', label: '충족', ratio: '' },
+            ],
+        categoryFallback: categoryOptions[0]?.key ?? '',
+      }),
+    [template, initItems, initGrades, categoryOptions],
+  );
+  const dirty =
+    snapshotOf({
+      name,
+      isAbsolute,
+      position,
+      items,
+      grades,
+      categoryFallback: categoryOptions[0]?.key ?? '',
+    }) !== baseline;
+  const dirtyCbRef = useRef(onDirtyChange);
+  useEffect(() => {
+    dirtyCbRef.current = onDirtyChange;
+  }, [onDirtyChange]);
+  useEffect(() => {
+    dirtyCbRef.current?.(dirty);
+  }, [dirty]);
+  // 닫힐 때는 «고친 것» 도 함께 사라진다 — 호출부가 옛 값을 붙들고 있지 않게 한다.
+  useEffect(() => () => dirtyCbRef.current?.(false), []);
 
   const updateItem = (i, patch) =>
     setItems((arr) => arr.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
@@ -120,28 +177,41 @@ export default function EvalCycleTemplateCanvas({
     });
   };
 
-  return (
-    <div className="evc-root">
-      <header className="evc-header">
-        <div>
-          <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && (
-            <p className="evc-summary" data-testid="evc-manage-context">
-              {cycle.name}
-              {manageSuffix && (
-                <span className="evc-manage-suffix"> · {manageSuffix}</span>
-              )}
-            </p>
-          )}
-        </div>
-        {editable && (
-          <button type="button" className="evc-btn is-primary" onClick={handleSave} data-testid="evtpl-save">
-            {L.save}
-          </button>
-        )}
-      </header>
+  const saveButton = editable && (
+    <button type="button" className="evc-btn is-primary" onClick={handleSave} data-testid="evtpl-save">
+      {L.save}
+    </button>
+  );
+  const Frame = embedded ? Fragment : 'div';
+  const frameProps = (className) => (embedded ? {} : { className });
 
-      {toolbar && <div className="evc-toolbar evtpl-toolbar">{toolbar}</div>}
+  return (
+    <Frame {...frameProps('evc-root')}>
+      {embedded ? (
+        (toolbar || saveButton) && (
+          <div className="evtpl-embedded-bar" data-testid="evtpl-embedded-bar">
+            <div>{toolbar}</div>
+            {saveButton}
+          </div>
+        )
+      ) : (
+        <header className="evc-header">
+          <div>
+            <h1 className="evc-title">{L.title}</h1>
+            {cycle?.name && (
+              <p className="evc-summary" data-testid="evc-manage-context">
+                {cycle.name}
+                {manageSuffix && (
+                  <span className="evc-manage-suffix"> · {manageSuffix}</span>
+                )}
+              </p>
+            )}
+          </div>
+          {saveButton}
+        </header>
+      )}
+
+      {!embedded && toolbar && <div className="evc-toolbar evtpl-toolbar">{toolbar}</div>}
 
       {!editable && (
         <p className="evx-notice" data-testid="evtpl-readonly" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
@@ -155,7 +225,7 @@ export default function EvalCycleTemplateCanvas({
         </p>
       )}
 
-      <div className="evc-list">
+      <Frame {...frameProps('evc-list')}>
         <section className="evc-card">
           <label className="evc-field-label" htmlFor="evtpl-name">{L.nameLabel}</label>
           <input
@@ -227,7 +297,18 @@ export default function EvalCycleTemplateCanvas({
             <button type="button" className="evc-btn is-ghost" onClick={() => setGrades((a) => [...a, { gradeKey: '', label: '', ratio: '' }])} data-testid="evtpl-add-grade">{L.addGrade}</button>
           )}
         </section>
-      </div>
-    </div>
+      </Frame>
+    </Frame>
   );
+}
+
+/** 고친 게 있는지 견주기 위해 편집 상태를 한 줄 글자로 편다. 숫자·문자 비율은 같은 값으로 본다. */
+function snapshotOf({ name, isAbsolute, position, items, grades, categoryFallback }) {
+  return JSON.stringify([
+    name ?? '',
+    !!isAbsolute,
+    position,
+    items.map((it) => [it.category ?? categoryFallback, it.responseType ?? 'text', it.label ?? '']),
+    grades.map((g) => [g.gradeKey ?? '', g.label ?? '', isAbsolute ? '' : String(g.ratio ?? '')]),
+  ]);
 }
