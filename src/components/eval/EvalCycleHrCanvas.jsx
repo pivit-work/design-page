@@ -107,10 +107,11 @@ const DEFAULT_LABELS = {
   presetSaveLabel: '이 설정을 프리셋으로 저장',
   presetSavePlaceholder: '프리셋 이름 (예: 2025 하반기 설정)',
   presetSaveHint:
-    '지금 설정한 리뷰 종류 · 단계별 일정 · 평가지 · 대상자 조건을 묶어 둡니다. 다음에 새 평가 사이클을 만들 때 1단계 「저장된 설정 불러오기」에서 그대로 가져올 수 있습니다. 사이클 이름과 기간은 저장하지 않습니다.',
+    '지금 설정한 대상자 조건 · 리뷰 순서 · 템플릿 · 일정을 묶어 둡니다. 다음에 새 평가 사이클을 만들 때 1단계 「저장된 설정 불러오기」에서 그대로 가져올 수 있습니다. 사이클 이름과 기간은 저장하지 않습니다.',
   presetSaveButton: '프리셋 저장',
   presetSaving: '저장 중…',
-  presetSavedNamed: '「{{name}}」 (으)로 저장했습니다',
+  // 이름 뒤 조사(으로/로)가 받침에 따라 갈리므로, 조사가 붙지 않는 문장으로 쓴다.
+  presetSavedNamed: '「{{name}}」 프리셋을 저장했습니다',
   presetSaveFailed: '프리셋을 저장하지 못했습니다. 다시 시도해 주세요.',
   manageLoadError: '사이클 설정을 불러오지 못했습니다',
   // wizard

@@ -826,7 +826,8 @@
   cursor: default;
   flex: 1;
 }
-.evc-wiz-step.is-done {
+/* [PW-531] 현재 칸 말고는 전부 눌러서 이동한다 (policy §5.1 자유 이동). */
+.evc-wiz-step:not(.is-current) {
   cursor: pointer;
 }
 .evc-wiz-step-num {
@@ -7865,7 +7866,6 @@
 
 /* ── PW-435 ④ 건너뛴 단계 — 표에서 지우지 않고 「미사용」으로 남긴다 ────────── */
 .evc-wiz-step.is-skipped {
-  cursor: not-allowed;
   opacity: 0.55;
 }
 .evc-wiz-step-skip {
