@@ -18,6 +18,10 @@ import assetUrl from '../shared/assetUrl.js';
  * 소유하고(controlled), 안 넘기면 initialDateFrom/To 로 내부 state 를 쓴다(데모).
  *
  * 모든 데이터는 props 로 받는다.
+ *
+ * `placeholder` 를 주면 헤더·본문 대신 같은 페이지 칸(`.tl-page.snippet-page`)에 그것만
+ * 그린다 — 목록을 불러오지 못했을 때처럼 캔버스를 그릴 데이터가 없을 때. 페이지 칸 밖에서
+ * 따로 그리면 위·오른쪽 여백이 헤더 카드 자리와 어긋난다.
  */
 // 기간 빠른 선택 5종 — 기획 daily-snippet-spec §11.2/§11.3 정본
 // (이번 주 / 지난 주 / 이번 달 / 지난 달 / 전체). "지난 주" 가 빠져 있어
@@ -83,6 +87,8 @@ export default function SnippetCanvas({
   //   shape: { id, dateLabel, summary, timestamp, recent? }
   snippets = [],
   onSnippetClick,
+  // 헤더·본문 대신 페이지 칸에 그릴 것(불러오기 실패 등). 없으면 평소 화면.
+  placeholder,
 }) {
   const [innerDateFrom, setInnerDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
   const [innerDateTo, setInnerDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
@@ -113,6 +119,10 @@ export default function SnippetCanvas({
     }
     closePicker();
   };
+
+  if (placeholder != null) {
+    return <main className="tl-page snippet-page">{placeholder}</main>;
+  }
 
   return (
     <main className="tl-page snippet-page">
