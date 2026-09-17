@@ -3012,7 +3012,8 @@
 }
 .admin-snap-dropzone:hover { border-color: var(--text-tertiary); background: var(--bg-primary); }
 .admin-snap-dropzone.is-loaded { background: var(--utility-green-50); border-color: var(--utility-green-200, #abefc6); }
-.admin-snap-dropzone-icon { font-size: 24px; margin-bottom: 8px; }
+/* 아이콘은 이모지가 아니라 선 아이콘(IconUpload) — 색은 CSV 가져오기 창 끌어놓기 칸과 같다(PW-785). */
+.admin-snap-dropzone-icon { display: flex; justify-content: center; margin-bottom: 8px; color: var(--text-tertiary); }
 .admin-snap-dropzone-title { font-family: var(--font-family-body); font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .admin-snap-dropzone-sub { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
 
