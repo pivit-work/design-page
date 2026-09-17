@@ -1,21 +1,21 @@
 import { useCallback, useRef, useState } from 'react';
+import Icon from '../shared/Icon.jsx';
 import FilterMenuPopover from './FilterMenuPopover.jsx';
 
 /**
- * FilterDropdown — 툴바의 라벨 달린 다중 선택 필터 (「보기」·「프로젝트」).
+ * FilterDropdown — 호스트가 항목을 주는 툴바 다중 선택 필터 (「보기」).
  *
- * 시안 `pivit-specs/B. TimeLine/timeline-app.jsx` 의 `FilterDropdown` 포팅.
- * 트리거는 툴바의 보기 단위 드롭다운(CustomSelect sm)과 같은 모양이고, 일부만
- * 선택됐을 때 라벨 옆에 선택된 항목의 색 점을 보여준다(시안과 같음). 목록은
- * FilterMenuPopover(position: fixed, 창 안으로 위치 보정)로 띄운다.
+ * 모양은 디자이너가 그린 툴바 아이콘 필터 버튼(`.tl-filter-btn`)과 그 목록
+ * (FilterMenuPopover — 라벨 + 선택 체크) 그대로다. 달라지는 것은 항목뿐이다.
+ * `label` 은 화면에 글자로 그리지 않고 버튼의 aria-label 로만 쓴다.
  *
  * API:
  *   <FilterDropdown
  *     label="보기"
- *     items={[{ id, label, color? }]}
+ *     items={[{ id, label }]}
  *     selected={['snippet', ...]}   // controlled
  *     onChange={(ids) => ...}       // items 순서를 유지한 새 배열
- *     allLabel="전체"
+ *     allLabel="전체"               // 목록 맨 위 「전체」 줄 — 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다
  *   />
  */
 export default function FilterDropdown({
@@ -31,9 +31,7 @@ export default function FilterDropdown({
   const [anchor, setAnchor] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = anchor !== null;
-
   const allOn = items.every((item) => selected.includes(item.id));
-  const selectedItems = items.filter((item) => selected.includes(item.id));
 
   const close = useCallback(() => {
     setAnchor(null);
@@ -63,35 +61,18 @@ export default function FilterDropdown({
   };
 
   return (
-    <div
-      className={`tl-select tl-select-size-sm tl-filter-dropdown ${open ? 'is-open' : ''} ${allOn ? '' : 'is-partial'}`}
-      data-testid={testId}
-    >
+    <>
       <button
         ref={triggerRef}
         type="button"
-        className="tl-select-trigger"
+        className={`tl-filter-btn ${open ? 'is-open' : ''}`}
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
+        data-testid={testId}
         onClick={toggleOpen}
       >
-        <span className="tl-select-value">{label}</span>
-        {!allOn && selectedItems.some((item) => item.color) && (
-          <span className="tl-filter-dropdown-dots" aria-hidden="true">
-            {selectedItems.map((item) => (
-              <span
-                key={item.id}
-                className="tl-filter-menu-dot"
-                style={{ background: item.color }}
-              />
-            ))}
-          </span>
-        )}
-        <span className="tl-select-chevron" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 6l4 4 4-4" />
-          </svg>
-        </span>
+        <Icon src="/icons/filter-lines.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
       </button>
       {open && (
         <FilterMenuPopover
@@ -106,6 +87,6 @@ export default function FilterDropdown({
           baseUrl={baseUrl}
         />
       )}
-    </div>
+    </>
   );
 }
