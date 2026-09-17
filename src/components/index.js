@@ -139,6 +139,11 @@ export {
   OkrComposeFullModal,
   OkrSetupWizardModal,
   OkrWizardEntryButton,
+  OkrHeaderActions,
+  OkrReadOnlyBadge,
+  OkrGhostButton,
+  OkrWriteButton,
+  OkrTabPlaceholder,
 } from './okr/index.js';
 
 // Report
@@ -158,7 +163,11 @@ export {
 } from './snippet/index.js';
 
 // Action items (액션 아이템)
-export { ActionItemsCanvas } from './actionitems/index.js';
+export {
+  ActionItemsCanvas,
+  ActionItemsEmptyState,
+  ActionItemDeadlineEditor,
+} from './actionitems/index.js';
 
 // Resource (리소스 투입 현황)
 export { ResourceCanvas } from './resource/index.js';

@@ -34,3 +34,10 @@ export { default as OkrSetupWizardModal } from './OkrSetupWizardModal.jsx';
 export { default as OkrWizardEntryButton } from './OkrWizardEntryButton.jsx';
 export { OkrPositionsContext } from './contexts.js';
 export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';
+export {
+  OkrHeaderActions,
+  OkrReadOnlyBadge,
+  OkrGhostButton,
+  OkrWriteButton,
+  OkrTabPlaceholder,
+} from './OkrHeaderParts.jsx';
