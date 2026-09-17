@@ -1239,6 +1239,9 @@ export default function MySettingsCanvas({
   onChangePassword,
   sessions = [],
   onEndSession,
+  // 기기 위치 자료의 출처 링크 `{ label, href }` — 자료의 사용 조건이 「결과를 보여 주는 페이지에
+  // 링크」다(pivit-work PW-680, DB-IP 무료판). 안 주면 그리지 않는다.
+  sessionsLocationCredit,
   onLogout,
   logoutError = null,
   labels: providedLabels,
@@ -2074,6 +2077,25 @@ export default function MySettingsCanvas({
                         )}
                       </div>
                     ))}
+                    {/* 위치 안내 한 줄 + 자료 출처 (PW-680). 도시는 접속 주소로 추정해 회사망·VPN 에서
+                        틀릴 수 있다 — 모르는 접속으로 오해하지 않게 카드 안에 적는다. */}
+                    {(labels.security.sessionsLocationNote || sessionsLocationCredit) && (
+                      <p className="msc-row-sub" data-testid="sessions-location-note" style={{ margin: '2px 0 0' }}>
+                        {labels.security.sessionsLocationNote}
+                        {labels.security.sessionsLocationNote && sessionsLocationCredit && ' · '}
+                        {sessionsLocationCredit && (
+                          <a
+                            href={sessionsLocationCredit.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: 'inherit', textDecoration: 'underline' }}
+                            data-testid="sessions-location-credit"
+                          >
+                            {sessionsLocationCredit.label}
+                          </a>
+                        )}
+                      </p>
+                    )}
                   </div>
                 )}
               </Card>
