@@ -146,6 +146,12 @@
   --utility-warning-700: var(--componentColors-utility-warning-utilityWarning700);
   --utility-error-700: var(--componentColors-utility-error-utilityError700);
   --utility-pink-400: var(--componentColors-utility-pink-utilityPink400);
+  /* 알림 센터 분류 색 (PW-765) */
+  --utility-orange-50: var(--componentColors-utility-orange-utilityOrange50);
+  --utility-orange-200: var(--componentColors-utility-orange-utilityOrange200);
+  --utility-orange-600: var(--componentColors-utility-orange-utilityOrange600);
+  --utility-purple-600: var(--componentColors-utility-purple-utilityPurple600);
+  --utility-gray-600: var(--componentColors-utility-gray-utilityGray600);
   --fg-primary: var(--colors-foreground-fgPrimary);
   --fg-tertiary: var(--colors-foreground-fgTertiary);
   --fg-brand-primary: var(--colors-foreground-fgBrandPrimary);
