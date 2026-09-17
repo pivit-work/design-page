@@ -40,6 +40,7 @@ export { default as BillingContactSalesCanvas } from './BillingContactSalesCanva
 export {
   TierGate,
   UpsellCard,
+  UpsellScreen,
   LockBadge,
   FEATURE_TIER,
   TIER_RANK,

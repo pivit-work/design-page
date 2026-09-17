@@ -4,10 +4,16 @@ export { default as SegmentedControl } from './shared/SegmentedControl.jsx';
 export { default as Tabs } from './shared/Tabs.jsx';
 export { default as DatePicker } from './shared/DatePicker.jsx';
 export { default as ModalShell } from './shared/ModalShell.jsx';
+export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
+export { default as Toast } from './shared/Toast.jsx';
+export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
 
 // Layout
 export { default as Sidebar } from './layout/Sidebar.jsx';
 export { default as TopNav } from './layout/TopNav.jsx';
+export { default as AppFrame } from './layout/AppFrame.jsx';
+export { default as ContentArea } from './layout/ContentArea.jsx';
+export { default as ImpersonationBanner } from './layout/ImpersonationBanner.jsx';
 
 // Org Chart
 export {
@@ -220,6 +226,7 @@ export { BillingContactSalesCanvas } from './admin/index.js';
 export {
   TierGate,
   UpsellCard,
+  UpsellScreen,
   LockBadge,
   FEATURE_TIER,
   TIER_RANK,
