@@ -15,11 +15,18 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
  *   selectedDate Date — 현재 선택일
  *   onSelect     (Date) => void
  *   onClose      () => void
- *   labels       { months: string[12], weekdays: string[7], today, monthLabel(y,m) }
+ *   labels       { months: string[12], weekdays: string[7], today, monthLabel(y,m), prevMonth, nextMonth }
  *                — 화면 언어를 따르게 하는 문구. **없으면 아래 영어 기본값을 그대로 쓴다**
  *                (PW-528). 기존 호출부는 아무것도 안 넘기므로 지금 화면 그대로다.
  *   minDate      Date — 이 날짜 이전은 고를 수 없다(경계 포함). 없으면 하한 없음
  *   initialMonth Date — 처음 보여 줄 달. 없으면 selectedDate 의 달
+ *   maxDate      Date — 이 날짜 이후는 고를 수 없다(경계 포함). 없으면 상한 없음 (PW-762)
+ *   todaySelects boolean — true 면 「Today」 가 오늘 달로 넘기면서 오늘을 고른다
+ *                (고를 수 있는 범위 안일 때만). 기본 false = 달만 넘긴다 (PW-762)
+ *   ...rest      data-*·aria-label 등은 겉 상자에 그대로 붙는다
+ *
+ * Esc 는 달력만 닫고 **바깥으로 올려 보내지 않는다** — 창 안에서 연 달력의 Esc 가
+ * 창까지 닫아 쓰던 내용을 날리면 안 된다 (PW-762).
  */
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const MONTHS = [
@@ -75,6 +82,9 @@ export default function DatePicker({
   labels,
   minDate,
   initialMonth,
+  maxDate,
+  todaySelects = false,
+  ...rest
 }) {
   const popoverRef = useRef(null);
   // PW-528 ② — 값이 비어 있으면 호출부가 `new Date()`(오늘)를 넘겨 오므로, 그대로 두면
@@ -105,22 +115,28 @@ export default function DatePicker({
   }, [anchorRect, viewYear, viewMonth]);
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onClose();
+    };
     const onDown = (e) => {
       if (popoverRef.current?.contains(e.target)) return;
       if (anchorEl?.contains(e.target)) return;
       onClose();
     };
-    window.addEventListener('keydown', onKey);
+    // 캡처 단계에서 받아야 창의 Esc 처리(window 버블)보다 먼저 멈출 수 있다.
+    window.addEventListener('keydown', onKey, true);
     const t = setTimeout(() => window.addEventListener('mousedown', onDown), 0);
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('mousedown', onDown);
       clearTimeout(t);
     };
   }, [onClose, anchorEl]);
 
   const min = minDate ? startOfDay(minDate) : null;
+  const max = maxDate ? startOfDay(maxDate) : null;
   // 하한이 있는 달보다 앞으로는 넘길 필요가 없다 — 넘겨 봐야 전부 비활성이다.
   const canGoPrev =
     !min ||
@@ -140,6 +156,8 @@ export default function DatePicker({
     const t = new Date();
     setViewYear(t.getFullYear());
     setViewMonth(t.getMonth());
+    const today0 = startOfDay(t);
+    if (todaySelects && (!min || today0 >= min) && (!max || today0 <= max)) onSelect(today0);
   };
 
   const cells = buildGrid(viewYear, viewMonth);
@@ -157,6 +175,8 @@ export default function DatePicker({
       ? labels.weekdays
       : WEEKDAYS;
   const todayText = typeof labels?.today === 'string' ? labels.today : 'Today';
+  const prevText = typeof labels?.prevMonth === 'string' ? labels.prevMonth : '이전 달';
+  const nextText = typeof labels?.nextMonth === 'string' ? labels.nextMonth : '다음 달';
   // 한국어는 「2026년 8월」, 영어는 「August 2026」 — 어순이 달라 문자열 조립을
   // 호출부에 맡긴다. 안 주면 지금까지의 영어 어순 그대로.
   const monthLabel =
@@ -165,7 +185,7 @@ export default function DatePicker({
       : `${months[viewMonth]} ${viewYear}`;
 
   return (
-    <div ref={popoverRef} className="dp-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">
+    <div {...rest} ref={popoverRef} className="dp-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">
       <div className="dp-datepicker-content">
         {/* 월 라벨 + chevron (흐린 톤) */}
         <div className="dp-datepicker-month">
@@ -174,12 +194,12 @@ export default function DatePicker({
             className="dp-datepicker-nav is-faint"
             onClick={() => goMonth(-1)}
             disabled={!canGoPrev}
-            aria-label="이전 달"
+            aria-label={prevText}
           >
             <ChevronLeft />
           </button>
           <span className="dp-datepicker-label">{monthLabel}</span>
-          <button type="button" className="dp-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label="다음 달">
+          <button type="button" className="dp-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label={nextText}>
             <ChevronRight />
           </button>
         </div>
@@ -197,7 +217,8 @@ export default function DatePicker({
             const isToday = sameDay(c, today);
             // PW-528 ② — 종료일 달력은 시작일 이전을 고를 수 없다. 눌러도 값이 안
             // 바뀌는 게 아니라 «눌리지 않는 것»으로 보여야 왜 안 되는지 알 수 있다.
-            const disabled = !!min && new Date(c.year, c.month, c.day) < min;
+            const day = new Date(c.year, c.month, c.day);
+            const disabled = (!!min && day < min) || (!!max && day > max);
             const cls = [
               'dp-datepicker-cell',
               c.outside ? 'is-outside' : '',
@@ -212,6 +233,8 @@ export default function DatePicker({
                 className={cls}
                 disabled={disabled}
                 aria-disabled={disabled || undefined}
+                aria-pressed={selected}
+                data-date={`${c.year}-${String(c.month + 1).padStart(2, '0')}-${String(c.day).padStart(2, '0')}`}
                 onClick={() => onSelect(new Date(c.year, c.month, c.day))}
               >
                 {c.day}
