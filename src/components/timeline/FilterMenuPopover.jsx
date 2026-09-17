@@ -12,8 +12,9 @@ export const FILTER_TYPES = ['회의', '1on1', '집중작업', '리뷰', '외부
  *
  * 항목 두 모드:
  *   - `items` 미주입 — 레거시. FILTER_TYPES 한글 라벨 자체가 id.
- *   - `items=[{ id, label, color? }]` — 시안(timeline-app.jsx FilterDropdown) 형태.
- *     맨 위 「전체」 행(`allLabel`, `onToggleAll`) + 구분선 + 항목마다 색 점.
+ *   - `items=[{ id, label }]` — 호스트가 항목을 준다. 모양은 레거시와 같다(라벨 + 선택 체크).
+ *     `onToggleAll` 을 주면 맨 위에 「전체」(`allLabel`) 줄을 더한다 — 다른 줄과 같은 모양이고,
+ *     항목이 모두 선택됐을 때만 체크가 붙는다.
  * 목록이 창 높이보다 길면 목록 안에서 스크롤한다(CSS max-height).
  *
  * document.body 로 포털한다 — 앱 셸(.app)이 transform 을 가져 그 안의 position: fixed 가
@@ -95,7 +96,6 @@ export default function FilterMenuPopover({
 
   const rows = items ?? FILTER_TYPES.map((type) => ({ id: type, label: type }));
   const allOn = rows.every((row) => selected.includes(row.id));
-
   const checkIcon = (
     <Icon
       src="/icons-solid/check.svg"
@@ -113,19 +113,16 @@ export default function FilterMenuPopover({
       style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
     >
       {items && onToggleAll && (
-        <>
-          <button
-            type="button"
-            role="menuitemcheckbox"
-            aria-checked={allOn}
-            className={`tl-filter-menu-item tl-filter-menu-all ${allOn ? 'is-selected' : ''}`}
-            onClick={onToggleAll}
-          >
-            <span className="tl-filter-menu-label">{allLabel}</span>
-            {allOn && checkIcon}
-          </button>
-          <div className="tl-filter-menu-divider" role="separator" />
-        </>
+        <button
+          type="button"
+          role="menuitemcheckbox"
+          aria-checked={allOn}
+          className={`tl-filter-menu-item ${allOn ? 'is-selected' : ''}`}
+          onClick={onToggleAll}
+        >
+          <span className="tl-filter-menu-label">{allLabel}</span>
+          {allOn && checkIcon}
+        </button>
       )}
       {rows.map((row) => {
         const isSelected = selected.includes(row.id);
@@ -138,13 +135,6 @@ export default function FilterMenuPopover({
             className={`tl-filter-menu-item ${isSelected ? 'is-selected' : ''}`}
             onClick={() => onToggle(row.id)}
           >
-            {row.color && (
-              <span
-                className="tl-filter-menu-dot"
-                style={{ background: row.color }}
-                aria-hidden="true"
-              />
-            )}
             <span className="tl-filter-menu-label">{row.label}</span>
             {isSelected && checkIcon}
           </button>

@@ -94,10 +94,11 @@ export default function TimelineCanvas({
   // meeting/event 만 간트·캘린더에 렌더된다.
   filterSelected: filterSelectedProp,
   onFilterChange,
-  // 라벨 필터 드롭다운(시안 timeline-app.jsx 의 「보기」·「프로젝트」). 배열을 주면
-  // 아이콘 필터 버튼 대신 항목마다 FilterDropdown 을 그리고, 위의 category 거르기는
-  // 끈다 — 무엇을 거를지는 호스트가 meetings/snippets/getEventsForDate 를 걸러서 넘긴다.
-  // [{ key, label, items: [{ id, label, color? }], selected: string[], onChange(ids), allLabel? }]
+  // 호스트가 항목을 주는 필터(「보기」). 배열을 주면 옛 6종 대신 그 항목으로 같은 모양의
+  // 아이콘 필터 버튼·목록을 그리고, 위의 category 거르기는 끈다 — 무엇을 거를지는 호스트가
+  // meetings/snippets/getEventsForDate 를 걸러서 넘긴다. label 은 버튼의 aria-label.
+  // allLabel 은 목록 맨 위 「전체」 줄의 이름(다른 줄과 같은 모양).
+  // [{ key, label, items: [{ id, label }], selected: string[], onChange(ids), allLabel? }]
   viewFilters,
   // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
   // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
