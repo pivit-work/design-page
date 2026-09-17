@@ -8301,3 +8301,18 @@
 .evc-wiz.is-inline > .evc-wiz-footer {
   padding: var(--spacing-xl, 16px) 0 0;
 }
+
+/* ── 사이클 관리 틀 안의 본문 머리 줄 (PW-696) ──
+   진행 현황·평가 템플릿이 틀(`EvalCycleManageCanvas`) 안에 «본문» 으로 들어갈 때, 전에는
+   화면 머리 오른쪽에 있던 조작 버튼이 본문 맨 위 한 줄로 내려온다. */
+.evmon-embedded-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.evtpl-embedded-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  flex-wrap: wrap;
+}

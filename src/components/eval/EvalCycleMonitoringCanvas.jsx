@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
@@ -233,6 +233,16 @@ export default function EvalCycleMonitoringCanvas({
    */
   manageSuffix = null,
   /**
+   * PW-696 — 사이클 관리 화면의 «본문»으로만 그린다.
+   *
+   * 사이클 관리 탭 여섯이 머리·탭 줄을 각자 그리면 한 곳을 빠뜨린 탭만 어긋난다. 그래서
+   * 틀(`EvalCycleManageCanvas`)은 호출부가 한 번만 그리고, 이 캔버스는 그 안의 본문만
+   * 맡는다. 켜면 `.evc-root`·머리·`toolbar`·`onOpen*` 줄·`.evc-list` 를 그리지 않고,
+   * 머리에 있던 조작(리마인더 · 비상 정지 · 재개)은 본문 맨 위 오른쪽 줄로 내려온다.
+   * 안 켜면 종전 그대로다.
+   */
+  embedded = false,
+  /**
    * [PW-534] 이 사이클에서 «열로 세울» 단계 — `[{ key, label }]` (정책 §6.2.1).
    *
    * 비어 있으면 개정 전 3종 고정 열(셀프·동료 확정·하향)로 그린다. 아직 이 값을
@@ -279,43 +289,61 @@ export default function EvalCycleMonitoringCanvas({
     onOpenReportReview && { key: 'rrv', label: L.navReportReview, on: onOpenReportReview, testid: 'evmon-nav-report-review' },
   ].filter(Boolean);
 
-  return (
-    <div className="evc-root">
-      <header className="evc-header">
-        <div>
-          <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && (
-            <p className="evc-summary" data-testid="evc-manage-context">
-              {cycle.name}
-              {manageSuffix && (
-                <span className="evc-manage-suffix"> · {manageSuffix}</span>
-              )}
-            </p>
-          )}
-        </div>
-        <div className="evmon-controls">
-          {!stopped && onRemind && (
-            <button type="button" className="evc-btn is-ghost" onClick={() => onRemind()} data-testid="evmon-remind">
-              {L.remind}
+  const hasControls = stopped ? !!onReopen : !!onRemind || !!(canStop && onEmergencyStop);
+  const controls = (
+    <div className="evmon-controls">
+      {!stopped && onRemind && (
+        <button type="button" className="evc-btn is-ghost" onClick={() => onRemind()} data-testid="evmon-remind">
+          {L.remind}
+        </button>
+      )}
+      {stopped
+        ? onReopen && (
+            <button type="button" className="evc-btn is-primary" onClick={() => onReopen()} data-testid="evmon-reopen">
+              {L.reopen}
+            </button>
+          )
+        : canStop && onEmergencyStop && (
+            <button type="button" className="evc-btn is-danger-ghost" onClick={() => onEmergencyStop()} data-testid="evmon-stop">
+              <StopIcon size={14} /> {L.emergencyStop}
             </button>
           )}
-          {stopped
-            ? onReopen && (
-                <button type="button" className="evc-btn is-primary" onClick={() => onReopen()} data-testid="evmon-reopen">
-                  {L.reopen}
-                </button>
-              )
-            : canStop && onEmergencyStop && (
-                <button type="button" className="evc-btn is-danger-ghost" onClick={() => onEmergencyStop()} data-testid="evmon-stop">
-                  <StopIcon size={14} /> {L.emergencyStop}
-                </button>
-              )}
-        </div>
-      </header>
+    </div>
+  );
 
-      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
+  // `embedded` 면 바깥 틀(.evc-root · 머리 · 탭 줄 · .evc-list)을 그리지 않는다 — 틀은
+  // 호출부의 `EvalCycleManageCanvas` 가 한 번만 그린다.
+  const Frame = embedded ? Fragment : 'div';
+  const frameProps = (className) => (embedded ? {} : { className });
 
-      {navItems.length > 0 && (
+  return (
+    <Frame {...frameProps('evc-root')}>
+      {embedded ? (
+        hasControls && (
+          <div className="evmon-embedded-actions" data-testid="evmon-embedded-actions">
+            {controls}
+          </div>
+        )
+      ) : (
+        <header className="evc-header">
+          <div>
+            <h1 className="evc-title">{L.title}</h1>
+            {cycle?.name && (
+              <p className="evc-summary" data-testid="evc-manage-context">
+                {cycle.name}
+                {manageSuffix && (
+                  <span className="evc-manage-suffix"> · {manageSuffix}</span>
+                )}
+              </p>
+            )}
+          </div>
+          {controls}
+        </header>
+      )}
+
+      {!embedded && toolbar && <div className="evc-toolbar">{toolbar}</div>}
+
+      {!embedded && navItems.length > 0 && (
         <div className="fb-tabs" data-testid="evmon-nav">
           {navItems.map((n) => (
             <button type="button" key={n.key} className="fb-tab" onClick={() => n.on()} data-testid={n.testid}>
@@ -331,7 +359,7 @@ export default function EvalCycleMonitoringCanvas({
         </p>
       )}
 
-      <div className="evc-list">
+      <Frame {...frameProps('evc-list')}>
         {/* 완료율 + 단계 진행 */}
         <section className="evc-card">
           <div className="evmon-completion">
@@ -537,7 +565,7 @@ export default function EvalCycleMonitoringCanvas({
             )}
           </section>
         )}
-      </div>
+      </Frame>
 
       {/* [PW-534] 확인 모달 (§6.9.4) — 응답 벌만 사유를 받는다. */}
       {exportKind && (
@@ -594,6 +622,6 @@ export default function EvalCycleMonitoringCanvas({
           )}
         </ModalShell>
       )}
-    </div>
+    </Frame>
   );
 }
