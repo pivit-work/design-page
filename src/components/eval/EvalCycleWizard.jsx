@@ -1814,6 +1814,16 @@ export default function EvalCycleWizard({
   singleStep = null,
   /** 인라인일 때 저장 버튼에 쓸 문구 키(없으면 `saveChanges`). */
   singleStepSaveLabel = null,
+  /**
+   * PW-800 — 단계별 일정의 켜기·끄기 단추를 **전부** 잠근다(정책 §4.5 「범위 제외」).
+   * 오픈된 사이클의 관리 탭이 쓴다 — 오픈 뒤에는 단계 구성을 바꾸지 않는다. 날짜·리마인더는
+   * 그대로 고칠 수 있다. 모양은 필수 단계의 잠금(`is-locked`)을 그대로 쓴다.
+   *
+   * ⛔ 넘기지 않으면(`false`) 종전 그대로다.
+   */
+  phaseTogglesLocked = false,
+  /** 잠근 단추 위에 띄울 이유(필수 단계는 제 이유가 먼저다). */
+  phaseTogglesLockedHint = null,
 }) {
   const isManage = !!cycle;
   /** 인라인 단일 단계인가. 숫자 0 도 유효한 단계라 `!= null` 로 판정한다. */
@@ -5487,11 +5497,11 @@ export default function EvalCycleWizard({
                         )}
                         <button
                           type="button"
-                          className={`evc-sched-toggle${enabled ? ' is-on' : ''}${ph.required ? ' is-locked' : ''}`}
-                          onClick={() => { if (!ph.required) togglePhaseEnabled(ph.id); }}
-                          disabled={ph.required}
+                          className={`evc-sched-toggle${enabled ? ' is-on' : ''}${ph.required || phaseTogglesLocked ? ' is-locked' : ''}`}
+                          onClick={() => { if (!ph.required && !phaseTogglesLocked) togglePhaseEnabled(ph.id); }}
+                          disabled={ph.required || phaseTogglesLocked}
                           /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
-                          title={ph.required ? L.phaseRequiredHint : undefined}
+                          title={ph.required ? L.phaseRequiredHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined}
                           aria-pressed={enabled}
                           data-testid={`evc-sched-toggle-${ph.id}`}
                         >
