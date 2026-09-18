@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
-import { DatePickerPopover, TIME_OPTIONS } from './AddOneOnOneModal.jsx';
+import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.jsx';
 
 /**
  * OneOnOneDetailModal — 완료된 1on1 상세(열람모드) 모달.
@@ -12,27 +12,96 @@ import { DatePickerPopover, TIME_OPTIONS } from './AddOneOnOneModal.jsx';
  *
  * detail 데이터는 전부 props(호스트/데모 소유). 탭·AI 요약 접기·일정 폼 입력만
  * UI 상태로 여기서 관리하고, onScheduleNext(payload) 로 등록을 위임한다.
+ * payload = { date, time(화면 글자), time24('HH:MM'), remind } — 저장은 time24 를 읽는다.
+ *
+ * 실데이터를 받는 호스트(pivit-work)를 위한 자리 (PW-786):
+ *  - labels / locale: 고정 문구 번역과 날짜·시간 형식. 안 넘긴 키는 한국어 기본값.
+ *    숫자가 끼는 문구(`actionsDone`·`speakManager` 등)는 함수다.
+ *  - 비어 있는 값: 요약·결정사항·재점검·액션·발화 비율·분위기·피드백 중 없는 것은
+ *    그 블록만 빼거나 탭에 빈 안내를 띄운다. 가짜 0% 를 그리지 않는다.
+ *  - calendarConnected: false 면 「Google Calendar 연동 중」 줄을 그리지 않는다.
+ *  - showRemind: false 면 「전날 오전 9시 미리 알림」 체크를 그리지 않는다 — 그 알림을
+ *    실제로 보내는 기능이 없는 호스트가 «눌러도 아무 일 없는» 칸을 보이지 않게.
+ *  - renderAvatar(person): 호스트 앱 아바타(이니셜 폴백 등). 미지정 시 avatar URL.
+ *  - scheduling: true 면 [일정 등록] 을 잠근다(중복 제출 방지).
  */
-const TABS = [
-  { key: 'summary', label: '요약' },
-  { key: 'actions', label: '액션 아이템' },
-  { key: 'analysis', label: '대화 분석' },
-  { key: 'feedback', label: '피드백' },
-];
+export const DETAIL_DEFAULT_LABELS = {
+  viewMode: '열람모드',
+  tabSummary: '요약',
+  tabActions: '액션 아이템',
+  tabAnalysis: '대화 분석',
+  tabFeedback: '피드백',
+  aiSummary: 'AI 미팅 요약',
+  fold: '접기',
+  unfold: '펼치기',
+  decisions: '주요 결정사항',
+  recheck: '재점검 필요',
+  summaryEmpty: '이 회차에는 AI 미팅 요약이 없습니다.',
+  actionsDone: (done, total) => `${done}/${total} 완료`,
+  actionsEmpty: '이 회차에 나온 액션 아이템이 없습니다.',
+  aiTag: 'AI',
+  speakRatio: '발화 비율',
+  speakManager: (pct) => `매니저 ${pct}%`,
+  speakMember: (pct) => `멤버 ${pct}%`,
+  mood: '대화분위기',
+  moodPositive: (pct) => `긍정 ${pct}%`,
+  moodNeutral: (pct) => `중립 ${pct}%`,
+  moodNegative: (pct) => `부정 ${pct}%`,
+  analysisEmpty: '이 회차에는 대화 분석 결과가 없습니다.',
+  managerFeedback: '매니저 피드백',
+  strength: '강점',
+  growth: '성장 영역 (SBI)',
+  feedbackEmpty: '이 회차에 작성된 매니저 피드백이 없습니다.',
+  scheduleTitle: '다음 회의 일정 등록',
+  date: '날짜',
+  time: '시간',
+  datePlaceholder: '연도. 월. 일.',
+  remind: '전날 오전 9시 미리 알림 추가',
+  calendarConnected: 'Google Calendar 연동 중',
+  scheduleSubmit: '일정 등록',
+  scheduleHint: '날짜를 먼저 선택하세요',
+  prevMonth: '이전 달',
+  nextMonth: '다음 달',
+};
 
-export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClose, onScheduleNext }) {
+const asList = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
+
+function Person({ person, renderAvatar }) {
+  return (
+    <span className="ood-person">
+      {renderAvatar ? renderAvatar(person) : person.avatar && <img src={person.avatar} alt="" draggable={false} />}
+      <b>{person.name}</b>
+    </span>
+  );
+}
+
+export default function OneOnOneDetailModal({
+  detail,
+  icons,
+  baseUrl = '',
+  onClose,
+  onScheduleNext,
+  locale = 'ko',
+  labels,
+  calendarConnected = true,
+  showRemind = true,
+  renderAvatar,
+  scheduling = false,
+}) {
+  const L = { ...DETAIL_DEFAULT_LABELS, ...(labels || {}) };
   const [tab, setTab] = useState('summary');
   const [summaryOpen, setSummaryOpen] = useState(true);
   // 날짜/시간 UI 는 일정 추가 모달(AddOneOnOneModal)과 동일한 picker/dropdown 을 공유한다.
+  // 시간은 로케일 무관 'HH:MM' 으로 들고, 화면 글자만 formatTime 으로 만든다.
   const [date, setDate] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
-  const [time, setTime] = useState('오전 10:00');
+  const [time, setTime] = useState('10:00');
   const [timeOpen, setTimeOpen] = useState(false);
   const [remind, setRemind] = useState(true);
   const closePopovers = () => { setDateOpen(false); setTimeOpen(false); };
   const dateLabel = date
-    ? `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
-    : '연도. 월. 일.';
+    ? new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(date)
+    : L.datePlaceholder;
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -41,31 +110,40 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
   }, [onClose]);
 
   if (!detail) return null;
-  const doneCount = detail.actions.filter((a) => a.done).length;
+  const tabs = [
+    { key: 'summary', label: L.tabSummary },
+    { key: 'actions', label: L.tabActions },
+    { key: 'analysis', label: L.tabAnalysis },
+    { key: 'feedback', label: L.tabFeedback },
+  ];
+  const summaryText = detail.summary?.text;
+  const decisions = asList(detail.summary?.decisions);
+  const recheck = asList(detail.summary?.recheck);
+  const hasSummary = !!summaryText || decisions.length > 0 || recheck.length > 0;
+  const actions = detail.actions ?? [];
+  const doneCount = actions.filter((a) => a.done).length;
+  const speaking = detail.analysis?.speaking ?? null;
+  const mood = detail.analysis?.mood ?? null;
+  const feedback = detail.feedback ?? null;
+  const hasFeedback = !!(feedback?.strength || feedback?.growth);
 
   return createPortal(
     <div className="ood-overlay" onClick={onClose}>
       <div className="ood-modal" onClick={(e) => { e.stopPropagation(); closePopovers(); }}>
         <div className="ood-head">
           <div className="ood-head-who">
-            <span className="ood-person">
-              <img src={detail.member.avatar} alt="" draggable={false} />
-              <b>{detail.member.name}</b>
-            </span>
+            <Person person={detail.member} renderAvatar={renderAvatar} />
             <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <span className="ood-person">
-              <img src={detail.manager.avatar} alt="" draggable={false} />
-              <b>{detail.manager.name}</b>
-            </span>
+            <Person person={detail.manager} renderAvatar={renderAvatar} />
           </div>
           <div className="ood-head-meta">
             <span className="ood-done-badge">{detail.status ?? 'DONE'}</span>
-            <span className="ood-mode">열람모드</span>
+            <span className="ood-mode">{L.viewMode}</span>
           </div>
         </div>
 
         <div className="ood-tabs">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <span
               key={t.key}
               className={`ood-tab${tab === t.key ? ' is-active' : ''}`}
@@ -81,27 +159,40 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
             <div className="ood-ai-head">
               <span className="ood-ai-label">
                 <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                <span>AI 미팅 요약</span>
+                <span>{L.aiSummary}</span>
               </span>
-              <button type="button" className="ood-ai-fold" onClick={() => setSummaryOpen((v) => !v)}>
-                {summaryOpen ? '접기' : '펼치기'}
-              </button>
+              {hasSummary && (
+                <button type="button" className="ood-ai-fold" onClick={() => setSummaryOpen((v) => !v)}>
+                  {summaryOpen ? L.fold : L.unfold}
+                </button>
+              )}
             </div>
-            {summaryOpen && (
+            {!hasSummary && (
+              <div className="ood-ai-block">
+                <p className="ood-ai-text">{L.summaryEmpty}</p>
+              </div>
+            )}
+            {hasSummary && summaryOpen && (
               <>
-                <div className="ood-ai-block">
-                  <p className="ood-ai-text">{detail.summary.text}</p>
-                </div>
-                <div className="ood-ai-block">
-                  <p className="ood-ai-block-title">주요 결정사항</p>
-                  <ul className="ood-ai-list">
-                    {detail.summary.decisions.map((d) => <li key={d}>{d}</li>)}
-                  </ul>
-                </div>
-                <div className="ood-ai-block">
-                  <p className="ood-ai-block-title">재점검 필요</p>
-                  <p className="ood-ai-text">{detail.summary.recheck}</p>
-                </div>
+                {summaryText && (
+                  <div className="ood-ai-block">
+                    <p className="ood-ai-text">{summaryText}</p>
+                  </div>
+                )}
+                {decisions.length > 0 && (
+                  <div className="ood-ai-block">
+                    <p className="ood-ai-block-title">{L.decisions}</p>
+                    <ul className="ood-ai-list">
+                      {decisions.map((d, i) => <li key={i}>{d}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {recheck.length > 0 && (
+                  <div className="ood-ai-block">
+                    <p className="ood-ai-block-title">{L.recheck}</p>
+                    {recheck.map((r, i) => <p className="ood-ai-text" key={i}>{r}</p>)}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -109,9 +200,10 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
 
         {tab === 'actions' && (
           <div className="ood-actions">
-            <p className="ood-actions-count">{doneCount}/{detail.actions.length} 완료</p>
+            {actions.length === 0 && <p className="ood-actions-count">{L.actionsEmpty}</p>}
+            {actions.length > 0 && <p className="ood-actions-count">{L.actionsDone(doneCount, actions.length)}</p>}
             {/* 시안 데이터에 동일 문구 항목이 중복 등장한다 — 위치 기반 키. */}
-            {detail.actions.map((action, i) => (
+            {actions.map((action, i) => (
               <div className="ood-action-row" key={i}>
                 <span className={`ood-action-check${action.done ? ' is-done' : ''}`}>
                   {action.done && (
@@ -121,10 +213,12 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
                 <span className={`ood-action-title${action.done ? ' is-done' : ''}`}>{action.title}</span>
                 <span className="ood-action-meta">{action.owner}</span>
                 <span className="ood-action-meta">{action.date}</span>
-                <span className="ood-action-ai">
-                  <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                  <span>AI</span>
-                </span>
+                {action.ai !== false && (
+                  <span className="ood-action-ai">
+                    <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+                    <span>{L.aiTag}</span>
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -132,59 +226,73 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
 
         {tab === 'analysis' && (
           <>
-            <div className="ood-analysis">
-              <p className="ood-section-title">발화 비율</p>
-              <div className="ood-speak-row">
-                <div className="ood-speak-col">
-                  <p className="ood-bar-label">매니저 {detail.analysis.speaking.manager}%</p>
-                  <div className="ood-bar"><i className="is-blue" style={{ width: `${detail.analysis.speaking.manager}%` }} /></div>
+            {!speaking && !mood && (
+              <div className="ood-analysis">
+                <p className="ood-analysis-note">{L.analysisEmpty}</p>
+              </div>
+            )}
+            {speaking && (
+              <div className="ood-analysis">
+                <p className="ood-section-title">{L.speakRatio}</p>
+                <div className="ood-speak-row">
+                  <div className="ood-speak-col">
+                    <p className="ood-bar-label">{L.speakManager(speaking.manager)}</p>
+                    <div className="ood-bar"><i className="is-blue" style={{ width: `${speaking.manager}%` }} /></div>
+                  </div>
+                  <div className="ood-speak-col">
+                    <p className="ood-bar-label">{L.speakMember(speaking.member)}</p>
+                    <div className="ood-bar"><i className="is-green" style={{ width: `${speaking.member}%` }} /></div>
+                  </div>
                 </div>
-                <div className="ood-speak-col">
-                  <p className="ood-bar-label">멤버 {detail.analysis.speaking.member}%</p>
-                  <div className="ood-bar"><i className="is-green" style={{ width: `${detail.analysis.speaking.member}%` }} /></div>
+                {detail.analysis?.note && <p className="ood-analysis-note">{detail.analysis.note}</p>}
+              </div>
+            )}
+            {mood && (
+              <div className="ood-analysis">
+                <p className="ood-section-title">{L.mood}</p>
+                {speaking && <p className="ood-bar-label">{L.speakManager(speaking.manager)}</p>}
+                <div className="ood-mood-bar">
+                  <i className="is-green" style={{ width: `${mood.positive}%` }} />
+                  <i className="is-blue" style={{ width: `${mood.neutral}%` }} />
+                  <i className="is-red" style={{ width: `${mood.negative}%` }} />
+                </div>
+                <div className="ood-mood-legend">
+                  <span><i className="is-green" /> {L.moodPositive(mood.positive)}</span>
+                  <span><i className="is-blue" /> {L.moodNeutral(mood.neutral)}</span>
+                  <span><i className="is-red" /> {L.moodNegative(mood.negative)}</span>
                 </div>
               </div>
-              <p className="ood-analysis-note">{detail.analysis.note}</p>
-            </div>
-            <div className="ood-analysis">
-              <p className="ood-section-title">대화분위기</p>
-              <p className="ood-bar-label">매니저 {detail.analysis.speaking.manager}%</p>
-              <div className="ood-mood-bar">
-                <i className="is-green" style={{ width: `${detail.analysis.mood.positive}%` }} />
-                <i className="is-blue" style={{ width: `${detail.analysis.mood.neutral}%` }} />
-                <i className="is-red" style={{ width: `${detail.analysis.mood.negative}%` }} />
-              </div>
-              <div className="ood-mood-legend">
-                <span><i className="is-green" /> 긍정 {detail.analysis.mood.positive}%</span>
-                <span><i className="is-blue" /> 중립 {detail.analysis.mood.neutral}%</span>
-                <span><i className="is-red" /> 부정 {detail.analysis.mood.negative}%</span>
-              </div>
-            </div>
+            )}
           </>
         )}
 
         {tab === 'feedback' && (
           <div className="ood-feedback">
             <div className="ood-feedback-head">
-              <p className="ood-section-title is-primary">매니저 피드백</p>
-              <span className="ood-tag">{detail.feedback.visibility}</span>
+              <p className="ood-section-title is-primary">{L.managerFeedback}</p>
+              {hasFeedback && feedback.visibility && <span className="ood-tag">{feedback.visibility}</span>}
             </div>
-            <div className="ood-feedback-card is-strength">
-              <p className="ood-feedback-label">강점</p>
-              <p className="ood-feedback-text">{detail.feedback.strength}</p>
-            </div>
-            <div className="ood-feedback-card is-growth">
-              <p className="ood-feedback-label">성장 영역 (SBI)</p>
-              <p className="ood-feedback-text">{detail.feedback.growth}</p>
-            </div>
+            {!hasFeedback && <p className="ood-analysis-note">{L.feedbackEmpty}</p>}
+            {feedback?.strength && (
+              <div className="ood-feedback-card is-strength">
+                <p className="ood-feedback-label">{L.strength}</p>
+                <p className="ood-feedback-text">{feedback.strength}</p>
+              </div>
+            )}
+            {feedback?.growth && (
+              <div className="ood-feedback-card is-growth">
+                <p className="ood-feedback-label">{L.growth}</p>
+                <p className="ood-feedback-text">{feedback.growth}</p>
+              </div>
+            )}
           </div>
         )}
 
         <div className="ood-schedule">
-          <p className="ood-section-title">다음 회의 일정 등록</p>
+          <p className="ood-section-title">{L.scheduleTitle}</p>
           <div className="ood-schedule-fields">
             <div className="ood-field">
-              <p className="ood-field-label">날짜</p>
+              <p className="ood-field-label">{L.date}</p>
               <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
@@ -195,31 +303,36 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
                   <span className="ono-add-modal-input-text">{dateLabel}</span>
                 </button>
                 {dateOpen && (
-                  <DatePickerPopover value={date} onChange={(d) => { setDate(d); setDateOpen(false); }} />
+                  <DatePickerPopover
+                    value={date}
+                    locale={locale}
+                    labels={L}
+                    onChange={(d) => { setDate(d); setDateOpen(false); }}
+                  />
                 )}
               </div>
             </div>
             <div className="ood-field">
-              <p className="ood-field-label">시간</p>
+              <p className="ood-field-label">{L.time}</p>
               <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   className="ono-add-modal-input"
                   onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); }}
                 >
-                  <span className="ono-add-modal-input-text">{time}</span>
+                  <span className="ono-add-modal-input-text">{formatTime(time, locale)}</span>
                   <Icon src={icons.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
                 </button>
                 {timeOpen && (
                   <div className="ono-add-modal-menu ono-add-modal-menu-time">
-                    {TIME_OPTIONS.map((t) => (
+                    {TIME_SLOTS.map((t) => (
                       <button
                         key={t}
                         type="button"
                         className={`ono-add-modal-menu-item ${t === time ? 'is-selected' : ''}`}
                         onClick={() => { setTime(t); setTimeOpen(false); }}
                       >
-                        {t}
+                        {formatTime(t, locale)}
                       </button>
                     ))}
                   </div>
@@ -227,37 +340,47 @@ export default function OneOnOneDetailModal({ detail, icons, baseUrl = '', onClo
               </div>
             </div>
           </div>
-          <label className="ood-remind">
-            <span
-              className={`ood-remind-check${remind ? ' is-on' : ''}`}
-              role="checkbox"
-              aria-checked={remind}
-              tabIndex={0}
-              onClick={() => setRemind((v) => !v)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRemind((v) => !v); }}
-            >
-              {remind && <Icon src={icons.check} size={12} color="var(--text-white)" baseUrl={baseUrl} />}
-            </span>
-            <span className="ood-remind-label">전날 오전 9시 미리 알림 추가</span>
-          </label>
-          <div className="ood-calendar-row">
-            <Icon src={icons.calendar} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>Google Calendar 연동 중</span>
-            <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
-              <circle cx="7" cy="7" r="7" fill="var(--fg-success-secondary)" />
-              <path d="M4 7.2 6.2 9.4 10 5.2" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
+          {showRemind && (
+            <label className="ood-remind">
+              <span
+                className={`ood-remind-check${remind ? ' is-on' : ''}`}
+                role="checkbox"
+                aria-checked={remind}
+                tabIndex={0}
+                onClick={() => setRemind((v) => !v)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRemind((v) => !v); }}
+              >
+                {remind && <Icon src={icons.check} size={12} color="var(--text-white)" baseUrl={baseUrl} />}
+              </span>
+              <span className="ood-remind-label">{L.remind}</span>
+            </label>
+          )}
+          {calendarConnected && (
+            <div className="ood-calendar-row">
+              <Icon src={icons.calendar} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{L.calendarConnected}</span>
+              <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
+                <circle cx="7" cy="7" r="7" fill="var(--fg-success-secondary)" />
+                <path d="M4 7.2 6.2 9.4 10 5.2" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
           {date ? (
             <button
               type="button"
               className="ood-schedule-btn"
-              onClick={() => onScheduleNext?.({ date, time, remind })}
+              disabled={scheduling}
+              onClick={() => onScheduleNext?.({
+                date,
+                time: formatTime(time, locale),
+                time24: time,
+                remind: showRemind && remind,
+              })}
             >
-              일정 등록
+              {L.scheduleSubmit}
             </button>
           ) : (
-            <p className="ood-schedule-hint">날짜를 먼저 선택하세요</p>
+            <p className="ood-schedule-hint">{L.scheduleHint}</p>
           )}
         </div>
       </div>

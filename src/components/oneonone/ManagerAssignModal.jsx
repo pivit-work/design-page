@@ -9,8 +9,22 @@ import Icon from '../shared/Icon.jsx';
  * candidates: [{ id, name, role, avatar, recommended?: boolean }]
  * 추천 후보가 기본 선택되며, 배너 문구도 추천 후보 이름으로 만든다.
  * onConfirm(candidate) / onLater() / onClose().
+ * labels: 고정 문구를 키별로 덮어쓴다(호스트 번역). `aiBanner` 는 추천 후보 이름이 들어가는
+ *   함수 `(name) => string` 이다. 안 넘긴 키는 한국어 기본값 (PW-786).
+ * renderAvatar(candidate): 호스트 앱의 아바타(이니셜 폴백 등)를 끼울 때. 미지정 시 avatar URL.
  */
-export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '', onClose, onConfirm, onLater }) {
+export const MANAGER_ASSIGN_DEFAULT_LABELS = {
+  title: '매니저(퍼실리테이터) 지정',
+  desc: 'AI가 대화 내용을 기반으로 역할을 자동 감지합니다. 직접 지정하시면 AI 자동 분류보다 우선 적용됩니다.',
+  aiBanner: (name) => `AI 추천: ${name} 님을 매니저로 추천합니다.`,
+  aiTag: 'AI 추천',
+  later: '나중에 (AI 분류 사용)',
+  confirm: '확인',
+  close: '닫기',
+};
+
+export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '', onClose, onConfirm, onLater, labels, renderAvatar }) {
+  const L = { ...MANAGER_ASSIGN_DEFAULT_LABELS, ...(labels || {}) };
   const recommended = candidates.find((c) => c.recommended) ?? candidates[0];
   const [selectedId, setSelectedId] = useState(recommended?.id);
 
@@ -25,19 +39,19 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
   return createPortal(
     <div className="ons-overlay" onClick={onClose}>
       <div className="ons-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="ons-close" onClick={onClose} aria-label="닫기">
+        <button type="button" className="ons-close" onClick={onClose} aria-label={L.close}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <div className="ons-head">
-          <h2 className="ons-title">매니저(퍼실리테이터) 지정</h2>
-          <p className="ons-desc">AI가 대화 내용을 기반으로 역할을 자동 감지합니다. 직접 지정하시면 AI 자동 분류보다 우선 적용됩니다.</p>
+          <h2 className="ons-title">{L.title}</h2>
+          <p className="ons-desc">{L.desc}</p>
         </div>
         {recommended && (
           <div className="ons-ai-banner">
             <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-            <span>AI 추천: {recommended.name} 님을 매니저로 추천합니다.</span>
+            <span>{L.aiBanner(recommended.name)}</span>
           </div>
         )}
         <div className="ons-candidates">
@@ -52,7 +66,9 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
               >
                 <span className={`ons-radio${isSelected ? ' is-on' : ''}`} />
                 <span className="ons-candidate-avatar">
-                  {c.avatar && <img src={c.avatar} alt="" draggable={false} />}
+                  {renderAvatar
+                    ? renderAvatar(c)
+                    : c.avatar && <img src={c.avatar} alt="" draggable={false} />}
                 </span>
                 <span className="ons-candidate-info">
                   <b className="ons-candidate-name">{c.name}</b>
@@ -61,7 +77,7 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
                 {c.recommended && (
                   <span className="ons-ai-tag">
                     <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                    <span>AI 추천</span>
+                    <span>{L.aiTag}</span>
                   </span>
                 )}
               </button>
@@ -69,8 +85,8 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
           })}
         </div>
         <div className="ons-actions">
-          <button type="button" className="ons-btn is-outline" onClick={() => onLater?.()}>나중에 (AI 분류 사용)</button>
-          <button type="button" className="ons-btn is-brand" onClick={() => onConfirm?.(selected)}>확인</button>
+          <button type="button" className="ons-btn is-outline" onClick={() => onLater?.()}>{L.later}</button>
+          <button type="button" className="ons-btn is-brand" onClick={() => onConfirm?.(selected)}>{L.confirm}</button>
         </div>
       </div>
     </div>,

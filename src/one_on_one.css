@@ -658,8 +658,10 @@
   min-width: 300px;
   transition: box-shadow 0.2s;
 }
-/* hover 그림자 — Figma 16816:33877 (김서윤 카드 hover 상태). */
-.ono-member-card:hover {
+/* hover 그림자 — Figma 16816:33877 (김서윤 카드 hover 상태).
+   눌러서 상세가 열리는 카드에만 붙인다 — 안 눌리는 카드가 떠오르면 «눌리게 생겼는데
+   안 눌리는» 상태가 된다 (PW-786). */
+.ono-member-card.is-clickable:hover {
   box-shadow: 0 32px 64px -12px rgba(10, 13, 18, 0.14), 0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
 }
 
