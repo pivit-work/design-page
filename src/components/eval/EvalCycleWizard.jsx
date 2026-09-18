@@ -4545,6 +4545,9 @@ export default function EvalCycleWizard({
               )}
               {picker && (
                 <DatePicker
+                  /* PW-788 「오늘」은 달만 넘기지 않고 오늘을 고른다 — 타임라인 일정 달력과
+                     같은 동작. 고를 수 없는 날(시작일보다 앞선 종료일)이면 달만 넘긴다. */
+                  todaySelects
                   anchorRect={picker.rect}
                   anchorEl={picker.el}
                   selectedDate={isoToDate(picker.field === 'start' ? startDate : endDate)}
@@ -5372,6 +5375,7 @@ export default function EvalCycleWizard({
               </div>
               {d0Picker && (
                 <DatePicker
+                  todaySelects
                   anchorRect={d0Picker.rect}
                   anchorEl={d0Picker.el}
                   selectedDate={isoToDate(scheduleStart)}
@@ -6112,6 +6116,7 @@ export default function EvalCycleWizard({
                 const own = datePart(scheduleOf(schedPicker.phaseId)[schedPicker.field]);
                 return (
                   <DatePicker
+                    todaySelects
                     anchorRect={schedPicker.rect}
                     anchorEl={schedPicker.el}
                     selectedDate={isoToDate(scheduleOf(schedPicker.phaseId)[schedPicker.field])}
@@ -6868,6 +6873,7 @@ export default function EvalCycleWizard({
 
               {hirePicker && (
                 <DatePicker
+                  todaySelects
                   anchorRect={hirePicker.rect}
                   anchorEl={hirePicker.el}
                   selectedDate={isoToDate(hireDateRef)}
@@ -6881,6 +6887,7 @@ export default function EvalCycleWizard({
 
               {promotionPicker && (
                 <DatePicker
+                  todaySelects
                   anchorRect={promotionPicker.rect}
                   anchorEl={promotionPicker.el}
                   selectedDate={isoToDate(promotionRef)}
