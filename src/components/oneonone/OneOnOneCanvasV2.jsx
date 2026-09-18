@@ -112,6 +112,8 @@ export default function OneOnOneCanvasV2({
   scheduleDefaultDate,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
+  // 호스트가 멤버에 `clickable: false` 를 달면 그 카드만 안 눌린다(hover 그림자도 없음) —
+  // 지난 회의가 없는 팀원처럼 열어 볼 상세가 없는 카드 (PW-786).
   onMemberClick,
   /** 최초 '1on1 진행' 시 매니저 지정 모달(17416:27850)에 노출할 후보 목록.
    *  [{ id, name, role, avatar, recommended }] — 비면 셋업 플로우를 건너뛴다. */
@@ -279,7 +281,7 @@ export default function OneOnOneCanvasV2({
                     icons={icons}
                     baseUrl={baseUrl}
                     onAction={handleMemberAction}
-                    onCardClick={(onMemberClick || m.detail) ? () => handleMemberClick(m) : undefined}
+                    onCardClick={(onMemberClick ? m.clickable !== false : !!m.detail) ? () => handleMemberClick(m) : undefined}
                     renderAvatar={renderMemberAvatar}
                     labels={L}
                   />
