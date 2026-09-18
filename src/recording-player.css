@@ -1,0 +1,135 @@
+/* ══════════════════════════════════════════════════════════════
+   녹음 재생기 한 줄 (RecordingPlayerRow) — 회의록·1on1 이 함께 쓴다
+
+   담는 것은 기획서 시안(`D. 1on1-기획/1on1-app.jsx` 의 `RecordingPlayerRow`)이
+   정한다: ▶ 재생/일시정지 · 진행 바 · 「경과 / 전체」 · 우측 「녹음 보관 D-n」.
+   생김새는 이 저장소의 공용 규칙을 따른다 — 진행 바는 `form-controls.css` 의
+   `.rsx-slider`(네이티브 range 를 투명하게 덮고 트랙·볼을 직접 그린다)와 같은
+   방식이라, 브라우저 기본 파란 썸이 나오지 않고 brand 색으로 보인다.
+
+   ⛔ 브라우저 기본 `<audio controls>` 를 쓰지 않는다 — 브라우저에 따라 재생기 안에
+   「내려받기」가 딸려 나오는데, 녹음 내려받기는 회의록·1on1 양쪽에서 금지다.
+   ══════════════════════════════════════════════════════════════ */
+
+@import './form-controls.css';
+
+.rec-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 54px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.rec-player-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.rec-player-toggle:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+.rec-player-toggle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* 진행 바 — 트랙·볼은 우리가 그리고 네이티브 range 는 투명하게 덮는다.
+   `.rsx-slider` 와 같은 구조이되 높이만 이 한 줄(54px)에 맞춰 낮춘다. */
+.rec-player-seek {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+.rec-player-seek-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  height: 4px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-quaternary);
+  overflow: hidden;
+}
+.rec-player-seek-track i {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-brand-solid);
+}
+.rec-player-seek input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.rec-player-seek input[type='range']:disabled {
+  cursor: default;
+}
+.rec-player-seek-ball {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-solid);
+  border: 1px solid var(--alpha-black-5);
+  box-shadow: 0 2px 4px rgba(10, 13, 18, 0.08);
+  pointer-events: none;
+}
+/* 총 길이를 모르면 끌 수 없다 — 볼을 숨겨 「끌 수 있다」는 인상을 주지 않는다. */
+.rec-player-seek.is-unknown .rec-player-seek-ball {
+  display: none;
+}
+
+.rec-player-time {
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-player-retention {
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* 재생기 자리를 대신하는 한 줄 안내 — 「녹음 없음」·「보관 기간이 지나 삭제」·
+   「불러오는 중」. 자리를 없애지 않는 것이 기획서가 정한 것이라(§19.4), 같은
+   높이의 상자를 그대로 두고 글만 바꾼다. */
+.rec-player.is-notice {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+/* 재생기와 아래 요약을 나누는 가는 선 (1on1 「한판 UX」). */
+.rec-player-divider {
+  height: 0;
+  border-top: 1px solid var(--border-secondary);
+}

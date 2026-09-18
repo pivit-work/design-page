@@ -4283,6 +4283,17 @@ button.ono-add-modal-input { cursor: pointer; }
 .omn-add-input { flex: 1; min-width: 0; height: 38px; padding: 8px 12px; background: var(--alpha-black-3); border: none; border-radius: var(--radius-md); font-family: inherit; font-size: 16px; line-height: 24px; color: var(--text-primary); outline: none; }
 .omn-add-input::placeholder { color: var(--text-placeholder); }
 .omn-add-btn { height: 38px; padding: 10px 16px; display: flex; align-items: center; background: var(--alpha-black-3); border: none; border-radius: var(--radius-md); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-secondary); cursor: pointer; }
+.omn-add-btn:disabled { color: var(--text-quaternary); cursor: not-allowed; }
+.omn-add-input:disabled { cursor: not-allowed; }
+/* 저장 상태·불러오는 중·불러오기 실패 — 호스트(앱)가 값을 쥘 때만 나온다.
+   데모(혼자 도는 모드)에는 저장이 없어 이 줄들이 그려지지 않는다. */
+.omn-status { font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); }
+.omn-status.is-ok { color: var(--text-brand-tertiary); }
+.omn-status.is-error { color: var(--utility-error-700); }
+.omn-placeholder { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
+.omn-error { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--utility-error-200); border-radius: var(--radius-lg); background: var(--utility-error-50); font-size: 14px; font-weight: 500; line-height: 20px; color: var(--utility-error-700); }
+.omn-error-retry { flex: none; padding: 6px 12px; border: none; border-radius: var(--radius-sm); background: var(--colors-background-bgErrorSolid, #f04438); color: var(--text-white); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; cursor: pointer; }
+.omn-limit { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 
 /* ═══ 최초 1on1 진행 셋업 모달 (MicPermissionModal / ManagerAssignModal)
    — Figma 17416:27675 / 17416:27850. 공통 650px 셸 ═══ */

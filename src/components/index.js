@@ -7,6 +7,11 @@ export { default as ModalShell } from './shared/ModalShell.jsx';
 export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
 export { default as Toast } from './shared/Toast.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
+export {
+  default as RecordingPlayerRow,
+  RecordingPlayerDivider,
+} from './shared/RecordingPlayerRow.jsx';
+export { default as AiFailBox } from './shared/AiFailBox.jsx';
 
 // Layout
 export { default as Sidebar } from './layout/Sidebar.jsx';
@@ -104,6 +109,7 @@ export {
   LiveGuideCard as OneOnOneLiveGuideCard,
   OneOnOneMemberCanvas,
   OneOnOneMemberMeetingsCanvas,
+  ManagerNoteModal,
   PROGRESS_COLORS as ONEONONE_PROGRESS_COLORS,
   STATUS_BADGE as ONEONONE_STATUS_BADGE,
   TAG_TYPES as ONEONONE_TAG_TYPES,
