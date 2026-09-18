@@ -104,6 +104,18 @@
   opacity: 0.9;
 }
 
+/* 처리 중 잠금(`busy`). hover 규칙보다 뒤·같은 무게로 둬야 잠긴 버튼이 hover 로 밝아지지 않는다. */
+.pw-confirm-btn:disabled,
+.pw-confirm-btn.is-primary:disabled:hover,
+.pw-confirm-btn.is-danger:disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pw-confirm-btn.is-ghost:disabled:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
 .pw-confirm-check {
   display: flex;
   align-items: center;

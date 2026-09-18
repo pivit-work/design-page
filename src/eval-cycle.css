@@ -577,6 +577,54 @@
   font-size: var(--font-size-text-xs, 11px);
   color: var(--utility-error-600, #d92d20);
 }
+/* [PW-602] [일정 저장] 뒤 확인 창 — 바뀐 단계만 «이전 → 변경» 두 줄로 보인다.
+   창 틀은 앱 공용 확인 창(`.pw-confirm-*`)이고, 여기는 그 본문 안의 목록만 칠한다. */
+.evc-sched-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evc-sched-confirm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 6px);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.evc-sched-confirm-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary);
+  white-space: normal;
+  line-height: 1.5;
+}
+.evc-sched-confirm-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-sched-confirm-line {
+  display: flex;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.evc-sched-confirm-line.is-after {
+  color: var(--text-brand-secondary, var(--utility-blue-600));
+  font-weight: 600;
+}
+.evc-sched-confirm-tag {
+  flex: none;
+  min-width: 2.5em;
+  color: var(--text-quaternary, var(--text-tertiary));
+  font-weight: 400;
+}
 /* [PW-614] 지난 날짜 단계의 평가지 잠금 안내. 오류(빨강)가 아니라 «경고»다 —
    저장을 막지 않으므로 오류색을 쓰면 못 누르는 줄로 읽힌다. */
 .evc-sched-modal-warn {
