@@ -1,4 +1,6 @@
 @import './index.css';
+/* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
+@import './datepicker.css';
 
 /* ════════════════════════════════════════════════════════════
    성과 평가 사이클 — HR 관리 화면 (EvalCycleHrCanvas)

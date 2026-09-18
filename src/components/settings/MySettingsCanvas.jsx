@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import assetUrl from '../shared/assetUrl.js';
+import DateInput from '../shared/DateInput.jsx';
+import TimeInput from '../shared/TimeInput.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon } from './settingsIcons.jsx';
 
 /**
@@ -640,8 +642,8 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
                 onChange={(e) => setDep((p) => ({ ...p, relation: e.target.value }))} aria-label={L.dependentRelation}>
                 {Object.entries(L.relationOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
-              <input className="admin-emp-input" type="date" value={dep.dateOfBirth}
-                onChange={(e) => setDep((p) => ({ ...p, dateOfBirth: e.target.value }))} aria-label={L.dependentDob} />
+              <DateInput className="admin-emp-input" value={dep.dateOfBirth}
+                onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob} />
             </div>
             <div className="msc-add-actions">
               <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(false)}>{L.cancel}</button>
@@ -853,8 +855,8 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
               <input className="admin-emp-input" placeholder={L.fields.certName} value={d.name || ''} onChange={(e) => setD((p) => ({ ...p, name: e.target.value }))} aria-label={L.fields.certName} />
               <input className="admin-emp-input" placeholder={L.fields.issuer} value={d.issuer || ''} onChange={(e) => setD((p) => ({ ...p, issuer: e.target.value }))} aria-label={L.fields.issuer} />
               <input className="admin-emp-input" placeholder={L.fields.credentialNo} value={d.credentialNo || ''} onChange={(e) => setD((p) => ({ ...p, credentialNo: e.target.value }))} aria-label={L.fields.credentialNo} />
-              <input className="admin-emp-input" type="date" value={d.issuedDate || ''} onChange={(e) => setD((p) => ({ ...p, issuedDate: e.target.value }))} aria-label={L.fields.issuedDate} />
-              <input className="admin-emp-input" type="date" value={d.expiryDate || ''} onChange={(e) => setD((p) => ({ ...p, expiryDate: e.target.value }))} aria-label={L.fields.expiryDate} />
+              <DateInput className="admin-emp-input" value={d.issuedDate || ''} onChange={(v) => setD((p) => ({ ...p, issuedDate: v }))} aria-label={L.fields.issuedDate} />
+              <DateInput className="admin-emp-input" value={d.expiryDate || ''} onChange={(v) => setD((p) => ({ ...p, expiryDate: v }))} aria-label={L.fields.expiryDate} />
             </div>
             <div className="msc-add-actions">
               <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
@@ -1629,11 +1631,10 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.dateOfBirth}>
-                    <input
+                    <DateInput
                       className="admin-emp-input"
-                      type="date"
                       value={draft.dateOfBirth || ''}
-                      onChange={(e) => setField('dateOfBirth')(e.target.value)}
+                      onChange={(v) => setField('dateOfBirth')(v)}
                       aria-label={labels.profile.dateOfBirth}
                     />
                   </Field>
@@ -1701,20 +1702,18 @@ export default function MySettingsCanvas({
                 <div className="admin-section-label">{labels.profile.workInfo}</div>
                 <div className="msc-grid-2col">
                   <Field label={labels.profile.workStart} hint={labels.profile.workHoursHint}>
-                    <input
+                    <TimeInput
                       className="admin-emp-input"
-                      type="time"
                       value={draft.workStart || ''}
-                      onChange={(e) => setField('workStart')(e.target.value)}
+                      onChange={(v) => setField('workStart')(v)}
                       aria-label={labels.profile.workStart}
                     />
                   </Field>
                   <Field label={labels.profile.workEnd} hint={labels.profile.workHoursHint}>
-                    <input
+                    <TimeInput
                       className="admin-emp-input"
-                      type="time"
                       value={draft.workEnd || ''}
-                      onChange={(e) => setField('workEnd')(e.target.value)}
+                      onChange={(v) => setField('workEnd')(v)}
                       aria-label={labels.profile.workEnd}
                     />
                   </Field>
@@ -1731,8 +1730,7 @@ export default function MySettingsCanvas({
                 <Field label={labels.profile.joinDate}>
                   <input
                     className="admin-emp-input is-readonly"
-                    type="date"
-                    value={profile.joinDate || ''}
+                    value={(profile.joinDate || '').slice(0, 10)}
                     readOnly
                     aria-label={labels.profile.joinDate}
                   />

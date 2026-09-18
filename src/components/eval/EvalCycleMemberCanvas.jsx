@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
+import { resolveUiLocale } from '../shared/uiLocale.js';
 import {
   TrendIcon,
   TargetIcon,
@@ -842,7 +843,8 @@ export default function EvalCycleMemberCanvas({
               {autoSaving
                 ? L.autoSaving
                 : fill(L.autoSaved, {
-                    time: autoSavedAt.toLocaleTimeString([], {
+                    // 로케일을 안 주면 브라우저 언어를 따라 「03:12 PM」 이 된다 (PW-793)
+                    time: autoSavedAt.toLocaleTimeString(resolveUiLocale(), {
                       hour: '2-digit',
                       minute: '2-digit',
                     }),

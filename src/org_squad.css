@@ -13,6 +13,8 @@
    ══════════════════════════════════════════════════ */
 
 @import './form-controls.css';
+/* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
+@import './datepicker.css';
 
 /* ── Toolbar (제목 + 편집 모드 토글) ── */
 .sq-toolbar {

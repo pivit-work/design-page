@@ -6,6 +6,7 @@
  * `.ai-empty-state`(이 저장소 action_items.css 로 옮김), 편집기는 기존
  * `.ai-row-meta` · `.ai-select` · `.ai-kr-btn` (pivit-work PW-766). 문구는 전부 소비자가 넘긴다.
  */
+import DateInput from '../shared/DateInput.jsx';
 
 /**
  * 빈 목록 — 왜 비었는지 한 줄 + 도움말 한 줄 + 다음 행동 버튼 하나
@@ -40,11 +41,10 @@ export function ActionItemDeadlineEditor({
 }) {
   return (
     <span className="ai-row-meta">
-      <input
-        type="date"
+      <DateInput
         className="ai-select"
         value={value}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={(v) => onChange?.(v)}
         aria-label={labels.input}
       />
       <button type="button" className="ai-kr-btn is-linked" onClick={onSave}>

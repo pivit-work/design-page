@@ -6,6 +6,41 @@ import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import { isPastScheduleStart, phaseHasTemplate } from './evalSchedulePast.js';
+import DateInput from '../shared/DateInput.jsx';
+import TimeInput from '../shared/TimeInput.jsx';
+
+/**
+ * 일정 수정 창의 날짜+시각 한 줄 (PW-793). 종전 `datetime-local` 칸은 영어 브라우저에서
+ * `09/29/2026, 09:00 AM` 으로 보였다 — 표기를 브라우저 언어가 정해서 앱이 못 고친다.
+ * 마법사 3단계와 같은 모양(날짜 칸 + 24시간 시각 칸)으로 바꾸고, 값은 종전 그대로
+ * `YYYY-MM-DDTHH:MM` 한 덩어리로 주고받는다.
+ */
+const SCHED_DEFAULT_TIME = { start: '09:00', end: '18:00' };
+function SchedDateTime({ value, field, min, onChange, dateLabel, timeLabel, testId }) {
+  const v = String(value || '');
+  const date = v.slice(0, 10);
+  const time = v.length >= 16 ? v.slice(11, 16) : '';
+  return (
+    <span className="evc-sched-dt">
+      <DateInput
+        className="evc-input evc-date-btn"
+        value={date}
+        min={min}
+        onChange={(d) => onChange(d ? `${d}T${time || SCHED_DEFAULT_TIME[field]}` : '')}
+        aria-label={dateLabel}
+        data-testid={testId}
+      />
+      <TimeInput
+        className="evc-input evc-time-input"
+        value={time}
+        disabled={!date}
+        onChange={(t) => onChange(`${date}T${t || SCHED_DEFAULT_TIME[field]}`)}
+        aria-label={timeLabel}
+        data-testid={`${testId}-time`}
+      />
+    </span>
+  );
+}
 
 /**
  * EvalCycleHrCanvas — HR 성과평가 사이클 관리 화면(목록) 정본 컴포넌트.
@@ -609,12 +644,13 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                 <div className="evc-sched-modal-fields">
                   <label className="evc-sched-modal-field">
                     <span>{L.startDateTime ?? L.startDate}</span>
-                    <input
-                      type="datetime-local"
-                      className="evc-input"
+                    <SchedDateTime
                       value={rows[id]?.start ?? ''}
-                      onChange={(e) => setField(id, 'start', e.target.value)}
-                      data-testid={`evc-sched-start-${id}`}
+                      field="start"
+                      onChange={(v) => setField(id, 'start', v)}
+                      dateLabel={L.startDate}
+                      timeLabel={L.startTime}
+                      testId={`evc-sched-start-${id}`}
                     />
                     {/* [PW-435 ①] 위자드 3단계와 **같은 표기**. 같은 값을 두 화면이
                         다르게 보이면 그 자체가 혼선이다. */}
@@ -629,13 +665,14 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                   <span className="evc-sched-modal-tilde">~</span>
                   <label className="evc-sched-modal-field">
                     <span>{L.endDateTime ?? L.endDate}</span>
-                    <input
-                      type="datetime-local"
-                      className="evc-input"
+                    <SchedDateTime
                       value={rows[id]?.end ?? ''}
-                      min={rows[id]?.start || undefined}
-                      onChange={(e) => setField(id, 'end', e.target.value)}
-                      data-testid={`evc-sched-end-${id}`}
+                      field="end"
+                      min={(rows[id]?.start || '').slice(0, 10) || undefined}
+                      onChange={(v) => setField(id, 'end', v)}
+                      dateLabel={L.endDate}
+                      timeLabel={L.endTime}
+                      testId={`evc-sched-end-${id}`}
                     />
                     <span
                       className="evc-sched-stamp is-end"

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
+import TimeInput from '../shared/TimeInput.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
@@ -5535,11 +5536,10 @@ export default function EvalCycleWizard({
                                   ariaLabel={field === 'start' ? L.startDate : L.endDate}
                                   testId={`evc-sched-${field}-${ph.id}`}
                                 />
-                                <input
-                                  type="time"
+                                <TimeInput
                                   className="evc-input evc-time-input"
                                   value={timePart(sc[field], field)}
-                                  onChange={(e) => updateSchedTime(ph.id, field, e.target.value)}
+                                  onChange={(v) => updateSchedTime(ph.id, field, v)}
                                   disabled={!datePart(sc[field])}
                                   aria-label={field === 'start' ? L.startTime : L.endTime}
                                   data-testid={`evc-sched-${field}-time-${ph.id}`}
@@ -5624,11 +5624,10 @@ export default function EvalCycleWizard({
                                     </span>
                                     <span className="evc-rm-inline">
                                       <span className="evc-rm-unit">{L.reminderTime}</span>
-                                      <input
-                                        type="time"
+                                      <TimeInput
                                         className="evc-rm-field"
                                         value={rm.time}
-                                        onChange={(e) => updateReminder(ph.id, rm.id, 'time', e.target.value)}
+                                        onChange={(v) => updateReminder(ph.id, rm.id, 'time', v)}
                                       />
                                     </span>
                                     <span className="evc-rm-channels">
@@ -6915,6 +6914,7 @@ export default function EvalCycleWizard({
                   todaySelects
                   anchorRect={hirePicker.rect}
                   anchorEl={hirePicker.el}
+                  labels={pickerLabels}
                   selectedDate={isoToDate(hireDateRef)}
                   onSelect={(d) => {
                     setHireDateRef(dateToIso(d));
@@ -6929,6 +6929,7 @@ export default function EvalCycleWizard({
                   todaySelects
                   anchorRect={promotionPicker.rect}
                   anchorEl={promotionPicker.el}
+                  labels={pickerLabels}
                   selectedDate={isoToDate(promotionRef)}
                   onSelect={(d) => {
                     setPromotionRef(dateToIso(d));

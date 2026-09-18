@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, CloseIcon, PlusIcon } from './squadIcons.jsx';
 
 export default function SquadFormCard({
@@ -58,18 +59,18 @@ export default function SquadFormCard({
       <div className="sq-field-row">
         <div>
           <div className="sq-field-label">시작일 (필수)</div>
-          <input
-            type="date" value={form.startDate} aria-label="시작일"
+          <DateInput
+            value={form.startDate} aria-label="시작일"
             className="sq-field sq-field-date"
-            onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+            onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
           />
         </div>
         <div>
           <div className="sq-field-label">종료일 (선택)</div>
-          <input
-            type="date" value={form.endDate} aria-label="종료일"
+          <DateInput
+            value={form.endDate} aria-label="종료일"
             className={`sq-field sq-field-date${errors.endDate ? ' is-invalid' : ''}`}
-            onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+            onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
           />
         </div>
       </div>
