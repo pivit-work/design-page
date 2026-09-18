@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
+// 앱 공용 확인 창. 이 파일에도 같은 이름의 지역 `ConfirmModal`(사이클 삭제·일시 중단)이 있어 이름을 가른다.
+import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import { isPastScheduleStart, phaseHasTemplate } from './evalSchedulePast.js';
@@ -59,6 +61,14 @@ const DEFAULT_LABELS = {
   editScheduleOrderErr: '종료 일시는 시작 일시와 같거나 이후여야 합니다.',
   editScheduleSave: '일정 저장',
   toastScheduleSaved: '일정이 수정되었습니다',
+  // PW-602 — [일정 저장] 뒤 한 번 더 묻는 창. 바뀐 단계만 «이전 → 변경»으로 보인다.
+  scheduleConfirmTitle: '일정을 이렇게 바꿀까요?',
+  scheduleConfirmBody: '아래 {{count}}개 단계의 일정이 바뀝니다. 저장하면 해당 단계 담당자에게 알림이 발송됩니다.',
+  scheduleConfirmBefore: '이전',
+  scheduleConfirmAfter: '변경',
+  scheduleConfirmEmpty: '미정',
+  scheduleConfirmSave: '저장',
+  scheduleConfirmBack: '다시 고치기',
   // PW-614 · 정책 §5.2.1-A — 지난 날짜는 «알리되 막지 않는다». 대상 기간을 벗어난 것
   // 자체는 경고하지 않는다(운영 일정이 대상 기간 뒤에 놓이는 것이 기본값이다).
   // 배지 문구는 마법사 3단계와 같은 키를 쓴다 — 같은 값이 두 화면에서 다르게 보이면 버그다.
@@ -442,7 +452,9 @@ function toLocalInput(v, defTime) {
 function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportReview }) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
-  const [rows, setRows] = useState(() => {
+  // 연 순간의 값. PW-602 — 「무엇이 바뀌었나」를 이것과 견준다. 입력 칸과 «같은 정규화»
+  // (`toLocalInput`)를 거친 값이라, 날짜만 저장된 단계를 안 건드려도 바뀐 것으로 잡히지 않는다.
+  const [initialRows] = useState(() => {
     const init = {};
     for (const id of phases) {
       const s = rs.schedule?.[id] ?? {};
@@ -453,6 +465,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
     }
     return init;
   });
+  const [rows, setRows] = useState(initialRows);
   const setField = (id, field, value) =>
     setRows((r) => ({ ...r, [id]: { ...r[id], [field]: value } }));
 
@@ -486,6 +499,35 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
      즉시 값이 바뀌는 ref 로 잠근다. */
   const inFlight = useRef(false);
 
+  /**
+   * PW-602 (커트 결정 2026-09-18) — [일정 저장]은 곧바로 저장하지 않고, 바뀐 단계만 모아
+   * «이전 → 변경»을 보여 주는 확인 창을 한 번 더 띄운다. 일정은 담당자 알림과 평가지 잠금으로
+   * 곧장 이어져, 여러 칸을 고치다 뜻하지 않은 칸까지 바뀐 채 저장되면 알림이 이미 나간 뒤다.
+   * 아무것도 안 바꿨으면 물을 것도 저장할 것도 없으니 창 없이 닫는다(알림도 안 나간다).
+   */
+  const changed = phases.filter(
+    (id) =>
+      (rows[id]?.start ?? '') !== (initialRows[id]?.start ?? '') ||
+      (rows[id]?.end ?? '') !== (initialRows[id]?.end ?? ''),
+  );
+  const [confirming, setConfirming] = useState(false);
+  /* 확인 창의 한 줄 — `시작 ~ 종료`. 비어 있는 끝은 「미정」(—만 두면 무엇이 빠졌는지 안 읽힌다).
+     컴포넌트 안에 두는 이유: 앱의 문구 전달 가드가 이 몸통에서 읽는 문구 이름을 뽑아 대조한다. */
+  const formatRange = (r) => {
+    const one = (v) => (v ? stampScheduleDateTime(v, L) : L.scheduleConfirmEmpty);
+    return `${one(r?.start)} ~ ${one(r?.end)}`;
+  };
+
+  const requestSave = () => {
+    if (hasError || inFlight.current) return;
+    if (changed.length === 0) {
+      onCancel();
+      return;
+    }
+    setSaveFailed(false);
+    setConfirming(true);
+  };
+
   const handleSave = async () => {
     if (hasError || inFlight.current) return;
     inFlight.current = true;
@@ -499,6 +541,8 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
       await onSave(cycle.id, schedule);
     } catch {
       // 사유는 «누른 자리 옆»에 적는다 — 토스트는 스쳐 지나가고, 그때 창은 이미 닫힌 뒤였다.
+      // 확인 창은 걷는다 — 고쳐 넣던 값이 남아 있는 일정 창으로 돌아가 다시 누르게 한다.
+      setConfirming(false);
       setSaveFailed(true);
       setSaving(false);
       inFlight.current = false;
@@ -507,7 +551,11 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
     // 이미 사라진 컴포넌트에 상태를 쓰게 된다.
   };
 
+  /* 🔴 확인 창은 일정 창 막(`.evc-modal-overlay`)의 «형제»로 둔다. 포털 안의 클릭도 React
+     트리를 따라 올라가므로, 막 안에 두면 확인 창 막을 누른 클릭이 일정 창의 onCancel 까지
+     올라가 고쳐 넣던 일정 창이 통째로 닫힌다. */
   return createPortal(
+    <>
     <div className="evc-modal-overlay" onClick={onCancel}>
       <div
         className="evc-modal is-wide evc-sched-modal"
@@ -633,14 +681,56 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
             type="button"
             className="evc-btn is-primary"
             disabled={hasError || saving}
-            onClick={handleSave}
+            onClick={requestSave}
             data-testid="evc-sched-save"
           >
-            {saving ? L.submitting : L.editScheduleSave}
+            {L.editScheduleSave}
           </button>
         </div>
       </div>
-    </div>,
+    </div>
+    {confirming && (
+      <AppConfirmModal
+        testId="evc-sched-confirm"
+        title={L.scheduleConfirmTitle}
+        body={
+          <div className="evc-sched-confirm">
+            <div>{fill(L.scheduleConfirmBody, { count: changed.length })}</div>
+            <ul className="evc-sched-confirm-list">
+              {changed.map((id) => (
+                <li
+                  key={id}
+                  className="evc-sched-confirm-row"
+                  data-testid={`evc-sched-confirm-row-${id}`}
+                >
+                  <span className="evc-sched-confirm-name">{L[PHASE_NAME_KEYS[id]] ?? id}</span>
+                  <span className="evc-sched-confirm-line">
+                    <span className="evc-sched-confirm-tag">{L.scheduleConfirmBefore}</span>
+                    <span data-testid={`evc-sched-confirm-before-${id}`}>
+                      {formatRange(initialRows[id])}
+                    </span>
+                  </span>
+                  <span className="evc-sched-confirm-line is-after">
+                    <span className="evc-sched-confirm-tag">{L.scheduleConfirmAfter}</span>
+                    <span data-testid={`evc-sched-confirm-after-${id}`}>
+                      {formatRange(rows[id])}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        }
+        confirmLabel={saving ? L.submitting : L.scheduleConfirmSave}
+        cancelLabel={L.scheduleConfirmBack}
+        busy={saving}
+        onConfirm={handleSave}
+        onCancel={() => {
+          if (!saving) setConfirming(false);
+        }}
+      />
+    )}
+    </>,
     document.body,
   );
 }
