@@ -1659,6 +1659,12 @@ export default function EvalCycleWizard({
   onSavePreset,
   onLoadPreset,
   /**
+   * PW-789 — 저장한 프리셋을 지운다. (presetId) => Promise. 실패는 «던진다» —
+   * 받은 자리에서 「지우지 못했습니다」를 적고 목록에서 빼지 않는다. 성공하면
+   * 목록(`presets`)을 새로 내려주는 것은 소비처 몫이다. 안 넘기면 삭제 버튼이 없다.
+   */
+  onDeletePreset,
+  /**
    * 관리(수정) 모드 — 기존 사이클을 넘기면 그 값으로 프리필하고 마지막 버튼이
    * '변경사항 저장'이 된다 (정책 §4.3 "관리 → 해당 사이클 위자드 진입(관리 모드)").
    * 넘기지 않으면 종전대로 신규 생성 모드.
@@ -4388,6 +4394,29 @@ export default function EvalCycleWizard({
     applyPreset(preset);
     setPresetDialogOpen(false);
     setPendingPresetId(null);
+  };
+
+  // PW-789 삭제 — 지운 프리셋은 되돌릴 수 없어 한 번 묻는다. 실패하면 그 행 아래에
+  // 적고 행은 그대로 둔다(지운 것처럼 보이지 않게).
+  const [pendingDeletePreset, setPendingDeletePreset] = useState(null);
+  const [presetDeleting, setPresetDeleting] = useState(false);
+  const [presetDeleteFailedId, setPresetDeleteFailedId] = useState(null);
+  const confirmDeletePreset = async () => {
+    const target = pendingDeletePreset;
+    if (!target || !onDeletePreset || presetDeleting) return;
+    setPresetDeleteFailedId(null);
+    setPresetDeleting(true);
+    try {
+      await onDeletePreset(target.id);
+      if (selectedPresetId === target.id) setSelectedPresetId('');
+      // 마지막 하나를 지웠으면 창을 닫는다 — 열린 채 두면 다음에 저장할 때 저절로 뜬다.
+      if (presets.length <= 1) setPresetDialogOpen(false);
+    } catch {
+      setPresetDeleteFailedId(target.id);
+    } finally {
+      setPresetDeleting(false);
+      setPendingDeletePreset(null);
+    }
   };
 
   const startFromPreset = (presetId) => {
@@ -7700,7 +7729,8 @@ export default function EvalCycleWizard({
       )}
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
-      {presetDialogOpen && (
+      {/* 마지막 하나까지 지우면 빈 창이 남는다 — 불러오기 줄도 사라지므로 창을 닫는다. */}
+      {presetDialogOpen && presets.length > 0 && (
         <div
           className="evc-modal-overlay"
           onClick={() => setPresetDialogOpen(false)}
@@ -7730,16 +7760,75 @@ export default function EvalCycleWizard({
                       })}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="evc-btn is-primary"
-                    onClick={() => startFromPreset(p.id)}
-                    data-testid={`evc-wiz-preset-start-${p.id}`}
-                  >
-                    {L.presetStart}
-                  </button>
+                  <div className="evc-preset-item-actions">
+                    {onDeletePreset && (
+                      <button
+                        type="button"
+                        className="evc-btn is-danger-ghost is-sm"
+                        onClick={() => {
+                          setPresetDeleteFailedId(null);
+                          setPendingDeletePreset({ id: p.id, name: p.name });
+                        }}
+                        data-testid={`evc-wiz-preset-delete-${p.id}`}
+                      >
+                        {L.presetDelete}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="evc-btn is-primary"
+                      onClick={() => startFromPreset(p.id)}
+                      data-testid={`evc-wiz-preset-start-${p.id}`}
+                    >
+                      {L.presetStart}
+                    </button>
+                  </div>
+                  {presetDeleteFailedId === p.id && (
+                    <span
+                      className="evc-wiz-preset-saved is-error evc-preset-item-error"
+                      role="alert"
+                      data-testid={`evc-wiz-preset-delete-failed-${p.id}`}
+                    >
+                      {L.presetDeleteFailed}
+                    </span>
+                  )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PW-789 프리셋 삭제 확인 — 불러오기 창 위에 뜬다. */}
+      {pendingDeletePreset && (
+        <div
+          className="evc-modal-overlay"
+          onClick={() => !presetDeleting && setPendingDeletePreset(null)}
+        >
+          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="evc-modal-title">{L.presetDeleteTitle}</h3>
+            <p className="evc-modal-sub" data-testid="evc-wiz-preset-delete-body">
+              {fill(L.presetDeleteBody ?? '', { name: pendingDeletePreset.name })}
+            </p>
+            <div className="evc-modal-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                disabled={presetDeleting}
+                onClick={() => setPendingDeletePreset(null)}
+                data-testid="evc-wiz-preset-delete-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-danger"
+                disabled={presetDeleting}
+                onClick={() => void confirmDeletePreset()}
+                data-testid="evc-wiz-preset-delete-confirm"
+              >
+                {presetDeleting ? L.presetDeleting : L.presetDelete}
+              </button>
             </div>
           </div>
         </div>

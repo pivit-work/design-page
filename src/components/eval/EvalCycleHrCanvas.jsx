@@ -898,6 +898,8 @@ export default function EvalCycleHrCanvas({
   cyclePresets = [],
   onSaveCyclePreset,
   onLoadCyclePreset,
+  /** PW-789 — 프리셋 삭제. (presetId) => Promise, 실패는 던진다. */
+  onDeleteCyclePreset,
   /**
    * 준비 중(draft) 사이클 설정 수정 (정책 §4.3 관리 모드).
    * (id, payload) => Promise. 넘기면 draft 카드의 '관리'가 편집 위자드를 연다.
@@ -1340,6 +1342,7 @@ export default function EvalCycleHrCanvas({
           presets={cyclePresets}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
+          onDeletePreset={onDeleteCyclePreset}
           libraryTemplates={libraryTemplates}
           libraryStatus={libraryStatus}
           onReloadLibraryTemplates={onReloadLibraryTemplates}
