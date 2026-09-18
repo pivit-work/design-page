@@ -2680,6 +2680,15 @@
   font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
+/* PW-789 — 「삭제」·「이 설정으로 시작」 두 버튼을 한 줄에. 실패 문구는 행 아래 전폭. */
+.evc-preset-item { flex-wrap: wrap; }
+.evc-preset-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  flex-shrink: 0;
+}
+.evc-preset-item-error { flex-basis: 100%; }
 
 /* ── §4.1.1 제외 조건 필터 · §4.1.2 0단계 '리뷰 & 조정' ── */
 .evc-excl-block,
