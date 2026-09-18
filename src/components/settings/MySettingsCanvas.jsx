@@ -198,6 +198,7 @@ const DEFAULT_LABELS = {
     workEnd: '근무 종료 시간',
     workHoursHint: '공개 카드와 조직도 툴팁에 표시됩니다.',
     timezone: '타임존',
+    language: '언어',
     joinDate: '입사일',
     joinDateHint: '입사일은 어드민에서만 변경 가능합니다.',
     save: '변경사항 저장',
@@ -1201,6 +1202,12 @@ export default function MySettingsCanvas({
    */
   readOnlyProfileFields = [],
   timezoneOptions = [],
+  /**
+   * 언어 칸 선택지 `{ value, label, disabled? }[]` — 값은 `profile.locale`.
+   * `disabled` 인 선택지는 목록에 보이되 고를 수 없다(아직 열지 않은 언어).
+   * 비우면 칸을 그리지 않는다(예전 동작).
+   */
+  languageOptions = [],
   photos = [],
   activePhotoId = null,
   maxPhotos = 5,
@@ -1257,6 +1264,41 @@ export default function MySettingsCanvas({
     setDraft(profile);
   }
   const setField = (key) => (value) => setDraft((prev) => ({ ...prev, [key]: value }));
+
+  const timezoneField = (
+    <Field label={labels.profile.timezone}>
+      <select
+        className="admin-emp-input"
+        value={draft.timezone || ''}
+        onChange={(e) => setField('timezone')(e.target.value)}
+        aria-label={labels.profile.timezone}
+        data-testid="profile-timezone-select"
+      >
+        {timezoneOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+  const languageField = (
+    <Field label={labels.profile.language}>
+      <select
+        className="admin-emp-input"
+        value={draft.locale || ''}
+        onChange={(e) => setField('locale')(e.target.value)}
+        aria-label={labels.profile.language}
+        data-testid="profile-language-select"
+      >
+        {languageOptions.map((opt) => (
+          <option key={opt.value} value={opt.value} disabled={!!opt.disabled}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
 
   /* ── 어드민이 관리하는 필드는 본인이 못 고친다 (PW-25) ──
      입력을 잠그기만 하면 draft 에는 원래 값이 그대로 남아 저장 페이로드에 실린다.
@@ -1677,21 +1719,15 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                 </div>
-                <Field label={labels.profile.timezone}>
-                  <select
-                    className="admin-emp-input"
-                    value={draft.timezone || ''}
-                    onChange={(e) => setField('timezone')(e.target.value)}
-                    aria-label={labels.profile.timezone}
-                    data-testid="profile-timezone-select"
-                  >
-                    {timezoneOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                {/* 언어 칸이 있으면 타임존과 한 줄로 나란히, 없으면 타임존만 예전 그대로. */}
+                {languageOptions.length > 0 ? (
+                  <div className="msc-grid-2col">
+                    {timezoneField}
+                    {languageField}
+                  </div>
+                ) : (
+                  timezoneField
+                )}
                 <Field label={labels.profile.joinDate}>
                   <input
                     className="admin-emp-input is-readonly"
