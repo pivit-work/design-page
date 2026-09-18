@@ -4,6 +4,10 @@
    위에 화면 고유 레이아웃/타일만 정의한다. prefix: msc-
    ══════════════════════════════════════════════════════════ */
 
+/* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
+@import './datepicker.css';
+
+
 .msc-canvas {
   --admin-card-shadow:
     0 1px 2px var(--colors-effects-shadows-shadowSm01, rgba(10, 13, 18, 0.06)),

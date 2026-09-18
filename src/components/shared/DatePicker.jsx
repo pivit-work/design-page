@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { datePickerLabels } from './uiLocale.js';
 
 /**
  * DatePicker — 날짜 picker 버튼 아래에 뜨는 미니 캘린더 팝오버.
@@ -16,8 +17,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
  *   onSelect     (Date) => void
  *   onClose      () => void
  *   labels       { months: string[12], weekdays: string[7], today, monthLabel(y,m), prevMonth, nextMonth }
- *                — 화면 언어를 따르게 하는 문구. **없으면 아래 영어 기본값을 그대로 쓴다**
- *                (PW-528). 기존 호출부는 아무것도 안 넘기므로 지금 화면 그대로다.
+ *                — 화면 언어를 따르게 하는 문구 (PW-528). **없는 키는 `locale` 로 만든 문구로
+ *                채운다** (PW-793) — 종전에는 영어 기본값이라 한국어 화면에서 「September
+ *                2026 · Today」 가 나왔다.
+ *   locale       화면 언어. 없으면 `<html lang>` (uiLocale.js)
  *   minDate      Date — 이 날짜 이전은 고를 수 없다(경계 포함). 없으면 하한 없음
  *   initialMonth Date — 처음 보여 줄 달. 없으면 selectedDate 의 달
  *   maxDate      Date — 이 날짜 이후는 고를 수 없다(경계 포함). 없으면 상한 없음 (PW-762)
@@ -28,12 +31,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
  * Esc 는 달력만 닫고 **바깥으로 올려 보내지 않는다** — 창 안에서 연 달력의 Esc 가
  * 창까지 닫아 쓰던 내용을 날리면 안 된다 (PW-762).
  */
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 /** 하루 단위 비교용 — 시·분을 떨어내지 않으면 「같은 날」이 하한에 걸린다. */
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
@@ -84,8 +81,10 @@ export default function DatePicker({
   initialMonth,
   maxDate,
   todaySelects = false,
+  locale,
   ...rest
 }) {
+  const auto = useMemo(() => datePickerLabels(locale), [locale]);
   const popoverRef = useRef(null);
   // PW-528 ② — 값이 비어 있으면 호출부가 `new Date()`(오늘)를 넘겨 오므로, 그대로 두면
   // 「시작일은 9월인데 빈 종료일 달력은 8월에서 열린다」가 된다. 여는 달을 따로 받는다.
@@ -169,20 +168,22 @@ export default function DatePicker({
      넘겨 어떤 키에도 문자열을 돌려주는 경우가 있어(테스트 픽스처가 그렇다), 있는지만
      보면 문자열에 .map 을 걸어 렌더 중에 터진다. */
   const months =
-    Array.isArray(labels?.months) && labels.months.length === 12 ? labels.months : MONTHS;
+    Array.isArray(labels?.months) && labels.months.length === 12 ? labels.months : auto.months;
   const weekdays =
     Array.isArray(labels?.weekdays) && labels.weekdays.length === 7
       ? labels.weekdays
-      : WEEKDAYS;
-  const todayText = typeof labels?.today === 'string' ? labels.today : 'Today';
-  const prevText = typeof labels?.prevMonth === 'string' ? labels.prevMonth : '이전 달';
-  const nextText = typeof labels?.nextMonth === 'string' ? labels.nextMonth : '다음 달';
+      : auto.weekdays;
+  const todayText = typeof labels?.today === 'string' ? labels.today : auto.today;
+  const prevText = typeof labels?.prevMonth === 'string' ? labels.prevMonth : auto.prevMonth;
+  const nextText = typeof labels?.nextMonth === 'string' ? labels.nextMonth : auto.nextMonth;
   // 한국어는 「2026년 8월」, 영어는 「August 2026」 — 어순이 달라 문자열 조립을
-  // 호출부에 맡긴다. 안 주면 지금까지의 영어 어순 그대로.
+  // 호출부에 맡길 수 있다. 달 이름만 넘기고 조립을 안 넘기면 영어 어순으로 잇는다.
   const monthLabel =
     typeof labels?.monthLabel === 'function'
       ? labels.monthLabel(viewYear, viewMonth)
-      : `${months[viewMonth]} ${viewYear}`;
+      : Array.isArray(labels?.months) && labels.months.length === 12
+        ? `${months[viewMonth]} ${viewYear}`
+        : auto.monthLabel(viewYear, viewMonth);
 
   return (
     <div {...rest} ref={popoverRef} className="dp-datepicker" style={{ left: 0, top: 0, opacity: 0 }} role="dialog">

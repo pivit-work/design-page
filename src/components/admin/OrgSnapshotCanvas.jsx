@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
+import DateInput from '../shared/DateInput.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -433,10 +434,9 @@ function OrgSnapshotStatusView({
           )}
           <div className="admin-snap-datepicker">
             <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
-            <input
-              type="date"
+            <DateInput
               value={draftDate}
-              onChange={(e) => setDraftDate(e.target.value)}
+              onChange={(v) => setDraftDate(v)}
               onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
             />
           </div>
@@ -773,7 +773,7 @@ function AppointmentSingleView({
             </div>
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentDate}</label>
-              <input type="date" className="admin-snap-input" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} />
+              <DateInput className="admin-snap-input" value={appointmentDate} onChange={setAppointmentDate} />
             </div>
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.reason}</label>
@@ -1285,7 +1285,7 @@ function AppointmentBulkView({
             <div className="admin-snap-appt-info" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0 }}>
               <div className="admin-snap-field">
                 <label className="admin-snap-field-label">{labels.appointmentDate}</label>
-                <input type="date" className="admin-snap-input" value={date} onChange={(e) => setDate(e.target.value)} />
+                <DateInput className="admin-snap-input" value={date} onChange={setDate} />
               </div>
               <div className="admin-snap-field">
                 <label className="admin-snap-field-label">{labels.reason}</label>
@@ -1492,12 +1492,11 @@ function AsOfSnapshotView({
               <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
               {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.
                   min 은 커버리지 하한 — 그 이전은 어떤 소스로도 재구성할 수 없다. */}
-              <input
-                type="date"
+              <DateInput
                 min={minDate}
                 max={today}
                 value={asOfDate}
-                onChange={(e) => onAsOfDateChange?.(e.target.value)}
+                onChange={(v) => onAsOfDateChange?.(v)}
               />
             </div>
             {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}

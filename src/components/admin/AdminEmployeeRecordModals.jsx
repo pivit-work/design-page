@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import DatePicker from '../shared/DatePicker.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import { IconLock } from './employeeExport.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
@@ -289,7 +290,7 @@ function HrList({ items, render, empty }) {
  * 신원 정보 편집 필드 — 값이 없어도 입력할 수 있어야 한다.
  * 성별·국적은 본인 프로필에서 잠긴 인사 정보라(PW-25) 여기가 유일한 입력 경로다.
  */
-function HrEditPair({ k, value, onChange, type = 'text', options }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
@@ -306,6 +307,15 @@ function HrEditPair({ k, value, onChange, type = 'text', options }) {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+      ) : date ? (
+        /* 기본 날짜 칸은 영어 브라우저에서 09/29/2026 으로 보인다 (PW-793) */
+        <DateInput
+          className="admin-emp-input"
+          value={value ?? ''}
+          onChange={onChange}
+          aria-label={k}
+          style={{ flex: 1, height: 30, fontSize: 12 }}
+        />
       ) : (
         <input
           className="admin-emp-input"
@@ -434,7 +444,7 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
               {onSaveIdentity ? (
                 <div data-testid="hr-identity-edit">
                   <HrEditPair k={L.hrPersonalEmail || '개인 이메일'} type="email" value={idDraft.personalEmail} onChange={setIdField('personalEmail')} />
-                  <HrEditPair k={L.hrBirthDate || '생년월일'} type="date" value={idDraft.birthDate} onChange={setIdField('birthDate')} />
+                  <HrEditPair k={L.hrBirthDate || '생년월일'} date value={idDraft.birthDate} onChange={setIdField('birthDate')} />
                   <HrEditPair
                     k={L.hrGender || '성별'}
                     value={idDraft.gender}
@@ -443,9 +453,9 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                   />
                   <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
                   <HrEditPair k={L.hrAddress || '주소'} value={idDraft.address} onChange={setIdField('address')} />
-                  <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} type="date" value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
-                  <HrEditPair k={L.hrLeaveStartDate || '휴직 시작일'} type="date" value={idDraft.leaveStartDate} onChange={setIdField('leaveStartDate')} />
-                  <HrEditPair k={L.hrLeaveEndDate || '휴직 종료일'} type="date" value={idDraft.leaveEndDate} onChange={setIdField('leaveEndDate')} />
+                  <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} date value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
+                  <HrEditPair k={L.hrLeaveStartDate || '휴직 시작일'} date value={idDraft.leaveStartDate} onChange={setIdField('leaveStartDate')} />
+                  <HrEditPair k={L.hrLeaveEndDate || '휴직 종료일'} date value={idDraft.leaveEndDate} onChange={setIdField('leaveEndDate')} />
                   <HrEditPair
                     k={L.hrMilitaryService || '병역'}
                     value={idDraft.militaryService}

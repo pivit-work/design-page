@@ -16,6 +16,7 @@ import {
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
   IconMore, IconPlus, IconSearch, IconSettings, IconUser, IconX,
@@ -3297,13 +3298,12 @@ function EmployeesEditPanel({
               {dateFields.map((f) => (
                 <label className="admin-emp-field" key={f.field}>
                   <span className="admin-emp-field-label">{labels.panel[f.label]}</span>
-                  <input
-                    type="date"
+                  <DateInput
                     className="admin-emp-input"
                     data-testid={`employees-panel-date-${f.field}`}
                     value={dateValue(f)}
                     disabled={!canEdit || (f.via === 'identity' && identityState !== 'ready')}
-                    onChange={(e) => setDateValue(f, e.target.value)}
+                    onChange={(v) => setDateValue(f, v)}
                   />
                 </label>
               ))}
