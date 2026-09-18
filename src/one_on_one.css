@@ -411,6 +411,7 @@
 .ono-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   font-size: var(--font-size-text-sm);
   letter-spacing: -0.04em;
@@ -432,6 +433,107 @@
   font-family: var(--font-family-body);
   font-weight: 600;
   color: var(--text-brand-secondary);
+}
+
+/* 팀 필터 (PW-720) — 「팀원 N명」 오른쪽, 같은 줄. 공용 드롭다운(.tl-select)을 이 줄의
+   글자 크기에 맞춰 콘텐츠 폭으로 줄인다(`.tl-toolbar .tl-select` 와 같은 방식). */
+.ono-meta-scope {
+  display: inline-flex;
+  flex: 0 0 auto;
+  letter-spacing: normal;
+}
+
+.ono-meta-scope .tl-select {
+  width: auto;
+}
+
+.ono-meta-scope .tl-select-trigger {
+  width: auto;
+  height: 32px;
+  padding: 4px 10px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* 팀 이름이 트리거보다 길 수 있다 — 메뉴는 트리거 폭에 묶지 않는다. */
+.ono-meta-scope .tl-select-menu {
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+}
+
+.ono-meta-scope .tl-select-value {
+  max-width: 240px;
+}
+
+/* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 테두리와 옆 글자를 경고색으로. */
+.ono-meta-scope.is-widened .tl-select-trigger {
+  border-color: var(--colors-warning-500, #f79009);
+  background: var(--colors-warning-50, #fffaeb);
+  color: var(--colors-warning-700, #b54708);
+}
+
+.ono-meta-scope-notice {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  color: var(--colors-warning-700, #b54708);
+  overflow-wrap: anywhere;
+}
+
+/* 팀원 0명 안내 (PW-720) — 매니저 뷰 `.manager-team-empty` 와 같은 규격. 새 시각 언어를
+   만들지 않는다. */
+.ono-team-empty {
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  padding: 36px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.ono-team-empty-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.ono-team-empty-desc {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.ono-team-empty-action {
+  margin-top: 8px;
+  height: 36px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.ono-team-empty-action:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .ono-add-btn {
