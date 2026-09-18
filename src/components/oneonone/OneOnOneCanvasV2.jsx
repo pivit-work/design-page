@@ -109,6 +109,15 @@ export default function OneOnOneCanvasV2({
   /** 제목 줄 「매니저」·「팀원 N명」 — 숫자가 껴 있어 호스트가 완성해 넘긴다. */
   managerLabel,
   teamCountLabel,
+  /** 팀 필터·넓힌 상태 표시 (PW-720). 모양은 `OneOnOnePageHeader` 주석 참조. */
+  scopeFilter,
+  scopeNotice,
+  /**
+   * 팀원 0명일 때의 안내 한 장 (PW-720 · policy P-Q2). { title, description, actionLabel?, onAction? }
+   * 매니저 뷰 `teamEmpty` 와 같은 모양이다. 넘기면 섹션 자리에 그린다 — 0명을 「팀 컨디션이
+   * 안정적입니다」로 그리지 않기 위해서다(호스트는 그때 `message` 를 넘기지 않는다).
+   */
+  teamEmpty,
   scheduleDefaultDate,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
@@ -191,6 +200,8 @@ export default function OneOnOneCanvasV2({
         teamCount={teamCount}
         managerLabel={managerLabel}
         teamCountLabel={teamCountLabel}
+        scopeFilter={scopeFilter}
+        scopeNotice={scopeNotice}
       >
         {!startMember && (
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
@@ -261,6 +272,24 @@ export default function OneOnOneCanvasV2({
                 <CompletionKpi data={kpis.completion} labels={L} />
                 <ActionRateKpi value={kpis.actionRate} labels={L} />
                 <SpeakRatioKpi data={kpis.speakRatio} labels={L} />
+              </div>
+            </section>
+          )}
+
+          {teamEmpty && (
+            <section className="ono-section">
+              <div className="ono-team-empty" data-testid="ono-team-empty">
+                <p className="ono-team-empty-title">{teamEmpty.title}</p>
+                <p className="ono-team-empty-desc">{teamEmpty.description}</p>
+                {teamEmpty.actionLabel && teamEmpty.onAction && (
+                  <button
+                    type="button"
+                    className="ono-team-empty-action"
+                    onClick={teamEmpty.onAction}
+                  >
+                    {teamEmpty.actionLabel}
+                  </button>
+                )}
               </div>
             </section>
           )}

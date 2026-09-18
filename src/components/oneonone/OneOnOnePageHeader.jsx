@@ -1,3 +1,5 @@
+import CustomSelect from '../timeline/CustomSelect.jsx';
+
 /**
  * 1on1 페이지 상단 제목 줄 — 타이틀 + 「매니저 · 팀원 N명」 메타 + 우측 슬롯.
  *
@@ -16,12 +18,27 @@
  * 라벨은 소비처가 번역해 넘길 수 있다(`managerLabel`·`teamCountLabel`). 안 넘기면
  * 캔버스가 쓰던 한국어 그대로라 기존 화면은 변화가 없다.
  */
+/*
+ * 팀 필터 (PW-720 · 기획 policy §20.3 · arch-design-tokens §9-O-2).
+ *
+ * 놓을 자리는 기획이 정했다 — 「팀원 N명」 오른쪽, 같은 줄. 그 줄이 이미 «범위»를 말하는
+ * 줄이고, 오른쪽 위는 [1on1 일정 추가] 가, 제목 줄은 제목 글자가 차지한다.
+ * 부품은 새로 만들지 않고 공용 드롭다운(`CustomSelect`)을 쓴다 — 그 기본 모양은
+ * `styles/timeline.css` 에 있으니 이 헤더에 필터를 넘기는 화면은 그 스타일도 불러야 한다.
+ *
+ * `scopeFilter` = { value, options: [{value,label}], onChange, ariaLabel }
+ * `scopeNotice` = 넓혀 본 상태를 알리는 글자(예: 「담당 밖까지 보는 중」). 넘기면 필터 옆에
+ *   경고색으로 붙는다 — 넓힌 상태가 평소 화면과 구별돼야 한다(policy P-Q3).
+ * 둘 다 안 넘기면 종전과 같은 화면이다.
+ */
 export default function OneOnOnePageHeader({
   title = '1on1',
   managerName,
   teamCount,
   managerLabel = '매니저',
   teamCountLabel,
+  scopeFilter,
+  scopeNotice,
   children,
 }) {
   return (
@@ -35,6 +52,22 @@ export default function OneOnOnePageHeader({
             <span className="ono-meta-count">
               {teamCountLabel ?? `팀원 ${teamCount}명`}
             </span>
+            {scopeFilter && (
+              <span className={`ono-meta-scope ${scopeNotice ? 'is-widened' : ''}`}>
+                <CustomSelect
+                  value={scopeFilter.value}
+                  onChange={scopeFilter.onChange}
+                  options={scopeFilter.options}
+                  ariaLabel={scopeFilter.ariaLabel}
+                  size="sm"
+                />
+              </span>
+            )}
+            {scopeNotice && (
+              <span className="ono-meta-scope-notice" role="status">
+                {scopeNotice}
+              </span>
+            )}
           </div>
         )}
       </div>
