@@ -5,6 +5,9 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
  *
  * 지정받지 않은 대상자 1명을 검색해 선택하고, 신청 사유(최소 20자)를 작성해 제출한다.
  * 제출 시 신청자의 매니저에게 채택 게이트가 생성된다. spec-eval-cycle §4.3.5 F3.
+ *
+ * `segment` 는 헤더 아래에 그대로 놓는다 — 본인 지명 사이클에서 상위 화면이
+ * [내 리뷰어 지정 | 자발적 리뷰 신청] 두 칸을 넣는 자리다(멤버 정책 §3.1.1 · PW-561).
  */
 
 const MIN_REASON = 20;
@@ -50,6 +53,7 @@ export default function EvalPeerVolunteerCanvas({
   candidates = [],
   labels: providedLabels,
   onSubmit,
+  segment = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [query, setQuery] = useState('');
@@ -95,6 +99,7 @@ export default function EvalPeerVolunteerCanvas({
   if (!available) {
     return (
       <div className="evc-root">
+        {segment}
         <div className="evc-empty" data-testid="evpv-empty">
           <p className="evc-empty-title">{L.emptyTitle}</p>
           <p className="evc-empty-sub">{L.emptySub}</p>
@@ -114,6 +119,7 @@ export default function EvalPeerVolunteerCanvas({
           <p className="evc-summary">{L.subtitle}</p>
         </div>
       </header>
+      {segment}
 
       <div className="evc-list">
         <section className="evc-card">

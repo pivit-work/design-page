@@ -279,3 +279,12 @@ export function CpuIcon({ size = 16 }) {
     </svg>
   );
 }
+
+// ▶ 접힘/펼침 — 오른쪽 꺾쇠. 펼치면 부모가 90° 돌린다(리더 정책 §6.3.0 · PW-561).
+export function ChevronRightIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}

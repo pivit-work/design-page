@@ -3937,6 +3937,125 @@
   max-width: 220px;
 }
 
+/* ── 동료 리뷰어 확정 — 피평가자 아코디언 (§6.3.0) · 「지정이 변경되었습니다」 (§6.3.3) · PW-561 ── */
+.evp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm, 6px);
+}
+.evp-toolbar-count {
+  margin-right: auto;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evp-group-head {
+  cursor: pointer;
+}
+.evp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-tertiary);
+}
+.evp-chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+.evp-group.is-open .evp-chevron {
+  transform: rotate(90deg);
+}
+.evp-head-confirm {
+  margin-left: auto;
+}
+.evp-group.is-open .evp-nominees {
+  margin-top: var(--spacing-md, 8px);
+}
+.evp-changed {
+  background: var(--utility-orange-50, #fff4ed);
+  color: #ea580c;
+}
+.evp-changed-hint {
+  margin: var(--spacing-sm, 6px) 0 0;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: #ea580c;
+}
+
+/* ── 동료 리뷰어 지정 (본인 지명 · PW-561) ── */
+.evpn-guide {
+  background: var(--utility-brand-50, #f0fdfa);
+  border-color: var(--utility-brand-200, #99f6e4);
+}
+.evpn-guide-title {
+  margin: 0 0 var(--spacing-xs, 4px);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--brand-solid, #0d9488);
+}
+.evpn-banner {
+  margin-bottom: 0;
+  color: var(--utility-warning-700);
+}
+.evpn-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 8px);
+  margin: var(--spacing-md, 8px) 0;
+}
+.evpn-count {
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+}
+.evpn-count.is-ok {
+  color: var(--utility-green-600);
+}
+.evpn-count.is-short {
+  color: var(--utility-warning-600, #dc6803);
+}
+.evpn-rule {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evpn-candidates {
+  max-height: 260px;
+}
+.evpn-candidate:disabled {
+  cursor: default;
+}
+.evpn-cand-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs, 4px);
+}
+.evpn-check {
+  display: inline-flex;
+  color: var(--brand-solid, #0d9488);
+}
+.evpn-lock {
+  margin-bottom: 0;
+  color: var(--text-secondary);
+}
+.evpn-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-lg, 12px);
+  flex-wrap: wrap;
+}
+.evpn-hint {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evc-root > .seg-control {
+  margin-bottom: var(--spacing-lg, 12px);
+}
+
 /* ════════════════════════════════════════════════════════════
    매니저 하향 리뷰 2단 패널 (EvalCycleLeaderCanvas)
    ════════════════════════════════════════════════════════════ */
