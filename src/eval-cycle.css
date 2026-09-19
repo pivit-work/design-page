@@ -6039,6 +6039,148 @@
   margin-top: 18px;
 }
 
+/* PW-519 보상 조정 열 · 위원회 전용 칸 · 보상·연봉 열람 권한 창 */
+.evs-cw-comp-access-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.evs-cw-comp-access-btn.is-warn {
+  color: var(--utility-warning-700);
+  border-color: var(--utility-warning-200);
+}
+.evs-cw-comp-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.evs-cw-comp-banner-text {
+  flex: 1;
+}
+.evs-cw-comp-banner-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 3px 10px;
+  background: var(--utility-warning-600, #dc6803);
+  color: var(--bg-primary, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.evs-cw-comp-banner-x {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--utility-warning-700);
+  font-size: 14px;
+  line-height: 1;
+}
+.evs-cw-comp-lock {
+  display: inline-flex;
+  align-items: center;
+}
+.evs-cw-committee-k {
+  font-weight: 700;
+  color: var(--text-tertiary, #667085);
+  margin-right: 6px;
+}
+.evs-cw-comp-locked-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-comp-access-status {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 700;
+  background: var(--utility-blue-50, #eff8ff);
+  color: var(--utility-blue-600, #1570ef);
+}
+.evs-cw-comp-access-status.is-warn {
+  background: var(--utility-warning-50);
+  color: var(--utility-warning-700);
+}
+.evs-cw-comp-access-loading {
+  margin-top: 12px;
+}
+.evs-cw-candidate.is-outside {
+  background: var(--utility-warning-50);
+}
+.evs-cw-comp-seat {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.evs-cw-comp-access-error {
+  color: var(--utility-error-700, #b42318);
+}
+
+/* PW-520 표시 항목 설정 창 */
+.evs-cw-display-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  border-radius: 10px;
+  overflow: hidden;
+}
+.evs-cw-display-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  background: var(--bg-primary, #fff);
+}
+.evs-cw-display-row.is-fixed {
+  cursor: default;
+  background: var(--utility-gray-50, #f9fafb);
+}
+.evs-cw-display-row input {
+  margin-top: 2px;
+}
+.evs-cw-display-lock {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-display-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evs-cw-display-label {
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-display-row.is-fixed .evs-cw-display-label {
+  color: var(--text-secondary, #475467);
+}
+.evs-cw-display-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+  line-height: 1.5;
+}
+.evs-cw-display-answers {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  border-radius: 10px;
+  background: var(--utility-gray-50, #f9fafb);
+}
+.evs-cw-display-readonly {
+  color: var(--utility-warning-700);
+  font-weight: 700;
+}
+.evs-cw-filter-hidden-col {
+  color: var(--utility-warning-700);
+  font-weight: 700;
+}
+
 /* §4.1 R3 실시간 등급 분포 바 */
 .evs-cw-dist {
   position: sticky;
