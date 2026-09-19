@@ -99,6 +99,8 @@ const DEFAULT_LABELS = {
   noActions: '액션아이템이 없습니다',
   transcriptTitle: '대화 원문',
   transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
+  /* 유효 발화 0건 (PW-627 · policy §11.7) — 녹음은 있었다. */
+  transcriptSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
   /* 갈린 회차의 기준점 (PW-556 R6). 인자는 «초»다 — 분 환산은 소비처가 한다. */
   transcriptOffsetNotice: (sec) =>
     `이 전문은 미팅 시작 후 ${Math.ceil(sec / 60)}분부터 기록됐습니다.`,
@@ -399,7 +401,17 @@ function TranscriptStatus({ status, retrying, error, onRetry, L }) {
     );
   }
 
-  // completed 인데 발화가 없는 경우 — 조용한 녹음 등.
+  // 받아썼는데 유효 발화가 0건 (PW-627 · policy §11.7). 재시도는 두지 않는다 —
+  // 같은 파일은 같은 결과를 낸다.
+  if (status === 'skipped') {
+    return (
+      <p className="ono-mem-hint ono-mem-center" data-testid="ono-past-stt-skipped">
+        {L.transcriptSkipped}
+      </p>
+    );
+  }
+
+  // completed 인데 발화가 없는 경우 — PW-627 이전에 저장된 회차.
   return <p className="ono-mem-hint ono-mem-center">{L.transcriptEmpty}</p>;
 }
 

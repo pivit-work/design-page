@@ -20,14 +20,21 @@
  * | `summarizing` | 전사는 끝났는데 요약이 아직 없다 |
  * | `summarizing-no-recording` | 녹음이 없는 회차의 요약 대기 — 오지 않을 전사를 기다리지 않게 문구를 가른다 |
  * | `failed` | 전사 실패 + 요약도 아직 없다 |
+ * | `skipped` | 전사는 돌았는데 유효 발화가 0건이고, 요약이 있다 (PW-627) |
+ * | `skipped-summarizing` | 위와 같은데 요약이 아직 없다 |
  * | `ready` | 요약이 있다 |
  *
  * 요약이 **있으면** 전사 상태보다 우선한다. 전사가 실패했어도 요약은 대화 원문 없이
  * 만들어질 수 있고, 그때 화면이 계속 실패만 말하면 이미 나온 산출물이 가려진다.
+ *
+ * 🔴 **`skipped` 만은 요약보다 먼저 본다** (PW-627 · policy §11.7 G4). 요약은 메모로
+ * 만들어지므로 거의 늘 도착하는데, 그때 `ready`(초록 「AI 분석 완료」)로 넘어가면
+ * 대화가 없던 녹음을 화면이 「분석 완료」라고 말한다 — 이 상태가 막으려는 바로 그것이다.
  */
 export function doneBannerState(session) {
   const stt = session?.sttStatus ?? null;
   const hasSummary = !!(session?.aiSummary && String(session.aiSummary).trim());
+  if (stt === 'skipped') return hasSummary ? 'skipped' : 'skipped-summarizing';
   if (hasSummary) return 'ready';
   if (stt === 'processing') return 'transcribing';
   if (stt === 'failed') return 'failed';
@@ -41,7 +48,8 @@ export function doneBannerState(session) {
  * 만든다**(`summarizeAfterTranscription` 은 전사 실패 뒤에도 돌아간다). 여기서
  * 멈추면 잠시 뒤 도착하는 요약을 화면이 영원히 못 받는다.
  *
- * 확정 상태는 `ready` 하나다. 다만 「영원히 안 오는 경우」가 있으므로, 폴링을
- * 무한히 도는 것은 소비처가 시도 횟수로 끊는다 — 그건 이 판정의 몫이 아니다.
+ * 확정 상태는 요약이 있는 `ready` · `skipped` 둘이다. 다만 「영원히 안 오는 경우」가
+ * 있으므로, 폴링을 무한히 도는 것은 소비처가 시도 횟수로 끊는다 — 그건 이 판정의
+ * 몫이 아니다.
  */
-export const isDonePending = (state) => state !== 'ready';
+export const isDonePending = (state) => state !== 'ready' && state !== 'skipped';

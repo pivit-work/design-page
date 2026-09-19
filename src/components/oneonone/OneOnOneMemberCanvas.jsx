@@ -126,6 +126,9 @@ const DEFAULT_LABELS = {
   transcriptPreviewTitle: 'STT 스크립트 미리보기',
   transcriptNotShared: '대화 원문은 매니저가 공개하지 않았습니다',
   transcriptEmpty: '이 회차에는 대화 기록이 없습니다',
+  /* 녹음은 있었고 받아쓰기도 돌았는데 유효 발화가 0건 (PW-627 · policy §11.7 EC-S6).
+     「대화 기록이 없다」로 쓰면 매니저가 녹음을 안 한 것으로 읽힌다 — 녹음은 있었다. */
+  transcriptSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
   /* 갈린 회차의 기준점 (PW-556 R6). 인자는 «초»다 — 분 환산은 소비처가 한다. */
   transcriptOffsetNotice: (sec) =>
     `이 전문은 미팅 시작 후 ${Math.ceil(sec / 60)}분부터 기록됐습니다.`,
@@ -492,6 +495,12 @@ function TranscriptSection({
         {!shared ? (
           <p className="ono-mem-transcript-note" data-testid="ono-transcript-locked">
             {L.transcriptNotShared}
+          </p>
+        ) : session.sttStatus === 'skipped' ? (
+          /* 받아썼는데 유효 발화가 0건 (PW-627 · policy §6.1 · EC-S6). 공개된 회차에서만
+             온다 — 서버가 전사 상태를 녹음 재생과 같은 관문으로 싣는다(INV-P5). */
+          <p className="ono-mem-transcript-note" data-testid="ono-transcript-skipped">
+            {L.transcriptSkipped}
           </p>
         ) : lines.length === 0 ? (
           <p className="ono-mem-transcript-note">{L.transcriptEmpty}</p>
