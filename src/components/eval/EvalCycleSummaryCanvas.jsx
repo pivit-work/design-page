@@ -102,6 +102,53 @@ const DEFAULT_LABELS = {
   cwCompAccessSave: '저장',
   cwCompAccessCancel: '취소',
   cwCompAccessSaveFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  cwCompColumnOff: '회사 설정에서 보상 조정 항목이 꺼져 있습니다',
+  // PW-520 표시 항목 설정
+  cwDisplayBtn: '표시 항목',
+  cwDisplayBtnHintEdit: '회사가 띄울 열·칸을 고릅니다',
+  cwDisplayBtnHintView: '인사담당자만 고칠 수 있습니다 (조회)',
+  cwDisplayTitle: '표시 항목 설정',
+  cwDisplayDesc:
+    '회사 전체에 적용되는 설정입니다. 사이클이 끝나도 남고 다음 사이클의 캘리브레이션에 그대로 쓰입니다.',
+  cwDisplayReadOnly: '인사담당자만 고칠 수 있습니다(조회 중)',
+  cwDisplayColumnsGroup: '테이블 열',
+  cwDisplaySectionsGroup: '대상자 정보 상자 칸 (행을 펼쳤을 때)',
+  cwDisplayFixedPrefix: '고정 — {why}',
+  cwDisplayFixedColumns: [
+    { key: 'no', label: '순번', why: '행 식별' },
+    { key: 'name', label: '이름', why: '행 식별' },
+    { key: 'level', label: '직급·레벨', why: '동일 레벨 비교 축 · 동급자 제외 판정에 쓴다' },
+    { key: 'grade', label: '현재 등급', why: '조정의 대상 자체' },
+    { key: 'adjust', label: '위원회 조정 등급', why: '조정의 대상 자체 — 끄면 무엇을 조정하는지가 사라진다' },
+  ],
+  cwDisplayOptionalColumns: [
+    { key: 'job', label: '직무' },
+    { key: 'team', label: '소속 팀' },
+    { key: 'lead', label: '소속 팀장' },
+    { key: 'joined', label: '입사일 / 최종 승급일' },
+    { key: 'trend', label: '과거 성과 추이' },
+    { key: 'promo', label: '승진 마킹', note: '끄면 마킹 단추도 함께 내려갑니다(값은 남습니다)' },
+    { key: 'comp', label: '보상 조정', note: '켜도 보상·연봉 열람 권한이 있는 사람에게만 값이 보입니다' },
+    { key: 'detail', label: '펼침 상세', note: '끄면 대상자 정보 상자를 아예 쓰지 않습니다' },
+  ],
+  cwDisplayFixedSections: [
+    { key: 'profile', label: '개인 프로필', why: '현재 직급·레벨이 여기 있다' },
+    { key: 'comment', label: '논의 코멘트', why: '조정 근거를 남기는 자리 — 끄면 변경 기록의 「왜」가 사라진다' },
+    { key: 'summary', label: '요약', why: '행을 판단하는 최소 재료' },
+  ],
+  cwDisplayOptionalSections: [
+    { key: 'strength', label: '강점 · 보완' },
+    { key: 'committee', label: '위원회 전용 — 승진 · 보상', note: '보상 부분은 열람 권한이 있을 때만 보입니다' },
+    { key: 'timeline', label: '직급·레벨 변동' },
+  ],
+  cwDisplayAnswersTitle: '셀프 · 조직장 · 동료 · 상향 리뷰 답변은 여기서 정하지 않습니다',
+  cwDisplayAnswersBody:
+    '평가 답변이 위원회에 보이는지는 평가 항목별 공개 범위 설정이 정합니다. 같은 질문에 답하는 자리를 둘로 두지 않으려고 이 목록에서 뺐습니다.',
+  cwDisplaySave: '저장',
+  cwDisplayCancel: '취소',
+  cwDisplayClose: '닫기',
+  cwDisplaySaveFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  cwFilterHiddenColumn: '표시 꺼진 열 조건 포함',
   cwPromoRejected: '승진 제외',
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
@@ -496,6 +543,13 @@ function gradeTone(gradeKey, orderedGrades) {
 }
 
 // TC-076/166 캘리 테이블 정렬 — 텍스트 컬럼은 로캘 비교, 등급 컬럼은 orderedGrades 순서.
+/**
+ * PW-520 정렬·필터 키 → 그 값을 보여 주는 선택 열. 회사가 그 열을 끄면 정렬은 기본 순서로
+ * 돌아가고(§4.2-A-4), 필터 조건은 그대로 걸린 채 「표시 꺼진 열 조건 포함」을 알린다.
+ */
+const SORT_KEY_COLUMN = { job: 'job', team: 'team', leader: 'lead', hireDate: 'joined' };
+const FILTER_KEY_COLUMN = { job: 'job', team: 'team', promo: 'promo' };
+
 /** PW-519 보상 조정 코드 → 배지 색. 코드값을 화면에 그대로 내지 않는다(라벨은 L.cwCompStatus). */
 const COMP_TONE = { urgent: 'red', moderate: 'accent', maintain: 'muted' };
 
@@ -790,6 +844,12 @@ export default function EvalCycleSummaryCanvas({
   compensationAccess = null,
   /** 권한 창 목록을 못 받아 왔다 — 「불러오는 중」에 멈추지 않고 실패를 알린다. */
   compensationAccessError = false,
+  /**
+   * PW-520 표시 항목 — 고칠 수 있는가(인사담당자)와 저장. 저장은 `(display) => Promise`,
+   * display = `{ columns, sections }` 선택 키 전부. 보는 값은 `calibTable.display` 가 준다.
+   */
+  canEditDisplay = false,
+  onSaveDisplaySettings,
   onOpenCompensationAccess,
   onSaveCompensationAccess,
   calibComments = [],
@@ -858,6 +918,28 @@ export default function EvalCycleSummaryCanvas({
   const [compBannerClosed, setCompBannerClosed] = useState(false);
   /** 보는 사람 기준 보상 판정 — 없으면(구 응답) 보상 열·칸을 그리지 않는다. */
   const compView = calibTable?.compensation ?? null;
+  /**
+   * PW-520 회사가 고른 표시 항목. 표와 같은 응답에 실려 와 기본값으로 먼저 그렸다가 열이 줄어드는
+   * 깜빡임이 없다. 없으면(구 응답) 전부 켜진 것으로 본다.
+   */
+  const calibDisplay = calibTable?.display ?? null;
+  const colOn = (k) => calibDisplay?.columns?.[k] !== false;
+  const secOn = (k) => calibDisplay?.sections?.[k] !== false;
+  // 보상 열은 회사가 켰을 때만 자리가 있다. 켰어도 권한이 없으면 칸만 잠긴다(PW-519).
+  const showCompCol = !!compView && colOn('comp');
+  const effectiveCalibSort =
+    calibSort.key && SORT_KEY_COLUMN[calibSort.key] && !colOn(SORT_KEY_COLUMN[calibSort.key])
+      ? { key: null, dir: 'asc' }
+      : calibSort;
+  /** 고정 5열(순번·이름·직급/레벨·현재 등급·조정 등급) + 켜진 선택 열. 빈 상태·펼친 칸이 따라 준다. */
+  const calibColCount =
+    5 +
+    ['job', 'team', 'lead', 'joined', 'trend', 'promo', 'detail'].filter(colOn).length +
+    (showCompCol ? 1 : 0);
+  const [showDisplay, setShowDisplay] = useState(false);
+  const [displayDraft, setDisplayDraft] = useState(null);
+  const [displaySaving, setDisplaySaving] = useState(false);
+  const [displaySaveError, setDisplaySaveError] = useState(false);
   const openCompAccess = () => {
     setShowCompAccess(true);
     setCompDraft(null);
@@ -868,6 +950,13 @@ export default function EvalCycleSummaryCanvas({
   // §6.3 R4 대상자 선별 필터
   const [showCalibFilter, setShowCalibFilter] = useState(false);
   const [calibFilter, setCalibFilter] = useState(EMPTY_CALIB_FILTER);
+  // PW-520 끈 열이 필터 조건에 들어 있다 — 조건은 그대로 걸고 안내만 단다(필터를 고치지 않는다).
+  const hiddenFilterInUse = [calibFilter.includeConds, calibFilter.excludeConds].some(
+    (conds) =>
+      Object.entries(conds || {}).some(
+        ([k, v]) => v?.length && FILTER_KEY_COLUMN[k] && !colOn(FILTER_KEY_COLUMN[k]),
+      ),
+  );
   // R4b 프리셋 저장 입력
   const [presetName, setPresetName] = useState('');
   const [presetShared, setPresetShared] = useState(false);
@@ -2612,6 +2701,22 @@ export default function EvalCycleSummaryCanvas({
                       })}
                     </button>
                   )}
+                  {/* PW-520 표시 항목 — 필터(행 고르기)와 별개 버튼·별개 창이다. 위원도 열어 볼 수는 있다. */}
+                  {calibDisplay && (
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost evs-cw-display-btn"
+                      title={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}
+                      onClick={() => {
+                        setDisplayDraft(null);
+                        setDisplaySaveError(false);
+                        setShowDisplay(true);
+                      }}
+                      data-testid="evs-cw-display-btn"
+                    >
+                      {L.cwDisplayBtn}
+                    </button>
+                  )}
                   {/* PW-519 — 보상·연봉 열람 권한. 인사담당자에게만 버튼이 있다(명단도 인사 정보다). */}
                   {compView?.canManage && onOpenCompensationAccess && (
                     <button
@@ -2702,7 +2807,7 @@ export default function EvalCycleSummaryCanvas({
                           rowPassesCalibFilter(r, calibFilter, filterFields),
                         )
                       : calibTable.rows;
-                    const visibleRows = sortCalibRows(filteredRows, calibSort, og);
+                    const visibleRows = sortCalibRows(filteredRows, effectiveCalibSort, og);
                     return (
                       <>
                       <CalibDistributionBar
@@ -2720,6 +2825,15 @@ export default function EvalCycleSummaryCanvas({
                             n: visibleRows.length,
                             total: calibTable.rows.length,
                           })}
+                          {hiddenFilterInUse && (
+                            <span
+                              className="evs-cw-filter-hidden-col"
+                              data-testid="evs-cw-filter-hidden-col"
+                            >
+                              {' · '}
+                              {L.cwFilterHiddenColumn}
+                            </span>
+                          )}
                           <button
                             type="button"
                             className="evs-cw-filter-clear"
@@ -2734,18 +2848,18 @@ export default function EvalCycleSummaryCanvas({
                           <thead>
                             <tr>
                               <th>{L.cwColNo}</th>
-                              <SortTh sortKey="name" label={L.cwColName} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="job" label={L.cwColJob} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="team" label={L.cwColTeam} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="level" label={L.cwColLevel} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="leader" label={L.cwColLeader} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="hireDate" label={L.cwColDates} sort={calibSort} onSort={setCalibSort} />
-                              <SortTh sortKey="current" label={L.cwColCurrent} sort={calibSort} onSort={setCalibSort} />
-                              <th>{L.cwColTrend}</th>
+                              <SortTh sortKey="name" label={L.cwColName} sort={effectiveCalibSort} onSort={setCalibSort} />
+                              {colOn('job') && <SortTh sortKey="job" label={L.cwColJob} sort={effectiveCalibSort} onSort={setCalibSort} />}
+                              {colOn('team') && <SortTh sortKey="team" label={L.cwColTeam} sort={effectiveCalibSort} onSort={setCalibSort} />}
+                              <SortTh sortKey="level" label={L.cwColLevel} sort={effectiveCalibSort} onSort={setCalibSort} />
+                              {colOn('lead') && <SortTh sortKey="leader" label={L.cwColLeader} sort={effectiveCalibSort} onSort={setCalibSort} />}
+                              {colOn('joined') && <SortTh sortKey="hireDate" label={L.cwColDates} sort={effectiveCalibSort} onSort={setCalibSort} />}
+                              <SortTh sortKey="current" label={L.cwColCurrent} sort={effectiveCalibSort} onSort={setCalibSort} />
+                              {colOn('trend') && <th>{L.cwColTrend}</th>}
                               <th>{L.cwColAdjust}</th>
-                              <th>{L.cwColPromo}</th>
-                              {compView && <th>{L.cwColComp}</th>}
-                              <th aria-label="expand"></th>
+                              {colOn('promo') && <th>{L.cwColPromo}</th>}
+                              {showCompCol && <th>{L.cwColComp}</th>}
+                              {colOn('detail') && <th aria-label="expand"></th>}
                             </tr>
                           </thead>
                           <tbody>
@@ -2760,16 +2874,18 @@ export default function EvalCycleSummaryCanvas({
                               <tr data-testid="evs-cw-row">
                                 <td className="evs-cw-num">{i + 1}</td>
                                 <td className="evs-cw-name">{row.name}</td>
-                                <td className="evs-cw-muted">{row.job || '—'}</td>
-                                <td className="evs-cw-muted">{row.team}</td>
+                                {colOn('job') && <td className="evs-cw-muted">{row.job || '—'}</td>}
+                                {colOn('team') && <td className="evs-cw-muted">{row.team}</td>}
                                 <td className="evs-cw-muted">{row.level || '—'}</td>
-                                <td className="evs-cw-muted">{row.leaderName ?? '—'}</td>
+                                {colOn('lead') && <td className="evs-cw-muted">{row.leaderName ?? '—'}</td>}
+                                {colOn('joined') && (
                                 <td>
                                   <div className="evs-cw-date">{row.hireDate ?? '—'}</div>
                                   <div className="evs-cw-date is-sub">
                                     {row.promotedAt ?? L.cwNoPromotion}
                                   </div>
                                 </td>
+                                )}
                                 <td>
                                   {row.currentGradeKey ? (
                                     <span
@@ -2781,9 +2897,11 @@ export default function EvalCycleSummaryCanvas({
                                     <span className="evs-cw-muted">—</span>
                                   )}
                                 </td>
+                                {colOn('trend') && (
                                 <td>
                                   <MiniSparkline trend={row.gradeTrend} domain={domain} />
                                 </td>
+                                )}
                                 <td>
                                   <div className="evs-cw-adjust">
                                     <span
@@ -2824,6 +2942,7 @@ export default function EvalCycleSummaryCanvas({
                                     )}
                                   </div>
                                 </td>
+                                {colOn('promo') && (
                                 <td>
                                   <div className="evs-cw-promo-cell">
                                     {row.promotionStatus === 'recommended' && (
@@ -2882,9 +3001,11 @@ export default function EvalCycleSummaryCanvas({
                                     )}
                                   </div>
                                 </td>
+                                )}
                                 {/* PW-519 §4.2 13번 보상 조정 — 권한이 없으면 열은 두고 칸만 잠근다.
-                                    열을 숨기면 사람마다 열 개수가 달라 「내 화면이 고장 났나」가 된다. */}
-                                {compView && (
+                                    열을 숨기면 사람마다 열 개수가 달라 「내 화면이 고장 났나」가 된다.
+                                    열이 통째로 없어지는 것은 회사가 껐을 때뿐이다(PW-520). */}
+                                {showCompCol && (
                                   <td data-testid="evs-cw-comp-cell">
                                     {!compView.visible ? (
                                       <span
@@ -2906,6 +3027,7 @@ export default function EvalCycleSummaryCanvas({
                                     )}
                                   </td>
                                 )}
+                                {colOn('detail') && (
                                 <td>
                                   <button
                                     type="button"
@@ -2924,10 +3046,12 @@ export default function EvalCycleSummaryCanvas({
                                     {expanded ? '−' : '+'}
                                   </button>
                                 </td>
+                                )}
                               </tr>
-                              {expanded && (
+                              {/* PW-520 — 「펼침 상세」를 끄면 대상자 정보 상자를 아예 쓰지 않는다. */}
+                              {expanded && colOn('detail') && (
                                 <tr data-testid="evs-cw-detail">
-                                  <td colSpan={compView ? 13 : 12} className="evs-cw-detail-cell">
+                                  <td colSpan={calibColCount} className="evs-cw-detail-cell">
                                     {!detail ? (
                                       <div className="evs-cw-detail-loading">
                                         {L.cwDetailLoading}
@@ -3005,8 +3129,9 @@ export default function EvalCycleSummaryCanvas({
                                               </dd>
                                             </div>
                                           </dl>
-                                          {/* R5b 직급·레벨 변동 타임라인 */}
-                                          <div className="evs-cw-timeline">
+                                          {/* R5b 직급·레벨 변동 타임라인 — PW-520 선택 칸 */}
+                                          {secOn('timeline') && (
+                                          <div className="evs-cw-timeline" data-testid="evs-cw-timeline">
                                             <div className="evs-cw-review-k">
                                               {L.cwDetailTimeline}
                                             </div>
@@ -3041,6 +3166,7 @@ export default function EvalCycleSummaryCanvas({
                                               </div>
                                             )}
                                           </div>
+                                          )}
                                         </div>
 
                                         {/* 중: 성과 요약 */}
@@ -3113,7 +3239,8 @@ export default function EvalCycleSummaryCanvas({
                                             ].filter(
                                               (a) => a.growthType && a.textAnswer,
                                             );
-                                            if (!traits.length) return null;
+                                            // PW-520 「강점·성장 영역」은 회사가 끌 수 있는 칸이다.
+                                            if (!traits.length || !secOn('strength')) return null;
                                             return (
                                               <div className="evs-cw-detail-block">
                                                 <div className="evs-cw-review-k">
@@ -3129,7 +3256,7 @@ export default function EvalCycleSummaryCanvas({
                                           })()}
                                           {/* PW-519 위원회 전용 — 승진 사유는 그대로, 보상 부분만 권한으로 가린다.
                                               칸째로 닫으면 승진 검토 사유까지 함께 사라진다(§4.5-A-2). */}
-                                          {compView && (
+                                          {compView && secOn('committee') && (
                                             <div
                                               className="evs-cw-detail-block evs-cw-committee-only"
                                               data-testid="evs-cw-committee-only"
@@ -3168,7 +3295,9 @@ export default function EvalCycleSummaryCanvas({
                                                   className="evs-cw-detail-body evs-cw-comp-locked-box"
                                                   data-testid="evs-cw-comp-locked-detail"
                                                 >
-                                                  <LockIcon size={12} /> {L.cwCompLocked}
+                                                  <LockIcon size={12} />{' '}
+                                                  {/* PW-520 — 가린 이유를 둘로 가른다. 담당자가 무엇을 만져야 하는지 알 수 있어야 한다. */}
+                                                  {colOn('comp') ? L.cwCompLocked : L.cwCompColumnOff}
                                                 </div>
                                               )}
                                             </div>
@@ -3286,6 +3415,138 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
       </div>
+
+      {/* PW-520 표시 항목 설정 창 — 고정 항목은 목록에서 빼지 않고 자물쇠와 이유로 보인다.
+          빼면 「왜 이 열은 못 끄나」를 물을 자리가 없어져 다음 사람이 누락으로 읽고 토글을 붙인다. */}
+      {showDisplay && calibDisplay && createPortal(
+        <div
+          className="evs-remind-overlay"
+          data-testid="evs-cw-display-modal"
+          onClick={() => setShowDisplay(false)}
+        >
+          <div
+            className="evs-cw-create"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const draft = displayDraft ?? calibDisplay;
+              const toggle = (group, key) =>
+                setDisplayDraft({
+                  ...draft,
+                  [group]: { ...draft[group], [key]: draft[group]?.[key] === false },
+                });
+              const group = (title, fixed, optional, groupKey) => (
+                <div className="evs-cw-create-section">
+                  <div className="evs-cw-create-lbl">{title}</div>
+                  <div className="evs-cw-display-list">
+                    {fixed.map((it) => (
+                      <div
+                        key={it.key}
+                        className="evs-cw-display-row is-fixed"
+                        data-testid={`evs-cw-display-fixed-${it.key}`}
+                      >
+                        <span className="evs-cw-display-lock">
+                          <LockIcon size={14} />
+                        </span>
+                        <span className="evs-cw-display-text">
+                          <span className="evs-cw-display-label">{it.label}</span>
+                          <span className="evs-cw-display-note">
+                            {fmt(L.cwDisplayFixedPrefix, { why: it.why })}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                    {optional.map((it) => {
+                      const on = draft[groupKey]?.[it.key] !== false;
+                      return (
+                        <label key={it.key} className="evs-cw-display-row">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={!canEditDisplay}
+                            onChange={() => toggle(groupKey, it.key)}
+                            data-testid={`evs-cw-display-toggle-${it.key}`}
+                          />
+                          <span className="evs-cw-display-text">
+                            <span className="evs-cw-display-label">{it.label}</span>
+                            {it.note ? (
+                              <span className="evs-cw-display-note">{it.note}</span>
+                            ) : null}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+              return (
+                <>
+                  <div className="evs-cw-create-title">{L.cwDisplayTitle}</div>
+                  <div className="evs-cw-create-desc">
+                    {L.cwDisplayDesc}
+                    {!canEditDisplay && (
+                      <span className="evs-cw-display-readonly" data-testid="evs-cw-display-readonly">
+                        {' · '}
+                        {L.cwDisplayReadOnly}
+                      </span>
+                    )}
+                  </div>
+                  {group(L.cwDisplayColumnsGroup, L.cwDisplayFixedColumns, L.cwDisplayOptionalColumns, 'columns')}
+                  {group(L.cwDisplaySectionsGroup, L.cwDisplayFixedSections, L.cwDisplayOptionalSections, 'sections')}
+                  {/* 평가 답변 네 칸이 목록에 «없는» 이유를 화면에서 말한다 — 없는 것은 설명되지 않으면
+                      「빠뜨렸다」로 읽힌다. 답은 평가 항목별 공개 범위 설정 한 곳이 한다(PW-433). */}
+                  <div className="evs-cw-display-answers" data-testid="evs-cw-display-answers">
+                    <div className="evs-cw-display-label">{L.cwDisplayAnswersTitle}</div>
+                    <div className="evs-cw-display-note">{L.cwDisplayAnswersBody}</div>
+                  </div>
+                  {displaySaveError && (
+                    <div className="evs-cw-create-hint evs-cw-comp-access-error" role="alert">
+                      {L.cwDisplaySaveFailed}
+                    </div>
+                  )}
+                  <div className="evs-cw-create-actions">
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      onClick={() => setShowDisplay(false)}
+                    >
+                      {canEditDisplay ? L.cwDisplayCancel : L.cwDisplayClose}
+                    </button>
+                    {canEditDisplay && (
+                      <button
+                        type="button"
+                        className="evc-btn is-primary"
+                        data-testid="evs-cw-display-save"
+                        disabled={displaySaving}
+                        onClick={async () => {
+                          setDisplaySaving(true);
+                          setDisplaySaveError(false);
+                          try {
+                            await onSaveDisplaySettings?.({
+                              columns: draft.columns,
+                              sections: draft.sections,
+                            });
+                            setShowDisplay(false);
+                          } catch {
+                            setDisplaySaveError(true);
+                          } finally {
+                            setDisplaySaving(false);
+                          }
+                        }}
+                      >
+                        {L.cwDisplaySave}
+                      </button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* PW-519 보상·연봉 열람 권한 부여 창 — 표시 항목 설정과 별개 창이다(두 스위치의 소유자가 다르다). */}
       {showCompAccess && createPortal(

@@ -6118,6 +6118,69 @@
   color: var(--utility-error-700, #b42318);
 }
 
+/* PW-520 표시 항목 설정 창 */
+.evs-cw-display-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  border-radius: 10px;
+  overflow: hidden;
+}
+.evs-cw-display-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  background: var(--bg-primary, #fff);
+}
+.evs-cw-display-row.is-fixed {
+  cursor: default;
+  background: var(--utility-gray-50, #f9fafb);
+}
+.evs-cw-display-row input {
+  margin-top: 2px;
+}
+.evs-cw-display-lock {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--text-tertiary, #667085);
+}
+.evs-cw-display-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evs-cw-display-label {
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-primary, #101828);
+}
+.evs-cw-display-row.is-fixed .evs-cw-display-label {
+  color: var(--text-secondary, #475467);
+}
+.evs-cw-display-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary, #667085);
+  line-height: 1.5;
+}
+.evs-cw-display-answers {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary, var(--utility-gray-200, #eaecf0));
+  border-radius: 10px;
+  background: var(--utility-gray-50, #f9fafb);
+}
+.evs-cw-display-readonly {
+  color: var(--utility-warning-700);
+  font-weight: 700;
+}
+.evs-cw-filter-hidden-col {
+  color: var(--utility-warning-700);
+  font-weight: 700;
+}
+
 /* §4.1 R3 실시간 등급 분포 바 */
 .evs-cw-dist {
   position: sticky;
