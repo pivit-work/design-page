@@ -19,7 +19,11 @@ import Icon from '../shared/Icon.jsx';
  * AI/저장은 소비자 콜백으로 배선한다 — 전부 고른 대상 조직(targetId)을 함께 받는다:
  *  - onDeriveObjective(scope, narrative, targetId) → Promise<{ objective: { title } }>
  *  - onExtractKrs(scope, narrative, objective, targetId) → Promise<{ keyResults: [{title,type,targetValue,unit}] }>
- *  - onFetchAlignment(scope, targetId) → Promise<{ members }>
+ *  - onFetchAlignment(scope, targetId) → Promise<{ members, emptyMessage? }>
+ *      members[].note — 미정렬 사유 문구(소비자가 번역·조합해 넘긴다. 예: 「상위 OKR 미연결 · 플랫폼팀」)
+ *      members[].canBookOneOnOne — false 면 그 사람에게 [1:1 예약] 을 두지 않는다. 조치할 사람이
+ *        본인이 아닌 사유(「상위 OKR 미연결」)가 그렇다 (pivit-specs 마법사 정책서 §3-4 · PW-729).
+ *      emptyMessage — 판정할 수 없을 때(그 단위에 저장된 KR 이 없음) 사람 목록 대신 보일 문구.
  *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성
  */
 const DEFAULT_SCOPE_CARD = {
@@ -394,17 +398,19 @@ export default function OkrSetupWizardModal({
               {!alignmentView && !error && <p className="okr-wz-empty">정합성 조회 중…</p>}
               {alignmentView && (
                 <div className="okr-wz-align">
-                  {alignmentView.members.length === 0 && (
+                  {alignmentView.emptyMessage ? (
+                    <p className="okr-wz-empty">{alignmentView.emptyMessage}</p>
+                  ) : alignmentView.members.length === 0 && (
                     <p className="okr-wz-empty">팀원이 없습니다.</p>
                   )}
-                  {alignmentView.members.map((m) => (
+                  {!alignmentView.emptyMessage && alignmentView.members.map((m) => (
                     <div className={`okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
                       <div className="okr-wz-align-info">
                         <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
                         <span className="okr-wz-align-note">{m.aligned ? '정합성 정상' : m.note}</span>
                       </div>
                       <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{m.aligned ? '정렬됨' : '미정렬'}</span>
-                      {!m.aligned && onBookOneOnOne && (
+                      {!m.aligned && m.canBookOneOnOne !== false && onBookOneOnOne && (
                         <button className="okr-btn is-brand is-sm" onClick={() => onBookOneOnOne(m.userId)}>1:1 예약</button>
                       )}
                     </div>
