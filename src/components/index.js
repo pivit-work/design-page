@@ -272,6 +272,7 @@ export { default as EvalCycleCalibrationCanvas } from './eval/EvalCycleCalibrati
 export { default as EvalCycleTeamCalibrationCanvas } from './eval/EvalCycleTeamCalibrationCanvas.jsx';
 export { default as EvalCycleTemplateCanvas } from './eval/EvalCycleTemplateCanvas.jsx';
 export { default as EvalCyclePeerTasksCanvas } from './eval/EvalCyclePeerTasksCanvas.jsx';
+export { default as EvalUpwardReviewCanvas } from './eval/EvalUpwardReviewCanvas.jsx';
 export { default as EvalFeedbackHrCanvas } from './eval/EvalFeedbackHrCanvas.jsx';
 export { default as EvalFeedbackComposeCanvas } from './eval/EvalFeedbackComposeCanvas.jsx';
 export { default as EvalShellNav } from './eval/EvalShellNav.jsx';

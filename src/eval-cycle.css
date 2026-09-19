@@ -8636,3 +8636,88 @@
   gap: var(--spacing-lg, 12px);
   flex-wrap: wrap;
 }
+
+/* ── 상향 리뷰 작성 (EvalUpwardReviewCanvas · PW-586) ─────────────────────
+   폼은 EvalCycleMemberCanvas 를 그대로 쓴다. 여기는 상향에만 있는 두 블록 —
+   평가 대상 카드와 접을 수 없는 익명 안내 — 뿐이다. 색·간격은 기존 토큰만 쓴다. */
+.evu-target {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: left;
+  gap: var(--spacing-lg, 12px);
+  background: var(--bg-secondary);
+}
+.evu-avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--utility-purple-500, #7a5af8);
+  color: #fff;
+  font-size: var(--font-size-text-md, 16px);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.evu-target-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.evu-target-relation {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-purple-700, #5925dc);
+}
+.evu-notice {
+  padding: var(--spacing-lg, 12px) var(--spacing-xl, 14px);
+  border-radius: var(--radius-md, 10px);
+  background: var(--utility-purple-50, #f4f3ff);
+  border: 1px solid var(--utility-purple-200, #d9d6fe);
+}
+.evu-notice-title {
+  margin: 0 0 var(--spacing-sm, 6px);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-sm, 13px);
+  font-weight: 700;
+  color: var(--utility-purple-700, #5925dc);
+}
+.evu-notice-list {
+  margin: 0;
+  padding-left: var(--spacing-xl, 18px);
+  font-size: var(--font-size-text-sm, 13px);
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.evu-counter {
+  margin: var(--spacing-md, 8px) 0 0;
+  padding-top: var(--spacing-md, 8px);
+  border-top: 1px solid var(--utility-purple-200, #d9d6fe);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
+.evu-counter.is-warn {
+  color: var(--utility-warning-700);
+  font-weight: 700;
+}
+.evu-leader-changed {
+  align-items: flex-start;
+}
+.evu-leader-changed-body {
+  flex: 1;
+  min-width: 0;
+}
+.evu-leader-changed-body p {
+  margin: 0 0 4px;
+}
