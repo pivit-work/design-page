@@ -70,6 +70,38 @@ const DEFAULT_LABELS = {
   cwPromoApprove: '가',
   cwPromoReject: '부',
   cwPromoApproved: '위원회 승진',
+  // PW-519 보상 조정 열 · 위원회 전용 칸 · 보상·연봉 열람 권한
+  cwColComp: '보상 조정',
+  cwCompStatus: { urgent: '시급', moderate: '필요', maintain: '유지' },
+  cwCompLocked: '보상·연봉 열람 권한이 없습니다',
+  cwCommitteeOnlyTitle: '위원회 전용 — 승진 · 보상',
+  cwPromoReasonLabel: '승진 검토 사유',
+  cwCompOpinionLabel: '보상 조정 의견',
+  cwCompUnassignedBanner:
+    '보상·연봉 열람 권한이 아직 지정되지 않아 가려져 있습니다. 인사담당자가 설정에서 지정할 수 있습니다.',
+  cwCompAssign: '지정하기',
+  cwCompBannerClose: '닫기',
+  cwCompAccessBtn: '보상 열람 권한 {n}명',
+  cwCompAccessBtnNone: '보상 열람 권한 미지정',
+  cwCompAccessTitle: '보상·연봉 열람 권한',
+  cwCompAccessDesc:
+    '권한은 사람에게 붙고 회사 전체에 적용됩니다. 위원회를 새로 만들거나 다음 사이클이 와도 달라지지 않습니다.',
+  cwCompAccessCount: '현재 {n}명이 캘리브레이션에서 보상·연봉을 볼 수 있습니다',
+  cwCompAccessNone:
+    '아직 아무도 지정되지 않아 전원에게 가려져 있습니다 — 저장 전까지 그대로 유지됩니다',
+  cwCompAccessListLabel: '위원 후보 + 인사담당자',
+  cwCompAccessSearch: '이름으로 찾기',
+  cwCompAccessSearchEmpty: '검색 결과가 없습니다.',
+  cwCompAccessOutside: '후보 밖 · 해제만 가능',
+  cwCompAccessSeats: '이번 사이클 {seats}',
+  cwCompAccessSeatChair: '위원장 {n}',
+  cwCompAccessSeatMember: '위원 {n}',
+  cwCompAccessNoSeat: '이번 사이클 위원 아님',
+  cwCompAccessLoading: '불러오는 중…',
+  cwCompAccessLoadFailed: '목록을 불러오지 못했습니다. 창을 닫고 다시 열어 주세요.',
+  cwCompAccessSave: '저장',
+  cwCompAccessCancel: '취소',
+  cwCompAccessSaveFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwPromoRejected: '승진 제외',
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
@@ -464,6 +496,9 @@ function gradeTone(gradeKey, orderedGrades) {
 }
 
 // TC-076/166 캘리 테이블 정렬 — 텍스트 컬럼은 로캘 비교, 등급 컬럼은 orderedGrades 순서.
+/** PW-519 보상 조정 코드 → 배지 색. 코드값을 화면에 그대로 내지 않는다(라벨은 L.cwCompStatus). */
+const COMP_TONE = { urgent: 'red', moderate: 'accent', maintain: 'muted' };
+
 function sortCalibRows(rows, sort, orderedGrades) {
   if (!sort?.key) return rows;
   const gradeRank = (key) => {
@@ -747,6 +782,16 @@ export default function EvalCycleSummaryCanvas({
   // 확정 여부는 서버가 판정하므로 여기서는 콜백 유무가 아니라 canCalibrate 로 가른다.
   onCommitCalibSession,
   onExportCalibCsv,
+  /**
+   * PW-519 보상·연봉 열람 권한 창 — `{ memberIds, people }`(HR Admin 에게만 온다).
+   * 창을 열면 `onOpenCompensationAccess` 로 받아 오고, 저장은 `onSaveCompensationAccess(memberIds)`
+   * (Promise). 보는 사람 기준의 보상 표시 판정은 `calibTable.compensation` 이 준다.
+   */
+  compensationAccess = null,
+  /** 권한 창 목록을 못 받아 왔다 — 「불러오는 중」에 멈추지 않고 실패를 알린다. */
+  compensationAccessError = false,
+  onOpenCompensationAccess,
+  onSaveCompensationAccess,
   calibComments = [],
   onAddCalibComment,
   onSetCommitteePromotion,
@@ -804,6 +849,22 @@ export default function EvalCycleSummaryCanvas({
   // TC-076/166 캘리 테이블 컬럼 정렬(헤더 클릭 → asc/desc 토글)
   const [calibSort, setCalibSort] = useState({ key: null, dir: 'asc' });
   const [commentDraft, setCommentDraft] = useState('');
+  // PW-519 보상·연봉 열람 권한 창 · 미지정 안내 띠
+  const [showCompAccess, setShowCompAccess] = useState(false);
+  const [compDraft, setCompDraft] = useState(null);
+  const [compSearch, setCompSearch] = useState('');
+  const [compSaving, setCompSaving] = useState(false);
+  const [compSaveError, setCompSaveError] = useState(false);
+  const [compBannerClosed, setCompBannerClosed] = useState(false);
+  /** 보는 사람 기준 보상 판정 — 없으면(구 응답) 보상 열·칸을 그리지 않는다. */
+  const compView = calibTable?.compensation ?? null;
+  const openCompAccess = () => {
+    setShowCompAccess(true);
+    setCompDraft(null);
+    setCompSearch('');
+    setCompSaveError(false);
+    onOpenCompensationAccess?.();
+  };
   // §6.3 R4 대상자 선별 필터
   const [showCalibFilter, setShowCalibFilter] = useState(false);
   const [calibFilter, setCalibFilter] = useState(EMPTY_CALIB_FILTER);
@@ -2551,6 +2612,20 @@ export default function EvalCycleSummaryCanvas({
                       })}
                     </button>
                   )}
+                  {/* PW-519 — 보상·연봉 열람 권한. 인사담당자에게만 버튼이 있다(명단도 인사 정보다). */}
+                  {compView?.canManage && onOpenCompensationAccess && (
+                    <button
+                      type="button"
+                      className={`evc-btn is-ghost evs-cw-comp-access-btn${compView.unassigned ? ' is-warn' : ''}`}
+                      onClick={openCompAccess}
+                      data-testid="evs-cw-comp-access-btn"
+                    >
+                      <LockIcon size={12} />{' '}
+                      {compView.unassigned
+                        ? L.cwCompAccessBtnNone
+                        : fmt(L.cwCompAccessBtn, { n: compView.holderCount ?? 0 })}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="evc-btn is-ghost evs-cw-csv"
@@ -2573,6 +2648,31 @@ export default function EvalCycleSummaryCanvas({
                   )}
                 </div>
 
+                {/* PW-519 §4.5-A-4 — 아무에게도 권한이 없으면 조용히 가리지 않고 알린다. */}
+                {compView?.unassigned && !compBannerClosed && (
+                  <div className="evs-cw-exclusion evs-cw-comp-banner" data-testid="evs-cw-comp-banner">
+                    <LockIcon size={12} />
+                    <span className="evs-cw-comp-banner-text">{L.cwCompUnassignedBanner}</span>
+                    {compView.canManage && onOpenCompensationAccess && (
+                      <button
+                        type="button"
+                        className="evs-cw-comp-banner-btn"
+                        onClick={openCompAccess}
+                        data-testid="evs-cw-comp-banner-assign"
+                      >
+                        {L.cwCompAssign}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="evs-cw-comp-banner-x"
+                      aria-label={L.cwCompBannerClose}
+                      onClick={() => setCompBannerClosed(true)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 {calibTable && calibTable.excludedCount > 0 && (
                   <div className="evs-cw-exclusion" data-testid="evs-cw-exclusion">
                     {fmt(L.cwExclusionBanner, { n: calibTable.excludedCount })}
@@ -2644,6 +2744,7 @@ export default function EvalCycleSummaryCanvas({
                               <th>{L.cwColTrend}</th>
                               <th>{L.cwColAdjust}</th>
                               <th>{L.cwColPromo}</th>
+                              {compView && <th>{L.cwColComp}</th>}
                               <th aria-label="expand"></th>
                             </tr>
                           </thead>
@@ -2781,6 +2882,30 @@ export default function EvalCycleSummaryCanvas({
                                     )}
                                   </div>
                                 </td>
+                                {/* PW-519 §4.2 13번 보상 조정 — 권한이 없으면 열은 두고 칸만 잠근다.
+                                    열을 숨기면 사람마다 열 개수가 달라 「내 화면이 고장 났나」가 된다. */}
+                                {compView && (
+                                  <td data-testid="evs-cw-comp-cell">
+                                    {!compView.visible ? (
+                                      <span
+                                        className="evs-cw-badge tone-muted evs-cw-comp-lock"
+                                        title={L.cwCompLocked}
+                                        aria-label={L.cwCompLocked}
+                                        data-testid="evs-cw-comp-locked"
+                                      >
+                                        <LockIcon size={12} />
+                                      </span>
+                                    ) : row.compensationStatus && L.cwCompStatus[row.compensationStatus] ? (
+                                      <span
+                                        className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}
+                                      >
+                                        {L.cwCompStatus[row.compensationStatus]}
+                                      </span>
+                                    ) : (
+                                      <span className="evs-cw-muted">—</span>
+                                    )}
+                                  </td>
+                                )}
                                 <td>
                                   <button
                                     type="button"
@@ -2802,7 +2927,7 @@ export default function EvalCycleSummaryCanvas({
                               </tr>
                               {expanded && (
                                 <tr data-testid="evs-cw-detail">
-                                  <td colSpan={12} className="evs-cw-detail-cell">
+                                  <td colSpan={compView ? 13 : 12} className="evs-cw-detail-cell">
                                     {!detail ? (
                                       <div className="evs-cw-detail-loading">
                                         {L.cwDetailLoading}
@@ -3002,6 +3127,52 @@ export default function EvalCycleSummaryCanvas({
                                               </div>
                                             );
                                           })()}
+                                          {/* PW-519 위원회 전용 — 승진 사유는 그대로, 보상 부분만 권한으로 가린다.
+                                              칸째로 닫으면 승진 검토 사유까지 함께 사라진다(§4.5-A-2). */}
+                                          {compView && (
+                                            <div
+                                              className="evs-cw-detail-block evs-cw-committee-only"
+                                              data-testid="evs-cw-committee-only"
+                                            >
+                                              <div className="evs-cw-review-k">
+                                                <LockIcon size={12} /> {L.cwCommitteeOnlyTitle}
+                                              </div>
+                                              <div className="evs-cw-detail-body">
+                                                <span className="evs-cw-committee-k">
+                                                  {L.cwPromoReasonLabel}
+                                                </span>
+                                                {row.promotionReason || '—'}
+                                              </div>
+                                              {compView.visible ? (
+                                                <div
+                                                  className="evs-cw-detail-body"
+                                                  data-testid="evs-cw-comp-detail"
+                                                >
+                                                  <span className="evs-cw-committee-k">
+                                                    {L.cwCompOpinionLabel}
+                                                  </span>
+                                                  {row.compensationStatus &&
+                                                  L.cwCompStatus[row.compensationStatus] ? (
+                                                    <span
+                                                      className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}
+                                                    >
+                                                      {L.cwCompStatus[row.compensationStatus]}
+                                                    </span>
+                                                  ) : (
+                                                    '—'
+                                                  )}{' '}
+                                                  {row.compensationReason || ''}
+                                                </div>
+                                              ) : (
+                                                <div
+                                                  className="evs-cw-detail-body evs-cw-comp-locked-box"
+                                                  data-testid="evs-cw-comp-locked-detail"
+                                                >
+                                                  <LockIcon size={12} /> {L.cwCompLocked}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
                                           {detail.calibration?.history?.length > 0 && (
                                             <div className="evs-cw-detail-logs">
                                               <div className="evs-cw-review-k">
@@ -3115,6 +3286,157 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
       </div>
+
+      {/* PW-519 보상·연봉 열람 권한 부여 창 — 표시 항목 설정과 별개 창이다(두 스위치의 소유자가 다르다). */}
+      {showCompAccess && createPortal(
+        <div
+          className="evs-remind-overlay"
+          data-testid="evs-cw-comp-access-modal"
+          onClick={() => setShowCompAccess(false)}
+        >
+          <div
+            className="evs-cw-create"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="evs-cw-create-title">{L.cwCompAccessTitle}</div>
+            <div className="evs-cw-create-desc">{L.cwCompAccessDesc}</div>
+            {!compensationAccess ? (
+              <div
+                className={`evs-cw-create-muted evs-cw-comp-access-loading${compensationAccessError ? ' evs-cw-comp-access-error' : ''}`}
+                role={compensationAccessError ? 'alert' : undefined}
+                data-testid="evs-cw-comp-access-loading"
+              >
+                {compensationAccessError ? L.cwCompAccessLoadFailed : L.cwCompAccessLoading}
+              </div>
+            ) : (
+              (() => {
+                const checked = compDraft ?? compensationAccess.memberIds ?? [];
+                const q = compSearch.trim().toLowerCase();
+                const people = compensationAccess.people ?? [];
+                const inPool = people.filter((p) => p.inPool);
+                const outside = people.filter(
+                  (p) => !p.inPool && checked.includes(p.id),
+                );
+                const shown = q
+                  ? inPool.filter((p) => (p.name ?? '').toLowerCase().includes(q))
+                  : inPool;
+                const toggle = (id) =>
+                  setCompDraft(
+                    checked.includes(id)
+                      ? checked.filter((x) => x !== id)
+                      : [...checked, id],
+                  );
+                const seatText = (p) => {
+                  const parts = [
+                    p.chairSessions > 0
+                      ? fmt(L.cwCompAccessSeatChair, { n: p.chairSessions })
+                      : null,
+                    p.memberSessions > 0
+                      ? fmt(L.cwCompAccessSeatMember, { n: p.memberSessions })
+                      : null,
+                  ].filter(Boolean);
+                  return parts.length
+                    ? fmt(L.cwCompAccessSeats, { seats: parts.join(' · ') })
+                    : L.cwCompAccessNoSeat;
+                };
+                const row = (p, isOutside) => {
+                  const on = checked.includes(p.id);
+                  return (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={`evs-cw-candidate${on ? ' is-on' : ''}${isOutside ? ' is-outside' : ''}`}
+                      data-testid={`evs-cw-comp-person-${p.id}`}
+                      onClick={() => toggle(p.id)}
+                    >
+                      <span className={`evc-member-check${on ? ' is-on' : ''}`} />
+                      <span className="evs-cw-candidate-name">{p.name || '—'}</span>
+                      {p.jobPosition || p.dept ? (
+                        <span className="evs-cw-candidate-dept">
+                          {[p.jobPosition, p.dept].filter(Boolean).join(' · ')}
+                        </span>
+                      ) : null}
+                      <span className="evs-cw-candidate-dept evs-cw-comp-seat">
+                        {isOutside ? L.cwCompAccessOutside : seatText(p)}
+                      </span>
+                    </button>
+                  );
+                };
+                return (
+                  <>
+                    <div
+                      className={`evs-cw-comp-access-status${checked.length ? '' : ' is-warn'}`}
+                      data-testid="evs-cw-comp-access-status"
+                    >
+                      {checked.length
+                        ? fmt(L.cwCompAccessCount, { n: checked.length })
+                        : L.cwCompAccessNone}
+                    </div>
+                    <div className="evs-cw-create-section">
+                      <div className="evs-cw-create-lbl">{L.cwCompAccessListLabel}</div>
+                      <input
+                        className="evs-cw-create-input evs-cw-create-search"
+                        value={compSearch}
+                        onChange={(e) => setCompSearch(e.target.value)}
+                        placeholder={L.cwCompAccessSearch}
+                        aria-label={L.cwCompAccessSearch}
+                        data-testid="evs-cw-comp-access-search"
+                      />
+                      <div className="evs-cw-create-candidates">
+                        {shown.length === 0 ? (
+                          <div className="evs-cw-create-muted">{L.cwCompAccessSearchEmpty}</div>
+                        ) : (
+                          shown.map((p) => row(p, false))
+                        )}
+                        {outside.map((p) => row(p, true))}
+                      </div>
+                    </div>
+                    {compSaveError && (
+                      <div className="evs-cw-create-hint evs-cw-comp-access-error" role="alert">
+                        {L.cwCompAccessSaveFailed}
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            )}
+            <div className="evs-cw-create-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => setShowCompAccess(false)}
+              >
+                {L.cwCompAccessCancel}
+              </button>
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                data-testid="evs-cw-comp-access-save"
+                disabled={!compensationAccess || compSaving}
+                onClick={async () => {
+                  const next = compDraft ?? compensationAccess?.memberIds ?? [];
+                  setCompSaving(true);
+                  setCompSaveError(false);
+                  try {
+                    await onSaveCompensationAccess?.(next);
+                    setShowCompAccess(false);
+                    setCompBannerClosed(false);
+                  } catch {
+                    setCompSaveError(true);
+                  } finally {
+                    setCompSaving(false);
+                  }
+                }}
+              >
+                {L.cwCompAccessSave}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* §6.3 R4 대상자 선별 필터 모달 */}
       {showCalibFilter && calibTable && createPortal(
