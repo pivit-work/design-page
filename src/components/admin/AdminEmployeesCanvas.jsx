@@ -542,6 +542,21 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 }
 
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
+/**
+ * 한 사람의 **주 소속** 조직 — 전체 구성원 탭의 「주」 칩과 같은 값(PW-807).
+ *
+ * `orgUnitIds` 는 배정된 순서라 첫 줄이 주 소속이라는 보장이 없다. 겸직을 먼저 받고
+ * 나중에 주 소속이 붙은 사람은 첫 줄이 겸직 부서라, 그걸 쓰면 미배정 관리 탭이 겸직
+ * 부서를 그 사람의 소속으로 보여 준다(dev P1 멧데이먼: 주 DEV부문 · 겸직 HR부문 →
+ * 「HR부문」). 소비자가 `depts` 에 실어 준 주 소속 칩이 정본이고, 칩이 없는 옛 값만
+ * 배정 행의 첫 줄로 폴백한다 — 목록 칸·소속 팝업과 같은 순서다.
+ */
+function memberPrimaryEntry(orgTree, member) {
+  const chip = (member.depts || []).find((d) => d.isPrimary && d.orgUnitId);
+  const hit = chip ? findOrgEntry(orgTree, chip.orgUnitId) : null;
+  return hit || primaryOrgEntry(orgTree, member.orgUnitIds);
+}
+
 function UnassignedTab({
   members, orgUnits, labels, renderAvatar, onAssignOrgUnit,
   managerCandidates = [], onAssignManager, onAssignManagerBulk,
@@ -703,7 +718,7 @@ function UnassignedTab({
                     {/* 소속은 최하위 팀명만 보이면 어느 본부 밑인지 알 수 없다 — 전체 경로로 쓴다(§5-A P4).
                         직급은 어휘 표준화(PW-36) 이후 jobLevel 이다. 옛 `title` 을 읽어 늘 '—' 였다. */}
                     <OrgPathLabel
-                      entry={primaryOrgEntry(orgTree, m.orgUnitIds)}
+                      entry={memberPrimaryEntry(orgTree, m)}
                       fallback={m.department}
                       muted="var(--text-tertiary)"
                       color="inherit"
