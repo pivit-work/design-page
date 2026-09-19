@@ -247,6 +247,12 @@ export default function EvalCycleMemberCanvas({
   onKrProgressSave,
   // TC-053 동료 리뷰 등 타인 평가 시 항목별 공개 대상 안내 노출(셀프는 미노출)
   showVisibility = false,
+  // [PW-586] 머리 아래·폼 위에 끼우는 블록. 상향 리뷰는 평가 대상 카드와 접을 수 없는 익명
+  // 안내를 여기 둔다 — 폼을 새로 그리지 않고 셀프·동료와 같은 폼을 쓰기 위한 자리다.
+  headerSlot = null,
+  // [PW-586] AI 초안을 만들 수 없는 이유. 있으면 버튼을 끄고 이유를 버튼 옆에 적는다
+  // (근거가 0건인데 눌러 보게 한 뒤 실패로 알리지 않는다).
+  aiDraftDisabledReason = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -512,6 +518,8 @@ export default function EvalCycleMemberCanvas({
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
         </div>
       </header>
+
+      {headerSlot}
 
       {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
       {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
@@ -852,11 +860,16 @@ export default function EvalCycleMemberCanvas({
             </span>
           )}
           <div className="evc-card-buttons">
+            {onAiDraft && aiDraftDisabledReason && (
+              <span className="evm-autosave" data-testid="evm-ai-draft-reason">
+                {aiDraftDisabledReason}
+              </span>
+            )}
             {onAiDraft && (
               <button
                 type="button"
                 className="evc-btn is-ghost"
-                disabled={draftBusy || emptyTextFields.length === 0}
+                disabled={draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
                 onClick={handleAiDraft}
                 data-testid="evm-ai-draft"
               >
