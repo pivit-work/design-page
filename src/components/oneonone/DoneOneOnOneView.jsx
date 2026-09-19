@@ -57,6 +57,7 @@ const DEFAULT_ICONS = {
   ai: '/icons-solid/ai-chat-01.svg',
   check: '/icons-solid/check-circle.svg',
   alert: '/icons-solid/alert-triangle.svg',
+  info: '/icons-solid/info-circle.svg',
   pattern: '/icons-solid/refresh-ccw-01.svg',
   health: '/icons-solid/activity-heart.svg',
   actions: '/icons-solid/check-square.svg',
@@ -87,6 +88,10 @@ const DEFAULT_LABELS = {
   bannerRetryError: '다시 시도하지 못했습니다.',
   /** 녹음이 없는 회차 — 오지 않을 전사를 기다리게 하지 않는다. */
   bannerNoRecording: '녹음이 없어 대화 원문 없이 요약했습니다.',
+  /* 녹음은 받아썼는데 유효 발화가 0건인 회차 (PW-627 · policy §6.1 · §11.7.4).
+     「분석하지 않았다」로 쓰지 않는다 — 보냈고 분석도 돌았으며 결과가 빈 것이다. */
+  bannerSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
+  bannerSkippedSummary: '요약은 메모와 준비 항목으로 만들어졌습니다.',
 
   /* ── AI 미팅 요약 (§4-4) ── */
   summaryTitle: 'AI 미팅 요약',
@@ -220,6 +225,24 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry }) {
           </button>
         )}
         {binding?.error && <span className="ono-done-banner-error">{L.bannerRetryError}</span>}
+      </div>
+    );
+  }
+  // 유효 발화 0건 (PW-627 · policy §11.7.4) — 실패가 아니므로 수식어 없는 기본(회색)
+  // 모양이다. 초록(완료)·빨강(실패)·파랑(진행) 어느 것과도 갈리고, 재시도는 두지
+  // 않는다 — 같은 파일은 같은 결과를 낸다.
+  if (state === 'skipped' || state === 'skipped-summarizing') {
+    const summarizing = state === 'skipped-summarizing';
+    return (
+      <div className="ono-done-banner" data-testid="ono-done-banner" data-state={state}>
+        {summarizing ? (
+          <span className="ono-done-spinner" aria-hidden />
+        ) : (
+          <Icon src={icons.info} size={16} color="currentColor" baseUrl={baseUrl} />
+        )}
+        <span>
+          {`${L.bannerSkipped} ${summarizing ? L.bannerSummarizing : L.bannerSkippedSummary}`}
+        </span>
       </div>
     );
   }
@@ -759,7 +782,7 @@ export default function DoneOneOnOneView({
   // 계속 실패를 말하면 이미 나온 산출물이 가려진다.
   const rawBannerState = doneBannerState(session);
   const bannerState =
-    summary?.stalled && rawBannerState !== 'ready' ? 'summary-failed' : rawBannerState;
+    summary?.stalled && isDonePending(rawBannerState) ? 'summary-failed' : rawBannerState;
 
   return (
     <div className="ono-done-view">
