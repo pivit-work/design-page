@@ -266,8 +266,10 @@ const DEFAULT_LABELS = {
     sessionsEmpty: '세션 목록은 준비 중입니다.',
     sessionCurrent: '현재',
     endSession: '종료',
+    endAllSessions: '모든 세션 종료',
+    endAllSessionsHint: '현재 기기는 로그인 상태로 남습니다.',
     logout: '로그아웃',
-    logoutDesc: '이 기기에서 로그아웃합니다.',
+    logoutDesc: "이 기기에서 로그아웃합니다. (다른 기기 전부 종료는 위 '모든 세션 종료')",
     dangerZone: '위험 구역',
     deleteAccount: '계정 삭제',
     deleteAccountDesc: '모든 데이터가 영구 삭제됩니다.',
@@ -1251,6 +1253,10 @@ export default function MySettingsCanvas({
   // 기기 위치 자료의 출처 링크 `{ label, href }` — 자료의 사용 조건이 「결과를 보여 주는 페이지에
   // 링크」다(pivit-work PW-680, DB-IP 무료판). 안 주면 그리지 않는다.
   sessionsLocationCredit,
+  // 「모든 세션 종료」 — 지금 기기만 남기고 다른 기기를 전부 끊는다(pivit-work PW-681 · 기획 PW-739).
+  // 확인 창 없이 바로 실행한다. 안 주면 버튼을 그리지 않는다.
+  onEndAllSessions,
+  endAllSessionsBusy = false,
   onLogout,
   logoutError = null,
   labels: providedLabels,
@@ -2080,7 +2086,28 @@ export default function MySettingsCanvas({
               </Card>
 
               <Card testId="security-sessions-card">
-                <div className="admin-section-label">{labels.security.activeSessions}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: onEndAllSessions ? 4 : 8 }}>
+                  <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>
+                    {labels.security.activeSessions}
+                  </div>
+                  {onEndAllSessions && (
+                    <button
+                      type="button"
+                      className="admin-notif-btn is-danger-soft is-sm"
+                      onClick={() => onEndAllSessions()}
+                      disabled={endAllSessionsBusy}
+                      data-testid="end-all-sessions-btn"
+                    >
+                      {labels.security.endAllSessions}
+                    </button>
+                  )}
+                </div>
+                {/* 확인 창이 없으므로 누르기 전에 범위를 알리는 자리가 이 한 줄뿐이다(spec §8.3). */}
+                {onEndAllSessions && (
+                  <p className="msc-row-sub" data-testid="end-all-sessions-hint" style={{ margin: '0 0 12px' }}>
+                    {labels.security.endAllSessionsHint}
+                  </p>
+                )}
                 {sessions.length === 0 ? (
                   <div className="msc-empty-state" data-testid="sessions-empty">
                     {labels.security.sessionsEmpty}
@@ -2134,7 +2161,7 @@ export default function MySettingsCanvas({
                 )}
               </Card>
 
-              {/* 로그아웃 — 현재 세션만 종료(§8.4). '모든 세션 종료'(전 기기)와 구분해 빨강 강조. */}
+              {/* 로그아웃 — 현재 세션만 종료(§8.4). '모든 세션 종료'(이 기기를 뺀 다른 기기 전부)와 구분해 빨강 강조. */}
               <Card testId="security-logout-card">
                 <div className="msc-row">
                   <div>
