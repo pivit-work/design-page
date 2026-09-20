@@ -18,6 +18,11 @@ import Icon from '../shared/Icon.jsx';
  *   — 「담당 팀원이 0명」을 그릴 수 있어야 하기 때문이다. 예시 이름은 이 prop 을 아예
  *   넘기지 않았을 때(시안·데모)만 쓴다 (PW-824).
  *
+ * defaultTime: 시간 칸의 기본값 — 로케일과 무관한 24시간 `'HH:MM'`. 「일정변경」처럼
+ *   이미 잡혀 있는 시각을 채워 여는 자리에서 쓴다 (PW-825). 생략하면 `'10:00'` 이다.
+ *   날짜와 마찬가지로 **마운트 시점에** 잡히므로, 열 때마다 새로 잡히게 하려면
+ *   호출부가 열림 상태를 `key` 에 실어야 한다.
+ *
  * defaultDate: 날짜 칸의 기본값(Date). 호스트 앱은 «사용자 시간대의 내일» 을 넘긴다.
  *   생략하면 브라우저 로컬 기준 내일로 폴백한다 — 어느 쪽이든 «지나간 날짜» 가
  *   기본값으로 남지 않는다.
@@ -132,7 +137,7 @@ function weekdayLabels(locale) {
 // 종전 이름·값(한국어 19개)을 그대로 둬서 그쪽 호출부는 손대지 않는다.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot, 'ko'));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate, locale = 'ko', labels }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = Array.isArray(members) ? members : DEMO_MEMBERS;
   const [search, setSearch] = useState('');
@@ -145,8 +150,10 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
   const defaultKey = defaultDate ? dayKey(defaultDate) : '';
   const [date, setDate] = useState(() => dayKeyToDate(defaultKey || tomorrowKey()));
   const [dateOpen, setDateOpen] = useState(false);
-  // 값은 로케일과 무관한 24시간 'HH:MM'. 화면 글자는 formatTime 이 만든다.
-  const [time, setTime] = useState('10:00');
+  /* 값은 로케일과 무관한 24시간 'HH:MM'. 화면 글자는 formatTime 이 만든다.
+     `defaultTime` 을 주면 그 시각으로 연다 — 「일정변경」처럼 **이미 잡혀 있는 시각을
+     보여 주고 고치게** 하는 자리에서 쓴다(PW-825). 안 주면 종전대로 10:00 이다. */
+  const [time, setTime] = useState(defaultTime || '10:00');
   const [timeOpen, setTimeOpen] = useState(false);
   const [memo, setMemo] = useState('');
 
