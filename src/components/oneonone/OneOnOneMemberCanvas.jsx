@@ -697,7 +697,15 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
       <SessionHeader
         title={fill(L.sessionWith, { name: manager.name })}
         status="ready"
-        date={formatDate(session.createdAt)}
+        /* 🔴 아직 안 한 1on1 의 머리에는 **잡아 둔 시각**을 보인다 — 「만든 날」이 아니다
+           (PW-825). `createdAt` 은 예약을 옮겨도 그대로라, 매니저가 시각을 바꿔도 팀원
+           화면은 옛 날짜를 그대로 보여 준다. 형식은 호스트가 `variant` 로 정한다 —
+           날짜만 쓰던 종전 호스트는 이 값을 무시하므로 종전 화면 그대로다. */
+        date={
+          session.scheduledAt
+            ? formatDate(session.scheduledAt, 'scheduled')
+            : formatDate(session.createdAt)
+        }
         avatar={avatar}
         L={L} icons={icons} baseUrl={baseUrl}
       >
