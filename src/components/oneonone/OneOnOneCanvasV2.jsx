@@ -508,8 +508,25 @@ function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvata
             <span>{member.schedule.time}</span>
             <span>•</span>
             <span>{member.schedule.duration}</span>
-            {member.schedule.changeable && (
-              <span className="ono-member-schedule-change">{labels.scheduleChange}</span>
+            {/* 「일정변경」 — 눌러서 그 회차의 시각을 다시 정하는 자리 (PW-825).
+                오랫동안 `<span>` 이라 **누를 자리 자체가 없었다**(CSS 는 이미
+                `cursor: pointer` 를 주고 있었다 — 누르라고 그려 놓고 배선만 없었다).
+                옮길 수 없는 회차(이미 시작했거나 끝난)에서는 눌리지 않는 모양으로
+                남긴다 — 감추면 「원래 없는 기능」으로 읽힌다. */}
+            {member.schedule.changeable !== undefined && (
+              <button
+                type="button"
+                className="ono-member-schedule-change"
+                /* 못 옮기는 회차에서도 «보이되 눌리지 않게» 남긴다. 감추면 「원래
+                   없는 기능」으로 읽혀서, 옮길 수 있는 다른 카드와 설명이 갈린다. */
+                disabled={!member.schedule.changeable || !member.schedule.onChange}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  member.schedule.onChange?.();
+                }}
+              >
+                {labels.scheduleChange}
+              </button>
             )}
           </div>
         )}

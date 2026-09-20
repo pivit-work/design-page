@@ -905,9 +905,25 @@
   white-space: nowrap;
 }
 
+/* 「일정변경」. <span> 이던 것이 <button> 이 됐다(PW-825) — 브라우저 기본 스타일을
+   지워 **글자 모양은 종전 그대로** 둔다. 부모 `.ono-member-schedule` 의 글꼴·크기·
+   굵기·색을 그대로 물려받는다. */
 .ono-member-schedule-change {
   margin-left: auto;
   cursor: pointer;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
+/* 옮길 수 없는 회차 — 보이되 눌리지 않는다. */
+.ono-member-schedule-change:disabled {
+  cursor: not-allowed;
+  color: var(--text-disabled);
 }
 
 .ono-member-actions {
