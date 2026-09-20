@@ -73,6 +73,7 @@ const DEFAULT_LABELS = {
   stageSelfReview: '셀프 리뷰',
   stagePeerAssign: '동료 배정',
   stagePeerReview: '동료 리뷰',
+  stageUpwardReview: '상향 리뷰',
   stageLeaderReview: '하향 리뷰',
   stageCalibration: '캘리브레이션',
   // self status
@@ -81,10 +82,15 @@ const DEFAULT_LABELS = {
   selfSubmitted: '제출',
 };
 
+/**
+ * 단계 키 → 이름표. 여기 없는 키는 줄 이름 자리에 **키가 그대로 나간다**
+ * (`upward_review` 같은 코드값). [PW-841] 상향 리뷰가 빠져 있었다.
+ */
 const STAGE_KEY = {
   self_review: 'stageSelfReview',
   peer_assign: 'stagePeerAssign',
   peer_review: 'stagePeerReview',
+  upward_review: 'stageUpwardReview',
   leader_review: 'stageLeaderReview',
   calibration: 'stageCalibration',
 };
