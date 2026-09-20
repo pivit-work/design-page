@@ -5,7 +5,10 @@ import TimeInput from '../shared/TimeInput.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
-import { isPastScheduleStart } from './evalSchedulePast.js';
+import {
+  isPastScheduleStart,
+  isReminderBeforePhaseStart,
+} from './evalSchedulePast.js';
 import { CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
@@ -5589,6 +5592,10 @@ export default function EvalCycleWizard({
                                 ).length;
                                 const recipientCount = (selfOn ? 1 : 0) + ccCount;
                                 const noRecipient = recipientCount === 0;
+                                /* [PW-585 · 정책 §6.10.3] 단계가 열리기 «전»으로 잡힌 예약은
+                                   영영 안 나간다. 저장은 막지 않고(§5.2.1) 그 줄에서 알린다 —
+                                   알리지 않으면 「예약해 뒀는데 왜 안 왔지」로만 드러난다. */
+                                const beforeStart = isReminderBeforePhaseStart(rm, scheduleOf(ph.id));
                                 return (
                                 <div
                                   key={rm.id}
@@ -5690,6 +5697,14 @@ export default function EvalCycleWizard({
                                       );
                                     })}
                                   </div>
+                                  {beforeStart && L.reminderBeforeStartWarn && (
+                                    <div
+                                      className="evc-rm-tgt-error"
+                                      data-testid={`evc-rm-before-start-${ph.id}-${i}`}
+                                    >
+                                      {L.reminderBeforeStartWarn}
+                                    </div>
+                                  )}
                                   {rmDetail.has(rm.id) && (
                                     <div
                                       className="evc-rm-detail"

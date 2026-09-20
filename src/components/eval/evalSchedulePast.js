@@ -57,3 +57,47 @@ export function phaseHasTemplate(phaseId) {
 }
 
 export default isPastScheduleStart;
+
+/**
+ * [PW-585 · 정책 §5.2.1 엣지 · §6.10.3] 이 리마인더는 «단계가 열리기도 전»에 잡혔는가.
+ *
+ * 3일짜리 단계에 D-7 을 넣으면 발송 시각이 단계 시작보다 앞이라 **영영 나가지 않는다.**
+ * 저장은 막지 않는다(§5.2.1 「저장은 허용」) — 대신 그 자리에서 알린다. 알리지 않으면
+ * 인사담당자는 예약해 둔 독촉이 왜 안 왔는지 알 길이 없다(서버는 사유를 남기지만, 그건
+ * 이미 나가지 않은 뒤의 이야기다).
+ *
+ * 🔴 판정은 «사람이 적어 넣은 벽시계 값» 끼리 비교한다. 시간대 변환을 하지 않는 이유는
+ * 두 값이 같은 시간대의 같은 화면에서 온 것이기 때문이고, 실제 발송 시각을 정하는 쪽은
+ * 서버(`eval-reminder-schedule.util.ts`)다. 여기서 한 판정은 «경고»에만 쓴다.
+ *
+ * 같은 판정을 마법사 3단계와 일정 수정 창이 함께 쓴다 — `isPastScheduleStart` 를 여기
+ * 둔 것과 같은 이유다(한쪽만 고쳐지는 것을 막는다).
+ */
+export function isReminderBeforePhaseStart(reminder, slot) {
+  const start = String(slot?.start ?? '');
+  if (start.length < 16) return false;
+  const anchorRaw = reminder?.anchor === 'before_start' ? slot?.start : slot?.end;
+  const date = String(anchorRaw ?? '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const offset = Number.isFinite(Number(reminder?.offset))
+    ? Math.trunc(Number(reminder.offset))
+    : 0;
+  const time = /^\d{2}:\d{2}$/.test(reminder?.time ?? '')
+    ? reminder.time
+    : reminder?.anchor === 'before_start'
+      ? '09:00'
+      : '18:00';
+  const day = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(day.getTime())) return false;
+  day.setDate(day.getDate() - offset);
+  const y = day.getFullYear();
+  const m = String(day.getMonth() + 1).padStart(2, '0');
+  const d = String(day.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}T${time}` < start.slice(0, 16);
+}
+
+/** 그 단계에서 «영영 안 나갈» 리마인더의 수. 0 이면 경고하지 않는다. */
+export function countRemindersBeforePhaseStart(reminders, slot) {
+  if (!Array.isArray(reminders)) return 0;
+  return reminders.filter((r) => isReminderBeforePhaseStart(r, slot)).length;
+}
