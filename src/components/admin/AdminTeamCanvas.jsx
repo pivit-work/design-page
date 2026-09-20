@@ -151,27 +151,19 @@ function filterTree(nodes, query) {
  * 확인 모달.
  *
  * `notes` 는 "이 변경이 함께 일으키는 일" 을 한 줄씩 나열하는 보조 안내다(· 로 시작).
- * `checkbox` 는 선택적 부수 동작 — 조직장 해제 시의 "권한을 멤버로 함께 변경" 처럼
- * **기본 OFF** 로 두고 사용자가 켤 때만 일어나야 하는 것에만 쓴다.
+ *
+ * 🔴 **선택 체크칸(`checkbox`)은 없앴다 (PW-847).** 쓰던 곳이 조직장 해제 창의
+ * 「권한을 ‘멤버’로 함께 변경」 하나였는데, 저장할 수 있는 권한 값에서 「매니저」가
+ * 빠져 내릴 등급이 없다. 부수 동작을 다시 붙일 일이 생기면 그때 되살린다.
  */
 function ConfirmModal({
-  title, body, notes, checkbox, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
+  title, body, notes, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
 }) {
   return (
     <div className="tm-modal-overlay" onClick={onCancel}>
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="tm-modal-title">{title}</h3>
         {body && <p className="tm-modal-sub">{body}</p>}
-        {checkbox && (
-          <label className="tm-modal-check">
-            <input
-              type="checkbox"
-              checked={!!checkbox.checked}
-              onChange={(e) => checkbox.onChange?.(e.target.checked)}
-            />
-            <span>{checkbox.label}</span>
-          </label>
-        )}
         {notes && notes.length > 0 && (
           <ul className="tm-modal-notes">
             {notes.map((n) => <li key={n}>{n}</li>)}
@@ -396,13 +388,14 @@ export default function AdminTeamCanvas({
   }, [run, onAddMember, L.toastMemberAdded]);
 
   const handleMemberAction = useCallback((action, teamId, memberId) => {
-    // 조직장 지정·해제는 그 한 번의 조작이 **다른 사람의 자격과 권한까지** 바꾼다
-    // (기존 조직장 해제 + 권한 승격). 눌리자마자 반영하지 않고 확인 모달을 거친다.
+    // 조직장 지정·해제는 그 한 번의 조작이 **다른 사람의 자격까지** 바꾼다(기존
+    // 조직장 해제). 눌리자마자 반영하지 않고 확인 모달을 거친다.
+    // 🔴 저장된 권한 값은 건드리지 않는다 (PW-847) — 종전에는 여기서 강등 체크칸을
+    //    기본 꺼짐으로 되돌렸다.
     if (action === 'setLeader') {
       const m = selectedTeam?.members?.find((x) => x.id === memberId);
       if (!m) return;
       if (!m.isLeader && m.canBeLeader === false) return; // G2 — 퇴사자 지정 불가
-      setDemoteChecked(false); // M1 — 강등 체크박스는 언제나 기본 OFF
       setLeaderModal({ teamId, member: m, mode: m.isLeader ? 'release' : 'assign' });
       return;
     }
