@@ -225,8 +225,7 @@ const DEFAULT_LABELS = {
     ftePercent: 'FTE (%)',
     roleSection: '권한',
     role: '권한',
-    roleNote: '조직장으로 지정하면 «멤버» 는 «매니저» 로 자동으로 올라갑니다',
-    roles: { admin: '어드민', manager: '매니저', member: '멤버' },
+    roles: { admin: '어드민', member: '멤버' },
     paySection: '보상',
     salary: '연봉',
     salaryHistory: '연봉 이력',
@@ -2590,8 +2589,14 @@ const PANEL_PATCH_FIELDS = [
   'hireDate', 'employmentStatus', 'terminationDate',
 ];
 
-/** 권한 select 의 값 — 시트와 같은 3종. admin 승격은 서버가 초대로만 허용한다. */
-const PANEL_ROLE_OPTIONS = ['admin', 'manager', 'member'];
+/**
+ * 권한 select 의 값 — **둘뿐이다** (PW-847). admin 승격은 서버가 초대로만 허용한다.
+ *
+ * 🔴 `'manager'` 를 되살리지 말 것. 「매니저」는 저장하는 등급이 아니라 «그 사람이 어떤
+ * 조직의 장인가» 라는 관계라, 여기서 고를 것이 없다. 매니저로 만드는 길은 조직단위
+ * 설정·팀 관리에서 그 사람을 조직장으로 지정하는 것 하나다.
+ */
+const PANEL_ROLE_OPTIONS = ['admin', 'member'];
 
 /**
  * 패널의 칸 배치 (§3.2). `kind` 는 그리는 법이고, `catalog` 는 소비자가 넘긴 선택지
@@ -3239,7 +3244,6 @@ function EmployeesEditPanel({
                   <option key={r} value={r}>{labels.panel.roles?.[r] || r}</option>
                 ))}
               </select>
-              <span className="admin-emp-manager-note">{labels.panel.roleNote}</span>
             </label>
           </div>
 

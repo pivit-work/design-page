@@ -178,7 +178,13 @@ const DEFAULT_LABELS = {
   csvSampleName: '홍길동',
 };
 
-const ROLE_IDS = ['member', 'manager', 'admin'];
+/**
+ * 초대에 실을 수 있는 권한 — **둘뿐이다** (PW-847).
+ *
+ * 🔴 `'manager'` 를 되살리지 말 것. 매니저는 저장하는 등급이 아니라 «그 사람이 어떤
+ * 조직의 장인가» 라는 관계라, 초대에 실어 보낼 것이 없다.
+ */
+const ROLE_IDS = ['member', 'admin'];
 
 let rowSeq = 0;
 function blankRow(bulk) {
