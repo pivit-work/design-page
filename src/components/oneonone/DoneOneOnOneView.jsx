@@ -92,6 +92,12 @@ const DEFAULT_LABELS = {
      「분석하지 않았다」로 쓰지 않는다 — 보냈고 분석도 돌았으며 결과가 빈 것이다. */
   bannerSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
   bannerSkippedSummary: '요약은 메모와 준비 항목으로 만들어졌습니다.',
+  /* 🔴 매니저가 대화 내용을 손으로 적어 저장한 뒤에는 **윗줄이 거짓이 된다** (PW-812).
+     요약이 더는 「메모와 준비 항목」으로 만들어진 것이 아니라 그 글로 만들어졌기
+     때문이다. 첫 문장(녹음에 말소리가 없었다)은 그대로 참이라 두고, 요약의 출처를
+     말하는 뒷문장만 바꾼다 — 화면이 거짓말하지 않는 것이 이 배너가 생긴 이유다
+     (policy §11.7.4 「「안 했다」로 적으면 화면이 거짓말한다」). */
+  bannerSkippedManualSummary: '요약은 직접 입력한 대화 내용으로 만들어졌습니다.',
   /* 회색 배너의 매니저 액션 둘 (PW-812 · policy §11.7.4). 「다시 시도」는 여기 없다 —
      같은 파일은 같은 판정을 낸다. 기획 시안 `1on1-app.jsx` 의 `skipped` 블록 문구 그대로. */
   bannerReplay: '녹음 다시 듣기',
@@ -334,7 +340,13 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
           <Icon src={icons.info} size={16} color="currentColor" baseUrl={baseUrl} />
         )}
         <span>
-          {`${L.bannerSkipped} ${summarizing ? L.bannerSummarizing : L.bannerSkippedSummary}`}
+          {`${L.bannerSkipped} ${
+            summarizing
+              ? L.bannerSummarizing
+              : manualEntry?.hasText
+                ? L.bannerSkippedManualSummary
+                : L.bannerSkippedSummary
+          }`}
         </span>
         {/* 매니저 액션 둘 (PW-812 · policy §11.7.4). **콜백을 안 넘기면 안 그린다** —
             팀원 화면과, 녹음이 없어 재생기가 없는 회차에서 «눌러도 아무 일이 없는»
@@ -895,7 +907,10 @@ export default function DoneOneOnOneView({
   /**
    * 회색 배너의 **「직접 입력」**과 그 뒤의 적는 칸 (PW-812 · policy §11.7.4).
    *
-   * `{ open, value, saving, error, onOpen, onClose, onChange, onSave }`.
+   * `{ open, value, saving, error, regenerating, hasText, onOpen, onClose, onChange, onSave }`.
+   *
+   * `hasText` 는 **이미 저장된 글이 있는가**다(지금 칸에 친 글이 아니다) — 배너가
+   * 요약의 출처를 뭐라고 말할지가 그것으로 갈린다.
    * `onOpen` 이 없으면 버튼을 안 그린다 — 팀원 화면에는 액션이 없다(EC-S6).
    * `open` 이면 배너 **대신** 적는 칸을 그린다. 글과 저장 상태는 호출부가 들고 있다 —
    * 저장 결과에 따라 화면이 달라지는데 그 판정은 캔버스가 할 수 있는 것이 아니다.
