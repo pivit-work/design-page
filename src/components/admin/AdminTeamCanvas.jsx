@@ -59,11 +59,9 @@ const DEFAULT_LABELS = {
   leaderAssignTitle: '{{name}}님을 ‘{{team}}’의 조직장으로 지정합니다',
   leaderReleaseTitle: '‘{{team}}’의 조직장 지정을 해제합니다',
   leaderReplaceNotice: '현재 조직장 {{name}}님의 지정은 해제됩니다.',
-  leaderPromoteNotice: '권한이 ‘매니저’로 자동 승격됩니다.',
   leaderScopeNote: '조직장 권한 범위는 ‘{{team}}’과 그 하위 팀입니다',
   leaderHistoryNote: '이 변경은 발령 이력에 기록됩니다',
   leaderVacantNote: '이 팀은 조직장 미지정 상태가 됩니다 (정상 상태입니다)',
-  leaderDemoteCheckbox: '권한을 ‘멤버’로 함께 변경',
   leaderAssignConfirm: '조직장으로 지정',
   leaderReleaseConfirm: '해제',
   leaderResignedHint: '퇴사자는 조직장으로 지정할 수 없습니다',
@@ -205,25 +203,24 @@ function ConfirmModal({
  * 실행 여부는 어드민이 선택한다" 가 정본의 문장이다. 구현이 더 최신이라는 이유로
  * 기획을 덮어쓰지 않는다.
  */
+/**
+ * 조직장 지정·해제 확인 창.
+ *
+ * 🔴 **저장된 권한 값은 건드리지 않는다 (PW-847).** 종전에는 지정이 멤버를 매니저로
+ * 올린다고 알리고(`leaderPromoteNotice`), 해제 창의 체크박스(`leaderDemoteCheckbox`)로
+ * 멤버로 내렸다. 저장할 수 있는 값에서 「매니저」가 빠지면서 둘 다 사라졌다 — 이 창이
+ * 「승격됩니다」를 말하면 일어나지 않는 일을 알리는 것이 된다.
+ */
 function LeaderConfirmModal({
-  state, teamName, currentLeader, labels, demoteChecked, onDemoteChange, onConfirm, onCancel,
+  state, teamName, currentLeader, labels, onConfirm, onCancel,
 }) {
   const { member, mode } = state;
   const assigning = mode === 'assign';
 
   const bodyLines = [];
-  if (assigning) {
-    if (currentLeader && currentLeader.id !== member.id) {
-      bodyLines.push(fill(labels.leaderReplaceNotice, { name: currentLeader.name }));
-    }
-    // 이미 매니저 이상인 사람에게 "승격됩니다" 를 보이면 잘못된 기대를 만든다.
-    if (member.role === 'member') bodyLines.push(labels.leaderPromoteNotice);
+  if (assigning && currentLeader && currentLeader.id !== member.id) {
+    bodyLines.push(fill(labels.leaderReplaceNotice, { name: currentLeader.name }));
   }
-
-  const showDemote = !assigning
-    && !member.leadsOtherTeams
-    && member.role !== 'admin'
-    && member.role !== 'ceo';
 
   return (
     <ConfirmModal
@@ -231,9 +228,6 @@ function LeaderConfirmModal({
         ? fill(labels.leaderAssignTitle, { name: member.name, team: teamName })
         : fill(labels.leaderReleaseTitle, { team: teamName })}
       body={bodyLines.join(' ')}
-      checkbox={showDemote
-        ? { label: labels.leaderDemoteCheckbox, checked: demoteChecked, onChange: onDemoteChange }
-        : null}
       notes={assigning
         ? [fill(labels.leaderScopeNote, { team: teamName }), labels.leaderHistoryNote]
         : [labels.leaderVacantNote, labels.leaderHistoryNote]}
@@ -337,10 +331,8 @@ export default function AdminTeamCanvas({
   const [inlineCreateParentId, setInlineCreateParentId] = useState(null);
   const [inlineCreateValue, setInlineCreateValue] = useState('');
   const [confirmModal, setConfirmModal] = useState(null);
-  // 조직장 지정·해제 확인 모달 — 체크박스 상태를 모달 밖에서 들고 있어야 확인
-  // 시점에 값을 읽을 수 있다. 열 때마다 false 로 되돌린다(M1).
+  // 조직장 지정·해제 확인 모달.
   const [leaderModal, setLeaderModal] = useState(null);
-  const [demoteChecked, setDemoteChecked] = useState(false);
 
   // Toast (캔버스 소유)
   const [toast, setToast] = useState(null);
@@ -423,13 +415,12 @@ export default function AdminTeamCanvas({
   const commitLeaderChange = useCallback(() => {
     if (!leaderModal) return;
     const { teamId, member, mode } = leaderModal;
-    const alsoDemoteRole = mode === 'release' && demoteChecked;
     setLeaderModal(null);
     void run(
-      () => onMemberAction?.('setLeader', teamId, member.id, { alsoDemoteRole }),
+      () => onMemberAction?.('setLeader', teamId, member.id),
       mode === 'release' ? L.toastLeaderUnset : L.toastLeaderSet,
     );
-  }, [leaderModal, demoteChecked, run, onMemberAction, L]);
+  }, [leaderModal, run, onMemberAction, L]);
 
   const requestDelete = useCallback((nodeId) => {
     const node = findNode(tree, nodeId);
@@ -643,8 +634,6 @@ export default function AdminTeamCanvas({
           teamName={selectedTeam?.name ?? ''}
           currentLeader={selectedTeam?.members?.find((m) => m.isLeader) ?? null}
           labels={L}
-          demoteChecked={demoteChecked}
-          onDemoteChange={setDemoteChecked}
           onConfirm={commitLeaderChange}
           onCancel={() => setLeaderModal(null)}
         />
