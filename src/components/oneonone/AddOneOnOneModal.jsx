@@ -14,6 +14,10 @@ import Icon from '../shared/Icon.jsx';
  *
  * member shape: { name, role, avatar, badge? }
  *
+ * members: 검색 dropdown 에 보일 팀원 이름 배열. 🔴 **배열이면 빈 배열도 그대로 존중한다**
+ *   — 「담당 팀원이 0명」을 그릴 수 있어야 하기 때문이다. 예시 이름은 이 prop 을 아예
+ *   넘기지 않았을 때(시안·데모)만 쓴다 (PW-824).
+ *
  * defaultDate: 날짜 칸의 기본값(Date). 호스트 앱은 «사용자 시간대의 내일» 을 넘긴다.
  *   생략하면 브라우저 로컬 기준 내일로 폴백한다 — 어느 쪽이든 «지나간 날짜» 가
  *   기본값으로 남지 않는다.
@@ -32,6 +36,9 @@ export const DEFAULT_LABELS = {
   memberSearch: '팀원 검색',
   memberSearchPlaceholder: '이름으로 검색 해주세요.',
   memberSearchEmpty: '검색 결과 없음',
+  /* 검색어와 무관하게 «고를 팀원이 아예 없을» 때. 기본값은 위와 같은 글자라, 안 넘기면
+     종전 화면 그대로다. 호스트는 화면 본문의 「팀원 0명」 안내와 같은 문구를 넘긴다 (PW-824). */
+  memberEmpty: '검색 결과 없음',
   duration: '미팅 시간',
   duration25: '25분',
   duration55: '55분',
@@ -55,6 +62,10 @@ function durationOptions(L) {
   ];
 }
 
+/* 시안·데모 화면용 예시 이름. 🔴 **호스트 앱이 `members` 를 넘기면 절대 쓰지 않는다** —
+   빈 배열도 「담당 팀원이 없다」는 뜻이라 그대로 존중한다. 예전엔 `members.length > 0`
+   으로 갈라서 «빈 목록»과 «안 넘김»이 같은 취급을 받았고, 팀원이 0명인 계정에서 이 일곱
+   사람이 실재하는 팀원처럼 떴다 (PW-824). */
 const DEMO_MEMBERS = ['김서윤', '김정호', '최수현', '김유진', '윤다희', '이서현', '신예린'];
 
 /* ── 날짜 기본값 ──────────────────────────────────────────────
@@ -123,7 +134,7 @@ export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot, 'ko'));
 
 export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate, locale = 'ko', labels }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
-  const memberList = members && members.length > 0 ? members : DEMO_MEMBERS;
+  const memberList = Array.isArray(members) ? members : DEMO_MEMBERS;
   const [search, setSearch] = useState('');
   const [memberOpen, setMemberOpen] = useState(false);
   const [duration, setDuration] = useState('55');
@@ -225,7 +236,9 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
                     {memberOpen && (
                       <div className="ono-add-modal-menu ono-add-modal-menu-wide">
                         {filteredMembers.length === 0 ? (
-                          <div className="ono-add-modal-menu-empty">{L.memberSearchEmpty}</div>
+                          <div className="ono-add-modal-menu-empty">
+                            {memberList.length === 0 ? L.memberEmpty : L.memberSearchEmpty}
+                          </div>
                         ) : (
                           filteredMembers.map((m) => (
                             <button
