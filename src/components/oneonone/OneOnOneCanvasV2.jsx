@@ -73,6 +73,7 @@ export const DEFAULT_LABELS = {
  * 외부 제어 props (pivit-work 등 실제 사용처용):
  *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
+ *    빈 배열은 「담당 팀원이 0명」으로 그대로 전달된다 — 예시 이름으로 채우지 않는다 (PW-824).
  *  - locale / scheduleLabels: 예약 모달 안 글자의 로케일·번역. 그대로 AddOneOnOneModal
  *    에 넘긴다 (PW-469). 미지정 시 한국어 기본값 — 종전과 같은 화면이다.
  *  - labels: 예약 모달 «바깥», 즉 이 캔버스 본문에 박힌 고정 문구의 번역 (PW-505).
