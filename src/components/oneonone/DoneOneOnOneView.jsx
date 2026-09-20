@@ -92,6 +92,22 @@ const DEFAULT_LABELS = {
      「분석하지 않았다」로 쓰지 않는다 — 보냈고 분석도 돌았으며 결과가 빈 것이다. */
   bannerSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
   bannerSkippedSummary: '요약은 메모와 준비 항목으로 만들어졌습니다.',
+  /* 회색 배너의 매니저 액션 둘 (PW-812 · policy §11.7.4). 「다시 시도」는 여기 없다 —
+     같은 파일은 같은 판정을 낸다. 기획 시안 `1on1-app.jsx` 의 `skipped` 블록 문구 그대로. */
+  bannerReplay: '녹음 다시 듣기',
+  bannerManualEntry: '직접 입력',
+
+  /* ── 대화 내용 직접 입력 (PW-812 · policy §11.7.4) ──
+     기획 시안 `1on1-app.jsx` 의 `full_fail` 수동 입력 블록을 옮긴 것이다. 새 문구를
+     지어내지 않았다 — 제목·표시·적는 칸 안내가 모두 그 블록에 있던 것이다. */
+  manualEntryTitle: '회의 내용 직접 입력',
+  manualEntryBadge: '수동 입력 모드',
+  manualEntryPlaceholder:
+    '이번 1on1 회의의 주요 내용, 결정사항, 액션아이템을 직접 입력해주세요...',
+  manualEntryCancel: '돌아가기',
+  manualEntrySave: '완료',
+  manualEntrySaving: '저장하는 중…',
+  manualEntryError: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
 
   /* ── AI 미팅 요약 (§4-4) ── */
   summaryTitle: 'AI 미팅 요약',
@@ -197,7 +213,70 @@ const SLACK_ERROR_LABEL = {
 /** 값이 하나라도 있는가 — 빈 섹션을 그리지 않기 위한 판정. */
 const has = (v) => Array.isArray(v) && v.length > 0;
 
-function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry }) {
+/**
+ * 대화 내용을 손으로 적는 칸 (PW-812 · policy §11.7.4).
+ *
+ * 기획 시안(`1on1-app.jsx`)의 `full_fail` 수동 입력 블록을 그대로 옮겼다 — 제목 ·
+ * 「수동 입력 모드」 표시 · 적는 칸 · 「돌아가기」와 「완료」. **시안에 없는 모양을
+ * 새로 만들지 않았다.**
+ *
+ * 🔴 배너 «옆»이 아니라 배너가 있던 **그 자리**에 그린다. 기획서가 「그 자리에서
+ * 바뀐다 · 새 화면으로 보내지 않는다」로 정했고, 둘을 함께 띄우면 「대화 내용이
+ * 없습니다」와 적는 칸이 같은 화면에서 서로를 설명하지 않은 채 나란히 선다.
+ *
+ * 적은 것이 없으면 「완료」를 잠근다. 저장 중에도 잠근다 — 두 번 눌러 같은 글이 두 번
+ * 저장되면 요약 생성도 두 번 돈다(AI 비용이 두 번 나간다).
+ */
+function ManualEntryPanel({ L, entry }) {
+  const text = entry.value ?? '';
+  const empty = !text.trim();
+  const saving = !!entry.saving;
+  return (
+    <div className="ono-done-manual" data-testid="ono-done-manual">
+      <div className="ono-done-manual-head">
+        <span className="ono-done-manual-title">{L.manualEntryTitle}</span>
+        <span className="ono-done-manual-badge">{L.manualEntryBadge}</span>
+      </div>
+      <textarea
+        className="ono-start-textarea"
+        rows={6}
+        value={text}
+        onChange={(e) => entry.onChange?.(e.target.value)}
+        placeholder={L.manualEntryPlaceholder}
+        disabled={saving}
+        aria-label={L.manualEntryTitle}
+        data-testid="ono-done-manual-input"
+      />
+      {entry.error && (
+        <span className="ono-done-banner-error" role="alert" data-testid="ono-done-manual-error">
+          {L.manualEntryError}
+        </span>
+      )}
+      <div className="ono-done-manual-actions">
+        <button
+          type="button"
+          className="ono-done-banner-btn"
+          onClick={entry.onClose}
+          disabled={saving}
+          data-testid="ono-done-manual-cancel"
+        >
+          {L.manualEntryCancel}
+        </button>
+        <button
+          type="button"
+          className="ono-done-action-add-btn"
+          onClick={entry.onSave}
+          disabled={empty || saving}
+          data-testid="ono-done-manual-save"
+        >
+          {saving ? L.manualEntrySaving : L.manualEntrySave}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay, manualEntry }) {
   if (state === 'ready') {
     return (
       <div className="ono-done-banner is-ok" data-testid="ono-done-banner" data-state={state}>
@@ -232,9 +311,23 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry }) {
   // 모양이다. 초록(완료)·빨강(실패)·파랑(진행) 어느 것과도 갈리고, 재시도는 두지
   // 않는다 — 같은 파일은 같은 결과를 낸다.
   if (state === 'skipped' || state === 'skipped-summarizing') {
-    const summarizing = state === 'skipped-summarizing';
+    // 적는 칸이 열려 있으면 배너 자리를 그것이 차지한다 (PW-812 · policy §11.7.4).
+    if (manualEntry?.open) return <ManualEntryPanel L={L} entry={manualEntry} />;
+    // 🔴 적은 글을 저장한 뒤 **새 요약을 기다리는 동안**도 「만드는 중」이다 (PW-812).
+    // 회차에는 옛 요약이 아직 남아 있어 상태 판정만으로는 `skipped` 와 구별되지
+    // 않는다 — 그대로 두면 저장한 매니저에게 아무 일도 안 일어난 화면이 된다.
+    // 문구는 이미 있는 것을 쓴다(`skipped-summarizing` 과 같은 말) — 새로 짓지 않는다.
+    const summarizing =
+      state === 'skipped-summarizing' || !!manualEntry?.regenerating;
     return (
-      <div className="ono-done-banner" data-testid="ono-done-banner" data-state={state}>
+      <div
+        className="ono-done-banner"
+        data-testid="ono-done-banner"
+        // 🔴 **말하는 것과 같은 값을 적는다.** 저장 뒤 새 요약을 기다리는 동안은
+        // 회차 상태가 아직 `skipped` 인데 배너는 「만드는 중」을 말한다 — 그때
+        // `data-state` 를 `skipped` 로 두면 화면과 표시가 서로 다른 말을 한다.
+        data-state={summarizing ? 'skipped-summarizing' : 'skipped'}
+      >
         {summarizing ? (
           <span className="ono-done-spinner" aria-hidden />
         ) : (
@@ -243,6 +336,33 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry }) {
         <span>
           {`${L.bannerSkipped} ${summarizing ? L.bannerSummarizing : L.bannerSkippedSummary}`}
         </span>
+        {/* 매니저 액션 둘 (PW-812 · policy §11.7.4). **콜백을 안 넘기면 안 그린다** —
+            팀원 화면과, 녹음이 없어 재생기가 없는 회차에서 «눌러도 아무 일이 없는»
+            버튼이 생기지 않게 한다. `retry` 와 같은 규칙이다. */}
+        {(replay?.onReplay || manualEntry?.onOpen) && (
+          <span className="ono-done-banner-actions">
+            {replay?.onReplay && (
+              <button
+                type="button"
+                className="ono-done-banner-btn"
+                onClick={replay.onReplay}
+                data-testid="ono-done-banner-replay"
+              >
+                {L.bannerReplay}
+              </button>
+            )}
+            {manualEntry?.onOpen && (
+              <button
+                type="button"
+                className="ono-done-banner-btn"
+                onClick={manualEntry.onOpen}
+                data-testid="ono-done-banner-manual"
+              >
+                {L.bannerManualEntry}
+              </button>
+            )}
+          </span>
+        )}
       </div>
     );
   }
@@ -761,6 +881,26 @@ export default function DoneOneOnOneView({
    * 매니저는 규정상 언제나 들을 수 있지만, 그 판정을 여기서 하지는 않는다.
    */
   recordingPlayer,
+  /**
+   * 회색 배너의 **「녹음 다시 듣기」** (PW-812 · policy §11.7.4). `{ onReplay }`.
+   *
+   * 🔴 **재생기를 여기서 그리지 않는다.** 듣는 자리는 「AI 미팅 요약」 카드 안 첫
+   * 행(`recordingPlayer`) 하나뿐이고, 이 버튼은 **그것을 그 자리에서 열 뿐**이다.
+   * 배너에 재생기를 따로 두면 같은 화면에 듣는 자리가 둘이 된다(커트 2026-09-20).
+   *
+   * **안 넘기면 버튼을 안 그린다.** 녹음이 없어 재생기가 안 그려지는 회차에서 이
+   * 버튼만 남으면, 눌러도 열릴 것이 없는 버튼이 된다 — 그 판정은 호출부가 한다.
+   */
+  replay,
+  /**
+   * 회색 배너의 **「직접 입력」**과 그 뒤의 적는 칸 (PW-812 · policy §11.7.4).
+   *
+   * `{ open, value, saving, error, onOpen, onClose, onChange, onSave }`.
+   * `onOpen` 이 없으면 버튼을 안 그린다 — 팀원 화면에는 액션이 없다(EC-S6).
+   * `open` 이면 배너 **대신** 적는 칸을 그린다. 글과 저장 상태는 호출부가 들고 있다 —
+   * 저장 결과에 따라 화면이 달라지는데 그 판정은 캔버스가 할 수 있는 것이 아니다.
+   */
+  manualEntry,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -815,6 +955,8 @@ export default function DoneOneOnOneView({
         baseUrl={baseUrl}
         retry={transcription}
         summaryRetry={summary}
+        replay={replay}
+        manualEntry={manualEntry}
       />
 
       <SummaryCard
