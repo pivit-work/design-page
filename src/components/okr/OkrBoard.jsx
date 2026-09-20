@@ -98,7 +98,10 @@ export default function OkrBoard({
           icons={icons}
           baseUrl={baseUrl}
           onClose={() => setKrUpdate(null)}
-          onConfirm={(value) => { if (krUpdate.krId) onKrUpdate?.(krUpdate.krId, value); }}
+          // 🔴 소비처가 돌려준 약속(Promise)을 **그대로 되돌려 준다.** 여기서 삼키면
+          // 모달은 저장이 끝난 줄 알고 바로 닫히고, 거절된 약속은 아무도 안 받는 채로
+          // 남는다 — 저장이 실패해도 창이 사라지던 원인이 이 한 줄이었다 (PW-823).
+          onConfirm={(value) => (krUpdate.krId ? onKrUpdate?.(krUpdate.krId, value) : undefined)}
         />,
         document.body,
       )}

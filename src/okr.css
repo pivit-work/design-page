@@ -282,6 +282,8 @@
 /* Key Result 블록 — 왼쪽 32px 들여쓰기된 패널 */
 .okr-p-kr-block { margin-left: 32px; }
 .okr-p-kr-row { padding: 16px 0; background: var(--bg-secondary); cursor: pointer; }
+/* 달성률 업데이트 창을 열 수 없는 KR 줄 — 눌러도 아무 일이 없으므로 손가락 커서를 주지 않는다. */
+.okr-p-kr-row.is-static { cursor: default; }
 .okr-p-kr-name { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
 .okr-p-kr-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; color: var(--text-secondary); line-height: 24px; }
 .okr-p-kr-teamlink { margin-top: 10px; display: flex; align-items: center; gap: 16px; padding: 2px 6px; background: var(--utility-blue-50); border-radius: 4px; }
