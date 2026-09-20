@@ -8721,3 +8721,84 @@
 .evu-leader-changed-body p {
   margin: 0 0 4px;
 }
+
+/* [PW-585] 단계 상세 · 리마인더 발송 기록 (정책 §6.8 · §6.10) */
+.evmon-stage.is-clickable {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  margin: 0;
+  border-radius: var(--radius-md, 8px);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evmon-stage.is-clickable:hover,
+.evmon-stage.is-clickable.is-open {
+  background: var(--bg-active);
+}
+.evmon-stage-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.evmon-detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  margin-bottom: var(--spacing-lg, 12px);
+}
+.evmon-dispatch {
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+.evmon-dispatch-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 8px);
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  background: var(--bg-secondary, transparent);
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evmon-dispatch-title {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evmon-dispatch-chevron {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  transition: transform 0.12s;
+}
+.evmon-dispatch-chevron.is-open {
+  transform: rotate(90deg);
+}
+.evmon-dispatch-body {
+  border-top: 1px solid var(--bg-active);
+}
+.evmon-dispatch-row {
+  display: grid;
+  grid-template-columns: 96px 1.1fr 1.1fr 76px 68px;
+  gap: var(--spacing-md, 8px);
+  align-items: center;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-bottom: 1px solid var(--bg-active);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary);
+}
+.evmon-dispatch-row:last-child {
+  border-bottom: none;
+}
+.evmon-dispatch-count {
+  text-align: right;
+}
+.evmon-dispatch-note {
+  grid-column: 1 / -1;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}

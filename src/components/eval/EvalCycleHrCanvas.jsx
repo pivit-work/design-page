@@ -5,7 +5,11 @@ import EvalCycleWizard from './EvalCycleWizard.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
-import { isPastScheduleStart, phaseHasTemplate } from './evalSchedulePast.js';
+import {
+  countRemindersBeforePhaseStart,
+  isPastScheduleStart,
+  phaseHasTemplate,
+} from './evalSchedulePast.js';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 
@@ -523,6 +527,15 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
   const isPast = (id) => isPastScheduleStart(rows[id]?.start);
 
   /**
+   * [PW-585 · 정책 §6.10.3] 일정을 미루면 «이미 매달아 둔» 리마인더가 단계 시작보다
+   * 앞으로 밀려 영영 안 나갈 수 있다. 창을 여는 사람은 날짜만 보고 있어서 그 사실을
+   * 모른다 — 그 단계 줄에서 알린다. 저장은 막지 않는다(§5.2.1 「저장은 허용」).
+   * 판정은 마법사 3단계와 **같은 모듈**을 쓴다.
+   */
+  const strandedReminders = (id) =>
+    countRemindersBeforePhaseStart(rs.reminders?.[id], rows[id]);
+
+  /**
    * PW-614 — 저장이 끝난 뒤에 닫는다. 소비 측(`handleSaveSchedule`)이 결과를 기다리므로
    * 여기서는 그 프로미스를 붙들어 «저장 중»을 그리고, 실패하면 창을 연 채 사유를 적는다.
    * 종전에는 던져 놓고 바로 닫혀 고쳐 넣던 일시가 오류 뜨기 전에 이미 사라졌다.
@@ -687,6 +700,17 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                 {/* [PW-614] 지난 날짜가 그냥 지난 날짜가 아닌 단계 — 시작일이 도래하면 그
                     단계 평가지가 잠긴다(PW-535 잠금의 L1). 평가지가 없는 단계
                     (캘리브레이션·요약 검수·결과 발송)에는 잠길 것이 없어 적지 않는다. */}
+                {L.scheduleReminderBeforeStartWarn && strandedReminders(id) > 0 && (
+                  <div
+                    className="evc-sched-modal-warn"
+                    data-testid={`evc-sched-modal-reminder-before-start-${id}`}
+                  >
+                    {String(L.scheduleReminderBeforeStartWarn).replace(
+                      '{{count}}',
+                      String(strandedReminders(id)),
+                    )}
+                  </div>
+                )}
                 {past && phaseHasTemplate(id) && (
                   <div
                     className="evc-sched-modal-warn"

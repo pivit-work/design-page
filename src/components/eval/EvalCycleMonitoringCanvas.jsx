@@ -69,6 +69,9 @@ const DEFAULT_LABELS = {
   historyFailed: '실패',
   done: '완료',
   notDone: '미완료',
+  // [PW-585] 단계 상세 (정책 §6.8 · §6.10)
+  backToStages: '← 단계 목록',
+  stagesHint: '단계를 클릭하면 상세를 확인할 수 있습니다',
   // stage keys
   stageSelfReview: '셀프 리뷰',
   stagePeerAssign: '동료 배정',
@@ -261,6 +264,18 @@ export default function EvalCycleMonitoringCanvas({
   exportBusy = false,
   exportHistory = null,
   onExport,
+  /**
+   * [PW-585] 단계 줄을 «누를 수 있게» 한다 (정책 §6.8). 안 주면 종전대로 글자 줄이다 —
+   * 단독 프리뷰와 옛 호출부의 시각을 바꾸지 않는다.
+   *
+   * 누르면 `onSelectStage(stageKey)`, 열린 단계를 다시 누르거나 「← 단계 목록」을 누르면
+   * `onSelectStage(null)`.
+   */
+  onSelectStage,
+  /** [PW-585] 지금 열린 단계 — `{ key, label, periodLabel }`. 주면 구성원 표 자리에 상세가 선다. */
+  selectedStage = null,
+  /** [PW-585] 상세 안에 놓을 호출부 노드. 지금은 「리마인더 발송 기록」 하나다(§6.10.1). */
+  stageDetail = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // [PW-534] 확인 모달 — null | 'progress' | 'answers'
@@ -373,17 +388,42 @@ export default function EvalCycleMonitoringCanvas({
             <span className="evmon-completion-value" data-testid="evmon-completion">{completionPct}%</span>
           </div>
           <h3 className="evc-card-name">{L.stagesTitle}</h3>
+          {onSelectStage && <p className="evc-empty-sub">{L.stagesHint}</p>}
           <div className="evmon-stages">
             {stages.map((s) => {
               const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
-              return (
-                <div className="evmon-stage" key={s.key} data-testid="evmon-stage">
-                  <span className="evmon-stage-label">{L[STAGE_KEY[s.key]] ?? s.key}</span>
+              const stageLabel = L[STAGE_KEY[s.key]] ?? s.key;
+              const inner = (
+                <>
+                  <span className="evmon-stage-label">{stageLabel}</span>
                   <div className="evs-dist-track">
                     <div className="evs-dist-fill" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="evmon-stage-count">{s.done}/{s.total}</span>
-                </div>
+                </>
+              );
+              // [PW-585] 누를 수 있을 때만 button 으로 바꾼다 — 콜백이 없는 호출부에서
+              // 커서·포커스 링만 생기고 아무 일도 안 나는 줄이 되면 안 된다.
+              if (!onSelectStage) {
+                return (
+                  <div className="evmon-stage" key={s.key} data-testid="evmon-stage">
+                    {inner}
+                  </div>
+                );
+              }
+              const open = selectedStage?.key === s.key;
+              return (
+                <button
+                  type="button"
+                  className={`evmon-stage is-clickable${open ? ' is-open' : ''}`}
+                  key={s.key}
+                  data-testid="evmon-stage"
+                  aria-expanded={open}
+                  onClick={() => onSelectStage(open ? null : s.key)}
+                >
+                  {inner}
+                  <span className="evmon-stage-chevron" aria-hidden="true">›</span>
+                </button>
               );
             })}
           </div>
@@ -393,7 +433,32 @@ export default function EvalCycleMonitoringCanvas({
             [PW-534] 단계 열을 사이클 phases 기반 «동적»으로 (§6.2.1) — 3종 고정이라
             상향 리뷰를 켠 사이클에도 그 열이 없었다. `memberPhases` 가 비면 예전
             3종 고정 열로 그린다(아직 값을 안 주는 호출부의 시각을 바꾸지 않는다). */}
-        {(() => {
+        {/* [PW-585] 단계 상세 (정책 §6.8) — 들어가면 구성원 표 자리를 대신한다.
+            둘을 함께 그리면 같은 화면에 «사람 축» 표와 «단계 축» 상세가 겹쳐 서서
+            지금 무엇을 보고 있는지가 흐려진다. 「← 단계 목록」으로 돌아온다. */}
+        {selectedStage ? (
+          <section className="evc-card" data-testid="evmon-stage-detail">
+            <div className="evmon-detail-head">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() => onSelectStage?.(null)}
+                data-testid="evmon-stage-back"
+              >
+                {L.backToStages}
+              </button>
+              <div>
+                <h3 className="evc-card-name">{selectedStage.label}</h3>
+                {selectedStage.periodLabel && (
+                  <p className="evc-empty-sub" data-testid="evmon-stage-period">
+                    {selectedStage.periodLabel}
+                  </p>
+                )}
+              </div>
+            </div>
+            {stageDetail}
+          </section>
+        ) : (() => {
         const dynamic = memberPhases.length > 0;
         const cols = dynamic
           ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1fr', 'auto'].join(' ')
