@@ -84,6 +84,10 @@ export default function OkrObjectiveSection({
   // 배지를 눌러 상태를 넘길 수 있는지. 콜백이 없으면(=배선 안 한 소비처) 권한과
   // 무관하게 읽기 전용이다 — 눌러도 아무 일이 없는 배지를 「눌리는 것처럼」 그리지 않는다.
   const canToggle = Boolean(canEditInitiative && onToggleInitiative);
+  // KR 줄을 눌러 달성률 업데이트 창을 열 수 있는지. 소비처가 그 KR 에 updateDetail 을
+  // 실어 주지 않았으면(= 고칠 권한이 없다) 손가락 커서도 주지 않는다 — 눌러도 아무 일이
+  // 없는 줄을 「눌리는 것처럼」 그리면 사용자는 고장으로 읽는다.
+  const canUpdateKr = (kr) => Boolean(onUpdateKr && kr.updateDetail);
   const toggleFeedback = (i) => setOpenFeedback((prev) => ({ ...prev, [i]: !prev[i] }));
 
   return (
@@ -114,7 +118,10 @@ export default function OkrObjectiveSection({
 
       {expanded && objective.krs?.map((kr, i) => (
         <div className="okr-p-kr-block" key={rowKey(kr, i, 'label')}>
-          <div className="okr-p-row okr-p-kr-row" onClick={() => onUpdateKr && onUpdateKr(kr)}>
+          <div
+            className={`okr-p-row okr-p-kr-row${canUpdateKr(kr) ? '' : ' is-static'}`}
+            {...(canUpdateKr(kr) ? { onClick: () => onUpdateKr(kr) } : {})}
+          >
             <div className="okr-p-col-label">
               <span className="okr-p-kr-name">{kr.label}</span>
             </div>
