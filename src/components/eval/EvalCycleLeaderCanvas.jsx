@@ -445,7 +445,7 @@ export default function EvalCycleLeaderCanvas({
             ))
           )}
 
-          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl, 16px)' }}>{L.peerEvidenceTitle}</h3>
+          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.peerEvidenceTitle}</h3>
           {peerAnswers.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evl-peer-empty">{L.peerEvidenceEmpty}</p>
           ) : (
@@ -457,7 +457,7 @@ export default function EvalCycleLeaderCanvas({
             ))
           )}
 
-          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl, 16px)' }}>{L.historyTitle}</h3>
+          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.historyTitle}</h3>
           {gradeHistory.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evl-history-empty">{L.historyEmpty}</p>
           ) : (

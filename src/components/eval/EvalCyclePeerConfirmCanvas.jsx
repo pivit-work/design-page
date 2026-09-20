@@ -216,7 +216,7 @@ function PeerGroupCard({
 function UnsolicitedSection({ items, L, onAdopt, onReject }) {
   if (!items || items.length === 0) return null;
   return (
-    <section className="evc-card" data-testid="evp-unsolicited" style={{ borderColor: 'var(--utility-warning-200, #fedf89)' }}>
+    <section className="evc-card" data-testid="evp-unsolicited" style={{ borderColor: 'var(--utility-warning-200)' }}>
       <div className="evc-card-head">
         <h3 className="evc-card-name">{L.unsolicitedTitle}</h3>
         <span className="evc-status-badge tone-warning">{items.length}</span>

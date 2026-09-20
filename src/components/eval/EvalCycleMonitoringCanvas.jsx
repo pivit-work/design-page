@@ -487,7 +487,7 @@ export default function EvalCycleMonitoringCanvas({
                 <span className="evmon-c-name">
                   {m.name || m.memberId}
                   {m.excluded && (
-                    <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm, 6px)' }} data-testid="evmon-excluded-badge">
+                    <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm)' }} data-testid="evmon-excluded-badge">
                       {L.excludedBadge}
                     </span>
                   )}
@@ -497,7 +497,7 @@ export default function EvalCycleMonitoringCanvas({
                   {m.joinedAt && (
                     <span
                       className="evc-status-badge tone-info"
-                      style={{ marginLeft: 'var(--spacing-sm, 6px)' }}
+                      style={{ marginLeft: 'var(--spacing-sm)' }}
                       title={fill(L.joinedTooltip, { at: fmtSubmittedAt(m.joinedAt) })}
                       data-testid="evmon-joined-badge"
                     >

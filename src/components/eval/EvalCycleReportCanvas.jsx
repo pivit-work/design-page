@@ -67,9 +67,9 @@ function catLabel(a, L) {
 }
 
 function krColor(p) {
-  if (p >= 80) return 'var(--utility-success-500, #17b26a)';
-  if (p >= 50) return 'var(--utility-warning-500, #f79009)';
-  return 'var(--utility-error-500, #f04438)';
+  if (p >= 80) return 'var(--utility-success-500)';
+  if (p >= 50) return 'var(--utility-warning-500)';
+  return 'var(--utility-error-500)';
 }
 
 /** 카테고리별 평균 점수(scale 항목만, growth 제외). */
@@ -137,9 +137,9 @@ function SelfGap({ selfAnswers, leaderAnswers, L }) {
                     diff == null
                       ? 'var(--text-tertiary)'
                       : diff > 0
-                        ? 'var(--utility-warning-600, #dc6803)'
+                        ? 'var(--utility-warning-600)'
                         : diff < 0
-                          ? 'var(--utility-success-600, #079455)'
+                          ? 'var(--utility-success-600)'
                           : 'var(--text-secondary)',
                 }}
               >

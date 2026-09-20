@@ -127,12 +127,12 @@ export const DEFAULT_DISCLOSURE = {
 
 // 섹션별 색(시안 SECTION_COLORS): 성과=blue, 역량=purple, 성장=green, 최종등급=amber.
 export const SECTION_COLORS = {
-  '성과 (What)': 'var(--utility-blue-600, #175cd3)',
-  '역량 (How)': 'var(--utility-purple-600, #6938ef)',
-  '성장 (Growth)': 'var(--utility-success-600, #079455)',
-  '최종 등급 결정': 'var(--utility-warning-600, #dc6803)',
+  '성과 (What)': 'var(--utility-blue-600)',
+  '역량 (How)': 'var(--utility-purple-600)',
+  '성장 (Growth)': 'var(--utility-success-600)',
+  '최종 등급 결정': 'var(--utility-warning-600)',
 };
-export const sectionColor = (s) => SECTION_COLORS[s] || 'var(--text-tertiary, #98a2b3)';
+export const sectionColor = (s) => SECTION_COLORS[s] || 'var(--text-tertiary)';
 
 /** 섹션별로 항목을 묶는다 — 미리보기·평가지 렌더가 같은 순서로 그리게 한다. */
 export function groupBySection(items) {

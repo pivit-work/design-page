@@ -169,6 +169,26 @@
   --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
   --alpha-white-80: var(--componentColors-alpha-alphaWhite80);
 
+  /* 평가 화면이 쓰던 이름들 (PW-831). 이 이름들은 정의된 적이 없어, 평가 화면이
+     `var(--이름, #색)` 뒤에 적어 둔 값이 그대로 그려지고 있었다 — 옛 보라·청록 브랜드
+     색과 옛 회색이 그렇게 남았다. 팔레트에 이어 두면 화면이 지금 회사 색을 받는다. */
+  --utility-error-600: var(--componentColors-utility-error-utilityError600);
+  --utility-warning-600: var(--componentColors-utility-warning-utilityWarning600);
+  --utility-warning-300: var(--componentColors-utility-warning-utilityWarning300);
+  --utility-green-700: var(--componentColors-utility-green-utilityGreen700);
+  --utility-green-300: var(--componentColors-utility-green-utilityGreen300);
+  --utility-purple-700: var(--componentColors-utility-purple-utilityPurple700);
+  --utility-purple-300: var(--componentColors-utility-purple-utilityPurple300);
+  --utility-pink-600: var(--componentColors-utility-pink-utilityPink600);
+  --utility-gray-400: var(--componentColors-utility-gray-utilityGray400);
+  --utility-brand-300: var(--componentColors-utility-brand-utilityBrand300);
+  --utility-orange-500: var(--componentColors-utility-orange-utilityOrange500);
+  --brand-solid: var(--colors-background-bgBrandSolid);
+  --brand-700: var(--colors-brand-700);
+  --brand-600: var(--colors-brand-600);
+  --brand-50: var(--colors-brand-50);
+  --text-success-primary: var(--colors-text-textSuccessPrimary);
+
   /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
   --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),
     0 14px 60px -2.5px var(--colors-effects-shadows-shadow3xl02);
