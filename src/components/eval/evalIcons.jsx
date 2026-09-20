@@ -280,6 +280,15 @@ export function CpuIcon({ size = 16 }) {
   );
 }
 
+// ◀ 되돌아가기 — 왼쪽 꺾쇠. 「단계 목록으로」 같은 되돌아가는 버튼 앞에 선다(PW-585).
+export function ChevronLeftIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
 // ▶ 접힘/펼침 — 오른쪽 꺾쇠. 펼치면 부모가 90° 돌린다(리더 정책 §6.3.0 · PW-561).
 export function ChevronRightIcon({ size = 16 }) {
   return (

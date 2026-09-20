@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { StopIcon } from './evalIcons.jsx';
+import { ChevronLeftIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
 /**
@@ -70,7 +70,8 @@ const DEFAULT_LABELS = {
   done: '완료',
   notDone: '미완료',
   // [PW-585] 단계 상세 (정책 §6.8 · §6.10)
-  backToStages: '← 단계 목록',
+  // 🔴 화살표는 글자가 아니라 인라인 SVG 로 그린다 — 번역 번들에 기호를 넣지 않는다.
+  backToStages: '단계 목록',
   stagesHint: '단계를 클릭하면 상세를 확인할 수 있습니다',
   // stage keys
   stageSelfReview: '셀프 리뷰',
@@ -445,7 +446,7 @@ export default function EvalCycleMonitoringCanvas({
                 onClick={() => onSelectStage?.(null)}
                 data-testid="evmon-stage-back"
               >
-                {L.backToStages}
+                <ChevronLeftIcon size={14} /> {L.backToStages}
               </button>
               <div>
                 <h3 className="evc-card-name">{selectedStage.label}</h3>
