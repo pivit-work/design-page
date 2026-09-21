@@ -5,6 +5,7 @@ import SectionLabel from './SectionLabel.jsx';
 import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
@@ -399,7 +400,25 @@ function RolePill({ role, labels }) {
    `OrgUnitPicker` 는 이름만 나열해 상하 관계를 볼 수 없었다(PW-112, §5-A). */
 
 /* ── 행 액션 메뉴 ───────────────────────────────────────── */
-function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, onClose, labels, canEdit, openUp = false }) {
+/** 행 메뉴의 겹침 순서 — 모달 껍데기와 같은 1000. 사이드바(100)·편집 패널(101) 위. */
+const ROW_MENU_Z = 1000;
+
+/**
+ * 🔴 메뉴는 표 안이 아니라 `document.body` 에 그린다 (PW-865).
+ *
+ * 표는 세로로 잘리는 스크롤 칸(`.admin-emp-table-wrap`, 최소 200px) 안에 있다. 메뉴를
+ * 그 칸 안에 두던 때는 아래로 펴면 칸 바닥에, 위로 펴면 칸 꼭대기에 잘렸다 — 조상의
+ * `overflow` 는 z-index 로 못 뚫는다. 줄이 몇 개뿐인 마지막 쪽에서는 칸이 짧아
+ * **어느 쪽으로 펴도 모자랐고**, 잘린 자리에 칸 위의 검색·필터 줄이 보여 「필터 줄
+ * 뒤로 들어간다」로 보였다(1280×800 · 2줄에서 「수정」·「조직 배정」이 안 눌림).
+ * 칸 안에서 방향만 고르던 PW-306 · PW-400 의 처방으로는 닫히지 않는 경우라, 공용
+ * 껍데기 `AnchoredLayer`(PW-313 — 포털 · 창 좌표 · 뒤집기 · 클램프 · 스크롤 따라가기)
+ * 에 태운다. 면(배경·테두리·그림자)은 종전 `.admin-emp-row-menu` 그대로다.
+ *
+ * 앵커는 노드가 아니라 **셀렉터**로 준다 — 표가 다시 그려지면 붙들고 있던 트리거
+ * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
+ */
+function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, onClose, labels, canEdit, anchorSelector }) {
   const ref = useRef(null);
   useEffect(() => {
     function handler(e) {
@@ -410,7 +429,16 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, 
   }, [onClose]);
 
   return (
-    <div ref={ref} className={`admin-emp-row-menu${openUp ? ' is-up' : ''}`}>
+    <AnchoredLayer
+      anchorSelector={anchorSelector}
+      align="right"
+      panelRef={ref}
+      className="admin-emp-row-menu is-floating"
+      data-testid="employees-list-rowmenu-panel"
+      // 종전 칸 안 메뉴와 같은 바깥 폭(160 + 안쪽 여백·테두리)을 지킨다 — 껍데기의
+      // 기본값 border-box 를 따르면 항목 폭이 12px 줄어든다.
+      style={{ zIndex: ROW_MENU_Z, boxSizing: 'content-box' }}
+    >
       <button type="button" className="admin-emp-row-menu-item" onClick={() => { onEdit(); onClose(); }}>
         {labels.menu.edit}
       </button>
@@ -439,7 +467,7 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, 
           </button>
         </>
       )}
-    </div>
+    </AnchoredLayer>
   );
 }
 
@@ -1577,9 +1605,7 @@ function EmployeesListView({
   const [status, setStatus] = useState(initialFilters.employmentStatus ?? 'all');
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
-  // 행 액션 메뉴가 위로 열려야 하는가 — 아래 공간을 재서 정한다(아래 `openRowMenu`).
-  const [menuUp, setMenuUp] = useState(false);
-  const tableWrapRef = useRef(null);
+  const closeRowMenu = useCallback(() => setOpenMenu(null), []);
   // 소속 팝업을 연 구성원 id. 조직장 지정([매니저로])이 사는 유일한 자리다(PW-400).
   const [deptPickerFor, setDeptPickerFor] = useState(null);
   // 스쿼드 팝업을 연 구성원 id (PW-438). 시트와 **같은 `SquadPicker`** 를 연다.
@@ -2096,30 +2122,12 @@ function EmployeesListView({
   const deptPickerRetained = retainedOrgIds(deptPicker, deptPickerSelected);
 
   /**
-   * 행 액션 메뉴를 연다 — **아래 공간이 없으면 위로 편다** (PW-306 · PW-400).
-   *
-   * 표는 세로로 잘리는 스크롤 컨테이너(`.admin-emp-table-wrap`) 안에 있다. 마지막
-   * 행에서 아래로 펴면 메뉴 아랫부분이 그 컨테이너에 **잘려서 눌리지 않는다** —
-   * 조상의 `overflow` 는 z-index 로 못 뚫는다. 첫 행은 아래가 넉넉해 늘 멀쩡하므로
-   * 이 결함은 마지막 행에서만 드러난다.
-   *
-   * 실측(1512×900, 138명): 마지막 행 메뉴가 컨테이너 바닥(806px)을 93px 넘어가
-   * `document.elementFromPoint` 가 메뉴 대신 컨테이너를 집었다.
+   * 행 액션 메뉴를 연다. 어느 쪽으로 펼지·어디에 놓을지는 메뉴가 트리거를 재서
+   * 정한다(`RowActionMenu` · PW-865) — 표 칸 안에서 방향만 고르던 종전 방식은 칸이
+   * 짧은 마지막 쪽에서 위아래 어느 쪽으로도 잘렸다.
    */
-  const MENU_HEIGHT_PX = 120;   // 항목 3개 + 구분선 실측치(110)에 여유를 더한 값
-  function openRowMenu(id, trigger) {
-    if (openMenu === id) { setOpenMenu(null); return; }
-    const wrap = tableWrapRef.current;
-    const btn = trigger?.getBoundingClientRect?.();
-    // 측정할 수 없으면(jsdom 등) 종전대로 아래로 편다 — 방향 판정이 없다고
-    // 메뉴가 안 열리면 안 된다.
-    if (wrap && btn) {
-      const room = wrap.getBoundingClientRect().bottom - btn.bottom;
-      setMenuUp(room < MENU_HEIGHT_PX);
-    } else {
-      setMenuUp(false);
-    }
-    setOpenMenu(id);
+  function openRowMenu(id) {
+    setOpenMenu(openMenu === id ? null : id);
   }
 
   function cell(m, id) {
@@ -2239,7 +2247,7 @@ function EmployeesListView({
               <button
                 type="button"
                 className="admin-emp-btn is-ghost is-sm admin-emp-more"
-                onClick={(e) => openRowMenu(m.id, e.currentTarget)}
+                onClick={() => openRowMenu(m.id)}
                 aria-label={labels.listRowMenu}
                 data-testid={`employees-list-rowmenu-${m.id}`}
               >
@@ -2249,7 +2257,7 @@ function EmployeesListView({
             {openMenu === m.id && (
               <RowActionMenu
                 labels={labels}
-                openUp={menuUp}
+                anchorSelector={`[data-testid="employees-list-rowmenu-${m.id}"]`}
                 canEdit={canEdit && !!onDeactivate}
                 onEdit={() => onOpenEdit(m)}
                 onChangeManager={() => onOpenEdit(m)}
@@ -2262,7 +2270,7 @@ function EmployeesListView({
                     : undefined
                 }
                 ceoMode={m.isCeo ? 'release' : 'assign'}
-                onClose={() => setOpenMenu(null)}
+                onClose={closeRowMenu}
               />
             )}
           </div>
@@ -2354,7 +2362,7 @@ function EmployeesListView({
 
       {/* 표는 이 컨테이너 안에서만 가로로 흐른다 — 페이지가 통째로 옆으로 밀리면
           스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다(PW-400 §3). */}
-      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap" ref={tableWrapRef}>
+      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap">
         <table className="admin-emp-table" style={{ minWidth }}>
           <thead>
             <tr>

@@ -1385,6 +1385,12 @@
   top: auto;
   bottom: calc(100% + 4px);
 }
+/* 표 칸 밖(`document.body`)에 창 좌표로 뜬다 (PW-865). 자리·겹침 순서는 공용
+   껍데기 `AnchoredLayer` 가 인라인으로 준다 — 위 두 규칙의 칸 기준 자리만 여기서 푼다. */
+.admin-emp-row-menu.is-floating {
+  right: auto;
+  bottom: auto;
+}
 .admin-emp-row-menu-item {
   display: block;
   width: 100%;
