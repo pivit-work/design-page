@@ -7,6 +7,9 @@ import { InfoIcon } from './evalIcons.jsx';
  * v2(G9) 강화: 등급 hero(앵커 툴팁) + **목표(OKR) 리뷰**(최대 차별점) + **자기평가 갭**
  * (셀프 vs 평가 점수 비교) + 리더 코멘트 + 동료 요약(익명) + **성장 영역 & 개선** + 셀프 리뷰.
  * 근거: research-global-report-sample.md / plan §G9.
+ *
+ * `sections`(선택) — 리포트 항목 켜짐/꺼짐 맵(`okr`·`peer`·`leader`·`growth`·`grade` …).
+ * 꺼진 항목의 칸은 그리지 않는다. 맵이 있으면 발송된 리포트는 빈 상태로 접지 않는다.
  */
 
 const DEFAULT_LABELS = {
@@ -269,12 +272,21 @@ export default function EvalCycleReportCanvas({
   leaderAnswers = [],
   peerAnswers = [],
   insight = null,
+  sections,
   labels: providedLabels,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [showAnchor, setShowAnchor] = useState(false);
 
-  if (!published || (!gradeKey && leaderAnswers.length === 0)) {
+  // 리포트 항목 켜짐/꺼짐(서버가 사람마다 내려준다). 맵에 없는 항목은 켜진 것으로 본다.
+  const on = (key) => sections?.[key] !== false;
+  // 맵이 있으면 «끈 것» 과 «아직 없는 것» 을 가를 수 있다 — 발송된 리포트는 접지 않는다.
+  // 맵이 없는 옛 응답만 「등급도 리더 코멘트도 없으면 아직」 으로 추측한다.
+  const notReady = sections
+    ? !published
+    : !published || (!gradeKey && leaderAnswers.length === 0);
+
+  if (notReady) {
     return (
       <div className="evc-root">
         <div className="evc-empty" data-testid="evr-empty">
@@ -295,7 +307,7 @@ export default function EvalCycleReportCanvas({
       </header>
 
       <div className="evc-list">
-        {gradeKey && (
+        {on('grade') && gradeKey && (
           <section className="evr-grade-hero" data-testid="evr-grade">
             <span className="evr-grade-label">{L.gradeLabel}</span>
             <span className="evr-grade-value">{gradeLabel ?? gradeKey}</span>
@@ -322,25 +334,25 @@ export default function EvalCycleReportCanvas({
 
         <AiInsight insight={insight} L={L} />
 
-        <OkrReview okrReview={okrReview} L={L} />
+        {on('okr') && <OkrReview okrReview={okrReview} L={L} />}
 
         <SelfGap selfAnswers={selfAnswers} leaderAnswers={leaderAnswers} L={L} />
 
-        {leaderAnswers.length > 0 && (
+        {on('leader') && leaderAnswers.length > 0 && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.leaderTitle}</h3>
             <AnswerList answers={leaderAnswers} L={L} />
           </section>
         )}
 
-        {peerAnswers.length > 0 && (
+        {on('peer') && peerAnswers.length > 0 && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.peerTitle}</h3>
             <AnswerList answers={peerAnswers} L={L} />
           </section>
         )}
 
-        <GrowthAreas selfAnswers={selfAnswers} L={L} />
+        {on('growth') && <GrowthAreas selfAnswers={selfAnswers} L={L} />}
 
         {selfAnswers.length > 0 && (
           <section className="evc-card">
