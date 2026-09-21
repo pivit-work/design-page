@@ -5,18 +5,6 @@
   ],
   "exceptions": [
     {
-      "file": "components/admin/AdminEmployeesCanvas.jsx",
-      "kind": "dialog",
-      "count": 2,
-      "reason": "구성원 편집 패널: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
-    },
-    {
-      "file": "components/admin/AdminEmployeesCanvas.jsx",
-      "kind": "overlay",
-      "count": 1,
-      "reason": "구성원 편집 패널의 막: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
-    },
-    {
       "file": "components/admin/OrgSnapshotCanvas.jsx",
       "kind": "overlay",
       "count": 1,
@@ -56,19 +44,13 @@
       "file": "components/manager/ProfileModal.jsx",
       "kind": "overlay",
       "count": 1,
-      "reason": "매니저 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 공용 창 틀로 옮기면 생김새가 크게 바뀐다 (PW-893)"
+      "reason": "매니저 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 같이 쓰는 창 틀로 옮기면 노란 머리·3D 아바타 모양이 바뀌고 열 때마다 3D 를 다시 불러온다. 지금 모양대로 둔다 (2026-09-22 커트 결정, PW-893)"
     },
     {
       "file": "components/orgchart/ProfileModal.jsx",
       "kind": "overlay",
       "count": 1,
-      "reason": "조직도 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 공용 창 틀로 옮기면 생김새가 크게 바뀐다 (PW-893)"
-    },
-    {
-      "file": "components/resource/ResourceCanvas.jsx",
-      "kind": "overlay",
-      "count": 2,
-      "reason": "리소스 패널: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
+      "reason": "조직도 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 같이 쓰는 창 틀로 옮기면 노란 머리·3D 아바타 모양이 바뀌고 열 때마다 3D 를 다시 불러온다. 지금 모양대로 둔다 (2026-09-22 커트 결정, PW-893)"
     }
   ]
 }

@@ -7,6 +7,7 @@ export { default as DateInput } from './shared/DateInput.jsx';
 export { default as TimeInput } from './shared/TimeInput.jsx';
 export { resolveUiLocale, datePickerLabels } from './shared/uiLocale.js';
 export { default as ModalShell } from './shared/ModalShell.jsx';
+export { default as SidePanelShell } from './shared/SidePanelShell.jsx';
 export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
 export { default as Toast } from './shared/Toast.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';

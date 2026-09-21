@@ -18,6 +18,7 @@
     "./styles/recording-player.css": "./src/recording-player.css",
     "./styles/ai-fail-box.css": "./src/ai-fail-box.css",
     "./styles/modal-shell.css": "./src/modal-shell.css",
+    "./styles/side-panel-shell.css": "./src/side-panel-shell.css",
     "./styles/timeline.css": "./src/timeline.css",
     "./styles/meetings.css": "./src/meetings.css",
     "./styles/report.css": "./src/report.css",

@@ -1,0 +1,47 @@
+/*
+ * side-panel-shell.css — 오른쪽에서 밀려 나오는 패널의 공용 껍데기 (SidePanelShell · PW-893).
+ *
+ * 기본 생김새는 어드민 구성원 편집 패널에서 옮겨 왔다 — 값은 한 글자도 바꾸지 않았다.
+ * 다른 화면은 제 클래스로 덧입힌다. 덧입힐 때는 `.pw-side-panel.<제 클래스>` 처럼 두 클래스를
+ * 이어 쓴다 — 이 파일과 화면 CSS 가 싣히는 순서에 기대지 않으려고.
+ */
+
+.pw-side-panel-root {
+  position: fixed;
+  inset: 0;
+  /* 사이드바(z:100) 위. 패널 안에서 여는 창은 이보다 높게 선다. */
+  z-index: 101;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pw-side-panel-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 13, 18, 0.4);
+  animation: pwSidePanelFadeIn 0.2s ease-out;
+}
+
+.pw-side-panel {
+  position: relative;
+  height: 100%;
+  width: 420px;
+  max-width: 92vw;
+  background: var(--bg-quaternary);
+  box-shadow: -8px 0 32px rgba(10, 13, 18, 0.12);
+  font-family: var(--font-family-body);
+  animation: pwSidePanelSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pwSidePanelFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pwSidePanelSlideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-side-panel,
+  .pw-side-panel-scrim { animation: none; }
+}
