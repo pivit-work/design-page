@@ -6,6 +6,7 @@ import BezierConnectors from './BezierConnectors.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext, CollapseContext } from './contexts.js';
 import { loadPositions, savePositions } from './hooks.js';
+import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
 /**
  * 처음 열었을 때 접어 둘 노드 = **루트를 뺀 모든 하위 조직**.
@@ -57,7 +58,11 @@ const MIN_FIT_SCALE = 0.5;
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel = '연결선 모양 바꾸기 (곡선 ↔ 직각)' }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels }) {
+  // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
+  const L = useMemo(() => makeOrgLabels(labels), [labels]);
+  // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
+  const lineStyleLabel = lineStyleLabelProp || L('org.lineStyle');
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
   // 연결선 곡선(기본) ↔ 직각 — 세션 상태다. 새로고침하면 곡선으로 돌아온다(§5.1).
@@ -204,6 +209,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
   return (
     // scale 은 카드 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248).
+    <OrgLabelsContext.Provider value={L}>
     <PositionsContext.Provider value={{ positions, updatePosition, scale }}>
     <ModalContext.Provider value={{ openModal }}>
     <MoveContext.Provider value={{ moveMember }}>
@@ -213,14 +219,14 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
       <div className="content-header">
         <div className="tab-nav">
-          <span className="tab-active">조직도</span>
+          <span className="tab-active">{L('tab.orgchart')}</span>
           {showProjectTab && (
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>프로젝트</span>
+            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>{L('tab.project')}</span>
           )}
-          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>스쿼드</span>
+          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>{L('tab.squad')}</span>
         </div>
         <div className="header-subtitle">
-          <b>전체 인원</b>
+          <b>{L('org.totalHeadcount')}</b>
           <span className="dot">&#8729;</span>
           {/* 머리글은 회사 카드와 다른 문구를 받을 수 있다 — 회사 카드에만 `· 미배정 N` 을
               붙이는 소비자가 `summaryCount` 로 머리글 문구를 따로 준다. 없으면 카드와 같다. */}
@@ -236,7 +242,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       >
         <div className="drag-hint">
           <Icon src={icons.expand} size={14} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-          <span>화면을 드래그하면 좀 더 쉽게 조직도를 보실 수 있습니다.</span>
+          <span>{L('org.dragHint')}</span>
         </div>
 
         <div className="canvas-inner" ref={canvasInnerRef} style={{
@@ -277,5 +283,6 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     </MoveContext.Provider>
     </ModalContext.Provider>
     </PositionsContext.Provider>
+    </OrgLabelsContext.Provider>
   );
 }

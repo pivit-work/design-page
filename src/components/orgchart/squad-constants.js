@@ -127,10 +127,11 @@ export function isCountedStatus(status) {
  * (차단 전이는 비활성 항목으로도 보여주지 않는다 — 선택지가 아님을 명확히).
  */
 export const SQUAD_STATUS_TRANSITIONS = {
-  planned: [{ to: 'active', label: '시작' }],
-  active: [{ to: 'done', label: '완료' }],
-  done: [{ to: 'archived', label: '보관' }, { to: 'active', label: '재개' }],
-  archived: [{ to: 'done', label: '복원' }],
+  // `key` 는 화면 문구를 찾는 이름이다(`orgchart-labels.jsx` 의 `squad.transition.*` · PW-705).
+  planned: [{ to: 'active', key: 'start', label: '시작' }],
+  active: [{ to: 'done', key: 'done', label: '완료' }],
+  done: [{ to: 'archived', key: 'archive', label: '보관' }, { to: 'active', key: 'reopen', label: '재개' }],
+  archived: [{ to: 'done', key: 'restore', label: '복원' }],
 };
 
 export function transitionsFrom(status) {
@@ -157,9 +158,9 @@ export function avatarFontPx(text, size) {
   return Math.max(8, Math.min(base, Math.floor(available / widthPerFontPx)));
 }
 
-/** 기간 표기: "2026-01-05" → "26.01.05". 종료일 없으면 '미정'. */
-export function fmtYmd(iso) {
-  if (!iso) return '미정';
+/** 기간 표기: "2026-01-05" → "26.01.05". 종료일 없으면 '미정'(소비자가 번역을 넘길 수 있다). */
+export function fmtYmd(iso, undecided = '미정') {
+  if (!iso) return undecided;
   return String(iso).slice(2, 10).replace(/-/g, '.');
 }
 

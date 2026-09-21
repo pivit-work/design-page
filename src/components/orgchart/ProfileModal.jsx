@@ -1,8 +1,9 @@
-import { Component, useState, useEffect, useRef, useCallback } from 'react';
+import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
+import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
 
 const DEFAULT_PROFILE = {
   title: '사원',
@@ -86,7 +87,13 @@ function applyTexture(app, objectName, imageSrc) {
 // resolvePhoto — 구성원 사진을 3D 아바타에 입힐 때 쓴다. `(member) => url | null | Promise<url | null>`.
 // 미지정이면 지금까지처럼 기본 사진(PROFILE_IMAGE)을 입힌다. 사진을 못 구하면(null·실패) 기본 사진.
 // 새 멤버로 열리면 그 사람 사진이 입혀질 때까지 무대를 숨겨 앞사람 얼굴이 비치지 않게 한다.
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle = '직속팀원', directReportChipLabel = '직속', onFeedbackClick, onMeetingClick, isSelf = false }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels }) {
+  // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
+  // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
+  // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
+  const ctxL = useOrgLabels();
+  const ownL = useMemo(() => (labels ? makeOrgLabels(labels) : null), [labels]);
+  const L = ownL || ctxL;
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -172,7 +179,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               비공개인 사람의 카드에서 구분자가 매달려 보였다. */}
           <div className="modal-title">{[profile.title, profile.dept].filter(Boolean).join(' · ')}</div>
           <div className="modal-bio">{profile.bio}</div>
-          <span className="modal-status-badge">{(MEMBER_STATUSES[displayMember?.status] || MEMBER_STATUSES.working).label}</span>
+          <span className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</span>
         </div>
 
         {/* Stats Row — Admin: 고용형태/직급/업무시간, Employee: 업무시간 only */}
@@ -180,23 +187,23 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-stats">
             <div className="modal-stat">
               <div className="modal-stat-icon modal-stat-employment">
-                <img src={statIcons.employment} alt="고용형태" />
+                <img src={statIcons.employment} alt={L('profile.employmentType')} />
               </div>
-              <div className="modal-stat-label">고용형태</div>
-              <div className="modal-stat-value">{profile.employmentType || '정규직'}</div>
+              <div className="modal-stat-label">{L('profile.employmentType')}</div>
+              <div className="modal-stat-value">{profile.employmentType || L('profile.employmentTypeDefault')}</div>
             </div>
             <div className="modal-stat">
               <div className="modal-stat-icon modal-stat-rank">
-                <img src={statIcons.rank} alt="직급" />
+                <img src={statIcons.rank} alt={L('profile.rank')} />
               </div>
-              <div className="modal-stat-label">직급</div>
+              <div className="modal-stat-label">{L('profile.rank')}</div>
               <div className="modal-stat-value">{profile.rank || 'L3'}</div>
             </div>
             <div className="modal-stat">
               <div className="modal-stat-icon modal-stat-workhours-admin">
-                <img src={statIcons.workHoursAdmin} alt="업무시간" />
+                <img src={statIcons.workHoursAdmin} alt={L('profile.workHours')} />
               </div>
-              <div className="modal-stat-label">업무시간</div>
+              <div className="modal-stat-label">{L('profile.workHours')}</div>
               <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
             </div>
           </div>
@@ -204,9 +211,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-stats">
             <div className="modal-stat">
               <div className="modal-stat-icon modal-stat-hours">
-                <img src={statIcons.workHours} alt="업무시간" />
+                <img src={statIcons.workHours} alt={L('profile.workHours')} />
               </div>
-              <div className="modal-stat-label">업무시간</div>
+              <div className="modal-stat-label">{L('profile.workHours')}</div>
               <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
             </div>
           </div>
@@ -226,7 +233,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 onClick={onFeedbackClick ? () => onFeedbackClick(displayMember) : undefined}
               >
                 <Icon src="/icons-solid/send-03.svg" size={20} baseUrl={baseUrl} />
-                피드백주기
+                {L('profile.feedback')}
               </button>
               <button
                 className="modal-btn-meeting"
@@ -234,7 +241,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 onClick={onMeetingClick ? () => onMeetingClick(displayMember) : undefined}
               >
                 <Icon src="/icons-solid/calendar-heart-02.svg" size={20} baseUrl={baseUrl} />
-                미팅잡기
+                {L('profile.meeting')}
               </button>
             </div>
           );
@@ -244,15 +251,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         {adminMode && (
           <div className="modal-info-sections">
             <div className="modal-info-section">
-              <div className="modal-info-label">사번</div>
+              <div className="modal-info-label">{L('profile.employeeNo')}</div>
               <div className="modal-info-content">{profile.employeeId || 'PVT-008'}</div>
             </div>
             <div className="modal-info-section">
-              <div className="modal-info-label">입사일</div>
+              <div className="modal-info-label">{L('profile.joinedAt')}</div>
               <div className="modal-info-content">{profile.hireDate || '2026-05-02'}</div>
             </div>
             <div className="modal-info-section">
-              <div className="modal-info-label">전화번호</div>
+              <div className="modal-info-label">{L('profile.phone')}</div>
               <div className="modal-info-content">{profile.phone || '010-1234-5678'}</div>
             </div>
           </div>
@@ -261,15 +268,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         {/* Info Sections */}
         <div className="modal-info-sections">
           <div className="modal-info-section">
-            <div className="modal-info-label">스킬</div>
+            <div className="modal-info-label">{L('profile.skills')}</div>
             <div className="modal-info-content">{profile.skills}</div>
           </div>
           <div className="modal-info-section">
-            <div className="modal-info-label">연락처</div>
+            <div className="modal-info-label">{L('profile.contact')}</div>
             <div className="modal-info-content">{profile.contacts}</div>
           </div>
           <div className="modal-info-section">
-            <div className="modal-info-label">링크</div>
+            <div className="modal-info-label">{L('profile.links')}</div>
             <div className="modal-info-content">
               {profile.links.map((link, i) => (
                 <a key={i} className="modal-info-link" href={link} target="_blank" rel="noopener noreferrer">
@@ -292,8 +299,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               <div className="modal-team-header">
                 {/* 제목은 소비자가 로케일로 준다 — 조직 없이 바로 보고하는 사람(COS·비서)도 섞이므로
                     「팀원」이 맞지 않는 곳이 있다(pivit-specs spec-org-hierarchy-exceptions.md §5 F9). */}
-                <span className="modal-team-title">{subordinatesTitle}</span>
-                <span className="modal-team-count">{teamList.length}명</span>
+                <span className="modal-team-title">{subordinatesTitle || L('profile.directReports')}</span>
+                <span className="modal-team-count">{L('profile.peopleCount', { count: teamList.length })}</span>
               </div>
               <div className="modal-team-grid">
                 {teamList.map((tm, i) => (
@@ -304,8 +311,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                     </div>
                     <div className="modal-team-name">{tm.name}</div>
                     {/* 조직 단위 없이 바로 보고하는 사람(직속 칸)에만 붙는다 — 조직 소속과 가른다. */}
-                    {tm.isDirectReport && <span className="modal-team-chip">{directReportChipLabel}</span>}
-                    <div className="modal-team-role">{tm.role || '사원'}</div>
+                    {tm.isDirectReport && <span className="modal-team-chip">{directReportChipLabel || L('profile.directReportChip')}</span>}
+                    <div className="modal-team-role">{tm.role || L('profile.roleDefault')}</div>
                   </div>
                 ))}
               </div>

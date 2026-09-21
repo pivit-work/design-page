@@ -70,6 +70,10 @@ export {
   savePositions,
   usePositions,
   useDrag,
+  ORGCHART_LABELS,
+  OrgLabelsContext,
+  makeOrgLabels,
+  useOrgLabels,
 } from './orgchart/index.js';
 
 // Timeline

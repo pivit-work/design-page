@@ -1,7 +1,9 @@
 import { LEVEL_COLORS } from './constants.js';
+import { useOrgLabels } from './orgchart-labels.jsx';
 
 export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCollapsible, isCollapsed, onToggle }) {
   const lc = LEVEL_COLORS[node.level];
+  const L = useOrgLabels();
   // 하위(멤버·하위 조직)가 있는 카드는 접기/펼치기 토글이다. 카드 클릭 토글에 더해
   // 하단 중앙에 시각 토글 버튼을 둔다 — Figma 16558:19978(펼침 ∧)/17501:19709(접힘 ∨).
   return (
@@ -16,7 +18,7 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
       <div className="dept-title">
         <div className="dept-name">{node.name}</div>
         {/* 대표 직속 조직(§5.6) — 문구는 소비자가 로케일로 준다(staffLabel). */}
-        {node.isStaff && <span className="role-badge role-badge-staff">{node.staffLabel || '대표 직속'}</span>}
+        {node.isStaff && <span className="role-badge role-badge-staff">{node.staffLabel || L('org.staffBadge')}</span>}
       </div>
       <div className="dept-meta">
         <span className="dept-type">{node.type}</span>
@@ -26,7 +28,7 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
         <button
           type="button"
           className={`dept-toggle${isCollapsed ? ' is-collapsed' : ''}`}
-          aria-label={`${node.name} 하위 조직 ${isCollapsed ? '펼치기' : '접기'}`}
+          aria-label={L(isCollapsed ? 'org.expandChildren' : 'org.collapseChildren', { name: node.name })}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
         >

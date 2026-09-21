@@ -32,4 +32,5 @@ export {
 } from './squad-constants.js';
 export { LEVEL_COLORS, MEMBER_STATUSES, STATUS_KEYS } from './constants.js';
 export { PositionsContext, ModalContext, MoveContext, DragContext, CollapseContext } from './contexts.js';
+export { ORGCHART_LABELS, OrgLabelsContext, makeOrgLabels, useOrgLabels } from './orgchart-labels.jsx';
 export { loadPositions, savePositions, usePositions, useDrag } from './hooks.js';

@@ -12,10 +12,12 @@
 import { useState } from 'react';
 import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, CloseIcon, PlusIcon } from './squadIcons.jsx';
+import { useOrgLabels, rich } from './orgchart-labels.jsx';
 
 export default function SquadFormCard({
   form, setForm, errors, palette, onSubmit, onCancel, leadCandidates, submitting,
 }) {
+  const L = useOrgLabels();
   const editing = form.mode === 'edit';
   const [leadQuery, setLeadQuery] = useState('');
   const [leadOpen, setLeadOpen] = useState(false);
@@ -36,39 +38,39 @@ export default function SquadFormCard({
     >
       <span className="sq-card-strip" style={{ background: form.color }} />
 
-      <p className="sq-form-title">{editing ? '스쿼드 수정' : '새 스쿼드'}</p>
+      <p className="sq-form-title">{L(editing ? 'squad.form.titleEdit' : 'squad.form.titleCreate')}</p>
 
       <input
         autoFocus value={form.name} maxLength={30}
-        aria-label="스쿼드명"
+        aria-label={L('squad.form.name')}
         className={`sq-field${errors.name ? ' is-invalid' : ''}`}
         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
-        placeholder="스쿼드명 (필수)"
+        placeholder={L('squad.form.namePlaceholder')}
       />
       {errors.name && <div className="sq-field-error">{errors.name}</div>}
 
       <input
         value={form.mission} maxLength={60}
-        aria-label="미션"
+        aria-label={L('squad.form.mission')}
         className="sq-field"
         onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
-        placeholder="미션 한 줄 (선택)"
+        placeholder={L('squad.form.missionPlaceholder')}
       />
 
       <div className="sq-field-row">
         <div>
-          <div className="sq-field-label">시작일 (필수)</div>
+          <div className="sq-field-label">{L('squad.form.startDateLabel')}</div>
           <DateInput
-            value={form.startDate} aria-label="시작일"
+            value={form.startDate} aria-label={L('squad.form.startDate')}
             className="sq-field sq-field-date"
             onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
           />
         </div>
         <div>
-          <div className="sq-field-label">종료일 (선택)</div>
+          <div className="sq-field-label">{L('squad.form.endDateLabel')}</div>
           <DateInput
-            value={form.endDate} aria-label="종료일"
+            value={form.endDate} aria-label={L('squad.form.endDate')}
             className={`sq-field sq-field-date${errors.endDate ? ' is-invalid' : ''}`}
             onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
           />
@@ -77,7 +79,7 @@ export default function SquadFormCard({
       {errors.endDate && <div className="sq-field-error">{errors.endDate}</div>}
 
       <div className="sq-swatches">
-        <span className="sq-swatches-label">색상</span>
+        <span className="sq-swatches-label">{L('squad.form.color')}</span>
         {palette.map((c) => (
           <div
             key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
@@ -93,7 +95,7 @@ export default function SquadFormCard({
         <div className="sq-lead-pick">
           <div className="sq-field-label">
             <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
-            팀장 (리드) — 선택
+            {L('squad.form.leadLabel')}
           </div>
           {leadPerson ? (
             <div className="sq-lead-chip">
@@ -102,7 +104,7 @@ export default function SquadFormCard({
               <span
                 className="sq-lead-chip-x"
                 onClick={() => setForm((f) => ({ ...f, leadUserId: null }))}
-                title="팀장 지정 해제"
+                title={L('squad.form.leadClear')}
               >
                 <CloseIcon size={12} />
               </span>
@@ -110,11 +112,11 @@ export default function SquadFormCard({
           ) : leadOpen ? (
             <div className="sq-lead-search">
               <input
-                autoFocus value={leadQuery} aria-label="팀장 검색"
+                autoFocus value={leadQuery} aria-label={L('squad.form.leadSearch')}
                 className="sq-field"
                 onChange={(e) => setLeadQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
-                placeholder="이름·팀·직함 검색"
+                placeholder={L('squad.form.leadSearchPlaceholder')}
               />
               <div className="sq-lead-list">
                 {cands.map((n) => (
@@ -127,7 +129,7 @@ export default function SquadFormCard({
                   </div>
                 ))}
                 {cands.length === 0 && (
-                  <div className="sq-lead-none">검색 결과가 없습니다</div>
+                  <div className="sq-lead-none">{L('squad.form.leadNoResults')}</div>
                 )}
               </div>
             </div>
@@ -136,7 +138,7 @@ export default function SquadFormCard({
               type="button" onClick={() => setLeadOpen(true)}
               className="sq-btn sq-btn-sm sq-btn-outline"
             >
-              <PlusIcon size={12} /> 팀장 지정
+              <PlusIcon size={12} /> {L('squad.form.leadPick')}
             </button>
           )}
         </div>
@@ -144,13 +146,13 @@ export default function SquadFormCard({
 
       {!editing && (
         <p className="sq-form-note">
-          상태는 <b>준비중</b>으로 생성됩니다.
-          {!form.leadUserId && ' 팀장을 지정하지 않으면 해당 조직 팀장이 이 스쿼드의 프로젝트를 편집할 수 없습니다.'}
+          {rich(L('squad.form.noteCreate'))}
+          {!form.leadUserId && L('squad.form.noteNoLead')}
         </p>
       )}
       {editing && (
         <p className="sq-form-note">
-          상태는 여기서 바꿀 수 없습니다 — 카드의 상태 배지에서 전환하세요.
+          {L('squad.form.noteEdit')}
         </p>
       )}
 
@@ -159,10 +161,10 @@ export default function SquadFormCard({
           type="button" onClick={onSubmit} disabled={submitting}
           className="sq-btn sq-btn-primary"
         >
-          {editing ? '저장' : '만들기'}
+          {L(editing ? 'squad.form.save' : 'squad.form.create')}
         </button>
         <button type="button" onClick={onCancel} className="sq-btn sq-btn-outline">
-          취소
+          {L('squad.form.cancel')}
         </button>
       </div>
     </div>

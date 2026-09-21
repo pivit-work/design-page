@@ -3,8 +3,10 @@ import DeptCard from './DeptCard.jsx';
 import MemberCard from './MemberCard.jsx';
 import { DragContext, CollapseContext } from './contexts.js';
 import { useDrag } from './hooks.js';
+import { useOrgLabels } from './orgchart-labels.jsx';
 
 export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
+  const L = useOrgLabels();
   const hasChildren = node.children && node.children.length > 0;
   // 조직 없이 이 카드의 주인(대표·조직장)에게 바로 보고하는 사람 — «직속» 칸(pivit-specs
   // spec-org-hierarchy-exceptions.md §3 D1~D6). 조직이 아니라 사람이라 계층 이름을 달지 않고,
@@ -69,7 +71,7 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
       )}
       {directReports.length > 0 && !isCollapsed && (
         <div className="direct-slot" data-testid="org-direct-slot">
-          <div className="direct-slot-label">{node.directReportsLabel || `직속 ${directReports.length}명`}</div>
+          <div className="direct-slot-label">{node.directReportsLabel || L('org.directSlot', { count: directReports.length })}</div>
           {directReports.map((m, i) => (
             <MemberCard key={`${node.id}_direct_${m.id ?? i}`} member={m} parentId={`${node.id}__direct`} index={i} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={false} adminMode={adminMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
           ))}
