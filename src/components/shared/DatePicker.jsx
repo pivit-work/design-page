@@ -26,6 +26,9 @@ import { datePickerLabels } from './uiLocale.js';
  *   maxDate      Date — 이 날짜 이후는 고를 수 없다(경계 포함). 없으면 상한 없음 (PW-762)
  *   todaySelects boolean — true 면 「Today」 가 오늘 달로 넘기면서 오늘을 고른다
  *                (고를 수 있는 범위 안일 때만). 기본 false = 달만 넘긴다 (PW-762)
+ *   today        Date — 「오늘」로 칠 날(로컬 자정 그릇 · 연·월·일만 읽는다). 없으면 브라우저
+ *                시계의 오늘. 앱이 사용자 설정 시간대로 오늘을 정할 때 넘긴다 — 브라우저가
+ *                다른 나라 시간대면 오늘 강조·「Today」 버튼이 하루 어긋나지 않게 (PW-781)
  *   ...rest      data-*·aria-label 등은 겉 상자에 그대로 붙는다
  *
  * Esc 는 달력만 닫고 **바깥으로 올려 보내지 않는다** — 창 안에서 연 달력의 Esc 가
@@ -81,6 +84,7 @@ export default function DatePicker({
   initialMonth,
   maxDate,
   todaySelects = false,
+  today: todayProp,
   locale,
   ...rest
 }) {
@@ -152,7 +156,7 @@ export default function DatePicker({
     setViewMonth(m);
   };
   const goToday = () => {
-    const t = new Date();
+    const t = todayProp ?? new Date();
     setViewYear(t.getFullYear());
     setViewMonth(t.getMonth());
     const today0 = startOfDay(t);
@@ -160,7 +164,7 @@ export default function DatePicker({
   };
 
   const cells = buildGrid(viewYear, viewMonth);
-  const today = new Date();
+  const today = todayProp ?? new Date();
   const sameDay = (c, d) =>
     c.year === d.getFullYear() && c.month === d.getMonth() && c.day === d.getDate();
 
