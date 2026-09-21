@@ -1,10 +1,16 @@
+import Tabs from '../shared/Tabs.jsx';
+
 /**
  * EvalShellNav — 평가 화면 공통 서브 내비게이션.
  *
- * 기획서 `G. 성과평과 & feedback/eval-app.jsx` 의 `EvalSubNav` 를 정본으로 포팅했다.
+ * 기획서 `G. 성과평과 & feedback/eval-app.jsx` 의 `EvalSubNav` 를 옮긴 것이다.
  * 3뎁스 구조: **도메인(정기 평가 / 수시 피드백) → 섹션 → 화면**.
- *   - 1행: 타이틀 + 도메인 1차 탭(언더라인)
- *   - 2행: 선택 도메인의 섹션별 화면 탭(알약) + 도메인 설명
+ *
+ * 모양은 여러 화면이 같이 쓰는 조각을 따른다 (PW-832 · 2026-09-22 커트 결정 (나)):
+ *   - 1행: 도메인 — OKR·조직도 맨 위와 같은 큰 제목 탭(`org_chart.css` 의 `.tab-nav`).
+ *     그 스타일시트는 소비측이 함께 불러야 한다(OKR 화면과 같은 방식).
+ *   - 2행: 선택 도메인의 화면들 — 공용 `Tabs`(타임라인 「간트 / 캘린더」와 같은 밑줄 탭).
+ *     섹션 사이 세로 구분선은 탭 부품에 자리가 없어 없앴고, 도메인 설명은 줄 오른쪽에 둔다.
  *
  * 시안의 '역할 전환기'는 데모용(`TODO(auth)`)이라 옮기지 않았다 — 실제 앱은
  * 로그인 사용자의 역할로 항목을 필터해서 넘긴다.
@@ -12,7 +18,7 @@
  * 순수 컴포넌트: 라우팅을 모른다. 항목 구성·활성 판정·이동은 모두 호출측 몫이다.
  *
  * @param {object}   props
- * @param {string}   props.title            좌측 타이틀 (기본 '평가')
+ * @param {string}   props.title            내비의 이름표(aria-label). 화면에는 쓰지 않는다 — OKR 도 맨 위 줄에 따로 제목이 없다
  * @param {Array}    props.domains          [{ id, label, desc }]
  * @param {string}   props.activeDomain     활성 도메인 id
  * @param {Function} props.onDomainChange   (domainId) => void
@@ -30,61 +36,40 @@ export default function EvalShellNav({
   onSelect,
 }) {
   const desc = domains.find((d) => d.id === activeDomain)?.desc || '';
-  const hasTabs = sections.some((s) => (s.items || []).length > 0);
+  const items = sections.flatMap((sec) =>
+    (sec.items || []).map((item) => ({ value: item.id, label: item.label, testId: `evnav-item-${item.id}` })),
+  );
   if (domains.length === 0) return null;
 
   return (
     <nav className="evnav-nav" aria-label={title}>
-      <div className="evnav-row evnav-row-domain">
-        <span className="evnav-title">{title}</span>
-        <div className="evnav-domains" role="tablist" aria-label={title}>
-          {domains.map((d) => {
-            const on = d.id === activeDomain;
-            return (
-              <button
-                key={d.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                title={d.desc || ''}
-                className={`evnav-domain${on ? ' is-active' : ''}`}
-                onClick={() => onDomainChange?.(d.id)}
-              >
-                {d.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="tab-nav evnav-domains">
+        {domains.map((d) => {
+          const on = d.id === activeDomain;
+          return (
+            <button
+              key={d.id}
+              type="button"
+              title={d.desc || ''}
+              aria-current={on ? 'true' : undefined}
+              className={on ? 'tab-active' : 'tab-inactive'}
+              onClick={() => !on && onDomainChange?.(d.id)}
+              data-testid={`evnav-domain-${d.id}`}
+            >
+              {d.label}
+            </button>
+          );
+        })}
       </div>
 
-      {(hasTabs || desc) && (
-        <div className="evnav-row evnav-row-views">
-          {sections.map((sec, si) => {
-            const items = sec.items || [];
-            if (items.length === 0) return null;
-            return (
-              <div className="evnav-section" key={sec.id || sec.label || si}>
-                {si > 0 && <span className="evnav-divider" aria-hidden="true" />}
-                <div className="evnav-items">
-                  {items.map((item) => {
-                    const on = item.id === activeItemId;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className={`evnav-item${on ? ' is-active' : ''}`}
-                        aria-current={on ? 'page' : undefined}
-                        onClick={() => onSelect?.(item.id)}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-          {desc && <span className="evnav-desc">· {desc}</span>}
+      {(items.length > 0 || desc) && (
+        <div className="tl-tabs-row evnav-views">
+          {items.length > 0 ? (
+            <Tabs items={items} value={activeItemId} onChange={(id) => onSelect?.(id)} />
+          ) : (
+            <span />
+          )}
+          {desc && <span className="evnav-desc">{desc}</span>}
         </div>
       )}
     </nav>

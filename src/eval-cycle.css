@@ -7721,128 +7721,60 @@
    top 을 내비 높이만큼 밀어 준다(`.evnav-shell .evc-root`).
    ════════════════════════════════════════════════════════════ */
 .evnav-shell {
-  /* 1행 47px(46+구분선) + 2행 38px. 행이 접히면 값이 어긋나므로 아래에서
-     두 행 모두 nowrap 으로 고정한다. */
-  --evnav-h: 85px;
+  /* 1행 큰 제목 탭 8(위 여백)+38 + 간격 13 + 2행 밑줄 탭 36. 행이 접히면 값이 어긋나므로
+     아래에서 두 행 모두 nowrap 으로 고정한다. */
+  --evnav-h: 95px;
 }
+/* 자리·여백은 OKR 맨 위 줄(`org_chart.css` `.content-header`)과 같은 좌표다 — 두 화면을
+   오가도 맨 위 줄이 같은 자리에 선다 (PW-832). 상단바(.top-nav)는 높이 68px · z-index 90. */
 .evnav-nav {
-  /* 상단바(.top-nav)는 높이 68px · z-index 90 이다. 그 아래에 붙인다
-     (조직도 .content-header 와 같은 좌표·계층). */
   position: fixed;
   top: 68px;
   left: 240px;
   right: 0;
   z-index: 80;
   box-sizing: border-box;
+  padding: 8px 40px 0 12px;
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-secondary);
   font-family: var(--font-family-body);
 }
 /* 평가 셸 안에서는 캔버스를 내비 아래로 내린다 */
 .evnav-shell .evc-root {
   top: calc(68px + var(--evnav-h));
 }
-
-.evnav-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  padding: 0 var(--spacing-3xl);
-  /* 줄바꿈되면 내비 높이가 변해 캔버스와 겹친다 — 좁아지면 가로 스크롤 */
+/* 1행 — 모양은 `.tab-nav`(OKR·조직도)가 준다. 키보드로도 고를 수 있게 버튼으로 두고
+   버튼 기본 모양만 걷는다. 좁아지면 줄바꿈 대신 가로 스크롤. */
+.evnav-domains {
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.evnav-row::-webkit-scrollbar {
+.evnav-domains::-webkit-scrollbar {
   display: none;
 }
-.evnav-row-domain {
-  height: 46px;
-  gap: var(--spacing-2xl);
-  border-bottom: 1px solid var(--border-secondary);
-}
-.evnav-row-views {
-  min-height: 38px;
-  gap: var(--spacing-lg);
-}
-
-.evnav-title {
-  font-size: var(--font-size-text-md);
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.2px;
-  white-space: nowrap;
-}
-
-.evnav-domains {
-  display: flex;
-  gap: var(--spacing-xs);
-}
-.evnav-domain {
-  height: 46px;
-  padding: 0 var(--spacing-xs);
+.evnav-domains > button {
+  padding: 0;
   border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--font-size-text-sm);
-  font-weight: 500;
-  color: var(--text-tertiary);
+  background: none;
+  font: inherit;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
 }
-.evnav-domain:hover {
-  color: var(--text-secondary);
+.evnav-domains > button.tab-active {
+  cursor: default;
 }
-/* 활성 표시는 admin-integrations `.intg-tab.is-active` 와 같은 토큰을 쓴다.
-   (--utility-brand-700 은 정의돼 있지 않은 유령 토큰이라 쓰면 폴백 보라색이 샌다) */
-.evnav-domain.is-active {
-  font-weight: 700;
-  color: var(--text-brand-tertiary);
-  border-bottom-color: var(--text-brand-tertiary);
+/* 2행 — 공용 밑줄 탭 줄. 여백만 1행에 맞춘다. */
+.evnav-nav .tl-tabs-row.evnav-views {
+  margin: 13px 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-
-.evnav-section {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-.evnav-divider {
-  width: 1px;
-  height: 16px;
-  margin: 0 var(--spacing-xs);
-  background: var(--border-primary);
-}
-.evnav-items {
-  display: flex;
-  gap: var(--spacing-xs);
-}
-.evnav-item {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--font-size-text-xs);
-  font-weight: 500;
-  color: var(--text-tertiary);
+.evnav-views .tl-tab {
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
-}
-.evnav-item:hover {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-.evnav-item.is-active {
-  background: var(--utility-brand-50);
-  color: var(--text-brand-tertiary);
-  font-weight: 700;
 }
 .evnav-desc {
   font-size: var(--font-size-text-xs);
   color: var(--text-quaternary);
+  white-space: nowrap;
 }
 
 /* ── PW-433 항목 설정 패널 · 등급 서열 이동 ─────────────────────────────

@@ -29,12 +29,6 @@
       "reason": "필터 팝오버 밖 클릭을 받는 막 — 창이 아니라 팝오버 (PW-832 가 남김)"
     },
     {
-      "file": "components/eval/EvalShellNav.jsx",
-      "kind": "tablist",
-      "count": 1,
-      "reason": "평가 머리의 영역 전환 — 화면 안 탭이 아니라 페이지 머리 메뉴 (PW-832 가 남김)"
-    },
-    {
       "file": "components/manager/ManagerCanvas.jsx",
       "kind": "tabclass",
       "count": 1,
