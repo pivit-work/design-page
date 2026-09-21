@@ -1783,6 +1783,18 @@ export default function EvalCycleWizard({
    */
   onPolishMessage,
   /**
+   * PW-626 — 「나에게 테스트 발송」. 지금 작성 중인 문구를 **누른 사람 자신에게만** 한 통.
+   * `({ phaseId, phaseName, cycleName, schedule, reminder }) => Promise<{ lines } | null>`
+   *
+   * `lines` 는 채널마다 한 줄 — `{ channel: 'email' | 'slack', ok: boolean, text }`.
+   * 「왜 못 보냈는지」의 문장은 소비 측이 짓는다(서버의 이유 코드를 사람 말로 바꾸는 일은
+   * 번역과 한 몸이다). design-page 는 그 줄을 그 자리에 그대로 그린다.
+   *
+   * 🔴 **실패는 `null` 로 돌려준다** — 던져서 전역 오류 화면으로 튕기면 작성 중이던 문구가
+   * 통째로 날아간다. 안 넘기면 버튼을 숨긴다.
+   */
+  onTestSendMessage,
+  /**
    * PW-529 — 리마인더 「당사자」를 «끌» 때 한 번 묻는 확인. `() => Promise<boolean>`.
    *
    * 🔴 **브라우저 기본 확인 창을 쓰지 않는 이유가 있다.** 사용자가 「이 사이트가 추가
@@ -2437,8 +2449,24 @@ export default function EvalCycleWizard({
   // ── 리마인더 문구 [PW-435 ⑤⑥] ────────────────────────────────────────────
   /** 구 형태(`email.{subject,body}`)로 저장된 것도 여기서 `message` 로 읽는다. */
   const messageOf = (rm) => normalizeReminder(rm)?.message ?? EMPTY_MESSAGE;
-  const patchMessage = (pid, rid, patch) =>
+  /* [PW-626] 「나에게 테스트 발송」 결과 — «단계 + 리마인더 id» 별. 문구를 고치면 지운다(아래 patchMessage).
+     🔴 리마인더 id 만으로 가르면 안 된다 — 기본 리마인더는 단계마다 같은 id 로 깔려서, 셀프 리뷰에서
+     보낸 결과가 다른 단계의 첫 리마인더에도 똑같이 뜬다(2026-09-22 브라우저에서 실제로 봤다). */
+  const testKey = (pid, rid) => `${pid}::${rid}`;
+  const [testBusy, setTestBusy] = useState(() => new Set());
+  const [testResult, setTestResult] = useState({});
+  const clearTestResult = (key) =>
+    setTestResult((prev) => {
+      if (!(key in prev)) return prev;
+      const n = { ...prev };
+      delete n[key];
+      return n;
+    });
+  const patchMessage = (pid, rid, patch) => {
     patchReminder(pid, rid, (r) => ({ message: { ...messageOf(r), ...patch }, email: {} }));
+    // [PW-626] 방금 받은 테스트와 고친 문구가 달라진다 — 「보냈습니다」를 남기지 않는다.
+    clearTestResult(testKey(pid, rid));
+  };
   /**
    * 템플릿 전환. **커스텀으로 바꾸는 순간** 그 단계의 가장 최근 저장 문구를 채운다
    * ([PW-435 ⑥] "커스텀 선택시 이전에 저장된 문구가 계속 보이면 좋을 듯함").
@@ -2578,6 +2606,39 @@ export default function EvalCycleWizard({
     if (conf.hasSubject) patch.subject = d.subject ?? '';
     patchMessage(pid, rid, patch);
     clearAiDraft(key);
+  };
+
+  /**
+   * 「나에게 테스트 발송」 [PW-626] — 리마인더별 진행·결과.
+   *
+   * 결과는 **그 리마인더 자리에** 남긴다. 문구를 고치면 방금 받은 것과 지금 문구가 달라지므로
+   * 결과를 지운다(`patchMessage` 가 부른다) — 남겨 두면 「보냈습니다」가 고친 뒤의 문구를
+   * 가리키는 것처럼 읽힌다.
+   */
+  const runTestSend = async (ph, rm) => {
+    if (!onTestSendMessage) return;
+    const key = testKey(ph.id, rm.id);
+    markSet(setTestBusy, key, true);
+    clearTestResult(key);
+    let out = null;
+    try {
+      out = await onTestSendMessage({
+        phaseId: ph.id,
+        phaseName: L[ph.nameKey],
+        cycleName: name.trim(),
+        schedule: scheduleOf(ph.id),
+        reminder: normalizeReminder(rm),
+      });
+    } catch {
+      // 🔴 보조 기능 실패가 위자드를 넘어뜨리지 않는다 — 그 자리에서만 말한다.
+      out = null;
+    } finally {
+      markSet(setTestBusy, key, false);
+    }
+    setTestResult((prev) => ({
+      ...prev,
+      [key]: out && Array.isArray(out.lines) ? { lines: out.lines } : { failed: true },
+    }));
   };
 
   /**
@@ -5997,7 +6058,42 @@ export default function EvalCycleWizard({
                                           >
                                             {sampleIsOpen(rm.id) ? L.reminderSampleHide : L.reminderSampleShow}
                                           </button>
+                                          {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
+                                              어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
+                                          {onTestSendMessage && (
+                                            <button
+                                              type="button"
+                                              className="evc-rm-save-msg"
+                                              disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
+                                              title={L.reminderTestSendHint}
+                                              onClick={() => void runTestSend(ph, rm)}
+                                              data-testid={`evc-rm-test-send-${ph.id}-${i}`}
+                                            >
+                                              {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
+                                            </button>
+                                          )}
                                         </div>
+                                        {testResult[testKey(ph.id, rm.id)] && (
+                                          <div
+                                            className="evc-rm-test-result"
+                                            role="status"
+                                            data-testid={`evc-rm-test-result-${ph.id}-${i}`}
+                                          >
+                                            {testResult[testKey(ph.id, rm.id)].failed ? (
+                                              <p className="evc-rm-ai-error">{L.reminderTestFailed}</p>
+                                            ) : (
+                                              testResult[testKey(ph.id, rm.id)].lines.map((ln) => (
+                                                <p
+                                                  key={ln.channel}
+                                                  className={ln.ok ? 'evc-rm-test-line is-ok' : 'evc-rm-ai-error'}
+                                                  data-testid={`evc-rm-test-line-${ln.channel}-${ph.id}-${i}`}
+                                                >
+                                                  {ln.text}
+                                                </p>
+                                              ))
+                                            )}
+                                          </div>
+                                        )}
                                         {sampleIsOpen(rm.id) && renderMessageSample(ph, rm, i)}
                                       </div>
                                       {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
