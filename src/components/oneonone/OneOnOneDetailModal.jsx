@@ -320,7 +320,7 @@ export default function OneOnOneDetailModal({
                   className="ono-add-modal-input"
                   onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); }}
                 >
-                  <span className="ono-add-modal-input-text">{formatTime(time, locale)}</span>
+                  <span className="ono-add-modal-input-text">{formatTime(time)}</span>
                   <Icon src={icons.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
                 </button>
                 {timeOpen && (
@@ -332,7 +332,7 @@ export default function OneOnOneDetailModal({
                         className={`ono-add-modal-menu-item ${t === time ? 'is-selected' : ''}`}
                         onClick={() => { setTime(t); setTimeOpen(false); }}
                       >
-                        {formatTime(t, locale)}
+                        {formatTime(t)}
                       </button>
                     ))}
                   </div>
@@ -372,7 +372,7 @@ export default function OneOnOneDetailModal({
               disabled={scheduling}
               onClick={() => onScheduleNext?.({
                 date,
-                time: formatTime(time, locale),
+                time: formatTime(time),
                 time24: time,
                 remind: showRemind && remind,
               })}
