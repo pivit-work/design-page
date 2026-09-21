@@ -6,6 +6,10 @@ import { useDrag } from './hooks.js';
 
 export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const hasChildren = node.children && node.children.length > 0;
+  // 조직 없이 이 카드의 주인(대표·조직장)에게 바로 보고하는 사람 — «직속» 칸(pivit-specs
+  // spec-org-hierarchy-exceptions.md §3 D1~D6). 조직이 아니라 사람이라 계층 이름을 달지 않고,
+  // 소속 인원(members)과 섞지 않는다. 연결선은 점선(BezierConnectors)이다.
+  const directReports = Array.isArray(node.directReports) ? node.directReports : [];
   // 멤버만 있는 팀/파트 카드도 접을 수 있다 — 시안(17501:19709)에서 파트 카드가
   // 멤버 리스트를 접는다. 접힘은 멤버·하위 조직을 함께 숨긴다.
   const hasBelow = hasChildren || (node.members && node.members.length > 0);
@@ -61,6 +65,14 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
           {isDropTarget && dropTarget.insertIndex >= node.members.length && (
             <div className="drop-indicator" />
           )}
+        </div>
+      )}
+      {directReports.length > 0 && !isCollapsed && (
+        <div className="direct-slot" data-testid="org-direct-slot">
+          <div className="direct-slot-label">{node.directReportsLabel || `직속 ${directReports.length}명`}</div>
+          {directReports.map((m, i) => (
+            <MemberCard key={`${node.id}_direct_${m.id ?? i}`} member={m} parentId={`${node.id}__direct`} index={i} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={false} adminMode={adminMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
+          ))}
         </div>
       )}
       {!node.members && isDropTarget && (

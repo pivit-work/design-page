@@ -46,6 +46,13 @@
 .staff-branch { margin-left: 28px; width: max-content; position: relative; }
 .staff-branch > .org-node { align-items: flex-start; }
 
+/* 개인 «직속» 칸(pivit-specs spec-org-hierarchy-exceptions.md §3 D1~D6) — 조직이 아니라 사람이라
+   부서 카드를 만들지 않고 구성원 카드를 그대로 쓴다. 소속 인원과 가르는 것은 점선(연결선 · 카드 테두리)과
+   머리 문구뿐이다. 연결선은 BezierConnectors 가 긋는다. */
+.direct-slot { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 24px; }
+.direct-slot-label { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-tertiary); text-align: center; }
+.direct-slot > .member-node { border-style: dashed; border-color: var(--border-primary); }
+
 /* SVG connector overlay */
 .connector-svg { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
 .connector-svg path { fill: none; stroke: var(--border-primary); stroke-width: 1; }
@@ -612,6 +619,18 @@
   font-weight: 500;
   line-height: 18px;
   color: var(--text-secondary);
+}
+
+/* 조직 없이 바로 보고하는 사람 표시 — 조직장·대표 배지와 섞이지 않는 무채색 작은 칩. */
+.modal-team-chip {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
 }
 
 /* ── Modal Footer ── */

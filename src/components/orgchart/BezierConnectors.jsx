@@ -29,12 +29,15 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'cur
       const s = scale || 1;
       const containerRect = container.getBoundingClientRect();
       let pathData = '';
+      // 직속 칸으로 가는 보고선 — 소속선과 가르려고 점선으로 따로 긋는다.
+      let dashedPathData = '';
 
       const orgNodes = container.querySelectorAll('.org-node');
       orgNodes.forEach(parentNode => {
         const childrenRow = parentNode.querySelector(':scope > .children-row');
         const staffBlock = parentNode.querySelector(':scope > .staff-branches');
-        if (!childrenRow && !staffBlock) return;
+        const directSlot = parentNode.querySelector(':scope > .direct-slot');
+        if (!childrenRow && !staffBlock && !directSlot) return;
 
         const membersList = parentNode.querySelector(':scope > .members-list');
         const deptCard = parentNode.querySelector(':scope > .dept-card');
@@ -48,6 +51,14 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'cur
         const parentRect = parentBottom.getBoundingClientRect();
         const px = (parentRect.left + parentRect.width / 2 - containerRect.left) / s;
         let py = (parentRect.bottom - containerRect.top) / s;
+
+        // 직속 칸은 카드(와 소속 인원) 바로 아래다. 하위 조직으로 가는 선은 칸 아래에서 이어진다.
+        if (directSlot) {
+          const r = directSlot.getBoundingClientRect();
+          dashedPathData += `M ${px} ${py} V ${(r.top - containerRect.top) / s} `;
+          py = (r.bottom - containerRect.top) / s;
+        }
+        if (!childrenRow && !staffBlock) return;
 
         // 대표 직속 곁가지(§5.6) — 세로선에서 조직마다 오른쪽으로 가지 하나. 연결선 모양과
         // 무관하게 직선이다. 최상위 조직 줄로 가는 선은 이 블록 아래에서 이어진다.
@@ -106,7 +117,8 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'cur
         });
       });
 
-      svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-linejoin="round"/>`;
+      svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-linejoin="round"/>`
+        + (dashedPathData ? `<path class="connector-direct" d="${dashedPathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-dasharray="4 3"/>` : '');
       rafRef.current = requestAnimationFrame(draw);
     };
 
