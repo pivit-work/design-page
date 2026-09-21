@@ -93,12 +93,14 @@ function tomorrowKey(now = new Date()) {
 }
 
 /* ── 시간 ─────────────────────────────────────────────────────
-   드롭다운이 들고 있는 값은 로케일과 무관한 24시간 «HH:MM» 이고, 화면 글자만
-   로케일로 만든다. 예약을 저장하는 쪽은 그 값(onSubmit 의 `time24`)을 읽으면 되므로
+   드롭다운이 들고 있는 값은 로케일과 무관한 24시간 «HH:MM» 이고, 화면 글자도
+   그 값 그대로다. 예약을 저장하는 쪽은 그 값(onSubmit 의 `time24`)을 읽으면 되므로
    영어 '1:00 PM' 을 1시로 되읽는 사고가 아예 생기지 않는다.
 
-   한국어 표기는 Intl 이 주는 «오후 01:00» 이 아니라 «오후 13:00» 이다 — 디자인
-   정본의 표기라 Intl 로 갈아끼우면 시각이 바뀐다. 그래서 ko 만 직접 만든다. */
+   🔴 오전·오후를 붙이지 않는다 (PW-867). 예전 한국어 표기 «오후 13:00» 은 오전·오후와
+   24시간 숫자를 함께 써서 한 목록에 두 표기가 섞였고, 영어만 «1:00 PM» 이었다.
+   예약이 잡힌 뒤 1on1 카드·일정표가 보여 주는 시각은 언어와 무관하게 «13:00» 이라
+   고르는 자리도 그쪽에 맞춘다(TimeInput·evalScheduleStamp 와 같은 24시간 규약). */
 export const TIME_SLOTS = [
   '09:00', '09:30', '10:00', '10:30',
   '11:00', '11:30', '12:00', '12:30',
@@ -107,16 +109,11 @@ export const TIME_SLOTS = [
   '17:00', '17:30', '18:00',
 ];
 
-function isKorean(locale) {
-  return String(locale || 'ko').toLowerCase().startsWith('ko');
-}
-
-/** 'HH:MM'(24h) → 화면에 보일 글자. */
-export function formatTime(value, locale = 'ko') {
-  const [h, m] = value.split(':').map(Number);
-  if (isKorean(locale)) return `${h < 12 ? '오전' : '오후'} ${value}`;
-  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' })
-    .format(new Date(2000, 0, 1, h, m));
+/**
+ * 'HH:MM'(24h) → 화면에 보일 글자. 언어와 무관하게 24시간 그대로다 (PW-867).
+ */
+export function formatTime(value) {
+  return value;
 }
 
 function formatDateLabel(date, locale) {
@@ -134,8 +131,7 @@ function weekdayLabels(locale) {
 }
 
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
-// 종전 이름·값(한국어 19개)을 그대로 둬서 그쪽 호출부는 손대지 않는다.
-export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot, 'ko'));
+export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
 export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
@@ -325,7 +321,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
                       className="ono-add-modal-input"
                       onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); setMemberOpen(false); }}
                     >
-                      <span className="ono-add-modal-input-text">{formatTime(time, locale)}</span>
+                      <span className="ono-add-modal-input-text">{formatTime(time)}</span>
                       <Icon src={icons?.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
                     </button>
                     {timeOpen && (
@@ -337,7 +333,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
                             className={`ono-add-modal-menu-item ${slot === time ? 'is-selected' : ''}`}
                             onClick={() => { setTime(slot); setTimeOpen(false); }}
                           >
-                            {formatTime(slot, locale)}
+                            {formatTime(slot)}
                           </button>
                         ))}
                       </div>
@@ -367,7 +363,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
               className="ono-add-modal-btn ono-add-modal-btn-primary"
               /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
                  쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
-              onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time, locale), time24: time, memo })}
+              onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo })}
               disabled={!member && !search}
             >
               {L.submit}
