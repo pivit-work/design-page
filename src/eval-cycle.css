@@ -91,28 +91,7 @@
   font-weight: 700;
   color: var(--text-tertiary);
 }
-.evc-period-seg {
-  display: inline-flex;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.evc-period-seg-btn {
-  padding: 4px 12px;
-  border: none;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-.evc-period-seg-btn + .evc-period-seg-btn {
-  border-left: 1px solid var(--border-primary);
-}
-.evc-period-seg-btn.is-on {
-  background: var(--utility-brand-50);
-  color: var(--utility-brand-700);
-}
+
 .evc-period-select {
   padding: 4px 10px;
   border: 1px solid var(--border-primary);
@@ -473,30 +452,7 @@
 }
 
 /* ── 모달 ── */
-.evc-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 13, 18, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--spacing-xl);
-}
-.evc-modal {
-  background: var(--bg-quaternary);
-  border-radius: var(--radius-2xl);
-  box-shadow: 0 20px 60px rgba(10, 13, 18, 0.24);
-  width: 100%;
-  max-width: 420px;
-  padding: var(--spacing-2xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-.evc-modal.is-wide {
-  max-width: 520px;
-}
+
 /* §4.1.2-A 진행 중 일정 수정 모달 — 껍데기는 공용 창 틀(ModalShell · PW-832) */
 .evc-sched-modal-body {
   display: flex;
@@ -650,23 +606,12 @@
   line-height: 1.5;
   color: var(--colors-warning-600);
 }
-.evc-modal-title {
-  font-size: var(--font-size-text-md);
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
+
 .evc-modal-sub {
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
   margin: 0;
   white-space: pre-line;
-}
-.evc-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
 }
 
 /* [PW-637] 오픈 확인 창 — 기획서 시안 `OpenConfirmModal` 을 옮겼다. 껍데기는 공용 창 틀
@@ -839,20 +784,6 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-}
-.evc-wiz-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-lg);
-}
-.evc-wiz-close {
-  border: none;
-  background: transparent;
-  font-size: var(--font-size-text-md);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  line-height: 1;
 }
 
 /* 스텝 바 */
@@ -4347,56 +4278,7 @@
   font-weight: 600;
 }
 
-/* §4.A 미제출자 리마인드 모달 (종합 리포트/캘리 워크스페이스 모달 공용 오버레이)
-   z-index 는 사이드바(100)·상단 헤더(90)·컨텐츠 헤더(80)보다 위여야 한다.
-   기존 60 은 셋 다보다 낮아, portal 로 탈출시켜도 사이드바가 딤 위로 노출됐다. */
-.evs-remind-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(16, 24, 40, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-}
-.evs-remind {
-  width: 100%;
-  max-width: 560px;
-  max-height: 86vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-  border-radius: var(--radius-2xl);
-  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.24);
-  overflow: hidden;
-}
-.evs-remind-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  padding: var(--spacing-xl) var(--spacing-xl);
-  border-bottom: 1px solid var(--bg-active);
-}
-.evs-remind-title {
-  font-size: var(--font-size-text-md);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.evs-remind-sub {
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-  margin-top: 3px;
-}
-.evs-remind-x {
-  border: none;
-  background: none;
-  font-size: 20px;
-  line-height: 1;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
+/* §4.A 미제출자 리마인드 창 본문 — 막·제목·발은 공용 창 틀(ModalShell · PW-832)이 그린다. */
 .evs-remind-selectall {
   display: flex;
   align-items: center;
@@ -4472,21 +4354,10 @@
   border-color: var(--utility-error-200);
   color: var(--utility-error-700);
 }
-.evs-remind-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-top: 1px solid var(--bg-active);
-}
+
 .evs-remind-note {
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
-}
-.evs-remind-actions {
-  display: flex;
-  gap: var(--spacing-sm);
 }
 
 .evs-two-col {
@@ -5260,26 +5131,7 @@
 /* ════════════════════════════════════════════════════════════
    피드백 (EvalFeedbackCanvas)
    ════════════════════════════════════════════════════════════ */
-.fb-tabs {
-  display: flex;
-  gap: var(--spacing-xs);
-  max-width: 1080px;
-  margin: 0 auto var(--spacing-lg);
-}
-.fb-tab {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-text-sm);
-  font-weight: 700;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-.fb-tab.is-on {
-  background: var(--bg-active);
-  color: var(--text-primary);
-}
+
 .fb-list {
   display: flex;
   flex-direction: column;
@@ -6014,27 +5866,7 @@
   font-size: var(--font-size-text-xs);
   padding: 6px 12px;
 }
-.evs-cw-create {
-  background: var(--bg-primary);
-  border-radius: 16px;
-  padding: 24px;
-  width: 640px;
-  max-width: 94vw;
-  max-height: 88vh;
-  overflow-y: auto;
-  box-shadow: 0 12px 40px rgba(10, 13, 18, 0.22);
-}
-.evs-cw-create-title {
-  font-size: var(--font-size-text-md);
-  font-weight: 800;
-  color: var(--text-primary);
-}
-.evs-cw-create-desc {
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-  margin-top: 4px;
-  line-height: 1.6;
-}
+
 .evs-cw-create-lbl {
   display: block;
   font-size: 12px;
@@ -6167,12 +5999,6 @@
 .evs-cw-create-muted {
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
-}
-.evs-cw-create-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 18px;
 }
 
 /* PW-519 보상 조정 열 · 위원회 전용 칸 · 보상·연봉 열람 권한 창 */
@@ -6507,21 +6333,7 @@
   font-family: inherit;
   text-decoration: underline;
 }
-.evs-cw-filter {
-  background: var(--bg-primary);
-  border-radius: 14px;
-  width: 620px;
-  max-width: 96vw;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-}
-.evs-cw-filter-head {
-  padding: 20px 24px 14px;
-  border-bottom: 1px solid var(--border-primary);
-}
+
 .evs-cw-filter-body {
   padding: 16px 24px;
   overflow-y: auto;
@@ -6593,13 +6405,6 @@
   border-color: var(--utility-error-500);
   background: var(--utility-error-50);
   color: var(--utility-error-700);
-}
-.evs-cw-filter-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 24px;
-  border-top: 1px solid var(--border-primary);
 }
 
 /* §4.5 R5 상세 3단 박스 + 논의 코멘트 */
@@ -7087,34 +6892,6 @@
 }
 .evs-cw-ninebox-btn {
   flex-shrink: 0;
-}
-.evs-cw-ninebox-box {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
-  width: min(720px, 92vw);
-  max-height: 88vh;
-  overflow: auto;
-  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.24);
-}
-.evs-cw-ninebox-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
-}
-.evs-cw-ninebox-close {
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  padding: 0 4px;
-}
-.evs-cw-ninebox-close:hover {
-  color: var(--text-primary);
 }
 
 /* ── R4b: 필터 프리셋 저장/로드 ── */
