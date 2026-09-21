@@ -50,7 +50,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 /* 섹션 타이틀 — Figma 20/30, #596069 (text-primary) */
 .mtg-section-title {
@@ -68,7 +68,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 .mtg-gcal-status {
   display: flex;
@@ -76,12 +76,12 @@
   gap: 8px;
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 /* Google Calendar 미연동 — 라벨에 경고 톤. 초록 체크 아이콘은 컴포넌트 단에서
  * 조건부 미렌더하므로 별도 hide 룰 불필요. */
 .mtg-gcal-status.is-disconnected {
-  color: var(--colors-warning-600, #ca8504);
+  color: var(--colors-warning-600);
 }
 
 /* Meeting list */
@@ -96,12 +96,12 @@
   display: flex;
   align-items: stretch;
   gap: 22px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 6px;
   overflow: hidden;
 }
 .mtg-row.is-ongoing {
-  background: #f1fffa;
+  background: var(--colors-emerald-50);
 }
 .mtg-row.is-dimmed {
   opacity: 0.5;
@@ -117,7 +117,7 @@
    * 늘리지 않도록 고정폭. wide-digit "02.28 08:08" 실측 ~77px + 좌우 padding
    * 28px = 105px, 5px buffer 포함 110px. */
   width: 110px;
-  border-right: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-right: 1px solid var(--colors-border-borderSecondary);
   flex-shrink: 0;
 }
 /* 시간 — 14/20 semibold text-secondary */
@@ -125,7 +125,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   /* "04.01" 와 "11:00" 사이 공백에서 줄바꿈되지 않도록 nowrap.
    * tabular-nums 는 폰트가 지원하는 경우 숫자 폭을 균일하게(없어도 nowrap +
    * 고정폭으로 wrap·overflow 모두 방지). */
@@ -137,7 +137,7 @@
 .mtg-row-time-dur {
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 
 .mtg-row-body {
@@ -180,16 +180,16 @@
   text-align: center;
 }
 .mtg-tag-ongoing {
-  background: #e1fef2;
-  color: #10774d;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
 }
 .mtg-tag-scheduled {
-  background: #fcfcfd;
+  background: var(--bg-tertiary);
   color: var(--text-tertiary);
 }
 .mtg-tag-completed {
-  background: #e1fef2;
-  color: #10774d;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
 }
 
 /* 회의록 생성 중 행 우측 텍스트 (Figma 16920-37316) */
@@ -199,7 +199,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 /* 생성 실패 — 생성 중과 같은 자리·타이포, 색만 error 로. */
@@ -209,7 +209,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  color: var(--componentColors-utility-error-utilityError700);
   flex-shrink: 0;
 }
 
@@ -219,10 +219,10 @@
   margin-right: 20px;
   padding: 10px 12px;
   min-width: 56px;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   border: none;
   border-radius: 10px;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -253,7 +253,7 @@
   max-width: 100%;
   height: 712px;
   max-height: calc(100vh - 64px);
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 21px 120px -12px rgba(10, 13, 18, 0.14),
@@ -284,7 +284,7 @@
   cursor: pointer;
 }
 .mtg-progress-close-btn:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* 스크롤 영역 — sticky bottom 과 겹치지 않게 pb 140 */
@@ -332,19 +332,19 @@
 .mtg-progress-pill {
   padding: 2px 9px;
   border-radius: 8px;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  background: var(--colors-background-bgTertiary);
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   text-align: center;
 }
 
 /* 녹음 중 타이머 카드 — Figma 16905:29521 (브랜드 그린 테마) */
 .mtg-progress-rec-card {
   padding: 16px 16px 32px;
-  background: var(--utility-brand-50, #f1fffa);
+  background: var(--utility-brand-50);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -361,7 +361,7 @@
   height: 24px;
   border-radius: 50%;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
-  background: var(--utility-brand-200, #b2f2dc);
+  background: var(--utility-brand-200);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -369,11 +369,11 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-  color: var(--text-primary, #596069);
+  color: var(--text-primary);
 }
 .mtg-progress-rec-name b {
   font-weight: 600;
-  color: var(--utility-brand-600, #21a67a);
+  color: var(--utility-brand-600);
 }
 .mtg-progress-rec-time {
   font-family: var(--font-family-display);
@@ -381,7 +381,7 @@
   line-height: 72px;
   font-weight: 500;
   letter-spacing: -1.2px;
-  color: var(--utility-brand-600, #21a67a);
+  color: var(--utility-brand-600);
 }
 .mtg-progress-rec-wave {
   display: inline-flex;
@@ -392,7 +392,7 @@
 .mtg-progress-rec-wave span {
   width: 4px;
   border-radius: 6px;
-  background: var(--utility-brand-600, #21a67a);
+  background: var(--utility-brand-600);
   transform-origin: bottom;
   animation: mtg-wave 0.9s ease-in-out infinite;
 }
@@ -417,7 +417,7 @@
 
 /* 녹음만 종료된 상태 회색 카드 (Figma 16920-37172) */
 .mtg-progress-rec-card.is-stopped {
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   gap: 4px;
 }
 .mtg-progress-rec-time-sm {
@@ -448,8 +448,8 @@
 .mtg-progress-stoprec-btn {
   flex: 1;
   padding: 10px 12px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
-  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  background: var(--colors-background-bgQuaternary);
+  border: 1px solid var(--colors-border-borderTertiary);
   border-radius: 10px;
   color: var(--text-primary);
   font-family: inherit;
@@ -460,7 +460,7 @@
   transition: background 0.15s ease;
 }
 .mtg-progress-stoprec-btn:hover {
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* memo-only 모드: 메모 영역을 크게 (전사 섹션 제거분 흡수) */
@@ -496,16 +496,16 @@
   right: 0;
   bottom: 0;
   padding: 24px 48px 48px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
-  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  background: var(--colors-background-bgQuaternary);
+  border-top: 1px solid var(--colors-border-borderTertiary);
 }
 .mtg-progress-end-btn {
   width: 100%;
   padding: 10px 12px;
-  background: var(--colors-background-bgErrorSolid, #f04438);
+  background: var(--colors-background-bgErrorSolid);
   border: none;
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -534,7 +534,7 @@
   position: relative;
   width: 100%;
   max-width: 400px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 32px 64px -12px rgba(10, 13, 18, 0.14),
@@ -553,14 +553,14 @@
   padding: 8px;
   border: none;
   border-radius: 14px;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  background: var(--colors-background-bgTertiary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 .mtg-end-confirm-close:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 .mtg-end-confirm-header {
@@ -602,16 +602,16 @@
 }
 .mtg-end-confirm-btn-cancel {
   background: transparent;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   color: var(--text-secondary);
 }
 .mtg-end-confirm-btn-cancel:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-end-confirm-btn-danger {
-  background: var(--colors-background-bgErrorSolid, #f04438);
+  background: var(--colors-background-bgErrorSolid);
   border: none;
-  color: #ffffff;
+  color: var(--text-white);
 }
 .mtg-end-confirm-btn-danger:hover {
   filter: brightness(0.96);
@@ -623,10 +623,10 @@
 .mtg-progress-share-btn {
   width: 100%;
   padding: 10px 12px;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   border: none;
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -654,7 +654,7 @@
   border-radius: 6px;
   background:
     linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
-    #ffffff;
+    var(--bg-quaternary);
 }
 .mtg-record-ai-banner-text {
   font-size: 12px;
@@ -687,7 +687,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 .mtg-record-meta-value {
   font-size: 18px;
@@ -745,19 +745,19 @@
   width: 100%;
   padding: 8px 14px;
   background: transparent;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: 8px;
   font-family: inherit;
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .mtg-record-discussion-head:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-record-discussion-title {
   flex: 1;
@@ -776,7 +776,7 @@
   border-radius: 8px;
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   white-space: pre-wrap;
 }
 
@@ -803,7 +803,7 @@ input.mtg-record-action-title {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -812,14 +812,14 @@ input.mtg-record-action-title {
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 input.mtg-record-action-title:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 input.mtg-record-action-title:focus {
-  background: var(--colors-background-bgPrimary, #ffffff);
-  border-color: var(--colors-border-borderSecondary, #e1e4e8);
+  background: var(--colors-background-bgPrimary);
+  border-color: var(--colors-border-borderSecondary);
 }
 input.mtg-record-action-title::placeholder {
-  color: var(--text-tertiary, #98a1b2);
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 .mtg-record-action-person {
@@ -832,7 +832,7 @@ input.mtg-record-action-title::placeholder {
   width: 24px;
   height: 24px;
   border-radius: 9999px;
-  background: var(--componentColors-utility-brand-utilityBrand200, #b3fade);
+  background: var(--componentColors-utility-brand-utilityBrand200);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -858,7 +858,7 @@ input.mtg-record-action-title::placeholder {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 .mtg-record-action-remove {
   width: 26px;
@@ -873,7 +873,7 @@ input.mtg-record-action-title::placeholder {
   cursor: pointer;
 }
 .mtg-record-action-remove:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-record-action-add {
   width: 100%;
@@ -881,19 +881,19 @@ input.mtg-record-action-title::placeholder {
   align-items: center;
   gap: 4px;
   padding: 8px 14px;
-  background: var(--colors-foreground-fgQuaternary, #f9fafb);
+  background: var(--colors-foreground-fgQuaternary);
   border: none;
   border-radius: 8px;
   font-family: inherit;
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .mtg-record-action-add:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* 액션 아이템 셀 클릭 가능 (person/date) */
@@ -910,19 +910,19 @@ input.mtg-record-action-title::placeholder {
 }
 .mtg-record-action-person:hover,
 .mtg-record-action-date:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* 담당자 미설정 — 회색 placeholder. 아바타 동그라미를 따로 표시하지 않아
  * 동일한 '—' 가 동그라미 안과 밖에 두 번 노출되던 문제를 회피.
  */
 .mtg-record-action-person.is-empty {
-  color: var(--text-tertiary, #98a1b2);
+  color: var(--text-tertiary);
 }
 .mtg-record-action-name--placeholder {
   font-weight: 500;
   font-size: 14px;
-  color: var(--text-tertiary, #98a1b2);
+  color: var(--text-tertiary);
 }
 
 /* ActionPersonPopover */
@@ -934,7 +934,7 @@ input.mtg-record-action-title::placeholder {
   max-height: 320px;
   overflow-y: auto;
   padding: 6px 0;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   box-shadow:
     0 12px 16px -4px rgba(10, 13, 18, 0.08),
@@ -965,16 +965,16 @@ input.mtg-record-action-title::placeholder {
   text-align: left;
 }
 .mtg-action-person-item:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-action-person-item.is-selected {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-action-person-avatar {
   width: 24px;
   height: 24px;
   border-radius: 9999px;
-  background: var(--componentColors-utility-brand-utilityBrand200, #b3fade);
+  background: var(--componentColors-utility-brand-utilityBrand200);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -1025,8 +1025,8 @@ input.mtg-record-action-title::placeholder {
   background: rgba(0, 0, 0, 0.05);
 }
 .mtg-share-card.is-selected {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  background: var(--bg-quaternary);
 }
 .mtg-share-card-head {
   display: flex;
@@ -1049,7 +1049,7 @@ input.mtg-record-action-title::placeholder {
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 
 .mtg-share-pill-list {
@@ -1063,7 +1063,7 @@ input.mtg-record-action-title::placeholder {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
 }
 .mtg-share-section-label-sub {
   margin-top: 12px;
@@ -1092,7 +1092,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-share-member-role {
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 
 /* 체크박스 */
@@ -1101,9 +1101,9 @@ input.mtg-record-action-title::placeholder {
   height: 20px;
   flex-shrink: 0;
   padding: 0;
-  border: 1.5px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1.5px solid var(--colors-border-borderSecondary);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-quaternary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1111,8 +1111,8 @@ input.mtg-record-action-title::placeholder {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .mtg-share-checkbox.is-checked {
-  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  background: var(--colors-foreground-fgBrandPrimary);
+  border-color: var(--colors-foreground-fgBrandPrimary);
 }
 
 /* .tl-snippet-textarea min-height:144 를 단일 input 용으로 리셋 */
@@ -1128,7 +1128,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-share-hint {
   font-size: 13px;
   line-height: 18px;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 
 /* 외부 링크 row — URL pill + light brand 복사 버튼 */
@@ -1147,7 +1147,7 @@ input.mtg-record-action-title::placeholder {
   align-items: center;
   font-size: 14px;
   line-height: 20px;
-  color: var(--text-secondary, #687079);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1157,14 +1157,14 @@ input.mtg-record-action-title::placeholder {
 .mtg-share-copy-btn {
   height: 44px;
   padding: 10px 16px;
-  background: var(--componentColors-utility-brand-utilityBrand100, #e1fef2);
+  background: var(--componentColors-utility-brand-utilityBrand100);
   border: none;
   border-radius: 10px;
   font-family: inherit;
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--colors-foreground-fgBrandPrimary);
   cursor: pointer;
   flex-shrink: 0;
   transition: filter 0.15s ease;
@@ -1198,7 +1198,7 @@ input.mtg-record-action-title::placeholder {
   flex-shrink: 0;
 }
 .mtg-modal-close:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* ─── 기록 방식 선택 모달 ─── */
@@ -1206,7 +1206,7 @@ input.mtg-record-action-title::placeholder {
   position: relative;
   width: 560px;
   max-width: 100%;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 21px 120px -12px rgba(10, 13, 18, 0.14),
@@ -1254,16 +1254,16 @@ input.mtg-record-action-title::placeholder {
   text-align: center;
   gap: 8px;
   padding: 24px 16px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
-  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  background: var(--colors-background-bgQuaternary);
+  border: 1px solid var(--colors-border-borderTertiary);
   border-radius: 12px;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
   font-family: inherit;
 }
 .mtg-method-card:hover {
-  border-color: var(--bg-brand-solid, #21a67a);
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-color: var(--bg-brand-solid);
+  background: var(--colors-background-bgSecondary);
 }
 .mtg-method-card-title {
   font-size: 16px;
@@ -1275,14 +1275,14 @@ input.mtg-record-action-title::placeholder {
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 .mtg-method-footnote {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 
 /* ─── 마이크 선택 모달 ─── */
@@ -1290,7 +1290,7 @@ input.mtg-record-action-title::placeholder {
   position: relative;
   width: 480px;
   max-width: 100%;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 21px 120px -12px rgba(10, 13, 18, 0.14),
@@ -1354,9 +1354,9 @@ input.mtg-record-action-title::placeholder {
   width: 100%;
   appearance: none;
   padding: 10px 36px 10px 12px;
-  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderTertiary);
   border-radius: 10px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -1377,28 +1377,28 @@ input.mtg-record-action-title::placeholder {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: var(--utility-blue-500, #2e90fa);
+  color: var(--utility-blue-500);
 }
 .mtg-mic-volume-track {
   height: 6px;
   border-radius: 9999px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
-  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  background: var(--colors-background-bgSecondary);
+  border: 1px solid var(--colors-border-borderTertiary);
   overflow: hidden;
 }
 .mtg-mic-volume-fill {
   height: 100%;
-  background: var(--utility-blue-500, #2e90fa);
+  background: var(--utility-blue-500);
   transition: width 0.2s ease;
 }
 .mtg-mic-request-btn {
   margin-top: 8px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--bg-brand-solid, #21a67a);
+  border: 1px solid var(--bg-brand-solid);
   border-radius: 10px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
-  color: var(--bg-brand-solid, #21a67a);
+  background: var(--colors-background-bgQuaternary);
+  color: var(--bg-brand-solid);
   font-family: inherit;
   font-size: 14px;
   line-height: 20px;
@@ -1407,7 +1407,7 @@ input.mtg-record-action-title::placeholder {
   transition: background 0.15s ease;
 }
 .mtg-mic-request-btn:hover {
-  background: var(--utility-brand-50, #f1fffa);
+  background: var(--utility-brand-50);
 }
 .mtg-mic-granted {
   margin: 8px 0 0;
@@ -1415,15 +1415,15 @@ input.mtg-record-action-title::placeholder {
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 .mtg-mic-start-btn {
   width: 100%;
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: var(--colors-background-bgErrorSolid, #f04438);
-  color: #ffffff;
+  background: var(--colors-background-bgErrorSolid);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -1441,18 +1441,18 @@ input.mtg-record-action-title::placeholder {
   gap: 8px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+  background: var(--componentColors-utility-error-utilityError50);
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--colors-background-bgErrorSolid, #f04438);
+  color: var(--colors-background-bgErrorSolid);
 }
 .mtg-mic-footnote {
   margin: 0;
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
 }
 
 /* ─── AI 회의록 생성 실패 안내 + 재시도 (MeetingRecordContent 의 headerExtra 자리) ───
@@ -1466,20 +1466,20 @@ input.mtg-record-action-title::placeholder {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 10px;
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
-  border: 1px solid var(--componentColors-utility-error-utilityError200, #fecdca);
+  background: var(--componentColors-utility-error-utilityError50);
+  border: 1px solid var(--componentColors-utility-error-utilityError200);
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  color: var(--componentColors-utility-error-utilityError700);
 }
 .mtg-summary-error button {
   flex-shrink: 0;
   padding: 8px 14px;
   border-radius: 8px;
   border: none;
-  background: var(--colors-background-bgErrorSolid, #f04438);
-  color: #ffffff;
+  background: var(--colors-background-bgErrorSolid);
+  color: var(--text-white);
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
@@ -1498,7 +1498,7 @@ input.mtg-record-action-title::placeholder {
   position: relative;
   width: 320px;
   max-width: 100%;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 32px 64px -12px rgba(10, 13, 18, 0.14),
@@ -1522,7 +1522,7 @@ input.mtg-record-action-title::placeholder {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   margin-bottom: 4px;
 }
 .mtg-generating-title {
@@ -1544,8 +1544,8 @@ input.mtg-record-action-title::placeholder {
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
-  color: var(--text-white, #ffffff);
+  background: var(--colors-background-bgBrandSolid);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -1640,7 +1640,7 @@ input.mtg-record-action-title::placeholder {
 }
 .mtg-actions-link:hover { color: var(--text-primary); }
 .mtg-actions-link:focus-visible {
-  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: -2px;
 }
 
@@ -1662,12 +1662,12 @@ input.mtg-record-action-title::placeholder {
   padding: 8px 14px;
   border: none;
   border-radius: 8px;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
   cursor: pointer;
   flex-shrink: 0;
   transition: filter 0.15s ease;
@@ -1675,7 +1675,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-start-adhoc:hover { filter: brightness(0.96); }
 .mtg-start-adhoc:disabled { opacity: 0.6; cursor: default; filter: none; }
 .mtg-start-adhoc:focus-visible {
-  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: 2px;
 }
 
@@ -1688,7 +1688,7 @@ input.mtg-record-action-title::placeholder {
   gap: 6px;
   padding: 48px 20px;
   border-radius: 12px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   text-align: center;
 }
 .mtg-empty .icon { margin-bottom: 2px; }
@@ -1738,7 +1738,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-rec-widget-wave { display: flex; align-items: flex-end; gap: 6px; height: 14px; }
 .mtg-rec-widget-wave span { width: 4px; border-radius: 6px; background: var(--utility-blue-500); }
 .mtg-rec-widget-wave.is-live span { transition: height 0.06s linear; }
-.mtg-rec-widget-stop { width: 90px; padding: 10px 12px; border: none; border-radius: 10px; background: var(--colors-background-bgErrorSolid, #f04438); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
+.mtg-rec-widget-stop { width: 90px; padding: 10px 12px; border: none; border-radius: 10px; background: var(--colors-background-bgErrorSolid); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 
 /* ── 대화 내비게이터 한 줄 (PW-578 · 1on1 이 이 위젯을 함께 쓴다) ──────────────
    policy §5.7.4 (ㄱ) 「한 몸」 — 녹음 줄 «아래 한 줄»로만 붙는다. 스크립트 전문은
@@ -1748,7 +1748,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-rec-widget-guide-stage { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mtg-rec-widget-guide-count { flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .mtg-rec-widget-guide-close { flex-shrink: 0; width: 18px; height: 18px; padding: 0; border: none; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.mtg-rec-widget-guide-pace { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--componentColors-utility-warning-utilityWarning700, #b54708); }
+.mtg-rec-widget-guide-pace { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--componentColors-utility-warning-utilityWarning700); }
 .mtg-rec-widget-guide-next { width: 100%; padding: 6px 10px; border: 1px solid var(--alpha-black-5); border-radius: 8px; background: var(--bg-secondary); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .mtg-rec-widget-guide-next:disabled { color: var(--text-tertiary); cursor: default; }
 
@@ -1757,7 +1757,7 @@ input.mtg-record-action-title::placeholder {
    쓰되 클래스를 갈라 둔다 — 사유가 다르고, 한쪽 규칙을 고칠 때 다른 쪽이 딸려가면
    안 된다. 라벨은 그대로 두므로 「눌리지 않는다」는 사실만 시각으로 말한다. */
 .mtg-start-btn.is-locked {
-  background: var(--colors-background-bgDisabled, #f3f4f6);
+  background: var(--colors-background-bgDisabled);
   color: var(--text-tertiary);
   cursor: not-allowed;
 }
@@ -1774,12 +1774,12 @@ input.mtg-record-action-title::placeholder {
   gap: 10px;
   margin: 0 20px 12px;
   padding: 10px 14px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   box-sizing: border-box;
   overflow-wrap: anywhere;
 }
@@ -1789,7 +1789,7 @@ input.mtg-record-action-title::placeholder {
   flex: none;
   padding: 5px 12px;
   background: transparent;
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 6px;
   font-family: inherit;
   font-size: 12px;
@@ -1798,12 +1798,12 @@ input.mtg-record-action-title::placeholder {
   cursor: pointer;
 }
 .mtg-lock-banner-action:hover {
-  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+  background: var(--componentColors-utility-warning-utilityWarning100);
 }
 
 /* 녹음 진행 중(위젯 축소 상태) 행의 비활성 [진행 중] 버튼 — Figma 16817:40731 */
 .mtg-start-btn.is-inprogress {
-  background: var(--colors-background-bgDisabled, #f3f4f6);
+  background: var(--colors-background-bgDisabled);
   color: var(--text-tertiary);
   cursor: default;
 }

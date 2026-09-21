@@ -72,12 +72,12 @@
   background: var(--text-tertiary);
 }
 .snippet-view-toggle.is-on {
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  background: var(--colors-background-bgBrandPrimary);
+  border-color: var(--colors-foreground-fgBrandPrimary);
   color: var(--text-brand-secondary);
 }
 .snippet-view-toggle.is-on .snippet-view-toggle-dot {
-  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  background: var(--colors-foreground-fgBrandPrimary);
 }
 
 /* "스니핏 작성" 버튼 — brand-solid 그린 */
@@ -163,7 +163,7 @@
 .snippet-member.is-selected .snippet-member-avatar {
   box-shadow:
     0 0 0 2px var(--bg-primary),
-    0 0 0 4px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+    0 0 0 4px var(--colors-foreground-fgBrandPrimary);
 }
 .snippet-member-name {
   font-size: 14px;
@@ -174,7 +174,7 @@
 }
 .snippet-member.is-selected .snippet-member-name {
   font-weight: 700;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 /* 필터 row — 기간 segmented + 날짜 버튼 + 검색 */
@@ -219,8 +219,8 @@
 }
 .snippet-search:focus-within,
 .snippet-search.is-active {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 .snippet-search input {
   flex: 1;
@@ -234,13 +234,13 @@
   color: var(--text-secondary);
 }
 .snippet-search input::placeholder {
-  color: var(--text-placeholder, #b1b6be);
+  color: var(--text-placeholder);
 }
 
 /* 검색어 하이라이트 — summary 안의 매치 토큰을 brand 색 강조 */
 .snippet-row-hl {
   background: transparent;
-  color: var(--text-brand-secondary, #10774d);
+  color: var(--text-brand-secondary);
   font-weight: 700;
 }
 
@@ -293,7 +293,7 @@
 /* 날짜 picker 팝오버(.snippet-datepicker-*) 는 datepicker.css 로 분리 (상단 @import) */
 
 .snippet-date-btn.is-open {
-  outline: 1px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline: 1px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: -1px;
 }
 
@@ -312,23 +312,23 @@
   gap: 22px;
   height: 90px;
   border-radius: 6px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 .snippet-row:hover {
-  background: var(--colors-grayLight-50, #fafafa);
+  background: var(--colors-grayLight-50);
 }
 .snippet-row:focus-visible {
-  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: -2px;
 }
 .snippet-row.is-recent {
   height: auto;
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  background: var(--colors-background-bgBrandPrimary);
 }
 .snippet-row.is-recent:hover {
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
+  background: var(--colors-background-bgBrandPrimary);
 }
 
 /* 좌측 날짜 컬럼 */
@@ -343,11 +343,11 @@
   font-weight: 600;
   line-height: 20px;
   color: var(--text-primary);
-  border-right: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-right: 1px solid var(--colors-border-borderTertiary);
   text-align: center;
 }
 .snippet-row.is-recent .snippet-row-date {
-  border-right-color: var(--colors-border-borderDisabledSubtle, #e6e8ea);
+  border-right-color: var(--colors-border-borderDisabledSubtle);
 }
 
 /* 우측 본문: 요약 텍스트(2줄 truncate) + 타임스탬프 */

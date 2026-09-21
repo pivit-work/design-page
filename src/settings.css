@@ -73,12 +73,12 @@
 }
 
 .msc-nav-title {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
 .msc-nav-group-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-quaternary);
   text-transform: uppercase;
@@ -146,14 +146,14 @@
 }
 
 .msc-field-hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin: 0 0 6px;
   line-height: 1.5;
 }
 
 .msc-field-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin: 4px 0 0;
   line-height: 1.5;
@@ -161,14 +161,14 @@
 
 .msc-char-count {
   text-align: right;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
 
 .msc-input-error {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-error-primary);
   margin: 4px 0 0;
 }
@@ -213,7 +213,7 @@
 }
 
 .msc-photo-caption {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-brand-secondary);
   font-weight: 700;
   text-align: center;
@@ -263,7 +263,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-white);
   font-weight: 800;
 }
@@ -279,7 +279,7 @@
   border: none;
   /* --bg-error-primary 는 에러 "표면 틴트"(#fef3f2)라 흰 글자와 대비가 ~1.1:1 로
      사실상 보이지 않았다. 솔리드 에러 색을 써야 한다. */
-  background: var(--utility-error-500, #f04438);
+  background: var(--utility-error-500);
   color: var(--text-white);
   font-size: 13px;
   cursor: pointer;
@@ -292,7 +292,7 @@
   box-shadow: 0 0 0 2px var(--bg-quaternary);
 }
 .msc-photo-tile-del:hover {
-  background: var(--colors-error-600, #d92d20);
+  background: var(--colors-error-600);
 }
 
 .msc-photo-add {
@@ -316,7 +316,7 @@
 }
 
 .msc-photo-help {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin: 0;
   line-height: 1.6;
@@ -343,7 +343,7 @@
 }
 
 .msc-save-btn.is-saved {
-  background: var(--utility-green-600, #16a34a);
+  background: var(--utility-green-600);
 }
 
 .msc-save-btn.is-error {
@@ -351,7 +351,7 @@
      대비가 1.09:1 로 「저장 실패 — 다시 시도」 가 아예 안 보였다(PW-307).
      여기는 아이콘이 아니라 14px 본문 글자라 WCAG AA 4.5:1 을 맞춰야 해서,
      276행의 error-500(#f04438, 흰 글자와 3.76:1)이 아니라 error-600 을 쓴다 — 4.83:1. */
-  background: var(--colors-error-600, #d92d20);
+  background: var(--colors-error-600);
 }
 
 /* ── 공개 범위 ──────────────────────────────────────── */
@@ -371,7 +371,7 @@
 }
 
 .msc-vis-group-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   line-height: 1.5;
 }
@@ -395,14 +395,14 @@
 }
 
 .msc-vis-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 9px;
   border-radius: var(--radius-full);
 }
 
 .msc-card.is-green {
-  border-color: var(--utility-green-200, #bbf7d0);
+  border-color: var(--utility-green-200);
   border-width: 1.5px;
 }
 
@@ -412,9 +412,9 @@
 }
 
 .msc-vis-badge.is-green {
-  background: var(--utility-green-50, #f0fdf4);
-  border: 1px solid var(--utility-green-200, #bbf7d0);
-  color: var(--utility-green-600, #16a34a);
+  background: var(--utility-green-50);
+  border: 1px solid var(--utility-green-200);
+  color: var(--utility-green-600);
 }
 
 .msc-vis-badge.is-brand {
@@ -437,7 +437,7 @@
 }
 
 .msc-notif-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
@@ -473,13 +473,13 @@
 }
 
 .msc-intg-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: var(--radius-full);
-  background: var(--utility-green-50, #f0fdf4);
-  border: 1px solid var(--utility-green-200, #bbf7d0);
-  color: var(--utility-green-600, #16a34a);
+  background: var(--utility-green-50);
+  border: 1px solid var(--utility-green-200);
+  color: var(--utility-green-600);
 }
 
 .msc-intg-badge.is-muted {
@@ -489,14 +489,14 @@
 }
 
 .msc-intg-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   line-height: 1.5;
   margin: 0;
 }
 
 .msc-intg-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   display: block;
   margin-top: 2px;
@@ -519,7 +519,7 @@
 }
 
 .msc-intg-sub-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-quaternary);
   text-transform: uppercase;
@@ -569,7 +569,7 @@
 }
 
 .msc-row-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-quaternary);
 }
 
@@ -614,12 +614,12 @@
 }
 
 .msc-upload-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
 .msc-upload-again {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-brand-secondary);
   font-weight: 600;
 }
@@ -648,7 +648,7 @@
 }
 
 .msc-tab-intro {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
   line-height: 1.6;
   margin: 0 0 12px;
@@ -722,7 +722,7 @@
 }
 
 .msc-pair-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-quaternary);
   margin-bottom: 2px;
@@ -740,7 +740,7 @@
 /* 값 옆 상태 배지 — 라벨 길이가 로케일마다 달라지므로 줄이지 않고 감싸 흐른다. */
 .msc-pair-badge {
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 99px;
@@ -752,9 +752,9 @@
 }
 
 .msc-pair-badge.is-on {
-  border-color: var(--colors-border-borderBrand, #a6f4c5);
-  background: var(--colors-background-bgSuccessPrimary, #edfcf2);
-  color: var(--colors-foreground-fgSuccessPrimary, #099250);
+  border-color: var(--colors-border-borderBrand);
+  background: var(--colors-background-bgSuccessPrimary);
+  color: var(--colors-foreground-fgSuccessPrimary);
 }
 
 /* ── 평가 등급 배지 / eval 행 ── */
@@ -802,7 +802,7 @@
 }
 
 .msc-reason-chip {
-  font-size: 10px;
+  font-size: 12px;
   padding: 2px 9px;
   border-radius: var(--radius-full);
   background: var(--bg-primary);
@@ -912,8 +912,8 @@
 
 /* ── 경고 배너 (보상) ── */
 .admin-notif-banner.is-warn {
-  background: var(--bg-warning-primary, #fff7ed);
-  border-color: var(--utility-orange-200, #fed7aa);
+  background: var(--bg-warning-primary);
+  border-color: var(--utility-orange-200);
 }
 
 /* ── 로딩 스켈레톤 (성과 등) ── */
@@ -936,12 +936,12 @@
 
 /* ── 로그아웃 버튼 (현재 세션 종료 — 빨강 강조, §8.4) ── */
 .admin-notif-btn.is-danger-soft {
-  background: var(--bg-error-primary, #fef2f2);
-  border: 1px solid var(--utility-error-200, #fecaca);
-  color: var(--text-error-primary, #dc2626);
+  background: var(--bg-error-primary);
+  border: 1px solid var(--utility-error-200);
+  color: var(--text-error-primary);
 }
 .admin-notif-btn.is-danger-soft:hover {
-  background: var(--utility-error-100, #fee4e2);
+  background: var(--utility-error-100);
 }
 
 /* ── 변경 이력 탭 (PW-460 §2-D) ─────────────────────────
@@ -976,7 +976,7 @@
 /* 배지는 폭이 고정이 아니다 — 항목 이름·사유는 사람이 넣는 값이라 길이를 가정하지
    않는다. 넘치면 줄바꿈으로 흘리고 잘라내지 않는다. */
 .msc-hist-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: var(--radius-full);
@@ -1007,7 +1007,7 @@
 .msc-hist-reason {
   flex-shrink: 0;
   max-width: 40%;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   padding: 2px 8px;
@@ -1024,7 +1024,7 @@
 }
 
 .msc-hist-note {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 12px;
   line-height: 1.6;

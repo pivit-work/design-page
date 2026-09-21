@@ -470,15 +470,15 @@
 
 /* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 테두리와 옆 글자를 경고색으로. */
 .ono-meta-scope.is-widened .tl-select-trigger {
-  border-color: var(--colors-warning-500, #f79009);
-  background: var(--colors-warning-50, #fffaeb);
-  color: var(--colors-warning-700, #b54708);
+  border-color: var(--colors-warning-500);
+  background: var(--colors-warning-50);
+  color: var(--colors-warning-700);
 }
 
 .ono-meta-scope-notice {
   font-family: var(--font-family-body);
   font-weight: 700;
-  color: var(--colors-warning-700, #b54708);
+  color: var(--colors-warning-700);
   overflow-wrap: anywhere;
 }
 
@@ -561,7 +561,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 0 12px 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
   margin-bottom: 13px;
 }
 
@@ -574,7 +574,7 @@
   font-size: var(--font-size-text-md);
   line-height: var(--line-height-text-md);
   color: transparent;
-  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%);
+  background: linear-gradient(95deg, var(--colors-purple-500) 0%, #a07cf8 60%, #c4b3fd 100%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -592,7 +592,7 @@
   font-weight: 600;
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  color: var(--colors-text-textTertiaryHover, #8b929c);
+  color: var(--colors-text-textTertiaryHover);
 }
 
 /* ── Top message ── */
@@ -601,7 +601,7 @@
   font-weight: 600;
   font-size: var(--font-size-text-md);
   line-height: var(--line-height-text-md);
-  color: var(--colors-text-textTertiaryHover, #8b929c);
+  color: var(--colors-text-textTertiaryHover);
   margin: 0;
   padding: 0;
 }
@@ -621,8 +621,8 @@
 .ono-section-heading {
   font-family: var(--font-family-body);
   font-weight: 700;
-  font-size: var(--font-size-text-xl, 20px);
-  line-height: var(--line-height-text-xl, 30px);
+  font-size: 20px;
+  line-height: 30px;
   color: var(--text-primary);
   margin: 0;
   padding: var(--spacing-5xl) 0 var(--spacing-2xl) 0;
@@ -635,8 +635,8 @@
 .ono-section-count {
   font-family: var(--font-family-body);
   font-weight: 700;
-  font-size: var(--font-size-text-xl, 20px);
-  line-height: var(--line-height-text-xl, 30px);
+  font-size: 20px;
+  line-height: 30px;
 }
 
 /* ── KPI grid ── */
@@ -721,7 +721,7 @@
 }
 
 .ono-kpi-bar-blue {
-  background: var(--componentColors-utility-blue-utilityBlue100, #d1e9ff);
+  background: var(--componentColors-utility-blue-utilityBlue100);
 }
 
 .ono-kpi-speak-row {
@@ -946,7 +946,7 @@
   justify-content: center;
   padding: var(--spacing-md) 14px;
   background: var(--bg-quaternary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: var(--radius-sm);
   font-family: var(--font-family-body);
   font-weight: 600;
@@ -1041,7 +1041,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  background: var(--colors-background-bgTertiary);
   border: none;
   border-radius: var(--radius-xl);
   color: var(--text-secondary);
@@ -1072,7 +1072,7 @@
   font-weight: 700;
   font-size: var(--font-size-display-sm);
   line-height: var(--line-height-display-sm);
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
   margin: 0;
 }
 
@@ -1126,13 +1126,13 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
-  background: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
   font-family: var(--font-family-body);
   font-weight: 500;
   font-size: 12px;
   line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700, #596069);
+  color: var(--componentColors-utility-gray-utilityGray700);
   white-space: nowrap;
 }
 .ono-add-modal-member-role {
@@ -1232,7 +1232,7 @@
 
 .ono-add-modal-radio.is-active {
   background: var(--bg-brand-secondary);
-  color: var(--colors-text-textBrandPrimary, #0b4b31);
+  color: var(--colors-text-textBrandPrimary);
 }
 
 .ono-add-modal-radio-circle {
@@ -1288,9 +1288,9 @@
 .ono-add-modal-footer {
   display: flex;
   gap: var(--spacing-lg);
-  padding: var(--spacing-3xl) var(--spacing-6xl, 48px);
+  padding: var(--spacing-3xl) var(--spacing-12-48px);
   background: var(--bg-quaternary);
-  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-top: 1px solid var(--colors-border-borderTertiary);
 }
 
 .ono-add-modal-btn {
@@ -1311,7 +1311,7 @@
 
 .ono-add-modal-btn-secondary {
   background: var(--bg-quaternary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   color: var(--text-secondary);
 }
 
@@ -1353,7 +1353,7 @@ button.ono-add-modal-input { cursor: pointer; }
   max-height: 256px;
   overflow-y: auto;
   background: var(--bg-quaternary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: var(--radius-md);
   box-shadow: 0 12px 24px -6px rgba(10, 13, 18, 0.12), 0 4px 8px -2px rgba(10, 13, 18, 0.06);
   z-index: 1100;
@@ -1412,7 +1412,7 @@ button.ono-add-modal-input { cursor: pointer; }
   left: 0;
   width: 328px;
   background: var(--bg-quaternary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: var(--radius-md);
   box-shadow: 0 12px 24px -6px rgba(10, 13, 18, 0.12), 0 4px 8px -2px rgba(10, 13, 18, 0.06);
   padding: 16px;
@@ -1510,7 +1510,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-view-card {
   position: relative;
   width: 100%;
-  background: var(--bg-quaternary, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 16px;
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   box-shadow: 0 1px 3px var(--colors-effects-shadows-shadowLg01, rgba(10, 13, 18, 0.08));
@@ -1541,7 +1541,7 @@ button.ono-add-modal-input { cursor: pointer; }
   justify-content: center;
   padding: 16px;
   box-sizing: border-box;
-  background: var(--bg-primary, #f3f4f6);
+  background: var(--bg-primary);
 }
 .ono-start-rec-wrap.is-pip .ono-start-rec-mini {
   width: 100%;
@@ -1555,7 +1555,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 15px;
   padding: 12px;
   border-radius: 20px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   box-shadow:
     0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03, rgba(10, 13, 18, 0.04)),
@@ -1603,12 +1603,12 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   padding: 2px 8px;
   border-radius: 9999px;
-  background: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700, #596069);
+  color: var(--componentColors-utility-gray-utilityGray700);
 }
 .ono-start-rec-time {
   font-size: 12px;
@@ -1621,7 +1621,7 @@ button.ono-add-modal-input { cursor: pointer; }
   justify-content: space-between;
   padding: 8px 8px 8px 16px;
   border-radius: 8px;
-  background: var(--colors-base-white, #ffffff);
+  background: var(--colors-base-white);
 }
 .ono-start-rec-timer {
   display: flex;
@@ -1635,7 +1635,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 24px;
   font-weight: 600;
   line-height: 32px;
-  color: var(--componentColors-utility-blue-utilityBlue600, #1570ef);
+  color: var(--componentColors-utility-blue-utilityBlue600);
 }
 .ono-start-rec-wave {
   display: flex;
@@ -1646,7 +1646,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-wave span {
   width: 4px;
   border-radius: 6px;
-  background: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  background: var(--componentColors-utility-blue-utilityBlue500);
 }
 /* 실시간 마이크 스펙트럼 반영 중 — 높이는 JS 가 직접 갱신한다.
    말하지 않으면(무음 게이트) 막대는 최소 높이로 정지한다. 마이크 권한이
@@ -1660,7 +1660,7 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 10px 12px;
   border: none;
   border-radius: 10px;
-  background: var(--colors-background-bgErrorSolid, #f04438);
+  background: var(--colors-background-bgErrorSolid);
   font-family: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -1678,15 +1678,15 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 40px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 10px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  background: var(--componentColors-utility-warning-utilityWarning50);
   /* SVG 는 currentColor 를 상속한다 — 색은 여기서만 준다. */
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   cursor: pointer;
 }
 .ono-start-rec-pause:hover {
-  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+  background: var(--componentColors-utility-warning-utilityWarning100);
 }
 /* 손으로 접기 (PW-578 · policy §5.7.3). 회의록 미니 위젯의 우상단 maximize 와 같은
    자리·같은 크기 — 접기와 펼치기가 같은 모서리에서 일어난다. */
@@ -1708,10 +1708,10 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 /* 일시정지 중: 경과 시간·파형이 "돌고 있다" 로 보이지 않게 amber 로 얼린다. */
 .ono-start-rec-mini.is-paused .ono-start-rec-elapsed {
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
 }
 .ono-start-rec-mini.is-paused .ono-start-rec-wave span {
-  background: var(--componentColors-utility-warning-utilityWarning300, #fec84b);
+  background: var(--componentColors-utility-warning-utilityWarning300);
   animation-play-state: paused;
 }
 .ono-start-rec-paused-note {
@@ -1720,7 +1720,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   line-height: 18px;
   font-weight: 600;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
 }
 /* 녹음이 아직 이 브라우저에만 있다는 사전 고지 (기획 policy §5.5 W3).
    위 일시정지 안내와 같은 warning 계열이라 새 시각 언어가 아니다 — 다만 「지금 잃을 수
@@ -1729,12 +1729,12 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-notice {
   margin: 0;
   padding: 6px 10px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 6px;
   font-size: 11px;
   line-height: 1.5;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   /* 고정 폭 안에 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
   box-sizing: border-box;
   overflow-wrap: anywhere;
@@ -1770,12 +1770,12 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 7px 12px;
   border: none;
   border-radius: 8px;
-  background: var(--colors-background-bgErrorSolid, #f04438);
+  background: var(--colors-background-bgErrorSolid);
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
-  color: var(--text-white, #fff);
+  color: var(--text-white);
   cursor: pointer;
   /* 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
   overflow-wrap: anywhere;
@@ -1803,7 +1803,7 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 .ono-start-rec-notice-close:hover {
-  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+  background: var(--componentColors-utility-warning-utilityWarning100);
 }
 /* 회의록 녹음과의 동시 실행 잠금 안내 (PW-579 · policy §5.8 X4).
    푸터 「1on1 시작하기」 바로 위에 서서, 왜 잠겼는지와 어디로 가면 풀리는지를 한 줄로
@@ -1823,12 +1823,12 @@ button.ono-add-modal-input { cursor: pointer; }
   max-width: 720px;
   margin: 0 auto 8px;
   padding: 8px 12px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 8px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   box-sizing: border-box;
   overflow-wrap: anywhere;
 }
@@ -1843,7 +1843,7 @@ button.ono-add-modal-input { cursor: pointer; }
   flex: none;
   padding: 4px 10px;
   background: transparent;
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 6px;
   font-family: inherit;
   font-size: 11px;
@@ -1852,7 +1852,7 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 .ono-start-lock-notice-action:hover {
-  background: var(--componentColors-utility-warning-utilityWarning100, #fef0c7);
+  background: var(--componentColors-utility-warning-utilityWarning100);
 }
 .ono-start-view-body {
   display: flex;
@@ -1871,7 +1871,7 @@ button.ono-add-modal-input { cursor: pointer; }
   max-width: 720px;
   margin: 0 auto;
   padding: 24px 24px 48px;
-  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-top: 1px solid var(--colors-border-borderTertiary);
   box-sizing: border-box;
 }
 .ono-start-modal-title {
@@ -1880,7 +1880,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 700;
   font-size: var(--font-size-display-sm);
   line-height: var(--line-height-display-sm);
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 /* 섹션 (준비도 / 매니저 관점 / Recognition) */
@@ -1921,7 +1921,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-prep-pct {
   font-size: 16px;
   font-weight: 700;
-  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  color: var(--componentColors-utility-blue-utilityBlue500);
 }
 .ono-start-progress-track {
   width: 100%;
@@ -1933,7 +1933,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-progress-fill {
   height: 100%;
   border-radius: 9999px;
-  background: var(--componentColors-utility-blue-utilityBlue100, #d1e9ff);
+  background: var(--componentColors-utility-blue-utilityBlue100);
 }
 
 /* CTA bar — Figma:
@@ -1964,20 +1964,20 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-cta.is-cta:hover { filter: brightness(0.96); }
 .ono-start-cta.is-done {
   justify-content: space-between;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
 }
 .ono-start-cta.is-done .ono-start-cta-left {
-  color: var(--utility-purple-500, #7a5af8);
+  color: var(--utility-purple-500);
 }
 .ono-start-cta.is-done .ono-start-cta-hint {
-  color: var(--utility-purple-400, #9b8afb);
+  color: var(--utility-purple-400);
 }
 .ono-start-cta-left {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--text-brand-secondary, #10774d);
+  color: var(--text-brand-secondary);
 }
 .ono-start-cta-hint {
   font-size: 14px;
@@ -1995,7 +1995,7 @@ button.ono-add-modal-input { cursor: pointer; }
   /* Figma "Gradient/Linear/37": Colors/Base/white 위에 11% 불투명 핑크(#FFA4F6 0%)→블루(#B7DCFF 100%) 리니어 그라디언트(45°). tokens.css 에 그라디언트 토큰 없음 */
   background:
     linear-gradient(45deg, rgba(255, 164, 246, 0.11) 0%, rgba(183, 220, 255, 0.11) 100%),
-    var(--colors-base-white, #ffffff);
+    var(--colors-base-white);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-briefing-head {
@@ -2009,18 +2009,18 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--utility-purple-500, #7a5af8);
+  color: var(--utility-purple-500);
 }
 .ono-start-briefing-toggle {
   padding: 6px;
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   border-radius: 6px;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
-  color: var(--utility-purple-600, #6938ef);
+  color: var(--utility-purple-600);
   cursor: pointer;
 }
 .ono-start-briefing-block {
@@ -2037,7 +2037,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-briefing-text-box {
   padding: 16px;
   border-radius: 12px;
-  background: var(--colors-base-white, #ffffff);
+  background: var(--colors-base-white);
 }
 .ono-start-briefing-text {
   margin: 0;
@@ -2056,7 +2056,7 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   padding: 2px 8px;
   border-radius: 8px;
-  background: var(--colors-grayLight-50, #f9fafb);
+  background: var(--colors-grayLight-50);
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-size: 12px;
   font-weight: 500;
@@ -2078,24 +2078,24 @@ button.ono-add-modal-input { cursor: pointer; }
   white-space: nowrap;
 }
 .ono-start-flag-error {
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
-  border-color: var(--componentColors-utility-error-utilityError200, #fecdca);
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  background: var(--componentColors-utility-error-utilityError50);
+  border-color: var(--componentColors-utility-error-utilityError200);
+  color: var(--componentColors-utility-error-utilityError700);
 }
 .ono-start-flag-warning {
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border-color: var(--componentColors-utility-warning-utilityWarning200);
+  color: var(--componentColors-utility-warning-utilityWarning700);
 }
 .ono-start-flag-blue {
-  background: var(--componentColors-utility-blue-utilityBlue50, #eff8ff);
-  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
-  color: var(--componentColors-utility-blue-utilityBlue700, #175cd3);
+  background: var(--componentColors-utility-blue-utilityBlue50);
+  border-color: var(--componentColors-utility-blue-utilityBlue200);
+  color: var(--componentColors-utility-blue-utilityBlue700);
 }
 .ono-start-flag-purple {
-  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
-  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  background: var(--componentColors-utility-purple-utilityPurple50);
+  border-color: var(--componentColors-utility-purple-utilityPurple200);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 /* 매니저 관점 출처 배지 (Daily Snippet / 회의록 / 피드백 / 기존1on1) — brand 톤 */
 .ono-start-source-badge {
@@ -2103,12 +2103,12 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   padding: 2px 6px;
   border-radius: 8px;
-  background: var(--utility-brand-50, #f1fffa);
-  border: 1px solid var(--componentColors-utility-brand-utilityBrand200, #a6f4c5);
+  background: var(--utility-brand-50);
+  border: 1px solid var(--componentColors-utility-brand-utilityBrand200);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   white-space: nowrap;
 }
 
@@ -2119,7 +2119,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 16px;
   border-radius: 12px;
-  background: var(--colors-base-white, #ffffff);
+  background: var(--colors-base-white);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-coaching-title {
@@ -2144,7 +2144,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 12px;
   padding: 16px;
   border-radius: 10px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-report-text {
@@ -2168,7 +2168,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 16px;
   padding: 16px;
   border-radius: 10px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .ono-start-okr-row {
@@ -2206,7 +2206,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-okr-bar-pct {
   font-size: 16px;
   font-weight: 700;
-  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  color: var(--componentColors-utility-blue-utilityBlue500);
   flex-shrink: 0;
 }
 .ono-start-okr-alert {
@@ -2215,7 +2215,7 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--colors-text-textErrorPrimary, #d92d20);
+  color: var(--colors-text-textErrorPrimary);
 }
 /* Upward Feedback — warning(연한 크림) 박스 + 주황 텍스트 */
 .ono-start-upward {
@@ -2224,18 +2224,18 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 16px;
   border-radius: 16px;
-  background: var(--colors-background-bgWarningPrimary, #fffaeb);
+  background: var(--colors-background-bgWarningPrimary);
 }
 .ono-start-upward-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--colors-text-textWarningPrimary, #dc6803);
+  color: var(--colors-text-textWarningPrimary);
 }
 .ono-start-upward-text {
   margin: 0;
   font-size: 16px;
   line-height: 24px;
-  color: var(--colors-text-textWarningPrimary, #dc6803);
+  color: var(--colors-text-textWarningPrimary);
 }
 
 /* 매니저 관점 / Recognition 필드 */
@@ -2275,11 +2275,11 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 4px 8px;
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   border-radius: 6px;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: var(--utility-purple-500, #7a5af8);
+  color: var(--utility-purple-500);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -2294,7 +2294,7 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 4px 8px;
   border: none;
   border-radius: 6px;
-  background: var(--utility-purple-500, #7a5af8);
+  background: var(--utility-purple-500);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -2306,19 +2306,19 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 4px 8px;
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   border-radius: 6px;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 18px;
-  color: var(--utility-purple-600, #6938ef);
+  color: var(--utility-purple-600);
   cursor: pointer;
 }
 .ono-start-edit-btn {
   padding: 4px 8px;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: 6px;
-  background: var(--colors-base-white, #ffffff);
+  background: var(--colors-base-white);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -2332,7 +2332,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
 }
 .ono-start-hint-badges {
   display: flex;
@@ -2348,15 +2348,15 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 6px;
   box-sizing: border-box;
   padding: 12px 14px;
-  border: 1px solid var(--componentColors-utility-error-utilityError200, #fecdca);
+  border: 1px solid var(--componentColors-utility-error-utilityError200);
   border-radius: 12px;
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
+  background: var(--componentColors-utility-error-utilityError50);
 }
 .ono-start-failbox-title {
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  color: var(--componentColors-utility-error-utilityError700);
   overflow-wrap: anywhere;
 }
 .ono-start-failbox-msg {
@@ -2364,7 +2364,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  color: var(--componentColors-utility-error-utilityError700);
   overflow-wrap: anywhere;
 }
 .ono-start-failbox-actions {
@@ -2378,8 +2378,8 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 6px 12px;
   border: none;
   border-radius: 8px;
-  background: var(--componentColors-utility-error-utilityError600, #d92d20);
-  color: var(--text-white, #fff);
+  background: var(--componentColors-utility-error-utilityError600);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -2387,8 +2387,8 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 .ono-start-failbox-retry:disabled {
-  background: var(--componentColors-utility-gray-utilityGray200, #eaecf0);
-  color: var(--text-quaternary, #98a2b3);
+  background: var(--componentColors-utility-gray-utilityGray200);
+  color: var(--text-quaternary);
   cursor: not-allowed;
 }
 .ono-start-failbox-hint {
@@ -2416,12 +2416,12 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
 }
 .ono-start-textarea.is-ai {
-  background: var(--utility-purple-50, #f4f3ff);
-  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--utility-purple-50);
+  border-color: var(--componentColors-utility-purple-utilityPurple200);
 }
-.ono-start-textarea::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-start-textarea::placeholder { color: var(--text-placeholder); }
 .ono-start-textarea:focus {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
 }
 .ono-start-ai-warn {
   margin: 0;
@@ -2429,7 +2429,7 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--colors-text-textWarningPrimary, #dc6803);
+  color: var(--colors-text-textWarningPrimary);
 }
 
 /* 역량 평가 5-segment 바 */
@@ -2475,11 +2475,11 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--componentColors-alpha-alphaBlack10, rgba(0, 0, 0, 0.1));
 }
 .ono-start-rating-seg.is-on {
-  background: var(--componentColors-utility-green-utilityGreen200, #a6f4c5);
+  background: var(--componentColors-utility-green-utilityGreen200);
 }
 /* AI 초안 생성 후엔 막대 색이 green → purple 로 */
 .ono-start-rating-segs.is-ai .ono-start-rating-seg.is-on {
-  background: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--componentColors-utility-purple-utilityPurple200);
 }
 .ono-start-rating-num {
   width: 14px;
@@ -2489,8 +2489,8 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-primary);
   flex-shrink: 0;
 }
-.ono-start-rating-num.is-warn { color: var(--colors-text-textWarningPrimary, #dc6803); }
-.ono-start-rating-num.is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
+.ono-start-rating-num.is-warn { color: var(--colors-text-textWarningPrimary); }
+.ono-start-rating-num.is-bad { color: var(--colors-text-textErrorPrimary); }
 .ono-start-cap-hint {
   margin: 0;
   font-size: 12px;
@@ -2502,8 +2502,8 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 12px 14px;
   font-size: 12px;
   color: var(--text-tertiary);
-  background: var(--bg-secondary, #f5f7fa);
-  border: 1px dashed var(--border-secondary, #d6dae0);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-secondary);
   border-radius: 8px;
 }
 
@@ -2521,7 +2521,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 4px;
   text-align: left;
   padding: 8px 14px;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: 8px;
   background: transparent;
   overflow: hidden;
@@ -2538,14 +2538,14 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 18px;
 }
 .ono-start-agenda-role.is-member {
-  background: var(--componentColors-utility-blue-utilityBlue50, #eff8ff);
-  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
-  color: var(--componentColors-utility-blue-utilityBlue700, #175cd3);
+  background: var(--componentColors-utility-blue-utilityBlue50);
+  border-color: var(--componentColors-utility-blue-utilityBlue200);
+  color: var(--componentColors-utility-blue-utilityBlue700);
 }
 .ono-start-agenda-role.is-manager {
-  background: var(--componentColors-utility-success-utilitySuccess50, #ecfdf3);
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  color: var(--componentColors-utility-success-utilitySuccess700, #067647);
+  background: var(--componentColors-utility-success-utilitySuccess50);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  color: var(--componentColors-utility-success-utilitySuccess700);
 }
 .ono-start-agenda-text {
   flex: 1;
@@ -2566,7 +2566,7 @@ button.ono-add-modal-input { cursor: pointer; }
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-quaternary, #a4a7ae);
+  color: var(--text-quaternary);
   cursor: pointer;
 }
 .ono-start-agenda-x:hover {
@@ -2590,7 +2590,7 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
   outline: none;
 }
-.ono-start-agenda-add input::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-start-agenda-add input::placeholder { color: var(--text-placeholder); }
 .ono-start-agenda-add-btn {
   flex-shrink: 0;
   padding: 10px 16px;
@@ -2609,7 +2609,7 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   gap: 4px;
   padding: 8px 14px;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   border-radius: 8px;
   background: transparent;
   overflow: hidden;
@@ -2633,7 +2633,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700, #596069);
+  color: var(--componentColors-utility-gray-utilityGray700);
 }
 .ono-start-action-badge {
   flex-shrink: 0;
@@ -2641,22 +2641,22 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   padding: 2px 6px;
   border-radius: 8px;
-  background: var(--componentColors-utility-gray-utilityGray50, #f9fafb);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200, #e6e8ea);
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700, #596069);
+  color: var(--componentColors-utility-gray-utilityGray700);
 }
 .ono-start-footer-disabled {
-  background: var(--bg-brand-solid, #2dbd82);
+  background: var(--bg-brand-solid);
   color: var(--text-white);
   opacity: 0.45;
   cursor: not-allowed;
 }
 /* 녹음 중일 때 푸터 우측 버튼: "1on1 종료" (error solid) */
 .ono-start-footer-end {
-  background: var(--colors-background-bgErrorSolid, #f04438);
+  background: var(--colors-background-bgErrorSolid);
   color: var(--text-white);
   border: none;
   border-radius: 10px;
@@ -2978,12 +2978,12 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-mem-transcript-offset {
   margin: 0 0 12px;
   padding: 8px 12px;
-  border: 1px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
   border-radius: 6px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
+  background: var(--componentColors-utility-warning-utilityWarning50);
   font-size: 12px;
   line-height: 1.6;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   /* 로케일마다 길이가 다른 문장이 들어온다 — 넘치면 줄바꿈한다. */
   overflow-wrap: anywhere;
 }
@@ -3073,7 +3073,7 @@ button.ono-add-modal-input { cursor: pointer; }
   outline: none;
   box-sizing: border-box;
 }
-.ono-mem-input::placeholder { color: var(--text-placeholder, #b1b6be); }
+.ono-mem-input::placeholder { color: var(--text-placeholder); }
 .ono-mem-btn {
   padding: 8px 16px;
   border: none;
@@ -3181,10 +3181,10 @@ button.ono-add-modal-input { cursor: pointer; }
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--utility-warning-200, #fedf89);
-  background: var(--utility-warning-50, #fffaeb);
-  color: var(--utility-warning-700, #b54708);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--utility-warning-200);
+  background: var(--utility-warning-50);
+  color: var(--utility-warning-700);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
@@ -3348,10 +3348,10 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   box-sizing: border-box;
   padding: 10px 14px;
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  border-radius: var(--radius-md, 8px);
-  background: var(--utility-purple-50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
+  border-radius: var(--radius-md);
+  background: var(--utility-purple-50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 .ono-past-pattern-text {
   font-size: 12px;
@@ -3378,8 +3378,8 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   background:
     linear-gradient(135deg, rgba(127, 86, 217, 0.06) 0%, rgba(127, 86, 217, 0.02) 100%),
-    var(--colors-base-white, #ffffff);
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+    var(--colors-base-white);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
 }
 
 .ono-guide-head {
@@ -3396,7 +3396,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 .ono-guide-tag {
   display: inline-flex;
@@ -3408,14 +3408,14 @@ button.ono-add-modal-input { cursor: pointer; }
   white-space: nowrap;
 }
 .ono-guide-tag-purple {
-  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--componentColors-utility-purple-utilityPurple50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
 }
 .ono-guide-tag-amber {
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  color: var(--componentColors-utility-warning-utilityWarning700);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
 }
 .ono-guide-head-right {
   margin-left: auto;
@@ -3430,23 +3430,23 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--componentColors-utility-error-utilityError600, #d92d20);
+  color: var(--componentColors-utility-error-utilityError600);
 }
 .ono-guide-mini-btn {
   font-size: 10px;
   padding: 3px 8px;
   background: transparent;
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
   border-radius: 5px;
   cursor: pointer;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
   font-family: inherit;
   white-space: nowrap;
 }
 .ono-guide-mini-btn:disabled {
   cursor: not-allowed;
-  border-color: var(--colors-border-borderSecondary, #e9eaeb);
-  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+  border-color: var(--colors-border-borderSecondary);
+  color: var(--componentColors-utility-gray-utilityGray400);
 }
 
 /* 실패 (§7.5.3) — 사유가 무엇이든 박스 구조·색은 같다. 문구와 버튼만 갈린다. */
@@ -3454,8 +3454,8 @@ button.ono-add-modal-input { cursor: pointer; }
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 8px;
-  background: var(--componentColors-utility-error-utilityError50, #fef3f2);
-  border: 0.5px solid var(--componentColors-utility-error-utilityError200, #fecdca);
+  background: var(--componentColors-utility-error-utilityError50);
+  border: 0.5px solid var(--componentColors-utility-error-utilityError200);
 }
 .ono-guide-fail-title {
   display: flex;
@@ -3464,19 +3464,19 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
-  color: var(--componentColors-utility-error-utilityError700, #b42318);
+  color: var(--componentColors-utility-error-utilityError700);
 }
 .ono-guide-fail-body {
   font-size: 11px;
   line-height: 1.55;
   margin: 0 0 8px;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 .ono-guide-fail-btn {
   font-size: 11px;
   padding: 5px 14px;
-  background: var(--componentColors-utility-error-utilityError600, #d92d20);
-  color: var(--colors-base-white, #ffffff);
+  background: var(--componentColors-utility-error-utilityError600);
+  color: var(--colors-base-white);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -3485,7 +3485,7 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-guide-fail-btn:disabled {
   cursor: not-allowed;
-  background: var(--componentColors-utility-gray-utilityGray300, #d5d7da);
+  background: var(--componentColors-utility-gray-utilityGray300);
 }
 
 /* 미생성 — 수동 트리거 */
@@ -3493,7 +3493,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 12px;
   line-height: 1.65;
   margin: 10px 0;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 .ono-guide-sources {
   display: flex;
@@ -3506,9 +3506,9 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 500;
-  background: var(--componentColors-utility-purple-utilityPurple50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  background: var(--componentColors-utility-purple-utilityPurple50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
 }
 .ono-guide-generate {
   display: inline-flex;
@@ -3523,8 +3523,8 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
-  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
-  color: var(--colors-base-white, #ffffff);
+  background: var(--componentColors-utility-purple-utilityPurple600);
+  color: var(--colors-base-white);
 }
 
 .ono-guide-loading {
@@ -3534,15 +3534,15 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 16px 0;
   font-size: 13px;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 .ono-guide-spinner {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   display: inline-block;
-  border: 2px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  border-top-color: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  border: 2px solid var(--componentColors-utility-purple-utilityPurple200);
+  border-top-color: var(--componentColors-utility-purple-utilityPurple600);
   animation: ono-guide-spin 0.7s linear infinite;
 }
 @keyframes ono-guide-spin {
@@ -3576,24 +3576,24 @@ button.ono-add-modal-input { cursor: pointer; }
   font-family: inherit;
   white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  background: var(--colors-base-white, #ffffff);
-  color: var(--colors-text-textTertiary, #535862);
-  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+  background: var(--colors-base-white);
+  color: var(--colors-text-textTertiary);
+  border: 0.5px solid var(--colors-border-borderSecondary);
   box-sizing: border-box;
   max-width: 100%;
   overflow-wrap: anywhere;
 }
 .ono-guide-step.is-done {
-  background: var(--componentColors-utility-success-utilitySuccess50, #ecfdf3);
-  color: var(--componentColors-utility-success-utilitySuccess700, #067647);
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
+  background: var(--componentColors-utility-success-utilitySuccess50);
+  color: var(--componentColors-utility-success-utilitySuccess700);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
 }
 /* 현재 단계가 완료 표시를 이긴다 — 지금 어디인지가 먼저 읽혀야 한다. */
 .ono-guide-step.is-current {
   font-weight: 600;
-  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
-  color: var(--colors-base-white, #ffffff);
-  border-color: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  background: var(--componentColors-utility-purple-utilityPurple600);
+  color: var(--colors-base-white);
+  border-color: var(--componentColors-utility-purple-utilityPurple600);
 }
 .ono-guide-step-num {
   font-variant-numeric: tabular-nums;
@@ -3617,13 +3617,13 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 5px 10px;
   border-radius: 6px;
-  background: var(--colors-base-white, #ffffff);
-  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+  background: var(--colors-base-white);
+  border: 0.5px solid var(--colors-border-borderSecondary);
 }
 .ono-guide-summary-title {
   flex: 1;
   font-size: 12px;
-  color: var(--colors-text-textPrimary, #181d27);
+  color: var(--colors-text-textPrimary);
   overflow-wrap: anywhere;
 }
 
@@ -3636,15 +3636,15 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 7px 12px;
   border-radius: 7px;
   margin-bottom: 12px;
-  background: var(--colors-base-white, #ffffff);
-  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+  background: var(--colors-base-white);
+  border: 0.5px solid var(--colors-border-borderSecondary);
 }
 .ono-guide-pace.is-late {
-  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  border-color: var(--componentColors-utility-warning-utilityWarning200);
 }
 .ono-guide-pace-text {
   font-size: 11px;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 .ono-guide-pace-late {
   display: inline-flex;
@@ -3654,8 +3654,8 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 500;
   padding: 2px 7px;
   border-radius: 4px;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  color: var(--componentColors-utility-warning-utilityWarning700);
 }
 
 /* 현재 단계 상세 */
@@ -3672,19 +3672,19 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--colors-text-textPrimary, #181d27);
+  color: var(--colors-text-textPrimary);
   overflow-wrap: anywhere;
 }
 .ono-guide-stage-time {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 .ono-guide-goal {
   font-size: 12px;
   line-height: 1.6;
   margin: 0 0 10px;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 
 .ono-guide-section-label {
@@ -3696,10 +3696,10 @@ button.ono-add-modal-input { cursor: pointer; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 6px;
-  color: var(--colors-text-textTertiary, #535862);
+  color: var(--colors-text-textTertiary);
 }
 .ono-guide-section-label-purple {
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 
 .ono-guide-scripts {
@@ -3716,10 +3716,10 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 1.65;
   box-sizing: border-box;
   overflow-wrap: anywhere;
-  background: var(--colors-base-white, #ffffff);
-  color: var(--colors-text-textSecondary, #414651);
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  box-shadow: inset 3px 0 0 var(--componentColors-utility-purple-utilityPurple600, #6938ef);
+  background: var(--colors-base-white);
+  color: var(--colors-text-textSecondary);
+  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
+  box-shadow: inset 3px 0 0 var(--componentColors-utility-purple-utilityPurple600);
 }
 
 .ono-guide-questions {
@@ -3733,12 +3733,12 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 7px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--colors-text-textSecondary, #414651);
+  color: var(--colors-text-textSecondary);
   overflow-wrap: anywhere;
 }
 .ono-guide-question-prefix {
   flex-shrink: 0;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 
 .ono-guide-watchouts {
@@ -3746,15 +3746,15 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 7px;
   margin-bottom: 12px;
   box-sizing: border-box;
-  background: var(--componentColors-utility-warning-utilityWarning50, #fffaeb);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200, #fedf89);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
 }
 .ono-guide-watchout {
   display: flex;
   gap: 6px;
   font-size: 11px;
   line-height: 1.6;
-  color: var(--componentColors-utility-warning-utilityWarning700, #b54708);
+  color: var(--componentColors-utility-warning-utilityWarning700);
   overflow-wrap: anywhere;
 }
 .ono-guide-watchout + .ono-guide-watchout {
@@ -3779,30 +3779,30 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-guide-nav-prev {
   flex: 1;
-  background: var(--colors-base-white, #ffffff);
-  color: var(--colors-text-textTertiary, #535862);
-  border: 0.5px solid var(--colors-border-borderSecondary, #e9eaeb);
+  background: var(--colors-base-white);
+  color: var(--colors-text-textTertiary);
+  border: 0.5px solid var(--colors-border-borderSecondary);
 }
 .ono-guide-nav-prev:disabled {
   cursor: not-allowed;
-  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+  color: var(--componentColors-utility-gray-utilityGray400);
 }
 .ono-guide-nav-next {
   flex: 2;
   border: none;
   font-weight: 500;
-  background: var(--componentColors-utility-purple-utilityPurple600, #6938ef);
-  color: var(--colors-base-white, #ffffff);
+  background: var(--componentColors-utility-purple-utilityPurple600);
+  color: var(--colors-base-white);
 }
 .ono-guide-nav-next.is-all-done {
-  background: var(--componentColors-utility-success-utilitySuccess600, #079455);
+  background: var(--componentColors-utility-success-utilitySuccess600);
 }
 
 .ono-guide-footnote {
   font-size: 10px;
   line-height: 1.5;
   margin: 10px 0 0;
-  color: var(--componentColors-utility-gray-utilityGray400, #a4a7ae);
+  color: var(--componentColors-utility-gray-utilityGray400);
 }
 
 /* ══ 매니저 DONE 단계 (PW-430) ═══════════════════════════════════════════
@@ -3825,7 +3825,7 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-wrap: wrap;
   box-sizing: border-box;
   padding: 14px 18px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-secondary);
   background: var(--bg-secondary);
   font-size: 13px;
@@ -3833,26 +3833,26 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
 }
 .ono-done-banner.is-ok {
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  background: var(--utility-success-50, #ecfdf3);
-  color: var(--utility-green-600, #16a34a);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  background: var(--utility-success-50);
+  color: var(--utility-green-600);
 }
 .ono-done-banner.is-busy {
-  border-color: var(--componentColors-utility-blue-utilityBlue200, #b2ddff);
-  background: var(--utility-blue-50, #eff8ff);
-  color: var(--utility-blue-700, #175cd3);
+  border-color: var(--componentColors-utility-blue-utilityBlue200);
+  background: var(--utility-blue-50);
+  color: var(--utility-blue-700);
 }
 .ono-done-banner.is-bad {
-  border-color: var(--componentColors-utility-error-utilityError200, #fecdca);
-  background: var(--utility-error-50, #fef3f2);
-  color: var(--colors-text-textErrorPrimary, #d92d20);
+  border-color: var(--componentColors-utility-error-utilityError200);
+  background: var(--utility-error-50);
+  color: var(--colors-text-textErrorPrimary);
 }
 .ono-done-banner-btn {
   margin-left: auto;
   padding: 5px 12px;
   border: 1px solid currentColor;
-  border-radius: var(--radius-sm, 6px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
   color: inherit;
   font-size: 11px;
   font-weight: 500;
@@ -3883,7 +3883,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   box-sizing: border-box;
   padding: 14px 18px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-secondary);
   background: var(--bg-secondary);
 }
@@ -3900,14 +3900,14 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-done-manual-badge {
   padding: 2px 7px;
-  border-radius: var(--radius-xs, 4px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-xs);
+  background: var(--bg-primary);
   border: 1px solid var(--border-secondary);
   font-size: 10px;
   font-weight: 500;
   color: var(--text-tertiary);
 }
-.ono-done-manual .ono-start-textarea { background: var(--bg-primary, #fff); }
+.ono-done-manual .ono-start-textarea { background: var(--bg-primary); }
 .ono-done-manual-actions {
   display: flex;
   gap: 6px;
@@ -3935,7 +3935,7 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   padding: 12px 14px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   font-size: 13px;
   line-height: 22px;
@@ -3953,9 +3953,9 @@ button.ono-add-modal-input { cursor: pointer; }
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
-.ono-done-block-label.is-ok { color: var(--utility-green-600, #16a34a); }
-.ono-done-block-label.is-warn { color: var(--colors-text-textWarningPrimary, #b54708); }
-.ono-done-block-label.is-ai { color: var(--utility-purple-500, #7a5af8); }
+.ono-done-block-label.is-ok { color: var(--utility-green-600); }
+.ono-done-block-label.is-warn { color: var(--colors-text-textWarningPrimary); }
+.ono-done-block-label.is-ai { color: var(--utility-purple-500); }
 
 .ono-done-item {
   display: flex;
@@ -3965,26 +3965,26 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 10px 14px;
   margin-bottom: 6px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md, 8px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
   font-size: 12px;
   line-height: 18px;
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .ono-done-item.is-ok {
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  color: var(--utility-green-600, #16a34a);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  color: var(--utility-green-600);
 }
 .ono-done-item.is-warn {
-  border-color: var(--componentColors-utility-warning-utilityWarning200, #fedf89);
-  background: var(--utility-warning-50, #fffaeb);
-  color: var(--colors-text-textWarningPrimary, #b54708);
+  border-color: var(--componentColors-utility-warning-utilityWarning200);
+  background: var(--utility-warning-50);
+  color: var(--colors-text-textWarningPrimary);
 }
 .ono-done-item.is-ai {
-  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  background: var(--utility-purple-50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border-color: var(--componentColors-utility-purple-utilityPurple200);
+  background: var(--utility-purple-50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 .ono-done-item > span:last-child { color: var(--text-secondary); }
 
@@ -4011,9 +4011,9 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 600;
   overflow: hidden;
 }
-.ono-done-score.is-ok { color: var(--utility-green-600, #16a34a); }
-.ono-done-score.is-warn { color: var(--colors-text-textWarningPrimary, #b54708); }
-.ono-done-score.is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
+.ono-done-score.is-ok { color: var(--utility-green-600); }
+.ono-done-score.is-warn { color: var(--colors-text-textWarningPrimary); }
+.ono-done-score.is-bad { color: var(--colors-text-textErrorPrimary); }
 
 .ono-done-sentiment-bars { flex: 1; min-width: 0; }
 .ono-done-sentiment-bar {
@@ -4023,9 +4023,9 @@ button.ono-add-modal-input { cursor: pointer; }
   overflow: hidden;
   background: var(--bg-secondary);
 }
-.ono-done-sentiment-seg.is-ok { background: var(--utility-green-600, #16a34a); }
+.ono-done-sentiment-seg.is-ok { background: var(--utility-green-600); }
 .ono-done-sentiment-seg.is-mute { background: var(--border-secondary); }
-.ono-done-sentiment-seg.is-bad { background: var(--colors-text-textErrorPrimary, #d92d20); }
+.ono-done-sentiment-seg.is-bad { background: var(--colors-text-textErrorPrimary); }
 .ono-done-sentiment-legend {
   display: flex;
   flex-wrap: wrap;
@@ -4034,8 +4034,8 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 11px;
   color: var(--text-tertiary);
 }
-.ono-done-sentiment-legend .is-ok { color: var(--utility-green-600, #16a34a); }
-.ono-done-sentiment-legend .is-bad { color: var(--colors-text-textErrorPrimary, #d92d20); }
+.ono-done-sentiment-legend .is-ok { color: var(--utility-green-600); }
+.ono-done-sentiment-legend .is-bad { color: var(--colors-text-textErrorPrimary); }
 
 /* ── 매니저 피드백 공개 상태 (읽기 전용 · PW-430/PW-274) ── */
 .ono-done-share-row {
@@ -4046,16 +4046,16 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-done-share-badge {
   box-sizing: border-box;
   padding: 2px 8px;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-secondary);
   background: var(--bg-secondary);
   font-size: 11px;
   color: var(--text-tertiary);
 }
 .ono-done-share-badge.is-on {
-  border-color: var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  background: var(--utility-purple-50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border-color: var(--componentColors-utility-purple-utilityPurple200);
+  background: var(--utility-purple-50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 
 /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ─────────────────────────────────────
@@ -4075,12 +4075,12 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 11px 12px;
   border: none;
   border-radius: 8px;
-  background: var(--utility-purple-500, #7a5af8);
+  background: var(--utility-purple-500);
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 18px;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
   cursor: pointer;
   overflow-wrap: anywhere;
 }
@@ -4092,23 +4092,23 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-done-share-confirm {
   box-sizing: border-box;
   padding: 14px 16px;
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
   border-radius: 8px;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
 }
 .ono-done-share-confirm-title {
   margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
   overflow-wrap: anywhere;
 }
 .ono-done-share-confirm-notice {
   margin: 0 0 10px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--utility-purple-600, #6938ef);
+  color: var(--utility-purple-600);
   overflow-wrap: anywhere;
 }
 .ono-done-share-confirm-actions {
@@ -4130,13 +4130,13 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-done-share-go {
   border: none;
-  background: var(--utility-purple-500, #7a5af8);
+  background: var(--utility-purple-500);
   font-weight: 600;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
 }
 .ono-done-share-abort {
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-  background: var(--colors-base-white, #ffffff);
+  border: 1px solid var(--colors-border-borderSecondary);
+  background: var(--colors-base-white);
   color: var(--text-secondary);
 }
 .ono-done-share-go:disabled,
@@ -4153,28 +4153,28 @@ button.ono-add-modal-input { cursor: pointer; }
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
   border-radius: 8px;
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
 }
 .ono-done-share-done-text {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  color: var(--componentColors-utility-purple-utilityPurple700);
   overflow-wrap: anywhere;
 }
 .ono-done-share-undo {
   flex-shrink: 0;
   padding: 5px 10px;
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
   border-radius: 7px;
-  background: var(--colors-base-white, #ffffff);
+  background: var(--colors-base-white);
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
-  color: var(--utility-purple-600, #6938ef);
+  color: var(--utility-purple-600);
   cursor: pointer;
 }
 
@@ -4188,8 +4188,8 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   padding: 8px 12px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm, 7px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
   cursor: pointer;
 }
 .ono-done-action.is-done { background: var(--bg-secondary); }
@@ -4215,8 +4215,8 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   padding: 8px 11px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm, 7px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 13px;
   font-family: inherit;
@@ -4226,9 +4226,9 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-shrink: 0;
   padding: 8px 14px;
   border: none;
-  border-radius: var(--radius-sm, 7px);
+  border-radius: var(--radius-sm);
   background: var(--text-primary);
-  color: var(--bg-primary, #fff);
+  color: var(--bg-primary);
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
@@ -4240,7 +4240,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-done-inline-error {
   margin-top: 8px;
   font-size: 12px;
-  color: var(--colors-text-textErrorPrimary, #d92d20);
+  color: var(--colors-text-textErrorPrimary);
 }
 
 /* ── 다음 1on1 ── */
@@ -4249,8 +4249,8 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 100%;
   padding: 9px 11px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm, 7px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 13px;
   line-height: 20px;
@@ -4266,19 +4266,19 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200, #d9d6fe);
-  border-radius: var(--radius-md, 8px);
-  background: var(--utility-purple-50, #f4f3ff);
-  color: var(--componentColors-utility-purple-utilityPurple700, #5925dc);
+  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
+  border-radius: var(--radius-md);
+  background: var(--utility-purple-50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
   font-size: 13px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
 }
 .ono-done-book.is-done {
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  background: var(--utility-success-50, #ecfdf3);
-  color: var(--utility-green-600, #16a34a);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  background: var(--utility-success-50);
+  color: var(--utility-green-600);
   cursor: default;
 }
 /* 액션아이템 Slack 알림 — 예약 버튼과 같은 자리·같은 크기의 보조 동작이라
@@ -4292,8 +4292,8 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 100%;
   padding: 12px 16px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md, 8px);
-  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
@@ -4305,9 +4305,9 @@ button.ono-add-modal-input { cursor: pointer; }
   opacity: 0.6;
 }
 .ono-done-notify.is-done {
-  border-color: var(--componentColors-utility-success-utilitySuccess200, #abefc6);
-  background: var(--utility-success-50, #ecfdf3);
-  color: var(--utility-green-600, #16a34a);
+  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  background: var(--utility-success-50);
+  color: var(--utility-green-600);
   cursor: default;
 }
 
@@ -4464,7 +4464,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .omn-status.is-error { color: var(--utility-error-700); }
 .omn-placeholder { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
 .omn-error { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--utility-error-200); border-radius: var(--radius-lg); background: var(--utility-error-50); font-size: 14px; font-weight: 500; line-height: 20px; color: var(--utility-error-700); }
-.omn-error-retry { flex: none; padding: 6px 12px; border: none; border-radius: var(--radius-sm); background: var(--colors-background-bgErrorSolid, #f04438); color: var(--text-white); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; cursor: pointer; }
+.omn-error-retry { flex: none; padding: 6px 12px; border: none; border-radius: var(--radius-sm); background: var(--colors-background-bgErrorSolid); color: var(--text-white); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; cursor: pointer; }
 .omn-limit { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 
 /* ═══ 최초 1on1 진행 셋업 모달 (MicPermissionModal / ManagerAssignModal)
@@ -4483,7 +4483,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ons-btn.is-brand { background: var(--bg-brand-solid); color: var(--text-white); }
 
 /* 마이크 권한 모달 */
-.ons-warning { padding: 6px 16px; background: var(--bg-warning-primary); border-radius: var(--radius-md); font-size: 16px; font-weight: 600; line-height: 24px; color: var(--colors-text-textWarningPrimary, #dc6803); }
+.ons-warning { padding: 6px 16px; background: var(--bg-warning-primary); border-radius: var(--radius-md); font-size: 16px; font-weight: 600; line-height: 24px; color: var(--colors-text-textWarningPrimary); }
 .ons-footnote { display: flex; flex-direction: column; gap: 12px; font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-tertiary); }
 .ons-footnote a { color: inherit; text-decoration: underline; }
 /* 마이크 권한 모달 (17416:27675) — 본문 세로 간격 24px (매니저 지정 모달은 48 유지) */
