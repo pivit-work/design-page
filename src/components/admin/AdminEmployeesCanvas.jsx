@@ -475,8 +475,12 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, 
  * 조직(팀) 배정 여부. `department` 는 조직 단위가 없으면 레거시 텍스트 컬럼으로 폴백되므로
  * (백엔드 listUsers) 그것만 보면 실제 미배정자를 놓친다 — 조직도에 노드가 없는 사람을
  * 어드민이 찾지 못하던 원인. orgUnitIds 를 정본으로 쓰고, 없을 때만 department 로 폴백한다.
+ *
+ * 소비자가 판정을 직접 주면(`orgUnassigned`) 그것을 따른다 — 조직도·조직단위 설정과 같은
+ * 판정으로 세려면 배정 행 수만으로는 모자라다(회사에만 붙은 사람·대표 등).
  */
 function hasOrgUnit(m) {
+  if (typeof m.orgUnassigned === 'boolean') return !m.orgUnassigned;
   return Array.isArray(m.orgUnitIds) ? m.orgUnitIds.length > 0 : !!m.department;
 }
 
@@ -1765,7 +1769,10 @@ function EmployeesListView({
         // 조직·이름 접두 오탐이 없다. 트리를 못 받은 조직만 이름 폴백으로 남는다.
         if (dept !== LIST_ALL) {
           if (orgTree.length > 0) {
-            if (!matchesOrgSubtree(deptIdsOf(m), dept, orgTree)) return false;
+            // 「미배정」 필터도 탭과 같은 판정을 쓴다(소비자가 판정을 주면 그것).
+            if (dept === ORG_FILTER_UNASSIGNED && typeof m.orgUnassigned === 'boolean') {
+              if (!m.orgUnassigned) return false;
+            } else if (!matchesOrgSubtree(deptIdsOf(m), dept, orgTree)) return false;
           } else if (!names.includes(dept)) return false;
         }
         if (squad !== LIST_ALL
