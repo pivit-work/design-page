@@ -511,7 +511,7 @@ export default function EvalCycleMemberCanvas({
   });
 
   return (
-    <div className="evc-root">
+    <div className="evc-root evm-root">
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
