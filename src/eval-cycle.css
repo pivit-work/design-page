@@ -8787,6 +8787,106 @@
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
 }
+.evmon-roster {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+.evmon-roster-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.evmon-roster-group {
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.evmon-roster-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evmon-roster-group.tone-pending .evmon-roster-head {
+  background: var(--utility-warning-50);
+}
+.evmon-roster-group.tone-done .evmon-roster-head {
+  background: var(--utility-green-50);
+}
+.evmon-roster-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+}
+.evmon-roster-group.tone-pending .evmon-roster-title {
+  color: var(--utility-warning-700);
+}
+.evmon-roster-group.tone-done .evmon-roster-title {
+  color: var(--utility-green-700);
+}
+.evmon-roster-empty {
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin: 0;
+}
+.evmon-roster-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr) 96px;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--bg-active);
+  font-size: var(--font-size-text-sm);
+}
+.evmon-roster-head + .evmon-roster-row {
+  border-top: none;
+}
+.evmon-roster-person {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+.evmon-roster-avatar {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--utility-brand-500);
+  color: var(--text-white);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.evmon-roster-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evmon-roster-sub {
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evmon-roster-action {
+  display: flex;
+  justify-content: flex-end;
+}
+.evmon-roster-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--utility-green-600);
+}
 .evmon-dispatch {
   border: 1px solid var(--bg-active);
   border-radius: var(--radius-md);
