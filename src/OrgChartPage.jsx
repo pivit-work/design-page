@@ -60,6 +60,10 @@ const CHRIS_PROFILE = {
 /* ── Demo Org Data ── */
 const INITIAL_ORG = {
   id: 'company', name: 'SAMSUNG 물산', type: '회사', count: '34명', level: 'company',
+  // 조직 없이 대표에게 바로 보고하는 사람(COS·비서) — 회사 카드 아래 «직속» 칸(점선)에 선다.
+  directReports: [
+    { id: 'cos', name: '한지우', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 55, hcScore: 8.2, isDirectReport: true, profile: DEFAULT_PROFILE },
+  ],
   children: [
     // 대표 직속 조직(isStaff) — 최상위 조직 줄이 아니라 회사 카드 아래 세로선의 곁가지에 선다.
     {

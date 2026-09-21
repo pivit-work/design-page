@@ -86,7 +86,7 @@ function applyTexture(app, objectName, imageSrc) {
 // resolvePhoto — 구성원 사진을 3D 아바타에 입힐 때 쓴다. `(member) => url | null | Promise<url | null>`.
 // 미지정이면 지금까지처럼 기본 사진(PROFILE_IMAGE)을 입힌다. 사진을 못 구하면(null·실패) 기본 사진.
 // 새 멤버로 열리면 그 사람 사진이 입혀질 때까지 무대를 숨겨 앞사람 얼굴이 비치지 않게 한다.
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, onFeedbackClick, onMeetingClick, isSelf = false }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle = '직속팀원', directReportChipLabel = '직속', onFeedbackClick, onMeetingClick, isSelf = false }) {
   const [splineReady, setSplineReady] = useState(false);
   const [splineFailed, setSplineFailed] = useState(false);
   const [splineActive, setSplineActive] = useState(false);
@@ -290,7 +290,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           return (
             <div className="modal-team">
               <div className="modal-team-header">
-                <span className="modal-team-title">직속팀원</span>
+                {/* 제목은 소비자가 로케일로 준다 — 조직 없이 바로 보고하는 사람(COS·비서)도 섞이므로
+                    「팀원」이 맞지 않는 곳이 있다(pivit-specs spec-org-hierarchy-exceptions.md §5 F9). */}
+                <span className="modal-team-title">{subordinatesTitle}</span>
                 <span className="modal-team-count">{teamList.length}명</span>
               </div>
               <div className="modal-team-grid">
@@ -301,6 +303,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                       <span className={`modal-team-dot ${tm.online ? 'online' : 'offline'}`} />
                     </div>
                     <div className="modal-team-name">{tm.name}</div>
+                    {/* 조직 단위 없이 바로 보고하는 사람(직속 칸)에만 붙는다 — 조직 소속과 가른다. */}
+                    {tm.isDirectReport && <span className="modal-team-chip">{directReportChipLabel}</span>}
                     <div className="modal-team-role">{tm.role || '사원'}</div>
                   </div>
                 ))}
