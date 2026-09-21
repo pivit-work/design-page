@@ -45,6 +45,8 @@ export default function DatePickerPopover({
   // 캘린더 탭에서는 이걸 받아 메인 월 그리드를 함께 이동시킨다.
   // 주어지지 않으면 internal state 만 갱신 (기존 gantt 탭 동작).
   onMonthChange,
+  // 「오늘」로 칠 날(로컬 Date 그릇). 없으면 브라우저 시계의 오늘 (PW-781).
+  today: todayProp,
 }) {
   const popoverRef = useRef(null);
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
@@ -110,7 +112,7 @@ export default function DatePickerPopover({
   };
 
   const cells = buildGrid(viewYear, viewMonth);
-  const today = new Date();
+  const today = todayProp ?? new Date();
   const isToday = (c) =>
     c.year === today.getFullYear() &&
     c.month === today.getMonth() &&

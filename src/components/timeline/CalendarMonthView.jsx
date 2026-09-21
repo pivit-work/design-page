@@ -57,7 +57,9 @@ function buildMonthGrid(date) {
  * - "+N more..." 클릭 시 onMoreClick(iso, events, cellRect) 호출 — 상위에서
  *   일별 이벤트 팝오버(DayEventsPopover)를 연다.
  */
-export default function CalendarMonthView({ selectedDate, onEventClick, onMoreClick }) {
+// now — 「지금」을 로컬 Date 그릇으로 돌려주는 함수. 주면 그날을 오늘로 강조한다.
+// 없으면 종전대로 데모 고정일(TODAY_STR) (PW-781).
+export default function CalendarMonthView({ selectedDate, onEventClick, onMoreClick, now }) {
   const { getEventsForDate } = useTimelineData();
   const cells = buildMonthGrid(selectedDate);
   const currentMonth = selectedDate.getMonth();
@@ -97,7 +99,7 @@ export default function CalendarMonthView({ selectedDate, onEventClick, onMoreCl
       <div className="tl-cal-grid" ref={gridRef}>
         {cells.map((d, i) => {
           const iso = formatIsoDate(d);
-          const isToday = iso === TODAY_STR;
+          const isToday = iso === (now ? formatIsoDate(now()) : TODAY_STR);
           const isCurrentMonth = d.getMonth() === currentMonth;
           // 주말(일=0, 토=6) 컬럼은 그대로 렌더링하되 이벤트 내용은 비움.
           const dow = d.getDay();
