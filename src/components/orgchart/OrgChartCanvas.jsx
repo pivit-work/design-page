@@ -222,7 +222,9 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         <div className="header-subtitle">
           <b>전체 인원</b>
           <span className="dot">&#8729;</span>
-          <span className="brand-count">{orgData?.count ?? ''}</span>
+          {/* 머리글은 회사 카드와 다른 문구를 받을 수 있다 — 회사 카드에만 `· 미배정 N` 을
+              붙이는 소비자가 `summaryCount` 로 머리글 문구를 따로 준다. 없으면 카드와 같다. */}
+          <span className="brand-count">{orgData?.summaryCount ?? orgData?.count ?? ''}</span>
         </div>
       </div>
 
