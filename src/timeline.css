@@ -96,7 +96,7 @@
   padding: 0;
   height: 36px;
   gap: 20px;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
   flex-shrink: 0;
 }
 
@@ -174,7 +174,7 @@
   display: inline-flex;
   align-items: center;
   padding: 4px;
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary);
   border-radius: 10px;
   gap: 2px;
 }
@@ -182,7 +182,7 @@
   position: absolute;
   top: 4px;
   bottom: 4px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(10, 13, 18, 0.06);
   transition: left 0.2s ease, width 0.2s ease;
@@ -292,7 +292,7 @@
   z-index: 100;
   min-width: 140px;
   padding: 4px 0;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   box-shadow:
     0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
@@ -342,7 +342,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   padding: 8px 12px;
   border: none;
   border-radius: 8px;
@@ -350,29 +350,29 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: #fff;
+  color: var(--text-white);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
 }
 
 .tl-add-event:hover {
-  background: #21a67a;
+  background: var(--colors-emerald-600);
 }
 
 /* Secondary variant — Figma Buttons: Hierarchy=Secondary.
    bg bgBrandSecondary (#e1fef2), text textBrandTertiary (#21a67a),
    icon fgBrandPrimary (#2dbd82), padding 8 14, no border. */
 .tl-add-event-secondary {
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  background: var(--colors-background-bgBrandSecondary);
   border: none;
   padding: 8px 14px;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   box-shadow: none;
 }
 
 .tl-add-event-secondary:hover {
-  background: var(--colors-background-bgBrandSecondaryHover, #c8f5e2);
+  background: var(--colors-background-bgBrandSecondaryHover);
 }
 
 /* Snippet 수정 승인 요청 완료 상태 — 버튼이 아닌 텍스트+아이콘 표시.
@@ -387,7 +387,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   font-family: inherit;
   white-space: nowrap;
   user-select: none;
@@ -414,7 +414,7 @@
   flex-direction: column;
   width: 230px;
   flex-shrink: 0;
-  border-right: 1px solid #e6e8ea;
+  border-right: 1px solid var(--border-secondary);
   background: var(--bg-quaternary);
   position: relative;
   /* 뷰포트 축소 시 tl-left가 자연 컨텐츠 높이로 팽창해 바텀 버튼 블록이
@@ -436,7 +436,7 @@
   line-height: 18px;
   color: var(--text-secondary);
   letter-spacing: -0.12px;
-  border-bottom: 1px solid #e6e8ea;
+  border-bottom: 1px solid var(--border-secondary);
   background: var(--bg-quaternary);
   flex-shrink: 0;
 }
@@ -459,7 +459,7 @@
 
 .tl-left-bottom {
   flex-shrink: 0;
-  border-top: 1px solid #e6e8ea;
+  border-top: 1px solid var(--border-secondary);
   background: var(--bg-quaternary);
 }
 
@@ -524,8 +524,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 16px;
-  background: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 
@@ -617,7 +617,7 @@
 }
 
 .tl-group-header-remove:hover {
-  color: #ef4444;
+  color: var(--text-error-primary);
 }
 
 /* 그룹 이름 인라인 편집 */
@@ -630,8 +630,8 @@
   font-weight: 600;
   letter-spacing: -0.12px;
   color: var(--text-secondary);
-  background: #ffffff;
-  border: 1px solid var(--colors-border-borderBrand, #7f56d9);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderBrand);
   border-radius: 4px;
   padding: 0 4px;
   margin: -1px 0;
@@ -647,7 +647,7 @@
   gap: 12px;
   padding: 24px 16px 24px 12px;
   background: var(--bg-quaternary);
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
   cursor: grab;
 }
@@ -669,7 +669,7 @@
   width: 100%;
   height: 100%;
   background: rgba(45, 189, 130, 0.06);
-  border: 1.5px dashed var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border: 1.5px dashed var(--colors-foreground-fgBrandPrimary);
   border-radius: 8px;
   box-sizing: border-box;
   pointer-events: none;
@@ -718,7 +718,7 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  color: var(--colors-foreground-fgSecondary, #687079);
+  color: var(--colors-foreground-fgSecondary);
   font-family: inherit;
 }
 
@@ -731,7 +731,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--colors-foreground-fgSecondary, #687079);
+  color: var(--colors-foreground-fgSecondary);
 }
 
 .tl-datepicker-grid {
@@ -756,7 +756,7 @@
   font-family: inherit;
   font-size: 14px;
   line-height: 20px;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
 }
 
 .tl-datepicker-weekday {
@@ -773,7 +773,7 @@
 }
 
 .tl-datepicker-day.is-outside {
-  color: var(--colors-text-textDisabled, #b1b6be);
+  color: var(--colors-text-textDisabled);
 }
 
 .tl-datepicker-day.is-today {
@@ -781,8 +781,8 @@
 }
 
 .tl-datepicker-day.is-selected {
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
-  color: #fff;
+  background: var(--colors-background-bgBrandSolid);
+  color: var(--text-white);
   font-weight: 500;
 }
 
@@ -834,7 +834,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  background: var(--colors-background-bgTertiary);
   border: none;
   border-radius: 14px;
   cursor: pointer;
@@ -1078,7 +1078,7 @@
 }
 
 .tl-member-remove:hover {
-  color: #ef4444;
+  color: var(--text-error-primary);
 }
 
 .tl-member-arrow {
@@ -1139,7 +1139,7 @@
   top: 0;
   z-index: 5;
   background: var(--bg-quaternary);
-  border-bottom: 1px solid #e6e8ea;
+  border-bottom: 1px solid var(--border-secondary);
   box-sizing: border-box;
 }
 
@@ -1153,7 +1153,7 @@
   line-height: 18px;
   color: var(--text-secondary);
   letter-spacing: -0.12px;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -1167,8 +1167,8 @@
 .tl-grid-group-header {
   position: absolute;
   left: 0;
-  background: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 
@@ -1178,13 +1178,13 @@
   left: 0;
   display: flex;
   background: var(--bg-quaternary);
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 
 .tl-grid-cell {
   height: 100%;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -1212,7 +1212,7 @@
    덮어써 낮은 창에서 팝오버가 화면 밖으로 나간다. */
 .tl-cell-picker {
   width: 236px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   box-shadow:
     0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
@@ -1225,10 +1225,10 @@
 .tl-cell-picker-time {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-tertiary, #667085);
+  color: var(--text-tertiary);
   padding: 6px 8px 8px;
   margin: 0 2px 4px;
-  border-bottom: 1px solid var(--border-secondary, #eaecf0);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .tl-cell-picker-item {
@@ -1253,7 +1253,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1261,7 +1261,7 @@
 }
 
 .tl-cell-picker-item:hover .tl-cell-picker-ico {
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
 }
 
 .tl-cell-picker-body {
@@ -1275,18 +1275,18 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--text-primary, #101828);
+  color: var(--text-primary);
 }
 
 .tl-cell-picker-sub {
   font-size: 12px;
   line-height: 16px;
-  color: var(--text-tertiary, #667085);
+  color: var(--text-tertiary);
 }
 
 .tl-cell-picker-divider {
   height: 1px;
-  background: var(--border-secondary, #eaecf0);
+  background: var(--border-secondary);
   margin: 4px 8px;
 }
 
@@ -1307,7 +1307,7 @@
 .tl-cell-picker-gcal-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary, #344054);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1321,25 +1321,25 @@
 }
 
 .tl-cell-picker-gcal-dot.is-on {
-  background: #16a34a;
+  background: var(--utility-success-600);
 }
 
 .tl-cell-picker-gcal-dot.is-off {
-  background: var(--text-quaternary, #98a2b3);
+  background: var(--text-quaternary);
 }
 
 .tl-cell-picker-gcal-state {
   font-size: 11px;
-  color: #16a34a;
+  color: var(--utility-success-600);
 }
 
 .tl-cell-picker-gcal-dot.is-off + .tl-cell-picker-gcal-state {
-  color: var(--text-tertiary, #98a2b3);
+  color: var(--text-tertiary);
 }
 
 .tl-cell-picker-gcal-sub {
   font-size: 11px;
-  color: var(--text-tertiary, #667085);
+  color: var(--text-tertiary);
 }
 
 /* ===========================
@@ -1382,12 +1382,12 @@
   z-index: 5;
   display: flex;
   background: var(--bg-quaternary);
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
 }
 
 .tl-week-cal-gutter {
   flex-shrink: 0;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
 }
 
 .tl-week-cal-head-cell {
@@ -1399,12 +1399,12 @@
   gap: 6px;
   padding: 8px 12px;
   box-sizing: border-box;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
   letter-spacing: -0.12px;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
 }
 .tl-week-cal-head-cell:last-child {
   border-right: none;
@@ -1416,7 +1416,7 @@
 
 .tl-week-cal-hours {
   flex-shrink: 0;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 
@@ -1428,7 +1428,7 @@
   font-size: 11px;
   font-weight: 500;
   line-height: 16px;
-  color: var(--colors-text-textTertiary, #a4a7ae);
+  color: var(--colors-text-textTertiary);
   /* 시간 라벨이 해당 시각 구분선에 살짝 걸치도록 위로 당김. */
   transform: translateY(-8px);
 }
@@ -1437,7 +1437,7 @@
   flex: 1 1 0;
   min-width: 0;
   position: relative;
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 .tl-week-cal-day-col:last-child {
@@ -1445,7 +1445,7 @@
 }
 
 .tl-week-cal-hour-line {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--colors-grayNeutral-100);
   box-sizing: border-box;
 }
 
@@ -1466,7 +1466,7 @@
   width: 100%;
   height: 0;
   border-left: none;
-  border-top: 1.5px dashed #ec4899;
+  border-top: 1.5px dashed var(--utility-pink-500);
 }
 
 .tl-cal {
@@ -1485,7 +1485,7 @@
 .tl-cal-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
   background: var(--bg-quaternary);
 }
 
@@ -1497,8 +1497,8 @@
   font-weight: 600;
   line-height: 18px;
   letter-spacing: -0.12px;
-  color: var(--colors-text-textSecondary, #687079);
-  border-right: 1px solid #f3f4f6;
+  color: var(--colors-text-textSecondary);
+  border-right: 1px solid var(--colors-grayNeutral-100);
 }
 
 .tl-cal-header-cell:last-child {
@@ -1523,8 +1523,8 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  border-right: 1px solid #f3f4f6;
-  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
+  border-bottom: 1px solid var(--colors-grayNeutral-100);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -1557,18 +1557,18 @@
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
   border-radius: 9999px;
   box-sizing: border-box;
 }
 
 .tl-cal-cell.is-outside .tl-cal-day-num {
-  color: var(--colors-text-textDisabled, #b1b6be);
+  color: var(--colors-text-textDisabled);
 }
 
 .tl-cal-day-num.is-today {
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
-  color: #fff;
+  background: var(--colors-background-bgBrandSolid);
+  color: var(--text-white);
   font-weight: 600;
 }
 
@@ -1611,7 +1611,7 @@
 .tl-cal-event-time {
   flex-shrink: 0;
   font-weight: 400;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
 }
 
 .tl-cal-event-title {
@@ -1630,7 +1630,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray500, #8b929c);
+  color: var(--componentColors-utility-gray-utilityGray500);
   padding: 0 8px;
   flex-shrink: 0;
   appearance: none;
@@ -1644,8 +1644,8 @@
 }
 
 .tl-cal-more:hover {
-  background: var(--colors-background-bgSecondary, #f3f4f6);
-  color: var(--colors-text-textSecondary, #687079);
+  background: var(--colors-background-bgSecondary);
+  color: var(--colors-text-textSecondary);
 }
 
 /* ===========================
@@ -1697,7 +1697,7 @@
   font-weight: 600;
   line-height: 16px;
   letter-spacing: 0.2px;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
 }
 
 .tl-day-popover-daynum {
@@ -1754,12 +1754,12 @@
   padding: 8px 20px;
   box-sizing: border-box;
   background: var(--bg-quaternary);
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid var(--colors-grayNeutral-100);
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
   letter-spacing: -0.12px;
-  color: var(--colors-text-textSecondary, #687079);
+  color: var(--colors-text-textSecondary);
   flex-shrink: 0;
 }
 
@@ -1779,8 +1779,8 @@
 }
 
 .tl-week-header-date.is-today {
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
-  color: #fff;
+  background: var(--colors-background-bgBrandSolid);
+  color: var(--text-white);
 }
 
 /* ===========================
@@ -1869,15 +1869,15 @@
 }
 
 .tl-snippet-block-health--good {
-  background: #16a34a;
+  background: var(--utility-success-600);
 }
 
 .tl-snippet-block-health--mid {
-  background: #d97706;
+  background: var(--utility-warning-600);
 }
 
 .tl-snippet-block-health--low {
-  background: #dc2626;
+  background: var(--utility-error-600);
 }
 
 /* 블록 안에서는 2줄까지. (`.tl-snippet-text` 기본 3줄은 주별 셀 기준) */
@@ -2003,9 +2003,9 @@
   gap: 6px;
   align-self: flex-start;
   padding: 8px 14px;
-  border: 1px solid var(--colors-border-borderPrimary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderPrimary);
   border-radius: 8px;
-  background: var(--colors-background-bgPrimary, #ffffff);
+  background: var(--colors-background-bgPrimary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -2016,7 +2016,7 @@
 }
 
 .tl-snippet-detail-open:hover {
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
 }
 
 /* ===========================
@@ -2076,8 +2076,8 @@
 .tl-meeting-title-pill {
   display: inline-block;
   padding: 8px 14px;
-  background: #1d2433;
-  color: #fff;
+  background: var(--colors-grayLight-900);
+  color: var(--text-white);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.14px;
@@ -2099,7 +2099,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0;
-  color: #1d2433;
+  color: var(--colors-grayLight-900);
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
@@ -2114,7 +2114,7 @@
 .tl-now-line {
   position: absolute;
   width: 0;
-  border-left: 1.5px dashed #ec4899;
+  border-left: 1.5px dashed var(--utility-pink-500);
   z-index: 4;
   pointer-events: none;
 }
@@ -2124,7 +2124,7 @@
 .tl-now-label {
   position: absolute;
   transform: translate(6px, -50%);
-  color: #ec4899;
+  color: var(--utility-pink-500);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2146,7 +2146,7 @@
   font-size: 18px;
   line-height: 28px;
   font-weight: 700;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 /* Input — Figma Input field, 동일 스타일 (bg rgba(0,0,0,0.03) + focus brand border) */
@@ -2171,8 +2171,8 @@
 }
 
 .tl-emp-input:focus {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 
 /* Select (그룹) — Figma Select: r=10, pad 6/12, 36px height */
@@ -2200,8 +2200,8 @@
 }
 
 .tl-emp-select:focus {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-emp-select:invalid,
@@ -2214,7 +2214,7 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--colors-foreground-fgSecondary, #687079);
+  color: var(--colors-foreground-fgSecondary);
   pointer-events: none;
   display: inline-flex;
 }
@@ -2242,19 +2242,19 @@
   align-items: center;
   gap: 6px;
   padding: 2px 6px 2px 4px;
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  background: var(--colors-background-bgBrandSecondary);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 .tl-emp-tag-avatar {
   width: 20px;
   height: 20px;
   border-radius: 9999px;
-  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  color: #fff;
+  background: var(--colors-foreground-fgBrandPrimary);
+  color: var(--text-white);
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -2268,7 +2268,7 @@
   padding: 0 2px;
   font-size: 16px;
   line-height: 1;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   cursor: pointer;
 }
 
@@ -2280,7 +2280,7 @@
   top: calc(100% + 4px);
   max-height: 280px;
   overflow-y: auto;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   padding: 4px 0;
   box-shadow:
@@ -2316,8 +2316,8 @@
   width: 24px;
   height: 24px;
   border-radius: 9999px;
-  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  color: #fff;
+  background: var(--colors-foreground-fgBrandPrimary);
+  color: var(--text-white);
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
@@ -2328,7 +2328,7 @@
 
 .tl-emp-search-name {
   font-weight: 600;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-emp-search-title {
@@ -2359,7 +2359,7 @@
 
 .tl-emp-color-swatch.is-selected {
   box-shadow:
-    0 0 0 2px var(--colors-background-bgPrimary_alt, #ffffff),
+    0 0 0 2px var(--bg-quaternary),
     0 0 0 4px var(--swatch-ring);
 }
 
@@ -2420,7 +2420,7 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 700;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-event-count {
@@ -2460,7 +2460,7 @@
   padding: 8px 12px;
   border: none;
   border-radius: 8px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -2471,12 +2471,12 @@
 }
 
 .tl-event-radio-pill:hover:not(.is-selected) {
-  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+  background: var(--colors-background-bgPrimaryHover);
 }
 
 .tl-event-radio-pill.is-selected {
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  background: var(--colors-background-bgBrandSecondary);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 /* Radio dot — design-system-docs Checkbox (Type=Radio, sm) 스타일.
@@ -2486,8 +2486,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid var(--colors-border-borderPrimary, #d2d6db);
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  border: 1px solid var(--colors-border-borderPrimary);
+  background: var(--bg-quaternary);
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -2496,8 +2496,8 @@
 }
 
 .tl-event-radio-pill.is-selected .tl-event-radio-dot {
-  background: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  background: var(--colors-foreground-fgBrandPrimary);
+  border-color: var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-event-radio-pill.is-selected .tl-event-radio-dot::after {
@@ -2505,7 +2505,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--bg-quaternary);
 }
 
 /* 결정 사항 — member chip Frame 320 */
@@ -2537,9 +2537,9 @@
 }
 
 .tl-event-member-chip.is-selected {
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  background: var(--colors-background-bgBrandSecondary);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 .tl-event-member-avatar {
@@ -2597,11 +2597,11 @@
   align-items: center;
   gap: 6px;
   padding: 4px 6px 4px 10px;
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  background: var(--colors-background-bgBrandSecondary);
   border-radius: 9999px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 .tl-event-external-x {
@@ -2610,7 +2610,7 @@
   padding: 0 4px;
   font-size: 16px;
   line-height: 1;
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   cursor: pointer;
 }
 
@@ -2637,7 +2637,7 @@
 }
 
 .tl-event-gcal-icon {
-  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--colors-foreground-fgBrandPrimary);
   flex-shrink: 0;
   padding-top: 2px;
 }
@@ -2655,12 +2655,12 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-event-gcal-badge {
   display: inline-flex;
-  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-event-gcal-check:not(:checked) ~ .tl-event-gcal-text .tl-event-gcal-badge {
@@ -2741,8 +2741,8 @@
 .tl-select.is-open .tl-select-trigger,
 .tl-select-trigger:focus-visible {
   outline: none;
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-select.is-disabled .tl-select-trigger {
@@ -2763,7 +2763,7 @@
 }
 
 .tl-select-chevron {
-  color: var(--colors-foreground-fgSecondary, #687079);
+  color: var(--colors-foreground-fgSecondary);
   display: inline-flex;
   transition: transform 0.15s ease;
   flex-shrink: 0;
@@ -2782,7 +2782,7 @@
   max-height: 280px;
   overflow-y: auto;
   padding: 4px 0;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   box-shadow:
     0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
@@ -2879,7 +2879,7 @@
 }
 
 .tl-select-item.is-selected {
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
 }
 
 .tl-select-item-label {
@@ -2895,7 +2895,7 @@
 }
 
 .tl-select-item-check {
-  color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  color: var(--colors-foreground-fgBrandPrimary);
   flex-shrink: 0;
 }
 
@@ -2960,7 +2960,7 @@
   font-size: 30px;
   line-height: 38px;
   font-weight: 700;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
   letter-spacing: 0;
 }
 
@@ -2974,7 +2974,7 @@
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   border-radius: 6px;
   height: 36px;
   overflow: hidden;
@@ -2992,8 +2992,8 @@
   border-radius: 6px;
   background: linear-gradient(
     90deg,
-    var(--componentColors-utility-brand-utilityBrand500, #2dbd82) 0%,
-    var(--componentColors-utility-purple-utilityPurple400, #9b8afb) 100%
+    var(--componentColors-utility-brand-utilityBrand500) 0%,
+    var(--componentColors-utility-purple-utilityPurple400) 100%
   );
   transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -3016,7 +3016,7 @@
 }
 
 .tl-snippet-progress-segment.is-active {
-  color: #ffffff;
+  color: var(--text-white);
 }
 
 .tl-snippet-body {
@@ -3046,7 +3046,7 @@
   font-size: 18px;
   line-height: 28px;
   font-weight: 700;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-snippet-label-hint {
@@ -3065,18 +3065,18 @@
   padding: 6px;
   border: 1px solid rgba(0, 0, 0, 0.03);
   border-radius: 6px;
-  background: #f4f3ff;
+  background: var(--colors-purple-50);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: #7a5af8;
+  color: var(--colors-purple-500);
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .tl-snippet-ai-btn:hover {
-  background: #ebe9fe;
+  background: var(--colors-purple-100);
 }
 
 /* "AI" 텍스트만 magenta→blue 그라디언트 */
@@ -3113,21 +3113,21 @@
 }
 
 .tl-snippet-textarea:focus {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 
 /* AI 생성 내용이 들어찬 Summary/Tags 입력 — Figma 16626:54041:
    Fill utility-purple-50, Stroke alpha-black-5 1px. */
 .tl-snippet-textarea.is-ai-filled,
 .tl-snippet-tag-field.is-ai-filled {
-  background: var(--utility-purple-50, #f4f3ff);
+  background: var(--utility-purple-50);
   border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 /* 포커스 시에는 brand 강조가 우선 */
 .tl-snippet-textarea.is-ai-filled:focus,
 .tl-snippet-tag-field.is-ai-filled:focus-within {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
 }
 
 /* Info banner — Figma spec:
@@ -3141,7 +3141,7 @@
   border-radius: 6px;
   background:
     linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
-    #ffffff;
+    var(--bg-quaternary);
   font-size: 12px;
   line-height: 18px;
   font-weight: 500;
@@ -3166,9 +3166,9 @@
   color: var(--text-tertiary);
 }
 
-/* 글자수 90% 근접 경고 — pivit-specs 시안 기준 #EF4444. */
+/* 글자수 90% 근접 경고 — 시안의 빨강(#EF4444)을 팔레트의 에러 글자색으로 옮겼다 (PW-835). */
 .tl-snippet-count.is-near-limit {
-  color: #ef4444;
+  color: var(--text-error-primary);
 }
 
 /* Health Check — 1~10 점수 버튼 (Figma 16627:58459).
@@ -3218,32 +3218,32 @@
 }
 
 .tl-snippet-health-score.is-selected {
-  background: var(--colors-background-bgSecondarySolid, #687079);
-  color: #ffffff;
+  background: var(--colors-background-bgSecondarySolid);
+  color: var(--text-white);
 }
 
 .tl-snippet-health-score.is-selected:hover {
-  background: var(--colors-background-bgSecondarySolid, #687079);
+  background: var(--colors-background-bgSecondarySolid);
 }
 
 /* 점수별 색상 티어 (pivit-specs 시안 hColor). 선택된 버튼만 티어색으로 채운다.
    generic .is-selected 규칙 뒤에 와야 동일 특이도에서 우선한다. */
 .tl-snippet-health-score--good.is-selected,
 .tl-snippet-health-score--good.is-selected:hover {
-  background: #16a34a;
-  color: #ffffff;
+  background: var(--utility-success-600);
+  color: var(--text-white);
 }
 
 .tl-snippet-health-score--mid.is-selected,
 .tl-snippet-health-score--mid.is-selected:hover {
-  background: #d97706;
-  color: #ffffff;
+  background: var(--utility-warning-600);
+  color: var(--text-white);
 }
 
 .tl-snippet-health-score--low.is-selected,
 .tl-snippet-health-score--low.is-selected:hover {
-  background: #dc2626;
-  color: #ffffff;
+  background: var(--utility-error-600);
+  color: var(--text-white);
 }
 
 /* 현재 점수 라벨 뱃지 (pivit-specs 시안 hLabel). Health Check 타이틀 옆. */
@@ -3254,7 +3254,7 @@
   font-weight: 600;
   line-height: 16px;
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--text-white);
   vertical-align: middle;
   /* "매우 힘듦" 등 라벨이 좁은 좌측 컬럼에서 단어 중간(매우 힘 / 듦)으로 깨지지 않도록
      한 줄 유지. 뱃지 폭은 최대 "매우 힘듦" 수준이라 오버플로 위험 없음. */
@@ -3262,15 +3262,15 @@
 }
 
 .tl-snippet-health-label--good {
-  background: #16a34a;
+  background: var(--utility-success-600);
 }
 
 .tl-snippet-health-label--mid {
-  background: #d97706;
+  background: var(--utility-warning-600);
 }
 
 .tl-snippet-health-label--low {
-  background: #dc2626;
+  background: var(--utility-error-600);
 }
 
 /* Tag 입력 필드 — 선택된 태그 chip + 신규 입력을 한 필드 안에 배치.
@@ -3290,8 +3290,8 @@
 }
 
 .tl-snippet-tag-field:focus-within {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-snippet-tag-inline-input {
@@ -3327,7 +3327,7 @@
   padding: 2px 9px;
   border: 1px solid rgba(0, 0, 0, 0.03);
   border-radius: 8px;
-  background: var(--colors-background-bgTertiary, #fcfcfd);
+  background: var(--colors-background-bgTertiary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -3338,7 +3338,7 @@
 }
 
 .tl-snippet-tag:hover:not(:disabled):not(.tl-snippet-tag-selected) {
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
 }
 
 .tl-snippet-tag:disabled,
@@ -3350,9 +3350,9 @@
 /* Selected tag — Figma Inspect: Fill utility-brand (#e1fef2),
    Stroke alpha-black-3 (rgba(0,0,0,0.03)) 1px inside, r=8 */
 .tl-snippet-tag-selected {
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
+  background: var(--colors-background-bgBrandSecondary);
   border-color: rgba(0, 0, 0, 0.03);
-  color: var(--colors-text-textBrandTertiary, #21a67a);
+  color: var(--colors-text-textBrandTertiary);
   cursor: default;
 }
 
@@ -3385,7 +3385,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px 48px 48px 48px;
-  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  border-top: 1px solid var(--colors-border-borderTertiary);
 }
 .tl-snippet-reset-btn {
   display: inline-flex;
@@ -3393,9 +3393,9 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 16px;
-  border: 1px solid var(--border-secondary, #e6e8ea);
+  border: 1px solid var(--border-secondary);
   border-radius: 10px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   font-family: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -3477,8 +3477,8 @@
   padding: 10px 12px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(90deg, #8265e6 0%, #ee46bc 100%);
-  color: #ffffff;
+  background: linear-gradient(90deg, #8265e6 0%, var(--colors-pink-500) 100%);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -3532,7 +3532,7 @@
   font-size: 16px;
   font-weight: 600;
   line-height: normal;
-  color: var(--text-tertiary, #b1b6be);
+  color: var(--text-tertiary);
   text-align: center;
   margin: 0;
 }
@@ -3573,12 +3573,12 @@
   padding: 6px 12px;
   background:
     linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
-    #ffffff;
+    var(--bg-quaternary);
   border-radius: 6px;
   font-size: 13px;
   line-height: 18px;
   font-weight: 500;
-  color: #7a5af8;
+  color: var(--colors-purple-500);
   flex-shrink: 0;
 }
 
@@ -3603,7 +3603,7 @@
     rgba(179, 250, 222, 0.09) 27.5%,
     rgba(210, 214, 219, 0.09) 79%
   );
-  border: 2px solid var(--componentColors-utility-purple-utilityPurple100, #ebe9fe);
+  border: 2px solid var(--componentColors-utility-purple-utilityPurple100);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(10, 13, 18, 0.05);
   flex: 1;
@@ -3629,7 +3629,7 @@
 .tl-weekly-card-inner > .tl-weekly-entry,
 .tl-weekly-card-inner > .tl-weekly-section {
   padding: 80px 0;
-  border-bottom: 1px solid #e6e8ea;
+  border-bottom: 1px solid var(--border-secondary);
 }
 .tl-weekly-card-inner > *:last-child {
   border-bottom: none;
@@ -3638,7 +3638,7 @@
 /* Intro(타이틀+메타+요약) — 상단 180, 하단 80, gap 80, 가운데 정렬 */
 .tl-weekly-card-inner > .tl-weekly-intro {
   padding: 180px 0 80px 0;
-  border-bottom: 1px solid #e6e8ea;
+  border-bottom: 1px solid var(--border-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3726,12 +3726,12 @@
 
 .tl-weekly-entry-day {
   font-weight: 700;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-weekly-entry-date {
   font-weight: 600;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
+  color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-weekly-entry-health {
@@ -3739,7 +3739,7 @@
   align-items: center;
   gap: 4px;
   font-weight: 600;
-  color: #ee46bc;
+  color: var(--colors-pink-500);
 }
 
 .tl-weekly-health-icon {
@@ -3754,16 +3754,16 @@
   gap: 10px;
   padding: 2px 10px;
   border-radius: 6px;
-  background: var(--componentColors-utility-blueDark-utilityBlueDark50, #eff4ff);
+  background: var(--componentColors-utility-blueDark-utilityBlueDark50);
   font-size: 16px;
   line-height: 24px;
   font-weight: 500;
-  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  color: var(--componentColors-utility-blue-utilityBlue500);
 }
 
 .tl-weekly-kr-badge {
   font-weight: 700;
-  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  color: var(--componentColors-utility-blue-utilityBlue500);
 }
 
 /* Figma: Text md/Medium 16/24, text-primary */
@@ -3779,12 +3779,12 @@
 .tl-weekly-entry-highlight {
   margin: 0;
   padding: 0 12px;
-  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500, #4e5ba6);
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
   background: transparent;
   font-size: 16px;
   line-height: 24px;
   font-weight: 500;
-  color: var(--componentColors-utility-grayBlue-utilityGrayBlue500, #4e5ba6);
+  color: var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 
 /* 카드 1개 → full width, 2개 이상 → 2-column */
@@ -3815,11 +3815,11 @@
 }
 
 .tl-weekly-entry-card.is-good {
-  color: var(--colors-text-textSuccessPrimary, #079455);
+  color: var(--colors-text-textSuccessPrimary);
 }
 
 .tl-weekly-entry-card.is-issue {
-  color: var(--colors-text-textErrorPrimary, #d92d20);
+  color: var(--colors-text-textErrorPrimary);
 }
 
 .tl-weekly-entry-card-icon {
@@ -3873,8 +3873,8 @@
 .tl-weekly-recommend-tag {
   font-size: 13px;
   font-weight: 500;
-  color: #7a5af8;
-  background: #f4f3ff;
+  color: var(--colors-purple-500);
+  background: var(--colors-purple-50);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -3882,8 +3882,8 @@
 .tl-weekly-blocker-count {
   font-size: 12px;
   font-weight: 500;
-  color: #7a5af8;
-  background: #f4f3ff;
+  color: var(--colors-purple-500);
+  background: var(--colors-purple-50);
   padding: 1px 8px;
   border-radius: 9999px;
 }
@@ -3914,7 +3914,7 @@
 }
 
 .tl-weekly-chart-avg strong {
-  color: #2dbd82;
+  color: var(--fg-brand-primary);
   font-size: 15px;
   font-weight: 700;
   margin-right: 2px;
@@ -3971,7 +3971,7 @@
 
 .tl-weekly-tag-track {
   height: 8px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   border-radius: 9999px;
   overflow: hidden;
   display: block;
@@ -3980,7 +3980,7 @@
 .tl-weekly-tag-track > span {
   display: block;
   height: 100%;
-  background: #2dbd82;
+  background: var(--bg-brand-solid);
   border-radius: 9999px;
 }
 
@@ -4043,7 +4043,7 @@
 /* Figma: 10px 높이, radius 4 */
 .tl-weekly-okr-bar {
   height: 10px;
-  background: var(--colors-background-bgSecondary, #f9fafb);
+  background: var(--colors-background-bgSecondary);
   border-radius: 4px;
   overflow: hidden;
   display: block;
@@ -4084,7 +4084,7 @@
   font-size: 12px;
   line-height: 18px;
   font-weight: 500;
-  color: var(--colors-foreground-fgErrorPrimary, #d92d20);
+  color: var(--colors-foreground-fgErrorPrimary);
   background: transparent;
   padding: 0;
   border-radius: 0;
@@ -4109,7 +4109,7 @@
   font-size: 18px;
   line-height: 28px;
   font-weight: 700;
-  color: var(--componentColors-utility-blue-utilityBlue500, #2e90fa);
+  color: var(--componentColors-utility-blue-utilityBlue500);
 }
 
 /* 다음 주 추천 */
@@ -4141,10 +4141,10 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 12px;
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   border: none;
   border-radius: 10px;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
   font-family: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -4154,7 +4154,7 @@
 }
 
 .tl-weekly-snippet-btn:hover {
-  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+  background: var(--colors-background-bgBrandSolidHover);
 }
 
 /* 페이지 헤더 내 layout (Weekly 모드 버튼 flex 정렬) */
@@ -4180,7 +4180,7 @@
   position: relative;
   width: 100%;
   max-width: 400px;
-  background: var(--colors-background-bgQuaternary, #ffffff);
+  background: var(--colors-background-bgQuaternary);
   border-radius: 16px;
   box-shadow:
     0 32px 64px -12px rgba(10, 13, 18, 0.14),
@@ -4206,7 +4206,7 @@
   cursor: pointer;
 }
 .tl-snippet-prompt-close:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 .tl-snippet-prompt-header {
@@ -4252,17 +4252,17 @@
 
 .tl-snippet-prompt-btn-secondary {
   background: transparent;
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  border: 1px solid var(--colors-border-borderSecondary);
   color: var(--text-secondary);
 }
 .tl-snippet-prompt-btn-secondary:hover {
-  background: var(--colors-background-bgSecondary, #f5f5f5);
+  background: var(--colors-background-bgSecondary);
 }
 
 .tl-snippet-prompt-btn-primary {
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  background: var(--colors-background-bgBrandSolid);
   border: none;
-  color: var(--text-white, #ffffff);
+  color: var(--text-white);
 }
 .tl-snippet-prompt-btn-primary:hover {
   filter: brightness(0.96);
