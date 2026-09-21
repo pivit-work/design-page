@@ -1,0 +1,132 @@
+/* ══════════════════════════════════════════════════════════════
+   명단 표 — shared/RosterTable.jsx  (prefix: rt-)   PW-839
+
+   머리 행이 있고 한 줄에 한 사람(또는 한 건)이 오는 표의 생김새는 전부 여기서 정한다.
+   어드민·평가가 화면마다 따로 그리던 17벌을 모았고, 기준은 「구성원 설정」 명단
+   (옛 `.admin-emp-table`)이다 — 머리 칸 12px·굵게·흐린 글, 칸 여백 10px 12px,
+   머리 아래 진한 선 · 줄 사이 옅은 선, 마우스를 올린 줄만 옅게.
+
+   화면 쪽 스타일시트(admin.css · admin-kit.css · eval-cycle.css)가 이 파일을
+   `@import` 하므로 소비자가 따로 불러오지 않아도 된다.
+   ══════════════════════════════════════════════════════════════ */
+
+.rt {
+  min-width: 0;
+}
+.rt-framed {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  background: var(--bg-quaternary);
+}
+.rt-caption {
+  margin: 0;
+  padding: 8px 12px;
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+/* ── 스크롤 틀 ──────────────────────────────────────────────── */
+.rt-scroll.is-scroll-x { overflow-x: auto; }
+.rt-scroll.is-scroll-both { overflow: auto; }
+.rt-scroll.is-scroll-x,
+.rt-scroll.is-scroll-both {
+  /* Firefox 쪽 짝 — 아래 ::-webkit-scrollbar 와 같은 뜻이다. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.28) var(--bg-quaternary, #f4f4f5);
+}
+/* 막대를 **늘 보이게** 직접 그린다 (2026-09-16 「가로 스크롤이 없다」 제보 · 옛 구성원 설정).
+   macOS 기본값에서 크롬은 막대를 손을 대기 전에는 아예 안 그려서, 열이 많은 표가
+   「오른쪽으로 더 있는 표」가 아니라 「오른쪽이 잘린 표」로 읽힌다. 가로로 넘치지 않는
+   표에는 막대가 생기지 않는다. */
+.rt-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.rt-scroll::-webkit-scrollbar-track { background: var(--bg-quaternary, #f4f4f5); }
+.rt-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.28); border-radius: 5px; }
+.rt-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.42); }
+.rt-scroll::-webkit-scrollbar-corner { background: var(--bg-quaternary, #f4f4f5); }
+
+/* ── 표 ─────────────────────────────────────────────────────── */
+.rt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.rt-table.is-fixed { table-layout: fixed; }
+
+.rt-table th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  /* 좁은 칸에서 머리 칸이 세로로 쪼개지지 않게. 넘치는 만큼은 가로 스크롤로 읽는다. */
+  white-space: nowrap;
+  vertical-align: middle;
+  background: var(--bg-quaternary);
+  border-bottom: 1px solid var(--border-primary);
+}
+/* 세로로 스크롤하는 틀(scroll="both")에서만 머리 행을 틀 위에 붙인다. 틀이 없는 표에
+   붙이면 페이지 스크롤 기준으로 붙어 위쪽 메뉴 줄 밑으로 파고들고, 가로 틀에 붙이면 할 일은
+   없이 `z-index` 만 남아 표 밖에서 겹쳐 뜨는 것들 위로 머리 행이 올라온다. */
+.rt-scroll.is-scroll-both .rt-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rt-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bg-secondary);
+}
+.rt-table tbody tr:last-child td { border-bottom: none; }
+/* 묶음이 여럿인 표 — 묶음 끝마다 선이 사라지면 다음 묶음 머리와 붙어 보인다. */
+.rt-table tbody:not(:last-child) tr:last-child td { border-bottom: 1px solid var(--bg-secondary); }
+
+.rt-table th.is-right,
+.rt-table td.is-right { text-align: right; }
+.rt-table th.is-center,
+.rt-table td.is-center { text-align: center; }
+
+/* 한 줄 표 — 줄바꿈을 허용하면 줄 높이가 제각각이 되어 눈이 가로줄을 따라가지 못한다. */
+.rt-table.is-nowrap td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 칸마다 입력칸이 들어가는 편집 표 — 입력칸 자체가 여백을 가진다. */
+.rt-table.is-dense td { padding: 2px 4px; }
+
+/* ── 줄 ─────────────────────────────────────────────────────── */
+.rt-row:not([data-tone]):hover { background: var(--colors-grayLight-50, #fafafa); }
+.rt-row.is-clickable { cursor: pointer; }
+.rt-row.is-warn { background: var(--colors-warning-50, #fffaeb); }
+.rt-row.is-error { background: var(--utility-error-50, #fef3f2); }
+.rt-row.is-current,
+.rt-row.is-selected { background: var(--bg-brand-secondary); }
+.rt-row.is-flagged { background: var(--colors-error-25, #fffbfa); }
+.rt-row.is-muted { opacity: 0.5; }
+
+.rt-group td {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.rt-table td.rt-empty {
+  padding: 32px 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+}

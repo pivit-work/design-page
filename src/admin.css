@@ -1,3 +1,4 @@
+@import './roster-table.css';
 /*
  * admin.css — 어드민 개요 대시보드(AdminDashboardCanvas) 정본 스타일.
  * design-page Canvas 컨벤션(manager.css 패턴)에 맞춘 BEM-ish 클래스.
@@ -267,32 +268,7 @@
 }
 
 /* ── 팀원 표 ────────────────────────────────────────────────────────── */
-.admin-team-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.admin-team-table thead tr {
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-}
-.admin-team-table th {
-  padding: 10px 12px;
-  text-align: left;
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs, 12px);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-.admin-team-table td {
-  padding: 18px 12px;
-  vertical-align: middle;
-}
-.admin-team-row {
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-}
-.admin-team-row.is-inactive { opacity: 0.5; }
-/* 레드플래그 행 — 리포트/스니핏의 active-row 틴트 패턴을 경보 상태에 적용 */
-.admin-team-row.is-flagged { background: var(--colors-error-25, #fffbfa); }
+/* 팀원 현황 표의 칸 여백·머리 행·구분선·줄 색은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-team-row.is-flagged td:first-child {
   box-shadow: inset 3px 0 0 var(--colors-error-400, #f97066);
 }
@@ -391,13 +367,6 @@
 }
 
 .admin-team-pending {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
-}
-.admin-team-empty {
-  padding: 24px;
-  text-align: center;
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
   color: var(--text-tertiary);
@@ -1001,13 +970,6 @@
 .admin-emp-mono { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
 .admin-emp-muted { color: var(--text-tertiary); font-size: var(--font-size-text-sm, 13px); }
 
-.admin-emp-empty {
-  padding: 60px 0;
-  text-align: center;
-  font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
-}
-
 .admin-emp-actions-cell { position: relative; }
 .admin-emp-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .admin-emp-more { min-width: 30px; }
@@ -1034,67 +996,13 @@
      표 위 크롬 326px(상단 내비 + 탭바 + 뷰 토글 + 툴바 + 필터 칩 2줄)
      + 페이지네이션 45px + 카드 아래 여백 22px + 여유. 이 값에서 가로 막대와
      페이지네이션이 둘 다 보이고 **페이지 세로 스크롤이 아예 필요 없다**.
-     jsdom 은 레이아웃을 계산하지 않아 이 수치는 유닛 테스트로 못 정한다. */
+     jsdom 은 레이아웃을 계산하지 않아 이 수치는 유닛 테스트로 못 정한다.
+
+     스크롤·늘 보이는 막대·머리 행 붙이기는 명단 표(roster-table.css)가 한다 (PW-839).
+     여기서는 틀 높이만 정한다. */
   max-height: calc(100vh - 420px);
   /* 20행이 이 높이보다 짧으면 세로 막대는 아예 안 생긴다 — 늘 잘리는 게 아니다. */
   min-height: 200px;
-  overflow: auto;
-  /* Firefox 쪽 짝 — 아래 ::-webkit-scrollbar 와 같은 뜻이다. */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.28) var(--bg-quaternary, #f4f4f5);
-}
-/* 🔴 막대를 **늘 보이게** 직접 그린다 (2026-09-16 커트 제보 「가로 스크롤이 없다」).
-   스크롤은 원래 되고 있었다 — 1600px 창에서 표 폭 3090px · 보이는 폭 1240px 로
-   실측했고 `overflow: auto` 도 걸려 있었다. 문제는 **막대가 안 보이는 것**이다:
-   macOS 기본값(«스크롤할 때만 막대 보기»)에서 크롬은 막대를 폭 0 의 오버레이로
-   그려서, 자리를 차지하지 않고 손을 대기 전에는 화면에 아예 없다. 그러면 22열짜리
-   표가 「오른쪽으로 더 있는 표」가 아니라 **「오른쪽이 잘린 표」**로 읽힌다.
-   design-page 공용 규칙(`index.css` 의 `.is-scrolling` 게이트)은 pivit-work 가
-   `index.css` 를 가져가지 않아 이 화면에 닿지 않는다 — 그래서 여기서 그린다.
-   ⚠️ 막대가 자리를 차지하므로 컨테이너 안쪽 높이가 10px 줄어든다. 위 420px 실측에
-      이미 여유가 들어 있어 페이지네이션은 그대로 화면 안에 남는다. */
-.admin-emp-table-wrap::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-.admin-emp-table-wrap::-webkit-scrollbar-track {
-  background: var(--bg-quaternary, #f4f4f5);
-}
-.admin-emp-table-wrap::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.28);
-  border-radius: 5px;
-}
-.admin-emp-table-wrap::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.42);
-}
-/* 가로·세로 막대가 만나는 모서리 — 안 칠하면 흰 사각형이 뜬다. */
-.admin-emp-table-wrap::-webkit-scrollbar-corner {
-  background: var(--bg-quaternary, #f4f4f5);
-}
-/* 세로로 스크롤할 때 열 이름이 따라 올라가면, 22열짜리 표에서 지금 보는 칸이
-   무슨 열인지 알 수 없게 된다. */
-.admin-emp-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-quaternary);
-}
-.admin-emp-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-family: var(--font-family-body);
-}
-.admin-emp-table th {
-  padding: 9px 10px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-  color: var(--text-tertiary);
-  /* 좁은 칸에서 헤더가 세로로 쪼개지지 않게. 넘치는 만큼은 가로 스크롤로 읽는다. */
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border-primary);
 }
 /* 행 선택 체크박스 (PW-608). 칸이 40px 이라 좌우 여백을 줄여 체크박스가 이름 칸을
    밀지 않게 한다. 소속 셀이 겸직으로 두꺼워져도 체크박스는 **첫 줄**에 붙는다 —
@@ -1112,23 +1020,11 @@
   accent-color: var(--text-brand-tertiary);
   cursor: pointer;
 }
-.admin-emp-table td {
-  padding: 10px;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--bg-secondary);
-  /* 셀은 줄바꿈하지 않는다 — 20열짜리 표에서 줄바꿈을 허용하면 행 높이가 제각각이
-     되어 눈이 가로줄을 따라가지 못한다. */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* 행 액션 메뉴가 `position: absolute` 로 뜨는 칸 — 여기만 넘침을 허용한다.
    전 칸에 허용하면 잘림 표시가 사라져 값이 옆 칸을 침범한 것처럼 보인다. */
 .admin-emp-table td[data-col='actions'] { overflow: visible; }
 /* 매니저 칸의 배정 드롭다운도 셀 밖으로 열린다. */
 .admin-emp-table td[data-col='manager'] { overflow: visible; }
-.admin-emp-table tbody tr:hover { background: var(--colors-grayLight-50, #fafafa); }
-.admin-emp-table tbody tr:last-child td { border-bottom: none; }
 
 .admin-emp-cell-text {
   font-size: 13px;
@@ -1792,34 +1688,14 @@
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-tertiary);
 }
-.admin-emp-sal-table { width: 100%; border-collapse: collapse; }
-.admin-emp-sal-table th {
-  padding: 6px 8px;
-  font-size: var(--font-size-text-xs, 13px);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-align: left;
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.admin-emp-sal-table td {
-  padding: 10px 8px;
-  font-size: var(--font-size-text-sm, 14px);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-}
-.admin-emp-sal-table th.is-amount,
+/* 이력 표의 칸 여백·머리 행·구분선·「현재」 줄 바탕은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-emp-sal-table td.is-amount {
-  text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--text-primary);
 }
-.admin-emp-sal-table td.is-date { color: var(--text-primary); white-space: nowrap; }
+.admin-emp-sal-table td.is-date { white-space: nowrap; }
 /* 사유 칸에 남는 폭을 몰아준다 — 안 그러면 금액이 사유 바로 옆에 붙어 읽기 어렵다. */
-.admin-emp-sal-table th:last-child,
-.admin-emp-sal-table td:last-child { width: 42%; padding-left: 16px; }
-/* 최신 행 = 현재 연봉. 브랜드 연한 배경으로 한 줄만 들어올린다. */
-.admin-emp-sal-table tr.is-current td { background: var(--bg-brand-secondary); }
+.admin-emp-sal-table .is-reason { width: 42%; }
 .admin-emp-sal-current {
   margin-left: 6px;
   padding: 1px 6px;
@@ -2469,41 +2345,7 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
-.admin-snap-roster-scroll {
-  overflow-x: auto;
-  max-height: 520px;
-  overflow-y: auto;
-}
-.admin-snap-roster {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1100px;
-}
-.admin-snap-roster th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 10px 12px;
-  text-align: left;
-  white-space: nowrap;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
-}
-.admin-snap-roster td {
-  padding: 9px 12px;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--bg-secondary);
-  font-family: var(--font-family-body);
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-.admin-snap-roster tbody tr:hover td { background: var(--bg-secondary); }
+/* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-roster-idx {
   width: 44px;
   color: var(--text-tertiary);
@@ -2786,24 +2628,7 @@
 .admin-snap-input.is-mono { font-family: var(--font-family-body); }
 
 /* 변경 전/후 표 */
-.admin-snap-ba-table { width: 100%; border-collapse: collapse; }
-.admin-snap-ba-table th {
-  padding: 10px 12px;
-  text-align: left;
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-primary);
-}
-.admin-snap-ba-table td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--bg-secondary);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  vertical-align: middle;
-}
+/* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-ba-field { font-weight: 600; color: var(--text-primary); }
 .admin-snap-ba-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
 .admin-snap-ba-after { font-weight: 700; color: var(--text-primary); }
@@ -2922,27 +2747,7 @@
 .admin-snap-status-badge.is-ok { background: var(--utility-green-50); color: var(--utility-green-600); }
 .admin-snap-status-badge.is-warn { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
 
-.admin-snap-preview-scroll { overflow-x: auto; }
-.admin-snap-preview-table { width: 100%; border-collapse: collapse; }
-.admin-snap-preview-table th {
-  padding: 8px 10px;
-  text-align: left;
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  background: var(--bg-secondary);
-}
-.admin-snap-preview-table td {
-  padding: 10px;
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--bg-secondary);
-}
-.admin-snap-preview-table tr.is-warn { background: var(--colors-warning-50, #fffaeb); }
+/* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-pv-name { font-weight: 700; color: var(--text-primary); }
 .admin-snap-pv-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
 .admin-snap-pv-after { font-weight: 700; color: var(--text-primary); }
@@ -2970,7 +2775,6 @@
   background: var(--utility-error-50, #fef3f2);
   color: var(--utility-error-600, #d92d20);
 }
-.admin-snap-preview-table tr.is-error { background: var(--utility-error-50, #fef3f2); }
 .admin-snap-warnbox {
   background: var(--colors-warning-50, #fffaeb);
   border: 1px solid var(--colors-warning-200, #fedf89);
@@ -3002,26 +2806,7 @@
     0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1));
   overflow: hidden;
 }
-.admin-snap-hist-table { width: 100%; border-collapse: collapse; }
-.admin-snap-hist-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-}
-.admin-snap-hist-row { border-bottom: 1px solid var(--bg-secondary); cursor: pointer; transition: background 0.15s ease; }
-.admin-snap-hist-row:hover { background: var(--bg-secondary); }
-.admin-snap-hist-row.is-selected { background: var(--utility-brand-50); }
-.admin-snap-hist-table td {
-  padding: 12px 16px;
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  vertical-align: middle;
-}
+/* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-tertiary); }
 .admin-snap-hist-name { font-weight: 700; color: var(--text-primary); }
 .admin-snap-hist-mode { color: var(--text-secondary); }

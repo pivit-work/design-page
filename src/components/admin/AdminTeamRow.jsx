@@ -1,5 +1,8 @@
 import Icon from '../shared/Icon.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
+
+const { Row, Cell } = RosterTable;
 
 function healthLevel(h) {
   if (h >= 8) return 'good';
@@ -22,12 +25,11 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
   const avatar = renderAvatar ? renderAvatar(row) : <AvatarFallback row={row} />;
   const clickable = typeof onRowClick === 'function';
   const rowClick = clickable ? () => onRowClick(row.id) : undefined;
-  const clickProps = clickable ? { onClick: rowClick, style: { cursor: 'pointer' } } : {};
 
   if (!row.active) {
     return (
-      <tr className="admin-team-row is-inactive" {...clickProps}>
-        <td>
+      <Row tone="muted" className="admin-team-row" onClick={rowClick}>
+        <Cell>
           <div className="admin-team-name-cell">
             {avatar}
             <div>
@@ -35,18 +37,18 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
               <div className="admin-team-title">{row.title}</div>
             </div>
           </div>
-        </td>
-        <td><span className="admin-team-dept">{row.dept}</span></td>
-        <td colSpan={3}><span className="admin-team-pending">{labels.invitePending}</span></td>
-        <td><span className="admin-pill is-inactive">{labels.inactiveStatus}</span></td>
-      </tr>
+        </Cell>
+        <Cell><span className="admin-team-dept">{row.dept}</span></Cell>
+        <Cell colSpan={3}><span className="admin-team-pending">{labels.invitePending}</span></Cell>
+        <Cell><span className="admin-pill is-inactive">{labels.inactiveStatus}</span></Cell>
+      </Row>
     );
   }
 
   const level = row.health != null ? healthLevel(row.health) : null;
   return (
-    <tr className={`admin-team-row${row.redFlag ? ' is-flagged' : ''}`} {...clickProps}>
-      <td>
+    <Row tone={row.redFlag ? 'flagged' : undefined} className="admin-team-row" onClick={rowClick}>
+      <Cell>
         <div className="admin-team-name-cell">
           {avatar}
           <div>
@@ -54,17 +56,17 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
             <div className="admin-team-title">{row.title}</div>
           </div>
         </div>
-      </td>
-      <td><span className="admin-team-dept">{row.dept}</span></td>
-      <td>
+      </Cell>
+      <Cell><span className="admin-team-dept">{row.dept}</span></Cell>
+      <Cell>
         <div className={`admin-team-snippet${row.snippetSubmitted ? ' is-submitted' : ''}`}>
           <div className="admin-team-snippet-dot" />
           <span className="admin-team-snippet-text">
             {row.snippetSubmitted ? labels.submitted : labels.notSubmitted}
           </span>
         </div>
-      </td>
-      <td>
+      </Cell>
+      <Cell>
         {level ? (
           <span className={`admin-team-health is-${level}`}>
             <Icon src="/icons/check-heart.svg" size={14} color="currentColor" baseUrl={baseUrl} />
@@ -73,8 +75,8 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
         ) : (
           <span className="admin-team-empty-cell">—</span>
         )}
-      </td>
-      <td>
+      </Cell>
+      <Cell>
         {row.redFlag
           ? (
             <span className="admin-pill is-redflag">
@@ -83,8 +85,8 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
             </span>
           )
           : <span className="admin-team-empty-cell">—</span>}
-      </td>
-      <td><span className="admin-pill is-active">{labels.activeStatus}</span></td>
-    </tr>
+      </Cell>
+      <Cell><span className="admin-pill is-active">{labels.activeStatus}</span></Cell>
+    </Row>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -393,47 +394,39 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
 // ── 기능 비교 테이블 ─────────────────────────────────────────
 function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanCode, labels }) {
   return (
-    <Card style={{ marginBottom: 24, overflowX: 'auto' }}>
+    <Card style={{ marginBottom: 24 }}>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{labels.compareTitle}</div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: 'left', padding: '6px 10px', color: T.sub, fontWeight: 600, borderBottom: `1px solid ${T.border}` }}>
-              {labels.compareFeatureHeader}
-            </th>
-            {plans.map((p) => (
-              <th key={p.code} style={{
-                textAlign: 'center', padding: '6px 10px', fontWeight: 700,
-                borderBottom: `1px solid ${T.border}`,
-                color: p.code === currentPlanCode ? T.accent : T.text,
-              }}>
-                {p.label}
-                {p.recommended && <div style={{ fontSize: 10, color: T.purple, fontWeight: 700 }}>{labels.compareRecommendedTag}</div>}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {featureKeys.map((key, i) => (
-            <tr key={key} style={{ background: i % 2 === 0 ? T.bl : T.card }}>
-              <td style={{ padding: '8px 10px', color: T.text, fontWeight: 500 }}>{featureLabelMap[key]}</td>
-              {plans.map((p) => (
-                <td key={p.code} style={{ textAlign: 'center', padding: '8px 10px' }}>
-                  <FeatureIcon status={p.featureStatus ? p.featureStatus[key] : false} />
-                </td>
-              ))}
-            </tr>
+      <RosterTable>
+        <RosterTable.Head>
+          <RosterTable.HeadCell>{labels.compareFeatureHeader}</RosterTable.HeadCell>
+          {plans.map((p) => (
+            <RosterTable.HeadCell key={p.code} align="center">
+              <span style={{ fontWeight: 700, color: p.code === currentPlanCode ? T.accent : T.text }}>{p.label}</span>
+              {p.recommended && <div style={{ fontSize: 10, color: T.purple, fontWeight: 700 }}>{labels.compareRecommendedTag}</div>}
+            </RosterTable.HeadCell>
           ))}
-          <tr style={{ background: T.card }}>
-            <td style={{ padding: '8px 10px', color: T.sub, fontSize: 12 }}>{labels.recordingRowLabel}</td>
+        </RosterTable.Head>
+        <RosterTable.Body>
+          {featureKeys.map((key) => (
+            <RosterTable.Row key={key}>
+              <RosterTable.Cell style={{ fontWeight: 500 }}>{featureLabelMap[key]}</RosterTable.Cell>
+              {plans.map((p) => (
+                <RosterTable.Cell key={p.code} align="center">
+                  <FeatureIcon status={p.featureStatus ? p.featureStatus[key] : false} />
+                </RosterTable.Cell>
+              ))}
+            </RosterTable.Row>
+          ))}
+          <RosterTable.Row>
+            <RosterTable.Cell style={{ color: T.sub, fontSize: 12 }}>{labels.recordingRowLabel}</RosterTable.Cell>
             {plans.map((p) => (
-              <td key={p.code} style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: T.sub }}>
+              <RosterTable.Cell key={p.code} align="center" style={{ fontSize: 11, color: T.sub }}>
                 {(p.recordingNote || '').split(' (')[0]}
-              </td>
+              </RosterTable.Cell>
             ))}
-          </tr>
-        </tbody>
-      </table>
+          </RosterTable.Row>
+        </RosterTable.Body>
+      </RosterTable>
       <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>{labels.compareLegend}</div>
     </Card>
   );

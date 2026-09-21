@@ -40,6 +40,10 @@ jobs:
       - name: Check shared tabs and modals
         run: npm run check:shared-frames
 
+      # 어드민·평가 화면이 명단 표를 공용 부품(RosterTable) 대신 따로 그린 채 나가는 것을 막는다. (PW-839)
+      - name: Check roster tables
+        run: npm run check:roster-tables
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'

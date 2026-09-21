@@ -3,6 +3,7 @@ import SectionLabel from './SectionLabel.jsx';
 import LinkButton from './LinkButton.jsx';
 import AdminStatTile from './AdminStatTile.jsx';
 import AdminTeamRow from './AdminTeamRow.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
@@ -156,13 +157,11 @@ export default function AdminDashboardCanvas({
             <SectionLabel>{labels.teamSectionTitle}</SectionLabel>
             <LinkButton onClick={onManageEmployees}>{labels.manageEmployees}</LinkButton>
           </div>
-          <table className="admin-team-table">
-            <thead>
-              <tr>
-                {headerKeys.map((k) => <th key={k}>{labels.tableHeaders[k]}</th>)}
-              </tr>
-            </thead>
-            <tbody>
+          <RosterTable className="admin-team-table">
+            <RosterTable.Head>
+              {headerKeys.map((k) => <RosterTable.HeadCell key={k}>{labels.tableHeaders[k]}</RosterTable.HeadCell>)}
+            </RosterTable.Head>
+            <RosterTable.Body>
               {teamRows.filter((r) => r.active).map((row) => (
                 <AdminTeamRow
                   key={row.id}
@@ -184,14 +183,10 @@ export default function AdminDashboardCanvas({
                 />
               ))}
               {teamRows.length === 0 && (
-                <tr>
-                  <td colSpan={headerKeys.length} className="admin-team-empty">
-                    {labels.emptyTeam}
-                  </td>
-                </tr>
+                <RosterTable.Empty colSpan={headerKeys.length}>{labels.emptyTeam}</RosterTable.Empty>
               )}
-            </tbody>
-          </table>
+            </RosterTable.Body>
+          </RosterTable>
         </Card>
 
         <div className="admin-side-col">

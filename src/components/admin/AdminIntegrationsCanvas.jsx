@@ -4,6 +4,7 @@ import assetUrl from '../shared/assetUrl.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -473,54 +474,61 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
     return <div className="intg-table-empty">{labels.syncLog.noLogs}</div>;
   }
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table className="intg-table">
-        <thead>
-          <tr>
-            <th>{labels.syncLog.service}</th>
-            <th>{labels.syncLog.time}</th>
-            <th style={{ textAlign: 'right' }}>{labels.syncLog.count}</th>
-            <th style={{ textAlign: 'center' }}>{labels.syncLog.status}</th>
-            <th style={{ textAlign: 'center' }} aria-hidden />
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => {
+    <RosterTable
+      tableClassName="intg-table"
+      rows={logs}
+      rowKey={(log) => log.id}
+      columns={[
+        {
+          key: 'service',
+          header: labels.syncLog.service,
+          render: (log) => (
+            <span className="svc">
+              {log.serviceIcon && log.serviceIcon.startsWith('/')
+                ? <img src={log.serviceIcon} alt={log.service} />
+                : <span aria-hidden>{log.serviceIcon}</span>}
+              {log.service}
+            </span>
+          ),
+        },
+        { key: 'time', header: labels.syncLog.time, cellProps: { className: 'time' }, render: (log) => log.timeLabel },
+        {
+          key: 'count',
+          header: labels.syncLog.count,
+          align: 'right',
+          cellProps: { className: 'num' },
+          render: (log) => log.count.toLocaleString(),
+        },
+        {
+          key: 'status',
+          header: labels.syncLog.status,
+          align: 'center',
+          render: (log) => {
             const ok = log.status === 'success';
             return (
-              <tr key={log.id}>
-                <td>
-                  <span className="svc">
-                    {log.serviceIcon && log.serviceIcon.startsWith('/')
-                      ? <img src={log.serviceIcon} alt={log.service} />
-                      : <span aria-hidden>{log.serviceIcon}</span>}
-                    {log.service}
-                  </span>
-                </td>
-                <td className="time">{log.timeLabel}</td>
-                <td className="num">{log.count.toLocaleString()}</td>
-                <td style={{ textAlign: 'center' }}>
-                  <span className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
-                    {ok ? labels.syncLog.success : labels.syncLog.failed}
-                  </span>
-                </td>
-                <td style={{ textAlign: 'center' }}>
-                  {log.status === 'failed' && onRetrySyncLog && (
-                    <button
-                      type="button"
-                      className="intg-btn intg-btn-neutral intg-btn-sm"
-                      onClick={() => onRetrySyncLog(log.service)}
-                    >
-                      {labels.syncLog.retry}
-                    </button>
-                  )}
-                </td>
-              </tr>
+              <span className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
+                {ok ? labels.syncLog.success : labels.syncLog.failed}
+              </span>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          key: 'retry',
+          header: null,
+          align: 'center',
+          headerProps: { 'aria-hidden': true },
+          render: (log) => log.status === 'failed' && onRetrySyncLog && (
+            <button
+              type="button"
+              className="intg-btn intg-btn-neutral intg-btn-sm"
+              onClick={() => onRetrySyncLog(log.service)}
+            >
+              {labels.syncLog.retry}
+            </button>
+          ),
+        },
+      ]}
+    />
   );
 }
 
