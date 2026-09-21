@@ -7851,7 +7851,7 @@ export default function EvalCycleWizard({
           onClose={() => setLeaveAsk(false)}
           busy={draftSaving}
           zIndex={1000}
-          className="evc-shell"
+          className="evc-shell is-wide"
           overlayTestId="evc-wiz-leave-ask"
           footer={
             <>
@@ -7887,7 +7887,6 @@ export default function EvalCycleWizard({
           }
         >
           <div className="evc-shell-body">
-            <div className="evc-wiz-body">
               <p className="evc-wiz-hint">{L.draftLeaveBody}</p>
               <ul className="evc-wiz-hint-list">
                 <li>{L.draftLeaveHint1}</li>
@@ -7899,7 +7898,6 @@ export default function EvalCycleWizard({
                 </p>
               )}
             </div>
-        </div>
         </ModalShell>
       )}
 
