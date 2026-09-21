@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useRef, useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 import MeetingRecordContent from './MeetingRecordContent.jsx';
 import MeetingShareContent from './MeetingShareContent.jsx';
@@ -95,166 +95,147 @@ export default function MeetingInProgressModal({
   const participants = normalizeParticipants(meeting?.participants);
   const subtitle = `${meeting.title}  •  ${meeting.time} ${labels.startedSuffix}`;
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      if (confirmOpen) setConfirmOpen(false);
-      else onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [confirmOpen, onClose]);
-
-  return createPortal(
-    <>
-      <div className="mtg-progress-overlay" onClick={onOverlayClick ?? onClose}>
-        <div
-          className="mtg-progress-modal"
-          role="dialog"
-          aria-labelledby="mtg-progress-title"
-          onClick={(e) => e.stopPropagation()}
+  // 하단 버튼 줄 — phase 에 따라 다른 버튼. 틀(ModalShell)의 푸터 칸에 끼운다.
+  let footer;
+  if (isShare) {
+    footer = (
+      <button
+        type="button"
+        className="mtg-progress-share-btn"
+        onClick={handleShareDone}
+        disabled={shareSubmitting}
+      >
+        {labels.shareDoneButton}
+      </button>
+    );
+  } else if (isRecord) {
+    footer = (
+      <button
+        type="button"
+        className="mtg-progress-share-btn"
+        onClick={() => setPhase('share')}
+      >
+        {labels.shareButton}
+      </button>
+    );
+  } else {
+    footer = (
+      <div className="mtg-progress-btn-row">
+        {mode === 'record' && !recordingStopped && (
+          <button
+            type="button"
+            className="mtg-progress-stoprec-btn"
+            onClick={onStopRecording}
+          >
+            {labels.endRecordingOnly}
+          </button>
+        )}
+        <button
+          type="button"
+          className="mtg-progress-end-btn"
+          onClick={() => setConfirmOpen(true)}
         >
-          {/* top close area — height 60, close X 우측 */}
-          <div className="mtg-progress-close-area">
-            <button
-              type="button"
-              className="mtg-progress-close-btn"
-              aria-label={labels.close}
-              onClick={onClose}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M18 6L6 18M6 6l12 12"
-                  stroke="var(--colors-foreground-fgQuaternary, #98a1b2)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
+          {labels.endButton}
+        </button>
+      </div>
+    );
+  }
 
-          {/* 스크롤 영역 */}
-          <div className="mtg-progress-body">
-            {isShare ? (
-              <MeetingShareContent
-                ref={shareContentRef}
-                meeting={meeting}
-                baseUrl={baseUrl}
-                {...shareData}
-              />
-            ) : isRecord ? (
-              <MeetingRecordContent
-                meeting={meeting}
-                baseUrl={baseUrl}
-                {...recordData}
-              />
-            ) : (
-              <>
-                <div className="mtg-progress-header-block">
-                  <div className="mtg-progress-titlewrap">
-                    <h2 id="mtg-progress-title" className="mtg-progress-title">
-                      {labels.title}
-                    </h2>
-                    <p className="mtg-progress-subtitle">{subtitle}</p>
-                  </div>
-                  <div className="mtg-progress-participants">
-                    {participants.map((p) => (
-                      <span key={p} className="mtg-progress-pill">{p}</span>
-                    ))}
-                  </div>
-                </div>
+  // 회의록·공유 단계는 머리(제목·배너)를 본문 안에 직접 그린다 — 틀의 제목 줄을 비우고
+  // 창 이름은 ariaLabel 로 준다. 진행 단계만 틀의 제목 줄(제목 + 부제)을 쓴다.
+  const headerless = isRecord || isShare;
+  const headerlessLabel = isShare ? shareData?.labels?.title : recordData?.labels?.title;
 
-                {mode === 'record' && !recordingStopped && (
-                  <div className="mtg-progress-rec-card">
-                    <div className="mtg-progress-rec-who">
-                      {recorderAvatar ? (
-                        <img
-                          className="mtg-progress-rec-avatar"
-                          src={assetUrl(baseUrl, recorderAvatar)}
-                          alt=""
-                        />
-                      ) : (
-                        <span className="mtg-progress-rec-avatar" aria-hidden="true" />
-                      )}
-                      <span className="mtg-progress-rec-name">
-                        <b>{recorderName}</b>{labels.recordingSuffix}
-                      </span>
-                    </div>
-                    <span className="mtg-progress-rec-time">{timer}</span>
-                    <div className="mtg-progress-rec-wave" aria-hidden="true" ref={waveRef}>
-                      {[5, 5, 20, 12, 9, 12].map((h, i) => (
-                        <span key={i} style={{ height: `${h}px` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {mode === 'record' && recordingStopped && (
-                  <div className="mtg-progress-rec-card is-stopped">
-                    <span className="mtg-progress-rec-time-sm">{timer}</span>
-                    <span className="mtg-progress-rec-stopped">{labels.recordingStoppedText}</span>
-                  </div>
-                )}
-
-                <section className={`mtg-progress-section ${mode === 'memo' ? 'is-memo-only' : ''}`}>
-                  <label htmlFor="mtg-memo" className="mtg-progress-section-label">
-                    {labels.memoLabel}
-                  </label>
-                  <textarea
-                    id="mtg-memo"
-                    className="tl-snippet-textarea mtg-progress-field"
-                    placeholder={labels.memoPlaceholder}
-                    value={memo}
-                    onChange={(e) => handleMemoChange(e.target.value)}
-                  />
-                </section>
-              </>
-            )}
-          </div>
-
-          {/* Sticky bottom — phase 에 따라 다른 버튼 */}
-          <div className="mtg-progress-actions">
-            {isShare ? (
-              <button
-                type="button"
-                className="mtg-progress-share-btn"
-                onClick={handleShareDone}
-                disabled={shareSubmitting}
-              >
-                {labels.shareDoneButton}
-              </button>
-            ) : isRecord ? (
-              <button
-                type="button"
-                className="mtg-progress-share-btn"
-                onClick={() => setPhase('share')}
-              >
-                {labels.shareButton}
-              </button>
-            ) : (
-              <div className="mtg-progress-btn-row">
-                {mode === 'record' && !recordingStopped && (
-                  <button
-                    type="button"
-                    className="mtg-progress-stoprec-btn"
-                    onClick={onStopRecording}
-                  >
-                    {labels.endRecordingOnly}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="mtg-progress-end-btn"
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  {labels.endButton}
-                </button>
+  // 공용 창 틀(ModalShell)로 그린다 (PW-836). Esc·닫기 X 는 onClose, 막 클릭은 caller 의
+  // onOverlayClick(녹음 중엔 닫지 않고 미니 위젯으로 접기)이 있으면 그것, 없으면 onClose.
+  // 종료 확인 창이 위에 떠 있을 때의 Esc 는 확인 창의 몫이다 — 틀이 공용 확인 창
+  // (.pw-confirm-overlay)을 보면 밑의 창을 닫지 않고, 확인 창이 Esc 를 취소로 받는다.
+  return (
+    <>
+      <ModalShell
+        title={headerless ? undefined : labels.title}
+        description={headerless ? undefined : subtitle}
+        titleId={headerless ? undefined : 'mtg-progress-title'}
+        ariaLabel={headerless ? headerlessLabel : undefined}
+        closeLabel={labels.close}
+        onClose={() => onClose?.()}
+        onOverlayClick={onOverlayClick ?? undefined}
+        footer={footer}
+        zIndex={9000}
+        className="mtg-progress-shell"
+        contentClassName="mtg-progress-shell-content"
+        bodyClassName="mtg-progress-shell-body"
+      >
+        {isShare ? (
+          <MeetingShareContent
+            ref={shareContentRef}
+            meeting={meeting}
+            baseUrl={baseUrl}
+            {...shareData}
+          />
+        ) : isRecord ? (
+          <MeetingRecordContent
+            meeting={meeting}
+            baseUrl={baseUrl}
+            {...recordData}
+          />
+        ) : (
+          <>
+            {participants.length > 0 && (
+              <div className="mtg-progress-participants">
+                {participants.map((p) => (
+                  <span key={p} className="mtg-progress-pill">{p}</span>
+                ))}
               </div>
             )}
-          </div>
-        </div>
-      </div>
+
+            {mode === 'record' && !recordingStopped && (
+              <div className="mtg-progress-rec-card">
+                <div className="mtg-progress-rec-who">
+                  {recorderAvatar ? (
+                    <img
+                      className="mtg-progress-rec-avatar"
+                      src={assetUrl(baseUrl, recorderAvatar)}
+                      alt=""
+                    />
+                  ) : (
+                    <span className="mtg-progress-rec-avatar" aria-hidden="true" />
+                  )}
+                  <span className="mtg-progress-rec-name">
+                    <b>{recorderName}</b>{labels.recordingSuffix}
+                  </span>
+                </div>
+                <span className="mtg-progress-rec-time">{timer}</span>
+                <div className="mtg-progress-rec-wave" aria-hidden="true" ref={waveRef}>
+                  {[5, 5, 20, 12, 9, 12].map((h, i) => (
+                    <span key={i} style={{ height: `${h}px` }} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mode === 'record' && recordingStopped && (
+              <div className="mtg-progress-rec-card is-stopped">
+                <span className="mtg-progress-rec-time-sm">{timer}</span>
+                <span className="mtg-progress-rec-stopped">{labels.recordingStoppedText}</span>
+              </div>
+            )}
+
+            <section className={`mtg-progress-section ${mode === 'memo' ? 'is-memo-only' : ''}`}>
+              <label htmlFor="mtg-memo" className="mtg-progress-section-label">
+                {labels.memoLabel}
+              </label>
+              <textarea
+                id="mtg-memo"
+                className="tl-snippet-textarea mtg-progress-field"
+                placeholder={labels.memoPlaceholder}
+                value={memo}
+                onChange={(e) => handleMemoChange(e.target.value)}
+              />
+            </section>
+          </>
+        )}
+      </ModalShell>
 
       {confirmOpen && (
         <MeetingEndConfirmModal
@@ -266,7 +247,6 @@ export default function MeetingInProgressModal({
           }}
         />
       )}
-    </>,
-    document.body
+    </>
   );
 }

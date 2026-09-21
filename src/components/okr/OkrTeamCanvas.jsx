@@ -2,6 +2,8 @@ import { useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import Tabs from '../shared/Tabs.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import rowKey from './rowKey.js';
 
 /**
@@ -27,22 +29,24 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
 
   return (
     <div className="okr-personal-area">
-      <div className="okr-s-subtabs">
-        {teams.map((name, i) => (
-          <span
-            key={rowKey(name, i)}
-            className={`okr-s-subtab${team === name ? ' is-active' : ''}`}
-            onClick={() => selectTeam(name)}
-          >
-            {name}
-          </span>
-        ))}
+      {/* 팀 서브탭 — 공용 Tabs, 기간 칩 — 공용 SegmentedControl (PW-836). */}
+      <div className="tl-tabs-row okr-s-tabs-row">
+        <Tabs
+          items={teams.map((name) => ({ value: name, label: name }))}
+          value={team}
+          onChange={selectTeam}
+        />
       </div>
 
-      <div className="okr-p-period">
-        <button className={`okr-p-period-btn${periodTab === 'current' ? ' is-active' : ''}`} onClick={() => setPeriodTab('current')}>{periodLabel}</button>
-        <button className={`okr-p-period-btn${periodTab === 'history' ? ' is-active' : ''}`} onClick={() => setPeriodTab('history')}>히스토리</button>
-      </div>
+      <SegmentedControl
+        className="okr-p-period"
+        items={[
+          { value: 'current', label: periodLabel },
+          { value: 'history', label: '히스토리' },
+        ]}
+        value={periodTab}
+        onChange={setPeriodTab}
+      />
 
       {periodTab === 'history' ? (
         <div className="okr-h-list">

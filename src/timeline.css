@@ -142,6 +142,12 @@
   color: var(--text-primary);
 }
 
+/* 고를 수 없는 탭 — .seg-item:disabled 와 같은 관례 (PW-836) */
+.tl-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Google Calendar status — Figma .frameParent2 + .googleCalendar */
 .tl-gcal-status {
   display: flex;

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * AdminRbacCanvas — 권한 관리(RBAC) 읽기 전용 뷰어 (design-page 정본)
@@ -674,20 +675,21 @@ export default function AdminRbacCanvas({
         </span>
       </div>
 
-      {/* 탭 바 (design-page admin-emp-tabbar) */}
-      <div className="admin-emp-tabbar" style={{ marginBottom: 16 }}>
-        {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            className={`admin-emp-tab${tab === key ? ' is-active' : ''}`}
-            onClick={() => setTab(key)}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Icon />
-              {label}
-            </span>
-          </button>
-        ))}
+      {/* 탭 바 — 공용 Tabs (PW-836) */}
+      <div className="tl-tabs-row adm-tabs-row is-spaced">
+        <Tabs
+          items={TABS.map(({ key, label, Icon }) => ({
+            value: key,
+            label: (
+              <span className="adm-tab-label">
+                <Icon />
+                {label}
+              </span>
+            ),
+          }))}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       {/* 역할 요약 카드 (정본 admin-stat-tile + admin-eval-bar) */}

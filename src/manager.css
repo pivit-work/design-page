@@ -689,66 +689,19 @@
   width: 100%;
 }
 
-.manager-modal-tabs {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 44px;
-  width: 100%;
-  padding: var(--spacing-xs);
-  background: var(--componentColors-alpha-alphaBlack3);
-  border-radius: var(--radius-sm);
-}
-
-/* Active 탭 위치로 슬라이딩하는 흰 배경 indicator. */
-.manager-modal-tab-slider {
-  position: absolute;
-  top: var(--spacing-xs);
-  bottom: var(--spacing-xs);
-  background: var(--colors-foreground-fgLight, white);
-  border: 0.5px solid var(--fg-quaternary);
-  border-radius: var(--radius-xs);
-  filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08));
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
-  pointer-events: none;
-  z-index: 0;
+/* 상세 탭 — 공용 SegmentedControl(PW-836). 432px 카드 폭을 칸마다 똑같이 나눈다. */
+.seg-control.manager-modal-seg .seg-item {
+  flex: 1 0 0;
+  white-space: nowrap;
 }
 
 /* 탭이 5개가 되면(액션 아이템 탭 신설, PW-182) 432px 카드 안에서 라벨이 서로
    밀린다. 4개일 때의 생김새는 그대로 두고, 5개일 때만 가로 여백을 줄인다. */
-.manager-modal-tabs.is-compact .manager-modal-tab {
+.seg-control.manager-modal-seg.is-compact .seg-item {
   padding-left: var(--spacing-xxs, 2px);
   padding-right: var(--spacing-xxs, 2px);
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-}
-
-.manager-modal-tab {
-  position: relative;
-  z-index: 1;
-  flex: 1 0 0;
-  white-space: nowrap;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-xs);
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-  white-space: nowrap;
-}
-
-.manager-modal-tab.active {
-  color: var(--text-secondary);
 }
 
 /* ── AI Brief card ──
@@ -1376,10 +1329,9 @@
 .mgr-krd-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .mgr-krd-role { font-size: 13px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .mgr-krd-percent { font-size: 30px; font-weight: 700; line-height: 44px; color: var(--fg-primary); }
-.mgr-krd-tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--border-secondary); }
-.mgr-krd-tab { padding-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid transparent; }
-.mgr-krd-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
 .mgr-krd-list { display: flex; flex-direction: column; }
+/* 스니핏·액션·Jira 탭 — 공용 Tabs(PW-836). 공용 줄의 위·왼쪽 여백은 패널 간격이 대신한다. */
+.tl-tabs-row.mgr-krd-tabs-row { margin: 0; }
 .mgr-krd-snippet { display: flex; flex-direction: column; gap: 8px; padding: 24px 0; border-bottom: 1px solid var(--border-secondary); }
 .mgr-krd-snippet:last-child { border-bottom: none; }
 .mgr-krd-date { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
@@ -1400,9 +1352,6 @@
 /* 필터 칩 행 — 기간은 세그먼트 컨트롤, 레드 플래그는 흰 원형 카운트 배지 */
 /* 컨트롤 바 — Figma 17421:18448 (세그먼트 p4 g2, 레드 플래그 p8x14 + 에러 필 카운트) */
 .mgr-ts-chips { display: flex; align-items: center; gap: 6px; }
-.mgr-ts-seg { display: inline-flex; gap: 2px; padding: 4px; background: var(--alpha-black-3); border-radius: 8px; }
-.mgr-ts-seg-btn { padding: 4px 8px; background: transparent; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-tertiary); cursor: pointer; }
-.mgr-ts-seg-btn.is-active { background: var(--fg-light); border: 0.5px solid var(--fg-quaternary); color: var(--text-secondary); filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08)); }
 .mgr-ts-chip.is-redflag { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 .mgr-ts-chip.is-redflag b { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 999px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 .mgr-ts-chip.is-redflag.is-active { background: var(--bg-tertiary); }
@@ -1446,11 +1395,9 @@
 
 /* ── 우측 피드 ── */
 .mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
-.mgr-ts-feed-tabs { display: flex; }
-.mgr-ts-feed-tab { flex: 1; text-align: center; padding-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; border-bottom: 2px solid var(--border-secondary); }
-.mgr-ts-feed-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
 
 /* 필터 바 — Figma 17421:19533 (칩 radius 8, brand-100/error-100 배경, 12 Medium) */
+.tl-tabs-row.mgr-ts-feed-tabs-row { margin: 0; }  /* 날짜별·KR별 — 공용 Tabs(PW-836) */
 .mgr-ts-filterbar { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
 .mgr-ts-filter-chip { padding: 3px 4px 3px 8px; border-radius: 8px; border: 1px solid var(--alpha-black-3); font-size: 12px; font-weight: 500; line-height: 18px; cursor: pointer; }
 .mgr-ts-filter-chip.is-member { background: var(--utility-brand-100); color: var(--text-brand-secondary); }

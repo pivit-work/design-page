@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import ModalShell from '../shared/ModalShell.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -397,65 +400,69 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
     });
   };
 
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 이 창은 「설정 저장」 하나로 닫히는 창이라
+  // 취소 버튼 없이 저장만 버튼 줄에 둔다(종전과 같다) — 닫기는 X·막·Esc.
   return (
-    <div className="intg-modal-overlay" onClick={onClose} data-testid="intg-settings-overlay">
-      <div className="intg-modal intg-modal-wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" data-testid="intg-settings-modal">
-        <div className="intg-panel-head">
-          <h3 className="intg-panel-title">
-            <img src={assetUrl(baseUrl, modal.logo)} alt={modal.brandName} />
-            {fmt(labels.settingsPanel.title, { name: modal.brandName })}
-          </h3>
-          <button type="button" onClick={onClose} aria-label={labels.close} className="intg-panel-close">&times;</button>
-        </div>
-
-        <div>
-          {(modal.fields ?? []).map((field) => (
-            <SettingRow key={field.key} label={field.label}>
-              {field.kind === 'select' && (
-                <SelectInput
-                  value={draft[field.key]}
-                  options={field.options ?? []}
-                  onChange={(v) => setField(field.key, v)}
-                  ariaLabel={field.label}
-                />
-              )}
-              {field.kind === 'checkboxGroup' && (
-                <div className="intg-setting-check">
-                  {(field.options ?? []).map((o) => (
-                    <label key={o.value}>
-                      <input
-                        type="checkbox"
-                        checked={Array.isArray(draft[field.key]) && draft[field.key].includes(o.value)}
-                        onChange={() => toggleInGroup(field.key, o.value)}
-                        style={{ accentColor: 'var(--text-brand-tertiary)' }}
-                      />
-                      {o.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-              {field.kind === 'toggle' && (
-                <ToggleSwitch
-                  checked={!!draft[field.key]}
-                  onChange={(v) => setField(field.key, v)}
-                  ariaLabel={field.label}
-                />
-              )}
-            </SettingRow>
-          ))}
-          <div className="intg-panel-save">
-            <button
-              type="button"
-              className="intg-btn intg-btn-primary"
-              onClick={() => onSave(modal.app, draft)}
-              data-testid="intg-settings-save"
-            >
-              {labels.saveSettings}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ModalShell
+      title={
+        <span className="intg-shell-title">
+          <img src={assetUrl(baseUrl, modal.logo)} alt={modal.brandName} />
+          {fmt(labels.settingsPanel.title, { name: modal.brandName })}
+        </span>
+      }
+      titleId="intg-settings-title"
+      closeLabel={labels.close}
+      onClose={onClose}
+      zIndex={10000}
+      className="adm-shell"
+      testId="intg-settings-modal"
+      overlayTestId="intg-settings-overlay"
+      footer={
+        <button
+          type="button"
+          className="tl-group-modal-btn tl-group-modal-btn-primary"
+          onClick={() => onSave(modal.app, draft)}
+          data-testid="intg-settings-save"
+        >
+          {labels.saveSettings}
+        </button>
+      }
+    >
+      {(modal.fields ?? []).map((field) => (
+        <SettingRow key={field.key} label={field.label}>
+          {field.kind === 'select' && (
+            <SelectInput
+              value={draft[field.key]}
+              options={field.options ?? []}
+              onChange={(v) => setField(field.key, v)}
+              ariaLabel={field.label}
+            />
+          )}
+          {field.kind === 'checkboxGroup' && (
+            <div className="intg-setting-check">
+              {(field.options ?? []).map((o) => (
+                <label key={o.value}>
+                  <input
+                    type="checkbox"
+                    checked={Array.isArray(draft[field.key]) && draft[field.key].includes(o.value)}
+                    onChange={() => toggleInGroup(field.key, o.value)}
+                    style={{ accentColor: 'var(--text-brand-tertiary)' }}
+                  />
+                  {o.label}
+                </label>
+              ))}
+            </div>
+          )}
+          {field.kind === 'toggle' && (
+            <ToggleSwitch
+              checked={!!draft[field.key]}
+              onChange={(v) => setField(field.key, v)}
+              ariaLabel={field.label}
+            />
+          )}
+        </SettingRow>
+      ))}
+    </ModalShell>
   );
 }
 
@@ -534,31 +541,30 @@ function TokenLogItem({ entry, labels }) {
   );
 }
 
-function Overlay({ children, onClose, testid }) {
-  return (
-    <div className="intg-modal-overlay" onClick={onClose} data-testid={testid}>
-      <div className="intg-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        {children}
-      </div>
-    </div>
-  );
-}
-
+/* 토큰 만료·재인증 확인 창 — 공용 확인 창(ConfirmModal · PW-836). 창 이름표(testId)는
+   종전 막에서 창 카드로 옮겨 붙는다. */
 function ExpireModal({ labels, onClose, onConfirm, error }) {
   const L = labels.transfer.expireModal;
   return (
-    <Overlay onClose={onClose} testid="intg-expire-modal">
-      <h3>{L.title}</h3>
-      <p>{L.description}</p>
-      <div className="intg-note is-error" style={{ marginBottom: 20 }}>{L.warning}</div>
-      {error && (
-        <div className="intg-note is-error" style={{ marginBottom: 12 }}>{L.error}</div>
-      )}
-      <div className="intg-modal-actions">
-        <button type="button" className="intg-btn intg-btn-neutral" onClick={onClose}>{L.cancel}</button>
-        <button type="button" className="intg-btn intg-btn-danger" onClick={onConfirm}>{L.confirm}</button>
-      </div>
-    </Overlay>
+    <ConfirmModal
+      testId="intg-expire-modal"
+      title={L.title}
+      body={
+        <>
+          <p className="intg-confirm-p">{L.description}</p>
+          <div className="intg-note is-error">{L.warning}</div>
+          {error && (
+            <div className="intg-note is-error" style={{ marginTop: 12 }}>{L.error}</div>
+          )}
+        </>
+      }
+      cancelLabel={L.cancel}
+      confirmLabel={L.confirm}
+      danger
+      zIndex={10000}
+      onCancel={onClose}
+      onConfirm={onConfirm}
+    />
   );
 }
 
@@ -568,32 +574,34 @@ function ReauthModal({ owner, labels, onClose, onConfirm }) {
   // owner.isCurrentUser 로 판단해 전달한다(기본 undefined → 경고 노출: 안전측).
   const isDifferentOwner = owner.isCurrentUser !== true;
   return (
-    <Overlay onClose={onClose} testid="intg-reauth-modal">
-      <h3>{L.title}</h3>
-
-      <div className="intg-modal-usercard">
-        <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{owner.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-            {L.titleLabel}: {owner.title}
+    <ConfirmModal
+      testId="intg-reauth-modal"
+      title={L.title}
+      body={
+        <>
+          <div className="intg-modal-usercard">
+            <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{owner.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                {L.titleLabel}: {owner.title}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {isDifferentOwner && (
-        <div className="intg-note is-warning" style={{ margin: '12px 0 16px' }} data-testid="intg-reauth-diff-owner-warning">
-          {owner.name}{L.differentOwnerWarning}
-        </div>
-      )}
-
-      <div className="intg-modal-actions">
-        <button type="button" className="intg-btn intg-btn-neutral" onClick={onClose}>{L.cancel}</button>
-        <button type="button" className="intg-btn intg-btn-primary" onClick={onConfirm}>
-          {L.confirm}
-        </button>
-      </div>
-    </Overlay>
+          {isDifferentOwner && (
+            <div className="intg-note is-warning" style={{ marginTop: 12 }} data-testid="intg-reauth-diff-owner-warning">
+              {owner.name}{L.differentOwnerWarning}
+            </div>
+          )}
+        </>
+      }
+      cancelLabel={L.cancel}
+      confirmLabel={L.confirm}
+      zIndex={10000}
+      onCancel={onClose}
+      onConfirm={onConfirm}
+    />
   );
 }
 
@@ -690,23 +698,16 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
 /* ── 탭 스위처 ──────────────────────────────────────────────────────── */
 
 function TabSwitcher({ active, labels, onChange }) {
-  const tabs = [
-    { id: 'apps', label: labels.tabs.appIntegrations },
-    { id: 'syncLog', label: labels.tabs.syncLog },
-  ];
   return (
-    <div className="intg-tabs">
-      {tabs.map((tab) => (
-        <button
-          type="button"
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
-          data-testid={`intg-tab-${tab.id}`}
-          className={`intg-tab${tab.id === active ? ' is-active' : ''}`}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div className="tl-tabs-row adm-tabs-row">
+      <Tabs
+        items={[
+          { value: 'apps', label: labels.tabs.appIntegrations, testId: 'intg-tab-apps' },
+          { value: 'syncLog', label: labels.tabs.syncLog, testId: 'intg-tab-syncLog' },
+        ]}
+        value={active}
+        onChange={onChange}
+      />
     </div>
   );
 }

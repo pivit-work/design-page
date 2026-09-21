@@ -11,7 +11,10 @@ import useSegmentedIndicator from './useSegmentedIndicator.js';
  * 항상 이 컴포넌트를 사용한다. 새로 만들지 말 것.
  *
  * Props:
- *   items     [{ value, label, testId? }] — testId 는 그 탭 버튼의 data-testid (PW-832)
+ *   items     [{ value, label, testId?, disabled?, title? }] — testId 는 그 탭 버튼의 data-testid (PW-832).
+ *             disabled 인 탭은 고를 수 없다 — 왜 못 고르는지는 caller 가 title 로 준다.
+ *             SegmentedControl 과 같은 관례다 (PW-836 — 1on1 멤버 화면의 단계 탭이 아직 갈 수
+ *             없는 단계를 잠근다)
  *   value     현재 선택된 value (controlled)
  *   onChange  (next) => void
  *   className 추가 클래스 (.tl-tabs 래퍼)
@@ -31,8 +34,14 @@ export default function Tabs({ items, value, onChange, className = '' }) {
           type="button"
           role="tab"
           aria-selected={value === it.value}
+          aria-disabled={it.disabled ? 'true' : undefined}
+          disabled={it.disabled || undefined}
+          title={it.title}
           className={`tl-tab ${value === it.value ? 'is-active' : ''}`}
-          onClick={() => onChange?.(it.value)}
+          onClick={() => {
+            if (it.disabled) return;
+            onChange?.(it.value);
+          }}
           data-testid={it.testId}
         >
           {it.label}

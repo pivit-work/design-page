@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { fillExportCaption } from './employeeExportItems.js';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * 명부 내보내기 공용 부품 — `screen-admin-employees-export.policy.md`.
@@ -169,56 +170,56 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
 export function SalaryExportModal({ count, columnCount, labels, onExclude, onInclude, onClose }) {
   const L = labels || {};
   const excludeRef = useRef(null);
+  // Esc·막 클릭·닫기 X 는 공용 창 틀(ModalShell · PW-836)이 onClose 로 부른다.
   useEffect(() => {
     excludeRef.current?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
   const fill = (s) =>
     String(s || '').split('{count}').join(String(count)).split('{columns}').join(String(columnCount));
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div data-testid="export-salary-modal" style={{ background: '#fff', borderRadius: 14, width: 'min(460px,100%)', boxShadow: '0 20px 60px rgba(0,0,0,.22)', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', gap: 8, color: '#B45309' }}>
-          <IconLock size={17} />
-          <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
-            {L.salaryTitle || '연봉이 포함된 명부를 내보냅니다'}
-          </div>
-        </div>
-        <div style={{ padding: '0 22px 4px', fontSize: 12, color: T.sub, lineHeight: 1.8 }}>
-          <div>{fill(L.salaryBody || '대상 {count}명 · {columns}열 · 연봉 열 포함')}</div>
-          <div style={{ color: T.muted }}>
-            {L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}
-          </div>
-        </div>
-        <div style={{ padding: '18px 22px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+    <ModalShell
+      title={L.salaryTitle || '연봉이 포함된 명부를 내보냅니다'}
+      titleId="export-salary-title"
+      closeLabel={L.cancel || '취소'}
+      onClose={onClose}
+      zIndex={9999}
+      className="adm-shell"
+      testId="export-salary-modal"
+      footer={
+        <>
           <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-secondary"
             onClick={onClose}
-            style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid ${T.border}`, background: '#fff', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
           >
             {L.cancel || '취소'}
           </button>
           <button
+            type="button"
             ref={excludeRef}
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="export-salary-exclude"
             onClick={onExclude}
-            style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
           >
             {L.salaryExclude || '연봉 빼고 내보내기'}
           </button>
           <button
+            type="button"
+            className="tl-group-modal-btn adm-btn-danger-ghost"
             data-testid="export-salary-include"
             onClick={onInclude}
-            style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #FECACA', background: '#fff', color: '#DC2626', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
           >
             {L.salaryInclude || '포함해 내보내기'}
           </button>
+        </>
+      }
+    >
+      <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.8, fontFamily: T.font }}>
+        <div>{fill(L.salaryBody || '대상 {count}명 · {columns}열 · 연봉 열 포함')}</div>
+        <div style={{ color: T.muted }}>
+          {L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

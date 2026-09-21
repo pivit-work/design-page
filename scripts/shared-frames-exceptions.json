@@ -1,0 +1,74 @@
+{
+  "_doc": [
+    "화면 폴더에서 공용 틀 없이 탭·창을 그린 자리. 파일·종류(tablist|dialog|overlay|tabclass)·개수·사유. 줄어들기만 한다 (PW-836)",
+    "개수가 늘어도 줄어도 check-shared-frames 가 실패한다 — 줄었으면 여기 숫자를 줄인다"
+  ],
+  "exceptions": [
+    {
+      "file": "components/admin/AdminEmployeesCanvas.jsx",
+      "kind": "dialog",
+      "count": 2,
+      "reason": "구성원 편집 패널: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
+    },
+    {
+      "file": "components/admin/AdminEmployeesCanvas.jsx",
+      "kind": "overlay",
+      "count": 1,
+      "reason": "구성원 편집 패널의 막: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
+    },
+    {
+      "file": "components/admin/OrgSnapshotCanvas.jsx",
+      "kind": "overlay",
+      "count": 1,
+      "reason": "내보내기 메뉴 밖 클릭을 받는 투명 막 — 창이 아니라 드롭다운"
+    },
+    {
+      "file": "components/admin/kit/AdminMemberListDialog.jsx",
+      "kind": "dialog",
+      "count": 2,
+      "reason": "카드만 그리는 부품 — 막과 겹침 순서는 pivit-work 가 ModalScrim 으로 그린다"
+    },
+    {
+      "file": "components/admin/kit/CsvImportParts.jsx",
+      "kind": "dialog",
+      "count": 2,
+      "reason": "카드만 그리는 부품 — 막과 겹침 순서는 pivit-work 가 ModalScrim 으로 그린다"
+    },
+    {
+      "file": "components/eval/EvalCycleWizard.jsx",
+      "kind": "overlay",
+      "count": 1,
+      "reason": "필터 팝오버 밖 클릭을 받는 막 — 창이 아니라 팝오버 (PW-832 가 남김)"
+    },
+    {
+      "file": "components/eval/EvalShellNav.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "평가 머리의 영역 전환 — 화면 안 탭이 아니라 페이지 머리 메뉴 (PW-832 가 남김)"
+    },
+    {
+      "file": "components/manager/ManagerCanvas.jsx",
+      "kind": "tabclass",
+      "count": 1,
+      "reason": "매니저 화면 맨 위 페이지 제목 크기의 전환 줄 — 화면 안 탭이 아니다"
+    },
+    {
+      "file": "components/manager/ProfileModal.jsx",
+      "kind": "overlay",
+      "count": 1,
+      "reason": "매니저 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 공용 창 틀로 옮기면 생김새가 크게 바뀐다 (PW-893)"
+    },
+    {
+      "file": "components/orgchart/ProfileModal.jsx",
+      "kind": "overlay",
+      "count": 1,
+      "reason": "조직도 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 공용 창 틀로 옮기면 생김새가 크게 바뀐다 (PW-893)"
+    },
+    {
+      "file": "components/resource/ResourceCanvas.jsx",
+      "kind": "overlay",
+      "count": 2,
+      "reason": "리소스 패널: 옆에서 미끄러져 나오는 패널 — 공용 옆 패널 틀이 없고 새로 만드는 것은 디자이너 몫 (PW-893)"
+    }
+  ]
+}

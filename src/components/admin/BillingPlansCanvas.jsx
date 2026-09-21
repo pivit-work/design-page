@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -854,18 +855,35 @@ export default function BillingPlansCanvas({
           </div>
         )}
 
-        {/* 다운그레이드·플랜 변경 확인 모달.
-            오버레이 z-index 는 사이드바(App.css `.sidebar` = 100)보다 커야
-            좌측 내비까지 덮인다. 하우스 값 1000(= org_chart.css .modal-overlay). */}
+        {/* 다운그레이드·플랜 변경 확인 창 — 공용 창 틀(ModalShell · PW-836). body 직속 포털이라
+            사이드바(App.css `.sidebar` = 100)까지 덮는다. 겹침 순서는 종전 값 1000. */}
         {confirmTarget && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <Card style={{ maxWidth: 460, margin: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
-                {isDowngrade
-                  ? labels.confirmDowngradeTitle(confirmTarget.label)
-                  : labels.confirmChangeTitle(confirmTarget.label)}
-              </div>
+          <ModalShell
+            title={isDowngrade
+              ? labels.confirmDowngradeTitle(confirmTarget.label)
+              : labels.confirmChangeTitle(confirmTarget.label)}
+            titleId="billing-plan-confirm-title"
+            closeLabel={labels.cancelButton}
+            onClose={() => setConfirmTarget(null)}
+            zIndex={1000}
+            className="adm-shell"
+            testId="billing-plan-confirm"
+            footer={
+              <>
+                <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                  onClick={() => setConfirmTarget(null)}>
+                  {labels.cancelButton}
+                </button>
+                <button type="button"
+                  className={`tl-group-modal-btn ${isDowngrade ? 'adm-btn-danger-ghost' : 'tl-group-modal-btn-primary'}`}
+                  onClick={handleConfirm}
+                  disabled={seatOverLimit && !downgradeChecked}>
+                  {isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
+                </button>
+              </>
+            }
+          >
+            <div style={{ fontFamily: T.font }}>
               <div style={{ fontSize: 14, color: T.sub, marginBottom: 16 }}>
                 {isDowngrade ? labels.confirmDowngradeBody : labels.confirmChangeBody}
               </div>
@@ -900,17 +918,8 @@ export default function BillingPlansCanvas({
                   {labels.downgradeDataNotice}
                 </div>
               )}
-
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <Btn kind="secondary" onClick={() => setConfirmTarget(null)}>{labels.cancelButton}</Btn>
-                <Btn kind={isDowngrade ? 'danger' : 'primary'}
-                  onClick={handleConfirm}
-                  disabled={seatOverLimit && !downgradeChecked}>
-                  {isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
-                </Btn>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </ModalShell>
         )}
 
       </div>

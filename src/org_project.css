@@ -19,6 +19,10 @@
 .pj-body {
   padding: 0 40px 60px 10px;
 }
+/* 상태 필터 탭 — 공용 Tabs(PW-836). 공용 줄의 위·왼쪽 여백 대신 카드 격자와 사이만 둔다. */
+.tl-tabs-row.pj-tabs-row {
+  margin: 0 0 16px;
+}
 
 /* ── Project Cards Grid ── */
 .pj-cards-grid {

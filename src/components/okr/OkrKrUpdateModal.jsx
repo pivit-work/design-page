@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * OkrKrUpdateModal — Key Result 달성률 업데이트 모달.
@@ -20,83 +21,71 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
   const [value, setValue] = useState(detail.currentValue ?? detail.aiValue ?? '');
   const [saving, setSaving] = useState(false);
 
-  // 저장 중에는 Escape·바깥 클릭으로도 닫지 않는다 — 닫아 버리면 저장이 끝났는지
-  // 모르는 채로 입력값만 사라진다.
-  const closeIfIdle = () => { if (!saving) onClose(); };
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && !saving) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, saving]);
-
   const numeric = Number(value) || 0;
   const percent = Math.min(Math.round((numeric / detail.total) * 100), 100);
 
+  const confirm = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onConfirm?.(numeric);
+      onClose();
+    } catch {
+      // 실패했으면 닫지 않는다 — 입력값을 남겨 다시 누를 수 있게 한다.
+      setSaving(false);
+    }
+  };
+
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 저장 중에는 busy 로 Esc·막 클릭·닫기 X·취소를
+  // 모두 막는다 — 닫아 버리면 저장이 끝났는지 모르는 채로 입력값만 사라진다.
   return (
-    <div className="okr-modal-overlay" onClick={closeIfIdle}>
-      <div className="okr-compose-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="okr-modal-close" onClick={closeIfIdle} disabled={saving}>
-          <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-        </button>
-        <div className="okr-kru-body">
-          <div className="okr-kru-header">
-            <h2 className="okr-compose-title">{detail.title}</h2>
-            <div className="okr-kru-sub">
-              <span>{detail.krLabel} — 달성률 업데이트</span>
-              <span className="okr-kru-method">{detail.method}</span>
+    <ModalShell
+      title={detail.title}
+      description={(
+        <span className="okr-kru-sub">
+          <span>{detail.krLabel} — 달성률 업데이트</span>
+          <span className="okr-kru-method">{detail.method}</span>
+        </span>
+      )}
+      titleId="okr-kru-title"
+      closeLabel="취소"
+      cancelLabel="취소"
+      submitLabel="확정"
+      canSubmit
+      busy={saving}
+      onClose={onClose}
+      onSubmit={confirm}
+      zIndex={1000}
+      className="okr-shell"
+      bodyClassName="okr-shell-body"
+    >
+      {detail.aiValue != null && (
+        <div className="okr-kru-ai">
+          <div className="okr-kru-ai-head">
+            <div className="okr-kru-ai-label">
+              <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+              <span>AI 초안</span>
             </div>
+            <span>{detail.aiMeta}</span>
           </div>
-
-          {detail.aiValue != null && (
-            <div className="okr-kru-ai">
-              <div className="okr-kru-ai-head">
-                <div className="okr-kru-ai-label">
-                  <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                  <span>AI 초안</span>
-                </div>
-                <span>{detail.aiMeta}</span>
-              </div>
-              <div className="okr-kru-ai-result">
-                <p className="okr-kru-ai-caption">집계결과</p>
-                <p className="okr-kru-ai-value">{detail.aiValue}/{detail.total}{detail.unit}</p>
-              </div>
-              <button className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>적용</button>
-            </div>
-          )}
-
-          <div className="okr-kru-input-row">
-            <input
-              className="okr-kru-input"
-              type="number"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
-            <span className="okr-kru-total">/ {detail.total}</span>
-            <span className="okr-kru-percent">{percent}%</span>
+          <div className="okr-kru-ai-result">
+            <p className="okr-kru-ai-caption">집계결과</p>
+            <p className="okr-kru-ai-value">{detail.aiValue}/{detail.total}{detail.unit}</p>
           </div>
+          <button type="button" className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>적용</button>
         </div>
-        <div className="okr-modal-footer">
-          <button className="okr-btn is-outline" onClick={closeIfIdle} disabled={saving}>취소</button>
-          <button
-            className="okr-btn is-brand"
-            disabled={saving}
-            onClick={async () => {
-              if (saving) return;
-              setSaving(true);
-              try {
-                await onConfirm?.(numeric);
-                onClose();
-              } catch {
-                // 실패했으면 닫지 않는다 — 입력값을 남겨 다시 누를 수 있게 한다.
-                setSaving(false);
-              }
-            }}
-          >
-            확정
-          </button>
-        </div>
+      )}
+
+      <div className="okr-kru-input-row">
+        <input
+          className="okr-kru-input"
+          type="number"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <span className="okr-kru-total">/ {detail.total}</span>
+        <span className="okr-kru-percent">{percent}%</span>
       </div>
-    </div>
+    </ModalShell>
   );
 }

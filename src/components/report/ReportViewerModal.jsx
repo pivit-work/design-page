@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import Icon from '../shared/Icon.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
 
 /**
@@ -9,34 +7,41 @@ import TimelineWeeklyView from '../timeline/TimelineWeeklyView.jsx';
  *
  * 리스트 위에 오버레이로 뜨며, 좌상단에 자동 생성 시각, 우상단 X.
  * 본문은 TimelineWeeklyView 재사용 (isGenerating 이면 로딩 상태).
- * ESC/오버레이/X 로 닫는다.
+ *
+ * 껍데기는 공용 창 틀(ModalShell · PW-836) — body 포털·ESC·막 클릭·닫기 X 를 틀이 갖는다.
+ * 이 창은 제목이 없어 틀을 제목 줄 없이(title·description 미전달) 쓰고, 창 이름은 ariaLabel 로
+ * 준다. 창 크기(화면 가득)는 변형 클래스 `.report-shell` 로 준다(report.css).
+ *
+ * Props:
+ *   closeLabel  닫기 X 의 aria-label (소비처가 i18n 문구를 넘긴다)
+ *   ariaLabel   창 이름 (제목 줄이 없어 화면 읽기 프로그램이 읽을 이름. ReportCanvas 는 리포트 기간을 넘긴다)
  */
-export default function ReportViewerModal({ report, generatedAt, isGenerating = false, baseUrl = '', onClose }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  // main(.tl-page) 내부는 자체 stacking context 라 사이드바(z-index 100)를
-  // 이기지 못한다 — body 로 포탈시켜 최상위에 띄운다.
-  return createPortal(
-    <div className="report-modal-overlay" onClick={onClose}>
-      <div className="report-modal" onClick={(e) => e.stopPropagation()}>
-        {generatedAt && <span className="report-modal-generated">{generatedAt}</span>}
-        <button className="report-modal-close" onClick={onClose}>
-          <Icon src="/icons-solid/x-close.svg" size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-        </button>
-        <div className="report-modal-body">
-          <TimelineWeeklyView
-            baseUrl={baseUrl}
-            report={report}
-            isGenerating={isGenerating}
-            showInfoBanner={false}
-          />
-        </div>
-      </div>
-    </div>,
-    document.body
+export default function ReportViewerModal({
+  report,
+  generatedAt,
+  isGenerating = false,
+  baseUrl = '',
+  closeLabel,
+  ariaLabel,
+  onClose,
+}) {
+  return (
+    <ModalShell
+      ariaLabel={ariaLabel}
+      closeLabel={closeLabel}
+      onClose={onClose}
+      footer={null}
+      zIndex={1000}
+      className="report-shell"
+      bodyClassName="report-modal-body"
+    >
+      {generatedAt && <span className="report-modal-generated">{generatedAt}</span>}
+      <TimelineWeeklyView
+        baseUrl={baseUrl}
+        report={report}
+        isGenerating={isGenerating}
+        showInfoBanner={false}
+      />
+    </ModalShell>
   );
 }

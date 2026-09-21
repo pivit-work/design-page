@@ -1,39 +1,35 @@
-import { useEffect, useState } from 'react';
-import Icon from '../shared/Icon.jsx';
+import { useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * OkrFeedbackComposeModal — 피드백 작성/피드백 요청 작성 공용 모달.
  * 제목·placeholder·확인 버튼 라벨만 다르다 (작성=완료, 요청=보내기).
+ *
+ * 껍데기는 공용 창 틀(ModalShell · PW-836) — 막·Esc·닫기 X·취소/확인 줄을 틀이 그린다.
+ * 닫기 X 를 틀이 그리므로 `icons`·`baseUrl` 은 더 쓰지 않는다(넘겨도 무시된다).
  */
-export default function OkrFeedbackComposeModal({ title, placeholder, submitLabel, icons, baseUrl = '', onClose, onSubmit }) {
+export default function OkrFeedbackComposeModal({ title, placeholder, submitLabel, onClose, onSubmit }) {
   const [text, setText] = useState('');
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   return (
-    <div className="okr-modal-overlay" onClick={onClose}>
-      <div className="okr-compose-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="okr-modal-close" onClick={onClose}>
-          <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-        </button>
-        <div className="okr-compose-body">
-          <h2 className="okr-compose-title">{title}</h2>
-          <textarea
-            className="okr-textarea"
-            placeholder={placeholder}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </div>
-        <div className="okr-modal-footer">
-          <button className="okr-btn is-outline" onClick={onClose}>취소</button>
-          <button className="okr-btn is-brand" onClick={() => { if (onSubmit) onSubmit(text); onClose(); }}>{submitLabel}</button>
-        </div>
-      </div>
-    </div>
+    <ModalShell
+      title={title}
+      titleId="okr-fb-compose-title"
+      closeLabel="취소"
+      cancelLabel="취소"
+      submitLabel={submitLabel}
+      canSubmit
+      onClose={onClose}
+      onSubmit={() => { if (onSubmit) onSubmit(text); onClose(); }}
+      zIndex={1000}
+      className="okr-shell"
+    >
+      <textarea
+        className="okr-textarea"
+        placeholder={placeholder}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+    </ModalShell>
   );
 }

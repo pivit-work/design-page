@@ -1,34 +1,19 @@
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import gsap from 'gsap';
+import { useEffect } from 'react';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
  * MeetingEndConfirmModal — 회의 종료 확인 alert.
  *
- * Figma node-id=16708-28310. 400 max, "회의 종료하기" 타이틀 + desc + 취소/종료 버튼.
- * Spring scale-up 등장 (back.out).
+ * Figma node-id=16708-28310. "회의 종료하기" 타이틀 + desc + 취소/종료 버튼.
+ *
+ * 공용 확인 창(`ConfirmModal`)으로 그린다 (PW-836). 막을 누르거나 Esc 를 누르면 취소다.
+ * pivit-work 의 1on1 미니 위젯·업로드 재시도 가드·1on1 화면도 이 창을 쓰므로 props 는
+ * 종전 그대로 받는다 — `labels.close` 는 공용 확인 창에 닫기 X 가 없어 더는 그리지 않는다.
+ *
+ * labels: { title, descLine1, descLine2?, cancel, confirm, close? }
  */
 export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) {
-  const modalRef = useRef(null);
-  const overlayRef = useRef(null);
-
-  useEffect(() => {
-    if (modalRef.current) {
-      gsap.fromTo(
-        modalRef.current,
-        { scale: 0.9, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.4, ease: 'back.out(1.7)' }
-      );
-    }
-    if (overlayRef.current) {
-      gsap.fromTo(
-        overlayRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.2, ease: 'power2.out' }
-      );
-    }
-  }, []);
-
+  // 공용 확인 창은 Esc 를 호스트에 맡긴다 — 종전처럼 Esc 는 취소다.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') onCancel?.();
@@ -37,58 +22,23 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) 
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
-  return createPortal(
-    <div className="mtg-end-confirm-overlay" ref={overlayRef} onClick={onCancel}>
-      <div
-        className="mtg-end-confirm-modal"
-        ref={modalRef}
-        role="dialog"
-        aria-labelledby="mtg-end-confirm-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="mtg-end-confirm-close"
-          aria-label={labels.close}
-          onClick={onCancel}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M18 6L6 18M6 6l12 12"
-              stroke="var(--colors-foreground-fgQuaternary, #98a1b2)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
-        <div className="mtg-end-confirm-header">
-          <p id="mtg-end-confirm-title" className="mtg-end-confirm-title">{labels.title}</p>
-          <p className="mtg-end-confirm-desc">
-            {labels.descLine1}
-            {labels.descLine2 && (<><br />{labels.descLine2}</>)}
-          </p>
-        </div>
-
-        <div className="mtg-end-confirm-actions">
-          <button
-            type="button"
-            className="mtg-end-confirm-btn mtg-end-confirm-btn-cancel"
-            onClick={onCancel}
-          >
-            {labels.cancel}
-          </button>
-          <button
-            type="button"
-            className="mtg-end-confirm-btn mtg-end-confirm-btn-danger"
-            onClick={onConfirm}
-          >
-            {labels.confirm}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
+  return (
+    <ConfirmModal
+      title={labels.title}
+      body={
+        <>
+          {labels.descLine1}
+          {labels.descLine2 && (<><br />{labels.descLine2}</>)}
+        </>
+      }
+      cancelLabel={labels.cancel}
+      confirmLabel={labels.confirm}
+      danger
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+      testId="mtg-end-confirm"
+      cancelTestId="mtg-end-confirm-cancel"
+      confirmTestId="mtg-end-confirm-confirm"
+    />
   );
 }

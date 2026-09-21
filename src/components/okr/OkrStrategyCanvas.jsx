@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
 import rowKey from './rowKey.js';
@@ -112,16 +113,13 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
 
   return (
     <div className="okr-personal-area">
-      <div className="okr-s-subtabs">
-        {SUB_TABS.map((tab) => (
-          <span
-            key={tab.id}
-            className={`okr-s-subtab${subTab === tab.id ? ' is-active' : ''}`}
-            onClick={() => setSubTab(tab.id)}
-          >
-            {tab.label}
-          </span>
-        ))}
+      {/* 화면 안 탭 — 공용 Tabs (PW-836). */}
+      <div className="tl-tabs-row okr-s-tabs-row">
+        <Tabs
+          items={SUB_TABS.map((tab) => ({ value: tab.id, label: tab.label }))}
+          value={subTab}
+          onChange={setSubTab}
+        />
       </div>
 
       {subTab === 'canvas' ? (

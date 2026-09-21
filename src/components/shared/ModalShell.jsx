@@ -39,6 +39,14 @@ import { createPortal } from 'react-dom';
  *                        닫혀도 요청은 이미 나갔으므로 「아무것도 안 바뀌었다」로 읽히면 거짓이 된다
  *   zIndex               막의 겹침 순서 (기본은 CSS 값). 창 안에서 날짜 고르기처럼 위에 떠야
  *                        하는 것이 있는 화면은 그보다 낮게 준다
+ *   onOverlayClick       막을 눌렀을 때 (PW-836). undefined 면 닫기(종전 그대로), null 이면 아무 일도
+ *                        안 한다 — 긴 작성 폼처럼 막 한 번에 쓰던 글을 잃으면 안 되는 창. 함수면 닫는
+ *                        대신 그 함수를 부른다(회의 진행 창: 녹음 중이면 닫지 않고 작은 창으로 줄인다).
+ *                        Esc·닫기 X 는 그대로 onClose 다
+ *   title                (PW-836) title·description 둘 다 없으면 제목 줄을 그리지 않는다 — 머리를
+ *                        본문 안에 직접 그리는 창(리포트 보기·회의 진행의 공유 단계). 이때는
+ *                        titleId 대신 ariaLabel 로 창 이름을 준다
+ *   ariaLabel            제목 줄이 없을 때의 창 이름 (aria-label)
  *   testId               카드(form)의 data-testid
  *   overlayTestId        막의 data-testid
  *   closeTestId          닫기 X 의 data-testid
@@ -67,6 +75,8 @@ export default function ModalShell({
   footer,
   busy = false,
   zIndex,
+  onOverlayClick,
+  ariaLabel,
   testId,
   overlayTestId,
   closeTestId,
@@ -107,8 +117,14 @@ export default function ModalShell({
 
   const handleOverlayMouseDown = (e) => {
     if (panelRef.current && panelRef.current.contains(e.target)) return;
+    if (onOverlayClick === null) return;
+    if (onOverlayClick) {
+      if (!busy) onOverlayClick();
+      return;
+    }
     requestClose();
   };
+  const hasHeader = (title !== undefined && title !== null) || !!description;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -133,7 +149,8 @@ export default function ModalShell({
         className={`tl-group-modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={hasHeader ? titleId : undefined}
+        aria-label={hasHeader ? undefined : ariaLabel}
         onSubmit={handleSubmit}
         onMouseDown={(e) => e.stopPropagation()}
         data-testid={testId}
@@ -155,12 +172,14 @@ export default function ModalShell({
         </div>
 
         <div className={`tl-group-modal-content ${contentClassName}`.trim()}>
-          <div className="tl-group-modal-header">
-            <h2 id={titleId} className="tl-group-modal-title">{title}</h2>
-            {description && (
-              <p className="tl-group-modal-desc">{description}</p>
-            )}
-          </div>
+          {hasHeader && (
+            <div className="tl-group-modal-header">
+              <h2 id={titleId} className="tl-group-modal-title">{title}</h2>
+              {description && (
+                <p className="tl-group-modal-desc">{description}</p>
+              )}
+            </div>
+          )}
 
           <div className={bodyClassName}>{children}</div>
         </div>

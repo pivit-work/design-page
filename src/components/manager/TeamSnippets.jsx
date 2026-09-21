@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import TeamSnippetSidebar from './TeamSnippetSidebar.jsx';
 import TeamSnippetFeed from './TeamSnippetFeed.jsx';
 
@@ -62,18 +63,11 @@ export default function TeamSnippets({
   return (
     <div className="mgr-ts">
       <div className="mgr-ts-chips">
-        <div className="mgr-ts-seg">
-          {data.periods.map((p) => (
-            <button
-              key={periodId(p)}
-              type="button"
-              className={`mgr-ts-seg-btn${period === periodId(p) ? ' is-active' : ''}`}
-              onClick={() => setPeriod(periodId(p))}
-            >
-              {periodLabel(p)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          items={data.periods.map((p) => ({ value: periodId(p), label: periodLabel(p) }))}
+          value={period}
+          onChange={setPeriod}
+        />
         <button
           type="button"
           data-testid={testIds.redFlag}

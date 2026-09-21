@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
@@ -164,12 +165,6 @@ export default function OkrComposeFullModal({
   // 안에 그려야 해서(INV-R2) 어느 행 것인지 함께 들고 있어야 한다.
   const [refiningKey, setRefiningKey] = useState(null);
   const [refineError, setRefineError] = useState(null); // { key, message }
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const TYPE_UNIT = { number: '개', percentage: '%', boolean: '완료' };
   const TYPE_INPUT = { number: 'count', percentage: 'percent', boolean: 'binary' };
@@ -361,315 +356,324 @@ export default function OkrComposeFullModal({
       .catch(() => { setSaveError('저장에 실패했습니다. 잠시 후 다시 시도해주세요.'); setSaving(false); });
   };
 
+  // 아래 버튼 줄 — 목표를 하나라도 쓰기 시작했을 때(또는 편집 중 전부 지웠을 때)만 그린다.
+  const footer = (objectives.length > 0 || emptiedFromEdit) ? (
+    <>
+      {/* 전부 지운 편집 상태에서는 가중치 합계 안내가 뜻이 없다(합계 0% 는
+          "덜 채웠다" 로 읽혀 오히려 오해를 준다) — 저장 실패만 알린다. */}
+      {/* 통과 표시(✓)는 **정말 저장 가능할 때만** 초록으로 켠다 — 막혀 있는데
+          초록이면 사용자는 버튼 고장으로 읽는다(PW-268 ③). */}
+      <span
+        className={`okr-cf-total${!saveError && !blockReason && totalW === 100 ? ' is-ok' : ''}`}
+        data-testid="okr-cf-total"
+      >
+        {saveError
+          ? saveError
+          : blockReason
+            ? blockReason
+            : emptiedFromEdit
+              ? ''
+              : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
+      </span>
+      <button type="button" className="okr-btn is-outline" onClick={onClose}>취소</button>
+      <button
+        type="button"
+        className="okr-btn is-brand"
+        disabled={!canSave || saving}
+        title={
+          !canSave
+            ? (blockReason ?? 'Objective 가중치 합이 100%여야 저장할 수 있습니다.')
+            : ''
+        }
+        onClick={handleSave}
+      >
+        {saving ? '저장 중…' : '저장'}
+      </button>
+    </>
+  ) : null;
+
+  // 공용 창 틀(ModalShell)로 그린다 (PW-836). 긴 작성 폼이라 막을 눌러도 닫지 않는다
+  // (onOverlayClick=null) — 막 한 번에 쓰던 글을 잃으면 안 된다. Esc·닫기 X 는 onClose.
+  // 머리(미니맵 표시 + 제목)는 본문 안에 직접 그려 틀의 제목 줄은 비운다.
   return (
-    <div className="okr-modal-overlay">
-      <div className="okr-cf-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="okr-modal-close" onClick={onClose}>
-          <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-        </button>
+    <ModalShell
+      ariaLabel={minimap.title}
+      closeLabel={L.close}
+      onClose={() => onClose()}
+      onOverlayClick={null}
+      zIndex={1000}
+      className="okr-cf-shell"
+      contentClassName="okr-cf-shell-content"
+      bodyClassName="okr-cf-shell-body"
+      footer={footer}
+    >
+      <div className="okr-cf-header">
+        <p className="okr-cf-eyebrow">{L.eyebrow}</p>
+        <p className="okr-cf-title">{minimap.title}</p>
+      </div>
 
-        <div className="okr-cf-header">
-          <p className="okr-cf-eyebrow">{L.eyebrow}</p>
-          <p className="okr-cf-title">{minimap.title}</p>
-        </div>
-
-        <div className="okr-cf-body">
-          {hasMinimap && (
-            <div className="okr-cf-minimap">
-              {showCompanyCard && (
-                <div className="okr-cf-company">
-                  <p className="okr-cf-company-label">{minimap.company.label}</p>
-                  <p className="okr-cf-company-title">{minimap.company.title}</p>
-                </div>
-              )}
-              {minimap.groups.map((group, gi) => (
-                <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
-                  <div className="okr-cf-group-head">
-                    <span className="okr-cf-group-q">{group.q}</span>
-                    <span className="okr-cf-group-title">{group.title}</span>
-                  </div>
-                  {group.krs.map((kr, ki) => (
-                    <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
-                      <button className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
-                        <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
-                      </button>
-                      <div className="okr-cf-kr-main">
-                        <p className="okr-cf-kr-title"><b>{kr.id}</b> {kr.title}</p>
-                        <div className="okr-cf-kr-progress">
-                          <OkrProgressBar percent={kr.percent} variant="success" />
-                          <span>{kr.percent}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="okr-cf-editor">
-            <div className="okr-cf-editor-head">
-              <p className="okr-cf-hint">{L.hint}</p>
-              <div className="okr-cf-head-actions">
-                {onGenerate && (
-                  <button className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
-                    {genLoading ? '생성 중…' : '✦ AI로 초안 생성'}
-                  </button>
-                )}
-                <button className="okr-cf-add-btn" onClick={addObjective}>
-                  <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
-                  <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
-                </button>
+      <div className="okr-cf-body">
+        {hasMinimap && (
+          <div className="okr-cf-minimap">
+            {showCompanyCard && (
+              <div className="okr-cf-company">
+                <p className="okr-cf-company-label">{minimap.company.label}</p>
+                <p className="okr-cf-company-title">{minimap.company.title}</p>
               </div>
-            </div>
-            {genError && <p className="okr-wz-error" role="alert">{genError}</p>}
-
-            {objectives.length === 0 ? (
-              <div className="okr-cf-empty">
-                <p className="okr-cf-empty-title">{L.emptyTitle}</p>
-                {/* 줄바꿈은 문구의 일부다 — '\n' 을 <br/> 로 편다(시안 2줄 유지). */}
-                <p className="okr-cf-empty-desc">
-                  {String(L.emptyDesc).split('\n').map((line, i) => (
-                    <span key={rowKey(line, i)}>{i > 0 && <br />}{line}</span>
-                  ))}
-                </p>
-              </div>
-            ) : (
-              objectives.map((objective) => {
-                const krSum = objective.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0);
-                return (
-                  <div className="okr-cf-objective" key={objective.key}>
-                    <div className="okr-cf-obj-head">
-                      <span className="okr-p-caret is-open">
-                        <Icon src={icons.chevronDown} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                      </span>
-                      <span className="okr-cf-obj-label">Objective</span>
-                      <input
-                        className="okr-cf-input"
-                        placeholder="Objective 내용"
-                        aria-label="Objective 내용"
-                        value={objective.title}
-                        onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
-                      />
-                      <button className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
-                        <Icon src={icons.xClose} size={18} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                      </button>
-                    </div>
-                    <div className="okr-cf-obj-meta">
-                      <input
-                        className="okr-cf-input is-sm"
-                        placeholder="가중치"
-                        aria-label="Objective 가중치"
-                        type="number"
-                        value={objective.weight}
-                        onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
-                      />
-                      <span className="okr-cf-unit">%</span>
-                      {parentOptions.length > 0 && (
-                        <select
-                          className="okr-cf-select-real"
-                          aria-label="상위 OKR 연결"
-                          value={objective.parentId}
-                          onChange={(e) => patchObjective(objective.key, { parentId: e.target.value })}
-                        >
-                          <option value="">상위 OKR 연결 (선택)</option>
-                          {parentOptions.map((p) => (
-                            <option key={p.id} value={p.id}>{p.label}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-
-                    {objective.krs.map((kr) => (
-                      <div className={`okr-cf-kr-card${refiningKey === kr.key ? ' is-refining' : ''}`} key={kr.key}>
-                        <div className="okr-cf-kr-card-head">
-                          <span className="okr-cf-bullet" />
-                          <input
-                            className="okr-cf-input"
-                            placeholder="KR 내용"
-                            aria-label="KR 내용"
-                            value={kr.title}
-                            onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
-                          />
-                          {onRefineKr && (
-                            <button
-                              type="button"
-                              className="okr-wz-ai-btn"
-                              title="AI로 KR 개선"
-                              disabled={!kr.title.trim() || refiningKey !== null}
-                              onClick={() => refineKr(objective.key, kr)}
-                            >
-                              {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
-                            </button>
-                          )}
-                          <button className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
-                            <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                          </button>
-                        </div>
-                        {refineError?.key === kr.key && (
-                          <p className="okr-wz-error" role="alert">{refineError.message}</p>
-                        )}
-                        <div className="okr-cf-methods">
-                          {METHODS.map((method) => (
-                            <button
-                              type="button"
-                              className={`okr-cf-method${kr.inputType === method.key ? ' is-active' : ''}`}
-                              key={method.key}
-                              onClick={() => patchKr(objective.key, kr.key, { inputType: method.key, unit: method.unit })}
-                            >
-                              <p className="okr-cf-method-label">{method.label}</p>
-                              <p className="okr-cf-method-desc">{method.desc}</p>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="okr-cf-kr-meta">
-                          <input
-                            className="okr-cf-input is-sm"
-                            placeholder="목표"
-                            aria-label="KR 목표값"
-                            type="number"
-                            value={kr.target}
-                            onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
-                          />
-                          <input
-                            className="okr-cf-input is-sm"
-                            placeholder="단위"
-                            aria-label="KR 단위"
-                            value={kr.unit}
-                            onChange={(e) => patchKr(objective.key, kr.key, { unit: e.target.value })}
-                          />
-                          <input
-                            className="okr-cf-input is-sm"
-                            placeholder="가중치"
-                            aria-label="KR 가중치"
-                            type="number"
-                            value={kr.weight}
-                            onChange={(e) => patchKr(objective.key, kr.key, { weight: e.target.value })}
-                          />
-                          <span className="okr-cf-unit">%</span>
-                          {members.length > 0 && (
-                            <OkrMemberPicker
-                              ariaLabel="KR 담당자"
-                              members={members}
-                              value={kr.ownerId}
-                              onChange={(id) => patchKr(objective.key, kr.key, { ownerId: id })}
-                            />
-                          )}
-                        </div>
-
-                        {/* 실행 항목(Initiative) — okr-policy §4A · okr-spec §3.7 (PW-501).
-                            🔴 **0건이어도 그린다.** 종전에는 이 블록을 「1건 이상일 때만」
-                            그려서, 실행 항목이 없는 KR 에는 더할 자리 자체가 없었다 —
-                            만들 수 없으니 0건이고 0건이니 만들 칸이 안 뜨는 닫힌 고리였고,
-                            그것이 dev 조직 핵심결과가 전부 0건이던 화면 쪽 원인이다.
-                            자리는 KR 카드 «안»이다 — Objective 단위로 올리면 「어느 KR 의
-                            실행 항목인가」를 다시 물어야 한다(§4A.1 E1). */}
-                        <div className="okr-cf-init" data-testid="okr-cf-init">
-                          <p className="okr-cf-init-label">Initiatives</p>
-                          {initsOf(kr).map((init) => (
-                            <div className="okr-cf-init-row" key={init.key}>
-                              <select
-                                className="okr-cf-init-status"
-                                aria-label="실행 항목 상태"
-                                value={init.status}
-                                onChange={(e) => patchInitiative(objective.key, kr, init.key, { status: e.target.value })}
-                              >
-                                {INIT_STATUS.map((st) => (
-                                  <option key={st.key} value={st.key}>{st.label}</option>
-                                ))}
-                              </select>
-                              <input
-                                className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
-                                placeholder="실행 항목 내용"
-                                aria-label="실행 항목 내용"
-                                value={init.title}
-                                onChange={(e) => patchInitiative(objective.key, kr, init.key, { title: e.target.value })}
-                              />
-                              {members.length > 0 && (
-                                <OkrMemberPicker
-                                  ariaLabel="실행 항목 담당자"
-                                  members={members}
-                                  value={init.ownerId}
-                                  onChange={(id) => patchInitiative(objective.key, kr, init.key, { ownerId: id })}
-                                />
-                              )}
-                              {/* 삭제 확인 창을 두지 않는다 — 저장 전 로컬 편집이고
-                                  되돌림 비용이 「한 줄 다시 쓰기」다(§4A.4). */}
-                              <button
-                                type="button"
-                                className="okr-cf-x"
-                                aria-label="실행 항목 삭제"
-                                onClick={() => removeInitiative(objective.key, kr, init.key)}
-                              >
-                                <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                              </button>
-                            </div>
-                          ))}
-                          {initsOf(kr).length === 0 && (
-                            /* 버튼만 있으면 「실행 항목이라는 것이 있는지」가 안 읽힌다(§4A.2). */
-                            <p className="okr-cf-init-empty">아직 실행 항목이 없습니다. 아래에서 추가하세요.</p>
-                          )}
-                          <button
-                            type="button"
-                            className="okr-cf-init-add"
-                            onClick={() => addInitiative(objective.key, kr)}
-                          >
-                            + Initiative 추가
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {objective.krs.length > 0 && (
-                      <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
-                        {krSum === 100 ? '✓ KR 가중치 100%' : `KR 가중치 합계 ${krSum}% (100% 필요)`}
-                      </div>
-                    )}
-                    <button className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
-                      <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-                      <span>KR 직접추가</span>
-                    </button>
-                  </div>
-                );
-              })
             )}
-          </div>
-        </div>
-
-        {(objectives.length > 0 || emptiedFromEdit) && (
-          <div className="okr-modal-footer">
-            {/* 전부 지운 편집 상태에서는 가중치 합계 안내가 뜻이 없다(합계 0% 는
-                "덜 채웠다" 로 읽혀 오히려 오해를 준다) — 저장 실패만 알린다. */}
-            {/* 통과 표시(✓)는 **정말 저장 가능할 때만** 초록으로 켠다 — 막혀 있는데
-                초록이면 사용자는 버튼 고장으로 읽는다(PW-268 ③). */}
-            <span
-              className={`okr-cf-total${!saveError && !blockReason && totalW === 100 ? ' is-ok' : ''}`}
-              data-testid="okr-cf-total"
-            >
-              {saveError
-                ? saveError
-                : blockReason
-                  ? blockReason
-                  : emptiedFromEdit
-                    ? ''
-                    : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
-            </span>
-            <button className="okr-btn is-outline" onClick={onClose}>취소</button>
-            <button
-              className="okr-btn is-brand"
-              disabled={!canSave || saving}
-              title={
-                !canSave
-                  ? (blockReason ?? 'Objective 가중치 합이 100%여야 저장할 수 있습니다.')
-                  : ''
-              }
-              onClick={handleSave}
-            >
-              {saving ? '저장 중…' : '저장'}
-            </button>
+            {minimap.groups.map((group, gi) => (
+              <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
+                <div className="okr-cf-group-head">
+                  <span className="okr-cf-group-q">{group.q}</span>
+                  <span className="okr-cf-group-title">{group.title}</span>
+                </div>
+                {group.krs.map((kr, ki) => (
+                  <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
+                    <button type="button" className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
+                      <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
+                    </button>
+                    <div className="okr-cf-kr-main">
+                      <p className="okr-cf-kr-title"><b>{kr.id}</b> {kr.title}</p>
+                      <div className="okr-cf-kr-progress">
+                        <OkrProgressBar percent={kr.percent} variant="success" />
+                        <span>{kr.percent}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         )}
+
+        <div className="okr-cf-editor">
+          <div className="okr-cf-editor-head">
+            <p className="okr-cf-hint">{L.hint}</p>
+            <div className="okr-cf-head-actions">
+              {onGenerate && (
+                <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
+                  {genLoading ? '생성 중…' : '✦ AI로 초안 생성'}
+                </button>
+              )}
+              <button type="button" className="okr-cf-add-btn" onClick={addObjective}>
+                <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
+                <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
+              </button>
+            </div>
+          </div>
+          {genError && <p className="okr-wz-error" role="alert">{genError}</p>}
+
+          {objectives.length === 0 ? (
+            <div className="okr-cf-empty">
+              <p className="okr-cf-empty-title">{L.emptyTitle}</p>
+              {/* 줄바꿈은 문구의 일부다 — '\n' 을 <br/> 로 편다(시안 2줄 유지). */}
+              <p className="okr-cf-empty-desc">
+                {String(L.emptyDesc).split('\n').map((line, i) => (
+                  <span key={rowKey(line, i)}>{i > 0 && <br />}{line}</span>
+                ))}
+              </p>
+            </div>
+          ) : (
+            objectives.map((objective) => {
+              const krSum = objective.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0);
+              return (
+                <div className="okr-cf-objective" key={objective.key}>
+                  <div className="okr-cf-obj-head">
+                    <span className="okr-p-caret is-open">
+                      <Icon src={icons.chevronDown} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                    </span>
+                    <span className="okr-cf-obj-label">Objective</span>
+                    <input
+                      className="okr-cf-input"
+                      placeholder="Objective 내용"
+                      aria-label="Objective 내용"
+                      value={objective.title}
+                      onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
+                    />
+                    <button type="button" className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
+                      <Icon src={icons.xClose} size={18} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                    </button>
+                  </div>
+                  <div className="okr-cf-obj-meta">
+                    <input
+                      className="okr-cf-input is-sm"
+                      placeholder="가중치"
+                      aria-label="Objective 가중치"
+                      type="number"
+                      value={objective.weight}
+                      onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
+                    />
+                    <span className="okr-cf-unit">%</span>
+                    {parentOptions.length > 0 && (
+                      <select
+                        className="okr-cf-select-real"
+                        aria-label="상위 OKR 연결"
+                        value={objective.parentId}
+                        onChange={(e) => patchObjective(objective.key, { parentId: e.target.value })}
+                      >
+                        <option value="">상위 OKR 연결 (선택)</option>
+                        {parentOptions.map((p) => (
+                          <option key={p.id} value={p.id}>{p.label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {objective.krs.map((kr) => (
+                    <div className={`okr-cf-kr-card${refiningKey === kr.key ? ' is-refining' : ''}`} key={kr.key}>
+                      <div className="okr-cf-kr-card-head">
+                        <span className="okr-cf-bullet" />
+                        <input
+                          className="okr-cf-input"
+                          placeholder="KR 내용"
+                          aria-label="KR 내용"
+                          value={kr.title}
+                          onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
+                        />
+                        {onRefineKr && (
+                          <button
+                            type="button"
+                            className="okr-wz-ai-btn"
+                            title="AI로 KR 개선"
+                            disabled={!kr.title.trim() || refiningKey !== null}
+                            onClick={() => refineKr(objective.key, kr)}
+                          >
+                            {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
+                          </button>
+                        )}
+                        <button type="button" className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
+                          <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                        </button>
+                      </div>
+                      {refineError?.key === kr.key && (
+                        <p className="okr-wz-error" role="alert">{refineError.message}</p>
+                      )}
+                      <div className="okr-cf-methods">
+                        {METHODS.map((method) => (
+                          <button
+                            type="button"
+                            className={`okr-cf-method${kr.inputType === method.key ? ' is-active' : ''}`}
+                            key={method.key}
+                            onClick={() => patchKr(objective.key, kr.key, { inputType: method.key, unit: method.unit })}
+                          >
+                            <p className="okr-cf-method-label">{method.label}</p>
+                            <p className="okr-cf-method-desc">{method.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="okr-cf-kr-meta">
+                        <input
+                          className="okr-cf-input is-sm"
+                          placeholder="목표"
+                          aria-label="KR 목표값"
+                          type="number"
+                          value={kr.target}
+                          onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
+                        />
+                        <input
+                          className="okr-cf-input is-sm"
+                          placeholder="단위"
+                          aria-label="KR 단위"
+                          value={kr.unit}
+                          onChange={(e) => patchKr(objective.key, kr.key, { unit: e.target.value })}
+                        />
+                        <input
+                          className="okr-cf-input is-sm"
+                          placeholder="가중치"
+                          aria-label="KR 가중치"
+                          type="number"
+                          value={kr.weight}
+                          onChange={(e) => patchKr(objective.key, kr.key, { weight: e.target.value })}
+                        />
+                        <span className="okr-cf-unit">%</span>
+                        {members.length > 0 && (
+                          <OkrMemberPicker
+                            ariaLabel="KR 담당자"
+                            members={members}
+                            value={kr.ownerId}
+                            onChange={(id) => patchKr(objective.key, kr.key, { ownerId: id })}
+                          />
+                        )}
+                      </div>
+
+                      {/* 실행 항목(Initiative) — okr-policy §4A · okr-spec §3.7 (PW-501).
+                          🔴 **0건이어도 그린다.** 종전에는 이 블록을 「1건 이상일 때만」
+                          그려서, 실행 항목이 없는 KR 에는 더할 자리 자체가 없었다 —
+                          만들 수 없으니 0건이고 0건이니 만들 칸이 안 뜨는 닫힌 고리였고,
+                          그것이 dev 조직 핵심결과가 전부 0건이던 화면 쪽 원인이다.
+                          자리는 KR 카드 «안»이다 — Objective 단위로 올리면 「어느 KR 의
+                          실행 항목인가」를 다시 물어야 한다(§4A.1 E1). */}
+                      <div className="okr-cf-init" data-testid="okr-cf-init">
+                        <p className="okr-cf-init-label">Initiatives</p>
+                        {initsOf(kr).map((init) => (
+                          <div className="okr-cf-init-row" key={init.key}>
+                            <select
+                              className="okr-cf-init-status"
+                              aria-label="실행 항목 상태"
+                              value={init.status}
+                              onChange={(e) => patchInitiative(objective.key, kr, init.key, { status: e.target.value })}
+                            >
+                              {INIT_STATUS.map((st) => (
+                                <option key={st.key} value={st.key}>{st.label}</option>
+                              ))}
+                            </select>
+                            <input
+                              className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
+                              placeholder="실행 항목 내용"
+                              aria-label="실행 항목 내용"
+                              value={init.title}
+                              onChange={(e) => patchInitiative(objective.key, kr, init.key, { title: e.target.value })}
+                            />
+                            {members.length > 0 && (
+                              <OkrMemberPicker
+                                ariaLabel="실행 항목 담당자"
+                                members={members}
+                                value={init.ownerId}
+                                onChange={(id) => patchInitiative(objective.key, kr, init.key, { ownerId: id })}
+                              />
+                            )}
+                            {/* 삭제 확인 창을 두지 않는다 — 저장 전 로컬 편집이고
+                                되돌림 비용이 「한 줄 다시 쓰기」다(§4A.4). */}
+                            <button
+                              type="button"
+                              className="okr-cf-x"
+                              aria-label="실행 항목 삭제"
+                              onClick={() => removeInitiative(objective.key, kr, init.key)}
+                            >
+                              <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                            </button>
+                          </div>
+                        ))}
+                        {initsOf(kr).length === 0 && (
+                          /* 버튼만 있으면 「실행 항목이라는 것이 있는지」가 안 읽힌다(§4A.2). */
+                          <p className="okr-cf-init-empty">아직 실행 항목이 없습니다. 아래에서 추가하세요.</p>
+                        )}
+                        <button
+                          type="button"
+                          className="okr-cf-init-add"
+                          onClick={() => addInitiative(objective.key, kr)}
+                        >
+                          + Initiative 추가
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {objective.krs.length > 0 && (
+                    <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
+                      {krSum === 100 ? '✓ KR 가중치 100%' : `KR 가중치 합계 ${krSum}% (100% 필요)`}
+                    </div>
+                  )}
+                  <button type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
+                    <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+                    <span>KR 직접추가</span>
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -18,6 +18,8 @@ import { createPortal } from 'react-dom';
  *   hideCancel             취소 버튼을 그리지 않는다 — 답을 받지 않는 «안내»
  *   busy                   확인이 처리되는 동안 두 버튼을 잠근다. 막 클릭은 호스트가 onCancel 에서 거른다
  *                          (확인 문구를 「저장 중…」으로 바꾸는 것도 호스트가 confirmLabel 로 한다)
+ *   confirmDisabled        확인 버튼만 잠근다(취소는 그대로) — 이름을 똑같이 쳐야 지울 수 있는 확인처럼
+ *                          조건이 맞을 때까지 확인을 막는 창 (PW-836 — 조직도 스쿼드 삭제)
  *   onConfirm, onCancel    막을 눌러도 onCancel
  *   cancelRef, confirmRef  호스트가 초점을 줄 버튼 ref
  *   zIndex                 막의 겹침 순서 (기본은 CSS 값)
@@ -33,6 +35,7 @@ export default function ConfirmModal({
   danger = false,
   hideCancel = false,
   busy = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
   cancelRef,
@@ -82,7 +85,7 @@ export default function ConfirmModal({
             className={`pw-confirm-btn ${danger ? 'is-danger' : 'is-primary'}`}
             data-testid={confirmTestId}
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
           >
             {confirmLabel}
           </button>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import Tabs from '../shared/Tabs.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import ProjectCardGrid from './ProjectCardGrid.jsx';
 import MemberTable from './MemberTable.jsx';
@@ -9,9 +10,7 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
   // 화면 문구 — OrgChartCanvas 와 같은 계약(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const [activeTab, setActiveTab] = useState('all');
-  const tabsRef = useRef(null);
   const pageHeaderRef = useRef(null);
-  const [slider, setSlider] = useState({ left: 0, width: 0 });
   const [headerHeight, setHeaderHeight] = useState(0);
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -20,17 +19,6 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
       setHeaderHeight(pageHeaderRef.current.offsetHeight);
     }
   }, []);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      if (!tabsRef.current) return;
-      const activeEl = tabsRef.current.querySelector('.tab-btn.tab-active');
-      if (!activeEl) return;
-      const rowRect = tabsRef.current.getBoundingClientRect();
-      const btnRect = activeEl.getBoundingClientRect();
-      setSlider({ left: btnRect.left - rowRect.left, width: btnRect.width });
-    });
-  }, [activeTab]);
 
   const filteredProjects = activeTab === 'all'
     ? PROJECTS
@@ -53,21 +41,12 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
         </div>
 
         <div className="pj-body">
-          <div className="tabs-row" ref={tabsRef}>
-            <div className="tab-slider" style={{ left: slider.left, width: slider.width }} />
-            {FILTER_TABS.map(tab => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  type="button"
-                  key={tab.key}
-                  className={`tab-btn${active ? ' tab-active' : ''}`}
-                  onClick={() => setActiveTab(tab.key)}
-                >
-                  <span>{L(`project.filter.${tab.key}`)}</span>
-                </button>
-              );
-            })}
+          <div className="tl-tabs-row pj-tabs-row">
+            <Tabs
+              items={FILTER_TABS.map((tab) => ({ value: tab.key, label: L(`project.filter.${tab.key}`) }))}
+              value={activeTab}
+              onChange={setActiveTab}
+            />
           </div>
 
           <ProjectCardGrid projects={filteredProjects} />

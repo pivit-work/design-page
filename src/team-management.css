@@ -822,44 +822,9 @@
   margin: 0;
 }
 
-/* ───────────────────────── 모달 ───────────────────────── */
-.tm-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 13, 18, 0.45);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: tmOverlayIn 0.15s ease;
-}
-@keyframes tmOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.tm-modal {
-  background: var(--bg-quaternary);
-  border-radius: var(--radius-lg, 12px);
-  padding: 28px 28px 24px;
-  width: 400px;
-  max-width: 92vw;
-  box-shadow:
-    0 20px 24px -4px rgba(10, 13, 18, 0.14),
-    0 8px 8px -4px rgba(10, 13, 18, 0.06);
-  animation: tmModalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes tmModalIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.tm-modal.is-wide { width: 440px; max-height: 80vh; display: flex; flex-direction: column; }
-.tm-modal-title {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-lg, 16px);
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 4px;
-}
+/* ───────────────────────── 창 본문 ─────────────────────────
+   창 틀은 공용(PW-836) — 확인 창은 ConfirmModal, 부모 팀 옮기기는 ModalShell 이 그린다.
+   여기는 그 안에 들어가는 본문 조각(한 줄 설명·함께 일어나는 일·팀 목록)만 꾸민다. */
 .tm-modal-sub {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
@@ -868,21 +833,6 @@
   margin: 0 0 16px;
   white-space: pre-line;
 }
-/* 선택적 부수 동작 체크박스 (예: 조직장 해제 시 권한 함께 변경) — 기본 OFF 전제. */
-.tm-modal-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  margin: 0 0 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm, 8px);
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-.tm-modal-check input { cursor: pointer; }
 /* "이 변경이 함께 일으키는 일" 보조 안내 — 경고가 아니라 사실 나열이라 무채색이다. */
 .tm-modal-notes {
   list-style: none;
@@ -895,19 +845,6 @@
 }
 .tm-modal-notes li { position: relative; padding-left: 12px; }
 .tm-modal-notes li::before { content: '·'; position: absolute; left: 2px; }
-.tm-modal-current {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm, 8px);
-  margin-bottom: 14px;
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
-}
-.tm-modal-current-label { color: var(--text-tertiary); }
-.tm-modal-current-value { font-weight: 600; color: var(--text-primary); }
 .tm-modal-list {
   flex: 1;
   overflow-y: auto;
@@ -942,56 +879,6 @@
   font-size: 11px;
   color: var(--text-tertiary);
 }
-.tm-modal-warn {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  background: var(--colors-warning-50, #fffaeb);
-  border: 1px solid var(--colors-warning-200, #fedf89);
-  border-radius: var(--radius-sm, 8px);
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs, 12px);
-  color: var(--colors-warning-700, #b54708);
-  line-height: 1.6;
-}
-.tm-modal-warn-title { font-weight: 600; margin: 0 0 4px; }
-.tm-modal-warn-list { padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 2px; }
-.tm-modal-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-.tm-btn {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-sm, 13px);
-  font-weight: 600;
-  padding: 9px 18px;
-  border-radius: var(--radius-sm, 8px);
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, filter 0.12s, transform 0.08s;
-}
-.tm-btn:disabled { cursor: not-allowed; opacity: 0.6; }
-.tm-btn:active:not(:disabled) { transform: scale(0.97); }
-.tm-btn.is-ghost {
-  background: var(--bg-quaternary);
-  border: 1.5px solid var(--border-primary);
-  color: var(--text-secondary);
-}
-.tm-btn.is-ghost:hover:not(:disabled) { background: var(--bg-secondary); border-color: var(--text-tertiary); }
-.tm-btn.is-primary {
-  background: var(--text-brand-tertiary);
-  border: none;
-  color: #fff;
-  font-weight: 700;
-}
-.tm-btn.is-primary:hover:not(:disabled) { filter: brightness(0.96); box-shadow: 0 0 0 3px var(--utility-brand-50); }
-.tm-btn.is-danger {
-  background: var(--colors-error-600, #d92d20);
-  border: none;
-  color: #fff;
-  font-weight: 700;
-}
-.tm-btn.is-danger:hover:not(:disabled) { filter: brightness(0.96); box-shadow: 0 0 0 3px var(--utility-error-50); }
-.tm-btn.is-sm { padding: 5px 12px; font-size: var(--font-size-text-xs, 12px); }
 
 /* 토스트 */
 .tm-toast {
@@ -1029,15 +916,12 @@
   .tm-menu,
   .tm-popover,
   .tm-add-member-dropdown,
-  .tm-modal,
-  .tm-modal-overlay,
   .tm-toast {
     animation: none;
   }
   .tm-root *,
   .tm-menu,
-  .tm-popover,
-  .tm-modal {
+  .tm-popover {
     transition-duration: 0.01ms !important;
   }
 }

@@ -6,6 +6,8 @@ import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
@@ -1226,26 +1228,25 @@ function BulkMenu({ count, items, labels }) {
 /**
  * 일괄 처리 창 셋의 공통 껍데기 (PW-610).
  *
- * 🔴 `admin-notif-modal-root` 를 빼면 안 된다 — 배경(`…-backdrop`)은
- * `position: absolute; z-index: auto` 라 스스로 뜨지 못하고, 앱 크롬(사이드바 z:100)
- * 아래로 깔려 왼쪽 메뉴가 밝게 남는다. 뜨는 일은 이 래퍼가 한다
- * (`position: fixed; z-index: 1000`). `ChangeReasonModal` 이 같은 이유로 같은 껍데기를 쓴다.
+ * 공용 창 틀(ModalShell · PW-836)로 그린다 — body 직속 포털이라 앱 크롬(사이드바 z:100)
+ * 위에 뜨고 조상의 `overflow: hidden` 에도 안 잘린다(종전 `admin-notif-modal-root` 래퍼가
+ * 하던 일). 창 이름표(testId)는 카드에 붙는다 — 본문·버튼 줄이 모두 그 안에 있다.
  */
-function BulkActionModal({ testId, title, subtitle, children, footer, onClose }) {
+function BulkActionModal({ testId, title, subtitle, children, footer, onClose, closeLabel }) {
   return (
-    <div className="admin-notif-modal-root" data-testid={testId}>
-      <div className="admin-notif-modal-backdrop" onClick={onClose} />
-      <div className="admin-notif-modal" role="dialog" aria-modal="true">
-        <div className="admin-notif-modal-header">
-          <div>
-            <div className="admin-notif-modal-title">{title}</div>
-            {subtitle && <div className="admin-notif-modal-desc">{subtitle}</div>}
-          </div>
-        </div>
-        <div className="admin-notif-modal-body">{children}</div>
-        <div className="admin-notif-modal-footer">{footer}</div>
-      </div>
-    </div>
+    <ModalShell
+      title={title}
+      description={subtitle}
+      titleId={`${testId}-title`}
+      closeLabel={closeLabel}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell"
+      testId={testId}
+      footer={footer}
+    >
+      {children}
+    </ModalShell>
   );
 }
 
@@ -1286,8 +1287,9 @@ function BulkManagerModal({ selectedRows, candidates, labels, onClose, onApply }
       title={L.managerAssign}
       subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
       onClose={onClose}
+      closeLabel={L.cancel}
       footer={(
-        <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+        <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
           data-testid="employees-list-bulk-manager-cancel">{L.cancel}</button>
       )}
     >
@@ -1362,13 +1364,14 @@ function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
       title={L.statusChange}
       subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
       onClose={onClose}
+      closeLabel={L.cancel}
       footer={(
         <>
-          <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
             data-testid="employees-list-bulk-status-cancel">{L.cancel}</button>
           <button
             type="button"
-            className="admin-emp-btn is-primary"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
             disabled={!picked}
             data-testid="employees-list-bulk-status-apply"
             onClick={() => { onClose(); onApply(selectedRows.map((m) => m.id), picked); }}
@@ -1423,13 +1426,14 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
       testId="employees-list-bulk-deactivate-modal"
       title={L.deactivate}
       onClose={onClose}
+      closeLabel={L.cancel}
       footer={(
         <>
-          <button type="button" className="admin-emp-btn is-secondary" onClick={onClose}
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
             data-testid="employees-list-bulk-deactivate-cancel">{L.cancel}</button>
           <button
             type="button"
-            className="admin-emp-btn is-primary admin-emp-danger"
+            className="tl-group-modal-btn adm-btn-danger"
             data-testid="employees-list-bulk-deactivate-apply"
             onClick={() => { onClose(); onApply(selectedRows.map((m) => m.id)); }}
           >
@@ -2792,46 +2796,47 @@ function ChangeReasonModal({ prompt, labels }) {
   const [reason, setReason] = useState('');
   const canSubmit = reason.trim().length > 0;
   return (
-    /* 🔴 `admin-notif-modal-root` 를 빼면 안 된다. 배경(`…-backdrop`)은
-       `position: absolute; z-index: auto` 라 스스로 뜨지 못한다 — 앱 크롬(사이드바 z:100)
-       아래로 깔리고 조상의 `overflow: hidden` 에 잘린다. 뜨는 일은 이 래퍼가 한다
-       (`position: fixed; z-index: 1000`). 편집 패널(z:101) 위에 서는 것도 이 값 덕이다. */
-    <div className="admin-notif-modal-root" data-testid="change-reason-modal">
-      <div className="admin-notif-modal-backdrop" onClick={prompt.onCancel} />
-      <div className="admin-notif-modal" role="dialog" aria-modal="true">
-        <div className="admin-notif-modal-header">
-          <div className="admin-notif-modal-title">{L.title}</div>
-        </div>
-        <div className="admin-notif-modal-body">
-          {/* 어떤 항목이 걸렸는지 보여 준다 — 개수만 알리면 무엇을 고쳤는지 모른 채
-              사유를 쓰게 된다. 서버가 준 목록을 그대로 세운다. */}
-          <div className="admin-emp-reason-fields">
-            {(prompt.fields || []).map((f) => (
-              <span key={f.key} className="admin-emp-hist-chip">{f.label}</span>
-            ))}
-          </div>
-          <label className="admin-emp-field">
-            <span className="admin-emp-field-label">{L.label}</span>
-            <input
-              className="admin-emp-input"
-              value={reason}
-              autoFocus
-              placeholder={L.placeholder}
-              onChange={(e) => setReason(e.target.value)}
-              data-testid="change-reason-input"
-            />
-          </label>
-          <p className="admin-emp-reason-lead">{L.lead}</p>
-        </div>
-        <div className="admin-notif-modal-footer">
-          <button type="button" className="admin-emp-btn is-secondary" onClick={prompt.onCancel}
+    /* 공용 창 틀(ModalShell · PW-836) — body 직속 포털이라 앱 크롬(사이드바 z:100) 위에 뜨고
+       조상의 `overflow: hidden` 에 잘리지 않는다. 편집 패널(z:101) 위에 서는 것도 막의
+       겹침 순서(1000) 덕이다. */
+    <ModalShell
+      title={L.title}
+      titleId="change-reason-title"
+      closeLabel={L.cancel}
+      onClose={prompt.onCancel}
+      zIndex={1000}
+      className="adm-shell"
+      testId="change-reason-modal"
+      footer={
+        <>
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={prompt.onCancel}
             data-testid="change-reason-cancel">{L.cancel}</button>
-          <button type="button" className="admin-emp-btn is-primary" disabled={!canSubmit}
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={!canSubmit}
             onClick={() => prompt.onSubmit(reason.trim())}
             data-testid="change-reason-submit">{L.submit}</button>
-        </div>
+        </>
+      }
+    >
+      {/* 어떤 항목이 걸렸는지 보여 준다 — 개수만 알리면 무엇을 고쳤는지 모른 채
+          사유를 쓰게 된다. 서버가 준 목록을 그대로 세운다. */}
+      <div className="admin-emp-reason-fields">
+        {(prompt.fields || []).map((f) => (
+          <span key={f.key} className="admin-emp-hist-chip">{f.label}</span>
+        ))}
       </div>
-    </div>
+      <label className="admin-emp-field">
+        <span className="admin-emp-field-label">{L.label}</span>
+        <input
+          className="admin-emp-input"
+          value={reason}
+          autoFocus
+          placeholder={L.placeholder}
+          onChange={(e) => setReason(e.target.value)}
+          data-testid="change-reason-input"
+        />
+      </label>
+      <p className="admin-emp-reason-lead">{L.lead}</p>
+    </ModalShell>
   );
 }
 
@@ -3127,25 +3132,20 @@ function EmployeesEditPanel({
             건수 배지를 달지 않는다: 이력이 많은 것은 문제 신호가 아니라 오래 다닌
             사람이라는 뜻이라 주의를 끌 이유가 없다. */}
         {onLoadPersonalHistory && (
-          <div className="admin-emp-panel-tabs" role="tablist" data-testid="employees-panel-tabs">
-            {[['info', labels.panel.tabInfo], ['history', labels.panel.tabHistory]].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={panelTab === id}
-                className={`admin-emp-panel-tab${panelTab === id ? ' is-active' : ''}`}
-                onClick={() => {
-                  setPanelTab(id);
-                  if (id === 'history' && historyState.status === 'idle') {
-                    setHistoryState({ status: 'loading', page: null });
-                  }
-                }}
-                data-testid={`employees-panel-tab-${id}`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="tl-tabs-row adm-tabs-row is-panel" data-testid="employees-panel-tabs">
+            <Tabs
+              items={[
+                { value: 'info', label: labels.panel.tabInfo, testId: 'employees-panel-tab-info' },
+                { value: 'history', label: labels.panel.tabHistory, testId: 'employees-panel-tab-history' },
+              ]}
+              value={panelTab}
+              onChange={(id) => {
+                setPanelTab(id);
+                if (id === 'history' && historyState.status === 'idle') {
+                  setHistoryState({ status: 'loading', page: null });
+                }
+              }}
+            />
           </div>
         )}
 
@@ -3769,22 +3769,22 @@ export default function AdminEmployeesCanvas({
           )}
         </div>
       )}
-      <div className="admin-emp-tabbar" role="tablist">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`admin-emp-tab${tab === t.id ? ' is-active' : ''}`}
-            onClick={() => goTab(t.id)}
-          >
-            {t.label}
-            <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
-              {t.count}
-            </span>
-          </button>
-        ))}
+      <div className="tl-tabs-row adm-tabs-row">
+        <Tabs
+          items={tabs.map((t) => ({
+            value: t.id,
+            label: (
+              <span className="adm-tab-label">
+                {t.label}
+                <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
+                  {t.count}
+                </span>
+              </span>
+            ),
+          }))}
+          value={tab}
+          onChange={goTab}
+        />
       </div>
 
       {loading ? (

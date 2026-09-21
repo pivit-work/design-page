@@ -981,99 +981,17 @@
 
 /* ════════════════════════════════════════════════
    1on1 일정 추가 모달 (Figma 16816:27101)
+   막·카드·닫기 X·제목·푸터는 공용 창 틀(ModalShell, modal-shell.css)이 그린다 (PW-836).
+   여기서는 시안 크기(520×920)와 본문 스크롤만 준다.
+   🔴 셀렉터에 틀 클래스(.tl-group-modal)를 함께 적는다 — 명시도가 같으면 파일 로드 순서로 갈린다.
    ──────────────────────────────────────────────── */
-
-.ono-add-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 25, 39, 0.3);
-  z-index: 1000;
-  animation: onoAddModalOverlayIn 0.2s ease-out;
-}
-
-.ono-add-modal-scroll-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 1001;
-  overflow-y: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ono-add-modal-card {
-  width: 520px;
+.tl-group-modal.ono-add-shell {
   height: 920px;
   max-height: calc(100vh - 48px);
-  background: var(--bg-quaternary);
-  border-radius: var(--radius-2xl);
-  box-shadow:
-    0 21px 120px -12px rgba(10, 13, 18, 0.14),
-    0 14px 60px -2.5px rgba(10, 13, 18, 0.04);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  animation: onoAddModalCardIn 0.25s ease-out;
 }
-
-@keyframes onoAddModalOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes onoAddModalCardIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── 우상단 X ── */
-.ono-add-modal-topbar {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 2;
-}
-
-.ono-add-modal-close {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--colors-background-bgTertiary);
-  border: none;
-  border-radius: var(--radius-xl);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.ono-add-modal-close:hover { background: var(--bg-secondary); }
-
-/* ── Body ── */
-.ono-add-modal-body {
-  flex: 1 1 auto;
+.tl-group-modal.ono-add-shell .tl-group-modal-content {
   overflow-y: auto;
-  padding: 60px 48px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 48px;
-}
-
-.ono-add-modal-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.ono-add-modal-title {
-  font-family: var(--font-family-display);
-  font-weight: 700;
-  font-size: var(--font-size-display-sm);
-  line-height: var(--line-height-display-sm);
-  color: var(--colors-foreground-fgPrimary);
-  margin: 0;
+  padding-bottom: 48px;
 }
 
 .ono-add-modal-form {
@@ -1285,13 +1203,6 @@
 }
 
 /* ── Footer ── */
-.ono-add-modal-footer {
-  display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-3xl) var(--spacing-12-48px);
-  background: var(--bg-quaternary);
-  border-top: 1px solid var(--colors-border-borderTertiary);
-}
 
 .ono-add-modal-btn {
   flex: 1 0 0;
@@ -2677,9 +2588,10 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 16px;
 }
 
-/* ── 단계 탭 ── 공용 .tabs-row 를 쓰고 여백만 조정 */
-.ono-mem-tabs { padding: 0 0 12px; }
-.ono-mem-tabs .tab-btn:disabled { opacity: .4; cursor: default; }
+/* ── 단계 탭 ── 공용 Tabs 를 쓰고 탭 줄의 기본 바깥 여백(타임라인 머리 몫)만 바꾼다 (PW-836) */
+.tl-tabs-row.ono-mem-tabs-row { margin: 0 0 12px; }
+/* 대시보드 필터 탭(공용 Tabs) — 활성 탭 글자 옆 건수 배지와의 간격 (PW-836) */
+.ono-dash-tabs .tl-tab { gap: 6px; }
 
 /* ── 세션 헤더 ── */
 .ono-mem-head {
@@ -4311,13 +4223,23 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: default;
 }
 
-/* ══ 1on1 상세(열람모드) 모달 — Figma 17413:26357/26611/26771/26956 ══ */
-.ood-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 30%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.ood-modal { box-sizing: border-box; width: 650px; max-width: calc(100vw - 80px); height: min(920px, calc(100vh - 48px)); overflow-y: auto; background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); padding: 60px 48px; display: flex; flex-direction: column; gap: 48px; }
-.ood-modal > * { flex-shrink: 0; }
+/* ══ 1on1 상세(열람모드) 모달 — Figma 17413:26357/26611/26771/26956 ══
+   공용 창 틀(ModalShell) 위의 변형 (PW-836). 네 탭은 공용 Tabs. */
+.tl-group-modal.ood-shell {
+  width: 650px;
+  max-width: calc(100vw - 80px);
+  height: min(920px, calc(100vh - 48px));
+}
+.tl-group-modal.ood-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: 60px;
+}
+.ood-shell-inner { display: flex; flex-direction: column; gap: 48px; }
+.ood-shell-inner > * { flex-shrink: 0; }
+/* 탭 줄은 페이지 머리 밑 자리(margin 20/12)를 전제한 값이라 창 안에서는 걷는다. */
+.tl-group-modal.ood-shell .tl-tabs-row { margin: 0; }
 
 /* 헤더 — 멤버 × 매니저 + DONE 배지 + 열람모드 */
-.ood-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ood-head-who { display: flex; align-items: center; gap: 8px; }
 .ood-person { display: inline-flex; align-items: center; gap: 6px; }
 .ood-person img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
@@ -4327,9 +4249,6 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-mode { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 
 /* 탭 — 30px 디스플레이 볼드 */
-.ood-tabs { display: flex; gap: 16px; }
-.ood-tab { font-family: var(--font-family-display, inherit); font-size: 30px; font-weight: 700; line-height: 38px; color: var(--text-tertiary); cursor: pointer; }
-.ood-tab.is-active { color: var(--fg-primary); }
 
 /* AI 미팅 요약 — 보라 틴트 카드 + 흰 내부 블록 */
 /* 카드 배경 — Figma Gradient/Linear/61 실측(17413:26487 렌더 픽셀 샘플):
@@ -4408,18 +4327,19 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-schedule-btn { padding: 10px 14px; background: var(--bg-brand-solid); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 .ono-member-card.is-clickable { cursor: pointer; }
 
-/* ═══ 매니저 노트 모달 (ManagerNoteModal) — Figma 17414:27470 ═══ */
-.omn-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 30%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-/* height 고정(시안 1084 = 헤더 60 + 본문 1024) — 검색 결과가 없거나 적어도 줄지 않는다.
-   스크롤은 내부 .omn-scroll 이 담당 — 닫기 버튼이 스크롤을 따라가지 않게 한다 */
-.omn-modal { position: relative; width: 1174px; height: min(1084px, calc(100vh - 48px)); overflow: hidden; background: var(--bg-quaternary); border-radius: var(--radius-2xl); box-shadow: var(--shadows-shadow3xl); }
-.omn-scroll { height: 100%; overflow-y: auto; padding: 60px 48px 140px; display: flex; flex-direction: column; gap: 48px; }
-.omn-close { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-tertiary); border: none; border-radius: var(--radius-xl); color: var(--text-secondary); cursor: pointer; transition: background 0.15s; z-index: 2; }
-.omn-close:hover { background: var(--bg-secondary); }
-
-.omn-title-block { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
-.omn-title { font-size: 30px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
-.omn-subtitle { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+/* ═══ 매니저 노트 모달 (ManagerNoteModal) — Figma 17414:27470 ═══
+   공용 창 틀(ModalShell) 위의 변형 (PW-836). 높이 고정(시안 1084) — 검색 결과가 없거나 적어도
+   줄지 않는다. 스크롤은 틀 본문이 하고, 닫기 X 는 틀 윗줄에 있어 스크롤을 따라가지 않는다. */
+.tl-group-modal.omn-shell {
+  width: 1174px;
+  max-width: calc(100vw - 48px);
+  height: min(1084px, calc(100vh - 48px));
+}
+.tl-group-modal.omn-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: 140px;
+}
+.omn-shell-body { display: flex; flex-direction: column; gap: 12px; }
 
 .omn-body { display: flex; gap: 48px; align-items: flex-start; flex-shrink: 0; }
 
@@ -4468,14 +4388,22 @@ button.ono-add-modal-input { cursor: pointer; }
 .omn-limit { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 
 /* ═══ 최초 1on1 진행 셋업 모달 (MicPermissionModal / ManagerAssignModal)
-   — Figma 17416:27675 / 17416:27850. 공통 650px 셸 ═══ */
-.ons-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-overlay) 30%, transparent); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.ons-modal { position: relative; width: 650px; max-height: calc(100vh - 48px); overflow-y: auto; background: var(--bg-quaternary); border-radius: var(--radius-2xl); box-shadow: var(--shadows-shadow3xl); padding: 60px 48px 64px; display: flex; flex-direction: column; gap: 48px; }
-.ons-close { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-tertiary); border: none; border-radius: var(--radius-xl); color: var(--text-secondary); cursor: pointer; transition: background 0.15s; z-index: 2; }
-.ons-close:hover { background: var(--bg-secondary); }
-.ons-head { display: flex; flex-direction: column; gap: 8px; }
-.ons-title { font-size: 30px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
-.ons-desc { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--fg-primary); }
+   — Figma 17416:27675 / 17416:27850. 공용 창 틀(ModalShell) 위의 650px 변형 (PW-836).
+   버튼 줄(과 마이크 창의 가이드 안내)은 틀의 푸터 자리에 들어간다. ═══ */
+.tl-group-modal.ons-shell {
+  width: 650px;
+  height: auto;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+}
+.tl-group-modal.ons-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: 32px;
+}
+/* 마이크 권한 창 (17416:27675) — 본문 세로 간격 24px (매니저 지정 창은 48 유지) */
+.tl-group-modal.ons-shell.is-compact .tl-group-modal-content { gap: 24px; }
+.tl-group-modal.ons-shell .tl-group-modal-actions { flex-direction: column; gap: 24px; }
+.ons-shell-body { display: flex; flex-direction: column; gap: 48px; }
 .ons-actions { display: flex; gap: 8px; }
 .ons-btn { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 10px 16px; border: none; border-radius: var(--radius-md); font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; cursor: pointer; white-space: nowrap; }
 .ons-btn.is-outline { background: transparent; border: 1px solid var(--border-secondary); color: var(--text-secondary); }
@@ -4486,8 +4414,6 @@ button.ono-add-modal-input { cursor: pointer; }
 .ons-warning { padding: 6px 16px; background: var(--bg-warning-primary); border-radius: var(--radius-md); font-size: 16px; font-weight: 600; line-height: 24px; color: var(--colors-text-textWarningPrimary); }
 .ons-footnote { display: flex; flex-direction: column; gap: 12px; font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-tertiary); }
 .ons-footnote a { color: inherit; text-decoration: underline; }
-/* 마이크 권한 모달 (17416:27675) — 본문 세로 간격 24px (매니저 지정 모달은 48 유지) */
-.ons-modal.is-compact { gap: 24px; }
 /* 권한 허용 완료 상태 (17507:22691) — 그린 배너 + 실시간 마이크 미리보기 파형 */
 .ons-success { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0; background: var(--bg-success-primary); border-radius: var(--radius-lg); }
 .ons-success p { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-brand-tertiary); text-align: center; }

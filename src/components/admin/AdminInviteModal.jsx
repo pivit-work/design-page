@@ -1,7 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { buildOrgTree } from './orgTree.js';
+import ModalShell from '../shared/ModalShell.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import {
-  IconAlert, IconDownload, IconPlus, IconTrash, IconUpload, IconX,
+  IconAlert, IconDownload, IconPlus, IconTrash, IconUpload,
 } from './employeesIcons.jsx';
 import {
   INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, jobPairIssue, ladderLocked, laddersForFamily,
@@ -844,54 +847,66 @@ export default function AdminInviteModal({
     </>
   );
 
-  return (
-    <div className="admin-modal-root admin-inv-root">
-      <div className="admin-modal-backdrop" onClick={requestClose} />
-      <div
-        className="admin-modal admin-inv-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={labels.title}
-      >
-        {/* 헤더 — 좌석 요약. 좌석은 '수락 시점' 에 증가하므로 미래형 문구(§4-4) */}
-        <div className="admin-modal-header">
-          <div className="admin-modal-headline">
-            <div>
-              <div className="admin-modal-title">{labels.title}</div>
-              <div className="admin-modal-desc">
-                {seatSummary} · {fmt(labels.seatsWillGrow, { n: validCount })}
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="admin-modal-close"
-            aria-label={labels.close}
-            onClick={requestClose}
-          >
-            <IconX size={18} />
-          </button>
-        </div>
+  const footer = (
+    <div className="adm-shell-foot">
+      <span className="admin-inv-summary">
+        {validCount > 0 ? fmt(labels.summary, { n: validCount }) : ''}
+      </span>
+      <div className="adm-shell-foot-actions">
+        <button
+          type="button"
+          className="tl-group-modal-btn tl-group-modal-btn-secondary"
+          disabled={sending}
+          onClick={requestClose}
+        >
+          {labels.cancel}
+        </button>
+        <button
+          type="button"
+          className="tl-group-modal-btn tl-group-modal-btn-primary"
+          disabled={!canSend}
+          onClick={() => (adminRows.length > 0 ? setConfirmAdmin(true) : doSend())}
+        >
+          {sending ? labels.sending : labels.send}
+        </button>
+      </div>
+    </div>
+  );
 
+  /* 껍데기는 공용 창 틀(ModalShell · PW-836). 헤더 — 좌석 요약. 좌석은 '수락 시점' 에
+     증가하므로 미래형 문구(§4-4). 막·닫기 X·Esc 는 모두 requestClose 로 간다 — 입력이
+     있으면 버릴지 먼저 묻는다. 발송 중(busy)에는 닫지 않는다(§3).
+     🔴 확인 창 둘은 창 틀의 «형제»로 둔다 — 틀 안에 두면 확인 창 막 클릭이 React 트리를
+     따라 틀까지 올라간다. */
+  return (
+    <>
+    <ModalShell
+      title={labels.title}
+      description={`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: validCount })}`}
+      titleId="admin-invite-title"
+      closeLabel={labels.close}
+      onClose={requestClose}
+      busy={sending}
+      zIndex={1000}
+      className="adm-shell has-own-footer admin-inv-modal"
+      contentClassName="admin-inv-content"
+      testId="admin-invite-modal"
+      footer={footer}
+    >
         {/* 모드 탭(§2-1). 탭 전환은 반대 탭의 입력을 지우지 않는다 — 각자 행 목록을
-            따로 들고 있고, 발송은 보고 있는 탭의 행만 보낸다. */}
-        <div className="admin-inv-tabs" role="tablist" aria-label={labels.title}>
-          {[
-            { id: 'direct', label: labels.tabDirect },
-            { id: 'csv', label: labels.tabCsv },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={mode === t.id}
-              className={`admin-inv-tab${mode === t.id ? ' is-on' : ''}`}
-              disabled={sending}
-              onClick={() => { setMode(t.id); setBanner(''); }}
-            >
-              {t.label}
-            </button>
-          ))}
+            따로 들고 있고, 발송은 보고 있는 탭의 행만 보낸다. 발송 중에는 바꾸지 않는다. */}
+        <div className="tl-tabs-row adm-tabs-row">
+          <Tabs
+            items={[
+              { value: 'direct', label: labels.tabDirect, disabled: sending },
+              { value: 'csv', label: labels.tabCsv, disabled: sending },
+            ]}
+            value={mode}
+            onChange={(id) => {
+              setMode(id);
+              setBanner('');
+            }}
+          />
         </div>
 
         {(seatShort || banner) && (
@@ -942,7 +957,7 @@ export default function AdminInviteModal({
         </div>
         )}
 
-        <div className="admin-modal-body admin-inv-body">
+        <div className="admin-inv-body">
           {isCsv && (
             <div className="admin-inv-csv">
               <div className="admin-inv-csv-head">
@@ -1239,41 +1254,16 @@ export default function AdminInviteModal({
           </p>
         </div>
 
-        <div className="admin-modal-footer admin-inv-footer">
-          <span className="admin-inv-summary">
-            {validCount > 0 ? fmt(labels.summary, { n: validCount }) : ''}
-          </span>
-          <div className="admin-inv-actions">
-            <button
-              type="button"
-              className="admin-emp-btn is-ghost"
-              disabled={sending}
-              onClick={requestClose}
-            >
-              {labels.cancel}
-            </button>
-            <button
-              type="button"
-              className="admin-emp-btn is-primary"
-              disabled={!canSend}
-              onClick={() => (adminRows.length > 0 ? setConfirmAdmin(true) : doSend())}
-            >
-              {sending ? labels.sending : labels.send}
-            </button>
-          </div>
-        </div>
-      </div>
+    </ModalShell>
 
       {/* 어드민 역할 초대 확인(§6-1) — 건수만 쓰지 않고 **이름을 나열**한다.
           건수만 보여주면 누구인지 확인하지 않고 넘긴다. */}
       {confirmAdmin && (
-        <div className="admin-inv-confirm-root">
-          <div className="admin-modal-backdrop" onClick={() => setConfirmAdmin(false)} />
-          <div className="admin-modal admin-inv-confirm" role="dialog" aria-modal="true">
-            <div className="admin-modal-header">
-              <div className="admin-modal-title">{labels.adminConfirmTitle}</div>
-            </div>
-            <div className="admin-modal-body">
+        <ConfirmModal
+          testId="admin-invite-admin-confirm"
+          title={labels.adminConfirmTitle}
+          body={
+            <>
               <p className="admin-inv-confirm-body">
                 {fmt(labels.adminConfirmBody, {
                   names: adminRows.map((r) => `${r.name}(${r.email})`).join(', '),
@@ -1284,52 +1274,28 @@ export default function AdminInviteModal({
                 <li>{labels.adminConfirmP2}</li>
                 <li>{labels.adminConfirmP3}</li>
               </ul>
-            </div>
-            <div className="admin-modal-footer">
-              <button type="button" className="admin-emp-btn is-ghost" onClick={() => setConfirmAdmin(false)}>
-                {labels.cancel}
-              </button>
-              <button
-                type="button"
-                className="admin-emp-btn is-primary"
-                onClick={() => { setConfirmAdmin(false); doSend(); }}
-              >
-                {labels.adminConfirmOk}
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          cancelLabel={labels.cancel}
+          confirmLabel={labels.adminConfirmOk}
+          onCancel={() => setConfirmAdmin(false)}
+          onConfirm={() => { setConfirmAdmin(false); doSend(); }}
+        />
       )}
 
       {/* 입력 중 닫기 확인(§6-2) — 50명 입력은 복원되지 않으므로(E11)
           이 확인이 실수 유실을 막는 유일한 장치다. */}
       {confirmDiscard && (
-        <div className="admin-inv-confirm-root">
-          <div className="admin-modal-backdrop" onClick={() => setConfirmDiscard(false)} />
-          <div className="admin-modal admin-inv-confirm" role="dialog" aria-modal="true">
-            <div className="admin-modal-header">
-              <div className="admin-modal-title">{labels.discardTitle}</div>
-            </div>
-            <div className="admin-modal-body">
-              <p className="admin-inv-confirm-body">
-                {fmt(labels.discardBody, { n: rows.length })}
-              </p>
-            </div>
-            <div className="admin-modal-footer">
-              <button type="button" className="admin-emp-btn is-ghost" onClick={() => setConfirmDiscard(false)}>
-                {labels.discardKeep}
-              </button>
-              <button
-                type="button"
-                className="admin-emp-btn is-primary"
-                onClick={() => { setConfirmDiscard(false); onClose?.(); }}
-              >
-                {labels.discardLeave}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          testId="admin-invite-discard-confirm"
+          title={labels.discardTitle}
+          body={fmt(labels.discardBody, { n: rows.length })}
+          cancelLabel={labels.discardKeep}
+          confirmLabel={labels.discardLeave}
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={() => { setConfirmDiscard(false); onClose?.(); }}
+        />
       )}
-    </div>
+    </>
   );
 }
