@@ -95,13 +95,14 @@ function assignLanes(events) {
  * - 오늘 컬럼에 현재 시각 NOW 가로선.
  * - 헤더(요일+날짜)·이벤트 pill 스타일은 기존 design-page 토큰을 그대로 재사용.
  */
-export default function CalendarWeekView({ selectedDate, onEventClick }) {
+// now — 「지금」을 로컬 Date 그릇으로 돌려주는 함수. 없으면 브라우저 시계 (PW-781).
+export default function CalendarWeekView({ selectedDate, onEventClick, now: nowProp }) {
   const { getEventsForDate } = useTimelineData();
   const days = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
   const scrollRef = useRef(null);
 
-  const todayStr = getTodayStr();
-  const now = new Date();
+  const now = nowProp ? nowProp() : new Date();
+  const todayStr = nowProp ? formatIsoDate(now) : getTodayStr();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   // 마운트/주 변경 시 스크롤 위치 — 오늘이 포함된 주면 현재 시각 중앙, 아니면 오전 8시.

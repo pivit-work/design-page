@@ -8,6 +8,7 @@ import {
   BOTTOM_H,
   TODAY_STR,
   getTodayStr,
+  formatIsoDate,
 } from './constants.js';
 import MeetingBlock from './MeetingBlock.jsx';
 import SnippetBlock from './SnippetBlock.jsx';
@@ -31,6 +32,9 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     onSnippetClick,
     currentUserId,
     collapsedGroups,
+  // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
+  // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
+    now,
   },
   ref
 ) {
@@ -65,9 +69,9 @@ const TimelineGrid = forwardRef(function TimelineGrid(
   // Compute NOW vertical position — 현재 보고 있는 날짜(targetDate) 가 실제
   // 오늘일 때만 NOW 인디케이터 표시. 다른 날짜에 NOW 가 뜨는 건 의미 없음.
   const nowLine = (() => {
-    if (targetDate !== getTodayStr()) return null;
-    const now = new Date();
-    const h = now.getHours() + now.getMinutes() / 60;
+    const cur = now ? now() : new Date();
+    if (targetDate !== (now ? formatIsoDate(cur) : getTodayStr())) return null;
+    const h = cur.getHours() + cur.getMinutes() / 60;
     const startH = HOURS[0];
     const endH = HOURS[HOURS.length - 1] + 1;
     if (h < startH || h > endH) return null;

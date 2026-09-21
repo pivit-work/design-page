@@ -106,6 +106,9 @@ export default function TimelineCanvas({
   // 초기 selectedDate. 생략 시 TODAY_STR(데모용 고정 2026-04-15). 실 운영
   // 환경에서는 new Date() 를 넘겨 앱 진입 시 실제 오늘이 보이도록.
   initialDate,
+  // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
+  // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
+  now,
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
   activeProjectCount = 2,
@@ -131,6 +134,8 @@ export default function TimelineCanvas({
     setCalViewUnit(unit);
     onViewChange?.({ tab: currentTab, calViewUnit: unit });
   };
+  const nowFn = now ?? (() => new Date());
+  const todayStr = () => formatIsoDate(nowFn());
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
   );
@@ -433,7 +438,7 @@ export default function TimelineCanvas({
   const goNextDate = () => shiftByViewUnit(1);
   const goToday = () => {
     // 항상 실시간 오늘. 장시간 세션 중 자정을 넘겨도 올바르게 동작.
-    setSelectedDate(parseIsoDate(getTodayStr()));
+    setSelectedDate(parseIsoDate(todayStr()));
   };
 
   // selectedDate 가 바뀔 때마다 간트 일 뷰의 가로 스크롤 위치를 조정.
@@ -447,9 +452,10 @@ export default function TimelineCanvas({
     requestAnimationFrame(() => {
       const selectedIso = formatIsoDate(selectedDate);
       const startH = HOURS[0];
-      if (selectedIso === getTodayStr()) {
-        const now = new Date();
-        const h = now.getHours() + now.getMinutes() / 60;
+      // 이펙트 안에서 직접 부른다 — 호스트는 now 를 안정된 함수(useCallback)로 넘긴다.
+      const cur = now ? now() : new Date();
+      if (selectedIso === formatIsoDate(cur)) {
+        const h = cur.getHours() + cur.getMinutes() / 60;
         const offset = (h - startH) * HOUR_W;
         const target = offset - sc.clientWidth / 2;
         const maxScroll = sc.scrollWidth - sc.clientWidth;
@@ -460,7 +466,7 @@ export default function TimelineCanvas({
         sc.scrollLeft = Math.max(0, Math.min(offset, maxScroll));
       }
     });
-  }, [selectedDate, isGantt, rightScrollRef]);
+  }, [selectedDate, isGantt, rightScrollRef, now]);
 
   return (
     <TimelineDataProvider
@@ -595,12 +601,14 @@ export default function TimelineCanvas({
           {calViewUnit === 'month' ? (
             <CalendarMonthView
               selectedDate={selectedDate}
+              now={now}
               onEventClick={handleCalendarEventClick}
               onMoreClick={handleMoreClick}
             />
           ) : (
             <CalendarWeekView
               selectedDate={selectedDate}
+              now={now}
               onEventClick={handleCalendarEventClick}
             />
           )}
@@ -637,6 +645,7 @@ export default function TimelineCanvas({
             onSnippetClick={handleSnippetBlockClick}
             spacerH={spacerH}
             targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
+            now={now}
             onCellClick={handleCellClick}
             currentUserId={currentUserId}
             collapsedGroups={collapsedGroups}
@@ -762,6 +771,7 @@ export default function TimelineCanvas({
           anchorRect={datePickerAnchor}
           anchorEl={datePickerAnchorEl}
           selectedDate={selectedDate}
+          today={now ? nowFn() : undefined}
           onSelect={handleSelectDate}
           onClose={handleCloseDatePicker}
           onMonthChange={
