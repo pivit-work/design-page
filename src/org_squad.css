@@ -632,7 +632,7 @@
   padding: 20px 24px;
   border-bottom: 1px solid var(--colors-border-borderSecondary);
 }
-.sq-table-scroll { overflow-x: auto; }
+/* 가로 스크롤·이름 칸/캐파 칸 붙이기는 `.ag`(AssignmentGrid · org_project.css)가 맡는다 (PW-838) */
 .pj-table.sq-table { min-width: 640px; }
 
 /* 🔴 `width` 는 표에서 **희망값**일 뿐 하한이 아니다.
@@ -641,7 +641,7 @@
    한글은 글자 사이 어디서나 줄바꿈되므로 min-content 가 **글자 하나 폭**이다 —
    그래서 이름이 `조/용/호` 로 세로로 섰다. 이웃 열(`.sq-th-col` 140 ·
    `.sq-th-cap` 168 + nowrap)에는 하한이 있어 이 열만 줄어들었다.
-   기준은 같은 디자인 언어를 쓰는 프로젝트 탭의 이름 칸 `.pj-sticky-name-hdr` 로,
+   기준은 같은 디자인 언어를 쓰는 프로젝트 탭의 이름 칸 `.pj-grid .ag-name` 으로,
    `width` 와 `min-width` 를 함께 건다. */
 .pj-th.sq-th-name {
   width: 240px;

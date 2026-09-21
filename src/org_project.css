@@ -161,166 +161,79 @@
   margin-top: 4px;
 }
 
-/* ── Sticky Table Header Row ── */
-.pj-table-sticky-header {
+/* ── 바둑판 배정 표 (AssignmentGrid · PW-838) ──
+   프로젝트 탭과 스쿼드 탭이 같이 쓰는 뼈대다. 표 하나를 가로 스크롤 하나에 넣고,
+   왼쪽 이름 칸과 오른쪽 합계 칸을 `position: sticky` 로 붙인다 — 종전 프로젝트 표처럼
+   머리 행·이름 칸·합계 칸을 표 밖에 따로 세워 두 스크롤을 JS 로 맞추지 않는다.
+   🔴 `border-collapse: collapse` 이면 붙은 칸의 구분선이 칸을 따라 움직이지 않아
+   `separate` 로 둔다(구분선은 `.pj-td` 의 border-bottom 하나라 모양은 같다). */
+.ag {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.ag > .ag-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.ag .ag-name,
+.ag .ag-total {
   position: sticky;
-  z-index: 11;
-  display: flex;
+  z-index: 2;
+  /* 뒤로 넘어가는 칸이 비쳐 보이지 않게 — 표가 놓인 판의 색과 같다 */
   background: var(--bg-quaternary);
-  border-radius: 16px 16px 0 0;
-}
-.pj-table-sticky-header::before,
-.pj-table-sticky-header::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 16px;
-  height: 16px;
-  pointer-events: none;
-  z-index: 20;
-}
-.pj-table-sticky-header::before {
-  left: 0;
-  background: radial-gradient(circle at 16px 16px, transparent 15.5px, var(--bg-primary) 16px);
-}
-.pj-table-sticky-header::after {
-  right: 0;
-  background: radial-gradient(circle at 0 16px, transparent 15.5px, var(--bg-primary) 16px);
-}
-.pj-sticky-name-hdr {
-  width: 280px;
-  min-width: 280px;
-  padding: 20px 24px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: -0.12px;
-  line-height: 18px;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  height: 64px;
-  background: var(--bg-quaternary);
-  border-radius: 16px 0 0 0;
-  z-index: 6;
   transition: box-shadow 0.3s;
 }
-.pj-sticky-name-hdr.pj-name-shadow {
+.ag .ag-name { left: 0; }
+.ag .ag-total { right: 0; }
+/* 그림자는 그 칸 뒤로 넘어간 열이 있을 때만 선다 */
+.ag.is-scrolled .ag-name {
   box-shadow: 20px 0 24px -4px rgba(10, 13, 18, 0.08), 8px 0 8px -4px rgba(10, 13, 18, 0.03), 3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
 }
-.pj-sticky-projects-hdr {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
+.ag.has-more .ag-total {
+  box-shadow: -20px 0 24px -4px rgba(10, 13, 18, 0.08), -8px 0 8px -4px rgba(10, 13, 18, 0.03), -3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
 }
-.pj-sticky-projects-hdr::-webkit-scrollbar { display: none; }
-.pj-sticky-projects-hdr { -ms-overflow-style: none; scrollbar-width: none; }
-.pj-sticky-th {
-  min-width: 200px;
-  flex: 1 0 200px;
-  padding: 20px 24px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: -0.12px;
-  line-height: 18px;
+/* 끌어서 미는 표 — 끌기가 스크롤바를 대신한다 */
+.ag.ag-drag { cursor: grab; -ms-overflow-style: none; scrollbar-width: none; }
+.ag.ag-drag::-webkit-scrollbar { display: none; }
+
+/* ── 프로젝트 탭의 모양 — 종전 머리 행 64 · 줄 72 · 이름 280 · 합계 60 · 열 200 ── */
+.ag.pj-grid {
+  background: var(--bg-quaternary);
+  border-radius: 16px;
+}
+/* 높이는 종전 값에 못 박고 위아래 여백은 뺀다 — 칸 안은 가운데로 선다. 여백을 남겨 두면
+   두 줄로 접힌 열 이름(64 → 77)·이름+메일 두 줄(72 → 73)이 줄을 키운다. 종전 표는 칸
+   높이를 고정하고 넘친 만큼 위아래로 삐져나오게 두었으니, 보이는 자리는 같다. */
+.pj-grid .pj-th {
+  height: 64px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+  white-space: normal;
+}
+.pj-grid .pj-td {
+  height: 72px;
+  box-sizing: border-box;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.pj-grid .ag-name {
+  width: 280px;
+  min-width: 280px;
+}
+.pj-grid .ag-total {
+  width: 60px;
+  min-width: 60px;
+}
+.pj-grid-th {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 64px;
-  box-sizing: border-box;
 }
-.pj-sticky-sum-hdr {
-  width: 60px;
-  min-width: 60px;
-  padding: 20px 24px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: -0.12px;
-  line-height: 18px;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  height: 64px;
-  background: var(--bg-quaternary);
-  border-radius: 0 16px 0 0;
-  z-index: 6;
-  box-shadow: -20px 0 24px -4px rgba(10, 13, 18, 0.08), -8px 0 8px -4px rgba(10, 13, 18, 0.03), -3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
-  transition: box-shadow 0.3s;
-}
-.pj-sticky-sum-hdr.pj-sum-no-shadow { box-shadow: none; }
-
-/* ── Table Body Layout ── */
-.pj-table-outer {
-  display: flex;
-  position: relative;
-}
-
-/* ── Name Column (outside overflow) ── */
-.pj-name-column {
-  width: 280px;
-  min-width: 280px;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-quaternary);
-  border-radius: 0 0 0 16px;
-  z-index: 5;
-  transition: box-shadow 0.3s;
-}
-.pj-name-column.pj-name-shadow {
-  box-shadow: 20px 0 24px -4px rgba(10, 13, 18, 0.08), 8px 0 8px -4px rgba(10, 13, 18, 0.03), 3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
-}
-.pj-name-cell {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--componentColors-utility-gray-utilityGray100);
-  height: 72px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-}
-
-/* ── Scrollable Content Columns ── */
-.pj-table-wrap {
-  flex: 1;
-  min-width: 0;
-  background: var(--bg-quaternary);
-  overflow-x: auto;
-  overflow-y: hidden;
-  cursor: grab;
-}
-.pj-table-wrap::-webkit-scrollbar { display: none; }
-.pj-table-wrap { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ── Sum Column (outside overflow) ── */
-.pj-sum-column {
-  width: 60px;
-  min-width: 60px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--bg-quaternary);
-  border-radius: 0 0 16px 0;
-  box-shadow: -20px 0 24px -4px rgba(10, 13, 18, 0.08), -8px 0 8px -4px rgba(10, 13, 18, 0.03), -3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
-  z-index: 5;
-  transition: box-shadow 0.3s;
-}
-.pj-sum-column.pj-sum-no-shadow { box-shadow: none; }
-.pj-sum-cell {
-  padding: 16px 24px;
+.pj-grid-sum {
   font-size: 14px;
   color: var(--text-tertiary);
   line-height: 20px;
-  border-bottom: 1px solid var(--componentColors-utility-gray-utilityGray100);
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  height: 72px;
 }
 
 /* ── Inner Table ── */
@@ -341,9 +254,7 @@
   line-height: 18px;
   background: var(--bg-quaternary);
 }
-.pj-th-name { display: none; }
 .pj-th-project { min-width: 200px; }
-.pj-th-sum { display: none; }
 .pj-th-dot {
   display: inline-block;
   width: 20px;
@@ -361,9 +272,7 @@
   height: 72px;
   vertical-align: middle;
 }
-.pj-td-name { display: none; }
 .pj-td-project { min-width: 200px; }
-.pj-td-sum { display: none; }
 
 .pj-cell-dot {
   display: inline-block;

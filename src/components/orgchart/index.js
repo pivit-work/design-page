@@ -5,6 +5,7 @@ export { default as BezierConnectors } from './BezierConnectors.jsx';
 export { default as ProfileModal, DEFAULT_PROFILE } from './ProfileModal.jsx';
 export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
 export { default as ProjectCanvas } from './ProjectCanvas.jsx';
+export { default as AssignmentGrid } from './AssignmentGrid.jsx';
 export { default as SquadCanvas } from './SquadCanvas.jsx';
 export { default as SquadFormCard } from './SquadFormCard.jsx';
 export { CapacityBar, SquadComposition, SquadAssignPopover, SquadHistoryPopover } from './SquadPieces.jsx';
