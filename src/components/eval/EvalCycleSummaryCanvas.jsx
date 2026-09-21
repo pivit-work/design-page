@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -2278,96 +2278,84 @@ export default function EvalCycleSummaryCanvas({
               )}
             </div>
 
-            {showNineBox && nineBox && createPortal(
-              <div
-                className="evs-remind-overlay"
-                data-testid="evs-cw-ninebox-modal"
-                onClick={() => setShowNineBox(false)}
+            {showNineBox && nineBox && (
+              <ModalShell
+                title={L.nbTitle}
+                description={
+                  <span className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</span>
+                }
+                titleId="evs-cw-ninebox-title"
+                closeLabel={L.cwClose}
+                onClose={() => setShowNineBox(false)}
+                footer={null}
+                zIndex={1000}
+                className="evc-shell is-xwide"
+                overlayTestId="evs-cw-ninebox-modal"
               >
-                <div
-                  className="evs-cw-ninebox-box"
-                  role="dialog"
-                  aria-modal="true"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="evs-cw-ninebox-head">
-                    <h3 className="evc-card-name">{L.nbTitle}</h3>
-                    <button
-                      type="button"
-                      className="evs-cw-ninebox-close"
-                      onClick={() => setShowNineBox(false)}
-                      aria-label={L.cwClose}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <p className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</p>
-                  {(() => {
-                    const yKeys = ['recommended', 'not_yet', 'deferred'];
-                    const xKeys = ['urgent', 'moderate', 'maintain'];
-                    const yLabel = {
-                      recommended: L.nbYRecommended,
-                      not_yet: L.nbYNotYet,
-                      deferred: L.nbYDeferred,
-                    };
-                    const xLabel = {
-                      urgent: L.nbXUrgent,
-                      moderate: L.nbXModerate,
-                      maintain: L.nbXMaintain,
-                    };
-                    const yTone = {
-                      recommended: 'green',
-                      not_yet: 'neutral',
-                      deferred: 'amber',
-                    };
-                    return (
-                      <div className="evs-nb" data-testid="evs-cw-ninebox-grid">
-                        <div className="evs-nb-grid">
-                          <span className="evs-nb-corner" />
-                          {xKeys.map((x) => (
-                            <span className="evs-nb-xhead" key={x}>
-                              {xLabel[x]}
+                {(() => {
+                  const yKeys = ['recommended', 'not_yet', 'deferred'];
+                  const xKeys = ['urgent', 'moderate', 'maintain'];
+                  const yLabel = {
+                    recommended: L.nbYRecommended,
+                    not_yet: L.nbYNotYet,
+                    deferred: L.nbYDeferred,
+                  };
+                  const xLabel = {
+                    urgent: L.nbXUrgent,
+                    moderate: L.nbXModerate,
+                    maintain: L.nbXMaintain,
+                  };
+                  const yTone = {
+                    recommended: 'green',
+                    not_yet: 'neutral',
+                    deferred: 'amber',
+                  };
+                  return (
+                    <div className="evs-nb" data-testid="evs-cw-ninebox-grid">
+                      <div className="evs-nb-grid">
+                        <span className="evs-nb-corner" />
+                        {xKeys.map((x) => (
+                          <span className="evs-nb-xhead" key={x}>
+                            {xLabel[x]}
+                          </span>
+                        ))}
+                        {yKeys.map((y) => (
+                          <Fragment key={y}>
+                            <span className={`evs-nb-yhead tone-${yTone[y]}`}>
+                              {yLabel[y]}
                             </span>
-                          ))}
-                          {yKeys.map((y) => (
-                            <Fragment key={y}>
-                              <span className={`evs-nb-yhead tone-${yTone[y]}`}>
-                                {yLabel[y]}
-                              </span>
-                              {xKeys.map((x) => {
-                                const members = nineBox.cells[y][x];
-                                const highlight =
-                                  y === 'recommended' && x === 'urgent';
-                                return (
-                                  <div
-                                    className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`}
-                                    key={x}
-                                  >
-                                    {members.length === 0 ? (
-                                      <span className="evs-nb-empty-cell">—</span>
-                                    ) : (
-                                      members.map((m) => (
-                                        <span
-                                          className="evs-nb-name"
-                                          key={m.memberId}
-                                        >
-                                          {m.name || m.memberId}
-                                        </span>
-                                      ))
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </Fragment>
-                          ))}
-                        </div>
-                        <p className="evs-nb-caption">{L.nbCaption}</p>
+                            {xKeys.map((x) => {
+                              const members = nineBox.cells[y][x];
+                              const highlight =
+                                y === 'recommended' && x === 'urgent';
+                              return (
+                                <div
+                                  className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`}
+                                  key={x}
+                                >
+                                  {members.length === 0 ? (
+                                    <span className="evs-nb-empty-cell">—</span>
+                                  ) : (
+                                    members.map((m) => (
+                                      <span
+                                        className="evs-nb-name"
+                                        key={m.memberId}
+                                      >
+                                        {m.name || m.memberId}
+                                      </span>
+                                    ))
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </Fragment>
+                        ))}
                       </div>
-                    );
-                  })()}
-                </div>
-              </div>,
-              document.body,
+                      <p className="evs-nb-caption">{L.nbCaption}</p>
+                    </div>
+                  );
+                })()}
+              </ModalShell>
             )}
 
             {selectedAppealId ? (
@@ -3418,151 +3406,181 @@ export default function EvalCycleSummaryCanvas({
 
       {/* PW-520 표시 항목 설정 창 — 고정 항목은 목록에서 빼지 않고 자물쇠와 이유로 보인다.
           빼면 「왜 이 열은 못 끄나」를 물을 자리가 없어져 다음 사람이 누락으로 읽고 토글을 붙인다. */}
-      {showDisplay && calibDisplay && createPortal(
-        <div
-          className="evs-remind-overlay"
-          data-testid="evs-cw-display-modal"
-          onClick={() => setShowDisplay(false)}
-        >
-          <div
-            className="evs-cw-create"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {(() => {
-              const draft = displayDraft ?? calibDisplay;
-              const toggle = (group, key) =>
-                setDisplayDraft({
-                  ...draft,
-                  [group]: { ...draft[group], [key]: draft[group]?.[key] === false },
-                });
-              const group = (title, fixed, optional, groupKey) => (
-                <div className="evs-cw-create-section">
-                  <div className="evs-cw-create-lbl">{title}</div>
-                  <div className="evs-cw-display-list">
-                    {fixed.map((it) => (
-                      <div
-                        key={it.key}
-                        className="evs-cw-display-row is-fixed"
-                        data-testid={`evs-cw-display-fixed-${it.key}`}
-                      >
-                        <span className="evs-cw-display-lock">
-                          <LockIcon size={14} />
-                        </span>
-                        <span className="evs-cw-display-text">
-                          <span className="evs-cw-display-label">{it.label}</span>
-                          <span className="evs-cw-display-note">
-                            {fmt(L.cwDisplayFixedPrefix, { why: it.why })}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                    {optional.map((it) => {
-                      const on = draft[groupKey]?.[it.key] !== false;
-                      return (
-                        <label key={it.key} className="evs-cw-display-row">
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            disabled={!canEditDisplay}
-                            onChange={() => toggle(groupKey, it.key)}
-                            data-testid={`evs-cw-display-toggle-${it.key}`}
-                          />
-                          <span className="evs-cw-display-text">
-                            <span className="evs-cw-display-label">{it.label}</span>
-                            {it.note ? (
-                              <span className="evs-cw-display-note">{it.note}</span>
-                            ) : null}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
+      {showDisplay && calibDisplay && (() => {
+        const draft = displayDraft ?? calibDisplay;
+        const toggle = (group, key) =>
+          setDisplayDraft({
+            ...draft,
+            [group]: { ...draft[group], [key]: draft[group]?.[key] === false },
+          });
+        const group = (title, fixed, optional, groupKey) => (
+          <div className="evs-cw-create-section">
+            <div className="evs-cw-create-lbl">{title}</div>
+            <div className="evs-cw-display-list">
+              {fixed.map((it) => (
+                <div
+                  key={it.key}
+                  className="evs-cw-display-row is-fixed"
+                  data-testid={`evs-cw-display-fixed-${it.key}`}
+                >
+                  <span className="evs-cw-display-lock">
+                    <LockIcon size={14} />
+                  </span>
+                  <span className="evs-cw-display-text">
+                    <span className="evs-cw-display-label">{it.label}</span>
+                    <span className="evs-cw-display-note">
+                      {fmt(L.cwDisplayFixedPrefix, { why: it.why })}
+                    </span>
+                  </span>
                 </div>
-              );
-              return (
-                <>
-                  <div className="evs-cw-create-title">{L.cwDisplayTitle}</div>
-                  <div className="evs-cw-create-desc">
-                    {L.cwDisplayDesc}
-                    {!canEditDisplay && (
-                      <span className="evs-cw-display-readonly" data-testid="evs-cw-display-readonly">
-                        {' · '}
-                        {L.cwDisplayReadOnly}
-                      </span>
-                    )}
-                  </div>
-                  {group(L.cwDisplayColumnsGroup, L.cwDisplayFixedColumns, L.cwDisplayOptionalColumns, 'columns')}
-                  {group(L.cwDisplaySectionsGroup, L.cwDisplayFixedSections, L.cwDisplayOptionalSections, 'sections')}
-                  {/* 평가 답변 네 칸이 목록에 «없는» 이유를 화면에서 말한다 — 없는 것은 설명되지 않으면
-                      「빠뜨렸다」로 읽힌다. 답은 평가 항목별 공개 범위 설정 한 곳이 한다(PW-433). */}
-                  <div className="evs-cw-display-answers" data-testid="evs-cw-display-answers">
-                    <div className="evs-cw-display-label">{L.cwDisplayAnswersTitle}</div>
-                    <div className="evs-cw-display-note">{L.cwDisplayAnswersBody}</div>
-                  </div>
-                  {displaySaveError && (
-                    <div className="evs-cw-create-hint evs-cw-comp-access-error" role="alert">
-                      {L.cwDisplaySaveFailed}
-                    </div>
-                  )}
-                  <div className="evs-cw-create-actions">
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost"
-                      onClick={() => setShowDisplay(false)}
-                    >
-                      {canEditDisplay ? L.cwDisplayCancel : L.cwDisplayClose}
-                    </button>
-                    {canEditDisplay && (
-                      <button
-                        type="button"
-                        className="evc-btn is-primary"
-                        data-testid="evs-cw-display-save"
-                        disabled={displaySaving}
-                        onClick={async () => {
-                          setDisplaySaving(true);
-                          setDisplaySaveError(false);
-                          try {
-                            await onSaveDisplaySettings?.({
-                              columns: draft.columns,
-                              sections: draft.sections,
-                            });
-                            setShowDisplay(false);
-                          } catch {
-                            setDisplaySaveError(true);
-                          } finally {
-                            setDisplaySaving(false);
-                          }
-                        }}
-                      >
-                        {L.cwDisplaySave}
-                      </button>
-                    )}
-                  </div>
-                </>
-              );
-            })()}
+              ))}
+              {optional.map((it) => {
+                const on = draft[groupKey]?.[it.key] !== false;
+                return (
+                  <label key={it.key} className="evs-cw-display-row">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={!canEditDisplay}
+                      onChange={() => toggle(groupKey, it.key)}
+                      data-testid={`evs-cw-display-toggle-${it.key}`}
+                    />
+                    <span className="evs-cw-display-text">
+                      <span className="evs-cw-display-label">{it.label}</span>
+                      {it.note ? (
+                        <span className="evs-cw-display-note">{it.note}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </div>,
-        document.body,
-      )}
+        );
+        return (
+          <ModalShell
+            title={L.cwDisplayTitle}
+            description={
+              <>
+                {L.cwDisplayDesc}
+                {!canEditDisplay && (
+                  <span className="evs-cw-display-readonly" data-testid="evs-cw-display-readonly">
+                    {' · '}
+                    {L.cwDisplayReadOnly}
+                  </span>
+                )}
+              </>
+            }
+            titleId="evs-cw-display-title"
+            closeLabel={L.cwClose}
+            onClose={() => setShowDisplay(false)}
+            busy={displaySaving}
+            zIndex={1000}
+            className="evc-shell is-wide"
+            overlayTestId="evs-cw-display-modal"
+            footer={
+              <>
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                  onClick={() => setShowDisplay(false)}
+                >
+                  {canEditDisplay ? L.cwDisplayCancel : L.cwDisplayClose}
+                </button>
+                {canEditDisplay && (
+                  <button
+                    type="button"
+                    className="tl-group-modal-btn tl-group-modal-btn-primary"
+                    data-testid="evs-cw-display-save"
+                    disabled={displaySaving}
+                    onClick={async () => {
+                      setDisplaySaving(true);
+                      setDisplaySaveError(false);
+                      try {
+                        await onSaveDisplaySettings?.({
+                          columns: draft.columns,
+                          sections: draft.sections,
+                        });
+                        setShowDisplay(false);
+                      } catch {
+                        setDisplaySaveError(true);
+                      } finally {
+                        setDisplaySaving(false);
+                      }
+                    }}
+                  >
+                    {L.cwDisplaySave}
+                  </button>
+                )}
+              </>
+            }
+          >
+            <div className="evc-shell-body">
+              {group(L.cwDisplayColumnsGroup, L.cwDisplayFixedColumns, L.cwDisplayOptionalColumns, 'columns')}
+              {group(L.cwDisplaySectionsGroup, L.cwDisplayFixedSections, L.cwDisplayOptionalSections, 'sections')}
+              {/* 평가 답변 네 칸이 목록에 «없는» 이유를 화면에서 말한다 — 없는 것은 설명되지 않으면
+                  「빠뜨렸다」로 읽힌다. 답은 평가 항목별 공개 범위 설정 한 곳이 한다(PW-433). */}
+              <div className="evs-cw-display-answers" data-testid="evs-cw-display-answers">
+                <div className="evs-cw-display-label">{L.cwDisplayAnswersTitle}</div>
+                <div className="evs-cw-display-note">{L.cwDisplayAnswersBody}</div>
+              </div>
+              {displaySaveError && (
+                <div className="evs-cw-create-hint evs-cw-comp-access-error" role="alert">
+                  {L.cwDisplaySaveFailed}
+                </div>
+              )}
+            </div>
+          </ModalShell>
+        );
+      })()}
 
       {/* PW-519 보상·연봉 열람 권한 부여 창 — 표시 항목 설정과 별개 창이다(두 스위치의 소유자가 다르다). */}
-      {showCompAccess && createPortal(
-        <div
-          className="evs-remind-overlay"
-          data-testid="evs-cw-comp-access-modal"
-          onClick={() => setShowCompAccess(false)}
+      {showCompAccess && (
+        <ModalShell
+          title={L.cwCompAccessTitle}
+          description={L.cwCompAccessDesc}
+          titleId="evs-cw-comp-access-title"
+          closeLabel={L.cwClose}
+          onClose={() => setShowCompAccess(false)}
+          busy={compSaving}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evs-cw-comp-access-modal"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={() => setShowCompAccess(false)}
+              >
+                {L.cwCompAccessCancel}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                data-testid="evs-cw-comp-access-save"
+                disabled={!compensationAccess || compSaving}
+                onClick={async () => {
+                  const next = compDraft ?? compensationAccess?.memberIds ?? [];
+                  setCompSaving(true);
+                  setCompSaveError(false);
+                  try {
+                    await onSaveCompensationAccess?.(next);
+                    setShowCompAccess(false);
+                    setCompBannerClosed(false);
+                  } catch {
+                    setCompSaveError(true);
+                  } finally {
+                    setCompSaving(false);
+                  }
+                }}
+              >
+                {L.cwCompAccessSave}
+              </button>
+            </>
+          }
         >
-          <div
-            className="evs-cw-create"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="evs-cw-create-title">{L.cwCompAccessTitle}</div>
-            <div className="evs-cw-create-desc">{L.cwCompAccessDesc}</div>
+          <div className="evc-shell-body">
             {!compensationAccess ? (
               <div
                 className={`evs-cw-create-muted evs-cw-comp-access-loading${compensationAccessError ? ' evs-cw-comp-access-error' : ''}`}
@@ -3663,290 +3681,325 @@ export default function EvalCycleSummaryCanvas({
                 );
               })()
             )}
-            <div className="evs-cw-create-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setShowCompAccess(false)}
-              >
-                {L.cwCompAccessCancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                data-testid="evs-cw-comp-access-save"
-                disabled={!compensationAccess || compSaving}
-                onClick={async () => {
-                  const next = compDraft ?? compensationAccess?.memberIds ?? [];
-                  setCompSaving(true);
-                  setCompSaveError(false);
-                  try {
-                    await onSaveCompensationAccess?.(next);
-                    setShowCompAccess(false);
-                    setCompBannerClosed(false);
-                  } catch {
-                    setCompSaveError(true);
-                  } finally {
-                    setCompSaving(false);
-                  }
-                }}
-              >
-                {L.cwCompAccessSave}
-              </button>
-            </div>
           </div>
-        </div>,
-        document.body,
+        </ModalShell>
       )}
 
       {/* §6.3 R4 대상자 선별 필터 모달 */}
-      {showCalibFilter && calibTable && createPortal(
-        <div
-          className="evs-remind-overlay"
-          data-testid="evs-cw-filter-modal"
-          onClick={() => setShowCalibFilter(false)}
-        >
-          <div
-            className="evs-cw-filter"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
+      {showCalibFilter && calibTable && (() => {
+        const fields = calibFilterFields(calibTable.rows, L);
+        const toggleCond = (which, key, value) =>
+          setCalibFilter((prev) => {
+            const conds = { ...(prev[which] || {}) };
+            const cur = conds[key] || [];
+            const next = cur.includes(value)
+              ? cur.filter((v) => v !== value)
+              : [...cur, value];
+            if (next.length === 0) delete conds[key];
+            else conds[key] = next;
+            return { ...prev, [which]: conds };
+          });
+        const palette = (which, tone) => (
+          <div className="evs-cw-filter-palette">
+            {fields.map((f) => (
+              <div key={f.key} className="evs-cw-filter-field">
+                <div className="evs-cw-filter-field-label">{f.label}</div>
+                <div className="evs-cw-filter-chips">
+                  {f.values.map((v) => {
+                    const on = (calibFilter[which]?.[f.key] || []).includes(
+                      v,
+                    );
+                    return (
+                      <button
+                        type="button"
+                        key={v}
+                        className={`evs-cw-chip${on ? ` is-on tone-${tone}` : ''}`}
+                        onClick={() => toggleCond(which, f.key, v)}
+                      >
+                        {on ? (tone === 'red' ? '✕ ' : '✓ ') : ''}
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+        return (
+          <ModalShell
+            title={L.cwFilterTitle}
+            description={L.cwFilterDesc}
+            titleId="evs-cw-filter-title"
+            closeLabel={L.cwClose}
+            onClose={() => setShowCalibFilter(false)}
+            zIndex={1000}
+            className="evc-shell is-wide"
+            overlayTestId="evs-cw-filter-modal"
+            footer={
+              <>
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                  onClick={() => setCalibFilter(EMPTY_CALIB_FILTER)}
+                >
+                  {L.cwFilterClear}
+                </button>
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-primary"
+                  data-testid="evs-cw-filter-apply"
+                  onClick={() => setShowCalibFilter(false)}
+                >
+                  {L.cwFilterApply}
+                </button>
+              </>
+            }
           >
-            {(() => {
-              const fields = calibFilterFields(calibTable.rows, L);
-              const toggleCond = (which, key, value) =>
-                setCalibFilter((prev) => {
-                  const conds = { ...(prev[which] || {}) };
-                  const cur = conds[key] || [];
-                  const next = cur.includes(value)
-                    ? cur.filter((v) => v !== value)
-                    : [...cur, value];
-                  if (next.length === 0) delete conds[key];
-                  else conds[key] = next;
-                  return { ...prev, [which]: conds };
-                });
-              const palette = (which, tone) => (
-                <div className="evs-cw-filter-palette">
-                  {fields.map((f) => (
-                    <div key={f.key} className="evs-cw-filter-field">
-                      <div className="evs-cw-filter-field-label">{f.label}</div>
-                      <div className="evs-cw-filter-chips">
-                        {f.values.map((v) => {
-                          const on = (calibFilter[which]?.[f.key] || []).includes(
-                            v,
-                          );
-                          return (
-                            <button
-                              type="button"
-                              key={v}
-                              className={`evs-cw-chip${on ? ` is-on tone-${tone}` : ''}`}
-                              onClick={() => toggleCond(which, f.key, v)}
-                            >
-                              {on ? (tone === 'red' ? '✕ ' : '✓ ') : ''}
-                              {v}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+            <div className="evc-shell-body">
+              {filterPresets.length > 0 && (
+                <div
+                  className="evs-cw-filter-presets"
+                  data-testid="evs-cw-filter-presets"
+                >
+                  <span className="evs-cw-filter-presets-label">
+                    {L.cwFilterPresetsLabel}
+                  </span>
+                  {filterPresets.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="evs-cw-filter-preset-pill"
+                      onClick={() =>
+                        setCalibFilter({
+                          includeConds: p.filterConditions?.includeConds ?? {},
+                          includeOp: p.filterConditions?.includeOp ?? 'AND',
+                          excludeConds: p.filterConditions?.excludeConds ?? {},
+                          excludeIds: p.filterConditions?.excludeIds ?? [],
+                        })
+                      }
+                      data-testid="evs-cw-filter-preset-pill"
+                    >
+                      {p.name}
+                      <span className="evs-cw-filter-preset-tag">
+                        {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
+                      </span>
+                    </button>
                   ))}
                 </div>
-              );
-              return (
-                <>
-                  <div className="evs-cw-filter-head">
-                    <div className="evs-cw-create-title">{L.cwFilterTitle}</div>
-                    <div className="evs-cw-create-desc">{L.cwFilterDesc}</div>
-                  </div>
-                  {filterPresets.length > 0 && (
-                    <div
-                      className="evs-cw-filter-presets"
-                      data-testid="evs-cw-filter-presets"
-                    >
-                      <span className="evs-cw-filter-presets-label">
-                        {L.cwFilterPresetsLabel}
+              )}
+              <div className="evs-cw-filter-body">
+                <div className="evs-cw-filter-sec">
+                  <div className="evs-cw-filter-sec-head">
+                    <span className="evs-cw-filter-sec-title">
+                      {L.cwFilterInclude}
+                    </span>
+                    <div className="evs-cw-filter-op">
+                      <span className="evs-cw-filter-op-label">
+                        {L.cwFilterFieldOp}
                       </span>
-                      {filterPresets.map((p) => (
+                      {['AND', 'OR'].map((op) => (
                         <button
-                          key={p.id}
                           type="button"
-                          className="evs-cw-filter-preset-pill"
+                          key={op}
+                          className={`evs-cw-filter-op-btn${calibFilter.includeOp === op ? ' is-on' : ''}`}
                           onClick={() =>
-                            setCalibFilter({
-                              includeConds: p.filterConditions?.includeConds ?? {},
-                              includeOp: p.filterConditions?.includeOp ?? 'AND',
-                              excludeConds: p.filterConditions?.excludeConds ?? {},
-                              excludeIds: p.filterConditions?.excludeIds ?? [],
-                            })
+                            setCalibFilter((prev) => ({
+                              ...prev,
+                              includeOp: op,
+                            }))
                           }
-                          data-testid="evs-cw-filter-preset-pill"
                         >
-                          {p.name}
-                          <span className="evs-cw-filter-preset-tag">
-                            {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
-                          </span>
+                          {op}
                         </button>
                       ))}
                     </div>
-                  )}
-                  <div className="evs-cw-filter-body">
-                    <div className="evs-cw-filter-sec">
-                      <div className="evs-cw-filter-sec-head">
-                        <span className="evs-cw-filter-sec-title">
-                          {L.cwFilterInclude}
-                        </span>
-                        <div className="evs-cw-filter-op">
-                          <span className="evs-cw-filter-op-label">
-                            {L.cwFilterFieldOp}
-                          </span>
-                          {['AND', 'OR'].map((op) => (
-                            <button
-                              type="button"
-                              key={op}
-                              className={`evs-cw-filter-op-btn${calibFilter.includeOp === op ? ' is-on' : ''}`}
-                              onClick={() =>
-                                setCalibFilter((prev) => ({
-                                  ...prev,
-                                  includeOp: op,
-                                }))
-                              }
-                            >
-                              {op}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {palette('includeConds', 'accent')}
-                    </div>
-                    <div className="evs-cw-filter-sec evs-cw-filter-sec-exclude">
-                      <span className="evs-cw-filter-sec-title">
-                        {L.cwFilterExclude}{' '}
-                        <span className="evs-cw-filter-sec-hint">
-                          · {L.cwFilterExcludeHint}
-                        </span>
-                      </span>
-                      {palette('excludeConds', 'red')}
-                    </div>
                   </div>
-                  {calibFilter.excludeIds?.length > 0 && (
-                    <div
-                      className="evs-cw-filter-excluded"
-                      data-testid="evs-cw-filter-excluded"
-                    >
-                      <span className="evs-cw-filter-sec-title">
-                        {L.cwExcludedTitle} ({calibFilter.excludeIds.length})
-                      </span>
-                      <div className="evs-cw-filter-excluded-list">
-                        {calibFilter.excludeIds.map((mid) => {
-                          const m = calibTable.rows.find(
-                            (r) => r.memberId === mid,
-                          );
-                          return (
-                            <button
-                              key={mid}
-                              type="button"
-                              className="evs-cw-filter-excluded-pill"
-                              title={L.cwExcludedRemove}
-                              onClick={() =>
-                                setCalibFilter((fs) => ({
-                                  ...fs,
-                                  excludeIds: (fs.excludeIds || []).filter(
-                                    (x) => x !== mid,
-                                  ),
-                                }))
-                              }
-                            >
-                              {(m?.name || mid) + ' ×'}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  <div className="evs-cw-filter-save">
-                    <input
-                      className="evs-cw-create-input evs-cw-filter-save-name"
-                      placeholder={L.cwFilterPresetNamePlaceholder}
-                      value={presetName}
-                      onChange={(e) => setPresetName(e.target.value)}
-                      data-testid="evs-cw-filter-preset-name"
-                    />
-                    <label className="evs-cw-filter-save-shared">
-                      <input
-                        type="checkbox"
-                        checked={presetShared}
-                        onChange={(e) => setPresetShared(e.target.checked)}
-                      />
-                      {L.cwFilterPresetShareLabel}
-                    </label>
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost"
-                      disabled={!presetName.trim()}
-                      onClick={() => {
-                        onSaveFilterPreset?.(
-                          presetName.trim(),
-                          {
-                            includeConds: calibFilter.includeConds,
-                            includeOp: calibFilter.includeOp,
-                            excludeConds: calibFilter.excludeConds,
-                            excludeIds: calibFilter.excludeIds,
-                          },
-                          presetShared,
-                        );
-                        setPresetName('');
-                        setPresetShared(false);
-                      }}
-                      data-testid="evs-cw-filter-preset-save"
-                    >
-                      {L.cwFilterPresetSave}
-                    </button>
+                  {palette('includeConds', 'accent')}
+                </div>
+                <div className="evs-cw-filter-sec evs-cw-filter-sec-exclude">
+                  <span className="evs-cw-filter-sec-title">
+                    {L.cwFilterExclude}{' '}
+                    <span className="evs-cw-filter-sec-hint">
+                      · {L.cwFilterExcludeHint}
+                    </span>
+                  </span>
+                  {palette('excludeConds', 'red')}
+                </div>
+              </div>
+              {calibFilter.excludeIds?.length > 0 && (
+                <div
+                  className="evs-cw-filter-excluded"
+                  data-testid="evs-cw-filter-excluded"
+                >
+                  <span className="evs-cw-filter-sec-title">
+                    {L.cwExcludedTitle} ({calibFilter.excludeIds.length})
+                  </span>
+                  <div className="evs-cw-filter-excluded-list">
+                    {calibFilter.excludeIds.map((mid) => {
+                      const m = calibTable.rows.find(
+                        (r) => r.memberId === mid,
+                      );
+                      return (
+                        <button
+                          key={mid}
+                          type="button"
+                          className="evs-cw-filter-excluded-pill"
+                          title={L.cwExcludedRemove}
+                          onClick={() =>
+                            setCalibFilter((fs) => ({
+                              ...fs,
+                              excludeIds: (fs.excludeIds || []).filter(
+                                (x) => x !== mid,
+                              ),
+                            }))
+                          }
+                        >
+                          {(m?.name || mid) + ' ×'}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="evs-cw-filter-foot">
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost"
-                      onClick={() => setCalibFilter(EMPTY_CALIB_FILTER)}
-                    >
-                      {L.cwFilterClear}
-                    </button>
-                    <button
-                      type="button"
-                      className="evc-btn is-primary"
-                      data-testid="evs-cw-filter-apply"
-                      onClick={() => setShowCalibFilter(false)}
-                    >
-                      {L.cwFilterApply}
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>,
-        document.body,
-      )}
+                </div>
+              )}
+              <div className="evs-cw-filter-save">
+                <input
+                  className="evs-cw-create-input evs-cw-filter-save-name"
+                  placeholder={L.cwFilterPresetNamePlaceholder}
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  data-testid="evs-cw-filter-preset-name"
+                />
+                <label className="evs-cw-filter-save-shared">
+                  <input
+                    type="checkbox"
+                    checked={presetShared}
+                    onChange={(e) => setPresetShared(e.target.checked)}
+                  />
+                  {L.cwFilterPresetShareLabel}
+                </label>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={!presetName.trim()}
+                  onClick={() => {
+                    onSaveFilterPreset?.(
+                      presetName.trim(),
+                      {
+                        includeConds: calibFilter.includeConds,
+                        includeOp: calibFilter.includeOp,
+                        excludeConds: calibFilter.excludeConds,
+                        excludeIds: calibFilter.excludeIds,
+                      },
+                      presetShared,
+                    );
+                    setPresetName('');
+                    setPresetShared(false);
+                  }}
+                  data-testid="evs-cw-filter-preset-save"
+                >
+                  {L.cwFilterPresetSave}
+                </button>
+              </div>
+            </div>
+          </ModalShell>
+        );
+      })()}
 
       {/* R1(v0.3) 캘리브레이션 위원회 생성 모달 */}
-      {showCreate && createPortal(
-        <div
-          className="evs-remind-overlay"
-          data-testid="evs-cw-create-modal"
-          onClick={closeCreateModal}
+      {showCreate && (
+        <ModalShell
+          title={committeeManage ? L.cwManageTitle : L.cwCreateTitle}
+          description={committeeManage ? L.cwManageDesc : L.cwCreateDesc}
+          titleId="evs-cw-create-title"
+          closeLabel={L.cwClose}
+          onClose={closeCreateModal}
+          busy={committeeSaving}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evs-cw-create-modal"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={closeCreateModal}
+              >
+                {L.cwCreateCancel}
+              </button>
+              {committeeManage ? (
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-primary"
+                  data-testid="evs-cw-committee-submit"
+                  disabled={
+                    committeeReadOnly ||
+                    committeeSaving ||
+                    createCommittee.length === 0 ||
+                    !committeeDirty ||
+                    // PW-134 — 위원장을 빼는데 이어받을 사람이 정해지지 않았으면
+                    // 저장 자체를 막는다. 서버도 400 으로 막지만, 여기서 막아야
+                    // "저장을 눌렀는데 에러" 대신 "고르면 저장" 이 된다.
+                    (chairDropped && !chairTransferTo)
+                  }
+                  onClick={() => {
+                    setCommitteeError('');
+                    setCommitteeSaving(true);
+                    // 성공했을 때만 닫는다 — 실패하면 사용자가 고른 명단이 그대로
+                    // 남아 있어야 다시 시도할 수 있다.
+                    Promise.resolve(
+                      onSaveCommittee?.(createCommittee, {
+                        transferChairTo: chairTransferTo || undefined,
+                      }),
+                    ).then(
+                      () => closeCreateModal(),
+                      (err) => {
+                        setCommitteeSaving(false);
+                        setCommitteeError(err?.message || L.cwManageSaveFailed);
+                      },
+                    );
+                  }}
+                >
+                  {L.cwManageSubmit}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-primary"
+                  data-testid="evs-cw-create-submit"
+                  /* PW-444 — 대상 0명이면 서버가 400 으로 끊는다. 여기서 같은 것을
+                     보지 않으면 「생성」을 눌러야 실패를 알게 된다. */
+                  disabled={
+                    !createName.trim() ||
+                    createCommittee.length === 0 ||
+                    (scopeRoster.length > 0 && createRoster.length === 0)
+                  }
+                  onClick={() => {
+                    const scope = {};
+                    if (createDepts.length > 0) scope.departments = createDepts;
+                    if (createLevels.length > 0) scope.levels = createLevels;
+                    onCreateSession?.({
+                      name: createName.trim(),
+                      scope,
+                      // PW-444 — 명단에서 손으로 더하고 뺀 결과. 서버 유효 대상 계산식
+                      // (조건 매칭 ∪ 추가) − 제외 의 두 항이다.
+                      addedMemberIds: createAdded,
+                      excludedMemberIds: createExcluded,
+                      committee: createCommittee.map((userId, i) => ({
+                        userId,
+                        role: i === 0 ? 'chair' : 'member',
+                      })),
+                    });
+                    closeCreateModal();
+                  }}
+                >
+                  {L.cwCreateSubmit}
+                </button>
+              )}
+            </>
+          }
         >
-          <div
-            className="evs-cw-create"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="evs-cw-create-title">
-              {committeeManage ? L.cwManageTitle : L.cwCreateTitle}
-            </div>
-            <div className="evs-cw-create-desc">
-              {committeeManage ? L.cwManageDesc : L.cwCreateDesc}
-            </div>
-
+          <div className="evc-shell-body">
             {!committeeManage && (
               <>
                 <label className="evs-cw-create-lbl">{L.cwCreateNameLabel}</label>
@@ -4363,104 +4416,39 @@ export default function EvalCycleSummaryCanvas({
               )}
             </div>
 
-            <div className="evs-cw-create-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={closeCreateModal}
-              >
-                {L.cwCreateCancel}
-              </button>
-              {committeeManage ? (
-                <button
-                  type="button"
-                  className="evc-btn is-primary"
-                  data-testid="evs-cw-committee-submit"
-                  disabled={
-                    committeeReadOnly ||
-                    committeeSaving ||
-                    createCommittee.length === 0 ||
-                    !committeeDirty ||
-                    // PW-134 — 위원장을 빼는데 이어받을 사람이 정해지지 않았으면
-                    // 저장 자체를 막는다. 서버도 400 으로 막지만, 여기서 막아야
-                    // "저장을 눌렀는데 에러" 대신 "고르면 저장" 이 된다.
-                    (chairDropped && !chairTransferTo)
-                  }
-                  onClick={() => {
-                    setCommitteeError('');
-                    setCommitteeSaving(true);
-                    // 성공했을 때만 닫는다 — 실패하면 사용자가 고른 명단이 그대로
-                    // 남아 있어야 다시 시도할 수 있다.
-                    Promise.resolve(
-                      onSaveCommittee?.(createCommittee, {
-                        transferChairTo: chairTransferTo || undefined,
-                      }),
-                    ).then(
-                      () => closeCreateModal(),
-                      (err) => {
-                        setCommitteeSaving(false);
-                        setCommitteeError(err?.message || L.cwManageSaveFailed);
-                      },
-                    );
-                  }}
-                >
-                  {L.cwManageSubmit}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="evc-btn is-primary"
-                  data-testid="evs-cw-create-submit"
-                  /* PW-444 — 대상 0명이면 서버가 400 으로 끊는다. 여기서 같은 것을
-                     보지 않으면 「생성」을 눌러야 실패를 알게 된다. */
-                  disabled={
-                    !createName.trim() ||
-                    createCommittee.length === 0 ||
-                    (scopeRoster.length > 0 && createRoster.length === 0)
-                  }
-                  onClick={() => {
-                    const scope = {};
-                    if (createDepts.length > 0) scope.departments = createDepts;
-                    if (createLevels.length > 0) scope.levels = createLevels;
-                    onCreateSession?.({
-                      name: createName.trim(),
-                      scope,
-                      // PW-444 — 명단에서 손으로 더하고 뺀 결과. 서버 유효 대상 계산식
-                      // (조건 매칭 ∪ 추가) − 제외 의 두 항이다.
-                      addedMemberIds: createAdded,
-                      excludedMemberIds: createExcluded,
-                      committee: createCommittee.map((userId, i) => ({
-                        userId,
-                        role: i === 0 ? 'chair' : 'member',
-                      })),
-                    });
-                    closeCreateModal();
-                  }}
-                >
-                  {L.cwCreateSubmit}
-                </button>
-              )}
-            </div>
           </div>
-        </div>,
-        document.body,
+        </ModalShell>
       )}
 
       {/* §4.A 미제출자 리마인드 모달 */}
-      {showRemind && createPortal(
-        <div className="evs-remind-overlay" data-testid="evs-remind-modal" onClick={() => setShowRemind(false)}>
-          <div className="evs-remind" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="evs-remind-head">
-              <div>
-                <div className="evs-remind-title">{L.remindTitle}</div>
-                <div className="evs-remind-sub">
-                  {fmt(L.remindSubtitle, { pct: submitPct, n: pendingCount })}
-                  {cycle?.name && <> · {cycle.name}</>}
-                </div>
-              </div>
-              <button type="button" className="evs-remind-x" onClick={() => setShowRemind(false)} data-testid="evs-remind-close">×</button>
-            </div>
-
+      {showRemind && (
+        <ModalShell
+          title={L.remindTitle}
+          description={<>{fmt(L.remindSubtitle, { pct: submitPct, n: pendingCount })}{cycle?.name && <> · {cycle.name}</>}</>}
+          titleId="evs-remind-title"
+          closeLabel={L.remindClose}
+          onClose={() => setShowRemind(false)}
+          busy={remindBusy}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evs-remind-modal"
+          closeTestId="evs-remind-close"
+          footer={
+            <>
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={() => setShowRemind(false)}>{L.remindClose}</button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                disabled={selected.size === 0 || remindBusy}
+                onClick={handleSend}
+                data-testid="evs-remind-send"
+              >
+                {fmt(L.remindSend, { n: selected.size })}
+              </button>
+            </>
+          }
+        >
+          <div className="evc-shell-body">
             <label className="evs-remind-selectall">
               <input type="checkbox" checked={allSelected} onChange={toggleAll} data-testid="evs-remind-selectall" />
               <span>{L.remindSelectAll}</span>
@@ -4522,24 +4510,9 @@ export default function EvalCycleSummaryCanvas({
               </div>
             )}
 
-            <div className="evs-remind-foot">
-              <span className="evs-remind-note">{L.remindGuardNote}</span>
-              <div className="evs-remind-actions">
-                <button type="button" className="evc-btn is-ghost" onClick={() => setShowRemind(false)}>{L.remindClose}</button>
-                <button
-                  type="button"
-                  className="evc-btn is-primary"
-                  disabled={selected.size === 0 || remindBusy}
-                  onClick={handleSend}
-                  data-testid="evs-remind-send"
-                >
-                  {fmt(L.remindSend, { n: selected.size })}
-                </button>
-              </div>
-            </div>
+            <span className="evs-remind-note">{L.remindGuardNote}</span>
           </div>
-        </div>,
-        document.body,
+        </ModalShell>
       )}
     </div>
   );

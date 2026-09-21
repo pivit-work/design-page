@@ -9044,3 +9044,9 @@
   flex-direction: column;
   gap: 14px;
 }
+/* 공용 창 틀 안 본문 — 칸 사이 간격만 준다(바깥 여백은 틀이 갖는다). */
+.evc-shell-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
