@@ -7,6 +7,8 @@
 
 /* 알림 편집 모달의 시작/종료일자 picker(SnippetDatePicker) 공용 스타일 */
 @import './datepicker.css';
+/* 구성원 편집 패널의 껍데기 (PW-893) */
+@import './side-panel-shell.css';
 
 .admin-canvas {
   --admin-card-shadow:
@@ -1526,39 +1528,12 @@
 }
 
 /* ── 편집 슬라이드 패널 ──────────────────────────────────── */
-.admin-emp-panel-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 13, 18, 0.4);
-  z-index: 100;
-  animation: adminEmpFadeIn 0.2s ease-out;
-}
-.admin-emp-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 420px;
-  max-width: 92vw;
-  background: var(--bg-quaternary);
-  z-index: 101;
-  box-shadow: -8px 0 32px rgba(10, 13, 18, 0.12);
+/* 막·위치·폭·배경·그림자·움직임은 공용 옆 패널 틀(SidePanelShell)이 그린다 (PW-893).
+   그 틀의 기본 생김새가 곧 이 패널에서 옮겨 간 값이다. 여기는 머리·본문·발 줄을 세로로
+   세우는 것만 둔다. */
+.pw-side-panel.admin-emp-panel {
   display: flex;
   flex-direction: column;
-  font-family: var(--font-family-body);
-  animation: adminEmpSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes adminEmpFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes adminEmpSlideIn {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .admin-emp-panel,
-  .admin-emp-panel-backdrop { animation: none; }
 }
 .admin-emp-panel-header {
   display: flex;

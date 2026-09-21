@@ -7,6 +7,7 @@ import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import SidePanelShell from '../shared/SidePanelShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
@@ -3114,9 +3115,7 @@ function EmployeesEditPanel({
   }
 
   return (
-    <>
-      <div className="admin-emp-panel-backdrop" onClick={onClose} />
-      <div ref={panelRef} className="admin-emp-panel" role="dialog" aria-modal="true" data-testid="employees-edit-panel">
+    <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} testId="employees-edit-panel">
         <div className="admin-emp-panel-header">
           <div className="admin-emp-panel-id">
             {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}
@@ -3459,8 +3458,7 @@ function EmployeesEditPanel({
             </button>
           </div>
         )}
-      </div>
-    </>
+    </SidePanelShell>
   );
 }
 

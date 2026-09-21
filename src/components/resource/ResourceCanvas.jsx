@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
+import SidePanelShell from '../shared/SidePanelShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { AiSparkleIcon } from './resourceIcons.jsx';
 
@@ -228,11 +228,17 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
   };
 
   // 페이지 루트(.tl-page)가 position:fixed 라 그 안에서 오버레이를 그리면 상단바
-  // (.top-nav, z=90)에 덮인다. body 로 포털해 스태킹 트랩을 피한다.
-  return createPortal(
-    <div className="rs-panel-overlay">
-      <div className="rs-panel-scrim" role="presentation" onClick={onClose} />
-      <aside className="rs-panel" data-testid="member-panel">
+  // (.top-nav, z=90)에 덮인다. 공용 옆 패널 틀이 body 로 포털해 스태킹 트랩을 피한다 (PW-893).
+  // 이 화면은 어드민이 아니라 생김새는 그대로 둔다 — `rs-panel`·`rs-panel-scrim` 이 덧입힌다.
+  return (
+    <SidePanelShell
+      as="aside"
+      className="rs-panel"
+      scrimClassName="rs-panel-scrim"
+      onClose={onClose}
+      testId="member-panel"
+      ariaLabel={member.name}
+    >
         <header className="rs-panel-head">
           <div className="rs-panel-id">
             <div className="rs-panel-person">
@@ -334,9 +340,7 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
             })}
           </section>
         </div>
-      </aside>
-    </div>,
-    document.body,
+    </SidePanelShell>
   );
 }
 
