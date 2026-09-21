@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
 import { ChatIcon, ClockIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -63,6 +63,7 @@ const DEFAULT_LABELS = {
   openThread: '스레드 열기 ›',
   truncatedHint: '… 전문 보기',
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
+  close: '닫기',
   newBadge: '새 피드백',
   replyToggle: '답변 달기 ↩',
   replyPlaceholder: '답변을 작성하거나, 내용 없이 전송하면 확인 처리됩니다',
@@ -323,7 +324,6 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
     (a, b) => new Date(a.sentAt) - new Date(b.sentAt),
   );
   const hasItems = items.length > 0;
-  const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
   // 중복 요청 차단의 단위는 '스레드' 가 아니라 '수신자' 다(PW-153). 같은 KR 이라도
   // 동료 A·B 에게 각각 요청할 수 있어야 하고, 받은 피드백이 있다고 해서 요청 자체를
   // 막으면 안 된다. 아직 답이 오지 않은(resolvedAt 없음) 요청의 수신자만 잠근다.
@@ -338,75 +338,19 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
     [items],
   );
 
-  return createPortal(
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        // --bg-overlay 는 불투명 색이라 그대로 쓰면 뒷 화면이 통째로 가려진다 (okr.css 와 같은 형태로 섞는다)
-        background: 'color-mix(in srgb, var(--bg-overlay) 45%, transparent)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        data-testid="fbm-thread-modal"
-        style={{
-          width: '100%',
-          maxWidth: 620,
-          maxHeight: '88vh',
-          background: C.bg,
-          borderRadius: '20px 20px 0 0',
-          borderTop: `4px solid ${barColor}`,
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: FONT,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', borderBottom: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-            {isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
-          </span>
-          {isKr && (
-            <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{block.progress ?? 0}%</span>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            data-testid="fbm-thread-close"
-            style={{ marginLeft: 'auto', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: C.muted }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {!hasItems ? (
-            <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>
-              {L.threadEmpty}
-            </p>
-          ) : (
-            items.map((it) =>
-              it.itemType === 'feedback' ? (
-                <FeedbackBubble key={it.id} item={it} L={L} isPastPeriod={isPastPeriod} onReply={onReply} />
-              ) : (
-                <RequestBubble
-                  key={it.id}
-                  item={it}
-                  L={L}
-                  onEdit={isPastPeriod ? undefined : onEditRequest}
-                  onDelete={isPastPeriod ? undefined : onDeleteRequest}
-                />
-              ),
-            )
-          )}
-        </div>
-
-        {isPastPeriod ? (
+  return (
+    <ModalShell
+      title={isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
+      description={isKr ? `${block.progress ?? 0}%` : undefined}
+      titleId="fbm-thread-title"
+      closeLabel={L.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="evc-shell is-wide is-thread"
+      testId="fbm-thread-modal"
+      closeTestId="fbm-thread-close"
+      footer={
+        isPastPeriod ? (
           <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
@@ -418,10 +362,31 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
             lockedRecipientIds={pendingRecipientIds}
             onRequest={onRequest}
           />
+        )
+      }
+    >
+      <div className="evc-shell-thread-list">
+        {!hasItems ? (
+          <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>
+            {L.threadEmpty}
+          </p>
+        ) : (
+          items.map((it) =>
+            it.itemType === 'feedback' ? (
+              <FeedbackBubble key={it.id} item={it} L={L} isPastPeriod={isPastPeriod} onReply={onReply} />
+            ) : (
+              <RequestBubble
+                key={it.id}
+                item={it}
+                L={L}
+                onEdit={isPastPeriod ? undefined : onEditRequest}
+                onDelete={isPastPeriod ? undefined : onDeleteRequest}
+              />
+            ),
+          )
         )}
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 

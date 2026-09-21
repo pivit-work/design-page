@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -269,14 +269,28 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
     }
   };
 
-  return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--bg-overlay) 45%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div onClick={(e) => e.stopPropagation()} data-testid="fbhr-nudge-modal" style={{ width: 380, background: C.surface, borderRadius: 14, padding: 20, fontFamily: FONT }}>
-        <h3 style={{ fontSize: 'var(--font-size-text-md)', fontWeight: 800, color: C.text, margin: '0 0 4px' }}>{L.nudgeTitle}</h3>
-        <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '0 0 14px' }}>
+  return (
+    <ModalShell
+      title={L.nudgeTitle}
+      description={
+        <>
           {L.nudgeTarget}: {target.targetManagerName}
           {target.memberName ? ` · ${L.nudgeMember}: ${target.memberName}` : ''}
-        </p>
+        </>
+      }
+      titleId="fbhr-nudge-title"
+      submitLabel={L.send}
+      cancelLabel={L.cancel}
+      closeLabel={L.cancel}
+      canSubmit={canSend}
+      busy={busy}
+      onClose={onClose}
+      onSubmit={confirm}
+      zIndex={1000}
+      className="evc-shell"
+      testId="fbhr-nudge-modal"
+    >
+      <div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', opacity: collabAvail ? 1 : 0.5 }}>
           <input type="checkbox" checked={collab && collabAvail} disabled={!collabAvail} onChange={(e) => setCollab(e.target.checked)} data-testid="fbhr-ch-collab" />
           <span style={{ fontSize: 13, color: C.text }}>{L.channelCollab}</span>
@@ -287,17 +301,12 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
           <span style={{ fontSize: 13, color: C.text }}>{L.channelEmail}</span>
           {!emailAvail && <span style={{ fontSize: 12, color: C.muted }}>({L.notIntegrated})</span>}
         </label>
-        <p style={{ fontSize: 12, margin: '8px 0 14px', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.muted }}>
+        <p style={{ fontSize: 12, margin: '8px 0 0', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.muted }}>
           {!collabAvail && <><AlertIcon size={13} /> </>}
           {!collabAvail && !emailAvail ? L.channelNone : !collabAvail ? L.channelEmailOnly : L.channelHint}
         </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={onClose} style={{ border: `1px solid ${C.border}`, background: 'var(--text-white)', color: C.sub, borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}>{L.cancel}</button>
-          <button type="button" disabled={!canSend} onClick={confirm} data-testid="fbhr-nudge-send" style={{ background: C.navy, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: canSend ? 'pointer' : 'not-allowed', opacity: canSend ? 1 : 0.5 }}>{L.send}</button>
-        </div>
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 

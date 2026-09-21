@@ -9032,3 +9032,15 @@
   overflow-y: auto;
   padding-bottom: 24px;
 }
+/* 수시 피드백 스레드 창 — 말풍선 목록 + 아래 작성 칸. 작성 칸이 자기 윗선·안쪽 여백을
+   갖고 있어 푸터 줄의 여백·선은 걷는다(두 줄로 그어지지 않게). */
+.tl-group-modal.evc-shell.is-thread .tl-group-modal-actions {
+  display: block;
+  padding: 0;
+  border-top: none;
+}
+.evc-shell-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

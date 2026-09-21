@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -62,6 +62,7 @@ const DEFAULT_LABELS = {
   waiting: '대기',
   openThread: '스레드 열기 ›',
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
+  close: '닫기',
   incomingReq: '받은 피드백 요청',
   composePlaceholder:
     'SBI 형식을 참고해 자유롭게 작성해 주세요.\n상황(S): 언제, 어떤 맥락에서\n행동(B): 구체적으로 어떤 행동을\n영향(I): 팀/OKR에 어떤 영향이 있었는지',
@@ -392,7 +393,6 @@ function RequestBubble({ item, L }) {
 function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onClose }) {
   const isKr = block.type === 'kr';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
-  const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
   const [summary, setSummary] = useState(null);
   const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
   // 활성화 조건: 스레드 아이템(피드백+요청+답변) ≥ 5 (ai-spec §11.2).
@@ -415,52 +415,56 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
     }
   };
 
-  return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'color-mix(in srgb, var(--bg-overlay) 45%, transparent)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 }}>
-      <div onClick={(e) => e.stopPropagation()} data-testid="fbmgr-thread-modal" style={{ width: '100%', maxWidth: 760, maxHeight: '88vh', background: C.bg, borderRadius: '20px 20px 0 0', borderTop: `4px solid ${barColor}`, display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px', borderBottom: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}</span>
-          {isKr && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{block.progress ?? 0}%</span>}
-          {onSummarize && (
-            <button
-              type="button"
-              disabled={!canSummarize || summaryState === 'loading'}
-              onClick={summarize}
-              data-testid="fbmgr-summarize"
-              title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
-              style={{ marginLeft: 'auto', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
-            >
-              {summaryState === 'loading' ? '⏳ 요약 중...' : <><SparkleIcon size={12} /> 대화 요약</>}
-            </button>
-          )}
-          <button type="button" onClick={onClose} data-testid="fbmgr-thread-close" style={{ marginLeft: onSummarize ? 0 : 'auto', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: C.muted }}>✕</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {summary && (
-            <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
-              <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
-            </div>
-          )}
-          {summaryState === 'error' && (
-            <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
-              대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.
-            </div>
-          )}
-          {items.length === 0 ? (
-            <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
-          ) : (
-            items.map((it) => it.itemType === 'feedback' ? <FeedbackBubble key={it.id} item={it} /> : <RequestBubble key={it.id} item={it} L={L} />)
-          )}
-        </div>
-        {isPastPeriod ? (
+  return (
+    <ModalShell
+      title={isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
+      description={isKr ? `${block.progress ?? 0}%` : undefined}
+      titleId="fbmgr-thread-title"
+      closeLabel={L.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="evc-shell is-wide is-thread"
+      testId="fbmgr-thread-modal"
+      closeTestId="fbmgr-thread-close"
+      footer={
+        isPastPeriod ? (
           <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
+        )
+      }
+    >
+      <div className="evc-shell-thread-list">
+        {onSummarize && (
+          <button
+            type="button"
+            disabled={!canSummarize || summaryState === 'loading'}
+            onClick={summarize}
+            data-testid="fbmgr-summarize"
+            title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
+            style={{ alignSelf: 'flex-end', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+          >
+            {summaryState === 'loading' ? '⏳ 요약 중...' : <><SparkleIcon size={12} /> 대화 요약</>}
+          </button>
+        )}
+        {summary && (
+          <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
+            <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
+          </div>
+        )}
+        {summaryState === 'error' && (
+          <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
+            대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.
+          </div>
+        )}
+        {items.length === 0 ? (
+          <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
+        ) : (
+          items.map((it) => it.itemType === 'feedback' ? <FeedbackBubble key={it.id} item={it} /> : <RequestBubble key={it.id} item={it} L={L} />)
         )}
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 
