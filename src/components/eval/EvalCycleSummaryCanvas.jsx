@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -753,23 +755,19 @@ function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
   return (
     <div className="evc-period" data-testid="evc-period">
       <span className="evc-period-label">{L.periodLabel}</span>
-      <div className="evc-period-seg">
-        {typesPresent.map((t) => (
-          <button
-            key={t}
-            type="button"
-            className={`evc-period-seg-btn${currentType === t ? ' is-on' : ''}`}
-            onClick={() => {
-              const latest = periods.filter((p) => p.type === t)[0];
-              if (latest && latest.cycleId !== selectedCycleId)
-                onChange?.(latest.cycleId);
-            }}
-            data-testid={`evc-period-type-${t}`}
-          >
-            {L[PERIOD_TYPE_KEYS[t]]}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel={L.periodLabel}
+        items={typesPresent.map((t) => ({
+          value: t,
+          label: L[PERIOD_TYPE_KEYS[t]],
+          testId: `evc-period-type-${t}`,
+        }))}
+        value={currentType}
+        onChange={(t) => {
+          const latest = periods.filter((p) => p.type === t)[0];
+          if (latest && latest.cycleId !== selectedCycleId) onChange?.(latest.cycleId);
+        }}
+      />
       <select
         className="evc-period-select"
         value={selectedCycleId ?? ''}
@@ -1338,18 +1336,16 @@ export default function EvalCycleSummaryCanvas({
       {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {!workspaceOnly && (
-        <div className="fb-tabs">
-          {tabs.map((tt) => (
-            <button
-              type="button"
-              key={tt.key}
-              className={`fb-tab${tab === tt.key ? ' is-on' : ''}`}
-              onClick={() => setTab(tt.key)}
-              data-testid={`evsum-tab-${tt.key}`}
-            >
-              {tt.label}
-            </button>
-          ))}
+        <div className="tl-tabs-row evc-tabs-row">
+          <Tabs
+            items={tabs.map((tt) => ({
+              value: tt.key,
+              label: tt.label,
+              testId: `evsum-tab-${tt.key}`,
+            }))}
+            value={tab}
+            onChange={setTab}
+          />
         </div>
       )}
 
@@ -1836,17 +1832,17 @@ export default function EvalCycleSummaryCanvas({
         {tab === 'exec' && (
           <div className="evs-exec" data-testid="evs-exec">
             <p className="evs-exec-banner">{L.execBanner}</p>
-            <div className="fb-tabs evs-exec-tabs">
-              {[{ key: 'j1', label: L.execJ1 }, { key: 'j2', label: L.execJ2 }, { key: 'j3', label: L.execJ3 }, { key: 'j4', label: L.execJ4 }].map((s) => (
-                <button
-                  type="button"
-                  key={s.key}
-                  className={`fb-tab${execSection === s.key ? ' is-on' : ''}`}
-                  onClick={() => setExecSection(s.key)}
-                  data-testid={`evs-exec-tab-${s.key}`}
-                >{s.label}</button>
-              ))}
-            </div>
+            <SegmentedControl
+              className="evs-exec-tabs"
+              items={[
+                { value: 'j1', label: L.execJ1, testId: 'evs-exec-tab-j1' },
+                { value: 'j2', label: L.execJ2, testId: 'evs-exec-tab-j2' },
+                { value: 'j3', label: L.execJ3, testId: 'evs-exec-tab-j3' },
+                { value: 'j4', label: L.execJ4, testId: 'evs-exec-tab-j4' },
+              ]}
+              value={execSection}
+              onChange={setExecSection}
+            />
 
             {/* J1 — 전사 서머리 */}
             {execSection === 'j1' && (

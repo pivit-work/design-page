@@ -11,7 +11,7 @@ import useSegmentedIndicator from './useSegmentedIndicator.js';
  * 항상 이 컴포넌트를 사용한다. 새로 만들지 말 것.
  *
  * Props:
- *   items     [{ value, label }]
+ *   items     [{ value, label, testId? }] — testId 는 그 탭 버튼의 data-testid (PW-832)
  *   value     현재 선택된 value (controlled)
  *   onChange  (next) => void
  *   className 추가 클래스 (.tl-tabs 래퍼)
@@ -33,6 +33,7 @@ export default function Tabs({ items, value, onChange, className = '' }) {
           aria-selected={value === it.value}
           className={`tl-tab ${value === it.value ? 'is-active' : ''}`}
           onClick={() => onChange?.(it.value)}
+          data-testid={it.testId}
         >
           {it.label}
         </button>

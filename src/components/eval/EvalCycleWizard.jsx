@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
@@ -7836,8 +7835,8 @@ export default function EvalCycleWizard({
   /**
    * 위자드 «위에» 뜨는 창들. 인라인일 때는 화면 안 한 칸 옆에 두면 안 된다 —
    * 본문 칸(`.content-area`)이 `position: fixed` 라 자기 스태킹 컨텍스트를 만들어,
-   * 그 안에서 그린 막은 왼쪽 메뉴·위쪽 바를 덮지 못한다(PW-513). 그래서 인라인일 때는
-   * 이 묶음만 화면 맨 바깥으로 꺼낸다.
+   * 그 안에서 그린 막은 왼쪽 메뉴·위쪽 바를 덮지 못한다(PW-513). 공용 창 틀·확인 창이
+   * 스스로 body 직속 포털로 그리므로(PW-832) 여기서 따로 꺼내지 않는다.
    */
   const wizardOverlays = (
     <>
@@ -8076,7 +8075,7 @@ export default function EvalCycleWizard({
           {wizardContent}
           {wizardFooter}
         </div>
-        {createPortal(wizardOverlays, document.body)}
+        {wizardOverlays}
       </>
     );
   }

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 
 /**
  * EvalCycleTemplateCanvas — 평가 템플릿 빌더.
@@ -239,17 +240,27 @@ export default function EvalCycleTemplateCanvas({
           <div className="evtpl-toggles">
             <div>
               <span className="evc-field-label">{L.absToggle}</span>
-              <div className="fb-tabs">
-                <button type="button" className={`fb-tab${isAbsolute ? ' is-on' : ''}`} onClick={() => editable && setIsAbsolute(true)} data-testid="evtpl-abs">{L.absolute}</button>
-                <button type="button" className={`fb-tab${!isAbsolute ? ' is-on' : ''}`} onClick={() => editable && setIsAbsolute(false)} data-testid="evtpl-rel">{L.relative}</button>
-              </div>
+              <SegmentedControl
+                ariaLabel={L.absToggle}
+                items={[
+                  { value: 'abs', label: L.absolute, disabled: !editable, testId: 'evtpl-abs' },
+                  { value: 'rel', label: L.relative, disabled: !editable, testId: 'evtpl-rel' },
+                ]}
+                value={isAbsolute ? 'abs' : 'rel'}
+                onChange={(v) => setIsAbsolute(v === 'abs')}
+              />
             </div>
             <div>
               <span className="evc-field-label">{L.positionToggle}</span>
-              <div className="fb-tabs">
-                <button type="button" className={`fb-tab${position === 'top' ? ' is-on' : ''}`} onClick={() => editable && setPosition('top')}>{L.posTop}</button>
-                <button type="button" className={`fb-tab${position === 'bottom' ? ' is-on' : ''}`} onClick={() => editable && setPosition('bottom')}>{L.posBottom}</button>
-              </div>
+              <SegmentedControl
+                ariaLabel={L.positionToggle}
+                items={[
+                  { value: 'top', label: L.posTop, disabled: !editable },
+                  { value: 'bottom', label: L.posBottom, disabled: !editable },
+                ]}
+                value={position}
+                onChange={setPosition}
+              />
             </div>
           </div>
         </section>
