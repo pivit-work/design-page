@@ -31,6 +31,16 @@ const DEFAULT_LABELS = {
   toastSent: '리포트를 발송했습니다',
   toastError: '오류가 발생했습니다',
   selectHint: '발송할 승인분을 선택하세요.',
+  // PW-863 — 한 사람만의 리포트 구성 예외 (정책 §8.3)
+  sectionsOpen: '리포트 구성',
+  sectionsClose: '접기',
+  sectionsHint: '이 사람의 리포트에만 걸립니다. 사이클 전체 구성은 「리포트」 탭에서 바꿉니다.',
+  sectionsRequired: '필수',
+  sectionsLocked: '이미 발송해 바꿀 수 없습니다.',
+  sectionsReadOnly: '리포트 구성은 인사담당자만 바꿀 수 있습니다.',
+  overrideBadge: '구성 예외',
+  overrideTooltip: '사이클 기본 구성과 다른 항목 {count}개',
+  sectionsError: '리포트 구성을 저장하지 못했습니다.',
   // TC-093: 검수 대기 리포트가 남아 있을 때 발송 시 강조
   incompleteSendWarn:
     '아직 검수 대기 중인 리포트가 {count}건 있습니다. 발송은 승인된 리포트에만 적용됩니다.',
@@ -55,12 +65,94 @@ const STATUS_META = {
   sent: { key: 'statusSent', cls: 'is-sent' },
 };
 
-function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, onApprove }) {
+/**
+ * PW-863 — 그 사람 줄을 펼쳐 «이 사람 리포트에만» 들어갈 항목을 켜고 끈다 (정책 §8.3).
+ *
+ * 사이클 전체 구성은 「리포트」 탭에 있다. 한 컨트롤로 두면 한 사람을 검수하다 전원
+ * 리포트가 바뀌므로 자리를 가른 것이고, 여기서는 **그 사람만** 바뀐다.
+ */
+function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggleSection }) {
+  const [busyKey, setBusyKey] = useState(null);
+  const [error, setError] = useState(false);
+  const locked = row.status === 'sent';
+
+  const toggle = async (key) => {
+    if (!canEdit || locked || busyKey) return;
+    setBusyKey(key);
+    setError(false);
+    try {
+      await onToggleSection(row.memberId, key, !(row.sections?.[key] !== false));
+    } catch {
+      // 전역 오류 화면으로 튕기지 않는다 — 펼쳐 둔 목록이 통째로 사라진다.
+      setError(true);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  return (
+    <div className="evrr-sections" data-testid={`evrr-sections-${row.memberId}`}>
+      <p className="evrr-sections-hint">{L.sectionsHint}</p>
+      <div className="evrr-sections-list">
+        {sectionOrder.map((key) => {
+          const required = requiredSections.includes(key);
+          const on = required || row.sections?.[key] !== false;
+          return (
+            <label
+              key={key}
+              className={`evrr-section${on ? '' : ' is-off'}${required ? ' is-required' : ''}`}
+              data-testid={`evrr-section-${row.memberId}-${key}`}
+            >
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={required || !canEdit || locked || busyKey === key}
+                onChange={() => toggle(key)}
+              />
+              <span className="evrr-section-label">{L.sectionLabels?.[key] ?? key}</span>
+              {required && <span className="evrr-section-req">{L.sectionsRequired}</span>}
+            </label>
+          );
+        })}
+      </div>
+      {locked ? (
+        <p className="evrr-sections-note" data-testid={`evrr-sections-locked-${row.memberId}`}>
+          {L.sectionsLocked}
+        </p>
+      ) : !canEdit ? (
+        <p className="evrr-sections-note">{L.sectionsReadOnly}</p>
+      ) : null}
+      {error && (
+        <p className="evrr-sections-error" role="alert" data-testid={`evrr-sections-error-${row.memberId}`}>
+          {L.sectionsError}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReviewRow({
+  row,
+  L,
+  gradeLabels,
+  myUserId,
+  canSend,
+  checked,
+  onToggle,
+  onApprove,
+  sectionOrder,
+  requiredSections,
+  canEditSections,
+  onToggleSection,
+}) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const isMyReport = row.leaderId === myUserId;
   const canApprove = isMyReport && row.status === 'pending';
   const meta = STATUS_META[row.status] ?? STATUS_META.pending;
+  const overrideCount = row.overrideCount ?? 0;
+  const hasSections = sectionOrder.length > 0;
 
   const approve = async () => {
     setBusy(true);
@@ -72,6 +164,7 @@ function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, 
   };
 
   return (
+    <>
     <div className="evrr-row" data-testid={`evrr-row-${row.memberId}`}>
       <div className="evrr-cell evrr-select">
         {canSend && row.status === 'leader_approved' && (
@@ -85,8 +178,24 @@ function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, 
         )}
       </div>
       <div className="evrr-cell evrr-name">
-        <span className="evrr-name-main">{row.name || row.memberId}</span>
+        <span className="evrr-name-main">
+          {row.name || row.memberId}
+          {overrideCount > 0 && (
+            <span
+              className="evrr-badge is-override"
+              title={L.overrideTooltip.replace('{count}', String(overrideCount))}
+              data-testid={`evrr-override-${row.memberId}`}
+            >
+              {L.overrideBadge}
+            </span>
+          )}
+        </span>
         {row.department && <span className="evrr-name-sub">{row.department}</span>}
+        {overrideCount > 0 && (
+          <span className="evrr-name-sub" data-testid={`evrr-override-note-${row.memberId}`}>
+            {L.overrideTooltip.replace('{count}', String(overrideCount))}
+          </span>
+        )}
       </div>
       <div className="evrr-cell evrr-grade">{(row.gradeKey ? (gradeLabels?.[row.gradeKey] ?? row.gradeKey) : '—')}</div>
       <div className="evrr-cell evrr-leader">{row.leaderName ?? '—'}</div>
@@ -94,6 +203,17 @@ function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, 
         <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
       </div>
       <div className="evrr-cell evrr-action">
+        {hasSections && (
+          <button
+            type="button"
+            className="evc-btn evrr-sections-toggle"
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            data-testid={`evrr-sections-toggle-${row.memberId}`}
+          >
+            {open ? L.sectionsClose : L.sectionsOpen}
+          </button>
+        )}
         {canApprove ? (
           <div className="evrr-approve">
             <input
@@ -121,6 +241,17 @@ function ReviewRow({ row, L, gradeLabels, myUserId, canSend, checked, onToggle, 
         ) : null}
       </div>
     </div>
+    {open && hasSections && (
+      <SectionPanel
+        row={row}
+        L={L}
+        sectionOrder={sectionOrder}
+        requiredSections={requiredSections}
+        canEdit={canEditSections}
+        onToggleSection={onToggleSection}
+      />
+    )}
+    </>
   );
 }
 
@@ -130,6 +261,15 @@ export default function EvalReportReviewCanvas({
   myUserId,
   gradeLabels = {},
   labels: providedLabels,
+  /**
+   * PW-863 — 한 사람만의 리포트 구성 예외를 저장한다(정책 §8.3).
+   * `(memberId, sectionKey, nextOn)` 을 받아 저장하고, 실패하면 throw 한다 —
+   * 그 줄 안에서 알리기 위해서다(전역 오류 화면으로 튕기면 펼쳐 둔 목록이 사라진다).
+   * 안 주면 켜고 끄기가 그려지지 않으므로 기존 시각은 그대로다.
+   */
+  onToggleSection = null,
+  /** 끌 «수 없는» 항목. 사이클 기본 구성과 같은 둘이다. */
+  requiredSections = ['summary', 'highlights'],
   /**
    * `toolbar` — 헤더 아래에 놓을 호출부 노드(선택). 사이클 안 형제 화면으로 오가는 탭
    * 줄이 이 자리에 선다. 이 캔버스의 `.evc-root` 는 `position: fixed` 라 호출부가
@@ -142,6 +282,13 @@ export default function EvalReportReviewCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const q = queue ?? { rows: [], counts: { pending: 0, leaderApproved: 0, sent: 0 }, canSend: false, canApproveAsLeader: false };
+  /**
+   * 켜고 끌 수 있는 항목 = 필수 둘 + 그 사이클이 쓰는 리뷰의 항목. 순서·목록은 서버가
+   * 준 것을 그대로 쓴다 — 화면이 따로 세우면 「리포트」 탭과 갈린다.
+   */
+  const sectionOrder = onToggleSection
+    ? [...requiredSections, ...(q.optionalSections ?? [])]
+    : [];
   const [selected, setSelected] = useState(() => new Set());
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
@@ -260,6 +407,10 @@ export default function EvalReportReviewCanvas({
                 checked={selected.has(row.memberId)}
                 onToggle={toggle}
                 onApprove={handleApprove}
+                sectionOrder={sectionOrder}
+                requiredSections={requiredSections}
+                canEditSections={q.canEditSections === true}
+                onToggleSection={onToggleSection}
               />
             ))
           )}

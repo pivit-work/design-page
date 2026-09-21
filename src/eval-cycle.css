@@ -8802,3 +8802,58 @@
   font-size: var(--font-size-text-xs, 12px);
   color: var(--text-tertiary);
 }
+
+/* ── 리포트 검수: 한 사람만의 구성 예외 (PW-863 · 정책 §8.3) ── */
+.evrr-badge.is-override {
+  color: var(--utility-purple-700, #5925dc);
+  background: var(--utility-purple-50, #f4f3ff);
+  margin-left: var(--spacing-sm, 6px);
+}
+.evrr-sections-toggle {
+  font-size: var(--font-size-text-xs, 12px);
+  padding: var(--spacing-xs, 4px) var(--spacing-md, 8px);
+}
+.evrr-sections {
+  padding: var(--spacing-lg, 12px) var(--spacing-xl, 16px);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--bg-active);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 8px);
+}
+.evrr-sections-hint,
+.evrr-sections-note {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+.evrr-sections-error {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-error-700, #b42318);
+  margin: 0;
+}
+.evrr-sections-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 8px) var(--spacing-xl, 16px);
+}
+.evrr-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 6px);
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.evrr-section.is-required {
+  cursor: default;
+}
+/* 꺼 둔 항목은 회색 — 「이 사람 리포트에서 빠진다」가 한눈에 보여야 한다 (정책 §8.3). */
+.evrr-section.is-off .evrr-section-label {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+.evrr-section-req {
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-tertiary);
+}
