@@ -497,10 +497,11 @@
 .evc-modal.is-wide {
   max-width: 520px;
 }
-/* §4.1.2-A 진행 중 일정 수정 모달 */
-.evc-modal.evc-sched-modal {
-  max-width: 560px;
-  max-height: 86vh;
+/* §4.1.2-A 진행 중 일정 수정 모달 — 껍데기는 공용 창 틀(ModalShell · PW-832) */
+.evc-sched-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 .evc-sched-modal-note {
   padding: var(--spacing-md) var(--spacing-lg);
@@ -668,22 +669,9 @@
   margin-top: var(--spacing-md);
 }
 
-/* [PW-637] 오픈 확인 창 — 기획서 시안 `OpenConfirmModal` 을 옮겼다.
-   시안처럼 머리·본문·바닥을 선으로 가르므로 `.evc-modal` 의 안쪽 여백·간격을 걷고
-   구역마다 준다. 정책 상자의 노랑은 «되돌릴 수 없는 일이 따라온다» 는 주의 표시다. */
-.evc-modal.evc-open-confirm {
-  max-width: 460px;
-  padding: 0;
-  gap: 0;
-  overflow: hidden;
-}
-.evc-open-confirm-head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-2xl) var(--spacing-3xl) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-secondary);
-}
+/* [PW-637] 오픈 확인 창 — 기획서 시안 `OpenConfirmModal` 을 옮겼다. 껍데기는 공용 창 틀
+   (ModalShell · PW-832)이고 여기는 본문만 꾸민다. 정책 상자의 노랑은 «되돌릴 수 없는 일이
+   따라온다» 는 주의 표시다. */
 .evc-open-confirm-em {
   color: var(--utility-warning-700);
   font-weight: 700;
@@ -692,7 +680,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
-  padding: var(--spacing-xl) var(--spacing-3xl);
 }
 .evc-open-confirm-policy {
   padding: 12px 14px;
@@ -759,11 +746,6 @@
   font-size: var(--font-size-text-xs);
   line-height: 1.5;
   color: var(--utility-error-600);
-}
-.evc-modal-actions.evc-open-confirm-foot {
-  margin-top: 0;
-  padding: 14px var(--spacing-3xl);
-  border-top: 1px solid var(--border-secondary);
 }
 
 /* ── 폼 필드 ── */
@@ -9028,4 +9010,25 @@
 .evrr-section-req {
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
+}
+
+/* ── PW-832 평가 창 — 공용 창 틀(ModalShell) 위의 변형 ─────────────────────────
+   평가 창은 내용 높이가 제각각이라 껍데기의 고정 높이(428px)를 내용 높이로 푼다.
+   🔴 셀렉터에 껍데기 클래스(.tl-group-modal)를 함께 적는다 — 명시도가 같으면 승부가 파일
+   로드 순서로 갈린다(modal-shell-overrides). 크기를 풀면 화면 한계도 같은 규칙에 둔다. */
+.tl-group-modal.evc-shell {
+  height: auto;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+}
+.tl-group-modal.evc-shell.is-wide {
+  width: 640px;
+}
+.tl-group-modal.evc-shell.is-xwide {
+  width: 960px;
+}
+/* 본문이 길면 머리·푸터는 두고 가운데만 스크롤한다. */
+.tl-group-modal.evc-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: 24px;
 }

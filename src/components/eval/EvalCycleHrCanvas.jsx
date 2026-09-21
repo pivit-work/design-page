@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
-// 앱 공용 확인 창. 이 파일에도 같은 이름의 지역 `ConfirmModal`(사이클 삭제·일시 중단)이 있어 이름을 가른다.
+// 앱 공용 확인 창·공용 창 틀. 평가 화면은 창을 따로 그리지 않는다(PW-832).
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
@@ -334,22 +334,6 @@ const fill = (s, vars) => {
   return out;
 };
 
-function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfirm, onCancel }) {
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={onCancel}>
-      <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="evc-modal-title">{title}</h3>
-        <p className="evc-modal-sub">{body}</p>
-        <div className="evc-modal-actions">
-          <button type="button" className="evc-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
-          <button type="button" className={`evc-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 /**
  * [PW-637] 오픈 확인 창 — 기획서 시안(`eval-app.jsx` 의 `OpenConfirmModal`)을 옮겼다.
  *
@@ -363,7 +347,7 @@ function ConfirmModal({ title, body, confirmLabel, cancelLabel, danger, onConfir
  *   `err.message` 는 쓰지 않는다: HTTP 라이브러리의 영어 기본 문구가 그대로 샌다.
  * - 진행 중에는 「취소」·바깥 클릭을 받지 않는다. 닫혀도 요청은 이미 나갔으므로
  *   「아무것도 안 바뀌었다」로 읽히면 거짓이 된다.
- * - [PW-513] 포털로 body 에 건다 — 이유는 아래 `openBlock` 주석과 같다.
+ * - [PW-513] 포털로 body 에 건다 — 공용 창 틀(ModalShell)이 한다. 이유는 아래 `openBlock` 주석과 같다.
  */
 function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
   const [checked, setChecked] = useState(false);
@@ -396,27 +380,49 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
     }
   };
 
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={cancel} data-testid="evc-open-confirm-overlay">
-      <div
-        className="evc-modal evc-open-confirm"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="evc-open-confirm-title"
-        onClick={(e) => e.stopPropagation()}
-        data-testid="evc-open-confirm"
-      >
-        <div className="evc-open-confirm-head">
-          <h3 id="evc-open-confirm-title" className="evc-modal-title">{L.openConfirmTitle}</h3>
-          <p className="evc-modal-sub">
+  return (
+    <ModalShell
+      title={L.openConfirmTitle}
+      description={
+        <>
             {subHead}
             {subTail.length > 0 && (
               <strong className="evc-open-confirm-em">{L.openConfirmSubHold}</strong>
             )}
             {subTail.join('')}
-          </p>
-        </div>
-
+        </>
+      }
+      titleId="evc-open-confirm-title"
+      closeLabel={L.cancel}
+      onClose={cancel}
+      busy={submitting}
+      zIndex={1000}
+      className="evc-shell evc-open-confirm"
+      testId="evc-open-confirm"
+      overlayTestId="evc-open-confirm-overlay"
+      footer={
+        <>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-secondary"
+            onClick={cancel}
+            disabled={submitting}
+            data-testid="evc-open-confirm-cancel"
+          >
+            {L.cancel}
+          </button>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
+            onClick={submit}
+            disabled={!checked || submitting}
+            data-testid="evc-open-confirm-submit"
+          >
+            {submitting ? L.openConfirmSubmitting : L.openConfirmSubmit}
+          </button>
+        </>
+      }
+    >
         <div className="evc-open-confirm-body">
           <div className="evc-open-confirm-policy" data-testid="evc-open-confirm-policy">
             <div className="evc-open-confirm-policy-title">{L.openConfirmPolicyTitle}</div>
@@ -447,30 +453,7 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
             </div>
           )}
         </div>
-
-        <div className="evc-modal-actions evc-open-confirm-foot">
-          <button
-            type="button"
-            className="evc-btn is-ghost"
-            onClick={cancel}
-            disabled={submitting}
-            data-testid="evc-open-confirm-cancel"
-          >
-            {L.cancel}
-          </button>
-          <button
-            type="button"
-            className="evc-btn is-primary"
-            onClick={submit}
-            disabled={!checked || submitting}
-            data-testid="evc-open-confirm-submit"
-          >
-            {submitting ? L.openConfirmSubmitting : L.openConfirmSubmit}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 
@@ -599,19 +582,45 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
     // 이미 사라진 컴포넌트에 상태를 쓰게 된다.
   };
 
-  /* 🔴 확인 창은 일정 창 막(`.evc-modal-overlay`)의 «형제»로 둔다. 포털 안의 클릭도 React
-     트리를 따라 올라가므로, 막 안에 두면 확인 창 막을 누른 클릭이 일정 창의 onCancel 까지
-     올라가 고쳐 넣던 일정 창이 통째로 닫힌다. */
-  return createPortal(
+  /* 🔴 확인 창은 일정 창(공용 창 틀)의 «형제»로 둔다. 포털 안의 클릭도 React 트리를 따라
+     올라가므로, 창 틀 안에 두면 확인 창 막을 누른 클릭이 일정 창의 막까지 올라가 고쳐 넣던
+     일정 창이 통째로 닫힌다. 확인 창이 떠 있는 동안에는 일정 창이 Esc·막 클릭을 받지 않는다
+     (busy) — Esc 한 번에 밑의 일정 창이 닫히면 고쳐 넣던 값이 사라진다. */
+  return (
     <>
-    <div className="evc-modal-overlay" onClick={onCancel}>
-      <div
-        className="evc-modal is-wide evc-sched-modal"
-        onClick={(e) => e.stopPropagation()}
-        data-testid="evc-schedule-modal"
+      <ModalShell
+        title={L.editScheduleTitle}
+        description={cycle.name}
+        titleId="evc-schedule-modal-title"
+        closeLabel={L.cancel}
+        onClose={onCancel}
+        busy={saving || confirming}
+        zIndex={1000}
+        className="evc-shell is-wide evc-sched-modal"
+        testId="evc-schedule-modal"
+        footer={
+          <>
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-secondary"
+              onClick={onCancel}
+              disabled={saving}
       >
-        <h3 className="evc-modal-title">{L.editScheduleTitle}</h3>
-        <p className="evc-modal-sub">{cycle.name}</p>
+              {L.cancel}
+            </button>
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-primary"
+              disabled={hasError || saving}
+              onClick={requestSave}
+              data-testid="evc-sched-save"
+            >
+              {L.editScheduleSave}
+            </button>
+          </>
+        }
+      >
+        <div className="evc-sched-modal-body">
         <div className="evc-sched-modal-note">{L.editScheduleNote}</div>
         {/* [PW-529 ③-b·③-c] 마법사 3단계와 «같은 문안» 이되, 링크는 여기에만 산다. */}
         {L.shareGuide && (
@@ -723,33 +732,14 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
             );
           })}
         </div>
-        <div className="evc-modal-actions">
-          {/* PW-614 — 실패 사유는 «누른 자리 옆»에 남긴다. 토스트는 스쳐 지나간다. */}
+          {/* PW-614 — 실패 사유는 «누른 자리 옆»(버튼 바로 위)에 남긴다. 토스트는 스쳐 지나간다. */}
           {saveFailed && (
             <span className="evc-sched-modal-err" data-testid="evc-sched-save-failed">
               {L.submitFailed}
             </span>
           )}
-          <button
-            type="button"
-            className="evc-btn is-ghost"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            {L.cancel}
-          </button>
-          <button
-            type="button"
-            className="evc-btn is-primary"
-            disabled={hasError || saving}
-            onClick={requestSave}
-            data-testid="evc-sched-save"
-          >
-            {L.editScheduleSave}
-          </button>
-        </div>
-      </div>
     </div>
+      </ModalShell>
     {confirming && (
       <AppConfirmModal
         testId="evc-sched-confirm"
@@ -791,8 +781,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
         }}
       />
     )}
-    </>,
-    document.body,
+    </>
   );
 }
 
@@ -1556,45 +1545,30 @@ export default function EvalCycleHrCanvas({
           올려도 바깥의 `.sidebar`(100)·`.top-nav`(90)·`.evnav-nav`(80) 뒤로 깔린다.
           뿌리 자신이 `z-index: auto`(=0) 로 겨루기 때문이다. 그러면 창이 떠 있는데
           왼쪽 메뉴와 위쪽 바만 밝게 남아 «저기는 누를 수 있다» 로 읽힌다.
-          같은 파일의 `ConfirmModal` 이 이미 같은 이유로 포털을 쓴다. */}
-      {openBlock &&
-        createPortal(
-          <div className="evc-modal-overlay" onClick={() => setOpenBlock(null)}>
-            <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-              <h3 className="evc-modal-title">{L.open}</h3>
-              <p className="evc-modal-sub" data-testid="evc-open-block-body">
+          공용 확인 창(ConfirmModal)이 body 직속 포털로 그려 이 일을 대신한다. */}
+      {openBlock && (
+        <AppConfirmModal
+          testId="evc-open-block"
+          title={L.open}
+          body={
+            <span data-testid="evc-open-block-body">
                 {fill(L.openBlockTemplate, {
                   type: openBlock.types
                     .map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t)
                     .join(', '),
                 })}
-              </p>
-              <div className="evc-modal-actions">
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  onClick={() => setOpenBlock(null)}
-                  data-testid="evc-open-block-cancel"
-                >
-                  {L.cancel}
-                </button>
-                <button
-                  type="button"
-                  className="evc-btn is-primary"
-                  onClick={() => {
+            </span>
+          }
+          confirmLabel={L.openBlockTemplateGo}
+          cancelLabel={L.cancel}
+          onCancel={() => setOpenBlock(null)}
+          onConfirm={() => {
                     const target = openBlock;
                     setOpenBlock(null);
                     // 2단계로, 그리고 «비어 있는 그 유형» 으로 보낸다.
                     handleManage(target.cycle, { step: 1, tplType: target.types[0] });
                   }}
-                  data-testid="evc-open-block-go"
-                >
-                  {L.openBlockTemplateGo}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
+        />
         )}
 
       {openConfirm && (
@@ -1607,7 +1581,7 @@ export default function EvalCycleHrCanvas({
       )}
 
       {confirmModal && (
-        <ConfirmModal
+        <AppConfirmModal
           title={confirmModal.title}
           body={confirmModal.body}
           confirmLabel={confirmModal.confirmLabel ?? L.confirm}
