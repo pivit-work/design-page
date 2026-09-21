@@ -66,7 +66,7 @@ export default function EvalCycleCalibrationCanvas({
         <section className="evc-card">
           <h3 className="evc-card-name">{L.distributionTitle}</h3>
           {warnHigh && (
-            <p className="evx-notice" data-testid="evcal-warn" style={{ background: 'var(--utility-warning-50)', color: 'var(--utility-warning-700, var(--utility-warning-500))' }}>
+            <p className="evx-notice" data-testid="evcal-warn" style={{ background: 'var(--utility-warning-50)', color: 'var(--utility-warning-700)' }}>
               <AlertIcon size={14} />
               <span>{L.warnHigh}</span>
             </p>

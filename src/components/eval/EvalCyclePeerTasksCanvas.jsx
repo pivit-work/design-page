@@ -55,7 +55,7 @@ export default function EvalCyclePeerTasksCanvas({
             <div className="evc-card evpt-row" key={t.evaluateeId} data-testid="evpt-row">
               <div>
                 <span className="evc-card-name">{t.evaluateeName || t.evaluateeId}</span>
-                <span className={`evc-status-badge tone-${t.submitted ? 'success' : 'neutral'}`} style={{ marginLeft: 'var(--spacing-md, 8px)' }}>
+                <span className={`evc-status-badge tone-${t.submitted ? 'success' : 'neutral'}`} style={{ marginLeft: 'var(--spacing-md)' }}>
                   {t.submitted ? L.done : L.pending}
                 </span>
               </div>

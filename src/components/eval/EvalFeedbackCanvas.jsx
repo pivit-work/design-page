@@ -17,31 +17,31 @@ import AvatarPhoto from './AvatarPhoto';
 // ── 색 토큰 (시안 member view C) ──
 // 디자인시스템 토큰화(전면). teal(멤버 강조)→system accent(brand), 나머지 semantic 은 hue 토큰.
 const C = {
-  bg: 'var(--bg-primary, #F5F4F0)',
-  surface: 'var(--bg-quaternary, #FFFFFF)',
-  border: 'var(--border-secondary, #E8E4DC)',
-  borderL: 'var(--border-tertiary, #F0EDE8)',
-  text: 'var(--text-primary, #1C1917)',
-  sub: 'var(--text-secondary, #57534E)',
-  muted: 'var(--text-tertiary, #A8A29E)',
-  teal: 'var(--utility-brand-600, #0D9488)',
-  tealBg: 'var(--utility-brand-50, #F0FDFA)',
-  tealBd: 'var(--utility-brand-200, #99F6E4)',
-  blue: 'var(--utility-blue-600, #2563EB)',
-  blueBg: 'var(--utility-blue-50, #EFF6FF)',
-  blueBd: 'var(--utility-blue-200, #BFDBFE)',
-  green: 'var(--utility-success-600, #17b26a)',
-  greenBg: 'var(--utility-success-50, #ecfdf3)',
-  greenBd: 'var(--utility-success-200, #abefc6)',
-  rose: 'var(--utility-error-600, #E11D48)',
-  roseBg: 'var(--utility-error-50, #FFF1F2)',
-  roseBd: 'var(--utility-error-200, #FECDD3)',
-  purple: 'var(--utility-purple-500, #7C3AED)',
-  purpleBg: 'var(--utility-purple-50, #F5F3FF)',
-  purpleBd: 'var(--utility-purple-200, #DDD6FE)',
-  amber: 'var(--utility-warning-700, #C46A00)',
-  amberBg: 'var(--utility-warning-50, #FFF4E0)',
-  amberBd: 'var(--utility-warning-200, #F5C97A)',
+  bg: 'var(--bg-primary)',
+  surface: 'var(--bg-quaternary)',
+  border: 'var(--border-secondary)',
+  borderL: 'var(--border-tertiary)',
+  text: 'var(--text-primary)',
+  sub: 'var(--text-secondary)',
+  muted: 'var(--text-tertiary)',
+  teal: 'var(--utility-brand-600)',
+  tealBg: 'var(--utility-brand-50)',
+  tealBd: 'var(--utility-brand-200)',
+  blue: 'var(--utility-blue-600)',
+  blueBg: 'var(--utility-blue-50)',
+  blueBd: 'var(--utility-blue-200)',
+  green: 'var(--utility-success-600)',
+  greenBg: 'var(--utility-success-50)',
+  greenBd: 'var(--utility-success-200)',
+  rose: 'var(--utility-error-600)',
+  roseBg: 'var(--utility-error-50)',
+  roseBd: 'var(--utility-error-200)',
+  purple: 'var(--utility-purple-500)',
+  purpleBg: 'var(--utility-purple-50)',
+  purpleBd: 'var(--utility-purple-200)',
+  amber: 'var(--utility-warning-700)',
+  amberBg: 'var(--utility-warning-50)',
+  amberBd: 'var(--utility-warning-200)',
 };
 const FONT = "'Pretendard','Noto Sans KR',sans-serif";
 
@@ -133,7 +133,7 @@ function Avatar({ name, photo, size = 30, gradient }) {
         height: size,
         borderRadius: '50%',
         background: gradient || `linear-gradient(135deg,${C.teal},${C.blue})`,
-        color: '#fff',
+        color: 'var(--text-white)',
         fontSize: size * 0.42,
         fontWeight: 700,
         display: 'inline-flex',
@@ -152,7 +152,7 @@ function Chip({ label, color, bg, bd }) {
   return (
     <span
       style={{
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         color,
         background: bg,
@@ -239,13 +239,13 @@ function BlockCard({ block, L, onOpen }) {
             <span style={{ width: PROGRESS_BAR_W, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
               <span style={{ display: 'block', width: `${block.progress ?? 0}%`, height: '100%', background: barColor }} />
             </span>
-            <span style={{ fontSize: 11, color: C.sub }}>{block.progress ?? 0}%</span>
+            <span style={{ fontSize: 12, color: C.sub }}>{block.progress ?? 0}%</span>
           </span>
         )}
       </div>
 
       {latest.length === 0 ? (
-        <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>
+        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>
           {isKr ? L.emptyBlock : L.emptyBlockInit}
         </p>
       ) : (
@@ -263,7 +263,7 @@ function BlockCard({ block, L, onOpen }) {
                 }
               />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.sub }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
                   <span style={{ fontWeight: 700, color: C.text }}>
                     {it.itemType === 'feedback' ? it.person?.name || '' : '나'}
                   </span>
@@ -274,7 +274,7 @@ function BlockCard({ block, L, onOpen }) {
                 </div>
                 <p
                   style={{
-                    fontSize: 'var(--font-size-text-xs, 12px)',
+                    fontSize: 'var(--font-size-text-xs)',
                     color: C.sub,
                     margin: '2px 0 0',
                     display: '-webkit-box',
@@ -289,7 +289,7 @@ function BlockCard({ block, L, onOpen }) {
                 {isPreviewTruncated(it.text) && (
                   <span
                     data-testid={`fbm-truncated-${it.id}`}
-                    style={{ fontSize: 10, fontWeight: 600, color: isKr ? C.teal : C.purple }}
+                    style={{ fontSize: 12, fontWeight: 600, color: isKr ? C.teal : C.purple }}
                   >
                     {L.truncatedHint}
                   </span>
@@ -301,14 +301,14 @@ function BlockCard({ block, L, onOpen }) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <span style={{ fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: 12, color: C.muted }}>
           {items.length}{L.countSuffix}
         </span>
         {isMyTurn && <Chip label={L.myTurn} color={C.teal} bg={C.tealBg} bd={C.tealBd} />}
         {!isMyTurn && isWaiting && (
           <Chip label={L.waiting} color={C.green} bg={C.greenBg} bd={C.greenBd} />
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, color: isKr ? C.teal : C.purple }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.teal : C.purple }}>
           {L.openThread}
         </span>
       </div>
@@ -345,7 +345,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
         position: 'fixed',
         inset: 0,
         // --bg-overlay 는 불투명 색이라 그대로 쓰면 뒷 화면이 통째로 가려진다 (okr.css 와 같은 형태로 섞는다)
-        background: 'color-mix(in srgb, var(--bg-overlay, #111927) 45%, transparent)',
+        background: 'color-mix(in srgb, var(--bg-overlay) 45%, transparent)',
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
@@ -372,7 +372,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
             {isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
           </span>
           {isKr && (
-            <span style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>{block.progress ?? 0}%</span>
+            <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{block.progress ?? 0}%</span>
           )}
           <button
             type="button"
@@ -407,7 +407,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
         </div>
 
         {isPastPeriod ? (
-          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs, 12px)', textAlign: 'center' }}>
+          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
         ) : (
@@ -446,7 +446,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <Avatar name={item.person?.name} photo={item.person?.avatar} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs, 12px)', marginBottom: 3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
             {!item.isRead && <Chip label={L.newBadge} color={C.teal} bg={C.tealBg} bd={C.tealBd} />}
             <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
@@ -472,7 +472,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
                 type="button"
                 onClick={() => setReplying(true)}
                 data-testid={`fbm-reply-toggle-${item.id}`}
-                style={{ border: 'none', background: 'none', color: C.teal, fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                style={{ border: 'none', background: 'none', color: C.teal, fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
                 {L.replyToggle}
               </button>
@@ -492,7 +492,7 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
                     disabled={busy}
                     onClick={send}
                     data-testid={`fbm-reply-send-${item.id}`}
-                    style={{ background: C.teal, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
                     {L.replySend}
                   </button>
@@ -560,7 +560,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }} data-testid="fbm-request-bubble">
       <div style={{ maxWidth: '80%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.sub, justifyContent: 'flex-end', marginBottom: 3 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub, justifyContent: 'flex-end', marginBottom: 3 }}>
           <span>→ {item.person?.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})</span>
           <span>{fmtDate(item.sentAt)}</span>
           <Chip
@@ -579,7 +579,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               data-testid="fbm-request-edit-input"
               style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.blueBd}`, fontSize: 12, color: C.text, resize: 'none', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.7, outline: 'none', marginBottom: 10 }}
             />
-            {error && <p style={{ margin: '0 0 8px', fontSize: 11, color: C.rose }}>{error}</p>}
+            {error && <p style={{ margin: '0 0 8px', fontSize: 12, color: C.rose }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 type="button"
@@ -593,7 +593,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
                 onClick={save}
                 disabled={busy}
                 data-testid="fbm-request-edit-save"
-                style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.blue, color: '#fff', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
+                style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.blue, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
               >
                 {L.requestEditSave}
               </button>
@@ -603,7 +603,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
           <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
             {item.text || <span style={{ color: C.muted }}>{L.requestEmptyText}</span>}
             <div style={{ marginTop: 6 }}>
-              <Chip label={L.requestTagFull} color={C.blue} bg="#fff" bd={C.blueBd} />
+              <Chip label={L.requestTagFull} color={C.blue} bg="var(--text-white)" bd={C.blueBd} />
             </div>
           </div>
         )}
@@ -616,7 +616,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               type="button"
               onClick={() => setEditing(true)}
               data-testid="fbm-request-edit"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: C.muted, padding: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.muted, padding: 0 }}
             >
               {L.requestEdit}
             </button>
@@ -627,7 +627,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               onClick={remove}
               disabled={busy}
               data-testid="fbm-request-delete"
-              style={{ background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: 11, color: C.rose, padding: 0, opacity: busy ? 0.6 : 1 }}
+              style={{ background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: 12, color: C.rose, padding: 0, opacity: busy ? 0.6 : 1 }}
             >
               {L.requestDelete}
             </button>
@@ -635,7 +635,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
         </div>
       )}
       {!editing && error && (
-        <p style={{ margin: 0, fontSize: 11, color: C.rose }}>{error}</p>
+        <p style={{ margin: 0, fontSize: 12, color: C.rose }}>{error}</p>
       )}
     </div>
   );
@@ -721,11 +721,11 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
               title={lockedR ? L.requestAlreadyHint : undefined}
               style={{
                 border: `1px solid ${on ? col : lockedR ? C.borderL : C.border}`,
-                background: on ? bg : lockedR ? C.borderL : '#fff',
+                background: on ? bg : lockedR ? C.borderL : 'var(--text-white)',
                 color: on ? col : lockedR ? C.muted : C.sub,
                 borderRadius: 16,
                 padding: '4px 12px',
-                fontSize: 'var(--font-size-text-xs, 12px)',
+                fontSize: 'var(--font-size-text-xs)',
                 fontWeight: 600,
                 cursor: lockedR ? 'not-allowed' : 'pointer',
               }}
@@ -739,7 +739,7 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
       {lockedCount > 0 && (
         <p
           data-testid="fbm-recipient-locked-hint"
-          style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.6 }}
+          style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.6 }}
         >
           {lockedCount === recipients.length ? L.requestAllRequestedHint : L.requestAlreadyHint}
         </p>
@@ -757,7 +757,7 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
         disabled={!recipient || busy}
         onClick={send}
         data-testid="fbm-request-send"
-        style={{ background: C.teal, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
+        style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
       >
         {(recipient?.kind === 'peer' ? L.kindPeer : L.kindManager) + L.requestSendSuffix}
       </button>
@@ -779,7 +779,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
         padding: '4px 10px',
       }}
     >
-      <span style={{ fontSize: 11, color: isPastPeriod ? C.amber : C.muted }}>{L.periodLabel}</span>
+      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.muted }}>{L.periodLabel}</span>
       <select
         value={periodKey}
         onChange={(e) => onChange(e.target.value)}
@@ -955,9 +955,9 @@ export default function EvalFeedbackCanvas({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Avatar name={meName || L.title} photo={meAvatar} size={40} />
           <div>
-            <h1 className="evc-title" style={{ fontSize: 'var(--font-size-text-md, 16px)' }}>{L.title}</h1>
+            <h1 className="evc-title" style={{ fontSize: 'var(--font-size-text-md)' }}>{L.title}</h1>
             {(meName || meRole) && (
-              <p style={{ fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub, margin: 0 }}>
+              <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: 0 }}>
                 {meName}{meRole ? ` · ${meRole}` : ''}
               </p>
             )}
@@ -976,11 +976,11 @@ export default function EvalFeedbackCanvas({
 
       <div className="evc-list">
         {isPastPeriod && (
-          <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)' }}>
+          <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}>
             <ClockIcon size={12} /> {L.pastBanner}
           </div>
         )}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs, 12px)', color: C.sub }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
           <ChatIcon size={12} /> {L.infoBanner}
         </div>
         {unread > 0 && (
@@ -991,7 +991,7 @@ export default function EvalFeedbackCanvas({
 
         {krBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
               {L.sectionKr}
             </div>
             {krBlocks.map((b) => (
@@ -1002,7 +1002,7 @@ export default function EvalFeedbackCanvas({
 
         {initBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs, 12px)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionInit}
             </div>
             {initBlocks.map((b) => (
