@@ -2042,7 +2042,16 @@ export default function EvalCycleWizard({
   const [reminders, setReminders] = useState(() => ({
     ...(D?.reminders ?? initialSeq?.reminders ?? {}),
   })); // { phaseId: [reminderObj] }
-  const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 id
+  /**
+   * 리마인더 하나를 가리키는 화면 상태 키 — «단계 id + 리마인더 id» [PW-889].
+   *
+   * 🔴 리마인더 id 는 **단계 안에서만** 고유하다. 기본 리마인더(`defaultReminders`)는
+   * 모든 단계에서 같은 id(`r_default_d3`·`r_default_d1`)를 쓴다. 그래서 펼침·샘플 접기·
+   * AI 초안을 리마인더 id 만으로 담으면, 한 단계에서 ⚙ 상세를 열 때 다른 단계의 같은
+   * 번째 리마인더까지 함께 열렸다. 테스트 발송(`testKey`)은 처음부터 이 모양이었다.
+   */
+  const rmKey = (pid, rid) => `${pid}::${rid}`;
+  const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 — rmKey
   const [disabledPhases, setDisabledPhases] = useState(() => {
     if (D?.disabledPhases) return new Set(D.disabledPhases);
     return new Set(
@@ -2421,11 +2430,11 @@ export default function EvalCycleWizard({
         };
       }),
     }));
-  const toggleRmDetail = (rid) =>
+  const toggleRmDetail = (key) =>
     setRmDetail((prev) => {
       const n = new Set(prev);
-      if (n.has(rid)) n.delete(rid);
-      else n.add(rid);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
       return n;
     });
 
@@ -2444,7 +2453,7 @@ export default function EvalCycleWizard({
   /* [PW-626] 「나에게 테스트 발송」 결과 — «단계 + 리마인더 id» 별. 문구를 고치면 지운다(아래 patchMessage).
      🔴 리마인더 id 만으로 가르면 안 된다 — 기본 리마인더는 단계마다 같은 id 로 깔려서, 셀프 리뷰에서
      보낸 결과가 다른 단계의 첫 리마인더에도 똑같이 뜬다(2026-09-22 브라우저에서 실제로 봤다). */
-  const testKey = (pid, rid) => `${pid}::${rid}`;
+  const testKey = rmKey;
   const [testBusy, setTestBusy] = useState(() => new Set());
   const [testResult, setTestResult] = useState({});
   const clearTestResult = (key) =>
@@ -2551,12 +2560,12 @@ export default function EvalCycleWizard({
     email: { field: 'body', hasSubject: true },
     slack: { field: 'slackBody', hasSubject: false },
   };
-  const slotKey = (rid, slot) => `${rid}::${slot}`;
+  const slotKey = (pid, rid, slot) => `${rmKey(pid, rid)}::${slot}`;
   const runAiPolish = async (ph, rm, slot = 'email') => {
     if (!onPolishMessage) return;
     const conf = MSG_SLOTS[slot];
     const cur = messageOf(rm);
-    const key = slotKey(rm.id, slot);
+    const key = slotKey(ph.id, rm.id, slot);
     const curSubject = conf.hasSubject ? cur.subject ?? '' : '';
     const curBody = cur[conf.field] ?? '';
     markSet(setAiBusy, key, true);
@@ -2591,7 +2600,7 @@ export default function EvalCycleWizard({
   };
   const applyAiDraft = (pid, rid, slot = 'email') => {
     const conf = MSG_SLOTS[slot];
-    const key = slotKey(rid, slot);
+    const key = slotKey(pid, rid, slot);
     const d = aiDraft[key];
     if (!d) return;
     const patch = { [conf.field]: d.body ?? '' };
@@ -2663,12 +2672,12 @@ export default function EvalCycleWizard({
    * 남긴다: 자리를 아끼고 싶은 사람의 선택지를 뺏지는 않는다.
    */
   const [sampleShut, setSampleShut] = useState(() => new Set());
-  const sampleIsOpen = (rid) => !sampleShut.has(rid);
-  const toggleSample = (rid) =>
+  const sampleIsOpen = (key) => !sampleShut.has(key);
+  const toggleSample = (key) =>
     setSampleShut((prev) => {
       const n = new Set(prev);
-      if (n.has(rid)) n.delete(rid);
-      else n.add(rid);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
       return n;
     });
 
@@ -2685,7 +2694,7 @@ export default function EvalCycleWizard({
    */
   const renderMessageTools = (ph, rm, i, slot, extraActions = null) => {
     const conf = MSG_SLOTS[slot];
-    const key = slotKey(rm.id, slot);
+    const key = slotKey(ph.id, rm.id, slot);
     const sfx = slot === 'email' ? '' : `-${slot}`;
     const msg = messageOf(rm);
     const value = msg[conf.field] ?? '';
@@ -5721,12 +5730,12 @@ export default function EvalCycleWizard({
                                     </span>
                                     <button
                                       type="button"
-                                      className={`evc-rm-detail-btn${rmDetail.has(rm.id) ? ' is-open' : ''}`}
-                                      onClick={() => toggleRmDetail(rm.id)}
+                                      className={`evc-rm-detail-btn${rmDetail.has(rmKey(ph.id, rm.id)) ? ' is-open' : ''}`}
+                                      onClick={() => toggleRmDetail(rmKey(ph.id, rm.id))}
                                       title={L.reminderDetail}
                                       data-testid={`evc-rm-detail-${ph.id}-${i}`}
                                     >
-                                      <GearIcon size={12} /> {L.reminderDetail} {rmDetail.has(rm.id) ? '▲' : '▼'}
+                                      <GearIcon size={12} /> {L.reminderDetail} {rmDetail.has(rmKey(ph.id, rm.id)) ? '▲' : '▼'}
                                     </button>
                                     <button
                                       type="button"
@@ -5771,7 +5780,7 @@ export default function EvalCycleWizard({
                                       {L.reminderBeforeStartWarn}
                                     </div>
                                   )}
-                                  {rmDetail.has(rm.id) && (
+                                  {rmDetail.has(rmKey(ph.id, rm.id)) && (
                                     <div
                                       className="evc-rm-detail"
                                       data-testid={`evc-rm-detail-panel-${ph.id}-${i}`}
@@ -6027,11 +6036,11 @@ export default function EvalCycleWizard({
                                           <button
                                             type="button"
                                             className="evc-rm-save-msg"
-                                            onClick={() => toggleSample(rm.id)}
-                                            aria-expanded={sampleIsOpen(rm.id)}
+                                            onClick={() => toggleSample(rmKey(ph.id, rm.id))}
+                                            aria-expanded={sampleIsOpen(rmKey(ph.id, rm.id))}
                                             data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
                                           >
-                                            {sampleIsOpen(rm.id) ? L.reminderSampleHide : L.reminderSampleShow}
+                                            {sampleIsOpen(rmKey(ph.id, rm.id)) ? L.reminderSampleHide : L.reminderSampleShow}
                                           </button>
                                           {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
                                               어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
@@ -6069,7 +6078,7 @@ export default function EvalCycleWizard({
                                             )}
                                           </div>
                                         )}
-                                        {sampleIsOpen(rm.id) && renderMessageSample(ph, rm, i)}
+                                        {sampleIsOpen(rmKey(ph.id, rm.id)) && renderMessageSample(ph, rm, i)}
                                       </div>
                                       {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
                                       {rm.channels.includes('email') && (
