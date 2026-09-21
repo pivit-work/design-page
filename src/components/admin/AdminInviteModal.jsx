@@ -11,8 +11,8 @@ import {
   nameHasEmail, normEmail, reconcilePrimary, fmt,
 } from './inviteRules.js';
 import {
-  INVITE_CSV_MAX_ROWS, INVITE_OPTION_COLUMNS, ROLE_LABEL_KEY,
-  buildInviteTemplateCsv, csvRowIssues, parseInviteCsv,
+  INVITE_CSV_MAX_ROWS, ROLE_LABEL_KEY,
+  buildInviteTemplateCsv, csvRowIssues, inviteOptionColumns, parseInviteCsv,
 } from './inviteCsv.js';
 
 /**
@@ -32,8 +32,10 @@ import {
  *  · **조직장은 여기서 지정하지 않는다** — 가입 전에는 team_members 행이 없어
  *    "그 팀 소속자만 조직장"(§1-3-f L3)을 만족할 수 없다
  *  · **인사 축은 직급·직군·직렬·근무지 4종**(+권한). 직렬은 직군에 매달린 2단
- *    선택이고, 직무(`job_duty`)·직종·직함은 초대에서 받지 않는다
+ *    선택이고, 직무(`job_duty`)·직함은 초대에서 받지 않는다
  *    — 2026-08-22 David 결정(PW-412), 정본 정책서 §2-2 v1.4
+ *  · **직종은 조직이 켰을 때만 받는다**(`jobCategoryEnabled`) — 2026-09-15 David 확정
+ *    (PW-644 · 정책서 §2-2·§2-3·§5 V12). 끈 조직에는 칸 자체가 없다
  *
  * 🔴 **이 축은 이미 두 번 뒤집혔다.** 「초대에서 직렬 제외」(2026-08-12)는 직군 칸이
  *    없는 **온보딩 초대 한정** 결정이고, 「초대 모달에 직무 칸이 있다」(2026-08-16)는
@@ -72,6 +74,7 @@ const DEFAULT_LABELS = {
   // 것이 PW-412 의 문서·구현 혼선을 만든 직접 원인이라 기본값도 정정한다.
   jobTitle: '직렬',
   workLocation: '근무지',
+  jobCategory: '직종',
   unset: '미지정',
   optionsEmpty: '옵션 없음 — 직군/직렬/직무 설정에서 추가',
   // 직렬이 직군 때문에 잠겼을 때 — 「옵션 없음」이라고 하면 원인을 잘못 가리킨다
@@ -154,6 +157,8 @@ const DEFAULT_LABELS = {
   csvFixOrgPath: '조직 다시 고르기',
   csvIgnoredColumns: '건너뛴 열: {columns}',
   csvLeaderIgnored: '조직장 열은 초대에 적용되지 않습니다 — 가입 후 지정하세요',
+  // 직종을 끈 조직의 직종 열 — 막지 않고 버린 뒤 알린다(정책 §5 V12)
+  csvJobCategoryIgnored: '직종은 이 회사에서 쓰지 않는 항목이라 직종 열의 값을 무시했습니다',
   // 파일 자체를 못 읽는 경우 — 스테이징을 만들지 않는다
   csvErrEmpty: '내용이 없는 파일이에요.',
   csvErrNotCsv: 'CSV 파일만 업로드할 수 있어요.',
@@ -177,6 +182,7 @@ const DEFAULT_LABELS = {
   csvColJobFamily: '직군',
   csvColJobTitle: '직렬',
   csvColWorkLocation: '근무지',
+  csvColJobCategory: '직종',
   csvColOrgPath: '조직경로',
   csvColPrimaryPath: '주소속',
   csvColLeader: '조직장',
@@ -202,6 +208,7 @@ function blankRow(bulk) {
     jobLevel: bulk.jobLevel,
     jobFamily: bulk.jobFamily,
     jobTitle: bulk.jobTitle,
+    jobCategory: bulk.jobCategory,
     workLocation: bulk.workLocation,
     teamIds: [...bulk.teamIds],
     primaryTeamId: bulk.primaryTeamId,
@@ -215,6 +222,7 @@ const EMPTY_BULK = {
   jobLevel: '',
   jobFamily: '',
   jobTitle: '',
+  jobCategory: '',
   workLocation: '',
   teamIds: [],
   primaryTeamId: '',
@@ -323,13 +331,14 @@ function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }
  *  · 조직경로 — 못 찾은 경로마다 조직 select
  */
 function CsvStagingRow({
-  row, errors, tree, fieldOptions, laddersByFamily, labels, sending, onPatch, onResolvePath,
+  row, errors, tree, fieldOptions, laddersByFamily, jobCategoryEnabled, labels, sending, onPatch,
+  onResolvePath,
 }) {
   const pathLabelOf = (id) => tree.find((e) => e.id === id)?.pathLabel ?? id;
   /* 쌍이 어긋난 행은 **직군·직렬 두 칸 모두** 고칠 수 있어야 한다 — 값 자체는 옵션
      목록에 있으니 아래 «옵션에 없는 값» 검사에는 걸리지 않는다(PW-412 E18·V7). */
   const pairIssue = jobPairIssue(laddersByFamily, row.jobFamily, row.jobTitle);
-  const optionCols = INVITE_OPTION_COLUMNS.filter((c) => {
+  const optionCols = inviteOptionColumns({ jobCategoryEnabled }).filter((c) => {
     if (pairIssue && (c.key === 'jobFamily' || c.key === 'jobTitle')) return true;
     const list = fieldOptions[c.option];
     const v = String(row[c.key] || '').trim();
@@ -479,6 +488,12 @@ export default function AdminInviteModal({
    * 화면은 그 이유를 말해주지 못한다. 그 경우 서버(422 INVALID_JOB_PAIR)가 판정한다.
    */
   laddersByFamily = {},
+  /**
+   * 이 조직이 직종을 쓰는가 (PW-644 · 선택 적용). `true` 일 때만 직종 칸·CSV 열이 생긴다.
+   * 켰는지 못 읽었으면 호출부가 `false` 를 넘긴다 — 칸이 없을 뿐 초대는 그대로 된다
+   * (정책 §7: 스위치 하나 때문에 초대를 막지 않는다). 선택지는 `fieldOptions.jobCategory`.
+   */
+  jobCategoryEnabled = false,
   onGoBilling,
   maxRows = INVITE_MAX_ROWS,
   labels: providedLabels,
@@ -609,7 +624,9 @@ export default function AdminInviteModal({
     // CSV 에만 있는 사유(역할·옵션·조직경로 해석 실패)는 매 렌더 다시 만든다 —
     // 파싱 때 굳혀 두면 셀에서 고친 뒤에도 옛 사유가 남는다.
     // (직군, 직렬) 쌍(V7)도 두 탭 모두 본다 — CSV 는 csvRowIssues 가 함께 본다.
-    if (isCsv) e.push(...csvRowIssues(r, { fieldOptions, labels, laddersByFamily }));
+    if (isCsv) {
+      e.push(...csvRowIssues(r, { fieldOptions, labels, laddersByFamily, jobCategoryEnabled }));
+    }
     else {
       const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
       if (pair === 'family') e.push(labels.errLadderNeedsFamily);
@@ -653,6 +670,7 @@ export default function AdminInviteModal({
         jobLevel: bulk.jobLevel,
         jobFamily: bulk.jobFamily,
         jobTitle: bulk.jobTitle,
+        jobCategory: bulk.jobCategory,
         workLocation: bulk.workLocation,
         teamIds: [...bulk.teamIds],
         primaryTeamId: reconcilePrimary(bulk.teamIds, bulk.primaryTeamId),
@@ -676,7 +694,7 @@ export default function AdminInviteModal({
   /* ── CSV 업로드(§2-4) ────────────────────────────────────────────────── */
 
   const downloadTemplate = () => {
-    const blob = new Blob([buildInviteTemplateCsv(labels)], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([buildInviteTemplateCsv(labels, { jobCategoryEnabled })], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -705,7 +723,7 @@ export default function AdminInviteModal({
       setCsvError(labels.csvErrRead);
       return;
     }
-    const res = parseInviteCsv(text, { orgTree: tree, labels });
+    const res = parseInviteCsv(text, { orgTree: tree, labels, jobCategoryEnabled });
     if (!res.ok) {
       // 상한 초과·필수 열 누락은 **스테이징을 만들지 않는다.** 앞 500행만 남기는
       // 조용한 절단은 정책 §5 V10 이 금지한다.
@@ -715,6 +733,7 @@ export default function AdminInviteModal({
     }
     const notices = [];
     if (res.leaderColumnIgnored) notices.push(labels.csvLeaderIgnored);
+    if (res.jobCategoryIgnored) notices.push(labels.csvJobCategoryIgnored);
     if (res.ignoredColumns.length > 0) {
       notices.push(fmt(labels.csvIgnoredColumns, { columns: res.ignoredColumns.join(', ') }));
     }
@@ -745,6 +764,8 @@ export default function AdminInviteModal({
         // 계약 키는 `jobLadder` 다(arch-admin-data-model 초대 발송 API · PW-412).
         // 행 모델의 `jobTitle` 은 컬럼 이름이 남은 것일 뿐 값은 직렬이다.
         jobLadder: r.jobTitle || undefined,
+        // 끈 조직은 **키째** 싣지 않는다 — 서버도 버리지만(V12) 보내지 않는 쪽이 계약이 분명하다.
+        ...(jobCategoryEnabled && r.jobCategory ? { jobCategory: r.jobCategory } : {}),
         workLocation: r.workLocation || undefined,
         teamIds: r.teamIds.length ? r.teamIds : undefined,
         teamId: r.primaryTeamId || undefined,
@@ -831,6 +852,13 @@ export default function AdminInviteModal({
         }
         onChange={(v) => setBulk((b) => ({ ...b, jobTitle: v }))}
       />
+      {jobCategoryEnabled && (
+        <OptionSelect
+          id="inv-bulk-jobCategory" label={labels.jobCategory} labels={labels}
+          value={bulk.jobCategory} options={fieldOptions.jobCategory}
+          onChange={(v) => setBulk((b) => ({ ...b, jobCategory: v }))}
+        />
+      )}
       <OptionSelect
         id="inv-bulk-workLocation" label={labels.workLocation} labels={labels}
         value={bulk.workLocation} options={fieldOptions.workLocation}
@@ -1051,6 +1079,7 @@ export default function AdminInviteModal({
                           tree={tree}
                           fieldOptions={fieldOptions}
                           laddersByFamily={laddersByFamily}
+                          jobCategoryEnabled={jobCategoryEnabled}
                           labels={labels}
                           sending={sending}
                           onPatch={patch}
@@ -1174,6 +1203,13 @@ export default function AdminInviteModal({
                         }
                         onChange={(v) => patch(r.key, { jobTitle: v })}
                       />
+                      {jobCategoryEnabled && (
+                        <OptionSelect
+                          id={`inv-${r.key}-jobCategory`} label={labels.jobCategory} labels={labels}
+                          value={r.jobCategory} options={fieldOptions.jobCategory} disabled={sending}
+                          onChange={(v) => patch(r.key, { jobCategory: v })}
+                        />
+                      )}
                       <OptionSelect
                         id={`inv-${r.key}-workLocation`} label={labels.workLocation} labels={labels}
                         value={r.workLocation} options={fieldOptions.workLocation} disabled={sending}
