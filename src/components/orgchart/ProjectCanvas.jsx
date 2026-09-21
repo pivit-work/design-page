@@ -1,10 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import ProfileModal from './ProfileModal.jsx';
 import ProjectCardGrid from './ProjectCardGrid.jsx';
 import MemberTable from './MemberTable.jsx';
 import { PROJECTS, FILTER_TABS } from './project-constants.js';
+import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
-export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData }) {
+export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData, labels }) {
+  // 화면 문구 — OrgChartCanvas 와 같은 계약(PW-705). 안 넘기면 한국어 기본값.
+  const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const [activeTab, setActiveTab] = useState('all');
   const tabsRef = useRef(null);
   const pageHeaderRef = useRef(null);
@@ -33,19 +36,19 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
     ? PROJECTS
     : PROJECTS.filter(p => p.status === activeTab);
 
-  return (<>
+  return (<OrgLabelsContext.Provider value={L}>
     <div className="content-area pj-content-area">
       <div className="content-canvas">
         <div className="pj-header" ref={pageHeaderRef}>
           <div className="tab-nav">
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>조직도</span>
-            <span className="tab-active">프로젝트</span>
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>스쿼드</span>
+            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>{L('tab.orgchart')}</span>
+            <span className="tab-active">{L('tab.project')}</span>
+            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>{L('tab.squad')}</span>
           </div>
           <div className="header-subtitle">
-            <b>프로젝트</b>
+            <b>{L('tab.project')}</b>
             <span className="dot">&#8729;</span>
-            <span className="brand-count">{PROJECTS.length}개</span>
+            <span className="brand-count">{L('project.count', { count: PROJECTS.length })}</span>
           </div>
         </div>
 
@@ -61,7 +64,7 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
                   className={`tab-btn${active ? ' tab-active' : ''}`}
                   onClick={() => setActiveTab(tab.key)}
                 >
-                  <span>{tab.label}</span>
+                  <span>{L(`project.filter.${tab.key}`)}</span>
                 </button>
               );
             })}
@@ -73,5 +76,5 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
       </div>
     </div>
     <ProfileModal member={selectedMember} onClose={() => setSelectedMember(null)} statIcons={statIcons} baseUrl={baseUrl} findSubordinates={findSubordinates} adminMode={adminMode} />
-  </>);
+  </OrgLabelsContext.Provider>);
 }

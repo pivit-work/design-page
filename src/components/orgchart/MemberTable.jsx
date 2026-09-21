@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MEMBERS, generateRandomMembers } from './project-constants.js';
+import { useOrgLabels } from './orgchart-labels.jsx';
 
 function collectOrgMembers(node) {
   let result = [];
@@ -19,6 +20,7 @@ function collectOrgMembers(node) {
 }
 
 export default function MemberTable({ projects, stickyTop = 0, onMemberClick, orgData }) {
+  const L = useOrgLabels();
   const headerScrollRef = useRef(null);
   const bodyScrollRef = useRef(null);
   const titleRef = useRef(null);
@@ -105,11 +107,11 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
   return (
     <div className="pj-table-section">
       <div className="pj-table-header-text" ref={titleRef} style={{ top: stickyTop }}>
-        <p className="pj-table-title">프로젝트에 배치된 멤버 리스트</p>
-        <p className="pj-table-subtitle">이름을 클릭하면 상세 정보를 보실 수 있어요.</p>
+        <p className="pj-table-title">{L('project.tableTitle')}</p>
+        <p className="pj-table-subtitle">{L('project.tableSubtitle')}</p>
       </div>
         <div className="pj-table-sticky-header" style={{ top: stickyTop + titleHeight }}>
-          <div className={`pj-sticky-name-hdr ${scrolled ? 'pj-name-shadow' : ''}`}>이름</div>
+          <div className={`pj-sticky-name-hdr ${scrolled ? 'pj-name-shadow' : ''}`}>{L('project.colName')}</div>
           <div className="pj-sticky-projects-hdr" ref={headerScrollRef} onScroll={onHeaderScroll}>
             {projects.map(p => (
               <div key={p.id} className="pj-sticky-th">
@@ -118,7 +120,7 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
               </div>
             ))}
           </div>
-          <div className={`pj-sticky-sum-hdr ${scrolledEnd ? 'pj-sum-no-shadow' : ''}`}>총</div>
+          <div className={`pj-sticky-sum-hdr ${scrolledEnd ? 'pj-sum-no-shadow' : ''}`}>{L('project.colTotal')}</div>
         </div>
 
         <div className="pj-table-outer">
@@ -172,7 +174,7 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
           </div>
         </div>
       <div className="pj-table-footer">
-        <button className="pj-btn-more" onClick={handleLoadMore}>더 보기</button>
+        <button className="pj-btn-more" onClick={handleLoadMore}>{L('project.more')}</button>
       </div>
     </div>
   );

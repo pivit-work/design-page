@@ -4,9 +4,11 @@ import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
 import assetUrl from '../shared/assetUrl.js';
+import { useOrgLabels } from './orgchart-labels.jsx';
 
 export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
   const memberId = `${parentId}_member_${index}`;
+  const L = useOrgLabels();
   const modalCtx = React.useContext(ModalContext);
   const openModal = onMemberClick || modalCtx?.openModal;
   const { positions, updatePosition } = usePositions();
@@ -96,7 +98,10 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
   };
 
   const status = member.statusColors || MEMBER_STATUSES[member.status] || MEMBER_STATUSES.working;
-  const statusLabel = member.statusLabel || status.label;
+  // 상태 문구는 소비자 번역을 따른다(PW-705). 모르는 상태 코드는 «재직중» 으로 — 색과 같은 폴백.
+  const statusLabel = member.statusLabel
+    || member.statusColors?.label
+    || L(`member.status.${MEMBER_STATUSES[member.status] ? member.status : 'working'}`);
   const pos = positions[memberId] || { x: 0, y: 0 };
   const absX = Math.abs(pos.x);
   // detach 히스테리시스: 200 을 넘어야 detach, 50 아래로 돌아와야 복귀.
@@ -135,10 +140,10 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
           {/* 조직 구조상의 대표 1인. isCeo 만 근거로 삼는다 — 권한이 대표거나
               직책 문자열이 '대표'인 것만으로는 붙지 않는다. */}
-          {member.isCeo && <span className="role-badge role-badge-ceo">{member.ceoLabel || '대표'}</span>}
+          {member.isCeo && <span className="role-badge role-badge-ceo">{member.ceoLabel || L('org.ceoBadge')}</span>}
           {/* 로그인한 본인 표식. 문구는 소비 측이 로케일에 맞춰 넘긴다(selfLabel) —
               ceoLabel 과 같은 규약. 안 넘기면 한국어로 폴백한다. */}
-          {member.isSelf && <span className="role-badge role-badge-self">{member.selfLabel || '나'}</span>}
+          {member.isSelf && <span className="role-badge role-badge-self">{member.selfLabel || L('org.selfBadge')}</span>}
         </div>
         {showGrade && (member.grade || member.position) && (
           <div className="member-grade">

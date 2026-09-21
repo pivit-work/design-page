@@ -1,7 +1,9 @@
 import Icon from '../shared/Icon.jsx';
 import { PROJECT_STATUSES } from './project-constants.js';
+import { useOrgLabels } from './orgchart-labels.jsx';
 
 function ProjectCard({ project }) {
+  const L = useOrgLabels();
   const status = PROJECT_STATUSES[project.status];
   const barColor = project.status === 'completed' ? 'var(--utility-green-100)' : 'var(--utility-blue-100)';
   const progressValueColor = project.status === 'completed' ? 'var(--utility-green-600)' : null;
@@ -14,7 +16,7 @@ function ProjectCard({ project }) {
         ) : (
           <span className="pj-status-dot" style={{ background: status.dotColor }} />
         )}
-        <span>{status.label}</span>
+        <span>{L(`project.status.${project.status}`)}</span>
       </div>
       <div className="pj-card-info">
         <p className="pj-card-name">{project.name}</p>
@@ -22,7 +24,7 @@ function ProjectCard({ project }) {
       </div>
       <div className="pj-card-progress">
         <div className="pj-progress-label">
-          <span className="pj-progress-text">진행률</span>
+          <span className="pj-progress-text">{L('project.progress')}</span>
           <span className="pj-progress-value" style={progressValueColor ? { color: progressValueColor } : undefined}>{project.progress}%</span>
         </div>
         <div className="pj-progress-bar">
@@ -38,7 +40,7 @@ function ProjectCard({ project }) {
             <span className="pj-avatar-sm pj-avatar-more">+{project.memberCount - 7}</span>
           )}
         </div>
-        <span className="pj-member-count">{project.memberCount}명</span>
+        <span className="pj-member-count">{L('project.memberCount', { count: project.memberCount })}</span>
       </div>
     </div>
   );
