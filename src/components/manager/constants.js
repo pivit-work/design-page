@@ -1,6 +1,10 @@
 /**
  * Manager 페이지 상태 배지 색상 매핑.
- * Figma "긴급/주의/창천/양호" 4단계.
+ * 긴급/주의/칭찬/양호 4단계 (기획서 manager-view-spec 분류 표).
+ *
+ * `label` 은 소비자가 라벨을 안 넘길 때의 기본값이다 — 이 패키지는 i18n 을 모르므로
+ * 다국어 화면은 `MemberCard` 의 `statusLabel`·`StatusBadge` 의 `label` 로 넘긴다.
+ * (셋째 칸이 한때 「창천」으로 적혀 있었다 — 기획서 어디에도 없는 글자다. PW-887)
  */
 export const STATUS_COLORS = {
   urgent: {
@@ -14,7 +18,7 @@ export const STATUS_COLORS = {
     text: 'var(--colors-text-textWarningPrimary)',
   },
   excellent: {
-    label: '창천',
+    label: '칭찬',
     dot: 'var(--colors-foreground-fgSuccessPrimary)',
     text: 'var(--colors-text-textSuccessPrimary)',
   },
