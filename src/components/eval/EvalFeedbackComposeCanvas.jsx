@@ -423,7 +423,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
       closeLabel={L.close}
       onClose={onClose}
       zIndex={1000}
-      className="evc-shell is-wide is-thread"
+      className="evc-shell is-wide has-own-footer"
       testId="fbmgr-thread-modal"
       closeTestId="fbmgr-thread-close"
       footer={

@@ -1549,6 +1549,8 @@ export default function EvalCycleHrCanvas({
       {openBlock && (
         <AppConfirmModal
           testId="evc-open-block"
+          cancelTestId="evc-open-block-cancel"
+          confirmTestId="evc-open-block-go"
           title={L.open}
           body={
             <span data-testid="evc-open-block-body">

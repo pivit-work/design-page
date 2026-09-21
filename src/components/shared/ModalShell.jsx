@@ -43,6 +43,13 @@ import { createPortal } from 'react-dom';
  *   overlayTestId        막의 data-testid
  *   closeTestId          닫기 X 의 data-testid
  */
+/**
+ * 지금 떠 있는 껍데기들 — 나중에 연 것이 맨 뒤. 창 위에 창을 겹쳐 띄우면 Esc 는 맨 위 창만
+ * 닫아야 한다. 모두가 창(window) 에 Esc 를 걸고 있어서, 이게 없으면 Esc 한 번에 겹친 창이
+ * 한꺼번에 닫힌다(PW-832 — 평가 위자드 위의 이탈 확인 창).
+ */
+const openShells = [];
+
 export default function ModalShell({
   title,
   description,
@@ -79,14 +86,21 @@ export default function ModalShell({
   };
 
   useEffect(() => {
+    const token = {};
+    openShells.push(token);
     const onKey = (e) => {
-      if (e.key === 'Escape' && !busyRef.current) onCloseRef.current();
+      if (e.key !== 'Escape' || busyRef.current) return;
+      if (openShells[openShells.length - 1] !== token) return;
+      // 공용 확인 창(ConfirmModal)이 위에 떠 있으면 그 창의 몫이다 — 밑의 창을 닫지 않는다.
+      if (document.querySelector('.pw-confirm-overlay')) return;
+      onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       window.removeEventListener('keydown', onKey);
+      openShells.splice(openShells.indexOf(token), 1);
       document.body.style.overflow = prevOverflow;
     };
   }, []);
@@ -106,6 +120,10 @@ export default function ModalShell({
     <div
       className="tl-modal-overlay"
       onMouseDown={handleOverlayMouseDown}
+      // 포털 안의 클릭도 React 트리를 따라 부모로 올라간다. 창을 그린 자리가 눌러서 무언가를
+      // 여닫는 요소 안이면, 창 안의 버튼 한 번이 그 요소의 onClick 까지 불러 창이 다시 열리거나
+      // 뒤의 화면이 반응한다(PW-832 — 평가 위자드의 이탈 확인 창이 위자드 막 안에 그려져, 「취소」 한 번이 위자드 닫기까지 부를 수 있었다).
+      onClick={(e) => e.stopPropagation()}
       role="presentation"
       style={zIndex != null ? { zIndex } : undefined}
       data-testid={overlayTestId}
