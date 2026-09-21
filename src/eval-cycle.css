@@ -8371,6 +8371,15 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-error-primary);
 }
+/* [PW-626] 「나에게 테스트 발송」 결과 — 채널마다 한 줄. 못 보낸 줄은 위 .evc-rm-ai-error 를 쓴다. */
+.evc-rm-test-result {
+  margin-top: var(--spacing-xs);
+}
+.evc-rm-test-line {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-success-primary);
+}
 /* 노랑 = 미확인. [적용] 전에는 본문을 건드리지 않는다. */
 .evc-rm-ai-draft {
   margin-top: var(--spacing-md);

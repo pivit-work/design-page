@@ -1087,6 +1087,8 @@ export default function EvalCycleHrCanvas({
   onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
+  /** PW-626 — 리마인더 「나에게 테스트 발송」. 위자드로 그대로 넘긴다. */
+  onTestSendMessage,
   /**
    * PW-529 — 마법사 3단계에서 리마인더 「당사자」를 끌 때 한 번 묻는 확인.
    * `() => Promise<boolean>`. 그대로 위자드로 흘린다(이 캔버스는 전달만 한다).
@@ -1505,6 +1507,7 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onTestSendMessage={onTestSendMessage}
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
@@ -1538,6 +1541,7 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onTestSendMessage={onTestSendMessage}
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
