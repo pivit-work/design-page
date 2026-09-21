@@ -23,6 +23,8 @@ import { resolveUiLocale } from './uiLocale.js';
  *   min, max   'YYYY-MM-DD' — 달력에서 이 범위 밖은 못 고른다
  *   locale     화면 언어 (없으면 `<html lang>`)
  *   labels     DatePicker 문구를 직접 줄 때
+ *   today      'YYYY-MM-DD' — 달력이 「오늘」로 칠 날. 비어 있는 칸을 열 때 보여 줄 달도 이 날이다.
+ *              없으면 브라우저 시계의 오늘. 앱이 사용자 설정 시간대로 오늘을 정할 때 넘긴다 (PW-781)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -61,6 +63,7 @@ export default function DateInput({
   placeholder = 'YYYY-MM-DD',
   // 기본 날짜 칸만 한 폭 — text 칸의 기본 폭(20자)은 줄 안에서 너무 넓다.
   size = 13,
+  today,
   ...rest
 }) {
   const current = typeof value === 'string' ? value.slice(0, 10) : '';
@@ -98,7 +101,8 @@ export default function DateInput({
     setPicker({ rect: ref.current.getBoundingClientRect(), el: ref.current });
   };
 
-  const selected = isIsoDate(current) ? toDate(current) : new Date();
+  const todayDate = today && isIsoDate(today) ? toDate(today) : undefined;
+  const selected = isIsoDate(current) ? toDate(current) : (todayDate ?? new Date());
 
   return (
     <>
@@ -131,6 +135,7 @@ export default function DateInput({
           maxDate={max && isIsoDate(max) ? toDate(max) : undefined}
           locale={resolveUiLocale(locale)}
           labels={labels}
+          today={todayDate}
           onSelect={(d) => {
             const iso = toIso(d);
             setDraft(iso);
