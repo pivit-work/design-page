@@ -394,6 +394,17 @@
   white-space: nowrap;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
+/* 모양 이름(is-*)을 안 붙인 버튼은 배경·글씨색이 비어 브라우저 기본 회색으로
+   그려졌다(PW-831). 평가 화면에서 가장 흔한 보조 버튼(is-ghost)과 같은 팔레트 색을 준다. */
+.evc-btn:not([class*=" is-"]) {
+  background: var(--bg-secondary);
+  border-color: var(--bg-active);
+  color: var(--text-secondary);
+}
+.evc-btn:not([class*=" is-"]):hover:not(:disabled) {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
 .evc-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -8729,9 +8740,9 @@
   width: 100%;
   background: none;
   border: none;
-  padding: var(--spacing-sm, 6px) var(--spacing-md, 8px);
+  padding: var(--spacing-sm) var(--spacing-md);
   margin: 0;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -8747,20 +8758,20 @@
 .evmon-detail-head {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md, 8px);
-  margin-bottom: var(--spacing-lg, 12px);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 .evmon-dispatch {
   border: 1px solid var(--bg-active);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .evmon-dispatch-head {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: var(--spacing-md, 8px);
-  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: var(--bg-secondary, transparent);
   border: none;
   font: inherit;
@@ -8768,7 +8779,7 @@
   cursor: pointer;
 }
 .evmon-dispatch-title {
-  font-size: var(--font-size-text-sm, 14px);
+  font-size: var(--font-size-text-sm);
   font-weight: 700;
   color: var(--text-secondary);
 }
@@ -8786,11 +8797,11 @@
 .evmon-dispatch-row {
   display: grid;
   grid-template-columns: 96px 1.1fr 1.1fr 76px 68px;
-  gap: var(--spacing-md, 8px);
+  gap: var(--spacing-md);
   align-items: center;
-  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--bg-active);
-  font-size: var(--font-size-text-sm, 14px);
+  font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
 }
 .evmon-dispatch-row:last-child {
@@ -8801,49 +8812,49 @@
 }
 .evmon-dispatch-note {
   grid-column: 1 / -1;
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
 
 /* ── 리포트 검수: 한 사람만의 구성 예외 (PW-863 · 정책 §8.3) ── */
 .evrr-badge.is-override {
-  color: var(--utility-purple-700, #5925dc);
-  background: var(--utility-purple-50, #f4f3ff);
-  margin-left: var(--spacing-sm, 6px);
+  color: var(--utility-purple-700);
+  background: var(--utility-purple-50);
+  margin-left: var(--spacing-sm);
 }
 .evrr-sections-toggle {
-  font-size: var(--font-size-text-xs, 12px);
-  padding: var(--spacing-xs, 4px) var(--spacing-md, 8px);
+  font-size: var(--font-size-text-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
 }
 .evrr-sections {
-  padding: var(--spacing-lg, 12px) var(--spacing-xl, 16px);
+  padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--bg-active);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md, 8px);
+  gap: var(--spacing-md);
 }
 .evrr-sections-hint,
 .evrr-sections-note {
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
   margin: 0;
 }
 .evrr-sections-error {
-  font-size: var(--font-size-text-xs, 12px);
-  color: var(--utility-error-700, #b42318);
+  font-size: var(--font-size-text-xs);
+  color: var(--utility-error-700);
   margin: 0;
 }
 .evrr-sections-list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md, 8px) var(--spacing-xl, 16px);
+  gap: var(--spacing-md) var(--spacing-xl);
 }
 .evrr-section {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm, 6px);
-  font-size: var(--font-size-text-sm, 14px);
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-sm);
   color: var(--text-primary);
   cursor: pointer;
 }
@@ -8856,6 +8867,6 @@
   text-decoration: line-through;
 }
 .evrr-section-req {
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
