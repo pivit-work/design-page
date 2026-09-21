@@ -16,6 +16,8 @@ export default function MemberCard({
   role,
   comment,
   status,
+  // 상태 딱지 글자 — 넘기면 그대로 쓰고, 없으면 기본 한국어(`STATUS_COLORS`).
+  statusLabel,
   avatar,
   icons,
   baseUrl = '',
@@ -42,7 +44,7 @@ export default function MemberCard({
         <p className="manager-member-comment" style={{ color: conf.text }}>
           {comment}
         </p>
-        <StatusBadge status={status} />
+        <StatusBadge status={status} label={statusLabel} />
         <div className="manager-member-actions">
           <button type="button" className="manager-member-action-btn" onClick={stop(onOneOnOneClick)}>
             <Icon src={icons?.userOutline} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
