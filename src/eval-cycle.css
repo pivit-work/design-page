@@ -7680,7 +7680,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm, 6px);
+  gap: var(--spacing-sm);
 }
 .evc-wiz-committee-fieldset:disabled button,
 .evc-wiz-committee-fieldset:disabled input,
@@ -7695,7 +7695,7 @@
 }
 .evc-wiz-hint.is-locked {
   margin-top: 0;
-  color: var(--text-secondary, #475467);
+  color: var(--text-secondary);
 }
 /* PW-161 위원 후보 검색 — 후보가 138명이라 스크롤만으로는 못 찾는다 */
 .evc-wiz-committee-search {
