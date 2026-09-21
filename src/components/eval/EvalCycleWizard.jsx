@@ -1828,6 +1828,33 @@ export default function EvalCycleWizard({
   phaseTogglesLocked = false,
   /** 잠근 단추 위에 띄울 이유(필수 단계는 제 이유가 먼저다). */
   phaseTogglesLockedHint = null,
+  /**
+   * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
+   * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, added, excluded }`.
+   *
+   * 초안 복원(`draftState`)과 같은 자리 — 상태 초기값에서만 읽는다. 이펙트로 뒤늦게
+   * 덮으면 사용자가 이미 고친 값을 되돌린다. 값이 늦게 오면 소비 측이 `key` 로 새로 띄운다.
+   *
+   * 넘기면 「지금 캘리브레이션 위원회 구성」 체크가 켜진 채 잠긴다 — 이미 있는 위원회를
+   * 이 체크로 없앨 수는 없다(없애는 저장 경로가 없다). ⛔ 안 넘기면 종전 그대로다.
+   */
+  committeeInitial = null,
+  /**
+   * PW-822 — 위원회 단계를 **읽기 전용**으로 그린다(정책 §4.6.2 ⑤ — 캘리브레이션이
+   * 시작되면 위원회 구성을 고치지 않는다). 값은 그대로 보이고 입력·저장만 막힌다.
+   * ⛔ 넘기지 않으면(`false`) 종전 그대로다.
+   */
+  committeeLocked = false,
+  /** 잠근 위원회 단계 머리에 띄울 이유. */
+  committeeLockedHint = null,
+  /**
+   * PW-822 — 위원회 단계를 «여기서는 못 고친다» 안내로 바꿔 그린다.
+   * `{ title, body, actionLabel, onAction }`. 한 사이클에 위원회가 둘 이상이면 이 단계의
+   * 입력(위원회 하나짜리)으로는 담을 수 없어, 고칠 수 있는 화면으로 보낸다. 모양은
+   * 캘리브레이션을 끈 사이클의 안내(`evc-wiz-skipped`)를 그대로 쓰고 저장이 잠긴다.
+   * ⛔ 안 넘기면 종전 그대로다.
+   */
+  committeeElsewhere = null,
 }) {
   const isManage = !!cycle;
   /** 인라인 단일 단계인가. 숫자 0 도 유효한 단계라 `!= null` 로 판정한다. */
@@ -1842,6 +1869,9 @@ export default function EvalCycleWizard({
   const draftEnabled = !!onSaveDraft && !isManage;
   const D = draftEnabled && draftState ? draftState : null;
   const isDraftResume = !!D;
+  /** PW-822 — 관리 모드의 위원회 프리필. 초안이 있으면 초안이 먼저다(관리 모드엔 초안이 없다). */
+  const CI = !D && isManage && committeeInitial ? committeeInitial : null;
+  const committeeExists = !!CI && (CI.committee?.length ?? 0) > 0;
 
   const [stepState, setStep] = useState(() =>
     isDraftResume ? clampStep(draftStep) : clampStep(landing?.step ?? 0),
@@ -1856,8 +1886,8 @@ export default function EvalCycleWizard({
    */
   const step = isSingleStep ? clampStep(singleStep) : stepState;
   // R1b 경로 B — 캘리브레이션 위원회 구성(선택). committee[0] = 위원장.
-  const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn);
-  const [committee, setCommittee] = useState(() => [...(D?.committee ?? [])]);
+  const [committeeOn, setCommitteeOn] = useState(() => !!D?.committeeOn || committeeExists);
+  const [committee, setCommittee] = useState(() => [...(D?.committee ?? CI?.committee ?? [])]);
   // PW-161 위원 후보 검색. 후보는 조직장+시니어IC 전원(데모 조직 138명)이라 스크롤만으로는
   // 못 찾는다. 검색은 '표시'만 바꾼다 — 선택과 선택 순서에는 관여하지 않으므로
   // 위원장(= 선택 순서 첫 위원)이 검색·정렬로 옮겨가지 않는다.
@@ -1873,19 +1903,19 @@ export default function EvalCycleWizard({
    * (`scope.departments` · `scope.levels`) — 한 세션을 어느 경로로 만들었는지가
    * 뒤에 드러나면 안 된다(spec-calibration.md §3.3 2경로 일치).
    */
-  const [committeeName, setCommitteeName] = useState(() => D?.committeeName ?? '');
+  const [committeeName, setCommitteeName] = useState(() => D?.committeeName ?? CI?.name ?? '');
   const [committeeDepts, setCommitteeDepts] = useState(() => [
-    ...(D?.committeeDepts ?? []),
+    ...(D?.committeeDepts ?? CI?.depts ?? []),
   ]);
   const [committeeLevels, setCommitteeLevels] = useState(() => [
-    ...(D?.committeeLevels ?? []),
+    ...(D?.committeeLevels ?? CI?.levels ?? []),
   ]);
   /* 자동 매핑에 대한 사람 손. 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원. */
   const [committeeAdded, setCommitteeAdded] = useState(() => [
-    ...(D?.committeeAdded ?? []),
+    ...(D?.committeeAdded ?? CI?.added ?? []),
   ]);
   const [committeeExcluded, setCommitteeExcluded] = useState(() => [
-    ...(D?.committeeExcluded ?? []),
+    ...(D?.committeeExcluded ?? CI?.excluded ?? []),
   ]);
   /* 명단 검색·추가 검색은 «보기 조건»이라 초안에 담지 않는다(collectDraft 규칙 1). */
   const [committeeRosterSearch, setCommitteeRosterSearch] = useState('');
@@ -6974,13 +7004,50 @@ export default function EvalCycleWizard({
               </div>
             </div>
           )}
-          {step === 4 && calibrationOn && (
+          {step === 4 && calibrationOn && committeeElsewhere && (
             <div className="evc-wiz-panel">
+              <div
+                className="evc-wiz-skipped"
+                data-testid="evc-wiz-committee-elsewhere"
+              >
+                <p className="evc-wiz-skipped-title">{committeeElsewhere.title}</p>
+                <p className="evc-wiz-skipped-body">{committeeElsewhere.body}</p>
+                {committeeElsewhere.onAction && (
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    onClick={committeeElsewhere.onAction}
+                    data-testid="evc-wiz-committee-elsewhere-action"
+                  >
+                    {committeeElsewhere.actionLabel}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          {step === 4 && calibrationOn && !committeeElsewhere && (
+            <div className="evc-wiz-panel">
+              {/* PW-822 — 잠겨도 «내용은 보인다». 입력은 fieldset 하나로 한꺼번에 막는다 —
+                  단추마다 disabled 를 달면 새 단추가 생길 때 하나를 빠뜨린다. */}
+              {committeeLocked && committeeLockedHint && (
+                <p
+                  className="evc-wiz-hint is-locked"
+                  data-testid="evc-wiz-committee-locked"
+                >
+                  {committeeLockedHint}
+                </p>
+              )}
+              <fieldset
+                className="evc-wiz-committee-fieldset"
+                disabled={committeeLocked}
+                data-testid="evc-wiz-committee-fieldset"
+              >
               <label className="evc-wiz-committee-toggle">
                 <input
                   type="checkbox"
                   checked={committeeOn}
                   onChange={(e) => setCommitteeOn(e.target.checked)}
+                  disabled={committeeExists}
                   data-testid="evc-wiz-committee-toggle"
                 />
                 <span>{L.wizardCommitteeEnable}</span>
@@ -7462,6 +7529,7 @@ export default function EvalCycleWizard({
                   <p className="evc-wiz-hint">{L.wizardCommitteeChairHint}</p>
                 </>
               )}
+              </fieldset>
             </div>
           )}
 
@@ -7669,7 +7737,11 @@ export default function EvalCycleWizard({
               <button
                 type="button"
                 className="evc-btn is-primary"
-                disabled={!canSubmit || submitting}
+                disabled={
+                  !canSubmit ||
+                  submitting ||
+                  (step === 4 && (committeeLocked || !!committeeElsewhere))
+                }
                 onClick={submit}
                 data-testid="evc-wiz-submit"
               >
