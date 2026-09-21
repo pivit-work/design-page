@@ -3911,9 +3911,12 @@ export default function AdminEmployeesCanvas({
           seats={seats}
           fieldOptions={{
             jobLevel: gradeOptions ?? [],
+            jobCategory: categoryOptions ?? [],
             ...(fieldOptions || {}),
           }}
           laddersByFamily={laddersByFamily}
+          // 직종은 조직이 켰을 때만 받는다(PW-644). 목록 열과 같은 스위치·같은 직종 목록을 쓴다.
+          jobCategoryEnabled={optionalFields?.job_category === true}
           onGoBilling={onGoBilling}
           labels={inviteLabels}
         />

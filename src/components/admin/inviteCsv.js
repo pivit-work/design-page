@@ -27,9 +27,11 @@ export const INVITE_CSV_MAX_ROWS = 500;
  * 템플릿 열 — **초대 모달이 실제로 지원하는 필드만** 담는다.
  *
  * `조직장` 이 없는 이유: 가입 전에는 `team_members` 행이 없어 "그 팀 소속자만
- * 조직장"(L3)을 만족할 수 없다. `직종`(job_category)·`직무`(job_duty)가 없는 이유:
- * 직접 입력 탭에도 그 필드가 없어, 두 탭의 필드 집합을 같게 유지한다
- * (직무는 초대에서 받지 않는다 — PW-412 확정).
+ * 조직장"(L3)을 만족할 수 없다. `직무`(job_duty)가 없는 이유: 직접 입력 탭에도 그
+ * 필드가 없어, 두 탭의 필드 집합을 같게 유지한다(직무는 초대에서 받지 않는다 — PW-412).
+ *
+ * `직종`(job_category)은 **여기 없고 `inviteTemplateColumns()` 가 조건부로 끼운다** —
+ * 조직이 직종을 켰을 때만 받는 선택 적용 항목이다(PW-644 · 정책 §2-4·§5 V12).
  *
  * ⚠ `jobTitle` 은 이름과 달리 **직렬(`job_ladder`)** 이다(2026-08-10 M5-b 승격).
  *
@@ -50,6 +52,35 @@ export const INVITE_TEMPLATE_COLUMNS = [
 
 /** 옵션 목록 대조가 필요한 열만 추린 것 — 화면도 같은 목록으로 셀 select 를 그린다. */
 export const INVITE_OPTION_COLUMNS = INVITE_TEMPLATE_COLUMNS.filter((c) => c.option);
+
+/**
+ * 직종 열 (PW-644) — 조직이 직종을 켰을 때만 템플릿·파싱·옵션 대조에 들어간다.
+ *
+ * 끈 조직의 파일에 이 열이 있으면 **막지 않고 버린 뒤 알린다**(정책 §5 V12) — 스위치는
+ * 회사 설정이라 파일을 만든 사람이 모를 수 있고, 막으면 대량 초대가 통째로 멈춘다.
+ */
+export const JOB_CATEGORY_COLUMN = {
+  key: 'jobCategory', labelKey: 'csvColJobCategory', option: 'jobCategory',
+};
+
+/**
+ * 이 조직의 템플릿 열 — 직종을 켰으면 `근무지` 앞에 `직종` 을 끼운다.
+ *
+ * 자리를 근무지 앞으로 둔 이유: 직접 입력 탭의 칸 순서(직급·직군·직렬·직종·근무지)와
+ * 같게 해 두 탭을 오가도 같은 순서로 읽히게 한다(정책 §2-2 표 순서).
+ */
+export function inviteTemplateColumns({ jobCategoryEnabled = false } = {}) {
+  if (!jobCategoryEnabled) return INVITE_TEMPLATE_COLUMNS;
+  const at = INVITE_TEMPLATE_COLUMNS.findIndex((c) => c.key === 'workLocation');
+  return [
+    ...INVITE_TEMPLATE_COLUMNS.slice(0, at),
+    JOB_CATEGORY_COLUMN,
+    ...INVITE_TEMPLATE_COLUMNS.slice(at),
+  ];
+}
+
+/** 이 조직의 옵션 대조 열. */
+export const inviteOptionColumns = (opts) => inviteTemplateColumns(opts).filter((c) => c.option);
 
 /** 조직경로 구분자 — 계층은 `>`, 겸직 배열은 `|` (`org-snapshot-spec.md §3-A`). */
 export const ORG_PATH_DEPTH_SEP = '>';
@@ -147,10 +178,11 @@ export function parseCsv(text) {
   return rows.filter((r) => r.some((cell) => normalize(cell) !== ''));
 }
 
-/** 템플릿 CSV 텍스트 — BOM + 헤더 + 예시 1행. */
-export function buildInviteTemplateCsv(labels = {}) {
-  const header = INVITE_TEMPLATE_COLUMNS.map((c) => labels[c.labelKey] || c.key);
-  const sample = INVITE_TEMPLATE_COLUMNS.map((c) => {
+/** 템플릿 CSV 텍스트 — BOM + 헤더 + 예시 1행. `opts.jobCategoryEnabled` 면 직종 열이 든다. */
+export function buildInviteTemplateCsv(labels = {}, opts = {}) {
+  const columns = inviteTemplateColumns(opts);
+  const header = columns.map((c) => labels[c.labelKey] || c.key);
+  const sample = columns.map((c) => {
     if (c.key === 'email') return 'hire1@example.com';
     if (c.key === 'name') return labels.csvSampleName || '홍길동';
     if (c.key === 'role') return labels.roleMember || '멤버';
@@ -222,13 +254,14 @@ let csvRowSeq = 0;
  * CSV 텍스트 → 스테이징 행.
  *
  * @param {string} text
- * @param {{ orgTree: Array, labels: object }} ctx
+ * @param {{ orgTree: Array, labels: object, jobCategoryEnabled?: boolean }} ctx
  * @returns {{
  *   ok: boolean,
  *   error?: string,
  *   rows?: Array,
  *   ignoredColumns?: string[],
  *   leaderColumnIgnored?: boolean,
+ *   jobCategoryIgnored?: boolean,
  * }}
  *
  * `ok:false` 면 **행을 하나도 만들지 않는다.** 특히 상한 초과는 앞 500행을 남기지
@@ -238,30 +271,37 @@ let csvRowSeq = 0;
  * 실어 두고 `csvRowIssues()` 가 렌더 때 옵션 목록과 대조한다 — 셀에서 고치면 사유가
  * 바로 사라져야 하기 때문이다.
  */
-export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
+export function parseInviteCsv(
+  text, { orgTree = [], labels = {}, jobCategoryEnabled = false } = {},
+) {
   const table = parseCsv(text);
   if (table.length === 0) return { ok: false, error: labels.csvErrEmpty };
 
+  const columns = inviteTemplateColumns({ jobCategoryEnabled });
   const headerCells = table[0].map(normalize);
   const byKey = new Map();
   const ignoredColumns = [];
   let leaderColumnIgnored = false;
+  let jobCategoryIgnored = false;
   const leaderHeader = fold(labels.csvColLeader);
+  const isHeaderOf = (c, folded) => fold(labels[c.labelKey]) === folded || fold(c.key) === folded;
 
   headerCells.forEach((cell, idx) => {
     const folded = fold(cell);
     if (!folded) return;
-    const col = INVITE_TEMPLATE_COLUMNS.find(
-      (c) => fold(labels[c.labelKey]) === folded || fold(c.key) === folded,
-    );
+    const col = columns.find((c) => isHeaderOf(c, folded));
     if (col && !byKey.has(col.key)) { byKey.set(col.key, idx); return; }
     // 모르는 열은 무시하되 **무시했다는 사실을 남긴다.** 조용히 버리면 어드민은
     // 그 값이 반영된 줄 알고 가입 후에 다시 확인하지 않는다.
     if (leaderHeader && folded === leaderHeader) leaderColumnIgnored = true;
-    else ignoredColumns.push(cell);
+    // 직종을 끈 조직의 직종 열 — 「모르는 열」이 아니라 «이 회사가 안 쓰는 항목»이라고
+    // 따로 알린다(V12). 모르는 열로 뭉뚱그리면 어드민은 오타를 찾는다.
+    else if (!jobCategoryEnabled && isHeaderOf(JOB_CATEGORY_COLUMN, folded)) {
+      jobCategoryIgnored = true;
+    } else ignoredColumns.push(cell);
   });
 
-  const missing = INVITE_TEMPLATE_COLUMNS
+  const missing = columns
     .filter((c) => c.required && !byKey.has(c.key))
     .map((c) => labels[c.labelKey] || c.key);
   if (missing.length > 0) {
@@ -327,6 +367,8 @@ export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
       jobFamily: cellAt(cells, 'jobFamily'),
       jobTitle: cellAt(cells, 'jobTitle'),
       workLocation: cellAt(cells, 'workLocation'),
+      // 끈 조직은 열 자체를 읽지 않았으므로 늘 빈 값이다 — 발송 본문에 실리지 않는다.
+      jobCategory: cellAt(cells, 'jobCategory'),
       teamIds,
       primaryTeamId,
       unresolvedPaths,
@@ -335,7 +377,7 @@ export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
     };
   });
 
-  return { ok: true, rows, ignoredColumns, leaderColumnIgnored };
+  return { ok: true, rows, ignoredColumns, leaderColumnIgnored, jobCategoryIgnored };
 }
 
 /**
@@ -345,7 +387,9 @@ export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
  *
  * 렌더마다 다시 계산한다 — 셀에서 값을 고치면 그 즉시 사유가 사라져야 한다.
  */
-export function csvRowIssues(row, { fieldOptions = {}, labels = {}, laddersByFamily = {} } = {}) {
+export function csvRowIssues(
+  row, { fieldOptions = {}, labels = {}, laddersByFamily = {}, jobCategoryEnabled = false } = {},
+) {
   const issues = [];
   if (!row.role) {
     const retired = retiredRole(row.rawRole, labels) && labels.csvErrRoleManagerRetired;
@@ -353,7 +397,7 @@ export function csvRowIssues(row, { fieldOptions = {}, labels = {}, laddersByFam
       ? fmtCsv(labels.csvErrRoleManagerRetired, { value: row.rawRole })
       : fmtCsv(labels.csvErrUnknownRole, { value: row.rawRole || '' }));
   }
-  for (const col of INVITE_OPTION_COLUMNS) {
+  for (const col of inviteOptionColumns({ jobCategoryEnabled })) {
     if (!optionKnown(row[col.key], fieldOptions[col.option])) {
       issues.push(fmtCsv(labels.csvErrUnknownOption, {
         column: labels[col.labelKey] || col.key,
