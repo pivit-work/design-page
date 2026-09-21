@@ -301,8 +301,17 @@ const DEFAULT_LABELS = {
     bannerBody: '온보딩에서 "나중에 배정"을 선택했거나 신규 합류 후 미배정 상태입니다. 1on1·OKR·평가가 정상 작동하려면 조직·매니저 배정이 필요합니다.',
     noOrgTitle: '조직(부서) 미배정 구성원',
     noOrgEmpty: '모든 구성원에게 조직이 배정되었습니다',
-    noManagerTitle: '매니저 미배정 구성원',
-    noManagerEmpty: '모든 구성원에게 매니저가 배정되었습니다',
+    // PW-873 — 매니저가 빈 사람 대신 그 원인(조직장이 빈 조직 · 대표 미지정)을 경고한다.
+    // `{count}` 는 캔버스가 치환한다.
+    leaderGapTitle: '조직장이 없는 조직',
+    leaderGapPill: '{count}건',
+    leaderGapEmpty: '조직장이 비어 매니저가 없는 구성원이 없습니다',
+    leaderGapMeta: '조직장이 비어 매니저가 없는 구성원 {count}명',
+    leaderGapAction: '조직장 지정',
+    ceoGapTitle: '대표가 지정되지 않았습니다',
+    ceoGapMeta: '대표에게 보고해야 할 최상위 조직장 {count}명의 매니저가 비어 있습니다',
+    ceoGapAction: '전체 구성원에서 대표 지정',
+    namesMore: '외 {count}명',
     assignOrg: '조직 배정',
     goTeamMgmt: '팀 관리',
     // PW-292 — 매니저(개인 상급자)는 여기서 직접 배정한다. 종전 문구는
@@ -311,7 +320,7 @@ const DEFAULT_LABELS = {
     assignManager: '매니저 배정',
     managerSearch: '이름·조직으로 검색',
     managerNoCandidate: '배정할 수 있는 매니저가 없습니다',
-    teamNote: '※ 매니저(개인 상급자)와 조직장은 별개입니다. 조직장 지정은 팀 관리 화면에서 진행됩니다.',
+    teamNote: '※ 매니저는 소속 조직의 조직장입니다. 조직장은 조직단위 설정 화면에서 지정합니다.',
     // PW-300 — 기획 §3.3 의 일괄 배정·원클릭 조직장 배정.
     // `{name}`·`{count}` 는 캔버스가 치환한다(i18next 의 `{{}}` 와 겹치지 않게 중괄호 1개).
     bulkStart: '일괄 배정',
@@ -372,6 +381,14 @@ const PAGE_SIZE = 20;
 // 기본값으로 쓰는 **고정 빈 배열** — 매 렌더 새 배열을 만들면 하위 memo 가 매번 깨진다.
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
+const EMPTY_LEADER_GAPS = { units: EMPTY_ARRAY, ceoMemberIds: EMPTY_ARRAY };
+
+/** 이름 목록을 한 줄로 — 셋까지 쓰고 나머지는 「외 N명」. 조직 하나에 수십 명이 걸릴 수 있다. */
+function namesText(names, labels) {
+  const shown = names.slice(0, 3).join(', ');
+  const rest = names.length - 3;
+  return rest > 0 ? `${shown} ${fill(labels.unassigned.namesMore, { count: rest })}` : shown;
+}
 
 /* 라벨 안의 `{key}` 를 값으로 바꾼다. i18next 는 `{{key}}` 를 쓰므로 소비자가 넘긴
    문장에서 이 자리는 치환되지 않은 채로 도착한다 — 이름·인원수를 아는 쪽이 여기다. */
@@ -576,54 +593,31 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 }
 
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
-/**
- * 한 사람의 **주 소속** 조직 — 전체 구성원 탭의 「주」 칩과 같은 값(PW-807).
- *
- * `orgUnitIds` 는 배정된 순서라 첫 줄이 주 소속이라는 보장이 없다. 겸직을 먼저 받고
- * 나중에 주 소속이 붙은 사람은 첫 줄이 겸직 부서라, 그걸 쓰면 미배정 관리 탭이 겸직
- * 부서를 그 사람의 소속으로 보여 준다(dev P1 멧데이먼: 주 DEV부문 · 겸직 HR부문 →
- * 「HR부문」). 소비자가 `depts` 에 실어 준 주 소속 칩이 정본이고, 칩이 없는 옛 값만
- * 배정 행의 첫 줄로 폴백한다 — 목록 칸·소속 팝업과 같은 순서다.
- */
-function memberPrimaryEntry(orgTree, member) {
-  const chip = (member.depts || []).find((d) => d.isPrimary && d.orgUnitId);
-  const hit = chip ? findOrgEntry(orgTree, chip.orgUnitId) : null;
-  return hit || primaryOrgEntry(orgTree, member.orgUnitIds);
-}
-
 function UnassignedTab({
   members, orgUnits, labels, renderAvatar, onAssignOrgUnit,
-  managerCandidates = [], onAssignManager, onAssignManagerBulk,
-  orgLeaderByMember = EMPTY_OBJECT,
+  leaderGaps = EMPTY_LEADER_GAPS, onGoAssignLeader, onGoAssignCeo,
 }) {
   const [pickerFor, setPickerFor] = useState(null);
-  /* 일괄 배정 모드(PW-300, 기획 §3.3). 온보딩 직후 조직은 전원이 미배정이라
-     개별 배정은 인원수만큼의 클릭이 된다. 모드를 나가면 선택은 비운다 —
-     보이지 않는 선택이 남아 있으면 다음에 들어와서 엉뚱한 사람을 배정한다. */
-  const [bulkMode, setBulkMode] = useState(false);
-  const [picked, setPicked] = useState(() => new Set());
-  const exitBulk = () => { setBulkMode(false); setPicked(new Set()); };
-  const togglePick = (id) => setPicked((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
   const noOrg = members.filter((m) => !hasOrgUnit(m) && m.employmentStatus !== 'terminated');
   /**
-   * 매니저 미배정 (PW-292).
+   * 조직장이 없는 조직 (PW-873).
    *
-   * 조직(팀) 배정 여부는 조건에 넣지 않는다 — 팀이 없어도 개인 상급자는 가질 수 있고,
-   * 매니저는 이제 조직장에서 파생되는 값이 아니다. 종전에는 `hasOrgUnit(m) &&` 가
-   * 붙어 있었는데, 그건 매니저가 소속 조직의 조직장에서 계산되던 시절의 전제다.
+   * 매니저는 사람마다 고르는 값이 아니라 «그 사람의 조직장»이다(PW-672). 그래서 매니저가
+   * 빈 사람을 나열해도 어드민이 그 자리에서 할 일이 없다 — 원인(조직장이 빈 조직 · 대표
+   * 미지정)을 가리켜야 고칠 수 있다. 원인 분류는 서버 계산과 같은 규칙이어야 해서 소비자가
+   * 하고 캔버스는 받은 대로 그린다(`leaderGaps`). 캔버스가 규칙을 가지면 서버와 갈리는 순간
+   * 「여기를 고치면 풀린다」가 거짓이 된다.
    *
-   * 대표는 조직 최상위라 상급자를 가질 수 없으므로 이 목록의 유일한 예외다
-   * (기획 `admin-spec.md §3.3` — 예외는 `is_ceo` 뿐).
+   * 조직장이 비어 있어도 위 조직장이 매니저를 채우는 조직은 소비자가 애초에 넣지 않는다
+   * (조직장 미지정은 정상 — 커트 결정 2026-09-22).
    */
-  const noManager = members.filter(
-    (m) => !m.isCeo && !m.managerName && m.employmentStatus !== 'terminated',
-  );
+  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+  const namesOf = (ids) => ids.map((id) => memberById.get(id)?.name).filter(Boolean);
+  const gapUnits = leaderGaps.units ?? EMPTY_ARRAY;
+  const ceoGapIds = leaderGaps.ceoMemberIds ?? EMPTY_ARRAY;
+  const gapCount = gapUnits.length + (ceoGapIds.length > 0 ? 1 : 0);
 
   return (
     <div className="admin-emp-unassigned">
@@ -685,110 +679,62 @@ function UnassignedTab({
 
       <Card>
         <div className="admin-emp-section-head">
-          <SectionLabel>{labels.unassigned.noManagerTitle}</SectionLabel>
-          {/* 배지와 액션을 한 묶음으로 — 헤더가 `space-between` 이라 자식이 셋이 되면
-              배지가 가운데로 밀려 기존 시각이 바뀐다. */}
-          <div className="admin-emp-section-head-actions">
-            <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noManager.length}{labels.countSuffix}</span>
-            {/* 일괄 배정 진입은 대상이 있을 때만 — 0명일 때 버튼만 남으면 눌러도 할 게 없다. */}
-            {onAssignManagerBulk && noManager.length > 0 && (
-            <>
-              {bulkMode ? (
-                <>
-                  <button
-                    type="button"
-                    className="admin-emp-btn is-sm"
-                    onClick={() => setPicked(
-                      picked.size === noManager.length ? new Set() : new Set(noManager.map((m) => m.id)),
-                    )}
-                  >
-                    {picked.size === noManager.length
-                      ? labels.unassigned.bulkClearAll
-                      : labels.unassigned.bulkSelectAll}
-                  </button>
-                  <ManagerPicker
-                    candidates={managerCandidates.filter((c) => !picked.has(c.id))}
-                    labels={labels}
-                    disabled={picked.size === 0}
-                    trigger={fill(labels.unassigned.bulkAssign, { count: picked.size })}
-                    onPick={(managerId) => {
-                      onAssignManagerBulk(Array.from(picked), managerId);
-                      exitBulk();
-                    }}
-                  />
-                  <button type="button" className="admin-emp-btn is-sm" onClick={exitBulk}>
-                    {labels.unassigned.bulkCancel}
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="admin-emp-btn is-sm" onClick={() => setBulkMode(true)}>
-                  {labels.unassigned.bulkStart}
-                </button>
-              )}
-            </>
-            )}
-          </div>
+          <SectionLabel>{labels.unassigned.leaderGapTitle}</SectionLabel>
+          <span className="admin-emp-pill is-amber">{fill(labels.unassigned.leaderGapPill, { count: gapCount })}</span>
         </div>
-        {noManager.length === 0 ? (
-          <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.noManagerEmpty}</div>
+        {gapCount === 0 ? (
+          <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.leaderGapEmpty}</div>
         ) : (
           <div className="admin-emp-unassigned-list">
-            {noManager.map((m) => (
-              <div key={m.id} className="admin-emp-unassigned-row">
-                {bulkMode && (
-                  <input
-                    type="checkbox"
-                    className="admin-emp-unassigned-check"
-                    checked={picked.has(m.id)}
-                    onChange={() => togglePick(m.id)}
-                    aria-label={m.name}
-                  />
-                )}
-                {renderAvatar ? renderAvatar(m, 32) : <AvatarFallback row={m} size={32} />}
+            {ceoGapIds.length > 0 && (
+              <div className="admin-emp-unassigned-row" data-testid="leader-gap-ceo">
                 <div className="admin-emp-unassigned-info">
-                  <div className="admin-emp-unassigned-name">{m.name}</div>
+                  <div className="admin-emp-unassigned-name">{labels.unassigned.ceoGapTitle}</div>
                   <div className="admin-emp-unassigned-meta">
-                    <span className="admin-emp-row-email">{m.email}</span>
-                    {/* 소속은 최하위 팀명만 보이면 어느 본부 밑인지 알 수 없다 — 전체 경로로 쓴다(§5-A P4).
-                        직급은 어휘 표준화(PW-36) 이후 jobLevel 이다. 옛 `title` 을 읽어 늘 '—' 였다. */}
-                    <OrgPathLabel
-                      entry={memberPrimaryEntry(orgTree, m)}
-                      fallback={m.department}
-                      muted="var(--text-tertiary)"
-                      color="inherit"
-                    />
-                    <span>{m.jobLevel || m.jobPosition || '—'}</span>
+                    <span>{fill(labels.unassigned.ceoGapMeta, { count: ceoGapIds.length })}</span>
+                    <span>{namesText(namesOf(ceoGapIds), labels)}</span>
                   </div>
                 </div>
-                <StatusBadge status={m.employmentStatus} labels={labels} />
-                {/* 미배정을 보여만 주고 그 자리에서 못 고치면 어드민이 갈 곳이 없다.
-                    핸들러가 없으면(권한 없음) 버튼 자체가 안 뜬다.
-                    일괄 배정 모드에서는 행마다 배정 버튼을 숨긴다 — 체크로 고르는 중에
-                    개별 배정이 함께 보이면 어느 쪽이 반영되는지 알 수 없다. */}
-                {onAssignManager && !bulkMode && (
-                  <div className="admin-emp-unassigned-action-group">
-                    {/* 원클릭 조직장 배정(PW-300, 기획 §3.3). 대부분의 사람은 상급자가
-                        소속 조직장이므로, 이 한 번이 200명 드롭다운을 대신한다.
-                        본인이 그 조직 조직장이면 소비자가 아예 내려주지 않는다. */}
-                    {orgLeaderByMember[m.id] && (
-                      <button
-                        type="button"
-                        className="admin-emp-btn is-sm"
-                        onClick={() => onAssignManager(m.id, orgLeaderByMember[m.id].id)}
-                      >
-                        <IconUser size={12} />
-                        {fill(labels.unassigned.assignToLeader, { name: orgLeaderByMember[m.id].name })}
-                      </button>
-                    )}
-                    <ManagerPicker
-                      candidates={managerCandidates.filter((c) => c.id !== m.id)}
-                      labels={labels}
-                      onPick={(managerId) => onAssignManager(m.id, managerId)}
-                    />
+                {/* 대표는 전체 구성원 목록의 행 메뉴에서 지정한다(기획 §3.6-A). 누구를 대표로
+                    할지는 이 줄의 사람들과 다를 수 있어 여기서 한 사람을 고르게 하지 않는다. */}
+                {onGoAssignCeo && (
+                  <div className="admin-emp-unassigned-action">
+                    <button type="button" className="admin-emp-btn is-primary is-sm" onClick={onGoAssignCeo}>
+                      {labels.unassigned.ceoGapAction}
+                    </button>
                   </div>
                 )}
               </div>
-            ))}
+            )}
+            {gapUnits.map((g) => {
+              const entry = findOrgEntry(orgTree, g.unitId);
+              return (
+                <div key={g.unitId} className="admin-emp-unassigned-row" data-testid="leader-gap-unit">
+                  <div className="admin-emp-unassigned-info">
+                    <div className="admin-emp-unassigned-name">
+                      <OrgPathLabel
+                        entry={entry}
+                        fallback={orgUnits.find((u) => u.id === g.unitId)?.name ?? '—'}
+                        muted="var(--text-tertiary)"
+                        color="inherit"
+                      />
+                    </div>
+                    <div className="admin-emp-unassigned-meta">
+                      <span>{fill(labels.unassigned.leaderGapMeta, { count: g.memberIds.length })}</span>
+                      <span>{namesText(namesOf(g.memberIds), labels)}</span>
+                    </div>
+                  </div>
+                  {/* 조직장 지정 자리는 조직이 맥락인 조직단위 설정이다(기획 §3.6-B-1). */}
+                  {onGoAssignLeader && (
+                    <div className="admin-emp-unassigned-action">
+                      <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onGoAssignLeader(g.unitId)}>
+                        {labels.unassigned.leaderGapAction}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         <div className="admin-emp-team-note">{labels.unassigned.teamNote}</div>
@@ -3552,12 +3498,15 @@ export default function AdminEmployeesCanvas({
    */
   managerCandidates = EMPTY_ARRAY,
   /**
-   * 미배정 행의 **주 소속 조직장** `{ [memberId]: { id, name } }` (PW-300).
+   * 미배정 탭 «조직장이 없는 조직» 경고 (PW-873).
+   * `{ units: [{ unitId, memberIds }], ceoMemberIds }` — 매니저가 빈 사람을 원인별로 묶은 것.
    *
-   * 자기 자신이 그 조직의 조직장인 사람은 소비자가 아예 빼고 넘긴다(자기 상급자 금지,
-   * 기획 §3.3) — 캔버스가 그 규칙을 갖고 있으면 조직장 판정이 두 곳으로 갈린다.
+   * 분류 규칙(회사 카드 제외 · 조직장 본인은 위 조직부터 · 위 조직장이 채우면 경고 아님)은
+   * 서버 매니저 계산과 같아야 해서 **소비자가** 만든다. 미주입이면 경고할 것이 없는 것으로 그린다.
    */
-  orgLeaderByMember = EMPTY_OBJECT,
+  leaderGaps = EMPTY_LEADER_GAPS,
+  /** [조직장 지정] `(unitId) => void` — 조직단위 설정으로 보낸다. 미주입이면 버튼이 없다. */
+  onGoAssignLeader,
   /**
    * 일괄 초대 발송 (PW-114). `(rows) => Promise<{sent, failed[]}>`.
    *
@@ -3706,16 +3655,24 @@ export default function AdminEmployeesCanvas({
   const [inviteOpen, setInviteOpen] = useState(initialInviteOpen && canInvite);
   const openInvite = () => setInviteOpen(true);
 
+  const leaderGapIds = useMemo(
+    () => new Set([
+      ...(leaderGaps.ceoMemberIds ?? EMPTY_ARRAY),
+      ...(leaderGaps.units ?? EMPTY_ARRAY).flatMap((g) => g.memberIds),
+    ]),
+    [leaderGaps],
+  );
   const unassignedCount = useMemo(
     () =>
       members.filter(
         (m) =>
           m.employmentStatus !== 'terminated' &&
-          // 대표는 조직 최상위라 상급자가 없는 게 정상이다 — 매니저 미배정으로
-          // 세면 영원히 사라지지 않는 경고가 된다(정책 §2 / §1-3-c R2).
-          (!hasOrgUnit(m) || (!m.managerName && m.isCeo !== true)),
+          // 배지는 «손볼 사람» 수다(기획 §3.0 합집합). 조직이 없는 사람 + 조직장이 빈
+          // 조직·대표 미지정 때문에 매니저가 빈 사람(PW-873). 조직장이 비어도 위 조직장이
+          // 매니저를 채우는 사람은 세지 않는다 — 그걸 세면 파트를 두는 회사는 늘 켜져 있다.
+          (!hasOrgUnit(m) || leaderGapIds.has(m.id)),
       ).length,
-    [members],
+    [members, leaderGapIds],
   );
   const pendingInviteCount = useMemo(
     () => invites.filter((i) => i.status === 'pending').length,
@@ -3850,10 +3807,10 @@ export default function AdminEmployeesCanvas({
           labels={labels}
           renderAvatar={renderAvatar}
           onAssignOrgUnit={onAssignOrgUnit}
-          managerCandidates={managerCandidates}
-          onAssignManager={canEdit ? onAssignManager : undefined}
-          onAssignManagerBulk={canEdit ? onAssignManagerBulk : undefined}
-          orgLeaderByMember={orgLeaderByMember}
+          leaderGaps={leaderGaps}
+          onGoAssignLeader={canEdit ? onGoAssignLeader : undefined}
+          /* 대표는 전체 구성원 행 메뉴에서 지정한다 — 그 메뉴가 서는 조건과 같게 건다. */
+          onGoAssignCeo={canEdit && onAssignCeo && onReleaseCeo ? () => goTab('members') : undefined}
         />
       ) : (
         <InvitesTab
