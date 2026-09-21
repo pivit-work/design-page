@@ -25,6 +25,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import SquadFormCard from './SquadFormCard.jsx';
+import AssignmentGrid from './AssignmentGrid.jsx';
 import {
   CapacityBar,
   SquadComposition,
@@ -1102,217 +1103,211 @@ export default function SquadCanvas({
                     </div>
                   )}
 
-                  <div className="sq-table-scroll">
-                    <table className="pj-table sq-table">
-                      <thead>
-                        <tr>
-                          <th className="pj-th sq-th-name">{L('squad.matrix.colMember')}</th>
-                          {squads.map((sq) => (
-                            <th key={sq.id} className="pj-th sq-th-col">
-                              <span className="sq-th-col-inner">
-                                <span className="pj-th-dot" style={{ background: sq.color }} />
-                                <span className="pj-th-label">{sq.name}</span>
-                              </span>
-                            </th>
-                          ))}
-                          <th className="pj-th sq-th-cap">
-                            {L('squad.matrix.colCapacity')}
-                            <span className="sq-th-cap-basis">{L('squad.matrix.colCapacityBasis')}</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rowIds.map((userId) => {
-                          const p = personOf(userId);
-                          const count = squadCountOf(squads, userId);
-                          const total = plannedTotalPct(squads, userId);
-                          const segments = planSegments(squads, userId);
-                          const cst = capacityState(total);
-                          const diff = total - CAPACITY;
-                          // 미설정은 합계에서 빠져 있다 — 합계가 낮은 이유를 화면이 스스로 말한다
-                          const unsetCount = unsetCapacityCount(squads, userId);
-                          const clickable = !!(p && onMemberClick);
-                          const rowLabel = p?.avatar || nameOf(userId).slice(0, 2);
-                          // 사진이 있으면 사진, 없으면 이름 글자 — 이웃 탭 「프로젝트」의
-                          // `MemberTable` 과 같은 갈래다. `avatar` 는 **이니셜 문자열**이라
-                          // 이미지로 못 쓴다(같은 필드에 두 뜻을 담지 않는다).
-                          const photo = p?.photoUrl || null;
-                          return (
-                            <tr key={userId} data-testid={`squad-matrix-row-${userId}`}>
-                              <td className="pj-td">
-                                <div
-                                  className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
-                                  onClick={() => p && onMemberClick?.(p)}
-                                >
-                                  {photo ? (
-                                    <img
-                                      src={photo}
-                                      alt=""
-                                      className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
-                                    />
-                                  ) : (
-                                  <span
-                                    className="pj-member-avatar pj-member-initials sq-avatar-lg"
-                                    style={{
-                                      fontSize: avatarFontPx(rowLabel, 40),
-                                      ...(p?.color
-                                        ? { background: `${p.color}24`, color: p.color, borderColor: 'transparent' }
-                                        : {}),
-                                    }}
-                                  >{rowLabel}</span>
-                                  )}
-                                  {/* 자리가 모자라 말줄임으로 끊긴 이름도 읽을 수 있어야 한다 —
-                                      끊긴 채 확인할 방법이 없으면 그건 그것대로 결함이다. */}
-                                  <span className="pj-member-name" title={nameOf(userId)}>{nameOf(userId)}</span>
-                                  {/* 🔴 자물쇠는 **그 행에 열린 셀이 하나도 없을 때만** 선다 —
-                                      §5-3.9 화면 규칙 1 은 행 단위 잠금 표시를 금지한다. 조직 축만
-                                      보고 세우면, 자기 스쿼드 열이 열려 있는 리드에게 전 행이 잠긴
-                                      것처럼 보인다 — 한 화면이 「잠겼다」와 「눌린다」를 동시에
-                                      말하게 된다(PW-423). */}
-                                  {isEditing && !inScope(userId) && leadSet.size === 0 && (
-                                    <span className="sq-lock" title={L('squad.tip.lockedOrg')}>
-                                      <LockIcon size={13} />
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              {squads.map((sq) => {
-                                const mm = (sq.members || []).find((x) => x.userId === userId);
-                                const editable = canEditMemberOf(sq.id, userId);
-                                // 🔴 **배정을 새로 만드는 것은 조직의 결정**이다(§5-3.7) —
-                                // 본인 여부로 열리는 것은 이미 있는 내 배정의 캐파뿐이다.
-                                // 서버도 같은 규칙이라, 여기서 열어 두면 403 만 돌아온다.
-                                const canAssign = canEditShareOf(sq.id, userId);
-                                const isLead = mm?.role === 'lead';
-                                const capUnset = !!mm && isCapacityUnset(mm);
-                                // 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 상태.
-                                // 오류가 아니라 안내 대상이다(§5-3.6 · §10-A15).
-                                const capIdle = isCapacityIdle(mm);
-                                const mine = isSelfRow(userId);
-                                return (
-                                  <td key={sq.id} className="pj-td sq-td-cell">
-                                    {mm ? (
-                                      <div
-                                        data-testid={`squad-cell-${sq.id}-${userId}`}
-                                        className={[
-                                          'sq-cell',
-                                          editable ? 'is-clickable' : '',
-                                          // 미설정은 **형태**로 말한다 — 색이 죽어도 점선은 남는다(§5-3.7)
-                                          capUnset ? 'is-cap-unset' : '',
-                                        ].filter(Boolean).join(' ')}
-                                        data-squad-popover-anchor="assign"
-                                        onClick={(e) => editable && openAssignPopover(sq.id, userId, e, 8, 8)}
-                                        title={[
-                                          `${nameOf(userId)} · ${sq.name}`,
-                                          L('squad.tip.cellCapacity', { capacity: capText(mm) }),
-                                          L('squad.tip.cellShare', { share: mm.sharePct || 0 }),
-                                          capIdle ? idleHint : '',
-                                          isLead ? L('squad.tip.lead') : '',
-                                          cellHint(L, mine, editable),
-                                        ].filter(Boolean).join('\n')}
-                                        style={capUnset
-                                          ? undefined
-                                          : { background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
-                                      >
-                                        {/* 윗줄 = 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖).
-                                            한 값만 보이면 나머지를 보는 사람이 추측으로 채우고,
-                                            그 추측이 두 축을 하나로 뭉갠다(§5-3.2) */}
-                                        <span className="sq-cell-top">
-                                          {isLead && (
-                                            <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
-                                          )}
-                                          {capUnset ? (
-                                            <span
-                                              className="sq-cell-pct is-unset"
-                                              data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
-                                              title={L('squad.tip.cellCapacityUnset')}
-                                            >—</span>
-                                          ) : (
-                                            <span className="sq-cell-pct" style={{ color: sq.color }}>
-                                              {mm.allocationPct}%
-                                            </span>
-                                          )}
-                                        </span>
-                                        <span
-                                          className="sq-cell-share"
-                                          data-testid={`squad-cell-share-${sq.id}-${userId}`}
-                                        >
-                                          {capIdle && (
-                                            <span
-                                              className="sq-idle-dot"
-                                              data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
-                                              title={idleHint}
-                                              aria-hidden
-                                            />
-                                          )}
-                                          {mm.sharePct ? L('squad.matrix.cellShare', { share: mm.sharePct }) : L('squad.matrix.cellShareNone')}
-                                        </span>
-                                      </div>
-                                    ) : isEditing ? (
-                                      <div
-                                        data-testid={`squad-empty-cell-${sq.id}-${userId}`}
-                                        className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
-                                        onClick={() => canAssign && assign(sq.id, userId)}
-                                        title={canAssign
-                                          ? L('squad.tip.assignEmpty', { squad: sq.name })
-                                          : lockReason()}
-                                      >
-                                        {canAssign && <PlusIcon size={12} />}
-                                      </div>
-                                    ) : (
-                                      <span className="pj-cell-dot pj-cell-dot-empty" />
-                                    )}
-                                  </td>
-                                );
-                              })}
-                              {/* 캐파 사용 — 개인 가용 100 기준. 게이지 + 잔여/초과 %p 를 함께 읽힌다 */}
-                              <td className="pj-td sq-td-cap">
-                                <div className="sq-cap">
-                                  <div className="sq-cap-nums">
-                                    {/* 초과 표식 — 「빨강」만으로 초과를 말하지 않기 위한 형태 신호(§5-3.2).
-                                        색각 이상·흑백 인쇄에서 숫자색이 죽어도 이 표식은 남는다 */}
-                                    {cst.key === 'over' && (
-                                      <span
-                                        data-testid={`squad-capacity-over-${userId}`}
-                                        className="sq-cap-warn"
-                                        title={L('squad.tip.over100')}
-                                      >
-                                        <WarningIcon size={12} />
-                                      </span>
-                                    )}
-                                    <span
-                                      data-testid={`squad-capacity-total-${userId}`}
-                                      className="sq-cap-total"
-                                      style={{ color: cst.color }}
-                                    >
-                                      {total}
-                                    </span>
-                                    <span className="sq-cap-max">/ 100</span>
-                                  </div>
-                                  <CapacityBar segments={segments} total={total} />
-                                  <span className={`sq-cap-note${cst.key === 'over' ? ' is-over' : ''}`}>
-                                    {unsetCount > 0 && (
-                                      <span data-testid={`squad-capacity-unset-${userId}`}>
-                                        {L('squad.matrix.unsetCount', { count: unsetCount })}
-                                      </span>
-                                    )}
-                                    {capacityNote(L, { total, diff, count, unsetCount })}
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {rowIds.length === 0 && (
-                          <tr>
-                            <td colSpan={squads.length + 2} className="sq-empty-row">
-                              {L('squad.matrix.emptyRow')}
-                            </td>
-                          </tr>
+                  {/* 바둑판 뼈대는 프로젝트 탭과 같은 AssignmentGrid 다(PW-838) — 이름 칸과
+                      「캐파 사용」 칸이 가로로 밀어도 좌우에 붙어 있다. 칸 안의 모양만 여기서 정한다. */}
+                  <AssignmentGrid
+                    tableClassName="sq-table"
+                    columns={squads}
+                    rows={rowIds.map((userId) => {
+                      const p = personOf(userId);
+                      const count = squadCountOf(squads, userId);
+                      const total = plannedTotalPct(squads, userId);
+                      const segments = planSegments(squads, userId);
+                      const cst = capacityState(total);
+                      const diff = total - CAPACITY;
+                      // 미설정은 합계에서 빠져 있다 — 합계가 낮은 이유를 화면이 스스로 말한다
+                      const unsetCount = unsetCapacityCount(squads, userId);
+                      const clickable = !!(p && onMemberClick);
+                      const rowLabel = p?.avatar || nameOf(userId).slice(0, 2);
+                      // 사진이 있으면 사진, 없으면 이름 글자 — 이웃 탭 「프로젝트」의
+                      // `MemberTable` 과 같은 갈래다. `avatar` 는 **이니셜 문자열**이라
+                      // 이미지로 못 쓴다(같은 필드에 두 뜻을 담지 않는다).
+                      const photo = p?.photoUrl || null;
+                      return { userId, p, count, total, segments, cst, diff, unsetCount, clickable, rowLabel, photo };
+                    })}
+                    rowKey={(row) => row.userId}
+                    rowProps={(row) => ({ 'data-testid': `squad-matrix-row-${row.userId}` })}
+                    classes={{
+                      nameTh: 'sq-th-name',
+                      colTh: 'sq-th-col',
+                      totalTh: 'sq-th-cap',
+                      colTd: 'sq-td-cell',
+                      totalTd: 'sq-td-cap',
+                      emptyTd: 'sq-empty-row',
+                    }}
+                    nameHeader={L('squad.matrix.colMember')}
+                    totalHeader={(
+                      <>
+                        {L('squad.matrix.colCapacity')}
+                        <span className="sq-th-cap-basis">{L('squad.matrix.colCapacityBasis')}</span>
+                      </>
+                    )}
+                    renderColumnHeader={(sq) => (
+                      <span className="sq-th-col-inner">
+                        <span className="pj-th-dot" style={{ background: sq.color }} />
+                        <span className="pj-th-label">{sq.name}</span>
+                      </span>
+                    )}
+                    renderName={({ userId, p, clickable, rowLabel, photo }) => (
+                      <div
+                        className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
+                        onClick={() => p && onMemberClick?.(p)}
+                      >
+                        {photo ? (
+                          <img
+                            src={photo}
+                            alt=""
+                            className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
+                          />
+                        ) : (
+                        <span
+                          className="pj-member-avatar pj-member-initials sq-avatar-lg"
+                          style={{
+                            fontSize: avatarFontPx(rowLabel, 40),
+                            ...(p?.color
+                              ? { background: `${p.color}24`, color: p.color, borderColor: 'transparent' }
+                              : {}),
+                          }}
+                        >{rowLabel}</span>
                         )}
-                      </tbody>
-                    </table>
-                  </div>
+                        {/* 자리가 모자라 말줄임으로 끊긴 이름도 읽을 수 있어야 한다 —
+                            끊긴 채 확인할 방법이 없으면 그건 그것대로 결함이다. */}
+                        <span className="pj-member-name" title={nameOf(userId)}>{nameOf(userId)}</span>
+                        {/* 🔴 자물쇠는 **그 행에 열린 셀이 하나도 없을 때만** 선다 —
+                            §5-3.9 화면 규칙 1 은 행 단위 잠금 표시를 금지한다. 조직 축만
+                            보고 세우면, 자기 스쿼드 열이 열려 있는 리드에게 전 행이 잠긴
+                            것처럼 보인다 — 한 화면이 「잠겼다」와 「눌린다」를 동시에
+                            말하게 된다(PW-423). */}
+                        {isEditing && !inScope(userId) && leadSet.size === 0 && (
+                          <span className="sq-lock" title={L('squad.tip.lockedOrg')}>
+                            <LockIcon size={13} />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    renderCell={({ userId }, sq) => {
+                      const mm = (sq.members || []).find((x) => x.userId === userId);
+                      const editable = canEditMemberOf(sq.id, userId);
+                      // 🔴 **배정을 새로 만드는 것은 조직의 결정**이다(§5-3.7) —
+                      // 본인 여부로 열리는 것은 이미 있는 내 배정의 캐파뿐이다.
+                      // 서버도 같은 규칙이라, 여기서 열어 두면 403 만 돌아온다.
+                      const canAssign = canEditShareOf(sq.id, userId);
+                      const isLead = mm?.role === 'lead';
+                      const capUnset = !!mm && isCapacityUnset(mm);
+                      // 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 상태.
+                      // 오류가 아니라 안내 대상이다(§5-3.6 · §10-A15).
+                      const capIdle = isCapacityIdle(mm);
+                      const mine = isSelfRow(userId);
+                      return (
+                        mm ? (
+                          <div
+                            data-testid={`squad-cell-${sq.id}-${userId}`}
+                            className={[
+                              'sq-cell',
+                              editable ? 'is-clickable' : '',
+                              // 미설정은 **형태**로 말한다 — 색이 죽어도 점선은 남는다(§5-3.7)
+                              capUnset ? 'is-cap-unset' : '',
+                            ].filter(Boolean).join(' ')}
+                            data-squad-popover-anchor="assign"
+                            onClick={(e) => editable && openAssignPopover(sq.id, userId, e, 8, 8)}
+                            title={[
+                              `${nameOf(userId)} · ${sq.name}`,
+                              L('squad.tip.cellCapacity', { capacity: capText(mm) }),
+                              L('squad.tip.cellShare', { share: mm.sharePct || 0 }),
+                              capIdle ? idleHint : '',
+                              isLead ? L('squad.tip.lead') : '',
+                              cellHint(L, mine, editable),
+                            ].filter(Boolean).join('\n')}
+                            style={capUnset
+                              ? undefined
+                              : { background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
+                          >
+                            {/* 윗줄 = 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖).
+                                한 값만 보이면 나머지를 보는 사람이 추측으로 채우고,
+                                그 추측이 두 축을 하나로 뭉갠다(§5-3.2) */}
+                            <span className="sq-cell-top">
+                              {isLead && (
+                                <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
+                              )}
+                              {capUnset ? (
+                                <span
+                                  className="sq-cell-pct is-unset"
+                                  data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
+                                  title={L('squad.tip.cellCapacityUnset')}
+                                >—</span>
+                              ) : (
+                                <span className="sq-cell-pct" style={{ color: sq.color }}>
+                                  {mm.allocationPct}%
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className="sq-cell-share"
+                              data-testid={`squad-cell-share-${sq.id}-${userId}`}
+                            >
+                              {capIdle && (
+                                <span
+                                  className="sq-idle-dot"
+                                  data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
+                                  title={idleHint}
+                                  aria-hidden
+                                />
+                              )}
+                              {mm.sharePct ? L('squad.matrix.cellShare', { share: mm.sharePct }) : L('squad.matrix.cellShareNone')}
+                            </span>
+                          </div>
+                        ) : isEditing ? (
+                          <div
+                            data-testid={`squad-empty-cell-${sq.id}-${userId}`}
+                            className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
+                            onClick={() => canAssign && assign(sq.id, userId)}
+                            title={canAssign
+                              ? L('squad.tip.assignEmpty', { squad: sq.name })
+                              : lockReason()}
+                          >
+                            {canAssign && <PlusIcon size={12} />}
+                          </div>
+                        ) : (
+                          <span className="pj-cell-dot pj-cell-dot-empty" />
+                        )
+                      );
+                    }}
+                    renderTotal={({ userId, count, total, segments, cst, diff, unsetCount }) => (
+                      <div className="sq-cap">
+                        <div className="sq-cap-nums">
+                          {/* 초과 표식 — 「빨강」만으로 초과를 말하지 않기 위한 형태 신호(§5-3.2).
+                              색각 이상·흑백 인쇄에서 숫자색이 죽어도 이 표식은 남는다 */}
+                          {cst.key === 'over' && (
+                            <span
+                              data-testid={`squad-capacity-over-${userId}`}
+                              className="sq-cap-warn"
+                              title={L('squad.tip.over100')}
+                            >
+                              <WarningIcon size={12} />
+                            </span>
+                          )}
+                          <span
+                            data-testid={`squad-capacity-total-${userId}`}
+                            className="sq-cap-total"
+                            style={{ color: cst.color }}
+                          >
+                            {total}
+                          </span>
+                          <span className="sq-cap-max">/ 100</span>
+                        </div>
+                        <CapacityBar segments={segments} total={total} />
+                        <span className={`sq-cap-note${cst.key === 'over' ? ' is-over' : ''}`}>
+                          {unsetCount > 0 && (
+                            <span data-testid={`squad-capacity-unset-${userId}`}>
+                              {L('squad.matrix.unsetCount', { count: unsetCount })}
+                            </span>
+                          )}
+                          {capacityNote(L, { total, diff, count, unsetCount })}
+                        </span>
+                      </div>
+                    )}
+                    empty={L('squad.matrix.emptyRow')}
+                  />
 
                   {/* 범례 — 두 분모를 혼동하지 않게 상시 안내한다 */}
                   <div className="sq-legend">

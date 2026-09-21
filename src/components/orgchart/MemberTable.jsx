@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import AssignmentGrid from './AssignmentGrid.jsx';
 import { MEMBERS, generateRandomMembers } from './project-constants.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
@@ -21,13 +22,6 @@ function collectOrgMembers(node) {
 
 export default function MemberTable({ projects, stickyTop = 0, onMemberClick, orgData }) {
   const L = useOrgLabels();
-  const headerScrollRef = useRef(null);
-  const bodyScrollRef = useRef(null);
-  const titleRef = useRef(null);
-  const [titleHeight, setTitleHeight] = useState(0);
-  const syncingRef = useRef(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [scrolledEnd, setScrolledEnd] = useState(false);
   const [members, setMembers] = useState(() => {
     if (!orgData) return MEMBERS;
     const orgMembers = collectOrgMembers(orgData);
@@ -39,36 +33,6 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
     return [...orgMembers, ...extra];
   });
   const [visibleCount, setVisibleCount] = useState(10);
-  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
-
-  const updateShadows = (el) => {
-    if (!el) return;
-    setScrolled(el.scrollLeft > 0);
-    setScrolledEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 1);
-  };
-
-  const onHeaderScroll = () => {
-    if (syncingRef.current) return;
-    syncingRef.current = true;
-    const sl = headerScrollRef.current.scrollLeft;
-    if (bodyScrollRef.current) bodyScrollRef.current.scrollLeft = sl;
-    updateShadows(headerScrollRef.current);
-    syncingRef.current = false;
-  };
-
-  const onBodyScroll = () => {
-    if (syncingRef.current) return;
-    syncingRef.current = true;
-    const sl = bodyScrollRef.current.scrollLeft;
-    if (headerScrollRef.current) headerScrollRef.current.scrollLeft = sl;
-    updateShadows(bodyScrollRef.current);
-    syncingRef.current = false;
-  };
-
-  useEffect(() => {
-    updateShadows(headerScrollRef.current);
-    if (titleRef.current) setTitleHeight(titleRef.current.offsetHeight);
-  }, [projects]);
 
   const handleLoadMore = () => {
     const nextCount = visibleCount + 20;
@@ -80,99 +44,56 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
     setVisibleCount(nextCount);
   };
 
-  const onMouseDown = (e) => {
-    const el = bodyScrollRef.current;
-    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft };
-    el.style.cursor = 'grabbing';
-    el.style.userSelect = 'none';
-  };
-  const onMouseMove = (e) => {
-    if (!dragState.current.isDragging) return;
-    const dx = e.clientX - dragState.current.startX;
-    bodyScrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
-  };
-  const onMouseUp = () => {
-    dragState.current.isDragging = false;
-    if (bodyScrollRef.current) {
-      bodyScrollRef.current.style.cursor = '';
-      bodyScrollRef.current.style.userSelect = '';
-    }
-  };
-
   const visibleMembers = members.slice(0, visibleCount);
-  const memberTotals = visibleMembers.map(member =>
-    projects.reduce((sum, p) => sum + (member.projects[p.id] ? 1 : 0), 0)
-  );
 
+  // 바둑판 뼈대는 스쿼드 탭과 같은 AssignmentGrid 다(PW-838). 여기서는 칸 안의 모양만 정한다.
   return (
     <div className="pj-table-section">
-      <div className="pj-table-header-text" ref={titleRef} style={{ top: stickyTop }}>
+      <div className="pj-table-header-text" style={{ top: stickyTop }}>
         <p className="pj-table-title">{L('project.tableTitle')}</p>
         <p className="pj-table-subtitle">{L('project.tableSubtitle')}</p>
       </div>
-        <div className="pj-table-sticky-header" style={{ top: stickyTop + titleHeight }}>
-          <div className={`pj-sticky-name-hdr ${scrolled ? 'pj-name-shadow' : ''}`}>{L('project.colName')}</div>
-          <div className="pj-sticky-projects-hdr" ref={headerScrollRef} onScroll={onHeaderScroll}>
-            {projects.map(p => (
-              <div key={p.id} className="pj-sticky-th">
-                <span className="pj-th-dot" style={{ background: p.color }} />
-                <span className="pj-th-label">{p.name}</span>
-              </div>
-            ))}
+      <AssignmentGrid
+        className="pj-grid"
+        dragScroll
+        columns={projects}
+        rows={visibleMembers}
+        rowKey={(member, i) => `${member.email}-${i}`}
+        classes={{ colTh: 'pj-th-project', colTd: 'pj-td-project' }}
+        onNameClick={onMemberClick}
+        nameHeader={L('project.colName')}
+        totalHeader={L('project.colTotal')}
+        renderColumnHeader={(p) => (
+          <span className="pj-grid-th">
+            <span className="pj-th-dot" style={{ background: p.color }} />
+            <span className="pj-th-label">{p.name}</span>
+          </span>
+        )}
+        renderName={(member) => (
+          <div className="pj-member-info">
+            {member.avatar ? (
+              <img src={member.avatar} alt="" className="pj-member-avatar" />
+            ) : (
+              <span className="pj-member-avatar pj-member-initials">{member.initials}</span>
+            )}
+            <div className="pj-member-text">
+              <span className="pj-member-name">{member.name}</span>
+              <span className="pj-member-email">{member.email}</span>
+            </div>
           </div>
-          <div className={`pj-sticky-sum-hdr ${scrolledEnd ? 'pj-sum-no-shadow' : ''}`}>{L('project.colTotal')}</div>
-        </div>
-
-        <div className="pj-table-outer">
-          <div className={`pj-name-column ${scrolled ? 'pj-name-shadow' : ''}`}>
-            {visibleMembers.map((member, i) => (
-              <div key={i} className="pj-name-cell" onClick={() => onMemberClick && onMemberClick(member)} style={{ cursor: 'pointer' }}>
-                <div className="pj-member-info">
-                  {member.avatar ? (
-                    <img src={member.avatar} alt="" className="pj-member-avatar" />
-                  ) : (
-                    <span className="pj-member-avatar pj-member-initials">{member.initials}</span>
-                  )}
-                  <div className="pj-member-text">
-                    <span className="pj-member-name">{member.name}</span>
-                    <span className="pj-member-email">{member.email}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div
-            className="pj-table-wrap"
-            ref={bodyScrollRef}
-            onScroll={onBodyScroll}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseUp}
-          >
-            <table className="pj-table">
-              <tbody>
-                {visibleMembers.map((member, i) => (
-                  <tr key={i}>
-                    {projects.map(p => (
-                      <td key={p.id} className="pj-td pj-td-project">
-                        <span
-                          className={`pj-cell-dot ${member.projects[p.id] ? '' : 'pj-cell-dot-empty'}`}
-                          style={member.projects[p.id] ? { background: p.color } : undefined}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className={`pj-sum-column ${scrolledEnd ? 'pj-sum-no-shadow' : ''}`}>
-            {memberTotals.map((total, i) => (
-              <div key={i} className="pj-sum-cell">{total}</div>
-            ))}
-          </div>
-        </div>
+        )}
+        renderCell={(member, p) => (
+          <span
+            className={`pj-cell-dot ${member.projects[p.id] ? '' : 'pj-cell-dot-empty'}`}
+            style={member.projects[p.id] ? { background: p.color } : undefined}
+          />
+        )}
+        renderTotal={(member) => (
+          <span className="pj-grid-sum">
+            {projects.reduce((sum, p) => sum + (member.projects[p.id] ? 1 : 0), 0)}
+          </span>
+        )}
+      />
       <div className="pj-table-footer">
         <button className="pj-btn-more" onClick={handleLoadMore}>{L('project.more')}</button>
       </div>
