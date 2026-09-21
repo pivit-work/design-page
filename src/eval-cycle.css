@@ -14,7 +14,10 @@
   right: 0;
   bottom: 0;
   overflow-y: auto;
-  padding: var(--spacing-2xl) var(--spacing-3xl) 60px;
+  /* 아래 여백은 이름으로 둔다 — 떠 있는 제출 줄(.evm-submit-bar)이 이 값만큼 내려 앉아야
+     한다 (PW-843). */
+  --evc-root-pad-bottom: 60px;
+  padding: var(--spacing-2xl) var(--spacing-3xl) var(--evc-root-pad-bottom);
   box-sizing: border-box;
   background: var(--bg-primary);
   font-family: var(--font-family-body);
@@ -3798,9 +3801,28 @@
   cursor: not-allowed;
   opacity: 0.6;
 }
+/* 리뷰 작성 폼(셀프·동료·상향)의 블록 사이 간격 (PW-843).
+   폼은 머리 아래 자리(상향의 대상 카드·익명 안내) · 지난 등급 · 활동 요약 · 제출 안내 ·
+   항목 카드 · 오류 안내를 «각자의 .evc-list» 로 쌓는다. .evc-list 의 gap 은 목록 «안»에만
+   걸려서, 목록끼리는 맞닿았다 — 제출 뒤 초록 안내가 첫 항목 카드의 머리글처럼 붙어 보였다.
+   목록 안 카드끼리와 같은 간격을 목록 사이에도 둔다. */
+.evm-root > .evc-list + .evc-list {
+  margin-top: var(--spacing-lg);
+}
+/* 칸을 눌러 들어가거나 글이 길어져 화면이 따라 내려갈 때, 그 칸을 떠 있는 제출 줄 위에
+   세운다 (줄 높이 + 아래 띄움 + 여유). */
+.evm-root:has(> .evm-submit-bar) {
+  scroll-padding-bottom: 112px;
+}
+/* 떠 있는 제출 줄 (PW-843).
+   🔴 sticky 의 bottom 은 스크롤 칸의 «안쪽 여백을 뺀» 자리에서 잰다. bottom: 0 이면
+   줄이 화면 끝이 아니라 .evc-root 의 아래 여백(60px)만큼 위에 떠서, 그 60px 틈으로 줄 밑
+   입력칸 글자가 비쳐 보였다. 여백만큼 내려 화면 끝에서 spacing-lg 만 띄우고, 그 틈은
+   바탕색 그림자(두 번째 box-shadow)로 메워 줄 밑으로 아무것도 비치지 않게 한다.
+   맨 아래까지 내리면 줄은 제자리(마지막 카드 아래)에 놓여 마지막 입력칸을 가리지 않는다. */
 .evm-submit-bar {
   position: sticky;
-  bottom: 0;
+  bottom: calc(var(--spacing-lg) - var(--evc-root-pad-bottom));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3811,7 +3833,9 @@
   background: var(--bg-quaternary);
   border: 1px solid var(--bg-active);
   border-radius: var(--radius-2xl);
-  box-shadow: 0 -4px 16px rgba(10, 13, 18, 0.06);
+  box-shadow:
+    0 -4px 16px rgba(10, 13, 18, 0.06),
+    0 var(--spacing-lg) 0 var(--spacing-lg) var(--bg-primary);
 }
 .evm-progress {
   font-size: var(--font-size-text-sm);
