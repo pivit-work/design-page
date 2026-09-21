@@ -5,6 +5,7 @@ import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -267,54 +268,62 @@ const ROSTER_COLUMNS = [
  * `rowBadge` — 이름 셀 뒤에 붙는 출처 배지(As Of 의 `증빙 고정본`, S2).
  * AI 데이터 소스 배지가 아니라 **시점 출처 표기**라 중립색을 쓴다(정책 §8).
  */
-function RosterTable({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge }) {
+function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge }) {
   const columns = showSalary ? [...ROSTER_COLUMNS, 'salary'] : ROSTER_COLUMNS;
   if (rows.length === 0) {
     return <div className="admin-snap-empty">{labels.rosterEmpty}</div>;
   }
   return (
-    <div className="admin-snap-roster-scroll">
-      <table className="admin-snap-roster">
-        <thead>
-          <tr>
-            <th className="admin-snap-roster-idx">{labels.roster.index}</th>
-            {columns.map((c) => <th key={c}>{labels.roster[c]}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => {
-            const changed = new Set(r.changedFields ?? []);
+    <RosterTable
+      scroll="both"
+      maxHeight={520}
+      minWidth={1100}
+      nowrap
+      tableClassName="admin-snap-roster"
+      rows={rows}
+      rowKey={(r, i) => r.userId ?? `${r.name}-${i}`}
+      columns={[
+        {
+          key: '#',
+          header: labels.roster.index,
+          width: 44,
+          cellProps: { className: 'admin-snap-roster-idx' },
+          render: (r, i) => i + 1,
+        },
+        ...columns.map((c) => ({
+          key: c,
+          header: labels.roster[c],
+          cellProps: (r) => {
+            const changed = (r.changedFields ?? []).includes(c);
+            return {
+              className: changed ? 'is-changed' : undefined,
+              title: changed && changedHint ? changedHint(c, r) : undefined,
+            };
+          },
+          render: (r) => {
+            const changed = (r.changedFields ?? []).includes(c);
             const clickable = !!(r.userId && onMemberClick);
             return (
-              <tr key={r.userId ?? `${r.name}-${i}`}>
-                <td className="admin-snap-roster-idx">{i + 1}</td>
-                {columns.map((c) => (
-                  <td
-                    key={c}
-                    className={changed.has(c) ? 'is-changed' : undefined}
-                    title={changed.has(c) && changedHint ? changedHint(c, r) : undefined}
-                  >
-                    {c === 'name' && clickable ? (
-                      <button type="button" className="admin-snap-roster-name" onClick={() => onMemberClick(r.userId)}>
-                        {r.name}
-                      </button>
-                    ) : (
-                      (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
-                    )}
-                    {c === 'name' && rowBadge && (
-                      <span className="admin-snap-roster-badge" title={rowBadge.title}>
-                        {rowBadge.label}
-                      </span>
-                    )}
-                    {changed.has(c) && <span className="admin-snap-roster-changed" aria-hidden>▲</span>}
-                  </td>
-                ))}
-              </tr>
+              <>
+                {c === 'name' && clickable ? (
+                  <button type="button" className="admin-snap-roster-name" onClick={() => onMemberClick(r.userId)}>
+                    {r.name}
+                  </button>
+                ) : (
+                  (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
+                )}
+                {c === 'name' && rowBadge && (
+                  <span className="admin-snap-roster-badge" title={rowBadge.title}>
+                    {rowBadge.label}
+                  </span>
+                )}
+                {changed && <span className="admin-snap-roster-changed" aria-hidden>▲</span>}
+              </>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        })),
+      ]}
+    />
   );
 }
 
@@ -590,7 +599,7 @@ function OrgSnapshotStatusView({
           </button>
         </div>
         {rosterOpen && (
-          <RosterTable
+          <SnapshotRoster
             rows={roster}
             labels={labels}
             showSalary={showSalary}
@@ -780,26 +789,24 @@ function AppointmentSingleView({
 
           {selectedFields.size > 0 && selectedMember ? (
             <div className="admin-snap-card-section">
-              <table className="admin-snap-ba-table">
-                <thead>
-                  <tr>
-                    <th>{labels.selectFields}</th>
-                    <th>{labels.fieldBefore}</th>
-                    <th aria-hidden="true" />
-                    <th>{labels.fieldAfter}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <RosterTable scroll="none" tableClassName="admin-snap-ba-table">
+                <RosterTable.Head>
+                  <RosterTable.HeadCell>{labels.selectFields}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell aria-hidden="true" />
+                  <RosterTable.HeadCell>{labels.fieldAfter}</RosterTable.HeadCell>
+                </RosterTable.Head>
+                <RosterTable.Body>
                   {Array.from(selectedFields).map((f) => {
                     const opts = fieldOptions[f] ?? [];
                     const axisLevel = jobAxis ? AXIS_LEVEL_OF_FIELD[f] : null;
                     const useSelect = selectFieldKeys.includes(f) && opts.length > 0;
                     return (
-                      <tr key={f}>
-                        <td className="admin-snap-ba-field">{labels.fieldLabels[f] ?? f}</td>
-                        <td className="admin-snap-ba-before">{selectedMember.fieldValues?.[f] || '—'}</td>
-                        <td className="admin-snap-ba-arrow">→</td>
-                        <td>
+                      <RosterTable.Row key={f}>
+                        <RosterTable.Cell className="admin-snap-ba-field">{labels.fieldLabels[f] ?? f}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-before">{selectedMember.fieldValues?.[f] || '—'}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-arrow">→</RosterTable.Cell>
+                        <RosterTable.Cell>
                           {axisLevel ? (
                             /* §3.5-A — 위 칸으로 좁히고, 고를 값이 없으면 자유 입력 대신 사유 +
                                [조직 설정 →]. 적어 넣은 값은 발령 확정에서 거절된다(PW-748). */
@@ -842,12 +849,12 @@ function AppointmentSingleView({
                               placeholder={labels.selectPlaceholder}
                             />
                           )}
-                        </td>
-                      </tr>
+                        </RosterTable.Cell>
+                      </RosterTable.Row>
                     );
                   })}
-                </tbody>
-              </table>
+                </RosterTable.Body>
+              </RosterTable>
             </div>
           ) : (
             <div className="admin-snap-empty-fields">{labels.noFieldsSelected}</div>
@@ -1180,34 +1187,31 @@ function AppointmentBulkView({
               <div className="admin-snap-warnbox">{labels.affOverwriteWarning}</div>
             )}
             {previewRows.length > 0 ? (
-              <div className="admin-snap-preview-scroll">
-                <table className="admin-snap-preview-table">
-                  <thead>
-                    <tr>
-                      <th>{labels.target}</th>
+              <RosterTable nowrap tableClassName="admin-snap-preview-table">
+                  <RosterTable.Head>
+                      <RosterTable.HeadCell>{labels.target}</RosterTable.HeadCell>
                       {affiliationMode && (
                         <>
-                          <th>{labels.affColChange}</th>
-                          <th>{labels.affColPrimary}</th>
-                          <th>{labels.affColLeader}</th>
-                          <th>{labels.affColRole}</th>
+                          <RosterTable.HeadCell>{labels.affColChange}</RosterTable.HeadCell>
+                          <RosterTable.HeadCell>{labels.affColPrimary}</RosterTable.HeadCell>
+                          <RosterTable.HeadCell>{labels.affColLeader}</RosterTable.HeadCell>
+                          <RosterTable.HeadCell>{labels.affColRole}</RosterTable.HeadCell>
                         </>
                       )}
-                      {previewFields.map((f) => <th key={`b-${f}`}>{labels.fieldBefore} {labels.fieldLabels[f] ?? f}</th>)}
-                      {previewFields.length > 0 && <th aria-hidden="true" />}
-                      {previewFields.map((f) => <th key={`a-${f}`}>{labels.fieldAfter} {labels.fieldLabels[f] ?? f}</th>)}
-                      <th>{labels.historyDetail}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      {previewFields.map((f) => <RosterTable.HeadCell key={`b-${f}`}>{labels.fieldBefore} {labels.fieldLabels[f] ?? f}</RosterTable.HeadCell>)}
+                      {previewFields.length > 0 && <RosterTable.HeadCell aria-hidden="true" />}
+                      {previewFields.map((f) => <RosterTable.HeadCell key={`a-${f}`}>{labels.fieldAfter} {labels.fieldLabels[f] ?? f}</RosterTable.HeadCell>)}
+                      <RosterTable.HeadCell>{labels.historyDetail}</RosterTable.HeadCell>
+                    </RosterTable.Head>
+                  <RosterTable.Body>
                     {previewRows.map((row, i) => {
                       const changes = row.fieldChanges ?? row.changes ?? {};
                       return (
-                        <tr key={i} className={row.status === 'warn' ? 'is-warn' : row.status === 'error' ? 'is-error' : undefined}>
-                          <td className="admin-snap-pv-name">{row.name || '—'}</td>
+                        <RosterTable.Row key={i} tone={row.status === 'warn' || row.status === 'error' ? row.status : undefined}>
+                          <RosterTable.Cell className="admin-snap-pv-name">{row.name || '—'}</RosterTable.Cell>
                           {affiliationMode && (
                             <>
-                              <td>
+                              <RosterTable.Cell>
                                 {(row.added ?? []).map((tPath) => (
                                   <div key={`add-${tPath}`} className="admin-snap-aff-add">+ {tPath}</div>
                                 ))}
@@ -1217,8 +1221,8 @@ function AppointmentBulkView({
                                 {(row.added ?? []).length === 0 && (row.removed ?? []).length === 0 && (
                                   <span className="admin-snap-pv-before">{labels.affNoChange}</span>
                                 )}
-                              </td>
-                              <td>
+                              </RosterTable.Cell>
+                              <RosterTable.Cell>
                                 {/* 주소속 미지정·불일치는 여기서 바로 고칠 수 있다(§3-A-3). */}
                                 {onFixPrimary && (row.primaryOptions ?? []).length > 1 ? (
                                   <select
@@ -1235,23 +1239,23 @@ function AppointmentBulkView({
                                 ) : (
                                   <span className="admin-snap-pv-after">{row.primary || '—'}</span>
                                 )}
-                              </td>
-                              <td>
+                              </RosterTable.Cell>
+                              <RosterTable.Cell>
                                 {(row.leaders ?? []).length
                                   ? (row.leaders ?? []).map((l) => <div key={l}>{l}</div>)
                                   : <span className="admin-snap-pv-before">—</span>}
-                              </td>
-                              <td>
+                              </RosterTable.Cell>
+                              <RosterTable.Cell>
                                 {row.promote
                                   ? <span className="admin-snap-aff-promote">{labels.affPromote}</span>
                                   : <span className="admin-snap-pv-before">{labels.affNoChange}</span>}
-                              </td>
+                              </RosterTable.Cell>
                             </>
                           )}
-                          {previewFields.map((f) => <td key={`b-${f}`} className="admin-snap-pv-before">{changes[f]?.before ?? '-'}</td>)}
-                          {previewFields.length > 0 && <td className="admin-snap-ba-arrow">→</td>}
-                          {previewFields.map((f) => <td key={`a-${f}`} className="admin-snap-pv-after">{changes[f]?.after ?? '-'}</td>)}
-                          <td>
+                          {previewFields.map((f) => <RosterTable.Cell key={`b-${f}`} className="admin-snap-pv-before">{changes[f]?.before ?? '-'}</RosterTable.Cell>)}
+                          {previewFields.length > 0 && <RosterTable.Cell className="admin-snap-ba-arrow">→</RosterTable.Cell>}
+                          {previewFields.map((f) => <RosterTable.Cell key={`a-${f}`} className="admin-snap-pv-after">{changes[f]?.after ?? '-'}</RosterTable.Cell>)}
+                          <RosterTable.Cell>
                             {row.status === 'ok' && (
                               <span className="admin-snap-pv-status-ok"><StatusIcon tone="ok" /> {labels.statusOk}</span>
                             )}
@@ -1269,13 +1273,12 @@ function AppointmentBulkView({
                                 {m.text}
                               </div>
                             ))}
-                          </td>
-                        </tr>
+                          </RosterTable.Cell>
+                        </RosterTable.Row>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </RosterTable.Body>
+              </RosterTable>
             ) : (
               <div className="admin-snap-empty">{labels.bulkPreviewPending}</div>
             )}
@@ -1337,40 +1340,39 @@ function AppointmentHistoryView({ records, labels, onExport }) {
             <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
           </div>
           <div className="admin-snap-hist-tablewrap">
-            <table className="admin-snap-hist-table">
-              <thead>
-                <tr>
-                  <th>{labels.historyDate}</th>
-                  <th>{labels.historyTarget}</th>
-                  <th>{labels.historyType}</th>
-                  <th>{labels.historyMode}</th>
-                  <th>{labels.historyHandler}</th>
-                  <th aria-hidden="true" />
-                </tr>
-              </thead>
-              <tbody>
+            <RosterTable tableClassName="admin-snap-hist-table">
+              <RosterTable.Head>
+                  <RosterTable.HeadCell>{labels.historyDate}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell>{labels.historyTarget}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell>{labels.historyType}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell>{labels.historyMode}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell>{labels.historyHandler}</RosterTable.HeadCell>
+                  <RosterTable.HeadCell aria-hidden="true" />
+                </RosterTable.Head>
+              <RosterTable.Body>
                 {filtered.map((rec) => (
-                  <tr
+                  <RosterTable.Row
                     key={rec.id}
-                    className={`admin-snap-hist-row${selected?.id === rec.id ? ' is-selected' : ''}`}
+                    className="admin-snap-hist-row"
+                    tone={selected?.id === rec.id ? 'selected' : undefined}
                     onClick={() => setSelected(rec)}
                   >
-                    <td className="admin-snap-hist-date">{rec.date ?? '-'}</td>
-                    <td className="admin-snap-hist-name">{rec.name ?? '-'}</td>
-                    <td>
+                    <RosterTable.Cell className="admin-snap-hist-date">{rec.date ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell>
                       <span className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
                         {rec.typeKey ? (labels.typeLabels[rec.typeKey] ?? rec.typeKey) : '-'}
                       </span>
-                    </td>
-                    <td className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
+                    </RosterTable.Cell>
+                    <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
                       {rec.mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle}
-                    </td>
-                    <td className="admin-snap-hist-mode">{rec.by ?? '-'}</td>
-                    <td><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></td>
-                  </tr>
+                    </RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
+                  </RosterTable.Row>
                 ))}
-              </tbody>
-            </table>
+              </RosterTable.Body>
+            </RosterTable>
           </div>
         </div>
 
@@ -1389,24 +1391,22 @@ function AppointmentHistoryView({ records, labels, onExport }) {
             </div>
             <div className="admin-snap-hist-panel-body">
               {selected.changes && selected.changes.length > 0 && (
-                <table className="admin-snap-ba-table">
-                  <thead>
-                    <tr>
-                      <th>{labels.historyField}</th>
-                      <th>{labels.fieldBefore}</th>
-                      <th>{labels.fieldAfter}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <RosterTable scroll="none" tableClassName="admin-snap-ba-table">
+                  <RosterTable.Head>
+                      <RosterTable.HeadCell>{labels.historyField}</RosterTable.HeadCell>
+                      <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
+                      <RosterTable.HeadCell>{labels.fieldAfter}</RosterTable.HeadCell>
+                    </RosterTable.Head>
+                  <RosterTable.Body>
                     {selected.changes.map((ch, i) => (
-                      <tr key={i}>
-                        <td className="admin-snap-ba-field">{labels.fieldLabels[ch.field] ?? ch.field}</td>
-                        <td className="admin-snap-ba-before">{ch.before || '-'}</td>
-                        <td className="admin-snap-ba-after">{ch.after || '-'}</td>
-                      </tr>
+                      <RosterTable.Row key={i}>
+                        <RosterTable.Cell className="admin-snap-ba-field">{labels.fieldLabels[ch.field] ?? ch.field}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '-'}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '-'}</RosterTable.Cell>
+                      </RosterTable.Row>
                     ))}
-                  </tbody>
-                </table>
+                  </RosterTable.Body>
+                </RosterTable>
               )}
               {selected.reason && (
                 <>
@@ -1589,7 +1589,7 @@ function AsOfSnapshotView({
             {labels.asofEmpty}
           </div>
         ) : (
-          <RosterTable
+          <SnapshotRoster
             rows={roster}
             labels={labels}
             showSalary={!!showComp && roster.some((r) => r.salary !== undefined)}

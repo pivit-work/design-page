@@ -21,6 +21,7 @@ import {
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
   IconMore, IconPlus, IconSearch, IconSettings, IconUser, IconX,
@@ -2320,45 +2321,40 @@ function EmployeesListView({
 
       {/* 표는 이 컨테이너 안에서만 가로로 흐른다 — 페이지가 통째로 옆으로 밀리면
           스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다(PW-400 §3). */}
-      <div className="admin-emp-table-wrap" data-testid="employees-list-table-wrap">
-        <table className="admin-emp-table" style={{ minWidth }}>
-          <thead>
-            <tr>
-              {cols.map((c) => (
-                /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
-                   읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
-                <th key={c.id} data-testid={`list-head-${c.id}`} style={{ width: c.width }} scope="col">
-                  {c.id === 'select' ? (
-                    /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
-                       몇 명을 골랐는지 말해 주지 않은 채 숫자만 뛴다. */
-                    <input
-                      type="checkbox"
-                      className="admin-emp-row-check"
-                      checked={pageAllChecked}
-                      onChange={togglePage}
-                      data-testid="employees-list-check-all"
-                      aria-label={labels.listBulk.selectPage}
-                    />
-                  ) : c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.length === 0 ? (
-              <tr>
-                <td colSpan={cols.length} className="admin-emp-empty">{labels.listEmptyFiltered}</td>
-              </tr>
-            ) : pageRows.map((m) => (
-              <tr key={m.id} data-testid={`employees-list-row-${m.id}`}>
-                {cols.map((c) => (
-                  <td key={c.id} data-col={c.id}>{cell(m, c.id)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <RosterTable
+        scroll="both"
+        scrollClassName="admin-emp-table-wrap"
+        scrollTestId="employees-list-table-wrap"
+        tableClassName="admin-emp-table"
+        fixed
+        nowrap
+        minWidth={minWidth}
+        columns={cols.map((c) => ({
+          key: c.id,
+          width: c.width,
+          /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
+             읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
+          headerProps: { 'data-testid': `list-head-${c.id}` },
+          cellProps: { 'data-col': c.id },
+          header: c.id === 'select' ? (
+            /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
+               몇 명을 골랐는지 말해 주지 않은 채 숫자만 뛴다. */
+            <input
+              type="checkbox"
+              className="admin-emp-row-check"
+              checked={pageAllChecked}
+              onChange={togglePage}
+              data-testid="employees-list-check-all"
+              aria-label={labels.listBulk.selectPage}
+            />
+          ) : c.label,
+        }))}
+        rows={pageRows}
+        rowKey={(m) => m.id}
+        rowProps={(m) => ({ 'data-testid': `employees-list-row-${m.id}` })}
+        renderCell={(m, col) => cell(m, col.key)}
+        empty={labels.listEmptyFiltered}
+      />
 
       {/* 소속(기능조직) 팝업 — 겸직 다중 선택 + [매니저로].
           🔴 이 화면이 조직장 지정이 사는 **유일한 자리**다(PW-326 확정). 시트의 같은

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RosterTable from '../shared/RosterTable.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 내역·영수증(카드매출전표) (BillingHistoryCanvas)  /admin/billing/history
@@ -259,100 +260,94 @@ export default function BillingHistoryCanvas({
               <div style={{ fontSize: 14, color: T.sub }}>{labels.noFilterResult}</div>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${T.border}`, background: T.bl }}>
-                  {[
-                    labels.tableHeaders.invoiceNo,
-                    labels.tableHeaders.period,
-                    labels.tableHeaders.seats,
-                    labels.tableHeaders.amount,
-                    labels.tableHeaders.status,
-                    labels.tableHeaders.receipt,
-                  ].map((h) => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left',
-                      fontWeight: 700, fontSize: 13, color: T.sub, whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.map((inv, idx) => {
-                  const sm = STATUS_META[inv.status] || STATUS_META.void;
-                  const statusLabel = labels.statusLabels[inv.status] || inv.status;
-                  const receiptKey = `${inv.id}_receipt`;
-                  const isReceiptDownloading = !!downloading[receiptKey];
-
-                  return (
-                    <tr key={inv.id}
-                      style={{ borderBottom: idx < filteredInvoices.length - 1 ? `1px solid ${T.border}` : 'none',
-                        background: '#fff' }}>
-
-                      {/* 청구번호 */}
-                      <td style={{ padding: '14px 16px', fontFamily: T.mono, fontSize: 13, color: T.sub }}>
-                        {inv.invoice_no}
-                      </td>
-
-                      {/* 청구 기간 */}
-                      <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
-                        {inv.period_start} ~ {inv.period_end}
-                      </td>
-
-                      {/* 좌석 수 */}
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        {labels.seatsUnit(inv.seat_count_snapshot)}
-                      </td>
-
-                      {/* 금액 (+ 환불액 라인) */}
-                      <td style={{ padding: '14px 16px', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {won(inv.total)}
-                        {inv.status === 'void' && (
-                          <span style={{ fontSize: 12, color: T.sub, marginLeft: 6 }}>{labels.voidNote}</span>
-                        )}
-                        {inv.refund && (
-                          <div style={{ fontSize: 12, fontWeight: 600, color: T.accent, marginTop: 2 }}>
-                            {labels.refundAmount(inv.refund.amount)}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 상태 배지 (+ 환불 배지) */}
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                          <Badge color={sm.color} bg={sm.bg}>{statusLabel}</Badge>
-                          {inv.refund && (() => {
-                            const rm = REFUND_META[refundMetaKey(inv.refund)] || REFUND_META.processing;
-                            const rl = labels.refundLabels[refundMetaKey(inv.refund)] || '';
-                            return (
-                              <Badge color={rm.color} bg={rm.bg}>
-                                {rl} · {labels.refundReasons[inv.refund.reason] || inv.refund.reason}
-                              </Badge>
-                            );
-                          })()}
-                          {inv.refund?.type === 'partial' && (
-                            <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
-                          )}
+            <RosterTable
+              rows={filteredInvoices}
+              rowKey={(inv) => inv.id}
+              columns={[
+                {
+                  key: 'invoiceNo',
+                  header: labels.tableHeaders.invoiceNo,
+                  render: (inv) => (
+                    <span style={{ fontFamily: T.mono, color: T.sub }}>{inv.invoice_no}</span>
+                  ),
+                },
+                {
+                  key: 'period',
+                  header: labels.tableHeaders.period,
+                  cellProps: { style: { whiteSpace: 'nowrap' } },
+                  render: (inv) => <>{inv.period_start} ~ {inv.period_end}</>,
+                },
+                {
+                  key: 'seats',
+                  header: labels.tableHeaders.seats,
+                  align: 'right',
+                  render: (inv) => labels.seatsUnit(inv.seat_count_snapshot),
+                },
+                {
+                  // 금액 (+ 환불액 라인)
+                  key: 'amount',
+                  header: labels.tableHeaders.amount,
+                  align: 'right',
+                  cellProps: { style: { fontWeight: 700, whiteSpace: 'nowrap' } },
+                  render: (inv) => (
+                    <>
+                      {won(inv.total)}
+                      {inv.status === 'void' && (
+                        <span style={{ fontSize: 12, color: T.sub, marginLeft: 6 }}>{labels.voidNote}</span>
+                      )}
+                      {inv.refund && (
+                        <div style={{ fontSize: 12, fontWeight: 600, color: T.accent, marginTop: 2 }}>
+                          {labels.refundAmount(inv.refund.amount)}
                         </div>
-                      </td>
-
-                      {/* 영수증(카드매출전표) — 세금계산서 미발행(spec §5.1) */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {inv.status === 'paid' ? (
-                          <Btn size="sm" kind="secondary"
-                            disabled={isReceiptDownloading}
-                            onClick={() => handleReceipt(inv)}>
-                            {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
-                          </Btn>
-                        ) : (
-                          <span style={{ fontSize: 13, color: T.muted }}>—</span>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  // 상태 배지 (+ 환불 배지)
+                  key: 'status',
+                  header: labels.tableHeaders.status,
+                  render: (inv) => {
+                    const sm = STATUS_META[inv.status] || STATUS_META.void;
+                    const statusLabel = labels.statusLabels[inv.status] || inv.status;
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                        <Badge color={sm.color} bg={sm.bg}>{statusLabel}</Badge>
+                        {inv.refund && (() => {
+                          const rm = REFUND_META[refundMetaKey(inv.refund)] || REFUND_META.processing;
+                          const rl = labels.refundLabels[refundMetaKey(inv.refund)] || '';
+                          return (
+                            <Badge color={rm.color} bg={rm.bg}>
+                              {rl} · {labels.refundReasons[inv.refund.reason] || inv.refund.reason}
+                            </Badge>
+                          );
+                        })()}
+                        {inv.refund?.type === 'partial' && (
+                          <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  // 영수증(카드매출전표) — 세금계산서 미발행(spec §5.1)
+                  key: 'receipt',
+                  header: labels.tableHeaders.receipt,
+                  render: (inv) => {
+                    const isReceiptDownloading = !!downloading[`${inv.id}_receipt`];
+                    return inv.status === 'paid' ? (
+                      <Btn size="sm" kind="secondary"
+                        disabled={isReceiptDownloading}
+                        onClick={() => handleReceipt(inv)}>
+                        {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
+                      </Btn>
+                    ) : (
+                      <span style={{ color: T.muted }}>—</span>
+                    );
+                  },
+                },
+              ]}
+            />
           )}
         </Card>
 

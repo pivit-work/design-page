@@ -16,6 +16,7 @@ import DatePicker from '../shared/DatePicker.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { IconLock } from './employeeExport.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -631,30 +632,39 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
       ) : sorted.length === 0 ? (
         <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
       ) : (
-        <table className="admin-emp-sal-table">
-          <thead>
-            <tr>
-              <th>{L.salaryHistEffDate || '적용일'}</th>
-              <th className="is-amount">{L.salaryHistAmount || '연봉'}</th>
-              <th>{L.salaryHistReason || '사유'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((h, i) => {
-              const isLatest = i === sorted.length - 1;
-              return (
-                <tr key={i} className={isLatest ? 'is-current' : undefined}>
-                  <td className="is-date">
-                    {h.effectiveDate}
-                    {isLatest && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
-                  </td>
-                  <td className="is-amount">{fmtKRW(h.amount)}</td>
-                  <td>{h.reason || '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <RosterTable
+          tableClassName="admin-emp-sal-table"
+          rows={sorted}
+          rowKey={(h, i) => i}
+          rowProps={(h, i) => ({ tone: i === sorted.length - 1 ? 'current' : undefined })}
+          columns={[
+            {
+              key: 'date',
+              header: L.salaryHistEffDate || '적용일',
+              cellProps: { className: 'is-date' },
+              render: (h, i) => (
+                <>
+                  {h.effectiveDate}
+                  {i === sorted.length - 1 && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
+                </>
+              ),
+            },
+            {
+              key: 'amount',
+              header: L.salaryHistAmount || '연봉',
+              align: 'right',
+              cellProps: { className: 'is-amount' },
+              render: (h) => fmtKRW(h.amount),
+            },
+            {
+              key: 'reason',
+              header: L.salaryHistReason || '사유',
+              cellProps: { className: 'is-reason' },
+              headerProps: { className: 'is-reason' },
+              render: (h) => h.reason || '—',
+            },
+          ]}
+        />
       )}
 
       <div className="admin-emp-sal-add">

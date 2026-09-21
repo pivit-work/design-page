@@ -1,3 +1,4 @@
+@import './roster-table.css';
 /* ══════════════════════════════════════════════════════════════
    Admin kit — 어드민 화면 조각 (prefix: admin-kit-)   PW-760
 
@@ -176,48 +177,8 @@
 }
 
 /* ── 표 ── */
-.admin-kit-table-box {
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md, 10px);
-  overflow: hidden;
-}
-.admin-kit-table-box.is-scroll { overflow: auto; max-height: 360px; }
-.admin-kit-table-caption {
-  margin: 0;
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  background: var(--bg-secondary);
-}
-.admin-kit-table-scroll { overflow-x: auto; }
-.admin-kit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.admin-kit-table th {
-  padding: 8px 10px;
-  text-align: left;
-  white-space: nowrap;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-}
-.admin-kit-table td {
-  padding: 7px 10px;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-primary);
-}
-.admin-kit-table.is-edit th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-.admin-kit-table.is-edit td { padding: 2px 4px; border-bottom-color: var(--border-secondary, var(--border-primary)); }
-.admin-kit-table th.admin-kit-table-num { width: 44px; }
-.admin-kit-table td.admin-kit-table-num { text-align: center; font-weight: 600; color: var(--text-tertiary); }
+/* 미리보기·편집 표의 틀·제목 줄·칸 여백·머리 행은 명단 표(roster-table.css)가 정한다 (PW-839). */
+.admin-kit-table-num { text-align: center; font-weight: 600; color: var(--text-tertiary); }
 .admin-kit-cell-input {
   box-sizing: border-box;
   width: 100%;

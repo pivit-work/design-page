@@ -14,6 +14,7 @@
  * (버튼·선택 상자·숫자 칸은 `styles/admin.css` 의 규칙을 함께 쓴다).
  */
 import { IconDownload, IconUpload, IconX } from '../employeesIcons.jsx';
+import RosterTable from '../../shared/RosterTable.jsx';
 
 const cx = (...xs) => xs.filter(Boolean).join(' ');
 
@@ -229,25 +230,14 @@ export function CsvTemplateLine({ text, actionLabel, onAction }) {
 /** CSV 앞 몇 줄 미리보기 표(읽기 전용). */
 export function CsvDataPreview({ caption, headers = [], rows = [] }) {
   return (
-    <div className="admin-kit-table-box">
-      {caption && <p className="admin-kit-table-caption">{caption}</p>}
-      <div className="admin-kit-table-scroll">
-        <table className="admin-kit-table">
-          <thead>
-            <tr>
-              {headers.map((h, i) => <th key={`${i}-${h}`}>{h}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i}>
-                {row.map((cell, j) => <td key={j}>{cell}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <RosterTable
+      framed
+      nowrap
+      caption={caption || undefined}
+      columns={headers.map((h, i) => ({ key: `${i}-${h}`, header: h, render: (row) => row[i] }))}
+      rows={rows}
+      rowKey={(row, i) => i}
+    />
   );
 }
 
@@ -534,33 +524,35 @@ export function CsvTreePreview({
  */
 export function CsvEditTable({ columns = [], rows = [], onEdit, cellLabel, numberHeader = '#' }) {
   return (
-    <div className="admin-kit-table-box is-scroll">
-      <table className="admin-kit-table is-edit">
-        <thead>
-          <tr>
-            <th className="admin-kit-table-num">{numberHeader}</th>
-            {columns.map((c) => <th key={c.key}>{c.label}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, r) => (
-            <tr key={r}>
-              <td className="admin-kit-table-num">{r + 1}</td>
-              {columns.map((c, ci) => (
-                <td key={c.key}>
-                  <input
-                    className="admin-kit-cell-input"
-                    value={row[ci] ?? ''}
-                    aria-label={cellLabel ? cellLabel(c.label, r + 1) : undefined}
-                    onChange={(e) => onEdit?.(r, ci, e.target.value)}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <RosterTable
+      framed
+      dense
+      scroll="both"
+      maxHeight={360}
+      columns={[
+        {
+          key: '#',
+          header: numberHeader,
+          width: 44,
+          cellProps: { className: 'admin-kit-table-num' },
+          render: (row, r) => r + 1,
+        },
+        ...columns.map((c, ci) => ({
+          key: c.key,
+          header: c.label,
+          render: (row, r) => (
+            <input
+              className="admin-kit-cell-input"
+              value={row[ci] ?? ''}
+              aria-label={cellLabel ? cellLabel(c.label, r + 1) : undefined}
+              onChange={(e) => onEdit?.(r, ci, e.target.value)}
+            />
+          ),
+        })),
+      ]}
+      rows={rows}
+      rowKey={(row, r) => r}
+    />
   );
 }
 

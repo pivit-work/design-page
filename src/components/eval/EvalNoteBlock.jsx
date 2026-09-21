@@ -35,6 +35,8 @@
  * TC-EVAL-185 가 「줄바꿈이 보존된다. 한 줄로 붙으면 버그다」로 못박았다.
  */
 
+import RosterTable from '../shared/RosterTable.jsx';
+
 /** 인라인 서식 한 벌. 순서가 곧 우선순위다 — 코드가 먼저라 코드 안의 `**` 는 서식이 아니다. */
 const INLINE = [
   { kind: 'code', re: /`([^`\n]+)`/ },
@@ -165,26 +167,22 @@ export function EvalMarkdownLite({ text, className = 'evc-md', testId }) {
         }
         // 표는 «블록 안에서만» 가로 스크롤한다 — 평가지 본문이 가로로 밀리면 안 된다.
         return (
-          <div key={k} className="evc-md-tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  {b.head.map((c, m) => (
-                    <th key={m}>{inlineNodes(c, `th${k}-${m}`)}</th>
+          <RosterTable key={k} framed className="evc-md-tablewrap">
+            <RosterTable.Head>
+              {b.head.map((c, m) => (
+                <RosterTable.HeadCell key={m}>{inlineNodes(c, `th${k}-${m}`)}</RosterTable.HeadCell>
+              ))}
+            </RosterTable.Head>
+            <RosterTable.Body>
+              {b.rows.map((r, m) => (
+                <RosterTable.Row key={m}>
+                  {r.map((c, n) => (
+                    <RosterTable.Cell key={n}>{inlineNodes(c, `td${k}-${m}-${n}`)}</RosterTable.Cell>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {b.rows.map((r, m) => (
-                  <tr key={m}>
-                    {r.map((c, n) => (
-                      <td key={n}>{inlineNodes(c, `td${k}-${m}-${n}`)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </RosterTable.Row>
+              ))}
+            </RosterTable.Body>
+          </RosterTable>
         );
       })}
     </div>

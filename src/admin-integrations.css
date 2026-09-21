@@ -170,14 +170,8 @@
 .intg-toggle.is-on .intg-toggle-knob { left: 21px; }
 
 /* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
-.intg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.intg-table th {
-  text-align: left; padding: 10px 12px; font-family: var(--font-family-body);
-  color: var(--text-tertiary); font-weight: 500; font-size: 12px;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-}
-.intg-table td { padding: 10px 12px; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); color: var(--text-primary); }
-.intg-table .num { text-align: right; font-family: var(--font-family-mono, 'DM Mono', monospace); }
+/* 칸 여백·머리 행·구분선은 명단 표(roster-table.css)가 정한다 (PW-839). */
+.intg-table .num { font-family: var(--font-family-mono, 'DM Mono', monospace); }
 .intg-table .time { color: var(--text-tertiary); font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: 12px; }
 .intg-table .svc { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .intg-table .svc img { width: 16px; height: 16px; object-fit: contain; }

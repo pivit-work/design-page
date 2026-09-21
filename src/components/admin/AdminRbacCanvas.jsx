@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import Tabs from '../shared/Tabs.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 
 /**
  * AdminRbacCanvas — 권한 관리(RBAC) 읽기 전용 뷰어 (design-page 정본)
@@ -199,114 +200,81 @@ export default function AdminRbacCanvas({
   // ── 전체 매트릭스 탭 ──────────────────────────────────────────────
   const matrixContent = (
     <div style={{ ...cardStyle }}>
-      <div className="admin-emp-table-scroll" style={{ overflowX: 'auto' }}>
-        <table
-          className="admin-emp-table"
-          style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}
-        >
-          <thead>
-            <tr style={{ background: DP.inset }}>
-              <th
+      <RosterTable minWidth={720}>
+        <RosterTable.Head>
+          <RosterTable.HeadCell style={{ minWidth: 230 }}>{L.permItem}</RosterTable.HeadCell>
+          {ROLES.map((rid) => (
+            <RosterTable.HeadCell key={rid} align="center" style={{ minWidth: 112 }}>
+              <div
                 style={{
-                  padding: '11px 16px',
-                  textAlign: 'left',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: DP.textT,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                  borderBottom: `1px solid ${DP.borderT}`,
-                  minWidth: 230,
-                  background: DP.inset,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
               >
-                {L.permItem}
-              </th>
-              {ROLES.map((rid) => (
-                <th
-                  key={rid}
+                <span style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
+                  {L.roles[rid]}
+                </span>
+                <span
                   style={{
-                    padding: '10px 8px',
-                    textAlign: 'center',
-                    borderBottom: `1px solid ${DP.borderT}`,
-                    minWidth: 112,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 99,
                     background: DP.inset,
+                    border: `1px solid ${DP.borderT}`,
+                    color: DP.textS,
+                    fontFamily: DP.mono,
                   }}
                 >
+                  {fill(L.countUnit, { count: countPerms(rid) })}
+                </span>
+              </div>
+            </RosterTable.HeadCell>
+          ))}
+        </RosterTable.Head>
+        {PERM_CATEGORIES.map((cat) => (
+          <RosterTable.Body key={cat.catKey}>
+            <RosterTable.GroupRow colSpan={ROLES.length + 1}>
+              {L.permCategories[cat.catKey]}
+            </RosterTable.GroupRow>
+            {cat.ids.map((pid) => (
+              <RosterTable.Row key={pid}>
+                <RosterTable.Cell>
                   <div
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 4,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: DP.textP,
+                      marginBottom: 2,
                     }}
                   >
-                    <span style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
-                      {L.roles[rid]}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '2px 7px',
-                        borderRadius: 99,
-                        background: DP.inset,
-                        border: `1px solid ${DP.borderT}`,
-                        color: DP.textS,
-                        fontFamily: DP.mono,
-                      }}
-                    >
-                      {fill(L.countUnit, { count: countPerms(rid) })}
-                    </span>
+                    {L.perms[pid]}
                   </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          {PERM_CATEGORIES.map((cat) => (
-            <tbody key={cat.catKey}>
-              <tr>
-                <td colSpan={ROLES.length + 1} style={catHeaderStyle}>
-                  {L.permCategories[cat.catKey]}
-                </td>
-              </tr>
-              {cat.ids.map((pid) => (
-                <tr key={pid} style={{ borderBottom: `1px solid ${DP.borderT}` }}>
-                  <td style={{ padding: '10px 16px' }}>
+                  <div style={{ fontSize: 11, color: DP.textT }}>
+                    {L.permDescs[pid]}
+                  </div>
+                </RosterTable.Cell>
+                {ROLES.map((rid) => (
+                  <RosterTable.Cell key={rid} align="center">
                     <div
                       style={{
-                        fontSize: 12,
-                        fontWeight: 500,
-                        color: DP.textP,
-                        marginBottom: 2,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: 20,
                       }}
                     >
-                      {L.perms[pid]}
+                      <ReadMark on={getMatrix(rid, pid)} color={DP.accent} />
                     </div>
-                    <div style={{ fontSize: 11, color: DP.textT }}>
-                      {L.permDescs[pid]}
-                    </div>
-                  </td>
-                  {ROLES.map((rid) => (
-                    <td key={rid} style={{ textAlign: 'center', padding: 8 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          height: 20,
-                        }}
-                      >
-                        <ReadMark on={getMatrix(rid, pid)} color={DP.accent} />
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          ))}
-        </table>
-      </div>
+                  </RosterTable.Cell>
+                ))}
+              </RosterTable.Row>
+            ))}
+          </RosterTable.Body>
+        ))}
+      </RosterTable>
     </div>
   );
 
@@ -487,51 +455,24 @@ export default function AdminRbacCanvas({
       </div>
 
       <div style={{ ...cardStyle, marginBottom: 14 }}>
-        <table
-          className="admin-emp-table"
-          style={{ width: '100%', borderCollapse: 'collapse' }}
-        >
-          <thead>
-            <tr style={{ background: DP.inset }}>
-              <th
-                style={{
-                  padding: '11px 16px',
-                  textAlign: 'left',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: DP.textT,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                  borderBottom: `1px solid ${DP.borderT}`,
-                  minWidth: 200,
-                }}
-              >
-                {L.visibility.infoItem}
-              </th>
-              {ROLES.map((rid) => (
-                <th
-                  key={rid}
-                  style={{
-                    padding: '11px 14px',
-                    textAlign: 'center',
-                    borderBottom: `1px solid ${DP.borderT}`,
-                    minWidth: 100,
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
-                    {L.roles[rid]}
-                  </div>
-                  <div style={{ fontSize: 10, color: DP.textT, marginTop: 2 }}>
-                    {L.roleDescs[rid]}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
+        <RosterTable>
+          <RosterTable.Head>
+            <RosterTable.HeadCell style={{ minWidth: 200 }}>{L.visibility.infoItem}</RosterTable.HeadCell>
+            {ROLES.map((rid) => (
+              <RosterTable.HeadCell key={rid} align="center" style={{ minWidth: 100 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
+                  {L.roles[rid]}
+                </div>
+                <div style={{ fontSize: 10, color: DP.textT, marginTop: 2 }}>
+                  {L.roleDescs[rid]}
+                </div>
+              </RosterTable.HeadCell>
+            ))}
+          </RosterTable.Head>
+          <RosterTable.Body>
             {VIS_ITEMS.map((item) => (
-              <tr key={item.id} style={{ borderBottom: `1px solid ${DP.borderT}` }}>
-                <td style={{ padding: '11px 16px' }}>
+              <RosterTable.Row key={item.id}>
+                <RosterTable.Cell>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ fontSize: 12, fontWeight: 500, color: DP.textP }}>
                       {L.visItems[item.id]}
@@ -555,14 +496,11 @@ export default function AdminRbacCanvas({
                   <div style={{ fontSize: 11, color: DP.textT, marginTop: 2 }}>
                     {L.visDescs[item.id]}
                   </div>
-                </td>
+                </RosterTable.Cell>
                 {ROLES.map((rid) => {
                   const on = visibility[rid]?.[item.id] ?? false;
                   return (
-                    <td
-                      key={rid}
-                      style={{ textAlign: 'center', padding: '11px 14px' }}
-                    >
+                    <RosterTable.Cell key={rid} align="center">
                       <span
                         style={{
                           display: 'inline-block',
@@ -577,13 +515,13 @@ export default function AdminRbacCanvas({
                       >
                         {on ? L.visibility.public : L.visibility.private}
                       </span>
-                    </td>
+                    </RosterTable.Cell>
                   );
                 })}
-              </tr>
+              </RosterTable.Row>
             ))}
-          </tbody>
-        </table>
+          </RosterTable.Body>
+        </RosterTable>
       </div>
 
       <div

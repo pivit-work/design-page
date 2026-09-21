@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -595,7 +596,7 @@ function SortTh({ sortKey, label, sort, onSort }) {
   const active = sort.key === sortKey;
   const arrow = active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
   return (
-    <th
+    <RosterTable.HeadCell
       className={`evs-cw-th-sort${active ? ' is-active' : ''}`}
       aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       onClick={() =>
@@ -609,7 +610,7 @@ function SortTh({ sortKey, label, sort, onSort }) {
     >
       {label}
       <span className="evs-cw-th-arrow">{arrow}</span>
-    </th>
+    </RosterTable.HeadCell>
   );
 }
 
@@ -2827,11 +2828,9 @@ export default function EvalCycleSummaryCanvas({
                           </button>
                         </div>
                       )}
-                      <div className="evc-card evs-cw-table-wrap">
-                        <table className="evs-cw-table">
-                          <thead>
-                            <tr>
-                              <th>{L.cwColNo}</th>
+                      <RosterTable className="evc-card evs-cw-table-wrap" tableClassName="evs-cw-table" minWidth={900}>
+                          <RosterTable.Head>
+                              <RosterTable.HeadCell>{L.cwColNo}</RosterTable.HeadCell>
                               <SortTh sortKey="name" label={L.cwColName} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('job') && <SortTh sortKey="job" label={L.cwColJob} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               {colOn('team') && <SortTh sortKey="team" label={L.cwColTeam} sort={effectiveCalibSort} onSort={setCalibSort} />}
@@ -2839,14 +2838,13 @@ export default function EvalCycleSummaryCanvas({
                               {colOn('lead') && <SortTh sortKey="leader" label={L.cwColLeader} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               {colOn('joined') && <SortTh sortKey="hireDate" label={L.cwColDates} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               <SortTh sortKey="current" label={L.cwColCurrent} sort={effectiveCalibSort} onSort={setCalibSort} />
-                              {colOn('trend') && <th>{L.cwColTrend}</th>}
-                              <th>{L.cwColAdjust}</th>
-                              {colOn('promo') && <th>{L.cwColPromo}</th>}
-                              {showCompCol && <th>{L.cwColComp}</th>}
-                              {colOn('detail') && <th aria-label="expand"></th>}
-                            </tr>
-                          </thead>
-                          <tbody>
+                              {colOn('trend') && <RosterTable.HeadCell>{L.cwColTrend}</RosterTable.HeadCell>}
+                              <RosterTable.HeadCell>{L.cwColAdjust}</RosterTable.HeadCell>
+                              {colOn('promo') && <RosterTable.HeadCell>{L.cwColPromo}</RosterTable.HeadCell>}
+                              {showCompCol && <RosterTable.HeadCell>{L.cwColComp}</RosterTable.HeadCell>}
+                              {colOn('detail') && <RosterTable.HeadCell aria-label="expand"></RosterTable.HeadCell>}
+                            </RosterTable.Head>
+                          <RosterTable.Body>
                             {visibleRows.map((row, i) => {
                               const expanded = expandedCalibRow === row.memberId;
                               const detail =
@@ -2855,22 +2853,22 @@ export default function EvalCycleSummaryCanvas({
                                   : null;
                               return (
                               <Fragment key={row.memberId}>
-                              <tr data-testid="evs-cw-row">
-                                <td className="evs-cw-num">{i + 1}</td>
-                                <td className="evs-cw-name">{row.name}</td>
-                                {colOn('job') && <td className="evs-cw-muted">{row.job || '—'}</td>}
-                                {colOn('team') && <td className="evs-cw-muted">{row.team}</td>}
-                                <td className="evs-cw-muted">{row.level || '—'}</td>
-                                {colOn('lead') && <td className="evs-cw-muted">{row.leaderName ?? '—'}</td>}
+                              <RosterTable.Row data-testid="evs-cw-row">
+                                <RosterTable.Cell className="evs-cw-num">{i + 1}</RosterTable.Cell>
+                                <RosterTable.Cell className="evs-cw-name">{row.name}</RosterTable.Cell>
+                                {colOn('job') && <RosterTable.Cell className="evs-cw-muted">{row.job || '—'}</RosterTable.Cell>}
+                                {colOn('team') && <RosterTable.Cell className="evs-cw-muted">{row.team}</RosterTable.Cell>}
+                                <RosterTable.Cell className="evs-cw-muted">{row.level || '—'}</RosterTable.Cell>
+                                {colOn('lead') && <RosterTable.Cell className="evs-cw-muted">{row.leaderName ?? '—'}</RosterTable.Cell>}
                                 {colOn('joined') && (
-                                <td>
+                                <RosterTable.Cell>
                                   <div className="evs-cw-date">{row.hireDate ?? '—'}</div>
                                   <div className="evs-cw-date is-sub">
                                     {row.promotedAt ?? L.cwNoPromotion}
                                   </div>
-                                </td>
+                                </RosterTable.Cell>
                                 )}
-                                <td>
+                                <RosterTable.Cell>
                                   {row.currentGradeKey ? (
                                     <span
                                       className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
@@ -2880,13 +2878,13 @@ export default function EvalCycleSummaryCanvas({
                                   ) : (
                                     <span className="evs-cw-muted">—</span>
                                   )}
-                                </td>
+                                </RosterTable.Cell>
                                 {colOn('trend') && (
-                                <td>
+                                <RosterTable.Cell>
                                   <MiniSparkline trend={row.gradeTrend} domain={domain} />
-                                </td>
+                                </RosterTable.Cell>
                                 )}
-                                <td>
+                                <RosterTable.Cell>
                                   <div className="evs-cw-adjust">
                                     <span
                                       className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
@@ -2925,9 +2923,9 @@ export default function EvalCycleSummaryCanvas({
                                       </>
                                     )}
                                   </div>
-                                </td>
+                                </RosterTable.Cell>
                                 {colOn('promo') && (
-                                <td>
+                                <RosterTable.Cell>
                                   <div className="evs-cw-promo-cell">
                                     {row.promotionStatus === 'recommended' && (
                                       <span className="evs-cw-promo tone-green">
@@ -2984,13 +2982,13 @@ export default function EvalCycleSummaryCanvas({
                                       </div>
                                     )}
                                   </div>
-                                </td>
+                                </RosterTable.Cell>
                                 )}
                                 {/* PW-519 §4.2 13번 보상 조정 — 권한이 없으면 열은 두고 칸만 잠근다.
                                     열을 숨기면 사람마다 열 개수가 달라 「내 화면이 고장 났나」가 된다.
                                     열이 통째로 없어지는 것은 회사가 껐을 때뿐이다(PW-520). */}
                                 {showCompCol && (
-                                  <td data-testid="evs-cw-comp-cell">
+                                  <RosterTable.Cell data-testid="evs-cw-comp-cell">
                                     {!compView.visible ? (
                                       <span
                                         className="evs-cw-badge tone-muted evs-cw-comp-lock"
@@ -3009,10 +3007,10 @@ export default function EvalCycleSummaryCanvas({
                                     ) : (
                                       <span className="evs-cw-muted">—</span>
                                     )}
-                                  </td>
+                                  </RosterTable.Cell>
                                 )}
                                 {colOn('detail') && (
-                                <td>
+                                <RosterTable.Cell>
                                   <button
                                     type="button"
                                     className="evs-cw-expand"
@@ -3029,13 +3027,13 @@ export default function EvalCycleSummaryCanvas({
                                   >
                                     {expanded ? '−' : '+'}
                                   </button>
-                                </td>
+                                </RosterTable.Cell>
                                 )}
-                              </tr>
+                              </RosterTable.Row>
                               {/* PW-520 — 「펼침 상세」를 끄면 대상자 정보 상자를 아예 쓰지 않는다. */}
                               {expanded && colOn('detail') && (
-                                <tr data-testid="evs-cw-detail">
-                                  <td colSpan={calibColCount} className="evs-cw-detail-cell">
+                                <RosterTable.Row data-testid="evs-cw-detail">
+                                  <RosterTable.Cell colSpan={calibColCount} className="evs-cw-detail-cell">
                                     {!detail ? (
                                       <div className="evs-cw-detail-loading">
                                         {L.cwDetailLoading}
@@ -3381,15 +3379,14 @@ export default function EvalCycleSummaryCanvas({
                                         </div>
                                       </div>
                                     )}
-                                  </td>
-                                </tr>
+                                  </RosterTable.Cell>
+                                </RosterTable.Row>
                               )}
                               </Fragment>
                               );
                             })}
-                          </tbody>
-                        </table>
-                      </div>
+                          </RosterTable.Body>
+                      </RosterTable>
                       </>
                     );
                   })()
