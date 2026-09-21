@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -12,6 +12,8 @@ import Icon from '../shared/Icon.jsx';
  * labels: 고정 문구를 키별로 덮어쓴다(호스트 번역). `aiBanner` 는 추천 후보 이름이 들어가는
  *   함수 `(name) => string` 이다. 안 넘긴 키는 한국어 기본값 (PW-786).
  * renderAvatar(candidate): 호스트 앱의 아바타(이니셜 폴백 등)를 끼울 때. 미지정 시 avatar URL.
+ *
+ * 공용 창 틀(ModalShell)로 그린다 (PW-836). Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다.
  */
 export const MANAGER_ASSIGN_DEFAULT_LABELS = {
   title: '매니저(퍼실리테이터) 지정',
@@ -28,68 +30,62 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
   const recommended = candidates.find((c) => c.recommended) ?? candidates[0];
   const [selectedId, setSelectedId] = useState(recommended?.id);
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const selected = candidates.find((c) => c.id === selectedId);
 
-  return createPortal(
-    <div className="ons-overlay" onClick={onClose}>
-      <div className="ons-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="ons-close" onClick={onClose} aria-label={L.close}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <div className="ons-head">
-          <h2 className="ons-title">{L.title}</h2>
-          <p className="ons-desc">{L.desc}</p>
-        </div>
-        {recommended && (
-          <div className="ons-ai-banner">
-            <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-            <span>{L.aiBanner(recommended.name)}</span>
-          </div>
-        )}
-        <div className="ons-candidates">
-          {candidates.map((c) => {
-            const isSelected = c.id === selectedId;
-            return (
-              <button
-                key={c.id}
-                type="button"
-                className={`ons-candidate${isSelected ? ' is-selected' : ''}`}
-                onClick={() => setSelectedId(c.id)}
-              >
-                <span className={`ons-radio${isSelected ? ' is-on' : ''}`} />
-                <span className="ons-candidate-avatar">
-                  {renderAvatar
-                    ? renderAvatar(c)
-                    : c.avatar && <img src={c.avatar} alt="" draggable={false} />}
-                </span>
-                <span className="ons-candidate-info">
-                  <b className="ons-candidate-name">{c.name}</b>
-                  <span className="ons-candidate-role">{c.role}</span>
-                </span>
-                {c.recommended && (
-                  <span className="ons-ai-tag">
-                    <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                    <span>{L.aiTag}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+  return (
+    <ModalShell
+      title={L.title}
+      description={L.desc}
+      titleId="ons-assign-title"
+      closeLabel={L.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="ons-shell"
+      bodyClassName="ons-shell-body"
+      testId="manager-assign-modal"
+      footer={
         <div className="ons-actions">
           <button type="button" className="ons-btn is-outline" onClick={() => onLater?.()}>{L.later}</button>
           <button type="button" className="ons-btn is-brand" onClick={() => onConfirm?.(selected)}>{L.confirm}</button>
         </div>
+      }
+    >
+      {recommended && (
+        <div className="ons-ai-banner">
+          <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+          <span>{L.aiBanner(recommended.name)}</span>
+        </div>
+      )}
+      <div className="ons-candidates">
+        {candidates.map((c) => {
+          const isSelected = c.id === selectedId;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className={`ons-candidate${isSelected ? ' is-selected' : ''}`}
+              onClick={() => setSelectedId(c.id)}
+            >
+              <span className={`ons-radio${isSelected ? ' is-on' : ''}`} />
+              <span className="ons-candidate-avatar">
+                {renderAvatar
+                  ? renderAvatar(c)
+                  : c.avatar && <img src={c.avatar} alt="" draggable={false} />}
+              </span>
+              <span className="ons-candidate-info">
+                <b className="ons-candidate-name">{c.name}</b>
+                <span className="ons-candidate-role">{c.role}</span>
+              </span>
+              {c.recommended && (
+                <span className="ons-ai-tag">
+                  <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+                  <span>{L.aiTag}</span>
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }

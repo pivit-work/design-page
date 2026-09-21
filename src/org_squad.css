@@ -91,16 +91,6 @@
   border-color: var(--fg-brand-primary);
 }
 
-.sq-btn-danger {
-  background: var(--utility-error-500);
-  color: var(--text-white);
-}
-.sq-btn-danger:hover { background: var(--utility-error-700); }
-.sq-btn-danger:disabled {
-  background: var(--bg-active);
-  color: var(--text-tertiary);
-  cursor: not-allowed;
-}
 .sq-btn:disabled { cursor: not-allowed; }
 
 .sq-btn-sm {
@@ -1092,29 +1082,8 @@
 .sq-hist-msg { font-size: 12px; color: var(--text-tertiary); }
 .sq-hist-msg.is-error { color: var(--text-error-primary); }
 
-/* ── Confirm modals (삭제 · 상태 전환) ── */
-.sq-modal-scrim {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* --bg-overlay 는 불투명 색이라 그대로 쓰면 뒷 화면이 통째로 가려진다 (okr.css 와 같은 형태) */
-  background: color-mix(in srgb, var(--bg-overlay) 45%, transparent);
-}
-.sq-modal {
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  padding: 24px;
-  border-radius: 16px;
-  background: var(--bg-quaternary);
-  box-shadow: var(--shadows-shadow3xl);
-}
-.sq-modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 30px;
-}
-.sq-modal-title.is-danger { color: var(--text-error-primary); }
+/* ── 확인 창 (삭제 · 상태 전환) ──
+   막·카드·제목·버튼은 공용 확인 창(ConfirmModal)이 그린다(PW-836). 여기는 본문만 꾸민다. */
 .sq-modal-desc {
   font-size: 14px;
   color: var(--text-secondary);
@@ -1142,7 +1111,6 @@
   outline: none;
 }
 .sq-modal-input:focus { border-color: var(--fg-brand-primary); }
-.sq-modal-actions { display: flex; gap: 8px; margin-top: 20px; }
 
 /* 사라지는 것 / 남는 것을 나란히 */
 .sq-split { display: flex; gap: 10px; margin-top: 14px; }

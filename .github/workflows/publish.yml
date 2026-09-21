@@ -35,6 +35,11 @@ jobs:
       - name: Check css exports
         run: npm run check:exports
 
+      # 화면이 탭 줄·창을 공용 부품 대신 따로 그린 채 나가는 것을 막는다 — 푸시 전 훅을
+      # 건너뛰어도 여기서 걸린다. (PW-836)
+      - name: Check shared tabs and modals
+        run: npm run check:shared-frames
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'

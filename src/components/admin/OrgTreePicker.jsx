@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * OrgTreePicker — 소속(조직)을 계층 트리에서 고르는 팝업.
@@ -327,10 +328,8 @@ export default function OrgTreePicker({
       } else {
         setSel(cur ?? '');
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onClose?.();
     }
+    // Esc 는 공용 창 틀(ModalShell)이 받아 onClose 를 부른다 — 여기서 또 부르면 두 번 닫힌다.
   };
 
   const rowStyle = (selected, ghost) => ({
@@ -355,367 +354,357 @@ export default function OrgTreePicker({
     opacity: ghost ? 0.45 : 1,
   });
 
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 막 클릭·닫기 X·Esc 는 onClose — Esc 는 틀이 받는다
+  // (검색칸·트리에 초점이 없어도 닫힌다). 선택 요약은 버튼 줄 바로 위에 붙어 있어야
+  // 「적용」을 누르기 전에 무엇이 저장되는지 보인다(B2) — 그래서 발을 통째로 넘긴다.
   return (
-    <div
-      role="presentation"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 9999, padding: 24, fontFamily: T.font,
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={labels.title}
-        data-testid="org-tree-picker"
-        style={{
-          width: 460, maxWidth: '100%', maxHeight: '78vh', display: 'flex', flexDirection: 'column',
-          background: T.card, borderRadius: 14, boxShadow: '0 24px 64px rgba(15,23,42,.24)',
-        }}
-      >
-        <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${T.border}` }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: T.text }}>
-            {labels.title}
-            {subtitle && <span style={{ marginLeft: 6, fontWeight: 600, color: T.sub }}>{subtitle}</span>}
-          </h3>
-          <p style={{ margin: '4px 0 10px', fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
-            {labels.hint}
-            {multi && (
-              <>
-                <br />
-                <span data-testid="org-tree-picker-multi-hint">
-                  {primarySelectable ? labels.multiHint : labels.appendHint}
+    <ModalShell
+      title={
+        <>
+          {labels.title}
+          {subtitle && <span className="adm-shell-subtitle">{subtitle}</span>}
+        </>
+      }
+      description={
+        <>
+          {labels.hint}
+          {multi && (
+            <>
+              <br />
+              <span data-testid="org-tree-picker-multi-hint">
+                {primarySelectable ? labels.multiHint : labels.appendHint}
+              </span>
+            </>
+          )}
+          {leaderHint && (
+            <>
+              <br />
+              {/* 색을 따로 주지 않는다 — 감싸는 안내문(T.muted)과 같은 회색이어야
+                  「팝업이 하는 말」로 읽힌다. 여기만 진하게 하면 경고로 보인다. */}
+              <span data-testid="org-tree-picker-leader-hint">
+                {leaderHint}
+              </span>
+            </>
+          )}
+        </>
+      }
+      titleId="org-tree-picker-title"
+      closeLabel={labels.cancel}
+      onClose={() => onClose?.()}
+      zIndex={9999}
+      className="adm-shell has-own-footer"
+      bodyClassName="adm-shell-body"
+      testId="org-tree-picker"
+      footer={
+        <>
+          {/* 선택 요약 — 전체 경로로 보여준다(동명이팀 구분, P4) */}
+          <div className="adm-shell-summary" style={{ fontFamily: T.font }}>
+            {multi ? (
+              picked.length === 0 ? (
+                // B2 — 적용 버튼을 누르기 **전에** 미배정이 된다고 말한다.
+                // 추가 전용에서는 아무것도 비우지 않으므로 «미배정» 이라고 말하면 거짓말이다.
+                <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>
+                  {primarySelectable ? labels.none : labels.appendNone}
                 </span>
-              </>
-            )}
-            {leaderHint && (
-              <>
-                <br />
-                {/* 색을 따로 주지 않는다 — 감싸는 안내문(T.muted)과 같은 회색이어야
-                    「팝업이 하는 말」로 읽힌다. 여기만 진하게 하면 경고로 보인다. */}
-                <span data-testid="org-tree-picker-leader-hint">
-                  {leaderHint}
-                </span>
-              </>
-            )}
-          </p>
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={labels.search}
-            aria-label={labels.search}
-            style={{
-              width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8,
-              border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font,
-              color: T.text, background: T.bg, outline: 'none',
-            }}
-          />
-        </div>
-
-        <div
-          ref={listRef}
-          role="tree"
-          aria-label={labels.title}
-          tabIndex={0}
-          onKeyDown={onKeyDown}
-          style={{ flex: 1, minHeight: 120, overflowY: 'auto', padding: '8px 12px', outline: 'none' }}
-        >
-          {rows.map((e) => {
-            const ghost = ghostIds.has(e.id);
-            const selected = sel === e.id;
-            const navIdx = navRows.indexOf(e.id);
-            return (
-              <div
-                key={e.id}
-                role="treeitem"
-                aria-level={e.depth + 1}
-                aria-selected={selected}
-                aria-expanded={e.hasChildren ? !collapsed[e.id] : undefined}
-                aria-disabled={ghost || undefined}
-                data-depth={e.depth}
-                // P1 — depth 당 왼쪽 패딩 12px. 공백문자·`└─` 로 들여쓰지 않는다.
-                style={{ display: 'flex', alignItems: 'center', paddingLeft: e.depth * 12 }}
-              >
-                {e.hasChildren && !searching ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapse(e.id)}
-                    aria-label={`${e.name} ${collapsed[e.id] ? labels.expand : labels.collapse}`}
-                    style={{
-                      width: 16, height: 20, flexShrink: 0,
-                      background: 'none', border: 'none', cursor: 'pointer', color: T.muted,
-                      padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <svg
-                      width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden
-                      style={{ transform: collapsed[e.id] ? 'rotate(-90deg)' : 'none', transition: 'transform .12s' }}
+              ) : (
+                <div data-testid="org-tree-picker-selection" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: T.sub, marginRight: 2 }}>
+                    {String(labels.selectedCount).split('{count}').join(String(picked.length))}
+                  </span>
+                  {retainedActive.size > 0 && (
+                    // 「선택 N곳」에 더하지 않고 **따로** 적는다 — 소속 셀은 단말만 세므로,
+                    // 여기서 합치면 같은 사람을 두 화면이 다른 숫자로 말하게 된다(PW-404).
+                    <span
+                      data-testid="org-tree-picker-retained"
+                      title={labels.retainedBadgeTitle}
+                      style={{ fontSize: 11, color: T.sub, marginRight: 2 }}
                     >
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </button>
-                ) : (
-                  <span style={{ width: 16, flexShrink: 0 }} />
-                )}
-                {multi && !ghost && (
-                  // PW-404 — 유지되는 상위 경로는 **켜진 채 잠근다.** 하위 조직에 속한 이상
-                  // 끌 수 없는데 끌 수 있는 것처럼 그리면, 눌러도 안 꺼지는 체크박스가 된다.
-                  <input
-                    type="checkbox"
-                    checked={picked.includes(e.id) || retainedActive.has(e.id)}
-                    disabled={retainedActive.has(e.id)}
-                    onChange={() => { togglePick(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
-                    aria-label={retainedActive.has(e.id)
-                      ? `${e.pathLabel} — ${labels.retainedBadgeTitle}`
-                      : e.pathLabel}
-                    data-testid={`org-tree-check-${e.id}`}
-                    style={{
-                      cursor: retainedActive.has(e.id) ? 'not-allowed' : 'pointer',
-                      accentColor: T.accent, flexShrink: 0, marginRight: 2,
-                    }}
-                  />
-                )}
+                      · {String(labels.retainedSuffix).split('{count}').join(String(retainedActive.size))}
+                    </span>
+                  )}
+                  {picked.map((id) => {
+                    const entry = findOrgEntry(tree, id);
+                    const isPrimary = primarySelectable && id === primary;
+                    return (
+                      <span
+                        key={id}
+                        data-testid={`org-tree-picked-${id}`}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
+                          color: isPrimary ? T.accent : T.sub, background: T.card,
+                          border: `1px solid ${isPrimary ? '#C7D2FE' : T.border}`,
+                          borderRadius: 99, padding: '2px 9px', boxSizing: 'border-box',
+                          overflowWrap: 'anywhere',
+                          fontWeight: isPrimary ? 700 : 500,
+                        }}
+                      >
+                        {entry ? entry.pathLabel : id}
+                        {isPrimary && (
+                          <span style={{ fontSize: 9, fontWeight: 800 }}>{labels.primary}</span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              )
+            ) : selEntry ? (
+              <span
+                data-testid="org-tree-picker-selection"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', fontSize: 11, color: T.sub,
+                  background: T.card, border: `1px solid ${T.border}`, borderRadius: 99,
+                  padding: '2px 9px', boxSizing: 'border-box', overflowWrap: 'anywhere',
+                }}
+              >
+                {selEntry.pathLabel}
+              </span>
+            ) : (
+              <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>{labels.none}</span>
+            )}
+          </div>
+          <div className="adm-shell-foot-actions">
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-secondary"
+              onClick={onClose}
+            >
+              {labels.cancel}
+            </button>
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-primary"
+              onClick={() => {
+                // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
+                // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
+                if (multi) {
+                  onApply?.({
+                    unitIds: picked,
+                    // 추가 전용은 주 소속을 고르지 않는다 — 서버가 사람마다 유지한다.
+                    primaryUnitId: primarySelectable && picked.length ? primary : null,
+                  });
+                }
+                else onApply?.(sel);
+                onClose?.();
+              }}
+            >
+              {labels.apply}
+            </button>
+          </div>
+        </>
+      }
+    >
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder={labels.search}
+        aria-label={labels.search}
+        style={{
+          width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8,
+          border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font,
+          color: T.text, background: T.bg, outline: 'none',
+        }}
+      />
+
+      <div
+        ref={listRef}
+        role="tree"
+        aria-label={labels.title}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        style={{ flex: 1, minHeight: 120, overflowY: 'auto', padding: '8px 12px', outline: 'none' }}
+      >
+        {rows.map((e) => {
+          const ghost = ghostIds.has(e.id);
+          const selected = sel === e.id;
+          const navIdx = navRows.indexOf(e.id);
+          return (
+            <div
+              key={e.id}
+              role="treeitem"
+              aria-level={e.depth + 1}
+              aria-selected={selected}
+              aria-expanded={e.hasChildren ? !collapsed[e.id] : undefined}
+              aria-disabled={ghost || undefined}
+              data-depth={e.depth}
+              // P1 — depth 당 왼쪽 패딩 12px. 공백문자·`└─` 로 들여쓰지 않는다.
+              style={{ display: 'flex', alignItems: 'center', paddingLeft: e.depth * 12 }}
+            >
+              {e.hasChildren && !searching ? (
                 <button
                   type="button"
-                  disabled={ghost}
-                  onClick={() => {
-                    // 유지되는 상위 경로는 토글 대상이 아니다 — 체크박스와 같은 규칙(PW-404).
-                    if (multi && retainedActive.has(e.id)) return;
-                    if (multi) togglePick(e.id);
-                    else setSel(e.id);
-                    if (navIdx >= 0) setActiveIdx(navIdx);
-                  }}
-                  title={e.pathLabel}
+                  onClick={() => toggleCollapse(e.id)}
+                  aria-label={`${e.name} ${collapsed[e.id] ? labels.expand : labels.collapse}`}
                   style={{
-                    ...rowStyle(selected, ghost),
-                    flex: 1,
-                    minWidth: 0,
-                    outline: navIdx >= 0 && navIdx === cursor ? `2px solid ${T.accent}` : 'none',
-                    outlineOffset: -2,
+                    width: 16, height: 20, flexShrink: 0,
+                    background: 'none', border: 'none', cursor: 'pointer', color: T.muted,
+                    padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                  <svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                    style={{ transform: collapsed[e.id] ? 'rotate(-90deg)' : 'none', transition: 'transform .12s' }}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </button>
-                {/* 유지되는 상위 경로 (PW-404) — 왜 체크가 켜져 있고 못 끄는지를 말한다. */}
-                {multi && retainedActive.has(e.id) && (
+              ) : (
+                <span style={{ width: 16, flexShrink: 0 }} />
+              )}
+              {multi && !ghost && (
+                // PW-404 — 유지되는 상위 경로는 **켜진 채 잠근다.** 하위 조직에 속한 이상
+                // 끌 수 없는데 끌 수 있는 것처럼 그리면, 눌러도 안 꺼지는 체크박스가 된다.
+                <input
+                  type="checkbox"
+                  checked={picked.includes(e.id) || retainedActive.has(e.id)}
+                  disabled={retainedActive.has(e.id)}
+                  onChange={() => { togglePick(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
+                  aria-label={retainedActive.has(e.id)
+                    ? `${e.pathLabel} — ${labels.retainedBadgeTitle}`
+                    : e.pathLabel}
+                  data-testid={`org-tree-check-${e.id}`}
+                  style={{
+                    cursor: retainedActive.has(e.id) ? 'not-allowed' : 'pointer',
+                    accentColor: T.accent, flexShrink: 0, marginRight: 2,
+                  }}
+                />
+              )}
+              <button
+                type="button"
+                disabled={ghost}
+                onClick={() => {
+                  // 유지되는 상위 경로는 토글 대상이 아니다 — 체크박스와 같은 규칙(PW-404).
+                  if (multi && retainedActive.has(e.id)) return;
+                  if (multi) togglePick(e.id);
+                  else setSel(e.id);
+                  if (navIdx >= 0) setActiveIdx(navIdx);
+                }}
+                title={e.pathLabel}
+                style={{
+                  ...rowStyle(selected, ghost),
+                  flex: 1,
+                  minWidth: 0,
+                  outline: navIdx >= 0 && navIdx === cursor ? `2px solid ${T.accent}` : 'none',
+                  outlineOffset: -2,
+                }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+              </button>
+              {/* 유지되는 상위 경로 (PW-404) — 왜 체크가 켜져 있고 못 끄는지를 말한다. */}
+              {multi && retainedActive.has(e.id) && (
+                <span
+                  data-testid={`org-tree-retained-badge-${e.id}`}
+                  title={labels.retainedBadgeTitle}
+                  style={{
+                    flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
+                    padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
+                    background: T.bg, border: `1px dashed ${T.border}`, color: T.sub,
+                  }}
+                >
+                  {labels.retainedBadge}
+                </span>
+              )}
+              {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
+              {multi && primarySelectable && picked.includes(e.id) && (
+                primary === e.id ? (
                   <span
-                    data-testid={`org-tree-retained-badge-${e.id}`}
-                    title={labels.retainedBadgeTitle}
+                    data-testid={`org-tree-primary-badge-${e.id}`}
                     style={{
                       flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
                       padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
-                      background: T.bg, border: `1px dashed ${T.border}`, color: T.sub,
+                      background: '#EEF2FF', border: `1px solid #C7D2FE`, color: T.accent,
                     }}
                   >
-                    {labels.retainedBadge}
+                    {labels.primary}
                   </span>
-                )}
-                {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
-                {multi && primarySelectable && picked.includes(e.id) && (
-                  primary === e.id ? (
-                    <span
-                      data-testid={`org-tree-primary-badge-${e.id}`}
-                      style={{
-                        flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
-                        padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
-                        background: '#EEF2FF', border: `1px solid #C7D2FE`, color: T.accent,
-                      }}
-                    >
-                      {labels.primary}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      data-testid={`org-tree-make-primary-${e.id}`}
-                      onClick={() => setPrimary(e.id)}
-                      title={labels.makePrimaryTitle}
-                      style={{
-                        flexShrink: 0, fontSize: 10, color: T.muted, background: 'none',
-                        border: 'none', cursor: 'pointer', fontFamily: T.font, padding: '0 2px',
-                      }}
-                    >
-                      {labels.makePrimary}
-                    </button>
-                  )
-                )}
-                {/* 이 조직의 매니저(조직장) 지정 — 소속한 조직에만 노출(L3).
-                    해제해도 권한은 그대로 둔다(L11) — 조직장 해제와 권한 강등은 별개 결정이다. */}
-                {multi && onToggleLeader && picked.includes(e.id) && (
-                  leaderIds.includes(e.id) ? (
-                    <button
-                      type="button"
-                      data-testid={`org-tree-leader-badge-${e.id}`}
-                      onClick={() => onToggleLeader(e.id, false)}
-                      title={labels.leaderBadgeTitle}
-                      style={{
-                        flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
-                        padding: '1px 7px', borderRadius: 99, boxSizing: 'border-box',
-                        background: T.bg, border: `1px solid ${T.border}`, color: T.text,
-                        cursor: 'pointer', fontFamily: T.font,
-                      }}
-                    >
-                      {labels.leaderBadge}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      data-testid={`org-tree-make-leader-${e.id}`}
-                      disabled={!canBeLeader}
-                      onClick={() => canBeLeader && onToggleLeader(e.id, true)}
-                      title={canBeLeader ? labels.makeLeaderTitle : labels.leaderBlocked}
-                      style={{
-                        flexShrink: 0, fontSize: 10, color: canBeLeader ? T.muted : T.border,
-                        background: 'none', border: 'none', fontFamily: T.font, padding: '0 2px',
-                        cursor: canBeLeader ? 'pointer' : 'not-allowed',
-                      }}
-                    >
-                      {labels.makeLeader}
-                    </button>
-                  )
-                )}
-              </div>
-            );
-          })}
-
-          {rows.length === 0 && (
-            <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{labels.empty}</p>
-          )}
-
-          {/* P7 — 미배정은 항상 최하단, 들여쓰기 0.
-              multi 에서는 「미배정을 고른다」가 아니라 **모두 해제**다 — 선택을 비우는
-              것이 곧 미배정이므로 같은 뜻을 두 조작으로 두지 않는다. */}
-          <div role="treeitem" aria-level={1} aria-selected={multi ? picked.length === 0 : sel === ''}>
-            <button
-              type="button"
-              data-testid={multi ? 'org-tree-clear-all' : undefined}
-              onClick={() => {
-                if (multi) clearAll();
-                else setSel('');
-                setActiveIdx(navRows.length - 1);
-              }}
-              style={{
-                ...rowStyle(multi ? picked.length === 0 : sel === '', false),
-                marginTop: 4,
-                borderTop: `1px solid ${T.border}`,
-                borderRadius: 0,
-                color: (multi ? picked.length === 0 : sel === '') ? T.accent : T.sub,
-                outline: cursor === navRows.length - 1 ? `2px solid ${T.accent}` : 'none',
-                outlineOffset: -2,
-              }}
-            >
-              {multi ? labels.clearAll : labels.unassigned}
-            </button>
-          </div>
-        </div>
-
-        {/* 선택 요약 — 전체 경로로 보여준다(동명이팀 구분, P4) */}
-        <div style={{ padding: '10px 20px', borderTop: `1px solid ${T.border}`, background: T.bg }}>
-          {multi ? (
-            picked.length === 0 ? (
-              // B2 — 적용 버튼을 누르기 **전에** 미배정이 된다고 말한다.
-              // 추가 전용에서는 아무것도 비우지 않으므로 «미배정» 이라고 말하면 거짓말이다.
-              <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>
-                {primarySelectable ? labels.none : labels.appendNone}
-              </span>
-            ) : (
-              <div data-testid="org-tree-picker-selection" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: T.sub, marginRight: 2 }}>
-                  {String(labels.selectedCount).split('{count}').join(String(picked.length))}
-                </span>
-                {retainedActive.size > 0 && (
-                  // 「선택 N곳」에 더하지 않고 **따로** 적는다 — 소속 셀은 단말만 세므로,
-                  // 여기서 합치면 같은 사람을 두 화면이 다른 숫자로 말하게 된다(PW-404).
-                  <span
-                    data-testid="org-tree-picker-retained"
-                    title={labels.retainedBadgeTitle}
-                    style={{ fontSize: 11, color: T.sub, marginRight: 2 }}
+                ) : (
+                  <button
+                    type="button"
+                    data-testid={`org-tree-make-primary-${e.id}`}
+                    onClick={() => setPrimary(e.id)}
+                    title={labels.makePrimaryTitle}
+                    style={{
+                      flexShrink: 0, fontSize: 10, color: T.muted, background: 'none',
+                      border: 'none', cursor: 'pointer', fontFamily: T.font, padding: '0 2px',
+                    }}
                   >
-                    · {String(labels.retainedSuffix).split('{count}').join(String(retainedActive.size))}
-                  </span>
-                )}
-                {picked.map((id) => {
-                  const entry = findOrgEntry(tree, id);
-                  const isPrimary = primarySelectable && id === primary;
-                  return (
-                    <span
-                      key={id}
-                      data-testid={`org-tree-picked-${id}`}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
-                        color: isPrimary ? T.accent : T.sub, background: T.card,
-                        border: `1px solid ${isPrimary ? '#C7D2FE' : T.border}`,
-                        borderRadius: 99, padding: '2px 9px', boxSizing: 'border-box',
-                        overflowWrap: 'anywhere',
-                        fontWeight: isPrimary ? 700 : 500,
-                      }}
-                    >
-                      {entry ? entry.pathLabel : id}
-                      {isPrimary && (
-                        <span style={{ fontSize: 9, fontWeight: 800 }}>{labels.primary}</span>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            )
-          ) : selEntry ? (
-            <span
-              data-testid="org-tree-picker-selection"
-              style={{
-                display: 'inline-flex', alignItems: 'center', fontSize: 11, color: T.sub,
-                background: T.card, border: `1px solid ${T.border}`, borderRadius: 99,
-                padding: '2px 9px', boxSizing: 'border-box', overflowWrap: 'anywhere',
-              }}
-            >
-              {selEntry.pathLabel}
-            </span>
-          ) : (
-            <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>{labels.none}</span>
-          )}
-        </div>
+                    {labels.makePrimary}
+                  </button>
+                )
+              )}
+              {/* 이 조직의 매니저(조직장) 지정 — 소속한 조직에만 노출(L3).
+                  해제해도 권한은 그대로 둔다(L11) — 조직장 해제와 권한 강등은 별개 결정이다. */}
+              {multi && onToggleLeader && picked.includes(e.id) && (
+                leaderIds.includes(e.id) ? (
+                  <button
+                    type="button"
+                    data-testid={`org-tree-leader-badge-${e.id}`}
+                    onClick={() => onToggleLeader(e.id, false)}
+                    title={labels.leaderBadgeTitle}
+                    style={{
+                      flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
+                      padding: '1px 7px', borderRadius: 99, boxSizing: 'border-box',
+                      background: T.bg, border: `1px solid ${T.border}`, color: T.text,
+                      cursor: 'pointer', fontFamily: T.font,
+                    }}
+                  >
+                    {labels.leaderBadge}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    data-testid={`org-tree-make-leader-${e.id}`}
+                    disabled={!canBeLeader}
+                    onClick={() => canBeLeader && onToggleLeader(e.id, true)}
+                    title={canBeLeader ? labels.makeLeaderTitle : labels.leaderBlocked}
+                    style={{
+                      flexShrink: 0, fontSize: 10, color: canBeLeader ? T.muted : T.border,
+                      background: 'none', border: 'none', fontFamily: T.font, padding: '0 2px',
+                      cursor: canBeLeader ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    {labels.makeLeader}
+                  </button>
+                )
+              )}
+            </div>
+          );
+        })}
 
-        <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        {rows.length === 0 && (
+          <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{labels.empty}</p>
+        )}
+
+        {/* P7 — 미배정은 항상 최하단, 들여쓰기 0.
+            multi 에서는 「미배정을 고른다」가 아니라 **모두 해제**다 — 선택을 비우는
+            것이 곧 미배정이므로 같은 뜻을 두 조작으로 두지 않는다. */}
+        <div role="treeitem" aria-level={1} aria-selected={multi ? picked.length === 0 : sel === ''}>
           <button
             type="button"
-            onClick={onClose}
-            style={{
-              padding: '7px 14px', borderRadius: 8, border: `1px solid ${T.border}`,
-              background: T.card, color: T.sub, fontSize: 12, fontWeight: 600,
-              fontFamily: T.font, cursor: 'pointer',
-            }}
-          >
-            {labels.cancel}
-          </button>
-          <button
-            type="button"
+            data-testid={multi ? 'org-tree-clear-all' : undefined}
             onClick={() => {
-              // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
-              // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
-              if (multi) {
-                onApply?.({
-                  unitIds: picked,
-                  // 추가 전용은 주 소속을 고르지 않는다 — 서버가 사람마다 유지한다.
-                  primaryUnitId: primarySelectable && picked.length ? primary : null,
-                });
-              }
-              else onApply?.(sel);
-              onClose?.();
+              if (multi) clearAll();
+              else setSel('');
+              setActiveIdx(navRows.length - 1);
             }}
             style={{
-              padding: '7px 16px', borderRadius: 8, border: 'none', background: T.accent,
-              color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer',
+              ...rowStyle(multi ? picked.length === 0 : sel === '', false),
+              marginTop: 4,
+              borderTop: `1px solid ${T.border}`,
+              borderRadius: 0,
+              color: (multi ? picked.length === 0 : sel === '') ? T.accent : T.sub,
+              outline: cursor === navRows.length - 1 ? `2px solid ${T.accent}` : 'none',
+              outlineOffset: -2,
             }}
           >
-            {labels.apply}
+            {multi ? labels.clearAll : labels.unassigned}
           </button>
         </div>
       </div>
-    </div>
+
+    </ModalShell>
   );
 }
 

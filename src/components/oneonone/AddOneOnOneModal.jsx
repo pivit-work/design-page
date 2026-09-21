@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useRef, useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -31,6 +31,12 @@ import Icon from '../shared/Icon.jsx';
  *   - labels: 고정 문구를 키별로 덮어쓴다. 안 넘긴 키는 한국어 기본값 그대로다.
  *   - locale: 날짜·요일·시간처럼 «글자» 가 아니라 «형식» 인 것을 정한다(Intl).
  *   둘 다 생략하면 종전과 100% 같은 화면이다.
+ *
+ * 창은 공용 창 틀(ModalShell)로 그린다 (PW-836). 닫혀 있는 동안에는 틀을 그리지 않지만,
+ * 입력 상태는 이 컴포넌트가 들고 있어 종전처럼 열고 닫아도 남는다(새로 잡으려면 `key`).
+ * Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다. 막의 data-testid 는 `ono-add-modal-overlay`,
+ * 창은 `ono-add-modal`. 푸터 두 버튼은 `type="button"` 이다 — 틀은 폼(form)이라 기본
+ * 제출 버튼을 쓰면 검색칸에서 Enter 만 눌러도 예약이 나가 버린다.
  */
 
 /** 모달 안 고정 문구의 한국어 기본값. 호스트가 labels 로 키별 덮어쓰기 한다. */
@@ -160,13 +166,6 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
     setTimeOpen(false);
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
   const filteredMembers = useMemo(() => {
     if (!search) return memberList;
     return memberList.filter((m) => m.includes(search));
@@ -174,207 +173,188 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
 
   const dateLabel = formatDateLabel(date, locale);
 
-  if (typeof document === 'undefined') return null;
+  if (typeof document === 'undefined' || !open) return null;
 
-  const node = (
-    <>
-      <div
-        className="ono-add-modal-overlay"
-        onClick={onClose}
-        style={{ display: open ? '' : 'none' }}
-      />
-      <div
-        className="ono-add-modal-scroll-wrap"
-        onClick={onClose}
-        style={{ display: open ? '' : 'none' }}
-      >
-        <div className="ono-add-modal-card" onClick={(e) => e.stopPropagation()}>
-          <div className="ono-add-modal-topbar">
-            <button type="button" className="ono-add-modal-close" onClick={onClose} aria-label={L.close}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          </div>
-
-          <div className="ono-add-modal-body" onClick={closePopovers}>
-            <div className="ono-add-modal-header">
-              <h2 className="ono-add-modal-title">{member ? L.titleWithMember : L.titleNoMember}</h2>
+  return (
+    <ModalShell
+      title={member ? L.titleWithMember : L.titleNoMember}
+      titleId="ono-add-modal-title"
+      closeLabel={L.close}
+      onClose={() => onClose?.()}
+      zIndex={1001}
+      className="ono-add-shell"
+      testId="ono-add-modal"
+      overlayTestId="ono-add-modal-overlay"
+      footer={
+        <>
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}>
+            {L.cancel}
+          </button>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
+            /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
+               쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
+            onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo })}
+            disabled={!member && !search}
+          >
+            {L.submit}
+          </button>
+        </>
+      }
+    >
+      <div className="ono-add-modal-form" onClick={closePopovers}>
+        {member ? (
+          /* "1on1 잡기" 모드 — 멤버 표시 (검색 없음) */
+          <div className="ono-add-modal-member">
+            <div className="ono-add-modal-member-avatar">
+              {member.avatar && <img src={member.avatar} alt="" />}
             </div>
-
-            <div className="ono-add-modal-form">
-              {member ? (
-                /* "1on1 잡기" 모드 — 멤버 표시 (검색 없음) */
-                <div className="ono-add-modal-member">
-                  <div className="ono-add-modal-member-avatar">
-                    {member.avatar && <img src={member.avatar} alt="" />}
-                  </div>
-                  <div className="ono-add-modal-member-info">
-                    <div className="ono-add-modal-member-name-row">
-                      <span className="ono-add-modal-member-name">{member.name}</span>
-                      {member.badge && (
-                        <span className="ono-add-modal-member-badge">{member.badge}</span>
-                      )}
-                    </div>
-                    {member.role && (
-                      <span className="ono-add-modal-member-role">{member.role}</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* "1on1 일정 추가" 모드 — 팀원 검색 */
-                <Field label={L.memberSearch}>
-                  <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
-                    <div className="ono-add-modal-input">
-                      <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
-                      <input
-                        type="text"
-                        placeholder={L.memberSearchPlaceholder}
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
-                        onFocus={() => setMemberOpen(true)}
-                        className="ono-add-modal-input-el"
-                      />
-                    </div>
-                    {memberOpen && (
-                      <div className="ono-add-modal-menu ono-add-modal-menu-wide">
-                        {filteredMembers.length === 0 ? (
-                          <div className="ono-add-modal-menu-empty">
-                            {memberList.length === 0 ? L.memberEmpty : L.memberSearchEmpty}
-                          </div>
-                        ) : (
-                          filteredMembers.map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              className="ono-add-modal-menu-item"
-                              onClick={() => { setSearch(m); setMemberOpen(false); }}
-                            >
-                              {m}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Field>
+            <div className="ono-add-modal-member-info">
+              <div className="ono-add-modal-member-name-row">
+                <span className="ono-add-modal-member-name">{member.name}</span>
+                {member.badge && (
+                  <span className="ono-add-modal-member-badge">{member.badge}</span>
+                )}
+              </div>
+              {member.role && (
+                <span className="ono-add-modal-member-role">{member.role}</span>
               )}
+            </div>
+          </div>
+        ) : (
+          /* "1on1 일정 추가" 모드 — 팀원 검색 */
+          <Field label={L.memberSearch}>
+            <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
+              <div className="ono-add-modal-input">
+                <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
+                <input
+                  type="text"
+                  placeholder={L.memberSearchPlaceholder}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
+                  onFocus={() => setMemberOpen(true)}
+                  className="ono-add-modal-input-el"
+                />
+              </div>
+              {memberOpen && (
+                <div className="ono-add-modal-menu ono-add-modal-menu-wide">
+                  {filteredMembers.length === 0 ? (
+                    <div className="ono-add-modal-menu-empty">
+                      {memberList.length === 0 ? L.memberEmpty : L.memberSearchEmpty}
+                    </div>
+                  ) : (
+                    filteredMembers.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className="ono-add-modal-menu-item"
+                        onClick={() => { setSearch(m); setMemberOpen(false); }}
+                      >
+                        {m}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </Field>
+        )}
 
-              {/* 미팅 시간 */}
-              <Field label={L.duration}>
-                <div className="ono-add-modal-radio-group">
-                  {durationOptions(L).map((opt) => (
+        {/* 미팅 시간 */}
+        <Field label={L.duration}>
+          <div className="ono-add-modal-radio-group">
+            {durationOptions(L).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`ono-add-modal-radio ${duration === opt.key ? 'is-active' : ''}`}
+                onClick={() => setDuration(opt.key)}
+              >
+                <span className="ono-add-modal-radio-circle">
+                  {duration === opt.key && <span className="ono-add-modal-radio-dot" />}
+                </span>
+                <span className="ono-add-modal-radio-label">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          {duration === 'custom' && (
+            <div className="ono-add-modal-input">
+              <input
+                type="text"
+                placeholder={L.durationCustomPlaceholder}
+                value={customDuration}
+                onChange={(e) => setCustomDuration(e.target.value)}
+                className="ono-add-modal-input-el"
+              />
+            </div>
+          )}
+        </Field>
+
+        {/* 날짜 + 시간 */}
+        <div className="ono-add-modal-row">
+          {/* 날짜 */}
+          <Field label={L.date}>
+            <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="ono-add-modal-input ono-add-modal-input-with-icon"
+                onClick={() => { setDateOpen((v) => !v); setTimeOpen(false); setMemberOpen(false); }}
+              >
+                <Icon src={icons?.calendar} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+                <span className="ono-add-modal-input-text">{dateLabel}</span>
+              </button>
+              {dateOpen && (
+                <DatePickerPopover
+                  value={date}
+                  onChange={(d) => { setDate(d); setDateOpen(false); }}
+                  locale={locale}
+                  labels={L}
+                />
+              )}
+            </div>
+          </Field>
+          {/* 시간 */}
+          <Field label={L.time}>
+            <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="ono-add-modal-input"
+                onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); setMemberOpen(false); }}
+              >
+                <span className="ono-add-modal-input-text">{formatTime(time)}</span>
+                <Icon src={icons?.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+              </button>
+              {timeOpen && (
+                <div className="ono-add-modal-menu ono-add-modal-menu-time">
+                  {TIME_SLOTS.map((slot) => (
                     <button
-                      key={opt.key}
+                      key={slot}
                       type="button"
-                      className={`ono-add-modal-radio ${duration === opt.key ? 'is-active' : ''}`}
-                      onClick={() => setDuration(opt.key)}
+                      className={`ono-add-modal-menu-item ${slot === time ? 'is-selected' : ''}`}
+                      onClick={() => { setTime(slot); setTimeOpen(false); }}
                     >
-                      <span className="ono-add-modal-radio-circle">
-                        {duration === opt.key && <span className="ono-add-modal-radio-dot" />}
-                      </span>
-                      <span className="ono-add-modal-radio-label">{opt.label}</span>
+                      {formatTime(slot)}
                     </button>
                   ))}
                 </div>
-                {duration === 'custom' && (
-                  <div className="ono-add-modal-input">
-                    <input
-                      type="text"
-                      placeholder={L.durationCustomPlaceholder}
-                      value={customDuration}
-                      onChange={(e) => setCustomDuration(e.target.value)}
-                      className="ono-add-modal-input-el"
-                    />
-                  </div>
-                )}
-              </Field>
-
-              {/* 날짜 + 시간 */}
-              <div className="ono-add-modal-row">
-                {/* 날짜 */}
-                <Field label={L.date}>
-                  <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="ono-add-modal-input ono-add-modal-input-with-icon"
-                      onClick={() => { setDateOpen((v) => !v); setTimeOpen(false); setMemberOpen(false); }}
-                    >
-                      <Icon src={icons?.calendar} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-                      <span className="ono-add-modal-input-text">{dateLabel}</span>
-                    </button>
-                    {dateOpen && (
-                      <DatePickerPopover
-                        value={date}
-                        onChange={(d) => { setDate(d); setDateOpen(false); }}
-                        locale={locale}
-                        labels={L}
-                      />
-                    )}
-                  </div>
-                </Field>
-                {/* 시간 */}
-                <Field label={L.time}>
-                  <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="ono-add-modal-input"
-                      onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); setMemberOpen(false); }}
-                    >
-                      <span className="ono-add-modal-input-text">{formatTime(time)}</span>
-                      <Icon src={icons?.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-                    </button>
-                    {timeOpen && (
-                      <div className="ono-add-modal-menu ono-add-modal-menu-time">
-                        {TIME_SLOTS.map((slot) => (
-                          <button
-                            key={slot}
-                            type="button"
-                            className={`ono-add-modal-menu-item ${slot === time ? 'is-selected' : ''}`}
-                            onClick={() => { setTime(slot); setTimeOpen(false); }}
-                          >
-                            {formatTime(slot)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Field>
-              </div>
-
-              {/* 메모 */}
-              <Field label={L.memo}>
-                <textarea
-                  className="ono-add-modal-textarea"
-                  placeholder={L.memoPlaceholder}
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
-                />
-              </Field>
+              )}
             </div>
-          </div>
-
-          <div className="ono-add-modal-footer">
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onClose}>
-              {L.cancel}
-            </button>
-            <button
-              type="button"
-              className="ono-add-modal-btn ono-add-modal-btn-primary"
-              /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
-                 쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
-              onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo })}
-              disabled={!member && !search}
-            >
-              {L.submit}
-            </button>
-          </div>
+          </Field>
         </div>
-      </div>
-    </>
-  );
 
-  return createPortal(node, document.body);
+        {/* 메모 */}
+        <Field label={L.memo}>
+          <textarea
+            className="ono-add-modal-textarea"
+            placeholder={L.memoPlaceholder}
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+          />
+        </Field>
+      </div>
+    </ModalShell>
+  );
 }
 
 function Field({ label, children }) {

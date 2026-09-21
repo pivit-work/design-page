@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Card from './Card.jsx';
 import Icon from '../shared/Icon.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -47,7 +49,6 @@ const CHANNEL_ICON_SRC = {
 const ICON_LOCK = '/icons-solid/lock-keyhole-square.svg';
 const ICON_PREVIEW = '/icons-solid/eye.svg';
 const ICON_INFO = '/icons-solid/info-circle.svg';
-const ICON_X = '/icons-solid/x-close.svg';
 
 const DEFAULT_LABELS = {
   stats: { total: '전체 규칙', active: '활성', inactive: '비활성', unit: '개' },
@@ -123,22 +124,9 @@ function SL({ children }) {
   return <div className="admin-notif-sl">{children}</div>;
 }
 
-/* ── 세그먼트 버튼 (라디오 대체) ───────────────────────── */
+/* ── 세그먼트 버튼 (라디오 대체) — 공용 SegmentedControl(PW-836) ── */
 function SegBtn({ options, value, onChange }) {
-  return (
-    <div className="admin-notif-seg">
-      {options.map((o) => (
-        <button
-          type="button"
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          className={`admin-notif-seg-btn${value === o.value ? ' is-active' : ''}`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+  return <SegmentedControl items={options} value={value} onChange={onChange} block />;
 }
 
 /* ── 파라미터 입력 (select / number) ───────────────────── */
@@ -360,161 +348,158 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
     setChannels((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
 
   return (
-    <div className="admin-notif-modal-root">
-      <div className="admin-notif-modal-backdrop" onClick={onClose} data-testid="modal-backdrop" />
-      <div className="admin-notif-modal" role="dialog" aria-modal="true" aria-label={rule.label} data-testid="edit-modal">
-        {/* 헤더 */}
-        <div className="admin-notif-modal-header">
-          <div>
-            <div className="admin-notif-modal-title">{rule.label}</div>
-            <div className="admin-notif-modal-desc">{rule.desc}</div>
-          </div>
-          <button type="button" className="admin-notif-modal-close" aria-label={labels.modal.close} onClick={onClose}>
-            <Icon src={ICON_X} size={18} color="var(--text-secondary)" baseUrl={baseUrl} />
-          </button>
-        </div>
-
-        <div className="admin-notif-modal-body">
-          {/* 활성화 */}
-          <div className="admin-notif-enable-row">
-            <span className="admin-notif-enable-label">{labels.modal.enableThis}</span>
-            <Toggle value={enabled} onChange={setEnabled} ariaLabel={labels.modal.enableThis} />
-          </div>
-
-          {/* 발동 조건 */}
-          <div>
-            <SL>{labels.modal.condition}</SL>
-            {rule.conditionSchema ? (
-              <div className="admin-notif-param-list">
-                {rule.conditionSchema.map((param) => (
-                  <div key={param.key} className="admin-notif-param-row">
-                    <span className="admin-notif-param-label">{param.label}</span>
-                    <ParamField
-                      param={param}
-                      value={conditionValues[param.key]}
-                      onChange={(val) => setConditionValues((p) => ({ ...p, [param.key]: val }))}
-                    />
-                  </div>
-                ))}
-                <div className="admin-notif-preview">
-                  <span className="admin-notif-preview-mark">
-                    <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
-                  </span>
-                  {labels.modal.preview}:&nbsp;<strong>{conditionPreview}</strong>
-                </div>
-              </div>
-            ) : (
-              <div className="admin-notif-fixed">
-                <span className="admin-notif-fixed-lock">
-                  <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                </span>
-                <span className="admin-notif-fixed-text">{rule.conditionFixed}</span>
-                <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-              </div>
-            )}
-          </div>
-
-          {/* 발송 주기 */}
-          <div>
-            <SL>{labels.modal.cooldown}</SL>
-            {cooldown.mode === 'custom' ? (
-              <div className="admin-notif-cooldown-box">
-                <CooldownEditor
-                  cooldown={cooldown}
-                  onChange={setCooldown}
-                  hasTimeParam={hasTimeParam}
-                  options={cooldownOptions}
-                  labels={labels.cooldown}
-                  baseUrl={baseUrl}
-                />
-                <div className="admin-notif-preview">
-                  <span className="admin-notif-preview-mark">
-                    <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
-                  </span>
-                  {labels.modal.preview}:&nbsp;<strong>{formatCooldown(cooldown)}</strong>
-                </div>
-              </div>
-            ) : (
-              <div className="admin-notif-fixed">
-                <span className="admin-notif-fixed-lock">
-                  <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                </span>
-                <span className="admin-notif-fixed-text">{formatCooldown(cooldown)}</span>
-                <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-              </div>
-            )}
-          </div>
-
-          {/* 수신 대상 */}
-          <div>
-            <SL>{labels.modal.recipients}</SL>
-            <div className="admin-notif-picker-grid">
-              {ROLE_KEYS.map((key) => {
-                const active = recipients.includes(key);
-                return (
-                  <div
-                    key={key}
-                    role="checkbox"
-                    aria-checked={active}
-                    aria-label={labels.roles[key]}
-                    tabIndex={0}
-                    onClick={() => toggleRecipient(key)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRecipient(key); } }}
-                    className={`admin-notif-role-card is-${key}${active ? ' is-active' : ''}`}
-                  >
-                    <div className="admin-notif-role-card-label">{labels.roles[key]}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 발송 채널 */}
-          <div>
-            <SL>{labels.modal.channels}</SL>
-            <div className="admin-notif-picker-grid">
-              {CHANNEL_KEYS.map((key) => {
-                const active = channels.includes(key);
-                return (
-                  <div
-                    key={key}
-                    role="checkbox"
-                    aria-checked={active}
-                    aria-label={labels.channels[key]}
-                    tabIndex={0}
-                    onClick={() => toggleChannel(key)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChannel(key); } }}
-                    className={`admin-notif-channel-card${active ? ' is-active' : ''}`}
-                  >
-                    <div className="admin-notif-channel-icon">
-                      <Icon
-                        src={CHANNEL_ICON_SRC[key]}
-                        size={18}
-                        color={active ? 'var(--text-brand-secondary)' : 'var(--text-tertiary)'}
-                        baseUrl={baseUrl}
-                      />
-                    </div>
-                    <div className="admin-notif-channel-label">{labels.channels[key]}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* 하단 버튼 */}
-        <div className="admin-notif-modal-footer">
-          <button type="button" className="admin-notif-btn is-ghost" onClick={onClose}>{labels.modal.cancel}</button>
+    // 껍데기는 공용 창 틀(ModalShell · PW-836). 막 이름표(modal-backdrop)·창 이름표(edit-modal)는
+    // 종전 그대로 막·카드에 붙는다.
+    <ModalShell
+      title={rule.label}
+      description={rule.desc}
+      titleId="admin-notif-edit-title"
+      closeLabel={labels.modal.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell"
+      bodyClassName="adm-shell-body"
+      testId="edit-modal"
+      overlayTestId="modal-backdrop"
+      footer={
+        <>
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}>{labels.modal.cancel}</button>
           <button
             type="button"
-            className="admin-notif-btn is-primary"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
             onClick={() => { onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels }); onClose(); }}
           >
             {labels.modal.save}
           </button>
+        </>
+      }
+    >
+        {/* 활성화 */}
+        <div className="admin-notif-enable-row">
+          <span className="admin-notif-enable-label">{labels.modal.enableThis}</span>
+          <Toggle value={enabled} onChange={setEnabled} ariaLabel={labels.modal.enableThis} />
         </div>
-      </div>
-    </div>
+
+        {/* 발동 조건 */}
+        <div>
+          <SL>{labels.modal.condition}</SL>
+          {rule.conditionSchema ? (
+            <div className="admin-notif-param-list">
+              {rule.conditionSchema.map((param) => (
+                <div key={param.key} className="admin-notif-param-row">
+                  <span className="admin-notif-param-label">{param.label}</span>
+                  <ParamField
+                    param={param}
+                    value={conditionValues[param.key]}
+                    onChange={(val) => setConditionValues((p) => ({ ...p, [param.key]: val }))}
+                  />
+                </div>
+              ))}
+              <div className="admin-notif-preview">
+                <span className="admin-notif-preview-mark">
+                  <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
+                </span>
+                {labels.modal.preview}:&nbsp;<strong>{conditionPreview}</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="admin-notif-fixed">
+              <span className="admin-notif-fixed-lock">
+                <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              </span>
+              <span className="admin-notif-fixed-text">{rule.conditionFixed}</span>
+              <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 발송 주기 */}
+        <div>
+          <SL>{labels.modal.cooldown}</SL>
+          {cooldown.mode === 'custom' ? (
+            <div className="admin-notif-cooldown-box">
+              <CooldownEditor
+                cooldown={cooldown}
+                onChange={setCooldown}
+                hasTimeParam={hasTimeParam}
+                options={cooldownOptions}
+                labels={labels.cooldown}
+                baseUrl={baseUrl}
+              />
+              <div className="admin-notif-preview">
+                <span className="admin-notif-preview-mark">
+                  <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
+                </span>
+                {labels.modal.preview}:&nbsp;<strong>{formatCooldown(cooldown)}</strong>
+              </div>
+            </div>
+          ) : (
+            <div className="admin-notif-fixed">
+              <span className="admin-notif-fixed-lock">
+                <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              </span>
+              <span className="admin-notif-fixed-text">{formatCooldown(cooldown)}</span>
+              <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 수신 대상 */}
+        <div>
+          <SL>{labels.modal.recipients}</SL>
+          <div className="admin-notif-picker-grid">
+            {ROLE_KEYS.map((key) => {
+              const active = recipients.includes(key);
+              return (
+                <div
+                  key={key}
+                  role="checkbox"
+                  aria-checked={active}
+                  aria-label={labels.roles[key]}
+                  tabIndex={0}
+                  onClick={() => toggleRecipient(key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRecipient(key); } }}
+                  className={`admin-notif-role-card is-${key}${active ? ' is-active' : ''}`}
+                >
+                  <div className="admin-notif-role-card-label">{labels.roles[key]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 발송 채널 */}
+        <div>
+          <SL>{labels.modal.channels}</SL>
+          <div className="admin-notif-picker-grid">
+            {CHANNEL_KEYS.map((key) => {
+              const active = channels.includes(key);
+              return (
+                <div
+                  key={key}
+                  role="checkbox"
+                  aria-checked={active}
+                  aria-label={labels.channels[key]}
+                  tabIndex={0}
+                  onClick={() => toggleChannel(key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChannel(key); } }}
+                  className={`admin-notif-channel-card${active ? ' is-active' : ''}`}
+                >
+                  <div className="admin-notif-channel-icon">
+                    <Icon
+                      src={CHANNEL_ICON_SRC[key]}
+                      size={18}
+                      color={active ? 'var(--text-brand-secondary)' : 'var(--text-tertiary)'}
+                      baseUrl={baseUrl}
+                    />
+                  </div>
+                  <div className="admin-notif-channel-label">{labels.channels[key]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+    </ModalShell>
   );
 }
 

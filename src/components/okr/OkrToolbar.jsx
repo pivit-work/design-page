@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
 
 /**
@@ -73,19 +74,14 @@ export default function OkrToolbar({
           )}
         </div>
         {levels.length > 1 && (
-          <div className="okr-level-seg" role="group" aria-label={levelPickerLabel}>
-            {levels.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                className={`okr-level-seg-btn${level.id === selectedLevelId ? ' is-active' : ''}`}
-                aria-pressed={level.id === selectedLevelId}
-                onClick={() => onLevelChange && onLevelChange(level.id)}
-              >
-                {level.label}
-              </button>
-            ))}
-          </div>
+          // 단위 고르기 — 공용 SegmentedControl (PW-836).
+          <SegmentedControl
+            className="okr-level-seg"
+            ariaLabel={levelPickerLabel}
+            items={levels.map((level) => ({ value: level.id, label: level.label }))}
+            value={selectedLevelId}
+            onChange={(id) => onLevelChange && onLevelChange(id)}
+          />
         )}
         {levels.length > 1 && depthLabel && <span className="okr-depth-label">{depthLabel}</span>}
         {policyChip && (

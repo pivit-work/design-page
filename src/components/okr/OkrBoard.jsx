@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import OkrAiInsights from './OkrAiInsights.jsx';
 import OkrOverallCard from './OkrOverallCard.jsx';
 import OkrObjectiveSection from './OkrObjectiveSection.jsx';
@@ -13,10 +12,10 @@ import rowKey from './rowKey.js';
  *
  * board: { banner?, insights, overall, theme, objectives }
  *
- * ⚠️ 모달은 반드시 createPortal 로 document.body 에 붙인다. 이 보드를 감싸는
- * 캔버스 루트(.okr-personal-area)가 position:fixed 라 스태킹 컨텍스트를 만들고,
- * 그 안에 렌더된 오버레이는 z-index:1000 이어도 사이드바(100)·헤더(90) 아래에
- * 갇힌다 — 딤이 안 덮이고 클릭까지 통과했다.
+ * ⚠️ 모달은 반드시 document.body 에 붙어야 한다. 이 보드를 감싸는 캔버스 루트
+ * (.okr-personal-area)가 position:fixed 라 스태킹 컨텍스트를 만들고, 그 안에 렌더된
+ * 오버레이는 z-index:1000 이어도 사이드바(100)·헤더(90) 아래에 갇힌다 — 딤이 안 덮이고
+ * 클릭까지 통과했다. 두 모달은 공용 창 틀(ModalShell)이라 틀이 스스로 body 포털로 그린다.
  *
  * 🔴 「전체 보기」 는 이 보드 안에서 모달을 열지 않는다 (PW-144). 피드백 스레드
  * 전체와 「보낸 요청」 의 정본은 수시 피드백 화면이고, OKR 은 그쪽으로 보내기만
@@ -77,7 +76,7 @@ export default function OkrBoard({
         ))}
       </div>
 
-      {composeKr && createPortal(
+      {composeKr && (
         <OkrFeedbackComposeModal
           title="피드백 작성"
           placeholder=""
@@ -89,10 +88,9 @@ export default function OkrBoard({
             const trimmed = text.trim();
             if (trimmed && composeKr.krId) onSubmitFeedback?.(composeKr.krId, trimmed);
           }}
-        />,
-        document.body,
+        />
       )}
-      {krUpdate && createPortal(
+      {krUpdate && (
         <OkrKrUpdateModal
           detail={krUpdate}
           icons={icons}
@@ -102,8 +100,7 @@ export default function OkrBoard({
           // 모달은 저장이 끝난 줄 알고 바로 닫히고, 거절된 약속은 아무도 안 받는 채로
           // 남는다 — 저장이 실패해도 창이 사라지던 원인이 이 한 줄이었다 (PW-823).
           onConfirm={(value) => (krUpdate.krId ? onKrUpdate?.(krUpdate.krId, value) : undefined)}
-        />,
-        document.body,
+        />
       )}
     </>
   );

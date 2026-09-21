@@ -2,6 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
@@ -212,7 +213,14 @@ export default function ProfileModal({
 
           {/* Body */}
           <div className="manager-modal-body">
-            <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+            {/* 공용 SegmentedControl(PW-836). 탭이 다섯 이상이면 한 줄에 서도록 글자를 줄인다. */}
+            <SegmentedControl
+              block
+              className={`manager-modal-seg ${TABS.length > 4 ? 'is-compact' : ''}`.trim()}
+              items={TABS.map((t) => ({ value: t.key, label: t.label }))}
+              value={activeTab}
+              onChange={setActiveTab}
+            />
 
 
             {activeTab === 'ai' && profile && (
@@ -248,49 +256,6 @@ export default function ProfileModal({
   // SSR 환경 대비 — document 가 없으면 마운트 자체를 미룬다.
   if (typeof document === 'undefined') return null;
   return createPortal(node, document.body);
-}
-
-/**
- * 매니저 모달 segment control — active 탭 위치를 absolute slider 로 전환해 슬라이딩.
- * 활성 탭 button 의 offsetLeft / offsetWidth 를 측정해서 slider 의 left/width 를 갱신.
- */
-function Tabs({ tabs, activeTab, onChange }) {
-  const containerRef = useRef(null);
-  const buttonRefs = useRef({});
-  const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
-
-  useEffect(() => {
-    const el = buttonRefs.current[activeTab];
-    if (!el) return;
-    setSliderStyle({ left: el.offsetLeft, width: el.offsetWidth, opacity: 1 });
-  }, [activeTab, tabs]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={`manager-modal-tabs ${tabs.length > 4 ? 'is-compact' : ''}`.trim()}
-    >
-      <span
-        className="manager-modal-tab-slider"
-        style={{
-          left: sliderStyle.left,
-          width: sliderStyle.width,
-          opacity: sliderStyle.opacity,
-        }}
-      />
-      {tabs.map((t) => (
-        <button
-          key={t.key}
-          ref={(el) => { if (el) buttonRefs.current[t.key] = el; }}
-          type="button"
-          className={`manager-modal-tab ${activeTab === t.key ? 'active' : ''}`}
-          onClick={() => onChange(t.key)}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 function MetricTile({ label, value }) {

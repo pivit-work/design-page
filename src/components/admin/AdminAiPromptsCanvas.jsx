@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -361,27 +362,19 @@ export default function AdminAiPromptsCanvas({
                   {/* Custom prompt */}
                   <div>
                     <div className="admin-section-label" style={{ marginBottom: 10 }}>{labels.customPrompt}</div>
-                    {/* Mode segmented — design-page admin-notif-seg 정본 */}
-                    <div className="admin-notif-seg" style={{ marginBottom: 12, maxWidth: 280 }}>
-                      {['append', 'override'].map((m) => {
-                        const active = mode === m;
-                        return (
-                          <button
-                            key={m}
-                            onClick={() => onModeChange && onModeChange(m)}
-                            data-testid={`mode-${m}`}
-                            className={`admin-notif-seg-btn${active ? ' is-active' : ''}`}
-                            style={{
-                              fontWeight: active ? 700 : 500,
-                              color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                              border: `0.5px solid ${active ? 'var(--colors-foreground-fgQuaternary)' : 'transparent'}`,
-                              boxShadow: active ? '0 4px 6px -1px rgba(10, 13, 18, .10)' : 'none',
-                            }}
-                          >
-                            {m === 'append' ? labels.modeAppend : labels.modeOverride}
-                          </button>
-                        );
-                      })}
+                    {/* Mode segmented — 공용 SegmentedControl(PW-836) */}
+                    <div style={{ marginBottom: 12, maxWidth: 280 }}>
+                      <SegmentedControl
+                        block
+                        ariaLabel={labels.customPrompt}
+                        items={['append', 'override'].map((m) => ({
+                          value: m,
+                          label: m === 'append' ? labels.modeAppend : labels.modeOverride,
+                          testId: `mode-${m}`,
+                        }))}
+                        value={mode}
+                        onChange={(m) => onModeChange && onModeChange(m)}
+                      />
                     </div>
 
                     {/* Textarea — design-page admin-emp-input 정본(포커스 시 brand inset) */}

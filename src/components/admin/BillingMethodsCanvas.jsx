@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -278,26 +279,28 @@ export default function BillingMethodsCanvas({
 
       </div>
 
-      {/* 삭제 확인 모달 */}
+      {/* 삭제 확인 창 — 공용 확인 창(ConfirmModal · PW-836) */}
       {deleteTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-          <Card style={{ maxWidth: 400, width: '100%' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{labels.deleteModalTitle}</div>
-            <div style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>
+        <ConfirmModal
+          testId="billing-method-delete-confirm"
+          title={labels.deleteModalTitle}
+          body={
+            <>
               {labels.deleteModalDesc}
               {deleteTargetCard?.isDefault && (
                 <span style={{ display: 'block', marginTop: 8, color: T.amber }}>
                   {labels.deleteModalDefaultWarning}
                 </span>
               )}
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Btn kind="secondary" onClick={() => setDeleteTarget(null)}>{labels.cancel}</Btn>
-              <Btn kind="danger" onClick={handleConfirmDelete}>{labels.confirmDelete}</Btn>
-            </div>
-          </Card>
-        </div>
+            </>
+          }
+          cancelLabel={labels.cancel}
+          confirmLabel={labels.confirmDelete}
+          danger
+          zIndex={1000}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
+        />
       )}
 
       {/* 결제창 처리 오버레이 (addState controlled prop) */}

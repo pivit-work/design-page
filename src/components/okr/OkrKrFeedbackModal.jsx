@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import Icon from '../shared/Icon.jsx';
+import { useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * ⚠️ [레거시] 2026-08-18 PW-144 결정으로 **진입점이 제거됐다.** 어디서도 렌더하지
@@ -23,7 +23,7 @@ import Icon from '../shared/Icon.jsx';
  * onSubmitReply(commentId, text): 답변 저장. 저장 실패(reject)면 입력을 유지하고
  * 인라인 에러를 띄운다 — 작성 중 본문을 삼키지 않는다.
  */
-export default function OkrKrFeedbackModal({ detail, icons, baseUrl = '', onClose, onSubmitReply, onRequestFeedback }) {
+export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onRequestFeedback }) {
   const [replyOpen, setReplyOpen] = useState({});
   const [replyText, setReplyText] = useState({});
   const [replyError, setReplyError] = useState({});
@@ -54,82 +54,78 @@ export default function OkrKrFeedbackModal({ detail, icons, baseUrl = '', onClos
     }
   };
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 「KR 피드백」 머리글은 제목 칸 안 위에 둔다.
   return (
-    <div className="okr-modal-overlay" onClick={onClose}>
-      <div className="okr-krfb-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="okr-modal-close" onClick={onClose}>
-          <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-        </button>
-        <div className="okr-krfb-body">
-          <div className="okr-krfb-header">
-            <p className="okr-krfb-eyebrow">KR 피드백</p>
-            <h2 className="okr-krfb-title">{detail.krLabel}</h2>
-            <p className="okr-krfb-objective">{detail.objective}</p>
+    <ModalShell
+      title={(
+        <>
+          <span className="okr-krfb-eyebrow">KR 피드백</span>
+          {detail.krLabel}
+        </>
+      )}
+      description={detail.objective}
+      titleId="okr-krfb-title"
+      onClose={onClose}
+      zIndex={1000}
+      className="okr-shell is-krfb"
+      bodyClassName="okr-shell-body"
+      footer={(
+        <button type="button" className="tl-group-modal-btn tl-group-modal-btn-primary" onClick={onRequestFeedback}>피드백 요청 보내기</button>
+      )}
+    >
+      {detail.comments.map((comment, i) => (
+        <div className="okr-krfb-comment" key={comment.id ?? comment.author + comment.date}>
+          <div className="okr-krfb-comment-head">
+            <div className="okr-krfb-author">
+              <img src={comment.avatar} alt={comment.author} draggable={false} />
+              <span className="okr-krfb-author-name">{comment.author}</span>
+              <span className={`okr-role-badge is-${comment.roleTone}`}>{comment.role}</span>
+            </div>
+            <div className="okr-krfb-meta">
+              <span className="okr-krfb-date">{comment.date}</span>
+              <span className="okr-krfb-badge">{comment.badge}</span>
+            </div>
           </div>
+          <p className="okr-krfb-text">{comment.text}</p>
 
-          {detail.comments.map((comment, i) => (
-            <div className="okr-krfb-comment" key={comment.id ?? comment.author + comment.date}>
+          {(comment.replies ?? []).map((reply, ri) => (
+            <div className="okr-krfb-reply-item" key={reply.id ?? `${ri}-${reply.date}`}>
               <div className="okr-krfb-comment-head">
                 <div className="okr-krfb-author">
-                  <img src={comment.avatar} alt={comment.author} draggable={false} />
-                  <span className="okr-krfb-author-name">{comment.author}</span>
-                  <span className={`okr-role-badge is-${comment.roleTone}`}>{comment.role}</span>
+                  <img src={reply.avatar} alt={reply.author} draggable={false} />
+                  <span className="okr-krfb-author-name">{reply.author}</span>
                 </div>
-                <div className="okr-krfb-meta">
-                  <span className="okr-krfb-date">{comment.date}</span>
-                  <span className="okr-krfb-badge">{comment.badge}</span>
-                </div>
+                <span className="okr-krfb-date">{reply.date}</span>
               </div>
-              <p className="okr-krfb-text">{comment.text}</p>
-
-              {(comment.replies ?? []).map((reply, ri) => (
-                <div className="okr-krfb-reply-item" key={reply.id ?? `${ri}-${reply.date}`}>
-                  <div className="okr-krfb-comment-head">
-                    <div className="okr-krfb-author">
-                      <img src={reply.avatar} alt={reply.author} draggable={false} />
-                      <span className="okr-krfb-author-name">{reply.author}</span>
-                    </div>
-                    <span className="okr-krfb-date">{reply.date}</span>
-                  </div>
-                  <p className="okr-krfb-text">{reply.text}</p>
-                </div>
-              ))}
-
-              <p className="okr-krfb-reply-link" onClick={() => toggleReply(i)}>답변 달기</p>
-              {replyOpen[i] && (
-                <div className="okr-krfb-reply">
-                  <textarea
-                    className="okr-textarea is-compact"
-                    placeholder="답변을 입력해 주세요."
-                    value={replyText[i] ?? ''}
-                    onChange={(e) => setReplyText((prev) => ({ ...prev, [i]: e.target.value }))}
-                  />
-                  {replyError[i] && <p className="okr-krfb-reply-error">{replyError[i]}</p>}
-                  <div className="okr-krfb-reply-actions">
-                    <button className="okr-btn is-outline is-sm" onClick={() => toggleReply(i)}>취소</button>
-                    <button
-                      className="okr-btn is-brand is-sm"
-                      disabled={replyBusy[i] || !(replyText[i] ?? '').trim()}
-                      onClick={() => submitReply(i, comment)}
-                    >
-                      {replyBusy[i] ? '등록 중…' : '등록'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              <p className="okr-krfb-text">{reply.text}</p>
             </div>
           ))}
+
+          <p className="okr-krfb-reply-link" onClick={() => toggleReply(i)}>답변 달기</p>
+          {replyOpen[i] && (
+            <div className="okr-krfb-reply">
+              <textarea
+                className="okr-textarea is-compact"
+                placeholder="답변을 입력해 주세요."
+                value={replyText[i] ?? ''}
+                onChange={(e) => setReplyText((prev) => ({ ...prev, [i]: e.target.value }))}
+              />
+              {replyError[i] && <p className="okr-krfb-reply-error">{replyError[i]}</p>}
+              <div className="okr-krfb-reply-actions">
+                <button type="button" className="okr-btn is-outline is-sm" onClick={() => toggleReply(i)}>취소</button>
+                <button
+                  type="button"
+                  className="okr-btn is-brand is-sm"
+                  disabled={replyBusy[i] || !(replyText[i] ?? '').trim()}
+                  onClick={() => submitReply(i, comment)}
+                >
+                  {replyBusy[i] ? '등록 중…' : '등록'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="okr-modal-footer">
-          <button className="okr-btn is-brand" onClick={onRequestFeedback}>피드백 요청 보내기</button>
-        </div>
-      </div>
-    </div>
+      ))}
+    </ModalShell>
   );
 }

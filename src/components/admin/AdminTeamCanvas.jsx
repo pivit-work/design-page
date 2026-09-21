@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import AdminTeamTreeNode, { TeamInsertZone } from './AdminTeamTreeNode.jsx';
 import AdminTeamDetailPanel from './AdminTeamDetailPanel.jsx';
 import { PlusIcon, SearchIcon, XIcon } from './teamIcons.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import AppConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
  * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
@@ -159,22 +161,28 @@ function filterTree(nodes, query) {
 function ConfirmModal({
   title, body, notes, confirmLabel, cancelLabel, onConfirm, onCancel, danger,
 }) {
+  // 창은 공용 확인 창(ConfirmModal · PW-836). 여기는 본문 한 줄 + 함께 일어나는 일 목록만 짠다.
+  const hasNotes = notes && notes.length > 0;
   return (
-    <div className="tm-modal-overlay" onClick={onCancel}>
-      <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="tm-modal-title">{title}</h3>
-        {body && <p className="tm-modal-sub">{body}</p>}
-        {notes && notes.length > 0 && (
-          <ul className="tm-modal-notes">
-            {notes.map((n) => <li key={n}>{n}</li>)}
-          </ul>
-        )}
-        <div className="tm-modal-actions">
-          <button type="button" className="tm-btn is-ghost" onClick={onCancel}>{cancelLabel}</button>
-          <button type="button" className={`tm-btn ${danger ? 'is-danger' : 'is-primary'}`} onClick={onConfirm}>{confirmLabel}</button>
-        </div>
-      </div>
-    </div>
+    <AppConfirmModal
+      testId="tm-confirm"
+      title={title}
+      body={body || hasNotes ? (
+        <>
+          {body && <p className="tm-modal-sub">{body}</p>}
+          {hasNotes && (
+            <ul className="tm-modal-notes">
+              {notes.map((n) => <li key={n}>{n}</li>)}
+            </ul>
+          )}
+        </>
+      ) : null}
+      confirmLabel={confirmLabel}
+      cancelLabel={cancelLabel}
+      danger={danger}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }
 
@@ -246,43 +254,42 @@ function MoveTeamModal({ tree, movingId, currentParentId, labels, onConfirm, onC
   };
   flatten(tree, 1);
 
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 위 부모를 하나 고르기 전에는 「확인」이 잠긴다.
   return (
-    <div className="tm-modal-overlay" style={{ zIndex: 1100 }} onClick={onCancel}>
-      <div className="tm-modal is-wide" onClick={(e) => e.stopPropagation()}>
-        <h3 className="tm-modal-title">{labels.moveTeam}</h3>
-        <p className="tm-modal-sub">{labels.moveTeamSub}</p>
-        <div className="tm-modal-list">
-          {flatOptions.map((opt) => {
-            const selectable = !opt.disabled;
-            const isSelected = selectedParentId === opt.id;
-            return (
-              <button
-                type="button"
-                key={opt.id ?? '__root__'}
-                className={`tm-modal-list-item${isSelected ? ' is-selected' : ''}`}
-                disabled={!selectable}
-                onClick={() => selectable && setSelectedParentId(opt.id)}
-                style={{ paddingLeft: 14 + opt.depth * 16 }}
-              >
-                <span className="tm-modal-list-item-name">{opt.name}</span>
-                {opt.current && <span className="tm-modal-list-badge">{labels.current}</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div className="tm-modal-actions">
-          <button type="button" className="tm-btn is-ghost" onClick={onCancel}>{labels.cancel}</button>
-          <button
-            type="button"
-            className="tm-btn is-primary"
-            disabled={selectedParentId === undefined}
-            onClick={() => onConfirm(selectedParentId ?? null)}
-          >
-            {labels.confirm}
-          </button>
-        </div>
+    <ModalShell
+      title={labels.moveTeam}
+      description={labels.moveTeamSub}
+      titleId="tm-move-title"
+      submitLabel={labels.confirm}
+      cancelLabel={labels.cancel}
+      closeLabel={labels.cancel}
+      canSubmit={selectedParentId !== undefined}
+      onSubmit={() => onConfirm(selectedParentId ?? null)}
+      onClose={onCancel}
+      zIndex={1100}
+      className="adm-shell"
+      testId="tm-move-modal"
+    >
+      <div className="tm-modal-list">
+        {flatOptions.map((opt) => {
+          const selectable = !opt.disabled;
+          const isSelected = selectedParentId === opt.id;
+          return (
+            <button
+              type="button"
+              key={opt.id ?? '__root__'}
+              className={`tm-modal-list-item${isSelected ? ' is-selected' : ''}`}
+              disabled={!selectable}
+              onClick={() => selectable && setSelectedParentId(opt.id)}
+              style={{ paddingLeft: 14 + opt.depth * 16 }}
+            >
+              <span className="tm-modal-list-item-name">{opt.name}</span>
+              {opt.current && <span className="tm-modal-list-badge">{labels.current}</span>}
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </ModalShell>
   );
 }
 

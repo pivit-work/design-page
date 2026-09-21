@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { LeadStarIcon, LeadStarOutlineIcon } from '../orgchart/squadIcons.jsx';
 import { squadStatusMeta } from '../orgchart/squad-constants.js';
+import ModalShell from '../shared/ModalShell.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
  * SquadPicker — 한 사람의 **스쿼드 배정·리드 지정**을 고르는 팝업.
@@ -115,53 +117,32 @@ function fill(template, vars) {
 function SquadLeadConfirm({ mode, memberName, squadName, currentLeadName, labels, onCancel, onConfirm }) {
   const L = labels;
   const assigning = mode === 'assign';
+  // 창은 공용 확인 창(ConfirmModal · PW-836). 고르기 창(z 9999) 위에 뜬다.
   return (
-    <div
-      role="presentation"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel?.(); }}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 10060, padding: 24, fontFamily: T.font,
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        data-testid="squad-lead-confirm"
-        style={{ width: 380, maxWidth: '100%', background: T.card, borderRadius: 12, padding: 20, boxShadow: '0 24px 64px rgba(15,23,42,.24)' }}
-      >
-        <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 800, color: T.text }}>
-          {assigning ? L.leadAssignTitle : L.leadReleaseTitle}
-        </h4>
-        <p style={{ margin: '0 0 6px', fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
-          {fill(assigning ? L.leadAssignBody : L.leadReleaseBody, { name: memberName, squad: squadName })}
-        </p>
-        {assigning && currentLeadName && (
-          <p data-testid="squad-lead-replace-note" style={{ margin: '0 0 6px', fontSize: 12, color: T.lead, lineHeight: 1.6 }}>
-            {fill(L.leadReplaceBody, { current: currentLeadName })}
+    <ConfirmModal
+      testId="squad-lead-confirm"
+      title={assigning ? L.leadAssignTitle : L.leadReleaseTitle}
+      body={
+        <div style={{ fontFamily: T.font }}>
+          <p style={{ margin: '0 0 6px' }}>
+            {fill(assigning ? L.leadAssignBody : L.leadReleaseBody, { name: memberName, squad: squadName })}
           </p>
-        )}
-        {/* SQ11 — 권한(역할)은 바뀌지 않는다. 조직장 모달의 승격 안내·강등 체크박스가
-            여기 없는 이유를 사용자에게도 밝힌다. */}
-        <p style={{ margin: '0 0 14px', fontSize: 11, color: T.muted, lineHeight: 1.6 }}>{L.leadNoRoleChange}</p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.sub, fontSize: 12, fontWeight: 600, fontFamily: T.font, cursor: 'pointer' }}
-          >
-            {L.cancel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
-          >
-            {L.leadConfirm}
-          </button>
+          {assigning && currentLeadName && (
+            <p data-testid="squad-lead-replace-note" style={{ margin: '0 0 6px', color: T.lead }}>
+              {fill(L.leadReplaceBody, { current: currentLeadName })}
+            </p>
+          )}
+          {/* SQ11 — 권한(역할)은 바뀌지 않는다. 조직장 모달의 승격 안내·강등 체크박스가
+              여기 없는 이유를 사용자에게도 밝힌다. */}
+          <p style={{ margin: 0, fontSize: 11, color: T.muted }}>{L.leadNoRoleChange}</p>
         </div>
-      </div>
-    </div>
+      }
+      cancelLabel={L.cancel}
+      confirmLabel={L.leadConfirm}
+      zIndex={10060}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
   );
 }
 
@@ -242,161 +223,159 @@ export default function SquadPicker({
   // SQ5 — 헤더 카운트도 종료·보관을 제외한다. 셀 표기와 같은 기준이어야 한다.
   const activeCount = sel.filter((s) => isVisibleSquadStatus(squadById(s.squadId)?.status)).length;
 
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 막 클릭·닫기 X·Esc 는 onClose. 리드 확인 창은
+  // 틀의 «형제»로 둔다 — 틀 안에 두면 확인 창 막 클릭이 React 트리를 따라 틀까지 올라간다.
+  // 확인 창이 떠 있는 동안에는 틀이 Esc 를 받지 않는다(맨 위 창의 몫).
   return (
-    <div
-      role="presentation"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font,
-      }}
+    <>
+    <ModalShell
+      title={
+        <>
+          {L.title}
+          {memberName && <span className="adm-shell-subtitle">{memberName}</span>}
+        </>
+      }
+      description={
+        <>
+          {L.hint}
+          <br />{L.leadHint}
+          {/* SQ3 — 원장 CRUD 가 여기 없는 이유를 밝힌다. */}
+          <br /><span data-testid="squad-picker-ledger-hint">{L.ledgerHint}</span>
+        </>
+      }
+      titleId="squad-picker-title"
+      closeLabel={L.cancel}
+      onClose={() => onClose?.()}
+      zIndex={9999}
+      className="adm-shell has-own-footer"
+      bodyClassName="adm-shell-body"
+      testId="squad-picker"
+      footer={
+        <>
+          <div className="adm-shell-summary" style={{ fontFamily: T.font }}>
+            <span data-testid="squad-picker-count" style={{ fontSize: 11, color: T.sub }}>
+              {fill(L.selectedCount, { count: activeCount })}
+            </span>
+          </div>
+          <div className="adm-shell-foot-actions">
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-secondary"
+              onClick={onClose}
+            >
+              {L.cancel}
+            </button>
+            <button
+              type="button"
+              className="tl-group-modal-btn tl-group-modal-btn-primary"
+              onClick={() => { onApply?.(sel); onClose?.(); }}
+            >
+              {L.apply}
+            </button>
+          </div>
+        </>
+      }
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={L.title}
-        data-testid="squad-picker"
-        onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.(); } }}
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={L.search}
+        aria-label={L.search}
         style={{
-          width: 480, maxWidth: '100%', maxHeight: '78vh', display: 'flex', flexDirection: 'column',
-          background: T.card, borderRadius: 14, boxShadow: '0 24px 64px rgba(15,23,42,.24)',
+          width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8,
+          border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font,
+          color: T.text, background: T.bg, outline: 'none',
         }}
-      >
-        <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${T.border}` }}>
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: T.text }}>
-            {L.title}
-            {memberName && <span style={{ marginLeft: 6, fontWeight: 600, color: T.sub }}>{memberName}</span>}
-          </h3>
-          <p style={{ margin: '4px 0 10px', fontSize: 11, color: T.muted, lineHeight: 1.6 }}>
-            {L.hint}
-            <br />{L.leadHint}
-            {/* SQ3 — 원장 CRUD 가 여기 없는 이유를 밝힌다. */}
-            <br /><span data-testid="squad-picker-ledger-hint">{L.ledgerHint}</span>
-          </p>
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={L.search}
-            aria-label={L.search}
-            style={{
-              width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8,
-              border: `1px solid ${T.border}`, fontSize: 12, fontFamily: T.font,
-              color: T.text, background: T.bg, outline: 'none',
-            }}
-          />
-        </div>
+      />
 
-        {/* SQ9 — 계층이 없으므로 1레벨은 **상태 그룹**, 2레벨이 스쿼드다. */}
-        <div role="tree" aria-label={L.title} style={{ flex: 1, minHeight: 120, overflowY: 'auto', padding: '8px 12px' }}>
-          {groups.map((g) => (
-            <div key={g.key} role="group" aria-label={groupLabel[g.key]} data-testid={`squad-group-${g.key}`}>
-              <div
-                role="treeitem"
-                aria-level={1}
-                aria-expanded="true"
-                style={{ padding: '6px 8px', fontSize: 10, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}
-              >
-                {groupLabel[g.key]}
-              </div>
-              {g.items.map((sq) => {
-                const id = String(sq.id);
-                const row = rowOf(id);
-                const on = !!row;
-                const closed = g.key === 'closed';
-                return (
-                  <div
-                    key={id}
-                    role="treeitem"
-                    aria-level={2}
-                    aria-selected={on}
-                    data-testid={`squad-option-${id}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 20,
-                      paddingTop: 4, paddingBottom: 4, borderRadius: 6,
-                      background: row?.isLead ? T.leadBg : 'transparent',
-                      opacity: closed ? 0.55 : 1,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() => toggle(id)}
-                      aria-label={sq.name}
-                      style={{ cursor: 'pointer', accentColor: T.accent }}
-                    />
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{sq.name}</span>
-
-                    {/* 스쿼드 리드 — 배정된 스쿼드에만 노출된다. */}
-                    {on && (row.isLead ? (
-                      <button
-                        type="button"
-                        data-testid={`squad-lead-on-${id}`}
-                        onClick={() => toggleLead(id)}
-                        title={L.releaseLeadTitle}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
-                          fontSize: 9, fontWeight: 800, color: T.lead, background: T.leadBg,
-                          border: `1px solid var(--utility-warning-200, #FDE68A)`,
-                          borderRadius: 99, padding: '1px 7px',
-                          cursor: 'pointer', fontFamily: T.font,
-                        }}
-                      >
-                        {/* 별표만 조직도와 같은 주황 — 칩 글자는 대비를 위해 진한 warning-700 유지 */}
-                        <span data-testid={`squad-lead-chip-mark-${id}`} style={{ color: T.leadMark, display: 'inline-flex' }}>
-                          <LeadStarIcon size={9} />
-                        </span>
-                        {L.isLead}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        data-testid={`squad-lead-off-${id}`}
-                        onClick={() => toggleLead(id)}
-                        title={L.makeLeadTitle}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
-                          fontSize: 10, color: T.muted, background: 'none', border: 'none',
-                          cursor: 'pointer', fontFamily: T.font, padding: 0,
-                        }}
-                      >
-                        <LeadStarOutlineIcon size={10} />
-                        {L.makeLead}
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
+      {/* SQ9 — 계층이 없으므로 1레벨은 **상태 그룹**, 2레벨이 스쿼드다. */}
+      <div role="tree" aria-label={L.title} style={{ flex: 1, minHeight: 120, overflowY: 'auto', padding: '8px 12px' }}>
+        {groups.map((g) => (
+          <div key={g.key} role="group" aria-label={groupLabel[g.key]} data-testid={`squad-group-${g.key}`}>
+            <div
+              role="treeitem"
+              aria-level={1}
+              aria-expanded="true"
+              style={{ padding: '6px 8px', fontSize: 10, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}
+            >
+              {groupLabel[g.key]}
             </div>
-          ))}
-          {groups.length === 0 && (
-            <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{L.empty}</p>
-          )}
-        </div>
+            {g.items.map((sq) => {
+              const id = String(sq.id);
+              const row = rowOf(id);
+              const on = !!row;
+              const closed = g.key === 'closed';
+              return (
+                <div
+                  key={id}
+                  role="treeitem"
+                  aria-level={2}
+                  aria-selected={on}
+                  data-testid={`squad-option-${id}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 20,
+                    paddingTop: 4, paddingBottom: 4, borderRadius: 6,
+                    background: row?.isLead ? T.leadBg : 'transparent',
+                    opacity: closed ? 0.55 : 1,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => toggle(id)}
+                    aria-label={sq.name}
+                    style={{ cursor: 'pointer', accentColor: T.accent }}
+                  />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{sq.name}</span>
 
-        <div style={{ padding: '10px 20px', borderTop: `1px solid ${T.border}`, background: T.bg }}>
-          <span data-testid="squad-picker-count" style={{ fontSize: 11, color: T.sub }}>
-            {fill(L.selectedCount, { count: activeCount })}
-          </span>
-        </div>
-
-        <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ padding: '7px 14px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.sub, fontSize: 12, fontWeight: 600, fontFamily: T.font, cursor: 'pointer' }}
-          >
-            {L.cancel}
-          </button>
-          <button
-            type="button"
-            onClick={() => { onApply?.(sel); onClose?.(); }}
-            style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: T.accent, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: 'pointer' }}
-          >
-            {L.apply}
-          </button>
-        </div>
+                  {/* 스쿼드 리드 — 배정된 스쿼드에만 노출된다. */}
+                  {on && (row.isLead ? (
+                    <button
+                      type="button"
+                      data-testid={`squad-lead-on-${id}`}
+                      onClick={() => toggleLead(id)}
+                      title={L.releaseLeadTitle}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
+                        fontSize: 9, fontWeight: 800, color: T.lead, background: T.leadBg,
+                        border: `1px solid var(--utility-warning-200, #FDE68A)`,
+                        borderRadius: 99, padding: '1px 7px',
+                        cursor: 'pointer', fontFamily: T.font,
+                      }}
+                    >
+                      {/* 별표만 조직도와 같은 주황 — 칩 글자는 대비를 위해 진한 warning-700 유지 */}
+                      <span data-testid={`squad-lead-chip-mark-${id}`} style={{ color: T.leadMark, display: 'inline-flex' }}>
+                        <LeadStarIcon size={9} />
+                      </span>
+                      {L.isLead}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid={`squad-lead-off-${id}`}
+                      onClick={() => toggleLead(id)}
+                      title={L.makeLeadTitle}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
+                        fontSize: 10, color: T.muted, background: 'none', border: 'none',
+                        cursor: 'pointer', fontFamily: T.font, padding: 0,
+                      }}
+                    >
+                      <LeadStarOutlineIcon size={10} />
+                      {L.makeLead}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        {groups.length === 0 && (
+          <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{L.empty}</p>
+        )}
       </div>
+    </ModalShell>
 
       {confirm && (
         <SquadLeadConfirm
@@ -409,7 +388,7 @@ export default function SquadPicker({
           onConfirm={commitConfirm}
         />
       )}
-    </div>
+    </>
   );
 }
 

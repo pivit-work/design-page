@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import Tabs from '../shared/Tabs.jsx';
 import StatCard from './StatCard.jsx';
 import MemberCard from './MemberCard.jsx';
 
@@ -40,20 +40,6 @@ export default function OneOnOneDashboardCanvas({
   memberLabels,
   emptyState,
 }) {
-  const tabsRef = useRef(null);
-  const [slider, setSlider] = useState({ left: 0, width: 0 });
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      if (!tabsRef.current) return;
-      const activeEl = tabsRef.current.querySelector('.tab-btn.tab-active');
-      if (!activeEl) return;
-      const rowRect = tabsRef.current.getBoundingClientRect();
-      const btnRect = activeEl.getBoundingClientRect();
-      setSlider({ left: btnRect.left - rowRect.left, width: btnRect.width });
-    });
-  }, [activeTab, tabs.length]);
-
   return (
     <div className="content-area">
       <div className="content-canvas">
@@ -78,28 +64,25 @@ export default function OneOnOneDashboardCanvas({
           </div>
         )}
 
+        {/* 필터 탭 — 공용 Tabs (PW-836). 활성 탭에만 건수 배지를 붙인다(종전 그대로). */}
         {tabs && tabs.length > 0 && (
-          <div className="tabs-row" ref={tabsRef}>
-            <div
-              className="tab-slider"
-              style={{ left: slider.left, width: slider.width }}
+          <div className="tl-tabs-row">
+            <Tabs
+              className="ono-dash-tabs"
+              items={tabs.map((tab) => ({
+                value: tab.key,
+                label: (
+                  <>
+                    <span>{tab.label}</span>
+                    {tab.count != null && activeTab === tab.key && (
+                      <span className="tab-badge">{tab.count}</span>
+                    )}
+                  </>
+                ),
+              }))}
+              value={activeTab}
+              onChange={(key) => onTabChange?.(key)}
             />
-            {tabs.map((tab) => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  type="button"
-                  key={tab.key}
-                  className={`tab-btn${active ? ' tab-active' : ''}`}
-                  onClick={() => onTabChange?.(tab.key)}
-                >
-                  <span>{tab.label}</span>
-                  {tab.count != null && active && (
-                    <span className="tab-badge">{tab.count}</span>
-                  )}
-                </button>
-              );
-            })}
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
 import { DEFAULT_WAVE, useMicWave } from './OneOnOneRecordingWidget.jsx';
 
 /**
@@ -14,6 +14,9 @@ import { DEFAULT_WAVE, useMicWave } from './OneOnOneRecordingWidget.jsx';
  * onOpenSettings: [설정 열기] — 브라우저 설정은 JS로 열 수 없어 호스트에 위임.
  * labels: 고정 문구를 키별로 덮어쓴다(호스트 번역). 안 넘긴 키는 한국어 기본값 (PW-786).
  * guideUrl: 「브라우저 권한 설정 가이드 보기」 링크 대상. 미지정 시 Chrome 도움말.
+ *
+ * 공용 창 틀(ModalShell)로 그린다 (PW-836). Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다.
+ * 버튼 줄과 가이드 링크·안내는 틀의 푸터 자리에 넘긴다(종전 순서 그대로).
  */
 export const MIC_PERMISSION_GUIDE_URL = 'https://support.google.com/chrome/answer/2693767';
 
@@ -38,12 +41,6 @@ export default function MicPermissionModal({ onClose, onComplete, onRetry, onOpe
   const waveRef = useRef(null);
   useMicWave(waveRef, { enabled: granted });
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   // 권한 상태 감시 — 열려 있는 동안 사용자가 브라우저 프롬프트/사이트 설정에서
   // 허용하면 change 이벤트로 즉시 허용 화면으로 전환된다.
   useEffect(() => {
@@ -67,47 +64,48 @@ export default function MicPermissionModal({ onClose, onComplete, onRetry, onOpe
       .catch(() => {});
   };
 
-  return createPortal(
-    <div className="ons-overlay" onClick={onClose}>
-      <div className="ons-modal is-compact" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="ons-close" onClick={onClose} aria-label={L.close}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <div className="ons-head">
-          <h2 className="ons-title">{L.title}</h2>
-          <p className="ons-desc">{L.desc}</p>
-        </div>
-        {granted ? (
-          <div className="ons-success">
-            <p>{L.granted}</p>
-            <div className="ons-mic-wave" ref={waveRef}>
-              {DEFAULT_WAVE.map((h, i) => (
-                <span key={i} style={{ height: `${h}px` }} />
-              ))}
+  return (
+    <ModalShell
+      title={L.title}
+      description={L.desc}
+      titleId="ons-mic-title"
+      closeLabel={L.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="ons-shell is-compact"
+      testId="mic-permission-modal"
+      footer={
+        <>
+          {granted ? (
+            <div className="ons-actions">
+              <button type="button" className="ons-btn is-brand" onClick={onComplete}>{L.proceed}</button>
             </div>
+          ) : (
+            <div className="ons-actions">
+              <button type="button" className="ons-btn is-outline" onClick={onComplete}>{L.later}</button>
+              <button type="button" className="ons-btn is-brand-soft" onClick={handleRetry}>{L.retry}</button>
+              <button type="button" className="ons-btn is-brand" onClick={() => onOpenSettings?.()}>{L.openSettings}</button>
+            </div>
+          )}
+          <div className="ons-footnote">
+            <a href={guideUrl} target="_blank" rel="noreferrer">{L.guide}</a>
+            <p>{L.footnote}</p>
           </div>
-        ) : (
-          <div className="ons-warning">{L.warning}</div>
-        )}
-        {granted ? (
-          <div className="ons-actions">
-            <button type="button" className="ons-btn is-brand" onClick={onComplete}>{L.proceed}</button>
+        </>
+      }
+    >
+      {granted ? (
+        <div className="ons-success">
+          <p>{L.granted}</p>
+          <div className="ons-mic-wave" ref={waveRef}>
+            {DEFAULT_WAVE.map((h, i) => (
+              <span key={i} style={{ height: `${h}px` }} />
+            ))}
           </div>
-        ) : (
-          <div className="ons-actions">
-            <button type="button" className="ons-btn is-outline" onClick={onComplete}>{L.later}</button>
-            <button type="button" className="ons-btn is-brand-soft" onClick={handleRetry}>{L.retry}</button>
-            <button type="button" className="ons-btn is-brand" onClick={() => onOpenSettings?.()}>{L.openSettings}</button>
-          </div>
-        )}
-        <div className="ons-footnote">
-          <a href={guideUrl} target="_blank" rel="noreferrer">{L.guide}</a>
-          <p>{L.footnote}</p>
         </div>
-      </div>
-    </div>,
-    document.body,
+      ) : (
+        <div className="ons-warning">{L.warning}</div>
+      )}
+    </ModalShell>
   );
 }

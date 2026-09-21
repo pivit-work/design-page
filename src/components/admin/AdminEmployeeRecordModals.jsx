@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo } from 'react';
 import DatePicker from '../shared/DatePicker.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { IconLock } from './employeeExport.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -184,21 +185,45 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
     </label>
   );
 
+  const title = assigning
+    ? (L.ceoAssignTitle || '{name}님을 대표로 지정합니다').replace('{name}', name)
+    : (L.ceoReleaseTitle || '{name}님의 대표 지정을 해제합니다').replace('{name}', name);
+
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 처리 중(busy)에는 Esc·막·닫기 X 를 받지 않는다 —
+  // 요청은 이미 나갔으므로 닫혀서 「아무 일도 없었다」로 읽히면 안 된다.
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24, fontFamily: T.font }}
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+    <ModalShell
+      title={title}
+      titleId="ceo-confirm-title"
+      closeLabel={L.cancel || '취소'}
+      onClose={onClose}
+      busy={busy}
+      zIndex={9999}
+      className="adm-shell"
+      testId="ceo-confirm-modal"
+      footer={
+        <>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-secondary"
+            onClick={onClose}
+            disabled={busy}
+          >
+            {L.cancel || '취소'}
+          </button>
+          <button
+            type="button"
+            className={`tl-group-modal-btn ${assigning ? 'tl-group-modal-btn-primary' : 'adm-btn-danger'}`}
+            onClick={confirm}
+            disabled={busy}
+          >
+            {assigning ? (L.ceoAssignConfirm || '대표로 지정') : (L.ceoReleaseConfirm || '해제')}
+          </button>
+        </>
+      }
     >
-      <div data-testid="ceo-confirm-modal" style={{ background: '#fff', borderRadius: 14, width: 'min(460px,100%)', boxShadow: '0 20px 60px rgba(0,0,0,.22)', overflow: 'hidden' }}>
-        <div style={{ padding: '18px 22px 10px', display: 'flex', alignItems: 'center', gap: 8, color: '#B45309' }}>
-          <IconCrown size={18} />
-          <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>
-            {assigning
-              ? (L.ceoAssignTitle || '{name}님을 대표로 지정합니다').replace('{name}', name)
-              : (L.ceoReleaseTitle || '{name}님의 대표 지정을 해제합니다').replace('{name}', name)}
-          </div>
-        </div>
-        <div style={{ padding: '0 22px 4px', fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
+      <div className="adm-shell-body" style={{ fontFamily: T.font }}>
+        <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
           {assigning ? (
             <>
               <div>{L.ceoAssignBody || '이 구성원이 조직도의 최상위가 됩니다.'}</div>
@@ -214,7 +239,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
         </div>
 
         {assigning && (
-          <div style={{ margin: '14px 22px', padding: '12px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: T.bg, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ padding: '12px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: T.bg, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {checkbox(
               alsoSetJobPosition && positionAvailable,
               setAlsoSetJobPosition,
@@ -226,7 +251,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
         )}
 
         {assigning && (
-          <div style={{ padding: '0 22px', fontSize: 11, color: T.muted, lineHeight: 1.8 }}>
+          <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.8 }}>
             <div>· {L.ceoNoteManager || '대표는 상급자를 가질 수 없습니다.'}</div>
             <div>· {L.ceoNoteRole || '권한은 바뀌지 않습니다 — 권한 관리 화면에서 따로 조정하세요.'}</div>
             <div>· {L.ceoNoteHistory || '이 변경은 발령 이력에 기록됩니다.'}</div>
@@ -234,21 +259,12 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
         )}
 
         {error && (
-          <div data-testid="ceo-modal-error" style={{ margin: '12px 22px 0', padding: '8px 12px', borderRadius: 6, background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}>
+          <div data-testid="ceo-modal-error" style={{ padding: '8px 12px', borderRadius: 6, background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}>
             {error}
           </div>
         )}
-
-        <div style={{ padding: '16px 22px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button onClick={onClose} disabled={busy} style={{ padding: '8px 16px', borderRadius: 6, border: `1px solid ${T.border}`, background: '#fff', color: T.sub, fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: busy ? 'not-allowed' : 'pointer' }}>
-            {L.cancel || '취소'}
-          </button>
-          <button onClick={confirm} disabled={busy} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: busy ? T.border : assigning ? T.accent : '#DC2626', color: busy ? T.muted : '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.font, cursor: busy ? 'not-allowed' : 'pointer' }}>
-            {assigning ? (L.ceoAssignConfirm || '대표로 지정') : (L.ceoReleaseConfirm || '해제')}
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -424,16 +440,20 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
   const relLabel = (r) => (L.hrRelation && L.hrRelation[r]) || r;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 520, maxHeight: '84vh', overflowY: 'auto', background: T.card, borderRadius: 16, padding: 22, fontFamily: T.font, boxShadow: '0 24px 64px rgba(0,0,0,.25)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{row?.name || ''} · {L.hrProfileTitle || 'HR 기록'}</div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{L.hrProfileDesc || '본인·HR 전용 · 읽기 전용(입력은 본인 내 설정)'}</div>
-          </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 18, color: T.muted, cursor: 'pointer' }}>×</button>
-        </div>
-
+    // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기(+신원 저장) 창이라 아래 버튼 줄이 없다 —
+    // 신원 저장 버튼은 그 칸 바로 아래에 산다.
+    <ModalShell
+      title={`${row?.name || ''} · ${L.hrProfileTitle || 'HR 기록'}`}
+      description={L.hrProfileDesc || '본인·HR 전용 · 읽기 전용(입력은 본인 내 설정)'}
+      titleId="hr-profile-title"
+      closeLabel={L.close || '닫기'}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell"
+      testId="hr-profile-modal"
+      footer={null}
+    >
+      <div style={{ fontFamily: T.font }}>
         {loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.loading || '불러오는 중…'}</div>
         ) : error ? (
@@ -523,7 +543,7 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
           </>
         )}
       </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -557,12 +577,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
     };
   }, [row.id, onLoad]);
 
-  // ESC 로 닫기 — 같은 파일의 SalaryExportModal 과 같은 관례.
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // ESC 로 닫기는 공용 창 틀(ModalShell)이 한다 — 날짜 고르기의 Esc 는 달력만 닫는다.
 
   const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
   const canAdd = form.effectiveDate && form.amount && !busy;
@@ -587,113 +602,110 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
   }
 
   return (
-    <div className="admin-modal-root" role="dialog" aria-modal="true" data-testid="salary-history-modal">
-      <div className="admin-modal-backdrop" onClick={onClose} />
-      <div className="admin-modal">
-        <div className="admin-modal-header">
-          <div className="admin-modal-headline">
-            <span className="admin-modal-headline-icon"><IconSalary size={17} /></span>
-            <div>
-              <div className="admin-modal-title">
-                {row.name || (L.newEmployee || '신규 직원')} · {L.salaryHistoryTitle || '연봉 이력'}
-              </div>
-              <div className="admin-modal-desc">
-                {L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}
-                {/* 자물쇠는 이모지가 아니라 인라인 SVG — 색은 감싸는 span 의 color 를 따른다. */}
-                <span className="admin-emp-sal-mask">
-                  <IconLock size={11} />
-                  {L.salaryHistoryMask || '권한별 마스킹'}
-                </span>
-              </div>
-            </div>
+    // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기 + 추가 줄 창이라 아래 버튼 줄이 없다.
+    // 날짜 고르기(DatePicker)는 틀 «안»에 그린다 — 틀 막이 자기 겹침 맥락을 만들어, 밖에 두면
+    // 달력(z 200)이 막 뒤로 깔린다.
+    <ModalShell
+      title={`${row.name || (L.newEmployee || '신규 직원')} · ${L.salaryHistoryTitle || '연봉 이력'}`}
+      description={
+        <>
+          {L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}
+          {/* 자물쇠는 이모지가 아니라 인라인 SVG — 색은 감싸는 span 의 color 를 따른다. */}
+          <span className="admin-emp-sal-mask">
+            <IconLock size={11} />
+            {L.salaryHistoryMask || '권한별 마스킹'}
+          </span>
+        </>
+      }
+      titleId="salary-history-title"
+      closeLabel={L.close || '닫기'}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell is-wide"
+      bodyClassName="adm-shell-body"
+      testId="salary-history-modal"
+      footer={null}
+    >
+      {loading ? (
+        <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
+      ) : sorted.length === 0 ? (
+        <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
+      ) : (
+        <table className="admin-emp-sal-table">
+          <thead>
+            <tr>
+              <th>{L.salaryHistEffDate || '적용일'}</th>
+              <th className="is-amount">{L.salaryHistAmount || '연봉'}</th>
+              <th>{L.salaryHistReason || '사유'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((h, i) => {
+              const isLatest = i === sorted.length - 1;
+              return (
+                <tr key={i} className={isLatest ? 'is-current' : undefined}>
+                  <td className="is-date">
+                    {h.effectiveDate}
+                    {isLatest && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
+                  </td>
+                  <td className="is-amount">{fmtKRW(h.amount)}</td>
+                  <td>{h.reason || '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <div className="admin-emp-sal-add">
+        <div className="admin-emp-sal-add-title">{L.salaryHistAdd || '연봉 이력 추가'}</div>
+        <div className="admin-emp-sal-add-row">
+          <div className="admin-emp-field">
+            <label className="admin-emp-field-label" htmlFor="sal-hist-date">{L.salaryHistEffDate || '적용일'}</label>
+            {/* 브라우저 기본 date 입력은 로케일에 따라 mm/dd/yyyy 로 떠서 한국어 화면과
+                어긋난다. 다른 어드민 화면과 같은 공용 DatePicker 를 연다. */}
+            <button
+              type="button"
+              id="sal-hist-date"
+              className={`admin-emp-input admin-emp-sal-date${picker ? ' is-open' : ''}${form.effectiveDate ? '' : ' is-empty'}`}
+              onClick={(e) => setPicker(picker ? null : { rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget })}
+            >
+              {form.effectiveDate || (L.salaryHistEffDatePh || 'YYYY-MM-DD')}
+            </button>
           </div>
-          <button type="button" className="admin-modal-close" onClick={onClose} aria-label={L.close || '닫기'}>
-            <IconClose size={16} />
+          <div className="admin-emp-field">
+            <label className="admin-emp-field-label" htmlFor="sal-hist-amount">{L.salaryHistAmount || '연봉'}</label>
+            <input
+              id="sal-hist-amount"
+              className="admin-emp-input admin-emp-sal-amount"
+              type="text"
+              inputMode="numeric"
+              placeholder={L.salaryHistAmountPh || '연봉(원)'}
+              value={form.amount}
+              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+            />
+          </div>
+          <div className="admin-emp-field is-reason">
+            <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
+            <input
+              id="sal-hist-reason"
+              className="admin-emp-input"
+              type="text"
+              placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'}
+              value={form.reason}
+              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+            />
+          </div>
+          <button type="button" className="admin-emp-btn is-primary" onClick={add} disabled={!canAdd}>
+            {L.salaryHistAddBtn || '추가'}
           </button>
         </div>
-        <div className="admin-modal-body">
-          {loading ? (
-            <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
-          ) : sorted.length === 0 ? (
-            <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
-          ) : (
-            <table className="admin-emp-sal-table">
-              <thead>
-                <tr>
-                  <th>{L.salaryHistEffDate || '적용일'}</th>
-                  <th className="is-amount">{L.salaryHistAmount || '연봉'}</th>
-                  <th>{L.salaryHistReason || '사유'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((h, i) => {
-                  const isLatest = i === sorted.length - 1;
-                  return (
-                    <tr key={i} className={isLatest ? 'is-current' : undefined}>
-                      <td className="is-date">
-                        {h.effectiveDate}
-                        {isLatest && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
-                      </td>
-                      <td className="is-amount">{fmtKRW(h.amount)}</td>
-                      <td>{h.reason || '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-
-          <div className="admin-emp-sal-add">
-            <div className="admin-emp-sal-add-title">{L.salaryHistAdd || '연봉 이력 추가'}</div>
-            <div className="admin-emp-sal-add-row">
-              <div className="admin-emp-field">
-                <label className="admin-emp-field-label" htmlFor="sal-hist-date">{L.salaryHistEffDate || '적용일'}</label>
-                {/* 브라우저 기본 date 입력은 로케일에 따라 mm/dd/yyyy 로 떠서 한국어 화면과
-                    어긋난다. 다른 어드민 화면과 같은 공용 DatePicker 를 연다. */}
-                <button
-                  type="button"
-                  id="sal-hist-date"
-                  className={`admin-emp-input admin-emp-sal-date${picker ? ' is-open' : ''}${form.effectiveDate ? '' : ' is-empty'}`}
-                  onClick={(e) => setPicker(picker ? null : { rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget })}
-                >
-                  {form.effectiveDate || (L.salaryHistEffDatePh || 'YYYY-MM-DD')}
-                </button>
-              </div>
-              <div className="admin-emp-field">
-                <label className="admin-emp-field-label" htmlFor="sal-hist-amount">{L.salaryHistAmount || '연봉'}</label>
-                <input
-                  id="sal-hist-amount"
-                  className="admin-emp-input admin-emp-sal-amount"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder={L.salaryHistAmountPh || '연봉(원)'}
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
-                />
-              </div>
-              <div className="admin-emp-field is-reason">
-                <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
-                <input
-                  id="sal-hist-reason"
-                  className="admin-emp-input"
-                  type="text"
-                  placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'}
-                  value={form.reason}
-                  onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-                />
-              </div>
-              <button type="button" className="admin-emp-btn is-primary" onClick={add} disabled={!canAdd}>
-                {L.salaryHistAddBtn || '추가'}
-              </button>
-            </div>
-            {addError && (
-              <div className="admin-emp-sal-error" role="alert">
-                {L.salaryHistAddError || '연봉 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
-              </div>
-            )}
-            <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준).'}</div>
+        {addError && (
+          <div className="admin-emp-sal-error" role="alert">
+            {L.salaryHistAddError || '연봉 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
           </div>
-        </div>
+        )}
+        <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준).'}</div>
       </div>
       {picker && (
         <DatePicker
@@ -704,7 +716,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
           onClose={() => setPicker(null)}
         />
       )}
-    </div>
+    </ModalShell>
   );
 }
 

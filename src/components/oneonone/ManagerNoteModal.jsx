@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
 
 const DEFAULT_LABELS = {
@@ -39,6 +39,10 @@ const DEFAULT_LABELS = {
  *
  * 🔴 **불러오기에 실패하면 입력칸을 그리지 않는다.** 빈 칸은 「노트가 없다」로 읽히고,
  * 그 위에 쓰면 매니저가 몇 달 쌓은 관찰을 덮어쓴다.
+ *
+ * 공용 창 틀(ModalShell)로 그린다 (PW-836). Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다.
+ * 입력이 곧 자동 저장이라 틀의 취소/확인 푸터는 그리지 않는다(footer=null).
+ * 막의 data-testid 는 `manager-note-overlay`, 창은 `manager-note-modal`.
  */
 export default function ManagerNoteModal({
   members = [],
@@ -70,14 +74,6 @@ export default function ManagerNoteModal({
   const [memoMap, setMemoMap] = useState({});
   const [msgMap, setMsgMap] = useState({});
   const [draft, setDraft] = useState('');
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return members;
@@ -120,168 +116,154 @@ export default function ManagerNoteModal({
     setDraft('');
   };
 
-  return createPortal(
-    <div className="omn-overlay" onClick={onClose}>
-      <div
-        className="omn-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={labels.title}
-        data-testid="manager-note-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="omn-close"
-          onClick={onClose}
-          aria-label={labels.close}
+  return (
+    <ModalShell
+      title={labels.title}
+      description={labels.subtitle}
+      titleId="omn-title"
+      closeLabel={labels.close}
+      onClose={() => onClose?.()}
+      footer={null}
+      zIndex={1000}
+      className="omn-shell"
+      bodyClassName="omn-shell-body"
+      testId="manager-note-modal"
+      overlayTestId="manager-note-overlay"
+    >
+      {status && (
+        <p
+          className={`omn-status is-${status.tone ?? 'muted'}`}
+          data-testid="manager-note-status"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <div className="omn-scroll">
-        <div className="omn-title-block">
-          <h2 className="omn-title">{labels.title}</h2>
-          <p className="omn-subtitle">{labels.subtitle}</p>
-          {status && (
-            <p
-              className={`omn-status is-${status.tone ?? 'muted'}`}
-              data-testid="manager-note-status"
-            >
-              {status.text}
-            </p>
-          )}
+          {status.text}
+        </p>
+      )}
+
+      <div className="omn-body">
+        <div className="omn-side">
+          <div className="omn-search">
+            <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
+            <input
+              type="text"
+              placeholder={labels.searchPlaceholder}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="omn-list">
+            {filtered.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`omn-member${m.id === selected.id ? ' is-selected' : ''}`}
+                onClick={() => selectMember(m)}
+              >
+                <span className="omn-member-row">
+                  <span className="omn-member-avatar">
+                    {renderAvatar
+                      ? renderAvatar(m)
+                      : m.avatar && <img src={m.avatar} alt="" draggable={false} />}
+                  </span>
+                  <b className="omn-member-name">{m.name}</b>
+                </span>
+                <span className="omn-member-role">{m.role}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="omn-body">
-          <div className="omn-side">
-            <div className="omn-search">
-              <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
-              <input
-                type="text"
-                placeholder={labels.searchPlaceholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="omn-list">
-              {filtered.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`omn-member${m.id === selected.id ? ' is-selected' : ''}`}
-                  onClick={() => selectMember(m)}
-                >
-                  <span className="omn-member-row">
-                    <span className="omn-member-avatar">
-                      {renderAvatar
-                        ? renderAvatar(m)
-                        : m.avatar && <img src={m.avatar} alt="" draggable={false} />}
-                    </span>
-                    <b className="omn-member-name">{m.name}</b>
-                  </span>
-                  <span className="omn-member-role">{m.role}</span>
+        {loading && (
+          <div className="omn-main">
+            <p className="omn-placeholder" data-testid="manager-note-loading">
+              {labels.loading}
+            </p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="omn-main">
+            <div className="omn-error" data-testid="manager-note-load-error">
+              <span>{error.text}</span>
+              {error.retryLabel && (
+                <button type="button" className="omn-error-retry" onClick={error.onRetry}>
+                  {error.retryLabel}
                 </button>
-              ))}
+              )}
             </div>
           </div>
+        )}
 
-          {loading && (
-            <div className="omn-main">
-              <p className="omn-placeholder" data-testid="manager-note-loading">
-                {labels.loading}
-              </p>
+        {!loading && !error && (
+        <div className="omn-main">
+          <section className="omn-section">
+            <p className="omn-section-title">{labels.memoTitle}</p>
+            <textarea
+              className="omn-memo"
+              data-testid="manager-note-memo"
+              value={memo}
+              maxLength={memoMaxLength}
+              placeholder={labels.memoPlaceholder}
+              onChange={(e) => changeMemo(e.target.value)}
+            />
+          </section>
+
+          <section className="omn-section">
+            <div className="omn-section-head">
+              <p className="omn-section-title">{labels.messagesTitle}</p>
+              <p className="omn-section-desc">{labels.messagesDesc}</p>
             </div>
-          )}
-
-          {!loading && error && (
-            <div className="omn-main">
-              <div className="omn-error" data-testid="manager-note-load-error">
-                <span>{error.text}</span>
-                {error.retryLabel && (
-                  <button type="button" className="omn-error-retry" onClick={error.onRetry}>
-                    {error.retryLabel}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {!loading && !error && (
-          <div className="omn-main">
-            <section className="omn-section">
-              <p className="omn-section-title">{labels.memoTitle}</p>
-              <textarea
-                className="omn-memo"
-                data-testid="manager-note-memo"
-                value={memo}
-                maxLength={memoMaxLength}
-                placeholder={labels.memoPlaceholder}
-                onChange={(e) => changeMemo(e.target.value)}
-              />
-            </section>
-
-            <section className="omn-section">
-              <div className="omn-section-head">
-                <p className="omn-section-title">{labels.messagesTitle}</p>
-                <p className="omn-section-desc">{labels.messagesDesc}</p>
-              </div>
-              <div className="omn-messages">
-                {messages.length === 0 && labels.messagesEmpty && (
-                  <p className="omn-placeholder">{labels.messagesEmpty}</p>
-                )}
-                {messages.map((msg, i) => (
-                  <div className="omn-message-chip" key={`${msg}-${i}`}>
-                    <span className="omn-message-text">{msg}</span>
-                    <button
-                      type="button"
-                      className="omn-message-remove"
-                      aria-label={labels.removeMessage}
-                      onClick={() => removeMessage(i)}
-                    >
-                      <Icon src={icons?.xClose} size={20} color="var(--text-quaternary)" baseUrl={baseUrl} />
-                    </button>
-                  </div>
-                ))}
-                {limitHint && (
-                  <p className="omn-limit" data-testid="manager-note-limit">
-                    {limitHint}
-                  </p>
-                )}
-                <div className="omn-add-row">
-                  <input
-                    type="text"
-                    className="omn-add-input"
-                    data-testid="manager-note-message-input"
-                    placeholder={labels.addPlaceholder}
-                    value={draft}
-                    disabled={addDisabled}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addMessage();
-                      }
-                    }}
-                  />
+            <div className="omn-messages">
+              {messages.length === 0 && labels.messagesEmpty && (
+                <p className="omn-placeholder">{labels.messagesEmpty}</p>
+              )}
+              {messages.map((msg, i) => (
+                <div className="omn-message-chip" key={`${msg}-${i}`}>
+                  <span className="omn-message-text">{msg}</span>
                   <button
                     type="button"
-                    className="omn-add-btn"
-                    disabled={addDisabled || draft.trim().length === 0}
-                    onClick={addMessage}
+                    className="omn-message-remove"
+                    aria-label={labels.removeMessage}
+                    onClick={() => removeMessage(i)}
                   >
-                    {labels.addButton}
+                    <Icon src={icons?.xClose} size={20} color="var(--text-quaternary)" baseUrl={baseUrl} />
                   </button>
                 </div>
+              ))}
+              {limitHint && (
+                <p className="omn-limit" data-testid="manager-note-limit">
+                  {limitHint}
+                </p>
+              )}
+              <div className="omn-add-row">
+                <input
+                  type="text"
+                  className="omn-add-input"
+                  data-testid="manager-note-message-input"
+                  placeholder={labels.addPlaceholder}
+                  value={draft}
+                  disabled={addDisabled}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addMessage();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="omn-add-btn"
+                  disabled={addDisabled || draft.trim().length === 0}
+                  onClick={addMessage}
+                >
+                  {labels.addButton}
+                </button>
               </div>
-            </section>
-          </div>
-          )}
+            </div>
+          </section>
         </div>
-        </div>
+        )}
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }

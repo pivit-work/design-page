@@ -3,6 +3,8 @@ import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from '
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import Tabs from '../shared/Tabs.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -480,18 +482,13 @@ function OrgSnapshotStatusView({
         })}
       </div>
 
-      <div className="admin-snap-subtabs">
-        {tabKeys.map((k) => (
-          <button
-            key={k}
-            type="button"
-            className={`admin-snap-subtab${activeTab === k ? ' is-active' : ''}`}
-            onClick={() => onTabChange(k)}
-          >
-            {labels.tabs[k]}
-          </button>
-        ))}
-      </div>
+      {/* 집계 축 전환 — 공용 SegmentedControl(PW-836). 칸을 가로로 꽉 채운다(종전 모양). */}
+      <SegmentedControl
+        block
+        items={tabKeys.map((k) => ({ value: k, label: labels.tabs[k] }))}
+        value={activeTab}
+        onChange={onTabChange}
+      />
 
       <div className="admin-snap-content">
         {activeTab === 'summary' && (
@@ -1697,17 +1694,13 @@ export default function OrgSnapshotCanvas({
           {notice.body && <span>{notice.body}</span>}
         </div>
       )}
-      <div className="admin-snap-viewtabs">
-        {viewKeys.map((v) => (
-          <button
-            key={v}
-            type="button"
-            className={`admin-snap-viewtab${view === v ? ' is-active' : ''}`}
-            onClick={() => onViewChange?.(v)}
-          >
-            {labels.views[v]}
-          </button>
-        ))}
+      {/* 화면 전환 탭 — 공용 Tabs(PW-836) */}
+      <div className="tl-tabs-row adm-tabs-row">
+        <Tabs
+          items={viewKeys.map((v) => ({ value: v, label: labels.views[v] }))}
+          value={view}
+          onChange={(v) => onViewChange?.(v)}
+        />
       </div>
 
       {loading ? (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ModalShell from '../shared/ModalShell.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 구독 현황 (BillingOverviewCanvas)  /admin/billing
@@ -453,16 +454,25 @@ export default function BillingOverviewCanvas({
           )}
         </Card>
 
-        {/* 해지 방식 선택 모달 */}
+        {/* 해지 방식 선택 창 — 공용 창 틀(ModalShell · PW-836). 해지 두 방식의 버튼은 본문 카드 안에 산다. */}
         {cancelOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-            <Card style={{ maxWidth: 460, width: '100%' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>{labels.cancelModalTitle}</div>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
-                {labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
-              </div>
-
+          <ModalShell
+            title={labels.cancelModalTitle}
+            description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
+            titleId="billing-cancel-title"
+            closeLabel={labels.close}
+            onClose={() => setCancelOpen(false)}
+            zIndex={1000}
+            className="adm-shell"
+            testId="billing-cancel-modal"
+            footer={
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={() => setCancelOpen(false)}>
+                {labels.close}
+              </button>
+            }
+          >
+            <div style={{ fontFamily: T.font }}>
               {/* ⓐ 기간말 해지 (항상 노출, 기본·무환불) */}
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
@@ -502,12 +512,8 @@ export default function BillingOverviewCanvas({
                     : labels.monthlyNoRefundNote}
                 </div>
               )}
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                <Btn kind="secondary" onClick={() => setCancelOpen(false)}>{labels.close}</Btn>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </ModalShell>
         )}
 
       </div>

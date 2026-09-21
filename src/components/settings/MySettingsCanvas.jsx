@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import assetUrl from '../shared/assetUrl.js';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
-import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon } from './settingsIcons.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
  *
  * pivit-specs `K. 내-설정/my-settings-view.jsx` 시안을 design-page 토큰/프리미티브
- * (admin-card, admin-emp-input, admin-notif-toggle, admin-notif-btn, admin-notif-banner,
- * admin-notif-modal-*)로 포팅한 것. 스타일은 settings.css(msc-*) + admin.css.
+ * (admin-card, admin-emp-input, admin-notif-toggle, admin-notif-btn, admin-notif-banner)
+ * 로 포팅한 것. 스타일은 settings.css(msc-*) + admin.css. 사진 업로드 창은 공용 창 틀
+ * (ModalShell · PW-836).
  *
  * 순수/controlled 컴포넌트 — 데이터는 전부 props, 사용자 액션은 on* 콜백으로 방출.
  * 내부 state 는 편집 draft(프로필 폼, 비밀번호 폼)와 모달 open 여부 등 ephemeral UI 뿐.
@@ -2188,71 +2189,70 @@ export default function MySettingsCanvas({
         </div>
       </div>
 
-      {/* ── 사진 업로드 모달 (사이드바·헤더 위로 뜨도록 body 포털) ── */}
-      {uploadOpen && typeof document !== 'undefined' && createPortal(
-        <div className="admin-notif-modal-root" data-testid="photo-upload-modal">
-          <div className="admin-notif-modal-backdrop" onClick={closeUpload} />
-          <div className="admin-notif-modal" role="dialog" aria-modal="true" aria-label={labels.upload.title}>
-            <div className="admin-notif-modal-header">
-              <div className="admin-notif-modal-title">{labels.upload.title}</div>
-              <button type="button" className="admin-notif-modal-close" onClick={closeUpload} aria-label="close">
-                ×
-              </button>
-            </div>
-            <div className="admin-notif-modal-body">
-              <label
-                className={`msc-upload-drop${uploadDrag ? ' is-drag' : ''}${uploadPreview ? ' has-preview' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setUploadDrag(true);
-                }}
-                onDragLeave={() => setUploadDrag(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setUploadDrag(false);
-                  handleFile(e.dataTransfer.files[0]);
-                }}
+      {/* ── 사진 업로드 모달 — 공용 창 틀(ModalShell)이 body 로 포털해 사이드바·헤더 위에 띄운다 ── */}
+      {uploadOpen && typeof document !== 'undefined' && (
+        <ModalShell
+          title={labels.upload.title}
+          titleId="msc-upload-title"
+          closeLabel="close"
+          onClose={closeUpload}
+          className="msc-upload-shell"
+          overlayTestId="photo-upload-modal"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={closeUpload}
               >
-                {uploadPreview ? (
-                  <>
-                    <img src={uploadPreview} alt="" className="msc-upload-preview" />
-                    <span className="msc-upload-again">{labels.upload.changeFile}</span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ fontSize: 36 }} aria-hidden="true">
-                      📁
-                    </span>
-                    <span className="msc-upload-title">{labels.upload.dropTitle}</span>
-                    <span className="msc-upload-sub">{labels.upload.dropSub}</span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  style={{ display: 'none' }}
-                  data-testid="photo-file-input"
-                  onChange={(e) => handleFile(e.target.files[0])}
-                />
-              </label>
-            </div>
-            <div className="admin-notif-modal-footer">
-              <button type="button" className="admin-notif-btn is-soft" onClick={closeUpload}>
                 {labels.upload.cancel}
               </button>
               <button
                 type="button"
-                className="admin-notif-btn is-primary"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
                 disabled={!pendingFile}
                 onClick={confirmUpload}
                 data-testid="photo-upload-confirm"
               >
                 {pendingFile ? labels.upload.confirm : labels.upload.confirmEmpty}
               </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+            </>
+          }
+        >
+          <label
+            className={`msc-upload-drop${uploadDrag ? ' is-drag' : ''}${uploadPreview ? ' has-preview' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setUploadDrag(true);
+            }}
+            onDragLeave={() => setUploadDrag(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setUploadDrag(false);
+              handleFile(e.dataTransfer.files[0]);
+            }}
+          >
+            {uploadPreview ? (
+              <>
+                <img src={uploadPreview} alt="" className="msc-upload-preview" />
+                <span className="msc-upload-again">{labels.upload.changeFile}</span>
+              </>
+            ) : (
+              <>
+                <FolderIcon size={36} />
+                <span className="msc-upload-title">{labels.upload.dropTitle}</span>
+                <span className="msc-upload-sub">{labels.upload.dropSub}</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              data-testid="photo-file-input"
+              onChange={(e) => handleFile(e.target.files[0])}
+            />
+          </label>
+        </ModalShell>
       )}
     </div>
   );

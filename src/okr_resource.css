@@ -163,17 +163,17 @@
 .rsx-member.is-slim { padding: 16px 24px; }
 .rsx-directs { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; }
 
-/* ── 팀 상세 모달 (Figma 17478:24115) ── */
-.rsx-modal { position: relative; display: flex; flex-direction: column; width: 1070px; max-width: calc(100vw - 80px); height: min(1056px, calc(100vh - 48px)); background: var(--bg-quaternary); border-radius: 16px; box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
+/* ── 팀 상세 모달 (Figma 17478:24115) ──
+   껍데기는 공용 창 틀(ModalShell · PW-836) — 막·제목·닫기 X 는 틀이 그리고 여기는 크기와 본문만 둔다.
+   리소스 화면은 okr.css 없이 이 파일만 읽을 수 있어 `.okr-shell` 에 기대지 않고 스스로 크기·스크롤을 잡는다. */
+.tl-group-modal.rsx-modal { width: 1070px; max-width: calc(100vw - 80px); height: min(1056px, calc(100vh - 48px)); }
+.tl-group-modal.rsx-modal .tl-group-modal-content { overflow-y: auto; padding-bottom: 48px; }
 /* 이 모달은 body 포탈이라 .app 시프트(배너 62px)를 안 받는다 — 배너가 떠 있으면
    오버레이를 배너 아래에서 시작시키고 모달 높이도 배너 몫을 뺀다. */
-body:has(.okr-ctx-banner) > .okr-modal-overlay { top: 62px; }
-body:has(.okr-ctx-banner) > .okr-modal-overlay .rsx-modal { height: min(1056px, calc(100vh - 62px - 48px)); }
-.rsx-modal-body { flex: 1; overflow-y: auto; padding: 60px 48px 48px; display: flex; flex-direction: column; gap: 48px; }
-.rsx-modal-head { display: flex; flex-direction: column; gap: 8px; }
-.rsx-modal-org { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
-.rsx-modal-title { font-family: var(--font-family-display, inherit); font-size: 30px; font-weight: 700; line-height: 38px; color: var(--fg-primary); }
-.rsx-modal-size { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+body:has(.okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.rsx-modal) { top: 62px; }
+body:has(.okr-ctx-banner) .tl-group-modal.rsx-modal { height: min(1056px, calc(100vh - 62px - 48px)); }
+.rsx-modal-body { display: flex; flex-direction: column; gap: 48px; }
+.rsx-modal-org { display: block; margin-bottom: 8px; font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .rsx-modal-members { display: flex; flex-direction: column; gap: 24px; }
 .rsx-modal-members .rsx-member { padding: 16px 0; border-radius: 16px; }
 

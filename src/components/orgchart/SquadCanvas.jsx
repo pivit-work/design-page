@@ -23,7 +23,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
 import {
@@ -579,9 +579,10 @@ export default function SquadCanvas({
    * 메뉴와 위쪽 바만 밝게 남아 「저기는 아직 누를 수 있다」로 읽혔다(브라우저에서
    * 메뉴 좌표를 찍으면 막이 아니라 메뉴가 잡혔다).
    *
-   * 그래서 아래 두 확인 모달(삭제·상태 전환)은 `createPortal(…, document.body)` 로
-   * 이 뿌리 **밖**에 그린다. 메뉴·팝오버는 이미 `AnchoredLayer` 가 같은 이유로 포털을
-   * 쓰고 있다 — 새 막을 여기 추가할 때도 반드시 포털을 거쳐야 한다.
+   * 그래서 아래 두 확인 모달(삭제·상태 전환)은 이 뿌리 **밖**(`document.body`)에 그린다.
+   * 지금은 공용 확인 창(`ConfirmModal`)이 그 포털을 대신 한다(PW-836).
+   * 메뉴·팝오버는 이미 `AnchoredLayer` 가 같은 이유로 포털을 쓰고 있다 — 새 창을 여기
+   * 추가할 때도 반드시 그 둘 중 하나를 쓴다(막을 손으로 그리지 않는다).
    * 회귀 가드: pivit-work `SquadViewPanel.modalLayer.test.tsx`.
    */
   return (
@@ -1367,114 +1368,101 @@ export default function SquadCanvas({
         />
       )}
 
-      {/* 스쿼드 삭제 확인 모달 — 파괴적 작업. 스쿼드명 정확 재입력을 요구한다(§5-2-B) */}
+      {/* 스쿼드 삭제 확인 모달 — 파괴적 작업. 스쿼드명 정확 재입력을 요구한다(§5-2-B).
+          공용 확인 창(ConfirmModal · PW-836) — 막을 `document.body` 로 포털하는 일(PW-533)도 그 창이
+          한다. 확인 버튼은 이름을 맞게 칠 때까지 confirmDisabled 로 잠근다(취소는 늘 열려 있다).
+          막을 누르면 취소, Escape 로는 닫지 않는다(위 Escape 처리 주석 — 파괴적 작업). */}
       {delAsk && (() => {
         const sq = squads.find((s) => s.id === delAsk.squadId);
         if (!sq) return null;
         const nameOk = delAsk.typed.trim() === sq.name;
-        // [PW-533] 막을 `document.body` 로 포털한다 — 아래 「왜 포털인가」 참고.
-        return createPortal(
-          <div
-            onClick={() => setDelAsk(null)} data-testid="squad-delete-modal"
-            className="sq-modal-scrim"
-            style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MODAL_Z }}
-          >
-            <div onClick={(e) => e.stopPropagation()} className="sq-modal">
-              <p className="sq-modal-title is-danger">{L('squad.del.title')}</p>
-
-              {/* 사라지는 것 / 남는 것을 나란히 보여준다 */}
-              <div className="sq-split">
-                <div className="sq-split-col is-loss">
-                  <div className="sq-split-title">{L('squad.del.lost')}</div>
-                  <div className="sq-split-body">
-                    {L('squad.del.lostAssignments', { count: (sq.members || []).length })}<br />
-                    {L('squad.del.lostHistory')}
+        return (
+          <ConfirmModal
+            title={L('squad.del.title')}
+            body={
+              <>
+                {/* 사라지는 것 / 남는 것을 나란히 보여준다 */}
+                <div className="sq-split">
+                  <div className="sq-split-col is-loss">
+                    <div className="sq-split-title">{L('squad.del.lost')}</div>
+                    <div className="sq-split-body">
+                      {L('squad.del.lostAssignments', { count: (sq.members || []).length })}<br />
+                      {L('squad.del.lostHistory')}
+                    </div>
+                  </div>
+                  <div className="sq-split-col is-kept">
+                    <div className="sq-split-title">{L('squad.del.kept')}</div>
+                    <div className="sq-split-body">
+                      {L('squad.del.keptLedger')}<br />
+                      {L('squad.del.keptActuals')}
+                    </div>
                   </div>
                 </div>
-                <div className="sq-split-col is-kept">
-                  <div className="sq-split-title">{L('squad.del.kept')}</div>
-                  <div className="sq-split-body">
-                    {L('squad.del.keptLedger')}<br />
-                    {L('squad.del.keptActuals')}
-                  </div>
-                </div>
-              </div>
 
-              <p className="sq-modal-note">
-                {rich(L('squad.del.note', { name: sq.name }))}
-              </p>
-              <input
-                autoFocus value={delAsk.typed} aria-label={L('squad.del.input')}
-                className="sq-modal-input"
-                onChange={(e) => setDelAsk((d) => ({ ...d, typed: e.target.value }))}
-                placeholder={sq.name}
-              />
-
-              <div className="sq-modal-actions">
-                <button
-                  type="button" data-testid="squad-delete-confirm"
-                  className="sq-btn sq-btn-danger"
-                  onClick={() => { if (nameOk) { onDeleteSquad?.(sq.id); setDelAsk(null); setMoreMenu(null); } }}
-                  disabled={!nameOk}
-                >{L('squad.del.confirm')}</button>
-                <button type="button" onClick={() => setDelAsk(null)} className="sq-btn sq-btn-outline">
-                  {L('squad.del.cancel')}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
+                <p className="sq-modal-note">
+                  {rich(L('squad.del.note', { name: sq.name }))}
+                </p>
+                <input
+                  autoFocus value={delAsk.typed} aria-label={L('squad.del.input')}
+                  className="sq-modal-input"
+                  onChange={(e) => setDelAsk((d) => ({ ...d, typed: e.target.value }))}
+                  placeholder={sq.name}
+                />
+              </>
+            }
+            danger
+            confirmDisabled={!nameOk}
+            confirmLabel={L('squad.del.confirm')}
+            cancelLabel={L('squad.del.cancel')}
+            onConfirm={() => { if (nameOk) { onDeleteSquad?.(sq.id); setDelAsk(null); setMoreMenu(null); } }}
+            onCancel={() => setDelAsk(null)}
+            zIndex={SQUAD_MODAL_Z}
+            testId="squad-delete-modal"
+            cancelTestId="squad-delete-cancel"
+            confirmTestId="squad-delete-confirm"
+          />
         );
       })()}
 
-      {/* 상태 전환 확인 모달 — 재개(과부하 경고)·보관만 거친다 */}
+      {/* 상태 전환 확인 모달 — 재개(과부하 경고)·보관만 거친다. 공용 확인 창(ConfirmModal · PW-836) —
+          막을 `document.body` 로 포털하는 일(PW-533)도 그 창이 한다. */}
       {statusAsk && (() => {
         const sq = squads.find((s) => s.id === statusAsk.squadId);
         if (!sq) return null;
         const reopen = statusAsk.kind === 'reopen';
-        // [PW-533] 막을 `document.body` 로 포털한다 — 아래 「왜 포털인가」 참고.
-        return createPortal(
-          <div
-            onClick={() => setStatusAsk(null)} data-testid="squad-status-modal"
-            className="sq-modal-scrim"
-            style={{ position: 'fixed', inset: 0, zIndex: SQUAD_MODAL_Z }}
-          >
-            <div onClick={(e) => e.stopPropagation()} className="sq-modal">
-              <p className="sq-modal-title">
-                {L(reopen ? 'squad.status.reopenTitle' : 'squad.status.archiveTitle')}
-              </p>
-              <p className="sq-modal-desc">
-                {rich(L(reopen ? 'squad.status.reopenDesc' : 'squad.status.archiveDesc', { name: sq.name }))}
-              </p>
+        return (
+          <ConfirmModal
+            title={L(reopen ? 'squad.status.reopenTitle' : 'squad.status.archiveTitle')}
+            body={
+              <>
+                <p className="sq-modal-desc">
+                  {rich(L(reopen ? 'squad.status.reopenDesc' : 'squad.status.archiveDesc', { name: sq.name }))}
+                </p>
 
-              {/* 재개로 과부하가 새로 생기는 멤버 사전 경고 — 차단하지는 않는다 */}
-              {reopen && statusAsk.overloads.length > 0 && (
-                <div className="sq-warnbox">
-                  <div className="sq-warnbox-title">
-                    <WarningIcon size={14} /> {L('squad.status.reopenOverload', { count: statusAsk.overloads.length })}
+                {/* 재개로 과부하가 새로 생기는 멤버 사전 경고 — 차단하지는 않는다 */}
+                {reopen && statusAsk.overloads.length > 0 && (
+                  <div className="sq-warnbox">
+                    <div className="sq-warnbox-title">
+                      <WarningIcon size={14} /> {L('squad.status.reopenOverload', { count: statusAsk.overloads.length })}
+                    </div>
+                    <div className="sq-warnbox-body">
+                      {statusAsk.overloads.map((o) => `${nameOf(o.userId)} ${o.total}%`).join(' · ')}
+                    </div>
+                    <div className="sq-warnbox-note">{L('squad.status.reopenOverloadNote')}</div>
                   </div>
-                  <div className="sq-warnbox-body">
-                    {statusAsk.overloads.map((o) => `${nameOf(o.userId)} ${o.total}%`).join(' · ')}
-                  </div>
-                  <div className="sq-warnbox-note">{L('squad.status.reopenOverloadNote')}</div>
-                </div>
-              )}
-
-              <div className="sq-modal-actions">
-                <button
-                  type="button" data-testid="squad-status-confirm"
-                  // 재개든 보관이든 이 모달의 **확인** 은 주 동작이다 — 연한 배지처럼 두면
-                  // 비활성으로 읽혀 사용자가 취소를 누른다. 성격 차이는 본문 문구가 설명한다.
-                  className="sq-btn sq-btn-primary"
-                  onClick={() => applyStatus(statusAsk.squadId, statusAsk.to)}
-                >{L(reopen ? 'squad.status.reopenConfirm' : 'squad.status.archiveConfirm')}</button>
-                <button type="button" onClick={() => setStatusAsk(null)} className="sq-btn sq-btn-outline">
-                  {L('squad.status.cancel')}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
+                )}
+              </>
+            }
+            // 재개든 보관이든 이 창의 **확인** 은 주 동작이다 — 위험(빨강)으로 칠하지 않는다.
+            // 성격 차이는 본문 문구가 설명한다.
+            confirmLabel={L(reopen ? 'squad.status.reopenConfirm' : 'squad.status.archiveConfirm')}
+            cancelLabel={L('squad.status.cancel')}
+            onConfirm={() => applyStatus(statusAsk.squadId, statusAsk.to)}
+            onCancel={() => setStatusAsk(null)}
+            zIndex={SQUAD_MODAL_Z}
+            testId="squad-status-modal"
+            confirmTestId="squad-status-confirm"
+          />
         );
       })()}
     </div>

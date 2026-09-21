@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * KrContributionDetail — KR 드릴다운 우측 기여 상세 패널.
@@ -31,16 +32,12 @@ export default function KrContributionDetail({ member }) {
         <span className="mgr-krd-percent">{member.percent}%</span>
       </div>
 
-      <div className="mgr-krd-tabs">
-        {DETAIL_TABS.map((t) => (
-          <span
-            key={t.key}
-            className={`mgr-krd-tab${tab === t.key ? ' is-active' : ''}`}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-          </span>
-        ))}
+      <div className="tl-tabs-row mgr-krd-tabs-row">
+        <Tabs
+          items={DETAIL_TABS.map((t) => ({ value: t.key, label: t.label }))}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       {tab === 'snippets' && (

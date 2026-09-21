@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.jsx';
 
 /**
@@ -24,9 +25,14 @@ import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.js
  *    실제로 보내는 기능이 없는 호스트가 «눌러도 아무 일 없는» 칸을 보이지 않게.
  *  - renderAvatar(person): 호스트 앱 아바타(이니셜 폴백 등). 미지정 시 avatar URL.
  *  - scheduling: true 면 [일정 등록] 을 잠근다(중복 제출 방지).
+ *
+ * 창은 공용 창 틀(ModalShell), 네 탭은 공용 Tabs 로 그린다 (PW-836). 틀의 제목 자리에는
+ * 멤버 × 매니저를, 설명 자리에는 상태 배지·「열람모드」를 둔다. [일정 등록] 이 본문 안에
+ * 있어 틀의 취소/확인 푸터는 그리지 않는다. Esc·막 클릭·닫기 X 는 onClose 다.
  */
 export const DETAIL_DEFAULT_LABELS = {
   viewMode: '열람모드',
+  close: '닫기',
   tabSummary: '요약',
   tabActions: '액션 아이템',
   tabAnalysis: '대화 분석',
@@ -103,18 +109,12 @@ export default function OneOnOneDetailModal({
     ? new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(date)
     : L.datePlaceholder;
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   if (!detail) return null;
   const tabs = [
-    { key: 'summary', label: L.tabSummary },
-    { key: 'actions', label: L.tabActions },
-    { key: 'analysis', label: L.tabAnalysis },
-    { key: 'feedback', label: L.tabFeedback },
+    { value: 'summary', label: L.tabSummary, testId: 'ood-tab-summary' },
+    { value: 'actions', label: L.tabActions, testId: 'ood-tab-actions' },
+    { value: 'analysis', label: L.tabAnalysis, testId: 'ood-tab-analysis' },
+    { value: 'feedback', label: L.tabFeedback, testId: 'ood-tab-feedback' },
   ];
   const summaryText = detail.summary?.text;
   const decisions = asList(detail.summary?.decisions);
@@ -127,31 +127,34 @@ export default function OneOnOneDetailModal({
   const feedback = detail.feedback ?? null;
   const hasFeedback = !!(feedback?.strength || feedback?.growth);
 
-  return createPortal(
-    <div className="ood-overlay" onClick={onClose}>
-      <div className="ood-modal" onClick={(e) => { e.stopPropagation(); closePopovers(); }}>
-        <div className="ood-head">
-          <div className="ood-head-who">
-            <Person person={detail.member} renderAvatar={renderAvatar} />
-            <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <Person person={detail.manager} renderAvatar={renderAvatar} />
-          </div>
-          <div className="ood-head-meta">
-            <span className="ood-done-badge">{detail.status ?? 'DONE'}</span>
-            <span className="ood-mode">{L.viewMode}</span>
-          </div>
-        </div>
-
-        <div className="ood-tabs">
-          {tabs.map((t) => (
-            <span
-              key={t.key}
-              className={`ood-tab${tab === t.key ? ' is-active' : ''}`}
-              onClick={() => setTab(t.key)}
-            >
-              {t.label}
-            </span>
-          ))}
+  return (
+    <ModalShell
+      title={
+        <span className="ood-head-who">
+          <Person person={detail.member} renderAvatar={renderAvatar} />
+          <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
+          <Person person={detail.manager} renderAvatar={renderAvatar} />
+        </span>
+      }
+      description={
+        <span className="ood-head-meta">
+          <span className="ood-done-badge">{detail.status ?? 'DONE'}</span>
+          <span className="ood-mode">{L.viewMode}</span>
+        </span>
+      }
+      titleId="ood-title"
+      closeLabel={L.close}
+      onClose={() => onClose?.()}
+      footer={null}
+      zIndex={1000}
+      className="ood-shell"
+      bodyClassName="ood-shell-body"
+      testId="ood-modal"
+    >
+      {/* 안쪽 아무 데나 누르면 열린 날짜·시간 고르기를 닫는다(종전 그대로). */}
+      <div className="ood-shell-inner" onClick={closePopovers}>
+        <div className="tl-tabs-row">
+          <Tabs items={tabs} value={tab} onChange={setTab} />
         </div>
 
         {tab === 'summary' && (
@@ -384,7 +387,6 @@ export default function OneOnOneDetailModal({
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }

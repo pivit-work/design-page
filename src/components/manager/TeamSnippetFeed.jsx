@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * TeamSnippetFeed — 팀 스니핏 우측 피드 패널 (날짜별/KR별 서브탭).
@@ -52,9 +53,15 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
 
   return (
     <div className="mgr-ts-feed">
-      <div className="mgr-ts-feed-tabs">
-        <span className={`mgr-ts-feed-tab${tab === 'date' ? ' is-active' : ''}`} onClick={() => setTab('date')}>날짜별</span>
-        <span className={`mgr-ts-feed-tab${tab === 'kr' ? ' is-active' : ''}`} onClick={() => setTab('kr')}>KR별</span>
+      <div className="tl-tabs-row mgr-ts-feed-tabs-row">
+        <Tabs
+          items={[
+            { value: 'date', label: '날짜별' },
+            { value: 'kr', label: 'KR별' },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       {hasFilter && (

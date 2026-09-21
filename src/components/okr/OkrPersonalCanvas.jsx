@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
@@ -95,10 +96,16 @@ export default function OkrPersonalCanvas({
       </div>
 
       <div className="okr-p-actions">
-        <div className="okr-p-period">
-          <button className={`okr-p-period-btn${periodTab === 'current' ? ' is-active' : ''}`} onClick={() => setPeriodTab('current')}>{periodLabel}</button>
-          <button className={`okr-p-period-btn${periodTab === 'history' ? ' is-active' : ''}`} onClick={() => setPeriodTab('history')}>히스토리</button>
-        </div>
+        {/* 기간 칩 — 공용 SegmentedControl (PW-836). */}
+        <SegmentedControl
+          className="okr-p-period"
+          items={[
+            { value: 'current', label: periodLabel },
+            { value: 'history', label: '히스토리' },
+          ]}
+          value={periodTab}
+          onChange={setPeriodTab}
+        />
 
         {showVisibility && (
           <div className="okr-select-wrap okr-p-visibility" ref={visibilityRef}>

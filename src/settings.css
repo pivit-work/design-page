@@ -574,6 +574,17 @@
 }
 
 /* ── 업로드 모달 ────────────────────────────────────── */
+/* 껍데기는 공용 창 틀(ModalShell · PW-836). 기본 틀은 높이가 428px 로 고정이라 본문 높이에
+   맞춰 줄이고, 본문이 길면 가운데만 스크롤한다. */
+.tl-group-modal.msc-upload-shell {
+  height: auto;
+  max-height: calc(100vh - 48px);
+}
+.tl-group-modal.msc-upload-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
 .msc-upload-drop {
   display: flex;
   flex-direction: column;
@@ -586,7 +597,6 @@
   background: var(--bg-secondary);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  margin-bottom: 14px;
   min-height: 140px;
 }
 
