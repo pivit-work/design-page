@@ -366,9 +366,10 @@ export default function EvalCycleMonitoringCanvas({
       {!embedded && toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {!embedded && navItems.length > 0 && (
-        <div className="fb-tabs" data-testid="evmon-nav">
+        /* 불이 들어오는 칸이 없는 «나가는 버튼» 줄이라 탭이 아니다 — 탭 모양을 입히지 않는다(PW-832). */
+        <div className="evmon-nav" data-testid="evmon-nav">
           {navItems.map((n) => (
-            <button type="button" key={n.key} className="fb-tab" onClick={() => n.on()} data-testid={n.testid}>
+            <button type="button" key={n.key} className="evc-btn is-ghost" onClick={() => n.on()} data-testid={n.testid}>
               {n.label}
             </button>
           ))}

@@ -22,6 +22,8 @@ import { createPortal } from 'react-dom';
  *   cancelRef, confirmRef  호스트가 초점을 줄 버튼 ref
  *   zIndex                 막의 겹침 순서 (기본은 CSS 값)
  *   testId                 창의 data-testid (기본 'confirm-dialog')
+ *   cancelTestId, confirmTestId  두 버튼의 data-testid (기본 'confirm-dialog-cancel' · 'confirm-dialog-confirm').
+ *                          한 화면에 확인 창이 여럿이면 어느 창의 버튼인지 가르려고 둔다 (PW-832)
  */
 export default function ConfirmModal({
   title,
@@ -37,6 +39,8 @@ export default function ConfirmModal({
   confirmRef,
   zIndex,
   testId = 'confirm-dialog',
+  cancelTestId = 'confirm-dialog-cancel',
+  confirmTestId = 'confirm-dialog-confirm',
 }) {
   return createPortal(
     <div
@@ -65,7 +69,7 @@ export default function ConfirmModal({
               type="button"
               ref={cancelRef}
               className="pw-confirm-btn is-ghost"
-              data-testid="confirm-dialog-cancel"
+              data-testid={cancelTestId}
               onClick={onCancel}
               disabled={busy}
             >
@@ -76,7 +80,7 @@ export default function ConfirmModal({
             type="button"
             ref={confirmRef}
             className={`pw-confirm-btn ${danger ? 'is-danger' : 'is-primary'}`}
-            data-testid="confirm-dialog-confirm"
+            data-testid={confirmTestId}
             onClick={onConfirm}
             disabled={busy}
           >

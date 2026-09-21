@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import ModalShell from '../shared/ModalShell.jsx';
+import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
@@ -1325,29 +1326,25 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
       ? questions.find((q) => q.id === focus.questionId)
       : null;
   const items = focusQ ? [focusQ] : questions;
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={onClose}>
-      <div
-        className="evc-modal is-wide"
-        onClick={(e) => e.stopPropagation()}
-        data-testid="evc-tpl-preview-modal"
+  return (
+    <ModalShell
+      title={focusQ ? L.previewItemTitle : L.previewTitle}
+      titleId="evc-tpl-preview-title"
+      closeLabel={L.cancel}
+      onClose={onClose}
+      zIndex={1000}
+      className="evc-shell is-wide"
+      testId="evc-tpl-preview-modal"
+      footer={null}
       >
-        <div className="evc-wiz-header">
-          <h3 className="evc-modal-title">
-            {focusQ ? L.previewItemTitle : L.previewTitle}
-          </h3>
-          <button type="button" className="evc-wiz-close" onClick={onClose} aria-label={L.cancel}>
-            ✕
-          </button>
-        </div>
+      <div className="evc-shell-body">
         <div className="evc-preview-body">
           {/* [PW-527 ③] 본문은 「평가 템플릿」 화면의 미리보기와 **같은 부품**이다.
               형태가 갈리면 어드민이 미리보기에서 본 것과 구성원이 받는 평가지가 달라진다. */}
           <EvalSheetBody items={items} grades={grades} labels={L} />
         </div>
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 
@@ -1476,23 +1473,19 @@ function TemplatePickerModal({
     : TEMPLATE_TYPES.filter((rt) => rt.id === currentType);
   const currentTypeName = L[TEMPLATE_TYPES.find((rt) => rt.id === currentType)?.nameKey] || '';
 
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={onClose}>
-      <div
-        className="evc-modal is-wide evc-tpl-picker"
-        onClick={(e) => e.stopPropagation()}
-        data-testid="evc-tpl-picker"
+  return (
+    <ModalShell
+      title={L.tplPickerTitle}
+      description={<>{fill(L.tplPickerSub, { type: currentTypeName })}</>}
+      titleId="evc-tpl-picker-title"
+      closeLabel={L.cancel}
+      onClose={onClose}
+      zIndex={1000}
+      className="evc-shell is-wide evc-tpl-picker"
+      testId="evc-tpl-picker"
+      footer={null}
       >
-        <div className="evc-wiz-header">
-          <h3 className="evc-modal-title">{L.tplPickerTitle}</h3>
-          <button type="button" className="evc-wiz-close" onClick={onClose} aria-label={L.cancel}>
-            ✕
-          </button>
-        </div>
-        <p className="evc-modal-sub">
-          {fill(L.tplPickerSub, { type: currentTypeName })}
-        </p>
-
+      <div className="evc-shell-body">
         {pool.length === 0 ? (
           <div className="evc-empty" data-testid="evc-tpl-picker-empty">
             {L.tplPickerEmpty}
@@ -1629,8 +1622,7 @@ function TemplatePickerModal({
           </>
         )}
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   );
 }
 
@@ -4536,33 +4528,16 @@ export default function EvalCycleWizard({
    * 위자드 본체. 창으로 뜰 때와 «화면 안 한 칸» 으로 뜰 때가 이 노드를 함께 쓴다
    * (PW-534 ㉮) — 입력을 두 벌로 만들면 규칙이 두 곳에 생긴다.
    */
-  const wizardShell = (
-    <div
-      className={`evc-wiz${isSingleStep ? ' is-inline' : ''}`}
-      onClick={isSingleStep ? undefined : (e) => e.stopPropagation()}
-    >
-      {/* 단일 단계에는 제목 줄이 없다 — 화면 머리가 이미 「{사이클명} · 사이클 관리」를
-          말하고 있고, 그 아래 또 제목을 두면 층이 하나 더 있는 것으로 읽힌다. */}
-      {!isSingleStep && (
-        <div className="evc-wiz-header">
-          <h3 className="evc-modal-title" data-testid="evc-wiz-title">
-            {isManage
+  // 제목 — 여러 단계로 띄울 때만 쓴다. 단일 단계에는 제목 줄이 없다: 화면 머리가 이미
+  // 「{사이클명} · 사이클 관리」를 말하고 있고, 그 아래 또 제목을 두면 층이 하나 더 있는 것으로 읽힌다.
+  const wizardTitle = isManage
               ? fill(L.manageTitle, { name: cycle.name ?? '' })
               : isDraftResume
                 ? fill(L.draftResumeTitle, { name: name || L.draftUntitled })
-                : L.createTitle}
-          </h3>
-          <button
-            type="button"
-            className="evc-wiz-close"
-            onClick={requestClose}
-            aria-label={L.cancel}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      : L.createTitle;
 
+  const wizardContent = (
+    <>
         {/* PW-440 — 이어쓰기로 열렸다는 사실과 «언제·누가» 저장했는지를 먼저 알린다.
             이게 없으면 값이 채워진 채 열린 화면이 「내가 만들다 만 것」인지
             「누가 만들어 둔 것」인지 구분되지 않는다. */}
@@ -7743,7 +7718,10 @@ export default function EvalCycleWizard({
             </div>
           )}
         </div>
+    </>
+  );
 
+  const wizardFooter = (
         <div className="evc-wiz-footer">
           {/* 단일 단계에는 「이전」도 「취소」도 없다 — 나가는 길은 탭 줄이다. */}
           {!isSingleStep && (
@@ -7852,14 +7830,13 @@ export default function EvalCycleWizard({
             )}
           </div>
         </div>
-    </div>
   );
 
   /**
    * 위자드 «위에» 뜨는 창들. 인라인일 때는 화면 안 한 칸 옆에 두면 안 된다 —
    * 본문 칸(`.content-area`)이 `position: fixed` 라 자기 스태킹 컨텍스트를 만들어,
-   * 그 안에서 그린 막은 왼쪽 메뉴·위쪽 바를 덮지 못한다(PW-513). 그래서 인라인일 때는
-   * 이 묶음만 화면 맨 바깥으로 꺼낸다.
+   * 그 안에서 그린 막은 왼쪽 메뉴·위쪽 바를 덮지 못한다(PW-513). 공용 창 틀·확인 창이
+   * 스스로 body 직속 포털로 그리므로(PW-832) 여기서 따로 꺼내지 않는다.
    */
   const wizardOverlays = (
     <>
@@ -7867,16 +7844,49 @@ export default function EvalCycleWizard({
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
       {leaveAsk && (
-        <div
-          className="evc-modal-overlay"
+        <ModalShell
+          title={L.draftLeaveTitle}
+          titleId="evc-wiz-leave-title"
+          closeLabel={L.cancel}
+          onClose={() => setLeaveAsk(false)}
+          busy={draftSaving}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evc-wiz-leave-ask"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
           onClick={() => setLeaveAsk(false)}
-          data-testid="evc-wiz-leave-ask"
+                data-testid="evc-wiz-leave-cancel"
         >
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="evc-wiz-header">
-              <h3 className="evc-modal-title">{L.draftLeaveTitle}</h3>
-            </div>
-            <div className="evc-wiz-body">
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={() => {
+                  setLeaveAsk(false);
+                  onCancel?.();
+                }}
+                data-testid="evc-wiz-leave-discard"
+              >
+                {L.draftLeaveDiscard}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                disabled={draftSaving}
+                onClick={() => void leaveWithSave()}
+                data-testid="evc-wiz-leave-save"
+              >
+                {L.draftLeaveSave}
+              </button>
+            </>
+          }
+        >
+          <div className="evc-shell-body">
               <p className="evc-wiz-hint">{L.draftLeaveBody}</p>
               <ul className="evc-wiz-hint-list">
                 <li>{L.draftLeaveHint1}</li>
@@ -7888,60 +7898,23 @@ export default function EvalCycleWizard({
                 </p>
               )}
             </div>
-            <div className="evc-wiz-footer">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setLeaveAsk(false)}
-                data-testid="evc-wiz-leave-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => {
-                  setLeaveAsk(false);
-                  onCancel?.();
-                }}
-                data-testid="evc-wiz-leave-discard"
-              >
-                {L.draftLeaveDiscard}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                disabled={draftSaving}
-                onClick={() => void leaveWithSave()}
-                data-testid="evc-wiz-leave-save"
-              >
-                {L.draftLeaveSave}
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       )}
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
       {/* 마지막 하나까지 지우면 빈 창이 남는다 — 불러오기 줄도 사라지므로 창을 닫는다. */}
       {presetDialogOpen && presets.length > 0 && (
-        <div
-          className="evc-modal-overlay"
-          onClick={() => setPresetDialogOpen(false)}
+        <ModalShell
+          title={L.presetDialogTitle}
+          description={L.presetDialogSub}
+          titleId="evc-wiz-preset-title"
+          closeLabel={L.cancel}
+          onClose={() => setPresetDialogOpen(false)}
+          zIndex={1000}
+          className="evc-shell"
+          footer={null}
         >
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="evc-wiz-header">
-              <h3 className="evc-modal-title">{L.presetDialogTitle}</h3>
-              <button
-                type="button"
-                className="evc-wiz-close"
-                onClick={() => setPresetDialogOpen(false)}
-                aria-label={L.cancel}
-              >
-                ✕
-              </button>
-            </div>
-            <p className="evc-modal-sub">{L.presetDialogSub}</p>
+          <div className="evc-shell-body">
             <div className="evc-preset-list" data-testid="evc-wiz-preset-list">
               {presets.map((p) => (
                 <div key={p.id} className="evc-preset-item">
@@ -7990,171 +7963,104 @@ export default function EvalCycleWizard({
               ))}
             </div>
           </div>
-        </div>
+        </ModalShell>
       )}
 
       {/* PW-789 프리셋 삭제 확인 — 불러오기 창 위에 뜬다. */}
       {pendingDeletePreset && (
-        <div
-          className="evc-modal-overlay"
-          onClick={() => !presetDeleting && setPendingDeletePreset(null)}
-        >
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">{L.presetDeleteTitle}</h3>
-            <p className="evc-modal-sub" data-testid="evc-wiz-preset-delete-body">
+        <AppConfirmModal
+          title={L.presetDeleteTitle}
+          body={
+            <span data-testid="evc-wiz-preset-delete-body">
               {fill(L.presetDeleteBody ?? '', { name: pendingDeletePreset.name })}
-            </p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={presetDeleting}
-                onClick={() => setPendingDeletePreset(null)}
-                data-testid="evc-wiz-preset-delete-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-danger"
-                disabled={presetDeleting}
-                onClick={() => void confirmDeletePreset()}
-                data-testid="evc-wiz-preset-delete-confirm"
-              >
-                {presetDeleting ? L.presetDeleting : L.presetDelete}
-              </button>
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={presetDeleting ? L.presetDeleting : L.presetDelete}
+          danger
+          busy={presetDeleting}
+          onCancel={() => !presetDeleting && setPendingDeletePreset(null)}
+          onConfirm={() => void confirmDeletePreset()}
+          cancelTestId="evc-wiz-preset-delete-cancel"
+          confirmTestId="evc-wiz-preset-delete-confirm"
+        />
       )}
 
       {/* [PW-441 §5.10-D] 확정 갈아 끼우기 — 조용히 바꾸지 않는다. 확정은 사이클의
           내용을 정하는 행위라 편집 버퍼 교체보다 무겁다. */}
       {pendingConfirmSwap && (
-        <div className="evc-modal-overlay" onClick={() => setPendingConfirmSwap(null)}>
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">{L.tplConfirmSwapTitle}</h3>
-            <p className="evc-modal-sub" data-testid="evc-tpl-confirm-swap-body">
+        <AppConfirmModal
+          title={L.tplConfirmSwapTitle}
+          body={
+            <span data-testid="evc-tpl-confirm-swap-body">
               {fill(L.tplConfirmSwapBody, {
                 type: L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]],
                 from: pendingConfirmSwap.from,
                 to: pendingConfirmSwap.to,
               })}
-            </p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setPendingConfirmSwap(null)}
-                data-testid="evc-tpl-confirm-swap-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                onClick={() => pendingConfirmSwap.run()}
-                data-testid="evc-tpl-confirm-swap-ok"
-              >
-                {L.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingConfirmSwap(null)}
+          onConfirm={() => pendingConfirmSwap.run()}
+          cancelTestId="evc-tpl-confirm-swap-cancel"
+          confirmTestId="evc-tpl-confirm-swap-ok"
+        />
       )}
 
       {/* [PW-536 · 정책 §5.2.1-A] 기준점을 바꾸면 손대지 않은 단계가 다시 깔린다 —
           직접 고쳐 둔 것이 있을 때만 묻는다. 「그대로 두기」는 지금 날짜를 굳힌다. */}
       {pendingRebase && (
-        <div className="evc-modal-overlay" onClick={keepScheduleAsIs}>
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">{L.scheduleAnchorRebaseTitle}</h3>
-            <p className="evc-modal-sub" data-testid="evc-sched-rebase-body">
+        <AppConfirmModal
+          title={L.scheduleAnchorRebaseTitle}
+          body={
+            <span data-testid="evc-sched-rebase-body">
               {fill(L.scheduleAnchorRebaseBody ?? '', {
                 count: pendingRebase.count,
               })}
-            </p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={keepScheduleAsIs}
-                data-testid="evc-sched-rebase-keep"
-              >
-                {L.scheduleAnchorRebaseKeep}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                onClick={() => setPendingRebase(null)}
-                data-testid="evc-sched-rebase-ok"
-              >
-                {L.scheduleAnchorRebaseOk}
-              </button>
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+          cancelLabel={L.scheduleAnchorRebaseKeep}
+          confirmLabel={L.scheduleAnchorRebaseOk}
+          onCancel={keepScheduleAsIs}
+          onConfirm={() => setPendingRebase(null)}
+          cancelTestId="evc-sched-rebase-keep"
+          confirmTestId="evc-sched-rebase-ok"
+        />
       )}
 
       {/* [PW-441 §5.2.4 엣지 1] 확정된 평가 종류를 끄면 확정도 함께 풀린다 —
           화면 어디에도 안 보이는 결과라 끄기 «전에» 말한다. */}
       {pendingTypeOff && (
-        <div className="evc-modal-overlay" onClick={() => setPendingTypeOff(null)}>
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">
-              {fill(L.tplTypeOffTitle, { type: L[REVIEW_TYPE_KEYS[pendingTypeOff]] })}
-            </h3>
-            <p className="evc-modal-sub" data-testid="evc-wiz-type-off-body">
+        <AppConfirmModal
+          title={fill(L.tplTypeOffTitle, { type: L[REVIEW_TYPE_KEYS[pendingTypeOff]] })}
+          body={
+            <span data-testid="evc-wiz-type-off-body">
               {fill(L.tplTypeOffBody, { type: L[REVIEW_TYPE_KEYS[pendingTypeOff]] })}
-            </p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setPendingTypeOff(null)}
-                data-testid="evc-wiz-type-off-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                onClick={() => applyTypeToggle(pendingTypeOff)}
-                data-testid="evc-wiz-type-off-ok"
-              >
-                {L.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingTypeOff(null)}
+          onConfirm={() => applyTypeToggle(pendingTypeOff)}
+          cancelTestId="evc-wiz-type-off-cancel"
+          confirmTestId="evc-wiz-type-off-ok"
+        />
       )}
 
       {/* 덮어쓰기 확인 — 이미 입력한 값이 있을 때만 뜬다. */}
       {pendingPresetId && (
-        <div className="evc-modal-overlay" onClick={() => setPendingPresetId(null)}>
-          <div className="evc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="evc-modal-title">{L.presetOverwriteTitle}</h3>
-            <p className="evc-modal-sub">{L.presetOverwriteBody}</p>
-            <div className="evc-modal-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                onClick={() => setPendingPresetId(null)}
-                data-testid="evc-wiz-preset-overwrite-cancel"
-              >
-                {L.cancel}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                onClick={() => void loadPresetById(pendingPresetId)}
-                data-testid="evc-wiz-preset-overwrite-confirm"
-              >
-                {L.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AppConfirmModal
+          title={L.presetOverwriteTitle}
+          body={L.presetOverwriteBody}
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingPresetId(null)}
+          onConfirm={() => void loadPresetById(pendingPresetId)}
+          cancelTestId="evc-wiz-preset-overwrite-cancel"
+          confirmTestId="evc-wiz-preset-overwrite-confirm"
+        />
       )}
     </>
   );
@@ -8163,17 +8069,33 @@ export default function EvalCycleWizard({
   if (isSingleStep) {
     return (
       <>
-        {wizardShell}
-        {createPortal(wizardOverlays, document.body)}
+        <div className="evc-wiz is-inline">
+          {wizardContent}
+          {wizardFooter}
+        </div>
+        {wizardOverlays}
       </>
     );
   }
 
-  return createPortal(
-    <div className="evc-modal-overlay" onClick={requestClose}>
-      {wizardShell}
+  // 여러 단계로 띄울 때는 공용 창 틀(ModalShell · PW-832)이 막·제목·닫기·Esc 를 맡는다.
+  // 위자드의 발(이전·임시저장·다음/생성)은 모양이 달라 틀의 기본 버튼 대신 통째로 넘긴다.
+  // 위에 뜨는 창들은 틀의 «형제»로 둔다 — 안에 두면 그 창의 클릭이 위자드 막까지 올라간다.
+  return (
+    <>
+      <ModalShell
+        title={<span data-testid="evc-wiz-title">{wizardTitle}</span>}
+        titleId="evc-wiz-title"
+        closeLabel={L.cancel}
+        onClose={requestClose}
+        zIndex={1000}
+        className="evc-shell is-xwide has-own-footer evc-wiz-shell"
+        testId="evc-wiz"
+        footer={wizardFooter}
+      >
+        {wizardContent}
+      </ModalShell>
       {wizardOverlays}
-    </div>,
-    document.body,
+    </>
   );
 }

@@ -11,7 +11,8 @@ import useSegmentedIndicator from './useSegmentedIndicator.js';
  * 항상 이 컴포넌트를 사용한다. 새로 만들지 말 것.
  *
  * Props:
- *   items     [{ value, label, disabled?, title? }] — 표시될 segment 목록 (2~N)
+ *   items     [{ value, label, disabled?, title?, testId? }] — 표시될 segment 목록 (2~N).
+ *             testId 는 그 칸 버튼의 data-testid (PW-832)
  *             disabled 인 항목은 고를 수 없다. 왜 못 고르는지는 caller 가 title 로
  *             주거나 컨트롤 바깥에 안내 문구로 적는다 — 이 컴포넌트는 사유를 모른다.
  *   value     현재 선택된 value (controlled)
@@ -62,6 +63,7 @@ export default function SegmentedControl({
           disabled={it.disabled || undefined}
           title={it.title}
           className={`seg-item ${value === it.value ? 'is-active' : ''}`}
+          data-testid={it.testId}
           onClick={() => {
             if (it.disabled) return;
             onChange?.(it.value);
