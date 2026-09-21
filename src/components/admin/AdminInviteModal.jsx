@@ -160,6 +160,8 @@ const DEFAULT_LABELS = {
   // 초과분을 잘라내지 않고 업로드 자체를 거부한다(§5 V10)
   csvErrTooManyRows: '{count}행이라 올릴 수 없어요. 한 번에 최대 {max}행까지 가능합니다 — 파일을 나눠 올려주세요.',
   csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
+  // 옛 권한 값 — 오타가 아니라 없어진 값이라는 것과, 어떻게 매니저가 되는지를 함께 알린다
+  csvErrRoleManagerRetired: "'{value}'는 이제 권한 값이 아니에요. 조직장으로 지정되면 자동으로 매니저가 됩니다 — 멤버나 어드민으로 고쳐 주세요",
   csvErrUnknownOption: "{column} '{value}'는 직군/직렬/직무 설정에 없는 값이에요",
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
@@ -368,7 +370,7 @@ function CsvStagingRow({
           {/* 해석하지 못한 역할은 빈 값으로 남아 있다 — 임의로 '멤버' 를 채우면
               잘못된 권한이 조용히 나간다. 고르기 전까지 이 행은 오류다. */}
           {!row.role && <option value="">{labels.unset}</option>}
-          {Object.keys(ROLE_LABEL_KEY).map((id) => (
+          {ROLE_IDS.map((id) => (
             <option key={id} value={id}>{labels[ROLE_LABEL_KEY[id]]}</option>
           ))}
         </select>

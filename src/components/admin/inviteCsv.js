@@ -58,11 +58,25 @@ export const ORG_PATH_LIST_SEP = '|';
 /** Excel 이 BOM 없는 UTF-8 CSV 의 한글을 깨뜨려 읽는다. */
 export const CSV_BOM = '\uFEFF';
 
-/** 역할 코드값 ↔ 라벨 키. 화면에는 코드값을 그대로 노출하지 않는다. */
+/**
+ * 역할 코드값 ↔ 라벨 키 — 초대에 실을 수 있는 권한은 **둘뿐이다** (PW-847).
+ * 화면에는 코드값을 그대로 노출하지 않는다.
+ *
+ * 🔴 `manager` 를 되살리지 말 것. 매니저는 저장하는 등급이 아니라 «그 사람이 어떤
+ * 조직의 장인가» 라는 관계라, 초대에 실어 보낼 것이 없다(모달 `ROLE_IDS` 와 같은 판단).
+ */
 export const ROLE_LABEL_KEY = {
   member: 'roleMember',
-  manager: 'roleManager',
   admin: 'roleAdmin',
+};
+
+/**
+ * 예전엔 권한이었지만 이제 아닌 값 — 파일에 적혀 오면 **알 수 없는 값이 아니라 «없어진
+ * 값»으로** 따로 알린다. 「알 수 없는 역할」이라고만 하면 올린 사람은 오타를 찾는다.
+ * 옛 템플릿·옛 명단을 그대로 올리는 일이 흔해서, 왜 막혔는지를 그 줄에 적어 준다.
+ */
+export const RETIRED_ROLE_LABEL_KEY = {
+  manager: 'roleManager',
 };
 
 import { jobPairIssue } from './inviteRules.js';
@@ -183,6 +197,17 @@ export function resolveRole(raw, labels = {}) {
   for (const code of Object.keys(ROLE_LABEL_KEY)) {
     if (folded === code) return code;
     if (fold(labels[ROLE_LABEL_KEY[code]]) === folded) return code;
+  }
+  return null;
+}
+
+/** 없어진 권한 값(`매니저`·`manager`)인지 — 맞으면 그 코드값, 아니면 `null`. */
+export function retiredRole(raw, labels = {}) {
+  const folded = fold(raw);
+  if (!folded) return null;
+  for (const code of Object.keys(RETIRED_ROLE_LABEL_KEY)) {
+    if (folded === code) return code;
+    if (fold(labels[RETIRED_ROLE_LABEL_KEY[code]]) === folded) return code;
   }
   return null;
 }
@@ -323,7 +348,10 @@ export function parseInviteCsv(text, { orgTree = [], labels = {} } = {}) {
 export function csvRowIssues(row, { fieldOptions = {}, labels = {}, laddersByFamily = {} } = {}) {
   const issues = [];
   if (!row.role) {
-    issues.push(fmtCsv(labels.csvErrUnknownRole, { value: row.rawRole || '' }));
+    const retired = retiredRole(row.rawRole, labels) && labels.csvErrRoleManagerRetired;
+    issues.push(retired
+      ? fmtCsv(labels.csvErrRoleManagerRetired, { value: row.rawRole })
+      : fmtCsv(labels.csvErrUnknownRole, { value: row.rawRole || '' }));
   }
   for (const col of INVITE_OPTION_COLUMNS) {
     if (!optionKnown(row[col.key], fieldOptions[col.option])) {
