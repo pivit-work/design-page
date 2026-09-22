@@ -3604,6 +3604,11 @@ export default function AdminEmployeesCanvas({
    * 좁히고 직군 미선택 시 잠근다(INV-3 · PW-412). 비면 좁히지 않는다.
    */
   laddersByFamily,
+  /**
+   * 직렬 값 → 그 직렬의 직무 값 목록(INV-8). 초대 CSV 의 `(직렬, 직무)` 짝을 본다(PW-902).
+   * 비면 좁히지 않는다 — 서버가 짝을 판정한다.
+   */
+  dutiesByLadder,
   /** 초대 모달 문구 — i18n 은 소비자(pivit-work)가 소유한다. */
   inviteLabels,
   /** 좌석 부족 배너의 `결제·구독` 이동. */
@@ -3998,6 +4003,11 @@ export default function AdminEmployeesCanvas({
             ...(fieldOptions || {}),
           }}
           laddersByFamily={laddersByFamily}
+          dutiesByLadder={dutiesByLadder}
+          // 초대 CSV 의 스쿼드·상급자 칸(PW-902) — 스쿼드 칸은 목록에 있는 이름만, 상급자 칸은
+          // 주 소속 조직에 조직장이 있으면 쓰이지 않는다고 안내한다.
+          squadNames={(squadOptions || []).map((sq) => sq.name).filter(Boolean)}
+          headTeamIds={[...new Set(Object.values(leaderUnitIdsByMember || {}).flat().map(String))]}
           // 직종은 조직이 켰을 때만 받는다(PW-644). 목록 열과 같은 스위치·같은 직종 목록을 쓴다.
           jobCategoryEnabled={optionalFields?.job_category === true}
           onGoBilling={onGoBilling}

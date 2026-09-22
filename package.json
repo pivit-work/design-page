@@ -31,6 +31,7 @@
     "./styles/form-controls.css": "./src/form-controls.css",
     "./styles/admin.css": "./src/admin.css",
     "./styles/admin-kit.css": "./src/admin-kit.css",
+    "./styles/invite-csv.css": "./src/invite-csv.css",
     "./styles/roster-table.css": "./src/roster-table.css",
     "./styles/status-badge.css": "./src/status-badge.css",
     "./styles/settings.css": "./src/settings.css",

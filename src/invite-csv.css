@@ -1,0 +1,86 @@
+/* ══════════════════════════════════════════════════════════════
+   초대 CSV 미리보기 표 — components/admin/InviteCsvStagingTable.jsx   PW-902
+   (prefix: admin-inv-csvt- · 요약 줄은 옛 admin-inv-csv- 이름 그대로)
+
+   두 초대 화면이 함께 쓴다 — 어드민 「구성원 초대」 창(admin.css 가 이 파일을 @import)과
+   온보딩 「구성원 초대」 단계(소비자가 `styles/invite-csv.css` 를 직접 불러온다).
+   표 자체의 생김새(칸 여백·머리 행·가로 스크롤·붙는 열)는 공용 명단 표(roster-table.css)가
+   정하고, 여기는 칸 안의 입력칸·가린 칸·상태 칸만 정한다.
+   모양의 근거: pivit-specs `8. onboarding/onboarding-app.jsx` 탭 4 미리보기 표.
+   ══════════════════════════════════════════════════════════════ */
+
+@import './status-badge.css';
+@import './roster-table.css';
+
+.admin-inv-csvt { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.admin-inv-csv-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-inv-csv-counts {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.admin-inv-csv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.admin-inv-csv-toggle input { accent-color: var(--bg-brand-solid); cursor: pointer; }
+
+
+/* 칸 안 입력칸 — 칸을 꽉 채우고 테두리는 고칠 때만 보인다(표가 입력칸 격자로 보이지 않게). */
+.admin-inv-csvt-input,
+.admin-inv-csvt-masked {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-primary);
+  text-align: left;
+}
+.admin-inv-csvt-input::placeholder { color: var(--text-quaternary, #a4a7ae); }
+.admin-inv-csvt-input:hover,
+.admin-inv-csvt-masked:hover { border-color: var(--border-primary); }
+.admin-inv-csvt-input:focus { outline: none; border-color: var(--bg-brand-solid); background: var(--bg-quaternary); }
+.admin-inv-csvt-masked { cursor: pointer; color: var(--text-secondary); letter-spacing: 1px; }
+.admin-inv-csvt-input.is-invalid,
+.admin-inv-csvt-masked.is-invalid {
+  border-color: var(--colors-error-300, #fda29b);
+  background: var(--bg-quaternary);
+  color: var(--colors-error-700, #b42318);
+}
+
+/* 상태 칸 — 딱지 한 개 + 사유 줄. 사유가 길어도 칸 폭 안에서 줄을 바꾼다. */
+.admin-inv-csvt-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px 6px;
+  white-space: normal;
+}
+.admin-inv-csvt-reason {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--colors-error-700, #b42318);
+}
+.admin-inv-csvt-note {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+}

@@ -102,6 +102,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 가로로 밀어도 왼쪽에 붙는 열(PW-902) — 바탕을 칠해야 밀려 들어오는 칸이 비쳐 보이지 않는다.
+   줄 바탕(경고·오류)을 따라가게 inherit 가 아니라 줄 색을 한 번 더 적는다 — sticky 칸은 줄의
+   바탕을 물려받지 않는다(칸이 따로 겹쳐 그려진다). */
+.rt-table th.is-sticky,
+.rt-table td.is-sticky {
+  position: sticky;
+  z-index: 1;
+  background: var(--bg-quaternary);
+  box-shadow: inset -1px 0 0 var(--bg-secondary);
+}
+.rt-table th.is-sticky { z-index: 2; background: var(--bg-quaternary); }
+/* 세로 스크롤 틀(scroll="both")은 머리 칸 전부를 z-index 1 로 올린다 — 붙는 머리 칸이 그보다
+   위에 있어야 옆으로 밀려 들어오는 머리 칸에 덮이지 않는다. */
+.rt-scroll.is-scroll-both .rt-table th.is-sticky { z-index: 3; }
+.rt-row.is-warn td.is-sticky { background: var(--colors-warning-50, #fffaeb); }
+.rt-row.is-error td.is-sticky { background: var(--utility-error-50, #fef3f2); }
+
 /* 칸마다 입력칸이 들어가는 편집 표 — 입력칸 자체가 여백을 가진다. */
 .rt-table.is-dense td { padding: 2px 4px; }
 
