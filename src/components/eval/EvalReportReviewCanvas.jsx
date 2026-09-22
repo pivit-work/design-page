@@ -44,6 +44,36 @@ const DEFAULT_LABELS = {
   // TC-093: 검수 대기 리포트가 남아 있을 때 발송 시 강조
   incompleteSendWarn:
     '아직 검수 대기 중인 리포트가 {count}건 있습니다. 발송은 승인된 리포트에만 적용됩니다.',
+  // PW-711 — 동료 피드백 AI 톤 정제 + 인사담당자 검수 (정책 §8.5·§8.5-B)
+  colRefine: '동료 피드백 다듬기',
+  refinePending: '대기 중',
+  refineDone: '완료',
+  refineNeedsReview: '검수 필요',
+  refineFailed: '실패',
+  /** 🔴 발송 버튼을 «감추지 않고» 그 자리에 띄우는 문구다(§8.5-B). */
+  refineBlocked: '동료 리뷰 {count}건의 검수가 남았습니다',
+  refineOpen: '검수하기',
+  refineClose: '접기',
+  refineHint:
+    'AI 가 고친 글은 인사담당자가 확인해야 피평가자에게 나갑니다. 다듬기 전 원문은 그대로 남습니다.',
+  refineOriginal: '원문 (다듬기 전)',
+  refineRefined: '다듬은 글',
+  refineNone: '검수할 동료 리뷰가 없습니다.',
+  refineApprove: '승인',
+  refineKeepOriginal: '원문 유지',
+  refineEdit: '직접 수정',
+  refineEditSave: '이 글로 확정',
+  refineEditCancel: '취소',
+  refineEditPh: '피평가자에게 나갈 글을 직접 쓰세요.',
+  refineRetry: '재시도',
+  refineFailedNote:
+    '다듬지 못했습니다. 다시 시도하거나, 원문 그대로 보내려면 「원문 유지」를 고르세요.',
+  refinePendingNote: '다듬는 중입니다. 잠시 뒤 다시 열어 보세요.',
+  refineDecided: '검수 완료',
+  refineError: '검수 결과를 저장하지 못했습니다.',
+  refineLoadError: '검수 목록을 불러오지 못했습니다.',
+  /** 일괄 발송에서 막힌 사람이 빠졌을 때. §8.6 의 「미승인 N건은 제외됩니다」와 같은 꼴. */
+  refineExcluded: '검수 미완 {count}명은 제외됩니다',
 };
 
 function isObj(v) {
@@ -63,6 +93,14 @@ const STATUS_META = {
   pending: { key: 'statusPending', cls: 'is-pending' },
   leader_approved: { key: 'statusApproved', cls: 'is-approved' },
   sent: { key: 'statusSent', cls: 'is-sent' },
+};
+
+/** PW-711 — 정책 §8.5 의 배지 넷. 색은 「사람이 손을 써야 하나」로 가른다. */
+const REFINE_META = {
+  pending: { key: 'refinePending', cls: 'is-pending' },
+  refined: { key: 'refineDone', cls: 'is-done' },
+  needs_hr_review: { key: 'refineNeedsReview', cls: 'is-review' },
+  failed: { key: 'refineFailed', cls: 'is-failed' },
 };
 
 /**
@@ -131,6 +169,202 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
   );
 }
 
+/**
+ * PW-711 — 동료 리뷰 원문·다듬은 글 비교 검수 (정책 §8.5 「HR 검수 필요 조건」).
+ *
+ * 창(모달)이 아니라 줄 아래로 펼치는 칸이다. 형제인 「리포트 구성」 칸과 같은 모양이고,
+ * 무엇보다 창을 띄우면 뒤쪽 막이 왼쪽 메뉴를 덮는지까지 매번 재야 한다 — 이 화면에는
+ * 창이 필요한 이유가 없다(리뷰를 읽고 셋 중 하나를 고르는 일이다).
+ */
+function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
+  const [review, setReview] = useState(null);
+  const [error, setError] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState('');
+
+  // 칸을 펼칠 때 한 번 읽어 온다. `setError(null)` 을 여기서 부르지 않는 것은
+  // 렌더가 연쇄로 도는 것을 막기 위해서다 — 이 칸은 펼칠 때 새로 생기므로 초기값이 곧 비움이다.
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(load(memberId))
+      .then((r) => {
+        if (alive) setReview(r);
+      })
+      .catch(() => {
+        if (alive) setError(L.refineLoadError);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [memberId, load, L.refineLoadError]);
+
+  const run = async (answerId, fn) => {
+    setBusyId(answerId);
+    setError(null);
+    try {
+      const next = await fn();
+      if (next) setReview(next);
+      setEditing(null);
+    } catch {
+      setError(L.refineError);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (error && !review) {
+    return (
+      <div className="evrr-refine" data-testid={`evrr-refine-${memberId}`}>
+        <p className="evrr-refine-error" role="alert">{error}</p>
+      </div>
+    );
+  }
+  if (!review) return null;
+
+  return (
+    <div className="evrr-refine" data-testid={`evrr-refine-${memberId}`}>
+      <p className="evrr-refine-hint">{L.refineHint}</p>
+      {error && (
+        <p className="evrr-refine-error" role="alert">{error}</p>
+      )}
+      {review.items.length === 0 ? (
+        <p className="evrr-refine-hint" data-testid={`evrr-refine-empty-${memberId}`}>
+          {L.refineNone}
+        </p>
+      ) : (
+        review.items.map((item) => {
+          const meta = REFINE_META[item.status] ?? REFINE_META.pending;
+          const busy = busyId === item.answerId;
+          const isEditing = editing === item.answerId;
+          return (
+            <section
+              className="evrr-refine-item"
+              key={item.answerId}
+              data-testid={`evrr-refine-item-${item.answerId}`}
+            >
+              <header className="evrr-refine-head">
+                <span className="evrr-refine-who">{item.reviewerLabel}</span>
+                {item.itemLabel && (
+                  <span className="evrr-refine-q">{item.itemLabel}</span>
+                )}
+                <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
+              </header>
+
+              <div className="evrr-refine-compare">
+                <div className="evrr-refine-col">
+                  <span className="evrr-refine-col-label">{L.refineOriginal}</span>
+                  <p className="evrr-refine-text">{item.originalText}</p>
+                </div>
+                <div className="evrr-refine-col">
+                  <span className="evrr-refine-col-label">{L.refineRefined}</span>
+                  <p className="evrr-refine-text">{item.refinedText ?? '—'}</p>
+                </div>
+              </div>
+
+              {item.status === 'failed' && (
+                <p className="evrr-refine-note">{L.refineFailedNote}</p>
+              )}
+              {item.status === 'pending' && (
+                <p className="evrr-refine-note">{L.refinePendingNote}</p>
+              )}
+
+              {isEditing ? (
+                <div className="evrr-refine-edit">
+                  <textarea
+                    className="evrr-refine-editor"
+                    value={draft}
+                    placeholder={L.refineEditPh}
+                    onChange={(e) => setDraft(e.target.value)}
+                    data-testid={`evrr-refine-editor-${item.answerId}`}
+                  />
+                  <span className="evrr-refine-actions">
+                    <button
+                      type="button"
+                      className="evc-btn"
+                      onClick={() => setEditing(null)}
+                    >
+                      {L.refineEditCancel}
+                    </button>
+                    <button
+                      type="button"
+                      className="evc-btn is-primary"
+                      disabled={busy || !draft.trim()}
+                      onClick={() =>
+                        run(item.answerId, () =>
+                          onDecide(item.answerId, 'edit', draft.trim()),
+                        )
+                      }
+                      data-testid={`evrr-refine-edit-save-${item.answerId}`}
+                    >
+                      {L.refineEditSave}
+                    </button>
+                  </span>
+                </div>
+              ) : item.status === 'refined' ? (
+                <span className="evrr-muted" data-testid={`evrr-refine-done-${item.answerId}`}>
+                  {L.refineDecided}
+                </span>
+              ) : (
+                <span className="evrr-refine-actions">
+                  {item.status === 'failed' ? (
+                    <button
+                      type="button"
+                      className="evc-btn"
+                      disabled={busy}
+                      onClick={() => run(item.answerId, () => onRetry(item.answerId))}
+                      data-testid={`evrr-refine-retry-${item.answerId}`}
+                    >
+                      {L.refineRetry}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="evc-btn is-primary"
+                      disabled={busy}
+                      onClick={() =>
+                        run(item.answerId, () => onDecide(item.answerId, 'approve'))
+                      }
+                      data-testid={`evrr-refine-approve-${item.answerId}`}
+                    >
+                      {L.refineApprove}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="evc-btn"
+                    disabled={busy}
+                    onClick={() =>
+                      run(item.answerId, () =>
+                        onDecide(item.answerId, 'keep_original'),
+                      )
+                    }
+                    data-testid={`evrr-refine-keep-${item.answerId}`}
+                  >
+                    {L.refineKeepOriginal}
+                  </button>
+                  <button
+                    type="button"
+                    className="evc-btn"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(item.refinedText ?? item.originalText);
+                      setEditing(item.answerId);
+                    }}
+                    data-testid={`evrr-refine-edit-${item.answerId}`}
+                  >
+                    {L.refineEdit}
+                  </button>
+                </span>
+              )}
+            </section>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 function ReviewRow({
   row,
   L,
@@ -144,15 +378,24 @@ function ReviewRow({
   requiredSections,
   canEditSections,
   onToggleSection,
+  refinement,
 }) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
   const isMyReport = row.leaderId === myUserId;
   const canApprove = isMyReport && row.status === 'pending';
   const meta = STATUS_META[row.status] ?? STATUS_META.pending;
   const overrideCount = row.overrideCount ?? 0;
   const hasSections = sectionOrder.length > 0;
+  // PW-711 — 검수 잔여는 **서버가 센 값**을 그대로 쓴다. 화면이 다시 세면 발송을 막는
+  // 서버 판정과 갈려서 「눌리는데 안 나간다」가 된다(정책 §8.5-B).
+  const unresolved = row.unresolvedPeerRefinements ?? 0;
+  const refineMeta = row.peerRefinementStatus
+    ? (REFINE_META[row.peerRefinementStatus] ?? null)
+    : null;
+  const blocked = unresolved > 0;
 
   const approve = async () => {
     setBusy(true);
@@ -170,7 +413,8 @@ function ReviewRow({
         {canSend && row.status === 'leader_approved' && (
           <input
             type="checkbox"
-            checked={checked}
+            checked={checked && !blocked}
+            disabled={blocked}
             onChange={() => onToggle(row.memberId)}
             data-testid={`evrr-check-${row.memberId}`}
             aria-label={row.name}
@@ -199,10 +443,45 @@ function ReviewRow({
       </div>
       <div className="evrr-cell evrr-grade">{(row.gradeKey ? (gradeLabels?.[row.gradeKey] ?? row.gradeKey) : '—')}</div>
       <div className="evrr-cell evrr-leader">{row.leaderName ?? '—'}</div>
+      <div className="evrr-cell evrr-refine-cell">
+        {refineMeta ? (
+          <>
+            <span
+              className={`evrr-badge ${refineMeta.cls}`}
+              data-testid={`evrr-refine-badge-${row.memberId}`}
+            >
+              {L[refineMeta.key]}
+            </span>
+            {blocked && refinement && (
+              <button
+                type="button"
+                className="evrr-refine-link"
+                onClick={() => setRefineOpen((v) => !v)}
+                data-testid={`evrr-refine-blocked-${row.memberId}`}
+              >
+                {L.refineBlocked.replace('{count}', String(unresolved))}
+              </button>
+            )}
+          </>
+        ) : (
+          <span className="evrr-muted">—</span>
+        )}
+      </div>
       <div className="evrr-cell evrr-status">
         <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
       </div>
       <div className="evrr-cell evrr-action">
+        {refinement && refineMeta && (
+          <button
+            type="button"
+            className="evc-btn"
+            aria-expanded={refineOpen}
+            onClick={() => setRefineOpen((v) => !v)}
+            data-testid={`evrr-refine-toggle-${row.memberId}`}
+          >
+            {refineOpen ? L.refineClose : L.refineOpen}
+          </button>
+        )}
         {hasSections && (
           <button
             type="button"
@@ -251,6 +530,15 @@ function ReviewRow({
         onToggleSection={onToggleSection}
       />
     )}
+    {refineOpen && refinement && (
+      <RefinementPanel
+        memberId={row.memberId}
+        L={L}
+        load={refinement.load}
+        onDecide={refinement.decide}
+        onRetry={refinement.retry}
+      />
+    )}
     </>
   );
 }
@@ -277,6 +565,13 @@ export default function EvalReportReviewCanvas({
    * 않으므로 기존 시각은 그대로다. (PW-606)
    */
   toolbar = null,
+  /**
+   * PW-711 — 동료 피드백 다듬기 검수 배선 (정책 §8.5). 셋을 한 묶음으로 받는다:
+   * `load(memberId)` 는 그 사람의 리뷰 목록을, `decide`·`retry` 는 **바뀐 목록을 다시**
+   * 돌려줘야 한다(캔버스가 그것으로 다시 그린다). 실패하면 throw 해야 칸 안에서 알린다.
+   * 안 주면 검수 칸을 그리지 않으므로 기존 시각은 그대로다.
+   */
+  refinement = null,
   onApprove,
   onSend,
 }) {
@@ -307,9 +602,13 @@ export default function EvalReportReviewCanvas({
       return next;
     });
 
-  const approvedIds = q.rows
-    .filter((r) => r.status === 'leader_approved')
+  // PW-711 — 일괄 발송은 막힌 사람을 **빼고** 보내고 몇 명이 빠졌는지 알린다(§8.5-B).
+  // 서버도 같은 판정으로 한 번 더 거른다 — 여기는 «보여 주기» 쪽이다.
+  const approvedRows = q.rows.filter((r) => r.status === 'leader_approved');
+  const approvedIds = approvedRows
+    .filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0)
     .map((r) => r.memberId);
+  const excludedCount = approvedRows.length - approvedIds.length;
 
   const handleApprove = async (memberId, comment) => {
     try {
@@ -320,7 +619,16 @@ export default function EvalReportReviewCanvas({
     }
   };
 
-  const send = async (ids) => {
+  const send = async (rawIds) => {
+    // 고른 뒤에 막힌 사람이 생길 수 있다(동료가 리뷰를 고쳐 다시 내면 그 순간 막힌다).
+    // 보내기 직전에 한 번 더 거른다 — 서버도 같은 판정으로 막지만 여기서 거르면
+    // 「보냈다」 토스트가 실제로 나간 사람 수와 맞는다.
+    const blockedIds = new Set(
+      q.rows
+        .filter((r) => (r.unresolvedPeerRefinements ?? 0) > 0)
+        .map((r) => r.memberId),
+    );
+    const ids = rawIds.filter((id) => !blockedIds.has(id));
     if (!ids.length) return;
     try {
       await onSend?.(ids);
@@ -358,6 +666,12 @@ export default function EvalReportReviewCanvas({
           </p>
         )}
 
+        {q.canSend && excludedCount > 0 && (
+          <p className="evc-wiz-warn" data-testid="evrr-refine-excluded">
+            {L.refineExcluded.replace('{count}', String(excludedCount))}
+          </p>
+        )}
+
         {q.canSend && (
           <div className="evrr-toolbar">
             <span className="evc-empty-sub">{L.selectHint}</span>
@@ -390,6 +704,7 @@ export default function EvalReportReviewCanvas({
             <span className="evrr-cell evrr-name">{L.colName}</span>
             <span className="evrr-cell evrr-grade">{L.colGrade}</span>
             <span className="evrr-cell evrr-leader">{L.colLeader}</span>
+            <span className="evrr-cell evrr-refine-cell">{L.colRefine}</span>
             <span className="evrr-cell evrr-status">{L.colStatus}</span>
             <span className="evrr-cell evrr-action" />
           </div>
@@ -411,6 +726,7 @@ export default function EvalReportReviewCanvas({
                 requiredSections={requiredSections}
                 canEditSections={q.canEditSections === true}
                 onToggleSection={onToggleSection}
+                refinement={refinement}
               />
             ))
           )}

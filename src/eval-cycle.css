@@ -5052,7 +5052,8 @@
 }
 .evrr-row {
   display: grid;
-  grid-template-columns: 36px 1.4fr 0.8fr 1fr 0.9fr 1.6fr;
+  /* PW-711 — 「동료 피드백 다듬기」 칸이 담당 리더와 상태 사이에 하나 늘었다. */
+  grid-template-columns: 36px 1.3fr 0.7fr 0.9fr 1.1fr 0.8fr 1.5fr;
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-xl);
@@ -8732,4 +8733,135 @@
   flex-wrap: wrap;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-lg);
+}
+
+/* ── PW-711 동료 피드백 다듬기 검수 (정책 §8.5·§8.5-B) ───────────────── */
+
+.evrr-refine-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+.evrr-badge.is-done {
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
+}
+.evrr-badge.is-review {
+  color: var(--utility-warning-700);
+  background: var(--utility-warning-50);
+}
+.evrr-badge.is-failed {
+  color: var(--utility-error-700);
+  background: var(--utility-error-50);
+}
+/* 🔴 발송을 막는 안내는 «누를 수 있어야» 한다 — 무엇을 해야 하는지로 바로 간다
+   (정책 §8.5-B 「N 을 누르면 그 피평가자의 검수 목록으로 이동한다」). */
+.evrr-refine-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-text-xs);
+  color: var(--utility-error-700);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.evrr-refine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evrr-refine-hint,
+.evrr-refine-note {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evrr-refine-error {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--utility-error-700);
+}
+.evrr-refine-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+}
+.evrr-refine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evrr-refine-who {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evrr-refine-q {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evrr-refine-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+.evrr-refine-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+.evrr-refine-col-label {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+.evrr-refine-text {
+  margin: 0;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-text-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+  /* 고정 폭 칸에 들어오는 글의 길이는 정해져 있지 않다 — 붙여 쓴 긴 낱말도 칸을 안 민다. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.evrr-refine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evrr-refine-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.evrr-refine-editor {
+  min-height: 90px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-size-text-sm);
+  resize: vertical;
+}
+/* 좁은 화면에서는 원문·다듬은 글을 위아래로 — 나란히 두면 둘 다 못 읽는다. */
+@media (max-width: 720px) {
+  .evrr-refine-compare {
+    grid-template-columns: 1fr;
+  }
 }
