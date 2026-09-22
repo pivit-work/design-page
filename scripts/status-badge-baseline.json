@@ -1942,11 +1942,23 @@
    "background": "#eff8ff / 어두운 화면 #102a56",
    "color": "#175cd3 / 어두운 화면 #84caff"
   },
+  "eval-cycle.css|.evrr-badge.is-done": {
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7"
+  },
+  "eval-cycle.css|.evrr-badge.is-failed": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
   "eval-cycle.css|.evrr-badge.is-override": {
    "background": "#f4f3ff / 어두운 화면 #27115f",
    "color": "#5925dc / 어두운 화면 #fafaff"
   },
   "eval-cycle.css|.evrr-badge.is-pending": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "eval-cycle.css|.evrr-badge.is-review": {
    "background": "#fffaeb / 어두운 화면 #4e1d09",
    "color": "#b54708 / 어두운 화면 #fec84b"
   },

@@ -750,6 +750,20 @@
   background: var(--utility-success-50);
 }
 
+/* 「검수」 화면의 상태 딱지 — 끝남 · 다시 볼 것 · 보내기 막힘 (PW-711) */
+.evrr-badge.is-done {
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
+}
+.evrr-badge.is-review {
+  color: var(--dp-badge-warning-fg);
+  background: var(--dp-badge-warning-bg);
+}
+.evrr-badge.is-failed {
+  color: var(--dp-badge-danger-fg);
+  background: var(--dp-badge-danger-bg);
+}
+
 .evl-committee-badge {
   display: inline-block;
   margin-left: 8px;

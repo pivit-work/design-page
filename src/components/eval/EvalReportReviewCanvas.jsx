@@ -249,7 +249,7 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
                 {item.itemLabel && (
                   <span className="evrr-refine-q">{item.itemLabel}</span>
                 )}
-                <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
+                <DpStatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</DpStatusBadge>
               </header>
 
               <div className="evrr-refine-compare">
@@ -446,12 +446,11 @@ function ReviewRow({
       <div className="evrr-cell evrr-refine-cell">
         {refineMeta ? (
           <>
-            <span
+            <DpStatusBadge
               className={`evrr-badge ${refineMeta.cls}`}
-              data-testid={`evrr-refine-badge-${row.memberId}`}
-            >
+              data-testid={`evrr-refine-badge-${row.memberId}`}>
               {L[refineMeta.key]}
-            </span>
+            </DpStatusBadge>
             {blocked && refinement && (
               <button
                 type="button"

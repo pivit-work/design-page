@@ -65,11 +65,11 @@
 
 ## 성공 (success) — 표의 색 `var(--utility-green-50)` / `var(--utility-green-600)`
 
-표와 다른 색 6가지 · 딱지 규칙 14개
+표와 다른 색 6가지 · 딱지 규칙 15개
 
 | 바탕 / 글자 (적어 둔 이름) | 쓰는 딱지 |
 |---|---|
-| `var(--utility-success-50) / var(--utility-success-700)` | `.evc-roster-badge` · `.evrr-badge.is-sent` · `.mgr-krd-pill.is-done` · `.okr-krfb-badge` · `.okr-ctx-admin-badge` · `.ood-done-badge` |
+| `var(--utility-success-50) / var(--utility-success-700)` | `.evc-roster-badge` · `.evrr-badge.is-sent` · `.evrr-badge.is-done` · `.mgr-krd-pill.is-done` · `.okr-krfb-badge` · `.okr-ctx-admin-badge` · `.ood-done-badge` |
 | `var(--utility-green-50) / var(--utility-green-700)` | `.evs-lp-tag.tone-green` · `.evs-re-grade.seg-top` · `.evs-cw-status.tone-green` · `.evs-cw-badge.tone-green` |
 | `var(--colors-green-100, #d3f8df) / var(--colors-green-600, #099250)` | `.admin-kit-badge.is-success` |
 | `var(--utility-green-100) / var(--utility-green-600)` | `.admin-snap-type-badge.is-green` |
