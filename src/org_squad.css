@@ -317,6 +317,13 @@
   overflow: hidden;
   line-height: 1;
 }
+/* [PW-303] 한 줄로는 최소 글자로도 안 들어가는 이름(24px 원의 네 글자 한글 이름)은
+   두 줄로 나눠 담는다(`avatarLabelLayout`). 줄은 위아래로 쌓고 각 줄은 접지 않는다. */
+.sq-avatar.is-two-line {
+  flex-direction: column;
+  line-height: 1.05;
+}
+.sq-avatar-line { display: block; }
 /* 매트릭스의 40px 이니셜 원 — `pj-member-initials` 위에 같은 방어만 얹는다 */
 .sq-avatar-lg {
   white-space: nowrap;

@@ -42,6 +42,7 @@ import {
   SQUAD_ANCHOR_MORE,
   SQUAD_ANCHOR_STATUS,
   avatarFontPx,
+  avatarLabelLayout,
   capacityState,
   fmtYmd,
   isCapacityIdle,
@@ -887,6 +888,7 @@ export default function SquadCanvas({
                               const tint = p?.color || null;
                               const label = p?.avatar || nameOf(mm.userId).slice(0, 2);
                               const photo = p?.photoUrl || null;
+                              const fit = avatarLabelLayout(label, 24);
                               return (
                                 <div
                                   key={mm.userId}
@@ -898,14 +900,14 @@ export default function SquadCanvas({
                                     <img src={photo} alt="" className="pj-avatar-sm" />
                                   ) : (
                                     <div
-                                      className="sq-avatar"
+                                      className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
                                       style={{
-                                        fontSize: avatarFontPx(label, 24),
+                                        fontSize: fit.fontPx,
                                         ...(tint
                                           ? { background: `${tint}24`, color: tint }
                                           : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
                                       }}
-                                    >{label}</div>
+                                    >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
                                   )}
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
@@ -1000,15 +1002,20 @@ export default function SquadCanvas({
                                     className="sq-add-item"
                                     onClick={() => { assign(sq.id, n.id); setAddTarget(null); setAddQuery(''); }}
                                   >
-                                    <div
-                                      className="sq-avatar"
-                                      style={{
-                                        fontSize: avatarFontPx(n.avatar || n.name.slice(0, 2), 24),
-                                        ...(n.color
-                                          ? { background: `${n.color}24`, color: n.color }
-                                          : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
-                                      }}
-                                    >{n.avatar || n.name.slice(0, 2)}</div>
+                                    {(() => {
+                                      const fit = avatarLabelLayout(n.avatar || n.name.slice(0, 2), 24);
+                                      return (
+                                        <div
+                                          className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
+                                          style={{
+                                            fontSize: fit.fontPx,
+                                            ...(n.color
+                                              ? { background: `${n.color}24`, color: n.color }
+                                              : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+                                          }}
+                                        >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
+                                      );
+                                    })()}
                                     <div>
                                       <span className="sq-add-name">{n.name}</span>{' '}
                                       <span className="sq-add-meta">{n.title} · {n.team}</span>
