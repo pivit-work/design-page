@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══════════════════════════════════════════════════════════
    내 설정 (MySettingsCanvas) — my-settings-view.jsx 시안 포팅
    admin.css 프리미티브(admin-card, admin-emp-input, admin-notif-*)
@@ -6,7 +8,6 @@
 
 /* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
 @import './datepicker.css';
-
 
 .msc-canvas {
   --admin-card-shadow:
@@ -394,13 +395,6 @@
   color: var(--text-primary);
 }
 
-.msc-vis-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 9px;
-  border-radius: var(--radius-full);
-}
-
 .msc-card.is-green {
   border-color: var(--utility-green-200);
   border-width: 1.5px;
@@ -409,18 +403,6 @@
 .msc-card.is-brand {
   border-color: var(--utility-brand-200);
   border-width: 1.5px;
-}
-
-.msc-vis-badge.is-green {
-  background: var(--utility-green-50);
-  border: 1px solid var(--utility-green-200);
-  color: var(--utility-green-600);
-}
-
-.msc-vis-badge.is-brand {
-  background: var(--bg-brand-secondary);
-  border: 1px solid var(--utility-brand-200);
-  color: var(--text-brand-secondary);
 }
 
 /* ── 알림 ───────────────────────────────────────────── */
@@ -470,22 +452,6 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
-}
-
-.msc-intg-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: var(--radius-full);
-  background: var(--utility-green-50);
-  border: 1px solid var(--utility-green-200);
-  color: var(--utility-green-600);
-}
-
-.msc-intg-badge.is-muted {
-  background: var(--bg-secondary);
-  border-color: var(--border-primary);
-  color: var(--text-tertiary);
 }
 
 .msc-intg-desc {
@@ -664,12 +630,6 @@
   margin: 0 0 12px;
 }
 
-.msc-vis-badge.is-muted {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
-}
-
 /* ── 내 프로필 히어로 ── */
 .msc-hero {
   display: flex;
@@ -747,49 +707,11 @@
   min-width: 0;
 }
 
-/* 값 옆 상태 배지 — 라벨 길이가 로케일마다 달라지므로 줄이지 않고 감싸 흐른다. */
-.msc-pair-badge {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 99px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-secondary);
-  color: var(--text-tertiary);
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-}
-
-.msc-pair-badge.is-on {
-  border-color: var(--colors-border-borderBrand);
-  background: var(--colors-background-bgSuccessPrimary);
-  color: var(--colors-foreground-fgSuccessPrimary);
-}
-
 /* ── 평가 등급 배지 / eval 행 ── */
 .msc-eval-row {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.msc-grade-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  font-size: 18px;
-  font-weight: 800;
-  flex-shrink: 0;
-  /* 긴 등급 라벨(템플릿 정의 라벨·영문 로케일)이 배지 밖으로 삐져나오지 않게 —
-     안쪽 여백 + 줄바꿈 허용 + 넘침 차단. 폰트 크기는 JSX 에서 폭에 맞춰 계산한다. */
-  box-sizing: border-box;
-  padding: 0 4px;
-  line-height: 1.05;
-  text-align: center;
-  overflow: hidden;
-  overflow-wrap: anywhere;
 }
 
 /* ── 보상 마스킹 ── */
@@ -809,15 +731,6 @@
   color: var(--text-quaternary);
   font-family: var(--font-family-mono, 'DM Mono', monospace);
   letter-spacing: 2px;
-}
-
-.msc-reason-chip {
-  font-size: 12px;
-  padding: 2px 9px;
-  border-radius: var(--radius-full);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
 }
 
 /* ── 이력/목록 행 ── */
@@ -981,32 +894,6 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-}
-
-/* 배지는 폭이 고정이 아니다 — 항목 이름·사유는 사람이 넣는 값이라 길이를 가정하지
-   않는다. 넘치면 줄바꿈으로 흘리고 잘라내지 않는다. */
-.msc-hist-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: var(--radius-full);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-}
-
-.msc-hist-badge.is-self {
-  background: var(--bg-brand-secondary);
-  border-color: var(--utility-brand-200);
-  color: var(--text-brand-secondary);
-}
-
-.msc-hist-badge.is-hr {
-  background: var(--bg-primary);
-  border-color: var(--border-primary);
-  color: var(--text-secondary);
 }
 
 .msc-hist-values {

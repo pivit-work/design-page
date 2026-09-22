@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ── Content Header ── */
 .content-header { position: fixed; top: 68px; left: 240px; padding: 8px 12px 13px; border-radius: 14px; z-index: 80; display: flex; flex-direction: column; gap: 13px; }
 .tab-nav { display: flex; align-items: center; gap: 20px; font-size: 30px; font-weight: 700; line-height: 38px; }
@@ -130,19 +132,6 @@
 .online-dot { position: absolute; bottom: -1px; right: -1px; width: 12px; height: 12px; border-radius: 9999px; border: 2px solid var(--bg-quaternary); }
 .member-name { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
 .member-grade { font-size: 12px; color: var(--text-tertiary, #98a2b3); line-height: 16px; margin-top: 2px; padding-left: 34px; white-space: nowrap; }
-.status-badge-member { position: absolute; left: 50%; transform: translateX(-50%); bottom: -24px; color: white; font-size: 12px; font-weight: 700; line-height: 18px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 101; }
-
-/* ── Role Badge ── */
-.role-badge {
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
-  padding: 0px 6px;
-  border-radius: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
 .role-badge-dl {
   background: var(--utility-blue-500);
 }
@@ -394,17 +383,6 @@
   margin-bottom: 12px;
 }
 
-.modal-status-badge {
-  background: var(--bg-secondary);
-  border: 1px solid var(--colors-border-borderSecondary);
-  color: var(--text-secondary);
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  padding: 2px 10px;
-}
-
 /* ── Modal Stats ── */
 .modal-stats {
   display: flex;
@@ -619,18 +597,6 @@
   font-weight: 500;
   line-height: 18px;
   color: var(--text-secondary);
-}
-
-/* 조직 없이 바로 보고하는 사람 표시 — 조직장·대표 배지와 섞이지 않는 무채색 작은 칩. */
-.modal-team-chip {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  padding: 0 6px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
 }
 
 /* ── Modal Footer ── */

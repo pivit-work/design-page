@@ -118,34 +118,74 @@ export function isBadgeShapeRule({ selector, declarations }) {
   return Boolean(declarations.padding || declarations['font-size']);
 }
 
+/**
+ * 색 이름을 «끝까지 따라가» 편다. 같은 색을 `var(--bg-brand-secondary)` 로도
+ * `var(--colors-background-bgBrandSecondary)` 로도 적어 둔 자리가 많고, 이제는 딱지 색을
+ * 뜻 이름(`var(--dp-badge-success-bg)`)으로도 적는다. 이름이 달라도 **같은 색이면 같다**고
+ * 봐야 「모으기 전후 화면이 같다」를 잴 수 있다.
+ *
+ * `srcRoot` 를 주면 그 폴더의 `index.css`·`tokens.css`·`status-badge.css` 에 적힌
+ * `--이름: 값` 을 읽어 사슬을 따라간다.
+ */
+export function buildColorAliases(srcRoot) {
+  const aliases = {};
+  for (const name of ['index.css', 'tokens.css', 'status-badge.css']) {
+    const full = path.join(srcRoot, name);
+    if (!fs.existsSync(full)) continue;
+    const css = stripComments(fs.readFileSync(full, 'utf8'));
+    for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+      if (!(m[1] in aliases)) aliases[m[1]] = m[2].trim();
+    }
+  }
+  return aliases;
+}
+
+/** 색 값 하나를 사슬 끝까지 따라간 값으로. 사슬이 끊기면 마지막 이름을 값으로 본다. */
+export function resolveColor(value, aliases) {
+  if (!value) return '';
+  let out = String(value).trim();
+  for (let i = 0; i < 10; i += 1) {
+    const m = out.match(/^var\(\s*(--[\w-]+)\s*(?:,[\s\S]*)?\)$/);
+    if (!m) break;
+    const next = aliases[m[1]];
+    if (next == null) return m[1];
+    out = next.trim();
+  }
+  return out.replace(/\s+/g, ' ');
+}
+
+const COLOR_PROPS = new Set(['background', 'color']);
+
 /** 규칙에서 견줄 항목만 골라 편 값으로. 없는 항목은 키 자체를 넣지 않는다. */
-export function shapeOf(declarations) {
+export function shapeOf(declarations, aliases) {
   const out = {};
   for (const prop of ALL_PROPS) {
     const raw = declarations[prop] ?? (prop === 'background' ? declarations['background-color'] : undefined);
     if (raw == null) continue;
-    out[prop] = normalizeValue(raw, { prop });
+    out[prop] = aliases && COLOR_PROPS.has(prop)
+      ? resolveColor(raw, aliases)
+      : normalizeValue(raw, { prop });
   }
   return out;
 }
 
 /** 파일 하나에서 딱지 바탕 규칙을 { 선택자 → 생김새 } 로. */
-export function badgesInCss(css) {
+export function badgesInCss(css, aliases) {
   const out = {};
   for (const rule of parseRules(css)) {
     if (!isBadgeShapeRule(rule)) continue;
-    out[rule.selector] = shapeOf(rule.declarations);
+    out[rule.selector] = shapeOf(rule.declarations, aliases);
   }
   return out;
 }
 
 /** `src` 아래 CSS 파일 전부에서 딱지 바탕 규칙을 모은다 → { "파일|선택자" → 생김새 } */
-export function collectBadges(srcRoot) {
+export function collectBadges(srcRoot, aliases = buildColorAliases(srcRoot)) {
   const out = {};
   for (const name of fs.readdirSync(srcRoot).sort()) {
     if (!name.endsWith('.css')) continue;
     const css = fs.readFileSync(path.join(srcRoot, name), 'utf8');
-    for (const [selector, shape] of Object.entries(badgesInCss(css))) {
+    for (const [selector, shape] of Object.entries(badgesInCss(css, aliases))) {
       out[`${name}|${selector}`] = shape;
     }
   }
@@ -172,7 +212,7 @@ export function diffShapes(before, after) {
  * (`.evc-status-badge.tone-success`). 옮긴 뒤 색이 달라지지 않았는지 견주려면 이것도 기준에
  * 들어가야 한다.
  */
-export function collectBadgeVariants(srcRoot, shapeSelectors) {
+export function collectBadgeVariants(srcRoot, shapeSelectors, aliases = buildColorAliases(srcRoot)) {
   const shapeClasses = new Set(shapeSelectors.map((s) => leafClass(s.slice(s.indexOf('|') + 1))));
   const out = {};
   for (const name of fs.readdirSync(srcRoot).sort()) {
@@ -184,7 +224,7 @@ export function collectBadgeVariants(srcRoot, shapeSelectors) {
       if (!classes.some((c) => shapeClasses.has(c))) continue;
       const d = rule.declarations;
       if (!d.background && !d['background-color'] && !d.color) continue;
-      out[`${name}|${rule.selector}`] = shapeOf(d);
+      out[`${name}|${rule.selector}`] = shapeOf(d, aliases);
     }
   }
   return out;
@@ -192,7 +232,8 @@ export function collectBadgeVariants(srcRoot, shapeSelectors) {
 
 /** 기준 파일 한 장을 뜬다 — 바탕 규칙 + 색 갈래 규칙. */
 export function captureBaseline(srcRoot) {
-  const shapes = collectBadges(srcRoot);
-  const variants = collectBadgeVariants(srcRoot, Object.keys(shapes));
+  const aliases = buildColorAliases(srcRoot);
+  const shapes = collectBadges(srcRoot, aliases);
+  const variants = collectBadgeVariants(srcRoot, Object.keys(shapes), aliases);
   return { shapes, variants };
 }

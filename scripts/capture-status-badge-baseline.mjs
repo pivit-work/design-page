@@ -11,7 +11,11 @@
  * 그 순간 검사가 아무것도 재지 않게 된다. 딱지 모양을 정말 바꾸는 카드는 바뀐 값만 골라
  * 손으로 고치고, 무엇을 왜 바꿨는지 그 카드에 남긴다.
  *
- * 실행: `node scripts/capture-status-badge-baseline.mjs`
+ * 실행: `node scripts/capture-status-badge-baseline.mjs [모으기 전 src 폴더]`
+ *
+ * 키의 앞머리는 **모으기 전에 그 딱지가 있던 파일**이다(`eval-cycle.css|.evc-status-badge`).
+ * 지금은 전부 `status-badge.css` 에 있으므로 검사는 앞머리를 떼고 견준다 — 앞머리는 「원래
+ * 어디 있었나」를 읽기 위해 남겨 둔다.
  */
 
 import fs from 'node:fs';
@@ -20,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { captureBaseline } from './status-badge-lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SRC = path.resolve(HERE, '..', 'src');
+const SRC = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(HERE, '..', 'src');
 const OUT = path.join(HERE, 'status-badge-baseline.json');
 
 const baseline = captureBaseline(SRC);

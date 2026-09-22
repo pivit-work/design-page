@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /*
  * AdminIntegrationsCanvas — 연동(Integrations) 어드민 탭 보강 스타일.
  *
@@ -65,26 +67,6 @@
   line-height: 1.5;
   color: var(--text-tertiary);
 }
-
-/* ── 상태 배지 (admin-emp-status 값 미러) ───────────────────────────── */
-.intg-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 9px;
-  border-radius: var(--radius-sm, 8px);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 20px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.intg-status.is-connected { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
-.intg-status.is-disconnected { background: var(--bg-secondary); color: var(--text-tertiary); }
-.intg-status.is-connecting { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
-.intg-status.is-error { background: var(--bg-secondary); color: var(--colors-text-textErrorPrimary, #d92d20); }
 .intg-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 /* ── 사용처 메타 / 마지막 동기화 ────────────────────────────────────── */
@@ -199,10 +181,6 @@
 .intg-logrow-info { display: flex; align-items: center; gap: 10px; }
 .intg-logrow-date { font-size: 11px; color: var(--text-tertiary); min-width: 80px; }
 .intg-logrow-desc { font-size: 12px; color: var(--text-primary); }
-.intg-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: 10px; font-weight: 700; white-space: nowrap; }
-.intg-pill.is-good { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
-.intg-pill.is-bad { background: var(--utility-error-50); color: var(--colors-error-600); }
-.intg-pill.is-brand { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
 .intg-loglist-footer { font-size: 11px; color: var(--text-tertiary); margin-top: 12px; font-style: italic; }
 
 /* ── 토큰 만료·재인증 확인 창 본문 ── 창은 공용 ConfirmModal(PW-836) ── */

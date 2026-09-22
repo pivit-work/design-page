@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══════════════════════════════════════════════════════════════
    OKR '내 리소스' 탭 (리소스 투입)
    Figma 17478:21448(내 입력) / 22296(KR 펼침) / 22890·23383·24312(팀 현황)
@@ -19,7 +21,6 @@
 .rsx-meta-dot { color: var(--text-tertiary); }
 .rsx-meta-month { color: var(--text-brand-secondary); }
 .rsx-meta-owner { font-weight: 500; line-height: 24px; color: var(--text-secondary); }
-.rsx-meta-badge { margin-left: 6px; padding: 2px 12px; border: 1px solid var(--border-primary); border-radius: 12px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 
 /* ── 서브 세그먼트 ── */
 .rsx-views { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -58,7 +59,6 @@
 .rsx-entry-head { display: flex; align-items: center; justify-content: space-between; }
 .rsx-entry-title { display: flex; align-items: center; gap: 8px; }
 .rsx-entry-name { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
-.rsx-tag { padding: 2px 8px; border-radius: 999px; background: var(--utility-gray-50); border: 1px solid var(--utility-gray-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-gray-700); }
 .rsx-entry-pct { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
 .rsx-entry-slider { display: flex; align-items: center; gap: 12px; padding-top: 12px; }
 /* 슬라이더(.rsx-slider*)·숫자 입력(.rsx-entry-input)은 `form-controls.css` 로 옮겼다 —
@@ -78,12 +78,6 @@
 .rsx-add { background: var(--bg-quaternary); border-radius: 16px; padding: 16px 24px; display: flex; flex-direction: column; gap: 24px; }
 .rsx-add-head { display: flex; align-items: center; gap: 12px; }
 .rsx-add-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
-.rsx-badge { padding: 2px 8px; border-radius: 999px; border: 1px solid; font-size: 12px; font-weight: 500; line-height: 18px; }
-.rsx-badge.is-brand { padding: 2px 6px; border-radius: 8px; background: var(--utility-brand-50); border-color: var(--utility-brand-200); color: var(--utility-brand-700); }
-.rsx-badge.is-blue { background: var(--utility-blue-50); border-color: var(--utility-blue-200); color: var(--utility-blue-700); }
-.rsx-badge.is-indigo { background: var(--utility-indigo-50); border-color: var(--utility-indigo-200); color: var(--utility-indigo-700); }
-.rsx-badge.is-warn { background: var(--utility-warning-50); border-color: var(--utility-warning-200); color: var(--utility-warning-700); }
-.rsx-badge.is-bad { background: var(--utility-error-50); border-color: var(--utility-error-200); color: var(--utility-error-700); }
 .rsx-add-suggest { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rsx-suggest-chip { padding: 6px 8px; background: var(--utility-purple-50); border: 1px solid var(--alpha-black-3); border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--utility-purple-500); cursor: pointer; }
 .rsx-add-group { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; width: 100%; }
@@ -159,7 +153,6 @@
 .rsx-comment-input-row input { flex: 1; min-width: 0; box-sizing: border-box; padding: 8px 12px; background: var(--alpha-black-3); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; line-height: 24px; color: var(--text-primary); outline: none; }
 .rsx-comment-input-row input::placeholder { color: var(--text-placeholder); }
 .rsx-member.is-team .rsx-member-name { font-size: 24px; }
-.rsx-tag.is-sm { border-radius: 999px; }
 .rsx-member.is-slim { padding: 16px 24px; }
 .rsx-directs { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; }
 

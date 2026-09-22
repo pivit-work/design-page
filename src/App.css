@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ── Layout ── */
 /* 모든 페이지 최소 폭 1400px. 셸(사이드바/톱냅)과 각 페이지 루트가 전부
    position:fixed 라 viewport 가 아닌 .app 을 containing block 으로 잡아야
@@ -106,22 +108,6 @@
 }
 
 .tab-btn.tab-active { color: var(--text-secondary); }
-
-.tab-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 10px;
-  background: var(--utility-gray-50);
-  border: 1px solid var(--utility-gray-200);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-text-xs);
-  font-weight: 500;
-  color: var(--utility-gray-700);
-  line-height: var(--line-height-text-xs);
-}
 
 /* ── Common segmented control ─────────────────────────────────────────────
    pivit 전역 segmented control 표준. 지난주/이번주 등 동일 패턴은 모두

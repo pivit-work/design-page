@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══════════════════════════════════════════════════
    Project Tab
    ══════════════════════════════════════════════════ */
@@ -47,19 +49,6 @@
 }
 .pj-card:hover {
   box-shadow: 0 4px 12px rgba(10, 13, 18, 0.06);
-}
-
-.pj-card-status {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
 }
 .pj-status-dot {
   width: 6px;

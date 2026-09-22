@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══ OKR 페이지 전용 스타일 ══
    헤더 탭(.content-header/.tab-nav)과 캔버스 공통(.canvas-area/.drag-hint/
    .zoom-controls)은 org_chart.css 의 전역 클래스를 재사용하고,
@@ -16,7 +18,6 @@
    뎁스 문구는 컨트롤이 아니라 **설명**이라 셀렉터(14/600)보다 한 단계 약하게 둔다. */
 /* 단위 고르기 — 공용 SegmentedControl(PW-836). 모양은 공용 규칙이 그린다. */
 .okr-depth-label { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); white-space: nowrap; }
-.okr-policy-chip { padding: 3px 9px; border: 1px solid var(--utility-warning-200); border-radius: 99px; background: var(--utility-warning-50); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-warning-700); white-space: nowrap; }
 
 /* ── 연도/분기 드롭다운 메뉴 ── */
 .okr-select-wrap { position: relative; }
@@ -93,9 +94,6 @@
 /* ── Objective 행 ── */
 .okr-objective-row { display: flex; align-items: center; gap: 8px; height: 54px; padding: 16px 22px; box-sizing: border-box; background: var(--bg-tertiary); border-radius: 12px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); cursor: pointer; transition: box-shadow 0.2s; }
 .okr-objective-row:hover { box-shadow: 0 4px 12px rgba(10, 13, 18, 0.12), 0 2px 4px rgba(10, 13, 18, 0.06); }
-.okr-q-badge { padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-white); white-space: nowrap; }
-.okr-q-badge.is-gray { background: var(--fg-tertiary); }
-.okr-q-badge.is-blue { background: var(--utility-blue-400); }
 .okr-objective-title { width: 160px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .okr-objective-percent { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); }
 
@@ -201,7 +199,6 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-p-ai-banner { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--utility-purple-100); border-radius: 6px; }
 .okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-refresh { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
-.okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--utility-purple-50); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-chips { display: flex; gap: 8px; }
 .okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .okr-p-ai-chip-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -222,15 +219,6 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-status-text.is-warning { color: var(--utility-warning-500); }
 .okr-status-text.is-error { color: var(--utility-error-500); }
 .okr-status-text.is-success { color: var(--utility-success-500); }
-.okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
-.okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
-.okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
-/* 실행 항목 상태 배지를 눌러 넘길 수 있을 때만 붙는다 (okr-policy §9.2A · PW-501).
-   🔴 권한이 없을 때는 이 클래스가 안 붙을 뿐, 색·opacity 는 그대로다 —
-   흐린 배지는 「눌리는데 안 되는 화면」으로 읽혀 고장으로 보인다(§2F.5 G3). */
-.okr-pill.is-toggleable { cursor: pointer; transition: opacity .15s; }
-.okr-pill.is-toggleable:hover { opacity: .75; }
-.okr-pill.is-toggleable:focus-visible { outline: 2px solid var(--utility-brand-200); outline-offset: 1px; }
 
 /* 테이블 헤더 */
 .okr-p-table-head { display: flex; align-items: center; padding: 8px 22px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
@@ -262,24 +250,7 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-p-caret.is-open { transform: rotate(180deg); }
 .okr-p-obj-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; color: var(--text-secondary); line-height: 28px; }
 .okr-p-obj-link { margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--text-tertiary); line-height: 20px; }
-
-/* 미정렬 배지 — 팀 보드 Objective 행 · 대시보드 Objective 요약 행이 공유한다.
-   같은 뜻에 다른 배지를 만들면 사용자가 둘을 구별해야 한다. warning 토큰만 쓰고
-   새 시각 언어를 만들지 않는다. 배지 안 문자열은 길이가 흔들리므로(집계 수·보조 문구)
-   box-sizing/overflow 로 최종 방어한다. */
-.okr-unaligned-badge {
-  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
-  box-sizing: border-box; max-width: 100%; flex-shrink: 0;
-  margin-top: 2px; padding: 3px 9px; border-radius: 6px;
-  font-size: 10px; font-weight: 800; line-height: 14px;
-  color: var(--utility-warning-600, #dc6803);
-  background: var(--utility-warning-50, #fffaeb);
-  border: 1px solid var(--utility-warning-200, #fedf89);
-  overflow: hidden; overflow-wrap: anywhere;
-}
 .okr-unaligned-badge .okr-unaligned-note { font-weight: 400; }
-/* 좁은 요약 행(대시보드 트리)용 — 색·글자 규격은 같고 모서리·패딩만 줄인다. */
-.okr-unaligned-badge.is-pill { margin-top: 0; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
 
 /* Key Result 블록 — 왼쪽 32px 들여쓰기된 패널 */
 .okr-p-kr-block { margin-left: 32px; }
@@ -297,7 +268,6 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-p-feedback-head { padding: 9px 0; cursor: pointer; }
 .okr-p-feedback-title { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--utility-green-600); white-space: nowrap; }
 .okr-p-feedback-summary { margin-left: 6px; font-size: 14px; font-weight: 600; color: var(--utility-green-600); white-space: nowrap; }
-.okr-p-chip-btn { padding: 4px 10px; border-radius: 6px; background: var(--alpha-black-3); font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; cursor: pointer; }
 .okr-p-comment { padding: 8px 0; border-top: 1px solid var(--bg-quaternary); }
 .okr-p-comment-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .okr-p-comment-name { flex: 1; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--utility-green-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -399,12 +369,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-krfb-author { display: flex; align-items: center; gap: 12px; }
 .okr-krfb-author img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
 .okr-krfb-author-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
-.okr-role-badge { padding: 0 6px; border-radius: 4px; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); margin-left: -4px; }
-.okr-role-badge.is-blue { background: var(--utility-blue-500); }
-.okr-role-badge.is-gray { background: var(--utility-gray-500); }
 .okr-krfb-meta { display: flex; align-items: center; gap: 6px; }
 .okr-krfb-date { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-primary); }
-.okr-krfb-badge { padding: 2px 8px; border-radius: 999px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
 .okr-krfb-text { font-size: 16px; font-weight: 400; line-height: 24px; color: var(--text-primary); }
 .okr-krfb-reply-link { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-primary); cursor: pointer; }
 .okr-krfb-reply { display: flex; flex-direction: column; gap: 12px; }
@@ -548,7 +514,6 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 /* ── OKR 컨텍스트 설정 모달 — Figma 17332:22101 (마법사와 동일 셸 + 드롭존) ── */
 .okr-ctx-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .okr-ctx-head-left { display: flex; align-items: center; gap: 12px; }
-.okr-ctx-admin-badge { padding: 2px 8px; border-radius: 999px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
 .okr-ctx-optional { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .okr-ctx-intro { display: flex; flex-direction: column; gap: 2px; width: 100%; }
 .okr-ctx-intro-desc { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
@@ -590,7 +555,6 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
    브랜드 보더 + 브랜드 틴트 = 구 3택의 선택 카드와 같은 시각. 클릭 대상이 아니다. */
 .okr-wz-scope-fixed { display: flex; align-items: center; gap: 12px; box-sizing: border-box; padding: 16px; border: 2px solid var(--border-brand); border-radius: 8px; background: var(--utility-brand-50); }
 .okr-wz-scope-fixed-text { flex: 1; min-width: 0; }
-.okr-wz-scope-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-brand-secondary); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-brand-secondary); vertical-align: middle; white-space: nowrap; }
 .okr-wz-target-select { flex: none; max-width: 220px; height: 36px; padding: 0 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-primary); font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-primary); }
 .okr-wz-target-name { flex: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text-brand-secondary); }
 /* 진입 차단 — 본문 대신 사유 카드 (시안 BlockedBody · 정책서 §2A.4) */
@@ -617,7 +581,6 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-warning-50); border: 1.5px solid var(--utility-warning-200); }
 .okr-wz-draft.is-confirmed { background: var(--utility-success-50); border-color: var(--utility-success-200); }
 .okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.okr-wz-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--alpha-black-3); color: var(--text-secondary); }
 .okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 7px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 6px; }
 .okr-wz-krno { font-size: 11px; color: var(--text-tertiary); text-align: center; }
 .okr-wz-krcell { padding: 6px 8px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; min-width: 0; }

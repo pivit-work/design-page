@@ -32,6 +32,7 @@
     "./styles/admin.css": "./src/admin.css",
     "./styles/admin-kit.css": "./src/admin-kit.css",
     "./styles/roster-table.css": "./src/roster-table.css",
+    "./styles/status-badge.css": "./src/status-badge.css",
     "./styles/settings.css": "./src/settings.css",
     "./styles/notifications.css": "./src/notifications.css",
     "./styles/myprofile.css": "./src/myprofile.css",
@@ -52,6 +53,7 @@
     "check:classnames": "node scripts/check-classnames.mjs",
     "check:shared-frames": "node scripts/check-shared-frames.mjs",
     "check:roster-tables": "node scripts/check-roster-tables.mjs",
+    "check:status-badges": "node scripts/check-status-badges.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },
