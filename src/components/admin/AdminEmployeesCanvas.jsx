@@ -143,6 +143,12 @@ const DEFAULT_LABELS = {
     managerCeoExcluded: '대표 {count}명은 상급자를 가질 수 없어 제외됩니다',
     managerAllCeo: '고른 사람이 대표뿐이라 배정할 대상이 없습니다',
     statusChange: '상태 일괄 변경',
+    /* 「여러 칸 한 번에 고치기」 (PW-901). 스프레드시트 뷰가 폐기되며(PW-576) 함께
+       사라졌던 «여러 사람의 여러 항목을 한 번에» 가 이 항목으로 돌아왔다 — 2026-09-02
+       회의가 없애기로 한 것은 겹치는 «보여 주는 방식» 이었지 이 기능이 아니었다
+       (커트 결정 2026-09-22). 창은 이 캔버스가 아니라 **부르는 쪽이 그린다** — 고칠 수
+       있는 항목과 값 검사는 화면(제품)의 규칙이라 디자인 부품이 들고 있을 것이 아니다. */
+    fieldsEdit: '여러 칸 한 번에 고치기',
     /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
        않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
        🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
@@ -1522,8 +1528,10 @@ function EmployeesListView({
          대표는 이 뷰가 대상에서 빼고 넘긴다(§3.3 · 서버도 `target_is_ceo` 로 거절한다).
        · `onBulkChangeStatus(memberIds, status)` — 재직 상태 4종 중 하나(§3.2.1).
          날짜는 함께 넘기지 않는다 — 사람마다 다르고 편집 패널의 항목이다.
-       · `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다. */
-  onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate,
+       · `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다.
+       · `onBulkEditFields(memberIds)` — 고른 사람들의 여러 항목을 한 번에 고치는 창을
+         **부르는 쪽이** 연다(PW-901). 이 캔버스는 창을 그리지 않는다. */
+  onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -1841,6 +1849,15 @@ function EmployeesListView({
       id: 'status-change',
       label: labels.listBulk.statusChange,
       onPick: () => setBulkModal('status'),
+    });
+  }
+  /* 파괴적인 「일괄 비활성화」 **앞**에 둔다 — 기획 §3.1 이 정한 「손이 미끄러져
+     눌리는 자리에 파괴적인 것을 두지 않는다」 를 지키면서 값 편집끼리 붙는다. */
+  if (selectable && onBulkEditFields) {
+    bulkItems.push({
+      id: 'fields-edit',
+      label: labels.listBulk.fieldsEdit,
+      onPick: () => onBulkEditFields(selectedRows.map((m) => m.id)),
     });
   }
   if (selectable && onBulkDeactivate) {
@@ -3488,6 +3505,11 @@ export default function AdminEmployeesCanvas({
      미주입이면 그 항목이 드롭다운에 없다. */
   onBulkChangeStatus,
   onBulkDeactivate,
+  /* 「여러 칸 한 번에 고치기」 (PW-901) — `onBulkEditFields(memberIds)`. 고른 사람들의
+     여러 항목을 한 번에 고치는 창을 **부르는 쪽이** 연다. 이 캔버스는 창을 그리지 않는다:
+     고칠 수 있는 항목·선택 적용 항목·직군/직렬 매핑은 화면의 규칙이라 디자인 부품이
+     알 일이 아니다. 미주입이면 그 항목이 드롭다운에 없다. */
+  onBulkEditFields,
   /**
    * 매니저 후보 `[{ id, label, leadLabel? }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다.
    * `leadLabel` 은 그 후보가 조직장인 조직 경로 — 배정 판단 근거로 후보 행에 병기된다.
@@ -3788,6 +3810,8 @@ export default function AdminEmployeesCanvas({
             onAssignManagerBulk={canEdit ? onAssignManagerBulk : undefined}
             onBulkChangeStatus={canEdit ? onBulkChangeStatus : undefined}
             onBulkDeactivate={canEdit ? onBulkDeactivate : undefined}
+            /* 「여러 칸 한 번에 고치기」 (PW-901) — 고른 사람 id 만 넘긴다. */
+            onBulkEditFields={canEdit ? onBulkEditFields : undefined}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo
