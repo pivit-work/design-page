@@ -23,6 +23,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
@@ -164,7 +165,6 @@ export default function SquadCanvas({
    */
   labels,
 }) {
-  const [hov, setHov] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [popover, setPopover] = useState(null); // { squadId, userId, x, y }
   const [addTarget, setAddTarget] = useState(null);
@@ -208,6 +208,12 @@ export default function SquadCanvas({
   }, []);
 
   const moreMenuRef = useRef(null);
+  // 붙어 서는 표 제목이 위쪽 탭 머리 밑에 걸리도록 머리 높이를 잰다 — ProjectCanvas 와 같다.
+  const pageHeaderRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  useEffect(() => {
+    if (pageHeaderRef.current) setHeaderHeight(pageHeaderRef.current.offsetHeight);
+  }, []);
   const statusMenuRef = useRef(null);
   const closeMoreMenu = useCallback(() => setMoreMenu(null), []);
   const closeStatusMenu = useCallback(() => setStatusMenu(null), []);
@@ -590,7 +596,7 @@ export default function SquadCanvas({
     <OrgLabelsContext.Provider value={L}>
     <div className="content-area pj-content-area" data-testid="squad-canvas">
       <div className="content-canvas">
-        <div className="pj-header">
+        <div className="pj-header" ref={pageHeaderRef}>
           {tabStrip}
           <div className="header-subtitle">
             <b>{L('squad.title')}</b>
@@ -603,7 +609,7 @@ export default function SquadCanvas({
           {/* 헤더 + 편집 모드 토글 */}
           <div className="sq-toolbar">
             <div>
-              <p className="sq-toolbar-title">{L('squad.title')}</p>
+              <p className="pj-table-title">{L('squad.title')}</p>
               {/*
                 편집 범위 안내는 **자격별로 갈린다**(정본 :155). 종전에는 「전체 / 내 조직」
                 두 갈래뿐이라, 조직 축이 없는 ⭐리드에게 「내 조직 구성원의 할당만 편집할 수
@@ -614,7 +620,7 @@ export default function SquadCanvas({
                 달라지면 「관리자는 대신 넣을 수 있나 보다」 로 읽혀, 폐기한 대행이 문구로
                 되살아난다(PW-362).
               */}
-              <p className="sq-toolbar-desc">
+              <p className="pj-table-subtitle">
                 {isEditing
                   ? (editableSet === null
                     ? L('squad.desc.editAll')
@@ -741,31 +747,16 @@ export default function SquadCanvas({
                   const stBadge = squadStatusMeta(sq.status);
                   const sqTransitions = transitionsFor(sq);
                   const canTransition = sqTransitions.length > 0;
-                  // 이 카드 위에 메뉴·팝오버가 떠 있는가.
-                  // hover 의 `transform` 은 **새 스태킹 컨텍스트를 만든다** — 그 안에 갇히면
-                  // 메뉴의 z 를 아무리 올려도 사이드바를 넘지 못하고, `position: fixed` 클릭아웃
-                  // 배경마저 카드 기준으로 잡혀 화면 전체를 덮지 못한다. 그래서 오버레이가 열린
-                  // 동안에는 lift 를 끄고 그림자로만 hover 를 표현한다.
-                  const overlayOpen = moreMenu === sq.id || statusMenu === sq.id
-                    || histFor === sq.id || addTarget === sq.id;
 
                   return (
                     <div
                       key={sq.id} data-testid={`squad-card-${sq.id}`}
-                      onMouseEnter={() => setHov(sq.id)} onMouseLeave={() => setHov(null)}
                       className={[
                         'pj-card sq-card',
                         addTarget === sq.id ? 'is-open' : '',
                         sq.status === 'archived' ? 'is-archived' : '',
                       ].filter(Boolean).join(' ')}
-                      style={{
-                        // 스쿼드 색은 데이터라 토큰으로 표현할 수 없다 — hover 강조만 인라인
-                        boxShadow: hov === sq.id ? `0 6px 24px ${sq.color}24` : undefined,
-                        transform: hov === sq.id && !overlayOpen ? 'translateY(-2px)' : 'none',
-                      }}
                     >
-                      <span className="sq-card-strip" style={{ background: sq.color }} />
-
                       {/* 카드 메뉴·이력 팝오버의 **앵커**. 여기 붙여야 종전 CSS
                           (`top: calc(100% + 6px); right: 0`) 와 같은 자리에 뜬다 —
                           트리거(⋯ · 상태 배지) 각각에 붙이면 자리가 미묘하게 달라진다. */}
@@ -780,7 +771,11 @@ export default function SquadCanvas({
                           title={canTransition ? L('squad.card.changeStatus') : undefined}
                           style={{ color: stBadge.textColor }}
                         >
-                          <span className="pj-status-dot" style={{ background: stBadge.dotColor }} />
+                          {stBadge.icon ? (
+                            <Icon src={stBadge.icon} size={12} color="currentColor" />
+                          ) : (
+                            <span className="pj-status-dot" style={{ background: stBadge.dotColor }} />
+                          )}
                           <span>{statusText(sq.status)}</span>
                           {canTransition && <ChevronDownIcon size={12} />}
                         </StatusBadge>
@@ -879,16 +874,19 @@ export default function SquadCanvas({
                       <SquadComposition squad={sq} members={members} personOf={personOf} />
 
                       {!isEditing ? (
-                        <div className="sq-members">
+                        <div className="pj-card-members sq-members">
                           {/* 시안은 아바타를 -6px 로 겹쳐 쌓았지만, 그건 라벨이 'KR' 같은
                               2글자 코드일 때의 간격이다. 실제 명부는 '박소율' 처럼 3~4글자
                               한글 이름이라 겹치면 뒷글자가 가려 읽히지 않는다 — 겹치는 대신
-                              띄우고 넘치면 줄바꿈한다(카드당 인원은 많아야 한 자릿수). */}
+                              띄우고 넘치면 줄바꿈한다(카드당 인원은 많아야 한 자릿수).
+                              사진이 있는 사람은 프로젝트 카드와 같은 사진 동그라미(`pj-avatar-sm`)로
+                              그린다(PW-905) — 이름 글자 동그라미는 사진이 없을 때만이다. */}
                           <div className="sq-avatar-group">
                             {members.map((mm) => {
                               const p = personOf(mm.userId);
                               const tint = p?.color || null;
                               const label = p?.avatar || nameOf(mm.userId).slice(0, 2);
+                              const photo = p?.photoUrl || null;
                               return (
                                 <div
                                   key={mm.userId}
@@ -896,15 +894,19 @@ export default function SquadCanvas({
                                   onClick={() => p && onMemberClick?.(p)}
                                   title={`${L('squad.tip.memberSummary', { name: nameOf(mm.userId), share: mm.sharePct || 0, capacity: capText(mm) })}${mm.role === 'lead' ? L('squad.tip.leadSuffix') : ''}`}
                                 >
-                                  <div
-                                    className="sq-avatar"
-                                    style={{
-                                      fontSize: avatarFontPx(label, 24),
-                                      ...(tint
-                                        ? { background: `${tint}24`, color: tint }
-                                        : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
-                                    }}
-                                  >{label}</div>
+                                  {photo ? (
+                                    <img src={photo} alt="" className="pj-avatar-sm" />
+                                  ) : (
+                                    <div
+                                      className="sq-avatar"
+                                      style={{
+                                        fontSize: avatarFontPx(label, 24),
+                                        ...(tint
+                                          ? { background: `${tint}24`, color: tint }
+                                          : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+                                      }}
+                                    >{label}</div>
+                                  )}
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
                                   )}
@@ -912,7 +914,7 @@ export default function SquadCanvas({
                               );
                             })}
                           </div>
-                          <span className="sq-member-count">
+                          <span className="pj-member-count">
                             {L('squad.card.memberCount', { count: members.length })} · {L('squad.card.lead')}{' '}
                             {lead
                               ? nameOf(lead.userId)
@@ -1040,15 +1042,18 @@ export default function SquadCanvas({
 
               {/* ── 멤버 × 스쿼드 배치 매트릭스 ── */}
               {squads.length > 0 && (
+                <div className="pj-table-section">
+                {/* 제목·안내는 흰 표 상자 **바깥 위**에 선다 — 프로젝트 탭의 「프로젝트에 배치된
+                    멤버 리스트」와 같은 자리·같은 붙음(PW-905). 종전에는 상자 안 머리 줄이었다. */}
+                <div className="pj-table-header-text" style={{ top: headerHeight }}>
+                  <p className="pj-table-title">{L('squad.matrix.title')}</p>
+                  <p className="pj-table-subtitle">
+                    {isEditing
+                      ? L('squad.matrix.subtitleEdit')
+                      : L('squad.matrix.subtitleView')}
+                  </p>
+                </div>
                 <div className="sq-panel">
-                  <div className="sq-panel-head">
-                    <p className="pj-table-title">{L('squad.matrix.title')}</p>
-                    <p className="pj-table-subtitle">
-                      {isEditing
-                        ? L('squad.matrix.subtitleEdit')
-                        : L('squad.matrix.subtitleView')}
-                    </p>
-                  </div>
 
                   {/* ── 「내 캐파」 요약 배너 (§5-3.7) ──
                       캐파의 소유자는 본인이므로, 본인이 자기 값을 어디서 정하는지가 화면에
@@ -1331,6 +1336,7 @@ export default function SquadCanvas({
                       {L('squad.legend.faint')}
                     </span>
                   </div>
+                </div>
                 </div>
               )}
             </>
