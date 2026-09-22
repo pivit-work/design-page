@@ -76,6 +76,8 @@ const DEFAULT_LABELS = {
     workBuilding: '근무 위치(빌딩)',
     employmentType: '고용형태',
     manager: '매니저',
+    // PW-693 — 「매니저」 바로 옆이라 이름이 붙어 다닌다. 재는 것은 서로 다르다.
+    role: '권한',
     status: '재직상태',
     all: '전체',
     reset: '필터 초기화',
@@ -297,6 +299,13 @@ const DEFAULT_LABELS = {
     pending: '대기', other: '기타',
   },
   role: { admin: '어드민', manager: '매니저', member: '멤버' },
+  /* 거르기 줄의 「권한」 값 5종 (PW-693). 권한 배지(`role`)와 **다른 묶음**이다 —
+     배지는 저장된 권한만 말하고, 여기에는 판정인 「대표」·「조직장」이 함께 선다.
+     값 이름도 갈린다(배지 `멤버` ↔ 거르기 `직원`) — 커트가 2026-09-22 에 거르기 값만
+     「직원」으로 정했다. */
+  roleFilter: {
+    admin: '어드민', ceo: '대표', leader: '조직장', member: '직원',
+  },
   unassigned: {
     bannerTitle: '조직 또는 매니저가 배정되지 않은 구성원이 있습니다.',
     bannerBody: '온보딩에서 "나중에 배정"을 선택했거나 신규 합류 후 미배정 상태입니다. 1on1·OKR·평가가 정상 작동하려면 조직·매니저 배정이 필요합니다.',
@@ -922,6 +931,18 @@ const ALL = 'all';
    PW-576 으로 스프레드시트 뷰가 폐기되면서 그 파일에 있던 정의를 여기로 옮겼다. */
 export const MANAGER_FILTER_ASSIGNED = '__manager_assigned__';
 export const MANAGER_FILTER_UNASSIGNED = '__manager_unassigned__';
+
+/* 권한 필터의 값 (PW-693 · 커트 2026-09-22 결정).
+   「어드민」·「직원」은 사람마다 저장된 권한 값이라 그대로 쓰고, 「대표」·「조직장」은
+   저장 값이 아니라 **판정**이라 `__`로 감싼 특수값으로 둔다 — 소비자가 이 값을 그대로
+   서버 반출 조건으로 옮기기 때문에(`employeeExportParams.ts`), 저장 값과 판정이 한눈에
+   갈려야 한다. 매니저 필터가 같은 이유로 `__manager_*` 를 쓴다(PW-300 · PW-411).
+
+   🔴 조직장은 권한 값에서 파생하지 않는다 — 정본은 `org_units.headUserId` 하나이고,
+   이 뷰에는 `leaderUnitIdsByMember` 로 들어온다. 「매니저 권한이 있으면 조직장」으로
+   읽으면 2026-09-10 기획 변경(매니저는 저장 등급이 아니다) 이전으로 되돌아간다. */
+export const ROLE_FILTER_CEO = '__role_ceo__';
+export const ROLE_FILTER_LEADER = '__role_leader__';
 
 /* ── 보기 전환 «폐기» (PW-576) ─────────────────────────────
    여기에 «목록 / 스프레드시트» 보기 전환(`EmployeesViewSwitch`)이 있었다.
@@ -1559,6 +1580,9 @@ function EmployeesListView({
       : 'all',
   );
   const [status, setStatus] = useState(initialFilters.employmentStatus ?? 'all');
+  /* 권한 필터 (PW-693). 되살리기 키는 **시트의 컬럼 id `orgRole`** 이다 — 소비자의
+     번역표(`employeeExportParams.ts`)가 그 이름으로 서버 파라미터를 찾는다. */
+  const [roleFilter, setRoleFilter] = useState(initialFilters.orgRole ?? LIST_ALL);
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
   const closeRowMenu = useCallback(() => setOpenMenu(null), []);
@@ -1704,6 +1728,25 @@ function EmployeesListView({
     { id: 'unassigned', label: labels.listManagerFilter.unassigned },
   ];
 
+  /* 권한 4종 + 전체 (PW-693 · 커트 2026-09-22 결정).
+     🔴 값은 **고정 목록**이다 — 구성원이 실제로 가진 값에서 모으지 않는다. 어드민이
+     한 명도 없는 조직에서 「어드민」 항목이 사라지면 「어드민이 없다」를 확인할 방법이
+     함께 사라진다(그게 이 필터를 만든 이유다).
+     「결제 담당자」는 권한과 따로 가는 표시라 넣지 않는다(같은 결정). */
+  const roleOpts = [
+    { id: LIST_ALL, label: labels.filters.all },
+    { id: 'admin', label: labels.roleFilter.admin },
+    { id: ROLE_FILTER_CEO, label: labels.roleFilter.ceo },
+    { id: ROLE_FILTER_LEADER, label: labels.roleFilter.leader },
+    { id: 'member', label: labels.roleFilter.member },
+  ];
+
+  /** 이 사람이 어느 조직의 장인가 — 정본은 `org_units.headUserId`(소비자가 접어 준다). */
+  const isOrgLeader = useCallback(
+    (m) => ((leaderUnitIdsByMember || {})[m.id] || []).length > 0,
+    [leaderUnitIdsByMember],
+  );
+
   const filtered = useMemo(
     () =>
       members.filter((m) => {
@@ -1745,6 +1788,16 @@ function EmployeesListView({
         // 영원히 처리되지 않는 한 건이 목록에 남는다.
         if (mgrFilter === 'unassigned' && (m.managerName || m.isCeo)) return false;
         if (status !== 'all' && m.employmentStatus !== status) return false;
+        /* 권한 (PW-693). 값끼리 **배타가 아니다** — 어드민이면서 조직장인 사람은
+           「어드민」으로 걸러도 「조직장」으로 걸러도 나온다. 그래서 한 축으로 묶어
+           비교하지 않고 고른 값마다 따로 판정한다. */
+        if (roleFilter !== LIST_ALL) {
+          if (roleFilter === ROLE_FILTER_CEO) {
+            if (!m.isCeo) return false;
+          } else if (roleFilter === ROLE_FILTER_LEADER) {
+            if (!isOrgLeader(m)) return false;
+          } else if ((m.orgRole || 'member') !== roleFilter) return false;
+        }
         // 가입 대기(`pending`)는 여기 목록에 세우지 않는다(§3.2.1 · PW-422). 탭 C(초대
         // 관리)가 이미 담당하는데 두 곳에 뜨면 체크박스 선택·일괄 처리·페이지네이션의
         // 단위가 「사람 수」와 어긋난다. (구 서술 「잔여 행은 스프레드시트 뷰에서
@@ -1753,7 +1806,7 @@ function EmployeesListView({
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
-    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, orgTree, visibleSquadsOf, squadNamesOf],
+    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, roleFilter, isOrgLeader, orgTree, visibleSquadsOf, squadNamesOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1854,14 +1907,16 @@ function EmployeesListView({
     || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
     || category !== LIST_ALL || bizTitle !== LIST_ALL
     || location !== LIST_ALL || country !== LIST_ALL || building !== LIST_ALL
-    || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all';
+    || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all'
+    || roleFilter !== LIST_ALL;
 
   function resetFilters() {
     setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
     setFamily(LIST_ALL); setLadder(LIST_ALL); setDuty(LIST_ALL); setLocation(LIST_ALL);
     setCategory(LIST_ALL); setBizTitle(LIST_ALL);
     setCountry(LIST_ALL); setBuilding(LIST_ALL);
-    setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all'); setPage(1);
+    setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all');
+    setRoleFilter(LIST_ALL); setPage(1);
   }
 
   /** 직군을 바꾸면 그 밑에 속하지 않게 된 직렬·직무 필터를 푼다 — 안 풀면 0건인 채 이유가 안 보인다. */
@@ -1993,6 +2048,10 @@ function EmployeesListView({
   // 소비자의 번역표를 두 벌로 만들지 않는다.
   if (mgrFilter === 'assigned') exportFilters.managerName = MANAGER_FILTER_ASSIGNED;
   if (mgrFilter === 'unassigned') exportFilters.managerName = MANAGER_FILTER_UNASSIGNED;
+  /* 권한 (PW-693). 「대표」·「조직장」은 저장 값이 아니라 판정이라 특수값으로 나간다 —
+     서버가 그 두 값을 **같은 기준으로 다시 판정**하지 않으면 화면은 3명인데 파일은
+     전원이 나간다(PW-411 이 매니저 필터에서 실제로 겪은 경로다). */
+  if (roleFilter !== LIST_ALL) exportFilters.orgRole = roleFilter;
 
   /* 보던 상태가 바뀌면 소비자에게 알린다 (PW-157 · PW-576 로 시트에서 옮겨 왔다).
      `exportFilters` 를 그대로 재사용한다 — 반출 조건과 되살릴 조건이 같은 것이어야
@@ -2313,6 +2372,9 @@ function EmployeesListView({
         <FilterDropdown testId="list-filter-workBuilding" label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-employmentType" label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-managerId" label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        {/* 바로 왼쪽 「매니저」와 재는 것이 다르다 — 매니저는 「이 사람에게 상급자가
+            정해져 있나」, 권한은 「이 사람이 무엇인가」다(PW-693 · PW-884 ③). */}
+        <FilterDropdown testId="list-filter-orgRole" label={labels.filters.role} value={roleFilter} options={roleOpts} onChange={(v) => { setRoleFilter(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-employmentStatus" label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
         {hasFilter && (
           <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
