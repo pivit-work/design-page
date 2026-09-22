@@ -133,7 +133,7 @@ function KpiRow({ kpi, L }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
       {cards.map((c) => (
-        <div key={c.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+        <div key={c.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px' }}>
           <div style={{ fontSize: 18 }}>{c.icon}</div>
           <div style={{ fontSize: 'var(--font-size-display-xs)', fontWeight: 800, color: c.color, marginTop: 4 }}>
             {c.value}
@@ -149,7 +149,7 @@ function KpiRow({ kpi, L }) {
 function TeamCoverage({ teams, L }) {
   if (!teams || teams.length === 0) return null;
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text, marginBottom: 12 }}>{L.teamCoverageTitle}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {teams.map((t) => (
@@ -168,7 +168,7 @@ function TeamCoverage({ teams, L }) {
 
 function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}><AlertIcon size={16} />{L.atRiskTitle}</span>
         {atRisk.length > 0 && <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.red, background: C.redBg, borderRadius: 6, padding: '1px 7px' }}>{atRisk.length}</span>}
@@ -180,7 +180,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
           {atRisk.map((m) => {
             const sent = isSent('request', null, m.id);
             return (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: m.urgent ? C.redBg : C.amberBg, border: `1px solid ${m.urgent ? C.redBd : C.amberBd}`, borderRadius: 10, padding: 10 }}>
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: m.urgent ? C.redBg : C.amberBg, border: `1px solid ${m.urgent ? C.redBd : C.amberBd}`, borderRadius: 10, padding: '12px 16px' }}>
                 <Avatar name={m.name} photo={m.avatar} size={32} color={m.urgent ? `linear-gradient(135deg,${C.red},#8B2318)` : `linear-gradient(135deg,${C.amber},#8A4B00)`} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.name}</div>
@@ -211,7 +211,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
 function ManagerActivity({ rows, L, onNudge, isSent }) {
   if (!rows || rows.length === 0) return null;
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
       <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted, marginBottom: 12 }}>{L.managerActivitySub}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -393,7 +393,7 @@ export default function EvalFeedbackHrCanvas({
           <button type="button" onClick={handleExport} data-testid="fbhr-csv" className="evc-btn"><DownloadIcon size={15} />{L.exportCsv}</button>
         </span>
       </header>
-      <div className="evc-list" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="evc-list">
         <KpiRow kpi={d.kpi} L={L} />
         <TeamCoverage teams={d.teams} L={L} />
         <AtRiskMembers atRisk={d.atRisk} L={L} onNudge={(t) => setNudgeTarget(t)} isSent={isSent} />
