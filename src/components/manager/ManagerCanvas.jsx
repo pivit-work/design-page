@@ -44,6 +44,15 @@ export default function ManagerCanvas({
   onTeamSnippetOneOnOne,
   teamMemberCount,
   summary,
+  /**
+   * KPI 카드 누르기 (PW-912). `kpis[].filterKey` 가 있는 카드와, `summaryFilterKey` 를
+   * 준 Summary 카드는 누르면 `onKpiClick(filterKey)` 를 부른다. 눌린 카드는
+   * `kpis[].active` / `summaryActive` 로 표시한다. 무엇을 거를지는 소비자가 정한다 —
+   * 이 캔버스는 아래 두 섹션에 넘어온 멤버를 그대로 그린다.
+   */
+  summaryFilterKey,
+  summaryActive = false,
+  onKpiClick,
   kpis = [],
   /**
    * 팀 레벨 빈 상태 — 조회 범위 안 팀원이 **0명**일 때만 넘어온다
@@ -133,9 +142,21 @@ export default function ManagerCanvas({
       ) : (
       <>
       <section className="manager-kpi-grid">
-        {summary && <SummaryCard text={summary} />}
+        {summary && (
+          <SummaryCard
+            text={summary}
+            active={summaryActive}
+            onClick={onKpiClick && summaryFilterKey ? () => onKpiClick(summaryFilterKey) : undefined}
+          />
+        )}
         {kpis.map((kpi) => (
-          <StatTile key={kpi.label} label={kpi.label} value={kpi.value} />
+          <StatTile
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            active={!!kpi.active}
+            onClick={onKpiClick && kpi.filterKey ? () => onKpiClick(kpi.filterKey) : undefined}
+          />
         ))}
       </section>
 

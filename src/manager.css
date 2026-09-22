@@ -100,6 +100,23 @@
   overflow: hidden;
 }
 
+/* 누를 수 있는 KPI 카드 (PW-912) — 어드민 개요 요약 카드(.admin-stat-tile)의 hover·눌린
+   모양을 그대로 옮겼다. 테두리는 누를 수 있는 카드에만 준다 — 누를 수 없는 카드는
+   기획서 §2-2 대로 보더·그림자 없음 그대로다. */
+.manager-kpi-card.is-clickable {
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: border-color .12s, box-shadow .12s, transform .12s;
+}
+.manager-kpi-card.is-clickable:hover {
+  border-color: var(--border-brand, #C7D2FE);
+  transform: translateY(-1px);
+}
+.manager-kpi-card.is-active {
+  border-color: var(--text-brand-tertiary, #4F6AF5);
+  box-shadow: 0 2px 12px rgba(79, 106, 245, .18);
+}
+
 .manager-summary-card {
   grid-column: span 3 / span 3;
   background: var(--componentColors-utility-purple-utilityPurple100);
