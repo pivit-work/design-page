@@ -41,6 +41,11 @@ export default function MeetingRecordContent({
   // caller 가 메타 섹션 바로 아래(요약 위)에 끼워넣을 수 있는 임의 노드.
   // 녹음 플레이어, 외부 위젯 등. 패키지는 도메인을 알지 않는다.
   headerExtra,
+  // 읽기 전용 — 회의 담당자가 아닌 참석자 (기획 screen-minutes-review §4.4).
+  // 할 일 입력·담당자·기한을 잠그고 추가·삭제 버튼을 숨긴다. 모양은 그대로다.
+  readOnly = false,
+  // 잠긴 칸에 마우스를 올렸을 때 보이는 안내 (caller 주입, 예: "회의 담당자만 수정할 수 있습니다.")
+  readOnlyHint,
 }) {
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
@@ -166,6 +171,9 @@ export default function MeetingRecordContent({
                 value={a.title}
                 placeholder={labels.actionItemTitlePlaceholder ?? labels.newActionItemTitle ?? ''}
                 onChange={(e) => updateAction(idx, { title: e.target.value })}
+                readOnly={readOnly}
+                disabled={readOnly}
+                title={readOnly ? readOnlyHint : undefined}
                 ref={(el) => {
                   if (el && justAddedIdxRef.current === idx) {
                     justAddedIdxRef.current = null;
@@ -176,6 +184,8 @@ export default function MeetingRecordContent({
               <button
                 type="button"
                 className={`mtg-record-action-person${a.person ? '' : ' is-empty'}`}
+                disabled={readOnly}
+                title={readOnly ? readOnlyHint : undefined}
                 onClick={(e) => setOpenPicker({
                   idx,
                   field: 'person',
@@ -196,6 +206,8 @@ export default function MeetingRecordContent({
               <button
                 type="button"
                 className="mtg-record-action-date"
+                disabled={readOnly}
+                title={readOnly ? readOnlyHint : undefined}
                 onClick={(e) => setOpenPicker({
                   idx,
                   field: 'date',
@@ -204,7 +216,7 @@ export default function MeetingRecordContent({
               >
                 {a.date}
               </button>
-              <button
+              {!readOnly && <button
                 type="button"
                 className="mtg-record-action-remove"
                 aria-label={labels.removeLabel}
@@ -219,10 +231,10 @@ export default function MeetingRecordContent({
                     strokeLinejoin="round"
                   />
                 </svg>
-              </button>
+              </button>}
             </li>
           ))}
-          <li>
+          {!readOnly && <li>
             <button
               type="button"
               className="mtg-record-action-add"
@@ -245,7 +257,7 @@ export default function MeetingRecordContent({
               <Icon src="/icons/plus.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{labels.addActionItem}</span>
             </button>
-          </li>
+          </li>}
         </ul>
       </section>
 

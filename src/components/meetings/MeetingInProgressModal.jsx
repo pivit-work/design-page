@@ -51,6 +51,9 @@ export default function MeetingInProgressModal({
   onOverlayClick,
   // 회의 "종료" 확정 콜백 — status=completed 등 서버 반영을 caller 에서 처리.
   onEnd,
+  // 회의록 단계의 [공유하기] 버튼을 보일지. 회의 담당자가 아니면 caller 가 false 로
+  // 준다 (기획 screen-minutes-review §4.4 "공유하기 버튼 숨김").
+  canShare = true,
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   // 녹음 중 파형 — 1on1 녹음 위젯과 같은 실시간 마이크 이퀄라이저 (9막대·28px).
@@ -110,7 +113,7 @@ export default function MeetingInProgressModal({
       </button>
     );
   } else if (isRecord) {
-    footer = (
+    footer = canShare ? (
       <button
         type="button"
         className="mtg-progress-share-btn"
@@ -118,7 +121,7 @@ export default function MeetingInProgressModal({
       >
         {labels.shareButton}
       </button>
-    );
+    ) : null;
   } else {
     footer = (
       <div className="mtg-progress-btn-row">
