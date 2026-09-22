@@ -3225,11 +3225,23 @@ function EmployeesEditPanel({
                               : [draft[f.key], ...opts]
                             ).map((o) => <option key={o} value={o}>{o}</option>)}
                           </select>
+                        ) : f.kind === 'date' ? (
+                          /* 🔴 날짜는 브라우저 기본 날짜 칸(`type="date"`)으로 그리지 않는다 —
+                             그 칸의 표시 형식은 브라우저 언어가 정해서, 앱이 한국어여도 영어
+                             크롬에서 「mm/dd/yyyy」 로 보인다. 같은 창의 재직 상태 날짜 칸과
+                             같은 `DateInput` 을 쓴다 (PW-793). */
+                          <DateInput
+                            className="admin-emp-input"
+                            value={(draft[f.key] || '').slice(0, 10)}
+                            disabled={!canEdit}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(v) => set(f.key, v)}
+                          />
                         ) : (
                           <input
                             className="admin-emp-input"
-                            type={f.kind === 'date' ? 'date' : f.kind === 'number' ? 'number' : 'text'}
-                            value={f.kind === 'date' ? (draft[f.key] || '').slice(0, 10) : (draft[f.key] ?? '')}
+                            type={f.kind === 'number' ? 'number' : 'text'}
+                            value={draft[f.key] ?? ''}
                             disabled={!canEdit}
                             data-testid={`employees-panel-${f.key}`}
                             onChange={(e) => set(f.key, e.target.value)}
