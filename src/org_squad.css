@@ -5,7 +5,11 @@
 
    조직도의 세 번째 탭. 프로젝트 탭(`org_project.css`)과 **같은 화면군**이라
    카드·표·상태 점은 `pj-*` 클래스를 그대로 재사용하고, 스쿼드에만 있는 조각
-   (색 띠 · 캐파 게이지 · 배정 매트릭스 · 원장 관리 메뉴)만 여기서 정의한다.
+   (캐파 게이지 · 배정 매트릭스 · 원장 관리 메뉴)만 여기서 정의한다.
+
+   🔴 숫자도 본문 글씨체다 — 고정폭(DM Mono)을 쓰지 않는다(PW-905). 프로젝트 탭은
+   진행률·인원 수를 본문 글씨체로 찍는데 이 탭만 기간·배분·캐파 수가 전부 고정폭이라,
+   두 탭이 다른 앱처럼 느껴지는 가장 큰 이유였다.
 
    색은 전부 디자인 토큰이다 — 리터럴 색을 박으면 다크 토큰·브랜드 변경을
    따라가지 못하고, 같은 조직도 안에서 이 탭만 다른 앱처럼 보인다.
@@ -18,7 +22,8 @@
 /* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
 @import './datepicker.css';
 
-/* ── Toolbar (제목 + 편집 모드 토글) ── */
+/* ── Toolbar (제목 + 편집 모드 토글) ──
+   제목·안내 글자는 프로젝트 탭 표 제목과 같은 `pj-table-title`·`pj-table-subtitle` 이다(PW-905). */
 .sq-toolbar {
   display: flex;
   justify-content: space-between;
@@ -26,18 +31,6 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 20px;
-}
-.sq-toolbar-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 30px;
-}
-.sq-toolbar-desc {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  line-height: 20px;
 }
 .sq-toolbar-actions {
   display: flex;
@@ -200,24 +193,13 @@
 }
 
 /* ── Squad Card ──
-   `pj-card` 를 그대로 쓰고(배경·모서리·패딩·hover 그림자), 스쿼드 색 띠와
-   우상단 액션만 얹는다. */
-.pj-card.sq-card {
-  gap: 20px;
-  /* 색 띠가 카드 위 모서리에 맞물리도록 위 여백을 띠 두께만큼 흡수한다 */
-  padding-top: 28px;
-}
+   `pj-card` 를 그대로 쓰고(배경·모서리·패딩·hover 그림자), 우상단 액션만 얹는다.
+   🔴 스쿼드 색 띠·스쿼드 색 그림자·떠오르는 움직임은 두지 않는다(PW-905) — 프로젝트
+   카드에 없는 모양이라 두 탭이 따로 놀았다. 스쿼드 색은 배정 표 머리 칸에서 읽힌다. */
+.pj-card.sq-card { gap: 20px; }
 .pj-card.sq-card.is-open { overflow: visible; }
 /* 보관 = 이력 보존용. 흐리게 구분하되 조회·할당 편집은 정상 동작한다 */
 .sq-card.is-archived { opacity: 0.6; }
-
-.sq-card-strip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-}
 
 .sq-card-actions {
   position: absolute;
@@ -256,7 +238,6 @@
   font-weight: 500;
   line-height: 18px;
   color: var(--text-tertiary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 
 /* ── Card menus (⋯ · 상태 전환) ──
@@ -299,11 +280,10 @@
 }
 .sq-menu-item.is-disabled:hover { background: transparent; }
 
-/* ── Card members (읽기 모드) ── */
-.sq-members {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── Card members (읽기 모드) ──
+   줄 모양은 프로젝트 카드의 `pj-card-members` 다. 스쿼드는 이름 글자 동그라미가 섞여
+   겹쳐 쌓지 않으므로 넘치면 줄바꿈하는 것만 더한다. */
+.pj-card-members.sq-members {
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -313,6 +293,9 @@
   gap: 4px;
 }
 .sq-avatar-wrap { position: relative; }
+/* 사진은 프로젝트 카드의 `pj-avatar-sm` 그대로 — 다만 이름 글자 동그라미와 한 줄에 서므로
+   겹치지 않고 나란히 둔다(겹치면 옆 동그라미의 글자를 가린다). */
+.sq-avatar-wrap .pj-avatar-sm { display: block; margin-right: 0; }
 .sq-avatar-wrap.is-clickable { cursor: pointer; }
 /* `pj-avatar-sm` 과 같은 24px 지름·같은 링. 라벨이 한글 이름 앞 두 글자라
    겹쳐 쌓지 않고 나란히 둔다(겹치면 뒷글자가 가려 읽히지 않는다). */
@@ -357,11 +340,6 @@
   top: -5px;
   right: -4px;
 }
-.sq-member-count {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
 .sq-unset {
   color: var(--text-quaternary);
   font-style: normal;
@@ -377,12 +355,10 @@
 .sq-chip-name { font-weight: 600; color: var(--text-secondary); }
 .sq-chip-pct {
   font-weight: 600;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 /* 캐파는 괄호로 — 비중과 분모가 달라 같은 무게로 쓰면 두 수가 섞여 읽힌다 */
 .sq-chip-cap {
   color: var(--text-quaternary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-chip-remove {
   display: inline-flex;
@@ -482,7 +458,6 @@
   margin-left: auto;
   font-size: 12px;
   color: var(--text-tertiary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-comp-total b { color: var(--text-secondary); font-weight: 600; }
 .sq-comp-total b.is-over { color: var(--text-error-primary); }
@@ -526,7 +501,6 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--text-tertiary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 /* 세그먼트 — 트랙은 `pj-progress-bar` 를 그대로 쓴다.
    채움색은 인라인(사람별 신원색)이지만 **불투명도를 낮춰** 프로젝트 카드의 진행 바
@@ -558,11 +532,9 @@
 .sq-comp-share {
   color: var(--text-primary);
   font-weight: 600;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-comp-raw {
   color: var(--text-quaternary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-comp-none {
   font-size: 12px;
@@ -602,10 +574,6 @@
   background: var(--bg-quaternary);
   border-radius: 16px;
   overflow: hidden;
-}
-.sq-panel-head {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
 }
 /* 가로 스크롤·이름 칸/캐파 칸 붙이기는 `.ag`(AssignmentGrid · org_project.css)가 맡는다 (PW-838) */
 .pj-table.sq-table { min-width: 640px; }
@@ -709,7 +677,6 @@
 .sq-cell-pct {
   font-size: 12px;
   font-weight: 600;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-cell-pct.is-unset { color: var(--text-tertiary); }
 /* 아랫줄 = 스쿼드 내 비중. 합계에 안 들어가는 값이라 윗줄보다 약하게 둔다 */
@@ -717,7 +684,6 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--text-tertiary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
   white-space: nowrap;
 }
 /* 「비중 > 0 · 캐파 = 0」 회색 점 (§5-3.6 · §10-A15).
@@ -790,12 +756,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 누를 수 있는 이름도 글자는 프로젝트 표와 같다(검은 글씨) — 초록 점선 밑줄은 두지 않는다(PW-905).
+   누를 수 있다는 것은 손가락 커서로만 알린다(프로젝트 표의 이름 칸과 같다). */
 .sq-name-cell.is-clickable { cursor: pointer; }
-.sq-name-cell.is-clickable .pj-member-name {
-  color: var(--text-brand-tertiary);
-  text-decoration: underline;
-  text-decoration-style: dotted;
-}
 .sq-lock {
   display: inline-flex;
   color: var(--text-quaternary);
@@ -813,7 +776,6 @@
   align-items: baseline;
   gap: 4px;
   white-space: nowrap;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-cap-total { font-size: 14px; font-weight: 600; }
 .sq-cap-max { font-size: 12px; color: var(--text-quaternary); }
@@ -827,7 +789,6 @@
   font-size: 12px;
   color: var(--text-tertiary);
   white-space: nowrap;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-cap-note.is-over { color: var(--text-error-primary); }
 
@@ -997,12 +958,10 @@
 .sq-mycap-total {
   font-size: 14px;
   font-weight: 600;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-mycap-max {
   font-size: 12px;
   color: var(--text-quaternary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-mycap-note { font-size: 12px; color: var(--text-tertiary); }
 .sq-mycap-unset { color: var(--utility-warning-700); font-weight: 600; }
@@ -1062,7 +1021,6 @@
   font-size: 12px;
   color: var(--text-tertiary);
   line-height: 18px;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
 }
 .sq-hist-msg { font-size: 12px; color: var(--text-tertiary); }
 .sq-hist-msg.is-error { color: var(--text-error-primary); }
@@ -1181,7 +1139,6 @@
 .sq-field:focus { border-color: var(--fg-brand-primary); }
 .sq-field::placeholder { color: var(--text-placeholder); }
 .sq-field.is-invalid { border-color: var(--utility-error-300); }
-.sq-field-date { font-family: var(--font-family-mono, 'DM Mono', monospace); }
 .sq-field + .sq-field { margin-top: 10px; }
 
 .sq-field-label {

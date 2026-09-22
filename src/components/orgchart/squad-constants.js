@@ -73,6 +73,8 @@ export const SQUAD_PALETTE = [
  *
  * 프로젝트 탭의 `PROJECT_STATUSES` 와 **같은 모양·같은 필드명**이다 — 두 탭의 상태
  * 배지가 같은 부품(`pj-card-status` + `pj-status-dot`)으로 그려지도록 맞췄다.
+ * `icon` 도 프로젝트와 같다 — 준비 중은 시계, 완료는 체크, 나머지는 점(PW-905).
+ * 보관은 프로젝트에 짝이 없어 점으로 둔다.
  * `counted` = 캐파 합계에 포함되는가. 완료·보관은 제외된다(§5-3).
  */
 export const SQUAD_STATUS = {
@@ -80,6 +82,7 @@ export const SQUAD_STATUS = {
     label: '준비중',
     dotColor: 'var(--text-tertiary)',
     textColor: 'var(--text-tertiary)',
+    icon: '/icons-solid/clock-fast-forward.svg',
     counted: true,
   },
   active: {
@@ -92,6 +95,7 @@ export const SQUAD_STATUS = {
     label: '완료',
     dotColor: 'var(--fg-brand-primary)',
     textColor: 'var(--text-brand-tertiary)',
+    icon: '/icons-solid/check.svg',
     counted: false,
   },
   archived: {

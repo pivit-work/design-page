@@ -64,7 +64,7 @@ export default function SquadFormCard({
           <div className="sq-field-label">{L('squad.form.startDateLabel')}</div>
           <DateInput
             value={form.startDate} aria-label={L('squad.form.startDate')}
-            className="sq-field sq-field-date"
+            className="sq-field"
             onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
           />
         </div>
@@ -72,7 +72,7 @@ export default function SquadFormCard({
           <div className="sq-field-label">{L('squad.form.endDateLabel')}</div>
           <DateInput
             value={form.endDate} aria-label={L('squad.form.endDate')}
-            className={`sq-field sq-field-date${errors.endDate ? ' is-invalid' : ''}`}
+            className={`sq-field${errors.endDate ? ' is-invalid' : ''}`}
             onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
           />
         </div>
