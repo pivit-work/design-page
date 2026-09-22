@@ -26,7 +26,7 @@ import { useEffect, useRef, useState } from 'react';
  */
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
+  font: 'var(--font-family-body)',
   card: '#fff',
   border: '#E2E8F0',
   text: '#0F172A',

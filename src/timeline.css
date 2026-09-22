@@ -1863,7 +1863,7 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
-  font-family: var(--font-family-mono, inherit);
+  font-family: inherit;
   white-space: nowrap;
 }
 

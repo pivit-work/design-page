@@ -11,8 +11,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 // ─────────────────────────────────────────────────────────────
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
-  mono: "'DM Mono',monospace",
+  font: 'var(--font-family-body)',
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
@@ -268,7 +267,7 @@ export default function BillingHistoryCanvas({
                   key: 'invoiceNo',
                   header: labels.tableHeaders.invoiceNo,
                   render: (inv) => (
-                    <span style={{ fontFamily: T.mono, color: T.sub }}>{inv.invoice_no}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: T.sub }}>{inv.invoice_no}</span>
                   ),
                 },
                 {

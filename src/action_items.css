@@ -109,7 +109,7 @@
   color: var(--text-secondary);
 }
 .ai-stat-value {
-  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-family: var(--font-family-display);
   font-size: 30px;
   font-weight: 500;
   line-height: 38px;

@@ -36,7 +36,7 @@ const C = {
   purpleBg: 'var(--utility-purple-50)',
   purpleBd: 'var(--utility-purple-200)',
 };
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
+const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
   title: '팀 피드백',

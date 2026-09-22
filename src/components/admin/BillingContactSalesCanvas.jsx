@@ -14,7 +14,7 @@ import { useState } from 'react';
 // ─────────────────────────────────────────────────────────────
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
+  font: 'var(--font-family-body)',
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',

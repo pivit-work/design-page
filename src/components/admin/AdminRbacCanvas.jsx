@@ -15,8 +15,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 
 // ── design-page 토큰 (admin.css / index.css 정본) ───────────────────
 const DP = {
-  font: "var(--font-family-body, 'Pretendard','Noto Sans KR',sans-serif)",
-  mono: "var(--font-family-mono, 'DM Mono', monospace)",
+  font: 'var(--font-family-body)',
   surface: 'var(--bg-quaternary, #ffffff)',
   inset: 'var(--bg-secondary, #f9fafb)',
   borderT: '#e6e8ea',
@@ -225,7 +224,7 @@ export default function AdminRbacCanvas({
                     background: DP.inset,
                     border: `1px solid ${DP.borderT}`,
                     color: DP.textS,
-                    fontFamily: DP.mono,
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
                   {fill(L.countUnit, { count: countPerms(rid) })}
@@ -374,7 +373,7 @@ export default function AdminRbacCanvas({
                   fontSize: 22,
                   fontWeight: 800,
                   color: DP.textP,
-                  fontFamily: DP.mono,
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
                 {countPerms(selectedRole)}

@@ -1594,12 +1594,13 @@
   color: var(--utility-purple-500);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  font-family: monospace;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 /* [PW-530 2차] 사람 말 이름 + 작은 토큰 병기 칩.
    새 시각 언어를 만들지 않는다 — `.evc-rm-var` 의 변형자로 얹고, 글자만 본문 서체로
-   돌린다(이름은 사람이 읽는 말이라 monospace 가 맞지 않는다). */
+   돌린다(PW-923 부터는 토큰 칩도 본문 서체다 — 고정폭 글씨체를 쓰지 않는다). */
 .evc-rm-var.is-labeled {
   display: inline-flex;
   align-items: baseline;
@@ -1611,7 +1612,8 @@
   padding: 4px 9px;
 }
 .evc-rm-var-tok {
-  font-family: monospace;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
   font-size: var(--font-size-text-xs);
   font-weight: 400;
   color: var(--utility-purple-500);
@@ -4130,7 +4132,7 @@
 .evs-kpi-value {
   font-size: var(--font-size-display-xs);
   font-weight: 800;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   line-height: 1.1;
 }
@@ -4280,7 +4282,7 @@
   font-size: var(--font-size-text-sm);
 }
 .evs-prev-num {
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
   color: var(--text-primary);
@@ -4342,12 +4344,12 @@
 .evs-leader-name { font-weight: 700; color: var(--text-primary); }
 .evs-leader-dept { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evs-leader-done {
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--utility-green-600);
 }
 .evs-leader-num.evs-leader-bad {
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--utility-error-600);
 }
@@ -4370,7 +4372,7 @@
 .evs-leader-track { flex: 1; }
 .evs-dist-fill.is-full { background: var(--utility-green-500); }
 .evs-leader-pct {
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: var(--font-size-text-xs);
   min-width: 34px;
@@ -4401,7 +4403,7 @@
 .evs-lp-card-count {
   font-size: var(--font-size-display-xs);
   font-weight: 800;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   margin: 2px 0;
 }
@@ -4452,8 +4454,8 @@
 .evs-lp-dot.seg-mid { background: var(--utility-brand-500); }
 .evs-lp-dot.seg-bottom { background: var(--utility-error-500); }
 .evs-lp-calib-row { grid-template-columns: 1.2fr 1.2fr auto 1fr; }
-.evs-lp-delta.is-up { color: var(--utility-green-600); font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
-.evs-lp-delta.is-down { color: var(--utility-error-600); font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
+.evs-lp-delta.is-up { color: var(--utility-green-600); font-variant-numeric: tabular-nums; font-weight: 700; }
+.evs-lp-delta.is-down { color: var(--utility-error-600); font-variant-numeric: tabular-nums; font-weight: 700; }
 .evs-lp-delta.is-muted { color: var(--text-tertiary); }
 
 /* §5.B 부서별 분석 */
@@ -4493,7 +4495,7 @@
 .evs-heat-cell.seg-top { background: color-mix(in srgb, var(--utility-green-500) calc(var(--heat) * 100%), transparent); }
 .evs-heat-cell.seg-mid { background: color-mix(in srgb, var(--utility-brand-500) calc(var(--heat) * 100%), transparent); }
 .evs-heat-cell.seg-bottom { background: color-mix(in srgb, var(--utility-error-500) calc(var(--heat) * 100%), transparent); }
-.evs-heat-cnt { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 800; font-size: var(--font-size-text-sm); color: var(--text-primary); }
+.evs-heat-cnt { font-variant-numeric: tabular-nums; font-weight: 800; font-size: var(--font-size-text-sm); color: var(--text-primary); }
 .evs-heat-pct { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evs-heat-legend { display: flex; align-items: center; gap: 4px; margin-top: var(--spacing-sm); font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
 .evs-heat-swatch { width: 16px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--utility-brand-500) calc(var(--heat) * 100%), transparent); }
@@ -4506,14 +4508,14 @@
 .evs-rank-bar { height: 8px; border-radius: var(--radius-full); background: var(--bg-secondary); overflow: hidden; }
 .evs-rank-fill { height: 100%; background: var(--text-secondary); opacity: 0.5; border-radius: var(--radius-full); }
 .evs-rank-fill.is-first { background: var(--utility-brand-500); opacity: 1; }
-.evs-rank-val { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 800; font-size: var(--font-size-text-sm); text-align: right; color: var(--text-primary); }
+.evs-rank-val { font-variant-numeric: tabular-nums; font-weight: 800; font-size: var(--font-size-text-sm); text-align: right; color: var(--text-primary); }
 .evs-rank-cap { margin-top: var(--spacing-md); }
 
 .evs-dept-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 1fr) 1fr 1.2fr; }
-.evs-dept-drow .seg-top-text { color: var(--utility-green-600); font-family: var(--font-family-mono, 'DM Mono', monospace); }
-.evs-dept-drow .seg-mid-text { color: var(--utility-brand-600); font-family: var(--font-family-mono, 'DM Mono', monospace); }
-.evs-dept-drow .seg-bottom-text { color: var(--utility-error-600); font-family: var(--font-family-mono, 'DM Mono', monospace); }
-.evs-dept-vsguide { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; }
+.evs-dept-drow .seg-top-text { color: var(--utility-green-600); font-variant-numeric: tabular-nums; }
+.evs-dept-drow .seg-mid-text { color: var(--utility-brand-600); font-variant-numeric: tabular-nums; }
+.evs-dept-drow .seg-bottom-text { color: var(--utility-error-600); font-variant-numeric: tabular-nums; }
+.evs-dept-vsguide { font-variant-numeric: tabular-nums; font-weight: 700; }
 .evs-dept-vsguide.tone-red { color: var(--utility-error-600); }
 .evs-dept-vsguide.tone-amber { color: var(--utility-warning-700); }
 .evs-dept-vsguide.tone-green { color: var(--utility-green-600); }
@@ -4526,7 +4528,7 @@
 .evs-cd-grade + .evs-cd-grade { border-top: 1px solid var(--bg-secondary); }
 .evs-cd-grade-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-sm); }
 .evs-cd-grade-name { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
-.evs-cd-delta { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs); font-weight: 700; }
+.evs-cd-delta { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); font-weight: 700; }
 .evs-cd-delta.is-up { color: var(--utility-green-600); }
 .evs-cd-delta.is-down { color: var(--utility-error-600); }
 .evs-cd-pair { display: grid; grid-template-columns: 48px 1fr auto; gap: var(--spacing-sm); align-items: center; margin-bottom: 4px; }
@@ -4538,7 +4540,7 @@
 .evs-cd-fill.seg-top { background: var(--utility-green-500); }
 .evs-cd-fill.seg-mid { background: var(--utility-brand-500); }
 .evs-cd-fill.seg-bottom { background: var(--utility-error-500); }
-.evs-cd-pval { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs); color: var(--text-secondary); min-width: 84px; text-align: right; }
+.evs-cd-pval { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); color: var(--text-secondary); min-width: 84px; text-align: right; }
 .evs-cd-summary {
   margin-top: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-xl);
@@ -4581,7 +4583,7 @@
 .evs-re-sec-manager { color: var(--utility-green-600); }
 .evs-re-answers { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .evs-re-answer { display: flex; flex-direction: column; gap: 3px; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md); }
-.evs-re-score { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs); font-weight: 700; color: var(--utility-brand-600); }
+.evs-re-score { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); font-weight: 700; color: var(--utility-brand-600); }
 .evs-re-atext { font-size: var(--font-size-text-sm); color: var(--text-primary); line-height: 1.6; white-space: pre-wrap; }
 .evs-re-mgrade { display: inline-block; margin-bottom: var(--spacing-sm); }
 .evs-re-calib-final { font-size: var(--font-size-text-sm); color: var(--text-primary); display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm); }
@@ -4665,7 +4667,7 @@
 .evs-j1-ratio-fill { height: 100%; border-radius: var(--radius-full); }
 .evs-j1-ratio-fill.tone-purple { background: var(--utility-purple-500); }
 .evs-j1-ratio-fill.tone-accent { background: var(--utility-brand-500); }
-.evs-j1-ratio-val { font-family: var(--font-family-mono, 'DM Mono', monospace); font-weight: 700; font-size: var(--font-size-text-sm); min-width: 44px; text-align: right; color: var(--text-primary); }
+.evs-j1-ratio-val { font-variant-numeric: tabular-nums; font-weight: 700; font-size: var(--font-size-text-sm); min-width: 44px; text-align: right; color: var(--text-primary); }
 .evs-j1-ratio-note { margin-top: var(--spacing-sm); }
 .evs-j1-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 0.7fr) 0.9fr 0.9fr 1fr; }
 
@@ -7579,12 +7581,12 @@
 /* ── PW-435 ① 단계 일정 확정 표기 ─────────────────────────────────────────
    `datetime-local` 위젯의 시각 표기는 브라우저·OS 로케일이 정한다. ko-KR 에서는
    12시간제로 그려지고 칸이 좁으면 시·분이 잘려 「오전」만 남는다 — 그래서 값을
-   우리가 한 줄 더 적는다. `monospace` 인 이유는 자릿수가 흔들리면 여러 단계를
-   세로로 훑어 비교할 수 없기 때문이다. */
+   우리가 한 줄 더 적는다. 숫자 폭을 맞추는(tabular-nums) 이유는 자릿수가 흔들리면
+   여러 단계를 세로로 훑어 비교할 수 없기 때문이다 — 글씨체는 본문 그대로다(PW-923). */
 .evc-sched-stamp {
   display: block;
   margin-top: var(--spacing-xxs);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   color: var(--text-tertiary);
@@ -7835,9 +7837,10 @@
   padding: 1px 4px;
   border-radius: var(--radius-xs);
   background: var(--bg-tertiary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* 브라우저 기본값(고정폭)을 끊고 본문 글씨체로 그린다 (PW-923). */
+  font-family: inherit;
   /* 줄이지 않는다 (PW-831). 감싸는 글이 12px 일 때 0.92em 은 11px 로 떨어진다 —
-     고정폭 글꼴과 배경만으로도 본문과 구분된다. */
+     배경만으로도 본문과 구분된다. */
   font-size: inherit;
 }
 /* 표는 «블록 안에서만» 가로로 흐른다(명단 표의 스크롤 틀). 평가지 본문이 가로로 밀리면

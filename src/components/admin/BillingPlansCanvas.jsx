@@ -15,8 +15,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 // ─────────────────────────────────────────────────────────────
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
-  mono: "'DM Mono',monospace",
+  font: 'var(--font-family-body)',
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
@@ -735,7 +734,7 @@ export default function BillingPlansCanvas({
                 disabled={!canEdit}
                 style={{
                   width: 72, textAlign: 'center', fontSize: 20, fontWeight: 800,
-                  fontFamily: T.mono, color: T.text,
+                  fontVariantNumeric: 'tabular-nums', color: T.text,
                   border: `1px solid ${T.border}`, borderRadius: 8, padding: '6px 4px',
                   background: canEdit ? '#fff' : T.bl,
                 }} />

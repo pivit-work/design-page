@@ -34,7 +34,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
  */
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
+  font: 'var(--font-family-body)',
   bg: '#F8FAFC',
   card: '#fff',
   border: '#E2E8F0',

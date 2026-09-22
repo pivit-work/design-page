@@ -117,7 +117,7 @@
 }
 
 .stat-value {
-  font-family: 'Pretendard Variable', var(--font-family-body);
+  font-family: var(--font-family-body);
   font-size: 50px;
   font-weight: 310;
   font-variation-settings: 'wght' 310;

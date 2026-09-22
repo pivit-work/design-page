@@ -487,7 +487,7 @@
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: #fff;
-  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  font-family: var(--font-family-body);
   --kit-usage-fill: #4f6af5;
 }
 .admin-kit-usage.is-warning { --kit-usage-fill: #f59e0b; }

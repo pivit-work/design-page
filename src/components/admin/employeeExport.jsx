@@ -17,7 +17,7 @@ import ModalShell from '../shared/ModalShell.jsx';
  */
 
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
+  font: 'var(--font-family-body)',
   card: '#fff',
   bg: '#F8FAFC',
   border: '#E2E8F0',

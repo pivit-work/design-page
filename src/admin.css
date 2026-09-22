@@ -926,7 +926,7 @@
 }
 
 /* 페이지네이션·미세 텍스트 유틸 (mono 는 페이지 카운터 숫자에만) */
-.admin-emp-mono { font-family: var(--font-family-mono, 'DM Mono', monospace); font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
+.admin-emp-mono { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
 .admin-emp-muted { color: var(--text-tertiary); font-size: var(--font-size-text-sm, 13px); }
 
 .admin-emp-actions-cell { position: relative; }
@@ -1735,7 +1735,7 @@
 /* 섹션 제목 — design-page 페이지/섹션 헤더 정합(report-period-title /
    manager-section-title = 20px/700/30, page-subtitle = 14px/600/-0.04em). */
 .admin-snap-header-title {
-  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-family: var(--font-family-display);
   font-size: 20px;
   font-weight: 700;
   line-height: 30px;
@@ -1848,7 +1848,7 @@
   margin: 0 0 8px;
 }
 .admin-snap-summary-value {
-  font-family: var(--font-family-display, 'Pretendard', sans-serif);
+  font-family: var(--font-family-display);
   font-size: 30px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -3474,7 +3474,7 @@
 .admin-emp-hist-when {
   flex-shrink: 0;
   min-width: 74px;
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--text-tertiary);
 }
