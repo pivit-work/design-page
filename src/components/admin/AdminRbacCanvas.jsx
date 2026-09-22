@@ -311,7 +311,7 @@ export default function AdminRbacCanvas({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 9,
-                  padding: '9px 11px',
+                  padding: '12px',
                   borderRadius: DP.radius.md,
                   cursor: 'pointer',
                   background: active ? DP.accentBg : 'transparent',
