@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
 import MeetingRecordContent from './MeetingRecordContent.jsx';
@@ -184,7 +185,7 @@ export default function MeetingInProgressModal({
             {participants.length > 0 && (
               <div className="mtg-progress-participants">
                 {participants.map((p) => (
-                  <span key={p} className="mtg-progress-pill">{p}</span>
+                  <StatusBadge key={p} className="mtg-progress-pill">{p}</StatusBadge>
                 ))}
               </div>
             )}

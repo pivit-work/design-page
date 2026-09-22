@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
 
@@ -214,7 +215,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
               <div className="ono-add-modal-member-name-row">
                 <span className="ono-add-modal-member-name">{member.name}</span>
                 {member.badge && (
-                  <span className="ono-add-modal-member-badge">{member.badge}</span>
+                  <StatusBadge className="ono-add-modal-member-badge">{member.badge}</StatusBadge>
                 )}
               </div>
               {member.role && (

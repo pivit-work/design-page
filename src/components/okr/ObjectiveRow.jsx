@@ -1,4 +1,5 @@
 import OkrProgressBar from './OkrProgressBar.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import { useOkrDrag } from './hooks.js';
 
@@ -15,7 +16,7 @@ export default function ObjectiveRow({ objective, dragId, onClick }) {
       style={style}
       onMouseDown={onDown}
     >
-      <span className={`okr-q-badge is-${objective.badge || 'gray'}`}>{objective.q}</span>
+      <StatusBadge className={`okr-q-badge is-${objective.badge || 'gray'}`}>{objective.q}</StatusBadge>
       <span className="okr-objective-title">{objective.title}</span>
       {/* 아무 하위도 받지 못한 KR 수 — 전사 노드에서만 채워 넘긴다(경영자 시점).
           0·undefined 면 아무것도 그리지 않는다. 집계는 소비자가 파생해 넘기며 저장하지 않는다. */}

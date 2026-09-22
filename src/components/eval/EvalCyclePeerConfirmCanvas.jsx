@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
 
 /**
@@ -130,14 +131,14 @@ function PeerGroupCard({
           <h3 className="evc-card-name">{group.evaluatee.name || group.evaluatee.id}</h3>
         </button>
         {changed && (
-          <span className="evc-status-badge evp-changed" data-testid="evp-changed">
+          <StatusBadge className="evc-status-badge evp-changed" data-testid="evp-changed">
             {L.nominationChanged}
-          </span>
+          </StatusBadge>
         )}
         {group.confirmed ? (
-          <span className="evc-status-badge tone-success">
+          <StatusBadge className="evc-status-badge tone-success">
             {fill(L.confirmedBadge, { count: group.nominees.length })}
-          </span>
+          </StatusBadge>
         ) : (
           <>
             <span className="evc-pending">
@@ -168,10 +169,10 @@ function PeerGroupCard({
             {group.nominees.map((n) => (
               <div className="evp-nominee" key={n.id} data-testid="evp-nominee">
                 <span className="evp-nominee-name">{n.evaluator.name || n.evaluator.id}</span>
-                <span className="evc-type-badge">{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</span>
-                <span className={`evc-status-badge tone-${n.status === 'leader_approved' ? 'success' : 'neutral'}`}>
+                <StatusBadge className="evc-type-badge">{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</StatusBadge>
+                <StatusBadge className={`evc-status-badge tone-${n.status === 'leader_approved' ? 'success' : 'neutral'}`}>
                   {L[STATUS_KEY[n.status]] ?? n.status}
-                </span>
+                </StatusBadge>
                 {!group.confirmed && (
                   <button
                     type="button"
@@ -219,7 +220,7 @@ function UnsolicitedSection({ items, L, onAdopt, onReject }) {
     <section className="evc-card" data-testid="evp-unsolicited" style={{ borderColor: 'var(--utility-warning-200)' }}>
       <div className="evc-card-head">
         <h3 className="evc-card-name">{L.unsolicitedTitle}</h3>
-        <span className="evc-status-badge tone-warning">{items.length}</span>
+        <StatusBadge className="evc-status-badge tone-warning">{items.length}</StatusBadge>
       </div>
       <p className="evc-empty-sub">{L.unsolicitedSub}</p>
       <div className="evp-nominees">
@@ -227,7 +228,7 @@ function UnsolicitedSection({ items, L, onAdopt, onReject }) {
           <div key={r.id} className="evp-unsol-row" data-testid={`evp-unsol-${r.id}`}>
             <div className="evp-unsol-head">
               <span className="evp-nominee-name">{r.volunteer?.name || r.volunteer?.id}</span>
-              <span className="evc-type-badge">{L.unsolicitedBadge}</span>
+              <StatusBadge className="evc-type-badge">{L.unsolicitedBadge}</StatusBadge>
               <span className="evp-unsol-target">{L.volunteerArrow}: {r.evaluatee?.name || r.evaluatee?.id}</span>
             </div>
             {r.requestReason && (

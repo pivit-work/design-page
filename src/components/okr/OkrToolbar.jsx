@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
@@ -85,7 +86,7 @@ export default function OkrToolbar({
         )}
         {levels.length > 1 && depthLabel && <span className="okr-depth-label">{depthLabel}</span>}
         {policyChip && (
-          <span className="okr-policy-chip" title={policyChip.title}>{policyChip.label}</span>
+          <StatusBadge className="okr-policy-chip" title={policyChip.title}>{policyChip.label}</StatusBadge>
         )}
       </div>
       <button className="okr-icon-btn">

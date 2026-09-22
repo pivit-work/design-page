@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Card from './Card.jsx';
 import Icon from '../shared/Icon.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
@@ -514,12 +515,12 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           <span className="admin-notif-rule-label">{rule.label}</span>
           <span className="admin-notif-rule-condition">— {conditionText}</span>
           {rule.conditionSchema && (
-            <span className="admin-notif-editable-badge">{labels.editableBadge}</span>
+            <StatusBadge className="admin-notif-editable-badge">{labels.editableBadge}</StatusBadge>
           )}
         </div>
         <div className="admin-notif-rule-meta">
           {rule.recipients.map((r) => (
-            <span key={r} className="admin-notif-role-chip">{labels.roles[r]}</span>
+            <StatusBadge key={r} className="admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
           ))}
           <span className="admin-notif-meta-sep" aria-hidden="true" />
           {rule.channels.map((c) => (

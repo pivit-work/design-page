@@ -1,4 +1,5 @@
 import { AiSparkleIcon } from '../resource/resourceIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import rowKey from './rowKey.js';
 
 /**
@@ -20,7 +21,7 @@ const STATUS_TONES = {
 
 export function RsStatusBadge({ status }) {
   const tone = STATUS_TONES[status] ?? 'indigo';
-  return <span className={`rsx-badge is-${tone}`}>{status}</span>;
+  return <StatusBadge className={`rsx-badge is-${tone}`}>{status}</StatusBadge>;
 }
 
 /* 스탯 카드 — 라벨(12 Semibold) + 값(30 Display Medium). Figma 17478:24237.

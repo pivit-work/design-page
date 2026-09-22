@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══════════════════════════════════════════════════════════════
    Onboarding — 회사 개설·초대 가입 화면 (prefix: onb-)
 
@@ -92,11 +94,6 @@
   letter-spacing: -0.01em; white-space: pre-line;
 }
 .onb-panel-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 40px; }
-.onb-panel-pill {
-  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: -0.01em;
-  background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
 
 /* ── 오른쪽 스크롤 칸 ── */
 .onb-scroll {
@@ -193,7 +190,6 @@
 .onb-gap-2 { gap: 2px; } .onb-gap-4 { gap: 4px; } .onb-gap-6 { gap: 6px; } .onb-gap-8 { gap: 8px; }
 .onb-gap-10 { gap: 10px; } .onb-gap-12 { gap: 12px; } .onb-gap-16 { gap: 16px; } .onb-gap-20 { gap: 20px; }
 .onb-gap-24 { gap: 24px; }
-
 
 /* ── 글씨 ── */
 .onb-text { margin: 0; letter-spacing: -0.01em; line-height: 1.6; overflow-wrap: anywhere; }
@@ -321,12 +317,6 @@
 .onb-notice-neutral { background: var(--onb-surface); border-color: var(--onb-border); color: var(--onb-sub); font-size: 12px; }
 .onb-notice-subtle { background: var(--onb-bg); border-color: var(--onb-border); color: var(--onb-sub); font-size: 13px; }
 .onb-notice-hero { padding: 32px 24px; border-radius: var(--onb-radius); border-width: 1.5px; text-align: center; }
-
-/* ── 상태 배지 (시안 승인 대기 배지) ── */
-.onb-badge {
-  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px;
-  font-size: 12px; font-weight: 700; border: 1px solid transparent;
-}
 .onb-badge-brand { background: var(--onb-brand-light); color: var(--onb-brand); border-color: color-mix(in srgb, #2563eb 27%, transparent); }
 .onb-badge-warning { background: var(--onb-warn-bg); color: var(--onb-warn); border-color: var(--onb-warn-border); }
 
@@ -350,14 +340,6 @@
   border-color: var(--colors-background-bgBrandSolid, #2dbd82); font-weight: 700;
 }
 .onb-chip:disabled { cursor: not-allowed; opacity: 0.5; color: var(--colors-text-textDisabled, #b1b6be); }
-
-/* ── 태그 (시안 Tag) ── */
-.onb-tag {
-  display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
-  font-size: 13px; font-weight: 500; overflow-wrap: anywhere;
-  background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
-}
-.onb-tag.is-grow { flex: 1; }
 .onb-tag button { padding: 0; line-height: 1; background: none; border: none; cursor: pointer; color: inherit; display: inline-flex; }
 
 /* ── 섹션 제목 (시안 SectionDivider) ── */

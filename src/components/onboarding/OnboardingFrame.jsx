@@ -1,4 +1,5 @@
 import { OnbArrowLeftIcon, OnbCheckIcon, OnbLockIcon } from './onboardingIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * 온보딩 화면 틀 — 시안 `8. onboarding/onboarding-app.jsx` 의 `Onboarding()` 레이아웃.
@@ -61,9 +62,9 @@ export function OnboardingBrandPanel({ eyebrow, title, subtitle, pills = [], tes
           {pills.length > 0 && (
             <div className="onb-panel-pills">
               {pills.map((p) => (
-                <span key={p} className="onb-panel-pill">
+                <StatusBadge key={p} className="onb-panel-pill">
                   {p}
-                </span>
+                </StatusBadge>
               ))}
             </div>
           )}

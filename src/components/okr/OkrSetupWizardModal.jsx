@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
@@ -271,7 +272,7 @@ export default function OkrSetupWizardModal({
               <div className="okr-wz-scope-fixed-text">
                 <p className="okr-wz-scope-label">
                   {card.label}
-                  <span className="okr-wz-scope-badge">{card.badge}</span>
+                  <StatusBadge className="okr-wz-scope-badge">{card.badge}</StatusBadge>
                 </p>
                 <p className="okr-wz-scope-desc">{card.desc}</p>
               </div>
@@ -333,9 +334,9 @@ export default function OkrSetupWizardModal({
           </div>
           <div className={`okr-wz-draft${objConfirmed ? ' is-confirmed' : ''}`}>
             <div className="okr-wz-draft-head">
-              <span className="okr-wz-badge">
+              <StatusBadge className="okr-wz-badge">
                 {objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력'}
-              </span>
+              </StatusBadge>
               {!objConfirmed && objective.trim() && (
                 <button type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</button>
               )}
@@ -380,7 +381,7 @@ export default function OkrSetupWizardModal({
           {krs.length > 0 && (
             <div className={`okr-wz-draft${krsConfirmed ? ' is-confirmed' : ''}`}>
               <div className="okr-wz-draft-head">
-                <span className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</span>
+                <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
                 {!krsConfirmed && (
                   <button type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>전체 확인</button>
                 )}

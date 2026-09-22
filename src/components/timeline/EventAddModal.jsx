@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import CustomSelect from './CustomSelect.jsx';
@@ -250,7 +251,7 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
               {externalList.length > 0 && (
                 <div className="tl-event-external-list">
                   {externalList.map((x, i) => (
-                    <span key={i} className="tl-event-external-tag">
+                    <StatusBadge key={i} className="tl-event-external-tag">
                       {x}
                       <button
                         type="button"
@@ -260,7 +261,7 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
                       >
                         ×
                       </button>
-                    </span>
+                    </StatusBadge>
                   ))}
                 </div>
               )}

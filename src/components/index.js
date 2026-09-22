@@ -10,6 +10,8 @@ export { default as ModalShell } from './shared/ModalShell.jsx';
 export { default as SidePanelShell } from './shared/SidePanelShell.jsx';
 export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
 export { default as RosterTable } from './shared/RosterTable.jsx';
+export { default as StatusBadge } from './shared/StatusBadge.jsx';
+export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBadgeTones.js';
 export { default as Toast } from './shared/Toast.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
 export {

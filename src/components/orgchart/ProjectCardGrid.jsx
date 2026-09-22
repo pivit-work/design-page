@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { PROJECT_STATUSES } from './project-constants.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
@@ -10,14 +11,14 @@ function ProjectCard({ project }) {
 
   return (
     <div className="pj-card">
-      <div className="pj-card-status" style={{ color: status.textColor }}>
+      <StatusBadge as="div" className="pj-card-status" style={{ color: status.textColor }}>
         {status.icon ? (
           <Icon src={status.icon} size={12} color="currentColor" />
         ) : (
           <span className="pj-status-dot" style={{ background: status.dotColor }} />
         )}
         <span>{L(`project.status.${project.status}`)}</span>
-      </div>
+      </StatusBadge>
       <div className="pj-card-info">
         <p className="pj-card-name">{project.name}</p>
         <p className="pj-card-desc">{project.description}</p>

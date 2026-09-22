@@ -1,4 +1,5 @@
 import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
@@ -179,7 +180,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               비공개인 사람의 카드에서 구분자가 매달려 보였다. */}
           <div className="modal-title">{[profile.title, profile.dept].filter(Boolean).join(' · ')}</div>
           <div className="modal-bio">{profile.bio}</div>
-          <span className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</span>
+          <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
         </div>
 
         {/* Stats Row — Admin: 고용형태/직급/업무시간, Employee: 업무시간 only */}
@@ -311,7 +312,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                     </div>
                     <div className="modal-team-name">{tm.name}</div>
                     {/* 조직 단위 없이 바로 보고하는 사람(직속 칸)에만 붙는다 — 조직 소속과 가른다. */}
-                    {tm.isDirectReport && <span className="modal-team-chip">{directReportChipLabel || L('profile.directReportChip')}</span>}
+                    {tm.isDirectReport && <StatusBadge className="modal-team-chip">{directReportChipLabel || L('profile.directReportChip')}</StatusBadge>}
                     <div className="modal-team-role">{tm.role || L('profile.roleDefault')}</div>
                   </div>
                 ))}

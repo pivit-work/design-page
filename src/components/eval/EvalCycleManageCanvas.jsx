@@ -1,4 +1,5 @@
 import { LockIcon, PauseIcon } from './evalIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * EvalCycleManageCanvas — 오픈된 사이클의 «무엇을·어떻게» 를 고치는 화면의 셸
@@ -62,14 +63,14 @@ export default function EvalCycleManageCanvas({
             · {L.manageSuffix}
           </span>
           {statusLabel && (
-            <span className={`evc-status-badge tone-${statusTone}`} data-testid="evmg-status">
+            <StatusBadge className={`evc-status-badge tone-${statusTone}`} data-testid="evmg-status">
               {statusLabel}
-            </span>
+            </StatusBadge>
           )}
           {onHold && (
-            <span className="evc-status-badge tone-warn" data-testid="evmg-onhold">
+            <StatusBadge className="evc-status-badge tone-warn" data-testid="evmg-onhold">
               <PauseIcon size={12} /> {L.onHold}
-            </span>
+            </StatusBadge>
           )}
         </div>
       </header>

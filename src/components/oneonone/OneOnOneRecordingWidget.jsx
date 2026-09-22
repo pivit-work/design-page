@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import useMicWave from '../shared/useMicWave.js';
 
 /**
@@ -246,7 +247,7 @@ export default function OneOnOneRecordingWidget({
               <div className="ono-start-rec-name-row">
                 <span className="ono-start-rec-name">{member?.name ?? ''}</span>
                 {member?.badge && (
-                  <span className="ono-start-rec-badge">{member.badge}</span>
+                  <StatusBadge className="ono-start-rec-badge">{member.badge}</StatusBadge>
                 )}
               </div>
               {meetingTime && (

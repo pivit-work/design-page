@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 
@@ -40,7 +41,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
         </Cell>
         <Cell><span className="admin-team-dept">{row.dept}</span></Cell>
         <Cell colSpan={3}><span className="admin-team-pending">{labels.invitePending}</span></Cell>
-        <Cell><span className="admin-pill is-inactive">{labels.inactiveStatus}</span></Cell>
+        <Cell><StatusBadge className="admin-pill is-inactive">{labels.inactiveStatus}</StatusBadge></Cell>
       </Row>
     );
   }
@@ -79,14 +80,14 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
       <Cell>
         {row.redFlag
           ? (
-            <span className="admin-pill is-redflag">
+            <StatusBadge className="admin-pill is-redflag">
               <Icon src="/icons/alert-triangle.svg" size={12} color="currentColor" baseUrl={baseUrl} />
               {labels.detected}
-            </span>
+            </StatusBadge>
           )
           : <span className="admin-team-empty-cell">—</span>}
       </Cell>
-      <Cell><span className="admin-pill is-active">{labels.activeStatus}</span></Cell>
+      <Cell><StatusBadge className="admin-pill is-active">{labels.activeStatus}</StatusBadge></Cell>
     </Row>
   );
 }

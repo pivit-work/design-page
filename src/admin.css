@@ -1,3 +1,4 @@
+@import './status-badge.css';
 @import './roster-table.css';
 /*
  * admin.css — 어드민 개요 대시보드(AdminDashboardCanvas) 정본 스타일.
@@ -340,32 +341,6 @@
   color: var(--text-tertiary);
 }
 
-/* 배지: 레드플래그 / 활성 / 비활성 — 1on1 severity 배지 패턴 */
-.admin-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-xs, 6px);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs, 12px);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.admin-pill.is-redflag {
-  background: var(--utility-error-50);
-  color: var(--text-error-primary);
-}
-.admin-pill.is-active {
-  background: var(--colors-background-bgBrandSecondary, #e1fef2);
-  color: var(--colors-text-textBrandSecondary, #10774d);
-}
-.admin-pill.is-inactive {
-  background: var(--bg-secondary);
-  color: var(--text-tertiary);
-}
-
 .admin-team-pending {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
@@ -581,23 +556,6 @@
   flex-shrink: 0;
   margin-top: 1px;
 }
-.admin-activity-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border-radius: 99px;
-  flex-shrink: 0;
-  height: fit-content;
-  margin-top: 1px;
-  font-family: var(--font-family-body);
-  font-size: 10px;
-  font-weight: 700;
-}
-.admin-activity-tag.is-snippet  { background: var(--utility-purple-50, #f4f3ff); color: var(--utility-purple-500); }
-.admin-activity-tag.is-alert    { background: var(--utility-error-50);            color: var(--colors-error-600); }
-.admin-activity-tag.is-oneonone { background: var(--utility-green-50);            color: var(--utility-green-600); }
-.admin-activity-tag.is-meeting  { background: var(--utility-brand-50);            color: var(--text-brand-tertiary); }
-.admin-activity-tag.is-eval     { background: var(--colors-warning-50, #fffaeb);  color: var(--colors-warning-500, #f79009); }
 
 .admin-activity-body { flex: 1; }
 .admin-activity-actor {
@@ -1171,58 +1129,6 @@
   flex-shrink: 0;
 }
 
-/* ── 배지 / pill — design-page report/meeting tag 규격 (radius 8px, 점 없음) ──
- * 색 통합: '녹색'은 brand 에메랄드 하나로(utility-green 제거). 역할 pill 은
- * 중립 회색(어드민만 brand 강조) → 상태 배지가 행의 유일한 색 신호. */
-.admin-emp-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm, 8px);
-  font-family: var(--font-family-body);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-  white-space: nowrap;
-}
-.admin-emp-pill.is-amber { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
-
-.admin-emp-role-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 8px;
-  border-radius: var(--radius-sm, 8px);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-  white-space: nowrap;
-}
-.admin-emp-role-pill.is-admin { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
-.admin-emp-role-pill.is-manager { background: var(--bg-secondary); color: var(--text-secondary); }
-
-.admin-emp-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--radius-sm, 8px);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-family: var(--font-family-body);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
-  white-space: nowrap;
-}
-/* 채움은 디자이너 팔레트(에메랄드/회색)만. warning 은 amber '텍스트'로만(report 방식). */
-.admin-emp-status.is-active { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
-/* 수습(PW-422). 종전 `.is-pending` 이 「수습」 라벨을 달고 쓰던 amber 텍스트 그대로다 —
-   상태값만 제자리를 찾았고 보이는 모습은 바뀌지 않는다. */
-.admin-emp-status.is-probation { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status.is-pending { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status.is-on-leave { background: var(--bg-secondary); color: var(--text-secondary); }
-.admin-emp-status.is-terminated { background: var(--bg-secondary); color: var(--text-tertiary); }
-.admin-emp-status.is-other { background: var(--bg-secondary); color: var(--text-tertiary); }
-
 /* ── 페이지네이션 ────────────────────────────────────────── */
 .admin-emp-pagination {
   display: flex;
@@ -1656,23 +1562,6 @@
 /* 소속 팀은 "본부 · 실 · 팀" 경로라 다른 필드보다 길다 — 줄여도 읽히게 폭을 준다. */
 .admin-emp-invite-team { min-width: 190px; max-width: 280px; }
 
-/* 초대 상태 배지 — status 배지와 동일 규격(점 없음, radius 8) */
-.admin-emp-invite-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--radius-sm, 8px);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-family: var(--font-family-body);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
-  white-space: nowrap;
-}
-.admin-emp-invite-badge.is-pending { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-invite-badge.is-accepted { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
-.admin-emp-invite-badge.is-expired { background: var(--bg-secondary); color: var(--text-tertiary); }
-
 /* 취소 액션은 위험 톤 */
 .admin-emp-btn.admin-emp-danger { color: var(--text-error-primary); }
 
@@ -1832,19 +1721,6 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   color: var(--text-tertiary);
-}
-
-/* `증빙 고정본` — AI 출처 배지가 아니라 시점 출처 표기라 중립색(정책 §8) */
-.admin-snap-roster-badge {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--bg-secondary);
-  color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: help;
 }
 
 /* ── 현황 헤더: 제목 + 조회일 + 내보내기 ── */
@@ -2204,15 +2080,6 @@
   flex-wrap: wrap;
   gap: 6px;
   flex: 1;
-}
-.admin-snap-jg-pill {
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 99px;
-  background: var(--bg-secondary);
-  border: none;
-  color: var(--text-secondary);
 }
 .admin-snap-jg-count {
   width: 48px;
@@ -2734,47 +2601,11 @@
 .admin-snap-dropzone-sub { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
 
 .admin-snap-status-badges { display: flex; gap: 12px; margin-bottom: 14px; }
-.admin-snap-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border-radius: 99px;
-  font-family: var(--font-family-body);
-  font-size: 11px;
-  font-weight: 700;
-}
-.admin-snap-status-badge.is-ok { background: var(--utility-green-50); color: var(--utility-green-600); }
-.admin-snap-status-badge.is-warn { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
 
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-pv-name { font-weight: 700; color: var(--text-primary); }
 .admin-snap-pv-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
 .admin-snap-pv-after { font-weight: 700; color: var(--text-primary); }
-.admin-snap-pv-status-ok {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 8px; border-radius: 10px;
-  background: var(--utility-green-50); color: var(--utility-green-600);
-  font-size: 12px; font-weight: 600;
-}
-.admin-snap-pv-status-warn {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 8px; border-radius: 10px;
-  background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803);
-  font-size: 12px; font-weight: 600;
-}
-.admin-snap-pv-status-error {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 8px; border-radius: 10px;
-  background: var(--utility-error-50, #fef3f2); color: var(--utility-error-600, #d92d20);
-  font-size: 12px; font-weight: 600;
-}
-
-/* ── 겸직(다중 소속) 대량 발령 미리보기 — org-snapshot-spec §3-A ── */
-.admin-snap-status-badge.is-error {
-  background: var(--utility-error-50, #fef3f2);
-  color: var(--utility-error-600, #d92d20);
-}
 .admin-snap-warnbox {
   background: var(--colors-warning-50, #fffaeb);
   border: 1px solid var(--colors-warning-200, #fedf89);
@@ -2817,23 +2648,6 @@
   transition: color 0.15s ease;
 }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
-
-/* 발령 유형 배지 — typeKey → tone */
-.admin-snap-type-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 9px;
-  border-radius: var(--radius-xs, 6px);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.admin-snap-type-badge.is-blue { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
-.admin-snap-type-badge.is-green { background: var(--utility-green-100); color: var(--utility-green-600); }
-.admin-snap-type-badge.is-amber { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
-.admin-snap-type-badge.is-red { background: var(--utility-error-50); color: var(--text-error-primary); }
-.admin-snap-type-badge.is-gray { background: var(--bg-secondary); color: var(--text-tertiary); }
 
 /* 이력 상세 패널 */
 .admin-snap-hist-panel {
@@ -3073,16 +2887,6 @@
   color: var(--text-tertiary);
   word-break: keep-all;
 }
-.admin-notif-editable-badge {
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-secondary);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-}
 .admin-notif-rule-meta {
   display: flex;
   gap: var(--spacing-sm);
@@ -3111,17 +2915,6 @@
   flex-shrink: 0;
   max-width: 160px;
   text-align: right;
-}
-
-/* 역할 칩 (행 메타) — 무지개색 대신 중립 단일 톤 (팔레트 절제) */
-.admin-notif-role-chip {
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  font-weight: 600;
-  padding: 1px var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  color: var(--text-secondary);
 }
 
 /* ── 전체 on/off ─────────────────────────────────────────── */
@@ -3562,15 +3355,6 @@
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.admin-inv-primary-badge {
-  flex-shrink: 0;
-  padding: 1px 6px;
-  border-radius: 99px;
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-tertiary);
-  font-size: 10px;
-  font-weight: 800;
-}
 .admin-inv-primary { max-width: 320px; }
 
 .admin-inv-addrow { display: flex; align-items: center; gap: 8px; }
@@ -3668,20 +3452,6 @@
   flex-wrap: wrap;
   align-items: center;
 }
-/* 조직 이름은 관리자가 정하므로 길이를 가정하지 않는다 — 칩 안에서 줄바꿈시킨다 */
-.admin-inv-csv-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-  overflow-wrap: anywhere;
-}
 .admin-inv-csv-fix { display: flex; gap: 8px; flex-wrap: wrap; }
 .admin-inv-csv-fix .admin-inv-field { max-width: 220px; }
 
@@ -3738,27 +3508,6 @@
   font-weight: 700;
   color: var(--text-primary);
   overflow-wrap: anywhere;
-}
-
-/* 칩에 들어오는 값은 관리자·사용자가 정한 항목 이름이라 길이를 가정하지 않는다.
-   넘치면 잘라내지 말고 흘려서 줄바꿈한다 — 잘리면 어느 항목인지 못 읽는다. */
-.admin-emp-hist-chip {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: var(--radius-full, 99px);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-}
-
-.admin-emp-hist-chip.is-self {
-  background: var(--bg-brand-secondary);
-  border-color: var(--utility-brand-200);
-  color: var(--text-brand-secondary);
-  margin-left: 6px;
 }
 
 .admin-emp-hist-values {

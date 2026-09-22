@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Tabs from '../shared/Tabs.jsx';
 
 /**
@@ -47,7 +48,7 @@ export default function KrContributionDetail({ member }) {
               <p className="mgr-krd-date">{item.date}</p>
               <p className="mgr-krd-text">{item.text}</p>
               <div className="mgr-krd-tags">
-                {item.tags?.map((tag) => <span className="mgr-krd-tag" key={tag}>{tag}</span>)}
+                {item.tags?.map((tag) => <StatusBadge className="mgr-krd-tag" key={tag}>{tag}</StatusBadge>)}
               </div>
             </div>
           ))}
@@ -60,7 +61,7 @@ export default function KrContributionDetail({ member }) {
             <div className="mgr-krd-row" key={item.text}>
               <span className="mgr-krd-row-title">{item.text}</span>
               <span className="mgr-krd-due">{item.due}</span>
-              <span className={`mgr-krd-pill is-${item.status.tone}`}>{item.status.label}</span>
+              <StatusBadge className={`mgr-krd-pill is-${item.status.tone}`}>{item.status.label}</StatusBadge>
             </div>
           ))}
         </div>
@@ -72,7 +73,7 @@ export default function KrContributionDetail({ member }) {
             <div className="mgr-krd-row" key={item.key + item.title}>
               <span className="mgr-krd-key">{item.key}</span>
               <span className="mgr-krd-row-title">{item.title}</span>
-              <span className={`mgr-krd-pill is-${item.status.tone}`}>{item.status.label}</span>
+              <StatusBadge className={`mgr-krd-pill is-${item.status.tone}`}>{item.status.label}</StatusBadge>
             </div>
           ))}
         </div>

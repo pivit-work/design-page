@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrResourceMyInput from './OkrResourceMyInput.jsx';
 import OkrResourceTeam from './OkrResourceTeam.jsx';
@@ -65,7 +66,7 @@ export default function OkrResourceCanvas({
           <span className="rsx-meta-month">{data.month}</span>
           <span className="rsx-meta-dot">∙</span>
           <span className="rsx-meta-owner">{data.owner}</span>
-          <span className="rsx-meta-badge">{data.role}</span>
+          <StatusBadge className="rsx-meta-badge">{data.role}</StatusBadge>
         </div>
       </div>
       <div className="rsx-views">

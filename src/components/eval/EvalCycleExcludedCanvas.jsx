@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { LeafIcon, InfoIcon, RefreshIcon, TargetIcon, TagIcon, CalendarIcon } from './evalIcons';
 
 /**
@@ -128,7 +129,7 @@ export default function EvalCycleExcludedCanvas({
         <div className="evx-identity">
           <h1 className="evc-title">{member?.name ?? ''}</h1>
           {member?.department && <span className="evx-dept">{member.department}</span>}
-          <span className="evc-status-badge tone-neutral">{L.excludedBadge}</span>
+          <StatusBadge className="evc-status-badge tone-neutral">{L.excludedBadge}</StatusBadge>
         </div>
       </header>
 
@@ -137,7 +138,7 @@ export default function EvalCycleExcludedCanvas({
         <section className="evc-card" data-testid="evx-cycle-banner">
           <div className="evc-card-head">
             <h3 className="evc-card-name">{cycle.name}</h3>
-            <span className="evc-status-badge tone-info">{L.cycleOngoing}</span>
+            <StatusBadge className="evc-status-badge tone-info">{L.cycleOngoing}</StatusBadge>
           </div>
           <div className="evc-card-meta">
             <span>{L.cyclePeriod}: {cycle.startDate} ~ {cycle.endDate}</span>

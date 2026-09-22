@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -141,7 +142,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
               </p>
               <div className="mtg-share-pill-list">
                 {calendarParticipants.map((p) => (
-                  <span key={p} className="mtg-progress-pill">{p}</span>
+                  <StatusBadge key={p} className="mtg-progress-pill">{p}</StatusBadge>
                 ))}
               </div>
             </div>

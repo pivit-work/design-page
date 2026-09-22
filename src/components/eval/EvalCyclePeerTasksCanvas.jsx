@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * EvalCyclePeerTasksCanvas — 내가 작성해야 할 동료 리뷰 대상 목록.
@@ -55,9 +56,9 @@ export default function EvalCyclePeerTasksCanvas({
             <div className="evc-card evpt-row" key={t.evaluateeId} data-testid="evpt-row">
               <div>
                 <span className="evc-card-name">{t.evaluateeName || t.evaluateeId}</span>
-                <span className={`evc-status-badge tone-${t.submitted ? 'success' : 'neutral'}`} style={{ marginLeft: 'var(--spacing-md)' }}>
+                <StatusBadge className={`evc-status-badge tone-${t.submitted ? 'success' : 'neutral'}`} style={{ marginLeft: 'var(--spacing-md)' }}>
                   {t.submitted ? L.done : L.pending}
-                </span>
+                </StatusBadge>
               </div>
               <button
                 type="button"

@@ -1,4 +1,5 @@
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import {
   filledOptions,
   groupBySection,
@@ -51,7 +52,7 @@ export default function EvalSheetBody({
           왜 눌리지 않는지를 함께 적는다 (정책 §6.2 v1.3). */}
       {readOnlyNotice && (
         <div className="evc-preview-readonly" data-testid="evc-sheet-readonly">
-          <span className="evc-mode-badge">{L.sheetReadOnlyBadge}</span>
+          <StatusBadge className="evc-mode-badge">{L.sheetReadOnlyBadge}</StatusBadge>
           <span className="evc-tpl-set-note">{L.sheetReadOnlyNote}</span>
         </div>
       )}
@@ -87,7 +88,7 @@ export default function EvalSheetBody({
                   <span className="evc-preview-guide-mark" title={q.description}>?</span>
                 )}
                 {q.requiresRationale && (
-                  <span className="evc-mode-badge is-warn">{L.rationaleRequired}</span>
+                  <StatusBadge className="evc-mode-badge is-warn">{L.rationaleRequired}</StatusBadge>
                 )}
               </div>
               {/* [PW-602 ③④] 상시 표시는 설명 본문과 **같은 렌더러**로 그린다 — 같은 필드라
@@ -178,11 +179,11 @@ export default function EvalSheetBody({
           {gradesTitle && <p className="evc-preview-sec-title">{gradesTitle}</p>}
           <div className="evc-preview-gradechips" data-testid="evc-sheet-grades">
             {grades.map((g, i) => (
-              <span key={g.gradeKey ?? i} className="evc-mode-badge">
+              <StatusBadge key={g.gradeKey ?? i} className="evc-mode-badge">
                 {g.label}
                 {/* numeric(5,2) 이 "15.00" 으로 와서 그대로 그리면 배지가 지저분하다. */}
                 {g.ratio != null ? ` ${Number(g.ratio)}%` : ''}
-              </span>
+              </StatusBadge>
             ))}
           </div>
         </>

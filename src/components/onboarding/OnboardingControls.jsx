@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { OnbCloseIcon, OnbGoogleLogo, OnbSpinner } from './onboardingIcons.jsx';
 
 /**
@@ -256,14 +257,14 @@ export function OnbChip({ selected = false, children, type = 'button', ...rest }
  */
 export function OnbTag({ children, grow = false, onRemove, removeLabel, testId }) {
   return (
-    <span className={cx('onb-tag', grow && 'is-grow')} data-testid={testId}>
+    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} data-testid={testId}>
       {children}
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={removeLabel}>
           <OnbCloseIcon size={12} />
         </button>
       )}
-    </span>
+    </StatusBadge>
   );
 }
 

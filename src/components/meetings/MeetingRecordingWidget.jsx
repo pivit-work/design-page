@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import useMicWave from '../shared/useMicWave.js';
@@ -58,7 +59,7 @@ export default function MeetingRecordingWidget({
         <div className="mtg-rec-widget-meta">
           <div className="mtg-rec-widget-name-row">
             <span>{meeting?.title}</span>
-            <span className="mtg-rec-widget-tag">{labels.tag}</span>
+            <StatusBadge className="mtg-rec-widget-tag">{labels.tag}</StatusBadge>
           </div>
           <div className="mtg-rec-widget-people">
             {participants.map((p, i) => (

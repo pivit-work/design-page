@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import EmployeeModalShell from './EmployeeModalShell.jsx';
 import ColorPicker from './ColorPicker.jsx';
 import CustomSelect from './CustomSelect.jsx';
@@ -81,7 +82,7 @@ export default function InternalEmployeeModal({
         <div className="tl-emp-search-wrap" ref={searchWrapRef}>
           {selectedMember ? (
             <div className="tl-emp-search-selected">
-              <span className="tl-emp-tag">
+              <StatusBadge className="tl-emp-tag">
                 <span className="tl-emp-tag-avatar" aria-hidden="true">
                   {selectedMember.name.charAt(0)}
                 </span>
@@ -97,7 +98,7 @@ export default function InternalEmployeeModal({
                 >
                   ×
                 </button>
-              </span>
+              </StatusBadge>
             </div>
           ) : (
             <input

@@ -1,4 +1,5 @@
 import { LEVEL_COLORS } from './constants.js';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
 export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCollapsible, isCollapsed, onToggle }) {
@@ -18,7 +19,7 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
       <div className="dept-title">
         <div className="dept-name">{node.name}</div>
         {/* 대표 직속 조직(§5.6) — 문구는 소비자가 로케일로 준다(staffLabel). */}
-        {node.isStaff && <span className="role-badge role-badge-staff">{node.staffLabel || L('org.staffBadge')}</span>}
+        {node.isStaff && <StatusBadge className="role-badge role-badge-staff">{node.staffLabel || L('org.staffBadge')}</StatusBadge>}
       </div>
       <div className="dept-meta">
         <span className="dept-type">{node.type}</span>

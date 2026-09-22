@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import {
   TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName,
   PencilIcon, SearchIcon, MoreVerticalIcon, CrownIcon, StarIcon,
@@ -112,7 +113,7 @@ export default function AdminTeamDetailPanel({
                   <div className="tm-member-name-row"><span className="tm-member-name">{m.name}</span></div>
                   {m.jobTitle && <span className="tm-member-title">{m.jobTitle}</span>}
                 </div>
-                <span className="tm-tag is-gray">{labels.unassigned}</span>
+                <StatusBadge className="tm-tag is-gray">{labels.unassigned}</StatusBadge>
               </div>
             ))}
           </div>
@@ -458,8 +459,8 @@ function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMen
       <div className="tm-member-main">
         <div className="tm-member-name-row">
           <span className="tm-member-name">{member.name}</span>
-          {member.isLeader && <span className="tm-tag is-amber">{labels.leader}</span>}
-          {member.isPrimary && <span className="tm-tag is-blue">{labels.primary}</span>}
+          {member.isLeader && <StatusBadge className="tm-tag is-amber">{labels.leader}</StatusBadge>}
+          {member.isPrimary && <StatusBadge className="tm-tag is-blue">{labels.primary}</StatusBadge>}
         </div>
         {member.jobTitle && <span className="tm-member-title">{member.jobTitle}</span>}
       </div>

@@ -1,0 +1,1616 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 상태 딱지 (PW-840)
+ *
+ * 「충족」·「시급」·「진행 중」처럼 색 배경에 둥근 모서리로 붙는 작은 딱지를 화면마다 따로
+ * 그려서, 딱지 규칙이 20개 CSS 파일에 흩어져 있었다. 뜻과 색을 짝지은 표도 없어서 같은
+ * 「끝났다」가 화면마다 다른 초록이었고, 새 상태가 생기면 색을 고를 근거가 없었다
+ * (PW-743 — 「수습」이 색이 없어 「휴직」 색을 쓰고 있다).
+ *
+ * 이 파일이 딱지의 **생김새 값**과 **뜻→색 표**를 가진 한 곳이다. 뼈대(감싸는 요소·클래스
+ * 붙이기)는 `components/shared/StatusBadge.jsx` 가, 「어떤 상태가 어떤 뜻인가」는
+ * `components/shared/statusBadgeTones.js` 가 가진다.
+ *
+ * ## 모양이 아직 제각각인 이유
+ *
+ * 모서리·글씨 크기·안쪽 여백을 **하나로 맞추는 일은 이 카드가 하지 않는다**
+ * (2026-09-22 커트 결정 «가» — 모양은 지금 그대로 두고 코드와 표만 모은다). 아래 「생김새」
+ * 절에 같은 값을 쓰는 딱지들이 한 줄로 묶여 있는데, 묶음이 이렇게 많다는 것 자체가 나중에
+ * 디자이너가 기준 모양 하나를 그릴 때 볼 지도다.
+ *
+ * ## 고칠 때
+ *
+ * 값을 바꾸면 `npm run check:status-badges` 가 막는다 — 모으기 전 화면과 달라졌다는 뜻이다.
+ * 모양을 **정말** 바꾸는 카드라면 `scripts/status-badge-baseline.json` 의 그 딱지 값도 함께
+ * 고치고, 무엇을 왜 바꿨는지 그 카드에 남긴다.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 뜻 → 색 표 ────────────────────────────────────────────────────────────
+ * `components/shared/statusBadgeTones.js` 의 `TONES` 와 같은 값이어야 한다.
+ * 어긋나면 `check:status-badges` 가 막는다. */
+:root {
+  /* 중립 — 아무 일도 일어나지 않은 상태 · 해당 없음 · 꺼져 있음 */
+  --dp-badge-neutral-bg: var(--bg-secondary);
+  --dp-badge-neutral-fg: var(--text-tertiary);
+  /* 정보 — 알려 주기만 하는 표시 · 갈래 구분 */
+  --dp-badge-info-bg: var(--utility-blue-50);
+  --dp-badge-info-fg: var(--utility-blue-600);
+  /* 진행 — 하는 중 · 아직 안 끝났지만 늦은 것은 아님 */
+  --dp-badge-progress-bg: var(--utility-purple-50);
+  --dp-badge-progress-fg: var(--utility-purple-500);
+  /* 성공 — 끝남 · 됨 · 충족 · 승인됨 */
+  --dp-badge-success-bg: var(--utility-green-50);
+  --dp-badge-success-fg: var(--utility-green-600);
+  /* 주의 — 곧 지남 · 사람이 한 번 봐야 함 */
+  --dp-badge-warning-bg: var(--utility-warning-50);
+  --dp-badge-warning-fg: var(--utility-warning-700);
+  /* 위험 — 지남 · 실패 · 시급 · 막힘 */
+  --dp-badge-danger-bg: var(--utility-error-50);
+  --dp-badge-danger-fg: var(--utility-error-700);
+  /* 강조 — 우리 서비스가 붙인 표시 · 기본값 · 고른 것 */
+  --dp-badge-accent-bg: var(--bg-brand-secondary);
+  --dp-badge-accent-fg: var(--text-brand-secondary);
+}
+
+/* ── 뼈대 ─────────────────────────────────────────────────────────────────
+ * `.dp-badge` 에는 일부러 선언이 없다. 지금 딱지들은 `display` 를 정한 것과 안 정한 것이
+ * 섞여 있어서, 여기에 무엇이든 넣는 순간 안 정한 쪽의 화면이 바뀐다. 이 클래스는 두 가지
+ * 일을 한다 — ① 이 자리가 딱지임을 검사가 알아본다 ② 나중에 모양을 하나로 맞출 때 고칠
+ * 한 자리가 된다. */
+.dp-badge {
+  /* 비어 있는 것이 맞다 — 위 주석 참고 */
+}
+
+/* ── 뜻 ───────────────────────────────────────────────────────────────────
+ * 화면은 색을 직접 고르지 않고 이 중 하나를 고른다. */
+.dp-badge--tone-neutral {
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+}
+.dp-badge--tone-info {
+  background: var(--dp-badge-info-bg);
+  color: var(--dp-badge-info-fg);
+}
+.dp-badge--tone-progress {
+  background: var(--dp-badge-progress-bg);
+  color: var(--dp-badge-progress-fg);
+}
+.dp-badge--tone-success {
+  background: var(--dp-badge-success-bg);
+  color: var(--dp-badge-success-fg);
+}
+.dp-badge--tone-warning {
+  background: var(--dp-badge-warning-bg);
+  color: var(--dp-badge-warning-fg);
+}
+.dp-badge--tone-danger {
+  background: var(--dp-badge-danger-bg);
+  color: var(--dp-badge-danger-fg);
+}
+.dp-badge--tone-accent {
+  background: var(--dp-badge-accent-bg);
+  color: var(--dp-badge-accent-fg);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 생김새 — 화면 CSS 에서 걷어 온 딱지 바탕 규칙.
+ * 값은 옮기기 전 그대로다. 같은 값을 쓰던 딱지는 한 줄로 묶었다.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ══ App.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.tab-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  color: var(--utility-gray-700);
+  line-height: var(--line-height-text-xs);
+}
+
+/* ══ action_items.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* 배지 — 우선순위/마감. 유틸 색 토큰만 사용한다(하드코딩 금지). */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.ai-badge.is-high { color: var(--text-error-primary); background: var(--utility-error-50); }
+
+.ai-badge.is-medium { color: var(--dp-badge-warning-fg); background: var(--dp-badge-warning-bg); }
+
+.ai-badge.is-low { color: var(--text-secondary); background: var(--componentColors-alpha-alphaBlack3); }
+
+/* ══ admin-integrations.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* ── 상태 배지 (admin-emp-status 값 미러) ───────────────────────────── */
+.intg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.intg-status.is-connected { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+
+.intg-status.is-disconnected { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+.intg-status.is-connecting { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+
+.intg-status.is-error { background: var(--bg-secondary); color: var(--colors-text-textErrorPrimary, #d92d20); }
+
+.intg-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: 10px; font-weight: 700; white-space: nowrap; }
+
+.intg-pill.is-good { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+
+.intg-pill.is-bad { background: var(--utility-error-50); color: var(--colors-error-600); }
+
+.intg-pill.is-brand { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
+
+/* ══ admin-kit.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.admin-kit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-kit-badge.is-success { background: var(--colors-green-100, #d3f8df); color: var(--colors-green-600, #099250); }
+
+.admin-kit-badge.is-warn { background: var(--colors-warning-100, #fef0c7); color: var(--colors-warning-700, #b54708); }
+
+.admin-kit-badge.is-brand {
+  background: color-mix(in srgb, var(--text-brand-tertiary) 12%, transparent);
+  color: var(--text-brand-tertiary);
+}
+
+.admin-kit-chip {
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.admin-kit-chip.is-md { padding: 2px 8px; font-size: 11px; }
+
+.admin-kit-chip.has-accent {
+  color: var(--kit-accent);
+  background: color-mix(in srgb, var(--kit-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--kit-accent) 20%, transparent);
+}
+
+.admin-kit-chip.is-warn {
+  color: var(--colors-warning-600, #dc6803);
+  background: var(--colors-warning-50, #fffaeb);
+  border-color: var(--colors-warning-200, #fedf89);
+}
+
+.admin-kit-chip.is-violet {
+  color: var(--colors-violet-500, #875bf7);
+  background: var(--colors-violet-50, #f5f3ff);
+  border-color: var(--colors-violet-200, #ddd6fe);
+}
+
+.admin-kit-chip.is-more { border-color: transparent; padding-left: 4px; padding-right: 4px; color: var(--text-tertiary); }
+
+.admin-kit-members-status {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--dp-badge-success-fg);
+  background: var(--dp-badge-success-bg);
+}
+
+.admin-kit-members-status.is-probation,
+.admin-kit-members-status.is-on_leave { color: var(--colors-warning-500, #d97706); background: var(--colors-warning-50, #fffbeb); }
+
+.admin-kit-members-status.is-terminated { color: var(--dp-badge-neutral-fg); background: var(--dp-badge-neutral-bg); }
+
+.admin-kit-members-status.is-pending { color: var(--text-brand-tertiary, #21a67a); background: var(--utility-brand-50, #f1fffa); }
+
+/* ══ admin.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* 배지: 레드플래그 / 활성 / 비활성 — 1on1 severity 배지 패턴 */
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-pill.is-redflag {
+  background: var(--utility-error-50);
+  color: var(--text-error-primary);
+}
+
+.admin-pill.is-active {
+  background: var(--dp-badge-accent-bg);
+  color: var(--dp-badge-accent-fg);
+}
+
+.admin-pill.is-inactive {
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+}
+
+.admin-activity-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  height: fit-content;
+  margin-top: 1px;
+  font-family: var(--font-family-body);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-activity-tag.is-snippet  { background: var(--dp-badge-progress-bg); color: var(--dp-badge-progress-fg); }
+
+.admin-activity-tag.is-alert    { background: var(--utility-error-50);            color: var(--colors-error-600); }
+
+.admin-activity-tag.is-oneonone { background: var(--dp-badge-success-bg);            color: var(--dp-badge-success-fg); }
+
+.admin-activity-tag.is-meeting  { background: var(--utility-brand-50);            color: var(--text-brand-tertiary); }
+
+.admin-activity-tag.is-eval     { background: var(--colors-warning-50, #fffaeb);  color: var(--colors-warning-500, #f79009); }
+
+/* ── 배지 / pill — design-page report/meeting tag 규격 (radius 8px, 점 없음) ──
+ * 색 통합: '녹색'은 brand 에메랄드 하나로(utility-green 제거). 역할 pill 은
+ * 중립 회색(어드민만 brand 강조) → 상태 배지가 행의 유일한 색 신호. */
+.admin-emp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.admin-emp-pill.is-amber { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+
+.admin-emp-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.admin-emp-role-pill.is-admin { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
+
+.admin-emp-role-pill.is-manager { background: var(--bg-secondary); color: var(--text-secondary); }
+
+.admin-emp-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* 채움은 디자이너 팔레트(에메랄드/회색)만. warning 은 amber '텍스트'로만(report 방식). */
+.admin-emp-status.is-active { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+
+/* 수습(PW-422). 종전 `.is-pending` 이 「수습」 라벨을 달고 쓰던 amber 텍스트 그대로다 —
+   상태값만 제자리를 찾았고 보이는 모습은 바뀌지 않는다. */
+.admin-emp-status.is-probation { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+
+.admin-emp-status.is-pending { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+
+.admin-emp-status.is-on-leave { background: var(--bg-secondary); color: var(--text-secondary); }
+
+.admin-emp-status.is-terminated { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+.admin-emp-status.is-other { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+/* 초대 상태 배지 — status 배지와 동일 규격(점 없음, radius 8) */
+.admin-emp-invite-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-family: var(--font-family-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.admin-emp-invite-badge.is-pending { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+
+.admin-emp-invite-badge.is-accepted { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
+
+.admin-emp-invite-badge.is-expired { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+/* `증빙 고정본` — AI 출처 배지가 아니라 시점 출처 표기라 중립색(정책 §8) */
+.admin-snap-roster-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.admin-snap-jg-pill {
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+}
+
+.admin-snap-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-family: var(--font-family-body);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-snap-status-badge.is-ok { background: var(--dp-badge-success-bg); color: var(--dp-badge-success-fg); }
+
+.admin-snap-status-badge.is-warn { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
+
+.admin-snap-pv-status-ok {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--dp-badge-success-bg); color: var(--dp-badge-success-fg);
+  font-size: 12px; font-weight: 600;
+}
+
+.admin-snap-pv-status-warn {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803);
+  font-size: 12px; font-weight: 600;
+}
+
+.admin-snap-pv-status-error {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--utility-error-50, #fef3f2); color: var(--utility-error-600, #d92d20);
+  font-size: 12px; font-weight: 600;
+}
+
+/* ── 겸직(다중 소속) 대량 발령 미리보기 — org-snapshot-spec §3-A ── */
+.admin-snap-status-badge.is-error {
+  background: var(--utility-error-50, #fef3f2);
+  color: var(--utility-error-600, #d92d20);
+}
+
+/* 발령 유형 배지 — typeKey → tone */
+.admin-snap-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs, 6px);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-snap-type-badge.is-blue { background: var(--utility-brand-50); color: var(--text-brand-tertiary); }
+
+.admin-snap-type-badge.is-green { background: var(--utility-green-100); color: var(--utility-green-600); }
+
+.admin-snap-type-badge.is-amber { background: var(--colors-warning-50, #fffaeb); color: var(--colors-warning-600, #dc6803); }
+
+.admin-snap-type-badge.is-red { background: var(--utility-error-50); color: var(--text-error-primary); }
+
+.admin-snap-type-badge.is-gray { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+.admin-notif-editable-badge {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--dp-badge-accent-bg);
+  color: var(--dp-badge-accent-fg);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+
+/* 역할 칩 (행 메타) — 무지개색 대신 중립 단일 톤 (팔레트 절제) */
+.admin-notif-role-chip {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
+  padding: 1px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary);
+}
+
+.admin-inv-primary-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* 조직 이름은 관리자가 정하므로 길이를 가정하지 않는다 — 칩 안에서 줄바꿈시킨다 */
+.admin-inv-csv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* 칩에 들어오는 값은 관리자·사용자가 정한 항목 이름이라 길이를 가정하지 않는다.
+   넘치면 잘라내지 말고 흘려서 줄바꿈한다 — 잘리면 어느 항목인지 못 읽는다. */
+.admin-emp-hist-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 99px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.admin-emp-hist-chip.is-self {
+  background: var(--dp-badge-accent-bg);
+  border-color: var(--utility-brand-200);
+  color: var(--dp-badge-accent-fg);
+  margin-left: 6px;
+}
+
+/* ══ eval-cycle.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* ── 상태 배지 ── */
+.evc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.evc-status-badge.tone-neutral {
+  background: var(--utility-gray-50);
+  color: var(--utility-gray-700);
+}
+
+.evc-status-badge.tone-info {
+  background: var(--dp-badge-info-bg);
+  color: var(--dp-badge-info-fg);
+}
+
+.evc-status-badge.tone-purple {
+  background: var(--dp-badge-progress-bg);
+  color: var(--dp-badge-progress-fg);
+}
+
+.evc-status-badge.tone-success {
+  background: var(--dp-badge-success-bg);
+  color: var(--dp-badge-success-fg);
+}
+
+.evc-status-badge.tone-warn {
+  background: var(--dp-badge-warning-bg);
+  color: var(--dp-badge-warning-fg);
+}
+
+.evc-status-badge.tone-error {
+  background: var(--dp-badge-danger-bg);
+  color: var(--dp-badge-danger-fg);
+}
+
+.evc-type-badge {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-full);
+  padding: 1px var(--spacing-md);
+}
+
+.evc-mode-badge {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  padding: 1px var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: var(--dp-badge-success-bg);
+  color: var(--dp-badge-success-fg);
+}
+
+.evc-mode-badge.is-warn {
+  background: var(--utility-error-50);
+  color: var(--utility-error-500);
+}
+
+.evc-mode-badge.is-muted {
+  background: var(--utility-gray-100);
+  color: var(--text-tertiary);
+}
+
+.evc-sched-anchor-badge {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  padding: 1px var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: var(--utility-brand-100);
+  color: var(--utility-brand-600);
+}
+
+.evc-sched-anchor-badge.is-manual {
+  background: var(--utility-purple-100);
+  color: var(--utility-purple-600);
+}
+
+.evc-rm-sum-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--spacing-md);
+  border-radius: 99px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+}
+
+.evc-rm-sum-chip.is-primary {
+  background: var(--dp-badge-accent-bg);
+  border-color: var(--border-brand);
+  color: var(--dp-badge-accent-fg);
+}
+
+.evc-tpl-rev-badge {
+  flex-shrink: 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 1px 8px;
+  background: var(--dp-badge-neutral-bg);
+  border: 1px solid var(--border-secondary);
+  color: var(--dp-badge-neutral-fg);
+}
+
+.evc-tpl-peek-grade {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 99px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.evc-roster-badge {
+  flex: 0 0 auto;
+  padding: 2px var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--utility-success-200);
+  background: var(--utility-success-50);
+  color: var(--utility-success-700);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.evm-history-grade {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--utility-blue-700);
+  background: var(--utility-blue-100);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+}
+
+.evs-lp-tag {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.evs-lp-tag.tone-amber { background: var(--dp-badge-warning-bg); border: 1px solid var(--utility-warning-200); color: var(--dp-badge-warning-fg); }
+
+.evs-lp-tag.tone-red { background: var(--dp-badge-danger-bg); border: 1px solid var(--utility-error-200); color: var(--dp-badge-danger-fg); }
+
+.evs-lp-tag.tone-green { background: var(--utility-green-50); border: 1px solid var(--utility-green-200); color: var(--utility-green-700); }
+
+.evs-lp-tag.tone-neutral { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+
+.evs-re-grade {
+  padding: 1px 8px; border-radius: var(--radius-full);
+  font-size: var(--font-size-text-xs); font-weight: 700; white-space: nowrap;
+}
+
+.evs-re-grade.lg { font-size: var(--font-size-text-xs); padding: 3px 10px; }
+
+.evs-re-grade.seg-top { background: var(--utility-green-50); color: var(--utility-green-700); }
+
+.evs-re-grade.seg-mid { background: var(--utility-brand-50); color: var(--utility-brand-600); }
+
+.evs-re-grade.seg-bottom { background: var(--dp-badge-danger-bg); color: var(--dp-badge-danger-fg); }
+
+.evs-lp-tag.tone-accent { background: var(--utility-brand-50); border: 1px solid var(--utility-brand-200); color: var(--utility-brand-700); }
+
+.evs-j4-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full); background: var(--bg-secondary); font-size: var(--font-size-text-xs); font-weight: 600; color: var(--text-primary); }
+
+.evs-j4-pill-tag { font-size: var(--font-size-text-xs); font-weight: 700; padding: 1px 6px; border-radius: var(--radius-full); background: var(--bg-active); color: var(--text-tertiary); }
+
+.evs-j4-pill-tag.is-shared { background: var(--utility-brand-50); color: var(--utility-brand-700); }
+
+.evr-insight-badge {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-brand-700);
+  background: var(--utility-brand-100);
+  border-radius: var(--radius-full);
+  padding: 2px var(--spacing-md);
+}
+
+.evrr-badge {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.evrr-badge.is-pending {
+  color: var(--dp-badge-warning-fg);
+  background: var(--dp-badge-warning-bg);
+}
+
+.evrr-badge.is-approved {
+  color: var(--utility-blue-700);
+  background: var(--utility-blue-50);
+}
+
+.evrr-badge.is-sent {
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
+}
+
+/* 「검수」 화면의 상태 딱지 — 끝남 · 다시 볼 것 · 보내기 막힘 (PW-711) */
+.evrr-badge.is-done {
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
+}
+.evrr-badge.is-review {
+  color: var(--dp-badge-warning-fg);
+  background: var(--dp-badge-warning-bg);
+}
+.evrr-badge.is-failed {
+  color: var(--dp-badge-danger-fg);
+  background: var(--dp-badge-danger-bg);
+}
+
+.evl-committee-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--dp-badge-danger-bg);
+  color: var(--dp-badge-danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.evs-cw-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.evs-cw-status.tone-accent {
+  background: var(--dp-badge-info-bg);
+  color: var(--dp-badge-info-fg);
+}
+
+.evs-cw-status.tone-green {
+  background: var(--utility-green-50);
+  color: var(--utility-green-700);
+}
+
+.evs-cw-status.tone-muted {
+  background: var(--utility-gray-100);
+  color: var(--text-tertiary);
+}
+
+.evs-cw-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.evs-cw-badge.tone-green {
+  background: var(--utility-green-50);
+  color: var(--utility-green-700);
+}
+
+.evs-cw-badge.tone-accent {
+  background: var(--dp-badge-info-bg);
+  color: var(--dp-badge-info-fg);
+}
+
+.evs-cw-badge.tone-red {
+  background: var(--dp-badge-danger-bg);
+  color: var(--dp-badge-danger-fg);
+}
+
+.evs-cw-badge.tone-muted {
+  background: var(--utility-gray-100);
+  color: var(--text-tertiary);
+}
+
+.evs-cw-appeal-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--dp-badge-warning-bg);
+  color: var(--dp-badge-warning-fg);
+  flex-shrink: 0;
+}
+
+.evs-cw-dist-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.evs-cw-dist-chip.is-off.tone-green {
+  border-color: var(--utility-green-300);
+}
+
+.evs-cw-dist-chip.is-off.tone-accent {
+  border-color: var(--utility-blue-300);
+}
+
+.evs-cw-dist-chip.is-off.tone-red {
+  border-color: var(--utility-error-300);
+}
+
+.evc-wiz-committee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--utility-gray-100);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+}
+
+.evc-wiz-committee-chip.is-chair {
+  background: var(--utility-pink-50);
+  color: var(--utility-pink-600);
+}
+
+/* 행 요약 배지 — 패널을 열지 않아도 설정을 읽을 수 있어야 한다. */
+.evc-tpl-item-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-md);
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+}
+
+.evc-rm-render-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ── 리포트 검수: 한 사람만의 구성 예외 (PW-863 · 정책 §8.3) ── */
+.evrr-badge.is-override {
+  color: var(--utility-purple-700);
+  background: var(--utility-purple-50);
+  margin-left: var(--spacing-sm);
+}
+
+/* ══ manager.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* ── 상태 배지 ── */
+.manager-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 2px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  filter: drop-shadow(0 1px 1px rgba(10, 13, 18, 0.05));
+}
+
+.manager-modal-snippet-tag {
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-xxs) var(--spacing-md);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--utility-gray-700);
+}
+
+.mgr-krd-tag { padding: 2px 8px; border-radius: 5px; background: var(--alpha-black-3); font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+
+.mgr-krd-pill { padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+.mgr-krd-pill.is-done { color: var(--utility-success-700); background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
+
+.mgr-krd-pill.is-progress { color: var(--utility-blue-500); background: var(--utility-blue-50); border: 1px solid var(--utility-blue-200); }
+
+.mgr-ts-filter-chip { padding: 3px 4px 3px 8px; border-radius: 8px; border: 1px solid var(--alpha-black-3); font-size: 12px; font-weight: 500; line-height: 18px; cursor: pointer; }
+
+.mgr-ts-filter-chip.is-member { background: var(--utility-brand-100); color: var(--dp-badge-accent-fg); }
+
+.mgr-ts-filter-chip.is-flag { background: var(--utility-error-100); color: var(--text-error-primary); }
+
+/* 배지가 접히면 「KR 몇 개」가 안 읽힌다 — 제목이 양보한다 */
+.mgr-kr-obj-badge {
+  flex-shrink: 0; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 6px;
+  border-radius: 99px; border: 1px solid var(--border-secondary);
+  background: var(--bg-quaternary); color: var(--text-tertiary);
+}
+
+/* ══ meetings.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* Status tags */
+.mtg-tag {
+  padding: 2px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.mtg-progress-pill {
+  padding: 2px 9px;
+  border-radius: 8px;
+  background: var(--colors-background-bgTertiary);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.mtg-rec-widget-tag { padding: 2px 9px; border-radius: 8px; background: var(--dp-badge-accent-bg); border: 1px solid var(--alpha-black-3); font-size: 14px; font-weight: 500; line-height: 24px; color: var(--dp-badge-accent-fg); }
+
+/* ══ okr.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.okr-policy-chip { padding: 3px 9px; border: 1px solid var(--utility-warning-200); border-radius: 99px; background: var(--dp-badge-warning-bg); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--dp-badge-warning-fg); white-space: nowrap; }
+
+.okr-q-badge { padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-white); white-space: nowrap; }
+
+.okr-q-badge.is-gray { background: var(--fg-tertiary); }
+
+.okr-q-badge.is-blue { background: var(--utility-blue-400); }
+
+.okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--dp-badge-progress-bg); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--dp-badge-progress-fg); }
+
+.okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
+
+.okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
+
+.okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
+
+/* 실행 항목 상태 배지를 눌러 넘길 수 있을 때만 붙는다 (okr-policy §9.2A · PW-501).
+   🔴 권한이 없을 때는 이 클래스가 안 붙을 뿐, 색·opacity 는 그대로다 —
+   흐린 배지는 「눌리는데 안 되는 화면」으로 읽혀 고장으로 보인다(§2F.5 G3). */
+.okr-pill.is-toggleable { cursor: pointer; transition: opacity .15s; }
+
+.okr-pill.is-toggleable:hover { opacity: .75; }
+
+.okr-pill.is-toggleable:focus-visible { outline: 2px solid var(--utility-brand-200); outline-offset: 1px; }
+
+/* 미정렬 배지 — 팀 보드 Objective 행 · 대시보드 Objective 요약 행이 공유한다.
+   같은 뜻에 다른 배지를 만들면 사용자가 둘을 구별해야 한다. warning 토큰만 쓰고
+   새 시각 언어를 만들지 않는다. 배지 안 문자열은 길이가 흔들리므로(집계 수·보조 문구)
+   box-sizing/overflow 로 최종 방어한다. */
+.okr-unaligned-badge {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  box-sizing: border-box; max-width: 100%; flex-shrink: 0;
+  margin-top: 2px; padding: 3px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 800; line-height: 14px;
+  color: var(--utility-warning-600, #dc6803);
+  background: var(--utility-warning-50, #fffaeb);
+  border: 1px solid var(--utility-warning-200, #fedf89);
+  overflow: hidden; overflow-wrap: anywhere;
+}
+
+/* 좁은 요약 행(대시보드 트리)용 — 색·글자 규격은 같고 모서리·패딩만 줄인다. */
+.okr-unaligned-badge.is-pill { margin-top: 0; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
+
+.okr-p-chip-btn { padding: 4px 10px; border-radius: 6px; background: var(--alpha-black-3); font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; cursor: pointer; }
+
+.okr-role-badge { padding: 0 6px; border-radius: 4px; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); margin-left: -4px; }
+
+.okr-role-badge.is-blue { background: var(--utility-blue-500); }
+
+.okr-role-badge.is-gray { background: var(--utility-gray-500); }
+
+.okr-wz-scope-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--dp-badge-accent-bg); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--dp-badge-accent-fg); vertical-align: middle; white-space: nowrap; }
+
+.okr-wz-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--alpha-black-3); color: var(--text-secondary); }
+
+/* ══ okr_resource.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.rsx-meta-badge { margin-left: 6px; padding: 2px 12px; border: 1px solid var(--border-primary); border-radius: 12px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+
+.rsx-badge { padding: 2px 8px; border-radius: 999px; border: 1px solid; font-size: 12px; font-weight: 500; line-height: 18px; }
+
+.rsx-badge.is-brand { padding: 2px 6px; border-radius: 8px; background: var(--utility-brand-50); border-color: var(--utility-brand-200); color: var(--utility-brand-700); }
+
+.rsx-badge.is-blue { background: var(--utility-blue-50); border-color: var(--utility-blue-200); color: var(--utility-blue-700); }
+
+.rsx-badge.is-indigo { background: var(--utility-indigo-50); border-color: var(--utility-indigo-200); color: var(--utility-indigo-700); }
+
+.rsx-badge.is-warn { background: var(--dp-badge-warning-bg); border-color: var(--utility-warning-200); color: var(--dp-badge-warning-fg); }
+
+.rsx-badge.is-bad { background: var(--dp-badge-danger-bg); border-color: var(--utility-error-200); color: var(--dp-badge-danger-fg); }
+
+.rsx-tag.is-sm { border-radius: 999px; }
+
+/* ══ onboarding.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.onb-panel-pill {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; letter-spacing: -0.01em;
+  background: rgba(255, 255, 255, 0.07); color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── 상태 배지 (시안 승인 대기 배지) ── */
+.onb-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+
+/* ── 태그 (시안 Tag) ── */
+.onb-tag {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
+  font-size: 13px; font-weight: 500; overflow-wrap: anywhere;
+  background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
+}
+
+.onb-tag.is-grow { flex: 1; }
+
+/* ══ one_on_one.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* ── Status Badge (1on1) ── */
+.status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+}
+
+.ono-member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  white-space: nowrap;
+}
+
+.ono-add-modal-member-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray700);
+  white-space: nowrap;
+}
+
+.ono-start-rec-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray700);
+}
+
+.ono-start-topic-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--colors-grayLight-50);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 매니저 관점 출처 배지 (Daily Snippet / 회의록 / 피드백 / 기존1on1) — brand 톤 */
+.ono-start-source-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--utility-brand-50);
+  border: 1px solid var(--componentColors-utility-brand-utilityBrand200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--colors-text-textBrandTertiary);
+  white-space: nowrap;
+}
+
+.ono-start-action-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--componentColors-utility-gray-utilityGray50);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--componentColors-utility-gray-utilityGray700);
+}
+
+/* 상태 배지 — .status-badge 는 카드 안 absolute 라 인라인용을 따로 둔다. */
+.ono-mem-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.ono-mem-badge.is-ready {
+  background: var(--dp-badge-info-bg);
+  color: var(--dp-badge-info-fg);
+}
+
+.ono-mem-badge.is-live {
+  background: var(--dp-badge-success-bg);
+  color: var(--dp-badge-success-fg);
+}
+
+.ono-mem-badge.is-done {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.ono-mem-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ono-guide-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.ono-done-manual-badge {
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.ono-done-share-badge {
+  box-sizing: border-box;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-secondary);
+  background: var(--dp-badge-neutral-bg);
+  font-size: 11px;
+  color: var(--dp-badge-neutral-fg);
+}
+
+.ono-done-share-badge.is-on {
+  border-color: var(--componentColors-utility-purple-utilityPurple200);
+  background: var(--utility-purple-50);
+  color: var(--componentColors-utility-purple-utilityPurple700);
+}
+
+.ons-ai-tag { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--dp-badge-progress-bg); border: 1px solid var(--alpha-black-3); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; line-height: 20px; color: var(--dp-badge-progress-fg); flex-shrink: 0; }
+
+/* ══ org_chart.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.status-badge-member { position: absolute; left: 50%; transform: translateX(-50%); bottom: -24px; color: white; font-size: 12px; font-weight: 700; line-height: 18px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 101; }
+
+/* ── Role Badge ── */
+.role-badge {
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  padding: 0px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.modal-status-badge {
+  background: var(--bg-secondary);
+  border: 1px solid var(--colors-border-borderSecondary);
+  color: var(--text-secondary);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  padding: 2px 10px;
+}
+
+/* 조직 없이 바로 보고하는 사람 표시 — 조직장·대표 배지와 섞이지 않는 무채색 작은 칩. */
+.modal-team-chip {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+}
+
+/* ══ org_project.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.pj-card-status {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ══ org_squad.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.sq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.sq-chip.is-lead {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+
+.sq-chip.is-clickable { cursor: pointer; }
+
+.sq-chip.is-locked { opacity: 0.5; }
+
+.sq-lead-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--utility-warning-50);
+  border: 1px solid var(--utility-warning-200);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ══ report.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* "진행 중" 태그 — bg-brand-secondary 그린, brand-secondary 텍스트 */
+.report-row-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 8px;
+  background: var(--dp-badge-accent-bg);
+  border: 1px solid var(--componentColors-alpha-alphaBlack3);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--dp-badge-accent-fg);
+  white-space: nowrap;
+}
+
+/* ══ settings.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.msc-vis-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+}
+
+.msc-vis-badge.is-green {
+  background: var(--dp-badge-success-bg);
+  border: 1px solid var(--utility-green-200);
+  color: var(--dp-badge-success-fg);
+}
+
+.msc-vis-badge.is-brand {
+  background: var(--dp-badge-accent-bg);
+  border: 1px solid var(--utility-brand-200);
+  color: var(--dp-badge-accent-fg);
+}
+
+.msc-intg-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--dp-badge-success-bg);
+  border: 1px solid var(--utility-green-200);
+  color: var(--dp-badge-success-fg);
+}
+
+.msc-intg-badge.is-muted {
+  background: var(--dp-badge-neutral-bg);
+  border-color: var(--border-primary);
+  color: var(--dp-badge-neutral-fg);
+}
+
+.msc-vis-badge.is-muted {
+  background: var(--dp-badge-neutral-bg);
+  border: 1px solid var(--border-primary);
+  color: var(--dp-badge-neutral-fg);
+}
+
+/* 값 옆 상태 배지 — 라벨 길이가 로케일마다 달라지므로 줄이지 않고 감싸 흐른다. */
+.msc-pair-badge {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border-primary);
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.msc-pair-badge.is-on {
+  border-color: var(--colors-border-borderBrand);
+  background: var(--colors-background-bgSuccessPrimary);
+  color: var(--colors-foreground-fgSuccessPrimary);
+}
+
+.msc-grade-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+  /* 긴 등급 라벨(템플릿 정의 라벨·영문 로케일)이 배지 밖으로 삐져나오지 않게 —
+     안쪽 여백 + 줄바꿈 허용 + 넘침 차단. 폰트 크기는 JSX 에서 폭에 맞춰 계산한다. */
+  box-sizing: border-box;
+  padding: 0 4px;
+  line-height: 1.05;
+  text-align: center;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.msc-reason-chip {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+}
+
+/* 배지는 폭이 고정이 아니다 — 항목 이름·사유는 사람이 넣는 값이라 길이를 가정하지
+   않는다. 넘치면 줄바꿈으로 흘리고 잘라내지 않는다. */
+.msc-hist-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--dp-badge-neutral-bg);
+  border: 1px solid var(--border-primary);
+  color: var(--dp-badge-neutral-fg);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+
+.msc-hist-badge.is-self {
+  background: var(--dp-badge-accent-bg);
+  border-color: var(--utility-brand-200);
+  color: var(--dp-badge-accent-fg);
+}
+
+.msc-hist-badge.is-hr {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+/* ══ team-management.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+/* 태그 (팀장/기본팀/이미소속/미배정) */
+.tm-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-family: var(--font-family-body);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* 팀장: 디자이너 org-chart role-badge(.role-badge-tl)와 동일 계열 — 솔리드 핑크 + 흰 글씨 */
+.tm-tag.is-amber {
+  background: var(--colors-pink-500, #ee46bc);
+  color: #fff;
+  border-color: transparent;
+  border-radius: var(--radius-xs, 6px);
+  font-weight: 700;
+}
+
+/* 기본팀: 중립 회색으로 강등 (색 수 축소) */
+.tm-tag.is-blue {
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+  border-color: var(--border-primary);
+}
+
+.tm-tag.is-gray {
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+  border-color: var(--border-primary);
+}
+
+/* ══ timeline.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
+
+.tl-emp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px 2px 4px;
+  background: var(--colors-background-bgBrandSecondary);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colors-text-textBrandTertiary);
+}
+
+.tl-event-external-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  background: var(--colors-background-bgBrandSecondary);
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--colors-text-textBrandTertiary);
+}
+
+/* Figma Tag: padding 4 10, radius 8, fill 없음, alpha-black-3 1px inside border, text-secondary sm/Medium 14/20 */
+.tl-weekly-entry-tag {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 여러 화면이 글자 하나까지 같은 값을 쓰는 딱지 — 한 줄로 묶었다.
+ * 화면 이름만 다르고 모양이 같다는 뜻이라, 나중에 디자이너가 기준 모양 하나를 그릴 때
+ * 이 묶음부터 본다. (묶음이 넷뿐인 것은 나머지가 여백·글씨 크기에서 조금씩 다르기 때문이다)
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* 2곳이 같은 값을 쓴다 */
+.evs-cw-roster-tag,
+.evc-wiz-calibscope-row-tag {
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--utility-blue-100);
+  color: var(--utility-blue-700);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* 2곳이 같은 값을 쓴다 */
+.evs-cw-roster-excluded-chip,
+.evc-wiz-calibscope-excluded-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--utility-error-200);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 3곳이 같은 값을 쓴다 */
+.mgr-ts-tag,
+.rsx-tag,
+.ood-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-gray-700);
+}
+
+/* 3곳이 같은 값을 쓴다 */
+.okr-krfb-badge,
+.okr-ctx-admin-badge,
+.ood-done-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--utility-success-50);
+  border: 1px solid var(--utility-success-200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-success-700);
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
 
@@ -41,7 +42,7 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
         <div className="mtg-row-head">
           <span className="mtg-row-title">{meeting.title}</span>
           {statusTag && (
-            <span className={`mtg-tag ${statusTag.className}`}>{statusTag.label}</span>
+            <StatusBadge className={`mtg-tag ${statusTag.className}`}>{statusTag.label}</StatusBadge>
           )}
         </div>
         <span className="mtg-row-participants">{meeting.participants}</span>

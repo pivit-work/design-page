@@ -1,3 +1,5 @@
+@import './status-badge.css';
+
 /* ══════════════════════════════════════════════════
    1 on 1 Page Styles
    (.content-area, .tabs-row, .tab-btn 등 공유 스타일은 App.css 로 이동됨)
@@ -165,21 +167,6 @@
   50% {
     box-shadow: 0px 4px 100px 0px rgba(8, 121, 196, 0.28);
   }
-}
-
-/* ── Status Badge (1on1) ── */
-.status-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: var(--font-size-text-sm);
-  font-weight: 600;
-  line-height: var(--line-height-text-sm);
 }
 
 .badge-preparing { color: var(--text-brand-tertiary); }
@@ -816,19 +803,6 @@
   color: var(--text-tertiary);
 }
 
-.ono-member-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  white-space: nowrap;
-}
-
 .ono-member-badge-icon {
   font-size: 12px;
 }
@@ -1037,20 +1011,6 @@
   font-size: 18px;
   line-height: 28px;
   color: var(--text-primary);
-  white-space: nowrap;
-}
-.ono-add-modal-member-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: var(--componentColors-utility-gray-utilityGray50);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700);
   white-space: nowrap;
 }
 .ono-add-modal-member-role {
@@ -1509,18 +1469,6 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 28px;
   color: var(--text-primary);
 }
-.ono-start-rec-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: var(--componentColors-utility-gray-utilityGray50);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700);
-}
 .ono-start-rec-time {
   font-size: 12px;
   line-height: 18px;
@@ -1962,19 +1910,6 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-wrap: wrap;
   gap: 8px;
 }
-.ono-start-topic-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--colors-grayLight-50);
-  border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
 /* 브리핑 플래그 배지 — 톤별 색상 + 12px 아이콘 */
 .ono-start-flag {
   display: inline-flex;
@@ -2007,20 +1942,6 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--componentColors-utility-purple-utilityPurple50);
   border-color: var(--componentColors-utility-purple-utilityPurple200);
   color: var(--componentColors-utility-purple-utilityPurple700);
-}
-/* 매니저 관점 출처 배지 (Daily Snippet / 회의록 / 피드백 / 기존1on1) — brand 톤 */
-.ono-start-source-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: var(--utility-brand-50);
-  border: 1px solid var(--componentColors-utility-brand-utilityBrand200);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--colors-text-textBrandTertiary);
-  white-space: nowrap;
 }
 
 /* 코칭 가이드 카드 */
@@ -2546,19 +2467,6 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 18px;
   color: var(--componentColors-utility-gray-utilityGray700);
 }
-.ono-start-action-badge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 8px;
-  background: var(--componentColors-utility-gray-utilityGray50);
-  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--componentColors-utility-gray-utilityGray700);
-}
 .ono-start-footer-disabled {
   background: var(--bg-brand-solid);
   color: var(--text-white);
@@ -2640,30 +2548,6 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 700;
   color: var(--utility-green-500);
 }
-
-/* 상태 배지 — .status-badge 는 카드 안 absolute 라 인라인용을 따로 둔다. */
-.ono-mem-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-}
-.ono-mem-badge.is-ready {
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
-}
-.ono-mem-badge.is-live {
-  background: var(--utility-green-50);
-  color: var(--utility-green-600);
-}
-.ono-mem-badge.is-done {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
 .ono-mem-badge-dot {
   width: 6px;
   height: 6px;
@@ -2672,17 +2556,6 @@ button.ono-add-modal-input { cursor: pointer; }
   animation: ono-mem-pulse 1.5s infinite;
 }
 @keyframes ono-mem-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-
-.ono-mem-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  font-size: 12px;
-  color: var(--text-secondary);
-}
 
 /* ── 접히는 섹션 카드 ── */
 .ono-mem-card {
@@ -3310,15 +3183,6 @@ button.ono-add-modal-input { cursor: pointer; }
   text-transform: uppercase;
   color: var(--componentColors-utility-purple-utilityPurple700);
 }
-.ono-guide-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 5px;
-  white-space: nowrap;
-}
 .ono-guide-tag-purple {
   background: var(--componentColors-utility-purple-utilityPurple50);
   color: var(--componentColors-utility-purple-utilityPurple700);
@@ -3810,15 +3674,6 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 600;
   color: var(--text-primary);
 }
-.ono-done-manual-badge {
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-secondary);
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
 .ono-done-manual .ono-start-textarea { background: var(--bg-primary); }
 .ono-done-manual-actions {
   display: flex;
@@ -3954,20 +3809,6 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   justify-content: flex-end;
   margin-bottom: -8px;
-}
-.ono-done-share-badge {
-  box-sizing: border-box;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-.ono-done-share-badge.is-on {
-  border-color: var(--componentColors-utility-purple-utilityPurple200);
-  background: var(--utility-purple-50);
-  color: var(--componentColors-utility-purple-utilityPurple700);
 }
 
 /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ─────────────────────────────────────
@@ -4245,7 +4086,6 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-person img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
 .ood-person b { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .ood-head-meta { display: flex; align-items: center; gap: 8px; }
-.ood-done-badge { padding: 2px 8px; border-radius: 999px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
 .ood-mode { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 
 /* 탭 — 30px 디스플레이 볼드 */
@@ -4301,7 +4141,6 @@ button.ono-add-modal-input { cursor: pointer; }
 /* 피드백 */
 .ood-feedback { display: flex; flex-direction: column; gap: 8px; }
 .ood-feedback-head { display: flex; align-items: center; gap: 4px; }
-.ood-tag { padding: 2px 8px; border-radius: 999px; background: var(--utility-gray-50); border: 1px solid var(--utility-gray-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-gray-700); }
 .ood-feedback-card { border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 2px; }
 .ood-feedback-card.is-strength { background: var(--bg-success-primary); }
 .ood-feedback-card.is-growth { background: var(--bg-warning-primary); }
@@ -4435,4 +4274,3 @@ button.ono-add-modal-input { cursor: pointer; }
 .ons-candidate-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ons-candidate-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .ons-candidate-role { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
-.ons-ai-tag { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--utility-purple-50); border: 1px solid var(--alpha-black-3); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; line-height: 20px; color: var(--utility-purple-500); flex-shrink: 0; }

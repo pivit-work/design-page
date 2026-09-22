@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { fill, hostOf, healthOf } from './sessionHelpers.js';
 import {
   Section,
@@ -299,16 +300,16 @@ function ListScreen({
                   <span className="ono-mem-hist-top">
                     <span className="ono-mem-hist-date">{formatDate(s.createdAt, 'short')}</span>
                     {s.durationSec > 0 && (
-                      <span className="ono-mem-chip">
+                      <StatusBadge className="ono-mem-chip">
                         <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
                         {formatDuration(s.durationSec)}
-                      </span>
+                      </StatusBadge>
                     )}
-                    <span className="ono-start-topic-badge">
+                    <StatusBadge className="ono-start-topic-badge">
                       {ratio
                         ? `${L.memberTalk} ${ratio.memberPct}%`
                         : L.noRatio}
-                    </span>
+                    </StatusBadge>
                     {hVal != null && (
                       <span
                         className="ono-start-flag ono-mem-push"
@@ -644,7 +645,7 @@ function AnalysisScreen({
         <div className="ono-mem-head-row">
           <Icon src={icons.analysis} size={18} color="var(--utility-blue-500)" baseUrl={baseUrl} />
           <h1 className="ono-mem-head-title">{L.analysisTitle}</h1>
-          <span className="ono-mem-chip">{memberName}</span>
+          <StatusBadge className="ono-mem-chip">{memberName}</StatusBadge>
         </div>
         <p className="ono-mem-head-date">
           {formatDate(session.createdAt)} · {L.analysisDesc}

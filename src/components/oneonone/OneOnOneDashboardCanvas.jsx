@@ -1,4 +1,5 @@
 import Tabs from '../shared/Tabs.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import StatCard from './StatCard.jsx';
 import MemberCard from './MemberCard.jsx';
 
@@ -75,7 +76,7 @@ export default function OneOnOneDashboardCanvas({
                   <>
                     <span>{tab.label}</span>
                     {tab.count != null && activeTab === tab.key && (
-                      <span className="tab-badge">{tab.count}</span>
+                      <StatusBadge className="tab-badge">{tab.count}</StatusBadge>
                     )}
                   </>
                 ),

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
 /**
@@ -140,7 +141,7 @@ export default function EvalCycleTeamCalibrationCanvas({
       <section className="evc-card evtcal-redirect" data-testid="evtcal-redirect">
         <div className="evtcal-redirect-head">
           <span className="evtcal-redirect-title">{L.redirectTitle}</span>
-          <span className="evc-status-badge tone-purple">{L.redirectBadge}</span>
+          <StatusBadge className="evc-status-badge tone-purple">{L.redirectBadge}</StatusBadge>
         </div>
         <p className="evtcal-redirect-body">{L.redirectBody}</p>
         <p className="evtcal-redirect-note">{L.redirectNote}</p>
@@ -153,12 +154,11 @@ export default function EvalCycleTeamCalibrationCanvas({
             <h3 className="evc-card-name">{L.resultTitle}</h3>
             {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
           </div>
-          <span
+          <StatusBadge
             className={`evc-status-badge tone-${adjustedCount ? 'warn' : 'neutral'}`}
-            data-testid="evtcal-adjusted-badge"
-          >
+            data-testid="evtcal-adjusted-badge">
             {fmt(L.adjustedBadge, { n: adjustedCount })}
-          </span>
+          </StatusBadge>
         </div>
         <p className="evc-summary evtcal-result-sub">{L.resultSub}</p>
 
@@ -198,11 +198,10 @@ export default function EvalCycleTeamCalibrationCanvas({
                     <div className="evtcal-flow">
                       <div className="evtcal-flow-col">
                         <span className="evtcal-flow-cap">{L.colFirst}</span>
-                        <span
-                          className={`evs-cw-badge tone-${gradeTone(r.managerGradeKey, orderedGrades)}`}
-                        >
+                        <StatusBadge
+                          className={`evs-cw-badge tone-${gradeTone(r.managerGradeKey, orderedGrades)}`}>
                           {labelOf(r.managerGradeKey)}
-                        </span>
+                        </StatusBadge>
                       </div>
                       <span
                         className={`evtcal-arrow${r.changed ? ' is-changed' : ''}`}
@@ -212,20 +211,18 @@ export default function EvalCycleTeamCalibrationCanvas({
                       </span>
                       <div className="evtcal-flow-col">
                         <span className="evtcal-flow-cap">{L.colCommittee}</span>
-                        <span
-                          className={`evs-cw-badge tone-${gradeTone(r.committeeGradeKey, orderedGrades)}`}
-                        >
+                        <StatusBadge
+                          className={`evs-cw-badge tone-${gradeTone(r.committeeGradeKey, orderedGrades)}`}>
                           {labelOf(r.committeeGradeKey)}
-                        </span>
+                        </StatusBadge>
                       </div>
                       {r.changed ? (
                         statusBadge ? (
-                          <span
+                          <StatusBadge
                             className={`evc-status-badge ${statusBadge.cls}`}
-                            data-testid="evtcal-appeal-status"
-                          >
+                            data-testid="evtcal-appeal-status">
                             {statusBadge.txt}
-                          </span>
+                          </StatusBadge>
                         ) : (
                           <button
                             type="button"

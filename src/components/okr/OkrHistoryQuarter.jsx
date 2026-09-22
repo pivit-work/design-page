@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 
@@ -56,7 +57,7 @@ export default function OkrHistoryQuarter({ quarter, icons, baseUrl = '', defaul
                   <span className="okr-h-kr-id">{kr.id}</span>
                   <span className="okr-h-kr-title">{kr.title}</span>
                   <span className="okr-h-kr-weight">{kr.weight}</span>
-                  <span className="okr-pill is-done">{kr.status}</span>
+                  <StatusBadge className="okr-pill is-done">{kr.status}</StatusBadge>
                 </div>
               ))}
             </div>

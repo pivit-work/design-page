@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import rowKey from './rowKey.js';
 
 /**
@@ -41,7 +42,7 @@ export default function OkrAiInsights({
         <div className="okr-p-ai-label">
           <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
           <span>{label}</span>
-          {autoChip && <span className="okr-p-ai-chip-auto">{autoChipLabel}</span>}
+          {autoChip && <StatusBadge className="okr-p-ai-chip-auto">{autoChipLabel}</StatusBadge>}
         </div>
         {showRefresh && (
           onRefresh ? (

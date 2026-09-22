@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 import LiveGuideCard from './LiveGuideCard.jsx';
@@ -570,7 +571,7 @@ export default function StartOneOnOneView({
               <div className="ono-add-modal-member-name-row">
                 <span className="ono-add-modal-member-name">{member?.name ?? ''}</span>
                 {member?.badge && (
-                  <span className="ono-add-modal-member-badge">{member.badge}</span>
+                  <StatusBadge className="ono-add-modal-member-badge">{member.badge}</StatusBadge>
                 )}
               </div>
               {meetingTime && (
@@ -801,7 +802,7 @@ export default function StartOneOnOneView({
                       <div className="ono-start-field-label-row">
                         <span className="ono-start-field-label">{sec.title}</span>
                         {sec.badges.map((b) => (
-                          <span key={b} className="ono-start-source-badge">{b}</span>
+                          <StatusBadge key={b} className="ono-start-source-badge">{b}</StatusBadge>
                         ))}
                       </div>
                       <div className="ono-start-field-actions">
@@ -837,7 +838,7 @@ export default function StartOneOnOneView({
                     {sec.hint && (
                       <div className="ono-start-hint-badges">
                         {sec.hint.map((h) => (
-                          <span key={h} className="ono-start-topic-badge">{h}</span>
+                          <StatusBadge key={h} className="ono-start-topic-badge">{h}</StatusBadge>
                         ))}
                       </div>
                     )}
@@ -954,7 +955,7 @@ export default function StartOneOnOneView({
                             <span className="ono-start-action-owner">{a.owner}</span>
                           )}
                           {a.due && (
-                            <span className="ono-start-action-badge">{a.due}</span>
+                            <StatusBadge className="ono-start-action-badge">{a.due}</StatusBadge>
                           )}
                         </span>
                       </div>

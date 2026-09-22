@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { InfoIcon } from './evalIcons.jsx';
 
 /**
@@ -214,9 +215,9 @@ function AiInsight({ insight, L }) {
         <h3 className="evc-card-name">{L.insightTitle}</h3>
         <div className="evr-insight-sources">
           {insight.sources.map((s) => (
-            <span className="evr-insight-badge" key={s}>
+            <StatusBadge className="evr-insight-badge" key={s}>
               {L[SOURCE_KEY[s]] ?? s}
-            </span>
+            </StatusBadge>
           ))}
         </div>
       </div>

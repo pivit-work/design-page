@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
 /**
@@ -79,11 +80,11 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
             <div className="okr-krfb-author">
               <img src={comment.avatar} alt={comment.author} draggable={false} />
               <span className="okr-krfb-author-name">{comment.author}</span>
-              <span className={`okr-role-badge is-${comment.roleTone}`}>{comment.role}</span>
+              <StatusBadge className={`okr-role-badge is-${comment.roleTone}`}>{comment.role}</StatusBadge>
             </div>
             <div className="okr-krfb-meta">
               <span className="okr-krfb-date">{comment.date}</span>
-              <span className="okr-krfb-badge">{comment.badge}</span>
+              <StatusBadge className="okr-krfb-badge">{comment.badge}</StatusBadge>
             </div>
           </div>
           <p className="okr-krfb-text">{comment.text}</p>

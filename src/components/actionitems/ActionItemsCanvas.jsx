@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 
 /**
@@ -70,7 +71,7 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
 
       <span className="ai-row-meta">
         {item.priorityLabel && (
-          <span className={`ai-badge is-${item.priorityTone || 'low'}`}>{item.priorityLabel}</span>
+          <StatusBadge className={`ai-badge is-${item.priorityTone || 'low'}`}>{item.priorityLabel}</StatusBadge>
         )}
 
         {renderDeadlineEditor?.(item) ??
@@ -247,7 +248,7 @@ export default function ActionItemsCanvas({
             objectives.map((obj) => (
               <section className="ai-obj" key={obj.id}>
                 <header className="ai-obj-head">
-                  {obj.levelLabel && <span className="ai-badge is-low">{obj.levelLabel}</span>}
+                  {obj.levelLabel && <StatusBadge className="ai-badge is-low">{obj.levelLabel}</StatusBadge>}
                   <span className="ai-obj-title">{obj.title}</span>
                   <span className="ai-obj-meta">
                     {labels.linkedActions} {obj.actionCount}

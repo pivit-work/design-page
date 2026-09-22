@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -152,10 +153,10 @@ function StatusBadge({ status, labels }) {
   const known = ['connected', 'disconnected', 'connecting', 'error'].includes(status);
   const cls = known ? status : 'disconnected';
   return (
-    <span className={`intg-status is-${cls}`}>
+    <DpStatusBadge className={`intg-status is-${cls}`}>
       <span className="intg-status-dot" />
       {labels.status[status] ?? status}
-    </span>
+    </DpStatusBadge>
   );
 }
 
@@ -230,7 +231,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
             <span className="intg-app-name">{brandName}</span>
             <span className="intg-app-desc">{description}</span>
           </div>
-          <span className="intg-status is-disconnected">{labels.status.comingSoon}</span>
+          <DpStatusBadge className="intg-status is-disconnected">{labels.status.comingSoon}</DpStatusBadge>
         </div>
         {usageText && <div className="intg-usage">{usageText}</div>}
         <div className="intg-actions">
@@ -506,9 +507,9 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           render: (log) => {
             const ok = log.status === 'success';
             return (
-              <span className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
+              <DpStatusBadge className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
                 {ok ? labels.syncLog.success : labels.syncLog.failed}
-              </span>
+              </DpStatusBadge>
             );
           },
         },
@@ -542,9 +543,9 @@ function TokenLogItem({ entry, labels }) {
         <span className="intg-logrow-date">{entry.dateLabel}</span>
         <span className="intg-logrow-desc">{entry.description}</span>
       </div>
-      <span className={`intg-pill ${isExpire ? 'is-bad' : 'is-good'}`}>
+      <DpStatusBadge className={`intg-pill ${isExpire ? 'is-bad' : 'is-good'}`}>
         {isExpire ? labels.transfer.actionExpire : labels.transfer.actionReauth}
-      </span>
+      </DpStatusBadge>
     </div>
   );
 }
@@ -655,7 +656,7 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
           <div>
             <div className="intg-owner-name">
               {owner.name}
-              <span className="intg-pill is-brand">{labels.transfer.ownerLabel}</span>
+              <DpStatusBadge className="intg-pill is-brand">{labels.transfer.ownerLabel}</DpStatusBadge>
             </div>
             <div className="intg-owner-sub">
               {owner.title} &middot; {transfer.connectedLabel}

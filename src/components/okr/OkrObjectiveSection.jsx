@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
@@ -155,7 +156,7 @@ export default function OkrObjectiveSection({
                 <div className="okr-p-col-main" />
                 <div className="okr-p-col-weight" />
                 <div className="okr-p-col-pic">
-                  <span className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</span>
+                  <StatusBadge className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</StatusBadge>
                 </div>
               </div>
               {openFeedback[i] && kr.feedback.comments.map((comment, ci) => (
@@ -171,7 +172,7 @@ export default function OkrObjectiveSection({
                   <div className="okr-p-col-weight" />
                   <div className="okr-p-col-pic">
                     {ci === kr.feedback.comments.length - 1 && (
-                      <span className="okr-p-chip-btn" onClick={() => onViewFeedback && onViewFeedback(kr)}>전체 보기</span>
+                      <StatusBadge className="okr-p-chip-btn" onClick={() => onViewFeedback && onViewFeedback(kr)}>전체 보기</StatusBadge>
                     )}
                   </div>
                 </div>

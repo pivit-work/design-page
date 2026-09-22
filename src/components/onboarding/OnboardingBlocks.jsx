@@ -1,3 +1,4 @@
+import StatusBadge from '../shared/StatusBadge.jsx';
 /**
  * 온보딩 단계 화면을 이루는 덩어리 — 시안 `8. onboarding/onboarding-app.jsx` 의 단계 제목,
  * 안내 상자, 승인 대기 배지, RequestSummary, 워크스페이스 주소 줄, CSV 올리는 곳,
@@ -171,10 +172,10 @@ export function OnbNotice({ tone = 'info', title, hero = false, align, role, tes
 /** 상태 배지 (시안 승인 대기 「신청됨/검토중」). tone: 'warning' | 'brand' */
 export function OnbBadge({ tone = 'brand', icon, children, testId }) {
   return (
-    <span className={cx('onb-badge', `onb-badge-${tone}`)} data-testid={testId}>
+    <StatusBadge className={cx('onb-badge', `onb-badge-${tone}`)} data-testid={testId}>
       {icon}
       {children}
-    </span>
+    </StatusBadge>
   );
 }
 

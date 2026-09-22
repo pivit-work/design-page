@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { buildOrgTree } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
@@ -308,7 +309,7 @@ function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }
                 {entry.name}
               </label>
               {primaryId === entry.id && selected.length >= 2 && (
-                <span className="admin-inv-primary-badge">{labels.primaryBadge}</span>
+                <StatusBadge className="admin-inv-primary-badge">{labels.primaryBadge}</StatusBadge>
               )}
             </div>
           );
@@ -390,12 +391,12 @@ function CsvStagingRow({
           {row.teamIds.length === 0 && (row.unresolvedPaths || []).length === 0
             ? <span className="admin-inv-hint">{labels.csvOrgUnset}</span>
             : row.teamIds.map((id) => (
-              <span key={id} className="admin-inv-csv-chip">
+              <StatusBadge key={id} className="admin-inv-csv-chip">
                 {pathLabelOf(id)}
                 {row.teamIds.length >= 2 && row.primaryTeamId === id && (
-                  <em className="admin-inv-primary-badge">{labels.primaryBadge}</em>
+                  <StatusBadge as="em" className="admin-inv-primary-badge">{labels.primaryBadge}</StatusBadge>
                 )}
-              </span>
+              </StatusBadge>
             ))}
         </span>
       </div>

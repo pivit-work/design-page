@@ -1,0 +1,2228 @@
+{
+ "shapes": {
+  "action_items.css|.ai-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "11px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "box-sizing": "border-box",
+   "overflow-wrap": "anywhere"
+  },
+  "admin-integrations.css|.intg-pill": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "10px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "white-space": "nowrap"
+  },
+  "admin-integrations.css|.intg-status": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "20px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))",
+   "flex-shrink": "0"
+  },
+  "admin-kit.css|.admin-kit-badge": {
+   "border-radius": "6px",
+   "padding": "1px 6px",
+   "font-size": "10px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "3px",
+   "white-space": "nowrap"
+  },
+  "admin-kit.css|.admin-kit-chip": {
+   "border-radius": "6px",
+   "padding": "2px 7px",
+   "font-size": "10px",
+   "font-weight": "600",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "border": "1px solid var(--border-primary)"
+  },
+  "admin-kit.css|.admin-kit-members-status": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "10.5px",
+   "font-weight": "700",
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f",
+   "white-space": "nowrap",
+   "max-width": "40%",
+   "flex-shrink": "0",
+   "overflow": "hidden",
+   "text-overflow": "ellipsis"
+  },
+  "admin.css|.admin-activity-tag": {
+   "border-radius": "pill",
+   "padding": "2px 7px",
+   "font-size": "10px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "font-family": "var(--font-family-body)",
+   "height": "fit-content",
+   "flex-shrink": "0"
+  },
+  "admin.css|.admin-emp-hist-chip": {
+   "border-radius": "pill",
+   "padding": "1px 7px",
+   "font-size": "10px",
+   "font-weight": "700",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-primary)",
+   "box-sizing": "border-box",
+   "overflow-wrap": "anywhere"
+  },
+  "admin.css|.admin-emp-invite-badge": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "13px",
+   "font-weight": "500",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "20px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "admin.css|.admin-emp-pill": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "13px",
+   "font-weight": "500",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)"
+  },
+  "admin.css|.admin-emp-role-pill": {
+   "border-radius": "8px",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)"
+  },
+  "admin.css|.admin-emp-status": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "13px",
+   "font-weight": "500",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "20px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "admin.css|.admin-emp-status-option": {
+   "border-radius": "8px",
+   "padding": "11px 14px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "10px",
+   "border": "1px solid transparent"
+  },
+  "admin.css|.admin-inv-csv-chip": {
+   "border-radius": "8px",
+   "padding": "2px 6px",
+   "font-size": "12px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "max-width": "100%",
+   "box-sizing": "border-box",
+   "overflow-wrap": "anywhere"
+  },
+  "admin.css|.admin-inv-primary-badge": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "10px",
+   "font-weight": "800",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#21a67a / 어두운 화면 #e1fef2",
+   "flex-shrink": "0"
+  },
+  "admin.css|.admin-notif-editable-badge": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "line-height": "var(--line-height-text-xs)",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "admin.css|.admin-notif-filter-chip": {
+   "border-radius": "pill",
+   "padding": "6px 14px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--border-primary)"
+  },
+  "admin.css|.admin-notif-role-chip": {
+   "border-radius": "8px",
+   "padding": "1px 6px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "var(--line-height-text-xs)"
+  },
+  "admin.css|.admin-pill": {
+   "border-radius": "6px",
+   "padding": "3px 9px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "admin.css|.admin-snap-chip": {
+   "border-radius": "pill",
+   "padding": "5px 12px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--border-primary)"
+  },
+  "admin.css|.admin-snap-jg-pill": {
+   "border-radius": "pill",
+   "padding": "3px 10px",
+   "font-size": "12px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "var(--font-family-body)",
+   "border": "none"
+  },
+  "admin.css|.admin-snap-pv-status-error": {
+   "border-radius": "10px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20 / 어두운 화면 #f97066",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "3px"
+  },
+  "admin.css|.admin-snap-pv-status-ok": {
+   "border-radius": "10px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "3px"
+  },
+  "admin.css|.admin-snap-pv-status-warn": {
+   "border-radius": "10px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#fffaeb",
+   "color": "#dc6803",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "3px"
+  },
+  "admin.css|.admin-snap-roster-badge": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "10px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "white-space": "nowrap"
+  },
+  "admin.css|.admin-snap-status-badge": {
+   "border-radius": "pill",
+   "padding": "6px 14px",
+   "font-size": "11px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "font-family": "var(--font-family-body)"
+  },
+  "admin.css|.admin-snap-step-badge": {
+   "border-radius": "50%",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "display": "flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--border-primary)",
+   "height": "28px",
+   "width": "28px"
+  },
+  "admin.css|.admin-snap-type-badge": {
+   "border-radius": "6px",
+   "padding": "3px 9px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)"
+  },
+  "App.css|.tab-badge": {
+   "border-radius": "pill",
+   "padding": "0 10px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "line-height": "var(--line-height-text-xs)",
+   "border": "1px solid var(--utility-gray-200)",
+   "height": "22px",
+   "min-width": "22px"
+  },
+  "eval-cycle.css|.evc-filter-chip": {
+   "border-radius": "pill",
+   "padding": "0 12px",
+   "font-size": "12.5px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "height": "29px"
+  },
+  "eval-cycle.css|.evc-mode-badge": {
+   "border-radius": "pill",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "eval-cycle.css|.evc-rm-render-chip": {
+   "border-radius": "pill",
+   "padding": "3px 9px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "eval-cycle.css|.evc-rm-sum-chip": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "eval-cycle.css|.evc-roster-badge": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7",
+   "white-space": "nowrap",
+   "border": "1px solid var(--utility-success-200)",
+   "flex": "0 0 auto"
+  },
+  "eval-cycle.css|.evc-sched-anchor-badge": {
+   "border-radius": "pill",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #0b4b31",
+   "color": "#21a67a / 어두운 화면 #5af3b4"
+  },
+  "eval-cycle.css|.evc-status-badge": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "white-space": "nowrap"
+  },
+  "eval-cycle.css|.evc-tpl-grade-arrow": {
+   "border-radius": "6px",
+   "padding": "0",
+   "font-size": "12px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "line-height": "1",
+   "border": "1px solid var(--border-secondary)",
+   "height": "14px",
+   "width": "20px"
+  },
+  "eval-cycle.css|.evc-tpl-item-badge": {
+   "border-radius": "10px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evc-tpl-peek-grade": {
+   "border-radius": "pill",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "white-space": "nowrap",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "eval-cycle.css|.evc-tpl-rev-badge": {
+   "border-radius": "pill",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-secondary)",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evc-type-badge": {
+   "border-radius": "pill",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "border": "1px solid var(--bg-active)"
+  },
+  "eval-cycle.css|.evc-type-chip": {
+   "border-radius": "8px",
+   "padding": "8px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--bg-active)",
+   "flex": "1"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-badge": {
+   "border-radius": "50%",
+   "font-size": "12px",
+   "font-weight": "800",
+   "background": "#1570ef / 어두운 화면 #53b1fd",
+   "color": "#ffffff",
+   "display": "inline-flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "height": "18px",
+   "width": "18px",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-chip": {
+   "border-radius": "pill",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "inherit",
+   "border": "1px solid var(--border-primary)"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-excluded-chip": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "5px",
+   "border": "1px solid var(--utility-error-200)"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-row-tag": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#d1e9ff / 어두운 화면 #194185",
+   "color": "#175cd3 / 어두운 화면 #84caff",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evc-wiz-committee-chip": {
+   "border-radius": "pill",
+   "padding": "3px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px"
+  },
+  "eval-cycle.css|.evl-committee-badge": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b",
+   "display": "inline-block",
+   "vertical-align": "middle"
+  },
+  "eval-cycle.css|.evl-grade-btn": {
+   "border-radius": "8px",
+   "padding": "8px",
+   "font-size": "14px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "border": "1px solid var(--bg-active)",
+   "flex": "1"
+  },
+  "eval-cycle.css|.evm-history-grade": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#d1e9ff / 어두운 화면 #194185",
+   "color": "#175cd3 / 어두운 화면 #84caff"
+  },
+  "eval-cycle.css|.evr-grade-anchor-pop": {
+   "border-radius": "12px",
+   "padding": "8px 12px",
+   "font-size": "12px",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "1.5",
+   "white-space": "pre-wrap",
+   "border": "1px solid var(--bg-active)",
+   "box-shadow": "0 12px 32px -12px rgba(10, 13, 18, 0.18)",
+   "width": "max-content",
+   "max-width": "320px"
+  },
+  "eval-cycle.css|.evr-grade-hero": {
+   "border-radius": "16px",
+   "padding": "32px",
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "4px",
+   "border": "1px solid var(--utility-green-100)"
+  },
+  "eval-cycle.css|.evr-insight-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #0b4b31",
+   "color": "#10774d / 어두운 화면 #96f9d2"
+  },
+  "eval-cycle.css|.evrr-badge": {
+   "border-radius": "10px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "white-space": "nowrap"
+  },
+  "eval-cycle.css|.evrs-chip": {
+   "border-radius": "pill",
+   "padding": "0 12px",
+   "font-size": "14px",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "border": "1px solid var(--border-primary)",
+   "height": "32px"
+  },
+  "eval-cycle.css|.evs-cw-appeal-badge": {
+   "border-radius": "pill",
+   "padding": "3px 9px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evs-cw-badge": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "display": "inline-block"
+  },
+  "eval-cycle.css|.evs-cw-chip": {
+   "border-radius": "pill",
+   "padding": "4px 11px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "inherit",
+   "border": "1.5px solid var(--border-primary)"
+  },
+  "eval-cycle.css|.evs-cw-comp-access-status": {
+   "border-radius": "8px",
+   "padding": "8px 12px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evs-cw-dist-chip": {
+   "border-radius": "8px",
+   "padding": "5px 10px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "7px",
+   "border": "1px solid var(--border-primary)"
+  },
+  "eval-cycle.css|.evs-cw-filter-excluded-pill": {
+   "border-radius": "pill",
+   "padding": "3px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b",
+   "border": "1px solid var(--utility-error-200)"
+  },
+  "eval-cycle.css|.evs-cw-filter-preset-pill": {
+   "border-radius": "pill",
+   "padding": "3px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#175cd3 / 어두운 화면 #84caff",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "border": "1px solid var(--utility-blue-200)"
+  },
+  "eval-cycle.css|.evs-cw-roster-excluded-chip": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "5px",
+   "border": "1px solid var(--utility-error-200)"
+  },
+  "eval-cycle.css|.evs-cw-roster-tag": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#d1e9ff / 어두운 화면 #194185",
+   "color": "#175cd3 / 어두운 화면 #84caff",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evs-cw-status": {
+   "border-radius": "pill",
+   "padding": "3px 10px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "flex-shrink": "0"
+  },
+  "eval-cycle.css|.evs-j4-pill": {
+   "border-radius": "pill",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px"
+  },
+  "eval-cycle.css|.evs-j4-pill-tag": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#e6e8ea / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "eval-cycle.css|.evs-lp-tag": {
+   "border-radius": "pill",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "white-space": "nowrap"
+  },
+  "eval-cycle.css|.evs-re-grade": {
+   "border-radius": "pill",
+   "padding": "1px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "white-space": "nowrap"
+  },
+  "manager.css|.manager-modal-snippet-tag": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "line-height": "var(--line-height-text-xs)",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--utility-gray-200)"
+  },
+  "manager.css|.manager-status-badge": {
+   "border-radius": "8px",
+   "padding": "2px 6px",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "border": "1px solid var(--border-primary)"
+  },
+  "manager.css|.mgr-kr-obj-badge": {
+   "border-radius": "pill",
+   "padding": "1px 6px",
+   "font-size": "11px",
+   "font-weight": "700",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "white-space": "nowrap",
+   "border": "1px solid var(--border-secondary)",
+   "flex-shrink": "0"
+  },
+  "manager.css|.mgr-kr-obj-chip": {
+   "border-radius": "10px",
+   "padding": "4px 8px 4px 10px",
+   "background": "transparent",
+   "display": "flex",
+   "gap": "4px",
+   "border": "none",
+   "border-left": "4px solid transparent",
+   "min-width": "0",
+   "flex": "1 1 0"
+  },
+  "manager.css|.mgr-krd-pill": {
+   "border-radius": "pill",
+   "padding": "2px 10px",
+   "font-size": "11px",
+   "font-weight": "600",
+   "white-space": "nowrap"
+  },
+  "manager.css|.mgr-krd-tag": {
+   "border-radius": "5px",
+   "padding": "2px 8px",
+   "font-size": "11px",
+   "font-weight": "500",
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "manager.css|.mgr-ts-filter-chip": {
+   "border-radius": "8px",
+   "padding": "3px 4px 3px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "line-height": "18px",
+   "border": "1px solid var(--alpha-black-3)"
+  },
+  "manager.css|.mgr-ts-tag": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-gray-200)"
+  },
+  "meetings.css|.mtg-progress-pill": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "#fcfcfd / 어두운 화면 #18191b",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "20px",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "meetings.css|.mtg-rec-widget-tag": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "line-height": "24px",
+   "border": "1px solid var(--alpha-black-3)"
+  },
+  "meetings.css|.mtg-tag": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "line-height": "20px",
+   "border": "1px solid rgba(0, 0, 0, 0.03)"
+  },
+  "okr_resource.css|.rsx-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "line-height": "18px",
+   "border": "1px solid"
+  },
+  "okr_resource.css|.rsx-chip-btn": {
+   "border-radius": "8px",
+   "padding": "4px 6px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#fcfcfd / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "2px",
+   "line-height": "18px",
+   "font-family": "inherit",
+   "border": "none",
+   "letter-spacing": "-0.01em"
+  },
+  "okr_resource.css|.rsx-meta-badge": {
+   "border-radius": "12px",
+   "padding": "2px 12px",
+   "font-size": "12px",
+   "font-weight": "400",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "18px",
+   "border": "1px solid var(--border-primary)"
+  },
+  "okr_resource.css|.rsx-suggest-chip": {
+   "border-radius": "6px",
+   "padding": "6px 8px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "line-height": "20px",
+   "font-family": "inherit",
+   "border": "1px solid var(--alpha-black-3)"
+  },
+  "okr_resource.css|.rsx-tag": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-gray-200)"
+  },
+  "okr.css|.okr-ai-chip": {
+   "border-radius": "8px",
+   "padding": "12px",
+   "font-size": "16px",
+   "font-weight": "600",
+   "background": "#ebe9fe / 어두운 화면 #3e1c96",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "line-height": "24px",
+   "flex": "1"
+  },
+  "okr.css|.okr-cf-init-status": {
+   "border-radius": "8px",
+   "padding": "6px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "font-family": "inherit",
+   "border": "1px solid var(--border-secondary)",
+   "flex": "none"
+  },
+  "okr.css|.okr-ctx-admin-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-success-200)"
+  },
+  "okr.css|.okr-krfb-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-success-200)"
+  },
+  "okr.css|.okr-member-chip": {
+   "border-radius": "12px",
+   "padding": "16px 22px",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "8px",
+   "box-shadow": "0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1)",
+   "min-width": "138px",
+   "box-sizing": "border-box"
+  },
+  "okr.css|.okr-p-ai-chip": {
+   "border-radius": "8px",
+   "padding": "12px",
+   "background": "#ebe9fe / 어두운 화면 #3e1c96",
+   "display": "flex",
+   "align-items": "center",
+   "justify-content": "space-between",
+   "gap": "12px",
+   "flex": "1"
+  },
+  "okr.css|.okr-p-ai-chip-auto": {
+   "border-radius": "6px",
+   "padding": "2px 12px",
+   "font-size": "12px",
+   "font-weight": "400",
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "line-height": "18px"
+  },
+  "okr.css|.okr-p-chip-btn": {
+   "border-radius": "6px",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "white-space": "nowrap"
+  },
+  "okr.css|.okr-pill": {
+   "border-radius": "pill",
+   "padding": "2px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "white-space": "nowrap"
+  },
+  "okr.css|.okr-policy-chip": {
+   "border-radius": "pill",
+   "padding": "3px 9px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "border": "1px solid var(--utility-warning-200)"
+  },
+  "okr.css|.okr-q-badge": {
+   "border-radius": "4px",
+   "padding": "2px 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "color": "#ffffff",
+   "line-height": "18px",
+   "white-space": "nowrap"
+  },
+  "okr.css|.okr-readonly-badge": {
+   "border-radius": "8px",
+   "padding": "8px 14px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "display": "flex",
+   "align-items": "center",
+   "line-height": "20px",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "okr.css|.okr-role-badge": {
+   "border-radius": "4px",
+   "padding": "0 6px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "color": "#ffffff",
+   "line-height": "18px",
+   "letter-spacing": "-0.01em"
+  },
+  "okr.css|.okr-s-ai-chip": {
+   "border-radius": "8px",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "normal",
+   "font-family": "inherit",
+   "border": "none",
+   "flex-shrink": "0"
+  },
+  "okr.css|.okr-unaligned-badge": {
+   "border-radius": "6px",
+   "padding": "3px 9px",
+   "font-size": "10px",
+   "font-weight": "800",
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#dc6803 / 어두운 화면 #fdb022",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "14px",
+   "border": "1px solid var(--utility-warning-200, #fedf89)",
+   "max-width": "100%",
+   "flex-shrink": "0",
+   "box-sizing": "border-box",
+   "overflow": "hidden",
+   "overflow-wrap": "anywhere"
+  },
+  "okr.css|.okr-unaligned-badge.is-pill": {
+   "border-radius": "pill",
+   "padding": "2px 6px",
+   "white-space": "nowrap"
+  },
+  "okr.css|.okr-wz-badge": {
+   "border-radius": "pill",
+   "padding": "2px 9px",
+   "font-size": "11px",
+   "font-weight": "700",
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "okr.css|.okr-wz-scope-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "vertical-align": "middle"
+  },
+  "onboarding.css|.onb-badge": {
+   "border-radius": "pill",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "5px",
+   "border": "1px solid transparent"
+  },
+  "onboarding.css|.onb-btn-pill": {
+   "border-radius": "20px",
+   "padding": "5px 11px",
+   "font-size": "11.5px",
+   "background": "--onb-surface",
+   "color": "--onb-sub",
+   "border": "1px solid var(--onb-border)"
+  },
+  "onboarding.css|.onb-chip": {
+   "border-radius": "pill",
+   "padding": "6px 14px",
+   "font-size": "13px",
+   "font-weight": "400",
+   "background": "#fff",
+   "color": "--onb-sub",
+   "font-family": "inherit",
+   "border": "1.5px solid var(--onb-border)"
+  },
+  "onboarding.css|.onb-panel-pill": {
+   "border-radius": "20px",
+   "padding": "6px 12px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "rgba(255, 255, 255, 0.07)",
+   "color": "rgba(255, 255, 255, 0.55)",
+   "border": "1px solid rgba(255, 255, 255, 0.08)",
+   "letter-spacing": "-0.01em"
+  },
+  "onboarding.css|.onb-tag": {
+   "border-radius": "20px",
+   "padding": "4px 10px",
+   "font-size": "13px",
+   "font-weight": "500",
+   "background": "--onb-brand-light",
+   "color": "--onb-brand",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "border": "1px solid var(--onb-brand-pill-border)",
+   "min-width": "0",
+   "overflow-wrap": "anywhere"
+  },
+  "one_on_one.css|.omn-message-chip": {
+   "border-radius": "8px",
+   "padding": "8px 14px",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "4px",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "one_on_one.css|.ono-add-modal-member-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid var(--componentColors-utility-gray-utilityGray200)"
+  },
+  "one_on_one.css|.ono-done-manual-badge": {
+   "border-radius": "6px",
+   "padding": "2px 7px",
+   "font-size": "10px",
+   "font-weight": "500",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "one_on_one.css|.ono-done-share-badge": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "11px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-secondary)",
+   "box-sizing": "border-box"
+  },
+  "one_on_one.css|.ono-guide-tag": {
+   "border-radius": "5px",
+   "padding": "2px 6px",
+   "font-size": "10px",
+   "font-weight": "500",
+   "display": "inline-flex",
+   "align-items": "center",
+   "white-space": "nowrap"
+  },
+  "one_on_one.css|.ono-mem-badge": {
+   "border-radius": "8px",
+   "padding": "3px 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "18px"
+  },
+  "one_on_one.css|.ono-mem-chip": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px"
+  },
+  "one_on_one.css|.ono-member-badge": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "16px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "7px",
+   "line-height": "var(--line-height-text-md)",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)"
+  },
+  "one_on_one.css|.ono-start-action-badge": {
+   "border-radius": "8px",
+   "padding": "2px 6px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "border": "1px solid var(--componentColors-utility-gray-utilityGray200)",
+   "flex-shrink": "0"
+  },
+  "one_on_one.css|.ono-start-rec-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "border": "1px solid var(--componentColors-utility-gray-utilityGray200)"
+  },
+  "one_on_one.css|.ono-start-source-badge": {
+   "border-radius": "8px",
+   "padding": "2px 6px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "border": "1px solid var(--componentColors-utility-brand-utilityBrand200)"
+  },
+  "one_on_one.css|.ono-start-topic-badge": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#fafafa",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "one_on_one.css|.ons-ai-tag": {
+   "border-radius": "6px",
+   "padding": "6px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "20px",
+   "border": "1px solid var(--alpha-black-3)",
+   "flex-shrink": "0"
+  },
+  "one_on_one.css|.ood-done-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-success-200)"
+  },
+  "one_on_one.css|.ood-tag": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-gray-200)"
+  },
+  "one_on_one.css|.status-badge": {
+   "border-radius": "8px",
+   "padding": "4px 10px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "var(--line-height-text-sm)"
+  },
+  "one_on_one.css|.tag": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "var(--line-height-text-xs)",
+   "letter-spacing": "-0.12px"
+  },
+  "org_chart.css|.modal-status-badge": {
+   "border-radius": "pill",
+   "padding": "2px 10px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "18px",
+   "border": "1px solid var(--colors-border-borderSecondary)"
+  },
+  "org_chart.css|.modal-team-chip": {
+   "border-radius": "4px",
+   "padding": "0 6px",
+   "font-size": "11px",
+   "font-weight": "600",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "16px",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "org_chart.css|.role-badge": {
+   "border-radius": "6px",
+   "padding": "0 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "color": "white",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "flex-shrink": "0"
+  },
+  "org_chart.css|.status-badge-member": {
+   "border-radius": "4px",
+   "padding": "2px 6px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "color": "white",
+   "line-height": "18px",
+   "white-space": "nowrap"
+  },
+  "org_project.css|.pj-card-status": {
+   "border-radius": "8px",
+   "padding": "2px 8px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "7px"
+  },
+  "org_squad.css|.sq-chip": {
+   "border-radius": "pill",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "line-height": "18px",
+   "border": "1px solid var(--border-secondary)"
+  },
+  "org_squad.css|.sq-lead-chip": {
+   "border-radius": "pill",
+   "padding": "4px 10px",
+   "font-size": "12px",
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "line-height": "18px",
+   "border": "1px solid var(--utility-warning-200)"
+  },
+  "report.css|.report-row-status": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "24px",
+   "white-space": "nowrap",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3)"
+  },
+  "resource.css|.rs-ai-chip": {
+   "border-radius": "8px",
+   "padding": "12px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "background": "#ebe9fe / 어두운 화면 #3e1c96",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe",
+   "line-height": "18px"
+  },
+  "settings.css|.msc-grade-badge": {
+   "border-radius": "10px",
+   "padding": "0 4px",
+   "font-size": "18px",
+   "font-weight": "800",
+   "display": "flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "line-height": "1.05",
+   "flex-shrink": "0",
+   "box-sizing": "border-box",
+   "overflow": "hidden",
+   "overflow-wrap": "anywhere"
+  },
+  "settings.css|.msc-hist-badge": {
+   "border-radius": "pill",
+   "padding": "1px 7px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-primary)",
+   "box-sizing": "border-box",
+   "overflow-wrap": "anywhere"
+  },
+  "settings.css|.msc-intg-badge": {
+   "border-radius": "pill",
+   "padding": "1px 7px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f",
+   "border": "1px solid var(--utility-green-200)"
+  },
+  "settings.css|.msc-pair-badge": {
+   "border-radius": "pill",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-primary)",
+   "flex-shrink": "0",
+   "box-sizing": "border-box",
+   "overflow-wrap": "anywhere"
+  },
+  "settings.css|.msc-reason-chip": {
+   "border-radius": "pill",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-primary)"
+  },
+  "settings.css|.msc-vis-badge": {
+   "border-radius": "pill",
+   "padding": "2px 9px",
+   "font-size": "12px",
+   "font-weight": "700"
+  },
+  "team-management.css|.tm-subteam-chip": {
+   "border-radius": "pill",
+   "padding": "6px 12px",
+   "background": "none",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "6px",
+   "border": "1.5px solid transparent"
+  },
+  "team-management.css|.tm-tag": {
+   "border-radius": "pill",
+   "padding": "1px 7px",
+   "font-size": "10px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid transparent"
+  },
+  "timeline.css|.tl-emp-tag": {
+   "border-radius": "8px",
+   "padding": "2px 6px 2px 4px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#21a67a / 어두운 화면 #e1fef2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px"
+  },
+  "timeline.css|.tl-emp-tag-avatar": {
+   "border-radius": "pill",
+   "font-size": "11px",
+   "font-weight": "700",
+   "background": "#2dbd82 / 어두운 화면 #e1fef2",
+   "color": "#ffffff",
+   "display": "inline-flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "height": "20px",
+   "width": "20px"
+  },
+  "timeline.css|.tl-event-external-tag": {
+   "border-radius": "pill",
+   "padding": "4px 6px 4px 10px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#21a67a / 어두운 화면 #e1fef2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px"
+  },
+  "timeline.css|.tl-event-member-chip": {
+   "border-radius": "pill",
+   "padding": "4px 12px 4px 4px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "rgba(0, 0, 0, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "8px",
+   "line-height": "20px",
+   "font-family": "inherit",
+   "border": "1px solid transparent"
+  },
+  "timeline.css|.tl-event-radio-pill": {
+   "border-radius": "8px",
+   "padding": "8px 12px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "9px",
+   "line-height": "20px",
+   "font-family": "inherit",
+   "border": "none"
+  },
+  "timeline.css|.tl-meeting-title-pill": {
+   "border-radius": "10px",
+   "padding": "8px 14px",
+   "font-size": "14px",
+   "font-weight": "700",
+   "background": "#181d27",
+   "color": "#ffffff",
+   "display": "inline-block",
+   "line-height": "20px",
+   "font-family": "inherit",
+   "border": "none",
+   "box-shadow": "0 4px 12px rgba(10, 13, 18, 0.18)",
+   "letter-spacing": "-0.14px"
+  },
+  "timeline.css|.tl-snippet-status": {
+   "border-radius": "8px",
+   "padding": "8px 14px",
+   "font-size": "14px",
+   "font-weight": "600",
+   "color": "#21a67a / 어두운 화면 #e1fef2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "gap": "4px",
+   "line-height": "20px",
+   "white-space": "nowrap",
+   "font-family": "inherit"
+  },
+  "timeline.css|.tl-snippet-tag": {
+   "border-radius": "8px",
+   "padding": "2px 9px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "#fcfcfd / 어두운 화면 #18191b",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "3px",
+   "line-height": "20px",
+   "font-family": "inherit",
+   "border": "1px solid rgba(0, 0, 0, 0.03)"
+  },
+  "timeline.css|.tl-snippet-tag-field": {
+   "border-radius": "10px",
+   "padding": "6px 12px",
+   "background": "rgba(0, 0, 0, 0.03)",
+   "display": "flex",
+   "align-items": "center",
+   "gap": "8px",
+   "border": "1px solid transparent",
+   "min-height": "44px",
+   "box-sizing": "border-box"
+  },
+  "timeline.css|.tl-snippet-tag-x": {
+   "border-radius": "3px",
+   "padding": "2px",
+   "background": "transparent",
+   "color": "inherit",
+   "display": "inline-flex",
+   "align-items": "center",
+   "justify-content": "center",
+   "border": "none",
+   "height": "16px",
+   "width": "16px",
+   "overflow": "hidden"
+  },
+  "timeline.css|.tl-weekly-entry-tag": {
+   "border-radius": "8px",
+   "padding": "4px 10px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "background": "transparent",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "line-height": "20px",
+   "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
+  },
+  "timeline.css|.tl-weekly-recommend-tag": {
+   "border-radius": "4px",
+   "padding": "2px 8px",
+   "font-size": "13px",
+   "font-weight": "500",
+   "background": "#f4f3ff",
+   "color": "#7a5af8"
+  }
+ },
+ "variants": {
+  "action_items.css|.ai-badge.is-high": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20 / 어두운 화면 #f04438"
+  },
+  "action_items.css|.ai-badge.is-low": {
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "action_items.css|.ai-badge.is-medium": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "admin-integrations.css|.intg-pill.is-bad": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20"
+  },
+  "admin-integrations.css|.intg-pill.is-brand": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin-integrations.css|.intg-pill.is-good": {
+   "background": "#e1fef2",
+   "color": "#10774d"
+  },
+  "admin-integrations.css|.intg-status.is-connected": {
+   "background": "#e1fef2",
+   "color": "#10774d"
+  },
+  "admin-integrations.css|.intg-status.is-connecting": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin-integrations.css|.intg-status.is-disconnected": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin-integrations.css|.intg-status.is-error": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#d92d20 / 어두운 화면 #f04438"
+  },
+  "admin-kit.css|.admin-kit-badge.is-brand": {
+   "background": "color-mix(in srgb, var(--text-brand-tertiary) 12%, transparent)",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin-kit.css|.admin-kit-badge.is-success": {
+   "background": "#d3f8df",
+   "color": "#099250"
+  },
+  "admin-kit.css|.admin-kit-badge.is-warn": {
+   "background": "#fef0c7",
+   "color": "#b54708"
+  },
+  "admin-kit.css|.admin-kit-chip.has-accent": {
+   "background": "color-mix(in srgb, var(--kit-accent) 8%, transparent)",
+   "color": "--kit-accent"
+  },
+  "admin-kit.css|.admin-kit-chip.is-more": {
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin-kit.css|.admin-kit-chip.is-violet": {
+   "background": "#f5f3ff",
+   "color": "#875bf7"
+  },
+  "admin-kit.css|.admin-kit-chip.is-warn": {
+   "background": "#fffaeb",
+   "color": "#dc6803"
+  },
+  "admin-kit.css|.admin-kit-members-status.is-on_leave": {
+   "background": "#fffaeb",
+   "color": "#f79009"
+  },
+  "admin-kit.css|.admin-kit-members-status.is-pending": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin-kit.css|.admin-kit-members-status.is-probation": {
+   "background": "#fffaeb",
+   "color": "#f79009"
+  },
+  "admin-kit.css|.admin-kit-members-status.is-terminated": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-activity-tag.is-alert": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20"
+  },
+  "admin.css|.admin-activity-tag.is-eval": {
+   "background": "#fffaeb",
+   "color": "#f79009"
+  },
+  "admin.css|.admin-activity-tag.is-meeting": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin.css|.admin-activity-tag.is-oneonone": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "admin.css|.admin-activity-tag.is-snippet": {
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe"
+  },
+  "admin.css|.admin-emp-hist-chip.is-self": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "admin.css|.admin-emp-invite-badge.is-accepted": {
+   "background": "#e1fef2",
+   "color": "#10774d"
+  },
+  "admin.css|.admin-emp-invite-badge.is-expired": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-emp-invite-badge.is-pending": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-pill.is-amber": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-role-pill.is-admin": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin.css|.admin-emp-role-pill.is-manager": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status-option:hover:not(.is-selected)": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-active": {
+   "background": "#e1fef2"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-active .admin-emp-radio-circle": {
+   "background": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-active .admin-emp-status-option-label": {
+   "color": "#10774d"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-on-leave": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-on-leave .admin-emp-radio-circle": {
+   "background": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-label": {
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-pending": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-pending .admin-emp-radio-circle": {
+   "background": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-pending .admin-emp-status-option-label": {
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-probation": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-probation .admin-emp-radio-circle": {
+   "background": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-probation .admin-emp-status-option-label": {
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-terminated": {
+   "background": "#f9fafb / 어두운 화면 #22262f"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-terminated .admin-emp-radio-circle": {
+   "background": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-emp-status-option.is-selected.is-terminated .admin-emp-status-option-label": {
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status.is-active": {
+   "background": "#e1fef2",
+   "color": "#10774d"
+  },
+  "admin.css|.admin-emp-status.is-on-leave": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status.is-other": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-emp-status.is-pending": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status.is-probation": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status.is-terminated": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-notif-filter-chip.is-active": {
+   "font-weight": "700",
+   "background": "#f1fffa / 어두운 화면 #2dbd82",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "admin.css|.admin-pill.is-active": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "admin.css|.admin-pill.is-inactive": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-pill.is-redflag": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20 / 어두운 화면 #f04438"
+  },
+  "admin.css|.admin-snap-chip:hover:not(.is-on)": {
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-snap-chip.is-on": {
+   "font-weight": "700",
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin.css|.admin-snap-status-badge.is-error": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20 / 어두운 화면 #f97066"
+  },
+  "admin.css|.admin-snap-status-badge.is-ok": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "admin.css|.admin-snap-status-badge.is-warn": {
+   "background": "#fffaeb",
+   "color": "#dc6803"
+  },
+  "admin.css|.admin-snap-step-badge.is-active": {
+   "background": "#2dbd82",
+   "color": "#ffffff",
+   "border": "none"
+  },
+  "admin.css|.admin-snap-type-badge.is-amber": {
+   "background": "#fffaeb",
+   "color": "#dc6803"
+  },
+  "admin.css|.admin-snap-type-badge.is-blue": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "admin.css|.admin-snap-type-badge.is-gray": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "admin.css|.admin-snap-type-badge.is-green": {
+   "background": "#d3f8df / 어두운 화면 #084c2e",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "admin.css|.admin-snap-type-badge.is-red": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#d92d20 / 어두운 화면 #f04438"
+  },
+  "eval-cycle.css|.evc-mode-badge.is-muted": {
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "eval-cycle.css|.evc-mode-badge.is-warn": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#f04438"
+  },
+  "eval-cycle.css|.evc-rm-sum-chip.is-primary": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "eval-cycle.css|.evc-sched-anchor-badge.is-manual": {
+   "background": "#ebe9fe / 어두운 화면 #3e1c96",
+   "color": "#6938ef / 어두운 화면 #f4f3ff"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-error": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-info": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-neutral": {
+   "background": "#f9fafb / 어두운 화면 #18191b",
+   "color": "#596069 / 어두운 화면 #ececed"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-purple": {
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#7a5af8 / 어두운 화면 #ebe9fe"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-success": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "eval-cycle.css|.evc-status-badge.tone-warn": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "eval-cycle.css|.evc-tpl-set-row .evc-type-chip.is-warn": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "eval-cycle.css|.evc-type-chip.is-locked:hover": {
+   "background": "inherit"
+  },
+  "eval-cycle.css|.evc-type-chip.is-on": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-badge.is-committee": {
+   "background": "#dd2590 / 어두운 화면 #f670c7"
+  },
+  "eval-cycle.css|.evc-wiz-calibscope-chip.is-on": {
+   "font-weight": "700",
+   "background": "#d1e9ff / 어두운 화면 #194185",
+   "color": "#175cd3 / 어두운 화면 #84caff"
+  },
+  "eval-cycle.css|.evc-wiz-committee-chip.is-chair": {
+   "background": "#fdf2fa / 어두운 화면 #4e0d30",
+   "color": "#dd2590 / 어두운 화면 #f670c7"
+  },
+  "eval-cycle.css|.evl-grade-btn.is-on": {
+   "background": "#2dbd82",
+   "color": "#ffffff"
+  },
+  "eval-cycle.css|.evrr-badge.is-approved": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#175cd3 / 어두운 화면 #84caff"
+  },
+  "eval-cycle.css|.evrr-badge.is-done": {
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7"
+  },
+  "eval-cycle.css|.evrr-badge.is-failed": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "eval-cycle.css|.evrr-badge.is-override": {
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#5925dc / 어두운 화면 #fafaff"
+  },
+  "eval-cycle.css|.evrr-badge.is-pending": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "eval-cycle.css|.evrr-badge.is-review": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "eval-cycle.css|.evrr-badge.is-sent": {
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7"
+  },
+  "eval-cycle.css|.evrs-chip.is-on": {
+   "font-weight": "700",
+   "background": "#f1fffa",
+   "color": "#10774d"
+  },
+  "eval-cycle.css|.evs-cw-badge.tone-accent": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evs-cw-badge.tone-green": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#087443 / 어두운 화면 #73e2a3"
+  },
+  "eval-cycle.css|.evs-cw-badge.tone-muted": {
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "eval-cycle.css|.evs-cw-badge.tone-red": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "eval-cycle.css|.evs-cw-chip.is-on.tone-accent": {
+   "font-weight": "700",
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evs-cw-chip.is-on.tone-red": {
+   "font-weight": "700",
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "eval-cycle.css|.evs-cw-comp-access-status.is-warn": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "eval-cycle.css|.evs-cw-status.tone-accent": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "eval-cycle.css|.evs-cw-status.tone-green": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#087443 / 어두운 화면 #73e2a3"
+  },
+  "eval-cycle.css|.evs-cw-status.tone-muted": {
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "eval-cycle.css|.evs-j4-pill-tag.is-shared": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#10774d / 어두운 화면 #96f9d2"
+  },
+  "eval-cycle.css|.evs-lp-tag.tone-accent": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#10774d / 어두운 화면 #96f9d2",
+   "border": "1px solid var(--utility-brand-200)"
+  },
+  "eval-cycle.css|.evs-lp-tag.tone-amber": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b",
+   "border": "1px solid var(--utility-warning-200)"
+  },
+  "eval-cycle.css|.evs-lp-tag.tone-green": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#087443 / 어두운 화면 #73e2a3",
+   "border": "1px solid var(--utility-green-200)"
+  },
+  "eval-cycle.css|.evs-lp-tag.tone-neutral": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "eval-cycle.css|.evs-lp-tag.tone-red": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b",
+   "border": "1px solid var(--utility-error-200)"
+  },
+  "eval-cycle.css|.evs-re-grade.seg-bottom": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "eval-cycle.css|.evs-re-grade.seg-mid": {
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #5af3b4"
+  },
+  "eval-cycle.css|.evs-re-grade.seg-top": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#087443 / 어두운 화면 #73e2a3"
+  },
+  "manager.css|.mgr-kr-obj-chip.is-selected": {
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "box-shadow": "0 2px 6px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.06)"
+  },
+  "manager.css|.mgr-kr-obj-chip.is-selected .mgr-kr-obj-badge": {
+   "background": "#f1fffa / 어두운 화면 #072619"
+  },
+  "manager.css|.mgr-kr-obj-chip.is-selected .mgr-kr-obj-title": {
+   "color": "#596069 / 어두운 화면 #ececed"
+  },
+  "manager.css|.mgr-krd-pill.is-done": {
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7",
+   "border": "1px solid var(--utility-success-200)"
+  },
+  "manager.css|.mgr-krd-pill.is-progress": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#2e90fa",
+   "border": "1px solid var(--utility-blue-200)"
+  },
+  "manager.css|.mgr-ts-filter-chip.is-flag": {
+   "background": "#fee4e2 / 어두운 화면 #7a271a",
+   "color": "#d92d20 / 어두운 화면 #f04438"
+  },
+  "manager.css|.mgr-ts-filter-chip.is-member": {
+   "background": "#e1fef2 / 어두운 화면 #0b4b31",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "okr_resource.css|.rsx-badge.is-bad": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
+  "okr_resource.css|.rsx-badge.is-blue": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#175cd3 / 어두운 화면 #84caff"
+  },
+  "okr_resource.css|.rsx-badge.is-brand": {
+   "border-radius": "8px",
+   "padding": "2px 6px",
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#10774d / 어두운 화면 #96f9d2"
+  },
+  "okr_resource.css|.rsx-badge.is-indigo": {
+   "background": "#eef4ff / 어두운 화면 #1f235b",
+   "color": "#3538cd / 어두운 화면 #a4bcfd"
+  },
+  "okr_resource.css|.rsx-badge.is-warn": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "okr.css|.okr-pill.is-done": {
+   "color": "#099250 / 어두운 화면 #3ccb7f",
+   "border": "1px solid var(--utility-green-500)"
+  },
+  "okr.css|.okr-pill.is-progress": {
+   "color": "#2e90fa",
+   "border": "1px solid var(--utility-blue-400)"
+  },
+  "okr.css|.okr-q-badge.is-blue": {
+   "background": "#53b1fd / 어두운 화면 #1570ef"
+  },
+  "okr.css|.okr-q-badge.is-gray": {
+   "background": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "okr.css|.okr-role-badge.is-blue": {
+   "background": "#2e90fa"
+  },
+  "okr.css|.okr-role-badge.is-gray": {
+   "background": "#8b929c / 어두운 화면 #94979c"
+  },
+  "onboarding.css|.onb-btn-pill.is-on": {
+   "color": "--onb-success"
+  },
+  "onboarding.css|.onb-chip.is-selected": {
+   "font-weight": "700",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#2dbd82"
+  },
+  "one_on_one.css|.ono-done-share-badge.is-on": {
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#5925dc / 어두운 화면 #fafaff"
+  },
+  "one_on_one.css|.ono-mem-badge.is-done": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "one_on_one.css|.ono-mem-badge.is-live": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f"
+  },
+  "one_on_one.css|.ono-mem-badge.is-ready": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
+  "org_squad.css|.pj-card-status.sq-status.is-clickable:hover": {
+   "background": "#f9fafb / 어두운 화면 #22262f"
+  },
+  "org_squad.css|.sq-chip.is-lead": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09"
+  },
+  "settings.css|.msc-hist-badge.is-hr": {
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "settings.css|.msc-hist-badge.is-self": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "settings.css|.msc-intg-badge.is-muted": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "settings.css|.msc-pair-badge.is-on": {
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#079455 / 어두운 화면 #17b26a"
+  },
+  "settings.css|.msc-vis-badge.is-brand": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "border": "1px solid var(--utility-brand-200)"
+  },
+  "settings.css|.msc-vis-badge.is-green": {
+   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "color": "#099250 / 어두운 화면 #3ccb7f",
+   "border": "1px solid var(--utility-green-200)"
+  },
+  "settings.css|.msc-vis-badge.is-muted": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "border": "1px solid var(--border-primary)"
+  },
+  "team-management.css|.tm-tag.is-amber": {
+   "border-radius": "6px",
+   "font-weight": "700",
+   "background": "#ee46bc",
+   "color": "#fff"
+  },
+  "team-management.css|.tm-tag.is-blue": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "team-management.css|.tm-tag.is-gray": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
+  "timeline.css|.tl-event-member-chip.is-selected": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "timeline.css|.tl-event-radio-pill:hover:not(.is-selected)": {
+   "background": "#e6e8ea / 어두운 화면 #22262f"
+  },
+  "timeline.css|.tl-event-radio-pill.is-selected": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#21a67a / 어두운 화면 #e1fef2"
+  },
+  "timeline.css|.tl-event-radio-pill.is-selected .tl-event-radio-dot": {
+   "background": "#2dbd82 / 어두운 화면 #e1fef2"
+  },
+  "timeline.css|.tl-event-radio-pill.is-selected .tl-event-radio-dot::after": {
+   "border-radius": "50%",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "height": "6px",
+   "width": "6px"
+  },
+  "timeline.css|.tl-snippet-tag-field.is-ai-filled": {
+   "background": "#f4f3ff / 어두운 화면 #27115f"
+  },
+  "timeline.css|.tl-snippet-tag:hover:not(:disabled):not(.tl-snippet-tag-selected)": {
+   "background": "#f9fafb / 어두운 화면 #22262f"
+  }
+ }
+}

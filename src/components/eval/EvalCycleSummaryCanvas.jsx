@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -657,10 +658,9 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
           const delta = rec == null ? 0 : Math.round((p - rec) * 10) / 10;
           const off = Math.abs(delta) >= 10;
           return (
-            <div
+            <StatusBadge as="div"
               key={g.gradeKey}
-              className={`evs-cw-dist-chip${off ? ' is-off' : ''} tone-${g.tone}`}
-            >
+              className={`evs-cw-dist-chip${off ? ' is-off' : ''} tone-${g.tone}`}>
               <span className={`evs-cw-dist-dot tone-${g.tone}`} />
               <span className="evs-cw-dist-chip-label">{g.label}</span>
               <span className="evs-cw-dist-chip-count">{g.count}</span>
@@ -676,7 +676,7 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
                   )}
                 </span>
               )}
-            </div>
+            </StatusBadge>
           );
         })}
       </div>
@@ -1314,12 +1314,11 @@ export default function EvalCycleSummaryCanvas({
         </div>
         {!workspaceOnly && (
           <div className="evmon-controls">
-            <span
+            <StatusBadge
               className={`evc-status-badge tone-${reportState === 'published' ? 'success' : reportState === 'generated' ? 'info' : 'neutral'}`}
-              data-testid="evsum-report-state"
-            >
+              data-testid="evsum-report-state">
               {reportBadge}
-            </span>
+            </StatusBadge>
             {reportState === 'notGenerated' && onGenerate && (
               <button type="button" className="evc-btn is-ghost" onClick={() => onGenerate()} data-testid="evsum-generate">
                 {L.generate}
@@ -1655,9 +1654,9 @@ export default function EvalCycleSummaryCanvas({
                             <span className="evs-lp-dept"> · {p.dept}</span>
                           </span>
                         </span>
-                        <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>
+                        <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>
                           {tagOf(p.tendency)}
-                        </span>
+                        </StatusBadge>
                       </div>
                       <div className="evs-lp-bar" role="img">
                         {p.gradeDistribution.map((g, i) => (
@@ -1700,7 +1699,7 @@ export default function EvalCycleSummaryCanvas({
                       <div className="evs-leader-row evs-lp-calib-row" role="row" key={p.leaderId} data-testid="evs-lp-calib-row">
                         <span className="evs-leader-name">{p.name || p.leaderId}</span>
                         <span className="evs-leader-dept">{p.dept}</span>
-                        <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</span>
+                        <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</StatusBadge>
                         <span className={`evs-leader-num evs-lp-delta${p.calibDelta > 0 ? ' is-up' : p.calibDelta < 0 ? ' is-down' : ' is-muted'}`}>
                           {p.calibDelta === 0 ? '—' : p.calibDelta > 0 ? `▲ ${p.calibDelta}${L.unit}` : `▼ ${Math.abs(p.calibDelta)}${L.unit}`}
                         </span>
@@ -1952,7 +1951,7 @@ export default function EvalCycleSummaryCanvas({
                               <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
                               <span><span className="evs-leader-name">{p.name || p.leaderId}</span><span className="evs-lp-dept"> · {p.dept}</span></span>
                             </span>
-                            <span className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</span>
+                            <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</StatusBadge>
                           </div>
                           <div className="evs-lp-bar">
                             {p.gradeDistribution.map((g, i) => (
@@ -2037,7 +2036,7 @@ export default function EvalCycleSummaryCanvas({
                                     <span className="evs-pr-name">{r.memberName || r.memberId}</span>
                                     <span className="evs-pr-sub"> {r.dept} · {L.prRequester}: {r.requesterName || r.requesterId}</span>
                                   </div>
-                                  <span className={`evs-lp-tag tone-${meta.tone}`}>{meta.label}</span>
+                                  <StatusBadge className={`evs-lp-tag tone-${meta.tone}`}>{meta.label}</StatusBadge>
                                 </div>
                                 {[
                                   { label: L.prF1, val: r.evalHistorySummary },
@@ -2070,10 +2069,10 @@ export default function EvalCycleSummaryCanvas({
                     <span className="evc-empty-sub">{L.j4NoPreset}</span>
                   ) : (
                     filterPresets.map((p) => (
-                      <span className="evs-j4-pill" key={p.id} data-testid="evs-j4-pill">
-                        <span className={`evs-j4-pill-tag${p.isShared ? ' is-shared' : ''}`}>{p.isShared ? L.j4Shared : L.j4Personal}</span>
+                      <StatusBadge className="evs-j4-pill" key={p.id} data-testid="evs-j4-pill">
+                        <StatusBadge className={`evs-j4-pill-tag${p.isShared ? ' is-shared' : ''}`}>{p.isShared ? L.j4Shared : L.j4Personal}</StatusBadge>
                         {p.name}
-                      </span>
+                      </StatusBadge>
                     ))
                   )}
                   <button type="button" className="evs-j4-save" onClick={() => onSaveFilterPreset && onSaveFilterPreset()} data-testid="evs-j4-save">{L.j4SavePreset}</button>
@@ -2112,7 +2111,7 @@ export default function EvalCycleSummaryCanvas({
                           <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(m.name || '?').slice(0, 1)}<AvatarPhoto photo={m.avatar} name={m.name} /></span>
                           <span className="evs-re-item-name">{m.name || m.memberId}</span>
                           {m.gradeLabel && (
-                            <span className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</span>
+                            <StatusBadge className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</StatusBadge>
                           )}
                         </button>
                       ))}
@@ -2139,12 +2138,12 @@ export default function EvalCycleSummaryCanvas({
                     </div>
                     <div className="evs-re-head-right">
                       {memberDetail.gradeLabel && (
-                        <span className={`evs-re-grade lg ${gradeSeg(memberDetail.gradeLabel)}`}>
+                        <StatusBadge className={`evs-re-grade lg ${gradeSeg(memberDetail.gradeLabel)}`}>
                           {L.reFinalGrade}: {memberDetail.gradeLabel}
-                        </span>
+                        </StatusBadge>
                       )}
                       {memberDetail.calibration?.adjusted && (
-                        <span className="evs-lp-tag tone-amber">{L.reAdjustedBadge}</span>
+                        <StatusBadge className="evs-lp-tag tone-amber">{L.reAdjustedBadge}</StatusBadge>
                       )}
                     </div>
                   </div>
@@ -2189,7 +2188,7 @@ export default function EvalCycleSummaryCanvas({
                     {memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
-                          <span className="evs-lp-tag tone-green evs-re-mgrade">{L.reManagerGrade}: {memberDetail.manager.gradeLabel}</span>
+                          <StatusBadge className="evs-lp-tag tone-green evs-re-mgrade">{L.reManagerGrade}: {memberDetail.manager.gradeLabel}</StatusBadge>
                         )}
                         <div className="evs-re-answers">
                           {memberDetail.manager.answers.map((a) => (
@@ -2212,9 +2211,9 @@ export default function EvalCycleSummaryCanvas({
                       <>
                         <div className="evs-re-calib-final">
                           {L.reFinalGrade}: <strong>{memberDetail.calibration.finalGradeLabel}</strong>
-                          <span className={`evs-lp-tag ${memberDetail.calibration.adjusted ? 'tone-amber' : 'tone-green'}`}>
+                          <StatusBadge className={`evs-lp-tag ${memberDetail.calibration.adjusted ? 'tone-amber' : 'tone-green'}`}>
                             {memberDetail.calibration.adjusted ? L.reCalibAdjusted : L.reCalibOriginal}
-                          </span>
+                          </StatusBadge>
                         </div>
                         {memberDetail.calibration.history.map((h, i) => (
                           <div className="evs-re-calib-hist" key={i}>
@@ -2407,9 +2406,9 @@ export default function EvalCycleSummaryCanvas({
                       <span className="evs-cw-review-sub">
                         {appeal.job} · {appeal.team}
                       </span>
-                      <span className={`evs-cw-status tone-${statusTone} evs-cw-review-status`}>
+                      <StatusBadge className={`evs-cw-status tone-${statusTone} evs-cw-review-status`}>
                         {statusText}
-                      </span>
+                      </StatusBadge>
                     </div>
                     <div className="evc-card evs-cw-review-card">
                       <div className="evs-cw-review-grid">
@@ -2421,9 +2420,9 @@ export default function EvalCycleSummaryCanvas({
                           <div className="evs-cw-review-k">{L.cwAppealFromTo}</div>
                           <div className="evs-cw-review-v">
                             {appeal.fromGradeLabel ? (
-                              <span className="evs-cw-badge tone-muted">
+                              <StatusBadge className="evs-cw-badge tone-muted">
                                 {appeal.fromGradeLabel}
-                              </span>
+                              </StatusBadge>
                             ) : (
                               '—'
                             )}
@@ -2431,9 +2430,9 @@ export default function EvalCycleSummaryCanvas({
                               <>
                                 {' '}
                                 <span className="evs-cw-arrow">→</span>{' '}
-                                <span className="evs-cw-badge tone-accent">
+                                <StatusBadge className="evs-cw-badge tone-accent">
                                   {appeal.toGradeLabel}
-                                </span>
+                                </StatusBadge>
                               </>
                             ) : null}
                           </div>
@@ -2532,7 +2531,7 @@ export default function EvalCycleSummaryCanvas({
                           onClick={() => onSelectAppeal?.(a.id)}
                           data-testid="evs-cw-appeal"
                         >
-                          <span className="evs-cw-appeal-badge">{L.cwAppealPending}</span>
+                          <StatusBadge className="evs-cw-appeal-badge">{L.cwAppealPending}</StatusBadge>
                           <div className="evs-cw-appeal-main">
                             <div className="evs-cw-appeal-name">
                               {a.memberName}
@@ -2626,7 +2625,7 @@ export default function EvalCycleSummaryCanvas({
                             })}
                           </div>
                         </div>
-                        <span className={`evs-cw-status tone-${tone}`}>{statusLabel}</span>
+                        <StatusBadge className={`evs-cw-status tone-${tone}`}>{statusLabel}</StatusBadge>
                         <span className="evs-cw-open">{L.cwOpen}</span>
                       </button>
                     );
@@ -2870,11 +2869,10 @@ export default function EvalCycleSummaryCanvas({
                                 )}
                                 <RosterTable.Cell>
                                   {row.currentGradeKey ? (
-                                    <span
-                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
-                                    >
+                                    <StatusBadge
+                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                       {row.currentGradeLabel}
-                                    </span>
+                                    </StatusBadge>
                                   ) : (
                                     <span className="evs-cw-muted">—</span>
                                   )}
@@ -2886,21 +2884,19 @@ export default function EvalCycleSummaryCanvas({
                                 )}
                                 <RosterTable.Cell>
                                   <div className="evs-cw-adjust">
-                                    <span
-                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
-                                    >
+                                    <StatusBadge
+                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                       {row.currentGradeLabel ?? '—'}
-                                    </span>
+                                    </StatusBadge>
                                     {calibTable.readOnly ? (
                                       row.adjusted &&
                                       row.calibratedGradeKey !== row.currentGradeKey ? (
                                         <>
                                           <span className="evs-cw-arrow">→</span>
-                                          <span
-                                            className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}
-                                          >
+                                          <StatusBadge
+                                            className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}>
                                             {row.calibratedGradeLabel}
-                                          </span>
+                                          </StatusBadge>
                                         </>
                                       ) : null
                                     ) : (
@@ -2990,20 +2986,18 @@ export default function EvalCycleSummaryCanvas({
                                 {showCompCol && (
                                   <RosterTable.Cell data-testid="evs-cw-comp-cell">
                                     {!compView.visible ? (
-                                      <span
+                                      <StatusBadge
                                         className="evs-cw-badge tone-muted evs-cw-comp-lock"
                                         title={L.cwCompLocked}
                                         aria-label={L.cwCompLocked}
-                                        data-testid="evs-cw-comp-locked"
-                                      >
+                                        data-testid="evs-cw-comp-locked">
                                         <LockIcon size={12} />
-                                      </span>
+                                      </StatusBadge>
                                     ) : row.compensationStatus && L.cwCompStatus[row.compensationStatus] ? (
-                                      <span
-                                        className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}
-                                      >
+                                      <StatusBadge
+                                        className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}>
                                         {L.cwCompStatus[row.compensationStatus]}
-                                      </span>
+                                      </StatusBadge>
                                     ) : (
                                       <span className="evs-cw-muted">—</span>
                                     )}
@@ -3088,11 +3082,10 @@ export default function EvalCycleSummaryCanvas({
                                               <dt>{L.cwColCurrent}</dt>
                                               <dd>
                                                 {row.currentGradeLabel ? (
-                                                  <span
-                                                    className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}
-                                                  >
+                                                  <StatusBadge
+                                                    className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                                     {row.currentGradeLabel}
-                                                  </span>
+                                                  </StatusBadge>
                                                 ) : (
                                                   '—'
                                                 )}
@@ -3262,11 +3255,10 @@ export default function EvalCycleSummaryCanvas({
                                                   </span>
                                                   {row.compensationStatus &&
                                                   L.cwCompStatus[row.compensationStatus] ? (
-                                                    <span
-                                                      className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}
-                                                    >
+                                                    <StatusBadge
+                                                      className={`evs-cw-badge tone-${COMP_TONE[row.compensationStatus] ?? 'muted'}`}>
                                                       {L.cwCompStatus[row.compensationStatus]}
-                                                    </span>
+                                                    </StatusBadge>
                                                   ) : (
                                                     '—'
                                                   )}{' '}
@@ -3295,15 +3287,15 @@ export default function EvalCycleSummaryCanvas({
                                                     className="evs-cw-detail-log"
                                                     key={hi}
                                                   >
-                                                    <span className="evs-cw-badge tone-muted">
+                                                    <StatusBadge className="evs-cw-badge tone-muted">
                                                       {h.fromLabel ?? '—'}
-                                                    </span>
+                                                    </StatusBadge>
                                                     <span className="evs-cw-arrow">
                                                       →
                                                     </span>
-                                                    <span className="evs-cw-badge tone-accent">
+                                                    <StatusBadge className="evs-cw-badge tone-accent">
                                                       {h.toLabel}
-                                                    </span>
+                                                    </StatusBadge>
                                                     {h.note ? (
                                                       <span className="evs-cw-detail-log-note">
                                                         {h.note}
@@ -4164,9 +4156,9 @@ export default function EvalCycleSummaryCanvas({
                             {[m.dept, m.level].filter(Boolean).join(' · ')}
                           </span>
                           {createAddedSet.has(m.memberId) && (
-                            <span className="evs-cw-roster-tag">
+                            <StatusBadge className="evs-cw-roster-tag">
                               {L.cwCreateAddedTag}
-                            </span>
+                            </StatusBadge>
                           )}
                           <button
                             type="button"
@@ -4196,10 +4188,9 @@ export default function EvalCycleSummaryCanvas({
                       </div>
                       <div className="evs-cw-roster-excluded-chips">
                         {createExcludedMembers.map((m) => (
-                          <span
+                          <StatusBadge
                             key={m.memberId}
-                            className="evs-cw-roster-excluded-chip"
-                          >
+                            className="evs-cw-roster-excluded-chip">
                             {m.name || m.memberId}
                             <button
                               type="button"
@@ -4210,7 +4201,7 @@ export default function EvalCycleSummaryCanvas({
                             >
                               <RefreshIcon size={12} />
                             </button>
-                          </span>
+                          </StatusBadge>
                         ))}
                       </div>
                     </div>

@@ -44,6 +44,10 @@ jobs:
       - name: Check roster tables
         run: npm run check:roster-tables
 
+      # 딱지 생김새가 모으기 전과 달라졌거나, 화면이 딱지를 또 따로 그린 채 나가는 것을 막는다. (PW-840)
+      - name: Check status badges
+        run: npm run check:status-badges
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'

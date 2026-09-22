@@ -1,3 +1,4 @@
+@import './status-badge.css';
 @import './roster-table.css';
 /* ══════════════════════════════════════════════════════════════
    Admin kit — 어드민 화면 조각 (prefix: admin-kit-)   PW-760
@@ -213,22 +214,6 @@
 }
 .admin-kit-required { color: var(--colors-error-500, #f04438); }
 .admin-kit-marker { display: inline-flex; color: var(--text-brand-tertiary); flex-shrink: 0; }
-.admin-kit-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 6px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.admin-kit-badge.is-success { background: var(--colors-green-100, #d3f8df); color: var(--colors-green-600, #099250); }
-.admin-kit-badge.is-warn { background: var(--colors-warning-100, #fef0c7); color: var(--colors-warning-700, #b54708); }
-.admin-kit-badge.is-brand {
-  background: color-mix(in srgb, var(--text-brand-tertiary) 12%, transparent);
-  color: var(--text-brand-tertiary);
-}
 
 .admin-kit-select { cursor: pointer; }
 .admin-kit-select.is-min { min-width: 140px; }
@@ -342,31 +327,6 @@
   color: var(--text-brand-tertiary);
 }
 .admin-kit-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.admin-kit-chip {
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  border: 1px solid var(--border-primary);
-  color: var(--text-secondary);
-}
-.admin-kit-chip.is-md { padding: 2px 8px; font-size: 11px; }
-.admin-kit-chip.has-accent {
-  color: var(--kit-accent);
-  background: color-mix(in srgb, var(--kit-accent) 8%, transparent);
-  border-color: color-mix(in srgb, var(--kit-accent) 20%, transparent);
-}
-.admin-kit-chip.is-warn {
-  color: var(--colors-warning-600, #dc6803);
-  background: var(--colors-warning-50, #fffaeb);
-  border-color: var(--colors-warning-200, #fedf89);
-}
-.admin-kit-chip.is-violet {
-  color: var(--colors-violet-500, #875bf7);
-  background: var(--colors-violet-50, #f5f3ff);
-  border-color: var(--colors-violet-200, #ddd6fe);
-}
-.admin-kit-chip.is-more { border-color: transparent; padding-left: 4px; padding-right: 4px; color: var(--text-tertiary); }
 
 /* 조직 트리 미리보기 */
 .admin-kit-tree {
@@ -517,23 +477,6 @@
 }
 .admin-kit-members-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .admin-kit-members-sub { font-size: 11.5px; color: var(--text-tertiary); }
-.admin-kit-members-status {
-  flex-shrink: 0;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--utility-green-600, #16a34a);
-  background: var(--utility-green-50, #f0fdf4);
-}
-.admin-kit-members-status.is-probation,
-.admin-kit-members-status.is-on_leave { color: var(--colors-warning-500, #d97706); background: var(--colors-warning-50, #fffbeb); }
-.admin-kit-members-status.is-terminated { color: var(--text-tertiary, #94a3b8); background: var(--bg-secondary, #f8fafc); }
-.admin-kit-members-status.is-pending { color: var(--text-brand-tertiary, #21a67a); background: var(--utility-brand-50, #f1fffa); }
 
 /* ── 녹음 사용량 칸 (결제 개요 카드·좌석 막대 모양) ──
    색은 BillingOverviewCanvas 의 T 표(accent #4F6AF5 · amber · red · slate)를 그대로 쓴다 —

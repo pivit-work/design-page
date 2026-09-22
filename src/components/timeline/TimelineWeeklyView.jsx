@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import gsap from 'gsap';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -209,7 +210,7 @@ export default function TimelineWeeklyView({
               {e.tags?.length > 0 && (
                 <div className="tl-weekly-entry-tags">
                   {e.tags.map((t) => (
-                    <span key={t} className="tl-weekly-entry-tag">#{t}</span>
+                    <StatusBadge key={t} className="tl-weekly-entry-tag">#{t}</StatusBadge>
                   ))}
                 </div>
               )}
