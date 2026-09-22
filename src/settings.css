@@ -123,7 +123,8 @@
 .msc-content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  /* 카드 사이 16px — OKR 화면(디자이너 원본)의 카드 간격 */
+  gap: 16px;
   min-width: 0;
 }
 
@@ -502,7 +503,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 12px 16px;
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
@@ -744,7 +745,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
