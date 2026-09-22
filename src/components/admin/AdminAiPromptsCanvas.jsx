@@ -39,8 +39,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
  */
 
 // design-page 정본 폰트 스택. mono 는 기술 식별자용 var(--font-family-mono) 토큰.
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
-const MONO = "var(--font-family-mono, 'DM Mono', monospace)";
+const FONT = 'var(--font-family-body)';
 const FIELD_BG = 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))';
 const DIVIDER = '1px solid var(--border-secondary, #e6e8ea)';
 
@@ -281,7 +280,7 @@ export default function AdminAiPromptsCanvas({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
                     {selected.hasCustom && selectedVersion != null && (
-                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: MONO }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtVersion(labels.version, selectedVersion)}
                       </span>
                     )}
@@ -350,7 +349,7 @@ export default function AdminAiPromptsCanvas({
                     <div
                       style={{
                         marginTop: 10, padding: '14px 16px', borderRadius: 10,
-                        background: FIELD_BG, fontSize: 13, fontFamily: MONO,
+                        background: FIELD_BG, fontSize: 13, fontVariantNumeric: 'tabular-nums',
                         color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
                       }}
                       data-testid="default-prompt-text"

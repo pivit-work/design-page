@@ -730,7 +730,7 @@
 
 .msc-amount.is-masked {
   color: var(--text-quaternary);
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 2px;
 }
 
@@ -769,7 +769,7 @@
 }
 
 .msc-mono {
-  font-family: var(--font-family-mono, 'DM Mono', monospace);
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
   color: var(--text-tertiary);
 }

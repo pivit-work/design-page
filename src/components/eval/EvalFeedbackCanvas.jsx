@@ -43,7 +43,7 @@ const C = {
   amberBg: 'var(--utility-warning-50)',
   amberBd: 'var(--utility-warning-200)',
 };
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
+const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
   title: '내 피드백',

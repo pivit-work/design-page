@@ -48,6 +48,10 @@ jobs:
       - name: Check status badges
         run: npm run check:status-badges
 
+      # CSS 에 글씨체 이름을 직접 적은 채 나가는 것을 막는다. (PW-923)
+      - name: Check font families
+        run: npm run check:font-families
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'

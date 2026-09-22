@@ -34,7 +34,7 @@ const C = {
   redBg: 'var(--utility-error-50)',
   redBd: 'var(--utility-error-200)',
 };
-const FONT = "'Pretendard','Noto Sans KR',sans-serif";
+const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
   title: '피드백 관리',

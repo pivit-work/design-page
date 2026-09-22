@@ -20,8 +20,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
-  font: "'Pretendard','Noto Sans KR',sans-serif",
-  mono: "'DM Mono',monospace",
+  font: 'var(--font-family-body)',
   bg: '#F8FAFC',
   card: '#fff',
   border: '#E2E8F0',

@@ -55,6 +55,7 @@
     "check:shared-frames": "node scripts/check-shared-frames.mjs",
     "check:roster-tables": "node scripts/check-roster-tables.mjs",
     "check:status-badges": "node scripts/check-status-badges.mjs",
+    "check:font-families": "node scripts/check-font-families.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },
