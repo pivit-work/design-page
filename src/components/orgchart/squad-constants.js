@@ -162,6 +162,29 @@ export function avatarFontPx(text, size) {
   return Math.max(8, Math.min(base, Math.floor(available / widthPerFontPx)));
 }
 
+/**
+ * 아바타 원 안 글자를 **몇 줄로, 몇 px 로** 넣을지 (PW-303).
+ *
+ * 한 줄로 최소 크기(8px)까지 줄여도 원 밖으로 나가는 이름 — 24px 원의 네 글자 한글
+ * 이름(`남궁민수`) — 은 가운데 두 글자만 잘려 보이던 것을 **두 줄로 나눠**(`남궁 / 민수`)
+ * 담는다(2026-09-22 커트 결정). 글자를 더 줄이거나 두 글자로 자르는 대신 이름 전체가
+ * 읽히게 하려는 것이다. 한 줄로 들어가는 값은 `avatarFontPx` 그대로라 시각 변화가 없다.
+ */
+export function avatarLabelLayout(text, size) {
+  const chars = [...String(text || '')];
+  const unitsOf = (cs) => cs.reduce((sum, ch) => sum + (CJK_RE.test(ch) ? 1 : 0.62), 0);
+  const minPx = 8;
+  if (chars.length < 2 || unitsOf(chars) * minPx <= size) {
+    return { lines: [chars.join('')], fontPx: avatarFontPx(text, size) };
+  }
+  const half = Math.ceil(chars.length / 2);
+  const lines = [chars.slice(0, half), chars.slice(half)];
+  const base = Math.max(minPx, Math.round(size * 0.34));
+  const widest = Math.max(...lines.map(unitsOf));
+  const fontPx = Math.max(minPx, Math.min(base, Math.floor((size * 0.86) / widest)));
+  return { lines: lines.map((l) => l.join('')), fontPx };
+}
+
 /** 기간 표기: "2026-01-05" → "26.01.05". 종료일 없으면 '미정'(소비자가 번역을 넘길 수 있다). */
 export function fmtYmd(iso, undecided = '미정') {
   if (!iso) return undecided;
