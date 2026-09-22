@@ -51,7 +51,11 @@
  * @param {object}  props
  * @param {Array<{ key: string|number, header?: React.ReactNode, width?: number|string,
  *   align?: 'left'|'center'|'right', render?: (row, i: number) => React.ReactNode,
- *   headerProps?: object, cellProps?: object|((row, i: number) => object) }>} [props.columns]
+ *   headerProps?: object, cellProps?: object|((row, i: number) => object),
+ *   sticky?: boolean }>} [props.columns]
+ *   `sticky` — 가로로 밀어도 왼쪽에 붙어 있는 열(PW-902 · 열이 서른 개 넘는 초대 CSV 미리보기에서
+ *   누구 줄인지 잃지 않게). 붙는 열은 **맨 앞에 이어서** 두고 `width` 를 숫자(px)로 준다 —
+ *   앞 열 폭을 더해 자리를 정한다.
  * @param {Array}   [props.rows]
  * @param {(row, i: number) => string|number} [props.rowKey]  기본 `row.id ?? i`
  * @param {(row, col, i: number) => React.ReactNode} [props.renderCell] 열에 `render` 가 없을 때
@@ -106,11 +110,24 @@ export default function RosterTable({
     tableClassName,
   ].filter(Boolean).join(' ');
 
+  /* 붙는 열의 왼쪽 자리 — 앞의 붙는 열 폭을 더한다. 붙는 열이 없으면 빈 표다. */
+  const stickyLeft = new Map();
+  if (columns) {
+    let left = 0;
+    for (const col of columns) {
+      if (!col.sticky) continue;
+      stickyLeft.set(col.key, left);
+      left += typeof col.width === 'number' ? col.width : 0;
+    }
+  }
+  const stickyProps = (col, extra = {}) =>
+    (stickyLeft.has(col.key) ? { ...extra, stickyLeft: stickyLeft.get(col.key) } : extra);
+
   const body = columns ? (
     <>
       <RosterHead>
         {columns.map((col) => (
-          <RosterHeadCell key={col.key} width={col.width} align={col.align} {...(col.headerProps || {})}>
+          <RosterHeadCell key={col.key} width={col.width} align={col.align} {...stickyProps(col, col.headerProps || {})}>
             {col.header}
           </RosterHeadCell>
         ))}
@@ -123,7 +140,7 @@ export default function RosterTable({
             {columns.map((col) => {
               const extra = typeof col.cellProps === 'function' ? col.cellProps(row, i) : col.cellProps;
               return (
-                <RosterCell key={col.key} align={col.align} {...(extra || {})}>
+                <RosterCell key={col.key} align={col.align} {...stickyProps(col, extra || {})}>
                   {col.render ? col.render(row, i) : renderCell ? renderCell(row, col, i) : row?.[col.key]}
                 </RosterCell>
               );
@@ -166,12 +183,13 @@ function RosterHead({ children }) {
  * 머리 칸. `width` 는 `fixed` 표에서 열 폭이 된다.
  * 누르면 정렬되는 머리 칸처럼 속을 부르는 쪽이 채워도 된다 — 칸 자체는 여기서 그린다.
  */
-function RosterHeadCell({ children, align, width, className, style, ...rest }) {
+function RosterHeadCell({ children, align, width, stickyLeft, className, style, ...rest }) {
+  const sized = width != null ? { width, ...style } : style;
   return (
     <th
       scope="col"
-      className={join(alignClass(align), className)}
-      style={width != null ? { width, ...style } : style}
+      className={join(alignClass(align), stickyLeft != null ? 'is-sticky' : '', className)}
+      style={stickyLeft != null ? { left: stickyLeft, ...sized } : sized}
       {...rest}
     >
       {children}
@@ -201,10 +219,17 @@ function RosterRow({ children, tone, onClick, className, ...rest }) {
   );
 }
 
-/** 칸 하나. */
-function RosterCell({ children, align, className, ...rest }) {
+/**
+ * 칸 하나. `stickyLeft`(px)를 주면 가로로 밀어도 그 자리에 붙어 있다 — 머리 칸에도 같은 값을 준다.
+ * 열 목록으로 쓰는 표는 열의 `sticky` 로 자동 계산된다.
+ */
+function RosterCell({ children, align, stickyLeft, className, style, ...rest }) {
   return (
-    <td className={join(alignClass(align), className)} {...rest}>
+    <td
+      className={join(alignClass(align), stickyLeft != null ? 'is-sticky' : '', className)}
+      style={stickyLeft != null ? { left: stickyLeft, ...style } : style}
+      {...rest}
+    >
       {children}
     </td>
   );

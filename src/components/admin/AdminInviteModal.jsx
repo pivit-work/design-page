@@ -12,9 +12,11 @@ import {
   nameHasEmail, normEmail, reconcilePrimary, fmt,
 } from './inviteRules.js';
 import {
-  INVITE_CSV_MAX_ROWS, ROLE_LABEL_KEY,
-  buildInviteTemplateCsv, csvRowIssues, inviteOptionColumns, parseInviteCsv,
+  INVITE_CSV_DEFAULT_LABELS, INVITE_CSV_MAX_ROWS,
+  buildInviteCsvContext, buildInviteTemplateCsv, inviteCsvColumns, inviteCsvIssues,
+  inviteCsvNotes, inviteCsvPayload, parseInviteCsv, resolveInviteCsvRow,
 } from './inviteCsv.js';
+import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
 
 /**
  * AdminInviteModal — 구성원 초대 발송 모달.
@@ -50,6 +52,8 @@ import {
  */
 
 const DEFAULT_LABELS = {
+  // CSV 열 이름·칸 사유 — 온보딩과 같은 한 벌(`inviteCsv.js`)을 쓴다(PW-902).
+  ...INVITE_CSV_DEFAULT_LABELS,
   title: '구성원 초대',
   close: '닫기',
   seatsUnlimited: '좌석 무제한',
@@ -130,6 +134,8 @@ const DEFAULT_LABELS = {
   failDuplicate: '이 발송에 중복된 이메일이에요',
   failSendFailed: '발송에 실패했어요',
   failInvalidJobPair: '직군에 없는 직렬입니다',
+  failInvalidField: '회사에 등록되지 않았거나 형식이 맞지 않는 값이 있어요',
+  failEmployeeCodeTaken: '이미 다른 구성원이 쓰는 사번이에요',
   failUnknown: '발송에 실패했어요',
   // 어드민 확인 모달(§6-1)
   adminConfirmTitle: '어드민 권한으로 초대합니다',
@@ -154,10 +160,12 @@ const DEFAULT_LABELS = {
   csvSummary: '총 {total}건 · 정상 {ok} · 오류 {err}',
   csvErrorsOnly: '오류 행만 보기',
   csvNoErrorRows: '오류 행이 없습니다.',
-  csvOrgUnset: '소속 미지정',
-  csvFixOrgPath: '조직 다시 고르기',
+  csvRowOk: '정상',
+  csvRowErrors: '오류 {n}',
   csvIgnoredColumns: '건너뛴 열: {columns}',
-  csvLeaderIgnored: '조직장 열은 초대에 적용되지 않습니다 — 가입 후 지정하세요',
+  // 정상 줄만 보낸다(기획서 탭 4 「부분 발송을 막지 않는다」) — 빠지는 줄이 있다는 것을 버튼 곁에 적는다.
+  csvSummarySkip: '{n}명에게 초대를 보냅니다 · 오류 {m}줄은 보내지 않습니다',
+  csvSentKeepErrors: '{n}명에게 초대를 보냈어요. 오류 {m}줄은 고쳐서 다시 보낼 수 있게 남겨 두었어요.',
   // 직종을 끈 조직의 직종 열 — 막지 않고 버린 뒤 알린다(정책 §5 V12)
   csvJobCategoryIgnored: '직종은 이 회사에서 쓰지 않는 항목이라 직종 열의 값을 무시했습니다',
   // 파일 자체를 못 읽는 경우 — 스테이징을 만들지 않는다
@@ -168,26 +176,6 @@ const DEFAULT_LABELS = {
   csvErrMissingColumns: '필수 열이 없어요: {columns}',
   // 초과분을 잘라내지 않고 업로드 자체를 거부한다(§5 V10)
   csvErrTooManyRows: '{count}행이라 올릴 수 없어요. 한 번에 최대 {max}행까지 가능합니다 — 파일을 나눠 올려주세요.',
-  csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
-  // 옛 권한 값 — 오타가 아니라 없어진 값이라는 것과, 어떻게 매니저가 되는지를 함께 알린다
-  csvErrRoleManagerRetired: "'{value}'는 이제 권한 값이 아니에요. 조직장으로 지정되면 자동으로 매니저가 됩니다 — 멤버나 어드민으로 고쳐 주세요",
-  csvErrUnknownOption: "{column} '{value}'는 직군/직렬/직무 설정에 없는 값이에요",
-  csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
-  csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
-  csvErrJobPair: '직군에 없는 직렬입니다',
-  // 템플릿 헤더 — 파일에 그대로 실린다
-  csvColEmail: '이메일',
-  csvColName: '이름',
-  csvColRole: '역할',
-  csvColJobLevel: '직급',
-  csvColJobFamily: '직군',
-  csvColJobTitle: '직렬',
-  csvColWorkLocation: '근무지',
-  csvColJobCategory: '직종',
-  csvColOrgPath: '조직경로',
-  csvColPrimaryPath: '주소속',
-  csvColLeader: '조직장',
-  csvSampleName: '홍길동',
 };
 
 /**
@@ -320,154 +308,6 @@ function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }
   );
 }
 
-/**
- * CSV 스테이징 행 — 파일을 고쳐 다시 올리지 않고 **화면에서 고친다**(§2-4).
- *
- * 500행짜리 파일에서 3행이 틀렸다고 파일을 왕복하게 만들면, 어드민은 대개 그 3명을
- * 빼고 보낸 뒤 잊어버린다. 그래서 고치는 수단을 오류가 난 그 자리에 둔다:
- *  · 이메일·이름 — 입력 칸 (형식·길이 오류)
- *  · 역할 — select (파일의 값을 해석하지 못했으면 비어 있다)
- *  · 직급·직군·직무·근무지 — **옵션에 없는 값일 때만** select 로 바뀐다.
- *    멀쩡한 값까지 select 로 그리면 한 행이 8칸이 돼 500행을 훑을 수 없다.
- *  · 조직경로 — 못 찾은 경로마다 조직 select
- */
-function CsvStagingRow({
-  row, errors, tree, fieldOptions, laddersByFamily, jobCategoryEnabled, labels, sending, onPatch,
-  onResolvePath,
-}) {
-  const pathLabelOf = (id) => tree.find((e) => e.id === id)?.pathLabel ?? id;
-  /* 쌍이 어긋난 행은 **직군·직렬 두 칸 모두** 고칠 수 있어야 한다 — 값 자체는 옵션
-     목록에 있으니 아래 «옵션에 없는 값» 검사에는 걸리지 않는다(PW-412 E18·V7). */
-  const pairIssue = jobPairIssue(laddersByFamily, row.jobFamily, row.jobTitle);
-  const optionCols = inviteOptionColumns({ jobCategoryEnabled }).filter((c) => {
-    if (pairIssue && (c.key === 'jobFamily' || c.key === 'jobTitle')) return true;
-    const list = fieldOptions[c.option];
-    const v = String(row[c.key] || '').trim();
-    if (!v) return false;
-    return !(Array.isArray(list) && list.some(
-      (o) => String(o).trim().toLowerCase() === v.toLowerCase(),
-    ));
-  });
-  /** 직렬 선택지는 그 행의 직군 하위로 좁힌다 — 고른 값이 곧 저장되는 값이어야 한다. */
-  const optionsFor = (c) =>
-    (c.key === 'jobTitle'
-      ? laddersForFamily(laddersByFamily, row.jobFamily, fieldOptions.jobTitle)
-      : fieldOptions[c.option]) || [];
-
-  return (
-    <div className={`admin-inv-csv-row${errors.length > 0 ? ' is-error' : ''}`}>
-      <div className="admin-inv-csv-cells">
-        <input
-          type="text"
-          className="admin-inv-input admin-inv-csv-email"
-          value={row.email}
-          aria-label={labels.email}
-          disabled={sending}
-          onChange={(e) => onPatch(row.key, { email: e.target.value })}
-        />
-        <input
-          type="text"
-          className="admin-inv-input admin-inv-csv-name"
-          value={row.name}
-          aria-label={labels.name}
-          disabled={sending}
-          onChange={(e) => onPatch(row.key, { name: e.target.value })}
-        />
-        <select
-          className="admin-inv-select admin-inv-csv-role"
-          value={row.role}
-          aria-label={labels.role}
-          disabled={sending}
-          onChange={(e) => onPatch(row.key, { role: e.target.value })}
-        >
-          {/* 해석하지 못한 역할은 빈 값으로 남아 있다 — 임의로 '멤버' 를 채우면
-              잘못된 권한이 조용히 나간다. 고르기 전까지 이 행은 오류다. */}
-          {!row.role && <option value="">{labels.unset}</option>}
-          {ROLE_IDS.map((id) => (
-            <option key={id} value={id}>{labels[ROLE_LABEL_KEY[id]]}</option>
-          ))}
-        </select>
-        <span className="admin-inv-csv-org">
-          {row.teamIds.length === 0 && (row.unresolvedPaths || []).length === 0
-            ? <span className="admin-inv-hint">{labels.csvOrgUnset}</span>
-            : row.teamIds.map((id) => (
-              <StatusBadge key={id} className="admin-inv-csv-chip">
-                {pathLabelOf(id)}
-                {row.teamIds.length >= 2 && row.primaryTeamId === id && (
-                  <StatusBadge as="em" className="admin-inv-primary-badge">{labels.primaryBadge}</StatusBadge>
-                )}
-              </StatusBadge>
-            ))}
-        </span>
-      </div>
-
-      {errors.length > 0 && (
-        <p className="admin-inv-row-error">{errors.join(' · ')}</p>
-      )}
-      {row.failReason && <p className="admin-inv-row-error">{row.failReason}</p>}
-
-      {/* 고치기 컨트롤 — 오류가 있는 셀에만 나타난다 */}
-      {(optionCols.length > 0 || (row.unresolvedPaths || []).length > 0
-        || (row.teamIds.length >= 2 && !row.primaryTeamId)) && (
-        <div className="admin-inv-csv-fix">
-          {optionCols.map((c) => (
-            <label key={c.key} className="admin-inv-field">
-              <span className="admin-inv-label">{labels[c.labelKey]}</span>
-              <select
-                className="admin-inv-select"
-                value=""
-                aria-label={labels[c.labelKey]}
-                disabled={sending}
-                onChange={(e) => onPatch(row.key, { [c.key]: e.target.value })}
-              >
-                {/* 파일에 있던 값을 그대로 보여준다 — 무엇을 고치는 중인지 잃지 않는다 */}
-                <option value="">{row[c.key]}</option>
-                {optionsFor(c).map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </label>
-          ))}
-          {(row.unresolvedPaths || []).map((p, i) => (
-            <label key={`${p}-${i}`} className="admin-inv-field">
-              <span className="admin-inv-label">{labels.csvFixOrgPath}</span>
-              <select
-                className="admin-inv-select"
-                value=""
-                aria-label={fmt(labels.csvErrOrgPathNotFound, { path: p })}
-                disabled={sending}
-                onChange={(e) => onResolvePath(row.key, p, e.target.value)}
-              >
-                <option value="">{p}</option>
-                {tree.map((e) => (
-                  <option key={e.id} value={e.id}>{e.pathLabel}</option>
-                ))}
-              </select>
-            </label>
-          ))}
-          {row.teamIds.length >= 2 && !row.primaryTeamId && (
-            <label className="admin-inv-field">
-              <span className="admin-inv-label">{labels.primaryTeamRequired}</span>
-              <select
-                className="admin-inv-select"
-                value={row.primaryTeamId}
-                aria-label={labels.primaryTeamRequired}
-                disabled={sending}
-                onChange={(e) => onPatch(row.key, { primaryTeamId: e.target.value })}
-              >
-                <option value="">{labels.unset}</option>
-                {row.teamIds.map((id) => (
-                  <option key={id} value={id}>{pathLabelOf(id)}</option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function AdminInviteModal({
   open = false,
   onClose,
@@ -489,6 +329,12 @@ export default function AdminInviteModal({
    * 화면은 그 이유를 말해주지 못한다. 그 경우 서버(422 INVALID_JOB_PAIR)가 판정한다.
    */
   laddersByFamily = {},
+  /** 직렬 값 → 그 직렬의 직무 값 목록 (INV-8). CSV 의 `(직렬, 직무)` 짝을 본다(PW-902). */
+  dutiesByLadder = {},
+  /** 이 회사 스쿼드 이름 — CSV 스쿼드 칸 확인. 못 받았으면 `null`(서버가 판정한다). */
+  squadNames = null,
+  /** 조직장이 있는 조직 id — CSV 상급자 칸이 쓰이지 않는 줄을 안내한다(PW-902). */
+  headTeamIds = [],
   /**
    * 이 조직이 직종을 쓰는가 (PW-644 · 선택 적용). `true` 일 때만 직종 칸·CSV 열이 생긴다.
    * 켰는지 못 읽었으면 호출부가 `false` 를 넘긴다 — 칸이 없을 뿐 초대는 그대로 된다
@@ -514,7 +360,6 @@ export default function AdminInviteModal({
   const [csvRows, setCsvRows] = useState([]);
   const [csvError, setCsvError] = useState('');
   const [csvNotices, setCsvNotices] = useState([]);
-  const [csvErrorsOnly, setCsvErrorsOnly] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [confirmAdmin, setConfirmAdmin] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -540,7 +385,6 @@ export default function AdminInviteModal({
       setCsvRows([]);
       setCsvError('');
       setCsvNotices([]);
-      setCsvErrorsOnly(false);
       setBanner('');
       setConfirmAdmin(false);
       setConfirmDiscard(false);
@@ -579,22 +423,6 @@ export default function AdminInviteModal({
       return next;
     }));
 
-  /** 해석하지 못한 조직경로 하나를 고른 조직으로 바꾼다(§2-4 화면 내 수정). */
-  const resolveCsvPath = (key, rawPath, teamId) => {
-    if (!teamId) return;
-    setCsvRows((rs) => rs.map((r) => {
-      if (r.key !== key) return r;
-      const teamIds = r.teamIds.includes(teamId) ? r.teamIds : [...r.teamIds, teamId];
-      return {
-        ...r,
-        teamIds,
-        primaryTeamId: reconcilePrimary(teamIds, r.primaryTeamId),
-        unresolvedPaths: (r.unresolvedPaths || []).filter((p) => p !== rawPath),
-        failReason: null,
-      };
-    }));
-  };
-
   /** 소속 토글 — 주 소속 자동 처리(§4-3). */
   const toggleTeam = (row, teamId) => {
     const has = row.teamIds.includes(teamId);
@@ -609,43 +437,59 @@ export default function AdminInviteModal({
      행이 50개뿐이라 memo 없이 매 렌더 계산한다 — 의존성을 손으로 나열하는 쪽이
      빠뜨리기 쉽고(검증이 옛 값으로 굳는다) 이득도 없다. */
   const errorsByKey = {};
-  for (const r of activeRows) {
+  for (const r of rows) {
     const e = [];
     const key = normEmail(r.email);
     if (!emailOk(r.email)) e.push(labels.errInvalidEmail);
     else if (existing.has(key)) e.push(labels.errAlreadyMember);
     else if (pending.has(key)) e.push(labels.errPendingInvite);
-    else if (activeRows.filter((x) => normEmail(x.email) === key).length > 1) {
+    else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
     // V7 은 길이 검사와 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
     if (String(r.name || '').trim().length < 2) e.push(labels.errName);
     else if (nameHasEmail(r.name)) e.push(labels.errNameEmail);
     if (r.teamIds.length >= 2 && !r.primaryTeamId) e.push(labels.errPrimaryTeam);
-    // CSV 에만 있는 사유(역할·옵션·조직경로 해석 실패)는 매 렌더 다시 만든다 —
-    // 파싱 때 굳혀 두면 셀에서 고친 뒤에도 옛 사유가 남는다.
-    // (직군, 직렬) 쌍(V7)도 두 탭 모두 본다 — CSV 는 csvRowIssues 가 함께 본다.
-    if (isCsv) {
-      e.push(...csvRowIssues(r, { fieldOptions, labels, laddersByFamily, jobCategoryEnabled }));
-    }
-    else {
-      const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
-      if (pair === 'family') e.push(labels.errLadderNeedsFamily);
-      else if (pair === 'pair') e.push(labels.errJobPair);
-    }
+    const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
+    if (pair === 'family') e.push(labels.errLadderNeedsFamily);
+    else if (pair === 'pair') e.push(labels.errJobPair);
     errorsByKey[r.key] = e;
   }
 
-  const validRows = activeRows.filter((r) => errorsByKey[r.key].length === 0);
+  /* CSV 탭 — 칸마다 사유를 만든다. 두 초대 화면이 같은 판정(`inviteCsvIssues`)을 쓴다(PW-902).
+     파싱 때 굳혀 두지 않고 매 렌더 다시 만든다 — 표에서 고친 칸의 사유가 바로 사라져야 한다. */
+  const csvColumns = inviteCsvColumns({ jobCategoryEnabled });
+  const csvCtx = buildInviteCsvContext(csvRows, {
+    orgTree: tree, fieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
+    squadNames, memberEmails: existingEmails, pendingEmails, headTeamIds, labels,
+  });
+  const csvIssuesByKey = {};
+  const csvNotesByKey = {};
+  for (const r of csvRows) {
+    csvIssuesByKey[r.key] = inviteCsvIssues(r, csvCtx);
+    csvNotesByKey[r.key] = inviteCsvNotes(r, csvCtx);
+  }
+  const csvValidRows = csvRows.filter((r) => csvIssuesByKey[r.key].length === 0 && !r.failReason);
+  const csvErrorCount = csvRows.length - csvValidRows.length;
+
+  const validRows = isCsv ? csvValidRows : rows.filter((r) => errorsByKey[r.key].length === 0);
   const validCount = validRows.length;
   const seatsLeft = seats && seats.limit !== null ? seats.remaining : null;
   const seatShort = seatsLeft !== null && validCount > seatsLeft;
-  const adminRows = validRows.filter((r) => r.role === 'admin');
+  const adminRows = isCsv
+    ? csvValidRows
+      .filter((r) => resolveInviteCsvRow(r, csvCtx).role === 'admin')
+      .map((r) => ({ name: r.values.name, email: r.values.email }))
+    : validRows.filter((r) => r.role === 'admin');
 
-  /* 발송 버튼 활성 조건 E1~E7 — 유효 행이 있고, 오류 행이 없고, 좌석이 남아야 한다.
-     오류 행을 조용히 빼고 보내지 않는다 — 어드민은 그 사람들도 초대된 줄 안다. */
-  const canSend =
-    !sending && activeRows.length > 0 && validCount === activeRows.length && !seatShort;
+  /* 발송 버튼 활성 조건 E1~E7.
+     · 직접 입력 — 오류 행이 하나라도 있으면 막는다. 오류 행을 조용히 빼고 보내면 어드민은 그
+       사람들도 초대된 줄 안다.
+     · CSV — **정상 줄만 보낸다**(기획서 탭 4 「부분 발송을 막지 않는다」 · PW-902). 빠지는 줄이
+       있다는 것은 버튼 곁 요약(`csvSummarySkip`)이 적고, 보낸 뒤 오류 줄은 표에 남는다. */
+  const canSend = !sending && !seatShort && (isCsv
+    ? validCount > 0
+    : activeRows.length > 0 && validCount === activeRows.length);
 
   /** 입력이 있는지 — 빈 행 1개뿐이면 확인 없이 닫는다(§6-2). */
   const isDirty =
@@ -724,7 +568,7 @@ export default function AdminInviteModal({
       setCsvError(labels.csvErrRead);
       return;
     }
-    const res = parseInviteCsv(text, { orgTree: tree, labels, jobCategoryEnabled });
+    const res = parseInviteCsv(text, { labels, jobCategoryEnabled, maxRows: INVITE_CSV_MAX_ROWS });
     if (!res.ok) {
       // 상한 초과·필수 열 누락은 **스테이징을 만들지 않는다.** 앞 500행만 남기는
       // 조용한 절단은 정책 §5 V10 이 금지한다.
@@ -733,26 +577,77 @@ export default function AdminInviteModal({
       return;
     }
     const notices = [];
-    if (res.leaderColumnIgnored) notices.push(labels.csvLeaderIgnored);
     if (res.jobCategoryIgnored) notices.push(labels.csvJobCategoryIgnored);
     if (res.ignoredColumns.length > 0) {
       notices.push(fmt(labels.csvIgnoredColumns, { columns: res.ignoredColumns.join(', ') }));
     }
     setCsvNotices(notices);
     setCsvRows(res.rows);
-    setCsvErrorsOnly(false);
     setBanner('');
   };
+
+  /** 표의 칸 하나를 고친다 — 그 줄만 새 객체가 되어 그 줄만 다시 그린다. */
+  const patchCsvCell = (rowKey, colKey, value) =>
+    setCsvRows((rs) => rs.map((r) => (r.key === rowKey
+      ? { ...r, values: { ...r.values, [colKey]: value }, failReason: null, failField: null }
+      : r)));
 
   const resetCsv = () => {
     setCsvRows([]);
     setCsvError('');
     setCsvNotices([]);
-    setCsvErrorsOnly(false);
     setBanner('');
   };
 
+  /** 서버 실패 사유의 칸(요청 키) → 표의 칸. */
+  const CSV_FAIL_FIELD = { squadNames: 'squad', leaderTeamIds: 'leader', teamId: 'primaryPath', teamIds: 'orgPath' };
+
+  const doSendCsv = async () => {
+    setSending(true);
+    setBanner('');
+    const sendRows = csvValidRows;
+    try {
+      const res = await onSend?.(sendRows.map((r) => inviteCsvPayload(r, csvCtx)));
+      const failed = res?.failed ?? [];
+      const failedByKey = new Map();
+      for (const f of failed) {
+        const row = sendRows[f.index] ?? sendRows.find((r) => normEmail(r.values.email) === normEmail(f.email));
+        if (row) failedByKey.set(row.key, f);
+      }
+      const sentKeys = new Set(sendRows.filter((r) => !failedByKey.has(r.key)).map((r) => r.key));
+      const remaining = csvRows
+        .filter((r) => !sentKeys.has(r.key))
+        .map((r) => {
+          const f = failedByKey.get(r.key);
+          if (!f) return r;
+          const key = FAIL_LABEL_KEY[f.reason];
+          return {
+            ...r,
+            failReason: (key && labels[key]) || labels.failUnknown,
+            failField: CSV_FAIL_FIELD[f.detail] ?? f.detail ?? null,
+          };
+        });
+      if (remaining.length === 0) {
+        onClose?.();
+        return;
+      }
+      setCsvRows(remaining);
+      setBanner(failed.length > 0
+        ? fmt(labels.partialFail, { n: failed.length })
+        : fmt(labels.csvSentKeepErrors, { n: sentKeys.size, m: remaining.length }));
+    } catch {
+      // 전건 실패 — 표를 그대로 두고 창 안에 사유를 남긴다(§3).
+      setBanner(labels.sendError);
+    } finally {
+      setSending(false);
+    }
+  };
+
   const doSend = async () => {
+    if (isCsv) {
+      await doSendCsv();
+      return;
+    }
     setSending(true);
     setBanner('');
     try {
@@ -879,7 +774,11 @@ export default function AdminInviteModal({
   const footer = (
     <div className="adm-shell-foot">
       <span className="admin-inv-summary">
-        {validCount > 0 ? fmt(labels.summary, { n: validCount }) : ''}
+        {validCount > 0
+          ? (isCsv && csvErrorCount > 0
+            ? fmt(labels.csvSummarySkip, { n: validCount, m: csvErrorCount })
+            : fmt(labels.summary, { n: validCount }))
+          : ''}
       </span>
       <div className="adm-shell-foot-actions">
         <button
@@ -917,7 +816,7 @@ export default function AdminInviteModal({
       onClose={requestClose}
       busy={sending}
       zIndex={1000}
-      className="adm-shell has-own-footer admin-inv-modal"
+      className={`adm-shell has-own-footer admin-inv-modal${isCsv && csvRows.length > 0 ? ' is-csv-wide' : ''}`}
       contentClassName="admin-inv-content"
       testId="admin-invite-modal"
       footer={footer}
@@ -1032,24 +931,7 @@ export default function AdminInviteModal({
                 </>
               ) : (
                 <>
-                  <div className="admin-inv-csv-summary">
-                    <span className="admin-inv-csv-counts">
-                      {fmt(labels.csvSummary, {
-                        total: csvRows.length,
-                        ok: validCount,
-                        err: csvRows.length - validCount,
-                      })}
-                    </span>
-                    {csvRows.length - validCount > 0 && (
-                      <label className="admin-inv-csv-toggle">
-                        <input
-                          type="checkbox"
-                          checked={csvErrorsOnly}
-                          onChange={(e) => setCsvErrorsOnly(e.target.checked)}
-                        />
-                        {labels.csvErrorsOnly}
-                      </label>
-                    )}
+                  <div className="admin-inv-csv-head">
                     <button
                       type="button"
                       className="admin-emp-btn is-ghost is-sm"
@@ -1069,28 +951,17 @@ export default function AdminInviteModal({
                     </div>
                   ))}
 
-                  <div className="admin-inv-csv-list">
-                    {csvRows
-                      .filter((r) => !csvErrorsOnly || errorsByKey[r.key].length > 0)
-                      .map((r) => (
-                        <CsvStagingRow
-                          key={r.key}
-                          row={r}
-                          errors={errorsByKey[r.key]}
-                          tree={tree}
-                          fieldOptions={fieldOptions}
-                          laddersByFamily={laddersByFamily}
-                          jobCategoryEnabled={jobCategoryEnabled}
-                          labels={labels}
-                          sending={sending}
-                          onPatch={patch}
-                          onResolvePath={resolveCsvPath}
-                        />
-                      ))}
-                    {csvErrorsOnly && csvRows.length === validCount && (
-                      <p className="admin-inv-hint">{labels.csvNoErrorRows}</p>
-                    )}
-                  </div>
+                  {/* 미리보기 표 — 온보딩과 같은 부품이다(PW-902). 모든 칸을 그 자리에서 고친다. */}
+                  <InviteCsvStagingTable
+                    rows={csvRows}
+                    columns={csvColumns}
+                    issuesByKey={csvIssuesByKey}
+                    notesByKey={csvNotesByKey}
+                    fieldOptions={fieldOptions}
+                    labels={labels}
+                    disabled={sending}
+                    onChangeCell={patchCsvCell}
+                  />
                 </>
               )}
             </div>
@@ -1283,12 +1154,14 @@ export default function AdminInviteModal({
             </div>
           )}
 
-          {/* 조직장·스쿼드는 초대 단계에서 지정하지 않는다(§2-3) */}
+          {/* 조직장·스쿼드는 직접 입력 탭에서 지정하지 않는다(§2-3). CSV 는 두 칸을 받는다(PW-902). */}
+          {!isCsv && (
           <p className="admin-inv-note">
             {labels.leaderNote}
             <br />
             {labels.squadNote}
           </p>
+          )}
         </div>
 
     </ModalShell>

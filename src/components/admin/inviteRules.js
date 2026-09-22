@@ -26,6 +26,9 @@ export const FAIL_LABEL_KEY = {
   DUPLICATE_IN_REQUEST: 'failDuplicate',
   SEND_FAILED: 'failSendFailed',
   INVALID_JOB_PAIR: 'failInvalidJobPair',
+  // 초대 CSV 인사 정보(PW-902) — 등록되지 않은 값·날짜 표기 등. 어느 칸인지는 `detail` 이 싣는다.
+  INVALID_FIELD_VALUE: 'failInvalidField',
+  EMPLOYEE_CODE_TAKEN: 'failEmployeeCodeTaken',
 };
 
 /** V1 이메일 형식. 서버(IsCleanEmail)가 최종 판정이라 여기서는 모양만 본다. */

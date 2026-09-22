@@ -1,5 +1,6 @@
 @import './status-badge.css';
 @import './roster-table.css';
+@import './invite-csv.css';
 /*
  * admin.css — 어드민 개요 대시보드(AdminDashboardCanvas) 정본 스타일.
  * design-page Canvas 컨벤션(manager.css 패턴)에 맞춘 BEM-ish 클래스.
@@ -3210,6 +3211,9 @@
    폭(720px)과 초대 행·일괄 지정 바만 얹는다. 탭은 공용 Tabs, 확인 창 둘은 공용 ConfirmModal.
    ──────────────────────────────────────────────────────────── */
 .tl-group-modal.adm-shell.admin-inv-modal { width: 720px; }
+/* CSV 미리보기 표가 뜨면 넓힌다(PW-902) — 칸이 서른 개 넘어 720px 로는 네 칸만 보인다.
+   가로 스크롤은 그대로 두고, 한 번에 보이는 칸을 늘린다. 화면보다 넓어지지는 않는다. */
+.tl-group-modal.adm-shell.admin-inv-modal.is-csv-wide { width: min(1200px, calc(100vw - 48px)); }
 /* 머리·버튼 줄은 두고 가운데만 스크롤한다(틀의 본문 스크롤) — 50행을 넣어도 발송 버튼이 늘 보인다. */
 .admin-inv-body { display: flex; flex-direction: column; gap: var(--spacing-lg); padding-top: 16px; }
 
@@ -3403,26 +3407,7 @@
   pointer-events: none;
 }
 
-.admin-inv-csv-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.admin-inv-csv-counts {
-  font-size: var(--font-size-text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.admin-inv-csv-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-.admin-inv-csv-toggle input { accent-color: var(--bg-brand-solid); cursor: pointer; }
+/* 요약 줄·오류 줄만 보기 — 온보딩도 같은 미리보기 표를 써서 `invite-csv.css` 로 옮겼다(PW-902). */
 
 .admin-inv-csv-list { display: flex; flex-direction: column; gap: 6px; }
 .admin-inv-csv-row {
