@@ -1,10 +1,15 @@
+import { clickableProps } from './kpiClickable.js';
+
 /**
  * 매니저 페이지의 Summary KPI 카드 (col-span 3).
  * 보라 배경 + AI sparkle 아이콘 + 그라데이션 'Summary' 라벨 + 본문.
  *
  * sparkle 아이콘은 그라데이션 표현이 필요해 inline SVG 로 작성한다
  * (외부 fetch 의존 + currentColor 단일 색상 한계 회피).
+ *
+ * onClick 이 있으면 누를 수 있는 필터 카드가 된다 — `StatTile` 과 같은 규칙(PW-912).
  */
+
 function SparkleIcon({ size = 12 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -23,9 +28,13 @@ function SparkleIcon({ size = 12 }) {
   );
 }
 
-export default function SummaryCard({ text }) {
+export default function SummaryCard({ text, onClick, active = false }) {
+  const clickable = typeof onClick === 'function';
   return (
-    <div className="manager-kpi-card manager-summary-card">
+    <div
+      className={`manager-kpi-card manager-summary-card${clickable ? ' is-clickable' : ''}${active ? ' is-active' : ''}`}
+      {...clickableProps(clickable, onClick, active)}
+    >
       <div className="manager-summary-label-row">
         <SparkleIcon size={12} />
         <span className="manager-summary-label">Summary</span>
