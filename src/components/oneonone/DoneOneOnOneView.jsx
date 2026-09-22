@@ -917,6 +917,18 @@ export default function DoneOneOnOneView({
    * 저장 결과에 따라 화면이 달라지는데 그 판정은 캔버스가 할 수 있는 것이 아니다.
    */
   manualEntry,
+  /**
+   * 회차가 **왜** 끝났는지를 말하는 한 줄 (PW-628). 문구는 소비처가 준다.
+   *
+   * 녹음 시간 상한(4시간)에 닿아 스스로 끝난 회차는 그 순간 매니저가 자리에 없어서,
+   * 끝날 때 뜬 안내를 아무도 못 본다. 나중에 이 화면을 열었을 때 「자동으로
+   * 끝났습니다」를 말할 자리가 이것이다.
+   *
+   * 모양은 새로 그리지 않고 **회색 안내 배너**(`ono-done-banner` 기본형 — 「대화 내용이
+   * 확인되지 않았습니다」와 같은 모양)를 그대로 쓴다. 실패도 진행도 아닌 사실 통지라서다.
+   * **안 넘기면 자리가 생기지 않는다** — 사람이 누른 종료에는 말할 것이 없다.
+   */
+  endNotice,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -963,6 +975,13 @@ export default function DoneOneOnOneView({
           </button>
         )}
       </SessionHeader>
+
+      {endNotice && (
+        <div className="ono-done-banner" data-testid="ono-done-end-notice">
+          <Icon src={I.info} size={16} color="currentColor" baseUrl={baseUrl} />
+          <span>{endNotice}</span>
+        </div>
+      )}
 
       <AnalysisBanner
         state={bannerState}
