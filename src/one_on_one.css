@@ -994,6 +994,22 @@
   padding-bottom: 48px;
 }
 
+/* 푸터 왼쪽의 «이 1on1 없애기» (PW-825). 푸터 버튼 둘은 `flex: 1` 로 반씩 나눠 가지므로
+   여기에 셋째를 그대로 두면 셋이 1:1:1 로 서서 «없애기»가 «변경 저장»과 같은 무게가 된다.
+   글자만큼만 차지하고 왼쪽 끝에 붙인다. 색은 위험 토큰을 쓰되 채우지 않는다 — 채우면
+   창에서 가장 눈에 띄는 것이 «없애기»가 된다. */
+.ono-add-modal-btn-delete {
+  flex: 0 0 auto;
+  margin-right: auto;
+  background: transparent;
+  border: 1px solid var(--colors-border-borderTertiary);
+  color: var(--text-error-primary);
+}
+.ono-add-modal-btn-delete:hover:not(:disabled) {
+  background: var(--utility-error-50);
+  border-color: var(--colors-error-200);
+}
+
 .ono-add-modal-form {
   display: flex;
   flex-direction: column;

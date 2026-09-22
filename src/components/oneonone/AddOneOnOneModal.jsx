@@ -27,6 +27,11 @@ import Icon from '../shared/Icon.jsx';
  *   생략하면 브라우저 로컬 기준 내일로 폴백한다 — 어느 쪽이든 «지나간 날짜» 가
  *   기본값으로 남지 않는다.
  *
+ * onDelete: 주면 푸터 왼쪽에 «없애기» 버튼이 생긴다 — 이미 잡아 둔 1on1 을 여는
+ *   「일정변경」 자리에서 그 1on1 을 아예 없애기 위한 것이다 (PW-825). 안 주면 버튼이
+ *   없고 종전 화면 그대로다. 되돌릴 수 없는 조작이라 **확인은 호스트가 받는다** —
+ *   이 부품은 누르면 부르기만 한다.
+ *
  * locale / labels: 모달 안 글자를 호스트가 번역할 자리 (PW-469).
  *   - labels: 고정 문구를 키별로 덮어쓴다. 안 넘긴 키는 한국어 기본값 그대로다.
  *   - locale: 날짜·요일·시간처럼 «글자» 가 아니라 «형식» 인 것을 정한다(Intl).
@@ -61,6 +66,8 @@ export const DEFAULT_LABELS = {
   memoPlaceholder: '사전 아젠다 또는 주요 논의 포인트를 메모하세요.',
   cancel: '취소',
   submit: '예약완료',
+  /* 푸터 왼쪽 «없애기». `onDelete` 를 준 호출부에서만 보인다 (PW-825). */
+  delete: '이 1on1 없애기',
   prevMonth: '이전 달',
   nextMonth: '다음 달',
 };
@@ -139,7 +146,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = Array.isArray(members) ? members : DEMO_MEMBERS;
   const [search, setSearch] = useState('');
@@ -187,6 +194,18 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, member, icon
       overlayTestId="ono-add-modal-overlay"
       footer={
         <>
+          {/* 없애기는 «이 미팅을 할 것인가» 를 되돌리는 조작이라 저장 버튼들과 같은 무게로
+              놓지 않는다 — 왼쪽 끝에 두고 넓이를 차지하지 않게 한다 (PW-825). */}
+          {onDelete && (
+            <button
+              type="button"
+              className="tl-group-modal-btn ono-add-modal-btn-delete"
+              data-testid="ono-add-modal-delete"
+              onClick={() => onDelete()}
+            >
+              {L.delete}
+            </button>
+          )}
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}>
             {L.cancel}
           </button>
