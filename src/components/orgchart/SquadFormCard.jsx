@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, CloseIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
@@ -98,7 +99,7 @@ export default function SquadFormCard({
             {L('squad.form.leadLabel')}
           </div>
           {leadPerson ? (
-            <div className="sq-lead-chip">
+            <StatusBadge as="div" className="sq-lead-chip">
               <span className="sq-lead-mark"><LeadStarIcon size={12} /></span>
               <span className="sq-lead-chip-name">{leadPerson.name}</span>
               <span
@@ -108,7 +109,7 @@ export default function SquadFormCard({
               >
                 <CloseIcon size={12} />
               </span>
-            </div>
+            </StatusBadge>
           ) : leadOpen ? (
             <div className="sq-lead-search">
               <input

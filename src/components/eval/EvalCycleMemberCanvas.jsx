@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
@@ -540,7 +541,7 @@ export default function EvalCycleMemberCanvas({
                 data-testid={`evm-history-${h.cycleId}`}
               >
                 <span className="evm-history-cycle">{h.cycleName}</span>
-                <span className="evm-history-grade">{h.gradeLabel}</span>
+                <StatusBadge className="evm-history-grade">{h.gradeLabel}</StatusBadge>
                 {h.endDate && (
                   <span className="evm-history-date">
                     {String(h.endDate).slice(0, 7).replace('-', '.')}

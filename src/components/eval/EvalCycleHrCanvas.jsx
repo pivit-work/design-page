@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import DpStatusBadge from '../shared/StatusBadge.jsx';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
 // 앱 공용 확인 창·공용 창 틀. 평가 화면은 창을 따로 그리지 않는다(PW-832).
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
@@ -655,12 +656,11 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                   </span>
                   {/* [PW-614] 마법사 3단계와 같은 배지. 알리기만 하고 저장은 막지 않는다. */}
                   {past && (
-                    <span
+                    <DpStatusBadge
                       className="evc-mode-badge is-warn"
-                      data-testid={`evc-sched-modal-past-${id}`}
-                    >
+                      data-testid={`evc-sched-modal-past-${id}`}>
                       {L.schedulePastBadge}
-                    </span>
+                    </DpStatusBadge>
                   )}
                 </div>
                 <div className="evc-sched-modal-fields">
@@ -787,7 +787,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
 
 function StatusBadge({ status, label }) {
   const meta = STATUS_META[status] ?? STATUS_META.draft;
-  return <span className={`evc-status-badge tone-${meta.tone}`}>{label}</span>;
+  return <DpStatusBadge className={`evc-status-badge tone-${meta.tone}`}>{label}</DpStatusBadge>;
 }
 
 /**
@@ -875,7 +875,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
         {Array.isArray(cycle.reviewTypes) && cycle.reviewTypes.length > 0 && (
           <div className="evc-type-badges">
             {cycle.reviewTypes.map((t) => (
-              <span key={t} className="evc-type-badge">{L[REVIEW_TYPE_KEYS[t]] ?? t}</span>
+              <DpStatusBadge key={t} className="evc-type-badge">{L[REVIEW_TYPE_KEYS[t]] ?? t}</DpStatusBadge>
             ))}
           </div>
         )}

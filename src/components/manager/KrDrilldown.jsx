@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import KrMemberCard from './KrMemberCard.jsx';
 import KrContributionDetail from './KrContributionDetail.jsx';
 
@@ -130,7 +131,7 @@ export default function KrDrilldown({
                   <span className="mgr-kr-obj-title-row">
                     <span className="mgr-kr-obj-title">{o.title}</span>
                     {/* 「분류」를 드러내는 장치 — 빼면 KR 이 어디에 몇 개 있는지 안 보인다 */}
-                    <span className="mgr-kr-obj-badge">{l.krCountBadge(o.krCount ?? 0)}</span>
+                    <StatusBadge className="mgr-kr-obj-badge">{l.krCountBadge(o.krCount ?? 0)}</StatusBadge>
                   </span>
                 </button>
               ))}

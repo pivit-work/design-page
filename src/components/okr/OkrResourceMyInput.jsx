@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
@@ -119,7 +120,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
             <div className="rsx-entry-head">
               <div className="rsx-entry-title">
                 <span className="rsx-entry-name">{entry.name}</span>
-                {entry.tag && <span className="rsx-tag">{entry.tag}</span>}
+                {entry.tag && <StatusBadge className="rsx-tag">{entry.tag}</StatusBadge>}
               </div>
               <span className="rsx-entry-pct">{entry.value}%</span>
             </div>
@@ -180,7 +181,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
       <div className="rsx-add">
         <div className="rsx-add-head">
           <span className="rsx-add-title">투입 항목 추가</span>
-          <span className="rsx-badge is-brand">확정</span>
+          <StatusBadge className="rsx-badge is-brand">확정</StatusBadge>
         </div>
         <div className="rsx-add-suggest">
           <RsAiLabel>스니핏에 기록됐지만 목록에 없는 프로젝트</RsAiLabel>

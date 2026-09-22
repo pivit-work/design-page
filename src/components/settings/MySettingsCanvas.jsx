@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
@@ -409,7 +410,7 @@ function fitGradeFontSize(label, size) {
 function GradeBadge({ grade, size = 44 }) {
   const c = GRADE_COLOR[grade] || GRADE_COLOR.B;
   return (
-    <span
+    <StatusBadge
       className="msc-grade-badge"
       style={{
         width: size,
@@ -418,10 +419,9 @@ function GradeBadge({ grade, size = 44 }) {
         border: `1px solid ${c.bd}`,
         color: c.tx,
         fontSize: fitGradeFontSize(grade, size),
-      }}
-    >
+      }}>
       {grade}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -436,9 +436,9 @@ function ReadonlyPairs({ pairs }) {
           <div className="msc-pair-value">
             {p.value || '-'}
             {p.badge && (
-              <span className={`msc-pair-badge is-${p.badgeTone || 'muted'}`} data-testid={p.badgeTestId}>
+              <StatusBadge className={`msc-pair-badge is-${p.badgeTone || 'muted'}`} data-testid={p.badgeTestId}>
                 {p.badge}
-              </span>
+              </StatusBadge>
             )}
           </div>
         </div>
@@ -625,9 +625,9 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
                   </div>
                   <div className="msc-notif-sub">{d.dateOfBirth || L.dobEmpty}</div>
                 </div>
-                <span className={`msc-vis-badge is-${d.isDependent ? 'green' : 'muted'}`}>
+                <StatusBadge className={`msc-vis-badge is-${d.isDependent ? 'green' : 'muted'}`}>
                   {d.isDependent ? L.isDependent : L.notDependent}
-                </span>
+                </StatusBadge>
                 {onDeleteDependent && (
                   <button type="button" className="msc-list-del" aria-label={L.delete}
                     data-testid={`dependent-del-${d.id}`} onClick={() => onDeleteDependent(d.id)}>×</button>
@@ -715,7 +715,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
                   <div className="msc-notif-label">{cur.manager.name}</div>
                   <div className="msc-notif-sub">{cur.manager.title} · {cur.manager.since || ''}~{L.now}</div>
                 </div>
-                <span className="msc-vis-badge is-brand">{L.now}</span>
+                <StatusBadge className="msc-vis-badge is-brand">{L.now}</StatusBadge>
               </div>
             )}
             {(o.managerHistory || []).map((m, i) => (
@@ -761,7 +761,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
                 <div style={{ flex: 1 }}>
                   <div className="msc-notif-label">
                     {e.school}
-                    {e.isFinal && <span className="msc-vis-badge is-brand" style={{ marginLeft: 6 }}>{L.isFinal}</span>}
+                    {e.isFinal && <StatusBadge className="msc-vis-badge is-brand" style={{ marginLeft: 6 }}>{L.isFinal}</StatusBadge>}
                   </div>
                   <div className="msc-notif-sub">
                     {[e.major, L.degreeOptions[e.degree] || e.degree, `${e.from || ''}~${e.to || ''}`, L.eduStatusOptions[e.status] || e.status].filter(Boolean).join(' · ')}
@@ -1001,7 +1001,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
                   <div key={i} className="msc-list-row" data-testid={`comp-history-${i}`}>
                     <span className="msc-mono" style={{ minWidth: 88 }}>{h.effectiveDate}</span>
                     <MaskedAmount amount={h.amount} revealed={showHistory} />
-                    {h.reason && <span className="msc-reason-chip">{h.reason}</span>}
+                    {h.reason && <StatusBadge className="msc-reason-chip">{h.reason}</StatusBadge>}
                   </div>
                 ))}
               </div>
@@ -1115,12 +1115,12 @@ function HistoryTab({
                     <span className="msc-notif-label" style={{ display: 'inline' }}>
                       {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
                     </span>
-                    <span className={`msc-hist-badge ${h.actor && h.actor.isSelf ? 'is-self' : 'is-hr'}`}
+                    <StatusBadge className={`msc-hist-badge ${h.actor && h.actor.isSelf ? 'is-self' : 'is-hr'}`}
                       data-testid={`history-actor-${h.id}`}>
                       {h.actor && h.actor.isSelf ? L.byMe : L.byHr}
-                    </span>
-                    {h.changeKind === 'add' && <span className="msc-hist-badge">{L.added}</span>}
-                    {h.changeKind === 'remove' && <span className="msc-hist-badge">{L.removed}</span>}
+                    </StatusBadge>
+                    {h.changeKind === 'add' && <StatusBadge className="msc-hist-badge">{L.added}</StatusBadge>}
+                    {h.changeKind === 'remove' && <StatusBadge className="msc-hist-badge">{L.removed}</StatusBadge>}
                   </div>
                   <div className="msc-notif-sub msc-hist-values" data-testid={`history-values-${h.id}`}>
                     {h.state === 'purged' ? L.purged
@@ -1787,7 +1787,7 @@ export default function MySettingsCanvas({
                           {item.sub && <div className="msc-notif-sub">{item.sub}</div>}
                         </div>
                         {group.locked ? (
-                          <span className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</span>
+                          <StatusBadge className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</StatusBadge>
                         ) : (
                           <Toggle
                             value={Boolean(item.on)}
@@ -1853,13 +1853,13 @@ export default function MySettingsCanvas({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                           <span className="msc-intg-name">{intg.name}</span>
                           {intg.connected && (
-                            <span className="msc-intg-badge">{labels.integrations.connected}</span>
+                            <StatusBadge className="msc-intg-badge">{labels.integrations.connected}</StatusBadge>
                           )}
                           {intg.comingSoon && (
-                            <span className="msc-intg-badge is-muted">{labels.integrations.comingSoon}</span>
+                            <StatusBadge className="msc-intg-badge is-muted">{labels.integrations.comingSoon}</StatusBadge>
                           )}
                           {intg.managedByOrg && (
-                            <span className="msc-intg-badge is-muted">{labels.integrations.managedByOrg}</span>
+                            <StatusBadge className="msc-intg-badge is-muted">{labels.integrations.managedByOrg}</StatusBadge>
                           )}
                         </div>
                         <p className="msc-intg-desc">{intg.desc}</p>
@@ -2121,9 +2121,9 @@ export default function MySettingsCanvas({
                           <div className="msc-notif-label">
                             {s.device}
                             {s.current && (
-                              <span className="msc-vis-badge is-brand" style={{ marginLeft: 7 }}>
+                              <StatusBadge className="msc-vis-badge is-brand" style={{ marginLeft: 7 }}>
                                 {labels.security.sessionCurrent}
-                              </span>
+                              </StatusBadge>
                             )}
                           </div>
                           <div className="msc-notif-sub">{s.meta}</div>

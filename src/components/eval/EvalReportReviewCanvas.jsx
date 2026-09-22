@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -425,13 +426,12 @@ function ReviewRow({
         <span className="evrr-name-main">
           {row.name || row.memberId}
           {overrideCount > 0 && (
-            <span
+            <StatusBadge
               className="evrr-badge is-override"
               title={L.overrideTooltip.replace('{count}', String(overrideCount))}
-              data-testid={`evrr-override-${row.memberId}`}
-            >
+              data-testid={`evrr-override-${row.memberId}`}>
               {L.overrideBadge}
-            </span>
+            </StatusBadge>
           )}
         </span>
         {row.department && <span className="evrr-name-sub">{row.department}</span>}
@@ -468,7 +468,7 @@ function ReviewRow({
         )}
       </div>
       <div className="evrr-cell evrr-status">
-        <span className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</span>
+        <StatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</StatusBadge>
       </div>
       <div className="evrr-cell evrr-action">
         {refinement && refineMeta && (

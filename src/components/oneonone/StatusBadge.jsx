@@ -1,4 +1,5 @@
 import { STATUS_BADGE } from './constants.js';
+import DpStatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * Status pill shown in the top-right of a MemberCard.
@@ -10,12 +11,12 @@ import { STATUS_BADGE } from './constants.js';
 export default function StatusBadge({ status, label, Icon }) {
   const variant = STATUS_BADGE[status] || STATUS_BADGE.unbooked;
   return (
-    <div className={`status-badge ${variant.className}`}>
+    <DpStatusBadge as="div" className={`status-badge ${variant.className}`}>
       {variant.icon && Icon && (
         <Icon src={variant.icon} size={12} color={variant.color} />
       )}
       {variant.showDot && <span className="badge-dot" />}
       <span>{label}</span>
-    </div>
+    </DpStatusBadge>
   );
 }

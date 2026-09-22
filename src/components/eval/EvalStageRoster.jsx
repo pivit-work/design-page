@@ -1,4 +1,5 @@
 import AvatarPhoto from './AvatarPhoto.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { CheckCircleIcon, MailIcon } from './evalIcons.jsx';
 
 /**
@@ -21,9 +22,9 @@ function Group({ testId, title, tone, list, emptyLabel, renderAction }) {
     <div className={`evmon-roster-group tone-${tone}`} data-testid={testId}>
       <div className="evmon-roster-head">
         <span className="evmon-roster-title">{title}</span>
-        <span className={`evc-status-badge ${tone === 'pending' ? 'tone-warn' : 'tone-success'}`} data-testid={`${testId}-count`}>
+        <StatusBadge className={`evc-status-badge ${tone === 'pending' ? 'tone-warn' : 'tone-success'}`} data-testid={`${testId}-count`}>
           {list.length}
-        </span>
+        </StatusBadge>
       </div>
       {list.length === 0 ? (
         <p className="evc-empty-sub evmon-roster-empty">{emptyLabel}</p>

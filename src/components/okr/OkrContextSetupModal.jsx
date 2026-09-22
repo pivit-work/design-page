@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
 /**
@@ -32,7 +33,7 @@ export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, o
         <span className="okr-ctx-head">
           <span className="okr-ctx-head-left">
             OKR 컨텍스트 설정
-            <span className="okr-ctx-admin-badge">관리자 전용</span>
+            <StatusBadge className="okr-ctx-admin-badge">관리자 전용</StatusBadge>
           </span>
           <span className="okr-ctx-optional">선택사항</span>
         </span>

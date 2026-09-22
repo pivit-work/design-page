@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
@@ -619,13 +620,12 @@ export default function EvalCycleLeaderCanvas({
           >
             <h3 className="evc-card-name">
               {L.assessmentTitle}
-              <span
+              <StatusBadge
                 className="evl-committee-badge"
                 title={L.committeeOnlyHint}
-                data-testid="evl-committee-badge"
-              >
+                data-testid="evl-committee-badge">
                 {L.committeeOnlyBadge}
-              </span>
+              </StatusBadge>
             </h3>
             <p className="evl-committee-hint">{L.committeeOnlyHint}</p>
             <div className="evm-field">

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
@@ -1423,10 +1424,10 @@ function TemplateBriefPreview({ tpl, labels: L }) {
         </p>
         <div className="evc-preview-gradechips">
           {(tpl.grades || []).map((g, i) => (
-            <span key={i} className="evc-tpl-peek-grade" title={g.desc || undefined}>
+            <StatusBadge key={i} className="evc-tpl-peek-grade" title={g.desc || undefined}>
               {g.label}
               {!tpl.absolute && ` ${g.ratio}%`}
-            </span>
+            </StatusBadge>
           ))}
         </div>
       </div>
@@ -1563,10 +1564,10 @@ function TemplatePickerModal({
                                   <div className="evc-tpl-picker-row-name">
                                     <span className="evc-tpl-lib-name">{t.name}</span>
                                     {t.isDefault && (
-                                      <span className="evc-mode-badge">{L.tplDefaultBadge}</span>
+                                      <StatusBadge className="evc-mode-badge">{L.tplDefaultBadge}</StatusBadge>
                                     )}
                                     {(t.revision || 1) > 1 && (
-                                      <span className="evc-tpl-rev-badge">v{t.revision}</span>
+                                      <StatusBadge className="evc-tpl-rev-badge">v{t.revision}</StatusBadge>
                                     )}
                                   </div>
                                   <div className="evc-tpl-lib-meta">
@@ -2796,7 +2797,7 @@ export default function EvalCycleWizard({
           <div className="evc-rm-ai-draft" data-testid={`evc-rm-ai-draft${sfx}-${ph.id}-${i}`}>
             <div className="evc-rm-ai-draft-head">
               {L.reminderAiDraftTitle}
-              <span className="evc-mode-badge is-warn">{L.reminderAiUnconfirmed}</span>
+              <StatusBadge className="evc-mode-badge is-warn">{L.reminderAiUnconfirmed}</StatusBadge>
             </div>
             {!draft.varsOk && (
               <p className="evc-rm-ai-warn" data-testid={`evc-rm-ai-varwarn${sfx}-${ph.id}-${i}`}>
@@ -4732,9 +4733,9 @@ export default function EvalCycleWizard({
                         />
                         <span className="evc-mode-name">{L[m.label]}</span>
                         {m.badge && (
-                          <span className={`evc-mode-badge${m.badge === 'exceptionBadge' ? ' is-warn' : ''}`}>
+                          <StatusBadge className={`evc-mode-badge${m.badge === 'exceptionBadge' ? ' is-warn' : ''}`}>
                             {L[m.badge]}
-                          </span>
+                          </StatusBadge>
                         )}
                       </button>
                     ))}
@@ -4840,7 +4841,7 @@ export default function EvalCycleWizard({
                     className={`evc-tpl-confirm-row${row.editing ? ' is-editing' : ''}`}
                     data-testid={`evc-tpl-confirm-row-${row.type}`}
                   >
-                    <span className="evc-mode-badge">{L[row.nameKey]}</span>
+                    <StatusBadge className="evc-mode-badge">{L[row.nameKey]}</StatusBadge>
                     {/* 상태 배지는 라이브러리 조회를 «기다리지 않고» 먼저 그린다 —
                         확정 여부는 위자드가 이미 아는 사실인데 덮으면 「모른다」로 보인다
                         (엣지 1-A). */}
@@ -4863,7 +4864,7 @@ export default function EvalCycleWizard({
                       {row.confirmed ? templateNameOf(row) || L.tplConfirmUnknown : ''}
                     </span>
                     {row.archived && (
-                      <span className="evc-mode-badge is-warn">{L.tplConfirmArchived}</span>
+                      <StatusBadge className="evc-mode-badge is-warn">{L.tplConfirmArchived}</StatusBadge>
                     )}
                     {!confirmReadOnly && (
                       <>
@@ -5020,10 +5021,10 @@ export default function EvalCycleWizard({
                       <div className="evc-tpl-start-card-name">
                         <span className="evc-tpl-lib-name" title={t.name}>{t.name}</span>
                         {t.isDefault && (
-                          <span className="evc-mode-badge">{L.tplDefaultBadge}</span>
+                          <StatusBadge className="evc-mode-badge">{L.tplDefaultBadge}</StatusBadge>
                         )}
                         {(t.revision || 1) > 1 && (
-                          <span className="evc-tpl-rev-badge">v{t.revision}</span>
+                          <StatusBadge className="evc-tpl-rev-badge">v{t.revision}</StatusBadge>
                         )}
                       </div>
                       <div className="evc-tpl-lib-meta">
@@ -5096,7 +5097,7 @@ export default function EvalCycleWizard({
                         {L[p.labelKey]}
                         {tplVersion === p.id && tplIsCustomized ? ` ${L.tplCustomized}` : ''}
                       </span>
-                      {p.recommended && <span className="evc-mode-badge">{L.recommendedBadge}</span>}
+                      {p.recommended && <StatusBadge className="evc-mode-badge">{L.recommendedBadge}</StatusBadge>}
                     </span>
                     <span className="evc-tpl-preset-desc">{L[p.descKey]}</span>
                   </button>
@@ -5302,7 +5303,7 @@ export default function EvalCycleWizard({
                     }
                     trailing={
                       <>
-                        {q.ai && <span className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</span>}
+                        {q.ai && <StatusBadge className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</StatusBadge>}
                         {q.type === 'rating' && (
                           <button
                             type="button"
@@ -5461,14 +5462,13 @@ export default function EvalCycleWizard({
                   className="evc-sched-anchor-input"
                   testId="evc-sched-anchor-date"
                 />
-                <span
+                <StatusBadge
                   className={`evc-sched-anchor-badge${scheduleStartTouched ? ' is-manual' : ''}`}
-                  data-testid="evc-sched-anchor-badge"
-                >
+                  data-testid="evc-sched-anchor-badge">
                   {scheduleStartTouched
                     ? L.scheduleAnchorManual
                     : L.scheduleAnchorAuto}
-                </span>
+                </StatusBadge>
                 <span className="evc-sched-anchor-note">
                   {L.scheduleAnchorNote}
                   {dirtyShown.length > 0 && (
@@ -5542,37 +5542,35 @@ export default function EvalCycleWizard({
                         <span className="evc-sched-owner">
                           {L.ownerLabel}: {L[ph.targetKey]}
                         </span>
-                        {ph.required && <span className="evc-mode-badge">{L.badgeRequired}</span>}
+                        {ph.required && <StatusBadge className="evc-mode-badge">{L.badgeRequired}</StatusBadge>}
                         {/* [PW-435 ④] 캘리브레이션처럼 «항상 등재되지만 필수가 아닌» 단계는
                             두 성질을 동시에 드러내야 오해가 없다 — 「선택」 배지를 단다. */}
                         {!ph.required && ph.listedBy === 'always' && (
-                          <span className="evc-mode-badge is-muted" data-testid={`evc-sched-optional-${ph.id}`}>
+                          <StatusBadge className="evc-mode-badge is-muted" data-testid={`evc-sched-optional-${ph.id}`}>
                             {L.badgeOptional}
-                          </span>
+                          </StatusBadge>
                         )}
-                        {ph.anchor && <span className="evc-mode-badge is-muted">{L.badgeFixed}</span>}
-                        {!enabled && <span className="evc-mode-badge is-muted">{L.badgeUnused}</span>}
+                        {ph.anchor && <StatusBadge className="evc-mode-badge is-muted">{L.badgeFixed}</StatusBadge>}
+                        {!enabled && <StatusBadge className="evc-mode-badge is-muted">{L.badgeUnused}</StatusBadge>}
                         {enabled && overlapIds.has(ph.id) && (
-                          <span className="evc-mode-badge is-warn">{L.badgeParallel}</span>
+                          <StatusBadge className="evc-mode-badge is-warn">{L.badgeParallel}</StatusBadge>
                         )}
                         {/* [PW-536 · 정책 §5.2.1-A] 직접 고친 단계는 재배치에서 빠진다는
                             것을 그 자리에서 알린다 — 「전체 다시 배치」를 눌러야 풀린다. */}
                         {enabled && scheduleDirty.includes(ph.id) && (
-                          <span
+                          <StatusBadge
                             className="evc-mode-badge is-muted"
-                            data-testid={`evc-sched-dirty-${ph.id}`}
-                          >
+                            data-testid={`evc-sched-dirty-${ph.id}`}>
                             {L.scheduleAnchorPhaseDirty}
-                          </span>
+                          </StatusBadge>
                         )}
                         {/* 지난 날짜는 알리되 막지 않는다 — 소급 사이클을 막으면 안 된다. */}
                         {enabled && isPastPhase(ph.id) && (
-                          <span
+                          <StatusBadge
                             className="evc-mode-badge is-warn"
-                            data-testid={`evc-sched-past-${ph.id}`}
-                          >
+                            data-testid={`evc-sched-past-${ph.id}`}>
                             {L.schedulePastBadge}
-                          </span>
+                          </StatusBadge>
                         )}
                         <button
                           type="button"
@@ -5752,16 +5750,15 @@ export default function EvalCycleWizard({
                                     {/* [PW-529] 당사자를 끄면 접힌 줄에도 그렇게 보여야 한다 —
                                         펼치지 않으면 「당사자에게 간다」로 오해한다. */}
                                     {selfOn ? (
-                                      <span className="evc-rm-sum-chip is-primary">
+                                      <StatusBadge className="evc-rm-sum-chip is-primary">
                                         {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
-                                      </span>
+                                      </StatusBadge>
                                     ) : (
-                                      <span
+                                      <StatusBadge
                                         className="evc-rm-sum-chip"
-                                        data-testid={`evc-rm-sum-noself-${ph.id}-${i}`}
-                                      >
+                                        data-testid={`evc-rm-sum-noself-${ph.id}-${i}`}>
                                         {noRecipient ? L.reminderRecipientNone : ccSummary(ph.id, rm)}
-                                      </span>
+                                      </StatusBadge>
                                     )}
                                     {rm.channels.map((cid) => {
                                       const ch = REMINDER_CHANNELS.find((c) => c.id === cid);
@@ -5866,14 +5863,13 @@ export default function EvalCycleWizard({
                                         {/* 이 문구가 어느 채널로 어떻게 나가는지 — 켠 채널만 나열한다 */}
                                         <div className="evc-rm-render" data-testid={`evc-rm-render-${ph.id}-${i}`}>
                                           {CHANNEL_RENDER.filter((c) => rm.channels.includes(c.id)).map((c) => (
-                                            <span
+                                            <StatusBadge
                                               key={c.id}
                                               className="evc-rm-render-chip"
-                                              data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}
-                                            >
+                                              data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}>
                                               <c.Icon size={12} /> {L[c.labelKey]}
                                               <span className="evc-rm-render-desc">· {L[c.descKey]}</span>
-                                            </span>
+                                            </StatusBadge>
                                           ))}
                                         </div>
                                         <label className="evc-rm-dfield">
@@ -6213,7 +6209,7 @@ export default function EvalCycleWizard({
                           <div className="evc-sched-tpl">
                             <span className="evc-field-label">
                               {L.appliedTemplate}{' '}
-                              <span className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</span>
+                              <StatusBadge className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</StatusBadge>
                             </span>
                             {row?.confirmed ? (
                               <div
@@ -6226,12 +6222,11 @@ export default function EvalCycleWizard({
                                   {templateNameOf(row) || L.tplConfirmUnknown}
                                 </span>
                                 {row.archived && (
-                                  <span
+                                  <StatusBadge
                                     className="evc-mode-badge is-warn"
-                                    data-testid={`evc-sched-tpl-archived-${ph.id}`}
-                                  >
+                                    data-testid={`evc-sched-tpl-archived-${ph.id}`}>
                                     {L.tplConfirmArchived}
-                                  </span>
+                                  </StatusBadge>
                                 )}
                                 <button
                                   type="button"
@@ -6908,12 +6903,11 @@ export default function EvalCycleWizard({
                                       </span>
                                     </div>
                                     {keptIds.includes(c.id) && (
-                                      <span
+                                      <StatusBadge
                                         className="evc-roster-badge"
-                                        data-testid={`evc-wiz-kept-${c.id}`}
-                                      >
+                                        data-testid={`evc-wiz-kept-${c.id}`}>
                                         {L.targetManualInclude}
-                                      </span>
+                                      </StatusBadge>
                                     )}
                                     <button
                                       type="button"
@@ -7361,9 +7355,9 @@ export default function EvalCycleWizard({
                                   .join(' · ')}
                               </span>
                               {committeeAddedSet.has(m.id) && (
-                                <span className="evc-wiz-calibscope-row-tag">
+                                <StatusBadge className="evc-wiz-calibscope-row-tag">
                                   {L.wizardCommitteeAddedTag ?? '추가'}
-                                </span>
+                                </StatusBadge>
                               )}
                               <button
                                 type="button"
@@ -7395,10 +7389,9 @@ export default function EvalCycleWizard({
                           </div>
                           <div className="evc-wiz-calibscope-excluded-chips">
                             {committeeExcludedMembers.map((m) => (
-                              <span
+                              <StatusBadge
                                 key={m.id}
-                                className="evc-wiz-calibscope-excluded-chip"
-                              >
+                                className="evc-wiz-calibscope-excluded-chip">
                                 {m.name}
                                 <button
                                   type="button"
@@ -7409,7 +7402,7 @@ export default function EvalCycleWizard({
                                 >
                                   <UndoIcon size={12} />
                                 </button>
-                              </span>
+                              </StatusBadge>
                             ))}
                           </div>
                         </div>
@@ -7476,11 +7469,10 @@ export default function EvalCycleWizard({
                         {committee.map((id, i) => {
                           const c = committeeById.get(id);
                           return (
-                            <span
+                            <StatusBadge
                               key={id}
                               className={`evc-wiz-committee-chip${i === 0 ? ' is-chair' : ''}`}
-                              data-testid={`evc-wiz-committee-chip-${id}`}
-                            >
+                              data-testid={`evc-wiz-committee-chip-${id}`}>
                               {c?.name ?? id}
                               <button
                                 type="button"
@@ -7491,7 +7483,7 @@ export default function EvalCycleWizard({
                               >
                                 ×
                               </button>
-                            </span>
+                            </StatusBadge>
                           );
                         })}
                       </span>

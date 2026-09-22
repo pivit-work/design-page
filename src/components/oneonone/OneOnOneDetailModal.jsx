@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -138,7 +139,7 @@ export default function OneOnOneDetailModal({
       }
       description={
         <span className="ood-head-meta">
-          <span className="ood-done-badge">{detail.status ?? 'DONE'}</span>
+          <StatusBadge className="ood-done-badge">{detail.status ?? 'DONE'}</StatusBadge>
           <span className="ood-mode">{L.viewMode}</span>
         </span>
       }
@@ -273,7 +274,7 @@ export default function OneOnOneDetailModal({
           <div className="ood-feedback">
             <div className="ood-feedback-head">
               <p className="ood-section-title is-primary">{L.managerFeedback}</p>
-              {hasFeedback && feedback.visibility && <span className="ood-tag">{feedback.visibility}</span>}
+              {hasFeedback && feedback.visibility && <StatusBadge className="ood-tag">{feedback.visibility}</StatusBadge>}
             </div>
             {!hasFeedback && <p className="ood-analysis-note">{L.feedbackEmpty}</p>}
             {feedback?.strength && (

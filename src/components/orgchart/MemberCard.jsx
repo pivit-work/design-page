@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
@@ -137,13 +138,13 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
             <span className="online-dot" style={{ background: status.dotColor }} />
           </div>
           <span className="member-name">{member.name}</span>
-          {member.role && <span className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</span>}
+          {member.role && <StatusBadge className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</StatusBadge>}
           {/* 조직 구조상의 대표 1인. isCeo 만 근거로 삼는다 — 권한이 대표거나
               직책 문자열이 '대표'인 것만으로는 붙지 않는다. */}
-          {member.isCeo && <span className="role-badge role-badge-ceo">{member.ceoLabel || L('org.ceoBadge')}</span>}
+          {member.isCeo && <StatusBadge className="role-badge role-badge-ceo">{member.ceoLabel || L('org.ceoBadge')}</StatusBadge>}
           {/* 로그인한 본인 표식. 문구는 소비 측이 로케일에 맞춰 넘긴다(selfLabel) —
               ceoLabel 과 같은 규약. 안 넘기면 한국어로 폴백한다. */}
-          {member.isSelf && <span className="role-badge role-badge-self">{member.selfLabel || L('org.selfBadge')}</span>}
+          {member.isSelf && <StatusBadge className="role-badge role-badge-self">{member.selfLabel || L('org.selfBadge')}</StatusBadge>}
         </div>
         {showGrade && (member.grade || member.position) && (
           <div className="member-grade">
@@ -180,7 +181,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
           );
         })()}
       </div>
-      <span className="status-badge-member" style={{ background: status.badgeBg }}>{statusLabel}</span>
+      <StatusBadge className="status-badge-member" style={{ background: status.badgeBg }}>{statusLabel}</StatusBadge>
     </div>
   );
 }

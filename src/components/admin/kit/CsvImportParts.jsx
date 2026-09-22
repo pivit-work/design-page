@@ -14,6 +14,7 @@
  * (버튼·선택 상자·숫자 칸은 `styles/admin.css` 의 규칙을 함께 쓴다).
  */
 import { IconDownload, IconUpload, IconX } from '../employeesIcons.jsx';
+import StatusBadge from '../../shared/StatusBadge.jsx';
 import RosterTable from '../../shared/RosterTable.jsx';
 
 const cx = (...xs) => xs.filter(Boolean).join(' ');
@@ -259,10 +260,10 @@ export function CsvField({ label, required = false, requiredTitle, badge, marker
         {label}
         {required && <span className="admin-kit-required" title={requiredTitle}>*</span>}
         {badge ? (
-          <span className={cx('admin-kit-badge', `is-${badge.tone}`)}>
+          <StatusBadge className={cx('admin-kit-badge', `is-${badge.tone}`)}>
             {badge.icon}
             {badge.label}
-          </span>
+          </StatusBadge>
         ) : marker ? (
           <span className="admin-kit-marker">{marker}</span>
         ) : null}
@@ -360,10 +361,10 @@ export function CsvLevelCard({ index, accent, title, badge, removeLabel, removeI
           <CsvLevelNumber n={index + 1} accent={accent} />
           <span>{title}</span>
           {badge && (
-            <span className="admin-kit-badge is-brand">
+            <StatusBadge className="admin-kit-badge is-brand">
               {badge.icon}
               {badge.label}
-            </span>
+            </StatusBadge>
           )}
         </div>
         {onRemove && (
@@ -429,12 +430,11 @@ export function CsvChipList({ children }) {
  */
 export function CsvChip({ accent, tone, size = 'sm', more = false, children }) {
   return (
-    <span
+    <StatusBadge
       className={cx('admin-kit-chip', `is-${size}`, more ? 'is-more' : accent ? 'has-accent' : tone && `is-${tone}`)}
-      style={accent && !more ? { '--kit-accent': accent } : undefined}
-    >
+      style={accent && !more ? { '--kit-accent': accent } : undefined}>
       {children}
-    </span>
+    </StatusBadge>
   );
 }
 

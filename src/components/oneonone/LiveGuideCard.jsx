@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { formatLiveElapsed } from './sessionHelpers.js';
 
@@ -234,15 +235,14 @@ export default function LiveGuideCard({
           {L.title}
         </span>
         {!summaryOnly && (
-          <span className="ono-guide-tag ono-guide-tag-purple">{L.liveOnly}</span>
+          <StatusBadge className="ono-guide-tag ono-guide-tag-purple">{L.liveOnly}</StatusBadge>
         )}
         {generated && guide?.isFallback && (
-          <span
+          <StatusBadge
             className="ono-guide-tag ono-guide-tag-amber"
-            data-testid="ono-live-guide-fallback"
-          >
+            data-testid="ono-live-guide-fallback">
             {L.fallbackBadge}
-          </span>
+          </StatusBadge>
         )}
         <div className="ono-guide-head-right">
           <span className="ono-guide-timer" data-testid="ono-live-guide-timer">

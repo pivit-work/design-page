@@ -128,30 +128,49 @@ export function isBadgeShapeRule({ selector, declarations }) {
  * `--이름: 값` 을 읽어 사슬을 따라간다.
  */
 export function buildColorAliases(srcRoot) {
-  const aliases = {};
+  const light = {};
   for (const name of ['index.css', 'tokens.css', 'status-badge.css']) {
     const full = path.join(srcRoot, name);
     if (!fs.existsSync(full)) continue;
     const css = stripComments(fs.readFileSync(full, 'utf8'));
     for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
-      if (!(m[1] in aliases)) aliases[m[1]] = m[2].trim();
+      if (!(m[1] in light)) light[m[1]] = m[2].trim();
     }
   }
-  return aliases;
+  // 어두운 화면은 같은 이름에 다른 값을 넣는다. 밝은 화면에서만 같은 색이고 어두운 화면에서
+  // 갈리는 짝이 실제로 있었다 (`var(--colors-brand-100, #e1fef2)` 처럼 값을 박아 둔 자리).
+  const dark = { ...light };
+  const darkFile = path.join(srcRoot, 'tokens-dark.css');
+  if (fs.existsSync(darkFile)) {
+    const css = stripComments(fs.readFileSync(darkFile, 'utf8'));
+    for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) dark[m[1]] = m[2].trim();
+  }
+  return { light, dark };
 }
 
 /** 색 값 하나를 사슬 끝까지 따라간 값으로. 사슬이 끊기면 마지막 이름을 값으로 본다. */
-export function resolveColor(value, aliases) {
+export function resolveColorIn(value, map) {
   if (!value) return '';
   let out = String(value).trim();
   for (let i = 0; i < 10; i += 1) {
     const m = out.match(/^var\(\s*(--[\w-]+)\s*(?:,[\s\S]*)?\)$/);
     if (!m) break;
-    const next = aliases[m[1]];
+    const next = map[m[1]];
     if (next == null) return m[1];
     out = next.trim();
   }
   return out.replace(/\s+/g, ' ');
+}
+
+/**
+ * 색 하나를 «밝은 화면 / 어두운 화면» 두 값으로 편다. 한쪽만 보면 밝은 화면에서 우연히 같은
+ * 색이 어두운 화면에서 갈리는 것을 못 잡는다 — 실제로 딱지 여섯 개가 그랬다.
+ */
+export function resolveColor(value, aliases) {
+  if (!aliases || !aliases.light) return String(value ?? '').trim();
+  const light = resolveColorIn(value, aliases.light);
+  const dark = resolveColorIn(value, aliases.dark);
+  return light === dark ? light : `${light} / 어두운 화면 ${dark}`;
 }
 
 const COLOR_PROPS = new Set(['background', 'color']);

@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar, RsBullets } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
 
@@ -27,7 +28,7 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam }
             <div className="rsx-member-head">
               <div className="rsx-member-who">
                 <span className="rsx-member-name">{team.name}</span>
-                <span className="rsx-tag is-sm">팀</span>
+                <StatusBadge className="rsx-tag is-sm">팀</StatusBadge>
                 <span className="rsx-member-role">리드 {team.lead}</span>
               </div>
               <span className="rsx-member-pct">{team.pct}%</span>

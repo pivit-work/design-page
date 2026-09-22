@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
@@ -313,9 +314,9 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
                   (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
                 )}
                 {c === 'name' && rowBadge && (
-                  <span className="admin-snap-roster-badge" title={rowBadge.title}>
+                  <StatusBadge className="admin-snap-roster-badge" title={rowBadge.title}>
                     {rowBadge.label}
-                  </span>
+                  </StatusBadge>
                 )}
                 {changed && <span className="admin-snap-roster-changed" aria-hidden>▲</span>}
               </>
@@ -535,7 +536,7 @@ function OrgSnapshotStatusView({
                   <div key={jg.group} className="admin-snap-jg-row">
                     <span className="admin-snap-jg-name">{jg.group}</span>
                     <div className="admin-snap-jg-pills">
-                      {jg.roles.map((r) => <span key={r} className="admin-snap-jg-pill">{r}</span>)}
+                      {jg.roles.map((r) => <StatusBadge key={r} className="admin-snap-jg-pill">{r}</StatusBadge>)}
                     </div>
                     <span className="admin-snap-jg-count">{jg.count}{labels.countSuffix}</span>
                     {jg.lead != null && <span className="admin-snap-jg-lead">{labels.leaderPrefix}: {jg.lead || '—'}</span>}
@@ -1167,18 +1168,18 @@ function AppointmentBulkView({
         {step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div className="admin-snap-status-badges">
-              <span className="admin-snap-status-badge is-ok">
+              <StatusBadge className="admin-snap-status-badge is-ok">
                 <StatusIcon tone="ok" /> {labels.okCount} {okRows.length}{labels.countUnit}
-              </span>
+              </StatusBadge>
               {warnRows.length > 0 && (
-                <span className="admin-snap-status-badge is-warn">
+                <StatusBadge className="admin-snap-status-badge is-warn">
                   <StatusIcon tone="warn" /> {labels.warnCount} {warnRows.length}{labels.countUnit}
-                </span>
+                </StatusBadge>
               )}
               {errorRows.length > 0 && (
-                <span className="admin-snap-status-badge is-error">
+                <StatusBadge className="admin-snap-status-badge is-error">
                   <StatusIcon tone="error" /> {labels.errorCount} {errorRows.length}{labels.countUnit}
-                </span>
+                </StatusBadge>
               )}
             </div>
             {/* B2 — 선언형 덮어쓰기의 파괴성을 확정 전에 반드시 알린다. 이 문장이 없으면
@@ -1257,13 +1258,13 @@ function AppointmentBulkView({
                           {previewFields.map((f) => <RosterTable.Cell key={`a-${f}`} className="admin-snap-pv-after">{changes[f]?.after ?? '-'}</RosterTable.Cell>)}
                           <RosterTable.Cell>
                             {row.status === 'ok' && (
-                              <span className="admin-snap-pv-status-ok"><StatusIcon tone="ok" /> {labels.statusOk}</span>
+                              <StatusBadge className="admin-snap-pv-status-ok"><StatusIcon tone="ok" /> {labels.statusOk}</StatusBadge>
                             )}
                             {row.status === 'warn' && (
-                              <span className="admin-snap-pv-status-warn"><StatusIcon tone="warn" /> {labels.warnCount}</span>
+                              <StatusBadge className="admin-snap-pv-status-warn"><StatusIcon tone="warn" /> {labels.warnCount}</StatusBadge>
                             )}
                             {row.status === 'error' && (
-                              <span className="admin-snap-pv-status-error"><StatusIcon tone="error" /> {labels.statusError}</span>
+                              <StatusBadge className="admin-snap-pv-status-error"><StatusIcon tone="error" /> {labels.statusError}</StatusBadge>
                             )}
                             {(row.messages ?? []).map((m, mi) => (
                               <div
@@ -1360,9 +1361,9 @@ function AppointmentHistoryView({ records, labels, onExport }) {
                     <RosterTable.Cell className="admin-snap-hist-date">{rec.date ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
-                      <span className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
+                      <StatusBadge className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
                         {rec.typeKey ? (labels.typeLabels[rec.typeKey] ?? rec.typeKey) : '-'}
-                      </span>
+                      </StatusBadge>
                     </RosterTable.Cell>
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
                       {rec.mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle}

@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronLeftIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 
@@ -173,13 +174,12 @@ function PhaseCell({ phase, phaseKey, L }) {
   const at = fmtSubmittedAt(phase.lastSubmittedAt);
   const title = at ? fill(L.submittedAtTooltip, { at }) : undefined;
   const badge = (
-    <span
+    <StatusBadge
       className={`evc-status-badge ${PHASE_STATUS_TONE[phase.status] ?? 'tone-neutral'}`}
       data-testid="evmon-phase-badge"
-      data-status={phase.status}
-    >
+      data-status={phase.status}>
       {L[PHASE_STATUS_KEY[phase.status]] ?? phase.status}
-    </span>
+    </StatusBadge>
   );
   if (!MULTI_ASSIGN.has(phaseKey)) {
     return (
@@ -488,22 +488,21 @@ export default function EvalCycleMonitoringCanvas({
                 <span className="evmon-c-name">
                   {m.name || m.memberId}
                   {m.excluded && (
-                    <span className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm)' }} data-testid="evmon-excluded-badge">
+                    <StatusBadge className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm)' }} data-testid="evmon-excluded-badge">
                       {L.excludedBadge}
-                    </span>
+                    </StatusBadge>
                   )}
                   {/* PW-534 ㉯ — 오픈 «뒤» 합류한 사람 (정책 §5.3.6).
                       지난 단계가 전부 미제출인 것이 «안 낸 것» 이 아니라 «있지도 않았던
                       것» 이다. 표시가 없으면 독촉 명단에서 둘이 섞인다. */}
                   {m.joinedAt && (
-                    <span
+                    <StatusBadge
                       className="evc-status-badge tone-info"
                       style={{ marginLeft: 'var(--spacing-sm)' }}
                       title={fill(L.joinedTooltip, { at: fmtSubmittedAt(m.joinedAt) })}
-                      data-testid="evmon-joined-badge"
-                    >
+                      data-testid="evmon-joined-badge">
                       {L.joinedBadge}
-                    </span>
+                    </StatusBadge>
                   )}
                 </span>
                 {dynamic ? (
@@ -524,12 +523,11 @@ export default function EvalCycleMonitoringCanvas({
                 )}
                 <span className="evmon-grade">
                   {m.gradeKey ? (
-                    <span
+                    <StatusBadge
                       className={`evc-status-badge ${GRADE_TONE[m.gradeKey] ?? 'tone-neutral'}`}
-                      data-testid="evmon-grade-badge"
-                    >
+                      data-testid="evmon-grade-badge">
                       {gradeLabels?.[m.gradeKey] ?? m.gradeKey}
-                    </span>
+                    </StatusBadge>
                   ) : (
                     <Check ok={m.graded} />
                   )}

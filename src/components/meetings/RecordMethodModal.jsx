@@ -1,4 +1,5 @@
 import ModalShell from '../shared/ModalShell.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 
 /**
@@ -37,7 +38,7 @@ export default function RecordMethodModal({ meeting, baseUrl = '', labels, onSel
       {participants.length > 0 && (
         <div className="mtg-method-participants">
           {participants.map((p) => (
-            <span key={p} className="mtg-progress-pill">{p}</span>
+            <StatusBadge key={p} className="mtg-progress-pill">{p}</StatusBadge>
           ))}
         </div>
       )}

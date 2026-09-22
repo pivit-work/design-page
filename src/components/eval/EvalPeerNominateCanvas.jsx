@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { AlertIcon, CheckCircleIcon, LockIcon } from './evalIcons.jsx';
 
 /**
@@ -194,7 +195,7 @@ export default function EvalPeerNominateCanvas({
         <section className="evc-card" data-testid="evpn-card">
           <div className="evc-card-head">
             <h3 className="evc-card-name">{L.pickTitle}</h3>
-            <span className="evc-status-badge tone-error">{L.required}</span>
+            <StatusBadge className="evc-status-badge tone-error">{L.required}</StatusBadge>
           </div>
 
           <div className="evpn-counter">

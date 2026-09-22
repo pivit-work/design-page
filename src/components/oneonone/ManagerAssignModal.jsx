@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
 
@@ -77,10 +78,10 @@ export default function ManagerAssignModal({ candidates = [], icons, baseUrl = '
                 <span className="ons-candidate-role">{c.role}</span>
               </span>
               {c.recommended && (
-                <span className="ons-ai-tag">
+                <StatusBadge className="ons-ai-tag">
                   <Icon src={icons?.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
                   <span>{L.aiTag}</span>
-                </span>
+                </StatusBadge>
               )}
             </button>
           );

@@ -23,6 +23,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
@@ -771,7 +772,7 @@ export default function SquadCanvas({
                       <div className="sq-card-actions" data-testid={`squad-actions-${sq.id}`}>
                         {/* 상태 배지 = 전환 트리거 (p013). 편집 모드와 무관하게 동작.
                             부품은 프로젝트 카드의 상태 표시와 같은 것을 쓴다. */}
-                        <span
+                        <StatusBadge
                           data-testid={`squad-status-${sq.id}`}
                           className={`pj-card-status sq-status${canTransition ? ' is-clickable' : ''}`}
                           data-squad-popover-anchor="status"
@@ -782,7 +783,7 @@ export default function SquadCanvas({
                           <span className="pj-status-dot" style={{ background: stBadge.dotColor }} />
                           <span>{statusText(sq.status)}</span>
                           {canTransition && <ChevronDownIcon size={12} />}
-                        </span>
+                        </StatusBadge>
 
                         {ledgerReady && (
                           <span
@@ -925,7 +926,7 @@ export default function SquadCanvas({
                               const p = personOf(mm.userId);
                               const editable = canEditMemberOf(sq.id, mm.userId);
                               return (
-                                <div
+                                <StatusBadge as="div"
                                   key={mm.userId}
                                   data-testid={`squad-chip-${sq.id}-${mm.userId}`}
                                   className={[
@@ -969,7 +970,7 @@ export default function SquadCanvas({
                                       <CloseIcon size={11} />
                                     </span>
                                   )}
-                                </div>
+                                </StatusBadge>
                               );
                             })}
                             {members.length === 0 && (

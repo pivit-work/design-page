@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * ReportWeeklyRow — 리포트 페이지 Weekly 탭의 한 행.
@@ -57,7 +58,7 @@ export default function ReportWeeklyRow({
               />
               {healthScore}
             </span>
-            {status && <span className="report-row-status">{status}</span>}
+            {status && <StatusBadge className="report-row-status">{status}</StatusBadge>}
           </div>
           {summary && <p className="report-row-summary">{summary}</p>}
         </div>

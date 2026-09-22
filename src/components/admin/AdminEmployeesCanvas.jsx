@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import DpStatusBadge from '../shared/StatusBadge.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
@@ -424,12 +425,12 @@ function StatusBadge({ status, labels }) {
   const known = ['active', 'probation', 'on_leave', 'terminated', 'pending', 'other'];
   const cls = known.includes(status) ? status.replace('_', '-') : 'other';
   const label = labels.status[status] || labels.status.other;
-  return <span className={`admin-emp-status is-${cls}`}>{label}</span>;
+  return <DpStatusBadge className={`admin-emp-status is-${cls}`}>{label}</DpStatusBadge>;
 }
 
 function RolePill({ role, labels }) {
   if (!role || role === 'member') return null;
-  return <span className={`admin-emp-role-pill is-${role}`}>{labels.role[role] || role}</span>;
+  return <DpStatusBadge className={`admin-emp-role-pill is-${role}`}>{labels.role[role] || role}</DpStatusBadge>;
 }
 
 /* 조직 선택은 계층 트리 팝업(OrgTreePicker)으로 통일했다 — 종전의 평면 드롭다운
@@ -648,7 +649,7 @@ function UnassignedTab({
       <Card>
         <div className="admin-emp-section-head">
           <SectionLabel>{labels.unassigned.noOrgTitle}</SectionLabel>
-          <span className="admin-emp-pill is-amber">{labels.unassignedPill} {noOrg.length}{labels.countSuffix}</span>
+          <DpStatusBadge className="admin-emp-pill is-amber">{labels.unassignedPill} {noOrg.length}{labels.countSuffix}</DpStatusBadge>
         </div>
         {noOrg.length === 0 ? (
           <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.noOrgEmpty}</div>
@@ -696,7 +697,7 @@ function UnassignedTab({
       <Card>
         <div className="admin-emp-section-head">
           <SectionLabel>{labels.unassigned.leaderGapTitle}</SectionLabel>
-          <span className="admin-emp-pill is-amber">{fill(labels.unassigned.leaderGapPill, { count: gapCount })}</span>
+          <DpStatusBadge className="admin-emp-pill is-amber">{fill(labels.unassigned.leaderGapPill, { count: gapCount })}</DpStatusBadge>
         </div>
         {gapCount === 0 ? (
           <div className="admin-emp-unassigned-empty is-ok"><IconCheck size={16} />{labels.unassigned.leaderGapEmpty}</div>
@@ -899,7 +900,7 @@ function InvitesTab({
                   </div>
                 </div>
                 <div className="admin-emp-row-right">
-                  <span className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</span>
+                  <DpStatusBadge className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</DpStatusBadge>
                   <div className="admin-emp-actions-cell">
                     <div className="admin-emp-actions">
                       {inv.status === 'pending' && (
@@ -994,7 +995,7 @@ function ListDeptLabel({ member, orgTree, labels }) {
       ? [{ name: member.department, isPrimary: true }]
       : [];
   if (list.length === 0) {
-    return <span className="admin-emp-pill is-amber">{labels.unassignedPill}</span>;
+    return <DpStatusBadge className="admin-emp-pill is-amber">{labels.unassignedPill}</DpStatusBadge>;
   }
   const primary = list.find((d) => d.isPrimary) || list[0];
   // 주 소속이 맨 위다 — 서버가 준 순서에 기대면 겸직이 먼저 올 수 있다.
@@ -1010,7 +1011,7 @@ function ListDeptLabel({ member, orgTree, labels }) {
         <span key={d.orgUnitId ?? `${d.name}-${i}`} className="admin-emp-row-dept">
           <OrgPathLabel entry={entryOf(d)} fallback={d.name} />
           {d === primary && (
-            <span className="admin-inv-primary-badge">{labels.primaryBadge}</span>
+            <DpStatusBadge className="admin-inv-primary-badge">{labels.primaryBadge}</DpStatusBadge>
           )}
         </span>
       ))}
@@ -2774,8 +2775,8 @@ function PersonalHistoryList({ state, labels, onRetry }) {
               <span className="admin-emp-hist-field">
                 {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
               </span>
-              {h.changeKind === 'add' && <span className="admin-emp-hist-chip">{L.historyAdded}</span>}
-              {h.changeKind === 'remove' && <span className="admin-emp-hist-chip">{L.historyRemoved}</span>}
+              {h.changeKind === 'add' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyAdded}</DpStatusBadge>}
+              {h.changeKind === 'remove' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyRemoved}</DpStatusBadge>}
             </div>
             <div className="admin-emp-hist-values">
               {h.state === 'purged' ? L.historyPurged
@@ -2791,7 +2792,7 @@ function PersonalHistoryList({ state, labels, onRetry }) {
             </div>
             <div className="admin-emp-hist-who">
               {h.actor && h.actor.name ? h.actor.name : L.historyNone}
-              {h.actor && h.actor.isSelf && <span className="admin-emp-hist-chip is-self">{L.historyBySelf}</span>}
+              {h.actor && h.actor.isSelf && <DpStatusBadge className="admin-emp-hist-chip is-self">{L.historyBySelf}</DpStatusBadge>}
             </div>
             {/* 사유가 없으면 줄 자체를 그리지 않는다 — 「사유 없음」을 매 행에 반복하지 않는다. */}
             {h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>}
@@ -2843,7 +2844,7 @@ function ChangeReasonModal({ prompt, labels }) {
           사유를 쓰게 된다. 서버가 준 목록을 그대로 세운다. */}
       <div className="admin-emp-reason-fields">
         {(prompt.fields || []).map((f) => (
-          <span key={f.key} className="admin-emp-hist-chip">{f.label}</span>
+          <DpStatusBadge key={f.key} className="admin-emp-hist-chip">{f.label}</DpStatusBadge>
         ))}
       </div>
       <label className="admin-emp-field">

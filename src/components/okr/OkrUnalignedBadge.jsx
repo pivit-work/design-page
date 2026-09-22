@@ -1,4 +1,5 @@
 import { FlagIcon } from './okrIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * OkrUnalignedBadge — 「상위에 걸리지 않았다」 배지.
@@ -12,14 +13,13 @@ import { FlagIcon } from './okrIcons.jsx';
  */
 export default function OkrUnalignedBadge({ count, note, title, variant = 'default' }) {
   return (
-    <span
+    <StatusBadge
       className={`okr-unaligned-badge${variant === 'pill' ? ' is-pill' : ''}`}
       title={title}
-      data-testid="okr-unaligned-badge"
-    >
+      data-testid="okr-unaligned-badge">
       <FlagIcon size={12} />
       <span>{typeof count === 'number' ? `미정렬 ${count}` : '미정렬'}</span>
       {note && <span className="okr-unaligned-note">{note}</span>}
-    </span>
+    </StatusBadge>
   );
 }

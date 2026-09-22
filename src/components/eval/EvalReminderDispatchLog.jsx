@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * EvalReminderDispatchLog — 예약 리마인더가 «나갔는지 · 왜 안 나갔는지» 보는 접힌 칸.
@@ -48,7 +49,7 @@ export default function EvalReminderDispatchLog({
       >
         <span className="evmon-dispatch-title">{title}</span>
         {shown !== null && (
-          <span className="evc-status-badge tone-neutral">{shown}</span>
+          <StatusBadge className="evc-status-badge tone-neutral">{shown}</StatusBadge>
         )}
         <span className={`evmon-dispatch-chevron${open ? ' is-open' : ''}`} aria-hidden="true">›</span>
       </button>
@@ -70,7 +71,7 @@ export default function EvalReminderDispatchLog({
           ) : (
             rows.map((r) => (
               <div className="evmon-dispatch-row" key={r.id} data-testid="evmon-dispatch-row">
-                <span className={`evc-status-badge ${r.badgeTone || 'tone-neutral'}`}>{r.badgeLabel}</span>
+                <StatusBadge className={`evc-status-badge ${r.badgeTone || 'tone-neutral'}`}>{r.badgeLabel}</StatusBadge>
                 <span className="evmon-dispatch-when">{r.scheduledLabel}</span>
                 <span className="evmon-dispatch-when">{r.sentLabel}</span>
                 <span className="evmon-dispatch-channel">{r.channelLabel}</span>

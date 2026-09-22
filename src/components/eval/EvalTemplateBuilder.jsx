@@ -1,4 +1,5 @@
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import {
   QUESTION_TYPES,
   fill,
@@ -279,34 +280,33 @@ export function EvalTemplateItemRow({
           : L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
       </span>
       {q.type === 'rating' && !isNoteItem(q) && (
-        <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-scale-${q.id}`}>
+        <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-scale-${q.id}`}>
           {fill(L.scaleRangeBadge, { max: scaleMaxOf(q) })}
-        </span>
+        </StatusBadge>
       )}
       {q.type === 'checkbox' && !isNoteItem(q) && (
-        <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-options-${q.id}`}>
+        <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-options-${q.id}`}>
           {fill(L.optionsCountBadge, { count: filledOptions(q).length })}
           {q.allowMultiple ? ` · ${L.optionsMultiBadge}` : ''}
-        </span>
+        </StatusBadge>
       )}
       {/* PW-482 — 작성자 표기가 실명이 아닐 때만 알린다. 실명은 기본값이라 배지가
           정보를 더하지 않는다. */}
       {showDisclosureBadge &&
         q.disclosure?.identity &&
         q.disclosure.identity !== 'named' && (
-          <span
+          <StatusBadge
             className="evc-tpl-item-badge"
-            data-testid={`evc-tpl-badge-disclosure-${q.id}`}
-          >
+            data-testid={`evc-tpl-badge-disclosure-${q.id}`}>
             {fill(L.disclosureBadge, {
               identity: L[`identity_${q.disclosure.identity}`] ?? q.disclosure.identity,
             })}
-          </span>
+          </StatusBadge>
         )}
       {q.description && !isNoteItem(q) && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
-        <span className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
+        <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
           {L.guideBadge}
-        </span>
+        </StatusBadge>
       )}
       {trailing}
       {/* PW-433 — 개정 전에는 동작 없는 버튼이었다(policy §5.11-C).

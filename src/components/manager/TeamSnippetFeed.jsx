@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 
@@ -68,10 +69,10 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
         <div className="mgr-ts-filterbar">
           <span className="mgr-ts-filterbar-label">필터 :</span>
           {memberFilter && (
-            <span className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilter} ×</span>
+            <StatusBadge className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilter} ×</StatusBadge>
           )}
           {redFlagOnly && (
-            <span className="mgr-ts-filter-chip is-flag" onClick={onClearRedFlag}>레드플래그 ×</span>
+            <StatusBadge className="mgr-ts-filter-chip is-flag" onClick={onClearRedFlag}>레드플래그 ×</StatusBadge>
           )}
           <span className="mgr-ts-filterbar-count">{filterCount}건</span>
         </div>
@@ -105,7 +106,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
                 {item.warning && <div className="mgr-ts-warning">⚠ {item.warning}</div>}
                 <p className="mgr-ts-card-text">{item.text}</p>
                 <div className="mgr-ts-tags">
-                  {item.tags.map((tag) => <span key={tag} className="mgr-ts-tag">#{tag}</span>)}
+                  {item.tags.map((tag) => <StatusBadge key={tag} className="mgr-ts-tag">#{tag}</StatusBadge>)}
                 </div>
                 {item.kr && (
                   <div className="mgr-ts-kr">

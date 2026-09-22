@@ -16,6 +16,7 @@
  *   onClose
  */
 import { IconX } from '../employeesIcons.jsx';
+import StatusBadge from '../../shared/StatusBadge.jsx';
 
 export default function AdminMemberListDialog({
   title,
@@ -63,7 +64,7 @@ export default function AdminMemberListDialog({
                 <span className="admin-kit-members-name">{m.name}</span>
                 <span className="admin-kit-members-sub">{m.sub}</span>
               </span>
-              <span className={`admin-kit-members-status is-${m.status || 'active'}`}>{m.statusLabel}</span>
+              <StatusBadge className={`admin-kit-members-status is-${m.status || 'active'}`}>{m.statusLabel}</StatusBadge>
             </button>
           ))
         )}

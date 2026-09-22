@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { fill, hostOf } from './sessionHelpers.js';
 import { doneBannerState, isDonePending } from './doneViewHelpers.js';
@@ -241,7 +242,7 @@ function ManualEntryPanel({ L, entry }) {
     <div className="ono-done-manual" data-testid="ono-done-manual">
       <div className="ono-done-manual-head">
         <span className="ono-done-manual-title">{L.manualEntryTitle}</span>
-        <span className="ono-done-manual-badge">{L.manualEntryBadge}</span>
+        <StatusBadge className="ono-done-manual-badge">{L.manualEntryBadge}</StatusBadge>
       </div>
       <textarea
         className="ono-start-textarea"
@@ -559,7 +560,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
               <span className="ono-start-flag ono-start-flag-blue">
                 {item.owner === 'member' ? L.roleMember : L.roleManager}
               </span>
-              {item.dueDate && <span className="ono-mem-chip">{item.dueDate}</span>}
+              {item.dueDate && <StatusBadge className="ono-mem-chip">{item.dueDate}</StatusBadge>}
             </label>
           ))}
         </div>
@@ -989,12 +990,11 @@ export default function DoneOneOnOneView({
       {has(session.managerFeedback) && (
         <div className="ono-done-feedback-wrap" data-testid="ono-done-feedback">
           <div className="ono-done-share-row">
-            <span
+            <StatusBadge
               className={`ono-done-share-badge${session.isShared ? ' is-on' : ''}`}
-              data-testid="ono-done-share-badge"
-            >
+              data-testid="ono-done-share-badge">
               {session.isShared ? L.shareOn : L.shareOff}
-            </span>
+            </StatusBadge>
           </div>
           <ManagerFeedback
             session={session}

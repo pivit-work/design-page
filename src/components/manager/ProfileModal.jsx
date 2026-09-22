@@ -1,4 +1,5 @@
 import { Component, useState, useEffect, useRef, useCallback } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { createPortal } from 'react-dom';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
@@ -333,7 +334,7 @@ function SnippetItem({ snippet }) {
         <p className="manager-modal-snippet-date">{snippet.date}</p>
         <div className="manager-modal-snippet-tags">
           {snippet.tags?.map((t) => (
-            <span key={t} className="manager-modal-snippet-tag">{t}</span>
+            <StatusBadge key={t} className="manager-modal-snippet-tag">{t}</StatusBadge>
           ))}
           <span className="manager-modal-snippet-health">
             <CheckHeartIcon size={14} />

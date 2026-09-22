@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
 import StartOneOnOneView from './StartOneOnOneView.jsx';
@@ -475,10 +476,10 @@ function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvata
             <p className="ono-member-role">{member.role}</p>
           </div>
         </div>
-        <div className="ono-member-badge" style={{ background: badge.bg, color: badge.color }}>
+        <StatusBadge as="div" className="ono-member-badge" style={{ background: badge.bg, color: badge.color }}>
           {badge.icon && <span className="ono-member-badge-icon">{badge.icon}</span>}
           <span>{labels[badge.labelKey]}</span>
-        </div>
+        </StatusBadge>
       </div>
 
       <div className="ono-member-body">

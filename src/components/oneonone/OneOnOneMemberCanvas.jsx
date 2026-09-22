@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { fill, hostOf, healthOf } from './sessionHelpers.js';
@@ -154,10 +155,10 @@ function mergeLabels(base, provided) {
 function StatusBadge({ status, L }) {
   const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
   return (
-    <span className={`ono-mem-badge is-${status}`}>
+    <DpStatusBadge className={`ono-mem-badge is-${status}`}>
       {status === 'live' && <span className="ono-mem-badge-dot" />}
       {label}
-    </span>
+    </DpStatusBadge>
   );
 }
 
@@ -665,10 +666,10 @@ export function SessionHeader({ title, status, date, duration, avatar, L, icons,
         <h1 className="ono-mem-head-title">{title}</h1>
         <StatusBadge status={status} L={L} />
         {duration && (
-          <span className="ono-mem-chip">
+          <DpStatusBadge className="ono-mem-chip">
             <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
             {duration}
-          </span>
+          </DpStatusBadge>
         )}
         {extra}
       </div>
@@ -738,7 +739,7 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
           {session.aiBriefing.signals?.length > 0 && (
             <div className="ono-start-briefing-badges">
               {session.aiBriefing.signals.map((s, i) => (
-                <span key={i} className="ono-start-topic-badge">{s}</span>
+                <DpStatusBadge key={i} className="ono-start-topic-badge">{s}</DpStatusBadge>
               ))}
             </div>
           )}
@@ -1074,7 +1075,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
             icons={icons}
             baseUrl={baseUrl}
             collapsible={false}
-            badge={<span className="ono-start-topic-badge">{doneCount}/{myActions.length} {L.completed}</span>}
+            badge={<DpStatusBadge className="ono-start-topic-badge">{doneCount}/{myActions.length} {L.completed}</DpStatusBadge>}
           >
             <div className="ono-start-progress-track">
               <div className="ono-start-progress-fill" style={{ width: `${myActions.length ? (doneCount / myActions.length) * 100 : 0}%` }} />
@@ -1155,7 +1156,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
         extra={
-          <span className="ono-mem-chip" data-testid="ono-view-mode">{L.viewModeFull}</span>
+          <DpStatusBadge className="ono-mem-chip" data-testid="ono-view-mode">{L.viewModeFull}</DpStatusBadge>
         }
       >
         <button type="button" className="ono-mem-back" onClick={onBack}>
@@ -1214,7 +1215,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           icons={icons}
           baseUrl={baseUrl}
           collapsible={false}
-          badge={<span className="ono-start-topic-badge">{session.actionItems.length}{L.count}</span>}
+          badge={<DpStatusBadge className="ono-start-topic-badge">{session.actionItems.length}{L.count}</DpStatusBadge>}
         >
           <div className="ono-mem-table">
             <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
@@ -1303,10 +1304,10 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
                   <span className="ono-mem-hist-top">
                     <span className="ono-mem-hist-date">{formatDate(s.createdAt, 'short')}</span>
                     {s.durationSec > 0 && (
-                      <span className="ono-mem-chip ono-mem-push">
+                      <DpStatusBadge className="ono-mem-chip ono-mem-push">
                         <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
                         {formatDuration(s.durationSec)}
-                      </span>
+                      </DpStatusBadge>
                     )}
                     {hVal != null && (
                       <span
@@ -1321,7 +1322,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
                   {s.topicsCovered.length > 0 && (
                     <span className="ono-start-briefing-badges">
                       {s.topicsCovered.slice(0, 3).map((hl, hi) => (
-                        <span key={`${hi}-${hl}`} className="ono-start-topic-badge">{hl}</span>
+                        <DpStatusBadge key={`${hi}-${hl}`} className="ono-start-topic-badge">{hl}</DpStatusBadge>
                       ))}
                     </span>
                   )}

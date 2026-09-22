@@ -1,3 +1,4 @@
+import StatusBadge from '../shared/StatusBadge.jsx';
 /**
  * 활동 로그 한 줄 — 시간 + 타입 태그(스니핏/알림/1on1/회의록/평가) + 액터 + 본문.
  *
@@ -14,7 +15,7 @@ export default function AdminActivityLogRow({ log, logTypes }) {
   return (
     <div className="admin-activity-row">
       <span className="admin-activity-time">{log.time}</span>
-      <span className={`admin-activity-tag is-${typeKey}`}>{typeLabel}</span>
+      <StatusBadge className={`admin-activity-tag is-${typeKey}`}>{typeLabel}</StatusBadge>
       <div className="admin-activity-body">
         <span className={`admin-activity-actor${log.isSystem ? ' is-system' : ''}`}>
           {log.actor}
