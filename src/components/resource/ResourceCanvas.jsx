@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { AiSparkleIcon } from './resourceIcons.jsx';
@@ -415,15 +416,19 @@ export default function ResourceCanvas({
           <ProjectView members={members} projects={projects} labels={labels} />
         ) : (
           <div className="rs-grid">
-            {members.map((m) => (
-              <MemberCard
-                key={m.id}
-                member={m}
-                projectById={projectById}
-                labels={labels}
-                onSelect={onSelectMember}
-              />
-            ))}
+            {/* 카드 수천 장을 한 번에 그리지 않는다 — 다 그린 모습은 같다 (2026-09-23 성능 점검). */}
+            <ProgressiveItems
+              items={members}
+              render={(m) => (
+                <MemberCard
+                  key={m.id}
+                  member={m}
+                  projectById={projectById}
+                  labels={labels}
+                  onSelect={onSelectMember}
+                />
+              )}
+            />
           </div>
         )}
       </div>

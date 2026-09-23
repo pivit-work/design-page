@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
-import { IconUpload } from './employeesIcons.jsx';
+import { IconUpload, IconChevronLeft, IconChevronRight } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -50,6 +50,8 @@ const DEFAULT_LABELS = {
   rosterHint: '내보내기 CSV와 동일한 열',
   rosterCollapse: '접기',
   rosterExpand: '펼치기',
+  /* 명단 쪽 넘김 — 구성원 설정 목록과 같은 모양·문구 (2026-09-23 성능 점검). */
+  rosterPagination: { of: '/', prev: '이전', next: '다음' },
   rosterEmpty: '조회일 기준 재직 인원이 없습니다',
   roster: {
     index: '#',
@@ -269,27 +271,41 @@ const ROSTER_COLUMNS = [
  * `rowBadge` — 이름 셀 뒤에 붙는 출처 배지(As Of 의 `증빙 고정본`, S2).
  * AI 데이터 소스 배지가 아니라 **시점 출처 표기**라 중립색을 쓴다(정책 §8).
  */
+/* 명단 한 쪽의 줄 수. 🔴 3,000명 조직에서 명단을 통째로 그리면 화면이 0.3초씩 여러 번
+   굳었다(2026-09-23 성능 점검). 명단은 높이 520px 스크롤 상자 안이라 한 쪽을 넉넉히 50줄로 둔다. */
+const ROSTER_PAGE_SIZE = 50;
+
 function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge }) {
   const columns = showSalary ? [...ROSTER_COLUMNS, 'salary'] : ROSTER_COLUMNS;
+  // 명단이 바뀌면(다른 날짜·비교) 첫 쪽으로 — 쪽 번호를 «어느 명단의 쪽인가»와 함께 든다.
+  const [pageState, setPageState] = useState({ rows, page: 1 });
+  const page = pageState.rows === rows ? pageState.page : 1;
+  const totalPages = Math.max(1, Math.ceil(rows.length / ROSTER_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const offset = (safePage - 1) * ROSTER_PAGE_SIZE;
+  const pageRows = rows.slice(offset, offset + ROSTER_PAGE_SIZE);
+  const goTo = (p) => setPageState({ rows, page: Math.max(1, Math.min(totalPages, p)) });
+  const pager = labels.rosterPagination ?? DEFAULT_LABELS.rosterPagination;
   if (rows.length === 0) {
     return <div className="admin-snap-empty">{labels.rosterEmpty}</div>;
   }
   return (
+    <>
     <RosterTable
       scroll="both"
       maxHeight={520}
       minWidth={1100}
       nowrap
       tableClassName="admin-snap-roster"
-      rows={rows}
-      rowKey={(r, i) => r.userId ?? `${r.name}-${i}`}
+      rows={pageRows}
+      rowKey={(r, i) => r.userId ?? `${r.name}-${offset + i}`}
       columns={[
         {
           key: '#',
           header: labels.roster.index,
           width: 44,
           cellProps: { className: 'admin-snap-roster-idx' },
-          render: (r, i) => i + 1,
+          render: (r, i) => offset + i + 1,
         },
         ...columns.map((c) => ({
           key: c,
@@ -325,6 +341,19 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
         })),
       ]}
     />
+    {rows.length > ROSTER_PAGE_SIZE && (
+      <div className="admin-emp-pagination" data-testid="admin-snap-roster-pagination">
+        <span className="admin-emp-muted">
+          {offset + 1}–{Math.min(offset + ROSTER_PAGE_SIZE, rows.length)} {pager.of} {rows.length}{labels.countSuffix}
+        </span>
+        <div className="admin-emp-pagination-nav">
+          <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => goTo(safePage - 1)}><IconChevronLeft size={14} />{pager.prev}</button>
+          <span className="admin-emp-mono admin-emp-muted">{safePage} {pager.of} {totalPages}</span>
+          <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => goTo(safePage + 1)}>{pager.next}<IconChevronRight size={14} /></button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
