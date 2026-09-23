@@ -7,6 +7,7 @@ import DateInput from '../shared/DateInput.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import { readCsvFileText } from '../shared/csvFileText.js';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -988,7 +989,8 @@ function AppointmentBulkView({
   }, [fields, labels, affiliationTemplate]);
 
   const parseUploaded = useCallback(async (f) => {
-    const text = await f.text();
+    // 한국어 엑셀이 저장한 EUC-KR 파일도 열 이름이 깨지지 않게 읽는다 (PW-968).
+    const text = await readCsvFileText(f);
     // 소비자가 파서를 주입하면 겸직 검증(§3-A)을 그쪽 규칙으로 돌린다.
     if (parseUpload) {
       const parsed = parseUpload(text, { fields, fileName: f.name });

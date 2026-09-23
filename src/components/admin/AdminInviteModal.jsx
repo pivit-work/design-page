@@ -17,6 +17,7 @@ import {
   inviteCsvNotes, inviteCsvPayload, parseInviteCsv, resolveInviteCsvRow,
 } from './inviteCsv.js';
 import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
+import { readCsvFileText } from '../shared/csvFileText.js';
 
 /**
  * AdminInviteModal — 구성원 초대 발송 모달.
@@ -563,7 +564,8 @@ export default function AdminInviteModal({
     }
     let text;
     try {
-      text = await file.text();
+      // 한국어 엑셀이 저장한 EUC-KR 파일도 열 이름이 깨지지 않게 읽는다 (PW-968).
+      text = await readCsvFileText(file);
     } catch {
       setCsvError(labels.csvErrRead);
       return;
