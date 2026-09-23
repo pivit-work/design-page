@@ -16,7 +16,8 @@
  *   summary       막대 위 「사용 1.0h / 10.0h (10%)」
  *   percent       막대 채움(0~100)
  *   creditLabel, creditValue, creditSuffix
- *   packs         [{ id, label, onClick }] — 크레딧 팩 구매 버튼(권한 없으면 빈 배열)
+ *   packs         [{ id, label, onClick, disabled? }] — 크레딧 팩 구매 버튼(권한 없으면 빈 배열).
+ *                 disabled 면 누를 수 없다 — 구매가 끝나기 전 두 번째 클릭을 막는다(PW-949)
  *   simulate      { label, onClick } | null — 개발 빌드 전용 사용량 흉내 버튼
  */
 const cx = (...xs) => xs.filter(Boolean).join(' ');
@@ -68,6 +69,8 @@ export default function BillingUsageCard({
               data-testid={`buy-${p.id}`}
               className="admin-kit-usage-pack"
               onClick={p.onClick}
+              disabled={!!p.disabled}
+              aria-busy={p.disabled ? true : undefined}
             >
               {p.label}
             </button>
