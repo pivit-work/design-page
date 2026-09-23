@@ -306,6 +306,20 @@ function HrList({ items, render, empty }) {
  * 신원 정보 편집 필드 — 값이 없어도 입력할 수 있어야 한다.
  * 성별·국적은 본인 프로필에서 잠긴 인사 정보라(PW-25) 여기가 유일한 입력 경로다.
  */
+/**
+ * 주소 다섯 칸을 읽기용 한 줄로 잇는다 (PW-920).
+ *
+ * 저장은 다섯 칸이고 한 줄은 **읽을 때만** 만든다 — 같은 값이 두 모양으로 남으면
+ * 한쪽만 고쳐졌을 때 어느 쪽이 맞는지 판정할 수 없다.
+ */
+function joinAddressLine(address) {
+  if (!address || typeof address !== 'object') return address ?? '';
+  const line = [address.region, address.line2, address.line1].filter(Boolean).join(' ');
+  const head = address.postalCode ? `[${address.postalCode}]` : '';
+  const tail = address.country ? `(${address.country})` : '';
+  return [head, line, tail].filter(Boolean).join(' ');
+}
+
 function HrEditPair({ k, value, onChange, type = 'text', date = false, options }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
@@ -357,12 +371,92 @@ const HR_IDENTITY_FIELDS = [
   'birthDate',
   'gender',
   'nationality',
-  'address',
   'probationEndDate',
   'leaveStartDate',
   'leaveEndDate',
   'militaryService',
+  /* ── 인사 정보 25칸 (PW-920 · 코어 §1-3-g) ── */
+  'lastName',
+  'serviceStartDate',
+  'firstHireDate',
+  'employmentTypeStartDate',
+  'lastWorkingDate',
+  'isRehire',
+  'workSchedule',
+  'payType',
+  'payCycle',
+  'targetBonus',
+  'targetBonusStart',
+  'targetBonusEnd',
+  'bankName',
+  'bankAccount',
+  'contractOvertime',
+  'contractHoliday',
+  'contractNight',
+  /* 주소는 다섯 칸이다. 묶음(객체)으로 비교하면 참조가 달라 늘 «고쳤다»가 된다. */
+  'addressPostalCode',
+  'addressRegion',
+  'addressDistrict',
+  'addressDetail',
+  'addressCountry',
 ];
+
+/**
+ * 서버가 주는 모양 → 화면이 쓰는 납작한 칸 (PW-920).
+ *
+ * 주소와 포괄 계약 시간은 묶음으로 오는데, 화면은 칸마다 하나씩 그린다. 묶음을 그대로
+ * draft 에 두면 「고쳤나」 판정이 참조 비교가 되어 저장 버튼이 늘 켜진 채로 남는다.
+ */
+function flattenIdentity(identity) {
+  const a = identity.address ?? {};
+  const c = identity.contractHours ?? {};
+  return {
+    ...identity,
+    addressPostalCode: a.postalCode ?? '',
+    addressRegion: a.region ?? '',
+    addressDistrict: a.line2 ?? '',
+    addressDetail: a.line1 ?? '',
+    addressCountry: a.country ?? '',
+    contractOvertime: c.overtime ?? '',
+    contractHoliday: c.holiday ?? '',
+    contractNight: c.night ?? '',
+    /* 계좌번호는 원래 값이 오지 않는다 — 「들어 있나」만 온다. 빈 칸으로 시작하고,
+       손대지 않으면 보내지 않아 서버 값이 그대로 남는다. */
+    bankAccount: '',
+  };
+}
+
+/** 화면의 납작한 칸 → 서버가 받는 모양. */
+function shapeIdentityForSave(draft) {
+  const out = { ...draft };
+  out.address = {
+    postalCode: draft.addressPostalCode,
+    region: draft.addressRegion,
+    line2: draft.addressDistrict,
+    line1: draft.addressDetail,
+    country: draft.addressCountry,
+  };
+  const num = (v) => (String(v ?? '').trim() === '' ? undefined : Number(v));
+  const hours = {
+    overtime: num(draft.contractOvertime),
+    holiday: num(draft.contractHoliday),
+    night: num(draft.contractNight),
+  };
+  out.contractHours =
+    hours.overtime === undefined &&
+    hours.holiday === undefined &&
+    hours.night === undefined
+      ? null
+      : hours;
+  /* 손대지 않은 계좌번호는 아예 보내지 않는다 — 빈 문자열을 보내면 「지운다」가 된다. */
+  if (!String(draft.bankAccount ?? '').trim()) delete out.bankAccount;
+  for (const k of [
+    'addressPostalCode', 'addressRegion', 'addressDistrict',
+    'addressDetail', 'addressCountry',
+    'contractOvertime', 'contractHoliday', 'contractNight',
+  ]) delete out[k];
+  return out;
+}
 
 /**
  * 병역 코드 → 라벨. 읽기 전용 표시에서 코드(`completed`)가 그대로 새어 나가지
@@ -409,25 +503,29 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
   const [seededId, setSeededId] = useState(null);
   if (data && seededId !== row?.id) {
     setSeededId(row?.id ?? null);
-    setIdentityDraft({ ...identity });
+    setIdentityDraft(flattenIdentity(identity));
     setIdentityState('idle');
   }
-  const idDraft = identityDraft ?? identity;
+  const idDraft = identityDraft ?? flattenIdentity(identity);
   const setIdField = (key) => (v) => {
     setIdentityDraft((p) => ({ ...(p ?? identity), [key]: v }));
     setIdentityState('idle');
   };
+  const identityBase = flattenIdentity(identity);
   const identityDirty =
     !!identityDraft &&
     HR_IDENTITY_FIELDS.some(
-      (k) => (identityDraft[k] ?? '') !== (identity[k] ?? ''),
+      (k) => (identityDraft[k] ?? '') !== (identityBase[k] ?? ''),
     );
   const submitIdentity = () => {
     setIdentityState('saving');
-    Promise.resolve(onSaveIdentity(row?.id, { ...idDraft }))
+    Promise.resolve(onSaveIdentity(row?.id, shapeIdentityForSave(idDraft)))
       .then((saved) => {
         // 서버가 돌려준 값이 정본 — 정규화(빈 문자열→null)를 화면에 반영한다.
-        if (saved) setData((d) => ({ ...(d ?? {}), identity: saved }));
+        if (saved) {
+          setData((d) => ({ ...(d ?? {}), identity: saved }));
+          setIdentityDraft(flattenIdentity(saved));
+        }
         setIdentityState('saved');
       })
       .catch(() => setIdentityState('error'));
@@ -472,7 +570,14 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                     options={L.hrGenderOptions || [{ value: 'male', label: '남성' }, { value: 'female', label: '여성' }, { value: 'other', label: '기타' }]}
                   />
                   <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
-                  <HrEditPair k={L.hrAddress || '주소'} value={idDraft.address} onChange={setIdField('address')} />
+                  <HrEditPair k={L.hrLastName || '성'} value={idDraft.lastName} onChange={setIdField('lastName')} />
+                  {/* 집 주소 다섯 칸 (PW-920 · 코어 §1-3-g 11~15번). 한 칸에 몰아 담으면
+                      우편번호를 따로 쓰는 곳이 그 문자열을 다시 갈라내야 한다. */}
+                  <HrEditPair k={L.hrAddressPostalCode || '우편번호'} value={idDraft.addressPostalCode} onChange={setIdField('addressPostalCode')} />
+                  <HrEditPair k={L.hrAddressRegion || '시 · 도'} value={idDraft.addressRegion} onChange={setIdField('addressRegion')} />
+                  <HrEditPair k={L.hrAddressDistrict || '시군구 · 동'} value={idDraft.addressDistrict} onChange={setIdField('addressDistrict')} />
+                  <HrEditPair k={L.hrAddressDetail || '상세 주소'} value={idDraft.addressDetail} onChange={setIdField('addressDetail')} />
+                  <HrEditPair k={L.hrAddressCountry || '국가'} value={idDraft.addressCountry} onChange={setIdField('addressCountry')} />
                   <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} date value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
                   <HrEditPair k={L.hrLeaveStartDate || '휴직 시작일'} date value={idDraft.leaveStartDate} onChange={setIdField('leaveStartDate')} />
                   <HrEditPair k={L.hrLeaveEndDate || '휴직 종료일'} date value={idDraft.leaveEndDate} onChange={setIdField('leaveEndDate')} />
@@ -481,6 +586,23 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                     value={idDraft.militaryService}
                     onChange={setIdField('militaryService')}
                     options={L.hrMilitaryOptions || MILITARY_OPTIONS}
+                  />
+                  {/* ── 고용 일자·근무 일정 (PW-920 · 코어 §1-3-g 분류 2·4) ── */}
+                  <HrEditPair k={L.hrServiceStartDate || '기산일'} date value={idDraft.serviceStartDate} onChange={setIdField('serviceStartDate')} />
+                  <HrEditPair k={L.hrFirstHireDate || '최초 입사일'} date value={idDraft.firstHireDate} onChange={setIdField('firstHireDate')} />
+                  <HrEditPair k={L.hrEmploymentTypeStartDate || '현 고용형태 시작일'} date value={idDraft.employmentTypeStartDate} onChange={setIdField('employmentTypeStartDate')} />
+                  <HrEditPair k={L.hrLastWorkingDate || '마지막 출근일'} date value={idDraft.lastWorkingDate} onChange={setIdField('lastWorkingDate')} />
+                  <HrEditPair
+                    k={L.hrIsRehire || '재입사 여부'}
+                    value={idDraft.isRehire ? 'yes' : 'no'}
+                    onChange={(v) => setIdField('isRehire')(v === 'yes')}
+                    options={L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }]}
+                  />
+                  <HrEditPair
+                    k={L.hrWorkSchedule || '근무 일정'}
+                    value={idDraft.workSchedule}
+                    onChange={setIdField('workSchedule')}
+                    options={L.hrWorkScheduleOptions || []}
                   />
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
                     {identityState === 'error' && (
@@ -497,6 +619,7 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                       type="button"
                       onClick={submitIdentity}
                       disabled={!identityDirty || identityState === 'saving'}
+                      data-testid="hr-identity-save"
                       className="admin-btn-primary"
                       style={{ fontSize: 12, padding: '6px 14px', opacity: !identityDirty || identityState === 'saving' ? 0.5 : 1 }}
                     >
@@ -510,7 +633,7 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                   <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
                   <HrPair k={L.hrGender || '성별'} v={identity.gender} />
                   <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
-                  <HrPair k={L.hrAddress || '주소'} v={identity.address} />
+                  <HrPair k={L.hrAddress || '주소'} v={joinAddressLine(identity.address)} />
                   <HrPair k={L.hrProbationEndDate || '수습 종료일'} v={identity.probationEndDate} />
                   <HrPair k={L.hrLeaveStartDate || '휴직 시작일'} v={identity.leaveStartDate} />
                   <HrPair k={L.hrLeaveEndDate || '휴직 종료일'} v={identity.leaveEndDate} />
@@ -521,6 +644,45 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                 </>
               )}
             </HrSection>
+            {/*
+              급여·계좌 (PW-920 · 코어 §1-3-g 분류 3).
+              전부 가장 민감한 등급이라 **본인과 HR 만** 본다 — 이 모달은 어드민 전용
+              경로로만 열린다. 계좌번호는 원래 값이 내려오지 않고, 손대지 않으면 보내지도
+              않는다(빈 칸을 보내면 「지운다」가 된다).
+            */}
+            {onSaveIdentity && (
+              <HrSection title={L.hrPaySection || '급여 · 계좌'}>
+                <HrEditPair
+                  k={L.hrPayType || '급여 유형'}
+                  value={idDraft.payType}
+                  onChange={setIdField('payType')}
+                  options={L.hrPayTypeOptions || []}
+                />
+                <HrEditPair
+                  k={L.hrPayCycle || '급여 지급 주기'}
+                  value={idDraft.payCycle}
+                  onChange={setIdField('payCycle')}
+                  options={L.hrPayCycleOptions || []}
+                />
+                <HrEditPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} value={idDraft.contractOvertime} onChange={setIdField('contractOvertime')} />
+                <HrEditPair k={L.hrContractHoliday || '포괄 계약 시간 · 휴일'} value={idDraft.contractHoliday} onChange={setIdField('contractHoliday')} />
+                <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdField('contractNight')} />
+                <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
+                <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
+                <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
+                <HrEditPair k={L.hrBankName || '은행명'} value={idDraft.bankName} onChange={setIdField('bankName')} />
+                <HrEditPair
+                  k={L.hrBankAccount || '계좌번호'}
+                  value={idDraft.bankAccount}
+                  onChange={setIdField('bankAccount')}
+                />
+                <div style={{ fontSize: 11, color: T.muted, padding: '2px 0 0 96px' }}>
+                  {identity.bankAccount?.present
+                    ? (L.hrBankAccountStored || '등록돼 있습니다. 바꾸려면 새 번호를 넣으세요.')
+                    : (L.hrBankAccountEmpty || '등록된 계좌가 없습니다.')}
+                </div>
+              </HrSection>
+            )}
             <HrSection title={L.hrFamily || '가족'}>
               <HrPair k={L.hrMarital || '혼인 여부'} v={family.maritalStatus} />
               <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
