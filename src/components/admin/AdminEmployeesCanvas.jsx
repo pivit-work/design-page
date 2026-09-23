@@ -428,6 +428,47 @@ function StatusBadge({ status, labels }) {
   return <DpStatusBadge className={`admin-emp-status is-${cls}`}>{label}</DpStatusBadge>;
 }
 
+/**
+ * 마지막 출근일 보조 배지 — 「퇴직 예정 D-n」·「출근 종료」 (PW-939, admin-spec §3.2.6).
+ *
+ * 🔴 재직 상태를 바꾸지 않는 표시다. 상태 배지 «옆에» 따로 붙고, 상태 배지 자체는 그대로다 —
+ * 「퇴사 예정」이라는 상태를 새로 만들지 않는다.
+ *
+ * 날짜를 오늘과 비교하는 일은 앱이 한다(조직 시간대의 «오늘»을 앱만 안다). 캔버스는 앱이
+ * 계산해 넘긴 `{ kind, label }` 을 그리기만 한다. 없으면 아무것도 그리지 않는다.
+ *   kind 'upcoming' — 마지막 출근일 전(당일 포함) → 주의 색
+ *   kind 'ended'    — 마지막 출근일은 지났고 퇴사일 전 → 중립 색
+ */
+function RetirementBadge({ notice }) {
+  if (!notice || !notice.label) return null;
+  const tone = notice.kind === 'upcoming' ? 'warning' : 'neutral';
+  return (
+    <DpStatusBadge
+      tone={tone}
+      className={`admin-emp-status admin-emp-retire is-${notice.kind === 'upcoming' ? 'upcoming' : 'ended'}`}
+      data-testid="employees-retirement-badge"
+      title={notice.label}
+    >
+      {notice.label}
+    </DpStatusBadge>
+  );
+}
+
+/**
+ * 상태 배지 + 마지막 출근일 보조 배지. 보조 배지가 없으면 종전과 똑같이 상태 배지 하나다.
+ * 둘일 때는 세로로 쌓는다 — 상태 열은 폭이 100px 이라 가로로 두면 칸 밖으로 넘친다.
+ */
+function StatusCell({ member, labels }) {
+  const status = <StatusBadge status={member.employmentStatus} labels={labels} />;
+  if (!member.retirementNotice) return status;
+  return (
+    <span className="admin-emp-status-stack">
+      {status}
+      <RetirementBadge notice={member.retirementNotice} />
+    </span>
+  );
+}
+
 function RolePill({ role, labels }) {
   if (!role || role === 'member') return null;
   return <DpStatusBadge className={`admin-emp-role-pill is-${role}`}>{labels.role[role] || role}</DpStatusBadge>;
@@ -669,7 +710,7 @@ function UnassignedTab({
                     {m.hireDate && <span>{(m.hireDate || '').slice(0, 10)}</span>}
                   </div>
                 </div>
-                <StatusBadge status={m.employmentStatus} labels={labels} />
+                <StatusCell member={m} labels={labels} />
                 <div className="admin-emp-unassigned-action">
                   <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)}>
                     <IconPlus size={13} />{labels.unassigned.assignOrg}
@@ -2002,7 +2043,9 @@ function EmployeesListView({
     { id: 'employmentType', label: cl.employmentType, width: 100 },
     /* FTE — 시트 뷰와 같은 자리(고용형태 뒤)다. 정본표 §1-3-g 의 31·32 순서. */
     ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
-    { id: 'employmentStatus', label: cl.employmentStatus, width: 100 },
+    /* 140 — 상태 배지 밑에 「퇴직 예정 D-n」·「Past last day」가 쌓인다(PW-939). 표가 고정 폭이라
+       100 이면 「퇴직 예정 D-」 에서 숫자가 잘렸다(브라우저 실측: 칸 76px · 배지 92px, 「퇴직 예정 D-365」 108px). */
+    { id: 'employmentStatus', label: cl.employmentStatus, width: 140 },
     ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
@@ -2255,7 +2298,7 @@ function EmployeesListView({
       /* 미입력(`null`)은 «—» 다 — 0% 가 아니다. `value || ''` 로 쓰면 나중에 0 이
          허용될 때 미입력과 같은 모양이 되어 조용히 틀린다. */
       case 'ftePercent': return <TextCell value={m.ftePercent === null || m.ftePercent === undefined ? '' : `${m.ftePercent}%`} />;
-      case 'employmentStatus': return <StatusBadge status={m.employmentStatus} labels={labels} />;
+      case 'employmentStatus': return <StatusCell member={m} labels={labels} />;
       case 'workLocation': return <TextCell value={m.workLocation} />;
       case 'jobCategory': return <TextCell value={m.jobCategory} />;
       case 'businessTitle': return <TextCell value={m.businessTitle} />;
@@ -3144,6 +3187,15 @@ function EmployeesEditPanel({
             <div>
               <div className="admin-emp-panel-name">{draft.displayName || draft.name}</div>
               <div className="admin-emp-panel-email">{draft.email}</div>
+              {/* 패널에는 상태 배지 자리가 없다(재직 상태는 아래 라디오다). 그래서 보조 배지는
+                  이름 밑에 둔다 — 라디오 옆에 두면 스크롤을 내려야 보인다 (PW-939). 값은
+                  편집 중 초안이 아니라 목록 행(`member`)의 것이다: 마지막 출근일은 이 패널이
+                  아니라 인사 기록 창에서 저장된다. */}
+              {member?.retirementNotice && (
+                <div className="admin-emp-panel-badges">
+                  <RetirementBadge notice={member.retirementNotice} />
+                </div>
+              )}
             </div>
           </div>
           <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label={labels.panel.close}><IconX size={16} /></button>
