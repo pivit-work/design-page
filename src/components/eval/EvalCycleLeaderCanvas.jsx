@@ -4,6 +4,7 @@ import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
 import { AlertIcon, ZapIcon } from './evalIcons.jsx';
+import { reseedKeepingEdits } from './reseedAnswers.js';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -291,7 +292,16 @@ export default function EvalCycleLeaderCanvas({
   const [seededFor, setSeededFor] = useState({ fields, leaderAnswers });
   if (seededFor.fields !== fields || seededFor.leaderAnswers !== leaderAnswers) {
     setSeededFor({ fields, leaderAnswers });
-    setState(seedState(leaderAnswers, fields));
+    // 칸 구성이 같고 답만 새로 왔으면(저장 응답) 그 사이 고친 칸은 둔다 (PW-966).
+    if (seededFor.fields !== fields) setState(seedState(leaderAnswers, fields));
+    else
+      setState((cur) =>
+        reseedKeepingEdits(
+          cur,
+          seedState(seededFor.leaderAnswers, fields),
+          seedState(leaderAnswers, fields),
+        ),
+      );
   }
   // TC-036: 미입력 자동 스크롤용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});

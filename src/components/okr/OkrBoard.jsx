@@ -84,9 +84,10 @@ export default function OkrBoard({
           icons={icons}
           baseUrl={baseUrl}
           onClose={() => setComposeKr(null)}
+          // 🔴 소비처의 약속을 그대로 돌려준다 — 창이 저장 결과를 기다려 실패하면 열어 둔다 (PW-966).
           onSubmit={(text) => {
             const trimmed = text.trim();
-            if (trimmed && composeKr.krId) onSubmitFeedback?.(composeKr.krId, trimmed);
+            return trimmed && composeKr.krId ? onSubmitFeedback?.(composeKr.krId, trimmed) : undefined;
           }}
         />
       )}

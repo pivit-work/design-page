@@ -14,6 +14,7 @@ import {
   AlertIcon,
   CheckCircleIcon,
 } from './evalIcons.jsx';
+import { reseedKeepingEdits } from './reseedAnswers.js';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -340,7 +341,12 @@ export default function EvalCycleMemberCanvas({
   const [seededFor, setSeededFor] = useState({ fields, answers });
   if (seededFor.fields !== fields || seededFor.answers !== answers) {
     setSeededFor({ fields, answers });
-    setState(seedState(answers, fields));
+    // 칸 구성이 같고 답만 새로 왔으면(저장 응답) 그 사이 고친 칸은 둔다 (PW-966).
+    if (seededFor.fields !== fields) setState(seedState(answers, fields));
+    else
+      setState((cur) =>
+        reseedKeepingEdits(cur, seedState(seededFor.answers, fields), seedState(answers, fields)),
+      );
   }
 
   if (!active) {
