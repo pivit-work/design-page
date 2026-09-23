@@ -816,7 +816,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
           </div>
         )}
         {canEdit && !loadError && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${T.border}` }}>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
             <HrEditPair k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
             <HrEditPair k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
             <HrEditPair k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
@@ -935,12 +935,12 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
               <span style={{ minWidth: 88, color: T.muted, paddingTop: 7 }}>{L.hrOtherBenefits || '기타 복리후생'}</span>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {d.otherBenefits.map((o, i) => (
                   <div key={i} style={{ display: 'flex', gap: 4 }} data-testid="hr-other-benefit-row">
-                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} style={{ flex: 1, height: 30, fontSize: 12 }} />
-                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} style={{ flex: 1, height: 30, fontSize: 12 }} />
-                    <button type="button" className="admin-emp-btn" onClick={() => removeOther(i)} style={{ fontSize: 11, padding: '3px 8px' }}>{L.hrRecordDelete || '지우기'}</button>
+                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
+                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
+                    <button type="button" className="admin-emp-btn" onClick={() => removeOther(i)} style={{ flexShrink: 0, fontSize: 11, padding: '3px 8px' }}>{L.hrRecordDelete || '지우기'}</button>
                   </div>
                 ))}
                 <button type="button" className="admin-emp-btn" onClick={addOther} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1119,6 +1119,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             {
               key: 'type',
               header: L.salaryHistType || '종류',
+              // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 날짜 칸과 같이 줄바꿈을 막는다.
+              cellProps: { className: 'is-date' },
               render: (h) => typeLabel(typeOf(h)),
             },
             {
