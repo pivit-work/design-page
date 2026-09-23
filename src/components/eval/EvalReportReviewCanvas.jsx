@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Toast from '../shared/Toast.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -669,13 +669,13 @@ export default function EvalReportReviewCanvas({
 
   return (
     <div className="evc-root">
-      {/* PW-978 — 알림은 <body> 바로 아래에 그린다. `.evc-root` 가 position: fixed 라 그 안의
-          z-index 는 바깥 앱 위쪽 바(.top-nav)를 넘지 못해, 알림이 바 밑에 깔려 한 번도 보이지
-          않았다. 생김새는 그대로다. */}
-      {toast && typeof document !== 'undefined' && createPortal(
-        <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>,
-        document.body,
-      )}
+      {/* PW-978 — 공용 Toast 로 그린다(<body> 바로 아래). 전에는 `.evc-root` 안에 그려서, 뿌리가
+          position: fixed 인 탓에 z-index 가 앱 위쪽 바를 넘지 못해 알림이 한 번도 보이지 않았다. */}
+      <Toast
+        message={toast?.msg}
+        tone={toast?.type === 'success' ? 'success' : 'error'}
+        data-testid="evrr-toast"
+      />
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
