@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import { csvCell } from '../shared/csvCell.js';
+import { isoDateInZone } from '../shared/calendarDate.js';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -313,6 +314,8 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
 
 export default function EvalFeedbackHrCanvas({
   dashboard = null,
+  /** CSV 「마지막 피드백」 날짜를 셀 시간대(IANA). 비우면 브라우저 시간대 (PW-963). */
+  timeZone,
   channels = { collab: false, email: true },
   labels: providedLabels,
   onNudge,
@@ -361,7 +364,7 @@ export default function EvalFeedbackHrCanvas({
       return;
     }
     const rows = d.atRisk.map((m) =>
-      [m.name, m.department || '', m.managerName || '', m.lastFeedbackAt ? new Date(m.lastFeedbackAt).toISOString().slice(0, 10) : L.notWritten, m.daysSince == null ? '' : m.daysSince]
+      [m.name, m.department || '', m.managerName || '', m.lastFeedbackAt ? isoDateInZone(m.lastFeedbackAt, timeZone) : L.notWritten, m.daysSince == null ? '' : m.daysSince]
         .map(csvCell)
         .join(','),
     );
