@@ -99,15 +99,22 @@ export const INVITE_CSV_COLUMNS = [
   // 권한
   { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90 },
   // 근태
-  { key: 'workSchedule', labelKey: 'csvColWorkSchedule', option: 'workSchedule', width: 110 },
+  { key: 'workSchedule', labelKey: 'csvColWorkSchedule', option: 'workSchedule', codes: 'workSchedule', width: 110 },
   // 급여·보상 — 🔒
   { key: 'salary', labelKey: 'csvColSalary', kind: 'salary', masked: true, width: 110, aliases: ['연봉'] },
   /*
     급여 칸 여덟 (PW-920 · 코어 §1-3-g 분류 3). 전부 가장 민감한 등급이라 계좌·보너스는
     미리보기에서 가린다(`masked`). 급여 유형·지급 주기는 회사가 켠 값만 받는다.
   */
-  { key: 'payType', labelKey: 'csvColPayType', option: 'payType', width: 100 },
-  { key: 'payCycle', labelKey: 'csvColPayCycle', option: 'payCycle', width: 110 },
+  { key: 'payType', labelKey: 'csvColPayType', option: 'payType', codes: 'payType', width: 100 },
+  { key: 'payCycle', labelKey: 'csvColPayCycle', option: 'payCycle', codes: 'payCycle', width: 110 },
+  /*
+    계약 기간·초과근무 수당 (PW-920 재작업 · 코어 §1-3-g 53·65번). 구성원의 칸이 아니라
+    보상 이력의 행이 된다 — 가입 확정 때 서버가 옮긴다. 수당은 가장 민감한 등급이라 가린다.
+  */
+  { key: 'contractStartDate', labelKey: 'csvColContractStartDate', kind: 'date', width: 120 },
+  { key: 'contractEndDate', labelKey: 'csvColContractEndDate', kind: 'date', width: 120 },
+  { key: 'overtimeAllowance', labelKey: 'csvColOvertimeAllowance', kind: 'salary', masked: true, width: 120 },
   { key: 'contractOvertime', labelKey: 'csvColContractOvertime', kind: 'hours', width: 110 },
   { key: 'contractHoliday', labelKey: 'csvColContractHoliday', kind: 'hours', width: 110 },
   { key: 'contractNight', labelKey: 'csvColContractNight', kind: 'hours', width: 110 },
@@ -180,6 +187,25 @@ export const EMPLOYMENT_STATUS_LABEL_KEY = {
  * 이 파일이 쓰는 문구의 한국어 기본값. 화면은 `t()` 로 만든 라벨을 넘겨 덮는다.
  * 기본값을 여기 두는 이유: 두 화면이 같은 규칙을 쓰는데 라벨 한 벌이 빠지면 헤더를 못 알아본다.
  */
+/**
+ * 코드값으로 저장하는 칸 → 코드별 라벨 키 (PW-920 재작업).
+ *
+ * 급여 유형·지급 주기·근무 일정은 서버가 코드(`annual`·`monthly`·`fixed`)로 받지만, 어드민은
+ * 화면에서 본 말(「연봉」「월 1회」「고정 근무」)로 적는다. 둘 다 받고 **코드로 바꿔 보낸다.**
+ * 코드만 받던 때는 화면에 보이는 말로 적으면 「회사에 등록된 값이 아니에요」가 됐다.
+ */
+export const INVITE_CSV_CODE_LABEL_KEYS = {
+  payType: { hourly: 'csvPayTypeHourly', monthly: 'csvPayTypeMonthly', annual: 'csvPayTypeAnnual' },
+  payCycle: { monthly: 'csvPayCycleMonthly', biweekly: 'csvPayCycleBiweekly', weekly: 'csvPayCycleWeekly' },
+  workSchedule: {
+    fixed: 'csvWorkFixed',
+    staggered: 'csvWorkStaggered',
+    selective: 'csvWorkSelective',
+    shift: 'csvWorkShift',
+    flexible: 'csvWorkFlexible',
+  },
+};
+
 export const INVITE_CSV_DEFAULT_LABELS = {
   csvColEmail: '이메일',
   csvColName: '이름',
@@ -242,6 +268,20 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColStockOptions: '주식 옵션',
   csvColOtherBenefits: '기타 복리후생',
   csvColTrainings: '수료한 교육 과정',
+  csvColContractStartDate: '계약 시작일',
+  csvColContractEndDate: '계약 종료일',
+  csvColOvertimeAllowance: '초과근무 수당',
+  csvPayTypeHourly: '시급',
+  csvPayTypeMonthly: '월급',
+  csvPayTypeAnnual: '연봉',
+  csvPayCycleMonthly: '월 1회',
+  csvPayCycleBiweekly: '격주',
+  csvPayCycleWeekly: '주 1회',
+  csvWorkFixed: '고정 근무',
+  csvWorkStaggered: '시차 근무',
+  csvWorkSelective: '선택적 근무',
+  csvWorkShift: '교대 근무',
+  csvWorkFlexible: '유연 근무',
   csvColSalary: '연봉 총액',
   csvColCertifications: '자격증 및 면허',
   csvColStatus: '상태',
@@ -281,6 +321,10 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrSalary: '연봉은 숫자로 적어 주세요',
+  csvErrMoney: '{column} 칸은 금액(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
+  csvErrUnknownChoice: "{column} '{value}'는 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
+  csvErrContractNeedsStart: '계약 종료일을 적었으면 계약 시작일도 적어 주세요',
+  csvErrContractOrder: '계약 종료일이 시작일보다 앞설 수 없어요',
   csvErrManagerUnknown: "상급자 '{value}'는 회사에도 이 파일에도 없는 사람이에요",
   csvErrManagerSelf: '자기 자신을 상급자로 둘 수 없어요',
   csvErrLeaderFormat: '조직장은 조직경로와 같은 개수의 Y/N 을 | 로 이어 적어 주세요',
@@ -401,6 +445,12 @@ const TEMPLATE_SAMPLE = {
   certifications: '정보처리기사',
 };
 
+/**
+ * 코드값 칸의 예시 — **라벨로** 적어 둔다 (PW-920 재작업). 템플릿을 연 사람이 「연봉」「월 1회」
+ * 처럼 화면에서 본 말로 적으면 된다는 것을 예시 행에서 바로 본다.
+ */
+const TEMPLATE_SAMPLE_CODE = { payType: 'annual', payCycle: 'monthly', workSchedule: 'fixed' };
+
 /** 템플릿 CSV 텍스트 — BOM + 헤더 + 예시 1행. 직종을 켠 회사면 직종 열이 든다. */
 export function buildInviteTemplateCsv(labels = {}, opts = {}) {
   const l = withDefaults(labels);
@@ -411,6 +461,7 @@ export function buildInviteTemplateCsv(labels = {}, opts = {}) {
     if (c.key === 'name') return l.csvSampleName;
     if (c.key === 'role') return l.roleMember;
     if (c.key === 'employmentStatus') return l.csvStatusActive;
+    if (c.codes) return codeLabel(c.codes, TEMPLATE_SAMPLE_CODE[c.key], l);
     return TEMPLATE_SAMPLE[c.key] ?? '';
   });
   const esc = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
@@ -478,6 +529,25 @@ export function resolveEmploymentStatus(raw, labels = {}) {
   if (!v) return '';
   for (const [code, key] of Object.entries(EMPLOYMENT_STATUS_LABEL_KEY)) {
     if (v === fold(code) || v === fold(l[key])) return code;
+  }
+  return null;
+}
+
+/** 코드 → 화면 라벨. 라벨이 없으면 코드 그대로. */
+const codeLabel = (group, code, l) =>
+  (code && (l[INVITE_CSV_CODE_LABEL_KEYS[group]?.[code]] || INVITE_CSV_DEFAULT_LABELS[INVITE_CSV_CODE_LABEL_KEYS[group]?.[code]])) || code || '';
+
+/**
+ * 코드값 칸의 적힌 값 → 코드 (PW-920 재작업). 코드(`annual`)·화면 라벨(`연봉`)·한국어 기본
+ * 라벨 셋 다 받는다 — 영어 화면을 쓰는 어드민이 한국어 파일을 올리는 일도 있다.
+ * 모르는 값이면 `null`.
+ */
+export function resolveCodeCell(group, raw, labels = {}) {
+  const l = withDefaults(labels);
+  const v = fold(raw);
+  if (!v) return null;
+  for (const [code, key] of Object.entries(INVITE_CSV_CODE_LABEL_KEYS[group] || {})) {
+    if (v === fold(code) || v === fold(l[key]) || v === fold(INVITE_CSV_DEFAULT_LABELS[key])) return code;
   }
   return null;
 }
@@ -711,6 +781,19 @@ export function inviteCsvIssues(row, ctx) {
   }
 
   for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
+    if (col.codes) {
+      // 코드값 칸 — 라벨로 적어도 코드로 알아보고, 회사가 켠 값인지 본다. 틀리면 쓸 수 있는
+      // 값을 «화면에 보이는 말로» 알려 준다(코드를 보여 주면 또 코드로 적는다).
+      const raw = normalize(v[col.key]);
+      const list = ctx.fieldOptions[col.option];
+      const code = resolveCodeCell(col.codes, raw, l);
+      if (raw && !(code && optionKnown(code, list))) {
+        const allowed = (Array.isArray(list) ? list : Object.keys(INVITE_CSV_CODE_LABEL_KEYS[col.codes]))
+          .map((c) => codeLabel(col.codes, c, l));
+        add(col.key, fmtCsv(l.csvErrUnknownChoice, { column: labelOf(col.key), value: raw, choices: allowed.join(', ') }));
+      }
+      continue;
+    }
     if (col.option && !optionKnown(v[col.key], ctx.fieldOptions[col.option])) {
       add(col.key, fmtCsv(l.csvErrUnknownOption, { column: labelOf(col.key), value: v[col.key] }));
     }
@@ -721,6 +804,10 @@ export function inviteCsvIssues(row, ctx) {
     // 예/아니오 칸 (PW-920). 「Y」·「true」·「1」도 받는다 — 파일을 만든 도구마다 다르다.
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
+    }
+    // 금액 칸(타겟 보너스·퇴직연금·초과근무 수당) — 숫자가 하나는 있어야 한다. 연봉은 아래에서 따로 본다.
+    if (col.kind === 'salary' && col.key !== 'salary' && normalize(v[col.key]) && !/\d/.test(v[col.key])) {
+      add(col.key, fmtCsv(l.csvErrMoney, { column: labelOf(col.key), value: v[col.key] }));
     }
     // 포괄 계약 시간 — 0 이상의 정수(시간).
     if (col.kind === 'hours' && normalize(v[col.key]) && !/^\d+$/.test(normalize(v[col.key]))) {
@@ -764,6 +851,14 @@ export function inviteCsvIssues(row, ctx) {
   const fte = normalize(v.ftePercent);
   if (fte && !(/^\d+$/.test(fte) && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
   if (normalize(v.salary) && !/\d/.test(v.salary)) add('salary', l.csvErrSalary);
+
+  // 계약 기간 — 시작일이 있어야 보상 이력의 행이 선다(서버와 같은 규칙).
+  const cStart = normalize(v.contractStartDate);
+  const cEnd = normalize(v.contractEndDate);
+  if (cEnd && !cStart) add('contractStartDate', l.csvErrContractNeedsStart);
+  else if (cStart && cEnd && isIsoDate(cStart) && isIsoDate(cEnd) && cEnd < cStart) {
+    add('contractEndDate', l.csvErrContractOrder);
+  }
 
   if (ctx.squadNames) {
     for (const s of splitList(v.squad)) {
@@ -812,12 +907,21 @@ export function inviteCsvPayload(row, ctx) {
   for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
     const raw = normalize(v[col.key]);
     if (!raw) continue;
+    if (col.codes) { put(col.key, resolveCodeCell(col.codes, raw, ctx.labels)); continue; }
     if (col.option) { put(col.key, canonicalOption(raw, ctx.fieldOptions[col.option])); continue; }
+    /*
+      여러 값 칸은 `|` 로 나눠 **목록으로** 보낸다 — 서버가 목록으로 받는다(PW-920 재작업).
+      자격증만 나누고 기타 복리후생·수료한 교육 과정은 글자 한 덩이로 보내던 때는
+      그 칸을 채운 행의 초대가 통째로 실패했다. 칸 이름이 아니라 `kind` 로 가른다 —
+      여러 값 칸이 늘어도 여기를 또 고치지 않게.
+    */
+    if (col.kind === 'list') {
+      put(col.key === 'squad' ? 'squadNames' : col.key, splitList(raw));
+      continue;
+    }
     switch (col.key) {
       case 'email': case 'name': case 'role': case 'orgPath': case 'primaryPath': case 'leader':
         break;
-      case 'squad': put('squadNames', splitList(raw)); break;
-      case 'certifications': put('certifications', splitList(raw)); break;
       case 'managerEmail': put('managerEmail', normEmail(raw)); break;
       case 'employmentStatus': put('employmentStatus', r.employmentStatus); break;
       default: put(col.key, raw);
