@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
@@ -592,9 +593,13 @@ export default function EvalFeedbackComposeCanvas({
 
   return (
     <div className="evc-root" style={{ background: C.bg, fontFamily: FONT }}>
-      {toast && (
-        <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>
-      )}
+      {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
+          그리면 z-index 가 앱 위쪽 바를 넘지 못해 알림이 바 밑에 깔려 보이지 않았다(PW-978 과 같은 원인). */}
+      <Toast
+        message={toast?.msg}
+        tone={toast?.type === 'success' ? 'success' : 'error'}
+        data-testid="fbmgr-toast"
+      />
       {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
           같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
       <header className="evc-header">

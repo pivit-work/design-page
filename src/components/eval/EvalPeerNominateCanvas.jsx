@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import Toast from '../shared/Toast.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { AlertIcon, CheckCircleIcon, LockIcon } from './evalIcons.jsx';
 
@@ -173,9 +174,13 @@ export default function EvalPeerNominateCanvas({
 
   return (
     <div className="evc-root">
-      {toast && (
-        <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>
-      )}
+      {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
+          그리면 z-index 가 앱 위쪽 바를 넘지 못해 알림이 바 밑에 깔려 보이지 않았다(PW-978 과 같은 원인). */}
+      <Toast
+        message={toast?.msg}
+        tone={toast?.type === 'success' ? 'success' : 'error'}
+        data-testid="evpn-toast"
+      />
       {header}
       {segment}
 
