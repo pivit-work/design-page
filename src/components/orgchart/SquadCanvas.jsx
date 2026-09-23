@@ -64,7 +64,7 @@ import { useDismissLayer } from './hooks.js';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgchart-labels.jsx';
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+import { todayIsoInZone } from '../shared/calendarDate.js';
 
 /**
  * 셀 툴팁의 마지막 줄 — 이 셀을 눌렀을 때 무엇을 할 수 있는지.
@@ -92,6 +92,11 @@ function capacityNote(L, { total, diff, count, unsetCount }) {
 
 export default function SquadCanvas({
   squads = [],
+  /**
+   * 「오늘」을 셀 시간대(IANA, 예 `Asia/Seoul`). 새 스쿼드 시작일 기본값과 「종료일 지남」
+   * 판정에 쓴다. 비우면 브라우저 시간대 (PW-963).
+   */
+  timeZone,
   /**
    * 명부. 항목의 `avatar` 는 **이름 글자**(이니셜 규칙)이고, 프로필 **사진 주소**는
    * 별도 필드 `photoUrl` 이다 — 한 필드에 두 뜻을 담으면 소비처가 글자로 그릴지
@@ -385,7 +390,7 @@ export default function SquadCanvas({
     const used = new Set(squads.map((s) => s.color));
     setSquadForm({
       mode: 'create',
-      name: '', mission: '', startDate: todayIso(), endDate: '',
+      name: '', mission: '', startDate: todayIsoInZone(timeZone), endDate: '',
       color: SQUAD_PALETTE.find((c) => !used.has(c)) || SQUAD_PALETTE[0],
       leadUserId: null,
     });
@@ -463,7 +468,7 @@ export default function SquadCanvas({
 
   // ── 완료 전환 넛지: 종료일이 지난 진행중 스쿼드. 자동 전이는 하지 않는다(안내만) ──
   const overdueSquads = ledgerReady
-    ? squads.filter((sq) => sq.status === 'active' && sq.endDate && sq.endDate < todayIso())
+    ? squads.filter((sq) => sq.status === 'active' && sq.endDate && sq.endDate < todayIsoInZone(timeZone))
     : [];
 
   // ── 배정 ──
