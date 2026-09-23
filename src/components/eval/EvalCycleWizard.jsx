@@ -1862,6 +1862,8 @@ export default function EvalCycleWizard({
   committeeElsewhere = null,
 }) {
   const isManage = !!cycle;
+  /** 이미 연 사이클을 사이클 관리 탭에서 고치는 중인가(초안 이어쓰기는 아니다). */
+  const openedManage = isManage && !!cycle?.status && cycle.status !== 'draft';
   /** 인라인 단일 단계인가. 숫자 0 도 유효한 단계라 `!= null` 로 판정한다. */
   const isSingleStep = singleStep != null;
   const initialSeq = cycle?.reviewSequence ?? null;
@@ -2243,8 +2245,16 @@ export default function EvalCycleWizard({
   const presetSchedule = offsetsToSchedule(presetOffsets, scheduleStart);
   const scheduleOf = (id) =>
     schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
-  // 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
-  const remindersOf = (id) => (reminders[id] ?? defaultReminders()).map(normalizeReminder);
+  /*
+   * 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
+   *
+   * 🔴 기본 리마인더 둘은 사이클을 «만들 때» 채우는 값이다(정책 §5.2.1 「단계 진입 시」).
+   * 오픈된 사이클에서 리마인더를 저장한 적 없는 단계는 발송기가 보내지 않으므로 화면도
+   * 「설정된 리마인더가 없습니다」로 보인다(PW-981). 기본값으로 채워 보이면 HR 은 그 단계에
+   * 리마인더가 나갈 줄 안다. 저장도 그런 단계는 싣지 않는다(PW-971 · submit).
+   */
+  const remindersOf = (id) =>
+    (reminders[id] ?? (openedManage ? [] : defaultReminders())).map(normalizeReminder);
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   const orderedMiddle = [
     ...phaseOrder.filter((id) => middleIds.includes(id)),
@@ -4233,7 +4243,6 @@ export default function EvalCycleWizard({
    */
   const [submitting, setSubmitting] = useState(false);
   const [submitFailed, setSubmitFailed] = useState(false);
-  const openedManage = isManage && !!cycle?.status && cycle.status !== 'draft';
 
   const submit = async () => {
     if (submitting) return;
