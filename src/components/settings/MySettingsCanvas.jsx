@@ -92,6 +92,8 @@ const DEFAULT_LABELS = {
     childrenCount: (n) => `자녀 ${n}명 (자동 집계)`,
     dependentsNote: '부양가족 정보는 연말정산·4대보험 목적으로 저장되며, 본인과 HR(어드민)만 열람할 수 있습니다.',
     dependentsEmpty: '등록된 부양가족이 없습니다.',
+    loadError: '가족 정보를 불러오지 못했습니다. 다시 불러온 뒤 고칠 수 있습니다.',
+    retry: '다시 시도',
     dobEmpty: '생년월일 미입력',
     isDependent: '부양중',
     notDependent: '비부양',
@@ -562,7 +564,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
 }
 
 /* ═══ 가족 정보 ═══ */
-function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDeleteDependent }) {
+function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry }) {
   const L = labels.family;
   const fam = family || { emergencyContact: {}, dependents: [] };
   const [marital, setMarital] = useState(fam.maritalStatus || '');
@@ -585,6 +587,23 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
     setDep({ name: '', relation: 'spouse', dateOfBirth: '', isDependent: true });
     setAdding(false);
   };
+
+  // 못 불러온 채로 빈 칸을 그리면 한 칸만 고쳐 저장해도 나머지가 빈 값으로 덮인다 —
+  // 불러오기에 실패했으면 입력 칸 대신 실패를 말하고 다시 불러올 길만 둔다.
+  if (loadError && !family) {
+    return (
+      <Card testId="family-info-card">
+        <div className="admin-section-label">{L.section}</div>
+        <div className="msc-empty-state" data-testid="family-load-error">
+          <div>{L.loadError}</div>
+          {onRetry && (
+            <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+              onClick={onRetry} data-testid="family-retry">{L.retry}</button>
+          )}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -1186,6 +1205,8 @@ export default function MySettingsCanvas({
   /* 가족 정보 */
   family = null,
   familySaveState = 'idle',
+  familyLoadError = false,
+  onFamilyRetry,
   onSaveFamily,
   onAddDependent,
   onDeleteDependent,
@@ -1477,6 +1498,8 @@ export default function MySettingsCanvas({
               family={family}
               labels={labels}
               saveState={familySaveState}
+              loadError={familyLoadError}
+              onRetry={onFamilyRetry}
               onSave={onSaveFamily}
               onAddDependent={onAddDependent}
               onDeleteDependent={onDeleteDependent}
