@@ -1346,6 +1346,10 @@
   border-bottom: 1px solid var(--bg-secondary);
 }
 .admin-emp-panel-id { display: flex; align-items: center; gap: 10px; }
+.admin-emp-panel-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+/* 상태 배지 + 마지막 출근일 보조 배지(PW-939). 상태 열 폭이 좁아 세로로 쌓는다. */
+.admin-emp-status-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.admin-emp-status-stack .admin-emp-retire { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .admin-emp-panel-name { font-size: var(--font-size-text-md, 16px); font-weight: 700; line-height: 24px; color: var(--text-primary); }
 .admin-emp-panel-email { font-size: 13px; color: var(--text-tertiary); }
 .admin-emp-panel-close {
