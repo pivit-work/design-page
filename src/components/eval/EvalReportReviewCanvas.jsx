@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
@@ -668,8 +669,12 @@ export default function EvalReportReviewCanvas({
 
   return (
     <div className="evc-root">
-      {toast && (
-        <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>
+      {/* PW-978 — 알림은 <body> 바로 아래에 그린다. `.evc-root` 가 position: fixed 라 그 안의
+          z-index 는 바깥 앱 위쪽 바(.top-nav)를 넘지 못해, 알림이 바 밑에 깔려 한 번도 보이지
+          않았다. 생김새는 그대로다. */}
+      {toast && typeof document !== 'undefined' && createPortal(
+        <div className={`evc-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`} role="status">{toast.msg}</div>,
+        document.body,
       )}
       <header className="evc-header">
         <div>
