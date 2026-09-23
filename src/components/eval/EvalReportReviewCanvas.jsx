@@ -75,6 +75,12 @@ const DEFAULT_LABELS = {
   refineLoadError: '검수 목록을 불러오지 못했습니다.',
   /** 일괄 발송에서 막힌 사람이 빠졌을 때. §8.6 의 「미승인 N건은 제외됩니다」와 같은 꼴. */
   refineExcluded: '검수 미완 {count}명은 제외됩니다',
+  // PW-978 — 대상자 탭에서 「제외됨」인 사람 (정책 §5.3.6 「발송하지 않는다 · `제외됨` 으로 표시」)
+  statusExcluded: '제외됨',
+  excludedNote: '대상자에서 제외된 {count}명은 발송하지 않습니다',
+  /** 발송 뒤 알림 — 실제로 나간 수와, 제외되어 빠진 수. */
+  toastSentCount: '{count}명에게 리포트를 발송했습니다',
+  toastSkippedExcluded: '제외되어 보내지 않음 {count}명',
 };
 
 function isObj(v) {
@@ -95,6 +101,8 @@ const STATUS_META = {
   leader_approved: { key: 'statusApproved', cls: 'is-approved' },
   sent: { key: 'statusSent', cls: 'is-sent' },
 };
+/** PW-978 — 검수 상태와 다른 축이다. 제외된 사람은 상태가 무엇이든 이 딱지 하나만 보인다. */
+const EXCLUDED_META = { key: 'statusExcluded', cls: 'is-excluded' };
 
 /** PW-711 — 정책 §8.5 의 배지 넷. 색은 「사람이 손을 써야 하나」로 가른다. */
 const REFINE_META = {
@@ -386,8 +394,11 @@ function ReviewRow({
   const [open, setOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
   const isMyReport = row.leaderId === myUserId;
-  const canApprove = isMyReport && row.status === 'pending';
-  const meta = STATUS_META[row.status] ?? STATUS_META.pending;
+  const excluded = row.excluded === true;
+  const canApprove = isMyReport && row.status === 'pending' && !excluded;
+  const meta = excluded
+    ? EXCLUDED_META
+    : (STATUS_META[row.status] ?? STATUS_META.pending);
   const overrideCount = row.overrideCount ?? 0;
   const hasSections = sectionOrder.length > 0;
   // PW-711 — 검수 잔여는 **서버가 센 값**을 그대로 쓴다. 화면이 다시 세면 발송을 막는
@@ -411,7 +422,7 @@ function ReviewRow({
     <>
     <div className="evrr-row" data-testid={`evrr-row-${row.memberId}`}>
       <div className="evrr-cell evrr-select">
-        {canSend && row.status === 'leader_approved' && (
+        {canSend && row.status === 'leader_approved' && !excluded && (
           <input
             type="checkbox"
             checked={checked && !blocked}
@@ -512,7 +523,7 @@ function ReviewRow({
               {L.approve}
             </button>
           </div>
-        ) : row.status === 'sent' ? (
+        ) : excluded ? null : row.status === 'sent' ? (
           <span className="evrr-muted">{L.statusSent}</span>
         ) : row.status === 'leader_approved' ? (
           <span className="evrr-muted">{L.approved}</span>
@@ -603,7 +614,12 @@ export default function EvalReportReviewCanvas({
 
   // PW-711 — 일괄 발송은 막힌 사람을 **빼고** 보내고 몇 명이 빠졌는지 알린다(§8.5-B).
   // 서버도 같은 판정으로 한 번 더 거른다 — 여기는 «보여 주기» 쪽이다.
-  const approvedRows = q.rows.filter((r) => r.status === 'leader_approved');
+  // PW-978 — 제외된 사람은 승인돼 있어도 보낼 대상이 아니다. 「검수 미완 N명」과 섞지 않고
+  // 따로 알린다(서버도 같은 판정으로 한 번 더 거른다).
+  const excludedIds = new Set(q.rows.filter((r) => r.excluded === true).map((r) => r.memberId));
+  const approvedRows = q.rows.filter(
+    (r) => r.status === 'leader_approved' && !excludedIds.has(r.memberId),
+  );
   const approvedIds = approvedRows
     .filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0)
     .map((r) => r.memberId);
@@ -627,12 +643,24 @@ export default function EvalReportReviewCanvas({
         .filter((r) => (r.unresolvedPeerRefinements ?? 0) > 0)
         .map((r) => r.memberId),
     );
-    const ids = rawIds.filter((id) => !blockedIds.has(id));
+    const ids = rawIds.filter((id) => !blockedIds.has(id) && !excludedIds.has(id));
     if (!ids.length) return;
     try {
-      await onSend?.(ids);
+      // PW-978 — 호출부가 서버 결과(`{ sent, excluded }`)를 돌려주면 실제 수를 적는다. 고른 뒤
+      // 그 사이 제외된 사람은 서버가 빼므로, 화면이 고른 수가 아니라 서버가 센 수를 쓴다.
+      // 돌려주지 않는 호출부는 예전 문구 그대로다.
+      const result = await onSend?.(ids);
       setSelected(new Set());
-      showToast(L.toastSent);
+      if (result && typeof result.sent === 'number') {
+        const sentMsg = L.toastSentCount.replace('{count}', String(result.sent));
+        showToast(
+          result.excluded > 0
+            ? `${sentMsg} · ${L.toastSkippedExcluded.replace('{count}', String(result.excluded))}`
+            : sentMsg,
+        );
+      } else {
+        showToast(L.toastSent);
+      }
     } catch {
       showToast(L.toastError, 'error');
     }
@@ -668,6 +696,12 @@ export default function EvalReportReviewCanvas({
         {q.canSend && excludedCount > 0 && (
           <p className="evc-wiz-warn" data-testid="evrr-refine-excluded">
             {L.refineExcluded.replace('{count}', String(excludedCount))}
+          </p>
+        )}
+
+        {q.canSend && excludedIds.size > 0 && (
+          <p className="evc-empty-sub" data-testid="evrr-excluded-note">
+            {L.excludedNote.replace('{count}', String(excludedIds.size))}
           </p>
         )}
 

@@ -763,6 +763,11 @@
   color: var(--dp-badge-danger-fg);
   background: var(--dp-badge-danger-bg);
 }
+/* 대상자에서 제외돼 보내지 않는 사람 (PW-978 · 정책 §5.3.6) */
+.evrr-badge.is-excluded {
+  color: var(--dp-badge-neutral-fg);
+  background: var(--dp-badge-neutral-bg);
+}
 
 .evl-committee-badge {
   display: inline-block;

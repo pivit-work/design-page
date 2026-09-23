@@ -1950,6 +1950,10 @@
    "background": "#fef3f2 / 어두운 화면 #220905",
    "color": "#b42318 / 어두운 화면 #fda29b"
   },
+  "status-badge.css|.evrr-badge.is-excluded": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
+  },
   "eval-cycle.css|.evrr-badge.is-override": {
    "background": "#f4f3ff / 어두운 화면 #27115f",
    "color": "#5925dc / 어두운 화면 #fafaff"
