@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import LinkButton from './LinkButton.jsx';
@@ -7,6 +8,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
+import { IconChevronLeft, IconChevronRight } from './employeesIcons.jsx';
 
 /**
  * AdminDashboardCanvas — 어드민 개요 대시보드 Pure 컴포넌트.
@@ -24,6 +26,10 @@ import AdminActivityLogRow from './AdminActivityLogRow.jsx';
  */
 
 const DEFAULT_LABELS = {
+  /* 팀원 현황 표 페이지 — 구성원 설정 목록과 같은 모양·문구 (2026-09-23 성능 점검:
+     3,000명 조직에서 2,952줄을 한꺼번에 그려 화면이 1.5초씩 굳었다). */
+  teamPagination: { of: '/', prev: '이전', next: '다음' },
+  countSuffix: '명',
   pageTitle: '개요',
   pageSubtitle: '',
   inviteButton: '+ 팀원 초대',
@@ -70,6 +76,7 @@ function mergeLabels(provided) {
     ...provided,
     tableHeaders: { ...DEFAULT_LABELS.tableHeaders, ...(provided.tableHeaders || {}) },
     logTypes: { ...DEFAULT_LABELS.logTypes, ...(provided.logTypes || {}) },
+    teamPagination: { ...DEFAULT_LABELS.teamPagination, ...(provided.teamPagination || {}) },
   };
 }
 
@@ -97,9 +104,26 @@ export default function AdminDashboardCanvas({
   showCeoBanner = false,
   onAssignCeo,
   onDismissCeoBanner,
+  /* 팀원 현황 표 한 쪽의 줄 수. 구성원 설정 목록과 같은 20줄이 기본이다. */
+  teamPageSize = 20,
 }) {
   const labels = mergeLabels(providedLabels);
   const headerKeys = ['name', 'dept', 'snippet', 'health', 'redFlag', 'status'];
+
+  // 재직 중인 사람 먼저, 그 뒤 나머지 — 예전 두 묶음과 같은 순서를 한 줄로 이어 페이지로 나눈다.
+  const orderedRows = useMemo(
+    () => [...teamRows.filter((r) => r.active), ...teamRows.filter((r) => !r.active)],
+    [teamRows],
+  );
+  // 요약 카드로 표를 거르면(목록이 바뀌면) 첫 쪽으로 돌아간다 — 남은 쪽 번호가 빈 쪽을 가리키지 않게.
+  // 쪽 번호를 «어느 목록의 쪽인가»와 함께 들고, 목록이 바뀌었으면 1쪽으로 읽는다.
+  const [pageState, setPageState] = useState({ rows: teamRows, page: 1 });
+  const teamPage = pageState.rows === teamRows ? pageState.page : 1;
+  const setTeamPage = (update) =>
+    setPageState({ rows: teamRows, page: typeof update === 'function' ? update(teamPage) : update });
+  const teamTotalPages = Math.max(1, Math.ceil(orderedRows.length / teamPageSize));
+  const safeTeamPage = Math.min(teamPage, teamTotalPages);
+  const pageRows = orderedRows.slice((safeTeamPage - 1) * teamPageSize, safeTeamPage * teamPageSize);
 
   return (
     <div className="admin-canvas">
@@ -162,17 +186,7 @@ export default function AdminDashboardCanvas({
               {headerKeys.map((k) => <RosterTable.HeadCell key={k}>{labels.tableHeaders[k]}</RosterTable.HeadCell>)}
             </RosterTable.Head>
             <RosterTable.Body>
-              {teamRows.filter((r) => r.active).map((row) => (
-                <AdminTeamRow
-                  key={row.id}
-                  row={row}
-                  labels={labels}
-                  baseUrl={baseUrl}
-                  renderAvatar={renderAvatar}
-                  onRowClick={onRowClick}
-                />
-              ))}
-              {teamRows.filter((r) => !r.active).map((row) => (
+              {pageRows.map((row) => (
                 <AdminTeamRow
                   key={row.id}
                   row={row}
@@ -187,6 +201,18 @@ export default function AdminDashboardCanvas({
               )}
             </RosterTable.Body>
           </RosterTable>
+          {orderedRows.length > teamPageSize && (
+            <div className="admin-emp-pagination" data-testid="admin-team-pagination">
+              <span className="admin-emp-muted">
+                {(safeTeamPage - 1) * teamPageSize + 1}–{Math.min(safeTeamPage * teamPageSize, orderedRows.length)} {labels.teamPagination.of} {orderedRows.length}{labels.countSuffix}
+              </span>
+              <div className="admin-emp-pagination-nav">
+                <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safeTeamPage === 1} onClick={() => setTeamPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.teamPagination.prev}</button>
+                <span className="admin-emp-mono admin-emp-muted">{safeTeamPage} {labels.teamPagination.of} {teamTotalPages}</span>
+                <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safeTeamPage === teamTotalPages} onClick={() => setTeamPage((p) => Math.min(teamTotalPages, p + 1))}>{labels.teamPagination.next}<IconChevronRight size={14} /></button>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="admin-side-col">

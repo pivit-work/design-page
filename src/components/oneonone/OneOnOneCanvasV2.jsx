@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
@@ -305,18 +306,22 @@ export default function OneOnOneCanvasV2({
                 </span>
               </div>
               <div className="ono-member-grid">
-                {sec.members.map((m) => (
-                  <MemberCard
-                    key={m.id}
-                    member={m}
-                    icons={icons}
-                    baseUrl={baseUrl}
-                    onAction={handleMemberAction}
-                    onCardClick={(onMemberClick ? m.clickable !== false : !!m.detail) ? () => handleMemberClick(m) : undefined}
-                    renderAvatar={renderMemberAvatar}
-                    labels={L}
-                  />
-                ))}
+                {/* 카드 수천 장을 한 번에 그리지 않는다 — 다 그린 모습은 같다 (2026-09-23 성능 점검). */}
+                <ProgressiveItems
+                  items={sec.members}
+                  render={(m) => (
+                    <MemberCard
+                      key={m.id}
+                      member={m}
+                      icons={icons}
+                      baseUrl={baseUrl}
+                      onAction={handleMemberAction}
+                      onCardClick={(onMemberClick ? m.clickable !== false : !!m.detail) ? () => handleMemberClick(m) : undefined}
+                      renderAvatar={renderMemberAvatar}
+                      labels={L}
+                    />
+                  )}
+                />
               </div>
             </section>
           ))}

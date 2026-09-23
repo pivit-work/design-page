@@ -3,6 +3,7 @@ import SummaryCard from './SummaryCard.jsx';
 import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
 import MemberCard from './MemberCard.jsx';
+import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import KrDrilldown from './KrDrilldown.jsx';
 import TeamSnippets from './TeamSnippets.jsx';
@@ -194,17 +195,21 @@ export default function ManagerCanvas({
           <p className="manager-section-empty">{actionQueue.emptyText}</p>
         ) : (
         <div className="manager-member-grid">
-          {actionQueue.members.map((m) => (
-            <MemberCard
-              key={m.id}
-              {...m}
-              icons={icons}
-              baseUrl={baseUrl}
-              onCardClick={() => openProfile(m)}
-              onOneOnOneClick={() => onMemberOneOnOne?.(m)}
-              onMessageClick={() => onMemberMessage?.(m)}
-            />
-          ))}
+          {/* 카드 수천 장을 한 번에 그리지 않는다 — 다 그린 모습은 같다 (2026-09-23 성능 점검). */}
+          <ProgressiveItems
+            items={actionQueue.members}
+            render={(m) => (
+              <MemberCard
+                key={m.id}
+                {...m}
+                icons={icons}
+                baseUrl={baseUrl}
+                onCardClick={() => openProfile(m)}
+                onOneOnOneClick={() => onMemberOneOnOne?.(m)}
+                onMessageClick={() => onMemberMessage?.(m)}
+              />
+            )}
+          />
         </div>
         )}
       </section>
@@ -220,17 +225,21 @@ export default function ManagerCanvas({
           <p className="manager-section-empty">{teamStatus.emptyText}</p>
         ) : (
         <div className="manager-member-grid">
-          {teamStatus.members.map((m) => (
-            <MemberCard
-              key={m.id}
-              {...m}
-              icons={icons}
-              baseUrl={baseUrl}
-              onCardClick={() => openProfile(m)}
-              onOneOnOneClick={() => onMemberOneOnOne?.(m)}
-              onMessageClick={() => onMemberMessage?.(m)}
-            />
-          ))}
+          {/* 카드 수천 장을 한 번에 그리지 않는다 — 다 그린 모습은 같다 (2026-09-23 성능 점검). */}
+          <ProgressiveItems
+            items={teamStatus.members}
+            render={(m) => (
+              <MemberCard
+                key={m.id}
+                {...m}
+                icons={icons}
+                baseUrl={baseUrl}
+                onCardClick={() => openProfile(m)}
+                onOneOnOneClick={() => onMemberOneOnOne?.(m)}
+                onMessageClick={() => onMemberMessage?.(m)}
+              />
+            )}
+          />
         </div>
         )}
       </section>

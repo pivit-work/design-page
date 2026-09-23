@@ -22,6 +22,9 @@ import {
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import {
+  parseAddedAtRange, inAddedAtRange, rangeFromDates, datesOfRange, formatAddedAtRange,
+} from './addedAtFilter.js';
 import RosterTable from '../shared/RosterTable.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
@@ -80,8 +83,17 @@ const DEFAULT_LABELS = {
     // PW-693 — 「매니저」 바로 옆이라 이름이 붙어 다닌다. 재는 것은 서로 다르다.
     role: '권한',
     status: '재직상태',
+    /* 「새 멤버 합류」 알림의 「구성원 보기」가 이 필터를 건 채 연다 (2026-09-23 커트 결정).
+       값·범위 규칙은 `addedAtFilter.js`. */
+    addedAt: '추가된 날',
     all: '전체',
     reset: '필터 초기화',
+  },
+  addedAtFilter: {
+    start: '시작일',
+    end: '종료일',
+    apply: '적용',
+    clear: '해제',
   },
   // `csvUpload` 라벨이 여기 있었지만 **어디서도 렌더되지 않았다** — 라벨은 CSV
   // 업로드가 있다고 말하는데 화면에는 없는 상태가 오래 남아 있었다(PW-212).
@@ -864,6 +876,94 @@ function FilterDropdown({ testId, label, value, options, onChange }) {
   );
 }
 
+/* ── 추가된 날 필터 ──────────────────────────────────────────
+ * 다른 칩과 같은 겉모양(`admin-emp-select`)에, 펼치면 날짜 두 칸이 뜬다. 값은
+ * `시작~끝` 문자열이고 규칙은 `addedAtFilter.js`. 알림에서 온 정확한 시각 범위는
+ * 칩에 시각까지 보인다 — 날짜 칸으로 다시 고르면 하루 단위 범위로 바뀐다.
+ * ------------------------------------------------------------ */
+function AddedAtFilter({ testId, label, labels, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(() => datesOfRange(value));
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    function handler(e) {
+      // 달력은 이 칩 안에 그려진다(`position: fixed`) — 달력을 누른 것도 안쪽이다.
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const active = !!value;
+  const triggerText = active ? `${label} · ${formatAddedAtRange(value)}` : label;
+
+  function toggle() {
+    if (!open) setDraft(datesOfRange(value));
+    setOpen((o) => !o);
+  }
+
+  return (
+    <div ref={ref} className={`admin-emp-select${open ? ' is-open' : ''}${active ? ' is-active' : ''}`}>
+      <button
+        type="button"
+        className="admin-emp-select-trigger"
+        data-testid={testId}
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={toggle}
+      >
+        <span className="admin-emp-select-value">{triggerText}</span>
+        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
+      </button>
+      {open && (
+        <div className="admin-emp-select-menu is-range" role="group" aria-label={label}>
+          {/* 창(모달)이 아니라 다른 칩과 같은 펼침 상자다 — 날짜 두 칸을 묶는 group. */}
+          <label className="admin-emp-range-field">
+            <span className="admin-emp-field-label">{labels.start}</span>
+            <DateInput
+              className="admin-emp-input"
+              data-testid={`${testId}-start`}
+              value={draft.start}
+              onChange={(v) => setDraft((d) => ({ ...d, start: v }))}
+            />
+          </label>
+          <label className="admin-emp-range-field">
+            <span className="admin-emp-field-label">{labels.end}</span>
+            <DateInput
+              className="admin-emp-input"
+              data-testid={`${testId}-end`}
+              value={draft.end}
+              onChange={(v) => setDraft((d) => ({ ...d, end: v }))}
+            />
+          </label>
+          <div className="admin-emp-range-actions">
+            {active && (
+              <button
+                type="button"
+                className="admin-emp-btn is-sm is-ghost"
+                data-testid={`${testId}-clear`}
+                onClick={() => { onChange(null); setOpen(false); }}
+              >
+                {labels.clear}
+              </button>
+            )}
+            <button
+              type="button"
+              className="admin-emp-btn is-sm is-primary"
+              data-testid={`${testId}-apply`}
+              disabled={!draft.start && !draft.end}
+              onClick={() => { onChange(rangeFromDates(draft.start, draft.end)); setOpen(false); }}
+            >
+              {labels.apply}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── 탭 C: 초대 관리 ────────────────────────────────────── */
 const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
 
@@ -1633,6 +1733,12 @@ function EmployeesListView({
   /* 권한 필터 (PW-693). 되살리기 키는 **시트의 컬럼 id `orgRole`** 이다 — 소비자의
      번역표(`employeeExportParams.ts`)가 그 이름으로 서버 파라미터를 찾는다. */
   const [roleFilter, setRoleFilter] = useState(initialFilters.orgRole ?? LIST_ALL);
+  /* 추가된 날 — `시작~끝` 문자열 그대로 든다. 모양이 틀린 값은 거르지 않는 것으로 본다. */
+  const [addedAt, setAddedAt] = useState(initialFilters.addedAt ?? LIST_ALL);
+  const addedRange = useMemo(
+    () => (addedAt === LIST_ALL ? null : parseAddedAtRange(addedAt)),
+    [addedAt],
+  );
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
   const closeRowMenu = useCallback(() => setOpenMenu(null), []);
@@ -1848,6 +1954,7 @@ function EmployeesListView({
             if (!isOrgLeader(m)) return false;
           } else if ((m.orgRole || 'member') !== roleFilter) return false;
         }
+        if (addedRange && !inAddedAtRange(m.addedAt, addedRange)) return false;
         // 가입 대기(`pending`)는 여기 목록에 세우지 않는다(§3.2.1 · PW-422). 탭 C(초대
         // 관리)가 이미 담당하는데 두 곳에 뜨면 체크박스 선택·일괄 처리·페이지네이션의
         // 단위가 「사람 수」와 어긋난다. (구 서술 「잔여 행은 스프레드시트 뷰에서
@@ -1856,7 +1963,7 @@ function EmployeesListView({
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
-    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, roleFilter, isOrgLeader, orgTree, visibleSquadsOf, squadNamesOf],
+    [members, q, dept, squad, position, level, family, ladder, duty, category, bizTitle, location, country, building, empType, mgrFilter, status, roleFilter, addedRange, isOrgLeader, orgTree, visibleSquadsOf, squadNamesOf],
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
@@ -1967,7 +2074,7 @@ function EmployeesListView({
     || category !== LIST_ALL || bizTitle !== LIST_ALL
     || location !== LIST_ALL || country !== LIST_ALL || building !== LIST_ALL
     || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all'
-    || roleFilter !== LIST_ALL;
+    || roleFilter !== LIST_ALL || addedRange !== null;
 
   function resetFilters() {
     setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
@@ -1975,7 +2082,7 @@ function EmployeesListView({
     setCategory(LIST_ALL); setBizTitle(LIST_ALL);
     setCountry(LIST_ALL); setBuilding(LIST_ALL);
     setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all');
-    setRoleFilter(LIST_ALL); setPage(1);
+    setRoleFilter(LIST_ALL); setAddedAt(LIST_ALL); setPage(1);
   }
 
   /** 직군을 바꾸면 그 밑에 속하지 않게 된 직렬·직무 필터를 푼다 — 안 풀면 0건인 채 이유가 안 보인다. */
@@ -2113,6 +2220,8 @@ function EmployeesListView({
      서버가 그 두 값을 **같은 기준으로 다시 판정**하지 않으면 화면은 3명인데 파일은
      전원이 나간다(PW-411 이 매니저 필터에서 실제로 겪은 경로다). */
   if (roleFilter !== LIST_ALL) exportFilters.orgRole = roleFilter;
+  // 추가된 날 — 서버도 같은 규칙(시작 이상 · 끝 미만)으로 다시 거른다.
+  if (addedRange) exportFilters.addedAt = addedAt;
 
   /* 보던 상태가 바뀌면 소비자에게 알린다 (PW-157 · PW-576 로 시트에서 옮겨 왔다).
      `exportFilters` 를 그대로 재사용한다 — 반출 조건과 되살릴 조건이 같은 것이어야
@@ -2437,6 +2546,13 @@ function EmployeesListView({
             정해져 있나」, 권한은 「이 사람이 무엇인가」다(PW-693 · PW-884 ③). */}
         <FilterDropdown testId="list-filter-orgRole" label={labels.filters.role} value={roleFilter} options={roleOpts} onChange={(v) => { setRoleFilter(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-employmentStatus" label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
+        <AddedAtFilter
+          testId="list-filter-addedAt"
+          label={labels.filters.addedAt}
+          labels={labels.addedAtFilter}
+          value={addedRange ? addedAt : null}
+          onChange={(v) => { setAddedAt(v ?? LIST_ALL); setPage(1); }}
+        />
         {hasFilter && (
           <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
         )}
