@@ -3515,6 +3515,7 @@ function EmployeesEditPanel({
             onDeleteTraining={canEdit ? hrRecordHandlers?.onDeleteTraining : undefined}
             onLoadBenefits={hrRecordHandlers?.onLoadBenefits}
             onSaveBenefits={canEdit ? hrRecordHandlers?.onSaveBenefits : undefined}
+            confirmDelete={hrRecordHandlers?.confirmDelete}
             onClose={() => setHrOpen(false)}
           />
         )}
@@ -3526,6 +3527,7 @@ function EmployeesEditPanel({
             onAdd={canEdit ? onAddSalaryHistory : undefined}
             onUpdate={canEdit ? hrRecordHandlers?.onUpdateSalaryHistory : undefined}
             onDelete={canEdit ? hrRecordHandlers?.onDeleteSalaryHistory : undefined}
+            confirmDelete={hrRecordHandlers?.confirmDelete}
             onClose={() => setSalaryOpen(false)}
             onSalarySynced={(v) => set('salary', v)}
           />
@@ -3748,7 +3750,10 @@ export default function AdminEmployeesCanvas({
   /**
    * 여러 줄로 쌓이는 인사 기록을 넣고 고치고 지우는 콜백 묶음 (PW-920 재작업).
    * `{ onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
-   *    onLoadBenefits, onSaveBenefits, onUpdateSalaryHistory, onDeleteSalaryHistory }`
+   *    onLoadBenefits, onSaveBenefits, onUpdateSalaryHistory, onDeleteSalaryHistory,
+   *    confirmDelete }`
+   * `confirmDelete({ kind: 'salary'|'training', label }) => Promise<boolean>` 를 넘기면 줄을
+   * 지우기 전에 묻는다(PW-942) — false 면 아무것도 지우지 않는다.
    * — 수료한 교육 과정·복리후생은 HR 기록 창에, 계약 기간·초과근무 수당은 보상 이력 창에
    * 선다. 빠진 콜백의 자리는 그리지 않는다(교육·복리후생 묶음 / 줄마다 고치기·지우기).
    */
