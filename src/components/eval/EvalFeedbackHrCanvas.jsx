@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import { csvCell } from '../shared/csvCell.js';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -361,7 +362,7 @@ export default function EvalFeedbackHrCanvas({
     }
     const rows = d.atRisk.map((m) =>
       [m.name, m.department || '', m.managerName || '', m.lastFeedbackAt ? new Date(m.lastFeedbackAt).toISOString().slice(0, 10) : L.notWritten, m.daysSince == null ? '' : m.daysSince]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .map(csvCell)
         .join(','),
     );
     const csv = `﻿${L.csvCols}\n${rows.join('\n')}`;
