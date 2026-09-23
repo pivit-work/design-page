@@ -4233,6 +4233,7 @@ export default function EvalCycleWizard({
    */
   const [submitting, setSubmitting] = useState(false);
   const [submitFailed, setSubmitFailed] = useState(false);
+  const openedManage = isManage && !!cycle?.status && cycle.status !== 'draft';
 
   const submit = async () => {
     if (submitting) return;
@@ -4252,9 +4253,16 @@ export default function EvalCycleWizard({
         schedule: Object.fromEntries(
           displayPhases.map((p) => [p.id, scheduleOf(p.id)]),
         ),
+        /*
+         * 🔴 오픈된 사이클에서는 저장된 적도 손댄 적도 없는 단계의 리마인더를 싣지 않는다
+         * (PW-971). 화면은 그런 단계를 기본 리마인더 둘로 채워 보여 주는데, 그대로 보내면
+         * 날짜 하나만 고친 저장이 옛 사이클에 리마인더를 새로 만들어 실제 발송이 시작된다.
+         * 새로 만드는 사이클·초안은 기본 리마인더를 그대로 저장한다.
+         */
         reminders: Object.fromEntries(
           displayPhases
             .filter((p) => !disabledPhases.has(p.id))
+            .filter((p) => !openedManage || reminders[p.id] !== undefined)
             .map((p) => [p.id, remindersOf(p.id)]),
         ),
         templateMap: phaseTemplateMap,
