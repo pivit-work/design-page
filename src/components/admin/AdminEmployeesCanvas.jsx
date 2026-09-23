@@ -909,7 +909,7 @@ function AddedAtFilter({ testId, label, labels, value, onChange }) {
         type="button"
         className="admin-emp-select-trigger"
         data-testid={testId}
-        aria-haspopup="dialog"
+        aria-haspopup="true"
         aria-expanded={open}
         onClick={toggle}
       >
@@ -917,7 +917,8 @@ function AddedAtFilter({ testId, label, labels, value, onChange }) {
         <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
       </button>
       {open && (
-        <div className="admin-emp-select-menu is-range" role="dialog" aria-label={label}>
+        <div className="admin-emp-select-menu is-range" role="group" aria-label={label}>
+          {/* 창(모달)이 아니라 다른 칩과 같은 펼침 상자다 — 날짜 두 칸을 묶는 group. */}
           <label className="admin-emp-range-field">
             <span className="admin-emp-field-label">{labels.start}</span>
             <DateInput
