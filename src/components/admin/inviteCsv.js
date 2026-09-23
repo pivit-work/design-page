@@ -48,6 +48,7 @@ export const INVITE_CSV_COLUMNS = [
   // 신원
   { key: 'email', labelKey: 'csvColEmail', required: true, kind: 'email', sticky: true, width: 200, aliases: ['이메일*'] },
   { key: 'name', labelKey: 'csvColName', required: true, sticky: true, width: 110, aliases: ['이름*'] },
+  { key: 'lastName', labelKey: 'csvColLastName', width: 80 },
   { key: 'nickname', labelKey: 'csvColNickname', width: 100 },
   { key: 'employeeCode', labelKey: 'csvColEmployeeCode', width: 100 },
   { key: 'birthDate', labelKey: 'csvColBirthDate', kind: 'date', width: 120 },
@@ -61,6 +62,7 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'addressDistrict', labelKey: 'csvColAddressDistrict', width: 120 },
   { key: 'addressRegion', labelKey: 'csvColAddressRegion', width: 120 },
   { key: 'addressCountry', labelKey: 'csvColAddressCountry', width: 110 },
+  { key: 'addressPostalCode', labelKey: 'csvColAddressPostalCode', width: 90 },
   { key: 'emergencyContactName', labelKey: 'csvColEmergencyName', width: 120 },
   { key: 'emergencyContactPhone', labelKey: 'csvColEmergencyPhone', width: 140, aliases: ['비상연락처 전화'] },
   { key: 'emergencyContactRelation', labelKey: 'csvColEmergencyRelation', width: 120 },
@@ -85,15 +87,44 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'ftePercent', labelKey: 'csvColFte', kind: 'fte', width: 70 },
   { key: 'hireDate', labelKey: 'csvColHireDate', kind: 'date', width: 120 },
   { key: 'terminationDate', labelKey: 'csvColTerminationDate', kind: 'date', width: 120 },
+  // 고용 일자 넷과 재입사 여부 (PW-920 · 코어 §1-3-g 33·36·37·39번).
+  { key: 'serviceStartDate', labelKey: 'csvColServiceStartDate', kind: 'date', width: 120 },
+  { key: 'firstHireDate', labelKey: 'csvColFirstHireDate', kind: 'date', width: 120 },
+  { key: 'employmentTypeStartDate', labelKey: 'csvColEmploymentTypeStartDate', kind: 'date', width: 140 },
+  { key: 'lastWorkingDate', labelKey: 'csvColLastWorkingDate', kind: 'date', width: 120 },
+  { key: 'isRehire', labelKey: 'csvColIsRehire', kind: 'bool', width: 90 },
   // 근무지
   { key: 'workCountry', labelKey: 'csvColWorkCountry', option: 'workCountry', width: 110 },
   { key: 'workLocation', labelKey: 'csvColWorkLocation', option: 'workLocation', width: 110, aliases: ['근무지'] },
   // 권한
   { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90 },
+  // 근태
+  { key: 'workSchedule', labelKey: 'csvColWorkSchedule', option: 'workSchedule', width: 110 },
   // 급여·보상 — 🔒
   { key: 'salary', labelKey: 'csvColSalary', kind: 'salary', masked: true, width: 110, aliases: ['연봉'] },
+  /*
+    급여 칸 여덟 (PW-920 · 코어 §1-3-g 분류 3). 전부 가장 민감한 등급이라 계좌·보너스는
+    미리보기에서 가린다(`masked`). 급여 유형·지급 주기는 회사가 켠 값만 받는다.
+  */
+  { key: 'payType', labelKey: 'csvColPayType', option: 'payType', width: 100 },
+  { key: 'payCycle', labelKey: 'csvColPayCycle', option: 'payCycle', width: 110 },
+  { key: 'contractOvertime', labelKey: 'csvColContractOvertime', kind: 'hours', width: 110 },
+  { key: 'contractHoliday', labelKey: 'csvColContractHoliday', kind: 'hours', width: 110 },
+  { key: 'contractNight', labelKey: 'csvColContractNight', kind: 'hours', width: 110 },
+  { key: 'targetBonus', labelKey: 'csvColTargetBonus', kind: 'salary', masked: true, width: 110 },
+  { key: 'targetBonusStart', labelKey: 'csvColTargetBonusStart', kind: 'date', width: 120 },
+  { key: 'targetBonusEnd', labelKey: 'csvColTargetBonusEnd', kind: 'date', width: 120 },
+  { key: 'bankName', labelKey: 'csvColBankName', width: 100 },
+  { key: 'bankAccount', labelKey: 'csvColBankAccount', masked: true, width: 140 },
+  // 복리후생 (분류 6) — 전부 가장 민감한 등급이다.
+  { key: 'healthInsuranceProvider', labelKey: 'csvColHealthInsuranceProvider', width: 130 },
+  { key: 'insurancePlanType', labelKey: 'csvColInsurancePlanType', width: 120 },
+  { key: 'pensionContribution', labelKey: 'csvColPensionContribution', kind: 'salary', masked: true, width: 120 },
+  { key: 'stockOptions', labelKey: 'csvColStockOptions', masked: true, width: 120 },
+  { key: 'otherBenefits', labelKey: 'csvColOtherBenefits', kind: 'list', width: 160 },
   // 평가
   { key: 'certifications', labelKey: 'csvColCertifications', kind: 'list', width: 160, aliases: ['자격증'] },
+  { key: 'trainings', labelKey: 'csvColTrainings', kind: 'list', width: 160 },
 ];
 
 /** 이 회사가 받는 열 — 직종을 끈 회사는 직종 열이 없다(PW-644). */
@@ -187,6 +218,30 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColWorkCountry: '근무지(국가)',
   csvColWorkLocation: '근무지(도시)',
   csvColRole: '역할',
+  csvColLastName: '성',
+  csvColAddressPostalCode: '집 주소(우편번호)',
+  csvColServiceStartDate: '기산일',
+  csvColFirstHireDate: '최초 입사일',
+  csvColEmploymentTypeStartDate: '현 고용형태 시작일',
+  csvColLastWorkingDate: '마지막 출근일',
+  csvColIsRehire: '재입사 여부',
+  csvColWorkSchedule: '근무 일정',
+  csvColPayType: '급여 유형',
+  csvColPayCycle: '급여 지급 주기',
+  csvColContractOvertime: '포괄 계약 시간(초과)',
+  csvColContractHoliday: '포괄 계약 시간(휴일)',
+  csvColContractNight: '포괄 계약 시간(야간)',
+  csvColTargetBonus: '타겟 보너스',
+  csvColTargetBonusStart: '타겟 보너스 적용 시작',
+  csvColTargetBonusEnd: '타겟 보너스 적용 종료',
+  csvColBankName: '은행명',
+  csvColBankAccount: '은행 계좌번호',
+  csvColHealthInsuranceProvider: '건강 보험 제공사',
+  csvColInsurancePlanType: '보험 플랜 유형',
+  csvColPensionContribution: '퇴직연금 기여금',
+  csvColStockOptions: '주식 옵션',
+  csvColOtherBenefits: '기타 복리후생',
+  csvColTrainings: '수료한 교육 과정',
   csvColSalary: '연봉 총액',
   csvColCertifications: '자격증 및 면허',
   csvColStatus: '상태',
@@ -223,6 +278,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrEmailFormat: "{column} '{value}'는 이메일 형식이 아니에요",
   csvErrStatus: "고용상태 '{value}'는 알 수 없는 값이에요",
   csvErrFte: "FTE 는 0~100 사이 정수로 적어 주세요 ('{value}')",
+  csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
+  csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrSalary: '연봉은 숫자로 적어 주세요',
   csvErrManagerUnknown: "상급자 '{value}'는 회사에도 이 파일에도 없는 사람이에요",
   csvErrManagerSelf: '자기 자신을 상급자로 둘 수 없어요',
@@ -432,6 +489,18 @@ export const optionKnown = (value, list) =>
 /** 등록된 표기로 바꾼다 — 대소문자·공백만 다르게 적힌 값을 회사의 표기로 보낸다. */
 const canonicalOption = (value, list) =>
   (Array.isArray(list) && list.find((o) => fold(o) === fold(value))) || normalize(value);
+
+/**
+ * 예/아니오 칸을 읽는다 (PW-920). 모르는 값은 `null` — **거짓으로 읽지 않는다.**
+ * 「예」라고 쓰려다 오타가 난 행을 조용히 「아니오」로 저장하면 아무도 못 알아챈다.
+ */
+export function parseBoolCell(value) {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (!v) return null;
+  if (['y', 'yes', 'true', '1', '예', 'o'].includes(v)) return true;
+  if (['n', 'no', 'false', '0', '아니오', '아니요', 'x'].includes(v)) return false;
+  return null;
+}
 
 /** `YYYY-MM-DD` 이고 실제로 있는 날짜인가 — 서버 `isIsoDate` 와 같은 규칙. */
 export function isIsoDate(value) {
@@ -648,6 +717,14 @@ export function inviteCsvIssues(row, ctx) {
     if (col.kind === 'date' && normalize(v[col.key]) && !isIsoDate(v[col.key])) {
       // 틀려도 적은 값을 지우지 않는다(기획서 탭 4) — 칸에는 원문이 그대로 남는다.
       add(col.key, fmtCsv(l.csvErrDate, { column: labelOf(col.key), value: v[col.key] }));
+    }
+    // 예/아니오 칸 (PW-920). 「Y」·「true」·「1」도 받는다 — 파일을 만든 도구마다 다르다.
+    if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
+      add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
+    }
+    // 포괄 계약 시간 — 0 이상의 정수(시간).
+    if (col.kind === 'hours' && normalize(v[col.key]) && !/^\d+$/.test(normalize(v[col.key]))) {
+      add(col.key, fmtCsv(l.csvErrHours, { column: labelOf(col.key), value: v[col.key] }));
     }
   }
 

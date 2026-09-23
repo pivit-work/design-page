@@ -189,8 +189,16 @@ const DEFAULT_LABELS = {
     genderOptions: { male: '남성', female: '여성', other: '기타', undisclosed: '밝히지 않음' },
     nationality: '국적',
     nationalityPlaceholder: '대한민국',
-    address: '주소',
-    addressPlaceholder: '자택 주소 입력',
+    addressPostalCode: '우편번호',
+    addressPostalCodePlaceholder: '06234',
+    addressRegion: '시 · 도',
+    addressRegionPlaceholder: '서울특별시',
+    addressDistrict: '시군구 · 동',
+    addressDistrictPlaceholder: '강남구 역삼동',
+    addressDetail: '상세 주소',
+    addressDetailPlaceholder: '101동 1203호',
+    addressCountry: '국가',
+    addressCountryPlaceholder: '대한민국',
     addressHint: '본인·HR만 열람할 수 있습니다.',
     bio: '소개 (Bio)',
     bioHint: '타임라인·공개 카드에 표시됩니다.',
@@ -1670,13 +1678,59 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.nationality}
                     />
                   </Field>
-                  <Field label={labels.profile.address} hint={labels.profile.addressHint}>
+                </div>
+                {/*
+                  집 주소는 다섯 칸이다 (PW-920 · 코어 §1-3-g 11~15번).
+                  한 칸에 몰아 담으면 우편번호·시도를 따로 쓰는 곳(구성원 명부·초대 CSV)이
+                  그 문자열을 다시 갈라내야 하고, 갈라내는 규칙은 표기마다 달라 틀린다.
+                */}
+                <div className="msc-grid-2col">
+                  <Field label={labels.profile.addressPostalCode}>
                     <input
                       className="admin-emp-input"
-                      value={draft.address || ''}
-                      onChange={(e) => setField('address')(e.target.value)}
-                      placeholder={labels.profile.addressPlaceholder}
-                      aria-label={labels.profile.address}
+                      value={draft.addressPostalCode || ''}
+                      onChange={(e) => setField('addressPostalCode')(e.target.value)}
+                      placeholder={labels.profile.addressPostalCodePlaceholder}
+                      aria-label={labels.profile.addressPostalCode}
+                    />
+                  </Field>
+                  <Field label={labels.profile.addressRegion}>
+                    <input
+                      className="admin-emp-input"
+                      value={draft.addressRegion || ''}
+                      onChange={(e) => setField('addressRegion')(e.target.value)}
+                      placeholder={labels.profile.addressRegionPlaceholder}
+                      aria-label={labels.profile.addressRegion}
+                    />
+                  </Field>
+                  <Field label={labels.profile.addressDistrict}>
+                    <input
+                      className="admin-emp-input"
+                      value={draft.addressDistrict || ''}
+                      onChange={(e) => setField('addressDistrict')(e.target.value)}
+                      placeholder={labels.profile.addressDistrictPlaceholder}
+                      aria-label={labels.profile.addressDistrict}
+                    />
+                  </Field>
+                  <Field
+                    label={labels.profile.addressDetail}
+                    hint={labels.profile.addressHint}
+                  >
+                    <input
+                      className="admin-emp-input"
+                      value={draft.addressDetail || ''}
+                      onChange={(e) => setField('addressDetail')(e.target.value)}
+                      placeholder={labels.profile.addressDetailPlaceholder}
+                      aria-label={labels.profile.addressDetail}
+                    />
+                  </Field>
+                  <Field label={labels.profile.addressCountry}>
+                    <input
+                      className="admin-emp-input"
+                      value={draft.addressCountry || ''}
+                      onChange={(e) => setField('addressCountry')(e.target.value)}
+                      placeholder={labels.profile.addressCountryPlaceholder}
+                      aria-label={labels.profile.addressCountry}
                     />
                   </Field>
                 </div>
