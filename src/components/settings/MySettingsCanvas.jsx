@@ -108,6 +108,7 @@ const DEFAULT_LABELS = {
     saving: '저장 중…',
     saved: '✓ 저장됐습니다',
     saveFailed: '저장 실패 — 다시 시도',
+    addFailed: '부양가족을 추가하지 못했습니다. 입력을 확인하고 다시 시도해 주세요.',
   },
   org: {
     current: '현재 조직',
@@ -581,9 +582,23 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
   const dependents = fam.dependents || [];
   const childrenCount = dependents.filter((d) => d.relation === 'child').length;
 
-  const submitDependent = () => {
-    if (!dep.name || !onAddDependent) return;
-    onAddDependent(dep);
+  // PW-966 — 추가가 끝난 «뒤에» 폼을 닫는다. 예전에는 누르자마자 닫아서, 서버가
+  // 거절하면 아무것도 안 들어갔는데 안내도 없이 입력만 사라졌다.
+  const [depSaving, setDepSaving] = useState(false);
+  const [depError, setDepError] = useState('');
+  const submitDependent = async () => {
+    if (!dep.name || !onAddDependent || depSaving) return;
+    setDepSaving(true);
+    setDepError('');
+    try {
+      await onAddDependent(dep);
+    } catch {
+      // 서버 문구는 영문 검증 문구일 수 있어 그대로 옮기지 않는다 — 화면 문구로 알린다.
+      setDepSaving(false);
+      setDepError(L.addFailed);
+      return;
+    }
+    setDepSaving(false);
     setDep({ name: '', relation: 'spouse', dateOfBirth: '', isDependent: true });
     setAdding(false);
   };
@@ -681,9 +696,12 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
               <DateInput className="admin-emp-input" value={dep.dateOfBirth}
                 onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob} />
             </div>
+            {depError && (
+              <div className="msc-input-error" role="alert" data-testid="dependent-add-error">{depError}</div>
+            )}
             <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(false)}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitDependent} data-testid="dependent-add-submit">{L.add}</button>
+              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => { setAdding(false); setDepError(''); }}>{L.cancel}</button>
+              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitDependent} disabled={depSaving} data-testid="dependent-add-submit">{L.add}</button>
             </div>
           </div>
         ) : (

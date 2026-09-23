@@ -89,6 +89,10 @@ export default function MeetingInProgressModal({
       setShareSubmitting(true);
       try {
         await result;
+      } catch {
+        // 실패하면 닫지 않는다 — 고른 받는 사람을 그대로 두고 다시 누를 수 있게 한다.
+        // 사유는 소비처가 알린다(앱은 「공유 실패」 토스트) (PW-966).
+        return;
       } finally {
         setShareSubmitting(false);
       }

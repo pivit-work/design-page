@@ -271,6 +271,8 @@ const DEFAULT_LABELS = {
   cwManageChairAuto:
     '위원장이 없어 자동으로 지정된 상태입니다. 필요하면 위원장을 이양하세요.',
   cwManageSaveFailed: '위원 구성을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  cwCreateFailed: '위원회를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  cwReviewFailed: '재검토 결과를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwManageDesc: '체크하면 위원으로 추가되고, 체크를 해제하면 제외됩니다.',
   cwManageSubmit: '저장',
   cwManageLocked: '확정이 완료된 위원회는 위원을 변경할 수 없습니다.',
@@ -902,6 +904,8 @@ export default function EvalCycleSummaryCanvas({
   const [showNineBox, setShowNineBox] = useState(false);
   // §10.G 어필 1인 재검토 폼 상태
   const [reviewNote, setReviewNote] = useState('');
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [reviewGrade, setReviewGrade] = useState('');
   // §10.G4 캘리 테이블 행 펼침(아코디언)
   const [expandedCalibRow, setExpandedCalibRow] = useState(null);
@@ -2364,16 +2368,30 @@ export default function EvalCycleSummaryCanvas({
                   gradeKey: d.gradeKey,
                   label: d.label,
                 }));
+                // PW-966 — 결과를 받은 «뒤에» 메모를 비운다. 예전에는 보내자마자 비워서,
+                // 실패하면 적은 검토 메모가 사라지고 안내도 없었다.
                 const submit = (decision) => {
-                  if (!reviewNote.trim()) return;
-                  onReviewAppeal?.(appeal.id, {
-                    decision,
-                    reviewNote: reviewNote.trim(),
-                    newGradeKey:
-                      decision === 'accept' ? reviewGrade || undefined : undefined,
-                  });
-                  setReviewNote('');
-                  setReviewGrade('');
+                  if (!reviewNote.trim() || reviewSaving) return;
+                  setReviewError('');
+                  setReviewSaving(true);
+                  Promise.resolve(
+                    onReviewAppeal?.(appeal.id, {
+                      decision,
+                      reviewNote: reviewNote.trim(),
+                      newGradeKey:
+                        decision === 'accept' ? reviewGrade || undefined : undefined,
+                    }),
+                  ).then(
+                    () => {
+                      setReviewSaving(false);
+                      setReviewNote('');
+                      setReviewGrade('');
+                    },
+                    (err) => {
+                      setReviewSaving(false);
+                      setReviewError(err?.message || L.cwReviewFailed);
+                    },
+                  );
                 };
                 const statusTone = decided
                   ? appeal.status === 'accepted'
@@ -2395,6 +2413,7 @@ export default function EvalCycleSummaryCanvas({
                           onSelectAppeal?.(null);
                           setReviewNote('');
                           setReviewGrade('');
+                          setReviewError('');
                         }}
                         data-testid="evs-cw-appeal-back"
                       >
@@ -2478,11 +2497,20 @@ export default function EvalCycleSummaryCanvas({
                             onChange={(e) => setReviewNote(e.target.value)}
                             rows={3}
                           />
+                          {reviewError && (
+                            <div
+                              className="evs-cw-exclusion"
+                              role="alert"
+                              data-testid="evs-cw-review-error"
+                            >
+                              {reviewError}
+                            </div>
+                          )}
                           <div className="evs-cw-review-actions">
                             <button
                               type="button"
                               className="evc-btn is-ghost"
-                              disabled={!reviewNote.trim()}
+                              disabled={!reviewNote.trim() || reviewSaving}
                               onClick={() => submit('reject')}
                               data-testid="evs-cw-appeal-reject"
                             >
@@ -2491,7 +2519,7 @@ export default function EvalCycleSummaryCanvas({
                             <button
                               type="button"
                               className="evc-btn is-primary"
-                              disabled={!reviewNote.trim()}
+                              disabled={!reviewNote.trim() || reviewSaving}
                               onClick={() => submit('accept')}
                               data-testid="evs-cw-appeal-accept"
                             >
@@ -3955,6 +3983,7 @@ export default function EvalCycleSummaryCanvas({
                   /* PW-444 — 대상 0명이면 서버가 400 으로 끊는다. 여기서 같은 것을
                      보지 않으면 「생성」을 눌러야 실패를 알게 된다. */
                   disabled={
+                    committeeSaving ||
                     !createName.trim() ||
                     createCommittee.length === 0 ||
                     (scopeRoster.length > 0 && createRoster.length === 0)
@@ -3963,7 +3992,11 @@ export default function EvalCycleSummaryCanvas({
                     const scope = {};
                     if (createDepts.length > 0) scope.departments = createDepts;
                     if (createLevels.length > 0) scope.levels = createLevels;
-                    onCreateSession?.({
+                    setCommitteeError('');
+                    setCommitteeSaving(true);
+                    // PW-966 — 만들어진 «뒤에» 닫는다. 예전에는 누르자마자 닫아서, 실패하면
+                    // 이름·대상·위원 입력이 다 사라지고 거절 사유도 안 보였다.
+                    Promise.resolve(onCreateSession?.({
                       name: createName.trim(),
                       scope,
                       // PW-444 — 명단에서 손으로 더하고 뺀 결과. 서버 유효 대상 계산식
@@ -3974,8 +4007,13 @@ export default function EvalCycleSummaryCanvas({
                         userId,
                         role: i === 0 ? 'chair' : 'member',
                       })),
-                    });
-                    closeCreateModal();
+                    })).then(
+                      () => closeCreateModal(),
+                      (err) => {
+                        setCommitteeSaving(false);
+                        setCommitteeError(err?.message || L.cwCreateFailed);
+                      },
+                    );
                   }}
                 >
                   {L.cwCreateSubmit}
@@ -4336,7 +4374,7 @@ export default function EvalCycleSummaryCanvas({
                   })}
                 </div>
               )}
-              {committeeManage && committeeError && (
+              {committeeError && (
                 <div
                   className="evs-cw-exclusion"
                   role="alert"

@@ -874,8 +874,19 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
   const prevActions = (session.aiBriefing?.prevActions ?? []).filter((a) => !a.done);
   const okrStatus = session.aiBriefing?.okrStatus ?? [];
 
-  const save = () => {
-    onSaveNotes(memo);
+  // PW-966 — 저장이 끝난 «뒤에» 「저장됨」을 띄운다. 예전에는 결과를 받기 전에 띄워서
+  // 서버가 거절해도 「저장됨」이 보였다. 실패 안내는 소비처 몫이다(앱은 토스트).
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSaveNotes(memo);
+    } catch {
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
