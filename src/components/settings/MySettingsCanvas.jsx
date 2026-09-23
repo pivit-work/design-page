@@ -261,6 +261,12 @@ const DEFAULT_LABELS = {
       'Google 로만 로그인 중입니다. 비밀번호를 설정하면 둘 다 쓸 수 있습니다.',
     pwSet: '비밀번호 설정',
     pwSetSaved: '✓ 설정됐습니다',
+    // 비밀번호가 없는 계정의 설정을 메일 링크로 할 때(`onRequestPasswordSetupLink`)
+    setPasswordViaEmailHint:
+      'Google 로만 로그인 중입니다. 계정 메일로 비밀번호 설정 링크를 보내 드립니다. 메일의 링크에서 새 비밀번호를 정하면 둘 다 쓸 수 있습니다.',
+    sendSetupLink: '설정 링크 메일 받기',
+    sendingSetupLink: '보내는 중…',
+    setupLinkSent: '메일로 설정 링크를 보냈습니다. 메일함을 확인해 주세요.',
     currentPassword: '현재 비밀번호',
     currentPwPlaceholder: '현재 비밀번호 입력',
     newPassword: '새 비밀번호',
@@ -1257,6 +1263,13 @@ export default function MySettingsCanvas({
   onDisconnectGoogleLogin,
   passwordState = { saving: false, saved: false, error: null },
   onChangePassword,
+  /**
+   * 비밀번호가 **없는** 계정(Google 전용)의 「비밀번호 설정」을 메일 링크로 한다 (pivit-work 보안 점검
+   * 2026-09-23 M3). 주면 새 비밀번호 칸 대신 계정 메일로 설정 링크를 보내는 버튼 하나를 그린다 —
+   * 로그인된 화면에서 곧바로 비밀번호를 만들지 못하게. 안 주면 예전처럼 칸을 그린다.
+   */
+  onRequestPasswordSetupLink,
+  passwordSetupLinkState = { sending: false, sent: false, error: null },
   sessions = [],
   onEndSession,
   // 기기 위치 자료의 출처 링크 `{ label, href }` — 자료의 사용 조건이 「결과를 보여 주는 페이지에
@@ -2059,6 +2072,36 @@ export default function MySettingsCanvas({
                 </Card>
               )}
 
+              {!needsCurrentPw && onRequestPasswordSetupLink ? (
+              <Card testId="security-password-card">
+                <div className="admin-section-label">{labels.security.setPassword}</div>
+                <p className="msc-row-sub" data-testid="pw-set-hint" style={{ marginBottom: 10 }}>
+                  {labels.security.setPasswordViaEmailHint}
+                </p>
+                {passwordSetupLinkState.sent && (
+                  <p className="msc-row-sub" role="status" data-testid="pw-setup-link-sent">
+                    {labels.security.setupLinkSent}
+                  </p>
+                )}
+                {passwordSetupLinkState.error && (
+                  <p className="msc-input-error" data-testid="pw-setup-link-error">
+                    {passwordSetupLinkState.error}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="msc-save-btn"
+                  style={{ marginTop: 12, padding: '10px 0', fontSize: 13 }}
+                  disabled={passwordSetupLinkState.sending}
+                  onClick={() => onRequestPasswordSetupLink()}
+                  data-testid="pw-setup-link-btn"
+                >
+                  {passwordSetupLinkState.sending
+                    ? labels.security.sendingSetupLink
+                    : labels.security.sendSetupLink}
+                </button>
+              </Card>
+              ) : (
               <Card testId="security-password-card">
                 <div className="admin-section-label">
                   {needsCurrentPw ? labels.security.changePassword : labels.security.setPassword}
@@ -2139,6 +2182,7 @@ export default function MySettingsCanvas({
                         : labels.security.pwSet}
                 </button>
               </Card>
+              )}
 
               <Card testId="security-sessions-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: onEndAllSessions ? 4 : 8 }}>
