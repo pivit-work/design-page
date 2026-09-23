@@ -11,6 +11,10 @@ pre-push:
       # CI 의 `npm ci` 가 package.json 과 package-lock.json 불일치로 12회 연속 실패했던 재발 방지.
       # --dry-run 으로 실제 설치 없이 lock 파일 정합성만 검증한다.
       run: npm ci --dry-run --ignore-scripts
+    lint:
+      # 저장소 전체 코드 검사 + 규칙이 무는지 표본 확인. 커밋 전 검사는 바뀐 파일만 봐서, 두 판이
+      # 합쳐지며 생긴 틀린 이름(리포트 검수 화면의 <DpStatusBadge />)을 못 잡았다 (PW-906).
+      run: npm run check:lint
     css-exports:
       # 새 src/*.css 를 exports 에 안 실어 소비자가 import 할 경로 자체가 없던 사고
       # 재발 방지 (okr_resource.css / PW-294). design-page 안에서는 상대경로 import 라
