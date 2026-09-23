@@ -1588,8 +1588,14 @@
   font-weight: 600;
 }
 .admin-emp-sal-table td.is-date { white-space: nowrap; }
-/* 사유 칸에 남는 폭을 몰아준다 — 안 그러면 금액이 사유 바로 옆에 붙어 읽기 어렵다. */
-.admin-emp-sal-table .is-reason { width: 42%; }
+.admin-emp-sal-table td.is-amount { white-space: nowrap; }
+/* 기간은 날짜 단위로만 꺾인다 — 「2026-01-」에서 끊기지 않게 (PW-942). */
+.admin-emp-sal-day { white-space: nowrap; }
+/* 사유 칸에 남는 폭을 몰아준다 — 안 그러면 금액이 사유 바로 옆에 붙어 읽기 어렵다.
+   최소 폭을 두어 한 글자씩 세로로 꺾이지 않게 하고, 낱말 가운데서는 줄을 넘기지 않는다 (PW-942). */
+.admin-emp-sal-table .is-reason { width: 42%; min-width: 8em; word-break: keep-all; overflow-wrap: anywhere; }
+/* 고치기·지우기는 한 줄로, 꼭 필요한 폭만 — 남는 폭은 사유 칸이 갖는다 (PW-942). */
+.admin-emp-sal-table td.is-actions { width: 1%; white-space: nowrap; }
 .admin-emp-sal-current {
   margin-left: 6px;
   padding: 1px 6px;

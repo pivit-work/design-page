@@ -482,6 +482,8 @@ export function HrProfileModal({
   // 수료한 교육 과정·복리후생 (PW-920 재작업) — 넘기면 그 묶음을 넣고 고치고 지우는 자리가 선다.
   onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
   onLoadBenefits, onSaveBenefits,
+  // 줄을 지우기 전에 묻는 자리 (PW-942) — `({ kind, label }) => Promise<boolean>`.
+  confirmDelete,
 }) {
   const L = labels || {};
   const [data, setData] = useState(null);
@@ -695,6 +697,7 @@ export function HrProfileModal({
                 onAdd={onAddTraining}
                 onUpdate={onUpdateTraining}
                 onDelete={onDeleteTraining}
+                confirmDelete={confirmDelete}
               />
             )}
             {onLoadBenefits && (
@@ -731,7 +734,7 @@ export function HrProfileModal({
 // 실패는 전역 오류 화면으로 튕기지 않고 이 묶음 안에 알린다 — 적던 값이 날아가지 않게.
 const EMPTY_TRAINING = { courseName: '', completedAt: '', note: '' };
 
-function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete }) {
+function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete }) {
   const L = labels || {};
   const [rows, setRows] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -799,7 +802,9 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: editingId === r.id ? '#EEF2FF' : T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}
               >
                 <span style={{ flex: 1 }}>
-                  {[r.courseName, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : (L.hrTrainingInProgress || '이수 중'), r.note].filter(Boolean).join(' · ')}
+                  {/* 수료일이 없으면 날짜 자리를 비운다 (PW-942). 「이수 중」으로 적으면 초대 CSV 처럼
+                      과정명만 받은 기록이 수료하지 않은 것처럼 읽힌다 — 칸 이름이 「수료한 교육 과정」이다. */}
+                  {[r.courseName, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')}
                 </span>
                 {canEdit && onUpdate && (
                   <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
@@ -807,7 +812,10 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                   </button>
                 )}
                 {canEdit && onDelete && (
-                  <button type="button" className="admin-emp-btn" onClick={() => run(() => onDelete(memberId, r.id))} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
+                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                    if (confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName }))) return;
+                    await run(() => onDelete(memberId, r.id));
+                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
                     {L.hrRecordDelete || '지우기'}
                   </button>
                 )}
@@ -984,7 +992,7 @@ const COMP_TYPE_DEFAULT_LABEL = { salary: '연봉', contract: '계약 기간', o
 const EMPTY_COMP_FORM = { compensationType: 'salary', effectiveDate: '', effectiveEndDate: '', amount: '', reason: '' };
 
 // ── 보상 이력 모달 (연봉 · 계약 기간 · 초과근무 수당) ──────────────────────
-export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced }) {
+export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete }) {
   const L = labels || {};
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1053,6 +1061,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   }
 
   async function remove(h) {
+    // 지우기 전에 묻는다 (PW-942) — 보상 기록은 되돌릴 길이 없다.
+    if (confirmDelete && !(await confirmDelete({ kind: 'salary', label: typeLabel(typeOf(h)) }))) return;
     setBusy(true);
     setAddError(false);
     try {
@@ -1126,10 +1136,19 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             {
               key: 'date',
               header: L.salaryHistEffDate || '적용일',
-              cellProps: { className: 'is-date' },
+              // 기간은 「~」 뒤에서 줄을 넘길 수 있게 둔다 (PW-942). 한 줄로 묶으면 계약 기간
+              // 한 칸이 표 폭을 다 먹어 사유 칸이 한 글자씩 꺾이고 「지우기」가 창 밖으로 밀린다.
+              cellProps: { className: 'is-range' },
               render: (h) => (
                 <>
-                  {h.effectiveEndDate ? `${h.effectiveDate} ~ ${h.effectiveEndDate}` : h.effectiveDate}
+                  {h.effectiveEndDate ? (
+                    <>
+                      <span className="admin-emp-sal-day">{h.effectiveDate} ~</span>{' '}
+                      <span className="admin-emp-sal-day">{h.effectiveEndDate}</span>
+                    </>
+                  ) : (
+                    <span className="admin-emp-sal-day">{h.effectiveDate}</span>
+                  )}
                   {h === currentSalary && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
                 </>
               ),
@@ -1153,6 +1172,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                   key: 'actions',
                   header: '',
                   align: 'right',
+                  cellProps: { className: 'is-actions' },
                   render: (h) =>
                     canEditRow(h) ? (
                       <span style={{ display: 'inline-flex', gap: 4 }}>
