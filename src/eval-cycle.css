@@ -5167,27 +5167,9 @@
   font-size: var(--font-size-text-sm);
 }
 
-/* ── 토스트 ── */
-.evc-toast {
-  position: fixed;
-  top: var(--spacing-2xl);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1200;
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-text-sm);
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(10, 13, 18, 0.18);
-}
-.evc-toast.is-success {
-  background: var(--utility-green-50);
-  color: var(--utility-green-600);
-}
-.evc-toast.is-error {
-  background: var(--utility-error-50);
-  color: var(--utility-error-500);
-}
+/* ── 토스트 ── 평가 화면의 알림은 공용 Toast(app-overlays.css 의 .pw-toast)로 뜬다.
+   여기 있던 .evc-toast 는 캔버스 뿌리(position: fixed) 안에 그려져 앱 위쪽 바 밑에 깔렸다
+   (PW-978 · PW-983). */
 
 /* ══ §10.G 캘리브레이션 워크스페이스 (Tab G) ══ */
 .evs-cw {
