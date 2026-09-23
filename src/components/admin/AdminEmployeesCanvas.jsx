@@ -2916,6 +2916,7 @@ function EmployeesEditPanel({
   rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
   countryOptions, buildingOptions, jobAxis, optionalFields,
   canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
+  hrRecordHandlers,
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
   onOpenFieldOptions,
@@ -3508,6 +3509,12 @@ function EmployeesEditPanel({
             labels={labels.records}
             onLoad={onLoadHrProfile}
             onSaveIdentity={canEdit ? onSaveIdentity : undefined}
+            onLoadTrainings={hrRecordHandlers?.onLoadTrainings}
+            onAddTraining={canEdit ? hrRecordHandlers?.onAddTraining : undefined}
+            onUpdateTraining={canEdit ? hrRecordHandlers?.onUpdateTraining : undefined}
+            onDeleteTraining={canEdit ? hrRecordHandlers?.onDeleteTraining : undefined}
+            onLoadBenefits={hrRecordHandlers?.onLoadBenefits}
+            onSaveBenefits={canEdit ? hrRecordHandlers?.onSaveBenefits : undefined}
             onClose={() => setHrOpen(false)}
           />
         )}
@@ -3517,6 +3524,8 @@ function EmployeesEditPanel({
             labels={labels.records}
             onLoad={onLoadSalaryHistory}
             onAdd={canEdit ? onAddSalaryHistory : undefined}
+            onUpdate={canEdit ? hrRecordHandlers?.onUpdateSalaryHistory : undefined}
+            onDelete={canEdit ? hrRecordHandlers?.onDeleteSalaryHistory : undefined}
             onClose={() => setSalaryOpen(false)}
             onSalarySynced={(v) => set('salary', v)}
           />
@@ -3736,6 +3745,14 @@ export default function AdminEmployeesCanvas({
   onAppendAffiliations,
   onLoadSalaryHistory,
   onAddSalaryHistory,
+  /**
+   * 여러 줄로 쌓이는 인사 기록을 넣고 고치고 지우는 콜백 묶음 (PW-920 재작업).
+   * `{ onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
+   *    onLoadBenefits, onSaveBenefits, onUpdateSalaryHistory, onDeleteSalaryHistory }`
+   * — 수료한 교육 과정·복리후생은 HR 기록 창에, 계약 기간·초과근무 수당은 보상 이력 창에
+   * 선다. 빠진 콜백의 자리는 그리지 않는다(교육·복리후생 묶음 / 줄마다 고치기·지우기).
+   */
+  hrRecordHandlers,
   onLoadHrProfile,
   // 시트가 HR 모달을 렌더하므로 여기서 함께 내려줘야 신원 편집이 열린다(PW-25).
   onSaveIdentity,
@@ -4015,6 +4032,7 @@ export default function AdminEmployeesCanvas({
             canViewSalary={canViewSalary}
             onLoadSalaryHistory={onLoadSalaryHistory}
             onAddSalaryHistory={onAddSalaryHistory}
+            hrRecordHandlers={hrRecordHandlers}
           />
         );
       })()}

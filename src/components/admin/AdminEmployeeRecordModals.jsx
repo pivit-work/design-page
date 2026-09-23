@@ -12,7 +12,6 @@
  * 코드는 옮긴 것이고 동작은 바뀌지 않았다 — 시트에서 열든 패널에서 열든 같은 창이다.
  */
 import { useState, useEffect, useMemo } from 'react';
-import DatePicker from '../shared/DatePicker.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { IconLock } from './employeeExport.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -478,7 +477,12 @@ const MILITARY_OPTIONS = [
   { value: 'not_applicable', label: '해당없음' },
 ];
 
-export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose }) {
+export function HrProfileModal({
+  row, labels, onLoad, onSaveIdentity, onClose,
+  // 수료한 교육 과정·복리후생 (PW-920 재작업) — 넘기면 그 묶음을 넣고 고치고 지우는 자리가 선다.
+  onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
+  onLoadBenefits, onSaveBenefits,
+}) {
   const L = labels || {};
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -683,6 +687,19 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
                 </div>
               </HrSection>
             )}
+            {onLoadTrainings && (
+              <HrTrainingsSection
+                memberId={row?.id}
+                labels={L}
+                onLoad={onLoadTrainings}
+                onAdd={onAddTraining}
+                onUpdate={onUpdateTraining}
+                onDelete={onDeleteTraining}
+              />
+            )}
+            {onLoadBenefits && (
+              <HrBenefitsSection memberId={row?.id} labels={L} onLoad={onLoadBenefits} onSave={onSaveBenefits} />
+            )}
             <HrSection title={L.hrFamily || '가족'}>
               <HrPair k={L.hrMarital || '혼인 여부'} v={family.maritalStatus} />
               <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
@@ -709,15 +726,271 @@ export function HrProfileModal({ row, labels, onLoad, onSaveIdentity, onClose })
   );
 }
 
+// ── 수료한 교육 과정 (PW-920 재작업 · 코어 §1-3-g 81번) ─────────────────────
+// 한 사람에 여러 건이 쌓인다. 줄마다 고치기·지우기, 아래 한 줄로 추가한다.
+// 실패는 전역 오류 화면으로 튕기지 않고 이 묶음 안에 알린다 — 적던 값이 날아가지 않게.
+const EMPTY_TRAINING = { courseName: '', completedAt: '', note: '' };
+
+function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete }) {
+  const L = labels || {};
+  const [rows, setRows] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const [form, setForm] = useState(EMPTY_TRAINING);
+  const [editingId, setEditingId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(onLoad(memberId))
+      .then((r) => { if (alive) setRows(Array.isArray(r) ? r : []); })
+      .catch(() => { if (alive) { setRows([]); setLoadError(true); } });
+    return () => { alive = false; };
+  }, [memberId, onLoad]);
+
+  const run = async (fn) => {
+    setBusy(true);
+    setError(false);
+    try {
+      const next = await fn();
+      if (Array.isArray(next)) setRows(next);
+      return true;
+    } catch {
+      setError(true);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submit = async () => {
+    const body = {
+      courseName: form.courseName.trim(),
+      completedAt: form.completedAt || null,
+      note: form.note.trim() || null,
+    };
+    const ok = await run(() => (editingId ? onUpdate(memberId, editingId, body) : onAdd(memberId, body)));
+    if (ok) { setForm(EMPTY_TRAINING); setEditingId(null); }
+  };
+  const startEdit = (r) => {
+    setEditingId(r.id);
+    setForm({ courseName: r.courseName ?? '', completedAt: r.completedAt ?? '', note: r.note ?? '' });
+    setError(false);
+  };
+  const cancelEdit = () => { setEditingId(null); setForm(EMPTY_TRAINING); };
+
+  const canEdit = Boolean(onAdd);
+  const list = rows ?? [];
+  return (
+    <HrSection title={`${L.hrTrainings || '수료한 교육 과정'} (${list.length})`}>
+      <div data-testid="hr-trainings">
+        {rows === null ? (
+          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.loading || '불러오는 중…'}</div>
+        ) : loadError ? (
+          <div style={{ fontSize: 12, color: '#DC2626', padding: '4px 0' }} role="alert">{L.hrTrainingsLoadError || '교육 기록을 불러오지 못했습니다.'}</div>
+        ) : list.length === 0 ? (
+          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.hrTrainingsEmpty || '등록된 교육 과정이 없습니다.'}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {list.map((r) => (
+              <div
+                key={r.id}
+                data-testid="hr-training-row"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: editingId === r.id ? '#EEF2FF' : T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}
+              >
+                <span style={{ flex: 1 }}>
+                  {[r.courseName, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : (L.hrTrainingInProgress || '이수 중'), r.note].filter(Boolean).join(' · ')}
+                </span>
+                {canEdit && onUpdate && (
+                  <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                    {L.hrRecordEdit || '고치기'}
+                  </button>
+                )}
+                {canEdit && onDelete && (
+                  <button type="button" className="admin-emp-btn" onClick={() => run(() => onDelete(memberId, r.id))} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
+                    {L.hrRecordDelete || '지우기'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {canEdit && !loadError && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
+            <HrEditPair k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
+            <HrEditPair k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
+            <HrEditPair k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
+              {editingId && (
+                <button type="button" className="admin-emp-btn" onClick={cancelEdit} disabled={busy} style={{ fontSize: 12, padding: '6px 12px' }}>
+                  {L.hrRecordCancel || '취소'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="admin-btn-primary"
+                data-testid="hr-training-submit"
+                onClick={submit}
+                disabled={busy || !form.courseName.trim()}
+                style={{ fontSize: 12, padding: '6px 14px', opacity: busy || !form.courseName.trim() ? 0.5 : 1 }}
+              >
+                {editingId ? (L.hrRecordSave || '저장') : (L.hrTrainingAdd || '교육 과정 추가')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </HrSection>
+  );
+}
+
+// ── 복리후생 (PW-920 재작업 · 코어 §1-3-g 87~91번) ─────────────────────────
+// 한 사람에 한 벌이라 다섯 칸을 한 번에 저장한다. 서버는 «보낸 것이 전부»로 덮으므로
+// 비운 칸은 지워진다. 기타 복리후생은 회사마다 항목이 달라 이름·값 줄로 쌓는다.
+const EMPTY_BENEFIT = { healthInsuranceProvider: '', planType: '', pensionContribution: '', stockOptions: '', otherBenefits: [] };
+
+const benefitDraftOf = (b) => ({
+  healthInsuranceProvider: b?.healthInsuranceProvider ?? '',
+  planType: b?.planType ?? '',
+  // numeric 은 `350000.00` 처럼 올 수 있다 — 칸에는 정수로 보인다.
+  pensionContribution: b?.pensionContribution != null && b.pensionContribution !== '' ? String(Math.round(Number(b.pensionContribution))) : '',
+  stockOptions: b?.stockOptions ?? '',
+  otherBenefits: Array.isArray(b?.otherBenefits) ? b.otherBenefits.map((o) => ({ name: o.name ?? '', value: o.value ?? '' })) : [],
+});
+
+function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
+  const L = labels || {};
+  const [draft, setDraft] = useState(null);
+  const [base, setBase] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const [state, setState] = useState('idle');
+
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(onLoad(memberId))
+      .then((b) => { if (alive) { const d = benefitDraftOf(b); setDraft(d); setBase(d); } })
+      .catch(() => { if (alive) { setDraft(EMPTY_BENEFIT); setBase(EMPTY_BENEFIT); setLoadError(true); } });
+    return () => { alive = false; };
+  }, [memberId, onLoad]);
+
+  const d = draft ?? EMPTY_BENEFIT;
+  const set = (key) => (v) => { setDraft((p) => ({ ...(p ?? EMPTY_BENEFIT), [key]: v })); setState('idle'); };
+  const setOther = (i, key, v) => {
+    setDraft((p) => ({ ...p, otherBenefits: p.otherBenefits.map((o, j) => (j === i ? { ...o, [key]: v } : o)) }));
+    setState('idle');
+  };
+  const addOther = () => { setDraft((p) => ({ ...p, otherBenefits: [...p.otherBenefits, { name: '', value: '' }] })); setState('idle'); };
+  const removeOther = (i) => { setDraft((p) => ({ ...p, otherBenefits: p.otherBenefits.filter((_, j) => j !== i) })); setState('idle'); };
+
+  const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
+  const pensionBad = d.pensionContribution !== '' && !/^\d+$/.test(String(d.pensionContribution).replace(/,/g, ''));
+
+  const save = () => {
+    setState('saving');
+    const body = {
+      healthInsuranceProvider: d.healthInsuranceProvider.trim() || null,
+      planType: d.planType.trim() || null,
+      pensionContribution: String(d.pensionContribution).replace(/,/g, '').trim() || null,
+      stockOptions: d.stockOptions.trim() || null,
+      otherBenefits: d.otherBenefits
+        .map((o) => ({ name: o.name.trim(), value: o.value.trim() }))
+        .filter((o) => o.name)
+        .map((o) => (o.value ? o : { name: o.name })),
+    };
+    Promise.resolve(onSave(memberId, body))
+      .then((saved) => {
+        const next = benefitDraftOf(saved ?? body);
+        setDraft(next);
+        setBase(next);
+        setState('saved');
+      })
+      .catch(() => setState('error'));
+  };
+
+  const readOnly = !onSave;
+  return (
+    <HrSection title={L.hrBenefits || '복리후생'}>
+      <div data-testid="hr-benefits">
+        {draft === null ? (
+          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.loading || '불러오는 중…'}</div>
+        ) : loadError ? (
+          <div style={{ fontSize: 12, color: '#DC2626', padding: '4px 0' }} role="alert">{L.hrBenefitsLoadError || '복리후생을 불러오지 못했습니다.'}</div>
+        ) : readOnly ? (
+          <>
+            <HrPair k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} v={d.healthInsuranceProvider} />
+            <HrPair k={L.hrInsurancePlanType || '보험 플랜 유형'} v={d.planType} />
+            <HrPair k={L.hrPensionContribution || '퇴직연금 기여금'} v={fmtKRW(d.pensionContribution)} />
+            <HrPair k={L.hrStockOptions || '주식 옵션'} v={d.stockOptions} />
+            <HrPair k={L.hrOtherBenefits || '기타 복리후생'} v={d.otherBenefits.map((o) => (o.value ? `${o.name}: ${o.value}` : o.name)).join(' · ')} />
+          </>
+        ) : (
+          <>
+            <HrEditPair k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} />
+            <HrEditPair k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
+            <HrEditPair k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
+            {pensionBad && (
+              <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액(숫자)으로 적어 주세요.'}</div>
+            )}
+            <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
+            <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
+              <span style={{ minWidth: 88, color: T.muted, paddingTop: 7 }}>{L.hrOtherBenefits || '기타 복리후생'}</span>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {d.otherBenefits.map((o, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 4 }} data-testid="hr-other-benefit-row">
+                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
+                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
+                    <button type="button" className="admin-emp-btn" onClick={() => removeOther(i)} style={{ flexShrink: 0, fontSize: 11, padding: '3px 8px' }}>{L.hrRecordDelete || '지우기'}</button>
+                  </div>
+                ))}
+                <button type="button" className="admin-emp-btn" onClick={addOther} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <IconPlusSmall size={11} />
+                  {L.hrOtherBenefitAdd || '항목 추가'}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              {state === 'error' && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
+              {state === 'saved' && <span style={{ fontSize: 11, color: '#16A34A' }} role="status">{L.hrIdentitySaved || '저장됐습니다'}</span>}
+              <button
+                type="button"
+                className="admin-btn-primary"
+                data-testid="hr-benefits-save"
+                onClick={save}
+                disabled={!dirty || pensionBad || state === 'saving'}
+                style={{ fontSize: 12, padding: '6px 14px', opacity: !dirty || pensionBad || state === 'saving' ? 0.5 : 1 }}
+              >
+                {state === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrBenefitsSave || '복리후생 저장')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </HrSection>
+  );
+}
+
 // ── 연봉 이력 모달 ──────────────────────────────────────
-export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSalarySynced }) {
+/**
+ * 보상 종류 (PW-920 재작업 · 코어 §2-1 `compensation_type`). 이 창에서 넣는 것은 셋이다.
+ *
+ * - 연봉 — 쌓아 가는 기록이라 **고치거나 지우지 않는다**(서버도 거절한다). 가장 늦은 적용일의
+ *   금액이 현재 연봉이 된다.
+ * - 계약 기간 — 시작·종료일. 금액은 비워도 된다(기획서가 «기간»으로 지정한 칸이다).
+ * - 초과근무 수당 — 매월 금액이 달라져 행으로 쌓는다. 현재 연봉에 섞이지 않는다.
+ */
+const COMP_TYPES = ['salary', 'contract', 'overtime_allowance'];
+const COMP_TYPE_DEFAULT_LABEL = { salary: '연봉', contract: '계약 기간', overtime_allowance: '초과근무 수당', stock: '주식' };
+const EMPTY_COMP_FORM = { compensationType: 'salary', effectiveDate: '', effectiveEndDate: '', amount: '', reason: '' };
+
+// ── 보상 이력 모달 (연봉 · 계약 기간 · 초과근무 수당) ──────────────────────
+export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced }) {
   const L = labels || {};
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ effectiveDate: '', amount: '', reason: '' });
+  const [form, setForm] = useState(EMPTY_COMP_FORM);
+  const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
-  // 날짜 picker 팝오버 앵커 — 열려 있으면 { rect, el }.
-  const [picker, setPicker] = useState(null);
   const [addError, setAddError] = useState(false);
 
   useEffect(() => {
@@ -739,21 +1012,37 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
     };
   }, [row.id, onLoad]);
 
-  // ESC 로 닫기는 공용 창 틀(ModalShell)이 한다 — 날짜 고르기의 Esc 는 달력만 닫는다.
+  // ESC 로 닫기는 공용 창 틀(ModalShell)이 한다 — 날짜 칸의 Esc 는 달력만 닫는다.
 
+  const typeOf = (h) => h.compensationType || 'salary';
+  const typeLabel = (t) => (L.compTypeLabels && L.compTypeLabels[t]) || COMP_TYPE_DEFAULT_LABEL[t] || t;
   const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
-  const canAdd = form.effectiveDate && form.amount && !busy;
+  // 「현재」는 연봉 줄에만 붙는다 — 수당·계약이 뒤에 쌓여도 현재 연봉은 연봉 줄이다.
+  const salaryRows = sorted.filter((h) => typeOf(h) === 'salary');
+  const currentSalary = salaryRows[salaryRows.length - 1];
+  const isContract = form.compensationType === 'contract';
+  const endBeforeStart = isContract && form.effectiveEndDate && form.effectiveDate && form.effectiveEndDate < form.effectiveDate;
+  const canSubmit = form.effectiveDate && (form.amount || isContract) && !endBeforeStart && !busy;
+  const canEditRow = (h) => typeOf(h) !== 'salary' && h.id;
 
-  async function add() {
-    if (!canAdd || !onAdd) return;
+  async function submit() {
+    if (!canSubmit) return;
     setBusy(true);
     setAddError(false);
+    const body = {
+      compensationType: form.compensationType,
+      effectiveDate: form.effectiveDate,
+      ...(isContract && form.effectiveEndDate ? { effectiveEndDate: form.effectiveEndDate } : {}),
+      ...(form.amount ? { amount: form.amount } : {}),
+      ...(form.reason ? { reason: form.reason } : {}),
+    };
     try {
-      const res = await onAdd(row.id, { ...form });
+      const res = editingId ? await onUpdate(row.id, editingId, body) : await onAdd(row.id, body);
       if (res?.history) setHistory(res.history);
-      else setHistory((prev) => [...prev, { ...form }]);
+      else if (!editingId) setHistory((prev) => [...prev, { ...body }]);
       if (res && 'salary' in res) onSalarySynced?.(res.salary);
-      setForm({ effectiveDate: '', amount: '', reason: '' });
+      setForm(EMPTY_COMP_FORM);
+      setEditingId(null);
     } catch {
       // 저장 실패를 삼키면 "눌렀는데 아무 일도 안 난다"가 된다. 전역 에러 화면으로
       // 튕기지 않고(입력이 날아간다) 폼 안에서 알린다 — 입력값은 그대로 남긴다.
@@ -763,15 +1052,43 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
     }
   }
 
+  async function remove(h) {
+    setBusy(true);
+    setAddError(false);
+    try {
+      const res = await onDelete(row.id, h.id);
+      if (res?.history) setHistory(res.history);
+      else setHistory((prev) => prev.filter((x) => x.id !== h.id));
+      if (res && 'salary' in res) onSalarySynced?.(res.salary);
+      if (editingId === h.id) { setEditingId(null); setForm(EMPTY_COMP_FORM); }
+    } catch {
+      setAddError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startEdit(h) {
+    setEditingId(h.id);
+    setAddError(false);
+    setForm({
+      compensationType: typeOf(h),
+      effectiveDate: h.effectiveDate ?? '',
+      effectiveEndDate: h.effectiveEndDate ?? '',
+      amount: h.amount != null ? String(Math.round(Number(h.amount))) : '',
+      reason: h.reason ?? '',
+    });
+  }
+
+  const withActions = Boolean(onUpdate || onDelete);
+
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기 + 추가 줄 창이라 아래 버튼 줄이 없다.
-    // 날짜 고르기(DatePicker)는 틀 «안»에 그린다 — 틀 막이 자기 겹침 맥락을 만들어, 밖에 두면
-    // 달력(z 200)이 막 뒤로 깔린다.
     <ModalShell
-      title={`${row.name || (L.newEmployee || '신규 직원')} · ${L.salaryHistoryTitle || '연봉 이력'}`}
+      title={`${row.name || (L.newEmployee || '신규 직원')} · ${L.salaryHistoryTitle || '보상 이력'}`}
       description={
         <>
-          {L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 이력이 현재 연봉으로 반영'}
+          {L.salaryHistoryDesc || '적용일 기준 누적 이력 · 최신 연봉 이력이 현재 연봉으로 반영'}
           {/* 자물쇠는 이모지가 아니라 인라인 SVG — 색은 감싸는 span 의 color 를 따른다. */}
           <span className="admin-emp-sal-mask">
             <IconLock size={11} />
@@ -791,28 +1108,35 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
       {loading ? (
         <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
       ) : sorted.length === 0 ? (
-        <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 연봉 이력이 없습니다. 아래에서 추가하세요. (연봉은 비필수 항목입니다)'}</div>
+        <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 보상 이력이 없습니다. 아래에서 추가하세요. (보상은 비필수 항목입니다)'}</div>
       ) : (
         <RosterTable
           tableClassName="admin-emp-sal-table"
           rows={sorted}
-          rowKey={(h, i) => i}
-          rowProps={(h, i) => ({ tone: i === sorted.length - 1 ? 'current' : undefined })}
+          rowKey={(h, i) => h.id ?? i}
+          rowProps={(h) => ({ tone: h === currentSalary ? 'current' : undefined })}
           columns={[
+            {
+              key: 'type',
+              header: L.salaryHistType || '종류',
+              // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 날짜 칸과 같이 줄바꿈을 막는다.
+              cellProps: { className: 'is-date' },
+              render: (h) => typeLabel(typeOf(h)),
+            },
             {
               key: 'date',
               header: L.salaryHistEffDate || '적용일',
               cellProps: { className: 'is-date' },
-              render: (h, i) => (
+              render: (h) => (
                 <>
-                  {h.effectiveDate}
-                  {i === sorted.length - 1 && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
+                  {h.effectiveEndDate ? `${h.effectiveDate} ~ ${h.effectiveEndDate}` : h.effectiveDate}
+                  {h === currentSalary && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
                 </>
               ),
             },
             {
               key: 'amount',
-              header: L.salaryHistAmount || '연봉',
+              header: L.salaryHistAmount || '금액',
               align: 'right',
               cellProps: { className: 'is-amount' },
               render: (h) => fmtKRW(h.amount),
@@ -824,82 +1148,121 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onClose, onSala
               headerProps: { className: 'is-reason' },
               render: (h) => h.reason || '—',
             },
+            ...(withActions
+              ? [{
+                  key: 'actions',
+                  header: '',
+                  align: 'right',
+                  render: (h) =>
+                    canEditRow(h) ? (
+                      <span style={{ display: 'inline-flex', gap: 4 }}>
+                        {onUpdate && (
+                          <button type="button" className="admin-emp-btn" data-testid="comp-row-edit" onClick={() => startEdit(h)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                            {L.hrRecordEdit || '고치기'}
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button type="button" className="admin-emp-btn" data-testid="comp-row-delete" onClick={() => remove(h)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                            {L.hrRecordDelete || '지우기'}
+                          </button>
+                        )}
+                      </span>
+                    ) : null,
+                }]
+              : []),
           ]}
         />
       )}
 
-      <div className="admin-emp-sal-add">
-        <div className="admin-emp-sal-add-title">{L.salaryHistAdd || '연봉 이력 추가'}</div>
-        <div className="admin-emp-sal-add-row">
-          <div className="admin-emp-field">
-            <label className="admin-emp-field-label" htmlFor="sal-hist-date">{L.salaryHistEffDate || '적용일'}</label>
-            {/* 브라우저 기본 date 입력은 로케일에 따라 mm/dd/yyyy 로 떠서 한국어 화면과
-                어긋난다. 다른 어드민 화면과 같은 공용 DatePicker 를 연다. */}
-            <button
-              type="button"
-              id="sal-hist-date"
-              className={`admin-emp-input admin-emp-sal-date${picker ? ' is-open' : ''}${form.effectiveDate ? '' : ' is-empty'}`}
-              onClick={(e) => setPicker(picker ? null : { rect: e.currentTarget.getBoundingClientRect(), el: e.currentTarget })}
-            >
-              {form.effectiveDate || (L.salaryHistEffDatePh || 'YYYY-MM-DD')}
+      {onAdd && (
+        <div className="admin-emp-sal-add">
+          <div className="admin-emp-sal-add-title">
+            {editingId ? (L.salaryHistEditTitle || '보상 이력 고치기') : (L.salaryHistAdd || '보상 이력 추가')}
+          </div>
+          <div className="admin-emp-sal-add-row">
+            <div className="admin-emp-field">
+              <label className="admin-emp-field-label" htmlFor="sal-hist-type">{L.salaryHistType || '종류'}</label>
+              {/* 고치는 중에는 종류를 못 바꾼다 — 서버도 종류는 그대로 둔다. */}
+              <select
+                id="sal-hist-type"
+                className="admin-emp-input"
+                value={form.compensationType}
+                disabled={Boolean(editingId)}
+                onChange={(e) => setForm((f) => ({ ...f, compensationType: e.target.value, effectiveEndDate: '' }))}
+              >
+                {COMP_TYPES.map((t) => (
+                  <option key={t} value={t}>{typeLabel(t)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="admin-emp-field">
+              <label className="admin-emp-field-label" htmlFor="sal-hist-date">
+                {isContract ? (L.salaryHistStartDate || '시작일') : (L.salaryHistEffDate || '적용일')}
+              </label>
+              {/* 기본 날짜 칸은 영어 브라우저에서 09/29/2026 으로 보인다 (PW-793) — 공용 날짜 칸. */}
+              <DateInput
+                id="sal-hist-date"
+                className="admin-emp-input"
+                value={form.effectiveDate}
+                onChange={(v) => setForm((f) => ({ ...f, effectiveDate: v }))}
+              />
+            </div>
+            {isContract && (
+              <div className="admin-emp-field">
+                <label className="admin-emp-field-label" htmlFor="sal-hist-end">{L.salaryHistEndDate || '종료일'}</label>
+                <DateInput
+                  id="sal-hist-end"
+                  className="admin-emp-input"
+                  value={form.effectiveEndDate}
+                  onChange={(v) => setForm((f) => ({ ...f, effectiveEndDate: v }))}
+                />
+              </div>
+            )}
+            <div className="admin-emp-field">
+              <label className="admin-emp-field-label" htmlFor="sal-hist-amount">
+                {isContract ? (L.salaryHistAmountOptional || '금액(선택)') : (L.salaryHistAmount || '금액')}
+              </label>
+              <input
+                id="sal-hist-amount"
+                className="admin-emp-input admin-emp-sal-amount"
+                type="text"
+                inputMode="numeric"
+                placeholder={L.salaryHistAmountPh || '금액(원)'}
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+              />
+            </div>
+            <div className="admin-emp-field is-reason">
+              <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
+              <input
+                id="sal-hist-reason"
+                className="admin-emp-input"
+                type="text"
+                placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'}
+                value={form.reason}
+                onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+              />
+            </div>
+            {editingId && (
+              <button type="button" className="admin-emp-btn" onClick={() => { setEditingId(null); setForm(EMPTY_COMP_FORM); }} disabled={busy}>
+                {L.hrRecordCancel || '취소'}
+              </button>
+            )}
+            <button type="button" className="admin-emp-btn is-primary" data-testid="comp-submit" onClick={submit} disabled={!canSubmit}>
+              {editingId ? (L.hrRecordSave || '저장') : (L.salaryHistAddBtn || '추가')}
             </button>
           </div>
-          <div className="admin-emp-field">
-            <label className="admin-emp-field-label" htmlFor="sal-hist-amount">{L.salaryHistAmount || '연봉'}</label>
-            <input
-              id="sal-hist-amount"
-              className="admin-emp-input admin-emp-sal-amount"
-              type="text"
-              inputMode="numeric"
-              placeholder={L.salaryHistAmountPh || '연봉(원)'}
-              value={form.amount}
-              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
-            />
-          </div>
-          <div className="admin-emp-field is-reason">
-            <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
-            <input
-              id="sal-hist-reason"
-              className="admin-emp-input"
-              type="text"
-              placeholder={L.salaryHistReasonPh || '사유 (예: 연봉 조정/승진)'}
-              value={form.reason}
-              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-            />
-          </div>
-          <button type="button" className="admin-emp-btn is-primary" onClick={add} disabled={!canAdd}>
-            {L.salaryHistAddBtn || '추가'}
-          </button>
+          {endBeforeStart && (
+            <div className="admin-emp-sal-error" role="alert">{L.salaryHistEndBeforeStart || '종료일이 시작일보다 앞설 수 없습니다.'}</div>
+          )}
+          {addError && (
+            <div className="admin-emp-sal-error" role="alert">
+              {L.salaryHistAddError || '보상 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
+            </div>
+          )}
+          <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준). 연봉 이력은 고치거나 지울 수 없어 새 이력으로 추가합니다.'}</div>
         </div>
-        {addError && (
-          <div className="admin-emp-sal-error" role="alert">
-            {L.salaryHistAddError || '연봉 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
-          </div>
-        )}
-        <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준).'}</div>
-      </div>
-      {picker && (
-        <DatePicker
-          anchorRect={picker.rect}
-          anchorEl={picker.el}
-          selectedDate={isoToDate(form.effectiveDate)}
-          onSelect={(d) => { setForm((f) => ({ ...f, effectiveDate: dateToIso(d) })); setPicker(null); }}
-          onClose={() => setPicker(null)}
-        />
       )}
     </ModalShell>
   );
-}
-
-// 로컬 타임존 기준 'YYYY-MM-DD' (toISOString 의 UTC off-by-one 회피).
-// AdminNotificationsCanvas 와 같은 구현 — 날짜 입력이 하루 밀리던 자리다.
-function dateToIso(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-function isoToDate(iso) {
-  const [y, m, d] = (iso || '').split('-').map(Number);
-  return y ? new Date(y, m - 1, d) : new Date();
 }
