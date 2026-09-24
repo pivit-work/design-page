@@ -12,6 +12,20 @@
  * @param {Record<string, object>} previousSeed 직전에 채운 상태(seedState(이전 답변))
  * @param {Record<string, object>} nextSeed  새로 채울 상태(seedState(새 답변))
  */
+/**
+ * 칸 구성의 «모양» — 칸 key·종류를 이은 문자열.
+ *
+ * 칸 구성이 바뀌었는지를 fields 참조로 가르면 안 된다. 화면은 저장 응답마다 평가지(template)를
+ * 새 객체로 내려 주고(하향·셀프 리뷰), 라벨 묶음도 새로 만들 수 있어(동료 리뷰) fields 가 매번
+ * 새 참조가 된다. 그러면 «답만 새로 왔다»가 «칸 구성이 바뀌었다»로 읽혀 칸 전체를 서버 값으로
+ * 다시 채우고, 저장하는 동안 친 글자와 저장 안 한 칸의 글이 지워졌다 (PW-966 dev 확인).
+ *
+ * @param {Array<{key: string, type?: string}>} fields
+ */
+export function fieldsShape(fields) {
+  return (fields ?? []).map((f) => `${f.key}:${f.type ?? ''}`).join('\u0000');
+}
+
 export function reseedKeepingEdits(current, previousSeed, nextSeed) {
   const out = {};
   for (const key of Object.keys(nextSeed)) {
