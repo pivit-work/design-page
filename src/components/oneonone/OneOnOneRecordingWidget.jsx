@@ -172,7 +172,7 @@ export default function OneOnOneRecordingWidget({
       <div className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}>
         <div className="ono-start-rec-mini is-idle" data-testid="ono-rec-idle">
           <div className="ono-start-rec-notice is-actionable" role="status">
-            <span className="ono-start-rec-notice-text">{notice}</span>
+            <span>{notice}</span>
             <div className="ono-start-rec-notice-actions">
               {onStart && (
                 <button

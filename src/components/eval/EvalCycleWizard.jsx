@@ -2900,7 +2900,7 @@ export default function EvalCycleWizard({
         : 'reminderSampleChSlackOwn';
     const f = (t) => fillSampleVars(t, L);
     return (
-      <div className="evc-rm-preview" data-testid={`evc-rm-sample-${ph.id}-${i}`}>
+      <div data-testid={`evc-rm-sample-${ph.id}-${i}`}>
         <div className="evc-rm-preview-tag">
           {L.reminderSampleTitle} · {L.reminderSampleNote}
         </div>
@@ -5265,7 +5265,7 @@ export default function EvalCycleWizard({
               {/* §4.2.2-B 최종 등급 카드 위치는 하향 리뷰 템플릿 설정 영역 소속.
                   기본 정보 스텝에 있던 것을 등급 체계 바로 아래로 옮겼다. */}
               {tplType === 'leader' && (
-                <div className="evc-wiz-gradepos">
+                <div>
                   <span className="evc-field-label">{L.gradePosLabel}</span>
                   <div className="evc-type-row">
                     {['top', 'bottom', 'freeze'].map((pos) => (
@@ -5926,7 +5926,7 @@ export default function EvalCycleWizard({
                                               MESSAGE_TEMPLATE_PREVIEW[msg.template] ??
                                               MESSAGE_TEMPLATE_PREVIEW.default;
                                             return (
-                                              <div className="evc-rm-preview">
+                                              <div>
                                                 <div className="evc-rm-preview-tag">
                                                   {L.reminderPreview} · {L.reminderReadonly}
                                                 </div>
@@ -6934,7 +6934,7 @@ export default function EvalCycleWizard({
                         reviewGroups.map((g) => {
                           const open = !groupCollapsed.has(g.id);
                           return (
-                            <div key={g.id} className="evc-roster-group">
+                            <div key={g.id}>
                               {/* 접혀도 인원수와 「제외 →」 는 보인다 —
                                   접힌 그룹을 통째로 뺄 수 있어야 접기가 쓸모 있다. */}
                               <div className="evc-roster-group-head">

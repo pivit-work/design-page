@@ -109,7 +109,7 @@ export default function OkrDashboardCanvas({
           <span>화면을 드래그하면 좀 더 쉽게 OKR를 보실 수 있습니다.</span>
         </div>
 
-        <div className="canvas-inner okr-canvas-inner" ref={canvasInnerRef} style={{
+        <div className="canvas-inner" data-okr-canvas-inner ref={canvasInnerRef} style={{
           transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
           transformOrigin: '0 0',
           position: 'relative',

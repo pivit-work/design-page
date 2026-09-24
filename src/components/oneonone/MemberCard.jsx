@@ -72,7 +72,7 @@ export default function MemberCard({
 
       <div className="card-header">
         {avatar}
-        <div className="card-name-wrap">
+        <div>
           <h3 className="card-name">{member.name}</h3>
           <p className="card-role">{member.role}</p>
         </div>

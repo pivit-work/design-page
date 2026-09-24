@@ -1007,7 +1007,7 @@ export default function DoneOneOnOneView({
 
       {/* 피드백이 없는 회차에는 공개할 것도 없다 — 카드 자체를 그리지 않는다. */}
       {has(session.managerFeedback) && (
-        <div className="ono-done-feedback-wrap" data-testid="ono-done-feedback">
+        <div data-testid="ono-done-feedback">
           <div className="ono-done-share-row">
             <StatusBadge
               className={`ono-done-share-badge${session.isShared ? ' is-on' : ''}`}

@@ -67,7 +67,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
 
       {hasFilter && (
         <div className="mgr-ts-filterbar">
-          <span className="mgr-ts-filterbar-label">필터 :</span>
+          <span>필터 :</span>
           {memberFilter && (
             <StatusBadge className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilter} ×</StatusBadge>
           )}
@@ -146,7 +146,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
                   {group.avatars.map((src, i) => <img key={i} src={src} alt="" draggable={false} />)}
                 </span>
                 <span className="mgr-ts-krgroup-members">{group.members}</span>
-                <span className="mgr-ts-krgroup-count">스니핏 {group.snippets.length}건</span>
+                <span>스니핏 {group.snippets.length}건</span>
               </div>
             </div>
             <div className="mgr-ts-krgroup-list">

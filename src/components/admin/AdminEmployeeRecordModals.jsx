@@ -626,8 +626,7 @@ export function HrProfileModal({
                       onClick={submitIdentity}
                       disabled={!identityDirty || identityState === 'saving'}
                       data-testid="hr-identity-save"
-                      className="admin-btn-primary"
-                      style={{ fontSize: 12, padding: '6px 14px', opacity: !identityDirty || identityState === 'saving' ? 0.5 : 1 }}
+                      className="admin-emp-btn is-primary"
                     >
                       {identityState === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrIdentitySave || '신원 정보 저장')}
                     </button>
@@ -837,11 +836,10 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
               )}
               <button
                 type="button"
-                className="admin-btn-primary"
+                className="admin-emp-btn is-primary"
                 data-testid="hr-training-submit"
                 onClick={submit}
                 disabled={busy || !form.courseName.trim()}
-                style={{ fontSize: 12, padding: '6px 14px', opacity: busy || !form.courseName.trim() ? 0.5 : 1 }}
               >
                 {editingId ? (L.hrRecordSave || '저장') : (L.hrTrainingAdd || '교육 과정 추가')}
               </button>
@@ -962,11 +960,10 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
               {state === 'saved' && <span style={{ fontSize: 11, color: '#16A34A' }} role="status">{L.hrIdentitySaved || '저장됐습니다'}</span>}
               <button
                 type="button"
-                className="admin-btn-primary"
+                className="admin-emp-btn is-primary"
                 data-testid="hr-benefits-save"
                 onClick={save}
                 disabled={!dirty || pensionBad || state === 'saving'}
-                style={{ fontSize: 12, padding: '6px 14px', opacity: !dirty || pensionBad || state === 'saving' ? 0.5 : 1 }}
               >
                 {state === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrBenefitsSave || '복리후생 저장')}
               </button>

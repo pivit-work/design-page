@@ -220,7 +220,7 @@ function UnsolicitedSection({ items, L, onAdopt, onReject }) {
     <section className="evc-card" data-testid="evp-unsolicited" style={{ borderColor: 'var(--utility-warning-200)' }}>
       <div className="evc-card-head">
         <h3 className="evc-card-name">{L.unsolicitedTitle}</h3>
-        <StatusBadge className="evc-status-badge tone-warning">{items.length}</StatusBadge>
+        <StatusBadge className="evc-status-badge tone-warn">{items.length}</StatusBadge>
       </div>
       <p className="evc-empty-sub">{L.unsolicitedSub}</p>
       <div className="evp-nominees">

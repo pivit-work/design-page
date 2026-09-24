@@ -65,7 +65,7 @@ export default function EvalSheetBody({
         </p>
       )}
       {sections.map((s, si) => (
-        <div key={s.sec ?? `sec${si}`} className="evc-preview-section">
+        <div key={s.sec ?? `sec${si}`}>
           {/* 구분이 없는 항목(분류 미해석·레거시)은 머리글 없이 항목만 그린다 —
               빈 제목 줄이 서면 「제목이 사라진 것」처럼 읽힌다. */}
           {s.sec && (

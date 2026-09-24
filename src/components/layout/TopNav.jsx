@@ -48,7 +48,7 @@ export default function TopNav({
       <div className="nav-links">
         {showHome && <span className="nav-link" onClick={onHomeClick}>{L.home}</span>}
         <span className="nav-link" onClick={onProfileClick}>{L.profile}</span>
-        <span className="nav-link has-dot" onClick={onNotificationsClick}>
+        <span className="nav-link" onClick={onNotificationsClick}>
           {L.notifications}
           {hasUnread && <span className="notification-dot" data-testid="notification-dot" />}
         </span>

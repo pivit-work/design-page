@@ -819,7 +819,6 @@ export default function AdminInviteModal({
       busy={sending}
       zIndex={1000}
       className={`adm-shell has-own-footer admin-inv-modal${isCsv && csvRows.length > 0 ? ' is-csv-wide' : ''}`}
-      contentClassName="admin-inv-content"
       testId="admin-invite-modal"
       footer={footer}
     >

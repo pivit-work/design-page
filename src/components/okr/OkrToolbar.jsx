@@ -77,7 +77,6 @@ export default function OkrToolbar({
         {levels.length > 1 && (
           // 단위 고르기 — 공용 SegmentedControl (PW-836).
           <SegmentedControl
-            className="okr-level-seg"
             ariaLabel={levelPickerLabel}
             items={levels.map((level) => ({ value: level.id, label: level.label }))}
             value={selectedLevelId}

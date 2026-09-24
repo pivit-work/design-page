@@ -54,7 +54,7 @@ export default function OkrDetailModal({
 
       <div className="okr-quarter-tables">
         {detail.quarters.map((quarter, qi) => (
-          <div className="okr-quarter-table" key={rowKey(quarter, qi, 'q')}>
+          <div key={rowKey(quarter, qi, 'q')}>
             <div className="okr-qrow is-head">
               <div className="okr-qcell-label">
                 <span className="okr-q-name">{quarter.q}</span>
@@ -66,7 +66,7 @@ export default function OkrDetailModal({
               <div className="okr-qcell-weight is-head">{quarter.weight}</div>
             </div>
             {quarter.krs.map((kr) => (
-              <div className="okr-qrow is-kr" key={kr.id}>
+              <div className="okr-qrow" key={kr.id}>
                 <div className="okr-qcell-label">
                   <span className="okr-kr-id">{kr.id}</span>
                 </div>

@@ -521,7 +521,7 @@ export default function EvalCycleMonitoringCanvas({
                     <Check ok={m.leaderSubmitted} />
                   </>
                 )}
-                <span className="evmon-grade">
+                <span>
                   {m.gradeKey ? (
                     <StatusBadge
                       className={`evc-status-badge ${GRADE_TONE[m.gradeKey] ?? 'tone-neutral'}`}
@@ -658,7 +658,6 @@ export default function EvalCycleMonitoringCanvas({
           canSubmit
           onClose={closeExport}
           onSubmit={submitExport}
-          className="evmon-export-modal"
         >
           {/* 필드·에러 표기는 일정 수정 모달과 같은 클래스를 쓴다 — 새 클래스를
               지으면 같은 모양이 두 벌이 된다. */}

@@ -40,9 +40,9 @@ export function CsvImportSteps({ steps = [], current = -1 }) {
           aria-current={i === cur ? 'step' : undefined}
         >
           {/* 이름은 따로 감싼다 — 번호와 한 덩어리면 단계 이름으로 찾을 수 없다 */}
-          <span className="admin-kit-csv-step-num">{i + 1}. </span>
+          <span>{i + 1}. </span>
           <span>{label}</span>
-          {i < steps.length - 1 && <span className="admin-kit-csv-step-arrow" aria-hidden="true"> →</span>}
+          {i < steps.length - 1 && <span aria-hidden="true"> →</span>}
         </li>
       ))}
     </ol>
@@ -255,7 +255,7 @@ export function CsvFieldGrid({ children }) {
  */
 export function CsvField({ label, required = false, requiredTitle, badge, marker, children }) {
   return (
-    <label className="admin-inv-field admin-kit-field">
+    <label className="admin-inv-field">
       <span className="admin-kit-field-label">
         {label}
         {required && <span className="admin-kit-required" title={requiredTitle}>*</span>}

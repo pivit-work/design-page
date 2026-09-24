@@ -97,7 +97,7 @@ export default function ManagerCanvas({
   const closeProfile = () => { setOpenMemberId(null); onMemberOpen?.(null); };
 
   return (
-    <main className={`manager-page ${openMember ? 'is-modal-open' : ''}`}>
+    <main className="manager-page">
       <header className="manager-page-header">
         <div className="manager-tabs">
           {tabs.map((tab) => (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import AvatarFallback from './AvatarFallback.jsx';
 import {
   TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName,
   PencilIcon, SearchIcon, MoreVerticalIcon, CrownIcon, StarIcon,
@@ -75,7 +76,7 @@ export default function AdminTeamDetailPanel({
   };
 
   const avatar = (m, size) =>
-    (renderAvatar ? renderAvatar(m, size) : <span className="tm-avatar-fallback" style={{ width: size, height: size }}>{(m.name || '?').charAt(0)}</span>);
+    (renderAvatar ? renderAvatar(m, size) : <AvatarFallback row={m} size={size} />);
 
   if (!team) {
     return (

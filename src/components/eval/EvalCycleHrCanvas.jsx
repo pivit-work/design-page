@@ -399,7 +399,7 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
       onClose={cancel}
       busy={submitting}
       zIndex={1000}
-      className="evc-shell evc-open-confirm"
+      className="evc-shell"
       testId="evc-open-confirm"
       overlayTestId="evc-open-confirm-overlay"
       footer={
@@ -598,7 +598,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
         onClose={onCancel}
         busy={saving || confirming}
         zIndex={1000}
-        className="evc-shell is-wide evc-sched-modal"
+        className="evc-shell is-wide"
         testId="evc-schedule-modal"
         footer={
           <>

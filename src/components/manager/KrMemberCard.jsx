@@ -81,8 +81,8 @@ export default function KrMemberCard({ member, selected = false, onClick, labels
                 return (
                   <div className="mgr-krm-initiative" key={item.title}>
                     <div className="mgr-krm-initiative-row">
-                      <span className="mgr-krm-initiative-title">{item.title}</span>
-                      <span className="mgr-krm-initiative-percent">{item.percent}%</span>
+                      <span>{item.title}</span>
+                      <span>{item.percent}%</span>
                     </div>
                     <div className="mgr-krm-bar">
                       <div

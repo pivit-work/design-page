@@ -267,7 +267,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           {/* 네 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다). */}
           <button
             type="button"
-            className="zoom-btn zoom-btn-line-style"
+            className="zoom-btn"
             title={lineStyleLabel}
             aria-label={lineStyleLabel}
             data-line-style={lineStyle}

@@ -206,7 +206,6 @@ function BlockCard({ block, L, onOpen }) {
   return (
     <button
       type="button"
-      className="fbm-block"
       onClick={() => onOpen(block)}
       data-testid={`fbm-block-${block.key}`}
       style={{

@@ -149,7 +149,6 @@ export default function OneOnOneDetailModal({
       footer={null}
       zIndex={1000}
       className="ood-shell"
-      bodyClassName="ood-shell-body"
       testId="ood-modal"
     >
       {/* 안쪽 아무 데나 누르면 열린 날짜·시간 고르기를 닫는다(종전 그대로). */}
