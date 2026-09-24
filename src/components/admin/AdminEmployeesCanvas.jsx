@@ -980,6 +980,16 @@ function InvitesTab({
   onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
 }) {
   const [filter, setFilter] = useState('all');
+  // [PW-967] 재발송 중인 초대 — 끝날 때까지 그 줄의 [재발송]을 잠근다. 두 번 누르면 메일이
+  // 두 통 가고 먼저 온 메일의 링크가 죽었다.
+  const [resendingId, setResendingId] = useState(null);
+  const resend = (id) => {
+    if (resendingId) return;
+    setResendingId(id);
+    Promise.resolve(onResendInvite(id))
+      .catch(() => {})
+      .finally(() => setResendingId(null));
+  };
 
   const counts = {
     pending: invites.filter((i) => i.status === 'pending').length,
@@ -1049,12 +1059,12 @@ function InvitesTab({
                           {onCopyInviteLink && (
                             <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
                           )}
-                          <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                          <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={resendingId === inv.id} onClick={() => resend(inv.id)}>{labels.invites.resend}</button>
                           <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
                         </>
                       )}
                       {inv.status === 'expired' && (
-                        <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</button>
+                        <button type="button" className="admin-emp-btn is-primary is-sm" disabled={resendingId === inv.id} onClick={() => resend(inv.id)}>{labels.invites.resend}</button>
                       )}
                       {inv.status === 'accepted' && <span className="admin-emp-muted">—</span>}
                     </div>

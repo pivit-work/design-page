@@ -833,7 +833,7 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L }) {
   );
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft }) {
   const isDraft = cycle.status === 'draft';
   /**
    * PW-440 — 「작성하다 만 초안」인가.
@@ -963,6 +963,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, onViewResult
             <button
               type="button"
               className="evc-btn is-primary"
+              disabled={advancing}
               onClick={() => onAdvance(cycle)}
               data-testid="evc-advance"
             >
@@ -1218,8 +1219,16 @@ export default function EvalCycleHrCanvas({
     showToast(L.toastOpened);
   };
 
-  const handleAdvance = (cycle) =>
-    void run(() => onAdvanceCycle?.(cycle.id), L.toastAdvanced);
+  // [PW-967] 진행 중인 카드는 끝날 때까지 버튼을 잠그고, 카드가 본 단계를 함께 넘긴다 —
+  // 두 번 누르면 두 번째 요청이 한 단계를 더 넘겼다. 이미 넘어갔으면 서버가 거절한다.
+  const [advancingId, setAdvancingId] = useState(null);
+  const handleAdvance = (cycle) => {
+    if (advancingId) return;
+    setAdvancingId(cycle.id);
+    void run(() => onAdvanceCycle?.(cycle.id, cycle.status), L.toastAdvanced).finally(() =>
+      setAdvancingId(null),
+    );
+  };
 
   const requestDelete = (cycle) => {
     setConfirmModal({
@@ -1455,6 +1464,7 @@ export default function EvalCycleHrCanvas({
               }
               onOpen={handleOpen}
               onAdvance={handleAdvance}
+              advancing={advancingId === cycle.id}
               onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
               onHold={requestHold}
               onResume={handleResume}

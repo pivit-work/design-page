@@ -293,6 +293,9 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
+  // [PW-967] 제출 요청 중 — 끝날 때까지 [제출]을 잠근다. 결과를 안 기다려 두 번 누르면
+  // 두 번 나갔다. 실패하면 풀어 다시 누를 수 있게 한다(알림은 화면이 띄운다).
+  const [submitting, setSubmitting] = useState(false);
   // TC-135: 30초 자동저장 — 사용자 편집 후 디바운스로 onSave 호출(early-return 앞 선언).
   const dirtyRef = useRef(false);
   const [autoSavedAt, setAutoSavedAt] = useState(null);
@@ -502,7 +505,11 @@ export default function EvalCycleMemberCanvas({
       });
       return;
     }
-    onSubmit?.(toItems());
+    if (!onSubmit || submitting) return;
+    setSubmitting(true);
+    Promise.resolve(onSubmit(toItems()))
+      .catch(() => {})
+      .finally(() => setSubmitting(false));
   };
 
   // 섹션(section) 별 그룹핑 — 등장 순서 유지.
@@ -909,6 +916,7 @@ export default function EvalCycleMemberCanvas({
             <button
               type="button"
               className="evc-btn is-primary"
+              disabled={submitting}
               onClick={handleSubmitClick}
               data-testid="evm-submit"
             >
