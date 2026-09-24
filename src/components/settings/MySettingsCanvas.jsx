@@ -1271,6 +1271,12 @@ export default function MySettingsCanvas({
   maxPhotos = 5,
   minPhotos = 0,
   photoBusy = false,
+  /**
+   * PW-980 — 올려 둔 사진 목록을 못 불러왔다. 안 넘기면 실패가 빈 갤러리로 보여서
+   * 사진이 지워진 것처럼 읽힌다. 켜면 썸네일 자리에 실패와 '다시 시도'를 그린다.
+   */
+  photosError = false,
+  onReloadPhotos,
   onSelectPhoto,
   onAddPhoto,
   onDeletePhoto,
@@ -1585,6 +1591,20 @@ export default function MySettingsCanvas({
                     {activePhoto && <div className="msc-photo-caption">{labels.profile.photoInUse}</div>}
                   </div>
                   <div style={{ flex: 1 }}>
+                    {photosError ? (
+                      <div className="msc-empty-state" data-testid="photo-load-error">
+                        <div>
+                          {labels.profile.photoLoadError ??
+                            '올려 둔 사진을 불러오지 못했습니다. 사진이 지워진 것이 아닙니다.'}
+                        </div>
+                        {onReloadPhotos && (
+                          <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+                            onClick={onReloadPhotos} data-testid="photo-retry">
+                            {labels.profile.photoRetry ?? '다시 시도'}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
                     <div className="msc-photo-tiles">
                       {tilePhotos.map((photo) => (
                         <div
@@ -1630,6 +1650,7 @@ export default function MySettingsCanvas({
                         </button>
                       )}
                     </div>
+                    )}
                     <p className="msc-photo-help">{labels.profile.photoHelp}</p>
                   </div>
                 </div>
