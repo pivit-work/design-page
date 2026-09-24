@@ -38,6 +38,12 @@ import Icon from '../shared/Icon.jsx';
  *   - locale: 날짜·요일·시간처럼 «글자» 가 아니라 «형식» 인 것을 정한다(Intl).
  *   둘 다 생략하면 종전과 100% 같은 화면이다.
  *
+ * onSubmit: 🔴 **저장이 끝나기를 기다린 뒤에만 닫힌다** (PW-987). 약속(Promise)을 돌려주면
+ *   그동안 [예약완료]·[취소]·Esc·막 클릭을 잠그고, 거부(reject)되면 창과 고른 날짜·시각·
+ *   메모를 그대로 둔 채 그 사유(`err.message`, 없으면 `labels.submitFailed`)를 창 안에
+ *   한 줄로 보인다. 예전에는 부르자마자 닫혀서, 서버가 거절해도 고른 값이 사라지고
+ *   매니저는 잡힌 줄 알았다. 닫는 것은 여전히 호스트 몫이다(성공하면 open 을 내린다).
+ *
  * 창은 공용 창 틀(ModalShell)로 그린다 (PW-836). 닫혀 있는 동안에는 틀을 그리지 않지만,
  * 입력 상태는 이 컴포넌트가 들고 있어 종전처럼 열고 닫아도 남는다(새로 잡으려면 `key`).
  * Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다. 막의 data-testid 는 `ono-add-modal-overlay`,
@@ -69,6 +75,8 @@ export const DEFAULT_LABELS = {
   submit: '예약완료',
   /* 푸터 왼쪽 «없애기». `onDelete` 를 준 호출부에서만 보인다 (PW-825). */
   delete: '이 1on1 없애기',
+  /* 저장이 거부됐는데 사유 문구가 없을 때 창 안에 보이는 한 줄 (PW-987). */
+  submitFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   prevMonth: '이전 달',
   nextMonth: '다음 달',
 };
@@ -166,6 +174,25 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const [time, setTime] = useState(defaultTime || '10:00');
   const [timeOpen, setTimeOpen] = useState(false);
   const [memo, setMemo] = useState('');
+  /* 저장 중 잠금과 실패 사유 (PW-987) — 실패해도 위 입력값은 건드리지 않는다. */
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const submit = async () => {
+    if (saving) return;
+    setSubmitError('');
+    setSaving(true);
+    try {
+      /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
+         쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
+      await onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo });
+    } catch (err) {
+      setSubmitError((err && err.message) || L.submitFailed);
+      return;
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // 모든 popover/dropdown 닫기
   const closePopovers = () => {
@@ -189,6 +216,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
       titleId="ono-add-modal-title"
       closeLabel={L.close}
       onClose={() => onClose?.()}
+      busy={saving}
       zIndex={1001}
       className="ono-add-shell"
       testId="ono-add-modal"
@@ -202,21 +230,21 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
               type="button"
               className="tl-group-modal-btn ono-add-modal-btn-delete"
               data-testid="ono-add-modal-delete"
+              disabled={saving}
               onClick={() => onDelete()}
             >
               {L.delete}
             </button>
           )}
-          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}>
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose} disabled={saving}>
             {L.cancel}
           </button>
           <button
             type="button"
             className="tl-group-modal-btn tl-group-modal-btn-primary"
-            /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
-               쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
-            onClick={() => onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo })}
-            disabled={!member && !search}
+            data-testid="ono-add-modal-submit"
+            onClick={() => void submit()}
+            disabled={(!member && !search) || saving}
           >
             {L.submit}
           </button>
@@ -372,6 +400,12 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             onChange={(e) => setMemo(e.target.value)}
           />
         </Field>
+        {/* 저장 실패 사유 (PW-987) — 1on1 화면의 다른 인라인 실패 줄과 같은 모양이다. */}
+        {submitError && (
+          <p className="ono-done-inline-error" role="alert" data-testid="ono-add-modal-error">
+            {submitError}
+          </p>
+        )}
       </div>
     </ModalShell>
   );

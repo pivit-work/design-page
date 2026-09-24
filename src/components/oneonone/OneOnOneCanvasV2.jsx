@@ -74,6 +74,7 @@ export const DEFAULT_LABELS = {
  *
  * 외부 제어 props (pivit-work 등 실제 사용처용):
  *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
+ *    약속을 돌려주면 끝난 뒤에만 창을 닫는다. 거부하면 창이 열린 채 사유를 보인다 (PW-987).
  *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
  *    빈 배열은 「담당 팀원이 0명」으로 그대로 전달된다 — 예시 이름으로 채우지 않는다 (PW-824).
  *  - locale / scheduleLabels: 예약 모달 안 글자의 로케일·번역. 그대로 AddOneOnOneModal
@@ -233,8 +234,9 @@ export default function OneOnOneCanvasV2({
             key={`add-${addOpen}`}
             open={addOpen}
             onClose={() => setAddOpen(false)}
-            onSubmit={(data) => {
-              if (onScheduleSubmit) onScheduleSubmit(data);
+            onSubmit={async (data) => {
+              // 저장이 끝난 뒤에만 닫는다 — 거부는 창이 받아 열린 채 알린다 (PW-987).
+              if (onScheduleSubmit) await onScheduleSubmit(data);
               setAddOpen(false);
             }}
             icons={icons}
@@ -251,8 +253,8 @@ export default function OneOnOneCanvasV2({
             open={!!scheduleMember}
             member={scheduleMember}
             onClose={() => setScheduleMember(null)}
-            onSubmit={(data) => {
-              if (onScheduleSubmit) onScheduleSubmit({ ...data, member: scheduleMember });
+            onSubmit={async (data) => {
+              if (onScheduleSubmit) await onScheduleSubmit({ ...data, member: scheduleMember });
               setScheduleMember(null);
             }}
             icons={icons}
