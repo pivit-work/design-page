@@ -1011,6 +1011,11 @@ export default function EvalCycleHrCanvas({
   committeeCandidatesLoading = false,
   committeeCandidatesError = false,
   onReloadCommitteeCandidates,
+  /* PW-980 — 대상자 후보·발령 이력 조회 실패. 위자드로 그대로 넘긴다. */
+  candidatesError = false,
+  onReloadCandidates,
+  appointmentChangesError = false,
+  onReloadAppointmentChanges,
   loading = false,
   labels: providedLabels,
   onCreateCycle,
@@ -1486,6 +1491,10 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesLoading={committeeCandidatesLoading}
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
+          candidatesError={candidatesError}
+          onReloadCandidates={onReloadCandidates}
+          appointmentChangesError={appointmentChangesError}
+          onReloadAppointmentChanges={onReloadAppointmentChanges}
           onSubmit={handleCreate}
           onCancel={cancelWizard}
           onOpenTemplateLibrary={onOpenTemplateLibrary}
@@ -1526,6 +1535,10 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesLoading={committeeCandidatesLoading}
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
+          candidatesError={candidatesError}
+          onReloadCandidates={onReloadCandidates}
+          appointmentChangesError={appointmentChangesError}
+          onReloadAppointmentChanges={onReloadAppointmentChanges}
           cycle={manageTarget.cycle}
           participants={manageTarget.participants}
           landing={manageTarget.landing ?? null}

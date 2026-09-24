@@ -1649,6 +1649,22 @@ export default function EvalCycleWizard({
   committeeCandidatesError = false,
   /** 조회 실패 시 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadCommitteeCandidates,
+  /**
+   * PW-980 — 대상자 후보(`candidates`) 조회 실패. 안 넘기면 실패가 「후보 0명」과 똑같이
+   * 보여서, 관리자가 대상자 단계가 빈 것을 「대상이 없다」로 읽는다. 대상이 0명이면
+   * 「다음」·저장은 원래대로 막힌다.
+   */
+  candidatesError = false,
+  /** 대상자 후보 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadCandidates,
+  /**
+   * PW-980 — 발령 이력(`appointmentChanges`) 조회 실패. 비어 있으면 「직무 변경」·
+   * 「직급 변경일」 제외 규칙이 아무도 빼지 않는데, 실패와 「이력 없음」이 같아 보이면
+   * 뺐어야 할 사람이 대상자에 남는다는 것을 알 길이 없다.
+   */
+  appointmentChangesError = false,
+  /** 발령 이력 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadAppointmentChanges,
   onCancel,
   onSubmit,
   // TC-028 사이클 설정 프리셋(불러오기/저장)
@@ -6311,6 +6327,30 @@ export default function EvalCycleWizard({
 
           {step === 3 && (
             <div className="evc-wiz-panel">
+              {/* PW-980 — 후보 명단을 못 받으면 조직 트리도 명단도 빈다. 「대상이 없다」로
+                  읽히지 않게 단계 맨 위에서 말하고 다시 받게 한다. */}
+              {candidatesError && (
+                <div
+                  className="evc-wiz-committee-error"
+                  role="status"
+                  data-testid="evc-wiz-candidates-error"
+                >
+                  <span>
+                    {L.targetCandidatesLoadError ??
+                      '대상자 후보 명단을 불러오지 못했습니다. 대상자가 없는 것이 아닙니다.'}
+                  </span>
+                  {onReloadCandidates && (
+                    <button
+                      type="button"
+                      className="evc-wiz-committee-retry"
+                      onClick={onReloadCandidates}
+                      data-testid="evc-wiz-candidates-retry"
+                    >
+                      {L.wizardCommitteeRetry ?? '다시 시도'}
+                    </button>
+                  )}
+                </div>
+              )}
               {/* PW-443 — 상단 「대상 범위」 탭 7종과 딸린 축 값 칩·개별 선택 명단을
                   제거했다. 모집단을 정하는 손잡이는 아래 「리뷰 & 조정」의 조직 트리
                   하나이고, 직급·직렬·직군·직책은 그 위의 필터가 흡수한다. 탭은 고를
@@ -6429,14 +6469,38 @@ export default function EvalCycleWizard({
                     </div>
                   )}
                   {(excludeRoleChange || excludePromotion) &&
-                    appointmentChanges.length === 0 && (
-                      <p
-                        className="evc-wiz-warn"
-                        data-testid="evc-wiz-excl-no-history"
+                    (appointmentChangesError ? (
+                      /* PW-980 — 못 불러온 것을 「이력 없음」으로 말하지 않는다. */
+                      <div
+                        className="evc-wiz-committee-error"
+                        role="status"
+                        data-testid="evc-wiz-excl-history-error"
                       >
-                        {L.exclusionNoHistory}
-                      </p>
-                    )}
+                        <span>
+                          {L.exclusionHistoryLoadError ??
+                            '발령 이력을 불러오지 못해 이 규칙이 아무도 빼지 못하고 있습니다.'}
+                        </span>
+                        {onReloadAppointmentChanges && (
+                          <button
+                            type="button"
+                            className="evc-wiz-committee-retry"
+                            onClick={onReloadAppointmentChanges}
+                            data-testid="evc-wiz-excl-history-retry"
+                          >
+                            {L.wizardCommitteeRetry ?? '다시 시도'}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      appointmentChanges.length === 0 && (
+                        <p
+                          className="evc-wiz-warn"
+                          data-testid="evc-wiz-excl-no-history"
+                        >
+                          {L.exclusionNoHistory}
+                        </p>
+                      )
+                    ))}
                   {/* §5.3.1 15번 (v2.46) — 고용유형. **날짜가 아닌 첫 조건**이라 날짜
                       자리에 값 체크가 선다. 조건(규칙)과 필터+일괄(수동)의 갈림은 E21 —
                       「인턴은 평가하지 않는다」 같은 정책은 여기, 이번 사이클만의 예외는
