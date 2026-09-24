@@ -484,7 +484,6 @@ function OrgSnapshotStatusView({
           </div>
           <button
             type="button"
-            className="admin-snap-apply-btn"
             disabled={!canApply}
             onClick={() => canApply && onQueryDateChange?.(draftDate)}
             style={{ padding: '7px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700, cursor: canApply ? 'pointer' : 'not-allowed', background: canApply ? 'var(--text-brand-tertiary, #4F6AF5)' : '#E2E8F0', color: canApply ? '#fff' : '#94A3B8' }}
@@ -820,7 +819,7 @@ function AppointmentSingleView({
 
           {selectedFields.size > 0 && selectedMember ? (
             <div className="admin-snap-card-section">
-              <RosterTable scroll="none" tableClassName="admin-snap-ba-table">
+              <RosterTable scroll="none">
                 <RosterTable.Head>
                   <RosterTable.HeadCell>{labels.selectFields}</RosterTable.HeadCell>
                   <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
@@ -1372,7 +1371,7 @@ function AppointmentHistoryView({ records, labels, onExport }) {
             <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
           </div>
           <div className="admin-snap-hist-tablewrap">
-            <RosterTable tableClassName="admin-snap-hist-table">
+            <RosterTable>
               <RosterTable.Head>
                   <RosterTable.HeadCell>{labels.historyDate}</RosterTable.HeadCell>
                   <RosterTable.HeadCell>{labels.historyTarget}</RosterTable.HeadCell>
@@ -1423,7 +1422,7 @@ function AppointmentHistoryView({ records, labels, onExport }) {
             </div>
             <div className="admin-snap-hist-panel-body">
               {selected.changes && selected.changes.length > 0 && (
-                <RosterTable scroll="none" tableClassName="admin-snap-ba-table">
+                <RosterTable scroll="none">
                   <RosterTable.Head>
                       <RosterTable.HeadCell>{labels.historyField}</RosterTable.HeadCell>
                       <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
@@ -1593,7 +1592,7 @@ function AsOfSnapshotView({
 
       <div className="admin-snap-content">
         {isOut ? (
-          <div className="admin-snap-empty admin-snap-empty-coverage" data-testid="asof-empty-c1">
+          <div className="admin-snap-empty" data-testid="asof-empty-c1">
             <div className="admin-snap-empty-title">{labels.asofOutOfRangeTitle}</div>
             <div className="admin-snap-empty-body">{labels.asofOutOfRangeBody}</div>
             <div className="admin-snap-empty-actions">

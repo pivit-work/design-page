@@ -61,7 +61,6 @@ export default function EvalExcludeReasonModal({
       canSubmit={trimmed.length > 0 && !busy}
       onClose={onClose}
       onSubmit={() => onSubmit?.(trimmed)}
-      className="evx-reason-modal"
     >
       <label className="evc-sched-modal-field" data-testid="evx-reason-field">
         <span className="evc-field-label">{label}</span>

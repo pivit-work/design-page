@@ -383,7 +383,7 @@ export default function EvalCycleLeaderCanvas({
   const gradeAtTop = gradePos === 'top' || isFreeze;
   const gradeCard = (
     <section
-      className={`evc-card evl-grade-card${isFreeze ? ' evl-grade-freeze' : ''}${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
+      className={`evc-card${isFreeze ? ' evl-grade-freeze' : ''}${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
       ref={gradeRef}
       data-testid="evl-grade-card"
       data-position={gradePos}

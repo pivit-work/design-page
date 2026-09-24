@@ -247,7 +247,7 @@ function RosterGroupRow({ colSpan, children, ...rest }) {
 /** 줄이 하나도 없을 때 한 줄 전체에 쓰는 글. */
 function RosterEmpty({ colSpan, children, ...rest }) {
   return (
-    <tr className="rt-empty-row">
+    <tr>
       <td colSpan={colSpan} className="rt-empty" {...rest}>{children}</td>
     </tr>
   );

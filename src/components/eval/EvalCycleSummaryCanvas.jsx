@@ -1979,7 +1979,7 @@ export default function EvalCycleSummaryCanvas({
             {execSection === 'j3' && (
               <>
                 <p className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</p>
-                <div className="evs-two-col evs-nb-wrap">
+                <div className="evs-two-col">
                   <section className="evc-card">
                     <h3 className="evc-card-name">{L.nbTitle}</h3>
                     {!nineBox || nineBox.assessedCount === 0 ? (
@@ -1991,7 +1991,7 @@ export default function EvalCycleSummaryCanvas({
                       const xLabel = { urgent: L.nbXUrgent, moderate: L.nbXModerate, maintain: L.nbXMaintain };
                       const yTone = { recommended: 'green', not_yet: 'neutral', deferred: 'amber' };
                       return (
-                        <div className="evs-nb" data-testid="evs-ninebox">
+                        <div data-testid="evs-ninebox">
                           <div className="evs-nb-grid">
                             <span className="evs-nb-corner" />
                             {xKeys.map((x) => <span className="evs-nb-xhead" key={x}>{xLabel[x]}</span>)}
@@ -2102,7 +2102,7 @@ export default function EvalCycleSummaryCanvas({
               ) : (
                 <div className="evs-re-groups">
                   {revieweeGroups.map((g) => (
-                    <div className="evs-re-group" key={g.dept}>
+                    <div key={g.dept}>
                       <div className="evs-re-group-dept">{g.dept}</div>
                       {g.members.map((m) => (
                         <button
@@ -2311,7 +2311,7 @@ export default function EvalCycleSummaryCanvas({
                     deferred: 'amber',
                   };
                   return (
-                    <div className="evs-nb" data-testid="evs-cw-ninebox-grid">
+                    <div data-testid="evs-cw-ninebox-grid">
                       <div className="evs-nb-grid">
                         <span className="evs-nb-corner" />
                         {xKeys.map((x) => (
@@ -2666,7 +2666,7 @@ export default function EvalCycleSummaryCanvas({
                 <div className="evs-cw-table-head">
                   <button
                     type="button"
-                    className="evc-btn is-ghost evs-cw-back"
+                    className="evc-btn is-ghost"
                     onClick={() => onSelectCalibSession?.(null)}
                     data-testid="evs-cw-back"
                   >
@@ -2697,7 +2697,7 @@ export default function EvalCycleSummaryCanvas({
                   {onOpenCommittee && (
                     <button
                       type="button"
-                      className="evc-btn is-ghost evs-cw-committee-btn"
+                      className="evc-btn is-ghost"
                       onClick={() => {
                         setShowCreate(true);
                         setCommitteeManage(true);
@@ -2717,7 +2717,7 @@ export default function EvalCycleSummaryCanvas({
                   {calibDisplay && (
                     <button
                       type="button"
-                      className="evc-btn is-ghost evs-cw-display-btn"
+                      className="evc-btn is-ghost"
                       title={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}
                       onClick={() => {
                         setDisplayDraft(null);
@@ -2756,7 +2756,7 @@ export default function EvalCycleSummaryCanvas({
                   {calibTable?.session?.canCalibrate && (
                     <button
                       type="button"
-                      className="evc-btn is-primary evs-cw-commit"
+                      className="evc-btn is-primary"
                       onClick={() => onCommitCalibSession?.()}
                       data-testid="evs-cw-commit"
                     >
@@ -2855,7 +2855,7 @@ export default function EvalCycleSummaryCanvas({
                           </button>
                         </div>
                       )}
-                      <RosterTable className="evc-card evs-cw-table-wrap" tableClassName="evs-cw-table" minWidth={900}>
+                      <RosterTable className="evc-card evs-cw-table-wrap" minWidth={900}>
                           <RosterTable.Head>
                               <RosterTable.HeadCell>{L.cwColNo}</RosterTable.HeadCell>
                               <SortTh sortKey="name" label={L.cwColName} sort={effectiveCalibSort} onSort={setCalibSort} />
@@ -3261,7 +3261,7 @@ export default function EvalCycleSummaryCanvas({
                                               칸째로 닫으면 승진 검토 사유까지 함께 사라진다(§4.5-A-2). */}
                                           {compView && secOn('committee') && (
                                             <div
-                                              className="evs-cw-detail-block evs-cw-committee-only"
+                                              className="evs-cw-detail-block"
                                               data-testid="evs-cw-committee-only"
                                             >
                                               <div className="evs-cw-review-k">
@@ -3713,7 +3713,7 @@ export default function EvalCycleSummaryCanvas({
             return { ...prev, [which]: conds };
           });
         const palette = (which, tone) => (
-          <div className="evs-cw-filter-palette">
+          <div>
             {fields.map((f) => (
               <div key={f.key} className="evs-cw-filter-field">
                 <div className="evs-cw-filter-field-label">{f.label}</div>
@@ -3802,7 +3802,7 @@ export default function EvalCycleSummaryCanvas({
                 </div>
               )}
               <div className="evs-cw-filter-body">
-                <div className="evs-cw-filter-sec">
+                <div>
                   <div className="evs-cw-filter-sec-head">
                     <span className="evs-cw-filter-sec-title">
                       {L.cwFilterInclude}
@@ -3830,7 +3830,7 @@ export default function EvalCycleSummaryCanvas({
                   </div>
                   {palette('includeConds', 'accent')}
                 </div>
-                <div className="evs-cw-filter-sec evs-cw-filter-sec-exclude">
+                <div className="evs-cw-filter-sec-exclude">
                   <span className="evs-cw-filter-sec-title">
                     {L.cwFilterExclude}{' '}
                     <span className="evs-cw-filter-sec-hint">

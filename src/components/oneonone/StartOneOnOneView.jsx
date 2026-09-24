@@ -919,7 +919,7 @@ export default function StartOneOnOneView({
                 <span className="ono-start-field-label">매니저 추가 아젠다</span>
                 <div className="ono-start-agenda-list">
                   {mgrAgendas.map((a) => (
-                    <div key={a} className="ono-start-agenda-item is-mgr">
+                    <div key={a} className="ono-start-agenda-item">
                       <span className="ono-start-agenda-role is-manager">매니저</span>
                       <span className="ono-start-agenda-text">{a}</span>
                       <button type="button" className="ono-start-agenda-x" aria-label="삭제" onClick={() => removeMgrAgenda(a)}>

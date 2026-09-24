@@ -72,9 +72,9 @@ export default function EvalReminderDispatchLog({
             rows.map((r) => (
               <div className="evmon-dispatch-row" key={r.id} data-testid="evmon-dispatch-row">
                 <StatusBadge className={`evc-status-badge ${r.badgeTone || 'tone-neutral'}`}>{r.badgeLabel}</StatusBadge>
-                <span className="evmon-dispatch-when">{r.scheduledLabel}</span>
-                <span className="evmon-dispatch-when">{r.sentLabel}</span>
-                <span className="evmon-dispatch-channel">{r.channelLabel}</span>
+                <span>{r.scheduledLabel}</span>
+                <span>{r.sentLabel}</span>
+                <span>{r.channelLabel}</span>
                 <span className="evmon-dispatch-count">{r.recipientLabel}</span>
                 {/* 사유 — 안 보냈거나 받을 사람이 없었던 줄만. 빈칸을 그리면 「사유 없이
                     안 갔다」로 읽힌다(§6.10.2). 문구는 호출부가 만든다. */}

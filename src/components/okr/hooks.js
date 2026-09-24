@@ -30,7 +30,7 @@ const CLICK_THRESHOLD = 5;
  */
 export function useOkrDrag(blockId, onClick) {
   // scale 은 캔버스 배율. 블록의 translate 는 `scale(s)` 가 걸린
-  // `.okr-canvas-inner` 안쪽 좌표계라, 화면에서 잰 마우스 이동량을 그대로
+  // `[data-okr-canvas-inner]` 안쪽 좌표계라, 화면에서 잰 마우스 이동량을 그대로
   // 넣으면 블록이 s 배만 움직여 커서와 벌어진다(조직도 PW-248 과 동일).
   const { positions, updatePosition, scale = 1 } = useOkrPositions();
   const saved = positions[blockId] || { x: 0, y: 0 };

@@ -422,7 +422,7 @@ function ReviewRow({
   return (
     <>
     <div className="evrr-row" data-testid={`evrr-row-${row.memberId}`}>
-      <div className="evrr-cell evrr-select">
+      <div className="evrr-cell">
         {canSend && row.status === 'leader_approved' && !excluded && (
           <input
             type="checkbox"
@@ -478,10 +478,10 @@ function ReviewRow({
           <span className="evrr-muted">—</span>
         )}
       </div>
-      <div className="evrr-cell evrr-status">
+      <div className="evrr-cell">
         <StatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</StatusBadge>
       </div>
-      <div className="evrr-cell evrr-action">
+      <div className="evrr-cell">
         {refinement && refineMeta && (
           <button
             type="button"
@@ -738,13 +738,13 @@ export default function EvalReportReviewCanvas({
 
         <section className="evc-card evrr-table">
           <div className="evrr-row evrr-head">
-            <span className="evrr-cell evrr-select" />
+            <span className="evrr-cell" />
             <span className="evrr-cell evrr-name">{L.colName}</span>
             <span className="evrr-cell evrr-grade">{L.colGrade}</span>
             <span className="evrr-cell evrr-leader">{L.colLeader}</span>
             <span className="evrr-cell evrr-refine-cell">{L.colRefine}</span>
-            <span className="evrr-cell evrr-status">{L.colStatus}</span>
-            <span className="evrr-cell evrr-action" />
+            <span className="evrr-cell">{L.colStatus}</span>
+            <span className="evrr-cell" />
           </div>
           {q.rows.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evrr-empty">{L.noRows}</p>

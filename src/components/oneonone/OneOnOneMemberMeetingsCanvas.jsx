@@ -760,7 +760,7 @@ export default function OneOnOneMemberMeetingsCanvas({
   const screen = view !== 'list' && session ? view : 'list';
 
   return (
-    <main className="ono-mem ono-past">
+    <main className="ono-mem">
       {onBack && (
         <button type="button" className="ono-mem-back ono-past-top-back" onClick={onBack}>
           <Icon src={I.back} size={14} color="currentColor" baseUrl={baseUrl} />

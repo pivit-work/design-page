@@ -181,7 +181,7 @@ export default function AdminDashboardCanvas({
             <SectionLabel>{labels.teamSectionTitle}</SectionLabel>
             <LinkButton onClick={onManageEmployees}>{labels.manageEmployees}</LinkButton>
           </div>
-          <RosterTable className="admin-team-table">
+          <RosterTable>
             <RosterTable.Head>
               {headerKeys.map((k) => <RosterTable.HeadCell key={k}>{labels.tableHeaders[k]}</RosterTable.HeadCell>)}
             </RosterTable.Head>

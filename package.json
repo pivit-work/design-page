@@ -57,6 +57,7 @@
     "check:roster-tables": "node scripts/check-roster-tables.mjs",
     "check:status-badges": "node scripts/check-status-badges.mjs",
     "check:font-families": "node scripts/check-font-families.mjs",
+    "check:undefined-classes": "node scripts/check-undefined-classes.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },

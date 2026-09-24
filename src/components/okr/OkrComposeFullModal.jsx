@@ -425,7 +425,7 @@ export default function OkrComposeFullModal({
               <div className="okr-cf-group" key={rowKey(group, gi, 'title')}>
                 <div className="okr-cf-group-head">
                   <span className="okr-cf-group-q">{group.q}</span>
-                  <span className="okr-cf-group-title">{group.title}</span>
+                  <span>{group.title}</span>
                 </div>
                 {group.krs.map((kr, ki) => (
                   <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>

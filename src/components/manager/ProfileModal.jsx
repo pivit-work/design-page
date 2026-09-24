@@ -355,7 +355,7 @@ function SnippetItem({ snippet }) {
             ))}
             {snippet.downs?.map((d, i) => (
               <span key={`d${i}`} className="manager-modal-snippet-point">
-                <ArrowUpIcon size={16} className="rotate-180" />
+                <ArrowUpIcon size={16} down />
                 <span>{d}</span>
                 <span className="manager-modal-snippet-dot">•</span>
               </span>
@@ -381,15 +381,15 @@ function CheckHeartIcon({ size = 14 }) {
   );
 }
 
-function ArrowUpIcon({ size = 16, className = '' }) {
+/** `down` — 위 화살표를 뒤집어 아래 화살표로 그린다(아쉬운 점 줄). */
+function ArrowUpIcon({ size = 16, down = false }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 16 16"
       fill="none"
-      className={className}
-      style={className.includes('rotate-180') ? { transform: 'rotate(180deg)' } : undefined}
+      style={down ? { transform: 'rotate(180deg)' } : undefined}
     >
       <path
         d="M8 13.333V2.667M8 2.667L3.333 7.333M8 2.667L12.667 7.333"

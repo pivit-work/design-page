@@ -446,7 +446,7 @@ function ReadonlyPairs({ pairs }) {
   return (
     <div className="msc-pairs">
       {pairs.map((p) => (
-        <div key={p.label} className="msc-pair">
+        <div key={p.label}>
           <div className="msc-pair-label">{p.label}</div>
           {/* p.badge 는 값 옆에 붙는 짧은 상태 라벨(예: 이 값이 남에게 공개되는지).
               값 자체는 그대로 두고 상태만 알린다 — 값을 감추면 본인도 확인할 수 없다. */}

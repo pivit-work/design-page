@@ -312,13 +312,13 @@ export default function TimelineWeeklyView({
         <section className="tl-weekly-section">
           <div className="tl-weekly-two-col">
             <div className="tl-weekly-box">
-              <div className="tl-weekly-box-title tl-weekly-box-title-good">주요 기여</div>
+              <div className="tl-weekly-box-title">주요 기여</div>
               <ul className="tl-weekly-note-list">
                 {(report.contributions ?? []).map((c, i) => (<li key={i}>{c}</li>))}
               </ul>
             </div>
             <div className="tl-weekly-box">
-              <div className="tl-weekly-box-title tl-weekly-box-title-blocker">
+              <div className="tl-weekly-box-title">
                 블로커
                 <span className="tl-weekly-blocker-count">{(report.blockers ?? []).length}개 미해결</span>
               </div>

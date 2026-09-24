@@ -37,8 +37,6 @@ export default function SquadFormCard({
       className="pj-card sq-card sq-form"
       style={{ boxShadow: `0 6px 24px ${form.color}24` }}
     >
-      <span className="sq-card-strip" style={{ background: form.color }} />
-
       <p className="sq-form-title">{L(editing ? 'squad.form.titleEdit' : 'squad.form.titleCreate')}</p>
 
       <input

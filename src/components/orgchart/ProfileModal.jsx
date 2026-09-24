@@ -187,21 +187,21 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         {statIcons && adminMode ? (
           <div className="modal-stats">
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-employment">
+              <div className="modal-stat-icon">
                 <img src={statIcons.employment} alt={L('profile.employmentType')} />
               </div>
               <div className="modal-stat-label">{L('profile.employmentType')}</div>
               <div className="modal-stat-value">{profile.employmentType || L('profile.employmentTypeDefault')}</div>
             </div>
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-rank">
+              <div className="modal-stat-icon">
                 <img src={statIcons.rank} alt={L('profile.rank')} />
               </div>
               <div className="modal-stat-label">{L('profile.rank')}</div>
               <div className="modal-stat-value">{profile.rank || 'L3'}</div>
             </div>
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-workhours-admin">
+              <div className="modal-stat-icon">
                 <img src={statIcons.workHoursAdmin} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>
@@ -211,7 +211,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         ) : statIcons ? (
           <div className="modal-stats">
             <div className="modal-stat">
-              <div className="modal-stat-icon modal-stat-hours">
+              <div className="modal-stat-icon">
                 <img src={statIcons.workHours} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>

@@ -43,3 +43,8 @@ pre-push:
       # CSS 에 글씨체 이름을 직접 적는 것을 막는다. 어드민 화면을 옮기며 따라 들어온 'DM Mono' 가
       # 불러오는 곳이 없어 타자기체로 그려졌고 아무 검사도 못 봤다 (PW-923).
       run: npm run check:font-families
+    undefined-classes:
+      # 화면 코드가 붙인 모양 이름(클래스)이 CSS 어디에도 없으면 그 요소는 브라우저 기본 모양으로
+      # 그려진다. 「신원 정보 저장」 버튼이 정의된 적 없는 admin-btn-primary 를 달고 회색 기본
+      # 버튼으로 나갔고, 그날 재 보니 그런 이름이 63개였다. 눈으로만 보이던 것이다 (PW-991).
+      run: npm run check:undefined-classes
