@@ -91,6 +91,20 @@ function capacityNote(L, { total, diff, count, unsetCount }) {
   return L('squad.matrix.noteSlack', { diff: -diff, count });
 }
 
+/**
+ * 스쿼드에 새로 넣을 수 있는 사람인가 — **판정은 호스트가 한다**(PW-1056).
+ *
+ * 호스트가 `person.assignable` 을 넘기면 그 값을 그대로 쓴다. 서버가 쓰는 재직상태
+ * 코드값과 이 캔버스가 비교하던 코드값이 달라서(서버 퇴사 = `terminated`, 여기 =
+ * `resigned`) 퇴사자가 후보에 남고 고르면 서버가 거절했다 — 규칙을 화면이 따로 들고
+ * 있으면 이렇게 갈린다. 값이 없을 때(데모·옛 호스트)만 아래 폴백으로 거른다.
+ */
+function isAssignable(person) {
+  if (typeof person.assignable === 'boolean') return person.assignable;
+  const s = person.employmentStatus;
+  return s !== 'terminated' && s !== 'resigned' && s !== 'on_leave' && s !== 'leave';
+}
+
 export default function SquadCanvas({
   squads = [],
   /**
@@ -560,16 +574,14 @@ export default function SquadCanvas({
         // 비활성(퇴사·휴직)은 후보가 아니다 — 서버가 422 로 막는 사람을 목록에 두면
         // 고를 수 있는 것처럼 보였다가 눌러야 안 된다는 걸 안다(§10-32-B · 엣지 13).
         // 이미 배정된 사람의 값 조정은 종전대로 막지 않는다(위 필터가 이미 제외).
-        && n.employmentStatus !== 'resigned' && n.employmentStatus !== 'on_leave'
+        && isAssignable(n)
         && (openToAll || inScope(n.id))
         && (q === '' || `${n.name} ${n.nameEn || ''} ${n.team || ''} ${n.dept || ''} ${n.title || ''}`.toLowerCase().includes(q)),
     );
   };
 
   // 생성 폼 팀장 후보 — 비활성(퇴사·휴직) 구성원은 제외한다(서버도 422 로 재검증)
-  const leadCandidates = people.filter(
-    (n) => n.employmentStatus !== 'resigned' && n.employmentStatus !== 'on_leave',
-  );
+  const leadCandidates = people.filter(isAssignable);
 
   const tabStrip = (
     <div className="tab-nav">

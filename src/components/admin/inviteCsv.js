@@ -680,6 +680,8 @@ export function parseInviteCsv(
  * @param {boolean} [opts.jobCategoryEnabled]
  * @param {string[]} [opts.squadNames]     이 회사 스쿼드 이름. 받지 못했으면 `null` — 스쿼드를 보지 않는다
  * @param {string[]} [opts.memberEmails]   이 회사 구성원 이메일(이미 멤버·상급자 확인)
+ * @param {string[]} [opts.supervisorEmails] 상급자 칸만 볼 구성원 이메일. 안 주면 `memberEmails` —
+ *   「이미 멤버」와 기준이 다를 수 있어 따로 받는다(PW-1056)
  * @param {string[]} [opts.pendingEmails]  대기 중 초대 이메일
  * @param {string[]} [opts.headTeamIds]    조직장이 있는 조직 id(상급자 안내)
  * @param {object} [opts.labels]
@@ -697,8 +699,8 @@ export function parseInviteCsv(
  */
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
-  jobCategoryEnabled = false, squadNames = null, memberEmails = [], pendingEmails = [],
-  headTeamIds = [], labels = {},
+  jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
+  pendingEmails = [], headTeamIds = [], labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
   blockedEmploymentStatuses = [],
 } = {}) {
@@ -718,6 +720,7 @@ export function buildInviteCsvContext(rows, {
     jobCategoryEnabled,
     squadNames: squadNames ? new Set(squadNames.map(fold)) : null,
     memberEmails: new Set(memberEmails.map(normEmail)),
+    supervisorEmails: new Set((supervisorEmails ?? memberEmails).map(normEmail)),
     pendingEmails: new Set(pendingEmails.map(normEmail)),
     fileEmailCount,
     headTeamIds: new Set(headTeamIds),
@@ -879,7 +882,7 @@ export function inviteCsvIssues(row, ctx) {
     } else if (manager === email) {
       add('managerEmail', l.csvErrManagerSelf);
     } else if (
-      !ctx.memberEmails.has(manager)
+      !ctx.supervisorEmails.has(manager)
       && !ctx.fileEmailCount.has(manager)
       // 먼저 초대해 둔(아직 가입 전인) 사람도 된다 — 그 사람이 가입하는 순간 서버가 잇는다.
       && !ctx.pendingEmails.has(manager)

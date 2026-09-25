@@ -1259,9 +1259,30 @@ function StatusRadios({ order, value, onPick, name, disabled = false, labels, ar
  * 기준이다(재직만). 휴직·수습·대기는 명부에는 있지만 좌석은 소모하지 않으므로,
  * 그들을 퇴사 처리해도 줄어드는 좌석은 0 이다. 두 기준이 갈리면 화면이 말한 숫자와
  * 다음 청구서가 어긋난다.
+ *
+ * **판정은 호스트가 한다**(PW-1056) — 호스트가 줄마다 `holdsSeat` 를 넘기면 그 값을
+ * 센다. 서버는 계정이 비활성인 사람도 좌석에서 빼는데 이 캔버스는 재직상태만 봐서,
+ * 비활성 계정을 섞어 고르면 줄어드는 좌석을 더 많게 말했다. 값이 없을 때(데모)만
+ * 재직상태로 센다.
  */
+function holdsSeat(m) {
+  if (typeof m.holdsSeat === 'boolean') return m.holdsSeat;
+  return m.isActive !== false && m.employmentStatus === 'active';
+}
+
 function seatsHeldBy(rows) {
-  return rows.filter((m) => m.employmentStatus === 'active').length;
+  return rows.filter(holdsSeat).length;
+}
+
+/**
+ * 「이미 구성원」(초대 V5)인가 — **판정은 호스트가 한다**(PW-1056). 호스트가 줄마다
+ * `employed` 를 넘기면 그 값을 쓴다. 서버는 퇴사자와 **계정이 비활성인 사람**을 둘 다
+ * 다시 초대할 수 있게 받는데, 이 캔버스는 퇴사만 빼서 비활성 계정의 이메일을 화면에서
+ * 막았다. 값이 없을 때(데모)만 서버와 같은 조건으로 거른다.
+ */
+function isEmployedRow(m) {
+  if (typeof m.employed === 'boolean') return m.employed;
+  return m.isActive !== false && m.employmentStatus !== 'terminated';
 }
 
 /** 결측 칸 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다(조직 스냅샷과 같은 규칙). */
@@ -4224,6 +4245,12 @@ export default function AdminEmployeesCanvas({
           onSend={onSendInvites}
           orgUnits={orgUnits}
           existingEmails={members
+            .filter(isEmployedRow)
+            .map((m) => m.email)
+            .filter(Boolean)}
+          // 상급자 칸이 찾는 명부는 종전 그대로(퇴사자만 뺀다) — 「이미 구성원」과 기준을
+          // 나눈다. 비활성 계정을 상급자로 적을 수 있나는 이 카드가 정할 일이 아니다.
+          supervisorEmails={members
             .filter((m) => m.employmentStatus !== 'terminated')
             .map((m) => m.email)
             .filter(Boolean)}
