@@ -671,12 +671,7 @@
   color: var(--text-tertiary);
 }
 
-.admin-emp-loading {
-  padding: 60px 0;
-  text-align: center;
-  font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
-}
+/* 「불러오는 중」 글은 공용 `LoadingState`(src/loading.css)로 옮겼다 (PW-1010) */
 
 /* ── 툴바 (검색 + 액션) ──────────────────────────────────── */
 .admin-emp-toolbar {
@@ -1130,16 +1125,7 @@
   flex-shrink: 0;
 }
 
-/* ── 페이지네이션 ────────────────────────────────────────── */
-.admin-emp-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--bg-secondary);
-}
-.admin-emp-pagination-nav { display: flex; align-items: center; gap: 6px; }
+/* ── 페이지네이션 — 공용 `Pagination`(src/pagination.css)으로 옮겼다 (PW-1010) ── */
 
 /* ── 행 액션 메뉴 ────────────────────────────────────────── */
 .admin-emp-row-menu {
@@ -1650,12 +1636,7 @@
 }
 
 /* ── 서브뷰 탭 바 (조직 스냅샷 / 발령 단건 / 대량 / 이력) ── */
-.admin-snap-loading {
-  padding: 60px 0;
-  text-align: center;
-  font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
-}
+/* 「불러오는 중」 글은 공용 `LoadingState`(src/loading.css)로 옮겼다 (PW-1010) */
 
 /* As Of 커버리지 경계(PW-139)의 빈 안내는 공용 EmptyState(PW-1014) — 중립 회색 바탕이다.
    앰버(주의)를 쓰지 않는다 — 사용자가 잘못한 것이 아니라 그 시점 기록이 없을 뿐이다. */
@@ -2921,38 +2902,7 @@
   border: 1px solid var(--colors-error-200, #fecdca);
 }
 
-/* ── 토글 스위치 ─────────────────────────────────────────── */
-.admin-notif-toggle {
-  width: 38px;
-  height: 22px;
-  border-radius: 99px;
-  cursor: pointer;
-  border: none;
-  background: var(--border-primary);
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.admin-notif-toggle.is-on {
-  background: var(--bg-brand-solid);
-  justify-content: flex-end;
-}
-/* 켤 대상이 없어 잠긴 토글. disabled 속성만 걸려 있고 보이는 모습이 그대로면
-   눌러도 반응이 없는 이유를 화면에서 알 수 없다. */
-.admin-notif-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.admin-notif-toggle-knob {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--bg-quaternary);
-  box-shadow: 0 1px 4px rgba(10, 13, 18, 0.2);
-}
+/* 켜기/끄기 스위치는 공용 `Switch`(src/switch.css)로 옮겼다 (PW-1010) */
 
 /* ── 창 닫기 버튼 (어드민 공용) ──────────────────────────────
    어드민 창의 막·카드·머리·버튼 줄은 공용 창 틀(ModalShell · PW-836)로 옮겨 갔다
@@ -3473,13 +3423,7 @@
 
 .admin-emp-hist-empty-hint { margin-top: 6px; font-size: 11px; }
 
-.admin-emp-hist-skeleton { display: flex; flex-direction: column; gap: 8px; }
-
-.admin-emp-hist-skeleton-row {
-  height: 56px;
-  border-radius: var(--radius-md, 10px);
-  background: var(--bg-secondary);
-}
+/* 자리 표시는 공용 `Skeleton`(src/loading.css)으로 옮겼다 (PW-1010) */
 
 .admin-emp-reason-fields {
   display: flex;

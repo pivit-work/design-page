@@ -15,6 +15,7 @@ import {
 } from './evalSchedulePast.js';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * 일정 수정 창의 날짜+시각 한 줄 (PW-793). 종전 `datetime-local` 칸은 영어 브라우저에서
@@ -1492,7 +1493,7 @@ export default function EvalCycleHrCanvas({
       </header>
 
       {loading ? (
-        <div className="evc-loading">…</div>
+        <LoadingState className="evc-loading">…</LoadingState>
       ) : cycles.length === 0 ? (
         <div className="evc-empty" data-testid="evc-empty">
           <p className="evc-empty-title">{L.emptyTitle}</p>

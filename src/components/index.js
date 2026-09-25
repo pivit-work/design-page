@@ -16,6 +16,12 @@ export { default as RosterTable } from './shared/RosterTable.jsx';
 export { default as StatusBadge } from './shared/StatusBadge.jsx';
 export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBadgeTones.js';
 export { default as Toast } from './shared/Toast.jsx';
+// 페이지 넘김·켜기/끄기 스위치·불러오는 동안 보이는 것 (PW-1010). 스타일은 index.css 가 끌어온다
+export { default as Pagination } from './shared/Pagination.jsx';
+export { default as Switch } from './shared/Switch.jsx';
+export { default as Spinner } from './shared/Spinner.jsx';
+export { default as Skeleton, SkeletonList } from './shared/Skeleton.jsx';
+export { default as LoadingState } from './shared/LoadingState.jsx';
 // 입력칸 공용 부품 — 이름표·오류 문구 틀과 칸들 (PW-1012). 스타일은 form-field.css(App.css 가 끌어온다)
 export { default as FormField } from './shared/FormField.jsx';
 export { default as TextInput } from './shared/TextInput.jsx';

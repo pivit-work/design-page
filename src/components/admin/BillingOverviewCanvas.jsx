@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 구독 현황 (BillingOverviewCanvas)  /admin/billing
@@ -125,24 +126,6 @@ function mergeLabels(provided) {
     ...provided,
     statusLabels: { ...DEFAULT_LABELS.statusLabels, ...(provided.statusLabels || {}) },
   };
-}
-
-function Badge({ children, color, bg }) {
-  return (
-    <span style={{ fontSize: 12, fontWeight: 700, color, background: bg,
-      padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
-}
-
-function Card({ children, style }) {
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: 24, ...style }}>
-      {children}
-    </div>
-  );
 }
 
 function Btn({ children, onClick, kind = 'primary', disabled }) {

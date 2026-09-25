@@ -2,6 +2,7 @@ import { useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import TeamSnippetSidebar from './TeamSnippetSidebar.jsx';
 import TeamSnippetFeed from './TeamSnippetFeed.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * TeamSnippets — 매니저 팀 스니핏 탭 본문.
@@ -86,9 +87,7 @@ export default function TeamSnippets({
       </div>
 
       {loading ? (
-        <p className="mgr-ts-loading" role="status">
-          {labels.loading}
-        </p>
+        <LoadingState>{labels.loading}</LoadingState>
       ) : (
         <div className="mgr-ts-body">
           <TeamSnippetSidebar

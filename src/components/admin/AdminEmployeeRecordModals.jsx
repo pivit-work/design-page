@@ -17,6 +17,7 @@ import { IconLock } from './employeeExport.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -534,7 +535,7 @@ export function HrProfileModal({
     >
       <div style={{ fontFamily: T.font }}>
         {loading ? (
-          <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.loading || '불러오는 중…'}</div>
+          <LoadingState>{L.loading || '불러오는 중…'}</LoadingState>
         ) : error ? (
           <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.hrProfileError || 'HR 기록을 불러오지 못했습니다.'}</div>
         ) : (
@@ -762,7 +763,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
     <HrSection title={`${L.hrTrainings || '수료한 교육 과정'} (${list.length})`}>
       <div data-testid="hr-trainings">
         {rows === null ? (
-          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.loading || '불러오는 중…'}</div>
+          <LoadingState size="inline">{L.loading || '불러오는 중…'}</LoadingState>
         ) : loadError ? (
           <div style={{ fontSize: 12, color: '#DC2626', padding: '4px 0' }} role="alert">{L.hrTrainingsLoadError || '교육 기록을 불러오지 못했습니다.'}</div>
         ) : list.length === 0 ? (
@@ -894,7 +895,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
     <HrSection title={L.hrBenefits || '복리후생'}>
       <div data-testid="hr-benefits">
         {draft === null ? (
-          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.loading || '불러오는 중…'}</div>
+          <LoadingState size="inline">{L.loading || '불러오는 중…'}</LoadingState>
         ) : loadError ? (
           <div style={{ fontSize: 12, color: '#DC2626', padding: '4px 0' }} role="alert">{L.hrBenefitsLoadError || '복리후생을 불러오지 못했습니다.'}</div>
         ) : readOnly ? (

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
+import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -67,24 +69,6 @@ function mergeLabels(provided) {
   return { ...DEFAULT_LABELS, ...provided };
 }
 
-function Badge({ children, color, bg }) {
-  return (
-    <span style={{ fontSize: 12, fontWeight: 700, color, background: bg,
-      padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
-}
-
-function Card({ children, style }) {
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: 24, ...style }}>
-      {children}
-    </div>
-  );
-}
-
 function Btn({ children, onClick, kind = 'primary', disabled, title }) {
   const styles = {
     primary: { bg: T.accent, color: '#fff', border: 'transparent' },
@@ -107,12 +91,12 @@ function SkeletonCard() {
     <Card style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ width: 160, height: 16, background: T.bl, borderRadius: 6, marginBottom: 8 }} />
-          <div style={{ width: 100, height: 13, background: T.bl, borderRadius: 6 }} />
+          <Skeleton width={160} height={16} radius={6} style={{ marginBottom: 8 }} />
+          <Skeleton width={100} height={13} radius={6} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ width: 80, height: 36, background: T.bl, borderRadius: 10 }} />
-          <div style={{ width: 56, height: 36, background: T.bl, borderRadius: 10 }} />
+          <Skeleton width={80} height={36} radius={10} />
+          <Skeleton width={56} height={36} radius={10} />
         </div>
       </div>
     </Card>

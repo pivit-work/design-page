@@ -10,6 +10,7 @@ import {
   transcriptAnchor,
   useTranscriptJump,
 } from './OneOnOneMemberCanvas.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * 매니저 **DONE 단계** 뷰 (PW-430).
@@ -336,7 +337,7 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
         data-state={summarizing ? 'skipped-summarizing' : 'skipped'}
       >
         {summarizing ? (
-          <span className="ono-done-spinner" aria-hidden />
+          <Spinner size={20} />
         ) : (
           <Icon src={icons.info} size={16} color="currentColor" baseUrl={baseUrl} />
         )}
@@ -387,7 +388,7 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
         : L.bannerSummarizing;
   return (
     <div className="ono-done-banner is-busy" data-testid="ono-done-banner" data-state={state}>
-      <span className="ono-done-spinner" aria-hidden />
+      <Spinner size={20} />
       <span>{text}</span>
     </div>
   );

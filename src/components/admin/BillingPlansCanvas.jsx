@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -145,24 +146,6 @@ function mergeLabels(provided) {
 }
 
 // ── 공통 헬퍼 컴포넌트 ──────────────────────────────────────
-
-function Badge({ children, color, bg }) {
-  return (
-    <span style={{ fontSize: 12, fontWeight: 700, color, background: bg,
-      padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  );
-}
-
-function Card({ children, style }) {
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: 24, ...style }}>
-      {children}
-    </div>
-  );
-}
 
 function Btn({ children, onClick, kind = 'primary', disabled, fullWidth }) {
   const styles = {

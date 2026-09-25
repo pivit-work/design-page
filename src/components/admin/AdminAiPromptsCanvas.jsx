@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
+import Switch from '../shared/Switch.jsx';
+import Toast from '../shared/Toast.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -148,6 +150,7 @@ export default function AdminAiPromptsCanvas({
   testResult = null,
   testLoading = false,
   toast = null,
+  toastTone = 'success',
   labels: providedLabels,
   onSelectFeature,
   onCustomPromptChange,
@@ -285,19 +288,14 @@ export default function AdminAiPromptsCanvas({
                         {fmtVersion(labels.version, selectedVersion)}
                       </span>
                     )}
-                    {/* is_active toggle — design-page admin-notif-toggle 정본 */}
+                    {/* is_active 스위치 — 이름은 감싼 <label> 의 글이다 */}
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} data-testid="active-toggle-label">
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{labels.activeToggle}</span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={isActive}
-                        onClick={() => onToggleActive && onToggleActive()}
+                      <Switch
+                        checked={isActive}
+                        onChange={() => onToggleActive && onToggleActive()}
                         data-testid="active-toggle"
-                        className={`admin-notif-toggle${isActive ? ' is-on' : ''}`}
-                      >
-                        <span className="admin-notif-toggle-knob" />
-                      </button>
+                      />
                     </label>
                   </div>
                 </div>
@@ -496,15 +494,8 @@ export default function AdminAiPromptsCanvas({
       </div>
 
       {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--text-primary)', color: 'var(--bg-quaternary)', padding: '10px 22px', borderRadius: 10,
-          fontSize: 13, fontWeight: 600, boxShadow: '0 4px 20px rgba(10,13,18,.18)', zIndex: 100,
-        }} data-testid="toast">
-          {toast}
-        </div>
-      )}
+      {/* 알림 문구는 공용 Toast 한 벌 (PW-1010). 실패 문구는 toastTone="error" 로 빨강 */}
+      <Toast message={toast} tone={toastTone} data-testid="toast" />
     </div>
   );
 }

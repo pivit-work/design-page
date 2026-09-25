@@ -184,13 +184,7 @@
 }
 .sq-empty .sq-btn { margin-top: 16px; }
 
-.sq-loading {
-  padding: 48px 0;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
+/* 「불러오는 중」 글은 공용 `LoadingState` (PW-1010) */
 
 /* ── Squad Card ──
    `pj-card` 를 그대로 쓰고(배경·모서리·패딩·hover 그림자), 우상단 액션만 얹는다.

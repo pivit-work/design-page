@@ -9,12 +9,14 @@ import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
+import Switch from '../shared/Switch.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
  *
  * pivit-specs `K. 내-설정/my-settings-view.jsx` 시안을 design-page 토큰/프리미티브
- * (admin-card, admin-emp-input, admin-notif-toggle, admin-notif-btn, admin-notif-banner)
+ * (admin-card, admin-emp-input, admin-notif-btn, admin-notif-banner)
  * 로 포팅한 것. 스타일은 settings.css(msc-*) + admin.css. 사진 업로드 창은 공용 창 틀
  * (ModalShell · PW-836).
  *
@@ -317,23 +319,6 @@ function merge(base, provided) {
     }
   }
   return out;
-}
-
-/* ── 토글 스위치 (admin.css 공유 클래스) ─────────────── */
-function Toggle({ value, onChange, ariaLabel, disabled = false }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={value}
-      aria-label={ariaLabel}
-      disabled={disabled}
-      onClick={() => !disabled && onChange(!value)}
-      className={`admin-notif-toggle${value ? ' is-on' : ''}`}
-    >
-      <span className="admin-notif-toggle-knob" />
-    </button>
-  );
 }
 
 function Card({ children, className = '', testId }) {
@@ -981,11 +966,7 @@ function PerformanceTab({ performance, loading, error, labels }) {
       <Card testId="performance-card">
         <div className="admin-section-label">{L.section}</div>
         {loading ? (
-          <div className="msc-skeleton-list" data-testid="performance-loading" aria-busy="true">
-            <div className="msc-skeleton-row" />
-            <div className="msc-skeleton-row" />
-            <div className="msc-skeleton-row" />
-          </div>
+          <SkeletonList data-testid="performance-loading" />
         ) : error ? (
           <div className="msc-empty-state" data-testid="performance-error">{L.loadError}</div>
         ) : history.length === 0 ? (
@@ -1081,7 +1062,6 @@ function CompensationTab({ compensation, isAdmin, labels }) {
   );
 }
 
-
 /**
  * 변경 이력 탭 — 비발령성 개인정보의 변경 기록 (PW-460 §2-D).
  *
@@ -1151,11 +1131,7 @@ function HistoryTab({
         </div>
 
         {loading ? (
-          <div className="msc-skeleton-list" data-testid="history-loading" aria-busy="true">
-            <div className="msc-skeleton-row" />
-            <div className="msc-skeleton-row" />
-            <div className="msc-skeleton-row" />
-          </div>
+          <SkeletonList data-testid="history-loading" />
         ) : error ? (
           <div className="msc-empty-state" data-testid="history-error">
             <div>{L.loadError}</div>
@@ -1452,7 +1428,6 @@ export default function MySettingsCanvas({
     (needsCurrentPw ? Boolean(currentPw) : true) &&
     newPw.length >= 8 &&
     newPw === confirmPw;
-
 
   const activePhoto = photos.find((p) => p.id === activePhotoId) || photos[0] || null;
   /**
@@ -1934,10 +1909,10 @@ export default function MySettingsCanvas({
                         {group.locked ? (
                           <StatusBadge className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</StatusBadge>
                         ) : (
-                          <Toggle
-                            value={Boolean(item.on)}
+                          <Switch
+                            checked={Boolean(item.on)}
                             onChange={(next) => onToggleVisibility && onToggleVisibility(item.key, next)}
-                            ariaLabel={item.label}
+                            label={item.label}
                             disabled={Boolean(item.disabled)}
                           />
                         )}
@@ -1962,10 +1937,10 @@ export default function MySettingsCanvas({
                           <div className="msc-notif-label">{item.label}</div>
                           <div className="msc-notif-sub">{item.sub}</div>
                         </div>
-                        <Toggle
-                          value={Boolean(item.on)}
+                        <Switch
+                          checked={Boolean(item.on)}
                           onChange={(next) => onToggleNotif && onToggleNotif(item.key, next)}
-                          ariaLabel={item.label}
+                          label={item.label}
                         />
                       </div>
                     ))}
@@ -2064,12 +2039,12 @@ export default function MySettingsCanvas({
                         {intg.subSettings.map((s) => (
                           <div key={s.key} className="msc-row">
                             <span className="msc-intg-sub-label">{s.label}</span>
-                            <Toggle
-                              value={Boolean(s.on)}
+                            <Switch
+                              checked={Boolean(s.on)}
                               onChange={(next) =>
                                 onToggleIntegrationSetting && onToggleIntegrationSetting(intg.id, s.key, next)
                               }
-                              ariaLabel={s.label}
+                              label={s.label}
                             />
                           </div>
                         ))}

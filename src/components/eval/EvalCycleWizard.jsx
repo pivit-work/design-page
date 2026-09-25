@@ -52,6 +52,8 @@ import {
   scaleMaxOf,
   sectionColor,
 } from './evalTemplateItemModel.js';
+import Switch from '../shared/Switch.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
@@ -4879,8 +4881,12 @@ export default function EvalCycleWizard({
                     {!confirmReadOnly && (
                       <>
                         {libraryStatus === 'loading' ? (
-                          <span
-                            className="evc-tpl-confirm-skeleton"
+                          <Skeleton
+                            inline
+                            width={140}
+                            height={28}
+                            radius="var(--radius-sm)"
+                            className="evc-tpl-confirm-slot"
                             data-testid={`evc-tpl-confirm-loading-${row.type}`}
                           />
                         ) : libraryStatus === 'error' ? (
@@ -4996,8 +5002,8 @@ export default function EvalCycleWizard({
               {libraryStatus === 'loading' ? (
                 /* 카드 자리에 스켈레톤 2칸 — 레이아웃이 튀지 않게. */
                 <div className="evc-tpl-start-cards" data-testid="evc-tpl-start-loading">
-                  <div className="evc-tpl-start-card is-skeleton" />
-                  <div className="evc-tpl-start-card is-skeleton" />
+                  <Skeleton height={92} />
+                  <Skeleton height={92} />
                 </div>
               ) : libraryStatus === 'error' ? (
                 /* 🔴 빈 상태 문구로 대체하지 않는다 — 「저장된 게 없다」와 「못 불러왔다」는
@@ -5585,18 +5591,16 @@ export default function EvalCycleWizard({
                             {L.schedulePastBadge}
                           </StatusBadge>
                         )}
-                        <button
-                          type="button"
-                          className={`evc-sched-toggle${enabled ? ' is-on' : ''}${ph.required || phaseTogglesLocked ? ' is-locked' : ''}`}
-                          onClick={() => { if (!ph.required && !phaseTogglesLocked) togglePhaseEnabled(ph.id); }}
+                        <Switch
+                          className="evc-sched-switch"
+                          checked={enabled}
+                          onChange={() => togglePhaseEnabled(ph.id)}
                           disabled={ph.required || phaseTogglesLocked}
+                          label={L[ph.nameKey]}
                           /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
                           title={ph.required ? L.phaseRequiredHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined}
-                          aria-pressed={enabled}
                           data-testid={`evc-sched-toggle-${ph.id}`}
-                        >
-                          <span className="evc-sched-toggle-dot" />
-                        </button>
+                        />
                       </div>
                       {/* [PW-529 ③-b · 정책 §5.2.1-C] 「결과 발송」이 무엇을 하는 자리인지 적는다.
                           이름만 보면 여기서 리포트가 나가는 줄 알게 되는데, 실제로는 «언제 보낼지»를
@@ -7536,7 +7540,7 @@ export default function EvalCycleWizard({
                       aria-busy="true"
                     >
                       {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <span key={i} className="evc-wiz-committee-skeleton" />
+                        <Skeleton key={i} height={57} />
                       ))}
                     </div>
                   ) : committeeCandidatesError ? (

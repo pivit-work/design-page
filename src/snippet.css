@@ -48,36 +48,16 @@
   color: var(--text-secondary);
 }
 
-/* 개발 확인용 매니저 뷰 토글 — 작은 outlined pill */
-.snippet-view-toggle {
+/* 개발 확인용 매니저 뷰 스위치 — 스위치는 공용 `Switch`(src/switch.css), 여기는 옆 글만 (PW-1010) */
+.snippet-view-switch {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--border-secondary-alt, rgba(0, 0, 0, 0.08));
-  border-radius: 9999px;
-  background: var(--bg-active);
-  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 18px;
   color: var(--text-tertiary);
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-.snippet-view-toggle .snippet-view-toggle-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: var(--text-tertiary);
-}
-.snippet-view-toggle.is-on {
-  background: var(--colors-background-bgBrandPrimary);
-  border-color: var(--colors-foreground-fgBrandPrimary);
-  color: var(--text-brand-secondary);
-}
-.snippet-view-toggle.is-on .snippet-view-toggle-dot {
-  background: var(--colors-foreground-fgBrandPrimary);
 }
 
 /* "스니핏 작성" 버튼 — brand-solid 그린 */

@@ -2,6 +2,9 @@
 @import './tokens-dark.css';
 @import './timeline.css';
 @import './button.css';
+@import './pagination.css';
+@import './switch.css';
+@import './loading.css';
 
 :root {
   --font-family-body: 'Pretendard', sans-serif;

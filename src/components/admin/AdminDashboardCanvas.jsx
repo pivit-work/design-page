@@ -9,7 +9,7 @@ import { CloseGlyph, CrownGlyph } from '../shared/lineIcons.jsx';
 import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
-import { IconChevronLeft, IconChevronRight } from './employeesIcons.jsx';
+import Pagination from '../shared/Pagination.jsx';
 
 /**
  * AdminDashboardCanvas — 어드민 개요 대시보드 Pure 컴포넌트.
@@ -199,16 +199,16 @@ export default function AdminDashboardCanvas({
             </RosterTable.Body>
           </RosterTable>
           {orderedRows.length > teamPageSize && (
-            <div className="admin-emp-pagination" data-testid="admin-team-pagination">
-              <span className="admin-emp-muted">
-                {(safeTeamPage - 1) * teamPageSize + 1}–{Math.min(safeTeamPage * teamPageSize, orderedRows.length)} {labels.teamPagination.of} {orderedRows.length}{labels.countSuffix}
-              </span>
-              <div className="admin-emp-pagination-nav">
-                <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safeTeamPage === 1} onClick={() => setTeamPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.teamPagination.prev}</button>
-                <span className="admin-emp-mono admin-emp-muted">{safeTeamPage} {labels.teamPagination.of} {teamTotalPages}</span>
-                <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safeTeamPage === teamTotalPages} onClick={() => setTeamPage((p) => Math.min(teamTotalPages, p + 1))}>{labels.teamPagination.next}<IconChevronRight size={14} /></button>
-              </div>
-            </div>
+            <Pagination
+              data-testid="admin-team-pagination"
+              page={safeTeamPage}
+              totalPages={teamTotalPages}
+              pageSize={teamPageSize}
+              total={orderedRows.length}
+              onPageChange={setTeamPage}
+              labels={labels.teamPagination}
+              countSuffix={labels.countSuffix}
+            />
           )}
         </Card>
 

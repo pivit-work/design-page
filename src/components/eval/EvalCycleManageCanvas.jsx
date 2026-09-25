@@ -1,5 +1,6 @@
 import { LockIcon, PauseIcon } from './evalIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * EvalCycleManageCanvas — 오픈된 사이클의 «무엇을·어떻게» 를 고치는 화면의 셸
@@ -114,7 +115,7 @@ export default function EvalCycleManageCanvas({
 export function EvalCycleManageBodyLoading({ label = DEFAULT_LABELS.loading }) {
   return (
     <section className="evc-card" data-testid="evmg-loading">
-      {label}
+      <LoadingState>{label}</LoadingState>
     </section>
   );
 }
