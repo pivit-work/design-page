@@ -13,16 +13,29 @@ import ActionPersonPopover from './ActionPersonPopover.jsx';
  * 모든 데이터/라벨은 caller 가 주입한다. 패키지 내부에는 fallback 이 없다.
  */
 
-// 'MM/DD' → Date 로 변환 (이번 해 기준).
+// 액션 아이템 기한. 화면에는 'MM/DD' 만 보이지만 연도를 잃으면 안 된다 — 12월 회의에서
+// 다음 해 1월을 고르면 호출부가 연도를 짐작해 붙이다 이미 지난 1월로 저장했다 (PW-1060).
+// 그래서 항목은 연도까지 든 `dueDate`('YYYY-MM-DD')를 함께 들고, 달력도 그 연도로 연다.
+// `dueDate` 가 없는 옛 항목은 예전처럼 'MM/DD' 를 올해로 읽는다.
+function parseISODate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s ?? '');
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
 function parseMMDD(s) {
   const now = new Date();
-  const [m, d] = s.split('/').map(Number);
+  const [m, d] = (s ?? '').split('/').map(Number);
   return new Date(now.getFullYear(), (m || 1) - 1, d || 1);
 }
 function formatMMDD(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${m}/${d}`;
+}
+function formatISODate(date) {
+  return `${date.getFullYear()}-${formatMMDD(date).replace('/', '-')}`;
+}
+function dueDateOf(item) {
+  return parseISODate(item?.dueDate) ?? (item?.date ? parseMMDD(item.date) : new Date());
 }
 
 export default function MeetingRecordContent({
@@ -47,6 +60,9 @@ export default function MeetingRecordContent({
   readOnly = false,
   // 잠긴 칸에 마우스를 올렸을 때 보이는 안내 (caller 주입, 예: "회의 담당자만 수정할 수 있습니다.")
   readOnlyHint,
+  // 새 액션 아이템의 기본 기한 'YYYY-MM-DD'. 주지 않으면 브라우저 기준 오늘이다 —
+  // 사용자 시간대의 오늘을 쓰려면 caller 가 넘긴다.
+  defaultDueDate,
 }) {
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
@@ -237,12 +253,14 @@ export default function MeetingRecordContent({
                 // 보이는 회귀를 방지. ref 콜백이 마운트 시 한 번 focus 한다.
                 const newIdx = actions.length;
                 justAddedIdxRef.current = newIdx;
+                const due = parseISODate(defaultDueDate) ?? new Date();
                 updateActions([
                   ...actions,
                   {
                     title: '',
                     person: '',
-                    date: formatMMDD(new Date()),
+                    date: formatMMDD(due),
+                    dueDate: formatISODate(due),
                   },
                 ]);
               }}
@@ -271,9 +289,9 @@ export default function MeetingRecordContent({
         <DatePickerPopover
           anchorRect={openPicker.rect}
           anchorEl={null}
-          selectedDate={parseMMDD(actions[openPicker.idx]?.date ?? formatMMDD(new Date()))}
+          selectedDate={dueDateOf(actions[openPicker.idx])}
           onSelect={(d) => {
-            updateAction(openPicker.idx, { date: formatMMDD(d) });
+            updateAction(openPicker.idx, { date: formatMMDD(d), dueDate: formatISODate(d) });
             setOpenPicker(null);
           }}
           onClose={() => setOpenPicker(null)}
