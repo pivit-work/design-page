@@ -318,6 +318,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrDate: "{column}은 YYYY-MM-DD 로 적어 주세요 ('{value}')",
   csvErrEmailFormat: "{column} '{value}'는 이메일 형식이 아니에요",
   csvErrStatus: "고용상태 '{value}'는 알 수 없는 값이에요",
+  csvErrStatusNotInvitable: "초대에는 고용상태 '{value}'를 쓸 수 없어요",
   csvErrFte: "FTE 는 0~100 사이 정수로 적어 주세요 ('{value}')",
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
@@ -691,12 +692,15 @@ export function parseInviteCsv(
  * @param {Record<string, {maxLength?: number, maxItems?: number, itemMaxLength?: number}>} [opts.fieldLimits]
  *   칸(열 key) → 글자 수·여러 값 칸의 개수·값 하나의 글자 수 상한
  * @param {(raw: string) => (string|null)} [opts.resolveOrgPath] 조직경로 글자 → 조직 id(못 찾으면 null)
+ * @param {string[]} [opts.blockedEmploymentStatuses] 초대에 쓸 수 없는 고용상태 코드(예: `terminated`) —
+ *   알아보는 값이어도 그 줄을 세운다. 안 넘기면 보지 않는다(PW-1042)
  */
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], pendingEmails = [],
   headTeamIds = [], labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
+  blockedEmploymentStatuses = [],
 } = {}) {
   const l = withDefaults(labels);
   const index = buildOrgPathIndex(orgTree);
@@ -721,6 +725,7 @@ export function buildInviteCsvContext(rows, {
     emailValid: emailValid || emailOk,
     nameMaxLength,
     fieldLimits: fieldLimits || {},
+    blockedEmploymentStatuses: new Set(blockedEmploymentStatuses || []),
     lookupPath: resolveOrgPath || ((raw) => lookupOrgPath(index, raw)),
   };
   // 파일 안에서 조직장을 예약한 조직도 「조직장이 있는 조직」으로 본다 — 그 사람이 가입하면
@@ -884,6 +889,9 @@ export function inviteCsvIssues(row, ctx) {
   }
 
   if (r.employmentStatus === null) add('employmentStatus', fmtCsv(l.csvErrStatus, { value: v.employmentStatus }));
+  else if (r.employmentStatus && ctx.blockedEmploymentStatuses?.has(r.employmentStatus)) {
+    add('employmentStatus', fmtCsv(l.csvErrStatusNotInvitable, { value: normalize(v.employmentStatus) }));
+  }
   const fte = normalize(v.ftePercent);
   if (fte && !(/^\d+$/.test(fte) && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
   if (normalize(v.salary) && !/\d/.test(v.salary)) add('salary', l.csvErrSalary);
