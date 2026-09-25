@@ -548,7 +548,7 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, 
       {onCeo && (
         <button
           type="button"
-          className="admin-emp-row-menu-item"
+          className="admin-emp-row-menu-item has-icon"
           data-testid={`employees-row-ceo-${ceoMode}`}
           onClick={() => { onCeo(ceoMode); onClose(); }}
         >
@@ -3313,7 +3313,7 @@ function EmployeesEditPanel({
   }
 
   return (
-    <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} testId="employees-edit-panel">
+    <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} closeOnEscape testId="employees-edit-panel">
         <div className="admin-emp-panel-header">
           <div className="admin-emp-panel-id">
             {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}

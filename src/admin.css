@@ -1170,6 +1170,14 @@
 }
 .admin-emp-row-menu-item:hover { background: var(--bg-secondary); }
 .admin-emp-row-menu-item.is-danger { color: var(--text-error-primary); }
+/* 아이콘을 앞에 단 항목(「대표로 지정」의 왕관). 아이콘 부품(`IconCrown`)은 칩·배지 같은 flex
+   칸에 맞춰 `display: block` 으로 그려져서, 위의 block 항목 안에서는 글자 윗줄로 떨어졌다
+   (PW-1070). 이 항목만 한 줄 flex 로 세운다 — 글자만 있는 항목의 자리는 그대로다. */
+.admin-emp-row-menu-item.has-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .admin-emp-row-menu-divider { height: 1px; background: var(--bg-secondary); margin: 4px 0; }
 
 /* ── 조직 선택 드롭다운 ──────────────────────────────────── */
