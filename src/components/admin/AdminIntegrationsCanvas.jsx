@@ -651,7 +651,15 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
           </div>
         </div>
         <div className="intg-actions">
-          <button type="button" className="intg-btn intg-btn-danger intg-btn-sm" onClick={() => setShowExpireModal(true)}>
+          {/* 누를 수 있는지는 앱이 정해 넘긴다(PW-1058) — 서버는 연결됨일 때만 만료를 받는다.
+              넘기지 않으면 예전처럼 늘 눌린다. */}
+          <button
+            type="button"
+            className="intg-btn intg-btn-danger intg-btn-sm"
+            onClick={() => setShowExpireModal(true)}
+            disabled={transfer.canExpireToken === false}
+            data-testid="intg-expire-token"
+          >
             {labels.transfer.expireToken}
           </button>
           <button type="button" className="intg-btn intg-btn-primary intg-btn-sm" onClick={() => setShowReauthModal(true)}>

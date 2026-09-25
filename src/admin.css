@@ -2958,6 +2958,14 @@
   background: var(--bg-primary);
   border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
 }
+/* 칸 아래 오류 문구 (PW-1058) — 조건 줄 안에서는 줄을 바꿔 칸 밑에 선다. */
+.admin-notif-param-row { flex-wrap: wrap; }
+.admin-notif-field-error {
+  flex-basis: 100%;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--text-error-primary);
+  margin-top: 4px;
+}
 .admin-notif-param-label {
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);

@@ -295,7 +295,7 @@ function joinAddressLine(address) {
   return [head, line, tail].filter(Boolean).join(' ');
 }
 
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
@@ -325,6 +325,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options }
         <input
           className="admin-emp-input"
           type={type}
+          inputMode={inputMode}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
@@ -419,7 +420,14 @@ function shapeIdentityForSave(draft) {
     line1: draft.addressDetail,
     country: draft.addressCountry,
   };
-  const num = (v) => (String(v ?? '').trim() === '' ? undefined : Number(v));
+  /* 숫자가 아닌 글자가 남아 있으면 NaN 이 되고, JSON 에서 null 로 바뀌어 「지운다」로 읽힌다
+     (PW-1058 — 「10시간」이 기존 값을 지웠다). 칸이 숫자만 받게 걸러 두지만, 그래도 섞여
+     오면 글자 그대로 보내 서버가 거절하게 둔다. */
+  const num = (v) => {
+    const raw = String(v ?? '').trim();
+    if (raw === '') return undefined;
+    return /^\d+$/.test(raw) ? Number(raw) : raw;
+  };
   const hours = {
     overtime: num(draft.contractOvertime),
     holiday: num(draft.contractHoliday),
@@ -501,6 +509,9 @@ export function HrProfileModal({
     setIdentityDraft((p) => ({ ...(p ?? identity), [key]: v }));
     setIdentityState('idle');
   };
+  /* 포괄 계약 시간은 월 시간(0 이상 정수)만 받는다 — 기획 시안처럼 숫자 아닌 글자는 칸에서
+     바로 걸러 낸다(PW-1058). 「10시간」을 치면 「10」이 남는다. */
+  const setIdDigits = (key) => (v) => setIdField(key)(String(v ?? '').replace(/[^0-9]/g, ''));
   /* 마지막 출근일은 퇴사일보다 늦을 수 없다 (§3.2.1 ④ · PW-943 후속 · David 확정) — 같은 날은 된다.
      퇴사일은 이 창이 아니라 구성원 창에서 고친다. 그래서 그 창이 넘긴 행의 값과 견준다. */
   const lastDayAfterResign = lastWorkingDateAfterTermination(idDraft.lastWorkingDate, row?.terminationDate);
@@ -662,9 +673,9 @@ export function HrProfileModal({
                   onChange={setIdField('payCycle')}
                   options={L.hrPayCycleOptions || []}
                 />
-                <HrEditPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} value={idDraft.contractOvertime} onChange={setIdField('contractOvertime')} />
-                <HrEditPair k={L.hrContractHoliday || '포괄 계약 시간 · 휴일'} value={idDraft.contractHoliday} onChange={setIdField('contractHoliday')} />
-                <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdField('contractNight')} />
+                <HrEditPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} value={idDraft.contractOvertime} onChange={setIdDigits('contractOvertime')} inputMode="numeric" />
+                <HrEditPair k={L.hrContractHoliday || '포괄 계약 시간 · 휴일'} value={idDraft.contractHoliday} onChange={setIdDigits('contractHoliday')} inputMode="numeric" />
+                <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdDigits('contractNight')} inputMode="numeric" />
                 <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
                 <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
                 <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
