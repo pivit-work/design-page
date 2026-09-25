@@ -304,6 +304,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   errPendingInvite: '초대 대기 중',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
+  errNameTooLong: '이름은 {max}자까지 입력할 수 있어요',
   errNameEmail: '이름에 이메일 주소를 넣을 수 없어요. 실명을 입력해주세요',
   errPrimaryTeam: '주 소속을 지정해주세요',
   csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
@@ -328,6 +329,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrManagerUnknown: "상급자 '{value}'는 회사에도 이 파일에도 없는 사람이에요",
   csvErrManagerSelf: '자기 자신을 상급자로 둘 수 없어요',
   csvErrLeaderFormat: '조직장은 조직경로와 같은 개수의 Y/N 을 | 로 이어 적어 주세요',
+  csvErrTooLong: '{column} 칸은 {max}자까지 적을 수 있어요',
+  csvErrTooManyItems: '{column} 칸은 {max}개까지 적을 수 있어요',
+  csvErrItemTooLong: '{column} 칸의 값 하나는 {max}자까지 적을 수 있어요',
   csvErrSquadUnknown: "스쿼드 '{value}'를 찾을 수 없어요",
   csvNoteManagerIgnored: '조직장이 상급자가 됩니다 — 적은 상급자는 쓰지 않습니다',
 };
@@ -678,11 +682,21 @@ export function parseInviteCsv(
  * @param {string[]} [opts.pendingEmails]  대기 중 초대 이메일
  * @param {string[]} [opts.headTeamIds]    조직장이 있는 조직 id(상급자 안내)
  * @param {object} [opts.labels]
+ *
+ * 아래 넷은 **앱이 정하는 규칙**이다 (PW-1057). 초대는 서버가 최종 판정하는데, 화면이 서버와
+ * 다른 기준으로 줄을 통과시키면 그 줄이 발송에서야 걸린다. 규칙은 앱·서버 한 곳에서 정하고
+ * 이 파일은 넘겨받은 것을 쓰기만 한다. 안 넘기면 예전 판정 그대로다(다른 소비자·시안).
+ * @param {(email: string) => boolean} [opts.emailValid] 초대 이메일 칸 판정
+ * @param {number|null} [opts.nameMaxLength] 이름 글자 수 상한
+ * @param {Record<string, {maxLength?: number, maxItems?: number, itemMaxLength?: number}>} [opts.fieldLimits]
+ *   칸(열 key) → 글자 수·여러 값 칸의 개수·값 하나의 글자 수 상한
+ * @param {(raw: string) => (string|null)} [opts.resolveOrgPath] 조직경로 글자 → 조직 id(못 찾으면 null)
  */
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], pendingEmails = [],
   headTeamIds = [], labels = {},
+  emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
 } = {}) {
   const l = withDefaults(labels);
   const index = buildOrgPathIndex(orgTree);
@@ -704,6 +718,10 @@ export function buildInviteCsvContext(rows, {
     fileEmailCount,
     headTeamIds: new Set(headTeamIds),
     reservedLeaderTeamIds: new Set(),
+    emailValid: emailValid || emailOk,
+    nameMaxLength,
+    fieldLimits: fieldLimits || {},
+    lookupPath: resolveOrgPath || ((raw) => lookupOrgPath(index, raw)),
   };
   // 파일 안에서 조직장을 예약한 조직도 「조직장이 있는 조직」으로 본다 — 그 사람이 가입하면
   // 장이 된다(상급자 안내가 가입 뒤의 모습과 맞아야 한다).
@@ -720,7 +738,8 @@ export function buildInviteCsvContext(rows, {
 export function resolveInviteCsvRow(row, ctx) {
   const v = row.values;
   const parts = splitList(v.orgPath);
-  const slots = parts.map((raw) => ({ raw, id: lookupOrgPath(ctx.index, raw) }));
+  const lookup = ctx.lookupPath || ((raw) => lookupOrgPath(ctx.index, raw));
+  const slots = parts.map((raw) => ({ raw, id: lookup(raw) }));
   const teamIds = [...new Set(slots.filter((s) => s.id).map((s) => s.id))];
   const unresolvedPaths = slots.filter((s) => !s.id).map((s) => s.raw);
 
@@ -728,7 +747,7 @@ export function resolveInviteCsvRow(row, ctx) {
   if (teamIds.length === 1 && unresolvedPaths.length === 0) {
     primaryTeamId = teamIds[0];
   } else if (teamIds.length > 1) {
-    const wanted = lookupOrgPath(ctx.index, v.primaryPath);
+    const wanted = normalize(v.primaryPath) ? lookup(v.primaryPath) : null;
     if (wanted && teamIds.includes(wanted)) primaryTeamId = wanted;
   }
 
@@ -765,14 +784,16 @@ export function inviteCsvIssues(row, ctx) {
   const labelOf = (key) => l[INVITE_CSV_COLUMNS.find((c) => c.key === key)?.labelKey] || key;
 
   const email = normEmail(v.email);
-  if (!emailOk(v.email)) add('email', l.errInvalidEmail);
+  if (!(ctx.emailValid || emailOk)(v.email)) add('email', l.errInvalidEmail);
   else if (ctx.memberEmails.has(email)) add('email', l.errAlreadyMember);
   else if (ctx.pendingEmails.has(email)) add('email', l.errPendingInvite);
   else if ((ctx.fileEmailCount.get(email) || 0) > 1) add('email', l.errDuplicate);
 
   // 길이 검사와 이메일 검사는 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
   if (normalize(v.name).length < 2) add('name', l.errName);
-  else if (nameHasEmail(v.name)) add('name', l.errNameEmail);
+  else if (ctx.nameMaxLength && normalize(v.name).length > ctx.nameMaxLength) {
+    add('name', fmtCsv(l.errNameTooLong, { max: ctx.nameMaxLength }));
+  } else if (nameHasEmail(v.name)) add('name', l.errNameEmail);
 
   if (!r.role) {
     add('role', retiredRole(v.role, l)
@@ -781,6 +802,21 @@ export function inviteCsvIssues(row, ctx) {
   }
 
   for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
+    // 글자 수·개수 상한(PW-1057) — 앱이 넘긴 칸만 본다. 여러 값 칸은 `|` 로 나눈 값마다 본다.
+    const limit = ctx.fieldLimits?.[col.key];
+    if (limit && normalize(v[col.key])) {
+      if (col.kind === 'list') {
+        const items = splitList(v[col.key]);
+        if (limit.maxItems && items.length > limit.maxItems) {
+          add(col.key, fmtCsv(l.csvErrTooManyItems, { column: labelOf(col.key), max: limit.maxItems }));
+        }
+        if (limit.itemMaxLength && items.some((it) => it.length > limit.itemMaxLength)) {
+          add(col.key, fmtCsv(l.csvErrItemTooLong, { column: labelOf(col.key), max: limit.itemMaxLength }));
+        }
+      } else if (limit.maxLength && normalize(v[col.key]).length > limit.maxLength) {
+        add(col.key, fmtCsv(l.csvErrTooLong, { column: labelOf(col.key), max: limit.maxLength }));
+      }
+    }
     if (col.codes) {
       // 코드값 칸 — 라벨로 적어도 코드로 알아보고, 회사가 켠 값인지 본다. 틀리면 쓸 수 있는
       // 값을 «화면에 보이는 말로» 알려 준다(코드를 보여 주면 또 코드로 적는다).

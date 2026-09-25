@@ -119,6 +119,7 @@ const DEFAULT_LABELS = {
   errPendingInvite: '초대 대기 중',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
+  errNameTooLong: '이름은 {max}자까지 입력할 수 있어요',
   errNameEmail: '이름에 이메일 주소를 넣을 수 없어요. 실명을 입력해주세요',
   errPrimaryTeam: '주 소속을 지정해주세요',
   // V7 — (직군, 직렬) 쌍(INV-3)
@@ -344,6 +345,25 @@ export default function AdminInviteModal({
   jobCategoryEnabled = false,
   onGoBilling,
   maxRows = INVITE_MAX_ROWS,
+  /*
+    ── 앱이 정하는 규칙 (PW-1057) ──
+    초대는 서버가 최종 판정한다. 화면이 서버와 다른 기준으로 줄을 통과시키면 일괄 발송에서
+    그 한 줄 때문에 나머지까지 못 나갔다. 규칙은 앱이 서버와 맞춰 넘기고 이 창은 쓰기만 한다.
+    안 넘기면 예전 판정 그대로다.
+  */
+  /** 초대 이메일 칸 판정 — 기본은 모양만 보는 `emailOk`. */
+  emailValid = emailOk,
+  /** 이름 글자 수 상한 — `null` 이면 보지 않는다. */
+  nameMaxLength = null,
+  /** CSV 칸(열 key) → `{ maxLength?, maxItems?, itemMaxLength? }`. */
+  csvFieldLimits = {},
+  /** CSV 조직경로 글자 → 조직 id(못 찾으면 `null`). 없으면 이 창의 경로 해석을 쓴다. */
+  resolveOrgPath = null,
+  /**
+   * 남은 좌석을 쓰지 않는 이메일 — 예: 이 회사를 떠났던 사람을 다시 부르는 초대.
+   * 이 이메일의 줄은 좌석 부족 판정에서 세지 않는다(서버와 같은 셈).
+   */
+  seatExemptEmails = [],
   labels: providedLabels,
 }) {
   const labels = useMemo(
@@ -441,15 +461,18 @@ export default function AdminInviteModal({
   for (const r of rows) {
     const e = [];
     const key = normEmail(r.email);
-    if (!emailOk(r.email)) e.push(labels.errInvalidEmail);
+    if (!(emailValid || emailOk)(r.email)) e.push(labels.errInvalidEmail);
     else if (existing.has(key)) e.push(labels.errAlreadyMember);
     else if (pending.has(key)) e.push(labels.errPendingInvite);
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
     // V7 은 길이 검사와 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
-    if (String(r.name || '').trim().length < 2) e.push(labels.errName);
-    else if (nameHasEmail(r.name)) e.push(labels.errNameEmail);
+    const name = String(r.name || '').trim();
+    if (name.length < 2) e.push(labels.errName);
+    else if (nameMaxLength && name.length > nameMaxLength) {
+      e.push(fmt(labels.errNameTooLong, { max: nameMaxLength }));
+    } else if (nameHasEmail(r.name)) e.push(labels.errNameEmail);
     if (r.teamIds.length >= 2 && !r.primaryTeamId) e.push(labels.errPrimaryTeam);
     const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
     if (pair === 'family') e.push(labels.errLadderNeedsFamily);
@@ -463,6 +486,7 @@ export default function AdminInviteModal({
   const csvCtx = buildInviteCsvContext(csvRows, {
     orgTree: tree, fieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
     squadNames, memberEmails: existingEmails, pendingEmails, headTeamIds, labels,
+    emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
   });
   const csvIssuesByKey = {};
   const csvNotesByKey = {};
@@ -476,7 +500,11 @@ export default function AdminInviteModal({
   const validRows = isCsv ? csvValidRows : rows.filter((r) => errorsByKey[r.key].length === 0);
   const validCount = validRows.length;
   const seatsLeft = seats && seats.limit !== null ? seats.remaining : null;
-  const seatShort = seatsLeft !== null && validCount > seatsLeft;
+  const seatExempt = new Set(seatExemptEmails.map(normEmail));
+  const seatNeed = validRows
+    .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
+    .length;
+  const seatShort = seatsLeft !== null && seatNeed > seatsLeft;
   const adminRows = isCsv
     ? csvValidRows
       .filter((r) => resolveInviteCsvRow(r, csvCtx).role === 'admin')
@@ -846,7 +874,7 @@ export default function AdminInviteModal({
                 <span>
                   {seatsLeft === 0
                     ? labels.seatNone
-                    : fmt(labels.seatShort, { left: seatsLeft, need: validCount })}
+                    : fmt(labels.seatShort, { left: seatsLeft, need: seatNeed })}
                 </span>
                 {onGoBilling && (
                   <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={onGoBilling}>
