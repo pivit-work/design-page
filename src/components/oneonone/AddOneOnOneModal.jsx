@@ -22,6 +22,9 @@ import Radio from '../shared/Radio.jsx';
  * members: 검색 dropdown 에 보일 팀원 이름 배열. 🔴 **배열이면 빈 배열도 그대로 존중한다**
  *   — 「담당 팀원이 0명」을 그릴 수 있어야 하기 때문이다. 예시 이름은 이 prop 을 아예
  *   넘기지 않았을 때(시안·데모)만 쓴다 (PW-824).
+ *   항목은 `{ id, name }` 이다(이름 문자열도 받는다 — 그땐 이름이 id). [예약완료]는
+ *   **목록에서 한 명을 골랐을 때만** 켜지고, `onSubmit` 의 `memberId` 가 고른 사람의 id 다.
+ *   동명이인은 이름으로 가를 수 없으므로 저장하는 쪽은 `memberId` 로 찾는다 (PW-1061).
  *
  * defaultTime: 시간 칸의 기본값 — 로케일과 무관한 24시간 `'HH:MM'`. 「일정변경」처럼
  *   이미 잡혀 있는 시각을 채워 여는 자리에서 쓴다 (PW-825). 생략하면 `'10:00'` 이다.
@@ -99,6 +102,13 @@ function durationOptions(L) {
    사람이 실재하는 팀원처럼 떴다 (PW-824). */
 const DEMO_MEMBERS = ['김서윤', '김정호', '최수현', '김유진', '윤다희', '이서현', '신예린'];
 
+/* 팀원 한 줄. 호스트는 `{ id, name }` 을 넘긴다 — 🔴 이름은 **보이는 글자**일 뿐 누구인지를
+   가리키지 않는다. 동명이인이면 같은 글자가 두 줄 뜨므로, 저장하는 쪽은 `onSubmit` 의
+   `memberId` 로 사람을 찾는다 (PW-1061). 옛 호출부의 이름 문자열은 이름을 id 로 쓴다. */
+function toMemberOption(m) {
+  return typeof m === 'string' ? { id: m, name: m } : { id: String(m.id), name: m.name };
+}
+
 /* ── 날짜 기본값 ──────────────────────────────────────────────
    날짜 picker 는 Date 를 로컬 getter(`getFullYear/getMonth/getDate`)로만 읽고 쓴다.
    그래서 여기서도 «로컬 달력일» 만 다루고, 프롭 비교는 달력일 문자열로 한다 —
@@ -161,8 +171,15 @@ export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
 export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
-  const memberList = Array.isArray(members) ? members : DEMO_MEMBERS;
+  const memberList = useMemo(
+    () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
+    [members],
+  );
   const [search, setSearch] = useState('');
+  /* 목록에서 **고른** 팀원의 id. 검색칸에 글자를 치면 풀린다 — 친 글자가 우연히 이름과
+     같아도 고른 것이 아니다. 예전엔 글자만 있으면 [예약완료]가 켜져, 이름 일부만 친 채
+     눌러도 창이 닫히고 예약은 안 생겼다 (PW-1061). */
+  const [pickedId, setPickedId] = useState(null);
   const [memberOpen, setMemberOpen] = useState(false);
   const [duration, setDuration] = useState('55');
   const [customDuration, setCustomDuration] = useState('');
@@ -182,14 +199,16 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  const canSubmit = !!member || pickedId != null;
+
   const submit = async () => {
-    if (saving) return;
+    if (saving || !canSubmit) return;
     setSubmitError('');
     setSaving(true);
     try {
       /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
          쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
-      await onSubmit?.({ member, search, duration, customDuration, date, time: formatTime(time), time24: time, memo });
+      await onSubmit?.({ member, memberId: member ? null : pickedId, search, duration, customDuration, date, time: formatTime(time), time24: time, memo });
     } catch (err) {
       setSubmitError((err && err.message) || L.submitFailed);
       return;
@@ -207,7 +226,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
 
   const filteredMembers = useMemo(() => {
     if (!search) return memberList;
-    return memberList.filter((m) => m.includes(search));
+    return memberList.filter((m) => m.name.includes(search));
   }, [search, memberList]);
 
   const dateLabel = formatDateLabel(date, locale);
@@ -248,7 +267,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="ono-add-modal-submit"
             onClick={() => void submit()}
-            disabled={(!member && !search) || saving}
+            disabled={!canSubmit || saving}
           >
             {L.submit}
           </button>
@@ -283,7 +302,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
                 <TextInput
                   placeholder={L.memberSearchPlaceholder}
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
+                  onChange={(e) => { setSearch(e.target.value); setPickedId(null); setMemberOpen(true); }}
                   onFocus={() => setMemberOpen(true)}
                   className="ono-add-modal-input-el"
                 />
@@ -297,12 +316,13 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
                   ) : (
                     filteredMembers.map((m) => (
                       <button
-                        key={m}
+                        key={m.id}
                         type="button"
                         className="ono-add-modal-menu-item"
-                        onClick={() => { setSearch(m); setMemberOpen(false); }}
+                        data-testid="ono-add-modal-member-option"
+                        onClick={() => { setSearch(m.name); setPickedId(m.id); setMemberOpen(false); }}
                       >
-                        {m}
+                        {m.name}
                       </button>
                     ))
                   )}

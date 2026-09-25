@@ -75,7 +75,8 @@ export const DEFAULT_LABELS = {
  * 외부 제어 props (pivit-work 등 실제 사용처용):
  *  - onScheduleSubmit(data): 일정 추가 모달의 onSubmit. data 에 { member, search, duration, ...}.
  *    약속을 돌려주면 끝난 뒤에만 창을 닫는다. 거부하면 창이 열린 채 사유를 보인다 (PW-987).
- *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 이름 배열.
+ *  - members: "1on1 일정 추가" 모달 검색 dropdown 에 노출할 팀원 `{ id, name }` 배열
+ *    (옛 이름 문자열 배열도 받는다). 고른 사람은 onScheduleSubmit 의 `memberId` 로 온다 (PW-1061).
  *    빈 배열은 「담당 팀원이 0명」으로 그대로 전달된다 — 예시 이름으로 채우지 않는다 (PW-824).
  *  - locale / scheduleLabels: 예약 모달 안 글자의 로케일·번역. 그대로 AddOneOnOneModal
  *    에 넘긴다 (PW-469). 미지정 시 한국어 기본값 — 종전과 같은 화면이다.
