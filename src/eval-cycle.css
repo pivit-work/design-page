@@ -233,11 +233,11 @@
   color: var(--text-secondary);
 }
 .evc-step.is-current .evc-step-dot {
-  background: var(--utility-blue-500);
-  box-shadow: 0 0 0 3px var(--utility-blue-50);
+  background: var(--utility-brand-500);
+  box-shadow: 0 0 0 3px var(--utility-brand-50);
 }
 .evc-step.is-current .evc-step-label {
-  color: var(--utility-blue-600);
+  color: var(--utility-brand-600);
   font-weight: 700;
 }
 
@@ -629,8 +629,8 @@
   cursor: pointer;
 }
 .evc-open-confirm-check.is-on {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
 }
 .evc-open-confirm-check .evc-member-check {
   margin-top: 2px;
@@ -644,7 +644,7 @@
   opacity: 0;
 }
 .evc-open-confirm-input:focus-visible + .evc-member-check {
-  outline: 2px solid var(--utility-blue-500);
+  outline: 2px solid var(--utility-brand-500);
   outline-offset: 2px;
 }
 .evc-open-confirm-check-label {
@@ -654,7 +654,7 @@
 }
 .evc-open-confirm-check.is-on .evc-open-confirm-check-label {
   font-weight: 600;
-  color: var(--utility-blue-700);
+  color: var(--utility-brand-700);
 }
 .evc-open-confirm-error {
   font-size: var(--font-size-text-xs);
@@ -700,8 +700,8 @@
 }
 .evc-input:focus {
   outline: none;
-  border-color: var(--utility-blue-500);
-  box-shadow: 0 0 0 3px var(--utility-blue-50);
+  border-color: var(--utility-brand-500);
+  box-shadow: 0 0 0 3px var(--utility-brand-50);
 }
 /* PW-119: is-invalid 를 붙이는 곳(등급명 중복·빈칸)은 있었는데 규칙이 없어
    강조가 화면에 전혀 안 나타났다. */
@@ -736,9 +736,9 @@
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .evc-type-chip.is-on {
-  background: var(--utility-blue-50);
-  border-color: var(--utility-blue-500);
-  color: var(--utility-blue-600);
+  background: var(--utility-brand-50);
+  border-color: var(--utility-brand-500);
+  color: var(--utility-brand-600);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -948,8 +948,8 @@
   font-family: var(--font-family-body);
 }
 .evc-mode-item.is-on {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
 }
 .evc-mode-name {
   flex: 1;
@@ -1905,9 +1905,9 @@
   font-weight: 700;
   border-radius: 99px;
   padding: 3px 9px;
-  background: var(--utility-blue-50);
-  border: 1px solid var(--utility-blue-500);
-  color: var(--utility-blue-600);
+  background: var(--utility-brand-50);
+  border: 1px solid var(--utility-brand-500);
+  color: var(--utility-brand-600);
 }
 .evc-tpl-ctxbar-version,
 .evc-tpl-ctxbar-meta,
@@ -2080,7 +2080,7 @@
   background: var(--bg-primary);
   overflow: hidden;
 }
-.evc-tpl-picker-row.is-open { border-color: var(--utility-blue-500); }
+.evc-tpl-picker-row.is-open { border-color: var(--utility-brand-500); }
 .evc-tpl-picker-row-main {
   display: flex;
   align-items: center;
@@ -2434,8 +2434,8 @@
   font-family: var(--font-family-body);
 }
 .evc-member-item.is-on {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
 }
 /* 목록형 다중선택 체크박스 (평가·캘리브레이션 공용).
    선택 상태는 부모 행 클래스가 아니라 이 요소 자신의 `.is-on` 으로 준다 —
@@ -2444,7 +2444,7 @@
    강조색은 --evc-check-accent 로 행마다 바꿀 수 있다. */
 .evc-member-check {
   position: relative;
-  --evc-check-accent: var(--utility-blue-500);
+  --evc-check-accent: var(--utility-brand-500);
   width: 16px;
   height: 16px;
   border-radius: var(--radius-xs);
@@ -5608,9 +5608,9 @@
 }
 .evs-cw-chip.is-on.tone-accent {
   font-weight: 700;
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
+  color: var(--utility-brand-600);
 }
 /* 위원 후보 이름 검색 — 제목 입력과 같은 인풋 스타일을 그대로 쓰고 간격만 준다 */
 .evs-cw-create-search {
@@ -5973,8 +5973,8 @@
 
 /* §6.3 R4 대상자 선별 필터 */
 .evs-cw-filter-btn.is-active {
-  color: var(--utility-blue-600);
-  border-color: var(--utility-blue-300);
+  color: var(--utility-brand-600);
+  border-color: var(--utility-brand-300);
 }
 .evs-cw-filter-active {
   display: flex;
@@ -5982,9 +5982,9 @@
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--utility-blue-700);
-  background: var(--utility-blue-50);
-  border: 1px solid var(--utility-blue-200);
+  color: var(--utility-brand-700);
+  background: var(--utility-brand-50);
+  border: 1px solid var(--utility-brand-200);
   border-radius: 8px;
   padding: 6px 12px;
 }
@@ -5992,7 +5992,7 @@
   margin-left: auto;
   border: none;
   background: transparent;
-  color: var(--utility-blue-700);
+  color: var(--utility-brand-700);
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
@@ -6048,9 +6048,9 @@
   color: var(--text-secondary);
 }
 .evs-cw-filter-op-btn.is-on {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
+  color: var(--utility-brand-600);
 }
 .evs-cw-filter-field {
   margin-bottom: 10px;
@@ -6891,9 +6891,9 @@
   cursor: pointer;
 }
 .evc-wiz-calibscope-chip.is-on {
-  border-color: var(--utility-blue-600);
-  background: var(--utility-blue-100);
-  color: var(--utility-blue-700);
+  border-color: var(--utility-brand-600);
+  background: var(--utility-brand-100);
+  color: var(--utility-brand-700);
   font-weight: 700;
 }
 .evc-wiz-calibscope-roster {
@@ -7234,8 +7234,8 @@
   cursor: pointer;
 }
 .evc-wiz-committee-item.is-on {
-  border-color: var(--utility-blue-500);
-  background: var(--utility-blue-50);
+  border-color: var(--utility-brand-500);
+  background: var(--utility-brand-50);
 }
 .evc-wiz-committee-text {
   display: flex;
@@ -7420,7 +7420,7 @@
   color: var(--text-tertiary);
   line-height: 1.6;
 }
-.evc-tpl-x.is-on { color: var(--utility-blue-600); }
+.evc-tpl-x.is-on { color: var(--utility-brand-600); }
 
 /* 설정 패널 — 항목 행 «바로 아래», 좌측 들여쓰기 + 강조 좌측 테두리. */
 .evc-tpl-settings {

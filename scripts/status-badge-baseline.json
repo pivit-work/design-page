@@ -1927,16 +1927,16 @@
    "background": "inherit"
   },
   "eval-cycle.css|.evc-type-chip.is-on": {
-   "background": "#eff8ff / 어두운 화면 #102a56",
-   "color": "#1570ef / 어두운 화면 #53b1fd"
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #5af3b4"
   },
   "eval-cycle.css|.evc-wiz-calibscope-badge.is-committee": {
    "background": "#dd2590 / 어두운 화면 #f670c7"
   },
   "eval-cycle.css|.evc-wiz-calibscope-chip.is-on": {
    "font-weight": "700",
-   "background": "#d1e9ff / 어두운 화면 #194185",
-   "color": "#175cd3 / 어두운 화면 #84caff"
+   "background": "#e1fef2 / 어두운 화면 #0b4b31",
+   "color": "#10774d / 어두운 화면 #96f9d2"
   },
   "eval-cycle.css|.evc-wiz-committee-chip.is-chair": {
    "background": "#fdf2fa / 어두운 화면 #4e0d30",
@@ -1997,8 +1997,8 @@
   },
   "eval-cycle.css|.evs-cw-chip.is-on.tone-accent": {
    "font-weight": "700",
-   "background": "#eff8ff / 어두운 화면 #102a56",
-   "color": "#1570ef / 어두운 화면 #53b1fd"
+   "background": "#f1fffa / 어두운 화면 #072619",
+   "color": "#21a67a / 어두운 화면 #5af3b4"
   },
   "eval-cycle.css|.evs-cw-chip.is-on.tone-red": {
    "font-weight": "700",
