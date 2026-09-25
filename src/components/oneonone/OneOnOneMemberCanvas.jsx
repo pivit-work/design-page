@@ -3,7 +3,7 @@ import DpStatusBadge from '../shared/StatusBadge.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import { fill, hostOf, healthOf } from './sessionHelpers.js';
+import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -845,7 +845,7 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
         date={
           session.scheduledAt
             ? formatDate(session.scheduledAt, 'scheduled')
-            : formatDate(session.createdAt)
+            : formatDate(heldAtOf(session))
         }
         avatar={avatar}
         L={L} icons={icons} baseUrl={baseUrl}
@@ -1189,7 +1189,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
       <SessionHeader
         title={fill(L.doneWith, { name: host.name })}
         status="done"
-        date={formatDate(session.createdAt)}
+        date={formatDate(heldAtOf(session))}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
         avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
@@ -1315,7 +1315,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
       <SessionHeader
         title={fill(L.sessionWith, { name: host.name })}
         status="done"
-        date={formatDate(session.createdAt)}
+        date={formatDate(heldAtOf(session))}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
         avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
@@ -1466,7 +1466,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
                 <span className={`ono-mem-hist-dot${i === 0 ? ' is-latest' : ''}`} />
                 <span className="ono-mem-hist-body">
                   <span className="ono-mem-hist-top">
-                    <span className="ono-mem-hist-date">{formatDate(s.createdAt, 'short')}</span>
+                    <span className="ono-mem-hist-date">{formatDate(heldAtOf(s), 'short')}</span>
                     {s.durationSec > 0 && (
                       <DpStatusBadge className="ono-mem-chip ono-mem-push">
                         <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
