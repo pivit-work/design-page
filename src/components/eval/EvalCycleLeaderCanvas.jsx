@@ -47,6 +47,8 @@ const DEFAULT_LABELS = {
   calibOffGradeNote:
     '이 사이클은 캘리브레이션을 사용하지 않습니다 — 지금 고른 등급이 그대로 최종 등급이 됩니다.',
   calibOffSubmittedNote: '제출한 등급이 최종 등급으로 확정되었습니다.',
+  // PW-1045 위원회가 이 팀원의 등급을 바꿨다 — 등급 칸만 잠그고 까닭을 카드 안에 적는다.
+  gradeLockedNote: '',
   rationaleRequired: '사유가 입력되지 않은 항목이 있습니다.',
   save: '임시저장',
   submit: '제출하기',
@@ -258,6 +260,12 @@ export default function EvalCycleLeaderCanvas({
    */
   locked,
   /**
+   * PW-1045 — 등급 칸만 잠그는가. 캘리브레이션 위원회가 이 팀원의 등급을 한 번이라도 바꿨으면
+   * 호출부가 `true` 를 넘긴다: 본문은 `locked` 대로 고쳐 다시 낼 수 있지만 등급 버튼은 눌리지
+   * 않고, `labels.gradeLockedNote` 가 있으면 등급 카드 안에 띄운다. 기본 `false` — 종전과 같다.
+   */
+  gradeLocked = false,
+  /**
    * PW-486 — 이 사이클이 캘리브레이션(등급 조정) 단계를 쓰는가.
    * 판정 축은 `eval_cycles.review_sequence.enabled.calibration` 이고, **값이 없으면 켠 것**
    * 이다(호출부가 그렇게 넘긴다). 기본 `true` 라 켠 사이클의 렌더는 종전과 동일하다.
@@ -281,7 +289,11 @@ export default function EvalCycleLeaderCanvas({
   /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
   const fields = useMemo(() => entries.filter((f) => f.type !== 'note'), [entries]);
   const [state, setState] = useState(() => seedState(leaderAnswers, fields));
-  const [grade, setGrade] = useState(initialGrade);
+  const [pickedGrade, setGrade] = useState(initialGrade);
+  // PW-1045 — 등급 칸이 잠겼으면 고르던 등급 대신 호출부가 준 등급(위원회 값)을 쓴다. 화면을 연 사이
+  // 위원회가 등급을 바꿔 잠긴 경우(저장이 거절된 뒤 다시 읽은 값)에도 팀장이 누른 등급이 남아
+  // 그 값이 저장된 줄 알게 두지 않는다.
+  const grade = gradeLocked ? initialGrade : pickedGrade;
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
   // 승진 고려 = 체크값 또는 이미 승진 요청서가 제출돼 있으면 켠 상태(TC-098 프리필 노출).
   const [promotionReady, setPromotionReady] = useState(
@@ -406,13 +418,18 @@ export default function EvalCycleLeaderCanvas({
           <AlertIcon size={14} /> {L.calibOffGradeNote}
         </p>
       )}
+      {gradeLocked && !formLocked && L.gradeLockedNote && (
+        <p className="evl-calib-off-note" data-testid="evl-grade-locked-note">
+          <AlertIcon size={14} /> {L.gradeLockedNote}
+        </p>
+      )}
       <div className="evl-grade-row">
         {gradeOptions.map((g) => (
           <button
             type="button"
             key={g.key}
             className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
-            disabled={formLocked}
+            disabled={formLocked || gradeLocked}
             onClick={() => setGrade(g.key)}
             data-testid={`evl-grade-${g.key}`}
           >
