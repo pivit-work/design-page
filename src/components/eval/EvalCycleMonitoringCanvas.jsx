@@ -283,7 +283,11 @@ export default function EvalCycleMonitoringCanvas({
   const [exportKind, setExportKind] = useState(null);
   const [exportReason, setExportReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
-  const visibleCount = members.filter((m) => !m.excluded).length;
+  /* [PW-1054] 「보이는 N명」은 표에 보이는 줄 수 = 파일 줄 수다. 제외된 사람도 표에 흐리게
+     남고, 서버 진행 상태 CSV 도 그 사람을 「제외 여부 Y」 줄로 싣는다(§6.9.2 「보이는 것과
+     받는 것이 같아야 한다」). 제외자를 빼고 세면 화면 인원과 파일 줄 수가 갈리고, 전원이
+     제외된 사이클은 서버가 만들 수 있는 파일을 화면이 잠갔다. */
+  const visibleCount = members.length;
   const canExport = exportEnabled && !exportBusy && visibleCount > 0;
 
   const closeExport = () => {

@@ -82,11 +82,12 @@ export function isReminderBeforePhaseStart(reminder, slot) {
   const offset = Number.isFinite(Number(reminder?.offset))
     ? Math.trunc(Number(reminder.offset))
     : 0;
+  // [PW-1054] 시각을 안 적은 리마인더는 기준과 무관하게 09:00 에 나간다 — 실제로 보내는
+  // 서버(`eval-reminder-schedule.util.ts` 의 `reminderScheduledAt`)가 그렇게 친다. 종전에는
+  // 마감 기준이면 18:00 으로 쳐서 「안 나갑니다」 건수가 실제와 달랐다.
   const time = /^\d{2}:\d{2}$/.test(reminder?.time ?? '')
     ? reminder.time
-    : reminder?.anchor === 'before_start'
-      ? '09:00'
-      : '18:00';
+    : '09:00';
   const day = new Date(`${date}T00:00:00`);
   if (Number.isNaN(day.getTime())) return false;
   day.setDate(day.getDate() - offset);
