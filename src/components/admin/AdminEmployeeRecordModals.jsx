@@ -16,6 +16,7 @@ import DateInput from '../shared/DateInput.jsx';
 import { IconLock } from './employeeExport.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import { CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -61,41 +62,21 @@ export function IconSalary({ size = 14 }) {
 /** 일괄 적용 완료 표시. `✓`(U+2713) 는 폰트마다 굵기가 달라 배지 안에서 튄다. */
 export function IconCheck({ size = 13 }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
+    <CheckGlyph size={size} focusable={false} style={{ display: 'block', flexShrink: 0 }} />
   );
 }
 
 /** 더하기. `+` 글리프는 폰트마다 두께·수직 중심이 달라 버튼 라벨 옆에서 흔들린다. */
 export function IconPlusSmall({ size = 12 }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
+    <PlusGlyph size={size} focusable={false} style={{ display: 'block', flexShrink: 0 }} />
   );
 }
 
 /** 모달 닫기. `✕`(U+2715) 는 폰트마다 두께·중심이 달라 버튼 안에서 흔들린다. */
 export function IconClose({ size = 16 }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
+    <CloseGlyph size={size} focusable={false} style={{ display: 'block', flexShrink: 0 }} />
   );
 }
 
@@ -107,13 +88,7 @@ export function IconClose({ size = 16 }) {
  * ---------------------------------------------------------- */
 export function IconCrown({ size = 13 }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden focusable={false} style={{ display: 'block', flexShrink: 0 }}
-    >
-      <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8L3 7Z" />
-    </svg>
+    <CrownGlyph size={size} focusable={false} style={{ display: 'block', flexShrink: 0 }} />
   );
 }
 

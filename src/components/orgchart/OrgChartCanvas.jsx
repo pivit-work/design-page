@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Icon from '../shared/Icon.jsx';
+import { ConnectorCurveGlyph, ConnectorElbowGlyph } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import OrgNode from './OrgNode.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
@@ -36,20 +37,12 @@ function collapsedBelowRoot(root) {
 
 /** 지금 곡선이다 — 누르면 직각으로. */
 function CurveLineIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 19 C 4 9, 20 15, 20 5" />
-    </svg>
-  );
+  return <ConnectorCurveGlyph size={20} />;
 }
 
 /** 지금 직각이다 — 누르면 곡선으로. */
 function OrthoLineIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 19 V12 H20 V5" />
-    </svg>
-  );
+  return <ConnectorElbowGlyph size={20} />;
 }
 
 // 첫 화면이 트리를 담도록 축소할 때의 하한. 이보다 더 줄이면 카드 글자를

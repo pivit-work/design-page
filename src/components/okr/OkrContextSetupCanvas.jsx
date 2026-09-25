@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  AlertTriangleGlyph,
+  ArrowRightGlyph,
+  CheckGlyph,
+  ClockGlyph,
+  LockGlyph,
+  PencilGlyph,
+} from '../shared/lineIcons.jsx';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -82,12 +90,7 @@ function LinkIcon({ size = 20 }) {
   );
 }
 function TextIcon({ size = 20 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
-    </svg>
-  );
+  return <PencilGlyph size={size} />;
 }
 function UploadIcon({ size = 26 }) {
   return (
@@ -108,37 +111,17 @@ function TrashIcon({ size = 16 }) {
   );
 }
 function LockIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <rect x="3" y="11" width="18" height="10" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
+  return <LockGlyph size={size} />;
 }
 
 function ClockIcon({ size = 12 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
+  return <ClockGlyph size={size} />;
 }
 function CheckIcon({ size = 12 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M20 6L9 17l-5-5" />
-    </svg>
-  );
+  return <CheckGlyph size={size} />;
 }
 function AlertIcon({ size = 12 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
+  return <AlertTriangleGlyph size={size} />;
 }
 function SparkIcon({ size = 14 }) {
   return (
@@ -149,12 +132,7 @@ function SparkIcon({ size = 14 }) {
   );
 }
 function ArrowRightIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M5 12h14" />
-      <path d="M13 6l6 6-6 6" />
-    </svg>
-  );
+  return <ArrowRightGlyph size={size} />;
 }
 function LibraryIcon({ size = 12 }) {
   return (

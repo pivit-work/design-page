@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
 import ActionPersonPopover from './ActionPersonPopover.jsx';
 
@@ -222,15 +223,7 @@ export default function MeetingRecordContent({
                 aria-label={labels.removeLabel}
                 onClick={() => updateActions(actions.filter((_, i) => i !== idx))}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M10.5 3.5l-7 7M3.5 3.5l7 7"
-                    stroke="var(--text-tertiary)"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <CloseGlyph size={14} strokeWidth={2.571} color="var(--text-tertiary)" />
               </button>}
             </li>
           ))}

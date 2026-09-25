@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { nameInitials, nameFontSize } from '../shared/nameInitials.js';
+import { CheckGlyph, ChevronDownGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * OkrMemberPicker — OKR 작성 모달의 담당자(PIC) 검색 드롭다운.
@@ -140,17 +141,12 @@ export default function OkrMemberPicker({
         onClick={toggle}
       >
         <span className="okr-cf-pick-trigger-text">{selected ? selected.name : placeholder}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDownGlyph size={12} />
       </button>
       {open && (
         <div className="okr-cf-pick-panel" ref={panelRef} style={panelStyle(rect)}>
           <div className="okr-cf-pick-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20L16.65 16.65" />
-            </svg>
+            <SearchGlyph size={14} />
             <input
               ref={searchRef}
               className="okr-cf-pick-search-input"
@@ -181,9 +177,7 @@ export default function OkrMemberPicker({
                       {m.role && <span className="okr-cf-pick-opt-role">{m.role}</span>}
                     </span>
                     {isSel && (
-                      <svg className="okr-cf-pick-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <CheckGlyph className="okr-cf-pick-check" size={14} strokeWidth={2.5} />
                     )}
                   </button>
                 );

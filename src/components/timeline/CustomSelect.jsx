@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * CustomSelect — 시스템 <select> 를 대체하는 공용 드롭다운.
@@ -89,9 +90,7 @@ export default function CustomSelect({
           {triggerLabel}
         </span>
         <span className="tl-select-chevron" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+          <ChevronDownGlyph size={16} strokeWidth={2.505} />
         </span>
       </button>
 

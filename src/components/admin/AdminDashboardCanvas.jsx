@@ -5,6 +5,7 @@ import LinkButton from './LinkButton.jsx';
 import AdminStatTile from './AdminStatTile.jsx';
 import AdminTeamRow from './AdminTeamRow.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import { CloseGlyph, CrownGlyph } from '../shared/lineIcons.jsx';
 import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
@@ -142,9 +143,7 @@ export default function AdminDashboardCanvas({
 
       {showCeoBanner && onAssignCeo && (
         <div className="admin-ceo-banner" role="status" data-testid="admin-ceo-banner">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
-            <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8L3 7Z" />
-          </svg>
+          <CrownGlyph size={18} focusable="false" />
           <div className="admin-ceo-banner-text">
             <strong>{labels.ceoBannerTitle}</strong>
             <span>{labels.ceoBannerBody}</span>
@@ -154,9 +153,7 @@ export default function AdminDashboardCanvas({
           </button>
           {onDismissCeoBanner && (
             <button type="button" className="admin-ceo-banner-dismiss" onClick={onDismissCeoBanner} aria-label={labels.ceoBannerDismiss}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <CloseGlyph size={14} focusable="false" />
             </button>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * GroupAddModal — 간트 그룹 추가 모달.
@@ -62,10 +63,7 @@ export default function GroupAddModal({ onClose, onSubmit }) {
             aria-label="닫기"
             onClick={onClose}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <CloseGlyph size={24} />
           </button>
         </div>
 

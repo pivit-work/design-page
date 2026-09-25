@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
 
@@ -354,10 +355,7 @@ export default function SnippetModal({
             aria-label="닫기"
             onClick={onClose}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <CloseGlyph size={24} />
           </button>
         </div>
 

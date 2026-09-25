@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import useMicWave from '../shared/useMicWave.js';
+import { CloseGlyph, PauseGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * 1on1 진행 중 녹음 미니 위젯 — Figma 16972:15514.
@@ -62,26 +63,6 @@ export const DEFAULT_WAVE = [5, 5, 20, 12, 9, 12];
 // 마이크 분석/튜닝(게이트·게인)은 shared/useMicWave.js 로 옮겼다 —
 // 회의 진행 중 모달 등 다른 소비처와 공유한다.
 export { default as useMicWave } from '../shared/useMicWave.js';
-
-/* 일시정지 — 세로 막대 둘. 색은 부모의 currentColor 를 상속한다. */
-function PauseIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="9" y1="5" x2="9" y2="19" />
-      <line x1="15" y1="5" x2="15" y2="19" />
-    </svg>
-  );
-}
 
 /* 접기 — 네 귀를 안으로 모으는 화살표 둘 (icons-solid/minimize-01.svg 와 같은 뜻).
    색은 부모의 currentColor 를 상속한다 — SVG 안에 색을 박지 않는다. */
@@ -194,20 +175,7 @@ export default function OneOnOneRecordingWidget({
                   aria-label={closeLabel}
                   onClick={onNoticeClose}
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                  </svg>
+                  <CloseGlyph size={14} />
                 </button>
               )}
             </div>
@@ -273,7 +241,7 @@ export default function OneOnOneRecordingWidget({
               aria-pressed={paused}
               onClick={paused ? onResume : onPause}
             >
-              {paused ? <ResumeIcon /> : <PauseIcon />}
+              {paused ? <ResumeIcon /> : <PauseGlyph size={16} />}
             </button>
           )}
           <button type="button" className="ono-start-rec-stop" onClick={onStop}>

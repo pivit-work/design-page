@@ -12,7 +12,12 @@
  * 규약: viewBox 0 0 24 24, fill none, stroke currentColor, strokeWidth 2, round cap/join,
  * aria-hidden. 크기는 size prop, 색은 부모의 color 상속(SVG 안에 리터럴 색 금지).
  * 선례: `eval/evalIcons.jsx`, `admin/teamIcons.jsx`, `orgchart/squadIcons.jsx`.
+ * 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
  */
+import { AlertTriangleGlyph, FolderGlyph, InfoGlyph, LockGlyph } from '../shared/lineIcons.jsx';
+
+/** `svgProps` 가 주던 style — 공용 아이콘에도 똑같이 넘긴다. */
+const GLYPH_STYLE = { verticalAlign: 'middle', flexShrink: 0 };
 
 export function svgProps(size) {
   return {
@@ -31,34 +36,17 @@ export function svgProps(size) {
 
 /** ℹ 안내 — info 원. 중립 톤 배너(공개 범위·성과·프로필·연동)의 기본 아이콘. */
 export function InfoIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  );
+  return <InfoGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 /** 🔒 잠금 — 닫힌 자물쇠. 보상 탭의 "가려진 정보" 배너. */
 export function LockIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
+  return <LockGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 /** ⚠ 경고 — 삼각형. 연동 항목의 경고 배너. */
 export function AlertTriangleIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
+  return <AlertTriangleGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 /** 🕘 이력 — 시계 + 되감기 화살. 변경 이력 탭의 안내 배너. */
@@ -74,9 +62,5 @@ export function HistoryIcon({ size = 16 }) {
 
 /** 📁 폴더 — 사진 업로드 창의 끌어놓기 칸. */
 export function FolderIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+  return <FolderGlyph size={size} style={GLYPH_STYLE} />;
 }

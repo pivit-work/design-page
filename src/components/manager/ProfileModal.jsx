@@ -5,6 +5,7 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
@@ -168,9 +169,7 @@ export default function ProfileModal({
           {/* Header (yellow→white gradient + spline + name + ai-rec + buttons) */}
           <div className="manager-modal-header">
             <button type="button" className="manager-modal-close" onClick={onClose} aria-label="닫기">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <CloseGlyph size={20} strokeWidth={2.4} />
             </button>
 
             <div

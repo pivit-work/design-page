@@ -8,6 +8,22 @@ import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import {
+  ArrowLeftGlyph,
+  ArrowRightGlyph,
+  ChatGlyph,
+  CloseGlyph,
+  EyeGlyph,
+  FileTextGlyph,
+  FolderGlyph,
+  LockKeyholeSquareGlyph,
+  MailGlyph,
+  PencilGlyph,
+  SearchGlyph,
+  SettingsGlyph,
+  UserGlyph,
+  UsersGlyph,
+} from '../shared/lineIcons.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
@@ -36,18 +52,10 @@ import {
   sectionColor,
 } from './evalTemplateItemModel.js';
 
-// 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square (인라인 SVG).
+// 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
+// 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
 function LockIcon({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M17.8385 2H6.16146C5.63433 1.99998 5.17954 1.99997 4.80497 2.03057C4.40963 2.06287 4.01641 2.13419 3.63803 2.32698C3.07354 2.6146 2.6146 3.07354 2.32698 3.63803C2.13419 4.01641 2.06287 4.40963 2.03057 4.80497C1.99997 5.17954 1.99998 5.63429 2 6.16142V17.8385C1.99998 18.3657 1.99997 18.8205 2.03057 19.195C2.06287 19.5904 2.13419 19.9836 2.32698 20.362C2.6146 20.9265 3.07354 21.3854 3.63803 21.673C4.01641 21.8658 4.40963 21.9371 4.80497 21.9694C5.17954 22 5.6343 22 6.16144 22H17.8386C18.3657 22 18.8205 22 19.195 21.9694C19.5904 21.9371 19.9836 21.8658 20.362 21.673C20.9265 21.3854 21.3854 20.9265 21.673 20.362C21.8658 19.9836 21.9371 19.5904 21.9694 19.195C22 18.8205 22 18.3657 22 17.8386V6.16144C22 5.6343 22 5.17954 21.9694 4.80497C21.9371 4.40963 21.8658 4.01641 21.673 3.63803C21.3854 3.07354 20.9265 2.6146 20.362 2.32698C19.9836 2.13419 19.5904 2.06287 19.195 2.03057C18.8205 1.99997 18.3657 1.99998 17.8385 2ZM13.7316 13.1947L14.649 15.947C14.7675 16.3025 14.8268 16.4803 14.7912 16.6218C14.7601 16.7456 14.6828 16.8529 14.5752 16.9216C14.4522 17 14.2648 17 13.8901 17H10.1099C9.7352 17 9.54783 17 9.42484 16.9216C9.31718 16.8529 9.23987 16.7456 9.20877 16.6218C9.17324 16.4803 9.23249 16.3025 9.351 15.947L10.2684 13.1947C10.339 12.9831 10.3743 12.8772 10.3724 12.7907C10.3705 12.6996 10.3583 12.6519 10.3164 12.5711C10.2765 12.4942 10.17 12.395 9.95681 12.1967C9.36819 11.649 9 10.8675 9 10C9 8.34315 10.3431 7 12 7C13.6569 7 15 8.34315 15 10C15 10.8675 14.6318 11.649 14.0432 12.1967C13.83 12.395 13.7235 12.4942 13.6836 12.5711C13.6417 12.6519 13.6295 12.6996 13.6276 12.7907C13.6257 12.8772 13.661 12.9831 13.7316 13.1947Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
+  return <LockKeyholeSquareGlyph size={size} />;
 }
 
 // 드래그 핸들 그립 아이콘 — 6점 그립(표준 유틸리티 글리프, 인라인 SVG).
@@ -83,14 +91,7 @@ function svgProps(size) {
 }
 // 간소형 프리셋 — 문서(간단 코멘트).
 function DocIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-      <line x1="8" y1="13" x2="16" y2="13" />
-      <line x1="8" y1="17" x2="16" y2="17" />
-    </svg>
-  );
+  return <FileTextGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 중간형 프리셋(권장) — 별.
 function StarIcon({ size = 16 }) {
@@ -112,12 +113,7 @@ function LayersIcon({ size = 16 }) {
 }
 // 미리보기 — 눈.
 function EyeIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
+  return <EyeGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 불러온 원본 표시 — 클립.
 function PaperclipIcon({ size = 16 }) {
@@ -129,37 +125,19 @@ function PaperclipIcon({ size = 16 }) {
 }
 // 전체 목록에서 찾기 — 폴더.
 function FolderIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+  return <FolderGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 이메일 채널 — 봉투.
 function MailIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <polyline points="22 7 12 13 2 7" />
-    </svg>
-  );
+  return <MailGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 슬랙 채널 — 말풍선.
 function ChatIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+  return <ChatGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 슬랙 DM — 사람.
 function UserIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
+  return <UserGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 슬랙 채널 모드 — 해시.
 function HashIcon({ size = 16 }) {
@@ -174,12 +152,7 @@ function HashIcon({ size = 16 }) {
 }
 // 점수 이유 필수/선택 — 연필.
 function PencilIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-    </svg>
-  );
+  return <PencilGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 리마인더 — 종.
 function BellIcon({ size = 16 }) {
@@ -192,35 +165,18 @@ function BellIcon({ size = 16 }) {
 }
 // 리마인더 상세 — 톱니바퀴.
 function GearIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
+  return <SettingsGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 참조 대상 — 사람들.
 function UsersIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
+  return <UsersGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 
 // PW-443 4 대상자 — 조직 트리 · 5축 필터 · 대상/제외 이동에 쓰는 글리프.
 // 돋보기·깔때기·삼각·화살표·닫기를 이모지 글리프로 쓰지 않는다 — OS·폰트마다 모양이
 // 갈리고, color 를 상속하지 못해 상태별 색을 줄 수 없다.
 function SearchIcon({ size = 14 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </svg>
-  );
+  return <SearchGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 function FilterIcon({ size = 14 }) {
   return (
@@ -238,28 +194,13 @@ function CaretIcon({ size = 12, open = false }) {
   );
 }
 function ArrowRightIcon({ size = 13 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M5 12h14" />
-      <path d="m13 6 6 6-6 6" />
-    </svg>
-  );
+  return <ArrowRightGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 function ArrowLeftIcon({ size = 13 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M19 12H5" />
-      <path d="m11 18-6-6 6-6" />
-    </svg>
-  );
+  return <ArrowLeftGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 function CloseIcon({ size = 12 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
+  return <CloseGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 function UndoIcon({ size = 13 }) {
   return (
