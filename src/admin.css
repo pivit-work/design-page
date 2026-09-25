@@ -1441,20 +1441,10 @@
 .admin-emp-manager-name { font-size: var(--font-size-text-sm, 14px); font-weight: 600; color: var(--text-primary); }
 .admin-emp-manager-note { font-size: 12px; color: var(--text-tertiary); }
 
-/* 상태 선택 — design-page ono-add-modal-radio 규격: 원형 인디케이터 + 라벨.
- * 네이티브 라디오는 sr-only 로 숨기고 a11y 만 유지. 선택 시 카드 틴트 +
- * 원 채움(상태색) + 흰 점. 상태별 의미색 유지(brand/amber/purple/gray). */
-.admin-emp-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+/* 상태 선택 — 공용 라디오 `Radio variant="card"` (form-field.css · PW-1012) 위에 이 창의 모양과
+ * 상태별 의미색(brand/amber/gray)만 얹는다. 네이티브 라디오를 감추고 동그라미·흰 점을 그리는
+ * 일은 공용 부품이 한다. 값은 옮기기 전 그대로다 — 이름만 `.is-selected`→`.is-checked`,
+ * `.admin-emp-radio-circle`→`.dp-radio-circle`, `.admin-emp-status-option-label`→`.dp-radio-label`. */
 .admin-emp-status-options { display: flex; flex-direction: column; gap: 8px; }
 /* 재직 상태별 날짜 칸 (§3.2.1) — 라디오 묶음 바로 아래에 붙는다. 기존 입력 칸
    (.admin-emp-field/.admin-emp-input) 규격 그대로라 새 시각 요소가 생기지 않는다. */
@@ -1479,38 +1469,25 @@
   background: var(--bg-secondary);
   cursor: pointer;
   transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  --dp-radio-circle-bg: var(--bg-quaternary);
 }
-.admin-emp-status-option:hover:not(.is-selected) { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
-.admin-emp-radio-circle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-quaternary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-.admin-emp-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; }
-.admin-emp-status-option-label { font-size: var(--font-size-text-sm, 14px); font-weight: 500; color: var(--text-secondary); }
-.admin-emp-status-option.is-selected .admin-emp-radio-circle { border-color: transparent; }
-.admin-emp-status-option.is-selected.is-active { background: var(--colors-brand-100, #e1fef2); }
-.admin-emp-status-option.is-selected.is-active .admin-emp-radio-circle { background: var(--text-brand-tertiary); }
-.admin-emp-status-option.is-selected.is-active .admin-emp-status-option-label { color: var(--colors-brand-700, #10774d); }
-.admin-emp-status-option.is-selected.is-probation { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
-.admin-emp-status-option.is-selected.is-probation .admin-emp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status-option.is-selected.is-probation .admin-emp-status-option-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status-option.is-selected.is-pending { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
-.admin-emp-status-option.is-selected.is-pending .admin-emp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status-option.is-selected.is-pending .admin-emp-status-option-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status-option.is-selected.is-on-leave { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
-.admin-emp-status-option.is-selected.is-on-leave .admin-emp-radio-circle { background: var(--text-secondary); }
-.admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-label { color: var(--text-secondary); }
-.admin-emp-status-option.is-selected.is-terminated { background: var(--bg-secondary); }
-.admin-emp-status-option.is-selected.is-terminated .admin-emp-radio-circle { background: var(--text-tertiary); }
-.admin-emp-status-option.is-selected.is-terminated .admin-emp-status-option-label { color: var(--text-secondary); }
+.admin-emp-status-option:hover:not(.is-checked) { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
+.admin-emp-status-option .dp-radio-label { font-size: var(--font-size-text-sm, 14px); font-weight: 500; color: var(--text-secondary); }
+.admin-emp-status-option.is-checked.is-active { background: var(--colors-brand-100, #e1fef2); }
+.admin-emp-status-option.is-checked.is-active .dp-radio-circle { background: var(--text-brand-tertiary); }
+.admin-emp-status-option.is-checked.is-active .dp-radio-label { color: var(--colors-brand-700, #10774d); }
+.admin-emp-status-option.is-checked.is-probation { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
+.admin-emp-status-option.is-checked.is-probation .dp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-status-option.is-checked.is-probation .dp-radio-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-status-option.is-checked.is-pending { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
+.admin-emp-status-option.is-checked.is-pending .dp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-status-option.is-checked.is-pending .dp-radio-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-status-option.is-checked.is-on-leave { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
+.admin-emp-status-option.is-checked.is-on-leave .dp-radio-circle { background: var(--text-secondary); }
+.admin-emp-status-option.is-checked.is-on-leave .dp-radio-label { color: var(--text-secondary); }
+.admin-emp-status-option.is-checked.is-terminated { background: var(--bg-secondary); }
+.admin-emp-status-option.is-checked.is-terminated .dp-radio-circle { background: var(--text-tertiary); }
+.admin-emp-status-option.is-checked.is-terminated .dp-radio-label { color: var(--text-secondary); }
 
 /* ── 초대 관리 탭 (.admin-emp-invite-*) ──────────────────── */
 .admin-emp-invite-summary {

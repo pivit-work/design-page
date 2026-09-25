@@ -1106,56 +1106,8 @@
   gap: var(--spacing-lg);
 }
 
-.ono-add-modal-radio {
-  flex: 1 0 0;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--bg-secondary);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font-family-body);
-  font-weight: 400;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  color: var(--text-primary);
-  transition: background 0.15s;
-}
-
-.ono-add-modal-radio.is-active {
-  background: var(--bg-brand-secondary);
-  color: var(--colors-text-textBrandPrimary);
-}
-
-.ono-add-modal-radio-circle {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--border-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.ono-add-modal-radio.is-active .ono-add-modal-radio-circle {
-  background: var(--bg-brand-solid);
-  border-color: transparent;
-}
-
-.ono-add-modal-radio-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: white;
-}
-
-.ono-add-modal-radio-label {
-  flex: 1;
-  text-align: left;
-}
+/* 동그라미·카드 모양(.ono-add-modal-radio*)은 공용 라디오 `Radio variant="card"` 의 기본 모양이 됐다
+   (form-field.css · PW-1012). 이 창이 그 모양이 태어난 자리다. */
 
 /* ── Textarea ── */
 .ono-add-modal-textarea {

@@ -23,13 +23,18 @@ import {
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import FormField from '../shared/FormField.jsx';
+import TextInput from '../shared/TextInput.jsx';
+import Select from '../shared/Select.jsx';
+import Radio from '../shared/Radio.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
 import {
   parseAddedAtRange, inAddedAtRange, rangeFromDates, datesOfRange, formatAddedAtRange,
 } from './addedAtFilter.js';
 import RosterTable from '../shared/RosterTable.jsx';
 import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
-  IconMore, IconPlus, IconSearch, IconSettings, IconUser, IconX,
+  IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 
 /**
@@ -1245,6 +1250,32 @@ const LIST_ALL = ALL;
 const STATUS_ORDER = ['active', 'probation', 'on_leave', 'terminated'];
 
 /**
+ * 재직 상태 고르기 — 편집 창과 일괄 상태 변경 창이 같이 쓴다. 공용 라디오(카드 모양)에
+ * 상태별 색만 얹는다(`admin-emp-status-option is-<상태>` · admin.css). 전에는 두 곳이 같은
+ * 동그라미를 각자 그렸다 (PW-1012).
+ */
+function StatusRadios({ order, value, onPick, name, disabled = false, labels, ariaLabel, testIdOf }) {
+  return (
+    <FormField group className="admin-emp-status-options" aria-label={ariaLabel}>
+      {order.map((key) => (
+        <Radio
+          key={key}
+          variant="card"
+          className={`admin-emp-status-option is-${key.replace('_', '-')}`}
+          name={name}
+          value={key}
+          checked={value === key}
+          disabled={disabled}
+          onChange={() => onPick(key)}
+          label={labels.status[key]}
+          data-testid={testIdOf?.(key)}
+        />
+      ))}
+    </FormField>
+  );
+}
+
+/**
  * 좌석을 차지하는 사람만 센다 — 서버 `member-status.ts` 의 `isBillableSeat` 와 같은
  * 기준이다(재직만). 휴직·수습·대기는 명부에는 있지만 좌석은 소모하지 않으므로,
  * 그들을 퇴사 처리해도 줄어드는 좌석은 0 이다. 두 기준이 갈리면 화면이 말한 숫자와
@@ -1500,25 +1531,14 @@ function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
         </>
       )}
     >
-      <div className="admin-emp-status-options">
-        {STATUS_ORDER.map((key) => {
-          const selected = picked === key;
-          return (
-            <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
-              <input
-                type="radio"
-                name="bulkEmploymentStatus"
-                className="admin-emp-sr-only"
-                checked={selected}
-                data-testid={`employees-list-bulk-status-${key}`}
-                onChange={() => setPicked(key)}
-              />
-              <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
-              <span className="admin-emp-status-option-label">{labels.status[key]}</span>
-            </label>
-          );
-        })}
-      </div>
+      <StatusRadios
+        order={STATUS_ORDER}
+        value={picked}
+        onPick={setPicked}
+        name="bulkEmploymentStatus"
+        labels={labels}
+        testIdOf={(key) => `employees-list-bulk-status-${key}`}
+      />
       {picked === 'terminated' && (
         <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-status-seatdrop">
           {fill(L.seatDrop, { count: seatDrop })}
@@ -2473,16 +2493,15 @@ function EmployeesListView({
     <Card>
       <div className="admin-emp-toolbar">
         <div className="admin-emp-search-wrap">
-          <div className="admin-emp-search-box">
-            <span className="admin-emp-search-icon"><IconSearch size={16} /></span>
-            <input
-              className="admin-emp-search"
-              value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
-              placeholder={labels.listSearch}
-              aria-label={labels.listSearch}
-            />
-          </div>
+          <SearchInput
+            className="admin-emp-search-box"
+            iconClassName="admin-emp-search-icon"
+            inputClassName="admin-emp-search"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
+            placeholder={labels.listSearch}
+            data-testid="employees-list-search"
+          />
           {/* 검색·소속 필터가 걸리면 결과 수에 «어느 축으로 셌는지»를 적는다
               (admin-spec §3.1 · PW-630). 둘 다 겸직까지 매칭하는데 맨 `3명` 만 보이면
               조직도 카드(`직속 N명`)와 나란히 놓았을 때 정상 차이가 결함으로 읽힌다.
@@ -3363,8 +3382,16 @@ function EmployeesEditPanel({
                     const opts = f.kind === 'select' && !AXIS_LEVEL_OF[f.key] ? optionsFor(f) : null;
                     const axisLevel = AXIS_LEVEL_OF[f.key];
                     return (
-                      <label className="admin-emp-field" key={f.key}>
-                        <span className="admin-emp-field-label">{labels.panel[f.labelKey]}</span>
+                      <FormField
+                        key={f.key}
+                        className="admin-emp-field"
+                        labelClassName="admin-emp-field-label"
+                        label={labels.panel[f.labelKey]}
+                        /* 서버가 이 칸을 짚어 거절한 사유 (PW-727) — 칸 바로 아래에 뜨고 칸과 이어진다
+                           (PW-1012). 스크롤은 위 효과가 이 testid 로 찾아간다. */
+                        error={saveError && saveError.fields.includes(f.key) ? saveError.message : null}
+                        errorTestId={`employees-panel-error-${f.key}`}
+                      >
                         {axisLevel ? (
                           /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다 — 적어 넣은 값은
                              저장에서 거절된다(PW-748). 사유 + [조직 설정 →] 를 그린다. */
@@ -3380,7 +3407,7 @@ function EmployeesEditPanel({
                             testId={`employees-panel-${f.key}`}
                           />
                         ) : f.kind === 'select' && opts.length > 0 ? (
-                          <select
+                          <Select
                             className="admin-emp-input"
                             value={draft[f.key] || ''}
                             disabled={!canEdit}
@@ -3395,7 +3422,7 @@ function EmployeesEditPanel({
                               ? opts
                               : [draft[f.key], ...opts]
                             ).map((o) => <option key={o} value={o}>{o}</option>)}
-                          </select>
+                          </Select>
                         ) : f.kind === 'date' ? (
                           /* 🔴 날짜는 브라우저 기본 날짜 칸(`type="date"`)으로 그리지 않는다 —
                              그 칸의 표시 형식은 브라우저 언어가 정해서, 앱이 한국어여도 영어
@@ -3409,7 +3436,7 @@ function EmployeesEditPanel({
                             onChange={(v) => set(f.key, v)}
                           />
                         ) : (
-                          <input
+                          <TextInput
                             className="admin-emp-input"
                             type={f.kind === 'number' ? 'number' : 'text'}
                             value={draft[f.key] ?? ''}
@@ -3428,16 +3455,7 @@ function EmployeesEditPanel({
                             {jobAxisNoticeText(axisNotice, labels.panel)}
                           </span>
                         )}
-                        {saveError && saveError.fields.includes(f.key) && (
-                          <span
-                            className="admin-emp-status-date-note is-error"
-                            role="alert"
-                            data-testid={`employees-panel-error-${f.key}`}
-                          >
-                            {saveError.message}
-                          </span>
-                        )}
-                      </label>
+                      </FormField>
                     );
                   })}
                 </div>
@@ -3449,9 +3467,8 @@ function EmployeesEditPanel({
               승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
           <SectionLabel>{labels.panel.roleSection}</SectionLabel>
           <div className="admin-emp-field-group">
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.role}</span>
-              <select
+            <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.role}>
+              <Select
                 className="admin-emp-input"
                 value={draft.orgRole || ''}
                 disabled={!canEdit}
@@ -3462,8 +3479,8 @@ function EmployeesEditPanel({
                 {PANEL_ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>{labels.panel.roles?.[r] || r}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </FormField>
           </div>
 
           <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
@@ -3509,33 +3526,28 @@ function EmployeesEditPanel({
           </div>
 
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
-          <div className="admin-emp-status-options">
-            {statusOrder.map((key) => {
-              const selected = draft.employmentStatus === key;
-              return (
-                <label key={key} className={`admin-emp-status-option is-${key.replace('_', '-')}${selected ? ' is-selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="employmentStatus"
-                    className="admin-emp-sr-only"
-                    checked={selected}
-                    disabled={!canEdit}
-                    onChange={() => set('employmentStatus', key)}
-                  />
-                  <span className="admin-emp-radio-circle">{selected && <span className="admin-emp-radio-dot" />}</span>
-                  <span className="admin-emp-status-option-label">{labels.status[key]}</span>
-                </label>
-              );
-            })}
-          </div>
+          <StatusRadios
+            order={statusOrder}
+            value={draft.employmentStatus}
+            onPick={(key) => set('employmentStatus', key)}
+            name={`employmentStatus-${member.id}`}
+            disabled={!canEdit}
+            labels={labels}
+            ariaLabel={labels.panel.statusSection}
+            testIdOf={(key) => `employees-panel-status-${key}`}
+          />
 
           {/* 고른 상태의 날짜 칸 (§3.2.1). 라디오 **바로 아래**에 둔다 — 다른 화면을
               열어 채우게 하면 상태만 바뀌고 날짜는 비는 조합이 그대로 남는다. */}
           {dateFields.length > 0 && (
             <div className="admin-emp-status-dates" data-testid="employees-panel-status-dates">
               {dateFields.map((f) => (
-                <label className="admin-emp-field" key={f.field}>
-                  <span className="admin-emp-field-label">{labels.panel[f.label]}</span>
+                <FormField
+                  key={f.field}
+                  className="admin-emp-field"
+                  labelClassName="admin-emp-field-label"
+                  label={labels.panel[f.label]}
+                >
                   <DateInput
                     className="admin-emp-input"
                     data-testid={`employees-panel-date-${f.field}`}
@@ -3543,7 +3555,7 @@ function EmployeesEditPanel({
                     disabled={!canEdit || (f.via === 'identity' && identityState !== 'ready')}
                     onChange={(v) => setDateValue(f, v)}
                   />
-                </label>
+                </FormField>
               ))}
               {dateFields.some((f) => f.via === 'identity') && identityBusy && (
                 <span className="admin-emp-status-date-note">{labels.panel.statusDateLoading}</span>
@@ -3565,16 +3577,15 @@ function EmployeesEditPanel({
             <>
               <SectionLabel>{labels.panel.paySection}</SectionLabel>
               <div className="admin-emp-field-group">
-                <label className="admin-emp-field">
-                  <span className="admin-emp-field-label">{labels.panel.salary}</span>
-                  <input
+                <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.salary}>
+                  <TextInput
                     className="admin-emp-input"
                     value={draft.salary ?? ''}
                     disabled={!canEdit}
                     data-testid="employees-panel-salary"
                     onChange={(e) => set('salary', e.target.value)}
                   />
-                </label>
+                </FormField>
                 {onLoadSalaryHistory && (
                   <button
                     type="button"
@@ -3593,16 +3604,15 @@ function EmployeesEditPanel({
               폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}
           <SectionLabel>{labels.panel.recordSection}</SectionLabel>
           <div className="admin-emp-field-group">
-            <label className="admin-emp-field">
-              <span className="admin-emp-field-label">{labels.panel.education}</span>
-              <input
+            <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.education}>
+              <TextInput
                 className="admin-emp-input"
                 value={draft.education ?? ''}
                 disabled={!canEdit}
                 data-testid="employees-panel-education"
                 onChange={(e) => set('education', e.target.value)}
               />
-            </label>
+            </FormField>
             {onLoadHrProfile && (
               <button
                 type="button"

@@ -1,9 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
+import TextInput from '../shared/TextInput.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Select from '../shared/Select.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
@@ -331,17 +335,15 @@ const dateTimeOutOfOrder = (start, end) => {
  * 눌렀을 때 달력이 뜨는 것도 그대로다. 달라진 것은 캐럿이 생겨 값을 칠 수 있다는 것뿐.
  * 먼 날짜로 가려고 달을 여러 번 넘길 필요가 없어진다.
  */
-function DateField({ value, onType, onOpen, isOpen, invalid, testId, ariaLabel, className }) {
+function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId, ariaLabel, className }) {
   return (
-    <input
-      type="text"
+    <TextInput
       inputMode="numeric"
       autoComplete="off"
       className={[
         'evc-input evc-date-btn',
         className || '',
         isOpen ? 'is-open' : '',
-        invalid ? 'is-invalid' : '',
       ].filter(Boolean).join(' ')}
       value={value}
       onChange={(e) => onType(e.target.value)}
@@ -349,7 +351,10 @@ function DateField({ value, onType, onOpen, isOpen, invalid, testId, ariaLabel, 
       placeholder="YYYY-MM-DD"
       maxLength={10}
       aria-label={ariaLabel}
-      aria-invalid={invalid || undefined}
+      // 틀림 표시(빨간 테두리·is-invalid)는 공용 칸이 붙인다. 왜 틀렸는지 알리는 문구가 있으면
+      // 그 id 를 받아 칸에 잇는다 — 화면 읽기 프로그램이 「이 칸이 틀렸다 — 이유」를 읽는다 (PW-1012).
+      invalid={!!invalid}
+      aria-describedby={invalid ? describedBy : undefined}
       data-testid={testId}
     />
   );
@@ -1016,16 +1021,16 @@ function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, 
               </p>
             )}
             {values.map((v) => (
-              <label key={v} className="evc-filter-value">
-                <input
-                  type="checkbox"
-                  checked={(draft[axis] ?? []).includes(v)}
-                  onChange={() => toggle(v)}
-                  data-testid={`evc-wiz-filter-val-${axis}-${v}`}
-                />
+              <Checkbox
+                key={v}
+                className="evc-filter-value"
+                checked={(draft[axis] ?? []).includes(v)}
+                onChange={() => toggle(v)}
+                data-testid={`evc-wiz-filter-val-${axis}-${v}`}
+              >
                 <span className="evc-filter-value-name">{v}</span>
                 <span className="evc-filter-value-n">{counts[v] ?? 0}</span>
-              </label>
+              </Checkbox>
             ))}
           </div>
           <div className="evc-filter-actions">
@@ -1265,21 +1270,21 @@ function AddQuestionRow({ onAdd, labels: L }) {
   };
   return (
     <div className="evc-tpl-additem">
-      <input
+      <TextInput
         className="evc-input"
         value={section}
         onChange={(e) => setSection(e.target.value)}
         placeholder={L.templateSectionPlaceholder}
         data-testid="evc-tpl-add-section"
       />
-      <input
+      <TextInput
         className="evc-input"
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={isNote ? L.noteTitlePlaceholder : L.templateItemPlaceholder}
         data-testid="evc-tpl-add-text"
       />
-      <select
+      <Select
         className="evc-input"
         value={type}
         onChange={(e) => setType(e.target.value)}
@@ -1290,7 +1295,7 @@ function AddQuestionRow({ onAdd, labels: L }) {
           <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
         ))}
         <option value={NOTE_KIND}>{L.qKindNoteOption}</option>
-      </select>
+      </Select>
       <button
         type="button"
         className="evc-btn is-ghost"
@@ -1495,7 +1500,7 @@ function TemplatePickerModal({
           <>
             <div className="evc-tpl-picker-search">
               <SearchIcon size={14} />
-              <input
+              <TextInput
                 className="evc-input"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -1944,6 +1949,9 @@ export default function EvalCycleWizard({
   const [committeeRosterSearch, setCommitteeRosterSearch] = useState('');
   const [committeeAddSearch, setCommitteeAddSearch] = useState('');
   const [name, setName] = useState(() => D?.name ?? cycle?.name ?? '');
+  // 1단계 기간 경고 문구의 id — 두 날짜 칸이 이 문구를 «왜 틀렸나»로 가리킨다 (PW-1012).
+  const dateErrorId = `evc-wiz-date-error-${useId().replace(/:/g, '')}`;
+  const tplSaveHintId = `${dateErrorId}-tpl`;
   const [startDate, setStartDate] = useState(() =>
     datePart(D?.startDate ?? cycle?.startDate ?? ''),
   );
@@ -4638,7 +4646,7 @@ export default function EvalCycleWizard({
               <label className="evc-field-label" htmlFor="evc-wiz-name">
                 {req(L.cycleName)}
               </label>
-              <input
+              <TextInput
                 id="evc-wiz-name"
                 className="evc-input"
                 value={name}
@@ -4661,6 +4669,7 @@ export default function EvalCycleWizard({
                     onOpen={openPicker('start')}
                     isOpen={picker?.field === 'start'}
                     invalid={dateFieldInvalid('start')}
+                    describedBy={dateErrorId}
                     ariaLabel={L.periodStartDate ?? L.startDate}
                     testId="evc-wiz-start"
                   />
@@ -4675,6 +4684,7 @@ export default function EvalCycleWizard({
                     onOpen={openPicker('end')}
                     isOpen={picker?.field === 'end'}
                     invalid={dateFieldInvalid('end')}
+                    describedBy={dateErrorId}
                     ariaLabel={L.periodEndDate ?? L.endDate}
                     testId="evc-wiz-end"
                   />
@@ -4691,7 +4701,7 @@ export default function EvalCycleWizard({
               {/* PW-528 ① — 왜 다음으로 못 가는지를 그 자리에서 말한다. 종전에는
                   「다음」이 그냥 살아 있어서 거꾸로 된 기간이 그대로 저장됐다. */}
               {(dateFormatBad('start') || dateFormatBad('end') || dateOrderBad) && (
-                <p className="evc-wiz-warn" role="alert" data-testid="evc-wiz-date-error">
+                <p id={dateErrorId} className="evc-wiz-warn" role="alert" data-testid="evc-wiz-date-error">
                   {dateOrderBad ? L.dateOrderError : L.dateFormatError}
                 </p>
               )}
@@ -4928,7 +4938,7 @@ export default function EvalCycleWizard({
                         ) : row.options.length >= 2 ? (
                           /* 후보가 둘 이상일 때만 편다 — 하나뿐인 질문을 두 번 묻지 않기 위해
                              3단계에서 걷어낸 선택권이 여기로 옮겨 온 것이다. */
-                          <select
+                          <Select
                             className="evc-input evc-tpl-confirm-select"
                             value={row.confirmed ? row.id : ''}
                             onChange={(e) => {
@@ -4943,7 +4953,7 @@ export default function EvalCycleWizard({
                                 {t.name}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         ) : null}
                         <button
                           type="button"
@@ -5099,12 +5109,15 @@ export default function EvalCycleWizard({
               )}
 
               <span className="evc-field-label">{req(L.templateNameLabel)}</span>
-              <input
+              <TextInput
                 ref={tplNameRef}
                 /* PW-528 ④ — 저장이 막혀 있는 동안 «어느 칸» 때문인지 그 칸에 표시한다.
                    종전에는 저장 버튼 옆에만 「템플릿 이름을 입력해야…」가 떴는데, 정작
                    그 칸은 화면 한참 위라 어디를 채우라는 것인지 찾아야 했다. */
-                className={`evc-input${tplSaveBlockKey === 'templateBlockName' ? ' is-invalid' : ''}`}
+                className="evc-input"
+                // 틀림 표시는 공용 칸이 붙이고(is-invalid), 이유는 저장 줄의 안내 문구를 가리킨다 (PW-1012).
+                invalid={tplSaveBlockKey === 'templateBlockName'}
+                aria-describedby={tplSaveBlockKey === 'templateBlockName' ? tplSaveHintId : undefined}
                 value={tplName}
                 onChange={(e) => {
                   setTplName(e.target.value);
@@ -5201,17 +5214,16 @@ export default function EvalCycleWizard({
               <p className="evc-tpl-grade-note" data-testid="evc-tpl-grade-note">
                 {L.gradesFeedItemsNote}
               </p>
-              <label className="evl-promo-row">
-                <input
-                  type="checkbox"
-                  checked={tplAbsolute}
-                  onChange={(e) => setTplAbsolute(e.target.checked)}
-                  data-testid="evc-tpl-absolute"
-                />
+              <Checkbox
+                className="evl-promo-row"
+                checked={tplAbsolute}
+                onChange={(e) => setTplAbsolute(e.target.checked)}
+                data-testid="evc-tpl-absolute"
+              >
                 <span>{L.templateAbsolute}</span>
-              </label>
+              </Checkbox>
               {!tplAbsolute && (
-                <select
+                <Select
                   className="evc-input"
                   value={tplRatioScope}
                   onChange={(e) => setTplRatioScope(e.target.value)}
@@ -5220,7 +5232,7 @@ export default function EvalCycleWizard({
                   {RATIO_SCOPES.map((r) => (
                     <option key={r.id} value={r.id}>{L[r.labelKey]}</option>
                   ))}
-                </select>
+                </Select>
               )}
               {/* [PW-527 ②] 등급 줄은 「평가 템플릿」 화면의 [편집] 창과 **같은 부품**이다 —
                   ▲▼ 순서 이동이 한쪽에만 있으면 버그로 본다 (정책 §6.3). */}
@@ -5427,6 +5439,7 @@ export default function EvalCycleWizard({
                        스스로 찾아 올라가야 하는 안내는 안내가 아니다. */
                     <button
                       type="button"
+                      id={tplSaveHintId}
                       className="evc-tpl-save-hint is-link"
                       onClick={focusTplName}
                       data-testid="evc-tpl-save-hint"
@@ -5710,7 +5723,7 @@ export default function EvalCycleWizard({
                                 >
                                   <div className="evc-rm-main">
                                     <span className="evc-rm-num">{i + 1}</span>
-                                    <select
+                                    <Select
                                       className="evc-rm-field"
                                       value={rm.anchor}
                                       onChange={(e) => updateReminder(ph.id, rm.id, 'anchor', e.target.value)}
@@ -5718,10 +5731,10 @@ export default function EvalCycleWizard({
                                       {REMINDER_ANCHORS.map((a) => (
                                         <option key={a.id} value={a.id}>{L[a.labelKey]}</option>
                                       ))}
-                                    </select>
+                                    </Select>
                                     <span className="evc-rm-inline">
                                       <span className="evc-rm-dtext">D-</span>
-                                      <input
+                                      <TextInput
                                         type="number"
                                         min={0}
                                         max={60}
@@ -5907,7 +5920,7 @@ export default function EvalCycleWizard({
                                         </div>
                                         <label className="evc-rm-dfield">
                                           <span>{L.reminderMessageTpl}</span>
-                                          <select
+                                          <Select
                                             className="evc-rm-field"
                                             value={msg.template}
                                             onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
@@ -5918,7 +5931,7 @@ export default function EvalCycleWizard({
                                             {(selfOn ? MESSAGE_TEMPLATES : REPORT_TEMPLATES).map((t) => (
                                               <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
                                             ))}
-                                          </select>
+                                          </Select>
                                         </label>
                                         {msg.template !== 'custom' ? (
                                           (() => {
@@ -5968,7 +5981,7 @@ export default function EvalCycleWizard({
                                               ) : savedForPhase(ph.id).length === 0 ? (
                                                 <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
                                               ) : (
-                                                <select
+                                                <Select
                                                   className="evc-rm-field"
                                                   value=""
                                                   onChange={(e) => loadSavedMessage(ph.id, rm, e.target.value)}
@@ -5982,10 +5995,10 @@ export default function EvalCycleWizard({
                                                       {m.name} · {fill(L.reminderSavedUsage, { count: m.usageCount ?? 0 })}
                                                     </option>
                                                   ))}
-                                                </select>
+                                                </Select>
                                               )}
                                             </div>
-                                            <input
+                                            <TextInput
                                               type="text"
                                               className="evc-rm-field evc-rm-cinput"
                                               placeholder={L.reminderEmailSubjectPh}
@@ -5994,7 +6007,7 @@ export default function EvalCycleWizard({
                                                 patchMessage(ph.id, rm.id, { subject: e.target.value })}
                                               data-testid={`evc-rm-msg-subject-${ph.id}-${i}`}
                                             />
-                                            <textarea
+                                            <TextArea
                                               className="evc-rm-field evc-rm-cbody"
                                               rows={4}
                                               placeholder={L.reminderEmailBodyPh}
@@ -6026,22 +6039,21 @@ export default function EvalCycleWizard({
                                         {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있다 */}
                                         {rm.channels.includes('email') && rm.channels.includes('slack') && (
                                           <div className="evc-rm-slack-sep">
-                                            <label className="evl-promo-row">
-                                              <input
-                                                type="checkbox"
-                                                checked={!!msg.slackSeparate}
-                                                onChange={(e) =>
-                                                  patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
-                                                data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
-                                              />
+                                            <Checkbox
+                                              className="evl-promo-row"
+                                              checked={!!msg.slackSeparate}
+                                              onChange={(e) =>
+                                                patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
+                                              data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
+                                            >
                                               <span>
                                                 {L.reminderSlackSeparate}
                                                 <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
                                               </span>
-                                            </label>
+                                            </Checkbox>
                                             {msg.slackSeparate && (
                                               <>
-                                                <textarea
+                                                <TextArea
                                                   className="evc-rm-field evc-rm-cbody"
                                                   rows={3}
                                                   placeholder={L.reminderSlackBodyPh}
@@ -6158,7 +6170,7 @@ export default function EvalCycleWizard({
                                             const known = channelOptions.some((c) => c === value);
                                             return (
                                             <div className="evc-rm-slack-ch">
-                                              <input
+                                              <TextInput
                                                 type="text"
                                                 className="evc-rm-field"
                                                 list={listId}
@@ -6359,24 +6371,22 @@ export default function EvalCycleWizard({
                 <div className="evc-excl-block" data-testid="evc-wiz-exclusions">
                   <span className="evc-field-label">{L.exclusionLabel}</span>
                   <p className="evc-wiz-hint">{L.exclusionHint}</p>
-                  <label className="evl-promo-row">
-                    <input
-                      type="checkbox"
-                      checked={excludeOnLeave}
-                      onChange={(e) => setExcludeOnLeave(e.target.checked)}
-                      data-testid="evc-wiz-excl-leave"
-                    />
+                  <Checkbox
+                    className="evl-promo-row"
+                    checked={excludeOnLeave}
+                    onChange={(e) => setExcludeOnLeave(e.target.checked)}
+                    data-testid="evc-wiz-excl-leave"
+                  >
                     <span>{L.exclusionOnLeave}</span>
-                  </label>
-                  <label className="evl-promo-row">
-                    <input
-                      type="checkbox"
-                      checked={excludeHireDate}
-                      onChange={(e) => setExcludeHireDate(e.target.checked)}
-                      data-testid="evc-wiz-excl-hiredate"
-                    />
+                  </Checkbox>
+                  <Checkbox
+                    className="evl-promo-row"
+                    checked={excludeHireDate}
+                    onChange={(e) => setExcludeHireDate(e.target.checked)}
+                    data-testid="evc-wiz-excl-hiredate"
+                  >
                     <span>{L.exclusionHireDate}</span>
-                  </label>
+                  </Checkbox>
                   {excludeHireDate && (
                     <div className="evc-excl-date">
                       <button
@@ -6414,24 +6424,22 @@ export default function EvalCycleWizard({
                     </div>
                   )}
                   {/* 발령 이력 기반 — 현재 값이 아니라 '언제 바뀌었나'를 본다. */}
-                  <label className="evl-promo-row">
-                    <input
-                      type="checkbox"
-                      checked={excludeRoleChange}
-                      onChange={(e) => setExcludeRoleChange(e.target.checked)}
-                      data-testid="evc-wiz-excl-rolechange"
-                    />
+                  <Checkbox
+                    className="evl-promo-row"
+                    checked={excludeRoleChange}
+                    onChange={(e) => setExcludeRoleChange(e.target.checked)}
+                    data-testid="evc-wiz-excl-rolechange"
+                  >
                     <span>{L.exclusionRoleChange}</span>
-                  </label>
-                  <label className="evl-promo-row">
-                    <input
-                      type="checkbox"
-                      checked={excludePromotion}
-                      onChange={(e) => setExcludePromotion(e.target.checked)}
-                      data-testid="evc-wiz-excl-promotion"
-                    />
+                  </Checkbox>
+                  <Checkbox
+                    className="evl-promo-row"
+                    checked={excludePromotion}
+                    onChange={(e) => setExcludePromotion(e.target.checked)}
+                    data-testid="evc-wiz-excl-promotion"
+                  >
                     <span>{L.exclusionPromotion}</span>
-                  </label>
+                  </Checkbox>
                   {excludePromotion && (
                     <div className="evc-excl-date">
                       <button
@@ -6505,18 +6513,14 @@ export default function EvalCycleWizard({
                       자리에 값 체크가 선다. 조건(규칙)과 필터+일괄(수동)의 갈림은 E21 —
                       「인턴은 평가하지 않는다」 같은 정책은 여기, 이번 사이클만의 예외는
                       아래 명단에서 필터로 좁혀 「보이는 N명 제외」로. */}
-                  <label
-                    className="evl-promo-row"
-                    title={L.exclusionEmploymentTypeHint}
+                  <Checkbox
+                    className="evl-promo-row" title={L.exclusionEmploymentTypeHint}
+                    checked={excludeEmploymentType}
+                    onChange={(e) => setExcludeEmploymentType(e.target.checked)}
+                    data-testid="evc-wiz-excl-employment"
                   >
-                    <input
-                      type="checkbox"
-                      checked={excludeEmploymentType}
-                      onChange={(e) => setExcludeEmploymentType(e.target.checked)}
-                      data-testid="evc-wiz-excl-employment"
-                    />
                     <span>{L.exclusionEmploymentType}</span>
-                  </label>
+                  </Checkbox>
                   {excludeEmploymentType && (
                     <div className="evc-excl-date" data-testid="evc-wiz-excl-employment-values">
                       <div className="evc-type-row evc-excl-values">
@@ -6604,7 +6608,7 @@ export default function EvalCycleWizard({
                     <span className="evc-review-search-icon">
                       <SearchIcon size={14} />
                     </span>
-                    <input
+                    <TextInput
                       className="evc-input"
                       value={reviewQuery}
                       onChange={(e) => setReviewQuery(e.target.value)}
@@ -7197,16 +7201,15 @@ export default function EvalCycleWizard({
                 disabled={committeeLocked}
                 data-testid="evc-wiz-committee-fieldset"
               >
-              <label className="evc-wiz-committee-toggle">
-                <input
-                  type="checkbox"
-                  checked={committeeOn}
-                  onChange={(e) => setCommitteeOn(e.target.checked)}
-                  disabled={committeeExists}
-                  data-testid="evc-wiz-committee-toggle"
-                />
+              <Checkbox
+                className="evc-wiz-committee-toggle"
+                checked={committeeOn}
+                onChange={(e) => setCommitteeOn(e.target.checked)}
+                disabled={committeeExists}
+                data-testid="evc-wiz-committee-toggle"
+              >
                 <span>{L.wizardCommitteeEnable}</span>
-              </label>
+              </Checkbox>
               <p className="evc-wiz-hint">{L.wizardCommitteeHint}</p>
               {committeeOn && (
                 <>
@@ -7226,7 +7229,7 @@ export default function EvalCycleWizard({
                     >
                       {L.wizardCommitteeNameLabel ?? '위원회 제목'}
                     </label>
-                    <input
+                    <TextInput
                       id="evc-wiz-committee-name"
                       className={`evc-wiz-calibscope-name${committeeName.trim() ? '' : ' is-blank'}`}
                       value={committeeName}
@@ -7318,7 +7321,7 @@ export default function EvalCycleWizard({
 
                       {/* 개별 추가 — 조직·직급으로는 안 걸리는 사람을 이름으로 더한다 */}
                       <div className="evc-wiz-calibscope-add">
-                        <input
+                        <TextInput
                           className="evc-wiz-calibscope-add-input"
                           value={committeeAddSearch}
                           onChange={(e) => setCommitteeAddSearch(e.target.value)}
@@ -7366,7 +7369,7 @@ export default function EvalCycleWizard({
                       {committeeRoster.length > 5 && (
                         <div className="evc-wiz-calibscope-find">
                           <SearchIcon size={13} />
-                          <input
+                          <TextInput
                             className="evc-wiz-calibscope-find-input"
                             value={committeeRosterSearch}
                             onChange={(e) => setCommitteeRosterSearch(e.target.value)}
@@ -7500,7 +7503,7 @@ export default function EvalCycleWizard({
                   </div>
 
                   {/* 위원 검색 — 입력 즉시 필터. 후보 명단이 아직 없거나 조회가 깨졌으면 비활성 */}
-                  <input
+                  <TextInput
                     className="evc-wiz-committee-search"
                     value={committeeSearch}
                     onChange={(e) => setCommitteeSearch(e.target.value)}
@@ -7761,7 +7764,7 @@ export default function EvalCycleWizard({
                       이것이 없으면 저장은 됐는데 어디로 갔는지 알 수 없다(PW-531 제보). */}
                   <p className="evc-wiz-hint">{L.presetSaveHint}</p>
                   <div className="evc-wiz-preset-save-row">
-                    <input
+                    <TextInput
                       className="evc-input"
                       value={presetName}
                       placeholder={L.presetSavePlaceholder}

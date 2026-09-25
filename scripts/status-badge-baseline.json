@@ -1737,52 +1737,57 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#687079 / 어두운 화면 #cecfd2"
   },
-  "admin.css|.admin-emp-status-option:hover:not(.is-selected)": {
-   "background": "--componentColors-alpha-alphaBlack6"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-active": {
-   "background": "#e1fef2"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-active .admin-emp-radio-circle": {
-   "background": "#21a67a / 어두운 화면 #e1fef2"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-active .admin-emp-status-option-label": {
-   "color": "#10774d"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-on-leave": {
-   "background": "--componentColors-alpha-alphaBlack6"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-on-leave .admin-emp-radio-circle": {
-   "background": "#687079 / 어두운 화면 #cecfd2"
-  },
-  "admin.css|.admin-emp-status-option.is-selected.is-on-leave .admin-emp-status-option-label": {
+  "admin.css|.admin-emp-status-option .dp-radio-label": {
+   "font-size": "14px",
+   "font-weight": "500",
    "color": "#687079 / 어두운 화면 #cecfd2"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-pending": {
+  "admin.css|.admin-emp-status-option:hover:not(.is-checked)": {
    "background": "--componentColors-alpha-alphaBlack6"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-pending .admin-emp-radio-circle": {
-   "background": "#dc6803 / 어두운 화면 #fdb022"
+  "admin.css|.admin-emp-status-option.is-checked.is-active": {
+   "background": "#e1fef2"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-pending .admin-emp-status-option-label": {
-   "color": "#dc6803 / 어두운 화면 #fdb022"
+  "admin.css|.admin-emp-status-option.is-checked.is-active .dp-radio-circle": {
+   "background": "#21a67a / 어두운 화면 #e1fef2"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-probation": {
+  "admin.css|.admin-emp-status-option.is-checked.is-active .dp-radio-label": {
+   "color": "#10774d"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-on-leave": {
    "background": "--componentColors-alpha-alphaBlack6"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-probation .admin-emp-radio-circle": {
+  "admin.css|.admin-emp-status-option.is-checked.is-on-leave .dp-radio-circle": {
+   "background": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-on-leave .dp-radio-label": {
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-pending": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-pending .dp-radio-circle": {
    "background": "#dc6803 / 어두운 화면 #fdb022"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-probation .admin-emp-status-option-label": {
+  "admin.css|.admin-emp-status-option.is-checked.is-pending .dp-radio-label": {
    "color": "#dc6803 / 어두운 화면 #fdb022"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-terminated": {
+  "admin.css|.admin-emp-status-option.is-checked.is-probation": {
+   "background": "--componentColors-alpha-alphaBlack6"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-probation .dp-radio-circle": {
+   "background": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-probation .dp-radio-label": {
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
+  "admin.css|.admin-emp-status-option.is-checked.is-terminated": {
    "background": "#f9fafb / 어두운 화면 #22262f"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-terminated .admin-emp-radio-circle": {
+  "admin.css|.admin-emp-status-option.is-checked.is-terminated .dp-radio-circle": {
    "background": "#b1b6be / 어두운 화면 #85888e"
   },
-  "admin.css|.admin-emp-status-option.is-selected.is-terminated .admin-emp-status-option-label": {
+  "admin.css|.admin-emp-status-option.is-checked.is-terminated .dp-radio-label": {
    "color": "#687079 / 어두운 화면 #cecfd2"
   },
   "admin.css|.admin-emp-status.is-active": {

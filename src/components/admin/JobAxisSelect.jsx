@@ -2,6 +2,7 @@ import {
   narrowByParent, groupedChildren, groupedOptionValue, parseGroupedOptionValue,
 } from './jobAxis.js';
 import { IconChevronRight } from './employeesIcons.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * 직군 → 직렬 → 직무 3단 연동의 «한 칸» (admin-spec §3.5-A · PW-748).
@@ -88,7 +89,7 @@ export default function JobAxisSelect({
 
   return (
     <>
-      <select
+      <Select
         className={className}
         value={cur}
         disabled={disabled}
@@ -108,7 +109,7 @@ export default function JobAxisSelect({
               </optgroup>
             ))
           : flat.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
+      </Select>
       {emptyNote}
     </>
   );
