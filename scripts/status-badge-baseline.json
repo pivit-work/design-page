@@ -1597,6 +1597,15 @@
    "font-weight": "500",
    "background": "#f4f3ff",
    "color": "#7a5af8"
+  },
+  "status-badge.css|.msc-fill-badge": {
+   "border-radius": "pill",
+   "padding": "0 6px",
+   "font-size": "11px",
+   "font-weight": "600",
+   "line-height": "16px",
+   "white-space": "nowrap",
+   "flex-shrink": "0"
   }
  },
  "variants": {
