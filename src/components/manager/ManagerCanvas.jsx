@@ -87,6 +87,7 @@ export default function ManagerCanvas({
    */
   onMemberOpen,
   onHrProfileRetry,
+  onSnippetsMore,
 }) {
   // 🔴 열린 멤버는 **id 로** 기억하고 객체는 지금 props 에서 다시 찾는다.
   // 객체를 통째로 state 에 담아 두면, 모달이 열린 뒤 소비자가 그 멤버의 데이터를
@@ -260,6 +261,7 @@ export default function ManagerCanvas({
       */}
       <ProfileModal
         onHrProfileRetry={onHrProfileRetry}
+        onSnippetsMore={onSnippetsMore}
         member={openMember}
         onClose={closeProfile}
         baseUrl={baseUrl}

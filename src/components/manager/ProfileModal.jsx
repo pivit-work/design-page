@@ -6,6 +6,7 @@ import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
+import Button from '../shared/Button.jsx';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
@@ -94,6 +95,7 @@ export default function ProfileModal({
   onMessageClick,
   onBusinessTitleClick,
   onHrProfileRetry,
+  onSnippetsMore,
 }) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
@@ -232,7 +234,7 @@ export default function ProfileModal({
               <AiBriefingTab profile={profile} agendas={agendas} icons={icons} baseUrl={baseUrl} />
             )}
             {activeTab === 'snippet' && profile?.snippets && (
-              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} />
+              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} />
             )}
             {activeTab === 'health' && profile?.healthTrend && (
               <HealthTrendTab trend={profile.healthTrend} />
@@ -307,7 +309,17 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl }) {
   );
 }
 
-function SnippetTab({ profile, icons, baseUrl }) {
+/**
+ * 스니핏 탭 — 최근 스니핏 카드 + 목록 끝의 「더 보기」(PW-925).
+ *
+ * `profile.snippetsMore` 가 있을 때만 목록 아래에 한 줄을 더 그린다. 호스트가 표시 문자열까지
+ * 만들어 넘긴다 — 캔버스는 i18n 도, 더 남았는지도 모른다.
+ *  - `{ label, loadingLabel, loading }` — 버튼. 불러오는 동안 누를 수 없고 라벨이 바뀐다
+ *  - `{ error: { message, retryLabel } }` — 버튼 자리에 실패 문구와 [다시 시도]. 이미 보이던
+ *    카드는 그대로 둔다. 다시 시도도 `onMore` 로 간다
+ * 더 남은 것이 없으면 호스트가 `snippetsMore` 를 빼서 버튼이 사라진다.
+ */
+function SnippetTab({ profile, icons, baseUrl, onMore }) {
   return (
     <div className="manager-modal-content-section">
       {/* AI 요약 카드 (이번 주) */}
@@ -323,6 +335,23 @@ function SnippetTab({ profile, icons, baseUrl }) {
       {profile.snippets.map((s, i) => (
         <SnippetItem key={i} snippet={s} />
       ))}
+
+      {profile.snippetsMore && (
+        profile.snippetsMore.error ? (
+          <HrProfileFailure notice={profile.snippetsMore.error} onRetry={onMore} />
+        ) : (
+          <Button
+            variant="ghost"
+            className="manager-modal-snippet-more"
+            disabled={!!profile.snippetsMore.loading}
+            onClick={() => onMore?.()}
+          >
+            {profile.snippetsMore.loading
+              ? profile.snippetsMore.loadingLabel
+              : profile.snippetsMore.label}
+          </Button>
+        )
+      )}
     </div>
   );
 }
