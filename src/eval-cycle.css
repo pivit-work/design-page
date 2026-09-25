@@ -2272,10 +2272,12 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+/* PW-1004 — 「이유 필수」「피평가자 비공개」가 켜진 것은 잘못된 상태가 아니라 «켜짐» 표시라
+   경고색이 아니라 브랜드 초록으로 칠한다. */
 .evc-tpl-rationale.is-on {
-  border-color: var(--utility-warning-500);
-  background: var(--utility-warning-50);
-  color: var(--utility-warning-600);
+  border-color: var(--utility-brand-600);
+  background: var(--utility-brand-50);
+  color: var(--utility-brand-700);
 }
 
 /* 미리보기 모달 */
@@ -2939,14 +2941,19 @@
   gap: var(--spacing-sm);
   height: 27px;
   padding: 0 var(--spacing-lg);
-  border: 1px solid var(--utility-warning-200);
+  /* PW-1004 — 방금 한 이동을 취소하는 평범한 동작이라 흰 보조 버튼이다(경고색 아님). */
+  border: 1px solid var(--border-primary);
   border-radius: 999px;
-  background: var(--utility-warning-50);
-  color: var(--utility-warning-700);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
   font-family: var(--font-family-body);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+.evc-review-undo:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 .evc-review-empty {
   margin: var(--spacing-lg);
@@ -3337,9 +3344,11 @@
   color: var(--text-secondary);
 }
 
+/* PW-1004 — 「작성 참고용」 박스는 안내라 경고색(주황·노랑)을 쓰지 않는다. 경고색은
+   박스 안의 «달성률 미입력» 한 줄(.evm-kr-warn)에만 남겨, 주변이 회색일 때 그 줄이 드러난다. */
 .evm-activity {
-  background: var(--utility-warning-50);
-  border: 1px solid var(--utility-warning-200);
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl) var(--spacing-2xl);
 }
@@ -3349,12 +3358,12 @@
 .evm-activity-title {
   font-size: var(--font-size-text-sm);
   font-weight: 700;
-  color: var(--utility-warning-700);
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 .evm-activity-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--utility-warning-700);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .evm-activity-grid {
@@ -3366,7 +3375,7 @@
 .evm-activity-block {
   padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--bg-primary);
-  border: 1px solid var(--utility-warning-200);
+  border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-md);
 }
 .evm-activity-block-title {
@@ -3375,7 +3384,7 @@
   gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--utility-warning-700);
+  color: var(--text-secondary);
   margin-bottom: var(--spacing-sm);
 }
 .evm-activity-item {
@@ -3383,7 +3392,7 @@
   color: var(--text-secondary);
   line-height: 1.7;
 }
-/* §4.2.1 OKR KR 달성률 수기입력 — full-width 오렌지 블록 */
+/* §4.2.1 OKR KR 달성률 수기입력 — full-width 블록 */
 .evm-kr {
   grid-column: 1 / -1;
 }
@@ -3397,7 +3406,7 @@
 }
 .evm-kr-hint {
   font-size: var(--font-size-text-xs);
-  color: var(--utility-warning-700);
+  color: var(--text-secondary);
 }
 .evm-kr-rows {
   display: flex;
@@ -3410,14 +3419,14 @@
   gap: var(--spacing-sm);
   align-items: center;
   padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--utility-warning-50);
-  border: 1px solid var(--utility-warning-50);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-sm);
 }
 .evm-kr-idx {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--utility-warning-700);
+  color: var(--utility-brand-700);
 }
 .evm-kr-title {
   font-size: var(--font-size-text-xs);
@@ -3433,26 +3442,30 @@
   padding: 4px 6px;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--utility-warning-700);
+  color: var(--text-primary);
   text-align: right;
-  border: 1px solid var(--utility-warning-200);
+  border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-xs);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   outline: none;
 }
 .evm-kr-pct-sign {
   font-size: var(--font-size-text-xs);
-  color: var(--utility-warning-700);
+  color: var(--text-secondary);
 }
 .evm-kr-memo {
   font-family: inherit;
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
   padding: 4px 6px;
-  border: 1px solid var(--utility-warning-200);
+  border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-xs);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   outline: none;
+}
+.evm-kr-input:focus,
+.evm-kr-memo:focus {
+  border-color: var(--utility-brand-600);
 }
 .evm-kr-actions {
   display: flex;
@@ -3481,17 +3494,7 @@
 }
 .evm-kr-save {
   padding: 6px 12px;
-  background: var(--utility-warning-700);
-  color: var(--text-white);
-  border: none;
-  border-radius: var(--radius-sm);
   font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  cursor: pointer;
-}
-.evm-kr-save:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 .evm-field {
   display: flex;
@@ -3516,25 +3519,17 @@
 }
 .evm-textarea:focus {
   outline: none;
-  border-color: var(--utility-blue-500);
-  box-shadow: 0 0 0 3px var(--utility-blue-50);
+  border-color: var(--utility-brand-600);
+  box-shadow: 0 0 0 3px var(--utility-brand-50);
 }
-/* §4.8a 미입력 항목 강조 — amber 보더로 작성 필요 안내(포커스 시 파랑 우선) */
-.evm-textarea.is-empty {
-  border-color: var(--utility-warning-400);
-  background: var(--utility-warning-50);
-}
-.evm-textarea.is-empty:focus {
-  border-color: var(--utility-blue-500);
-  background: var(--bg-quaternary);
-}
-/* 제출 시 미입력 강조(빨강) — is-empty(amber)보다 우선 */
+/* PW-1004 — 비어 있는 칸을 제출 전부터 칠하지 않는다. 처음 열면 모든 칸이 비어 있어
+   전부 노랗게 보였고, 제출 때의 빨강과 겹쳤다. 빠진 칸 표시는 제출을 누른 뒤 빨강 하나뿐이다. */
 .evm-textarea.is-invalid {
   border-color: var(--utility-error-500);
   background: var(--utility-error-50);
 }
 .evm-textarea.is-invalid:focus {
-  border-color: var(--utility-blue-500);
+  border-color: var(--utility-brand-600);
   background: var(--bg-quaternary);
 }
 .evm-incomplete-warn {
@@ -5286,8 +5281,9 @@
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 99px;
-  background: var(--utility-warning-50);
-  color: var(--utility-warning-700);
+  /* PW-1004 — «보기만 된다»는 안내라 경고색이 아니라 회색 배지다. */
+  background: var(--utility-gray-100);
+  color: var(--utility-gray-700);
 }
 /* 칸 여백·머리 행·구분선·가로 스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .evs-cw-table-wrap { padding: 0; }
