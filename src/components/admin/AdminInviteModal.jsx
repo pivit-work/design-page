@@ -359,6 +359,8 @@ export default function AdminInviteModal({
   csvFieldLimits = {},
   /** CSV 조직경로 글자 → 조직 id(못 찾으면 `null`). 없으면 이 창의 경로 해석을 쓴다. */
   resolveOrgPath = null,
+  /** CSV 고용상태 중 초대에 쓸 수 없는 코드(예: `['terminated']`) — 그 줄을 오류로 세운다(PW-1042). */
+  csvBlockedEmploymentStatuses = [],
   /**
    * 남은 좌석을 쓰지 않는 이메일 — 예: 이 회사를 떠났던 사람을 다시 부르는 초대.
    * 이 이메일의 줄은 좌석 부족 판정에서 세지 않는다(서버와 같은 셈).
@@ -487,6 +489,7 @@ export default function AdminInviteModal({
     orgTree: tree, fieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
     squadNames, memberEmails: existingEmails, pendingEmails, headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
+    blockedEmploymentStatuses: csvBlockedEmploymentStatuses,
   });
   const csvIssuesByKey = {};
   const csvNotesByKey = {};
