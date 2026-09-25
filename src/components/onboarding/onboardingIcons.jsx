@@ -6,55 +6,25 @@
  *
  * 규약: viewBox 0 0 24 24, fill none, stroke currentColor, strokeWidth 2, round cap/join,
  * aria-hidden. 크기는 size prop, 색은 부모의 color 상속(SVG 안에 리터럴 색 금지).
+ * 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
  */
 
-function svgProps(size) {
-  return {
-    width: size,
-    height: size,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-    'aria-hidden': true,
-  };
-}
+import { ArrowLeftGlyph, CheckGlyph, CloseGlyph, LockGlyph } from '../shared/lineIcons.jsx';
 
 export function OnbCheckIcon({ size = 12 }) {
-  return (
-    <svg {...svgProps(size)} strokeWidth={3}>
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
+  return <CheckGlyph size={size} strokeWidth={3} />;
 }
 
 export function OnbLockIcon({ size = 11 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
+  return <LockGlyph size={size} />;
 }
 
 export function OnbCloseIcon({ size = 14 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
+  return <CloseGlyph size={size} />;
 }
 
 export function OnbArrowLeftIcon({ size = 14 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M19 12H5" />
-      <path d="m12 19-7-7 7-7" />
-    </svg>
-  );
+  return <ArrowLeftGlyph size={size} />;
 }
 
 /** 시안 Spinner — 옅은 원 + 1/4 호. 색은 부모 color 를 따른다. */

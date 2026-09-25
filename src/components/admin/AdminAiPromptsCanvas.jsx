@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import { InfoGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -210,7 +211,7 @@ export default function AdminAiPromptsCanvas({
             <div style={{ padding: '14px 16px', borderBottom: DIVIDER }}>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'inline-flex', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                  <SearchGlyph size={16} />
                 </span>
                 <input
                   className="admin-emp-search"
@@ -316,7 +317,7 @@ export default function AdminAiPromptsCanvas({
                   {!selected.hasCustom && (
                     <div data-testid="no-custom-info" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderRadius: 10, background: FIELD_BG }}>
                       <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', flexShrink: 0 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                        <InfoGlyph size={16} />
                       </span>
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{labels.noCustom}</span>
                     </div>

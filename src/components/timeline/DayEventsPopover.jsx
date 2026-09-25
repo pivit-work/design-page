@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import { SNIPPET_COLORS, WEEKDAY_LABELS } from './constants.js';
 
 const parseIsoDate = (s) => {
@@ -85,15 +86,7 @@ export default function DayEventsPopover({
             onClick={onClose}
             aria-label="닫기"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M18 6L6 18M6 6l12 12"
-                stroke="var(--colors-foreground-fgPrimary)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <CloseGlyph size={20} color="var(--colors-foreground-fgPrimary)" />
           </button>
         </div>
 

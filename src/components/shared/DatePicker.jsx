@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { datePickerLabels } from './uiLocale.js';
+import { ChevronLeftGlyph, ChevronRightGlyph } from './lineIcons.jsx';
 
 /**
  * DatePicker — 날짜 picker 버튼 아래에 뜨는 미니 캘린더 팝오버.
@@ -56,21 +57,6 @@ function buildGrid(year, month) {
     cells.push({ day: next++, month: month === 11 ? 0 : month + 1, year: month === 11 ? year + 1 : year, outside: true });
   }
   return cells;
-}
-
-function ChevronLeft() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function ChevronRight() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
 }
 
 export default function DatePicker({
@@ -201,11 +187,11 @@ export default function DatePicker({
             disabled={!canGoPrev}
             aria-label={prevText}
           >
-            <ChevronLeft />
+            <ChevronLeftGlyph size={20} />
           </button>
           <span className="dp-datepicker-label">{monthLabel}</span>
           <button type="button" className="dp-datepicker-nav is-faint" onClick={() => goMonth(1)} aria-label={nextText}>
-            <ChevronRight />
+            <ChevronRightGlyph size={20} />
           </button>
         </div>
         {/* Today 버튼 row */}

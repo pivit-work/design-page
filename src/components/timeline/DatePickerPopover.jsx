@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronLeftGlyph, ChevronRightGlyph } from '../shared/lineIcons.jsx';
 // Popover 좌표는 DOM 측정 결과라 state 에 담아 다시 렌더할 필요가 없다.
 // react-hooks/set-state-in-effect 회피를 위해 ref.style 에 직접 기록.
 
@@ -137,15 +138,7 @@ export default function DatePickerPopover({
             onClick={prevMonth}
             aria-label="이전 달"
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M12.5 15L7.5 10L12.5 5"
-                stroke="currentColor"
-                strokeWidth="1.67"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ChevronLeftGlyph size={20} />
           </button>
           <p className="tl-datepicker-month-label">
             {viewYear}년 {viewMonth + 1}월
@@ -156,15 +149,7 @@ export default function DatePickerPopover({
             onClick={nextMonth}
             aria-label="다음 달"
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M7.5 15L12.5 10L7.5 5"
-                stroke="currentColor"
-                strokeWidth="1.67"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ChevronRightGlyph size={20} />
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 import LiveGuideCard from './LiveGuideCard.jsx';
 
@@ -923,10 +924,7 @@ export default function StartOneOnOneView({
                       <span className="ono-start-agenda-role is-manager">매니저</span>
                       <span className="ono-start-agenda-text">{a}</span>
                       <button type="button" className="ono-start-agenda-x" aria-label="삭제" onClick={() => removeMgrAgenda(a)}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="4" x2="4" y2="12" />
-                          <line x1="4" y1="4" x2="12" y2="12" />
-                        </svg>
+                        <CloseGlyph size={16} strokeWidth={2.25} />
                       </button>
                     </div>
                   ))}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import gsap from 'gsap';
 
 /**
@@ -53,15 +54,7 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
           aria-label="닫기"
           onClick={onCancel}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M18 6L6 18M6 6l12 12"
-              stroke="var(--colors-foreground-fgQuaternary, #98a1b2)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <CloseGlyph size={24} color="var(--colors-foreground-fgQuaternary, #98a1b2)" />
         </button>
 
         <div className="tl-snippet-prompt-header">

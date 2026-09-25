@@ -4,7 +4,10 @@
  *
  * 규약: viewBox="0 0 24 24" · fill="none" · stroke="currentColor" · strokeWidth={2}
  *       · 크기는 size prop · SVG 안에 리터럴 색 없음 (부모의 color 를 상속)
+ * 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
  */
+
+import { CloseGlyph } from '../components/shared/lineIcons.jsx';
 
 function Svg({ size = 16, children }) {
   return (
@@ -38,12 +41,7 @@ export function SlidersIcon({ size }) {
 
 /** 닫기. */
 export function CloseIcon({ size }) {
-  return (
-    <Svg size={size}>
-      <line x1="6" y1="6" x2="18" y2="18" />
-      <line x1="18" y1="6" x2="6" y2="18" />
-    </Svg>
-  );
+  return <CloseGlyph size={size} />;
 }
 
 /** 초기화 — 모든 knob 을 기본값으로. */

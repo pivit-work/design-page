@@ -7,7 +7,25 @@
  *
  * 규약: viewBox 0 0 24 24, fill none, stroke currentColor, strokeWidth 2, round cap/join,
  * aria-hidden. 크기·색은 size / color(currentColor 상속) 로 맞춘다.
+ * 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
  */
+import {
+  AlertTriangleGlyph,
+  ChatGlyph,
+  CheckCircleGlyph,
+  ChevronLeftGlyph,
+  ChevronRightGlyph,
+  DownloadGlyph,
+  EyeGlyph,
+  FileTextGlyph,
+  InfoGlyph,
+  LockGlyph,
+  MailGlyph,
+  UsersGlyph,
+} from '../shared/lineIcons.jsx';
+
+/** `svgProps` 가 주던 style — 공용 아이콘에도 똑같이 넘긴다. */
+const GLYPH_STYLE = { verticalAlign: 'middle', flexShrink: 0 };
 
 export function svgProps(size) {
   return {
@@ -47,35 +65,17 @@ export function TargetIcon({ size = 16 }) {
 
 // 💬 피드백/코멘트 — 말풍선.
 export function ChatIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+  return <ChatGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 📝 스니핏/기록 — 문서.
 export function NoteIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-      <line x1="8" y1="13" x2="16" y2="13" />
-      <line x1="8" y1="17" x2="16" y2="17" />
-    </svg>
-  );
+  return <FileTextGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 🤝/👥 1:1·인원 — 두 사람.
 export function UsersIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
+  return <UsersGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ✨/✦ AI — 스파클.
@@ -89,54 +89,27 @@ export function SparkleIcon({ size = 16 }) {
 
 // ℹ️/ⓘ 정보 — info 원.
 export function InfoIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  );
+  return <InfoGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ✅/✓ 완료 — check 원.
 export function CheckCircleIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
+  return <CheckCircleGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ⚠️/🚨 경고 — 삼각형.
 export function AlertIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
+  return <AlertTriangleGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 👁 공개 — 눈.
 export function EyeIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
+  return <EyeGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 🔒 비공개/기밀 — 자물쇠.
 export function LockIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
+  return <LockGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 🔄 재개/전환 — 순환 화살표.
@@ -233,23 +206,12 @@ export function ZapIcon({ size = 16 }) {
 
 // 📥 CSV 내보내기 — download.
 export function DownloadIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
+  return <DownloadGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 📩 요청/수신 — 봉투.
 export function MailIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <polyline points="22 7 12 13 2 7" />
-    </svg>
-  );
+  return <MailGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // 📋 목록/리포트 — 클립보드.
@@ -282,18 +244,10 @@ export function CpuIcon({ size = 16 }) {
 
 // ◀ 되돌아가기 — 왼쪽 꺾쇠. 「단계 목록으로」 같은 되돌아가는 버튼 앞에 선다(PW-585).
 export function ChevronLeftIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  );
+  return <ChevronLeftGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ▶ 접힘/펼침 — 오른쪽 꺾쇠. 펼치면 부모가 90° 돌린다(리더 정책 §6.3.0 · PW-561).
 export function ChevronRightIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  );
+  return <ChevronRightGlyph size={size} style={GLYPH_STYLE} />;
 }

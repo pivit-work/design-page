@@ -39,6 +39,10 @@ pre-push:
       # 있었고, 뜻과 색을 짝지은 표가 없어 같은 뜻이 화면마다 다른 색이었다 (PW-840).
       # ① 모으기 전후 생김새가 같은가 ② 뜻→색 표가 한 곳인가 ③ 또 따로 그리지 않았나.
       run: npm run check:status-badges
+    icon-copies:
+      # 같은 아이콘 그림을 두 곳에 그리는 것을 막는다. 닫기(X) 하나가 22곳에 복사돼 있었고 자물쇠는
+      # 뜻이 같은데 모양이 다섯 가지였다 — 두 곳 이상 쓰는 그림은 shared/lineIcons.jsx 한 벌이다 (PW-1011).
+      run: npm run check:icon-copies
     font-families:
       # CSS 에 글씨체 이름을 직접 적는 것을 막는다. 어드민 화면을 옮기며 따라 들어온 'DM Mono' 가
       # 불러오는 곳이 없어 타자기체로 그려졌고 아무 검사도 못 봤다 (PW-923).

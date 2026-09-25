@@ -71,6 +71,19 @@ export function isAccessible(currentTier, requiredTier) {
 }
 
 /**
+ * 요금제 잠금 딱지 속 작은 자물쇠 — 몸통을 칠한 12칸 그림이라 공용 선 자물쇠(`LockGlyph`)와 다른
+ * 그림이다. 이 파일의 두 자리가 이 한 벌을 쓴다(PW-1011).
+ */
+function MiniLockIcon({ size, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="2" y="5" width="8" height="6" rx="1.5" fill={color} />
+      <path d="M4 5V3.5a2 2 0 0 1 4 0V5" stroke={color} strokeWidth="1.4" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+/**
  * LockBadge — 메뉴/버튼 옆에 부착하는 작은 잠금 배지.
  * requiredTier: "starter" | "growth" | "pro" / size: "sm"(기본) | "md"
  */
@@ -96,21 +109,7 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
         fontFamily: T.font,
       }}
     >
-      <svg
-        width={isSm ? 8 : 10}
-        height={isSm ? 8 : 10}
-        viewBox="0 0 12 12"
-        fill="none"
-      >
-        <rect x="2" y="5" width="8" height="6" rx="1.5" fill={T.amber} />
-        <path
-          d="M4 5V3.5a2 2 0 0 1 4 0V5"
-          stroke={T.amber}
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          fill="none"
-        />
-      </svg>
+      <MiniLockIcon size={isSm ? 8 : 10} color={T.amber} />
       {tierLabel}+
     </span>
   );
@@ -243,16 +242,7 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
           color: tierColor,
         }}
       >
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-          <rect x="2" y="5" width="8" height="6" rx="1.5" fill={tierColor} />
-          <path
-            d="M4 5V3.5a2 2 0 0 1 4 0V5"
-            stroke={tierColor}
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </svg>
+        <MiniLockIcon size={11} color={tierColor} />
         {labels?.badge ? labels.badge(tierLabel) : `${tierLabel}+ 전용 기능`}
       </div>
 

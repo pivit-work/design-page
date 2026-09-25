@@ -2,6 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback, useMemo } from 're
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -156,9 +157,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         {/* Header */}
         <div className="modal-header">
           <button className="modal-close" onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <CloseGlyph size={20} strokeWidth={2.4} />
           </button>
           {renderAvatar ? renderAvatar(displayMember) : (
             <div

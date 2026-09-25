@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * OkrWizardEntryButton — OKR 탭 오른쪽 위 [{단위} OKR 작성] / [OKR 작성 ▾].
@@ -12,12 +13,7 @@ import { useEffect, useRef, useState } from 'react';
  * 문구는 전부 소비자가 넘긴다(번역).
  */
 function ChevronDown({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
+  return <ChevronDownGlyph size={size} />;
 }
 
 export default function OkrWizardEntryButton({

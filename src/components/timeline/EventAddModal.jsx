@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
+import { CheckCircleSolidGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import CustomSelect from './CustomSelect.jsx';
 import useTimelineData from './useTimelineData.js';
 
@@ -126,10 +127,7 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
             aria-label="닫기"
             onClick={onClose}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <CloseGlyph size={24} />
           </button>
         </div>
 
@@ -290,9 +288,7 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
                 <span className="tl-event-gcal-title">
                   Google Calendar에도 등록
                   <span className="tl-event-gcal-badge" aria-hidden="true">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                      <path d="M7 0a7 7 0 1 0 7 7A7 7 0 0 0 7 0zm3.3 5.7-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L5.6 7.6l3.3-3.3a1 1 0 0 1 1.4 1.4z" />
-                    </svg>
+                    <CheckCircleSolidGlyph size={14} />
                   </span>
                 </span>
                 <span className="tl-event-gcal-desc">참석자에게 캘린더 초대가 발송됩니다</span>

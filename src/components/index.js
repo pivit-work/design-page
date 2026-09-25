@@ -28,6 +28,44 @@ export {
   RecordingPlayerDivider,
 } from './shared/RecordingPlayerRow.jsx';
 export { default as AiFailBox } from './shared/AiFailBox.jsx';
+// 두 곳 이상에서 쓰는 선 아이콘 — 그림은 한 벌만 (PW-1011)
+export {
+  CloseGlyph,
+  PlusGlyph,
+  CheckGlyph,
+  CheckCircleGlyph,
+  CheckCircleSolidGlyph,
+  ChevronDownGlyph,
+  ChevronUpGlyph,
+  ChevronLeftGlyph,
+  ChevronRightGlyph,
+  ArrowRightGlyph,
+  ArrowLeftGlyph,
+  AlertTriangleGlyph,
+  InfoGlyph,
+  ClockGlyph,
+  LockGlyph,
+  LockKeyholeSquareGlyph,
+  EyeGlyph,
+  SearchGlyph,
+  UserGlyph,
+  UsersGlyph,
+  PencilGlyph,
+  FileTextGlyph,
+  FolderGlyph,
+  ChatGlyph,
+  MailGlyph,
+  CalendarGlyph,
+  UploadGlyph,
+  DownloadGlyph,
+  SettingsGlyph,
+  CrownGlyph,
+  PauseGlyph,
+  ConnectorCurveGlyph,
+  ConnectorElbowGlyph,
+  DragHandleGlyph,
+  SparkleGlyph,
+} from './shared/lineIcons.jsx';
 
 // Layout
 export { default as Sidebar } from './layout/Sidebar.jsx';

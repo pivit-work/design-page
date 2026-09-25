@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * OrgTreePicker — 소속(조직)을 계층 트리에서 고르는 팝업.
@@ -542,13 +543,11 @@ export default function OrgTreePicker({
                     padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  <svg
-                    width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden
+                  <ChevronDownGlyph
+                    size={10}
+                    strokeWidth={2.5}
                     style={{ transform: collapsed[e.id] ? 'rotate(-90deg)' : 'none', transition: 'transform .12s' }}
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  />
                 </button>
               ) : (
                 <span style={{ width: 16, flexShrink: 0 }} />
