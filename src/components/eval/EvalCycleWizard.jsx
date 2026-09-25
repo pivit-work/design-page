@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import SidePanelShell from '../shared/SidePanelShell.jsx';
+import { confirmOpen, isTopLayer, pushLayer } from '../shared/dismissStack.js';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
@@ -2022,7 +2024,7 @@ export default function EvalCycleWizard({
    * 번째 리마인더까지 함께 열렸다. 테스트 발송(`testKey`)은 처음부터 이 모양이었다.
    */
   const rmKey = (pid, rid) => `${pid}::${rid}`;
-  const [rmDetail, setRmDetail] = useState(() => new Set()); // 상세(⚙) 펼친 리마인더 — rmKey
+  const [rmEdit, setRmEdit] = useState(null); // [PW-1066] 오른쪽 패널로 연 리마인더 — { pid, rid }
   const [disabledPhases, setDisabledPhases] = useState(() => {
     if (D?.disabledPhases) return new Set(D.disabledPhases);
     return new Set(
@@ -2382,8 +2384,13 @@ export default function EvalCycleWizard({
   );
 
   // §5.2.1 리마인더 편집
-  const addReminder = (pid) =>
-    setReminders((r) => ({ ...r, [pid]: [...remindersOf(pid), makeReminder(1, ['email'])] }));
+  /* [PW-1066] 새로 더한 리마인더는 곧바로 패널을 연다 — 목록에는 입력칸이 없어서, 안 열면
+     기본값(D-1 · 09:00 · 이메일)으로 조용히 한 줄이 늘 뿐 무엇이 잡혔는지 확인할 자리가 없다. */
+  const addReminder = (pid) => {
+    const rm = makeReminder(1, ['email']);
+    setReminders((r) => ({ ...r, [pid]: [...remindersOf(pid), rm] }));
+    setRmEdit({ pid, rid: rm.id });
+  };
   const removeReminder = (pid, rid) =>
     setReminders((r) => ({ ...r, [pid]: remindersOf(pid).filter((x) => x.id !== rid) }));
   const updateReminder = (pid, rid, field, value) =>
@@ -2409,13 +2416,6 @@ export default function EvalCycleWizard({
         };
       }),
     }));
-  const toggleRmDetail = (key) =>
-    setRmDetail((prev) => {
-      const n = new Set(prev);
-      if (n.has(key)) n.delete(key);
-      else n.add(key);
-      return n;
-    });
 
   /**
    * [PW-1013] 리마인더 칸의 «물어보고 진행» — 브라우저 기본 확인 창(`window.confirm`) 대신 공용
@@ -2440,6 +2440,25 @@ export default function EvalCycleWizard({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pendingAsk]);
+
+  /* [PW-1066] 리마인더 패널도 «닫히는 층» 목록에 올린다 — 안 올리면 패널을 연 채 Esc 를 누를 때
+     밑의 마법사 창이 맨 위로 여겨져 마법사 닫기(이탈 확인)가 뜬다. 패널 안에서 연 펼침 메뉴·
+     확인 창이 있으면 그쪽이 먼저 닫힌다. 값은 누를 때마다 이미 들어가 있어 닫아도 잃지 않는다. */
+  const rmEditOpen = rmEdit != null;
+  useEffect(() => {
+    if (!rmEditOpen) return undefined;
+    const token = {};
+    const popLayer = pushLayer(token);
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || !isTopLayer(token) || confirmOpen()) return;
+      setRmEdit(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      popLayer();
+    };
+  }, [rmEditOpen]);
 
   /**
    * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 공용 확인 창.
@@ -2940,6 +2959,567 @@ export default function EvalCycleWizard({
         !(selfOn && PHASE_RESPONDER_ROLE[pid] === t.id),
     ).map((t) => L[t.labelKey]);
     return names.length ? names.join(' · ') : L.reminderEmailCcNone;
+  };
+
+  /**
+   * [PW-1066] 리마인더 하나를 두고 목록 줄과 오른쪽 패널이 함께 쓰는 판정.
+   * 목록 줄에도 경고를 띄우므로(패널을 안 열면 모르는 채로 넘어간다) 두 자리가 한 계산을 쓴다.
+   */
+  const reminderFacts = (ph, rm) => {
+    // 구 형태(email.{subject,body})로 저장된 것도 여기서 message 로 읽는다.
+    const msg = messageOf(rm);
+    /* [PW-529 · 정책 §5.2.1-B] 당사자를 껐는가에 따라 셋이 함께 갈린다 —
+       중복 억제 · 문구 후보 · 슬랙 @멘션. 한 자리에서 계산해 내려보낸다. */
+    const selfOn = isSelfTargetOn(rm.targets);
+    const responderRole = PHASE_RESPONDER_ROLE[ph.id] ?? 'member';
+    // ⚠️ 「이미 당사자에 포함」이라는 억제는 **당사자를 켰을 때만** 성립한다.
+    //    구 규칙(역할만 비교)을 그대로 두면 하향 리뷰에서 당사자(리더)를 껐을 때
+    //    +리더 도 비활성이라 **아무도 받지 않는** 리마인더가 만들어진다.
+    const dupTarget = (id) => selfOn && responderRole === id;
+    const ccCount = ['leader', 'hr'].filter(
+      (id) => rm.targets?.[id] && !dupTarget(id),
+    ).length;
+    const recipientCount = (selfOn ? 1 : 0) + ccCount;
+    const noRecipient = recipientCount === 0;
+    /* [PW-585 · 정책 §6.10.3] 단계가 열리기 «전»으로 잡힌 예약은
+       영영 안 나간다. 저장은 막지 않고(§5.2.1) 그 줄에서 알린다 —
+       알리지 않으면 「예약해 뒀는데 왜 안 왔지」로만 드러난다. */
+    const beforeStart = isReminderBeforePhaseStart(rm, scheduleOf(ph.id));
+    return { msg, selfOn, dupTarget, noRecipient, beforeStart };
+  };
+  /** 「종료 전 D-3 · 09:00」 — 목록 줄과 패널 머리가 같은 글을 쓴다. */
+  const reminderWhenText = (rm) => {
+    const anchor = REMINDER_ANCHORS.find((a) => a.id === rm.anchor) ?? REMINDER_ANCHORS[0];
+    return `${L[anchor.labelKey]} D-${rm.offset} · ${rm.time}`;
+  };
+  /** 목록 줄 끝의 문구 종류 — 기본 문구 / 직접 쓴 문구 / 그 밖의 준비된 문구는 제 이름. */
+  const reminderMessageKindText = (msg) => {
+    if (msg.template === 'custom') return L.reminderSumMsgCustom;
+    if (msg.template === 'default') return L.reminderSumMsgDefault;
+    const tpl = [...MESSAGE_TEMPLATES, ...REPORT_TEMPLATES].find((t) => t.id === msg.template);
+    return tpl ? L[tpl.labelKey] : L.reminderSumMsgDefault;
+  };
+
+  /**
+   * [PW-1066] 리마인더 편집 패널 — 목록의 [편집] 이 오른쪽에서 연다.
+   *
+   * 종전에는 [상세] 가 목록 안에서 그 자리에 펼쳐져 아래 단계들을 한참 밀어냈고(화면 길이
+   * 2,635px → 3,359px), 상자가 다섯 겹이었다. 담는 «자리» 만 옮긴다 — 안의 내용과 순서
+   * (수신 대상 → 메시지 → 이메일 발송 설정 → 슬랙 발송 설정)는 기획서 그대로다.
+   *
+   * - 마법사 창(겹침 1000) 위에 떠야 하므로 1001. 패널 안에서 여는 확인 창(10050)은 그보다 위다.
+   * - 고친 값은 누르는 즉시 마법사 상태에 들어간다 — [완료]·막 누르기·Esc 는 닫기만 한다.
+   */
+  const renderReminderPanel = () => {
+    if (!rmEdit) return null;
+    const ph = displayPhases.find((p) => p.id === rmEdit.pid);
+    const list = ph && !disabledPhases.has(ph.id) ? remindersOf(ph.id) : [];
+    const i = list.findIndex((x) => x.id === rmEdit.rid);
+    if (!ph || i < 0) return null;
+    const rm = list[i];
+    const { msg, selfOn, dupTarget, noRecipient, beforeStart } = reminderFacts(ph, rm);
+    const close = () => setRmEdit(null);
+    return (
+      <SidePanelShell
+        onClose={close}
+        zIndex={1001}
+        className="evc-rm-panel"
+        testId={`evc-rm-panel-${ph.id}-${i}`}
+        ariaLabelledBy="evc-rm-panel-title"
+      >
+        <div className="evc-rm-panel-head">
+          <div>
+            <div className="evc-rm-panel-eyebrow" data-testid="evc-rm-panel-eyebrow">
+              {fill(L.reminderPanelEyebrow, { stage: L[ph.nameKey], n: i + 1 })}
+            </div>
+            <h2 id="evc-rm-panel-title" className="evc-rm-panel-title" data-testid="evc-rm-panel-title">
+              {reminderWhenText(rm)}
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="evc-rm-panel-x"
+            onClick={close}
+            aria-label={L.reminderPanelClose}
+            data-testid="evc-rm-panel-close"
+          >
+            <CloseIcon size={14} />
+          </button>
+        </div>
+        <div className="evc-rm-panel-body">
+          {/* 0. 언제 · 어느 채널로 — 종전 목록 줄에 있던 입력칸 */}
+          <div className="evc-rm-dsec">
+            <div className="evc-rm-dsec-title">{L.reminderPanelWhen}</div>
+            <div className="evc-rm-when-fields">
+            <Select
+              className="evc-rm-field"
+              value={rm.anchor}
+              onChange={(e) => updateReminder(ph.id, rm.id, 'anchor', e.target.value)}
+            >
+              {REMINDER_ANCHORS.map((a) => (
+                <option key={a.id} value={a.id}>{L[a.labelKey]}</option>
+              ))}
+            </Select>
+            <span className="evc-rm-inline">
+              <span className="evc-rm-dtext">D-</span>
+              <TextInput
+                type="number"
+                min={0}
+                max={60}
+                className="evc-rm-field evc-rm-offset"
+                value={rm.offset}
+                onChange={(e) =>
+                  updateReminder(
+                    ph.id, rm.id, 'offset',
+                    Math.max(0, Math.min(60, Number(e.target.value) || 0)),
+                  )}
+              />
+              <span className="evc-rm-unit">{L.reminderDay}</span>
+            </span>
+            <span className="evc-rm-inline">
+              <span className="evc-rm-unit">{L.reminderTime}</span>
+              <TimeInput
+                className="evc-rm-field"
+                value={rm.time}
+                onChange={(v) => updateReminder(ph.id, rm.id, 'time', v)}
+              />
+            </span>
+            <span className="evc-rm-channels">
+              {REMINDER_CHANNELS.map((ch) => {
+                const on = rm.channels.includes(ch.id);
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    className={`evc-rm-ch${on ? ' is-on' : ''}`}
+                    onClick={() => toggleChannel(ph.id, rm.id, ch.id)}
+                    data-testid={`evc-rm-ch-${ph.id}-${i}-${ch.id}`}
+                  >
+                    <ch.Icon size={14} /> {L[ch.labelKey]}
+                  </button>
+                );
+              })}
+            </span>
+            </div>
+            {beforeStart && L.reminderBeforeStartWarn && (
+              <div className="evc-rm-tgt-error" data-testid={`evc-rm-panel-before-start-${ph.id}-${i}`}>
+                {L.reminderBeforeStartWarn}
+              </div>
+            )}
+          </div>
+        {/* 1. 수신 대상 */}
+        <div className="evc-rm-dsec">
+          <div className="evc-rm-dsec-title"><UsersIcon size={13} /> {L.reminderTargetsTitle}</div>
+          <div className="evc-rm-tgts">
+            {REMINDER_TARGETS.map((t) => {
+              const isSelf = t.id === 'self';
+              const dup = !isSelf && dupTarget(t.id);
+              const on = isSelf ? selfOn : Boolean(rm.targets?.[t.id]) && !dup;
+              // [PW-529] 당사자도 이제 끌 수 있다 — 막는 것은 중복뿐이다.
+              const disabled = dup;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={disabled}
+                  className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
+                  onClick={async () => {
+                    if (disabled) return;
+                    /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
+                       바꾼다(독촉 → 현황 보고). 한 번 확인한다.
+                       켜는 쪽은 되돌리는 것이라 묻지 않는다. */
+                    if (isSelf && selfOn && !(await confirmSelfOff())) return;
+                    patchReminder(ph.id, rm.id, (r) => ({
+                      targets: {
+                        ...r.targets,
+                        [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
+                      },
+                      /* 🔴 후보 집합만 갈아 끼우면 «고른 값» 은 그대로 남는다.
+                         그러면 셀렉트는 「현황 보고」로 보이는데 실제로 나가는 것은
+                         2인칭 독촉문이다 — 이 절이 막으려던 바로 그 사고가
+                         화면만 바뀐 채 그대로 일어난다. 값도 함께 옮긴다.
+                         커스텀은 건드리지 않는다(직접 쓴 글을 지우지 않는다). */
+                      ...(isSelf
+                        ? // `selfOn` 은 «누르기 전» 값이다 — 켜져 있었으면 지금 끄는 것이다.
+                          { message: migrateTemplate(messageOf(r), selfOn) }
+                        : null),
+                    }));
+                  }}
+                  title={dup ? L.reminderTgtDupHint : undefined}
+                  data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
+                >
+                  {on ? '✓' : '+'}{' '}
+                  {isSelf
+                    ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
+                    : L[t.labelKey]}
+                  {dup ? ` · ${L.reminderTgtDup}` : ''}
+                </button>
+              );
+            })}
+          </div>
+          {/* [PW-529] 하한 — 아무도 받지 않는 리마인더는 저장할 수 없다 (정책 §5.2.1-B) */}
+          {noRecipient && (
+            <div
+              className="evc-rm-tgt-error"
+              data-testid={`evc-rm-no-recipient-${ph.id}-${i}`}
+            >
+              {L.reminderNoRecipientErr}
+            </div>
+          )}
+          {/* [PW-529] 당사자가 빠지면 「독촉」이 아니라 「현황 보고」다 */}
+          {!selfOn && !noRecipient && (
+            <div
+              className="evc-rm-tgt-note"
+              data-testid={`evc-rm-report-mode-${ph.id}-${i}`}
+            >
+              {L.reminderReportModeNote}
+            </div>
+          )}
+        </div>
+        {/* ── 2. 메시지 (채널 공통) — 이메일·슬랙보다 «위» [PW-435 ⑤]
+            종전에는 이 블록이 '이메일 발송 설정' 안에 있어 문구가
+            이메일에 종속돼 보였고, 슬랙만 켠 리마인더는 문구를 확인할
+            자리가 아예 없었다. 채널과 무관하게 항상 보인다. */}
+        <div className="evc-rm-dsec is-box is-message">
+          <div className="evc-rm-dsec-title">
+            <PencilIcon size={13} /> {L.reminderMessageTitle}
+            <span className="evc-rm-dsec-note">{L.reminderMessageNote}</span>
+          </div>
+          {/* 이 문구가 어느 채널로 어떻게 나가는지 — 켠 채널만 나열한다 */}
+          <div className="evc-rm-render" data-testid={`evc-rm-render-${ph.id}-${i}`}>
+            {CHANNEL_RENDER.filter((c) => rm.channels.includes(c.id)).map((c) => (
+              <StatusBadge
+                key={c.id}
+                className="evc-rm-render-chip"
+                data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}>
+                <c.Icon size={12} /> {L[c.labelKey]}
+                <span className="evc-rm-render-desc">· {L[c.descKey]}</span>
+              </StatusBadge>
+            ))}
+          </div>
+          <label className="evc-rm-dfield">
+            <span>{L.reminderMessageTpl}</span>
+            <Select
+              className="evc-rm-field"
+              value={msg.template}
+              onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
+              data-testid={`evc-rm-msg-tpl-${ph.id}-${i}`}
+            >
+              {/* [PW-529] 후보 집합이 「당사자를 켰는가」로 갈린다 —
+                  당사자를 끄면 2인칭 독촉문 2종이 빠지고 보고형이 선다. */}
+              {(selfOn ? MESSAGE_TEMPLATES : REPORT_TEMPLATES).map((t) => (
+                <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
+              ))}
+            </Select>
+          </label>
+          {msg.template !== 'custom' ? (
+            (() => {
+              const tpl =
+                MESSAGE_TEMPLATE_PREVIEW[msg.template] ??
+                MESSAGE_TEMPLATE_PREVIEW.default;
+              return (
+                <div>
+                  <div className="evc-rm-preview-tag">
+                    {L.reminderPreview} · {L.reminderReadonly}
+                  </div>
+                  <div className="evc-rm-preview-body">
+                    <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
+                    <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
+                    <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            <div className="evc-rm-custom">
+              {/* [PW-435 ⑥] 이 «단계» 에 저장해 둔 문구 — 커스텀을 고르면 항상 보인다.
+                  다른 단계의 문구는 섞지 않는다: 셀프 리뷰 독촉 문구가
+                  결과 발송 단계에 뜨면 도움이 되지 않는다. */}
+              <div className="evc-rm-saved" data-testid={`evc-rm-saved-${ph.id}-${i}`}>
+                <span className="evc-rm-vars-label">{L.reminderSavedLabel}</span>
+                {savedMessagesStatus === 'loading' ? (
+                  <span className="evc-rm-saved-empty">{L.reminderSavedLoading}</span>
+                ) : savedMessagesStatus === 'error' ? (
+                  /* 🔴 「없다」로 보이면 이미 저장해 둔 문구를 처음부터 다시 쓴다. */
+                  <span
+                    className="evc-rm-saved-error"
+                    data-testid={`evc-rm-saved-error-${ph.id}-${i}`}
+                  >
+                    {L.reminderSavedLoadError}
+                    {onReloadSavedMessages && (
+                      <button
+                        type="button"
+                        className="evc-rm-saved-retry"
+                        onClick={onReloadSavedMessages}
+                        data-testid={`evc-rm-saved-retry-${ph.id}-${i}`}
+                      >
+                        {L.reminderSavedRetry}
+                      </button>
+                    )}
+                  </span>
+                ) : savedForPhase(ph.id).length === 0 ? (
+                  <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
+                ) : (
+                  <Select
+                    className="evc-rm-field"
+                    value=""
+                    onChange={(e) => loadSavedMessage(ph.id, rm, e.target.value)}
+                    data-testid={`evc-rm-saved-pick-${ph.id}-${i}`}
+                  >
+                    <option value="">
+                      {fill(L.reminderSavedPick, { count: savedForPhase(ph.id).length })}
+                    </option>
+                    {savedForPhase(ph.id).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} · {fill(L.reminderSavedUsage, { count: m.usageCount ?? 0 })}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+              <TextInput
+                type="text"
+                className="evc-rm-field evc-rm-cinput"
+                placeholder={L.reminderEmailSubjectPh}
+                value={msg.subject}
+                onChange={(e) =>
+                  patchMessage(ph.id, rm.id, { subject: e.target.value })}
+                data-testid={`evc-rm-msg-subject-${ph.id}-${i}`}
+              />
+              <TextArea
+                className="evc-rm-field evc-rm-cbody"
+                rows={4}
+                placeholder={L.reminderEmailBodyPh}
+                value={msg.body}
+                onChange={(e) =>
+                  patchMessage(ph.id, rm.id, { body: e.target.value })}
+                data-testid={`evc-rm-msg-body-${ph.id}-${i}`}
+              />
+              {renderMessageTools(
+                ph,
+                rm,
+                i,
+                'email',
+                onSaveMessage ? (
+                  <button
+                    type="button"
+                    className="evc-rm-save-msg"
+                    disabled={!msg.body}
+                    title={msg.body ? L.reminderSaveHint : L.reminderSaveEmptyHint}
+                    onClick={() => void saveCurrentMessage(ph, rm)}
+                    data-testid={`evc-rm-save-msg-${ph.id}-${i}`}
+                  >
+                    {L.reminderSaveMessage}
+                  </button>
+                ) : null,
+              )}
+            </div>
+          )}
+          {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있다 */}
+          {rm.channels.includes('email') && rm.channels.includes('slack') && (
+            <div className="evc-rm-slack-sep">
+              <Checkbox
+                className="evl-promo-row"
+                checked={!!msg.slackSeparate}
+                onChange={(e) =>
+                  patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
+                data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
+              >
+                <span>
+                  {L.reminderSlackSeparate}
+                  <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
+                </span>
+              </Checkbox>
+              {msg.slackSeparate && (
+                <>
+                  <TextArea
+                    className="evc-rm-field evc-rm-cbody"
+                    rows={3}
+                    placeholder={L.reminderSlackBodyPh}
+                    value={msg.slackBody}
+                    onChange={(e) =>
+                      patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
+                    data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
+                  />
+                  {/* [PW-530 ①] 이메일 본문과 **같은 도구**. 종전에는 이 칸만
+                      도구가 없어 변수를 손으로 쳐야 했고, 오타가 나면 치환되지
+                      않은 `{likn}` 이 그대로 발송됐다. */}
+                  {renderMessageTools(ph, rm, i, 'slack')}
+                </>
+              )}
+            </div>
+          )}
+          {/* [PW-530 2차] 샘플은 **처음부터 펼쳐** 둔다 — 접혀 있으면
+              문구를 고치는 동안 안 보이고, 샘플은 고치면서 봐야 값이 있다.
+              접는 길은 남긴다. */}
+          <div className="evc-rm-msg-actions">
+            <button
+              type="button"
+              className="evc-rm-save-msg"
+              onClick={() => toggleSample(rmKey(ph.id, rm.id))}
+              aria-expanded={sampleIsOpen(rmKey(ph.id, rm.id))}
+              data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
+            >
+              {sampleIsOpen(rmKey(ph.id, rm.id)) ? L.reminderSampleHide : L.reminderSampleShow}
+            </button>
+            {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
+                어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
+            {onTestSendMessage && (
+              <button
+                type="button"
+                className="evc-rm-save-msg"
+                disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
+                title={L.reminderTestSendHint}
+                onClick={() => void runTestSend(ph, rm)}
+                data-testid={`evc-rm-test-send-${ph.id}-${i}`}
+              >
+                {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
+              </button>
+            )}
+          </div>
+          {testResult[testKey(ph.id, rm.id)] && (
+            <div
+              className="evc-rm-test-result"
+              role="status"
+              data-testid={`evc-rm-test-result-${ph.id}-${i}`}
+            >
+              {testResult[testKey(ph.id, rm.id)].failed ? (
+                <p className="evc-rm-ai-error">{L.reminderTestFailed}</p>
+              ) : (
+                testResult[testKey(ph.id, rm.id)].lines.map((ln) => (
+                  <p
+                    key={ln.channel}
+                    className={ln.ok ? 'evc-rm-test-line is-ok' : 'evc-rm-ai-error'}
+                    data-testid={`evc-rm-test-line-${ln.channel}-${ph.id}-${i}`}
+                  >
+                    {ln.text}
+                  </p>
+                ))
+              )}
+            </div>
+          )}
+          {sampleIsOpen(rmKey(ph.id, rm.id)) && renderMessageSample(ph, rm, i)}
+        </div>
+        {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
+        {rm.channels.includes('email') && (
+          <div className="evc-rm-dsec is-box">
+            <div className="evc-rm-dsec-title"><MailIcon size={13} /> {L.reminderEmailTitle}</div>
+            <div className="evc-rm-dsec-lines" data-testid={`evc-rm-email-lines-${ph.id}-${i}`}>
+              <div>· <strong>{L.reminderEmailToLabel}</strong> {L.reminderEmailToValue}</div>
+              <div>· <strong>{L.reminderEmailCcLabel}</strong> {ccSummary(ph.id, rm)}</div>
+              <div>· <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}</div>
+            </div>
+          </div>
+        )}
+        {/* ── 4. 슬랙 발송 설정 — 이메일과 같은 층. 문구는 위 메시지가 갖는다 */}
+        {rm.channels.includes('slack') && (
+          <div className="evc-rm-dsec is-box">
+            <div className="evc-rm-dsec-title"><ChatIcon size={13} /> {L.reminderSlackTitle}</div>
+            <div className="evc-rm-dsec-lines" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
+              · <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}
+              {msg.slackSeparate ? ` ${L.reminderSlackOwnCopy}` : ` ${L.reminderSlackSameCopy}`}
+            </div>
+            <div className="evc-rm-tgts">
+              {SLACK_SEND_MODES.map((m) => {
+                const on = (rm.slack?.mode ?? 'dm') === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`evc-rm-tgt${on ? ' is-on' : ''}`}
+                    onClick={() =>
+                      patchReminder(ph.id, rm.id, (r) => ({
+                        slack: { ...r.slack, mode: m.id },
+                      }))}
+                    data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
+                  >
+                    <m.Icon size={14} /> {L[m.labelKey]}
+                  </button>
+                );
+              })}
+            </div>
+            {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
+              /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
+                 드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
+                 방식을 «쳐서 좁히는» 방식으로 바꾼다. 브라우저 기본
+                 `datalist` 를 쓴다 — 새 시각 부품을 만들지 않으면서
+                 타이핑 필터를 얻는다. */
+              const value = rm.slack?.channel ?? '';
+              const listId = `evc-rm-slack-ch-list-${ph.id}-${i}`;
+              const known = channelOptions.some((c) => c === value);
+              return (
+              <div className="evc-rm-slack-ch">
+                <TextInput
+                  type="text"
+                  className="evc-rm-field"
+                  list={listId}
+                  placeholder={L.reminderSlackChannelPh}
+                  value={value}
+                  onChange={(e) =>
+                    patchReminder(ph.id, rm.id, (r) => ({
+                      slack: { ...r.slack, channel: normalizeChannel(e.target.value) },
+                    }))}
+                  data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
+                />
+                <datalist id={listId} data-testid={`evc-rm-slack-channel-list-${ph.id}-${i}`}>
+                  {channelOptions.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+                {/* [PW-529 ②] @멘션이 부르는 것은 «받는 사람 명단» 이지
+                    「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
+                    부를 대상이 없다 — 켜 둘 수 없게 막는다.
+                    참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
+                <button
+                  type="button"
+                  disabled={!selfOn}
+                  className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
+                  onClick={() =>
+                    selfOn &&
+                    patchReminder(ph.id, rm.id, (r) => ({
+                      slack: { ...r.slack, mention: !r.slack?.mention },
+                    }))}
+                  title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
+                  data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
+                >
+                  {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                  {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
+                </button>
+                {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
+                    슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
+                    떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
+                <span
+                  className="evc-rm-dsec-note"
+                  data-testid={`evc-rm-slack-channel-note-${ph.id}-${i}`}
+                >
+                  {slackChannelsStatus === 'loading'
+                    ? L.reminderSlackChannelLoading
+                    : slackChannelsStatus === 'error'
+                    ? L.reminderSlackChannelLoadError
+                    : channelOptions.length === 0
+                    ? L.reminderSlackChannelNone
+                    : value && !known
+                    ? L.reminderSlackChannelUnknown
+                    : fill(L.reminderSlackChannelCount, { count: channelOptions.length })}
+                </span>
+              </div>
+              );
+            })()}
+          </div>
+        )}
+        </div>
+        <div className="evc-rm-panel-foot">
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            onClick={close}
+            data-testid="evc-rm-panel-done"
+          >
+            {L.reminderPanelDone}
+          </button>
+        </div>
+      </SidePanelShell>
+    );
   };
   const togglePhaseEnabled = (id) =>
     setDisabledPhases((prev) => {
@@ -5660,112 +6240,27 @@ export default function EvalCycleWizard({
                             <span className="evc-rm-count">
                               {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
                             </span>
-                            <span className="evc-rm-hint">{L.reminderHint}</span>
                           </div>
                           {remindersOf(ph.id).length === 0 ? (
                             <div className="evc-rm-empty">{L.reminderEmpty}</div>
                           ) : (
                             <div className="evc-rm-list">
                               {remindersOf(ph.id).map((rm, i) => {
-                                // 구 형태(email.{subject,body})로 저장된 것도 여기서 message 로 읽는다.
-                                const msg = messageOf(rm);
-                                /* [PW-529 · 정책 §5.2.1-B] 당사자를 껐는가에 따라 셋이 함께 갈린다 —
-                                   중복 억제 · 문구 후보 · 슬랙 @멘션. 한 자리에서 계산해 내려보낸다. */
-                                const selfOn = isSelfTargetOn(rm.targets);
-                                const responderRole = PHASE_RESPONDER_ROLE[ph.id] ?? 'member';
-                                // ⚠️ 「이미 당사자에 포함」이라는 억제는 **당사자를 켰을 때만** 성립한다.
-                                //    구 규칙(역할만 비교)을 그대로 두면 하향 리뷰에서 당사자(리더)를 껐을 때
-                                //    +리더 도 비활성이라 **아무도 받지 않는** 리마인더가 만들어진다.
-                                const dupTarget = (id) => selfOn && responderRole === id;
-                                const ccCount = ['leader', 'hr'].filter(
-                                  (id) => rm.targets?.[id] && !dupTarget(id),
-                                ).length;
-                                const recipientCount = (selfOn ? 1 : 0) + ccCount;
-                                const noRecipient = recipientCount === 0;
-                                /* [PW-585 · 정책 §6.10.3] 단계가 열리기 «전»으로 잡힌 예약은
-                                   영영 안 나간다. 저장은 막지 않고(§5.2.1) 그 줄에서 알린다 —
-                                   알리지 않으면 「예약해 뒀는데 왜 안 왔지」로만 드러난다. */
-                                const beforeStart = isReminderBeforePhaseStart(rm, scheduleOf(ph.id));
+                                const { msg, selfOn, noRecipient, beforeStart } = reminderFacts(ph, rm);
+                                const editing = rmEdit?.pid === ph.id && rmEdit?.rid === rm.id;
                                 return (
                                 <div
                                   key={rm.id}
-                                  className="evc-rm-row"
+                                  className={`evc-rm-row${editing ? ' is-editing' : ''}`}
                                   data-testid={`evc-rm-${ph.id}-${i}`}
                                 >
+                                  {/* [PW-1066] 목록에는 한 줄 요약만 둔다 — 고치는 칸은 전부 [편집] 이 여는 오른쪽 패널에 있다.
+                                      기준·D-일·시각·채널·받는 사람·문구 종류가 이 한 줄에 다 읽혀야 패널을 안 열고도 훑는다. */}
                                   <div className="evc-rm-main">
                                     <span className="evc-rm-num">{i + 1}</span>
-                                    <Select
-                                      className="evc-rm-field"
-                                      value={rm.anchor}
-                                      onChange={(e) => updateReminder(ph.id, rm.id, 'anchor', e.target.value)}
-                                    >
-                                      {REMINDER_ANCHORS.map((a) => (
-                                        <option key={a.id} value={a.id}>{L[a.labelKey]}</option>
-                                      ))}
-                                    </Select>
-                                    <span className="evc-rm-inline">
-                                      <span className="evc-rm-dtext">D-</span>
-                                      <TextInput
-                                        type="number"
-                                        min={0}
-                                        max={60}
-                                        className="evc-rm-field evc-rm-offset"
-                                        value={rm.offset}
-                                        onChange={(e) =>
-                                          updateReminder(
-                                            ph.id, rm.id, 'offset',
-                                            Math.max(0, Math.min(60, Number(e.target.value) || 0)),
-                                          )}
-                                      />
-                                      <span className="evc-rm-unit">{L.reminderDay}</span>
+                                    <span className="evc-rm-when" data-testid={`evc-rm-when-${ph.id}-${i}`}>
+                                      {reminderWhenText(rm)}
                                     </span>
-                                    <span className="evc-rm-inline">
-                                      <span className="evc-rm-unit">{L.reminderTime}</span>
-                                      <TimeInput
-                                        className="evc-rm-field"
-                                        value={rm.time}
-                                        onChange={(v) => updateReminder(ph.id, rm.id, 'time', v)}
-                                      />
-                                    </span>
-                                    <span className="evc-rm-channels">
-                                      {REMINDER_CHANNELS.map((ch) => {
-                                        const on = rm.channels.includes(ch.id);
-                                        return (
-                                          <button
-                                            key={ch.id}
-                                            type="button"
-                                            className={`evc-rm-ch${on ? ' is-on' : ''}`}
-                                            onClick={() => toggleChannel(ph.id, rm.id, ch.id)}
-                                            data-testid={`evc-rm-ch-${ph.id}-${i}-${ch.id}`}
-                                          >
-                                            <ch.Icon size={14} /> {L[ch.labelKey]}
-                                          </button>
-                                        );
-                                      })}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className={`evc-rm-detail-btn${rmDetail.has(rmKey(ph.id, rm.id)) ? ' is-open' : ''}`}
-                                      onClick={() => toggleRmDetail(rmKey(ph.id, rm.id))}
-                                      title={L.reminderDetail}
-                                      data-testid={`evc-rm-detail-${ph.id}-${i}`}
-                                    >
-                                      <GearIcon size={12} /> {L.reminderDetail} {rmDetail.has(rmKey(ph.id, rm.id)) ? '▲' : '▼'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="evc-rm-del"
-                                      onClick={() => removeReminder(ph.id, rm.id)}
-                                      title={L.reminderDelete}
-                                      data-testid={`evc-rm-del-${ph.id}-${i}`}
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                  <div className="evc-rm-summary">
-                                    <span className="evc-rm-sum-label">{L.reminderRecipients}</span>
-                                    {/* [PW-529] 당사자를 끄면 접힌 줄에도 그렇게 보여야 한다 —
-                                        펼치지 않으면 「당사자에게 간다」로 오해한다. */}
                                     {selfOn ? (
                                       <StatusBadge className="evc-rm-sum-chip is-primary">
                                         {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
@@ -5785,420 +6280,45 @@ export default function EvalCycleWizard({
                                         </span>
                                       );
                                     })}
+                                    <span className="evc-rm-sum-msg" data-testid={`evc-rm-sum-msg-${ph.id}-${i}`}>
+                                      · {reminderMessageKindText(msg)}
+                                    </span>
+                                    <span className="evc-rm-actions">
+                                      <button
+                                        type="button"
+                                        className="evc-rm-edit-btn"
+                                        aria-haspopup="dialog"
+                                        onClick={() => setRmEdit({ pid: ph.id, rid: rm.id })}
+                                        data-testid={`evc-rm-edit-${ph.id}-${i}`}
+                                      >
+                                        {L.reminderEdit}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="evc-rm-del"
+                                        onClick={() => removeReminder(ph.id, rm.id)}
+                                        title={L.reminderDelete}
+                                        data-testid={`evc-rm-del-${ph.id}-${i}`}
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
                                   </div>
+                                  {/* [PW-1066] 패널을 열지 않으면 모르는 채로 넘어가는 것 — 목록 줄에도 띄운다. */}
+                                  {noRecipient && (
+                                    <div
+                                      className="evc-rm-tgt-error"
+                                      data-testid={`evc-rm-row-no-recipient-${ph.id}-${i}`}
+                                    >
+                                      {L.reminderNoRecipientErr}
+                                    </div>
+                                  )}
                                   {beforeStart && L.reminderBeforeStartWarn && (
                                     <div
                                       className="evc-rm-tgt-error"
                                       data-testid={`evc-rm-before-start-${ph.id}-${i}`}
                                     >
                                       {L.reminderBeforeStartWarn}
-                                    </div>
-                                  )}
-                                  {rmDetail.has(rmKey(ph.id, rm.id)) && (
-                                    <div
-                                      className="evc-rm-detail"
-                                      data-testid={`evc-rm-detail-panel-${ph.id}-${i}`}
-                                    >
-                                      {/* 1. 수신 대상 */}
-                                      <div className="evc-rm-dsec">
-                                        <div className="evc-rm-dsec-title"><UsersIcon size={13} /> {L.reminderTargetsTitle}</div>
-                                        <div className="evc-rm-tgts">
-                                          {REMINDER_TARGETS.map((t) => {
-                                            const isSelf = t.id === 'self';
-                                            const dup = !isSelf && dupTarget(t.id);
-                                            const on = isSelf ? selfOn : Boolean(rm.targets?.[t.id]) && !dup;
-                                            // [PW-529] 당사자도 이제 끌 수 있다 — 막는 것은 중복뿐이다.
-                                            const disabled = dup;
-                                            return (
-                                              <button
-                                                key={t.id}
-                                                type="button"
-                                                disabled={disabled}
-                                                className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
-                                                onClick={async () => {
-                                                  if (disabled) return;
-                                                  /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
-                                                     바꾼다(독촉 → 현황 보고). 한 번 확인한다.
-                                                     켜는 쪽은 되돌리는 것이라 묻지 않는다. */
-                                                  if (isSelf && selfOn && !(await confirmSelfOff())) return;
-                                                  patchReminder(ph.id, rm.id, (r) => ({
-                                                    targets: {
-                                                      ...r.targets,
-                                                      [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
-                                                    },
-                                                    /* 🔴 후보 집합만 갈아 끼우면 «고른 값» 은 그대로 남는다.
-                                                       그러면 셀렉트는 「현황 보고」로 보이는데 실제로 나가는 것은
-                                                       2인칭 독촉문이다 — 이 절이 막으려던 바로 그 사고가
-                                                       화면만 바뀐 채 그대로 일어난다. 값도 함께 옮긴다.
-                                                       커스텀은 건드리지 않는다(직접 쓴 글을 지우지 않는다). */
-                                                    ...(isSelf
-                                                      ? // `selfOn` 은 «누르기 전» 값이다 — 켜져 있었으면 지금 끄는 것이다.
-                                                        { message: migrateTemplate(messageOf(r), selfOn) }
-                                                      : null),
-                                                  }));
-                                                }}
-                                                title={dup ? L.reminderTgtDupHint : undefined}
-                                                data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
-                                              >
-                                                {on ? '✓' : '+'}{' '}
-                                                {isSelf
-                                                  ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
-                                                  : L[t.labelKey]}
-                                                {dup ? ` · ${L.reminderTgtDup}` : ''}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                        {/* [PW-529] 하한 — 아무도 받지 않는 리마인더는 저장할 수 없다 (정책 §5.2.1-B) */}
-                                        {noRecipient && (
-                                          <div
-                                            className="evc-rm-tgt-error"
-                                            data-testid={`evc-rm-no-recipient-${ph.id}-${i}`}
-                                          >
-                                            {L.reminderNoRecipientErr}
-                                          </div>
-                                        )}
-                                        {/* [PW-529] 당사자가 빠지면 「독촉」이 아니라 「현황 보고」다 */}
-                                        {!selfOn && !noRecipient && (
-                                          <div
-                                            className="evc-rm-tgt-note"
-                                            data-testid={`evc-rm-report-mode-${ph.id}-${i}`}
-                                          >
-                                            {L.reminderReportModeNote}
-                                          </div>
-                                        )}
-                                      </div>
-                                      {/* ── 2. 메시지 (채널 공통) — 이메일·슬랙보다 «위» [PW-435 ⑤]
-                                          종전에는 이 블록이 '이메일 발송 설정' 안에 있어 문구가
-                                          이메일에 종속돼 보였고, 슬랙만 켠 리마인더는 문구를 확인할
-                                          자리가 아예 없었다. 채널과 무관하게 항상 보인다. */}
-                                      <div className="evc-rm-dsec is-box is-message">
-                                        <div className="evc-rm-dsec-title">
-                                          <PencilIcon size={13} /> {L.reminderMessageTitle}
-                                          <span className="evc-rm-dsec-note">{L.reminderMessageNote}</span>
-                                        </div>
-                                        {/* 이 문구가 어느 채널로 어떻게 나가는지 — 켠 채널만 나열한다 */}
-                                        <div className="evc-rm-render" data-testid={`evc-rm-render-${ph.id}-${i}`}>
-                                          {CHANNEL_RENDER.filter((c) => rm.channels.includes(c.id)).map((c) => (
-                                            <StatusBadge
-                                              key={c.id}
-                                              className="evc-rm-render-chip"
-                                              data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}>
-                                              <c.Icon size={12} /> {L[c.labelKey]}
-                                              <span className="evc-rm-render-desc">· {L[c.descKey]}</span>
-                                            </StatusBadge>
-                                          ))}
-                                        </div>
-                                        <label className="evc-rm-dfield">
-                                          <span>{L.reminderMessageTpl}</span>
-                                          <Select
-                                            className="evc-rm-field"
-                                            value={msg.template}
-                                            onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
-                                            data-testid={`evc-rm-msg-tpl-${ph.id}-${i}`}
-                                          >
-                                            {/* [PW-529] 후보 집합이 「당사자를 켰는가」로 갈린다 —
-                                                당사자를 끄면 2인칭 독촉문 2종이 빠지고 보고형이 선다. */}
-                                            {(selfOn ? MESSAGE_TEMPLATES : REPORT_TEMPLATES).map((t) => (
-                                              <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
-                                            ))}
-                                          </Select>
-                                        </label>
-                                        {msg.template !== 'custom' ? (
-                                          (() => {
-                                            const tpl =
-                                              MESSAGE_TEMPLATE_PREVIEW[msg.template] ??
-                                              MESSAGE_TEMPLATE_PREVIEW.default;
-                                            return (
-                                              <div>
-                                                <div className="evc-rm-preview-tag">
-                                                  {L.reminderPreview} · {L.reminderReadonly}
-                                                </div>
-                                                <div className="evc-rm-preview-body">
-                                                  <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
-                                                  <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
-                                                  <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
-                                                </div>
-                                              </div>
-                                            );
-                                          })()
-                                        ) : (
-                                          <div className="evc-rm-custom">
-                                            {/* [PW-435 ⑥] 이 «단계» 에 저장해 둔 문구 — 커스텀을 고르면 항상 보인다.
-                                                다른 단계의 문구는 섞지 않는다: 셀프 리뷰 독촉 문구가
-                                                결과 발송 단계에 뜨면 도움이 되지 않는다. */}
-                                            <div className="evc-rm-saved" data-testid={`evc-rm-saved-${ph.id}-${i}`}>
-                                              <span className="evc-rm-vars-label">{L.reminderSavedLabel}</span>
-                                              {savedMessagesStatus === 'loading' ? (
-                                                <span className="evc-rm-saved-empty">{L.reminderSavedLoading}</span>
-                                              ) : savedMessagesStatus === 'error' ? (
-                                                /* 🔴 「없다」로 보이면 이미 저장해 둔 문구를 처음부터 다시 쓴다. */
-                                                <span
-                                                  className="evc-rm-saved-error"
-                                                  data-testid={`evc-rm-saved-error-${ph.id}-${i}`}
-                                                >
-                                                  {L.reminderSavedLoadError}
-                                                  {onReloadSavedMessages && (
-                                                    <button
-                                                      type="button"
-                                                      className="evc-rm-saved-retry"
-                                                      onClick={onReloadSavedMessages}
-                                                      data-testid={`evc-rm-saved-retry-${ph.id}-${i}`}
-                                                    >
-                                                      {L.reminderSavedRetry}
-                                                    </button>
-                                                  )}
-                                                </span>
-                                              ) : savedForPhase(ph.id).length === 0 ? (
-                                                <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
-                                              ) : (
-                                                <Select
-                                                  className="evc-rm-field"
-                                                  value=""
-                                                  onChange={(e) => loadSavedMessage(ph.id, rm, e.target.value)}
-                                                  data-testid={`evc-rm-saved-pick-${ph.id}-${i}`}
-                                                >
-                                                  <option value="">
-                                                    {fill(L.reminderSavedPick, { count: savedForPhase(ph.id).length })}
-                                                  </option>
-                                                  {savedForPhase(ph.id).map((m) => (
-                                                    <option key={m.id} value={m.id}>
-                                                      {m.name} · {fill(L.reminderSavedUsage, { count: m.usageCount ?? 0 })}
-                                                    </option>
-                                                  ))}
-                                                </Select>
-                                              )}
-                                            </div>
-                                            <TextInput
-                                              type="text"
-                                              className="evc-rm-field evc-rm-cinput"
-                                              placeholder={L.reminderEmailSubjectPh}
-                                              value={msg.subject}
-                                              onChange={(e) =>
-                                                patchMessage(ph.id, rm.id, { subject: e.target.value })}
-                                              data-testid={`evc-rm-msg-subject-${ph.id}-${i}`}
-                                            />
-                                            <TextArea
-                                              className="evc-rm-field evc-rm-cbody"
-                                              rows={4}
-                                              placeholder={L.reminderEmailBodyPh}
-                                              value={msg.body}
-                                              onChange={(e) =>
-                                                patchMessage(ph.id, rm.id, { body: e.target.value })}
-                                              data-testid={`evc-rm-msg-body-${ph.id}-${i}`}
-                                            />
-                                            {renderMessageTools(
-                                              ph,
-                                              rm,
-                                              i,
-                                              'email',
-                                              onSaveMessage ? (
-                                                <button
-                                                  type="button"
-                                                  className="evc-rm-save-msg"
-                                                  disabled={!msg.body}
-                                                  title={msg.body ? L.reminderSaveHint : L.reminderSaveEmptyHint}
-                                                  onClick={() => void saveCurrentMessage(ph, rm)}
-                                                  data-testid={`evc-rm-save-msg-${ph.id}-${i}`}
-                                                >
-                                                  {L.reminderSaveMessage}
-                                                </button>
-                                              ) : null,
-                                            )}
-                                          </div>
-                                        )}
-                                        {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있다 */}
-                                        {rm.channels.includes('email') && rm.channels.includes('slack') && (
-                                          <div className="evc-rm-slack-sep">
-                                            <Checkbox
-                                              className="evl-promo-row"
-                                              checked={!!msg.slackSeparate}
-                                              onChange={(e) =>
-                                                patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
-                                              data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
-                                            >
-                                              <span>
-                                                {L.reminderSlackSeparate}
-                                                <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
-                                              </span>
-                                            </Checkbox>
-                                            {msg.slackSeparate && (
-                                              <>
-                                                <TextArea
-                                                  className="evc-rm-field evc-rm-cbody"
-                                                  rows={3}
-                                                  placeholder={L.reminderSlackBodyPh}
-                                                  value={msg.slackBody}
-                                                  onChange={(e) =>
-                                                    patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
-                                                  data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
-                                                />
-                                                {/* [PW-530 ①] 이메일 본문과 **같은 도구**. 종전에는 이 칸만
-                                                    도구가 없어 변수를 손으로 쳐야 했고, 오타가 나면 치환되지
-                                                    않은 `{likn}` 이 그대로 발송됐다. */}
-                                                {renderMessageTools(ph, rm, i, 'slack')}
-                                              </>
-                                            )}
-                                          </div>
-                                        )}
-                                        {/* [PW-530 2차] 샘플은 **처음부터 펼쳐** 둔다 — 접혀 있으면
-                                            문구를 고치는 동안 안 보이고, 샘플은 고치면서 봐야 값이 있다.
-                                            접는 길은 남긴다. */}
-                                        <div className="evc-rm-msg-actions">
-                                          <button
-                                            type="button"
-                                            className="evc-rm-save-msg"
-                                            onClick={() => toggleSample(rmKey(ph.id, rm.id))}
-                                            aria-expanded={sampleIsOpen(rmKey(ph.id, rm.id))}
-                                            data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
-                                          >
-                                            {sampleIsOpen(rmKey(ph.id, rm.id)) ? L.reminderSampleHide : L.reminderSampleShow}
-                                          </button>
-                                          {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
-                                              어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
-                                          {onTestSendMessage && (
-                                            <button
-                                              type="button"
-                                              className="evc-rm-save-msg"
-                                              disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
-                                              title={L.reminderTestSendHint}
-                                              onClick={() => void runTestSend(ph, rm)}
-                                              data-testid={`evc-rm-test-send-${ph.id}-${i}`}
-                                            >
-                                              {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
-                                            </button>
-                                          )}
-                                        </div>
-                                        {testResult[testKey(ph.id, rm.id)] && (
-                                          <div
-                                            className="evc-rm-test-result"
-                                            role="status"
-                                            data-testid={`evc-rm-test-result-${ph.id}-${i}`}
-                                          >
-                                            {testResult[testKey(ph.id, rm.id)].failed ? (
-                                              <p className="evc-rm-ai-error">{L.reminderTestFailed}</p>
-                                            ) : (
-                                              testResult[testKey(ph.id, rm.id)].lines.map((ln) => (
-                                                <p
-                                                  key={ln.channel}
-                                                  className={ln.ok ? 'evc-rm-test-line is-ok' : 'evc-rm-ai-error'}
-                                                  data-testid={`evc-rm-test-line-${ln.channel}-${ph.id}-${i}`}
-                                                >
-                                                  {ln.text}
-                                                </p>
-                                              ))
-                                            )}
-                                          </div>
-                                        )}
-                                        {sampleIsOpen(rmKey(ph.id, rm.id)) && renderMessageSample(ph, rm, i)}
-                                      </div>
-                                      {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
-                                      {rm.channels.includes('email') && (
-                                        <div className="evc-rm-dsec is-box">
-                                          <div className="evc-rm-dsec-title"><MailIcon size={13} /> {L.reminderEmailTitle}</div>
-                                          <div className="evc-rm-dsec-lines" data-testid={`evc-rm-email-lines-${ph.id}-${i}`}>
-                                            <div>· <strong>{L.reminderEmailToLabel}</strong> {L.reminderEmailToValue}</div>
-                                            <div>· <strong>{L.reminderEmailCcLabel}</strong> {ccSummary(ph.id, rm)}</div>
-                                            <div>· <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}</div>
-                                          </div>
-                                        </div>
-                                      )}
-                                      {/* ── 4. 슬랙 발송 설정 — 이메일과 같은 층. 문구는 위 메시지가 갖는다 */}
-                                      {rm.channels.includes('slack') && (
-                                        <div className="evc-rm-dsec is-box">
-                                          <div className="evc-rm-dsec-title"><ChatIcon size={13} /> {L.reminderSlackTitle}</div>
-                                          <div className="evc-rm-dsec-lines" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
-                                            · <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}
-                                            {msg.slackSeparate ? ` ${L.reminderSlackOwnCopy}` : ` ${L.reminderSlackSameCopy}`}
-                                          </div>
-                                          <div className="evc-rm-tgts">
-                                            {SLACK_SEND_MODES.map((m) => {
-                                              const on = (rm.slack?.mode ?? 'dm') === m.id;
-                                              return (
-                                                <button
-                                                  key={m.id}
-                                                  type="button"
-                                                  className={`evc-rm-tgt${on ? ' is-on' : ''}`}
-                                                  onClick={() =>
-                                                    patchReminder(ph.id, rm.id, (r) => ({
-                                                      slack: { ...r.slack, mode: m.id },
-                                                    }))}
-                                                  data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
-                                                >
-                                                  <m.Icon size={14} /> {L[m.labelKey]}
-                                                </button>
-                                              );
-                                            })}
-                                          </div>
-                                          {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
-                                            /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
-                                               드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
-                                               방식을 «쳐서 좁히는» 방식으로 바꾼다. 브라우저 기본
-                                               `datalist` 를 쓴다 — 새 시각 부품을 만들지 않으면서
-                                               타이핑 필터를 얻는다. */
-                                            const value = rm.slack?.channel ?? '';
-                                            const listId = `evc-rm-slack-ch-list-${ph.id}-${i}`;
-                                            const known = channelOptions.some((c) => c === value);
-                                            return (
-                                            <div className="evc-rm-slack-ch">
-                                              <TextInput
-                                                type="text"
-                                                className="evc-rm-field"
-                                                list={listId}
-                                                placeholder={L.reminderSlackChannelPh}
-                                                value={value}
-                                                onChange={(e) =>
-                                                  patchReminder(ph.id, rm.id, (r) => ({
-                                                    slack: { ...r.slack, channel: normalizeChannel(e.target.value) },
-                                                  }))}
-                                                data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
-                                              />
-                                              <datalist id={listId} data-testid={`evc-rm-slack-channel-list-${ph.id}-${i}`}>
-                                                {channelOptions.map((c) => (
-                                                  <option key={c} value={c} />
-                                                ))}
-                                              </datalist>
-                                              {/* [PW-529 ②] @멘션이 부르는 것은 «받는 사람 명단» 이지
-                                                  「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
-                                                  부를 대상이 없다 — 켜 둘 수 없게 막는다.
-                                                  참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
-                                              <button
-                                                type="button"
-                                                disabled={!selfOn}
-                                                className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
-                                                onClick={() =>
-                                                  selfOn &&
-                                                  patchReminder(ph.id, rm.id, (r) => ({
-                                                    slack: { ...r.slack, mention: !r.slack?.mention },
-                                                  }))}
-                                                title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
-                                                data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
-                                              >
-                                                {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
-                                                {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
-                                              </button>
-                                              {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
-                                                  슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
-                                                  떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
-                                              <span
-                                                className="evc-rm-dsec-note"
-                                                data-testid={`evc-rm-slack-channel-note-${ph.id}-${i}`}
-                                              >
-                                                {slackChannelsStatus === 'loading'
-                                                  ? L.reminderSlackChannelLoading
-                                                  : slackChannelsStatus === 'error'
-                                                  ? L.reminderSlackChannelLoadError
-                                                  : channelOptions.length === 0
-                                                  ? L.reminderSlackChannelNone
-                                                  : value && !known
-                                                  ? L.reminderSlackChannelUnknown
-                                                  : fill(L.reminderSlackChannelCount, { count: channelOptions.length })}
-                                              </span>
-                                            </div>
-                                            );
-                                          })()}
-                                        </div>
-                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -8090,6 +8210,8 @@ export default function EvalCycleWizard({
           confirmTestId="evc-wiz-type-off-ok"
         />
       )}
+
+      {renderReminderPanel()}
 
       {/* [PW-1013] 리마인더 칸의 확인(당사자 해제 · 저장 문구로 바꾸기 · 같은 이름 덮어쓰기) —
           예전엔 브라우저 기본 확인 창이었다. 막을 누르거나 취소하면 아무것도 바꾸지 않는다. */}
