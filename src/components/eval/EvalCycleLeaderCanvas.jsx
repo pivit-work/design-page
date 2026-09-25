@@ -482,7 +482,7 @@ export default function EvalCycleLeaderCanvas({
               <div className="evl-evi-item" key={a.id}>
                 <span className="evc-field-label">
                   {evidenceLabel(a, L)}
-                  {a.score != null ? ` · ${a.score}/5` : ''}
+                  {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
                 </span>
                 <p className="evl-evi-text">{a.textAnswer}</p>
               </div>

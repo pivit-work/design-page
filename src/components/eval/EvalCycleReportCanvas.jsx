@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { InfoIcon } from './evalIcons.jsx';
+import { scaleMaxOf } from './evalTemplateItemModel.js';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -76,20 +77,6 @@ function krColor(p) {
   return 'var(--utility-error-500)';
 }
 
-/** 카테고리별 평균 점수(scale 항목만, growth 제외). */
-function avgByCat(answers) {
-  const acc = {};
-  for (const a of answers) {
-    if (a.score == null || !a.itemCategory || a.itemCategory === 'growth') continue;
-    (acc[a.itemCategory] ??= []).push(a.score);
-  }
-  const out = {};
-  for (const k of Object.keys(acc)) {
-    out[k] = acc[k].reduce((s, n) => s + n, 0) / acc[k].length;
-  }
-  return out;
-}
-
 function AnswerList({ answers, L }) {
   return (
     <div className="evr-answers">
@@ -97,7 +84,7 @@ function AnswerList({ answers, L }) {
         <div className="evr-answer" key={a.id}>
           <span className="evc-field-label">
             {catLabel(a, L)}
-            {a.score != null ? ` · ${a.score}/5` : ''}
+            {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
           </span>
           <p className="evr-answer-text">{a.textAnswer}</p>
         </div>
@@ -107,13 +94,11 @@ function AnswerList({ answers, L }) {
 }
 
 // ── 자기평가 갭: 셀프 vs 평가 점수 카테고리 비교 ──
-function SelfGap({ selfAnswers, leaderAnswers, L }) {
-  const self = useMemo(() => avgByCat(selfAnswers), [selfAnswers]);
-  const reviewed = useMemo(() => avgByCat(leaderAnswers), [leaderAnswers]);
-  const cats = [...new Set([...Object.keys(self), ...Object.keys(reviewed)])].filter(
-    (c) => CAT_KEY[c],
-  );
-  if (cats.length === 0) return null;
+// 평균·갭은 앱이 계산해 넘긴다(`selfGap` 줄: category·selfAvg·reviewedAvg·diff·scaleMax).
+// 척도 끝값(scaleMax)이 없으면 5점으로 적는다.
+function SelfGap({ rows, L }) {
+  const shown = rows.filter((row) => CAT_KEY[row.category]);
+  if (shown.length === 0) return null;
   return (
     <section className="evc-card" data-testid="evr-gap">
       <h3 className="evc-card-name">{L.gapTitle}</h3>
@@ -125,15 +110,16 @@ function SelfGap({ selfAnswers, leaderAnswers, L }) {
           <span>{L.gapReviewed}</span>
           <span>{L.gapDiff}</span>
         </div>
-        {cats.map((c) => {
-          const s = self[c];
-          const r = reviewed[c];
-          const diff = s != null && r != null ? Math.round((s - r) * 10) / 10 : null;
+        {shown.map((row) => {
+          const s = row.selfAvg;
+          const r = row.reviewedAvg;
+          const diff = row.diff;
+          const max = scaleMaxOf(row);
           return (
-            <div className="evr-gap-row" key={c}>
-              <span className="evc-field-label">{L[CAT_KEY[c]]}</span>
-              <span>{s != null ? `${Math.round(s * 10) / 10}/5` : '—'}</span>
-              <span>{r != null ? `${Math.round(r * 10) / 10}/5` : '—'}</span>
+            <div className="evr-gap-row" key={row.category}>
+              <span className="evc-field-label">{L[CAT_KEY[row.category]]}</span>
+              <span>{s != null ? `${s}/${max}` : '—'}</span>
+              <span>{r != null ? `${r}/${max}` : '—'}</span>
               <span
                 style={{
                   fontWeight: 700,
@@ -272,6 +258,7 @@ export default function EvalCycleReportCanvas({
   selfAnswers = [],
   leaderAnswers = [],
   peerAnswers = [],
+  selfGap = [],
   insight = null,
   sections,
   labels: providedLabels,
@@ -337,7 +324,7 @@ export default function EvalCycleReportCanvas({
 
         {on('okr') && <OkrReview okrReview={okrReview} L={L} />}
 
-        <SelfGap selfAnswers={selfAnswers} leaderAnswers={leaderAnswers} L={L} />
+        <SelfGap rows={selfGap} L={L} />
 
         {on('leader') && leaderAnswers.length > 0 && (
           <section className="evc-card">
