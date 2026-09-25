@@ -1615,6 +1615,23 @@ export default function EvalCycleWizard({
   appointmentChangesError = false,
   /** 발령 이력 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadAppointmentChanges,
+  /**
+   * PW-1049 — 서버가 판정한 제외 조건 결과 `[{ memberId, exclusionType, referenceDate?,
+   * referenceDateDirection?, exclFieldLabel?, exclFieldValue? }]`. **넘기면 이 화면은 조건을
+   * 판정하지 않고 이 값을 그대로 쓴다** — 누구를 뺄지는 서버 한 곳이 정한다. 소비자는
+   * `onExclusionRulesChange` 로 조건·기간이 바뀔 때마다 다시 물어 새 값을 넘긴다.
+   * 안 넘기면(undefined) 종전대로 화면이 `candidates`·`appointmentChanges` 로 판정한다.
+   */
+  ruleExclusions,
+  /** PW-1049 — 제외 조건 판정을 서버에서 받지 못했다. 못 받은 것을 「해당 없음」으로 보이지 않는다. */
+  ruleExclusionsError = false,
+  /** 제외 조건 판정 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
+  onReloadRuleExclusions,
+  /**
+   * PW-1049 — 제외 조건 한 벌이나 평가 기간이 바뀔 때 `({ rules, startDate, endDate })` 로
+   * 알린다. 처음 열릴 때도 한 번 부른다. 참조가 안정된 함수를 넘긴다(바뀌면 다시 부른다).
+   */
+  onExclusionRulesChange,
   onCancel,
   onSubmit,
   // TC-028 사이클 설정 프리셋(불러오기/저장)
@@ -4087,7 +4104,12 @@ export default function EvalCycleWizard({
   // §4.1.1 제외 조건 필터 — 개별 선택 모드는 관리자가 직접 고른 명단이므로 적용하지 않는다.
   // 구 '개별 선택' 모드가 사라져 제외 조건을 끄는 분기도 함께 없어졌다 —
   // 모집단은 언제나 조직 트리가 정하고, 조건은 그 위에서 항상 돈다.
-  const liveAutoExclusions = scopedCandidates.flatMap((c) => {
+  /* PW-1049 — 소비자가 서버 판정을 넘기면 그것을 쓴다(아래 화면 판정은 넘기지 않을 때만).
+     모집단(고른 조직)으로 자르는 것은 판정이 아니라 선택이라 여기서 한다. */
+  const scopedCandidateIds = new Set(scopedCandidates.map((c) => c.id));
+  const liveAutoExclusions = Array.isArray(ruleExclusions)
+    ? ruleExclusions.filter((e) => scopedCandidateIds.has(e.memberId))
+    : scopedCandidates.flatMap((c) => {
         if (excludeOnLeave && c.employmentStatus === 'on_leave') {
           return [{ memberId: c.id, exclusionType: 'leave' }];
         }
@@ -4157,6 +4179,16 @@ export default function EvalCycleWizard({
   };
   /* 처음 열린 순간의 조건. 되돌려 원래 값과 같아지면 다시 기록대로 보인다. */
   const [openedRulesKey] = useState(() => JSON.stringify(exclusionRulesNow));
+  /* PW-1049 — 조건·기간이 바뀌면 소비자에게 알린다(서버에 다시 묻게). 상태를 덮어쓰는 이펙트가
+     아니라 바깥에 알리기만 한다 — 이 파일이 이펙트를 피하는 이유(PW-440)에 걸리지 않는다. */
+  const exclusionQueryKey = JSON.stringify({
+    rules: exclusionRulesNow,
+    startDate: startDate || null,
+    endDate: endDate || null,
+  });
+  useEffect(() => {
+    onExclusionRulesChange?.(JSON.parse(exclusionQueryKey));
+  }, [exclusionQueryKey, onExclusionRulesChange]);
   const rulesPinned =
     isManage &&
     Array.isArray(recordedExclusions) &&
@@ -6444,6 +6476,29 @@ export default function EvalCycleWizard({
                 <div className="evc-excl-block" data-testid="evc-wiz-exclusions">
                   <span className="evc-field-label">{L.exclusionLabel}</span>
                   <p className="evc-wiz-hint">{L.exclusionHint}</p>
+                  {ruleExclusionsError && (
+                    /* PW-1049 — 누가 빠지는지는 서버가 판정한다. 못 받았으면 「해당 없음」처럼 보이지 않게 말한다. */
+                    <div
+                      className="evc-wiz-committee-error"
+                      role="status"
+                      data-testid="evc-wiz-excl-judge-error"
+                    >
+                      <span>
+                        {L.exclusionJudgeLoadError ??
+                          '누가 제외 조건에 걸리는지 불러오지 못해, 이 조건으로 빠져야 할 사람이 지금 빠지지 않고 있습니다.'}
+                      </span>
+                      {onReloadRuleExclusions && (
+                        <button
+                          type="button"
+                          className="evc-wiz-committee-retry"
+                          onClick={onReloadRuleExclusions}
+                          data-testid="evc-wiz-excl-judge-retry"
+                        >
+                          {L.wizardCommitteeRetry ?? '다시 시도'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <Checkbox
                     className="evl-promo-row"
                     checked={excludeOnLeave}

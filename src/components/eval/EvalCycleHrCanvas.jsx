@@ -1024,6 +1024,11 @@ export default function EvalCycleHrCanvas({
   onReloadCandidates,
   appointmentChangesError = false,
   onReloadAppointmentChanges,
+  /* PW-1049 — 제외 조건 판정은 서버가 한다. 위자드에 그대로 넘긴다(`EvalCycleWizard` 참조). */
+  ruleExclusions,
+  ruleExclusionsError = false,
+  onReloadRuleExclusions,
+  onExclusionRulesChange,
   loading = false,
   labels: providedLabels,
   onCreateCycle,
@@ -1540,6 +1545,10 @@ export default function EvalCycleHrCanvas({
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
+          ruleExclusions={ruleExclusions}
+          ruleExclusionsError={ruleExclusionsError}
+          onReloadRuleExclusions={onReloadRuleExclusions}
+          onExclusionRulesChange={onExclusionRulesChange}
           onSubmit={handleCreate}
           onCancel={cancelWizard}
           onOpenTemplateLibrary={onOpenTemplateLibrary}
@@ -1584,6 +1593,10 @@ export default function EvalCycleHrCanvas({
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
+          ruleExclusions={ruleExclusions}
+          ruleExclusionsError={ruleExclusionsError}
+          onReloadRuleExclusions={onReloadRuleExclusions}
+          onExclusionRulesChange={onExclusionRulesChange}
           cycle={manageTarget.cycle}
           participants={manageTarget.participants}
           landing={manageTarget.landing ?? null}
