@@ -382,6 +382,14 @@ const HR_IDENTITY_FIELDS = [
  * 주소와 포괄 계약 시간은 묶음으로 오는데, 화면은 칸마다 하나씩 그린다. 묶음을 그대로
  * draft 에 두면 「고쳤나」 판정이 참조 비교가 되어 저장 버튼이 늘 켜진 채로 남는다.
  */
+/** 마지막 출근일이 퇴사일보다 늦은가 — 둘 다 있을 때만 본다. 날짜 앞 10자로 견준다. */
+function lastWorkingDateAfterTermination(lastWorkingDate, terminationDate) {
+  const ymd = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
+  const last = ymd(lastWorkingDate);
+  const end = ymd(terminationDate);
+  return Boolean(last && end && last > end);
+}
+
 function flattenIdentity(identity) {
   const a = identity.address ?? {};
   const c = identity.contractHours ?? {};
@@ -493,6 +501,9 @@ export function HrProfileModal({
     setIdentityDraft((p) => ({ ...(p ?? identity), [key]: v }));
     setIdentityState('idle');
   };
+  /* 마지막 출근일은 퇴사일보다 늦을 수 없다 (§3.2.1 ④ · PW-943 후속 · David 확정) — 같은 날은 된다.
+     퇴사일은 이 창이 아니라 구성원 창에서 고친다. 그래서 그 창이 넘긴 행의 값과 견준다. */
+  const lastDayAfterResign = lastWorkingDateAfterTermination(idDraft.lastWorkingDate, row?.terminationDate);
   const identityBase = flattenIdentity(identity);
   const identityDirty =
     !!identityDraft &&
@@ -500,6 +511,7 @@ export function HrProfileModal({
       (k) => (identityDraft[k] ?? '') !== (identityBase[k] ?? ''),
     );
   const submitIdentity = () => {
+    if (lastDayAfterResign) return;
     setIdentityState('saving');
     Promise.resolve(onSaveIdentity(row?.id, shapeIdentityForSave(idDraft)))
       .then((saved) => {
@@ -574,6 +586,11 @@ export function HrProfileModal({
                   <HrEditPair k={L.hrFirstHireDate || '최초 입사일'} date value={idDraft.firstHireDate} onChange={setIdField('firstHireDate')} />
                   <HrEditPair k={L.hrEmploymentTypeStartDate || '현 고용형태 시작일'} date value={idDraft.employmentTypeStartDate} onChange={setIdField('employmentTypeStartDate')} />
                   <HrEditPair k={L.hrLastWorkingDate || '마지막 출근일'} date value={idDraft.lastWorkingDate} onChange={setIdField('lastWorkingDate')} />
+                  {lastDayAfterResign && (
+                    <span style={{ display: 'block', fontSize: 11, color: '#DC2626', paddingLeft: 96 }} role="alert" data-testid="hr-last-working-date-error">
+                      {L.hrLastWorkingDateAfterResign || '마지막 출근일은 퇴사일보다 늦을 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.'}
+                    </span>
+                  )}
                   <HrEditPair
                     k={L.hrIsRehire || '재입사 여부'}
                     value={idDraft.isRehire ? 'yes' : 'no'}
@@ -600,7 +617,7 @@ export function HrProfileModal({
                     <button
                       type="button"
                       onClick={submitIdentity}
-                      disabled={!identityDirty || identityState === 'saving'}
+                      disabled={!identityDirty || identityState === 'saving' || lastDayAfterResign}
                       data-testid="hr-identity-save"
                       className="admin-emp-btn is-primary"
                     >

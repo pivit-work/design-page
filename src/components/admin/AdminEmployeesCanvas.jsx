@@ -280,6 +280,9 @@ const DEFAULT_LABELS = {
     leaveStart: '휴직 시작일',
     leaveEnd: '휴직 종료일',
     resignedAt: '퇴사일',
+    resignedAtHint: '재직 중이면 비워 두거나 퇴사 예정일·계약 종료일을 넣습니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 지나면 바뀝니다.',
+    resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
+    resignedAtBeforeLastDay: '퇴사일은 마지막 출근일보다 빠를 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.',
     statusDateLoading: '불러오는 중…',
     statusDateLoadError: '날짜를 불러오지 못했습니다. 패널을 닫았다 다시 열어 주세요.',
     statusDateSaveError: '날짜를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
@@ -2743,8 +2746,40 @@ const STATUS_DATE_FIELDS = {
     { field: 'leaveStartDate', label: 'leaveStart', via: 'identity' },
     { field: 'leaveEndDate', label: 'leaveEnd', via: 'identity' },
   ],
-  terminated: [{ field: 'terminationDate', label: 'resignedAt', via: 'member' }],
+  terminated: [],
 };
+
+/**
+ * 퇴사일 칸 — 상태와 무관하게 **늘** 보인다 (§3.2.1 · PW-943).
+ *
+ * 재직 중인 사람의 앞으로의 퇴사일(「출근 종료」 표시의 전제)과 계약직·인턴의 계약 종료일
+ * (등록 때 넣는데 그때 상태는 재직이다)을 넣을 자리가 필요하다. 종전에는 「퇴사」를 골라야
+ * 칸이 떠서, 퇴사로 바꿨다가 날짜를 넣고 재직으로 되돌리는 우회만 있었다.
+ * 넣어도 상태는 바로 안 바뀐다 — 퇴사일이 지나면 서버가 퇴사로 바꾼다(§3.2.6).
+ * 퇴사 상태에서는 **필수**다(비면 저장 버튼이 꺼진다).
+ */
+const TERMINATION_DATE_FIELD = { field: 'terminationDate', label: 'resignedAt', via: 'member' };
+
+/** 날짜 앞 10자(`YYYY-MM-DD`)만 — 서버가 시각까지 붙여 보내도 날짜로 비교한다. */
+const ymdOf = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
+
+/**
+ * 퇴사일 칸이 저장을 막는 사유 (§3.2.1 ①④ · PW-943 후속 · David 확정) — 없으면 `null`.
+ *
+ *  · `missing` — 퇴사 상태인데 퇴사일이 비었다.
+ *  · `beforeLastDay` — 마지막 출근일이 퇴사일보다 늦다. 같은 날은 된다(남은 휴가를 쓰면
+ *    마지막 출근일이 앞서고, 휴가 없이 나가면 같은 날이다).
+ *
+ * 마지막 출근일은 이 창이 아니라 HR 기록 창에서 고친다. 그래서 비교 대상은 목록 행에
+ * 실린 저장된 값이다.
+ */
+function terminationDateProblem(draft, savedLastWorkingDate) {
+  const end = ymdOf(draft?.terminationDate);
+  if (draft?.employmentStatus === 'terminated' && !end) return 'missing';
+  const last = ymdOf(savedLastWorkingDate);
+  if (end && last && last > end) return 'beforeLastDay';
+  return null;
+}
 
 /** 신원 저장 경로가 들고 있는 날짜 칸 — 패널이 따로 불러와야 하는 값들. */
 const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDate'];
@@ -3197,6 +3232,8 @@ function EmployeesEditPanel({
     // 수도 없는 값을 빈칸으로 두면 「비어 있다」 로 읽혀 더 나쁘다.
     (f) => f.via === 'member' || Boolean(onLoadHrProfile),
   );
+  const terminationProblem = terminationDateProblem(draft, member.lastWorkingDate);
+  const terminationRequired = draft.employmentStatus === 'terminated';
   const identityBusy = identityState === 'loading';
   const identityBroken = identityState === 'error';
   const dateValue = (f) =>
@@ -3237,6 +3274,7 @@ function EmployeesEditPanel({
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
+    if (terminationProblem) return;
     setSaving(true);
     setDateError('');
     setSaveError(null);
@@ -3496,8 +3534,7 @@ function EmployeesEditPanel({
 
           {/* 고른 상태의 날짜 칸 (§3.2.1). 라디오 **바로 아래**에 둔다 — 다른 화면을
               열어 채우게 하면 상태만 바뀌고 날짜는 비는 조합이 그대로 남는다. */}
-          {dateFields.length > 0 && (
-            <div className="admin-emp-status-dates" data-testid="employees-panel-status-dates">
+          <div className="admin-emp-status-dates" data-testid="employees-panel-status-dates">
               {dateFields.map((f) => (
                 <FormField
                   key={f.field}
@@ -3522,11 +3559,31 @@ function EmployeesEditPanel({
                   {labels.panel.statusDateLoadError}
                 </span>
               )}
+              {/* 퇴사일은 상태와 무관하게 늘 여기 선다 (§3.2.1 · PW-943) — 위 상태별 칸과
+                  달리 고른 상태가 데려오는 칸이 아니다. */}
+              <FormField
+                className="admin-emp-field"
+                labelClassName="admin-emp-field-label"
+                label={labels.panel.resignedAt}
+                required={terminationRequired}
+                error={terminationProblem ? labels.panel[
+                  terminationProblem === 'missing' ? 'resignedAtRequired' : 'resignedAtBeforeLastDay'
+                ] : undefined}
+                errorTestId="employees-panel-date-terminationDate-error"
+                hint={terminationRequired ? undefined : labels.panel.resignedAtHint}
+              >
+                <DateInput
+                  className="admin-emp-input"
+                  data-testid="employees-panel-date-terminationDate"
+                  value={dateValue(TERMINATION_DATE_FIELD)}
+                  disabled={!canEdit}
+                  onChange={(v) => setDateValue(TERMINATION_DATE_FIELD, v)}
+                />
+              </FormField>
               {dateError && (
                 <span className="admin-emp-status-date-note is-error" role="alert">{dateError}</span>
               )}
-            </div>
-          )}
+          </div>
 
           {/* 보상 — 연봉 열람 권한이 없으면 칸도 이력 버튼도 그리지 않는다(T3).
               값을 «—» 로 가려 두면 「비어 있다」로 읽혀 덮어쓰는 사고가 난다. */}
@@ -3634,7 +3691,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem)}
             >
               {saving ? labels.panel.saving : labels.panel.save}
             </button>
