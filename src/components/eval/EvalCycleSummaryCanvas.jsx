@@ -3329,6 +3329,12 @@ export default function EvalCycleSummaryCanvas({
                                                         {h.note}
                                                       </span>
                                                     ) : null}
+                                                    {/* PW-1016 — 누가 바꿨나. 문구 조합(대신 로그인 표기)은 소비처가 한다. */}
+                                                    {h.byLabel ? (
+                                                      <span className="evs-cw-detail-log-by">
+                                                        {h.byLabel}
+                                                      </span>
+                                                    ) : null}
                                                   </div>
                                                 ),
                                               )}

@@ -5587,6 +5587,14 @@
 .evs-cw-detail-log-note {
   color: var(--text-secondary);
 }
+/* PW-1016 — 줄 끝에 바꾼 사람(대신 로그인이면 두 사람). 길면 줄바꿈하고 오른쪽에 붙는다. */
+.evs-cw-detail-log-by {
+  margin-left: auto;
+  min-width: 0;
+  text-align: right;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
 
 /* R1(v0.3) 위원회 생성 */
 .evs-cw-roster-head {
