@@ -79,6 +79,11 @@ function applyTexture(app, objectName, imageSrc) {
  * 헤더의 [1on1]·[메시지] 는 `MemberCard` 의 같은 이름 버튼과 동일한 콜백 이름을 받는다
  * (`onOneOnOneClick` / `onMessageClick`) — 소비자가 카드와 모달에 같은 핸들러를 물릴 수
  * 있게 하기 위함이다. 콜백을 안 넘기면(데모) 눌러도 아무 일도 일어나지 않는다.
+ *
+ * 헤더의 [직함 고치기] (PW-924 · 기획 매니저 화면 정책 §6-8-A) 는 `member.businessTitleAction`
+ * (`{ label }`) 이 있을 때만 그린다 — 회사가 직함을 쓰고 이 뷰어가 고칠 자격이 있을 때만
+ * 소비자가 넣는다. 카드에는 없고 이 모달에만 있다. 1on1·메시지와 달리 **이 모달을 닫지
+ * 않는다** — 직함 창은 이 패널 위에 뜨고 패널은 그대로 둔다(기획 시안 `manager-app.jsx`).
  */
 export default function ProfileModal({
   member,
@@ -87,6 +92,7 @@ export default function ProfileModal({
   icons,
   onOneOnOneClick,
   onMessageClick,
+  onBusinessTitleClick,
   onHrProfileRetry,
 }) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
@@ -197,6 +203,16 @@ export default function ProfileModal({
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
                 <span>메시지</span>
               </button>
+              {/* 분류와 무관한 동작이라 분류 색이 없는 중립 모양이다(기획 시안 `manager-app.jsx`). */}
+              {displayMember?.businessTitleAction?.label && (
+                <button
+                  type="button"
+                  className="manager-modal-btn-neutral"
+                  onClick={() => onBusinessTitleClick?.(displayMember)}
+                >
+                  <span>{displayMember.businessTitleAction.label}</span>
+                </button>
+              )}
             </div>
           </div>
 

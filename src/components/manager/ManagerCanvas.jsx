@@ -73,6 +73,12 @@ export default function ManagerCanvas({
   onMemberOneOnOne,
   onMemberMessage,
   /**
+   * 팀원 상세 모달의 [직함 고치기] (PW-924). 버튼은 멤버에 `businessTitleAction: { label }`
+   * 이 있을 때만 보인다. 누르면 상세 모달은 **그대로 두고** 이 콜백만 부른다 — 소비자가
+   * 직함 창을 그 위에 띄운다.
+   */
+  onMemberBusinessTitle,
+  /**
    * 프로필 모달이 열리고 닫힐 때 알린다 (열림=member, 닫힘=null).
    *
    * 팀원 상세 패널의 「액션 아이템」 탭(PW-182)처럼 **열었을 때만** 부르면 되는
@@ -260,6 +266,7 @@ export default function ManagerCanvas({
         icons={icons}
         onOneOnOneClick={() => { const m = openMember; closeProfile(); onMemberOneOnOne?.(m); }}
         onMessageClick={() => { const m = openMember; closeProfile(); onMemberMessage?.(m); }}
+        onBusinessTitleClick={(m) => onMemberBusinessTitle?.(m)}
       />
     </main>
   );
