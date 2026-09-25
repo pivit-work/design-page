@@ -23,6 +23,9 @@ const DEFAULT_LABELS = {
   selfNotSubmitted:
     '피평가자가 아직 셀프 리뷰를 제출하지 않았습니다. 셀프 리뷰 참고 없이 작성하실 수 있습니다.',
   submittedBanner: '제출이 완료되었습니다.',
+  // PW-1017 제출 후 수정(기획 §5.11) — 확정 전에는 고쳐서 다시 낸다, 확정 뒤에는 잠긴다.
+  resubmit: '다시 제출',
+  lockedNotice: '',
   workTitle: '업적 (What)',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
   competencyTitle: '역량 (How)',
@@ -249,6 +252,12 @@ export default function EvalCycleLeaderCanvas({
   active = true,
   submitted = false,
   /**
+   * PW-1017 — 작성 칸을 잠그는가. 넘기지 않으면 종전처럼 `submitted` 를 따른다(제출하면 잠김).
+   * 넘기면 이 값이 정한다: 제출했어도 `false` 면 고쳐서 [다시 제출]할 수 있고, `true` 면
+   * 부가 평가·승진 요청서까지 잠기고 `labels.lockedNotice` 를 띄운다.
+   */
+  locked,
+  /**
    * PW-486 — 이 사이클이 캘리브레이션(등급 조정) 단계를 쓰는가.
    * 판정 축은 `eval_cycles.review_sequence.enabled.calibration` 이고, **값이 없으면 켠 것**
    * 이다(호출부가 그렇게 넘긴다). 기본 `true` 라 켠 사이클의 렌더는 종전과 동일하다.
@@ -265,6 +274,8 @@ export default function EvalCycleLeaderCanvas({
   onSubmitPromotion,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  const formLocked = locked ?? submitted;
+  const assessmentLocked = locked ?? false;
   // 평가지에 놓인 순서 그대로의 항목 전부 — 질문과 설명이 섞여 있다.
   const entries = useMemo(() => buildFields(template, L), [template, L]);
   /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
@@ -401,7 +412,7 @@ export default function EvalCycleLeaderCanvas({
             type="button"
             key={g.key}
             className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
-            disabled={submitted}
+            disabled={formLocked}
             onClick={() => setGrade(g.key)}
             data-testid={`evl-grade-${g.key}`}
           >
@@ -421,6 +432,11 @@ export default function EvalCycleLeaderCanvas({
         </div>
       </header>
 
+      {formLocked && locked && L.lockedNotice && (
+        <p className="evx-notice" data-testid="evl-locked" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+          {L.lockedNotice}
+        </p>
+      )}
       {submitted && (
         <p className="evx-notice is-success" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
           ✓ {L.submittedBanner}
@@ -527,7 +543,7 @@ export default function EvalCycleLeaderCanvas({
                               type="button"
                               key={n}
                               className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
-                              disabled={submitted}
+                              disabled={formLocked}
                               onClick={() => setField(f.key, { score: n })}
                               data-testid={`evl-score-${f.key}-${n}`}
                             >
@@ -551,7 +567,7 @@ export default function EvalCycleLeaderCanvas({
                             ? L.rationalePlaceholder
                             : L.rationaleOptionalPlaceholder
                         }
-                        disabled={submitted}
+                        disabled={formLocked}
                         onChange={(e) => setField(f.key, { rationale: e.target.value })}
                         data-testid={`evl-rationale-${f.key}`}
                       />
@@ -566,7 +582,7 @@ export default function EvalCycleLeaderCanvas({
                               type={f.allowMultiple ? 'checkbox' : 'radio'}
                               name={`evl-opt-${f.key}`}
                               checked={selectedOptions(state[f.key]).includes(o.id)}
-                              disabled={submitted}
+                              disabled={formLocked}
                               onChange={() =>
                                 setField(f.key, {
                                   checkedOptions: {
@@ -589,7 +605,7 @@ export default function EvalCycleLeaderCanvas({
                         <input
                           type="checkbox"
                           checked={state[f.key].score === 1}
-                          disabled={submitted}
+                          disabled={formLocked}
                           onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
                           data-testid={`evl-check-${f.key}`}
                         />
@@ -602,7 +618,7 @@ export default function EvalCycleLeaderCanvas({
                       rows={3}
                       value={state[f.key].textAnswer}
                       placeholder={f.placeholder}
-                      disabled={submitted}
+                      disabled={formLocked}
                       onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
                       data-testid={`evl-text-${f.key}`}
                     />
@@ -642,6 +658,7 @@ export default function EvalCycleLeaderCanvas({
                 rows={2}
                 value={confidentialComment}
                 placeholder={L.confidentialPh}
+                disabled={assessmentLocked}
                 onChange={(e) => setConfidentialComment(e.target.value)}
                 data-testid="evl-confidential"
               />
@@ -650,6 +667,7 @@ export default function EvalCycleLeaderCanvas({
               <input
                 type="checkbox"
                 checked={promotionReady}
+                disabled={assessmentLocked}
                 onChange={(e) => setPromotionReady(e.target.checked)}
                 data-testid="evl-promotion"
               />
@@ -674,6 +692,7 @@ export default function EvalCycleLeaderCanvas({
                       className="evm-textarea"
                       rows={2}
                       value={promoForm[field]}
+                      disabled={assessmentLocked}
                       onChange={(e) => {
                         const v = e.target.value;
                         setPromoForm((f) => ({ ...f, [field]: v }));
@@ -695,7 +714,7 @@ export default function EvalCycleLeaderCanvas({
                   <button
                     type="button"
                     className="evc-btn is-ghost"
-                    disabled={promoBusy}
+                    disabled={promoBusy || assessmentLocked}
                     onClick={() => {
                       setPromoBusy(true);
                       Promise.resolve(onSubmitPromotion(promoForm))
@@ -717,6 +736,7 @@ export default function EvalCycleLeaderCanvas({
                 rows={2}
                 value={compensationNote}
                 placeholder={L.compPh}
+                disabled={assessmentLocked}
                 onChange={(e) => setCompensationNote(e.target.value)}
                 data-testid="evl-comp"
               />
@@ -725,6 +745,7 @@ export default function EvalCycleLeaderCanvas({
               <button
                 type="button"
                 className="evc-btn is-ghost"
+                disabled={assessmentLocked}
                 onClick={() =>
                   onSaveAssessment?.({
                     confidentialComment,
@@ -739,7 +760,7 @@ export default function EvalCycleLeaderCanvas({
             </div>
           </section>
 
-          {!submitted && (
+          {!formLocked && (
             <div className="evm-submit-bar">
               <span className={`evm-progress${triedSubmit && (!grade || !ratingOk) ? ' evm-incomplete-warn' : ''}`}>
                 {triedSubmit && !ratingOk
@@ -749,16 +770,19 @@ export default function EvalCycleLeaderCanvas({
                     : L.gradeRequired}
               </span>
               <div className="evc-card-buttons">
-                <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems(), grade)} data-testid="evl-save">
-                  {L.save}
-                </button>
+                {/* 낸 뒤 고칠 때는 [다시 제출] 하나 — 제출 검사(등급·사유)를 거치지 않은 저장이 남지 않게 */}
+                {!submitted && (
+                  <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems(), grade)} data-testid="evl-save">
+                    {L.save}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="evc-btn is-primary"
                   onClick={handleSubmitClick}
                   data-testid="evl-submit"
                 >
-                  {L.submit}
+                  {submitted ? L.resubmit : L.submit}
                 </button>
               </div>
             </div>
