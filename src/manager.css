@@ -847,6 +847,13 @@
 }
 
 /* ── Snippet tab ── */
+/* 목록 끝 「더 보기」 — 공용 ghost 버튼을 목록 폭 전체로 늘린 것만 다르다 (PW-925). */
+.manager-modal-snippet-more {
+  width: 100%;
+  min-height: 36px;
+  margin-top: var(--spacing-lg);
+}
+
 .manager-modal-snippet-item {
   padding: var(--spacing-3xl) 0;
   border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
