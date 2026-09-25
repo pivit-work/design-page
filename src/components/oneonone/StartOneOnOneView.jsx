@@ -58,6 +58,11 @@ import LiveGuideCard from './LiveGuideCard.jsx';
  *     이미 다른 녹음에 잡혀 있고, 그것은 이 화면에서 풀 수 없다. 준비도(0/4) 문구를
  *     이기며, 푸터 위에 이유와 갈 곳을 담은 안내 배너를 함께 그린다.
  *
+ *   - `canConfirm(key, value)` : AI 초안이 **아닌** 칸에도 [확정]을 보일지 소비처가 정한다
+ *     (PW-1061 · 커트 결정 PW-1079 (가)). key 는 'strengths'|'sbi'|'support'|'caps', value 는
+ *     그 칸의 지금 값(글 칸은 문자열, 역량 칸은 `{ [역량키]: 점수 }`). 주지 않으면 종전대로
+ *     AI 초안이 온 칸에만 [확정]이 있다. 판정 규칙은 이 화면이 아니라 소비처에 둔다.
+ *
  * member shape: { name, role, avatar, badge? }
  */
 
@@ -282,6 +287,7 @@ export default function StartOneOnOneView({
   startLockedActionLabel = null,
   /** 그 버튼을 눌렀을 때. 없으면 버튼을 안 그린다 — 눌러도 무동작인 버튼은 없느니만 못하다. */
   onStartLockedAction,
+  canConfirm,
   startBlocked = false,
   onStartBlocked,
   busy = false,
@@ -517,6 +523,10 @@ export default function StartOneOnOneView({
   const retryGenerate = (key) => handleGenerate(key === 'all' ? undefined : key);
   const failureOf = (key) => aiFailures?.[key] ?? null;
   const toggleConfirm = (key) => setConfirmed((p) => ({ ...p, [key]: !p[key] }));
+  // 직접 쓴 칸도 소비처가 허락하면 [확정]할 수 있다 — AI 가 실패하거나 한도를 넘어도
+  // 네 칸을 확정해 시작할 수 있어야 한다 (PW-1061).
+  const confirmableByHost = (key) =>
+    !!canConfirm?.(key, key === 'caps' ? caps : ({ strengths, sbi, support }[key] ?? ''));
 
   const removeMgrAgenda = (a) => setMgrAgendas((prev) => prev.filter((x) => x !== a));
   const addMgrAgenda = () => {
@@ -811,20 +821,27 @@ export default function StartOneOnOneView({
                         ))}
                       </div>
                       <div className="ono-start-field-actions">
-                        {!aiGenerated[sec.key] ? (
-                          <button
-                            type="button"
-                            className="ono-start-ai-draft-btn"
-                            onClick={() => handleGenerate(sec.key)}
-                            disabled={!onGenerateDrafts || isGenerating}
-                          >
-                            <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
-                            <span>
-                              {generatingSection === sec.key ? '생성 중' : 'AI 초안'}
-                            </span>
-                          </button>
-                        ) : confirmed[sec.key] ? (
+                        {/* 확정된 칸은 AI 초안이었든 직접 썼든 [수정] 하나다. 예전엔 AI 초안 여부를
+                            먼저 갈라서, 새로고침으로 초안 표시가 사라진 확정 칸에 [AI 초안]이 떴다. */}
+                        {confirmed[sec.key] ? (
                           <button type="button" className="ono-start-edit-btn" onClick={() => toggleConfirm(sec.key)}>수정</button>
+                        ) : !aiGenerated[sec.key] ? (
+                          <>
+                            <button
+                              type="button"
+                              className="ono-start-ai-draft-btn"
+                              onClick={() => handleGenerate(sec.key)}
+                              disabled={!onGenerateDrafts || isGenerating}
+                            >
+                              <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
+                              <span>
+                                {generatingSection === sec.key ? '생성 중' : 'AI 초안'}
+                              </span>
+                            </button>
+                            {confirmableByHost(sec.key) && (
+                              <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>확정</button>
+                            )}
+                          </>
                         ) : (
                           <>
                             <button
@@ -847,7 +864,7 @@ export default function StartOneOnOneView({
                         ))}
                       </div>
                     )}
-                    {aiGenerated[sec.key] && confirmed[sec.key] && (
+                    {confirmed[sec.key] && (
                       <span className="ono-start-confirmed-label">✓ 확정됨</span>
                     )}
                     {/* 실패는 해당 필드 안, 입력 바로 위에 붙는다. 이미 받은 초안이
