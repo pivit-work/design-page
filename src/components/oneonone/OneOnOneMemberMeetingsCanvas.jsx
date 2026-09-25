@@ -2,7 +2,7 @@ import Icon from '../shared/Icon.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { fill, hostOf, healthOf } from './sessionHelpers.js';
+import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
 import {
   Section,
   ColHeads,
@@ -301,7 +301,7 @@ function ListScreen({
                 <span className={`ono-mem-hist-dot${i === 0 ? ' is-latest' : ''}`} />
                 <span className="ono-mem-hist-body">
                   <span className="ono-mem-hist-top">
-                    <span className="ono-mem-hist-date">{formatDate(s.createdAt, 'short')}</span>
+                    <span className="ono-mem-hist-date">{formatDate(heldAtOf(s), 'short')}</span>
                     {s.durationSec > 0 && (
                       <StatusBadge className="ono-mem-chip">
                         <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
@@ -556,7 +556,7 @@ function RecordScreen({
       <SessionHeader
         title={memberName ? fill(L.recordTitle, { name: memberName }) : L.recordTitleNoName}
         status="done"
-        date={formatDate(session.createdAt)}
+        date={formatDate(heldAtOf(session))}
         duration={session.durationSec > 0 ? formatDuration(session.durationSec) : null}
         avatar={renderAvatar ? renderAvatar({ name: memberName, avatar: session.memberAvatar || '', size: 24 }) : null}
         L={L}
@@ -667,7 +667,7 @@ function AnalysisScreen({
           <StatusBadge className="ono-mem-chip">{memberName}</StatusBadge>
         </div>
         <p className="ono-mem-head-date">
-          {formatDate(session.createdAt)} · {L.analysisDesc}
+          {formatDate(heldAtOf(session))} · {L.analysisDesc}
         </p>
         <button type="button" className="ono-mem-back" onClick={onBackToList}>
           <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />

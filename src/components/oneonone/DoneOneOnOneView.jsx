@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
-import { fill, hostOf } from './sessionHelpers.js';
+import { fill, hostOf, heldAtOf } from './sessionHelpers.js';
 import { doneBannerState, isDonePending } from './doneViewHelpers.js';
 import {
   Section,
@@ -1199,7 +1199,7 @@ export default function DoneOneOnOneView({
       <SessionHeader
         title={memberName ? fill(L.title, { name: memberName }) : L.titleNoName}
         status="done"
-        date={formatDate ? formatDate(session.createdAt) : null}
+        date={formatDate ? formatDate(heldAtOf(session)) : null}
         duration={
           session.durationSec > 0 && formatDuration
             ? formatDuration(session.durationSec)

@@ -30,6 +30,20 @@ export function hostOf(session, manager) {
 }
 
 /**
+ * 그 회차를 **한 날**의 기준 시각 (PW-1088) — 시작 시각 → 예약 시각 → 만든 시각 순.
+ *
+ * 예전에는 끝난 화면·지난 1on1 목록·회의록 머리·팀원 결과 탭이 `createdAt` 을 날짜로
+ * 보였다. `createdAt` 은 **예약을 잡은 순간**이라, 9/14 에 잡아 9/26 에 한 1on1 이
+ * 「9월 14일」로 보였다. 예약 전날 잡은 아침 회차는 하루 전으로 보여 시간대 탓처럼 보였다.
+ *
+ * 시작 전 회차(예약만 됨)는 시작 시각이 없어 예약 시각으로, 그것도 없는 옛 회차만
+ * `createdAt` 으로 내려간다. 시간대 변환은 호스트의 `formatDate` 가 한다 — 여기선 고르기만.
+ */
+export function heldAtOf(session) {
+  return session?.startedAt || session?.scheduledAt || session?.createdAt || '';
+}
+
+/**
  * 그 회차의 헬스체크 — **회차가 들고 있는 값만 쓴다** (PW-213).
  *
  * 예전에는 화면 단위 `healthHistory` 를 회차 목록에 순서로 갖다 붙였다
