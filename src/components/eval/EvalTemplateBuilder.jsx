@@ -251,8 +251,8 @@ export function EvalTemplateItemRow({
         <span
           className="evc-tpl-item-section"
           style={{
-            color: sectionColor(q.section),
-            background: 'color-mix(in srgb, currentColor 12%, transparent)',
+            color: sectionColor(q.section, q.category),
+            background: 'color-mix(in srgb, currentColor 8%, transparent)',
           }}
         >
           {q.section}

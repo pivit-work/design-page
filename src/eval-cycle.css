@@ -1754,12 +1754,15 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* 시안(템플릿 단계 섹션 배지): 글자 폭만 한 작은 칩 — 최소 폭 없이 안쪽 여백·둥근 모서리 (PW-1030) */
 .evc-tpl-item-section {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   color: var(--utility-purple-600);
   flex-shrink: 0;
-  min-width: 84px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xxs);
+  white-space: nowrap;
 }
 .evc-tpl-item-text {
   flex: 1;
