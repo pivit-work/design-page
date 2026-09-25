@@ -92,7 +92,7 @@ const DEFAULT_LABELS = {
   asofCoverageCaption: '',
   asofNoRecord: '기록 없음',
   asofOutOfRangeTitle: '기록이 시작된 날짜부터 조회할 수 있어요',
-  asofOutOfRangeBody: '그 이전 조직 기록은 Pivit 에 남아 있지 않습니다. 조직이 없었다는 뜻은 아닙니다.',
+  asofOutOfRangeBody: '그 이전 조직 기록은 Pivit 에 남아 있지 않습니다.',
   asofGoToCoverage: '기록 시작일로 이동',
   asofEmptyFact: '이 시점에 재직 중인 구성원이 없습니다',
   asofFixedCopy: '증빙 고정본',

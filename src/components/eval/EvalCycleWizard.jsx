@@ -6337,7 +6337,7 @@ export default function EvalCycleWizard({
                 >
                   <span>
                     {L.targetCandidatesLoadError ??
-                      '대상자 후보 명단을 불러오지 못했습니다. 대상자가 없는 것이 아닙니다.'}
+                      '대상자 후보 명단을 불러오지 못했습니다.'}
                   </span>
                   {onReloadCandidates && (
                     <button
@@ -7409,7 +7409,7 @@ export default function EvalCycleWizard({
                         >
                           {fill(
                             L.wizardCommitteeRosterSearchEmpty ??
-                              '"{{query}}" 검색 결과가 없습니다. 대상자 {{count}}명은 그대로 유지됩니다.',
+                              '"{{query}}" 검색 결과가 없습니다.',
                             {
                               query: committeeRosterSearch.trim(),
                               count: committeeRoster.length,
@@ -7593,7 +7593,7 @@ export default function EvalCycleWizard({
                       <span>
                         {fill(
                           L.wizardCommitteeLoadError ??
-                            '위원 후보 명단을 불러오지 못했습니다. 이미 선택한 위원 {{count}}명은 그대로 유지됩니다.',
+                            '위원 후보 명단을 불러오지 못했습니다.',
                           { count: committee.length },
                         )}
                       </span>

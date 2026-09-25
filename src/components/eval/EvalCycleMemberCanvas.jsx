@@ -68,11 +68,11 @@ const DEFAULT_LABELS = {
   saveError: '저장에 실패했습니다. 작성 내용은 유지되며, 잠시 후 다시 시도됩니다.',
   aiPolish: 'AI 다듬기',
   aiPolishing: '다듬는 중…',
-  aiError: 'AI 다듬기에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
+  aiError: 'AI 다듬기에 실패했습니다.',
   // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
   aiDraft: 'AI 초안 생성',
   aiDrafting: '초안 만드는 중…',
-  aiDraftError: 'AI 초안 생성에 실패했습니다. 작성 내용은 그대로 유지됩니다.',
+  aiDraftError: 'AI 초안 생성에 실패했습니다.',
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
