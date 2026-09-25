@@ -24,6 +24,15 @@ const DEFAULT_PROFILE = {
   workHours: '10-7',
 };
 
+// 값이 없는 칸의 표시 — 기획서 퍼블릭 카드 🔒 섹션과 같은 `—` (pivit-work PW-1064).
+// 예전엔 빈 칸에 데모 값(사번 PVT-008·전화 010-1234-5678·직급 L3·업무시간 10-7·정규직)을
+// 채워 보여서, 어드민이 남의 가짜 전화번호·사번을 실제 값으로 읽었다.
+const EMPTY_VALUE = '—';
+const shown = (v) => (v == null || v === '' ? EMPTY_VALUE : v);
+
+// 소비자가 `profile` 을 안 넘긴 사람의 카드 — 데모 값(DEFAULT_PROFILE) 대신 빈 값으로 그린다.
+const EMPTY_PROFILE = { title: '', dept: '', bio: '', skills: '', contacts: '', links: [], teamMembers: [] };
+
 const PROFILE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
 
 const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
@@ -146,7 +155,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
       scrollWrapRef.current.scrollTop = 0;
     }
   }, [member]);
-  const profile = displayMember ? (displayMember.profile || DEFAULT_PROFILE) : DEFAULT_PROFILE;
+  const profile = displayMember?.profile || EMPTY_PROFILE;
   const isOpen = !!member;
 
   return (
@@ -191,21 +200,21 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 <img src={statIcons.employment} alt={L('profile.employmentType')} />
               </div>
               <div className="modal-stat-label">{L('profile.employmentType')}</div>
-              <div className="modal-stat-value">{profile.employmentType || L('profile.employmentTypeDefault')}</div>
+              <div className="modal-stat-value">{shown(profile.employmentType)}</div>
             </div>
             <div className="modal-stat">
               <div className="modal-stat-icon">
                 <img src={statIcons.rank} alt={L('profile.rank')} />
               </div>
               <div className="modal-stat-label">{L('profile.rank')}</div>
-              <div className="modal-stat-value">{profile.rank || 'L3'}</div>
+              <div className="modal-stat-value">{shown(profile.rank)}</div>
             </div>
             <div className="modal-stat">
               <div className="modal-stat-icon">
                 <img src={statIcons.workHoursAdmin} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>
-              <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
+              <div className="modal-stat-value">{shown(profile.workHours)}</div>
             </div>
           </div>
         ) : statIcons ? (
@@ -215,7 +224,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 <img src={statIcons.workHours} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>
-              <div className="modal-stat-value">{profile.workHours || '10-7'}</div>
+              <div className="modal-stat-value">{shown(profile.workHours)}</div>
             </div>
           </div>
         ) : null}
@@ -253,15 +262,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-info-sections">
             <div className="modal-info-section">
               <div className="modal-info-label">{L('profile.employeeNo')}</div>
-              <div className="modal-info-content">{profile.employeeId || 'PVT-008'}</div>
+              <div className="modal-info-content">{shown(profile.employeeId)}</div>
             </div>
             <div className="modal-info-section">
               <div className="modal-info-label">{L('profile.joinedAt')}</div>
-              <div className="modal-info-content">{profile.hireDate || '2026-05-02'}</div>
+              <div className="modal-info-content">{shown(profile.hireDate)}</div>
             </div>
             <div className="modal-info-section">
               <div className="modal-info-label">{L('profile.phone')}</div>
-              <div className="modal-info-content">{profile.phone || '010-1234-5678'}</div>
+              <div className="modal-info-content">{shown(profile.phone)}</div>
             </div>
           </div>
         )}
@@ -279,7 +288,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-info-section">
             <div className="modal-info-label">{L('profile.links')}</div>
             <div className="modal-info-content">
-              {profile.links.map((link, i) => (
+              {(profile.links || []).map((link, i) => (
                 <a key={i} className="modal-info-link" href={link} target="_blank" rel="noopener noreferrer">
                   {link}
                   <Icon src="/icons/arrow-up-right.svg" size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />

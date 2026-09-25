@@ -36,7 +36,6 @@ export const ORGCHART_LABELS = {
 
   // ── 프로필 카드 (프로젝트 탭 · design-page 자체 화면) ──
   'profile.employmentType': '고용형태',
-  'profile.employmentTypeDefault': '정규직',
   'profile.rank': '직급',
   'profile.workHours': '업무시간',
   'profile.feedback': '피드백주기',
