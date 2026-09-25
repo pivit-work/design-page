@@ -7,6 +7,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
+import { scaleMaxOf } from './evalTemplateItemModel.js';
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -1882,15 +1883,15 @@ export default function EvalCycleSummaryCanvas({
                   <section className="evc-card" data-testid="evs-j1-ratio">
                     <h3 className="evc-card-name">{L.j1RatioTitle}</h3>
                     {[
-                      { label: L.j1CompLabel, val: execSummary?.competencyAvg, tone: 'purple' },
-                      { label: L.j1WorkLabel, val: execSummary?.workAchievementAvg, tone: 'accent' },
+                      { label: L.j1CompLabel, val: execSummary?.competencyAvg, max: scaleMaxOf({ scaleMax: execSummary?.competencyScaleMax }), tone: 'purple' },
+                      { label: L.j1WorkLabel, val: execSummary?.workAchievementAvg, max: scaleMaxOf({ scaleMax: execSummary?.workAchievementScaleMax }), tone: 'accent' },
                     ].map((r) => (
                       <div className="evs-j1-ratio-row" key={r.label}>
                         <span className="evs-j1-ratio-label">{r.label}</span>
                         <div className="evs-dist-track evs-j1-ratio-track">
-                          <div className={`evs-j1-ratio-fill tone-${r.tone}`} style={{ width: `${r.val != null ? (r.val / 5) * 100 : 0}%` }} />
+                          <div className={`evs-j1-ratio-fill tone-${r.tone}`} style={{ width: `${r.val != null ? (r.val / r.max) * 100 : 0}%` }} />
                         </div>
-                        <span className="evs-j1-ratio-val">{r.val != null ? `${r.val.toFixed(1)}/5` : L.j1NoScore}</span>
+                        <span className="evs-j1-ratio-val">{r.val != null ? `${r.val.toFixed(1)}/${r.max}` : L.j1NoScore}</span>
                       </div>
                     ))}
                     <p className="evs-dist-guide-cap evs-j1-ratio-note">{L.j1RatioNote}</p>
