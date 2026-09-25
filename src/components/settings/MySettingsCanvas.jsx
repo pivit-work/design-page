@@ -1301,6 +1301,12 @@ export default function MySettingsCanvas({
   passwordState = { saving: false, saved: false, error: null },
   onChangePassword,
   /**
+   * 새 비밀번호 판정 — `(pw) => 안 맞는 이유 문구 | null`. 비밀번호 정책은 앱·서버가 정하고
+   * 이 화면은 결과만 쓴다 (pivit-work PW-1065). 주면 이유를 새 비밀번호 칸 아래에 띄우고
+   * 통과할 때만 [저장]을 켠다. 생략하면 종전대로 8자 이상만 본다.
+   */
+  validateNewPassword,
+  /**
    * 비밀번호가 **없는** 계정(Google 전용)의 「비밀번호 설정」을 메일 링크로 한다 (pivit-work 보안 점검
    * 2026-09-23 M3). 주면 새 비밀번호 칸 대신 계정 메일로 설정 링크를 보내는 버튼 하나를 그린다 —
    * 로그인된 화면에서 곧바로 비밀번호를 만들지 못하게. 안 주면 예전처럼 칸을 그린다.
@@ -1424,10 +1430,10 @@ export default function MySettingsCanvas({
    * 모르는 상태에서 칸을 지우면 비밀번호가 있는 사람이 검증 없이 제출하게 된다.
    */
   const needsCurrentPw = !loginMethods || loginMethods.password;
+  const newPwError = newPw && validateNewPassword ? validateNewPassword(newPw) : null;
+  const newPwOk = validateNewPassword ? Boolean(newPw) && !newPwError : newPw.length >= 8;
   const pwReady =
-    (needsCurrentPw ? Boolean(currentPw) : true) &&
-    newPw.length >= 8 &&
-    newPw === confirmPw;
+    (needsCurrentPw ? Boolean(currentPw) : true) && newPwOk && newPw === confirmPw;
 
   const activePhoto = photos.find((p) => p.id === activePhotoId) || photos[0] || null;
   /**
@@ -2177,7 +2183,12 @@ export default function MySettingsCanvas({
                       />
                     </Field>
                   )}
-                  <Field label={labels.security.newPassword} hint={labels.security.newPwHint}>
+                  <Field
+                    label={labels.security.newPassword}
+                    hint={labels.security.newPwHint}
+                    error={newPwError}
+                    errorTestId="pw-policy"
+                  >
                     <TextInput
                       className="admin-emp-input"
                       type="password"
