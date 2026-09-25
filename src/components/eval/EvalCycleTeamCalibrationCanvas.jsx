@@ -91,6 +91,10 @@ export default function EvalCycleTeamCalibrationCanvas({
   /** 진행 중 해제됐고 조정 이력이 남아 있다 — 켠 것과 같이 그리되 안내 띠를 얹는다. */
   calibrationReleased = false,
   labels: providedLabels,
+  /**
+   * 이의 접수. **넘기지 않으면 [이의] 버튼과 입력 창을 그리지 않는다** (PW-1053) — 호출부가
+   * 서버 판정(완료된 사이클이면 이의 불가)을 보고 넘길지 정한다.
+   */
   onAppeal,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -218,8 +222,8 @@ export default function EvalCycleTeamCalibrationCanvas({
                         </StatusBadge>
                       </div>
                       {r.changed ? (
-                        statusBadge ? (
-                          <StatusBadge
+                        statusBadge || !onAppeal ? (
+                          statusBadge && <StatusBadge
                             className={`evc-status-badge ${statusBadge.cls}`}
                             data-testid="evtcal-appeal-status">
                             {statusBadge.txt}
@@ -241,7 +245,7 @@ export default function EvalCycleTeamCalibrationCanvas({
                   </div>
 
                   {/* 이의 사유 입력 — 사유 필수 */}
-                  {r.changed && isOpen && !appeal && (
+                  {r.changed && isOpen && !appeal && onAppeal && (
                     <div className="evtcal-appeal-form">
                       <label className="evtcal-appeal-label">
                         {L.appealReasonLabel} <span className="evtcal-req">*</span>
