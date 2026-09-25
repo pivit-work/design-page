@@ -101,10 +101,9 @@ export default function CalendarMonthView({ selectedDate, onEventClick, onMoreCl
           const iso = formatIsoDate(d);
           const isToday = iso === (now ? formatIsoDate(now()) : TODAY_STR);
           const isCurrentMonth = d.getMonth() === currentMonth;
-          // 주말(일=0, 토=6) 컬럼은 그대로 렌더링하되 이벤트 내용은 비움.
-          const dow = d.getDay();
-          const isWeekend = dow === 0 || dow === 6;
-          const events = isWeekend ? [] : getEventsForDate(iso);
+          // 주말 칸도 일정을 그대로 보인다(PW-1063). 예전엔 토·일 칸을 비워, 같은 일정이
+          // 주 보기엔 있고 월 보기엔 없었다.
+          const events = getEventsForDate(iso);
           const visible = events.slice(0, maxVisible);
           const moreCount = Math.max(0, events.length - maxVisible);
           // 1일은 "X월 Y일" 라벨, 나머지는 숫자

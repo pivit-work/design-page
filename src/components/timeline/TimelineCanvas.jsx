@@ -63,6 +63,10 @@ export default function TimelineCanvas({
   // 초기 그룹. 드래그 리오더는 내부 state 로 관리되며 변경 시 onGroupsChange 가 호출된다.
   initialGroups,
   onGroupsChange,
+  // 사람을 끌어 놓았을 때 그룹 구성을 정하는 규칙 — ({ groups, memberId, fromGroupId,
+  // toGroupId, index }) => 새 groups (바꿀 것이 없으면 null). 미주입 시 출발 그룹에서만
+  // 빼서 놓은 그룹에 넣는다(useTimelineDnD 의 moveMemberBetweenGroups).
+  resolveMemberDrop,
   // 간트 일 뷰에서 미팅 필터 기준 날짜 (ISO YYYY-MM-DD). 기본값은 TODAY_STR(mock용).
   ganttDayDate,
   // 스니핏 CTA 상태머신은 상위에서 제어할 수도 있다. 생략 시 내부 상태 사용.
@@ -193,6 +197,7 @@ export default function TimelineCanvas({
   const { dragState, dragOver, startDrag } = useTimelineDnD({
     groups,
     setGroups: handleGroupsCommit,
+    resolveDrop: resolveMemberDrop,
   });
 
   // ── 그룹 접기/펼치기 ─────────────────────────────────────────────────────
