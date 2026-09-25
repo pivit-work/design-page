@@ -7,9 +7,13 @@ import {
   Section,
   ManagerFeedback,
   SessionHeader,
+  EditableNotesCard,
+  EditBadge,
+  EditActions,
   transcriptAnchor,
   useTranscriptJump,
 } from './OneOnOneMemberCanvas.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Spinner from '../shared/Spinner.jsx';
 
 /**
@@ -55,6 +59,7 @@ import Spinner from '../shared/Spinner.jsx';
 
 const DEFAULT_ICONS = {
   back: '/icons-solid/arrow-left.svg',
+  agenda: '/icons-solid/list.svg',
   clock: '/icons-solid/clock.svg',
   ai: '/icons-solid/ai-chat-01.svg',
   check: '/icons-solid/check-circle.svg',
@@ -131,7 +136,24 @@ const DEFAULT_LABELS = {
   sentimentNeutral: '중립',
   sentimentNegative: '부정',
 
-  /* ── 매니저 피드백 (읽기 전용) ── */
+  /* ── 끝난 뒤 30일 편집 (PW-1046 · 기획 §12 · 커트 2026-09-25) ── */
+  agendaTitle: '논의 아젠다',
+  agendaEmpty: '아젠다가 없습니다',
+  agendaAddPlaceholder: '논의 주제 추가 (Enter)',
+  agendaAdd: '추가',
+  agendaRemove: '삭제',
+  managerNotesTitle: '매니저 메모',
+  managerNotesPlaceholder: '미팅 중 적어 둔 메모',
+  notesEmpty: '적어 둔 메모가 없습니다',
+  edit: '편집',
+  editCancel: '취소',
+  editSaving: '저장하는 중…',
+  save: '저장',
+  editSaveError: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  editUntil: '{date}까지 고칠 수 있습니다',
+  feedbackEditedAfterShare: '공개 후 수정됨',
+
+  /* ── 매니저 피드백 ── */
   managerFeedback: '매니저 피드백',
   feedbackStrengths: '관찰한 강점',
   feedbackSbi: '개선 피드백 (SBI)',
@@ -728,6 +750,203 @@ function NextMemoCard({ value, L, icons, baseUrl, memo }) {
 }
 
 /**
+ * 「논의 아젠다」 카드 — 끝난 뒤 30일 동안 고친다 (PW-1046 · 기획 §12).
+ *
+ * 평소엔 읽기 전용 목록이다(진행 중에 다룬 항목은 체크 표시). `edit.onSave` 가 오면
+ * [편집]이 붙고, 누르면 항목 글을 고치고 · 더하고 · 뺄 수 있다. 모양은 진행 화면의
+ * 아젠다 목록(`.ono-start-agenda-*`)을 그대로 쓴다 — 새 모양을 만들지 않았다.
+ *
+ * 비었고 고칠 수도 없으면 카드를 그리지 않는다(이 파일의 「값이 없는 섹션」 규칙).
+ * 저장은 [저장]을 눌러야 나간다. 빈 글 항목은 저장 전에 뺀다.
+ */
+function DoneAgendaCard({ items, L, icons, baseUrl, edit }) {
+  const list = Array.isArray(items) ? items : [];
+  const canEdit = typeof edit?.onSave === 'function';
+  const saving = !!edit?.saving;
+  const [editOpen, setEditing] = useState(false);
+  const [draft, setDraft] = useState(list);
+  const [input, setInput] = useState('');
+  const editing = editOpen && canEdit;
+
+  if (!canEdit && list.length === 0) return null;
+
+  const open = () => {
+    setDraft(list.map((a) => ({ ...a })));
+    setInput('');
+    setEditing(true);
+  };
+  const add = () => {
+    const text = input.trim();
+    if (!text) return;
+    setDraft((d) => [
+      ...d,
+      { id: `new-${Date.now()}-${d.length}`, text, checked: false, addedDuring: false },
+    ]);
+    setInput('');
+  };
+  const save = async () => {
+    const pending = input.trim()
+      ? [...draft, { id: `new-${Date.now()}-${draft.length}`, text: input.trim(), checked: false, addedDuring: false }]
+      : draft;
+    const next = pending
+      .map((a) => ({ ...a, text: a.text.trim() }))
+      .filter((a) => a.text.length > 0);
+    try {
+      await edit.onSave(next);
+      setEditing(false);
+    } catch {
+      /* 실패 문구는 edit.error 가 그린다 — 고치던 목록은 그대로 둔다. */
+    }
+  };
+
+  return (
+    <Section
+      title={L.agendaTitle}
+      icon={icons.agenda}
+      icons={icons}
+      baseUrl={baseUrl}
+      collapsible={false}
+      badge={
+        canEdit && !editing ? (
+          <EditBadge L={L} until={edit.until} onEdit={open} testid="ono-done-agenda-edit" />
+        ) : undefined
+      }
+    >
+      <div data-testid="ono-done-agenda">
+        {editing ? (
+          <div className="ono-start-agenda-list">
+            {draft.map((a) => (
+              <div className="ono-start-agenda-add" key={a.id}>
+                <input
+                  type="text"
+                  value={a.text}
+                  disabled={saving}
+                  aria-label={L.agendaTitle}
+                  data-testid="ono-done-agenda-input"
+                  onChange={(e) =>
+                    setDraft((d) => d.map((x) => (x.id === a.id ? { ...x, text: e.target.value } : x)))
+                  }
+                />
+                <button
+                  type="button"
+                  className="ono-start-agenda-x"
+                  aria-label={L.agendaRemove}
+                  disabled={saving}
+                  data-testid="ono-done-agenda-remove"
+                  onClick={() => setDraft((d) => d.filter((x) => x.id !== a.id))}
+                >
+                  <CloseGlyph size={16} strokeWidth={2.25} />
+                </button>
+              </div>
+            ))}
+            <div className="ono-start-agenda-add">
+              <input
+                type="text"
+                value={input}
+                placeholder={L.agendaAddPlaceholder}
+                disabled={saving}
+                data-testid="ono-done-agenda-new"
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    add();
+                  }
+                }}
+              />
+              <button type="button" className="ono-start-agenda-add-btn" onClick={add} disabled={saving}>
+                {L.agendaAdd}
+              </button>
+            </div>
+            {edit?.error && (
+              <p className="ono-done-inline-error" role="alert" data-testid="ono-done-agenda-error">
+                {L.editSaveError}
+              </p>
+            )}
+            <EditActions
+              L={L}
+              saving={saving}
+              testid="ono-done-agenda"
+              onCancel={() => setEditing(false)}
+              onSave={save}
+            />
+          </div>
+        ) : list.length === 0 ? (
+          <p className="ono-mem-hint">{L.agendaEmpty}</p>
+        ) : (
+          <div className="ono-start-agenda-list">
+            {list.map((a) => (
+              <div className="ono-start-agenda-item" key={a.id}>
+                <span className="ono-start-agenda-text">{a.text}</span>
+                {a.checked && (
+                  <Icon src={icons.check} size={14} color="var(--utility-green-600)" baseUrl={baseUrl} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+/** 매니저 피드백 세 항목 — 화면 라벨 키. */
+const FEEDBACK_KEYS = ['strengths', 'sbi', 'support'];
+const FEEDBACK_TITLE_KEY = {
+  strengths: 'feedbackStrengths',
+  sbi: 'feedbackSbi',
+  support: 'feedbackSupport',
+};
+
+/**
+ * 매니저 피드백 고치기 (PW-1046 · 커트 2026-09-25 (다)).
+ *
+ * 세 항목을 한꺼번에 고쳐 [저장]한다. 공개 뒤에 고치면 서버가 「공개 후 수정됨」을
+ * 남기고 카드 제목 옆에 붙는다 — 그 판정은 서버가 한다(여기서 계산하지 않는다).
+ */
+function FeedbackEditor({ session, L, icons, baseUrl, edit, onDone }) {
+  const initial = Object.fromEntries(
+    FEEDBACK_KEYS.map((k) => [k, (session.managerFeedback ?? []).find((f) => f.key === k)?.text ?? '']),
+  );
+  const [draft, setDraft] = useState(initial);
+  const saving = !!edit?.saving;
+  const save = async () => {
+    try {
+      await edit.onSave(draft);
+      onDone();
+    } catch {
+      /* 실패 문구는 edit.error 가 그린다 — 고치던 글은 그대로 둔다. */
+    }
+  };
+  return (
+    <Section title={L.managerFeedback} icon={icons.feedback} icons={icons} baseUrl={baseUrl} collapsible={false}>
+      <div className="ono-mem-feedback" data-testid="ono-done-feedback-editor">
+        {FEEDBACK_KEYS.map((k) => (
+          <div className="ono-mem-feedback-box" key={k}>
+            <div className="ono-mem-note-label">{L[FEEDBACK_TITLE_KEY[k]]}</div>
+            <textarea
+              className="ono-start-textarea"
+              rows={3}
+              value={draft[k]}
+              disabled={saving}
+              aria-label={L[FEEDBACK_TITLE_KEY[k]]}
+              data-testid={`ono-done-feedback-input-${k}`}
+              onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
+      {edit?.error && (
+        <p className="ono-done-inline-error" role="alert" data-testid="ono-done-feedback-error">
+          {L.editSaveError}
+        </p>
+      )}
+      <EditActions L={L} saving={saving} testid="ono-done-feedback" onCancel={onDone} onSave={save} />
+    </Section>
+  );
+}
+
+/**
  * 피드백 공개 컨트롤 (PW-432 · policy §6.4.2).
  *
  * 정본 시안 `1on1-manager-view.jsx` 의 `shareState` 블록이 **비공개 → 확인 → 공개됨**
@@ -930,9 +1149,31 @@ export default function DoneOneOnOneView({
    * **안 넘기면 자리가 생기지 않는다** — 사람이 누른 종료에는 말할 것이 없다.
    */
   endNotice,
+  /**
+   * 끝난 뒤 30일 편집 (PW-1046 · 기획 §12 · 커트 2026-09-25).
+   *
+   * 셋 다 `{ until, saving, error, onSave }` 모양이다. `until` 은 «언제까지» 를 사람이
+   * 읽는 날짜로 — 형식은 소비처가 정한다(시간대). `onSave` 는 Promise 를 돌려주고,
+   * 거절하면 편집이 열린 채 남는다.
+   *
+   * **안 넘기면 [편집]이 없다** — 30일이 지났는지는 소비처가 판정해 거둔다. 아젠다·
+   * 메모 카드는 그래도 읽기 전용으로 남는다(비었으면 안 그린다).
+   *
+   * - `agendaEdit.onSave(items)` — 아젠다 전체(글 · 체크 · id 를 그대로 둔 배열)
+   * - `managerNotesEdit.onSave(text)` — 매니저 메모
+   * - `feedbackEdit.onSave({ strengths, sbi, support })` — 매니저 피드백 본문 세 항목
+   */
+  agendaEdit,
+  managerNotesEdit,
+  feedbackEdit,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
+  // 피드백 편집 중인가. 훅이라 이른 반환보다 위에 둔다.
+  const [feedbackEditOpen, setFeedbackEditing] = useState(false);
+  const feedbackEditable = typeof feedbackEdit?.onSave === 'function';
+  // 기간이 닫히면(소비처가 feedbackEdit 을 거둠) 열려 있던 편집도 접힌다.
+  const feedbackEditing = feedbackEditOpen && feedbackEditable;
   const I = { ...DEFAULT_ICONS, ...(icons || {}) };
   // 근거 발췌 → 전문 딥링크 (PW-327). 매니저는 자기 회차의 전문을 늘 보므로
   // `alwaysEnabled` 다 — `sttShared` 로 잠그면 자기가 공개하지 않은 회차에서
@@ -1006,6 +1247,31 @@ export default function DoneOneOnOneView({
 
       <SentimentCard session={session} L={L} icons={I} baseUrl={baseUrl} />
 
+      {/* 아젠다·매니저 메모 — 끝난 뒤 30일 동안 고친다 (PW-1046). 예전엔 [미팅 완료]
+          순간 이 두 칸이 사라져, 서버는 30일까지 받는데 고칠 자리가 없었다. */}
+      <DoneAgendaCard
+        items={session.agendaItems}
+        L={L}
+        icons={I}
+        baseUrl={baseUrl}
+        edit={agendaEdit}
+      />
+
+      {(managerNotesEdit?.onSave || session.managerNotes?.trim()) && (
+        <EditableNotesCard
+          title={L.managerNotesTitle}
+          value={session.managerNotes ?? ''}
+          placeholder={L.managerNotesPlaceholder}
+          emptyText={L.notesEmpty}
+          icon={I.memo}
+          L={L}
+          icons={I}
+          baseUrl={baseUrl}
+          edit={managerNotesEdit}
+          testid="ono-done-manager-notes"
+        />
+      )}
+
       {/* 피드백이 없는 회차에는 공개할 것도 없다 — 카드 자체를 그리지 않는다. */}
       {has(session.managerFeedback) && (
         <div data-testid="ono-done-feedback">
@@ -1016,15 +1282,36 @@ export default function DoneOneOnOneView({
               {session.isShared ? L.shareOn : L.shareOff}
             </StatusBadge>
           </div>
-          <ManagerFeedback
-            session={session}
-            managerName={host.name}
-            L={L}
-            icons={I}
-            baseUrl={baseUrl}
-            jump={transcript.jump}
-            {...(feedbackEvidence || {})}
-          />
+          {feedbackEditing ? (
+            <FeedbackEditor
+              session={session}
+              L={L}
+              icons={I}
+              baseUrl={baseUrl}
+              edit={feedbackEdit}
+              onDone={() => setFeedbackEditing(false)}
+            />
+          ) : (
+            <ManagerFeedback
+              session={session}
+              managerName={host.name}
+              L={L}
+              icons={I}
+              baseUrl={baseUrl}
+              jump={transcript.jump}
+              headerExtra={
+                feedbackEditable ? (
+                  <EditBadge
+                    L={L}
+                    until={feedbackEdit.until}
+                    onEdit={() => setFeedbackEditing(true)}
+                    testid="ono-done-feedback-edit"
+                  />
+                ) : null
+              }
+              {...(feedbackEvidence || {})}
+            />
+          )}
           {share && (
             <ShareControl
               shared={!!session.isShared}

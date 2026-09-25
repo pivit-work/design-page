@@ -113,6 +113,17 @@ const DEFAULT_LABELS = {
   feedbackStrengths: '관찰한 강점',
   feedbackSbi: '개선 피드백 (SBI)',
   feedbackSupport: '지원 계획',
+  /* 공개 뒤 매니저가 본문을 고쳤다 (PW-1046 · 커트 2026-09-25 (다)). 근거 발췌 안의
+     「본문을 다듬었습니다」(evidenceEdited)와 다른 사실이다 — 그쪽은 «발췌를 뽑은 뒤»,
+     이쪽은 «팀원에게 공개한 뒤»다. */
+  feedbackEditedAfterShare: '공개 후 수정됨',
+  /* 끝난 1on1 을 30일 동안 고치는 자리 (PW-1046) — 결과 탭의 개인 메모. */
+  edit: '편집',
+  editCancel: '취소',
+  editSaving: '저장하는 중…',
+  editSaveError: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  editUntil: '{date}까지 고칠 수 있습니다',
+  notesEmpty: '적어 둔 메모가 없습니다',
   evidenceToggle: '근거 발췌 {count}',
   evidenceCaption: '이 피드백의 근거가 된 대화 발췌입니다',
   evidenceEdited: '매니저가 본문을 다듬었습니다 — 발췌는 원본 대화 기준입니다',
@@ -605,9 +616,11 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump })
  * 발췌 로딩·실패가 **본문 표시를 막지 않는다.** 본문은 먼저 그리고, 발췌 자리에만
  * 상태 문구를 둔다 — 근거를 못 불러왔다고 피드백을 못 읽게 되면 안 된다.
  */
-export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump }) {
+export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra }) {
   const items = session.managerFeedback ?? [];
   if (items.length === 0) return null;
+  // 공개 뒤 고쳤는가 (PW-1046) — 서버가 공개된 회차에만 싣는다. 매니저·팀원 화면 공통.
+  const editedAfterShare = !!session.feedbackEditedAfterShareAt;
 
   const titleOf = (key) =>
     ({
@@ -625,6 +638,18 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
       icons={icons}
       baseUrl={baseUrl}
       collapsible={false}
+      badge={
+        editedAfterShare || headerExtra ? (
+          <>
+            {editedAfterShare && (
+              <DpStatusBadge className="ono-start-topic-badge" data-testid="ono-feedback-edited-after-share">
+                {L.feedbackEditedAfterShare}
+              </DpStatusBadge>
+            )}
+            {headerExtra}
+          </>
+        ) : undefined
+      }
     >
       <div className="ono-mem-feedback">
         {items.map((item) => (
@@ -656,6 +681,119 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
         ))}
       </div>
     </Section>
+  );
+}
+
+/**
+ * 끝난 1on1 에서 **30일 동안** 고치는 글 한 칸 (PW-1046 · 기획 §12 「DONE 후 30일」).
+ *
+ * 매니저 끝난 화면의 「매니저 메모」와 팀원 결과 탭의 「개인 메모」가 같은 모양을 쓴다.
+ * 평소엔 읽기 전용 글이고, `edit.onSave` 가 오면 제목 줄에 «언제까지» 와 [편집]이 붙는다.
+ * 기간이 지나 소비처가 `edit` 을 안 넘기면 [편집]이 사라진다 — 판정은 소비처가 한다
+ * (서버와 같은 규칙을 소비처가 들고 있다).
+ *
+ * 자동저장이 아니다. 끝난 회차의 글은 팀원·매니저가 이미 읽었을 수 있어 [저장]을
+ * 눌러야 나간다. `onSave` 가 거절(reject)하면 편집을 연 채로 두고 쓰던 글을 지우지
+ * 않는다. 실패 문구는 `edit.error` 로 받는다.
+ */
+export function EditableNotesCard({
+  title, value, placeholder, emptyText, icon, L, icons, baseUrl, edit, testid = 'ono-notes',
+}) {
+  const [editOpen, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? '');
+  const canEdit = typeof edit?.onSave === 'function';
+  const saving = !!edit?.saving;
+  // 기간이 닫히면(소비처가 edit 을 거둠) 열려 있던 편집도 접힌다.
+  const editing = editOpen && canEdit;
+
+  const save = async () => {
+    try {
+      await edit.onSave(draft);
+      setEditing(false);
+    } catch {
+      /* 실패 문구는 edit.error 가 그린다 — 쓰던 글은 그대로 둔다. */
+    }
+  };
+
+  return (
+    <Section
+      title={title}
+      icon={icon}
+      icons={icons}
+      baseUrl={baseUrl}
+      collapsible={false}
+      badge={
+        canEdit && !editing ? (
+          <EditBadge L={L} until={edit.until} testid={`${testid}-edit`} onEdit={() => {
+            setDraft(value ?? '');
+            setEditing(true);
+          }} />
+        ) : undefined
+      }
+    >
+      {editing ? (
+        <>
+          <textarea
+            className="ono-start-textarea"
+            rows={6}
+            value={draft}
+            placeholder={placeholder}
+            disabled={saving}
+            aria-label={title}
+            data-testid={`${testid}-input`}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          {edit?.error && (
+            <p className="ono-done-inline-error" role="alert" data-testid={`${testid}-error`}>
+              {L.editSaveError}
+            </p>
+          )}
+          <EditActions L={L} saving={saving} testid={testid} onCancel={() => setEditing(false)} onSave={save} />
+        </>
+      ) : (
+        <p className="ono-mem-feedback-text" data-testid={`${testid}-text`}>
+          {value?.trim() ? value : emptyText}
+        </p>
+      )}
+    </Section>
+  );
+}
+
+/** 제목 줄 오른쪽 — «언제까지» 와 [편집] (PW-1046). */
+export function EditBadge({ L, until, onEdit, testid }) {
+  return (
+    <span className="ono-done-banner-actions ono-done-edit-badge">
+      {until && <span className="ono-done-count">{fill(L.editUntil, { date: until })}</span>}
+      <button type="button" className="ono-done-banner-btn" onClick={onEdit} data-testid={testid}>
+        {L.edit}
+      </button>
+    </span>
+  );
+}
+
+/** 편집 중 [취소]·[저장] (PW-1046). 저장 중에는 둘 다 잠근다 — 두 번 나가지 않게. */
+export function EditActions({ L, saving, onCancel, onSave, testid, disabled = false }) {
+  return (
+    <div className="ono-done-manual-actions">
+      <button
+        type="button"
+        className="ono-done-banner-btn"
+        onClick={onCancel}
+        disabled={saving}
+        data-testid={`${testid}-cancel`}
+      >
+        {L.editCancel}
+      </button>
+      <button
+        type="button"
+        className="ono-done-action-add-btn"
+        onClick={onSave}
+        disabled={saving || disabled}
+        data-testid={`${testid}-save`}
+      >
+        {saving ? L.editSaving : L.save}
+      </button>
+    </div>
   );
 }
 
@@ -1032,7 +1170,7 @@ export function EmotionTone({ session, L, icons, baseUrl }) {
   );
 }
 
-function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer }) {
+function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer, resultNotes }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
@@ -1057,9 +1195,26 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
         L={L} icons={icons} baseUrl={baseUrl}
       />
 
-      {session.isShared === false ? (
+      {session.isShared === false && (
         <EmptyState title={L.managerPreparing} description={L.noSummary} />
-      ) : (
+      )}
+
+      {/* 내 개인 메모 (PW-1046) — 팀원 자신의 글이라 매니저가 공개하지 않은 회차에도
+          보인다. 끝난 뒤 30일 동안 고친다(`resultNotes` 가 올 때만 [편집]). */}
+      <EditableNotesCard
+        title={L.privateMemo}
+        value={session.memberNotes ?? ''}
+        placeholder={L.memoPlaceholder}
+        emptyText={L.notesEmpty}
+        icon={icons.memo}
+        L={L}
+        icons={icons}
+        baseUrl={baseUrl}
+        edit={resultNotes}
+        testid="ono-result-notes"
+      />
+
+      {session.isShared === false ? null : (
         <>
           <NoteGrid
             session={session}
@@ -1436,6 +1591,13 @@ export default function OneOnOneMemberCanvas({
    * 재생기 없이 그린다.
    */
   renderRecordingPlayer,
+  /**
+   * 결과 탭 「개인 메모」 고치기 (PW-1046). `{ until, saving, error, onSave(text) }`.
+   *
+   * **안 넘기면 [편집]이 없다** — 끝난 뒤 30일이 지났는지는 소비처가 판정해 이 값을
+   * 거둔다. `onSave` 는 Promise 를 돌려주고, 거절하면 편집이 열린 채 남는다.
+   */
+  resultNotes = null,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -1475,6 +1637,7 @@ export default function OneOnOneMemberCanvas({
           deadlineOf={deadlineOf} onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
           renderRecordingPlayer={renderRecordingPlayer}
+          resultNotes={resultNotes}
         />
       ) : <EmptyState description={L.noResultSession} />)}
 

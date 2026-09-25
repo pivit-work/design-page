@@ -86,6 +86,10 @@ const DEFAULT_LABELS = {
   recordTitle: '{name}님과의 1on1',
   recordTitleNoName: '1on1 회의록',
   readOnly: '열람 전용',
+  /* 끝난 뒤 30일 안의 회차에서 끝난 1on1 화면으로 가는 버튼 (PW-1046). 이 화면은 열람
+     전용 그대로이고(기획 §14-4), 고치는 자리는 끝난 1on1 화면 하나다. */
+  editRecord: '편집',
+  editRecordUntil: '{date}까지 고칠 수 있습니다',
   meetingNotes: '미팅 내용',
   mainDiscussion: '주요 논의',
   keyDecisions: '결정 사항',
@@ -538,6 +542,7 @@ function RecordScreen({
   transcription,
   onBackToList,
   renderRecordingPlayer,
+  recordEdit,
 }) {
   const host = hostOf(session, { name: managerName });
   const actions = session.actionItems ?? [];
@@ -563,6 +568,21 @@ function RecordScreen({
           <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />
           {L.backToList}
         </button>
+        {recordEdit?.onEdit && (
+          <span className="ono-done-banner-actions ono-done-edit-badge">
+            {recordEdit.until && (
+              <span className="ono-done-count">{fill(L.editRecordUntil, { date: recordEdit.until })}</span>
+            )}
+            <button
+              type="button"
+              className="ono-done-banner-btn"
+              onClick={() => recordEdit.onEdit(session.id)}
+              data-testid="ono-past-record-edit"
+            >
+              {L.editRecord}
+            </button>
+          </span>
+        )}
       </SessionHeader>
 
       <NoteGrid
@@ -750,6 +770,13 @@ export default function OneOnOneMemberMeetingsCanvas({
    * 들을 수 있는가」는 회차 단위로 갈린다. `null` 이면 자리 자체가 생기지 않는다.
    */
   renderRecordingPlayer,
+  /**
+   * 회의록 헤더의 [편집] (PW-1046). `{ until, onEdit(sessionId) }`.
+   *
+   * 끝난 뒤 30일 안의 회차에서 **끝난 1on1 화면으로 보내는** 버튼이다 — 이 화면에서
+   * 고치지 않는다(기획 §14-4 열람 전용). 기간 판정은 소비처가 하고, 지났으면 안 넘긴다.
+   */
+  recordEdit,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
   const I = { ...DEFAULT_ICONS, ...(icons || {}) };
@@ -783,6 +810,7 @@ export default function OneOnOneMemberMeetingsCanvas({
         />
       ) : screen === 'record' ? (
         <RecordScreen
+          recordEdit={recordEdit}
           session={session}
           memberName={memberName}
           managerName={managerName}
