@@ -59,11 +59,13 @@
 .dp-btn--primary {
   background: var(--bg-brand-solid, #2dbd82);
   color: var(--colors-text-textWhite, #fff);
-  box-shadow: 0 1px 2px rgba(16, 119, 77, 0.16);
+  /* 그림자 색은 대표색 700 단계를 옅게 편 것 — 값(rgba(16,119,77,.16))을 적지 않고 색 이름에서
+     만든다. 대표색을 덮어쓰는 앱(운영 콘솔 보라 · PW-1026)에서 그림자만 초록으로 남지 않게. */
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--colors-brand-700) 16%, transparent);
 }
 .dp-btn--primary:not(:disabled):hover {
   background: var(--text-brand-tertiary, #21a67a);
-  box-shadow: 0 4px 12px rgba(16, 119, 77, 0.22);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--colors-brand-700) 22%, transparent);
 }
 .dp-btn--secondary {
   background: var(--bg-quaternary);
