@@ -109,6 +109,10 @@ const DEFAULT_LABELS = {
   quoteExpiredBody:
     '협의 단가 견적의 유효기간이 지났습니다. 영업팀에 문의해 새 견적을 받아 주세요.',
   quoteExpiredCta: '영업팀 문의하기',
+  // 약정 기간 중 하향 차단 안내 (spec-billing.md §2.6.4 · 시안 billing-app.jsx PW-344)
+  commitmentNotice: (contractEnd) =>
+    `약정 기간(~${contractEnd}) 중에는 하위 플랜으로 변경할 수 없습니다.`,
+  commitmentContactCta: '영업팀 문의 →',
   quoteCardTitle: '협의 단가 적용됨 — Pro · Enterprise',
   quoteCardTitleRenewal: '갱신 견적 — 다음 계약 기간 조건',
   quoteValidBadge: (days) => `유효기간 D-${days}`,
@@ -467,6 +471,13 @@ export default function BillingPlansCanvas({
   onQuoteCheckout = () => {},
   /** 갱신 견적 동의 — 체크아웃을 재경유하지 않는다(빌링키·첫 결제가 이미 있다). */
   onAcceptQuoteRenewal = () => {},
+  /**
+   * 약정 기간 중 하향 차단 (spec-billing.md §2.6.4 · `screen-billing-plans.policy.md`
+   * 「약정 기간 중 하향 CTA 비활성」). `{ contractEnd, lockedPlanCodes }` 또는 `null`.
+   * `lockedPlanCodes` 의 카드는 버튼이 꺼지고, 카드 아래에 안내 줄 + [영업팀 문의 →] 가 뜬다.
+   * 어느 카드가 «하위»인지는 앱이 정한다 — 계약 종료일·현재 요금제를 앱이 안다.
+   */
+  commitment = null,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -685,7 +696,11 @@ export default function BillingPlansCanvas({
               plan={plan}
               isCurrent={plan.code === subscription.planCode}
               interval={interval}
-              canEdit={canEdit && !subscription.cancelAtPeriodEnd}
+              canEdit={
+                canEdit &&
+                !subscription.cancelAtPeriodEnd &&
+                !(commitment?.lockedPlanCodes ?? []).includes(plan.code)
+              }
               isCustomCta={plan.isCustom}
               featureKeys={featureKeys}
               featureLabelMap={featureLabelMap}
@@ -699,6 +714,16 @@ export default function BillingPlansCanvas({
             />
           ))}
         </div>
+
+        {/* 약정 기간 중 하향 차단 안내 (PW-344) */}
+        {commitment && canEdit && (commitment.lockedPlanCodes ?? []).length > 0 && (
+          <div data-testid="billing-commitment-notice" style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
+            {labels.commitmentNotice(commitment.contractEnd)}{' '}
+            <button type="button" onClick={onNavigateContactSales}
+              style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                fontSize: 13, cursor: 'pointer', padding: 0 }}>{labels.commitmentContactCta}</button>
+          </div>
+        )}
 
         {/* 기능 비교 테이블 */}
         <FeatureCompareTable
