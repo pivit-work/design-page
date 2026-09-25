@@ -4538,7 +4538,7 @@
 .evs-rank-val { font-variant-numeric: tabular-nums; font-weight: 800; font-size: var(--font-size-text-sm); text-align: right; color: var(--text-primary); }
 .evs-rank-cap { margin-top: var(--spacing-md); }
 
-.evs-dept-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 1fr) 1fr 1.2fr; }
+.evs-dept-drow { grid-template-columns: 1.3fr 0.6fr repeat(var(--gcols, 3), 1fr) 1fr 1.2fr; }
 .evs-dept-drow .seg-top-text { color: var(--utility-green-600); font-variant-numeric: tabular-nums; }
 .evs-dept-drow .seg-mid-text { color: var(--utility-brand-600); font-variant-numeric: tabular-nums; }
 .evs-dept-drow .seg-bottom-text { color: var(--utility-error-600); font-variant-numeric: tabular-nums; }
@@ -4696,7 +4696,7 @@
 .evs-j1-ratio-fill.tone-accent { background: var(--utility-brand-500); }
 .evs-j1-ratio-val { font-variant-numeric: tabular-nums; font-weight: 700; font-size: var(--font-size-text-sm); min-width: 44px; text-align: right; color: var(--text-primary); }
 .evs-j1-ratio-note { margin-top: var(--spacing-sm); }
-.evs-j1-drow { grid-template-columns: 1.3fr auto repeat(var(--gcols, 3), 0.7fr) 0.9fr 0.9fr 1fr; }
+.evs-j1-drow { grid-template-columns: 1.3fr 0.6fr repeat(var(--gcols, 3), 0.7fr) 0.9fr 0.9fr 1fr; }
 
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
