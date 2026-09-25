@@ -59,6 +59,16 @@ function MemberAvatar({ member, size }) {
   );
 }
 
+/**
+ * 목표 대비 편차를 드러낼 배정인가. 판정은 호스트가 한다 — 앱은 서버가 정한
+ * `showDeviation` 을 실어 보낸다(PW-1063: 카드 배지·안내 띠·AI 인사이트가 같은 기준을
+ * 쓰게). 값이 없을 때(예시 데이터)만 차이 3%p 이상을 기본으로 쓴다.
+ */
+function showsDeviation(a) {
+  if (typeof a.showDeviation === 'boolean') return a.showDeviation;
+  return Math.abs(a.ratio - a.target) >= 3;
+}
+
 /** 프로젝트별 투입 비율 스택 바 + 목표 마커. */
 function StackBar({ allocations, projectById, showTarget = false, height = 10 }) {
   return (
@@ -84,7 +94,7 @@ function StackBar({ allocations, projectById, showTarget = false, height = 10 })
       {showTarget &&
         allocations.map((a, i) => {
           const proj = projectById(a.projectId);
-          if (!proj || Math.abs(a.ratio - a.target) < 3) return null;
+          if (!proj || !showsDeviation(a)) return null;
           const pos = allocations.slice(0, i).reduce((s, x) => s + x.target, 0) + a.target;
           return (
             <span
@@ -98,8 +108,9 @@ function StackBar({ allocations, projectById, showTarget = false, height = 10 })
   );
 }
 
-function DiffBadge({ diff, labels, withLabel = false }) {
-  if (Math.abs(diff) < 3) return null;
+function DiffBadge({ allocation, labels, withLabel = false }) {
+  if (!showsDeviation(allocation)) return null;
+  const diff = allocation.ratio - allocation.target;
   return (
     <span className={`rs-diff ${diff > 0 ? 'is-over' : 'is-under'}`}>
       {withLabel ? `${labels.vsTarget} ` : ''}
@@ -145,7 +156,7 @@ function MemberCard({ member, projectById, labels, onSelect }) {
               <span className="rs-dot" style={{ background: proj.color }} />
               <span className="rs-alloc-name">{proj.name}</span>
               <span className="rs-alloc-pct" style={{ color: proj.color }}>{a.ratio}%</span>
-              <DiffBadge diff={a.ratio - a.target} labels={labels} />
+              <DiffBadge allocation={a} labels={labels} />
             </span>
           );
         })}
@@ -295,7 +306,7 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
                   <div className="rs-panel-alloc-head">
                     <span className="rs-dot" style={{ width: 8, height: 8, background: proj.color }} />
                     <span className="rs-panel-alloc-name">{proj.name}</span>
-                    {!isEditing && <DiffBadge diff={a.ratio - a.target} labels={labels} withLabel />}
+                    {!isEditing && <DiffBadge allocation={a} labels={labels} withLabel />}
                   </div>
                   <StackBar allocations={[a]} projectById={projectById} height={8} />
                   <div className="rs-panel-alloc-head" style={{ marginTop: 10, marginBottom: 0 }}>

@@ -9,7 +9,26 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 // hijacking dragstart, dragend not firing when the source is removed, etc).
 // Instead we listen to mousedown/mousemove/mouseup directly and render the
 // floating preview ourselves — fully solid, fully under our control.
-export default function useTimelineDnD({ groups, setGroups }) {
+//
+// 놓은 결과(어느 그룹에 누가 남나)는 resolveDrop 이 정한다 — 호스트가 넘기면 그 규칙을
+// 쓰고(PW-1063: 앱이 「끌어 놓은 그룹에 더하고 원래 그룹은 그대로」를 정한다), 없으면
+// 기본 동작으로 **출발한 그룹에서만** 빼서 놓은 그룹에 넣는다. 예전 기본 동작은 모든
+// 그룹에서 그 사람을 뺐다 — 두 그룹에 넣어 둔 사람을 한 칸만 끌어도 다른 그룹 구성이
+// 말없이 지워졌다.
+export function moveMemberBetweenGroups({ groups, memberId, fromGroupId, toGroupId, index }) {
+  const next = groups.map((g) => ({
+    ...g,
+    memberIds: g.id === fromGroupId ? g.memberIds.filter((id) => id !== memberId) : [...g.memberIds],
+  }));
+  const toG = next.find((g) => g.id === toGroupId);
+  if (!toG) return null;
+  if (toG.id !== fromGroupId && toG.memberIds.includes(memberId)) return next;
+  const clamped = Math.max(0, Math.min(index, toG.memberIds.length));
+  toG.memberIds.splice(clamped, 0, memberId);
+  return next;
+}
+
+export default function useTimelineDnD({ groups, setGroups, resolveDrop }) {
   const [dragState, setDragState] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const dragStateRef = useRef(null);
@@ -18,9 +37,11 @@ export default function useTimelineDnD({ groups, setGroups }) {
   // commit 직후에 동기화해야 핸들러가 최신 값을 본다.
   const groupsRef = useRef(groups);
   const setGroupsRef = useRef(setGroups);
+  const resolveDropRef = useRef(resolveDrop);
   useLayoutEffect(() => {
     groupsRef.current = groups;
     setGroupsRef.current = setGroups;
+    resolveDropRef.current = resolveDrop;
   });
 
   const computeDropTarget = (clientX, clientY) => {
@@ -118,17 +139,15 @@ export default function useTimelineDnD({ groups, setGroups }) {
         return;
       }
 
-      const prevGroups = groupsRef.current;
-      const next = prevGroups.map((g) => ({
-        ...g,
-        memberIds: g.memberIds.filter((id) => id !== drag.member.id),
-      }));
-      const toG = next.find((g) => g.id === target.groupId);
-      if (toG) {
-        const clamped = Math.max(0, Math.min(target.index, toG.memberIds.length));
-        toG.memberIds.splice(clamped, 0, drag.member.id);
-        setGroupsRef.current?.(next);
-      }
+      const resolve = resolveDropRef.current ?? moveMemberBetweenGroups;
+      const next = resolve({
+        groups: groupsRef.current,
+        memberId: drag.member.id,
+        fromGroupId: drag.fromGroupId,
+        toGroupId: target.groupId,
+        index: target.index,
+      });
+      if (next) setGroupsRef.current?.(next);
 
       clear();
     };

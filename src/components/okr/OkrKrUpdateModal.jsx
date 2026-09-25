@@ -9,7 +9,9 @@ import ModalShell from '../shared/ModalShell.jsx';
  *   total, currentValue, aiValue?, aiMeta?('신뢰도 88% · 오늘 9:12') }
  * AI 초안 카드는 aiValue 가 있을 때만 렌더한다(집계 데이터가 없으면 숨김).
  * 입력값 초기치는 currentValue → aiValue 순으로 채우고, 달성률(%)은
- * 입력값/목표로 자동 계산된다.
+ * 입력값/목표로 자동 계산된다. 호스트가 detail.progressFor(값) 를 넘기면 그 값을
+ * 그대로 보인다(PW-1063 — 저장 뒤 서버가 매길 달성률과 창 안 미리보기를 맞추려고.
+ * 완료형·목표 0·음수에서 단순 나눗셈과 서버 값이 달랐다).
  *
  * 🔴 확정은 **onConfirm 이 끝나기를 기다린 뒤에만 닫는다.** 예전에는 부르자마자
  * 닫았는데, 저장이 거절돼도(권한 없음·서버 오류) 창이 그대로 사라져서 아무 말도 없이
@@ -22,7 +24,9 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
   const [saving, setSaving] = useState(false);
 
   const numeric = Number(value) || 0;
-  const percent = Math.min(Math.round((numeric / detail.total) * 100), 100);
+  const percent = typeof detail.progressFor === 'function'
+    ? detail.progressFor(numeric)
+    : Math.min(Math.round((numeric / detail.total) * 100), 100);
 
   const confirm = async () => {
     if (saving) return;
