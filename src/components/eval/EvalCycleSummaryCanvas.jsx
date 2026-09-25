@@ -892,6 +892,16 @@ export default function EvalCycleSummaryCanvas({
   onExportCsv,
   onSaveFilterPreset,
   /**
+   * PW-1053 — 「조직 공용」 체크를 보일지. 공용 프리셋은 서버가 인사담당자에게만 받는다.
+   * 넘기지 않으면 종전대로 보인다. 프리셋 저장 칸 자체는 `onSaveFilterPreset` 이 있을 때만 그린다.
+   */
+  canSharePreset = true,
+  /**
+   * PW-1053 — 어필 재조정 등급 목록({ gradeKey, label }[]). 서버가 수용할 때 검사하는 등급 순서다.
+   * 넘기지 않으면 종전대로 `gradeDistribution` 에서 만든다(요약을 못 받는 위원은 그게 비어 있다).
+   */
+  appealGradeOptions,
+  /**
    * `toolbar` — 헤더 아래(이 화면 고유 탭 줄 위)에 놓을 호출부 노드(선택). 사이클 안
    * 형제 화면으로 오가는 탭 줄이 이 자리에 선다. 이 캔버스의 `.evc-root` 는
    * `position: fixed` 라 호출부가 바깥에 놓으면 본문 칸을 벗어난다. 안 주면 아무것도
@@ -967,6 +977,7 @@ export default function EvalCycleSummaryCanvas({
   // R4b 프리셋 저장 입력
   const [presetName, setPresetName] = useState('');
   const [presetShared, setPresetShared] = useState(false);
+  const [presetSaving, setPresetSaving] = useState(false);
   // R1(v0.3) 위원회 생성 모달
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -2091,7 +2102,9 @@ export default function EvalCycleSummaryCanvas({
                       </StatusBadge>
                     ))
                   )}
-                  <button type="button" className="evs-j4-save" onClick={() => onSaveFilterPreset && onSaveFilterPreset()} data-testid="evs-j4-save">{L.j4SavePreset}</button>
+                  {onSaveFilterPreset && (
+                    <button type="button" className="evs-j4-save" onClick={() => onSaveFilterPreset()} data-testid="evs-j4-save">{L.j4SavePreset}</button>
+                  )}
                 </div>
                 <p className="evs-j4-desc">{L.j4Desc}</p>
                 <div className="evs-j4-actions">
@@ -2376,7 +2389,7 @@ export default function EvalCycleSummaryCanvas({
                 const appeal = gradeAppeals.find((a) => a.id === selectedAppealId);
                 if (!appeal) return null;
                 const decided = appeal.status !== 'open';
-                const gradeOpts = gradeDistribution.map((d) => ({
+                const gradeOpts = (appealGradeOptions ?? gradeDistribution).map((d) => ({
                   gradeKey: d.gradeKey,
                   label: d.label,
                 }));
@@ -3893,6 +3906,9 @@ export default function EvalCycleSummaryCanvas({
                   </div>
                 </div>
               )}
+              {/* PW-1053 — 저장이 받아들여지는 사람에게만 그린다(호출부가 핸들러를 넘기는 사람).
+                  이름은 저장이 «성공한 뒤에» 비운다 — 실패하면 적은 이름이 남는다(PW-966 과 같은 틀). */}
+              {onSaveFilterPreset && (
               <div className="evs-cw-filter-save">
                 <input
                   className="evs-cw-create-input evs-cw-filter-save-name"
@@ -3901,6 +3917,7 @@ export default function EvalCycleSummaryCanvas({
                   onChange={(e) => setPresetName(e.target.value)}
                   data-testid="evs-cw-filter-preset-name"
                 />
+                {canSharePreset && (
                 <label className="evs-cw-filter-save-shared">
                   <input
                     type="checkbox"
@@ -3909,29 +3926,39 @@ export default function EvalCycleSummaryCanvas({
                   />
                   {L.cwFilterPresetShareLabel}
                 </label>
+                )}
                 <button
                   type="button"
                   className="evc-btn is-ghost"
-                  disabled={!presetName.trim()}
+                  disabled={!presetName.trim() || presetSaving}
                   onClick={() => {
-                    onSaveFilterPreset?.(
-                      presetName.trim(),
-                      {
-                        includeConds: calibFilter.includeConds,
-                        includeOp: calibFilter.includeOp,
-                        excludeConds: calibFilter.excludeConds,
-                        excludeIds: calibFilter.excludeIds,
+                    setPresetSaving(true);
+                    Promise.resolve(
+                      onSaveFilterPreset(
+                        presetName.trim(),
+                        {
+                          includeConds: calibFilter.includeConds,
+                          includeOp: calibFilter.includeOp,
+                          excludeConds: calibFilter.excludeConds,
+                          excludeIds: calibFilter.excludeIds,
+                        },
+                        canSharePreset && presetShared,
+                      ),
+                    ).then(
+                      () => {
+                        setPresetSaving(false);
+                        setPresetName('');
+                        setPresetShared(false);
                       },
-                      presetShared,
+                      () => setPresetSaving(false),
                     );
-                    setPresetName('');
-                    setPresetShared(false);
                   }}
                   data-testid="evs-cw-filter-preset-save"
                 >
                   {L.cwFilterPresetSave}
                 </button>
               </div>
+              )}
             </div>
           </ModalShell>
         );

@@ -1236,6 +1236,16 @@ export default function EvalCycleHrCanvas({
    * 다시 본다(오픈 전이) — 여기 검사는 «가기 전에 알려 주는» 몫이다.
    */
   const missingTemplateTypesOf = (cycle) => {
+    // PW-1053 — 서버가 오픈 때 검사하는 목록(`missingTemplatePhases`)을 주면 그것만 쓴다.
+    // 아래 자체 판정은 하향(`manager`↔`leader`)·`order` 우선·빈 리뷰 종류를 서버와 다르게 읽어
+    // 헛막히거나, 통과했다가 오픈에서 거절됐다. 서버 단계 id `leader` 는 이 사이클이 `manager`
+    // 로 적었으면 그 이름으로 돌려 준다 — 「확정하러 가기」가 그 유형 탭으로 가야 해서다.
+    if (Array.isArray(cycle?.missingTemplatePhases)) {
+      const types = cycle?.reviewTypes ?? [];
+      return cycle.missingTemplatePhases.map((p) =>
+        p === 'leader' && !types.includes('leader') && types.includes('manager') ? 'manager' : p,
+      );
+    }
     const seq = cycle?.reviewSequence ?? null;
     const map = seq?.templateMap ?? {};
     const types = cycle?.reviewTypes?.length ? cycle.reviewTypes : [];

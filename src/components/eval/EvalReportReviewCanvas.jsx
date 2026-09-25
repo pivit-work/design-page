@@ -396,7 +396,12 @@ function ReviewRow({
   const [refineOpen, setRefineOpen] = useState(false);
   const isMyReport = row.leaderId === myUserId;
   const excluded = row.excluded === true;
-  const canApprove = isMyReport && row.status === 'pending' && !excluded;
+  // PW-1053 — 누를 수 있나는 서버가 줄마다 준 값(`canApprove`)을 쓴다. 담당 리더 id 로 따로
+  // 판정하면 본부장에게 산하 팀원 줄은 보이는데 [승인]이 없었다. 값이 없으면 종전 판정.
+  const canApprove =
+    typeof row.canApprove === 'boolean'
+      ? row.canApprove
+      : isMyReport && row.status === 'pending' && !excluded;
   const meta = excluded
     ? EXCLUDED_META
     : (STATUS_META[row.status] ?? STATUS_META.pending);
