@@ -3,7 +3,6 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
-import { confirmOpen, isTopLayer, pushLayer } from '../shared/dismissStack.js';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
@@ -2441,25 +2440,6 @@ export default function EvalCycleWizard({
     return () => window.removeEventListener('keydown', onKey);
   }, [pendingAsk]);
 
-  /* [PW-1066] 리마인더 패널도 «닫히는 층» 목록에 올린다 — 안 올리면 패널을 연 채 Esc 를 누를 때
-     밑의 마법사 창이 맨 위로 여겨져 마법사 닫기(이탈 확인)가 뜬다. 패널 안에서 연 펼침 메뉴·
-     확인 창이 있으면 그쪽이 먼저 닫힌다. 값은 누를 때마다 이미 들어가 있어 닫아도 잃지 않는다. */
-  const rmEditOpen = rmEdit != null;
-  useEffect(() => {
-    if (!rmEditOpen) return undefined;
-    const token = {};
-    const popLayer = pushLayer(token);
-    const onKey = (e) => {
-      if (e.key !== 'Escape' || !isTopLayer(token) || confirmOpen()) return;
-      setRmEdit(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      popLayer();
-    };
-  }, [rmEditOpen]);
-
   /**
    * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 공용 확인 창.
    * `Promise<boolean>` 으로 통일해 호출부가 한 모양으로 `await` 한다.
@@ -3009,6 +2989,7 @@ export default function EvalCycleWizard({
    *
    * - 마법사 창(겹침 1000) 위에 떠야 하므로 1001. 패널 안에서 여는 확인 창(10050)은 그보다 위다.
    * - 고친 값은 누르는 즉시 마법사 상태에 들어간다 — [완료]·막 누르기·Esc 는 닫기만 한다.
+   * - Esc 는 틀이 «맨 위 층일 때만» 받는다 — 밑의 마법사 창 닫기(이탈 확인)가 함께 뜨지 않는다.
    */
   const renderReminderPanel = () => {
     if (!rmEdit) return null;
@@ -3022,6 +3003,7 @@ export default function EvalCycleWizard({
     return (
       <SidePanelShell
         onClose={close}
+        closeOnEscape
         zIndex={1001}
         className="evc-rm-panel"
         testId={`evc-rm-panel-${ph.id}-${i}`}
