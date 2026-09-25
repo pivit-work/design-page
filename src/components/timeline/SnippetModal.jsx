@@ -24,8 +24,16 @@ import { healthTier, healthLabel } from './snippetHealth.js';
 const HEALTH_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // What 등 텍스트 필드 글자수 제한. 90% 근접 시 카운터를 빨강으로 경고.
+// `sectionMaxLength` prop 을 안 주면 다섯 칸 모두 이 값이다.
 const SNIPPET_MAX_LEN = 500;
-const SNIPPET_NEAR_LIMIT = SNIPPET_MAX_LEN * 0.9;
+const NEAR_LIMIT_RATIO = 0.9;
+const DEFAULT_SECTION_MAX_LENGTH = {
+  what: SNIPPET_MAX_LEN,
+  why: SNIPPET_MAX_LEN,
+  value: SNIPPET_MAX_LEN,
+  highlights: SNIPPET_MAX_LEN,
+  lowlights: SNIPPET_MAX_LEN,
+};
 const SECTIONS = [
   {
     key: 'what',
@@ -88,6 +96,10 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     healthScore: 1~10 또는 null (미선택). 호스트는 null 이면 prompt 에서 제외.
 //     healthNote:  영향 요인 자유 입력. summary 톤·컨텍스트 보강용.
 //
+//   sectionMaxLength?: { what?, why?, value?, highlights?, lowlights? } — 칸별 글자수
+//     상한. 준 객체에 없는 칸은 상한도 카운터도 없다. 누락 시 다섯 칸 모두 500.
+//     한도는 호스트(서버와 같은 값)가 정하고 이 화면은 받은 값으로 막기만 한다.
+//
 //   각 콜백이 누락되면 해당 버튼은 disabled. 두 콜백을 분리한 이유는 사용자가
 //   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
 //   때문이다.
@@ -111,6 +123,7 @@ export default function SnippetModal({
   onTagSelect,
   onDraftChange,
   savedAt,
+  sectionMaxLength = DEFAULT_SECTION_MAX_LENGTH,
 }) {
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
@@ -391,15 +404,20 @@ export default function SnippetModal({
                   onCompositionStart={handleCompositionStart}
                   onCompositionEnd={handleCompositionEnd}
                   onBlur={handleFieldBlur}
-                  maxLength={SNIPPET_MAX_LEN}
+                  maxLength={sectionMaxLength?.[s.key]}
                 />
-                <div
-                  className={`tl-snippet-count${
-                    sectionTexts[s.key].length > SNIPPET_NEAR_LIMIT ? ' is-near-limit' : ''
-                  }`}
-                >
-                  {sectionTexts[s.key].length} / {SNIPPET_MAX_LEN}
-                </div>
+                {sectionMaxLength?.[s.key] != null && (
+                  <div
+                    className={`tl-snippet-count${
+                      sectionTexts[s.key].length >
+                      sectionMaxLength[s.key] * NEAR_LIMIT_RATIO
+                        ? ' is-near-limit'
+                        : ''
+                    }`}
+                  >
+                    {sectionTexts[s.key].length} / {sectionMaxLength[s.key]}
+                  </div>
+                )}
               </div>
             ))}
 
