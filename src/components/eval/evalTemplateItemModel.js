@@ -132,7 +132,19 @@ export const SECTION_COLORS = {
   '성장 (Growth)': 'var(--utility-success-600)',
   '최종 등급 결정': 'var(--utility-warning-600)',
 };
-export const sectionColor = (s) => SECTION_COLORS[s] || 'var(--text-tertiary)';
+/**
+ * 저장된 구분 값별 색 — 제품은 구분을 `work_achievement` 등 내부 값으로 저장하고 화면에는
+ * 「업적」처럼 옮긴 말만 그린다. 옮긴 말은 언어마다 달라 위 표(시안 문구)로는 못 찾으므로
+ * 저장 값으로 먼저 찾는다(PW-1030). 성과=blue·역량=purple·성장=green 은 시안의 짝을 따른다.
+ */
+export const CATEGORY_COLORS = {
+  work_achievement: 'var(--utility-blue-600)',
+  competency: 'var(--utility-purple-600)',
+  growth: 'var(--utility-success-600)',
+};
+/** 구분 칩 색. `category`(저장 값)가 표에 있으면 그것, 없으면 보이는 문구(시안 문구)로 찾는다. */
+export const sectionColor = (s, category) =>
+  CATEGORY_COLORS[category] || SECTION_COLORS[s] || 'var(--text-tertiary)';
 
 /** 섹션별로 항목을 묶는다 — 미리보기·평가지 렌더가 같은 순서로 그리게 한다. */
 export function groupBySection(items) {
