@@ -4,12 +4,14 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
-import { IconUpload, IconChevronLeft, IconChevronRight } from './employeesIcons.jsx';
+import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
+import Pagination from '../shared/Pagination.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -345,16 +347,16 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
       ]}
     />
     {rows.length > ROSTER_PAGE_SIZE && (
-      <div className="admin-emp-pagination" data-testid="admin-snap-roster-pagination">
-        <span className="admin-emp-muted">
-          {offset + 1}–{Math.min(offset + ROSTER_PAGE_SIZE, rows.length)} {pager.of} {rows.length}{labels.countSuffix}
-        </span>
-        <div className="admin-emp-pagination-nav">
-          <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => goTo(safePage - 1)}><IconChevronLeft size={14} />{pager.prev}</button>
-          <span className="admin-emp-mono admin-emp-muted">{safePage} {pager.of} {totalPages}</span>
-          <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => goTo(safePage + 1)}>{pager.next}<IconChevronRight size={14} /></button>
-        </div>
-      </div>
+      <Pagination
+        data-testid="admin-snap-roster-pagination"
+        page={safePage}
+        totalPages={totalPages}
+        pageSize={ROSTER_PAGE_SIZE}
+        total={rows.length}
+        onPageChange={goTo}
+        labels={pager}
+        countSuffix={labels.countSuffix}
+      />
     )}
     </>
   );
@@ -1741,7 +1743,7 @@ export default function OrgSnapshotCanvas({
       </div>
 
       {loading ? (
-        <div className="admin-snap-loading">{labels.loading}</div>
+        <LoadingState>{labels.loading}</LoadingState>
       ) : (
         <>
           {view === 'snapshot' && (

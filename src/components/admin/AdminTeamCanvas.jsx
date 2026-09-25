@@ -4,6 +4,8 @@ import AdminTeamDetailPanel from './AdminTeamDetailPanel.jsx';
 import { PlusIcon, SearchIcon, XIcon } from './teamIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
+import Toast from '../shared/Toast.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
@@ -510,12 +512,13 @@ export default function AdminTeamCanvas({
   const movingParentId = moveModalId ? findParentId(tree, moveModalId) : null;
 
   if (loading) {
-    return <div className="tm-loading">{L.loading ?? '...'}</div>;
+    return <LoadingState className="tm-loading">{L.loading ?? '...'}</LoadingState>;
   }
 
   return (
     <div className="tm-root">
-      {toast && <div className={`tm-toast ${toast.type === 'success' ? 'is-success' : 'is-error'}`}>{toast.msg}</div>}
+      {/* 알림 문구는 공용 Toast 한 벌 (PW-1010) */}
+      <Toast message={toast?.msg} tone={toast?.type === 'error' ? 'error' : 'success'} data-testid="tm-toast" />
 
       {/* Left: Tree */}
       <div className="tm-tree-panel">

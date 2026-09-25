@@ -6,6 +6,8 @@ import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import Switch from '../shared/Switch.jsx';
+import Toast from '../shared/Toast.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -172,21 +174,6 @@ function SelectInput({ value, options, onChange, ariaLabel }) {
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>
-  );
-}
-
-function ToggleSwitch({ checked, onChange, ariaLabel }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!checked)}
-      className={`intg-toggle${checked ? ' is-on' : ''}`}
-    >
-      <span className="intg-toggle-knob" />
-    </button>
   );
 }
 
@@ -456,10 +443,10 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
             </div>
           )}
           {field.kind === 'toggle' && (
-            <ToggleSwitch
+            <Switch
               checked={!!draft[field.key]}
               onChange={(v) => setField(field.key, v)}
-              ariaLabel={field.label}
+              label={field.label}
             />
           )}
         </SettingRow>
@@ -730,6 +717,7 @@ export default function AdminIntegrationsCanvas({
   loading = false,
   errorState = null,
   toast = null,
+  toastTone = 'success',
   transfer = null,
   settingsModal = null,
   syncLogs = [],
@@ -804,18 +792,8 @@ export default function AdminIntegrationsCanvas({
 
   return (
     <div className="admin-canvas" data-testid="intg-canvas">
-      {toast && (
-        <div
-          data-testid="intg-toast"
-          style={{
-            position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--colors-background-bgOverlay)', color: '#fff', padding: '10px 20px', borderRadius: 'var(--radius-full)',
-            fontSize: 12, fontWeight: 600, boxShadow: '0 4px 20px rgba(10,13,18,.2)', zIndex: 9999,
-          }}
-        >
-          {toast}
-        </div>
-      )}
+      {/* 알림 문구는 공용 Toast 한 벌 (PW-1010). 실패 문구는 toastTone="error" 로 빨강 */}
+      <Toast message={toast} tone={toastTone} data-testid="intg-toast" />
 
       <header className="admin-header">
         <div className="admin-header-titles">

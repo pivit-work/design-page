@@ -27,15 +27,8 @@ export function OnbArrowLeftIcon({ size = 14 }) {
   return <ArrowLeftGlyph size={size} />;
 }
 
-/** 시안 Spinner — 옅은 원 + 1/4 호. 색은 부모 color 를 따른다. */
-export function OnbSpinner({ size = 16 }) {
-  return (
-    <svg className="onb-spinner" width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+/** 시안 Spinner — 공용 도는 표시(`Spinner`)로 옮겼다. 옛 이름으로 부르는 곳을 위해 남긴 별명 (PW-1010). */
+export { default as OnbSpinner } from '../shared/Spinner.jsx';
 
 /** Google 로고 — 브랜드 색이 정해진 자산이라 리터럴 색 예외. */
 export function OnbGoogleLogo({ size = 18 }) {

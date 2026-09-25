@@ -1,3 +1,4 @@
+import Skeleton from '../shared/Skeleton.jsx';
 /**
  * KrMemberCard — KR 드릴다운 좌측 팀원 기여 카드.
  * Figma 17026:23299.
@@ -62,12 +63,12 @@ export default function KrMemberCard({ member, selected = false, onClick, labels
         <>
           <p className="mgr-krm-caption">{l.initiativeCaption}</p>
           {member.initiativesLoading ? (
-            <div className="mgr-krm-initiatives is-skeleton" data-testid="kr-initiatives-skeleton">
+            <div className="mgr-krm-initiatives" data-testid="kr-initiatives-skeleton">
               {[0, 1].map((i) => (
                 <div className="mgr-krm-initiative" key={i}>
                   <div className="mgr-krm-initiative-row">
-                    <span className="mgr-krm-skel mgr-krm-skel-title" />
-                    <span className="mgr-krm-skel mgr-krm-skel-percent" />
+                    <Skeleton inline width={96} height={13} radius={4} />
+                    <Skeleton inline width={28} height={13} radius={4} />
                   </div>
                   <div className="mgr-krm-bar" />
                 </div>

@@ -5,6 +5,7 @@ import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
 import SnippetListRow from './SnippetListRow.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import Switch from '../shared/Switch.jsx';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -133,15 +134,10 @@ export default function SnippetCanvas({
             <h1 className="snippet-title">스니핏</h1>
             {/* 개발 확인용 매니저 뷰 토글 */}
             {showManagerToggle && (
-              <button
-                type="button"
-                className={`snippet-view-toggle ${isManagerView ? 'is-on' : ''}`}
-                onClick={onToggleManagerView}
-                title="개발 확인용 — 매니저/멤버 뷰 전환"
-              >
-                <span className="snippet-view-toggle-dot" />
-                매니저 모드 {isManagerView ? 'on' : 'off'}
-              </button>
+              <label className="snippet-view-switch" title="개발 확인용 — 매니저/멤버 뷰 전환">
+                <Switch checked={isManagerView} onChange={() => onToggleManagerView?.()} />
+                매니저 모드
+              </label>
             )}
           </div>
           <p className="snippet-subtitle">

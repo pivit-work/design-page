@@ -295,9 +295,7 @@
 .onb-divider i { flex: 1; height: 1px; background: var(--onb-border); }
 .onb-divider span { font-size: 12px; font-weight: 500; color: var(--onb-muted); }
 
-/* ── 스피너 (시안 Spinner) ── */
-@keyframes onb-spin { to { transform: rotate(360deg); } }
-.onb-spinner { animation: onb-spin 0.8s linear infinite; flex-shrink: 0; }
+/* 스피너는 공용 도는 표시(`Spinner`, src/loading.css)로 옮겼다 (PW-1010) */
 
 /* ── 안내 상자 ── */
 .onb-notice {

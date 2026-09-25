@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Spinner from './Spinner.jsx';
 
 /**
  * 버튼 — 두 번 눌러도 한 번만 일어나는 공용 버튼 (PW-1007).
@@ -97,25 +98,7 @@ export default function Button({
       onClick={handleClick}
     >
       <span className="dp-btn__label">{children}</span>
-      {busy && <ButtonSpinner />}
+      {busy && <Spinner className="dp-btn__spinner" />}
     </button>
-  );
-}
-
-/** 요청 중 표시 — 글자 색(currentColor)을 따라 도는 원호. */
-function ButtonSpinner() {
-  return (
-    <svg
-      className="dp-btn__spinner"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 12a9 9 0 1 1-6.22-8.56" />
-    </svg>
   );
 }

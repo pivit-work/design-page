@@ -1,0 +1,27 @@
+/*
+ * 페이지 넘김 `Pagination` (PW-1010) — `components/shared/Pagination.jsx`.
+ * 값은 어드민 직원 관리 화면의 `.admin-emp-pagination`·`-muted`·`-mono` 에서 그대로 옮겼다.
+ */
+.dp-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg-secondary);
+}
+.dp-pager__nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dp-pager__range {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-text-sm, 13px);
+}
+.dp-pager__page {
+  /* 옛 줄은 `admin-emp-mono admin-emp-muted` 두 클래스를 겹쳐 뒤엣것(글씨 크기·색)이 이겼다 */
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-text-sm, 13px);
+  color: var(--text-tertiary);
+}

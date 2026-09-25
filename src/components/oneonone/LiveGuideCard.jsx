@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { formatLiveElapsed } from './sessionHelpers.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * LIVE 「AI 대화 내비게이터」 — 매니저가 읽으며 1on1 을 이끄는 진행 스크립트 카드.
@@ -342,7 +343,7 @@ export default function LiveGuideCard({
       {/* ── 생성 중 — 버튼을 숨겨 중복 클릭을 막는다 (§7.5.2) ── */}
       {loading && (
         <div className="ono-guide-loading" data-testid="ono-live-guide-loading">
-          <span className="ono-guide-spinner" aria-hidden />
+          <Spinner size={16} />
           <span>{L.generating}</span>
         </div>
       )}

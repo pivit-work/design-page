@@ -65,6 +65,7 @@ import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgchart-labels.jsx';
 
 import { todayIsoInZone } from '../shared/calendarDate.js';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * 셀 툴팁의 마지막 줄 — 이 셀을 눌렀을 때 무엇을 할 수 있는지.
@@ -675,7 +676,7 @@ export default function SquadCanvas({
               튀고, 열어 둔 팝오버는 앵커를 잃는다. 안내는 **첫 조회**(아직 보여줄
               것이 없을 때)에만 띄운다. */}
           {loading && squads.length === 0 && (
-            <div className="sq-loading">{L('squad.loading')}</div>
+            <LoadingState>{L('squad.loading')}</LoadingState>
           )}
 
           {!loading && error && (

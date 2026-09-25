@@ -3270,26 +3270,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 13px;
   color: var(--componentColors-utility-purple-utilityPurple700);
 }
-.ono-guide-spinner {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  border: 2px solid var(--componentColors-utility-purple-utilityPurple200);
-  border-top-color: var(--componentColors-utility-purple-utilityPurple600);
-  animation: ono-guide-spin 0.7s linear infinite;
-}
-@keyframes ono-guide-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-/* 모션을 줄이라고 한 사용자에게 회전을 강요하지 않는다. */
-@media (prefers-reduced-motion: reduce) {
-  .ono-guide-spinner {
-    animation: none;
-  }
-}
+/* 도는 표시는 공용 `Spinner`(src/loading.css)로 옮겼다 (PW-1010) */
 
 /* 스테퍼 */
 .ono-guide-stepper {
@@ -3638,22 +3619,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 6px;
 }
 
-.ono-done-spinner {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  opacity: 0.85;
-  animation: ono-done-spin 0.7s linear infinite;
-}
-@keyframes ono-done-spin { to { transform: rotate(360deg); } }
-/* 「움직임 줄이기」 를 켠 사용자에게 무한 회전은 그 자체로 접근성 문제다.
-   상태 표시는 색·문구가 이미 하고 있으므로 회전만 끈다. */
-@media (prefers-reduced-motion: reduce) {
-  .ono-done-spinner { animation: none; }
-}
+/* 도는 표시는 공용 `Spinner`(src/loading.css)로 옮겼다 (PW-1010) */
 
 /* ── AI 미팅 요약 ── */
 .ono-done-summary {

@@ -419,11 +419,6 @@
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-md);
 }
-.evc-loading {
-  padding: 48px;
-  text-align: center;
-  color: var(--text-tertiary);
-}
 
 /* ── 모달 ── */
 
@@ -1087,33 +1082,8 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
-.evc-sched-toggle {
-  margin-left: auto;
-  width: 36px;
-  height: 20px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: var(--border-secondary);
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.2s;
-}
-.evc-sched-toggle.is-on { background: var(--utility-green-500); }
-.evc-sched-toggle.is-locked { opacity: 0.6; cursor: not-allowed; }
-.evc-sched-toggle.is-on.is-locked { background: var(--text-tertiary); }
-.evc-sched-toggle-dot {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--text-white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: left 0.2s;
-}
-.evc-sched-toggle.is-on .evc-sched-toggle-dot { left: 18px; }
+/* 단계 켜기/끄기 — 공용 스위치(`Switch`, src/switch.css). 여기는 줄 끝으로 미는 자리만 (PW-1010) */
+.evc-sched-switch { margin-left: auto; }
 .evc-sched-fields {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -1285,13 +1255,8 @@
   margin-left: auto;
   max-width: 220px;
 }
-.evc-tpl-confirm-skeleton {
-  margin-left: auto;
-  width: 140px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-}
+/* 자리 표시는 공용 `Skeleton`(src/loading.css). 여기는 줄 끝으로 미는 자리만 (PW-1010) */
+.evc-tpl-confirm-slot { margin-left: auto; }
 .evc-tpl-confirm-error {
   margin-left: auto;
   display: inline-flex;
@@ -2005,11 +1970,6 @@
 }
 .evc-tpl-start-error .evc-btn { flex-shrink: 0; white-space: nowrap; }
 /* 로딩 자리표시 — 카드와 같은 높이라 도착해도 레이아웃이 튀지 않는다. */
-.evc-tpl-start-card.is-skeleton {
-  min-height: 92px;
-  background: var(--bg-secondary);
-  border-style: dashed;
-}
 .evc-tpl-start-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(224px, 1fr));
@@ -5543,11 +5503,6 @@
   flex-direction: column;
   gap: 12px;
 }
-.evs-cw-detail-loading {
-  padding: 12px 14px;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
-}
 .evs-cw-detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7212,13 +7167,7 @@
   padding: 0;
 }
 /* 로딩 — 카드와 같은 높이를 차지해 명단이 도착할 때 레이아웃이 튀지 않는다 */
-.evc-wiz-committee-skeleton {
-  display: block;
-  height: 57px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
-}
+/* 위원 후보 자리 표시는 공용 `Skeleton` (PW-1010) */
 .evc-wiz-committee-error {
   display: flex;
   flex-wrap: wrap;

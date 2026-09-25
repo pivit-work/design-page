@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import EvalCycleMemberCanvas from './EvalCycleMemberCanvas.jsx';
 import AvatarPhoto from './AvatarPhoto.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * EvalUpwardReviewCanvas — 상향 리뷰 작성 (팀원 → 직속 리더). [PW-586]
@@ -198,9 +199,9 @@ export default function EvalUpwardReviewCanvas({
   if (state === 'loading') {
     // 고지를 먼저 그린다 — 대상 카드·폼 자리는 불러오는 중이다.
     return shell(
-      <div className="evc-loading" role="status" data-testid="evu-loading">
+      <LoadingState className="evc-loading" data-testid="evu-loading">
         {L.loading}
-      </div>,
+      </LoadingState>,
     );
   }
 

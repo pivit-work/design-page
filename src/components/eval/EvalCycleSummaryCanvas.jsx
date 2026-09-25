@@ -6,6 +6,7 @@ import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -3057,9 +3058,9 @@ export default function EvalCycleSummaryCanvas({
                                 <RosterTable.Row data-testid="evs-cw-detail">
                                   <RosterTable.Cell colSpan={calibColCount} className="evs-cw-detail-cell">
                                     {!detail ? (
-                                      <div className="evs-cw-detail-loading">
+                                      <LoadingState size="inline">
                                         {L.cwDetailLoading}
-                                      </div>
+                                      </LoadingState>
                                     ) : (
                                       <div className="evs-cw-detail evs-cw-detail-3col">
                                         {/* 좌: 프로필 */}

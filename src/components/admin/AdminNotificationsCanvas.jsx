@@ -5,6 +5,7 @@ import Icon from '../shared/Icon.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Switch from '../shared/Switch.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -105,20 +106,6 @@ function merge(base, provided) {
 }
 
 /* ── 토글 스위치 ───────────────────────────────────────── */
-function Toggle({ value, onChange, ariaLabel }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={value}
-      aria-label={ariaLabel}
-      onClick={() => onChange(!value)}
-      className={`admin-notif-toggle${value ? ' is-on' : ''}`}
-    >
-      <span className="admin-notif-toggle-knob" />
-    </button>
-  );
-}
 
 /* ── 작은 섹션 라벨 (모달 내부) ───────────────────────── */
 function SL({ children }) {
@@ -378,7 +365,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         {/* 활성화 */}
         <div className="admin-notif-enable-row">
           <span className="admin-notif-enable-label">{labels.modal.enableThis}</span>
-          <Toggle value={enabled} onChange={setEnabled} ariaLabel={labels.modal.enableThis} />
+          <Switch checked={enabled} onChange={setEnabled} label={labels.modal.enableThis} />
         </div>
 
         {/* 발동 조건 */}
@@ -509,7 +496,7 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
   const conditionText = formatCondition(rule.id, rule.conditionValues, rule.conditionFixed);
   return (
     <div className={`admin-notif-rule${rule.enabled ? '' : ' is-off'}`} data-testid="notif-rule">
-      <Toggle value={rule.enabled} onChange={() => onToggle(rule.id)} ariaLabel={rule.label} />
+      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} />
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
           <span className="admin-notif-rule-label">{rule.label}</span>

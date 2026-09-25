@@ -2,6 +2,7 @@ import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import KrMemberCard from './KrMemberCard.jsx';
 import KrContributionDetail from './KrContributionDetail.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 /**
  * KrDrilldown — 매니저 KR 드릴다운 탭 본문.
@@ -181,12 +182,12 @@ export default function KrDrilldown({
           </div>
         </div>
         {detail.loading ? (
-          <div className="mgr-kr-trend-bars is-skeleton" data-testid="kr-trend-skeleton">
+          <div className="mgr-kr-trend-bars" data-testid="kr-trend-skeleton">
             {[0, 1, 2, 3, 4].map((i) => (
               <div className="mgr-kr-trend-col" key={i}>
-                <span className="mgr-krm-skel mgr-krm-skel-percent" />
-                <div className="mgr-kr-trend-bar" style={{ height: '40px' }} />
-                <span className="mgr-krm-skel mgr-krm-skel-percent" />
+                <Skeleton inline width={28} height={13} radius={4} />
+                <Skeleton height={40} radius={8} />
+                <Skeleton inline width={28} height={13} radius={4} />
               </div>
             ))}
           </div>

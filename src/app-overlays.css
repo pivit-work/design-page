@@ -186,6 +186,26 @@
   background: var(--colors-text-textErrorPrimary, #d92d20);
 }
 
+/* 닫기(×) 버튼이 붙은 토스트 (PW-1010) */
+.pw-toast--closable {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pw-toast__close {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* 주의 — 됐지만 한 번 봐야 하는 것(일부만 됨 등). 어드민 직원 관리가 따로 칠하던 색 (PW-1010) */
+.pw-toast--warning {
+  background: var(--colors-text-textWarningPrimary, #dc6803);
+}
+
 /* ── 대신 로그인 띠 (ImpersonationBanner) ───────────────────────────────
  * 기획서 어드민 시안 「전역 임퍼소네이션 배너」의 값.
  * 자리는 기획서 §1-배너: 왼쪽 메뉴 오른쪽 ~ 화면 끝, 화면 맨 위. 순서는 «메뉴·위쪽

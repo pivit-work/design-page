@@ -33,10 +33,13 @@ import {
 } from './addedAtFilter.js';
 import RosterTable from '../shared/RosterTable.jsx';
 import {
-  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown,
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import Pagination from '../shared/Pagination.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
 
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
@@ -2706,16 +2709,15 @@ function EmployeesListView({
       )}
 
       {ordered.length > 0 && (
-        <div className="admin-emp-pagination">
-          <span className="admin-emp-muted">
-            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, ordered.length)} {labels.listPagination.of} {ordered.length}{labels.countSuffix}
-          </span>
-          <div className="admin-emp-pagination-nav">
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}><IconChevronLeft size={14} />{labels.listPagination.prev}</button>
-            <span className="admin-emp-mono admin-emp-muted">{safePage} {labels.listPagination.of} {totalPages}</span>
-            <button type="button" className="admin-emp-btn is-ghost is-sm" disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>{labels.listPagination.next}<IconChevronRight size={14} /></button>
-          </div>
-        </div>
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          total={ordered.length}
+          onPageChange={setPage}
+          labels={labels.listPagination}
+          countSuffix={labels.countSuffix}
+        />
       )}
     </Card>
   );
@@ -2875,11 +2877,7 @@ function PersonalHistoryList({ state, labels, onRetry }) {
 
   if (state.status === 'loading' || state.status === 'idle') {
     return (
-      <div className="admin-emp-hist-skeleton" aria-busy="true" data-testid="employees-history-loading">
-        <div className="admin-emp-hist-skeleton-row" />
-        <div className="admin-emp-hist-skeleton-row" />
-        <div className="admin-emp-hist-skeleton-row" />
-      </div>
+      <SkeletonList height={56} data-testid="employees-history-loading" />
     );
   }
 
@@ -4002,7 +4000,7 @@ export default function AdminEmployeesCanvas({
       </div>
 
       {loading ? (
-        <div className="admin-emp-loading">{labels.loading}</div>
+        <LoadingState>{labels.loading}</LoadingState>
       ) : tab === 'members' ? (
         <div data-testid="employees-view-list">
             <EmployeesListView

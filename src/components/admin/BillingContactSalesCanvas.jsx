@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BillingCard as Card } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 영업 문의 (BillingContactSalesCanvas)  /admin/billing/contact-sales
@@ -86,13 +87,6 @@ const DEFAULT_LABELS = {
 function mergeLabels(provided) {
   if (!provided) return DEFAULT_LABELS;
   return { ...DEFAULT_LABELS, ...provided };
-}
-
-function Card({ children, style }) {
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: 24, ...style }}>{children}</div>
-  );
 }
 
 function Field({ label, required, error, children }) {

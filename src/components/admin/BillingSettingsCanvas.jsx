@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 정보 (BillingSettingsCanvas)  /admin/billing/settings
@@ -111,15 +112,6 @@ function formatBizRegNo(raw) {
 
 // ── 유틸리티 컴포넌트 ──────────────────────────────────────
 
-function Card({ children, style }) {
-  return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: 24, ...style }}>
-      {children}
-    </div>
-  );
-}
-
 function Btn({ children, onClick, kind = 'primary', disabled }) {
   const styles = {
     primary: { bg: T.accent, color: '#fff', border: 'transparent' },
@@ -135,15 +127,6 @@ function Btn({ children, onClick, kind = 'primary', disabled }) {
         opacity: disabled ? 0.5 : 1 }}>
       {children}
     </button>
-  );
-}
-
-function Badge({ children, color, bg }) {
-  return (
-    <span style={{ fontSize: 12, fontWeight: 700, color, background: bg,
-      padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
   );
 }
 

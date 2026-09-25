@@ -1303,13 +1303,8 @@
 .mgr-krm-static-summary { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .mgr-krm-static-hint { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
 .mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-krm-skel { display: inline-block; border-radius: 4px; background: var(--utility-gray-200); animation: mgr-krm-skel-pulse 1.2s ease-in-out infinite; }
-.mgr-krm-skel-title { width: 96px; height: 13px; }
-.mgr-krm-skel-percent { width: 28px; height: 13px; }
-@keyframes mgr-krm-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
-/* 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
-.mgr-kr-trend-bars.is-skeleton .mgr-kr-trend-bar { background: var(--utility-gray-200); animation: mgr-krm-skel-pulse 1.2s ease-in-out infinite; }
+/* 자리 표시는 공용 `Skeleton`(src/loading.css · PW-1010). 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
 .mgr-kr-trend-error { grid-column: 2; grid-row: 4; margin-top: 22px; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
 .mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
 .mgr-kr-trend-retry { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-primary); background: var(--bg-primary); font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
@@ -1495,5 +1490,4 @@
 /* 팀 스니핏 — 조회 상태 (TeamSnippets `loading` · `feedNotice` · TeamSnippetFeed `emptyLabel`).
    pivit-work 가 직접 칠하던 값을 옮겼다 (PW-766). 빈 문구는 매니저 시안의 「해당하는 스니핏이 없습니다」 자리. */
 .mgr-ts-feedcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.mgr-ts-loading { padding: 48px; text-align: center; color: var(--text-tertiary); }
 .mgr-ts-empty { padding: 24px; text-align: center; font-size: 14px; color: var(--text-tertiary); }

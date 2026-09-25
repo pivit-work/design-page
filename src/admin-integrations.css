@@ -145,11 +145,7 @@
 }
 .intg-select:focus { border-color: var(--text-brand-tertiary); box-shadow: 0 0 0 3px var(--utility-brand-50); }
 
-/* ── 토글 ───────────────────────────────────────────────────────────── */
-.intg-toggle { width: 40px; height: 22px; border-radius: var(--radius-full); border: none; cursor: pointer; position: relative; padding: 0; background: var(--border-primary, #d2d6db); transition: background 0.2s ease; }
-.intg-toggle.is-on { background: var(--text-brand-tertiary); }
-.intg-toggle-knob { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s ease; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.2); }
-.intg-toggle.is-on .intg-toggle-knob { left: 21px; }
+/* 켜기/끄기 스위치는 공용 `Switch`(src/switch.css)로 옮겼다 (PW-1010) */
 
 /* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
 /* 칸 여백·머리 행·구분선은 명단 표(roster-table.css)가 정한다 (PW-839). */
