@@ -5,6 +5,7 @@ import EvalCycleWizard from './EvalCycleWizard.jsx';
 // 앱 공용 확인 창·공용 창 틀. 평가 화면은 창을 따로 그리지 않는다(PW-832).
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Button from '../shared/Button.jsx';
 import { PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
@@ -965,15 +966,16 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
               nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
           {isActive && cycle.nextStatus && (
-            <button
-              type="button"
+            // [PW-1007] 잠금은 캔버스가 쥔다(`advancing`) — 어필 확인 창을 거쳐 넘길 때는 이
+            // 버튼이 아니라 창의 버튼이 요청을 내므로, 버튼이 스스로 잠그는 길로는 못 막는다.
+            <Button
               className="evc-btn is-primary"
-              disabled={advancing}
+              pending={advancing}
               onClick={() => onAdvance(cycle)}
               data-testid="evc-advance"
             >
               {fill(L.advance, { stage: statusLabel(cycle, cycle.nextStatus, L) })}
-            </button>
+            </Button>
           )}
           {(isActive || isOnHold) && cycle.reviewSequence && (
             <button
