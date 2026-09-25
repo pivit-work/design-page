@@ -40,6 +40,8 @@ export {
   RecordingPlayerDivider,
 } from './shared/RecordingPlayerRow.jsx';
 export { default as AiFailBox } from './shared/AiFailBox.jsx';
+// 녹음 시간 소진 안내 — 회의록 목록·1on1 녹음 바 (PW-1023). 스타일은 recording-limit-notice.css
+export { default as RecordingLimitNotice } from './shared/RecordingLimitNotice.jsx';
 // 두 곳 이상에서 쓰는 선 아이콘 — 그림은 한 벌만 (PW-1011)
 export {
   CloseGlyph,

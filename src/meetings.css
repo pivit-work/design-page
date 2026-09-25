@@ -1407,6 +1407,10 @@ input.mtg-record-action-title::placeholder {
 /* 잠긴 이유와 갈 곳을 담은 배너 — 목록 위 한 줄 (policy §5.8 X4).
    1on1 쪽 잠금 안내(`.ono-start-lock-notice`)와 **같은 warning 계열**이다. 두 화면이
    같은 사건을 말하므로 모습이 갈리면 사용자가 다른 일로 읽는다. */
+/* 회사 녹음 시간 소진 안내 자리 (PW-1023 · recording.policy §5.8.1-A) — 잠금 배너와 같은 자리 */
+.mtg-start-notice {
+  margin: 0 20px 12px;
+}
 .mtg-lock-banner {
   display: flex;
   align-items: center;

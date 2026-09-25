@@ -232,6 +232,9 @@ export default function StartOneOnOneView({
   restartLockedTitle,
   onRecordingNoticeClose,
   recordingNoticeCloseLabel,
+  // 회사 녹음 시간 소진 안내 (PW-1023 · policy §5.9). 마이크 없는 녹음 바 안내 줄 아래에
+  // 붙는다 — 노드(`RecordingLimitNotice`)를 소비처가 만들어 넘긴다.
+  recordingLimitNotice = null,
   // 녹음 바를 손으로 접는다 (PW-578 · policy §5.7.3). 콜백이 없으면 버튼도 없다 —
   // 접은 뒤의 모습(앱 안 최소화 위젯)을 그리는 것은 소비처 몫이라, 소비처가
   // 준비되지 않았는데 버튼만 있으면 눌러도 아무 일이 없다.
@@ -558,6 +561,7 @@ export default function StartOneOnOneView({
               : null)}
             onCollapse={onCollapseRecording}
             collapseLabel={collapseRecordingLabel}
+            limitNotice={recordingLimitNotice}
           />
         )}
         <div className="ono-start-view-body">

@@ -134,6 +134,15 @@ export default function MeetingsCanvas({
    * 문구·이동 동작은 소비처가 쥔다 — 어느 회차가 돌고 있는지는 여기서 알 수 없다.
    */
   startLock = null,
+  /**
+   * [시작 →]·[회의 시작]을 눌렀는데 회사 녹음 시간을 다 써서 녹음을 시작하지 않았을 때의
+   * 안내 노드 (PW-1023 · recording.policy §5.8.1-A). 소비처가 `RecordingLimitNotice` 로
+   * 만들어 넘긴다. 헤더 액션 줄 바로 아래 **한 자리** — 두 버튼이 같은 안내를 쓴다.
+   *
+   * 🔴 `startLock` 과 형태가 다르다 — 일부러다. 이쪽은 버튼을 잠그지 않고 **눌렀을 때만** 뜬다
+   * (screen-tier-gating.policy.md §6.6 「숨기지 않는다 · 누르면 안내」).
+   */
+  startNotice = null,
   progressData,
   recordData,
   shareData,
@@ -208,6 +217,7 @@ export default function MeetingsCanvas({
           )}
         </div>
       )}
+      {startNotice && <div className="mtg-start-notice">{startNotice}</div>}
       <div className="mtg-content">
         {/* 오늘의 회의 */}
         <section className="mtg-section">
