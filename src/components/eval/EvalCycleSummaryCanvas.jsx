@@ -236,7 +236,7 @@ const DEFAULT_LABELS = {
   cwCreateRosterHint: '· 위원 본인은 대상에서 빠집니다',
   cwCreateRosterSearch: '명단에서 찾기 — 이름 · 조직 · 직급',
   cwCreateRosterEmpty: '대상자가 없습니다. 조직·직급 선택을 넓히거나 개별로 추가하세요.',
-  cwCreateRosterSearchEmpty: '검색 결과가 없습니다. 대상자 {n}명은 그대로 유지됩니다.',
+  cwCreateRosterSearchEmpty: '검색 결과가 없습니다.',
   cwCreateAddSearch: '개별 대상자 추가 — 이름 · 조직 · 직급 검색',
   cwCreateAddCta: '추가',
   cwCreateAddedTag: '추가',
