@@ -10,9 +10,9 @@
  */
 
 import { useState } from 'react';
-import StatusBadge from '../shared/StatusBadge.jsx';
+import Chip from '../shared/Chip.jsx';
 import DateInput from '../shared/DateInput.jsx';
-import { LeadStarIcon, CloseIcon, PlusIcon } from './squadIcons.jsx';
+import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 
 export default function SquadFormCard({
@@ -97,17 +97,16 @@ export default function SquadFormCard({
             {L('squad.form.leadLabel')}
           </div>
           {leadPerson ? (
-            <StatusBadge as="div" className="sq-lead-chip">
-              <span className="sq-lead-mark"><LeadStarIcon size={12} /></span>
-              <span className="sq-lead-chip-name">{leadPerson.name}</span>
-              <span
-                className="sq-lead-chip-x"
-                onClick={() => setForm((f) => ({ ...f, leadUserId: null }))}
-                title={L('squad.form.leadClear')}
+            <div>
+              <Chip
+                person={{ name: leadPerson.name, photo: leadPerson.avatar }}
+                onRemove={() => setForm((f) => ({ ...f, leadUserId: null }))}
+                removeLabel={L('squad.form.leadClear')}
+                data-testid="sq-lead-chip"
               >
-                <CloseIcon size={12} />
-              </span>
-            </StatusBadge>
+                {leadPerson.name}
+              </Chip>
+            </div>
           ) : leadOpen ? (
             <div className="sq-lead-search">
               <input

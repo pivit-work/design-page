@@ -1,0 +1,30 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 사람 원 (PW-1014) — `components/shared/Avatar.jsx`
+ *
+ * 사진이 있으면 사진, 없거나 못 불러오면 이름 글자. 바탕은 사람 색(`--dp-avatar-color`)을
+ * 옅게 깐 원, 글자는 그 색. 색을 안 주면 브랜드 색이다. 지름·글씨 크기는 부품이 정한다.
+ * ══════════════════════════════════════════════════════════════════════════ */
+.dp-avatar {
+  --dp-avatar-color: var(--text-brand-tertiary);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dp-avatar-color) 14%, var(--bg-primary));
+  color: var(--dp-avatar-color);
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+}
+.dp-avatar > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

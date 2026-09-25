@@ -1189,8 +1189,6 @@
 }
 
 .sq-lead-pick { margin-top: 14px; }
-.sq-lead-chip-name { font-weight: 600; color: var(--utility-warning-700); }
-.sq-lead-chip-x { display: inline-flex; color: var(--utility-warning-700); cursor: pointer; }
 .sq-lead-search {
   border: 1px solid var(--border-primary);
   border-radius: 8px;

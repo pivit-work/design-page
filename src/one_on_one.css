@@ -2902,17 +2902,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-mem-hist-meta { display: flex; gap: 16px; font-size: 11px; color: var(--text-secondary); }
 .ono-mem-hist-meta strong { font-size: 12px; }
 
-/* ── 빈 상태 ── */
-.ono-mem-empty {
-  padding: 40px 16px;
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-  border-radius: 16px;
-  background: var(--bg-quaternary);
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-sm);
-  font-weight: 600;
-}
+/* 빈 상태는 공용 EmptyState(PW-1014) */
 
 /* 멤버 뷰 — 위 블록에서 빠진 조각 보강 */
 .ono-mem-card-head.is-static { cursor: default; }

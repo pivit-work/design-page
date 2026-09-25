@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import Button from '../shared/Button.jsx';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload, IconChevronLeft, IconChevronRight } from './employeesIcons.jsx';
@@ -288,7 +290,7 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
   const goTo = (p) => setPageState({ rows, page: Math.max(1, Math.min(totalPages, p)) });
   const pager = labels.rosterPagination ?? DEFAULT_LABELS.rosterPagination;
   if (rows.length === 0) {
-    return <div className="admin-snap-empty">{labels.rosterEmpty}</div>;
+    return <EmptyState size="lg" description={labels.rosterEmpty} />;
   }
   return (
     <>
@@ -532,7 +534,7 @@ function OrgSnapshotStatusView({
       <div className="admin-snap-content">
         {activeTab === 'summary' && (
           orgTree.length === 0
-            ? <div className="admin-snap-empty">{labels.noOrgStructure}</div>
+            ? <EmptyState size="lg" description={labels.noOrgStructure} />
             : orgTree.map((node) => (
               <OrgTreeRow key={node.name} node={node} depth={0} total={totalCount} defaultOpen onDrilldown={onDrilldown} hint={labels.drilldownHint} />
             ))
@@ -557,7 +559,7 @@ function OrgSnapshotStatusView({
 
         {activeTab === 'jobgroup' && (
           jobFamilies.length === 0
-            ? <div className="admin-snap-empty">{labels.noJobGroups}</div>
+            ? <EmptyState size="lg" description={labels.noJobGroups} />
             : (
               <>
                 <p className="admin-snap-subheading">{labels.jobFamilyHeading}</p>
@@ -577,7 +579,7 @@ function OrgSnapshotStatusView({
 
         {activeTab === 'age' && (
           ageDist.length === 0
-            ? <div className="admin-snap-empty">{labels.ageNotAvailable}</div>
+            ? <EmptyState size="lg" description={labels.ageNotAvailable} />
             : (
               <div>
                 <p className="admin-snap-subheading">{labels.ageHeading}</p>
@@ -887,7 +889,7 @@ function AppointmentSingleView({
               </RosterTable>
             </div>
           ) : (
-            <div className="admin-snap-empty-fields">{labels.noFieldsSelected}</div>
+            <EmptyState description={labels.noFieldsSelected} />
           )}
 
           {submitError && (
@@ -1311,7 +1313,7 @@ function AppointmentBulkView({
                   </RosterTable.Body>
               </RosterTable>
             ) : (
-              <div className="admin-snap-empty">{labels.bulkPreviewPending}</div>
+              <EmptyState description={labels.bulkPreviewPending} />
             )}
             <div className="admin-snap-appt-info" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0 }}>
               <div className="admin-snap-field">
@@ -1354,7 +1356,7 @@ function AppointmentHistoryView({ records, labels, onExport }) {
   }, [records, searchQuery]);
 
   if (records.length === 0) {
-    return <div className="admin-snap-empty">{labels.historyEmpty}</div>;
+    return <EmptyState size="lg" description={labels.historyEmpty} />;
   }
 
   return (
@@ -1592,33 +1594,37 @@ function AsOfSnapshotView({
 
       <div className="admin-snap-content">
         {isOut ? (
-          <div className="admin-snap-empty" data-testid="asof-empty-c1">
-            <div className="admin-snap-empty-title">{labels.asofOutOfRangeTitle}</div>
-            <div className="admin-snap-empty-body">{labels.asofOutOfRangeBody}</div>
-            <div className="admin-snap-empty-actions">
-              {minDate && (
-                <button type="button" className="admin-snap-empty-primary" onClick={() => onAsOfDateChange?.(minDate)}>
-                  {labels.asofGoToCoverage}
-                </button>
-              )}
-              <button type="button" onClick={() => onAsOfDateChange?.(today)}>
-                {labels.asofBackToToday}
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            size="lg"
+            data-testid="asof-empty-c1"
+            title={labels.asofOutOfRangeTitle}
+            description={labels.asofOutOfRangeBody}
+            actions={(
+              <>
+                {minDate && (
+                  <Button variant="primary" size="sm" onClick={() => onAsOfDateChange?.(minDate)}>
+                    {labels.asofGoToCoverage}
+                  </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={() => onAsOfDateChange?.(today)}>
+                  {labels.asofBackToToday}
+                </Button>
+              </>
+            )}
+          />
         ) : isEmptyFact ? (
-          <div className="admin-snap-empty" data-testid="asof-empty-c2">
-            <div className="admin-snap-empty-body">{labels.asofEmptyFact || labels.asofEmpty}</div>
-            <div className="admin-snap-empty-actions">
-              <button type="button" onClick={() => onAsOfDateChange?.(today)}>
+          <EmptyState
+            size="lg"
+            data-testid="asof-empty-c2"
+            description={labels.asofEmptyFact || labels.asofEmpty}
+            actions={(
+              <Button variant="secondary" size="sm" onClick={() => onAsOfDateChange?.(today)}>
                 {labels.asofBackToToday}
-              </button>
-            </div>
-          </div>
+              </Button>
+            )}
+          />
         ) : isEmptyUnknown ? (
-          <div className="admin-snap-empty" data-testid="asof-empty-unknown">
-            {labels.asofEmpty}
-          </div>
+          <EmptyState size="lg" data-testid="asof-empty-unknown" description={labels.asofEmpty} />
         ) : (
           <SnapshotRoster
             rows={roster}

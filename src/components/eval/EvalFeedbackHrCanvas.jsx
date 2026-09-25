@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
-import AvatarPhoto from './AvatarPhoto';
+import Avatar from '../shared/Avatar.jsx';
 
 /**
  * EvalFeedbackHrCanvas — 피드백 관리 (HR 대시보드, v2 재설계).
@@ -96,17 +96,6 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
-function initial(name) {
-  return (name || '?').trim().charAt(0) || '?';
-}
-function Avatar({ name, photo, size = 36, color }) {
-  return (
-    <span style={{ position: 'relative', width: size, height: size, borderRadius: '50%', background: color || 'linear-gradient(135deg,#3B5BDB,#0F1E5C)', color: 'var(--text-white)', fontSize: size * 0.42, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      {initial(name)}
-      <AvatarPhoto photo={photo} name={name} />
-    </span>
-  );
-}
 function covColor(pct) {
   if (pct >= 90) return C.green;
   if (pct >= 70) return C.amber;
@@ -184,7 +173,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
             const sent = isSent('request', null, m.id);
             return (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: m.urgent ? C.redBg : C.amberBg, border: `1px solid ${m.urgent ? C.redBd : C.amberBd}`, borderRadius: 10, padding: '12px 16px' }}>
-                <Avatar name={m.name} photo={m.avatar} size={32} color={m.urgent ? `linear-gradient(135deg,${C.red},#8B2318)` : `linear-gradient(135deg,${C.amber},#8A4B00)`} />
+                <Avatar name={m.name} photo={m.avatar} size={32} color={m.urgent ? C.red : C.amber} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.name}</div>
                   <div style={{ fontSize: 12, color: C.sub }}>{m.department || ''}</div>

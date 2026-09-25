@@ -1339,17 +1339,6 @@
 
 .sq-chip.is-locked { opacity: 0.5; }
 
-.sq-lead-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: var(--utility-warning-50);
-  border: 1px solid var(--utility-warning-200);
-  font-size: 12px;
-  line-height: 18px;
-}
 
 /* ══ report.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 
@@ -1618,4 +1607,70 @@
   font-weight: 500;
   line-height: 18px;
   color: var(--utility-success-700);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 칩 (PW-1014) — `components/shared/Chip.jsx`
+ *
+ * 필터 · 사람 · 상태를 적는 작은 알약. 딱지와 한 파일에 두는 것은 상태 칩이 딱지의 «뜻 → 색»
+ * 표(`.dp-badge--tone-*`)를 그대로 쓰기 때문이다. 칩은 딱지와 달리 **모양이 하나**다 —
+ * 화면마다 따로 그리던 칩(모서리 6~999px · 높이 20~29px · 글씨 11~12.5px)을 이 값으로 맞췄다.
+ * ══════════════════════════════════════════════════════════════════════════ */
+.dp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 100%;
+  vertical-align: middle;
+}
+/* 필터 · 사람 칩 — 흰 바탕에 테두리. 상태 칩(.is-tone)은 뜻 → 색 표가 칠한다. */
+.dp-chip:not(.is-tone) {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+.dp-chip.is-selected {
+  background: var(--bg-brand-secondary);
+  border-color: var(--border-brand);
+  color: var(--text-brand-secondary);
+}
+button.dp-chip {
+  cursor: pointer;
+}
+.dp-chip.has-person {
+  padding-left: 3px;
+}
+.dp-chip.has-remove {
+  padding-right: 4px;
+}
+.dp-chip__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dp-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.dp-chip__remove:hover,
+.dp-chip__remove:focus-visible {
+  opacity: 1;
 }

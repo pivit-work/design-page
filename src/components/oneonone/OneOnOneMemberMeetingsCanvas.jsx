@@ -1,4 +1,6 @@
 import Icon from '../shared/Icon.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { fill, hostOf, healthOf } from './sessionHelpers.js';
 import {
@@ -282,10 +284,7 @@ function ListScreen({
       </header>
 
       {sessions.length === 0 ? (
-        <div className="ono-mem-empty" data-testid="ono-past-empty">
-          {L.empty}
-          <div className="ono-mem-hint">{L.emptyHint}</div>
-        </div>
+        <EmptyState data-testid="ono-past-empty" title={L.empty} description={L.emptyHint} />
       ) : (
         <div className="ono-mem-timeline">
           {sessions.map((s, i) => {
@@ -769,20 +768,19 @@ export default function OneOnOneMemberMeetingsCanvas({
       )}
 
       {loading ? (
-        <div className="ono-mem-empty" role="status">
-          {L.loading}
-        </div>
+        <EmptyState role="status" description={L.loading} />
       ) : error ? (
         // 목록 조회 실패는 이 자리에서 말한다 — 전역 에러 페이지로 튕기면 매니저는
         // 어느 팀원을 보다 실패했는지조차 잃는다.
-        <div className="ono-mem-empty" data-testid="ono-past-error">
-          {L.error}
-          <div className="ono-mem-actions-end">
-            <button type="button" className="ono-mem-btn" onClick={onRetry}>
+        <EmptyState
+          data-testid="ono-past-error"
+          description={L.error}
+          actions={(
+            <Button variant="secondary" size="sm" onClick={onRetry}>
               {L.retry}
-            </button>
-          </div>
-        </div>
+            </Button>
+          )}
+        />
       ) : screen === 'record' ? (
         <RecordScreen
           session={session}

@@ -1,0 +1,51 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 빈 화면 안내 (PW-1014) — `components/shared/EmptyState.jsx`
+ *
+ * 「아직 없습니다」 칸의 한 가지 모양 — 옅은 바탕에 점선 테두리, 가운데 정렬.
+ * 크기 둘: `md` 는 카드·목록 안의 한 칸, `lg` 는 화면 한가운데를 채우는 안내.
+ * ══════════════════════════════════════════════════════════════════════════ */
+.dp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--bg-quaternary);
+  border: 1px dashed var(--bg-active);
+  border-radius: var(--radius-2xl);
+  text-align: center;
+  font-family: var(--font-family-body);
+}
+.dp-empty--md {
+  padding: 28px 16px;
+}
+.dp-empty--lg {
+  padding: 56px 24px;
+  gap: 8px;
+}
+.dp-empty__icon {
+  display: inline-flex;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+.dp-empty__title {
+  margin: 0;
+  font-size: var(--font-size-text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.dp-empty__desc {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+.dp-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { fill, hostOf, healthOf } from './sessionHelpers.js';
@@ -1057,10 +1058,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
       />
 
       {session.isShared === false ? (
-        <div className="ono-mem-empty">
-          {L.managerPreparing}
-          <div className="ono-mem-hint">{L.noSummary}</div>
-        </div>
+        <EmptyState title={L.managerPreparing} description={L.noSummary} />
       ) : (
         <>
           <NoteGrid
@@ -1295,7 +1293,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
       </header>
 
       {done.length === 0 ? (
-        <div className="ono-mem-empty">{L.pastSessionsEmpty}</div>
+        <EmptyState description={L.pastSessionsEmpty} />
       ) : (
         <div className="ono-mem-timeline">
           {done.map((s, i) => {
@@ -1464,11 +1462,11 @@ export default function OneOnOneMemberCanvas({
           onTopicsChange={onTopicsChange} onStart={onStart}
           onMemberReady={onMemberReady} memberReady={memberReady}
         />
-      ) : <div className="ono-mem-empty">{L.noPrepSession}</div>)}
+      ) : <EmptyState description={L.noPrepSession} />)}
 
       {tab === 'meeting' && (session && session.status === 'live' ? (
         <MeetingScreen {...shared} session={session} manager={manager} avatar={avatar} onSaveNotes={onSaveNotes} />
-      ) : <div className="ono-mem-empty">{L.noLiveSession}</div>)}
+      ) : <EmptyState description={L.noLiveSession} />)}
 
       {tab === 'result' && (resultSession ? (
         <ResultScreen
@@ -1478,7 +1476,7 @@ export default function OneOnOneMemberCanvas({
           feedbackEvidence={feedbackEvidence}
           renderRecordingPlayer={renderRecordingPlayer}
         />
-      ) : <div className="ono-mem-empty">{L.noResultSession}</div>)}
+      ) : <EmptyState description={L.noResultSession} />)}
 
       {/* HistoryScreen 에는 healthHistory 를 넘기지 않는다 — 회차 배지는 회차가 들고
           있는 값(`session.healthScore`)만 쓴다 (PW-213). 화면 단위 추이는 준비 화면
