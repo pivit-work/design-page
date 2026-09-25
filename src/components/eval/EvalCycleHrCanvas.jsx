@@ -250,6 +250,11 @@ const DEFAULT_LABELS = {
   // 단계 전진
   advance: '{{stage}} 단계로 진행',
   toastAdvanced: '다음 단계로 진행했습니다',
+  // PW-1018 — 완료로 넘길 때 재검토를 기다리는 어필이 남아 있으면 확인을 받는다.
+  // 완료 뒤에는 어필을 수용할 수 없어(반려만 된다) 모르고 넘기면 결정할 길이 사라진다.
+  confirmCompleteAppealsTitle: '재검토 대기 어필이 남아 있습니다',
+  confirmCompleteAppealsBody:
+    '재검토 대기 어필이 {{count}}건 있습니다. 완료로 넘기면 이 어필은 수용할 수 없고 반려로만 닫을 수 있습니다. 그래도 진행하시겠습니까?',
   toastCreated: '평가 사이클이 생성되었습니다',
   toastOpened: '사이클이 오픈되었습니다',
   toastRevoked: '사이클이 회수되었습니다',
@@ -1026,6 +1031,13 @@ export default function EvalCycleHrCanvas({
   onOpenCycle,
   /** 오픈된 사이클을 다음 단계로 전진. (id) => Promise */
   onAdvanceCycle,
+  /**
+   * PW-1018 — 재검토 대기(open) 어필 수. `(id) => Promise<number>`.
+   * 다음 단계가 완료(done)일 때만 부르고, 1건 이상이면 확인 창을 거쳐 넘긴다.
+   * 안 넘기면 종전대로 바로 넘긴다. 읽기에 실패하면 넘기지 않고 오류 알림을 띄운다 —
+   * 모른 채 완료로 넘기는 것이 이 확인의 반대이기 때문이다.
+   */
+  countOpenAppeals,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
@@ -1227,12 +1239,42 @@ export default function EvalCycleHrCanvas({
   // [PW-967] 진행 중인 카드는 끝날 때까지 버튼을 잠그고, 카드가 본 단계를 함께 넘긴다 —
   // 두 번 누르면 두 번째 요청이 한 단계를 더 넘겼다. 이미 넘어갔으면 서버가 거절한다.
   const [advancingId, setAdvancingId] = useState(null);
-  const handleAdvance = (cycle) => {
-    if (advancingId) return;
+  const advanceNow = (cycle) => {
     setAdvancingId(cycle.id);
     void run(() => onAdvanceCycle?.(cycle.id, cycle.status), L.toastAdvanced).finally(() =>
       setAdvancingId(null),
     );
+  };
+  const handleAdvance = async (cycle) => {
+    if (advancingId) return;
+    if (cycle.nextStatus !== 'done' || !countOpenAppeals) {
+      advanceNow(cycle);
+      return;
+    }
+    // [PW-1018] 세는 동안에도 버튼을 잠근다 — 두 번 눌러 창이 둘 뜨지 않게.
+    setAdvancingId(cycle.id);
+    let count;
+    try {
+      count = await countOpenAppeals(cycle.id);
+    } catch {
+      setAdvancingId(null);
+      showToast(L.toastError, 'error');
+      return;
+    }
+    setAdvancingId(null);
+    if (!(count > 0)) {
+      advanceNow(cycle);
+      return;
+    }
+    setConfirmModal({
+      title: L.confirmCompleteAppealsTitle,
+      body: fill(L.confirmCompleteAppealsBody, { count }),
+      confirmLabel: fill(L.advance, { stage: statusLabel(cycle, cycle.nextStatus, L) }),
+      onConfirm: () => {
+        setConfirmModal(null);
+        advanceNow(cycle);
+      },
+    });
   };
 
   const requestDelete = (cycle) => {
