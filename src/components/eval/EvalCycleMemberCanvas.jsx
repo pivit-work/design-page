@@ -91,6 +91,9 @@ const DEFAULT_FIELDS = [
 
 // 셀프 응답 폼 필드 도출 — 템플릿(eval_templates) 있으면 항목에서 동적 생성,
 // 없으면 기본 폼. 시안 buildSelfTemplate: '최종 등급 결정' 제외, grade→textarea(피평가자).
+// [PW-1072] 항목 제목(섹션 머리)은 `it.section` 이 있으면 그것을 쓴다. `category` 는 저장값
+// (`work_achievement` 등)이라 답을 저장할 때 그대로 되돌려 보내야 하고, 화면에 옮긴 말은
+// 앱이 `section` 으로 따로 싣는다. 없으면 종전대로 `category` 를 그린다.
 function buildFields(template, L) {
   if (template && Array.isArray(template.items) && template.items.length) {
     return template.items
@@ -105,7 +108,7 @@ function buildFields(template, L) {
             templateItemId: it.id,
             category: it.category,
             type: 'note',
-            section: it.category || '평가 항목',
+            section: it.section || it.category || '평가 항목',
             text: it.label ?? null,
             description: it.description ?? null,
           };
@@ -126,7 +129,7 @@ function buildFields(template, L) {
           type,
           label: it.label,
           placeholder: it.label,
-          section: it.category || '평가 항목',
+          section: it.section || it.category || '평가 항목',
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
           description: it.description ?? null,
