@@ -1904,7 +1904,7 @@ export default function EvalCycleSummaryCanvas({
                     <p className="evc-empty-sub">{L.deptDataEmpty}</p>
                   ) : (
                     <div className="evs-leader-table">
-                      <div className="evs-leader-row evs-j1-drow evs-leader-head">
+                      <div className="evs-leader-row evs-j1-drow evs-leader-head" style={{ '--gcols': deptStats[0]?.gradeCounts.length || 3 }}>
                         <span>{L.deptColDept}</span>
                         <span className="evs-leader-num">{L.deptColCount}</span>
                         {(deptStats[0]?.gradeCounts ?? []).map((g) => (
