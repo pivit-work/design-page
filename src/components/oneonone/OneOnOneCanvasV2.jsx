@@ -137,6 +137,13 @@ export default function OneOnOneCanvasV2({
   aiDrafts,
   onGenerateDrafts,
   generatingSection,
+  /**
+   * 제목 줄 «위»에 놓을 화면 탭 줄 (PW-926). 호스트가 공용 `Tabs` 로 만든 노드를 넘긴다 —
+   * 매니저가 받는 쪽인 1on1(`/one-on-one/my`)으로 가는 「내 1on1」 탭이 여기 선다
+   * (기획 `screen-oneonone-session.policy.md` §10.7.7). 이 캔버스는 화면에 고정(`.ono-page`)이라
+   * 호스트가 캔버스 밖에 형제로 두면 왼쪽 메뉴 밑에 깔린다. 안 넘기면 종전 그대로다.
+   */
+  subNav,
   /** 멤버 카드의 아바타 렌더 콜백. 외부에서 호스트 앱의 Avatar 컴포넌트(이니셜
    *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
   renderMemberAvatar,
@@ -196,6 +203,7 @@ export default function OneOnOneCanvasV2({
   const cancelSetup = () => { setSetupStep(null); setPendingStart(null); };
   return (
     <main className="ono-page">
+      {subNav && <div className="ono-subnav">{subNav}</div>}
       {/* 제목 줄은 `OneOnOnePageHeader` 하나로 모았다 — 진행 화면(pivit-work
           /one-on-one)이 같은 모양을 손으로 다시 그리고 있었다 (PW-477). */}
       <OneOnOnePageHeader
