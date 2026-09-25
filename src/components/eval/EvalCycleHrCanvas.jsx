@@ -480,7 +480,7 @@ function toLocalInput(v, defTime) {
  * [PW-529 ③-c] `onGoToReportReview` — 「결과 발송」이 무엇을 하는 자리인지 적고,
  * 실제로 보내는 화면(리포트 검수)으로 보낸다. 진행 중 사이클이라 갈 대상이 특정된다.
  */
-function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportReview }) {
+function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportReview, isScheduleStartReached }) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
   // 연 순간의 값. PW-602 — 「무엇이 바뀌었나」를 이것과 견준다. 입력 칸과 «같은 정규화»
@@ -517,6 +517,17 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
    * 판정과 「평가지를 갖는 단계」 목록은 마법사 3단계와 **같은 모듈**을 쓴다.
    */
   const isPast = (id) => isPastScheduleStart(rows[id]?.start);
+
+  /**
+   * [PW-1054] 「저장하면 평가지가 잠깁니다」는 «지난 날짜» 배지와 기준이 다르다. 평가지를
+   * 잠그는 서버는 **시작 시각**(회사 시간대)이 지났는지로 잠근다 — 오늘 09:00 시작을 10:00 에
+   * 저장하면 잠기는데, 날짜로만 보면 안내가 안 뜬다. 그 판정은 서버와 같은 시간대를 아는
+   * 소비 측이 넘긴다. 넘기지 않으면 종전대로 날짜로 본다.
+   */
+  const willLockOnSave = (id) =>
+    typeof isScheduleStartReached === 'function'
+      ? isScheduleStartReached(rows[id]?.start)
+      : isPast(id);
 
   /**
    * [PW-585 · 정책 §6.10.3] 일정을 미루면 «이미 매달아 둔» 리마인더가 단계 시작보다
@@ -728,7 +739,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                     )}
                   </div>
                 )}
-                {past && phaseHasTemplate(id) && (
+                {willLockOnSave(id) && phaseHasTemplate(id) && (
                   <div
                     className="evc-sched-modal-warn"
                     data-testid={`evc-sched-modal-lock-note-${id}`}
@@ -1058,6 +1069,12 @@ export default function EvalCycleHrCanvas({
    * 안내 문장만 보인다(종전 시각과 같다).
    */
   onGoToReportReview,
+  /**
+   * [PW-1054] 일정 수정 창의 「저장하면 평가지가 잠깁니다」 판정. `(start: string) => boolean`
+   * — 그 단계 시작값(`YYYY-MM-DDTHH:mm`)이 평가지를 잠그는 서버 기준으로 이미 지났는가.
+   * 안 넘기면 「지난 날짜」 배지와 같은 날짜 판정을 쓴다.
+   */
+  isScheduleStartReached,
   onHoldCycle,
   onResumeCycle,
   onPatchSchedule,
@@ -1692,6 +1709,7 @@ export default function EvalCycleHrCanvas({
                 }
               : undefined
           }
+          isScheduleStartReached={isScheduleStartReached}
         />
       )}
     </div>

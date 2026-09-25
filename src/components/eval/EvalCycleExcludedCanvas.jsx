@@ -35,6 +35,11 @@ const DEFAULT_LABELS = {
   // C4 날짜 기반 14종 공통 안내 + 유형 라벨.
   dateBasedSuffix: ' 기준 평가 제외',
   dateBasedMsg: '아래 기준일 조건에 해당하여 이번 평가 사이클에서 제외됩니다. 다음 사이클부터 참여합니다.',
+  // [PW-1054] 이름표가 없는 유형 — 코드값(employment_type 등)을 제목에 쓰지 않는다.
+  unknownTypeTitle: '평가 대상 제외',
+  // [PW-1054] 유형별 안내 문구. 날짜가 아닌 조건(고용유형 등)은 「아래 기준일」이 없으므로
+  // 소비 측이 그 유형의 문구를 넘긴다. 없으면 날짜 기준 문구를 쓴다.
+  typeMessages: {},
   typeLabels: {
     hire_date: '입사일',
     promotion_change: '직급 변경일',
@@ -73,11 +78,11 @@ function resolveReason(exclusion, L) {
       tone: 'neutral',
     };
   }
-  const typeLabel = (L.typeLabels && L.typeLabels[t]) || t;
+  const typeLabel = L.typeLabels && L.typeLabels[t];
   return {
     Icon: CalendarIcon,
-    title: `${typeLabel}${L.dateBasedSuffix}`,
-    msg: L.dateBasedMsg,
+    title: typeLabel ? `${typeLabel}${L.dateBasedSuffix}` : L.unknownTypeTitle,
+    msg: (L.typeMessages && L.typeMessages[t]) || L.dateBasedMsg,
     tone: 'neutral',
   };
 }

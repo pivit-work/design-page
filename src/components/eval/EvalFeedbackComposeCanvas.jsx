@@ -182,7 +182,10 @@ function BlockCard({ block, L, onOpen }) {
   const incoming = items.filter((i) => i.itemType === 'request');
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
   const latest = [...items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)).slice(-2);
-  const hasMyTurn = incoming.length > 0;
+  /* [PW-1054] 답하지 않은 요청이 있을 때만 「내 차례」. 같은 화면 팀 목록의 「요청 N」은 서버가
+     답 안 된 것만 센다 — 요청이 하나라도 있으면 띄우던 종전 판정은 답을 보낸 뒤에도 남았다.
+     `resolvedAt` 이 없는(모르는) 요청은 종전대로 답 안 된 것으로 본다. */
+  const hasMyTurn = incoming.some((i) => !i.resolvedAt);
   const hasFeedback = items.some((i) => i.itemType === 'feedback');
 
   return (

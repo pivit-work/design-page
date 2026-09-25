@@ -426,6 +426,8 @@ const DEFAULT_LABELS = {
   remindReSendWarn: '재발송 주의',
   remindReSendTip: '최근 24시간 내 발송 이력',
   remindToast: '리마인드를 발송했습니다 ({n}명)',
+  // [PW-1054] 서버가 24시간 안에 받은 사람을 건너뛰었을 때 — 보낸 수와 건너뛴 수를 함께 적는다.
+  remindToastSkipped: '리마인드를 발송했습니다 ({n}명) · 24시간 안에 이미 받은 {skipped}명은 건너뛰었습니다',
   remindErrorToast: '리마인드 발송에 실패했습니다. 다시 시도해주세요.',
   remindGuardNote: '동일 대상 24시간 내 재발송 시 확인 안내',
   remindClose: '닫기',
@@ -1179,7 +1181,8 @@ export default function EvalCycleSummaryCanvas({
   const [selected, setSelected] = useState(() => new Set());
   const [sent, setSent] = useState(() => new Set());
   const [remindBusy, setRemindBusy] = useState(false);
-  const [remindToast, setRemindToast] = useState(0);
+  // [PW-1054] { sent, skipped } — 토스트는 «고른 수»가 아니라 서버가 실제로 보낸 수를 적는다.
+  const [remindToast, setRemindToast] = useState(null);
   const [remindError, setRemindError] = useState(false); // TC-202 발송 실패 토스트
   // 모달 오픈 시각(재발송 가드 기준) — 이벤트 핸들러에서 캡처(렌더 중 Date.now 회피).
   const [remindOpenedAt, setRemindOpenedAt] = useState(0);
@@ -1211,10 +1214,17 @@ export default function EvalCycleSummaryCanvas({
     setRemindBusy(true);
     setRemindError(false);
     try {
-      await onSendReminders(ids);
-      setSent((prev) => new Set([...prev, ...ids]));
+      /* [PW-1054] 서버는 24시간 안에 받은 사람을 조용히 건너뛰고 따로 센다. 결과를 돌려주면
+         그 값을 쓴다 — 고른 수로 「N명에게 발송」이라 하면 실제보다 많이 보낸 것처럼 보이고,
+         건너뛴 사람까지 「발송됨」으로 잠기면 이번에 안 간 사람을 다시 고를 수도 없다.
+         결과가 없는 소비 측은 종전대로 고른 사람 전부를 보낸 것으로 본다. */
+      const result = await onSendReminders(ids);
+      const sentIds = Array.isArray(result?.memberIds) ? result.memberIds : ids;
+      const sentCount = typeof result?.sent === 'number' ? result.sent : sentIds.length;
+      const skippedCount = typeof result?.skipped === 'number' ? result.skipped : 0;
+      setSent((prev) => new Set([...prev, ...sentIds]));
       setSelected(new Set());
-      setRemindToast(ids.length);
+      setRemindToast({ sent: sentCount, skipped: skippedCount });
     } catch {
       // TC-202 실패 시 전역 에러 대신 에러 토스트(선택 유지 → 재시도 가능).
       setRemindError(true);
@@ -4525,9 +4535,11 @@ export default function EvalCycleSummaryCanvas({
               })}
             </div>
 
-            {remindToast > 0 && (
+            {remindToast && (
               <div className="evs-remind-toast" data-testid="evs-remind-toast">
-                {fmt(L.remindToast, { n: remindToast })}
+                {remindToast.skipped > 0
+                  ? fmt(L.remindToastSkipped, { n: remindToast.sent, skipped: remindToast.skipped })
+                  : fmt(L.remindToast, { n: remindToast.sent })}
               </div>
             )}
             {remindError && (
