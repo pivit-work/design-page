@@ -3828,6 +3828,12 @@ export default function AdminEmployeesCanvas({
   dutiesByLadder,
   /** 초대 모달 문구 — i18n 은 소비자(pivit-work)가 소유한다. */
   inviteLabels,
+  /**
+   * 초대 창이 쓸 규칙 — 앱이 서버와 맞춰 넘긴다 (PW-1057). 그대로 초대 창 props 로 간다:
+   * `{ emailValid, nameMaxLength, csvFieldLimits, resolveOrgPath, seatExemptEmails }`.
+   * 안 넘기면 초대 창의 예전 판정 그대로다.
+   */
+  inviteRules,
   /** 좌석 부족 배너의 `결제·구독` 이동. */
   onGoBilling,
   /**
@@ -4240,6 +4246,7 @@ export default function AdminEmployeesCanvas({
           // 직종은 조직이 켰을 때만 받는다(PW-644). 목록 열과 같은 스위치·같은 직종 목록을 쓴다.
           jobCategoryEnabled={optionalFields?.job_category === true}
           onGoBilling={onGoBilling}
+          {...(inviteRules || {})}
           labels={inviteLabels}
         />
       )}
