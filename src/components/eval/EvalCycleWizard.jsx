@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
@@ -2415,13 +2415,37 @@ export default function EvalCycleWizard({
     });
 
   /**
-   * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 데모 폴백.
+   * [PW-1013] 리마인더 칸의 «물어보고 진행» — 브라우저 기본 확인 창(`window.confirm`) 대신 공용
+   * 확인 창을 띄운다. 기본 창은 앱 모양과 다르고, 창 위 창 순서·Esc 규칙 밖에 있다.
+   * `Promise<boolean>` 이라 호출부는 예전 `window.confirm` 자리에 `await` 만 붙인다.
+   */
+  const [pendingAsk, setPendingAsk] = useState(null); // { title, testId, resolve }
+  const askConfirm = (title, testId) =>
+    new Promise((resolve) => setPendingAsk({ title, testId, resolve }));
+  const answerAsk = (ok) => {
+    pendingAsk?.resolve(ok);
+    setPendingAsk(null);
+  };
+  // 공용 확인 창은 Esc 를 호스트에 맡긴다 — 브라우저 확인 창처럼 Esc 는 «취소»다.
+  useEffect(() => {
+    if (!pendingAsk) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      pendingAsk.resolve(false);
+      setPendingAsk(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pendingAsk]);
+
+  /**
+   * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 공용 확인 창.
    * `Promise<boolean>` 으로 통일해 호출부가 한 모양으로 `await` 한다.
    */
   const confirmSelfOff = async () =>
     onConfirmSelfOff
       ? Boolean(await onConfirmSelfOff())
-      : window.confirm(L.reminderSelfOffConfirm);
+      : askConfirm(L.reminderSelfOffConfirm, 'evc-wiz-reminder-selfoff');
 
   // ── 리마인더 문구 [PW-435 ⑤⑥] ────────────────────────────────────────────
   /** 구 형태(`email.{subject,body}`)로 저장된 것도 여기서 `message` 로 읽는다. */
@@ -2469,13 +2493,14 @@ export default function EvalCycleWizard({
       .filter((m) => m.phaseId === pid)
       .slice()
       .sort((a, b) => String(b.savedAt ?? '').localeCompare(String(a.savedAt ?? '')));
-  const loadSavedMessage = (pid, rm, savedId) => {
+  const loadSavedMessage = async (pid, rm, savedId) => {
     if (!savedId) return;
     const m = savedForPhase(pid).find((x) => x.id === savedId);
     if (!m) return;
     const cur = messageOf(rm);
     // 작성 중이던 글이 있으면 확인하고 바꾼다.
-    if ((cur.subject || cur.body) && !window.confirm(L.reminderSavedOverwrite)) return;
+    if ((cur.subject || cur.body)
+      && !(await askConfirm(L.reminderSavedOverwrite, 'evc-wiz-reminder-saved-overwrite'))) return;
     patchMessage(pid, rm.id, { subject: m.subject ?? '', body: m.body ?? '' });
   };
   const saveCurrentMessage = async (ph, rm) => {
@@ -2484,7 +2509,7 @@ export default function EvalCycleWizard({
     const name = window.prompt(L.reminderSavePrompt, fill(L.reminderSaveNameDefault, { phase: L[ph.nameKey] }));
     if (!name || !name.trim()) return;
     const dup = savedForPhase(ph.id).find((m) => m.name === name.trim());
-    if (dup && !window.confirm(L.reminderSaveDuplicate)) return;
+    if (dup && !(await askConfirm(L.reminderSaveDuplicate, 'evc-wiz-reminder-save-duplicate'))) return;
     try {
       await onSaveMessage({
         id: dup?.id ?? null,
@@ -8072,6 +8097,21 @@ export default function EvalCycleWizard({
           onConfirm={() => applyTypeToggle(pendingTypeOff)}
           cancelTestId="evc-wiz-type-off-cancel"
           confirmTestId="evc-wiz-type-off-ok"
+        />
+      )}
+
+      {/* [PW-1013] 리마인더 칸의 확인(당사자 해제 · 저장 문구로 바꾸기 · 같은 이름 덮어쓰기) —
+          예전엔 브라우저 기본 확인 창이었다. 막을 누르거나 취소하면 아무것도 바꾸지 않는다. */}
+      {pendingAsk && (
+        <AppConfirmModal
+          title={pendingAsk.title}
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => answerAsk(false)}
+          onConfirm={() => answerAsk(true)}
+          testId={pendingAsk.testId}
+          cancelTestId={`${pendingAsk.testId}-cancel`}
+          confirmTestId={`${pendingAsk.testId}-ok`}
         />
       )}
 

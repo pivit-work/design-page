@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -30,19 +31,7 @@ export default function OkrWizardEntryButton({
   const hasMenu = Array.isArray(menuItems);
 
   // 메뉴 밖을 누르거나 Esc 면 닫는다.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  useDismissLayer(() => setOpen(false), rootRef, null, open);
 
   return (
     // 비활성 버튼은 브라우저가 마우스 이벤트를 막아 툴팁이 안 뜰 수 있다 — 감싼 쪽에도 사유를 둔다.

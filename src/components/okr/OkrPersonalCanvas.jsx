@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
@@ -6,6 +6,7 @@ import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
 import rowKey from './rowKey.js';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -71,19 +72,7 @@ export default function OkrPersonalCanvas({
 
   // 바깥 클릭·Escape 로 닫고 **고른 값은 유지**한다 — 툴바 셀렉터(OkrToolbar)와 같은 동작이라
   // 사용자가 셀렉터마다 다른 것을 배우지 않아도 된다.
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onDown = (e) => {
-      if (visibilityRef.current && !visibilityRef.current.contains(e.target)) setVisibilityOpen(false);
-    };
-    const onKey = (e) => { if (e.key === 'Escape') setVisibilityOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [panelOpen]);
+  useDismissLayer(() => setVisibilityOpen(false), visibilityRef, null, panelOpen);
 
   return (
     <div className="okr-personal-area">

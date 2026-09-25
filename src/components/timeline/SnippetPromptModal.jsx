@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import gsap from 'gsap';
 
@@ -10,7 +10,6 @@ import gsap from 'gsap';
  */
 export default function SnippetPromptModal({ onCancel, onConfirm }) {
   const modalRef = useRef(null);
-  const overlayRef = useRef(null);
 
   useEffect(() => {
     if (modalRef.current) {
@@ -20,33 +19,18 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
         { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }
       );
     }
-    if (overlayRef.current) {
-      gsap.fromTo(
-        overlayRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.25, ease: 'power2.out' }
-      );
-    }
   }, []);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onCancel?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-
-  // Portal 로 body 에 렌더 — tl-page 의 stacking context 에서 탈출해서
-  // 사이드바/탑네비 등 모든 상위 요소를 덮도록.
-  return createPortal(
-    <div className="tl-snippet-prompt-overlay" ref={overlayRef} onClick={onCancel}>
+  // 막·Esc·바깥 누르기는 공용 창 바탕(`ModalLayer`)이 갖는다(PW-1013) — 다른 창과 같은 막이
+  // 사이드바/탑네비까지 덮는다. 막이 나타나는 모션도 그쪽 CSS 가 한다.
+  return (
+    <ModalLayer onClose={() => onCancel?.()}>
       <div
         className="tl-snippet-prompt-modal"
         ref={modalRef}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="tl-snippet-prompt-title"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -84,7 +68,6 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
           </button>
         </div>
       </div>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

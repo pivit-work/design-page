@@ -36,6 +36,7 @@ import {
   IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
@@ -516,13 +517,7 @@ const ROW_MENU_Z = 1000;
  */
 function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, onClose, labels, canEdit, anchorSelector }) {
   const ref = useRef(null);
-  useEffect(() => {
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) onClose();
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  useDismissLayer(onClose, ref, anchorSelector);
 
   return (
     <AnchoredLayer
@@ -600,14 +595,7 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
 
   const ql = q.trim().toLowerCase();
   // 조직 경로로도 찾게 한다 — "인사팀 팀장이 누구였더라" 가 실제 배정 경로다.
@@ -828,14 +816,7 @@ function UnassignedTab({
 function FilterDropdown({ testId, label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
 
   const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
   const selected = opts.find((o) => o.id === value) || null;
@@ -891,15 +872,7 @@ function AddedAtFilter({ testId, label, labels, value, onChange }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(() => datesOfRange(value));
   const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      // 달력은 이 칩 안에 그려진다(`position: fixed`) — 달력을 누른 것도 안쪽이다.
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
 
   const active = !!value;
   const triggerText = active ? `${label} · ${formatAddedAtRange(value)}` : label;
@@ -1331,14 +1304,7 @@ function optionsOf(members, pick, allLabel) {
 function BulkMenu({ count, items, labels }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
   /* 고른 사람이 0명이 되면 이 컴포넌트가 통째로 사라진다 — 열려 있던 메뉴도 `open`
      상태와 함께 버려지므로 따로 닫아 줄 필요가 없다. */
   if (count === 0 || items.length === 0) return null;
@@ -1594,14 +1560,7 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
 function ColumnMenu({ cols, value, onChange, labels }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
 
   return (
     <div ref={ref} className={`admin-emp-select is-right${open ? ' is-open' : ''}`}>

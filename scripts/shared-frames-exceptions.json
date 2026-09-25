@@ -14,7 +14,7 @@
       "file": "components/admin/kit/AdminMemberListDialog.jsx",
       "kind": "dialog",
       "count": 2,
-      "reason": "카드만 그리는 부품 — 막과 겹침 순서는 pivit-work 가 ModalScrim 으로 그린다"
+      "reason": "어드민 창 모양(카드)을 제가 그리는 부품 — 막·Esc·겹침 순서는 공용 창 바탕(ModalLayer)이 갖는다 (PW-1013)"
     },
     {
       "file": "components/admin/kit/CsvImportParts.jsx",
@@ -33,18 +33,6 @@
       "kind": "tabclass",
       "count": 1,
       "reason": "매니저 화면 맨 위 페이지 제목 크기의 전환 줄 — 화면 안 탭이 아니다"
-    },
-    {
-      "file": "components/manager/ProfileModal.jsx",
-      "kind": "overlay",
-      "count": 1,
-      "reason": "매니저 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 같이 쓰는 창 틀로 옮기면 노란 머리·3D 아바타 모양이 바뀌고 열 때마다 3D 를 다시 불러온다. 지금 모양대로 둔다 (2026-09-22 커트 결정, PW-893)"
-    },
-    {
-      "file": "components/orgchart/ProfileModal.jsx",
-      "kind": "overlay",
-      "count": 1,
-      "reason": "조직도 멤버 프로필 창: 3D 아바타 때문에 닫혀도 숨긴 채 남는 프로필 카드 — 같이 쓰는 창 틀로 옮기면 노란 머리·3D 아바타 모양이 바뀌고 열 때마다 3D 를 다시 불러온다. 지금 모양대로 둔다 (2026-09-22 커트 결정, PW-893)"
     }
   ]
 }

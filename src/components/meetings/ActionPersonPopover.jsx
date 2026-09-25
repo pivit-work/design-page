@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
  * ActionPersonPopover — 액션 아이템의 담당자 셀 클릭 시 뜨는 팝오버.
@@ -38,20 +39,7 @@ export default function ActionPersonPopover({
     el.style.opacity = '1';
   }, [anchorRect]);
 
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    const onDown = (e) => {
-      if (!popoverRef.current) return;
-      if (popoverRef.current.contains(e.target)) return;
-      onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('mousedown', onDown);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('mousedown', onDown);
-    };
-  }, [onClose]);
+  useDismissLayer(onClose ?? (() => {}), popoverRef);
 
   return (
     <div ref={popoverRef} className="mtg-action-person-popover" style={{ opacity: 0 }}>

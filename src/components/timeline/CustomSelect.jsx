@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -40,23 +41,7 @@ export default function CustomSelect({
   const [menuPos, setMenuPos] = useState({ placement: 'below' });
 
   // 외부 클릭 / ESC 로 닫기
-  useEffect(() => {
-    if (!isOpen) return;
-    const onDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
-    };
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [isOpen]);
+  useDismissLayer(() => setIsOpen(false), wrapRef, null, isOpen);
 
   // 아래 공간이 부족하면 위로 뒤집어서 띄움
   useLayoutEffect(() => {

@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useLayoutEffect, useRef, useState } from 'react';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 
@@ -50,14 +50,6 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
   }, [anchorRect]);
 
   // Close on Escape
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   if (!meeting) return null;
 
   // Resolve participants from member ids
@@ -67,8 +59,10 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
 
   // Portal 로 body 에 렌더 — content-area(position:fixed)의 stacking context
   // 에서 탈출해서 사이드바/탑네비 등 모든 상위 요소를 덮도록.
-  return createPortal(
-    <div className="tl-meeting-modal-overlay" onClick={onClose}>
+  // 막·Esc·바깥 누르기는 공용 창 바탕(`ModalLayer`)이 갖는다(PW-1013). 누른 블록 옆에 붙어 뜨는
+  // 창이라 막은 투명하게 둔다(`is-clear`) — 생김새는 그대로, 닫히는 동작만 다른 창과 같다.
+  return (
+    <ModalLayer onClose={onClose} className="is-clear">
       <div
         ref={modalRef}
         className={`tl-meeting-modal ${variant === 'calendar' ? 'is-calendar' : ''}`}
@@ -159,7 +153,6 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { datePickerLabels } from './uiLocale.js';
+import useDismissLayer from './useDismissLayer.js';
 import { ChevronLeftGlyph, ChevronRightGlyph } from './lineIcons.jsx';
 
 /**
@@ -103,26 +104,7 @@ export default function DatePicker({
     el.style.opacity = '1';
   }, [anchorRect, viewYear, viewMonth]);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onClose();
-    };
-    const onDown = (e) => {
-      if (popoverRef.current?.contains(e.target)) return;
-      if (anchorEl?.contains(e.target)) return;
-      onClose();
-    };
-    // 캡처 단계에서 받아야 창의 Esc 처리(window 버블)보다 먼저 멈출 수 있다.
-    window.addEventListener('keydown', onKey, true);
-    const t = setTimeout(() => window.addEventListener('mousedown', onDown), 0);
-    return () => {
-      window.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('mousedown', onDown);
-      clearTimeout(t);
-    };
-  }, [onClose, anchorEl]);
+  useDismissLayer(onClose, popoverRef, anchorEl ? { current: anchorEl } : null);
 
   const min = minDate ? startOfDay(minDate) : null;
   const max = maxDate ? startOfDay(maxDate) : null;

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
  * OkrToolbar — 연도/분기 선택 버튼 + 하위 계층 셀렉터 + 우측 정렬 버튼 줄.
@@ -24,19 +25,7 @@ export default function OkrToolbar({
   const [openMenu, setOpenMenu] = useState(null); // 'year' | 'quarter' | null
   const rootRef = useRef(null);
 
-  useEffect(() => {
-    if (!openMenu) return;
-    const onDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpenMenu(null);
-    };
-    const onKey = (e) => { if (e.key === 'Escape') setOpenMenu(null); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [openMenu]);
+  useDismissLayer(() => setOpenMenu(null), rootRef, null, !!openMenu);
 
   const toggle = (menu) => setOpenMenu((prev) => (prev === menu ? null : menu));
   const select = (onChange) => (value) => { onChange(value); setOpenMenu(null); };

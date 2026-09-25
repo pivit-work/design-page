@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useLayoutEffect, useRef, useState } from 'react';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import { ArrowRightGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 import { memberPalette } from './constants.js';
@@ -48,14 +48,6 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
     setPos({ left, top, opacity: 1 });
   }, [anchorRect]);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   if (!snippet) return null;
 
   const member = (members || []).find((m) => m.id === snippet.memberId);
@@ -63,8 +55,10 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
   const hasHealth = typeof snippet.health === 'number' && !Number.isNaN(snippet.health);
   const tags = snippet.tags || [];
 
-  return createPortal(
-    <div className="tl-meeting-modal-overlay" onClick={onClose}>
+  // 막·Esc·바깥 누르기는 공용 창 바탕(`ModalLayer`)이 갖는다(PW-1013). 누른 블록 옆에 붙어 뜨는
+  // 창이라 막은 투명하게 둔다(`is-clear`) — 생김새는 그대로, 닫히는 동작만 다른 창과 같다.
+  return (
+    <ModalLayer onClose={onClose} className="is-clear">
       <div
         ref={modalRef}
         className="tl-meeting-modal tl-snippet-detail-modal"
@@ -152,7 +146,6 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
           )}
         </div>
       </div>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

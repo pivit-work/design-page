@@ -243,3 +243,12 @@
   gap: 24px;
   flex-shrink: 0;
 }
+
+/* 누른 자리 옆에 붙어 뜨는 창(타임라인 회의·스니핏 보기)의 막 — 뒤를 어둡게 하지 않는다.
+   닫히는 동작(Esc·바깥 누르기)만 다른 창과 같게 공용 바탕을 쓴다 (PW-1013). */
+.tl-modal-overlay.is-clear {
+  background: transparent;
+  animation: none;
+  /* 예전 막(.tl-meeting-modal-overlay)과 같은 겹침 순서 — 창 안에서 여는 앵커 팝오버(10000)가 위에 뜬다. */
+  z-index: 9000;
+}

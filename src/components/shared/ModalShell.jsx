@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import ModalLayer from './ModalLayer.jsx';
 import { CloseGlyph } from './lineIcons.jsx';
 
 /**
@@ -9,6 +8,7 @@ import { CloseGlyph } from './lineIcons.jsx';
  *   Footer (pad 24/48) — 취소 / 확인, border-top 1px border-tertiary
  *
  * Portal 로 body 에 렌더. ESC / 오버레이 클릭 / 닫기 버튼으로 닫힘.
+ * 막과 닫히는 동작은 `ModalLayer` 몫이다 — 틀이 다른 창은 그것만 쓴다(PW-1013).
  *
  * 원래 timeline 의 `EmployeeModalShell` 이었다. 같은 껍데기를 매니저 화면에서도
  * 쓰게 되면서 shared 로 올렸고, **마크업과 클래스는 한 글자도 바꾸지 않았다** —
@@ -52,13 +52,6 @@ import { CloseGlyph } from './lineIcons.jsx';
  *   overlayTestId        막의 data-testid
  *   closeTestId          닫기 X 의 data-testid
  */
-/**
- * 지금 떠 있는 껍데기들 — 나중에 연 것이 맨 뒤. 창 위에 창을 겹쳐 띄우면 Esc 는 맨 위 창만
- * 닫아야 한다. 모두가 창(window) 에 Esc 를 걸고 있어서, 이게 없으면 Esc 한 번에 겹친 창이
- * 한꺼번에 닫힌다(PW-832 — 평가 위자드 위의 이탈 확인 창).
- */
-const openShells = [];
-
 export default function ModalShell({
   title,
   description,
@@ -82,49 +75,11 @@ export default function ModalShell({
   overlayTestId,
   closeTestId,
 }) {
-  const panelRef = useRef(null);
-
-  // busy 와 onClose 는 ref 로 읽는다 — 호출측이 onClose 를 인라인 함수로 넘기면 렌더마다
-  // 효과가 다시 걸려 Esc 듣기와 body 스크롤 잠금이 매번 풀렸다 걸린다.
-  const busyRef = useRef(busy);
-  const onCloseRef = useRef(onClose);
-  useLayoutEffect(() => {
-    busyRef.current = busy;
-    onCloseRef.current = onClose;
-  });
+  // 막·Esc·스크롤 잠금·겹친 창 순서는 `ModalLayer` 가 갖는다(PW-1013). 여기는 틀만 그린다.
   const requestClose = () => {
     if (!busy) onClose();
   };
 
-  useEffect(() => {
-    const token = {};
-    openShells.push(token);
-    const onKey = (e) => {
-      if (e.key !== 'Escape' || busyRef.current) return;
-      if (openShells[openShells.length - 1] !== token) return;
-      // 공용 확인 창(ConfirmModal)이 위에 떠 있으면 그 창의 몫이다 — 밑의 창을 닫지 않는다.
-      if (document.querySelector('.pw-confirm-overlay')) return;
-      onCloseRef.current();
-    };
-    window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      openShells.splice(openShells.indexOf(token), 1);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, []);
-
-  const handleOverlayMouseDown = (e) => {
-    if (panelRef.current && panelRef.current.contains(e.target)) return;
-    if (onOverlayClick === null) return;
-    if (onOverlayClick) {
-      if (!busy) onOverlayClick();
-      return;
-    }
-    requestClose();
-  };
   const hasHeader = (title !== undefined && title !== null) || !!description;
 
   const handleSubmit = (e) => {
@@ -133,20 +88,15 @@ export default function ModalShell({
     onSubmit();
   };
 
-  return createPortal(
-    <div
-      className="tl-modal-overlay"
-      onMouseDown={handleOverlayMouseDown}
-      // 포털 안의 클릭도 React 트리를 따라 부모로 올라간다. 창을 그린 자리가 눌러서 무언가를
-      // 여닫는 요소 안이면, 창 안의 버튼 한 번이 그 요소의 onClick 까지 불러 창이 다시 열리거나
-      // 뒤의 화면이 반응한다(PW-832 — 평가 위자드의 이탈 확인 창이 위자드 막 안에 그려져, 「취소」 한 번이 위자드 닫기까지 부를 수 있었다).
-      onClick={(e) => e.stopPropagation()}
-      role="presentation"
-      style={zIndex != null ? { zIndex } : undefined}
-      data-testid={overlayTestId}
+  return (
+    <ModalLayer
+      onClose={onClose}
+      busy={busy}
+      onOverlayClick={onOverlayClick}
+      zIndex={zIndex}
+      testId={overlayTestId}
     >
       <form
-        ref={panelRef}
         className={`tl-group-modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
@@ -204,7 +154,6 @@ export default function ModalShell({
           <div className="tl-group-modal-actions">{footer}</div>
         ) : null}
       </form>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

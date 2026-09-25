@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -158,25 +158,12 @@ export default function SnippetModal({
       ? suggestedTags
       : DEFAULT_SUGGESTED_TAGS;
 
-  const panelRef = useRef(null);
   const contentRef = useRef(null);
 
   // Progress: 채워진 섹션 수 / 전체 섹션 수 → active bar width %
   const filledCount = SECTIONS.filter((s) => sectionTexts[s.key].trim()).length;
   const progressPct = (filledCount / SECTIONS.length) * 100;
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
 
   // Body scrollTop >= 40 → top bar 에 "데일리 스니펫 · {date}" 타이틀 노출
   useEffect(() => {
@@ -187,10 +174,6 @@ export default function SnippetModal({
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleOverlayMouseDown = (e) => {
-    if (panelRef.current && panelRef.current.contains(e.target)) return;
-    onClose();
-  };
 
   const dateLabel = (() => {
     const d = date ?? new Date();
@@ -334,10 +317,9 @@ export default function SnippetModal({
     });
   };
 
-  return createPortal(
-    <div className="tl-modal-overlay" onMouseDown={handleOverlayMouseDown} role="presentation">
+  return (
+    <ModalLayer onClose={onClose}>
       <form
-        ref={panelRef}
         className={`tl-group-modal tl-snippet-modal ${scrolled ? 'is-scrolled' : ''}`}
         role="dialog"
         aria-modal="true"
@@ -617,7 +599,6 @@ export default function SnippetModal({
           <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
         </div>
       </form>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

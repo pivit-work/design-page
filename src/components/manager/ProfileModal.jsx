@@ -1,6 +1,6 @@
 import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { createPortal } from 'react-dom';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -65,7 +65,7 @@ function applyTexture(app, objectName, imageSrc) {
  * Figma node 16952:13855.
  *
  * 구조/노출 로직/Spline 사이즈는 조직도 ProfileModal 과 완전히 동일:
- *  - createPortal 로 document.body 에 렌더 (사이드바/헤더 위로 overlay 가 올라가도록)
+ *  - 공용 창 바탕(`ModalLayer`)으로 document.body 에 렌더 (사이드바/헤더 위로 막이 올라가도록 · PW-1013)
  *  - overlay + scroll-wrap + 정중앙 modal-card (width 432)
  *  - spline-wrap 432x432 + react-spline stage 600 scale 0.5 + margin offset (조직도와 동일)
  *  - 닫힘 동안 마지막 멤버 콘텐츠 유지 (`displayMember`)
@@ -125,13 +125,6 @@ export default function ProfileModal({
     if (member && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
   }, [member]);
 
-  useEffect(() => {
-    if (!member) return;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [member, onClose]);
-
   const isOpen = !!member;
   const profile = displayMember?.profile;
   const agendas = profile?.agendas ?? [];
@@ -152,18 +145,14 @@ export default function ProfileModal({
     ...(profile?.hrProfile ? [{ key: 'hr', label: '인사 정보' }] : []),
   ];
 
-  const node = (
-    <>
-      <div
-        className="manager-modal-overlay"
-        onClick={onClose}
-        style={{ display: isOpen ? '' : 'none' }}
-      />
+  // 막·Esc·바깥 누르기·body 포털은 공용 창 바탕이 갖는다(PW-1013). 닫혀 있어도 3D 씬을 미리
+  // 받아 두려고 그려 둔다(keepMounted).
+  return (
+    <ModalLayer open={isOpen} keepMounted onClose={() => onClose?.()}>
       <div
         className="manager-modal-scroll-wrap"
         ref={scrollWrapRef}
         onClick={onClose}
-        style={{ display: isOpen ? '' : 'none' }}
       >
         <div className="manager-modal-card" onClick={(e) => e.stopPropagation()}>
           {/* Header (yellow→white gradient + spline + name + ai-rec + buttons) */}
@@ -250,12 +239,8 @@ export default function ProfileModal({
           </div>
         </div>
       </div>
-    </>
+    </ModalLayer>
   );
-
-  // SSR 환경 대비 — document 가 없으면 마운트 자체를 미룬다.
-  if (typeof document === 'undefined') return null;
-  return createPortal(node, document.body);
 }
 
 function MetricTile({ label, value }) {
