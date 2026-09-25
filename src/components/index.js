@@ -2,6 +2,7 @@
 export { default as Icon } from './shared/Icon.jsx';
 export { default as SegmentedControl } from './shared/SegmentedControl.jsx';
 export { default as Tabs } from './shared/Tabs.jsx';
+export { default as Button } from './shared/Button.jsx';
 export { default as DatePicker } from './shared/DatePicker.jsx';
 export { default as DateInput } from './shared/DateInput.jsx';
 export { default as TimeInput } from './shared/TimeInput.jsx';

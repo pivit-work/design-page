@@ -1,0 +1,114 @@
+/*
+ * 공용 버튼 `Button` (PW-1007) — `components/shared/Button.jsx`.
+ *
+ * 두 층이다.
+ *   1) `.dp-btn` 과 `.is-pending` — 어느 모양이든 얹히는 «요청 중» 표시. 화면이 자기 버튼
+ *      클래스(`admin-emp-btn`·`evc-btn` …)를 `className` 으로 넘겨도 이것만은 함께 붙는다.
+ *   2) `.dp-btn--<variant>` · `.dp-btn--<size>` — `variant` 를 줬을 때의 이 부품 모양.
+ *      치수·색은 직원 관리 화면 버튼(`admin.css` 의 `.admin-emp-btn`)과 같게 잡았다.
+ */
+
+/* ── 1) 요청 중 표시 ───────────────────────────────────────── */
+.dp-btn {
+  position: relative;
+}
+.dp-btn__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: inherit;
+}
+/* 글자는 자리만 남긴다 — 폭이 그대로라 옆 버튼이 밀리지 않는다. visibility 가 아니라
+   opacity 인 이유: 화면 읽기 프로그램이 버튼 이름을 계속 읽어야 한다. */
+.dp-btn.is-pending > .dp-btn__label {
+  opacity: 0;
+}
+.dp-btn.is-pending {
+  cursor: progress;
+}
+.dp-btn__spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1.15em;
+  height: 1.15em;
+  animation: dp-btn-spin 0.8s linear infinite;
+}
+@keyframes dp-btn-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dp-btn__spinner { animation-duration: 2.4s; }
+}
+
+/* ── 2) 이 부품의 모양 ─────────────────────────────────────── */
+.dp-btn--primary,
+.dp-btn--secondary,
+.dp-btn--ghost,
+.dp-btn--danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  line-height: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.1s ease;
+}
+.dp-btn--md { padding: 7px 13px; font-size: var(--font-size-text-sm, 14px); }
+.dp-btn--sm { gap: 4px; padding: 5px 11px; min-height: 28px; font-size: var(--font-size-text-xs, 13px); }
+
+.dp-btn--primary {
+  background: var(--bg-brand-solid, #2dbd82);
+  color: var(--colors-text-textWhite, #fff);
+  box-shadow: 0 1px 2px rgba(16, 119, 77, 0.16);
+}
+.dp-btn--primary:not(:disabled):hover {
+  background: var(--text-brand-tertiary, #21a67a);
+  box-shadow: 0 4px 12px rgba(16, 119, 77, 0.22);
+}
+.dp-btn--secondary {
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  border-color: var(--colors-border-borderSecondary, #e6e8ea);
+}
+.dp-btn--secondary:not(:disabled):hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.dp-btn--ghost {
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary);
+}
+.dp-btn--ghost:not(:disabled):hover {
+  background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary);
+}
+.dp-btn--danger {
+  background: var(--colors-error-600, #d92d20);
+  color: var(--colors-text-textWhite, #fff);
+}
+.dp-btn--danger:not(:disabled):hover {
+  background: var(--colors-error-700, #b42318);
+}
+.dp-btn--primary:not(:disabled):active,
+.dp-btn--secondary:not(:disabled):active,
+.dp-btn--ghost:not(:disabled):active,
+.dp-btn--danger:not(:disabled):active {
+  transform: translateY(0.5px);
+}
+.dp-btn--primary:disabled,
+.dp-btn--secondary:disabled,
+.dp-btn--ghost:disabled,
+.dp-btn--danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.dp-btn.is-pending:disabled {
+  cursor: progress;
+}

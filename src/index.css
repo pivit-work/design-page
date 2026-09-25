@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './tokens-dark.css';
 @import './timeline.css';
+@import './button.css';
 
 :root {
   --font-family-body: 'Pretendard', sans-serif;
