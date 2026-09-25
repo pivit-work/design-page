@@ -642,7 +642,7 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
         editedAfterShare || headerExtra ? (
           <>
             {editedAfterShare && (
-              <DpStatusBadge tone="warning" data-testid="ono-feedback-edited-after-share">
+              <DpStatusBadge className="ono-start-topic-badge" data-testid="ono-feedback-edited-after-share">
                 {L.feedbackEditedAfterShare}
               </DpStatusBadge>
             )}
@@ -762,7 +762,7 @@ export function EditableNotesCard({
 /** 제목 줄 오른쪽 — «언제까지» 와 [편집] (PW-1046). */
 export function EditBadge({ L, until, onEdit, testid }) {
   return (
-    <span className="ono-done-banner-actions">
+    <span className="ono-done-banner-actions ono-done-edit-badge">
       {until && <span className="ono-done-count">{fill(L.editUntil, { date: until })}</span>}
       <button type="button" className="ono-done-banner-btn" onClick={onEdit} data-testid={testid}>
         {L.edit}

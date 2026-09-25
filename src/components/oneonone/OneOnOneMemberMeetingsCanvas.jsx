@@ -569,7 +569,7 @@ function RecordScreen({
           {L.backToList}
         </button>
         {recordEdit?.onEdit && (
-          <span className="ono-done-banner-actions">
+          <span className="ono-done-banner-actions ono-done-edit-badge">
             {recordEdit.until && (
               <span className="ono-done-count">{fill(L.editRecordUntil, { date: recordEdit.until })}</span>
             )}
