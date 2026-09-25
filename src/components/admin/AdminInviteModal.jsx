@@ -317,6 +317,11 @@ export default function AdminInviteModal({
   orgUnits = [],
   /** 이미 워크스페이스 멤버인 이메일 (V5) */
   existingEmails = [],
+  /**
+   * CSV 상급자(이메일) 칸이 「회사 구성원인가」를 볼 명부. 안 주면 `existingEmails` 를
+   * 쓴다(종전 동작). 「이미 구성원」과 기준이 다를 수 있어 따로 받는다(PW-1056).
+   */
+  supervisorEmails,
   /** 대기 중 초대가 있는 이메일 (V6) */
   pendingEmails = [],
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
@@ -487,7 +492,7 @@ export default function AdminInviteModal({
   const csvColumns = inviteCsvColumns({ jobCategoryEnabled });
   const csvCtx = buildInviteCsvContext(csvRows, {
     orgTree: tree, fieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
-    squadNames, memberEmails: existingEmails, pendingEmails, headTeamIds, labels,
+    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses,
   });
