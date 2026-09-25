@@ -363,6 +363,17 @@
   background: var(--bg-primary);
 }
 
+/* ── 화면 탭 줄 (PW-926) ──
+   원온원 화면 사이(대시보드 ↔ 내 1on1)를 오가는 공용 Tabs. 제목 줄 위에 선다.
+   `.ono-subnav` 는 고정 캔버스(`.ono-page`) 안의 자리, `.ono-subnav-tabs` 는 Tabs 자체에 붙어
+   캔버스 없이 본문 칸(`.content-area`)에 바로 놓일 때 제목·본문과 같은 x(사이드바 + 24px)에 맞춘다. */
+.ono-subnav {
+  padding-top: 20px;
+}
+.content-area .ono-subnav-tabs {
+  margin-left: 24px;
+}
+
 /* ── Header ──
    Figma: top-nav → 타이틀 12px, 타이틀 ↔ 매니저 라인 spacing-lg(12px),
    매니저 라인 → 브리핑 바 10px. */
