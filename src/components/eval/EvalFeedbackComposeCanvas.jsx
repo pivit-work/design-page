@@ -2,7 +2,8 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
-import AvatarPhoto from './AvatarPhoto';
+import Avatar from '../shared/Avatar.jsx';
+import Chip from '../shared/Chip.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -104,39 +105,6 @@ function fmtDate(v) {
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getMonth() + 1}.${d.getDate()}`;
 }
-function initial(name) {
-  return (name || '?').trim().charAt(0) || '?';
-}
-function Avatar({ name, photo, size = 36, gradient }) {
-  return (
-    <span
-      style={{
-        position: 'relative',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: gradient || 'linear-gradient(135deg,#3B5BDB,#0F1E5C)',
-        color: 'var(--text-white)',
-        fontSize: size * 0.42,
-        fontWeight: 700,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      {initial(name)}
-      <AvatarPhoto photo={photo} name={name} />
-    </span>
-  );
-}
-function Chip({ label, color, bg, bd }) {
-  return (
-    <span style={{ fontSize: 12, fontWeight: 700, color, background: bg, border: `1px solid ${bd || bg}`, borderRadius: 6, padding: '1px 7px', whiteSpace: 'nowrap' }}>
-      {label}
-    </span>
-  );
-}
 
 // ── 팀 목록 화면 ──
 function TeamListScreen({ team, L, onSelect }) {
@@ -175,10 +143,10 @@ function TeamListScreen({ team, L, onSelect }) {
             const noFb = m.lastFeedbackAt == null;
             const over = !noFb && m.daysSince != null && m.daysSince >= 30;
             const badge = noFb
-              ? { label: L.noFeedbackBadge, color: C.red, bg: C.redBg }
+              ? { label: L.noFeedbackBadge, tone: 'danger' }
               : over
-                ? { label: `${m.daysSince}${L.daysOver}`, color: C.amber, bg: C.amberBg }
-                : { label: `${m.daysSince}${L.daysAgo}`, color: C.green, bg: C.greenBg };
+                ? { label: `${m.daysSince}${L.daysOver}`, tone: 'warning' }
+                : { label: `${m.daysSince}${L.daysAgo}`, tone: 'success' };
             return (
               <button
                 key={m.id}
@@ -189,9 +157,9 @@ function TeamListScreen({ team, L, onSelect }) {
               >
                 <Avatar name={m.name} photo={m.avatar} size={36} />
                 <span style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{m.name}</span>
-                <Chip label={badge.label} color={badge.color} bg={badge.bg} bd={badge.bg} />
+                <Chip tone={badge.tone}>{badge.label}</Chip>
                 {m.pendingRequests > 0 && (
-                  <Chip label={<><MailIcon size={11} /> {`${L.requestChip} ${m.pendingRequests}`}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+                  <Chip tone="accent" icon={<MailIcon size={11} />}>{`${L.requestChip} ${m.pendingRequests}`}</Chip>
                 )}
                 {m.department && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{m.department}</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
@@ -226,7 +194,7 @@ function BlockCard({ block, L, onOpen }) {
       style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${barColor}`, borderRadius: 12, padding: '14px 18px', cursor: 'pointer', fontFamily: FONT }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {isKr ? <Chip label={block.badge} color={C.accent} bg={C.accentBg} bd={C.accentBd} /> : <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>}
+        {isKr ? <Chip tone="info">{block.badge}</Chip> : <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>}
         {isKr && <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{block.title}</span>}
         {isKr && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -243,11 +211,11 @@ function BlockCard({ block, L, onOpen }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map((it) => (
             <div key={it.id} style={{ display: 'flex', gap: 8 }}>
-              <Avatar name={it.itemType === 'request' ? it.author?.name : '나'} photo={it.author?.avatar} size={22} gradient={it.itemType === 'request' ? `linear-gradient(135deg,${C.accent},#2563EB)` : 'linear-gradient(135deg,#3B5BDB,#0F1E5C)'} />
+              <Avatar name={it.itemType === 'request' ? it.author?.name : '나'} photo={it.author?.avatar} size={22} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
                   <span style={{ fontWeight: 700, color: C.text }}>{it.itemType === 'request' ? it.author?.name : '나'}</span>
-                  {it.itemType === 'request' && <Chip label={L.requestChip} color={C.accent} bg={C.accentBg} bd={C.accentBd} />}
+                  {it.itemType === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
                   <span>{fmtDate(it.sentAt)}</span>
                 </div>
                 <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -260,8 +228,8 @@ function BlockCard({ block, L, onOpen }) {
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
         <span style={{ fontSize: 12, color: C.muted }}>{items.length}{L.countSuffix}</span>
-        {hasMyTurn && <Chip label={L.myTurn} color={C.red} bg={C.redBg} bd={C.redBg} />}
-        {!hasMyTurn && hasFeedback && <Chip label={L.waiting} color={C.green} bg={C.greenBg} bd={C.greenBd} />}
+        {hasMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
+        {!hasMyTurn && hasFeedback && <Chip tone="progress">{L.waiting}</Chip>}
         <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.accent : C.purple }}>{L.openThread}</span>
       </div>
     </button>
@@ -318,7 +286,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           {aiState === 'done' ? L.aiHintDone : L.aiHintIdle}
         </span>
         {aiState === 'done' && personalized && (
-          <Chip label={<><TargetIcon size={11} /> {L.aiPersonalized}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+          <Chip tone="accent" icon={<TargetIcon size={11} />}>{L.aiPersonalized}</Chip>
         )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {onAiDraft && (
@@ -352,7 +320,7 @@ function FeedbackBubble({ item }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name="나" photo={item.author?.avatar} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
+        <Avatar name="나" photo={item.author?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>나</span>
@@ -376,11 +344,11 @@ function FeedbackBubble({ item }) {
 function RequestBubble({ item, L }) {
   return (
     <div style={{ display: 'flex', gap: 8 }}>
-      <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} gradient={`linear-gradient(135deg,${C.accent},#2563EB)`} />
+      <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
-          <Chip label={<><MailIcon size={11} /> {L.incomingReq}</>} color={C.accent} bg={C.accentBg} bd={C.accentBd} />
+          <Chip tone="accent" icon={<MailIcon size={11} />}>{L.incomingReq}</Chip>
           <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>

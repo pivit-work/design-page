@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Avatar from '../shared/Avatar.jsx';
 import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -39,21 +40,22 @@ const DEFAULT_LABELS = {
   close: '닫기',
 };
 
-function Avatar({ member, size = 36 }) {
-  const isUrl = typeof member.avatar === 'string' && member.avatar.startsWith('http');
+/**
+ * 멤버 원 — 공용 사람 원(PW-1014). `member.avatar` 는 사진 주소(절대·`/uploads/…`)이거나,
+ * 예시 데이터처럼 원 안 글자일 수 있다. 사진이 없으면 이름 글자로 채운다 — 전에는 빈 원이었고,
+ * `/uploads/…` 주소는 글자로 찍혔다.
+ */
+function MemberAvatar({ member, size }) {
+  const raw = typeof member.avatar === 'string' ? member.avatar.trim() : '';
+  const isPhoto = /^(https?:|\/|data:|blob:)/.test(raw);
   return (
-    <span
-      className="rs-avatar"
-      style={{
-        width: size,
-        height: size,
-        background: `${member.color}20`,
-        color: member.color,
-        fontSize: Math.round(size * 0.3),
-      }}
-    >
-      {isUrl ? <img src={member.avatar} alt="" /> : member.avatar}
-    </span>
+    <Avatar
+      name={member.name}
+      photo={isPhoto ? raw : null}
+      text={!isPhoto && raw ? raw : undefined}
+      color={member.color}
+      size={size}
+    />
   );
 }
 
@@ -120,7 +122,7 @@ function MemberCard({ member, projectById, labels, onSelect }) {
     >
       {warn && <span className="rs-card-insight">{warn.text}</span>}
       <span className="rs-card-head">
-        <Avatar member={member} size={36} />
+        <MemberAvatar member={member} size={36} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span className="rs-card-name" style={{ display: 'block' }}>{member.name}</span>
           <span className="rs-card-sub" style={{ display: 'block' }}>{member.subtitle}</span>
@@ -196,7 +198,7 @@ function ProjectView({ members, projects, labels }) {
           <div className="rs-project-members">
             {contributors.map((c) => (
               <span className="rs-project-member" key={c.member.id}>
-                <Avatar member={c.member} size={18} />
+                <MemberAvatar member={c.member} size={18} />
                 {c.member.name}
                 <strong style={{ color: c.member.color }}>{c.ratio}%</strong>
               </span>
@@ -243,7 +245,7 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
         <header className="rs-panel-head">
           <div className="rs-panel-id">
             <div className="rs-panel-person">
-              <Avatar member={member} size={40} />
+              <MemberAvatar member={member} size={40} />
               <div>
                 <div className="rs-panel-name">{member.name}</div>
                 <div className="rs-panel-sub">{member.subtitle}</div>

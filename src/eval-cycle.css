@@ -2686,7 +2686,6 @@
   position: relative;
 }
 .evc-filter-btn,
-.evc-filter-chip,
 .evc-filter-reset {
   display: inline-flex;
   align-items: center;
@@ -2723,21 +2722,6 @@
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
-}
-.evc-filter-chip {
-  border: 1px solid var(--utility-blue-200);
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-700);
-  padding-right: var(--spacing-md);
-}
-.evc-filter-chip-x {
-  display: inline-flex;
-  align-items: center;
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  color: inherit;
 }
 .evc-filter-reset {
   border: 0;

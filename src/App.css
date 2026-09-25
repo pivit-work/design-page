@@ -1,5 +1,7 @@
 @import './status-badge.css';
 @import './form-field.css';
+@import './avatar.css';
+@import './empty-state.css';
 
 /* ── Layout ── */
 /* 모든 페이지 최소 폭 1400px. 셸(사이드바/톱냅)과 각 페이지 루트가 전부

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 import AvatarPhoto from './AvatarPhoto';
 
 /**
@@ -163,7 +164,7 @@ export default function EvalCycleTeamCalibrationCanvas({
         <p className="evc-summary evtcal-result-sub">{L.resultSub}</p>
 
         {rows.length === 0 ? (
-          <p className="evc-empty-sub">{L.empty}</p>
+          <EmptyState description={L.empty} data-testid="evtcal-empty" />
         ) : (
           <div className="evtcal-rows">
             {rows.map((r) => {

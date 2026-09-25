@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
@@ -6630,48 +6631,34 @@ export default function EvalCycleWizard({
                   </div>
                   {/* 규칙 11 — 조직 초점도 필터와 같은 층이라 같은 자리에 칩으로 선다. */}
                   {orgFocus && (
-                    <span
-                      className="evc-filter-chip"
+                    <Chip
                       data-testid="evc-wiz-focus-chip"
+                      onRemove={() => setOrgFocus(null)}
+                      removeLabel={fill(L.targetFilterChipRemove, {
+                        axis: L.targetOrgFocusAxis,
+                      })}
+                      removeProps={{ 'data-testid': 'evc-wiz-focus-chip-x' }}
                     >
                       {fill(L.targetFilterChip, {
                         axis: L.targetOrgFocusAxis,
                         value: focusName,
                       })}
-                      <button
-                        type="button"
-                        className="evc-filter-chip-x"
-                        onClick={() => setOrgFocus(null)}
-                        aria-label={fill(L.targetFilterChipRemove, {
-                          axis: L.targetOrgFocusAxis,
-                        })}
-                        data-testid="evc-wiz-focus-chip-x"
-                      >
-                        <CloseIcon size={10} />
-                      </button>
-                    </span>
+                    </Chip>
                   )}
                   {filterChips.map((chip) => (
-                    <span
+                    <Chip
                       key={chip.key}
-                      className="evc-filter-chip"
                       data-testid={`evc-wiz-filter-chip-${chip.key}`}
+                      onRemove={() =>
+                        setReviewFilters((prev) => ({ ...prev, [chip.key]: [] }))
+                      }
+                      removeLabel={fill(L.targetFilterChipRemove, {
+                        axis: chip.text,
+                      })}
+                      removeProps={{ 'data-testid': `evc-wiz-filter-chip-x-${chip.key}` }}
                     >
                       {chip.text}
-                      <button
-                        type="button"
-                        className="evc-filter-chip-x"
-                        onClick={() =>
-                          setReviewFilters((prev) => ({ ...prev, [chip.key]: [] }))
-                        }
-                        aria-label={fill(L.targetFilterChipRemove, {
-                          axis: chip.text,
-                        })}
-                        data-testid={`evc-wiz-filter-chip-x-${chip.key}`}
-                      >
-                        <CloseIcon size={10} />
-                      </button>
-                    </span>
+                    </Chip>
                   ))}
                   {anyReviewFilter && (
                     <button

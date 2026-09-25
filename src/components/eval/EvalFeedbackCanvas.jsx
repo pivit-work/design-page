@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import { ChatIcon, ClockIcon } from './evalIcons';
-import AvatarPhoto from './AvatarPhoto';
+import Avatar from '../shared/Avatar.jsx';
+import Chip from '../shared/Chip.jsx';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -122,52 +123,8 @@ function fmtDate(v) {
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getMonth() + 1}.${d.getDate()}`;
 }
-function initial(name) {
-  return (name || '?').trim().charAt(0) || '?';
-}
 
-function Avatar({ name, photo, size = 30, gradient }) {
-  return (
-    <span
-      style={{
-        position: 'relative',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: gradient || `linear-gradient(135deg,${C.teal},${C.blue})`,
-        color: 'var(--text-white)',
-        fontSize: size * 0.42,
-        fontWeight: 700,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      {initial(name)}
-      <AvatarPhoto photo={photo} name={name} />
-    </span>
-  );
-}
 
-function Chip({ label, color, bg, bd }) {
-  return (
-    <span
-      style={{
-        fontSize: 12,
-        fontWeight: 700,
-        color,
-        background: bg,
-        border: `1px solid ${bd || bg}`,
-        borderRadius: 6,
-        padding: '1px 7px',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </span>
-  );
-}
 
 // ── 블록 카드(KR/이니셔티브 공통) ──
 /** KR 진행률 바 폭. 카드가 1080px 로 넓어져 40px 는 점처럼 보였다 (PW-218). */
@@ -224,7 +181,7 @@ function BlockCard({ block, L, onOpen }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         {isKr ? (
-          <Chip label={block.badge} color={accent} bg={accentBg} bd={accentBd} />
+          <Chip tone="info">{block.badge}</Chip>
         ) : (
           <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}>
             # {block.title}
@@ -257,11 +214,6 @@ function BlockCard({ block, L, onOpen }) {
                 name={it.person?.name}
                 photo={it.person?.avatar}
                 size={22}
-                gradient={
-                  it.itemType === 'feedback'
-                    ? 'linear-gradient(135deg,#3B5BDB,#0F1E5C)'
-                    : `linear-gradient(135deg,${C.teal},${C.blue})`
-                }
               />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
@@ -269,7 +221,7 @@ function BlockCard({ block, L, onOpen }) {
                     {it.itemType === 'feedback' ? it.person?.name || '' : '나'}
                   </span>
                   {it.itemType === 'request' && (
-                    <Chip label={L.requestTag} color={C.blue} bg={C.blueBg} bd={C.blueBd} />
+                    <Chip tone="accent">{L.requestTag}</Chip>
                   )}
                   <span>{fmtDate(it.sentAt)}</span>
                 </div>
@@ -305,9 +257,9 @@ function BlockCard({ block, L, onOpen }) {
         <span style={{ fontSize: 12, color: C.muted }}>
           {items.length}{L.countSuffix}
         </span>
-        {isMyTurn && <Chip label={L.myTurn} color={C.teal} bg={C.tealBg} bd={C.tealBd} />}
+        {isMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
         {!isMyTurn && isWaiting && (
-          <Chip label={L.waiting} color={C.green} bg={C.greenBg} bd={C.greenBd} />
+          <Chip tone="progress">{L.waiting}</Chip>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.teal : C.purple }}>
           {L.openThread}
@@ -409,11 +361,11 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name={item.person?.name} photo={item.person?.avatar} size={30} gradient="linear-gradient(135deg,#3B5BDB,#0F1E5C)" />
+        <Avatar name={item.person?.name} photo={item.person?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
-            {!item.isRead && <Chip label={L.newBadge} color={C.teal} bg={C.tealBg} bd={C.tealBd} />}
+            {!item.isRead && <Chip tone="accent">{L.newBadge}</Chip>}
             <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
           </div>
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
@@ -528,12 +480,9 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub, justifyContent: 'flex-end', marginBottom: 3 }}>
           <span>→ {item.person?.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})</span>
           <span>{fmtDate(item.sentAt)}</span>
-          <Chip
-            label={resolved ? L.requestAnswered : L.requestPending}
-            color={resolved ? C.green : C.amber}
-            bg={resolved ? C.greenBg : C.amberBg}
-            bd={resolved ? C.greenBd : C.amberBd}
-          />
+          <Chip tone={resolved ? 'success' : 'warning'}>
+            {resolved ? L.requestAnswered : L.requestPending}
+          </Chip>
         </div>
 
         {editing ? (
@@ -568,7 +517,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
           <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
             {item.text || <span style={{ color: C.muted }}>{L.requestEmptyText}</span>}
             <div style={{ marginTop: 6 }}>
-              <Chip label={L.requestTagFull} color={C.blue} bg="var(--text-white)" bd={C.blueBd} />
+              <Chip tone="accent">{L.requestTagFull}</Chip>
             </div>
           </div>
         )}

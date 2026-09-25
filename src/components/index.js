@@ -24,6 +24,10 @@ export { default as Select } from './shared/Select.jsx';
 export { default as Checkbox } from './shared/Checkbox.jsx';
 export { default as Radio } from './shared/Radio.jsx';
 export { default as SearchInput } from './shared/SearchInput.jsx';
+// 빈 화면 안내 · 사람 원 · 칩 (PW-1014). 스타일은 empty-state.css · avatar.css · status-badge.css 의 「칩」 절
+export { default as EmptyState } from './shared/EmptyState.jsx';
+export { default as Avatar } from './shared/Avatar.jsx';
+export { default as Chip } from './shared/Chip.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
 export {
   default as RecordingPlayerRow,

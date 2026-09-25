@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { nameInitials, nameFontSize } from '../shared/nameInitials.js';
+import Avatar from '../shared/Avatar.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { CheckGlyph, ChevronDownGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 
@@ -35,21 +35,6 @@ function panelStyle(rect) {
     : { position: 'fixed', left, top: rect.bottom + GAP, width: PANEL_W, maxHeight };
 }
 
-function Avatar({ member }) {
-  const text = nameInitials(member.name);
-  if (member.avatar) {
-    return <img className="okr-cf-pick-avatar" src={member.avatar} alt="" />;
-  }
-  return (
-    <span
-      className="okr-cf-pick-avatar is-fallback"
-      style={{ background: member.color || 'var(--utility-gray-200)', fontSize: nameFontSize(text, 22) }}
-      aria-hidden
-    >
-      {text}
-    </span>
-  );
-}
 
 export default function OkrMemberPicker({
   members = [],
@@ -159,7 +144,7 @@ export default function OkrMemberPicker({
                     className={`okr-cf-pick-opt${isSel ? ' is-selected' : ''}`}
                     onClick={() => pick(m.id)}
                   >
-                    <Avatar member={m} />
+                    <Avatar name={m.name} photo={m.avatar} color={m.color} size={22} />
                     <span className="okr-cf-pick-opt-text">
                       <span className="okr-cf-pick-opt-name">{m.name}</span>
                       {m.role && <span className="okr-cf-pick-opt-role">{m.role}</span>}

@@ -316,18 +316,6 @@
    "height": "22px",
    "min-width": "22px"
   },
-  "eval-cycle.css|.evc-filter-chip": {
-   "border-radius": "pill",
-   "padding": "0 12px",
-   "font-size": "12.5px",
-   "font-weight": "600",
-   "display": "inline-flex",
-   "align-items": "center",
-   "gap": "6px",
-   "white-space": "nowrap",
-   "font-family": "var(--font-family-body)",
-   "height": "29px"
-  },
   "eval-cycle.css|.evc-mode-badge": {
    "border-radius": "pill",
    "padding": "1px 8px",
@@ -1345,17 +1333,6 @@
    "line-height": "18px",
    "border": "1px solid var(--border-secondary)"
   },
-  "org_squad.css|.sq-lead-chip": {
-   "border-radius": "pill",
-   "padding": "4px 10px",
-   "font-size": "12px",
-   "background": "#fffaeb / 어두운 화면 #4e1d09",
-   "display": "inline-flex",
-   "align-items": "center",
-   "gap": "6px",
-   "line-height": "18px",
-   "border": "1px solid var(--utility-warning-200)"
-  },
   "report.css|.report-row-status": {
    "border-radius": "8px",
    "padding": "2px 9px",
@@ -1437,6 +1414,23 @@
    "padding": "2px 9px",
    "font-size": "12px",
    "font-weight": "700"
+  },
+  "status-badge.css|.dp-chip": {
+   "border-radius": "pill",
+   "padding": "0 10px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "1",
+   "white-space": "nowrap",
+   "font-family": "var(--font-family-body)",
+   "border": "1px solid transparent",
+   "height": "24px",
+   "max-width": "100%",
+   "box-sizing": "border-box",
+   "vertical-align": "middle"
   },
   "team-management.css|.tm-subteam-chip": {
    "border-radius": "pill",
@@ -1955,10 +1949,6 @@
    "background": "#fef3f2 / 어두운 화면 #220905",
    "color": "#b42318 / 어두운 화면 #fda29b"
   },
-  "status-badge.css|.evrr-badge.is-excluded": {
-   "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e"
-  },
   "eval-cycle.css|.evrr-badge.is-override": {
    "background": "#f4f3ff / 어두운 화면 #27115f",
    "color": "#5925dc / 어두운 화면 #fafaff"
@@ -2192,6 +2182,18 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#b1b6be / 어두운 화면 #85888e",
    "border": "1px solid var(--border-primary)"
+  },
+  "status-badge.css|.dp-chip:not(.is-tone)": {
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
+  "status-badge.css|.dp-chip.is-selected": {
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "status-badge.css|.evrr-badge.is-excluded": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#b1b6be / 어두운 화면 #85888e"
   },
   "team-management.css|.tm-tag.is-amber": {
    "border-radius": "6px",

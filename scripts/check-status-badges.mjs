@@ -48,7 +48,6 @@ export const HOME_CSS = 'status-badge.css';
 export const NOT_A_BADGE = {
   'admin.css|.admin-snap-chip': '누르는 것 — 조직 시점 고르기 버튼',
   'admin.css|.admin-notif-filter-chip': '쓰는 곳이 없다 — 화면에서 안 그린다',
-  'eval-cycle.css|.evc-filter-chip': '누르는 것 — 필터 줄이 버튼과 한 규칙을 나눠 쓴다',
   'eval-cycle.css|.evs-cw-chip': '누르는 것 — 캘리브레이션 필터 버튼',
   'eval-cycle.css|.evs-cw-filter-preset-pill': '누르는 것 — 저장한 필터 고르기 버튼',
   'eval-cycle.css|.evs-cw-filter-excluded-pill': '누르는 것 — 제외 해제 버튼',

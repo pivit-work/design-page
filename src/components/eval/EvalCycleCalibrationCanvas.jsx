@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import EmptyState from '../shared/EmptyState.jsx';
 import { AlertIcon } from './evalIcons.jsx';
 
 /**
@@ -72,7 +73,7 @@ export default function EvalCycleCalibrationCanvas({
             </p>
           )}
           {distribution.length === 0 ? (
-            <p className="evc-empty-sub">{L.empty}</p>
+            <EmptyState description={L.empty} data-testid="evcal-empty" />
           ) : (
             <div className="evs-dist">
               {distribution.map((d) => {

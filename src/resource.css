@@ -176,17 +176,6 @@
 }
 
 .rs-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.rs-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 9px;
-  overflow: hidden;
-  font-weight: 700;
-  box-sizing: border-box;
-}
-.rs-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .rs-card-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .rs-card-sub { font-size: 12px; color: var(--text-tertiary); }
 .rs-card-metric { text-align: right; }

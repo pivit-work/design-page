@@ -1650,50 +1650,15 @@
 }
 
 /* ── 서브뷰 탭 바 (조직 스냅샷 / 발령 단건 / 대량 / 이력) ── */
-.admin-snap-loading,
-.admin-snap-empty {
+.admin-snap-loading {
   padding: 60px 0;
   text-align: center;
   font-size: var(--font-size-text-sm, 13px);
   color: var(--text-tertiary);
 }
 
-/* ── As Of 커버리지 경계 (org-snapshot-spec §5-A · PW-139) ──
-   C1(기록 시작 전)은 **중립 회색**이다. 앰버(주의)를 쓰지 않는다 — 사용자가 잘못한
-   것이 아니라 그 시점 기록이 없을 뿐이다. 앰버는 타임머신 배너 전용. */
-.admin-snap-empty-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-.admin-snap-empty-body {
-  font-size: var(--font-size-text-sm, 14px);
-  line-height: 1.7;
-  color: var(--text-tertiary);
-}
-.admin-snap-empty-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 16px;
-}
-.admin-snap-empty-actions button {
-  padding: 8px 14px;
-  border-radius: var(--radius-lg, 10px);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.admin-snap-empty-actions .admin-snap-empty-primary {
-  background: var(--bg-brand-solid, #4f6af5);
-  border-color: transparent;
-  color: var(--text-white, #fff);
-}
+/* As Of 커버리지 경계(PW-139)의 빈 안내는 공용 EmptyState(PW-1014) — 중립 회색 바탕이다.
+   앰버(주의)를 쓰지 않는다 — 사용자가 잘못한 것이 아니라 그 시점 기록이 없을 뿐이다. */
 
 /* 상시 캡션 `기록 시작 {날짜}` — 경계를 만나기 전에 미리 알린다(정책 §2-1) */
 .admin-snap-coverage-caption {
@@ -2488,15 +2453,6 @@
 .admin-snap-ba-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
 .admin-snap-ba-after { font-weight: 700; color: var(--text-primary); }
 .admin-snap-ba-arrow { color: var(--text-tertiary); width: 24px; text-align: center; }
-.admin-snap-empty-fields {
-  padding: 24px 16px;
-  text-align: center;
-  border: 1px dashed var(--border-primary);
-  border-radius: var(--radius-sm, 8px);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
 .admin-snap-card-section { border: 1px solid var(--border-primary); border-radius: var(--radius-lg, 12px); overflow: hidden; }
 
 .admin-snap-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }

@@ -30,6 +30,8 @@
     "./styles/okr-resource.css": "./src/okr_resource.css",
     "./styles/form-controls.css": "./src/form-controls.css",
     "./styles/form-field.css": "./src/form-field.css",
+    "./styles/avatar.css": "./src/avatar.css",
+    "./styles/empty-state.css": "./src/empty-state.css",
     "./styles/admin.css": "./src/admin.css",
     "./styles/admin-kit.css": "./src/admin-kit.css",
     "./styles/invite-csv.css": "./src/invite-csv.css",
