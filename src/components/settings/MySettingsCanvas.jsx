@@ -191,6 +191,7 @@ const DEFAULT_LABELS = {
       '이름·닉네임·직함 등 인사 정보는 관리자가 관리합니다. 변경이 필요하면 관리자에게 문의하세요.',
     phone: '전화번호',
     phoneHint: '개인 휴대폰 번호입니다.',
+    fillRequest: '채워 주세요',
     personalEmail: '개인 이메일',
     personalEmailHint: '업무 이메일과 별도로 인사 연락 목적입니다.',
     dateOfBirth: '생년월일',
@@ -334,7 +335,7 @@ function Card({ children, className = '', testId }) {
  * 안내는 이 화면 모양대로 칸 **위**에, 오류 문구는 칸 **아래**에 뜬다. 이름표를 누르면 칸으로 가고,
  * 오류가 있으면 칸에 「틀림」과 그 이유가 이어진다.
  */
-function Field({ label, hint, error, errorTestId, children }) {
+function Field({ label, hint, error, errorTestId, fillRequest, fillTestId, children }) {
   return (
     <FormField
       className="msc-field"
@@ -345,11 +346,28 @@ function Field({ label, hint, error, errorTestId, children }) {
       hint={hint}
       error={error}
       errorTestId={errorTestId}
+      labelExtra={fillRequest ? <FillRequestBadge testId={fillTestId}>{fillRequest}</FillRequestBadge> : undefined}
     >
       {children}
     </FormField>
   );
 }
+
+/**
+ * 「채워 주세요」 딱지 (PW-903) — 본인이 채워야 하는 칸이 아직 비어 있을 때 이름표 오른쪽에 붙는다.
+ * 어느 칸이 «본인이 채우는 값»인지는 화면이 정하지 않는다 — `fillRequestFields` 로 받는다
+ * (기획서 코어 §1-3-g «L. 처음 넣는 주체»). 뜻은 「사람이 한 번 봐야 함」이라 주의 색이다.
+ */
+function FillRequestBadge({ testId, children }) {
+  return (
+    <StatusBadge tone="warning" className="msc-fill-badge" data-testid={testId}>
+      {children}
+    </StatusBadge>
+  );
+}
+
+/** 저장된 값이 비었나 — 공백만 있는 값도 빈 것으로 본다. */
+const isBlank = (v) => v == null || String(v).trim() === '';
 
 function Banner({ children, testId }) {
   return (
@@ -566,8 +584,14 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
 }
 
 /* ═══ 가족 정보 ═══ */
-function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry }) {
+function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry, fillRequestFields = [] }) {
   const L = labels.family;
+  // 딱지는 **저장된** 값을 본다 — 입력 중인 값이 아니다. 저장해야 사라진다.
+  // 못 불러온 동안(family 가 없음)은 비었는지 알 수 없으니 붙이지 않는다.
+  const fillFor = (key) => {
+    if (!family || !fillRequestFields.includes(`emergencyContact.${key}`)) return undefined;
+    return isBlank((family.emergencyContact || {})[key]) ? labels.profile.fillRequest : undefined;
+  };
   const fam = family || { emergencyContact: {}, dependents: [] };
   const [marital, setMarital] = useState(fam.maritalStatus || '');
   const [ec, setEc] = useState(fam.emergencyContact || {});
@@ -641,15 +665,15 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
           </Select>
         </Field>
         <div className="msc-grid-3col">
-          <Field label={L.emergencyName}>
+          <Field label={L.emergencyName} fillRequest={fillFor('name')} fillTestId="fill-request-emergencyContact.name">
             <TextInput className="admin-emp-input" value={ec.name || ''} placeholder={L.namePlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, name: e.target.value }))} aria-label={L.emergencyName} />
           </Field>
-          <Field label={L.emergencyRelation}>
+          <Field label={L.emergencyRelation} fillRequest={fillFor('relation')} fillTestId="fill-request-emergencyContact.relation">
             <TextInput className="admin-emp-input" value={ec.relation || ''} placeholder={L.relationPlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, relation: e.target.value }))} aria-label={L.emergencyRelation} />
           </Field>
-          <Field label={L.emergencyPhone}>
+          <Field label={L.emergencyPhone} fillRequest={fillFor('phone')} fillTestId="fill-request-emergencyContact.phone">
             <TextInput className="admin-emp-input" value={ec.phone || ''} placeholder={L.phonePlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, phone: e.target.value }))} aria-label={L.emergencyPhone} />
           </Field>
@@ -1251,6 +1275,15 @@ export default function MySettingsCanvas({
    * 비우면 전부 편집 가능(기존 동작).
    */
   readOnlyProfileFields = [],
+  /**
+   * 본인이 채워야 하는데 아직 비어 있으면 「채워 주세요」 딱지를 붙일 칸 (PW-903).
+   * 기본 정보 칸은 draft 키 그대로(`'phone'`, `'dateOfBirth'`, `'addressDetail'` …),
+   * 가족 정보의 비상연락처는 `'emergencyContact.name'`·`'.phone'`·`'.relation'`.
+   * 딱지는 **저장된 값**(`profile`·`family`)이 비었을 때만 붙고, 본인이 못 고치는 칸
+   * (`readOnlyProfileFields`)에는 붙지 않는다 — 고칠 수 없는 칸에 재촉하지 않는다.
+   * 비우면 아무 칸에도 붙지 않는다(기존 동작).
+   */
+  fillRequestFields = [],
   timezoneOptions = [],
   /**
    * 언어 칸 선택지 `{ value, label, disabled? }[]` — 값은 `profile.locale`.
@@ -1380,6 +1413,10 @@ export default function MySettingsCanvas({
   const readOnlyFieldSet = new Set(readOnlyProfileFields);
   const isReadOnly = (key) => readOnlyFieldSet.has(key);
   const inputClass = (key) => `admin-emp-input${isReadOnly(key) ? ' is-readonly' : ''}`;
+  const fillFor = (key) =>
+    fillRequestFields.includes(key) && !isReadOnly(key) && isBlank(profile[key])
+      ? labels.profile.fillRequest
+      : undefined;
 
   /* ── 업로드 모달 ── */
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -1524,6 +1561,7 @@ export default function MySettingsCanvas({
               onSave={onSaveFamily}
               onAddDependent={onAddDependent}
               onDeleteDependent={onDeleteDependent}
+              fillRequestFields={fillRequestFields}
             />
           )}
 
@@ -1699,7 +1737,7 @@ export default function MySettingsCanvas({
                     />
                     <p className="msc-field-note">{labels.profile.emailReadonlyHint}</p>
                   </Field>
-                  <Field label={labels.profile.phone} hint={labels.profile.phoneHint}>
+                  <Field label={labels.profile.phone} hint={labels.profile.phoneHint} fillRequest={fillFor('phone')} fillTestId="fill-request-phone">
                     <TextInput
                       className={inputClass('phone')}
                       value={draft.phone || ''}
@@ -1717,7 +1755,7 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.personalEmail}
                     />
                   </Field>
-                  <Field label={labels.profile.dateOfBirth}>
+                  <Field label={labels.profile.dateOfBirth} fillRequest={fillFor('dateOfBirth')} fillTestId="fill-request-dateOfBirth">
                     <DateInput
                       className="admin-emp-input"
                       value={draft.dateOfBirth || ''}
@@ -1757,7 +1795,7 @@ export default function MySettingsCanvas({
                   그 문자열을 다시 갈라내야 하고, 갈라내는 규칙은 표기마다 달라 틀린다.
                 */}
                 <div className="msc-grid-2col">
-                  <Field label={labels.profile.addressPostalCode}>
+                  <Field label={labels.profile.addressPostalCode} fillRequest={fillFor('addressPostalCode')} fillTestId="fill-request-addressPostalCode">
                     <TextInput
                       className="admin-emp-input"
                       value={draft.addressPostalCode || ''}
@@ -1766,7 +1804,7 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.addressPostalCode}
                     />
                   </Field>
-                  <Field label={labels.profile.addressRegion}>
+                  <Field label={labels.profile.addressRegion} fillRequest={fillFor('addressRegion')} fillTestId="fill-request-addressRegion">
                     <TextInput
                       className="admin-emp-input"
                       value={draft.addressRegion || ''}
@@ -1775,7 +1813,7 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.addressRegion}
                     />
                   </Field>
-                  <Field label={labels.profile.addressDistrict}>
+                  <Field label={labels.profile.addressDistrict} fillRequest={fillFor('addressDistrict')} fillTestId="fill-request-addressDistrict">
                     <TextInput
                       className="admin-emp-input"
                       value={draft.addressDistrict || ''}
@@ -1787,6 +1825,8 @@ export default function MySettingsCanvas({
                   <Field
                     label={labels.profile.addressDetail}
                     hint={labels.profile.addressHint}
+                    fillRequest={fillFor('addressDetail')}
+                    fillTestId="fill-request-addressDetail"
                   >
                     <TextInput
                       className="admin-emp-input"
@@ -1796,7 +1836,7 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.addressDetail}
                     />
                   </Field>
-                  <Field label={labels.profile.addressCountry}>
+                  <Field label={labels.profile.addressCountry} fillRequest={fillFor('addressCountry')} fillTestId="fill-request-addressCountry">
                     <TextInput
                       className="admin-emp-input"
                       value={draft.addressCountry || ''}
