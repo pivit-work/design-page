@@ -254,6 +254,11 @@ const DEFAULT_LABELS = {
     syncing: '동기화 중…',
     loading: '불러오는 중…',
     loadError: '연동 정보를 불러오지 못했습니다.',
+    // 「회사가 연결한 앱」 칸 (pivit-work PW-927 · PW-1071) — `companyIntegrations` 를 줄 때만 그린다.
+    companyTitle: '회사가 연결한 앱',
+    companyNotice: '연결과 설정은 어드민이 합니다.',
+    companyLoading: '불러오는 중…',
+    companyLoadError: '회사 연동 현황을 불러오지 못했습니다.',
   },
   security: {
     loginMethods: '로그인 방법',
@@ -1322,6 +1327,16 @@ export default function MySettingsCanvas({
   onDisconnectIntegration,
   onSyncIntegration,
   onToggleIntegrationSetting,
+  /**
+   * 「회사가 연결한 앱」 — 개인 연동 탭 맨 위에 회사가 연결한 협업툴을 **보기만** 하는 칸
+   * (pivit-work PW-927 · 커트 결정 PW-1071 2026-09-25). 버튼을 두지 않는다 — 연결·설정은
+   * 어드민 화면에서만 한다. 행: `{ id, name, logo?, statusLabel, statusTone?, metaLines? }`
+   * (`statusTone`: 'success' 초록 · 그 밖 회색 — 개인 연동 카드의 「연결됨」·「준비 중」 딱지와
+   * 같은 모양. 오류는 딱지 색이 아니라 `metaLines` 안내 문장으로 알린다). **안 주면(undefined) 칸을 그리지 않는다.**
+   */
+  companyIntegrations,
+  companyIntegrationsLoading = false,
+  companyIntegrationsError = false,
   /* 보안 */
   /**
    * 로그인 방법 — 한 계정이 비밀번호와 Google 을 함께 가질 수 있다.
@@ -1999,6 +2014,49 @@ export default function MySettingsCanvas({
           {/* ═══ 개인 연동 ═══ */}
           {activeTab === 'integrations' && (
             <>
+              {companyIntegrations !== undefined && (
+                <Card testId="company-integrations">
+                  <div className="admin-section-label">{labels.integrations.companyTitle}</div>
+                  {companyIntegrationsError ? (
+                    <div className="msc-empty-state" data-testid="company-integrations-error">
+                      {labels.integrations.companyLoadError}
+                    </div>
+                  ) : companyIntegrationsLoading ? (
+                    <div className="msc-empty-state" data-testid="company-integrations-loading">
+                      {labels.integrations.companyLoading}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+                    {companyIntegrations.map((intg) => (
+                      <div key={intg.id} className="msc-intg-row" data-testid={`company-integration-${intg.id}`}>
+                        <span className="msc-intg-icon">
+                          {intg.logo ? <img src={assetUrl(baseUrl, intg.logo)} alt="" /> : null}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <span className="msc-intg-name">{intg.name}</span>
+                            <StatusBadge
+                              className={`msc-intg-badge${intg.statusTone === 'success' ? '' : ' is-muted'}`}
+                              data-testid={`company-integration-status-${intg.id}`}
+                            >
+                              {intg.statusLabel}
+                            </StatusBadge>
+                          </div>
+                          {(intg.metaLines || []).map((line, i) => (
+                            <span key={i} className="msc-intg-meta">
+                              {line}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    </div>
+                  )}
+                  <p className="msc-intg-desc" data-testid="company-integrations-notice">
+                    {labels.integrations.companyNotice}
+                  </p>
+                </Card>
+              )}
               <Banner testId="integrations-banner">{labels.integrations.banner}</Banner>
               {integrationsError ? (
                 <div className="msc-empty-state" data-testid="integrations-error">
