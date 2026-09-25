@@ -1,4 +1,5 @@
 @import './status-badge.css';
+@import './side-panel-shell.css';
 @import './index.css';
 /* 날짜 칸(DateInput)이 여는 달력 — 이 화면만 직접 열어도 달력이 칠해지게 (PW-793) */
 @import './datepicker.css';
@@ -1398,34 +1399,118 @@
   line-height: 1;
   cursor: pointer;
 }
-.evc-rm-detail-btn {
+/* [PW-1066] 목록 줄 — 한 줄 요약 + [편집] · [×]. 고치는 칸은 오른쪽 패널에 있다. */
+.evc-rm-when {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.evc-rm-sum-msg {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evc-rm-actions {
   margin-left: auto;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: 5px 9px;
+  gap: var(--spacing-sm);
+}
+.evc-rm-edit-btn {
+  padding: 5px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
 }
-.evc-rm-detail-btn.is-open {
-  border-color: var(--border-brand);
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-secondary);
+.evc-rm-edit-btn:hover {
+  background: var(--bg-secondary);
 }
-.evc-rm-detail {
+.evc-rm-row.is-editing {
+  border-color: var(--border-brand);
+}
+.evc-rm-row > .evc-rm-tgt-error {
   margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
-  border-top: 1px dashed var(--border-secondary);
+}
+
+/* [PW-1066] 리마인더 편집 패널 — 공용 옆 패널(SidePanelShell) 위에 덧입힌다.
+   글자·간격은 OKR 설정 마법사 눈금(13~14px 글자, 8~24px 간격)에 맞춘다. 안쪽 규칙은
+   목록 안에 펼쳐지던 때의 것을 그대로 쓰고, 글자 크기 눈금만 이 패널 안에서 한 단계 올린다. */
+.pw-side-panel.evc-rm-panel {
+  --font-size-text-xs: 13px;
+  width: 560px;
   display: flex;
   flex-direction: column;
+}
+.evc-rm-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evc-rm-panel-eyebrow {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evc-rm-panel-title {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evc-rm-panel-x {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.evc-rm-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+}
+.evc-rm-panel-body .evc-rm-dsec-title {
+  font-size: var(--font-size-text-sm);
+  margin-bottom: var(--spacing-md);
+}
+.evc-rm-panel-body .evc-rm-dsec.is-box {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+.evc-rm-panel-body .evc-rm-tgts {
+  gap: var(--spacing-md);
+}
+.evc-rm-when-fields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+.evc-rm-when-fields + .evc-rm-tgt-error {
+  margin-top: var(--spacing-md);
+}
+.evc-rm-panel-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-lg) var(--spacing-3xl);
+  border-top: 1px solid var(--border-secondary);
 }
 .evc-rm-dsec-title {
   display: inline-flex;

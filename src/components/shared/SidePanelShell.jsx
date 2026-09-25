@@ -36,6 +36,8 @@ import { confirmOpen, isTopLayer, pushLayer } from './dismissStack.js';
  *   testId           패널의 data-testid
  *   ariaLabel        패널의 aria-label (제목 요소가 없을 때)
  *   ariaLabelledBy   패널의 aria-labelledby
+ *   zIndex           겹침 순서 (기본은 CSS 의 101). 가운데 창 위에서 여는 패널이 쓴다 —
+ *                    평가 사이클 마법사 창(1000) 위의 리마인더 패널(PW-1066)
  *   children         패널 안 전부
  * ref 는 패널 요소로 간다(스크롤 위치를 옮기는 소비자가 있다).
  */
@@ -49,6 +51,7 @@ const SidePanelShell = forwardRef(function SidePanelShell(
     testId,
     ariaLabel,
     ariaLabelledBy,
+    zIndex,
     children,
   },
   ref,
@@ -77,7 +80,7 @@ const SidePanelShell = forwardRef(function SidePanelShell(
   }, [closeOnEscape]);
 
   return createPortal(
-    <div className="pw-side-panel-root">
+    <div className="pw-side-panel-root" style={zIndex != null ? { zIndex } : undefined}>
       <div
         className={`pw-side-panel-scrim ${scrimClassName}`.trim()}
         role="presentation"
