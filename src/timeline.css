@@ -797,13 +797,7 @@
    Meeting detail modal (popover style)
    =========================== */
 
-/* Full-screen overlay catches outside-clicks. No backdrop tint per Figma. */
-.tl-meeting-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9000;
-  background: transparent;
-}
+
 
 /* The modal card itself — fixed positioning driven by JS layout effect */
 .tl-meeting-modal {
@@ -4132,18 +4126,7 @@
   align-items: flex-start;
 }
 
-/* ─── SnippetPromptModal — 타임라인 진입 시 스니핏 작성 유도 ─── */
-.tl-snippet-prompt-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 25, 39, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  /* Sidebar(100), TopNav(90), MeetingModal 등 전부 위로 덮도록 최상위. */
-  z-index: 10000;
-}
+
 
 .tl-snippet-prompt-modal {
   position: relative;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 export const FILTER_TYPES = ['회의', '1on1', '집중작업', '리뷰', '외부미팅', '기타'];
 
@@ -77,22 +78,7 @@ export default function FilterMenuPopover({
     };
   }, [anchorEl, place]);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const onDown = (e) => {
-      if (popoverRef.current && popoverRef.current.contains(e.target)) return;
-      if (anchorEl && anchorEl.contains(e.target)) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('mousedown', onDown);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('mousedown', onDown);
-    };
-  }, [anchorEl, onClose]);
+  useDismissLayer(onClose, popoverRef, anchorEl ? { current: anchorEl } : null);
 
   const rows = items ?? FILTER_TYPES.map((type) => ({ id: type, label: type }));
   const allOn = rows.every((row) => selected.includes(row.id));

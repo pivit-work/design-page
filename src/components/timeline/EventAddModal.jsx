@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { createPortal } from 'react-dom';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CheckCircleSolidGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import CustomSelect from './CustomSelect.jsx';
@@ -46,25 +46,8 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
   const [externalList, setExternalList] = useState([]);
   const [gcalRegister, setGcalRegister] = useState(true);
 
-  const panelRef = useRef(null);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
 
-  const handleOverlayMouseDown = (e) => {
-    if (panelRef.current && panelRef.current.contains(e.target)) return;
-    onClose();
-  };
 
   const toggleMember = (id) => {
     setSelectedMemberIds((prev) =>
@@ -108,10 +91,9 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
     return `${mm}.${dd}  •  ${time}`;
   })();
 
-  return createPortal(
-    <div className="tl-modal-overlay" onMouseDown={handleOverlayMouseDown} role="presentation">
+  return (
+    <ModalLayer onClose={onClose}>
       <form
-        ref={panelRef}
         className="tl-group-modal tl-event-modal"
         role="dialog"
         aria-modal="true"
@@ -315,7 +297,6 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
           </button>
         </div>
       </form>
-    </div>,
-    document.body
+    </ModalLayer>
   );
 }

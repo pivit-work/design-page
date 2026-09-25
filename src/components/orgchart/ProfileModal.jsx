@@ -6,6 +6,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
+import ModalLayer from '../shared/ModalLayer.jsx';
 
 const DEFAULT_PROFILE = {
   title: '사원',
@@ -149,10 +150,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   const isOpen = !!member;
 
   return (
-    <>
-    {/* Always-mounted overlay + modal — hidden via CSS when closed */}
-    <div className="modal-overlay" onClick={onClose} style={{ display: isOpen ? '' : 'none' }} />
-    <div className="modal-scroll-wrap" ref={scrollWrapRef} onClick={onClose} style={{ display: isOpen ? '' : 'none' }}>
+    // 닫혀 있어도 그려 둔다(3D 씬 미리 받기) — 막·Esc·바깥 누르기·body 포털은 공용 창 바탕이
+    // 갖는다(PW-1013). 예전엔 막을 제자리에 그려서 본문 칸 안에 갇혀 왼쪽 메뉴를 못 덮었고, Esc 로도 안 닫혔다.
+    <ModalLayer open={isOpen} keepMounted onClose={onClose}>
+    <div className="modal-scroll-wrap" ref={scrollWrapRef} onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
@@ -327,7 +328,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         </div>
       </div>
     </div>
-    </>
+    </ModalLayer>
   );
 }
 

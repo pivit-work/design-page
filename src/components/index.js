@@ -8,6 +8,8 @@ export { default as DateInput } from './shared/DateInput.jsx';
 export { default as TimeInput } from './shared/TimeInput.jsx';
 export { resolveUiLocale, datePickerLabels } from './shared/uiLocale.js';
 export { default as ModalShell } from './shared/ModalShell.jsx';
+export { default as ModalLayer } from './shared/ModalLayer.jsx';
+export { default as useDismissLayer } from './shared/useDismissLayer.js';
 export { default as SidePanelShell } from './shared/SidePanelShell.jsx';
 export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
 export { default as RosterTable } from './shared/RosterTable.jsx';

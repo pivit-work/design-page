@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import { ChevronLeftGlyph, ChevronRightGlyph } from '../shared/lineIcons.jsx';
 // Popover 좌표는 DOM 측정 결과라 state 에 담아 다시 렌더할 필요가 없다.
 // react-hooks/set-state-in-effect 회피를 위해 ref.style 에 직접 기록.
@@ -77,25 +78,7 @@ export default function DatePickerPopover({
     el.style.opacity = '1';
   }, [anchorRect, viewYear, viewMonth]);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const onDown = (e) => {
-      if (popoverRef.current && popoverRef.current.contains(e.target)) return;
-      if (anchorEl && anchorEl.contains(e.target)) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    const t = setTimeout(() => {
-      window.addEventListener('mousedown', onDown);
-    }, 0);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('mousedown', onDown);
-      clearTimeout(t);
-    };
-  }, [onClose, anchorEl]);
+  useDismissLayer(onClose, popoverRef, anchorEl ? { current: anchorEl } : null);
 
   const prevMonth = () => {
     const nextY = viewMonth === 0 ? viewYear - 1 : viewYear;

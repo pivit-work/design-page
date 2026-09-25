@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { fillExportCaption } from './employeeExportItems.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
  * 명부 내보내기 공용 부품 — `screen-admin-employees-export.policy.md`.
@@ -81,17 +82,7 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
     const r = menuRef.current.getBoundingClientRect();
     setAlignRight(r.right > window.innerWidth - 8);
   }, [open, items]);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  useDismissLayer(() => setOpen(false), ref, null, open);
   // 대상 0명이면 열리지도 않는다 — **빈 파일을 만들지 않는다**(E1).
   const blocked = disabled || busy;
   return (

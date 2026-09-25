@@ -4,8 +4,9 @@
  * 확인·취소 입력 창 틀(`.admin-modal`)과 달리 아래 버튼 줄이 없고 목록이 본문 전부라
  * 새로 만들었다. 어드민 창 모양(모서리·그림자·헤더 구분선·닫기 버튼)을 따른다.
  *
- * 막은 호출부가 그린다 — 앱은 막을 화면 맨 바깥으로 꺼내야 하고, 프로필 창을 이 위에
- * 겹쳐 올리는 층 순서도 호출부가 쥐고 있다. 카드 안 클릭이 막까지 올라가지 않게 막는다.
+ * 막은 공용 창 바탕(`ModalLayer`)이 그린다(PW-1013) — 다른 창과 같은 막·Esc·바깥 누르기로
+ * 닫힌다. 예전엔 호출부가 막을 따로 그려서 Esc 로 안 닫혔다. 이 위에 띄우는 프로필 창도 같은
+ * 바탕을 쓰므로, 나중에 연 쪽이 위에 뜨고 Esc 는 위의 것부터 닫는다.
  *
  * Props
  *   title, countLabel, closeLabel, emptyLabel
@@ -14,9 +15,11 @@
  *   renderAvatar(member)  아바타 자리 — 사진·이니셜 규칙은 앱이 갖는다
  *   onMemberClick(member) clickable 인 행을 누르면
  *   onClose
+ *   overlayTestId  막의 data-testid
  */
 import { IconX } from '../employeesIcons.jsx';
 import StatusBadge from '../../shared/StatusBadge.jsx';
+import ModalLayer from '../../shared/ModalLayer.jsx';
 
 export default function AdminMemberListDialog({
   title,
@@ -28,15 +31,16 @@ export default function AdminMemberListDialog({
   onMemberClick,
   onClose,
   testId,
+  overlayTestId,
 }) {
   return (
+    <ModalLayer onClose={onClose} testId={overlayTestId}>
     <div
       className="admin-kit-members"
       role="dialog"
       aria-modal="true"
       aria-label={title}
       data-testid={testId}
-      onClick={(e) => e.stopPropagation()}
     >
       <div className="admin-kit-members-head">
         <div className="admin-kit-members-headline">
@@ -70,5 +74,6 @@ export default function AdminMemberListDialog({
         )}
       </div>
     </div>
+    </ModalLayer>
   );
 }

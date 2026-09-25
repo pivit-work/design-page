@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * GroupAddModal — 간트 그룹 추가 모달.
@@ -11,102 +10,43 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
  *       field: "그룹명" label + "AI가 자동 생성 해줘요." hint + input (gap 12)
  *   - Footer (pad 24/48/24/48, gap 12 horizontal): 취소 / 추가 (각 206px)
  *
- * Portal 로 document.body 에 렌더 → .tl-page(position:fixed)의
- * stacking context 밖에서 overlay 가 전체 viewport 를 확실히 덮음.
+ * 공용 창 틀(`ModalShell`)로 그린다(PW-1013) — 막·Esc·닫기 동작이 다른 창과 같다.
+ * 예전엔 같은 틀을 이 파일이 한 벌 더 복사해 들고 있었다.
  */
 export default function GroupAddModal({ onClose, onSubmit }) {
   const [groupName, setGroupName] = useState('');
   const inputRef = useRef(null);
-  const panelRef = useRef(null);
 
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
     inputRef.current?.focus();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
-
-  const handleOverlayMouseDown = (e) => {
-    if (panelRef.current && panelRef.current.contains(e.target)) return;
-    onClose();
-  };
+  }, []);
 
   const canSubmit = groupName.trim().length > 0;
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!canSubmit) return;
-    onSubmit(groupName.trim());
-  };
 
-  return createPortal(
-    <div className="tl-modal-overlay" onMouseDown={handleOverlayMouseDown} role="presentation">
-      <form
-        ref={panelRef}
-        className="tl-group-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tl-group-modal-title"
-        onSubmit={handleSubmit}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="tl-group-modal-top">
-          <button
-            type="button"
-            className="tl-group-modal-close"
-            aria-label="닫기"
-            onClick={onClose}
-          >
-            <CloseGlyph size={24} />
-          </button>
-        </div>
-
-        <div className="tl-group-modal-content">
-          <div className="tl-group-modal-header">
-            <h2 id="tl-group-modal-title" className="tl-group-modal-title">그룹 추가</h2>
-            <p className="tl-group-modal-desc">
-              간트 차트에서 보여질 새 그룹명을 만들어 주세요.
-            </p>
-          </div>
-
-          <div className="tl-group-modal-field">
-            <label htmlFor="tl-group-name" className="tl-group-modal-label">그룹명</label>
-            <input
-              ref={inputRef}
-              id="tl-group-name"
-              type="text"
-              className="tl-group-modal-input"
-              placeholder="그룹명을 입력해 주세요."
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="tl-group-modal-actions">
-          <button
-            type="button"
-            className="tl-group-modal-btn tl-group-modal-btn-secondary"
-            onClick={onClose}
-          >
-            취소
-          </button>
-          <button
-            type="submit"
-            className="tl-group-modal-btn tl-group-modal-btn-primary"
-            disabled={!canSubmit}
-          >
-            추가
-          </button>
-        </div>
-      </form>
-    </div>,
-    document.body
+  return (
+    <ModalShell
+      title="그룹 추가"
+      description="간트 차트에서 보여질 새 그룹명을 만들어 주세요."
+      titleId="tl-group-modal-title"
+      submitLabel="추가"
+      cancelLabel="취소"
+      closeLabel="닫기"
+      canSubmit={canSubmit}
+      onClose={onClose}
+      onSubmit={() => onSubmit(groupName.trim())}
+    >
+      <div className="tl-group-modal-field">
+        <label htmlFor="tl-group-name" className="tl-group-modal-label">그룹명</label>
+        <input
+          ref={inputRef}
+          id="tl-group-name"
+          type="text"
+          className="tl-group-modal-input"
+          placeholder="그룹명을 입력해 주세요."
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+        />
+      </div>
+    </ModalShell>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { nameInitials, nameFontSize } from '../shared/nameInitials.js';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import { CheckGlyph, ChevronDownGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -95,29 +96,16 @@ export default function OkrMemberPicker({
     searchRef.current?.focus();
   }, [open]);
 
+  // 바깥 누르기·Esc 는 공용 훅이 맡는다(PW-1013). 패널은 wrap 밖(fixed)에 그려지므로 둘 다
+  // 안쪽이다. Esc 는 맨 위 층만 닫으므로, 이 드롭다운이 열려 있으면 작성 창은 그대로 남는다.
+  useDismissLayer(() => setOpen(false), wrapRef, panelRef, open);
+
   useEffect(() => {
     if (!open) return undefined;
-    const onDown = (e) => {
-      const inWrap = wrapRef.current && wrapRef.current.contains(e.target);
-      const inPanel = panelRef.current && panelRef.current.contains(e.target);
-      // 패널은 wrap 밖(fixed)에 그려지므로 두 곳을 다 확인해야 한다.
-      if (!inWrap && !inPanel) setOpen(false);
-    };
-    // Escape 는 capture 로 잡고 전파를 끊는다. 모달이 window 에 걸어 둔 Escape 핸들러가
-    // 그대로 돌면 드롭다운만 닫으려던 키가 작성 모달째로 닫아 입력을 날린다.
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      setOpen(false);
-    };
     const onMove = () => reposition();
-    document.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onMove);
     window.addEventListener('scroll', onMove, true);
     return () => {
-      document.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('resize', onMove);
       window.removeEventListener('scroll', onMove, true);
     };
