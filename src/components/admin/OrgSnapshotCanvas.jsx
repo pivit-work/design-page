@@ -806,7 +806,7 @@ function AppointmentSingleView({
           <div className="admin-snap-appt-info" style={{ marginTop: 16 }}>
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentType}</label>
-              <select className="admin-snap-select" value={appointmentType} onChange={(e) => setAppointmentType(e.target.value)}>
+              <select className="admin-snap-select" value={appointmentType} onChange={(e) => setAppointmentType(e.target.value)} data-testid="appointment-single-type">
                 <option value="">{labels.selectPlaceholder}</option>
                 {appointmentTypes.map((at) => <option key={at} value={at}>{labels.typeLabels[at] ?? at}</option>)}
               </select>
@@ -899,11 +899,13 @@ function AppointmentSingleView({
           )}
           <div className="admin-snap-actions">
             <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
+            {/* 발령 유형도 있어야 누른다(PW-1058) — 서버는 유형이 없으면 거절한다. */}
             <button
               type="button"
               className="admin-emp-btn is-primary"
               onClick={handleConfirm}
-              disabled={!selectedMember || selectedFields.size === 0 || !appointmentDate || submitting}
+              disabled={!selectedMember || !appointmentType || selectedFields.size === 0 || !appointmentDate || submitting}
+              data-testid="snap-single-confirm"
             >
               {labels.confirmAppointment}
             </button>

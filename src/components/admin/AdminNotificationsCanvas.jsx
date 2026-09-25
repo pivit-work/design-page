@@ -142,7 +142,7 @@ function ParamField({ param, value, onChange }) {
         min={param.min}
         max={param.max}
         step={param.step || 1}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
         aria-label={param.label}
       />
       {param.unit && <span className="admin-notif-param-unit">{param.unit}</span>}
@@ -151,7 +151,7 @@ function ParamField({ param, value, onChange }) {
 }
 
 /* ── 발송 주기 편집 (Google Calendar 스타일) ───────────── */
-function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, baseUrl }) {
+function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, baseUrl, intervalError }) {
   // 날짜 picker 팝오버 상태: { field:'startDate'|'endDate', rect, el }
   // (Rules of Hooks: 조기 return 전에 선언)
   const [picker, setPicker] = useState(null);
@@ -190,6 +190,9 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
         </select>
         <span className="admin-notif-inline-label">{labels.per}</span>
       </div>
+      {intervalError && (
+        <div className="admin-notif-field-error" role="alert" data-testid="notif-interval-error">{intervalError}</div>
+      )}
 
       {/* ② 요일 — week */}
       {cd.unit === 'week' && (
@@ -318,7 +321,7 @@ function todayIso() {
 }
 
 /* ── 규칙 수정 모달 ───────────────────────────────────── */
-function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl }) {
+function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl, validateRule }) {
   const [enabled, setEnabled] = useState(rule.enabled);
   const [conditionValues, setConditionValues] = useState(
     rule.conditionValues ? { ...rule.conditionValues } : null,
@@ -329,6 +332,10 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
 
   const hasTimeParam = rule.conditionSchema?.some((p) => p.isTimeParam) ?? false;
   const conditionPreview = formatCondition(rule.id, conditionValues, rule.conditionFixed);
+  // 칸마다 받을 수 있는 값은 앱이 정해 넘긴다(PW-1058) — `{ [칸 key | 'interval']: 문구 }`.
+  // 넘기지 않으면 예전처럼 검사 없이 저장한다.
+  const errors = (validateRule && validateRule({ ...rule, enabled, conditionValues, cooldown, recipients, channels })) || {};
+  const hasErrors = Object.keys(errors).length > 0;
 
   const toggleRecipient = (r) =>
     setRecipients((p) => (p.includes(r) ? p.filter((x) => x !== r) : [...p, r]));
@@ -355,6 +362,8 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           <button
             type="button"
             className="tl-group-modal-btn tl-group-modal-btn-primary"
+            disabled={hasErrors}
+            data-testid="notif-rule-save"
             onClick={() => { onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels }); onClose(); }}
           >
             {labels.modal.save}
@@ -381,6 +390,9 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
                     value={conditionValues[param.key]}
                     onChange={(val) => setConditionValues((p) => ({ ...p, [param.key]: val }))}
                   />
+                  {errors[param.key] && (
+                    <div className="admin-notif-field-error" role="alert" data-testid={`notif-param-error-${param.key}`}>{errors[param.key]}</div>
+                  )}
                 </div>
               ))}
               <div className="admin-notif-preview">
@@ -413,6 +425,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
                 options={cooldownOptions}
                 labels={labels.cooldown}
                 baseUrl={baseUrl}
+                intervalError={errors.interval}
               />
               <div className="admin-notif-preview">
                 <span className="admin-notif-preview-mark">
@@ -537,6 +550,7 @@ export default function AdminNotificationsCanvas({
   onSaveRule,
   onBulkSet,
   baseUrl = '/',
+  validateRule,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const [editTarget, setEditTarget] = useState(null);
@@ -642,6 +656,7 @@ export default function AdminNotificationsCanvas({
           onClose={() => setEditTarget(null)}
           onSave={onSaveRule}
           baseUrl={baseUrl}
+          validateRule={validateRule}
         />
       )}
     </div>
