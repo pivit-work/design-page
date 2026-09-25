@@ -31,6 +31,9 @@ const CATEGORY_ICONS = {
  *   filters      [{ value, label }] — 'all' 은 전체
  *   activeFilter 현재 탭 value
  *   labels       { title, markAllRead, filterAria, emptyTitle, emptyBody, openSettings, action: { [category]: string } }
+ *   unreadCount  제목 옆 안 읽은 수 · 「모두 읽음」 잠금의 기준. 생략하면 items 안에서 센다.
+ *                items 가 최신 N건만 담기면 그 밖의 안 읽은 알림을 못 세므로, 호출부가 전체 수를 준다 (PW-1065)
+ *   tabUnreadCounts { [filter.value]: number } — 탭마다 붙는 안 읽은 수. 생략한 탭은 items 안에서 센다
  *   onFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings()
  */
 export default function NotificationCenterCanvas({
@@ -45,15 +48,17 @@ export default function NotificationCenterCanvas({
   onActionClick,
   onMarkAllRead,
   onOpenSettings,
+  unreadCount: unreadCountProp,
+  tabUnreadCounts = {},
 }) {
-  const unreadCount = items.filter((n) => n.unread).length;
+  const unreadCount = unreadCountProp ?? items.filter((n) => n.unread).length;
   const visible =
     activeFilter === 'all' ? items : items.filter((n) => n.category === activeFilter);
 
   const tabItems = filters.map((f) => {
-    const tabUnread = items.filter(
-      (n) => n.unread && (f.value === 'all' || n.category === f.value),
-    ).length;
+    const tabUnread =
+      tabUnreadCounts[f.value] ??
+      items.filter((n) => n.unread && (f.value === 'all' || n.category === f.value)).length;
     return {
       value: f.value,
       label: (
