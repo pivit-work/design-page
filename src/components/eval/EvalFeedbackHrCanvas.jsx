@@ -1,8 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
-import { csvCell } from '../shared/csvCell.js';
-import { isoDateInZone } from '../shared/calendarDate.js';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 import AvatarPhoto from './AvatarPhoto';
 
@@ -10,8 +8,12 @@ import AvatarPhoto from './AvatarPhoto';
  * EvalFeedbackHrCanvas — 피드백 관리 (HR 대시보드, v2 재설계).
  *
  * KPI(커버리지·평균주기·리액션율) + 팀별 커버리지 + 피드백 필요 멤버 +
- * 매니저별 활동 점수(커버리지50+주기30+SBI20) + NudgeModal + CSV(BOM).
+ * 매니저별 활동 점수(커버리지50+주기30+SBI20) + NudgeModal + [CSV 내보내기] 버튼.
  * 시안 feedback-hr-view.jsx.
+ *
+ * CSV 파일은 여기서 만들지 않는다 (PW-1028). 버튼은 `onExport` 로 앱에 알리기만 하고, 파일은
+ * 앱이 다른 내려받기 파일과 같은 공용 처리로 만든다 — 엑셀 수식 막기 같은 규칙이 화면 원본에
+ * 한 벌 더 있으면 한쪽만 고쳐질 때 파일이 조용히 갈린다(PW-970 이 그렇게 새어 나갔다).
  */
 
 // 디자인시스템 토큰화(전면). navy(HR 강조)→system accent(brand)로 수렴(3화면 통일).
@@ -80,8 +82,6 @@ const DEFAULT_LABELS = {
   toastSent: '알림을 발송했습니다',
   toastError: '발송에 실패했습니다',
   csvEmpty: '내보낼 데이터가 없습니다',
-  csvName: '피드백_현황',
-  csvCols: '이름,팀,매니저,마지막 피드백,경과일',
 };
 
 function isObj(v) {
@@ -315,11 +315,11 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
 
 export default function EvalFeedbackHrCanvas({
   dashboard = null,
-  /** CSV 「마지막 피드백」 날짜를 셀 시간대(IANA). 비우면 브라우저 시간대 (PW-963). */
-  timeZone,
   channels = { collab: false, email: true },
   labels: providedLabels,
   onNudge,
+  /** [CSV 내보내기]를 눌렀고 내보낼 명단이 있을 때 부른다. 파일은 앱이 만든다 (PW-1028). */
+  onExport,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const d = dashboard || { kpi: { total: 0, covered: 0, coveragePct: 0, avgInterval: 0, reactionRate: 0 }, teams: [], atRisk: [], managerActivity: [] };
@@ -364,19 +364,7 @@ export default function EvalFeedbackHrCanvas({
       showToast(L.csvEmpty, 'error');
       return;
     }
-    const rows = d.atRisk.map((m) =>
-      [m.name, m.department || '', m.managerName || '', m.lastFeedbackAt ? isoDateInZone(m.lastFeedbackAt, timeZone) : L.notWritten, m.daysSince == null ? '' : m.daysSince]
-        .map(csvCell)
-        .join(','),
-    );
-    const csv = `﻿${L.csvCols}\n${rows.join('\n')}`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${L.csvName}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    onExport?.();
   };
 
   return (
