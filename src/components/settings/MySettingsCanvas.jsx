@@ -4,6 +4,10 @@ import assetUrl from '../shared/assetUrl.js';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import FormField from '../shared/FormField.jsx';
+import TextInput from '../shared/TextInput.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Select from '../shared/Select.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 
 /**
@@ -340,13 +344,25 @@ function Card({ children, className = '', testId }) {
   );
 }
 
-function Field({ label, hint, children }) {
+/**
+ * 이 화면의 칸 틀 — 공용 이름표·오류 문구 틀(FormField)에 이 화면의 모양 클래스를 얹은 것 (PW-1012).
+ * 안내는 이 화면 모양대로 칸 **위**에, 오류 문구는 칸 **아래**에 뜬다. 이름표를 누르면 칸으로 가고,
+ * 오류가 있으면 칸에 「틀림」과 그 이유가 이어진다.
+ */
+function Field({ label, hint, error, errorTestId, children }) {
   return (
-    <div className="msc-field">
-      <label className="msc-field-label">{label}</label>
-      {hint && <p className="msc-field-hint">{hint}</p>}
+    <FormField
+      className="msc-field"
+      labelClassName="msc-field-label"
+      hintClassName="msc-field-hint"
+      hintAbove
+      label={label}
+      hint={hint}
+      error={error}
+      errorTestId={errorTestId}
+    >
       {children}
-    </div>
+    </FormField>
   );
 }
 
@@ -626,7 +642,7 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
         <div className="admin-section-label">{L.section}</div>
         <p className="msc-tab-intro">{L.intro}</p>
         <Field label={L.maritalStatus}>
-          <select
+          <Select
             className="admin-emp-input"
             value={marital}
             onChange={(e) => setMarital(e.target.value)}
@@ -637,19 +653,19 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
             {Object.entries(L.maritalOptions).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
-          </select>
+          </Select>
         </Field>
         <div className="msc-grid-3col">
           <Field label={L.emergencyName}>
-            <input className="admin-emp-input" value={ec.name || ''} placeholder={L.namePlaceholder}
+            <TextInput className="admin-emp-input" value={ec.name || ''} placeholder={L.namePlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, name: e.target.value }))} aria-label={L.emergencyName} />
           </Field>
           <Field label={L.emergencyRelation}>
-            <input className="admin-emp-input" value={ec.relation || ''} placeholder={L.relationPlaceholder}
+            <TextInput className="admin-emp-input" value={ec.relation || ''} placeholder={L.relationPlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, relation: e.target.value }))} aria-label={L.emergencyRelation} />
           </Field>
           <Field label={L.emergencyPhone}>
-            <input className="admin-emp-input" value={ec.phone || ''} placeholder={L.phonePlaceholder}
+            <TextInput className="admin-emp-input" value={ec.phone || ''} placeholder={L.phonePlaceholder}
               onChange={(e) => setEc((p) => ({ ...p, phone: e.target.value }))} aria-label={L.emergencyPhone} />
           </Field>
         </div>
@@ -687,12 +703,12 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
         {adding ? (
           <div className="msc-add-form" data-testid="dependent-add-form">
             <div className="msc-grid-3col">
-              <input className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
+              <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
                 onChange={(e) => setDep((p) => ({ ...p, name: e.target.value }))} aria-label={L.dependentName} />
-              <select className="admin-emp-input" value={dep.relation}
+              <Select className="admin-emp-input" value={dep.relation}
                 onChange={(e) => setDep((p) => ({ ...p, relation: e.target.value }))} aria-label={L.dependentRelation}>
                 {Object.entries(L.relationOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Select>
               <DateInput className="admin-emp-input" value={dep.dateOfBirth}
                 onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob} />
             </div>
@@ -826,16 +842,16 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
         {adding === 'education' ? (
           <div className="msc-add-form" data-testid="education-add-form">
             <div className="msc-grid-2col">
-              <input className="admin-emp-input" placeholder={L.fields.school} value={d.school || ''} onChange={(e) => setD((p) => ({ ...p, school: e.target.value }))} aria-label={L.fields.school} />
-              <input className="admin-emp-input" placeholder={L.fields.major} value={d.major || ''} onChange={(e) => setD((p) => ({ ...p, major: e.target.value }))} aria-label={L.fields.major} />
-              <select className="admin-emp-input" value={d.degree || 'bachelor'} onChange={(e) => setD((p) => ({ ...p, degree: e.target.value }))} aria-label={L.fields.degree}>
+              <TextInput className="admin-emp-input" placeholder={L.fields.school} value={d.school || ''} onChange={(e) => setD((p) => ({ ...p, school: e.target.value }))} aria-label={L.fields.school} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.major} value={d.major || ''} onChange={(e) => setD((p) => ({ ...p, major: e.target.value }))} aria-label={L.fields.major} />
+              <Select className="admin-emp-input" value={d.degree || 'bachelor'} onChange={(e) => setD((p) => ({ ...p, degree: e.target.value }))} aria-label={L.fields.degree}>
                 {Object.entries(L.degreeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <select className="admin-emp-input" value={d.status || 'graduated'} onChange={(e) => setD((p) => ({ ...p, status: e.target.value }))} aria-label={L.fields.status}>
+              </Select>
+              <Select className="admin-emp-input" value={d.status || 'graduated'} onChange={(e) => setD((p) => ({ ...p, status: e.target.value }))} aria-label={L.fields.status}>
                 {Object.entries(L.eduStatusOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <input className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
-              <input className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
+              </Select>
+              <TextInput className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
             </div>
             <div className="msc-add-actions">
               <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
@@ -867,12 +883,12 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
         {adding === 'career' ? (
           <div className="msc-add-form" data-testid="career-add-form">
             <div className="msc-grid-2col">
-              <input className="admin-emp-input" placeholder={L.fields.company} value={d.company || ''} onChange={(e) => setD((p) => ({ ...p, company: e.target.value }))} aria-label={L.fields.company} />
-              <input className="admin-emp-input" placeholder={L.fields.department} value={d.department || ''} onChange={(e) => setD((p) => ({ ...p, department: e.target.value }))} aria-label={L.fields.department} />
-              <input className="admin-emp-input" placeholder={L.fields.role} value={d.role || ''} onChange={(e) => setD((p) => ({ ...p, role: e.target.value }))} aria-label={L.fields.role} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.company} value={d.company || ''} onChange={(e) => setD((p) => ({ ...p, company: e.target.value }))} aria-label={L.fields.company} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.department} value={d.department || ''} onChange={(e) => setD((p) => ({ ...p, department: e.target.value }))} aria-label={L.fields.department} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.role} value={d.role || ''} onChange={(e) => setD((p) => ({ ...p, role: e.target.value }))} aria-label={L.fields.role} />
               <div />
-              <input className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
-              <input className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
             </div>
             <div className="msc-add-actions">
               <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
@@ -906,9 +922,9 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
         {adding === 'certifications' ? (
           <div className="msc-add-form" data-testid="cert-add-form">
             <div className="msc-grid-2col">
-              <input className="admin-emp-input" placeholder={L.fields.certName} value={d.name || ''} onChange={(e) => setD((p) => ({ ...p, name: e.target.value }))} aria-label={L.fields.certName} />
-              <input className="admin-emp-input" placeholder={L.fields.issuer} value={d.issuer || ''} onChange={(e) => setD((p) => ({ ...p, issuer: e.target.value }))} aria-label={L.fields.issuer} />
-              <input className="admin-emp-input" placeholder={L.fields.credentialNo} value={d.credentialNo || ''} onChange={(e) => setD((p) => ({ ...p, credentialNo: e.target.value }))} aria-label={L.fields.credentialNo} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.certName} value={d.name || ''} onChange={(e) => setD((p) => ({ ...p, name: e.target.value }))} aria-label={L.fields.certName} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.issuer} value={d.issuer || ''} onChange={(e) => setD((p) => ({ ...p, issuer: e.target.value }))} aria-label={L.fields.issuer} />
+              <TextInput className="admin-emp-input" placeholder={L.fields.credentialNo} value={d.credentialNo || ''} onChange={(e) => setD((p) => ({ ...p, credentialNo: e.target.value }))} aria-label={L.fields.credentialNo} />
               <DateInput className="admin-emp-input" value={d.issuedDate || ''} onChange={(v) => setD((p) => ({ ...p, issuedDate: v }))} aria-label={L.fields.issuedDate} />
               <DateInput className="admin-emp-input" value={d.expiryDate || ''} onChange={(v) => setD((p) => ({ ...p, expiryDate: v }))} aria-label={L.fields.expiryDate} />
             </div>
@@ -941,9 +957,9 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
           </div>
         )}
         <div className="msc-doc-upload">
-          <select className="admin-emp-input" value={docType} onChange={(e) => setDocType(e.target.value)} aria-label={L.documents} data-testid="document-type-select" style={{ maxWidth: 160 }}>
+          <Select className="admin-emp-input" value={docType} onChange={(e) => setDocType(e.target.value)} aria-label={L.documents} data-testid="document-type-select" style={{ maxWidth: 160 }}>
             {Object.entries(L.docTypeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          </Select>
           <label className="msc-add-btn" style={{ margin: 0, flex: 1 }}>
             {L.attach}
             <input type="file" accept=".pdf,image/*" style={{ display: 'none' }} data-testid="document-file-input"
@@ -1342,7 +1358,7 @@ export default function MySettingsCanvas({
 
   const timezoneField = (
     <Field label={labels.profile.timezone}>
-      <select
+      <Select
         className="admin-emp-input"
         value={draft.timezone || ''}
         onChange={(e) => setField('timezone')(e.target.value)}
@@ -1354,12 +1370,12 @@ export default function MySettingsCanvas({
             {opt.label}
           </option>
         ))}
-      </select>
+      </Select>
     </Field>
   );
   const languageField = (
     <Field label={labels.profile.language}>
-      <select
+      <Select
         className="admin-emp-input"
         value={draft.locale || ''}
         onChange={(e) => setField('locale')(e.target.value)}
@@ -1371,7 +1387,7 @@ export default function MySettingsCanvas({
             {opt.label}
           </option>
         ))}
-      </select>
+      </Select>
     </Field>
   );
 
@@ -1665,7 +1681,7 @@ export default function MySettingsCanvas({
                 )}
                 <div className="msc-grid-2col">
                   <Field label={labels.profile.name}>
-                    <input
+                    <TextInput
                       className={inputClass('name')}
                       value={draft.name || ''}
                       onChange={(e) => setField('name')(e.target.value)}
@@ -1674,7 +1690,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.displayName} hint={labels.profile.displayNameHint}>
-                    <input
+                    <TextInput
                       className={inputClass('displayName')}
                       value={draft.displayName || ''}
                       onChange={(e) => setField('displayName')(e.target.value)}
@@ -1684,7 +1700,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.title}>
-                    <input
+                    <TextInput
                       className={inputClass('title')}
                       value={draft.title || ''}
                       onChange={(e) => setField('title')(e.target.value)}
@@ -1693,7 +1709,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.email}>
-                    <input
+                    <TextInput
                       className="admin-emp-input is-readonly"
                       type="email"
                       value={profile.email || ''}
@@ -1703,7 +1719,7 @@ export default function MySettingsCanvas({
                     <p className="msc-field-note">{labels.profile.emailReadonlyHint}</p>
                   </Field>
                   <Field label={labels.profile.phone} hint={labels.profile.phoneHint}>
-                    <input
+                    <TextInput
                       className={inputClass('phone')}
                       value={draft.phone || ''}
                       onChange={(e) => setField('phone')(e.target.value)}
@@ -1712,7 +1728,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.personalEmail} hint={labels.profile.personalEmailHint}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       type="email"
                       value={draft.personalEmail || ''}
@@ -1730,7 +1746,7 @@ export default function MySettingsCanvas({
                   </Field>
                   <Field label={labels.profile.gender}>
                     {/* select 는 readOnly 가 없다 — 잠글 때는 disabled 로 값만 보인다. */}
-                    <select
+                    <Select
                       className={inputClass('gender')}
                       value={draft.gender || ''}
                       onChange={(e) => setField('gender')(e.target.value)}
@@ -1741,10 +1757,10 @@ export default function MySettingsCanvas({
                       {Object.entries(labels.profile.genderOptions).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                   <Field label={labels.profile.nationality}>
-                    <input
+                    <TextInput
                       className={inputClass('nationality')}
                       value={draft.nationality || ''}
                       onChange={(e) => setField('nationality')(e.target.value)}
@@ -1761,7 +1777,7 @@ export default function MySettingsCanvas({
                 */}
                 <div className="msc-grid-2col">
                   <Field label={labels.profile.addressPostalCode}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       value={draft.addressPostalCode || ''}
                       onChange={(e) => setField('addressPostalCode')(e.target.value)}
@@ -1770,7 +1786,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.addressRegion}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       value={draft.addressRegion || ''}
                       onChange={(e) => setField('addressRegion')(e.target.value)}
@@ -1779,7 +1795,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.addressDistrict}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       value={draft.addressDistrict || ''}
                       onChange={(e) => setField('addressDistrict')(e.target.value)}
@@ -1791,7 +1807,7 @@ export default function MySettingsCanvas({
                     label={labels.profile.addressDetail}
                     hint={labels.profile.addressHint}
                   >
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       value={draft.addressDetail || ''}
                       onChange={(e) => setField('addressDetail')(e.target.value)}
@@ -1800,7 +1816,7 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   <Field label={labels.profile.addressCountry}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       value={draft.addressCountry || ''}
                       onChange={(e) => setField('addressCountry')(e.target.value)}
@@ -1810,7 +1826,7 @@ export default function MySettingsCanvas({
                   </Field>
                 </div>
                 <Field label={labels.profile.bio} hint={labels.profile.bioHint}>
-                  <textarea
+                  <TextArea
                     className="admin-emp-input"
                     rows={3}
                     maxLength={200}
@@ -1823,7 +1839,7 @@ export default function MySettingsCanvas({
                   <div className="msc-char-count">{(draft.bio || '').length} / 200</div>
                 </Field>
                 <Field label={labels.profile.location}>
-                  <input
+                  <TextInput
                     className={inputClass('location')}
                     value={draft.location || ''}
                     onChange={(e) => setField('location')(e.target.value)}
@@ -1864,7 +1880,7 @@ export default function MySettingsCanvas({
                   timezoneField
                 )}
                 <Field label={labels.profile.joinDate}>
-                  <input
+                  <TextInput
                     className="admin-emp-input is-readonly"
                     value={(profile.joinDate || '').slice(0, 10)}
                     readOnly
@@ -2176,7 +2192,7 @@ export default function MySettingsCanvas({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {needsCurrentPw && (
                     <Field label={labels.security.currentPassword}>
-                      <input
+                      <TextInput
                         className="admin-emp-input"
                         type="password"
                         value={currentPw}
@@ -2187,7 +2203,7 @@ export default function MySettingsCanvas({
                     </Field>
                   )}
                   <Field label={labels.security.newPassword} hint={labels.security.newPwHint}>
-                    <input
+                    <TextInput
                       className="admin-emp-input"
                       type="password"
                       value={newPw}
@@ -2196,8 +2212,12 @@ export default function MySettingsCanvas({
                       aria-label={labels.security.newPassword}
                     />
                   </Field>
-                  <Field label={labels.security.confirmPassword}>
-                    <input
+                  <Field
+                    label={labels.security.confirmPassword}
+                    error={confirmPw && newPw !== confirmPw ? labels.security.pwMismatch : null}
+                    errorTestId="pw-mismatch"
+                  >
+                    <TextInput
                       className="admin-emp-input"
                       type="password"
                       value={confirmPw}
@@ -2205,11 +2225,6 @@ export default function MySettingsCanvas({
                       placeholder={labels.security.confirmPwPlaceholder}
                       aria-label={labels.security.confirmPassword}
                     />
-                    {confirmPw && newPw !== confirmPw && (
-                      <p className="msc-input-error" data-testid="pw-mismatch">
-                        {labels.security.pwMismatch}
-                      </p>
-                    )}
                   </Field>
                 </div>
                 {passwordState.error && (

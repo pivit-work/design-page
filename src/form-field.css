@@ -1,0 +1,183 @@
+/* ══════════════════════════════════════════════════════════════
+   입력칸 공용 부품 — 이름표·칸·오류 문구 (PW-1012)
+
+   `FormField`·`TextInput`·`TextArea`·`Select`·`Checkbox`·`Radio`·`SearchInput`
+   (src/components/shared/) 가 쓰는 규칙은 **여기 한 곳에만** 있다.
+
+   ## 두 겹
+
+   1. 기본 모양(`dp-input`·`dp-search`·`dp-check`…) — 화면이 칸에 `className` 을 안 줄 때만
+      붙는다. 자기 모양이 이미 있던 화면은 `className` 으로 제 클래스를 넘기고 **그 클래스만**
+      칸을 칠한다. 그래서 공용 부품으로 옮겨도 화면 모양이 바뀌지 않는다(상태 딱지를 모은
+      방식 — PW-840). 기본 모양은 `:where()` 로 걸어 점수가 0 이다.
+   2. 틀렸을 때 — 빨간 테두리와 칸 아래 빨간 글씨. 이것만은 화면 클래스보다 앞선다.
+      어느 화면에서나 같은 모양이어야 「틀렸다」로 읽힌다.
+
+   App.css 가 끌어온다 — 앱 어디서나 깔려 있다.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 틀: 이름표 · 칸 · 안내 · 오류 ── */
+:where(.dp-field) { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+:where(.dp-field-label) {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+:where(.dp-field-label-row) { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dp-field-required { margin-left: 2px; color: var(--colors-text-textErrorPrimary, #d92d20); }
+:where(.dp-field-hint) {
+  margin: 0;
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+/* 오류 문구 — 칸 바로 아래. 화면이 모양을 덮지 않는다(점수를 일부러 올려 둔다). */
+p.dp-field-error {
+  margin: 4px 0 0;
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--colors-text-textErrorPrimary, #d92d20);
+}
+
+/* ── 한 줄 칸 · 여러 줄 칸 · 목록 고르기 ── */
+:where(.dp-input) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 20px;
+  color: var(--text-primary);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  outline: none;
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+:where(.dp-input)::placeholder { color: var(--text-placeholder, #b1b6be); }
+:where(.dp-input:focus) {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+:where(.dp-input:disabled) { cursor: default; color: var(--text-tertiary); }
+:where(.dp-textarea) { resize: vertical; }
+
+/* 틀렸을 때 — 화면 클래스(점수 1~2)보다 앞서야 해서 세 겹으로 건다. `dp-control` 은 공용
+   칸이면 모양 클래스와 상관없이 늘 붙는다. */
+.dp-control.is-invalid[aria-invalid='true'],
+.dp-control.is-invalid[aria-invalid='true']:focus {
+  border-color: var(--colors-border-borderError, #f04438);
+  box-shadow: inset 0 0 0 1px var(--colors-border-borderError, #f04438);
+}
+
+/* ── 검색칸 ── */
+:where(.dp-search) { position: relative; display: flex; align-items: center; min-width: 0; }
+:where(.dp-search-icon) {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+:where(.dp-search-input) {
+  min-height: 0;
+  padding: 9px 12px 9px 36px;
+  border-radius: var(--radius-md, 10px);
+}
+
+/* ── 체크박스 ── */
+:where(.dp-check) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 20px;
+  color: var(--text-primary);
+}
+:where(.dp-check-input) {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--bg-brand-solid);
+}
+:where(.dp-check-input:disabled) { cursor: default; }
+input.dp-control[type='checkbox'][aria-invalid='true'] { outline: 1px solid var(--colors-border-borderError, #f04438); outline-offset: 1px; }
+
+/* ── 라디오 ──
+   브라우저 기본 라디오는 감춰 두고(조작·읽기는 그대로) 그 옆에 동그라미를 그린다.
+   `dp-radio`·동그라미·감춘 라디오는 늘 붙는다. 줄 모양(`dp-radio-look`·`dp-radio--*`)은 화면이
+   자기 클래스를 안 줄 때만 붙는다. 고른 동그라미 색은 `--dp-radio-on` 으로 덮을 수 있다. */
+.dp-radio { position: relative; cursor: pointer; }
+.dp-radio.is-disabled { cursor: default; }
+.dp-radio-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+:where(.dp-radio-look) {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-md, 16px);
+  line-height: var(--line-height-text-md, 24px);
+  color: var(--text-primary);
+}
+.dp-radio-circle {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-primary);
+  background: var(--dp-radio-circle-bg, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.dp-radio.is-checked .dp-radio-circle {
+  background: var(--dp-radio-on, var(--bg-brand-solid));
+  border-color: transparent;
+}
+.dp-radio.is-checked .dp-radio-circle::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+.dp-radio-input:focus-visible + .dp-radio-circle {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: 2px;
+}
+.dp-radio.is-invalid .dp-radio-circle { border-color: var(--colors-border-borderError, #f04438); }
+:where(.dp-radio-label) { flex: 1; text-align: left; }
+
+/* 카드 모양 — 회색 바탕 칸 안의 동그라미. 고르면 바탕이 제품색으로 바뀐다. */
+:where(.dp-radio--card) {
+  display: flex;
+  flex: 1 0 0;
+  padding: var(--spacing-md, 8px) var(--spacing-lg, 12px);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary);
+  transition: background 0.15s;
+}
+:where(.dp-radio--card.is-checked) {
+  background: var(--bg-brand-secondary);
+  color: var(--colors-text-textBrandPrimary);
+}

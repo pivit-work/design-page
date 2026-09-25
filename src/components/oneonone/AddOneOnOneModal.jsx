@@ -2,6 +2,10 @@ import { useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
+import FormField from '../shared/FormField.jsx';
+import TextInput from '../shared/TextInput.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Radio from '../shared/Radio.jsx';
 
 /**
  * "1on1 일정 추가 / 1on1 잡기" 모달.
@@ -276,8 +280,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
               <div className="ono-add-modal-input">
                 <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
-                <input
-                  type="text"
+                <TextInput
                   placeholder={L.memberSearchPlaceholder}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setMemberOpen(true); }}
@@ -309,31 +312,31 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
           </Field>
         )}
 
-        {/* 미팅 시간 */}
-        <Field label={L.duration}>
+        {/* 미팅 시간 — 공용 라디오(PW-1012). 전에는 동그라미를 버튼으로 직접 그려 키보드 화살표로
+            옮겨 다닐 수 없었고, 화면 읽기 프로그램은 「버튼」으로 읽었다. */}
+        <Field label={L.duration} group>
           <div className="ono-add-modal-radio-group">
             {durationOptions(L).map((opt) => (
-              <button
+              <Radio
                 key={opt.key}
-                type="button"
-                className={`ono-add-modal-radio ${duration === opt.key ? 'is-active' : ''}`}
-                onClick={() => setDuration(opt.key)}
-              >
-                <span className="ono-add-modal-radio-circle">
-                  {duration === opt.key && <span className="ono-add-modal-radio-dot" />}
-                </span>
-                <span className="ono-add-modal-radio-label">{opt.label}</span>
-              </button>
+                variant="card"
+                name="ono-add-duration"
+                value={opt.key}
+                checked={duration === opt.key}
+                onChange={() => setDuration(opt.key)}
+                label={opt.label}
+                data-testid={`ono-add-duration-${opt.key}`}
+              />
             ))}
           </div>
           {duration === 'custom' && (
             <div className="ono-add-modal-input">
-              <input
-                type="text"
+              <TextInput
                 placeholder={L.durationCustomPlaceholder}
                 value={customDuration}
                 onChange={(e) => setCustomDuration(e.target.value)}
                 className="ono-add-modal-input-el"
+                aria-label={L.durationCustom}
               />
             </div>
           )}
@@ -393,7 +396,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
 
         {/* 메모 */}
         <Field label={L.memo}>
-          <textarea
+          <TextArea
             className="ono-add-modal-textarea"
             placeholder={L.memoPlaceholder}
             value={memo}
@@ -411,12 +414,17 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   );
 }
 
-function Field({ label, children }) {
+/** 이 창의 칸 틀 — 공용 이름표·오류 문구 틀(FormField)에 이 창의 모양 클래스를 얹은 것 (PW-1012). */
+function Field({ label, group = false, children }) {
   return (
-    <div className="ono-add-modal-field">
-      <label className="ono-add-modal-field-label">{label}</label>
+    <FormField
+      label={label}
+      group={group}
+      className="ono-add-modal-field"
+      labelClassName="ono-add-modal-field-label"
+    >
       {children}
-    </div>
+    </FormField>
   );
 }
 

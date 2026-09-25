@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFieldControl } from './formField.js';
 
 /**
  * TimeInput — 브라우저 기본 시각 칸(`<input type="time">`)을 대신하는 24시간 시각 칸 (PW-793).
@@ -35,7 +36,13 @@ function pad(h, mm) {
   return `${String(Number(h)).padStart(2, '0')}:${mm}`;
 }
 
-export default function TimeInput({ value, onChange, className, placeholder = 'HH:MM', size = 7, ...rest }) {
+export default function TimeInput({ value, onChange, className, placeholder = 'HH:MM', size = 7, invalid, ...rest }) {
+  // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
+  const { isInvalid, ...a11y } = useFieldControl({
+    id: rest.id,
+    invalid,
+    describedBy: rest['aria-describedby'],
+  });
   const current = typeof value === 'string' ? value.slice(0, 5) : '';
   const [draft, setDraft] = useState(current);
 
@@ -53,10 +60,12 @@ export default function TimeInput({ value, onChange, className, placeholder = 'H
   return (
     <input
       {...rest}
+      {...a11y}
       type="text"
       inputMode="numeric"
       autoComplete="off"
-      className={className}
+      // 틀렸을 때만 공용 틀림 표시를 얹는다 — 평소 클래스는 부르는 쪽이 준 그대로다.
+        className={isInvalid ? [className, 'dp-control is-invalid'].filter(Boolean).join(' ') : className}
       value={draft}
       placeholder={placeholder}
       maxLength={5}

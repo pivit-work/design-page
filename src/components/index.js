@@ -14,6 +14,14 @@ export { default as RosterTable } from './shared/RosterTable.jsx';
 export { default as StatusBadge } from './shared/StatusBadge.jsx';
 export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBadgeTones.js';
 export { default as Toast } from './shared/Toast.jsx';
+// 입력칸 공용 부품 — 이름표·오류 문구 틀과 칸들 (PW-1012). 스타일은 form-field.css(App.css 가 끌어온다)
+export { default as FormField } from './shared/FormField.jsx';
+export { default as TextInput } from './shared/TextInput.jsx';
+export { default as TextArea } from './shared/TextArea.jsx';
+export { default as Select } from './shared/Select.jsx';
+export { default as Checkbox } from './shared/Checkbox.jsx';
+export { default as Radio } from './shared/Radio.jsx';
+export { default as SearchInput } from './shared/SearchInput.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
 export {
   default as RecordingPlayerRow,

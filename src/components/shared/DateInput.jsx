@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import DatePicker from './DatePicker.jsx';
 import { resolveUiLocale } from './uiLocale.js';
+import { useFieldControl } from './formField.js';
 
 /**
  * DateInput — 브라우저 기본 날짜 칸(`<input type="date">`)을 대신하는 날짜 칸 (PW-793).
@@ -25,6 +26,7 @@ import { resolveUiLocale } from './uiLocale.js';
  *   labels     DatePicker 문구를 직접 줄 때
  *   today      'YYYY-MM-DD' — 달력이 「오늘」로 칠 날. 비어 있는 칸을 열 때 보여 줄 달도 이 날이다.
  *              없으면 브라우저 시계의 오늘. 앱이 사용자 설정 시간대로 오늘을 정할 때 넘긴다 (PW-781)
+ *   invalid    틀림 표시를 직접 켤 때. `FormField` 안이면 그 틀의 오류 문구를 따른다 (PW-1012)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -64,8 +66,15 @@ export default function DateInput({
   // 기본 날짜 칸만 한 폭 — text 칸의 기본 폭(20자)은 줄 안에서 너무 넓다.
   size = 13,
   today,
+  invalid,
   ...rest
 }) {
+  // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
+  const { isInvalid, ...a11y } = useFieldControl({
+    id: rest.id,
+    invalid,
+    describedBy: rest['aria-describedby'],
+  });
   const current = typeof value === 'string' ? value.slice(0, 10) : '';
   const [draft, setDraft] = useState(current);
   const [picker, setPicker] = useState(null);
@@ -108,11 +117,13 @@ export default function DateInput({
     <>
       <input
         {...rest}
+        {...a11y}
         ref={ref}
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        className={className}
+        // 틀렸을 때만 공용 틀림 표시를 얹는다 — 평소 클래스는 부르는 쪽이 준 그대로다.
+        className={isInvalid ? [className, 'dp-control is-invalid'].filter(Boolean).join(' ') : className}
         value={draft}
         placeholder={placeholder}
         maxLength={10}
