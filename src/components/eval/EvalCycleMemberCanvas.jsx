@@ -569,7 +569,7 @@ export default function EvalCycleMemberCanvas({
       )}
 
       {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
-      {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 오렌지 박스에 full-width 로 노출 */}
+      {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 박스에 full-width 로 노출 */}
       {!submitted && (activitySummary || krList.length > 0) && (() => {
         const blocks = activitySummary
           ? [
@@ -661,7 +661,8 @@ export default function EvalCycleMemberCanvas({
                       )}
                       <button
                         type="button"
-                        className="evm-kr-save"
+                        /* PW-1004 — 「임시저장」과 같은 흰 보조 버튼. 꽉 찬 색은 「제출하기」 하나만 쓴다. */
+                        className="evc-btn is-ghost evm-kr-save"
                         disabled={krBusy}
                         onClick={handleKrSave}
                         data-testid="evm-kr-save"
@@ -751,7 +752,7 @@ export default function EvalCycleMemberCanvas({
                         "점수 셀렉터 + 바로 아래 사유 서술 입력칸"). requiresRationale 은
                         칸의 유무가 아니라 제출 게이팅·미입력 강조만 정한다. */}
                     <textarea
-                      className={`evm-textarea${f.requiresRationale && !submitted && state[f.key].score && !state[f.key].rationale.trim() ? ' is-empty' : ''}${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
+                      className={`evm-textarea${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
                       rows={2}
                       value={state[f.key].rationale}
                       placeholder={
@@ -807,7 +808,7 @@ export default function EvalCycleMemberCanvas({
                   )
                 ) : (
                   <textarea
-                    className={`evm-textarea${!submitted && !state[f.key].textAnswer.trim() ? ' is-empty' : ''}${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
+                    className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
                     rows={4}
                     value={state[f.key].textAnswer}
                     placeholder={f.placeholder}
