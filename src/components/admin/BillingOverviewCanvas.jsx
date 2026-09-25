@@ -168,6 +168,16 @@ export default function BillingOverviewCanvas({
    *    billedSeats, overageSeats, daysUntilContractEnd }`
    */
   contract = null,
+  /**
+   * 녹음 풀 배너 (PW-1023 · screen-billing-overview.policy.md 「녹음 풀 배너」 행).
+   * 회사 녹음 시간을 80% 이상 썼거나 다 썼을 때만 채운다 — `null` 이면 그리지 않는다.
+   * 문구는 상태·요금제마다 달라 앱이 만들어 넘긴다. 녹음 화면에는 띄우지 않는다.
+   *
+   * `{ title, body, actionLabel, actionKind: 'primary' | 'secondary', onAction, noPermText? }`
+   * - `actionKind` — Free 의 [결제하고 계속 쓰기]는 primary, 유료의 [영업팀 문의]는 secondary
+   * - `noPermText` — 결제 권한이 없는 사람에게 버튼 대신 덧붙이는 한 줄(버튼은 잠긴다)
+   */
+  recordingBanner = null,
   onNavigateContactSales,
   onNavigateMethods,
   onNavigatePlans,
@@ -250,6 +260,28 @@ export default function BillingOverviewCanvas({
               <div style={{ fontSize: 13, color: T.text }}>{labels.cancelReservedDesc(sub.nextBillingAt)}</div>
             </div>
             <Btn kind="secondary" onClick={onUndoCancel} disabled={!canEdit}>{labels.undoCancel}</Btn>
+          </Card>
+        )}
+
+        {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
+        {recordingBanner && (
+          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div data-testid="billing-recording-banner" role="status">
+              <div style={{ fontWeight: 800, color: '#B45309', marginBottom: 4 }}>{recordingBanner.title}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{recordingBanner.body}</div>
+              {!canEdit && recordingBanner.noPermText && (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
+                  {recordingBanner.noPermText}
+                </div>
+              )}
+            </div>
+            {recordingBanner.actionLabel && (
+              <Btn kind={recordingBanner.actionKind === 'secondary' ? 'secondary' : 'primary'}
+                onClick={recordingBanner.onAction} disabled={!canEdit}>
+                {recordingBanner.actionLabel}
+              </Btn>
+            )}
           </Card>
         )}
 

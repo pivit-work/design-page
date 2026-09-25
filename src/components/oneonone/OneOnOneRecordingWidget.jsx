@@ -52,6 +52,11 @@ import { CloseGlyph, PauseGlyph } from '../shared/lineIcons.jsx';
  *                    눌러도 아무 일이 없는 버튼을 남기지 않기 위해서다. 접은 뒤의
  *                    모습(앱 안 최소화 위젯)은 소비처가 그린다.
  *   - collapseLabel: 그 버튼의 접근성 라벨. 로케일은 소비처에 있다.
+ *   - limitNotice  : `idle` 일 때 안내 줄 아래에 붙이는 노드 — 회사 녹음 시간을 다 써서
+ *                    녹음을 시작할 수 없다는 앰버 안내(`RecordingLimitNotice`, PW-1023 ·
+ *                    policy §5.9). 「녹음 시작」을 눌렀을 때 소비처가 넣는다. 녹음 중인
+ *                    바에는 그리지 않는다 — 진행 중 녹음은 끝까지 기록하고 안내는 다음
+ *                    시작에만 뜬다(screen-tier-gating.policy.md §6.6).
  *
  * 이퀄라이저: wave prop 이 없으면 마이크 입력을 AnalyserNode 로 분석해 6개
  * 막대 높이를 실시간(rAF) 반영한다. 마이크 권한이 없으면 CSS 데모 애니메이션
@@ -126,6 +131,7 @@ export default function OneOnOneRecordingWidget({
   closeLabel = '안내 닫기',
   onCollapse,
   collapseLabel = '접기',
+  limitNotice = null,
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
@@ -146,7 +152,7 @@ export default function OneOnOneRecordingWidget({
   // 할 말도 할 일도 없으면 **아무것도 그리지 않는다.** 빈 카드는 「무언가 있었는데
   // 비었다」로 읽히고, 잃은 것이 없는 회차(녹음을 아예 시작하지 않은 회차)에까지
   // 자리를 남기면 그 자리가 곧 일상이 된다.
-  if (idle && !notice && !onStart) return null;
+  if (idle && !notice && !onStart && !limitNotice) return null;
 
   if (idle) {
     return (
@@ -180,6 +186,7 @@ export default function OneOnOneRecordingWidget({
               )}
             </div>
           </div>
+          {limitNotice && <div className="ono-start-rec-limit">{limitNotice}</div>}
         </div>
       </div>
     );

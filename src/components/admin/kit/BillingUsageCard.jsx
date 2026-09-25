@@ -15,10 +15,10 @@
  *   unlimitedText 무제한 플랜 한 줄 — 있으면 막대 대신 이 줄
  *   summary       막대 위 「사용 1.0h / 10.0h (10%)」
  *   percent       막대 채움(0~100)
- *   creditLabel, creditValue, creditSuffix
- *   packs         [{ id, label, onClick, disabled? }] — 크레딧 팩 구매 버튼(권한 없으면 빈 배열).
- *                 disabled 면 누를 수 없다 — 구매가 끝나기 전 두 번째 클릭을 막는다(PW-949)
  *   simulate      { label, onClick } | null — 개발 빌드 전용 사용량 흉내 버튼
+ *
+ * 크레딧 잔여 칸·크레딧팩 구매 버튼은 없다 — 선불 충전 상품을 두지 않기로 했다
+ * (PW-1023 · pricing-policy D6). 녹음 시간은 회사 풀 하나에서만 센다.
  */
 const cx = (...xs) => xs.filter(Boolean).join(' ');
 
@@ -29,10 +29,6 @@ export default function BillingUsageCard({
   unlimitedText,
   summary,
   percent = 0,
-  creditLabel,
-  creditValue,
-  creditSuffix,
-  packs = [],
   simulate = null,
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(percent)));
@@ -54,37 +50,16 @@ export default function BillingUsageCard({
         </>
       )}
 
-      <div className="admin-kit-usage-credit">
-        {creditLabel}:{' '}
-        <strong>{creditValue}</strong>
-        {creditSuffix}
-      </div>
-
-      {(packs.length > 0 || simulate) && (
+      {simulate && (
         <div className="admin-kit-usage-actions">
-          {packs.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              data-testid={`buy-${p.id}`}
-              className="admin-kit-usage-pack"
-              onClick={p.onClick}
-              disabled={!!p.disabled}
-              aria-busy={p.disabled ? true : undefined}
-            >
-              {p.label}
-            </button>
-          ))}
-          {simulate && (
-            <button
-              type="button"
-              data-testid="simulate-usage"
-              className="admin-kit-usage-simulate"
-              onClick={simulate.onClick}
-            >
-              {simulate.label}
-            </button>
-          )}
+          <button
+            type="button"
+            data-testid="simulate-usage"
+            className="admin-kit-usage-simulate"
+            onClick={simulate.onClick}
+          >
+            {simulate.label}
+          </button>
         </div>
       )}
     </div>

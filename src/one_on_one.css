@@ -1586,6 +1586,10 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-mini.is-idle {
   gap: 0;
 }
+/* 회사 녹음 시간 소진 안내 자리 (PW-1023 · policy §5.9) — 안내 줄 바로 아래 */
+.ono-start-rec-limit {
+  margin-top: 8px;
+}
 .ono-start-rec-notice.is-actionable {
   display: flex;
   flex-direction: column;
