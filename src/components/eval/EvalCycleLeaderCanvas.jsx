@@ -58,6 +58,10 @@ const DEFAULT_LABELS = {
   catStrengths: '강점',
   catImprovements: '보완점',
   catGrowthDemo: '성장',
+  // [PW-1087] 평가지 성장 항목의 이름을 못 찾았을 때
+  catGrowth: '성장',
+  // [PW-1087] 점수 항목에 팀원이 적은 점수 근거 — 근거 칸에 본문 아래 붙인다
+  evidenceRationaleLabel: '점수 근거',
   // F5 evidence + assessment
   peerEvidenceTitle: '동료 피드백 요약 (익명)',
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
@@ -235,9 +239,12 @@ function seedState(answers, fields) {
   return state;
 }
 
+// [PW-1087] 평가지로 쓴 성장 답은 `growthType` 이 비어 있다(강점·보완·성장 구분은 평가지 없는
+// 기본 폼만 쓴다). 그러면 이름 자리가 빈칸이 되므로, 앱이 답에 실어 준 평가지 항목 이름
+// (`itemLabel`)을 쓰고 그것도 없으면 구분 이름(「성장」)으로 채운다. 업적·역량은 종전 그대로다.
 function evidenceLabel(a, L) {
   if (a.itemCategory === 'growth') {
-    return L[EVIDENCE_GROWTH_KEY[a.growthType]] ?? a.growthType ?? '';
+    return L[EVIDENCE_GROWTH_KEY[a.growthType]] || a.itemLabel || L.catGrowth;
   }
   return L[EVIDENCE_CAT_KEY[a.itemCategory]] ?? a.itemCategory ?? '';
 }
@@ -479,12 +486,17 @@ export default function EvalCycleLeaderCanvas({
             <p className="evc-empty-sub">{L.evidenceEmpty}</p>
           ) : (
             selfAnswers.map((a) => (
-              <div className="evl-evi-item" key={a.id}>
+              <div className="evl-evi-item" key={a.id} data-testid="evl-self-item">
                 <span className="evc-field-label">
                   {evidenceLabel(a, L)}
                   {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
                 </span>
-                <p className="evl-evi-text">{a.textAnswer}</p>
+                {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
+                {a.rationale ? (
+                  <p className="evl-evi-text" data-testid="evl-self-rationale">
+                    {L.evidenceRationaleLabel} · {a.rationale}
+                  </p>
+                ) : null}
               </div>
             ))
           )}
