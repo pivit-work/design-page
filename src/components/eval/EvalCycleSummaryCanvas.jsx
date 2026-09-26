@@ -69,6 +69,9 @@ const DEFAULT_LABELS = {
   cwColCurrent: '현재등급',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
+  cwAdjustUp: '▲ 올림',
+  cwAdjustDown: '▼ 내림',
+  cwAdjustNone: '—',
   cwColPromo: '승진마킹',
   cwNoPromotion: '승급 이력 없음',
   cwPromoRecommended: '매니저 추천',
@@ -346,6 +349,8 @@ const DEFAULT_LABELS = {
   cdDistTitle: '조정 전후 등급 분포 비교',
   cdBefore: '조정 전',
   cdAfter: '조정 후',
+  cdChangeLine: '조정 전 {before}{unit} → {after}{unit}',
+  cdBeforeLegend: '조정 전 인원(달라진 등급만)',
   cdDetailTitle: '등급 조정 상세 (개별)',
   cdEmpty: '이번 사이클에서 등급 조정이 없었습니다',
   cdSummaryLine: '이번 사이클 조정 {n}명',
@@ -362,6 +367,8 @@ const DEFAULT_LABELS = {
   deptColCount: '인원',
   deptColAvgAchieve: '평균 달성률',
   deptColVsGuide: '탁월 비율 vs 가이드',
+  deptVsGuideNoteMark: '빨간 숫자',
+  deptVsGuideNote: ' = 탁월 비율이 가이드보다 10%p 넘게 높은 부서',
   deptLegendLow: '낮음',
   deptLegendHigh: '높음',
   deptRankCaption: '평균 달성률 = 소속 멤버 OKR 달성률 평균',
@@ -395,12 +402,9 @@ const DEFAULT_LABELS = {
   guideWord: '가이드',
   scoreWord: '스코어',
   guidelineLabel: '가이드라인',
-  prevCompareTitle: '이전 사이클 비교',
-  prevColGrade: '등급',
-  prevColThis: '이번',
-  prevColPrev: '이전',
-  prevColDelta: '변화',
-  prevEmpty: '이전 사이클 데이터가 없습니다',
+  // PW-1047 ③ 「이전 사이클 비교」 상자 대신 등급 분포 막대 위 눈금 + 범례
+  distPrevLegend: '지난 평가',
+  distMoversLabel: '크게 움직인 등급:',
   // §4.A 리더별 제출 현황
   leaderTitle: '리더별 제출 현황',
   leaderColLeader: '리더',
@@ -550,6 +554,20 @@ function gradeTone(gradeKey, orderedGrades) {
   if (idx === 0) return 'green';
   if (idx === orderedGrades.length - 1) return 'red';
   return 'accent';
+}
+
+/**
+ * PW-1047 ④ 위원회가 1차 등급을 바꿨는가, 바꿨다면 올렸나 내렸나. orderedGrades 는 위가 먼저다.
+ * 바꾸지 않은 줄·등급을 모르는 줄은 null.
+ */
+function adjustDirection(row, orderedGrades) {
+  const from = row.currentGradeKey;
+  const to = row.calibratedGradeKey;
+  if (!from || !to || from === to) return null;
+  const fi = orderedGrades.findIndex((g) => g.gradeKey === from);
+  const ti = orderedGrades.findIndex((g) => g.gradeKey === to);
+  if (fi < 0 || ti < 0) return null;
+  return ti < fi ? 'up' : 'down';
 }
 
 // TC-076/166 캘리 테이블 정렬 — 텍스트 컬럼은 로캘 비교, 등급 컬럼은 orderedGrades 순서.
@@ -1185,6 +1203,19 @@ export default function EvalCycleSummaryCanvas({
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
+  // PW-1047 ③ 막대 길이는 «전체 대비 %» — 가이드 점선·지난 평가 눈금과 같은 자로 잰다.
+  const distTotal = gradeDistribution.reduce((n, d) => n + (d.count ?? 0), 0);
+  const distPct = (d) => (d.pct != null ? d.pct : distTotal > 0 ? Math.round((100 * (d.count ?? 0)) / distTotal) : 0);
+  const hasDistGuide = gradeDistribution.some((d) => d.guidelinePct != null);
+  // 지난 평가보다 5%p 이상 움직인 등급만 범례에 적는다 — 전부 적으면 눈금을 보는 이유가 없어진다.
+  const distMovers = previousCycle
+    ? gradeDistribution
+        .map((d) => {
+          const prev = prevPctByKey.get(d.gradeKey);
+          return prev == null ? null : { label: d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey, delta: distPct(d) - prev };
+        })
+        .filter((m) => m && Math.abs(m.delta) >= 5)
+    : [];
 
   // §4.A 미제출자 리마인드 모달
   const pendingCount = nonSubmitters.length;
@@ -1287,7 +1318,9 @@ export default function EvalCycleSummaryCanvas({
   const rankedDepts = [...deptStats].sort((a, b) => b.avgAchieve - a.avgAchieve);
   const heatAlpha = (pct) => (pct <= 0 ? 0 : Math.min(0.15 + (pct / 100) * 0.65, 0.8));
   const segClass = (i, n) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
-  const vsGuideTone = (delta) => (delta > 10 ? 'red' : delta > 0 ? 'amber' : 'green');
+  // PW-1047 ② 가이드를 10%p 넘게 넘은 부서만 칠한다 — 모든 줄이 칠해지면 어느 부서를 봐야 할지 안 보인다.
+  const DEPT_GUIDE_ALERT_PP = 10;
+  const vsGuideOver = (delta) => delta > DEPT_GUIDE_ALERT_PP;
   const prStatusMeta = {
     draft: { label: L.prStatusDraft, tone: 'neutral' },
     submitted: { label: L.prStatusSubmitted, tone: 'amber' },
@@ -1430,73 +1463,73 @@ export default function EvalCycleSummaryCanvas({
               </div>
             </div>
 
-            <div className="evs-two-col">
-              {/* 등급 분포 + 가이드라인 점선 */}
-              <section className="evc-card">
-                <h3 className="evc-card-name">{L.distributionTitle}</h3>
-                {gradeDistribution.length === 0 ? (
-                  <p className="evc-empty-sub">{L.empty}</p>
-                ) : (
+            {/* PW-1047 ③ 등급 분포 — 가이드 점선 + 지난 평가 눈금을 한 막대에 겹친다.
+                따로 있던 「이전 사이클 비교」 상자는 없앴다: 막대 길이·점선·눈금이 모두 «전체 대비 %»
+                하나의 자로 재여야 셋을 겹쳐 읽을 수 있다(그래서 막대 길이도 최다 인원 대비가 아니라 %다). */}
+            <section className="evc-card" data-testid="evs-dist-card">
+              <h3 className="evc-card-name">{L.distributionTitle}</h3>
+              {gradeDistribution.length === 0 ? (
+                <p className="evc-empty-sub">{L.empty}</p>
+              ) : (
+                <>
                   <div className="evs-dist">
-                    {gradeDistribution.map((d) => (
-                      <div className="evs-dist-row" key={d.gradeKey} data-testid="evs-dist-row">
-                        <span className="evs-dist-label">{d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
-                        <div className="evs-dist-body">
-                          <div className="evs-dist-track">
-                            <div className="evs-dist-fill" style={{ width: `${(d.count / maxCount) * 100}%` }} />
-                            {d.guidelinePct != null && (
-                              <div
-                                className="evs-dist-guide"
-                                style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
-                                title={`${L.guidelineLabel} ${d.guidelinePct}%`}
-                                data-testid="evs-dist-guide"
-                              />
-                            )}
-                          </div>
-                          {d.guidelinePct != null && (
-                            <span className="evs-dist-guide-cap">{L.guidelineLabel} {d.guidelinePct}%</span>
-                          )}
-                        </div>
-                        <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* 이전 사이클 비교 */}
-              <section className="evc-card" data-testid="evs-prev-compare">
-                <h3 className="evc-card-name">
-                  {L.prevCompareTitle}{previousCycle?.name && <span className="evs-prev-name"> ({previousCycle.name})</span>}
-                </h3>
-                {!previousCycle ? (
-                  <p className="evc-empty-sub">{L.prevEmpty}</p>
-                ) : (
-                  <div className="evmon-table evs-prev-table">
-                    <div className="evmon-row evmon-head">
-                      <span>{L.prevColGrade}</span>
-                      <span>{L.prevColThis}</span>
-                      <span>{L.prevColPrev}</span>
-                      <span>{L.prevColDelta}</span>
-                    </div>
                     {gradeDistribution.map((d) => {
-                      const prev = prevPctByKey.get(d.gradeKey);
-                      const delta = prev == null ? null : d.pct - prev;
+                      const pct = distPct(d);
+                      const prev = previousCycle ? prevPctByKey.get(d.gradeKey) : undefined;
                       return (
-                        <div className="evs-prev-row" role="row" key={d.gradeKey} data-testid="evs-prev-row">
-                          <span>{d.label ?? d.gradeKey}</span>
-                          <span className="evs-prev-num">{d.pct}%</span>
-                          <span className="evs-prev-num is-muted">{prev == null ? '—' : `${prev}%`}</span>
-                          <span className={`evs-prev-delta${delta == null || delta === 0 ? '' : delta > 0 ? ' is-up' : ' is-down'}`}>
-                            {delta == null ? '—' : delta === 0 ? '—' : delta > 0 ? `▲ +${delta}%p` : `▼ ${delta}%p`}
-                          </span>
+                        <div className="evs-dist-row" key={d.gradeKey} data-testid="evs-dist-row">
+                          <span className="evs-dist-label">{d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
+                          <div className="evs-dist-body">
+                            <div className="evs-dist-track">
+                              <div className="evs-dist-fill" style={{ width: `${Math.min(100, pct)}%` }} data-testid="evs-dist-fill" />
+                              {d.guidelinePct != null && (
+                                <div
+                                  className="evs-dist-guide"
+                                  style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
+                                  title={`${L.guidelineLabel} ${d.guidelinePct}%`}
+                                  data-testid="evs-dist-guide"
+                                />
+                              )}
+                              {prev != null && (
+                                <div
+                                  className="evs-dist-tick"
+                                  style={{ left: `${Math.min(100, prev)}%` }}
+                                  title={`${L.distPrevLegend} ${prev}%`}
+                                  data-testid="evs-dist-prev-tick"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
                         </div>
                       );
                     })}
                   </div>
-                )}
-              </section>
-            </div>
+                  {(previousCycle || hasDistGuide) && (
+                    <p className="evs-chart-legend" data-testid="evs-dist-legend">
+                      {previousCycle && (
+                        <span className="evs-chart-legend-item">
+                          <span className="evs-legend-tick" aria-hidden />
+                          {L.distPrevLegend}{previousCycle.name ? ` (${previousCycle.name})` : ''}
+                        </span>
+                      )}
+                      {hasDistGuide && (
+                        <span className="evs-chart-legend-item">
+                          <span className="evs-legend-guide" aria-hidden />
+                          {L.guidelineLabel}
+                        </span>
+                      )}
+                      {distMovers.length > 0 && (
+                        <span className="evs-chart-legend-item" data-testid="evs-dist-movers">
+                          {L.distMoversLabel}{' '}
+                          {distMovers.map((m) => `${m.label} ${m.delta > 0 ? '+' : ''}${m.delta}%p`).join(', ')}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </>
+              )}
+            </section>
 
             {/* §4.A 리더별 제출 현황 */}
             <section className="evc-card" data-testid="evs-leaders">
@@ -1637,12 +1670,22 @@ export default function EvalCycleSummaryCanvas({
                         <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}{L.unit}</span>
                       ))}
                       <span className="evs-leader-num">{d.avgAchieve}%</span>
-                      <span className={`evs-leader-num evs-dept-vsguide tone-${vsGuideTone(d.deltaVsGuide)}`}>
+                      <span
+                        className={`evs-leader-num evs-dept-vsguide${vsGuideOver(d.deltaVsGuide) ? ' is-over' : ''}`}
+                        data-testid="evs-dept-vsguide">
                         {d.deltaVsGuide > 0 ? `+${d.deltaVsGuide}` : d.deltaVsGuide}%p
                       </span>
                     </div>
                   ))}
                 </div>
+                {deptStats.some((d) => vsGuideOver(d.deltaVsGuide)) && (
+                  <p className="evs-chart-legend" data-testid="evs-dept-vsguide-note">
+                    <span>
+                      <span className="evs-dept-vsguide is-over">{L.deptVsGuideNoteMark}</span>
+                      {L.deptVsGuideNote}
+                    </span>
+                  </p>
+                )}
               </section>
             </>
           )
@@ -1780,46 +1823,56 @@ export default function EvalCycleSummaryCanvas({
             {/* Block 2 — 조정 전후 등급 분포 비교 */}
             <section className="evc-card">
               <h3 className="evc-card-name">{L.cdDistTitle}</h3>
-              <div className="evs-cd-dist">
+              {/* PW-1047 ① 등급마다 막대 한 줄 — 조정 후를 칠하고, 조정 전은 눈금으로 겹친다.
+                  늘었다·줄었다를 초록·빨강으로 칠하지 않는다(최하가 늘어도 초록이 되던 문제). */}
+              <div className="evs-dist evs-cd-dist" data-testid="evs-cd-dist">
                 {calibResult.before.map((b, i) => {
                   const a = calibResult.after[i] ?? { count: 0, pct: 0 };
-                  const deltaCount = a.count - b.count;
+                  const changed = a.count !== b.count;
                   const deltaPct = a.pct - b.pct;
-                  const seg = segClass(i, calibResult.before.length);
                   const guide = i === 0 ? calibResult.afterExcellentGuidelinePct : null;
                   return (
-                    <div className="evs-cd-grade" key={b.gradeKey} data-testid="evs-cd-grade">
-                      <div className="evs-cd-grade-head">
-                        <span className="evs-cd-grade-name">
-                          <span className={`evs-lp-dot ${seg}`} /> {b.label}
-                        </span>
-                        {deltaCount !== 0 && (
-                          <span className={`evs-cd-delta${deltaCount > 0 ? ' is-up' : ' is-down'}`}>
-                            {deltaCount > 0 ? `▲ +${deltaCount}${L.unit}` : `▼ ${deltaCount}${L.unit}`} ({deltaPct > 0 ? `+${deltaPct}` : deltaPct}%p)
-                          </span>
-                        )}
-                      </div>
-                      <div className="evs-cd-pair">
-                        <span className="evs-cd-plabel">{L.cdBefore}</span>
-                        <div className="evs-dist-track evs-cd-track">
-                          <div className={`evs-cd-fill ${seg} is-before`} style={{ width: `${b.pct}%` }} />
-                        </div>
-                        <span className="evs-cd-pval">{b.count}{L.unit} ({b.pct}%)</span>
-                      </div>
-                      <div className="evs-cd-pair">
-                        <span className="evs-cd-plabel">{L.cdAfter}</span>
-                        <div className="evs-dist-track evs-cd-track">
-                          <div className={`evs-cd-fill ${seg} is-after`} style={{ width: `${a.pct}%` }} />
+                    <div className="evs-dist-row evs-cd-grade" key={b.gradeKey} data-testid="evs-cd-grade">
+                      <span className="evs-dist-label">{b.label}</span>
+                      <div className="evs-dist-body">
+                        <div className="evs-dist-track">
+                          <div className="evs-dist-fill" style={{ width: `${Math.min(100, a.pct)}%` }} data-testid="evs-cd-fill" />
                           {guide != null && (
                             <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} title={`${L.guidelineLabel} ${guide}%`} />
                           )}
+                          {/* 조정 전이 0명이면 왼쪽 끝에 붙어 깨진 선처럼 보여서 그리지 않는다 — 숫자 줄에는 나온다 */}
+                          {changed && b.count > 0 && (
+                            <div
+                              className="evs-dist-tick"
+                              style={{ left: `${Math.min(100, b.pct)}%` }}
+                              title={`${L.cdBefore} ${b.count}${L.unit} (${b.pct}%)`}
+                              data-testid="evs-cd-before-tick"
+                            />
+                          )}
                         </div>
-                        <span className="evs-cd-pval">{a.count}{L.unit} ({a.pct}%)</span>
+                        {changed && (
+                          <span className="evs-cd-change" data-testid="evs-cd-change">
+                            {fmt(L.cdChangeLine, { before: b.count, after: a.count, unit: L.unit })} ({deltaPct > 0 ? `+${deltaPct}` : deltaPct}%p)
+                          </span>
+                        )}
                       </div>
+                      <span className="evs-dist-count">{a.count}{L.unit}<span className="evs-dist-pct"> ({a.pct}%)</span></span>
                     </div>
                   );
                 })}
               </div>
+              <p className="evs-chart-legend" data-testid="evs-cd-legend">
+                <span className="evs-chart-legend-item">
+                  <span className="evs-legend-tick" aria-hidden />
+                  {L.cdBeforeLegend}
+                </span>
+                {calibResult.afterExcellentGuidelinePct != null && (
+                  <span className="evs-chart-legend-item">
+                    <span className="evs-legend-guide" aria-hidden />
+                    {L.guidelineLabel}
+                  </span>
+                )}
+              </p>
               {calibResult.summary && (
                 <p className="evs-cd-summary" data-testid="evs-cd-summary">{calibResult.summary}</p>
               )}
@@ -2936,42 +2989,52 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 )}
                                 <RosterTable.Cell>
-                                  <div className="evs-cw-adjust">
-                                    <StatusBadge
-                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
-                                      {row.currentGradeLabel ?? '—'}
-                                    </StatusBadge>
-                                    {calibTable.readOnly ? (
-                                      row.adjusted &&
-                                      row.calibratedGradeKey !== row.currentGradeKey ? (
-                                        <>
-                                          <span className="evs-cw-arrow">→</span>
-                                          <StatusBadge
-                                            className={`evs-cw-badge tone-${gradeTone(row.calibratedGradeKey, og)}`}>
-                                            {row.calibratedGradeLabel}
-                                          </StatusBadge>
-                                        </>
-                                      ) : null
-                                    ) : (
-                                      <>
-                                        <span className="evs-cw-arrow">→</span>
-                                        <select
-                                          className="evs-cw-adjust-select"
-                                          data-testid="evs-cw-adjust-select"
-                                          value={row.calibratedGradeKey ?? ''}
-                                          onChange={(e) =>
-                                            onAdjustGrade?.(row.memberId, e.target.value)
-                                          }
-                                        >
-                                          {og.map((g) => (
-                                            <option key={g.gradeKey} value={g.gradeKey}>
-                                              {g.label}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </>
-                                    )}
-                                  </div>
+                                  {/* PW-1047 ④ 「현재등급」 칸에 이미 있는 배지를 여기서 또 그리지 않는다.
+                                      색은 위원회가 바꾼 줄에만 — 바뀐 등급의 좋고 나쁨으로 칠하지 않는다
+                                      (빨간 테두리 입력칸은 «입력이 틀렸다»로 읽힌다). */}
+                                  {(() => {
+                                    const dir = adjustDirection(row, og);
+                                    const dirTag = dir && (
+                                      <span className={`evs-cw-adjust-dir is-${dir}`} data-testid="evs-cw-adjust-dir">
+                                        {dir === 'up' ? L.cwAdjustUp : L.cwAdjustDown}
+                                      </span>
+                                    );
+                                    return (
+                                      <div className="evs-cw-adjust">
+                                        {calibTable.readOnly ? (
+                                          dir ? (
+                                            <>
+                                              <span className="evs-cw-adjust-value is-changed" data-testid="evs-cw-adjust-value">
+                                                {row.calibratedGradeLabel}
+                                              </span>
+                                              {dirTag}
+                                            </>
+                                          ) : (
+                                            <span className="evs-cw-muted">{L.cwAdjustNone}</span>
+                                          )
+                                        ) : (
+                                          <>
+                                            <select
+                                              className={`evs-cw-adjust-select${dir ? ' is-changed' : ''}`}
+                                              data-testid="evs-cw-adjust-select"
+                                              aria-label={`${row.name} ${L.cwColAdjust}`}
+                                              value={row.calibratedGradeKey ?? ''}
+                                              onChange={(e) =>
+                                                onAdjustGrade?.(row.memberId, e.target.value)
+                                              }
+                                            >
+                                              {og.map((g) => (
+                                                <option key={g.gradeKey} value={g.gradeKey}>
+                                                  {g.label}
+                                                </option>
+                                              ))}
+                                            </select>
+                                            {dirTag}
+                                          </>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </RosterTable.Cell>
                                 {colOn('promo') && (
                                 <RosterTable.Cell>

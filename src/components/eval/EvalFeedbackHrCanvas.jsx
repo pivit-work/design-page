@@ -54,6 +54,7 @@ const DEFAULT_LABELS = {
   teamCoverageTitle: '팀별 피드백 커버리지 (30일 기준)',
   teamCovered: '커버',
   teamAvg: '평균',
+  coverageTargetLegend: '기준 커버리지 {pct}%',
   atRiskTitle: '피드백 필요 멤버',
   atRiskNone: '피드백 필요 멤버가 없습니다.',
   notWritten: '미작성',
@@ -96,8 +97,13 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
+function fmtLabel(tpl, vars) {
+  return String(tpl ?? '').replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : `{${k}}`));
+}
+/** PW-1047 ⑥ 팀 커버리지 막대에 긋는 기준선. 아래 초록 문턱과 같은 값이다. */
+const COVERAGE_TARGET_PCT = 90;
 function covColor(pct) {
-  if (pct >= 90) return C.green;
+  if (pct >= COVERAGE_TARGET_PCT) return C.green;
   if (pct >= 70) return C.amber;
   return C.red;
 }
@@ -107,10 +113,19 @@ function scoreColor(s) {
   return C.red;
 }
 
-function Bar({ value, color }) {
+function Bar({ value, color, target }) {
   return (
-    <span style={{ display: 'block', width: '100%', height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
-      <span style={{ display: 'block', width: `${Math.min(100, value)}%`, height: '100%', background: color }} />
+    <span style={{ position: 'relative', display: 'block', width: '100%' }}>
+      <span style={{ display: 'block', width: '100%', height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
+        <span style={{ display: 'block', width: `${Math.min(100, value)}%`, height: '100%', background: color }} />
+      </span>
+      {target != null && (
+        <span
+          aria-hidden
+          data-testid="fbhr-coverage-target"
+          style={{ position: 'absolute', top: -3, bottom: -3, left: `${target}%`, borderLeft: `1.5px dashed ${C.muted}` }}
+        />
+      )}
     </span>
   );
 }
@@ -149,10 +164,14 @@ function TeamCoverage({ teams, L }) {
             <span style={{ width: 130, fontSize: 13, color: C.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.team}</span>
             <span style={{ width: 74, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{t.covered}/{t.total} {L.teamCovered}</span>
             <span style={{ width: 64, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{L.teamAvg} {t.avgInterval}{L.unitDays}</span>
-            <span style={{ flex: 1 }}><Bar value={t.ratePct} color={covColor(t.ratePct)} /></span>
+            <span style={{ flex: 1 }}><Bar value={t.ratePct} color={covColor(t.ratePct)} target={COVERAGE_TARGET_PCT} /></span>
             <span style={{ width: 40, textAlign: 'right', fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: covColor(t.ratePct) }}>{t.ratePct}%</span>
           </div>
         ))}
+      </div>
+      <div data-testid="fbhr-coverage-legend" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
+        <span aria-hidden style={{ display: 'inline-block', height: 12, borderLeft: `1.5px dashed ${C.muted}` }} />
+        {fmtLabel(L.coverageTargetLegend, { pct: COVERAGE_TARGET_PCT })}
       </div>
     </div>
   );

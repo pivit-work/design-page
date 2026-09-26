@@ -13,15 +13,15 @@ import AvatarPhoto from './AvatarPhoto';
  */
 
 const DEFAULT_LABELS = {
-  redirectTitle: '캘리브레이션 등급 조정·확정',
-  redirectBadge: '위원회 워크스페이스로 이동',
+  // PW-1047 ⑤ 맨 위 한 줄 + 「자세히」로 펴는 설명 두 문단
+  redirectSummary: '등급 조정은 위원회가 합니다. 조정된 팀원에게만 이의를 낼 수 있고, 위원회가 다시 검토합니다.',
+  redirectMore: '자세히',
+  redirectLess: '접기',
   redirectBody:
     '등급 조정·확정은 캘리브레이션 위원회(조직장) 권한으로, 성과평가 대시보드 › 캘리브레이션 워크스페이스(테이블 뷰)에서 일원화되어 수행됩니다. 팀장(1차 평가자)은 이 화면에서 직접 조정하지 않으며, 1차 평가 제출 후 위원회 조정 결과를 통보받고 필요 시 이의(어필)를 제기합니다.',
   redirectNote:
     '워크스페이스 접근은 위원 초대(조직장 지정) 기반입니다. 초대된 위원만 조정·확정할 수 있으며, HR은 조회 전용입니다.',
   resultTitle: '내 팀 캘리브레이션 결과 · 이의(어필)',
-  resultSub:
-    '1차 제출 등급과 위원회 확정 등급을 비교합니다. 조정된 항목은 이의(어필)를 제기할 수 있으며, 위원회가 1인 재검토합니다.',
   adjustedBadge: '위원회 조정 {n}건',
   colFirst: '1차 제출',
   colCommittee: '위원회 확정',
@@ -101,6 +101,7 @@ export default function EvalCycleTeamCalibrationCanvas({
   const [openId, setOpenId] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [busyId, setBusyId] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const labelOf = (key) =>
     orderedGrades.find((g) => g.gradeKey === key)?.label ?? key ?? '—';
@@ -142,14 +143,28 @@ export default function EvalCycleTeamCalibrationCanvas({
           {L.calibReleasedBanner}
         </p>
       )}
-      {/* 리다이렉트 안내 — 조정·확정은 위원회 워크스페이스로 일원화 */}
+      {/* 권한 안내 — PW-1047 ⑤ 한 줄로 줄이고 나머지는 「자세히」에 접는다.
+          누를 수 없던 「워크스페이스로 이동」 배지는 없앴다. 마우스를 올려야 뜨는 풍선은 휴대폰·키보드로
+          못 열어서 누르는 버튼으로 편다. */}
       <section className="evc-card evtcal-redirect" data-testid="evtcal-redirect">
-        <div className="evtcal-redirect-head">
-          <span className="evtcal-redirect-title">{L.redirectTitle}</span>
-          <StatusBadge className="evc-status-badge tone-purple">{L.redirectBadge}</StatusBadge>
+        <div className="evtcal-redirect-line">
+          <span className="evtcal-redirect-summary">{L.redirectSummary}</span>
+          <button
+            type="button"
+            className="evtcal-redirect-more"
+            aria-expanded={detailOpen}
+            aria-controls="evtcal-redirect-detail"
+            onClick={() => setDetailOpen((v) => !v)}
+            data-testid="evtcal-redirect-more">
+            {detailOpen ? L.redirectLess : L.redirectMore}
+          </button>
         </div>
-        <p className="evtcal-redirect-body">{L.redirectBody}</p>
-        <p className="evtcal-redirect-note">{L.redirectNote}</p>
+        {detailOpen && (
+          <div className="evtcal-redirect-detail" id="evtcal-redirect-detail" data-testid="evtcal-redirect-detail">
+            <p className="evtcal-redirect-body">{L.redirectBody}</p>
+            <p className="evtcal-redirect-body">{L.redirectNote}</p>
+          </div>
+        )}
       </section>
 
       {/* 내 팀 캘리브레이션 결과 · 이의(어필) */}
@@ -165,7 +180,6 @@ export default function EvalCycleTeamCalibrationCanvas({
             {fmt(L.adjustedBadge, { n: adjustedCount })}
           </StatusBadge>
         </div>
-        <p className="evc-summary evtcal-result-sub">{L.resultSub}</p>
 
         {rows.length === 0 ? (
           <EmptyState description={L.empty} data-testid="evtcal-empty" />
