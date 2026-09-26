@@ -324,18 +324,6 @@
    "background": "#edfcf2 / 어두운 화면 #052e1c",
    "color": "#099250 / 어두운 화면 #3ccb7f"
   },
-  "eval-cycle.css|.evc-rm-render-chip": {
-   "border-radius": "pill",
-   "padding": "3px 9px",
-   "font-size": "12px",
-   "font-weight": "700",
-   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#687079 / 어두운 화면 #cecfd2",
-   "display": "inline-flex",
-   "align-items": "center",
-   "gap": "4px",
-   "border": "1px solid var(--border-secondary)"
-  },
   "eval-cycle.css|.evc-rm-sum-chip": {
    "border-radius": "pill",
    "padding": "2px 8px",

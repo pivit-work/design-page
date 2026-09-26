@@ -895,19 +895,6 @@
   font-weight: 600;
 }
 
-.evc-rm-render-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: 3px 9px;
-  border-radius: 99px;
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-primary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
 /* ── 리포트 검수: 한 사람만의 구성 예외 (PW-863 · 정책 §8.3) ── */
 .evrr-badge.is-override {
   color: var(--utility-purple-700);

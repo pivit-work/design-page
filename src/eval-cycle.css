@@ -1670,43 +1670,6 @@
   font-weight: 400;
   color: var(--utility-purple-500);
 }
-/* [PW-530 2차] 「이 문구에 쓴 변수」 줄 — 샘플이 쓰는 가라앉은 상자 계열을 따른다. */
-.evc-rm-used {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  /* 항목 사이는 «이름 → 값» 안쪽 간격보다 넓어야 한다 — 같으면 세 쌍이 한 문장으로
-     붙어 읽힌다(브라우저 실측에서 그랬다). */
-  gap: var(--spacing-xs) var(--spacing-xl);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-text-xs);
-}
-.evc-rm-used-line {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--spacing-xs);
-}
-.evc-rm-used-name {
-  color: var(--text-primary);
-  font-weight: 700;
-}
-.evc-rm-used-arrow {
-  color: var(--text-tertiary);
-}
-/* 값은 «치환된 뒤» 를 뜻하므로 샘플의 확인 계열 색을 쓴다. 길이가 제각각이라
-   (`/eval/me/cycle/2026-h1`) 줄바꿈을 막지 않는다 — 고정폭 상자가 아니다. */
-.evc-rm-used-val {
-  color: var(--text-success-primary);
-  background: var(--bg-success-primary);
-  border-radius: var(--radius-xs);
-  padding: 0 5px;
-  word-break: break-all;
-}
-.evc-rm-used-empty {
-  color: var(--text-tertiary);
-}
 /* [PW-530 2차] 샘플 상자의 채널 이름표 — 종전에는 `data-testid` 뿐이라 두 상자가 같은
    내용을 그리면 어느 쪽이 슬랙인지 알 수 없었다. */
 .evc-rm-preview-ch {
@@ -7673,24 +7636,103 @@
   font-weight: 400;
   color: var(--text-tertiary);
 }
-/* 한 벌의 문구가 채널마다 어떻게 그려지는가 — 「슬랙 문구는 어디서 확인하나」의 답 */
-.evc-rm-render {
+/* [PW-1125] 「받는 사람이 볼 모습」 — 머리줄(제목 · [이메일 | 슬랙]) → 상자 하나 → 렌더링 안내 한 줄.
+   한 벌의 문구가 채널마다 어떻게 그려지는가(「슬랙 문구는 어디서 확인하나」의 답)는 이제
+   지금 보는 탭의 한 줄만 적는다. */
+.evc-rm-sample {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
-.evc-rm-render-desc {
-  font-weight: 400;
+.evc-rm-sample-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+.evc-rm-sample-head .evc-rm-preview-tag {
+  margin-bottom: 0;
+}
+.evc-rm-sample .evc-rm-slack-sep {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.evc-rm-render-line {
+  font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
-.evc-rm-dsec-lines {
+/* 메시지 제목 줄 — 왼쪽 제목, 오른쪽 [나에게 테스트 발송] 글자 버튼 */
+.evc-rm-msg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+.evc-rm-msg-head .evc-rm-dsec-title {
+  margin-bottom: var(--spacing-sm);
+}
+.evc-rm-test-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-success-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.evc-rm-test-link:disabled {
+  color: var(--text-quaternary);
+  cursor: not-allowed;
+}
+/* 템플릿 셀렉트와 저장된 문구 불러오기를 한 줄에 — 좁으면 아래로 내려간다 */
+.evc-rm-tpl-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-sm);
+}
+.evc-rm-tpl-row > .evc-rm-field {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.evc-rm-tpl-row > .evc-rm-saved {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+/* 「보내는 곳」 — 채널 하나에 한 줄. 왼쪽 채널 이름은 고정 폭이 아니다(영어 라벨) */
+.evc-rm-send-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
   line-height: 1.8;
 }
-.evc-rm-dsec-lines strong {
+.evc-rm-send-row + .evc-rm-send-row {
+  margin-top: var(--spacing-sm);
+}
+.evc-rm-send-ch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  flex: none;
+  font-weight: 700;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+.evc-rm-send-slack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1;
+  min-width: 0;
 }
 .evc-rm-slack-sep {
   margin-top: var(--spacing-md);
@@ -7714,6 +7756,9 @@
   gap: var(--spacing-sm);
   flex-wrap: wrap;
   align-items: center;
+}
+.evc-rm-msg-actions.is-end {
+  justify-content: flex-end;
 }
 .evc-rm-ai,
 .evc-rm-save-msg {
