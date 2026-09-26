@@ -254,6 +254,26 @@ export function SearchGlyph(props) {
   );
 }
 
+/** 엄지 — 「도움이 됐어요」. */
+export function ThumbsUpGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M7 10v11" />
+      <path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 7A2 2 0 0 1 17.5 21H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z" />
+    </LineSvg>
+  );
+}
+
+/** 펼친 책 — 도움말 글. */
+export function BookOpenGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z" />
+      <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z" />
+    </LineSvg>
+  );
+}
+
 /* ── 사람 · 문서 · 그 밖 ─────────────────────────────── */
 
 export function UserGlyph(props) {
