@@ -16,6 +16,9 @@ export { default as RosterTable } from './shared/RosterTable.jsx';
 export { default as StatusBadge } from './shared/StatusBadge.jsx';
 export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBadgeTones.js';
 export { default as Toast } from './shared/Toast.jsx';
+// 마우스를 올리면 0.3초 뒤 뜨는 설명 말풍선 (PW-1123). 스타일은 tooltip.css(index.css 가 끌어온다)
+export { default as Tooltip } from './shared/Tooltip.jsx';
+export { TOOLTIP_DELAY } from './shared/tooltipGroup.js';
 // 페이지 넘김·켜기/끄기 스위치·불러오는 동안 보이는 것 (PW-1010). 스타일은 index.css 가 끌어온다
 export { default as Pagination } from './shared/Pagination.jsx';
 export { default as Switch } from './shared/Switch.jsx';

@@ -301,7 +301,9 @@
   transition: background 0.12s;
 }
 .tm-menu-item:hover { background: var(--utility-brand-50); }
-/* 조건이 안 맞아 고를 수 없는 항목 — 감추지 않고 흐리게 남겨 이유(title)를 볼 수 있게 한다. */
+/* 이유 말풍선(Tooltip)이 꺼진 항목을 감싸도 메뉴 한 줄을 그대로 채운다 */
+.dp-tip-wrap.tm-menu-item-tip { display: flex; width: 100%; }
+/* 조건이 안 맞아 고를 수 없는 항목 — 감추지 않고 흐리게 남겨 이유(말풍선)를 볼 수 있게 한다. */
 .tm-menu-item.is-disabled {
   color: var(--text-disabled, var(--text-tertiary));
   cursor: not-allowed;

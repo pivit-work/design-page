@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -376,7 +377,9 @@ export default function BillingOverviewCanvas({
           <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
             <span style={{ color: T.sub }}>
               {labels.activeSeats}
-              <span title={labels.seatsTooltip} style={{ cursor: 'help', color: T.muted }}> ⓘ</span>
+              <Tooltip content={labels.seatsTooltip}>
+                <span style={{ cursor: 'help', color: T.muted }}> ⓘ</span>
+              </Tooltip>
             </span>
             <span style={{ fontWeight: 700 }}>
               {/* Free: 사용/상한 표기, 유료 티어: 사용 좌석만 표기 */}

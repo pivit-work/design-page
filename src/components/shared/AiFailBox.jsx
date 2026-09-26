@@ -1,4 +1,5 @@
 import { AlertTriangleGlyph } from './lineIcons.jsx';
+import Tooltip from './Tooltip.jsx';
 
 /**
  * AiFailBox — AI 생성이 실패했을 때의 안내 상자.
@@ -37,15 +38,16 @@ export default function AiFailBox({
       {message && <p className="aifail-msg">{message}</p>}
       {retryLabel && (
         <span className="aifail-actions">
-          <button
-            type="button"
-            className="aifail-retry"
-            onClick={onRetry}
-            disabled={retryDisabled}
-            title={retryTitle}
-          >
-            {retryLabel}
-          </button>
+          <Tooltip content={retryTitle}>
+            <button
+              type="button"
+              className="aifail-retry"
+              onClick={onRetry}
+              disabled={retryDisabled}
+            >
+              {retryLabel}
+            </button>
+          </Tooltip>
         </span>
       )}
     </div>

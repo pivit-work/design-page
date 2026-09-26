@@ -1,6 +1,7 @@
 // TC-051/052 항목 설명(툴팁) · TC-053 항목별 공개 대상 — 셀프/동료/하향 캔버스 공용.
 // 캔버스마다 필드 렌더가 달라도 라벨 옆 info 툴팁과 항목 하단 공개범위 안내는 동일 규칙으로 노출한다.
 import { InfoIcon, EyeIcon, LockIcon } from './evalIcons.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 const DEFAULT_VIS = {
   visibleToEvaluatee: '이 항목은 피평가자 본인에게도 공개됩니다.',
@@ -20,14 +21,15 @@ function isVisibleToEvaluatee(visibleToRoles) {
 export function FieldInfo({ description }) {
   if (!description) return null;
   return (
-    <span
-      className="evx-field-info"
-      title={description}
-      data-testid="evx-field-info"
-      aria-label={description}
-    >
-      <InfoIcon size={13} />
-    </span>
+    <Tooltip content={description}>
+      <span
+        className="evx-field-info"
+        data-testid="evx-field-info"
+        aria-label={description}
+      >
+        <InfoIcon size={13} />
+      </span>
+    </Tooltip>
   );
 }
 

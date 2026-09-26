@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
@@ -722,8 +723,9 @@ export default function BillingPlansCanvas({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 15, fontWeight: 700 }}>
               {labels.seatCardTitle}
-              <span title={labels.seatTooltip}
-                style={{ cursor: 'help', color: T.muted, fontSize: 13, marginLeft: 4 }}>ⓘ</span>
+              <Tooltip content={labels.seatTooltip}>
+                <span style={{ cursor: 'help', color: T.muted, fontSize: 13, marginLeft: 4 }}>ⓘ</span>
+              </Tooltip>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button type="button"

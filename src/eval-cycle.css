@@ -1087,6 +1087,8 @@
 }
 /* 단계 켜기/끄기 — 공용 스위치(`Switch`, src/switch.css). 여기는 줄 끝으로 미는 자리만 (PW-1010) */
 .evc-sched-switch { margin-left: auto; }
+/* 꺼진 스위치는 이유 말풍선이 바깥을 두른다 — 그때는 두른 쪽을 민다 (PW-1123). */
+.evc-sched-switch-tip { margin-left: auto; }
 .evc-sched-fields {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -8459,6 +8461,10 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+/* [대화 요약] 버튼이 꺼져 이유 말풍선을 두를 때도 오른쪽 끝에 선다 (PW-1123). */
+.evc-shell-thread-list > .fbmgr-summarize-tip {
+  align-self: flex-end;
 }
 /* 공용 창 틀 안 본문 — 칸 사이 간격만 준다(바깥 여백은 틀이 갖는다). */
 .evc-shell-body {

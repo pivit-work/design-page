@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import {
   TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName,
@@ -199,14 +200,15 @@ export default function AdminTeamDetailPanel({
               />
             </div>
           ) : (
-            <h2
-              className="tm-team-name"
-              onClick={() => { setNameInput(team.name); setEditingName(true); }}
-              title={labels.editTeam}
-            >
-              <span>{team.name}</span>
-              <span className="tm-team-name-pencil" aria-hidden><PencilIcon size={14} /></span>
-            </h2>
+            <Tooltip content={labels.editTeam}>
+              <h2
+                className="tm-team-name"
+                onClick={() => { setNameInput(team.name); setEditingName(true); }}
+              >
+                <span>{team.name}</span>
+                <span className="tm-team-name-pencil" aria-hidden><PencilIcon size={14} /></span>
+              </h2>
+            </Tooltip>
           )}
 
           <div className="tm-breadcrumb">
@@ -479,17 +481,17 @@ function MemberRow({ member, teamId, labels, renderAvatar, showMenu, onToggleMen
           {showMenu && (
             <div className="tm-menu" style={{ top: '100%', right: 0 }}>
               {menuItems.map(({ action, label, Icon, danger, disabled, title }) => (
-                <button
-                  type="button"
-                  key={action}
-                  className={`tm-menu-item${danger ? ' is-danger' : ''}${disabled ? ' is-disabled' : ''}`}
-                  disabled={disabled}
-                  title={title}
-                  onClick={(e) => { e.stopPropagation(); onAction(action, teamId, member.id); onToggleMenu(); }}
-                >
-                  <span className="tm-menu-item-icon"><Icon size={14} /></span>
-                  {label}
-                </button>
+                <Tooltip key={action} content={title} className="tm-menu-item-tip">
+                  <button
+                    type="button"
+                    className={`tm-menu-item${danger ? ' is-danger' : ''}${disabled ? ' is-disabled' : ''}`}
+                    disabled={disabled}
+                    onClick={(e) => { e.stopPropagation(); onAction(action, teamId, member.id); onToggleMenu(); }}
+                  >
+                    <span className="tm-menu-item-icon"><Icon size={14} /></span>
+                    {label}
+                  </button>
+                </Tooltip>
               ))}
             </div>
           )}

@@ -1,3 +1,4 @@
+import Tooltip from '../shared/Tooltip.jsx';
 import EvalNoteBlock from './EvalNoteBlock.jsx';
 import {
   CHECK_MAX_OPTIONS,
@@ -288,17 +289,17 @@ export default function EvalTemplateItemSettings({
                 // 상향 리뷰의 '직속 조직장' = 평가 대상 본인. 켤 수는 있으나 무엇을 켜는지 알린다.
                 const isTargetSelf = reviewType === 'upward' && a.id === 'manager';
                 return (
-                  <button
-                    type="button"
-                    key={a.id}
-                    className={`evc-type-chip${on ? ' is-on' : ''}${isTargetSelf && on ? ' is-warn' : ''}`}
-                    onClick={() => onToggleAudience(q, a.id)}
-                    title={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}
-                    data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
-                  >
-                    {L[a.labelKey]}
-                    {isTargetSelf && on ? ' ⚠' : ''}
-                  </button>
+                  <Tooltip key={a.id} content={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}>
+                    <button
+                      type="button"
+                      className={`evc-type-chip${on ? ' is-on' : ''}${isTargetSelf && on ? ' is-warn' : ''}`}
+                      onClick={() => onToggleAudience(q, a.id)}
+                      data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
+                    >
+                      {L[a.labelKey]}
+                      {isTargetSelf && on ? ' ⚠' : ''}
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -314,16 +315,16 @@ export default function EvalTemplateItemSettings({
             <div className="evc-tpl-set-row">
               <span className="evc-tpl-set-note">{L.identityLabel}</span>
               {IDENTITY_OPTIONS.map((o) => (
-                <button
-                  type="button"
-                  key={o.id}
-                  className={`evc-type-chip${(disclosure.identity || 'anonymous') === o.id ? ' is-on' : ''}`}
-                  onClick={() => onPatchDisclosure(q, { identity: o.id })}
-                  title={L[o.descKey]}
-                  data-testid={`evc-tpl-identity-${q.id}-${o.id}`}
-                >
-                  {L[o.labelKey]}
-                </button>
+                <Tooltip key={o.id} content={L[o.descKey]}>
+                  <button
+                    type="button"
+                    className={`evc-type-chip${(disclosure.identity || 'anonymous') === o.id ? ' is-on' : ''}`}
+                    onClick={() => onPatchDisclosure(q, { identity: o.id })}
+                    data-testid={`evc-tpl-identity-${q.id}-${o.id}`}
+                  >
+                    {L[o.labelKey]}
+                  </button>
+                </Tooltip>
               ))}
             </div>
             {/* 인원이 적으면 익명이 익명이 아니게 된다. */}

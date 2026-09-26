@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
 
@@ -67,14 +68,15 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
           // 분기를 합치지 않는다. 사유가 다르면 사용자가 할 일도 다르다.
           // 라벨은 그대로 두고 비활성으로만 둔다 — 회의록 쪽 잠긴 버튼 문구는 기획서가
           // 정하지 않았고, 이유는 목록 위 배너와 툴팁이 말한다.
-          <button
-            type="button"
-            className="mtg-start-btn is-locked"
-            disabled
-            title={startLock.tooltip || undefined}
-          >
-            {statusLabels.startLabel}
-          </button>
+          <Tooltip content={startLock.tooltip || undefined}>
+            <button
+              type="button"
+              className="mtg-start-btn is-locked"
+              disabled
+            >
+              {statusLabels.startLabel}
+            </button>
+          </Tooltip>
         ) : (
           <button
             type="button"
@@ -184,16 +186,17 @@ export default function MeetingsCanvas({
           {/* 캘린더 없이 지금 바로 녹음하는 문도 같은 규칙으로 잠근다 — 여기를 열어
               두면 잠금이 목록 행에만 걸리고 이 버튼으로 그대로 뚫린다. */}
           {onStartAdhoc && (
-            <button
-              type="button"
-              className={`mtg-start-adhoc ${startLock ? 'is-locked' : ''}`}
-              onClick={startLock ? undefined : onStartAdhoc}
-              disabled={!!startLock}
-              title={startLock?.tooltip || undefined}
-            >
-              <Icon src="/icons-solid/microphone-01.svg" size={16} color="currentColor" baseUrl={baseUrl} />
-              <span>{L.startAdhoc}</span>
-            </button>
+            <Tooltip content={startLock?.tooltip || undefined}>
+              <button
+                type="button"
+                className={`mtg-start-adhoc ${startLock ? 'is-locked' : ''}`}
+                onClick={startLock ? undefined : onStartAdhoc}
+                disabled={!!startLock}
+              >
+                <Icon src="/icons-solid/microphone-01.svg" size={16} color="currentColor" baseUrl={baseUrl} />
+                <span>{L.startAdhoc}</span>
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>

@@ -11,6 +11,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useDismissLayer, useViewportTick } from './hooks.js';
+import Tooltip from '../shared/Tooltip.jsx';
 import {
   CAPACITY,
   HIST_LIST_MAX_H,
@@ -45,7 +46,8 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
         {segments.map((s, i) => {
           const overStart = Math.max(0, Math.min(s.pct, cumulative[i] - CAPACITY)); // 이 세그먼트 중 100을 넘은 몫
           return (
-            <div key={s.id} title={`${s.name} ${s.pct}%`} className="sq-gauge-seg" style={{ width: `${pc(s.pct)}%` }}>
+            <Tooltip key={s.id} content={`${s.name} ${s.pct}%`}>
+            <div className="sq-gauge-seg" style={{ width: `${pc(s.pct)}%` }}>
               <div
                 className="sq-gauge-fill"
                 style={{ width: `${s.pct ? ((s.pct - overStart) / s.pct) * 100 : 0}%`, background: s.color }}
@@ -58,11 +60,14 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
                 }}
               />
             </div>
+            </Tooltip>
           );
         })}
       </div>
       {total > CAPACITY && (
-        <div className="sq-gauge-mark" title={L('squad.gauge.capacity100')} style={{ left: `${pc(CAPACITY)}%` }} />
+        <Tooltip content={L('squad.gauge.capacity100')}>
+          <div className="sq-gauge-mark" style={{ left: `${pc(CAPACITY)}%` }} />
+        </Tooltip>
       )}
     </div>
   );
@@ -90,10 +95,9 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
           const over = Math.max(0, Math.min(r.share, cumulative[i] - SQUAD_BASE));
           const c = colorOf(r.userId);
           return (
+            <Tooltip key={r.userId} content={L('squad.tip.memberSummary', { name: r.label, share: r.share, capacity: `${r.pct}%` })}>
             <div
-              key={r.userId}
               className="sq-share-seg"
-              title={L('squad.tip.memberSummary', { name: r.label, share: r.share, capacity: `${r.pct}%` })}
               style={{ width: `${pc(r.share)}%` }}
             >
               <div
@@ -108,19 +112,23 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
                 }}
               />
             </div>
+            </Tooltip>
           );
         })}
         {allotted < SQUAD_BASE && (
-          <div
-            className="sq-share-rest"
-            data-testid="squad-share-unallotted"
-            title={L('squad.allot.under', { diff: SQUAD_BASE - allotted })}
-            style={{ width: `${pc(SQUAD_BASE - allotted)}%` }}
-          />
+          <Tooltip content={L('squad.allot.under', { diff: SQUAD_BASE - allotted })}>
+            <div
+              className="sq-share-rest"
+              data-testid="squad-share-unallotted"
+              style={{ width: `${pc(SQUAD_BASE - allotted)}%` }}
+            />
+          </Tooltip>
         )}
       </div>
       {allotted > SQUAD_BASE && (
-        <div className="sq-share-mark" title={L('squad.gauge.squad100')} style={{ left: `${pc(SQUAD_BASE)}%` }} />
+        <Tooltip content={L('squad.gauge.squad100')}>
+          <div className="sq-share-mark" style={{ left: `${pc(SQUAD_BASE)}%` }} />
+        </Tooltip>
       )}
     </div>
   );
@@ -174,11 +182,9 @@ export function SquadComposition({ squad, members, personOf }) {
           {/* 범례 — 비중을 크게, 캐파 사용은 괄호로 병기해 두 축을 혼동하지 않게 한다 */}
           <div className="sq-comp-legend">
             {rows.map((r) => (
-              <span
+              <Tooltip
                 key={r.userId}
-                className="sq-comp-item"
-                data-testid={`squad-comp-item-${r.userId}`}
-                title={[
+                content={[
                   L('squad.tip.memberSummary', {
                     name: nameOf(r.userId),
                     share: r.share,
@@ -186,6 +192,10 @@ export function SquadComposition({ squad, members, personOf }) {
                   }),
                   r.capacityIdle ? L('squad.capacityIdleHint') : '',
                 ].filter(Boolean).join('\n')}
+              >
+              <span
+                className="sq-comp-item"
+                data-testid={`squad-comp-item-${r.userId}`}
               >
                 <span className="sq-comp-swatch" style={{ background: colorOf(r.userId) }} />
                 {r.role === 'lead' && (
@@ -195,30 +205,32 @@ export function SquadComposition({ squad, members, personOf }) {
                 <span className="sq-comp-share">{r.share}%</span>
                 <span className="sq-comp-raw">{L('squad.comp.capacityRaw', { value: r.capacityUnset ? '—' : r.pct })}</span>
                 {/* 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 자리(§10-A15).
-                    차단이 아니라 «여기 아직 안 정해졌다» 를 표에서 짚어 주는 표식이다 */}
+                    차단이 아니라 «여기 아직 안 정해졌다» 를 표에서 짚어 주는 표식이다.
+                    이유 문구는 감싼 범례 항목의 말풍선에 들어 있다 — 점에 따로 달면 말풍선이 둘 뜬다 */}
                 {r.capacityIdle && (
                   <span
                     className="sq-idle-dot"
                     data-testid={`squad-comp-cap-idle-${r.userId}`}
-                    title={L('squad.capacityIdleHint')}
                     aria-hidden
                   />
                 )}
               </span>
+              </Tooltip>
             ))}
           </div>
         </>
       )}
 
       {/* 캐파 축 — 분모가 달라 같은 줄에 두지 않는다. 인분 환산이 가능한 쪽은 여기뿐이다 */}
+      <Tooltip content={L('squad.comp.caplineTip')}>
       <div
         className="sq-comp-capline"
         data-testid="squad-capsum"
-        title={L('squad.comp.caplineTip')}
       >
         <span className="sq-comp-capline-label">{L('squad.comp.caplineLabel')}</span>
         <span className="sq-comp-capline-value">{L('squad.comp.caplineValue', { sum: capSum, fte: fte.toFixed(1) })}</span>
       </div>
+      </Tooltip>
     </div>
   );
 }

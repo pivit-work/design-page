@@ -1,4 +1,5 @@
 import { AlertIcon, InfoIcon } from './evalIcons.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).
@@ -139,10 +140,9 @@ export default function EvalCycleReportSettings({
             const isRequired = requiredSet.has(key);
             const locked = isRequired || readOnly;
             return (
+              <Tooltip key={key} content={isRequired ? L.requiredHint : undefined}>
               <label
-                key={key}
                 className={`evrs-chip ${on ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
-                title={isRequired ? L.requiredHint : undefined}
                 data-testid={`evrs-section-${key}`}
               >
                 <input
@@ -154,6 +154,7 @@ export default function EvalCycleReportSettings({
                 <span>{L.sectionLabels?.[key] ?? key}</span>
                 {isRequired && <span className="evrs-chip-req">{L.required}</span>}
               </label>
+              </Tooltip>
             );
           })}
         </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { fillExportCaption } from './employeeExportItems.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
@@ -87,11 +88,11 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
   const blocked = disabled || busy;
   return (
     <div ref={ref} style={{ position: 'relative' }}>
+      <Tooltip content={disabled ? (L.emptyTooltip || '내보낼 대상이 없습니다') : undefined}>
       <button
         type="button"
         data-testid="export-roster-button"
         disabled={blocked}
-        title={disabled ? (L.emptyTooltip || '내보낼 대상이 없습니다') : undefined}
         onClick={() => setOpen((v) => !v)}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9,
@@ -103,6 +104,7 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
         <IconDownload size={14} />
         {busy ? (L.preparing || '생성 중…') : (L.button || '명부 내보내기')}
       </button>
+      </Tooltip>
       {open && !blocked && (
         <div
           ref={menuRef}

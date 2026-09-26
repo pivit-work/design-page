@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronLeftIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
@@ -185,18 +186,22 @@ function PhaseCell({ phase, phaseKey, L }) {
   );
   if (!MULTI_ASSIGN.has(phaseKey)) {
     return (
-      <span className="evmon-self" title={title} data-testid="evmon-phase-cell">
-        {badge}
-      </span>
+      <Tooltip content={title}>
+        <span className="evmon-self" data-testid="evmon-phase-cell">
+          {badge}
+        </span>
+      </Tooltip>
     );
   }
   return (
-    <span className="evmon-self" title={title} data-testid="evmon-phase-cell">
-      {badge}{' '}
-      <span data-testid="evmon-phase-count">
-        {fill(L.cellCount, { done: phase.done, total: phase.total })}
+    <Tooltip content={title}>
+      <span className="evmon-self" data-testid="evmon-phase-cell">
+        {badge}{' '}
+        <span data-testid="evmon-phase-count">
+          {fill(L.cellCount, { done: phase.done, total: phase.total })}
+        </span>
       </span>
-    </span>
+    </Tooltip>
   );
 }
 
@@ -588,26 +593,28 @@ export default function EvalCycleMonitoringCanvas({
               })}
             </p>
             <div className="evmon-controls">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={!canExport}
-                title={canExport ? L.exportProgressHint : L.exportNoTarget}
-                onClick={() => setExportKind('progress')}
-                data-testid="evmon-export-progress"
-              >
-                {L.exportProgress}
-              </button>
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={!canExport}
-                title={canExport ? L.exportAnswersHint : L.exportNoTarget}
-                onClick={() => setExportKind('answers')}
-                data-testid="evmon-export-answers"
-              >
-                {L.exportAnswers}
-              </button>
+              <Tooltip content={canExport ? L.exportProgressHint : L.exportNoTarget}>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={!canExport}
+                  onClick={() => setExportKind('progress')}
+                  data-testid="evmon-export-progress"
+                >
+                  {L.exportProgress}
+                </button>
+              </Tooltip>
+              <Tooltip content={canExport ? L.exportAnswersHint : L.exportNoTarget}>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={!canExport}
+                  onClick={() => setExportKind('answers')}
+                  data-testid="evmon-export-answers"
+                >
+                  {L.exportAnswers}
+                </button>
+              </Tooltip>
             </div>
             <p className="evc-empty-sub">{L.exportNote}</p>
           </section>

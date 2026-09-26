@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import useSegmentedIndicator from './useSegmentedIndicator.js';
+import Tooltip from './Tooltip.jsx';
 
 /**
  * SegmentedControl — pivit 전역 segmented control.
@@ -51,26 +52,27 @@ export default function SegmentedControl({
         />
       )}
       {items.map((it, i) => (
-        <button
-          key={it.value}
-          ref={(el) => {
-            itemsRef.current[i] = el;
-          }}
-          type="button"
-          role="tab"
-          aria-selected={value === it.value}
-          aria-disabled={it.disabled ? 'true' : undefined}
-          disabled={it.disabled || undefined}
-          title={it.title}
-          className={`seg-item ${value === it.value ? 'is-active' : ''}`}
-          data-testid={it.testId}
-          onClick={() => {
-            if (it.disabled) return;
-            onChange?.(it.value);
-          }}
-        >
-          {it.label}
-        </button>
+        // 왜 못 고르는지 같은 설명은 0.3초 뒤 뜨는 말풍선으로 (PW-1123). 꺼진 탭도 바깥을 둘러 받는다
+        <Tooltip key={it.value} content={it.title}>
+          <button
+            ref={(el) => {
+              itemsRef.current[i] = el;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={value === it.value}
+            aria-disabled={it.disabled ? 'true' : undefined}
+            disabled={it.disabled || undefined}
+            className={`seg-item ${value === it.value ? 'is-active' : ''}`}
+            data-testid={it.testId}
+            onClick={() => {
+              if (it.disabled) return;
+              onChange?.(it.value);
+            }}
+          >
+            {it.label}
+          </button>
+        </Tooltip>
       ))}
     </div>
   );

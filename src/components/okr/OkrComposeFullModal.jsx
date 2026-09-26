@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
@@ -376,19 +377,22 @@ export default function OkrComposeFullModal({
               : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
       </span>
       <button type="button" className="okr-btn is-outline" onClick={onClose}>취소</button>
-      <button
-        type="button"
-        className="okr-btn is-brand"
-        disabled={!canSave || saving}
-        title={
+      <Tooltip
+        content={
           !canSave
             ? (blockReason ?? 'Objective 가중치 합이 100%여야 저장할 수 있습니다.')
             : ''
         }
-        onClick={handleSave}
       >
-        {saving ? '저장 중…' : '저장'}
-      </button>
+        <button
+          type="button"
+          className="okr-btn is-brand"
+          disabled={!canSave || saving}
+          onClick={handleSave}
+        >
+          {saving ? '저장 중…' : '저장'}
+        </button>
+      </Tooltip>
     </>
   ) : null;
 
@@ -531,15 +535,16 @@ export default function OkrComposeFullModal({
                           onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
                         />
                         {onRefineKr && (
-                          <button
-                            type="button"
-                            className="okr-wz-ai-btn"
-                            title="AI로 KR 개선"
-                            disabled={!kr.title.trim() || refiningKey !== null}
-                            onClick={() => refineKr(objective.key, kr)}
-                          >
-                            {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
-                          </button>
+                          <Tooltip content="AI로 KR 개선">
+                            <button
+                              type="button"
+                              className="okr-wz-ai-btn"
+                              disabled={!kr.title.trim() || refiningKey !== null}
+                              onClick={() => refineKr(objective.key, kr)}
+                            >
+                              {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
+                            </button>
+                          </Tooltip>
                         )}
                         <button type="button" className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
                           <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />

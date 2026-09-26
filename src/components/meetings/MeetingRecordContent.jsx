@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
 import ActionPersonPopover from './ActionPersonPopover.jsx';
@@ -182,6 +183,7 @@ export default function MeetingRecordContent({
         <ul className="mtg-record-action-list">
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">
+              <Tooltip content={readOnly ? readOnlyHint : undefined} className="mtg-record-action-title-tip">
               <input
                 type="text"
                 className="mtg-record-action-title"
@@ -190,7 +192,6 @@ export default function MeetingRecordContent({
                 onChange={(e) => updateAction(idx, { title: e.target.value })}
                 readOnly={readOnly}
                 disabled={readOnly}
-                title={readOnly ? readOnlyHint : undefined}
                 ref={(el) => {
                   if (el && justAddedIdxRef.current === idx) {
                     justAddedIdxRef.current = null;
@@ -198,11 +199,12 @@ export default function MeetingRecordContent({
                   }
                 }}
               />
+              </Tooltip>
+              <Tooltip content={readOnly ? readOnlyHint : undefined}>
               <button
                 type="button"
                 className={`mtg-record-action-person${a.person ? '' : ' is-empty'}`}
                 disabled={readOnly}
-                title={readOnly ? readOnlyHint : undefined}
                 onClick={(e) => setOpenPicker({
                   idx,
                   field: 'person',
@@ -220,11 +222,12 @@ export default function MeetingRecordContent({
                   </span>
                 )}
               </button>
+              </Tooltip>
+              <Tooltip content={readOnly ? readOnlyHint : undefined}>
               <button
                 type="button"
                 className="mtg-record-action-date"
                 disabled={readOnly}
-                title={readOnly ? readOnlyHint : undefined}
                 onClick={(e) => setOpenPicker({
                   idx,
                   field: 'date',
@@ -233,6 +236,7 @@ export default function MeetingRecordContent({
               >
                 {a.date}
               </button>
+              </Tooltip>
               {!readOnly && <button
                 type="button"
                 className="mtg-record-action-remove"

@@ -1,4 +1,5 @@
 import Tabs from '../shared/Tabs.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalShellNav — 평가 화면 공통 서브 내비게이션.
@@ -47,10 +48,9 @@ export default function EvalShellNav({
         {domains.map((d) => {
           const on = d.id === activeDomain;
           return (
+            <Tooltip key={d.id} content={d.desc || undefined}>
             <button
-              key={d.id}
               type="button"
-              title={d.desc || ''}
               aria-current={on ? 'true' : undefined}
               className={on ? 'tab-active' : 'tab-inactive'}
               onClick={() => !on && onDomainChange?.(d.id)}
@@ -58,6 +58,7 @@ export default function EvalShellNav({
             >
               {d.label}
             </button>
+            </Tooltip>
           );
         })}
       </div>

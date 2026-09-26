@@ -2,6 +2,7 @@ import Icon from '../shared/Icon.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
 import {
   Section,
@@ -239,16 +240,18 @@ function TalkTrend({ trend, L, icons, baseUrl }) {
           {trend.map((t) => (
             <div className="ono-past-trend-col" key={t.id}>
               <div className="ono-past-trend-bars">
-                <span
-                  className={`ono-past-trend-bar is-manager${t.managerPct > 40 ? ' is-over' : ''}`}
-                  style={{ height: `${t.managerPct}%` }}
-                  title={`${L.roleManager} ${t.managerPct}%`}
-                />
-                <span
-                  className="ono-past-trend-bar is-member"
-                  style={{ height: `${t.memberPct}%` }}
-                  title={`${L.roleMember} ${t.memberPct}%`}
-                />
+                <Tooltip content={`${L.roleManager} ${t.managerPct}%`}>
+                  <span
+                    className={`ono-past-trend-bar is-manager${t.managerPct > 40 ? ' is-over' : ''}`}
+                    style={{ height: `${t.managerPct}%` }}
+                  />
+                </Tooltip>
+                <Tooltip content={`${L.roleMember} ${t.memberPct}%`}>
+                  <span
+                    className="ono-past-trend-bar is-member"
+                    style={{ height: `${t.memberPct}%` }}
+                  />
+                </Tooltip>
               </div>
               <span className="ono-past-trend-label">{t.label}</span>
             </div>

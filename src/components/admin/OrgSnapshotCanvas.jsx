@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
@@ -411,15 +412,16 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
         onClick={() => hasChildren && setOpen((o) => !o)}
       >
         <span className="admin-snap-tree-toggle">{hasChildren ? (open ? '▾' : '▸') : ''}</span>
-        <button
-          type="button"
-          className="admin-snap-tree-name"
-          onClick={onDrilldown ? drill : undefined}
-          title={onDrilldown ? hint : undefined}
-          style={onDrilldown ? { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' } : undefined}
-        >
-          {node.name}
-        </button>
+        <Tooltip content={onDrilldown ? hint : undefined}>
+          <button
+            type="button"
+            className="admin-snap-tree-name"
+            onClick={onDrilldown ? drill : undefined}
+            style={onDrilldown ? { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' } : undefined}
+          >
+            {node.name}
+          </button>
+        </Tooltip>
         <span className="admin-snap-tree-count">{node.count}</span>
         <div className="admin-snap-tree-bar-wrap">
           <div className="admin-snap-tree-bar">
@@ -509,18 +511,18 @@ function OrgSnapshotStatusView({
         {summaryCards.map((c) => {
           const clickable = c.drill && onDrilldown;
           return (
-            <div
-              key={c.key ?? c.label}
-              className={`admin-snap-summary-card is-${c.tone || 'accent'}${clickable ? ' is-clickable' : ''}`}
-              onClick={clickable ? () => onDrilldown({ card: c.key, label: c.label }) : undefined}
-              role={clickable ? 'button' : undefined}
-              title={clickable ? labels.drilldownHint : undefined}
-              style={clickable ? { cursor: 'pointer' } : undefined}
-            >
-              <p className="admin-snap-summary-label">{c.label}</p>
-              <p className="admin-snap-summary-value">{c.value}</p>
-              {c.sub && <p className="admin-snap-summary-sub">{c.sub}</p>}
-            </div>
+            <Tooltip key={c.key ?? c.label} content={clickable ? labels.drilldownHint : undefined}>
+              <div
+                className={`admin-snap-summary-card is-${c.tone || 'accent'}${clickable ? ' is-clickable' : ''}`}
+                onClick={clickable ? () => onDrilldown({ card: c.key, label: c.label }) : undefined}
+                role={clickable ? 'button' : undefined}
+                style={clickable ? { cursor: 'pointer' } : undefined}
+              >
+                <p className="admin-snap-summary-label">{c.label}</p>
+                <p className="admin-snap-summary-value">{c.value}</p>
+                {c.sub && <p className="admin-snap-summary-sub">{c.sub}</p>}
+              </div>
+            </Tooltip>
           );
         })}
       </div>
@@ -1541,15 +1543,16 @@ function AsOfSnapshotView({
             )}
           </div>
           {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
-          <button
-            type="button"
-            className="admin-snap-export-btn"
-            disabled={isOut}
-            title={isOut ? labels.asofOutOfRangeTitle : undefined}
-            onClick={() => onExport?.()}
-          >
-            ↓ {labels.asofExport}
-          </button>
+          <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
+            <button
+              type="button"
+              className="admin-snap-export-btn"
+              disabled={isOut}
+              onClick={() => onExport?.()}
+            >
+              ↓ {labels.asofExport}
+            </button>
+          </Tooltip>
         </div>
       </header>
 

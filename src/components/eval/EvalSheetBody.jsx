@@ -1,5 +1,6 @@
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import {
   filledOptions,
   groupBySection,
@@ -85,7 +86,9 @@ export default function EvalSheetBody({
                 {q.text}
                 {/* PW-433 ⑥ 가이드 문구를 어떻게 보여줄지는 설계자가 정한다. */}
                 {q.description && (q.descriptionDisplay || 'tooltip') === 'tooltip' && (
-                  <span className="evc-preview-guide-mark" title={q.description}>?</span>
+                  <Tooltip content={q.description}>
+                    <span className="evc-preview-guide-mark">?</span>
+                  </Tooltip>
                 )}
                 {q.requiresRationale && (
                   <StatusBadge className="evc-mode-badge is-warn">{L.rationaleRequired}</StatusBadge>
@@ -93,7 +96,7 @@ export default function EvalSheetBody({
               </div>
               {/* [PW-602 ③④] 상시 표시는 설명 본문과 **같은 렌더러**로 그린다 — 같은 필드라
                   부분집합을 두 벌 두지 않는다(policy §5.11-F 「같은 규칙을 §5.11-D 에도 쓴다」).
-                  ⚠️ 「툴팁」 표시는 브라우저 말풍선(`title=`)이라 서식이 그려질 자리가 없다 —
+                  ⚠️ 「툴팁」 표시는 말풍선(Tooltip)에 글만 담아 서식이 그려질 자리가 없다 —
                      서식이 실제로 보이는 곳은 이 상시 표시와 설명 항목 본문 둘이다. */}
               {q.description && (q.descriptionDisplay || 'tooltip') === 'inline' && (
                 <EvalMarkdownLite

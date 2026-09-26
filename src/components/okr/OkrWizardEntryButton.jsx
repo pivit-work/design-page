@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
@@ -34,14 +35,14 @@ export default function OkrWizardEntryButton({
   useDismissLayer(() => setOpen(false), rootRef, null, open);
 
   return (
-    // 비활성 버튼은 브라우저가 마우스 이벤트를 막아 툴팁이 안 뜰 수 있다 — 감싼 쪽에도 사유를 둔다.
-    <div className="okr-wz-entry" ref={rootRef} title={disabled ? title : undefined}>
+    // 꺼진 버튼은 마우스 이벤트를 삼키므로 말풍선이 바깥(dp-tip-wrap)에 걸린다.
+    <div className="okr-wz-entry" ref={rootRef}>
+      <Tooltip content={title}>
       <button
         type="button"
         className="okr-wz-entry-btn"
         data-testid={testId}
         disabled={disabled}
-        title={title}
         aria-haspopup={hasMenu ? 'menu' : undefined}
         aria-expanded={hasMenu ? open : undefined}
         onClick={() => {
@@ -53,6 +54,7 @@ export default function OkrWizardEntryButton({
         <span>{label}</span>
         {hasMenu && !disabled && <ChevronDown />}
       </button>
+      </Tooltip>
       {hasMenu && open && (
         <div className="okr-wz-entry-menu" role="menu">
           {menuItems.map((item) => (

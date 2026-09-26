@@ -41,6 +41,7 @@
     "./styles/button.css": "./src/button.css",
     "./styles/pagination.css": "./src/pagination.css",
     "./styles/switch.css": "./src/switch.css",
+    "./styles/tooltip.css": "./src/tooltip.css",
     "./styles/loading.css": "./src/loading.css",
     "./styles/settings.css": "./src/settings.css",
     "./styles/notifications.css": "./src/notifications.css",

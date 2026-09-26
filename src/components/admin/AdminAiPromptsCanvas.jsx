@@ -3,6 +3,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -93,18 +94,16 @@ function fmtVersion(template, version) {
 }
 
 // 컨텍스트 변수 칩 — design-page .admin-snap-chip(둥근 pill) 패턴을 확장.
-// 중괄호는 brand 색으로 살짝 강조(에메랄드 절제), 호버 시 설명 툴팁 노출.
+// 중괄호는 brand 색으로 살짝 강조(에메랄드 절제), 호버 시 설명은 공용 말풍선(Tooltip).
 function VarChip({ name, desc, onInsert }) {
   const [hover, setHover] = useState(false);
   return (
-    <span
-      style={{ position: 'relative', display: 'inline-flex' }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
+    <Tooltip content={desc}>
       <button
         type="button"
         onClick={onInsert}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         data-testid={`var-chip-${name}`}
         style={{
           padding: '5px 12px', borderRadius: 99,
@@ -120,21 +119,7 @@ function VarChip({ name, desc, onInsert }) {
         {name}
         <span style={{ color: 'var(--text-brand-tertiary)' }}>{'}}'}</span>
       </button>
-      {hover && desc && (
-        <span
-          role="tooltip"
-          style={{
-            position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-            background: 'var(--text-primary)', color: 'var(--bg-quaternary)',
-            fontSize: 12, lineHeight: 1.5, fontWeight: 500, padding: '7px 10px', borderRadius: 8,
-            width: 'max-content', maxWidth: 220, textAlign: 'center',
-            boxShadow: '0 4px 16px rgba(10, 13, 18, .18)', zIndex: 60, pointerEvents: 'none',
-          }}
-        >
-          {desc}
-        </span>
-      )}
-    </span>
+    </Tooltip>
   );
 }
 

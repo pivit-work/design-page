@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -589,17 +590,18 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump })
                   발화가 전문에 없으면 비활성으로 그린다 — 눌러 놓고 아무 일도 안
                   일어나면 화면이 고장 난 것처럼 보인다. */}
               {jump?.enabled && (
-                <button
-                  type="button"
-                  className="ono-mem-evidence-jump"
-                  data-testid="ono-evidence-jump"
-                  disabled={!jump.has(ev.anchor)}
-                  title={jump.has(ev.anchor) ? undefined : L.evidenceJumpMissing}
-                  onClick={() => jump.to(ev.anchor)}
-                >
-                  {L.evidenceJump}
-                  <Icon src={icons.arrow} size={12} color="currentColor" baseUrl={baseUrl} />
-                </button>
+                <Tooltip content={jump.has(ev.anchor) ? undefined : L.evidenceJumpMissing}>
+                  <button
+                    type="button"
+                    className="ono-mem-evidence-jump"
+                    data-testid="ono-evidence-jump"
+                    disabled={!jump.has(ev.anchor)}
+                    onClick={() => jump.to(ev.anchor)}
+                  >
+                    {L.evidenceJump}
+                    <Icon src={icons.arrow} size={12} color="currentColor" baseUrl={baseUrl} />
+                  </button>
+                </Tooltip>
               )}
             </div>
           ))}

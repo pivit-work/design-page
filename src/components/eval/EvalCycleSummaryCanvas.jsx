@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -691,16 +692,17 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
       <div className="evs-cw-dist-head">
         <span className="evs-cw-dist-title">{L.cwDistTitle}</span>
         <span className="evs-cw-dist-count">{fmt(L.cwDistCount, { n })}</span>
-        <span
-          className="evs-cw-dist-info"
-          title={L.cwDistNote}
-          aria-label={L.cwDistNote}
-          role="img"
-          tabIndex={0}
-          data-testid="evs-cw-dist-info"
-        >
-          <InfoIcon size={16} />
-        </span>
+        <Tooltip content={L.cwDistNote}>
+          <span
+            className="evs-cw-dist-info"
+            aria-label={L.cwDistNote}
+            role="img"
+            tabIndex={0}
+            data-testid="evs-cw-dist-info"
+          >
+            <InfoIcon size={16} />
+          </span>
+        </Tooltip>
       </div>
       <div className="evs-cw-dist-bar">
         {n === 0 ? (
@@ -709,28 +711,29 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
           <>
             {seg.map((g) =>
               g.count > 0 ? (
-                <div
-                  key={g.gradeKey}
-                  className={`evs-cw-dist-seg hue-${g.hue}`}
-                  style={{ width: `${(g.count / n) * 100}%` }}
-                  title={`${g.label} ${g.count} (${pct(g.count)}%)`}
-                  data-testid="evs-cw-dist-seg"
-                >
-                  {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
-                </div>
+                <Tooltip key={g.gradeKey} content={`${g.label} ${g.count} (${pct(g.count)}%)`}>
+                  <div
+                    className={`evs-cw-dist-seg hue-${g.hue}`}
+                    style={{ width: `${(g.count / n) * 100}%` }}
+                    data-testid="evs-cw-dist-seg"
+                  >
+                    {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
+                  </div>
+                </Tooltip>
               ) : null,
             )}
             {noGrade > 0 && (
+              <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}>
               <div
                 className="evs-cw-dist-seg is-nograde"
                 style={{ width: `${(noGrade / n) * 100}%` }}
-                title={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}
                 data-testid="evs-cw-dist-seg-nograde"
               >
                 {noGrade / n >= 0.09
                   ? fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })
                   : ''}
               </div>
+              </Tooltip>
             )}
           </>
         )}
@@ -1551,20 +1554,22 @@ export default function EvalCycleSummaryCanvas({
                             <div className="evs-dist-track">
                               <div className="evs-dist-fill" style={{ width: `${Math.min(100, pct)}%` }} data-testid="evs-dist-fill" />
                               {d.guidelinePct != null && (
-                                <div
-                                  className="evs-dist-guide"
-                                  style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
-                                  title={`${L.guidelineLabel} ${d.guidelinePct}%`}
-                                  data-testid="evs-dist-guide"
-                                />
+                                <Tooltip content={`${L.guidelineLabel} ${d.guidelinePct}%`}>
+                                  <div
+                                    className="evs-dist-guide"
+                                    style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
+                                    data-testid="evs-dist-guide"
+                                  />
+                                </Tooltip>
                               )}
                               {prev != null && (
-                                <div
-                                  className="evs-dist-tick"
-                                  style={{ left: `${Math.min(100, prev)}%` }}
-                                  title={`${L.distPrevLegend} ${prev}%`}
-                                  data-testid="evs-dist-prev-tick"
-                                />
+                                <Tooltip content={`${L.distPrevLegend} ${prev}%`}>
+                                  <div
+                                    className="evs-dist-tick"
+                                    style={{ left: `${Math.min(100, prev)}%` }}
+                                    data-testid="evs-dist-prev-tick"
+                                  />
+                                </Tooltip>
                               )}
                             </div>
                           </div>
@@ -1906,16 +1911,19 @@ export default function EvalCycleSummaryCanvas({
                         <div className="evs-dist-track">
                           <div className="evs-dist-fill" style={{ width: `${Math.min(100, a.pct)}%` }} data-testid="evs-cd-fill" />
                           {guide != null && (
-                            <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} title={`${L.guidelineLabel} ${guide}%`} />
+                            <Tooltip content={`${L.guidelineLabel} ${guide}%`}>
+                              <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} />
+                            </Tooltip>
                           )}
                           {/* 조정 전이 0명이면 왼쪽 끝에 붙어 깨진 선처럼 보여서 그리지 않는다 — 숫자 줄에는 나온다 */}
                           {changed && b.count > 0 && (
-                            <div
-                              className="evs-dist-tick"
-                              style={{ left: `${Math.min(100, b.pct)}%` }}
-                              title={`${L.cdBefore} ${b.count}${L.unit} (${b.pct}%)`}
-                              data-testid="evs-cd-before-tick"
-                            />
+                            <Tooltip content={`${L.cdBefore} ${b.count}${L.unit} (${b.pct}%)`}>
+                              <div
+                                className="evs-dist-tick"
+                                style={{ left: `${Math.min(100, b.pct)}%` }}
+                                data-testid="evs-cd-before-tick"
+                              />
+                            </Tooltip>
                           )}
                         </div>
                         {changed && (
@@ -2861,19 +2869,20 @@ export default function EvalCycleSummaryCanvas({
                   )}
                   {/* PW-520 표시 항목 — 필터(행 고르기)와 별개 버튼·별개 창이다. 위원도 열어 볼 수는 있다. */}
                   {calibDisplay && (
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost"
-                      title={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}
-                      onClick={() => {
-                        setDisplayDraft(null);
-                        setDisplaySaveError(false);
-                        setShowDisplay(true);
-                      }}
-                      data-testid="evs-cw-display-btn"
-                    >
-                      {L.cwDisplayBtn}
-                    </button>
+                    <Tooltip content={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}>
+                      <button
+                        type="button"
+                        className="evc-btn is-ghost"
+                        onClick={() => {
+                          setDisplayDraft(null);
+                          setDisplaySaveError(false);
+                          setShowDisplay(true);
+                        }}
+                        data-testid="evs-cw-display-btn"
+                      >
+                        {L.cwDisplayBtn}
+                      </button>
+                    </Tooltip>
                   )}
                   {/* PW-519 — 보상·연봉 열람 권한. 인사담당자에게만 버튼이 있다(명단도 인사 정보다). */}
                   {compView?.canManage && onOpenCompensationAccess && (
@@ -3137,37 +3146,39 @@ export default function EvalCycleSummaryCanvas({
                                       ) : null
                                     ) : (
                                       <div className="evs-cw-promo-toggle">
-                                        <button
-                                          type="button"
-                                          className={`evs-cw-promo-btn${row.committeePromotion === 'approved' ? ' is-on tone-green' : ''}`}
-                                          data-testid="evs-cw-promo-approve"
-                                          title={L.cwPromoApproved}
-                                          onClick={() =>
-                                            onSetCommitteePromotion?.(
-                                              row.memberId,
-                                              row.committeePromotion === 'approved'
-                                                ? null
-                                                : 'approved',
-                                            )
-                                          }
-                                        >
-                                          {L.cwPromoApprove}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className={`evs-cw-promo-btn${row.committeePromotion === 'rejected' ? ' is-on tone-red' : ''}`}
-                                          title={L.cwPromoRejected}
-                                          onClick={() =>
-                                            onSetCommitteePromotion?.(
-                                              row.memberId,
-                                              row.committeePromotion === 'rejected'
-                                                ? null
-                                                : 'rejected',
-                                            )
-                                          }
-                                        >
-                                          {L.cwPromoReject}
-                                        </button>
+                                        <Tooltip content={L.cwPromoApproved}>
+                                          <button
+                                            type="button"
+                                            className={`evs-cw-promo-btn${row.committeePromotion === 'approved' ? ' is-on tone-green' : ''}`}
+                                            data-testid="evs-cw-promo-approve"
+                                            onClick={() =>
+                                              onSetCommitteePromotion?.(
+                                                row.memberId,
+                                                row.committeePromotion === 'approved'
+                                                  ? null
+                                                  : 'approved',
+                                              )
+                                            }
+                                          >
+                                            {L.cwPromoApprove}
+                                          </button>
+                                        </Tooltip>
+                                        <Tooltip content={L.cwPromoRejected}>
+                                          <button
+                                            type="button"
+                                            className={`evs-cw-promo-btn${row.committeePromotion === 'rejected' ? ' is-on tone-red' : ''}`}
+                                            onClick={() =>
+                                              onSetCommitteePromotion?.(
+                                                row.memberId,
+                                                row.committeePromotion === 'rejected'
+                                                  ? null
+                                                  : 'rejected',
+                                              )
+                                            }
+                                          >
+                                            {L.cwPromoReject}
+                                          </button>
+                                        </Tooltip>
                                       </div>
                                     )}
                                   </div>
@@ -4025,22 +4036,22 @@ export default function EvalCycleSummaryCanvas({
                         (r) => r.memberId === mid,
                       );
                       return (
-                        <button
-                          key={mid}
-                          type="button"
-                          className="evs-cw-filter-excluded-pill"
-                          title={L.cwExcludedRemove}
-                          onClick={() =>
-                            setCalibFilter((fs) => ({
-                              ...fs,
-                              excludeIds: (fs.excludeIds || []).filter(
-                                (x) => x !== mid,
-                              ),
-                            }))
-                          }
-                        >
-                          {(m?.name || mid) + ' ×'}
-                        </button>
+                        <Tooltip key={mid} content={L.cwExcludedRemove}>
+                          <button
+                            type="button"
+                            className="evs-cw-filter-excluded-pill"
+                            onClick={() =>
+                              setCalibFilter((fs) => ({
+                                ...fs,
+                                excludeIds: (fs.excludeIds || []).filter(
+                                  (x) => x !== mid,
+                                ),
+                              }))
+                            }
+                          >
+                            {(m?.name || mid) + ' ×'}
+                          </button>
+                        </Tooltip>
                       );
                     })}
                   </div>
@@ -4694,7 +4705,9 @@ export default function EvalCycleSummaryCanvas({
                       {isSent ? (
                         <span className="evs-remind-done">{L.remindSent}</span>
                       ) : warn ? (
-                        <span className="evs-remind-warn" title={L.remindReSendTip}>{L.remindReSendWarn}</span>
+                        <Tooltip content={L.remindReSendTip}>
+                          <span className="evs-remind-warn">{L.remindReSendWarn}</span>
+                        </Tooltip>
                       ) : null}
                     </span>
                   </div>

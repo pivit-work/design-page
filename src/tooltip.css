@@ -1,0 +1,85 @@
+/*
+ * 공용 말풍선 `Tooltip` (PW-1123) — `components/shared/Tooltip.jsx`.
+ *
+ * 모양은 디자이너가 그린 OKR 리소스 막대 말풍선(Figma 17486:22303, `okr_resource.css` 의
+ * `.rsx-bar-tip`)을 바탕으로 했다 — 둥근 모서리 4px 글상자 + 아래로 향한 작은 세모 꼬리 +
+ * 옅은 그림자. 긴 설명이 들어가는 자리가 많아 여백·줄바꿈·최대 폭만 더했다.
+ * 모든 화면에 쓸 원본은 아직 없어 개발이 먼저 만들었다 — 디자이너 검수는 PW-1124.
+ *
+ * 기본 색은 짙은 글자색 바탕에 밝은 글자(다크 모드에서는 두 값이 서로 뒤집혀 그대로 읽힌다).
+ * `is-brand` 는 OKR 막대처럼 색이 있는 말풍선 — 바탕은 `--tip-color`, 글자는 흰색.
+ */
+
+/* 꺼진 버튼처럼 스스로 마우스 이벤트를 못 받는 것을 감싸는 바깥 */
+.dp-tip-wrap {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+}
+/* 꺼진 자식은 이벤트를 삼키므로 통과시켜 바깥이 받게 한다 */
+.dp-tip-wrap > :disabled,
+.dp-tip-wrap > [aria-disabled='true'] {
+  pointer-events: none;
+}
+.dp-tip-wrap:has(> :disabled),
+.dp-tip-wrap:has(> [aria-disabled='true']) {
+  cursor: not-allowed;
+}
+/* 세로로 늘어선 메뉴 항목처럼 자식이 줄 폭을 다 채워야 하는 자리 */
+.dp-tip-wrap.is-block {
+  display: flex;
+}
+.dp-tip-wrap.is-block > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dp-tip-wrap:focus-visible {
+  outline: 2px solid var(--border-brand, #16b364);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.dp-tooltip {
+  --tip-color: var(--text-primary);
+  position: fixed;
+  z-index: 2147483600;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 280px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--tip-color);
+  color: var(--bg-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: -0.01em;
+  text-align: left;
+  white-space: pre-line;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08));
+}
+.dp-tooltip.is-brand {
+  --tip-color: var(--fg-brand-primary);
+  color: var(--text-white);
+  font-weight: 600;
+}
+
+.dp-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 3.25px solid transparent;
+  border-right: 3.25px solid transparent;
+  transform: translateX(-50%);
+}
+.dp-tooltip[data-side='top'] .dp-tooltip-arrow {
+  top: 100%;
+  border-top: 4px solid var(--tip-color);
+}
+.dp-tooltip[data-side='bottom'] .dp-tooltip-arrow {
+  bottom: 100%;
+  border-bottom: 4px solid var(--tip-color);
+}
