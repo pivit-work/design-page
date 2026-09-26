@@ -170,6 +170,139 @@
   color: var(--text-secondary);
 }
 
+/* AI 즉답 (PW-1132) — 시안 SupportNew ③: 답은 주의색 칸, 도움말 없음은 회색, 실패는 빨강 */
+.sup-ai-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-secondary);
+}
+.sup-ai-divider {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sup-ai-idle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sup-ai-idle-hint,
+.sup-actions-hint {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sup-ai {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid;
+  border-radius: 12px;
+}
+.sup-ai.is-answer {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+.sup-ai.is-empty {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+}
+.sup-ai.is-error {
+  background: var(--utility-error-50);
+  border-color: var(--utility-error-200);
+}
+.sup-ai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sup-ai-notice {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sup-ai-unconfident,
+.sup-ai-error-title,
+.sup-ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+.sup-ai-unconfident {
+  font-weight: 600;
+  color: var(--utility-warning-700);
+}
+.sup-ai-error-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--utility-error-700);
+}
+.sup-ai-loading {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.sup-ai-answer {
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sup-ai-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.sup-ai-sources-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.sup-ai-source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sup-ai-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--border-brand);
+  border-radius: 6px;
+  background: var(--bg-brand-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-brand-secondary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.sup-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sup-actions-split {
+  align-items: center;
+  justify-content: space-between;
+}
+
 /* 접수 완료 */
 .sup-done {
   display: flex;
