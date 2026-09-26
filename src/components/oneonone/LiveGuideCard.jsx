@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
 import { formatLiveElapsed } from './sessionHelpers.js';
 import Spinner from '../shared/Spinner.jsx';
@@ -256,16 +257,17 @@ export default function LiveGuideCard({
             {clockRunning ? formatLiveElapsed(elapsedSec) : NO_CLOCK}
           </span>
           {generated && !loading && (
-            <button
-              type="button"
-              className="ono-guide-mini-btn"
-              onClick={onGenerate}
-              disabled={regenLeft <= 0}
-              title={regenLeft <= 0 ? L.regenExhaustedTitle : undefined}
-              data-testid="ono-live-guide-regen"
-            >
-              {regenLeft <= 0 ? L.regenExhausted : L.regen(regenLeft)}
-            </button>
+            <Tooltip content={regenLeft <= 0 ? L.regenExhaustedTitle : undefined}>
+              <button
+                type="button"
+                className="ono-guide-mini-btn"
+                onClick={onGenerate}
+                disabled={regenLeft <= 0}
+                data-testid="ono-live-guide-regen"
+              >
+                {regenLeft <= 0 ? L.regenExhausted : L.regen(regenLeft)}
+              </button>
+            </Tooltip>
           )}
           {generated && !summaryOnly && (
             <button
@@ -297,16 +299,17 @@ export default function LiveGuideCard({
             {retryExhausted ? L.retryExhausted : L[REASON_KEY[failReason] ?? 'reasonModelError']}
           </p>
           <p className="ono-guide-fail-body">{L.failBody}</p>
-          <button
-            type="button"
-            className="ono-guide-fail-btn"
-            onClick={onGenerate}
-            disabled={retryDisabled}
-            title={quotaBlocked ? L.quotaTooltip : undefined}
-            data-testid="ono-live-guide-retry"
-          >
-            {L.retry}
-          </button>
+          <Tooltip content={quotaBlocked ? L.quotaTooltip : undefined}>
+            <button
+              type="button"
+              className="ono-guide-fail-btn"
+              onClick={onGenerate}
+              disabled={retryDisabled}
+              data-testid="ono-live-guide-retry"
+            >
+              {L.retry}
+            </button>
+          </Tooltip>
         </div>
       )}
 

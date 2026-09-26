@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { LeadStarIcon, LeadStarOutlineIcon } from '../orgchart/squadIcons.jsx';
 import { squadStatusMeta } from '../orgchart/squad-constants.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
@@ -331,11 +332,11 @@ export default function SquadPicker({
 
                   {/* 스쿼드 리드 — 배정된 스쿼드에만 노출된다. */}
                   {on && (row.isLead ? (
+                    <Tooltip content={L.releaseLeadTitle}>
                     <button
                       type="button"
                       data-testid={`squad-lead-on-${id}`}
                       onClick={() => toggleLead(id)}
-                      title={L.releaseLeadTitle}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
                         fontSize: 9, fontWeight: 800, color: T.lead, background: T.leadBg,
@@ -350,12 +351,13 @@ export default function SquadPicker({
                       </span>
                       {L.isLead}
                     </button>
+                    </Tooltip>
                   ) : (
+                    <Tooltip content={L.makeLeadTitle}>
                     <button
                       type="button"
                       data-testid={`squad-lead-off-${id}`}
                       onClick={() => toggleLead(id)}
-                      title={L.makeLeadTitle}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0,
                         fontSize: 10, color: T.muted, background: 'none', border: 'none',
@@ -365,6 +367,7 @@ export default function SquadPicker({
                       <LeadStarOutlineIcon size={10} />
                       {L.makeLead}
                     </button>
+                    </Tooltip>
                   ))}
                 </div>
               );
@@ -433,9 +436,11 @@ export function SquadCell({ squads = [], assignments = [], statusLabels = {}, cl
           >
             {/* SQ7 — 읽기 전용 표기. 색은 감싸는 span 의 color 를 아이콘이 상속한다. */}
             {a.isLead && (
-              <span data-testid={`squad-lead-badge-${a.squadId}`} title={statusLabels.lead || '스쿼드 리드'} style={{ color: T.leadMark, display: 'inline-flex', flexShrink: 0 }}>
-                <LeadStarIcon size={LEAD_MARK_SIZE} />
-              </span>
+              <Tooltip content={statusLabels.lead || '스쿼드 리드'}>
+                <span data-testid={`squad-lead-badge-${a.squadId}`} style={{ color: T.leadMark, display: 'inline-flex', flexShrink: 0 }}>
+                  <LeadStarIcon size={LEAD_MARK_SIZE} />
+                </span>
+              </Tooltip>
             )}
             <span style={{ fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{a.squad.name}</span>
             {a.squad.status === 'planned' && (

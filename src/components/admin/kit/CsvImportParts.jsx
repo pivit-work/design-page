@@ -15,6 +15,7 @@
  */
 import { IconDownload, IconUpload, IconX } from '../employeesIcons.jsx';
 import StatusBadge from '../../shared/StatusBadge.jsx';
+import Tooltip from '../../shared/Tooltip.jsx';
 import RosterTable from '../../shared/RosterTable.jsx';
 
 const cx = (...xs) => xs.filter(Boolean).join(' ');
@@ -258,7 +259,11 @@ export function CsvField({ label, required = false, requiredTitle, badge, marker
     <label className="admin-inv-field">
       <span className="admin-kit-field-label">
         {label}
-        {required && <span className="admin-kit-required" title={requiredTitle}>*</span>}
+        {required && (
+          <Tooltip content={requiredTitle}>
+            <span className="admin-kit-required">*</span>
+          </Tooltip>
+        )}
         {badge ? (
           <StatusBadge className={cx('admin-kit-badge', `is-${badge.tone}`)}>
             {badge.icon}

@@ -11,6 +11,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -1157,21 +1158,21 @@ function StepBar({
               ? 'current'
               : 'future';
         return (
-          <button
-            type="button"
-            key={s.titleKey}
-            className={`evc-wiz-step is-${state}`}
-            onClick={() => state !== 'current' && onJump(i)}
-            aria-current={state === 'current' ? 'step' : undefined}
-            title={skipped ? L.stepSkippedHint : undefined}
-            data-testid={`evc-wiz-step-${i}`}
-          >
-            <span className="evc-wiz-step-num">
-              {skipped ? '–' : state === 'done' ? '✓' : i + 1}
-            </span>
-            <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
-            {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
-          </button>
+          <Tooltip key={s.titleKey} content={skipped ? L.stepSkippedHint : undefined}>
+            <button
+              type="button"
+              className={`evc-wiz-step is-${state}`}
+              onClick={() => state !== 'current' && onJump(i)}
+              aria-current={state === 'current' ? 'step' : undefined}
+              data-testid={`evc-wiz-step-${i}`}
+            >
+              <span className="evc-wiz-step-num">
+                {skipped ? '–' : state === 'done' ? '✓' : i + 1}
+              </span>
+              <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
+              {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
+            </button>
+          </Tooltip>
         );
       })}
     </div>
@@ -1445,18 +1446,19 @@ function TemplatePickerModal({
                   ? fill(L.tplPickerScopeAll, { count: pool.length })
                   : fill(L.tplPickerScopeOne, { type: currentTypeName, count: typePool.length })}
               </span>
-              <button
-                type="button"
-                className="evc-tpl-picker-toggle"
-                onClick={() => setAllTypes((v) => !v)}
-                disabled={!allTypes && otherTypeCount === 0}
-                title={!allTypes && otherTypeCount === 0 ? L.tplPickerNoOtherTypes : undefined}
-                data-testid="evc-tpl-picker-alltypes"
-              >
-                {allTypes
-                  ? fill(L.tplPickerOnlyCurrent, { type: currentTypeName })
-                  : fill(L.tplPickerShowOther, { count: otherTypeCount })}
-              </button>
+              <Tooltip content={!allTypes && otherTypeCount === 0 ? L.tplPickerNoOtherTypes : undefined}>
+                <button
+                  type="button"
+                  className="evc-tpl-picker-toggle"
+                  onClick={() => setAllTypes((v) => !v)}
+                  disabled={!allTypes && otherTypeCount === 0}
+                  data-testid="evc-tpl-picker-alltypes"
+                >
+                  {allTypes
+                    ? fill(L.tplPickerOnlyCurrent, { type: currentTypeName })
+                    : fill(L.tplPickerShowOther, { count: otherTypeCount })}
+                </button>
+              </Tooltip>
             </div>
 
             {kw && matched.length === 0 && (
@@ -1534,16 +1536,17 @@ function TemplatePickerModal({
                                   >
                                     <EyeIcon size={13} /> {L.templatePreview}
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="evc-btn is-ghost"
-                                    onClick={() => onLoad(t)}
-                                    disabled={!loadable}
-                                    title={loadable ? undefined : L.tplLoadBlockedNotInCycle}
-                                    data-testid={`evc-tpl-picker-load-${t.id}`}
-                                  >
-                                    {L.templateLoad}
-                                  </button>
+                                  <Tooltip content={loadable ? undefined : L.tplLoadBlockedNotInCycle}>
+                                    <button
+                                      type="button"
+                                      className="evc-btn is-ghost"
+                                      onClick={() => onLoad(t)}
+                                      disabled={!loadable}
+                                      data-testid={`evc-tpl-picker-load-${t.id}`}
+                                    >
+                                      {L.templateLoad}
+                                    </button>
+                                  </Tooltip>
                                 </div>
                               </div>
                               {open && <TemplateBriefPreview tpl={t} labels={L} />}
@@ -2720,29 +2723,29 @@ export default function EvalCycleWizard({
                 : `${v.token} — ${desc}`
               : v.token;
             return (
-              <button
-                key={v.token}
-                type="button"
-                /* [PW-530 2차] 사람 말 이름이 있으면 «이름 + 작은 토큰» 병기.
-                   이름이 없으면 종전처럼 토큰만 — 문안이 빠져도 칩은 살아 있다. */
-                className={`evc-rm-var${label ? ' is-labeled' : ''}`}
-                title={hint}
-                aria-label={label ? `${label} — ${hint}` : hint}
-                onClick={() =>
-                  patchMessage(ph.id, rm.id, {
-                    [conf.field]: (messageOf(rm)[conf.field] ?? '') + v.token,
-                  })}
-                data-testid={`evc-rm-var${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
-              >
-                {label ? (
-                  <>
-                    {label}
-                    <span className="evc-rm-var-tok">{v.token}</span>
-                  </>
-                ) : (
-                  v.token
-                )}
-              </button>
+              <Tooltip key={v.token} content={hint}>
+                <button
+                  type="button"
+                  /* [PW-530 2차] 사람 말 이름이 있으면 «이름 + 작은 토큰» 병기.
+                     이름이 없으면 종전처럼 토큰만 — 문안이 빠져도 칩은 살아 있다. */
+                  className={`evc-rm-var${label ? ' is-labeled' : ''}`}
+                  aria-label={label ? `${label} — ${hint}` : hint}
+                  onClick={() =>
+                    patchMessage(ph.id, rm.id, {
+                      [conf.field]: (messageOf(rm)[conf.field] ?? '') + v.token,
+                    })}
+                  data-testid={`evc-rm-var${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
+                >
+                  {label ? (
+                    <>
+                      {label}
+                      <span className="evc-rm-var-tok">{v.token}</span>
+                    </>
+                  ) : (
+                    v.token
+                  )}
+                </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -2752,16 +2755,17 @@ export default function EvalCycleWizard({
             [PW-1125] 입력칸 바로 아래 오른쪽 한 줄. */}
         <div className="evc-rm-msg-actions is-end">
           {onPolishMessage && (
-            <button
-              type="button"
-              className="evc-rm-ai"
-              disabled={!canPolish || busy}
-              title={canPolish ? L.reminderAiHint : L.reminderAiEmptyHint}
-              onClick={() => void runAiPolish(ph, rm, slot)}
-              data-testid={`evc-rm-ai${sfx}-${ph.id}-${i}`}
-            >
-              {busy ? L.reminderAiBusy : L.reminderAiPolish}
-            </button>
+            <Tooltip content={canPolish ? L.reminderAiHint : L.reminderAiEmptyHint}>
+              <button
+                type="button"
+                className="evc-rm-ai"
+                disabled={!canPolish || busy}
+                onClick={() => void runAiPolish(ph, rm, slot)}
+                data-testid={`evc-rm-ai${sfx}-${ph.id}-${i}`}
+              >
+                {busy ? L.reminderAiBusy : L.reminderAiPolish}
+              </button>
+            </Tooltip>
           )}
           {extraActions}
         </div>
@@ -3138,42 +3142,42 @@ export default function EvalCycleWizard({
               // [PW-529] 당사자도 이제 끌 수 있다 — 막는 것은 중복뿐이다.
               const disabled = dup;
               return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={disabled}
-                  className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
-                  onClick={async () => {
-                    if (disabled) return;
-                    /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
-                       바꾼다(독촉 → 현황 보고). 한 번 확인한다.
-                       켜는 쪽은 되돌리는 것이라 묻지 않는다. */
-                    if (isSelf && selfOn && !(await confirmSelfOff())) return;
-                    patchReminder(ph.id, rm.id, (r) => ({
-                      targets: {
-                        ...r.targets,
-                        [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
-                      },
-                      /* 🔴 후보 집합만 갈아 끼우면 «고른 값» 은 그대로 남는다.
-                         그러면 셀렉트는 「현황 보고」로 보이는데 실제로 나가는 것은
-                         2인칭 독촉문이다 — 이 절이 막으려던 바로 그 사고가
-                         화면만 바뀐 채 그대로 일어난다. 값도 함께 옮긴다.
-                         커스텀은 건드리지 않는다(직접 쓴 글을 지우지 않는다). */
-                      ...(isSelf
-                        ? // `selfOn` 은 «누르기 전» 값이다 — 켜져 있었으면 지금 끄는 것이다.
-                          { message: migrateTemplate(messageOf(r), selfOn) }
-                        : null),
-                    }));
-                  }}
-                  title={dup ? L.reminderTgtDupHint : undefined}
-                  data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
-                >
-                  {on ? '✓' : '+'}{' '}
-                  {isSelf
-                    ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
-                    : L[t.labelKey]}
-                  {dup ? ` · ${L.reminderTgtDup}` : ''}
-                </button>
+                <Tooltip key={t.id} content={dup ? L.reminderTgtDupHint : undefined}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
+                    onClick={async () => {
+                      if (disabled) return;
+                      /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
+                         바꾼다(독촉 → 현황 보고). 한 번 확인한다.
+                         켜는 쪽은 되돌리는 것이라 묻지 않는다. */
+                      if (isSelf && selfOn && !(await confirmSelfOff())) return;
+                      patchReminder(ph.id, rm.id, (r) => ({
+                        targets: {
+                          ...r.targets,
+                          [t.id]: isSelf ? !selfOn : !r.targets?.[t.id],
+                        },
+                        /* 🔴 후보 집합만 갈아 끼우면 «고른 값» 은 그대로 남는다.
+                           그러면 셀렉트는 「현황 보고」로 보이는데 실제로 나가는 것은
+                           2인칭 독촉문이다 — 이 절이 막으려던 바로 그 사고가
+                           화면만 바뀐 채 그대로 일어난다. 값도 함께 옮긴다.
+                           커스텀은 건드리지 않는다(직접 쓴 글을 지우지 않는다). */
+                        ...(isSelf
+                          ? // `selfOn` 은 «누르기 전» 값이다 — 켜져 있었으면 지금 끄는 것이다.
+                            { message: migrateTemplate(messageOf(r), selfOn) }
+                          : null),
+                      }));
+                    }}
+                    data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
+                  >
+                    {on ? '✓' : '+'}{' '}
+                    {isSelf
+                      ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
+                      : L[t.labelKey]}
+                    {dup ? ` · ${L.reminderTgtDup}` : ''}
+                  </button>
+                </Tooltip>
               );
             })}
           </div>
@@ -3209,16 +3213,17 @@ export default function EvalCycleWizard({
             {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
                 어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
             {onTestSendMessage && (
-              <button
-                type="button"
-                className="evc-rm-test-link"
-                disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
-                title={L.reminderTestSendHint}
-                onClick={() => void runTestSend(ph, rm)}
-                data-testid={`evc-rm-test-send-${ph.id}-${i}`}
-              >
-                {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
-              </button>
+              <Tooltip content={L.reminderTestSendHint}>
+                <button
+                  type="button"
+                  className="evc-rm-test-link"
+                  disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
+                  onClick={() => void runTestSend(ph, rm)}
+                  data-testid={`evc-rm-test-send-${ph.id}-${i}`}
+                >
+                  {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
+                </button>
+              </Tooltip>
             )}
           </div>
           {testResult[testKey(ph.id, rm.id)] && (
@@ -3282,17 +3287,18 @@ export default function EvalCycleWizard({
                     )}
                   </span>
                 ) : savedForPhase(ph.id).length === 0 ? (
-                  /* 없을 때도 자리는 같은 모양으로 — 뜻은 title 로 푼다. */
-                  <Select
-                    className="evc-rm-field"
-                    value=""
-                    disabled
-                    title={L.reminderSavedEmpty}
-                    onChange={() => {}}
-                    data-testid={`evc-rm-saved-none-${ph.id}-${i}`}
-                  >
-                    <option value="">{L.reminderSavedNone}</option>
-                  </Select>
+                  /* 없을 때도 자리는 같은 모양으로 — 뜻은 말풍선으로 푼다. */
+                  <Tooltip content={L.reminderSavedEmpty}>
+                    <Select
+                      className="evc-rm-field"
+                      value=""
+                      disabled
+                      onChange={() => {}}
+                      data-testid={`evc-rm-saved-none-${ph.id}-${i}`}
+                    >
+                      <option value="">{L.reminderSavedNone}</option>
+                    </Select>
+                  </Tooltip>
                 ) : (
                   <Select
                     className="evc-rm-field"
@@ -3339,16 +3345,17 @@ export default function EvalCycleWizard({
                 i,
                 'email',
                 onSaveMessage ? (
-                  <button
-                    type="button"
-                    className="evc-rm-save-msg"
-                    disabled={!msg.body}
-                    title={msg.body ? L.reminderSaveHint : L.reminderSaveEmptyHint}
-                    onClick={() => void saveCurrentMessage(ph, rm)}
-                    data-testid={`evc-rm-save-msg-${ph.id}-${i}`}
-                  >
-                    {L.reminderSaveMessage}
-                  </button>
+                  <Tooltip content={msg.body ? L.reminderSaveHint : L.reminderSaveEmptyHint}>
+                    <button
+                      type="button"
+                      className="evc-rm-save-msg"
+                      disabled={!msg.body}
+                      onClick={() => void saveCurrentMessage(ph, rm)}
+                      data-testid={`evc-rm-save-msg-${ph.id}-${i}`}
+                    >
+                      {L.reminderSaveMessage}
+                    </button>
+                  </Tooltip>
                 ) : null,
               )}
             </div>
@@ -3424,21 +3431,22 @@ export default function EvalCycleWizard({
                         「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
                         부를 대상이 없다 — 켜 둘 수 없게 막는다.
                         참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
-                    <button
-                      type="button"
-                      disabled={!selfOn}
-                      className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
-                      onClick={() =>
-                        selfOn &&
-                        patchReminder(ph.id, rm.id, (r) => ({
-                          slack: { ...r.slack, mention: !r.slack?.mention },
-                        }))}
-                      title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
-                      data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
-                    >
-                      {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
-                      {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
-                    </button>
+                    <Tooltip content={selfOn ? undefined : L.reminderSlackMentionNoSelf}>
+                      <button
+                        type="button"
+                        disabled={!selfOn}
+                        className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
+                        onClick={() =>
+                          selfOn &&
+                          patchReminder(ph.id, rm.id, (r) => ({
+                            slack: { ...r.slack, mention: !r.slack?.mention },
+                          }))}
+                        data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
+                      >
+                        {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                        {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
+                      </button>
+                    </Tooltip>
                     {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
                         슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
                         떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
@@ -5497,21 +5505,21 @@ export default function EvalCycleWizard({
                   // 사이클에서 셀프용 템플릿이 만들어졌다. 여기서 막는다.
                   const inCycle = reviewTypes.includes(rt.id);
                   return (
-                    <button
-                      type="button"
-                      key={rt.id}
-                      disabled={!inCycle}
-                      className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${inCycle ? '' : ' is-locked'}`}
-                      onClick={() => selectTplType(rt.id)}
-                      title={inCycle ? undefined : L.tplTypeNotInCycleHint}
-                      data-testid={`evc-tpl-type-${rt.id}`}
-                    >
-                      {!inCycle && <LockIcon size={11} />}
-                      {L[rt.nameKey]}
-                      {!inCycle && (
-                        <span className="evc-type-chip-lock">{L.tplTypeNotInCycle}</span>
-                      )}
-                    </button>
+                    <Tooltip key={rt.id} content={inCycle ? undefined : L.tplTypeNotInCycleHint}>
+                      <button
+                        type="button"
+                        disabled={!inCycle}
+                        className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${inCycle ? '' : ' is-locked'}`}
+                        onClick={() => selectTplType(rt.id)}
+                        data-testid={`evc-tpl-type-${rt.id}`}
+                      >
+                        {!inCycle && <LockIcon size={11} />}
+                        {L[rt.nameKey]}
+                        {!inCycle && (
+                          <span className="evc-type-chip-lock">{L.tplTypeNotInCycle}</span>
+                        )}
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -5859,9 +5867,11 @@ export default function EvalCycleWizard({
                       onDragEnd: () => { setTplDragIdx(null); setTplDragOverIdx(null); },
                     }}
                     leading={
-                      <span className="evc-tpl-item-handle" title={L.phaseDragHint}>
-                        <GripIcon size={12} />
-                      </span>
+                      <Tooltip content={L.phaseDragHint}>
+                        <span className="evc-tpl-item-handle">
+                          <GripIcon size={12} />
+                        </span>
+                      </Tooltip>
                     }
                     trailing={
                       <>
@@ -5884,20 +5894,21 @@ export default function EvalCycleWizard({
                         {tplType !== 'self' && (() => {
                           const hidden = !(disclosureOf(q).audience || []).includes('evaluatee');
                           return (
-                          <button
-                            type="button"
-                            className={`evc-tpl-rationale${hidden ? ' is-on' : ''}`}
-                            onClick={() => toggleAudience(q, 'evaluatee')}
-                            title={L.hideFromEvaluateeHint}
-                            data-testid={`evc-tpl-hide-${q.id}`}
-                            aria-pressed={hidden}
-                          >
-                            {hidden ? (
-                              <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
-                            ) : (
-                              <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
-                            )}
-                          </button>
+                          <Tooltip content={L.hideFromEvaluateeHint}>
+                            <button
+                              type="button"
+                              className={`evc-tpl-rationale${hidden ? ' is-on' : ''}`}
+                              onClick={() => toggleAudience(q, 'evaluatee')}
+                              data-testid={`evc-tpl-hide-${q.id}`}
+                              aria-pressed={hidden}
+                            >
+                              {hidden ? (
+                                <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
+                              ) : (
+                                <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
+                              )}
+                            </button>
+                          </Tooltip>
                           );
                         })()}
                       </>
@@ -6093,12 +6104,11 @@ export default function EvalCycleWizard({
                       data-testid={`evc-sched-card-${ph.id}`}
                     >
                       <div className="evc-sched-head">
-                        <span
-                          className="evc-sched-handle"
-                          title={ph.anchor ? L.phaseFixedHint : L.phaseDragHint}
-                        >
-                          {ph.anchor ? <LockIcon /> : <GripIcon />}
-                        </span>
+                        <Tooltip content={ph.anchor ? L.phaseFixedHint : L.phaseDragHint}>
+                          <span className="evc-sched-handle">
+                            {ph.anchor ? <LockIcon /> : <GripIcon />}
+                          </span>
+                        </Tooltip>
                         <span className="evc-sched-num">{enabled ? n : '–'}</span>
                         <span className="evc-sched-name">{L[ph.nameKey]}</span>
                         <span className="evc-sched-owner">
@@ -6134,16 +6144,17 @@ export default function EvalCycleWizard({
                             {L.schedulePastBadge}
                           </StatusBadge>
                         )}
-                        <Switch
-                          className="evc-sched-switch"
-                          checked={enabled}
-                          onChange={() => togglePhaseEnabled(ph.id)}
-                          disabled={ph.required || phaseTogglesLocked}
-                          label={L[ph.nameKey]}
-                          /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
-                          title={ph.required ? L.phaseRequiredHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined}
-                          data-testid={`evc-sched-toggle-${ph.id}`}
-                        />
+                        <Tooltip content={ph.required ? L.phaseRequiredHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined} className="evc-sched-switch-tip">
+                          <Switch
+                            className="evc-sched-switch"
+                            checked={enabled}
+                            onChange={() => togglePhaseEnabled(ph.id)}
+                            disabled={ph.required || phaseTogglesLocked}
+                            label={L[ph.nameKey]}
+                            /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
+                            data-testid={`evc-sched-toggle-${ph.id}`}
+                          />
+                        </Tooltip>
                       </div>
                       {/* [PW-529 ③-b · 정책 §5.2.1-C] 「결과 발송」이 무엇을 하는 자리인지 적는다.
                           이름만 보면 여기서 리포트가 나가는 줄 알게 되는데, 실제로는 «언제 보낼지»를
@@ -6854,18 +6865,19 @@ export default function EvalCycleWizard({
                                 }
                               />
                               {/* 규칙 11 — 이름은 «그 조직만 보기». 체크는 안 건드린다. */}
-                              <button
-                                type="button"
-                                className={`evc-org-name evc-org-name-btn${
-                                  orgFocus === d.id ? ' is-focused' : ''
-                                }`}
-                                title={fill(L.targetOrgFocusHint, { name: d.name })}
-                                aria-pressed={orgFocus === d.id}
-                                onClick={() => toggleOrgFocus(d.id)}
-                                data-testid={`evc-wiz-org-focus-${d.id}`}
-                              >
-                                {d.name}
-                              </button>
+                              <Tooltip content={fill(L.targetOrgFocusHint, { name: d.name })}>
+                                <button
+                                  type="button"
+                                  className={`evc-org-name evc-org-name-btn${
+                                    orgFocus === d.id ? ' is-focused' : ''
+                                  }`}
+                                  aria-pressed={orgFocus === d.id}
+                                  onClick={() => toggleOrgFocus(d.id)}
+                                  data-testid={`evc-wiz-org-focus-${d.id}`}
+                                >
+                                  {d.name}
+                                </button>
+                              </Tooltip>
                               <span className="evc-org-n">{deptCount(d)}</span>
                             </div>
                             {open &&
@@ -6879,18 +6891,19 @@ export default function EvalCycleWizard({
                                       toggleUnits([t.id], !orgSel.has(t.id))
                                     }
                                   />
-                                  <button
-                                    type="button"
-                                    className={`evc-org-name evc-org-name-btn${
-                                      orgFocus === t.id ? ' is-focused' : ''
-                                    }`}
-                                    title={fill(L.targetOrgFocusHint, { name: t.name })}
-                                    aria-pressed={orgFocus === t.id}
-                                    onClick={() => toggleOrgFocus(t.id)}
-                                    data-testid={`evc-wiz-org-focus-${t.id}`}
-                                  >
-                                    {t.name}
-                                  </button>
+                                  <Tooltip content={fill(L.targetOrgFocusHint, { name: t.name })}>
+                                    <button
+                                      type="button"
+                                      className={`evc-org-name evc-org-name-btn${
+                                        orgFocus === t.id ? ' is-focused' : ''
+                                      }`}
+                                      aria-pressed={orgFocus === t.id}
+                                      onClick={() => toggleOrgFocus(t.id)}
+                                      data-testid={`evc-wiz-org-focus-${t.id}`}
+                                    >
+                                      {t.name}
+                                    </button>
+                                  </Tooltip>
                                   <span className="evc-org-n">{countOfUnit(t.id)}</span>
                                 </div>
                               ))}
@@ -6912,20 +6925,21 @@ export default function EvalCycleWizard({
                               )
                             }
                           />
-                          <button
-                            type="button"
-                            className={`evc-org-name evc-org-name-btn${
-                              orgFocus === UNASSIGNED_ORG_ID ? ' is-focused' : ''
-                            }`}
-                            title={fill(L.targetOrgFocusHint, {
+                          <Tooltip content={fill(L.targetOrgFocusHint, {
                               name: L.targetOrgUnassigned,
-                            })}
-                            aria-pressed={orgFocus === UNASSIGNED_ORG_ID}
-                            onClick={() => toggleOrgFocus(UNASSIGNED_ORG_ID)}
-                            data-testid={`evc-wiz-org-focus-${UNASSIGNED_ORG_ID}`}
-                          >
-                            {L.targetOrgUnassigned}
-                          </button>
+                            })}>
+                            <button
+                              type="button"
+                              className={`evc-org-name evc-org-name-btn${
+                                orgFocus === UNASSIGNED_ORG_ID ? ' is-focused' : ''
+                              }`}
+                              aria-pressed={orgFocus === UNASSIGNED_ORG_ID}
+                              onClick={() => toggleOrgFocus(UNASSIGNED_ORG_ID)}
+                              data-testid={`evc-wiz-org-focus-${UNASSIGNED_ORG_ID}`}
+                            >
+                              {L.targetOrgUnassigned}
+                            </button>
+                          </Tooltip>
                           <span className="evc-org-n">{unassignedCount}</span>
                         </div>
                       )}
@@ -7057,17 +7071,18 @@ export default function EvalCycleWizard({
                                         {L.targetManualInclude}
                                       </StatusBadge>
                                     )}
-                                    <button
-                                      type="button"
-                                      className="evc-roster-move is-out"
-                                      onClick={() => excludeOne(c.id)}
-                                      aria-label={L.targetReviewExcludeOne}
-                                      title={L.targetReviewExcludeOne}
-                                      data-testid={`evc-wiz-exclude-${c.id}`}
-                                    >
-                                      {L.targetMoveOut}
-                                      <ArrowRightIcon size={13} />
-                                    </button>
+                                    <Tooltip content={L.targetReviewExcludeOne}>
+                                      <button
+                                        type="button"
+                                        className="evc-roster-move is-out"
+                                        onClick={() => excludeOne(c.id)}
+                                        aria-label={L.targetReviewExcludeOne}
+                                        data-testid={`evc-wiz-exclude-${c.id}`}
+                                      >
+                                        {L.targetMoveOut}
+                                        <ArrowRightIcon size={13} />
+                                      </button>
+                                    </Tooltip>
                                   </div>
                                 ))}
                             </div>

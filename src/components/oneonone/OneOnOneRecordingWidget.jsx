@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import useMicWave from '../shared/useMicWave.js';
 import { CloseGlyph, PauseGlyph } from '../shared/lineIcons.jsx';
 
@@ -162,17 +163,16 @@ export default function OneOnOneRecordingWidget({
             <span>{notice}</span>
             <div className="ono-start-rec-notice-actions">
               {onStart && (
-                <button
-                  type="button"
-                  className="ono-start-rec-restart"
-                  onClick={onStart}
-                  disabled={startDisabled}
-                  {...(startDisabled && startDisabledTitle
-                    ? { title: startDisabledTitle }
-                    : null)}
-                >
-                  {startLabel}
-                </button>
+                <Tooltip content={startDisabled ? startDisabledTitle : undefined}>
+                  <button
+                    type="button"
+                    className="ono-start-rec-restart"
+                    onClick={onStart}
+                    disabled={startDisabled}
+                  >
+                    {startLabel}
+                  </button>
+                </Tooltip>
               )}
               {onNoticeClose && (
                 <button

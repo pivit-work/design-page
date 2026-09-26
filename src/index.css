@@ -4,6 +4,7 @@
 @import './button.css';
 @import './pagination.css';
 @import './switch.css';
+@import './tooltip.css';
 @import './loading.css';
 
 :root {

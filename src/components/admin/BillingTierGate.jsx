@@ -5,6 +5,8 @@
 // 과금 모델: 3단 추가형 Free / Starter / Growth / Pro
 // ─────────────────────────────────────────────────────────────
 
+import Tooltip from '../shared/Tooltip.jsx';
+
 const T = {
   font: 'var(--font-family-body)',
   card: '#fff',
@@ -91,8 +93,8 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
   const isSm = size === 'sm';
   const tierLabel = labels?.[requiredTier] ?? TIER_LABEL[requiredTier];
   return (
+    <Tooltip content={title ?? `${tierLabel} 플랜부터 제공`}>
     <span
-      title={title ?? `${tierLabel} 플랜부터 제공`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -112,6 +114,7 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
       <MiniLockIcon size={isSm ? 8 : 10} color={T.amber} />
       {tierLabel}+
     </span>
+    </Tooltip>
   );
 }
 

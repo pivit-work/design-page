@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -408,16 +409,17 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
     >
       <div className="evc-shell-thread-list">
         {onSummarize && (
+          <Tooltip content={canSummarize ? '' : '아직 대화가 충분하지 않습니다'} className="fbmgr-summarize-tip">
           <button
             type="button"
             disabled={!canSummarize || summaryState === 'loading'}
             onClick={summarize}
             data-testid="fbmgr-summarize"
-            title={canSummarize ? '' : '아직 대화가 충분하지 않습니다'}
             style={{ alignSelf: 'flex-end', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
           >
             {summaryState === 'loading' ? '⏳ 요약 중...' : <><SparkleIcon size={12} /> 대화 요약</>}
           </button>
+          </Tooltip>
         )}
         {summary && (
           <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>

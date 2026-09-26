@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
@@ -130,15 +131,16 @@ function AiFailBox({ targetKey, failure, onRetry, busy }) {
       </span>
       <p className="ono-start-failbox-msg">{message}</p>
       <div className="ono-start-failbox-actions">
-        <button
-          type="button"
-          className="ono-start-failbox-retry"
-          onClick={() => onRetry?.(targetKey)}
-          disabled={disabled}
-          title={quota ? AI_FAIL_QUOTA_TOOLTIP : undefined}
-        >
-          다시 시도
-        </button>
+        <Tooltip content={quota ? AI_FAIL_QUOTA_TOOLTIP : undefined}>
+          <button
+            type="button"
+            className="ono-start-failbox-retry"
+            onClick={() => onRetry?.(targetKey)}
+            disabled={disabled}
+          >
+            다시 시도
+          </button>
+        </Tooltip>
         <span className="ono-start-failbox-hint">{AI_FAIL_HINT}</span>
       </div>
     </div>
@@ -1019,14 +1021,15 @@ export default function StartOneOnOneView({
             /* 🔴 준비도(0/4) 분기보다 **위**에 있어야 한다 (policy §5.8.3). 준비도는 이
                화면에서 채울 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리므로,
                지금 무엇을 해야 하는지를 버튼이 말한다. */
-            <button
-              type="button"
-              className="ono-add-modal-btn ono-start-footer-disabled"
-              disabled
-              title={startLockedTitle ?? undefined}
-            >
-              {startLockedLabel ?? '시작하기'}
-            </button>
+            <Tooltip content={startLockedTitle ?? undefined}>
+              <button
+                type="button"
+                className="ono-add-modal-btn ono-start-footer-disabled"
+                disabled
+              >
+                {startLockedLabel ?? '시작하기'}
+              </button>
+            </Tooltip>
           ) : allConfirmed ? (
             <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
           ) : (

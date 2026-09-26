@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { ChatIcon, ClockIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -624,14 +625,13 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
           const bg = r.kind === 'peer' ? C.tealBg : C.blueBg;
           const kindLabel = r.kind === 'peer' ? L.kindPeer : L.kindManager;
           return (
+            <Tooltip key={r.id} content={lockedR ? L.requestAlreadyHint : undefined}>
             <button
-              key={r.id}
               type="button"
               disabled={lockedR}
               onClick={() => setPicked(r)}
               data-testid={`fbm-recipient-${r.id}`}
               data-locked={lockedR ? 'true' : undefined}
-              title={lockedR ? L.requestAlreadyHint : undefined}
               style={{
                 border: `1px solid ${on ? col : lockedR ? C.borderL : C.border}`,
                 background: on ? bg : lockedR ? C.borderL : 'var(--text-white)',
@@ -646,6 +646,7 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
               {r.name} ({kindLabel})
               {lockedR ? ` · ${L.requestAlreadySuffix}` : ''}
             </button>
+            </Tooltip>
           );
         })}
       </div>

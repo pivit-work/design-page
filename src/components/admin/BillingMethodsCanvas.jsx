@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 
@@ -75,14 +76,17 @@ function Btn({ children, onClick, kind = 'primary', disabled, title }) {
     secondary: { bg: '#fff', color: T.text, border: T.border },
     danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
   }[kind];
+  // 설명(꺼진 이유)은 공용 말풍선으로 — 꺼진 버튼이면 부품이 바깥을 둘러 거기서 받는다 (PW-1123)
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled} title={title}
+    <Tooltip content={title}>
+    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
       style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700,
         padding: '10px 18px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
         background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
         opacity: disabled ? 0.5 : 1 }}>
       {children}
     </button>
+    </Tooltip>
   );
 }
 

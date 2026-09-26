@@ -7,6 +7,7 @@ import {
   LockGlyph,
   PencilGlyph,
 } from '../shared/lineIcons.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -645,13 +646,13 @@ const primaryBtn = {
 /** `OKR 설정 시작 →` — 인라인 블록과 스티키 푸터가 같은 모양·같은 목적지로 쓴다. */
 function StartOkrButton({ labels, onClick, disabled, testId, btnRef }) {
   return (
+    <Tooltip content={disabled ? labels.startOkrAdminOnly : undefined}>
     <button
       ref={btnRef}
       type="button"
       data-testid={testId}
       onClick={onClick}
       disabled={disabled}
-      title={disabled ? labels.startOkrAdminOnly : undefined}
       style={{
         ...primaryBtn,
         display: 'inline-flex',
@@ -664,6 +665,7 @@ function StartOkrButton({ labels, onClick, disabled, testId, btnRef }) {
       {labels.startOkr}
       <ArrowRightIcon />
     </button>
+    </Tooltip>
   );
 }
 
@@ -729,12 +731,12 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) 
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {onAnalyze && !allFailed && (
+          <Tooltip content={ready === 0 ? labels.analyzeProcessingHint : undefined}>
           <button
             type="button"
             data-testid="okr-context-analyze"
             onClick={onAnalyze}
             disabled={ready === 0}
-            title={ready === 0 ? labels.analyzeProcessingHint : undefined}
             style={{
               ...ghostBtn,
               display: 'inline-flex',
@@ -748,6 +750,7 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) 
             <SparkIcon />
             {labels.analyze}
           </button>
+          </Tooltip>
         )}
         <StartOkrButton
           labels={labels}

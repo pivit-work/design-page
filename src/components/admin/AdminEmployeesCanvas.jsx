@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
@@ -1646,13 +1647,14 @@ function ListManagerCell({ member, labels, candidates, onAssignManager, renderAv
   // 대표는 상급자를 가질 수 없다 — 「미배정」 경고를 띄우면 영원히 못 지우는 빨간 칸이 된다.
   if (member.isCeo) {
     return (
-      <span
-        className="admin-emp-cell-dash"
-        title={labels.listManagerFilter.ceoTop}
-        data-testid={`employees-list-manager-${member.id}`}
-      >
-        —
-      </span>
+      <Tooltip content={labels.listManagerFilter.ceoTop}>
+        <span
+          className="admin-emp-cell-dash"
+          data-testid={`employees-list-manager-${member.id}`}
+        >
+          —
+        </span>
+      </Tooltip>
     );
   }
   if (!onAssignManager) return <Dash />;
@@ -2394,15 +2396,16 @@ function EmployeesListView({
            닿아야 하기 때문이다(div 클릭은 Tab 으로 도달하지 않는다). */
         if (!canEdit || !onChangeSquads || squadOptions.length === 0) return chips;
         return (
-          <button
-            type="button"
-            className="admin-emp-cell-squads"
-            onClick={() => setSquadPickerFor(m.id)}
-            title={squadPickerLabels.cellHint}
-            data-testid={`employees-list-squads-${m.id}`}
-          >
-            {chips}
-          </button>
+          <Tooltip content={squadPickerLabels.cellHint} wrap={false}>
+            <button
+              type="button"
+              className="admin-emp-cell-squads"
+              onClick={() => setSquadPickerFor(m.id)}
+              data-testid={`employees-list-squads-${m.id}`}
+            >
+              {chips}
+            </button>
+          </Tooltip>
         );
       }
       case 'jobPosition': return <TextCell value={m.jobPosition} />;

@@ -1,4 +1,5 @@
 import { TONES, toneForStatus } from './statusBadgeTones.js';
+import Tooltip from './Tooltip.jsx';
 
 /**
  * 상태 딱지 — 「충족」·「시급」·「진행 중」처럼 색 배경에 둥근 모서리로 붙는 작은 딱지 하나 (PW-840).
@@ -28,6 +29,7 @@ export default function StatusBadge({
   status,
   className = '',
   as: Tag = 'span',
+  title,
   children,
   ...rest
 }) {
@@ -36,9 +38,12 @@ export default function StatusBadge({
     ? `dp-badge--tone-${resolved}`
     : '';
   const classes = ['dp-badge', toneClass, className].filter(Boolean).join(' ');
+  // 설명(`title`)은 브라우저 기본 말풍선이 아니라 0.3초 뒤 뜨는 공용 말풍선으로 (PW-1123)
   return (
-    <Tag className={classes} {...rest}>
-      {children}
-    </Tag>
+    <Tooltip content={title} wrap={false}>
+      <Tag className={classes} {...rest}>
+        {children}
+      </Tag>
+    </Tooltip>
   );
 }

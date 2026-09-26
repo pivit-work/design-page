@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import RosterTable from '../shared/RosterTable.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * 초대 CSV 미리보기 표 — 두 초대 화면(어드민 「구성원 초대」 창 · 온보딩 「구성원 초대」 단계)이
@@ -180,18 +181,20 @@ const StagingRow = memo(function StagingRow({
             onChange={(v) => onChangeCell(row.key, c.key, v)}
           />
         ) : (
-          <input
-            type="text"
-            className={`admin-inv-csvt-input${invalid ? ' is-invalid' : ''}`}
-            value={row.values[c.key]}
-            placeholder="—"
-            list={c.option ? listIdOf(c.option) : undefined}
-            aria-label={labels[c.labelKey]}
-            aria-invalid={invalid || undefined}
-            title={message || undefined}
-            disabled={disabled}
-            onChange={(e) => onChangeCell(row.key, c.key, e.target.value)}
-          />
+          // 입력칸은 칸 폭을 그대로 채워야 해서 바깥을 두르지 않고 입력칸에 직접 건다
+          <Tooltip content={message || undefined} wrap={false}>
+            <input
+              type="text"
+              className={`admin-inv-csvt-input${invalid ? ' is-invalid' : ''}`}
+              value={row.values[c.key]}
+              placeholder="—"
+              list={c.option ? listIdOf(c.option) : undefined}
+              aria-label={labels[c.labelKey]}
+              aria-invalid={invalid || undefined}
+              disabled={disabled}
+              onChange={(e) => onChangeCell(row.key, c.key, e.target.value)}
+            />
+          </Tooltip>
         )}
       </RosterTable.Cell>
     );

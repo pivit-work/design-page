@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
@@ -51,21 +52,22 @@ function InitiativePill({ initiative, canEdit, onToggle }) {
   const cls = `okr-pill is-${initiative.status.tone}${canEdit ? ' is-toggleable' : ''}`;
   if (!canEdit) return <span className={cls}>{initiative.status.label}</span>;
   return (
-    <span
-      className={cls}
-      role="button"
-      tabIndex={0}
-      title="클릭해 상태 전환"
-      onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      onKeyDown={(e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        e.stopPropagation();
-        onToggle();
-      }}
-    >
-      {initiative.status.label}
-    </span>
+    <Tooltip content="클릭해 상태 전환">
+      <span
+        className={cls}
+        role="button"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle();
+        }}
+      >
+        {initiative.status.label}
+      </span>
+    </Tooltip>
   );
 }
 

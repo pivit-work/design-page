@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import Tooltip from '../shared/Tooltip.jsx';
 import {
   TeamIcon, ChevronRightIcon, ChevronDownIcon, MoreVerticalIcon,
   PencilIcon, PlusIcon, FolderInputIcon, Trash2Icon, UserIcon,
@@ -195,9 +196,11 @@ export default function AdminTeamTreeNode({
         <span className="tm-node-count">
           {node.memberCount}
           {node.concurrentCount > 0 && (
-            <span className="tm-node-count-concurrent" title={labels.concurrentHint}>
-              +{node.concurrentCount}
-            </span>
+            <Tooltip content={labels.concurrentHint}>
+              <span className="tm-node-count-concurrent">
+                +{node.concurrentCount}
+              </span>
+            </Tooltip>
           )}
         </span>
 

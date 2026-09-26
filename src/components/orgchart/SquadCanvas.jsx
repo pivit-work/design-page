@@ -25,6 +25,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
@@ -830,14 +831,15 @@ export default function SquadCanvas({
                                 className="sq-menu-item"
                               >{L('squad.card.history')}</div>
                               {/* 삭제는 보관 상태에서만 활성 — 운영 중 조직의 실수 삭제 방지(§5-2-B 1번) */}
-                              <div
-                                data-testid={`squad-more-delete-${sq.id}`}
-                                onClick={() => {
-                                  if (sq.status === 'archived') { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
-                                }}
-                                title={sq.status === 'archived' ? undefined : L('squad.card.deleteOnlyArchived')}
-                                className={`sq-menu-item sq-menu-item-danger${sq.status === 'archived' ? '' : ' is-disabled'}`}
-                              >{L('squad.card.delete')}</div>
+                              <Tooltip content={sq.status === 'archived' ? undefined : L('squad.card.deleteOnlyArchived')}>
+                                <div
+                                  data-testid={`squad-more-delete-${sq.id}`}
+                                  onClick={() => {
+                                    if (sq.status === 'archived') { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
+                                  }}
+                                  className={`sq-menu-item sq-menu-item-danger${sq.status === 'archived' ? '' : ' is-disabled'}`}
+                                >{L('squad.card.delete')}</div>
+                              </Tooltip>
                             </AnchoredLayer>
                           </>
                         )}
@@ -908,11 +910,13 @@ export default function SquadCanvas({
                               const photo = p?.photoUrl || null;
                               const fit = avatarLabelLayout(label, 24);
                               return (
-                                <div
+                                <Tooltip
                                   key={mm.userId}
+                                  content={`${L('squad.tip.memberSummary', { name: nameOf(mm.userId), share: mm.sharePct || 0, capacity: capText(mm) })}${mm.role === 'lead' ? L('squad.tip.leadSuffix') : ''}`}
+                                >
+                                <div
                                   className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
                                   onClick={() => p && onMemberClick?.(p)}
-                                  title={`${L('squad.tip.memberSummary', { name: nameOf(mm.userId), share: mm.sharePct || 0, capacity: capText(mm) })}${mm.role === 'lead' ? L('squad.tip.leadSuffix') : ''}`}
                                 >
                                   {photo ? (
                                     <img src={photo} alt="" className="pj-avatar-sm" />
@@ -931,6 +935,7 @@ export default function SquadCanvas({
                                     <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
                                   )}
                                 </div>
+                                </Tooltip>
                               );
                             })}
                           </div>
@@ -963,11 +968,11 @@ export default function SquadCanvas({
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
                                   )}
+                                  {/* 이유 문구는 칩 말풍선에 들어 있다 — 점에 따로 달면 말풍선이 둘 뜬다 */}
                                   {isCapacityIdle(mm) && (
                                     <span
                                       className="sq-idle-dot"
                                       data-testid={`squad-chip-cap-idle-${sq.id}-${mm.userId}`}
-                                      title={idleHint}
                                       aria-hidden
                                     />
                                   )}
@@ -1211,9 +1216,11 @@ export default function SquadCanvas({
                             것처럼 보인다 — 한 화면이 「잠겼다」와 「눌린다」를 동시에
                             말하게 된다(PW-423). */}
                         {isEditing && !inScope(userId) && leadSet.size === 0 && (
-                          <span className="sq-lock" title={L('squad.tip.lockedOrg')}>
-                            <LockIcon size={13} />
-                          </span>
+                          <Tooltip content={L('squad.tip.lockedOrg')}>
+                            <span className="sq-lock">
+                              <LockIcon size={13} />
+                            </span>
+                          </Tooltip>
                         )}
                       </div>
                     )}
@@ -1232,6 +1239,16 @@ export default function SquadCanvas({
                       const mine = isSelfRow(userId);
                       return (
                         mm ? (
+                          <Tooltip
+                            content={[
+                              `${nameOf(userId)} · ${sq.name}`,
+                              L('squad.tip.cellCapacity', { capacity: capText(mm) }),
+                              L('squad.tip.cellShare', { share: mm.sharePct || 0 }),
+                              capIdle ? idleHint : '',
+                              isLead ? L('squad.tip.lead') : '',
+                              cellHint(L, mine, editable),
+                            ].filter(Boolean).join('\n')}
+                          >
                           <div
                             data-testid={`squad-cell-${sq.id}-${userId}`}
                             className={[
@@ -1242,14 +1259,6 @@ export default function SquadCanvas({
                             ].filter(Boolean).join(' ')}
                             data-squad-popover-anchor="assign"
                             onClick={(e) => editable && openAssignPopover(sq.id, userId, e, 8, 8)}
-                            title={[
-                              `${nameOf(userId)} · ${sq.name}`,
-                              L('squad.tip.cellCapacity', { capacity: capText(mm) }),
-                              L('squad.tip.cellShare', { share: mm.sharePct || 0 }),
-                              capIdle ? idleHint : '',
-                              isLead ? L('squad.tip.lead') : '',
-                              cellHint(L, mine, editable),
-                            ].filter(Boolean).join('\n')}
                             style={capUnset
                               ? undefined
                               : { background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
@@ -1262,10 +1271,10 @@ export default function SquadCanvas({
                                 <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
                               )}
                               {capUnset ? (
+                                // 「미설정」은 칸 말풍선의 캐파 줄이 말한다 — 여기 따로 달면 말풍선이 둘 뜬다
                                 <span
                                   className="sq-cell-pct is-unset"
                                   data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
-                                  title={L('squad.tip.cellCapacityUnset')}
                                 >—</span>
                               ) : (
                                 <span className="sq-cell-pct" style={{ color: sq.color }}>
@@ -1281,24 +1290,27 @@ export default function SquadCanvas({
                                 <span
                                   className="sq-idle-dot"
                                   data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
-                                  title={idleHint}
                                   aria-hidden
                                 />
                               )}
                               {mm.sharePct ? L('squad.matrix.cellShare', { share: mm.sharePct }) : L('squad.matrix.cellShareNone')}
                             </span>
                           </div>
+                          </Tooltip>
                         ) : isEditing ? (
-                          <div
-                            data-testid={`squad-empty-cell-${sq.id}-${userId}`}
-                            className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
-                            onClick={() => canAssign && assign(sq.id, userId)}
-                            title={canAssign
+                          <Tooltip
+                            content={canAssign
                               ? L('squad.tip.assignEmpty', { squad: sq.name })
                               : lockReason()}
                           >
-                            {canAssign && <PlusIcon size={12} />}
-                          </div>
+                            <div
+                              data-testid={`squad-empty-cell-${sq.id}-${userId}`}
+                              className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
+                              onClick={() => canAssign && assign(sq.id, userId)}
+                            >
+                              {canAssign && <PlusIcon size={12} />}
+                            </div>
+                          </Tooltip>
                         ) : (
                           <span className="pj-cell-dot pj-cell-dot-empty" />
                         )
@@ -1310,13 +1322,14 @@ export default function SquadCanvas({
                           {/* 초과 표식 — 「빨강」만으로 초과를 말하지 않기 위한 형태 신호(§5-3.2).
                               색각 이상·흑백 인쇄에서 숫자색이 죽어도 이 표식은 남는다 */}
                           {cst.key === 'over' && (
-                            <span
-                              data-testid={`squad-capacity-over-${userId}`}
-                              className="sq-cap-warn"
-                              title={L('squad.tip.over100')}
-                            >
-                              <WarningIcon size={12} />
-                            </span>
+                            <Tooltip content={L('squad.tip.over100')}>
+                              <span
+                                data-testid={`squad-capacity-over-${userId}`}
+                                className="sq-cap-warn"
+                              >
+                                <WarningIcon size={12} />
+                              </span>
+                            </Tooltip>
                           )}
                           <span
                             data-testid={`squad-capacity-total-${userId}`}

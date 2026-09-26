@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -415,13 +416,14 @@ export default function OrgTreePicker({
                   {retainedActive.size > 0 && (
                     // 「선택 N곳」에 더하지 않고 **따로** 적는다 — 소속 셀은 단말만 세므로,
                     // 여기서 합치면 같은 사람을 두 화면이 다른 숫자로 말하게 된다(PW-404).
-                    <span
-                      data-testid="org-tree-picker-retained"
-                      title={labels.retainedBadgeTitle}
-                      style={{ fontSize: 11, color: T.sub, marginRight: 2 }}
-                    >
-                      · {String(labels.retainedSuffix).split('{count}').join(String(retainedActive.size))}
-                    </span>
+                    <Tooltip content={labels.retainedBadgeTitle}>
+                      <span
+                        data-testid="org-tree-picker-retained"
+                        style={{ fontSize: 11, color: T.sub, marginRight: 2 }}
+                      >
+                        · {String(labels.retainedSuffix).split('{count}').join(String(retainedActive.size))}
+                      </span>
+                    </Tooltip>
                   )}
                   {picked.map((id) => {
                     const entry = findOrgEntry(tree, id);
@@ -593,9 +595,9 @@ export default function OrgTreePicker({
               </button>
               {/* 유지되는 상위 경로 (PW-404) — 왜 체크가 켜져 있고 못 끄는지를 말한다. */}
               {multi && retainedActive.has(e.id) && (
+                <Tooltip content={labels.retainedBadgeTitle}>
                 <span
                   data-testid={`org-tree-retained-badge-${e.id}`}
-                  title={labels.retainedBadgeTitle}
                   style={{
                     flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
                     padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
@@ -604,6 +606,7 @@ export default function OrgTreePicker({
                 >
                   {labels.retainedBadge}
                 </span>
+                </Tooltip>
               )}
               {/* 주 소속 지정 — 고른 조직에만 뜬다. 한 곳뿐이면 이미 주 소속이라 배지만 보인다. */}
               {multi && primarySelectable && picked.includes(e.id) && (
@@ -619,11 +622,11 @@ export default function OrgTreePicker({
                     {labels.primary}
                   </span>
                 ) : (
+                  <Tooltip content={labels.makePrimaryTitle}>
                   <button
                     type="button"
                     data-testid={`org-tree-make-primary-${e.id}`}
                     onClick={() => setPrimary(e.id)}
-                    title={labels.makePrimaryTitle}
                     style={{
                       flexShrink: 0, fontSize: 10, color: T.muted, background: 'none',
                       border: 'none', cursor: 'pointer', fontFamily: T.font, padding: '0 2px',
@@ -631,17 +634,18 @@ export default function OrgTreePicker({
                   >
                     {labels.makePrimary}
                   </button>
+                  </Tooltip>
                 )
               )}
               {/* 이 조직의 매니저(조직장) 지정 — 소속한 조직에만 노출(L3).
                   해제해도 권한은 그대로 둔다(L11) — 조직장 해제와 권한 강등은 별개 결정이다. */}
               {multi && onToggleLeader && picked.includes(e.id) && (
                 leaderIds.includes(e.id) ? (
+                  <Tooltip content={labels.leaderBadgeTitle}>
                   <button
                     type="button"
                     data-testid={`org-tree-leader-badge-${e.id}`}
                     onClick={() => onToggleLeader(e.id, false)}
-                    title={labels.leaderBadgeTitle}
                     style={{
                       flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
                       padding: '1px 7px', borderRadius: 99, boxSizing: 'border-box',
@@ -651,13 +655,14 @@ export default function OrgTreePicker({
                   >
                     {labels.leaderBadge}
                   </button>
+                  </Tooltip>
                 ) : (
+                  <Tooltip content={canBeLeader ? labels.makeLeaderTitle : labels.leaderBlocked}>
                   <button
                     type="button"
                     data-testid={`org-tree-make-leader-${e.id}`}
                     disabled={!canBeLeader}
                     onClick={() => canBeLeader && onToggleLeader(e.id, true)}
-                    title={canBeLeader ? labels.makeLeaderTitle : labels.leaderBlocked}
                     style={{
                       flexShrink: 0, fontSize: 10, color: canBeLeader ? T.muted : T.border,
                       background: 'none', border: 'none', fontFamily: T.font, padding: '0 2px',
@@ -666,6 +671,7 @@ export default function OrgTreePicker({
                   >
                     {labels.makeLeader}
                   </button>
+                  </Tooltip>
                 )
               )}
             </div>

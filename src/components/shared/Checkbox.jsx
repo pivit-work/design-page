@@ -1,4 +1,5 @@
 import { useFieldControl } from './formField.js';
+import Tooltip from './Tooltip.jsx';
 
 /**
  * Checkbox — 체크박스 하나 + 옆 글씨 (PW-1012).
@@ -28,17 +29,20 @@ export default function Checkbox({
   ...rest
 }) {
   const { isInvalid, ...a11y } = useFieldControl({ id, invalid, describedBy });
+  // 줄 전체 설명(`title`)은 0.3초 뒤 뜨는 공용 말풍선으로 (PW-1123). 이름표는 꺼져도 마우스를 받는다
   return (
-    <label className={[className || 'dp-check', isInvalid ? 'is-invalid' : ''].filter(Boolean).join(' ')} title={title}>
-      <input
-        ref={ref}
-        type="checkbox"
-        // 줄 모양을 화면이 정했으면 네모도 전처럼 브라우저 기본 그대로 둔다(모양이 바뀌지 않게).
-        className={['dp-control', inputClassName ?? (className ? '' : 'dp-check-input')].filter(Boolean).join(' ')}
-        {...a11y}
-        {...rest}
-      />
-      {label ?? children}
-    </label>
+    <Tooltip content={title} wrap={false}>
+      <label className={[className || 'dp-check', isInvalid ? 'is-invalid' : ''].filter(Boolean).join(' ')}>
+        <input
+          ref={ref}
+          type="checkbox"
+          // 줄 모양을 화면이 정했으면 네모도 전처럼 브라우저 기본 그대로 둔다(모양이 바뀌지 않게).
+          className={['dp-control', inputClassName ?? (className ? '' : 'dp-check-input')].filter(Boolean).join(' ')}
+          {...a11y}
+          {...rest}
+        />
+        {label ?? children}
+      </label>
+    </Tooltip>
   );
 }

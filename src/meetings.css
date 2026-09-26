@@ -616,6 +616,8 @@
   gap: 12px;
   padding: 6px 0;
 }
+/* 읽기 전용일 때 안내 말풍선(Tooltip)이 입력칸을 감싸도 줄의 남은 폭을 그대로 채운다 */
+.dp-tip-wrap.mtg-record-action-title-tip { flex: 1; min-width: 0; }
 /* 편집 가능한 input — 평소엔 텍스트처럼 보이고 hover/focus 시만 컨테이너 분간. */
 input.mtg-record-action-title {
   flex: 1;

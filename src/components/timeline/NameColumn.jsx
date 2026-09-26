@@ -1,5 +1,6 @@
 import { forwardRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { ChevronDownGlyph, ChevronRightGlyph, CloseGlyph, DragHandleGlyph } from '../shared/lineIcons.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
@@ -44,13 +45,14 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
             }}
           />
         ) : (
-          <span
-            className={`tl-group-header-name${onRenameGroup ? ' is-editable' : ''}`}
-            onClick={onRenameGroup ? () => setEditing(true) : undefined}
-            title={onRenameGroup ? '이름 변경' : undefined}
-          >
-            {group.label}
-          </span>
+          <Tooltip content={onRenameGroup ? '이름 변경' : undefined}>
+            <span
+              className={`tl-group-header-name${onRenameGroup ? ' is-editable' : ''}`}
+              onClick={onRenameGroup ? () => setEditing(true) : undefined}
+            >
+              {group.label}
+            </span>
+          </Tooltip>
         )}
         <span className="tl-group-header-count">{group.memberIds.length}</span>
       </div>

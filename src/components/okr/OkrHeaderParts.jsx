@@ -7,6 +7,8 @@
  * (pivit-work PW-766). 문구는 전부 소비자가 넘긴다(번역).
  */
 
+import Tooltip from '../shared/Tooltip.jsx';
+
 /** 탭 오른쪽 위 버튼 줄 — 한 자리에서만 감싼다. 탭마다 따로 감싸면 모양이 갈린다. */
 export function OkrHeaderActions({ children }) {
   return <div className="okr-header-actions">{children}</div>;
@@ -15,25 +17,28 @@ export function OkrHeaderActions({ children }) {
 /** 작성 권한이 없을 때 [작성]·[편집] 자리에 놓는 배지. `title` 은 사유 툴팁. */
 export function OkrReadOnlyBadge({ label, title, testId }) {
   return (
-    <span className="okr-readonly-badge" data-testid={testId} title={title}>
-      {label}
-    </span>
+    <Tooltip content={title}>
+      <span className="okr-readonly-badge" data-testid={testId}>
+        {label}
+      </span>
+    </Tooltip>
   );
 }
 
 /** 회색 보조 버튼 — [편집]·[컨텍스트 설정]. */
 export function OkrGhostButton({ children, onClick, disabled, title, testId }) {
   return (
-    <button
-      type="button"
-      className="okr-ghost-btn"
-      data-testid={testId}
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-    >
-      {children}
-    </button>
+    <Tooltip content={title}>
+      <button
+        type="button"
+        className="okr-ghost-btn"
+        data-testid={testId}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 }
 
