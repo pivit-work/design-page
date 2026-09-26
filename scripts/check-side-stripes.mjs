@@ -144,15 +144,53 @@ export function checkCss(rel, text) {
   return problems;
 }
 
+/** `key:` 뒤의 값을 끝(맨 바깥의 `,` 나 `}`)까지 읽는다 — 여러 줄 삼항식도 한 값이다. */
+function readValue(src, start) {
+  const stack = []; // 여는 괄호 · '`'(템플릿 글자) · '${'(템플릿 안 식)
+  let quote = null; // ' 또는 "
+  for (let i = start; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quote) {
+      if (ch === '\\') i += 1;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (stack.at(-1) === '`') {
+      if (ch === '\\') i += 1;
+      else if (ch === '`') stack.pop();
+      else if (ch === '$' && src[i + 1] === '{') {
+        stack.push('${');
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === "'" || ch === '"') quote = ch;
+    else if (ch === '`' || ch === '(' || ch === '[' || ch === '{') stack.push(ch);
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      if (!stack.length) return src.slice(start, i);
+      stack.pop();
+    } else if (ch === ',' && !stack.length) return src.slice(start, i);
+  }
+  return src.slice(start);
+}
+
+/** 값 안의 글자 조각(따옴표·백틱)을 하나씩 — 삼항식은 갈래마다 따로 판정한다. */
+function literalPieces(value) {
+  const pieces = [...value.matchAll(/'([^']*)'|"([^"]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2] ?? m[3]);
+  return pieces.length ? pieces : [value];
+}
+
 export function checkJsx(rel, text) {
   const problems = [];
-  const src = text.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, '');
-  const re = /\b(borderLeft|borderRight|borderInlineStart|borderInlineEnd|borderLeftWidth|borderRightWidth|boxShadow)\s*:\s*([^,}\n]+)/g;
+  const src = text.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  const re = /\b(borderLeft|borderRight|borderInlineStart|borderInlineEnd|borderLeftWidth|borderRightWidth|boxShadow)\s*:\s*/g;
   for (const m of src.matchAll(re)) {
     const prop = m[1].replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-    if (isSideStripe(prop, m[2])) {
+    const value = readValue(src, m.index + m[0].length);
+    for (const piece of literalPieces(value)) {
+      if (!isSideStripe(prop, piece)) continue;
       const line = src.slice(0, m.index).split('\n').length;
-      problems.push(`${rel}:${line}  ${m[1]}: ${m[2].trim()}`);
+      problems.push(`${rel}:${line}  ${m[1]}: ${piece.trim()}`);
     }
   }
   return problems;
