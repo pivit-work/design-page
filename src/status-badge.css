@@ -853,16 +853,18 @@
   border: 1px solid var(--border-primary);
 }
 
-.evs-cw-dist-chip.is-off.tone-green {
-  border-color: var(--utility-green-300);
-}
-
-.evs-cw-dist-chip.is-off.tone-accent {
-  border-color: var(--utility-blue-300);
-}
-
-.evs-cw-dist-chip.is-off.tone-red {
+/* ±10%p 넘게 벗어난 등급은 빨강 테두리로 강조 */
+.evs-cw-dist-chip.is-off {
   border-color: var(--utility-error-300);
+}
+
+/* PW-1116 0명 칸은 흐리게 · 등급 없음 칸은 점선 */
+.evs-cw-dist-chip.is-zero {
+  opacity: 0.5;
+}
+
+.evs-cw-dist-chip.is-nograde {
+  border-style: dashed;
 }
 
 .evc-wiz-committee-chip {
