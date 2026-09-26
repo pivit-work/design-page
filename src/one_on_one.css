@@ -3438,18 +3438,16 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 6px;
   margin-bottom: 12px;
 }
-/* 좌측 보라 액센트 3px — 시안의 `boxShadow: inset 3px 0 0` 을 그대로 옮긴다. */
+/* 상자 없이 글자 옆 선만 — 디자이너 모양(리포트 Weekly 요약 한 줄)과 같은 값 (PW-1101).
+   예전엔 흰 상자·보라 테두리에 보라 3px 를 겹쳐 그렸다. */
 .ono-guide-script {
-  padding: 9px 12px;
-  border-radius: 7px;
+  padding: 0 12px;
   font-size: 13px;
   line-height: 1.65;
   box-sizing: border-box;
   overflow-wrap: anywhere;
-  background: var(--colors-base-white);
   color: var(--colors-text-textSecondary);
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
-  box-shadow: inset 3px 0 0 var(--componentColors-utility-purple-utilityPurple600);
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 
 .ono-guide-questions {

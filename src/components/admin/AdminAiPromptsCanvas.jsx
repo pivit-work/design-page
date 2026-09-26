@@ -241,7 +241,6 @@ export default function AdminAiPromptsCanvas({
                       fontFamily: FONT, fontSize: 14, lineHeight: '20px',
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                       fontWeight: active ? 700 : 600,
-                      boxShadow: active ? 'inset 3px 0 0 var(--text-brand-tertiary)' : 'none',
                       transition: 'background .15s ease',
                     }}
                   >

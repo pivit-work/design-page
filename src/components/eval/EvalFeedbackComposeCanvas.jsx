@@ -194,7 +194,7 @@ function BlockCard({ block, L, onOpen }) {
       onClick={() => onOpen(block)}
       data-testid={`fbmgr-block-${block.key}`}
       // 카드가 1080px 폭으로 넓어졌다 — 좌우 패딩만 소폭 키운다 (PW-218)
-      style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${barColor}`, borderRadius: 12, padding: '14px 18px', cursor: 'pointer', fontFamily: FONT }}
+      style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 18px', cursor: 'pointer', fontFamily: FONT }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         {isKr ? <Chip tone="info">{block.badge}</Chip> : <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>}

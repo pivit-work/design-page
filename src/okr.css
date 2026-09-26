@@ -375,8 +375,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-krfb-reply-link { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-primary); cursor: pointer; }
 .okr-krfb-reply { display: flex; flex-direction: column; gap: 12px; }
 .okr-krfb-reply-actions { display: flex; justify-content: flex-end; gap: 6px; }
-/* 등록된 답변 — 원 코멘트 아래 들여쓰기 + 좌측 라인으로 종속 관계를 표시한다. */
-.okr-krfb-reply-item { display: flex; flex-direction: column; gap: 8px; margin-left: 36px; padding-left: 12px; border-left: 2px solid var(--border-secondary-alt); }
+/* 등록된 답변 — 원 코멘트 아래 들여쓰기로 종속 관계를 표시한다. */
+.okr-krfb-reply-item { display: flex; flex-direction: column; gap: 8px; margin-left: 36px; }
 .okr-krfb-reply-item .okr-krfb-text { font-size: 14px; line-height: 20px; color: var(--text-secondary); }
 .okr-krfb-reply-error { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-600, #d92d20); }
 

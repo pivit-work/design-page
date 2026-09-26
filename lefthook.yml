@@ -52,3 +52,7 @@ pre-push:
       # 그려진다. 「신원 정보 저장」 버튼이 정의된 적 없는 admin-btn-primary 를 달고 회색 기본
       # 버튼으로 나갔고, 그날 재 보니 그런 이름이 63개였다. 눈으로만 보이던 것이다 (PW-991).
       run: npm run check:undefined-classes
+    side-stripes:
+      # 카드·안내 상자에 한쪽만 굵은 색 선을 긋는 것을 막는다. 앱 전체 20곳 중 디자이너가 그린 것은
+      # 「상자 없이 글자 옆 선만」 두 곳뿐이었고 나머지 18곳은 따로 붙어 색·두께가 제각각이었다 (PW-1101).
+      run: npm run check:side-stripes

@@ -780,7 +780,7 @@ export default function BillingPlansCanvas({
 
           {/* Proration A 안내 배너 + 좌석 조정 동선 */}
           <div style={{ marginTop: 12, padding: '10px 14px', background: T.bl,
-            borderRadius: 10, fontSize: 13, color: T.sub, borderLeft: `3px solid ${T.accent}`,
+            borderRadius: 10, fontSize: 13, color: T.sub,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>
               {labels.prorationPre}
@@ -913,8 +913,7 @@ export default function BillingPlansCanvas({
               {/* 상위 기능 데이터 보존 안내 (일반 다운그레이드) */}
               {isDowngrade && !seatOverLimit && (
                 <div style={{ padding: '10px 14px', background: T.bl,
-                  borderRadius: 10, fontSize: 13, color: T.sub, marginBottom: 16,
-                  borderLeft: `3px solid ${T.amber}` }}>
+                  borderRadius: 10, fontSize: 13, color: T.sub, marginBottom: 16 }}>
                   {labels.downgradeDataNotice}
                 </div>
               )}
