@@ -10,6 +10,9 @@ import assetUrl from '../shared/assetUrl.js';
  *  - menu 항목의 `disabled` 는 비활성(클릭 불가), `tag` 는 우측 보조 라벨.
  *  - title: 로고 아래 섹션 타이틀 (예: '어드민').
  *  - bottomItem: 하단 영역(의견보내기·설정 사이)의 추가 항목 { icon, label, onClick }.
+ *  - bottomItems: 같은 자리에 여러 항목 [{ icon, label, onClick, active?, testId? }] (PW-1129).
+ *    둘 다 오면 bottomItem 먼저, 그 뒤 bottomItems 순서. `active` 면 위쪽 메뉴의 활성 항목과
+ *    같은 모양(`menu-item active`), `testId` 면 `data-testid`.
  *  - onLogoClick: 좌상단 Pivit 로고(아이콘+워드마크) 클릭 핸들러. 넘기면 로고가
  *    버튼처럼 동작(홈 이동 등)하며 키보드 접근 가능. 없으면 기존처럼 비클릭 이미지.
  *  - feedbackLabel / settingsLabel: 하단 고정 두 항목의 글자. 상단 항목은 menu 데이터로
@@ -27,6 +30,7 @@ export default function Sidebar({
   onSettingsClick,
   title,
   bottomItem,
+  bottomItems = [],
   onLogoClick,
   feedbackLabel = '의견보내기',
   settingsLabel = '설정',
@@ -73,12 +77,17 @@ export default function Sidebar({
         </div>
         <div className="sidebar-bottom">
           <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{feedbackLabel}</span></div>
-          {bottomItem && (
-            <div className="menu-item" onClick={bottomItem.onClick}>
-              <Icon src={bottomItem.icon} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-              <span>{bottomItem.label}</span>
+          {[bottomItem, ...bottomItems].filter(Boolean).map((item, i) => (
+            <div
+              key={`bottom-${i}-${item.label}`}
+              className={item.active ? 'menu-item active' : 'menu-item'}
+              onClick={item.onClick}
+              data-testid={item.testId}
+            >
+              <Icon src={item.icon} size={16} color={item.active ? 'var(--colors-foreground-fgTertiaryHover)' : 'var(--colors-foreground-fgTertiary)'} baseUrl={baseUrl} />
+              <span>{item.label}</span>
             </div>
-          )}
+          ))}
           <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{settingsLabel}</span></div>
         </div>
       </div>
