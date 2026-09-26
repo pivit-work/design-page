@@ -28,6 +28,8 @@ const STATUS_META = {
   active: { color: T.green, bg: T.greenBg },
   past_due: { color: T.red, bg: T.redBg },
   canceled: { color: T.sub, bg: T.bl },
+  // 체험(PW-1025) — 기획서 시안 billing-app.jsx 의 `trial` 배지 그대로
+  trial: { color: T.accent, bg: '#EEF2FF' },
 };
 
 const DEFAULT_LABELS = {
@@ -40,7 +42,18 @@ const DEFAULT_LABELS = {
     active: '구독 중',
     past_due: '결제 실패',
     canceled: '구독 종료됨',
+    trial: '체험 중',
   },
+
+  // 체험 배너 (PW-1025 · screen-billing-overview.policy.md 「체험 안내 배너」)
+  trialTitle: (source, planLabel, endDate, daysLeft) =>
+    `${source === 'ops' ? '베타 무상 제공' : '무료 체험'} · ${planLabel} · ${endDate}까지`
+    + (daysLeft <= 3 ? (daysLeft === 0 ? ' · 오늘 종료' : ` · D-${daysLeft}`) : ''),
+  trialDesc: '종료일까지 결제하지 않으면 Free 로 바뀝니다(데이터는 보존됩니다).',
+  trialOverCap: (cap) => `체험 좌석 상한(${cap}명)을 넘었습니다. 구성원 추가는 계속 가능합니다.`,
+  trialNoPerm: '결제 권한이 없습니다 — 결제 담당자(Owner·billing_admin)에게 문의하세요.',
+  trialAction: '결제하고 계속 쓰기',
+  trialSeatPrice: '체험 중 · 청구 없음',
 
   dunningTitle: '⚠ 결제에 실패했습니다',
   dunningDesc: (graceUntil) =>
@@ -178,6 +191,15 @@ export default function BillingOverviewCanvas({
    * - `noPermText` — 결제 권한이 없는 사람에게 버튼 대신 덧붙이는 한 줄(버튼은 잠긴다)
    */
   recordingBanner = null,
+  /**
+   * 체험 (PW-1025 · spec-billing.md §2.7.5). 유효한 체험일 때만 채운다 — `null` 이면 배너를
+   * 그리지 않는다. 체험이 끝났는데 정리 배치 전이면 앱이 `null` 로 넘겨 Free 처럼 보이게 한다.
+   *
+   * `{ source: 'signup' | 'ops', endDate: 'YYYY-MM-DD', daysLeft, seatCap }`
+   * - `daysLeft` — 종료일까지 남은 날(오늘이 종료일이면 0). 14 이하 앰버, 3 이하 D-n. 서버가 센다
+   * - `seatCap` — 넘어도 막지 않는다. 넘으면 한 줄 안내만 붙인다
+   */
+  trial = null,
   onNavigateContactSales,
   onNavigateMethods,
   onNavigatePlans,
@@ -215,6 +237,10 @@ export default function BillingOverviewCanvas({
   // 자동 갱신된다 — 갱신 실패가 곧 이 카드가 없애려는 미과금 상태다.
   const contractRenewSoon =
     Boolean(contract) && contract.daysUntilContractEnd <= 30;
+
+  // 체험 (PW-1025) — 만료 임박 기준은 사전 알림 14·3·0일과 같다.
+  const trialSoon = Boolean(trial) && trial.daysLeft <= 14;
+  const trialOverCap = Boolean(trial) && trial.seatCap != null && sub.seats > trial.seatCap;
 
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
   const handleRefund = () => { setCancelOpen(false); onCancelRefund?.(); };
@@ -263,6 +289,30 @@ export default function BillingOverviewCanvas({
           </Card>
         )}
 
+        {/* 체험 안내 배너 (PW-1025 §2.7.5) — 체험 중이면 항상. 베타(ops)와 기본 체험(signup)은 문구로 가른다.
+            기획서 시안 billing-app.jsx 의 배너를 옮겼다 */}
+        {trial && (
+          <Card style={{ marginBottom: 16, background: trialSoon ? T.amberBg : T.bl,
+            border: `1px solid ${trialSoon ? '#FDE68A' : T.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div data-testid="billing-trial-banner" data-tone={trialSoon ? 'warning' : 'neutral'} role="status">
+              <div style={{ fontWeight: 800, color: trialSoon ? T.amber : T.text, marginBottom: 4 }}>
+                {labels.trialTitle(trial.source, plan.label, trial.endDate, trial.daysLeft)}
+              </div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.trialDesc}</div>
+              {trialOverCap && (
+                <div style={{ fontSize: 12, color: T.amber, marginTop: 6 }}>
+                  {labels.trialOverCap(trial.seatCap)}
+                </div>
+              )}
+              {!canEdit && (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>{labels.trialNoPerm}</div>
+              )}
+            </div>
+            <Btn onClick={onNavigatePlans} disabled={!canEdit}>{labels.trialAction}</Btn>
+          </Card>
+        )}
+
         {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
         {recordingBanner && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
@@ -300,12 +350,15 @@ export default function BillingOverviewCanvas({
                     협의 계약이면 계약 단가를 보여 준다. */}
                 {sub.planCode === 'free'
                   ? labels.freeSeatPrice(plan.seatLimit)
-                  : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
+                  : sub.status === 'trial'
+                    ? labels.trialSeatPrice /* PW-1025 — 체험은 청구서를 만들지 않는다 */
+                    : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
-              {upgradeTargetLabel && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && (
+              {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
+              {upgradeTargetLabel && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
                 <Btn onClick={onNavigatePlans} disabled={!canEdit}>
                   {labels.upgradeCta(upgradeTargetLabel)}
                 </Btn>
