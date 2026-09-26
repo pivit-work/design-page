@@ -3663,12 +3663,9 @@ export default function EvalCycleWizard({
      유형당 리뷰 단계는 정확히 1개다. 그래서 «확정» 은 `phaseTemplateMap[유형]` 한 칸이며,
      3단계가 물어보던 것과 **같은 값**이다. 묻는 자리만 2단계로 옮긴다 (policy §5.2.4). */
 
-  /** 저장 시 셀프에 걸리는 정규화(PW-117)를 비교에도 똑같이 적용한다 — 안 그러면
-      저장 직후인데도 「수정 중」으로 보인다. */
-  const normalizeQuestions = (qs, type) =>
-    type === 'self'
-      ? (qs || []).map((q) => (q.hideFromEvaluatee ? { ...q, hideFromEvaluatee: false } : q))
-      : qs || [];
+  /** 「수정 중」 비교에 쓰는 항목 목록. [PW-1050] 피평가자 공개 여부가 항목의 결과 공개 범위
+      하나로 모여 셀프 전용 정규화(구 `hideFromEvaluatee` 끄기)가 필요 없어졌다. */
+  const normalizeQuestions = (qs) => qs || [];
   const templateById = new Map(savedTemplates.map((t) => [t.id, t]));
   /**
    * 확정한 «그 순간의 편집 버퍼» 지문. `확정 · 수정 중` 은 이것과 현재 버퍼를 견준다.
@@ -3700,7 +3697,7 @@ export default function EvalCycleWizard({
       confirmed &&
       editing &&
       snapshot !== undefined &&
-      snapshot !== JSON.stringify(normalizeQuestions(tplQuestions, rt.id));
+      snapshot !== JSON.stringify(normalizeQuestions(tplQuestions));
     return {
       type: rt.id,
       nameKey: rt.nameKey,
@@ -3740,7 +3737,7 @@ export default function EvalCycleWizard({
     if (!tpl?.id) return;
     const prevId = phaseTemplateMap[type];
     const snapshot = JSON.stringify(
-      normalizeQuestions(bufferQuestions ?? tpl.questions, type),
+      normalizeQuestions(bufferQuestions ?? tpl.questions),
     );
     const run = () => {
       apply?.();
@@ -3892,15 +3889,9 @@ export default function EvalCycleWizard({
       name,
       reviewType: tplType,
       version: tplVersion,
-      // PW-117 셀프에는 '피평가자 공개' 토글 자체가 없다. 다른 유형에서 켠 뒤 셀프로
-      // 바꾼 경우(커스텀 항목은 유형 전환 시 유지된다) 보이지 않는 플래그가 그대로
-      // 저장돼 visibleToRoles 가 붙는 걸 여기서 끊는다.
-      questions:
-        tplType === 'self'
-          ? tplQuestions.map((q) =>
-              q.hideFromEvaluatee ? { ...q, hideFromEvaluatee: false } : q,
-            )
-          : tplQuestions,
+      // [PW-1050] 피평가자 공개 여부는 항목의 결과 공개 범위(`disclosure`)에 있다. 셀프는
+      // 그 블록이 성립하지 않고, 저장 쪽(서버)이 셀프 항목의 공개 범위를 다룬다.
+      questions: tplQuestions,
       grades: tplGrades,
       absolute: tplAbsolute,
       ratioScope: tplRatioScope,
@@ -4890,11 +4881,12 @@ export default function EvalCycleWizard({
             // 답을 요구하는 빈 칸이 된다.
             itemKind: isNoteItem(q) ? NOTE_KIND : 'question',
             requiresRationale: !!q.requiresRationale,
-            // TC-051/052 항목 설명 · TC-053 공개 대상(피평가자 비공개 여부)
+            // TC-051/052 항목 설명
             description: q.description?.trim() || null,
-            visibleToRoles: q.hideFromEvaluatee
-              ? ['manager', 'hr', 'committee']
-              : null,
+            // [PW-1050] 피평가자 공개 여부는 결과 공개 범위 한 곳이다 — 항목 줄의 버튼도
+            // 이 값을 고친다. 종전에는 버튼 값을 «작성 화면 안내» 칸(visibleToRoles)에 따로
+            // 실어, 버튼과 공개 범위가 서로 다른 말을 했다.
+            disclosure: q.disclosure ?? null,
           })),
           grades: t.grades.map((g) => ({
             label: g.label,
@@ -5926,31 +5918,30 @@ export default function EvalCycleWizard({
                             <PencilIcon size={13} /> {q.requiresRationale ? L.rationaleRequired : L.rationaleOptional}
                           </button>
                         )}
-                        {/* TC-053 이 항목을 피평가자에게 숨김(위원회·매니저·HR만).
+                        {/* TC-053 피평가자 공개/비공개. [PW-1050] 이 버튼은 결과 공개 범위의
+                            「피평가자 본인」 체크와 **같은 값**이다 — 누르면 그 체크가 바뀌고, 체크를
+                            바꾸면 버튼 글자가 따라간다(2026-09-26 결정). 따로 두면 둘이 서로 다른
+                            말을 한다(동료 기본값은 공개 범위에 피평가자가 없는데 버튼은 「공개」였다).
                             PW-117 셀프는 평가자=피평가자라 '피평가자 공개' 가 성립하지 않는다. */}
-                        {tplType !== 'self' && (
+                        {tplType !== 'self' && (() => {
+                          const hidden = !(disclosureOf(q).audience || []).includes('evaluatee');
+                          return (
                           <button
                             type="button"
-                            className={`evc-tpl-rationale${q.hideFromEvaluatee ? ' is-on' : ''}`}
-                            onClick={() =>
-                              setTplQuestions((qs) =>
-                                qs.map((x) =>
-                                  x.id === q.id
-                                    ? { ...x, hideFromEvaluatee: !x.hideFromEvaluatee }
-                                    : x,
-                                ),
-                              )
-                            }
+                            className={`evc-tpl-rationale${hidden ? ' is-on' : ''}`}
+                            onClick={() => toggleAudience(q, 'evaluatee')}
                             title={L.hideFromEvaluateeHint}
                             data-testid={`evc-tpl-hide-${q.id}`}
+                            aria-pressed={hidden}
                           >
-                            {q.hideFromEvaluatee ? (
+                            {hidden ? (
                               <><LockIcon size={13} /> {L.hideFromEvaluateeOn}</>
                             ) : (
                               <><EyeIcon size={13} /> {L.hideFromEvaluateeOff}</>
                             )}
                           </button>
-                        )}
+                          );
+                        })()}
                       </>
                     }
                     actions={
