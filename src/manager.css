@@ -1158,6 +1158,13 @@
   overflow-wrap: anywhere;
 }
 
+/* 줄 옆 작은 버튼 (PW-1094 — 직함 줄의 [고치기]). 버튼(28px)이 글자 줄(20px)보다 높아
+   그 줄만 두꺼워지지 않게 위아래를 당긴다. */
+.manager-modal-hr-action {
+  flex: 0 0 auto;
+  margin-block: -6px;
+}
+
 .manager-modal-hr-failure {
   width: 100%;
   display: flex;

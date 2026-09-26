@@ -545,6 +545,7 @@ function HrProfileTab({ data, onRetry, onRowAction }) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="manager-modal-hr-action"
                     aria-label={row.action.ariaLabel}
                     onClick={() => onRowAction?.(row.key)}
                   >
