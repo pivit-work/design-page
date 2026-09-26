@@ -5,7 +5,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
- * 순수 표현: stages/members/completionPct + 콜백(onRemind/onEmergencyStop/onReopen).
+ * 순수 표현: stages/members/completionPct + 콜백(onRemind/onEmergencyStop/onReopen/onResume).
  */
 
 const DEFAULT_LABELS = {
@@ -23,6 +23,8 @@ const DEFAULT_LABELS = {
   emergencyStop: '비상 정지',
   stoppedBanner: '이 사이클은 비상 정지되었습니다. 제출이 차단됩니다.',
   reopen: '재개',
+  // [PW-1120] 일시 중단(`on_hold`) 중 진행 현황 오른쪽 위 (정책 §6.6 버튼 위치 ②·라벨)
+  resume: '평가 재개',
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
@@ -217,6 +219,7 @@ export default function EvalCycleMonitoringCanvas({
   onRemind,
   onEmergencyStop,
   onReopen,
+  onResume,
   onExclude,
   onRestore,
   onOpenTemplate,
@@ -315,10 +318,22 @@ export default function EvalCycleMonitoringCanvas({
     onOpenReportReview && { key: 'rrv', label: L.navReportReview, on: onOpenReportReview, testid: 'evmon-nav-report-review' },
   ].filter(Boolean);
 
-  const hasControls = stopped ? !!onReopen : !!onRemind || !!(canStop && onEmergencyStop);
+  // [PW-1120] 일시 중단 중에는 구성원 제출이 막혀 있어 리마인더를 받아도 할 수 있는 것이 없다 —
+  // 그 자리에 [평가 재개]를 둔다(정책 §6.6 「진행 현황 탭 우상단(동일 동작)」).
+  const onHold = status === 'on_hold';
+  const hasControls = stopped
+    ? !!onReopen
+    : onHold
+      ? !!onResume || !!(canStop && onEmergencyStop)
+      : !!onRemind || !!(canStop && onEmergencyStop);
   const controls = (
     <div className="evmon-controls">
-      {!stopped && onRemind && (
+      {onHold && onResume && (
+        <button type="button" className="evc-btn is-primary" onClick={() => onResume()} data-testid="evmon-resume">
+          {L.resume}
+        </button>
+      )}
+      {!stopped && !onHold && onRemind && (
         <button type="button" className="evc-btn is-ghost" onClick={() => onRemind()} data-testid="evmon-remind">
           {L.remind}
         </button>
