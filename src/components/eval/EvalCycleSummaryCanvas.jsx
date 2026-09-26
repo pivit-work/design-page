@@ -1825,14 +1825,14 @@ export default function EvalCycleSummaryCanvas({
               <h3 className="evc-card-name">{L.cdDistTitle}</h3>
               {/* PW-1047 ① 등급마다 막대 한 줄 — 조정 후를 칠하고, 조정 전은 눈금으로 겹친다.
                   늘었다·줄었다를 초록·빨강으로 칠하지 않는다(최하가 늘어도 초록이 되던 문제). */}
-              <div className="evs-dist evs-cd-dist" data-testid="evs-cd-dist">
+              <div className="evs-dist" data-testid="evs-cd-dist">
                 {calibResult.before.map((b, i) => {
                   const a = calibResult.after[i] ?? { count: 0, pct: 0 };
                   const changed = a.count !== b.count;
                   const deltaPct = a.pct - b.pct;
                   const guide = i === 0 ? calibResult.afterExcellentGuidelinePct : null;
                   return (
-                    <div className="evs-dist-row evs-cd-grade" key={b.gradeKey} data-testid="evs-cd-grade">
+                    <div className="evs-dist-row" key={b.gradeKey} data-testid="evs-cd-grade">
                       <span className="evs-dist-label">{b.label}</span>
                       <div className="evs-dist-body">
                         <div className="evs-dist-track">
