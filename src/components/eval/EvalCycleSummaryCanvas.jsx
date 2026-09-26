@@ -72,6 +72,9 @@ const DEFAULT_LABELS = {
   cwAdjustUp: '올림',
   cwAdjustDown: '내림',
   cwAdjustNone: '—',
+  // [PW-1120] 조정 칸의 빈 선택지 — 조정 전엔 「조정...」, 조정한 줄에선 「조정 해제」(기획 시안 eval-app.jsx G2)
+  cwAdjustPlaceholder: '조정...',
+  cwAdjustClear: '조정 해제',
   cwColPromo: '승진마킹',
   cwNoPromotion: '승급 이력 없음',
   cwPromoRecommended: '매니저 추천',
@@ -561,6 +564,15 @@ function gradeTone(gradeKey, orderedGrades) {
  * PW-1047 ④ 위원회가 1차 등급을 바꿨는가, 바꿨다면 올렸나 내렸나. orderedGrades 는 위가 먼저다.
  * 바꾸지 않은 줄·등급을 모르는 줄은 null.
  */
+/**
+ * [PW-1120] 위원회가 조정한 등급 — 조정하지 않았으면 ''. 서버의 `adjusted` 와 같은 판정이다
+ * (조정 등급이 있고 1차 등급과 다르다). 조정 안 한 줄의 `calibratedGradeKey` 는 1차 등급과 같다.
+ */
+function adjustedKey(row) {
+  const to = row.calibratedGradeKey;
+  return to && to !== row.currentGradeKey ? to : '';
+}
+
 function adjustDirection(row, orderedGrades) {
   const from = row.currentGradeKey;
   const to = row.calibratedGradeKey;
@@ -3071,15 +3083,23 @@ export default function EvalCycleSummaryCanvas({
                                           )
                                         ) : (
                                           <>
+                                            {/* [PW-1120] 조정 안 한 줄은 칸을 비운다. 예전에는 빈 선택지가 없어
+                                                조정값이 없는 줄에 첫 등급(「탁월」)이 골라진 것처럼 보였고, 그 등급을
+                                                고르려 해도 바뀌지 않았다. 「조정 해제」를 고르면 `onAdjustGrade(id, '')`
+                                                — 1차 등급으로 되돌리는 것은 호출부가 한다. 1차 등급이 없는 줄은
+                                                되돌아갈 등급이 없어 해제를 막는다. */}
                                             <select
                                               className={`evs-cw-adjust-select${dir ? ' is-changed' : ''}`}
                                               data-testid="evs-cw-adjust-select"
                                               aria-label={`${row.name} ${L.cwColAdjust}`}
-                                              value={row.calibratedGradeKey ?? ''}
+                                              value={adjustedKey(row)}
                                               onChange={(e) =>
                                                 onAdjustGrade?.(row.memberId, e.target.value)
                                               }
                                             >
+                                              <option value="" disabled={!!adjustedKey(row) && !row.currentGradeKey}>
+                                                {adjustedKey(row) ? L.cwAdjustClear : L.cwAdjustPlaceholder}
+                                              </option>
                                               {og.map((g) => (
                                                 <option key={g.gradeKey} value={g.gradeKey}>
                                                   {g.label}
