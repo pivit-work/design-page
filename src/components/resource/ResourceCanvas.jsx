@@ -121,9 +121,18 @@ function DiffBadge({ allocation, labels, withLabel = false }) {
   );
 }
 
+/**
+ * 멤버의 스니핏 수. 여러 프로젝트를 단 스니핏은 줄마다 1건씩 잡혀서, 줄 건수를 더하면 같은
+ * 스니핏이 두 번 셈해진다 — 소비처가 센 `member.totalSnippets` 가 있으면 그것을 쓴다.
+ */
+function memberSnippetTotal(member) {
+  if (typeof member.totalSnippets === 'number') return member.totalSnippets;
+  return (member.allocations ?? []).reduce((s, a) => s + (a.snippets ?? 0), 0);
+}
+
 function MemberCard({ member, projectById, labels, onSelect }) {
   const warn = (member.insights ?? []).find((i) => i.type === 'warn');
-  const totalSnippets = (member.allocations ?? []).reduce((s, a) => s + (a.snippets ?? 0), 0);
+  const totalSnippets = memberSnippetTotal(member);
   return (
     <button
       type="button"
@@ -226,7 +235,7 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const totalSnippets = (member.allocations ?? []).reduce((s, a) => s + (a.snippets ?? 0), 0);
+  const totalSnippets = memberSnippetTotal(member);
   const targetTotal = (member.allocations ?? []).reduce((s, a) => s + a.target, 0);
 
   const save = async (alloc) => {
