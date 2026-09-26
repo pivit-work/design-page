@@ -83,6 +83,9 @@ export const STATUS_TONE = {
   excluded: 'neutral',
   disabled: 'neutral',
   archived: 'neutral',
+  // 고객지원 문의 — 접수(아직 아무도 안 봄) · 종료 (PW-1129)
+  open: 'neutral',
+  closed: 'neutral',
   // ── 하는 중 ────────────────────────────────────────────────────────────
   in_progress: 'info',
   ongoing: 'info',
@@ -99,11 +102,14 @@ export const STATUS_TONE = {
   leader_approved: 'success',
   connected: 'success',
   active: 'success',
+  resolved: 'success',
   // ── 봐야 한다 ──────────────────────────────────────────────────────────
   due_soon: 'warning',
   unconfirmed: 'warning',
   on_hold: 'warning',
   warning: 'warning',
+  // 고객지원 문의 — 운영자가 고객 답을 기다린다 (PW-1129)
+  waiting_customer: 'warning',
   // ── 잘못됐다 ───────────────────────────────────────────────────────────
   overdue: 'danger',
   failed: 'danger',

@@ -320,6 +320,9 @@ export { MySettingsCanvas } from './settings/index.js';
 // Notifications (알림 센터)
 export { NotificationCenterCanvas } from './notifications/index.js';
 
+// 고객지원 (문의하기 · 내 문의) — PW-1129
+export { SupportTopNav, SupportNewCanvas, SupportMyCanvas } from './support/index.js';
+
 // 내 프로필 (읽기 전용 표출, `/me`)
 export { MyProfileCanvas } from './myprofile/index.js';
 
