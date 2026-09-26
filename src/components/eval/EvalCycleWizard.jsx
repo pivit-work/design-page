@@ -9,6 +9,7 @@ import TimeInput from '../shared/TimeInput.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import {
   ArrowLeftGlyph,
@@ -560,21 +561,6 @@ const fillSampleVars = (text, L) =>
     (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
     String(text ?? ''),
   );
-/**
- * 이 문구에 «실제로 쓴» 변수만 추린다 [PW-530 2차].
- *
- * 🔴 정규 세트 전량을 늘 펼치지 않는 이유는 1차와 같다 — ⚙ 상세가 이미 길다. 쓴 것만
- * 그리면 대개 두세 줄이고, 그 두세 줄이 「내가 넣은 `{offset}` 은 3 이 된다」를 낱개로
- * 확인시켜 준다. 종전에는 이 확인이 **샘플 안에서 문장에 섞여서만** 가능했다.
- *
- * 값은 `fillSampleVars` 와 **같은 `sampleKey`** 에서 온다 — 다른 상수를 쓰면 같은 화면
- * 안에서 한 변수가 「3」과 「3일 전」으로 갈린다.
- */
-const usedVarsIn = (vars, text) => {
-  const t = String(text ?? '');
-  return vars.filter((v) => t.includes(v.token));
-};
-
 /**
  * 당사자를 켜고 끌 때 문구 템플릿을 «후보 안으로» 옮긴다 [PW-529].
  *
@@ -2684,22 +2670,18 @@ export default function EvalCycleWizard({
   }, [slackChannels]);
 
   /**
-   * 샘플 보기(PW-530 ③)를 **접은** 리마인더 [PW-530 2차].
+   * 「받는 사람이 볼 모습」에서 리마인더마다 보고 있는 채널 [PW-1125].
    *
-   * 🔴 1차는 「누를 때만 연다」였고 근거는 «자리를 아낀다» 하나였다. 그런데 접힌 샘플은
-   * **문구를 고치는 동안 보이지 않는다** — 샘플의 값어치는 고치면서 보는 데 있다. 기본을
-   * 펼침으로 뒤집고, 담는 집합의 뜻도 뒤집는다(열린 것 모음 → 접은 것 모음). 접을 길은
-   * 남긴다: 자리를 아끼고 싶은 사람의 선택지를 뺏지는 않는다.
+   * 종전(PW-530 2차)에는 켠 채널마다 상자를 쌓고 [샘플 닫기]로 접게 했다. 한 상자 + 탭으로
+   * 바꾸면서 접을 까닭이 없어져 그 길은 뺐다 — 탭 하나가 상자 하나 몫의 자리만 쓴다.
+   * 고른 적 없으면 켠 채널 중 첫째(이메일 먼저). 고른 채널을 끄면 남은 채널로 그린다.
    */
-  const [sampleShut, setSampleShut] = useState(() => new Set());
-  const sampleIsOpen = (key) => !sampleShut.has(key);
-  const toggleSample = (key) =>
-    setSampleShut((prev) => {
-      const n = new Set(prev);
-      if (n.has(key)) n.delete(key);
-      else n.add(key);
-      return n;
-    });
+  const [sampleTab, setSampleTab] = useState(() => ({}));
+  const activeSampleCh = (pid, rm) => {
+    const on = CHANNEL_RENDER.map((c) => c.id).filter((id) => rm.channels.includes(id));
+    const picked = sampleTab[rmKey(pid, rm.id)];
+    return on.includes(picked) ? picked : on[0] ?? null;
+  };
 
   /**
    * 문구 편집 도구 한 벌 — 변수 칩 · AI 다듬기 · 미확인 초안 카드 [PW-530 ①].
@@ -2722,12 +2704,6 @@ export default function EvalCycleWizard({
     const busy = aiBusy.has(key);
     const canPolish = conf.hasSubject ? !!value || !!msg.subject : !!value;
     const slotVars = varsFor(rm.targets);
-    /* 「쓴 변수」의 판정 범위는 그 칸이 실제로 내보내는 글 전체다. 이메일 칸은 제목도
-       함께 나가므로 제목에만 쓴 변수도 «썼다» 로 센다. */
-    const usedVars = usedVarsIn(
-      slotVars,
-      conf.hasSubject ? `${msg.subject ?? ''}\n${value}` : value,
-    );
     return (
       <>
         <div className="evc-rm-vars">
@@ -2770,28 +2746,11 @@ export default function EvalCycleWizard({
             );
           })}
         </div>
-        {/* [PW-530 2차] 이 칸에 «실제로 쓴» 변수만 값과 함께. 이메일 칸은 제목까지 센다 —
-            제목에만 쓴 변수가 「안 쓴 것」으로 보이면 안 된다. */}
-        <div className="evc-rm-used" data-testid={`evc-rm-used${sfx}-${ph.id}-${i}`}>
-          <span className="evc-rm-vars-label">{L.reminderUsedVarsTitle}</span>
-          {usedVars.length === 0 ? (
-            <span className="evc-rm-used-empty">{L.reminderUsedVarsEmpty}</span>
-          ) : (
-            usedVars.map((v) => (
-              <span
-                key={v.token}
-                className="evc-rm-used-line"
-                data-testid={`evc-rm-used${sfx}-${ph.id}-${i}-${v.token.slice(1, -1)}`}
-              >
-                <span className="evc-rm-used-name">{L[v.labelKey] ?? v.token}</span>
-                <span className="evc-rm-used-arrow">→</span>
-                <span className="evc-rm-used-val">{L[v.sampleKey] ?? v.token}</span>
-              </span>
-            ))
-          )}
-        </div>
-        {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음). */}
-        <div className="evc-rm-msg-actions">
+        {/* [PW-1125] 「이 문구에 쓴 변수」 줄은 뺐다 — 바로 아래 「받는 사람이 볼 모습」이
+            쓴 변수를 같은 예시 값으로 채워 늘 보여 준다. 두 자리가 같은 일을 했다. */}
+        {/* [PW-435 ⑥] AI 다듬기·저장. AI 는 **누를 때만** 돈다(자동 실행 없음).
+            [PW-1125] 입력칸 바로 아래 오른쪽 한 줄. */}
+        <div className="evc-rm-msg-actions is-end">
           {onPolishMessage && (
             <button
               type="button"
@@ -2856,16 +2815,18 @@ export default function EvalCycleWizard({
   };
 
   /**
-   * 「받는 사람이 볼 모습」 샘플 [PW-530 ③].
+   * 「받는 사람이 볼 모습」 샘플 — **한 채널** 의 상자 하나 [PW-530 ③ · PW-1125].
    *
-   * 켠 채널마다 **그 채널의 렌더링 규칙대로** 그린다(정책 §5.2.1 「채널별 렌더링 안내」):
-   * 이메일은 제목 → 본문 → 버튼, 슬랙은 굵은 첫 줄 → 메시지. 종전에는 그 규칙이 «글»로만
-   * 적혀 있어서, 내가 쓴 문구와 합성하는 일을 사람이 했다.
+   * 채널마다 **그 채널의 렌더링 규칙대로** 그린다(정책 §5.2.1 「채널별 렌더링 안내」):
+   * 이메일은 제목 → 본문 → 버튼, 슬랙은 굵은 첫 줄 → 메시지 → 링크.
+   *
+   * 🔴 [PW-1125] 종전에는 켠 채널마다 상자를 하나씩 쌓아, 기본 템플릿의 읽기 전용 미리보기까지
+   * 같은 글이 세 번 나왔다. 상자는 하나이고 어느 채널을 그릴지는 위 탭이 정한다(`ch`).
    *
    * 슬랙 전용 문구가 켜져 있으면 슬랙 쪽은 그 문구로 그린다 — 안 그러면 「따로 쓴 글」과
    * 「샘플」이 어긋나 샘플을 믿을 수 없게 된다.
    */
-  const renderMessageSample = (ph, rm, i) => {
+  const renderMessageSample = (ph, rm, i, ch) => {
     const msg = messageOf(rm);
     const tpl = MESSAGE_TEMPLATE_PREVIEW[msg.template] ?? MESSAGE_TEMPLATE_PREVIEW.default;
     const isCustom = msg.template === 'custom';
@@ -2874,67 +2835,127 @@ export default function EvalCycleWizard({
       body: isCustom ? msg.body ?? '' : tpl.body,
       cta: isCustom ? '' : tpl.cta,
     };
+    const f = (t) => fillSampleVars(t, L);
+    if (ch === 'email') {
+      return (
+        <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-email-${ph.id}-${i}`}>
+          <div><strong>{L.reminderEmailSubject}</strong> {f(base.subject) || L.reminderSampleEmpty}</div>
+          <div><strong>{L.reminderEmailBody}</strong> {f(base.body) || L.reminderSampleEmpty}</div>
+          {base.cta && <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>}
+        </div>
+      );
+    }
     /*
-     * 🔴 슬랙 본문의 세 갈래 [PW-530 2차]. 종전에는 앞의 둘이 한 갈래로 접혀 있었다.
+     * 🔴 슬랙 본문의 세 갈래 [PW-530 2차].
      *  (a) 전용 문구를 안 켰다      → 공통 본문이 나간다
      *  (b) 켰고 내용이 있다          → 그 문구가 나간다
      *  (c) 켰는데 비어 있다          → 공통 본문이 나간다 **(기획서 §5.2.1 엣지: 폴백)**
      * (c) 를 (a) 와 같은 화면으로 그리면 「슬랙 자리에 이메일 미리보기가 나왔다」로
-     * 읽힌다(어니스트 2026-09-07). 폴백을 없애는 것이 아니라 **폴백을 말하게** 한다 —
-     * 실제로 그 문구가 나가므로 「보낼 내용이 없다」고 하면 그것이 거짓말이 된다.
+     * 읽힌다(어니스트 2026-09-07). 폴백을 없애는 것이 아니라 **폴백을 말하게** 한다.
      */
     const slackFellBack = !!msg.slackSeparate && !(msg.slackBody ?? '').trim();
     const slackBody =
       msg.slackSeparate && (msg.slackBody ?? '').trim() ? msg.slackBody : base.body;
-    const slackTagKey = !msg.slackSeparate
-      ? 'reminderSampleChSlackShared'
-      : slackFellBack
-        ? 'reminderSampleChSlackOwnEmpty'
-        : 'reminderSampleChSlackOwn';
-    const f = (t) => fillSampleVars(t, L);
     return (
-      <div data-testid={`evc-rm-sample-${ph.id}-${i}`}>
-        <div className="evc-rm-preview-tag">
-          {L.reminderSampleTitle} · {L.reminderSampleNote}
-        </div>
-        {rm.channels.includes('email') && (
-          <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-email-${ph.id}-${i}`}>
-            {/* [PW-530 2차] 상자마다 «어느 채널인가» 를 글자로. 종전에는 `data-testid`
-                뿐이라 두 상자가 같은 내용을 그리면 사람이 구분할 수 없었다. */}
-            <span className="evc-rm-preview-ch" data-testid={`evc-rm-sample-ch-email-${ph.id}-${i}`}>
-              {L.reminderSampleChEmail}
-            </span>
-            <div><strong>{L.reminderEmailSubject}</strong> {f(base.subject) || L.reminderSampleEmpty}</div>
-            <div><strong>{L.reminderEmailBody}</strong> {f(base.body) || L.reminderSampleEmpty}</div>
-            {base.cta && <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {f(base.cta)}</div>}
+      <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-slack-${ph.id}-${i}`}>
+        {/* 전용 문구를 쓸 때만 이름표를 단다 — 공통 문구일 때는 탭이 이미 「슬랙」이라고 말한다. */}
+        {msg.slackSeparate && (
+          <span className="evc-rm-preview-ch" data-testid={`evc-rm-sample-ch-slack-${ph.id}-${i}`}>
+            {L[slackFellBack ? 'reminderSampleChSlackOwnEmpty' : 'reminderSampleChSlackOwn']}
+          </span>
+        )}
+        {/* 🔴 슬랙은 제목을 «굵은 첫 줄» 로, CTA 를 «링크» 로 그린다(기획서 §5.2.1).
+            개인 DM 과 채널 게시가 같은 모양이라 이 한 벌이 두 경우 모두에 대해 참이다.
+            전용 문구를 쓰든 아니든 실제 슬랙은 둘 다 붙인다. */}
+        {f(base.subject) && (
+          <div><strong>{f(base.subject)}</strong></div>
+        )}
+        <div>{f(slackBody) || L.reminderSampleEmpty}</div>
+        {base.cta && (
+          /* 이메일은 «버튼», 슬랙은 «링크» 다(§5.2.1). */
+          <div className="evc-rm-preview-cta">[{L.reminderSlackCta}] {f(base.cta)}</div>
+        )}
+        {slackFellBack && (
+          <div
+            className="evc-rm-preview-note"
+            data-testid={`evc-rm-sample-slack-fallback-${ph.id}-${i}`}
+          >
+            {L.reminderSampleSlackFallback}
           </div>
         )}
-        {rm.channels.includes('slack') && (
-          <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-slack-${ph.id}-${i}`}>
-            <span className="evc-rm-preview-ch" data-testid={`evc-rm-sample-ch-slack-${ph.id}-${i}`}>
-              {L[slackTagKey]}
-            </span>
-            {/* 🔴 슬랙은 제목을 «굵은 첫 줄» 로, CTA 를 «링크» 로 그린다
-                (기획서 §5.2.1 「채널별 렌더링 안내」). 개인 DM 과 채널 게시가 같은 모양이라
-                이 한 벌이 두 경우 모두에 대해 참이다. 종전에는 전용 문구를 켜면 굵은 첫
-                줄과 CTA 를 숨겼는데, 실제 슬랙은 전용 문구를 쓰든 아니든 둘 다 붙인다. */}
-            {f(base.subject) && (
-              <div><strong>{f(base.subject)}</strong></div>
+      </div>
+    );
+  };
+
+  /**
+   * 「받는 사람이 볼 모습」 칸 전체 [PW-1125] — 머리줄(제목 + [이메일 | 슬랙] 탭) →
+   * (슬랙 탭이면) 슬랙 전용 문구 → 상자 하나 → 지금 보는 채널의 렌더링 안내 한 줄.
+   *
+   * 탭은 두 채널을 다 켰을 때만 선다. 보던 채널을 끄면 남은 채널로 넘어간다 — 고른 값을
+   * 따로 고치지 않고 **그릴 때** 켠 채널 안으로 접는다(`activeSampleCh`).
+   */
+  const renderSampleSection = (ph, rm, i) => {
+    const msg = messageOf(rm);
+    const ch = activeSampleCh(ph.id, rm);
+    const both = rm.channels.includes('email') && rm.channels.includes('slack');
+    const render = CHANNEL_RENDER.find((c) => c.id === ch);
+    return (
+      <div className="evc-rm-sample" data-testid={`evc-rm-sample-${ph.id}-${i}`}>
+        <div className="evc-rm-sample-head">
+          <span className="evc-rm-preview-tag">
+            {L.reminderSampleTitle} · {L.reminderSampleNoteShort}
+          </span>
+          {both && (
+            <SegmentedControl
+              ariaLabel={L.reminderSampleTitle}
+              value={ch}
+              onChange={(next) => setSampleTab((prev) => ({ ...prev, [rmKey(ph.id, rm.id)]: next }))}
+              items={CHANNEL_RENDER.map((c) => ({
+                value: c.id,
+                label: L[c.labelKey],
+                testId: `evc-rm-sample-tab-${c.id}-${ph.id}-${i}`,
+              }))}
+            />
+          )}
+        </div>
+        {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있고, [슬랙] 탭 안에 둔다
+            [PW-1125]. 이메일 탭에서 이 체크를 보면 이메일 문구를 바꾸는 것처럼 읽힌다. */}
+        {both && ch === 'slack' && (
+          <div className="evc-rm-slack-sep">
+            <Checkbox
+              className="evl-promo-row"
+              checked={!!msg.slackSeparate}
+              onChange={(e) =>
+                patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
+              data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
+            >
+              <span>
+                {L.reminderSlackSeparate}
+                <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
+              </span>
+            </Checkbox>
+            {msg.slackSeparate && (
+              <>
+                <TextArea
+                  className="evc-rm-field evc-rm-cbody"
+                  rows={3}
+                  placeholder={L.reminderSlackBodyPh}
+                  value={msg.slackBody}
+                  onChange={(e) =>
+                    patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
+                  data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
+                />
+                {/* [PW-530 ①] 이메일 본문과 **같은 도구**. */}
+                {renderMessageTools(ph, rm, i, 'slack')}
+              </>
             )}
-            <div>{f(slackBody) || L.reminderSampleEmpty}</div>
-            {base.cta && (
-              /* 이메일은 «버튼», 슬랙은 «링크» 다(§5.2.1). 같은 말을 두 상자에 쓰면
-                 슬랙 샘플이 이메일 미리보기처럼 읽힌다 — 이 카드가 고치는 바로 그 오해다. */
-              <div className="evc-rm-preview-cta">[{L.reminderSlackCta}] {f(base.cta)}</div>
-            )}
-            {slackFellBack && (
-              <div
-                className="evc-rm-preview-note"
-                data-testid={`evc-rm-sample-slack-fallback-${ph.id}-${i}`}
-              >
-                {L.reminderSampleSlackFallback}
-              </div>
-            )}
+          </div>
+        )}
+        {ch && renderMessageSample(ph, rm, i, ch)}
+        {/* 켠 채널마다 어떻게 그려지는지 적는 안내(기획서 §5.2.1, 필수) — 지금 보는 채널 한 줄만. */}
+        {render && (
+          <div className="evc-rm-render-line" data-testid={`evc-rm-render-${render.id}-${ph.id}-${i}`}>
+            {L[render.labelKey]}: {L[render.descKey]}
           </div>
         )}
       </div>
@@ -3176,30 +3197,55 @@ export default function EvalCycleWizard({
           )}
         </div>
         {/* ── 2. 메시지 (채널 공통) — 이메일·슬랙보다 «위» [PW-435 ⑤]
-            종전에는 이 블록이 '이메일 발송 설정' 안에 있어 문구가
-            이메일에 종속돼 보였고, 슬랙만 켠 리마인더는 문구를 확인할
-            자리가 아예 없었다. 채널과 무관하게 항상 보인다. */}
+            🔴 [PW-1125] 같은 글이 세 번(읽기 전용 미리보기 · 이메일 샘플 · 슬랙 샘플) 나오던 것을
+            「받는 사람이 볼 모습」 한 상자 + [이메일 | 슬랙] 탭으로 합쳤다. 제목 줄 오른쪽에
+            [나에게 테스트 발송], 템플릿 옆에 저장된 문구 불러오기. */}
         <div className="evc-rm-dsec is-box is-message">
-          <div className="evc-rm-dsec-title">
-            <PencilIcon size={13} /> {L.reminderMessageTitle}
-            <span className="evc-rm-dsec-note">{L.reminderMessageNote}</span>
+          <div className="evc-rm-msg-head">
+            <div className="evc-rm-dsec-title">
+              <PencilIcon size={13} /> {L.reminderMessageTitle}
+              <span className="evc-rm-dsec-note">{L.reminderMessageNote}</span>
+            </div>
+            {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
+                어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
+            {onTestSendMessage && (
+              <button
+                type="button"
+                className="evc-rm-test-link"
+                disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
+                title={L.reminderTestSendHint}
+                onClick={() => void runTestSend(ph, rm)}
+                data-testid={`evc-rm-test-send-${ph.id}-${i}`}
+              >
+                {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
+              </button>
+            )}
           </div>
-          {/* 이 문구가 어느 채널로 어떻게 나가는지 — 켠 채널만 나열한다 */}
-          <div className="evc-rm-render" data-testid={`evc-rm-render-${ph.id}-${i}`}>
-            {CHANNEL_RENDER.filter((c) => rm.channels.includes(c.id)).map((c) => (
-              <StatusBadge
-                key={c.id}
-                className="evc-rm-render-chip"
-                data-testid={`evc-rm-render-${c.id}-${ph.id}-${i}`}>
-                <c.Icon size={12} /> {L[c.labelKey]}
-                <span className="evc-rm-render-desc">· {L[c.descKey]}</span>
-              </StatusBadge>
-            ))}
-          </div>
-          <label className="evc-rm-dfield">
-            <span>{L.reminderMessageTpl}</span>
+          {testResult[testKey(ph.id, rm.id)] && (
+            <div
+              className="evc-rm-test-result"
+              role="status"
+              data-testid={`evc-rm-test-result-${ph.id}-${i}`}
+            >
+              {testResult[testKey(ph.id, rm.id)].failed ? (
+                <p className="evc-rm-ai-error">{L.reminderTestFailed}</p>
+              ) : (
+                testResult[testKey(ph.id, rm.id)].lines.map((ln) => (
+                  <p
+                    key={ln.channel}
+                    className={ln.ok ? 'evc-rm-test-line is-ok' : 'evc-rm-ai-error'}
+                    data-testid={`evc-rm-test-line-${ln.channel}-${ph.id}-${i}`}
+                  >
+                    {ln.text}
+                  </p>
+                ))
+              )}
+            </div>
+          )}
+          <div className="evc-rm-tpl-row">
             <Select
               className="evc-rm-field"
+              aria-label={L.reminderMessageTpl}
               value={msg.template}
               onChange={(e) => setMessageTemplate(ph.id, rm, e.target.value)}
               data-testid={`evc-rm-msg-tpl-${ph.id}-${i}`}
@@ -3210,32 +3256,11 @@ export default function EvalCycleWizard({
                 <option key={t.id} value={t.id}>{L[t.labelKey]}</option>
               ))}
             </Select>
-          </label>
-          {msg.template !== 'custom' ? (
-            (() => {
-              const tpl =
-                MESSAGE_TEMPLATE_PREVIEW[msg.template] ??
-                MESSAGE_TEMPLATE_PREVIEW.default;
-              return (
-                <div>
-                  <div className="evc-rm-preview-tag">
-                    {L.reminderPreview} · {L.reminderReadonly}
-                  </div>
-                  <div className="evc-rm-preview-body">
-                    <div><strong>{L.reminderEmailSubject}</strong> {tpl.subject}</div>
-                    <div><strong>{L.reminderEmailBody}</strong> {tpl.body}</div>
-                    <div className="evc-rm-preview-cta">[{L.reminderEmailCta}] {tpl.cta}</div>
-                  </div>
-                </div>
-              );
-            })()
-          ) : (
-            <div className="evc-rm-custom">
-              {/* [PW-435 ⑥] 이 «단계» 에 저장해 둔 문구 — 커스텀을 고르면 항상 보인다.
-                  다른 단계의 문구는 섞지 않는다: 셀프 리뷰 독촉 문구가
-                  결과 발송 단계에 뜨면 도움이 되지 않는다. */}
+            {/* [PW-435 ⑥] 이 «단계» 에 저장해 둔 문구 — 커스텀을 고르면 템플릿 옆에 선다.
+                다른 단계의 문구는 섞지 않는다: 셀프 리뷰 독촉 문구가
+                결과 발송 단계에 뜨면 도움이 되지 않는다. */}
+            {msg.template === 'custom' && (
               <div className="evc-rm-saved" data-testid={`evc-rm-saved-${ph.id}-${i}`}>
-                <span className="evc-rm-vars-label">{L.reminderSavedLabel}</span>
                 {savedMessagesStatus === 'loading' ? (
                   <span className="evc-rm-saved-empty">{L.reminderSavedLoading}</span>
                 ) : savedMessagesStatus === 'error' ? (
@@ -3257,7 +3282,17 @@ export default function EvalCycleWizard({
                     )}
                   </span>
                 ) : savedForPhase(ph.id).length === 0 ? (
-                  <span className="evc-rm-saved-empty">{L.reminderSavedEmpty}</span>
+                  /* 없을 때도 자리는 같은 모양으로 — 뜻은 title 로 푼다. */
+                  <Select
+                    className="evc-rm-field"
+                    value=""
+                    disabled
+                    title={L.reminderSavedEmpty}
+                    onChange={() => {}}
+                    data-testid={`evc-rm-saved-none-${ph.id}-${i}`}
+                  >
+                    <option value="">{L.reminderSavedNone}</option>
+                  </Select>
                 ) : (
                   <Select
                     className="evc-rm-field"
@@ -3276,6 +3311,10 @@ export default function EvalCycleWizard({
                   </Select>
                 )}
               </div>
+            )}
+          </div>
+          {msg.template === 'custom' && (
+            <div className="evc-rm-custom">
               <TextInput
                 type="text"
                 className="evc-rm-field evc-rm-cinput"
@@ -3314,196 +3353,115 @@ export default function EvalCycleWizard({
               )}
             </div>
           )}
-          {/* 슬랙 문구를 따로 쓸 때 — 두 채널을 다 켰을 때만 의미가 있다 */}
-          {rm.channels.includes('email') && rm.channels.includes('slack') && (
-            <div className="evc-rm-slack-sep">
-              <Checkbox
-                className="evl-promo-row"
-                checked={!!msg.slackSeparate}
-                onChange={(e) =>
-                  patchMessage(ph.id, rm.id, { slackSeparate: e.target.checked })}
-                data-testid={`evc-rm-slack-sep-${ph.id}-${i}`}
-              >
-                <span>
-                  {L.reminderSlackSeparate}
-                  <span className="evc-rm-dsec-note">{L.reminderSlackSeparateNote}</span>
-                </span>
-              </Checkbox>
-              {msg.slackSeparate && (
-                <>
-                  <TextArea
-                    className="evc-rm-field evc-rm-cbody"
-                    rows={3}
-                    placeholder={L.reminderSlackBodyPh}
-                    value={msg.slackBody}
-                    onChange={(e) =>
-                      patchMessage(ph.id, rm.id, { slackBody: e.target.value })}
-                    data-testid={`evc-rm-slack-body-${ph.id}-${i}`}
-                  />
-                  {/* [PW-530 ①] 이메일 본문과 **같은 도구**. 종전에는 이 칸만
-                      도구가 없어 변수를 손으로 쳐야 했고, 오타가 나면 치환되지
-                      않은 `{likn}` 이 그대로 발송됐다. */}
-                  {renderMessageTools(ph, rm, i, 'slack')}
-                </>
-              )}
-            </div>
-          )}
-          {/* [PW-530 2차] 샘플은 **처음부터 펼쳐** 둔다 — 접혀 있으면
-              문구를 고치는 동안 안 보이고, 샘플은 고치면서 봐야 값이 있다.
-              접는 길은 남긴다. */}
-          <div className="evc-rm-msg-actions">
-            <button
-              type="button"
-              className="evc-rm-save-msg"
-              onClick={() => toggleSample(rmKey(ph.id, rm.id))}
-              aria-expanded={sampleIsOpen(rmKey(ph.id, rm.id))}
-              data-testid={`evc-rm-sample-toggle-${ph.id}-${i}`}
-            >
-              {sampleIsOpen(rmKey(ph.id, rm.id)) ? L.reminderSampleHide : L.reminderSampleShow}
-            </button>
-            {/* [PW-626] 샘플은 «우리 화면이 그린 그림» 이다 — 실제 메일 앱·슬랙이
-                어떻게 보여 주는지는 받아 봐야 안다. 누른 사람에게만 한 통. */}
-            {onTestSendMessage && (
-              <button
-                type="button"
-                className="evc-rm-save-msg"
-                disabled={rm.channels.length === 0 || testBusy.has(testKey(ph.id, rm.id))}
-                title={L.reminderTestSendHint}
-                onClick={() => void runTestSend(ph, rm)}
-                data-testid={`evc-rm-test-send-${ph.id}-${i}`}
-              >
-                {testBusy.has(testKey(ph.id, rm.id)) ? L.reminderTestSending : L.reminderTestSend}
-              </button>
-            )}
-          </div>
-          {testResult[testKey(ph.id, rm.id)] && (
-            <div
-              className="evc-rm-test-result"
-              role="status"
-              data-testid={`evc-rm-test-result-${ph.id}-${i}`}
-            >
-              {testResult[testKey(ph.id, rm.id)].failed ? (
-                <p className="evc-rm-ai-error">{L.reminderTestFailed}</p>
-              ) : (
-                testResult[testKey(ph.id, rm.id)].lines.map((ln) => (
-                  <p
-                    key={ln.channel}
-                    className={ln.ok ? 'evc-rm-test-line is-ok' : 'evc-rm-ai-error'}
-                    data-testid={`evc-rm-test-line-${ln.channel}-${ph.id}-${i}`}
-                  >
-                    {ln.text}
-                  </p>
-                ))
-              )}
-            </div>
-          )}
-          {sampleIsOpen(rmKey(ph.id, rm.id)) && renderMessageSample(ph, rm, i)}
+          {/* 기본 템플릿이면 이 상자가 곧 미리보기다 — 따로 두던 읽기 전용 미리보기는 뺐다. */}
+          {rm.channels.length > 0 && renderSampleSection(ph, rm, i)}
         </div>
-        {/* ── 3. 이메일 발송 설정 — «어디로 보내는가» 만. 문구는 위 2번이 갖는다 */}
-        {rm.channels.includes('email') && (
-          <div className="evc-rm-dsec is-box">
-            <div className="evc-rm-dsec-title"><MailIcon size={13} /> {L.reminderEmailTitle}</div>
-            <div className="evc-rm-dsec-lines" data-testid={`evc-rm-email-lines-${ph.id}-${i}`}>
-              <div>· <strong>{L.reminderEmailToLabel}</strong> {L.reminderEmailToValue}</div>
-              <div>· <strong>{L.reminderEmailCcLabel}</strong> {ccSummary(ph.id, rm)}</div>
-              <div>· <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}</div>
-            </div>
-          </div>
-        )}
-        {/* ── 4. 슬랙 발송 설정 — 이메일과 같은 층. 문구는 위 메시지가 갖는다 */}
-        {rm.channels.includes('slack') && (
-          <div className="evc-rm-dsec is-box">
-            <div className="evc-rm-dsec-title"><ChatIcon size={13} /> {L.reminderSlackTitle}</div>
-            <div className="evc-rm-dsec-lines" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
-              · <strong>{L.reminderMsgRefLabel}</strong> {L.reminderMsgRefValue}
-              {msg.slackSeparate ? ` ${L.reminderSlackOwnCopy}` : ` ${L.reminderSlackSameCopy}`}
-            </div>
-            <div className="evc-rm-tgts">
-              {SLACK_SEND_MODES.map((m) => {
-                const on = (rm.slack?.mode ?? 'dm') === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className={`evc-rm-tgt${on ? ' is-on' : ''}`}
-                    onClick={() =>
-                      patchReminder(ph.id, rm.id, (r) => ({
-                        slack: { ...r.slack, mode: m.id },
-                      }))}
-                    data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
-                  >
-                    <m.Icon size={14} /> {L[m.labelKey]}
-                  </button>
-                );
-              })}
-            </div>
-            {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
-              /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
-                 드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
-                 방식을 «쳐서 좁히는» 방식으로 바꾼다. 브라우저 기본
-                 `datalist` 를 쓴다 — 새 시각 부품을 만들지 않으면서
-                 타이핑 필터를 얻는다. */
-              const value = rm.slack?.channel ?? '';
-              const listId = `evc-rm-slack-ch-list-${ph.id}-${i}`;
-              const known = channelOptions.some((c) => c === value);
-              return (
-              <div className="evc-rm-slack-ch">
-                <TextInput
-                  type="text"
-                  className="evc-rm-field"
-                  list={listId}
-                  placeholder={L.reminderSlackChannelPh}
-                  value={value}
-                  onChange={(e) =>
-                    patchReminder(ph.id, rm.id, (r) => ({
-                      slack: { ...r.slack, channel: normalizeChannel(e.target.value) },
-                    }))}
-                  data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
-                />
-                <datalist id={listId} data-testid={`evc-rm-slack-channel-list-${ph.id}-${i}`}>
-                  {channelOptions.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-                {/* [PW-529 ②] @멘션이 부르는 것은 «받는 사람 명단» 이지
-                    「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
-                    부를 대상이 없다 — 켜 둘 수 없게 막는다.
-                    참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
-                <button
-                  type="button"
-                  disabled={!selfOn}
-                  className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
-                  onClick={() =>
-                    selfOn &&
-                    patchReminder(ph.id, rm.id, (r) => ({
-                      slack: { ...r.slack, mention: !r.slack?.mention },
-                    }))}
-                  title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
-                  data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
-                >
-                  {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
-                  {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
-                </button>
-                {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
-                    슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
-                    떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
-                <span
-                  className="evc-rm-dsec-note"
-                  data-testid={`evc-rm-slack-channel-note-${ph.id}-${i}`}
-                >
-                  {slackChannelsStatus === 'loading'
-                    ? L.reminderSlackChannelLoading
-                    : slackChannelsStatus === 'error'
-                    ? L.reminderSlackChannelLoadError
-                    : channelOptions.length === 0
-                    ? L.reminderSlackChannelNone
-                    : value && !known
-                    ? L.reminderSlackChannelUnknown
-                    : fill(L.reminderSlackChannelCount, { count: channelOptions.length })}
+        {/* ── 3. 보내는 곳 — 이메일·슬랙을 한 상자에 한 줄씩 [PW-1125].
+            문구는 위 2번이 갖는다. 종전 「문구: 위에서 설정합니다」 줄은 뺐다. */}
+        {rm.channels.length > 0 && (
+          <div className="evc-rm-dsec is-box" data-testid={`evc-rm-sendto-${ph.id}-${i}`}>
+            <div className="evc-rm-dsec-title">{L.reminderSendToTitle}</div>
+            {rm.channels.includes('email') && (
+              <div className="evc-rm-send-row" data-testid={`evc-rm-email-lines-${ph.id}-${i}`}>
+                <span className="evc-rm-send-ch"><MailIcon size={13} /> {L.reminderChEmail}</span>
+                <span>
+                  {L.reminderSendEmailValue} · {L.reminderSendCcLabel} {ccSummary(ph.id, rm)}
                 </span>
               </div>
-              );
-            })()}
+            )}
+            {rm.channels.includes('slack') && (
+              <div className="evc-rm-send-row" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
+                <span className="evc-rm-send-ch"><ChatIcon size={13} /> {L.reminderChSlack}</span>
+                <div className="evc-rm-send-slack">
+                <div className="evc-rm-tgts">
+                  {SLACK_SEND_MODES.map((m) => {
+                    const on = (rm.slack?.mode ?? 'dm') === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className={`evc-rm-tgt${on ? ' is-on' : ''}`}
+                        onClick={() =>
+                          patchReminder(ph.id, rm.id, (r) => ({
+                            slack: { ...r.slack, mode: m.id },
+                          }))}
+                        data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
+                      >
+                        <m.Icon size={14} /> {L[m.labelKey]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
+                  /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
+                     드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
+                     방식을 «쳐서 좁히는» 방식으로 바꾼다. 브라우저 기본
+                     `datalist` 를 쓴다 — 새 시각 부품을 만들지 않으면서
+                     타이핑 필터를 얻는다. */
+                  const value = rm.slack?.channel ?? '';
+                  const listId = `evc-rm-slack-ch-list-${ph.id}-${i}`;
+                  const known = channelOptions.some((c) => c === value);
+                  return (
+                  <div className="evc-rm-slack-ch">
+                    <TextInput
+                      type="text"
+                      className="evc-rm-field"
+                      list={listId}
+                      placeholder={L.reminderSlackChannelPh}
+                      value={value}
+                      onChange={(e) =>
+                        patchReminder(ph.id, rm.id, (r) => ({
+                          slack: { ...r.slack, channel: normalizeChannel(e.target.value) },
+                        }))}
+                      data-testid={`evc-rm-slack-channel-${ph.id}-${i}`}
+                    />
+                    <datalist id={listId} data-testid={`evc-rm-slack-channel-list-${ph.id}-${i}`}>
+                      {channelOptions.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                    {/* [PW-529 ②] @멘션이 부르는 것은 «받는 사람 명단» 이지
+                        「단계 대상자 전원」이 아니다. 그래서 당사자를 끄면
+                        부를 대상이 없다 — 켜 둘 수 없게 막는다.
+                        참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
+                    <button
+                      type="button"
+                      disabled={!selfOn}
+                      className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
+                      onClick={() =>
+                        selfOn &&
+                        patchReminder(ph.id, rm.id, (r) => ({
+                          slack: { ...r.slack, mention: !r.slack?.mention },
+                        }))}
+                      title={selfOn ? undefined : L.reminderSlackMentionNoSelf}
+                      data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
+                    >
+                      {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                      {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
+                    </button>
+                    {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
+                        슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
+                        떨어뜨리고 «왜 목록이 없는지» 를 그 자리에 적는다. */}
+                    <span
+                      className="evc-rm-dsec-note"
+                      data-testid={`evc-rm-slack-channel-note-${ph.id}-${i}`}
+                    >
+                      {slackChannelsStatus === 'loading'
+                        ? L.reminderSlackChannelLoading
+                        : slackChannelsStatus === 'error'
+                        ? L.reminderSlackChannelLoadError
+                        : channelOptions.length === 0
+                        ? L.reminderSlackChannelNone
+                        : value && !known
+                        ? L.reminderSlackChannelUnknown
+                        : fill(L.reminderSlackChannelCount, { count: channelOptions.length })}
+                    </span>
+                  </div>
+                  );
+                })()}
+                </div>
+              </div>
+            )}
           </div>
         )}
         </div>

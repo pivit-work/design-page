@@ -16,7 +16,7 @@
 |---|---|
 | `var(--utility-gray-50) / var(--utility-gray-700)`<br>`var(--componentColors-utility-gray-utilityGray50) / var(--componentColors-utility-gray-utilityGray700)` | `.tab-badge` · `.evc-status-badge.tone-neutral` · `.manager-modal-snippet-tag` · `.ono-add-modal-member-badge` · `.ono-start-rec-badge` · `.ono-start-action-badge` · `.mgr-ts-tag` · `.rsx-tag` · `.ood-tag` |
 | `var(--bg-secondary) / var(--text-secondary)` | `.admin-emp-role-pill.is-manager` · `.admin-emp-status.is-on-leave` · `.admin-snap-jg-pill` · `.admin-inv-csv-chip` · `.evc-type-badge` · `.evc-rm-sum-chip` · `.ono-mem-badge.is-done` · `.ono-mem-chip` · `.modal-status-badge` |
-| `var(--bg-primary) / var(--text-secondary)` | `.evc-tpl-peek-grade` · `.evc-rm-render-chip` · `.modal-team-chip` · `.msc-hist-badge.is-hr` · `.evs-cw-roster-excluded-chip` · `.evc-wiz-calibscope-excluded-chip` |
+| `var(--bg-primary) / var(--text-secondary)` | `.evc-tpl-peek-grade` · `.modal-team-chip` · `.msc-hist-badge.is-hr` · `.evs-cw-roster-excluded-chip` · `.evc-wiz-calibscope-excluded-chip` |
 | `var(--componentColors-alpha-alphaBlack3) / var(--text-secondary)`<br>`var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03)) / var(--text-secondary)`<br>`var(--alpha-black-3) / var(--text-secondary)` | `.ai-badge.is-low` · `.admin-notif-role-chip` · `.mgr-krd-tag` · `.okr-p-chip-btn` · `.okr-wz-badge` |
 | `var(--bg-primary) / var(--text-tertiary)` | `.admin-emp-hist-chip` · `.ono-done-manual-badge` · `.msc-reason-chip` |
 | `var(--utility-gray-100) / var(--text-tertiary)` | `.evc-mode-badge.is-muted` · `.evs-cw-status.tone-muted` · `.evs-cw-badge.tone-muted` |
