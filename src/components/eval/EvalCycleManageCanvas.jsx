@@ -63,14 +63,11 @@ export default function EvalCycleManageCanvas({
           <span className="evc-manage-suffix" data-testid="evmg-suffix">
             · {L.manageSuffix}
           </span>
-          {statusLabel && (
+          {/* PW-1116 중단 중에는 단계 배지를 세우지 않는다 — 「중단」은 아래 주황 띠 한 줄에만
+              적는다. 제목 옆 배지·띠가 같은 말을 세 번, 그것도 평소 «진행 중» 색으로 했었다. */}
+          {statusLabel && !onHold && (
             <StatusBadge className={`evc-status-badge tone-${statusTone}`} data-testid="evmg-status">
               {statusLabel}
-            </StatusBadge>
-          )}
-          {onHold && (
-            <StatusBadge className="evc-status-badge tone-warn" data-testid="evmg-onhold">
-              <PauseIcon size={12} /> {L.onHold}
             </StatusBadge>
           )}
         </div>
@@ -79,8 +76,11 @@ export default function EvalCycleManageCanvas({
       {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
       {onHold && (
-        <p className="evx-notice" data-testid="evmg-onhold-hint">
-          {L.onHoldHint}
+        <p className="evx-notice is-warn evc-manage-onhold" data-testid="evmg-onhold">
+          <PauseIcon size={14} />
+          <strong>{L.onHold}</strong>
+          <span aria-hidden="true">·</span>
+          <span data-testid="evmg-onhold-hint">{L.onHoldHint}</span>
         </p>
       )}
 

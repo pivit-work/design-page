@@ -78,7 +78,6 @@ const DEFAULT_LABELS = {
   revoke: '사이클 회수',
   emergencyStop: '비상 정지',
   // §5.7.1 일시 중단/재개 (회수·비상정지 대체)
-  holdHint: '진행 중인 사이클입니다. 필요 시 일시 중단할 수 있습니다.',
   hold: '일시 중단',
   onHoldBanner: '이 사이클은 일시 중단되었습니다. 구성원의 작성·제출이 차단됩니다.',
   resume: '재개',
@@ -890,14 +889,16 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           <span>{L.period}: {cycle.startDate} ~ {cycle.endDate}</span>
           <span className="evc-dot">·</span>
           <span>{fill(L.members, { count: cycle.participantCount ?? 0 })}</span>
+          {/* PW-1116 평가 종류는 칩 줄을 따로 쓰지 않고 기간·대상 줄 끝에 글로 붙인다. */}
+          {Array.isArray(cycle.reviewTypes) && cycle.reviewTypes.length > 0 && (
+            <>
+              <span className="evc-dot">·</span>
+              <span className="evc-card-types" data-testid="evc-card-types">
+                {cycle.reviewTypes.map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t).join(' · ')}
+              </span>
+            </>
+          )}
         </div>
-        {Array.isArray(cycle.reviewTypes) && cycle.reviewTypes.length > 0 && (
-          <div className="evc-type-badges">
-            {cycle.reviewTypes.map((t) => (
-              <DpStatusBadge key={t} className="evc-type-badge">{L[REVIEW_TYPE_KEYS[t]] ?? t}</DpStatusBadge>
-            ))}
-          </div>
-        )}
       </div>
 
       {!isDraft && (
@@ -909,15 +910,8 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
         />
       )}
 
-      {/* §5.7.1: 진행 중 → 일시 중단(확인 모달), 일시 중단 → 재개(즉시). 회수·비상정지 대체 */}
-      {isActive && (
-        <div className="evc-hold-banner">
-          <span className="evc-hold-hint">{L.holdHint}</span>
-          <button type="button" className="evc-btn is-hold" onClick={() => onHold(cycle)} data-testid="evc-hold">
-            <PauseIcon size={14} /> {L.hold}
-          </button>
-        </div>
-      )}
+      {/* §5.7.1: 진행 중 → 일시 중단(확인 모달), 일시 중단 → 재개(즉시). 회수·비상정지 대체.
+          PW-1116 진행 중의 [일시 중단]은 안내 상자 없이 아래 버튼 줄 끝에 선다. */}
       {isOnHold && (
         <div className="evc-onhold-banner" data-testid="evc-onhold-banner">
           <span className="evc-onhold-icon"><PauseIcon size={14} /></span>
@@ -1011,6 +1005,11 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
                 {L.manage}
               </button>
             )
+          )}
+          {isActive && (
+            <button type="button" className="evc-btn is-hold" onClick={() => onHold(cycle)} data-testid="evc-hold">
+              <PauseIcon size={14} /> {L.hold}
+            </button>
           )}
         </div>
       </div>

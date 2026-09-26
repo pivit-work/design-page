@@ -4,7 +4,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertIcon, ChevronDownIcon, ChevronUpIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
@@ -162,10 +162,11 @@ const DEFAULT_LABELS = {
   cwEmptyRows: '이 세션 scope에 해당하는 대상자가 없습니다.',
   cwLoadingTable: '테이블을 불러오는 중…',
   cwDistTitle: '등급 분포',
-  cwDistLive: '실시간',
   cwDistCount: '{n}명',
   cwDistRec: '권장 {pct}%',
-  cwDistNote: '※ 권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
+  cwDistNote: '권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
+  cwDistNoGrade: '등급 없음',
+  cwDistNoGradeBar: '등급 없음 {n}명 ({pct}%)',
   cwFilterBtn: '필터',
   cwFilterTitle: '대상자 선별 필터',
   cwFilterDesc: '메타데이터(조직·등급·직무·승진)를 조합해 대상자를 선별합니다. 같은 항목의 여러 값은 OR, 특정 조건은 제외할 수 있습니다.',
@@ -640,39 +641,86 @@ function SortTh({ sortKey, label, sort, onSort }) {
 }
 
 // §4.1 실시간 등급 분포 바 — 유효등급(위원회조정 우선) 집계 + 권장비율 편차(±10%p).
+// PW-1116 막대는 비율, 아래 칸은 인원 — 같은 비율을 두 번 싣지 않는다. 등급이 아직 없는 사람은
+// 막대 끝 회색 빗금과 마지막 칸 「등급 없음 N」으로 센다. 안내문은 제목 줄 ⓘ 에 올렸을 때만.
+const DIST_MIDDLE_HUES = {
+  1: ['blue'],
+  2: ['blue', 'orange'],
+  3: ['sky', 'blue', 'orange'],
+  4: ['sky', 'blue', 'indigo', 'orange'],
+  5: ['sky', 'blue', 'indigo', 'purple', 'orange'],
+};
+const DIST_EXTRA_HUES = ['sky', 'blue', 'indigo', 'purple', 'orange'];
+
+/** 분포 카드 전용 색 — 첫 등급 초록 · 끝 등급 빨강 · 가운데는 등급마다 다른 색. 표의 등급 배지(gradeTone)와는 따로 간다. */
+function distributionHue(index, total) {
+  if (total <= 1) return 'green';
+  if (index === 0) return 'green';
+  if (index === total - 1) return 'red';
+  const middle = total - 2;
+  const hues = DIST_MIDDLE_HUES[middle];
+  return hues ? hues[index - 1] : DIST_EXTRA_HUES[(index - 1) % DIST_EXTRA_HUES.length];
+}
+
 function CalibDistributionBar({ rows, orderedGrades, L }) {
   const n = rows.length;
-  const seg = orderedGrades.map((g) => ({
+  const seg = orderedGrades.map((g, i) => ({
     ...g,
-    tone: gradeTone(g.gradeKey, orderedGrades),
+    hue: distributionHue(i, orderedGrades.length),
     count: rows.filter(
       (r) => (r.calibratedGradeKey ?? r.currentGradeKey) === g.gradeKey,
     ).length,
   }));
+  const graded = seg.reduce((sum, g) => sum + g.count, 0);
+  const noGrade = n - graded;
   const pct = (c) => (n ? Math.round((c / n) * 1000) / 10 : 0);
   return (
     <div className="evs-cw-dist" data-testid="evs-cw-dist">
       <div className="evs-cw-dist-head">
         <span className="evs-cw-dist-title">{L.cwDistTitle}</span>
-        <span className="evs-cw-dist-live">{L.cwDistLive}</span>
         <span className="evs-cw-dist-count">{fmt(L.cwDistCount, { n })}</span>
+        <span
+          className="evs-cw-dist-info"
+          title={L.cwDistNote}
+          aria-label={L.cwDistNote}
+          role="img"
+          tabIndex={0}
+          data-testid="evs-cw-dist-info"
+        >
+          <InfoIcon size={16} />
+        </span>
       </div>
       <div className="evs-cw-dist-bar">
         {n === 0 ? (
           <div className="evs-cw-dist-empty">{L.cwEmptyRows}</div>
         ) : (
-          seg.map((g) =>
-            g.count > 0 ? (
+          <>
+            {seg.map((g) =>
+              g.count > 0 ? (
+                <div
+                  key={g.gradeKey}
+                  className={`evs-cw-dist-seg hue-${g.hue}`}
+                  style={{ width: `${(g.count / n) * 100}%` }}
+                  title={`${g.label} ${g.count} (${pct(g.count)}%)`}
+                  data-testid="evs-cw-dist-seg"
+                >
+                  {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
+                </div>
+              ) : null,
+            )}
+            {noGrade > 0 && (
               <div
-                key={g.gradeKey}
-                className={`evs-cw-dist-seg tone-${g.tone}`}
-                style={{ width: `${(g.count / n) * 100}%` }}
-                title={`${g.label} ${g.count} (${pct(g.count)}%)`}
+                className="evs-cw-dist-seg is-nograde"
+                style={{ width: `${(noGrade / n) * 100}%` }}
+                title={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}
+                data-testid="evs-cw-dist-seg-nograde"
               >
-                {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
+                {noGrade / n >= 0.09
+                  ? fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })
+                  : ''}
               </div>
-            ) : null,
-          )
+            )}
+          </>
         )}
       </div>
       <div className="evs-cw-dist-chips">
@@ -684,11 +732,11 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
           return (
             <StatusBadge as="div"
               key={g.gradeKey}
-              className={`evs-cw-dist-chip${off ? ' is-off' : ''} tone-${g.tone}`}>
-              <span className={`evs-cw-dist-dot tone-${g.tone}`} />
+              className={`evs-cw-dist-chip hue-${g.hue}${off ? ' is-off' : ''}${g.count === 0 ? ' is-zero' : ''}`}
+              data-testid="evs-cw-dist-chip">
+              <span className={`evs-cw-dist-dot hue-${g.hue}`} />
               <span className="evs-cw-dist-chip-label">{g.label}</span>
               <span className="evs-cw-dist-chip-count">{g.count}</span>
-              <span className={`evs-cw-dist-chip-pct tone-${g.tone}`}>{p}%</span>
               {rec != null && (
                 <span className="evs-cw-dist-chip-rec">
                   {fmt(L.cwDistRec, { pct: rec })}
@@ -703,8 +751,16 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
             </StatusBadge>
           );
         })}
+        {noGrade > 0 && (
+          <StatusBadge as="div"
+            className="evs-cw-dist-chip is-nograde"
+            data-testid="evs-cw-dist-chip-nograde">
+            <span className="evs-cw-dist-dot is-nograde" />
+            <span className="evs-cw-dist-chip-label">{L.cwDistNoGrade}</span>
+            <span className="evs-cw-dist-chip-count">{noGrade}</span>
+          </StatusBadge>
+        )}
       </div>
-      <div className="evs-cw-dist-note">{L.cwDistNote}</div>
     </div>
   );
 }

@@ -179,6 +179,9 @@
 .evc-dot {
   color: var(--text-tertiary);
 }
+.evc-card-types {
+  color: var(--text-tertiary);
+}
 
 .evc-pending {
   display: inline-flex;
@@ -294,7 +297,6 @@
   color: var(--utility-warning-700);
 }
 .evc-btn.is-hold {
-  margin-left: auto;
   border: 1px solid var(--utility-warning-700);
   background: var(--utility-warning-50);
   color: var(--utility-warning-700);
@@ -3273,6 +3275,18 @@
   font-size: var(--font-size-text-sm);
   font-weight: 600;
 }
+/* 멈춤·주의 배너 — 주황 경고 톤(evx-notice.is-warn · PW-1116 사이클 일시 중단 띠) */
+.evx-notice.is-warn {
+  background: var(--utility-warning-50);
+  color: var(--utility-warning-700);
+  border: 1px solid var(--utility-warning-200);
+}
+.evc-manage-onhold svg {
+  flex: none;
+}
+.evc-manage-onhold strong {
+  font-weight: 800;
+}
 /* 제출 완료 등 긍정 확정 배너 — 초록 성공 톤(evx-notice.is-success) */
 .evx-notice.is-success {
   background: var(--utility-success-50);
@@ -5932,16 +5946,20 @@
   font-weight: 800;
   color: var(--text-primary);
 }
-.evs-cw-dist-live {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--utility-blue-600);
-  background: var(--utility-blue-50);
-  padding: 1px 8px;
-  border-radius: 99px;
-}
 .evs-cw-dist-count {
   font-size: 12px;
+  color: var(--text-secondary);
+}
+/* PW-1116 안내문은 늘 떠 있지 않고 ⓘ 에 올렸을 때만 */
+.evs-cw-dist-info {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--text-tertiary);
+  cursor: help;
+  border-radius: 99px;
+}
+.evs-cw-dist-info:hover,
+.evs-cw-dist-info:focus-visible {
   color: var(--text-secondary);
 }
 .evs-cw-dist-bar {
@@ -5971,17 +5989,46 @@
   overflow: hidden;
   border-right: 1px solid var(--bg-primary);
 }
-.evs-cw-dist-seg.tone-green {
+.evs-cw-dist-seg:last-child {
+  border-right: 0;
+}
+/* PW-1116 분포 카드 색 — 등급마다 다른 색(가운데 등급끼리 같은 파랑이 되지 않게) */
+.evs-cw-dist-seg.hue-green,
+.evs-cw-dist-dot.hue-green {
   background: var(--utility-green-500);
 }
-.evs-cw-dist-seg.tone-accent {
+.evs-cw-dist-seg.hue-sky,
+.evs-cw-dist-dot.hue-sky {
+  background: var(--utility-blue-light-400);
+}
+.evs-cw-dist-seg.hue-blue,
+.evs-cw-dist-dot.hue-blue {
   background: var(--utility-blue-500);
 }
-.evs-cw-dist-seg.tone-red {
+.evs-cw-dist-seg.hue-indigo,
+.evs-cw-dist-dot.hue-indigo {
+  background: var(--utility-indigo-500);
+}
+.evs-cw-dist-seg.hue-purple,
+.evs-cw-dist-dot.hue-purple {
+  background: var(--utility-purple-500);
+}
+.evs-cw-dist-seg.hue-orange,
+.evs-cw-dist-dot.hue-orange {
+  background: var(--utility-orange-500);
+}
+.evs-cw-dist-seg.hue-red,
+.evs-cw-dist-dot.hue-red {
   background: var(--utility-error-500);
 }
-.evs-cw-dist-seg.tone-muted {
-  background: var(--utility-gray-400);
+/* 등급 없는 사람 — 회색 빗금 */
+.evs-cw-dist-seg.is-nograde {
+  color: var(--text-secondary);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bg-secondary) 0 6px,
+    var(--utility-gray-200) 6px 12px
+  );
 }
 .evs-cw-dist-chips {
   display: flex;
@@ -5994,17 +6041,8 @@
   border-radius: 3px;
   flex-shrink: 0;
 }
-.evs-cw-dist-dot.tone-green {
-  background: var(--utility-green-500);
-}
-.evs-cw-dist-dot.tone-accent {
-  background: var(--utility-blue-500);
-}
-.evs-cw-dist-dot.tone-red {
-  background: var(--utility-error-500);
-}
-.evs-cw-dist-dot.tone-muted {
-  background: var(--utility-gray-400);
+.evs-cw-dist-dot.is-nograde {
+  background: var(--utility-gray-200);
 }
 .evs-cw-dist-chip-label {
   font-size: 12px;
@@ -6015,22 +6053,6 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
-}
-.evs-cw-dist-chip-pct {
-  font-size: 12px;
-  font-weight: 800;
-}
-.evs-cw-dist-chip-pct.tone-green {
-  color: var(--utility-green-700);
-}
-.evs-cw-dist-chip-pct.tone-accent {
-  color: var(--utility-blue-600);
-}
-.evs-cw-dist-chip-pct.tone-red {
-  color: var(--utility-error-700);
-}
-.evs-cw-dist-chip-pct.tone-muted {
-  color: var(--text-tertiary);
 }
 .evs-cw-dist-chip-rec {
   font-size: 12px;
@@ -6044,11 +6066,6 @@
 }
 .evs-cw-dist-delta.is-off {
   color: var(--utility-error-600);
-}
-.evs-cw-dist-note {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  line-height: 1.5;
 }
 
 /* §6.3 R4 대상자 선별 필터 */
