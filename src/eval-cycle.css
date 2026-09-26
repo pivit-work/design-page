@@ -4129,6 +4129,46 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
+/* PW-1047 ①③ 비교 눈금 — 지난 평가·조정 전 값. 가이드(옅은 점선)와 겹쳐도 가려지게 진한 실선,
+   막대 안에 들어가도 보이게 흰 테두리를 두른다. */
+.evs-dist-tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 1px;
+  background: var(--text-primary);
+  box-shadow: 0 0 0 1.5px var(--bg-primary);
+}
+/* 차트 아래 범례 한 줄 */
+.evs-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-lg);
+  margin: var(--spacing-lg) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evs-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.evs-legend-tick {
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--text-primary);
+}
+.evs-legend-guide {
+  display: inline-block;
+  width: 0;
+  height: 12px;
+  border-left: 1.5px dashed var(--text-tertiary);
+}
 .evs-dist-count {
   min-width: 52px;
   text-align: right;
@@ -4291,42 +4331,6 @@
   .evs-two-col { grid-template-columns: 1fr; }
 }
 
-/* §4.A 이전 사이클 비교 */
-.evs-prev-name {
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
-.evs-prev-table .evmon-head,
-.evs-prev-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: var(--spacing-md);
-  align-items: center;
-  padding: var(--spacing-sm) 0;
-}
-.evs-prev-row {
-  border-top: 1px solid var(--bg-secondary);
-  font-size: var(--font-size-text-sm);
-}
-.evs-prev-num {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  text-align: right;
-  color: var(--text-primary);
-}
-.evs-prev-num.is-muted {
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
-.evs-prev-delta {
-  text-align: right;
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  min-width: 64px;
-}
-.evs-prev-delta.is-up { color: var(--utility-green-600); }
-.evs-prev-delta.is-down { color: var(--utility-error-600); }
 
 /* §4.A 리더별 제출 현황 테이블 */
 .evs-leader-table {
@@ -4543,31 +4547,13 @@
 .evs-dept-drow .seg-mid-text { color: var(--utility-brand-600); font-variant-numeric: tabular-nums; }
 .evs-dept-drow .seg-bottom-text { color: var(--utility-error-600); font-variant-numeric: tabular-nums; }
 .evs-dept-vsguide { font-variant-numeric: tabular-nums; font-weight: 700; }
-.evs-dept-vsguide.tone-red { color: var(--utility-error-600); }
-.evs-dept-vsguide.tone-amber { color: var(--utility-warning-700); }
-.evs-dept-vsguide.tone-green { color: var(--utility-green-600); }
+.evs-dept-vsguide { font-weight: 400; }
+.evs-dept-vsguide.is-over { font-weight: 700; color: var(--utility-error-600); }
 
 /* §7.D 캘리브레이션 결과 */
 .evs-cd-cards { grid-template-columns: repeat(3, 1fr); }
 .evs-cd-down .evs-kpi-value { color: var(--utility-error-600); }
-.evs-cd-dist { display: flex; flex-direction: column; }
-.evs-cd-grade { padding: var(--spacing-md) 0; }
-.evs-cd-grade + .evs-cd-grade { border-top: 1px solid var(--bg-secondary); }
-.evs-cd-grade-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-sm); }
-.evs-cd-grade-name { display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
-.evs-cd-delta { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); font-weight: 700; }
-.evs-cd-delta.is-up { color: var(--utility-green-600); }
-.evs-cd-delta.is-down { color: var(--utility-error-600); }
-.evs-cd-pair { display: grid; grid-template-columns: 48px 1fr auto; gap: var(--spacing-sm); align-items: center; margin-bottom: 4px; }
-.evs-cd-plabel { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
-.evs-cd-track { height: 10px; position: relative; }
-.evs-cd-fill { height: 100%; border-radius: var(--radius-full); }
-.evs-cd-fill.is-before { opacity: 0.4; }
-.evs-cd-fill.is-after { opacity: 0.9; }
-.evs-cd-fill.seg-top { background: var(--utility-green-500); }
-.evs-cd-fill.seg-mid { background: var(--utility-brand-500); }
-.evs-cd-fill.seg-bottom { background: var(--utility-error-500); }
-.evs-cd-pval { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); color: var(--text-secondary); min-width: 84px; text-align: right; }
+.evs-cd-change { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evs-cd-summary {
   margin-top: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-xl);
@@ -5403,6 +5389,28 @@
   color: var(--text-secondary);
   cursor: pointer;
   font-family: inherit;
+}
+/* PW-1047 ④ 위원회가 바꾼 줄만 — 등급의 좋고 나쁨이 아니라 «바뀌었다»만 알린다.
+   강조색(브랜드)도 초록이라 «좋다»로 읽혀서 짙은 회색으로 둔다. */
+.evs-cw-adjust-select.is-changed {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--text-primary);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.evs-cw-adjust-value.is-changed {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.evs-cw-adjust-dir {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* §10.G 어필 인박스 + 재검토 */
@@ -6370,17 +6378,36 @@
   background: var(--utility-purple-50);
   border: 1px solid var(--utility-purple-200);
 }
-.evtcal-redirect-head {
+.evtcal-redirect-line {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--spacing-md);
   flex-wrap: wrap;
-  margin-bottom: var(--spacing-md);
 }
-.evtcal-redirect-title {
+.evtcal-redirect-summary {
+  flex: 1;
+  min-width: 0;
   font-size: var(--font-size-text-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--utility-purple-700);
+}
+.evtcal-redirect-more {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-purple-700);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.evtcal-redirect-detail {
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 .evtcal-redirect-body {
   margin: 0;
@@ -6388,24 +6415,11 @@
   line-height: 1.7;
   color: var(--text-secondary);
 }
-.evtcal-redirect-note {
-  margin: var(--spacing-md) 0 0;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-sm);
-  background: var(--utility-warning-50);
-  border: 1px solid var(--utility-warning-200);
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--utility-warning-700);
-}
 .evtcal-result-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-md);
-}
-.evtcal-result-sub {
-  margin-top: 2px;
   margin-bottom: var(--spacing-lg);
 }
 .evtcal-rows {
