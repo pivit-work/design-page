@@ -1286,6 +1286,16 @@ function isEmployedRow(m) {
   return m.isActive !== false && m.employmentStatus !== 'terminated';
 }
 
+/**
+ * 구성원 탭 목록에 세우는 사람인가 — 가입 대기(`pending`)는 탭 C(초대 관리) 소관이라
+ * 빠진다(§3.2.1 · PW-422). 🔴 목록·탭 숫자·명부 내보내기 ③「전체 구성원」 인원이 **이 한
+ * 판정**을 같이 쓴다. 따로 세면 목록 272명·탭 275·③ 275명처럼 숫자가 갈리고, 창에 적힌
+ * 인원과 받은 파일 줄 수가 어긋난다(PW-1126).
+ */
+function isListedMember(m) {
+  return m.employmentStatus !== 'pending';
+}
+
 /** 결측 칸 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다(조직 스냅샷과 같은 규칙). */
 function Dash() {
   return <span className="admin-emp-cell-dash" aria-hidden="true">—</span>;
@@ -1969,7 +1979,7 @@ function EmployeesListView({
         // 관리)가 이미 담당하는데 두 곳에 뜨면 체크박스 선택·일괄 처리·페이지네이션의
         // 단위가 「사람 수」와 어긋난다. (구 서술 「잔여 행은 스프레드시트 뷰에서
         // 볼 수 있다」는 그 뷰가 폐기돼 성립하지 않는다 — PW-576.)
-        if (m.employmentStatus === 'pending') return false;
+        if (!isListedMember(m)) return false;
         return true;
       }),
     // eslint 이 못 보는 의존: `orgTree`·`squadById` 가 소속·스쿼드 판정을 바꾼다.
@@ -2261,7 +2271,7 @@ function EmployeesListView({
     if (scope === 'all') {
       onExportRoster({
         scope, columns: [], ids: [], search: '', filters: {},
-        rowCount: members.length, includeSalary: false,
+        rowCount: members.filter(isListedMember).length, includeSalary: false,
       });
       return;
     }
@@ -2297,7 +2307,7 @@ function EmployeesListView({
   const exportItems = buildExportItems({
     labels: exportLabels,
     viewRows: ordered,
-    allRows: members,
+    allRows: members.filter(isListedMember),
     columnCount: exportColumns.length,
     hasActiveFilter: Boolean(hasFilter),
     salaryVisible,
@@ -4024,7 +4034,7 @@ export default function AdminEmployeesCanvas({
   );
 
   const tabs = [
-    { id: 'members', label: labels.tabs.members, count: members.length },
+    { id: 'members', label: labels.tabs.members, count: members.filter(isListedMember).length },
     { id: 'unassigned', label: labels.tabs.unassigned, count: unassignedCount, warn: unassignedCount > 0 },
     { id: 'invites', label: labels.tabs.invites, count: pendingInviteCount },
   ];
