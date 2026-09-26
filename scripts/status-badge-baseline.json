@@ -729,7 +729,6 @@
    "display": "flex",
    "gap": "4px",
    "border": "none",
-   "border-left": "4px solid transparent",
    "min-width": "0",
    "flex": "1 1 0"
   },

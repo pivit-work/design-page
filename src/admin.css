@@ -271,10 +271,6 @@
 
 /* ── 팀원 표 ────────────────────────────────────────────────────────── */
 /* 팀원 현황 표의 칸 여백·머리 행·구분선·줄 색은 명단 표(roster-table.css)가 정한다 (PW-839). */
-.admin-team-row.is-flagged td:first-child {
-  box-shadow: inset 3px 0 0 var(--colors-error-400, #f97066);
-}
-
 .admin-team-name-cell {
   display: flex;
   align-items: center;
@@ -1872,7 +1868,6 @@
    report 의 "이번 주" 행, snippet 선택 항목과 동일. 접힌 행/잎과 명확히 구분된다. */
 .admin-snap-tree-row.is-open {
   background: var(--bg-brand-primary, #f1fffa);
-  box-shadow: inset 2px 0 0 0 var(--bg-brand-solid, #2dbd82);
 }
 .admin-snap-tree-row.is-open .admin-snap-tree-name { font-weight: 700; }
 .admin-snap-tree-row.has-children:hover:not(.is-open) { background: var(--bg-secondary); }
@@ -3425,8 +3420,9 @@
   font-size: 11px;
   color: var(--text-secondary);
   margin-top: 4px;
-  padding-left: 8px;
-  border-left: 2px solid var(--border-primary);
+  padding-left: 12px;
+  /* 글자 옆 선 — 디자이너 모양(리포트 Weekly 요약 한 줄)과 같은 색·두께 (PW-1101) */
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
   overflow-wrap: anywhere;
 }
 

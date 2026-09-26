@@ -70,6 +70,11 @@ jobs:
       - name: Check undefined class names
         run: npm run check:undefined-classes
 
+      # 카드·안내 상자에 한쪽만 굵은 색 선을 그은 채 나가는 것을 막는다 — 디자이너 모양은
+      # 「상자 없이 글자 옆 선만」 이다. (PW-1101)
+      - name: Check side stripes
+        run: npm run check:side-stripes
+
       - name: Bump patch version
         run: |
           git config user.name 'github-actions[bot]'

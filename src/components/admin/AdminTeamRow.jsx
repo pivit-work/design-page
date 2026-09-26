@@ -32,7 +32,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
 
   if (!row.active) {
     return (
-      <Row tone="muted" className="admin-team-row" onClick={rowClick}>
+      <Row tone="muted" onClick={rowClick}>
         <Cell>
           <div className="admin-team-name-cell">
             {avatar}
@@ -51,7 +51,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
 
   const level = row.health != null ? healthLevel(row.health) : null;
   return (
-    <Row tone={row.redFlag ? 'flagged' : undefined} className="admin-team-row" onClick={rowClick}>
+    <Row tone={row.redFlag ? 'flagged' : undefined} onClick={rowClick}>
       <Cell>
         <div className="admin-team-name-cell">
           {avatar}

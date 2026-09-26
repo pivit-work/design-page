@@ -171,7 +171,6 @@ function BlockCard({ block, L, onOpen }) {
         textAlign: 'left',
         background: C.surface,
         border: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${barColor}`,
         borderRadius: 12,
         // 카드가 1080px 폭으로 넓어졌다 — 좌우 패딩만 소폭 키워 글이 테두리에 붙지 않게 한다 (PW-218)
         padding: '14px 18px',

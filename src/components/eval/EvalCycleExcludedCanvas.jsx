@@ -56,26 +56,25 @@ const DEFAULT_LABELS = {
 
 // 체크박스/개별 유형(고정 안내문). 날짜 기반·커스텀은 렌더에서 동적 구성.
 const REASON_META = {
-  probation: { Icon: LeafIcon, titleKey: 'probationTitle', msgKey: 'probationMsg', tone: 'success' },
-  leave: { Icon: LeafIcon, titleKey: 'leaveTitle', msgKey: 'leaveMsg', tone: 'success' },
-  manual: { Icon: InfoIcon, titleKey: 'manualTitle', msgKey: 'manualMsg', tone: 'neutral' },
-  role_change: { Icon: RefreshIcon, titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg', tone: 'purple' },
-  not_in_scope: { Icon: TargetIcon, titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg', tone: 'neutral' },
+  probation: { Icon: LeafIcon, titleKey: 'probationTitle', msgKey: 'probationMsg' },
+  leave: { Icon: LeafIcon, titleKey: 'leaveTitle', msgKey: 'leaveMsg' },
+  manual: { Icon: InfoIcon, titleKey: 'manualTitle', msgKey: 'manualMsg' },
+  role_change: { Icon: RefreshIcon, titleKey: 'roleChangeTitle', msgKey: 'roleChangeMsg' },
+  not_in_scope: { Icon: TargetIcon, titleKey: 'notInScopeTitle', msgKey: 'notInScopeMsg' },
 };
 
-/** 제외 사유 → {Icon,title,msg,tone}. 날짜 기반 14종·custom 은 동적으로 구성. */
+/** 제외 사유 → {Icon,title,msg}. 날짜 기반 14종·custom 은 동적으로 구성. */
 function resolveReason(exclusion, L) {
   const t = exclusion.exclusionType;
   if (REASON_META[t]) {
     const m = REASON_META[t];
-    return { Icon: m.Icon, title: L[m.titleKey], msg: L[m.msgKey], tone: m.tone };
+    return { Icon: m.Icon, title: L[m.titleKey], msg: L[m.msgKey] };
   }
   if (t === 'custom') {
     return {
       Icon: TagIcon,
       title: exclusion.customLabel || L.manualTitle,
       msg: exclusion.customDateBasis || L.dateBasedMsg,
-      tone: 'neutral',
     };
   }
   const typeLabel = L.typeLabels && L.typeLabels[t];
@@ -83,7 +82,6 @@ function resolveReason(exclusion, L) {
     Icon: CalendarIcon,
     title: typeLabel ? `${typeLabel}${L.dateBasedSuffix}` : L.unknownTypeTitle,
     msg: (L.typeMessages && L.typeMessages[t]) || L.dateBasedMsg,
-    tone: 'neutral',
   };
 }
 
@@ -152,7 +150,7 @@ export default function EvalCycleExcludedCanvas({
         </section>
 
         {/* 제외 사유 */}
-        <section className={`evc-card evx-reason tone-${reason.tone}`} data-testid="evx-reason">
+        <section className="evc-card" data-testid="evx-reason">
           <div className="evx-reason-head">
             <span className="evx-emoji" aria-hidden="true"><reason.Icon size={20} /></span>
             <h3 className="evc-card-name">{reason.title}</h3>

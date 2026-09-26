@@ -3279,18 +3279,6 @@
   color: var(--utility-success-700);
   border: 1px solid var(--utility-success-200);
 }
-.evx-reason.tone-success {
-  border-left: 3px solid var(--utility-green-500);
-}
-.evx-reason.tone-info {
-  border-left: 3px solid var(--utility-blue-500);
-}
-.evx-reason.tone-purple {
-  border-left: 3px solid var(--utility-purple-500);
-}
-.evx-reason.tone-neutral {
-  border-left: 3px solid var(--utility-gray-200);
-}
 .evx-reason-head {
   display: flex;
   align-items: center;
@@ -5136,10 +5124,6 @@
   font-size: var(--font-size-text-xs);
   line-height: 1.5;
 }
-/* TC-054 상위(위원회) 전용 섹션 강조 */
-.evl-committee-only {
-  border-left: 3px solid var(--utility-error-500);
-}
 .evl-committee-hint {
   margin: 0 0 var(--spacing-md);
   font-size: var(--font-size-text-xs);
@@ -6741,8 +6725,9 @@
   align-items: baseline;
   gap: 6px;
   font-size: 12px;
-  padding-left: 10px;
-  border-left: 2px solid var(--utility-blue-200);
+  padding-left: 12px;
+  /* 글자 옆 선 — 디자이너 모양(리포트 Weekly 요약 한 줄)과 같은 색·두께 (PW-1101) */
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 .evs-cw-timeline-at {
   color: var(--text-tertiary);
@@ -7524,7 +7509,7 @@
 }
 .evc-tpl-x.is-on { color: var(--utility-brand-600); }
 
-/* 설정 패널 — 항목 행 «바로 아래», 좌측 들여쓰기 + 강조 좌측 테두리. */
+/* 설정 패널 — 항목 행 «바로 아래», 좌측 들여쓰기. 네 변 같은 테두리 (PW-1101 에서 왼쪽 굵은 선을 뺐다). */
 .evc-tpl-settings {
   flex-basis: 100%;
   width: 100%;
@@ -7532,7 +7517,6 @@
   margin: 4px 0 2px 22px;
   padding: var(--spacing-lg) var(--spacing-lg);
   border: 1px solid var(--utility-blue-200);
-  border-left: 3px solid var(--utility-blue-500);
   border-radius: var(--radius-md);
   background: var(--utility-blue-50);
   display: flex;
@@ -7834,11 +7818,10 @@
    렌더러를 쓰므로 스타일도 한 벌만 둔다. 시각 사양은 기획 폴더의 `eval-app.jsx`
    시안(`NoteBlock`·`MdLite`)을 그대로 옮긴 것이다. */
 .evc-note {
-  padding: var(--spacing-lg) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  /* 왼쪽 띠 — 문항이 아니라 «안내»임을 번호 없이 알린다. */
-  border-left: 3px solid var(--utility-blue-200);
+  padding: 0 12px;
+  /* 왼쪽 선 — 문항이 아니라 «안내»임을 번호 없이 알린다. 상자 없이 글자 옆 선만 긋는 디자이너
+     모양(리포트 Weekly 요약 한 줄 .tl-weekly-entry-highlight)과 같은 값이다 (PW-1101). */
+  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 .evc-note-title {
   font-size: var(--font-size-text-sm);

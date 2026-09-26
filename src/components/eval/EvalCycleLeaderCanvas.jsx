@@ -670,7 +670,7 @@ export default function EvalCycleLeaderCanvas({
 
           {/* F5 승진·보상·비밀 코멘트 — TC-054 상위(위원회) 전용 */}
           <section
-            className="evc-card evl-committee-only"
+            className="evc-card"
             data-testid="evl-assessment"
           >
             <h3 className="evc-card-name">

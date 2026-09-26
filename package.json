@@ -67,6 +67,7 @@
     "check:icon-copies": "node scripts/check-icon-copies.mjs",
     "check:font-families": "node scripts/check-font-families.mjs",
     "check:undefined-classes": "node scripts/check-undefined-classes.mjs",
+    "check:side-stripes": "node scripts/check-side-stripes.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },
