@@ -81,10 +81,10 @@ function applyTexture(app, objectName, imageSrc) {
  * (`onOneOnOneClick` / `onMessageClick`) — 소비자가 카드와 모달에 같은 핸들러를 물릴 수
  * 있게 하기 위함이다. 콜백을 안 넘기면(데모) 눌러도 아무 일도 일어나지 않는다.
  *
- * 헤더의 [직함 고치기] (PW-924 · 기획 매니저 화면 정책 §6-8-A) 는 `member.businessTitleAction`
- * (`{ label }`) 이 있을 때만 그린다 — 회사가 직함을 쓰고 이 뷰어가 고칠 자격이 있을 때만
- * 소비자가 넣는다. 카드에는 없고 이 모달에만 있다. 1on1·메시지와 달리 **이 모달을 닫지
- * 않는다** — 직함 창은 이 패널 위에 뜨고 패널은 그대로 둔다(기획 시안 `manager-app.jsx`).
+ * 「인사 정보」 탭의 줄은 오른쪽 끝에 작은 버튼(`row.action`)을 둘 수 있다 — 직함 줄의
+ * [고치기](PW-1094)가 그렇다. 누르면 `onHrRowAction(member, row.key)` 를 부른다. 1on1·메시지와
+ * 달리 **이 모달을 닫지 않는다** — 소비자가 띄우는 창은 이 패널 위에 뜨고 패널은 그대로 둔다.
+ * (PW-924 때는 헤더 버튼 줄에 있었는데, 주요 버튼 둘과 같은 크기로 서서 튀어 옮겼다.)
  */
 export default function ProfileModal({
   member,
@@ -93,7 +93,7 @@ export default function ProfileModal({
   icons,
   onOneOnOneClick,
   onMessageClick,
-  onBusinessTitleClick,
+  onHrRowAction,
   onHrProfileRetry,
   onSnippetsMore,
 }) {
@@ -205,16 +205,6 @@ export default function ProfileModal({
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
                 <span>메시지</span>
               </button>
-              {/* 분류와 무관한 동작이라 분류 색이 없는 중립 모양이다(기획 시안 `manager-app.jsx`). */}
-              {displayMember?.businessTitleAction?.label && (
-                <button
-                  type="button"
-                  className="manager-modal-btn-neutral"
-                  onClick={() => onBusinessTitleClick?.(displayMember)}
-                >
-                  <span>{displayMember.businessTitleAction.label}</span>
-                </button>
-              )}
             </div>
           </div>
 
@@ -246,7 +236,11 @@ export default function ProfileModal({
               <ActionItemsTab data={profile.actionItems} />
             )}
             {activeTab === 'hr' && profile?.hrProfile && (
-              <HrProfileTab data={profile.hrProfile} onRetry={onHrProfileRetry} />
+              <HrProfileTab
+                data={profile.hrProfile}
+                onRetry={onHrProfileRetry}
+                onRowAction={(key) => onHrRowAction?.(displayMember, key)}
+              />
             )}
           </div>
 
@@ -514,8 +508,11 @@ function ActionItemsTab({ data }) {
  *  - `error` — 인사 정보를 통째로 못 받았다. 탭 안에서만 말한다.
  *  - `personalError` — 나머지는 받았는데 **개인 정보 자리만** 못 받았다.
  *    그 자리에만 문구를 두고 위쪽 항목은 정상으로 그린다.
+ *
+ * 줄 옆 버튼(`row.action: { label, ariaLabel? }`)도 호스트가 넣은 줄에만 그린다 — 누가
+ * 고칠 수 있는가를 여기서 정하지 않는다. 누르면 `onRowAction(row.key)`.
  */
-function HrProfileTab({ data, onRetry }) {
+function HrProfileTab({ data, onRetry, onRowAction }) {
   if (data.loading) {
     return (
       <div className="manager-modal-content-section">
@@ -544,6 +541,17 @@ function HrProfileTab({ data, onRetry }) {
               <div className="manager-modal-hr-row" key={row.key}>
                 <dt className="manager-modal-hr-label">{row.label}</dt>
                 <dd className="manager-modal-hr-value">{row.value}</dd>
+                {row.action?.label && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="manager-modal-hr-action"
+                    aria-label={row.action.ariaLabel}
+                    onClick={() => onRowAction?.(row.key)}
+                  >
+                    {row.action.label}
+                  </Button>
+                )}
               </div>
             ))}
           </dl>
