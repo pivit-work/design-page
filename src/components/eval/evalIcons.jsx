@@ -13,8 +13,10 @@ import {
   AlertTriangleGlyph,
   ChatGlyph,
   CheckCircleGlyph,
+  ChevronDownGlyph,
   ChevronLeftGlyph,
   ChevronRightGlyph,
+  ChevronUpGlyph,
   DownloadGlyph,
   EyeGlyph,
   FileTextGlyph,
@@ -250,4 +252,12 @@ export function ChevronLeftIcon({ size = 16 }) {
 // ▶ 접힘/펼침 — 오른쪽 꺾쇠. 펼치면 부모가 90° 돌린다(리더 정책 §6.3.0 · PW-561).
 export function ChevronRightIcon({ size = 16 }) {
   return <ChevronRightGlyph size={size} style={GLYPH_STYLE} />;
+}
+
+// ▲▼ 위원회가 등급을 올렸다·내렸다 — 위·아래 꺾쇠. 글자 앞 기호 대신 쓴다(PW-1047).
+export function ChevronUpIcon({ size = 16 }) {
+  return <ChevronUpGlyph size={size} style={GLYPH_STYLE} />;
+}
+export function ChevronDownIcon({ size = 16 }) {
+  return <ChevronDownGlyph size={size} style={GLYPH_STYLE} />;
 }

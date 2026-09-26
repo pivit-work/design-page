@@ -4,7 +4,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import { AlertIcon, ChevronDownIcon, ChevronUpIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
@@ -69,8 +69,8 @@ const DEFAULT_LABELS = {
   cwColCurrent: '현재등급',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
-  cwAdjustUp: '▲ 올림',
-  cwAdjustDown: '▼ 내림',
+  cwAdjustUp: '올림',
+  cwAdjustDown: '내림',
   cwAdjustNone: '—',
   cwColPromo: '승진마킹',
   cwNoPromotion: '승급 이력 없음',
@@ -2996,6 +2996,7 @@ export default function EvalCycleSummaryCanvas({
                                     const dir = adjustDirection(row, og);
                                     const dirTag = dir && (
                                       <span className={`evs-cw-adjust-dir is-${dir}`} data-testid="evs-cw-adjust-dir">
+                                        {dir === 'up' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
                                         {dir === 'up' ? L.cwAdjustUp : L.cwAdjustDown}
                                       </span>
                                     );
