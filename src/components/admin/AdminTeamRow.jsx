@@ -14,6 +14,9 @@ function healthLevel(h) {
 /**
  * 팀원 현황 표의 한 행. row.active=false 면 비활성 변형 (가운데 셀이 "초대 대기 중").
  *
+ * row.inactiveLabel 이 있으면 비활성 변형의 가운데 셀에 labels.invitePending 대신 그 값을 쓴다.
+ * 비활성 줄에는 초대를 기다리는 사람만 오지 않는다 — 퇴사자·계정만 꺼진 사람도 온다(PW-1093).
+ *
  * labels: 표 셀 텍스트. 헬스 아이콘은 /icons/check-heart.svg (ReportWeeklyRow 와 동일).
  *
  * 🔴 레드플래그 칩의 경고 표시는 이모지(⚠)가 아니라 인라인 SVG 다 (PW-298).
@@ -40,7 +43,7 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
           </div>
         </Cell>
         <Cell><span className="admin-team-dept">{row.dept}</span></Cell>
-        <Cell colSpan={3}><span className="admin-team-pending">{labels.invitePending}</span></Cell>
+        <Cell colSpan={3}><span className="admin-team-pending">{row.inactiveLabel ?? labels.invitePending}</span></Cell>
         <Cell><StatusBadge className="admin-pill is-inactive">{labels.inactiveStatus}</StatusBadge></Cell>
       </Row>
     );
