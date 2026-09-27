@@ -672,8 +672,8 @@ const TEMPLATE_PRESETS = {
     { id: 'q2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
     { id: 'q3', section: '역량 (How)', text: '주도성 · 오너십', type: 'rating' },
     { id: 'q4', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
-    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true },
-    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true },
+    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true, growthType: 'strengths' },
+    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true, growthType: 'improvements' },
     { id: 'q7', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
   detailed: [
@@ -685,8 +685,8 @@ const TEMPLATE_PRESETS = {
     { id: 'd6', section: '역량 (How)', text: '실행력', type: 'rating', requiresRationale: true },
     { id: 'd7', section: '역량 (How)', text: '전문성 · 문제 해결', type: 'rating', requiresRationale: true },
     { id: 'd8', section: '역량 (How)', text: '리더십 · 영향력', type: 'rating', requiresRationale: true },
-    { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true },
-    { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true },
+    { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true, growthType: 'strengths' },
+    { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true, growthType: 'improvements' },
     { id: 'd11', section: '성장 (Growth)', text: '성장 가능성', type: 'rating' },
     { id: 'd12', section: '최종 등급 결정', text: '승진 추천 여부', type: 'checkbox' },
     { id: 'd13', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
@@ -699,7 +699,13 @@ const TEMPLATE_PRESETS = {
  *  동료가 실제로 받는 폼이 어긋나지 않게 여기서 미리 맞춘다.)
  */
 function presetFor(version, reviewType) {
-  const base = TEMPLATE_PRESETS[version] ?? TEMPLATE_PRESETS.standard;
+  const preset = TEMPLATE_PRESETS[version] ?? TEMPLATE_PRESETS.standard;
+  // [PW-882] 「성장 영역」 칸은 셀프 평가지 질문만 가진다(리포트가 옮기는 것이 셀프 답이다).
+  // 다른 유형에 미리 골라 두면 설정판에는 안 보이는데 값만 실려 가는 항목이 된다.
+  const base =
+    reviewType && reviewType !== 'self'
+      ? preset.map((q) => (q.growthType ? { ...q, growthType: null } : q))
+      : preset;
   if (reviewType !== 'peer') return base;
   return base
     .filter((q) => q.type !== 'grade')

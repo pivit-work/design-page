@@ -82,6 +82,22 @@ export const GUIDE_DISPLAYS = [
   { id: 'inline', labelKey: 'guideDisplayInline' },
 ];
 
+// [PW-882] 리포트 「성장 영역」의 어느 칸에 이 질문의 답을 옮기나. `null` = 해당 없음.
+// 셀프 평가지의 서술형 질문에만 고른다 — 리포트가 옮기는 것이 셀프 답의 글이기 때문이다.
+export const GROWTH_TYPE_OPTIONS = [
+  { id: null, labelKey: 'growthTypeNone' },
+  { id: 'strengths', labelKey: 'growthTypeStrengths' },
+  { id: 'improvements', labelKey: 'growthTypeImprovements' },
+  { id: 'growth_demonstrated', labelKey: 'growthTypeGrowthDemonstrated' },
+];
+
+/** 이 질문에 「성장 영역」 칸을 고를 수 있나 — 셀프(또는 유형 미정) 평가지의 서술형 질문. */
+export function supportsGrowthType(q, reviewType) {
+  if (isNoteItem(q)) return false;
+  if (q.type !== 'textarea') return false;
+  return !reviewType || reviewType === 'self';
+}
+
 // [⑤] 결과 공개 범위 — 「누가 작성하는가」가 아니라 「이 답변을 누가 보는가」.
 export const DISCLOSURE_AUDIENCES = [
   { id: 'evaluatee', labelKey: 'audienceEvaluatee' },

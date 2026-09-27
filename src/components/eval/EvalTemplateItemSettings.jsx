@@ -5,6 +5,7 @@ import {
   CHECK_MIN_OPTIONS,
   DEFAULT_MIN_RESPONSES,
   DISCLOSURE_AUDIENCES,
+  GROWTH_TYPE_OPTIONS,
   GUIDE_DISPLAYS,
   IDENTITY_OPTIONS,
   QUESTION_TYPES,
@@ -15,6 +16,7 @@ import {
   fill,
   isNoteItem,
   scaleMaxOf,
+  supportsGrowthType,
 } from './evalTemplateItemModel.js';
 
 /** 가이드 문구가 이보다 길면 「툴팁을 권합니다」 힌트를 띄운다 — 차단하지 않는다(§5.11-D). */
@@ -228,6 +230,29 @@ export default function EvalTemplateItemSettings({
               <span>{L.optionsAllowMultiple}</span>
             </label>
           </div>
+        </div>
+      )}
+
+      {/* [PW-882] 리포트 「성장 영역」 칸 — 셀프 평가지의 서술형 질문에만 띄운다.
+          리포트가 옮기는 것이 셀프 답의 글이라, 다른 질문에서는 고를 것이 성립하지 않는다.
+          고른 칸이 없으면(해당 없음) 그 답은 성장 영역에 나오지 않는다. */}
+      {supportsGrowthType(q, reviewType) && (
+        <div className="evc-tpl-set-block" data-testid={`evc-tpl-growth-${q.id}`}>
+          <div className="evc-tpl-set-title">{L.growthTypeTitle}</div>
+          <div className="evc-tpl-set-row">
+            {GROWTH_TYPE_OPTIONS.map((o) => (
+              <button
+                type="button"
+                key={o.id ?? 'none'}
+                className={`evc-type-chip${(q.growthType ?? null) === o.id ? ' is-on' : ''}`}
+                onClick={() => onPatch(q.id, { growthType: o.id })}
+                data-testid={`evc-tpl-growth-${q.id}-${o.id ?? 'none'}`}
+              >
+                {L[o.labelKey]}
+              </button>
+            ))}
+          </div>
+          <p className="evc-tpl-set-help">{L.growthTypeHelp}</p>
         </div>
       )}
 
