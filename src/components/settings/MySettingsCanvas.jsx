@@ -246,6 +246,11 @@ const DEFAULT_LABELS = {
     banner:
       '개인 연동은 나만의 데이터 흐름을 설정합니다. 회사 전체 연동은 어드민 설정에서 관리합니다.',
     connected: '연결됨',
+    // 계정 잇기 카드 (pivit-work PW-1153) — `accountLink` 인 카드만 이 네 문구를 쓴다.
+    linked: '이어짐',
+    linkAccount: '계정 잇기',
+    unlinkAccount: '잇기 해제',
+    autoLinked: '자동',
     comingSoon: '준비 중',
     managedByOrg: '어드민에서 관리',
     connect: '연결하기',
@@ -1325,6 +1330,13 @@ export default function MySettingsCanvas({
   integrationsError = false,
   onConnectIntegration,
   onDisconnectIntegration,
+  /**
+   * 계정 잇기 카드(`accountLink: true` · pivit-work PW-1153). 「계정 잇기」는 `onLinkAccount(intg.id)`,
+   * 이어진 계정 줄의 「잇기 해제」는 `onUnlinkAccount(intg.id, account.id)`.
+   * 카드 모양: `linkedAccounts: [{ id, label, sub?, auto?, busy? }]` · `unavailableReason`(있으면 버튼을 잠그고 그 문장을 보인다).
+   */
+  onLinkAccount,
+  onUnlinkAccount,
   onSyncIntegration,
   onToggleIntegrationSetting,
   /**
@@ -2076,9 +2088,13 @@ export default function MySettingsCanvas({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                           <span className="msc-intg-name">{intg.name}</span>
-                          {intg.connected && (
-                            <StatusBadge className="msc-intg-badge">{labels.integrations.connected}</StatusBadge>
-                          )}
+                          {intg.accountLink
+                            ? (intg.linkedAccounts || []).length > 0 && (
+                                <StatusBadge className="msc-intg-badge">{labels.integrations.linked}</StatusBadge>
+                              )
+                            : intg.connected && (
+                                <StatusBadge className="msc-intg-badge">{labels.integrations.connected}</StatusBadge>
+                              )}
                           {intg.comingSoon && (
                             <StatusBadge className="msc-intg-badge is-muted">{labels.integrations.comingSoon}</StatusBadge>
                           )}
@@ -2092,6 +2108,11 @@ export default function MySettingsCanvas({
                             {line}
                           </span>
                         ))}
+                        {intg.unavailableReason && (
+                          <span className="msc-intg-meta" data-testid={`integration-unavailable-${intg.id}`}>
+                            {intg.unavailableReason}
+                          </span>
+                        )}
                       </div>
                       <div className="msc-intg-actions">
                         {intg.connected && intg.syncable && onSyncIntegration && (
@@ -2105,7 +2126,18 @@ export default function MySettingsCanvas({
                             {intg.syncing ? labels.integrations.syncing : labels.integrations.sync}
                           </button>
                         )}
-                        {!intg.comingSoon && !intg.managedByOrg && (
+                        {intg.accountLink && !intg.comingSoon && (
+                          <button
+                            type="button"
+                            className="admin-notif-btn is-sm is-soft"
+                            disabled={Boolean(intg.busy || intg.unavailableReason)}
+                            onClick={() => onLinkAccount && onLinkAccount(intg.id)}
+                            data-testid={`integration-link-${intg.id}`}
+                          >
+                            {labels.integrations.linkAccount}
+                          </button>
+                        )}
+                        {!intg.accountLink && !intg.comingSoon && !intg.managedByOrg && (
                           <button
                             type="button"
                             className={`admin-notif-btn is-sm ${intg.connected ? 'is-danger' : 'is-soft'}`}
@@ -2134,6 +2166,31 @@ export default function MySettingsCanvas({
                     {intg.error && (
                       <div className="msc-input-error" style={{ marginTop: 10 }} data-testid={`integration-error-${intg.id}`}>
                         {intg.error}
+                      </div>
+                    )}
+
+                    {intg.accountLink && (intg.linkedAccounts || []).length > 0 && (
+                      <div className="msc-intg-sub" data-testid={`integration-accounts-${intg.id}`}>
+                        {intg.linkedAccounts.map((acc) => (
+                          <div key={acc.id} className="msc-intg-account" data-testid={`linked-account-${acc.id}`}>
+                            <div className="msc-intg-account-text">
+                              <span className="msc-intg-account-label">{acc.label}</span>
+                              {acc.sub && <span className="msc-intg-account-sub">{acc.sub}</span>}
+                            </div>
+                            {acc.auto && (
+                              <StatusBadge className="msc-intg-badge is-muted">{labels.integrations.autoLinked}</StatusBadge>
+                            )}
+                            <button
+                              type="button"
+                              className="admin-notif-btn is-sm is-danger"
+                              disabled={Boolean(acc.busy)}
+                              onClick={() => onUnlinkAccount && onUnlinkAccount(intg.id, acc.id)}
+                              data-testid={`linked-account-unlink-${acc.id}`}
+                            >
+                              {labels.integrations.unlinkAccount}
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
 
