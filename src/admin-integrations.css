@@ -131,6 +131,7 @@
 .intg-setting-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .intg-setting-check { display: flex; gap: 12px; }
 .intg-setting-check label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.intg-setting-link { font-size: 13px; font-weight: 500; color: var(--text-brand-tertiary); text-decoration: underline; white-space: nowrap; }
 .intg-select {
   padding: 7px 12px;
   border-radius: var(--radius-sm, 8px);

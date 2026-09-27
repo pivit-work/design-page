@@ -449,6 +449,19 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
               label={field.label}
             />
           )}
+          {/* 새 창으로 여는 글자 링크 — 값이 아니라 바깥 설정 화면으로 보낸다 (PW-1152 GitHub 저장소 범위).
+              draft 에는 싣지만 저장하지 않는 칸이다. 주소가 없으면 그리지 않는다. */}
+          {field.kind === 'link' && field.href && (
+            <a
+              className="intg-setting-link"
+              href={field.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`intg-setting-link-${field.key}`}
+            >
+              {field.linkLabel ?? field.label}
+            </a>
+          )}
         </SettingRow>
       ))}
     </ModalShell>
