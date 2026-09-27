@@ -512,3 +512,106 @@
   background: none;
   color: #94a3b8;
 }
+
+/* ── 퇴사 처리 캔버스 (AdminOffboardingCanvas · PW-1081) ── */
+.admin-offb { gap: 16px; max-width: 880px; }
+.admin-offb-header { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.admin-offb-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.admin-offb-textbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+  cursor: pointer;
+}
+.admin-offb-textbtn:disabled { color: var(--text-disabled, var(--text-tertiary)); cursor: not-allowed; }
+.admin-offb-textbtn.is-underline { text-decoration: underline; font-weight: 500; }
+.admin-offb-back { color: var(--text-tertiary); }
+.admin-offb-back:hover:not(:disabled) { color: var(--text-primary); }
+.admin-offb-section { display: flex; flex-direction: column; gap: 16px; }
+.admin-offb-section-head { display: flex; flex-direction: column; gap: 4px; }
+.admin-offb-section-titlebar { display: flex; align-items: center; gap: 8px; }
+.admin-offb-section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+.admin-offb-section-title { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.admin-offb-section-desc { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
+.admin-offb-person { display: flex; align-items: center; gap: 12px; }
+.admin-offb-person-text { min-width: 0; }
+.admin-offb-person-name {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.admin-offb-person-position { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.admin-offb-person-meta { margin: 2px 0 0; font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-offb-fields { display: flex; flex-wrap: wrap; gap: 16px; }
+.admin-offb-field { flex: 1 1 200px; min-width: 0; }
+.admin-offb-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-offb-areas { display: flex; flex-direction: column; gap: 8px; }
+.admin-offb-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-secondary, var(--border-primary));
+  border-radius: var(--radius-md, 10px);
+}
+.admin-offb-area.is-overridden { border-color: var(--colors-warning-200, #fedf89); }
+.admin-offb-area-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.admin-offb-area-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.admin-offb-area-why { margin-left: auto; }
+.admin-offb-area-rule { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+.admin-offb-area-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary);
+}
+.admin-offb-area-detail-text { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+.admin-offb-area-source { margin: 0; font-size: 11px; color: var(--text-tertiary); }
+.admin-offb-choice { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
+.admin-offb-choice-label { margin: 0; font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.admin-offb-choice-why { margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-tertiary); }
+.admin-offb-reason { margin-top: 4px; }
+.admin-offb-stack { display: flex; flex-direction: column; gap: 12px; }
+.admin-offb-effects {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.admin-offb-confirm { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.admin-offb-name { flex: 1 1 240px; min-width: 0; }
+.admin-offb-actions { display: flex; gap: 8px; margin-left: auto; }

@@ -284,6 +284,10 @@ const DEFAULT_LABELS = {
     resignedAtHint: '재직 중이면 비워 두거나 퇴사 예정일·계약 종료일을 넣습니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 지나면 바뀝니다.',
     resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
     resignedAtBeforeLastDay: '퇴사일은 마지막 출근일보다 빠를 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.',
+    /* 퇴사 예약이 걸린 사람(PW-1081) — 날짜를 비우면 예약이 뜬다. 취소는 목록 메뉴에서만. */
+    resignedAtScheduled: '퇴사 예약이 있어 퇴사일을 비울 수 없습니다. 예약을 취소하려면 목록의 ⋯ › 퇴사 예약 취소를 누르세요.',
+    /* 재직 상태 라디오의 「퇴사」 가 꺼진 까닭 — 퇴사는 퇴사 처리 화면에서만 한다. */
+    terminatedViaOffboarding: '퇴사는 목록의 ⋯ › 비활성화에서 처리합니다',
     statusDateLoading: '불러오는 중…',
     statusDateLoadError: '날짜를 불러오지 못했습니다. 패널을 닫았다 다시 열어 주세요.',
     statusDateSaveError: '날짜를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
@@ -317,6 +321,11 @@ const DEFAULT_LABELS = {
   loading: '불러오는 중…',
   menu: {
     edit: '수정', changeManager: '조직 배정', deactivate: '비활성화',
+    /* 퇴사 예약(PW-1081 · 퇴사 처리 정책 §5-B). 예약된 행에서는 «비활성화» 대신 이 항목만 뜬다. */
+    cancelOffboarding: '퇴사 예약 취소',
+    cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
+    /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
+    deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
     /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다) */
     assignCeo: '대표로 지정', releaseCeo: '대표 지정 해제', ceoBadge: '대표',
   },
@@ -522,9 +531,64 @@ const ROW_MENU_Z = 1000;
  * 앵커는 노드가 아니라 **셀렉터**로 준다 — 표가 다시 그려지면 붙들고 있던 트리거
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
-function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, onClose, labels, canEdit, anchorSelector }) {
+function RowActionMenu({
+  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCeo, ceoMode, onClose, labels, canEdit,
+  anchorSelector, member = {},
+}) {
   const ref = useRef(null);
   useDismissLayer(onClose, ref, anchorSelector);
+
+  /* 파괴적 자리 하나(PW-1081 · 퇴사 처리 정책 §1·§5-B·E2). 넷 중 하나만 뜬다.
+     - 퇴사자 행: 없다 — 이미 끝난 사람을 다시 퇴사시킬 길을 두지 않는다
+     - 퇴사 예약 행: «퇴사 예약 취소» — 예약을 또 거는 «비활성화»는 숨긴다
+     - 대표 행: «비활성화»를 흐리게 두고 이유를 풍선으로 — 대표 지정부터 풀어야 한다
+     - 그 밖: «비활성화» */
+  const renderDestructive = () => {
+    if (member.employmentStatus === 'terminated') return null;
+    if (member.offboardingScheduled) {
+      if (!onCancelOffboarding) return null;
+      return (
+        <>
+          <div className="admin-emp-row-menu-divider" />
+          <Tooltip content={fill(labels.menu.cancelOffboardingTip, { date: member.offboardingScheduledDate || '' })}>
+            <button
+              type="button"
+              className="admin-emp-row-menu-item is-danger"
+              data-testid="employees-row-cancel-offboarding"
+              onClick={() => { onCancelOffboarding(); onClose(); }}
+            >
+              {labels.menu.cancelOffboarding}
+            </button>
+          </Tooltip>
+        </>
+      );
+    }
+    if (member.isCeo) {
+      return (
+        <>
+          <div className="admin-emp-row-menu-divider" />
+          <Tooltip content={labels.menu.deactivateCeoBlocked}>
+            <button
+              type="button"
+              className="admin-emp-row-menu-item is-danger is-disabled"
+              aria-disabled="true"
+              data-testid="employees-row-deactivate-blocked"
+            >
+              {labels.menu.deactivate}
+            </button>
+          </Tooltip>
+        </>
+      );
+    }
+    return (
+      <>
+        <div className="admin-emp-row-menu-divider" />
+        <button type="button" className="admin-emp-row-menu-item is-danger" onClick={() => { onDeactivate(); onClose(); }}>
+          {labels.menu.deactivate}
+        </button>
+      </>
+    );
+  };
 
   return (
     <AnchoredLayer
@@ -557,14 +621,7 @@ function RowActionMenu({ onEdit, onChangeManager, onDeactivate, onCeo, ceoMode, 
           {ceoMode === 'assign' ? labels.menu.assignCeo : labels.menu.releaseCeo}
         </button>
       )}
-      {canEdit && (
-        <>
-          <div className="admin-emp-row-menu-divider" />
-          <button type="button" className="admin-emp-row-menu-item is-danger" onClick={() => { onDeactivate(); onClose(); }}>
-            {labels.menu.deactivate}
-          </button>
-        </>
-      )}
+      {canEdit && renderDestructive()}
     </AnchoredLayer>
   );
 }
@@ -1228,13 +1285,17 @@ const LIST_ALL = ALL;
  * 골라 넣을 값이 아니다.
  */
 const STATUS_ORDER = ['active', 'probation', 'on_leave', 'terminated'];
+/** 일괄 상태 변경의 선택지 — 퇴사는 퇴사 처리 화면에서만 한다(PW-1081). */
+const BULK_STATUS_ORDER = STATUS_ORDER.filter((k) => k !== 'terminated');
 
 /**
  * 재직 상태 고르기 — 편집 창과 일괄 상태 변경 창이 같이 쓴다. 공용 라디오(카드 모양)에
  * 상태별 색만 얹는다(`admin-emp-status-option is-<상태>` · admin.css). 전에는 두 곳이 같은
  * 동그라미를 각자 그렸다 (PW-1012).
  */
-function StatusRadios({ order, value, onPick, name, disabled = false, labels, ariaLabel, testIdOf }) {
+function StatusRadios({
+  order, value, onPick, name, disabled = false, disabledKeys = [], labels, ariaLabel, testIdOf,
+}) {
   return (
     <FormField group className="admin-emp-status-options" aria-label={ariaLabel}>
       {order.map((key) => (
@@ -1245,7 +1306,7 @@ function StatusRadios({ order, value, onPick, name, disabled = false, labels, ar
           name={name}
           value={key}
           checked={value === key}
-          disabled={disabled}
+          disabled={disabled || disabledKeys.includes(key)}
           onChange={() => onPick(key)}
           label={labels.status[key]}
           data-testid={testIdOf?.(key)}
@@ -1502,15 +1563,14 @@ function BulkManagerModal({ selectedRows, candidates, labels, onClose, onApply }
  *
  * 상태 **하나만** 바꾼다. 수습 종료일·휴직 시작/종료일·퇴사일을 받는 칸은 두지 않는다 —
  * 그 날짜들은 사람마다 다르고 §3.2.1 이 **편집 패널의 항목**으로 정해 뒀다. 여러 명에게
- * 같은 휴직 시작일을 물리는 칸은 기획서가 정한 적이 없다. 퇴사일은 서버가 오늘로 채운다.
+ * 같은 휴직 시작일을 물리는 칸은 기획서가 정한 적이 없다.
  *
- * 「퇴사」 를 고르면 줄어드는 좌석 수가 같은 창 안에 뜬다(§3.7) — 좌석이 움직이는 조작을
- * 아무 말 없이 태우지 않는다. 「일괄 비활성화」 와 끝값이 같으므로 안내도 같다.
+ * 「퇴사」 는 선택지에 없다(PW-1081) — 퇴사는 데이터 처분을 함께 정하는 퇴사 처리 화면
+ * (목록 ⋯ › 비활성화)에서만 한다. 재직 상태만 퇴사로 바꾸는 길을 두면 처분 없이 퇴사자가 생긴다.
  */
 function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
   const [picked, setPicked] = useState(null);
   const L = labels.listBulk;
-  const seatDrop = seatsHeldBy(selectedRows);
 
   return (
     <BulkActionModal
@@ -1536,18 +1596,13 @@ function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
       )}
     >
       <StatusRadios
-        order={STATUS_ORDER}
+        order={BULK_STATUS_ORDER}
         value={picked}
         onPick={setPicked}
         name="bulkEmploymentStatus"
         labels={labels}
         testIdOf={(key) => `employees-list-bulk-status-${key}`}
       />
-      {picked === 'terminated' && (
-        <p className="admin-emp-reason-lead" data-testid="employees-list-bulk-status-seatdrop">
-          {fill(L.seatDrop, { count: seatDrop })}
-        </p>
-      )}
     </BulkActionModal>
   );
 }
@@ -1684,7 +1739,7 @@ function EmployeesListView({
   members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
   leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
-  onOpenEdit, onDeactivate, onAssignManager, onInvite, onCsvUpload,
+  onOpenEdit, onDeactivate, onCancelOffboarding, onAssignManager, onInvite, onCsvUpload,
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
   squadOptions = [],
@@ -2471,6 +2526,8 @@ function EmployeesListView({
                 onEdit={() => onOpenEdit(m)}
                 onChangeManager={() => onOpenEdit(m)}
                 onDeactivate={() => onDeactivate?.(m)}
+                onCancelOffboarding={onCancelOffboarding ? () => onCancelOffboarding(m) : undefined}
+                member={m}
                 /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
                    두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
                 onCeo={
@@ -2800,16 +2857,17 @@ const ymdOf = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.
 /**
  * 퇴사일 칸이 저장을 막는 사유 (§3.2.1 ①④ · PW-943 후속 · David 확정) — 없으면 `null`.
  *
- *  · `missing` — 퇴사 상태인데 퇴사일이 비었다.
+ *  · `missing` — 퇴사 상태인데 퇴사일이 비었다. 퇴사 예약(`offboardingScheduled`)이 걸린
+ *    사람도 같다 — 예약은 그 날짜에 실행되므로 날짜를 비우면 예약이 떠 버린다(PW-1081).
  *  · `beforeLastDay` — 마지막 출근일이 퇴사일보다 늦다. 같은 날은 된다(남은 휴가를 쓰면
  *    마지막 출근일이 앞서고, 휴가 없이 나가면 같은 날이다).
  *
  * 마지막 출근일은 이 창이 아니라 HR 기록 창에서 고친다. 그래서 비교 대상은 목록 행에
  * 실린 저장된 값이다.
  */
-function terminationDateProblem(draft, savedLastWorkingDate) {
+function terminationDateProblem(draft, savedLastWorkingDate, offboardingScheduled = false) {
   const end = ymdOf(draft?.terminationDate);
-  if (draft?.employmentStatus === 'terminated' && !end) return 'missing';
+  if ((draft?.employmentStatus === 'terminated' || offboardingScheduled) && !end) return 'missing';
   const last = ymdOf(savedLastWorkingDate);
   if (end && last && last > end) return 'beforeLastDay';
   return null;
@@ -3266,8 +3324,12 @@ function EmployeesEditPanel({
     // 수도 없는 값을 빈칸으로 두면 「비어 있다」 로 읽혀 더 나쁘다.
     (f) => f.via === 'member' || Boolean(onLoadHrProfile),
   );
-  const terminationProblem = terminationDateProblem(draft, member.lastWorkingDate);
-  const terminationRequired = draft.employmentStatus === 'terminated';
+  const offboardingScheduled = Boolean(member.offboardingScheduled);
+  const terminationProblem = terminationDateProblem(draft, member.lastWorkingDate, offboardingScheduled);
+  const terminationRequired = draft.employmentStatus === 'terminated' || offboardingScheduled;
+  /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
+     데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
+  const terminatedLocked = member.employmentStatus !== 'terminated';
   const identityBusy = identityState === 'loading';
   const identityBroken = identityState === 'error';
   const dateValue = (f) =>
@@ -3561,10 +3623,16 @@ function EmployeesEditPanel({
             onPick={(key) => set('employmentStatus', key)}
             name={`employmentStatus-${member.id}`}
             disabled={!canEdit}
+            disabledKeys={terminatedLocked ? ['terminated'] : []}
             labels={labels}
             ariaLabel={labels.panel.statusSection}
             testIdOf={(key) => `employees-panel-status-${key}`}
           />
+          {terminatedLocked && canEdit && (
+            <span className="admin-emp-status-date-note" data-testid="employees-panel-status-terminated-hint">
+              {labels.panel.terminatedViaOffboarding}
+            </span>
+          )}
 
           {/* 고른 상태의 날짜 칸 (§3.2.1). 라디오 **바로 아래**에 둔다 — 다른 화면을
               열어 채우게 하면 상태만 바뀌고 날짜는 비는 조합이 그대로 남는다. */}
@@ -3601,10 +3669,16 @@ function EmployeesEditPanel({
                 label={labels.panel.resignedAt}
                 required={terminationRequired}
                 error={terminationProblem ? labels.panel[
-                  terminationProblem === 'missing' ? 'resignedAtRequired' : 'resignedAtBeforeLastDay'
+                  terminationProblem === 'missing'
+                    ? (draft.employmentStatus === 'terminated' ? 'resignedAtRequired' : 'resignedAtScheduled')
+                    : 'resignedAtBeforeLastDay'
                 ] : undefined}
                 errorTestId="employees-panel-date-terminationDate-error"
-                hint={terminationRequired ? undefined : labels.panel.resignedAtHint}
+                hint={
+                  offboardingScheduled
+                    ? labels.panel.resignedAtScheduled
+                    : terminationRequired ? undefined : labels.panel.resignedAtHint
+                }
               >
                 <DateInput
                   className="admin-emp-input"
@@ -3759,6 +3833,8 @@ export default function AdminEmployeesCanvas({
   pageSize = 20,
   /** 목록 뷰 행 메뉴의 «비활성화». 미주입이면 그 항목이 없다. */
   onDeactivateMember,
+  /** 목록 뷰 행 메뉴의 «퇴사 예약 취소» — `offboardingScheduled` 인 행에만 뜬다(PW-1081). */
+  onCancelOffboarding,
   /**
    * 목록 뷰 ⚙ 컬럼 표시 설정 `{ [colId]: boolean }` (PW-400).
    *
@@ -4118,6 +4194,7 @@ export default function AdminEmployeesCanvas({
             onChangeAffiliations={onChangeAffiliations}
             onOpenEdit={(m) => setEditMemberId(m.id)}
             onDeactivate={canEdit ? onDeactivateMember : undefined}
+            onCancelOffboarding={canEdit ? onCancelOffboarding : undefined}
             onAssignManager={onAssignManager}
             onInvite={canInvite ? openInvite : undefined}
             onCsvUpload={onCsvUpload}
