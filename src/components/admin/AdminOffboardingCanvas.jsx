@@ -124,9 +124,6 @@ function AreaCard({
       {open && (
         <div className="admin-offb-area-detail" id={whyId}>
           <p className="admin-offb-area-detail-text">{text.detail}</p>
-          {text.source && (
-            <p className="admin-offb-area-source">{fill(labels.source, { source: text.source })}</p>
-          )}
         </div>
       )}
       {/* 고를 수 있는 자리 — 없는 영역에는 컨트롤 자체를 만들지 않는다(§1-A 2) */}
@@ -216,6 +213,10 @@ export default function AdminOffboardingCanvas({
   const [type, setType] = useState(OFFBOARDING_TYPE_IDS[0]);
   const [resignationDate, setResignationDate] = useState(member.resignedAt || today);
   const [lastDay, setLastDay] = useState(member.lastWorkingDate || member.resignedAt || today);
+  // 마지막 출근일의 기본은 «퇴사일과 같은 값»이다(정책 §5 표). 그래서 퇴사일을 바꾸면 따라간다 —
+  // 오늘로 미리 채운 채 앞날 퇴사를 예약하면 목록이 「퇴직 예정 D-0」→「출근 종료」로 보였다(PW-1169).
+  // 어드민이 마지막 출근일을 직접 고쳤거나, 구성원에게 이미 넣어 둔 값이 있으면 따라가지 않는다.
+  const [lastDayTouched, setLastDayTouched] = useState(Boolean(member.lastWorkingDate));
   const [picks, setPicks] = useState(() => {
     const out = {};
     for (const a of CHOICE_AREAS) out[a.choice.key] = defaults?.[a.choice.key];
@@ -317,7 +318,10 @@ export default function AdminOffboardingCanvas({
               today={today}
               disabled={running}
               data-testid="offboarding-resignation-date"
-              onChange={(v) => setResignationDate(v)}
+              onChange={(v) => {
+                setResignationDate(v);
+                if (!lastDayTouched && v) setLastDay(v);
+              }}
             />
           </FormField>
           <FormField
@@ -331,7 +335,10 @@ export default function AdminOffboardingCanvas({
               today={today}
               disabled={running}
               data-testid="offboarding-last-day"
-              onChange={(v) => setLastDay(v)}
+              onChange={(v) => {
+                setLastDayTouched(true);
+                setLastDay(v);
+              }}
             />
           </FormField>
         </div>
