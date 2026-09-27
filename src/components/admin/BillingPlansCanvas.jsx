@@ -473,7 +473,7 @@ export default function BillingPlansCanvas({
   const [previewPlanCode, setPreviewPlanCode] = useState(null);
 
   // 청구 주기·좌석 수는 onIntervalChange/onSeatsChange 주입 시 controlled(위임),
-  // 아니면 내부 state (BillingCheckoutCanvas 의 onSeatCountChange 와 같은 규약).
+  // 아니면 내부 state.
   // 호스트가 위임받으면 화면을 떠났다 돌아와도 사용자의 선택이 유지된다.
   const interval = onIntervalChange ? (intervalProp ?? 'monthly') : intervalState;
   const setInterval = (v) => {

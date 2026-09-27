@@ -9,7 +9,7 @@ import { BillingCard as Card } from './kit/BillingSurface.jsx';
 // 카드 원본 비저장(토큰만) / 금액 서버 재계산.
 //
 // 결제는 비동기 서버호출이므로 캔버스는 시뮬하지 않는다. payState 는 controlled
-// prop 으로 받아 그대로 렌더하고, 결제 버튼 클릭 시 onPay(seatCount) 만 발화한다.
+// prop 으로 받아 그대로 렌더하고, 결제 버튼 클릭 시 onPay() 만 발화한다.
 // 데이터·금액·프로필은 모두 props 로 받는다 (page wrapper 가 fetch·서버 재계산·
 // 라우팅·i18n 을 소유). 캔버스는 인라인 스타일로 자기 완결적으로 렌더한다.
 // ─────────────────────────────────────────────────────────────
@@ -41,9 +41,7 @@ const DEFAULT_LABELS = {
 
   orderSummary: '주문 요약',
   seatPriceLine: (planLabel, unitPrice) => `${planLabel} · 좌석당 ${won(unitPrice)} / 월`,
-  seatDecrease: '좌석 감소',
-  seatIncrease: '좌석 증가',
-  seatUnit: '좌석',
+  registeredSeats: (n) => `등록 구성원 ${n}좌석`,
   subtotal: '소계',
   vat: (rate) => `부가세 (${Math.round(rate * 100)}%)`,
   payNow: '지금 결제',
@@ -82,12 +80,6 @@ const DEFAULT_LABELS = {
   negotiatedContract: (start, end, min, max, validUntil) =>
     `계약 기간 ${start} ~ ${end} · 계약 좌석 ${max == null ? `${min}명 이상` : `${min}~${max}명`} · 견적 유효기간 ${validUntil}`,
   negotiatedMinSeatsNote: (min) => `약정 최소 좌석 ${min}명 기준으로 청구됩니다.`,
-  negotiatedSeatRange: (min, max) =>
-    max == null ? `계약 좌석 ${min}명 이상` : `계약 좌석 ${min}~${max}명`,
-  negotiatedSeatOutOfRange: (min, max) =>
-    max == null
-      ? `계약 좌석 하한(${min}명)보다 적습니다`
-      : `계약 좌석 범위를 벗어났습니다 (${min}~${max}명)`,
   negotiatedOverageLine: (seats, unit) => `계약 범위 초과 ${seats}좌석 × ${won(unit)}`,
   negotiatedSeatBasisNote: (min) =>
     `금액은 결제일 기준 활성 좌석 수로 산정하되, 약정 최소 좌석(${min}명) 아래로는 내려가지 않습니다.`,
@@ -136,7 +128,6 @@ export default function BillingCheckoutCanvas({
    */
   quote = null,
   onPay,
-  onSeatCountChange,
   onEditProfile,
   onBackToPlans,
   onViewRefundPolicy,
@@ -145,25 +136,20 @@ export default function BillingCheckoutCanvas({
   const labels = mergeLabels(providedLabels);
 
   const [agreeRefund, setAgreeRefund] = useState(false);
-  const [seatCountState, setSeatCountState] = useState(order.seatCount || 1);
 
   // 협의 단가 모드 (PW-344 ④). `blocked` 는 **서버 재검증 결과**다 — 화면이 유효기간을
   // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
   const quoteBlocked = quote ? quote.blocked ?? null : null;
   const quoteOk = Boolean(quote) && !quoteBlocked;
 
-  // 협의 단가 모드에서는 플랜·주기·단가가 견적에서 확정돼 오고, 화면에서 조정 가능한
-  // 값은 좌석뿐이다.
+  // 협의 단가 모드에서는 플랜·주기·단가·좌석 범위가 견적에서 확정돼 온다. 화면에서 바꿀
+  // 수 있는 값은 없다.
   const minSeats = quoteOk ? quote.minSeats : 1;
-  const maxSeats = quoteOk && quote.maxSeats != null ? quote.maxSeats : 999;
 
-  // 좌석 수: onSeatCountChange 주입 시 controlled(위임), 아니면 내부 state
-  const seatCount = onSeatCountChange ? (order.seatCount || 1) : seatCountState;
-  const setSeatsClamped = (n) => {
-    const clamped = Math.max(minSeats, Math.min(maxSeats, isNaN(n) ? (order.seatCount || 1) : n));
-    if (onSeatCountChange) onSeatCountChange(clamped);
-    else setSeatCountState(clamped);
-  };
+  // 좌석 수 = 결제 시점의 등록 좌석(재직 구성원) 수 — **이 화면에서 고르지 않는다** (PW-1102 ·
+  // spec-billing.md §2.2). 좌석 칸이 있으면 화면 합계와 실제 청구(등록 좌석 기준)가 갈린다.
+  // 예상 비용 미리보기는 BillingPlansCanvas 의 좌석 칸 몫이다.
+  const seatCount = order.seatCount || 0;
 
   const hasProfile = !!profile && !!profile.bizRegNo;
 
@@ -175,8 +161,6 @@ export default function BillingCheckoutCanvas({
   const baseSeats =
     quoteOk && quote.maxSeats != null ? Math.min(billedSeats, quote.maxSeats) : billedSeats;
   const overSeats = billedSeats - baseSeats;
-  const seatOutOfRange =
-    quoteOk && (seatCount < minSeats || (quote.maxSeats != null && seatCount > quote.maxSeats));
   const showStrike =
     quoteOk && quote.listPriceRef != null && quote.seatPrice < quote.listPriceRef;
 
@@ -273,7 +257,7 @@ export default function BillingCheckoutCanvas({
                   )}
                 </div>
               )}
-              {/* 결제 좌석 수 선택 */}
+              {/* 결제 좌석 = 등록 좌석 — 읽기 전용 (PW-1102). 계약 좌석 범위는 위 계약 요약에 있다. */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, color: T.sub }}>
                   {/* 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다 —
@@ -285,33 +269,13 @@ export default function BillingCheckoutCanvas({
                   )}
                   {labels.seatPriceLine(order.planLabel, unitPrice)}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button type="button" onClick={() => setSeatsClamped(seatCount - 1)} disabled={seatCount <= minSeats}
-                    aria-label={labels.seatDecrease}
-                    style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
-                      background: '#fff', fontSize: 17, fontWeight: 700, color: T.text,
-                      cursor: seatCount <= minSeats ? 'not-allowed' : 'pointer', opacity: seatCount <= minSeats ? 0.4 : 1 }}>−</button>
-                  <input type="number" min={minSeats} max={maxSeats} value={seatCount}
-                    onChange={(e) => setSeatsClamped(parseInt(e.target.value, 10))}
-                    style={{ width: 60, textAlign: 'center', fontSize: 16, fontWeight: 800,
-                      border: `1px solid ${T.border}`, borderRadius: 7, padding: '5px 4px' }} />
-                  <button type="button" onClick={() => setSeatsClamped(seatCount + 1)} disabled={seatCount >= maxSeats}
-                    aria-label={labels.seatIncrease}
-                    style={{ width: 30, height: 30, borderRadius: 7, border: `1px solid ${T.border}`,
-                      background: '#fff', fontSize: 17, fontWeight: 700, color: T.text,
-                      cursor: seatCount >= maxSeats ? 'not-allowed' : 'pointer', opacity: seatCount >= maxSeats ? 0.4 : 1 }}>+</button>
-                  <span style={{ fontSize: 13, color: T.sub }}>{labels.seatUnit}</span>
-                </div>
+                <span data-testid="checkout-registered-seats"
+                  style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                  {labels.registeredSeats(seatCount)}
+                </span>
               </div>
-              {/* 계약 좌석 범위 안내 (PW-344 ④). */}
-              {quoteOk && (
-                <div style={{ fontSize: 12, color: seatOutOfRange ? T.red : T.muted, marginTop: 2, marginBottom: 6 }}>
-                  {seatOutOfRange
-                    ? labels.negotiatedSeatOutOfRange(minSeats, quote.maxSeats)
-                    : labels.negotiatedSeatRange(minSeats, quote.maxSeats)}
-                </div>
-              )}
-              {/* 계약 상한 초과분은 초과 단가로 별도 라인이 된다 — 차단이 아니라 과금이다. */}
+              {/* 계약 상한 초과분은 초과 단가로 별도 라인이 된다 — 차단이 아니라 과금이다
+                  (spec-billing.md §2.6.5). 결제 버튼도 막지 않는다. */}
               {overSeats > 0 && (
                 <Row
                   label={labels.negotiatedOverageLine(overSeats, overageUnit)}
@@ -384,7 +348,7 @@ export default function BillingCheckoutCanvas({
             )}
 
             {/* 결제 버튼 */}
-            <button type="button" onClick={() => { if (!blocked) onPay?.(seatCount); }} disabled={blocked}
+            <button type="button" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
               style={{ width: '100%', fontFamily: T.font, fontSize: 16, fontWeight: 800,
                 padding: '16px', borderRadius: 12, border: 'none', color: '#fff',
                 background: blocked ? T.muted : T.accent,
