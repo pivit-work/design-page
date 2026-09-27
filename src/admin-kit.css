@@ -596,7 +596,6 @@
   background: var(--bg-secondary);
 }
 .admin-offb-area-detail-text { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
-.admin-offb-area-source { margin: 0; font-size: 11px; color: var(--text-tertiary); }
 .admin-offb-choice { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
 .admin-offb-choice-label { margin: 0; font-size: 12px; font-weight: 700; color: var(--text-primary); }
 .admin-offb-choice-why { margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-tertiary); }
