@@ -125,7 +125,8 @@ function buildFields(template, L) {
           key: it.id,
           templateItemId: it.id,
           category: it.category,
-          growthType: null,
+          // [PW-882] HR 이 고른 리포트 「성장 영역」 칸. 저장할 때 서버가 항목 설정으로 다시 찍는다.
+          growthType: it.growthType ?? null,
           type,
           label: it.label,
           placeholder: it.label,

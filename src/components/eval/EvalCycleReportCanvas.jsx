@@ -218,7 +218,9 @@ function GrowthAreas({ selfAnswers, L }) {
   const byType = useMemo(() => {
     const g = { strengths: [], improvements: [], growth_demonstrated: [] };
     for (const a of selfAnswers) {
-      if (a.itemCategory === 'growth' && a.growthType && g[a.growthType]) {
+      // [PW-882] 칸은 답의 `growthType` 하나로 가른다. 평가지 질문은 HR 이 「항목 추가」에서
+      // 고른 칸이 답에 찍혀 오고, 그 질문이 「성장」 구분에 있지 않을 수도 있다.
+      if (a.growthType && g[a.growthType]) {
         g[a.growthType].push(a);
       }
     }
@@ -345,7 +347,13 @@ export default function EvalCycleReportCanvas({
         {selfAnswers.length > 0 && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.selfTitle}</h3>
-            <AnswerList answers={selfAnswers.filter((a) => a.itemCategory !== 'growth')} L={L} />
+            {/* [PW-882] 성장 영역에 나간 답은 여기서 다시 그리지 않는다. */}
+            <AnswerList
+              answers={selfAnswers.filter(
+                (a) => a.itemCategory !== 'growth' && !(on('growth') && a.growthType),
+              )}
+              L={L}
+            />
           </section>
         )}
       </div>
