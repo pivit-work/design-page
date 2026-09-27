@@ -221,6 +221,7 @@ export {
   OkrResourceTeam,
   OkrResourceOrg,
   OkrResourceTeamModal,
+  OKR_RESOURCE_DEFAULT_LABELS,
   OkrContextSetupCanvas,
   OkrHistoryQuarter,
   OkrBoard,
