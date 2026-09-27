@@ -26,6 +26,13 @@ import Tooltip from '../shared/Tooltip.jsx';
  * @param {Array}    props.sections         활성 도메인의 섹션 [{ id, label, items: [{ id, label }] }]
  * @param {string}   props.activeItemId     활성 화면 id (부모 탭 하이라이트는 호출측이 부모 id 를 넘겨 처리)
  * @param {Function} props.onSelect         (itemId) => void
+ * @param {Array}    [props.subItems]       3행 — 활성 화면 «안»의 탭 [{ id, label }]. 비우면 줄이 없다.
+ *                                          조직장·관리자의 「내 평가 홈」 한 칸 안에서 셀프 리뷰·동료 리뷰·
+ *                                          내 리포트 등을 오가는 줄이다(기획 eval-app.jsx `MEMBER_TABS` ·
+ *                                          `me_mgr`/`me_admin` 「내부 탭바 유지」 · PW-1160).
+ *                                          줄이 서면 셸의 `--evnav-h` 가 그만큼 늘어 캔버스가 아래로 내려간다
+ * @param {string}   [props.activeSubItemId] 3행의 활성 탭 id — 없으면 아무 탭도 켜지 않는다
+ * @param {Function} [props.onSubSelect]    (subItemId) => void
  */
 export default function EvalShellNav({
   title = '평가',
@@ -35,11 +42,19 @@ export default function EvalShellNav({
   sections = [],
   activeItemId,
   onSelect,
+  subItems = [],
+  activeSubItemId,
+  onSubSelect,
 }) {
   const desc = domains.find((d) => d.id === activeDomain)?.desc || '';
   const items = sections.flatMap((sec) =>
     (sec.items || []).map((item) => ({ value: item.id, label: item.label, testId: `evnav-item-${item.id}` })),
   );
+  const subTabs = subItems.map((item) => ({
+    value: item.id,
+    label: item.label,
+    testId: `evnav-subitem-${item.id}`,
+  }));
   if (domains.length === 0) return null;
 
   return (
@@ -71,6 +86,12 @@ export default function EvalShellNav({
             <span />
           )}
           {desc && <span className="evnav-desc">{desc}</span>}
+        </div>
+      )}
+
+      {subTabs.length > 0 && (
+        <div className="tl-tabs-row evnav-subviews">
+          <Tabs items={subTabs} value={activeSubItemId} onChange={(id) => onSubSelect?.(id)} />
         </div>
       )}
     </nav>
