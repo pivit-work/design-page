@@ -25,6 +25,7 @@ export { default as OkrResourceMyInput } from './OkrResourceMyInput.jsx';
 export { default as OkrResourceTeam } from './OkrResourceTeam.jsx';
 export { default as OkrResourceOrg } from './OkrResourceOrg.jsx';
 export { default as OkrResourceTeamModal } from './OkrResourceTeamModal.jsx';
+export { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
 export { default as OkrContextSetupCanvas } from './OkrContextSetupCanvas.jsx';
 export { default as OkrHistoryQuarter } from './OkrHistoryQuarter.jsx';
 export { default as OkrBoard } from './OkrBoard.jsx';

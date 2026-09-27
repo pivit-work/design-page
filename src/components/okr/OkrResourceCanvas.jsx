@@ -5,6 +5,7 @@ import OkrResourceMyInput from './OkrResourceMyInput.jsx';
 import OkrResourceTeam from './OkrResourceTeam.jsx';
 import OkrResourceOrg from './OkrResourceOrg.jsx';
 import OkrResourceTeamModal from './OkrResourceTeamModal.jsx';
+import { mergeOkrResourceLabels } from './okrResourceLabels.js';
 
 /**
  * OkrResourceCanvas — OKR '내 리소스' 탭 (리소스 투입) Pure 컴포넌트.
@@ -24,12 +25,11 @@ import OkrResourceTeamModal from './OkrResourceTeamModal.jsx';
  * `placeholder` 를 주면 헤더·본문 대신 같은 자리(`.rsx-area`)에 그것만 그린다 — 불러오는 중·
  * 불러오기 실패처럼 `data` 가 아직 없을 때. `actionError` 는 저장·코멘트 실패 문구로,
  * 헤더 위에 인라인으로 띄운다(전역 오류 화면으로 보내면 방금 맞춘 슬라이더 값이 날아간다).
+ *
+ * `labels` 로 화면 문구를 바꿀 수 있다(영어 화면 · PW-1171). 생략한 문구는 한국어 기본값 —
+ * 목록은 `okrResourceLabels.js`.
  */
-const VIEWS = [
-  { value: 'my', label: '내 입력' },
-  { value: 'team', label: '팀 현황' },
-  { value: 'org', label: '조직 현황' },
-];
+const VIEWS = ['my', 'team', 'org'];
 
 export default function OkrResourceCanvas({
   data,
@@ -42,8 +42,11 @@ export default function OkrResourceCanvas({
   onReply,
   placeholder,
   actionError,
+  labels: providedLabels,
 }) {
-  const items = views?.length ? VIEWS.filter((v) => views.includes(v.value)) : VIEWS;
+  const L = mergeOkrResourceLabels(providedLabels);
+  const items = (views?.length ? VIEWS.filter((v) => views.includes(v)) : VIEWS)
+    .map((value) => ({ value, label: L.views[value] }));
   const [view, setView] = useState(items[0]?.value ?? 'my');
   const [openTeam, setOpenTeam] = useState(null);
 
@@ -70,8 +73,8 @@ export default function OkrResourceCanvas({
         </div>
       </div>
       <div className="rsx-views">
-        <SegmentedControl items={items} value={view} onChange={setView} ariaLabel="리소스 투입 뷰" />
-        <span className="rsx-views-hint">입력 가능</span>
+        <SegmentedControl items={items} value={view} onChange={setView} ariaLabel={L.viewsAria} />
+        <span className="rsx-views-hint">{L.inputHint}</span>
       </div>
 
       {view === 'my' && (
@@ -82,16 +85,17 @@ export default function OkrResourceCanvas({
           onSave={onSave}
           onApplyEstimates={onApplyEstimates}
           onReply={onReply}
+          labels={L}
         />
       )}
       {view === 'team' && (
-        <OkrResourceTeam data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} />
+        <OkrResourceTeam data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} labels={L} />
       )}
       {view === 'org' && (
-        <OkrResourceOrg data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} />
+        <OkrResourceOrg data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} labels={L} />
       )}
 
-      <OkrResourceTeamModal team={openTeam} icons={icons} baseUrl={baseUrl} onClose={() => setOpenTeam(null)} />
+      <OkrResourceTeamModal team={openTeam} icons={icons} baseUrl={baseUrl} onClose={() => setOpenTeam(null)} labels={L} />
     </div>
   );
 }

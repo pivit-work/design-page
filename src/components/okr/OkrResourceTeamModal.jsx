@@ -1,6 +1,7 @@
 import ModalShell from '../shared/ModalShell.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
+import { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
 
 /**
  * OkrResourceTeamModal — 조직 현황의 팀 상세 모달.
@@ -11,8 +12,9 @@ import rowKey from './rowKey.js';
  * 그리고, ESC/오버레이/X 로 닫는다. 읽기만 하는 창이라 발(footer)이 없다. 부문명은 제목 위
  * 머리글(eyebrow)로 제목 칸 안에 둔다.
  */
-export default function OkrResourceTeamModal({ team, onClose }) {
+export default function OkrResourceTeamModal({ team, onClose, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
   if (!team) return null;
+  const O = L.org;
 
   return (
     <ModalShell
@@ -22,7 +24,7 @@ export default function OkrResourceTeamModal({ team, onClose }) {
           {team.name}
         </>
       )}
-      description={`조직 인원 ${team.size}명`}
+      description={O.modalHeadcount(team.size)}
       titleId="rsx-modal-title"
       onClose={onClose}
       zIndex={1000}
@@ -31,10 +33,10 @@ export default function OkrResourceTeamModal({ team, onClose }) {
       footer={null}
     >
       <div className="rsx-stats">
-        <RsStatCard label="조직 인원" value={`${team.size}명`} tone="brand" sub={team.sub} />
-        <RsStatCard label="평균 투입" value={`${team.pct}%`} />
-        <RsStatCard label="과부하 인원" value={team.overloaded} tone={team.overloaded > 0 ? 'bad' : ''} />
-        <RsStatCard label="미입력" value={team.missing} />
+        <RsStatCard label={O.total} value={L.people(team.size)} tone="brand" sub={team.sub} />
+        <RsStatCard label={O.avg} value={`${team.pct}%`} />
+        <RsStatCard label={O.overloaded} value={team.overloaded} tone={team.overloaded > 0 ? 'bad' : ''} />
+        <RsStatCard label={O.missing} value={team.missing} />
       </div>
       <div className="rsx-modal-members">
         {team.members.map((member, i) => (
@@ -45,7 +47,7 @@ export default function OkrResourceTeamModal({ team, onClose }) {
                   <img className="rsx-avatar" src={member.avatar} alt={member.name} draggable={false} />
                   <span className="rsx-member-name">{member.name}</span>
                   <span className="rsx-member-role">{member.role}</span>
-                  <RsStatusBadge status={member.status} />
+                  <RsStatusBadge status={member.status} labels={L} />
                 </div>
                 <span className="rsx-member-pct">{member.pct}%</span>
               </div>

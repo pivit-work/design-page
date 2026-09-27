@@ -2,6 +2,7 @@ import { AiSparkleIcon } from '../resource/resourceIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import rowKey from './rowKey.js';
+import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
 
 /**
  * OkrResourcePieces — 내 리소스(리소스 투입) 탭의 작은 공용 조각들.
@@ -12,7 +13,8 @@ import rowKey from './rowKey.js';
  * (예: 'var(--utility-success-200)'). 그 외 색은 CSS 토큰으로 처리.
  */
 
-/* 상태 배지 — 여유(blue)/적정(indigo)/쏠림(warning)/과부하(error). */
+/* 상태 배지 — 여유(blue)/적정(indigo)/쏠림(warning)/과부하(error).
+   색은 데이터의 한국어 상태값으로 고르고, 보이는 글자만 labels.status 로 바꾼다. */
 const STATUS_TONES = {
   여유: 'blue',
   적정: 'indigo',
@@ -20,9 +22,9 @@ const STATUS_TONES = {
   과부하: 'bad',
 };
 
-export function RsStatusBadge({ status }) {
+export function RsStatusBadge({ status, labels = OKR_RESOURCE_DEFAULT_LABELS }) {
   const tone = STATUS_TONES[status] ?? 'indigo';
-  return <StatusBadge className={`rsx-badge is-${tone}`}>{status}</StatusBadge>;
+  return <StatusBadge className={`rsx-badge is-${tone}`}>{statusLabel(status, labels)}</StatusBadge>;
 }
 
 /* 스탯 카드 — 라벨(12 Semibold) + 값(30 Display Medium). Figma 17478:24237.

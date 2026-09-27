@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
+import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
 
 /**
  * OkrResourceMyInput — 내 리소스 '내 입력' 뷰.
@@ -18,7 +19,10 @@ import rowKey from './rowKey.js';
  * 달에도 배너를 그리면 항목 0개짜리 목록과 눌러도 아무 일이 없는 [추정치 적용] 이
  * 남아, 고장으로 읽힌다.
  */
-export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, onApplyEstimates, onReply }) {
+export default function OkrResourceMyInput({
+  data, icons, baseUrl = '', onSave, onApplyEstimates, onReply, labels: L = OKR_RESOURCE_DEFAULT_LABELS,
+}) {
+  const M = L.my;
   const [entries, setEntries] = useState(data.entries);
   const [krOpen, setKrOpen] = useState(false);
   const [customName, setCustomName] = useState('');
@@ -32,7 +36,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
     const text = replyText.trim();
     if (!text) return;
     setExtraComments((p) => [...p, {
-      author: data.commentAuthor?.name ?? '나',
+      author: data.commentAuthor?.name ?? M.me,
       avatar: data.commentAuthor?.avatar,
       date: data.commentDate ?? '',
       reply: true,
@@ -76,17 +80,17 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
   return (
     <div className="rsx-my">
       <div className="rsx-stats">
-        <RsStatCard label="투입 합계" value={`${data.stats.total}%`} tone="brand" bar={data.stats.total} />
-        <RsStatCard label="투입 항목" value={data.stats.items} />
-        <RsStatCard label="내 KR" value={<>{data.stats.kr[0]} <small>/ {data.stats.kr[1]}</small></>} />
-        <RsStatCard label="상태" value={data.stats.status} tone={data.stats.status === '과부하' ? 'bad' : ''} />
+        <RsStatCard label={M.total} value={`${data.stats.total}%`} tone="brand" bar={data.stats.total} />
+        <RsStatCard label={M.items} value={data.stats.items} />
+        <RsStatCard label={M.kr} value={<>{data.stats.kr[0]} <small>/ {data.stats.kr[1]}</small></>} />
+        <RsStatCard label={M.status} value={statusLabel(data.stats.status, L)} tone={data.stats.status === '과부하' ? 'bad' : ''} />
       </div>
 
       {data.aiEstimate && (
         <div className="rsx-ai-banner">
           <div className="rsx-ai-banner-bar">
             <div className="rsx-ai-banner-info">
-              <RsAiLabel>스니핏 기반 추정</RsAiLabel>
+              <RsAiLabel>{M.aiEstimate}</RsAiLabel>
               <span>{data.aiEstimate.period}</span>
               <span>{data.aiEstimate.tagged}</span>
             </div>
@@ -102,7 +106,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
                 }));
               }}
             >
-              추정치 적용
+              {M.applyEstimates}
             </button>
           </div>
           <ul className="rsx-ai-banner-list">
@@ -110,7 +114,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
               <li key={rowKey(item, i)}>{item.name} {item.pct}%</li>
             ))}
           </ul>
-          <p className="rsx-ai-banner-note">추정은 참고치입니다. 적용 후 슬라이더로 보정하고 저장해야 반영됩니다.</p>
+          <p className="rsx-ai-banner-note">{M.estimateNote}</p>
         </div>
       )}
 
@@ -134,13 +138,13 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
                   min="0"
                   max="100"
                   value={entry.value}
-                  aria-label={`${entry.name} 투입 비율`}
+                  aria-label={M.sliderAria(entry.name)}
                   onChange={(e) => patch(entry.id, e.target.value)}
                 />
                 <span className="rsx-slider-ball" style={{ left: `${entry.value}%` }} />
                 {entry.estimate != null && (
                   <span className="rsx-slider-marker" style={{ left: `${entry.estimate}%` }}>
-                    <b>추정치</b>
+                    <b>{M.marker}</b>
                     <i />
                   </span>
                 )}
@@ -149,7 +153,7 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
                 <input
                   type="number"
                   value={entry.value}
-                  aria-label={`${entry.name} 투입 비율 입력`}
+                  aria-label={M.inputAria(entry.name)}
                   onChange={(e) => patch(entry.id, e.target.value)}
                 />
                 <span>%</span>
@@ -157,11 +161,11 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
             </div>
             {entry.estimate != null && (
               <p className={`rsx-entry-note${entry.warn ? ' is-warn' : ''}`}>
-                추정 {entry.estimate}%{entry.warn ? `  •  ${entry.warn}` : ''}
+                {M.estimate(entry.estimate)}{entry.warn ? `  •  ${entry.warn}` : ''}
               </p>
             )}
           </div>
-          <button type="button" className="rsx-close-btn" onClick={() => remove(entry.id)} aria-label={`${entry.name} 삭제`}>
+          <button type="button" className="rsx-close-btn" onClick={() => remove(entry.id)} aria-label={M.removeAria(entry.name)}>
             <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
           </button>
         </div>
@@ -180,11 +184,11 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
 
       <div className="rsx-add">
         <div className="rsx-add-head">
-          <span className="rsx-add-title">투입 항목 추가</span>
-          <StatusBadge className="rsx-badge is-brand">확정</StatusBadge>
+          <span className="rsx-add-title">{M.addTitle}</span>
+          <StatusBadge className="rsx-badge is-brand">{M.confirmed}</StatusBadge>
         </div>
         <div className="rsx-add-suggest">
-          <RsAiLabel>스니핏에 기록됐지만 목록에 없는 프로젝트</RsAiLabel>
+          <RsAiLabel>{M.suggestTitle}</RsAiLabel>
           {data.suggestions.filter((s) => !has(s.name)).map((s, i) => (
             <button
               type="button"
@@ -192,12 +196,12 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
               key={rowKey(s, i)}
               onClick={() => addEntry(s.name, { estimate: s.pct })}
             >
-              + {s.name} 추정 {s.pct}%
+              {M.suggestChip(s.name, s.pct)}
             </button>
           ))}
         </div>
         <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">스쿼드 프로젝트</p>
+          <p className="rsx-add-eyebrow">{M.squadProjects}</p>
           <div className="rsx-squads">
             {data.squads
               .map((squad) => ({ ...squad, items: squad.items.filter((item) => !has(item.name)) }))
@@ -223,9 +227,9 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
           </div>
         </div>
         <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">개인 OKR</p>
+          <p className="rsx-add-eyebrow">{M.personalOkr}</p>
           <button type="button" className="rsx-kr-btn" onClick={() => setKrOpen((v) => !v)}>
-            <span>내 KR 불러오기</span>
+            <span>{M.loadKrs}</span>
             {krOpen ? (
               <span className="rsx-kr-caret">
                 <Icon src={icons.chevronDown} size={16} color="var(--utility-blue-500)" baseUrl={baseUrl} />
@@ -250,25 +254,25 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
                     <button
                       type="button"
                       className="rsx-gray-btn"
-                      onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: '개인 OKR' })}
+                      onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: M.personalOkr })}
                     >
-                      추가
+                      {M.add}
                     </button>
                   )}
                 </div>
               ))}
-              <p className="rsx-kr-note">KR 정보는 개인 OKR에서 수동으로 불러온 항목입니다 (자동 동기화 없음). 스니핏 추정에는 포함되지 않습니다.</p>
+              <p className="rsx-kr-note">{M.krNote}</p>
             </div>
           )}
         </div>
         <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">목록에 없는 프로젝트</p>
+          <p className="rsx-add-eyebrow">{M.customTitle}</p>
           <div className="rsx-add-custom">
             <input
               value={customName}
               maxLength={20}
-              placeholder="프로젝트 직접 입력 (20자 이내)"
-              aria-label="프로젝트 직접 입력"
+              placeholder={M.customPlaceholder}
+              aria-label={M.customAria}
               onChange={(e) => setCustomName(e.target.value)}
             />
             <button
@@ -276,26 +280,26 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
               className="rsx-gray-btn is-md"
               onClick={() => { addEntry(customName.trim(), {}); setCustomName(''); }}
             >
-              직접 추가
+              {M.customAdd}
             </button>
           </div>
-          <p className="rsx-add-note">직접 추가한 프로젝트는 내 입력에만 표시되는 개인 항목이며, 스니핏 기반 추정에는 포함되지 않습니다.</p>
+          <p className="rsx-add-note">{M.customNote}</p>
         </div>
       </div>
 
       <div className="rsx-save-row">
-        <button type="button" className="rsx-save-btn" onClick={() => onSave?.(entries)}>저장</button>
+        <button type="button" className="rsx-save-btn" onClick={() => onSave?.(entries)}>{M.save}</button>
       </div>
 
       <div className="rsx-comments-section">
-        <p className="rsx-section-title">매니저 코멘트</p>
+        <p className="rsx-section-title">{L.managerComments}</p>
         <RsCommentThread comments={comments} />
         {replyOpen ? (
           <div className="rsx-comment-input-row">
             <input
               autoFocus
-              placeholder="답글을 입력하세요"
-              aria-label="답글 입력"
+              placeholder={M.replyPlaceholder}
+              aria-label={M.replyAria}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => {
@@ -303,12 +307,12 @@ export default function OkrResourceMyInput({ data, icons, baseUrl = '', onSave, 
                 if (e.key === 'Escape') { setReplyOpen(false); setReplyText(''); }
               }}
             />
-            <button type="button" className="rsx-gray-btn is-md" onClick={submitReply}>답글 남기기</button>
+            <button type="button" className="rsx-gray-btn is-md" onClick={submitReply}>{M.replySubmit}</button>
           </div>
         ) : (
           <button type="button" className="rsx-reply-btn" onClick={() => setReplyOpen(true)}>
             <Icon src={icons.messageText} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>답글 달기</span>
+            <span>{M.reply}</span>
           </button>
         )}
       </div>
