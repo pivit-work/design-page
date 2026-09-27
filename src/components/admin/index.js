@@ -1,5 +1,7 @@
 export { default as AdminDashboardCanvas } from './AdminDashboardCanvas.jsx';
 export { default as AdminEmployeesCanvas } from './AdminEmployeesCanvas.jsx';
+export { default as AdminOffboardingCanvas } from './AdminOffboardingCanvas.jsx';
+export { ADMIN_OFFBOARDING_DEFAULT_LABELS, offboardingCanRun } from './offboardingRules.js';
 /* ⛔ `AdminEmployeeSheetCanvas` 폐기 (PW-576) — 구성원 설정의 스프레드시트 뷰다.
    2026-09-02 정기미팅 §1 (David) 이 「목록 탭만 남기고 스프레드시트 탭은 제거한다」로
    정했고, 기획서 `admin-spec.md` §3.8 이 묘비다. 그 파일 안에 있던 HR 기록·연봉 이력·
