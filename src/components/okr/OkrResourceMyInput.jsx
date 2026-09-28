@@ -18,9 +18,13 @@ import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js
  * `data.aiEstimate` 가 없으면 추정 배너를 통째로 내린다. 근거가 될 스니핏이 모자란
  * 달에도 배너를 그리면 항목 0개짜리 목록과 눌러도 아무 일이 없는 [추정치 적용] 이
  * 남아, 고장으로 읽힌다.
+ *
+ * `readOnly`(끝난 달 · PW-1173)면 값은 보이되 고치는 길을 전부 내린다 — 추정 배너·슬라이더·
+ * 숫자 입력·✕·경고·투입 항목 추가·저장. 매니저 코멘트와 답글은 남긴다.
  */
 export default function OkrResourceMyInput({
   data, icons, baseUrl = '', onSave, onApplyEstimates, onReply, labels: L = OKR_RESOURCE_DEFAULT_LABELS,
+  readOnly = false, monthLabel = '',
 }) {
   const M = L.my;
   const [entries, setEntries] = useState(data.entries);
@@ -79,6 +83,7 @@ export default function OkrResourceMyInput({
 
   return (
     <div className="rsx-my">
+      {readOnly && <p className="rsx-add-note" role="note">{M.readOnlyNotice(monthLabel)}</p>}
       <div className="rsx-stats">
         <RsStatCard label={M.total} value={`${data.stats.total}%`} tone="brand" bar={data.stats.total} />
         <RsStatCard label={M.items} value={data.stats.items} />
@@ -86,7 +91,7 @@ export default function OkrResourceMyInput({
         <RsStatCard label={M.status} value={statusLabel(data.stats.status, L)} tone={data.stats.status === '과부하' ? 'bad' : ''} />
       </div>
 
-      {data.aiEstimate && (
+      {!readOnly && data.aiEstimate && (
         <div className="rsx-ai-banner">
           <div className="rsx-ai-banner-bar">
             <div className="rsx-ai-banner-info">
@@ -128,53 +133,59 @@ export default function OkrResourceMyInput({
               </div>
               <span className="rsx-entry-pct">{entry.value}%</span>
             </div>
-            <div className="rsx-entry-slider">
-              <div className="rsx-slider">
-                <div className="rsx-slider-track">
-                  <i style={{ width: `${entry.value}%` }} />
+            {!readOnly && (
+              <div className="rsx-entry-slider">
+                <div className="rsx-slider">
+                  <div className="rsx-slider-track">
+                    <i style={{ width: `${entry.value}%` }} />
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={entry.value}
+                    aria-label={M.sliderAria(entry.name)}
+                    onChange={(e) => patch(entry.id, e.target.value)}
+                  />
+                  <span className="rsx-slider-ball" style={{ left: `${entry.value}%` }} />
+                  {entry.estimate != null && (
+                    <span className="rsx-slider-marker" style={{ left: `${entry.estimate}%` }}>
+                      <b>{M.marker}</b>
+                      <i />
+                    </span>
+                  )}
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={entry.value}
-                  aria-label={M.sliderAria(entry.name)}
-                  onChange={(e) => patch(entry.id, e.target.value)}
-                />
-                <span className="rsx-slider-ball" style={{ left: `${entry.value}%` }} />
-                {entry.estimate != null && (
-                  <span className="rsx-slider-marker" style={{ left: `${entry.estimate}%` }}>
-                    <b>{M.marker}</b>
-                    <i />
-                  </span>
-                )}
+                <div className="rsx-entry-input">
+                  <input
+                    type="number"
+                    value={entry.value}
+                    aria-label={M.inputAria(entry.name)}
+                    onChange={(e) => patch(entry.id, e.target.value)}
+                  />
+                  <span>%</span>
+                </div>
               </div>
-              <div className="rsx-entry-input">
-                <input
-                  type="number"
-                  value={entry.value}
-                  aria-label={M.inputAria(entry.name)}
-                  onChange={(e) => patch(entry.id, e.target.value)}
-                />
-                <span>%</span>
-              </div>
-            </div>
-            {entry.estimate != null && (
+            )}
+            {!readOnly && entry.estimate != null && (
               <p className={`rsx-entry-note${entry.warn ? ' is-warn' : ''}`}>
                 {M.estimate(entry.estimate)}{entry.warn ? `  •  ${entry.warn}` : ''}
               </p>
             )}
           </div>
-          <button type="button" className="rsx-close-btn" onClick={() => remove(entry.id)} aria-label={M.removeAria(entry.name)}>
-            <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
-          </button>
+          {!readOnly && (
+            <button type="button" className="rsx-close-btn" onClick={() => remove(entry.id)} aria-label={M.removeAria(entry.name)}>
+              <Icon src={icons.xClose} size={24} color="var(--text-secondary)" baseUrl={baseUrl} />
+            </button>
+          )}
         </div>
       ))}
+
+      {readOnly && entries.length === 0 && <p className="rsx-add-note">{M.readOnlyEmpty}</p>}
 
       <div className="rsx-total">
         <p className="rsx-total-label">Total</p>
         <p className={`rsx-total-value${total > 100 || data.redFlag ? ' is-bad' : ''}`}>{total}%</p>
-        {data.redFlag && (
+        {!readOnly && data.redFlag && (
           <div className="rsx-total-warn">
             <Icon src={icons.alertTriangle} size={12} color="var(--text-error-primary)" baseUrl={baseUrl} />
             <span>{data.redFlag}</span>
@@ -182,114 +193,118 @@ export default function OkrResourceMyInput({
         )}
       </div>
 
-      <div className="rsx-add">
-        <div className="rsx-add-head">
-          <span className="rsx-add-title">{M.addTitle}</span>
-          <StatusBadge className="rsx-badge is-brand">{M.confirmed}</StatusBadge>
-        </div>
-        <div className="rsx-add-suggest">
-          <RsAiLabel>{M.suggestTitle}</RsAiLabel>
-          {data.suggestions.filter((s) => !has(s.name)).map((s, i) => (
-            <button
-              type="button"
-              className="rsx-suggest-chip"
-              key={rowKey(s, i)}
-              onClick={() => addEntry(s.name, { estimate: s.pct })}
-            >
-              {M.suggestChip(s.name, s.pct)}
+      {!readOnly && (
+        <div className="rsx-add">
+          <div className="rsx-add-head">
+            <span className="rsx-add-title">{M.addTitle}</span>
+            <StatusBadge className="rsx-badge is-brand">{M.confirmed}</StatusBadge>
+          </div>
+          <div className="rsx-add-suggest">
+            <RsAiLabel>{M.suggestTitle}</RsAiLabel>
+            {data.suggestions.filter((s) => !has(s.name)).map((s, i) => (
+              <button
+                type="button"
+                className="rsx-suggest-chip"
+                key={rowKey(s, i)}
+                onClick={() => addEntry(s.name, { estimate: s.pct })}
+              >
+                {M.suggestChip(s.name, s.pct)}
+              </button>
+            ))}
+          </div>
+          <div className="rsx-add-group">
+            <p className="rsx-add-eyebrow">{M.squadProjects}</p>
+            <div className="rsx-squads">
+              {data.squads
+                .map((squad) => ({ ...squad, items: squad.items.filter((item) => !has(item.name)) }))
+                .filter((squad) => squad.items.length > 0)
+                .map((squad, si) => (
+                  <div className="rsx-squad" key={rowKey(squad, si)}>
+                    <p className="rsx-squad-name">{squad.name}</p>
+                    <div className="rsx-squad-items">
+                      {squad.items.map((item, ii) => (
+                        <button
+                          type="button"
+                          className="rsx-chip-btn"
+                          key={rowKey(item, ii)}
+                          onClick={() => addEntry(item.name, { estimate: item.pct, tag: squad.name })}
+                        >
+                          <Icon src={icons.plus} size={14} color="var(--text-primary)" baseUrl={baseUrl} />
+                          <span>{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+          <div className="rsx-add-group">
+            <p className="rsx-add-eyebrow">{M.personalOkr}</p>
+            <button type="button" className="rsx-kr-btn" onClick={() => setKrOpen((v) => !v)}>
+              <span>{M.loadKrs}</span>
+              {krOpen ? (
+                <span className="rsx-kr-caret">
+                  <Icon src={icons.chevronDown} size={16} color="var(--utility-blue-500)" baseUrl={baseUrl} />
+                </span>
+              ) : (
+                <b>{data.krs.length}</b>
+              )}
             </button>
-          ))}
-        </div>
-        <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">{M.squadProjects}</p>
-          <div className="rsx-squads">
-            {data.squads
-              .map((squad) => ({ ...squad, items: squad.items.filter((item) => !has(item.name)) }))
-              .filter((squad) => squad.items.length > 0)
-              .map((squad, si) => (
-                <div className="rsx-squad" key={rowKey(squad, si)}>
-                  <p className="rsx-squad-name">{squad.name}</p>
-                  <div className="rsx-squad-items">
-                    {squad.items.map((item, ii) => (
+            {krOpen && (
+              <div className="rsx-kr-list">
+                {data.krs.map((kr) => (
+                  <div className="rsx-kr-row" key={kr.id}>
+                    <span className="rsx-kr-id">{kr.id}</span>
+                    <div className="rsx-kr-main">
+                      <p className="rsx-kr-title">{kr.title}</p>
+                      <p className="rsx-kr-sub">{kr.sub}</p>
+                    </div>
+                    {/* KR 은 연결 프로젝트가 이미 있어도 KR 자체를 별도 항목으로 추가한다
+                        (시안 17478:22428 — PIVIT V2.0 항목이 있는 상태에서도 [추가] 노출).
+                        같은 KR 을 이미 추가한 경우에만 버튼을 숨긴다. */}
+                    {!has(kr.title) && (
                       <button
                         type="button"
-                        className="rsx-chip-btn"
-                        key={rowKey(item, ii)}
-                        onClick={() => addEntry(item.name, { estimate: item.pct, tag: squad.name })}
+                        className="rsx-gray-btn"
+                        onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: M.personalOkr })}
                       >
-                        <Icon src={icons.plus} size={14} color="var(--text-primary)" baseUrl={baseUrl} />
-                        <span>{item.name}</span>
+                        {M.add}
                       </button>
-                    ))}
+                    )}
                   </div>
-                </div>
-              ))}
-          </div>
-        </div>
-        <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">{M.personalOkr}</p>
-          <button type="button" className="rsx-kr-btn" onClick={() => setKrOpen((v) => !v)}>
-            <span>{M.loadKrs}</span>
-            {krOpen ? (
-              <span className="rsx-kr-caret">
-                <Icon src={icons.chevronDown} size={16} color="var(--utility-blue-500)" baseUrl={baseUrl} />
-              </span>
-            ) : (
-              <b>{data.krs.length}</b>
+                ))}
+                <p className="rsx-kr-note">{M.krNote}</p>
+              </div>
             )}
-          </button>
-          {krOpen && (
-            <div className="rsx-kr-list">
-              {data.krs.map((kr) => (
-                <div className="rsx-kr-row" key={kr.id}>
-                  <span className="rsx-kr-id">{kr.id}</span>
-                  <div className="rsx-kr-main">
-                    <p className="rsx-kr-title">{kr.title}</p>
-                    <p className="rsx-kr-sub">{kr.sub}</p>
-                  </div>
-                  {/* KR 은 연결 프로젝트가 이미 있어도 KR 자체를 별도 항목으로 추가한다
-                      (시안 17478:22428 — PIVIT V2.0 항목이 있는 상태에서도 [추가] 노출).
-                      같은 KR 을 이미 추가한 경우에만 버튼을 숨긴다. */}
-                  {!has(kr.title) && (
-                    <button
-                      type="button"
-                      className="rsx-gray-btn"
-                      onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: M.personalOkr })}
-                    >
-                      {M.add}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <p className="rsx-kr-note">{M.krNote}</p>
-            </div>
-          )}
-        </div>
-        <div className="rsx-add-group">
-          <p className="rsx-add-eyebrow">{M.customTitle}</p>
-          <div className="rsx-add-custom">
-            <input
-              value={customName}
-              maxLength={20}
-              placeholder={M.customPlaceholder}
-              aria-label={M.customAria}
-              onChange={(e) => setCustomName(e.target.value)}
-            />
-            <button
-              type="button"
-              className="rsx-gray-btn is-md"
-              onClick={() => { addEntry(customName.trim(), {}); setCustomName(''); }}
-            >
-              {M.customAdd}
-            </button>
           </div>
-          <p className="rsx-add-note">{M.customNote}</p>
+          <div className="rsx-add-group">
+            <p className="rsx-add-eyebrow">{M.customTitle}</p>
+            <div className="rsx-add-custom">
+              <input
+                value={customName}
+                maxLength={20}
+                placeholder={M.customPlaceholder}
+                aria-label={M.customAria}
+                onChange={(e) => setCustomName(e.target.value)}
+              />
+              <button
+                type="button"
+                className="rsx-gray-btn is-md"
+                onClick={() => { addEntry(customName.trim(), {}); setCustomName(''); }}
+              >
+                {M.customAdd}
+              </button>
+            </div>
+            <p className="rsx-add-note">{M.customNote}</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="rsx-save-row">
-        <button type="button" className="rsx-save-btn" onClick={() => onSave?.(entries)}>{M.save}</button>
-      </div>
+      {!readOnly && (
+        <div className="rsx-save-row">
+          <button type="button" className="rsx-save-btn" onClick={() => onSave?.(entries)}>{M.save}</button>
+        </div>
+      )}
 
       <div className="rsx-comments-section">
         <p className="rsx-section-title">{L.managerComments}</p>
