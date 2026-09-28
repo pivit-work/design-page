@@ -1,4 +1,5 @@
 import Button from '../shared/Button.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import Chip from '../shared/Chip.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
@@ -41,6 +42,13 @@ import {
  *                     answer, sources: [{ id, title, href }], confident   answered 일 때
  *                   }
  *   submitHint      [문의 접수] 왼쪽 안내 한 줄(없으면 그리지 않는다)
+ *   autoAttach      null(칸을 그리지 않는다) | {           — PW-1177 · 시안 `SupportNew` 의 자동 첨부 안내 + 스크린샷 체크
+ *                     notice,              「보던 화면 주소 · 브라우저 … 자동으로 첨부됩니다」
+ *                     screenshotLabel,     「현재 화면 스크린샷 첨부」
+ *                     screenshotHint,      체크 아래 보조 한 줄(직전 화면이 첨부된다 / 직전 화면이 없다)
+ *                     screenshotChecked, screenshotDisabled,
+ *                     onScreenshotChange(checked)
+ *                   }
  *   onCategoryChange(value) · onTitleChange(v) · onBodyChange(v) · onSubmit() · onViewMine() · onNewTicket()
  *   onAiAsk() · onAiResolved() · onAiRetry()   — 즉답 칸의 「그래도 접수」·「바로 접수」는 onSubmit
  *   labels          { heading, sub, workspaceLabel, categoryLabel, titleLabel, titlePlaceholder, bodyLabel,
@@ -63,6 +71,7 @@ export default function SupportNewCanvas({
   done = null,
   ai = null,
   submitHint = null,
+  autoAttach = null,
   onCategoryChange,
   onTitleChange,
   onBodyChange,
@@ -163,6 +172,28 @@ export default function SupportNewCanvas({
                 data-testid="support-body"
               />
             </FormField>
+
+            {autoAttach && (
+              <div className="sup-attach" data-testid="support-auto-attach">
+                <p className="sup-hint">{autoAttach.notice}</p>
+                <Checkbox
+                  checked={!!autoAttach.screenshotChecked}
+                  disabled={submitting || !!autoAttach.screenshotDisabled}
+                  onChange={(e) => autoAttach.onScreenshotChange?.(e.target.checked)}
+                  data-testid="support-screenshot"
+                  label={
+                    <span className="sup-attach-label">
+                      {autoAttach.screenshotLabel}
+                      {autoAttach.screenshotHint && (
+                        <span className="sup-attach-sub" data-testid="support-screenshot-hint">
+                          {autoAttach.screenshotHint}
+                        </span>
+                      )}
+                    </span>
+                  }
+                />
+              </div>
+            )}
 
             {errorText && (
               <div className="sup-notice is-warning" role="alert" data-testid="support-error">

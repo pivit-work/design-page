@@ -18,6 +18,8 @@ import assetUrl from '../shared/assetUrl.js';
  *  - feedbackLabel / settingsLabel: 하단 고정 두 항목의 글자. 상단 항목은 menu 데이터로
  *    들어와 호스트가 번역할 수 있지만 이 둘은 여기에 박혀 있어, 영어 사용자에게도
  *    한국어로 보였다(PW-469). 호스트가 번역을 넘길 자리를 낸다 — 안 넘기면 종전 그대로다.
+ *  - showFeedback: false 면 하단 「의견보내기」 항목을 그리지 않는다(PW-1177 — 앱은 「의견보내기」를
+ *    없애고 「고객지원·문의」 하나로 합쳤다). 기본 true — 안 넘기면 종전 그대로다.
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
@@ -34,6 +36,7 @@ export default function Sidebar({
   onLogoClick,
   feedbackLabel = '의견보내기',
   settingsLabel = '설정',
+  showFeedback = true,
 }) {
   const logoImg = <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />;
   return (
@@ -76,7 +79,9 @@ export default function Sidebar({
           </nav>
         </div>
         <div className="sidebar-bottom">
-          <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{feedbackLabel}</span></div>
+          {showFeedback && (
+            <div className="menu-item" onClick={onFeedbackClick}><Icon src={icons.send} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{feedbackLabel}</span></div>
+          )}
           {[bottomItem, ...bottomItems].filter(Boolean).map((item, i) => (
             <div
               key={`bottom-${i}-${item.label}`}

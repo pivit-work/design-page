@@ -192,6 +192,22 @@
   gap: 12px;
 }
 .sup-ai-idle-hint,
+/* 자동 첨부 안내 + 스크린샷 체크 (PW-1177) — 시안 SupportNew: 유형 안내 상자와 같은 규격 */
+.sup-attach {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sup-attach-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sup-attach-sub {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
 .sup-actions-hint {
   font-size: 12px;
   line-height: 18px;
