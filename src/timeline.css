@@ -3361,6 +3361,136 @@
 }
 
 /* ===========================
+   활동 초안 (PW-1154 · pivit-specs A. daily-snippet/snippet-app.jsx DraftMark 시안)
+   노랑 = 경고 토큰(미확인) · 초록 = 성공 토큰(확인함) · 버튼은 AI 버튼과 같은 규격.
+   =========================== */
+.tl-snippet-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -24px;
+}
+
+.tl-snippet-draft-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-quaternary);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-draft-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--colors-foreground-fgBrandPrimary);
+  cursor: pointer;
+}
+
+.tl-snippet-draft-note {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+.tl-snippet-draft-note.is-error {
+  color: var(--text-error-primary);
+}
+
+.tl-snippet-draft-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+}
+
+.tl-snippet-draft-left-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-draft-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tl-snippet-draft-mark.is-unconfirmed {
+  color: var(--colors-warning-700);
+}
+
+.tl-snippet-draft-mark.is-confirmed {
+  gap: 4px;
+  color: var(--colors-success-700);
+}
+
+.tl-snippet-draft-confirm {
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--colors-warning-300);
+  background: var(--bg-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--colors-warning-700);
+  cursor: pointer;
+}
+
+.tl-snippet-textarea.is-draft-unconfirmed {
+  background: var(--colors-warning-50);
+  border-color: var(--colors-warning-300);
+}
+
+.tl-snippet-textarea.is-draft-confirmed {
+  background: var(--colors-success-50);
+  border-color: var(--colors-success-300);
+}
+
+/* 태그 칸은 테두리로만 표시한다 — 바탕색은 태그 딱지 규칙(status-badge 검사)이 한 곳에서 정한다. */
+.tl-snippet-tag-field.is-draft-unconfirmed {
+  border-color: var(--colors-warning-300);
+  box-shadow: 0 0 0 1px var(--colors-warning-300);
+}
+
+.tl-snippet-tag-field.is-draft-confirmed {
+  border-color: var(--colors-success-300);
+  box-shadow: 0 0 0 1px var(--colors-success-300);
+}
+
+.tl-snippet-draft-blocked {
+  flex: 1;
+  min-width: 0;
+  margin: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--colors-warning-700);
+}
+
+.tl-snippet-ai-notice {
+  margin: -4px 0 0;
+}
+
+/* ===========================
    Page-level Tabs (Timeline / Weekly) + Weekly View
    Figma "timeline_gant_week" (16636:73372, 16639:77164)
    =========================== */

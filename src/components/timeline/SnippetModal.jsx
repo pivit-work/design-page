@@ -73,6 +73,33 @@ const SECTIONS = [
 
 // `suggestedTags` prop 이 없을 때 사용하는 fallback 시드 — 호스트 앱이 추천 풀을
 // 주입하지 않아도 스니핏 모달은 빈 상태로 보이지 않도록 한다.
+// 활동 초안(PW-1154 · pivit-specs `A. daily-snippet/snippet-app.jsx` DraftMark 시안 포팅).
+// 칸 키는 이 모달의 키(`value`)이고, 호스트가 주는 초안은 기획서 API 키(`values`)다.
+// 화면 순서(위→아래) — 안내 문구와 「첫 노란 칸으로 이동」이 이 순서를 따른다.
+const DRAFT_FIELD_KEYS = ['what', 'why', 'value', 'highlights', 'lowlights', 'summary', 'tags'];
+const DRAFT_KEY_OF_FIELD = { value: 'values' };
+const TAG_LIMIT = 8;
+const DEFAULT_DRAFT_LABELS = {
+  fill: '오늘 활동으로 초안 채우기',
+  filling: '초안 만드는 중…',
+  linkNotice: '내 설정 > 개인 연동에서 Jira·GitHub 계정을 이어 주세요',
+  linkAction: '내 설정으로',
+  empty: '가져올 활동이 없습니다',
+  fail: '초안을 만들지 못했습니다. 다시 시도해 주세요.',
+  left: '직접 써야 할 칸:',
+  markUnconfirmed: 'AI 초안',
+  confirm: '확인',
+  markConfirmed: '확인함',
+  blocked: (n, names) => `확인하지 않은 AI 초안 ${n}칸: ${names}`,
+};
+
+/** 그 칸이 비었나 — 태그는 개수, 나머지는 공백을 뺀 글. */
+function isFieldEmpty(key, texts, sum, tg) {
+  if (key === 'summary') return !sum.trim();
+  if (key === 'tags') return tg.length === 0;
+  return !(texts[key] ?? '').trim();
+}
+
 const DEFAULT_SUGGESTED_TAGS = [
   '기획', '회의', '개발', '디자인', '리뷰', '문서', '외부미팅', 'TaV', '번역', '산출물', '참석자',
 ];
@@ -104,6 +131,28 @@ const DEFAULT_SUGGESTED_TAGS = [
 //   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
 //   때문이다.
 //
+// 활동 초안 (PW-1154 · 기획서 daily-snippet §6.0, 작성 화면 정책서 §5-A) — 모두 optional:
+//   onAiDraft?: () => Promise<{ linked?: {jira, github}, activityCount: number,
+//                                draft: {summary?, tags?, what?, why?, values?, highlights?, lowlights?} } | null>
+//     「오늘 활동으로 초안 채우기」 버튼. 없으면 버튼·안내가 통째로 안 보인다(종전 화면 그대로).
+//     응답 draft 의 칸 가운데 **비어 있거나 아직 노란 칸**에만 넣고 그 칸을 노란(미확인)으로 표시한다.
+//     초록(확인한) 칸·사람이 쓴 칸은 건드리지 않는다. 컨디션(Health Check)은 채우지 않는다.
+//     null 을 돌려주면 호스트가 이미 처리한 것(예: 체험 AI 소진 안내)으로 보고 아무것도 바꾸지 않는다.
+//     던지면 버튼 아래에 실패 문구를 띄운다.
+//   aiDraftLinked?: boolean — false 면 버튼 대신 계정 연결 안내를 띄운다. 모르면(undefined) 버튼을
+//     두고, 누른 뒤 응답 linked 가 둘 다 false 면 안내로 바꾼다.
+//   onOpenAccountLinks?: () => void — 안내의 「내 설정으로 →」.
+//   aiNotice?: { at: 'draft' | 'summary' | 'tags', content: ReactNode } | null
+//     호스트가 그 AI 버튼 자리에 띄우는 안내(체험 AI 소진 등). 한 번에 하나.
+//   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
+//
+//   노란 칸의 「확인」을 누르면 초록이 된다. 노란 칸의 글을 고쳐도 노란 그대로이고, 글을 다 지우면
+//   표식이 사라진다. 「AI 요약 생성」 결과도 노란으로 시작한다. 추천 태그를 눌러 넣는 것은 색을
+//   바꾸지 않는다. 노란 칸이 남은 채 등록(onSubmit)하거나 창을 닫으려 하면(✕·Esc·바깥) 그러지 않고
+//   그 칸 이름을 알리며 첫 노란 칸으로 옮긴다.
+//   표식은 작성 중에만 있다 — onDraftChange·onSubmit 의 두 번째 정보 `aiMarks`
+//   ({[칸]: 'unconfirmed' | 'confirmed'}) 로 호스트에 알린다.
+//
 // 자동 저장 통지:
 //   onDraftChange?: (draft, meta) => void
 //     summary/tags/sectionTexts 가 바뀌거나 textarea/input 의 blur 시점에
@@ -124,7 +173,13 @@ export default function SnippetModal({
   onDraftChange,
   savedAt,
   sectionMaxLength = DEFAULT_SECTION_MAX_LENGTH,
+  onAiDraft,
+  aiDraftLinked,
+  onOpenAccountLinks,
+  aiNotice,
+  draftLabels,
 }) {
+  const L = { ...DEFAULT_DRAFT_LABELS, ...(draftLabels || {}) };
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(initial?.tags ? [...initial.tags] : []);
@@ -158,6 +213,14 @@ export default function SnippetModal({
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const [tagsError, setTagsError] = useState(null);
+  // 활동 초안 — 칸별 표식('unconfirmed' 노랑 · 'confirmed' 초록). 작성 중에만 있다.
+  const [aiMarks, setAiMarks] = useState({});
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftNote, setDraftNote] = useState(null); // 'empty' | 'fail' | null
+  const [draftLeft, setDraftLeft] = useState(null); // 초안이 비워 둔 칸 키 목록
+  const [linkedFromDraft, setLinkedFromDraft] = useState(null);
+  const [blocked, setBlocked] = useState(false);
+  const fieldRefs = useRef({});
   // IME 조합 중 — 'change' 통지 보류 플래그. state 로 두면 compositionEnd 직후
   // useEffect 가 자연스럽게 재실행되어 최종 결과가 호스트로 전달된다.
   const [isComposing, setIsComposing] = useState(false);
@@ -172,6 +235,140 @@ export default function SnippetModal({
       : DEFAULT_SUGGESTED_TAGS;
 
   const contentRef = useRef(null);
+
+  const fieldLabel = (key) => {
+    if (key === 'summary') return 'Summary';
+    if (key === 'tags') return 'Tags';
+    if (key === 'health') return 'Health Check';
+    return SECTIONS.find((sec) => sec.key === key)?.label ?? key;
+  };
+  const unconfirmedKeys = DRAFT_FIELD_KEYS.filter((k) => aiMarks[k] === 'unconfirmed');
+  const showDraftArea = typeof onAiDraft === 'function';
+  const draftLinked = linkedFromDraft ?? aiDraftLinked;
+  const noticeAt = (at) =>
+    aiNotice && aiNotice.at === at ? (
+      <div className="tl-snippet-ai-notice">{aiNotice.content}</div>
+    ) : null;
+
+  const focusField = useCallback((key) => {
+    const el = fieldRefs.current[key];
+    if (!el) return;
+    if (typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // 입력칸을 먼저 — 칸 머리의 「확인」 버튼이 문서 순서상 앞에 있어도 글 쓰는 자리로 간다.
+    const target = el.matches?.('textarea, input')
+      ? el
+      : el.querySelector?.('textarea') ?? el.querySelector?.('input') ?? el.querySelector?.('button');
+    if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
+  }, []);
+
+  // 사람이 칸을 모두 지우면 표식을 없애고 사람 칸으로 돌린다(정책서 §5-A.3).
+  // 글을 고치는 것만으로는 색이 바뀌지 않는다 — 확인은 「확인」 버튼으로만 한다.
+  const clearMarkIfEmptied = (key, emptied) => {
+    if (!emptied) return;
+    setAiMarks((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleAiDraft = useCallback(async () => {
+    if (!onAiDraft || draftLoading) return;
+    setDraftNote(null);
+    setDraftLoading(true);
+    try {
+      const result = await onAiDraft();
+      if (!result) return;
+      if (result.linked && !result.linked.jira && !result.linked.github) {
+        setLinkedFromDraft(false);
+        return;
+      }
+      if (result.linked) setLinkedFromDraft(true);
+      if (!result.activityCount) {
+        setDraftNote('empty');
+        return;
+      }
+      const draft = result.draft || {};
+      const nextMarks = { ...aiMarks };
+      const nextTexts = { ...sectionTexts };
+      let nextSummary = summary;
+      let nextTags = tags;
+      for (const k of DRAFT_FIELD_KEYS) {
+        const v = draft[DRAFT_KEY_OF_FIELD[k] ?? k];
+        const hasValue = k === 'tags' ? Array.isArray(v) && v.length > 0 : typeof v === 'string' && v.trim();
+        if (!hasValue) continue;
+        const canFill = isFieldEmpty(k, sectionTexts, summary, tags) || aiMarks[k] === 'unconfirmed';
+        if (!canFill) continue;
+        if (k === 'summary') nextSummary = v;
+        else if (k === 'tags') nextTags = [...new Set(v.map((t) => String(t).trim()).filter(Boolean))].slice(0, TAG_LIMIT);
+        else nextTexts[k] = sectionMaxLength?.[k] != null ? v.slice(0, sectionMaxLength[k]) : v;
+        nextMarks[k] = 'unconfirmed';
+      }
+      setSectionTexts(nextTexts);
+      setSummary(nextSummary);
+      setTags(nextTags);
+      setAiMarks(nextMarks);
+      setDraftLeft(
+        DRAFT_FIELD_KEYS.filter((k) => isFieldEmpty(k, nextTexts, nextSummary, nextTags)),
+      );
+    } catch {
+      setDraftNote('fail');
+    } finally {
+      setDraftLoading(false);
+    }
+  }, [onAiDraft, draftLoading, aiMarks, sectionTexts, summary, tags, sectionMaxLength]);
+
+  const confirmMark = (key) => setAiMarks((prev) => ({ ...prev, [key]: 'confirmed' }));
+
+  // 노란(확인 안 한) 칸이 남으면 창을 닫지 않는다 — 닫기(✕)·Esc·바깥 누르기 모두 (PW-1154 커트 결정 2026-09-29).
+  // 자동 저장 화면이라 「등록」 대신 닫기에서 막는다. 호스트는 노란 칸의 글을 저장하지 않는다.
+  const requestClose = () => {
+    if (unconfirmedKeys.length > 0) {
+      setBlocked(true);
+      focusField(unconfirmedKeys[0]);
+      return;
+    }
+    onClose();
+  };
+  const blockedShown = blocked && unconfirmedKeys.length > 0;
+
+  const markClass = (key) =>
+    aiMarks[key] === 'unconfirmed'
+      ? ' is-draft-unconfirmed'
+      : aiMarks[key] === 'confirmed'
+        ? ' is-draft-confirmed'
+        : '';
+
+  const renderMark = (key) => {
+    const mark = aiMarks[key];
+    if (!mark) return null;
+    if (mark === 'confirmed') {
+      return (
+        <span className="tl-snippet-draft-mark is-confirmed">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {L.markConfirmed}
+        </span>
+      );
+    }
+    return (
+      <span className="tl-snippet-draft-mark is-unconfirmed">
+        {L.markUnconfirmed}
+        <button
+          type="button"
+          className="tl-snippet-draft-confirm"
+          onClick={() => confirmMark(key)}
+          aria-label={`${fieldLabel(key)} ${L.confirm}`}
+        >
+          {L.confirm}
+        </button>
+      </span>
+    );
+  };
 
   // Progress: 채워진 섹션 수 / 전체 섹션 수 → active bar width %
   const filledCount = SECTIONS.filter((s) => sectionTexts[s.key].trim()).length;
@@ -208,7 +405,11 @@ export default function SnippetModal({
       setTagInput('');
     }
   };
-  const removeTag = (t) => setTags((prev) => prev.filter((x) => x !== t));
+  const removeTag = (t) => {
+    const next = tags.filter((x) => x !== t);
+    setTags(next);
+    clearMarkIfEmptied('tags', next.length === 0);
+  };
 
   const buildAiInput = useCallback(
     () => ({
@@ -229,7 +430,11 @@ export default function SnippetModal({
     setSummaryLoading(true);
     try {
       const result = await onAiSummarize(buildAiInput());
-      if (result?.summary) setSummary(result.summary);
+      if (result?.summary) {
+        setSummary(result.summary);
+        // AI 요약도 노란(미확인)으로 시작한다 — 초록·사람 칸이어도 대체한다(정책서 §5-A.3-A).
+        setAiMarks((prev) => ({ ...prev, summary: 'unconfirmed' }));
+      }
     } catch (err) {
       setSummaryError(err?.message || 'AI 요약 생성에 실패했습니다.');
     } finally {
@@ -278,10 +483,16 @@ export default function SnippetModal({
     setSectionTexts({ what: '', why: '', value: '', highlights: '', lowlights: '' });
     setHealthScore(null);
     setHealthNote('');
+    setAiMarks({});
+    setDraftLeft(null);
+    setDraftNote(null);
+    setBlocked(false);
   };
 
-  const setSectionText = (key, v) =>
+  const setSectionText = (key, v) => {
     setSectionTexts((prev) => ({ ...prev, [key]: v }));
+    clearMarkIfEmptied(key, !v.trim());
+  };
 
   // 자동 저장 통지 — summary/tags/sectionTexts 변경 시 호스트로 'change' 발화.
   // IME 조합 중에는 보류. compositionEnd 로 isComposing 이 false 가 되는 순간
@@ -296,9 +507,9 @@ export default function SnippetModal({
         sections: sectionTexts,
         health: { score: healthScore, note: healthNote },
       },
-      { source: 'change' },
+      { source: 'change', aiMarks },
     );
-  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks]);
 
   const handleFieldBlur = useCallback(() => {
     if (!onDraftChangeRef.current) return;
@@ -310,9 +521,9 @@ export default function SnippetModal({
         sections: sectionTexts,
         health: { score: healthScore, note: healthNote },
       },
-      { source: 'blur' },
+      { source: 'blur', aiMarks },
     );
-  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks]);
 
   const handleCompositionStart = useCallback(() => setIsComposing(true), []);
   const handleCompositionEnd = useCallback(() => setIsComposing(false), []);
@@ -321,17 +532,26 @@ export default function SnippetModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSubmit({
-      date: dateLabel,
-      summary: summary.trim(),
-      tags,
-      sections: sectionTexts,
-      health: { score: healthScore, note: healthNote.trim() },
-    });
+    // 노란(확인 안 한) AI 초안이 남으면 등록하지 않는다 — 「그대로 등록」은 없다(기획서 §6.0).
+    if (unconfirmedKeys.length > 0) {
+      setBlocked(true);
+      focusField(unconfirmedKeys[0]);
+      return;
+    }
+    onSubmit(
+      {
+        date: dateLabel,
+        summary: summary.trim(),
+        tags,
+        sections: sectionTexts,
+        health: { score: healthScore, note: healthNote.trim() },
+      },
+      { aiMarks },
+    );
   };
 
   return (
-    <ModalLayer onClose={onClose}>
+    <ModalLayer onClose={requestClose}>
       <form
         className={`tl-group-modal tl-snippet-modal ${scrolled ? 'is-scrolled' : ''}`}
         role="dialog"
@@ -348,7 +568,7 @@ export default function SnippetModal({
             type="button"
             className="tl-group-modal-close"
             aria-label="닫기"
-            onClick={onClose}
+            onClick={requestClose}
           >
             <CloseGlyph size={24} />
           </button>
@@ -384,20 +604,80 @@ export default function SnippetModal({
             })}
           </div>
 
+          {showDraftArea && (
+            <div className="tl-snippet-draft">
+              {draftLinked === false ? (
+                <div className="tl-snippet-draft-link" role="note">
+                  <span>{L.linkNotice}</span>
+                  {onOpenAccountLinks && (
+                    <button type="button" className="tl-snippet-draft-link-btn" onClick={onOpenAccountLinks}>
+                      {L.linkAction}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    className="tl-snippet-ai-btn"
+                    onClick={handleAiDraft}
+                    disabled={draftLoading}
+                    aria-busy={draftLoading || undefined}
+                  >
+                    <img
+                      src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
+                      alt=""
+                      width="14"
+                      height="14"
+                      aria-hidden="true"
+                    />
+                    <span>{draftLoading ? L.filling : L.fill}</span>
+                  </button>
+                </div>
+              )}
+              {noticeAt('draft')}
+              {draftNote === 'empty' && <div className="tl-snippet-draft-note">{L.empty}</div>}
+              {draftNote === 'fail' && (
+                <div className="tl-snippet-draft-note is-error" role="alert">{L.fail}</div>
+              )}
+              {draftLeft && (
+                <div className="tl-snippet-draft-left">
+                  <span className="tl-snippet-draft-left-title">{L.left}</span>
+                  {['health', ...draftLeft].map((k) => (
+                    <button key={k} type="button" className="tl-snippet-tag" onClick={() => focusField(k)}>
+                      {fieldLabel(k)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="tl-snippet-body">
             {/* Figma 순서: 5 섹션 (What/Why/Value/Highlights/Lowlights) → Summary → Tags */}
 
             {/* What / Why / Value / Highlights / Lowlights */}
             {SECTIONS.map((s) => (
-              <div className="tl-snippet-field" key={s.key}>
+              <div
+                className="tl-snippet-field"
+                key={s.key}
+                ref={(el) => {
+                  fieldRefs.current[s.key] = el;
+                }}
+              >
                 <div className="tl-snippet-field-head">
                   <div className="tl-snippet-field-label">
                     {s.label}
                     <span className="tl-snippet-label-hint">{s.hint}</span>
                   </div>
+                  {renderMark(s.key)}
                 </div>
                 <textarea
-                  className="tl-snippet-textarea"
+                  className={`tl-snippet-textarea${markClass(s.key)}`}
                   placeholder={s.placeholder}
                   value={sectionTexts[s.key]}
                   onChange={(e) => setSectionText(s.key, e.target.value)}
@@ -422,7 +702,12 @@ export default function SnippetModal({
             ))}
 
             {/* Health Check — 1~10 점수 + 영향 요인 textarea (Figma 16627:58459) */}
-            <div className="tl-snippet-field">
+            <div
+              className="tl-snippet-field"
+              ref={(el) => {
+                fieldRefs.current.health = el;
+              }}
+            >
               <div className="tl-snippet-field-head tl-snippet-health-head">
                 <div className="tl-snippet-field-label">
                   Health Check
@@ -466,12 +751,18 @@ export default function SnippetModal({
             </div>
 
             {/* Summary */}
-            <div className="tl-snippet-field">
+            <div
+              className="tl-snippet-field"
+              ref={(el) => {
+                fieldRefs.current.summary = el;
+              }}
+            >
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Summary
                   <span className="tl-snippet-label-hint">AI 자동 생성 해줘요.</span>
                 </div>
+                {renderMark('summary')}
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
@@ -490,11 +781,15 @@ export default function SnippetModal({
                   <span>{summaryLoading ? '생성 중…' : '요약 생성'}</span>
                 </button>
               </div>
+              {noticeAt('summary')}
               <textarea
-                className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}`}
+                className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}${markClass('summary')}`}
                 placeholder="관련 내용 입력하면 AI 요약이 활성화됩니다"
                 value={summary}
-                onChange={(e) => setSummary(e.target.value)}
+                onChange={(e) => {
+                  setSummary(e.target.value);
+                  clearMarkIfEmptied('summary', !e.target.value.trim());
+                }}
                 onCompositionStart={handleCompositionStart}
                 onCompositionEnd={handleCompositionEnd}
                 onBlur={handleFieldBlur}
@@ -516,12 +811,18 @@ export default function SnippetModal({
             </div>
 
             {/* Tags */}
-            <div className="tl-snippet-field">
+            <div
+              className="tl-snippet-field"
+              ref={(el) => {
+                fieldRefs.current.tags = el;
+              }}
+            >
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Tags
                   <span className="tl-snippet-label-hint">AI 자동 추출 해줘요</span>
                 </div>
+                {renderMark('tags')}
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
@@ -540,8 +841,9 @@ export default function SnippetModal({
                   <span>{tagsLoading ? '추출 중…' : '태그 추출'}</span>
                 </button>
               </div>
+              {noticeAt('tags')}
               {/* 필드 안에 선택된 태그 chip + 신규 입력 */}
-              <div className={`tl-snippet-tag-field ${tags.length ? 'is-ai-filled' : ''}`}>
+              <div className={`tl-snippet-tag-field ${tags.length ? 'is-ai-filled' : ''}${markClass('tags')}`}>
                 {tags.map((t) => (
                   <span key={t} className="tl-snippet-tag tl-snippet-tag-selected">
                     {t}
@@ -614,6 +916,11 @@ export default function SnippetModal({
           >
             초기화
           </button>
+          {blockedShown && (
+            <span className="tl-snippet-draft-blocked" role="alert">
+              {L.blocked(unconfirmedKeys.length, unconfirmedKeys.map(fieldLabel).join(' · '))}
+            </span>
+          )}
           <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
         </div>
       </form>
