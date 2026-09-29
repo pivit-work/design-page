@@ -437,6 +437,8 @@ const DEFAULT_LABELS = {
   remindToast: '리마인드를 발송했습니다 ({n}명)',
   // [PW-1054] 서버가 24시간 안에 받은 사람을 건너뛰었을 때 — 보낸 수와 건너뛴 수를 함께 적는다.
   remindToastSkipped: '리마인드를 발송했습니다 ({n}명) · 24시간 안에 이미 받은 {skipped}명은 건너뛰었습니다',
+  // [PW-975] 받는 사람이 내 설정에서 평가 리마인더를 꺼 두어 서버가 보내지 않은 인원 — 발송 문장 뒤에 붙인다.
+  remindToastOptedOut: '{optedOut}명은 알림 설정에서 평가 리마인더를 꺼 두어 받지 않았습니다',
   remindErrorToast: '리마인드 발송에 실패했습니다. 다시 시도해주세요.',
   // [PW-975] 관리자가 알림 설정에서 «미완료 평가 리마인더»를 꺼 두어 서버가 보내지 않았을 때.
   remindOrgOffToast: '관리자 알림 설정에서 미완료 평가 리마인더가 꺼져 있어 보내지 않았습니다.',
@@ -1347,9 +1349,10 @@ export default function EvalCycleSummaryCanvas({
       const sentIds = Array.isArray(result?.memberIds) ? result.memberIds : ids;
       const sentCount = typeof result?.sent === 'number' ? result.sent : sentIds.length;
       const skippedCount = typeof result?.skipped === 'number' ? result.skipped : 0;
+      const optedOutCount = typeof result?.optedOut === 'number' ? result.optedOut : 0;
       setSent((prev) => new Set([...prev, ...sentIds]));
       setSelected(new Set());
-      setRemindToast({ sent: sentCount, skipped: skippedCount });
+      setRemindToast({ sent: sentCount, skipped: skippedCount, optedOut: optedOutCount });
     } catch {
       // TC-202 실패 시 전역 에러 대신 에러 토스트(선택 유지 → 재시도 가능).
       setRemindError(true);
@@ -4732,6 +4735,9 @@ export default function EvalCycleSummaryCanvas({
                 {remindToast.skipped > 0
                   ? fmt(L.remindToastSkipped, { n: remindToast.sent, skipped: remindToast.skipped })
                   : fmt(L.remindToast, { n: remindToast.sent })}
+                {remindToast.optedOut > 0
+                  ? ` · ${fmt(L.remindToastOptedOut, { optedOut: remindToast.optedOut })}`
+                  : null}
               </div>
             )}
             {remindBlocked && (
