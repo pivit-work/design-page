@@ -75,7 +75,8 @@ const SECTIONS = [
 // 주입하지 않아도 스니핏 모달은 빈 상태로 보이지 않도록 한다.
 // 활동 초안(PW-1154 · pivit-specs `A. daily-snippet/snippet-app.jsx` DraftMark 시안 포팅).
 // 칸 키는 이 모달의 키(`value`)이고, 호스트가 주는 초안은 기획서 API 키(`values`)다.
-const DRAFT_FIELD_KEYS = ['summary', 'tags', 'what', 'why', 'value', 'highlights', 'lowlights'];
+// 화면 순서(위→아래) — 안내 문구와 「첫 노란 칸으로 이동」이 이 순서를 따른다.
+const DRAFT_FIELD_KEYS = ['what', 'why', 'value', 'highlights', 'lowlights', 'summary', 'tags'];
 const DRAFT_KEY_OF_FIELD = { value: 'values' };
 const TAG_LIMIT = 8;
 const DEFAULT_DRAFT_LABELS = {
@@ -255,7 +256,10 @@ export default function SnippetModal({
     if (typeof el.scrollIntoView === 'function') {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    const target = el.matches?.('textarea, input') ? el : el.querySelector?.('textarea, input, button');
+    // 입력칸을 먼저 — 칸 머리의 「확인」 버튼이 문서 순서상 앞에 있어도 글 쓰는 자리로 간다.
+    const target = el.matches?.('textarea, input')
+      ? el
+      : el.querySelector?.('textarea') ?? el.querySelector?.('input') ?? el.querySelector?.('button');
     if (target && typeof target.focus === 'function') target.focus({ preventScroll: true });
   }, []);
 
