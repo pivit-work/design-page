@@ -24,17 +24,37 @@ export function StepNav({ className = '', children, ...rest }) {
  * `‹`·`›` 또는 글자 버튼 하나. 공용 `Button` 위에 얹어 두 번 누르기 잠금·`disabled` 를 그대로 받는다.
  * 누를 수 없을 때는 옅어지고 손 모양이 사라진다.
  *
+ * `static` 을 주면 버튼이 아니라 같은 모양의 글자 칸(`<span>`)을 그린다 — 가운데에 누를 수 없는
+ * 글자(「2026년 9월」)를 「오늘」 칸과 같은 높이·글자 모양으로 놓을 때 쓴다 (PW-1186).
+ * 옅어지지 않고, 손 모양·hover 가 없고, 글자가 길어도 한 줄을 지킨다.
+ *
  * @param {'prev'|'next'} [direction] 주면 화살표만 그린다(`aria-label` 은 부르는 쪽이 준다)
  * @param {string} [baseUrl] 아이콘 경로 앞머리(`Icon` 과 같다)
+ * @param {boolean} [static] 누를 수 없는 글자 칸으로 그린다
  */
-export default function StepNavButton({ direction, baseUrl = '', className = '', children, ...rest }) {
+export default function StepNavButton({
+  direction,
+  baseUrl = '',
+  className = '',
+  static: isStatic = false,
+  children,
+  ...rest
+}) {
   const classes = [
     'dp-step-nav-btn',
     direction ? '' : 'dp-step-nav-btn--text',
+    isStatic ? 'dp-step-nav-btn--static' : '',
     className,
   ]
     .filter(Boolean)
     .join(' ');
+  if (isStatic) {
+    return (
+      <span className={classes} {...rest}>
+        {children}
+      </span>
+    );
+  }
   return (
     <Button className={classes} {...rest}>
       {direction ? (

@@ -38,3 +38,13 @@
 .dp-step-nav-btn--text {
   padding: 8px 14px;
 }
+
+/* 누를 수 없는 가운데 글자 칸 (PW-1186) — 「오늘」 칸 모양 그대로, 누르는 티만 뺀다 */
+.dp-step-nav-btn--static {
+  cursor: default;
+  white-space: nowrap;
+}
+
+.dp-step-nav-btn.dp-step-nav-btn--static:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
