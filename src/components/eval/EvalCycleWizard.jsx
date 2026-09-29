@@ -1738,6 +1738,12 @@ export default function EvalCycleWizard({
    * (policy §5.10.1). 안 넘기면 종전대로 'ready' 다.
    */
   savedMessagesStatus = 'ready',
+  /**
+   * PW-975 — 관리자 알림 설정에서 «미완료 평가 리마인더»가 꺼져 회사 전체 리마인더가 멈춰
+   * 있다. 켜면 단계별 리마인더 칸 위에 `L.reminderOrgOff` 안내를 띄운다. 사이클의 리마인더
+   * 설정은 그대로 두고 보여 주기만 한다 — 관리자가 다시 켜면 이 설정대로 나간다.
+   */
+  remindersOffOrgWide = false,
   /** 조회 실패 시 「다시 시도」. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadSavedMessages,
   /**
@@ -6215,6 +6221,11 @@ export default function EvalCycleWizard({
                       )}
                       {enabled && (
                         <div className="evc-rm-block" data-testid={`evc-rm-block-${ph.id}`}>
+                          {remindersOffOrgWide && (
+                            <p className="evx-notice is-warn" data-testid={`evc-rm-orgoff-${ph.id}`}>
+                              {L.reminderOrgOff}
+                            </p>
+                          )}
                           <div className="evc-rm-head">
                             <span className="evc-field-label"><BellIcon size={13} /> {L.reminderLabel}</span>
                             <span className="evc-rm-count">

@@ -438,6 +438,8 @@ const DEFAULT_LABELS = {
   // [PW-1054] 서버가 24시간 안에 받은 사람을 건너뛰었을 때 — 보낸 수와 건너뛴 수를 함께 적는다.
   remindToastSkipped: '리마인드를 발송했습니다 ({n}명) · 24시간 안에 이미 받은 {skipped}명은 건너뛰었습니다',
   remindErrorToast: '리마인드 발송에 실패했습니다. 다시 시도해주세요.',
+  // [PW-975] 관리자가 알림 설정에서 «미완료 평가 리마인더»를 꺼 두어 서버가 보내지 않았을 때.
+  remindOrgOffToast: '관리자 알림 설정에서 미완료 평가 리마인더가 꺼져 있어 보내지 않았습니다.',
   remindGuardNote: '동일 대상 24시간 내 재발송 시 확인 안내',
   remindClose: '닫기',
   remindSend: '선택 {n}명에게 리마인드 발송',
@@ -1297,6 +1299,8 @@ export default function EvalCycleSummaryCanvas({
   // [PW-1054] { sent, skipped } — 토스트는 «고른 수»가 아니라 서버가 실제로 보낸 수를 적는다.
   const [remindToast, setRemindToast] = useState(null);
   const [remindError, setRemindError] = useState(false); // TC-202 발송 실패 토스트
+  // [PW-975] 서버가 «회사 전체에서 꺼져 있어» 보내지 않았다고 돌려줬다 — 0명 발송이 아니다.
+  const [remindBlocked, setRemindBlocked] = useState(false);
   // 모달 오픈 시각(재발송 가드 기준) — 이벤트 핸들러에서 캡처(렌더 중 Date.now 회피).
   const [remindOpenedAt, setRemindOpenedAt] = useState(0);
   const pendingTypeLabel = (t) =>
@@ -1326,12 +1330,20 @@ export default function EvalCycleSummaryCanvas({
     if (ids.length === 0 || !onSendReminders) return;
     setRemindBusy(true);
     setRemindError(false);
+    setRemindBlocked(false);
+    setRemindToast(null);
     try {
       /* [PW-1054] 서버는 24시간 안에 받은 사람을 조용히 건너뛰고 따로 센다. 결과를 돌려주면
          그 값을 쓴다 — 고른 수로 「N명에게 발송」이라 하면 실제보다 많이 보낸 것처럼 보이고,
          건너뛴 사람까지 「발송됨」으로 잠기면 이번에 안 간 사람을 다시 고를 수도 없다.
          결과가 없는 소비 측은 종전대로 고른 사람 전부를 보낸 것으로 본다. */
       const result = await onSendReminders(ids);
+      /* [PW-975] 아무에게도 안 갔다 — 「0명에게 발송」으로 적지 않고, 고른 사람도 잠그지 않는다
+         (관리자가 다시 켜면 그대로 다시 보낼 수 있게 선택을 둔다). */
+      if (result?.blockedReason) {
+        setRemindBlocked(true);
+        return;
+      }
       const sentIds = Array.isArray(result?.memberIds) ? result.memberIds : ids;
       const sentCount = typeof result?.sent === 'number' ? result.sent : sentIds.length;
       const skippedCount = typeof result?.skipped === 'number' ? result.skipped : 0;
@@ -4720,6 +4732,15 @@ export default function EvalCycleSummaryCanvas({
                 {remindToast.skipped > 0
                   ? fmt(L.remindToastSkipped, { n: remindToast.sent, skipped: remindToast.skipped })
                   : fmt(L.remindToast, { n: remindToast.sent })}
+              </div>
+            )}
+            {remindBlocked && (
+              <div
+                className="evs-remind-toast is-error"
+                role="alert"
+                data-testid="evs-remind-blocked"
+              >
+                {L.remindOrgOffToast}
               </div>
             )}
             {remindError && (

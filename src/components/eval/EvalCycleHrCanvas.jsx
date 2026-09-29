@@ -1116,6 +1116,8 @@ export default function EvalCycleHrCanvas({
   /** PW-435 ⑥ — 저장 문구 조회 상태('loading'|'ready'|'error')와 재시도.
       「저장된 게 없다」와 「못 불러왔다」를 갈라 그리기 위한 값이다. */
   savedMessagesStatus = 'ready',
+  /** PW-975 — 회사 전체 «미완료 평가 리마인더»가 꺼져 있다. 위자드로 그대로 넘긴다. */
+  remindersOffOrgWide = false,
   onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
@@ -1595,6 +1597,7 @@ export default function EvalCycleHrCanvas({
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}
           savedMessagesStatus={savedMessagesStatus}
+          remindersOffOrgWide={remindersOffOrgWide}
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
@@ -1637,6 +1640,7 @@ export default function EvalCycleHrCanvas({
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}
           savedMessagesStatus={savedMessagesStatus}
+          remindersOffOrgWide={remindersOffOrgWide}
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
