@@ -9,6 +9,8 @@ import Icon from '../shared/Icon.jsx';
  * 모든 데이터/라벨은 caller 주입. 내부 fallback 없음.
  *
  * meeting.participants: "David · Kurt" 문자열 또는 배열 둘 다 지원.
+ * notice: 카드 위에 그릴 안내(선택). 「직접 녹음」을 막았을 때 caller 가 막은 이유를 넣는다
+ *   (예: 녹음 시간 소진 `RecordingLimitNotice`). 없으면 아무것도 그리지 않는다.
  */
 function normalizeParticipants(participants) {
   if (!participants) return [];
@@ -16,7 +18,7 @@ function normalizeParticipants(participants) {
   return String(participants).split(/[·,]/).map((s) => s.trim()).filter(Boolean);
 }
 
-export default function RecordMethodModal({ meeting, baseUrl = '', labels, onSelect, onClose }) {
+export default function RecordMethodModal({ meeting, baseUrl = '', labels, notice = null, onSelect, onClose }) {
   const participants = normalizeParticipants(meeting?.participants);
   const subtitle = `${meeting.title} · ${meeting.time} ${labels.subtitleSuffix}`;
 
@@ -42,6 +44,8 @@ export default function RecordMethodModal({ meeting, baseUrl = '', labels, onSel
           ))}
         </div>
       )}
+
+      {notice}
 
       <div className="mtg-method-cards">
         <button type="button" className="mtg-method-card" onClick={() => onSelect('record')}>
