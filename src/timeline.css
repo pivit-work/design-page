@@ -242,38 +242,7 @@
 }
 
 /* Date nav (chevron + today) — Figma .frameParent (today: .buttons7 padding 8 14) */
-.tl-date-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Chevron buttons — Figma .buttons6: square padding 8.
-   "오늘" text uses text-secondary (Figma image #30) */
-.tl-nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.03);
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.tl-nav-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-/* "오늘" button — Figma .buttons7: padding 8 14 */
-.tl-nav-today {
-  padding: 8px 14px;
-}
+/* ‹ 오늘 › 는 공용 `StepNav` 로 옮겼다 (PW-1185, src/step-nav.css) */
 
 /* Filter button — Figma .buttons9: square padding 8 */
 .tl-filter-btn {

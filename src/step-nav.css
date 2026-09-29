@@ -1,0 +1,40 @@
+/*
+ * 한 칸씩 오가는 `‹ … ›` 줄 `StepNav`·`StepNavButton` (PW-1185) — `components/shared/StepNav.jsx`.
+ *
+ * 팀 타임라인 머리 줄의 `‹ 오늘 ›`(옛 `.tl-date-nav`·`.tl-nav-btn`·`.tl-nav-today`)에서
+ * 옮긴 값 그대로다. Figma .buttons6(화살표, 사방 8) · .buttons7(「오늘」, 8 14).
+ */
+.dp-step-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dp-step-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dp-step-nav-btn:not(:disabled):hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dp-step-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dp-step-nav-btn--text {
+  padding: 8px 14px;
+}

@@ -14,6 +14,7 @@ import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
 import Tabs from '../shared/Tabs.jsx';
+import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 
 const TIMELINE_TAB_ITEMS = [
   { value: 'gantt', label: '간트' },
@@ -522,15 +523,11 @@ export default function TimelineCanvas({
           <span>{formatKoreanDate(selectedDate)}</span>
         </button>
 
-        <div className="tl-date-nav">
-          <button type="button" className="tl-nav-btn" aria-label="이전" onClick={goPrevDate}>
-            <Icon src="/icons/chevron-left.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
-          </button>
-          <button type="button" className="tl-nav-btn tl-nav-today" onClick={goToday}>오늘</button>
-          <button type="button" className="tl-nav-btn" aria-label="다음" onClick={goNextDate}>
-            <Icon src="/icons/chevron-right.svg" size={20} color="var(--colors-foreground-fgPrimary)" baseUrl={baseUrl} />
-          </button>
-        </div>
+        <StepNav>
+          <StepNavButton direction="prev" aria-label="이전" onClick={goPrevDate} baseUrl={baseUrl} />
+          <StepNavButton onClick={goToday}>오늘</StepNavButton>
+          <StepNavButton direction="next" aria-label="다음" onClick={goNextDate} baseUrl={baseUrl} />
+        </StepNav>
 
         {!isGantt && (
           <CustomSelect
