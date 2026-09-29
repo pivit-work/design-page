@@ -24,9 +24,11 @@ const CATEGORY_ICONS = {
  *
  * Props:
  *   baseUrl      정적 에셋 base path (아이콘). 생략하면 사이트 루트
- *   items        [{ id, category, title, body, timeLabel, unread, actionable }]
+ *   items        [{ id, category, title, body, timeLabel, unread, actionable, actionLabel? }]
  *                category ∈ eval | feedback | oneonone | okr | snippet | system
  *                actionable=false 면 바로가기 버튼을 그리지 않는다(연결된 화면 없음)
+ *                actionLabel 이 있으면 분류 이름 대신 그 버튼 이름을 쓴다 — 한 분류 안에 가는 곳이
+ *                다른 알림이 섞일 때(1on1 탭의 회의록 알림 → 「회의 보기」) (PW-975)
  *   loading      true 면 목록·빈 상태를 그리지 않는다
  *   filters      [{ value, label }] — 'all' 은 전체
  *   activeFilter 현재 탭 value
@@ -166,7 +168,7 @@ export default function NotificationCenterCanvas({
                         }}
                         data-testid="notif-action"
                       >
-                        {labels.action?.[category] ?? labels.action?.system}
+                        {n.actionLabel ?? labels.action?.[category] ?? labels.action?.system}
                       </button>
                     )}
                   </div>
