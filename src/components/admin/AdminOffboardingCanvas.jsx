@@ -7,7 +7,7 @@ import DateInput from '../shared/DateInput.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
-import { ArrowLeftGlyph } from '../shared/lineIcons.jsx';
+import { ArrowLeftGlyph, CalendarGlyph } from '../shared/lineIcons.jsx';
 import Card from './Card.jsx';
 import { IconAlert } from './employeesIcons.jsx';
 import {
@@ -308,38 +308,46 @@ export default function AdminOffboardingCanvas({
             </div>
           </FormField>
           <FormField
-            className="admin-offb-field"
+            className="dp-field admin-offb-field"
             label={labels.resignationDate}
             required
             error={resignationDate ? undefined : labels.resignationDateRequired}
           >
-            <DateInput
-              value={resignationDate}
-              today={today}
-              disabled={running}
-              data-testid="offboarding-resignation-date"
-              onChange={(v) => {
-                setResignationDate(v);
-                if (!lastDayTouched && v) setLastDay(v);
-              }}
-            />
+            <span className="admin-offb-date">
+              <CalendarGlyph size={20} className="admin-offb-date-icon" />
+              <DateInput
+                className="admin-offb-date-input"
+                value={resignationDate}
+                today={today}
+                disabled={running}
+                data-testid="offboarding-resignation-date"
+                onChange={(v) => {
+                  setResignationDate(v);
+                  if (!lastDayTouched && v) setLastDay(v);
+                }}
+              />
+            </span>
           </FormField>
           <FormField
-            className="admin-offb-field"
+            className="dp-field admin-offb-field"
             label={labels.lastDay}
             error={lastDayAfter ? labels.lastDayAfterResignation : undefined}
             hint={labels.lastDayHint}
           >
-            <DateInput
-              value={lastDay}
-              today={today}
-              disabled={running}
-              data-testid="offboarding-last-day"
-              onChange={(v) => {
-                setLastDayTouched(true);
-                setLastDay(v);
-              }}
-            />
+            <span className="admin-offb-date">
+              <CalendarGlyph size={20} className="admin-offb-date-icon" />
+              <DateInput
+                className="admin-offb-date-input"
+                value={lastDay}
+                today={today}
+                disabled={running}
+                data-testid="offboarding-last-day"
+                onChange={(v) => {
+                  setLastDayTouched(true);
+                  setLastDay(v);
+                }}
+              />
+            </span>
           </FormField>
         </div>
       </Section>
