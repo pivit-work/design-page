@@ -438,6 +438,33 @@
   color: var(--text-tertiary);
 }
 
+/* 추천 팀원 (§5-5 · PW-1155) — hr_admin 은 추천 영역이 위에 붙으므로 목록 높이를 늘린다.
+   넘치면 이 목록 안에서만 스크롤한다(§5-3.8 과 같은 원칙). */
+.sq-add-list.has-suggest { max-height: 320px; }
+.sq-suggest {
+  border-bottom: 1px solid var(--border-secondary);
+  padding-bottom: 4px;
+}
+.sq-suggest-head {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sq-suggest-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+}
+.sq-suggest-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ── Composition (팀원 리소스 구성 — 스쿼드 100 기준) ── */
 .sq-comp-head {
   display: flex;

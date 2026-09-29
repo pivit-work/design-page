@@ -67,6 +67,7 @@ import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgcha
 
 import { todayIsoInZone } from '../shared/calendarDate.js';
 import LoadingState from '../shared/LoadingState.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 /**
  * 셀 툴팁의 마지막 줄 — 이 셀을 눌렀을 때 무엇을 할 수 있는지.
@@ -177,6 +178,22 @@ export default function SquadCanvas({
   onRequestCapacity,
   onRemoveMember,
   onSetLead,
+  /**
+   * 「추천 팀원」을 불러 달라는 요청 — `(squadId) => void` (§5-5 · PW-1155).
+   *
+   * **넘기면 추천 영역이 생긴다.** 추천은 `hr_admin` 에게만 보이므로(§5-5 결정 3) 호스트가
+   * `hr_admin` 일 때만 넘긴다 — ⭐리드·`manager` 가 같은 드롭다운을 열어도 영역이 없다.
+   * `[+ 팀원 추가]` 를 **연 순간** 한 번 부른다(절대규칙 5). 리드가 없는 스쿼드는 부르지 않고
+   * 안내만 보인다. 에러의 [다시 시도] 도 이 함수를 다시 부른다.
+   */
+  onLoadMemberSuggestions,
+  /**
+   * 지금 열린 드롭다운의 추천 — `{ squadId, status, items }`.
+   * `status`: `loading` · `error` · `ok` · `lead_unlinked` (`no_lead` 는 캔버스가 스스로 판정).
+   * `items`: `[{ userId, name, epics, comments, repos, reviews }]` — 서버가 정렬·상한을 적용한 순서 그대로 그린다.
+   * 이미 이 스쿼드에 배정된 사람은 캔버스가 곧바로 뺀다(엣지 58).
+   */
+  memberSuggestions = null,
   onMemberClick,
   onSubTabChange,
   // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
@@ -264,6 +281,102 @@ export default function SquadCanvas({
     return map;
   }, [people]);
   const personOf = useCallback((id) => peopleById.get(id) || null, [peopleById]);
+
+  /** 팀원 추가 목록의 사람 아바타 — 검색 후보 행과 추천 행이 같은 모양을 쓴다(§5-5 · 새 부품 없음). */
+  const addItemAvatar = (n) => {
+    const fit = avatarLabelLayout(n.avatar || n.name.slice(0, 2), 24);
+    return (
+      <div
+        className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
+        style={{
+          fontSize: fit.fontPx,
+          ...(n.color
+            ? { background: `${n.color}24`, color: n.color }
+            : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+        }}
+      >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
+    );
+  };
+
+  /** `[+ 팀원 추가]` 를 연다 — 추천은 이 순간에 한 번 계산한다(§5-5 절대규칙 5). */
+  const openAddMember = (sq) => {
+    setAddTarget(sq.id);
+    setAddQuery('');
+    if (onLoadMemberSuggestions && leadOf(sq)) onLoadMemberSuggestions(sq.id);
+  };
+
+  /**
+   * 추천 팀원 영역 (§5-5 · §4 · §5-4) — pivit-specs `org-chart-app.jsx` 시안을 옮겼다.
+   * 추천 행은 아래 검색 후보 행과 같은 행, 안내는 빈 상태 캡션과 같은 규격이다.
+   * 행을 눌러도 드롭다운을 닫지 않는다 — 여러 명을 이어서 한 명씩 넣을 수 있게(§6).
+   */
+  /** 제목의 리드 이름 앞에 ⭐ 대신 리드 표시 아이콘을 붙인다 — 이모지 글자를 쓰지 않는다. */
+  const suggestTitle = (leadName) => {
+    const text = L('squad.suggest.titleWithLead', { lead: leadName });
+    const at = text.indexOf(leadName);
+    if (at < 0) return text;
+    return (
+      <>
+        {text.slice(0, at)}
+        <LeadStarIcon size={11} />
+        {text.slice(at)}
+      </>
+    );
+  };
+
+  const renderSuggestions = (sq) => {
+    if (!onLoadMemberSuggestions) return null;
+    const lead = leadOf(sq);
+    const mine = memberSuggestions && memberSuggestions.squadId === sq.id ? memberSuggestions : null;
+    const status = !lead ? 'no_lead' : (mine?.status || 'loading');
+    const assignedHere = new Set((sq.members || []).map((m) => m.userId));
+    const rows = status === 'ok'
+      ? (mine.items || []).filter((it) => !assignedHere.has(it.userId))
+      : [];
+    const notice = {
+      no_lead: L('squad.suggest.noLead'),
+      lead_unlinked: L('squad.suggest.leadUnlinked'),
+      ok: rows.length === 0 ? L('squad.suggest.none') : null,
+    }[status];
+    return (
+      <div className="sq-suggest" data-testid={`squad-suggest-${sq.id}`}>
+        <div className="sq-suggest-head">{lead ? suggestTitle(nameOf(lead.userId)) : L('squad.suggest.title')}</div>
+        {status === 'loading' && (
+          <div className="sq-suggest-loading" aria-busy="true">
+            {[0, 1, 2].map((i) => <Skeleton key={i} height={24} />)}
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="sq-add-none sq-suggest-error" role="alert">
+            <span>{L('squad.suggest.error')}</span>
+            <button
+              type="button" className="sq-btn sq-btn-sm"
+              onClick={() => onLoadMemberSuggestions(sq.id)}
+            >{L('squad.suggest.retry')}</button>
+          </div>
+        )}
+        {rows.map((it) => {
+          const n = personOf(it.userId) || { id: it.userId, name: it.name };
+          return (
+            <div
+              key={it.userId} data-testid={`squad-suggest-row-${it.userId}`}
+              className="sq-add-item"
+              onClick={() => assign(sq.id, it.userId)}
+            >
+              {addItemAvatar(n)}
+              <div>
+                <span className="sq-add-name">{n.name}</span>{' '}
+                <span className="sq-add-meta">
+                  {L('squad.suggest.caption', { epics: it.epics, comments: it.comments, repos: it.repos, reviews: it.reviews })}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {notice && <div className="sq-add-none">{notice}</div>}
+      </div>
+    );
+  };
   const nameOf = useCallback(
     (id) => peopleById.get(id)?.name || L('squad.unknownMember'),
     [peopleById, L],
@@ -1018,27 +1131,15 @@ export default function SquadCanvas({
                                 onKeyDown={(e) => { if (e.key === 'Escape') { setAddTarget(null); setAddQuery(''); } }}
                                 placeholder={L('squad.card.searchPlaceholder')}
                               />
-                              <div className="sq-add-list">
+                              <div className={`sq-add-list${onLoadMemberSuggestions ? ' has-suggest' : ''}`}>
+                                {renderSuggestions(sq)}
                                 {candidates.map((n) => (
                                   <div
                                     key={n.id} data-testid={`squad-add-candidate-${n.id}`}
                                     className="sq-add-item"
                                     onClick={() => { assign(sq.id, n.id); setAddTarget(null); setAddQuery(''); }}
                                   >
-                                    {(() => {
-                                      const fit = avatarLabelLayout(n.avatar || n.name.slice(0, 2), 24);
-                                      return (
-                                        <div
-                                          className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
-                                          style={{
-                                            fontSize: fit.fontPx,
-                                            ...(n.color
-                                              ? { background: `${n.color}24`, color: n.color }
-                                              : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
-                                          }}
-                                        >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
-                                      );
-                                    })()}
+                                    {addItemAvatar(n)}
                                     <div>
                                       <span className="sq-add-name">{n.name}</span>{' '}
                                       <span className="sq-add-meta">{n.title} · {n.team}</span>
@@ -1058,7 +1159,7 @@ export default function SquadCanvas({
                             <button
                               type="button" data-testid={`squad-add-member-${sq.id}`}
                               className="sq-btn sq-btn-sm sq-btn-dashed"
-                              onClick={() => { setAddTarget(sq.id); setAddQuery(''); }}
+                              onClick={() => openAddMember(sq)}
                             >
                               <PlusIcon size={12} /> {L('squad.card.addMember')}
                             </button>
