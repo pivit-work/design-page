@@ -40,6 +40,7 @@
     "./styles/status-badge.css": "./src/status-badge.css",
     "./styles/button.css": "./src/button.css",
     "./styles/pagination.css": "./src/pagination.css",
+    "./styles/step-nav.css": "./src/step-nav.css",
     "./styles/switch.css": "./src/switch.css",
     "./styles/tooltip.css": "./src/tooltip.css",
     "./styles/loading.css": "./src/loading.css",

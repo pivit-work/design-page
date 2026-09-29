@@ -21,6 +21,8 @@ export { default as Tooltip } from './shared/Tooltip.jsx';
 export { TOOLTIP_DELAY } from './shared/tooltipGroup.js';
 // 페이지 넘김·켜기/끄기 스위치·불러오는 동안 보이는 것 (PW-1010). 스타일은 index.css 가 끌어온다
 export { default as Pagination } from './shared/Pagination.jsx';
+// 한 칸씩 오가는 ‹ … › 줄 — 팀 타임라인 「‹ 오늘 ›」·내 리소스 「‹ 달 ›」 (PW-1185)
+export { default as StepNavButton, StepNav } from './shared/StepNav.jsx';
 export { default as Switch } from './shared/Switch.jsx';
 export { default as Spinner } from './shared/Spinner.jsx';
 export { default as Skeleton, SkeletonList } from './shared/Skeleton.jsx';
