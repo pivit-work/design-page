@@ -147,7 +147,8 @@ const DEFAULT_SUGGESTED_TAGS = [
 //
 //   노란 칸의 「확인」을 누르면 초록이 된다. 노란 칸의 글을 고쳐도 노란 그대로이고, 글을 다 지우면
 //   표식이 사라진다. 「AI 요약 생성」 결과도 노란으로 시작한다. 추천 태그를 눌러 넣는 것은 색을
-//   바꾸지 않는다. 노란 칸이 남은 채 등록(onSubmit)하면 등록하지 않고 그 칸 이름을 알린다.
+//   바꾸지 않는다. 노란 칸이 남은 채 등록(onSubmit)하거나 창을 닫으려 하면(✕·Esc·바깥) 그러지 않고
+//   그 칸 이름을 알리며 첫 노란 칸으로 옮긴다.
 //   표식은 작성 중에만 있다 — onDraftChange·onSubmit 의 두 번째 정보 `aiMarks`
 //   ({[칸]: 'unconfirmed' | 'confirmed'}) 로 호스트에 알린다.
 //
@@ -317,6 +318,17 @@ export default function SnippetModal({
   }, [onAiDraft, draftLoading, aiMarks, sectionTexts, summary, tags, sectionMaxLength]);
 
   const confirmMark = (key) => setAiMarks((prev) => ({ ...prev, [key]: 'confirmed' }));
+
+  // 노란(확인 안 한) 칸이 남으면 창을 닫지 않는다 — 닫기(✕)·Esc·바깥 누르기 모두 (PW-1154 커트 결정 2026-09-29).
+  // 자동 저장 화면이라 「등록」 대신 닫기에서 막는다. 호스트는 노란 칸의 글을 저장하지 않는다.
+  const requestClose = () => {
+    if (unconfirmedKeys.length > 0) {
+      setBlocked(true);
+      focusField(unconfirmedKeys[0]);
+      return;
+    }
+    onClose();
+  };
   const blockedShown = blocked && unconfirmedKeys.length > 0;
 
   const markClass = (key) =>
@@ -535,7 +547,7 @@ export default function SnippetModal({
   };
 
   return (
-    <ModalLayer onClose={onClose}>
+    <ModalLayer onClose={requestClose}>
       <form
         className={`tl-group-modal tl-snippet-modal ${scrolled ? 'is-scrolled' : ''}`}
         role="dialog"
@@ -552,7 +564,7 @@ export default function SnippetModal({
             type="button"
             className="tl-group-modal-close"
             aria-label="닫기"
-            onClick={onClose}
+            onClick={requestClose}
           >
             <CloseGlyph size={24} />
           </button>
