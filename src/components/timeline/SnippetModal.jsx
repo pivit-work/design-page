@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import Icon from '../shared/Icon.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
@@ -628,13 +629,18 @@ export default function SnippetModal({
                     disabled={draftLoading}
                     aria-busy={draftLoading || undefined}
                   >
-                    <img
-                      src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
-                      alt=""
-                      width="14"
-                      height="14"
-                      aria-hidden="true"
-                    />
+                    {/* 기다리는 동안 반짝이 자리에 공용 도는 표시 — 오늘 활동을 바로 가져오느라 길어질 수 있다 (PW-1191) */}
+                    {draftLoading ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <img
+                        src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
+                        alt=""
+                        width="14"
+                        height="14"
+                        aria-hidden="true"
+                      />
+                    )}
                     <span>{draftLoading ? L.filling : L.fill}</span>
                   </button>
                 </div>
