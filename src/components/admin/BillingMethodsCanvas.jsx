@@ -107,9 +107,14 @@ function SkeletonCard() {
   );
 }
 
+// 결제사가 유효기간을 안 알려 주는 카드(토스 자동결제 등록)는 expMonth 가 비거나 0 이다 —
+// 그때는 유효기간 줄을 그리지 않고, 만료로도 보지 않는다.
+const hasExp = (card) =>
+  card.expYear != null && Number.isInteger(card.expMonth) && card.expMonth >= 1 && card.expMonth <= 12;
+
 const isExpired = (card) => {
   if (card.status === 'expired') return true;
-  if (card.expYear == null || card.expMonth == null) return false;
+  if (!hasExp(card)) return false;
   const now = new Date();
   const expDate = new Date(card.expYear + 2000, card.expMonth - 1, 1);
   return expDate < new Date(now.getFullYear(), now.getMonth(), 1);
@@ -229,15 +234,17 @@ export default function BillingMethodsCanvas({
                         {card.isDefault && <Badge color={T.accent} bg="#EEF2FF">{labels.defaultBadge}</Badge>}
                         {expired && <Badge color={T.amber} bg={T.amberBg}>{labels.expiredBadge}</Badge>}
                       </div>
-                      {/* 유효기간 */}
+                      {/* 유효기간 — 모르면 줄째 생략 (만료 안내만 있으면 그것만) */}
+                      {(hasExp(card) || expired) && (
                       <div style={{ fontSize: 13, color: T.sub }}>
-                        {labels.expLabel(`${String(card.expMonth).padStart(2, '0')}/${expYear2(card.expYear)}`)}
+                        {hasExp(card) && labels.expLabel(`${String(card.expMonth).padStart(2, '0')}/${expYear2(card.expYear)}`)}
                         {expired && (
                           <span style={{ fontSize: 12, color: T.amber, marginLeft: 10 }}>
                             {labels.expiredHint}
                           </span>
                         )}
                       </div>
+                      )}
                     </div>
 
                     {/* 액션 버튼 */}
