@@ -126,6 +126,9 @@
    margin:auto 0 은 justify-content:center 대신이다(넘치면 0 으로 접혀 위가 잘리지 않는다). */
 .onb-content { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; width: 100%; padding: 40px 32px; }
 .onb-column { width: 100%; max-width: 480px; margin: auto 0; }
+/* 넓은 표를 보여 주는 단계(PW-1233) — 왼쪽 안내 패널 옆 남은 폭. min-width:0 이라야 표가
+   제 폭(수천 px)으로 기둥을 밀어 페이지를 가로로 넘기지 않고 표 틀 안에서 가로 스크롤된다. */
+.onb-column.is-wide { max-width: 1440px; min-width: 0; }
 
 /* 단계 카드 (시안 Step card) */
 .onb-card {

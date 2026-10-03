@@ -124,11 +124,20 @@ export function OnboardingTopBar({ progress, backLabel, onBack, scrolled = false
   );
 }
 
-/** 내용 칸 + 가운데 480px 기둥. 기둥 안에 단계 카드를 둔다. */
-export function OnboardingContent({ children, before }) {
+/**
+ * 내용 칸 + 가운데 480px 기둥. 기둥 안에 단계 카드를 둔다.
+ *
+ * `wide` 면 기둥이 남은 폭을 쓴다(최대 1440px) — 넓은 표를 보여 주는 동안만 켠다
+ * (「구성원 초대」 CSV 미리보기, PW-1233). 480px 기둥에서는 65칸 표의 두 칸만 보였다.
+ */
+export function OnboardingContent({ children, before, wide = false }) {
   return (
     <div className="onb-content" data-testid="onboarding-content-area">
-      <div className="onb-column" data-testid="onboarding-step-content">
+      <div
+        className={`onb-column${wide ? ' is-wide' : ''}`}
+        data-testid="onboarding-step-content"
+        data-wide={wide ? 'true' : undefined}
+      >
         {before}
         {children}
       </div>
