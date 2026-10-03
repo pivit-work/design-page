@@ -78,7 +78,10 @@ export default function InviteCsvStagingTable({
   }
   const statusPinned = left + STATUS_WIDTH <= budget;
   const statusLeft = statusPinned ? left : undefined;
-  const rest = columns.filter((c) => !sticky.includes(c));
+  /* 역할은 상태 바로 뒤 — 가로로 밀지 않아도 누구를 어떤 권한으로 초대하는지 보이게(PW-1233).
+     표에서만 당긴다. 양식(샘플 CSV)의 칸 순서는 `inviteCsvColumns()` 그대로다. */
+  const unpinned = columns.filter((c) => !sticky.includes(c));
+  const rest = [...unpinned.filter((c) => c.kind === 'role'), ...unpinned.filter((c) => c.kind !== 'role')];
   const minWidth = columns.reduce((a, c) => a + (c.width || 100), STATUS_WIDTH);
 
   const listIdOf = (option) => `invite-csv-opt-${option}`;
