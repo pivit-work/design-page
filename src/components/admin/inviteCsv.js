@@ -415,6 +415,11 @@ export function parseCsv(text) {
  * 템플릿 예시 줄 — 파일만 보고 무엇을 넣어야 하는지 알 수 있어야 한다(기획서 탭 4 ·
  * PW-721 발단이 「설명이 하나도 없다」였다). 🔒 연봉 칸은 비운다 — 예시 값이 실제 급여처럼
  * 읽히지 않게.
+ *
+ * 🔴 회사 목록에서 고르는 칸은 **새 회사의 기본 목록 안의 값**만 쓴다 (PW-1270). 새 회사가
+ * 양식을 고치지 않고 올리면 예시 줄부터 「등록되지 않은 값」으로 막혔다. 기본 목록이 없는
+ * 칸(직렬·직무)과 회사에 그 사람·조직이 있어야 하는 칸(상급자·조직경로)은 비운다. 조직장 칸도
+ * 비운다 — 조직경로와 같은 개수로 적어야 해서, 조직경로가 비면 혼자 막힌다.
  */
 const TEMPLATE_SAMPLE = {
   email: 'hong@example.com',
@@ -434,18 +439,13 @@ const TEMPLATE_SAMPLE = {
   emergencyContactPhone: '010-9876-5432',
   emergencyContactRelation: '부모',
   jobFamily: '개발',
-  jobLadder: '백엔드',
-  jobDuty: '서버 개발',
-  jobLevel: '선임',
-  jobRank: '책임',
+  jobLevel: 'Senior',
+  jobRank: '대리',
   jobPosition: '팀원',
-  orgPath: '프로덕트본부 > 플랫폼팀',
-  managerEmail: 'lead@example.com',
-  leader: 'N',
   employmentType: '정규직',
   ftePercent: '100',
   hireDate: '2026-10-01',
-  workCountry: 'KR',
+  workCountry: '대한민국',
   workLocation: '서울',
   certifications: '정보처리기사',
 };
