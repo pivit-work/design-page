@@ -334,6 +334,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrTooManyItems: '{column} 칸은 {max}개까지 적을 수 있어요',
   csvErrItemTooLong: '{column} 칸의 값 하나는 {max}자까지 적을 수 있어요',
   csvErrSquadUnknown: "스쿼드 '{value}'를 찾을 수 없어요",
+  csvErrEmployeeCodeTaken: "사번 '{value}'는 이미 다른 구성원이 쓰고 있어요",
   csvNoteManagerIgnored: '조직장이 상급자가 됩니다 — 적은 상급자는 쓰지 않습니다',
 };
 
@@ -702,7 +703,7 @@ export function buildInviteCsvContext(rows, {
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
   pendingEmails = [], headTeamIds = [], labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
-  blockedEmploymentStatuses = [],
+  blockedEmploymentStatuses = [], employeeCodeOwners = null,
 } = {}) {
   const l = withDefaults(labels);
   const index = buildOrgPathIndex(orgTree);
@@ -729,6 +730,12 @@ export function buildInviteCsvContext(rows, {
     nameMaxLength,
     fieldLimits: fieldLimits || {},
     blockedEmploymentStatuses: new Set(blockedEmploymentStatuses || []),
+    // 사번 → 그 사번을 가진 사람의 이메일. 못 받았으면 `null`(서버가 판정한다).
+    employeeCodeOwner: employeeCodeOwners
+      ? new Map(employeeCodeOwners
+        .filter((o) => normalize(o?.code))
+        .map((o) => [fold(o.code), normEmail(o.email)]))
+      : null,
     lookupPath: resolveOrgPath || ((raw) => lookupOrgPath(index, raw)),
   };
   // 파일 안에서 조직장을 예약한 조직도 「조직장이 있는 조직」으로 본다 — 그 사람이 가입하면
@@ -911,6 +918,13 @@ export function inviteCsvIssues(row, ctx) {
     for (const s of splitList(v.squad)) {
       if (!ctx.squadNames.has(fold(s))) add('squad', fmtCsv(l.csvErrSquadUnknown, { value: s }));
     }
+  }
+
+  // 사번은 회사 안에서 한 사람만 쓴다 — 같은 사람(같은 이메일)이 이미 그 사번을 가졌으면 겹친 게 아니다(서버와 같다).
+  const code = normalize(v.employeeCode);
+  if (code && ctx.employeeCodeOwner) {
+    const owner = ctx.employeeCodeOwner.get(fold(code));
+    if (owner !== undefined && owner !== email) add('employeeCode', fmtCsv(l.csvErrEmployeeCodeTaken, { value: code }));
   }
   return issues;
 }
