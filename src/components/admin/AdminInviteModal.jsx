@@ -310,6 +310,8 @@ function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }
   );
 }
 
+const DEFAULT_MODES = ['direct', 'csv'];
+
 export default function AdminInviteModal({
   open = false,
   onClose,
@@ -371,6 +373,22 @@ export default function AdminInviteModal({
    * 이 이메일의 줄은 좌석 부족 판정에서 세지 않는다(서버와 같은 셈).
    */
   seatExemptEmails = [],
+  /*
+    ── 다른 화면이 이 창을 빌려 쓸 때 (PW-1233 · 온보딩 「구성원 초대」의 CSV) ──
+    안 넘기면 어드민 창 그대로다.
+  */
+  /** 보여 줄 탭 — `['csv']` 처럼 하나만 주면 탭 줄을 그리지 않고 그 탭으로 연다. */
+  modes = DEFAULT_MODES,
+  /** 창을 열 때 바로 읽을 CSV 파일 — 다른 화면에서 이미 고른 파일을 이어받는다. */
+  initialCsvFile = null,
+  /** CSV 한 번에 받는 줄 수 상한. */
+  csvMaxRows = INVITE_CSV_MAX_ROWS,
+  /**
+   * `(csvRows, fieldOptions) => { fieldOptions, notices? }` — CSV 판정·칸 선택지에 쓸 값을
+   * 호출부가 고친다(예: 온보딩은 목록에 없는 직급·직책을 「새로 추가될 값」으로 받는다, PW-1235).
+   * `notices` 는 표 위에 안내로 보인다. 안 넘기면 `fieldOptions` 그대로.
+   */
+  prepareCsvOptions = null,
   labels: providedLabels,
 }) {
   const labels = useMemo(
@@ -384,7 +402,8 @@ export default function AdminInviteModal({
   /* 모드 2종(§1). CSV 행은 **직접 입력 행과 따로** 들고 있다 — 탭을 옮겼다고 반대
      탭의 입력이 사라지면, 500행을 올려 두고 직접 입력을 확인하러 간 순간 파일을
      다시 올려야 한다. 발송은 보고 있는 탭의 행만 보낸다. */
-  const [mode, setMode] = useState('direct');
+  const firstMode = modes[0] ?? 'direct';
+  const [mode, setMode] = useState(initialCsvFile ? 'csv' : firstMode);
   const [csvRows, setCsvRows] = useState([]);
   const [csvError, setCsvError] = useState('');
   const [csvNotices, setCsvNotices] = useState([]);
@@ -409,7 +428,7 @@ export default function AdminInviteModal({
     if (open) {
       setBulk(EMPTY_BULK);
       setRows([blankRow(EMPTY_BULK)]);
-      setMode('direct');
+      setMode(initialCsvFile ? 'csv' : firstMode);
       setCsvRows([]);
       setCsvError('');
       setCsvNotices([]);
@@ -490,8 +509,11 @@ export default function AdminInviteModal({
   /* CSV 탭 — 칸마다 사유를 만든다. 두 초대 화면이 같은 판정(`inviteCsvIssues`)을 쓴다(PW-902).
      파싱 때 굳혀 두지 않고 매 렌더 다시 만든다 — 표에서 고친 칸의 사유가 바로 사라져야 한다. */
   const csvColumns = inviteCsvColumns({ jobCategoryEnabled });
+  const csvPrepared = prepareCsvOptions ? prepareCsvOptions(csvRows, fieldOptions) : null;
+  const csvFieldOptions = csvPrepared?.fieldOptions ?? fieldOptions;
+  const csvPreparedNotices = csvPrepared?.notices ?? [];
   const csvCtx = buildInviteCsvContext(csvRows, {
-    orgTree: tree, fieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
+    orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
     squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses,
@@ -606,7 +628,7 @@ export default function AdminInviteModal({
       setCsvError(labels.csvErrRead);
       return;
     }
-    const res = parseInviteCsv(text, { labels, jobCategoryEnabled, maxRows: INVITE_CSV_MAX_ROWS });
+    const res = parseInviteCsv(text, { labels, jobCategoryEnabled, maxRows: csvMaxRows });
     if (!res.ok) {
       // 상한 초과·필수 열 누락은 **스테이징을 만들지 않는다.** 앞 500행만 남기는
       // 조용한 절단은 정책 §5 V10 이 금지한다.
@@ -623,6 +645,16 @@ export default function AdminInviteModal({
     setCsvRows(res.rows);
     setBanner('');
   };
+
+  /* 이어받은 파일은 창이 열릴 때 한 번 읽는다(PW-1233). `readCsvFile` 은 매 렌더 새로 만들어지므로
+     ref 로 들고, 열림·파일이 바뀔 때만 읽는다. */
+  const readCsvFileRef = useRef(readCsvFile);
+  useEffect(() => {
+    readCsvFileRef.current = readCsvFile;
+  });
+  useEffect(() => {
+    if (open && initialCsvFile) void readCsvFileRef.current(initialCsvFile);
+  }, [open, initialCsvFile]);
 
   /** 표의 칸 하나를 고친다 — 그 줄만 새 객체가 되어 그 줄만 다시 그린다. */
   const patchCsvCell = (rowKey, colKey, value) =>
@@ -860,12 +892,13 @@ export default function AdminInviteModal({
     >
         {/* 모드 탭(§2-1). 탭 전환은 반대 탭의 입력을 지우지 않는다 — 각자 행 목록을
             따로 들고 있고, 발송은 보고 있는 탭의 행만 보낸다. 발송 중에는 바꾸지 않는다. */}
+        {modes.length > 1 && (
         <div className="tl-tabs-row adm-tabs-row">
           <Tabs
             items={[
               { value: 'direct', label: labels.tabDirect, disabled: sending },
               { value: 'csv', label: labels.tabCsv, disabled: sending },
-            ]}
+            ].filter((it) => modes.includes(it.value))}
             value={mode}
             onChange={(id) => {
               setMode(id);
@@ -873,6 +906,7 @@ export default function AdminInviteModal({
             }}
           />
         </div>
+        )}
 
         {(seatShort || banner) && (
           <div className="admin-inv-banners">
@@ -959,7 +993,7 @@ export default function AdminInviteModal({
                     <IconUpload size={22} />
                     <span className="admin-inv-drop-title">{labels.csvDropHere}</span>
                     <span className="admin-inv-hint">
-                      {fmt(labels.csvLimits, { max: INVITE_CSV_MAX_ROWS })}
+                      {fmt(labels.csvLimits, { max: csvMaxRows })}
                     </span>
                   </label>
                   {csvError && (
@@ -987,6 +1021,11 @@ export default function AdminInviteModal({
                       <span>{n}</span>
                     </div>
                   ))}
+                  {csvPreparedNotices.map((n) => (
+                    <div key={n} className="admin-inv-banner" role="status" data-testid="admin-invite-csv-prepared-notice">
+                      <span>{n}</span>
+                    </div>
+                  ))}
 
                   {/* 미리보기 표 — 온보딩과 같은 부품이다(PW-902). 모든 칸을 그 자리에서 고친다. */}
                   <InviteCsvStagingTable
@@ -994,7 +1033,7 @@ export default function AdminInviteModal({
                     columns={csvColumns}
                     issuesByKey={csvIssuesByKey}
                     notesByKey={csvNotesByKey}
-                    fieldOptions={fieldOptions}
+                    fieldOptions={csvFieldOptions}
                     labels={labels}
                     disabled={sending}
                     onChangeCell={patchCsvCell}
@@ -1236,7 +1275,7 @@ export default function AdminInviteModal({
         <ConfirmModal
           testId="admin-invite-discard-confirm"
           title={labels.discardTitle}
-          body={fmt(labels.discardBody, { n: rows.length })}
+          body={fmt(labels.discardBody, { n: activeRows.length })}
           cancelLabel={labels.discardKeep}
           confirmLabel={labels.discardLeave}
           onCancel={() => setConfirmDiscard(false)}
