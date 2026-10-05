@@ -13,8 +13,11 @@
    · 선호 설정 단계의 칩만 시안이 전역 브랜드(P.color.brand)를 쓴다 → `.onb-chip`.
    ══════════════════════════════════════════════════════════════ */
 
+/* `.onb-scope` — 온보딩 화면 밖(앱 안의 창)에 온보딩 부품을 놓을 때 색·글꼴 토큰만 켠다.
+   틀(배경·높이·여백)은 없다. 예: 승인 대기 중 [신청 현황] 창의 ModalShell className (PW-1306). */
 .onb-shell,
-.onb-center {
+.onb-center,
+.onb-scope {
   --onb-brand: #2563eb;
   --onb-brand-dark: #1d4ed8;
   --onb-brand-light: var(--colors-background-bgBrandPrimary, #f1fffa);
@@ -46,7 +49,8 @@
 }
 
 .onb-shell *,
-.onb-center * { box-sizing: border-box; }
+.onb-center *,
+.onb-scope * { box-sizing: border-box; }
 
 /* ── 화면 틀 ─────────────────────────────────────────────
    height(minHeight 아님) — 전역 CSS 가 body 를 overflow:hidden + 100vh 로 묶어 두므로
