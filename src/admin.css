@@ -861,6 +861,9 @@
 /* 막힌 항목 (PW-1330) — 메뉴에 남기되 누를 수 없음을 보인다. 이유는 아래 줄 안내가 적는다. */
 .admin-emp-select-item:disabled { color: var(--text-disabled); cursor: not-allowed; background: transparent; }
 .admin-emp-select-item.is-selected { color: var(--text-brand-tertiary); }
+/* 일괄 처리의 파괴적인 항목(«등록 취소» · PW-1351) — 행 ⋯ 메뉴의 빨간 항목·구분선과 같은 값. */
+.admin-emp-select-item.is-danger { color: var(--text-error-primary); }
+.admin-emp-select-divider { height: 1px; background: var(--bg-secondary); margin: 4px 0; }
 .admin-emp-select-item-label { flex: 1; }
 .admin-emp-select-item-check { display: inline-flex; color: var(--text-brand-tertiary); }
 /* 매니저 후보의 조직장 병기 (PW-300). 조직 경로는 길어질 수 있어 이름과 같은 줄에
