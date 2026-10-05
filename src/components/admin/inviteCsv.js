@@ -606,6 +606,13 @@ export function blankInviteCsvRow(values = {}) {
 }
 
 /**
+ * 직원 관리 옛 양식의 조직 단계 칸 — 위에서부터 본부·부서·파트 (PW-1274 · PW-1298 커트 답 2026-10-05).
+ * 이 칸들이 오면 `>` 로 이어 조직경로로 읽는다. 직원 관리 CSV 가져오기(admin-spec.md 「헤더 별칭」)와
+ * 같은 읽기다. 조직경로 칸에 값이 있으면 그 줄은 조직경로를 따른다.
+ */
+export const INVITE_CSV_ORG_LEVEL_HEADERS = ['본부', '부서', '파트'];
+
+/**
  * CSV 텍스트 → 스테이징 행.
  *
  * @returns {{ ok: boolean, error?: string, rows?: Array, ignoredColumns?: string[],
@@ -632,12 +639,15 @@ export function parseInviteCsv(
 
   const byKey = new Map();
   const ignoredColumns = [];
+  const levelIdx = [];
   let jobCategoryIgnored = false;
   table[0].map(normalize).forEach((cell, idx) => {
     const folded = foldHeader(cell);
     if (!folded) return;
     const col = columns.find((c) => namesOf(c).includes(folded));
     if (col && !byKey.has(col.key)) { byKey.set(col.key, idx); return; }
+    const level = INVITE_CSV_ORG_LEVEL_HEADERS.indexOf(folded);
+    if (level >= 0 && levelIdx[level] === undefined) { levelIdx[level] = idx; return; }
     // 직종을 끈 조직의 직종 열 — 「모르는 열」이 아니라 «이 회사가 안 쓰는 항목»이라고
     // 따로 알린다(V12). 모르는 열로 뭉뚱그리면 어드민은 오타를 찾는다.
     if (!jobCategoryEnabled && namesOf(categoryColumn).includes(folded)) {
@@ -663,6 +673,14 @@ export function parseInviteCsv(
   const rows = body.map((cells) => {
     const values = {};
     for (const [key, idx] of byKey) values[key] = normalize(cells[idx]);
+    // 조직경로 칸이 비었을 때만 본부·부서·파트를 이어 읽는다 — 양식의 정식 칸은 조직경로다.
+    // 빈 단계는 건너뛴다(「본부 / (빈칸) / 파트」 → `본부 > 파트`). 회사에 없는 경로는
+    // 조직경로를 직접 적은 것과 같이 「찾을 수 없습니다」로 선다.
+    if (!values.orgPath && levelIdx.length > 0) {
+      const path = levelIdx.map((idx) => (idx === undefined ? '' : normalize(cells[idx])))
+        .filter(Boolean).join(' > ');
+      if (path) values.orgPath = path;
+    }
     return blankInviteCsvRow(values);
   });
 
