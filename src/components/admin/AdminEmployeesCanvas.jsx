@@ -178,6 +178,10 @@ const DEFAULT_LABELS = {
        admin-spec §3.1-C 「인원」). `{max}` 는 그 상한이다. */
     fieldsEditOverMax: '여러 칸 한 번에 고치기 ({max}명까지)',
     fieldsEditOverMaxHint: '한 번에 {max}명까지 고칠 수 있어요. 더 많으면 «구성원 정보 일괄 수정»(CSV)을 쓰세요',
+    /* 「초대 보내기」 (PW-1331) — 고른 사람 중 아직 가입하지 않은 사람에게만. `{count}` 는 그 수다. */
+    inviteSend: '초대 보내기 (가입 전 {count}명)',
+    inviteSendNone: '초대 보내기',
+    inviteSendNoneHint: '고른 사람 중 아직 가입하지 않은 구성원이 없어요',
     /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
        않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
        🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
@@ -394,8 +398,8 @@ const DEFAULT_LABELS = {
     composerJobTitle: '직무', composerJobLevel: '직급',
     composerTeam: '소속 팀', composerTeamNone: '선택 안 함 (가입 후 배정)',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
-    copyLink: '링크 복사', resend: '재발송', cancel: '취소', send: '발송',
-    statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨', statusUnsent: '미발송',
+    copyLink: '링크 복사', resend: '재발송', cancel: '취소',
+    statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
   },
@@ -1023,7 +1027,7 @@ const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
  */
 function InvitesTab({
   invites, labels, canEdit,
-  onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink, onSendUnsentInvite,
+  onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
 }) {
   // 처음엔 «대기중»만 (PW-1311) — 수락이 끝난 초대는 할 일이 없는데 «전체»로 열면
   // 대기 건 사이에 섞여, 정작 챙길 대기 건을 찾기 어려웠다. 다른 상태는 필터로 고른다.
@@ -1092,20 +1096,9 @@ function InvitesTab({
                 </div>
                 <div className="admin-emp-row-right">
                   <DpStatusBadge className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</DpStatusBadge>
-                  {/* [PW-1331] 한 번도 보내지 않은 대기 초대 — 가져오기로 만들어졌던 사람을 옮긴 것. 메일이 아직 안 나갔다 */}
-                  {inv.status === 'pending' && inv.unsent && (
-                    <DpStatusBadge className="admin-emp-invite-badge is-unsent">{labels.invites.statusUnsent}</DpStatusBadge>
-                  )}
                   <div className="admin-emp-actions-cell">
                     <div className="admin-emp-actions">
-                      {/* 미발송 — 첫 메일 [발송]·[취소]만. 링크는 보내기 전엔 받을 사람이 없어 복사를 두지 않는다 */}
-                      {inv.status === 'pending' && inv.unsent && (
-                        <>
-                          <Button className="admin-emp-btn is-primary is-sm" onClick={() => (onSendUnsentInvite ?? onResendInvite)(inv.id)}>{labels.invites.send}</Button>
-                          <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
-                        </>
-                      )}
-                      {inv.status === 'pending' && !inv.unsent && (
+                      {inv.status === 'pending' && (
                         <>
                           {onCopyInviteLink && (
                             <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
@@ -1364,6 +1357,17 @@ function isEmployedRow(m) {
   if (typeof m.employed === 'boolean') return m.employed;
   return m.isActive !== false && m.employmentStatus !== 'terminated';
 }
+
+/**
+ * 이 사람에게 초대를 (다시) 보낼 수 있나 — **판정은 호스트가 한다**(PW-1331). 호스트가 줄마다
+ * `inviteBlock` 을 넘긴다: `null` = 아직 가입 안 함(보낼 수 있다) · `'joined'` = 이미 가입 ·
+ * `'terminated'` = 퇴사. 값이 없으면(데모·옛 호스트) 종전대로 재직이면 「이미 구성원」으로 본다.
+ */
+function inviteBlockOf(m) {
+  if (m.inviteBlock !== undefined) return m.inviteBlock;
+  return isEmployedRow(m) ? 'joined' : null;
+}
+const emailsWhere = (members, pred) => members.filter(pred).map((m) => m.email).filter(Boolean);
 
 /**
  * 구성원 탭 목록에 세우는 사람인가 — 가입 대기(`pending`)는 탭 C(초대 관리) 소관이라
@@ -1799,6 +1803,7 @@ function EmployeesListView({
        · `bulkEditFieldsMax` — 그 창이 한 번에 받는 인원 상한(PW-1330). 넘게 고르면 항목이
          막히고 안내가 붙는다. 미주입이면 상한이 없다. */
   onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields, bulkEditFieldsMax,
+  onInviteMembers,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -2169,6 +2174,20 @@ function EmployeesListView({
       disabled: overMax,
       hint: overMax ? fill(labels.listBulk.fieldsEditOverMaxHint, { max: bulkEditFieldsMax }) : undefined,
       onPick: () => onBulkEditFields(selectedRows.map((m) => m.id)),
+    });
+  }
+  /* [PW-1331] 고른 사람 중 아직 가입하지 않은 사람에게만 초대를 보낸다 — 가입한 사람·퇴사자는
+     대상이 아니라 세지 않는다. 한 명도 없으면 항목을 막고 까닭을 단다. */
+  if (selectable && onInviteMembers) {
+    const invitable = selectedRows.filter((m) => m.inviteBlock === null);
+    bulkItems.push({
+      id: 'invite-send',
+      label: invitable.length > 0
+        ? fill(labels.listBulk.inviteSend, { count: invitable.length })
+        : labels.listBulk.inviteSendNone,
+      disabled: invitable.length === 0,
+      hint: invitable.length === 0 ? labels.listBulk.inviteSendNoneHint : undefined,
+      onPick: () => onInviteMembers(invitable.map((m) => m.id)),
     });
   }
   if (selectable && onBulkDeactivate) {
@@ -3935,6 +3954,8 @@ export default function AdminEmployeesCanvas({
      고칠 수 있는 항목·선택 적용 항목·직군/직렬 매핑은 화면의 규칙이라 디자인 부품이
      알 일이 아니다. 미주입이면 그 항목이 드롭다운에 없다. */
   onBulkEditFields,
+  /* 「초대 보내기」 (PW-1331) — `onInviteMembers(memberIds)`. 고른 사람 중 가입 전인 사람(`inviteBlock === null`)만 넘긴다. */
+  onInviteMembers,
   /* 그 창이 한 번에 받는 인원 상한 (PW-1330). 넘게 고르면 항목이 막히고 안내가 붙는다. */
   bulkEditFieldsMax,
   /**
@@ -4000,7 +4021,6 @@ export default function AdminEmployeesCanvas({
   onResendInvite,
   onCancelInvite,
   onCopyInviteLink,
-  onSendUnsentInvite,
   /* 기록 창 3종(HR 기록 · 연봉 이력 · 대표 확인)의 문구 (PW-576).
      폐기된 스프레드시트가 `sheetLabels` 로 받던 것과 **같은 묶음**이다 — 소비자는
      그때 넘기던 객체를 그대로 넘기면 된다. 창 셋이 시트에서 이 캔버스로 옮겨 왔다. */
@@ -4264,6 +4284,7 @@ export default function AdminEmployeesCanvas({
             onBulkDeactivate={canEdit ? onBulkDeactivate : undefined}
             /* 「여러 칸 한 번에 고치기」 (PW-901) — 고른 사람 id 만 넘긴다. */
             onBulkEditFields={canEdit ? onBulkEditFields : undefined}
+            onInviteMembers={canEdit ? onInviteMembers : undefined}
             bulkEditFieldsMax={bulkEditFieldsMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
@@ -4294,7 +4315,6 @@ export default function AdminEmployeesCanvas({
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
           onCopyInviteLink={onCopyInviteLink}
-          onSendUnsentInvite={onSendUnsentInvite}
         />
       )}
 
@@ -4376,10 +4396,10 @@ export default function AdminEmployeesCanvas({
           onClose={() => setInviteOpen(false)}
           onSend={onSendInvites}
           orgUnits={orgUnits}
-          existingEmails={members
-            .filter(isEmployedRow)
-            .map((m) => m.email)
-            .filter(Boolean)}
+          existingEmails={emailsWhere(members, (m) => inviteBlockOf(m) === 'joined')}
+          // [PW-1331] 가입 전 구성원은 «다시 보내기», 퇴사자는 막는다 — 호스트가 판정을 넘길 때만.
+          resendEmails={emailsWhere(members, (m) => m.inviteBlock === null)}
+          terminatedEmails={emailsWhere(members, (m) => m.inviteBlock === 'terminated')}
           // 상급자 칸이 찾는 명부는 종전 그대로(퇴사자만 뺀다) — 「이미 구성원」과 기준을
           // 나눈다. 비활성 계정을 상급자로 적을 수 있나는 이 카드가 정할 일이 아니다.
           supervisorEmails={members
