@@ -391,8 +391,8 @@ const DEFAULT_LABELS = {
     composerJobTitle: '직무', composerJobLevel: '직급',
     composerTeam: '소속 팀', composerTeamNone: '선택 안 함 (가입 후 배정)',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
-    copyLink: '링크 복사', resend: '재발송', cancel: '취소',
-    statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
+    copyLink: '링크 복사', resend: '재발송', cancel: '취소', send: '발송',
+    statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨', statusUnsent: '미발송',
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
   },
@@ -1020,7 +1020,7 @@ const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
  */
 function InvitesTab({
   invites, labels, canEdit,
-  onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
+  onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink, onSendUnsentInvite,
 }) {
   // 처음엔 «대기중»만 (PW-1311) — 수락이 끝난 초대는 할 일이 없는데 «전체»로 열면
   // 대기 건 사이에 섞여, 정작 챙길 대기 건을 찾기 어려웠다. 다른 상태는 필터로 고른다.
@@ -1089,9 +1089,20 @@ function InvitesTab({
                 </div>
                 <div className="admin-emp-row-right">
                   <DpStatusBadge className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</DpStatusBadge>
+                  {/* [PW-1331] 한 번도 보내지 않은 대기 초대 — 가져오기로 만들어졌던 사람을 옮긴 것. 메일이 아직 안 나갔다 */}
+                  {inv.status === 'pending' && inv.unsent && (
+                    <DpStatusBadge className="admin-emp-invite-badge is-unsent">{labels.invites.statusUnsent}</DpStatusBadge>
+                  )}
                   <div className="admin-emp-actions-cell">
                     <div className="admin-emp-actions">
-                      {inv.status === 'pending' && (
+                      {/* 미발송 — 첫 메일 [발송]·[취소]만. 링크는 보내기 전엔 받을 사람이 없어 복사를 두지 않는다 */}
+                      {inv.status === 'pending' && inv.unsent && (
+                        <>
+                          <Button className="admin-emp-btn is-primary is-sm" onClick={() => (onSendUnsentInvite ?? onResendInvite)(inv.id)}>{labels.invites.send}</Button>
+                          <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
+                        </>
+                      )}
+                      {inv.status === 'pending' && !inv.unsent && (
                         <>
                           {onCopyInviteLink && (
                             <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
@@ -3969,6 +3980,7 @@ export default function AdminEmployeesCanvas({
   onResendInvite,
   onCancelInvite,
   onCopyInviteLink,
+  onSendUnsentInvite,
   /* 기록 창 3종(HR 기록 · 연봉 이력 · 대표 확인)의 문구 (PW-576).
      폐기된 스프레드시트가 `sheetLabels` 로 받던 것과 **같은 묶음**이다 — 소비자는
      그때 넘기던 객체를 그대로 넘기면 된다. 창 셋이 시트에서 이 캔버스로 옮겨 왔다. */
@@ -4262,6 +4274,7 @@ export default function AdminEmployeesCanvas({
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
           onCopyInviteLink={onCopyInviteLink}
+          onSendUnsentInvite={onSendUnsentInvite}
         />
       )}
 
