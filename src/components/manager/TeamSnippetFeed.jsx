@@ -12,6 +12,8 @@ import Tabs from '../shared/Tabs.jsx';
  * byKr:   [{ id?, okr, tone, title, percent?, members, avatars, snippets:
  *   [{ id?, member, avatar, date, score, tone, text, flagged? }] }]
  *   `percent` 도 선택 — KR 이 아닌 묶음(예: 'KR 미연결' 버킷)에는 진척률이 없다.
+ *   `score` 는 `null` 일 수 있다 — 헬스를 고르지 않고 낸 스니핏이다. 그때는 `-` 를 색 없이
+ *   그린다(`tone` 도 비운다). 0 으로 그리면 빨간 칩이 붙어 위험한 사람으로 읽힌다 (PW-1213).
  *
  * `id` 는 선택이지만 **있으면 그것으로 리스트 key 를 잡는다.** 제목은 유일하지 않다 —
  * 다른 OKR 에 같은 이름의 KR 이 있으면(팀마다 같은 KR 을 두는 조직에서 흔하다) key 가
@@ -28,6 +30,11 @@ import Tabs from '../shared/Tabs.jsx';
  * emptyLabel: 걸러진 결과가 0건일 때 피드 안에 띄우는 문구(매니저 시안 「해당하는 스니핏이
  * 없습니다」). 안 넘기면 아무것도 그리지 않는다 — 조회 실패 중에는 「없다」고 말하면 안 된다.
  */
+function ScoreChip({ score, tone }) {
+  if (score == null) return <span className="mgr-ts-score">-</span>;
+  return <span className={`mgr-ts-score is-${tone}`}>{score}</span>;
+}
+
 export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '', emptyLabel, emptyTestId }) {
   const [tab, setTab] = useState('date');
 
@@ -101,7 +108,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
                     <p className="mgr-ts-card-time">{item.time}</p>
                     <p className="mgr-ts-card-submit">{item.submitLabel}</p>
                   </div>
-                  <span className={`mgr-ts-score is-${item.tone}`}>{item.score}</span>
+                  <ScoreChip score={item.score} tone={item.tone} />
                 </div>
                 {item.warning && <div className="mgr-ts-warning">⚠ {item.warning}</div>}
                 <p className="mgr-ts-card-text">{item.text}</p>
@@ -160,7 +167,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
                     <div className="mgr-ts-krsnippet-head">
                       <span className="mgr-ts-krsnippet-name">{item.member}</span>
                       <span className="mgr-ts-krsnippet-date">{item.date}</span>
-                      <span className={`mgr-ts-score is-${item.tone}`}>{item.score}</span>
+                      <ScoreChip score={item.score} tone={item.tone} />
                     </div>
                     <p className="mgr-ts-krsnippet-text">{item.text}</p>
                   </div>
