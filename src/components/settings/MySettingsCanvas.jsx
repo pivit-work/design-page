@@ -12,6 +12,8 @@ import Select from '../shared/Select.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
+import EducationAddForm from './EducationAddForm.jsx';
+import { formatEduPeriod } from './educationForm.js';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -156,6 +158,43 @@ const DEFAULT_LABELS = {
       school: '학교', major: '전공', degree: '학위', from: '시작', to: '종료', status: '상태',
       company: '회사', department: '부서', role: '직무',
       certName: '자격증명', issuer: '발급기관', credentialNo: '자격번호', issuedDate: '발급일', expiryDate: '만료일',
+    },
+    // 학력 추가 폼 — 학교·전공 검색 · 연·월 휠 (PW-1302)
+    eduForm: {
+      schoolSearch: '학교 검색',
+      majorSearch: '전공 검색',
+      majorOptional: '전공 (선택)',
+      searching: '검색 중…',
+      noResults: '검색 결과가 없습니다.',
+      searchFailed: '검색을 불러오지 못했습니다. 입력한 이름 그대로 등록할 수 있습니다.',
+      customRow: '「{q}」 직접 입력',
+      customSchoolHint: '목록에 없는 학교(해외·폐교 등)는 입력한 이름 그대로 등록합니다',
+      customMajorHint: '목록에 없는 전공은 입력한 이름 그대로 등록합니다(이 학력에만 저장)',
+      customTag: '직접 입력',
+      pickedTitle: '목록에서 고른 값',
+      enrolledNoEnd: '재학 중 — 종료 없음',
+      wheelDialog: '{field} 연·월 선택',
+      wheelConfirm: '확인',
+      wheelCancel: '취소',
+      yearCol: '연도',
+      monthCol: '월',
+      yearItem: '{y}년',
+      monthItem: '{m}월',
+      errors: {
+        endBeforeStart: '종료가 시작보다 빠릅니다.',
+        pastOnly: '졸업·수료·중퇴는 이번 달까지만 고를 수 있습니다.',
+        expectedFromNow: '졸업예정은 이번 달부터 고를 수 있습니다.',
+      },
+      schoolKinds: { high_school: '고등학교', college: '전문대학', university: '대학교', graduate_school: '대학원대학교' },
+      regions: {
+        seoul: '서울', busan: '부산', daegu: '대구', incheon: '인천', gwangju: '광주', daejeon: '대전', ulsan: '울산',
+        sejong: '세종', gyeonggi: '경기', gangwon: '강원', chungbuk: '충북', chungnam: '충남', jeonbuk: '전북',
+        jeonnam: '전남', gyeongbuk: '경북', gyeongnam: '경남', jeju: '제주',
+      },
+      majorFields: {
+        humanities: '인문계열', social: '사회계열', education: '교육계열', engineering: '공학계열',
+        natural: '자연계열', medicine: '의약계열', arts: '예체능계열',
+      },
     },
   },
   performance: {
@@ -764,7 +803,7 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
 }
 
 /* ═══ 조직 정보 ═══ */
-function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDocument }) {
+function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDocument, onSearchSchools, onSearchMajors }) {
   const L = labels.org;
   const o = org || {};
   const cur = o.current || {};
@@ -773,7 +812,14 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
   const [docType, setDocType] = useState('resume');
 
   const startAdd = (kind, init) => { setAdding(kind); setD(init); };
-  const submitAdd = () => { if (onAdd) onAdd(adding, d); setAdding(null); setD({}); };
+  // 저장이 끝나야 폼을 닫는다(PW-1302). 실패하면 폼을 그대로 두어 입력을 잃지 않는다 —
+  // 알림은 호출부가 띄운다. onAdd 가 Promise 를 안 돌려주면 바로 닫는다.
+  const submitRecord = (kind, payload) =>
+    Promise.resolve(onAdd ? onAdd(kind, payload) : undefined).then(
+      () => { setAdding(null); setD({}); },
+      () => {},
+    );
+  const submitAdd = () => submitRecord(adding, d);
 
   const currentPairs = [
     { label: L.currentManager, value: cur.manager ? `${cur.manager.name}${cur.manager.title ? ` (${cur.manager.title})` : ''}` : '-' },
@@ -852,7 +898,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
                     {e.isFinal && <StatusBadge className="msc-vis-badge is-brand" style={{ marginLeft: 6 }}>{L.isFinal}</StatusBadge>}
                   </div>
                   <div className="msc-notif-sub">
-                    {[e.major, L.degreeOptions[e.degree] || e.degree, `${e.from || ''}~${e.to || ''}`, L.eduStatusOptions[e.status] || e.status].filter(Boolean).join(' · ')}
+                    {[e.major, L.degreeOptions[e.degree] || e.degree, formatEduPeriod(e.from, e.to), L.eduStatusOptions[e.status] || e.status].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 {onDelete && <button type="button" className="msc-list-del" data-testid={`education-del-${e.id}`} aria-label={L.delete} onClick={() => onDelete('education', e.id)}>×</button>}
@@ -861,24 +907,13 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
           </div>
         )}
         {adding === 'education' ? (
-          <div className="msc-add-form" data-testid="education-add-form">
-            <div className="msc-grid-2col">
-              <TextInput className="admin-emp-input" placeholder={L.fields.school} value={d.school || ''} onChange={(e) => setD((p) => ({ ...p, school: e.target.value }))} aria-label={L.fields.school} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.major} value={d.major || ''} onChange={(e) => setD((p) => ({ ...p, major: e.target.value }))} aria-label={L.fields.major} />
-              <Select className="admin-emp-input" value={d.degree || 'bachelor'} onChange={(e) => setD((p) => ({ ...p, degree: e.target.value }))} aria-label={L.fields.degree}>
-                {Object.entries(L.degreeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </Select>
-              <Select className="admin-emp-input" value={d.status || 'graduated'} onChange={(e) => setD((p) => ({ ...p, status: e.target.value }))} aria-label={L.fields.status}>
-                {Object.entries(L.eduStatusOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </Select>
-              <TextInput className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
-            </div>
-            <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitAdd} data-testid="education-add-submit">{L.add}</button>
-            </div>
-          </div>
+          <EducationAddForm
+            L={L}
+            onCancel={() => setAdding(null)}
+            onSubmit={(payload) => submitRecord('education', payload)}
+            onSearchSchools={onSearchSchools}
+            onSearchMajors={onSearchMajors}
+          />
         ) : (
           onAdd && <button type="button" className="msc-add-btn" onClick={() => startAdd('education', { degree: 'bachelor', status: 'graduated' })} data-testid="education-add-btn">{L.addEducation}</button>
         )}
@@ -1260,6 +1295,10 @@ export default function MySettingsCanvas({
   org = null,
   onAddOrgRecord,
   onDeleteOrgRecord,
+  /** 학력 추가 폼의 사전 검색 (PW-1302) — (q: string) => Promise<[{ id, name, kind, region }]> */
+  onSearchSchools,
+  /** (q: string) => Promise<[{ id, name, field }]> */
+  onSearchMajors,
   onUploadDocument,
   onDownloadDocument,
   onDeleteDocument,
@@ -1608,6 +1647,8 @@ export default function MySettingsCanvas({
               labels={labels}
               onAdd={onAddOrgRecord}
               onDelete={onDeleteOrgRecord}
+              onSearchSchools={onSearchSchools}
+              onSearchMajors={onSearchMajors}
               onUpload={onUploadDocument}
               onDownload={onDownloadDocument}
               onDeleteDocument={onDeleteDocument}
