@@ -89,6 +89,11 @@ const DEFAULT_LABELS = {
   cwCompLocked: '보상·연봉 열람 권한이 없습니다',
   cwCommitteeOnlyTitle: '위원회 전용 — 승진 · 보상',
   cwPromoReasonLabel: '승진 검토 사유',
+  // PW-1216 — 매니저가 하향 리뷰 아래쪽 비공개 칸에 적은 것(리더 정책 §5.7·§5.8)
+  cwConfidentialLabel: '위원회 전용 코멘트',
+  cwPromoReadyLabel: '승진 고려',
+  cwPromoReadyYes: '승진 고려 대상으로 표시함',
+  cwCompNoteLabel: '보상 메모',
   cwCompOpinionLabel: '보상 조정 의견',
   cwCompUnassignedBanner:
     '보상·연봉 열람 권한이 아직 지정되지 않아 가려져 있습니다. 인사담당자가 설정에서 지정할 수 있습니다.',
@@ -473,6 +478,7 @@ const DEFAULT_LABELS = {
   reSelfEmpty: '아직 셀프 리뷰가 제출되지 않았습니다.',
   rePeerEmpty: '아직 동료 리뷰가 충분히 수집되지 않았습니다 ({n}건).',
   reManagerEmpty: '매니저 평가가 아직 제출되지 않았습니다.',
+  reManagerConfidentialTitle: '위원회 전용 — 구성원 비공개',
   reCalibEmpty: '캘리브레이션 진행 전입니다.',
   reCalibAdjusted: '조정 있음',
   reCalibOriginal: '원안 확정',
@@ -499,6 +505,40 @@ function fmtDate(iso) {
   if (Number.isNaN(d.getTime())) return String(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
+/**
+ * PW-1216 — 매니저의 비공개 칸(위원회 전용 코멘트·승진 고려·보상 메모) 줄들.
+ * 서버가 보는 사람에게 안 보낸 칸은 키가 없다 — 키가 없거나 비어 있으면 그 줄을 그리지 않는다.
+ * 그릴 줄이 하나도 없으면 null.
+ */
+function ManagerNoteLines({ note, L }) {
+  if (!note) return null;
+  const comment = note.confidentialComment?.trim();
+  const compNote = note.compensationNote?.trim();
+  if (!comment && !note.promotionReady && !compNote) return null;
+  return (
+    <>
+      {comment && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-confidential">
+          <span className="evs-cw-committee-k">{L.cwConfidentialLabel}</span>
+          {comment}
+        </div>
+      )}
+      {note.promotionReady && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-promo-ready">
+          <span className="evs-cw-committee-k">{L.cwPromoReadyLabel}</span>
+          {L.cwPromoReadyYes}
+        </div>
+      )}
+      {compNote && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-comp-note">
+          <span className="evs-cw-committee-k">{L.cwCompNoteLabel}</span>
+          {compNote}
+        </div>
+      )}
+    </>
+  );
+}
+
 function mergeLabels(base, provided) {
   if (!provided) return base;
   const out = { ...base };
@@ -2371,6 +2411,14 @@ export default function EvalCycleSummaryCanvas({
                             </div>
                           ))}
                         </div>
+                        {memberDetail.manager.assessment && (
+                          <div className="evs-cw-detail-block" data-testid="evs-re-mgr-confidential">
+                            <div className="evs-cw-review-k">
+                              <LockIcon size={12} /> {L.reManagerConfidentialTitle}
+                            </div>
+                            <ManagerNoteLines note={memberDetail.manager.assessment} L={L} />
+                          </div>
+                        )}
                       </>
                     ) : (
                       <p className="evc-empty-sub">{L.reManagerEmpty}</p>
@@ -3458,6 +3506,13 @@ export default function EvalCycleSummaryCanvas({
                                               <div className="evs-cw-review-k">
                                                 <LockIcon size={12} /> {L.cwCommitteeOnlyTitle}
                                               </div>
+                                              <ManagerNoteLines
+                                                note={{
+                                                  confidentialComment: row.confidentialComment,
+                                                  promotionReady: row.promotionReady,
+                                                }}
+                                                L={L}
+                                              />
                                               <div className="evs-cw-detail-body">
                                                 <span className="evs-cw-committee-k">
                                                   {L.cwPromoReasonLabel}
@@ -3465,6 +3520,7 @@ export default function EvalCycleSummaryCanvas({
                                                 {row.promotionReason || '—'}
                                               </div>
                                               {compView.visible ? (
+                                                <>
                                                 <div
                                                   className="evs-cw-detail-body"
                                                   data-testid="evs-cw-comp-detail"
@@ -3483,6 +3539,11 @@ export default function EvalCycleSummaryCanvas({
                                                   )}{' '}
                                                   {row.compensationReason || ''}
                                                 </div>
+                                                <ManagerNoteLines
+                                                  note={{ compensationNote: row.compensationNote }}
+                                                  L={L}
+                                                />
+                                                </>
                                               ) : (
                                                 <div
                                                   className="evs-cw-detail-body evs-cw-comp-locked-box"
