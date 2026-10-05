@@ -81,6 +81,7 @@ const DEFAULT_LABELS = {
   jobTitle: '직렬',
   workLocation: '근무지',
   jobCategory: '직종',
+  employmentType: '고용형태',
   unset: '미지정',
   optionsEmpty: '옵션 없음 — 직군/직렬/직무 설정에서 추가',
   // 직렬이 직군 때문에 잠겼을 때 — 「옵션 없음」이라고 하면 원인을 잘못 가리킨다
@@ -208,6 +209,7 @@ function blankRow(bulk) {
     jobTitle: bulk.jobTitle,
     jobCategory: bulk.jobCategory,
     workLocation: bulk.workLocation,
+    employmentType: bulk.employmentType,
     teamIds: [...bulk.teamIds],
     primaryTeamId: bulk.primaryTeamId,
     open: false,
@@ -222,6 +224,7 @@ const EMPTY_BULK = {
   jobTitle: '',
   jobCategory: '',
   workLocation: '',
+  employmentType: '',
   teamIds: [],
   primaryTeamId: '',
 };
@@ -339,7 +342,11 @@ export default function AdminInviteModal({
   terminatedEmails = [],
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
   seats = null,
-  /** { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] } — `jobTitle` 은 **직렬** */
+  /**
+   * { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [], employmentType: [] } — `jobTitle` 은 **직렬**.
+   * `employmentType` 은 회사가 등록하는 값이 아니라 시스템 고정 4종이다(PW-1299) — 비어 있어도
+   * «옵션 없음 — 설정에서 추가»로 보내지 않는다(추가할 화면이 없다).
+   */
   fieldOptions = {},
   /**
    * 직군 값 → 그 직군의 직렬 값 목록 (§1-3-d 매핑, INV-3).
@@ -615,6 +622,7 @@ export default function AdminInviteModal({
         jobTitle: bulk.jobTitle,
         jobCategory: bulk.jobCategory,
         workLocation: bulk.workLocation,
+        employmentType: bulk.employmentType,
         teamIds: [...bulk.teamIds],
         primaryTeamId: reconcilePrimary(bulk.teamIds, bulk.primaryTeamId),
       })),
@@ -773,6 +781,7 @@ export default function AdminInviteModal({
         // 끈 조직은 **키째** 싣지 않는다 — 서버도 버리지만(V12) 보내지 않는 쪽이 계약이 분명하다.
         ...(jobCategoryEnabled && r.jobCategory ? { jobCategory: r.jobCategory } : {}),
         workLocation: r.workLocation || undefined,
+        employmentType: r.employmentType || undefined,
         teamIds: r.teamIds.length ? r.teamIds : undefined,
         teamId: r.primaryTeamId || undefined,
       }));
@@ -869,6 +878,12 @@ export default function AdminInviteModal({
         id="inv-bulk-workLocation" label={labels.workLocation} labels={labels}
         value={bulk.workLocation} options={fieldOptions.workLocation}
         onChange={(v) => setBulk({ ...bulk, workLocation: v })}
+      />
+      <OptionSelect
+        id="inv-bulk-employmentType" label={labels.employmentType} labels={labels}
+        value={bulk.employmentType} options={fieldOptions.employmentType}
+        placeholder={labels.unset}
+        onChange={(v) => setBulk({ ...bulk, employmentType: v })}
       />
       <button
         type="button"
@@ -1203,6 +1218,12 @@ export default function AdminInviteModal({
                         id={`inv-${r.key}-workLocation`} label={labels.workLocation} labels={labels}
                         value={r.workLocation} options={fieldOptions.workLocation} disabled={sending}
                         onChange={(v) => patch(r.key, { workLocation: v })}
+                      />
+                      <OptionSelect
+                        id={`inv-${r.key}-employmentType`} label={labels.employmentType} labels={labels}
+                        value={r.employmentType} options={fieldOptions.employmentType} disabled={sending}
+                        placeholder={labels.unset}
+                        onChange={(v) => patch(r.key, { employmentType: v })}
                       />
                     </div>
 

@@ -313,6 +313,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
   csvErrRoleManagerRetired: "'{value}'는 이제 권한 값이 아니에요. 조직장으로 지정되면 자동으로 매니저가 됩니다 — 멤버나 어드민으로 고쳐 주세요",
   csvErrUnknownOption: "{column} '{value}'는 회사에 등록된 값이 아니에요",
+  // 고용형태는 회사가 등록하는 값이 아니라 시스템 고정값이다(PW-1299 · V15) — 「등록된 값이 아니에요」로는
+  // 고칠 곳이 없어, 받는 값을 그대로 알려 준다.
+  csvErrEmploymentType: '고용형태는 {choices} 중 하나로 적어 주세요',
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
@@ -872,6 +875,11 @@ export function inviteCsvIssues(row, ctx) {
       continue;
     }
     if (col.option && !optionKnown(v[col.key], ctx.fieldOptions[col.option])) {
+      const list = ctx.fieldOptions[col.option];
+      if (col.option === 'employmentType' && Array.isArray(list) && list.length > 0) {
+        add(col.key, fmtCsv(l.csvErrEmploymentType, { choices: list.join('·') }));
+        continue;
+      }
       add(col.key, fmtCsv(l.csvErrUnknownOption, { column: labelOf(col.key), value: v[col.key] }));
     }
     if (col.kind === 'date' && normalize(v[col.key]) && !isIsoDate(v[col.key])) {
