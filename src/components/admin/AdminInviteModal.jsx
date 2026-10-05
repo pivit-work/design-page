@@ -4,8 +4,9 @@ import { buildOrgTree } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import {
-  IconAlert, IconDownload, IconPlus, IconTrash, IconUpload,
+  IconAlert, IconChevronDown, IconChevronUp, IconDownload, IconPlus, IconTrash, IconUpload, IconUser, IconX,
 } from './employeesIcons.jsx';
 import {
   INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, jobPairIssue, ladderLocked, laddersForFamily,
@@ -13,7 +14,7 @@ import {
 } from './inviteRules.js';
 import {
   INVITE_CSV_DEFAULT_LABELS, INVITE_CSV_MAX_ROWS,
-  buildInviteCsvContext, buildInviteTemplateCsv, inviteCsvColumns, inviteCsvIssues,
+  buildInviteCsvContext, buildInviteTemplateCsv, employeeCodeKey, employeeCodeOwnerMap, inviteCsvColumns, inviteCsvIssues,
   inviteCsvNotes, inviteCsvPayload, parseInviteCsv, resolveInviteCsvRow,
 } from './inviteCsv.js';
 import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
@@ -32,19 +33,20 @@ import { readCsvFileText } from '../shared/csvFileText.js';
  * 수단이 없었다. 두 진입점이 이 모달 하나를 연다.
  *
  * 핵심 규칙
- *  · 겸직 다중 소속 + 주 소속(소속 2개 이상이면 주 소속 필수, §2-3·§4-3)
- *  · **조직장은 여기서 지정하지 않는다** — 가입 전에는 team_members 행이 없어
- *    "그 팀 소속자만 조직장"(§1-3-f L3)을 만족할 수 없다
- *  · **인사 축은 직급·직군·직렬·근무지 4종**(+권한). 직렬은 직군에 매달린 2단
- *    선택이고, 직무(`job_duty`)·직함은 초대에서 받지 않는다
- *    — 2026-08-22 David 결정(PW-412), 정본 정책서 §2-2 v1.4
+ *  · **직접 입력은 «한 명»이 기본이다**(PW-1310 · 정책서 §1). 사람 1명이면 일괄 지정 바가 없고,
+ *    `+ 한 명 더 추가` 로 2명이 되면 바가 열린다. 한 사람 = 카드 한 장 — 주요 정보(소속·직급·
+ *    직책·직군›직렬›직무·입사일·고용형태·근무지)는 펼치고 «추가 정보»(직위·직종·닉네임·사번·상급자)만 접는다
+ *  · 겸직 다중 소속 + 주 소속(소속 2개 이상이면 주 소속 필수, §2-3·§4-3) — 소속은 검색해서 고른다
+ *  · **조직장은 «예약»이다**(2026-09-15 David) — 가입 전에는 team_members 행이 없어
+ *    "그 팀 소속자만 조직장"(§1-3-f L3)을 지금 만족할 수 없다. 소속 줄마다 예약하고 가입 때 적용된다
+ *  · 직렬은 직군에, 직무는 직렬에 매달린 3단 선택이다(INV-3 · INV-8). 직함은 초대에서 받지 않는다
  *  · **직종은 조직이 켰을 때만 받는다**(`jobCategoryEnabled`) — 2026-09-15 David 확정
  *    (PW-644 · 정책서 §2-2·§2-3·§5 V12). 끈 조직에는 칸 자체가 없다
  *
- * 🔴 **이 축은 이미 두 번 뒤집혔다.** 「초대에서 직렬 제외」(2026-08-12)는 직군 칸이
+ * 🔴 **인사 축은 이미 여러 번 뒤집혔다.** 「초대에서 직렬 제외」(2026-08-12)는 직군 칸이
  *    없는 **온보딩 초대 한정** 결정이고, 「초대 모달에 직무 칸이 있다」(2026-08-16)는
- *    라벨만 `직무` 였던 직렬 칸을 본 오독이었다(PW-189 라벨 정정). 여기를 고치기 전에
- *    정책서 §2-2 확정 배너를 먼저 읽을 것.
+ *    라벨만 `직무` 였던 직렬 칸을 본 오독이었다(PW-189). 직무는 2026-09-15 에 받기로 했다.
+ *    여기를 고치기 전에 정책서 §2-2 확정 배너를 먼저 읽을 것.
  *  · 좌석은 발송이 아니라 **가입 수락 시점**에 증가한다 → 헤더 문구가 미래형
  *  · 부분 성공은 모달을 **유지**한다(§3) — 닫으면 실패분의 이름·소속 입력이
  *    사라져 처음부터 다시 입력해야 한다
@@ -66,10 +68,28 @@ const DEFAULT_LABELS = {
   seatNone: '남은 좌석이 없습니다. 플랜을 변경해야 초대할 수 있습니다.',
   goBilling: '결제·구독',
   bulkTitle: '일괄 지정',
-  bulkHint: '값을 바꿔도 이미 입력한 행에는 반영되지 않습니다. 전체 적용을 눌러야 덮어씁니다.',
-  bulkApply: '전체 적용',
-  bulkApplied: '{n}개 행에 적용했어요',
+  bulkHint: '여러 명에게 같은 값을 넣을 때 씁니다. 값을 바꿔도 이미 입력한 사람에게는 반영되지 않습니다.',
+  // [PW-1310] 종전 「전체 적용」은 넣어 둔 값을 덮어쓴다는 것을 이름이 말하지 않았다(§4-2).
+  bulkApplyEmpty: '빈 칸에만 적용',
+  bulkApplyAll: '모두 덮어쓰기',
+  bulkAppliedEmpty: '{n}명의 빈 칸에 적용했어요',
+  bulkAppliedAll: '{n}명의 값을 모두 덮어썼어요',
   bulkUndo: '실행 취소',
+  // 안내 줄(§2-3) — 어드민이 넣는 값과 본인이 채우는 값을 가른다
+  guideLine1: '필수는 이메일·이름 둘이고 나머지는 아는 만큼 넣습니다. 여기서 넣는 값은 회사가 정하는 조직 배치 정보입니다.',
+  guideLine2: '전화번호·생년월일·집 주소·비상연락처는 가입 후 본인이 «내 설정»에서 채웁니다.',
+  singleHint: '여러 명이면 같은 값을 한꺼번에 넣는 칸이 열립니다 · 수십 명은 «CSV로 일괄 초대»가 빠릅니다',
+  personN: '{n}번째 사람',
+  extraInfo: '추가 정보',
+  extraInfoCount: '추가 정보 · {n}개 입력됨',
+  jobPosition: '직책',
+  jobDuty: '직무',
+  jobRank: '직위',
+  hireDate: '입사일',
+  nickname: '닉네임',
+  employeeCode: '사번',
+  manager: '상급자',
+  dutyNeedsLadder: '직렬을 먼저 선택하세요',
   role: '권한',
   roleMember: '멤버',
   roleManager: '매니저',
@@ -90,23 +110,22 @@ const DEFAULT_LABELS = {
   emailPlaceholder: 'name@company.com',
   name: '이름',
   namePlaceholder: '이름 (필수)',
-  detail: '상세',
-  collapse: '접기',
-  removeRow: '행 삭제',
-  addRow: '행 추가',
+  removeRow: '이 사람 빼기',
+  addRow: '한 명 더 추가',
   maxRows: '한 번에 최대 {n}명까지 초대할 수 있어요',
-  teams: '소속 (겸직 가능 — 여러 개 선택)',
+  teams: '소속',
   teamsEmpty: '조직이 없습니다 — 팀 관리에서 먼저 만들어주세요',
-  teamSearch: '조직 검색',
+  teamSearch: '조직 이름으로 검색',
+  teamSearchExample: '조직 이름으로 검색 — 예: {name}',
+  teamSearchNone: '검색 결과가 없어요 — 초대에서는 조직을 새로 만들지 않습니다',
+  teamPicked: '고른 소속',
+  teamAdd: '소속 추가 (겸직)',
+  teamAddCancel: '추가 그만두기',
+  teamRemove: '{path} 빼기',
   primaryTeam: '주 소속',
-  primaryTeamRequired: '주 소속 (필수)',
-  primaryBadge: '주',
-  primaryHint: '소속을 2개 이상 고르면 주 소속을 지정해야 합니다',
   primaryMoved: '주 소속이 {path}(으)로 변경되었습니다',
-  concurrentSummary: '겸직 {n} · {state}',
-  primarySet: '주 소속 지정됨',
-  primaryUnset: '주 소속 미지정',
-  leaderNote: '조직장 지정은 가입 완료 후 팀 관리에서 할 수 있습니다.',
+  leaderReserve: '이 조직의 조직장으로 초대',
+  leaderNote: '조직장은 가입이 끝나는 시점에 적용됩니다.',
   squadNote: '스쿼드 배정은 조직도 스쿼드 뷰에서 별도로 합니다 (기능조직과 다른 축).',
   summary: '{n}명에게 초대를 보냅니다',
   // [PW-1331] 명부에 이미 있는 사람·대기 중인 초대는 막지 않고 다시 보낸다
@@ -131,6 +150,10 @@ const DEFAULT_LABELS = {
   // V7 — (직군, 직렬) 쌍(INV-3)
   errLadderNeedsFamily: '직군을 먼저 선택해주세요',
   errJobPair: '직군에 없는 직렬입니다',
+  // V11 — (직렬, 직무) 쌍(INV-8) · V16 — 사번 (PW-1310)
+  errDutyNeedsLadder: '직렬을 먼저 선택해주세요',
+  errDutyPair: '직렬에 없는 직무입니다',
+  errEmployeeCodeDuplicate: '이 발송에 중복된 사번이에요',
   // 발송 실패 사유(§8)
   failAlreadyMember: '이미 멤버입니다',
   failTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
@@ -197,25 +220,36 @@ const DEFAULT_LABELS = {
  */
 const ROLE_IDS = ['member', 'admin'];
 
+/**
+ * 일괄 지정 바가 받는 칸(§2-2). 소속은 넣지 않는다 — 바에 넣으면 소속별 조직장 예약까지
+ * 여러 사람에게 함께 실려 «한 팀에 조직장 예약 여러 명»을 화면이 쉽게 만든다.
+ */
+const BULK_KEYS = ['role', 'jobLevel', 'jobFamily', 'jobTitle', 'jobDuty', 'jobCategory', 'workLocation', 'employmentType'];
+/** 직군·직렬·직무는 한 묶음이다 — 따로 채우면 다른 직군의 직렬이 들어간다(INV-3 · E22). */
+const AXIS_KEYS = ['jobFamily', 'jobTitle', 'jobDuty'];
+
 let rowSeq = 0;
 function blankRow(bulk) {
   rowSeq += 1;
-  return {
+  const row = {
     key: `r${rowSeq}`,
     email: '',
     name: '',
-    role: bulk.role,
-    jobLevel: bulk.jobLevel,
-    jobFamily: bulk.jobFamily,
-    jobTitle: bulk.jobTitle,
-    jobCategory: bulk.jobCategory,
-    workLocation: bulk.workLocation,
-    employmentType: bulk.employmentType,
-    teamIds: [...bulk.teamIds],
-    primaryTeamId: bulk.primaryTeamId,
-    open: false,
+    jobPosition: '',
+    hireDate: '',
+    jobRank: '',
+    nickname: '',
+    employeeCode: '',
+    managerEmail: '',
+    teamIds: [],
+    primaryTeamId: '',
+    /** 조직장 «예약» — teamIds 의 부분집합. 가입 때 적용된다(§2-3 · 2026-09-15 David) */
+    leaderTeamIds: [],
+    extraOpen: false,
     failReason: null,
   };
+  for (const k of BULK_KEYS) row[k] = bulk[k];
+  return row;
 }
 
 const EMPTY_BULK = {
@@ -223,12 +257,32 @@ const EMPTY_BULK = {
   jobLevel: '',
   jobFamily: '',
   jobTitle: '',
+  jobDuty: '',
   jobCategory: '',
   workLocation: '',
   employmentType: '',
-  teamIds: [],
-  primaryTeamId: '',
 };
+
+/**
+ * 직군·직렬·직무 한 칸을 바꾼 뒤 아래 칸 정리 — 사람 카드와 일괄 지정 바가 같이 쓴다.
+ *
+ * **직군을 바꾸면 그 직군에 없는 직렬을 버린다(E19)**, 직렬이 바뀌면 그 직렬에 없는 직무를 버린다(INV-8).
+ * 새 상위에서도 유효한 값이면 남긴다 — CSV 스테이징에서 «직군을 고쳐 쌍을 맞추는» 것이 정상 경로라,
+ * 무조건 지우면 어드민이 파일에 적어 넣은 직렬이 말없이 사라진다.
+ */
+function cleanAxis(next, p, laddersByFamily, dutiesByLadder) {
+  const n = { ...next };
+  if (p.jobFamily !== undefined && p.jobTitle === undefined) {
+    if (jobPairIssue(laddersByFamily, n.jobFamily, n.jobTitle)) n.jobTitle = '';
+  }
+  if ((p.jobFamily !== undefined || p.jobTitle !== undefined) && p.jobDuty === undefined && n.jobDuty) {
+    if (jobPairIssue(dutiesByLadder, n.jobTitle, n.jobDuty)) n.jobDuty = '';
+  }
+  return n;
+}
+
+/** 「추가 정보」에 접힌 칸 — 접혀 있어도 몇 개 넣었는지 버튼에 적는다(§2-3 · E6 개정). */
+const EXTRA_KEYS = ['jobRank', 'jobCategory', 'nickname', 'employeeCode', 'managerEmail'];
 
 /**
  * 옵션 목록 → Select 항목. 값이 비어 있어도 '미지정' 은 항상 남긴다.
@@ -262,61 +316,155 @@ function OptionSelect({ id, label, value, onChange, options, labels, disabled, p
 }
 
 /**
- * 겸직 소속 선택 — 계층 들여쓰기(§2-3 → spec-team-management §5-A P1).
+ * 소속 칸 — 검색해서 고른다 (§2-3 「소속 칸」 · PW-1310).
  *
- * depth 당 왼쪽 패딩을 주고 상위 조직도 고를 수 있게 둔다(P3). 공백문자·`└─` 로
- * 들여쓰지 않는다 — 폰트에 따라 정렬이 깨지고 스크린리더가 무의미한 문자를 읽는다.
+ * 검색어가 있을 때만 결과를 연다 — 종전처럼 빈 검색어로 전체 트리를 늘어놓으면 조직이 많을 때
+ * 길고 상·하위가 헷갈렸다(알파 테스트 제보). 결과에는 맞는 조직과 그 **조상 경로**를 남기고
+ * 조상은 고를 수 없게 흐리게 둔다(P5 — 종전은 조상을 지워 어느 «개발팀»인지 몰랐다).
+ * depth 당 들여쓰기(P1) · 상위 조직도 고를 수 있다(P3) · 이미 고른 조직은 다시 못 고른다.
+ * 결과 0건이어도 조직을 만들자고 하지 않는다 — 초대 경로에서 만들면 오타가 유령 조직이 된다(V8 · E24).
  */
-function TeamMultiPicker({ rowKey, tree, selected, primaryId, onToggle, labels }) {
+function TeamSearchField({ rowKey, tree, row, labels, disabled, onPick, onRemove, onPrimary, onLeader }) {
   const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState(false);
   const q = query.trim().toLowerCase();
-  const visible = q
-    ? tree.filter((e) => e.pathLabel.toLowerCase().includes(q))
-    : tree;
+  const picked = row.teamIds;
+  const searching = picked.length === 0 || adding;
+
+  const results = useMemo(() => {
+    if (!q) return [];
+    const hits = new Set(tree.filter((e) => e.name.toLowerCase().includes(q)).map((e) => e.id));
+    const keep = new Set(hits);
+    for (const e of tree) if (hits.has(e.id)) for (const a of e.ancestorIds) keep.add(a);
+    return tree.filter((e) => keep.has(e.id)).map((e) => ({ ...e, isHit: hits.has(e.id) }));
+  }, [tree, q]);
 
   if (tree.length === 0) {
     return <p className="admin-inv-hint">{labels.teamsEmpty}</p>;
   }
 
+  const byId = new Map(tree.map((e) => [e.id, e]));
+  const example = tree.find((e) => e.depth > 0)?.name ?? tree[0].name;
+  const pick = (id) => {
+    onPick(id);
+    setQuery('');
+    setAdding(false);
+  };
+
   return (
     <div className="admin-inv-teams">
-      <input
-        type="text"
-        className="admin-inv-team-search"
-        value={query}
-        placeholder={labels.teamSearch}
-        aria-label={labels.teamSearch}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <div className="admin-inv-team-list" role="group" aria-label={labels.teams}>
-        {visible.map((entry) => {
-          const on = selected.includes(entry.id);
-          const inputId = `inv-team-${rowKey}-${entry.id}`;
-          return (
-            <div
-              key={entry.id}
-              className={`admin-inv-team-row${on ? ' is-on' : ''}`}
-              // 들여쓰기는 시각 표현이라 aria-level 로 계층을 따로 전달한다.
-              style={{ paddingLeft: 8 + entry.depth * 12 }}
-            >
-              <input
-                type="checkbox"
-                id={inputId}
-                className="admin-inv-team-check"
-                checked={on}
-                onChange={() => onToggle(entry.id)}
-              />
-              <label htmlFor={inputId} className="admin-inv-team-name" title={entry.pathLabel}>
-                {entry.name}
-              </label>
-              {primaryId === entry.id && selected.length >= 2 && (
-                <StatusBadge className="admin-inv-primary-badge">{labels.primaryBadge}</StatusBadge>
-              )}
+      {picked.length > 0 && (
+        <ul className="admin-inv-picked" aria-label={labels.teamPicked}>
+          {picked.map((id) => {
+            const e = byId.get(id);
+            const names = e ? e.pathNames : [id];
+            const path = names.join(' › ');
+            const leader = row.leaderTeamIds.includes(id);
+            return (
+              <li key={id} className="admin-inv-picked-row">
+                <span className="admin-inv-picked-path" title={path}>
+                  {names.slice(0, -1).map((n, i) => (
+                    <span key={`${n}-${i}`} className="admin-inv-picked-anc">{n} › </span>
+                  ))}
+                  {/* 조직장 예약이면 사람 표시(P9) */}
+                  {leader && <IconUser size={12} />}
+                  <span className="admin-inv-picked-name">{names[names.length - 1]}</span>
+                </span>
+                {picked.length >= 2 && (
+                  <label className="admin-inv-picked-opt">
+                    <input
+                      type="radio"
+                      name={`inv-${rowKey}-primary`}
+                      checked={row.primaryTeamId === id}
+                      disabled={disabled}
+                      onChange={() => onPrimary(id)}
+                    />
+                    {labels.primaryTeam}
+                  </label>
+                )}
+                <label className="admin-inv-picked-opt">
+                  <input
+                    type="checkbox"
+                    checked={leader}
+                    disabled={disabled}
+                    onChange={() => onLeader(id)}
+                  />
+                  {labels.leaderReserve}
+                </label>
+                <button
+                  type="button"
+                  className="admin-emp-btn is-ghost is-sm"
+                  aria-label={fmt(labels.teamRemove, { path })}
+                  title={fmt(labels.teamRemove, { path })}
+                  disabled={disabled}
+                  onClick={() => onRemove(id)}
+                >
+                  <IconX size={12} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {searching ? (
+        <div className="admin-inv-team-searchbox">
+          <input
+            type="text"
+            className="admin-inv-team-search"
+            value={query}
+            disabled={disabled}
+            placeholder={fmt(labels.teamSearchExample, { name: example })}
+            aria-label={labels.teamSearch}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {q && (
+            <div className="admin-inv-team-list" role="listbox" aria-label={labels.teams}>
+              {results.map((e) => {
+                const already = picked.includes(e.id);
+                const selectable = e.isHit && !already;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    role="option"
+                    aria-selected={already}
+                    aria-disabled={!selectable}
+                    disabled={!selectable || disabled}
+                    className={`admin-inv-team-row${e.isHit ? '' : ' is-ancestor'}${already ? ' is-on' : ''}`}
+                    // 들여쓰기는 depth 별 시각 표현이다(P1 · depth 당 12px).
+                    style={{ paddingLeft: 8 + e.depth * 12 }}
+                    title={e.pathLabel}
+                    onClick={() => pick(e.id)}
+                  >
+                    <span className="admin-inv-team-name">{e.name}</span>
+                    {already && <span className="admin-inv-hint">{labels.teamPicked}</span>}
+                  </button>
+                );
+              })}
+              {results.length === 0 && <p className="admin-inv-hint admin-inv-team-none">{labels.teamSearchNone}</p>}
             </div>
-          );
-        })}
-        {visible.length === 0 && <p className="admin-inv-hint">{labels.teamsEmpty}</p>}
-      </div>
+          )}
+          {adding && picked.length > 0 && (
+            <button
+              type="button"
+              className="admin-emp-btn is-ghost is-sm"
+              onClick={() => { setAdding(false); setQuery(''); }}
+            >
+              {labels.teamAddCancel}
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="admin-emp-btn is-ghost is-sm admin-inv-team-add"
+          disabled={disabled}
+          onClick={() => setAdding(true)}
+        >
+          <IconPlus size={14} />{labels.teamAdd}
+        </button>
+      )}
     </div>
   );
 }
@@ -335,6 +483,11 @@ export default function AdminInviteModal({
    * 쓴다(종전 동작). 「이미 구성원」과 기준이 다를 수 있어 따로 받는다(PW-1056).
    */
   supervisorEmails,
+  /**
+   * 직접 입력 «상급자» 칸의 후보 — `{ email, name }`(퇴사자 제외 · PW-1310). 안 주면 칸이 없다.
+   * 값은 CSV 상급자 열과 같은 이메일로 싣는다.
+   */
+  supervisorCandidates = null,
   /** 대기 중 초대가 있는 이메일 (V6) — 막지 않고 새 링크로 다시 보낸다 (PW-1331) */
   pendingEmails = [],
   /** 명부에 있지만 **아직 가입하지 않은** 사람의 이메일 — 막지 않고 «다시 보내기» (PW-1331) */
@@ -387,7 +540,10 @@ export default function AdminInviteModal({
   resolveOrgPath = null,
   /** CSV 고용상태 중 초대에 쓸 수 없는 코드(예: `['terminated']`) — 그 줄을 오류로 세운다(PW-1042). */
   csvBlockedEmploymentStatuses = [],
-  /** CSV 사번 칸 확인 — 회사 사람들의 `{ code, email }`. 못 받았으면 `null`(서버가 판정한다). */
+  /**
+   * 사번 겹침 확인 — 회사 사람들의 `{ code, email }`. 못 받았으면 `null`(서버가 판정한다).
+   * CSV 탭과 직접 입력 탭(V16 · PW-1310)이 같은 명부를 쓴다.
+   */
   csvEmployeeCodeOwners = null,
   /**
    * `.xlsx` 파일 → CSV 글자. 넘기면 CSV 탭이 `.xlsx` 도 받는다(엑셀 읽기는 앱이 맡는다).
@@ -497,21 +653,37 @@ export default function AdminInviteModal({
   const patch = (key, p) =>
     setActiveRows((rs) => rs.map((r) => {
       if (r.key !== key) return r;
-      const next = { ...r, ...p, failReason: null };
-      if (p.jobFamily !== undefined && p.jobTitle === undefined) {
-        if (jobPairIssue(laddersByFamily, next.jobFamily, next.jobTitle)) next.jobTitle = '';
-      }
-      return next;
+      return cleanAxis({ ...r, ...p, failReason: null }, p, laddersByFamily, dutiesByLadder);
     }));
 
-  /** 소속 토글 — 주 소속 자동 처리(§4-3). */
-  const toggleTeam = (row, teamId) => {
-    const has = row.teamIds.includes(teamId);
-    const teamIds = has
-      ? row.teamIds.filter((t) => t !== teamId)
-      : [...row.teamIds, teamId];
-    patch(row.key, { teamIds, primaryTeamId: reconcilePrimary(teamIds, row.primaryTeamId) });
+  /* 소속 고르기·빼기 — 주 소속 자동 처리(§4-3). 2번째를 고르면 첫 소속이 주 소속,
+     주 소속을 빼면 남은 첫 소속으로 옮기고 그 사실을 한 줄로 알린다. 뺀 조직의 조직장 예약도 함께 뺀다. */
+  const addTeam = (row, teamId) => {
+    const teamIds = [...row.teamIds, teamId];
+    patch(row.key, { teamIds, primaryTeamId: reconcilePrimary(teamIds, row.primaryTeamId), primaryNote: '' });
   };
+  const removeTeam = (row, teamId) => {
+    const teamIds = row.teamIds.filter((t) => t !== teamId);
+    const primaryTeamId = reconcilePrimary(teamIds, row.primaryTeamId);
+    const moved = row.primaryTeamId === teamId && teamIds.length >= 2;
+    patch(row.key, {
+      teamIds,
+      primaryTeamId,
+      leaderTeamIds: row.leaderTeamIds.filter((t) => t !== teamId),
+      primaryNote: moved
+        ? fmt(labels.primaryMoved, { path: tree.find((e) => e.id === primaryTeamId)?.pathLabel ?? '' })
+        : '',
+    });
+  };
+  const toggleLeader = (row, teamId) => patch(row.key, {
+    leaderTeamIds: row.leaderTeamIds.includes(teamId)
+      ? row.leaderTeamIds.filter((t) => t !== teamId)
+      : [...row.leaderTeamIds, teamId],
+  });
+
+  const codeOwner = useMemo(() => employeeCodeOwnerMap(csvEmployeeCodeOwners), [csvEmployeeCodeOwners]);
+  const headTeams = useMemo(() => new Set(headTeamIds.map(String)), [headTeamIds]);
+  const reservedLeaders = new Set(rows.flatMap((r) => r.leaderTeamIds));
 
   /* 행별 검증 V1~V6. 서버가 최종 판정이지만, 화면이 먼저 막아야 50명을 넣고
      발송을 눌러서야 사유를 알게 되는 일이 없다.
@@ -538,6 +710,19 @@ export default function AdminInviteModal({
     const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
     if (pair === 'family') e.push(labels.errLadderNeedsFamily);
     else if (pair === 'pair') e.push(labels.errJobPair);
+    const dutyPair = jobPairIssue(dutiesByLadder, r.jobTitle, r.jobDuty);
+    if (dutyPair === 'family') e.push(labels.errDutyNeedsLadder);
+    else if (dutyPair === 'pair') e.push(labels.errDutyPair);
+    // V16 — 같은 사람(같은 이메일)이 이미 그 사번을 가졌으면 겹친 것이 아니다(CSV 탭과 같은 판정)
+    const code = employeeCodeKey(r.employeeCode);
+    if (code) {
+      const owner = codeOwner?.get(code);
+      if (owner !== undefined && owner !== key) {
+        e.push(fmt(labels.csvErrEmployeeCodeTaken, { value: r.employeeCode.trim() }));
+      } else if (rows.filter((x) => employeeCodeKey(x.employeeCode) === code).length > 1) {
+        e.push(labels.errEmployeeCodeDuplicate);
+      }
+    }
     errorsByKey[r.key] = e;
   }
 
@@ -601,7 +786,7 @@ export default function AdminInviteModal({
   const isDirty =
     rows.length > 1 ||
     rows.some(
-      (r) => r.email.trim() || r.name.trim() || r.teamIds.length > 0,
+      (r) => r.email.trim() || r.name.trim() || r.teamIds.length > 0 || r.employeeCode.trim() || r.hireDate,
     ) ||
     csvRows.length > 0;
 
@@ -611,25 +796,35 @@ export default function AdminInviteModal({
     else onClose?.();
   };
 
-  const applyBulkToAll = () => {
+  /**
+   * 일괄 적용(§4-2 · PW-1310) — 둘로 나눴다.
+   *  · `empty` — 사람마다 **비어 있는 칸만** 채운다. 직군·직렬·직무는 한 묶음이라 직군이 빈 사람에게만
+   *    셋을 함께 넣는다(E22). 권한은 늘 값이 있어 바뀌지 않는다.
+   *  · `all` — 종전 「전체 적용」 그대로 덮어쓴다. 소속은 바에 없으니 건드리지 않는다.
+   * 둘 다 5초 실행 취소를 준다 — 사람마다 다르게 넣어 둔 값을 되돌릴 길이 있어야 한다.
+   */
+  const applyBulk = (how) => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndoRows(rows);
-    setRows((rs) =>
-      rs.map((r) => ({
-        ...r,
-        role: bulk.role,
-        jobLevel: bulk.jobLevel,
-        jobFamily: bulk.jobFamily,
-        jobTitle: bulk.jobTitle,
-        jobCategory: bulk.jobCategory,
-        workLocation: bulk.workLocation,
-        employmentType: bulk.employmentType,
-        teamIds: [...bulk.teamIds],
-        primaryTeamId: reconcilePrimary(bulk.teamIds, bulk.primaryTeamId),
-      })),
-    );
-    setApplyToast(fmt(labels.bulkApplied, { n: rows.length }));
-    // 행별로 다르게 지정해 둔 값도 덮어쓰므로 실행 취소를 반드시 제공한다(§4-2).
+    let changed = 0;
+    const next = rows.map((r) => {
+      const n = { ...r };
+      if (how === 'all') {
+        for (const k of BULK_KEYS) n[k] = bulk[k];
+      } else {
+        for (const k of BULK_KEYS) {
+          if (k === 'role' || AXIS_KEYS.includes(k)) continue;
+          if (!n[k] && bulk[k]) n[k] = bulk[k];
+        }
+        if (!n.jobFamily && bulk.jobFamily) for (const k of AXIS_KEYS) n[k] = bulk[k];
+      }
+      if (BULK_KEYS.some((k) => n[k] !== r[k])) changed += 1;
+      return n;
+    });
+    setRows(next);
+    setApplyToast(fmt(how === 'all' ? labels.bulkAppliedAll : labels.bulkAppliedEmpty, {
+      n: how === 'all' ? rows.length : changed,
+    }));
     undoTimer.current = setTimeout(() => {
       setUndoRows(null);
       setApplyToast('');
@@ -785,6 +980,16 @@ export default function AdminInviteModal({
         employmentType: r.employmentType || undefined,
         teamIds: r.teamIds.length ? r.teamIds : undefined,
         teamId: r.primaryTeamId || undefined,
+        // [PW-1310] 직접 입력이 새로 받는 칸 — 서버는 CSV 초대 때부터 같은 키로 받는다(PW-902).
+        jobDuty: r.jobDuty || undefined,
+        jobPosition: r.jobPosition || undefined,
+        jobRank: r.jobRank || undefined,
+        hireDate: r.hireDate || undefined,
+        nickname: r.nickname.trim() || undefined,
+        employeeCode: r.employeeCode.trim() || undefined,
+        managerEmail: r.managerEmail || undefined,
+        // 조직장 예약은 고른 소속 안에서만 — 가입 때 그 조직 소속이 생긴 뒤 적용된다(L3)
+        leaderTeamIds: r.leaderTeamIds.length ? r.leaderTeamIds : undefined,
       }));
       const res = await onSend?.(payload);
       const failed = res?.failed ?? [];
@@ -826,6 +1031,34 @@ export default function AdminInviteModal({
         ? labels.seatsUnlimited
         : fmt(labels.seatsLeft, { n: seats.remaining });
 
+  /* 직군 › 직렬 › 직무 3단 — 직렬은 직군에, 직무는 직렬에 매달린다(INV-3 · INV-8).
+     위 칸을 고르기 전에는 아래 칸을 잠그고 그 칸에서 이유를 말한다. */
+  const axisFields = (idPrefix, v, disabled, onPatch) => (
+    <>
+      <OptionSelect
+        id={`${idPrefix}-jobFamily`} label={labels.jobFamily} labels={labels}
+        value={v.jobFamily} options={fieldOptions.jobFamily} disabled={disabled}
+        onChange={(x) => onPatch({ jobFamily: x })}
+      />
+      <OptionSelect
+        id={`${idPrefix}-jobTitle`} label={labels.jobTitle} labels={labels}
+        value={v.jobTitle}
+        options={laddersForFamily(laddersByFamily, v.jobFamily, fieldOptions.jobTitle)}
+        disabled={disabled || ladderLocked(laddersByFamily, v.jobFamily)}
+        placeholder={ladderLocked(laddersByFamily, v.jobFamily) ? labels.ladderNeedsFamily : undefined}
+        onChange={(x) => onPatch({ jobTitle: x })}
+      />
+      <OptionSelect
+        id={`${idPrefix}-jobDuty`} label={labels.jobDuty} labels={labels}
+        value={v.jobDuty}
+        options={laddersForFamily(dutiesByLadder, v.jobTitle, fieldOptions.jobDuty)}
+        disabled={disabled || ladderLocked(dutiesByLadder, v.jobTitle)}
+        placeholder={ladderLocked(dutiesByLadder, v.jobTitle) ? labels.dutyNeedsLadder : undefined}
+        onChange={(x) => onPatch({ jobDuty: x })}
+      />
+    </>
+  );
+
   const bulkFields = (
     <>
       <label className="admin-inv-field">
@@ -847,27 +1080,7 @@ export default function AdminInviteModal({
         value={bulk.jobLevel} options={fieldOptions.jobLevel}
         onChange={(v) => setBulk({ ...bulk, jobLevel: v })}
       />
-      <OptionSelect
-        id="inv-bulk-jobFamily" label={labels.jobFamily} labels={labels}
-        value={bulk.jobFamily} options={fieldOptions.jobFamily}
-        onChange={(v) => setBulk((b) => ({
-          ...b,
-          jobFamily: v,
-          // 직군을 바꾸면 그 직군에 없는 직렬은 버린다(E19)
-          jobTitle: jobPairIssue(laddersByFamily, v, b.jobTitle) ? '' : b.jobTitle,
-        }))}
-      />
-      <OptionSelect
-        id="inv-bulk-jobTitle" label={labels.jobTitle} labels={labels}
-        value={bulk.jobTitle}
-        options={laddersForFamily(laddersByFamily, bulk.jobFamily, fieldOptions.jobTitle)}
-        // 직군을 고르기 전에는 직렬을 고를 수 없다 — 직군 없는 직렬은 INV-3 위반 값이다
-        disabled={ladderLocked(laddersByFamily, bulk.jobFamily)}
-        placeholder={
-          ladderLocked(laddersByFamily, bulk.jobFamily) ? labels.ladderNeedsFamily : undefined
-        }
-        onChange={(v) => setBulk((b) => ({ ...b, jobTitle: v }))}
-      />
+      {axisFields('inv-bulk', bulk, false, (p) => setBulk((b) => cleanAxis({ ...b, ...p }, p, laddersByFamily, dutiesByLadder)))}
       {jobCategoryEnabled && (
         <OptionSelect
           id="inv-bulk-jobCategory" label={labels.jobCategory} labels={labels}
@@ -888,11 +1101,17 @@ export default function AdminInviteModal({
       />
       <button
         type="button"
-        className="admin-emp-btn is-ghost is-sm"
-        onClick={applyBulkToAll}
-        disabled={rows.length === 0}
+        className="admin-emp-btn is-soft is-sm"
+        onClick={() => applyBulk('empty')}
       >
-        {labels.bulkApply}
+        {labels.bulkApplyEmpty}
+      </button>
+      <button
+        type="button"
+        className="admin-emp-btn is-ghost is-sm"
+        onClick={() => applyBulk('all')}
+      >
+        {labels.bulkApplyAll}
       </button>
     </>
   );
@@ -991,12 +1210,12 @@ export default function AdminInviteModal({
           </div>
         )}
 
-        {/* 일괄 지정 바 — 값 변경은 기존 행에 전파하지 않는다(§4-2).
-            40명을 입력해 둔 뒤 직급 하나를 바꿨을 때 39명의 개별 지정이 조용히
-            날아가는 것을 막는다. 전파는 [전체 적용] 이라는 명시적 행동으로만.
+        {/* 일괄 지정 바 — **사람이 2명 이상일 때만**(§1·§2-2 · PW-1310). 한 명 초대에는 쓸 일이
+            없는 칸이 화면 맨 위를 차지했다(알파 테스트 제보). 1명으로 줄면 사라지되 넣어 둔 값은
+            남는다(E21). 값 변경은 기존 사람에게 전파하지 않는다(§4-2) — 전파는 두 버튼으로만.
             CSV 탭에는 없다 — 값은 파일이 들고 오고, 잘못된 값은 그 행에서 고친다. */}
-        {!isCsv && (
-        <div className="admin-inv-bulk">
+        {!isCsv && rows.length >= 2 && (
+        <div className="admin-inv-bulk" data-testid="admin-invite-bulk">
           <div className="admin-inv-bulk-head">
             <span className="admin-inv-bulk-title">{labels.bulkTitle}</span>
             <span className="admin-inv-hint">{labels.bulkHint}</span>
@@ -1014,6 +1233,14 @@ export default function AdminInviteModal({
         )}
 
         <div className="admin-inv-body">
+          {/* 안내 줄(§2-3) — 어드민이 넣는 값과 가입 후 본인이 채우는 값을 가른다 */}
+          {!isCsv && (
+            <p className="admin-inv-guide">
+              {labels.guideLine1}
+              <br />
+              {labels.guideLine2}
+            </p>
+          )}
           {isCsv && (
             <div className="admin-inv-csv">
               <div className="admin-inv-csv-head">
@@ -1100,17 +1327,58 @@ export default function AdminInviteModal({
             </div>
           )}
 
-          {!isCsv && rows.map((r) => {
-            /* 아직 아무것도 입력하지 않은 행에는 오류를 띄우지 않는다.
-               모달을 열자마자 빈 행이 빨갛게 "유효하지 않은 이메일 · 이름을
+          {!isCsv && rows.map((r, idx) => {
+            /* 아직 아무것도 입력하지 않은 사람에는 오류를 띄우지 않는다.
+               창을 열자마자 빈 카드가 빨갛게 "유효하지 않은 이메일 · 이름을
                입력해주세요" 를 외치면, 사용자가 뭘 잘못한 줄 알고 멈칫한다.
                발송 버튼은 어차피 비활성이라 잘못 나갈 위험은 없다. */
             const touched =
               r.email.trim() !== '' || r.name.trim() !== '' || r.teamIds.length > 0;
             const errs = touched ? errorsByKey[r.key] : [];
             const bad = errs.length > 0 || Boolean(r.failReason);
+            const extraCount = EXTRA_KEYS
+              .filter((k) => (k !== 'jobCategory' || jobCategoryEnabled) && String(r[k] ?? '').trim()).length;
+            // 주 소속 조직에 조직장이 있으면(이번 발송의 예약 포함) 상급자는 조직장이 된다 — CSV 탭과 같은 규칙(PW-902)
+            const managerIgnored = Boolean(r.managerEmail) && Boolean(r.primaryTeamId)
+              && (headTeams.has(r.primaryTeamId) || reservedLeaders.has(r.primaryTeamId));
+            const sel = (k, label, opts, extra = {}) => (
+              <OptionSelect
+                id={`inv-${r.key}-${k}`} label={label} labels={labels}
+                value={r[k]} options={opts} disabled={sending}
+                onChange={(v) => patch(r.key, { [k]: v })}
+                {...extra}
+              />
+            );
+            const text = (k, label) => (
+              <label className="admin-inv-field">
+                <span className="admin-inv-label">{label}</span>
+                <input
+                  type="text"
+                  id={`inv-${r.key}-${k}`}
+                  className="admin-inv-input"
+                  value={r[k]}
+                  disabled={sending}
+                  onChange={(e) => patch(r.key, { [k]: e.target.value })}
+                />
+              </label>
+            );
             return (
-              <div key={r.key} className={`admin-inv-row${bad ? ' is-error' : ''}`}>
+              <div key={r.key} className={`admin-inv-row admin-inv-card${bad ? ' is-error' : ''}`} data-testid="admin-invite-person">
+                {rows.length > 1 && (
+                  <div className="admin-inv-card-head">
+                    <span className="admin-inv-bulk-title">{fmt(labels.personN, { n: idx + 1 })}</span>
+                    <button
+                      type="button"
+                      className="admin-emp-btn is-ghost is-sm admin-emp-danger"
+                      aria-label={labels.removeRow}
+                      title={labels.removeRow}
+                      disabled={sending}
+                      onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
+                    >
+                      <IconTrash size={14} />
+                    </button>
+                  </div>
+                )}
                 <div className="admin-inv-row-main">
                   <label className="admin-inv-field admin-inv-field-email">
                     <span className="admin-inv-label">{labels.email}</span>
@@ -1149,121 +1417,81 @@ export default function AdminInviteModal({
                       ))}
                     </select>
                   </label>
-                  <button
-                    type="button"
-                    className="admin-emp-btn is-ghost is-sm"
-                    aria-expanded={r.open}
-                    onClick={() => patch(r.key, { open: !r.open })}
-                  >
-                    {r.open ? labels.collapse : labels.detail}
-                  </button>
-                  {rows.length > 1 && (
-                    <button
-                      type="button"
-                      className="admin-emp-btn is-ghost is-sm admin-emp-danger"
-                      aria-label={labels.removeRow}
-                      title={labels.removeRow}
-                      disabled={sending}
-                      onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))}
-                    >
-                      <IconTrash size={14} />
-                    </button>
-                  )}
                 </div>
 
-                {/* 접어도 겸직 상태를 알 수 있게 요약 칩을 남긴다(엣지 E6) */}
-                {!r.open && r.teamIds.length > 0 && (
-                  <p className="admin-inv-row-summary">
-                    {r.teamIds.length >= 2
-                      ? fmt(labels.concurrentSummary, {
-                          n: r.teamIds.length,
-                          state: r.primaryTeamId ? labels.primarySet : labels.primaryUnset,
-                        })
-                      : (tree.find((e) => e.id === r.teamIds[0])?.pathLabel ?? '')}
-                  </p>
-                )}
+                {/* 소속 — 조직 배치에 가장 중요한 값이라 접지 않는다(§2-3) */}
+                <div className="admin-inv-teams-block">
+                  <span className="admin-inv-label">{labels.teams}</span>
+                  <TeamSearchField
+                    rowKey={r.key}
+                    tree={tree}
+                    row={r}
+                    labels={labels}
+                    disabled={sending}
+                    onPick={(id) => addTeam(r, id)}
+                    onRemove={(id) => removeTeam(r, id)}
+                    onPrimary={(id) => patch(r.key, { primaryTeamId: id, primaryNote: '' })}
+                    onLeader={(id) => toggleLeader(r, id)}
+                  />
+                  {r.primaryNote && <p className="admin-inv-hint" role="status">{r.primaryNote}</p>}
+                </div>
 
-                {r.open && (
-                  <div className="admin-inv-row-detail">
-                    <div className="admin-inv-row-fields">
-                      <OptionSelect
-                        id={`inv-${r.key}-jobLevel`} label={labels.jobLevel} labels={labels}
-                        value={r.jobLevel} options={fieldOptions.jobLevel} disabled={sending}
-                        onChange={(v) => patch(r.key, { jobLevel: v })}
-                      />
-                      <OptionSelect
-                        id={`inv-${r.key}-jobFamily`} label={labels.jobFamily} labels={labels}
-                        value={r.jobFamily} options={fieldOptions.jobFamily} disabled={sending}
-                        onChange={(v) => patch(r.key, { jobFamily: v })}
-                      />
-                      <OptionSelect
-                        id={`inv-${r.key}-jobTitle`} label={labels.jobTitle} labels={labels}
-                        value={r.jobTitle}
-                        options={laddersForFamily(laddersByFamily, r.jobFamily, fieldOptions.jobTitle)}
-                        disabled={sending || ladderLocked(laddersByFamily, r.jobFamily)}
-                        placeholder={
-                          ladderLocked(laddersByFamily, r.jobFamily)
-                            ? labels.ladderNeedsFamily
-                            : undefined
-                        }
-                        onChange={(v) => patch(r.key, { jobTitle: v })}
-                      />
-                      {jobCategoryEnabled && (
-                        <OptionSelect
-                          id={`inv-${r.key}-jobCategory`} label={labels.jobCategory} labels={labels}
-                          value={r.jobCategory} options={fieldOptions.jobCategory} disabled={sending}
-                          onChange={(v) => patch(r.key, { jobCategory: v })}
-                        />
-                      )}
-                      <OptionSelect
-                        id={`inv-${r.key}-workLocation`} label={labels.workLocation} labels={labels}
-                        value={r.workLocation} options={fieldOptions.workLocation} disabled={sending}
-                        onChange={(v) => patch(r.key, { workLocation: v })}
-                      />
-                      <OptionSelect
-                        id={`inv-${r.key}-employmentType`} label={labels.employmentType} labels={labels}
-                        value={r.employmentType} options={fieldOptions.employmentType} disabled={sending}
-                        placeholder={labels.unset}
-                        onChange={(v) => patch(r.key, { employmentType: v })}
-                      />
-                    </div>
+                {/* 주요 정보 — 접지 않는다(§2-3). 종전에는 전부 [상세] 안에 있었다. */}
+                <div className="admin-inv-row-fields">
+                  {sel('jobLevel', labels.jobLevel, fieldOptions.jobLevel)}
+                  {sel('jobPosition', labels.jobPosition, fieldOptions.jobPosition)}
+                  {axisFields(`inv-${r.key}`, r, sending, (p) => patch(r.key, p))}
+                  <label className="admin-inv-field">
+                    <span className="admin-inv-label">{labels.hireDate}</span>
+                    <DateInput
+                      id={`inv-${r.key}-hireDate`}
+                      className="admin-inv-input"
+                      value={r.hireDate}
+                      disabled={sending}
+                      aria-label={labels.hireDate}
+                      onChange={(v) => patch(r.key, { hireDate: v })}
+                    />
+                  </label>
+                  {sel('employmentType', labels.employmentType, fieldOptions.employmentType, { placeholder: labels.unset })}
+                  {sel('workLocation', labels.workLocation, fieldOptions.workLocation)}
+                </div>
 
-                    <div className="admin-inv-teams-block">
-                      <span className="admin-inv-label">{labels.teams}</span>
-                      <TeamMultiPicker
-                        rowKey={r.key}
-                        tree={tree}
-                        selected={r.teamIds}
-                        primaryId={r.primaryTeamId}
-                        labels={labels}
-                        onToggle={(id) => toggleTeam(r, id)}
-                      />
-                      {r.teamIds.length >= 2 && (
-                        // 힌트를 label 안에 두면 접근성 이름이 "주 소속 (필수)소속을
-                        // 2개 이상 고르면…" 으로 붙어 버린다 — htmlFor 로 묶고 힌트는
-                        // 밖에 둔다.
-                        <div className="admin-inv-field admin-inv-primary">
-                          <label className="admin-inv-label" htmlFor={`inv-${r.key}-primary`}>
-                            {labels.primaryTeamRequired}
-                          </label>
-                          <select
-                            id={`inv-${r.key}-primary`}
-                            className="admin-inv-select"
-                            value={r.primaryTeamId}
-                            disabled={sending}
-                            onChange={(e) => patch(r.key, { primaryTeamId: e.target.value })}
-                          >
-                            <option value="">{labels.unset}</option>
-                            {r.teamIds.map((id) => (
-                              <option key={id} value={id}>
-                                {tree.find((e) => e.id === id)?.pathLabel ?? id}
-                              </option>
-                            ))}
-                          </select>
-                          <span className="admin-inv-hint">{labels.primaryHint}</span>
-                        </div>
-                      )}
-                    </div>
+                {/* 추가 정보 — 덜 쓰는 칸만 접는다. 접혀 있어도 몇 개 넣었는지 버튼이 말한다(E6 개정) */}
+                <button
+                  type="button"
+                  className="admin-emp-btn is-ghost is-sm admin-inv-extra-toggle"
+                  aria-expanded={r.extraOpen}
+                  onClick={() => patch(r.key, { extraOpen: !r.extraOpen })}
+                >
+                  {r.extraOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                  {extraCount > 0 ? fmt(labels.extraInfoCount, { n: extraCount }) : labels.extraInfo}
+                </button>
+                {r.extraOpen && (
+                  <div className="admin-inv-row-fields admin-inv-extra">
+                    {sel('jobRank', labels.jobRank, fieldOptions.jobRank)}
+                    {jobCategoryEnabled && sel('jobCategory', labels.jobCategory, fieldOptions.jobCategory)}
+                    {text('nickname', labels.nickname)}
+                    {text('employeeCode', labels.employeeCode)}
+                    {supervisorCandidates && (
+                      <div className="admin-inv-field">
+                        <label className="admin-inv-label" htmlFor={`inv-${r.key}-managerEmail`}>{labels.manager}</label>
+                        <select
+                          id={`inv-${r.key}-managerEmail`}
+                          className="admin-inv-select"
+                          value={r.managerEmail}
+                          disabled={sending}
+                          onChange={(e) => patch(r.key, { managerEmail: e.target.value })}
+                        >
+                          <option value="">{labels.unset}</option>
+                          {supervisorCandidates.map((c) => (
+                            <option key={c.email} value={c.email}>
+                              {c.name ? `${c.name} (${c.email})` : c.email}
+                            </option>
+                          ))}
+                        </select>
+                        {managerIgnored && <span className="admin-inv-hint">{labels.csvNoteManagerIgnored}</span>}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1293,10 +1521,11 @@ export default function AdminInviteModal({
               {rows.length >= maxRows && (
                 <span className="admin-inv-hint">{fmt(labels.maxRows, { n: maxRows })}</span>
               )}
+              {rows.length === 1 && <span className="admin-inv-hint">{labels.singleHint}</span>}
             </div>
           )}
 
-          {/* 조직장·스쿼드는 직접 입력 탭에서 지정하지 않는다(§2-3). CSV 는 두 칸을 받는다(PW-902). */}
+          {/* 조직장은 소속 줄에서 «예약»하고 가입 때 적용된다(§2-3). 스쿼드는 직접 입력에서 받지 않는다. */}
           {!isCsv && (
           <p className="admin-inv-note">
             {labels.leaderNote}

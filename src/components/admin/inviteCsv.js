@@ -616,6 +616,19 @@ export function blankInviteCsvRow(values = {}) {
  * 이 칸들이 오면 `>` 로 이어 조직경로로 읽는다. 직원 관리 CSV 가져오기(admin-spec.md 「헤더 별칭」)와
  * 같은 읽기다. 조직경로 칸에 값이 있으면 그 줄은 조직경로를 따른다.
  */
+/**
+ * 사번 비교 키 — 공백·대소문자를 접는다. CSV 탭과 직접 입력 탭(V16 · PW-1310)이 같은 키로 겹침을 본다.
+ */
+export const employeeCodeKey = (v) => fold(v);
+
+/** `{ code, email }[]` → 사번 키 → 그 사번을 가진 사람의 이메일. 못 받았으면 `null`(서버가 판정한다). */
+export function employeeCodeOwnerMap(owners) {
+  if (!owners) return null;
+  return new Map(owners
+    .filter((o) => normalize(o?.code))
+    .map((o) => [employeeCodeKey(o.code), normEmail(o.email)]));
+}
+
 export const INVITE_CSV_ORG_LEVEL_HEADERS = ['본부', '부서', '파트'];
 
 /**
@@ -759,11 +772,7 @@ export function buildInviteCsvContext(rows, {
     fieldLimits: fieldLimits || {},
     blockedEmploymentStatuses: new Set(blockedEmploymentStatuses || []),
     // 사번 → 그 사번을 가진 사람의 이메일. 못 받았으면 `null`(서버가 판정한다).
-    employeeCodeOwner: employeeCodeOwners
-      ? new Map(employeeCodeOwners
-        .filter((o) => normalize(o?.code))
-        .map((o) => [fold(o.code), normEmail(o.email)]))
-      : null,
+    employeeCodeOwner: employeeCodeOwnerMap(employeeCodeOwners),
     lookupPath: resolveOrgPath || ((raw) => lookupOrgPath(index, raw)),
   };
   // 파일 안에서 조직장을 예약한 조직도 「조직장이 있는 조직」으로 본다 — 그 사람이 가입하면
@@ -957,7 +966,7 @@ export function inviteCsvIssues(row, ctx) {
   // 사번은 회사 안에서 한 사람만 쓴다 — 같은 사람(같은 이메일)이 이미 그 사번을 가졌으면 겹친 게 아니다(서버와 같다).
   const code = normalize(v.employeeCode);
   if (code && ctx.employeeCodeOwner) {
-    const owner = ctx.employeeCodeOwner.get(fold(code));
+    const owner = ctx.employeeCodeOwner.get(employeeCodeKey(code));
     if (owner !== undefined && owner !== email) add('employeeCode', fmtCsv(l.csvErrEmployeeCodeTaken, { value: code }));
   }
   return issues;

@@ -4406,6 +4406,10 @@ export default function AdminEmployeesCanvas({
             .filter((m) => m.employmentStatus !== 'terminated')
             .map((m) => m.email)
             .filter(Boolean)}
+          // 직접 입력 «상급자» 칸의 후보(PW-1310) — 위 명부와 같은 기준(퇴사자만 뺀다)에 이름을 붙인다.
+          supervisorCandidates={members
+            .filter((m) => m.employmentStatus !== 'terminated' && m.email)
+            .map((m) => ({ email: m.email, name: m.name }))}
           pendingEmails={invites
             .filter((i) => i.status === 'pending')
             .map((i) => i.email)
