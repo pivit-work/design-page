@@ -3210,7 +3210,6 @@
   background: var(--colors-error-25, #fffbfa);
 }
 .admin-inv-row-main { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
-.admin-inv-row-summary,
 .admin-inv-hint,
 .admin-inv-note {
   margin: 0;
@@ -3218,22 +3217,28 @@
   color: var(--text-tertiary);
   line-height: 1.6;
 }
-.admin-inv-row-summary { margin-top: 6px; }
 .admin-inv-row-error {
   margin: 8px 0 0;
   font-size: var(--font-size-text-xs);
   color: var(--text-error-primary);
   line-height: 1.5;
 }
-.admin-inv-row-detail {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--bg-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ── 사람 카드 (PW-1310 §2-3) — 주요 정보는 펼쳐 두고 추가 정보만 접는다 ── */
+.admin-inv-guide {
+  margin: 0 0 4px;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
-.admin-inv-row-fields { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-inv-card { display: flex; flex-direction: column; gap: 10px; }
+.admin-inv-card-head { display: flex; align-items: center; justify-content: space-between; }
+.admin-inv-row-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.admin-inv-extra-toggle { align-self: flex-start; }
+.admin-inv-extra { padding-top: 10px; border-top: 1px dashed var(--bg-secondary); }
 
 /* ── 겸직 소속 선택 ── */
 .admin-inv-teams-block { display: flex; flex-direction: column; gap: 6px; }
@@ -3250,16 +3255,44 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   padding-top: 4px;
   padding-bottom: 4px;
   padding-right: 8px;
   /* padding-left 는 depth 들여쓰기라 인라인 스타일이 준다(P1: depth당 12px). */
 }
-.admin-inv-team-row:hover { background: var(--bg-secondary); }
+.admin-inv-team-row:not(:disabled):hover { background: var(--bg-secondary); }
+.admin-inv-team-row:disabled { cursor: default; }
+/* 조상 경로(P5) — 어느 «개발팀»인지 알려 주되 고를 수는 없다 */
+.admin-inv-team-row.is-ancestor .admin-inv-team-name { color: var(--text-quaternary, #98a2b3); }
+.admin-inv-team-none { padding: 6px 10px; }
+.admin-inv-team-searchbox { display: flex; flex-direction: column; gap: 6px; }
+.admin-inv-team-add { align-self: flex-start; }
+/* 고른 소속 줄 — 경로는 상위를 흐리게, 최하위 팀명만 본문 색(P4) */
+.admin-inv-picked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.admin-inv-picked-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+  border: 1px solid var(--border-secondary, #e4e7ec);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-text-xs);
+}
+.admin-inv-picked-path { flex: 1 1 200px; min-width: 0; display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.admin-inv-picked-anc { color: var(--text-tertiary); white-space: pre; }
+.admin-inv-picked-name { color: var(--text-primary); font-weight: 600; }
+.admin-inv-picked-opt { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); cursor: pointer; }
+.admin-inv-picked-opt input { accent-color: var(--bg-brand-solid); }
 /* 🔴 선택 표시는 **행 자신**이 들고 있어야 한다. 부모(.is-on) 스코프로 쓰면
    이 목록을 다른 화면에 재사용할 때 상태 표시가 통째로 사라진다. */
 .admin-inv-team-row.is-on .admin-inv-team-name { font-weight: 700; color: var(--text-brand-secondary); }
-.admin-inv-team-check { flex-shrink: 0; accent-color: var(--bg-brand-solid); cursor: pointer; }
 .admin-inv-team-name {
   flex: 1;
   min-width: 0;
