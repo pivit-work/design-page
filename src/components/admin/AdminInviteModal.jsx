@@ -108,6 +108,10 @@ const DEFAULT_LABELS = {
   leaderNote: '조직장 지정은 가입 완료 후 팀 관리에서 할 수 있습니다.',
   squadNote: '스쿼드 배정은 조직도 스쿼드 뷰에서 별도로 합니다 (기능조직과 다른 축).',
   summary: '{n}명에게 초대를 보냅니다',
+  // [PW-1331] 명부에 이미 있는 사람·대기 중인 초대는 막지 않고 다시 보낸다
+  resendSuffix: ' · 그중 {n}명은 다시 보내기',
+  noteResendMember: '이미 구성원이에요 — 초대 메일을 다시 보냅니다. 수락하면 명부의 그 사람으로 들어옵니다',
+  noteResendPending: '대기 중인 초대예요 — 새 링크로 다시 보내고 옛 링크는 끝납니다',
   cancel: '취소',
   send: '초대 보내기',
   sending: '보내는 중…',
@@ -502,8 +506,7 @@ export default function AdminInviteModal({
     const e = [];
     const key = normEmail(r.email);
     if (!(emailValid || emailOk)(r.email)) e.push(labels.errInvalidEmail);
-    else if (existing.has(key)) e.push(labels.errAlreadyMember);
-    else if (pending.has(key)) e.push(labels.errPendingInvite);
+    // [PW-1331] 이미 구성원·대기 중은 오류가 아니라 «다시 보내기»다 — 아래 resendNoteOf.
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
@@ -543,8 +546,19 @@ export default function AdminInviteModal({
 
   const validRows = isCsv ? csvValidRows : rows.filter((r) => errorsByKey[r.key].length === 0);
   const validCount = validRows.length;
+  /* [PW-1331] 다시 보내기 — 명부에 이미 있는 사람(퇴사자는 `existingEmails` 에 없다)과 대기 중인
+     초대. 인원이 늘지 않으니 좌석 셈에서도 뺀다(서버와 같은 셈). */
+  const resendNoteOf = (email) => {
+    const key = normEmail(email);
+    if (existing.has(key)) return labels.noteResendMember;
+    if (pending.has(key)) return labels.noteResendPending;
+    return null;
+  };
+  const resendCount = validRows
+    .filter((r) => resendNoteOf(isCsv ? r.values.email : r.email))
+    .length;
   const seatsLeft = seats && seats.limit !== null ? seats.remaining : null;
-  const seatExempt = new Set(seatExemptEmails.map(normEmail));
+  const seatExempt = new Set([...seatExemptEmails, ...existingEmails, ...pendingEmails].map(normEmail));
   const seatNeed = validRows
     .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
     .length;
@@ -863,6 +877,7 @@ export default function AdminInviteModal({
           ? (isCsv && csvErrorCount > 0
             ? fmt(labels.csvSummarySkip, { n: validCount, m: csvErrorCount })
             : fmt(labels.summary, { n: validCount }))
+            + (resendCount > 0 ? fmt(labels.resendSuffix, { n: resendCount }) : '')
           : ''}
       </span>
       <div className="adm-shell-foot-actions">
@@ -895,7 +910,7 @@ export default function AdminInviteModal({
     <>
     <ModalShell
       title={labels.title}
-      description={`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: validCount })}`}
+      description={`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: seatNeed })}`}
       titleId="admin-invite-title"
       closeLabel={labels.close}
       onClose={requestClose}
@@ -1221,6 +1236,9 @@ export default function AdminInviteModal({
 
                 {errs.length > 0 && (
                   <p className="admin-inv-row-error">{errs.join(' · ')}</p>
+                )}
+                {errs.length === 0 && resendNoteOf(r.email) && (
+                  <p className="admin-inv-note">{resendNoteOf(r.email)}</p>
                 )}
                 {r.failReason && (
                   <p className="admin-inv-row-error">{r.failReason}</p>
