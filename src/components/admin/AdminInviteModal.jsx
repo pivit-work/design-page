@@ -110,7 +110,7 @@ const DEFAULT_LABELS = {
   summary: '{n}명에게 초대를 보냅니다',
   // [PW-1331] 명부에 이미 있는 사람·대기 중인 초대는 막지 않고 다시 보낸다
   resendSuffix: ' · 그중 {n}명은 다시 보내기',
-  noteResendMember: '이미 구성원이에요 — 초대 메일을 다시 보냅니다. 수락하면 명부의 그 사람으로 들어옵니다',
+  noteResendMember: '아직 가입하지 않은 구성원이에요 — 초대 메일을 다시 보냅니다. 수락하면 명부의 그 사람으로 들어옵니다',
   noteResendPending: '대기 중인 초대예요 — 새 링크로 다시 보내고 옛 링크는 끝납니다',
   cancel: '취소',
   send: '초대 보내기',
@@ -120,6 +120,7 @@ const DEFAULT_LABELS = {
   // 검증 문구 V1~V7
   errInvalidEmail: '유효하지 않은 이메일',
   errAlreadyMember: '이미 멤버입니다',
+  errTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
   errPendingInvite: '초대 대기 중',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
@@ -131,6 +132,7 @@ const DEFAULT_LABELS = {
   errJobPair: '직군에 없는 직렬입니다',
   // 발송 실패 사유(§8)
   failAlreadyMember: '이미 멤버입니다',
+  failTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
   failPendingExists: '이미 초대 대기 중입니다',
   failSeatLimit: '좌석이 부족합니다',
   failPrimaryTeam: '주 소속을 지정해주세요',
@@ -329,8 +331,12 @@ export default function AdminInviteModal({
    * 쓴다(종전 동작). 「이미 구성원」과 기준이 다를 수 있어 따로 받는다(PW-1056).
    */
   supervisorEmails,
-  /** 대기 중 초대가 있는 이메일 (V6) */
+  /** 대기 중 초대가 있는 이메일 (V6) — 막지 않고 새 링크로 다시 보낸다 (PW-1331) */
   pendingEmails = [],
+  /** 명부에 있지만 **아직 가입하지 않은** 사람의 이메일 — 막지 않고 «다시 보내기» (PW-1331) */
+  resendEmails = [],
+  /** 명부의 퇴사자 이메일 — 초대를 보내지 않는다 (PW-1331 · 퇴사 후 재초대 방식 폐기) */
+  terminatedEmails = [],
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
   seats = null,
   /** { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] } — `jobTitle` 은 **직렬** */
@@ -462,6 +468,8 @@ export default function AdminInviteModal({
 
   const existing = useMemo(() => new Set(existingEmails.map(normEmail)), [existingEmails]);
   const pending = useMemo(() => new Set(pendingEmails.map(normEmail)), [pendingEmails]);
+  const resend = useMemo(() => new Set(resendEmails.map(normEmail)), [resendEmails]);
+  const terminated = useMemo(() => new Set(terminatedEmails.map(normEmail)), [terminatedEmails]);
 
   /* 활성 탭의 행 — 검증·발송·부분 성공 처리는 전부 이 목록에 적용된다.
      두 탭이 같은 코드를 지나야 CSV 가 이름 칸 이메일 차단(PW-207) 같은 규칙의
@@ -506,7 +514,9 @@ export default function AdminInviteModal({
     const e = [];
     const key = normEmail(r.email);
     if (!(emailValid || emailOk)(r.email)) e.push(labels.errInvalidEmail);
-    // [PW-1331] 이미 구성원·대기 중은 오류가 아니라 «다시 보내기»다 — 아래 resendNoteOf.
+    // [PW-1331] 가입한 사람·퇴사자는 막고, 가입 전 구성원·대기 중은 «다시 보내기»(아래 resendNoteOf)다.
+    else if (existing.has(key)) e.push(labels.errAlreadyMember);
+    else if (terminated.has(key)) e.push(labels.errTerminatedMember);
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
@@ -531,7 +541,7 @@ export default function AdminInviteModal({
   const csvPreparedNotices = csvPrepared?.notices ?? [];
   const csvCtx = buildInviteCsvContext(csvRows, {
     orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
-    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, headTeamIds, labels,
+    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
   });
@@ -546,11 +556,11 @@ export default function AdminInviteModal({
 
   const validRows = isCsv ? csvValidRows : rows.filter((r) => errorsByKey[r.key].length === 0);
   const validCount = validRows.length;
-  /* [PW-1331] 다시 보내기 — 명부에 이미 있는 사람(퇴사자는 `existingEmails` 에 없다)과 대기 중인
-     초대. 인원이 늘지 않으니 좌석 셈에서도 뺀다(서버와 같은 셈). */
+  /* [PW-1331] 다시 보내기 — 명부에 있지만 아직 가입하지 않은 사람과 대기 중인 초대. 인원이
+     늘지 않으니 좌석 셈에서도 뺀다(서버와 같은 셈). */
   const resendNoteOf = (email) => {
     const key = normEmail(email);
-    if (existing.has(key)) return labels.noteResendMember;
+    if (resend.has(key)) return labels.noteResendMember;
     if (pending.has(key)) return labels.noteResendPending;
     return null;
   };
@@ -558,7 +568,7 @@ export default function AdminInviteModal({
     .filter((r) => resendNoteOf(isCsv ? r.values.email : r.email))
     .length;
   const seatsLeft = seats && seats.limit !== null ? seats.remaining : null;
-  const seatExempt = new Set([...seatExemptEmails, ...existingEmails, ...pendingEmails].map(normEmail));
+  const seatExempt = new Set([...seatExemptEmails, ...resendEmails, ...pendingEmails].map(normEmail));
   const seatNeed = validRows
     .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
     .length;

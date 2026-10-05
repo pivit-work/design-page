@@ -301,8 +301,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrTooManyRows: '{count}행이라 올릴 수 없어요. 한 번에 최대 {max}행까지 가능합니다 — 파일을 나눠 올려주세요.',
   errInvalidEmail: '유효하지 않은 이메일',
   errAlreadyMember: '이미 멤버입니다',
+  errTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
   errPendingInvite: '초대 대기 중',
-  csvNoteResendMember: '이미 구성원 — 초대를 다시 보냅니다',
+  csvNoteResendMember: '가입 전 구성원 — 초대를 다시 보냅니다',
   csvNoteResendPending: '대기 중인 초대 — 새 링크로 다시 보냅니다',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
@@ -704,6 +705,8 @@ export function parseInviteCsv(
  * @param {string[]} [opts.supervisorEmails] 상급자 칸만 볼 구성원 이메일. 안 주면 `memberEmails` —
  *   「이미 멤버」와 기준이 다를 수 있어 따로 받는다(PW-1056)
  * @param {string[]} [opts.pendingEmails]  대기 중 초대 이메일
+ * @param {string[]} [opts.resendEmails]  명부에 있지만 아직 가입하지 않은 사람 — «다시 보내기» 안내 (PW-1331)
+ * @param {string[]} [opts.terminatedEmails]  명부의 퇴사자 — 막는다 (PW-1331)
  * @param {string[]} [opts.headTeamIds]    조직장이 있는 조직 id(상급자 안내)
  * @param {object} [opts.labels]
  *
@@ -721,7 +724,7 @@ export function parseInviteCsv(
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
-  pendingEmails = [], headTeamIds = [], labels = {},
+  pendingEmails = [], resendEmails = [], terminatedEmails = [], headTeamIds = [], labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
   blockedEmploymentStatuses = [], employeeCodeOwners = null,
 } = {}) {
@@ -743,6 +746,8 @@ export function buildInviteCsvContext(rows, {
     memberEmails: new Set(memberEmails.map(normEmail)),
     supervisorEmails: new Set((supervisorEmails ?? memberEmails).map(normEmail)),
     pendingEmails: new Set(pendingEmails.map(normEmail)),
+    resendEmails: new Set(resendEmails.map(normEmail)),
+    terminatedEmails: new Set(terminatedEmails.map(normEmail)),
     fileEmailCount,
     headTeamIds: new Set(headTeamIds),
     reservedLeaderTeamIds: new Set(),
@@ -820,7 +825,9 @@ export function inviteCsvIssues(row, ctx) {
 
   const email = normEmail(v.email);
   if (!(ctx.emailValid || emailOk)(v.email)) add('email', l.errInvalidEmail);
-  // [PW-1331] 이미 구성원·대기 중은 오류가 아니다 — 서버가 다시 보낸다(창의 «다시 보내기» 요약).
+  // [PW-1331] 가입한 사람·퇴사자는 막는다. 가입 전 구성원·대기 중은 오류가 아니다 — 서버가 다시 보낸다.
+  else if (ctx.memberEmails.has(email)) add('email', l.errAlreadyMember);
+  else if (ctx.terminatedEmails.has(email)) add('email', l.errTerminatedMember);
   else if ((ctx.fileEmailCount.get(email) || 0) > 1) add('email', l.errDuplicate);
 
   // 길이 검사와 이메일 검사는 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
@@ -957,9 +964,9 @@ export function inviteCsvIssues(row, ctx) {
  */
 export function inviteCsvNotes(row, ctx) {
   const notes = [];
-  // [PW-1331] 이미 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
+  // [PW-1331] 가입 전 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
   const email = normEmail(row.values.email);
-  if (ctx.memberEmails.has(email)) {
+  if (ctx.resendEmails.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
   } else if (ctx.pendingEmails.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteResendPending });
