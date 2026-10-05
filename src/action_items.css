@@ -294,7 +294,7 @@
   cursor: pointer;
 }
 .ai-row-title.is-link:focus-visible {
-  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: 2px;
 }
 .ai-row-meta {
