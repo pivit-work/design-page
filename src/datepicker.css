@@ -143,3 +143,44 @@
   background: transparent;
   cursor: default;
 }
+/* PW-1301 — 머리 글자를 누르면 위 단계(일 → 월 → 연도)로 올라간다. 글자 모양은
+   .dp-datepicker-label 그대로이고, 버튼임을 아래 꺾쇠와 hover 채움으로 보인다. */
+.dp-datepicker-label.is-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.dp-datepicker-label.is-button:hover {
+  background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+/* 연도·월 보기 — 일 격자와 같은 280×304 자리에 같은 높이 40 알약을 넓혀 깐다.
+   연도 4×5 = 4×64 + 3×8 / 5×40 + 4×26 · 월 3×4 = 3×88 + 2×8 / 4×40 + 3×48 */
+.dp-datepicker-grid.is-years,
+.dp-datepicker-grid.is-months {
+  display: grid;
+  height: 304px;
+  align-content: start;
+  column-gap: 8px;
+}
+.dp-datepicker-grid.is-years {
+  grid-template-columns: repeat(4, 64px);
+  row-gap: 26px;
+}
+.dp-datepicker-grid.is-months {
+  grid-template-columns: repeat(3, 88px);
+  row-gap: 48px;
+}
+.dp-datepicker-grid.is-years .dp-datepicker-cell {
+  width: 64px;
+}
+.dp-datepicker-grid.is-months .dp-datepicker-cell {
+  width: 88px;
+}

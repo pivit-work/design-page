@@ -3131,6 +3131,7 @@ function EmployeesEditPanel({
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
+  today,
   onLoadPersonalHistory,
   /* PW-576 — 폐기된 스프레드시트 뷰가 받던 카탈로그가 그대로 내려온다.
      못 받으면 그 칸이 자유 텍스트가 될 뿐 값은 보존된다. */
@@ -3758,6 +3759,7 @@ function EmployeesEditPanel({
             row={draft}
             labels={labels.records}
             onLoad={onLoadHrProfile}
+            today={today}
             onSaveIdentity={canEdit ? onSaveIdentity : undefined}
             onLoadTrainings={hrRecordHandlers?.onLoadTrainings}
             onAddTraining={canEdit ? hrRecordHandlers?.onAddTraining : undefined}
@@ -4017,6 +4019,8 @@ export default function AdminEmployeesCanvas({
    */
   hrRecordHandlers,
   onLoadHrProfile,
+  /** 「오늘」 `YYYY-MM-DD` — 보는 사람의 내 설정 타임존(PW-781). 인사 기록 생년월일 달력의 상한 (PW-1301) */
+  today,
   // 시트가 HR 모달을 렌더하므로 여기서 함께 내려줘야 신원 편집이 열린다(PW-25).
   onSaveIdentity,
   /**
@@ -4279,6 +4283,7 @@ export default function AdminEmployeesCanvas({
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
+            today={today}
             onSaveIdentity={onSaveIdentity}
             onLoadPersonalHistory={onLoadPersonalHistory}
             /* PW-576 — 폐기된 시트가 받던 카탈로그·기록 콜백이 그대로 패널로 간다.

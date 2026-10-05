@@ -23,8 +23,30 @@ export function isKoreanLocale(locale) {
 }
 
 const PICKER_WORDS = {
-  ko: { today: '오늘', prevMonth: '이전 달', nextMonth: '다음 달' },
-  en: { today: 'Today', prevMonth: 'Previous month', nextMonth: 'Next month' },
+  ko: {
+    today: '오늘',
+    prevMonth: '이전 달',
+    nextMonth: '다음 달',
+    prevYear: '이전 해',
+    nextYear: '다음 해',
+    prevYears: '이전 20년',
+    nextYears: '다음 20년',
+    toMonthView: '월 선택으로',
+    toYearView: '연도 선택으로',
+    yearLabel: (y) => `${y}년`,
+  },
+  en: {
+    today: 'Today',
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    prevYear: 'Previous year',
+    nextYear: 'Next year',
+    prevYears: 'Previous 20 years',
+    nextYears: 'Next 20 years',
+    toMonthView: 'Choose month',
+    toYearView: 'Choose year',
+    yearLabel: (y) => `${y}`,
+  },
 };
 
 // 2023-01-02 는 월요일 — 달력이 월요일부터라 요일 이름도 월요일부터 뽑는다.
@@ -33,6 +55,7 @@ const MONDAY = new Date(2023, 0, 2);
 /**
  * DatePicker 의 `labels` 를 화면 언어로 만든다. 요일·달 이름은 로케일에서 뽑는다
  * (ko 「월 화 수」「2026년 9월」, en 「Mon Tue Wed」「September 2026」).
+ * 월 보기 칸은 짧은 달 이름(ko 「4월」, en 「Apr」), 머리는 연도(ko 「1981년」, en 「1981」) — PW-1301.
  */
 export function datePickerLabels(locale) {
   const lang = resolveUiLocale(locale);
@@ -40,10 +63,12 @@ export function datePickerLabels(locale) {
   let weekday;
   let month;
   let yearMonth;
+  let monthShort;
   try {
     weekday = new Intl.DateTimeFormat(lang, { weekday: 'short' });
     month = new Intl.DateTimeFormat(lang, { month: 'long' });
     yearMonth = new Intl.DateTimeFormat(lang, { year: 'numeric', month: 'long' });
+    monthShort = new Intl.DateTimeFormat(lang, { month: 'short' });
   } catch {
     // 잘못된 lang 문자열이면 한국어로 — 영어로 떨어지면 이 카드가 고친 증상이 돌아온다.
     return datePickerLabels('ko');
@@ -53,9 +78,8 @@ export function datePickerLabels(locale) {
       weekday.format(new Date(2023, 0, MONDAY.getDate() + i)),
     ),
     months: Array.from({ length: 12 }, (_, i) => month.format(new Date(2023, i, 1))),
+    monthsShort: Array.from({ length: 12 }, (_, i) => monthShort.format(new Date(2023, i, 1))),
     monthLabel: (y, m) => yearMonth.format(new Date(y, m, 1)),
-    today: words.today,
-    prevMonth: words.prevMonth,
-    nextMonth: words.nextMonth,
+    ...words,
   };
 }

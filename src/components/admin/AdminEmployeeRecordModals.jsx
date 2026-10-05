@@ -13,6 +13,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import DateInput from '../shared/DateInput.jsx';
+import { todayIsoInZone } from '../shared/calendarDate.js';
 import { IconLock } from './employeeExport.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -295,7 +296,7 @@ function joinAddressLine(address) {
   return [head, line, tail].filter(Boolean).join(' ');
 }
 
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
@@ -319,6 +320,9 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           value={value ?? ''}
           onChange={onChange}
           aria-label={k}
+          startView={startView}
+          max={max}
+          today={today}
           style={{ flex: 1, height: 30, fontSize: 12 }}
         />
       ) : (
@@ -471,6 +475,8 @@ const MILITARY_OPTIONS = [
 
 export function HrProfileModal({
   row, labels, onLoad, onSaveIdentity, onClose,
+  // 「오늘」 `YYYY-MM-DD` — 보는 사람의 내 설정 타임존(PW-781). 안 주면 브라우저 시간대의 오늘.
+  today,
   // 수료한 교육 과정·복리후생 (PW-920 재작업) — 넘기면 그 묶음을 넣고 고치고 지우는 자리가 선다.
   onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
   onLoadBenefits, onSaveBenefits,
@@ -478,6 +484,7 @@ export function HrProfileModal({
   confirmDelete,
 }) {
   const L = labels || {};
+  const todayIso = today || todayIsoInZone();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -567,7 +574,8 @@ export function HrProfileModal({
               {onSaveIdentity ? (
                 <div data-testid="hr-identity-edit">
                   <HrEditPair k={L.hrPersonalEmail || '개인 이메일'} type="email" value={idDraft.personalEmail} onChange={setIdField('personalEmail')} />
-                  <HrEditPair k={L.hrBirthDate || '생년월일'} date value={idDraft.birthDate} onChange={setIdField('birthDate')} />
+                  <HrEditPair k={L.hrBirthDate || '생년월일'} date value={idDraft.birthDate} onChange={setIdField('birthDate')}
+                    startView="year" max={todayIso} today={todayIso} />
                   <HrEditPair
                     k={L.hrGender || '성별'}
                     value={idDraft.gender}
