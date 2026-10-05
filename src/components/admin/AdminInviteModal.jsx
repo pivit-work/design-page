@@ -160,7 +160,8 @@ const DEFAULT_LABELS = {
   discardLeave: '입력 내용 버리기',
   // CSV 업로드 탭(§2-4 / PW-212)
   tabDirect: '직접 입력',
-  tabCsv: 'CSV 업로드',
+  // 목록의 [CSV 업로드](구성원 정보 일괄 수정)와 이름이 같아 헷갈렸다 — 용도로 가른다(PW-1299).
+  tabCsv: 'CSV로 일괄 초대',
   csvIntro: '템플릿을 받아 채운 뒤 올리면, 반영 전에 값을 화면에서 검토·수정할 수 있어요.',
   csvTemplate: '템플릿 다운로드',
   csvDropHere: 'CSV 파일을 드래그하거나 클릭해서 선택',
