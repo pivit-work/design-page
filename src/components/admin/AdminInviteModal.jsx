@@ -173,6 +173,7 @@ const DEFAULT_LABELS = {
   // 파일 자체를 못 읽는 경우 — 스테이징을 만들지 않는다
   csvErrEmpty: '내용이 없는 파일이에요.',
   csvErrNotCsv: 'CSV 파일만 업로드할 수 있어요.',
+  csvErrNotCsvOrXlsx: 'CSV 또는 XLSX 파일만 업로드할 수 있어요.',
   csvErrRead: '파일을 읽지 못했어요. 다시 시도해주세요.',
   csvErrNoRows: '헤더만 있고 읽을 행이 없어요.',
   csvErrMissingColumns: '필수 열이 없어요: {columns}',
@@ -368,6 +369,13 @@ export default function AdminInviteModal({
   resolveOrgPath = null,
   /** CSV 고용상태 중 초대에 쓸 수 없는 코드(예: `['terminated']`) — 그 줄을 오류로 세운다(PW-1042). */
   csvBlockedEmploymentStatuses = [],
+  /** CSV 사번 칸 확인 — 회사 사람들의 `{ code, email }`. 못 받았으면 `null`(서버가 판정한다). */
+  csvEmployeeCodeOwners = null,
+  /**
+   * `.xlsx` 파일 → CSV 글자. 넘기면 CSV 탭이 `.xlsx` 도 받는다(엑셀 읽기는 앱이 맡는다).
+   * 안 넘기면 `.csv` 만 받는다.
+   */
+  readSpreadsheet = null,
   /**
    * 남은 좌석을 쓰지 않는 이메일 — 예: 이 회사를 떠났던 사람을 다시 부르는 초대.
    * 이 이메일의 줄은 좌석 부족 판정에서 세지 않는다(서버와 같은 셈).
@@ -516,7 +524,7 @@ export default function AdminInviteModal({
     orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
     squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
-    blockedEmploymentStatuses: csvBlockedEmploymentStatuses,
+    blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
   });
   const csvIssuesByKey = {};
   const csvNotesByKey = {};
@@ -616,14 +624,15 @@ export default function AdminInviteModal({
     // 확장자·MIME 둘 다 본다 — 브라우저·OS 조합에 따라 CSV 의 MIME 이
     // `application/vnd.ms-excel` 로 오거나 아예 비어 있다.
     const name = String(file.name || '').toLowerCase();
-    if (!name.endsWith('.csv') && !String(file.type || '').includes('csv')) {
-      setCsvError(labels.csvErrNotCsv);
+    const isXlsx = Boolean(readSpreadsheet) && name.endsWith('.xlsx');
+    if (!isXlsx && !name.endsWith('.csv') && !String(file.type || '').includes('csv')) {
+      setCsvError(readSpreadsheet ? labels.csvErrNotCsvOrXlsx : labels.csvErrNotCsv);
       return;
     }
     let text;
     try {
       // 한국어 엑셀이 저장한 EUC-KR 파일도 열 이름이 깨지지 않게 읽는다 (PW-968).
-      text = await readCsvFileText(file);
+      text = isXlsx ? await readSpreadsheet(file) : await readCsvFileText(file);
     } catch {
       setCsvError(labels.csvErrRead);
       return;
@@ -985,7 +994,7 @@ export default function AdminInviteModal({
                   >
                     <input
                       type="file"
-                      accept=".csv,text/csv"
+                      accept={readSpreadsheet ? '.csv,text/csv,.xlsx' : '.csv,text/csv'}
                       className="admin-inv-drop-input"
                       aria-label={labels.csvDropHere}
                       onChange={(e) => { readCsvFile(e.target.files?.[0]); e.target.value = ''; }}
