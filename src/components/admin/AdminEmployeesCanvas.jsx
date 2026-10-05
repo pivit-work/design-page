@@ -263,6 +263,12 @@ const DEFAULT_LABELS = {
     jobDuty: '직무',
     businessTitle: '직함',
     employmentType: '고용형태',
+    /* PW-1345 */
+    middleName: '중간 이름',
+    nameEn: '영문명',
+    workDesk: '근무 위치(책상)',
+    officePhone: '사무실 전화',
+    hrbp: '담당 HRBP',
     classifySection: '인사 분류',
     workSection: '근무',
     workCountry: '근무지(국가)',
@@ -3007,6 +3013,8 @@ const PANEL_PATCH_FIELDS = [
   'workCountry', 'workLocation', 'workBuilding', 'ftePercent',
   'orgRole', 'salary', 'education',
   'hireDate', 'employmentStatus', 'terminationDate',
+  // PW-1345 — 중간 이름·영문명·책상·사무실 전화·담당 HRBP
+  'middleName', 'nameEn', 'workDesk', 'officePhone', 'hrbpId',
 ];
 
 /**
@@ -3028,6 +3036,9 @@ const PANEL_FIELD_GROUPS = [
     id: 'basic', labelKey: 'basicInfo',
     fields: [
       { key: 'name', labelKey: 'name', kind: 'text' },
+      // 중간 이름·영문명(여권 표기) — 이름 바로 아래 (PW-1345 · §3.2). 영문명은 영어 닉네임과 다른 값이다.
+      { key: 'middleName', labelKey: 'middleName', kind: 'text' },
+      { key: 'nameEn', labelKey: 'nameEn', kind: 'text' },
       { key: 'email', labelKey: 'email', kind: 'text', note: 'emailNote' },
       { key: 'nickname', labelKey: 'nickname', kind: 'text' },
       { key: 'displayName', labelKey: 'displayName', kind: 'text' },
@@ -3056,6 +3067,10 @@ const PANEL_FIELD_GROUPS = [
       { key: 'jobRank', labelKey: 'jobRank', kind: 'select', catalog: 'rankOptions' },
       { key: 'businessTitle', labelKey: 'businessTitle', kind: 'select', catalog: 'businessTitleOptions', optionalKey: 'business_title' },
       { key: 'employmentType', labelKey: 'employmentType', kind: 'select', catalog: 'employmentTypeOptions' },
+      /* 담당 HRBP — 구성원 중 한 명을 고른다 (PW-1345 · §3.2 고용 정보). 매니저·조직장과 다른 축이다.
+         선택지는 소비자가 `{ value, label, disabled? }` 로 넘긴다 — 고를 수 없지만 지금 값인 사람
+         (퇴사한 HRBP)은 `disabled` 로 실려 이름은 보이고 다시 고를 수는 없다. */
+      { key: 'hrbpId', labelKey: 'hrbp', kind: 'person', catalog: 'hrbpOptions' },
     ],
   },
   {
@@ -3066,6 +3081,9 @@ const PANEL_FIELD_GROUPS = [
       // 지워진 것처럼 보인다.
       { key: 'workLocation', labelKey: 'workLocation', kind: 'text' },
       { key: 'workBuilding', labelKey: 'workBuilding', kind: 'select', catalog: 'buildingOptions' },
+      // 책상·사무실 전화 — 빌딩 다음 (PW-1345 · §3.2.5). 책상은 회사마다 표기가 달라 자유 입력이다.
+      { key: 'workDesk', labelKey: 'workDesk', kind: 'text' },
+      { key: 'officePhone', labelKey: 'officePhone', kind: 'text' },
       { key: 'ftePercent', labelKey: 'ftePercent', kind: 'number' },
     ],
   },
@@ -3247,6 +3265,8 @@ function EmployeesEditPanel({
      못 받으면 그 칸이 자유 텍스트가 될 뿐 값은 보존된다. */
   rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
   countryOptions, buildingOptions, jobAxis, optionalFields,
+  /* 담당 HRBP 후보 `[{ value, label, disabled? }]` (PW-1345). 못 받으면 «미지정»만 남는다. */
+  hrbpOptions,
   canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
   hrRecordHandlers,
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
@@ -3384,6 +3404,7 @@ function EmployeesEditPanel({
   const catalogs = {
     gradeOptions, positionOptions, rankOptions, categoryOptions,
     businessTitleOptions, employmentTypeOptions, countryOptions, buildingOptions,
+    hrbpOptions: hrbpOptions || [],
     jobFamilies: axis.families,
     jobLadders: axis.ladders,
     jobDuties: axis.duties,
@@ -3622,6 +3643,19 @@ function EmployeesEditPanel({
                             disabled={!canEdit}
                             testId={`employees-panel-${f.key}`}
                           />
+                        ) : f.kind === 'person' ? (
+                          <Select
+                            className="admin-emp-input"
+                            value={draft[f.key] || ''}
+                            disabled={!canEdit}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(e) => set(f.key, e.target.value)}
+                          >
+                            <option value="">{labels.panel.none}</option>
+                            {optionsFor(f).map((o) => (
+                              <option key={o.value} value={o.value} disabled={!!o.disabled}>{o.label}</option>
+                            ))}
+                          </Select>
                         ) : f.kind === 'select' && opts.length > 0 ? (
                           <Select
                             className="admin-emp-input"
@@ -4123,6 +4157,8 @@ export default function AdminEmployeesCanvas({
       근무 위치는 국가 > 도시 > 빌딩 세 층이고, 도시는 예부터 자유 텍스트 열이다. */
   countryOptions,
   buildingOptions,
+  /** 담당 HRBP 후보 `[{ value: userId, label, disabled? }]` — 편집 패널의 «담당 HRBP» 칸 (PW-1345). */
+  hrbpOptions,
   /** 직종·직함 카탈로그 — 시트의 두 열로 그대로 내려간다(PW-502). */
   categoryOptions,
   businessTitleOptions,
@@ -4440,6 +4476,7 @@ export default function AdminEmployeesCanvas({
             employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
             countryOptions={countryOptions ?? EMPTY_ARRAY}
             buildingOptions={buildingOptions ?? EMPTY_ARRAY}
+            hrbpOptions={hrbpOptions ?? EMPTY_ARRAY}
             jobAxis={jobAxis}
             onOpenFieldOptions={onOpenFieldOptions}
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
