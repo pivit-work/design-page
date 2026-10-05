@@ -1022,7 +1022,9 @@ function InvitesTab({
   invites, labels, canEdit,
   onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
 }) {
-  const [filter, setFilter] = useState('all');
+  // 처음엔 «대기중»만 (PW-1311) — 수락이 끝난 초대는 할 일이 없는데 «전체»로 열면
+  // 대기 건 사이에 섞여, 정작 챙길 대기 건을 찾기 어려웠다. 다른 상태는 필터로 고른다.
+  const [filter, setFilter] = useState('pending');
 
   const counts = {
     pending: invites.filter((i) => i.status === 'pending').length,
@@ -1062,7 +1064,9 @@ function InvitesTab({
 
       <Card>
         <div className="admin-emp-toolbar">
-          <FilterDropdown label={labels.filters.status} value={filter} options={filterOpts} onChange={setFilter} />
+          {/* «전체»일 때 버튼에 보일 글자 — 구성원 목록의 «재직상태»를 빌려 쓰면 초대 상태가 아니라
+              재직 상태로 거르는 것처럼 읽혔다 (PW-1311). */}
+          <FilterDropdown label={labels.invites.filterAll} value={filter} options={filterOpts} onChange={setFilter} />
           {canEdit && (
             <button type="button" className="admin-emp-btn is-primary" onClick={onOpenInvite}>
               <IconPlus size={14} />{labels.invites.newInvite}

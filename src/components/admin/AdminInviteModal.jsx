@@ -150,7 +150,7 @@ const DEFAULT_LABELS = {
   discardTitle: '작성 중인 초대가 있습니다',
   discardBody: '입력한 {n}명의 정보가 사라집니다.',
   discardKeep: '계속 작성',
-  discardLeave: '닫기',
+  discardLeave: '입력 내용 버리기',
   // CSV 업로드 탭(§2-4 / PW-212)
   tabDirect: '직접 입력',
   tabCsv: 'CSV 업로드',
@@ -418,6 +418,12 @@ export default function AdminInviteModal({
   const [dragOver, setDragOver] = useState(false);
   const [confirmAdmin, setConfirmAdmin] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // 닫기 확인이 뜨면 초점은 [계속 작성]에 둔다(§6-2) — 버리기가 빨간 버튼이라도
+  // 습관처럼 Enter 를 누르면 입력이 남아야 한다 (PW-1311).
+  const discardKeepRef = useRef(null);
+  useEffect(() => {
+    if (confirmDiscard) discardKeepRef.current?.focus();
+  }, [confirmDiscard]);
   const [banner, setBanner] = useState('');
   const [sending, setSending] = useState(false);
   const [undoRows, setUndoRows] = useState(null);
@@ -1287,6 +1293,8 @@ export default function AdminInviteModal({
           body={fmt(labels.discardBody, { n: activeRows.length })}
           cancelLabel={labels.discardKeep}
           confirmLabel={labels.discardLeave}
+          danger
+          cancelRef={discardKeepRef}
           onCancel={() => setConfirmDiscard(false)}
           onConfirm={() => { setConfirmDiscard(false); onClose?.(); }}
         />
