@@ -12,6 +12,9 @@ import { scaleMaxOf } from './evalTemplateItemModel.js';
  *
  * `sections`(선택) — 리포트 항목 켜짐/꺼짐 맵(`okr`·`peer`·`leader`·`growth`·`grade` …).
  * 꺼진 항목의 칸은 그리지 않는다. 맵이 있으면 발송된 리포트는 빈 상태로 접지 않는다.
+ *
+ * `leaderComment`(선택) — 매니저가 리포트 검수에서 남긴 최종 코멘트. «리더 코멘트» 카드
+ * 맨 위에 그린다. 하향 답이 없어도 이 글이 있으면 카드를 그린다.
  */
 
 const DEFAULT_LABELS = {
@@ -36,6 +39,7 @@ const DEFAULT_LABELS = {
   sourcePeer: '동료',
   sourceOkr: 'OKR',
   leaderTitle: '리더 코멘트',
+  leaderCommentLabel: '최종 코멘트',
   peerTitle: '동료 피드백 요약 (익명)',
   growthTitle: '성장 영역 & 개선',
   selfTitle: '나의 셀프 리뷰',
@@ -259,6 +263,7 @@ export default function EvalCycleReportCanvas({
   okrReview = [],
   selfAnswers = [],
   leaderAnswers = [],
+  leaderComment = null,
   peerAnswers = [],
   selfGap = [],
   insight = null,
@@ -274,7 +279,7 @@ export default function EvalCycleReportCanvas({
   // 맵이 없는 옛 응답만 「등급도 리더 코멘트도 없으면 아직」 으로 추측한다.
   const notReady = sections
     ? !published
-    : !published || (!gradeKey && leaderAnswers.length === 0);
+    : !published || (!gradeKey && leaderAnswers.length === 0 && !leaderComment);
 
   if (notReady) {
     return (
@@ -328,10 +333,18 @@ export default function EvalCycleReportCanvas({
 
         <SelfGap rows={selfGap} L={L} />
 
-        {on('leader') && leaderAnswers.length > 0 && (
+        {on('leader') && (leaderComment || leaderAnswers.length > 0) && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.leaderTitle}</h3>
-            <AnswerList answers={leaderAnswers} L={L} />
+            {leaderComment && (
+              <div className="evr-answers">
+                <div className="evr-answer" data-testid="evr-leader-comment">
+                  <span className="evc-field-label">{L.leaderCommentLabel}</span>
+                  <p className="evr-answer-text">{leaderComment}</p>
+                </div>
+              </div>
+            )}
+            {leaderAnswers.length > 0 && <AnswerList answers={leaderAnswers} L={L} />}
           </section>
         )}
 
