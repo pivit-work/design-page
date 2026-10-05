@@ -122,7 +122,6 @@ const DEFAULT_LABELS = {
   // 문구였다. 코드만 보면 화면에 그 안내가 있는 것처럼 보였다. 그 규칙을 실제로
   // 알리는 자리는 미배정 탭 아래 `unassigned.teamNote` 하나다 — 지우지 말 것.
   // 다시 넣으려면 라벨보다 **그리는 자리가 먼저** 있어야 한다.
-  invite: '구성원 초대',
   csvUpload: 'CSV 업로드',
   unassignedPill: '미배정',
   concurrentCount: '겸직 {count}',
@@ -1767,7 +1766,7 @@ function EmployeesListView({
   members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
   leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
-  onOpenEdit, onDeactivate, onCancelOffboarding, onAssignManager, onInvite, onCsvUpload,
+  onOpenEdit, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
   squadOptions = [],
@@ -2627,9 +2626,8 @@ function EmployeesListView({
           {canEdit && onCsvUpload && (
             <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
           )}
-          {canEdit && onInvite && (
-            <button type="button" className="admin-emp-btn is-primary" onClick={onInvite}><IconPlus size={14} />{labels.invite}</button>
-          )}
+          {/* [PW-1331] 「+ 구성원 초대」는 두지 않는다 — 새 사람 초대는 초대 관리 탭의 「새 초대 발송」 한 곳이다
+              (2026-10-05 커트 결정). 명부에 이미 있는 사람에게 다시 보내는 것도 그 창에서 한다. */}
         </div>
       </div>
 
@@ -4238,7 +4236,6 @@ export default function AdminEmployeesCanvas({
             onDeactivate={canEdit ? onDeactivateMember : undefined}
             onCancelOffboarding={canEdit ? onCancelOffboarding : undefined}
             onAssignManager={onAssignManager}
-            onInvite={canInvite ? openInvite : undefined}
             onCsvUpload={onCsvUpload}
             // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
             squadOptions={squadOptions}

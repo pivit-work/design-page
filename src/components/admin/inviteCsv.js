@@ -302,6 +302,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   errInvalidEmail: '유효하지 않은 이메일',
   errAlreadyMember: '이미 멤버입니다',
   errPendingInvite: '초대 대기 중',
+  csvNoteResendMember: '이미 구성원 — 초대를 다시 보냅니다',
+  csvNoteResendPending: '대기 중인 초대 — 새 링크로 다시 보냅니다',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
   errNameTooLong: '이름은 {max}자까지 입력할 수 있어요',
@@ -818,8 +820,7 @@ export function inviteCsvIssues(row, ctx) {
 
   const email = normEmail(v.email);
   if (!(ctx.emailValid || emailOk)(v.email)) add('email', l.errInvalidEmail);
-  else if (ctx.memberEmails.has(email)) add('email', l.errAlreadyMember);
-  else if (ctx.pendingEmails.has(email)) add('email', l.errPendingInvite);
+  // [PW-1331] 이미 구성원·대기 중은 오류가 아니다 — 서버가 다시 보낸다(창의 «다시 보내기» 요약).
   else if ((ctx.fileEmailCount.get(email) || 0) > 1) add('email', l.errDuplicate);
 
   // 길이 검사와 이메일 검사는 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
@@ -956,6 +957,13 @@ export function inviteCsvIssues(row, ctx) {
  */
 export function inviteCsvNotes(row, ctx) {
   const notes = [];
+  // [PW-1331] 이미 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
+  const email = normEmail(row.values.email);
+  if (ctx.memberEmails.has(email)) {
+    notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
+  } else if (ctx.pendingEmails.has(email)) {
+    notes.push({ key: 'email', message: ctx.labels.csvNoteResendPending });
+  }
   if (!normEmail(row.values.managerEmail)) return notes;
   const { primaryTeamId } = resolveInviteCsvRow(row, ctx);
   if (primaryTeamId && (ctx.headTeamIds.has(primaryTeamId) || ctx.reservedLeaderTeamIds.has(primaryTeamId))) {
