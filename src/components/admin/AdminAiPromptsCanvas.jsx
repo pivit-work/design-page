@@ -147,6 +147,8 @@ export default function AdminAiPromptsCanvas({
   onToggleVersions,
   onRestoreVersion,
   baseUrl = '/',
+  // 제목 줄 오른쪽에 둘 짧은 안내(예: 저장 방식 안내). 없으면 머리 모양은 그대로다.
+  headerAside = null,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const textareaRef = useRef(null);
@@ -188,7 +190,14 @@ export default function AdminAiPromptsCanvas({
       <div className="admin-canvas" style={{ flex: 1, padding: '32px 36px', overflowY: 'auto', gap: 0 }}>
         {/* 페이지 헤더 */}
         <div style={{ marginBottom: 24 }}>
-          <h1 className="admin-page-title">{labels.title}</h1>
+          {headerAside ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+              <h1 className="admin-page-title">{labels.title}</h1>
+              <div data-testid="aip-header-aside" style={{ minWidth: 0 }}>{headerAside}</div>
+            </div>
+          ) : (
+            <h1 className="admin-page-title">{labels.title}</h1>
+          )}
           <p className="admin-page-subtitle" style={{ marginTop: 4 }}>{labels.subtitle}</p>
         </div>
 
