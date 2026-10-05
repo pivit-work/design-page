@@ -175,6 +175,10 @@ const DEFAULT_LABELS = {
        (커트 결정 2026-09-22). 창은 이 캔버스가 아니라 **부르는 쪽이 그린다** — 고칠 수
        있는 항목과 값 검사는 화면(제품)의 규칙이라 디자인 부품이 들고 있을 것이 아니다. */
     fieldsEdit: '여러 칸 한 번에 고치기',
+    /* 고른 사람이 `bulkEditFieldsMax` 를 넘으면 항목을 막고 이 라벨·안내를 단다 (PW-1330 · 기획
+       admin-spec §3.1-C 「인원」). `{max}` 는 그 상한이다. */
+    fieldsEditOverMax: '여러 칸 한 번에 고치기 ({max}명까지)',
+    fieldsEditOverMaxHint: '한 번에 {max}명까지 고칠 수 있어요. 더 많으면 «구성원 정보 일괄 수정»(CSV)을 쓰세요',
     /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
        않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
        🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
@@ -1444,9 +1448,18 @@ function BulkMenu({ count, items, labels }) {
               role="menuitem"
               className="admin-emp-select-item"
               data-testid={`employees-list-bulk-${it.id}`}
-              onClick={() => { setOpen(false); it.onPick(); }}
+              /* 막힌 항목도 메뉴에 남긴다 — 사라지면 «왜 없지» 를 알 길이 없다. 안내(`hint`)가
+                 그 이유를 바로 아래 줄에 적는다 (PW-1330). */
+              disabled={it.disabled}
+              aria-disabled={it.disabled || undefined}
+              onClick={() => { if (it.disabled) return; setOpen(false); it.onPick(); }}
             >
               <span className="admin-emp-select-item-label">{it.label}</span>
+              {it.hint && (
+                <span className="admin-emp-select-item-sub" data-testid={`employees-list-bulk-${it.id}-hint`}>
+                  {it.hint}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -1783,8 +1796,10 @@ function EmployeesListView({
          날짜는 함께 넘기지 않는다 — 사람마다 다르고 편집 패널의 항목이다.
        · `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다.
        · `onBulkEditFields(memberIds)` — 고른 사람들의 여러 항목을 한 번에 고치는 창을
-         **부르는 쪽이** 연다(PW-901). 이 캔버스는 창을 그리지 않는다. */
-  onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields,
+         **부르는 쪽이** 연다(PW-901). 이 캔버스는 창을 그리지 않는다.
+       · `bulkEditFieldsMax` — 그 창이 한 번에 받는 인원 상한(PW-1330). 넘게 고르면 항목이
+         막히고 안내가 붙는다. 미주입이면 상한이 없다. */
+  onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields, bulkEditFieldsMax,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -2146,9 +2161,14 @@ function EmployeesListView({
   /* 파괴적인 「일괄 비활성화」 **앞**에 둔다 — 기획 §3.1 이 정한 「손이 미끄러져
      눌리는 자리에 파괴적인 것을 두지 않는다」 를 지키면서 값 편집끼리 붙는다. */
   if (selectable && onBulkEditFields) {
+    const overMax = bulkEditFieldsMax != null && selectedRows.length > bulkEditFieldsMax;
     bulkItems.push({
       id: 'fields-edit',
-      label: labels.listBulk.fieldsEdit,
+      label: overMax
+        ? fill(labels.listBulk.fieldsEditOverMax, { max: bulkEditFieldsMax })
+        : labels.listBulk.fieldsEdit,
+      disabled: overMax,
+      hint: overMax ? fill(labels.listBulk.fieldsEditOverMaxHint, { max: bulkEditFieldsMax }) : undefined,
       onPick: () => onBulkEditFields(selectedRows.map((m) => m.id)),
     });
   }
@@ -3917,6 +3937,8 @@ export default function AdminEmployeesCanvas({
      고칠 수 있는 항목·선택 적용 항목·직군/직렬 매핑은 화면의 규칙이라 디자인 부품이
      알 일이 아니다. 미주입이면 그 항목이 드롭다운에 없다. */
   onBulkEditFields,
+  /* 그 창이 한 번에 받는 인원 상한 (PW-1330). 넘게 고르면 항목이 막히고 안내가 붙는다. */
+  bulkEditFieldsMax,
   /**
    * 매니저 후보 `[{ id, label, leadLabel? }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다.
    * `leadLabel` 은 그 후보가 조직장인 조직 경로 — 배정 판단 근거로 후보 행에 병기된다.
@@ -4245,6 +4267,7 @@ export default function AdminEmployeesCanvas({
             onBulkDeactivate={canEdit ? onBulkDeactivate : undefined}
             /* 「여러 칸 한 번에 고치기」 (PW-901) — 고른 사람 id 만 넘긴다. */
             onBulkEditFields={canEdit ? onBulkEditFields : undefined}
+            bulkEditFieldsMax={bulkEditFieldsMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo
