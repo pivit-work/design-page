@@ -197,6 +197,10 @@
   border-color: var(--text-brand-tertiary);
   background: var(--bg-primary);
 }
+/* 고친 칸 (PW-1330 · 기획 admin-spec §3.1-C ①) — 여러 사람을 한 번에 고치는 표에서 어디를
+   건드렸는지가 눈에 남게 배경으로 구분한다. 포커스 중에도 유지한다. */
+.admin-kit-cell-input.is-changed,
+.admin-kit-cell-input.is-changed:focus { background: var(--bg-brand-secondary); }
 
 /* ── 필드 칸 ── */
 .admin-kit-field-grid {
