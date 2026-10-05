@@ -966,10 +966,11 @@ export function inviteCsvNotes(row, ctx) {
   const notes = [];
   // [PW-1331] 가입 전 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
   const email = normEmail(row.values.email);
-  if (ctx.resendEmails.has(email)) {
-    notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
-  } else if (ctx.pendingEmails.has(email)) {
+  // 대기 중 초대가 먼저다 — 가입 전 구성원이어도 이미 초대가 나가 있으면 «새 링크로 바뀐다»가 더 맞는 말이다.
+  if (ctx.pendingEmails.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteResendPending });
+  } else if (ctx.resendEmails.has(email)) {
+    notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
   }
   if (!normEmail(row.values.managerEmail)) return notes;
   const { primaryTeamId } = resolveInviteCsvRow(row, ctx);
