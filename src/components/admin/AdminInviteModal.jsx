@@ -560,8 +560,9 @@ export default function AdminInviteModal({
      늘지 않으니 좌석 셈에서도 뺀다(서버와 같은 셈). */
   const resendNoteOf = (email) => {
     const key = normEmail(email);
-    if (resend.has(key)) return labels.noteResendMember;
+    // 대기 중 초대가 먼저다 — 가입 전 구성원이어도 이미 초대가 나가 있으면 «새 링크로 바뀐다»가 더 맞는 말이다.
     if (pending.has(key)) return labels.noteResendPending;
+    if (resend.has(key)) return labels.noteResendMember;
     return null;
   };
   const resendCount = validRows
