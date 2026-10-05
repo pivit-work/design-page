@@ -26,6 +26,8 @@ import { useFieldControl } from './formField.js';
  *   labels     DatePicker 문구를 직접 줄 때
  *   today      'YYYY-MM-DD' — 달력이 「오늘」로 칠 날. 비어 있는 칸을 열 때 보여 줄 달도 이 날이다.
  *              없으면 브라우저 시계의 오늘. 앱이 사용자 설정 시간대로 오늘을 정할 때 넘긴다 (PW-781)
+ *   startView  'day'(기본) | 'year' — 'year' 면 비어 있는 칸의 달력을 연도 보기로 연다.
+ *              먼 과거를 고르는 칸(생년월일)이 쓴다. 값이 있으면 그 달의 일 보기다 (PW-1301)
  *   invalid    틀림 표시를 직접 켤 때. `FormField` 안이면 그 틀의 오류 문구를 따른다 (PW-1012)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
@@ -67,6 +69,7 @@ export default function DateInput({
   size = 13,
   today,
   invalid,
+  startView = 'day',
   ...rest
 }) {
   // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
@@ -111,7 +114,13 @@ export default function DateInput({
   };
 
   const todayDate = today && isIsoDate(today) ? toDate(today) : undefined;
-  const selected = isIsoDate(current) ? toDate(current) : (todayDate ?? new Date());
+  // 연도부터 여는 빈 칸은 선택 표시를 하지 않는다 — 오늘을 선택으로 칠하면 2026 이 골라진 것처럼 보인다.
+  // 다른 칸의 빈 값은 종전대로 오늘을 넘긴다(일 보기의 빈 칸 표시는 이번 범위 밖 · PW-1301).
+  const selected = isIsoDate(current)
+    ? toDate(current)
+    : startView === 'year'
+      ? null
+      : (todayDate ?? new Date());
 
   return (
     <>
@@ -147,6 +156,7 @@ export default function DateInput({
           locale={resolveUiLocale(locale)}
           labels={labels}
           today={todayDate}
+          startView={startView}
           onSelect={(d) => {
             const iso = toIso(d);
             setDraft(iso);

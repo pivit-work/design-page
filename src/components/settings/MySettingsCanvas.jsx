@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import DateInput from '../shared/DateInput.jsx';
+import { todayIsoInZone } from '../shared/calendarDate.js';
 import TimeInput from '../shared/TimeInput.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import FormField from '../shared/FormField.jsx';
@@ -594,7 +595,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
 }
 
 /* ═══ 가족 정보 ═══ */
-function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry, fillRequestFields = [] }) {
+function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry, fillRequestFields = [] }) {
   const L = labels.family;
   // 딱지는 **저장된** 값을 본다 — 입력 중인 값이 아니다. 저장해야 사라진다.
   // 못 불러온 동안(family 가 없음)은 비었는지 알 수 없으니 붙이지 않는다.
@@ -729,7 +730,8 @@ function FamilyTab({ family, labels, saveState, onSave, onAddDependent, onDelete
                 {Object.entries(L.relationOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </Select>
               <DateInput className="admin-emp-input" value={dep.dateOfBirth}
-                onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob} />
+                onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob}
+                startView="year" max={today} today={today} />
             </div>
             {depError && (
               <div className="msc-input-error" role="alert" data-testid="dependent-add-error">{depError}</div>
@@ -1386,8 +1388,14 @@ export default function MySettingsCanvas({
   logoutError = null,
   labels: providedLabels,
   baseUrl = '/',
+  /**
+   * 「오늘」 `YYYY-MM-DD` — 보는 사람의 내 설정 타임존으로 앱이 센다(PW-781). 생년월일 달력의
+   * 상한이자 연도 보기의 시작 쪽이다(PW-1301). 안 주면 브라우저 시간대의 오늘.
+   */
+  today,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
+  const todayIso = today || todayIsoInZone();
 
   /* ── 프로필 draft — profile prop 이 바뀌면 렌더 중 재시드 ── */
   const [draft, setDraft] = useState(profile);
@@ -1581,6 +1589,7 @@ export default function MySettingsCanvas({
           {activeTab === 'profile_family' && (
             <FamilyTab
               family={family}
+              today={todayIso}
               labels={labels}
               saveState={familySaveState}
               loadError={familyLoadError}
@@ -1788,6 +1797,9 @@ export default function MySettingsCanvas({
                       value={draft.dateOfBirth || ''}
                       onChange={(v) => setField('dateOfBirth')(v)}
                       aria-label={labels.profile.dateOfBirth}
+                      startView="year"
+                      max={todayIso}
+                      today={todayIso}
                     />
                   </Field>
                   <Field label={labels.profile.gender}>
