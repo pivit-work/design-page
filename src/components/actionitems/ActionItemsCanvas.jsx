@@ -65,9 +65,22 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
         )}
       </button>
 
-      <span className="ai-row-title" title={item.title}>
-        {item.title}
-      </span>
+      {/* 제목을 누르면 그 할 일이 나온 회의·1on1 로 간다 — 호스트가 onTitleClick 을
+          넘긴 행만 버튼이 된다(출처가 없는 행은 예전처럼 글자). 모양은 같다. */}
+      {item.onTitleClick ? (
+        <button
+          type="button"
+          className="ai-row-title is-link"
+          title={item.title}
+          onClick={() => item.onTitleClick(item.id)}
+        >
+          {item.title}
+        </button>
+      ) : (
+        <span className="ai-row-title" title={item.title}>
+          {item.title}
+        </span>
+      )}
 
       <span className="ai-row-meta">
         {item.priorityLabel && (

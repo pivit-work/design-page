@@ -283,6 +283,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 출처로 가는 제목 — 버튼 기본 모양을 지워 글자 제목과 똑같이 보이게 한다. */
+.ai-row-title.is-link {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ai-row-title.is-link:focus-visible {
+  outline: 2px solid var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  outline-offset: 2px;
+}
 .ai-row-meta {
   display: flex;
   align-items: center;
