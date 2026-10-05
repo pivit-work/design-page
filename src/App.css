@@ -7,8 +7,11 @@
 /* 모든 페이지 최소 폭 1400px. 셸(사이드바/톱냅)과 각 페이지 루트가 전부
    position:fixed 라 viewport 가 아닌 .app 을 containing block 으로 잡아야
    min-width 가 전 페이지에 먹는다 — transform 이 그 역할(스펙상 transformed
-   ancestor 는 fixed 의 기준이 된다). 창이 1400 미만이면 문서가 가로 스크롤된다. */
-.app { width: 100vw; min-width: 1400px; height: 100vh; position: relative; overflow: hidden; background: var(--bg-primary); transform: translateZ(0); }
+   ancestor 는 fixed 의 기준이 된다). 창이 1400 미만이면 #root 가 가로 스크롤된다
+   (index.css). 높이를 100vh 가 아니라 100% 로 두는 이유: 가로 스크롤바가 생기면
+   #root 의 안쪽 높이가 그만큼 줄어드는데, 100vh 면 .app 이 스크롤바 밑으로 들어가
+   모달 아래 버튼·목록 끝이 가려진다 (PW-1304). */
+.app { width: 100vw; min-width: 1400px; height: 100%; position: relative; overflow: hidden; background: var(--bg-primary); transform: translateZ(0); }
 
 /* ── Sidebar ── */
 .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; padding: 8px 20px 20px; z-index: 100; }

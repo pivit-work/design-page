@@ -211,7 +211,16 @@ body {
   height: 100vh;
 }
 
-#root { width: 100%; height: 100%; }
+/* 창이 앱 최소 폭(.app 의 min-width 1400px, App.css)보다 좁으면 오른쪽이 잘린다.
+   body 는 overflow:hidden 이라 여기서 가로 스크롤을 연다 — 세로는 각 화면 안쪽이
+   스크롤하므로 막아 둔다. 아래 전역 규칙이 스크롤바를 늘 투명하게 두는데, 이 가로
+   스크롤바는 «오른쪽에 더 있다»는 유일한 단서라 보이게 둔다 (PW-1304). */
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 
 /* ── Global scrollbar auto-hide ──────────────────────────────────────────
    기본은 thumb 투명(안 보임). 사용자가 스크롤/마우스 움직일 때
@@ -245,3 +254,6 @@ body {
 .is-scrolling::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
+#root { scrollbar-color: rgba(0, 0, 0, 0.2) transparent; }
+#root::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); }
