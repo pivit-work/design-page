@@ -147,6 +147,12 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     호스트가 그 AI 버튼 자리에 띄우는 안내(체험 AI 소진 등). 한 번에 하나.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //
+// 남의 스니핏 읽기 (PW-1206) — 모두 optional:
+//   readOnly?: boolean — 매니저가 팀원 스니핏을 여는 것처럼 «읽기만» 하는 자리. 켜면 칸이 고쳐지지
+//     않고(readOnly), 점수를 바꿀 수 없으며, 쓰는 사람의 도구(AI 버튼·초안 채우기·추천 태그·태그 입력·
+//     글자수·초기화·자동 등록 표시)가 사라진다. onDraftChange 도 부르지 않는다. 기본값 false — 종전 화면 그대로.
+//   authorName?: string — 누구의 스니핏인지. 주면 제목이 「이름 · YYYY.MM.DD」가 된다.
+//
 //   노란 칸의 「확인」을 누르면 초록이 된다. 노란 칸의 글을 고쳐도 노란 그대로이고, 글을 다 지우면
 //   표식이 사라진다. 「AI 요약 생성」 결과도 노란으로 시작한다. 추천 태그를 눌러 넣는 것은 색을
 //   바꾸지 않는다. 노란 칸이 남은 채 등록(onSubmit)하거나 창을 닫으려 하면(✕·Esc·바깥) 그러지 않고
@@ -179,6 +185,8 @@ export default function SnippetModal({
   onOpenAccountLinks,
   aiNotice,
   draftLabels,
+  readOnly = false,
+  authorName,
 }) {
   const L = { ...DEFAULT_DRAFT_LABELS, ...(draftLabels || {}) };
   const [summary, setSummary] = useState(initial?.summary ?? '');
@@ -244,7 +252,7 @@ export default function SnippetModal({
     return SECTIONS.find((sec) => sec.key === key)?.label ?? key;
   };
   const unconfirmedKeys = DRAFT_FIELD_KEYS.filter((k) => aiMarks[k] === 'unconfirmed');
-  const showDraftArea = typeof onAiDraft === 'function';
+  const showDraftArea = !readOnly && typeof onAiDraft === 'function';
   const draftLinked = linkedFromDraft ?? aiDraftLinked;
   const noticeAt = (at) =>
     aiNotice && aiNotice.at === at ? (
@@ -499,7 +507,7 @@ export default function SnippetModal({
   // IME 조합 중에는 보류. compositionEnd 로 isComposing 이 false 가 되는 순간
   // useEffect 가 재실행되어 최종 결과가 한 번 통지된다.
   useEffect(() => {
-    if (!onDraftChangeRef.current) return;
+    if (readOnly || !onDraftChangeRef.current) return;
     if (isComposing) return;
     onDraftChangeRef.current(
       {
@@ -510,10 +518,10 @@ export default function SnippetModal({
       },
       { source: 'change', aiMarks },
     );
-  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks, readOnly]);
 
   const handleFieldBlur = useCallback(() => {
-    if (!onDraftChangeRef.current) return;
+    if (readOnly || !onDraftChangeRef.current) return;
     if (isComposing) return;
     onDraftChangeRef.current(
       {
@@ -524,7 +532,7 @@ export default function SnippetModal({
       },
       { source: 'blur', aiMarks },
     );
-  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks]);
+  }, [summary, tags, sectionTexts, healthScore, healthNote, isComposing, aiMarks, readOnly]);
 
   const handleCompositionStart = useCallback(() => setIsComposing(true), []);
   const handleCompositionEnd = useCallback(() => setIsComposing(false), []);
@@ -563,7 +571,7 @@ export default function SnippetModal({
       >
         <div className="tl-group-modal-top tl-snippet-top">
           <span className="tl-snippet-top-title" aria-hidden={!scrolled}>
-            데일리 스니펫  ·  {dateLabel}
+            {authorName ? `${authorName}  ·  ` : ''}데일리 스니펫  ·  {dateLabel}
           </span>
           <button
             type="button"
@@ -576,7 +584,9 @@ export default function SnippetModal({
         </div>
 
         <div ref={contentRef} className="tl-group-modal-content tl-snippet-modal-content">
-          <h2 id="tl-snippet-modal-title" className="tl-snippet-date">{dateLabel}</h2>
+          <h2 id="tl-snippet-modal-title" className="tl-snippet-date">
+            {authorName ? `${authorName} · ${dateLabel}` : dateLabel}
+          </h2>
 
           {/* Progress bar — 섹션 채움 수만큼 active bar 가 그라디언트로 확장.
               Figma Frame 205, r=6, active bar r=6, 5등분. */}
@@ -684,7 +694,8 @@ export default function SnippetModal({
                 </div>
                 <textarea
                   className={`tl-snippet-textarea${markClass(s.key)}`}
-                  placeholder={s.placeholder}
+                  placeholder={readOnly ? undefined : s.placeholder}
+                  readOnly={readOnly}
                   value={sectionTexts[s.key]}
                   onChange={(e) => setSectionText(s.key, e.target.value)}
                   onCompositionStart={handleCompositionStart}
@@ -692,7 +703,7 @@ export default function SnippetModal({
                   onBlur={handleFieldBlur}
                   maxLength={sectionMaxLength?.[s.key]}
                 />
-                {sectionMaxLength?.[s.key] != null && (
+                {!readOnly && sectionMaxLength?.[s.key] != null && (
                   <div
                     className={`tl-snippet-count${
                       sectionTexts[s.key].length >
@@ -725,7 +736,12 @@ export default function SnippetModal({
                     </span>
                   )}
                 </div>
-                <div className="tl-snippet-health-scores" role="radiogroup" aria-label="Health Check 점수">
+                <div
+                  className="tl-snippet-health-scores"
+                  role="radiogroup"
+                  aria-label="Health Check 점수"
+                  aria-readonly={readOnly || undefined}
+                >
                   {HEALTH_SCORES.map((n) => {
                     const selected = healthScore === n;
                     return (
@@ -737,7 +753,10 @@ export default function SnippetModal({
                         className={`tl-snippet-health-score tl-snippet-health-score--${healthTier(
                           n,
                         )} ${selected ? 'is-selected' : ''}`}
-                        onClick={() => setHealthScore(selected ? null : n)}
+                        onClick={() => {
+                          if (readOnly) return;
+                          setHealthScore(selected ? null : n);
+                        }}
                       >
                         {n}
                       </button>
@@ -747,7 +766,8 @@ export default function SnippetModal({
               </div>
               <textarea
                 className="tl-snippet-textarea"
-                placeholder="무엇이 영향을 주었나요? (선택)"
+                placeholder={readOnly ? undefined : '무엇이 영향을 주었나요? (선택)'}
+                readOnly={readOnly}
                 value={healthNote}
                 onChange={(e) => setHealthNote(e.target.value)}
                 onCompositionStart={handleCompositionStart}
@@ -766,9 +786,10 @@ export default function SnippetModal({
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Summary
-                  <span className="tl-snippet-label-hint">AI 자동 생성 해줘요.</span>
+                  {!readOnly && <span className="tl-snippet-label-hint">AI 자동 생성 해줘요.</span>}
                 </div>
                 {renderMark('summary')}
+                {!readOnly && (
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
@@ -786,11 +807,13 @@ export default function SnippetModal({
                   <span className="tl-snippet-ai-gradient">AI</span>
                   <span>{summaryLoading ? '생성 중…' : '요약 생성'}</span>
                 </button>
+                )}
               </div>
               {noticeAt('summary')}
               <textarea
                 className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}${markClass('summary')}`}
-                placeholder="관련 내용 입력하면 AI 요약이 활성화됩니다"
+                placeholder={readOnly ? undefined : '관련 내용 입력하면 AI 요약이 활성화됩니다'}
+                readOnly={readOnly}
                 value={summary}
                 onChange={(e) => {
                   setSummary(e.target.value);
@@ -800,6 +823,7 @@ export default function SnippetModal({
                 onCompositionEnd={handleCompositionEnd}
                 onBlur={handleFieldBlur}
               />
+              {!readOnly && (
               <div className="tl-snippet-info">
                 <img
                   src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
@@ -814,6 +838,7 @@ export default function SnippetModal({
                     : 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.'}
                 </span>
               </div>
+              )}
             </div>
 
             {/* Tags */}
@@ -826,9 +851,10 @@ export default function SnippetModal({
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Tags
-                  <span className="tl-snippet-label-hint">AI 자동 추출 해줘요</span>
+                  {!readOnly && <span className="tl-snippet-label-hint">AI 자동 추출 해줘요</span>}
                 </div>
                 {renderMark('tags')}
+                {!readOnly && (
                 <button
                   type="button"
                   className="tl-snippet-ai-btn"
@@ -846,6 +872,7 @@ export default function SnippetModal({
                   <span className="tl-snippet-ai-gradient">AI</span>
                   <span>{tagsLoading ? '추출 중…' : '태그 추출'}</span>
                 </button>
+                )}
               </div>
               {noticeAt('tags')}
               {/* 필드 안에 선택된 태그 chip + 신규 입력 */}
@@ -853,6 +880,7 @@ export default function SnippetModal({
                 {tags.map((t) => (
                   <span key={t} className="tl-snippet-tag tl-snippet-tag-selected">
                     {t}
+                    {!readOnly && (
                     <button
                       type="button"
                       className="tl-snippet-tag-x"
@@ -864,8 +892,10 @@ export default function SnippetModal({
                         <line x1="3" y1="3" x2="9" y2="9" />
                       </svg>
                     </button>
+                    )}
                   </span>
                 ))}
+                {!readOnly && (
                 <input
                   type="text"
                   className="tl-snippet-tag-inline-input"
@@ -877,6 +907,7 @@ export default function SnippetModal({
                   onCompositionEnd={handleCompositionEnd}
                   onBlur={handleFieldBlur}
                 />
+                )}
               </div>
               {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
                   패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음.
@@ -894,6 +925,7 @@ export default function SnippetModal({
                   <span className="tl-snippet-info-text">{tagsError}</span>
                 </div>
               )}
+              {!readOnly && (
               <div className="tl-snippet-suggest-tags">
                 {tagSuggestionPool.map((t) => {
                   const already = tags.includes(t);
@@ -910,10 +942,12 @@ export default function SnippetModal({
                   );
                 })}
               </div>
+              )}
             </div>
           </div>
         </div>
 
+        {!readOnly && (
         <div className="tl-snippet-modal-actions">
           <button
             type="button"
@@ -929,6 +963,7 @@ export default function SnippetModal({
           )}
           <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
         </div>
+        )}
       </form>
     </ModalLayer>
   );
