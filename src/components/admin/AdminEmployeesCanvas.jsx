@@ -3383,6 +3383,11 @@ function EmployeesEditPanel({
   /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
      데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
   const terminatedLocked = member.employmentStatus !== 'terminated';
+  /* 퇴사 취소 기간(PW-1336 · 퇴사 처리 §5-F) — 퇴사자는 퇴사일부터 14일까지만 다른 상태로
+     되돌릴 수 있고, 그 뒤에는 라디오가 통째로 잠긴다. 날짜 계산은 앱이 서버와 같은 함수로
+     해서 넘긴다 — 캔버스가 따로 세면 열린 라디오가 저장에서 거절된다. */
+  const revertWindow = member.revertWindow || null;
+  const revertClosed = revertWindow?.state === 'closed';
   const identityBusy = identityState === 'loading';
   const identityBroken = identityState === 'error';
   const dateValue = (f) =>
@@ -3449,6 +3454,15 @@ function EmployeesEditPanel({
         try {
           await onSave([patch]);
         } catch (e) {
+          /* 호출부가 확인 창에서 [닫기]를 받으면 되돌릴 칸을 알려 준다(PW-1336 퇴사 취소 —
+             닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
+          if (e && Array.isArray(e.resetFields)) {
+            setDraft((d) => {
+              const next = { ...d };
+              for (const f of e.resetFields) next[f] = member[f];
+              return next;
+            });
+          }
           /* 서버가 거절한 경우엔 사유를 창 안에 남긴다(PW-727). 되던진 거절이 «저장 0명 +
              오류» 정상 응답에서 온 것이어도 호출부가 같은 모양으로 실어 보낸다. */
           setSaveError(panelErrorOf(e));
@@ -3675,7 +3689,7 @@ function EmployeesEditPanel({
             value={draft.employmentStatus}
             onPick={(key) => set('employmentStatus', key)}
             name={`employmentStatus-${member.id}`}
-            disabled={!canEdit}
+            disabled={!canEdit || revertClosed}
             disabledKeys={terminatedLocked ? ['terminated'] : []}
             labels={labels}
             ariaLabel={labels.panel.statusSection}
@@ -3684,6 +3698,16 @@ function EmployeesEditPanel({
           {terminatedLocked && canEdit && (
             <span className="admin-emp-status-date-note" data-testid="employees-panel-status-terminated-hint">
               {labels.panel.terminatedViaOffboarding}
+            </span>
+          )}
+          {revertWindow?.state === 'open' && canEdit && (
+            <span className="admin-emp-status-date-note" data-testid="employees-panel-revert-until">
+              {(labels.panel.revertOpenUntil || '퇴사 취소는 {date}까지 할 수 있어요').replace('{date}', revertWindow.until)}
+            </span>
+          )}
+          {revertClosed && (
+            <span className="admin-emp-status-date-note" data-testid="employees-panel-revert-closed">
+              {labels.panel.revertClosed || '퇴사가 확정됐어요 — 다시 들이려면 «재입사 초대»를 쓰세요'}
             </span>
           )}
 

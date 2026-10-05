@@ -274,6 +274,10 @@ export default function AdminOffboardingCanvas({
         </button>
         <h1 className="admin-offb-title">{labels.title}</h1>
         <p className="admin-page-subtitle">{labels.subtitle}</p>
+        {/* 되돌릴 수 없는 것은 데이터 처리이고, 재직 상태는 «퇴사 취소»로 되돌릴 수 있다 (PW-1336 · §2) */}
+        {labels.subtitleNote && (
+          <p className="admin-page-subtitle" data-testid="offboarding-subtitle-note">{labels.subtitleNote}</p>
+        )}
       </div>
 
       {/* 1 — 대상자 */}
@@ -422,7 +426,13 @@ export default function AdminOffboardingCanvas({
       </Section>
 
       {/* 4 — 확인 */}
-      <Section n="4" title={labels.sections.confirm} desc={labels.sections.confirmDesc}>
+      <Section
+        n="4"
+        title={labels.sections.confirm}
+        desc={!due && labels.sections.confirmDescScheduled
+          ? fill(labels.sections.confirmDescScheduled, { date: dateText })
+          : labels.sections.confirmDesc}
+      >
         <div className="admin-offb-stack">
           {missingReason.length > 0 && (
             <Notice tone="warn" testId="offboarding-missing-reason">
