@@ -178,10 +178,9 @@ const DEFAULT_LABELS = {
        admin-spec §3.1-C 「인원」). `{max}` 는 그 상한이다. */
     fieldsEditOverMax: '여러 칸 한 번에 고치기 ({max}명까지)',
     fieldsEditOverMaxHint: '한 번에 {max}명까지 고칠 수 있어요. 더 많으면 «구성원 정보 일괄 수정»(CSV)을 쓰세요',
-    /* 「초대 보내기」 (PW-1331) — 고른 사람 중 아직 가입하지 않은 사람에게만. `{count}` 는 그 수다. */
-    inviteSend: '초대 보내기 (가입 전 {count}명)',
-    inviteSendNone: '초대 보내기',
-    inviteSendNoneHint: '고른 사람 중 아직 가입하지 않은 구성원이 없어요',
+    /* 「초대 보내기」 (PW-1331 · PW-1352) — 고른 사람을 그대로 넘긴다. 가입한 사람·퇴사자를 건너뛰는 판정과
+       확인 창은 부르는 쪽이 한다. 모두 가입했어도 항목은 켜 둔다(admin-spec §3.1-D 엣지 ① — 누르면 토스트). */
+    inviteSend: '초대 보내기',
     /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — 고른 사람을 그대로 넘긴다. 가입한 사람을 건너뛰는
        판정과 확인 창은 부르는 쪽이 한다. 파괴적이라 맨 아래 · 구분선 아래 · 빨간 글씨. */
     cancelRegistration: '등록 취소',
@@ -335,6 +334,10 @@ const DEFAULT_LABELS = {
     cancelOffboarding: '퇴사 예약 취소',
     /* 미가입 구성원(PW-1351 · admin-spec §3.1-D). 그 행에서는 «비활성화» 대신 이 항목만 뜬다. */
     cancelRegistration: '등록 취소',
+    /* 미가입 구성원(PW-1352 · admin-spec §3.1-D 「미가입 구성원」). 행 메뉴로 그 한 명에게 초대를 보내고,
+       이름 옆에 회색 배지를 단다. 배지 말풍선(`member.inviteSentNote`)은 부르는 쪽이 만든다. */
+    inviteSend: '초대 보내기',
+    unjoinedBadge: '미가입',
     cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
@@ -544,7 +547,7 @@ const ROW_MENU_Z = 1000;
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
 function RowActionMenu({
-  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onCeo, ceoMode, onClose,
+  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onCeo, ceoMode, onClose,
   labels, canEdit, anchorSelector, member = {},
 }) {
   const ref = useRef(null);
@@ -648,6 +651,17 @@ function RowActionMenu({
         >
           <IconCrown size={13} />
           {ceoMode === 'assign' ? labels.menu.assignCeo : labels.menu.releaseCeo}
+        </button>
+      )}
+      {/* 미가입 구성원 한 명에게 초대 (PW-1352). 퇴사자는 보낼 대상이 아니라(`inviteBlock`) 그리지 않는다. */}
+      {onInviteSend && member.unjoined && member.inviteBlock === null && (
+        <button
+          type="button"
+          className="admin-emp-row-menu-item"
+          data-testid="employees-row-invite-send"
+          onClick={() => { onInviteSend(); onClose(); }}
+        >
+          {labels.menu.inviteSend}
         </button>
       )}
       {canEdit && renderDestructive()}
@@ -2204,18 +2218,13 @@ function EmployeesListView({
       onPick: () => onBulkEditFields(selectedRows.map((m) => m.id)),
     });
   }
-  /* [PW-1331] 고른 사람 중 아직 가입하지 않은 사람에게만 초대를 보낸다 — 가입한 사람·퇴사자는
-     대상이 아니라 세지 않는다. 한 명도 없으면 항목을 막고 까닭을 단다. */
+  /* [PW-1331 · PW-1352] 고른 사람을 그대로 넘긴다 — 가입한 사람·퇴사자를 세어 확인 창에 «건너뜁니다»로
+     알리고, 모두 가입했으면 창 대신 토스트를 띄우는 것은 부르는 쪽이다(admin-spec §3.1-D 엣지 ①). */
   if (selectable && onInviteMembers) {
-    const invitable = selectedRows.filter((m) => m.inviteBlock === null);
     bulkItems.push({
       id: 'invite-send',
-      label: invitable.length > 0
-        ? fill(labels.listBulk.inviteSend, { count: invitable.length })
-        : labels.listBulk.inviteSendNone,
-      disabled: invitable.length === 0,
-      hint: invitable.length === 0 ? labels.listBulk.inviteSendNoneHint : undefined,
-      onPick: () => onInviteMembers(invitable.map((m) => m.id)),
+      label: labels.listBulk.inviteSend,
+      onPick: () => onInviteMembers(selectedRows.map((m) => m.id)),
     });
   }
   if (selectable && onCancelRegistration) {
@@ -2506,6 +2515,17 @@ function EmployeesListView({
               {m.displayName || m.name}
               {/* 👑 대표 배지 — 이름 «뒤», 조직장 👤(소속 칩)와 자리를 나눈다(§3.1 L8). */}
               {m.isCeo && <CeoBadge label={labels.menu.ceoBadge} />}
+              {/* 아직 가입하지 않은 사람 (PW-1352). 보낸 초대가 있으면 말풍선에 보낸 날·만료일. */}
+              {m.unjoined && (
+                <DpStatusBadge
+                  tone="neutral"
+                  className="admin-emp-role-pill"
+                  title={m.inviteSentNote || undefined}
+                  data-testid={`employees-unjoined-badge-${m.id}`}
+                >
+                  {labels.menu.unjoinedBadge}
+                </DpStatusBadge>
+              )}
               <RolePill role={m.orgRole} labels={labels} />
             </span>
           </button>
@@ -2617,6 +2637,7 @@ function EmployeesListView({
                 onDeactivate={() => onDeactivate?.(m)}
                 onCancelOffboarding={onCancelOffboarding ? () => onCancelOffboarding(m) : undefined}
                 onCancelRegistration={onCancelRegistration ? () => onCancelRegistration([m.id]) : undefined}
+                onInviteSend={onInviteMembers ? () => onInviteMembers([m.id]) : undefined}
                 member={m}
                 /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
                    두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
@@ -4015,7 +4036,8 @@ export default function AdminEmployeesCanvas({
      고칠 수 있는 항목·선택 적용 항목·직군/직렬 매핑은 화면의 규칙이라 디자인 부품이
      알 일이 아니다. 미주입이면 그 항목이 드롭다운에 없다. */
   onBulkEditFields,
-  /* 「초대 보내기」 (PW-1331) — `onInviteMembers(memberIds)`. 고른 사람 중 가입 전인 사람(`inviteBlock === null`)만 넘긴다. */
+  /* 「초대 보내기」 (PW-1331 · PW-1352) — `onInviteMembers(memberIds)`. 일괄은 고른 사람 전부, 미가입 행(`unjoined` · 퇴사 아님)의
+     ⋯ 메뉴는 그 한 명을 넘긴다. 가입한 사람·퇴사자를 거르는 판정과 확인 창은 부르는 쪽이 한다. */
   onInviteMembers,
   /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — `onCancelRegistration(memberIds)`. 일괄 처리 맨 아래와
      미가입 행(`member.unjoined`)의 ⋯ 메뉴(«비활성화» 대신)에 뜬다. 가입한 사람을 거르는 판정·확인 창은
