@@ -379,6 +379,9 @@
 
 .admin-emp-invite-badge.is-expired { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
 
+/* [PW-1331] 미발송 — 대기중 배지 옆에 붙는 «메일이 아직 안 나갔다» 표시. 만료(흐린 회색)와 갈리게 글자를 진하게 */
+.admin-emp-invite-badge.is-unsent { background: var(--dp-badge-neutral-bg); color: var(--text-secondary); }
+
 /* `증빙 고정본` — AI 출처 배지가 아니라 시점 출처 표기라 중립색(정책 §8) */
 .admin-snap-roster-badge {
   margin-left: 6px;

@@ -1715,6 +1715,10 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#dc6803 / 어두운 화면 #fdb022"
   },
+  "admin.css|.admin-emp-invite-badge.is-unsent": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
   "admin.css|.admin-emp-pill.is-amber": {
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#dc6803 / 어두운 화면 #fdb022"
