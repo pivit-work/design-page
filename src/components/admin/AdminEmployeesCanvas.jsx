@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Fragment, useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
@@ -182,6 +182,9 @@ const DEFAULT_LABELS = {
     inviteSend: '초대 보내기 (가입 전 {count}명)',
     inviteSendNone: '초대 보내기',
     inviteSendNoneHint: '고른 사람 중 아직 가입하지 않은 구성원이 없어요',
+    /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — 고른 사람을 그대로 넘긴다. 가입한 사람을 건너뛰는
+       판정과 확인 창은 부르는 쪽이 한다. 파괴적이라 맨 아래 · 구분선 아래 · 빨간 글씨. */
+    cancelRegistration: '등록 취소',
     /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
        않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
        🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
@@ -330,6 +333,8 @@ const DEFAULT_LABELS = {
     edit: '수정', changeManager: '조직 배정', deactivate: '비활성화',
     /* 퇴사 예약(PW-1081 · 퇴사 처리 정책 §5-B). 예약된 행에서는 «비활성화» 대신 이 항목만 뜬다. */
     cancelOffboarding: '퇴사 예약 취소',
+    /* 미가입 구성원(PW-1351 · admin-spec §3.1-D). 그 행에서는 «비활성화» 대신 이 항목만 뜬다. */
+    cancelRegistration: '등록 취소',
     cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
@@ -539,8 +544,8 @@ const ROW_MENU_Z = 1000;
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
 function RowActionMenu({
-  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCeo, ceoMode, onClose, labels, canEdit,
-  anchorSelector, member = {},
+  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onCeo, ceoMode, onClose,
+  labels, canEdit, anchorSelector, member = {},
 }) {
   const ref = useRef(null);
   useDismissLayer(onClose, ref, anchorSelector);
@@ -549,8 +554,25 @@ function RowActionMenu({
      - 퇴사자 행: 없다 — 이미 끝난 사람을 다시 퇴사시킬 길을 두지 않는다
      - 퇴사 예약 행: «퇴사 예약 취소» — 예약을 또 거는 «비활성화»는 숨긴다
      - 대표 행: «비활성화»를 흐리게 두고 이유를 풍선으로 — 대표 지정부터 풀어야 한다
-     - 그 밖: «비활성화» */
+     - 그 밖: «비활성화»
+     미가입 구성원(`member.unjoined` · PW-1351)은 넷보다 먼저 «등록 취소» 하나만 뜬다 — 가입 전인
+     사람을 퇴사 처리로 내보내지 않는다(admin-spec §3.1-D 「표면」). */
   const renderDestructive = () => {
+    if (member.unjoined && onCancelRegistration) {
+      return (
+        <>
+          <div className="admin-emp-row-menu-divider" />
+          <button
+            type="button"
+            className="admin-emp-row-menu-item is-danger"
+            data-testid="employees-row-cancel-registration"
+            onClick={() => { onCancelRegistration(); onClose(); }}
+          >
+            {labels.menu.cancelRegistration}
+          </button>
+        </>
+      );
+    }
     if (member.employmentStatus === 'terminated') return null;
     if (member.offboardingScheduled) {
       if (!onCancelOffboarding) return null;
@@ -1445,25 +1467,28 @@ function BulkMenu({ count, items, labels }) {
       {open && (
         <div className="admin-emp-select-menu" role="menu" data-testid="employees-list-bulk-menu">
           {items.map((it) => (
-            <button
-              key={it.id}
-              type="button"
-              role="menuitem"
-              className="admin-emp-select-item"
-              data-testid={`employees-list-bulk-${it.id}`}
-              /* 막힌 항목도 메뉴에 남긴다 — 사라지면 «왜 없지» 를 알 길이 없다. 안내(`hint`)가
-                 그 이유를 바로 아래 줄에 적는다 (PW-1330). */
-              disabled={it.disabled}
-              aria-disabled={it.disabled || undefined}
-              onClick={() => { if (it.disabled) return; setOpen(false); it.onPick(); }}
-            >
-              <span className="admin-emp-select-item-label">{it.label}</span>
-              {it.hint && (
-                <span className="admin-emp-select-item-sub" data-testid={`employees-list-bulk-${it.id}-hint`}>
-                  {it.hint}
-                </span>
-              )}
-            </button>
+            <Fragment key={it.id}>
+              {/* 파괴적인 항목은 구분선 아래 빨간 글씨 (PW-1351) — 손이 미끄러져 눌리는 자리에 두지 않는다. */}
+              {it.danger && <div className="admin-emp-select-divider" role="separator" />}
+              <button
+                type="button"
+                role="menuitem"
+                className={`admin-emp-select-item${it.danger ? ' is-danger' : ''}`}
+                data-testid={`employees-list-bulk-${it.id}`}
+                /* 막힌 항목도 메뉴에 남긴다 — 사라지면 «왜 없지» 를 알 길이 없다. 안내(`hint`)가
+                   그 이유를 바로 아래 줄에 적는다 (PW-1330). */
+                disabled={it.disabled}
+                aria-disabled={it.disabled || undefined}
+                onClick={() => { if (it.disabled) return; setOpen(false); it.onPick(); }}
+              >
+                <span className="admin-emp-select-item-label">{it.label}</span>
+                {it.hint && (
+                  <span className="admin-emp-select-item-sub" data-testid={`employees-list-bulk-${it.id}-hint`}>
+                    {it.hint}
+                  </span>
+                )}
+              </button>
+            </Fragment>
           ))}
         </div>
       )}
@@ -1804,6 +1829,9 @@ function EmployeesListView({
          막히고 안내가 붙는다. 미주입이면 상한이 없다. */
   onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields, bulkEditFieldsMax,
   onInviteMembers,
+  /* 「등록 취소」 (PW-1351) — `onCancelRegistration(memberIds)`. 일괄은 고른 사람 전부, 행 메뉴는
+     미가입(`unjoined`) 행 한 명을 넘긴다. 미주입이면 두 자리 모두 없다. */
+  onCancelRegistration,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -2188,6 +2216,14 @@ function EmployeesListView({
       disabled: invitable.length === 0,
       hint: invitable.length === 0 ? labels.listBulk.inviteSendNoneHint : undefined,
       onPick: () => onInviteMembers(invitable.map((m) => m.id)),
+    });
+  }
+  if (selectable && onCancelRegistration) {
+    bulkItems.push({
+      id: 'cancel-registration',
+      label: labels.listBulk.cancelRegistration,
+      danger: true,
+      onPick: () => onCancelRegistration(selectedRows.map((m) => m.id)),
     });
   }
   if (selectable && onBulkDeactivate) {
@@ -2580,6 +2616,7 @@ function EmployeesListView({
                 onChangeManager={() => onOpenEdit(m)}
                 onDeactivate={() => onDeactivate?.(m)}
                 onCancelOffboarding={onCancelOffboarding ? () => onCancelOffboarding(m) : undefined}
+                onCancelRegistration={onCancelRegistration ? () => onCancelRegistration([m.id]) : undefined}
                 member={m}
                 /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
                    두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
@@ -3980,6 +4017,10 @@ export default function AdminEmployeesCanvas({
   onBulkEditFields,
   /* 「초대 보내기」 (PW-1331) — `onInviteMembers(memberIds)`. 고른 사람 중 가입 전인 사람(`inviteBlock === null`)만 넘긴다. */
   onInviteMembers,
+  /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — `onCancelRegistration(memberIds)`. 일괄 처리 맨 아래와
+     미가입 행(`member.unjoined`)의 ⋯ 메뉴(«비활성화» 대신)에 뜬다. 가입한 사람을 거르는 판정·확인 창은
+     부르는 쪽이 한다. 미주입이면 두 자리 모두 없다. */
+  onCancelRegistration,
   /* 그 창이 한 번에 받는 인원 상한 (PW-1330). 넘게 고르면 항목이 막히고 안내가 붙는다. */
   bulkEditFieldsMax,
   /**
@@ -4309,6 +4350,7 @@ export default function AdminEmployeesCanvas({
             /* 「여러 칸 한 번에 고치기」 (PW-901) — 고른 사람 id 만 넘긴다. */
             onBulkEditFields={canEdit ? onBulkEditFields : undefined}
             onInviteMembers={canEdit ? onInviteMembers : undefined}
+            onCancelRegistration={canEdit ? onCancelRegistration : undefined}
             bulkEditFieldsMax={bulkEditFieldsMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
