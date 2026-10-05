@@ -92,6 +92,8 @@ const DEFAULT_LABELS = {
   /** `{date}` 자리에 기준일이 들어간다. */
   asofBanner: '{date} 시점으로 조회 중입니다',
   asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
+  /** 그 날짜엔 아직 없던 열 안내(E18) — 비어 있으면 안 그린다. 앱이 열 이름을 넣어 만든다. */
+  asofBlankColumnsNote: '',
   // 커버리지 경계 · 빈 상태 2종 (org-snapshot-spec §5-A · PW-139).
   // C1 = 기록의 부재, C2 = 사실의 확인. 문구를 서로 바꿔 쓰지 않는다.
   asofCoverageCaption: '',
@@ -281,8 +283,17 @@ const ROSTER_COLUMNS = [
    굳었다(2026-09-23 성능 점검). 명단은 높이 520px 스크롤 상자 안이라 한 쪽을 넉넉히 50줄로 둔다. */
 const ROSTER_PAGE_SIZE = 50;
 
-function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge }) {
-  const columns = showSalary ? [...ROSTER_COLUMNS, 'salary'] : ROSTER_COLUMNS;
+/**
+ * `extraColumns` — 표준 열(+연봉) 뒤에 덧붙일 열 `[{ key, comp }]` (PW-1295 · 구성원 CSV 양식 열).
+ * 헤더는 `labels.roster[key]`. `comp: true` 는 보상 열이라 연봉과 같은 조건(`showSalary`)에서만 나온다.
+ * 무엇을 덧붙일지는 앱이 정한다 — 앱의 CSV 와 같은 목록을 넘겨야 「보이는 것 = 받는 것」이 맞는다.
+ */
+function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge, extraColumns = [] }) {
+  const columns = [
+    ...ROSTER_COLUMNS,
+    ...(showSalary ? ['salary'] : []),
+    ...extraColumns.filter((c) => showSalary || !c.comp).map((c) => c.key),
+  ];
   // 명단이 바뀌면(다른 날짜·비교) 첫 쪽으로 — 쪽 번호를 «어느 명단의 쪽인가»와 함께 든다.
   const [pageState, setPageState] = useState({ rows, page: 1 });
   const page = pageState.rows === rows ? pageState.page : 1;
@@ -443,7 +454,7 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
 function OrgSnapshotStatusView({
   data, labels, queryDate, onQueryDateChange, onExport, onExportRoster,
   activeTab, onTabChange, onDrilldown, onRosterMemberClick,
-  showComp, onShowCompChange,
+  showComp, onShowCompChange, rosterExtraColumns,
 }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
@@ -640,6 +651,7 @@ function OrgSnapshotStatusView({
             labels={labels}
             showSalary={showSalary}
             onMemberClick={onRosterMemberClick}
+            extraColumns={rosterExtraColumns}
           />
         )}
       </section>
@@ -1477,7 +1489,7 @@ function AppointmentHistoryView({ records, labels, onExport }) {
  */
 function AsOfSnapshotView({
   data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
-  onExport, onRosterMemberClick,
+  onExport, onRosterMemberClick, rosterExtraColumns,
 }) {
   const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0 } = data;
   const isPast = !!asOfDate && asOfDate !== today;
@@ -1639,6 +1651,7 @@ function AsOfSnapshotView({
             showSalary={!!showComp && roster.some((r) => r.salary !== undefined)}
             changedHint={(col, row) => `${labels.roster[col]} · ${row.name}`}
             onMemberClick={onRosterMemberClick}
+            extraColumns={rosterExtraColumns}
             rowBadge={fromFixedCopy ? {
               label: labels.asofFixedCopy,
               title: labels.asofFixedCopyHint,
@@ -1649,6 +1662,10 @@ function AsOfSnapshotView({
       {/* partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A) */}
       {meta?.state === 'partial' && !isOut && (
         <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
+      )}
+      {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
+      {labels.asofBlankColumnsNote && !isOut && (
+        <p className="admin-snap-footnote" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</p>
       )}
     </div>
   );
@@ -1717,6 +1734,11 @@ export default function OrgSnapshotCanvas({
    * 재구성 상태 판정은 서버 응답을 읽는 앱의 몫이다. 없으면 안 그린다.
    */
   notice = null,
+  /**
+   * 원본 명단 표준 열 뒤에 덧붙일 열 `[{ key, comp }]` (PW-1295). 조직 현황·As Of 두 명단이 같이 쓴다.
+   * `comp: true` 는 보상 열 — 보상 표시를 켜고 연봉 값이 실려 온 경우에만 나온다. 헤더는 `labels.roster[key]`.
+   */
+  rosterExtraColumns = [],
   labels: providedLabels,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
@@ -1765,6 +1787,7 @@ export default function OrgSnapshotCanvas({
               onRosterMemberClick={onRosterMemberClick}
               showComp={showComp}
               onShowCompChange={onShowCompChange}
+              rosterExtraColumns={rosterExtraColumns}
             />
           )}
           {view === 'asof' && (
@@ -1779,6 +1802,7 @@ export default function OrgSnapshotCanvas({
               onShowCompChange={onShowCompChange}
               onExport={onExportAsOf}
               onRosterMemberClick={onRosterMemberClick}
+              rosterExtraColumns={rosterExtraColumns}
             />
           )}
           {view === 'single' && (
