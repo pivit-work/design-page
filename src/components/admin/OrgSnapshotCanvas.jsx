@@ -13,6 +13,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
 import Pagination from '../shared/Pagination.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -1491,7 +1492,10 @@ function AsOfSnapshotView({
   data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
   onExport, onRosterMemberClick, rosterExtraColumns,
 }) {
-  const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0 } = data;
+  const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0, pending = false } = data;
+  // pending — 고른 날짜의 응답이 아직 안 왔다. 화면에 남은 숫자는 **이전 날짜의 것**이라
+  // 그대로 보이면 새 날짜의 값으로 읽힌다(PW-1248). 카드 값은 자리 표시로 바꾸고 명단은
+  // 흐리게 남긴다(정책 §3 「날짜 변경 재조회」 — 표를 비우지 않는다). 날짜 칸·칩은 그대로 둔다.
   const isPast = !!asOfDate && asOfDate !== today;
   // 커버리지 하한은 prop 우선, 없으면 응답 메타. 옛 백엔드와 섞여도 화면이 죽지 않는다.
   const minDate = coverageFrom || meta?.coverageFrom || undefined;
@@ -1601,17 +1605,19 @@ function AsOfSnapshotView({
         </div>
       )}
 
-      <div className="admin-snap-summary-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+      <div className="admin-snap-summary-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }} aria-busy={pending || undefined}>
         {cards.map((c) => (
           <div key={c.key} className="admin-snap-summary-card">
             <p className="admin-snap-summary-label">{labels.asofCards[c.key]}</p>
-            <p className="admin-snap-summary-value" data-testid={`asof-card-${c.key}`}>{c.value}</p>
-            {isOut && <p className="admin-snap-summary-norecord">{labels.asofNoRecord}</p>}
+            <p className="admin-snap-summary-value" data-testid={`asof-card-${c.key}`}>
+              {pending ? <Skeleton width={56} height={24} inline /> : c.value}
+            </p>
+            {isOut && !pending && <p className="admin-snap-summary-norecord">{labels.asofNoRecord}</p>}
           </div>
         ))}
       </div>
 
-      <div className="admin-snap-content">
+      <div className={`admin-snap-content${pending ? ' is-pending' : ''}`} aria-busy={pending || undefined}>
         {isOut ? (
           <EmptyState
             size="lg"
