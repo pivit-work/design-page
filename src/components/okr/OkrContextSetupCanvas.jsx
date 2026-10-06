@@ -8,6 +8,8 @@ import {
   PencilGlyph,
 } from '../shared/lineIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Chip from '../shared/Chip.jsx';
+import Switch from '../shared/Switch.jsx';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -32,6 +34,14 @@ import Tooltip from '../shared/Tooltip.jsx';
  *   onAnalyze — AI 분석(§3-3) 트리거. AI 분석 섹션이 있는 호스트만 주입한다.
  *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
  *     넘으면 `onAddFile` 을 부르지 않고 인라인 에러로 막는다(PW-163).
+ *   unitPolicy — 카드 맨 위 «OKR 운영 단위» 칸(정책 §3-1A · okr-policy §2B.5 · PW-1364).
+ *     `{ levels: [{ id, name, count }], minUnitLevelId, individualOkr }`. `levels` 는 라벨 사전
+ *     순서대로(전사는 넣지 않는다 — 칸이 맨 앞에 고정으로 그린다). `minUnitLevelId` 가 비면
+ *     가장 깊은 라벨까지 운영으로 본다. 이 prop·`unitPolicyLoading`·`unitPolicyError` 셋 다
+ *     안 주면 칸을 그리지 않는다(구버전 호출부 호환).
+ *   unitPolicyLoading / unitPolicyError — 칸 안에 «불러오는 중» / 실패 문구.
+ *   onUnitPolicyChange(next) — 칩·스위치를 누르면 바뀐 정책 전체로 부른다. 편집 권한이 없거나
+ *     미주입이면 칸은 보기만 한다. 저장·실패 되돌리기는 호스트 몫이다.
  */
 
 const T = {
@@ -836,6 +846,145 @@ function StickyFooterCta({ sources, labels, canEdit, onStartOkr }) {
   );
 }
 
+/** OKR 운영 단위 칸 머리 아이콘 — 위 하나에 아래 둘이 달린 조직 모양(시안의 🏛 자리). */
+function OrgUnitsIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} {...svgProps}>
+      <rect x="9" y="3" width="6" height="5" rx="1" />
+      <rect x="3" y="16" width="6" height="5" rx="1" />
+      <rect x="15" y="16" width="6" height="5" rx="1" />
+      <path d="M12 8v4M6 16v-4h12v4" />
+    </svg>
+  );
+}
+
+/**
+ * «OKR 운영 단위» 칸 (정책 §3-1A · PW-1364) — 정본 시안 `okr-app.jsx` 의 `UnitPolicySection`.
+ *
+ * 전사는 늘 운영(고정)이고, 그 아래 라벨을 «최소 운영 단위»까지 **사전 순서로 이어서** 운영한다
+ * (okr-policy §2B.2 규칙 2 — 중간 건너뛰기는 표현 자체가 없다: 값은 `minUnitLevelId` 하나다).
+ * 개인 OKR 은 따로 켜고 끈다. 같은 값은 어드민 조직단위 설정의 라벨 관리 창에서도 바꾼다
+ * (§2B.2 규칙 3 — 편집하는 곳이 둘이다).
+ */
+function UnitPolicySection({ policy, loading, error, readOnly, onChange, labels: L }) {
+  const levels = policy?.levels ?? [];
+  const minId =
+    policy && levels.some((l) => l.id === policy.minUnitLevelId)
+      ? policy.minUnitLevelId
+      : levels[levels.length - 1]?.id ?? null;
+  const minIndex = levels.findIndex((l) => l.id === minId);
+  const editable = !readOnly && !!onChange && !!policy;
+  const individualOn = policy?.individualOkr ?? true;
+
+  return (
+    <div data-testid="okr-unit-policy" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ color: T.accent, display: 'inline-flex' }}>
+          <OrgUnitsIcon />
+        </span>
+        <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{L.unitTitle}</div>
+        <Badge tone="muted">{L.unitDerived}</Badge>
+      </div>
+      <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.6 }}>{L.unitDescription}</div>
+
+      {error ? (
+        <div
+          role="alert"
+          data-testid="okr-unit-policy-error"
+          style={{
+            padding: '10px 12px',
+            borderRadius: 9,
+            background: T.errBg,
+            border: `1px solid ${T.errBd}`,
+            color: T.errText,
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          {error}
+        </div>
+      ) : loading || !policy ? (
+        <div style={{ fontSize: 12, color: T.muted }}>{L.loading}</div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <Chip selected title={L.unitCompanyFixed} data-testid="okr-unit-chip-company">
+              {L.unitCompany}
+            </Chip>
+            {levels.map((lv, i) => {
+              const operated = i <= minIndex;
+              const isMin = lv.id === minId;
+              const hint = (L.unitLevelHint || '{{name}}').replace('{{name}}', lv.name);
+              return (
+                <span key={lv.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span aria-hidden="true" style={{ fontSize: 11, color: T.muted }}>›</span>
+                  <Chip
+                    selected={operated}
+                    title={hint}
+                    data-testid={`okr-unit-chip-${lv.id}`}
+                    {...(editable && !isMin
+                      ? { onClick: () => onChange({ ...policy, minUnitLevelId: lv.id }) }
+                      : {})}
+                  >
+                    {lv.name}
+                    <span style={{ marginLeft: 4, fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>
+                      {lv.count ?? 0}
+                    </span>
+                    {isMin && (
+                      <span
+                        data-testid="okr-unit-min-badge"
+                        style={{
+                          marginLeft: 6,
+                          padding: '0 6px',
+                          borderRadius: 99,
+                          background: T.accent,
+                          color: '#fff',
+                          fontSize: 10,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {L.unitMinBadge}
+                      </span>
+                    )}
+                  </Chip>
+                </span>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: individualOn ? T.okBg : '#F8FAFC',
+              border: `1px solid ${individualOn ? T.okBd : T.border}`,
+            }}
+          >
+            <Switch
+              checked={individualOn}
+              disabled={!editable}
+              label={L.individualToggle}
+              data-testid="okr-unit-individual-switch"
+              onChange={(next) => onChange?.({ ...policy, individualOkr: next })}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>
+                {individualOn ? L.individualOn : L.individualOff}
+              </div>
+              <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>
+                {individualOn ? L.individualOnDesc : L.individualOffDesc}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function OkrContextSetupCanvas({
   sources = [],
   labels = {},
@@ -850,6 +999,10 @@ export default function OkrContextSetupCanvas({
   onStartOkr,
   onAnalyze,
   maxFileSize,
+  unitPolicy,
+  unitPolicyLoading = false,
+  unitPolicyError = null,
+  onUnitPolicyChange,
 }) {
   const [adding, setAdding] = useState(false);
   const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
@@ -863,6 +1016,7 @@ export default function OkrContextSetupCanvas({
   const nextStepBtnRef = useRef(null);
   const showNextStep = !readOnly && !loading && sources.length > 0 && !!onStartOkr;
   const nextStepOnScreen = useOnScreen(nextStepBtnRef, showNextStep);
+  const showUnitPolicy = unitPolicy !== undefined || unitPolicyLoading || !!unitPolicyError;
 
   return (
     <div style={{ fontFamily: T.font, maxWidth: 880 }} data-testid="okr-context-setup">
@@ -917,6 +1071,24 @@ export default function OkrContextSetupCanvas({
           gap: 12,
         }}
       >
+        {/* 카드 맨 위 — OKR 운영 단위(§3-1A). 지식 소스와는 구분선만으로 나눈다(한판 UX). */}
+        {showUnitPolicy && (
+          <>
+            <UnitPolicySection
+              policy={unitPolicy}
+              loading={unitPolicyLoading}
+              error={unitPolicyError}
+              readOnly={readOnly}
+              onChange={onUnitPolicyChange}
+              labels={L}
+            />
+            <div
+              aria-hidden="true"
+              style={{ height: 1, background: T.border, margin: '6px 0' }}
+            />
+          </>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{L.sourcesTitle}</div>
           <span style={{ fontSize: 12, color: T.muted }}>
