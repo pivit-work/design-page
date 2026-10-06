@@ -174,7 +174,8 @@ function PeerGroupCard({
             {group.nominees.map((n) => (
               <div className="evp-nominee" key={n.id} data-testid="evp-nominee">
                 <span className="evp-nominee-name">{n.evaluator.name || n.evaluator.id}</span>
-                <StatusBadge className="evc-type-badge">{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</StatusBadge>
+                {/* PW-1375 — «AI 추천» 근거(함께한 회의 N회 등)는 표시에 마우스를 올리면 뜬다 */}
+                <StatusBadge className="evc-type-badge" title={n.evidenceText}>{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</StatusBadge>
                 <StatusBadge className={`evc-status-badge tone-${n.status === 'leader_approved' ? 'success' : 'neutral'}`}>
                   {L[STATUS_KEY[n.status]] ?? n.status}
                 </StatusBadge>
