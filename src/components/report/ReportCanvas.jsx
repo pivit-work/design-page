@@ -58,6 +58,8 @@ export default function ReportCanvas({
   // 생성 버튼 클릭 직후 selectedReport 가 세팅되고 isGenerating=true 면
   // weeklyReport 가 도착할 때까지 로딩이 보이고, 도착하면 자연스럽게 리포트로 전환.
   isGenerating = false,
+  // 생성 중 문구 — 소비처가 i18n 문구를 넘긴다 (PW-1385). 안 넘기면 시안 그대로.
+  generatingLabel,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
@@ -94,6 +96,7 @@ export default function ReportCanvas({
           report={selectedReport.weeklyReport}
           generatedAt={selectedReport.generatedAt}
           isGenerating={isGenerating}
+          generatingLabel={generatingLabel}
           closeLabel={closeLabel}
           ariaLabel={selectedReport.dateRange ?? selectedReport.periodLabel}
           onClose={onCloseReport}

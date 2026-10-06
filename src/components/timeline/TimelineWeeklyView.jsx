@@ -52,6 +52,8 @@ export default function TimelineWeeklyView({
   report,
   // 생성 중 로딩 (버튼 비활성화). report 가 도착하면 자연스럽게 빈 상태 → 리포트로 전환.
   isGenerating = false,
+  // 생성 중 문구 — 소비처가 i18n 문구를 넘긴다 (PW-1385). 안 넘기면 시안 그대로.
+  generatingLabel = 'Generating...',
   onGenerate,
   onViewHistory,
   // AI 안내 배너 노출 여부. 리포트 디테일 뷰에서는 false (상위에서 안 띄움).
@@ -120,7 +122,7 @@ export default function TimelineWeeklyView({
                 muted
                 playsInline
               />
-              <p className="tl-weekly-loading-text">Generating...</p>
+              <p className="tl-weekly-loading-text">{generatingLabel}</p>
             </div>
           </div>
         ) : !report ? (
