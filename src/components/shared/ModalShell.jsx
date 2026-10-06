@@ -84,6 +84,9 @@ export default function ModalShell({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // 창 안에서 연 창(포털이라 화면에선 밖이지만 React 에선 안쪽)의 제출이 바깥 창의 제출까지
+    // 올라가지 않게 막는다 — 안 막으면 안쪽 [연결] 한 번에 바깥 [확정]도 눌린다(PW-1220).
+    e.stopPropagation();
     if (!canSubmit || busy || !onSubmit) return;
     onSubmit();
   };
