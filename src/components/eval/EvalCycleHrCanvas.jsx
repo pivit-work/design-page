@@ -256,6 +256,13 @@ const DEFAULT_LABELS = {
   confirmCompleteAppealsTitle: '재검토 대기 어필이 남아 있습니다',
   confirmCompleteAppealsBody:
     '재검토 대기 어필이 {{count}}건 있습니다. 완료로 넘기면 이 어필은 수용할 수 없고 반려로만 닫을 수 있습니다. 그래도 진행하시겠습니까?',
+  // PW-1242 — «○○ 단계로 진행»은 언제나 확인을 받는다(커트 결정 2026-10-06 (가)).
+  // 아직 마치지 않은 사람 수를 보여 주되, 넘기는 것은 막지 않는다.
+  confirmAdvanceTitle: '{{stage}} 단계로 넘길까요?',
+  confirmAdvanceIrreversible: '넘긴 뒤에는 이전 단계로 되돌릴 수 없습니다.',
+  confirmAdvancePendingLead: '아직 마치지 않은 사람이 있습니다. 그래도 넘길 수 있습니다.',
+  confirmAdvanceAllDone: '이 단계를 모두 마쳤습니다.',
+  confirmAdvancePendingUnknown: '아직 마치지 않은 사람 수를 불러오지 못했습니다.',
   toastCreated: '평가 사이클이 생성되었습니다',
   toastOpened: '사이클이 오픈되었습니다',
   toastRevoked: '사이클이 회수되었습니다',
@@ -1056,6 +1063,14 @@ export default function EvalCycleHrCanvas({
    * 모른 채 완료로 넘기는 것이 이 확인의 반대이기 때문이다.
    */
   countOpenAppeals,
+  /**
+   * PW-1242 — 단계를 넘기기 전 확인 창에 적을 «아직 마치지 않은 사람» 줄.
+   * `(cycle) => Promise<string[] | null>` — 줄마다 사람이 읽는 문장(「셀프 리뷰 5명」).
+   * 빈 배열이면 모두 마친 것이고, null 이면 셀 것이 없는 단계라 수 줄을 적지 않는다. 넘기면 «○○ 단계로 진행»은 언제나 확인 창을 거친다.
+   * 읽기에 실패해도 창은 띄운다 — 수를 모른다고 적고, 넘길지는 어드민이 정한다(막지 않는다).
+   * 안 넘기면 종전대로(완료로 넘길 때 어필 확인만) 동작한다.
+   */
+  loadAdvancePending,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
@@ -1286,33 +1301,74 @@ export default function EvalCycleHrCanvas({
   };
   const handleAdvance = async (cycle) => {
     if (advancingId) return;
-    if (cycle.nextStatus !== 'done' || !countOpenAppeals) {
+    const askAppeals = cycle.nextStatus === 'done' && !!countOpenAppeals;
+    if (!askAppeals && !loadAdvancePending) {
       advanceNow(cycle);
       return;
     }
     // [PW-1018] 세는 동안에도 버튼을 잠근다 — 두 번 눌러 창이 둘 뜨지 않게.
     setAdvancingId(cycle.id);
-    let count;
-    try {
-      count = await countOpenAppeals(cycle.id);
-    } catch {
-      setAdvancingId(null);
-      showToast(L.toastError, 'error');
-      return;
+    let count = 0;
+    if (askAppeals) {
+      try {
+        count = await countOpenAppeals(cycle.id);
+      } catch {
+        setAdvancingId(null);
+        showToast(L.toastError, 'error');
+        return;
+      }
+    }
+    // 세지 못해도 창은 띄운다 — 막지 않는다는 결정이라 읽기 실패로 막을 이유가 없다.
+    let pending = null;
+    let pendingFailed = false;
+    if (loadAdvancePending) {
+      try {
+        pending = await loadAdvancePending(cycle);
+      } catch {
+        pendingFailed = true;
+      }
     }
     setAdvancingId(null);
-    if (!(count > 0)) {
+    const stage = statusLabel(cycle, cycle.nextStatus, L);
+    const proceed = () => {
+      setConfirmModal(null);
       advanceNow(cycle);
+    };
+    if (!loadAdvancePending) {
+      if (!(count > 0)) {
+        advanceNow(cycle);
+        return;
+      }
+      setConfirmModal({
+        title: L.confirmCompleteAppealsTitle,
+        body: fill(L.confirmCompleteAppealsBody, { count }),
+        confirmLabel: fill(L.advance, { stage }),
+        onConfirm: proceed,
+      });
       return;
     }
     setConfirmModal({
-      title: L.confirmCompleteAppealsTitle,
-      body: fill(L.confirmCompleteAppealsBody, { count }),
-      confirmLabel: fill(L.advance, { stage: statusLabel(cycle, cycle.nextStatus, L) }),
-      onConfirm: () => {
-        setConfirmModal(null);
-        advanceNow(cycle);
-      },
+      title: count > 0 ? L.confirmCompleteAppealsTitle : fill(L.confirmAdvanceTitle, { stage }),
+      body: (
+        <div data-testid="evc-advance-confirm-body">
+          <div>{L.confirmAdvanceIrreversible}</div>
+          {pendingFailed && <div>{L.confirmAdvancePendingUnknown}</div>}
+          {Array.isArray(pending) && pending.length === 0 && <div>{L.confirmAdvanceAllDone}</div>}
+          {Array.isArray(pending) && pending.length > 0 && (
+            <>
+              <div>{L.confirmAdvancePendingLead}</div>
+              {pending.map((line) => (
+                <div key={line} data-testid="evc-advance-pending-line">
+                  · {line}
+                </div>
+              ))}
+            </>
+          )}
+          {count > 0 && <div>{fill(L.confirmCompleteAppealsBody, { count })}</div>}
+        </div>
+      ),
+      confirmLabel: fill(L.advance, { stage }),
+      onConfirm: proceed,
     });
   };
 
