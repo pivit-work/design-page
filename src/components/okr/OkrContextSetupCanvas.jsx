@@ -937,7 +937,8 @@ function UnitPolicySection({ policy, loading, error, readOnly, onChange, labels:
                           marginLeft: 6,
                           padding: '0 6px',
                           borderRadius: 99,
-                          background: T.accent,
+                          // 켜진 칩(공용 Chip 의 브랜드 색)과 같은 색 계열로 — 캔버스의 파랑을 쓰면 칩 안에서 따로 논다.
+                          background: 'var(--bg-brand-solid)',
                           color: '#fff',
                           fontSize: 10,
                           fontWeight: 800,
