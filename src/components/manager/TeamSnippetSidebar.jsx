@@ -9,7 +9,14 @@ import Icon from '../shared/Icon.jsx';
  * - 이번 주 헬스: 흰 배경 + 테두리 카드 — 12px 사각 도트 5칸
  *   (초록 8+/주황 6-7/빨강 -5, 빈 칸은 테두리만) + 하단 범례.
  * - AI 팀 요약: purple-100 카드, 보라 본문.
+ *
+ * 팀원(`members`·`weekHealth` 행)에 `id` 를 주면 **선택을 id 로 주고받는다** —
+ * `selectedMember`·`onSelectMember` 의 값이 id 가 된다. 이름은 유일하지 않아서
+ * (동명이인, 퇴사자를 한 이름으로 가린 경우) 이름으로 고르면 뒷사람을 고를 수 없다
+ * (pivit-work PW-1373). `id` 가 없으면 지금처럼 이름이 그 값이다.
  */
+const memberKey = (member) => member.id ?? member.name;
+
 export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, selectedMember, onSelectMember, icons, baseUrl = '' }) {
   return (
     <div className="mgr-ts-side">
@@ -22,9 +29,9 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
         </div>
         {members.map((member) => (
           <div
-            key={member.name}
-            className={`mgr-ts-roster-row${selectedMember === member.name ? ' is-selected' : ''}`}
-            onClick={() => onSelectMember(selectedMember === member.name ? null : member.name)}
+            key={memberKey(member)}
+            className={`mgr-ts-roster-row${selectedMember === memberKey(member) ? ' is-selected' : ''}`}
+            onClick={() => onSelectMember(selectedMember === memberKey(member) ? null : memberKey(member))}
           >
             <img src={member.avatar} alt={member.name} draggable={false} />
             <span className="mgr-ts-roster-name">{member.name}</span>
@@ -43,7 +50,7 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
       <div className="mgr-ts-health">
         <div className="mgr-ts-health-head">이번 주 헬스</div>
         {weekHealth.map((row) => (
-          <div className="mgr-ts-health-row" key={row.name}>
+          <div className="mgr-ts-health-row" key={memberKey(row)}>
             <img src={row.avatar} alt={row.name} draggable={false} />
             <span className="mgr-ts-health-name">{row.name}</span>
             <span className="mgr-ts-dots">

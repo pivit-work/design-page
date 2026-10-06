@@ -19,6 +19,8 @@ import Tabs from '../shared/Tabs.jsx';
  * 다른 OKR 에 같은 이름의 KR 이 있으면(팀마다 같은 KR 을 두는 조직에서 흔하다) key 가
  * 겹쳐, 필터를 바꿔도 이전 목록의 그룹이 그대로 남는다.
  * 필터(memberFilter/redFlagOnly)는 부모가 소유하고 여기서 적용만 한다.
+ * `memberFilter` 는 팀원 이름 또는 id 다 — 항목의 `memberId` 나 `member` 중 하나가 같으면 남긴다.
+ * id 로 거를 때 필터 칩에 id 가 보이지 않게 `memberFilterLabel`(이름)을 함께 준다 (pivit-work PW-1373).
  *
  * `kr` 은 선택이다 — OKR 에 연결하지 않고 쓴 스니핏이 실데이터에는 흔하다.
  * 없으면 '기여 KR' 블록 자체를 그리지 않는다 (0% 막대를 그리면 "진척 0" 으로 읽힌다).
@@ -35,14 +37,17 @@ function ScoreChip({ score, tone }) {
   return <span className={`mgr-ts-score is-${tone}`}>{score}</span>;
 }
 
-export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '', emptyLabel, emptyTestId }) {
+const matchesMember = (item, memberFilter) =>
+  !memberFilter || item.memberId === memberFilter || item.member === memberFilter;
+
+export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilterLabel, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '', emptyLabel, emptyTestId }) {
   const [tab, setTab] = useState('date');
 
   const dateGroups = byDate
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>
-        (!memberFilter || item.member === memberFilter) && (!redFlagOnly || item.warning)),
+        matchesMember(item, memberFilter) && (!redFlagOnly || item.warning)),
     }))
     .filter((group) => group.items.length > 0);
 
@@ -50,7 +55,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
     .map((group) => ({
       ...group,
       snippets: group.snippets.filter((item) =>
-        (!memberFilter || item.member === memberFilter) && (!redFlagOnly || item.flagged)),
+        matchesMember(item, memberFilter) && (!redFlagOnly || item.flagged)),
     }))
     .filter((group) => group.snippets.length > 0);
 
@@ -76,7 +81,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, redFlagOnl
         <div className="mgr-ts-filterbar">
           <span>필터 :</span>
           {memberFilter && (
-            <StatusBadge className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilter} ×</StatusBadge>
+            <StatusBadge className="mgr-ts-filter-chip is-member" onClick={onClearMember}>{memberFilterLabel ?? memberFilter} ×</StatusBadge>
           )}
           {redFlagOnly && (
             <StatusBadge className="mgr-ts-filter-chip is-flag" onClick={onClearRedFlag}>레드플래그 ×</StatusBadge>

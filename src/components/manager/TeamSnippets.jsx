@@ -15,6 +15,8 @@ import LoadingState from '../shared/LoadingState.jsx';
  * 실데이터를 붙이는 소비자는 그 셋이 실제로 데이터를 걸러야 하므로 값과 바꾸는 함수를
  * 함께 넘겨 밖에서 소유한다(pivit-work PW-766):
  *   period + onPeriodChange · redFlagOnly + onRedFlagChange · memberFilter + onMemberFilterChange
+ * 팀원 필터 값은 이름이다. 단 `members` 에 `id` 를 주면 id 가 된다 — 이름이 같은 두 사람을
+ * 따로 고르려면 id 를 준다(pivit-work PW-1373). 그때 byDate·byKr 항목에도 `memberId` 를 싣는다.
  *
  * 조회 상태도 데이터를 가진 쪽만 안다:
  *   loading      true 면 사이드바·피드 대신 `labels.loading` 한 줄
@@ -60,6 +62,9 @@ export default function TeamSnippets({
   const setRedFlagOnly = onRedFlagChange ?? setRedFlagState;
   const memberFilter = memberProp !== undefined ? memberProp : memberState;
   const setMemberFilter = onMemberFilterChange ?? setMemberState;
+  const selectedMember = memberFilter == null
+    ? null
+    : data.members.find((m) => (m.id ?? m.name) === memberFilter);
 
   return (
     <div className="mgr-ts">
@@ -107,6 +112,7 @@ export default function TeamSnippets({
               byDate={data.byDate}
               byKr={data.byKr}
               memberFilter={memberFilter}
+              memberFilterLabel={selectedMember?.name}
               redFlagOnly={redFlagOnly}
               onClearMember={() => setMemberFilter(null)}
               onClearRedFlag={() => setRedFlagOnly(false)}
