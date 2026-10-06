@@ -219,7 +219,30 @@
 .admin-kit-required { color: var(--colors-error-500, #f04438); }
 .admin-kit-marker { display: inline-flex; color: var(--text-brand-tertiary); flex-shrink: 0; }
 
-.admin-kit-select { cursor: pointer; }
+/* 선택 상자 (PW-1371) — 닫힌 칸은 `.admin-inv-select` 테두리 그대로, 화살표는 직원 관리 필터
+   드롭다운(`.admin-emp-select-chevron`)의 것. 펼친 목록은 `.admin-emp-select-menu` 를 쓴다. */
+.admin-kit-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  max-width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-kit-select.is-full { width: 100%; }
+.admin-kit-select.is-open { outline: 2px solid var(--bg-brand-solid); outline-offset: -1px; }
+.admin-kit-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-kit-select-chevron { flex-shrink: 0; }
+.admin-kit-select.is-open .admin-kit-select-chevron { transform: rotate(180deg); }
+.admin-kit-select.is-changed { background: var(--bg-brand-secondary); }
+/* 키보드로 옮겨 간 항목 — 마우스를 올린 것과 같은 바탕. */
+.admin-emp-select-item.is-active { background: var(--bg-secondary); }
 .admin-kit-select.is-min { min-width: 140px; }
 .admin-kit-select.is-invalid { border-color: var(--colors-error-500, #f04438); }
 .admin-kit-select.is-suggested { border-color: color-mix(in srgb, var(--text-brand-tertiary) 40%, transparent); }

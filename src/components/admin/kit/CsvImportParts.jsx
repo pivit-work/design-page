@@ -13,7 +13,11 @@
  * 문구는 전부 호출부가 넘긴다(i18n). 스타일: `@pivit-work/design-page/styles/admin-kit.css`
  * (버튼·선택 상자·숫자 칸은 `styles/admin.css` 의 규칙을 함께 쓴다).
  */
+import { useEffect, useId, useRef, useState } from 'react';
 import { IconDownload, IconUpload, IconX } from '../employeesIcons.jsx';
+import AnchoredLayer from '../../shared/AnchoredLayer.jsx';
+import useDismissLayer from '../../shared/useDismissLayer.js';
+import { CheckGlyph, ChevronDownGlyph } from '../../shared/lineIcons.jsx';
 import StatusBadge from '../../shared/StatusBadge.jsx';
 import Tooltip from '../../shared/Tooltip.jsx';
 import RosterTable from '../../shared/RosterTable.jsx';
@@ -278,12 +282,23 @@ export function CsvField({ label, required = false, requiredTitle, badge, marker
   );
 }
 
+/** 펼친 목록의 겹침 순서 — 어드민 창(앱 쪽 200) 안에서 열려도 창 위에 뜬다. */
+const CSV_SELECT_MENU_Z = 10000;
+
 /**
- * 선택 상자 — 초대 창 `.admin-inv-select` 모양.
+ * 선택 상자 — 닫힌 칸은 초대 창 `.admin-inv-select` 모양, 펼친 목록은 직원 관리 필터
+ * 드롭다운(`.admin-emp-select-menu`) 모양 (PW-1371).
+ *
+ * 예전엔 브라우저 기본 `<select>` 에 테두리만 칠해, 화살표와 펼친 목록은 브라우저가 그렸다.
+ * 목록은 `AnchoredLayer` 로 `body` 에 띄운다 — 표·창의 `overflow` 에 잘리지 않게.
+ * 키보드: 칸에 초점이 있을 때 ↑↓·Home·End 로 옮기고 Enter·Space 로 고른다. Esc 는 목록만 닫는다.
+ *
  *   options  [{ value, label }]
  *   placeholder  값이 '' 인 첫 선택지 문구 (없으면 안 넣는다)
- *   state    'invalid'(빨간 테두리) · 'suggested'(브랜드 테두리)
+ *   state    'invalid'(빨간 테두리) · 'suggested'(브랜드 테두리) · 'changed'(고친 칸 배경)
  *   accent   계층 색 — 테두리에 그 색을 옅게 쓴다
+ *   fullWidth  칸 폭을 부모에 맞춘다(표 칸 안)
+ *   그 밖의 속성(`data-testid`·`aria-invalid` 등)은 칸 버튼에 붙는다.
  */
 export function CsvSelect({
   value,
@@ -294,26 +309,125 @@ export function CsvSelect({
   accent,
   ariaLabel,
   minWidth = false,
+  fullWidth = false,
+  ...rest
 }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+  const baseId = useId();
+
+  const items = placeholder != null ? [{ value: '', label: placeholder }, ...options] : options;
+  const selectedIndex = items.findIndex((o) => o.value === value);
+  const selected = selectedIndex >= 0 ? items[selectedIndex] : null;
+  const optionId = (i) => `${baseId}-opt-${i}`;
+
+  useDismissLayer(() => setOpen(false), panelRef, triggerRef, open);
+
+  // 키보드로 옮긴 항목이 목록 밖이면 보이게 굴린다.
+  useEffect(() => {
+    if (!open || active < 0) return;
+    document.getElementById(optionId(active))?.scrollIntoView?.({ block: 'nearest' });
+  });
+
+  const openMenu = () => {
+    setActive(selectedIndex >= 0 ? selectedIndex : 0);
+    setOpen(true);
+  };
+  const pick = (i) => {
+    const o = items[i];
+    setOpen(false);
+    triggerRef.current?.focus();
+    if (o && o.value !== value) onChange?.(o.value);
+  };
+
+  const onKeyDown = (e) => {
+    const last = items.length - 1;
+    if (!open) {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+        e.preventDefault();
+        openMenu();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(last, i + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)); }
+    else if (e.key === 'Home') { e.preventDefault(); setActive(0); }
+    else if (e.key === 'End') { e.preventDefault(); setActive(last); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (active >= 0) pick(active); }
+    else if (e.key === 'Tab') setOpen(false);
+  };
+
   return (
-    <select
-      className={cx(
-        'admin-inv-select',
-        'admin-kit-select',
-        state && `is-${state}`,
-        accent && 'has-accent',
-        minWidth && 'is-min',
+    <>
+      <button
+        {...rest}
+        ref={triggerRef}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
+        data-value={value}
+        className={cx(
+          'admin-inv-select',
+          'admin-kit-select',
+          state && `is-${state}`,
+          accent && 'has-accent',
+          minWidth && 'is-min',
+          fullWidth && 'is-full',
+          open && 'is-open',
+        )}
+        style={accent ? { '--kit-accent': accent } : undefined}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={onKeyDown}
+      >
+        <span className="admin-kit-select-value">{selected ? selected.label : ''}</span>
+        <span className="admin-emp-select-chevron admin-kit-select-chevron" aria-hidden="true">
+          <ChevronDownGlyph size={14} />
+        </span>
+      </button>
+      {open && (
+        <AnchoredLayer
+          anchorRef={triggerRef}
+          panelRef={panelRef}
+          matchAnchorWidth
+          maxHeight={280}
+          className="admin-emp-select-menu"
+          style={{ zIndex: CSV_SELECT_MENU_Z }}
+          role="listbox"
+          aria-label={ariaLabel}
+        >
+          {items.map((o, i) => (
+            <button
+              key={o.value}
+              id={optionId(i)}
+              type="button"
+              role="option"
+              tabIndex={-1}
+              data-value={o.value}
+              aria-selected={i === selectedIndex}
+              className={cx(
+                'admin-emp-select-item',
+                i === selectedIndex && 'is-selected',
+                i === active && 'is-active',
+              )}
+              onMouseEnter={() => setActive(i)}
+              onClick={() => pick(i)}
+            >
+              <span className="admin-emp-select-item-label">{o.label}</span>
+              {i === selectedIndex && (
+                <span className="admin-emp-select-item-check" aria-hidden="true">
+                  <CheckGlyph size={14} />
+                </span>
+              )}
+            </button>
+          ))}
+        </AnchoredLayer>
       )}
-      style={accent ? { '--kit-accent': accent } : undefined}
-      value={value}
-      aria-label={ariaLabel}
-      onChange={(e) => onChange?.(e.target.value)}
-    >
-      {placeholder != null && <option value="">{placeholder}</option>}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </select>
+    </>
   );
 }
 
