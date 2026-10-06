@@ -2,7 +2,7 @@ import { Component, useState, useEffect, useRef, useCallback, useMemo } from 're
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, ClockGlyph, MapPinGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -195,6 +195,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-title">{[profile.title, profile.dept].filter(Boolean).join(' · ')}</div>
           <div className="modal-bio">{profile.bio}</div>
           <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
+          {/* 현지 시간 — 카드 주인이 공개했고 시간대가 있을 때만 소비자가 `profile.localTime` 을 준다.
+              없으면 줄째 그리지 않는다(pivit-specs Public-Card 정책 §2 LocalTimeRow, PW-1217). */}
+          {profile.localTime && (
+            <div className="modal-local-time" data-testid="profile-local-time">
+              <ClockGlyph size={14} />
+              <span>{L('profile.localTime')}</span>
+              <span className="modal-local-time-value">{profile.localTime}</span>
+            </div>
+          )}
         </div>
 
         {/* Stats Row — Admin: 고용형태/직급/업무시간, Employee: 업무시간 only */}
@@ -300,9 +309,34 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             <div className="modal-info-label">{L('profile.skills')}</div>
             <div className="modal-info-content">{profile.skills}</div>
           </div>
+          {/* 담당 프로젝트 — 공개했고 한 건 이상일 때만. 이름 문자열 또는 `{ name, color }` (PW-1217). */}
+          {profile.projects?.length > 0 && (
+            <div className="modal-info-section" data-testid="profile-projects">
+              <div className="modal-info-label">{L('profile.projects')}</div>
+              <ul className="modal-project-list">
+                {profile.projects.map((p, i) => {
+                  const name = typeof p === 'string' ? p : p?.name;
+                  if (!name) return null;
+                  return (
+                    <li key={i} className="modal-project-item">
+                      <span className="modal-project-dot" style={p?.color ? { background: p.color } : undefined} />
+                      {name}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <div className="modal-info-section">
             <div className="modal-info-label">{L('profile.contact')}</div>
             <div className="modal-info-content">{profile.contacts}</div>
+            {/* 근무지 — 공개했고 값이 있을 때만 연락처 아래 핀 줄로(PW-1217). */}
+            {profile.location && (
+              <div className="modal-location" data-testid="profile-location">
+                <MapPinGlyph size={16} aria-label={L('profile.location')} />
+                <span>{profile.location}</span>
+              </div>
+            )}
           </div>
           <div className="modal-info-section">
             <div className="modal-info-label">{L('profile.links')}</div>
