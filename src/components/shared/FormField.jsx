@@ -31,7 +31,7 @@ import { FormFieldContext } from './formField.js';
  * Props:
  *   label           이름표. 없으면 이름표 줄을 그리지 않는다(칸의 aria-label 을 쓴다)
  *   error           오류 문구. 있으면 칸이 «틀림» 이 된다. 문자열·노드 모두 된다
- *   hint            칸 아래 안내(오류가 없을 때만 보인다)
+ *   hint            칸 아래 안내(오류가 없을 때만 보인다. hintAbove 면 오류가 떠도 남는다)
  *   required        이름표 뒤에 «필수» 표시(*)를 붙이고, 칸에 aria-required 를 붙인다
  *   group           라디오·체크박스 무리를 감쌀 때. 이름표가 `<label>` 대신 무리 이름이 된다
  *   id              칸의 id 를 직접 정할 때(없으면 자동)
@@ -65,14 +65,16 @@ export default function FormField({
   const hintId = `${controlId}-hint`;
   const errorId = `${controlId}-error`;
   const hasError = error != null && error !== false && error !== '';
-  const showHint = !hasError && hint != null && hint !== false && hint !== '';
+  // 위에 둔 안내는 오류 문구(칸 아래)와 자리가 겹치지 않는다. 숨기면 그 칸만 한 줄 올라가
+  // 옆 칸과 높이가 어긋난다 (PW-1244).
+  const showHint = (!hasError || hintAbove) && hint != null && hint !== false && hint !== '';
 
   const ctx = {
     controlId,
     group,
     invalid: hasError,
     required,
-    describedBy: hasError ? errorId : showHint ? hintId : undefined,
+    describedBy: hasError ? (showHint ? `${errorId} ${hintId}` : errorId) : showHint ? hintId : undefined,
   };
 
   const labelNode = label == null ? null : group ? (
