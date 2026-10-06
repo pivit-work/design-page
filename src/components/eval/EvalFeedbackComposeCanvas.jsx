@@ -57,6 +57,8 @@ const DEFAULT_LABELS = {
   writeFeedback: '피드백 작성 ›',
   back: '← 팀 목록',
   periodLabel: '기간',
+  // 지난 기간 옵션 뒤에 붙는 표시. 이모지 글리프를 쓰지 않는다 — 앱 저장소 규칙 (PW-1261).
+  pastPeriodMark: ' (과거 기간)',
   pastBanner: '과거 기간을 조회 중입니다. 작성은 현재 기간에서만 가능합니다.',
   sectionKr: 'KEY RESULTS',
   sectionInit: 'INITIATIVES',
@@ -449,7 +451,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
       <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.muted }}>{L.periodLabel}</span>
       <select value={periodKey} onChange={(e) => onChange(e.target.value)} data-testid="fbmgr-period" style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: isPastPeriod ? C.amber : C.text, fontFamily: FONT, cursor: 'pointer' }}>
         {options.map((o) => (
-          <option key={o.key} value={o.key}>{o.label}{o.isCurrent ? '' : ' ⏰'}</option>
+          <option key={o.key} value={o.key}>{o.label}{o.isCurrent ? '' : L.pastPeriodMark}</option>
         ))}
       </select>
     </span>

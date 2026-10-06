@@ -51,6 +51,8 @@ const FONT = 'var(--font-family-body)';
 const DEFAULT_LABELS = {
   title: '내 피드백',
   periodLabel: '기간',
+  // 지난 기간 옵션 뒤에 붙는 표시. 이모지 글리프를 쓰지 않는다 — 앱 저장소 규칙 (PW-1261).
+  pastPeriodMark: ' (과거 기간)',
   pastBanner: '과거 기록을 조회 중입니다. 피드백 요청은 현재 기간에서만 가능합니다.',
   infoBanner:
     'OKR을 달성해 가는 과정에 대한 수시 피드백 화면입니다. 목표 설정은 OKR 화면에서 진행하세요.',
@@ -816,7 +818,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
         {options.map((o) => (
           <option key={o.key} value={o.key}>
             {o.label}
-            {o.isCurrent ? '' : ' ⏰'}
+            {o.isCurrent ? '' : L.pastPeriodMark}
           </option>
         ))}
       </select>
