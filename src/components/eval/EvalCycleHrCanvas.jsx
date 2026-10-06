@@ -1149,6 +1149,9 @@ export default function EvalCycleHrCanvas({
   onLoadDraft,
   /** PW-440 — 초안 삭제. 없으면 `onDeleteCycle` 로 떨어진다. */
   onDeleteDraft,
+  /** PW-1228 — 마법사 평가 템플릿 단계의 두 설정을 숨긴다. 그대로 마법사에 넘긴다. */
+  hideRoleVersions = false,
+  hideRatioScope = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -1605,6 +1608,8 @@ export default function EvalCycleHrCanvas({
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
+          hideRoleVersions={hideRoleVersions}
+          hideRatioScope={hideRatioScope}
         />
       )}
 
@@ -1648,6 +1653,8 @@ export default function EvalCycleHrCanvas({
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
           slackChannelsStatus={slackChannelsStatus}
+          hideRoleVersions={hideRoleVersions}
+          hideRatioScope={hideRatioScope}
         />
       )}
 
