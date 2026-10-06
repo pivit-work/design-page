@@ -4611,6 +4611,26 @@ export default function EvalCycleWizard({
   const draftDirty = draftEnabled && draftSnapshot !== savedSnapshot;
 
   /**
+   * PW-1388 — 관리 모드엔 초안이 없어 위 판정이 늘 거짓이라, 템플릿을 불러온 뒤 Esc 로
+   * 닫으면 말없이 버려졌다. 연 순간의 값을 찍어 두고 지금 값과 견준다.
+   * `step` 은 설정이 아니라 뺀다. 조직·제외 명단은 소품(참여자·후보)이 늦게 와서 기본값이
+   * 바뀌므로 사용자가 손댄 값(`*Edit`)만 본다 — 안 그러면 열자마자 «변경»이 된다.
+   */
+  const collectManageSnapshot = () => {
+    const { step: _step, localTemplates: _local, orgIds: _org, manualExclude: _manual, ...rest } =
+      collectDraft();
+    return JSON.stringify({
+      ...rest,
+      orgSelEdit: orgSelEdit ? [...orgSelEdit] : null,
+      manualExcludedEdit,
+    });
+  };
+  const [manageBaseline] = useState(() =>
+    isManage ? collectManageSnapshot() : null,
+  );
+  const manageDirty = manageBaseline !== null && collectManageSnapshot() !== manageBaseline;
+
+  /**
    * PW-440 ① — 초안 저장. 저장 계기는 셋이다: 단계 이동(자동) · `임시저장`(수동) ·
    * 이탈 시도.
    *
@@ -4696,7 +4716,7 @@ export default function EvalCycleWizard({
    * 묻는 것은 거짓이다(§5.1-A-5).
    */
   const requestClose = () => {
-    if (draftEnabled && draftDirty) {
+    if ((draftEnabled && draftDirty) || manageDirty) {
       setLeaveAsk(true);
       return;
     }
@@ -8033,7 +8053,7 @@ export default function EvalCycleWizard({
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
       {leaveAsk && (
         <ModalShell
-          title={L.draftLeaveTitle}
+          title={isManage ? L.manageLeaveTitle : L.draftLeaveTitle}
           titleId="evc-wiz-leave-title"
           closeLabel={L.cancel}
           onClose={() => setLeaveAsk(false)}
@@ -8062,24 +8082,31 @@ export default function EvalCycleWizard({
               >
                 {L.draftLeaveDiscard}
               </button>
-              <button
-                type="button"
-                className="tl-group-modal-btn tl-group-modal-btn-primary"
-                disabled={draftSaving}
-                onClick={() => void leaveWithSave()}
-                data-testid="evc-wiz-leave-save"
-              >
-                {L.draftLeaveSave}
-              </button>
+              {/* PW-1388 — 관리 모드엔 초안이 없다. 저장은 창 안의 «변경사항 저장»이 한다. */}
+              {!isManage && (
+                <button
+                  type="button"
+                  className="tl-group-modal-btn tl-group-modal-btn-primary"
+                  disabled={draftSaving}
+                  onClick={() => void leaveWithSave()}
+                  data-testid="evc-wiz-leave-save"
+                >
+                  {L.draftLeaveSave}
+                </button>
+              )}
             </>
           }
         >
           <div className="evc-shell-body">
-              <p className="evc-wiz-hint">{L.draftLeaveBody}</p>
-              <ul className="evc-wiz-hint-list">
-                <li>{L.draftLeaveHint1}</li>
-                <li>{L.draftLeaveHint2}</li>
-              </ul>
+              <p className="evc-wiz-hint">
+                {isManage ? L.manageLeaveBody : L.draftLeaveBody}
+              </p>
+              {!isManage && (
+                <ul className="evc-wiz-hint-list">
+                  <li>{L.draftLeaveHint1}</li>
+                  <li>{L.draftLeaveHint2}</li>
+                </ul>
+              )}
               {draftError && (
                 <p className="evc-wiz-block" data-testid="evc-wiz-leave-error">
                   {L.draftSaveFailed}
