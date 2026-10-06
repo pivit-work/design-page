@@ -1089,3 +1089,162 @@
   margin-top: 12px;
   line-height: 1.6;
 }
+
+/* ── 선호 설정 (pivit-work PW-1366 · 기획 my-settings-spec §5-A) ───────── */
+.msc-card.is-error {
+  border-color: var(--colors-error-300);
+}
+
+.msc-pref-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msc-pref-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.msc-pref-label-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.msc-pref-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.msc-pref-options {
+  display: flex;
+  gap: 9px;
+}
+
+.msc-pref-options > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.msc-pref-options.is-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.msc-pref-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.msc-pref-option-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.msc-pref-option-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.msc-canvas .msc-pref-custom {
+  margin-top: 8px;
+}
+
+.msc-pref-hours {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-tertiary);
+}
+
+.msc-canvas .msc-pref-hours .admin-emp-input {
+  width: auto;
+}
+
+.msc-pref-note {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 6px 0 0;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.msc-pref-consent-body {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.75;
+  margin: 0 0 10px;
+}
+
+.msc-pref-consent-check {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.msc-link-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-brand-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.msc-pref-consent-detail {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary-alt);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.msc-pref-consent-detail > div {
+  display: flex;
+  gap: 8px;
+}
+
+.msc-pref-consent-detail dt {
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 88px;
+}
+
+.msc-pref-consent-detail dd {
+  margin: 0;
+}
+
+.msc-pref-consent-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-secondary-alt);
+}
+
+.msc-pref-consent-date {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.msc-pref-banner-text {
+  white-space: pre-line;
+}
