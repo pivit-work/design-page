@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ChatIcon, ClockIcon } from './evalIcons';
+import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 
@@ -98,6 +98,13 @@ const DEFAULT_LABELS = {
   toastRequestEdited: '요청을 수정했어요.',
   toastRequestDeleted: '요청을 취소했어요. 이미 보낸 알림은 회수되지 않습니다.',
   toastError: '오류가 발생했습니다',
+  incomingTitle: '받은 피드백 요청',
+  incomingWrite: '피드백 작성',
+  incomingPlaceholder: '관찰한 상황 · 행동 · 영향 순으로 적으면 전달이 분명해집니다',
+  incomingSend: '전송',
+  incomingCancel: '취소',
+  incomingPastReadonly: '과거 기록에는 피드백을 작성할 수 없습니다',
+  incomingInactive: '(비활성 사용자)',
 };
 
 function isObj(v) {
@@ -679,6 +686,112 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
   );
 }
 
+/**
+ * 동료로서 받은 피드백 요청 — 정책 §2.6(screen-feedback-member.policy.md, PW-1218).
+ * 시안: pivit-specs eval-app.jsx `PeerRequestSection`.
+ *
+ * 요청한 사람의 KR 은 **제목만** 보인다(그 사람의 스레드·진행률은 열지 않는다). 답은 새 창
+ * 없이 카드 안에서 쓴다. 0건이면 칸 자체를 그리지 않는다. 보내기에 실패하면 입력한 글을
+ * 그대로 둔다(알림은 캔버스가 띄운다).
+ */
+function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
+  const [openId, setOpenId] = useState(null);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!requests.length) return null;
+
+  const submit = async (req) => {
+    const body = text.trim();
+    if (!body || busy) return;
+    setBusy(true);
+    try {
+      await onSend(req, body);
+      setOpenId(null);
+      setText('');
+    } catch {
+      // 실패 알림은 캔버스가 띄운다. 쓴 글은 남긴다.
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      data-testid="fbm-incoming"
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.teal }}>
+        <MailIcon size={13} /> {L.incomingTitle} {requests.length}{L.countSuffix}
+      </div>
+      {requests.map((req) => (
+        <div key={req.id} data-testid={`fbm-incoming-${req.id}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <Avatar name={req.person?.name} photo={req.person?.avatar} size={30} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.text }}>
+                {req.person?.name}{req.person?.inactive ? ` ${L.incomingInactive}` : ''}
+              </span>
+              <span style={{ fontSize: 11, color: C.muted }}>
+                {req.person?.role ? `${req.person.role} · ` : ''}{fmtDate(req.sentAt)}
+              </span>
+              {req.linkedTargetTitle && <Chip tone="info">{req.linkedTargetTitle}</Chip>}
+            </div>
+            {req.text && (
+              <div style={{ background: C.borderL, borderRadius: '0 10px 10px 10px', padding: '9px 12px', fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                {req.text}
+              </div>
+            )}
+            {isPastPeriod ? (
+              <div style={{ marginTop: 8, fontSize: 11, color: C.muted }}>
+                <ClockIcon size={11} /> {L.incomingPastReadonly}
+              </div>
+            ) : openId !== req.id ? (
+              <button
+                type="button"
+                onClick={() => { setOpenId(req.id); setText(''); }}
+                data-testid={`fbm-incoming-write-${req.id}`}
+                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 11, fontWeight: 600, color: C.muted }}
+              >
+                {L.incomingWrite}
+              </button>
+            ) : (
+              <div style={{ marginTop: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: '12px 14px' }}>
+                <textarea
+                  rows={3}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={L.incomingPlaceholder}
+                  data-testid={`fbm-incoming-text-${req.id}`}
+                  style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 11px', fontSize: 13, fontFamily: FONT, lineHeight: 1.7, resize: 'vertical', marginBottom: 10 }}
+                />
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setOpenId(null); setText(''); }}
+                    data-testid={`fbm-incoming-cancel-${req.id}`}
+                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}
+                  >
+                    {L.incomingCancel}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!text.trim() || busy}
+                    onClick={() => submit(req)}
+                    data-testid={`fbm-incoming-send-${req.id}`}
+                    style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed', opacity: text.trim() && !busy ? 1 : 0.5 }}
+                  >
+                    {L.incomingSend}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
   return (
@@ -761,6 +874,9 @@ export default function EvalFeedbackCanvas({
   onDeleteRequest,
   openTarget = null,
   onOpenTargetHandled,
+  // 동료로서 받은 요청(PW-1218). `onSendIncoming(request, text)` 가 Promise 를 돌려준다.
+  incomingRequests = [],
+  onSendIncoming,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openBlock, setOpenBlock] = useState(null);
@@ -841,6 +957,15 @@ export default function EvalFeedbackCanvas({
       throw new Error('request failed');
     }
   };
+  const handleSendIncoming = async (req, text) => {
+    try {
+      await onSendIncoming?.(req, text);
+      showToast(L.toastSent);
+    } catch (e) {
+      showToast(L.toastError, 'error');
+      throw e;
+    }
+  };
   // 수정·취소는 핸들러가 넘어온 화면에서만 노출한다(undefined 면 버블이 버튼을 숨김).
   const handleEditRequest = onEditRequest
     ? async (itemId, text) => {
@@ -903,6 +1028,15 @@ export default function EvalFeedbackCanvas({
           <div style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, color: C.teal, borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600 }} data-testid="fbm-unread">
             {unread}{L.countSuffix} {L.unreadSuffix}
           </div>
+        )}
+
+        {onSendIncoming && (
+          <IncomingRequestSection
+            requests={incomingRequests}
+            L={L}
+            isPastPeriod={isPastPeriod}
+            onSend={handleSendIncoming}
+          />
         )}
 
         {krBlocks.length > 0 && (
