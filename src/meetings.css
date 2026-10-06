@@ -504,6 +504,12 @@
   flex: 1;
   min-width: 0;
 }
+/* 회의 제목은 길 수 있다 — 한 줄로 묶어 두면 줄어든 칸을 넘어 옆 「일시」 값 위로 그려져
+   「…업데이트2026.09.28」처럼 붙어 보인다(PW-1261). 제목 칸만 줄을 바꾼다. */
+.mtg-record-meta-col-grow .mtg-record-meta-value {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .mtg-record-meta-label {
   font-size: 14px;
   line-height: 20px;
