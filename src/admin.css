@@ -1374,6 +1374,15 @@
   border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .admin-emp-btn-block { flex: 1 0 0; min-height: 40px; }
+/* 저장 방식 안내 (PW-1350) — 저장 줄 바로 위에 붙여 한 덩어리로 읽힌다. */
+.admin-emp-panel-save-mode {
+  padding: 12px 20px 0;
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-panel-save-mode + .admin-emp-panel-footer {
+  border-top: 0;
+  padding-top: 10px;
+}
 /* 칸을 짚지 못한 저장 거절 사유 (PW-727) — 저장 줄 바로 위, 창을 닫지 않고 남긴다. */
 .admin-emp-panel-save-error {
   padding: 10px 20px;
@@ -3536,6 +3545,11 @@
   gap: 12px;
   flex: 1;
   justify-content: flex-end;
+}
+/* 저장 방식 안내 (PW-1350) — 버튼 줄의 왼쪽 끝에 붙인다. */
+.adm-shell-save-notice {
+  margin-right: auto;
+  align-self: center;
 }
 /* 소속·스쿼드 고르기의 선택 요약 줄 — 버튼 줄 바로 위. */
 .adm-shell-summary {
