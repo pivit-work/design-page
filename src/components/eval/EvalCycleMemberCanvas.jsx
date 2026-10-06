@@ -380,11 +380,14 @@ export default function EvalCycleMemberCanvas({
     return Math.max(0, Math.min(100, n));
   };
 
+  const isBlankPct = (raw) => raw == null || String(raw).trim() === '';
+
   const handleKrSave = async () => {
     if (!onKrProgressSave) return;
     const inputs = krList.map((kr) => ({
       krId: kr.id,
-      achievePct: clampPct(krState[kr.id]?.percent),
+      // 비워 둔 KR 은 0 이 아니라 null(미입력)로 보낸다 — Number('') 가 0 이라 clamp 를 거치면 0 이 된다 (PW-1245)
+      achievePct: isBlankPct(krState[kr.id]?.percent) ? null : clampPct(krState[kr.id]?.percent),
       note: (krState[kr.id]?.note ?? '').trim(),
     }));
     setKrBusy(true);
