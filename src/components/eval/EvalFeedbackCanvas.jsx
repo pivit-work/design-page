@@ -731,7 +731,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
               <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.text }}>
                 {req.person?.name}{req.person?.inactive ? ` ${L.incomingInactive}` : ''}
               </span>
-              <span style={{ fontSize: 11, color: C.muted }}>
+              <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
                 {req.person?.role ? `${req.person.role} · ` : ''}{fmtDate(req.sentAt)}
               </span>
               {req.linkedTargetTitle && <Chip tone="info">{req.linkedTargetTitle}</Chip>}
@@ -742,7 +742,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
               </div>
             )}
             {isPastPeriod ? (
-              <div style={{ marginTop: 8, fontSize: 11, color: C.muted }}>
+              <div style={{ marginTop: 8, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
                 <ClockIcon size={11} /> {L.incomingPastReadonly}
               </div>
             ) : openId !== req.id ? (
@@ -750,7 +750,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                 type="button"
                 onClick={() => { setOpenId(req.id); setText(''); }}
                 data-testid={`fbm-incoming-write-${req.id}`}
-                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 11, fontWeight: 600, color: C.muted }}
+                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.muted }}
               >
                 {L.incomingWrite}
               </button>
