@@ -15,10 +15,14 @@ import ModalShell from '../shared/ModalShell.jsx';
  *  - onAnalyze() — [AI 분석]. 미주입이면 눌러도 아무 일 없음.
  *  - onStartOkr() — 푸터 CTA. 미주입이면 버튼 비활성(시안의 disabled 상태).
  *
+ * 문구 주입(선택):
+ *  - dropzoneHint — 드롭존 형식 안내. 호스트가 서버가 실제로 받는 형식을 알려 줄 때 쓴다
+ *    (pivit-work PW-1223 — 서버가 글자를 뽑을 수 있는 형식만 받게 됐다). 미주입이면 시안 문구.
+ *
  * 업로드/외부링크 아이콘은 공용 에셋에 없어 인라인 SVG 로 그린다
  * (OkrContextSetupCanvas 와 동일 규약).
  */
-export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, onStartOkr }) {
+export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, onStartOkr, dropzoneHint }) {
   const fileRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -87,7 +91,7 @@ export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, o
               </svg>
               <span className="okr-ctx-dropzone-or">또는 끌어서 놓기</span>
             </p>
-            <p className="okr-ctx-dropzone-hint">SVG, PNG, JPG, DOC, PDF 등</p>
+            <p className="okr-ctx-dropzone-hint">{dropzoneHint ?? 'SVG, PNG, JPG, DOC, PDF 등'}</p>
           </div>
           <input
             ref={fileRef}
