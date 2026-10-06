@@ -1853,6 +1853,8 @@ function EmployeesListView({
      정해 뒀는데 시트에만 있었다 — 목록의 스쿼드 칸은 눌러도 아무 일이 없는 죽은
      자리였다. 미주입이면 셀은 **눌리지 않는 표기**로 남는다(소속 셀과 같은 규칙). */
   onChangeSquads,
+  // 저장 방식 안내(PW-1350) — 즉시 저장되는 스쿼드·소속 팝업에 넘긴다. 캔버스 prop 주석 참조.
+  instantSaveNotice,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels,
   /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다). 미주입이면 행 메뉴에
@@ -2853,6 +2855,7 @@ function EmployeesListView({
             : undefined}
           // L6 — 퇴사자는 조직장이 될 수 없다. 감추지 않고 이유를 남긴다.
           canBeLeader={deptPicker.employmentStatus !== 'terminated'}
+          saveNotice={instantSaveNotice}
           onApply={({ unitIds, primaryUnitId }) => {
             onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId });
             setDeptPickerFor(null);
@@ -2936,6 +2939,7 @@ function EmployeesListView({
             leadNameBySquadId={leadNames}
             labels={squadPickerLabels}
             onApply={(next) => onChangeSquads(squadPickerFor, next)}
+            saveNotice={instantSaveNotice}
             onClose={() => setSquadPickerFor(null)}
           />
         );
@@ -3306,6 +3310,8 @@ function EmployeesEditPanel({
   onLoadHrProfile, onSaveIdentity,
   today,
   onLoadPersonalHistory,
+  // 저장 방식 안내(PW-1350) — 캔버스 prop 주석 참조.
+  instantSaveNotice, manualSaveNotice,
   /* PW-576 — 폐기된 스프레드시트 뷰가 받던 카탈로그가 그대로 내려온다.
      못 받으면 그 칸이 자유 텍스트가 될 뿐 값은 보존된다. */
   rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
@@ -3814,6 +3820,8 @@ function EmployeesEditPanel({
                 labels={labels.orgPicker}
                 onApply={(payload) => onChangeAffiliations(member.id, payload)}
                 onClose={() => setPickerOpen(false)}
+                // 패널은 [저장]으로 반영되지만 소속은 [적용] 즉시 저장된다 — 패널의 [취소]로 안 되돌아간다.
+                saveNotice={instantSaveNotice}
               />
             )}
           </div>
@@ -4011,6 +4019,9 @@ function EmployeesEditPanel({
           <div className="admin-emp-panel-save-error" role="alert" data-testid="employees-panel-save-error">
             {saveError.message}
           </div>
+        )}
+        {panelTab === 'info' && manualSaveNotice && (
+          <div className="admin-emp-panel-save-mode" data-testid="employees-panel-save-mode">{manualSaveNotice}</div>
         )}
         {panelTab === 'info' && (
           <div className="admin-emp-panel-footer">
@@ -4273,6 +4284,14 @@ export default function AdminEmployeesCanvas({
   // 스쿼드 축(§1-5-b) — 전체 구성원 탭 시트의 별도 컬럼·선택 팝업으로 내려간다.
   // 원장 CRUD 는 조직도 스쿼드 뷰 전용이라 여기로 내려오지 않는다(SQ3).
   squadOptions,
+  /* 저장 방식 안내 (PW-1350). 이 화면은 한 화면 안에 두 방식이 섞여 있다 —
+     스쿼드·소속(조직장 지정) 팝업은 [적용]·버튼을 누르는 즉시 서버에 저장되고,
+     편집 창은 아래 [저장]을 눌러야 반영된다. 편집 창 안의 [소속 변경] 팝업도
+     즉시 저장이라 그 창의 [취소]로 되돌아가지 않는다. 그래서 머리 한 줄이 아니라
+     방식이 갈리는 자리마다 붙인다. 안내 자체(문구·아이콘)는 소비자가 그려 넘긴다.
+     미주입이면 아무것도 그리지 않는다. */
+  instantSaveNotice,
+  manualSaveNotice,
   onChangeSquads,
   // 명부 내보내기 — 탭 A(전체 구성원)에만 둔다. 미배정·초대 탭에는 두지 않는다(E10):
   // 미배정은 탭 A 의 `매니저=미배정` 필터로 같은 결과를 받을 수 있고,
@@ -4463,6 +4482,7 @@ export default function AdminEmployeesCanvas({
             squadOptions={squadOptions}
             // 스쿼드 배정 편집(PW-438) — 없으면 스쿼드 칸이 죽은 자리가 된다.
             onChangeSquads={onChangeSquads}
+            instantSaveNotice={instantSaveNotice}
             // 선택 적용 항목(PW-502) — 회사가 켠 것만 열이 선다.
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
             // 명부 내보내기(PW-411).
@@ -4547,6 +4567,8 @@ export default function AdminEmployeesCanvas({
             today={today}
             onSaveIdentity={onSaveIdentity}
             onLoadPersonalHistory={onLoadPersonalHistory}
+            instantSaveNotice={instantSaveNotice}
+            manualSaveNotice={manualSaveNotice}
             /* PW-576 — 폐기된 시트가 받던 카탈로그·기록 콜백이 그대로 패널로 간다.
                같은 값을 두 화면이 다른 목록으로 고르던 상태가 없어졌으므로, 여기가
                그 값들을 고치는 유일한 자리다. */

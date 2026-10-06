@@ -160,6 +160,8 @@ export default function SquadPicker({
   onApply,
   onClose,
   labels: providedLabels,
+  /** 저장 방식 안내(PW-1350) — 바닥줄 왼쪽, 버튼 앞에 그린다. 미주입이면 아무것도 그리지 않는다. */
+  saveNotice,
 }) {
   const L = useMemo(() => ({ ...DEFAULT_LABELS, ...(providedLabels || {}) }), [providedLabels]);
 
@@ -259,6 +261,7 @@ export default function SquadPicker({
             </span>
           </div>
           <div className="adm-shell-foot-actions">
+            {saveNotice && <span className="adm-shell-save-notice">{saveNotice}</span>}
             <button
               type="button"
               className="tl-group-modal-btn tl-group-modal-btn-secondary"
