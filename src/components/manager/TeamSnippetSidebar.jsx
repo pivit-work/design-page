@@ -8,7 +8,8 @@ import Icon from '../shared/Icon.jsx';
  *   경고 ▲(빨강)·제출 ✓(초록) 아이콘, 선택 행은 흰 배경+그림자.
  * - 이번 주 헬스: 흰 배경 + 테두리 카드 — 12px 사각 도트 5칸
  *   (초록 8+/주황 6-7/빨강 -5, 빈 칸은 테두리만) + 하단 범례.
- * - AI 팀 요약: purple-100 카드, 보라 본문.
+ * - AI 팀 요약: purple-100 카드, 보라 본문. `aiSummary` 를 안 넘기면(빈 글 포함) 카드째 그리지 않는다 —
+ *   요약을 아직 만들지 않는 소비자가 «만들어 드릴 예정» 같은 고정 문구로 자리를 채우지 않게(pivit-work PW-1262).
  *
  * 팀원(`members`·`weekHealth` 행)에 `id` 를 주면 **선택을 id 로 주고받는다** —
  * `selectedMember`·`onSelectMember` 의 값이 id 가 된다. 이름은 유일하지 않아서
@@ -66,13 +67,15 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
         </div>
       </div>
 
-      <div className="mgr-ts-ai">
-        <p className="mgr-ts-ai-label">
-          <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-          <span>AI 팀 요약</span>
-        </p>
-        <p className="mgr-ts-ai-text">{aiSummary}</p>
-      </div>
+      {aiSummary && (
+        <div className="mgr-ts-ai">
+          <p className="mgr-ts-ai-label">
+            <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
+            <span>AI 팀 요약</span>
+          </p>
+          <p className="mgr-ts-ai-text">{aiSummary}</p>
+        </div>
+      )}
     </div>
   );
 }
