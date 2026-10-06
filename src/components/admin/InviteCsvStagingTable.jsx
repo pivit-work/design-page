@@ -219,9 +219,12 @@ const StagingRow = memo(function StagingRow({
             <span key={`${i.key}-${n}`} className="admin-inv-csvt-reason">{i.message}</span>
           ))}
           {row.failReason && <span className="admin-inv-csvt-reason">{row.failReason}</span>}
-          {notes.map((i, n) => (
+          {notes.map((i, n) => (i.chip ? (
+            // 칩 모양 안내(재입사 · PW-1355) — 뜻은 말풍선에
+            <StatusBadge key={`note-${n}`} tone="neutral" className="admin-inv-csv-chip" title={i.message}>{i.chip}</StatusBadge>
+          ) : (
             <span key={`note-${n}`} className="admin-inv-csvt-note">{i.message}</span>
-          ))}
+          )))}
         </div>
       </RosterTable.Cell>
       {rest.map((c) => cell(c))}

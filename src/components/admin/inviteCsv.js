@@ -305,6 +305,10 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   errPendingInvite: '초대 대기 중',
   csvNoteResendMember: '가입 전 구성원 — 초대를 다시 보냅니다',
   csvNoteResendPending: '대기 중인 초대 — 새 링크로 다시 보냅니다',
+  /* 재입사(PW-1355 · 초대 V17) — 명부의 퇴사자 이메일 행. 칩 말풍선이 권한 칸을 무시한다고 알린다. */
+  rehireBadge: '재입사',
+  csvNoteRehire: '이전에 퇴사한 구성원이에요 — 재입사 초대로 보냅니다. 권한 칸은 무시하고 멤버로 보냅니다',
+  errRehireHireDate: '재입사는 새 입사일이 필요해요',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
   errNameTooLong: '이름은 {max}자까지 입력할 수 있어요',
@@ -740,7 +744,7 @@ export function parseInviteCsv(
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
-  pendingEmails = [], resendEmails = [], terminatedEmails = [], headTeamIds = [], labels = {},
+  pendingEmails = [], resendEmails = [], terminatedEmails = [], rehireEmails = [], headTeamIds = [], labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
   blockedEmploymentStatuses = [], employeeCodeOwners = null,
 } = {}) {
@@ -764,6 +768,7 @@ export function buildInviteCsvContext(rows, {
     pendingEmails: new Set(pendingEmails.map(normEmail)),
     resendEmails: new Set(resendEmails.map(normEmail)),
     terminatedEmails: new Set(terminatedEmails.map(normEmail)),
+    rehireEmails: new Set(rehireEmails.map(normEmail)),
     fileEmailCount,
     headTeamIds: new Set(headTeamIds),
     reservedLeaderTeamIds: new Set(),
@@ -816,7 +821,8 @@ export function resolveInviteCsvRow(row, ctx) {
     primaryTeamId,
     leaderOk,
     leaderTeamIds,
-    role: resolveRole(v.role, ctx.labels),
+    // 재입사자는 권한 칸을 무시하고 멤버로 보낸다(V17 · PW-1355)
+    role: ctx.rehireEmails?.has(normEmail(v.email)) ? 'member' : resolveRole(v.role, ctx.labels),
     employmentStatus: resolveEmploymentStatus(v.employmentStatus, ctx.labels),
   };
 }
@@ -839,8 +845,11 @@ export function inviteCsvIssues(row, ctx) {
   if (!(ctx.emailValid || emailOk)(v.email)) add('email', l.errInvalidEmail);
   // [PW-1331] 가입한 사람·퇴사자는 막는다. 가입 전 구성원·대기 중은 오류가 아니다 — 서버가 다시 보낸다.
   else if (ctx.memberEmails.has(email)) add('email', l.errAlreadyMember);
-  else if (ctx.terminatedEmails.has(email)) add('email', l.errTerminatedMember);
+  else if (ctx.terminatedEmails.has(email) && !ctx.rehireEmails?.has(email)) add('email', l.errTerminatedMember);
   else if ((ctx.fileEmailCount.get(email) || 0) > 1) add('email', l.errDuplicate);
+
+  // 재입사 초대는 새 입사일이 있어야 한다(V17) — 처음 보는 이메일은 비어도 된다
+  if (ctx.rehireEmails?.has(email) && !normalize(v.hireDate)) add('hireDate', l.errRehireHireDate);
 
   // 길이 검사와 이메일 검사는 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
   if (normalize(v.name).length < 2) add('name', l.errName);
@@ -984,7 +993,9 @@ export function inviteCsvNotes(row, ctx) {
   // [PW-1331] 가입 전 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
   const email = normEmail(row.values.email);
   // 대기 중 초대가 먼저다 — 가입 전 구성원이어도 이미 초대가 나가 있으면 «새 링크로 바뀐다»가 더 맞는 말이다.
-  if (ctx.pendingEmails.has(email)) {
+  if (ctx.rehireEmails?.has(email)) {
+    notes.push({ key: 'email', message: ctx.labels.csvNoteRehire, chip: ctx.labels.rehireBadge });
+  } else if (ctx.pendingEmails.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteResendPending });
   } else if (ctx.resendEmails.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
