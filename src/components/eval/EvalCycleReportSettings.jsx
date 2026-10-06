@@ -33,6 +33,7 @@ const DEFAULT_LABELS = {
   channelsTitle: '발송 채널 기본값',
   channelsHint:
     '발송은 「리포트 검수」에서 하고, 여기서 정한 값이 그 화면의 기본 선택이 됩니다.',
+  channelLocked: '항상 보냄',
   timelineTitle: '리포트가 보이는 시점',
   timelineHint: '정해진 순서입니다 — 여기서 바꾸지 않습니다.',
   timelineNow: '지금 여기',
@@ -95,6 +96,11 @@ export default function EvalCycleReportSettings({
   sectionOrder = [],
   channels = [],
   channelOptions = [],
+  /**
+   * PW-1228 — 끌 수 «없는» 채널. 필수 섹션처럼 체크된 채 잠기고 `channelLocked` 를 붙인다.
+   * Pivit 알림이 그렇다 — 알림은 보내면 앱 알림함에 늘 들어가서, 꺼도 실제로 안 꺼진다.
+   */
+  lockedChannels = [],
   /** 이미 생성된 리포트 건수. 0 이면 소급 안내를 띄우지 않는다. */
   generatedCount = 0,
   /** 지금 사이클이 서 있는 시점 행. 판정할 수 없으면 `null`. */
@@ -165,20 +171,22 @@ export default function EvalCycleReportSettings({
         <p className="evc-wiz-hint">{L.channelsHint}</p>
         <div className="evrs-chips" data-testid="evrs-channels">
           {channelOptions.map((key) => {
-            const on = channels.includes(key);
+            const locked = lockedChannels.includes(key);
+            const on = locked || channels.includes(key);
             return (
               <label
                 key={key}
-                className={`evrs-chip ${on ? 'is-on' : ''} ${readOnly ? 'is-locked' : ''}`}
+                className={`evrs-chip ${on ? 'is-on' : ''} ${readOnly || locked ? 'is-locked' : ''}`}
                 data-testid={`evrs-channel-${key}`}
               >
                 <input
                   type="checkbox"
                   checked={on}
-                  disabled={readOnly}
+                  disabled={readOnly || locked}
                   onChange={() => onToggleChannel?.(key)}
                 />
                 <span>{L.channelLabels?.[key] ?? key}</span>
+                {locked && <span className="evrs-chip-req">{L.channelLocked}</span>}
               </label>
             );
           })}

@@ -1844,6 +1844,14 @@ export default function EvalCycleWizard({
    * ⛔ 안 넘기면 종전 그대로다.
    */
   committeeElsewhere = null,
+  /**
+   * PW-1228 — 평가 템플릿 단계의 두 설정을 숨긴다. 둘 다 저장만 되고 평가에 반영되지
+   * 않아(직급별 버전 · 상대 비율 적용 범위), 기획이 동작을 정할 때까지(PW-1368) 고르는
+   * 자리를 내리는 스위치다. 숨겨도 이미 저장된 값은 그대로 보낸다 — 지우지 않는다.
+   * ⛔ 안 넘기면 종전 그대로다.
+   */
+  hideRoleVersions = false,
+  hideRatioScope = false,
 }) {
   const isManage = !!cycle;
   /** 이미 연 사이클을 사이클 관리 탭에서 고치는 중인가(초안 이어쓰기는 아니다). */
@@ -5354,7 +5362,7 @@ export default function EvalCycleWizard({
                   <span className="evc-tpl-ctxbar-version">
                     {L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey] || tplVersion}
                     {tplIsCustomized ? ` ${L.tplCustomized}` : ''}
-                    {roleMode === 'by_role' ? ` · ${L.roleModeByRole}` : ''}
+                    {roleMode === 'by_role' && !hideRoleVersions ? ` · ${L.roleModeByRole}` : ''}
                   </span>
                   <span className="evc-tpl-ctxbar-meta">
                     {/* [PW-602 ④ 불변식 ②] 설명은 세지 않는다. */}
@@ -5687,7 +5695,7 @@ export default function EvalCycleWizard({
                 ))}
               </div>
 
-              {roleLevels.length > 0 && (
+              {roleLevels.length > 0 && !hideRoleVersions && (
                 <>
                   <div className="evc-tpl-role-head">
                     <span className="evc-field-label">{L.roleVersionTitle}</span>
@@ -5759,7 +5767,7 @@ export default function EvalCycleWizard({
               >
                 <span>{L.templateAbsolute}</span>
               </Checkbox>
-              {!tplAbsolute && (
+              {!tplAbsolute && !hideRatioScope && (
                 <Select
                   className="evc-input"
                   value={tplRatioScope}

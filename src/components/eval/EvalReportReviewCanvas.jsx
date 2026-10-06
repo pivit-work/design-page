@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Toast from '../shared/Toast.jsx';
+import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -82,6 +83,13 @@ const DEFAULT_LABELS = {
   /** 발송 뒤 알림 — 실제로 나간 수와, 제외되어 빠진 수. */
   toastSentCount: '{count}명에게 리포트를 발송했습니다',
   toastSkippedExcluded: '제외되어 보내지 않음 {count}명',
+  /** PW-1228 — 발송 직전 채널 선택 창 (정책 §8.4). `sendChannels` 를 줄 때만 뜬다. */
+  channelModalTitle: '평가 결과 발송',
+  channelModalDesc: '{count}명에게 보낼 채널을 고르세요. 리포트 탭의 «발송 채널 기본값»이 미리 체크돼 있습니다.',
+  channelModalSubmit: '발송',
+  channelModalCancel: '취소',
+  channelModalClose: '닫기',
+  channelLocked: '항상 보냄',
 };
 
 function isObj(v) {
@@ -588,6 +596,12 @@ export default function EvalReportReviewCanvas({
    * 안 주면 검수 칸을 그리지 않으므로 기존 시각은 그대로다.
    */
   refinement = null,
+  /**
+   * PW-1228 — 발송 채널 선택 (정책 §8.3·§8.4). `{ options: [{ id, label, locked? }], defaults }`.
+   * 주면 [발송]을 누를 때 채널 창을 먼저 띄우고 `onSend(ids, channels)` 로 넘긴다.
+   * 안 주면 창 없이 `onSend(ids)` 로 바로 보낸다(기존 동작).
+   */
+  sendChannels = null,
   onApprove,
   onSend,
 }) {
@@ -601,6 +615,9 @@ export default function EvalReportReviewCanvas({
     ? [...requiredSections, ...(q.optionalSections ?? [])]
     : [];
   const [selected, setSelected] = useState(() => new Set());
+  /** PW-1228 — 채널 창에 올린 발송 대상(id 목록). null 이면 창이 닫혀 있다. */
+  const [channelAsk, setChannelAsk] = useState(null);
+  const [channelSending, setChannelSending] = useState(false);
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
   const showToast = useCallback((msg, type = 'success') => {
@@ -640,7 +657,7 @@ export default function EvalReportReviewCanvas({
     }
   };
 
-  const send = async (rawIds) => {
+  const send = (rawIds) => {
     // 고른 뒤에 막힌 사람이 생길 수 있다(동료가 리뷰를 고쳐 다시 내면 그 순간 막힌다).
     // 보내기 직전에 한 번 더 거른다 — 서버도 같은 판정으로 막지만 여기서 거르면
     // 「보냈다」 토스트가 실제로 나간 사람 수와 맞는다.
@@ -651,11 +668,19 @@ export default function EvalReportReviewCanvas({
     );
     const ids = rawIds.filter((id) => !blockedIds.has(id) && !excludedIds.has(id));
     if (!ids.length) return;
+    if (sendChannels) {
+      setChannelAsk(ids);
+      return;
+    }
+    dispatchSend(ids);
+  };
+
+  const dispatchSend = async (ids, channels) => {
     try {
       // PW-978 — 호출부가 서버 결과(`{ sent, excluded }`)를 돌려주면 실제 수를 적는다. 고른 뒤
       // 그 사이 제외된 사람은 서버가 빼므로, 화면이 고른 수가 아니라 서버가 센 수를 쓴다.
       // 돌려주지 않는 호출부는 예전 문구 그대로다.
-      const result = await onSend?.(ids);
+      const result = await (channels ? onSend?.(ids, channels) : onSend?.(ids));
       setSelected(new Set());
       if (result && typeof result.sent === 'number') {
         const sentMsg = L.toastSentCount.replace('{count}', String(result.sent));
@@ -672,8 +697,34 @@ export default function EvalReportReviewCanvas({
     }
   };
 
+  const submitChannels = async (channels) => {
+    setChannelSending(true);
+    try {
+      await dispatchSend(channelAsk, channels);
+    } finally {
+      setChannelSending(false);
+      setChannelAsk(null);
+    }
+  };
+
   return (
     <div className="evc-root">
+      {channelAsk && sendChannels && (
+        <EvalSendChannelModal
+          title={L.channelModalTitle}
+          description={L.channelModalDesc}
+          count={channelAsk.length}
+          options={sendChannels.options ?? []}
+          defaults={sendChannels.defaults ?? []}
+          lockedNote={L.channelLocked}
+          submitLabel={L.channelModalSubmit}
+          cancelLabel={L.channelModalCancel}
+          closeLabel={L.channelModalClose}
+          busy={channelSending}
+          onSubmit={submitChannels}
+          onClose={() => setChannelAsk(null)}
+        />
+      )}
       {/* PW-978 — 공용 Toast 로 그린다(<body> 바로 아래). 전에는 `.evc-root` 안에 그려서, 뿌리가
           position: fixed 인 탓에 z-index 가 앱 위쪽 바를 넘지 못해 알림이 한 번도 보이지 않았다. */}
       <Toast
