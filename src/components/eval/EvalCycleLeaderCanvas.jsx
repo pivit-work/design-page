@@ -5,6 +5,7 @@ import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
 import { AlertIcon, ZapIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
+import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -67,6 +68,25 @@ const DEFAULT_LABELS = {
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
   historyTitle: '과거 등급 추이',
   historyEmpty: '등급 변경 이력이 없습니다.',
+  // PW-1214 근거 넷 (TC-EVAL-020)
+  signalsPeriod: '평가 기간',
+  signalsLoadFailed: '불러오지 못했습니다.',
+  signalsOkrTitle: 'OKR 달성도',
+  signalsOkrAverage: '개인 OKR 평균 달성률',
+  signalsOkrEmpty: '개인 OKR 이 없습니다.',
+  signalsKrSelf: '팀원 입력',
+  signalsKrSelfNone: '팀원 입력 없음',
+  signalsKrNote: '달성 근거',
+  signalsHealthTitle: '헬스체크 12주 추이',
+  signalsHealthAverage: '12주 평균',
+  signalsHealthEmpty: '헬스체크 기록이 없습니다.',
+  signalsActionsTitle: '원온원 할 일 이행률',
+  signalsActionsEmpty: '원온원 할 일이 없습니다.',
+  signalsDone: '완료',
+  signalsTotal: '전체',
+  signalsSnippetTitle: '스니핏 활동량',
+  signalsDays: '일',
+  signalsRate: '작성률',
   // TC-046/047 상단고정(Freeze) 안내
   freezeNote: '헤더 프리즈 중 — 스크롤해도 상단 고정',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
@@ -284,6 +304,11 @@ export default function EvalCycleLeaderCanvas({
   calibrationEnabled = true,
   // TC-149 피평가자 셀프 미제출 시 안내(게이팅 아님 — 작성은 허용).
   selfSubmitted = true,
+  /**
+   * PW-1214 — 근거 넷(OKR 달성도·헬스 12주 추이·원온원 할 일 이행률·스니핏 활동량).
+   * 넘기지 않으면 그 칸을 그리지 않는다(종전 렌더 그대로). 블록이 null 이면 «불러오지 못했습니다».
+   */
+  evidenceSignals = null,
   labels: providedLabels,
   onSave,
   onSubmit,
@@ -501,6 +526,8 @@ export default function EvalCycleLeaderCanvas({
               </div>
             ))
           )}
+
+          <EvalLeaderEvidenceSignals signals={evidenceSignals} L={L} />
 
           <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.peerEvidenceTitle}</h3>
           {peerAnswers.length === 0 ? (
