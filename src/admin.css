@@ -1821,6 +1821,11 @@
     0 1px 2px 0 rgba(10, 13, 18, 0.1), 0 1px 3px 0 rgba(10, 13, 18, 0.1));
   padding: 18px 20px;
 }
+/* As Of 날짜를 바꿔 다시 불러오는 동안 — 이전 날짜 명단을 비우지 않고 흐리게 남긴다(정책 §3) */
+.admin-snap-content.is-pending {
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
 .admin-snap-subheading {
   font-family: var(--font-family-body);
   font-size: 14px;
