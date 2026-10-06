@@ -13,6 +13,7 @@ import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from '
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EducationAddForm from './EducationAddForm.jsx';
+import PreferenceTab from './PreferenceTab.jsx';
 import { formatEduPeriod } from './educationForm.js';
 
 /**
@@ -26,7 +27,7 @@ import { formatEduPeriod } from './educationForm.js';
  * 순수/controlled 컴포넌트 — 데이터는 전부 props, 사용자 액션은 on* 콜백으로 방출.
  * 내부 state 는 편집 draft(프로필 폼, 비밀번호 폼)와 모달 open 여부 등 ephemeral UI 뿐.
  *
- * 탭 구성(설정 그룹): profile | visibility | notifications | integrations | security.
+ * 탭 구성(설정 그룹): profile | visibility | preference | notifications | integrations | security.
  * 프로필 그룹 확장 탭(내 프로필/가족/조직/성과/보상, PF1~PF4)은 백엔드 준비 후
  * tabs prop 에 추가하는 방식으로 확장한다.
  *
@@ -45,6 +46,7 @@ const DEFAULT_LABELS = {
     profile_comp: '보상 정보',
     profile_history: '변경 이력',
     visibility: '공개 범위',
+    preference: '선호 설정',
     notifications: '알림',
     integrations: '개인 연동',
     security: '보안',
@@ -282,6 +284,99 @@ const DEFAULT_LABELS = {
     banner:
       'Pivit의 공개 범위는 2단계로 구성됩니다. 항목별로 공개 여부를 직접 결정할 수 있으며, 비활성화된 항목은 나 외에 누구에게도 표시되지 않습니다.',
     saveError: '공개 범위 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+  // 선호 설정 (pivit-work PW-1366) — 동의 문안은 문안집 §1-9 원문. 호스트가 회사 이름을 넣은 문장으로 덮는다.
+  preference: {
+    banner:
+      '여기서 정한 선호의 값은 다른 사람에게 그대로 보이지 않습니다. AI 피드백 초안·AI Chat·1on1 준비가 이 값을 참고하고, 매니저·평가자가 나에 대한 AI 초안을 만들 때에도 참고됩니다(아래 동의 문안).\n알림을 실제로 켜고 끄는 것은 알림 탭입니다.',
+    consentTitle: '선호·성향 정보를 입력하시겠어요? (선택)',
+    consentPurpose:
+      '회사은(는) 회원님이 동의하시는 경우에만 회원님의 선호·성향 정보를 받아, AI 가 피드백 초안·1on1 준비 자료·AI Chat 답변을 회원님께 맞추는 데 씁니다.',
+    consentSharedPrefix: '이 정보는 ',
+    consentShared: '회원님의 매니저나 평가자가 회원님에 대한 AI 초안을 만들 때에도 참고',
+    consentSharedSuffix: '됩니다. PIVIT.WORK 는 회사의 위탁을 받아 이 정보를 보관·처리합니다.',
+    consentNoPenalty:
+      '동의하지 않거나 입력하지 않으셔도 아무 불이익이 없고 모든 기능을 그대로 쓰실 수 있으며, 내 설정에서 언제든 고치거나 지우실 수 있습니다.',
+    consentCheckbox: '[선택] 위 내용으로 선호·성향 정보의 수집·이용에 동의합니다.',
+    consentView: '보기',
+    consentHide: '접기',
+    consentDetail: [
+      {
+        label: '목적',
+        text: 'AI 기능 개인화(AI Chat 응답 톤·길이, 수시 피드백·1on1·성과평가 AI 초안의 톤과 관점), 1on1 준비 시 매니저와의 상호 핏 분석, 집중 시간 적용',
+      },
+      {
+        label: '항목',
+        text: '피드백 선호 톤·표현 방식, 중점 관심 영역, 커리어 목표, 강점·개선 영역 키워드, 응답 속도 기대치, 회의 선호 시간대, 집중 시간, 성향 프리셋, 성장 포인트, 피드백 수신 선호 스타일',
+      },
+      {
+        label: '보유 기간',
+        text: '동의 철회·삭제 또는 회원 탈퇴 시까지. 워크스페이스 계약 종료 시 처리방침 §3 「업무·인사 데이터」 기간에 따름',
+      },
+      {
+        label: '거부권과 불이익',
+        text: '동의하지 않으셔도 불이익이 없고 서비스 이용에 제한이 없습니다. 다만 AI 결과물이 개인화되지 않습니다',
+      },
+    ],
+    consentRequired: '입력하신 내용을 저장하려면 동의가 필요합니다',
+    agreedOn: (date) => `${date} 동의`,
+    withdraw: '모두 지우고 동의 철회',
+    withdrawTitle: '동의를 철회할까요?',
+    withdrawBody: '저장된 선호·성향 정보가 모두 지워지고, 이후 AI 결과물이 개인화되지 않습니다. 그 밖의 불이익은 없습니다.',
+    withdrawConfirm: '철회',
+    cancel: '취소',
+    feedbackSection: '피드백 수신 선호',
+    tone: '피드백을 어떻게 받고 싶으세요?',
+    style: '어떤 방식의 피드백이 도움이 되나요?',
+    focusAreas: '중점 관심 영역',
+    focusAreasHint: '최대 3개',
+    careerGoal: '커리어 목표',
+    careerGoalHint: '최대 100자',
+    careerGoalPlaceholder: '예: 2년 내 시니어 엔지니어',
+    strengths: '강점 키워드',
+    improveAreas: '성장시키고 싶은 영역',
+    keywordHint: '목록에 없으면 직접 적어 주세요',
+    customPlaceholder: '직접 입력 후 Enter',
+    removeKeyword: (k) => `${k} 지우기`,
+    communicationSection: '커뮤니케이션 선호',
+    responseSpeed: '메시지 응답 속도 기대치',
+    meetingSlots: '회의 선호 시간대',
+    meetingSlotsHint: '복수 선택',
+    focusHours: '집중 시간 (Focus Hours)',
+    focusHoursHint: '선택',
+    focusHoursStart: '집중 시간 시작',
+    focusHoursEnd: '집중 시간 종료',
+    focusHoursNote:
+      '이 시간에는 웹 푸시·이메일·Slack 발송을 멈춥니다. 인앱 알림은 그대로 쌓이고, 시간이 끝나도 밀린 알림을 몰아 보내지 않습니다.\n조직이 필수로 지정한 알림(캐파 설정 요청·업무량 초과 경고)은 이 시간에도 옵니다. 시작이 종료보다 늦으면 자정을 넘는 구간으로 봅니다.',
+    options: {
+      direct: '직접적으로',
+      soft: '부드럽게',
+      concise: '간결하게',
+      detailed: '상세하게',
+      immediate: '즉시',
+      same_day: '같은 날',
+      within_24h: '24시간 내',
+      async: '비동기',
+      morning: '오전 (09–12)',
+      afternoon: '오후 (13–17)',
+      evening: '저녁 (17 이후)',
+    },
+    optionDescs: {
+      direct: '명확하고 솔직한 방식',
+      soft: '공감과 배려를 담은 방식',
+      concise: '핵심 3문장 이내',
+      detailed: '맥락·근거·사례 포함',
+      immediate: '30분 이내',
+      same_day: '당일 회신',
+      within_24h: '다음 영업일',
+      async: '편할 때',
+    },
+    valueLabels: {},
+    loadError: '선호 설정을 불러오지 못했습니다.',
+    retry: '다시 시도',
+    save: '변경사항 저장',
+    saving: '저장 중…',
+    saved: '✓ 저장됐습니다',
   },
   integrations: {
     banner:
@@ -1275,6 +1370,7 @@ export default function MySettingsCanvas({
     { id: 'profile_perf', group: 'profile' },
     { id: 'profile_comp', group: 'profile' },
     { id: 'visibility', group: 'settings' },
+    { id: 'preference', group: 'settings' },
     { id: 'notifications', group: 'settings' },
     { id: 'integrations', group: 'settings' },
     { id: 'security', group: 'settings' },
@@ -1363,6 +1459,19 @@ export default function MySettingsCanvas({
   visibilityGroups = [],
   visibilityError = null,
   onToggleVisibility,
+  /**
+   * 선호 설정 (pivit-work PW-1366) — 계약은 `PreferenceTab.jsx` 머리 주석.
+   * `preference` 가 null 이면 불러오는 중(`preferenceLoading`)이거나 실패(`preferenceLoadError`)다.
+   */
+  preference = null,
+  preferenceLoading = false,
+  preferenceLoadError = false,
+  onPreferenceRetry,
+  preferenceSaveState = 'idle',
+  preferenceConsentError = null,
+  onSavePreference,
+  onWithdrawPreference,
+  preferenceWithdrawing = false,
   /* 알림 */
   notifGroups = [],
   onToggleNotif,
@@ -2067,6 +2176,22 @@ export default function MySettingsCanvas({
                 </Card>
               ))}
             </>
+          )}
+
+          {/* ═══ 선호 설정 ═══ */}
+          {activeTab === 'preference' && (
+            <PreferenceTab
+              preference={preference}
+              loading={preferenceLoading}
+              loadError={preferenceLoadError}
+              onRetry={onPreferenceRetry}
+              saveState={preferenceSaveState}
+              consentError={preferenceConsentError}
+              onSave={onSavePreference}
+              onWithdraw={onWithdrawPreference}
+              withdrawing={preferenceWithdrawing}
+              labels={labels}
+            />
           )}
 
           {/* ═══ 알림 ═══ */}
