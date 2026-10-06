@@ -22,6 +22,9 @@ import LoadingState from '../shared/LoadingState.jsx';
  * 조회 상태도 데이터를 가진 쪽만 안다:
  *   loading      true 면 사이드바·피드 대신 `labels.loading` 한 줄
  *   feedNotice   피드 위에 얹는 안내(불러오기 실패 등). 없으면 null
+ *   submittedNotice  있으면 «오늘 제출 현황»의 «done / total» 대신 이것을 그린다.
+ *                조회가 실패해 제출 수를 모를 때 «0 / N명»이 «아무도 안 냈다»로
+ *                읽히지 않게 한다(pivit-work PW-1392). 없으면 null
  *   emptyLabel   걸러진 스니핏이 0건일 때 피드 안에 띄우는 문구. 실패 중에는 안 넘긴다
  *
  * labels: { redFlag, todayStatus, submittedTotal, loading } — 안 넘기면 한국어 기본값.
@@ -49,6 +52,7 @@ export default function TeamSnippets({
   onMemberFilterChange,
   loading = false,
   feedNotice = null,
+  submittedNotice = null,
   emptyLabel,
   labels: labelsProp,
   testIds = {},
@@ -88,9 +92,11 @@ export default function TeamSnippets({
 
       <div className="mgr-ts-submit" data-testid={testIds.submitted}>
         <p className="mgr-ts-submit-label">{labels.todayStatus}</p>
-        <p className="mgr-ts-submit-count">
-          {data.submitted.done} / {labels.submittedTotal ?? `${data.submitted.total}명`}
-        </p>
+        {submittedNotice ?? (
+          <p className="mgr-ts-submit-count">
+            {data.submitted.done} / {labels.submittedTotal ?? `${data.submitted.total}명`}
+          </p>
+        )}
       </div>
 
       {loading ? (
