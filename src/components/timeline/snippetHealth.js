@@ -4,7 +4,15 @@
 //
 // 작성 모달(SnippetModal)과 간트의 스니핏 상세(SnippetDetailModal)가 같은
 // 기준을 써야 같은 점수가 두 화면에서 다른 색으로 보이지 않는다.
-export const healthTier = (v) => (v >= 8 ? 'good' : v >= 6 ? 'mid' : 'low');
+//
+// 점수는 소수(6.9)로 올 수 있다. 작성 모달은 반올림한 칸(7)을 고르므로 여기서도 반올림해 읽는다
+// — 안 그러면 같은 스니핏이 작성 모달은 «보통», 상세 창은 «힘듦»으로 갈린다 (PW-1391).
+export const healthTier = (v) => {
+  const n = Math.round(v);
+  return n >= 8 ? 'good' : n >= 6 ? 'mid' : 'low';
+};
 
-export const healthLabel = (v) =>
-  v >= 9 ? '최고' : v >= 8 ? '좋음' : v >= 7 ? '보통' : v >= 5 ? '힘듦' : '매우 힘듦';
+export const healthLabel = (v) => {
+  const n = Math.round(v);
+  return n >= 9 ? '최고' : n >= 8 ? '좋음' : n >= 7 ? '보통' : n >= 5 ? '힘듦' : '매우 힘듦';
+};
