@@ -5108,6 +5108,92 @@
   font-size: var(--font-size-text-xs);
   color: var(--utility-error-600);
 }
+.evl-signals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  min-width: 0;
+  /* 팀원이 적은 메모·KR 제목에 띄어쓰기 없는 긴 낱말(URL 등)이 들어와도 칸 안에서 접는다. */
+  overflow-wrap: anywhere;
+}
+.evl-sig-period {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evl-sig-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--bg-active);
+  min-width: 0;
+}
+.evl-sig-big {
+  margin: 0;
+  font-size: var(--font-size-text-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evl-sig-sub {
+  font-size: var(--font-size-text-xs);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+.evl-sig-krs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.evl-sig-kr {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evl-sig-kr-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+}
+.evl-sig-kr-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evl-sig-kr-pct {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.evl-sig-self {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evl-sig-track {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--utility-gray-200);
+  overflow: hidden;
+}
+.evl-sig-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+.evl-sig-fill.is-good { background: var(--utility-success-400); }
+.evl-sig-fill.is-mid { background: var(--utility-warning-400); }
+.evl-sig-fill.is-low { background: var(--utility-error-400); }
+.evl-sig-spark {
+  color: var(--fg-brand-primary);
+  max-width: 100%;
+}
 .evl-history {
   list-style: none;
   margin: 0;
