@@ -720,10 +720,11 @@ export default function SnippetModal({
                 <div className="tl-snippet-field-label">
                   Health Check
                   {healthScore != null && (
+                    // PW-1388 — 이름표도 선택된 칸(반올림)과 같은 값으로 읽는다. 6.7 이면 칸은 7 인데 이름표만 «힘듦»이 된다.
                     <span
-                      className={`tl-snippet-health-label tl-snippet-health-label--${healthTier(healthScore)}`}
+                      className={`tl-snippet-health-label tl-snippet-health-label--${healthTier(Math.round(healthScore))}`}
                     >
-                      {healthLabel(healthScore)}
+                      {healthLabel(Math.round(healthScore))}
                     </span>
                   )}
                 </div>
@@ -734,7 +735,8 @@ export default function SnippetModal({
                   aria-readonly={readOnly || undefined}
                 >
                   {HEALTH_SCORES.map((n) => {
-                    const selected = healthScore === n;
+                    // PW-1388 — 점수가 6.7 처럼 소수로 올 수 있다. 칸은 정수뿐이라 가장 가까운 칸을 고른다.
+                    const selected = healthScore != null && Math.round(healthScore) === n;
                     return (
                       <button
                         key={n}
