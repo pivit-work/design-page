@@ -69,6 +69,13 @@ export default function EvalStageRoster({
   onRetry,
   onRemindAll,
   onRemindOne,
+  /**
+   * PW-1227 — 미완료 줄에 「리뷰어 추가」 고르기를 단다(동료 리뷰어 확정 명단에서 인사가 넣는다).
+   * 줄마다 `row.addCandidates`(`[{ id, name, department? }]`)가 있어야 그려진다 — 고를 사람이
+   * 없으면 그 줄엔 안 그린다. 안 주면 지금과 같다.
+   */
+  addLabel = '',
+  onAdd,
 }) {
   if (error) {
     return (
@@ -87,7 +94,7 @@ export default function EvalStageRoster({
   }
 
   return (
-    <div className="evmon-roster" data-testid="evmon-roster">
+    <div className={`evmon-roster${onAdd ? ' has-add' : ''}`} data-testid="evmon-roster">
       {remindAllLabel && onRemindAll && (
         <div className="evmon-roster-actions">
           <button
@@ -107,19 +114,41 @@ export default function EvalStageRoster({
         tone="pending"
         list={pending}
         emptyLabel={emptyLabel}
-        renderAction={(row) =>
-          onRemindOne && row.canRemind !== false ? (
-            <button
-              type="button"
-              className="evc-btn is-ghost"
-              disabled={busy}
-              onClick={() => onRemindOne(row.id)}
-              data-testid="evmon-roster-remind-one"
-            >
-              {remindLabel}
-            </button>
-          ) : null
-        }
+        renderAction={(row) => (
+          <>
+            {onAdd && row.addCandidates?.length > 0 && (
+              <select
+                className="evc-input evp-add-select"
+                value=""
+                disabled={busy}
+                aria-label={addLabel}
+                onChange={(e) => {
+                  if (e.target.value) onAdd(row.id, e.target.value);
+                }}
+                data-testid="evmon-roster-add"
+              >
+                <option value="">{addLabel}</option>
+                {row.addCandidates.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.department ? ` · ${c.department}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+            {onRemindOne && row.canRemind !== false ? (
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                disabled={busy}
+                onClick={() => onRemindOne(row.id)}
+                data-testid="evmon-roster-remind-one"
+              >
+                {remindLabel}
+              </button>
+            ) : null}
+          </>
+        )}
       />
       <Group
         testId="evmon-roster-done"

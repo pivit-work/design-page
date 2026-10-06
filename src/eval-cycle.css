@@ -8331,6 +8331,12 @@
 .evmon-roster-action {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+/* PW-1227 — 「리뷰어 추가」 고르기가 서는 명단은 버튼 칸을 내용만큼 넓힌다. */
+.evmon-roster.has-add .evmon-roster-row {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr) auto;
 }
 .evmon-roster-done {
   display: inline-flex;

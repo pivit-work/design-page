@@ -21,6 +21,8 @@ const DEFAULT_LABELS = {
   subtitle: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
   emptyTitle: '확정할 대상이 없습니다',
   emptySub: '피평가자별 동료 리뷰어 후보를 추가해 주세요.',
+  // PW-1227 — 후보가 0명인 카드. 추천이 없어도 리더가 직접 넣을 수 있다고 알린다.
+  noNominees: '추천된 동료가 없습니다. 직접 지명해 주세요.',
   nominees: '확정 대상 {{count}}명',
   confirmedBadge: '✓ 확정 · {{count}}명에게 발송됨',
   confirm: '최종 확정 → 발송',
@@ -166,6 +168,9 @@ function PeerGroupCard({
       {expanded && (
         <>
           <div className="evp-nominees">
+            {group.nominees.length === 0 && !group.confirmed && (
+              <p className="evc-empty-sub" data-testid="evp-no-nominees">{L.noNominees}</p>
+            )}
             {group.nominees.map((n) => (
               <div className="evp-nominee" key={n.id} data-testid="evp-nominee">
                 <span className="evp-nominee-name">{n.evaluator.name || n.evaluator.id}</span>
