@@ -141,6 +141,12 @@ const DEFAULT_LABELS = {
   errInvalidEmail: '유효하지 않은 이메일',
   errAlreadyMember: '이미 멤버입니다',
   errTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
+  /* 재입사 모드(PW-1355 · 초대 §9 E8 · 퇴사 처리 §5-G) — 명부의 퇴사자 이메일을 넣은 행 */
+  rehireBadge: '재입사',
+  rehireNotice: '이전에 퇴사한 구성원이에요. 수락하면 이전 기록에 이어서 재입사로 등록됩니다.',
+  rehireRevertNotice: '퇴사일부터 14일 안이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+  rehireRoleLocked: '재입사자는 멤버로 시작합니다 — 가입 뒤 권한을 바꾸세요',
+  errRehireHireDate: '재입사는 새 입사일이 필요해요',
   errPendingInvite: '초대 대기 중',
   errDuplicate: '이 발송에 중복된 이메일이에요',
   errName: '이름을 입력해주세요',
@@ -157,6 +163,7 @@ const DEFAULT_LABELS = {
   // 발송 실패 사유(§8)
   failAlreadyMember: '이미 멤버입니다',
   failTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
+  failRehireHireDate: '재입사는 새 입사일이 필요해요',
   failPendingExists: '이미 초대 대기 중입니다',
   failSeatLimit: '좌석이 부족합니다',
   failPrimaryTeam: '주 소속을 지정해주세요',
@@ -270,6 +277,23 @@ const EMPTY_BULK = {
  * 새 상위에서도 유효한 값이면 남긴다 — CSV 스테이징에서 «직군을 고쳐 쌍을 맞추는» 것이 정상 경로라,
  * 무조건 지우면 어드민이 파일에 적어 넣은 직렬이 말없이 사라진다.
  */
+/**
+ * 재입사 모드 행 — 비어 있는 칸만 이전 값으로 채운다(초대 §9 E8 ② · PW-1355). 이미 고친 칸은 덮지 않는다.
+ * 권한은 «멤버»로 두고, 새 입사일은 비워 둔다(필수 — 어드민이 넣는다).
+ */
+function withRehirePrefill(row, seed) {
+  const next = { ...row, role: 'member' };
+  for (const k of ['name', 'employeeCode', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'employmentType']) {
+    if (!String(next[k] ?? '').trim() && seed[k]) next[k] = seed[k];
+  }
+  if (!next.email) next.email = seed.email;
+  if (next.teamIds.length === 0 && Array.isArray(seed.teamIds) && seed.teamIds.length > 0) {
+    next.teamIds = [...seed.teamIds];
+    next.primaryTeamId = seed.primaryTeamId || (seed.teamIds.length >= 2 ? seed.teamIds[0] : '');
+  }
+  return next;
+}
+
 function cleanAxis(next, p, laddersByFamily, dutiesByLadder) {
   const n = { ...next };
   if (p.jobFamily !== undefined && p.jobTitle === undefined) {
@@ -492,8 +516,16 @@ export default function AdminInviteModal({
   pendingEmails = [],
   /** 명부에 있지만 **아직 가입하지 않은** 사람의 이메일 — 막지 않고 «다시 보내기» (PW-1331) */
   resendEmails = [],
-  /** 명부의 퇴사자 이메일 — 초대를 보내지 않는다 (PW-1331 · 퇴사 후 재초대 방식 폐기) */
+  /** 명부의 퇴사자 이메일 — 초대를 보내지 않는다 (PW-1331). 재입사 대상(`rehireMembers`)이면 그쪽이 먼저다. */
   terminatedEmails = [],
+  /**
+   * 재입사 대상 퇴사자 (PW-1355 · 초대 §9 E8) — `{ email, name, employeeCode, teamIds, primaryTeamId, jobLevel,
+   * jobPosition, jobFamily, jobTitle(직렬), jobDuty, workLocation, employmentType, revertOpen }`.
+   * 이 이메일을 넣은 행은 «재입사 모드»다: 배지·안내, 새 입사일 필수, 권한 «멤버» 고정, 비어 있는 칸은 이전 값으로 채운다.
+   */
+  rehireMembers = [],
+  /** 이 이메일의 재입사 대상으로 미리 채운 한 명으로 연다 — 목록 행 «재입사 초대» (PW-1355). */
+  rehireOf = null,
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
   seats = null,
   /**
@@ -578,9 +610,19 @@ export default function AdminInviteModal({
     [providedLabels],
   );
   const tree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
+  const rehireByEmail = useMemo(
+    () => new Map(rehireMembers.filter((m) => m?.email).map((m) => [normEmail(m.email), m])),
+    [rehireMembers],
+  );
 
   const [bulk, setBulk] = useState(EMPTY_BULK);
-  const [rows, setRows] = useState(() => [blankRow(EMPTY_BULK)]);
+  /* 목록 행 «재입사 초대»로 열면 그 퇴사자로 미리 채운 한 명으로 시작한다(PW-1355). 창은 열 때 새로 붙으므로
+     처음 상태에서 채운다 — 아래 «다시 열기» 정리는 이미 붙어 있던 창에만 돈다. */
+  const rehireSeedOf = () => (rehireOf ? rehireByEmail.get(normEmail(rehireOf)) : null);
+  const [rows, setRows] = useState(() => {
+    const seed = rehireSeedOf();
+    return [seed ? withRehirePrefill(blankRow(EMPTY_BULK), seed) : blankRow(EMPTY_BULK)];
+  });
   /* 모드 2종(§1). CSV 행은 **직접 입력 행과 따로** 들고 있다 — 탭을 옮겼다고 반대
      탭의 입력이 사라지면, 500행을 올려 두고 직접 입력을 확인하러 간 순간 파일을
      다시 올려야 한다. 발송은 보고 있는 탭의 행만 보낸다. */
@@ -615,7 +657,8 @@ export default function AdminInviteModal({
     setWasOpen(open);
     if (open) {
       setBulk(EMPTY_BULK);
-      setRows([blankRow(EMPTY_BULK)]);
+      const rehireSeed = rehireSeedOf();
+      setRows([rehireSeed ? withRehirePrefill(blankRow(EMPTY_BULK), rehireSeed) : blankRow(EMPTY_BULK)]);
       setMode(initialCsvFile ? 'csv' : firstMode);
       setCsvRows([]);
       setCsvError('');
@@ -634,6 +677,7 @@ export default function AdminInviteModal({
   const pending = useMemo(() => new Set(pendingEmails.map(normEmail)), [pendingEmails]);
   const resend = useMemo(() => new Set(resendEmails.map(normEmail)), [resendEmails]);
   const terminated = useMemo(() => new Set(terminatedEmails.map(normEmail)), [terminatedEmails]);
+  const rehireOfEmail = (email) => rehireByEmail.get(normEmail(email)) ?? null;
 
   /* 활성 탭의 행 — 검증·발송·부분 성공 처리는 전부 이 목록에 적용된다.
      두 탭이 같은 코드를 지나야 CSV 가 이름 칸 이메일 차단(PW-207) 같은 규칙의
@@ -653,7 +697,10 @@ export default function AdminInviteModal({
   const patch = (key, p) =>
     setActiveRows((rs) => rs.map((r) => {
       if (r.key !== key) return r;
-      return cleanAxis({ ...r, ...p, failReason: null }, p, laddersByFamily, dutiesByLadder);
+      const next = cleanAxis({ ...r, ...p, failReason: null }, p, laddersByFamily, dutiesByLadder);
+      // 퇴사자 이메일을 넣으면 그 자리에서 재입사 모드 — 비어 있는 칸만 이전 값으로 채운다(E8 ②)
+      const seed = !isCsv && 'email' in p ? rehireOfEmail(p.email) : null;
+      return seed ? withRehirePrefill(next, seed) : next;
     }));
 
   /* 소속 고르기·빼기 — 주 소속 자동 처리(§4-3). 2번째를 고르면 첫 소속이 주 소속,
@@ -696,7 +743,7 @@ export default function AdminInviteModal({
     if (!(emailValid || emailOk)(r.email)) e.push(labels.errInvalidEmail);
     // [PW-1331] 가입한 사람·퇴사자는 막고, 가입 전 구성원·대기 중은 «다시 보내기»(아래 resendNoteOf)다.
     else if (existing.has(key)) e.push(labels.errAlreadyMember);
-    else if (terminated.has(key)) e.push(labels.errTerminatedMember);
+    else if (terminated.has(key) && !rehireOfEmail(key)) e.push(labels.errTerminatedMember);
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
@@ -706,6 +753,7 @@ export default function AdminInviteModal({
     else if (nameMaxLength && name.length > nameMaxLength) {
       e.push(fmt(labels.errNameTooLong, { max: nameMaxLength }));
     } else if (nameHasEmail(r.name)) e.push(labels.errNameEmail);
+    if (rehireOfEmail(key) && !r.hireDate) e.push(labels.errRehireHireDate);
     if (r.teamIds.length >= 2 && !r.primaryTeamId) e.push(labels.errPrimaryTeam);
     const pair = jobPairIssue(laddersByFamily, r.jobFamily, r.jobTitle);
     if (pair === 'family') e.push(labels.errLadderNeedsFamily);
@@ -734,7 +782,7 @@ export default function AdminInviteModal({
   const csvPreparedNotices = csvPrepared?.notices ?? [];
   const csvCtx = buildInviteCsvContext(csvRows, {
     orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
-    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, headTeamIds, labels,
+    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, rehireEmails: rehireMembers.map((m) => m.email), headTeamIds, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
   });
@@ -968,7 +1016,8 @@ export default function AdminInviteModal({
       const payload = activeRows.map((r) => ({
         email: r.email.trim(),
         name: r.name.trim(),
-        role: r.role,
+        // 재입사자는 멤버로 시작한다(E8 ③) — 서버도 멤버로 바꾸지만 보내는 값부터 맞춘다
+        role: rehireOfEmail(r.email) ? 'member' : r.role,
         jobLevel: r.jobLevel || undefined,
         jobFamily: r.jobFamily || undefined,
         // 계약 키는 `jobLadder` 다(arch-admin-data-model 초대 발송 API · PW-412).
@@ -1336,6 +1385,7 @@ export default function AdminInviteModal({
               r.email.trim() !== '' || r.name.trim() !== '' || r.teamIds.length > 0;
             const errs = touched ? errorsByKey[r.key] : [];
             const bad = errs.length > 0 || Boolean(r.failReason);
+            const rehire = rehireOfEmail(r.email);
             const extraCount = EXTRA_KEYS
               .filter((k) => (k !== 'jobCategory' || jobCategoryEnabled) && String(r[k] ?? '').trim()).length;
             // 주 소속 조직에 조직장이 있으면(이번 발송의 예약 포함) 상급자는 조직장이 된다 — CSV 탭과 같은 규칙(PW-902)
@@ -1402,12 +1452,13 @@ export default function AdminInviteModal({
                       onChange={(e) => patch(r.key, { name: e.target.value })}
                     />
                   </label>
-                  <label className="admin-inv-field">
+                  <label className="admin-inv-field" title={rehire ? labels.rehireRoleLocked : undefined}>
                     <span className="admin-inv-label">{labels.role}</span>
                     <select
                       className="admin-inv-select"
-                      value={r.role}
-                      disabled={sending}
+                      value={rehire ? 'member' : r.role}
+                      disabled={sending || Boolean(rehire)}
+                      data-testid="admin-invite-role"
                       onChange={(e) => patch(r.key, { role: e.target.value })}
                     >
                       {ROLE_IDS.map((id) => (
@@ -1418,6 +1469,15 @@ export default function AdminInviteModal({
                     </select>
                   </label>
                 </div>
+
+                {/* 재입사 모드(초대 §9 E8 · PW-1355) — 배지·안내, 정정 기간 안이면 «퇴사 취소» 안내 한 줄 */}
+                {rehire && (
+                  <div className="admin-inv-hint" role="status" data-testid="admin-invite-rehire">
+                    <StatusBadge tone="neutral" className="admin-emp-role-pill">{labels.rehireBadge}</StatusBadge>{' '}
+                    {labels.rehireNotice}
+                    {rehire.revertOpen && <div>{labels.rehireRevertNotice}</div>}
+                  </div>
+                )}
 
                 {/* 소속 — 조직 배치에 가장 중요한 값이라 접지 않는다(§2-3) */}
                 <div className="admin-inv-teams-block">

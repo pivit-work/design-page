@@ -344,6 +344,12 @@ const DEFAULT_LABELS = {
        이름 옆에 회색 배지를 단다. 배지 말풍선(`member.inviteSentNote`)은 부르는 쪽이 만든다. */
     inviteSend: '초대 보내기',
     unjoinedBadge: '미가입',
+    /* 퇴사자 행(PW-1355 · admin-spec §3.1 `⋯` 행 · 초대 §9 E8). 초대 창을 재입사 모드로 연다.
+       정정 기간(퇴사일 + 14일) 안에도 뜨고, 그때는 «퇴사 취소»를 먼저 떠올리게 풍선을 단다. */
+    rehire: '재입사 초대',
+    rehireRevertHint: '퇴사일부터 14일 안이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+    /* 재입사자 보조 배지(PW-1355 · offboarding §5-G 「화면 표시」). 풍선은 부르는 쪽이 만든다(`member.rehireNote`). */
+    rehireBadge: '재입사',
     cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
@@ -553,7 +559,7 @@ const ROW_MENU_Z = 1000;
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
 function RowActionMenu({
-  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onCeo, ceoMode, onClose,
+  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onRehire, onCeo, ceoMode, onClose,
   labels, canEdit, anchorSelector, member = {},
 }) {
   const ref = useRef(null);
@@ -669,6 +675,30 @@ function RowActionMenu({
         >
           {labels.menu.inviteSend}
         </button>
+      )}
+      {/* 퇴사자 한 명에게 재입사 초대 (PW-1355). 이메일이 지워진 퇴사자(`emailPurged`)는 이을 기록이 없어 새 구성원 초대다. */}
+      {onRehire && member.employmentStatus === 'terminated' && !member.emailPurged && (
+        member.revertWindow?.state === 'open' ? (
+          <Tooltip content={labels.menu.rehireRevertHint}>
+            <button
+              type="button"
+              className="admin-emp-row-menu-item"
+              data-testid="employees-row-rehire"
+              onClick={() => { onRehire(); onClose(); }}
+            >
+              {labels.menu.rehire}
+            </button>
+          </Tooltip>
+        ) : (
+          <button
+            type="button"
+            className="admin-emp-row-menu-item"
+            data-testid="employees-row-rehire"
+            onClick={() => { onRehire(); onClose(); }}
+          >
+            {labels.menu.rehire}
+          </button>
+        )
       )}
       {canEdit && renderDestructive()}
     </AnchoredLayer>
@@ -1852,6 +1882,8 @@ function EmployeesListView({
   /* 「등록 취소」 (PW-1351) — `onCancelRegistration(memberIds)`. 일괄은 고른 사람 전부, 행 메뉴는
      미가입(`unjoined`) 행 한 명을 넘긴다. 미주입이면 두 자리 모두 없다. */
   onCancelRegistration,
+  /* 「재입사 초대」 (PW-1355) — 퇴사자 행 한 명. 캔버스가 초대 창을 재입사 모드로 연다. */
+  onRehireMember,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -2532,6 +2564,18 @@ function EmployeesListView({
                   {labels.menu.unjoinedBadge}
                 </DpStatusBadge>
               )}
+              {/* 재입사자 (PW-1355 · 퇴사 처리 §5-G 「화면 표시」). 말풍선에 최초 입사일·재입사일 — 근속은 현재 구간 기준이라
+                  최초 입사일은 말풍선에만 둔다. 규격은 «미가입» 배지와 같다. */}
+              {m.isRehire && (
+                <DpStatusBadge
+                  tone="neutral"
+                  className="admin-emp-role-pill"
+                  title={m.rehireNote || undefined}
+                  data-testid={`employees-rehire-badge-${m.id}`}
+                >
+                  {labels.menu.rehireBadge}
+                </DpStatusBadge>
+              )}
               <RolePill role={m.orgRole} labels={labels} />
             </span>
           </button>
@@ -2644,6 +2688,7 @@ function EmployeesListView({
                 onCancelOffboarding={onCancelOffboarding ? () => onCancelOffboarding(m) : undefined}
                 onCancelRegistration={onCancelRegistration ? () => onCancelRegistration([m.id]) : undefined}
                 onInviteSend={onInviteMembers ? () => onInviteMembers([m.id]) : undefined}
+                onRehire={onRehireMember ? () => onRehireMember(m) : undefined}
                 member={m}
                 /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
                    두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
@@ -3562,6 +3607,11 @@ function EmployeesEditPanel({
             <div>
               <div className="admin-emp-panel-name">{draft.displayName || draft.name}</div>
               <div className="admin-emp-panel-email">{draft.email}</div>
+              {/* «재직 구간» 줄 (PW-1355 · admin-spec §3.2 · 퇴사 처리 §5-G) — 퇴사 시점과 재입사 시점을 갈라 보인다.
+                  문장은 부르는 쪽이 발령 이력으로 만들어 넘긴다(`member.employmentPeriodsNote`). 없으면 줄이 없다. */}
+              {member?.employmentPeriodsNote && (
+                <div className="admin-emp-panel-email" data-testid="employees-panel-periods">{member.employmentPeriodsNote}</div>
+              )}
               {/* 패널에는 상태 배지 자리가 없다(재직 상태는 아래 라디오다). 그래서 보조 배지는
                   이름 밑에 둔다 — 라디오 옆에 두면 스크롤을 내려야 보인다 (PW-939). 값은
                   편집 중 초안이 아니라 목록 행(`member`)의 것이다: 마지막 출근일은 이 패널이
@@ -4073,6 +4123,9 @@ export default function AdminEmployeesCanvas({
   /* 「초대 보내기」 (PW-1331 · PW-1352) — `onInviteMembers(memberIds)`. 일괄은 고른 사람 전부, 미가입 행(`unjoined` · 퇴사 아님)의
      ⋯ 메뉴는 그 한 명을 넘긴다. 가입한 사람·퇴사자를 거르는 판정과 확인 창은 부르는 쪽이 한다. */
   onInviteMembers,
+  /* 편집 패널을 연 사람 (PW-1355) — `onOpenMember(memberId)`. 패널에만 쓰는 값(«재직 구간» 줄)을 부르는 쪽이
+     그때 불러와 그 사람 행에 실어 준다(`employmentPeriodsNote`). 미주입이면 아무 일도 없다. */
+  onOpenMember,
   /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — `onCancelRegistration(memberIds)`. 일괄 처리 맨 아래와
      미가입 행(`member.unjoined`)의 ⋯ 메뉴(«비활성화» 대신)에 뜬다. 가입한 사람을 거르는 판정·확인 창은
      부르는 쪽이 한다. 미주입이면 두 자리 모두 없다. */
@@ -4267,6 +4320,32 @@ export default function AdminEmployeesCanvas({
   const canInvite = canEdit && typeof onSendInvites === 'function';
   const [inviteOpen, setInviteOpen] = useState(initialInviteOpen && canInvite);
   const openInvite = () => setInviteOpen(true);
+  /* 재입사 초대 (PW-1355 · admin-spec §3.1 `⋯` 행 · 초대 §9 E8) — 그 퇴사자로 미리 채운 한 명으로 초대 창을 연다. */
+  const [rehireOf, setRehireOf] = useState(null);
+  const openRehire = (m) => {
+    setRehireOf(m.email || null);
+    setInviteOpen(true);
+  };
+  /* 재입사 대상 — 명부의 퇴사자 중 이메일이 남은 사람. 초대 창은 이 이메일을 넣은 행을 재입사 모드로 다룬다. */
+  const rehireMembers = useMemo(
+    () => members
+      .filter((m) => m.employmentStatus === 'terminated' && !m.emailPurged && m.email)
+      .map((m) => ({
+        email: m.email,
+        name: m.name,
+        employeeCode: m.employeeCode || '',
+        teamIds: Array.isArray(m.orgUnitIds) ? m.orgUnitIds : [],
+        jobLevel: m.jobLevel || '',
+        jobPosition: m.jobPosition || '',
+        jobFamily: m.jobFamily || '',
+        jobTitle: m.jobTitle || '',
+        jobDuty: m.jobDuty || '',
+        workLocation: m.workLocation || '',
+        employmentType: m.employmentType || '',
+        revertOpen: m.revertWindow?.state === 'open',
+      })),
+    [members],
+  );
 
   const leaderGapIds = useMemo(
     () => new Set([
@@ -4375,7 +4454,7 @@ export default function AdminEmployeesCanvas({
             leaderUnitIdsByMember={leaderUnitIdsByMember}
             onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
             onChangeAffiliations={onChangeAffiliations}
-            onOpenEdit={(m) => setEditMemberId(m.id)}
+            onOpenEdit={(m) => { setEditMemberId(m.id); onOpenMember?.(m.id); }}
             onDeactivate={canEdit ? onDeactivateMember : undefined}
             onCancelOffboarding={canEdit ? onCancelOffboarding : undefined}
             onAssignManager={onAssignManager}
@@ -4409,6 +4488,7 @@ export default function AdminEmployeesCanvas({
             onBulkEditFields={canEdit ? onBulkEditFields : undefined}
             onInviteMembers={canEdit ? onInviteMembers : undefined}
             onCancelRegistration={canEdit ? onCancelRegistration : undefined}
+            onRehireMember={canEdit && canInvite ? openRehire : undefined}
             bulkEditFieldsMax={bulkEditFieldsMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
@@ -4518,13 +4598,16 @@ export default function AdminEmployeesCanvas({
       {inviteOpen && canInvite && (
         <AdminInviteModal
           open
-          onClose={() => setInviteOpen(false)}
+          onClose={() => { setInviteOpen(false); setRehireOf(null); }}
           onSend={onSendInvites}
           orgUnits={orgUnits}
           existingEmails={emailsWhere(members, (m) => inviteBlockOf(m) === 'joined')}
           // [PW-1331] 가입 전 구성원은 «다시 보내기», 퇴사자는 막는다 — 호스트가 판정을 넘길 때만.
           resendEmails={emailsWhere(members, (m) => m.inviteBlock === null)}
           terminatedEmails={emailsWhere(members, (m) => m.inviteBlock === 'terminated')}
+          // [PW-1355] 퇴사자 이메일은 막지 않고 재입사 모드 — 재입사 대상이 위 막기보다 먼저다.
+          rehireMembers={rehireMembers}
+          rehireOf={rehireOf}
           // 상급자 칸이 찾는 명부는 종전 그대로(퇴사자만 뺀다) — 「이미 구성원」과 기준을
           // 나눈다. 비활성 계정을 상급자로 적을 수 있나는 이 카드가 정할 일이 아니다.
           supervisorEmails={members
