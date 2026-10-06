@@ -4602,7 +4602,7 @@ export default function AdminEmployeesCanvas({
           onSend={onSendInvites}
           orgUnits={orgUnits}
           existingEmails={emailsWhere(members, (m) => inviteBlockOf(m) === 'joined')}
-          // [PW-1331] 가입 전 구성원은 «다시 보내기», 퇴사자는 막는다 — 호스트가 판정을 넘길 때만.
+          // [PW-1331 · V5] 가입 전 구성원은 «이미 멤버»로 막고 목록 «초대 보내기»를 안내, 퇴사자는 막는다 — 호스트가 판정을 넘길 때만.
           resendEmails={emailsWhere(members, (m) => m.inviteBlock === null)}
           terminatedEmails={emailsWhere(members, (m) => m.inviteBlock === 'terminated')}
           // [PW-1355] 퇴사자 이메일은 막지 않고 재입사 모드 — 재입사 대상이 위 막기보다 먼저다.
@@ -4622,6 +4622,12 @@ export default function AdminEmployeesCanvas({
             .filter((i) => i.status === 'pending')
             .map((i) => i.email)
             .filter(Boolean)}
+          // V6 [재발송] — 초대 관리 탭의 [재발송]과 같은 호출(초대 §4-6)
+          onResendPending={onResendInvite ? (email) => {
+            const inv = invites.find((i) => i.status === 'pending'
+              && String(i.email || '').trim().toLowerCase() === email);
+            return inv ? onResendInvite(inv.id) : Promise.reject(new Error('no pending invite'));
+          } : undefined}
           seats={seats}
           fieldOptions={{
             jobLevel: gradeOptions ?? [],
