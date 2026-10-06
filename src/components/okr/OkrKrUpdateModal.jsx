@@ -13,6 +13,10 @@ import ModalShell from '../shared/ModalShell.jsx';
  * 그대로 보인다(PW-1063 — 저장 뒤 서버가 매길 달성률과 창 안 미리보기를 맞추려고.
  * 완료형·목표 0·음수에서 단순 나눗셈과 서버 값이 달랐다).
  *
+ * detail.extra(선택) — 소비처가 그린 칸을 입력 줄 아래에 그대로 놓는다(PW-1220 · 앱의
+ * «연결된 스니핏» 칸). 이 창은 그 칸의 저장에 관여하지 않는다 — [확정]은 달성률만 저장한다.
+ * 없으면 아무것도 그리지 않으므로 기존 소비처는 그대로다.
+ *
  * 🔴 확정은 **onConfirm 이 끝나기를 기다린 뒤에만 닫는다.** 예전에는 부르자마자
  * 닫았는데, 저장이 거절돼도(권한 없음·서버 오류) 창이 그대로 사라져서 아무 말도 없이
  * 「저장된 것처럼」 보였다 — 소비처가 실패를 알려 줄 자리조차 없었다. onConfirm 이
@@ -90,6 +94,8 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
         <span className="okr-kru-total">/ {detail.total}</span>
         <span className="okr-kru-percent">{percent}%</span>
       </div>
+
+      {detail.extra ?? null}
     </ModalShell>
   );
 }
