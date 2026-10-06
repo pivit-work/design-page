@@ -14,6 +14,8 @@ import { createPortal } from 'react-dom';
  * onSetup: [설정] 클릭 핸들러(컨텍스트 설정 화면 진입). 미주입 시 표시만 된다(데모).
  * onDismiss: [오늘 보지 않기] 클릭 핸들러 — 배너 숨김은 호스트가 소유한다
  *   (안 보이게 할지/언제까지 숨길지는 호스트 정책). 미주입 시 표시만 된다.
+ * setupLabel·dismissLabel: 두 버튼 글자. 같은 바를 «분석 이후 자료가 바뀌었다 [다시 분석]»
+ *   안내에도 쓰고, 호스트가 번역 문구를 넘긴다(PW-1370). 미주입 시 시안 문구.
  * 시안 원문의 '전력'·'등록하면서' 는 오탈자로 판단해 '전략'·'등록하면' 으로 표기.
  */
 export default function OkrContextBanner({
@@ -21,6 +23,8 @@ export default function OkrContextBanner({
   desc = '회사 문서, 링크, 전략, 메모를 등록하면 AI 제안 정확도가 높아집니다. (선택 사항)',
   onSetup,
   onDismiss,
+  setupLabel = '설정',
+  dismissLabel = '오늘 보지 않기',
 }) {
   return (
     <>
@@ -33,8 +37,8 @@ export default function OkrContextBanner({
               <p className="okr-ctx-banner-desc">{desc}</p>
             </div>
             <div className="okr-ctx-banner-actions">
-              <button type="button" className="okr-ctx-banner-btn" onClick={onSetup}>설정</button>
-              <button type="button" className="okr-ctx-banner-btn is-ghost" onClick={onDismiss}>오늘 보지 않기</button>
+              <button type="button" className="okr-ctx-banner-btn" onClick={onSetup}>{setupLabel}</button>
+              <button type="button" className="okr-ctx-banner-btn is-ghost" onClick={onDismiss}>{dismissLabel}</button>
             </div>
           </div>
         </div>,
