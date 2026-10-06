@@ -29,6 +29,10 @@ import Tabs from '../shared/Tabs.jsx';
  * 자기 식별자(예: memberId)를 item 에 실어 두고 그것으로 이동한다. 안 넘기면 버튼은
  * 표시만 되고 아무 일도 하지 않는다(데모).
  *
+ * onOpenSnippet: 카드(날짜별·KR별 모두)를 누르면 그 item 을 돌려준다 — 소비자가 그 스니핏 전체를
+ * 읽기 전용으로 연다(pivit-work PW-1251 · QA TC-MGR-005). 안 넘기면 카드는 눌리지 않는다(종전 그대로).
+ * [1on1 제안] 을 눌렀을 때는 부르지 않는다.
+ *
  * emptyLabel: 걸러진 결과가 0건일 때 피드 안에 띄우는 문구(매니저 시안 「해당하는 스니핏이
  * 없습니다」). 안 넘기면 아무것도 그리지 않는다 — 조회 실패 중에는 「없다」고 말하면 안 된다.
  */
@@ -37,10 +41,28 @@ function ScoreChip({ score, tone }) {
   return <span className={`mgr-ts-score is-${tone}`}>{score}</span>;
 }
 
+// 카드 전체를 버튼처럼 — 안에 [1on1 제안] 버튼이 있어 <button> 으로 감쌀 수 없다.
+const openProps = (onOpen, item) =>
+  onOpen
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'data-clickable': '',
+        onClick: () => onOpen(item),
+        onKeyDown: (e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(item);
+          }
+        },
+      }
+    : {};
+
 const matchesMember = (item, memberFilter) =>
   !memberFilter || item.memberId === memberFilter || item.member === memberFilter;
 
-export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilterLabel, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, icons, baseUrl = '', emptyLabel, emptyTestId }) {
+export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilterLabel, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, onOpenSnippet, icons, baseUrl = '', emptyLabel, emptyTestId }) {
   const [tab, setTab] = useState('date');
 
   const dateGroups = byDate
@@ -102,7 +124,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
               <span>{group.date}</span>
             </p>
             {group.items.map((item) => (
-              <div className="mgr-ts-card" key={item.id ?? item.member + item.time + item.text}>
+              <div className="mgr-ts-card" key={item.id ?? item.member + item.time + item.text} {...openProps(onOpenSnippet, item)}>
                 <div className="mgr-ts-card-head">
                   <img src={item.avatar} alt={item.member} draggable={false} />
                   <div className="mgr-ts-card-who">
@@ -132,7 +154,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
                     </div>
                   </div>
                 )}
-                <button type="button" className="mgr-ts-oneonone" onClick={() => onOneOnOne?.(item)}>1on1 제안</button>
+                <button type="button" className="mgr-ts-oneonone" onClick={(e) => { e.stopPropagation(); onOneOnOne?.(item); }}>1on1 제안</button>
               </div>
             ))}
           </div>
@@ -163,7 +185,7 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
             </div>
             <div className="mgr-ts-krgroup-list">
               {group.snippets.map((item) => (
-                <div className="mgr-ts-krsnippet" key={item.id ?? item.member + item.date + item.text}>
+                <div className="mgr-ts-krsnippet" key={item.id ?? item.member + item.date + item.text} {...openProps(onOpenSnippet, item)}>
                   {item.flagged && (
                     <Icon src={icons.alertTriangle} size={16} color="var(--utility-error-500)" baseUrl={baseUrl} />
                   )}

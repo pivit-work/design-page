@@ -113,7 +113,8 @@ const DEFAULT_SUGGESTED_TAGS = [
 //   onAiSummarize(input) → Promise<{summary: string}>
 //     "AI 요약 생성" 버튼 클릭 시 호출. summary 만 채워준다.
 //   onAiExtractTags(input) → Promise<{tags: string[]}>
-//     "AI 태그 추출" 버튼 클릭 시 호출. tags 만 채워준다 (기존 선택과 dedupe merge).
+//     "AI 태그 추출" 버튼 클릭 시 호출. 결과는 태그 칸에 넣지 않고 추천 칩 줄 맨 앞에 보여준다 —
+//     사람이 눌러야 들어간다(PW-1250 · QA TC-SNP-004). 태그는 TAG_LIMIT(8)개까지.
 //   suggestedTags?: string[] — 추천 칩 풀. 누락 시 DEFAULT_SUGGESTED_TAGS.
 //   onTagSelect?: (name: string) => void — 추천 칩 클릭 시 호스트에 알림.
 //     선택된 태그의 모달 내부 상태 추가는 모달이 직접 처리하므로 호스트는 보통
@@ -206,14 +207,11 @@ export default function SnippetModal({
   const [scrolled, setScrolled] = useState(false);
   // 푸터 "자동 등록됨 HH:MM" 라벨 — 실제 서버 저장 성공 시각(savedAt, host 제공)을 표시한다.
   // savedAt 은 저장 성공 시에만 갱신되므로 저장 실패 시 시각이 앞서가지 않는다.
-  // 아직 한 번도 저장 안 됐으면(savedAt 없음) 모달 마운트 시각을 fallback 으로 보여준다.
-  const [mountLabel] = useState(() => {
-    const d = new Date();
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  });
+  // 아직 한 번도 저장 안 됐으면(savedAt 없음) 라벨을 그리지 않는다 — 여는 시각을 보여주면
+  // 저장한 적 없는 빈 창이 «등록됨»으로 읽힌다(PW-1250).
   const savedAtLabel =
     savedAt == null
-      ? mountLabel
+      ? null
       : (() => {
           const d = new Date(savedAt);
           return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -222,6 +220,7 @@ export default function SnippetModal({
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
   const [tagsError, setTagsError] = useState(null);
+  const [aiSuggestedTags, setAiSuggestedTags] = useState([]);
   // 활동 초안 — 칸별 표식('unconfirmed' 노랑 · 'confirmed' 초록). 작성 중에만 있다.
   const [aiMarks, setAiMarks] = useState({});
   const [draftLoading, setDraftLoading] = useState(false);
@@ -238,10 +237,11 @@ export default function SnippetModal({
     onDraftChangeRef.current = onDraftChange;
   }, [onDraftChange]);
 
-  const tagSuggestionPool =
+  const basePool =
     Array.isArray(suggestedTags) && suggestedTags.length > 0
       ? suggestedTags
       : DEFAULT_SUGGESTED_TAGS;
+  const tagSuggestionPool = [...new Set([...aiSuggestedTags, ...basePool])];
 
   const contentRef = useRef(null);
 
@@ -404,7 +404,7 @@ export default function SnippetModal({
 
   const addTag = (t) => {
     const v = t.trim();
-    if (!v || tags.includes(v)) return;
+    if (!v || tags.includes(v) || tags.length >= TAG_LIMIT) return;
     setTags((prev) => [...prev, v]);
   };
   const onTagKey = (e) => {
@@ -451,8 +451,7 @@ export default function SnippetModal({
     }
   }, [onAiSummarize, summaryLoading, buildAiInput]);
 
-  // tags 는 기존 선택과 합쳐 dedupe 한다 — AI 가 사용자가 고른 태그를
-  // 지우면 안 되므로.
+  // AI 결과는 추천으로만 둔다 — 고르는 것은 사람이다(PW-1250).
   const handleExtractTags = useCallback(async () => {
     if (!onAiExtractTags || tagsLoading) return;
     setTagsError(null);
@@ -460,18 +459,9 @@ export default function SnippetModal({
     try {
       const result = await onAiExtractTags(buildAiInput());
       if (Array.isArray(result?.tags)) {
-        setTags((prev) => {
-          const seen = new Set(prev);
-          const merged = [...prev];
-          for (const t of result.tags) {
-            const v = (t ?? '').trim();
-            if (v && !seen.has(v)) {
-              merged.push(v);
-              seen.add(v);
-            }
-          }
-          return merged;
-        });
+        setAiSuggestedTags([
+          ...new Set(result.tags.map((t) => String(t ?? '').trim()).filter(Boolean)),
+        ]);
       }
     } catch (err) {
       setTagsError(err?.message || 'AI 태그 추출에 실패했습니다.');
@@ -489,6 +479,7 @@ export default function SnippetModal({
     setSummary('');
     setTagInput('');
     setTags([]);
+    setAiSuggestedTags([]);
     setSectionTexts({ what: '', why: '', value: '', highlights: '', lowlights: '' });
     setHealthScore(null);
     setHealthNote('');
@@ -928,7 +919,7 @@ export default function SnippetModal({
               {!readOnly && (
               <div className="tl-snippet-suggest-tags">
                 {tagSuggestionPool.map((t) => {
-                  const already = tags.includes(t);
+                  const already = tags.includes(t) || tags.length >= TAG_LIMIT;
                   return (
                     <button
                       key={t}
@@ -961,7 +952,10 @@ export default function SnippetModal({
               {L.blocked(unconfirmedKeys.length, unconfirmedKeys.map(fieldLabel).join(' · '))}
             </span>
           )}
-          <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
+          {/* 한 번도 저장되지 않은 창에는 시각을 지어내지 않는다(PW-1250). */}
+          {savedAtLabel && (
+            <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
+          )}
         </div>
         )}
       </form>
