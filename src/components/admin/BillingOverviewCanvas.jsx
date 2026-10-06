@@ -501,9 +501,12 @@ export default function BillingOverviewCanvas({
                   <div style={{ fontSize: 16, fontWeight: 700 }}>
                     {labels.methodDisplay(sub.method.brand, sub.method.last4)}
                   </div>
-                  <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
-                    {labels.methodExp(sub.method.exp)}
-                  </div>
+                  {/* 결제사가 유효기간을 안 알려 주는 카드(토스 자동결제 등록)는 exp 가 비어 온다 — 줄째 생략 */}
+                  {sub.method.exp && (
+                    <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
+                      {labels.methodExp(sub.method.exp)}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div style={{ fontSize: 14, color: T.red }}>{labels.noMethod}</div>
