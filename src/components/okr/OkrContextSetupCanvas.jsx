@@ -10,6 +10,7 @@ import {
 import Tooltip from '../shared/Tooltip.jsx';
 import Chip from '../shared/Chip.jsx';
 import Switch from '../shared/Switch.jsx';
+import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -31,7 +32,15 @@ import Switch from '../shared/Switch.jsx';
  *     다만 **동시에 보이지는 않는다**: 인라인 블록이 화면 안에 있는 동안 하단 바를 접어
  *     같은 버튼이 두 번 보이지 않게 한다(PW-46 피드백). 스크롤로 인라인 블록이 화면을
  *     벗어나면 하단 바가 다시 나온다 — 전역 앵커 자체를 없애는 게 아니다.
- *   onAnalyze — AI 분석(§3-3) 트리거. AI 분석 섹션이 있는 호스트만 주입한다.
+ *   onAnalyze — AI 분석(§3-3) 트리거. 어드민 호스트만 주입한다.
+ *   analysis — 최신 AI 분석 { summary, themes, keywords, status, sourceCount } 또는 null(분석 전).
+ *     `analysis` 나 `onAnalyze` 중 하나라도 주면 「AI 분석 (선택)」 섹션이 그려진다 — 열람자는
+ *     결과만 보고 버튼은 꺼진다. 둘 다 없으면 섹션이 없다(구버전 호스트).
+ *   analyzing / analyzeFailed — 분석 중 · 실패(빨간 배너 + [다시 시도]).
+ *   onConfirmAnalysis / confirmingAnalysis — [확인 — OKR 마법사에서 사용].
+ *   analysisNotice — 분석 섹션 헤더 아래에 그릴 호스트 노드(체험 AI 소진 안내 등, §3-3).
+ *   processingDelayed / onRefresh — 다시 묻기를 60초 넘게 해도 `processing` 이 남았을 때
+ *     처리 중 행 캡션을 「처리가 지연되고 있습니다」 + [새로고침] 으로 바꾼다(§3-2).
  *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
  *     넘으면 `onAddFile` 을 부르지 않고 인라인 에러로 막는다(PW-163).
  *   unitPolicy — 카드 맨 위 «OKR 운영 단위» 칸(정책 §3-1A · okr-policy §2B.5 · PW-1364).
@@ -213,13 +222,15 @@ function sourceSubtitle(s, labels) {
   return labels.charCount ? labels.charCount.replace('{{count}}', String(len)) : `${len}`;
 }
 
-function SourceRow({ source, labels, onRemove }) {
+function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
   const Icon = TYPE_ICON[source.type] || TextIcon;
   const status = normalizeStatus(source.status);
   const meta = STATUS_META[status];
   const failed = status === 'failed';
   // 처리 중이면 "문서를 읽고 있어요…", 실패면 서버가 준 사유 — 둘 다 없으면 평소 부가정보.
+  const stalled = status === 'processing' && delayed;
   const caption =
+    (stalled && labels.statusDelayed) ||
     (status === 'processing' && labels.statusProcessingHint) ||
     (failed && source.statusMessage) ||
     sourceSubtitle(source, labels);
@@ -261,6 +272,27 @@ function SourceRow({ source, labels, onRemove }) {
           }}
         >
           {caption}
+          {stalled && onRefresh && (
+            <button
+              type="button"
+              data-testid={`okr-context-refresh-${source.id}`}
+              onClick={onRefresh}
+              style={{
+                marginLeft: 6,
+                padding: 0,
+                border: 'none',
+                background: 'none',
+                color: T.accent,
+                fontFamily: T.font,
+                fontSize: 11,
+                fontWeight: 700,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+              }}
+            >
+              {labels.refresh}
+            </button>
+          )}
         </div>
         {source.type === 'text' && source.body ? (
           <p
@@ -774,6 +806,164 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) 
 }
 
 /**
+ * 「AI 분석 (선택)」 섹션(§3-3). 정본 시안 okr-app.jsx `AnalysisSection`.
+ * 분석 대상은 다 읽은(ready) 소스뿐이다. 결과 카드는 설정 창과 같은 부품을 쓴다.
+ */
+function AnalysisSection({
+  sources,
+  labels,
+  readOnly,
+  analysis,
+  analyzing,
+  analyzeFailed,
+  onAnalyze,
+  onConfirm,
+  confirming,
+  notice,
+}) {
+  const ready = countBy(sources, 'ready');
+  const processing = countBy(sources, 'processing');
+  const canRun = !readOnly && !!onAnalyze && ready > 0 && !analyzing;
+  const fill = (key, count) => (labels[key] || '').replace('{{count}}', String(count));
+  const hint = readOnly
+    ? labels.analysisAdminOnly
+    : ready === 0
+      ? processing > 0
+        ? labels.analyzeProcessingHint
+        : labels.analysisNeedSource
+      : undefined;
+  const dashed = {
+    padding: '16px 14px',
+    textAlign: 'center',
+    border: `1px dashed ${T.border}`,
+    borderRadius: 10,
+    color: T.muted,
+    fontSize: 11,
+    background: '#F8FAFC',
+  };
+
+  return (
+    <div
+      id="okr-context-analysis"
+      data-testid="okr-context-analysis"
+      style={{ marginTop: 8, paddingTop: 16, borderTop: `1px solid ${T.border}` }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{labels.analysisTitle}</div>
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+            {labels.analysisDesc}
+            {processing > 0 && ready > 0 && ` ${fill('analysisExcluded', processing)}`}
+          </div>
+        </div>
+        <Tooltip content={canRun || analyzing ? undefined : hint}>
+          <button
+            type="button"
+            data-testid="okr-context-analysis-run"
+            onClick={canRun ? onAnalyze : undefined}
+            disabled={!canRun}
+            style={{
+              ...ghostBtn,
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              color: canRun ? T.accent : T.muted,
+              opacity: canRun ? 1 : 0.6,
+              cursor: canRun ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <SparkIcon />
+            {analysis ? labels.analysisRerun : labels.analysisRun}
+          </button>
+        </Tooltip>
+      </div>
+      {notice}
+
+      {analyzing && (
+        <div data-testid="okr-context-analysis-running" style={{ ...dashed, color: T.sub, fontSize: 12 }}>
+          {fill('analysisRunning', ready)}
+        </div>
+      )}
+
+      {analyzeFailed && !analyzing && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 10,
+            background: T.errBg,
+            border: `1px solid ${T.errBd}`,
+            color: T.errText,
+            fontSize: 12,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            marginBottom: analysis ? 10 : 0,
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <AlertIcon />
+            {labels.analysisFailed}
+          </span>
+          {canRun && (
+            <button
+              type="button"
+              data-testid="okr-context-analysis-retry"
+              onClick={onAnalyze}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 7,
+                border: 'none',
+                background: T.errText,
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: T.font,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {labels.analysisRetry}
+            </button>
+          )}
+        </div>
+      )}
+
+      {analysis && !analyzing && (
+        <OkrContextAnalysisResult
+          analysis={analysis}
+          readOnly={readOnly}
+          onConfirm={onConfirm}
+          confirming={confirming}
+          labels={labels.analysisResult}
+        />
+      )}
+
+      {!analysis && !analyzing && !analyzeFailed && (
+        <div style={dashed}>
+          {sources.length === 0
+            ? labels.analysisEmpty
+            : ready === 0 && processing > 0
+              ? labels.analysisIdleProcessing
+              : labels.analysisIdle}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * 요소가 지금 화면(뷰포트) 안에 있는지 관측한다.
  *
  * 초기값과 폴백은 **false(=안 보임)** 다. 모르는 동안에는 전역 앵커를 살려 두는 쪽이
@@ -809,7 +999,7 @@ function useOnScreen(ref, enabled) {
  * 버튼이 화면에 들어와 있는 동안에는 이 바를 접고, 스크롤로 그 버튼이 화면 밖으로 나가면
  * 다시 편다 — 앵커를 하나 없애는 게 아니라 겹칠 때만 감춘다(§6 은 그대로 지킨다).
  */
-function StickyFooterCta({ sources, labels, canEdit, onStartOkr }) {
+function StickyFooterCta({ sources, labels, canEdit, onStartOkr, analysisShown, analysisConfirmed }) {
   return (
     <div
       data-testid="okr-context-footer"
@@ -833,8 +1023,22 @@ function StickyFooterCta({ sources, labels, canEdit, onStartOkr }) {
         <LibraryIcon />
         {(labels.footerSourceCount || '').replace('{{count}}', String(sources.length))}
       </Badge>
+      {analysisShown && (
+        <span data-testid="okr-context-footer-analysis">
+          <Badge tone={analysisConfirmed ? 'ok' : 'muted'}>
+            {analysisConfirmed ? <CheckIcon /> : null}
+            {analysisConfirmed ? labels.footerAnalysisConfirmed : labels.footerAnalysisNone}
+          </Badge>
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
-        {sources.length === 0 ? labels.footerHintEmpty : labels.footerHintSources}
+        {sources.length === 0
+          ? labels.footerHintEmpty
+          : !analysisShown
+            ? labels.footerHintSources
+            : analysisConfirmed
+              ? labels.footerHintConfirmed
+              : labels.footerHintUnconfirmed}
       </div>
       <StartOkrButton
         labels={labels}
@@ -999,6 +1203,14 @@ export default function OkrContextSetupCanvas({
   onRemove,
   onStartOkr,
   onAnalyze,
+  analysis,
+  analyzing = false,
+  analyzeFailed = false,
+  onConfirmAnalysis,
+  confirmingAnalysis = false,
+  analysisNotice = null,
+  processingDelayed = false,
+  onRefresh,
   maxFileSize,
   unitPolicy,
   unitPolicyLoading = false,
@@ -1018,6 +1230,16 @@ export default function OkrContextSetupCanvas({
   const showNextStep = !readOnly && !loading && sources.length > 0 && !!onStartOkr;
   const nextStepOnScreen = useOnScreen(nextStepBtnRef, showNextStep);
   const showUnitPolicy = unitPolicy !== undefined || unitPolicyLoading || !!unitPolicyError;
+  const analysisShown = analysis !== undefined || !!onAnalyze;
+
+  // 「다음 단계」의 [AI 분석 실행] — 분석 섹션으로 내려가서 같은 트리거를 부른다(§3-2A·§9).
+  const goAnalyze = onAnalyze
+    ? () => {
+        const el = typeof document !== 'undefined' && document.getElementById('okr-context-analysis');
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!analyzing) onAnalyze();
+      }
+    : undefined;
 
   return (
     <div style={{ fontFamily: T.font, maxWidth: 880 }} data-testid="okr-context-setup">
@@ -1133,7 +1355,14 @@ export default function OkrContextSetupCanvas({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sources.map((s) => (
-              <SourceRow key={s.id} source={s} labels={L} onRemove={onRemove} />
+              <SourceRow
+                key={s.id}
+                source={s}
+                labels={L}
+                onRemove={onRemove}
+                delayed={processingDelayed}
+                onRefresh={onRefresh}
+              />
             ))}
           </div>
         )}
@@ -1176,8 +1405,23 @@ export default function OkrContextSetupCanvas({
             sources={sources}
             labels={L}
             onStartOkr={onStartOkr}
-            onAnalyze={onAnalyze}
+            onAnalyze={goAnalyze}
             startBtnRef={nextStepBtnRef}
+          />
+        )}
+
+        {analysisShown && !loading && (
+          <AnalysisSection
+            sources={sources}
+            labels={L}
+            readOnly={readOnly}
+            analysis={analysis || null}
+            analyzing={analyzing}
+            analyzeFailed={analyzeFailed}
+            onAnalyze={onAnalyze}
+            onConfirm={onConfirmAnalysis}
+            confirming={confirmingAnalysis}
+            notice={analysisNotice}
           />
         )}
       </div>
@@ -1193,6 +1437,8 @@ export default function OkrContextSetupCanvas({
           labels={L}
           canEdit={editable}
           onStartOkr={onStartOkr}
+          analysisShown={analysisShown}
+          analysisConfirmed={analysis?.status === 'confirmed'}
         />
       )}
     </div>

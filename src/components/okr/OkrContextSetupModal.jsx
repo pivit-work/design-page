@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 
 /**
  * OkrContextSetupModal — OKR 컨텍스트 설정 모달 (관리자 전용).
@@ -13,6 +14,15 @@ import ModalShell from '../shared/ModalShell.jsx';
  * 콜백은 전부 선택 주입:
  *  - onAddFiles(File[]) — 드롭존 클릭/드래그앤드롭. 미주입이면 표시 전용(데모).
  *  - onAnalyze() — [AI 분석]. 미주입이면 눌러도 아무 일 없음.
+ *  - onConfirmAnalysis() — 결과 카드의 [확인 — OKR 마법사에서 사용] (pivit-work PW-1363).
+ *
+ * AI 분석 상태(선택 · PW-1363 — 정책 §3-3). 결과는 컨텍스트 설정 화면과 같은 카드
+ * (OkrContextAnalysisResult)로 시안의 빈 결과 칸 자리에 그린다. 아무것도 안 주면 시안 그대로 빈 칸.
+ *  - analysis — { summary, themes, keywords, status, sourceCount } | null
+ *  - analyzing / analyzeFailed / confirmingAnalysis
+ *  - analyzeDisabledReason — 주면 [AI 분석]을 끄고 이 문구를 툴팁(title)으로 단다(다 읽은 소스 0건 등).
+ *  - analysisNotice — 분석 칸 위에 그릴 호스트 노드(체험 AI 소진 안내 등).
+ *  - analysisLabels — 분석 칸 문구 { run, rerun, running, failed, retry, result: {...} }.
  *  - onStartOkr() — 푸터 CTA. 미주입이면 버튼 비활성(시안의 disabled 상태).
  *
  * 문구 주입(선택):
@@ -22,7 +32,31 @@ import ModalShell from '../shared/ModalShell.jsx';
  * 업로드/외부링크 아이콘은 공용 에셋에 없어 인라인 SVG 로 그린다
  * (OkrContextSetupCanvas 와 동일 규약).
  */
-export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, onStartOkr, dropzoneHint }) {
+const ANALYSIS_LABELS = {
+  run: 'AI 분석',
+  rerun: '다시 분석',
+  running: '소스를 분석하고 있습니다… (평균 30초)',
+  failed: 'AI 분석에 실패했습니다. 컨텍스트 없이도 OKR 설정은 진행할 수 있습니다.',
+  retry: '다시 시도',
+};
+
+export default function OkrContextSetupModal({
+  onClose,
+  onAddFiles,
+  onAnalyze,
+  onStartOkr,
+  dropzoneHint,
+  analysis = null,
+  analyzing = false,
+  analyzeFailed = false,
+  onConfirmAnalysis,
+  confirmingAnalysis = false,
+  analyzeDisabledReason,
+  analysisNotice = null,
+  analysisLabels,
+}) {
+  const AL = { ...ANALYSIS_LABELS, ...(analysisLabels || {}) };
+  const analyzeDisabled = analyzing || !!analyzeDisabledReason;
   const fileRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -109,10 +143,39 @@ export default function OkrContextSetupModal({ onClose, onAddFiles, onAnalyze, o
             <p className="okr-wz-vision-title">AI 분석 — 키워드·전략 테마 추출</p>
             <p className="okr-wz-desc">소스가 1건 이상일 때 분석할 수 있습니다. 선택 사항이며 수동으로 실행됩니다.</p>
           </div>
-          <button type="button" className="okr-wz-ai-btn" onClick={() => onAnalyze?.()}>AI 분석</button>
+          <button
+            type="button"
+            className="okr-wz-ai-btn"
+            data-testid="okr-ctx-modal-analyze"
+            disabled={analyzeDisabled}
+            title={analyzeDisabledReason || undefined}
+            onClick={() => onAnalyze?.()}
+          >
+            {analysis ? AL.rerun : AL.run}
+          </button>
         </div>
+        {analysisNotice}
         <div className="okr-wz-vision-card">
-          <div className="okr-wz-vision-box" />
+          {analyzing ? (
+            <p className="okr-wz-desc" data-testid="okr-ctx-modal-analyzing">{AL.running}</p>
+          ) : analyzeFailed ? (
+            <p className="okr-wz-desc" role="alert">
+              {AL.failed}{' '}
+              {onAnalyze && !analyzeDisabledReason && (
+                <button type="button" className="okr-wz-ai-btn" onClick={() => onAnalyze()}>{AL.retry}</button>
+              )}
+            </p>
+          ) : null}
+          {!analyzing && analysis ? (
+            <OkrContextAnalysisResult
+              analysis={analysis}
+              onConfirm={onConfirmAnalysis}
+              confirming={confirmingAnalysis}
+              labels={AL.result}
+            />
+          ) : !analyzing && !analyzeFailed ? (
+            <div className="okr-wz-vision-box" />
+          ) : null}
         </div>
       </div>
     </ModalShell>
