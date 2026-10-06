@@ -27,6 +27,7 @@ const DEFAULT_LABELS = {
   okrEmpty: '이 기간에 등록된 개인 OKR이 없습니다.',
   okrProgress: '달성률',
   okrSelfAchieve: '자기신고',
+  okrSelfAchieveMissing: '미입력',
   gapTitle: '자기평가 갭',
   gapSub: '내 셀프 평가와 최종 평가 점수를 비교합니다.',
   gapSelf: '나(셀프)',
@@ -175,7 +176,7 @@ function OkrReview({ okrReview, L }) {
                   </span>
                   <span className="evr-okr-kr-pct">
                     {kr.progress ?? 0}%
-                    {kr.selfAchievePct != null ? ` · ${L.okrSelfAchieve} ${kr.selfAchievePct}%` : ''}
+                    {` · ${L.okrSelfAchieve} ${kr.selfAchievePct != null ? `${kr.selfAchievePct}%` : L.okrSelfAchieveMissing}`}
                   </span>
                 </div>
               ))}
