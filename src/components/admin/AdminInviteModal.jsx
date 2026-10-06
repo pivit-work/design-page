@@ -128,10 +128,12 @@ const DEFAULT_LABELS = {
   leaderNote: '조직장은 가입이 끝나는 시점에 적용됩니다.',
   squadNote: '스쿼드 배정은 조직도 스쿼드 뷰에서 별도로 합니다 (기능조직과 다른 축).',
   summary: '{n}명에게 초대를 보냅니다',
-  // [PW-1331] 명부에 이미 있는 사람·대기 중인 초대는 막지 않고 다시 보낸다
-  resendSuffix: ' · 그중 {n}명은 다시 보내기',
-  noteResendMember: '아직 가입하지 않은 구성원이에요 — 초대 메일을 다시 보냅니다. 수락하면 명부의 그 사람으로 들어옵니다',
-  noteResendPending: '대기 중인 초대예요 — 새 링크로 다시 보내고 옛 링크는 끝납니다',
+  /* [PW-1331 · 초대 V5·V6 2026-10-06 기획 확정] 이 창은 다시 보내지 않는다 — 가입 전 구성원은 목록의
+     «초대 보내기», 대기 중인 초대는 그 줄의 [재발송]으로 보낸다. */
+  noteUnjoinedMember: '가입 전 구성원이에요 — 전체 구성원 탭에서 «초대 보내기»로 보내세요',
+  resendPending: '재발송',
+  resendingPending: '보내는 중…',
+  resendPendingError: '재발송하지 못했어요. 잠시 후 다시 시도해주세요.',
   cancel: '취소',
   send: '초대 보내기',
   sending: '보내는 중…',
@@ -512,9 +514,18 @@ export default function AdminInviteModal({
    * 값은 CSV 상급자 열과 같은 이메일로 싣는다.
    */
   supervisorCandidates = null,
-  /** 대기 중 초대가 있는 이메일 (V6) — 막지 않고 새 링크로 다시 보낸다 (PW-1331) */
+  /** 대기 중 초대가 있는 이메일 (V6) — «초대 대기 중»으로 막고, `onResendPending` 이 있으면 그 줄에 [재발송]을 둔다 */
   pendingEmails = [],
-  /** 명부에 있지만 **아직 가입하지 않은** 사람의 이메일 — 막지 않고 «다시 보내기» (PW-1331) */
+  /**
+   * V6 [재발송] — `(email) => Promise`. 그 이메일의 대기 초대를 새 링크로 다시 보낸다. 성공하면 그 줄을 걷는다.
+   * 거절되거나 `false` 로 끝나면 줄을 남기고 오류를 보인다.
+   * 안 주면 버튼이 없다(PW-1331).
+   */
+  onResendPending,
+  /**
+   * 명부에 있지만 **아직 가입하지 않은** 사람의 이메일 (V5) — «이미 멤버입니다»로 막고, 목록의 «초대 보내기»를
+   * 가리키는 안내를 붙인다(PW-1331 · 2026-10-06 기획 확정). 다시 보내는 입구는 목록 하나다.
+   */
   resendEmails = [],
   /** 명부의 퇴사자 이메일 — 초대를 보내지 않는다 (PW-1331). 재입사 대상(`rehireMembers`)이면 그쪽이 먼저다. */
   terminatedEmails = [],
@@ -694,6 +705,26 @@ export default function AdminInviteModal({
    * 직렬이면 남긴다 — CSV 스테이징에서 «직군을 고쳐 쌍을 맞추는» 것이 정상 경로라,
    * 무조건 지우면 어드민이 파일에 적어 넣은 직렬이 말없이 사라진다.
    */
+  /* V6 [재발송] — 그 줄의 대기 초대를 새 링크로 다시 보내고, 끝난 줄은 걷는다(보낼 것이 남지 않게). */
+  const [resendingKey, setResendingKey] = useState(null);
+  const [resendErrorKey, setResendErrorKey] = useState(null);
+  const resendPendingRow = async (row) => {
+    setResendingKey(row.key);
+    setResendErrorKey(null);
+    try {
+      // 호스트가 실패를 알림으로 삼키고 `false` 를 돌려줘도 실패다 — 그 줄을 걷으면 안 보낸 사람이 사라진다.
+      if ((await onResendPending(normEmail(row.email))) === false) throw new Error('resend failed');
+      setRows((rs) => {
+        const rest = rs.filter((x) => x.key !== row.key);
+        return rest.length > 0 ? rest : [blankRow(EMPTY_BULK)];
+      });
+    } catch {
+      setResendErrorKey(row.key);
+    } finally {
+      setResendingKey(null);
+    }
+  };
+
   const patch = (key, p) =>
     setActiveRows((rs) => rs.map((r) => {
       if (r.key !== key) return r;
@@ -741,9 +772,10 @@ export default function AdminInviteModal({
     const e = [];
     const key = normEmail(r.email);
     if (!(emailValid || emailOk)(r.email)) e.push(labels.errInvalidEmail);
-    // [PW-1331] 가입한 사람·퇴사자는 막고, 가입 전 구성원·대기 중은 «다시 보내기»(아래 resendNoteOf)다.
-    else if (existing.has(key)) e.push(labels.errAlreadyMember);
+    // [PW-1331 · V5·V6] 가입한 사람·가입 전 구성원은 «이미 멤버», 퇴사자는 막고, 대기 중 초대는 «초대 대기 중».
+    else if (existing.has(key) || resend.has(key)) e.push(labels.errAlreadyMember);
     else if (terminated.has(key) && !rehireOfEmail(key)) e.push(labels.errTerminatedMember);
+    else if (pending.has(key)) e.push(labels.errPendingInvite);
     else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
       e.push(labels.errDuplicate);
     }
@@ -797,20 +829,8 @@ export default function AdminInviteModal({
 
   const validRows = isCsv ? csvValidRows : rows.filter((r) => errorsByKey[r.key].length === 0);
   const validCount = validRows.length;
-  /* [PW-1331] 다시 보내기 — 명부에 있지만 아직 가입하지 않은 사람과 대기 중인 초대. 인원이
-     늘지 않으니 좌석 셈에서도 뺀다(서버와 같은 셈). */
-  const resendNoteOf = (email) => {
-    const key = normEmail(email);
-    // 대기 중 초대가 먼저다 — 가입 전 구성원이어도 이미 초대가 나가 있으면 «새 링크로 바뀐다»가 더 맞는 말이다.
-    if (pending.has(key)) return labels.noteResendPending;
-    if (resend.has(key)) return labels.noteResendMember;
-    return null;
-  };
-  const resendCount = validRows
-    .filter((r) => resendNoteOf(isCsv ? r.values.email : r.email))
-    .length;
   const seatsLeft = seats && seats.limit !== null ? seats.remaining : null;
-  const seatExempt = new Set([...seatExemptEmails, ...resendEmails, ...pendingEmails].map(normEmail));
+  const seatExempt = new Set(seatExemptEmails.map(normEmail));
   const seatNeed = validRows
     .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
     .length;
@@ -1172,7 +1192,6 @@ export default function AdminInviteModal({
           ? (isCsv && csvErrorCount > 0
             ? fmt(labels.csvSummarySkip, { n: validCount, m: csvErrorCount })
             : fmt(labels.summary, { n: validCount }))
-            + (resendCount > 0 ? fmt(labels.resendSuffix, { n: resendCount }) : '')
           : ''}
       </span>
       <div className="adm-shell-foot-actions">
@@ -1558,8 +1577,24 @@ export default function AdminInviteModal({
                 {errs.length > 0 && (
                   <p className="admin-inv-row-error">{errs.join(' · ')}</p>
                 )}
-                {errs.length === 0 && resendNoteOf(r.email) && (
-                  <p className="admin-inv-note">{resendNoteOf(r.email)}</p>
+                {resend.has(normEmail(r.email)) && !existing.has(normEmail(r.email)) && (
+                  <p className="admin-inv-note" data-testid="admin-invite-unjoined-note">{labels.noteUnjoinedMember}</p>
+                )}
+                {onResendPending && errs.includes(labels.errPendingInvite) && (
+                  <div className="admin-inv-addrow">
+                    <button
+                      type="button"
+                      className="admin-emp-btn is-ghost is-sm"
+                      data-testid="admin-invite-resend-pending"
+                      disabled={sending || resendingKey === r.key}
+                      onClick={() => resendPendingRow(r)}
+                    >
+                      {resendingKey === r.key ? labels.resendingPending : labels.resendPending}
+                    </button>
+                    {resendErrorKey === r.key && (
+                      <span className="admin-inv-row-error" role="alert">{labels.resendPendingError}</span>
+                    )}
+                  </div>
                 )}
                 {r.failReason && (
                   <p className="admin-inv-row-error">{r.failReason}</p>

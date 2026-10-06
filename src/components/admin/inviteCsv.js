@@ -303,8 +303,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   errAlreadyMember: '이미 멤버입니다',
   errTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
   errPendingInvite: '초대 대기 중',
-  csvNoteResendMember: '가입 전 구성원 — 초대를 다시 보냅니다',
-  csvNoteResendPending: '대기 중인 초대 — 새 링크로 다시 보냅니다',
+  // [PW-1331 · V5] 가입 전 구성원은 «이미 멤버»로 막고, 다시 보내는 곳을 알려 준다
+  csvNoteUnjoinedMember: '가입 전 구성원이에요 — 전체 구성원 탭에서 «초대 보내기»로 보내세요',
   /* 재입사(PW-1355 · 초대 V17) — 명부의 퇴사자 이메일 행. 칩 말풍선이 권한 칸을 무시한다고 알린다. */
   rehireBadge: '재입사',
   csvNoteRehire: '이전에 퇴사한 구성원이에요 — 재입사 초대로 보냅니다. 권한 칸은 무시하고 멤버로 보냅니다',
@@ -725,7 +725,7 @@ export function parseInviteCsv(
  * @param {string[]} [opts.supervisorEmails] 상급자 칸만 볼 구성원 이메일. 안 주면 `memberEmails` —
  *   「이미 멤버」와 기준이 다를 수 있어 따로 받는다(PW-1056)
  * @param {string[]} [opts.pendingEmails]  대기 중 초대 이메일
- * @param {string[]} [opts.resendEmails]  명부에 있지만 아직 가입하지 않은 사람 — «다시 보내기» 안내 (PW-1331)
+ * @param {string[]} [opts.resendEmails]  명부에 있지만 아직 가입하지 않은 사람 — «이미 멤버»로 막고 목록 «초대 보내기»를 안내 (PW-1331 · V5)
  * @param {string[]} [opts.terminatedEmails]  명부의 퇴사자 — 막는다 (PW-1331)
  * @param {string[]} [opts.headTeamIds]    조직장이 있는 조직 id(상급자 안내)
  * @param {object} [opts.labels]
@@ -843,9 +843,10 @@ export function inviteCsvIssues(row, ctx) {
 
   const email = normEmail(v.email);
   if (!(ctx.emailValid || emailOk)(v.email)) add('email', l.errInvalidEmail);
-  // [PW-1331] 가입한 사람·퇴사자는 막는다. 가입 전 구성원·대기 중은 오류가 아니다 — 서버가 다시 보낸다.
-  else if (ctx.memberEmails.has(email)) add('email', l.errAlreadyMember);
+  // [PW-1331 · V5·V6] 가입한 사람·가입 전 구성원은 «이미 멤버», 퇴사자는 막고, 대기 중 초대는 «초대 대기 중».
+  else if (ctx.memberEmails.has(email) || ctx.resendEmails.has(email)) add('email', l.errAlreadyMember);
   else if (ctx.terminatedEmails.has(email) && !ctx.rehireEmails?.has(email)) add('email', l.errTerminatedMember);
+  else if (ctx.pendingEmails.has(email)) add('email', l.errPendingInvite);
   else if ((ctx.fileEmailCount.get(email) || 0) > 1) add('email', l.errDuplicate);
 
   // 재입사 초대는 새 입사일이 있어야 한다(V17) — 처음 보는 이메일은 비어도 된다
@@ -990,15 +991,12 @@ export function inviteCsvIssues(row, ctx) {
  */
 export function inviteCsvNotes(row, ctx) {
   const notes = [];
-  // [PW-1331] 가입 전 구성원·대기 중인 이메일은 막지 않고 다시 보낸다 — 그 줄에서 말한다.
   const email = normEmail(row.values.email);
-  // 대기 중 초대가 먼저다 — 가입 전 구성원이어도 이미 초대가 나가 있으면 «새 링크로 바뀐다»가 더 맞는 말이다.
   if (ctx.rehireEmails?.has(email)) {
     notes.push({ key: 'email', message: ctx.labels.csvNoteRehire, chip: ctx.labels.rehireBadge });
-  } else if (ctx.pendingEmails.has(email)) {
-    notes.push({ key: 'email', message: ctx.labels.csvNoteResendPending });
-  } else if (ctx.resendEmails.has(email)) {
-    notes.push({ key: 'email', message: ctx.labels.csvNoteResendMember });
+  } else if (ctx.resendEmails.has(email) && !ctx.memberEmails.has(email)) {
+    // [PW-1331 · V5] «이미 멤버»로 막은 가입 전 구성원 — 다시 보내는 입구(목록 «초대 보내기»)를 알려 준다.
+    notes.push({ key: 'email', message: ctx.labels.csvNoteUnjoinedMember });
   }
   if (!normEmail(row.values.managerEmail)) return notes;
   const { primaryTeamId } = resolveInviteCsvRow(row, ctx);
