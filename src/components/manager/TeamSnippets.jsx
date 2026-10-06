@@ -10,6 +10,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  *
  * data: { periods: [string | { id, label }], redFlagCount, submitted: { done, total },
  *   members, weekHealth, aiSummary, byDate, byKr }
+ * `aiSummary` 는 선택이다 — 안 넘기면 사이드바의 «AI 팀 요약» 카드가 없다(pivit-work PW-1262).
  *
  * 기간 칩·레드 플래그 토글·팀원 필터는 **안 넘기면** 여기서 UI 상태로 관리한다(데모).
  * 실데이터를 붙이는 소비자는 그 셋이 실제로 데이터를 걸러야 하므로 값과 바꾸는 함수를
