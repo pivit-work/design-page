@@ -37,6 +37,7 @@ const periodLabel = (p) => (typeof p === 'string' ? p : p.label);
 export default function TeamSnippets({
   data,
   onOneOnOne,
+  onOpenSnippet,
   icons,
   baseUrl = '',
   period: periodProp,
@@ -117,6 +118,7 @@ export default function TeamSnippets({
               onClearMember={() => setMemberFilter(null)}
               onClearRedFlag={() => setRedFlagOnly(false)}
               onOneOnOne={onOneOnOne}
+              onOpenSnippet={onOpenSnippet}
               emptyLabel={emptyLabel}
               emptyTestId={testIds.empty}
             />
