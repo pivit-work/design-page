@@ -259,6 +259,7 @@ const DEFAULT_LABELS = {
     workStart: '근무 시작 시간',
     workEnd: '근무 종료 시간',
     workHoursHint: '공개 카드와 조직도 툴팁에 표시됩니다.',
+    workTimeInvalid: '00:00 ~ 23:59 사이의 시각을 입력해 주세요.',
     timezone: '타임존',
     language: '언어',
     joinDate: '입사일',
@@ -1439,11 +1440,16 @@ export default function MySettingsCanvas({
   /* ── 프로필 draft — profile prop 이 바뀌면 렌더 중 재시드 ── */
   const [draft, setDraft] = useState(profile);
   const [seededFrom, setSeededFrom] = useState(profile);
+  /* 없는 시각을 넣은 근무 시간 칸 (PW-1244) — 칸 아래 이유를 띄우고 저장을 막는다. */
+  const [invalidTimes, setInvalidTimes] = useState({});
   if (profile !== seededFrom) {
     setSeededFrom(profile);
     setDraft(profile);
   }
   const setField = (key) => (value) => setDraft((prev) => ({ ...prev, [key]: value }));
+  const setTimeValidity = (key) => (valid) =>
+    setInvalidTimes((prev) => (prev[key] === !valid ? prev : { ...prev, [key]: !valid }));
+  const hasInvalidTime = Object.values(invalidTimes).some(Boolean);
 
   const timezoneField = (
     <Field label={labels.profile.timezone}>
@@ -1954,19 +1960,31 @@ export default function MySettingsCanvas({
               <Card testId="profile-work-card">
                 <div className="admin-section-label">{labels.profile.workInfo}</div>
                 <div className="msc-grid-2col">
-                  <Field label={labels.profile.workStart} hint={labels.profile.workHoursHint}>
+                  <Field
+                    label={labels.profile.workStart}
+                    hint={labels.profile.workHoursHint}
+                    error={invalidTimes.workStart ? labels.profile.workTimeInvalid : null}
+                    errorTestId="profile-workStart-error"
+                  >
                     <TimeInput
                       className="admin-emp-input"
                       value={draft.workStart || ''}
                       onChange={(v) => setField('workStart')(v)}
+                      onValidityChange={setTimeValidity('workStart')}
                       aria-label={labels.profile.workStart}
                     />
                   </Field>
-                  <Field label={labels.profile.workEnd} hint={labels.profile.workHoursHint}>
+                  <Field
+                    label={labels.profile.workEnd}
+                    hint={labels.profile.workHoursHint}
+                    error={invalidTimes.workEnd ? labels.profile.workTimeInvalid : null}
+                    errorTestId="profile-workEnd-error"
+                  >
                     <TimeInput
                       className="admin-emp-input"
                       value={draft.workEnd || ''}
                       onChange={(v) => setField('workEnd')(v)}
+                      onValidityChange={setTimeValidity('workEnd')}
                       aria-label={labels.profile.workEnd}
                     />
                   </Field>
@@ -1996,8 +2014,9 @@ export default function MySettingsCanvas({
                 className={`msc-save-btn${
                   profileSaveState === 'saved' ? ' is-saved' : profileSaveState === 'error' ? ' is-error' : ''
                 }`}
-                disabled={profileSaveState === 'saving'}
-                onClick={() => onSaveProfile && onSaveProfile(draft)}
+                disabled={profileSaveState === 'saving' || hasInvalidTime}
+                // 없는 시각이 칸에 남아 있으면 보내지 않는다 — 이유는 이미 그 칸 아래에 떠 있다.
+                onClick={() => !hasInvalidTime && onSaveProfile && onSaveProfile(draft)}
                 data-testid="profile-save-btn"
               >
                 {saveLabel}

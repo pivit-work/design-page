@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldControl } from './formField.js';
 
 /**
@@ -13,6 +13,10 @@ import { useFieldControl } from './formField.js';
  * `09:00` 으로 맞춘다. 온전하지 않으면 마지막 값으로 되돌린다.
  *
  * 값 규약은 기본 시각 칸과 같다 — `''` 이거나 `HH:MM`. 겉 상자는 호출부 className.
+ *
+ * `onValidityChange` 를 주면 없는 시각(`25:00`)을 되돌리지 않고 칸에 남긴 채 `false` 를
+ * 알린다 (PW-1244). 되돌리면 앞서 비워 둔 칸이 빈 값 그대로 저장돼, 화면이 대신 채운
+ * 기본값으로 몰래 바뀌었다. 부르는 쪽이 칸 아래 이유를 띄우고 저장을 막는다.
  *
  * 🔴 디자인 원본이 없는 칸이다 — 평가·어드민·내 설정 화면(디자이너를 기다리지 않고
  * 개발이 만들어도 되는 화면)에서만 쓴다. 그 밖의 화면은 디자이너 카드(PW-803)를 기다린다.
@@ -36,7 +40,16 @@ function pad(h, mm) {
   return `${String(Number(h)).padStart(2, '0')}:${mm}`;
 }
 
-export default function TimeInput({ value, onChange, className, placeholder = 'HH:MM', size = 7, invalid, ...rest }) {
+export default function TimeInput({
+  value,
+  onChange,
+  onValidityChange,
+  className,
+  placeholder = 'HH:MM',
+  size = 7,
+  invalid,
+  ...rest
+}) {
   // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
   const { isInvalid, ...a11y } = useFieldControl({
     id: rest.id,
@@ -45,13 +58,25 @@ export default function TimeInput({ value, onChange, className, placeholder = 'H
   });
   const current = typeof value === 'string' ? value.slice(0, 5) : '';
   const [draft, setDraft] = useState(current);
+  // 없는 시각이 칸에 남아 있다 — onValidityChange 를 줄 때만 생긴다.
+  const [bad, setBad] = useState(false);
 
   // 바깥에서 값이 바뀌면(달력·초기화·서버 값) 칸도 따라간다 — 렌더 중에 맞춘다.
   const [seen, setSeen] = useState(current);
   if (seen !== current) {
     setSeen(current);
     setDraft(current);
+    setBad(false);
   }
+
+  // 틀림이 바뀔 때만 알린다. 부르는 쪽은 매 렌더 새 함수를 넘기므로 ref 로 최신만 든다.
+  const validityRef = useRef(onValidityChange);
+  useEffect(() => {
+    validityRef.current = onValidityChange;
+  });
+  useEffect(() => {
+    validityRef.current?.(!bad);
+  }, [bad]);
 
   const commit = (next) => {
     if (next !== current) onChange?.(next);
@@ -73,13 +98,15 @@ export default function TimeInput({ value, onChange, className, placeholder = 'H
       onChange={(e) => {
         const raw = e.target.value;
         setDraft(raw);
-        if (raw.trim() === '') commit('');
-        else if (HHMM.test(raw)) commit(raw);
+        // 고쳐 쓰는 중에 이유를 바로 걷는다 — 틀렸다는 판정은 칸을 떠날 때만 한다.
+        if (raw.trim() === '') { setBad(false); commit(''); }
+        else if (HHMM.test(raw)) { setBad(false); commit(raw); }
       }}
       onBlur={() => {
         const v = normalize(draft);
-        if (v === '') { setDraft(''); commit(''); return; }
-        if (HHMM.test(v)) { setDraft(v); commit(v); return; }
+        if (v === '') { setDraft(''); setBad(false); commit(''); return; }
+        if (HHMM.test(v)) { setDraft(v); setBad(false); commit(v); return; }
+        if (onValidityChange) { setBad(true); return; }
         setDraft(current);
       }}
     />
