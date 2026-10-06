@@ -14,6 +14,9 @@ import { AlertIcon, CheckCircleIcon, LockIcon } from './evalIcons.jsx';
  *
  * `segment` 는 헤더 아래에 그대로 놓는다 — 상위 화면이 [내 리뷰어 지정 | 자발적 리뷰 신청] 두 칸을 넣는 자리다.
  *
+ * 사람마다 `aiRecommended: true` 면 이름 옆에 «AI 추천» 표시가 붙고, 안내 끝에 `guideAi` 가 붙는다
+ * (멤버 정책 §4Z.2 · PW-1393). 기본 체크는 `selected` 에 넣어 주는 것으로 한다 — 화면이 따로 체크하지 않는다.
+ *
  * onSubmit(ids) 가 throw 하면 `err.toastMessage` 가 있으면 그 문구로, 없으면 `labels.toastError` 로 알린다.
  */
 
@@ -23,6 +26,8 @@ const DEFAULT_LABELS = {
   guideTitle: '본인 지명 방식',
   guide:
     'HR이 이번 사이클의 동료 리뷰어를 본인 지명으로 설정했습니다. 나를 평가할 동료 리뷰어를 직접 선택하세요. 선택 후 리더가 최종 확정합니다.',
+  guideAi: 'AI 추천 후보가 기본으로 체크되어 있으며 가감할 수 있습니다.',
+  aiRecommended: 'AI 추천',
   pickTitle: '동료 리뷰어 선택',
   required: '필수',
   countSelected: '{{count}}명 선택됨',
@@ -113,6 +118,7 @@ export default function EvalPeerNominateCanvas({
     for (const p of [...selected, ...candidates]) if (!byId.has(p.id)) byId.set(p.id, p);
     return [...byId.values()];
   }, [candidates, selected]);
+  const hasAi = people.some((p) => p.aiRecommended);
 
   const shown = useMemo(() => {
     const base = locked ? people.filter((p) => picked.has(p.id)) : people;
@@ -187,7 +193,10 @@ export default function EvalPeerNominateCanvas({
       <div className="evc-list">
         <section className="evc-card evpn-guide" data-testid="evpn-guide">
           <p className="evpn-guide-title">{L.guideTitle}</p>
-          <p className="evc-empty-sub">{L.guide}</p>
+          <p className="evc-empty-sub">
+            {L.guide}
+            {hasAi && ` ${L.guideAi}`}
+          </p>
         </section>
 
         {belowMinimum && (
@@ -242,6 +251,11 @@ export default function EvalPeerNominateCanvas({
                   >
                     <span className="evpn-cand-row">
                       <span className="evpv-cand-name">{p.name}</span>
+                      {p.aiRecommended && (
+                        <StatusBadge className="evc-type-badge" data-testid={`evpn-ai-${p.id}`}>
+                          {L.aiRecommended}
+                        </StatusBadge>
+                      )}
                       {on && (
                         <span className="evpn-check" aria-hidden="true">
                           <CheckCircleIcon size={14} />
