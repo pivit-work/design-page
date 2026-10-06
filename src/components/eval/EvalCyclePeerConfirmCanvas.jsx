@@ -266,6 +266,9 @@ export default function EvalCyclePeerConfirmCanvas({
   onAdopt,
   onReject,
   onSeen,
+  // 카드 목록 위에 끼우는 안내(앱이 그린다) — 예: 체험 AI 를 다 써 «AI 추천»을 건너뛰었다(PW-1394).
+  // 캔버스가 화면에 고정돼 있어 밖에 두면 앱 위쪽 바 밑에 깔린다.
+  notice = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 접힘 상태는 화면에만 있다 — 서버에 남기지 않고, 다시 들어오면 접혀 있다(§6.3.0).
@@ -291,6 +294,8 @@ export default function EvalCyclePeerConfirmCanvas({
           <p className="evc-summary">{L.subtitle}</p>
         </div>
       </header>
+
+      {notice && <div className="evc-list">{notice}</div>}
 
       {unsolicited.length > 0 && (
         <div className="evc-list">
