@@ -32,6 +32,8 @@ import Switch from '../shared/Switch.jsx';
  *    conditionValues: object | null,
  *    recipients: string[],              // 'member' | 'manager' | 'admin'
  *    channels: string[],                // 'push' | 'slack' | 'email'
+ *    targetsFixed?: string,             // 받는 사람·채널을 다른 화면이 정할 때의 안내. 있으면 수정 창의
+ *                                       // 두 칸이 체크 대신 잠금 안내로, 목록 행의 역할·채널 표시도 이 안내로 바뀐다
  *    enabled: bool,
  *    cooldown: { mode:'custom'|'immediate'|'event', ... },
  *  }
@@ -445,6 +447,19 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           )}
         </div>
 
+        {/* 수신 대상 · 발송 채널 — 다른 화면이 정하면 잠금 안내 하나로 */}
+        {rule.targetsFixed ? (
+        <div>
+          <SL>{labels.modal.recipients}</SL>
+          <div className="admin-notif-fixed" data-testid="notif-targets-fixed">
+            <span className="admin-notif-fixed-lock">
+              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+            </span>
+            <span className="admin-notif-fixed-text">{rule.targetsFixed}</span>
+            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+          </div>
+        </div>
+        ) : (<>
         {/* 수신 대상 */}
         <div>
           <SL>{labels.modal.recipients}</SL>
@@ -500,6 +515,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
             })}
           </div>
         </div>
+        </>)}
     </ModalShell>
   );
 }
@@ -519,6 +535,9 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           )}
         </div>
         <div className="admin-notif-rule-meta">
+          {rule.targetsFixed ? (
+            <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
+          ) : (<>
           {rule.recipients.map((r) => (
             <StatusBadge key={r} className="admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
           ))}
@@ -529,6 +548,7 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
               {labels.channels[c]}
             </span>
           ))}
+          </>)}
         </div>
       </div>
       <span className="admin-notif-rule-cooldown">{formatCooldown(rule.cooldown)}</span>
