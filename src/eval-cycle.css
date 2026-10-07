@@ -9071,3 +9071,78 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* W35 — 요약 정책 §10.G.3·§10.G.4·§10.G.6·§10.G.7·§10.G.9 · §7.5 */
+.evs-cw-conflict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.evs-cw-expand-capped {
+  font-size: 12px;
+  color: var(--utility-warning-700);
+}
+.evs-cw-adjuster {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.evs-cw-row-appeal {
+  margin-left: 6px;
+}
+.evs-cw-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+.evs-cw-preview-name {
+  font-weight: 700;
+}
+.evs-cw-preview-k {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.evs-cw-preview-body {
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.evs-cw-preview-okr {
+  font-size: 12px;
+  font-weight: 700;
+}
+/* §10.G.6 확정 기록 — 굵은 테두리 */
+.evs-cw-detail-log.is-final {
+  border: 2px solid var(--utility-brand-500);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.evs-cw-detail-log-at {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.evs-cw-review-context {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border-primary);
+  padding-top: 10px;
+}
+.evs-cw-review-trend,
+.evs-cw-review-dist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.evs-cw-review-trend-pt + .evs-cw-review-trend-pt::before {
+  content: '→ ';
+  color: var(--text-tertiary);
+}
+.evs-cw-review-dist .is-current {
+  font-weight: 700;
+  outline: 2px solid var(--utility-brand-500);
+}

@@ -205,6 +205,30 @@ const DEFAULT_LABELS = {
   cwLoadingTable: '테이블을 불러오는 중…',
   cwDistTitle: '등급 분포',
   cwDistCount: '{n}명',
+  // 요약 정책 §10.G.3 — 무엇을 셌는지 머리에 적는다. 필터 결과 0명이면 막대에 「대상자 없음」.
+  cwDistAll: '전체 · {n}명',
+  cwDistFiltered: '필터 선별 · {n}명 / 전체 {total}명',
+  cwDistNoTargets: '대상자 없음',
+  // §10.G.5·§10.G.9 필터 결과 0건
+  cwNoMatchRows: '조건에 해당하는 구성원이 없습니다.',
+  cwNoMatchReset: '필터 초기화',
+  // §10.G.4 행 호버 팝오버(500ms)
+  cwHoverSelf: '셀프 요약',
+  cwHoverManager: '매니저 코멘트 요약',
+  cwHoverOkr: '최종 OKR 달성률 {pct}',
+  cwHoverLoading: '불러오는 중…',
+  cwHoverFailed: '요약을 불러오지 못했습니다.',
+  // §10.G.9 「모두 펼치기」 한도
+  cwExpandAllCapped: '50행만 펼쳐집니다',
+  // §10.G.7 같은 직급 이해상충 숨김
+  cwConflictHidden: '{n}명이 이해상충으로 제외되었습니다.',
+  cwConflictShow: '보기',
+  cwConflictHide: '다시 숨기기',
+  // arch 조정자 표기 · §10.G.6 어필 중
+  cwAdjusterBadge: '조정자 {name}',
+  cwAppealInProgress: '어필 중',
+  // §10.G.6 변경 로그 — 이름 옆 역할(코드값을 그대로 내지 않는다)
+  cwLogRoles: { leader: '조직장', calibration_chair: '위원장', committee: '위원', hr: 'HR' },
   cwDistRec: '권장 {pct}%',
   cwDistNote: '권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
   cwDistNoGrade: '등급 없음',
@@ -256,6 +280,14 @@ const DEFAULT_LABELS = {
   cwAppealReasonLabel: '이의 사유 (매니저)',
   cwAppealFromTo: '근거 확정 등급',
   cwAppealRaisedBy: '제출 매니저',
+  cwAppealRaisedSuffix: '어필',
+  cwAppealNoSession: '—',
+  cwAppealOriginalNote: '원 조정 사유',
+  cwAppealContextTitle: '재검토 판단 자료',
+  cwAppealTrend: '과거 등급 추이',
+  cwAppealTrendEmpty: '이력 없음',
+  cwAppealDistribution: '원 세션 등급 분포 · 현재 위치',
+  cwAppealDistributionEmpty: '원 세션을 찾지 못했습니다.',
   cwReviewDecisionTitle: '위원회 재검토 결정',
   cwReviewNoteLabel: '재검토 결정 사유 (필수)',
   cwReviewNotePlaceholder: '재검토 근거를 입력하세요…',
@@ -590,6 +622,56 @@ function fmtDate(iso) {
   if (Number.isNaN(d.getTime())) return String(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
+/** 기다렸다 한 번 부르기 — 다시 시작하면 앞의 것은 버린다. 렌더 밖에서만 타이머를 만진다. */
+function createDelayedCall(delay) {
+  let timer = null;
+  return {
+    start(fn) {
+      clearTimeout(timer);
+      timer = setTimeout(fn, delay);
+    },
+    cancel() {
+      clearTimeout(timer);
+      timer = null;
+    },
+  };
+}
+
+/** 답변 글을 이어 붙여 한 줄 요약으로 — 팝오버가 상자를 넘지 않게 자른다. */
+function answerSummary(answers, max = 140) {
+  const text = (answers ?? [])
+    .map((a) => a.textAnswer)
+    .filter(Boolean)
+    .join(' · ');
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+/**
+ * §10.G.4 행 호버 팝오버 — 셀프 요약 · 매니저 코멘트 요약 · 최종 OKR 달성률.
+ * 상세는 소비처가 불러온다(`onPreviewCalibRow`). 오기 전에는 「불러오는 중」, 못 받으면 그렇다고 말한다.
+ */
+function CalibRowPreview({ row, detail, failed, L }) {
+  const okr = fmt(L.cwHoverOkr, {
+    pct: row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`,
+  });
+  return (
+    <div className="evs-cw-preview" data-testid="evs-cw-row-preview">
+      <div className="evs-cw-preview-name">{row.name}</div>
+      {!detail ? (
+        <div className="evs-cw-preview-body">{failed ? L.cwHoverFailed : L.cwHoverLoading}</div>
+      ) : (
+        <>
+          <div className="evs-cw-preview-k">{L.cwHoverSelf}</div>
+          <div className="evs-cw-preview-body">{answerSummary(detail.self?.answers) || L.cwDetailEmpty}</div>
+          <div className="evs-cw-preview-k">{L.cwHoverManager}</div>
+          <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+        </>
+      )}
+      <div className="evs-cw-preview-okr">{okr}</div>
+    </div>
+  );
+}
+
 /**
  * PW-1216 — 매니저의 비공개 칸(위원회 전용 코멘트·승진 고려·보상 메모) 줄들.
  * 서버가 보는 사람에게 안 보낸 칸은 키가 없다 — 키가 없거나 비어 있으면 그 줄을 그리지 않는다.
@@ -736,6 +818,10 @@ function adjustDirection(row, orderedGrades) {
  * PW-520 정렬·필터 키 → 그 값을 보여 주는 선택 열. 회사가 그 열을 끄면 정렬은 기본 순서로
  * 돌아가고(§4.2-A-4), 필터 조건은 그대로 걸린 채 「표시 꺼진 열 조건 포함」을 알린다.
  */
+/** §10.G.9 「모두 펼치기」가 한 번에 펼치는 최대 행 수. */
+const EXPAND_ALL_MAX = 50;
+/** §10.G.4 행 위에 머문 뒤 요약 팝오버가 뜨기까지(ms). */
+const ROW_HOVER_DELAY = 500;
 const SORT_KEY_COLUMN = { job: 'job', team: 'team', leader: 'lead', hireDate: 'joined' };
 const FILTER_KEY_COLUMN = { job: 'job', team: 'team', promo: 'promo' };
 
@@ -822,7 +908,7 @@ function distributionHue(index, total) {
   return hues ? hues[index - 1] : DIST_EXTRA_HUES[(index - 1) % DIST_EXTRA_HUES.length];
 }
 
-function CalibDistributionBar({ rows, orderedGrades, L }) {
+function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, filterActive = false }) {
   const n = rows.length;
   const seg = orderedGrades.map((g, i) => ({
     ...g,
@@ -838,7 +924,9 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
     <div className="evs-cw-dist" data-testid="evs-cw-dist">
       <div className="evs-cw-dist-head">
         <span className="evs-cw-dist-title">{L.cwDistTitle}</span>
-        <span className="evs-cw-dist-count">{fmt(L.cwDistCount, { n })}</span>
+        <span className="evs-cw-dist-count" data-testid="evs-cw-dist-count">
+          {filterActive ? fmt(L.cwDistFiltered, { n, total }) : fmt(L.cwDistAll, { n })}
+        </span>
         <Tooltip content={L.cwDistNote}>
           <span
             className="evs-cw-dist-info"
@@ -853,7 +941,7 @@ function CalibDistributionBar({ rows, orderedGrades, L }) {
       </div>
       <div className="evs-cw-dist-bar">
         {n === 0 ? (
-          <div className="evs-cw-dist-empty">{L.cwEmptyRows}</div>
+          <div className="evs-cw-dist-empty">{L.cwDistNoTargets}</div>
         ) : (
           <>
             {seg.map((g) =>
@@ -1156,6 +1244,11 @@ export default function EvalCycleSummaryCanvas({
   calibMemberDetailFailed = [],
   /** 펼친 행이 바뀔 때마다 펼친 대상자 id 전부를 알린다 — 소비처가 그 사람들의 상세를 불러온다. */
   onExpandCalibRows,
+  /**
+   * §10.G.4 행 위에 500ms 머물면 그 사람의 상세를 불러 달라는 신호 `(memberId) => void`.
+   * 팝오버는 `calibMemberDetails[memberId]` 가 오면 채워진다(펼침과 같은 자리를 쓴다).
+   */
+  onPreviewCalibRow,
   onAddCalibComment,
   onSetCommitteePromotion,
   canCreateSession = false,
@@ -1176,6 +1269,8 @@ export default function EvalCycleSummaryCanvas({
   appealCanReview = false,
   selectedAppealId = null,
   onSelectAppeal,
+  /** §7.5 재검토 판단 자료 — 고른 어필 대상자의 상세(셀프·매니저 답변). 없으면 그 칸을 그리지 않는다. */
+  appealMemberDetail = null,
   onReviewAppeal,
   selectedMemberId = null,
   memberDetail = null,
@@ -1297,8 +1392,29 @@ export default function EvalCycleSummaryCanvas({
   ) || (activeRangeKeys(calibFilter.ranges).length > 0 && !colOn('joined'));
   /** 표·CSV·미리보기가 함께 쓰는 「지금 화면에 보이는 행」. */
   const calibFields = calibFilterFields(calibTable?.rows ?? [], L);
+  /**
+   * §10.G.7 이해상충 — 위원이면 서버가 그의 직급(`viewerPosition`)을 준다. 같은 직급 피평가자는
+   * 처음에 숨기고 [보기]로 다시 보인다. 세션을 바꾸면 다시 숨긴 채로 시작한다.
+   */
+  const [conflictShownSession, setConflictShownSession] = useState(null);
+  const conflictShown = conflictShownSession != null && conflictShownSession === selectedCalibSessionId;
+  const viewerPosition = calibTable?.viewerPosition || null;
+  const conflictIds = viewerPosition
+    ? (calibTable?.rows ?? []).filter((r) => r.level && r.level === viewerPosition).map((r) => r.memberId)
+    : [];
+  const calibBaseRows =
+    conflictShown || conflictIds.length === 0
+      ? (calibTable?.rows ?? [])
+      : (calibTable?.rows ?? []).filter((r) => !conflictIds.includes(r.memberId));
+  // §10.G.9 「모두 펼치기」가 50행에서 멈췄다는 안내 — 접거나 세션을 바꾸면 걷힌다.
+  const [expandCappedSession, setExpandCappedSession] = useState(null);
+  // §10.G.4 행 호버 — 500ms 머물면 상세를 불러 달라고 알린다.
+  const rowHover = useMemo(() => createDelayedCall(ROW_HOVER_DELAY), []);
+  useEffect(() => () => rowHover.cancel(), [rowHover]);
+  const expandCapped =
+    expandCappedSession != null && expandCappedSession === selectedCalibSessionId && expandedCalib.ids.length > 0;
   const calibShownRows = calibVisibleRows(
-    calibTable?.rows ?? [],
+    calibBaseRows,
     calibFilter,
     calibFields,
     effectiveCalibSort,
@@ -2927,6 +3043,58 @@ export default function EvalCycleSummaryCanvas({
                         <div className="evs-cw-review-k">{L.cwAppealReasonLabel}</div>
                         <div className="evs-cw-review-reason-body">{appeal.reason}</div>
                       </div>
+                      {appeal.originalNote ? (
+                        <div className="evs-cw-review-reason" data-testid="evs-cw-review-original-note">
+                          <div className="evs-cw-review-k">{L.cwAppealOriginalNote}</div>
+                          <div className="evs-cw-review-reason-body">{appeal.originalNote}</div>
+                        </div>
+                      ) : null}
+                      {/* §7.5 ② 재검토 판단 자료 — blind 판정 방지 */}
+                      <div className="evs-cw-review-context" data-testid="evs-cw-review-context">
+                        <div className="evs-cw-review-k">{L.cwAppealContextTitle}</div>
+                        {appealMemberDetail && (
+                          <div className="evs-cw-review-grid">
+                            <div>
+                              <div className="evs-cw-review-k">{L.cwDetailSelf}</div>
+                              <div className="evs-cw-review-v">
+                                {answerSummary(appealMemberDetail.self?.answers, 400) || L.cwDetailEmpty}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="evs-cw-review-k">{L.cwDetailManager}</div>
+                              <div className="evs-cw-review-v">
+                                {answerSummary(appealMemberDetail.manager?.answers, 400) || L.cwDetailEmpty}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="evs-cw-review-k">{L.cwAppealTrend}</div>
+                        <div className="evs-cw-review-trend" data-testid="evs-cw-review-trend">
+                          {(appeal.gradeTrend ?? []).length === 0
+                            ? L.cwAppealTrendEmpty
+                            : appeal.gradeTrend.map((t, ti) => (
+                                <span key={ti} className="evs-cw-review-trend-pt">
+                                  {t.cycleName} {t.gradeLabel ?? '—'}
+                                </span>
+                              ))}
+                        </div>
+                        <div className="evs-cw-review-k">{L.cwAppealDistribution}</div>
+                        {(appeal.sessionDistribution ?? []).length === 0 ? (
+                          <div className="evs-cw-review-v">{L.cwAppealDistributionEmpty}</div>
+                        ) : (
+                          <div className="evs-cw-review-dist" data-testid="evs-cw-review-dist">
+                            {appeal.sessionDistribution.map((d) => (
+                              <StatusBadge
+                                key={d.gradeKey}
+                                className={`evs-cw-badge ${d.gradeKey === appeal.currentGradeKey ? 'tone-accent is-current' : 'tone-muted'}`}
+                                data-testid={d.gradeKey === appeal.currentGradeKey ? 'evs-cw-review-dist-current' : undefined}
+                              >
+                                {d.label} {d.count}
+                              </StatusBadge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
                       {decided ? (
                         <div className="evs-cw-review-decided">
@@ -3035,11 +3203,15 @@ export default function EvalCycleSummaryCanvas({
                                 · {a.job} · {a.team}
                               </span>
                             </div>
-                            <div className="evs-cw-appeal-meta">
+                            <div className="evs-cw-appeal-meta" data-testid="evs-cw-appeal-meta">
+                              {/* §7.5 인박스 줄 — 세션 · 전→후 · 제출 매니저 · 시각 */}
+                              {`${a.sessionName || L.cwAppealNoSession} · `}
                               {a.fromGradeLabel && a.toGradeLabel
                                 ? `${a.fromGradeLabel} → ${a.toGradeLabel} · `
                                 : ''}
-                              {a.raisedByName ? `${a.raisedByName} ` : ''}어필
+                              {a.raisedByName ? `${a.raisedByName} ` : ''}
+                              {L.cwAppealRaisedSuffix}
+                              {a.createdAt ? ` · ${fmtDateTime(a.createdAt)}` : ''}
                             </div>
                           </div>
                           <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}</span>
@@ -3345,6 +3517,21 @@ export default function EvalCycleSummaryCanvas({
                     {fmt(L.cwExclusionBanner, { n: calibTable.excludedCount })}
                   </div>
                 )}
+                {calibTable && conflictIds.length > 0 && (
+                  <div className="evs-cw-exclusion evs-cw-conflict" data-testid="evs-cw-conflict">
+                    {fmt(L.cwConflictHidden, { n: conflictIds.length })}{' '}
+                    <button
+                      type="button"
+                      className="evs-cw-filter-clear"
+                      onClick={() =>
+                        setConflictShownSession(conflictShown ? null : selectedCalibSessionId)
+                      }
+                      data-testid="evs-cw-conflict-toggle"
+                    >
+                      {conflictShown ? L.cwConflictHide : L.cwConflictShow}
+                    </button>
+                  </div>
+                )}
 
                 {calibTableLoading || !calibTable ? (
                   <div className="evs-cw-empty">
@@ -3370,6 +3557,8 @@ export default function EvalCycleSummaryCanvas({
                         rows={visibleRows}
                         orderedGrades={og}
                         L={L}
+                        total={calibBaseRows.length}
+                        filterActive={filterActive}
                       />
                       {filterActive && (
                         <div
@@ -3379,7 +3568,7 @@ export default function EvalCycleSummaryCanvas({
                           {L.cwFilterOn} ·{' '}
                           {fmt(L.cwFilterActive, {
                             n: visibleRows.length,
-                            total: calibTable.rows.length,
+                            total: calibBaseRows.length,
                           })}
                           {hiddenFilterInUse && (
                             <span
@@ -3428,7 +3617,13 @@ export default function EvalCycleSummaryCanvas({
                               <button
                                 type="button"
                                 className="evc-btn is-ghost"
-                                onClick={() => setExpandedRows(visibleRows.map((r) => r.memberId))}
+                                onClick={() => {
+                                  // §10.G.9 최대 50행 — 넘으면 앞 50행만 펼치고 알린다.
+                                  setExpandedRows(visibleRows.slice(0, EXPAND_ALL_MAX).map((r) => r.memberId));
+                                  setExpandCappedSession(
+                                    visibleRows.length > EXPAND_ALL_MAX ? selectedCalibSessionId : null,
+                                  );
+                                }}
                                 data-testid="evs-cw-expand-all"
                               >
                                 {L.cwExpandAll}
@@ -3436,12 +3631,20 @@ export default function EvalCycleSummaryCanvas({
                               <button
                                 type="button"
                                 className="evc-btn is-ghost"
-                                onClick={() => setExpandedRows([])}
+                                onClick={() => {
+                                  setExpandedRows([]);
+                                  setExpandCappedSession(null);
+                                }}
                                 disabled={expandedCalibRows.length === 0}
                                 data-testid="evs-cw-collapse-all"
                               >
                                 {L.cwCollapseAll}
                               </button>
+                              {expandCapped && (
+                                <span className="evs-cw-expand-capped" role="status" data-testid="evs-cw-expand-capped">
+                                  {L.cwExpandAllCapped}
+                                </span>
+                              )}
                             </span>
                           )}
                         </div>
@@ -3470,6 +3673,24 @@ export default function EvalCycleSummaryCanvas({
                               {colOn('detail') && <RosterTable.HeadCell aria-label="expand"></RosterTable.HeadCell>}
                             </RosterTable.Head>
                           <RosterTable.Body>
+                            {visibleRows.length === 0 && (
+                              <RosterTable.Empty colSpan={calibColCount} data-testid="evs-cw-no-match">
+                                {L.cwNoMatchRows}
+                                {filterActive && (
+                                  <>
+                                    {' '}
+                                    <button
+                                      type="button"
+                                      className="evs-cw-filter-clear"
+                                      onClick={() => setCalibFilter(EMPTY_CALIB_FILTER)}
+                                      data-testid="evs-cw-no-match-reset"
+                                    >
+                                      {L.cwNoMatchReset}
+                                    </button>
+                                  </>
+                                )}
+                              </RosterTable.Empty>
+                            )}
                             {visibleRows.map((row, i) => {
                               const expanded = expandedCalibRows.includes(row.memberId);
                               const detail = !expanded
@@ -3503,9 +3724,35 @@ export default function EvalCycleSummaryCanvas({
                                 }));
                               return (
                               <Fragment key={row.memberId}>
-                              <RosterTable.Row data-testid="evs-cw-row">
+                              <Tooltip
+                                content={
+                                  expanded ? null : (
+                                    <CalibRowPreview
+                                      row={row}
+                                      detail={calibMemberDetails?.[row.memberId] ?? null}
+                                      failed={calibMemberDetailFailed.includes(row.memberId)}
+                                      L={L}
+                                    />
+                                  )
+                                }
+                                delay={ROW_HOVER_DELAY}
+                                placement="bottom"
+                                maxWidth={360}
+                              >
+                              <RosterTable.Row
+                                data-testid="evs-cw-row"
+                                onMouseEnter={() => rowHover.start(() => onPreviewCalibRow?.(row.memberId))}
+                                onMouseLeave={() => rowHover.cancel()}
+                              >
                                 <RosterTable.Cell className="evs-cw-num">{i + 1}</RosterTable.Cell>
-                                <RosterTable.Cell className="evs-cw-name">{row.name}</RosterTable.Cell>
+                                <RosterTable.Cell className="evs-cw-name">
+                                  {row.name}
+                                  {row.appealPending && (
+                                    <StatusBadge className="evs-cw-appeal-badge evs-cw-row-appeal" data-testid="evs-cw-row-appeal">
+                                      {L.cwAppealInProgress}
+                                    </StatusBadge>
+                                  )}
+                                </RosterTable.Cell>
                                 {colOn('job') && <RosterTable.Cell className="evs-cw-muted">{row.job || '—'}</RosterTable.Cell>}
                                 {colOn('team') && <RosterTable.Cell className="evs-cw-muted">{row.team}</RosterTable.Cell>}
                                 <RosterTable.Cell className="evs-cw-muted">{row.level || '—'}</RosterTable.Cell>
@@ -3557,6 +3804,12 @@ export default function EvalCycleSummaryCanvas({
                                         </span>
                                       </>
                                     );
+                                    // arch 조정자 표기 — 실제로 등급이 바뀐 가장 최근 기록의 사람. 모두 유지면 없다.
+                                    const adjusterTag = row.adjusterName ? (
+                                      <span className="evs-cw-adjuster" data-testid="evs-cw-adjuster">
+                                        {fmt(L.cwAdjusterBadge, { name: row.adjusterName })}
+                                      </span>
+                                    ) : null;
                                     return (
                                       <div className="evs-cw-adjust">
                                         {calibTable.readOnly ? (
@@ -3598,6 +3851,7 @@ export default function EvalCycleSummaryCanvas({
                                             {dirTag}
                                           </>
                                         )}
+                                        {adjusterTag}
                                       </div>
                                     );
                                   })()}
@@ -3716,6 +3970,7 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 )}
                               </RosterTable.Row>
+                              </Tooltip>
                               {/* PW-520 — 「펼침 상세」를 끄면 대상자 정보 상자를 아예 쓰지 않는다. */}
                               {expanded && colOn('detail') && (
                                 <RosterTable.Row data-testid="evs-cw-detail">
@@ -4053,9 +4308,16 @@ export default function EvalCycleSummaryCanvas({
                                               {detail.calibration.history.map(
                                                 (h, hi) => (
                                                   <div
-                                                    className="evs-cw-detail-log"
+                                                    className={`evs-cw-detail-log${h.isFinal ? ' is-final' : ''}`}
                                                     key={hi}
+                                                    data-testid="evs-cw-detail-log"
                                                   >
+                                                    {/* §10.G.6 확정 기록 — 「최종 확정」 배지 + 굵은 테두리. */}
+                                                    {h.isFinal && (
+                                                      <StatusBadge className="evs-cw-badge tone-accent" data-testid="evs-cw-log-final">
+                                                        {L.cwDetailFinal}
+                                                      </StatusBadge>
+                                                    )}
                                                     <StatusBadge className="evs-cw-badge tone-muted">
                                                       {h.fromLabel ?? '—'}
                                                     </StatusBadge>
@@ -4074,6 +4336,14 @@ export default function EvalCycleSummaryCanvas({
                                                     {h.byLabel ? (
                                                       <span className="evs-cw-detail-log-by">
                                                         {h.byLabel}
+                                                        {h.adjusterRole && L.cwLogRoles?.[h.adjusterRole]
+                                                          ? ` · ${L.cwLogRoles[h.adjusterRole]}`
+                                                          : ''}
+                                                      </span>
+                                                    ) : null}
+                                                    {h.at ? (
+                                                      <span className="evs-cw-detail-log-at" data-testid="evs-cw-log-at">
+                                                        {fmtDateTime(h.at)}
                                                       </span>
                                                     ) : null}
                                                   </div>
