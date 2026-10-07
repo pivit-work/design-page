@@ -25,6 +25,8 @@ import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import FormField from '../shared/FormField.jsx';
+import ToneBadge from '../shared/StatusBadge.jsx';
+import Chip from '../shared/Chip.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import Select from '../shared/Select.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -281,6 +283,13 @@ const DEFAULT_LABELS = {
     paySection: '보상',
     salary: '연봉',
     salaryHistory: '연봉 이력',
+    // 전문 분야·스킬 — 읽기 전용(admin-spec §3.2.7). 본인이 내 설정에서만 넣는다.
+    skillsSection: '전문 분야·스킬',
+    expertise: '업무 전문 분야',
+    skillSet: '스킬셋',
+    currentWorks: '수행 중인 주요 업무',
+    tagsEmpty: '미입력',
+    tagUnapproved: '미승인',
     recordSection: '기록',
     education: '학력',
     hrProfile: 'HR 기록',
@@ -3951,6 +3960,41 @@ function EmployeesEditPanel({
               </div>
             </>
           )}
+
+          {/* 전문 분야·스킬 — 읽기 전용 (admin-spec §3.2.7). 본인이 내 설정에서만 넣는 값이라 입력 칸이
+              없다(어드민이 대신 채우면 담당자 조회 값의 신뢰가 떨어진다). 조직장 승인은 2차(OPEN-10)라
+              지금은 모든 값에 「미승인」이 붙고, 비어 있으면 종류마다 「미입력」. 입력 유도 문구는 없다. */}
+          <SectionLabel>{labels.panel.skillsSection}</SectionLabel>
+          <div className="admin-emp-field-group" data-testid="employees-panel-personal-tags">
+            {[
+              ['expertise', 'expertise'],
+              ['skillSet', 'skills'],
+              ['currentWorks', 'currentWorks'],
+            ].map(([labelKey, field]) => {
+              const tags = Array.isArray(draft[field]) ? draft[field] : [];
+              return (
+                <div key={field} className="admin-emp-field">
+                  <div className="admin-emp-field-label">{labels.panel[labelKey]}</div>
+                  {tags.length === 0 ? (
+                    <div className="admin-emp-manager-note" data-testid={`employees-panel-${field}-empty`}>
+                      {labels.panel.tagsEmpty}
+                    </div>
+                  ) : (
+                    <div className="admin-emp-tags" data-testid={`employees-panel-${field}`}>
+                      {tags.map((tag) => (
+                        <Chip key={tag}>
+                          {tag}
+                          <ToneBadge tone="warning" className="admin-emp-tag-unapproved">
+                            {labels.panel.tagUnapproved}
+                          </ToneBadge>
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {/* 기록 — HR 기록 창은 조회 경로가 있을 때만 연다(어드민 전용).
               폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}

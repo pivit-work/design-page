@@ -427,6 +427,16 @@
   color: var(--text-secondary);
 }
 
+/* 통계 값 아래 보조 한 줄 — 직급 «본인이 비공개로 설정함». 칸을 넓히지 않게 폭을 묶고 낱말 단위로 꺾는다. */
+.modal-stat-note {
+  max-width: 88px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-tertiary);
+  text-align: center;
+  word-break: keep-all;
+}
+
 /* ── Modal Actions ── */
 .modal-actions {
   display: flex;

@@ -3617,3 +3617,14 @@
 }
 .admin-emp-range-field { display: flex; flex-direction: column; gap: 4px; }
 .admin-emp-range-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+/* 직원 상세 패널 — 전문 분야·스킬 읽기 전용 태그 (admin-spec §3.2.7) */
+.admin-emp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.admin-emp-tag-unapproved {
+  margin-left: 4px;
+  font-size: 10px;
+}

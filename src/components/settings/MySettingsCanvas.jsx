@@ -14,6 +14,7 @@ import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EducationAddForm from './EducationAddForm.jsx';
 import PreferenceTab from './PreferenceTab.jsx';
+import PersonalTagsField from './PersonalTagsField.jsx';
 import { formatEduPeriod } from './educationForm.js';
 
 /**
@@ -258,6 +259,16 @@ const DEFAULT_LABELS = {
     bio: '소개 (Bio)',
     bioHint: '타임라인·공개 카드에 표시됩니다.',
     bioPlaceholder: '나를 한 줄로 소개해 보세요',
+    // 개인 입력 3종 (기획서 코어 §1-3-g D · 시안 settings-app.jsx)
+    expertise: '업무 전문 분야',
+    expertiseHint: '경험한 도메인. 예: HR SaaS, 커머스',
+    skillSet: '스킬셋',
+    skillSetHint: '사용 가능한 언어·기술·도구',
+    currentWorks: '수행 중인 주요 업무',
+    currentWorksHint: '지금 맡고 있는 과제. 담당자 조회에 쓰입니다',
+    tagsPlaceholder: '쉼표로 구분해 입력',
+    tagUnapproved: '미승인',
+    tagRemove: '지우기',
     location: '위치',
     locationPlaceholder: '서울 마포구',
     workInfo: '근무 정보',
@@ -2068,6 +2079,25 @@ export default function MySettingsCanvas({
                   />
                   <div className="msc-char-count">{(draft.bio || '').length} / 200</div>
                 </Field>
+                {/* 개인 입력 3종 — 세 목록을 하나로 합치지 않는다(조회 축이 다르다). 조직장 승인은 2차라
+                    지금은 저장 즉시 보이고 「미승인」 딱지만 붙는다. 저장은 다른 칸과 함께 [변경사항 저장]. */}
+                {[
+                  ['expertise', 'expertiseHint', 'msc-tags-expertise'],
+                  ['skillSet', 'skillSetHint', 'msc-tags-skillset'],
+                  ['currentWorks', 'currentWorksHint', 'msc-tags-current-works'],
+                ].map(([key, hintKey, testId]) => (
+                  <Field key={key} label={labels.profile[key]} hint={labels.profile[hintKey]}>
+                    <PersonalTagsField
+                      value={draft[key] || []}
+                      onChange={setField(key)}
+                      label={labels.profile[key]}
+                      placeholder={labels.profile.tagsPlaceholder}
+                      unapprovedLabel={labels.profile.tagUnapproved}
+                      removeLabel={labels.profile.tagRemove}
+                      testId={testId}
+                    />
+                  </Field>
+                ))}
                 <Field label={labels.profile.location}>
                   <TextInput
                     className={inputClass('location')}
