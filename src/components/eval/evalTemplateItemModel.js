@@ -98,6 +98,15 @@ export function supportsGrowthType(q, reviewType) {
   return !reviewType || reviewType === 'self';
 }
 
+/**
+ * [PW-1262 ③] 이 질문의 셀프 답을 동료 리뷰 작성자에게 참고로 보일지 고를 수 있나 —
+ * 셀프(또는 유형 미정) 평가지의 질문. 설명 항목은 답이 없어 고를 것이 없다.
+ */
+export function supportsPeerVisible(q, reviewType) {
+  if (isNoteItem(q)) return false;
+  return !reviewType || reviewType === 'self';
+}
+
 // [⑤] 결과 공개 범위 — 「누가 작성하는가」가 아니라 「이 답변을 누가 보는가」.
 export const DISCLOSURE_AUDIENCES = [
   { id: 'evaluatee', labelKey: 'audienceEvaluatee' },

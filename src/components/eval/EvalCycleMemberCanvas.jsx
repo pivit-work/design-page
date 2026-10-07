@@ -77,6 +77,13 @@ const DEFAULT_LABELS = {
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
+  // [PW-1262 ③] 동료 리뷰 — 피평가자 셀프 리뷰 참조 영역
+  selfRefTitle: '피평가자의 셀프 리뷰 참조 (작성 참고용)',
+  selfRefNote: '이 내용은 작성 참고용으로만 제공됩니다.',
+  selfRefNotSubmitted: '피평가자가 아직 셀프 리뷰를 제출하지 않았습니다.',
+  selfRefCollapse: '접기',
+  selfRefExpand: '펼치기',
+  selfRefEmpty: '(작성하지 않음)',
   historyEmpty: '지난 평가 이력이 아직 없습니다.',
 };
 
@@ -174,6 +181,71 @@ function buildFields(template, L) {
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
 }
+/**
+ * [PW-1262 ③] 피평가자 셀프 리뷰 참조 — 읽기 전용, 접을 수 있다(policy §5.5).
+ * 인라인에서 답 전문을 보여 주므로 «전체 보기» 창은 두지 않는다.
+ */
+function SelfReferencePanel({ reference, L }) {
+  const [open, setOpen] = useState(true);
+  const items = Array.isArray(reference.items) ? reference.items : [];
+  return (
+    <section className="evm-selfref" data-testid="evm-selfref">
+      <div className="evm-selfref-head">
+        <div className="evm-history-title">
+          <NoteIcon size={15} />
+          <span>{L.selfRefTitle}</span>
+        </div>
+        {reference.submitted && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            data-testid="evm-selfref-toggle"
+          >
+            {open ? L.selfRefCollapse : L.selfRefExpand}
+          </Button>
+        )}
+      </div>
+      {!reference.submitted ? (
+        <div className="evm-history-sub" data-testid="evm-selfref-not-submitted">
+          {L.selfRefNotSubmitted}
+        </div>
+      ) : (
+        open && (
+          <>
+            <div className="evm-selfref-rows">
+              {items.map((it) => {
+                const hasScore = typeof it.score === 'number';
+                const hasChoices = Array.isArray(it.choices) && it.choices.length > 0;
+                const hasText = typeof it.text === 'string' && it.text.trim() !== '';
+                return (
+                  <div className="evm-selfref-row" key={it.id} data-testid={`evm-selfref-${it.id}`}>
+                    <div className="evm-selfref-label">
+                      <span>{it.label}</span>
+                      {hasScore && (
+                        <StatusBadge>
+                          {it.scaleMax ? `${it.score} / ${it.scaleMax}` : String(it.score)}
+                        </StatusBadge>
+                      )}
+                    </div>
+                    {hasChoices && <div className="evm-selfref-text">{it.choices.join(', ')}</div>}
+                    {hasText && <div className="evm-selfref-text">{it.text}</div>}
+                    {!hasScore && !hasChoices && !hasText && (
+                      <div className="evm-selfref-text is-empty">{L.selfRefEmpty}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="evm-history-sub evm-selfref-note">{L.selfRefNote}</div>
+          </>
+        )
+      )}
+    </section>
+  );
+}
+
 function mergeLabels(base, provided) {
   if (!provided) return base;
   const out = { ...base };
@@ -257,6 +329,11 @@ export default function EvalCycleMemberCanvas({
   // [PW-586] 머리 아래·폼 위에 끼우는 블록. 상향 리뷰는 평가 대상 카드와 접을 수 없는 익명
   // 안내를 여기 둔다 — 폼을 새로 그리지 않고 셀프·동료와 같은 폼을 쓰기 위한 자리다.
   headerSlot = null,
+  // [PW-1262 ③] 동료 리뷰에서 피평가자 셀프 리뷰를 참고로 보이는 영역. null 이면 영역이 없다
+  // (관리자가 «동료에게 보이기»를 켠 질문이 없을 때). 모양:
+  // { submitted, items: [{ id, label, score, scaleMax, text, choices }] }
+  // 셀프를 아직 안 냈으면 submitted=false 이고 안내 한 줄만 보인다(policy §6 예외 표).
+  selfReference = null,
   // [PW-586] AI 초안을 만들 수 없는 이유. 있으면 버튼을 끄고 이유를 버튼 옆에 적는다
   // (근거가 0건인데 눌러 보게 한 뒤 실패로 알리지 않는다).
   aiDraftDisabledReason = null,
@@ -538,6 +615,12 @@ export default function EvalCycleMemberCanvas({
       </header>
 
       {headerSlot}
+
+      {selfReference && (
+        <div className="evc-list">
+          <SelfReferencePanel reference={selfReference} L={L} />
+        </div>
+      )}
 
       {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
       {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (

@@ -3343,6 +3343,56 @@
   color: var(--text-secondary);
 }
 
+/* PW-1262 ③ — 동료 리뷰의 피평가자 셀프 리뷰 참조. 이력 박스와 같은 파란 안내 톤. */
+.evm-selfref {
+  background: var(--utility-blue-50);
+  border: 1px solid var(--utility-blue-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+.evm-selfref-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.evm-selfref-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evm-selfref-row {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--utility-blue-200);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+.evm-selfref-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+.evm-selfref-text {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.evm-selfref-text.is-empty {
+  color: var(--text-tertiary);
+}
+.evm-selfref-note {
+  margin-top: var(--spacing-md);
+}
+
 /* PW-1004 — 「작성 참고용」 박스는 안내라 경고색(주황·노랑)을 쓰지 않는다. 경고색은
    박스 안의 «달성률 미입력» 한 줄(.evm-kr-warn)에만 남겨, 주변이 회색일 때 그 줄이 드러난다. */
 .evm-activity {
