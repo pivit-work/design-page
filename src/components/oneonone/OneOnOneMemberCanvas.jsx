@@ -105,6 +105,19 @@ const DEFAULT_LABELS = {
   selfSave: '저장',
   selfSaved: '저장됨',
   selfSaveFailed: '저장하지 못했습니다. 적은 내용은 그대로 남아 있습니다.',
+  /* 멤버 AI 보고서 (PW-1397) — 시안 `1on1-app.jsx` 멤버 READY 「한판 보고서 카드」 S2. */
+  aiReportTitle: 'AI 보고서 — 업무·OKR·블로커 통합',
+  aiReportEmpty: '위의 버튼을 눌러 AI 보고서를 생성하세요. 업무 요약, OKR 현황, 블로커 및 지원 요청이 하나의 보고서로 통합됩니다.',
+  aiReportGenerate: 'AI 보고서 생성 — Daily Snippet·회의록·피드백 기반',
+  aiReportGenerating: 'AI가 데이터를 분석하는 중...',
+  aiReportRegenerate: '재생성',
+  aiReportSource: '출처: {source}',
+  aiReportFailed: 'AI 보고서 생성에 실패했습니다',
+  aiReportFailTimeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
+  aiReportFailModel: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  aiReportFailQuota: 'AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
+  aiReportFailExhausted: '여러 번 시도했지만 생성하지 못했습니다.',
+  aiReportRetry: '다시 시도',
   elapsed: '경과', prepSummary: '준비 요약', okrStatus: 'OKR 현황', agenda: '논의 아젠다',
   pendingActions: '미완료 액션아이템',
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
@@ -977,7 +990,87 @@ function SelfAssessmentSection({ value, L, icons, baseUrl }) {
   );
 }
 
-function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady, selfAssessment }) {
+/**
+ * 멤버 AI 보고서 (PW-1397) — 팀원이 버튼을 누르면 AI 가 이번 기간 스니핏·회의록·피드백으로
+ * 업무·OKR·블로커를 한 편의 글로 쓴다. 매니저 준비 화면 «멤버 AI 보고서»가 같은 글을 보인다.
+ *
+ * 정본: 시안 `1on1-app.jsx` 멤버 READY 「한판 보고서 카드」 S2 · 실패 §7.5.
+ * - 글은 고칠 수 없다(읽기 전용) — «재생성»만 있다. 생성 직후 색은 미확인 노랑(§7.2).
+ * - 실패는 이 카드 안에서 말한다. 이미 있던 글은 지우지 않는다(§7.5.2) — 호스트가 `text` 를 그대로 넘긴다.
+ * - 한도 초과는 다시 눌러도 같아서 `다시 시도` 를 잠근다. 연속 실패 횟수는 호스트가 센다(`retryLeft`).
+ *
+ * `value` = `{ text, sourceLabel, busy, failure: { reason, retryLeft } | null, onGenerate() }`.
+ */
+const AI_REPORT_FAIL_LABEL = {
+  timeout: 'aiReportFailTimeout',
+  model_error: 'aiReportFailModel',
+  quota_exceeded: 'aiReportFailQuota',
+};
+
+function AiReportSection({ value, L, icons, baseUrl }) {
+  const { text, sourceLabel, busy = false, failure = null, onGenerate } = value;
+  const reason = AI_REPORT_FAIL_LABEL[failure?.reason] ? failure.reason : 'model_error';
+  const quota = reason === 'quota_exceeded';
+  const exhausted = !!failure && !quota && (failure.retryLeft ?? 0) <= 0;
+  const regenerate = text && (
+    <button
+      type="button"
+      className="ono-mem-ai-regen"
+      onClick={() => onGenerate?.()}
+      disabled={busy}
+      data-testid="ono-ai-report-regenerate"
+    >
+      {busy ? L.aiReportGenerating : L.aiReportRegenerate}
+    </button>
+  );
+
+  return (
+    <Section title={L.aiReportTitle} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl} badge={regenerate} collapsible={false}>
+      {failure && !busy && (
+        <div className="ono-start-failbox" role="alert" data-testid="ono-ai-report-error" data-reason={reason}>
+          <span className="ono-start-failbox-title">{L.aiReportFailed}</span>
+          <p className="ono-start-failbox-msg">
+            {exhausted ? L.aiReportFailExhausted : L[AI_REPORT_FAIL_LABEL[reason]]}
+          </p>
+          <div className="ono-start-failbox-actions">
+            <button
+              type="button"
+              className="ono-start-failbox-retry"
+              onClick={() => onGenerate?.()}
+              disabled={quota || exhausted}
+            >
+              {L.aiReportRetry}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {text ? (
+        <div className="ono-mem-ai-report" data-testid="ono-ai-report-text">
+          <p className="ono-start-report-text">{text}</p>
+          {sourceLabel && (
+            <p className="ono-start-report-source">{fill(L.aiReportSource, { source: sourceLabel })}</p>
+          )}
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="ono-mem-btn ono-mem-ai-generate"
+            onClick={() => onGenerate?.()}
+            disabled={busy}
+            data-testid="ono-ai-report-generate"
+          >
+            {busy ? L.aiReportGenerating : L.aiReportGenerate}
+          </button>
+          <p className="ono-mem-hint">{L.aiReportEmpty}</p>
+        </>
+      )}
+    </Section>
+  );
+}
+
+function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady, selfAssessment, aiReport }) {
   const [draft, setDraft] = useState('');
   const topics = session.memberTopics ?? [];
   const prevActions = session.aiBriefing?.prevActions ?? [];
@@ -1053,6 +1146,11 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
             </div>
           ))}
         </Section>
+      )}
+
+      {/* 멤버 AI 보고서 (PW-1397) — 시안 순서대로 자기 보고 위. 호스트가 값을 안 넘기면 자리도 없다. */}
+      {!isHost && aiReport && (
+        <AiReportSection value={aiReport} L={L} icons={icons} baseUrl={baseUrl} />
       )}
 
       {/* 팀원 자기 보고 (PW-1262 ②) — 팀원만 쓴다. 호스트가 값을 안 넘기면 자리도 없다. */}
@@ -1738,6 +1836,12 @@ export default function OneOnOneMemberCanvas({
    */
   selfAssessment = null,
   /**
+   * 멤버 AI 보고서 (PW-1397) — `{ text, sourceLabel, busy, failure, onGenerate }`.
+   * 안 넘기면 준비 화면에 그 카드가 없다. `failure` = `{ reason: 'timeout'|'model_error'|'quota_exceeded',
+   * retryLeft }` — 있으면 카드 안에 실패 박스를 그린다. `text` 는 실패해도 직전 글을 넘긴다.
+   */
+  aiReport = null,
+  /**
    * 공개된 매니저 피드백의 근거 발췌 (PW-103).
    * `{ evidence: { items: [{ key, edited, evidence: [...] }] }, loading, error, onRetry }`.
    * 발췌만 여기서 오고 **본문은 세션에 이미 실려 있다** — 발췌 로딩이 본문 표시를
@@ -1793,6 +1897,7 @@ export default function OneOnOneMemberCanvas({
           onTopicsChange={onTopicsChange} onStart={onStart}
           onMemberReady={onMemberReady} memberReady={memberReady}
           selfAssessment={selfAssessment}
+          aiReport={aiReport}
         />
       ) : <EmptyState description={L.noPrepSession} />)}
 
