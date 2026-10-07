@@ -60,6 +60,8 @@ export default function KrDrilldown({
   onSelectMember,
   onRetryDetail,
   labels,
+  /** 멤버 카드를 누르면 기여 상세 선택과 함께 부른다 — 팀원 상세 창을 연다(기획 §7-4). */
+  onMemberOpen,
 }) {
   const l = { ...DEFAULT_LABELS, ...labels };
   const objectives = data.objectives ?? [];
@@ -240,7 +242,7 @@ export default function KrDrilldown({
                 key={member.id}
                 member={member}
                 selected={member.id === selectedMember?.id}
-                onClick={() => selectMember(member.id)}
+                onClick={() => { selectMember(member.id); onMemberOpen?.(member.id); }}
                 labels={labels}
               />
             ))}
