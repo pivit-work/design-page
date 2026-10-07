@@ -9,6 +9,7 @@ import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshI
 import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
 
 /**
@@ -213,6 +214,19 @@ const DEFAULT_LABELS = {
   cwExcludeMember: '이 대상 제외',
   cwExcludedTitle: '개인 제외',
   cwExcludedRemove: '제외 해제',
+  cwFilterEmploymentType: '고용형태',
+  cwFilterEmploymentStatus: '재직상태',
+  cwEmploymentStatusLabels: { active: '재직', probation: '수습', on_leave: '휴직', terminated: '퇴사' },
+  cwFilterRangeTitle: '기간',
+  cwFilterRangeHireDate: '입사일',
+  cwFilterRangePromotedAt: '최종 승급일',
+  cwFilterRangeFrom: '시작일',
+  cwFilterRangeTo: '종료일',
+  cwFilterMembersTitle: '대상자',
+  cwFilterMembersHint: '이름을 누르면 제외되고, 다시 누르면 돌아옵니다',
+  cwFilterPreview: '선별 {n} / 전체 {total}명 · 제외 {k}',
+  cwPresetBarLabel: '프리셋',
+  cwPresetBarPlaceholder: '프리셋 적용',
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
@@ -889,7 +903,23 @@ const EMPTY_CALIB_FILTER = {
   includeOp: 'AND',
   excludeConds: {},
   excludeIds: [], // R4b 개인(멤버) 제외
+  // §4.2 6·7번 — 입사일·최종 승급일 범위. { hireDate: { from, to }, promotedAt: { from, to } }, 값은 'YYYY-MM-DD' 또는 ''.
+  ranges: {},
 };
+/** §4.2 범위 필터가 붙는 날짜 열. 둘 다 표의 「입사일/승급일」 한 칸(joined)이 보여 준다. */
+const CALIB_RANGE_FIELDS = ['hireDate', 'promotedAt'];
+function activeRangeKeys(ranges) {
+  return CALIB_RANGE_FIELDS.filter((k) => ranges?.[k]?.from || ranges?.[k]?.to);
+}
+/** 날짜가 없는 사람(승급 이력 없음 등)은 범위를 건 순간 걸리지 않는다 — 「범위 안」이라고 말할 근거가 없다. */
+function rangeHit(row, key, range) {
+  const v = row[key];
+  if (!v) return false;
+  const d = String(v).slice(0, 10);
+  if (range.from && d < range.from) return false;
+  if (range.to && d > range.to) return false;
+  return true;
+}
 // 행에서 필터 필드값 추출. grade 는 유효등급(위원회 조정 우선).
 function calibFilterFields(rows, L) {
   const defs = [
@@ -906,17 +936,31 @@ function calibFilterFields(rows, L) {
         r.promotionStatus === 'recommended' ? L.cwPromoRecommended : '—',
     },
     { key: 'job', label: L.cwColJob, get: (r) => r.job || '—' },
+    // §6.3 — 고용형태와 재직상태는 별개 축이다. 고용형태는 회사가 정한 라벨 그대로,
+    // 재직상태는 코드값이라 라벨로 바꾼다(라벨이 없는 코드는 칩을 만들지 않는다 — 코드값을 화면에 내지 않는다).
+    { key: 'empType', label: L.cwFilterEmploymentType, get: (r) => r.employmentType || null },
+    {
+      key: 'empStatus',
+      label: L.cwFilterEmploymentStatus,
+      get: (r) => (r.employmentStatus ? L.cwEmploymentStatusLabels?.[r.employmentStatus] ?? null : null),
+    },
   ];
-  return defs.map((f) => ({
-    ...f,
-    values: [...new Set(rows.map(f.get).filter(Boolean))],
-  }));
+  return defs
+    .map((f) => ({
+      ...f,
+      values: [...new Set(rows.map(f.get).filter(Boolean))],
+    }))
+    .filter((f) => f.label);
 }
-function condsMatch(row, conds, fields, op) {
+function condsMatch(row, conds, fields, op, ranges) {
   const active = fields.filter((f) => conds[f.key]?.length);
-  if (active.length === 0) return true;
-  const hit = (f) => conds[f.key].includes(f.get(row));
-  return op === 'OR' ? active.some(hit) : active.every(hit);
+  const rangeKeys = activeRangeKeys(ranges);
+  if (active.length === 0 && rangeKeys.length === 0) return true;
+  const hits = [
+    ...active.map((f) => conds[f.key].includes(f.get(row))),
+    ...rangeKeys.map((k) => rangeHit(row, k, ranges[k])),
+  ];
+  return op === 'OR' ? hits.some(Boolean) : hits.every(Boolean);
 }
 function condsAny(row, conds, fields) {
   return fields.some(
@@ -927,13 +971,35 @@ function rowPassesCalibFilter(row, fs, fields) {
   if (!fs) return true;
   if (fs.excludeIds?.includes(row.memberId)) return false;
   if (condsAny(row, fs.excludeConds, fields)) return false;
-  return condsMatch(row, fs.includeConds, fields, fs.includeOp);
+  return condsMatch(row, fs.includeConds, fields, fs.includeOp, fs.ranges);
+}
+/** 제외(개인·제외 조건)에 걸려 빠진 사람인가 — 미리보기의 「제외 K」를 센다. */
+function rowExcludedByCalibFilter(row, fs, fields) {
+  return !!fs.excludeIds?.includes(row.memberId) || condsAny(row, fs.excludeConds, fields);
+}
+/** 필터 상태 → 화면에 보이는 행(필터 + 정렬). 표와 CSV 가 같은 함수를 써야 「화면에 보이는 것」이 파일이 된다. */
+function calibVisibleRows(rows, fs, fields, sort, orderedGrades) {
+  const filtered = isCalibFilterActive(fs)
+    ? rows.filter((r) => rowPassesCalibFilter(r, fs, fields))
+    : rows;
+  return sortCalibRows(filtered, sort, orderedGrades);
+}
+/** 저장된 프리셋 조건 → 필터 상태. 옛 프리셋에는 ranges 가 없다. */
+function presetToCalibFilter(p) {
+  return {
+    includeConds: p.filterConditions?.includeConds ?? {},
+    includeOp: p.filterConditions?.includeOp ?? 'AND',
+    excludeConds: p.filterConditions?.excludeConds ?? {},
+    excludeIds: p.filterConditions?.excludeIds ?? [],
+    ranges: p.filterConditions?.ranges ?? {},
+  };
 }
 function isCalibFilterActive(fs) {
   return (
     Object.keys(fs.includeConds || {}).length > 0 ||
     Object.keys(fs.excludeConds || {}).length > 0 ||
-    (fs.excludeIds || []).length > 0
+    (fs.excludeIds || []).length > 0 ||
+    activeRangeKeys(fs.ranges).length > 0
   );
 }
 
@@ -1191,6 +1257,15 @@ export default function EvalCycleSummaryCanvas({
       Object.entries(conds || {}).some(
         ([k, v]) => v?.length && FILTER_KEY_COLUMN[k] && !colOn(FILTER_KEY_COLUMN[k]),
       ),
+  ) || (activeRangeKeys(calibFilter.ranges).length > 0 && !colOn('joined'));
+  /** 표·CSV·미리보기가 함께 쓰는 「지금 화면에 보이는 행」. */
+  const calibFields = calibFilterFields(calibTable?.rows ?? [], L);
+  const calibShownRows = calibVisibleRows(
+    calibTable?.rows ?? [],
+    calibFilter,
+    calibFields,
+    effectiveCalibSort,
+    calibTable?.orderedGrades ?? [],
   );
   // R4b 프리셋 저장 입력
   const [presetName, setPresetName] = useState('');
@@ -3017,6 +3092,26 @@ export default function EvalCycleSummaryCanvas({
                     {L.cwFilterBtn}
                     {isCalibFilterActive(calibFilter) ? ' ●' : ''}
                   </button>
+                  {/* §6.3 — 저장한 프리셋은 창을 열지 않고 표 위에서 한 번에 적용한다. */}
+                  {filterPresets.length > 0 && (
+                    <select
+                      className="evc-period-select evs-cw-preset-bar"
+                      aria-label={L.cwPresetBarLabel}
+                      value=""
+                      onChange={(e) => {
+                        const p = filterPresets.find((x) => x.id === e.target.value);
+                        if (p) setCalibFilter(presetToCalibFilter(p));
+                      }}
+                      data-testid="evs-cw-preset-bar"
+                    >
+                      <option value="">{L.cwPresetBarPlaceholder}</option>
+                      {filterPresets.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} · {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {onOpenCommittee && (
                     <button
                       type="button"
@@ -3067,14 +3162,18 @@ export default function EvalCycleSummaryCanvas({
                         : fmt(L.cwCompAccessBtn, { n: compView.holderCount ?? 0 })}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="evc-btn is-ghost evs-cw-csv"
-                    onClick={() => onExportCalibCsv?.()}
-                    data-testid="evs-cw-csv"
-                  >
-                    {L.cwExportCsv}
-                  </button>
+                  {/* §10·§14 — 위원회·HR 만 받는다(서버가 canExportCsv 로 알려 준다). 파일은 지금 화면에
+                      걸러진 행 그대로다 — 필터 상태는 함께 넘겨 다운로드 기록에 남긴다. */}
+                  {calibTable?.canExportCsv && onExportCalibCsv && (
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost evs-cw-csv"
+                      onClick={() => onExportCalibCsv(calibShownRows, calibFilter)}
+                      data-testid="evs-cw-csv"
+                    >
+                      {L.cwExportCsv}
+                    </button>
+                  )}
                   {/* §7.4 최종 확정 — 위원장이고 아직 확정 전일 때만.
                       canCalibrate 는 서버가 (chair && status !== 'closed') 로 내려준다. */}
                   {calibTable?.session?.canCalibrate && (
@@ -3144,14 +3243,8 @@ export default function EvalCycleSummaryCanvas({
                       min: scores.length ? Math.min(...scores) : 1,
                       max: scores.length ? Math.max(...scores) : 3,
                     };
-                    const filterFields = calibFilterFields(calibTable.rows, L);
                     const filterActive = isCalibFilterActive(calibFilter);
-                    const filteredRows = filterActive
-                      ? calibTable.rows.filter((r) =>
-                          rowPassesCalibFilter(r, calibFilter, filterFields),
-                        )
-                      : calibTable.rows;
-                    const visibleRows = sortCalibRows(filteredRows, effectiveCalibSort, og);
+                    const visibleRows = calibShownRows;
                     return (
                       <>
                       <CalibDistributionBar
@@ -4260,7 +4353,26 @@ export default function EvalCycleSummaryCanvas({
 
       {/* §6.3 R4 대상자 선별 필터 모달 */}
       {showCalibFilter && calibTable && (() => {
-        const fields = calibFilterFields(calibTable.rows, L);
+        const fields = calibFields;
+        const excludedCount = calibTable.rows.filter((r) =>
+          rowExcludedByCalibFilter(r, calibFilter, fields),
+        ).length;
+        const setRange = (key, edge, value) =>
+          setCalibFilter((prev) => {
+            const ranges = { ...(prev.ranges || {}) };
+            const next = { ...(ranges[key] || {}), [edge]: value };
+            if (!next.from && !next.to) delete ranges[key];
+            else ranges[key] = next;
+            return { ...prev, ranges };
+          });
+        const toggleMember = (mid) =>
+          setCalibFilter((fs) => {
+            const ids = fs.excludeIds || [];
+            return {
+              ...fs,
+              excludeIds: ids.includes(mid) ? ids.filter((x) => x !== mid) : [...ids, mid],
+            };
+          });
         const toggleCond = (which, key, value) =>
           setCalibFilter((prev) => {
             const conds = { ...(prev[which] || {}) };
@@ -4330,6 +4442,18 @@ export default function EvalCycleSummaryCanvas({
             }
           >
             <div className="evc-shell-body">
+              {/* §6.2·§6.3 매칭 실시간 프리뷰 — 칩을 누를 때마다 바로 바뀐다. */}
+              <div
+                className="evs-cw-filter-preview"
+                aria-live="polite"
+                data-testid="evs-cw-filter-preview"
+              >
+                {fmt(L.cwFilterPreview, {
+                  n: calibShownRows.length,
+                  total: calibTable.rows.length,
+                  k: excludedCount,
+                })}
+              </div>
               {filterPresets.length > 0 && (
                 <div
                   className="evs-cw-filter-presets"
@@ -4343,14 +4467,7 @@ export default function EvalCycleSummaryCanvas({
                       <button
                         type="button"
                         className="evs-cw-filter-preset-pill"
-                        onClick={() =>
-                          setCalibFilter({
-                            includeConds: p.filterConditions?.includeConds ?? {},
-                            includeOp: p.filterConditions?.includeOp ?? 'AND',
-                            excludeConds: p.filterConditions?.excludeConds ?? {},
-                            excludeIds: p.filterConditions?.excludeIds ?? [],
-                          })
-                        }
+                        onClick={() => setCalibFilter(presetToCalibFilter(p))}
                         data-testid="evs-cw-filter-preset-pill"
                       >
                         {p.name}
@@ -4402,6 +4519,37 @@ export default function EvalCycleSummaryCanvas({
                     </div>
                   </div>
                   {palette('includeConds', 'accent')}
+                  {/* §4.2 6·7번 — 입사일·최종 승급일 범위. 포함 조건의 한 항목이라 필드 간 조합(AND/OR)을 따른다. */}
+                  <div className="evs-cw-filter-field" data-testid="evs-cw-filter-ranges">
+                    <div className="evs-cw-filter-field-label">{L.cwFilterRangeTitle}</div>
+                    {CALIB_RANGE_FIELDS.map((key) => {
+                      const r = calibFilter.ranges?.[key] || {};
+                      const label =
+                        key === 'hireDate' ? L.cwFilterRangeHireDate : L.cwFilterRangePromotedAt;
+                      return (
+                        <div key={key} className="evs-cw-filter-range">
+                          <span className="evs-cw-filter-range-label">{label}</span>
+                          <DateInput
+                            className="evs-cw-create-input evs-cw-filter-range-input"
+                            value={r.from || ''}
+                            max={r.to || undefined}
+                            onChange={(v) => setRange(key, 'from', v)}
+                            aria-label={`${label} ${L.cwFilterRangeFrom}`}
+                            data-testid={`evs-cw-filter-range-${key}-from`}
+                          />
+                          <span aria-hidden>~</span>
+                          <DateInput
+                            className="evs-cw-create-input evs-cw-filter-range-input"
+                            value={r.to || ''}
+                            min={r.from || undefined}
+                            onChange={(v) => setRange(key, 'to', v)}
+                            aria-label={`${label} ${L.cwFilterRangeTo}`}
+                            data-testid={`evs-cw-filter-range-${key}-to`}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="evs-cw-filter-sec-exclude">
                   <span className="evs-cw-filter-sec-title">
@@ -4413,41 +4561,33 @@ export default function EvalCycleSummaryCanvas({
                   {palette('excludeConds', 'red')}
                 </div>
               </div>
-              {calibFilter.excludeIds?.length > 0 && (
-                <div
-                  className="evs-cw-filter-excluded"
-                  data-testid="evs-cw-filter-excluded"
-                >
-                  <span className="evs-cw-filter-sec-title">
-                    {L.cwExcludedTitle} ({calibFilter.excludeIds.length})
-                  </span>
-                  <div className="evs-cw-filter-excluded-list">
-                    {calibFilter.excludeIds.map((mid) => {
-                      const m = calibTable.rows.find(
-                        (r) => r.memberId === mid,
-                      );
-                      return (
-                        <Tooltip key={mid} content={L.cwExcludedRemove}>
-                          <button
-                            type="button"
-                            className="evs-cw-filter-excluded-pill"
-                            onClick={() =>
-                              setCalibFilter((fs) => ({
-                                ...fs,
-                                excludeIds: (fs.excludeIds || []).filter(
-                                  (x) => x !== mid,
-                                ),
-                              }))
-                            }
-                          >
-                            {(m?.name || mid) + ' ×'}
-                          </button>
-                        </Tooltip>
-                      );
-                    })}
-                  </div>
+              {/* §6.3 특정 개인 수동 제외 — 대상자 칩을 누르면 빠지고(취소선), 다시 누르면 돌아온다. */}
+              <div className="evs-cw-filter-excluded" data-testid="evs-cw-filter-members">
+                <span className="evs-cw-filter-sec-title">
+                  {L.cwFilterMembersTitle}
+                  {calibFilter.excludeIds?.length > 0 &&
+                    ` · ${L.cwExcludedTitle} ${calibFilter.excludeIds.length}`}{' '}
+                  <span className="evs-cw-filter-sec-hint">· {L.cwFilterMembersHint}</span>
+                </span>
+                <div className="evs-cw-filter-excluded-list evs-cw-filter-members-list">
+                  {calibTable.rows.map((r) => {
+                    const off = !!calibFilter.excludeIds?.includes(r.memberId);
+                    return (
+                      <button
+                        type="button"
+                        key={r.memberId}
+                        className={`evs-cw-chip evs-cw-member-chip${off ? ' is-excluded' : ''}`}
+                        aria-pressed={off}
+                        title={off ? L.cwExcludedRemove : L.cwExcludeMember}
+                        onClick={() => toggleMember(r.memberId)}
+                        data-testid="evs-cw-filter-member-chip"
+                      >
+                        {r.name}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
               {/* PW-1053 — 저장이 받아들여지는 사람에게만 그린다(호출부가 핸들러를 넘기는 사람).
                   이름은 저장이 «성공한 뒤에» 비운다 — 실패하면 적은 이름이 남는다(PW-966 과 같은 틀). */}
               {onSaveFilterPreset && (
@@ -4483,6 +4623,7 @@ export default function EvalCycleSummaryCanvas({
                           includeOp: calibFilter.includeOp,
                           excludeConds: calibFilter.excludeConds,
                           excludeIds: calibFilter.excludeIds,
+                          ranges: calibFilter.ranges ?? {},
                         },
                         canSharePreset && presetShared,
                       ),
