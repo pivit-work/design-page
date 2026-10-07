@@ -248,6 +248,9 @@ const DEFAULT_LABELS = {
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
   cwAppealReviewCta: '→ 재검토',
+  // spec-calibration §14 「이미 처리된 어필 재진입」 — 결과를 읽기 전용으로 다시 연다(재결정 불가).
+  cwInboxDecidedTitle: '처리된 어필',
+  cwAppealResultCta: '→ 결과 보기',
   cwBackToInbox: '← 어필 목록',
   cwAppealTitle: '어필 재검토',
   cwAppealReasonLabel: '이의 사유 (매니저)',
@@ -2888,6 +2891,7 @@ export default function EvalCycleSummaryCanvas({
                           <div className="evs-cw-review-k">
                             {L.cwReviewedByLabel}
                             {appeal.reviewedByName ? ` · ${appeal.reviewedByName}` : ''}
+                            {appeal.reviewedAt ? ` · ${fmtDateTime(appeal.reviewedAt)}` : ''}
                           </div>
                           <div className="evs-cw-review-v">{appeal.reviewNote}</div>
                         </div>
@@ -2999,6 +3003,45 @@ export default function EvalCycleSummaryCanvas({
                           <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}</span>
                         </button>
                       ))
+                  )}
+                  {gradeAppeals.some((a) => a.status !== 'open') && (
+                    <>
+                      <div className="evs-section-label" data-testid="evs-cw-decided-title">
+                        {L.cwInboxDecidedTitle} ({gradeAppeals.filter((a) => a.status !== 'open').length})
+                      </div>
+                      {gradeAppeals
+                        .filter((a) => a.status !== 'open')
+                        .map((a) => (
+                          <button
+                            type="button"
+                            key={a.id}
+                            className="evs-cw-appeal"
+                            onClick={() => onSelectAppeal?.(a.id)}
+                            data-testid="evs-cw-appeal-decided"
+                          >
+                            <StatusBadge
+                              className={`evs-cw-status tone-${a.status === 'accepted' ? 'green' : 'red'} evs-cw-appeal-badge`}
+                            >
+                              {a.status === 'accepted' ? L.cwStatusAccepted : L.cwStatusRejected}
+                            </StatusBadge>
+                            <div className="evs-cw-appeal-main">
+                              <div className="evs-cw-appeal-name">
+                                {a.memberName}
+                                <span className="evs-cw-appeal-sub">
+                                  {' '}
+                                  · {a.job} · {a.team}
+                                </span>
+                              </div>
+                              <div className="evs-cw-appeal-meta">
+                                {L.cwReviewedByLabel}
+                                {a.reviewedByName ? ` · ${a.reviewedByName}` : ''}
+                                {a.reviewedAt ? ` · ${fmtDateTime(a.reviewedAt)}` : ''}
+                              </div>
+                            </div>
+                            <span className="evs-cw-appeal-cta">{L.cwAppealResultCta}</span>
+                          </button>
+                        ))}
+                    </>
                   )}
                 </div>
                 <div className="evs-cw-roster-head">
