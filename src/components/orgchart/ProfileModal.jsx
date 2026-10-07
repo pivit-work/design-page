@@ -99,12 +99,13 @@ function applyTexture(app, objectName, imageSrc) {
 // resolvePhoto — 구성원 사진을 3D 아바타에 입힐 때 쓴다. `(member) => url | null | Promise<url | null>`.
 // 미지정이면 지금까지처럼 기본 사진(PROFILE_IMAGE)을 입힌다. 사진을 못 구하면(null·실패) 기본 사진.
 // 새 멤버로 열리면 그 사람 사진이 입혀질 때까지 무대를 숨겨 앞사람 얼굴이 비치지 않게 한다.
+// hideFeedback — 피드백주기 버튼을 그리지 않는다(팀 피드백을 쓰지 않는 사람 — 조직장이 아닌 어드민 · 기획 TC-FB-014).
 // actions — 피드백주기·미팅잡기 대신 그 자리에 놓을 버튼들. `[{ key, label, onClick(member), variant, testId }]`.
 // variant 'primary' 는 피드백주기, 그 밖은 미팅잡기와 같은 모양이다 — 새 모양을 만들지 않는다.
 // 어드민 조직단위 설정이 조직장 카드에 «변경»·«해제»를 붙이려고 쓴다(PW-1303). 관리 동작이라
 // 본인·퇴사·휴직이어도 막지 않는다(퇴사한 조직장도 해제할 수 있어야 한다).
 // 미지정이면 지금까지처럼 피드백주기·미팅잡기다(시각·레이아웃 변화 없음).
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -265,14 +266,16 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             displayMember?.status === 'leave';
           return (
             <div className={`modal-actions ${isDisabled ? 'modal-actions-disabled' : ''}`}>
-              <button
-                className="modal-btn-feedback"
-                disabled={isDisabled}
-                onClick={onFeedbackClick ? () => onFeedbackClick(displayMember) : undefined}
-              >
-                <Icon src="/icons-solid/send-03.svg" size={20} baseUrl={baseUrl} />
-                {L('profile.feedback')}
-              </button>
+              {!hideFeedback && (
+                <button
+                  className="modal-btn-feedback"
+                  disabled={isDisabled}
+                  onClick={onFeedbackClick ? () => onFeedbackClick(displayMember) : undefined}
+                >
+                  <Icon src="/icons-solid/send-03.svg" size={20} baseUrl={baseUrl} />
+                  {L('profile.feedback')}
+                </button>
+              )}
               <button
                 className="modal-btn-meeting"
                 disabled={isDisabled}
