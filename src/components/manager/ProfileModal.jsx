@@ -455,6 +455,16 @@ function ActionItemsTab({ data }) {
             <div
               key={item.id}
               className={`manager-modal-action-row ${item.done ? 'is-done' : ''}`.trim()}
+              // 출처(회의·1on1)로 갈 수 있는 항목만 소비자가 `onOpen` 을 준다 — 행을 누르면 그리로 간다(기획 §6-7).
+              {...(item.onOpen
+                ? {
+                    role: 'link',
+                    tabIndex: 0,
+                    style: { cursor: 'pointer' },
+                    onClick: item.onOpen,
+                    onKeyDown: (e) => { if (e.key === 'Enter') item.onOpen(); },
+                  }
+                : {})}
             >
               {/* 체크박스가 아니라 상태 표시다 — button 이 아니므로 눌러도 반응하지 않는다. */}
               <span
@@ -651,8 +661,15 @@ function HealthChart({ points, teamAverage, dates }) {
     PAD_LEFT + ((W - PAD_LEFT - PAD_RIGHT) / Math.max(1, n - 1)) * i;
   const yFor = (v) => (H - (v / Y_MAX) * H);
 
+  // 값이 없는 주(null)는 0 으로 그리지 않고 비워 두며, 앞뒤 주를 잇지 않는다(기획 §6-5).
+  // 바로 앞 주에 값이 있으면 잇고(L), 없으면 새 토막을 연다(M).
   const linePath = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i, points.length)} ${yFor(p.value)}`)
+    .map((p, i) => {
+      if (p.value == null) return '';
+      const joined = i > 0 && points[i - 1].value != null;
+      return `${joined ? 'L' : 'M'} ${xFor(i, points.length)} ${yFor(p.value)}`;
+    })
+    .filter(Boolean)
     .join(' ');
   const teamY = teamAverage != null ? yFor(teamAverage) : null;
 
@@ -696,7 +713,7 @@ function HealthChart({ points, teamAverage, dates }) {
           <path d={linePath} stroke="var(--utility-purple-500)" strokeWidth="2" fill="none" />
         )}
         {/* 데이터 포인트 dots */}
-        {points.map((p, i) => (
+        {points.map((p, i) => p.value == null ? null : (
           <circle
             key={i}
             cx={xFor(i, points.length)}

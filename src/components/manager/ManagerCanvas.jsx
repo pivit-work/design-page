@@ -88,6 +88,11 @@ export default function ManagerCanvas({
   onMemberOpen,
   onHrProfileRetry,
   onSnippetsMore,
+  /**
+   * KR 드릴다운 멤버 카드 id → 팀원 카드 id. 둘이 다른 id 를 쓰는 소비자(사용자 id ↔ 명부 id)가
+   * 넘긴다. 없으면 같은 id 로 본다. 찾는 팀원이 없으면(조회 범위 밖) 상세 창을 열지 않는다(기획 §7-4).
+   */
+  krMemberProfileId,
 }) {
   // 🔴 열린 멤버는 **id 로** 기억하고 객체는 지금 props 에서 다시 찾는다.
   // 객체를 통째로 state 에 담아 두면, 모달이 열린 뒤 소비자가 그 멤버의 데이터를
@@ -102,6 +107,12 @@ export default function ManagerCanvas({
         ) ?? null;
   const openProfile = (m) => { setOpenMemberId(m?.id ?? null); onMemberOpen?.(m); };
   const closeProfile = () => { setOpenMemberId(null); onMemberOpen?.(null); };
+  const openKrMemberProfile = (krMemberId) => {
+    const id = krMemberProfileId ? krMemberProfileId(krMemberId) : krMemberId;
+    if (id == null) return;
+    const m = [...(actionQueue?.members ?? []), ...(teamStatus?.members ?? [])].find((x) => x.id === id);
+    if (m) openProfile(m);
+  };
 
   return (
     <main className="manager-page">
@@ -137,6 +148,7 @@ export default function ManagerCanvas({
           onSelectMember={onSelectMember}
           onRetryDetail={onRetryDetail}
           labels={krLabels}
+          onMemberOpen={openKrMemberProfile}
         />
       ) : activeTab === 'snippets' && (teamSnippetsSlot || teamSnippets) ? (
         teamSnippetsSlot || (

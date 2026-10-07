@@ -39,6 +39,9 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  /* 폭이 모자라면 줄바꿈하지 않고 옆으로 민다 — 줄바꿈하면 제목 계층이 무너진다(기획 §2-1). */
+  max-width: 100%;
+  overflow-x: auto;
   font-family: var(--font-family-display);
   font-weight: 700;
   font-size: var(--font-size-display-sm);
