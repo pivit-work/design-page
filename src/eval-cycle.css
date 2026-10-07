@@ -5921,6 +5921,16 @@
 .evs-cw-chair-transfer select.evs-cw-create-input {
   background: var(--bg-primary);
 }
+/* §3.4③ 위원장 이양 — 고른 뒤 확인 문구 아래 [취소][넘기기]. 고르기 전에는 버튼 하나. */
+.evs-cw-chair-transfer > .tl-group-modal-btn,
+.evs-cw-direct-transfer-actions {
+  margin-top: 8px;
+}
+.evs-cw-direct-transfer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
 .evs-cw-create-chips {
   display: flex;
   gap: 6px;
