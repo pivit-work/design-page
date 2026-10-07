@@ -12,6 +12,11 @@ import { useState } from 'react';
  * 편집·사진 업로드는 이 화면에서 처리하지 않고 내 설정(`/settings`)으로 위임한다
  * (onEdit / onEditPhoto). 보상 마스킹 토글만 세션 로컬 state 로 관리한다.
  *
+ * 보상 지연 조회(정책 §5 「보상 조회 = `보기` 최초 클릭 시 lazy」): `onRevealComp` 를 주면
+ * 보상 금액을 미리 받지 않은 채로 마스킹만 그리고, 처음 `보기` 를 누를 때 이 콜백으로 조회를
+ * 맡긴다. 진행 상태는 `compensationStatus`(idle·loading·loaded·error)로 받는다. 실패하면
+ * 마스킹을 유지하고 안내를 띄우며, `보기` 를 다시 누르면 재조회한다.
+ *
  * 경로 `/me` — 항상 요청자 본인. 직속 팀원 목록·타인 카드는 설계상 제외.
  */
 
@@ -48,6 +53,7 @@ const DEFAULT_LABELS = {
     salaryTotal: '기본급 (연)',
     effectiveDate: '적용일',
     empty: '등록된 보상 정보가 없습니다.',
+    loadError: '보상 정보를 불러오지 못했습니다.',
     ssot: '보상 데이터는 어드민(HR)이 관리하는 단일 출처이며, 이 화면은 표시·마스킹 전용입니다.',
   },
   dash: '—',
@@ -123,6 +129,8 @@ export default function MyProfileCanvas({
   org = null,
   compensation = null,
   isAdmin = false,
+  compensationStatus = 'loaded',
+  onRevealComp,
   onEdit,
   onEditPhoto,
   labels: providedLabels,
@@ -141,7 +149,19 @@ export default function MyProfileCanvas({
     orDash([cur.level, cur.title || cur.position].filter(Boolean).join(' / ') || null, dash);
 
   const comp = compensation && compensation.current ? compensation.current : null;
-  const compRevealed = isAdmin || revealComp;
+  const compRevealed = (isAdmin || revealComp) && Boolean(comp);
+  // 지연 조회 중이면 아직 금액이 없어도 마스킹 카드와 `보기` 를 그린다(빈 상태로 단정하지 않는다).
+  const compPending =
+    !isAdmin && typeof onRevealComp === 'function' && compensationStatus !== 'loaded';
+  const compFailed = compPending && compensationStatus === 'error';
+  const onCompToggle = () => {
+    if (compPending && compensationStatus !== 'loading' && (!revealComp || compFailed)) {
+      onRevealComp();
+      setRevealComp(true);
+      return;
+    }
+    setRevealComp((v) => !v);
+  };
 
   const hasPhoto = Boolean(me.avatarUrl);
   const heroMeta = [me.title, cur.dept ?? me.dept].filter(Boolean).join(' · ');
@@ -224,18 +244,19 @@ export default function MyProfileCanvas({
           <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>
             {L.comp.section} <span className="mp-section-sub">({L.comp.sensitive})</span>
           </div>
-          {comp && !isAdmin && (
+          {(comp || compPending) && !isAdmin && (
             <button
               type="button"
-              className={`admin-notif-btn is-sm ${revealComp ? 'is-primary' : 'is-soft'}`}
-              onClick={() => setRevealComp((v) => !v)}
+              className={`admin-notif-btn is-sm ${revealComp && !compFailed ? 'is-primary' : 'is-soft'}`}
+              onClick={onCompToggle}
+              disabled={compensationStatus === 'loading'}
               data-testid="myprofile-comp-reveal"
             >
-              {revealComp ? L.comp.hide : L.comp.reveal}
+              {revealComp && !compFailed ? L.comp.hide : L.comp.reveal}
             </button>
           )}
         </div>
-        {comp ? (
+        {comp || compPending ? (
           <>
             <div className="msc-comp-grid">
               <div>
@@ -250,10 +271,15 @@ export default function MyProfileCanvas({
               <div>
                 <div className="msc-pair-label">{L.comp.effectiveDate}</div>
                 <div className="msc-pair-value" data-testid="myprofile-comp-effective">
-                  {comp.effectiveDate || '-'}
+                  {(comp && comp.effectiveDate) || '-'}
                 </div>
               </div>
             </div>
+            {compFailed && (
+              <p className="mp-comp-note" role="alert" data-testid="myprofile-comp-error">
+                {L.comp.loadError}
+              </p>
+            )}
             <p className="mp-comp-note">{L.comp.ssot}</p>
           </>
         ) : (

@@ -65,6 +65,9 @@ const DEFAULT_LABELS = {
     purged: '파기됨',
     withheld: '변경됨',
     none: '—',
+    emptyValue: '(비어 있음)',
+    adminManaged: '어드민 관리',
+    noReason: '—',
     empty: '아직 기록된 변경이 없습니다.',
     emptyFiltered: '조건에 맞는 변경이 없습니다.',
     clearFilter: '필터 해제',
@@ -1284,7 +1287,7 @@ function HistoryTab({
           <button type="button" className={chip(field === 'all')}
             onClick={() => onFieldChange && onFieldChange('all')}
             data-testid="history-field-all">{L.allFields}</button>
-          {/* 이력이 «실제로 있는» 항목만 세운다 — 전 대상 필드를 나열하면 대부분이 빈 옵션이 된다. */}
+          {/* 받은 목록 그대로 세운다 — 내 설정은 원 편집 자리 묶음(정책서 §2)을 넘긴다. */}
           {fields.map((f) => (
             <button key={f.key} type="button" className={chip(field === f.key)}
               onClick={() => onFieldChange && onFieldChange(f.key)}
@@ -1332,22 +1335,32 @@ function HistoryTab({
                     </StatusBadge>
                     {h.changeKind === 'add' && <StatusBadge className="msc-hist-badge">{L.added}</StatusBadge>}
                     {h.changeKind === 'remove' && <StatusBadge className="msc-hist-badge">{L.removed}</StatusBadge>}
+                    {/* 이 화면에서 고칠 자리가 없는 필드(급여 계좌·병역·사번 등) — 정책서 §2 */}
+                    {h.adminManaged && (
+                      <StatusBadge className="msc-hist-badge" data-testid={`history-admin-managed-${h.id}`}>
+                        {L.adminManaged}
+                      </StatusBadge>
+                    )}
                   </div>
                   <div className="msc-notif-sub msc-hist-values" data-testid={`history-values-${h.id}`}>
                     {h.state === 'purged' ? L.purged
                       : h.state === 'withheld' ? L.withheld
-                        : `${h.before || L.none} → ${h.after || L.none}`}
+                        : `${h.before || L.none} → ${h.after || (h.changeKind === 'update' ? L.emptyValue : L.none)}`}
                   </div>
                 </div>
-                {/* 사유는 본인 편집에서 선택 입력이라 비어 있을 수 있다 — 빈 사유로 행을 감추지 않고,
-                    「사유 없음」을 매 행에 반복해 적지도 않는다. 줄 자체를 그리지 않는다. */}
-                {h.reason && <span className="msc-hist-reason">{h.reason}</span>}
+                {/* 사유는 본인 편집에서 선택 입력이라 비어 있을 수 있다 — 그때는 자리를 그리지 않는다.
+                    남(HR)이 바꾼 행의 빈 사유는 옛 이관 데이터뿐이고, 정책서 §7 이 「—」로 보이게 정했다
+                    (사유가 없는 것과 행이 없는 것은 다르다). */}
+                {h.reason ? <span className="msc-hist-reason">{h.reason}</span>
+                  : h.actor && !h.actor.isSelf
+                    ? <span className="msc-hist-reason" data-testid={`history-no-reason-${h.id}`}>{L.noReason}</span>
+                    : null}
               </div>
             ))}
           </div>
         )}
 
-        {hasMore && !loading && (
+        {hasMore && !loading && !error && (
           <button type="button" className="admin-notif-btn is-sm is-soft msc-hist-more"
             onClick={onLoadMore} data-testid="history-more">{L.more}</button>
         )}
