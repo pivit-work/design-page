@@ -1394,6 +1394,7 @@ function TemplatePickerModal({
   cycleTypes,
   onLoad,
   onClose,
+  onOpenTemplateLibrary,
   labels: L,
 }) {
   const [q, setQ] = useState('');
@@ -1427,7 +1428,20 @@ function TemplatePickerModal({
       zIndex={1000}
       className="evc-shell is-wide evc-tpl-picker"
       testId="evc-tpl-picker"
-      footer={null}
+      /* library policy §11 — 위자드 안에서는 편집·보관·삭제를 하지 않는다. 그 일은 라이브러리
+         화면(새 탭)에서 — 위자드 작업을 잃지 않도록 같은 탭으로 옮기지 않는다. */
+      footer={
+        onOpenTemplateLibrary ? (
+          <button
+            type="button"
+            className="evc-btn is-ghost"
+            onClick={() => onOpenTemplateLibrary()}
+            data-testid="evc-tpl-picker-manage-library"
+          >
+            {L.tplPickerManageLibrary} <ArrowRightIcon size={12} />
+          </button>
+        ) : null
+      }
       >
       <div className="evc-shell-body">
         {pool.length === 0 ? (
@@ -1526,6 +1540,20 @@ function TemplatePickerModal({
                                     {t.usageCount > 0
                                       ? fill(L.tplUsageCount, { count: t.usageCount })
                                       : L.tplNeverUsed}
+                                    {/* library policy §11 표시 정보 — 작성자·수정일. 날짜는 소비자가
+                                        보는 사람 시간대로 만들어 넘긴다. 없으면 칸을 그리지 않는다. */}
+                                    {t.createdBy && (
+                                      <span data-testid={`evc-tpl-picker-author-${t.id}`}>
+                                        {' · '}
+                                        {fill(L.tplPickerAuthor, { name: t.createdBy })}
+                                      </span>
+                                    )}
+                                    {t.updatedAtLabel && (
+                                      <span data-testid={`evc-tpl-picker-updated-${t.id}`}>
+                                        {' · '}
+                                        {fill(L.tplPickerUpdated, { date: t.updatedAtLabel })}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="evc-tpl-picker-row-actions">
@@ -3706,6 +3734,8 @@ export default function EvalCycleWizard({
 
   /** 확정 갈아 끼우기 확인 — `{ type, from, to, run }`. */
   const [pendingConfirmSwap, setPendingConfirmSwap] = useState(null);
+  /** 불러오기 교체 확인 — `{ run }`. 확정 갈아 끼우기가 아닌 모든 불러오기가 거친다. */
+  const [pendingTplLoad, setPendingTplLoad] = useState(null);
   /** 확정된 평가 유형을 1단계에서 끄려는 시도 — 유형 id. */
   const [pendingTypeOff, setPendingTypeOff] = useState(null);
 
@@ -3921,7 +3951,7 @@ export default function EvalCycleWizard({
     setTplPeek(null);
     // PW-441 §5.10-D — 불러오기 «완료» 가 곧 확정이다. 이미 다른 것으로 확정돼 있으면
     // 버퍼 프리필까지 통째로 확인 뒤로 미룬다(취소하면 화면이 그대로 남는다).
-    confirmTemplateFor(type, tpl, () => {
+    const apply = () => {
       setTplType(type);
       setTplName(tpl.name);
       setTplVersion(tpl.version);
@@ -3935,7 +3965,16 @@ export default function EvalCycleWizard({
         revision: tpl.revision || 1,
         snapshot: JSON.stringify(tpl.questions),
       });
-    });
+    };
+    // 다른 템플릿으로 이미 확정돼 있으면 더 무거운 «A → B» 확인 하나만 띄운다 — 두 번 묻지 않는다.
+    const prevId = phaseTemplateMap[type];
+    if (prevId && prevId !== tpl.id) {
+      confirmTemplateFor(type, tpl, apply);
+      return;
+    }
+    // 그 밖의 모든 불러오기(확정 없음·같은 템플릿 다시)도 편집 중인 항목·등급을 덮어쓰므로
+    // 먼저 묻는다 (library policy §11 「불러오기 확인」 · cycle-hr §5.10.1). 취소하면 아무것도 안 바뀐다.
+    setPendingTplLoad({ run: () => confirmTemplateFor(type, tpl, apply) });
   };
 
   const togglePeerMode = (key) =>
@@ -5998,7 +6037,23 @@ export default function EvalCycleWizard({
                     className="evc-tpl-save-hint is-ok"
                     data-testid="evc-tpl-saved"
                   >
-                    ✓ {L.templateSaved}
+                    <CheckCircleIcon size={13} />{' '}
+                    {/* library policy §3·§7 — 라이브러리 모드면 «어디에» 저장됐는지와 그 자리로
+                        가는 길을 함께 준다. 세션 로컬 저장(라이브러리 없음)은 종전 문구. */}
+                    {libraryMode ? L.templateSavedToLibrary : L.templateSaved}
+                    {libraryMode && onOpenTemplateLibrary && (
+                      <>
+                        {' '}
+                        <button
+                          type="button"
+                          className="evc-tpl-save-hint is-link is-ok"
+                          onClick={() => onOpenTemplateLibrary()}
+                          data-testid="evc-tpl-saved-open-library"
+                        >
+                          {L.templateViewInLibrary} <ArrowRightIcon size={12} />
+                        </button>
+                      </>
+                    )}
                   </span>
                 ) : (
                   tplSaveBlockKey && (
@@ -6049,6 +6104,7 @@ export default function EvalCycleWizard({
                   cycleTypes={reviewTypes}
                   onLoad={loadTemplate}
                   onClose={() => setTplPickerOpen(false)}
+                  onOpenTemplateLibrary={onOpenTemplateLibrary}
                   labels={L}
                 />
               )}
@@ -7865,6 +7921,13 @@ export default function EvalCycleWizard({
                     ))}
                   </b>
                 </div>
+                {/* library policy §7 · cycle-hr §5.10.1 — 오픈할 때 라이브러리 원본을 사이클 사본으로
+                    굳힌다. 이미 연 사이클은 굳은 뒤라 이 안내가 거짓이 된다. */}
+                {!openedManage && (
+                  <p className="evc-summary-tpl-note" data-testid="evc-wiz-summary-tpl-lock-note">
+                    <InfoIcon size={12} /> {L.tplSummaryLockOnOpen}
+                  </p>
+                )}
                 <div className="evc-summary-row">
                   <span>{L.scheduleSummaryLabel}</span>
                   <b>
@@ -8221,6 +8284,26 @@ export default function EvalCycleWizard({
           onConfirm={() => pendingConfirmSwap.run()}
           cancelTestId="evc-tpl-confirm-swap-cancel"
           confirmTestId="evc-tpl-confirm-swap-ok"
+        />
+      )}
+
+      {/* 불러오기 = 편집 버퍼 교체. 확정 갈아 끼우기(위)가 아닌 경우에도 덮어쓰기 전에 묻는다. */}
+      {pendingTplLoad && (
+        <AppConfirmModal
+          title={L.templateLoad}
+          body={
+            <span data-testid="evc-tpl-load-confirm-body">{L.tplLoadReplaceBody}</span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.templateLoad}
+          onCancel={() => setPendingTplLoad(null)}
+          onConfirm={() => {
+            const { run } = pendingTplLoad;
+            setPendingTplLoad(null);
+            run();
+          }}
+          cancelTestId="evc-tpl-load-confirm-cancel"
+          confirmTestId="evc-tpl-load-confirm-ok"
         />
       )}
 

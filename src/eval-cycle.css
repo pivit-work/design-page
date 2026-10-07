@@ -3214,6 +3214,17 @@
   font-weight: 600;
   text-align: right;
 }
+/* 확인 단계 「적용 템플릿」 밑 안내 — 오픈 시 템플릿 내용이 굳는다 (library policy §7). */
+.evc-summary-tpl-note {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
 
 /* ════════════════════════════════════════════════════════════
    평가 제외 안내 (EvalCycleExcludedCanvas)
@@ -6963,6 +6974,43 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
+}
+/* §6.3 대상자 칩 — 누르면 개인 제외(취소선). 사람이 많으면 칩 묶음만 스크롤한다. */
+.evs-cw-filter-members-list {
+  max-height: 160px;
+  overflow-y: auto;
+}
+.evs-cw-member-chip.is-excluded {
+  text-decoration: line-through;
+  border-color: var(--utility-error-200);
+  background: var(--utility-error-50);
+  color: var(--utility-error-700);
+}
+/* §6.2 매칭 실시간 프리뷰 — 선별 N / 전체 M명 · 제외 K */
+.evs-cw-filter-preview {
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--utility-brand-600);
+}
+/* §4.2 입사일·최종 승급일 범위 */
+.evs-cw-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.evs-cw-filter-range-label {
+  min-width: 72px;
+}
+.evs-cw-filter-range-input {
+  width: 140px;
+}
+/* §6.3 표 위 프리셋 한 번에 적용 */
+.evs-cw-preset-bar {
+  max-width: 220px;
 }
 .evs-cw-filter-excluded-pill {
   padding: 3px 10px;
