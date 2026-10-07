@@ -320,6 +320,7 @@ const DEFAULT_LABELS = {
     ],
     consentRequired: '입력하신 내용을 저장하려면 동의가 필요합니다',
     agreedOn: (date) => `${date} 동의`,
+    legacyDeleteOn: (date) => `동의하지 않으시면 ${date} 에 저장된 선호가 지워집니다.`,
     withdraw: '모두 지우고 동의 철회',
     withdrawTitle: '동의를 철회할까요?',
     withdrawBody: '저장된 선호·성향 정보가 모두 지워지고, 이후 AI 결과물이 개인화되지 않습니다. 그 밖의 불이익은 없습니다.',

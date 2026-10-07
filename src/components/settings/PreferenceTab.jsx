@@ -16,6 +16,8 @@ import { InfoIcon } from './settingsIcons.jsx';
  *
  * - `preference` — `{ agreed, agreedDate, feedbackProfile, communicationPreference }`. 불러오는 중·실패면 null.
  *   `agreedDate` 는 사용자 시간대의 `YYYY-MM-DD`(호스트가 만든다).
+ *   `legacyDeleteDate`(선택) — 동의 없이 남아 있던 값이 지워지는 날 `YYYY-MM-DD`. 있고 동의 전이면 동의 카드에
+ *   주황 한 줄 「동의하지 않으시면 … 에 저장된 선호가 지워집니다」를 그린다(기획 §5-A.10 ① · 법무 D38).
  * - `onSave({ agree, value })` — `agree` 는 이번 저장에서 동의를 새로 기록해야 하는가, `value` 는 입력 전체.
  *   동의도 체크도 없는데 입력이 있으면 부르지 않고 체크박스 아래에 안내만 띄운다(policy §4).
  * - `onWithdraw()` — 확인 창에서 [철회]를 누르면. 끝날 때까지 창을 잠그고, 끝나면 닫는다.
@@ -255,6 +257,11 @@ export default function PreferenceTab({
               </div>
             ))}
           </dl>
+        )}
+        {!agreed && preference?.legacyDeleteDate && (
+          <p className="msc-pref-consent-legacy" data-testid="preference-legacy-deadline">
+            {L.legacyDeleteOn(preference.legacyDeleteDate)}
+          </p>
         )}
         {needConsent && (
           <p className="msc-input-error" role="alert" data-testid="preference-consent-required">{L.consentRequired}</p>
