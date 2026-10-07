@@ -969,8 +969,15 @@ export default function EvalFeedbackCanvas({
   const linkedBlock = useMemo(() => {
     if (linkDismissed || !openTarget?.type || !openTarget?.id) return null;
     const key = `${openTarget.type}:${openTarget.id}`;
-    return [...krBlocks, ...initBlocks].find((b) => b.key === key) || null;
-  }, [openTarget, krBlocks, initBlocks, linkDismissed]);
+    const own = [...krBlocks, ...initBlocks].find((b) => b.key === key);
+    if (own) return own;
+    // 내 목록 밖의 KR(예: 팀 KR)에 연결된 피드백은 「기타」 칸에 모인다 — 알림은 그 KR 로
+    // 링크하므로, 「기타」 안에 그 KR 의 피드백이 있으면 「기타」를 연다.
+    const inEtc = etc?.items.some(
+      (i) => `${i.linkedTargetType}:${i.linkedTargetId}` === key,
+    );
+    return inEtc ? etc : null;
+  }, [openTarget, krBlocks, initBlocks, etc, linkDismissed]);
 
   // 도착 결과를 소비 측에 **한 번만** 알린다 — URL 파라미터 정리와 «찾을 수 없음»
   // 안내는 소비 측 소관이다(이 캔버스는 라우터를 모른다).
@@ -998,6 +1005,11 @@ export default function EvalFeedbackCanvas({
     if (el) cardRefs.current.set(key, el);
     else cardRefs.current.delete(key);
   };
+  // 「기타」 카드는 map 밖에서 그려진다 — 렌더 중에 refFor 를 부르지 않도록 고정 콜백을 둔다.
+  const etcCardRef = useCallback((el) => {
+    if (el) cardRefs.current.set('etc', el);
+    else cardRefs.current.delete('etc');
+  }, []);
   const linkedLabelOf = useCallback(
     (item) => linkedLabel(item, krBlocks, initBlocks, L),
     [krBlocks, initBlocks, L],
@@ -1142,7 +1154,7 @@ export default function EvalFeedbackCanvas({
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionEtc}
             </div>
-            <BlockCard block={etc} L={L} onOpen={setOpenBlock} />
+            <BlockCard block={etc} L={L} onOpen={setOpenBlock} cardRef={etcCardRef} />
           </>
         )}
 
