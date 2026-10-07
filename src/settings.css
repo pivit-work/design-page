@@ -1231,6 +1231,29 @@
   margin: 0;
 }
 
+/* 선호 동의 창(PreferenceConsentModal) — [보기]를 펼쳐 길어지면 창 안에서 스크롤한다. */
+.tl-group-modal.msc-shell {
+  width: 560px;
+  height: auto;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+}
+.tl-group-modal.msc-shell .tl-group-modal-content {
+  overflow-y: auto;
+}
+.msc-shell-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.msc-shell-body > p {
+  margin: 0;
+}
+.msc-pref-consent-statement {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
 .msc-pref-consent-legacy {
   margin: 8px 0 0;
   padding: 8px 12px;
