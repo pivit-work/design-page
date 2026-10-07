@@ -6,6 +6,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
@@ -194,6 +195,7 @@ const DEFAULT_LABELS = {
   cwFilterPresetNamePlaceholder: '현재 필터를 프리셋으로 저장 (이름)',
   cwFilterPresetShareLabel: '조직 공용',
   cwFilterPresetSave: '프리셋 저장',
+  cwFilterPresetDelete: '프리셋 삭제',
   cwExcludeMember: '이 대상 제외',
   cwExcludedTitle: '개인 제외',
   cwExcludedRemove: '제외 해제',
@@ -1024,6 +1026,11 @@ export default function EvalCycleSummaryCanvas({
   onNineBoxNameClick,
   onExportCsv,
   onSaveFilterPreset,
+  /**
+   * 기획 screen-eval-cycle-hr.policy.md §7.D 「삭제는 만든 사람 + 관리자」. `(presetId) => void`.
+   * 넘기면 `canDelete` 가 참인 프리셋 옆에만 지우기 단추를 그린다 — 지울 수 있는지는 서버가 정한다.
+   */
+  onDeleteFilterPreset,
   /**
    * PW-1053 — 「조직 공용」 체크를 보일지. 공용 프리셋은 서버가 인사담당자에게만 받는다.
    * 넘기지 않으면 종전대로 보인다. 프리셋 저장 칸 자체는 `onSaveFilterPreset` 이 있을 때만 그린다.
@@ -4037,25 +4044,38 @@ export default function EvalCycleSummaryCanvas({
                     {L.cwFilterPresetsLabel}
                   </span>
                   {filterPresets.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className="evs-cw-filter-preset-pill"
-                      onClick={() =>
-                        setCalibFilter({
-                          includeConds: p.filterConditions?.includeConds ?? {},
-                          includeOp: p.filterConditions?.includeOp ?? 'AND',
-                          excludeConds: p.filterConditions?.excludeConds ?? {},
-                          excludeIds: p.filterConditions?.excludeIds ?? [],
-                        })
-                      }
-                      data-testid="evs-cw-filter-preset-pill"
-                    >
-                      {p.name}
-                      <span className="evs-cw-filter-preset-tag">
-                        {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
-                      </span>
-                    </button>
+                    <span key={p.id} className="evs-cw-filter-preset-item">
+                      <button
+                        type="button"
+                        className="evs-cw-filter-preset-pill"
+                        onClick={() =>
+                          setCalibFilter({
+                            includeConds: p.filterConditions?.includeConds ?? {},
+                            includeOp: p.filterConditions?.includeOp ?? 'AND',
+                            excludeConds: p.filterConditions?.excludeConds ?? {},
+                            excludeIds: p.filterConditions?.excludeIds ?? [],
+                          })
+                        }
+                        data-testid="evs-cw-filter-preset-pill"
+                      >
+                        {p.name}
+                        <span className="evs-cw-filter-preset-tag">
+                          {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
+                        </span>
+                      </button>
+                      {onDeleteFilterPreset && p.canDelete && (
+                        <button
+                          type="button"
+                          className="evs-cw-filter-preset-del"
+                          aria-label={`${L.cwFilterPresetDelete}: ${p.name}`}
+                          title={L.cwFilterPresetDelete}
+                          onClick={() => onDeleteFilterPreset(p.id)}
+                          data-testid="evs-cw-filter-preset-delete"
+                        >
+                          <CloseGlyph size={12} />
+                        </button>
+                      )}
+                    </span>
                   ))}
                 </div>
               )}
