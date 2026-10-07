@@ -344,7 +344,17 @@ const DEFAULT_LABELS = {
   cwManageDesc: '체크하면 위원으로 추가되고, 체크를 해제하면 제외됩니다.',
   cwManageSubmit: '저장',
   cwManageLocked: '확정이 완료된 위원회는 위원을 변경할 수 없습니다.',
-  cwManageNoPermission: '위원 구성 변경은 HR·관리자만 할 수 있습니다.',
+  // spec-calibration §3.4③ · summary policy §10.G.2-D — 위원 구성은 위원장만 바꾼다(HR 은 조회 전용).
+  cwManageNoPermission: '위원장만 위원 구성을 변경할 수 있습니다.',
+  // §3.4③ 위원장 이양(제외 없이 교체) — 위원장이 이 창에서 이어받을 위원을 고른다.
+  cwDirectTransferLabel: '위원장 이양',
+  cwDirectTransferPlaceholder: '이어받을 위원을 선택하세요',
+  cwDirectTransferSubmit: '위원장 넘기기',
+  cwDirectTransferConfirm:
+    '{name} 님에게 위원장을 넘깁니다. 이후 내 화면은 조회 전용으로 바뀝니다.',
+  cwDirectTransferConfirmSubmit: '넘기기',
+  cwDirectTransferCancel: '취소',
+  cwDirectTransferFailed: '위원장을 넘기지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwManageAdjustWarn:
     '제외하는 위원 중 등급 조정 이력이 있는 사람이 있습니다({names}). 저장하면 조정 내역은 그대로 남고 위원 자격만 해제됩니다.',
   cwManagePastMembers: '이미 제외된 위원: {names}',
@@ -1160,6 +1170,8 @@ export default function EvalCycleSummaryCanvas({
   sessionCommittee = null,
   onOpenCommittee,
   onSaveCommittee,
+  // §3.4③ 위원장 이양 — (userId) => Promise. 없으면 이양 칸을 그리지 않는다.
+  onTransferChair,
   gradeAppeals = [],
   appealCanReview = false,
   selectedAppealId = null,
@@ -1491,6 +1503,34 @@ export default function EvalCycleSummaryCanvas({
     (sessionCommittee?.members ?? []).find((m) => m.userId === userId)?.name ??
     '';
   /**
+   * §3.4③ 위원장 이양(제외 없이 교체). 명단 편집과 섞지 않으려고 **고친 것이 없을 때만**
+   * 연다 — 체크를 바꾼 채 넘기면 저장 전 명단과 넘긴 뒤 명단이 어긋난다.
+   */
+  const [directTransferPick, setDirectTransferPick] = useState('');
+  const [directTransferConfirming, setDirectTransferConfirming] =
+    useState(false);
+  const directTransferOptions = useMemo(
+    () =>
+      committeeManage && chairUserId
+        ? activeCommittee.filter(
+            (m) => m.userId !== chairUserId && m.role !== 'hr_observer',
+          )
+        : [],
+    [committeeManage, chairUserId, activeCommittee],
+  );
+  const directTransferTo = directTransferOptions.some(
+    (m) => m.userId === directTransferPick,
+  )
+    ? directTransferPick
+    : '';
+  const showDirectTransfer =
+    committeeManage &&
+    !!onTransferChair &&
+    !committeeReadOnly &&
+    !committeeDirty &&
+    directTransferOptions.length > 0;
+
+  /**
    * 저장 실패를 모달 안에서 말한다. 예전에는 저장 클릭과 동시에 모달을 닫아서, 서버가
    * 거부해도(위원 최소 1명·확정 완료 등) 화면에는 "아무 일도 안 일어난 것" 으로 보였다.
    */
@@ -1500,6 +1540,8 @@ export default function EvalCycleSummaryCanvas({
   const closeCreateModal = () => {
     setShowCreate(false);
     setCommitteeManage(false);
+    setDirectTransferPick('');
+    setDirectTransferConfirming(false);
     setCreateAdded([]);
     setCreateExcluded([]);
     setCreateRosterSearch('');
@@ -5203,6 +5245,92 @@ export default function EvalCycleSummaryCanvas({
                   data-testid="evs-cw-committee-chair-auto"
                 >
                   {L.cwManageChairAuto}
+                </div>
+              )}
+              {/* §3.4③ — 위원장이 제외 없이 위원장만 넘긴다. */}
+              {showDirectTransfer && (
+                <div
+                  className="evs-cw-create-section evs-cw-chair-transfer"
+                  data-testid="evs-cw-direct-transfer"
+                >
+                  <div className="evs-cw-create-lbl">
+                    {L.cwDirectTransferLabel}
+                  </div>
+                  <select
+                    className="evs-cw-create-input"
+                    data-testid="evs-cw-direct-transfer-select"
+                    aria-label={L.cwDirectTransferLabel}
+                    value={directTransferTo}
+                    disabled={committeeSaving}
+                    onChange={(e) => {
+                      setDirectTransferPick(e.target.value);
+                      setDirectTransferConfirming(false);
+                    }}
+                  >
+                    <option value="">{L.cwDirectTransferPlaceholder}</option>
+                    {directTransferOptions.map((m) => (
+                      <option key={m.userId} value={m.userId}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                  {directTransferConfirming && directTransferTo ? (
+                    <>
+                      <div
+                        className="evs-cw-create-hint"
+                        data-testid="evs-cw-direct-transfer-confirm-text"
+                      >
+                        {fmt(L.cwDirectTransferConfirm, {
+                          name: chairNameOf(directTransferTo),
+                        })}
+                      </div>
+                      <div className="evs-cw-direct-transfer-actions">
+                        <button
+                          type="button"
+                          className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                          data-testid="evs-cw-direct-transfer-cancel"
+                          disabled={committeeSaving}
+                          onClick={() => setDirectTransferConfirming(false)}
+                        >
+                          {L.cwDirectTransferCancel}
+                        </button>
+                        <button
+                          type="button"
+                          className="tl-group-modal-btn tl-group-modal-btn-primary"
+                          data-testid="evs-cw-direct-transfer-confirm"
+                          disabled={committeeSaving}
+                          onClick={() => {
+                            setCommitteeError('');
+                            setCommitteeSaving(true);
+                            // 성공했을 때만 닫는다 — 실패하면 고른 사람이 남아 다시 누를 수 있다.
+                            Promise.resolve(
+                              onTransferChair(directTransferTo),
+                            ).then(
+                              () => closeCreateModal(),
+                              (err) => {
+                                setCommitteeSaving(false);
+                                setCommitteeError(
+                                  err?.message || L.cwDirectTransferFailed,
+                                );
+                              },
+                            );
+                          }}
+                        >
+                          {L.cwDirectTransferConfirmSubmit}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                      data-testid="evs-cw-direct-transfer-submit"
+                      disabled={!directTransferTo || committeeSaving}
+                      onClick={() => setDirectTransferConfirming(true)}
+                    >
+                      {L.cwDirectTransferSubmit}
+                    </button>
+                  )}
                 </div>
               )}
               {/* PW-134 — 위원장을 뺄 때만 나타나는 이양 대상 선택. */}

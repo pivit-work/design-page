@@ -73,7 +73,13 @@ const DEFAULT_LABELS = {
   // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
   aiDraft: 'AI 초안 생성',
   aiDrafting: '초안 만드는 중…',
-  aiDraftError: 'AI 초안 생성에 실패했습니다.',
+  // feedback-ai-spec §8.3 실패 문구 그대로.
+  aiDraftError: 'AI 초안 생성에 실패했습니다. 직접 작성하거나 다시 시도해 주세요.',
+  // §8.3 AI 초안 상태 — 도착하면 노랑(미확인), [확인]을 누르면 초록. 고치면 배지만 «AI 수정됨».
+  aiDraftUnconfirmed: 'AI 초안 · 미확인',
+  aiDraftEdited: 'AI 수정됨',
+  aiDraftConfirmed: 'AI 초안 확인됨',
+  aiDraftConfirm: '확인',
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
@@ -277,7 +283,14 @@ const toggleOption = (cur, oid, allowMultiple) => {
 function seedState(answers, fields) {
   const state = {};
   for (const f of fields)
-    state[f.key] = { textAnswer: '', score: null, rationale: '', checkedOptions: null };
+    state[f.key] = {
+      textAnswer: '',
+      score: null,
+      rationale: '',
+      checkedOptions: null,
+      aiDraft: null,
+      isConfirmed: false,
+    };
   for (const a of answers ?? []) {
     const f = fields.find((x) =>
       x.templateItemId
@@ -290,6 +303,8 @@ function seedState(answers, fields) {
         score: a.score ?? null,
         rationale: a.rationale ?? '',
         checkedOptions: a.checkedOptions ?? null,
+        aiDraft: a.aiDraft ?? null,
+        isConfirmed: !!a.isConfirmed,
       };
     }
   }
@@ -337,6 +352,9 @@ export default function EvalCycleMemberCanvas({
   // [PW-586] AI 초안을 만들 수 없는 이유. 있으면 버튼을 끄고 이유를 버튼 옆에 적는다
   // (근거가 0건인데 눌러 보게 한 뒤 실패로 알리지 않는다).
   aiDraftDisabledReason = null,
+  // feedback-ai-spec §8.3 — AI 초안 칸을 노랑(미확인)/초록(확인)으로 그리고 [확인]을 둔다.
+  // 확인 상태를 저장하는 화면(셀프 리뷰)만 켠다 — 저장하지 않는 화면에서 켜면 다시 열 때 사라진다.
+  trackAiDraft = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -443,6 +461,21 @@ export default function EvalCycleMemberCanvas({
     );
   }
 
+  /**
+   * feedback-ai-spec §8.3 AI 초안 칸의 상태. 초안을 쓰지 않은 칸·비운 칸은 null.
+   * 고쳐도 확인 여부는 그대로이고 배지만 «AI 수정됨»으로 바뀐다.
+   */
+  const aiStateOf = (f) => {
+    if (!trackAiDraft) return null;
+    const st = state[f.key];
+    if (!st || st.aiDraft == null || !st.textAnswer.trim()) return null;
+    if (st.isConfirmed) return { tone: 'confirmed', label: L.aiDraftConfirmed };
+    return {
+      tone: 'unconfirmed',
+      label: st.textAnswer === st.aiDraft ? L.aiDraftUnconfirmed : L.aiDraftEdited,
+    };
+  };
+
   const setField = (key, patch) => {
     dirtyRef.current = true; // TC-135 사용자 편집 표시 → 자동저장 트리거
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
@@ -492,6 +525,12 @@ export default function EvalCycleMemberCanvas({
         score: state[f.key].score,
         rationale: state[f.key].rationale || null,
         checkedOptions: state[f.key].checkedOptions,
+        ...(trackAiDraft
+          ? {
+              aiDraft: state[f.key].aiDraft ?? null,
+              isConfirmed: !!state[f.key].isConfirmed,
+            }
+          : {}),
       }));
 
   const handleAiPolish = async () => {
@@ -537,18 +576,39 @@ export default function EvalCycleMemberCanvas({
       itemCategory: f.category,
       growthType: f.growthType,
       label: f.label ?? null,
+      templateItemId: f.templateItemId ?? null,
     }));
+    // feedback-ai-spec §8.1-A — 설명 항목 본문과 질문 가이드는 초안 «대상»이 아니라 «맥락»이다.
+    // 대상 목록(items)과 섞지 않고 이름 붙은 자리로 따로 넘긴다.
+    const templateContext = {
+      notes: entries
+        .filter((e) => e.type === 'note' && (e.description || e.text))
+        .map((e) => ({
+          itemId: e.templateItemId,
+          title: e.text ?? null,
+          body: e.description || e.text,
+        })),
+      itemGuides: emptyTextFields
+        .filter((f) => f.templateItemId && f.description)
+        .map((f) => ({ itemId: f.templateItemId, guide: f.description })),
+    };
     setDraftError(false);
     setDraftBusy(true);
     try {
-      const drafted = await onAiDraft(items);
+      const drafted = await onAiDraft(items, templateContext);
       setState((prev) => {
         const next = { ...prev };
         for (const d of drafted) {
           const f = fields[d.index];
           // 빈 초안은 덮어쓰지 않는다(근거가 없어 못 쓴 항목).
           if (f && d.textAnswer?.trim()) {
-            next[f.key] = { ...next[f.key], textAnswer: d.textAnswer };
+            // §8.3 — 도착한 초안은 미확인(노랑). 원문을 남겨 «AI 수정됨»을 가를 수 있게 한다.
+            next[f.key] = {
+              ...next[f.key],
+              textAnswer: d.textAnswer,
+              aiDraft: d.textAnswer,
+              isConfirmed: false,
+            };
           }
         }
         return next;
@@ -893,15 +953,36 @@ export default function EvalCycleMemberCanvas({
                     </label>
                   )
                 ) : (
-                  <textarea
-                    className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
-                    rows={4}
-                    value={state[f.key].textAnswer}
-                    placeholder={f.placeholder}
-                    disabled={submitted}
-                    onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
-                    data-testid={`evm-text-${f.key}`}
-                  />
+                  <>
+                    <textarea
+                      className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}`}
+                      rows={4}
+                      value={state[f.key].textAnswer}
+                      placeholder={f.placeholder}
+                      disabled={submitted}
+                      onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
+                      data-testid={`evm-text-${f.key}`}
+                    />
+                    {aiStateOf(f) && (
+                      <div
+                        className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
+                        data-testid={`evm-ai-state-${f.key}`}
+                        data-state={aiStateOf(f).tone}
+                      >
+                        <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
+                        {aiStateOf(f).tone === 'unconfirmed' && !submitted && (
+                          <button
+                            type="button"
+                            className="evm-ai-draft-confirm"
+                            onClick={() => setField(f.key, { isConfirmed: true })}
+                            data-testid={`evm-ai-confirm-${f.key}`}
+                          >
+                            {L.aiDraftConfirm}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
                 {showVisibility && (
                   <FieldVisibility
