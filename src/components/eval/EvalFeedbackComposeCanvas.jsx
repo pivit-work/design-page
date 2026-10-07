@@ -82,6 +82,8 @@ const DEFAULT_LABELS = {
   toastSent: '피드백을 전달했습니다',
   toastError: '전송에 실패했습니다',
   aiError: 'AI 추천 생성에 실패했습니다. 직접 작성해 주세요.',
+  // 요약을 연 뒤 대화가 늘었을 때 요약 블록 안내 (screen-feedback-member §10-17)
+  summaryStale: '요약 이후 새 대화가 있습니다',
   emptyTeam: '직속 팀원이 없습니다.',
 };
 
@@ -248,22 +250,28 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
   const [aiState, setAiState] = useState('idle'); // idle | loading | done
   const [personalized, setPersonalized] = useState(false);
   const [busy, setBusy] = useState(false);
+  // AI 를 기다리는 동안 매니저가 직접 고쳤는가 — 그러면 늦게 온 초안은 버린다(manager §8-2).
+  const typedDuringAi = useRef(false);
 
+  // 실패·빈 응답 안내는 onAiDraft 쪽(캔버스 루트)이 띄우고 null 을 준다. 입력은 그대로 둔다.
   const ai = async () => {
     if (!onAiDraft) return;
+    typedDuringAi.current = false;
     setAiState('loading');
+    let res = null;
     try {
-      const res = await onAiDraft({ recipientName: memberName, hint: text.trim() || `${block.title} 관련 피드백` });
-      if (res) {
-        setText(typeof res === 'string' ? res : res.draft);
-        setPersonalized(typeof res === 'object' ? !!res.personalized : false);
-        setAiState('done');
-      } else {
-        setAiState('idle');
-      }
+      res = await onAiDraft({ recipientName: memberName, hint: text.trim() || `${block.title} 관련 피드백` });
     } catch {
-      setAiState('idle');
+      res = null;
     }
+    const draft = typeof res === 'string' ? res : res?.draft;
+    if (!draft || typedDuringAi.current) {
+      setAiState('idle');
+      return;
+    }
+    setText(draft);
+    setPersonalized(typeof res === 'object' ? !!res.personalized : false);
+    setAiState('done');
   };
   const send = async () => {
     if (!text.trim()) return;
@@ -282,7 +290,11 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
       <textarea
         rows={4}
         value={text}
-        onChange={(e) => { setText(e.target.value); if (aiState === 'done') setAiState('idle'); }}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (aiState === 'loading') typedDuringAi.current = true;
+          if (aiState === 'done') setAiState('idle');
+        }}
         placeholder={L.composePlaceholder}
         data-testid="fbmgr-compose-text"
         style={{ border: `1px solid ${aiState === 'done' ? C.accentBd : C.border}`, background: aiState === 'done' ? C.accentBg : 'var(--text-white)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONT, resize: 'vertical', whiteSpace: 'pre-wrap' }}
@@ -370,6 +382,8 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   const [summary, setSummary] = useState(null);
   const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
+  // 요약을 만들 때의 대화 수 — 그 뒤 늘면 요약은 그대로 두고 안내만 붙인다(일회성 뷰).
+  const [summaryCount, setSummaryCount] = useState(0);
   // 활성화 조건: 스레드 아이템(피드백+요청+답변) ≥ 5 (ai-spec §11.2).
   const threadCount = items.reduce((n, it) => n + 1 + (it.memberReply ? 1 : 0), 0);
   const canSummarize = threadCount >= 5;
@@ -381,6 +395,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
       const res = await onSummarize(block);
       if (res) {
         setSummary(res);
+        setSummaryCount(threadCount);
         setSummaryState('idle');
       } else {
         setSummaryState('error');
@@ -427,6 +442,9 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
           <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
             <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
+            {threadCount > summaryCount && (
+              <p data-testid="fbmgr-summary-stale" style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>{L.summaryStale}</p>
+            )}
           </div>
         )}
         {summaryState === 'error' && (
@@ -566,6 +584,24 @@ export default function EvalFeedbackComposeCanvas({
     }
   };
 
+  // AI 초안 실패·빈 응답은 안내하고 null 을 준다 — 입력칸은 건드리지 않는다(manager §4.3·§8-9).
+  const handleAiDraft = onAiDraft
+    ? async (input) => {
+        let res = null;
+        try {
+          res = await onAiDraft(input);
+        } catch {
+          res = null;
+        }
+        const draft = typeof res === 'string' ? res : res?.draft;
+        if (!draft || !draft.trim()) {
+          showToast(L.aiError, 'error');
+          return null;
+        }
+        return res;
+      }
+    : undefined;
+
   return (
     <div className="evc-root" style={{ background: C.bg, fontFamily: FONT }}>
       {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
@@ -594,7 +630,7 @@ export default function EvalFeedbackComposeCanvas({
             onBack={onBack}
             onChangePeriod={onChangePeriod}
             onSend={handleSend}
-            onAiDraft={onAiDraft}
+            onAiDraft={handleAiDraft}
             onSummarize={onSummarize}
             openTarget={openTarget}
             onOpenTargetHandled={onOpenTargetHandled}
