@@ -537,6 +537,17 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
    모달이 줄어들지 않는다. 뷰포트가 낮으면 (100vh - 48) 로 잘리고 본문이 스크롤된다. */
 .tl-group-modal.okr-wz-modal { width: 800px; max-width: calc(100vw - 80px); height: min(1118px, calc(100vh - 48px)); }
 /* 스텝바 — bg-tertiary 한 몸 바에 1px alpha 경계 칸, 활성 칸은 brand→purple 그라데이션 */
+/* 회사 컨텍스트 — 진입 배너(어드민)·1단계 미설정 안내·KR 배지 (마법사 정책서 §3-0, 시안 okr-app.jsx WizardScreen) */
+.okr-wz-ctx-entry { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 16px; padding: 10px 14px; box-sizing: border-box; border: 1px solid var(--utility-brand-200); border-radius: 8px; background: var(--utility-brand-50); font-family: inherit; text-align: left; cursor: pointer; }
+.okr-wz-ctx-entry-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+.okr-wz-ctx-entry-action { flex: none; font-size: 12px; font-weight: 700; color: var(--utility-brand-700); }
+.okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); }
+.okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--utility-warning-700); overflow-wrap: anywhere; }
+.okr-wz-ctx-notice-hint { color: var(--text-tertiary); }
+.okr-wz-ctx-notice .okr-btn { flex: none; }
+.okr-wz-draft-badges { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .okr-wz-steps { display: flex; background: var(--bg-tertiary); border-radius: 6px; }
 .okr-wz-step { flex: 1; padding: 8px; border: 1px solid var(--alpha-black-5); margin-right: -1px; cursor: pointer; text-align: center; }
 .okr-wz-step:last-child { margin-right: 0; }

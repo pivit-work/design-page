@@ -21,7 +21,21 @@ import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js
  *
  * `readOnly`(끝난 달 · PW-1173)면 값은 보이되 고치는 길을 전부 내린다 — 추정 배너·슬라이더·
  * 숫자 입력·✕·경고·투입 항목 추가·저장. 매니저 코멘트와 답글은 남긴다.
+ *
+ * 새로 담은 항목은 어디서 왔는지(`source`: 'suggestion' | 'project' | 'kr' | 'custom')와
+ * 고른 후보의 `ref`(후보 항목의 `ref` 값 그대로)를 함께 들고 onSave 로 돌아간다. 저장된 항목도
+ * `data.entries` 에 `source`·`ref` 를 실어 주면 후보 칩을 그 `ref` 로 가린다. 이름만으로
+ * 되짚으면 직접 적은 이름이 같은 이름의 프로젝트로 바뀐다(리소스 정책서 §9).
+ *
+ * 수동 % 와 추정 % 가 `ESTIMATE_GAP_PP` 이상 벌어지면 추정 라벨에 `M.estimateGap` 을 붙인다
+ * (정책서 §5-3.4) — 슬라이더를 움직이는 즉시 붙고 풀린다. `entry.warn` 을 주면 그것이 우선이다.
+ *
+ * onReply(text) 가 false 를 돌려주거나 실패하면 쓴 글과 입력바를 그대로 둔다(정책서 §9 —
+ * 다시 누를 수 있게). 그 밖의 결과(true·undefined)면 스레드에 붙이고 입력바를 닫는다.
  */
+/** 수동 % 와 추정 % 의 차이가 이만큼(%p) 이상이면 «차이 큼» — 리소스 정책서 §5-3.4. */
+export const ESTIMATE_GAP_PP = 15;
+
 export default function OkrResourceMyInput({
   data, icons, baseUrl = '', onSave, onApplyEstimates, onReply, labels: L = OKR_RESOURCE_DEFAULT_LABELS,
   readOnly = false, monthLabel = '',
@@ -34,11 +48,22 @@ export default function OkrResourceMyInput({
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [extraComments, setExtraComments] = useState([]);
+  const [replying, setReplying] = useState(false);
 
   const comments = [...data.comments, ...extraComments];
-  const submitReply = () => {
+  const submitReply = async () => {
     const text = replyText.trim();
-    if (!text) return;
+    if (!text || replying) return;
+    setReplying(true);
+    let ok;
+    try {
+      ok = await onReply?.(text);
+    } catch {
+      ok = false;
+    } finally {
+      setReplying(false);
+    }
+    if (ok === false) return;
     setExtraComments((p) => [...p, {
       author: data.commentAuthor?.name ?? M.me,
       avatar: data.commentAuthor?.avatar,
@@ -48,7 +73,6 @@ export default function OkrResourceMyInput({
     }]);
     setReplyText('');
     setReplyOpen(false);
-    onReply?.(text);
   };
 
   const patch = (id, value) => {
@@ -63,15 +87,22 @@ export default function OkrResourceMyInput({
   // 근거 없는 위치에 "추정 10%" 가 서서, 사람이 그 눈금에 맞춰 값을 정하게 된다.
   // (KR·직접 입력 항목은 스니핏 태그 대상이 아니라 추정 자체가 없다.)
   const addEntry = (name, extra = {}) => {
-    if (!name || has(name)) return;
+    if (!name || taken(name, extra.ref)) return;
     const estimate = extra.estimate ?? null;
     setEntries((p) => [...p, {
-      id: `rs-${name}`,
+      id: `rs-${extra.source ?? 'x'}-${extra.ref ?? name}`,
       name,
       tag: extra.tag ?? null,
       value: extra.value ?? estimate ?? 10,
       estimate,
+      source: extra.source ?? null,
+      ref: extra.ref ?? null,
     }]);
+  };
+  const gapNote = (entry) => {
+    if (entry.warn) return entry.warn;
+    if (entry.estimate == null || !M.estimateGap) return null;
+    return Math.abs(entry.value - entry.estimate) >= ESTIMATE_GAP_PP ? M.estimateGap : null;
   };
   const total = entries.reduce((a, e) => a + e.value, 0);
   // 이미 투입 목록에 있는 항목의 추가 버튼은 숨긴다 — 눌러도 무시되는 버튼을
@@ -80,6 +111,9 @@ export default function OkrResourceMyInput({
   // 프로젝트가 있어 대소문자·공백을 정규화해 비교한다.
   const norm = (s) => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
   const has = (name) => entries.some((e) => norm(e.name) === norm(name));
+  // 후보(프로젝트·KR)가 이미 담겼나는 **어느 후보인가**(`ref`)로 본다 — 이름으로 보면 같은 이름의
+  // 직접 항목이 그 프로젝트 칩을 가려, 정책서 §9 «둘 다 존재»가 깨진다. `ref` 가 없는 옛 데이터만 이름으로.
+  const taken = (name, ref) => (ref ? entries.some((e) => e.ref === ref) : has(name));
 
   return (
     <div className="rsx-my">
@@ -166,11 +200,14 @@ export default function OkrResourceMyInput({
                 </div>
               </div>
             )}
-            {!readOnly && entry.estimate != null && (
-              <p className={`rsx-entry-note${entry.warn ? ' is-warn' : ''}`}>
-                {M.estimate(entry.estimate)}{entry.warn ? `  •  ${entry.warn}` : ''}
-              </p>
-            )}
+            {!readOnly && entry.estimate != null && (() => {
+              const warn = gapNote(entry);
+              return (
+                <p className={`rsx-entry-note${warn ? ' is-warn' : ''}`}>
+                  {M.estimate(entry.estimate)}{warn ? `  •  ${warn}` : ''}
+                </p>
+              );
+            })()}
           </div>
           {!readOnly && (
             <button type="button" className="rsx-close-btn" onClick={() => remove(entry.id)} aria-label={M.removeAria(entry.name)}>
@@ -201,12 +238,12 @@ export default function OkrResourceMyInput({
           </div>
           <div className="rsx-add-suggest">
             <RsAiLabel>{M.suggestTitle}</RsAiLabel>
-            {data.suggestions.filter((s) => !has(s.name)).map((s, i) => (
+            {data.suggestions.filter((s) => !taken(s.name, s.ref)).map((s, i) => (
               <button
                 type="button"
                 className="rsx-suggest-chip"
                 key={rowKey(s, i)}
-                onClick={() => addEntry(s.name, { estimate: s.pct })}
+                onClick={() => addEntry(s.name, { estimate: s.pct, source: 'suggestion', ref: s.ref })}
               >
                 {M.suggestChip(s.name, s.pct)}
               </button>
@@ -216,7 +253,7 @@ export default function OkrResourceMyInput({
             <p className="rsx-add-eyebrow">{M.squadProjects}</p>
             <div className="rsx-squads">
               {data.squads
-                .map((squad) => ({ ...squad, items: squad.items.filter((item) => !has(item.name)) }))
+                .map((squad) => ({ ...squad, items: squad.items.filter((item) => !taken(item.name, item.ref)) }))
                 .filter((squad) => squad.items.length > 0)
                 .map((squad, si) => (
                   <div className="rsx-squad" key={rowKey(squad, si)}>
@@ -227,7 +264,7 @@ export default function OkrResourceMyInput({
                           type="button"
                           className="rsx-chip-btn"
                           key={rowKey(item, ii)}
-                          onClick={() => addEntry(item.name, { estimate: item.pct, tag: squad.name })}
+                          onClick={() => addEntry(item.name, { estimate: item.pct, tag: squad.name, source: 'project', ref: item.ref })}
                         >
                           <Icon src={icons.plus} size={14} color="var(--text-primary)" baseUrl={baseUrl} />
                           <span>{item.name}</span>
@@ -262,11 +299,11 @@ export default function OkrResourceMyInput({
                     {/* KR 은 연결 프로젝트가 이미 있어도 KR 자체를 별도 항목으로 추가한다
                         (시안 17478:22428 — PIVIT V2.0 항목이 있는 상태에서도 [추가] 노출).
                         같은 KR 을 이미 추가한 경우에만 버튼을 숨긴다. */}
-                    {!has(kr.title) && (
+                    {!taken(kr.title, kr.ref) && (
                       <button
                         type="button"
                         className="rsx-gray-btn"
-                        onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: M.personalOkr })}
+                        onClick={() => addEntry(kr.title, { estimate: kr.pct, tag: M.personalOkr, source: 'kr', ref: kr.ref })}
                       >
                         {M.add}
                       </button>
@@ -290,7 +327,7 @@ export default function OkrResourceMyInput({
               <button
                 type="button"
                 className="rsx-gray-btn is-md"
-                onClick={() => { addEntry(customName.trim(), {}); setCustomName(''); }}
+                onClick={() => { addEntry(customName.trim(), { source: 'custom' }); setCustomName(''); }}
               >
                 {M.customAdd}
               </button>
@@ -322,7 +359,7 @@ export default function OkrResourceMyInput({
                 if (e.key === 'Escape') { setReplyOpen(false); setReplyText(''); }
               }}
             />
-            <button type="button" className="rsx-gray-btn is-md" onClick={submitReply}>{M.replySubmit}</button>
+            <button type="button" className="rsx-gray-btn is-md" disabled={replying} onClick={submitReply}>{M.replySubmit}</button>
           </div>
         ) : (
           <button type="button" className="rsx-reply-btn" onClick={() => setReplyOpen(true)}>

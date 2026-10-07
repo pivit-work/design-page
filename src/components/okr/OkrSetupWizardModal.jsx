@@ -33,6 +33,14 @@ import ModalShell from '../shared/ModalShell.jsx';
  *  - initialState — 마지막으로 알린 상태로 다시 연다 { step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage }.
  *  - onStateChange(state) — 위 모양이 바뀔 때마다 알린다. 4단계 [1:1 예약]으로 화면을 떠났다가
  *      뒤로 돌아왔을 때 진행도를 되살리는 데 쓴다(마법사 정책서 §8 「Step 4 1on1 예약 후 뒤로가기」).
+ *
+ * 회사 컨텍스트 (선택 · 마법사 정책서 §3-0, 시안 okr-app.jsx `WizardScreen`):
+ *  - contextEntry — { title, badge, desc, action }. 단계 칩 위 진입 배너. 소비자가 어드민에게만 넘긴다.
+ *  - contextNotice — { text, hint, action? }. 1단계 맨 위 «컨텍스트 미설정» 안내(경고 아님). 소비자가
+ *      미설정일 때만 넘기고, 어드민에게만 action(버튼 문구)을 싣는다.
+ *  - onOpenContext() — 위 둘의 버튼을 누르면 부른다(컨텍스트 설정 화면으로 보낸다).
+ *  - contextAppliedLabel — onExtractKrs 결과에 `contextApplied: true` 가 오면 KR 초안 머리에 붙일 배지 문구.
+ *  막지 않는다 — 컨텍스트가 없어도 마법사는 그대로 진행된다.
  */
 const DEFAULT_SCOPE_CARD = {
   individual: { label: '개인 OKR', desc: '내 OKR을 직접 설계', badge: '단위 고정' },
@@ -83,6 +91,10 @@ export default function OkrSetupWizardModal({
   title = 'OKR 설정',
   initialState,
   onStateChange,
+  contextEntry = null,
+  contextNotice = null,
+  onOpenContext,
+  contextAppliedLabel = '',
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -98,6 +110,8 @@ export default function OkrSetupWizardModal({
     return restored;
   });
   const [krsConfirmed, setKrsConfirmed] = useState(init.krsConfirmed ?? false);
+  // 마지막 KR 추출에 확인한 회사 컨텍스트가 실렸나 — 배지 근거(정책서 §3-3 표).
+  const [krsContextApplied, setKrsContextApplied] = useState(init.krsContextApplied ?? false);
   const [krsLoading, setKrsLoading] = useState(false);
   const [objective, setObjective] = useState(init.objective ?? '');
   const [objConfirmed, setObjConfirmed] = useState(init.objConfirmed ?? false);
@@ -119,8 +133,8 @@ export default function OkrSetupWizardModal({
   const onStateChangeRef = useRef(onStateChange);
   useEffect(() => { onStateChangeRef.current = onStateChange; }, [onStateChange]);
   useEffect(() => {
-    onStateChangeRef.current?.({ step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage });
-  }, [step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage]);
+    onStateChangeRef.current?.({ step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage });
+  }, [step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage]);
 
   // 정합성 단계 진입 시 팀 정렬도 조회 (동기 setState 회피 — 콜백에서만 갱신).
   useEffect(() => {
@@ -154,6 +168,7 @@ export default function OkrSetupWizardModal({
         target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '',
       }));
       setKrs(list); setKrsConfirmed(false);
+      setKrsContextApplied(res?.contextApplied === true);
     } catch {
       setError('KR 추출에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setKrsLoading(false); }
@@ -271,6 +286,18 @@ export default function OkrSetupWizardModal({
           {blocked.desc && <p className="okr-wz-blocked-desc">{blocked.desc}</p>}
         </div>
       ) : (<>
+      {contextEntry && (
+        <button type="button" className="okr-wz-ctx-entry" data-testid="okr-wz-ctx-entry" onClick={() => onOpenContext?.()}>
+          <span className="okr-wz-ctx-entry-text">
+            <span className="okr-wz-ctx-entry-title">
+              {contextEntry.title}
+              {contextEntry.badge && <StatusBadge tone="neutral">{contextEntry.badge}</StatusBadge>}
+            </span>
+            {contextEntry.desc && <span className="okr-wz-ctx-entry-desc">{contextEntry.desc}</span>}
+          </span>
+          {contextEntry.action && <span className="okr-wz-ctx-entry-action">{contextEntry.action}</span>}
+        </button>
+      )}
       <div className="okr-wz-steps">
         {steps.map((s, i) => (
           <div
@@ -286,6 +313,19 @@ export default function OkrSetupWizardModal({
 
       {step === 1 && (
         <>
+          {contextNotice && (
+            <div className="okr-wz-ctx-notice" role="note" data-testid="okr-wz-ctx-notice">
+              <p className="okr-wz-ctx-notice-text">
+                {contextNotice.text}
+                {contextNotice.hint && <span className="okr-wz-ctx-notice-hint"> {contextNotice.hint}</span>}
+              </p>
+              {contextNotice.action && (
+                <button type="button" className="okr-btn is-brand is-sm" onClick={() => onOpenContext?.()}>
+                  {contextNotice.action}
+                </button>
+              )}
+            </div>
+          )}
           <div className="okr-wz-stepblock">
             <div className="okr-wz-section">
               <p className="okr-wz-step-eyebrow">STEP1 - Backward Looking</p>
@@ -406,7 +446,12 @@ export default function OkrSetupWizardModal({
           {krs.length > 0 && (
             <div className={`okr-wz-draft${krsConfirmed ? ' is-confirmed' : ''}`}>
               <div className="okr-wz-draft-head">
-                <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
+                <span className="okr-wz-draft-badges">
+                  <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
+                  {krsContextApplied && contextAppliedLabel && (
+                    <StatusBadge tone="info" data-testid="okr-wz-ctx-applied">{contextAppliedLabel}</StatusBadge>
+                  )}
+                </span>
                 {!krsConfirmed && (
                   <button type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>전체 확인</button>
                 )}
