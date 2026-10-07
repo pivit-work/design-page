@@ -96,6 +96,8 @@ const DEFAULT_LABELS = {
   confirmChangeTitle: (label) => `${label} 플랜으로 변경할까요?`,
   confirmDowngradeBody: '현재 청구 기간 종료 후 전환됩니다. 상위 기능 데이터는 보존(읽기 전용)되며 신규 생성이 차단됩니다.',
   confirmChangeBody: '다음 청구일에 변경된 플랜과 요금이 적용됩니다.',
+  // Free 로 내릴 때만 쓰는 본문. 비워 두면 confirmDowngradeBody 를 쓴다.
+  confirmDowngradeFreeBody: null,
   seatOverLimitTitle: '좌석 한도 초과 안내',
   seatOverLimitPre: (seats, limit) => `현재 활성 구성원(${seats}명)이 Free 한도(${limit}명)를 초과합니다. 다운그레이드 후 `,
   seatOverLimitStrong: '신규 구성원 추가가 차단',
@@ -567,10 +569,14 @@ export default function BillingPlansCanvas({
 
   const isDowngrade = confirmTarget ? (confirmTarget.tierRank ?? 0) < currentRank : false;
   const freeLimit = confirmTarget?.seatLimit;
-  const seatOverLimit = isDowngrade
-    && (confirmTarget?.tierRank ?? 0) === 0
+  const isFreeTarget = isDowngrade && (confirmTarget?.tierRank ?? 0) === 0;
+  // 한도 초과는 «지금 활성 구성원»으로 본다 — 좌석 스테퍼 값은 결제할 좌석이라 Free 전환과 무관하다.
+  const seatOverLimit = isFreeTarget
     && freeLimit != null
-    && seats > freeLimit;
+    && activeSeats > freeLimit;
+  const downgradeBody = isFreeTarget && labels.confirmDowngradeFreeBody
+    ? labels.confirmDowngradeFreeBody
+    : labels.confirmDowngradeBody;
 
   const showProCard = Boolean(currentPlan?.isCustom || previewPlan?.isCustom);
 
@@ -887,7 +893,7 @@ export default function BillingPlansCanvas({
           >
             <div style={{ fontFamily: T.font }}>
               <div style={{ fontSize: 14, color: T.sub, marginBottom: 16 }}>
-                {isDowngrade ? labels.confirmDowngradeBody : labels.confirmChangeBody}
+                {isDowngrade ? downgradeBody : labels.confirmChangeBody}
               </div>
 
               {/* Free 다운그레이드 — 좌석 상한 초과 경고 */}
@@ -898,7 +904,7 @@ export default function BillingPlansCanvas({
                     {labels.seatOverLimitTitle}
                   </div>
                   <div style={{ fontSize: 13, color: T.text }}>
-                    {labels.seatOverLimitPre(seats, freeLimit)}
+                    {labels.seatOverLimitPre(activeSeats, freeLimit)}
                     <strong>{labels.seatOverLimitStrong}</strong>
                     {labels.seatOverLimitPost}
                   </div>
