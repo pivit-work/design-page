@@ -27,6 +27,7 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     marker: '추정치',
     inputAria: (name) => `${name} 투입 비율 입력`,
     estimate: (pct) => `추정 ${pct}%`,
+    estimateGap: '스니핏 기록과 차이 큼',
     removeAria: (name) => `${name} 삭제`,
     addTitle: '투입 항목 추가',
     confirmed: '확정',
