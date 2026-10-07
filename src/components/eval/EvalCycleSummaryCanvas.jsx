@@ -13,6 +13,21 @@ import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
 
 /**
+ * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
+ * 나머지는 평가가 끝난 뒤에만 의미가 있다. 위원회 초대 여부는 여기서 보지 않는다.
+ */
+const TAB_OPEN_STATUSES = {
+  overview: ['done'],
+  dept: ['done'],
+  leaderPattern: ['done'],
+  calib: ['done'],
+  exec: ['done'],
+  // 「캘리브레이션 단계 이후 활성」 — 캘리브레이션 다음의 인사 검토(hr_review)도 그 «이후» 다.
+  integrated: ['calibration', 'hr_review', 'done'],
+  calib_work: ['calibration', 'hr_review', 'done'],
+};
+
+/**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
  * 탭: 전사 요약 / 부서별 / 통합 요약. + 리포트 검수(생성)·발송.
  */
@@ -32,6 +47,8 @@ const DEFAULT_LABELS = {
   tabLeaderPattern: '리더별 평가 패턴',
   tabCalib: '캘리브레이션 결과',
   tabExec: '경영진 대시보드',
+  tabNotStarted: '이 단계는 아직 시작되지 않았습니다',
+  beforeCalibration: '캘리브레이션 완료 후 접근 가능합니다.',
   tabCalibWork: '캘리브레이션 워크스페이스',
   // §10.G 캘리브레이션 워크스페이스
   cwBanner: '권한: 캘리브레이션 위원회=조정·확정 / HR=조회 전용. 동급자 이해상충 자동 제외.',
@@ -1185,6 +1202,11 @@ export default function EvalCycleSummaryCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
+  // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
+  const tabOpen = (key) =>
+    !cycle?.status || (TAB_OPEN_STATUSES[key] ?? []).includes(cycle.status);
+  const beforeCalibration =
+    !workspaceOnly && !!cycle?.status && !TAB_OPEN_STATUSES.integrated.includes(cycle.status);
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
   // R7b 워크스페이스 내 승진 9블록 모달
@@ -1591,6 +1613,8 @@ export default function EvalCycleSummaryCanvas({
     { key: 'integrated', label: L.tabIntegrated },
     { key: 'calib_work', label: L.tabCalibWork },
   ];
+  // 고른 탭이 아직 안 열린 단계면 열린 첫 탭을 보인다 — 하나도 안 열렸으면 아무 탭도 그리지 않는다.
+  const shownTab = workspaceOnly || tabOpen(tab) ? tab : (tabs.find((t) => tabOpen(t.key))?.key ?? null);
 
   // §6.C 경향 배너 버킷 + 색.
   const tendencyMeta = {
@@ -1697,14 +1721,21 @@ export default function EvalCycleSummaryCanvas({
               value: tt.key,
               label: tt.label,
               testId: `evsum-tab-${tt.key}`,
+              disabled: !tabOpen(tt.key),
+              title: tabOpen(tt.key) ? undefined : L.tabNotStarted,
             }))}
-            value={tab}
+            value={shownTab}
             onChange={setTab}
           />
         </div>
       )}
 
       <div className="evc-list">
+        {beforeCalibration && (
+          <p className="evc-empty-sub" role="status" data-testid="evs-before-calibration">
+            {L.beforeCalibration}
+          </p>
+        )}
         {/* PW-486 §15.6③ 진행 중 껐지만 조정 이력이 남은 사이클 — 켠 것과 같이 그리되
             해제 사실을 알린다. 실제로 일어난 조정을 「사용하지 않았습니다」로 덮지 않는다. */}
         {calibrationReleased && (
@@ -1712,7 +1743,7 @@ export default function EvalCycleSummaryCanvas({
             <AlertIcon size={14} /> {L.calibReleasedBanner}
           </p>
         )}
-        {tab === 'overview' && (
+        {shownTab === 'overview' && (
           <>
             {/* §4.A KPI 4종 */}
             <div className="evs-kpis" data-testid="evs-kpis">
@@ -1877,7 +1908,7 @@ export default function EvalCycleSummaryCanvas({
           </>
         )}
 
-        {tab === 'dept' && (
+        {shownTab === 'dept' && (
           deptStats.length === 0 ? (
             <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-dept-empty">{L.deptDataEmpty}</p></section>
           ) : (
@@ -1988,7 +2019,7 @@ export default function EvalCycleSummaryCanvas({
           )
         )}
 
-        {tab === 'leaderPattern' && (
+        {shownTab === 'leaderPattern' && (
           leaderPatterns.length === 0 ? (
             <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-lp-empty">{L.lpEmpty}</p></section>
           ) : (
@@ -2079,7 +2110,7 @@ export default function EvalCycleSummaryCanvas({
           )
         )}
 
-        {tab === 'calib' && !calibrationEnabled && (
+        {shownTab === 'calib' && !calibrationEnabled && (
           <div className="evs-calib-off" data-testid="evs-calib-off">
             <div className="evs-calib-off-title">{L.calibOffTitle}</div>
             <p className="evs-calib-off-body">{L.calibOffBody}</p>
@@ -2096,7 +2127,7 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
 
-        {tab === 'calib' && calibrationEnabled && calibResult && (
+        {shownTab === 'calib' && calibrationEnabled && calibResult && (
           <>
             {/* Block 1 — 요약 지표 3-up */}
             <div className="evs-kpis evs-cd-cards" data-testid="evs-cd-cards">
@@ -2209,7 +2240,7 @@ export default function EvalCycleSummaryCanvas({
           </>
         )}
 
-        {tab === 'exec' && (
+        {shownTab === 'exec' && (
           <div className="evs-exec" data-testid="evs-exec">
             <p className="evs-exec-banner">{L.execBanner}</p>
             <SegmentedControl
@@ -2469,7 +2500,7 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
 
-        {tab === 'integrated' && (
+        {shownTab === 'integrated' && (
           <div className="evs-re" data-testid="evs-reviewee">
             {/* 좌: 피평가자 목록 */}
             <section className="evc-card evs-re-list">
@@ -2621,7 +2652,7 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
 
-        {tab === 'calib_work' && !workspaceOnly && (
+        {shownTab === 'calib_work' && !workspaceOnly && (
           /* 요약 대시보드에서는 워크스페이스를 직접 렌더하지 않고 독립 화면으로 유도(포인터 카드). */
           <div className="evs-cw-pointer" data-testid="evs-calib-pointer">
             <div className="evs-cw-pointer-title">{L.cwPointerTitle}</div>
@@ -2648,7 +2679,7 @@ export default function EvalCycleSummaryCanvas({
           </div>
         )}
 
-        {tab === 'calib_work' && workspaceOnly && (
+        {shownTab === 'calib_work' && workspaceOnly && (
           <div className="evs-cw" data-testid="evs-calib-workspace">
             <div className="evs-cw-banner-row">
               <div className="evs-cw-banner">{L.cwBanner}</div>

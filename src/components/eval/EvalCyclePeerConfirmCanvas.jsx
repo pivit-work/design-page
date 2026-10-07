@@ -33,6 +33,7 @@ const DEFAULT_LABELS = {
   collapseAll: '전체 접기',
   addPlaceholder: '+ 동료 추가',
   remove: '제외',
+  restore: '복원',
   modeAiRecommend: 'AI 추천',
   modeSelfSelect: '본인 지명',
   modeLeaderAssign: '리더 추가',
@@ -41,7 +42,9 @@ const DEFAULT_LABELS = {
   statusCompleted: '제출 완료',
   statusLeaderApproved: '확정',
   statusLeaderReviewing: '검토 중',
-  statusLeaderRejected: '반려',
+  statusLeaderRejected: '제외됨',
+  statusPendingLeaderReview: '채택 대기',
+  statusDeclined: '제외됨',
   // F3 자발적 요청 대기
   unsolicitedTitle: '자발적 리뷰 신청 대기',
   unsolicitedSub: '팀원이 직접 신청한 동료 리뷰입니다. 채택하면 리뷰어에게 작성 요청이 발송됩니다.',
@@ -64,7 +67,14 @@ const STATUS_KEY = {
   leader_reviewing: 'statusLeaderReviewing',
   leader_approved: 'statusLeaderApproved',
   leader_rejected: 'statusLeaderRejected',
+  pending_leader_review: 'statusPendingLeaderReview',
+  declined: 'statusDeclined',
 };
+
+/** 리더가 뺀 후보 — 확정·발송 대상이 아니다. `leader_rejected` 만 복원할 수 있다(§6.3.0). */
+const REMOVED = new Set(['leader_rejected', 'declined']);
+/** 확정·발송에 들어가는 후보 — 뺀 후보와 아직 채택하지 않은 자발적 신청을 뺀 나머지(§6.4). */
+const isKept = (n) => !REMOVED.has(n.status) && n.status !== 'pending_leader_review';
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -92,9 +102,15 @@ function PeerGroupCard({
   onToggle,
   onAddNominee,
   onRemoveNominee,
+  onRestoreNominee,
   onConfirm,
 }) {
   const [confirmHint, setConfirmHint] = useState(false);
+  const keptCount = group.nominees.filter(isKept).length;
+  // §6.4.1 — 확정 뒤에는 확정 명단만 보인다(뺀 후보는 숨긴다).
+  const shown = group.confirmed
+    ? group.nominees.filter((n) => !REMOVED.has(n.status))
+    : group.nominees;
   const takenIds = new Set([
     group.evaluatee.id,
     ...group.nominees.map((n) => n.evaluator.id),
@@ -139,17 +155,17 @@ function PeerGroupCard({
         )}
         {group.confirmed ? (
           <StatusBadge className="evc-status-badge tone-success">
-            {fill(L.confirmedBadge, { count: group.nominees.length })}
+            {fill(L.confirmedBadge, { count: keptCount })}
           </StatusBadge>
         ) : (
           <>
             <span className="evc-pending">
-              {fill(L.nominees, { count: group.nominees.length })}
+              {fill(L.nominees, { count: keptCount })}
             </span>
             <button
               type="button"
               className="evc-btn is-primary evp-head-confirm"
-              disabled={group.nominees.length === 0}
+              disabled={keptCount === 0}
               onClick={confirm}
               data-testid="evp-confirm"
             >
@@ -171,15 +187,20 @@ function PeerGroupCard({
             {group.nominees.length === 0 && !group.confirmed && (
               <p className="evc-empty-sub" data-testid="evp-no-nominees">{L.noNominees}</p>
             )}
-            {group.nominees.map((n) => (
-              <div className="evp-nominee" key={n.id} data-testid="evp-nominee">
+            {shown.map((n) => (
+              <div
+                className={`evp-nominee${REMOVED.has(n.status) ? ' is-removed' : ''}`}
+                key={n.id}
+                data-testid="evp-nominee"
+              >
                 <span className="evp-nominee-name">{n.evaluator.name || n.evaluator.id}</span>
                 {/* PW-1375 — «AI 추천» 근거(함께한 회의 N회 등)는 표시에 마우스를 올리면 뜬다 */}
                 <StatusBadge className="evc-type-badge" title={n.evidenceText}>{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</StatusBadge>
                 <StatusBadge className={`evc-status-badge tone-${n.status === 'leader_approved' ? 'success' : 'neutral'}`}>
                   {L[STATUS_KEY[n.status]] ?? n.status}
                 </StatusBadge>
-                {!group.confirmed && (
+                {/* 채택 대기 신청은 위 «자발적 리뷰 신청 대기»에서 채택·제외한다 */}
+                {!group.confirmed && isKept(n) && (
                   <button
                     type="button"
                     className="evp-remove"
@@ -188,6 +209,16 @@ function PeerGroupCard({
                     data-testid="evp-remove"
                   >
                     ✕
+                  </button>
+                )}
+                {!group.confirmed && n.status === 'leader_rejected' && onRestoreNominee && (
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    onClick={() => onRestoreNominee(n.id)}
+                    data-testid="evp-restore"
+                  >
+                    {L.restore}
                   </button>
                 )}
               </div>
@@ -262,6 +293,7 @@ export default function EvalCyclePeerConfirmCanvas({
   labels: providedLabels,
   onAddNominee,
   onRemoveNominee,
+  onRestoreNominee,
   onConfirm,
   onAdopt,
   onReject,
@@ -331,6 +363,7 @@ export default function EvalCyclePeerConfirmCanvas({
               onToggle={(next) => setExpanded(g, next)}
               onAddNominee={onAddNominee}
               onRemoveNominee={onRemoveNominee}
+              onRestoreNominee={onRestoreNominee}
               onConfirm={onConfirm}
             />
           ))}
