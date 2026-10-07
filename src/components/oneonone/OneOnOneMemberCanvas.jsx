@@ -5,6 +5,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
+import { RatingBar } from './StartOneOnOneView.jsx';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -88,6 +89,22 @@ const DEFAULT_LABELS = {
   memberReadySentHint: '작성한 내용이 매니저에게 공유되었습니다.',
   memberReadyFailed: '준비 완료를 보내지 못했습니다.',
   memberReadyRetry: '다시 시도',
+  /* 팀원 자기 보고 (PW-1262 ②) — 시안 `1on1-app.jsx` 멤버 READY 의 S3·S6·S7 중
+     매니저 준비 화면 «멤버 작성 내용»이 받아 보이는 세 칸. */
+  selfReportTitle: '매니저에게 전하는 자기 보고',
+  selfReportDesc: '저장하면 매니저의 1on1 준비 화면에 보입니다.',
+  selfManualBadge: '직접 입력',
+  selfOkrTitle: 'OKR 자가 평가',
+  selfOkrActual: '실제',
+  selfOkrSelf: '자가 평가',
+  selfOkrSliderLabel: '{kr} 자가 평가',
+  selfCapsTitle: '역량 자가진단',
+  selfCapPoint: '{label} {n}점',
+  selfUpwardTitle: '매니저에게 피드백 (Upward Feedback)',
+  selfUpwardPlaceholder: '매니저가 더 잘할 수 있는 것, 감사한 것',
+  selfSave: '저장',
+  selfSaved: '저장됨',
+  selfSaveFailed: '저장하지 못했습니다. 적은 내용은 그대로 남아 있습니다.',
   elapsed: '경과', prepSummary: '준비 요약', okrStatus: 'OKR 현황', agenda: '논의 아젠다',
   pendingActions: '미완료 액션아이템',
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
@@ -821,7 +838,146 @@ export function SessionHeader({ title, status, date, duration, avatar, L, icons,
 }
 
 /* ── ① 준비 (READY) ───────────────────────────────────── */
-function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady }) {
+/**
+ * 팀원 자기 보고 — OKR 자가 평가 · 역량 자가진단 · Upward Feedback (PW-1262 ②).
+ *
+ * 정본: 시안 `1on1-app.jsx` 멤버 READY 「한판 보고서 카드」의 S3(OKR 자가 평가) ·
+ * S6(역량 자가진단) · S7(Upward Feedback) — 기획 원온원 §4.2.6 · §4.2.9 · §4.2.10.
+ * 매니저 준비 화면(`StartOneOnOneView` «멤버 작성 내용»)이 받아 보이는 세 칸만 옮겼다.
+ *
+ * `value` = `{ okr: [{ id, title, actual, self }], capabilities: [{ key, label, value }],
+ *   upwardFeedback, maxUpwardLength, onSave(patch) }`.
+ * - OKR 슬라이더는 저장한 값이 없으면 실제 진행률에서 시작하고, 저장하면 KR 전부를 보낸다.
+ * - 역량은 0 = 아직 안 고름이다. 고른 것만 보낸다.
+ * - `onSave` 가 거절하면 「저장됨」을 띄우지 않고 실패를 이 카드 안에 말한다 — 적은 값은 그대로 둔다.
+ */
+function SelfAssessmentSection({ value, L, icons, baseUrl }) {
+  const [okr, setOkr] = useState(() =>
+    Object.fromEntries(value.okr.map((k) => [k.id, k.self ?? k.actual ?? 0])),
+  );
+  const [caps, setCaps] = useState(() =>
+    Object.fromEntries(value.capabilities.filter((c) => c.value > 0).map((c) => [c.key, c.value])),
+  );
+  const [upward, setUpward] = useState(value.upwardFeedback ?? '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    setFailed(false);
+    try {
+      await value.onSave({
+        ...(value.okr.length > 0 && { okrSelf: okr }),
+        capabilities: caps,
+        upwardFeedback: upward,
+      });
+    } catch {
+      setSaving(false);
+      setFailed(true);
+      return;
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const badge = <DpStatusBadge tone="neutral">{L.selfManualBadge}</DpStatusBadge>;
+
+  return (
+    <Section title={L.selfReportTitle} icon={icons.memo} icons={icons} baseUrl={baseUrl} collapsible={false}>
+      <p className="ono-mem-hint">{L.selfReportDesc}</p>
+
+      {value.okr.length > 0 && (
+        <div className="ono-mem-self-block" data-testid="ono-self-okr">
+          <div className="ono-mem-self-head">
+            <span className="ono-start-field-label">{L.selfOkrTitle}</span>
+            {badge}
+          </div>
+          {value.okr.map((kr) => (
+            <div className="ono-start-okr-row" key={kr.id}>
+              <span className="ono-start-okr-kr">{kr.title}</span>
+              <span className="ono-mem-self-line">
+                <span className="ono-start-okr-bar-label">{L.selfOkrActual}</span>
+                <OkrBar value={kr.actual ?? 0} />
+              </span>
+              <span className="ono-mem-self-line">
+                <span className="ono-start-okr-bar-label">{L.selfOkrSelf}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="ono-mem-range"
+                  value={okr[kr.id] ?? 0}
+                  aria-label={fill(L.selfOkrSliderLabel, { kr: kr.title })}
+                  onChange={(e) => setOkr((prev) => ({ ...prev, [kr.id]: Number(e.target.value) }))}
+                />
+                <span className="ono-start-okr-bar-pct">{okr[kr.id] ?? 0}%</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="ono-mem-self-block" data-testid="ono-self-caps">
+        <div className="ono-mem-self-head">
+          <span className="ono-start-field-label">{L.selfCapsTitle}</span>
+          {badge}
+        </div>
+        <div className="ono-start-caps">
+          {value.capabilities.map((c) => (
+            <div key={c.key} className="ono-start-cap-row">
+              <span className="ono-start-cap-label">{c.label}</span>
+              <RatingBar
+                self
+                value={caps[c.key] ?? 0}
+                labelOf={(n) => fill(L.selfCapPoint, { label: c.label, n })}
+                onChange={(n) => setCaps((prev) => ({ ...prev, [c.key]: n }))}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="ono-mem-self-block" data-testid="ono-self-upward">
+        <div className="ono-mem-self-head">
+          <span className="ono-start-field-label">{L.selfUpwardTitle}</span>
+          {badge}
+        </div>
+        <textarea
+          className="ono-start-textarea"
+          value={upward}
+          maxLength={value.maxUpwardLength}
+          onChange={(e) => setUpward(e.target.value)}
+          placeholder={L.selfUpwardPlaceholder}
+          aria-label={L.selfUpwardTitle}
+          rows={3}
+        />
+      </div>
+
+      {failed && (
+        <div className="ono-start-failbox" role="alert" data-testid="ono-self-save-error">
+          <span className="ono-start-failbox-title">{L.selfSaveFailed}</span>
+        </div>
+      )}
+      <div className="ono-mem-actions-end">
+        <button
+          type="button"
+          className={`ono-mem-btn${saved ? ' is-ok' : ''}`}
+          onClick={save}
+          disabled={saving}
+          data-testid="ono-self-save"
+        >
+          {saved ? L.selfSaved : L.selfSave}
+        </button>
+      </div>
+    </Section>
+  );
+}
+
+function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady, selfAssessment }) {
   const [draft, setDraft] = useState('');
   const topics = session.memberTopics ?? [];
   const prevActions = session.aiBriefing?.prevActions ?? [];
@@ -897,6 +1053,11 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
             </div>
           ))}
         </Section>
+      )}
+
+      {/* 팀원 자기 보고 (PW-1262 ②) — 팀원만 쓴다. 호스트가 값을 안 넘기면 자리도 없다. */}
+      {!isHost && selfAssessment && (
+        <SelfAssessmentSection value={selfAssessment} L={L} icons={icons} baseUrl={baseUrl} />
       )}
 
       {healthHistory.length >= 2 && (
@@ -1571,6 +1732,12 @@ export default function OneOnOneMemberCanvas({
   /** 「준비 완료」 진행/실패 상태 — `{ busy, error }`. 호스트가 소유한다. */
   memberReady = null,
   /**
+   * 팀원 자기 보고 (PW-1262 ②) — `{ okr, capabilities, upwardFeedback, maxUpwardLength, onSave }`.
+   * 안 넘기면 준비 화면에 그 카드가 없다(종전 화면 그대로). `onSave` 는 Promise 를 돌려주고,
+   * 거절하면 카드가 실패를 말하고 적은 값을 남긴다.
+   */
+  selfAssessment = null,
+  /**
    * 공개된 매니저 피드백의 근거 발췌 (PW-103).
    * `{ evidence: { items: [{ key, edited, evidence: [...] }] }, loading, error, onRetry }`.
    * 발췌만 여기서 오고 **본문은 세션에 이미 실려 있다** — 발췌 로딩이 본문 표시를
@@ -1625,6 +1792,7 @@ export default function OneOnOneMemberCanvas({
           healthHistory={healthHistory} isHost={isHost} healthColor={healthColor}
           onTopicsChange={onTopicsChange} onStart={onStart}
           onMemberReady={onMemberReady} memberReady={memberReady}
+          selfAssessment={selfAssessment}
         />
       ) : <EmptyState description={L.noPrepSession} />)}
 

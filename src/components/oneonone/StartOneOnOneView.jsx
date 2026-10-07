@@ -183,17 +183,30 @@ const ratingTone = (v) => (v === 3 ? 'is-warn' : v <= 2 ? 'is-bad' : '');
 
 // ai=true(AI 초안 생성됨)이면 막대 색이 green → purple 로 바뀐다.
 // onChange 가 주어지면 매니저가 1-5 막대를 클릭해 직접 평가 입력 (spec §4.1.5).
-function RatingBar({ value, ai = false, onChange }) {
+// self=true 는 팀원 자가진단 막대 — 파랑이다 (spec §4.2.9 · 멤버 화면에서 쓴다).
+// labelOf 는 눌리는 막대 칸의 읽기 이름 — 호스트가 i18n 으로 준다.
+export function RatingBar({ value, ai = false, self = false, onChange, labelOf = (n) => `${n}점` }) {
   return (
     <div className="ono-start-rating">
-      <div className={`ono-start-rating-segs ${ai ? 'is-ai' : ''}`}>
+      <div className={`ono-start-rating-segs ${ai ? 'is-ai' : ''} ${self ? 'is-self' : ''}`}>
         {[1, 2, 3, 4, 5].map((n) => (
           <span
             key={n}
             className={`ono-start-rating-seg ${n <= value ? 'is-on' : ''} ${onChange ? 'is-clickable' : ''}`}
             onClick={onChange ? () => onChange(n) : undefined}
             role={onChange ? 'button' : undefined}
-            aria-label={onChange ? `${n}점` : undefined}
+            tabIndex={onChange ? 0 : undefined}
+            onKeyDown={
+              onChange
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onChange(n);
+                    }
+                  }
+                : undefined
+            }
+            aria-label={onChange ? labelOf(n) : undefined}
           />
         ))}
       </div>
