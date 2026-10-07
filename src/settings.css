@@ -161,6 +161,18 @@
   line-height: 1.5;
 }
 
+/* 개인 입력 3종 태그 칸 (PersonalTagsField) */
+.msc-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.msc-tags-unapproved {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
 .msc-char-count {
   text-align: right;
   font-size: 12px;

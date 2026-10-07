@@ -34,6 +34,9 @@ const DEFAULT_LABELS = {
     location: '위치',
     workHours: '근무 시간',
     skills: '스킬',
+    // 개인 입력 3종의 나머지 둘 (기획서 코어 §1-3-g D · 시안 settings-app.jsx 내 프로필 보기)
+    expertise: '업무 전문 분야',
+    currentWorks: '수행 중인 주요 업무',
     projects: '참여 프로젝트',
   },
   org: {
@@ -219,7 +222,9 @@ export default function MyProfileCanvas({
           <Pair label={L.basic.slack} value={me.slack} dash={dash} testId="myprofile-basic-slack" />
           <Pair label={L.basic.location} value={me.location} dash={dash} testId="myprofile-basic-location" />
           <Pair label={L.basic.workHours} value={me.workHours} dash={dash} testId="myprofile-basic-workhours" />
+          <Pair label={L.basic.expertise} value={me.expertise} dash={dash} testId="myprofile-basic-expertise" />
           <Pair label={L.basic.skills} value={me.skills} dash={dash} testId="myprofile-basic-skills" />
+          <Pair label={L.basic.currentWorks} value={me.currentWorks} dash={dash} testId="myprofile-basic-current-works" />
           <Pair label={L.basic.projects} value={me.projects} dash={dash} testId="myprofile-basic-projects" />
         </div>
       </Card>

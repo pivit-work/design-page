@@ -223,6 +223,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               </div>
               <div className="modal-stat-label">{L('profile.rank')}</div>
               <div className="modal-stat-value">{shown(profile.rank)}</div>
+              {/* 본인이 직급을 비공개로 둔 사람 — 어드민이 이 값을 남에게 전해도 되는지 판단하게
+                  「본인이 비공개로 설정함」을 값 아래 작게 붙인다(기획서 public-card 정책서 AdminOrgInfoBlock ·
+                  시안 org-chart-app.jsx). 값 옆에 이어 붙이면 칸이 넓어져 옆 칸 글자가 중간에서 꺾였다. */}
+              {profile.rankNote && (
+                <div className="modal-stat-note" data-testid="profile-rank-note">{profile.rankNote}</div>
+              )}
             </div>
             <div className="modal-stat">
               <div className="modal-stat-icon">
