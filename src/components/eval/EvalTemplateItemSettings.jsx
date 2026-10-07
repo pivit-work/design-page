@@ -17,6 +17,7 @@ import {
   isNoteItem,
   scaleMaxOf,
   supportsGrowthType,
+  supportsPeerVisible,
 } from './evalTemplateItemModel.js';
 
 /** 가이드 문구가 이보다 길면 「툴팁을 권합니다」 힌트를 띄운다 — 차단하지 않는다(§5.11-D). */
@@ -303,9 +304,27 @@ export default function EvalTemplateItemSettings({
           {L.disclosureTitle} <span className="evc-tpl-set-note">{L.disclosureTitleHint}</span>
         </div>
         {!disclosureSupported ? (
-          <p className="evc-tpl-set-help" data-testid={`evc-tpl-disclosure-self-${q.id}`}>
-            {L.disclosureSelfNote}
-          </p>
+          <>
+            <p className="evc-tpl-set-help" data-testid={`evc-tpl-disclosure-self-${q.id}`}>
+              {L.disclosureSelfNote}
+            </p>
+            {/* [PW-1262 ③] 셀프 답은 피평가자 공개가 성립하지 않지만, 동료 리뷰 작성자에게
+                «참고로» 보일지는 질문마다 고른다. 처음엔 꺼져 있다(2026-10-06 커트 결정). */}
+            {supportsPeerVisible(q, reviewType) && (
+              <>
+                <label className="evl-promo-row">
+                  <input
+                    type="checkbox"
+                    checked={!!q.peerVisible}
+                    onChange={(e) => onPatch(q.id, { peerVisible: e.target.checked })}
+                    data-testid={`evc-tpl-peer-visible-${q.id}`}
+                  />
+                  <span>{L.peerVisibleLabel}</span>
+                </label>
+                <p className="evc-tpl-set-help">{L.peerVisibleHelp}</p>
+              </>
+            )}
+          </>
         ) : (
           <>
             <div className="evc-tpl-set-row">

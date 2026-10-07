@@ -290,6 +290,12 @@ export function EvalTemplateItemRow({
           {q.allowMultiple ? ` · ${L.optionsMultiBadge}` : ''}
         </StatusBadge>
       )}
+      {/* [PW-1262 ③] 셀프 답을 동료 리뷰에 참고로 보이는 질문. 켠 것만 알린다(처음엔 꺼짐). */}
+      {q.peerVisible && !isNoteItem(q) && (
+        <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-peer-visible-${q.id}`}>
+          {L.peerVisibleBadge}
+        </StatusBadge>
+      )}
       {/* PW-482 — 작성자 표기가 실명이 아닐 때만 알린다. 실명은 기본값이라 배지가
           정보를 더하지 않는다. */}
       {showDisclosureBadge &&
