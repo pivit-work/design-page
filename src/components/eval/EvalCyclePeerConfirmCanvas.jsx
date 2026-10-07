@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
 
 /**
@@ -19,10 +20,12 @@ import { ChevronRightIcon } from './evalIcons.jsx';
 const DEFAULT_LABELS = {
   title: '동료 리뷰어 확정',
   subtitle: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
+  // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용
+  feedbackOnlyNotice: '',
   emptyTitle: '확정할 대상이 없습니다',
   emptySub: '피평가자별 동료 리뷰어 후보를 추가해 주세요.',
   // PW-1227 — 후보가 0명인 카드. 추천이 없어도 리더가 직접 넣을 수 있다고 알린다.
-  noNominees: '추천된 동료가 없습니다. 직접 지명해 주세요.',
+  noNominees: '아직 지명된 동료 리뷰어가 없습니다.',
   nominees: '확정 대상 {{count}}명',
   confirmedBadge: '✓ 확정 · {{count}}명에게 발송됨',
   confirm: '최종 확정 → 발송',
@@ -31,7 +34,20 @@ const DEFAULT_LABELS = {
   evaluateeCount: '피평가자 {{count}}명',
   expandAll: '전체 펼치기',
   collapseAll: '전체 접기',
-  addPlaceholder: '+ 동료 추가',
+  addPlaceholder: '+ 동료 리뷰어 직접 추가',
+  // §6.3.2 조직 + 이름(한글·영문) 검색 — 2글자 이상, 최대 10건
+  searchDeptAll: '전체 조직',
+  searchPlaceholder: '이름 (한글·영문)',
+  searchHint: '이름을 2글자 이상 입력하세요.',
+  searchEmpty: '일치하는 구성원이 없습니다.',
+  searchAdd: '추가',
+  // §6.3.0·§6.4.1 확정 뒤 진행 추적
+  submittedProgress: '제출 {{done}}/{{total}}',
+  allSubmitted: '제출 완료',
+  statusNotSubmitted: '미제출',
+  // §6.3.1 자발적 신청 — 출처 배지 · 카드 머리 대기 배지
+  modeUnsolicited: '자발적',
+  unsolicitedPending: '자발적 리뷰 {{count}}건 검토 대기',
   remove: '제외',
   restore: '복원',
   modeAiRecommend: 'AI 추천',
@@ -60,6 +76,7 @@ const MODE_KEY = {
   self_select: 'modeSelfSelect',
   leader_assign: 'modeLeaderAssign',
   hr_assign: 'modeHrAssign',
+  unsolicited: 'modeUnsolicited',
 };
 const STATUS_KEY = {
   assigned: 'statusAssigned',
@@ -88,6 +105,81 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
+/** §6.3.2 — 이름 표기 원값(이름·닉네임·영문 닉네임·영문 이름) 중 하나라도 키워드를 품나. */
+const matchesName = (c, q) => {
+  const needle = q.trim().toLowerCase();
+  return (c.searchTerms ?? [c.name]).some((v) => v && String(v).toLowerCase().includes(needle));
+};
+const SEARCH_MIN = 2;
+const SEARCH_MAX = 10;
+
+/** §6.3 리더 직접 추가 — 조직 드롭다운 + 이름 키워드(AND). 「추가」나 Enter 로 넣는다. */
+function PeerSearch({ addable, L, onPick }) {
+  const [dept, setDept] = useState('');
+  const [q, setQ] = useState('');
+  const depts = useMemo(
+    () => [...new Set(addable.map((c) => c.department).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [addable],
+  );
+  const ready = q.trim().length >= SEARCH_MIN;
+  const results = ready
+    ? addable.filter((c) => (!dept || c.department === dept) && matchesName(c, q)).slice(0, SEARCH_MAX)
+    : [];
+  const pick = (c) => {
+    onPick(c.id);
+    setQ('');
+  };
+  return (
+    <div className="evp-search" data-testid="evp-search">
+      <div className="evp-search-row">
+        <select
+          className="evc-input evp-search-dept"
+          value={dept}
+          onChange={(e) => setDept(e.target.value)}
+          data-testid="evp-search-dept"
+        >
+          <option value="">{L.searchDeptAll}</option>
+          {depts.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <input
+          className="evc-input evp-search-input"
+          value={q}
+          placeholder={L.searchPlaceholder}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && results.length > 0) {
+              e.preventDefault();
+              pick(results[0]);
+            }
+          }}
+          data-testid="evp-search-input"
+        />
+      </div>
+      {!ready ? (
+        <p className="evc-empty-sub" data-testid="evp-search-hint">{L.searchHint}</p>
+      ) : results.length === 0 ? (
+        <p className="evc-empty-sub" data-testid="evp-search-empty">{L.searchEmpty}</p>
+      ) : (
+        <div className="evp-search-results">
+          {results.map((c) => (
+            <div className="evp-search-result" key={c.id} data-testid="evp-search-result">
+              <span className="evp-nominee-name">{c.name}</span>
+              {(c.department || c.job) && (
+                <span className="evp-nominee-job">{[c.department, c.job].filter(Boolean).join(' · ')}</span>
+              )}
+              <button type="button" className="evc-btn is-ghost" onClick={() => pick(c)} data-testid="evp-search-add">
+                {L.searchAdd}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const fill = (s, vars) => {
   let out = s == null ? '' : String(s);
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
@@ -104,9 +196,18 @@ function PeerGroupCard({
   onRemoveNominee,
   onRestoreNominee,
   onConfirm,
+  adoptableIds,
+  onAdopt,
+  onReject,
 }) {
   const [confirmHint, setConfirmHint] = useState(false);
+  const [adding, setAdding] = useState(false);
   const keptCount = group.nominees.filter(isKept).length;
+  // §6.3.0 제출 진척 = 확정 명단 중 낸 사람. §6.4.1 전원 제출이면 「제출 완료」.
+  const submittedCount = group.nominees.filter((n) => n.status === 'completed').length;
+  const allSubmitted = group.confirmed && keptCount > 0 && submittedCount === keptCount;
+  // §6.3.1 아직 채택하지 않은 자발적 신청 — 접혀 있어도 머리에서 보이게 센다.
+  const pendingCount = group.confirmed ? 0 : group.nominees.filter((n) => n.status === 'pending_leader_review').length;
   // §6.4.1 — 확정 뒤에는 확정 명단만 보인다(뺀 후보는 숨긴다).
   const shown = group.confirmed
     ? group.nominees.filter((n) => !REMOVED.has(n.status))
@@ -147,16 +248,30 @@ function PeerGroupCard({
             <ChevronRightIcon size={16} />
           </span>
           <h3 className="evc-card-name">{group.evaluatee.name || group.evaluatee.id}</h3>
+          {group.evaluatee.job && <span className="evp-nominee-job">{group.evaluatee.job}</span>}
         </button>
+        {pendingCount > 0 && (
+          <StatusBadge className="evc-status-badge evp-unsol-pending" data-testid="evp-unsol-pending">
+            {fill(L.unsolicitedPending, { count: pendingCount })}
+          </StatusBadge>
+        )}
         {changed && (
           <StatusBadge className="evc-status-badge evp-changed" data-testid="evp-changed">
             {L.nominationChanged}
           </StatusBadge>
         )}
         {group.confirmed ? (
-          <StatusBadge className="evc-status-badge tone-success">
-            {fill(L.confirmedBadge, { count: keptCount })}
-          </StatusBadge>
+          <>
+            <StatusBadge className="evc-status-badge tone-success" data-testid="evp-confirmed">
+              {fill(L.confirmedBadge, { count: keptCount })} ·{' '}
+              {fill(L.submittedProgress, { done: submittedCount, total: keptCount })}
+            </StatusBadge>
+            {allSubmitted && (
+              <StatusBadge className="evc-status-badge tone-success" data-testid="evp-all-submitted">
+                {L.allSubmitted}
+              </StatusBadge>
+            )}
+          </>
         ) : (
           <>
             <span className="evc-pending">
@@ -187,19 +302,46 @@ function PeerGroupCard({
             {group.nominees.length === 0 && !group.confirmed && (
               <p className="evc-empty-sub" data-testid="evp-no-nominees">{L.noNominees}</p>
             )}
-            {shown.map((n) => (
+            {shown.map((n) => {
+              const pending = n.status === 'pending_leader_review';
+              // §6.4.1 확정 뒤에는 동료별 제출 여부를 보인다(작성 중 여부는 받지 않는다).
+              const statusText = group.confirmed
+                ? n.status === 'completed'
+                  ? L.statusCompleted
+                  : L.statusNotSubmitted
+                : (L[STATUS_KEY[n.status]] ?? n.status);
+              const statusTone = group.confirmed
+                ? n.status === 'completed' ? 'success' : 'neutral'
+                : n.status === 'leader_approved' ? 'success' : 'neutral';
+              return (
               <div
-                className={`evp-nominee${REMOVED.has(n.status) ? ' is-removed' : ''}`}
+                className={`evp-nominee${REMOVED.has(n.status) ? ' is-removed' : ''}${pending ? ' is-pending-unsolicited' : ''}`}
                 key={n.id}
                 data-testid="evp-nominee"
               >
                 <span className="evp-nominee-name">{n.evaluator.name || n.evaluator.id}</span>
+                {n.evaluator.job && <span className="evp-nominee-job">{n.evaluator.job}</span>}
                 {/* PW-1375 — «AI 추천» 근거(함께한 회의 N회 등)는 표시에 마우스를 올리면 뜬다 */}
-                <StatusBadge className="evc-type-badge" title={n.evidenceText}>{L[MODE_KEY[n.assignMode]] ?? n.assignMode}</StatusBadge>
-                <StatusBadge className={`evc-status-badge tone-${n.status === 'leader_approved' ? 'success' : 'neutral'}`}>
-                  {L[STATUS_KEY[n.status]] ?? n.status}
+                <StatusBadge
+                  className={`evc-type-badge${n.assignMode === 'unsolicited' ? ' evp-unsolicited-badge' : ''}`}
+                  title={n.evidenceText}
+                >
+                  {L[MODE_KEY[n.assignMode]] ?? n.assignMode}
                 </StatusBadge>
-                {/* 채택 대기 신청은 위 «자발적 리뷰 신청 대기»에서 채택·제외한다 */}
+                <StatusBadge className={`evc-status-badge tone-${statusTone}`}>
+                  {statusText}
+                </StatusBadge>
+                {/* §6.3.1 자발적 신청은 「채택」 — 이 리더가 채택할 수 있는 신청(대기열에 있는 것)만 */}
+                {!group.confirmed && pending && adoptableIds?.has(n.id) && (
+                  <>
+                    <button type="button" className="evc-btn is-ghost" onClick={() => onReject?.(n.id)} data-testid="evp-row-reject">
+                      {L.reject}
+                    </button>
+                    <button type="button" className="evc-btn is-primary" onClick={() => onAdopt?.(n.id)} data-testid="evp-row-adopt">
+                      {L.adopt}
+                    </button>
+                  </>
+                )}
                 {!group.confirmed && isKept(n) && (
                   <button
                     type="button"
@@ -222,27 +364,19 @@ function PeerGroupCard({
                   </button>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {!group.confirmed && addable.length > 0 && (
             <div className="evc-card-actions">
-              <select
-                className="evc-input evp-add-select"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) onAddNominee(group.evaluatee.id, e.target.value);
-                }}
-                data-testid="evp-add"
-              >
-                <option value="">{L.addPlaceholder}</option>
-                {addable.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.department ? ` · ${c.department}` : ''}
-                  </option>
-                ))}
-              </select>
+              {adding ? (
+                <PeerSearch addable={addable} L={L} onPick={(id) => onAddNominee(group.evaluatee.id, id)} />
+              ) : (
+                <button type="button" className="evc-btn is-ghost" onClick={() => setAdding(true)} data-testid="evp-add-open">
+                  {L.addPlaceholder}
+                </button>
+              )}
             </div>
           )}
         </>
@@ -298,11 +432,15 @@ export default function EvalCyclePeerConfirmCanvas({
   onAdopt,
   onReject,
   onSeen,
+  // 리더 정책 §6.2 — 상태를 다 받기 전에는 카드 자리에 스켈레톤(버튼이 눌리지 않게)
+  loading = false,
   // 카드 목록 위에 끼우는 안내(앱이 그린다) — 예: 체험 AI 를 다 써 «AI 추천»을 건너뛰었다(PW-1394).
   // 캔버스가 화면에 고정돼 있어 밖에 두면 앱 위쪽 바 밑에 깔린다.
   notice = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // §6.3.1 카드 안에서 채택·제외할 수 있는 신청 — 이 리더의 대기열에 든 것만(PW-931: 신청자의 조직장 몫)
+  const adoptableIds = useMemo(() => new Set(unsolicited.map((r) => r.id)), [unsolicited]);
   // 접힘 상태는 화면에만 있다 — 서버에 남기지 않고, 다시 들어오면 접혀 있다(§6.3.0).
   const [open, setOpen] = useState({});
   const setExpanded = (group, next) => {
@@ -327,15 +465,27 @@ export default function EvalCyclePeerConfirmCanvas({
         </div>
       </header>
 
+      {L.feedbackOnlyNotice && (
+        <div className="evc-list">
+          <p className="evx-notice" data-testid="evp-feedback-only">{L.feedbackOnlyNotice}</p>
+        </div>
+      )}
+
       {notice && <div className="evc-list">{notice}</div>}
 
-      {unsolicited.length > 0 && (
+      {loading && (
+        <div className="evc-list" data-testid="evp-loading" aria-busy="true">
+          <SkeletonList count={3} height={56} />
+        </div>
+      )}
+
+      {!loading && unsolicited.length > 0 && (
         <div className="evc-list">
           <UnsolicitedSection items={unsolicited} L={L} onAdopt={onAdopt} onReject={onReject} />
         </div>
       )}
 
-      {groups.length === 0 && unsolicited.length === 0 ? (
+      {loading ? null : groups.length === 0 && unsolicited.length === 0 ? (
         <div className="evc-empty" data-testid="evp-empty">
           <p className="evc-empty-title">{L.emptyTitle}</p>
           <p className="evc-empty-sub">{L.emptySub}</p>
@@ -365,6 +515,9 @@ export default function EvalCyclePeerConfirmCanvas({
               onRemoveNominee={onRemoveNominee}
               onRestoreNominee={onRestoreNominee}
               onConfirm={onConfirm}
+              adoptableIds={adoptableIds}
+              onAdopt={onAdopt}
+              onReject={onReject}
             />
           ))}
         </div>
