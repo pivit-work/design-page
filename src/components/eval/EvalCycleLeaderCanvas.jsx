@@ -380,12 +380,14 @@ export default function EvalCycleLeaderCanvas({
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
+  // 점수 없이 사유만 쓴 항목도 보낸다 — 기획 leader §5.4 「점수 미선택 제출 허용」. 빼면 사유가 사라진다.
   const toItems = () =>
     fields
       .filter(
         (f) =>
           state[f.key].textAnswer.trim() ||
           state[f.key].score != null ||
+          (state[f.key].rationale || '').trim() ||
           selectedOptions(state[f.key]).length > 0,
       )
       .map((f) => ({
