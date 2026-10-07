@@ -3755,6 +3755,50 @@
 .evp-nominee.is-removed .evp-nominee-name {
   text-decoration: line-through;
 }
+/* W34 — 직무 · 자발적 배지(주황, 리더 정책 §6.3.1) · 대기 행 강조 · 직접 추가 검색(§6.3.2) */
+.evp-nominee-job {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evp-unsolicited-badge,
+.evp-unsol-pending {
+  background: var(--utility-orange-50);
+  color: var(--utility-orange-600);
+  border-color: var(--utility-orange-200);
+}
+.evp-nominee.is-pending-unsolicited {
+  border-color: var(--utility-orange-200);
+  background: var(--utility-orange-50);
+}
+.evp-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+.evp-search-row {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+.evp-search-dept {
+  flex: 0 0 180px;
+}
+.evp-search-input {
+  flex: 1;
+}
+.evp-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.evp-search-result {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-active);
+}
 /* F3 자발적 요청 대기 */
 .evp-unsol-row {
   display: flex;
@@ -4050,6 +4094,73 @@
   color: var(--utility-warning-700);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
+}
+/* W34 — 하향 리뷰: 실패 배너(§5.9) · 등급 카드 캡션(§5.2.1·§12.1 L2) · 제출 바 캡션(§12.1 L1) */
+.evx-notice.is-error {
+  background: var(--utility-error-50);
+  color: var(--utility-error-700);
+  border: 1px solid var(--utility-error-200);
+}
+.evl-grade-caption {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evl-submit-caption {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evl-submit-caption.is-calib-off {
+  font-weight: 700;
+  color: var(--utility-warning-700);
+}
+/* §5.9 「저장됨 HH:MM」 — 화면 우상단, 3초 뒤 사라진다 */
+.evl-autosaved {
+  max-width: 1080px;
+  margin: 0 auto var(--spacing-md);
+  text-align: right;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-success-700);
+}
+/* §5.5 섹션 머리 — 소제목 + 접기/펼치기 + 구분선 */
+.evl-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evl-sec-head .evc-card-name {
+  margin: 0;
+}
+.evl-sec-toggle {
+  border: none;
+  background: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.evl-sec-toggle:hover {
+  color: var(--text-primary);
+}
+.evl-sec-note {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+/* §5.10 제출 완료 화면 */
+.evl-done {
+  max-width: 640px;
+  margin: var(--spacing-3xl) auto;
+  text-align: center;
+}
+.evl-done .evc-card-buttons {
+  justify-content: center;
 }
 .evl-freeze-note {
   margin: 0 0 var(--spacing-sm);

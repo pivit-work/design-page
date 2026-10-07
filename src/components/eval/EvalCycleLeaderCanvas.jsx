@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
@@ -43,6 +45,40 @@ const DEFAULT_LABELS = {
   growthDemoPlaceholder: '성장 기대를 작성하세요.',
   gradeTitle: '최종 등급',
   gradeRequired: '제출하려면 최종 등급을 선택하세요.',
+  // leader §5.2.1 — 최종 등급은 리더가 정한다는 인라인 안내(AI 등급 제안 없음)
+  gradeDecisionNote: '',
+  // leader §12.1 L2(켠 사이클) — 등급 카드 머리 캡션. 끈 사이클은 calibOffGradeNote
+  gradeCaptionCalibOn: '',
+  // leader §12.1 L1 — 제출 바 캡션(켠/끈 사이클). 끈 사이클은 굵게·주황
+  submitCaptionCalibOn: '',
+  submitCaptionCalibOff: '',
+  // leader §5.4 — 점수만 고르고 사유를 비운 항목이 있으면 제출 전에 묻는다(막지는 않는다).
+  // {first} = 첫 항목 이름, {count} = 나머지 수
+  rationaleMissingOne: '',
+  rationaleMissingMany: '',
+  rationaleMissingContinue: '계속 제출',
+  rationaleMissingCancel: '취소',
+  // leader §5.5 — 섹션 접기/펼치기 · 역량 섹션 안내
+  sectionCollapse: '접기',
+  sectionExpand: '펼치기',
+  competencyFrameNote: '',
+  // leader §5.5.1 — 강점·보완·성장 고정 정의(템플릿 설명이 없을 때 ⓘ 로)
+  strengthsHint: '',
+  improvementsHint: '',
+  growthDemoHint: '',
+  // leader §5.9 — 자동 임시저장 표시. {time} = HH:MM
+  autoSaved: '저장됨 {time}',
+  autoSaveFailed: '임시저장 실패',
+  // leader §5.10·§12.1 L5 — 제출 완료 화면
+  doneTitle: '제출이 완료되었습니다.',
+  doneCalibOnNote: '',
+  backToTeam: '팀원 목록으로',
+  goCalibration: '캘리브레이션 확인',
+  // leader §5.12 — 작성 중 이탈 확인
+  leaveTitle: '작성 중인 내용이 있습니다. 나가시겠습니까?',
+  leaveSave: '임시저장 후 나가기',
+  leaveDiscard: '저장 없이 나가기',
+  leaveStay: '계속 작성',
   // PW-486 캘리브레이션을 끈 사이클 — 조정 단계가 없다는 사실을 채점 «전에» 알린다.
   // 「뒤에서 조정된다」고 믿고 매긴 등급과 「이게 최종」임을 알고 매긴 등급은 다르다.
   calibOffGradeNote:
@@ -126,6 +162,45 @@ const DEFAULT_FIELDS = [
   { key: 'gro', category: 'growth', growthType: 'growth_demonstrated', score: false, labelKey: 'growthDemoLabel', phKey: 'growthDemoPlaceholder', single: false },
 ];
 
+// 점수 없이 사유만 쓴 항목도 보낸다 — 기획 leader §5.4 「점수 미선택 제출 허용」. 빼면 사유가 사라진다.
+function itemsOf(fields, state) {
+  return fields
+    .filter(
+      (f) =>
+        state[f.key].textAnswer.trim() ||
+        state[f.key].score != null ||
+        (state[f.key].rationale || '').trim() ||
+        selectedOptions(state[f.key]).length > 0,
+    )
+    .map((f) => ({
+      templateItemId: f.templateItemId,
+      itemCategory: f.category,
+      growthType: f.growthType,
+      textAnswer: state[f.key].textAnswer,
+      score: state[f.key].score,
+      rationale: state[f.key].rationale || null,
+      checkedOptions: state[f.key].checkedOptions,
+    }));
+}
+
+/** 자동 임시저장이 «바뀐 게 있나»를 가르는 값 — 보낼 항목과 등급. */
+const snapshotOf = (items, grade) => JSON.stringify([items, grade ?? null]);
+
+const fillLabel = (tpl, vars) =>
+  String(tpl || '').replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ''));
+
+const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+// 역량 구분 — 저장값(`competency`)이거나, 평가지 만들기에서 구분을 글자(「역량 (How)」)로 저장한 경우.
+const isCompetencyCategory = (c) => c === 'competency' || /역량|competenc/i.test(String(c ?? ''));
+
+// leader §5.5.1 — 성장 칸 종류별 고정 정의 라벨 키
+const GROWTH_HINT_KEY = {
+  strengths: 'strengthsHint',
+  improvements: 'improvementsHint',
+  growth_demonstrated: 'growthDemoHint',
+};
+
 // 하향(leader) 응답 폼 필드 도출 — 셀프와 동일 규칙. '최종 등급 결정' 섹션은
 // 별도 등급/평가 UI 가 처리하므로 제외. 유형별 렌더는 responseType 로 결정.
 // [PW-1072] 항목 제목(섹션 머리)은 `it.section` 이 있으면 그것을 쓴다. `category` 는 저장값
@@ -160,6 +235,8 @@ function buildFields(template, L) {
           templateItemId: it.id,
           category: it.category,
           growthType: null,
+          // 저장값(growthType)은 종전대로 비우고, 고정 정의 툴팁(§5.5.1)을 고를 때만 쓴다.
+          growthKind: it.growthType ?? null,
           type,
           label: it.label,
           placeholder: it.label,
@@ -190,6 +267,7 @@ function buildFields(template, L) {
     templateItemId: null,
     category: f.category,
     growthType: f.growthType,
+    growthKind: f.growthType,
     type: f.score ? 'rating' : 'textarea',
     label: L[f.labelKey],
     placeholder: L[f.phKey],
@@ -270,11 +348,14 @@ function evidenceLabel(a, L) {
   return L[EVIDENCE_CAT_KEY[a.itemCategory]] ?? a.itemCategory ?? '';
 }
 
+// 기본값을 렌더마다 새 배열로 만들면 «답이 새로 왔다»로 읽혀 다시 시드하는 렌더가 끝없이 돈다.
+const NO_ANSWERS = [];
+
 export default function EvalCycleLeaderCanvas({
   evaluateeName,
   cycle,
   selfAnswers = [],
-  leaderAnswers = [],
+  leaderAnswers = NO_ANSWERS,
   peerAnswers = [],
   gradeHistory = [],
   assessment = null,
@@ -310,9 +391,25 @@ export default function EvalCycleLeaderCanvas({
    */
   evidenceSignals = null,
   labels: providedLabels,
+  /** onSave(items, gradeKey, { auto }) — Promise 를 돌려주면 자동 임시저장 성공/실패를 표시한다(§5.9). */
   onSave,
   onSubmit,
   onSaveAssessment,
+  /** 제출이 막혔을 때(`'grade'` = 등급 미선택) — 호출부가 토스트를 띄운다(§5.3). */
+  onBlocked,
+  /** 자동 임시저장 간격(ms). 0 이면 끈다. 기획 §5.9 는 30초. */
+  autoSaveMs = 30000,
+  /** 작성 중인(저장 안 된) 내용이 있나가 바뀔 때 — 호출부가 이탈 확인을 건다(§5.12). */
+  onDirtyChange,
+  /** 이탈 확인 창을 띄우나 + 세 갈래 답(§5.12). 창은 캔버스가 그리고, 이동은 호출부가 한다. */
+  leavePrompt = false,
+  onLeaveSave,
+  onLeaveDiscard,
+  onLeaveStay,
+  /** 제출 직후 완료 화면(§5.10·§12.1 L5). 버튼 손잡이를 안 주면 그 버튼을 안 그린다. */
+  showCompletion = false,
+  onBackToList,
+  onGoCalibration,
   // TC-098 승진 요청서(4항목)
   promotionRequest = null,
   onSubmitPromotion,
@@ -349,8 +446,14 @@ export default function EvalCycleLeaderCanvas({
   // 답변/템플릿 async 로드 시 재시드 — effect-setState 대신 during-render 리셋
   // (React 공식 "adjust state during render"), fields/leaderAnswers 참조 변경 시에만.
   const [seededFor, setSeededFor] = useState({ fields, leaderAnswers });
+  // §5.9 — «바뀐 게 있나»의 기준(서버가 준 답 + 등급). 다시 받은 답이 기준이 되고, 그 사이 고친 칸은
+  // 아래 reseedKeepingEdits 가 남기므로 여전히 바뀐 것으로 남는다.
+  const [baseline, setBaseline] = useState(() =>
+    snapshotOf(itemsOf(fields, seedState(leaderAnswers, fields)), initialGrade),
+  );
   if (seededFor.fields !== fields || seededFor.leaderAnswers !== leaderAnswers) {
     setSeededFor({ fields, leaderAnswers });
+    setBaseline(snapshotOf(itemsOf(fields, seedState(leaderAnswers, fields)), initialGrade));
     // 칸 구성이 같고 답만 새로 왔으면(저장 응답) 그 사이 고친 칸은 둔다 (PW-966).
     // 구성은 참조가 아니라 모양으로 가른다 — 저장 응답마다 평가지·라벨이 새 객체로 온다.
     if (fieldsShape(seededFor.fields) !== fieldsShape(fields)) setState(seedState(leaderAnswers, fields));
@@ -363,6 +466,66 @@ export default function EvalCycleLeaderCanvas({
   const fieldRefs = useRef({});
   const gradeRef = useRef(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
+  // §5.5 섹션 접기 — 기본은 모두 펼침
+  const [collapsed, setCollapsed] = useState({});
+  // §5.4 사유 빈 항목 경고 창
+  const [rationaleAsk, setRationaleAsk] = useState(null);
+  // §5.9 자동 임시저장 표시 — { kind: 'saved', at } | { kind: 'failed' } | null
+  const [saveStatus, setSaveStatus] = useState(null);
+
+  const snapshot = snapshotOf(itemsOf(fields, state), grade);
+  const editable = active && !formLocked && !submitted && !showCompletion;
+  const dirty = editable && snapshot !== baseline;
+
+  // 렌더 밖(타이머·버튼)에서 읽을 최신 값 — 렌더 중에는 ref 를 건드리지 않는다.
+  const latest = useRef(null);
+  useEffect(() => {
+    latest.current = { fields, state, grade, onSave, snapshot, dirty };
+  });
+  // 같은 값을 다시 알려도 호출부(상태 setter)에는 아무 일이 없다.
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  // 저장 한 번 — 수동·자동 공통. Promise 를 돌려주는 호출부만 성공/실패를 표시할 수 있다.
+  const savingRef = useRef(false);
+  const runSave = async (auto) => {
+    const cur = latest.current;
+    if (!cur?.onSave || savingRef.current) return false;
+    savingRef.current = true;
+    const sent = cur.snapshot;
+    try {
+      await cur.onSave(itemsOf(cur.fields, cur.state), cur.grade, { auto });
+      setBaseline(sent);
+      setSaveStatus({ kind: 'saved', at: new Date() });
+      return true;
+    } catch {
+      setSaveStatus({ kind: 'failed' });
+      return false;
+    } finally {
+      savingRef.current = false;
+    }
+  };
+
+  // §5.9 30초마다 — 바뀐 게 있을 때만 보낸다.
+  const autoSaveRef = useRef(runSave);
+  useEffect(() => {
+    autoSaveRef.current = runSave;
+  });
+  useEffect(() => {
+    if (!editable || !autoSaveMs) return undefined;
+    const id = setInterval(() => {
+      if (latest.current?.dirty) void autoSaveRef.current(true);
+    }, autoSaveMs);
+    return () => clearInterval(id);
+  }, [editable, autoSaveMs]);
+
+  // 「저장됨 HH:MM」은 3초 뒤 사라진다. 실패 배너는 다음 저장이 될 때까지 남는다.
+  useEffect(() => {
+    if (saveStatus?.kind !== 'saved') return undefined;
+    const id = setTimeout(() => setSaveStatus(null), 3000);
+    return () => clearTimeout(id);
+  }, [saveStatus]);
 
   // 진행 중인 하향 리뷰 단계가 아니면(사이클 미해결) 빈 상태만 — 작동하지 않는 입력폼을
   // 노출하지 않는다(셀프 리뷰 캔버스와 동일한 가드).
@@ -380,25 +543,7 @@ export default function EvalCycleLeaderCanvas({
   const setField = (key, patch) =>
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
-  // 점수 없이 사유만 쓴 항목도 보낸다 — 기획 leader §5.4 「점수 미선택 제출 허용」. 빼면 사유가 사라진다.
-  const toItems = () =>
-    fields
-      .filter(
-        (f) =>
-          state[f.key].textAnswer.trim() ||
-          state[f.key].score != null ||
-          (state[f.key].rationale || '').trim() ||
-          selectedOptions(state[f.key]).length > 0,
-      )
-      .map((f) => ({
-        templateItemId: f.templateItemId,
-        itemCategory: f.category,
-        growthType: f.growthType,
-        textAnswer: state[f.key].textAnswer,
-        score: state[f.key].score,
-        rationale: state[f.key].rationale || null,
-        checkedOptions: state[f.key].checkedOptions,
-      }));
+  const toItems = () => itemsOf(fields, state);
 
   const sections = [];
   // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다.
@@ -432,11 +577,30 @@ export default function EvalCycleLeaderCanvas({
     }
     if (!grade) {
       setTriedSubmit(true);
+      onBlocked?.('grade');
       gradeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    // §5.4 — 점수를 골랐는데 사유가 빈 항목(사유 필수가 아닌 것)은 묻고 낸다. 필수 항목은 위에서 막았다.
+    const missing = fields.filter(
+      (f) =>
+        f.type === 'rating' &&
+        !f.requiresRationale &&
+        state[f.key].score != null &&
+        !(state[f.key].rationale || '').trim(),
+    );
+    if (missing.length > 0 && L.rationaleMissingOne) {
+      setRationaleAsk(missing);
       return;
     }
     onSubmit?.(toItems(), grade);
   };
+  const rationaleAskText = rationaleAsk
+    ? fillLabel(rationaleAsk.length > 1 ? L.rationaleMissingMany : L.rationaleMissingOne, {
+        first: rationaleAsk[0].label,
+        count: rationaleAsk.length - 1,
+      })
+    : '';
 
   // TC-046/047 최종 등급 카드 위치(HR 옵션): top·bottom·freeze(상단고정=슬림 sticky 헤더).
   const gradePos = cycle?.reviewSequence?.gradeCardPosition ?? 'bottom';
@@ -451,6 +615,12 @@ export default function EvalCycleLeaderCanvas({
     >
       {isFreeze && <p className="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
+      {calibrationEnabled && L.gradeCaptionCalibOn && (
+        <p className="evl-grade-caption" data-testid="evl-grade-caption">{L.gradeCaptionCalibOn}</p>
+      )}
+      {L.gradeDecisionNote && (
+        <p className="evl-grade-caption" data-testid="evl-grade-decision-note">{L.gradeDecisionNote}</p>
+      )}
       {!calibrationEnabled && (
         <p className="evl-calib-off-note" data-testid="evl-calib-off-note">
           <AlertIcon size={14} /> {L.calibOffGradeNote}
@@ -478,6 +648,42 @@ export default function EvalCycleLeaderCanvas({
     </section>
   );
 
+  const header = (
+    <header className="evc-header">
+      <div>
+        <h1 className="evc-title">{L.title}{evaluateeName ? ` — ${evaluateeName}` : ''}</h1>
+        {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
+      </div>
+    </header>
+  );
+
+  // §5.10·§12.1 L5 — 제출 완료 화면. 끈 사이클은 「팀원 목록으로」 하나만.
+  if (showCompletion) {
+    return (
+      <div className="evc-root">
+        {header}
+        <section className="evc-card evl-done" data-testid="evl-done">
+          <h3 className="evc-card-name">✓ {L.doneTitle}</h3>
+          <p className="evc-empty-sub" data-testid="evl-done-note">
+            {calibrationEnabled ? L.doneCalibOnNote : L.calibOffSubmittedNote}
+          </p>
+          <div className="evc-card-buttons">
+            {onBackToList && (
+              <button type="button" className="evc-btn is-ghost" onClick={onBackToList} data-testid="evl-done-back">
+                {L.backToTeam}
+              </button>
+            )}
+            {calibrationEnabled && onGoCalibration && (
+              <button type="button" className="evc-btn is-primary" onClick={onGoCalibration} data-testid="evl-done-calib">
+                {L.goCalibration}
+              </button>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="evc-root">
       <header className="evc-header">
@@ -498,6 +704,17 @@ export default function EvalCycleLeaderCanvas({
           {!calibrationEnabled && (
             <span data-testid="evl-submitted-calib-off"> {L.calibOffSubmittedNote}</span>
           )}
+        </p>
+      )}
+
+      {saveStatus?.kind === 'saved' && (
+        <p className="evl-autosaved" role="status" data-testid="evl-autosaved">
+          {fillLabel(L.autoSaved, { time: hhmm(saveStatus.at) })}
+        </p>
+      )}
+      {saveStatus?.kind === 'failed' && (
+        <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+          {L.autoSaveFailed}
         </p>
       )}
 
@@ -562,10 +779,27 @@ export default function EvalCycleLeaderCanvas({
         {/* 우: 작성 */}
         <div className="evl-form">
           {gradeAtTop && gradeCard}
-          {sections.map((sec) => (
-            <section className="evc-card" key={sec.title}>
-              <h3 className="evc-card-name">{sec.title}</h3>
-              {sec.fields.map((f) =>
+          {sections.map((sec) => {
+            const isCollapsed = !!collapsed[sec.title];
+            const isCompetency = sec.fields.some((x) => isCompetencyCategory(x.category));
+            return (
+            <section className="evc-card" key={sec.title} data-testid="evl-section">
+              <div className="evl-sec-head">
+                <h3 className="evc-card-name">{sec.title}</h3>
+                <button
+                  type="button"
+                  className="evl-sec-toggle"
+                  aria-expanded={!isCollapsed}
+                  onClick={() => setCollapsed((c) => ({ ...c, [sec.title]: !c[sec.title] }))}
+                  data-testid="evl-section-toggle"
+                >
+                  {isCollapsed ? L.sectionExpand : L.sectionCollapse}
+                </button>
+              </div>
+              {!isCollapsed && isCompetency && L.competencyFrameNote && (
+                <p className="evl-sec-note" data-testid="evl-competency-note">{L.competencyFrameNote}</p>
+              )}
+              {!isCollapsed && sec.fields.map((f) =>
                 /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
                 f.type === 'note' ? (
                   <EvalNoteBlock key={f.key} item={f} testId={`evl-note-${f.key}`} />
@@ -577,11 +811,16 @@ export default function EvalCycleLeaderCanvas({
                     fieldRefs.current[f.key] = el;
                   }}
                 >
-                  {(sec.fields.length > 1 || f.description) && (
-                    <span className="evc-field-label">
+                  {/* §5.5 카테고리 → 질문 제목 → 응답칸. 선택지 없는 체크박스는 제목을 체크 옆에 그린다. */}
+                  {f.label && !(f.type === 'checkbox' && filledOptions(f).length === 0) && (
+                    <span className="evc-field-label" data-testid={`evl-label-${f.key}`}>
                       {f.label}
                       {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
-                        <FieldInfo description={f.description} />
+                        <FieldInfo
+                          description={
+                            f.description || (GROWTH_HINT_KEY[f.growthKind] ? L[GROWTH_HINT_KEY[f.growthKind]] : null)
+                          }
+                        />
                       )}
                     </span>
                   )}
@@ -693,7 +932,8 @@ export default function EvalCycleLeaderCanvas({
                 ),
               )}
             </section>
-          ))}
+            );
+          })}
 
           {/* 최종 등급 — 하단 배치(기본)일 때만 여기 렌더 */}
           {!gradeAtTop && gradeCard}
@@ -831,10 +1071,19 @@ export default function EvalCycleLeaderCanvas({
                     ? ''
                     : L.gradeRequired}
               </span>
+              {(calibrationEnabled ? L.submitCaptionCalibOn : L.submitCaptionCalibOff) && (
+                <span
+                  className={`evl-submit-caption${calibrationEnabled ? '' : ' is-calib-off'}`}
+                  data-testid="evl-submit-caption"
+                >
+                  {!calibrationEnabled && <AlertIcon size={12} />}{' '}
+                  {calibrationEnabled ? L.submitCaptionCalibOn : L.submitCaptionCalibOff}
+                </span>
+              )}
               <div className="evc-card-buttons">
                 {/* 낸 뒤 고칠 때는 [다시 제출] 하나 — 제출 검사(등급·사유)를 거치지 않은 저장이 남지 않게 */}
                 {!submitted && (
-                  <button type="button" className="evc-btn is-ghost" onClick={() => onSave?.(toItems(), grade)} data-testid="evl-save">
+                  <button type="button" className="evc-btn is-ghost" onClick={() => void runSave(false)} data-testid="evl-save">
                     {L.save}
                   </button>
                 )}
@@ -851,6 +1100,54 @@ export default function EvalCycleLeaderCanvas({
           )}
         </div>
       </div>
+
+      {rationaleAsk && (
+        <ConfirmModal
+          title={rationaleAskText}
+          confirmLabel={L.rationaleMissingContinue}
+          cancelLabel={L.rationaleMissingCancel}
+          onCancel={() => setRationaleAsk(null)}
+          onConfirm={() => {
+            setRationaleAsk(null);
+            onSubmit?.(toItems(), grade);
+          }}
+          testId="evl-rationale-confirm"
+        />
+      )}
+
+      {/* §5.12 이탈 확인 — 세 갈래라 공용 창 껍데기에 버튼 셋을 끼운다. 막·Esc·닫기 X 는 «남는다». */}
+      {leavePrompt && (
+        <ModalShell
+          title={L.leaveTitle}
+          titleId="evl-leave-title"
+          closeLabel={L.leaveStay}
+          onClose={() => onLeaveStay?.()}
+          onSubmit={(e) => e?.preventDefault?.()}
+          testId="evl-leave-confirm"
+          overlayTestId="evl-leave-overlay"
+          footer={
+            <>
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={() => onLeaveStay?.()} data-testid="evl-leave-stay">
+                {L.leaveStay}
+              </button>
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={() => onLeaveDiscard?.()} data-testid="evl-leave-discard">
+                {L.leaveDiscard}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                onClick={async () => {
+                  // 저장이 실패하면 나가지 않는다 — 「임시저장 실패」가 뜬 채 화면에 남는다.
+                  if (await runSave(false)) onLeaveSave?.();
+                }}
+                data-testid="evl-leave-save"
+              >
+                {L.leaveSave}
+              </button>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

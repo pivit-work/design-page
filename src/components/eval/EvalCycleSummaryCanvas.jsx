@@ -2492,7 +2492,10 @@ export default function EvalCycleSummaryCanvas({
                 </div>
                 <p className="evs-j4-desc">{L.j4Desc}</p>
                 <div className="evs-j4-actions">
-                  <button type="button" className="evc-btn is-primary" onClick={() => onExportCsv && onExportCsv()} data-testid="evs-j4-csv">{L.j4Csv}</button>
+                  {/* CSV 는 HR Admin 만 — 조직장·위원회는 조회만(요약 정책 §9.F.5). 핸들러를 안 주면 버튼이 없다. */}
+                  {onExportCsv && (
+                    <button type="button" className="evc-btn is-primary" onClick={() => onExportCsv()} data-testid="evs-j4-csv">{L.j4Csv}</button>
+                  )}
                   <button type="button" className="evc-btn is-ghost" data-testid="evs-j4-reset">{L.j4Reset}</button>
                 </div>
               </section>
