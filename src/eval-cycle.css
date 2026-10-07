@@ -6795,6 +6795,28 @@
 .evs-cw-filter-preset-pill:hover {
   background: var(--utility-blue-100);
 }
+.evs-cw-filter-preset-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.evs-cw-filter-preset-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 99px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.evs-cw-filter-preset-del:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
 .evs-cw-filter-preset-tag {
   font-size: 12px;
   font-weight: 700;
