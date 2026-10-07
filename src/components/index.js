@@ -325,7 +325,7 @@ export {
 } from './admin/index.js';
 
 // 내 설정
-export { MySettingsCanvas } from './settings/index.js';
+export { MySettingsCanvas, PreferenceConsentModal } from './settings/index.js';
 
 // Notifications (알림 센터)
 export { NotificationCenterCanvas } from './notifications/index.js';
