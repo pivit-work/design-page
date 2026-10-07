@@ -3748,6 +3748,13 @@
   font-weight: 600;
   color: var(--text-primary);
 }
+/* 리더 정책 §6.3 — 제외한 후보는 지우지 않고 취소선·흐리게 남겨 복원할 수 있게 한다 */
+.evp-nominee.is-removed {
+  opacity: 0.5;
+}
+.evp-nominee.is-removed .evp-nominee-name {
+  text-decoration: line-through;
+}
 /* F3 자발적 요청 대기 */
 .evp-unsol-row {
   display: flex;
