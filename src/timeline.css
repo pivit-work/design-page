@@ -3359,6 +3359,9 @@
   color: var(--text-tertiary);
   white-space: pre;
 }
+.tl-snippet-autosave.is-error {
+  color: var(--colors-error-700);
+}
 
 /* ===========================
    활동 초안 (PW-1154 · pivit-specs A. daily-snippet/snippet-app.jsx DraftMark 시안)
