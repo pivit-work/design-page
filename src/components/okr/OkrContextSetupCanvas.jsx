@@ -32,6 +32,7 @@ import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
  *     다만 **동시에 보이지는 않는다**: 인라인 블록이 화면 안에 있는 동안 하단 바를 접어
  *     같은 버튼이 두 번 보이지 않게 한다(PW-46 피드백). 스크롤로 인라인 블록이 화면을
  *     벗어나면 하단 바가 다시 나온다 — 전역 앵커 자체를 없애는 게 아니다.
+ *   headerAction — 제목 줄 오른쪽 끝에 놓을 요소(예: [OKR 작성 ▾] 단위 메뉴 · okr-policy §2C.2). 없으면 자리도 없다.
  *   onAnalyze — AI 분석(§3-3) 트리거. 어드민 호스트만 주입한다.
  *   analysis — 최신 AI 분석 { summary, themes, keywords, status, sourceCount } 또는 null(분석 전).
  *     `analysis` 나 `onAnalyze` 중 하나라도 주면 「AI 분석 (선택)」 섹션이 그려진다 — 열람자는
@@ -1216,6 +1217,7 @@ export default function OkrContextSetupCanvas({
   unitPolicyLoading = false,
   unitPolicyError = null,
   onUnitPolicyChange,
+  headerAction = null,
 }) {
   const [adding, setAdding] = useState(false);
   const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
@@ -1259,6 +1261,7 @@ export default function OkrContextSetupCanvas({
           <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>{L.title}</div>
           <Badge>{L.adminOnly}</Badge>
           <Badge tone="muted">{L.optional}</Badge>
+          {headerAction && <div style={{ marginLeft: 'auto' }}>{headerAction}</div>}
         </div>
         <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.6 }}>{L.description}</div>
         {readOnly && (

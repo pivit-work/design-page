@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -27,6 +27,12 @@ import ModalShell from '../shared/ModalShell.jsx';
  *        본인이 아닌 사유(「상위 OKR 미연결」)가 그렇다 (pivit-specs 마법사 정책서 §3-4 · PW-729).
  *      emptyMessage — 판정할 수 없을 때(그 단위에 저장된 KR 이 없음) 사람 목록 대신 보일 문구.
  *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성
+ *
+ * 제목·되돌리기 (선택):
+ *  - title — 창 제목. 기본 「OKR 설정」. 소비자가 단위를 넣어 준다(`OKR 설정 마법사 · 팀 OKR` · okr-policy §1.4.1).
+ *  - initialState — 마지막으로 알린 상태로 다시 연다 { step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage }.
+ *  - onStateChange(state) — 위 모양이 바뀔 때마다 알린다. 4단계 [1:1 예약]으로 화면을 떠났다가
+ *      뒤로 돌아왔을 때 진행도를 되살리는 데 쓴다(마법사 정책서 §8 「Step 4 1on1 예약 후 뒤로가기」).
  */
 const DEFAULT_SCOPE_CARD = {
   individual: { label: '개인 OKR', desc: '내 OKR을 직접 설계', badge: '단위 고정' },
@@ -74,20 +80,32 @@ export default function OkrSetupWizardModal({
   // 비전 이미지 생성 (선택): (scope, narrative) → Promise<{ imageUrl }>.
   // 안 넘기면 버튼은 표시만 되고 placeholder 박스가 유지된다 (데모).
   onGenerateVision,
+  title = 'OKR 설정',
+  initialState,
+  onStateChange,
 }) {
-  const [step, setStep] = useState(1);
+  const init = initialState ?? {};
+  const [step, setStep] = useState(init.step ?? 1);
   const card = scopeCard ?? DEFAULT_SCOPE_CARD[scope] ?? DEFAULT_SCOPE_CARD.team;
-  const [narrative, setNarrative] = useState('');
-  const [krs, setKrs] = useState([]);
-  const [krsConfirmed, setKrsConfirmed] = useState(false);
+  const [narrative, setNarrative] = useState(init.narrative ?? '');
+  const [krs, setKrs] = useState(() => {
+    const restored = init.krs ?? [];
+    // 되살린 KR 의 id 와 새로 더할 KR 의 id 가 겹치지 않게 번호를 그 뒤로 민다.
+    for (const k of restored) {
+      const n = Number(String(k.id).replace(/^wz-/, ''));
+      if (Number.isFinite(n) && n > seq) seq = n;
+    }
+    return restored;
+  });
+  const [krsConfirmed, setKrsConfirmed] = useState(init.krsConfirmed ?? false);
   const [krsLoading, setKrsLoading] = useState(false);
-  const [objective, setObjective] = useState('');
-  const [objConfirmed, setObjConfirmed] = useState(false);
+  const [objective, setObjective] = useState(init.objective ?? '');
+  const [objConfirmed, setObjConfirmed] = useState(init.objConfirmed ?? false);
   const [objLoading, setObjLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [alignment, setAlignment] = useState(null);
-  const [visionImage, setVisionImage] = useState(null);
+  const [visionImage, setVisionImage] = useState(init.visionImage ?? null);
   const [visionLoading, setVisionLoading] = useState(false);
 
   // 정합성 확인은 조직 단위 전용 — 개인 단위·구성원은 스텝 칩 자체를 그리지 않는다(§2).
@@ -96,6 +114,13 @@ export default function OkrSetupWizardModal({
     [showAlignment],
   );
   const stepKey = steps[step - 1]?.key;
+
+  // 알림 함수가 바뀌었다고 다시 알리지 않는다 — 상태가 바뀔 때만 알린다.
+  const onStateChangeRef = useRef(onStateChange);
+  useEffect(() => { onStateChangeRef.current = onStateChange; }, [onStateChange]);
+  useEffect(() => {
+    onStateChangeRef.current?.({ step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage });
+  }, [step, narrative, objective, objConfirmed, krs, krsConfirmed, visionImage]);
 
   // 정합성 단계 진입 시 팀 정렬도 조회 (동기 setState 회피 — 콜백에서만 갱신).
   useEffect(() => {
@@ -231,7 +256,7 @@ export default function OkrSetupWizardModal({
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836) — 막·Esc·닫기 X 는 틀이, 단계 이동 줄은 발(footer)로 넘긴다.
     <ModalShell
-      title="OKR 설정"
+      title={title}
       titleId="okr-wz-title"
       closeLabel={closeLabel}
       onClose={onClose}
