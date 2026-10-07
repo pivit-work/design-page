@@ -5,6 +5,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -55,7 +56,7 @@ const DEFAULT_LABELS = {
   pastPeriodMark: ' (과거 기간)',
   pastBanner: '과거 기록을 조회 중입니다. 피드백 요청은 현재 기간에서만 가능합니다.',
   infoBanner:
-    'OKR을 달성해 가는 과정에 대한 수시 피드백 화면입니다. 목표 설정은 OKR 화면에서 진행하세요.',
+    '이 화면은 OKR을 달성해 가는 과정에서 수시로 주고받는 피드백입니다. 목표 수립·조정에 대한 의견은 OKR 화면에서 남겨 주세요.',
   unreadSuffix: '읽지 않은 피드백',
   sectionKr: 'KEY RESULTS',
   sectionInit: 'INITIATIVES',
@@ -67,12 +68,20 @@ const DEFAULT_LABELS = {
   waiting: '대기',
   openThread: '스레드 열기 ›',
   truncatedHint: '… 전문 보기',
+  // 미리보기 본문이 비었을 때 (screen-feedback-member §1.7.1)
+  emptyText: '(내용 없음)',
+  // 「기타」 칸 — 내 KR·이니셔티브 목록 밖에 연결된 피드백 (§10-3)
+  etcHint: '내 OKR 목록 밖의 KR에 연결되었거나 연결 대상이 없는 피드백이에요',
+  // 말풍선 위 연결 대상 배지 — 제목을 모를 때 (§4.1)
+  linkedKrFallback: 'KR',
+  linkedInitFallback: '이니셔티브',
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
   close: '닫기',
   newBadge: '새 피드백',
   replyToggle: '답변 달기 ↩',
   replyPlaceholder: '답변을 작성하거나, 내용 없이 전송하면 확인 처리됩니다',
   replySend: '전송',
+  replyCancel: '취소',
   replyConfirmed: '✓ 확인했습니다',
   requestTag: '요청',
   requestTagFull: '피드백 요청',
@@ -154,8 +163,9 @@ const PREVIEW_CLAMP_CHARS = 128;
 const isPreviewTruncated = (text) =>
   typeof text === 'string' && text.length > PREVIEW_CLAMP_CHARS;
 
-function BlockCard({ block, L, onOpen }) {
+function BlockCard({ block, L, onOpen, cardRef }) {
   const isKr = block.type === 'kr';
+  const isEtc = block.type === 'etc';
   const items = block.items;
   const accent = isKr ? C.blue : C.purple;
   const accentBg = isKr ? C.blueBg : C.purpleBg;
@@ -173,6 +183,7 @@ function BlockCard({ block, L, onOpen }) {
   return (
     <button
       type="button"
+      ref={cardRef}
       onClick={() => onOpen(block)}
       data-testid={`fbm-block-${block.key}`}
       style={{
@@ -191,6 +202,8 @@ function BlockCard({ block, L, onOpen }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         {isKr ? (
           <Chip tone="info">{block.badge}</Chip>
+        ) : isEtc ? (
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{L.sectionEtc}</span>
         ) : (
           <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}>
             # {block.title}
@@ -245,7 +258,7 @@ function BlockCard({ block, L, onOpen }) {
                     overflow: 'hidden',
                   }}
                 >
-                  {it.text || (it.itemType === 'request' ? '(내용 없는 요청)' : '')}
+                  {it.text || L.emptyText}
                 </p>
                 {/* 잘림을 드러낸다 — 카드 전체가 이미 스레드 오픈 트리거라 별도 핸들러는 없다 */}
                 {isPreviewTruncated(it.text) && (
@@ -279,8 +292,9 @@ function BlockCard({ block, L, onOpen }) {
 }
 
 // ── 스레드 모달 ──
-function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
+function ThreadModal({ block, L, isPastPeriod, recipients, linkedLabelOf, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
   const isKr = block.type === 'kr';
+  const isEtc = block.type === 'etc';
   const items = [...block.items].sort(
     (a, b) => new Date(a.sentAt) - new Date(b.sentAt),
   );
@@ -301,8 +315,8 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
 
   return (
     <ModalShell
-      title={isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
-      description={isKr ? `${block.progress ?? 0}%` : undefined}
+      title={isKr ? `${block.badge} · ${block.title}` : isEtc ? L.sectionEtc : `# ${block.title}`}
+      description={isKr ? `${block.progress ?? 0}%` : isEtc ? L.etcHint : undefined}
       titleId="fbm-thread-title"
       closeLabel={L.close}
       onClose={onClose}
@@ -311,7 +325,8 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
       testId="fbm-thread-modal"
       closeTestId="fbm-thread-close"
       footer={
-        isPastPeriod ? (
+        // 「기타」는 한 대상의 스레드가 아니라 요청을 걸 곳이 없다.
+        isEtc ? undefined : isPastPeriod ? (
           <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
@@ -334,7 +349,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
         ) : (
           items.map((it) =>
             it.itemType === 'feedback' ? (
-              <FeedbackBubble key={it.id} item={it} L={L} isPastPeriod={isPastPeriod} onReply={onReply} />
+              <FeedbackBubble key={it.id} item={it} L={L} linkedLabel={linkedLabelOf?.(it)} isPastPeriod={isPastPeriod} onReply={onReply} />
             ) : (
               <RequestBubble
                 key={it.id}
@@ -351,7 +366,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, onReply, onRequest, o
   );
 }
 
-function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
+function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onReply }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -376,6 +391,9 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
             {!item.isRead && <Chip tone="accent">{L.newBadge}</Chip>}
             <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
+            {targetLabel && (
+              <Chip tone="info" data-testid={`fbm-linked-${item.id}`}>{targetLabel}</Chip>
+            )}
           </div>
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
             {item.text}
@@ -412,7 +430,16 @@ function FeedbackBubble({ item, L, isPastPeriod, onReply }) {
                   data-testid={`fbm-reply-text-${item.id}`}
                   style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => { setReplying(false); setDraft(''); }}
+                    data-testid={`fbm-reply-cancel-${item.id}`}
+                    style={{ background: 'none', color: C.sub, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {L.replyCancel}
+                  </button>
                   <button
                     type="button"
                     disabled={busy}
@@ -826,6 +853,21 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   );
 }
 
+/**
+ * 말풍선 위 연결 대상 배지 문구(§4.1 「KR1 · 서비스 가동률 99.5% 달성」).
+ * 내 목록의 KR·이니셔티브면 카드와 같은 이름, 목록 밖이면 서버가 준 KR 제목, 그것도 없으면 종류만.
+ */
+function linkedLabel(item, krBlocks, initBlocks, L) {
+  if (!item.linkedTargetType || !item.linkedTargetId) return null;
+  const key = `${item.linkedTargetType}:${item.linkedTargetId}`;
+  const kr = krBlocks.find((b) => b.key === key);
+  if (kr) return `${kr.badge} · ${kr.title}`;
+  const init = initBlocks.find((b) => b.key === key);
+  if (init) return `# ${init.title}`;
+  const kind = item.linkedTargetType === 'kr' ? L.linkedKrFallback : L.linkedInitFallback;
+  return item.linkedTargetTitle ? `${kind} · ${item.linkedTargetTitle}` : kind;
+}
+
 // ── 그룹핑: items → KR/Init/기타 블록 ──
 function groupBlocks(items, krs, initiatives) {
   const byKey = new Map();
@@ -853,7 +895,16 @@ function groupBlocks(items, krs, initiatives) {
     title: it.title,
     items: byKey.get(`init:${it.id}`) || [],
   }));
-  const etc = byKey.get('etc') || [];
+  // 「기타」 — 연결 대상이 없거나, 연결된 KR·이니셔티브가 내 목록에 없는 것 전부(§10-3).
+  // 목록에 없는 대상의 피드백을 버리면 받은 피드백이 화면 어디에도 안 보인다.
+  const shown = new Set([...krBlocks, ...initBlocks].map((b) => b.key));
+  const etcItems = [];
+  for (const [key, list] of byKey) {
+    if (!shown.has(key)) etcItems.push(...list);
+  }
+  const etc = etcItems.length
+    ? { type: 'etc', id: 'etc', key: 'etc', title: '', items: etcItems }
+    : null;
   return { krBlocks, initBlocks, etc };
 }
 
@@ -879,6 +930,8 @@ export default function EvalFeedbackCanvas({
   // 동료로서 받은 요청(PW-1218). `onSendIncoming(request, text)` 가 Promise 를 돌려준다.
   incomingRequests = [],
   onSendIncoming,
+  // 첫 로딩 중이면 본문 자리에 스켈레톤만 그린다(screen-feedback-member §7 「전체 로딩」).
+  loading = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openBlock, setOpenBlock] = useState(null);
@@ -933,13 +986,30 @@ export default function EvalFeedbackCanvas({
     onOpenTargetHandled?.(Boolean(linkedBlock));
   }, [openTarget, linkedBlock, onOpenTargetHandled]);
 
+  // 딥링크로 연 블록의 카드로 목록도 스크롤한다(§1.8.2 ④) — 모달을 닫으면 그 카드 앞이다.
+  const cardRefs = useRef(new Map());
+  const scrolledKey = useRef(null);
+  useEffect(() => {
+    if (!linkedBlock || scrolledKey.current === linkedBlock.key) return;
+    scrolledKey.current = linkedBlock.key;
+    cardRefs.current.get(linkedBlock.key)?.scrollIntoView?.({ block: 'center' });
+  }, [linkedBlock]);
+  const refFor = (key) => (el) => {
+    if (el) cardRefs.current.set(key, el);
+    else cardRefs.current.delete(key);
+  };
+  const linkedLabelOf = useCallback(
+    (item) => linkedLabel(item, krBlocks, initBlocks, L),
+    [krBlocks, initBlocks, L],
+  );
+
   // 모달이 열려 있으면 최신 items 로 블록을 다시 찾아 반영(답변/요청 후 재조회 대비).
   const liveBlock = useMemo(() => {
     const active = openBlock || linkedBlock;
     if (!active) return null;
-    const all = [...krBlocks, ...initBlocks];
+    const all = [...krBlocks, ...initBlocks, ...(etc ? [etc] : [])];
     return all.find((b) => b.key === active.key) || active;
-  }, [openBlock, linkedBlock, krBlocks, initBlocks]);
+  }, [openBlock, linkedBlock, krBlocks, initBlocks, etc]);
 
   const handleReply = async (itemId, text) => {
     try {
@@ -1018,6 +1088,10 @@ export default function EvalFeedbackCanvas({
       </div>
 
       <div className="evc-list">
+        {loading ? (
+          <SkeletonList count={3} height={92} data-testid="fbm-loading" />
+        ) : (
+        <>
         {isPastPeriod && (
           <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}>
             <ClockIcon size={12} /> {L.pastBanner}
@@ -1047,7 +1121,7 @@ export default function EvalFeedbackCanvas({
               {L.sectionKr}
             </div>
             {krBlocks.map((b) => (
-              <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />
+              <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} cardRef={refFor(b.key)} />
             ))}
           </>
         )}
@@ -1058,13 +1132,24 @@ export default function EvalFeedbackCanvas({
               {L.sectionInit}
             </div>
             {initBlocks.map((b) => (
-              <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />
+              <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} cardRef={refFor(b.key)} />
             ))}
           </>
         )}
 
-        {krBlocks.length === 0 && initBlocks.length === 0 && (
+        {etc && (
+          <>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+              {L.sectionEtc}
+            </div>
+            <BlockCard block={etc} L={L} onOpen={setOpenBlock} />
+          </>
+        )}
+
+        {krBlocks.length === 0 && initBlocks.length === 0 && !etc && (
           <p className="evc-empty-sub">{L.emptyBlockInit}</p>
+        )}
+        </>
         )}
       </div>
 
@@ -1074,6 +1159,7 @@ export default function EvalFeedbackCanvas({
           L={L}
           isPastPeriod={isPastPeriod}
           recipients={recipients}
+          linkedLabelOf={linkedLabelOf}
           onReply={handleReply}
           onRequest={handleRequest}
           onEditRequest={handleEditRequest}
