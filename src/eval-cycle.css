@@ -3605,6 +3605,41 @@
   background: var(--bg-secondary);
   color: var(--text-secondary);
 }
+/* feedback-ai-spec §8.3 — AI 초안 미확인 = 노랑, 확인 = 초록. 빈칸 빨강(is-invalid)보다 뒤에 둬
+   초안이 들어간 칸은 초안 상태로 읽힌다(초안이 있으면 빈칸이 아니라 is-invalid 가 붙지 않는다). */
+.evm-textarea.is-ai-unconfirmed {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+.evm-textarea.is-ai-confirmed {
+  background: var(--utility-success-50);
+  border-color: var(--utility-success-200);
+}
+.evm-ai-draft-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+}
+.evm-ai-draft-bar.is-unconfirmed .evm-ai-draft-badge {
+  color: var(--utility-warning-700);
+}
+.evm-ai-draft-bar.is-confirmed .evm-ai-draft-badge {
+  color: var(--utility-success-700);
+}
+.evm-ai-draft-badge {
+  font-weight: 600;
+}
+.evm-ai-draft-confirm {
+  padding: 2px var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--utility-warning-200);
+  background: var(--bg-primary);
+  color: var(--utility-warning-700);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
 .evm-score-row {
   display: flex;
   align-items: center;
