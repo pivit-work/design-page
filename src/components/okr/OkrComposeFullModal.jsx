@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -41,6 +42,10 @@ const DEFAULT_LABELS = {
   hint: '좌측 팀 OKR 미니맵에서 + 를 클릭하면 해당 팀 KR에 연결된 개인 KR이 자동 추가됩니다.',
   emptyTitle: '개인 OKR을 시작해보세요',
   emptyDesc: '우측 팀 OKR 미니맵에서 + 를 클릭하거나\n직접 추가로 시작하세요',
+  parentKrAdd: '+ 상위 KR 연결 (복수 가능)',
+  parentKrRemove: '연결 해제',
+  // 걸려 있지만 미니맵에 없는 상위 KR(미니맵 밖 그룹·지워진 KR)의 배지 문구.
+  parentKrUnknown: '연결된 상위 KR',
 };
 /**
  * 실행 항목 상태 3단 — 서버 `kr_initiatives.status` 와 같은 값이다
@@ -283,6 +288,29 @@ export default function OkrComposeFullModal({
       return prev.map((o) => (o.key === last.key ? { ...o, krs: [...o.krs, emptyKr(kr, selfId)] } : o));
     });
   };
+
+  /**
+   * KR 줄의 상위 KR 칸 — 연결 배지 + 추가 전용 드롭다운 (okr-policy v4.0 §1.2.4 · PW-1383).
+   *
+   * 미니맵 + 는 「새 KR 을 만들며 건다」 뿐이라, [KR 직접추가]로 만든 KR 이나 이미 저장된
+   * KR 에는 상위를 걸 방법이 없었다. 후보는 미니맵이 이미 들고 있는 상위 KR 이다 — 소비 측이
+   * 넘기는 데이터를 늘리지 않는다. 표시 번호(`KR 1`)는 그룹마다 겹쳐서, 드롭다운은 그룹으로
+   * 묶고 배지는 제목까지 붙인다.
+   */
+  const parentCandidates = (minimap.groups ?? []).flatMap((group, gi) =>
+    (group.krs ?? [])
+      .filter((k) => k.krId)
+      .map((k) => ({ krId: k.krId, no: k.id, title: k.title, group: group.title, gi })),
+  );
+  const parentById = new Map(parentCandidates.map((c) => [c.krId, c]));
+  const parentIdsOf = (kr) => kr.parentKrIds ?? [];
+  const addParentKr = (objKey, kr, id) => {
+    // 같은 KR 을 두 번 걸지 않는다 — 목록에서도 빠지지만 소비 측 값이 이미 겹쳐 있을 수 있다.
+    if (!id || parentIdsOf(kr).includes(id)) return;
+    patchKr(objKey, kr.key, { parentKrIds: [...parentIdsOf(kr), id] });
+  };
+  const removeParentKr = (objKey, kr, id) =>
+    patchKr(objKey, kr.key, { parentKrIds: parentIdsOf(kr).filter((x) => x !== id) });
 
   const totalW = objectives.reduce((a, o) => a + (Number(o.weight) || 0), 0);
   const krWeightOk = (o) => o.krs.length === 0 || o.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0) === 100;
@@ -600,6 +628,51 @@ export default function OkrComposeFullModal({
                           />
                         )}
                       </div>
+
+                      {(parentCandidates.length > 0 || parentIdsOf(kr).length > 0) && (
+                        <div className="okr-cf-kr-parents" data-testid="okr-cf-kr-parents">
+                          {parentIdsOf(kr).map((id) => {
+                            const c = parentById.get(id);
+                            // 미니맵에 없는 연결도 배지로 남긴다 — 숨기면 걸린 줄 모른 채
+                            // 저장되고, 풀 방법도 없다. 배지는 공용 칩(× 달린 것)이다.
+                            const text = c ? `${c.no} · ${c.title}` : L.parentKrUnknown;
+                            return (
+                              <Chip
+                                key={id}
+                                selected
+                                title={c ? `${c.group} · ${text}` : text}
+                                onRemove={() => removeParentKr(objective.key, kr, id)}
+                                removeLabel={`${L.parentKrRemove}: ${text}`}
+                              >
+                                {text}
+                              </Chip>
+                            );
+                          })}
+                          {parentCandidates.some((c) => !parentIdsOf(kr).includes(c.krId)) && (
+                            <select
+                              className="okr-cf-parent-add"
+                              aria-label={L.parentKrAdd}
+                              value=""
+                              onChange={(e) => addParentKr(objective.key, kr, e.target.value)}
+                            >
+                              <option value="">{L.parentKrAdd}</option>
+                              {(minimap.groups ?? []).map((group, gi) => {
+                                const opts = parentCandidates.filter(
+                                  (c) => c.gi === gi && !parentIdsOf(kr).includes(c.krId),
+                                );
+                                if (opts.length === 0) return null;
+                                return (
+                                  <optgroup key={rowKey(group, gi, 'title')} label={group.title}>
+                                    {opts.map((c) => (
+                                      <option key={c.krId} value={c.krId}>{`${c.no} · ${c.title}`}</option>
+                                    ))}
+                                  </optgroup>
+                                );
+                              })}
+                            </select>
+                          )}
+                        </div>
+                      )}
 
                       {/* 실행 항목(Initiative) — okr-policy §4A · okr-spec §3.7 (PW-501).
                           🔴 **0건이어도 그린다.** 종전에는 이 블록을 「1건 이상일 때만」
