@@ -2292,6 +2292,10 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rating-seg.is-on {
   background: var(--componentColors-utility-green-utilityGreen200);
 }
+/* 팀원 자가진단 막대는 파랑 (spec §4.2.9) — 매니저 평가(초록)와 갈라 보이게 */
+.ono-start-rating-segs.is-self .ono-start-rating-seg.is-on {
+  background: var(--utility-blue-500);
+}
 /* AI 초안 생성 후엔 막대 색이 green → purple 로 */
 .ono-start-rating-segs.is-ai .ono-start-rating-seg.is-on {
   background: var(--componentColors-utility-purple-utilityPurple200);
@@ -2927,6 +2931,29 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-mem-center { text-align: center; }
 .ono-mem-push { margin-left: auto; }
 .ono-mem-actions-end { display: flex; justify-content: flex-end; }
+
+/* 팀원 자기 보고 (PW-1262 ②) — 시안 멤버 READY S3·S6·S7 */
+.ono-mem-self-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-secondary);
+}
+.ono-mem-self-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ono-mem-self-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ono-mem-range {
+  flex: 1;
+  accent-color: var(--utility-blue-500);
+}
 .ono-mem-footer {
   display: flex;
   align-items: center;
