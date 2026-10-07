@@ -91,6 +91,8 @@
   gap: 10px;
   flex-shrink: 0;
 }
+/* 목록을 못 불러왔을 때 — 마지막 성공값을 흐리게 둔다 (기획 §5-3) */
+.ai-stats.is-stale { opacity: 0.5; }
 .ai-stat-card {
   display: flex;
   flex-direction: column;
@@ -205,6 +207,16 @@
   gap: 10px;
   padding: 0 4px 8px;
 }
+/* 접기 버튼이 된 머리 — 모양은 그대로, 누를 수 있다는 것만 (기획 §6 그룹 헤더 접기) */
+.ai-group-head.is-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ai-group-head.is-toggle:hover .ai-group-title { color: var(--text-secondary); }
 .ai-group-dot {
   width: 8px;
   height: 8px;

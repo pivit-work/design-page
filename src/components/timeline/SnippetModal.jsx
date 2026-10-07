@@ -92,6 +92,9 @@ const DEFAULT_DRAFT_LABELS = {
   confirm: '확인',
   markConfirmed: '확인함',
   blocked: (n, names) => `확인하지 않은 AI 초안 ${n}칸: ${names}`,
+  saving: '저장 중...',
+  saved: (time) => `자동저장됨 ${time}`,
+  saveFailed: '저장 실패',
 };
 
 /** 그 칸이 비었나 — 태그는 개수, 나머지는 공백을 뺀 글. */
@@ -148,6 +151,12 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     호스트가 그 AI 버튼 자리에 띄우는 안내(체험 AI 소진 등). 한 번에 하나.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //
+// 자동 저장 표시 (기획 daily-snippet 작성 §11.2) — 모두 optional:
+//   savedAt?: number — 마지막 서버 저장 성공 시각(ms). 「자동저장됨 HH:MM」의 시각.
+//   saveStatus?: 'idle' | 'saving' | 'saved' | 'error' — 평소엔 표시 없음 / 「저장 중...」 /
+//     「자동저장됨 HH:MM」 / 「저장 실패」. 안 주면 savedAt 이 있을 때만 'saved' 로 본다(종전 호스트).
+//     문구는 draftLabels 의 saving·saved(time)·saveFailed 로 바꾼다.
+//
 // 남의 스니핏 읽기 (PW-1206) — 모두 optional:
 //   readOnly?: boolean — 매니저가 팀원 스니핏을 여는 것처럼 «읽기만» 하는 자리. 켜면 칸이 고쳐지지
 //     않고(readOnly), 점수를 바꿀 수 없으며, 쓰는 사람의 도구(AI 버튼·초안 채우기·추천 태그·태그 입력·
@@ -180,6 +189,7 @@ export default function SnippetModal({
   onTagSelect,
   onDraftChange,
   savedAt,
+  saveStatus,
   sectionMaxLength = DEFAULT_SECTION_MAX_LENGTH,
   onAiDraft,
   aiDraftLinked,
@@ -205,10 +215,9 @@ export default function SnippetModal({
   );
   const [healthNote, setHealthNote] = useState(initial?.health?.note ?? '');
   const [scrolled, setScrolled] = useState(false);
-  // 푸터 "자동 등록됨 HH:MM" 라벨 — 실제 서버 저장 성공 시각(savedAt, host 제공)을 표시한다.
-  // savedAt 은 저장 성공 시에만 갱신되므로 저장 실패 시 시각이 앞서가지 않는다.
-  // 아직 한 번도 저장 안 됐으면(savedAt 없음) 라벨을 그리지 않는다 — 여는 시각을 보여주면
-  // 저장한 적 없는 빈 창이 «등록됨»으로 읽힌다(PW-1250).
+  // 푸터 자동 저장 표시 — 실제 서버 저장 성공 시각(savedAt, host 제공)을 쓴다.
+  // 아직 한 번도 저장 안 됐으면 시각을 지어내지 않는다 — 여는 시각을 보여주면
+  // 저장한 적 없는 빈 창이 «저장됨»으로 읽힌다(PW-1250).
   const savedAtLabel =
     savedAt == null
       ? null
@@ -216,6 +225,15 @@ export default function SnippetModal({
           const d = new Date(savedAt);
           return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         })();
+  const effectiveSaveStatus = saveStatus ?? (savedAt == null ? 'idle' : 'saved');
+  const autosaveText =
+    effectiveSaveStatus === 'saving'
+      ? L.saving
+      : effectiveSaveStatus === 'error'
+        ? L.saveFailed
+        : effectiveSaveStatus === 'saved' && savedAtLabel
+          ? L.saved(savedAtLabel)
+          : null;
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -954,9 +972,14 @@ export default function SnippetModal({
               {L.blocked(unconfirmedKeys.length, unconfirmedKeys.map(fieldLabel).join(' · '))}
             </span>
           )}
-          {/* 한 번도 저장되지 않은 창에는 시각을 지어내지 않는다(PW-1250). */}
-          {savedAtLabel && (
-            <span className="tl-snippet-autosave">자동 등록됨    {savedAtLabel}</span>
+          {autosaveText && (
+            <span
+              className={`tl-snippet-autosave${effectiveSaveStatus === 'error' ? ' is-error' : ''}`}
+              role="status"
+              data-save-status={effectiveSaveStatus}
+            >
+              {autosaveText}
+            </span>
           )}
         </div>
         )}

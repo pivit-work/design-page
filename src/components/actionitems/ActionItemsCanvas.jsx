@@ -1,6 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
  * ActionItemsCanvas — "액션 아이템" 페이지 Pure 컴포넌트.
@@ -83,6 +84,10 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
       )}
 
       <span className="ai-row-meta">
+        {/* 어느 자리에서 나온 할 일인지 — 회의 / 1on1 / OKR (기획 §4 «출처 배지 항상»). */}
+        {item.sourceLabel && (
+          <StatusBadge className="ai-badge is-low" data-source-badge="">{item.sourceLabel}</StatusBadge>
+        )}
         {item.priorityLabel && (
           <StatusBadge className={`ai-badge is-${item.priorityTone || 'low'}`}>{item.priorityLabel}</StatusBadge>
         )}
@@ -142,8 +147,16 @@ export default function ActionItemsCanvas({
   groupBy,
   onGroupByChange,
   resultCount = null,
-  // 목록 [{ key, label, done, total, items: [...] }]
+  // 목록 [{ key, label, done, total, collapsed?, items: [...] }]
+  //   item.sourceLabel — 행의 출처 배지(회의/1on1/OKR). 없으면 그리지 않는다.
   groups = [],
+  // 묶음 머리를 눌러 접기·펼치기 — 넘기면 머리가 버튼이 되고, collapsed 인 묶음은 줄을 숨긴다.
+  onToggleGroup,
+  // 불러오는 중 — 통계·목록 자리에만 막대를 깐다. 머리·필터 행은 그대로 (기획 §5-1).
+  statsLoading = false,
+  listLoading = false,
+  // 목록을 못 불러왔을 때 통계는 마지막 성공값을 흐리게 둔다 (기획 §5-3).
+  statsStale = false,
   onToggle,
   onKrClick,
   renderDeadlineEditor,
@@ -187,11 +200,15 @@ export default function ActionItemsCanvas({
         )}
 
         {stats.length > 0 && (
-          <div className="ai-stats">
+          <div className={`ai-stats ${statsStale ? 'is-stale' : ''}`.trim()} aria-busy={statsLoading || undefined}>
             {stats.map((s) => (
               <div className="ai-stat-card" key={s.key || s.label}>
                 <span className="ai-stat-label">{s.label}</span>
-                <span className={`ai-stat-value ${TONE_CLASS[s.tone] || ''}`.trim()}>{s.value}</span>
+                {statsLoading ? (
+                  <Skeleton width={48} height={28} />
+                ) : (
+                  <span className={`ai-stat-value ${TONE_CLASS[s.tone] || ''}`.trim()}>{s.value}</span>
+                )}
               </div>
             ))}
           </div>
@@ -254,7 +271,9 @@ export default function ActionItemsCanvas({
           )}
         </div>
 
-        {isOkrView ? (
+        {listLoading ? (
+          <SkeletonList count={4} height={52} gap={2} data-testid="ai-list-skeleton" />
+        ) : isOkrView ? (
           objectives.length === 0 ? (
             <div className="ai-empty">{labels.empty}</div>
           ) : (
@@ -320,13 +339,35 @@ export default function ActionItemsCanvas({
             .filter((g) => g.items?.length)
             .map((g) => (
               <section className="ai-group" key={g.key}>
-                <header className="ai-group-head">
-                  <span className="ai-group-dot" />
-                  <span className="ai-group-title">{g.label}</span>
-                  <span className="ai-group-progress">
-                    {g.done}/{g.total}
-                  </span>
-                </header>
+                {onToggleGroup ? (
+                  <button
+                    type="button"
+                    className="ai-group-head is-toggle"
+                    aria-expanded={!g.collapsed}
+                    onClick={() => onToggleGroup(g.key)}
+                  >
+                    <span className="ai-group-dot" />
+                    <span className="ai-group-title">{g.label}</span>
+                    <span className="ai-group-progress">
+                      {g.done}/{g.total}
+                      <Icon
+                        src={g.collapsed ? '/icons/chevron-right.svg' : '/icons/chevron-down.svg'}
+                        size={16}
+                        color="var(--text-tertiary)"
+                        baseUrl={baseUrl}
+                      />
+                    </span>
+                  </button>
+                ) : (
+                  <header className="ai-group-head">
+                    <span className="ai-group-dot" />
+                    <span className="ai-group-title">{g.label}</span>
+                    <span className="ai-group-progress">
+                      {g.done}/{g.total}
+                    </span>
+                  </header>
+                )}
+                {!g.collapsed && (
                 <div className="ai-list">
                   {g.items.map((item) => (
                     <ActionRow
@@ -340,6 +381,7 @@ export default function ActionItemsCanvas({
                     />
                   ))}
                 </div>
+                )}
               </section>
             ))
         )}

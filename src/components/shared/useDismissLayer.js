@@ -28,12 +28,16 @@ import { confirmOpen, isTopLayer, pushLayer } from './dismissStack.js';
  * @param {string | { current: Node | null } | Array<string | { current: Node | null }>} [inside]
  *        바깥에서 더 뺄 것 — 트리거의 셀렉터나 ref, 또는 그 목록. 포털로 따로 그린 하위 메뉴도 여기 넣는다.
  * @param {boolean} [enabled=true]  열려 있을 때만 true. false 면 아무것도 듣지 않는다.
+ * @param {() => void} [onEscape]  Esc 만 따로 받을 때(바깥 누르기는 저장·Esc 는 취소인 편집기).
+ *        없으면 Esc 도 onClose 다.
  */
-export default function useDismissLayer(onClose, panelRef, inside, enabled = true) {
+export default function useDismissLayer(onClose, panelRef, inside, enabled = true, onEscape) {
   const onCloseRef = useRef(onClose);
+  const onEscapeRef = useRef(onEscape);
   const insideRef = useRef(inside);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
+    onEscapeRef.current = onEscape;
     insideRef.current = inside;
   });
 
@@ -65,7 +69,7 @@ export default function useDismissLayer(onClose, panelRef, inside, enabled = tru
       // 이 층이 Esc 를 «썼다» — 기본 동작도, 뒤의 창이 듣는 것도 막는다.
       e.preventDefault();
       e.stopPropagation();
-      onCloseRef.current();
+      (onEscapeRef.current ?? onCloseRef.current)();
     };
     // 누르기도 캡처 단계에서 받는다 — 창 틀(ModalShell·일정 추가 창의 form)이 막 닫힘을 피하려고
     // mousedown 전파를 끊어서, 버블로 들으면 창 안에서 연 목록은 창 안 다른 곳을 눌러도 안 닫혔다.
