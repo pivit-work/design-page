@@ -1231,6 +1231,17 @@
   margin: 0;
 }
 
+.msc-pref-consent-legacy {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--utility-warning-50);
+  border: 1px solid var(--utility-warning-200);
+  color: var(--utility-warning-700);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .msc-pref-consent-foot {
   display: flex;
   align-items: center;
