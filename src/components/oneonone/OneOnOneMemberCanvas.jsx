@@ -116,8 +116,16 @@ const DEFAULT_LABELS = {
   aiReportFailTimeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
   aiReportFailModel: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
   aiReportFailQuota: 'AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
-  aiReportFailExhausted: '여러 번 시도했지만 생성하지 못했습니다.',
+  aiReportFailExhausted: '여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.',
+  aiReportFailManual: '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.',
   aiReportRetry: '다시 시도',
+  aiReportPlaceholder: '이번 기간 업무·OKR·블로커를 직접 적거나, AI 보고서를 생성해 고쳐 쓰세요.',
+  aiReportSave: '저장',
+  aiReportSaved: '저장됨',
+  aiReportSaveFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  aiReportOverwrite: '고친 글이 새 AI 보고서로 바뀝니다. 다시 생성할까요?',
+  aiReportOverwriteYes: '다시 생성',
+  aiReportOverwriteCancel: '취소',
   elapsed: '경과', prepSummary: '준비 요약', okrStatus: 'OKR 현황', agenda: '논의 아젠다',
   pendingActions: '미완료 액션아이템',
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
@@ -995,11 +1003,14 @@ function SelfAssessmentSection({ value, L, icons, baseUrl }) {
  * 업무·OKR·블로커를 한 편의 글로 쓴다. 매니저 준비 화면 «멤버 AI 보고서»가 같은 글을 보인다.
  *
  * 정본: 시안 `1on1-app.jsx` 멤버 READY 「한판 보고서 카드」 S2 · 실패 §7.5.
- * - 글은 고칠 수 없다(읽기 전용) — «재생성»만 있다. 생성 직후 색은 미확인 노랑(§7.2).
+ * - 팀원이 글을 고치거나 AI 없이 처음부터 써서 [저장]할 수 있다(2026-10-08 커트 결정). 고치지 않은
+ *   AI 글만 미확인 노랑(§7.2)으로 감싼다.
+ * - 고친 글이 있는데 [재생성]·[AI 보고서 생성]을 누르면 덮어쓰기 전에 카드 안에서 한 번 묻는다.
  * - 실패는 이 카드 안에서 말한다. 이미 있던 글은 지우지 않는다(§7.5.2) — 호스트가 `text` 를 그대로 넘긴다.
  * - 한도 초과는 다시 눌러도 같아서 `다시 시도` 를 잠근다. 연속 실패 횟수는 호스트가 센다(`retryLeft`).
  *
- * `value` = `{ text, sourceLabel, busy, failure: { reason, retryLeft } | null, onGenerate() }`.
+ * `value` = `{ text, sourceLabel, edited, maxLength, busy, failure: { reason, retryLeft } | null,
+ *   onGenerate(), onSave(text) → Promise }`.
  */
 const AI_REPORT_FAIL_LABEL = {
   timeout: 'aiReportFailTimeout',
@@ -1008,20 +1019,75 @@ const AI_REPORT_FAIL_LABEL = {
 };
 
 function AiReportSection({ value, L, icons, baseUrl }) {
-  const { text, sourceLabel, busy = false, failure = null, onGenerate } = value;
+  const { text, sourceLabel, edited = false, maxLength, busy = false, failure = null, onGenerate, onSave } = value;
+  const [draft, setDraft] = useState(text ?? '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  // 생성·재생성·저장으로 서버 글이 바뀌면 입력란을 그 글로 맞춘다 (렌더 중 맞춤 — effect 로 하면 한 번 더 그린다).
+  const [syncedText, setSyncedText] = useState(text ?? '');
+  if ((text ?? '') !== syncedText) {
+    setSyncedText(text ?? '');
+    setDraft(text ?? '');
+  }
+
   const reason = AI_REPORT_FAIL_LABEL[failure?.reason] ? failure.reason : 'model_error';
   const quota = reason === 'quota_exceeded';
   const exhausted = !!failure && !quota && (failure.retryLeft ?? 0) <= 0;
+  const dirty = draft !== (text ?? '');
+  // 팀원이 손댄 글이 있으면 AI 글로 덮기 전에 묻는다 — 고치지 않은 AI 글은 묻지 않고 바꾼다.
+  const needsConfirm = draft.trim() !== '' && (edited || dirty);
+  const generate = () => {
+    if (needsConfirm) setConfirming(true);
+    else onGenerate?.();
+  };
+  const confirmOverwrite = () => {
+    setConfirming(false);
+    onGenerate?.();
+  };
+  const save = async () => {
+    if (saving || !dirty) return;
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      await onSave?.(draft);
+    } catch {
+      setSaving(false);
+      setSaveFailed(true);
+      return;
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
   const regenerate = text && (
     <button
       type="button"
       className="ono-mem-ai-regen"
-      onClick={() => onGenerate?.()}
-      disabled={busy}
+      onClick={generate}
+      disabled={busy || confirming}
       data-testid="ono-ai-report-regenerate"
     >
       {busy ? L.aiReportGenerating : L.aiReportRegenerate}
     </button>
+  );
+  const textarea = (
+    <textarea
+      className="ono-start-textarea"
+      value={draft}
+      maxLength={maxLength}
+      onChange={(e) => setDraft(e.target.value)}
+      placeholder={L.aiReportPlaceholder}
+      aria-label={L.aiReportTitle}
+      disabled={busy}
+      rows={8}
+      data-testid="ono-ai-report-input"
+    />
+  );
+  const source = text && sourceLabel && (
+    <p className="ono-start-report-source">{fill(L.aiReportSource, { source: sourceLabel })}</p>
   );
 
   return (
@@ -1030,13 +1096,13 @@ function AiReportSection({ value, L, icons, baseUrl }) {
         <div className="ono-start-failbox" role="alert" data-testid="ono-ai-report-error" data-reason={reason}>
           <span className="ono-start-failbox-title">{L.aiReportFailed}</span>
           <p className="ono-start-failbox-msg">
-            {exhausted ? L.aiReportFailExhausted : L[AI_REPORT_FAIL_LABEL[reason]]}
+            {exhausted ? L.aiReportFailExhausted : `${L[AI_REPORT_FAIL_LABEL[reason]]} ${L.aiReportFailManual}`}
           </p>
           <div className="ono-start-failbox-actions">
             <button
               type="button"
               className="ono-start-failbox-retry"
-              onClick={() => onGenerate?.()}
+              onClick={generate}
               disabled={quota || exhausted}
             >
               {L.aiReportRetry}
@@ -1045,20 +1111,27 @@ function AiReportSection({ value, L, icons, baseUrl }) {
         </div>
       )}
 
-      {text ? (
-        <div className="ono-mem-ai-report" data-testid="ono-ai-report-text">
-          <p className="ono-start-report-text">{text}</p>
-          {sourceLabel && (
-            <p className="ono-start-report-source">{fill(L.aiReportSource, { source: sourceLabel })}</p>
-          )}
+      {confirming && (
+        <div className="ono-mem-ai-confirm" role="group" aria-label={L.aiReportOverwrite} data-testid="ono-ai-report-overwrite">
+          <p className="ono-mem-ai-confirm-msg">{L.aiReportOverwrite}</p>
+          <div className="ono-mem-actions-end">
+            <button type="button" className="ono-mem-btn" onClick={() => setConfirming(false)}>
+              {L.aiReportOverwriteCancel}
+            </button>
+            <button type="button" className="ono-mem-btn" onClick={confirmOverwrite} data-testid="ono-ai-report-overwrite-yes">
+              {L.aiReportOverwriteYes}
+            </button>
+          </div>
         </div>
-      ) : (
+      )}
+
+      {!text && (
         <>
           <button
             type="button"
             className="ono-mem-btn ono-mem-ai-generate"
-            onClick={() => onGenerate?.()}
-            disabled={busy}
+            onClick={generate}
+            disabled={busy || confirming}
             data-testid="ono-ai-report-generate"
           >
             {busy ? L.aiReportGenerating : L.aiReportGenerate}
@@ -1066,6 +1139,35 @@ function AiReportSection({ value, L, icons, baseUrl }) {
           <p className="ono-mem-hint">{L.aiReportEmpty}</p>
         </>
       )}
+
+      {text && !edited ? (
+        <div className="ono-mem-ai-report" data-testid="ono-ai-report-text">
+          {textarea}
+          {source}
+        </div>
+      ) : (
+        <>
+          {textarea}
+          {source}
+        </>
+      )}
+
+      {saveFailed && (
+        <div className="ono-start-failbox" role="alert" data-testid="ono-ai-report-save-error">
+          <span className="ono-start-failbox-title">{L.aiReportSaveFailed}</span>
+        </div>
+      )}
+      <div className="ono-mem-actions-end">
+        <button
+          type="button"
+          className={`ono-mem-btn${saved ? ' is-ok' : ''}`}
+          onClick={save}
+          disabled={saving || busy || !dirty}
+          data-testid="ono-ai-report-save"
+        >
+          {saved ? L.aiReportSaved : L.aiReportSave}
+        </button>
+      </div>
     </Section>
   );
 }
