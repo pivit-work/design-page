@@ -540,6 +540,14 @@ export default function AdminInviteModal({
   /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
   seats = null,
   /**
+   * 머리글 좌석 요약 뒤에 붙는 청구 안내 — `{ text, emphasis }` (초대 정책 §4-4-A · W60).
+   * 첫 주기 즉시 청구는 `emphasis: true`(강조색), 다음 청구일 반영은 `false`. 문구·금액은 앱이
+   * 서버 미리보기로 만든다(화면은 금액을 계산하지 않는다). null 이면 안 붙인다(무료·유효 행 0).
+   */
+  billingNotice = null,
+  /** 좌석을 차지할 유효 행 수가 바뀔 때 `(n) => void` — 앱이 이 수로 청구 미리보기를 다시 부른다. */
+  onSeatNeedChange,
+  /**
    * { jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [], employmentType: [] } — `jobTitle` 은 **직렬**.
    * `employmentType` 은 회사가 등록하는 값이 아니라 시스템 고정 4종이다(PW-1299) — 비어 있어도
    * «옵션 없음 — 설정에서 추가»로 보내지 않는다(추가할 화면이 없다).
@@ -835,6 +843,9 @@ export default function AdminInviteModal({
     .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
     .length;
   const seatShort = seatsLeft !== null && seatNeed > seatsLeft;
+  useEffect(() => {
+    if (open) onSeatNeedChange?.(seatNeed);
+  }, [open, seatNeed, onSeatNeedChange]);
   const adminRows = isCsv
     ? csvValidRows
       .filter((r) => resolveInviteCsvRow(r, csvCtx).role === 'admin')
@@ -1224,7 +1235,22 @@ export default function AdminInviteModal({
     <>
     <ModalShell
       title={labels.title}
-      description={`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: seatNeed })}`}
+      description={
+        <>
+          {`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: seatNeed })}`}
+          {billingNotice?.text && (
+            <>
+              {' · '}
+              <span
+                className={billingNotice.emphasis ? 'admin-inv-billing is-emphasis' : 'admin-inv-billing'}
+                data-testid="admin-invite-billing-notice"
+              >
+                {billingNotice.text}
+              </span>
+            </>
+          )}
+        </>
+      }
       titleId="admin-invite-title"
       closeLabel={labels.close}
       onClose={requestClose}

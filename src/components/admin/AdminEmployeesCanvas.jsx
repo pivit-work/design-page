@@ -12,6 +12,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
+import Switch from '../shared/Switch.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
@@ -320,6 +321,10 @@ const DEFAULT_LABELS = {
     orgAssign: '소속',
     orgNone: '미배정',
     orgChange: '변경',
+    /* 조직 위치 — 대표(CEO) 지정 스위치 (admin-spec §3.2 · §3.6-A-2 ⓑ · W60) */
+    orgPosition: '조직 위치',
+    ceoToggle: '대표(CEO) 지정',
+    ceoToggleHint: '켜거나 끄면 확인 창이 뜹니다',
     managerSection: '매니저',
     managerWhere: '매니저 배정은 «미배정 관리» 탭에서 합니다',
     statusSection: '재직 상태',
@@ -3462,6 +3467,9 @@ function EmployeesEditPanel({
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
   onOpenFieldOptions,
+  /* 대표(CEO) 지정·해제 — `(mode: 'assign'|'release') => void`. 목록 행 ⋯ 메뉴와 **같은** 확인 창을 연다
+     (admin-spec §3.6-A-2 ⓑ). 미주입이면(어드민 아님·퇴사자) «조직 위치» 칸을 그리지 않는다. */
+  onOpenCeo,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
@@ -3965,11 +3973,39 @@ function EmployeesEditPanel({
             )}
           </div>
 
+          {onOpenCeo && (
+            <>
+              <SectionLabel>{labels.panel.orgPosition}</SectionLabel>
+              <div className="admin-emp-ceo-row">
+                <div className="admin-emp-ceo-text">
+                  <span className="admin-emp-manager-name">{labels.panel.ceoToggle}</span>
+                  <span className="admin-emp-manager-note">{labels.panel.ceoToggleHint}</span>
+                </div>
+                {/* 값은 저장된 상태(member) 그대로 — 지정·해제는 패널 [저장]과 따로 확인 창에서 끝난다. */}
+                <Switch
+                  checked={Boolean(member.isCeo)}
+                  onChange={(next) => onOpenCeo(next ? 'assign' : 'release')}
+                  label={labels.panel.ceoToggle}
+                  data-testid="employees-panel-ceo-toggle"
+                />
+              </div>
+            </>
+          )}
+
           <SectionLabel>{labels.panel.managerSection}</SectionLabel>
           <div className="admin-emp-manager-readonly">
-            <span className="admin-emp-manager-name">{draft.managerName || '—'}</span>
-            {/* 매니저(개인 상급자) 배정 자리는 미배정 탭이다 — 두 곳에 두면 규칙이 갈린다. */}
-            <span className="admin-emp-manager-note">{labels.panel.managerWhere}</span>
+            {member.isCeo ? (
+              /* 대표는 상급자를 가질 수 없다 — 매니저 칸이 이 문구로 바뀐다(admin-spec §3.2 조직 위치). */
+              <span className="admin-emp-manager-note" data-testid="employees-panel-manager-ceo">
+                {labels.listManagerFilter.ceoTop}
+              </span>
+            ) : (
+              <>
+                <span className="admin-emp-manager-name">{draft.managerName || '—'}</span>
+                {/* 매니저(개인 상급자) 배정 자리는 미배정 탭이다 — 두 곳에 두면 규칙이 갈린다. */}
+                <span className="admin-emp-manager-note">{labels.panel.managerWhere}</span>
+              </>
+            )}
           </div>
 
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
@@ -4361,6 +4397,10 @@ export default function AdminEmployeesCanvas({
    * 안 넘기면 초대 창의 예전 판정 그대로다.
    */
   inviteRules,
+  /** 초대 창 머리글 청구 안내 `{ text, emphasis }` — 그대로 초대 창 `billingNotice` 로 간다 (W60). */
+  inviteBillingNotice = null,
+  /** 초대 창의 좌석 차지 행 수가 바뀔 때 `(n) => void` — 초대 창 `onSeatNeedChange` 로 간다 (W60). */
+  onInviteSeatNeedChange,
   /** 좌석 부족 배너의 `결제·구독` 이동. */
   onGoBilling,
   /**
@@ -4746,6 +4786,11 @@ export default function AdminEmployeesCanvas({
         return (
           <EmployeesEditPanel
             member={target}
+            onOpenCeo={
+              canEdit && onAssignCeo && onReleaseCeo && target.employmentStatus !== 'terminated'
+                ? (mode) => setCeoConfirm({ row: target, mode })
+                : undefined
+            }
             orgUnits={orgUnits}
             labels={labels}
             canEdit={canEdit}
@@ -4860,6 +4905,8 @@ export default function AdminEmployeesCanvas({
           jobCategoryEnabled={optionalFields?.job_category === true}
           onGoBilling={onGoBilling}
           {...(inviteRules || {})}
+          billingNotice={inviteBillingNotice}
+          onSeatNeedChange={onInviteSeatNeedChange}
           labels={inviteLabels}
         />
       )}

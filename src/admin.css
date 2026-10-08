@@ -1447,6 +1447,17 @@
 }
 .admin-emp-manager-name { font-size: var(--font-size-text-sm, 14px); font-weight: 600; color: var(--text-primary); }
 .admin-emp-manager-note { font-size: 12px; color: var(--text-tertiary); }
+/* 조직 위치 — 대표(CEO) 지정 스위치 줄. 매니저 칸과 같은 회색 바탕 줄에 글과 공용 Switch 를 양끝에 둔다 (W60). */
+.admin-emp-ceo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary);
+}
+.admin-emp-ceo-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 /* 상태 선택 — 공용 라디오 `Radio variant="card"` (form-field.css · PW-1012) 위에 이 창의 모양과
  * 상태별 의미색(brand/amber/gray)만 얹는다. 네이티브 라디오를 감추고 동그라미·흰 점을 그리는
@@ -3143,6 +3154,8 @@
 /* 머리·버튼 줄은 두고 가운데만 스크롤한다(틀의 본문 스크롤) — 50행을 넣어도 발송 버튼이 늘 보인다. */
 .admin-inv-body { display: flex; flex-direction: column; gap: var(--spacing-lg); padding-top: 16px; }
 
+/* 초대 창 머리글 청구 안내 — 첫 주기 즉시 청구는 강조색 (초대 정책 §4-4-A) */
+.admin-inv-billing.is-emphasis { color: var(--text-brand-tertiary); font-weight: 600; }
 .admin-inv-banners { padding: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .admin-inv-banner {
   display: flex;
