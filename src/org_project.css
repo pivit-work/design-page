@@ -1,4 +1,6 @@
 @import './status-badge.css';
+/* 프로젝트 상세 수정 폼의 진행률 슬라이더(.rsx-slider · .rsx-entry-input) — PW-1435 */
+@import './form-controls.css';
 
 /* ══════════════════════════════════════════════════
    Project Tab
@@ -519,6 +521,21 @@
   gap: 8px;
 }
 .pd-date { width: 160px; }
+/* 색상 · 진행률 (PW-1435) — 색 동그라미는 스쿼드 폼의 .sq-swatch, 슬라이더는 form-controls.css 의 공용 부품 */
+.pd-swatches { margin-top: 0; }
+.pd-swatches .sq-swatch { padding: 0; }
+.pd-form-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* 요약 숫자 3칸 — 칸 모양은 내 리소스의 .rsx-stat(okr-resource.css) 그대로, 여기서는 줄만 짠다 */
+.pd-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
 .pd-form-actions {
   display: flex;
   justify-content: flex-end;

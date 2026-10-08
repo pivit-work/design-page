@@ -4,6 +4,7 @@ import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
+import { entryProjectId } from './okrResourceEntries.js';
 
 /**
  * OkrResourceMyInput — 내 리소스 '내 입력' 뷰.
@@ -32,13 +33,34 @@ import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js
  *
  * onReply(text) 가 false 를 돌려주거나 실패하면 쓴 글과 입력바를 그대로 둔다(정책서 §9 —
  * 다시 누를 수 있게). 그 밖의 결과(true·undefined)면 스레드에 붙이고 입력바를 닫는다.
+ *
+ * `onOpenProject(projectId, { unsaved })` 를 주면 프로젝트 투입 행의 이름이 눌린다 — 프로젝트 원장
+ * 상세로 가는 길이다(리소스 정책서 §7 「프로젝트 칩 클릭」 · 원장 정책서 §3, PW-1436). KR·직접 입력 행은
+ * 원장이 없어 글자 그대로다. 아래 「투입 항목 추가」 칩은 그대로 «행에 더하기» 다. `unsaved` 는 화면에서
+ * 고쳐 놓고 아직 저장하지 않은 값이 있는지 — 호스트가 이동 방식(같은 탭/새 탭)을 가르는 데 쓴다.
+ * 끝난 달(`readOnly`)에도 눌린다 — 조회 목적이다.
  */
 /** 수동 % 와 추정 % 의 차이가 이만큼(%p) 이상이면 «차이 큼» — 리소스 정책서 §5-3.4. */
 export const ESTIMATE_GAP_PP = 15;
 
+
+// 저장한 뒤 서버가 돌려준 행은 id 가 다르고(추정 제안으로 담은 행은 출처도 'project' 로 바뀐다) —
+// 무엇에 몇 % 인지로만 비교한다.
+const entryKey = (e) => `${entryProjectId(e) ? `p:${entryProjectId(e)}` : `n:${e.name}`}=${e.value}`;
+const sameEntries = (a, b) => {
+  if (a.length !== b.length) return false;
+  const rest = b.map(entryKey);
+  return a.every((e) => {
+    const i = rest.indexOf(entryKey(e));
+    if (i < 0) return false;
+    rest.splice(i, 1);
+    return true;
+  });
+};
+
 export default function OkrResourceMyInput({
   data, icons, baseUrl = '', onSave, onApplyEstimates, onReply, labels: L = OKR_RESOURCE_DEFAULT_LABELS,
-  readOnly = false, monthLabel = '',
+  readOnly = false, monthLabel = '', onOpenProject,
 }) {
   const M = L.my;
   const [entries, setEntries] = useState(data.entries);
@@ -162,7 +184,19 @@ export default function OkrResourceMyInput({
           <div className="rsx-entry-main">
             <div className="rsx-entry-head">
               <div className="rsx-entry-title">
-                <span className="rsx-entry-name">{entry.name}</span>
+                {onOpenProject && entryProjectId(entry) ? (
+                  <button
+                    type="button"
+                    className="rsx-entry-name is-link"
+                    data-testid={`rsx-entry-open-${entryProjectId(entry)}`}
+                    title={M.openProject}
+                    onClick={() => onOpenProject(entryProjectId(entry), {
+                      unsaved: !sameEntries(entries, data.entries),
+                    })}
+                  >{entry.name}</button>
+                ) : (
+                  <span className="rsx-entry-name">{entry.name}</span>
+                )}
                 {entry.tag && <StatusBadge className="rsx-tag">{entry.tag}</StatusBadge>}
               </div>
               <span className="rsx-entry-pct">{entry.value}%</span>

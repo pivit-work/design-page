@@ -44,6 +44,7 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     customAdd: '직접 추가',
     customNote: '직접 추가한 프로젝트는 내 입력에만 표시되는 개인 항목이며, 스니핏 기반 추정에는 포함되지 않습니다.',
     save: '저장',
+    openProject: '프로젝트 상세 보기',
     readOnlyNotice: (month) => `${month}은 끝난 달입니다. 입력한 값은 볼 수만 있고 고칠 수 없습니다. 매니저 코멘트와 답글은 남길 수 있습니다.`,
     readOnlyEmpty: '이 달에 입력한 기록이 없습니다.',
     replyPlaceholder: '답글을 입력하세요',

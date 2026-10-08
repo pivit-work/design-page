@@ -7,7 +7,11 @@
  * 시안에서 옮기지 않은 것 (이 카드 범위 밖 — 뒤 카드가 붙인다):
  *  - 데모 계정 고르기(기획 데모 전용).
  *  - 개요 | 리소스 | 이력 탭 줄, 리소스·이력 탭.
- *  - 요약 숫자 3칸(참여 인원 · 계획 합계 · 실제 합계).
+ *
+ * 요약 숫자 3칸(참여 인원 · 계획 합계 · 실제 합계)과 수정 폼의 색상·진행률은 PW-1435 에서 붙였다.
+ * 숫자 칸은 내 리소스의 숫자 칸(`RsStatCard`)을 그대로 쓴다 — 같은 «퍼센트 배분» 도메인이다(§1 레이아웃).
+ * 색상은 스쿼드 폼의 색 고르기(`sq-swatch`), 진행률은 공용 슬라이더(`rsx-slider`)다. 시안 폼에는 두 칸이
+ * 없고 정책서 §5-2 「이름·설명·기간·색상·진행률」에만 있어 기존 부품으로 채웠다.
  *
  * 시안과 다른 점:
  *  1. 데이터를 고치지 않는다 — 저장·상태 전환·삭제·主 지정·연결 해제는 모두 `on*` 콜백(Promise).
@@ -28,7 +32,8 @@ import useDismissLayer from '../shared/useDismissLayer.js';
 import { CloseIcon, EditIcon, EyeIcon, MoreIcon, WarningIcon } from './squadIcons.jsx';
 import { OrgLabelsContext, makeOrgLabels, rich } from './orgchart-labels.jsx';
 import { projectStatusCode, projectStatusText, projectStatusTone } from './project-constants.js';
-import { SQUAD_MENU_Z, SQUAD_MODAL_Z } from './squad-constants.js';
+import { SQUAD_MENU_Z, SQUAD_MODAL_Z, SQUAD_PALETTE } from './squad-constants.js';
+import { RsStatCard } from '../okr/OkrResourcePieces.jsx';
 
 /** 허용 전이 (§6-1). `→ planned` · `planned → done` 은 없다 — 메뉴에 비활성으로도 그리지 않는다. */
 const PROJECT_TRANSITIONS = {
@@ -38,6 +43,8 @@ const PROJECT_TRANSITIONS = {
 };
 
 const MORE_ANCHOR = '[data-project-detail-anchor="more"]';
+
+const clampProgress = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 
 function messageOf(err, fallback) {
   return (err && typeof err.message === 'string' && err.message) || fallback;
@@ -56,8 +63,18 @@ export default function ProjectDetailCanvas({
   project,
   /** 어드민(p062) — ⋯ 메뉴 · 기본 정보 「수정」. 머리 오른쪽 딱지도 이 값으로 갈린다. */
   canManage = false,
-  /** 연결 스쿼드 행의 「主 지정」·「연결 해제」 (p063). */
+  /**
+   * 연결 스쿼드 행의 「主 지정」·「연결 해제」 (p063) — 모든 줄에. 줄마다 가르려면 `project.squads[].canLink`
+   * 를 준다(그 스쿼드 리드·매니저 · PW-1435). 둘 중 하나라도 참이면 그 줄에 버튼이 보인다.
+   */
   canEditSquad = false,
+  /**
+   * 개요 숫자 3칸 `{ headcount, planTotal, actualTotal, actualMissing, period }` (§4-1). 없으면 칸을 그리지 않는다.
+   * `period` 는 실제 합계가 본 달(`YYYY-MM`) — 라벨에 그대로 붙는다.
+   */
+  stats = null,
+  /** 색 고르기 후보 — 없으면 스쿼드 색과 같은 팔레트. 지금 색이 후보에 없으면 맨 앞에 더해 보인다. */
+  palette = SQUAD_PALETTE,
   /**
    * 삭제를 막는 사유. 문자열이면 ⋯ 메뉴의 「삭제」 가 비활성이고 그 아래에 사유가 보인다.
    * `null` 이면 삭제할 수 있다. 사유 문구는 호스트가 정한다.
@@ -65,7 +82,7 @@ export default function ProjectDetailCanvas({
   deleteBlockedReason = null,
   /** `(status) => Promise` — 허용 전이만 부른다. */
   onChangeStatus,
-  /** `({ name, description, startDate, endDate }) => Promise` — 상태는 보내지 않는다(§5-2). */
+  /** `({ name, description, startDate, endDate, color, progress }) => Promise` — 상태는 보내지 않는다(§5-2). */
   onSave,
   /** `() => Promise` — 이름을 똑같이 친 뒤에만 부른다. 성공 뒤 화면 이동은 호스트가 한다. */
   onDelete,
@@ -80,7 +97,7 @@ export default function ProjectDetailCanvas({
 }) {
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [draft, setDraft] = useState(null); // 수정 폼 { name, description, startDate, endDate }
+  const [draft, setDraft] = useState(null); // 수정 폼 { name, description, startDate, endDate, color, progress }
   const [formError, setFormError] = useState('');
   const [delAsk, setDelAsk] = useState(null); // { typed, busy, error }
   const [actionError, setActionError] = useState('');
@@ -95,6 +112,13 @@ export default function ProjectDetailCanvas({
   const squads = project.squads || [];
   const transitions = onChangeStatus ? PROJECT_TRANSITIONS[status] : [];
   const canEdit = canManage && !!onSave && !closed;
+  const canEditSquadRow = (s) => canEditSquad || s.canLink === true;
+  // 머리의 「편집 가능」 — 이 화면에서 고칠 수 있는 것이 하나라도 있으면(원장 또는 스쿼드 줄).
+  const editable = canManage || squads.some(canEditSquadRow);
+  // 지금 색이 팔레트 밖이면 맨 앞에 남긴다 — 다른 색을 눌렀다가도 원래 색으로 돌아올 수 있게.
+  const colorChoices = project.color && !palette.includes(project.color)
+    ? [project.color, ...palette]
+    : palette;
   const deleteBlocked = deleteBlockedReason != null || !onDelete;
   const period = `${project.startDate || L('projectDetail.undecided')} ~ ${project.endDate || L('projectDetail.undecided')}`;
 
@@ -116,6 +140,8 @@ export default function ProjectDetailCanvas({
       description: project.description || '',
       startDate: project.startDate || '',
       endDate: project.endDate || '',
+      color: project.color || palette[0],
+      progress: clampProgress(project.progress),
     });
   };
 
@@ -133,6 +159,8 @@ export default function ProjectDetailCanvas({
         description: draft.description.trim(),
         startDate: draft.startDate || null,
         endDate: draft.endDate || null,
+        color: draft.color,
+        progress: clampProgress(draft.progress),
       });
       setDraft(null);
     } catch (err) {
@@ -173,9 +201,9 @@ export default function ProjectDetailCanvas({
               </StatusBadge>
               <span className="pd-spacer" />
               {/* 편집 가능 / 조회 전용 (시안은 탭 줄 오른쪽 — 탭 줄이 아직 없어 제목 줄 오른쪽에 둔다) */}
-              <StatusBadge tone={canManage ? 'accent' : 'neutral'} className="pd-badge" data-testid="project-detail-mode">
-                {canManage ? <EditIcon size={12} /> : <EyeIcon size={12} />}
-                {L(canManage ? 'projectDetail.editable' : 'projectDetail.readOnly')}
+              <StatusBadge tone={editable ? 'accent' : 'neutral'} className="pd-badge" data-testid="project-detail-mode">
+                {editable ? <EditIcon size={12} /> : <EyeIcon size={12} />}
+                {L(editable ? 'projectDetail.editable' : 'projectDetail.readOnly')}
               </StatusBadge>
               {canManage && (
                 <button
@@ -256,6 +284,28 @@ export default function ProjectDetailCanvas({
             </div>
           )}
 
+          {/* ── 요약 숫자 3칸 (§4-1 · §5-2) — 실제 합계는 당월, 안 적은 사람은 0 이 아니라 «미입력» 으로 센다(§10) ── */}
+          {stats && (
+            <div className="pd-stats" data-testid="project-detail-stats">
+              <RsStatCard
+                tone="brand"
+                label={L('projectDetail.stats.headcount')}
+                value={<>{stats.headcount}<small>{L('projectDetail.stats.peopleUnit')}</small></>}
+              />
+              <RsStatCard
+                label={L('projectDetail.stats.planTotal')}
+                value={<>{stats.planTotal}<small>%</small></>}
+              />
+              <RsStatCard
+                label={L('projectDetail.stats.actualTotal', { period: stats.period })}
+                value={<>{stats.actualTotal}<small>%</small></>}
+                sub={stats.actualMissing > 0
+                  ? L('projectDetail.stats.actualMissing', { count: stats.actualMissing })
+                  : null}
+              />
+            </div>
+          )}
+
           {/* ── 기본 정보 (§4-1) ── */}
           <section className="pd-card" data-testid="project-detail-info">
             <div className="pd-card-head">
@@ -315,6 +365,45 @@ export default function ProjectDetailCanvas({
                     onChange={(v) => { setDraft((d) => ({ ...d, endDate: v })); setFormError(''); }}
                   />
                 </div>
+                <div className="sq-swatches pd-swatches" role="radiogroup" aria-label={L('projectDetail.form.color')}>
+                  <span className="sq-swatches-label">{L('projectDetail.form.color')}</span>
+                  {colorChoices.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      role="radio"
+                      aria-checked={draft.color === c}
+                      aria-label={c}
+                      title={c}
+                      data-testid={`project-detail-form-color-${c}`}
+                      className={`sq-swatch${draft.color === c ? ' is-picked' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => setDraft((d) => ({ ...d, color: c }))}
+                    />
+                  ))}
+                </div>
+                <div className="pd-form-progress">
+                  <span className="sq-swatches-label">{L('projectDetail.form.progress')}</span>
+                  <div className="rsx-slider" style={{ '--rsx-slider-fill': draft.color }}>
+                    <div className="rsx-slider-track"><i style={{ width: `${draft.progress}%` }} /></div>
+                    <input
+                      type="range" min={0} max={100} step={5} value={draft.progress}
+                      aria-label={L('projectDetail.form.progress')}
+                      data-testid="project-detail-form-progress"
+                      onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                    />
+                    <span className="rsx-slider-ball" style={{ left: `${draft.progress}%` }} />
+                  </div>
+                  <div className="rsx-entry-input">
+                    <input
+                      type="number" min={0} max={100} value={draft.progress}
+                      aria-label={L('projectDetail.form.progressDirect')}
+                      data-testid="project-detail-form-progress-input"
+                      onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                    />
+                    <span>%</span>
+                  </div>
+                </div>
                 {/* 상태는 이 폼에 없다 — 전이 규칙 우회 차단 (§5-2 · §6-1) */}
                 {formError && (
                   <div className="sq-proj-error" role="alert" data-testid="project-detail-form-error">{formError}</div>
@@ -346,7 +435,7 @@ export default function ProjectDetailCanvas({
                 {s.isPrimary && (
                   <StatusBadge tone="accent" className="pd-badge">{L('projectDetail.squads.primary')}</StatusBadge>
                 )}
-                {canEditSquad && (
+                {canEditSquadRow(s) && (
                   <span className="pd-squad-actions">
                     {!s.isPrimary && onSetPrimarySquad && (
                       <Button
