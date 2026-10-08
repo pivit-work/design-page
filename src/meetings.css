@@ -960,6 +960,144 @@ input.mtg-record-action-title::placeholder {
   color: var(--text-tertiary);
 }
 
+/* 참석자 행 — 메일 주소가 없는 사람은 체크를 막는다 (PW-1418 · share.policy §5.2) */
+.mtg-share-member-row.is-unreachable .mtg-share-member-name {
+  color: var(--text-tertiary);
+}
+.mtg-share-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 그 외 인원 — 태그 + 입력창 (pivit-specs meeting-app.jsx EmployeeTagInput · share.policy §5.3) */
+.mtg-share-recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 10px;
+  cursor: text;
+}
+.mtg-share-recipient {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--componentColors-utility-brand-utilityBrand50);
+  border: 1px solid var(--componentColors-utility-brand-utilityBrand200);
+  color: var(--colors-foreground-fgBrandPrimary);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mtg-share-recipient-remove {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.mtg-share-recipient-remove:hover,
+.mtg-share-recipient-remove:focus-visible {
+  opacity: 1;
+}
+.mtg-share-recipient-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+
+/* 직원 드롭다운 — 흐름 안에 둔다 (position:absolute 금지 · §5.3) */
+.mtg-share-dropdown {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--colors-border-borderSecondary);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.mtg-share-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+}
+.mtg-share-dropdown-item:last-child {
+  border-bottom: none;
+}
+.mtg-share-dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+.mtg-share-dropdown-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--componentColors-utility-brand-utilityBrand50);
+  color: var(--colors-foreground-fgBrandPrimary);
+  font-size: 11px;
+  font-weight: 700;
+}
+.mtg-share-dropdown-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mtg-share-dropdown-name,
+.mtg-share-dropdown-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mtg-share-dropdown-email,
+.mtg-share-dropdown-dept {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.mtg-share-dropdown-dept {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mtg-share-dropdown-empty {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.mtg-share-warning {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--colors-text-textWarningPrimary);
+}
+
 /* 외부 링크 row — URL pill + light brand 복사 버튼 */
 .mtg-share-link-row {
   display: flex;
