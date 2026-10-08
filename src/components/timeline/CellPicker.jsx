@@ -26,6 +26,8 @@ export default function CellPicker({
   onSnippet,
   onEvent,
   onClose,
+  snippetDisabled = false,
+  snippetDisabledLabel = '오늘 이후 날짜에는 쓸 수 없습니다',
 }) {
   const dateLabel = typeof date === 'string' ? date.slice(5) : '';
 
@@ -53,13 +55,19 @@ export default function CellPicker({
           {dateLabel} {fmtHour(hour)}
         </div>
 
+        {/* 오늘보다 뒤 날짜 칸이면 스니핏 작성만 끈다 — 누르면 아무 일도 없고 팝업도 닫지 않는다.
+            이벤트 추가는 그대로다 (PW-1421 · 기획 타임라인 §7.2-A · pivit-specs timeline-app.jsx CellPicker). */}
         <button
           type="button"
           className="tl-cell-picker-item"
           role="menuitem"
+          disabled={snippetDisabled}
+          aria-disabled={snippetDisabled || undefined}
           onClick={() => {
+            if (snippetDisabled) return;
             onClose();
-            onSnippet?.();
+            // 셀의 날짜를 함께 올린다 — 안 올리면 호스트가 오늘로 연다 (PW-1417).
+            onSnippet?.(date, hour);
           }}
         >
           <span className="tl-cell-picker-ico">
@@ -72,7 +80,9 @@ export default function CellPicker({
           </span>
           <span className="tl-cell-picker-body">
             <span className="tl-cell-picker-title">데일리 스니핏 작성</span>
-            <span className="tl-cell-picker-sub">오늘 한 일 · 헬스체크 · 태그</span>
+            <span className="tl-cell-picker-sub">
+              {snippetDisabled ? snippetDisabledLabel : '오늘 한 일 · 헬스체크 · 태그'}
+            </span>
           </span>
         </button>
 
