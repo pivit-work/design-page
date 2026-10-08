@@ -296,7 +296,7 @@ function joinAddressLine(address) {
   return [head, line, tail].filter(Boolean).join(' ');
 }
 
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
@@ -306,6 +306,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
+          disabled={disabled}
           style={{ flex: 1, height: 30, fontSize: 12 }}
         >
           <option value="">—</option>
@@ -333,6 +334,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
+          disabled={disabled}
           style={{ flex: 1, height: 30, fontSize: 12 }}
         />
       )}
@@ -355,6 +357,10 @@ const HR_IDENTITY_FIELDS = [
   'leaveStartDate',
   'leaveEndDate',
   'militaryService',
+  /* ── 장애·보훈 (W62 · admin-spec §3.2.2 · T3) ── */
+  'hasDisability',
+  'disabilityInfo',
+  'isVeteranFamily',
   /* ── 인사 정보 25칸 (PW-920 · 코어 §1-3-g) ── */
   'lastName',
   'serviceStartDate',
@@ -445,6 +451,11 @@ function shapeIdentityForSave(draft) {
       : hours;
   /* 손대지 않은 계좌번호는 아예 보내지 않는다 — 빈 문자열을 보내면 「지운다」가 된다. */
   if (!String(draft.bankAccount ?? '').trim()) delete out.bankAccount;
+  /* 티셔츠·주민번호는 본인이 넣는 칸이라 이 창에서 보내지 않는다(W62 · admin-spec §3.2.2·§3.2.9). */
+  delete out.tshirtSize;
+  delete out.nationalId;
+  /* 장애 여부가 꺼지면 장애 정보도 비운다 — 꺼진 플래그 뒤에 등급이 남지 않게(서버도 같다). */
+  if (!draft.hasDisability) out.disabilityInfo = null;
   for (const k of [
     'addressPostalCode', 'addressRegion', 'addressDistrict',
     'addressDetail', 'addressCountry',
@@ -462,6 +473,52 @@ function militaryLabel(value, options) {
   const list = options || MILITARY_OPTIONS;
   const hit = list.find((o) => o.value === value);
   return hit ? hit.label : value;
+}
+
+/**
+ * 주민등록번호 줄 (W62 · admin-spec §3.2.9). 어드민은 **열람만** 한다 — 입력란이 없다.
+ * 기본은 전체 마스킹이고, [보기]를 누르면 원래 값을 받아 이 창이 열려 있는 동안만 보인다
+ * (누를 때마다 서버에 열람 기록이 남는다). 실패는 이 줄 안에 알린다.
+ */
+function HrNationalIdRow({ memberId, present, onReveal, labels }) {
+  const L = labels || {};
+  const [value, setValue] = useState(null);
+  const [state, setState] = useState('idle');
+  const label = L.hrNationalId || '주민등록번호';
+  if (!present) {
+    return <HrPair k={label} v={L.hrNationalIdEmpty || '미입력 — 본인이 내 프로필에서 등록합니다'} />;
+  }
+  const reveal = () => {
+    setState('loading');
+    Promise.resolve(onReveal(memberId))
+      .then((r) => {
+        setValue(r?.nationalId ?? null);
+        setState('idle');
+      })
+      .catch(() => setState('error'));
+  };
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-national-id">
+      <span style={{ minWidth: 88, color: T.muted }}>{label}</span>
+      <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums' }}>{value ?? '******-*******'}</span>
+      {onReveal && value == null && (
+        <button
+          type="button"
+          className="admin-emp-btn"
+          onClick={reveal}
+          disabled={state === 'loading'}
+          data-testid="hr-national-id-reveal"
+        >
+          {L.hrNationalIdReveal || '보기'}
+        </button>
+      )}
+      {state === 'error' && (
+        <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">
+          {L.hrNationalIdRevealError || '불러오지 못했습니다. 다시 시도해 주세요.'}
+        </span>
+      )}
+    </div>
+  );
 }
 
 /** 병역 기본 선택지. 소비자가 L.hrMilitaryOptions 로 로케일 라벨을 덮는다. */
@@ -482,6 +539,8 @@ export function HrProfileModal({
   onLoadBenefits, onSaveBenefits,
   // 줄을 지우기 전에 묻는 자리 (PW-942) — `({ kind, label }) => Promise<boolean>`.
   confirmDelete,
+  // 주민등록번호 [보기] (W62) — `(memberId) => Promise<{ nationalId: string | null }>`. 없으면 버튼이 없다.
+  onRevealNationalId,
 }) {
   const L = labels || {};
   const todayIso = today || todayIsoInZone();
@@ -600,6 +659,34 @@ export function HrProfileModal({
                     onChange={setIdField('militaryService')}
                     options={L.hrMilitaryOptions || MILITARY_OPTIONS}
                   />
+                  {/* ── 장애·보훈 (W62 · admin-spec §3.2.2) — 재입사 여부와 같은 예/아니오 칸 ── */}
+                  <HrEditPair
+                    k={L.hrHasDisability || '장애 여부'}
+                    value={idDraft.hasDisability ? 'yes' : 'no'}
+                    onChange={(v) => setIdField('hasDisability')(v === 'yes')}
+                    options={L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }]}
+                  />
+                  {/* 장애 여부가 꺼져 있으면 상세를 받지 않는다(§3.2.2 「플래그가 OFF면 입력란을 비활성」). */}
+                  <HrEditPair
+                    k={L.hrDisabilityInfo || '장애 정보'}
+                    value={idDraft.hasDisability ? idDraft.disabilityInfo : ''}
+                    onChange={setIdField('disabilityInfo')}
+                    disabled={!idDraft.hasDisability}
+                  />
+                  <HrEditPair
+                    k={L.hrIsVeteranFamily || '보훈 대상 여부'}
+                    value={idDraft.isVeteranFamily ? 'yes' : 'no'}
+                    onChange={(v) => setIdField('isVeteranFamily')(v === 'yes')}
+                    options={L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }]}
+                  />
+                  {/* 본인이 넣는 칸 — 여기서는 확인만 한다(§3.2.2 · §3.2.9). */}
+                  <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
+                  <HrNationalIdRow
+                    memberId={row?.id}
+                    present={!!identity.nationalId?.present}
+                    onReveal={onRevealNationalId}
+                    labels={L}
+                  />
                   {/* ── 고용 일자·근무 일정 (PW-920 · 코어 §1-3-g 분류 2·4) ── */}
                   <HrEditPair k={L.hrServiceStartDate || '기산일'} date value={idDraft.serviceStartDate} onChange={setIdField('serviceStartDate')} />
                   <HrEditPair k={L.hrFirstHireDate || '최초 입사일'} date value={idDraft.firstHireDate} onChange={setIdField('firstHireDate')} />
@@ -657,6 +744,16 @@ export function HrProfileModal({
                   <HrPair
                     k={L.hrMilitaryService || '병역'}
                     v={militaryLabel(identity.militaryService, L.hrMilitaryOptions)}
+                  />
+                  <HrPair k={L.hrHasDisability || '장애 여부'} v={identity.hasDisability ? (L.hrYes || '예') : (L.hrNo || '아니오')} />
+                  <HrPair k={L.hrDisabilityInfo || '장애 정보'} v={identity.hasDisability ? identity.disabilityInfo : null} />
+                  <HrPair k={L.hrIsVeteranFamily || '보훈 대상 여부'} v={identity.isVeteranFamily ? (L.hrYes || '예') : (L.hrNo || '아니오')} />
+                  <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
+                  <HrNationalIdRow
+                    memberId={row?.id}
+                    present={!!identity.nationalId?.present}
+                    onReveal={onRevealNationalId}
+                    labels={L}
                   />
                 </>
               )}

@@ -258,6 +258,18 @@ const DEFAULT_LABELS = {
     addressHint: '본인·HR만 열람할 수 있습니다.',
     bio: '소개 (Bio)',
     bioHint: '타임라인·공개 카드에 표시됩니다.',
+    // W62 — 기획서 my-settings §4.2 「티셔츠 사이즈」 · 「주민등록번호 🔒」
+    tshirtSize: '티셔츠 사이즈',
+    tshirtSizeHint: '사내 굿즈 발송에 사용됩니다.',
+    tshirtSizePlaceholder: '예: L',
+    nationalId: '주민등록번호',
+    nationalIdHint: '본인·인사담당자만 열람할 수 있습니다. 보기를 누르면 열람 기록이 남습니다.',
+    nationalIdEmpty: '미입력',
+    nationalIdReveal: '보기',
+    nationalIdRevealError: '불러오지 못했습니다. 다시 시도해 주세요.',
+    nationalIdChange: '새 번호로 바꾸기',
+    nationalIdPlaceholder: '000000-0000000',
+    nationalIdFormatError: '주민등록번호는 000000-0000000 모양으로 입력해 주세요.',
     bioPlaceholder: '나를 한 줄로 소개해 보세요',
     // 개인 입력 3종 (기획서 코어 §1-3-g D · 시안 settings-app.jsx)
     expertise: '업무 전문 분야',
@@ -1480,6 +1492,13 @@ export default function MySettingsCanvas({
   onDeletePhoto,
   profileSaveState = 'idle',
   onSaveProfile,
+  /**
+   * 주민등록번호 (W62 · my-settings §4.2). `nationalIdPresent` 는 저장돼 있나(값은 오지 않는다),
+   * `onRevealNationalId()` 는 [보기] — `Promise<{ nationalId: string | null }>`. 저장할 새 번호는
+   * draft 의 `nationalId` 로 [변경사항 저장]에 실린다(비어 있으면 앱이 보내지 않는다).
+   */
+  nationalIdPresent = false,
+  onRevealNationalId,
   /* 공개 범위 */
   visibilityGroups = [],
   visibilityError = null,
@@ -1581,6 +1600,30 @@ export default function MySettingsCanvas({
     setDraft(profile);
   }
   const setField = (key) => (value) => setDraft((prev) => ({ ...prev, [key]: value }));
+  /* 주민등록번호 [보기] — 본인 화면에서도 기본은 가린다(어깨너머 노출 차단 · my-settings §4.2).
+     받은 값은 이 화면이 떠 있는 동안만 보인다. 저장이 끝나 «들어 있나»가 바뀌면 다시 가린다. */
+  const [nationalIdShown, setNationalIdShown] = useState(null);
+  const [nationalIdRevealState, setNationalIdRevealState] = useState('idle');
+  const [nationalIdSeen, setNationalIdSeen] = useState(profile);
+  if (profile !== nationalIdSeen) {
+    setNationalIdSeen(profile);
+    setNationalIdShown(null);
+    setNationalIdRevealState('idle');
+  }
+  /* 새 번호는 서버와 같은 모양만 받는다(앞 6자리-뒤 7자리, 붙여 써도 된다). 틀리면 칸 아래에
+     이유를 띄우고 저장을 막는다 — 서버 거절은 «저장 실패» 한 줄이라 무엇이 틀렸는지 모른다. */
+  const nationalIdTyped = String(draft.nationalId ?? '').replace(/\s+/g, '');
+  const nationalIdInvalid = nationalIdTyped !== '' && !/^\d{6}-?\d{7}$/.test(nationalIdTyped);
+  const revealNationalId = () => {
+    if (!onRevealNationalId) return;
+    setNationalIdRevealState('loading');
+    Promise.resolve(onRevealNationalId())
+      .then((r) => {
+        setNationalIdShown(r?.nationalId ?? null);
+        setNationalIdRevealState('idle');
+      })
+      .catch(() => setNationalIdRevealState('error'));
+  };
   const setTimeValidity = (key) => (valid) =>
     setInvalidTimes((prev) => (prev[key] === !valid ? prev : { ...prev, [key]: !valid }));
   const hasInvalidTime = Object.values(invalidTimes).some(Boolean);
@@ -2065,6 +2108,57 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.addressCountry}
                     />
                   </Field>
+                  {/* 티셔츠 사이즈 — 굿즈 발송용이라 본인만 쓴다(W62 · my-settings §4.2). */}
+                  <Field label={labels.profile.tshirtSize} hint={labels.profile.tshirtSizeHint}>
+                    <TextInput
+                      className="admin-emp-input"
+                      value={draft.tshirtSize || ''}
+                      maxLength={10}
+                      onChange={(e) => setField('tshirtSize')(e.target.value)}
+                      placeholder={labels.profile.tshirtSizePlaceholder}
+                      aria-label={labels.profile.tshirtSize}
+                    />
+                  </Field>
+                  {/* 주민등록번호 — 입력은 본인만(어드민은 열람만). 저장된 값은 가린 채 두고,
+                      바꿀 때는 새 번호를 아래 칸에 넣어 [변경사항 저장]한다. */}
+                  <Field
+                    label={labels.profile.nationalId}
+                    hint={labels.profile.nationalIdHint}
+                    error={nationalIdInvalid ? labels.profile.nationalIdFormatError : undefined}
+                    errorTestId="national-id-format-error"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} data-testid="national-id-current">
+                      <span className="msc-field-note" style={{ margin: 0, fontVariantNumeric: 'tabular-nums' }}>
+                        {nationalIdPresent ? (nationalIdShown ?? '******-*******') : labels.profile.nationalIdEmpty}
+                      </span>
+                      {nationalIdPresent && nationalIdShown == null && onRevealNationalId && (
+                        <button
+                          type="button"
+                          className="admin-notif-btn is-soft is-sm"
+                          onClick={revealNationalId}
+                          disabled={nationalIdRevealState === 'loading'}
+                          data-testid="national-id-reveal"
+                        >
+                          {labels.profile.nationalIdReveal}
+                        </button>
+                      )}
+                    </div>
+                    {nationalIdRevealState === 'error' && (
+                      <div className="msc-input-error" role="alert" data-testid="national-id-reveal-error">
+                        {labels.profile.nationalIdRevealError}
+                      </div>
+                    )}
+                    <TextInput
+                      className="admin-emp-input"
+                      value={draft.nationalId || ''}
+                      maxLength={14}
+                      inputMode="numeric"
+                      autoComplete="off"
+                      onChange={(e) => setField('nationalId')(e.target.value)}
+                      placeholder={labels.profile.nationalIdPlaceholder}
+                      aria-label={labels.profile.nationalIdChange}
+                    />
+                  </Field>
                 </div>
                 <Field label={labels.profile.bio} hint={labels.profile.bioHint}>
                   <TextArea
@@ -2167,9 +2261,9 @@ export default function MySettingsCanvas({
                 className={`msc-save-btn${
                   profileSaveState === 'saved' ? ' is-saved' : profileSaveState === 'error' ? ' is-error' : ''
                 }`}
-                disabled={profileSaveState === 'saving' || hasInvalidTime}
-                // 없는 시각이 칸에 남아 있으면 보내지 않는다 — 이유는 이미 그 칸 아래에 떠 있다.
-                onClick={() => !hasInvalidTime && onSaveProfile && onSaveProfile(draft)}
+                disabled={profileSaveState === 'saving' || hasInvalidTime || nationalIdInvalid}
+                // 없는 시각·틀린 주민번호가 칸에 남아 있으면 보내지 않는다 — 이유는 이미 그 칸 아래에 떠 있다.
+                onClick={() => !hasInvalidTime && !nationalIdInvalid && onSaveProfile && onSaveProfile(draft)}
                 data-testid="profile-save-btn"
               >
                 {saveLabel}
