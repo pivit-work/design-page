@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import RosterTable from '../shared/RosterTable.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -41,6 +42,14 @@ const DEFAULT_LABELS = {
     void: '취소됨',
     uncollectible: '수금불가',
   },
+
+  // 청구 사유 배지 — 무엇에 대한 청구인가(screen-billing-history.policy §2 · PW-324)
+  billingReasons: {
+    initial: '첫 결제',
+    rebill: '정기결제',
+    seat_increment: '좌석 추가(일할)',
+  },
+  seatIncrementTooltip: '첫 청구 주기 안에 추가된 좌석의 남은 기간분입니다',
 
   refundLabels: {
     completed_full: '환불완료',
@@ -90,6 +99,7 @@ function mergeLabels(provided) {
     ...DEFAULT_LABELS,
     ...provided,
     statusLabels: { ...DEFAULT_LABELS.statusLabels, ...(provided.statusLabels || {}) },
+    billingReasons: { ...DEFAULT_LABELS.billingReasons, ...(provided.billingReasons || {}) },
     refundLabels: { ...DEFAULT_LABELS.refundLabels, ...(provided.refundLabels || {}) },
     refundReasons: { ...DEFAULT_LABELS.refundReasons, ...(provided.refundReasons || {}) },
     filterTabs: { ...DEFAULT_LABELS.filterTabs, ...(provided.filterTabs || {}) },
@@ -103,6 +113,14 @@ const STATUS_META = {
   void: { color: T.sub, bg: T.bl },
   uncollectible: { color: T.red, bg: T.redBg },
 };
+
+// 청구 사유 배지 메타 — 사유가 없는 옛 청구서는 「정기결제」로 표기한다(policy §7, 필터에서 빼지 않는다)
+const REASON_META = {
+  initial: { color: T.accent, bg: '#EEF2FF' },
+  rebill: { color: T.sub, bg: T.bl },
+  seat_increment: { color: T.amber, bg: T.amberBg },
+};
+const reasonKey = (inv) => (REASON_META[inv.billing_reason] ? inv.billing_reason : 'rebill');
 
 // 환불(Refund) 배지 메타 — cancellation-refund-policy.md §9
 const REFUND_META = {
@@ -249,9 +267,23 @@ export default function BillingHistoryCanvas({
                 {
                   key: 'invoiceNo',
                   header: labels.tableHeaders.invoiceNo,
-                  render: (inv) => (
-                    <span style={{ fontVariantNumeric: 'tabular-nums', color: T.sub }}>{inv.invoice_no}</span>
-                  ),
+                  // 청구번호 + 청구 사유 배지 (무엇에 대한 청구인지 식별 — PW-324)
+                  render: (inv) => {
+                    const rk = reasonKey(inv);
+                    const badge = (
+                      <Badge color={REASON_META[rk].color} bg={REASON_META[rk].bg}>
+                        {labels.billingReasons[rk]}
+                      </Badge>
+                    );
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <span style={{ fontVariantNumeric: 'tabular-nums', color: T.sub }}>{inv.invoice_no}</span>
+                        {rk === 'seat_increment' ? (
+                          <Tooltip content={labels.seatIncrementTooltip}><span>{badge}</span></Tooltip>
+                        ) : badge}
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: 'period',
@@ -304,7 +336,8 @@ export default function BillingHistoryCanvas({
                             </Badge>
                           );
                         })()}
-                        {inv.refund?.type === 'partial' && (
+                        {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
+                        {inv.refund?.type === 'partial' && inv.refund.status === 'completed' && (
                           <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
                         )}
                       </div>
