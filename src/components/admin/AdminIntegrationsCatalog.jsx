@@ -33,6 +33,12 @@ function fmt(tpl, vars) {
 
 const GROUP_ORDER = ['tool', 'send', 'hr'];
 
+/* 요청 창 글자 수 — 서버 입력 한도(input-limits `toolRequestName`·`toolRequestPurpose`)와 같은 값 */
+const TOOL_NAME_MIN = 2;
+const TOOL_NAME_MAX = 100;
+const PURPOSE_MIN = 5;
+const PURPOSE_MAX = 2000;
+
 /* 툴 로고 — 앱에 로고가 있는 연동은 로고, 아직 없는 연동은 공용 선 아이콘 */
 function ToolLogo({ tool, baseUrl }) {
   return (
@@ -332,7 +338,7 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
   const L = labels.requestModal;
   const [toolName, setToolName] = useState('');
   const [purpose, setPurpose] = useState('');
-  const valid = toolName.trim().length >= 2 && purpose.trim().length >= 5;
+  const valid = toolName.trim().length >= TOOL_NAME_MIN && purpose.trim().length >= PURPOSE_MIN;
   const submitting = !!modal.submitting;
   return (
     <ModalShell
@@ -355,6 +361,7 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
           id="intg-request-tool"
           value={toolName}
           placeholder={L.toolNamePlaceholder}
+          maxLength={TOOL_NAME_MAX}
           data-testid="intg-request-tool"
           onChange={(e) => setToolName(e.target.value)}
         />
@@ -365,6 +372,7 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
           rows={3}
           value={purpose}
           placeholder={L.purposePlaceholder}
+          maxLength={PURPOSE_MAX}
           data-testid="intg-request-purpose"
           onChange={(e) => setPurpose(e.target.value)}
         />
