@@ -169,6 +169,10 @@ export default function RosterTable({
 
 const alignClass = (align) => (align && align !== 'left' ? `is-${align}` : '');
 const join = (...names) => names.filter(Boolean).join(' ') || undefined;
+/** 붙는 칸 — 왼쪽(`stickyLeft`)이 오른쪽(`stickyRight`)보다 먼저다. 둘 다 없으면 보통 칸. */
+const stickyClass = (left, right) => (left != null ? 'is-sticky' : right != null ? 'is-sticky is-sticky-right' : '');
+const stickyStyle = (left, right, style) =>
+  (left != null ? { left, ...style } : right != null ? { right, ...style } : style);
 
 /** 머리 행. 머리 칸(`RosterTable.HeadCell`)을 늘어놓는다. */
 function RosterHead({ children }) {
@@ -183,13 +187,13 @@ function RosterHead({ children }) {
  * 머리 칸. `width` 는 `fixed` 표에서 열 폭이 된다.
  * 누르면 정렬되는 머리 칸처럼 속을 부르는 쪽이 채워도 된다 — 칸 자체는 여기서 그린다.
  */
-function RosterHeadCell({ children, align, width, stickyLeft, className, style, ...rest }) {
+function RosterHeadCell({ children, align, width, stickyLeft, stickyRight, className, style, ...rest }) {
   const sized = width != null ? { width, ...style } : style;
   return (
     <th
       scope="col"
-      className={join(alignClass(align), stickyLeft != null ? 'is-sticky' : '', className)}
-      style={stickyLeft != null ? { left: stickyLeft, ...sized } : sized}
+      className={join(alignClass(align), stickyClass(stickyLeft, stickyRight), className)}
+      style={stickyStyle(stickyLeft, stickyRight, sized)}
       {...rest}
     >
       {children}
@@ -222,12 +226,14 @@ function RosterRow({ children, tone, onClick, className, ...rest }) {
 /**
  * 칸 하나. `stickyLeft`(px)를 주면 가로로 밀어도 그 자리에 붙어 있다 — 머리 칸에도 같은 값을 준다.
  * 열 목록으로 쓰는 표는 열의 `sticky` 로 자동 계산된다.
+ * `stickyRight`(px)는 오른쪽 끝에 붙는 칸이다(PW-1425 · CSV 값 검토의 「비고」처럼 넘겨도 그 줄의 사유를
+ * 한 곳에서 봐야 할 때). 맨 끝 열부터 이어서 두고, 머리 칸에도 같은 값을 준다.
  */
-function RosterCell({ children, align, stickyLeft, className, style, ...rest }) {
+function RosterCell({ children, align, stickyLeft, stickyRight, className, style, ...rest }) {
   return (
     <td
-      className={join(alignClass(align), stickyLeft != null ? 'is-sticky' : '', className)}
-      style={stickyLeft != null ? { left: stickyLeft, ...style } : style}
+      className={join(alignClass(align), stickyClass(stickyLeft, stickyRight), className)}
+      style={stickyStyle(stickyLeft, stickyRight, style)}
       {...rest}
     >
       {children}
