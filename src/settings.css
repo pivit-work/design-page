@@ -479,6 +479,8 @@
   display: block;
   margin-top: 2px;
 }
+/* 개인 연동 잠금 문구 (W73) — 자물쇠 + 한 줄 */
+.msc-intg-locked { display: flex; align-items: center; gap: 4px; color: var(--text-tertiary); }
 
 .msc-intg-actions {
   display: flex;

@@ -12,6 +12,7 @@ import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 import Switch from '../shared/Switch.jsx';
+import { LockGlyph } from '../shared/lineIcons.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EducationAddForm from './EducationAddForm.jsx';
 import PreferenceTab from './PreferenceTab.jsx';
@@ -2469,6 +2470,13 @@ export default function MySettingsCanvas({
                             {intg.unavailableReason}
                           </span>
                         )}
+                        {/* 회사가 개인 연동을 허용하지 않았거나 허용을 껐을 때(내 설정 정책 §4 · screen-integrations §2-9 · W73) */}
+                        {intg.lockedNote && (
+                          <span className="msc-intg-meta msc-intg-locked" data-testid={`integration-locked-${intg.id}`}>
+                            <LockGlyph size={12} />
+                            {intg.lockedNote}
+                          </span>
+                        )}
                       </div>
                       <div className="msc-intg-actions">
                         {intg.connected && intg.syncable && onSyncIntegration && (
@@ -2497,7 +2505,8 @@ export default function MySettingsCanvas({
                           <button
                             type="button"
                             className={`admin-notif-btn is-sm ${intg.connected ? 'is-danger' : 'is-soft'}`}
-                            disabled={intg.busy || intg.syncing}
+                            // 허용 안 됨이면 새 연결만 잠근다 — 이미 연결된 카드의 «연결 해제»는 그대로
+                            disabled={Boolean(intg.busy || intg.syncing || (!intg.connected && intg.connectLocked))}
                             onClick={() =>
                               intg.connected
                                 ? onDisconnectIntegration && onDisconnectIntegration(intg.id)

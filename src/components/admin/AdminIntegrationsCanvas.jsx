@@ -9,6 +9,14 @@ import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
 import { CheckGlyph } from '../shared/lineIcons.jsx';
+import { CATALOG_DEFAULT_LABELS } from './adminIntegrationsCatalogLabels.js';
+import {
+  AdminCatalogPanel,
+  InactiveToolsArea,
+  PersonalChips,
+  RequestBanner,
+  RequestToolModal,
+} from './AdminIntegrationsCatalog.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -34,7 +42,7 @@ import { CheckGlyph } from '../shared/lineIcons.jsx';
 const ICON_INFO = '/icons-solid/asterisk-01.svg';
 const ICON_ALERT = '/icons-solid/alert-triangle.svg';
 
-const DEFAULT_LABELS = {
+const BASE_LABELS = {
   summary: {
     title: '연동 설정',
     description:
@@ -158,6 +166,12 @@ function merge(base, provided) {
   }
   return out;
 }
+
+// 카탈로그·요청 문구는 그 조각 파일이 갖고, 탭 이름만 이 화면 탭 묶음에 합친다.
+const DEFAULT_LABELS = merge(
+  { ...BASE_LABELS, ...CATALOG_DEFAULT_LABELS },
+  { tabs: { ...BASE_LABELS.tabs, ...CATALOG_DEFAULT_LABELS.tabs } },
+);
 
 /* {{key}} 치환 — labels 안의 템플릿 문자열용 (i18n interpolation 대체). */
 function fmt(tpl, vars) {
@@ -870,13 +884,15 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
 
 /* ── 탭 스위처 ──────────────────────────────────────────────────────── */
 
-function TabSwitcher({ active, labels, onChange }) {
+function TabSwitcher({ active, labels, onChange, showAdminTab }) {
   return (
     <div className="tl-tabs-row adm-tabs-row">
       <Tabs
         items={[
           { value: 'apps', label: labels.tabs.appIntegrations, testId: 'intg-tab-apps' },
           { value: 'syncLog', label: labels.tabs.syncLog, testId: 'intg-tab-syncLog' },
+          // 「어드민 관리」 — 어드민만(policy §2-2). 호스트가 adminTab 을 줄 때만 그린다.
+          ...(showAdminTab ? [{ value: 'admin', label: labels.tabs.admin, testId: 'intg-tab-admin' }] : []),
         ]}
         value={active}
         onChange={onChange}
@@ -920,6 +936,28 @@ export default function AdminIntegrationsCanvas({
   onReauth = () => {},
   onRetrySyncLog = () => {},
   onRetryLoad = () => {},
+  /**
+   * 「어드민 관리」 탭(policy §2-9). `null` 이면 탭을 그리지 않는다.
+   * `{ catalog, catalogState, requests, requestsState, busyToolIds, busyRequestIds }`
+   * — 행 모양은 AdminIntegrationsCatalog.jsx 머리 주석.
+   */
+  adminTab = null,
+  /** 앱 연동 탭 하단 «어드민 활성화 필요» — 꺼진 수집 툴 `[{ id, name, logo? }]` (policy §2-7) */
+  inactiveTools = [],
+  /** 개인 연동 칩 — 수집 툴 `[{ id, name, status, allowPersonal }]` (policy §2-6). 비면 그리지 않는다 */
+  personalChips = [],
+  /** 연동 요청 배너를 그릴지 (policy §2-8) */
+  showRequestBanner = false,
+  /** 열린 요청 창 `{ email, submitting, error }` · 닫혀 있으면 null */
+  requestModal = null,
+  onToggleToolStatus = () => {},
+  onTogglePersonal = () => {},
+  onRequestAction = () => {},
+  onRetryCatalog,
+  onRetryRequests,
+  onOpenRequestModal = () => {},
+  onCloseRequestModal = () => {},
+  onSubmitRequest = () => {},
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
 
@@ -984,7 +1022,7 @@ export default function AdminIntegrationsCanvas({
         </div>
       </header>
 
-      <TabSwitcher active={tab} labels={labels} onChange={changeTab} />
+      <TabSwitcher active={tab} labels={labels} onChange={changeTab} showAdminTab={!!adminTab} />
 
       {tab === 'apps' && (
         <>
@@ -1050,16 +1088,45 @@ export default function AdminIntegrationsCanvas({
             <CollectionStatus rows={collectionStatus} labels={labels} onRetrySyncLog={onRetrySyncLog} />
           )}
 
+          <InactiveToolsArea tools={inactiveTools} labels={labels} baseUrl={baseUrl} />
+
+          {showRequestBanner && <RequestBanner labels={labels} onOpen={onOpenRequestModal} />}
+
           <div className="intg-banner" data-testid="intg-personal-banner">
             <div className="intg-banner-msg">
               <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-              {labels.personalBanner.message}
+              <span>
+                {labels.personalBanner.message}
+                <PersonalChips tools={personalChips} labels={labels} />
+              </span>
             </div>
             <button type="button" className="intg-btn intg-btn-primary" onClick={onPersonalIntegrationClick}>
               {labels.personalBanner.button}
             </button>
           </div>
         </>
+      )}
+
+      {tab === 'admin' && adminTab && (
+        <AdminCatalogPanel
+          {...adminTab}
+          labels={labels}
+          baseUrl={baseUrl}
+          onToggleToolStatus={onToggleToolStatus}
+          onTogglePersonal={onTogglePersonal}
+          onRequestAction={onRequestAction}
+          onRetryCatalog={onRetryCatalog}
+          onRetryRequests={onRetryRequests}
+        />
+      )}
+
+      {requestModal && (
+        <RequestToolModal
+          modal={requestModal}
+          labels={labels}
+          onClose={onCloseRequestModal}
+          onSubmit={onSubmitRequest}
+        />
       )}
 
       {tab === 'syncLog' && (

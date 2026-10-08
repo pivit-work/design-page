@@ -187,3 +187,24 @@
 /* ── 토큰 만료·재인증 확인 창 본문 ── 창은 공용 ConfirmModal(PW-836) ── */
 .intg-confirm-p { margin: 0 0 12px; }
 .intg-modal-usercard { margin: 0; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-md, 10px); display: flex; align-items: center; gap: 12px; }
+
+/* ── 툴 카탈로그 · 연동 요청 (W73 · screen-integrations.policy §2-6~§2-10) ── */
+.intg-admin-tab { display: flex; flex-direction: column; gap: 18px; }
+.intg-section-desc { margin: -8px 0 12px; font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+.intg-catalog-warning { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; }
+.intg-catalog-logo { width: 28px; height: 28px; color: var(--text-tertiary); }
+.intg-catalog-logo img { width: 18px; height: 18px; }
+.intg-catalog-group { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.intg-catalog-group-desc { margin-left: 8px; font-size: 11px; color: var(--text-tertiary); }
+.intg-catalog-muted { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+/* 꺼진 줄은 흐리게 — 단 «활성화» 버튼 칸은 그대로(잠긴 버튼처럼 보이면 안 된다) */
+.intg-table .rt-row.intg-row-off td:not(:last-child) { opacity: 0.6; }
+.intg-table-empty .intg-btn { margin-left: 12px; }
+.intg-request-list { display: flex; flex-direction: column; }
+.intg-request-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.intg-request-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.intg-app-card.is-inactive { opacity: 0.7; }
+.intg-banner .intg-btn svg { vertical-align: -2px; margin-left: 4px; }
+.intg-banner.is-warning { background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
+.intg-banner.is-warning .intg-banner-msg { color: var(--colors-warning-700, var(--text-secondary)); }
+.intg-personal-chips { display: flex; margin-top: 6px; flex-wrap: wrap; gap: 6px; }
