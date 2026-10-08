@@ -1712,6 +1712,48 @@
   margin-left: 6px;
   color: var(--text-tertiary);
 }
+/* 보상 이력 창 위 «HR 전용» 고정 안내 (W69 · admin-spec §3.2.4). 자물쇠 SVG 는 color 를 상속한다. */
+.admin-emp-sal-hronly {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-secondary, #F8FAFC);
+  color: var(--text-secondary, #475569);
+  font-size: var(--font-size-text-xs, 13px);
+  font-weight: 600;
+}
+/* 사인온·리텐션 줄의 «반납 조건» 딱지 — 「현재」와 같은 크기, 테두리만 있는 중립 색. */
+.admin-emp-sal-clawback {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border-primary, #E2E8F0);
+  border-radius: var(--radius-xs, 4px);
+  color: var(--text-secondary, #475569);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+/* 통화별 합계 — 통화마다 한 줄, 금액은 오른쪽 정렬. */
+.admin-emp-sal-totals {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-secondary, #EEF2F6);
+}
+.admin-emp-sal-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+  font-size: var(--font-size-text-sm, 14px);
+  color: var(--text-secondary, #475569);
+}
+.admin-emp-sal-total-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+}
 
 /* ============================================================
  * 조직 스냅샷 (OrgSnapshotCanvas) — .admin-snap-*

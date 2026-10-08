@@ -3699,6 +3699,8 @@ function EmployeesEditPanel({
   /* 담당 HRBP 후보 `[{ value, label, disabled? }]` (PW-1345). 못 받으면 «미지정»만 남는다. */
   hrbpOptions,
   canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
+  /* 회사 «기본 통화» — 보상 이력 창 통화 칸의 시작값 (W69). 미주입이면 KRW. */
+  defaultCurrency,
   hrRecordHandlers,
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
@@ -4522,6 +4524,7 @@ function EmployeesEditPanel({
             onUpdate={canEdit ? hrRecordHandlers?.onUpdateSalaryHistory : undefined}
             onDelete={canEdit ? hrRecordHandlers?.onDeleteSalaryHistory : undefined}
             confirmDelete={hrRecordHandlers?.confirmDelete}
+            defaultCurrency={defaultCurrency || undefined}
             onClose={() => setSalaryOpen(false)}
             onSalarySynced={(v) => set('salary', v)}
           />
@@ -4786,6 +4789,8 @@ export default function AdminEmployeesCanvas({
   onAppendAffiliations,
   onLoadSalaryHistory,
   onAddSalaryHistory,
+  /** 회사 «기본 통화» (`KRW`·`USD`·`JPY`·`EUR`) — 보상 이력 창 통화 칸의 시작값 (W69). 미주입이면 KRW. */
+  defaultCurrency,
   /**
    * 여러 줄로 쌓이는 인사 기록을 넣고 고치고 지우는 콜백 묶음 (PW-920 재작업).
    * `{ onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
@@ -5133,6 +5138,7 @@ export default function AdminEmployeesCanvas({
             canViewSalary={canViewSalary}
             onLoadSalaryHistory={onLoadSalaryHistory}
             onAddSalaryHistory={onAddSalaryHistory}
+            defaultCurrency={defaultCurrency}
             hrRecordHandlers={hrRecordHandlers}
           />
         );

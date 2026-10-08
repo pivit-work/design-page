@@ -950,7 +950,7 @@ export function HrProfileModal({
 // ── 수료한 교육 과정 (PW-920 재작업 · 코어 §1-3-g 81번) ─────────────────────
 // 한 사람에 여러 건이 쌓인다. 줄마다 고치기·지우기, 아래 한 줄로 추가한다.
 // 실패는 전역 오류 화면으로 튕기지 않고 이 묶음 안에 알린다 — 적던 값이 날아가지 않게.
-const EMPTY_TRAINING = { courseName: '', completedAt: '', note: '' };
+const EMPTY_TRAINING = { courseName: '', provider: '', completedAt: '', note: '' };
 
 function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete }) {
   const L = labels || {};
@@ -987,6 +987,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const submit = async () => {
     const body = {
       courseName: form.courseName.trim(),
+      provider: form.provider.trim() || null,
       completedAt: form.completedAt || null,
       note: form.note.trim() || null,
     };
@@ -995,7 +996,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   };
   const startEdit = (r) => {
     setEditingId(r.id);
-    setForm({ courseName: r.courseName ?? '', completedAt: r.completedAt ?? '', note: r.note ?? '' });
+    setForm({ courseName: r.courseName ?? '', provider: r.provider ?? '', completedAt: r.completedAt ?? '', note: r.note ?? '' });
     setError(false);
   };
   const cancelEdit = () => { setEditingId(null); setForm(EMPTY_TRAINING); };
@@ -1022,7 +1023,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 <span style={{ flex: 1 }}>
                   {/* 수료일이 없으면 날짜 자리를 비운다 (PW-942). 「이수 중」으로 적으면 초대 CSV 처럼
                       과정명만 받은 기록이 수료하지 않은 것처럼 읽힌다 — 칸 이름이 「수료한 교육 과정」이다. */}
-                  {[r.courseName, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')}
+                  {[r.courseName, r.provider, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')}
                 </span>
                 {canEdit && onUpdate && (
                   <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
@@ -1044,6 +1045,8 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
         {canEdit && !loadError && (
           <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
             <HrEditPair k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
+            {/* 과정명·교육기관·수료일 순서 (admin-spec §3.2.10 · W69). */}
+            <HrEditPair k={L.hrTrainingProvider || '교육기관'} value={form.provider} onChange={(v) => setForm((f) => ({ ...f, provider: v }))} />
             <HrEditPair k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
             <HrEditPair k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
@@ -1446,20 +1449,49 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
 
 // ── 연봉 이력 모달 ──────────────────────────────────────
 /**
- * 보상 종류 (PW-920 재작업 · 코어 §2-1 `compensation_type`). 이 창에서 넣는 것은 셋이다.
+ * 보상 종류 (PW-920 재작업 · W69 · 코어 §2-1 `compensation_type` 13종 + 계약 기간).
  *
- * - 연봉 — 쌓아 가는 기록이라 **고치거나 지우지 않는다**(서버도 거절한다). 가장 늦은 적용일의
- *   금액이 현재 연봉이 된다.
- * - 계약 기간 — 시작·종료일. 금액은 비워도 된다(기획서가 «기간»으로 지정한 칸이다).
- * - 초과근무 수당 — 매월 금액이 달라져 행으로 쌓는다. 현재 연봉에 섞이지 않는다.
+ * - 연봉 — 쌓아 가는 기록이라 **고치거나 지우지 않는다**(서버도 거절한다). 오늘까지 적용된
+ *   가장 늦은 연봉 줄이 현재 연봉이다.
+ * - 계약 기간 — 시작·종료일. 금액은 비워도 된다(기획서가 «기간»으로 지정한 칸이다). 13종 밖이지만
+ *   PW-920 이 이 이력에 더한 값이라 남긴다.
+ * - 그 밖 12종 — 보너스·수당·스톡옵션. 현재 연봉에 섞이지 않는다.
  */
-const COMP_TYPES = ['salary', 'contract', 'overtime_allowance'];
-const COMP_TYPE_DEFAULT_LABEL = { salary: '연봉', contract: '계약 기간', overtime_allowance: '초과근무 수당', stock: '주식' };
-const EMPTY_COMP_FORM = { compensationType: 'salary', effectiveDate: '', effectiveEndDate: '', amount: '', reason: '' };
+const COMP_TYPES = [
+  'salary', 'contract', 'incentive', 'stock', 'spot_bonus', 'peer_bonus', 'signon_bonus', 'sales_bonus',
+  'retention_bonus', 'special_bonus', 'holiday_bonus', 'position_allowance', 'overtime_allowance', 'night_allowance',
+];
+const COMP_TYPE_DEFAULT_LABEL = {
+  salary: '기본급·연봉', contract: '계약 기간', incentive: '인센티브', stock: '스톡옵션', spot_bonus: '스팟 보너스',
+  peer_bonus: '피어 보너스', signon_bonus: '사인온 보너스', sales_bonus: '세일즈 보너스', retention_bonus: '리텐션 보너스',
+  special_bonus: '특별 보너스', holiday_bonus: '명절 보너스', position_allowance: '직책 수당', overtime_allowance: '특근 수당',
+  night_allowance: '야근 수당',
+};
+/** 종료일을 받는 «기간형» 보상 (admin-spec §3.2.4) — 그 밖은 다음 같은 종류 줄 직전까지 유효하다. */
+const COMP_PERIOD_TYPES = new Set(['contract', 'signon_bonus', 'retention_bonus']);
+/** 기간 안에 퇴사하면 돌려받는 보상 — 줄에 «반납 조건» 딱지. 정산 금액은 여기서 계산하지 않는다. */
+const COMP_CLAWBACK_TYPES = new Set(['signon_bonus', 'retention_bonus']);
+/** 회사 «기본 통화»와 같은 목록 (서버 `CURRENCY_CODES`). */
+const COMP_CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR'];
+const emptyCompForm = (currency) => ({ compensationType: 'salary', effectiveDate: '', effectiveEndDate: '', amount: '', currency, reason: '' });
+const fmtAmount = (v) => {
+  if (v === '' || v === null || v === undefined) return '—';
+  const n = Number(String(v).replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') : '—';
+};
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
-// ── 보상 이력 모달 (연봉 · 계약 기간 · 초과근무 수당) ──────────────────────
-export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete }) {
+// ── 보상 이력 모달 (연봉 · 계약 기간 · 보너스·수당 · 통화별 합계) ──────────────────────
+/**
+ * `defaultCurrency` 는 회사 «기본 통화» — 새 줄의 통화 칸이 이 값으로 시작하고, 통화가 비어 있는
+ * 옛 줄도 이 통화로 센다. 안 주면 KRW.
+ */
+export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete, defaultCurrency = 'KRW' }) {
   const L = labels || {};
+  const EMPTY_COMP_FORM = emptyCompForm(defaultCurrency);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_COMP_FORM);
@@ -1492,11 +1524,26 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   const typeLabel = (t) => (L.compTypeLabels && L.compTypeLabels[t]) || COMP_TYPE_DEFAULT_LABEL[t] || t;
   const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
   // 「현재」는 연봉 줄에만 붙는다 — 수당·계약이 뒤에 쌓여도 현재 연봉은 연봉 줄이다.
-  const salaryRows = sorted.filter((h) => typeOf(h) === 'salary');
+  // 그리고 **오늘까지 적용된** 줄에만 붙는다 (W69) — 다음 달 인상분을 미리 넣어도 오늘의
+  // 현재 연봉은 그대로다(서버의 현재 연봉 계산과 같다 · W51).
+  const today = localToday();
+  const salaryRows = sorted.filter((h) => typeOf(h) === 'salary' && String(h.effectiveDate) <= today);
   const currentSalary = salaryRows[salaryRows.length - 1];
   const isContract = form.compensationType === 'contract';
-  const endBeforeStart = isContract && form.effectiveEndDate && form.effectiveDate && form.effectiveEndDate < form.effectiveDate;
+  const isPeriod = COMP_PERIOD_TYPES.has(form.compensationType);
+  const endBeforeStart = isPeriod && form.effectiveEndDate && form.effectiveDate && form.effectiveEndDate < form.effectiveDate;
   const canSubmit = form.effectiveDate && (form.amount || isContract) && !endBeforeStart && !busy;
+  const currencyOf = (h) => h.currency || defaultCurrency;
+  // 통화가 섞이면 합산하지 않는다 — 통화마다 한 줄 (admin-spec §3.2.4 · 환산 환율을 저장하지 않는다).
+  const totals = [];
+  for (const h of sorted) {
+    const n = Number(String(h.amount ?? '').replace(/[^0-9.]/g, ''));
+    if (!Number.isFinite(n) || n <= 0) continue;
+    const c = currencyOf(h);
+    const t = totals.find((x) => x.currency === c);
+    if (t) t.sum += n;
+    else totals.push({ currency: c, sum: n });
+  }
   const canEditRow = (h) => typeOf(h) !== 'salary' && h.id;
 
   async function submit() {
@@ -1506,8 +1553,9 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
     const body = {
       compensationType: form.compensationType,
       effectiveDate: form.effectiveDate,
-      ...(isContract && form.effectiveEndDate ? { effectiveEndDate: form.effectiveEndDate } : {}),
+      ...(isPeriod && form.effectiveEndDate ? { effectiveEndDate: form.effectiveEndDate } : {}),
       ...(form.amount ? { amount: form.amount } : {}),
+      currency: form.currency || defaultCurrency,
       ...(form.reason ? { reason: form.reason } : {}),
     };
     try {
@@ -1552,6 +1600,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       effectiveDate: h.effectiveDate ?? '',
       effectiveEndDate: h.effectiveEndDate ?? '',
       amount: h.amount != null ? String(Math.round(Number(h.amount))) : '',
+      currency: currencyOf(h),
       reason: h.reason ?? '',
     });
   }
@@ -1581,6 +1630,11 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       testId="salary-history-modal"
       footer={null}
     >
+      {/* 가장 민감한 등급(T3)이라 위에 고정 안내 (admin-spec §3.2.4). 자물쇠는 인라인 SVG. */}
+      <div className="admin-emp-sal-hronly" data-testid="salary-history-hr-only">
+        <IconLock size={12} />
+        {L.salaryHistoryHrOnly || 'HR 전용 — 본인·HR(어드민)만 열람'}
+      </div>
       {loading ? (
         <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
       ) : sorted.length === 0 ? (
@@ -1597,7 +1651,14 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
               header: L.salaryHistType || '종류',
               // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 날짜 칸과 같이 줄바꿈을 막는다.
               cellProps: { className: 'is-date' },
-              render: (h) => typeLabel(typeOf(h)),
+              render: (h) => (
+                <>
+                  {typeLabel(typeOf(h))}
+                  {COMP_CLAWBACK_TYPES.has(typeOf(h)) && (
+                    <span className="admin-emp-sal-clawback" data-testid="comp-clawback-badge">{L.salaryHistClawback || '반납 조건'}</span>
+                  )}
+                </>
+              ),
             },
             {
               key: 'date',
@@ -1624,7 +1685,13 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
               header: L.salaryHistAmount || '금액',
               align: 'right',
               cellProps: { className: 'is-amount' },
-              render: (h) => fmtKRW(h.amount),
+              render: (h) => fmtAmount(h.amount),
+            },
+            {
+              key: 'currency',
+              header: L.salaryHistCurrency || '통화',
+              cellProps: { className: 'is-date' },
+              render: (h) => currencyOf(h),
             },
             {
               key: 'reason',
@@ -1659,6 +1726,16 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
           ]}
         />
       )}
+      {!loading && totals.length > 0 && (
+        <div className="admin-emp-sal-totals" data-testid="comp-totals">
+          {totals.map((t) => (
+            <div key={t.currency} className="admin-emp-sal-total">
+              <span>{L.salaryHistTotal || '합계'} · {t.currency}</span>
+              <span className="admin-emp-sal-total-amount">{fmtAmount(t.sum)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {onAdd && (
         <div className="admin-emp-sal-add">
@@ -1683,7 +1760,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             </div>
             <div className="admin-emp-field">
               <label className="admin-emp-field-label" htmlFor="sal-hist-date">
-                {isContract ? (L.salaryHistStartDate || '시작일') : (L.salaryHistEffDate || '적용일')}
+                {isPeriod ? (L.salaryHistStartDate || '시작일') : (L.salaryHistEffDate || '적용일')}
               </label>
               {/* 기본 날짜 칸은 영어 브라우저에서 09/29/2026 으로 보인다 (PW-793) — 공용 날짜 칸. */}
               <DateInput
@@ -1693,7 +1770,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 onChange={(v) => setForm((f) => ({ ...f, effectiveDate: v }))}
               />
             </div>
-            {isContract && (
+            {isPeriod && (
               <div className="admin-emp-field">
                 <label className="admin-emp-field-label" htmlFor="sal-hist-end">{L.salaryHistEndDate || '종료일'}</label>
                 <DateInput
@@ -1713,10 +1790,24 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 className="admin-emp-input admin-emp-sal-amount"
                 type="text"
                 inputMode="numeric"
-                placeholder={L.salaryHistAmountPh || '금액(원)'}
+                placeholder={L.salaryHistAmountPh || '금액'}
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
               />
+            </div>
+            <div className="admin-emp-field">
+              <label className="admin-emp-field-label" htmlFor="sal-hist-currency">{L.salaryHistCurrency || '통화'}</label>
+              {/* 줄마다 고른다 — 달러 계약이 섞이면 회사 통화 하나로 표현되지 않는다(§3.2.2). */}
+              <select
+                id="sal-hist-currency"
+                className="admin-emp-input"
+                value={form.currency}
+                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+              >
+                {(COMP_CURRENCIES.includes(form.currency) ? COMP_CURRENCIES : [...COMP_CURRENCIES, form.currency]).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div className="admin-emp-field is-reason">
               <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
