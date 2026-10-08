@@ -6,7 +6,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import {
-  IconAlert, IconChevronDown, IconChevronUp, IconDownload, IconPlus, IconTrash, IconUpload, IconUser, IconX,
+  IconAlert, IconChevronDown, IconChevronRight, IconChevronUp, IconDownload, IconPlus, IconTrash, IconUpload, IconUser, IconX,
 } from './employeesIcons.jsx';
 import {
   INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, jobPairIssue, ladderLocked, laddersForFamily,
@@ -18,6 +18,8 @@ import {
   inviteCsvNotes, inviteCsvPayload, parseInviteCsv, resolveInviteCsvRow,
 } from './inviteCsv.js';
 import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
+import LoadingState from '../shared/LoadingState.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
 
 /**
@@ -109,7 +111,11 @@ const DEFAULT_LABELS = {
   jobCategory: '직종',
   employmentType: '고용형태',
   unset: '미지정',
-  optionsEmpty: '옵션 없음 — 직군/직렬/직무 설정에서 추가',
+  optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
+  // 선택지 조회가 실패했을 때 — 「옵션 없음」과 가른다. 그 칸만 막고 창은 그대로 쓴다(§3)
+  optionsLoadFailed: '옵션을 불러오지 못했어요',
+  goFieldOptions: '조직 설정',
+  retry: '다시 시도',
   // 직렬이 직군 때문에 잠겼을 때 — 「옵션 없음」이라고 하면 원인을 잘못 가리킨다
   ladderNeedsFamily: '직군을 먼저 선택하세요',
   email: '이메일',
@@ -121,6 +127,8 @@ const DEFAULT_LABELS = {
   maxRows: '한 번에 최대 {n}명까지 초대할 수 있어요',
   teams: '소속',
   teamsEmpty: '조직이 없습니다 — 팀 관리에서 먼저 만들어주세요',
+  // 조직 조회 실패(§8) — 「조직이 없습니다」로 보이면 원인을 잘못 가리킨다. 소속 없는 초대는 그대로 된다
+  teamsLoadFailed: '조직을 불러오지 못했어요',
   teamSearch: '조직 이름으로 검색',
   teamSearchExample: '조직 이름으로 검색 — 예: {name}',
   teamSearchNone: '검색 결과가 없어요 — 초대에서는 조직을 새로 만들지 않습니다',
@@ -222,6 +230,8 @@ const DEFAULT_LABELS = {
   csvErrNotCsv: 'CSV 파일만 업로드할 수 있어요.',
   csvErrNotCsvOrXlsx: 'CSV 또는 XLSX 파일만 업로드할 수 있어요.',
   csvErrRead: '파일을 읽지 못했어요. 다시 시도해주세요.',
+  // CSV 파싱 중(§3) — 드롭존 위
+  csvReadingRows: '{n}행 읽는 중',
   csvErrNoRows: '헤더만 있고 읽을 행이 없어요.',
   csvErrMissingColumns: '필수 열이 없어요: {columns}',
   // 초과분을 잘라내지 않고 업로드 자체를 거부한다(§5 V10)
@@ -332,8 +342,17 @@ const EXTRA_KEYS = ['jobRank', 'jobCategory', 'nickname', 'employeeCode', 'manag
  * 설정에서 추가` 를 띄우면 원인을 엉뚱한 곳으로 가리킨다 — 조직 설정에는 직렬이
  * 멀쩡히 있고, 어드민이 할 일은 직군을 먼저 고르는 것이다.
  */
-function OptionSelect({ id, label, value, onChange, options, labels, disabled, placeholder }) {
+function OptionSelect({
+  id, label, value, onChange, options, labels, disabled, placeholder,
+  loadFailed = false, onRetry, onGoSettings,
+}) {
   const list = Array.isArray(options) ? options.filter(Boolean) : [];
+  /* 비어 있는 것과 못 불러온 것을 가른다(§3) — 둘 다 「옵션 없음」이면 어드민이 조직 설정에 가서
+     멀쩡히 있는 값을 찾게 된다. `placeholder` 가 있는 칸(잠긴 직렬·고정 4종 고용형태)은 사유를
+     이미 그 칸이 말하므로 둘 다 아니다. */
+  // 고정 4종 고용형태도 앱이 같은 조회로 받는다 — 못 받았으면 «미지정»만 남기지 않고 실패를 말한다
+  const failed = (!placeholder || placeholder === labels.unset) && list.length === 0 && loadFailed;
+  const empty = !placeholder && list.length === 0 && !loadFailed;
   return (
     <label className="admin-inv-field">
       <span className="admin-inv-label" id={`${id}-label`}>{label}</span>
@@ -345,12 +364,23 @@ function OptionSelect({ id, label, value, onChange, options, labels, disabled, p
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="">
-          {placeholder || (list.length === 0 ? labels.optionsEmpty : labels.unset)}
+          {failed ? labels.optionsLoadFailed : placeholder || (empty ? labels.optionsEmpty : labels.unset)}
         </option>
         {list.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
       </select>
+      {failed && onRetry && (
+        <button type="button" className="admin-emp-btn is-ghost is-sm" data-testid={`${id}-retry`} onClick={onRetry}>
+          {labels.retry}
+        </button>
+      )}
+      {empty && onGoSettings && (
+        <button type="button" className="admin-emp-btn is-ghost is-sm" data-testid={`${id}-go-settings`} onClick={onGoSettings}>
+          {labels.goFieldOptions}
+          <IconChevronRight size={14} />
+        </button>
+      )}
     </label>
   );
 }
@@ -364,7 +394,9 @@ function OptionSelect({ id, label, value, onChange, options, labels, disabled, p
  * depth 당 들여쓰기(P1) · 상위 조직도 고를 수 있다(P3) · 이미 고른 조직은 다시 못 고른다.
  * 결과 0건이어도 조직을 만들자고 하지 않는다 — 초대 경로에서 만들면 오타가 유령 조직이 된다(V8 · E24).
  */
-function TeamSearchField({ rowKey, tree, row, labels, disabled, onPick, onRemove, onPrimary, onLeader }) {
+function TeamSearchField({
+  rowKey, tree, row, labels, disabled, onPick, onRemove, onPrimary, onLeader, loadFailed = false, onRetry,
+}) {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const q = query.trim().toLowerCase();
@@ -379,6 +411,16 @@ function TeamSearchField({ rowKey, tree, row, labels, disabled, onPick, onRemove
     return tree.filter((e) => keep.has(e.id)).map((e) => ({ ...e, isHit: hits.has(e.id) }));
   }, [tree, q]);
 
+  if (tree.length === 0 && loadFailed) {
+    return (
+      <p className="admin-inv-hint" role="alert" data-testid={`inv-${rowKey}-teams-failed`}>
+        {labels.teamsLoadFailed}{' '}
+        {onRetry && (
+          <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={onRetry}>{labels.retry}</button>
+        )}
+      </p>
+    );
+  }
   if (tree.length === 0) {
     return <p className="admin-inv-hint">{labels.teamsEmpty}</p>;
   }
@@ -511,6 +553,27 @@ function TeamSearchField({ rowKey, tree, row, labels, disabled, onPick, onRemove
 
 const DEFAULT_MODES = ['direct', 'csv'];
 
+/*
+ * 전건 실패 처리 (§8) — `onSend` 가 던진 값의 `code` 를 본다(앱이 서버 사유 코드를 싣는다).
+ *  · `FORBIDDEN`(403) — 권한이 사라졌다. 창을 닫는다(어디로 보낼지는 앱이 정한다)
+ *  · `SEAT_LIMIT_EXCEEDED`(402) — 행을 그대로 두고 좌석 부족 빨간 배너
+ *  · 그 밖(네트워크 끊김·시간 초과 포함) — 행을 그대로 두고 「보내지 못했어요」
+ */
+function sendFailureClosesModal(e) {
+  return Boolean(e) && typeof e === 'object' && e.code === 'FORBIDDEN';
+}
+/* 실패가 전부 좌석 부족이면 좌석 배너로 말한다(§8 `SEAT_LIMIT_EXCEEDED` — 행 유지 + 빨간 배너).
+   「N건 실패 — 사유를 확인하세요」로는 무엇을 해야 하는지(플랜 변경)가 안 보인다. */
+function partialFailBanner(failed, labels) {
+  return failed.length > 0 && failed.every((f) => f.reason === 'SEAT_LIMIT_EXCEEDED')
+    ? labels.seatNone
+    : fmt(labels.partialFail, { n: failed.length });
+}
+function sendFailureBanner(e, labels) {
+  const code = e && typeof e === 'object' ? e.code : undefined;
+  return code === 'SEAT_LIMIT_EXCEEDED' ? labels.seatNone : labels.sendError;
+}
+
 export default function AdminInviteModal({
   open = false,
   onClose,
@@ -587,6 +650,17 @@ export default function AdminInviteModal({
   laddersByFamily = {},
   /** 직렬 값 → 그 직렬의 직무 값 목록 (INV-8). CSV 의 `(직렬, 직무)` 짝을 본다(PW-902). */
   dutiesByLadder = {},
+  /**
+   * 선택지 조회가 실패했나 (§3) — `true` 면 비어 있는 칸이 「옵션 없음」 대신 `옵션을 불러오지 못했어요`
+   * + [다시 시도](`onRetryFieldOptions`)를 보인다. 창은 막지 않는다(이메일·이름만으로도 초대가 된다).
+   */
+  fieldOptionsFailed = false,
+  onRetryFieldOptions,
+  /** 조직 조회가 실패했나 (§8) — 소속 칸이 `조직을 불러오지 못했어요` + [다시 시도](`onRetryOrgUnits`). */
+  orgUnitsFailed = false,
+  onRetryOrgUnits,
+  /** 「옵션 없음」 칸의 [조직 설정 →] (§2-2 · E20). 안 주면 버튼 없이 글만 남는다. */
+  onOpenFieldOptions,
   /** 이 회사 스쿼드 이름 — CSV 스쿼드 칸 확인. 못 받았으면 `null`(서버가 판정한다). */
   squadNames = null,
   /** 조직장이 있는 조직 id — CSV 상급자 칸이 쓰이지 않는 줄을 안내한다(PW-902). */
@@ -673,6 +747,8 @@ export default function AdminInviteModal({
   const [mode, setMode] = useState(initialCsvFile ? 'csv' : firstMode);
   const [csvRows, setCsvRows] = useState([]);
   const [csvError, setCsvError] = useState('');
+  // CSV 를 읽는 중이면 그 줄 수(모르면 0) — 드롭존 위에 `N행 읽는 중`(§3). null 이면 안 읽는 중
+  const [csvReading, setCsvReading] = useState(null);
   const [csvNotices, setCsvNotices] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [confirmAdmin, setConfirmAdmin] = useState(false);
@@ -808,7 +884,8 @@ export default function AdminInviteModal({
     else if (existing.has(key) || resend.has(key)) e.push(labels.errAlreadyMember);
     else if (terminated.has(key) && !rehireOfEmail(key)) e.push(labels.errTerminatedMember);
     else if (pending.has(key)) e.push(labels.errPendingInvite);
-    else if (rows.filter((x) => normEmail(x.email) === key).length > 1) {
+    // V3 — 겹친 이메일은 **뒤** 행에만 붙인다. 앞 행은 그대로 나가고, 어느 행을 남길지는 어드민이 고른다
+    else if (rows.findIndex((x) => normEmail(x.email) === key) !== rows.indexOf(r)) {
       e.push(labels.errDuplicate);
     }
     // V7 은 길이 검사와 배타다 — 한 칸에 두 줄이 서면 무엇부터 고쳐야 할지 흐려진다.
@@ -974,14 +1051,21 @@ export default function AdminInviteModal({
       return;
     }
     let text;
+    setCsvReading(0);
     try {
       // 한국어 엑셀이 저장한 EUC-KR 파일도 열 이름이 깨지지 않게 읽는다 (PW-968).
       text = isXlsx ? await readSpreadsheet(file) : await readCsvFileText(file);
     } catch {
+      setCsvReading(null);
       setCsvError(labels.csvErrRead);
       return;
     }
+    /* 줄 수를 먼저 보이고 한 박자 쉰 뒤 읽는다 — 수천 줄이면 읽는 동안 화면이 멈춘 것처럼 보인다.
+       머리줄은 세지 않는다. */
+    setCsvReading(Math.max(0, String(text).split(/\r\n|\n|\r/).filter((l) => l.trim() !== '').length - 1));
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
     const res = parseInviteCsv(text, { labels, jobCategoryEnabled, maxRows: csvMaxRows });
+    setCsvReading(null);
     if (!res.ok) {
       // 상한 초과·필수 열 누락은 **스테이징을 만들지 않는다.** 앞 500행만 남기는
       // 조용한 절단은 정책 §5 V10 이 금지한다.
@@ -1056,11 +1140,12 @@ export default function AdminInviteModal({
       }
       setCsvRows(remaining);
       setBanner(failed.length > 0
-        ? fmt(labels.partialFail, { n: failed.length })
+        ? partialFailBanner(failed, labels)
         : fmt(labels.csvSentKeepErrors, { n: sentKeys.size, m: remaining.length }));
-    } catch {
+    } catch (e) {
       // 전건 실패 — 표를 그대로 두고 창 안에 사유를 남긴다(§3).
-      setBanner(labels.sendError);
+      if (sendFailureClosesModal(e)) { onClose?.(); return; }
+      setBanner(sendFailureBanner(e, labels));
     } finally {
       setSending(false);
     }
@@ -1110,7 +1195,7 @@ export default function AdminInviteModal({
       /* 부분 성공 — 모달을 유지하고 **실패 행만** 남긴다(§3).
          닫아 버리면 그 행들의 이름·소속·직군 입력이 통째로 사라져
          처음부터 다시 입력해야 한다. */
-      setBanner(fmt(labels.partialFail, { n: failed.length }));
+      setBanner(partialFailBanner(failed, labels));
       setActiveRows((rs) =>
         failed
           .map((f) => {
@@ -1124,9 +1209,10 @@ export default function AdminInviteModal({
           })
           .filter(Boolean),
       );
-    } catch {
+    } catch (e) {
       // 전건 실패 — 입력을 보존한 채 모달에 사유를 남긴다(§3).
-      setBanner(labels.sendError);
+      if (sendFailureClosesModal(e)) { onClose?.(); return; }
+      setBanner(sendFailureBanner(e, labels));
     } finally {
       setSending(false);
     }
@@ -1145,6 +1231,13 @@ export default function AdminInviteModal({
           ? labels.seatsUnlimited
           : fmt(labels.seatsLeft, { n: seats.remaining });
 
+  /* 선택 칸 공통 — 못 불러왔으면 [다시 시도], 비었으면 [조직 설정 →] (§2-2 · §3). */
+  const optionState = {
+    loadFailed: fieldOptionsFailed,
+    onRetry: onRetryFieldOptions,
+    onGoSettings: onOpenFieldOptions,
+  };
+
   /* 직군 › 직렬 › 직무 3단 — 직렬은 직군에, 직무는 직렬에 매달린다(INV-3 · INV-8).
      위 칸을 고르기 전에는 아래 칸을 잠그고 그 칸에서 이유를 말한다. */
   const axisFields = (idPrefix, v, disabled, onPatch) => (
@@ -1153,8 +1246,10 @@ export default function AdminInviteModal({
         id={`${idPrefix}-jobFamily`} label={labels.jobFamily} labels={labels}
         value={v.jobFamily} options={fieldOptions.jobFamily} disabled={disabled}
         onChange={(x) => onPatch({ jobFamily: x })}
+        {...optionState}
       />
       <OptionSelect
+        {...optionState}
         id={`${idPrefix}-jobTitle`} label={labels.jobTitle} labels={labels}
         value={v.jobTitle}
         options={laddersForFamily(laddersByFamily, v.jobFamily, fieldOptions.jobTitle)}
@@ -1163,6 +1258,7 @@ export default function AdminInviteModal({
         onChange={(x) => onPatch({ jobTitle: x })}
       />
       <OptionSelect
+        {...optionState}
         id={`${idPrefix}-jobDuty`} label={labels.jobDuty} labels={labels}
         value={v.jobDuty}
         options={laddersForFamily(dutiesByLadder, v.jobTitle, fieldOptions.jobDuty)}
@@ -1190,6 +1286,7 @@ export default function AdminInviteModal({
         </select>
       </label>
       <OptionSelect
+        {...optionState}
         id="inv-bulk-jobLevel" label={labels.jobLevel} labels={labels}
         value={bulk.jobLevel} options={fieldOptions.jobLevel}
         onChange={(v) => setBulk({ ...bulk, jobLevel: v })}
@@ -1197,12 +1294,14 @@ export default function AdminInviteModal({
       {axisFields('inv-bulk', bulk, false, (p) => setBulk((b) => cleanAxis({ ...b, ...p }, p, laddersByFamily, dutiesByLadder)))}
       {jobCategoryEnabled && (
         <OptionSelect
+          {...optionState}
           id="inv-bulk-jobCategory" label={labels.jobCategory} labels={labels}
           value={bulk.jobCategory} options={fieldOptions.jobCategory}
           onChange={(v) => setBulk((b) => ({ ...b, jobCategory: v }))}
         />
       )}
       <OptionSelect
+        {...optionState}
         id="inv-bulk-workLocation" label={labels.workLocation} labels={labels}
         value={bulk.workLocation} options={fieldOptions.workLocation}
         onChange={(v) => setBulk({ ...bulk, workLocation: v })}
@@ -1402,6 +1501,12 @@ export default function AdminInviteModal({
 
               {csvRows.length === 0 ? (
                 <>
+                  {csvReading !== null && (
+                    <LoadingState size="inline" data-testid="admin-invite-csv-reading">
+                      <Spinner size={14} />{' '}
+                      {csvReading > 0 ? fmt(labels.csvReadingRows, { n: csvReading.toLocaleString('ko-KR') }) : null}
+                    </LoadingState>
+                  )}
                   {/* 드롭존 — label 로 감싸 클릭·드래그 둘 다 같은 input 을 쓴다 */}
                   <label
                     className={`admin-inv-drop${dragOver ? ' is-over' : ''}`}
@@ -1490,6 +1595,7 @@ export default function AdminInviteModal({
               && (headTeams.has(r.primaryTeamId) || reservedLeaders.has(r.primaryTeamId));
             const sel = (k, label, opts, extra = {}) => (
               <OptionSelect
+                {...optionState}
                 id={`inv-${r.key}-${k}`} label={label} labels={labels}
                 value={r[k]} options={opts} disabled={sending}
                 onChange={(v) => patch(r.key, { [k]: v })}
@@ -1582,6 +1688,8 @@ export default function AdminInviteModal({
                 <div className="admin-inv-teams-block">
                   <span className="admin-inv-label">{labels.teams}</span>
                   <TeamSearchField
+                    loadFailed={orgUnitsFailed}
+                    onRetry={onRetryOrgUnits}
                     rowKey={r.key}
                     tree={tree}
                     row={r}
@@ -1654,8 +1762,18 @@ export default function AdminInviteModal({
                   </div>
                 )}
 
-                {errs.length > 0 && (
-                  <p className="admin-inv-row-error">{errs.join(' · ')}</p>
+                {/* V5·V6 — «이미 멤버»는 amber, «초대 대기 중»은 red 배지(§2-3 중복 경고 배지).
+                    다른 사유와 한 줄의 빨간 글로 섞으면 «고칠 것»과 «뺄 사람»이 구분되지 않는다. */}
+                {errs.includes(labels.errAlreadyMember) && (
+                  <StatusBadge tone="warning" data-testid="admin-invite-badge-member">{labels.errAlreadyMember}</StatusBadge>
+                )}
+                {errs.includes(labels.errPendingInvite) && (
+                  <StatusBadge tone="danger" data-testid="admin-invite-badge-pending">{labels.errPendingInvite}</StatusBadge>
+                )}
+                {errs.some((x) => x !== labels.errAlreadyMember && x !== labels.errPendingInvite) && (
+                  <p className="admin-inv-row-error">
+                    {errs.filter((x) => x !== labels.errAlreadyMember && x !== labels.errPendingInvite).join(' · ')}
+                  </p>
                 )}
                 {resend.has(normEmail(r.email)) && !existing.has(normEmail(r.email)) && (
                   <p className="admin-inv-note" data-testid="admin-invite-unjoined-note">{labels.noteUnjoinedMember}</p>

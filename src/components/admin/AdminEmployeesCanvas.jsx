@@ -4,7 +4,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
-import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
+import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, parentsOf, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
@@ -37,7 +37,7 @@ import {
 } from './addedAtFilter.js';
 import RosterTable from '../shared/RosterTable.jsx';
 import {
-  IconAlert, IconCheck, IconCheckmark, IconChevronDown,
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight,
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
@@ -484,7 +484,7 @@ const DEFAULT_LABELS = {
     composerJobTitle: '직무', composerJobLevel: '직급',
     composerTeam: '소속 팀', composerTeamNone: '선택 안 함 (가입 후 배정)',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
-    copyLink: '링크 복사', resend: '재발송', cancel: '취소',
+    copyLink: '링크 복사', copied: '복사됨', resend: '재발송', cancel: '취소',
     statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
@@ -1278,6 +1278,19 @@ function InvitesTab({
   // 처음엔 «대기중»만 (PW-1311) — 수락이 끝난 초대는 할 일이 없는데 «전체»로 열면
   // 대기 건 사이에 섞여, 정작 챙길 대기 건을 찾기 어려웠다. 다른 상태는 필터로 고른다.
   const [filter, setFilter] = useState('pending');
+  /* 링크 복사 — 복사되면 그 버튼이 2초 동안 «복사됨»(초대 §4-6). `onCopyInviteLink` 가
+     `false` 로 끝나거나 던지면 복사가 안 된 것이다(알림은 호출부가 띄운다). */
+  const [copiedId, setCopiedId] = useState(null);
+  const copiedTimer = useRef(null);
+  useEffect(() => () => clearTimeout(copiedTimer.current), []);
+  const copyLink = async (inv) => {
+    let ok;
+    try { ok = await onCopyInviteLink(inv); } catch { ok = false; }
+    if (ok === false) return;
+    setCopiedId(inv.id);
+    clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const counts = {
     pending: invites.filter((i) => i.status === 'pending').length,
@@ -1357,7 +1370,9 @@ function InvitesTab({
                       {inv.status === 'pending' && (
                         <>
                           {onCopyInviteLink && (
-                            <button type="button" className="admin-emp-btn is-soft is-sm" onClick={() => onCopyInviteLink(inv)}>{labels.invites.copyLink}</button>
+                            <button type="button" className="admin-emp-btn is-soft is-sm" data-testid="invite-copy-link" onClick={() => copyLink(inv)}>
+                              {copiedId === inv.id ? (labels.invites.copied || labels.invites.copyLink) : labels.invites.copyLink}
+                            </button>
                           )}
                           {/* [PW-967·PW-1007] 재발송이 끝날 때까지 잠근다 — 두 번 누르면 메일이 두 통 가고 먼저 온 메일의 링크가 죽었다 */}
                           <Button className="admin-emp-btn is-ghost is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</Button>
@@ -3709,6 +3724,8 @@ function EmployeesEditPanel({
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
   onOpenFieldOptions,
+  /* 비활성 처리된 선택지 값 — 칸 키 → 값 목록 (§3.5 · A3). 미주입이면 `(비활성)` 을 붙이지 않는다. */
+  inactiveFieldValues,
   /* 이 사람이 조직장인 조직 id 목록과 그 조직을 조직단위 설정에서 여는 길(admin-spec §3.6-B-2).
      목록이 비면 「조직장: …」 줄을 그리지 않고, 길이 없으면 링크만 뺀다. */
   leaderUnitIds, onGoOrgUnit,
@@ -3913,6 +3930,35 @@ function EmployeesEditPanel({
     setSaveError((prev) => (prev && prev.fields.some((k) => changed.includes(k) || k === AXIS_KEY_OF[level]) ? null : prev));
     setAxisNotice(notice);
   };
+  const inactiveOf = (key) => (inactiveFieldValues && inactiveFieldValues[key]) || EMPTY_ARRAY;
+  /* 미등록 조합(A4) — 연결표에서 끊긴 조합을 가진 사람이면 직군 칸 위에 amber 안내. 값은 고치지 않는다 —
+     어드민이 바꿔야 저장된다. 위 칸이 비었거나 연결표를 못 받았으면 판정하지 않는다(`isValidPair`). */
+  const unregisteredPair =
+    draft.jobFamily && draft.jobTitle && !isValidPair(axis.laddersByFamily, draft.jobFamily, draft.jobTitle)
+      ? `${draft.jobFamily} · ${draft.jobTitle}`
+      : draft.jobTitle && draft.jobDuty && !isValidPair(axis.dutiesByLadder, draft.jobTitle, draft.jobDuty)
+        ? `${draft.jobTitle} · ${draft.jobDuty}`
+        : null;
+  /* 세 칸을 건드렸나 — 안 건드린 저장은 막지 않는다. 옛 값이 끊긴 사람도 다른 칸은 고칠 수
+     있어야 한다(서버 INV-5 와 같다). */
+  const axisTouched = ['jobFamily', 'jobTitle', 'jobDuty'].some((k) => (draft[k] || '') !== (member[k] || ''));
+  /* 위 칸 후보 — 아래 칸만 정해졌고 그 값이 위 칸 여럿에 걸리면 그 후보만 남긴다. 직렬을 먼저 고른
+     경우(직군 후보)와 직무를 먼저 골라 직렬이 채워졌지만 그 직렬의 직군이 여럿인 경우가 같은 모양이다.
+     세 칸을 안 건드렸으면 그리지 않는다 — 창을 열자마자 칸이 펼쳐지면 안 된다. */
+  const axisCandidates = (level) => {
+    if (!axisTouched) return undefined;
+    const owners =
+      level === 'family' && draft.jobTitle && !draft.jobFamily
+        ? parentsOf(axis.laddersByFamily, draft.jobTitle)
+        : level === 'ladder' && draft.jobDuty && !draft.jobTitle
+          ? parentsOf(axis.dutiesByLadder, draft.jobDuty)
+          : [];
+    return owners.length > 1 ? owners : undefined;
+  };
+  /* 위 칸 후보가 여럿이면 고르기 전까지 저장하지 않는다(§3.5-A 「선택 전까지 저장 버튼 비활성」).
+     후보가 없는데 위 칸이 빈 경우(직군을 지움 등)는 막지 않는다 — 서버가 거절하고 그 사유가 칸 아래에
+     뜬다(INV-3 · PW-727). 버튼만 꺼 두면 왜 안 되는지가 안 보인다. */
+  const axisIncomplete = Boolean(axisCandidates('family') || axisCandidates('ladder'));
 
   // §3.2.1 재직상태 4종. `pending`(가입 대기)·`other`(마이그레이션 잔여)는 사람이 고르는
   // 값이 아니라 선택지에 두지 않는다 — 고를 수 있게 두면 탭 C 와 담당이 겹친다.
@@ -4115,10 +4161,21 @@ function EmployeesEditPanel({
                         error={saveError && saveError.fields.includes(f.key) ? saveError.message : null}
                         errorTestId={`employees-panel-error-${f.key}`}
                       >
+                        {axisLevel === 'family' && unregisteredPair && (
+                          <span
+                            className="admin-emp-manager-note admin-emp-axis-notice is-warn"
+                            role="status"
+                            data-testid="employees-panel-axis-unregistered"
+                          >
+                            {String(labels.panel.axisUnregisteredPair).split('{pair}').join(unregisteredPair)}
+                          </span>
+                        )}
                         {axisLevel ? (
                           /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다 — 적어 넣은 값은
                              저장에서 거절된다(PW-748). 사유 + [조직 설정 →] 를 그린다. */
                           <JobAxisSelect
+                            candidates={axisCandidates(axisLevel)}
+                            inactive={inactiveOf(f.key)}
                             level={axisLevel}
                             values={axisValues}
                             jobAxis={axis}
@@ -4157,8 +4214,44 @@ function EmployeesEditPanel({
                             {(opts.includes(draft[f.key]) || !draft[f.key]
                               ? opts
                               : [draft[f.key], ...opts]
-                            ).map((o) => <option key={o} value={o}>{o}</option>)}
+                            ).map((o) => (
+                              <option key={o} value={o}>
+                                {!opts.includes(o) && inactiveOf(f.key).includes(o) ? `${o} ${labels.panel.inactiveSuffix}` : o}
+                              </option>
+                            ))}
                           </Select>
+                        ) : f.kind === 'select' ? (
+                          /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다(§3.5 「빈 드롭다운 금지」) —
+                             적어 넣은 값은 회사가 등록한 값이 아니다. 지금 값이 있으면 그 값만 남기고,
+                             사유 + [조직 설정 →] 를 보인다. 고정 4종 고용형태는 조직 설정에서 늘릴 수 없어 버튼이 없다. */
+                          <span className="admin-emp-axis-empty" data-testid={`employees-panel-${f.key}-empty`}>
+                            {draft[f.key] && (
+                              <Select
+                                className="admin-emp-input"
+                                value={draft[f.key]}
+                                disabled={!canEdit}
+                                data-testid={`employees-panel-${f.key}`}
+                                onChange={(e) => set(f.key, e.target.value)}
+                              >
+                                <option value="">{labels.panel.none}</option>
+                                <option value={draft[f.key]}>
+                                  {inactiveOf(f.key).includes(draft[f.key]) ? `${draft[f.key]} ${labels.panel.inactiveSuffix}` : draft[f.key]}
+                                </option>
+                              </Select>
+                            )}
+                            <span className="admin-emp-manager-note">{labels.panel.optionsEmpty}</span>
+                            {onOpenFieldOptions && f.key !== 'employmentType' && (
+                              <button
+                                type="button"
+                                className="admin-emp-btn is-ghost is-sm"
+                                onClick={onOpenFieldOptions}
+                                data-testid={`employees-panel-${f.key}-go-field-options`}
+                              >
+                                {labels.panel.axisGoFieldOptions}
+                                <IconChevronRight size={14} />
+                              </button>
+                            )}
+                          </span>
                         ) : f.kind === 'date' ? (
                           /* 🔴 날짜는 브라우저 기본 날짜 칸(`type="date"`)으로 그리지 않는다 —
                              그 칸의 표시 형식은 브라우저 언어가 정해서, 앱이 한국어여도 영어
@@ -4553,7 +4646,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem)}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || axisIncomplete}
             >
               {saving ? labels.panel.saving : labels.panel.save}
             </button>
@@ -4780,8 +4873,17 @@ export default function AdminEmployeesCanvas({
   // 직군 > 직렬 > 직무 3단 축 (PW-323). 편집 패널의 3단 연동 select 와 목록 필터가
   // 같은 축을 읽는다. 빠뜨리면 좁히기가 사라지고 자유 텍스트로 폴백한다.
   jobAxis,
-  /* 직군·직렬·직무에 고를 값이 없을 때 편집 창의 [조직 설정 →] 이 부른다 (§3.5-A · PW-748). */
+  /* 직군·직렬·직무에 고를 값이 없을 때 편집 창의 [조직 설정 →] 이 부른다 (§3.5-A · PW-748).
+     초대 창의 「옵션 없음」 칸도 같은 자리로 보낸다(초대 §2-2). */
   onOpenFieldOptions,
+  /* 비활성 처리된 선택지 값 — 편집 창 칸 키 → 값 목록 (§3.5 · A3). 구성원이 지금 이 값을 갖고
+     있으면 선택지에 `(비활성)` 을 붙여 그 값만 남긴다. 미주입이면 붙이지 않는다. */
+  inactiveFieldValues,
+  /* 초대 창 — 선택지·조직 조회가 실패했나와 다시 부르는 길 (초대 §3 · §8). */
+  fieldOptionsFailed = false,
+  onRetryFieldOptions,
+  orgUnitsFailed = false,
+  onRetryOrgUnits,
   onSaveMembers,
   /* ⛔ `onDeleteMember` 폐기 (PW-576) — 행을 지우는 것은 폐기된 시트에만 있었다.
      목록 행의 파괴적 동작은 «비활성화»(`onDeactivateMember`) 하나다(§3.1 행 액션). */
@@ -5138,6 +5240,7 @@ export default function AdminEmployeesCanvas({
             hrbpOptions={hrbpOptions ?? EMPTY_ARRAY}
             jobAxis={jobAxis}
             onOpenFieldOptions={onOpenFieldOptions}
+            inactiveFieldValues={inactiveFieldValues}
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
             canViewSalary={canViewSalary}
             onLoadSalaryHistory={onLoadSalaryHistory}
@@ -5217,6 +5320,11 @@ export default function AdminEmployeesCanvas({
           }}
           laddersByFamily={laddersByFamily}
           dutiesByLadder={dutiesByLadder}
+          fieldOptionsFailed={fieldOptionsFailed}
+          onRetryFieldOptions={onRetryFieldOptions}
+          orgUnitsFailed={orgUnitsFailed}
+          onRetryOrgUnits={onRetryOrgUnits}
+          onOpenFieldOptions={onOpenFieldOptions}
           // 초대 CSV 의 스쿼드·상급자 칸(PW-902) — 스쿼드 칸은 목록에 있는 이름만, 상급자 칸은
           // 주 소속 조직에 조직장이 있으면 쓰이지 않는다고 안내한다.
           squadNames={(squadOptions || []).map((sq) => sq.name).filter(Boolean)}
