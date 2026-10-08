@@ -49,6 +49,8 @@ export default function OkrResourceCanvas({
   onComment,
   onApplyEstimates,
   onReply,
+  /** 내 입력의 투입 행에서 프로젝트 이름을 눌렀을 때 — `(projectId, { unsaved })`. `OkrResourceMyInput` 참고. */
+  onOpenProject,
   placeholder,
   actionError,
   labels: providedLabels,
@@ -98,6 +100,7 @@ export default function OkrResourceCanvas({
           onSave={onSave}
           onApplyEstimates={onApplyEstimates}
           onReply={onReply}
+          onOpenProject={onOpenProject}
           labels={L}
         />
       )}

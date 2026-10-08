@@ -59,6 +59,10 @@
 .rsx-entry-head { display: flex; align-items: center; justify-content: space-between; }
 .rsx-entry-title { display: flex; align-items: center; gap: 8px; }
 .rsx-entry-name { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
+/* 프로젝트 행의 이름 — 원장 상세로 가는 길(PW-1436). 모양은 글자 그대로, 올리면 밑줄 */
+.rsx-entry-name.is-link { padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.rsx-entry-name.is-link:hover,
+.rsx-entry-name.is-link:focus-visible { text-decoration: underline; }
 .rsx-entry-pct { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
 .rsx-entry-slider { display: flex; align-items: center; gap: 12px; padding-top: 12px; }
 /* 슬라이더(.rsx-slider*)·숫자 입력(.rsx-entry-input)은 `form-controls.css` 로 옮겼다 —
