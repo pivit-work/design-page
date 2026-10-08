@@ -72,6 +72,23 @@ const DEFAULT_LABELS = {
     overMax: (max, unit) =>
       `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 계속 가능하며, 초과분은 ₩${Number(unit || 0).toLocaleString('ko-KR')} 단가로 청구되고 영업팀에 통지됩니다.`,
   },
+  /**
+   * 목록 위 좌석·청구 요약 (admin-spec §3.1·§3.7·§3.7-A). 좌석 증감이 언제 청구되는지를
+   * 늘리기 **전에** 알게 한다 — 첫 주기는 바로 일할 청구, 그 뒤는 다음 청구일 반영.
+   */
+  billingSummary: {
+    plan: (name) => `${name} 플랜`,
+    activeSeats: '활성 좌석',
+    perSeat: (price) => `좌석당 ₩${Number(price || 0).toLocaleString('ko-KR')}/월`,
+    firstCycle: (days) =>
+      days == null
+        ? '첫 주기라 좌석 추가분은 즉시 일할 청구됩니다'
+        : `첫 주기라 좌석 추가분은 즉시 일할 청구됩니다 (잔여 ${days}일분)`,
+    nextCycle: (date) => `좌석 증감은 다음 청구일(${date})에 반영`,
+    billingBlocked: '결제수단 미등록 — 좌석을 늘릴 수 없습니다',
+    seatCapReached: 'Free 상한 도달 — 업그레이드 필요',
+    goBilling: '결제·구독 →',
+  },
   countSuffix: '명',
   // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
   /* 목록 뷰의 필터 칩 (PW-400 · §3.1).
@@ -492,6 +509,66 @@ function fill(template, vars) {
  * 4종(§3.2.1) + 폴백. 표에 없는 값은 **회색 「기타」로 그린다** — 칸을 비우면 데이터가
  * 사라진 것처럼 보이고, 코드값(`probation`)을 그대로 흘리면 화면에 영문이 샌다.
  */
+/**
+ * 좌석·청구 요약 배너 (admin-spec §3.7 · 시안 admin-app.jsx 의 `billingCtx` 배너).
+ * 결제수단이 없거나(유료) 무료 상한에 닿으면 red — 좌석을 늘리는 길이 막혔다는 뜻이다.
+ */
+function BillingSummaryBanner({ summary, labels, onGoBilling }) {
+  const blocked = Boolean(summary.billingBlocked || summary.seatCapReached);
+  const cycleText = summary.firstCycle
+    ? labels.firstCycle(summary.firstCycleDaysLeft ?? null)
+    : summary.nextBillingDate
+      ? labels.nextCycle(summary.nextBillingDate)
+      : null;
+  return (
+    <div
+      data-testid="employees-billing-banner"
+      data-blocked={blocked ? 'true' : 'false'}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        flexWrap: 'wrap',
+        border: `1px solid ${blocked ? '#FECACA' : '#E2E8F0'}`,
+        background: blocked ? '#FEF2F2' : '#F8FAFC',
+        borderRadius: 12,
+        padding: '10px 14px',
+        marginBottom: 12,
+        fontSize: 12.5,
+        lineHeight: 1.7,
+        color: '#64748B',
+      }}
+    >
+      <div>
+        <b style={{ color: '#0F172A' }}>{labels.plan(summary.planName)}</b>
+        {' · '}
+        {labels.activeSeats} <b style={{ color: '#0F172A' }}>{summary.activeSeats}</b>
+        {summary.seatLimit != null && <> / {summary.seatLimit}</>}
+        {summary.seatPrice > 0 && <> · {labels.perSeat(summary.seatPrice)}</>}
+        {cycleText && <span style={{ marginLeft: 8, color: '#94A3B8' }}>· {cycleText}</span>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {summary.billingBlocked && (
+          <span data-testid="employees-billing-banner-blocked" style={{ fontWeight: 700, color: '#DC2626' }}>
+            {labels.billingBlocked}
+          </span>
+        )}
+        {summary.seatCapReached && (
+          <span data-testid="employees-billing-banner-cap" style={{ fontWeight: 700, color: '#DC2626' }}>
+            {labels.seatCapReached}
+          </span>
+        )}
+        {onGoBilling && (
+          <Button className="admin-emp-btn is-ghost is-sm" onClick={onGoBilling}>
+            {labels.goBilling}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ status, labels }) {
   const known = ['active', 'probation', 'on_leave', 'terminated', 'pending', 'other'];
   const cls = known.includes(status) ? status.replace('_', '-') : 'other';
@@ -4248,6 +4325,17 @@ export default function AdminEmployeesCanvas({
    * `{ minSeats, maxSeats, overageSeatPrice, seatPrice, activeSeats, billedSeats }`
    */
   contract = null,
+  /**
+   * 목록 위 좌석·청구 요약 배너 (admin-spec §3.7). `null` 이면 배너가 없다(구독을 못 읽음).
+   *
+   * `{ planName, activeSeats, seatLimit, seatPrice, nextBillingDate, firstCycle,
+   *    firstCycleDaysLeft, billingBlocked, seatCapReached }`
+   *  - `firstCycle` 이면 「즉시 일할 청구 (잔여 N일분)」, 아니고 `nextBillingDate` 가 있으면
+   *    「다음 청구일(날짜)에 반영」. 둘 다 아니면(무료) 청구 문구를 쓰지 않는다.
+   *  - `billingBlocked`(유료인데 결제수단 없음)·`seatCapReached`(무료 상한) 이면 red 로 칠한다.
+   *  - [결제·구독 →] 은 `onGoBilling` 이 있을 때만 선다.
+   */
+  billingSummary = null,
   /** 딥링크 `?invite=new` 로 모달이 열린 상태로 진입(§1 URL). */
   initialInviteOpen = false,
   onResendInvite,
@@ -4445,6 +4533,9 @@ export default function AdminEmployeesCanvas({
 
   return (
     <div className="admin-emp-canvas">
+      {billingSummary && (
+        <BillingSummaryBanner summary={billingSummary} labels={labels.billingSummary} onGoBilling={onGoBilling} />
+      )}
       {/* 협의 단가 계약 좌석 안내 (PW-344 ⑤). 정가 플랜에는 이 배너가 아예 없다. */}
       {contract && (
         <div
