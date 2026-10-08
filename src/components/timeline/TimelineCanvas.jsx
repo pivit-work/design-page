@@ -73,6 +73,9 @@ export default function TimelineCanvas({
   // 스니핏 CTA 상태머신은 상위에서 제어할 수도 있다. 생략 시 내부 상태 사용.
   snippetState: snippetStateProp,
   onSnippetCreate,
+  // 사용자 기준 오늘(`YYYY-MM-DD`). 주면 그보다 뒤 날짜 칸의 셀 피커에서 스니핏 작성을 끈다 (PW-1421).
+  todayDate,
+  snippetFutureLabel,
   onSnippetEdit,
   // 스니핏 상세 팝오버의 "스니핏 전체 보기" — (snippet). 미주입이거나 해당
   // 스니핏의 canOpen 이 false 면 버튼 자체가 렌더되지 않는다(권한은 앱이 판단).
@@ -295,8 +298,10 @@ export default function TimelineCanvas({
     setInternalSnippetPromptOpen(false);
     onSnippetPromptDismiss?.();
   };
-  const handleSnippetCreate = () => {
-    if (onSnippetCreate) onSnippetCreate();
+  // 셀 피커는 그 칸의 날짜를 넘긴다 — 호스트가 그 날짜로 작성 창을 연다 (PW-1417).
+  // 툴바 CTA·작성 유도처럼 날짜 없이 부르면 호스트가 오늘로 연다.
+  const handleSnippetCreate = (date) => {
+    if (onSnippetCreate) onSnippetCreate(date);
     else setSnippetModalOpen(true);
   };
   const handleSnippetEdit = () => {
@@ -580,7 +585,7 @@ export default function TimelineCanvas({
         )}
 
         {snippetState === 'create' ? (
-          <button type="button" className="tl-add-event" onClick={handleSnippetCreate}>
+          <button type="button" className="tl-add-event" onClick={() => handleSnippetCreate()}>
             <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
             <span>스니핏 작성</span>
           </button>
@@ -695,6 +700,8 @@ export default function TimelineCanvas({
           gcalConnected={gcalConnected}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
+          snippetDisabled={Boolean(todayDate && cellPicker.date > todayDate)}
+          snippetDisabledLabel={snippetFutureLabel}
           onEvent={handleAddEventClick}
           onClose={() => setCellPicker(null)}
         />

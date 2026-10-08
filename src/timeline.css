@@ -1219,6 +1219,20 @@
   background: var(--bg-secondary);
 }
 
+/* 오늘보다 뒤 날짜 칸의 「데일리 스니핏 작성」 (PW-1421 · 기획 타임라인 §7.2-A) — 옅게 · 손 모양·hover 없음 */
+.tl-cell-picker-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tl-cell-picker-item:disabled:hover {
+  background: transparent;
+}
+
+.tl-cell-picker-item:disabled:hover .tl-cell-picker-ico {
+  background: var(--bg-secondary);
+}
+
 .tl-cell-picker-ico {
   width: 32px;
   height: 32px;
@@ -2897,6 +2911,21 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+}
+
+/* 날짜 타이틀 줄 — ‹ 날짜 › (PW-1421). ‹ › 가 없으면 날짜만 남는다. */
+.tl-snippet-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 새로 쓸 수 없는 날짜의 안내 한 줄 (PW-1421) — 이 창의 유일한 본문이라 13/20 secondary */
+.tl-snippet-closed-notice {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-secondary);
 }
 
 /* 날짜 타이틀 — 30/38 Bold */

@@ -3,6 +3,7 @@ import ModalLayer from '../shared/ModalLayer.jsx';
 import Icon from '../shared/Icon.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
+import StepNavButton from '../shared/StepNav.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
 
@@ -177,6 +178,18 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     원하는 채널로 보낸다. meta.source 는 'change' | 'blur'.
 //     한글 IME 조합 중에는 자모 단위 중간 상태가 호스트로 전달되지 않도록
 //     compositionStart~compositionEnd 사이의 change/blur 호출을 보류한다.
+//
+// 작성 대상 날짜 이동 (PW-1421 · 기획 스니핏 작성 §7-B.2 · pivit-specs snippet-app.jsx DateNav):
+//   onPrevDate?: () => void            주면 머리 날짜 왼쪽에 ‹ 를 그린다
+//   onNextDate?: () => void            주면 머리 날짜 오른쪽에 › 를 그린다
+//   nextDateDisabled?: boolean         작성 대상 날짜가 오늘이면 호스트가 true 로 준다
+//   dateNavLabels?: { prev, next }     ‹ › 의 aria-label
+//   ‹ › 는 공용 StepNavButton 그대로다. 날짜를 옮겨도 이 모달은 prefill 을 마운트 때만 읽으므로
+//   호스트가 `key` 를 날짜로 바꿔 다시 마운트한다.
+//
+// 새로 쓸 수 없는 날짜 (PW-1421 · §7-B.4):
+//   closedNotice?: string   주면 머리 날짜(와 ‹ ›) 아래에 이 안내 한 줄만 그린다 —
+//                           입력 칸·초안·초기화·자동저장 표시를 그리지 않는다.
 export default function SnippetModal({
   date,
   baseUrl,
@@ -198,6 +211,11 @@ export default function SnippetModal({
   draftLabels,
   readOnly = false,
   authorName,
+  onPrevDate,
+  onNextDate,
+  nextDateDisabled = false,
+  dateNavLabels,
+  closedNotice,
 }) {
   const L = { ...DEFAULT_DRAFT_LABELS, ...(draftLabels || {}) };
   const [summary, setSummary] = useState(initial?.summary ?? '');
@@ -593,9 +611,35 @@ export default function SnippetModal({
         </div>
 
         <div ref={contentRef} className="tl-group-modal-content tl-snippet-modal-content">
-          <h2 id="tl-snippet-modal-title" className="tl-snippet-date">
-            {authorName ? `${authorName} · ${dateLabel}` : dateLabel}
-          </h2>
+          <div className="tl-snippet-date-row">
+            {onPrevDate && (
+              <StepNavButton
+                direction="prev"
+                baseUrl={baseUrl}
+                aria-label={dateNavLabels?.prev ?? '이전 날짜'}
+                onClick={onPrevDate}
+              />
+            )}
+            <h2 id="tl-snippet-modal-title" className="tl-snippet-date">
+              {authorName ? `${authorName} · ${dateLabel}` : dateLabel}
+            </h2>
+            {onNextDate && (
+              <StepNavButton
+                direction="next"
+                baseUrl={baseUrl}
+                aria-label={dateNavLabels?.next ?? '다음 날짜'}
+                disabled={nextDateDisabled}
+                onClick={onNextDate}
+              />
+            )}
+          </div>
+
+          {closedNotice ? (
+            <p className="tl-snippet-closed-notice" role="note">
+              {closedNotice}
+            </p>
+          ) : (
+          <>
 
           {/* Progress bar — 섹션 채움 수만큼 active bar 가 그라디언트로 확장.
               Figma Frame 205, r=6, active bar r=6, 5등분. */}
@@ -956,9 +1000,11 @@ export default function SnippetModal({
               )}
             </div>
           </div>
+          </>
+          )}
         </div>
 
-        {!readOnly && (
+        {!readOnly && !closedNotice && (
         <div className="tl-snippet-modal-actions">
           <button
             type="button"
