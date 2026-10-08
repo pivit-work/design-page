@@ -88,6 +88,9 @@ const DEFAULT_LABELS = {
   asofSubtitle: '발령 이력을 되감아 그 시점의 명부를 재구성합니다',
   asofPresetLabel: '기준 시점',
   asofToday: '현재',
+  /** `{count}` 자리에 접힌 기록 시점 수가 들어간다. */
+  asofPresetMore: '더 보기 +{count}',
+  asofPresetLess: '접기',
   asofShowComp: '보상 표시',
   asofBackToToday: '현재로 복귀',
   asofExport: '조직 스냅샷 CSV',
@@ -552,6 +555,8 @@ function OrgSnapshotStatusView({
           <div className="admin-snap-header-title">{labels.statusTitle}</div>
           <div className="admin-snap-header-sub">{labels.statusSubtitle}</div>
         </div>
+        {/* 캡션은 컨트롤 줄 아래로 뺀다 — As Of 탭과 같은 이유(PW-1438) */}
+        <div className="admin-snap-header-side">
         <div className="admin-snap-header-actions">
           {onShowCompChange && (
             <label className="admin-snap-comp-toggle">
@@ -563,24 +568,16 @@ function OrgSnapshotStatusView({
               {labels.asofShowComp}
             </label>
           )}
-          <div>
-            <div className="admin-snap-datepicker">
-              <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
-              {/* 하한 = 기록 시작일, 상한 = 오늘 — As Of 탭과 같은 재구성 경로라 같은 범위다(§1) */}
-              <DateInput
-                min={coverageFrom || undefined}
-                max={today || undefined}
-                value={draftDate}
-                onChange={(v) => setDraftDate(v)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
-              />
-            </div>
-            {/* 날짜만 바꾸고 미적용이면 안내 — 결과는 직전 적용 기준 그대로다 */}
-            {canApply ? (
-              <div className="admin-snap-coverage-caption" data-testid="status-apply-hint">{labels.applyHint}</div>
-            ) : labels.statusCoverageCaption && (
-              <div className="admin-snap-coverage-caption" data-testid="status-coverage-caption">{labels.statusCoverageCaption}</div>
-            )}
+          <div className="admin-snap-datepicker">
+            <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
+            {/* 하한 = 기록 시작일, 상한 = 오늘 — As Of 탭과 같은 재구성 경로라 같은 범위다(§1) */}
+            <DateInput
+              min={coverageFrom || undefined}
+              max={today || undefined}
+              value={draftDate}
+              onChange={(v) => setDraftDate(v)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
+            />
           </div>
           <button
             type="button"
@@ -595,6 +592,13 @@ function OrgSnapshotStatusView({
             onExportRoster={() => onExportRoster?.()}
             onExportSummary={() => onExport?.(activeTab)}
           />
+        </div>
+        {/* 날짜만 바꾸고 미적용이면 안내 — 결과는 직전 적용 기준 그대로다 */}
+        {canApply ? (
+          <div className="admin-snap-coverage-caption" data-testid="status-apply-hint">{labels.applyHint}</div>
+        ) : labels.statusCoverageCaption && (
+          <div className="admin-snap-coverage-caption" data-testid="status-coverage-caption">{labels.statusCoverageCaption}</div>
+        )}
         </div>
       </header>
 
@@ -1928,6 +1932,75 @@ function StructureRevisionTable({ revisions, error, selectedVersion, labels, onO
 /* ════════════════════════════════════════════════════════════
  * 5. As Of — 시점별 조직 스냅샷 (타임머신)
  * ════════════════════════════════════════════════════════════ */
+/** 기록 시점 줄에 처음부터 보이는 버튼 수 — 정책서 «최신순 최대 3개». 넘치면 「더 보기」로 연다(PW-1438). */
+const ASOF_RECORD_PRESETS_VISIBLE = 3;
+
+/**
+ * As Of 날짜 버튼 — 기록 시점 한 줄, 분기말 한 줄 (PW-1438).
+ *
+ * 한 줄에 섞어 두면 날짜순도 종류도 안 읽히고, 기록이 쌓일수록 세 줄 넘게 번졌다.
+ * 기록 시점은 최신 몇 개만 보이고 나머지는 「더 보기」로 연다. 고른 날짜가 접힌 쪽에
+ * 있으면 그 버튼은 접어도 남긴다 — 지금 보는 시점이 화면에서 사라지면 안 된다.
+ * 버튼 문구는 짧게(`label`), 자세한 내용은 말풍선(`detail`)으로 둔다.
+ * `kind` 가 없는 프리셋은 기록 시점으로 친다(옛 호출부).
+ */
+function AsOfPresetRows({ presets, labels, asOfDate, isPast, today, onAsOfDateChange }) {
+  const [expanded, setExpanded] = useState(false);
+  const records = presets.filter((p) => p.kind !== 'quarter');
+  const quarters = presets.filter((p) => p.kind === 'quarter');
+  const collapsedRecords = records.filter((p, i) => i < ASOF_RECORD_PRESETS_VISIBLE || p.date === asOfDate);
+  const shownRecords = expanded ? records : collapsedRecords;
+  // 「더 보기 +N」 은 접었을 때 실제로 숨는 수다 — 고른 날짜로 남긴 버튼은 세지 않는다.
+  const hiddenCount = records.length - collapsedRecords.length;
+  const canExpand = records.length > ASOF_RECORD_PRESETS_VISIBLE;
+
+  const chip = (p) => (
+    <Tooltip key={p.key} content={p.detail || undefined}>
+      <button
+        type="button"
+        data-testid={`asof-preset-${p.date}`}
+        className={`admin-snap-preset${asOfDate === p.date ? ' is-active' : ''}`}
+        onClick={() => onAsOfDateChange?.(p.date)}
+      >
+        {p.label}
+      </button>
+    </Tooltip>
+  );
+
+  return (
+    <div className="admin-snap-preset-rows">
+      <div className="admin-snap-presets" data-testid="asof-preset-records">
+        <button
+          type="button"
+          className={`admin-snap-preset${!isPast ? ' is-active' : ''}`}
+          onClick={() => onAsOfDateChange?.(today)}
+        >
+          {labels.asofToday}
+        </button>
+        {shownRecords.map(chip)}
+        {canExpand && (hiddenCount > 0 || expanded) && (
+          <button
+            type="button"
+            className="admin-snap-preset-more"
+            aria-expanded={expanded}
+            data-testid="asof-preset-more"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded
+              ? labels.asofPresetLess
+              : String(labels.asofPresetMore).replace('{count}', String(hiddenCount))}
+          </button>
+        )}
+      </div>
+      {quarters.length > 0 && (
+        <div className="admin-snap-presets" data-testid="asof-preset-quarters">
+          {quarters.map(chip)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * As Of(시점별 조직 스냅샷) — org-snapshot-spec §5 · screen-admin-snapshot-asof.policy.md
  *
@@ -1981,16 +2054,18 @@ function AsOfSnapshotView({
           <div className="admin-snap-header-title">{labels.asofTitle}</div>
           <div className="admin-snap-header-sub">{labels.asofSubtitle}</div>
         </div>
-        <div className="admin-snap-header-actions">
-          <label className="admin-snap-comp-toggle">
-            <input
-              type="checkbox"
-              checked={!!showComp}
-              onChange={(e) => onShowCompChange?.(e.target.checked)}
-            />
-            {labels.asofShowComp}
-          </label>
-          <div>
+        {/* 체크박스·날짜 칸·CSV 버튼은 한 줄에 세우고, 「기록 시작」 캡션은 그 줄 아래로 뺀다 —
+            날짜 칸 밑에 붙이면 그 묶음만 키가 커져 세 요소의 높이가 어긋났다(PW-1438). */}
+        <div className="admin-snap-header-side">
+          <div className="admin-snap-header-actions">
+            <label className="admin-snap-comp-toggle">
+              <input
+                type="checkbox"
+                checked={!!showComp}
+                onChange={(e) => onShowCompChange?.(e.target.checked)}
+              />
+              {labels.asofShowComp}
+            </label>
             <div className="admin-snap-datepicker">
               <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
               {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.
@@ -2002,49 +2077,37 @@ function AsOfSnapshotView({
                 onChange={(v) => onAsOfDateChange?.(v)}
               />
             </div>
-            {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}
-            {labels.asofCoverageCaption && (
-              <div className="admin-snap-coverage-caption" data-testid="asof-coverage-caption">
-                {labels.asofCoverageCaption}
-              </div>
-            )}
+            {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
+            <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
+              <button
+                type="button"
+                className="admin-snap-export-btn"
+                disabled={isOut}
+                onClick={() => onExport?.()}
+              >
+                ↓ {labels.asofExport}
+              </button>
+            </Tooltip>
           </div>
-          {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
-          <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
-            <button
-              type="button"
-              className="admin-snap-export-btn"
-              disabled={isOut}
-              onClick={() => onExport?.()}
-            >
-              ↓ {labels.asofExport}
-            </button>
-          </Tooltip>
+          {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}
+          {labels.asofCoverageCaption && (
+            <div className="admin-snap-coverage-caption" data-testid="asof-coverage-caption">
+              {labels.asofCoverageCaption}
+            </div>
+          )}
         </div>
       </header>
 
       {/* 프리셋 — 커버리지 밖 칩은 호출부에서 걸러진다. 비활성 칩을 남기면
           "누르면 되는데 왜 안 되지" 가 되므로 아예 렌더하지 않는다(§5). */}
-      <div className="admin-snap-presets">
-        <button
-          type="button"
-          className={`admin-snap-preset${!isPast ? ' is-active' : ''}`}
-          onClick={() => onAsOfDateChange?.(today)}
-        >
-          {labels.asofToday}
-        </button>
-        {presets.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            data-testid={`asof-preset-${p.date}`}
-            className={`admin-snap-preset${asOfDate === p.date ? ' is-active' : ''}`}
-            onClick={() => onAsOfDateChange?.(p.date)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      <AsOfPresetRows
+        presets={presets}
+        labels={labels}
+        asOfDate={asOfDate}
+        isPast={isPast}
+        today={today}
+        onAsOfDateChange={onAsOfDateChange}
+      />
 
       {/* 타임머신 배너 — 앰버는 여기에만. C1 은 중립 톤이다(§5-A) */}
       {isPast && !isOut && (
