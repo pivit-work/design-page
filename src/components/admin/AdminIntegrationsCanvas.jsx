@@ -97,6 +97,20 @@ const DEFAULT_LABELS = {
     message: '개인 계정 연동은 내 설정에서 별도 진행합니다',
     button: '내 설정으로 이동',
   },
+  /* screen-integrations.policy §11 「모든 서비스 미연동」 */
+  emptyBanner: '연동할수록 AI 맥락이 풍부해져요',
+  /* integrations-spec §5 데이터 수집 현황 — 화면 하단 */
+  collection: {
+    title: '데이터 수집 현황',
+    service: '서비스',
+    lastSuccess: '마지막 성공',
+    records7d: '지난 7일 수집',
+    failures: '실패',
+    noFailures: '없음',
+    failedCount: '{{count}}건',
+    never: '—',
+    empty: '연결된 앱이 없습니다. 앱을 연결하면 수집 현황이 표시됩니다.',
+  },
   transfer: {
     ownerLabel: '소유자',
     expireToken: '토큰 만료',
@@ -612,6 +626,69 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
   );
 }
 
+/**
+ * 데이터 수집 현황 (integrations-spec §5) — 앱마다 마지막 성공 시각 · 지난 7일 수집 건수 · 실패와 [재시도].
+ * 행은 호스트가 만든다: `{ app, service, serviceIcon, lastSuccessLabel, records7d, failedCount }`.
+ * [재시도] 는 동기화 로그의 [재시도] 와 같은 콜백 — 그 앱을 다시 연결한다(policy §7).
+ */
+function CollectionStatus({ rows, labels, onRetrySyncLog }) {
+  const l = labels.collection;
+  return (
+    <section className="admin-card" data-testid="intg-collection-status">
+      <h2 className="intg-section-title">{l.title}</h2>
+      {rows.length === 0 ? (
+        <div className="intg-table-empty">{l.empty}</div>
+      ) : (
+        <RosterTable
+          tableClassName="intg-table"
+          rows={rows}
+          rowKey={(r) => r.app}
+          columns={[
+            {
+              key: 'service',
+              header: l.service,
+              render: (r) => (
+                <span className="svc">
+                  {r.serviceIcon && <img src={r.serviceIcon} alt="" />}
+                  {r.service}
+                </span>
+              ),
+            },
+            { key: 'lastSuccess', header: l.lastSuccess, cellProps: { className: 'time' }, render: (r) => r.lastSuccessLabel || l.never },
+            {
+              key: 'records7d',
+              header: l.records7d,
+              align: 'right',
+              cellProps: { className: 'num' },
+              render: (r) => (typeof r.records7d === 'number' ? r.records7d.toLocaleString() : l.never),
+            },
+            {
+              key: 'failures',
+              header: l.failures,
+              align: 'center',
+              render: (r) => (r.failedCount > 0 ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <DpStatusBadge className="intg-status is-error">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
+                  {onRetrySyncLog && (
+                    <button
+                      type="button"
+                      className="intg-btn intg-btn-neutral intg-btn-sm"
+                      data-testid={`intg-collection-retry-${r.app}`}
+                      onClick={() => onRetrySyncLog(r.service)}
+                    >
+                      {labels.syncLog.retry}
+                    </button>
+                  )}
+                </span>
+              ) : l.noFailures),
+            },
+          ]}
+        />
+      )}
+    </section>
+  );
+}
+
 /* ── Slack 토큰 양도 패널 ───────────────────────────────────────────── */
 
 function TokenLogItem({ entry, labels }) {
@@ -822,6 +899,10 @@ export default function AdminIntegrationsCanvas({
   settingsModal = null,
   syncLogs = [],
   syncLogsLoading = false,
+  /** 「모든 서비스 미연동」이면 true — 앱 목록 위에 안내 배너를 그린다(policy §11). */
+  showEmptyBanner = false,
+  /** 하단 데이터 수집 현황 행(integrations-spec §5). `null` 이면 구역을 그리지 않는다. */
+  collectionStatus = null,
   labels: providedLabels,
   baseUrl = '',
   onTabChange,
@@ -916,6 +997,15 @@ export default function AdminIntegrationsCanvas({
             ))}
           </div>
 
+          {showEmptyBanner && (
+            <div className="intg-banner" data-testid="intg-empty-banner">
+              <div className="intg-banner-msg">
+                <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
+                {labels.emptyBanner}
+              </div>
+            </div>
+          )}
+
           <div className="intg-app-grid">
             {cards.map((card) => (
               <AppCard
@@ -954,6 +1044,10 @@ export default function AdminIntegrationsCanvas({
               onDisconnect={onDisconnect}
               onMinSelectedBlocked={onSettingsMinSelectedBlocked}
             />
+          )}
+
+          {collectionStatus && (
+            <CollectionStatus rows={collectionStatus} labels={labels} onRetrySyncLog={onRetrySyncLog} />
           )}
 
           <div className="intg-banner" data-testid="intg-personal-banner">

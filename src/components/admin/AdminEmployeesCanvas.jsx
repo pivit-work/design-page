@@ -253,6 +253,12 @@ const DEFAULT_LABELS = {
       terminationDate: '퇴사일',
       education: '학력',
       salary: '연봉',
+      /* admin-spec §3.1 ⚙ 선택 컬럼 13종 정본표(PW-401) 중 목록에 없던 다섯. */
+      workSchedule: '근무 일정',
+      squadLead: '스쿼드 리드',
+      hrbp: '담당 HRBP',
+      nameEn: '영문명',
+      finalGrade: '확정등급',
     },
   },
   panel: {
@@ -805,6 +811,15 @@ function hasOrgUnit(m) {
 }
 
 /**
+ * 소속 칸이 비었을 때 대신 보일 옛 텍스트 부서 — **소비자가 미배정이라고 판정한 사람에게는 없다.**
+ * 서버의 `department` 는 배정이 없으면 옛 텍스트 칸으로 떨어지므로, 그대로 보이면 소속을 다 뺀
+ * 사람이 미배정 탭에는 있는데 목록·패널에는 옛 팀 이름(「기술연구소 · 주」)으로 남는다(W58 · MC8).
+ */
+function legacyDeptOf(m) {
+  return m.orgUnassigned === true ? null : (m.department || null);
+}
+
+/**
  * 매니저(개인 상급자) 배정 드롭다운 (PW-292).
  *
  * 검색을 붙이는 이유는 후보가 조직 인원수만큼 늘어나기 때문이다 — 200명 조직에서
@@ -1184,7 +1199,7 @@ const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
  * 없고, 겸직 소속·인사 분류도 그 자리에서 지정한다.
  */
 function InvitesTab({
-  invites, labels, canEdit,
+  invites, labels, canEdit, inviteBlockedReason = null,
   onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
 }) {
   // 처음엔 «대기중»만 (PW-1311) — 수락이 끝난 초대는 할 일이 없는데 «전체»로 열면
@@ -1232,8 +1247,18 @@ function InvitesTab({
           {/* «전체»일 때 버튼에 보일 글자 — 구성원 목록의 «재직상태»를 빌려 쓰면 초대 상태가 아니라
               재직 상태로 거르는 것처럼 읽혔다 (PW-1311). */}
           <FilterDropdown label={labels.invites.filterAll} value={filter} options={filterOpts} onChange={setFilter} />
+          {/* 좌석이 없으면(무료 상한 · 결제수단 없는 유료) 누를 수 없다 — 사유는 말풍선으로
+              (spec-billing §2.2 · admin-spec §3.7-A ② · TC-BILL-122). */}
           {canEdit && (
-            <button type="button" className="admin-emp-btn is-primary" onClick={onOpenInvite}>
+            <button
+              type="button"
+              className="admin-emp-btn is-primary"
+              onClick={onOpenInvite}
+              disabled={Boolean(inviteBlockedReason)}
+              title={inviteBlockedReason || undefined}
+              aria-label={inviteBlockedReason ? `${labels.invites.newInvite} — ${inviteBlockedReason}` : undefined}
+              data-testid="employees-invites-new"
+            >
               <IconPlus size={14} />{labels.invites.newInvite}
             </button>
           )}
@@ -1343,10 +1368,11 @@ function retainedOrgIds(member, selectedIds) {
  * 읽으면 두 뷰가 같은 사람을 다르게 그린다(§3.8 「데이터 계약은 두 뷰가 같다」).
  */
 function ListDeptLabel({ member, orgTree, labels }) {
+  const legacy = legacyDeptOf(member);
   const list = Array.isArray(member.depts) && member.depts.length > 0
     ? member.depts
-    : member.department
-      ? [{ name: member.department, isPrimary: true }]
+    : legacy
+      ? [{ name: legacy, isPrimary: true }]
       : [];
   if (list.length === 0) {
     return <DpStatusBadge className="admin-emp-pill is-amber">{labels.unassignedPill}</DpStatusBadge>;
@@ -1422,24 +1448,33 @@ const LIST_OPTIONAL_COLS = [
   { id: 'workCountry', width: 110 },
   { id: 'workLocation', width: 110 },
   { id: 'workBuilding', width: 120 },
+  /** 근무 일정 — 고용형태 뒤(13종 정본표). */
+  { id: 'workSchedule', width: 110 },
+  /** 스쿼드 리드·담당 HRBP·영문명 — 매니저 뒤 차례로(13종 정본표). 스쿼드 리드는 그 사람이 속한 스쿼드의 리드다. */
+  { id: 'squadLead', width: 130 },
+  { id: 'hrbp', width: 120 },
+  { id: 'nameEn', width: 130 },
   { id: 'terminationDate', width: 110 },
   { id: 'education', width: 120 },
+  /** 확정등급 — 입사일 뒤, 기본 숨김(평가 결과 노출을 막는다). 앱은 어드민에게만 값을 싣는다. */
+  { id: 'finalGrade', width: 100 },
   /** 연봉(T3) — 기본 숨김. 켤 수 있는 사람도 `canViewSalary` 로 한 번 더 걸린다. */
   { id: 'salary', width: 120 },
 ];
 
 /**
- * ⚙ 기본값 — **연봉만 숨김**이고 나머지는 켜져 있다.
+ * ⚙ 기본값 — `admin-spec.md §3.1` 「⚙ 선택 컬럼 13종 정본표」(PW-401)를 따른다.
  *
- * 시안의 2026-08-13 결정을 따른다: 「시트 기준으로 필드를 채워도 목록 표가 예전
- * 그대로면 적용됐는지를 사람이 확인할 수 없다. 좁으면 ⚙ 에서 끄면 된다. 연봉만
- * 기본 숨김을 유지한다 — 반출 사고를 막기 위해서다.」
- *
- * ⚠ `admin-spec.md §3.1` 본문은 사번·근무지를 기본 숨김이라 적는다. 문서 ↔ 시안
- *   판정은 기획(PW-401)에 넘겼고, 답이 다르게 나오면 이 상수 한 줄로 뒤집힌다.
+ * 정본표의 11종은 켜고 **확정등급·연봉은 숨긴다**(평가 결과 노출·반출 사고). 정본표에 없는 열
+ * (닉네임·표시 이름·전화번호·빌딩·퇴사일·학력)은 ⚙ 에서 켤 수 있게 남기되 기본은 끈다 —
+ * 닉네임은 목록 열이 아니라 반출 열이라고 정본표가 따로 적었다.
  */
+const LIST_DEFAULT_ON_OPT_COLS = new Set([
+  'employeeCode', 'jobCategory', 'jobRank', 'businessTitle', 'workSchedule',
+  'workCountry', 'workLocation', 'ftePercent', 'squadLead', 'hrbp', 'nameEn',
+]);
 const LIST_DEFAULT_OPT_COLS = Object.fromEntries(
-  LIST_OPTIONAL_COLS.map((c) => [c.id, c.id !== 'salary']),
+  LIST_OPTIONAL_COLS.map((c) => [c.id, LIST_DEFAULT_ON_OPT_COLS.has(c.id)]),
 );
 
 /** 필터의 «전체» sentinel. 🔴 라벨(`'전체'`)을 쓰면 로케일을 바꾸는 순간 판정이 깨진다. */
@@ -2044,7 +2079,12 @@ function EmployeesListView({
   // ⚙ 는 소비자가 들고 있는 게 정본이고(새로고침 후에도 남아야 한다), 미주입일 때만
   // 내부 상태로 폴백한다.
   const [ownOptCols, setOwnOptCols] = useState(LIST_DEFAULT_OPT_COLS);
-  const optCols = providedOptCols ?? ownOptCols;
+  // 저장해 둔 조합에 없는 열(새로 생긴 열)은 기본값을 따른다 — 안 그러면 기본 숨김인
+  // 확정등급이 옛 조합을 가진 사람에게 켜진 채 나온다.
+  const optCols = useMemo(
+    () => ({ ...LIST_DEFAULT_OPT_COLS, ...(providedOptCols ?? ownOptCols) }),
+    [providedOptCols, ownOptCols],
+  );
   const setOptCols = onOptColsChange ?? setOwnOptCols;
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
@@ -2055,7 +2095,7 @@ function EmployeesListView({
   const deptNamesOf = (m) => {
     const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : [];
     const names = list.map((d) => d.name).filter(Boolean);
-    if (names.length === 0 && m.department) names.push(m.department);
+    if (names.length === 0 && legacyDeptOf(m)) names.push(legacyDeptOf(m));
     return names;
   };
   /** 그 사람의 소속 조직 id 전부 — 주 소속·겸직 칩과 배정 행(계층 포함)을 합친다. */
@@ -2448,6 +2488,7 @@ function EmployeesListView({
     ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
     { id: 'employmentType', label: cl.employmentType, width: 100 },
     /* FTE — 시트 뷰와 같은 자리(고용형태 뒤)다. 정본표 §1-3-g 의 31·32 순서. */
+    ...(optOn('workSchedule') ? [{ id: 'workSchedule', label: cl.workSchedule, width: 110 }] : []),
     ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
     /* 140 — 상태 배지 밑에 「퇴직 예정 D-n」·「Past last day」가 쌓인다(PW-939). 표가 고정 폭이라
        100 이면 「퇴직 예정 D-」 에서 숫자가 잘렸다(브라우저 실측: 칸 76px · 배지 92px, 「퇴직 예정 D-365」 108px). */
@@ -2456,7 +2497,11 @@ function EmployeesListView({
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
     { id: 'manager', label: cl.manager, width: 150 },
+    ...(optOn('squadLead') ? [{ id: 'squadLead', label: cl.squadLead, width: 130 }] : []),
+    ...(optOn('hrbp') ? [{ id: 'hrbp', label: cl.hrbp, width: 120 }] : []),
+    ...(optOn('nameEn') ? [{ id: 'nameEn', label: cl.nameEn, width: 130 }] : []),
     { id: 'hireDate', label: cl.hireDate, width: 110 },
+    ...(optOn('finalGrade') ? [{ id: 'finalGrade', label: cl.finalGrade, width: 100 }] : []),
     ...(optOn('terminationDate') ? [{ id: 'terminationDate', label: cl.terminationDate, width: 110 }] : []),
     ...(optOn('education') ? [{ id: 'education', label: cl.education, width: 120 }] : []),
     ...(optOn('salary') ? [{ id: 'salary', label: cl.salary, width: 120 }] : []),
@@ -2754,6 +2799,11 @@ function EmployeesListView({
       case 'terminationDate': return <TextCell value={(m.terminationDate || '').slice(0, 10)} />;
       case 'education': return <TextCell value={m.education} />;
       case 'salary': return <TextCell value={m.salary} />;
+      case 'workSchedule': return <TextCell value={m.workSchedule} />;
+      case 'squadLead': return <TextCell value={(m.squadLeadNames || []).join(', ')} />;
+      case 'hrbp': return <TextCell value={m.hrbpName} />;
+      case 'nameEn': return <TextCell value={m.nameEn} />;
+      case 'finalGrade': return <TextCell value={m.finalGrade} />;
       case 'actions':
         return (
           <div className="admin-emp-actions-cell">
@@ -3882,13 +3932,13 @@ function EmployeesEditPanel({
           <div className="admin-emp-org-assign">
             <button
               type="button"
-              className={`admin-emp-org-current${primaryEntry || member.department ? '' : ' is-empty'}`}
+              className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) ? '' : ' is-empty'}`}
               disabled={!canEdit || !onChangeAffiliations}
               onClick={() => setPickerOpen(true)}
               data-testid="employees-panel-org"
             >
               <span className="admin-emp-org-current-name">
-                <OrgPathLabel entry={primaryEntry} fallback={member.department || labels.panel.orgNone} />
+                <OrgPathLabel entry={primaryEntry} fallback={legacyDeptOf(member) || labels.panel.orgNone} />
                 {selectedIds.length > 1 && (
                   <span className="admin-emp-row-dept-more">
                     {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
@@ -4336,6 +4386,11 @@ export default function AdminEmployeesCanvas({
    *  - [결제·구독 →] 은 `onGoBilling` 이 있을 때만 선다.
    */
   billingSummary = null,
+  /**
+   * 초대 관리 탭 `+ 새 초대 발송` 을 끄는 사유 — 문자열이면 버튼이 꺼지고 그 글이 말풍선이 된다.
+   * 좌석이 남지 않았을 때(무료 상한 도달 · 결제수단 없는 유료) 앱이 넘긴다. `null` 이면 켜져 있다.
+   */
+  inviteBlockedReason = null,
   /** 딥링크 `?invite=new` 로 모달이 열린 상태로 진입(§1 URL). */
   initialInviteOpen = false,
   onResendInvite,
@@ -4673,6 +4728,7 @@ export default function AdminEmployeesCanvas({
           invites={invites}
           labels={labels}
           canEdit={canInvite}
+          inviteBlockedReason={inviteBlockedReason}
           onOpenInvite={openInvite}
           onResendInvite={onResendInvite}
           onCancelInvite={onCancelInvite}
