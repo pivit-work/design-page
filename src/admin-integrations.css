@@ -131,6 +131,8 @@
 .intg-setting-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .intg-setting-check { display: flex; gap: 12px; }
 .intg-setting-check label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+/* 저장 직후 [저장] 자리에 2초 보이는 「✓ 저장됨」(연동 화면 기획 §6). */
+.intg-saved { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .intg-setting-link { font-size: 13px; font-weight: 500; color: var(--text-brand-tertiary); text-decoration: underline; white-space: nowrap; }
 .intg-select {
   padding: 7px 12px;
