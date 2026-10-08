@@ -165,13 +165,24 @@ const RECORD_DATA = {
 };
 
 const SHARE_DATA = {
-  calendarParticipants: ['김현주', '이민호', '박지민', '최지우'],
+  calendarParticipants: [
+    { key: 'u1', name: '김현주', userId: 'u1' },
+    { key: 'u2', name: '이민호', userId: 'u2' },
+    { key: 'u3', name: '박지민', userId: 'u3' },
+    { key: 'g1', name: '최지우', reachable: false },
+  ],
   manualMembers: [
-    { name: '김현주', role: 'CEO', checked: true },
-    { name: '이민호', role: 'CTO', checked: true },
-    { name: '박지민', role: 'CFO', checked: true },
-    { name: '최지우', role: 'CMO', checked: false },
-    { name: '홍길동', role: 'Lead Developer', checked: false },
+    { key: 'u1', userId: 'u1', name: '김현주', role: 'CEO', checked: true },
+    { key: 'u2', userId: 'u2', name: '이민호', role: 'CTO', checked: true },
+    { key: 'u3', userId: 'u3', name: '박지민', role: 'CFO', checked: true },
+    { key: 'g1', name: '최지우', role: 'CMO', checked: false, reachable: false },
+  ],
+  // PW-1418 — 동명이인(김민준 2명)은 드롭다운의 메일 주소로 가른다.
+  directory: [
+    { id: 'u11', name: '김민준', email: 'minjun.kim@pivit.work', department: 'Engineering' },
+    { id: 'u12', name: '김민준', email: 'mj.kim@pivit.work', department: 'Product' },
+    { id: 'u13', name: '이서연', email: 'seoyeon.lee@pivit.work', department: 'Product' },
+    { id: 'u14', name: '홍길동', email: 'gildong.hong@pivit.work', department: 'Engineering' },
   ],
   shareUrl: 'https://pivit.work/m/demo-meeting',
   subtitle: '3차 기획 미팅 · 2026.04.15 11:00',
@@ -188,6 +199,12 @@ const SHARE_DATA = {
     externalLinkDesc: '링크를 복사하여 외부에 공유합니다',
     copy: '복사',
     copied: '복사됨',
+    noEmail: '메일 주소 없음',
+    unreachableNote: (count) => `${count}명은 메일 주소가 없어 받지 못합니다`,
+    removeTag: (name) => `${name} 빼기`,
+    searchEmpty: '검색 결과 없음 — 메일 주소를 입력하면 Enter 로 추가됩니다',
+    duplicateName: (count) => `같은 이름이 ${count}명 있습니다. 목록에서 골라 주세요.`,
+    notFound: '구성원을 찾지 못했습니다. 목록에서 고르거나 메일 주소를 입력해 주세요.',
   },
 };
 
