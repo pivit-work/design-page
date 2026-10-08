@@ -176,6 +176,8 @@
 .intg-stat-row .label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
 .intg-stat-row .value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .intg-loglist-title { margin: 16px 0 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+/* 데이터 수집 현황(integrations-spec §5) 구역 제목 */
+.intg-section-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .intg-logrow { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
 .intg-logrow-info { display: flex; align-items: center; gap: 10px; }
 .intg-logrow-date { font-size: 11px; color: var(--text-tertiary); min-width: 80px; }
