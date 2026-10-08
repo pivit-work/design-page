@@ -104,6 +104,8 @@ const DEFAULT_LABELS = {
   // 추가 전용(`primarySelectable={false}`) 전용 — PW-373
   appendHint: '고른 조직이 더해집니다. 기존 소속과 주 소속은 그대로 남습니다.',
   appendNone: '고른 조직이 없습니다 — 적용해도 아무것도 더해지지 않습니다',
+  // 겸직을 고르는 팝업 하단 상시 안내 (admin-spec §3.1 · 코어 §1-5-a MC1)
+  primaryCountNote: '조직별 인원 수는 주 소속만 집계합니다',
 };
 
 /** 접힘 여부 — 조상 중 하나라도 접혀 있으면 숨긴다. 검색 중에는 접힘을 무시한다. */
@@ -465,6 +467,15 @@ export default function OrgTreePicker({
               </span>
             ) : (
               <span data-testid="org-tree-picker-selection" style={{ fontSize: 11, color: T.amber }}>{labels.none}</span>
+            )}
+            {/* 겸직을 고르는 자리에서만 — 조직 인원 수에 겸직이 안 잡힌다는 것을 고르는 순간에 알린다. */}
+            {multi && primarySelectable && (
+              <span
+                data-testid="org-tree-picker-primary-count-note"
+                style={{ display: 'block', marginTop: 4, fontSize: 11, color: T.sub }}
+              >
+                {labels.primaryCountNote}
+              </span>
             )}
           </div>
           <div className="adm-shell-foot-actions">

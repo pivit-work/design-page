@@ -4,7 +4,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
-import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
+import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
@@ -17,7 +17,7 @@ import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
-import { ExportMenu, SalaryExportModal } from './employeeExport.jsx';
+import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 /* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
 import {
   HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown,
@@ -145,6 +145,16 @@ const DEFAULT_LABELS = {
   csvUpload: 'CSV 업로드',
   unassignedPill: '미배정',
   concurrentCount: '겸직 {count}',
+  // 소속 칩이 3개를 넘으면 나머지를 접는다 — 말풍선에 전체 (screen-admin-org-units §10 L4).
+  moreDepts: '+{count}',
+  // 그 소속 조직의 조직장 표시 (admin-spec §3.1 「👤 조직장 배지」 · §3.6-B-4)
+  leaderOfDept: '이 조직의 조직장',
+  // 직군·직렬·직무 연결표에 없는 조합 (admin-spec §3.1 「미등록 조합 배지」)
+  unregisteredPair: "'{pair}'는 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
+  // 직군을 바꿔 고른 직렬이 풀렸을 때 (admin-spec §3.1)
+  ladderFilterCleared: '직렬 필터가 해제되었습니다',
+  // 직함 열 머리 자물쇠의 말풍선 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」)
+  businessTitleLocked: '목록에서 고칠 수 없습니다. 구성원 편집에서 고칩니다.',
   // 소속 칸의 주 소속 배지 · 검색/소속 필터 결과 수의 축 표기 (admin-spec §3.1 · PW-630).
   primaryBadge: '주',
   listCountAxis: '주·겸직 소속 {count}명',
@@ -652,6 +662,25 @@ function RolePill({ role, labels }) {
   return <DpStatusBadge className={`admin-emp-role-pill is-${role}`}>{labels.role[role] || role}</DpStatusBadge>;
 }
 
+/**
+ * 목록 이름 뒤 역할 pill — 어드민·매니저에게만 붙는다 (admin-spec §3.1 · §8 「목록 — 역할 pill」).
+ * 대표는 바로 앞 👑 대표 배지(`CeoBadge`)가 말한다 — pill 을 또 붙이면 「대표」가 두 번 보인다.
+ *
+ * 🔴 매니저는 권한 값이 아니라 «어느 조직의 조직장인가»다 (PW-613) — 계정 권한이 옛 `manager` 로
+ * 남아 있어도 조직장이 아니면 붙이지 않고, 권한이 멤버여도 조직장이면 붙인다.
+ */
+function RolePills({ member, isLeader, labels }) {
+  const pills = [];
+  if (member.orgRole === 'admin') pills.push('admin');
+  if (isLeader) pills.push('manager');
+  if (pills.length === 0) return null;
+  return pills.map((r) => (
+    <DpStatusBadge key={r} className={`admin-emp-role-pill is-${r}`} data-testid={`employees-role-pill-${r}-${member.id}`}>
+      {labels.role[r] || r}
+    </DpStatusBadge>
+  ));
+}
+
 /* 조직 선택은 계층 트리 팝업(OrgTreePicker)으로 통일했다 — 종전의 평면 드롭다운
    `OrgUnitPicker` 는 이름만 나열해 상하 관계를 볼 수 없었다(PW-112, §5-A). */
 
@@ -1118,11 +1147,19 @@ function FilterDropdown({ testId, label, value, options, onChange }) {
       </button>
       {open && (
         <div className="admin-emp-select-menu" role="listbox">
-          {opts.map((o) => {
+          {opts.map((o, i) => {
+            /* 묶음 머리(직군 미선택 때 직렬 선택지의 직군 이름 · admin-spec §3.1) — 고를 수 없다. */
+            if (o.group) {
+              return (
+                <div key={`group-${o.label}-${i}`} role="presentation" className="admin-emp-select-group">
+                  {o.label}
+                </div>
+              );
+            }
             const isSel = o.id === value;
             return (
               <button
-                key={o.id}
+                key={o.groupKey ? `${o.groupKey}:${o.id}` : o.id}
                 type="button"
                 role="option"
                 aria-selected={isSel}
@@ -1403,7 +1440,10 @@ function retainedOrgIds(member, selectedIds) {
  * 시트의 소속 셀과 **같은 값**(`depts` / `orgUnitIds`)에서 그린다. 한쪽만 다른 값을
  * 읽으면 두 뷰가 같은 사람을 다르게 그린다(§3.8 「데이터 계약은 두 뷰가 같다」).
  */
-function ListDeptLabel({ member, orgTree, labels }) {
+/** 소속 칸에 칩으로 그리는 최대 개수 — 넘치면 `+N` 으로 접고 말풍선에 전체를 보인다(org-units §10 L4). */
+const LIST_DEPT_CHIP_MAX = 3;
+
+function ListDeptLabel({ member, orgTree, labels, leaderUnitIds }) {
   const legacy = legacyDeptOf(member);
   const list = Array.isArray(member.depts) && member.depts.length > 0
     ? member.depts
@@ -1421,16 +1461,38 @@ function ListDeptLabel({ member, orgTree, labels }) {
     // id 없는 옛 값은 주 소속만 배정 행에서 경로를 복원할 수 있다.
     return d === primary ? primaryOrgEntry(orgTree, member.orgUnitIds) : null;
   };
+  const leaders = new Set((leaderUnitIds || []).map(String));
+  const shown = stacked.slice(0, LIST_DEPT_CHIP_MAX);
+  const hidden = stacked.length - shown.length;
+  const pathOf = (d) => entryOf(d)?.pathLabel || d.name;
   return (
     <span className="admin-emp-row-depts" data-testid="list-dept-cell">
-      {stacked.map((d, i) => (
+      {shown.map((d, i) => (
         <span key={d.orgUnitId ?? `${d.name}-${i}`} className="admin-emp-row-dept">
           <OrgPathLabel entry={entryOf(d)} fallback={d.name} />
+          {/* 조직장 표시는 이름 옆이 아니라 그 소속 칩에 — 겸직자는 «A팀 조직장 + B팀 팀원»일 수 있다. */}
+          {d.orgUnitId && leaders.has(String(d.orgUnitId)) && (
+            <span
+              className="admin-emp-row-dept-leader"
+              title={labels.leaderOfDept}
+              aria-label={labels.leaderOfDept}
+              data-testid={`list-dept-leader-${d.orgUnitId}`}
+            >
+              <IconUser size={12} />
+            </span>
+          )}
           {d === primary && (
             <DpStatusBadge className="admin-inv-primary-badge">{labels.primaryBadge}</DpStatusBadge>
           )}
         </span>
       ))}
+      {hidden > 0 && (
+        <Tooltip content={stacked.map(pathOf).join(' · ')}>
+          <span className="admin-emp-row-dept-overflow" data-testid="list-dept-more" tabIndex={0}>
+            {String(labels.moreDepts).split('{count}').join(String(hidden))}
+          </span>
+        </Tooltip>
+      )}
       {list.length > 1 && (
         <span className="admin-emp-row-dept-more">
           {String(labels.concurrentCount).split('{count}').join(String(list.length - 1))}
@@ -1615,6 +1677,29 @@ function Dash() {
 
 function TextCell({ value }) {
   return value ? <span className="admin-emp-cell-text">{value}</span> : <Dash />;
+}
+
+/**
+ * 직렬·직무 칸 — 위 칸과의 조합이 연결표에 없으면 값 옆에 amber 경고와 말풍선을 붙인다
+ * (admin-spec §3.1 「미등록 조합 배지」). 값은 그대로 두고 행을 숨기거나 고치지 않는다.
+ * 연결표를 못 받았으면(빈 매핑) 판정하지 않는다 — `isValidPair` 규칙 그대로.
+ * 위 칸이 비었으면 그 칸 쪽 문제라 여기서는 경고하지 않는다.
+ */
+function AxisPairCell({ value, parent, map, labels, testId }) {
+  if (!value) return <Dash />;
+  const bad = !!parent && !isValidPair(map, parent, value);
+  if (!bad) return <TextCell value={value} />;
+  const tip = String(labels.unregisteredPair).split('{pair}').join(`${parent} · ${value}`);
+  return (
+    <span className="admin-emp-cell-text admin-emp-cell-unregistered">
+      {value}
+      <Tooltip content={tip}>
+        <span className="admin-emp-unregistered-mark" data-testid={testId} aria-label={tip} tabIndex={0}>
+          <IconAlert size={13} />
+        </span>
+      </Tooltip>
+    </span>
+  );
 }
 
 /** 유니크 값 → FilterDropdown 선택지. 값이 없는 필드는 「전체」 하나만 남는다. */
@@ -2061,6 +2146,7 @@ function EmployeesListView({
   const [ladder, setLadder] = useState(initialFilters['jobTitle'] ?? LIST_ALL);
   const [duty, setDuty] = useState(initialFilters['jobDuty'] ?? LIST_ALL);
   const [location, setLocation] = useState(initialFilters['workLocation'] ?? LIST_ALL);
+  const [ladderCleared, setLadderCleared] = useState(false);
   // 근무 위치 3층 — 국가·빌딩은 도시와 **서로 좁히지 않는다**(나라와 사옥을 잇는
   // 표가 기획서에 없다). 직군>직렬>직무처럼 부모를 바꿔도 자식을 풀지 않는다.
   // 직종·직함 — 선택 적용 항목이라 **켠 회사에서만** 칩이 선다(PW-502). 직종은
@@ -2209,10 +2295,28 @@ function EmployeesListView({
     const narrowed = family !== LIST_ALL
       ? narrowByParent(axis.ladders ?? [], axis.laddersByFamily, family)
       : axis.ladders;
-    return narrowed?.length
-      ? [{ id: LIST_ALL, label: allLabel }, ...narrowed.map((v) => ({ id: v, label: v }))]
-      : optionsOf(members, (m) => m.jobTitle, allLabel);
-  }, [axis.ladders, axis.laddersByFamily, family, members, allLabel]);
+    if (!narrowed?.length) return optionsOf(members, (m) => m.jobTitle, allLabel);
+    // 직군을 안 골랐으면 전체 직렬을 직군 묶음 머리 아래에 둔다(admin-spec §3.1).
+    // 연결표가 없으면 묶을 수 없으니 한 줄 목록 그대로다.
+    const byFamily = axis.laddersByFamily || {};
+    if (family === LIST_ALL && Object.keys(byFamily).length > 0) {
+      const grouped = [];
+      const placed = new Set();
+      for (const fam of axis.families?.length ? axis.families : Object.keys(byFamily)) {
+        const kids = (byFamily[fam] || []).filter((v) => narrowed.includes(v));
+        if (kids.length === 0) continue;
+        grouped.push({ group: true, label: fam });
+        for (const v of kids) {
+          grouped.push({ id: v, label: v, depth: 1, groupKey: fam });
+          placed.add(v);
+        }
+      }
+      // 어느 직군에도 안 매달린 직렬은 묶음 없이 맨 뒤에 남긴다 — 빼면 그 값으로 거를 수 없다.
+      const loose = narrowed.filter((v) => !placed.has(v)).map((v) => ({ id: v, label: v }));
+      return [{ id: LIST_ALL, label: allLabel }, ...grouped, ...loose];
+    }
+    return [{ id: LIST_ALL, label: allLabel }, ...narrowed.map((v) => ({ id: v, label: v }))];
+  }, [axis.ladders, axis.laddersByFamily, axis.families, family, members, allLabel]);
   const duties = useMemo(() => {
     const narrowed = ladder !== LIST_ALL
       ? narrowByParent(axis.duties ?? [], axis.dutiesByLadder, ladder)
@@ -2458,16 +2562,20 @@ function EmployeesListView({
     setCountry(LIST_ALL); setBuilding(LIST_ALL);
     setEmpType(LIST_ALL); setMgrFilter('all'); setStatus('all');
     setRoleFilter(LIST_ALL); setAddedAt(LIST_ALL); setPage(1);
+    setLadderCleared(false);
   }
 
   /** 직군을 바꾸면 그 밑에 속하지 않게 된 직렬·직무 필터를 푼다 — 안 풀면 0건인 채 이유가 안 보인다. */
   function changeFamily(v) {
     setFamily(v);
-    if (v !== LIST_ALL && ladder !== LIST_ALL
-      && !narrowByParent(axis.ladders ?? [], axis.laddersByFamily, v).includes(ladder)) {
+    const cleared = v !== LIST_ALL && ladder !== LIST_ALL
+      && !narrowByParent(axis.ladders ?? [], axis.laddersByFamily, v).includes(ladder);
+    if (cleared) {
       setLadder(LIST_ALL);
       setDuty(LIST_ALL);
     }
+    // 조용히 풀면 고른 직렬이 왜 사라졌는지 모른다 — 다음 조작까지 한 줄로 알린다(admin-spec §3.1).
+    setLadderCleared(cleared);
     setPage(1);
   }
   function changeLadder(v) {
@@ -2523,14 +2631,14 @@ function EmployeesListView({
     /* 직함 — ② 덩어리의 맨 뒤(대외 명칭). 근무 위치 앞이라는 자리는 그대로다. */
     ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
     { id: 'employmentType', label: cl.employmentType, width: 100 },
-    /* FTE — 시트 뷰와 같은 자리(고용형태 뒤)다. 정본표 §1-3-g 의 31·32 순서. */
     ...(optOn('workSchedule') ? [{ id: 'workSchedule', label: cl.workSchedule, width: 110 }] : []),
-    ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
     /* 140 — 상태 배지 밑에 「퇴직 예정 D-n」·「Past last day」가 쌓인다(PW-939). 표가 고정 폭이라
        100 이면 「퇴직 예정 D-」 에서 숫자가 잘렸다(브라우저 실측: 칸 76px · 배지 92px, 「퇴직 예정 D-365」 108px). */
     { id: 'employmentStatus', label: cl.employmentStatus, width: 140 },
     ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
     ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
+    /* FTE — 도시 뒤 (admin-spec §3.1 ⚙ 정본표). */
+    ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
     { id: 'manager', label: cl.manager, width: 150 },
     ...(optOn('squadLead') ? [{ id: 'squadLead', label: cl.squadLead, width: 130 }] : []),
@@ -2538,9 +2646,10 @@ function EmployeesListView({
     ...(optOn('nameEn') ? [{ id: 'nameEn', label: cl.nameEn, width: 130 }] : []),
     { id: 'hireDate', label: cl.hireDate, width: 110 },
     ...(optOn('finalGrade') ? [{ id: 'finalGrade', label: cl.finalGrade, width: 100 }] : []),
+    /* 연봉 — 확정등급 바로 뒤 (admin-spec §3.1 ⚙ 정본표). */
+    ...(optOn('salary') ? [{ id: 'salary', label: cl.salary, width: 120 }] : []),
     ...(optOn('terminationDate') ? [{ id: 'terminationDate', label: cl.terminationDate, width: 110 }] : []),
     ...(optOn('education') ? [{ id: 'education', label: cl.education, width: 120 }] : []),
-    ...(optOn('salary') ? [{ id: 'salary', label: cl.salary, width: 120 }] : []),
     { id: 'actions', label: '', width: 90 },
   ];
   // 열이 스물 가까이 늘면 고정 minWidth 로는 칸이 눌려 글자가 세로로 쪼개진다.
@@ -2747,7 +2856,7 @@ function EmployeesListView({
                   {labels.menu.rehireBadge}
                 </DpStatusBadge>
               )}
-              <RolePill role={m.orgRole} labels={labels} />
+              <RolePills member={m} isLeader={isOrgLeader(m)} labels={labels} />
             </span>
           </button>
         );
@@ -2757,7 +2866,14 @@ function EmployeesListView({
       case 'phone': return <TextCell value={m.phone} />;
       case 'employeeCode': return <TextCell value={m.employeeCode} />;
       case 'dept': {
-        const label = <ListDeptLabel member={m} orgTree={orgTree} labels={labels} />;
+        const label = (
+          <ListDeptLabel
+            member={m}
+            orgTree={orgTree}
+            labels={labels}
+            leaderUnitIds={(leaderUnitIdsByMember || {})[m.id]}
+          />
+        );
         // 팝업을 여는 경로는 소속을 **고칠 수 있을 때만** 연다 — 못 고치는 사람에게
         // 눌리는 셀을 주면 눌러 보고 아무 일도 안 일어나는 자리가 된다.
         if (!canEdit || !onChangeAffiliations) return label;
@@ -2807,8 +2923,10 @@ function EmployeesListView({
       case 'jobLevel': return <TextCell value={m.jobLevel} />;
       case 'jobRank': return <TextCell value={m.jobRank} />;
       case 'jobFamily': return <TextCell value={m.jobFamily} />;
-      case 'jobTitle': return <TextCell value={m.jobTitle} />;
-      case 'jobDuty': return <TextCell value={m.jobDuty} />;
+      case 'jobTitle':
+        return <AxisPairCell value={m.jobTitle} parent={m.jobFamily} map={axis.laddersByFamily} labels={labels} testId={`list-unregistered-ladder-${m.id}`} />;
+      case 'jobDuty':
+        return <AxisPairCell value={m.jobDuty} parent={m.jobTitle} map={axis.dutiesByLadder} labels={labels} testId={`list-unregistered-duty-${m.id}`} />;
       case 'employmentType': return <TextCell value={m.employmentType} />;
       /* 미입력(`null`)은 «—» 다 — 0% 가 아니다. `value || ''` 로 쓰면 나중에 0 이
          허용될 때 미입력과 같은 모양이 되어 조용히 틀린다. */
@@ -2941,7 +3059,12 @@ function EmployeesListView({
           <FilterDropdown testId="list-filter-jobCategory" label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
         )}
         <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
-        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={changeLadder} />
+        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={(v) => { setLadderCleared(false); changeLadder(v); }} />
+        {ladderCleared && (
+          <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
+            {labels.ladderFilterCleared}
+          </span>
+        )}
         <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-jobPosition" label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
         <FilterDropdown testId="list-filter-jobLevel" label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
@@ -2997,6 +3120,12 @@ function EmployeesListView({
               data-testid="employees-list-check-all"
               aria-label={labels.listBulk.selectPage}
             />
+          ) : c.id === 'businessTitle' ? (
+            /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
+            <span className="admin-emp-head-locked" title={labels.businessTitleLocked}>
+              {c.label}
+              <IconLock size={11} />
+            </span>
           ) : c.label,
         }))}
         rows={pageRows}
@@ -3297,9 +3426,9 @@ const PANEL_FIELD_GROUPS = [
     id: 'work', labelKey: 'workSection',
     fields: [
       { key: 'workCountry', labelKey: 'workCountry', kind: 'select', catalog: 'countryOptions' },
-      // 도시는 예부터 자유 텍스트다 — select 로 바꾸면 카탈로그에 없는 기존 값이
-      // 지워진 것처럼 보인다.
-      { key: 'workLocation', labelKey: 'workLocation', kind: 'text' },
+      // 도시는 조직 설정 › 필드 옵션 `work_location` 에서 고른다(§3.2.5). 카탈로그에 없는
+      // 기존 값은 아래 select 가 선택지 맨 앞에 남겨 지워진 것처럼 보이지 않는다.
+      { key: 'workLocation', labelKey: 'workLocation', kind: 'select', catalog: 'workLocationOptions' },
       { key: 'workBuilding', labelKey: 'workBuilding', kind: 'select', catalog: 'buildingOptions' },
       // 책상·사무실 전화 — 빌딩 다음 (PW-1345 · §3.2.5). 책상은 회사마다 표기가 달라 자유 입력이다.
       { key: 'workDesk', labelKey: 'workDesk', kind: 'text' },
@@ -3566,7 +3695,7 @@ function EmployeesEditPanel({
   /* PW-576 — 폐기된 스프레드시트 뷰가 받던 카탈로그가 그대로 내려온다.
      못 받으면 그 칸이 자유 텍스트가 될 뿐 값은 보존된다. */
   rankOptions, categoryOptions, businessTitleOptions, employmentTypeOptions,
-  countryOptions, buildingOptions, jobAxis, optionalFields,
+  countryOptions, buildingOptions, workLocationOptions, jobAxis, optionalFields,
   /* 담당 HRBP 후보 `[{ value, label, disabled? }]` (PW-1345). 못 받으면 «미지정»만 남는다. */
   hrbpOptions,
   canViewSalary, onLoadSalaryHistory, onAddSalaryHistory,
@@ -3745,6 +3874,7 @@ function EmployeesEditPanel({
   const catalogs = {
     gradeOptions, positionOptions, rankOptions, categoryOptions,
     businessTitleOptions, employmentTypeOptions, countryOptions, buildingOptions,
+    workLocationOptions: workLocationOptions || [],
     hrbpOptions: hrbpOptions || [],
     jobFamilies: axis.families,
     jobLadders: axis.ladders,
@@ -4995,6 +5125,7 @@ export default function AdminEmployeesCanvas({
             employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
             countryOptions={countryOptions ?? EMPTY_ARRAY}
             buildingOptions={buildingOptions ?? EMPTY_ARRAY}
+            workLocationOptions={fieldOptions?.workLocation ?? EMPTY_ARRAY}
             hrbpOptions={hrbpOptions ?? EMPTY_ARRAY}
             jobAxis={jobAxis}
             onOpenFieldOptions={onOpenFieldOptions}

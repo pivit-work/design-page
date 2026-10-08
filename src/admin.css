@@ -666,6 +666,39 @@
   font-weight: 600;
   color: var(--text-tertiary);
 }
+/* 그 소속 조직의 조직장 표시(admin-spec §3.1 「👤 조직장 배지」) — 무채색, 대표 왕관(보라)과 갈린다. */
+.admin-emp-row-dept-leader {
+  display: inline-flex;
+  align-self: center;
+  color: var(--text-tertiary);
+}
+/* 소속 칩 3개 초과분 «+N» — 말풍선에 전체 경로 (screen-admin-org-units §10 L4). */
+.admin-emp-row-dept-overflow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 99px;
+  padding: 0 6px;
+  cursor: default;
+}
+/* 직렬·직무 칸의 미등록 조합 경고(admin-spec §3.1) — 값 옆 amber 아이콘. */
+.admin-emp-cell-unregistered {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.admin-emp-unregistered-mark {
+  display: inline-flex;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+  cursor: help;
+}
+/* 직함 열 머리 자물쇠 — 목록에서 못 고친다는 표시(admin-spec §3.1). */
+.admin-emp-head-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
 /* 「불러오는 중」 글은 공용 `LoadingState`(src/loading.css)로 옮겼다 (PW-1010) */
 
@@ -864,6 +897,19 @@
 /* 일괄 처리의 파괴적인 항목(«등록 취소» · PW-1351) — 행 ⋯ 메뉴의 빨간 항목·구분선과 같은 값. */
 .admin-emp-select-item.is-danger { color: var(--text-error-primary); }
 .admin-emp-select-divider { height: 1px; background: var(--bg-secondary); margin: 4px 0; }
+/* 선택지 묶음 머리 — 직군 미선택 때 직렬 선택지의 직군 이름(admin-spec §3.1). 고를 수 없다. */
+.admin-emp-select-group {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+/* 거르기 줄의 한 줄 안내 — 직군을 바꿔 직렬 필터가 풀렸을 때(admin-spec §3.1). */
+.admin-emp-filter-notice {
+  align-self: center;
+  font-size: 12px;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
 .admin-emp-select-item-label { flex: 1; }
 .admin-emp-select-item-check { display: inline-flex; color: var(--text-brand-tertiary); }
 /* 매니저 후보의 조직장 병기 (PW-300). 조직 경로는 길어질 수 있어 이름과 같은 줄에
@@ -1014,6 +1060,8 @@
   transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .admin-emp-cell-name:hover .admin-emp-cell-name-text { color: var(--text-brand-tertiary); }
+/* 이름 뒤 배지가 여럿이면(대표 왕관 + 어드민 + 매니저) 칸 폭(200px)을 넘는다 — 잘리지 않게 다음 줄로 내린다. */
+.admin-emp-cell-name-text { flex-wrap: wrap; row-gap: 2px; }
 
 .admin-emp-cell-manager { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 

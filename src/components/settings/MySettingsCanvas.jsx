@@ -262,6 +262,9 @@ const DEFAULT_LABELS = {
     bio: '소개 (Bio)',
     bioHint: '타임라인·공개 카드에 표시됩니다.',
     // W62 — 기획서 my-settings §4.2 「티셔츠 사이즈」 · 「주민등록번호 🔒」
+    nicknameEn: '영어 닉네임',
+    nicknameEnHint: '닉네임의 영문 대응입니다. 비우면 닉네임을 그대로 사용합니다.',
+    nicknameEnPlaceholder: '예: David',
     tshirtSize: '티셔츠 사이즈',
     tshirtSizeHint: '사내 굿즈 발송에 사용됩니다.',
     tshirtSizePlaceholder: '예: L',
@@ -1983,6 +1986,17 @@ export default function MySettingsCanvas({
                       readOnly={isReadOnly('displayName')}
                       placeholder={isReadOnly('displayName') ? '' : labels.profile.displayNamePlaceholder}
                       aria-label={labels.profile.displayName}
+                    />
+                  </Field>
+                  {/* 영어 닉네임 — 닉네임의 영문 대응, 본인만 넣는다(my-settings §4.2 · 어드민은 확인만). */}
+                  <Field label={labels.profile.nicknameEn} hint={labels.profile.nicknameEnHint}>
+                    <TextInput
+                      className="admin-emp-input"
+                      value={draft.nicknameEn || ''}
+                      maxLength={50}
+                      onChange={(e) => setField('nicknameEn')(e.target.value)}
+                      placeholder={labels.profile.nicknameEnPlaceholder}
+                      aria-label={labels.profile.nicknameEn}
                     />
                   </Field>
                   <Field label={labels.profile.title}>
