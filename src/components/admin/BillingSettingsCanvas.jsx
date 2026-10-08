@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -48,6 +48,9 @@ const DEFAULT_LABELS = {
   pageTitle: '청구 정보',
   pageSubtitle: '영수증(카드매출전표) 발행 및 청구에 사용되는 사업자 정보를 입력합니다.',
   noEditBadge: '편집 권한 없음',
+
+  // 아직 저장된 청구 정보가 없을 때(첫 입력) — screen-billing-settings.policy.md §3
+  emptyNotice: '아직 청구 정보가 없습니다. 영수증 발행을 위해 입력해 주세요.',
 
   checkoutBannerTitle: '결제 전 청구 정보를 먼저 입력해 주세요.',
   checkoutBannerDesc: '저장 후 결제 화면으로 돌아갑니다. 사업자명·사업자등록번호는 필수입니다.',
@@ -178,6 +181,8 @@ export default function BillingSettingsCanvas({
   labels: providedLabels,
   onSave,
   onReturnToCheckout,
+  // 저장 안 한 변경이 생기고 사라질 때마다 알린다 — 앱이 떠날 때 경고를 건다(§4).
+  onDirtyChange,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -209,6 +214,9 @@ export default function BillingSettingsCanvas({
 
   // dirty — 저장값과 현재 값 다른지 확인
   const isDirty = FIELD_KEYS.some((k) => fields[k] !== saved[k]);
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   // 전체 검증 통과 여부
   const allValid = FIELD_KEYS.every((k) => !validateField(k, fields[k]));
@@ -255,6 +263,11 @@ export default function BillingSettingsCanvas({
         if (fromCheckout) setShowReturnBtn(true);
       }, 2000);
     } catch {
+      // 실패하면 마지막으로 저장된 값으로 되돌린다(§3·§5 「폼 값 원복」) — 화면에 남은 값이
+      // 저장된 것처럼 읽히지 않게.
+      setFields({ ...saved });
+      setTouched({});
+      setErrors({});
       setSaving(false);
     }
   };
@@ -282,6 +295,14 @@ export default function BillingSettingsCanvas({
             <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>{labels.checkoutBannerTitle}</div>
             <div style={{ fontSize: 13, color: T.text }}>
               {labels.checkoutBannerDesc}
+            </div>
+          </Card>
+        )}
+
+        {canEdit && !profile && !fromCheckout && (
+          <Card style={{ marginBottom: 16, background: T.bl, border: `1px solid ${T.border}` }}>
+            <div data-testid="billing-settings-empty" style={{ fontSize: 13, color: T.text }}>
+              {labels.emptyNotice}
             </div>
           </Card>
         )}

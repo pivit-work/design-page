@@ -107,6 +107,14 @@ const DEFAULT_LABELS = {
   cancelButton: '취소',
   confirmDowngradeCta: '다운그레이드 확인',
   confirmChangeCta: '변경 확인',
+  // 변경 요청이 실패하면 창을 닫지 않고 확인 버튼이 다시 시도가 된다(screen-billing-plans §3).
+  confirmRetryCta: '다시 시도',
+  confirmBusyCta: '변경 중...',
+  // 구독을 못 읽었을 때 — 현재 플랜을 모른다(§3 「현재 플랜 배지 대신 "–"」). 비교는 그대로 보인다.
+  currentPlanUnknown: '현재 플랜: –',
+  // 수락된 계약의 상한을 지금 활성 구성원이 넘었을 때(screen-billing-plans §2).
+  contractOverMaxNotice: (max, price) =>
+    `계약 좌석 범위(${max}명)를 초과했습니다. 초과분은 ${won(price)} 단가로 청구되며 영업팀에 통지됩니다.`,
 
   // ── 협의 단가 견적 (PW-344) ──────────────────────────────
   quoteExpiredTitle: '견적이 만료되었습니다',
@@ -464,12 +472,28 @@ export default function BillingPlansCanvas({
    * 어느 카드가 «하위»인지는 앱이 정한다 — 계약 종료일·현재 요금제를 앱이 안다.
    */
   commitment = null,
+  /**
+   * 구독 조회가 실패해 현재 플랜을 모른다. 플랜 비교는 그대로 보이고, 현재 플랜 자리는 「–」,
+   * 플랜 카드 버튼은 꺼진다 — 어느 쪽이 올리기·내리기인지 모르는 채 바꾸게 두지 않는다.
+   */
+  subscriptionUnavailable = false,
+  /**
+   * 수락된 협의 계약 `{ maxSeats, overageSeats, overageSeatPrice, seatPrice }` 또는 `null`.
+   * 지금 활성 구성원이 상한을 넘었으면(`overageSeats > 0`) 초과 안내를 띄운다.
+   */
+  contract = null,
 }) {
   const labels = mergeLabels(providedLabels);
 
   const [intervalState, setIntervalState] = useState('monthly'); // monthly | annual
   const [seatsState, setSeatsState] = useState(activeSeats);
-  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [confirmTarget, setConfirmTargetState] = useState(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmFailed, setConfirmFailed] = useState(false);
+  const setConfirmTarget = (plan) => {
+    setConfirmFailed(false);
+    setConfirmTargetState(plan);
+  };
   const [downgradeChecked, setDowngradeChecked] = useState(false);
   const [profileWarning, setProfileWarning] = useState(false);
   const [previewPlanCode, setPreviewPlanCode] = useState(null);
@@ -560,11 +584,20 @@ export default function BillingPlansCanvas({
     }
   };
 
-  const handleConfirm = () => {
-    if (!confirmTarget) return;
+  // 변경 요청이 끝날 때까지 창을 연 채 기다린다. 앱이 거부(throw)하면 창을 닫지 않고 확인 버튼이
+  // 「다시 시도」가 된다 — 실패 안내는 앱이 토스트로 띄운다(screen-billing-plans §3).
+  const handleConfirm = async () => {
+    if (!confirmTarget || confirmBusy) return;
     const target = confirmTarget;
-    setConfirmTarget(null);
-    onConfirmChange(target.code, interval, seats);
+    setConfirmBusy(true);
+    try {
+      await onConfirmChange(target.code, interval, seats);
+      setConfirmTarget(null);
+    } catch {
+      setConfirmFailed(true);
+    } finally {
+      setConfirmBusy(false);
+    }
   };
 
   const isDowngrade = confirmTarget ? (confirmTarget.tierRank ?? 0) < currentRank : false;
@@ -578,7 +611,6 @@ export default function BillingPlansCanvas({
     ? labels.confirmDowngradeFreeBody
     : labels.confirmDowngradeBody;
 
-  const showProCard = Boolean(currentPlan?.isCustom || previewPlan?.isCustom);
 
   // ── 협의 단가 (PW-344 ④) ───────────────────────────────────
   // 만료 견적의 **단가는 화면에 남기지 않는다** — 옛 금액을 보여 주면 고객이 그 값으로
@@ -592,6 +624,11 @@ export default function BillingPlansCanvas({
     Boolean(validQuote) &&
     validQuote.maxSeats != null &&
     seats > validQuote.maxSeats;
+  // Pro 커스텀 안내 카드는 유효 견적이 없을 때만 — 있으면 협의 단가 카드가 그 자리를 대신한다
+  // (screen-billing-plans §2 · TC-BILL-140 「동시에 뜨지 않음」).
+  const showProCard = Boolean(currentPlan?.isCustom || previewPlan?.isCustom) && !validQuote;
+  const contractOverMax =
+    Boolean(contract) && contract.maxSeats != null && (contract.overageSeats ?? 0) > 0;
 
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
@@ -610,6 +647,23 @@ export default function BillingPlansCanvas({
           {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.readOnlyBadge}</Badge>}
         </div>
         <p style={{ color: T.sub, fontSize: 14, marginTop: 4, marginBottom: 24 }}>{labels.pageSubtitle}</p>
+        {subscriptionUnavailable && (
+          <div data-testid="billing-plans-current-unknown"
+            style={{ fontSize: 13, color: T.sub, marginTop: -16, marginBottom: 20 }}>
+            {labels.currentPlanUnknown}
+          </div>
+        )}
+
+        {contractOverMax && (
+          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
+            <div data-testid="billing-plans-contract-over-max" style={{ fontSize: 13, color: T.text }}>
+              {labels.contractOverMaxNotice(
+                contract.maxSeats,
+                contract.overageSeatPrice ?? contract.seatPrice,
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* 견적 만료 안내 (PW-344 ④) — 만료 견적의 단가는 여기에 쓰지 않는다. */}
         {quoteExpired && (
@@ -688,6 +742,7 @@ export default function BillingPlansCanvas({
               interval={interval}
               canEdit={
                 canEdit &&
+                !subscriptionUnavailable &&
                 !subscription.cancelAtPeriodEnd &&
                 !(commitment?.lockedPlanCodes ?? []).includes(plan.code)
               }
@@ -884,9 +939,14 @@ export default function BillingPlansCanvas({
                 </button>
                 <button type="button"
                   className={`tl-group-modal-btn ${isDowngrade ? 'adm-btn-danger-ghost' : 'tl-group-modal-btn-primary'}`}
-                  onClick={handleConfirm}
-                  disabled={seatOverLimit && !downgradeChecked}>
-                  {isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
+                  onClick={() => void handleConfirm()}
+                  data-testid="billing-plan-confirm-submit"
+                  disabled={confirmBusy || (seatOverLimit && !downgradeChecked)}>
+                  {confirmBusy
+                    ? labels.confirmBusyCta
+                    : confirmFailed
+                      ? labels.confirmRetryCta
+                      : isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
                 </button>
               </>
             }

@@ -61,6 +61,9 @@ const DEFAULT_LABELS = {
     `${graceUntil} 까지 결제수단을 갱신하지 않으면 유료 기능이 잠금됩니다. (데이터는 보존됩니다)`,
   dunningNoPerm: '갱신 권한이 없습니다 — 결제 담당자(Owner·billing_admin)에게 문의하세요.',
   dunningAction: '지금 갱신',
+  // 미납 유예가 지나 유료 기능이 잠겼을 때(screen-billing-overview.policy.md §3 「유예 만료(잠금)」).
+  lockedTitle: '유료 기능이 잠금되었습니다 — 결제수단 갱신 필요',
+  lockedDesc: '결제수단을 갱신해 결제가 되면 다시 쓸 수 있습니다. (데이터는 보존됩니다)',
 
   cancelReservedTitle: '해지 예약됨',
   cancelReservedDesc: (date) => `${date} 이후 Free 플랜으로 전환됩니다.`,
@@ -88,6 +91,17 @@ const DEFAULT_LABELS = {
   methodDisplay: (brand, last4) => `${brand} ···· ${last4}`,
   methodExp: (exp) => `유효기간 ${exp}`,
   noMethod: '등록된 결제수단 없음',
+  // 결제수단이 없을 때 등록으로 가는 버튼과, 구독 중이면 다음 청구가 실패한다는 안내(§3·§7).
+  registerMethod: '결제수단 등록',
+  noMethodNextFail: '다음 청구일에 결제가 실패합니다. 그 전에 결제수단을 등록해 주세요.',
+  // 첫 청구 주기 배지(§2) — 첫 정기결제까지 남은 날과 정기결제일.
+  firstCycleBadge: (daysLeft, anchorDay) =>
+    `첫 청구 주기 · ${daysLeft}일 후 ${anchorDay}일 첫 정기결제`,
+  // 정기결제일 안내(§7 「앵커일 계산 표시」) — 29~31일이면 그날이 없는 달은 말일.
+  anchorNote: (anchorDay) =>
+    anchorDay >= 29
+      ? `매월 ${anchorDay}일(해당 일자가 없는 달은 말일)`
+      : `매월 ${anchorDay}일`,
 
   viewHistory: '청구 내역·영수증 보기 →',
   cancelSubscription: '구독 해지',
@@ -103,6 +117,11 @@ const DEFAULT_LABELS = {
 
   refundTitle: '즉시 해지 + 환불',
   refundCoolingDesc: '결제 후 7일 이내·유료기능 미사용 — 청약철회로 전액 환불됩니다.',
+  // 청약철회 기한(cancellation-refund-policy.md §10 「철회 가능 기한 D-n」). 마지막 날이면 D-0 대신 「오늘까지」.
+  refundCoolingDeadline: (daysLeft, lastDate) =>
+    daysLeft > 0
+      ? `철회 가능 기한 D-${daysLeft} (${lastDate}까지)`
+      : `철회 가능 기한 오늘까지 (${lastDate})`,
   refundAnnualDesc: (months, listMonthly) =>
     `연간 선결제 중도 해지 — 사용분(${months}개월 × 정가 ${won(listMonthly)})을 차감한 잔액을 환불합니다.`,
   expectedRefund: '예상 환불액',
@@ -264,9 +283,11 @@ export default function BillingOverviewCanvas({
           <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div>
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>{labels.dunningTitle}</div>
+              <div data-testid="billing-dunning-title" style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>
+                {sub.locked ? labels.lockedTitle : labels.dunningTitle}
+              </div>
               <div style={{ fontSize: 13, color: T.text }}>
-                {labels.dunningDesc(sub.graceUntil)}
+                {sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil)}
               </div>
               {!canEdit && (
                 <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
@@ -345,6 +366,14 @@ export default function BillingOverviewCanvas({
                 <Badge color={statusMeta.color} bg={statusMeta.bg}>{statusLabel}</Badge>
                 {/* 청구 단가가 플랜 정가와 다른 이유를 한눈에 말한다 (PW-344 ⑤). */}
                 {contract && <Badge color={T.accent} bg="#EEF2FF">{labels.contractBadge}</Badge>}
+                {sub.status === 'active' && sub.firstCycle && sub.anchorDay != null
+                  && sub.firstCycleDaysLeft != null && (
+                  <span data-testid="billing-first-cycle-badge">
+                    <Badge color={T.accent} bg="#EEF2FF">
+                      {labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}
+                    </Badge>
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: 13, color: T.sub }}>
                 {/* 플랜 카탈로그의 `seatPrice` 는 **시작가**이지 청구 단가가 아니다 —
@@ -493,6 +522,11 @@ export default function BillingOverviewCanvas({
                   sub.interval === 'annual' ? 12 : 1,
                 )}
               </div>
+              {sub.interval !== 'annual' && sub.anchorDay != null && (
+                <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
+                  {labels.anchorNote(sub.anchorDay)}
+                </div>
+              )}
             </Card>
             <Card>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.methodLabel}</div>
@@ -509,7 +543,19 @@ export default function BillingOverviewCanvas({
                   )}
                 </>
               ) : (
-                <div style={{ fontSize: 14, color: T.red }}>{labels.noMethod}</div>
+                <>
+                  <div style={{ fontSize: 14, color: T.red }}>{labels.noMethod}</div>
+                  {sub.status === 'active' && (
+                    <div data-testid="billing-no-method-next-fail" style={{ fontSize: 12, color: T.text, marginTop: 6 }}>
+                      {labels.noMethodNextFail}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 10 }}>
+                    <Btn kind="secondary" onClick={onNavigateMethods} disabled={!canEdit}>
+                      {labels.registerMethod}
+                    </Btn>
+                  </div>
+                </>
               )}
             </Card>
           </div>
@@ -567,6 +613,12 @@ export default function BillingOverviewCanvas({
                       ? labels.refundCoolingDesc
                       : labels.refundAnnualDesc(quote.monthsUsed, quote.listMonthly)}
                   </div>
+                  {quote.reason === 'cooling_off' && quote.coolingOffDaysLeft != null && (
+                    <div data-testid="billing-cooling-off-deadline"
+                      style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+                      {labels.refundCoolingDeadline(quote.coolingOffDaysLeft, quote.coolingOffLastDate)}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     fontSize: 13, color: T.text, marginBottom: 12 }}>
                     <span>{labels.expectedRefund}</span>
