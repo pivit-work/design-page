@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -8,6 +8,7 @@ import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
+import { CheckGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -72,7 +73,7 @@ const DEFAULT_LABELS = {
       '관리자 토큰이 만료되었습니다. 봇 토큰으로 수집 중입니다(채널 참여 필요). 재연결하여 관리자 액세스를 복원하세요.',
     reconnectAdmin: '관리자 재연결',
   },
-  settingsPanel: { title: '{{name}} 수집 범위 설정' },
+  settingsPanel: { title: '{{name}} 수집 범위 설정', saved: '저장됨' },
   saveSettings: '설정 저장',
   error: {
     forbiddenTitle: '연동 설정 권한이 없습니다',
@@ -371,26 +372,77 @@ function SettingRow({ label, children }) {
   );
 }
 
-function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
-  const [draft, setDraft] = useState(() => {
+/** 칸 값이 처음 값과 같은가 — 체크 묶음은 고른 순서와 무관하게 비교한다. */
+function sameFieldValue(a, b) {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    const x = Array.isArray(a) ? a : [];
+    const y = Array.isArray(b) ? b : [];
+    return x.length === y.length && x.every((v) => y.includes(v));
+  }
+  return a === b;
+}
+
+/** 「✓ 저장됨」을 보이는 시간(연동 화면 기획 §6 — 2초 뒤 원래 단추로). */
+const SAVED_FLASH_MS = 2000;
+
+/**
+ * 설정 창 — 처음 값으로 채우고, 값을 바꾼 뒤에만 [저장]이 눌린다(기획 §6). 버튼 줄은
+ * [연결 해제] · [취소] · [저장](기획 §2-4).
+ *
+ * - `onSave(app, draft)` 가 `true` 로 끝나면 창을 닫지 않고 [저장] 자리에 「✓ 저장됨」을 2초 보인 뒤
+ *   지금 값을 새 처음 값으로 삼는다. 다른 값(또는 undefined)이면 아무것도 하지 않는다 — 창을 닫는 것은 앱 몫이다.
+ * - 체크 묶음 칸에 `minSelected` 가 있으면 그보다 적게 끌 수 없다. 막힐 때 `onMinSelectedBlocked(app, field)` 를
+ *   불러 앱이 안내를 띄운다(기획 §11 「최소 1개 이상의 권한이 필요해요」).
+ * - `onDisconnect(app)` 이 있으면 [연결 해제]를 그린다. 확인 창은 앱이 띄운다(기획 §7·§8).
+ */
+function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, onMinSelectedBlocked }) {
+  const initialOf = () => {
     const d = {};
     (modal.fields ?? []).forEach((f) => { d[f.key] = f.value; });
     return d;
-  });
+  };
+  const [draft, setDraft] = useState(initialOf);
+  const [baseline, setBaseline] = useState(initialOf);
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  useEffect(() => {
+    if (!savedFlash) return undefined;
+    const id = setTimeout(() => setSavedFlash(false), SAVED_FLASH_MS);
+    return () => clearTimeout(id);
+  }, [savedFlash]);
   const setField = (k, v) => setDraft((p) => ({ ...p, [k]: v }));
 
-  const toggleInGroup = (k, optionValue) => {
-    setDraft((p) => {
-      const cur = Array.isArray(p[k]) ? p[k] : [];
-      return {
-        ...p,
-        [k]: cur.includes(optionValue) ? cur.filter((x) => x !== optionValue) : [...cur, optionValue],
-      };
-    });
+  // 저장하지 않는 칸(글자 링크)은 비교에서 뺀다.
+  const dirty = (modal.fields ?? []).some(
+    (f) => f.kind !== 'link' && !sameFieldValue(draft[f.key], baseline[f.key]),
+  );
+
+  const toggleInGroup = (field, optionValue) => {
+    const k = field.key;
+    const cur = Array.isArray(draft[k]) ? draft[k] : [];
+    const removing = cur.includes(optionValue);
+    if (removing && field.minSelected && cur.length - 1 < field.minSelected) {
+      onMinSelectedBlocked?.(modal.app, field);
+      return;
+    }
+    setField(k, removing ? cur.filter((x) => x !== optionValue) : [...cur, optionValue]);
   };
 
-  // 껍데기는 공용 창 틀(ModalShell · PW-836). 이 창은 「설정 저장」 하나로 닫히는 창이라
-  // 취소 버튼 없이 저장만 버튼 줄에 둔다(종전과 같다) — 닫기는 X·막·Esc.
+  const save = async () => {
+    if (!dirty || saving) return;
+    setSaving(true);
+    try {
+      const ok = await onSave(modal.app, draft);
+      if (ok === true) {
+        setBaseline(draft);
+        setSavedFlash(true);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 껍데기는 공용 창 틀(ModalShell · PW-836). 닫기는 X·막·Esc·[취소].
   return (
     <ModalShell
       title={
@@ -407,14 +459,41 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
       testId="intg-settings-modal"
       overlayTestId="intg-settings-overlay"
       footer={
-        <button
-          type="button"
-          className="tl-group-modal-btn tl-group-modal-btn-primary"
-          onClick={() => onSave(modal.app, draft)}
-          data-testid="intg-settings-save"
-        >
-          {labels.saveSettings}
-        </button>
+        <>
+          {onDisconnect && (
+            <button
+              type="button"
+              className="tl-group-modal-btn adm-btn-danger-ghost"
+              onClick={() => onDisconnect(modal.app)}
+              data-testid="intg-settings-disconnect"
+            >
+              {labels.actions.disconnect}
+            </button>
+          )}
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-secondary"
+            onClick={onClose}
+            data-testid="intg-settings-cancel"
+          >
+            {labels.actions.cancel}
+          </button>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
+            onClick={save}
+            disabled={!dirty || saving}
+            aria-live="polite"
+            data-testid="intg-settings-save"
+          >
+            {savedFlash && !dirty ? (
+              <span className="intg-saved" data-testid="intg-settings-saved">
+                <CheckGlyph size={14} aria-hidden />
+                {labels.settingsPanel.saved}
+              </span>
+            ) : labels.saveSettings}
+          </button>
+        </>
       }
     >
       {(modal.fields ?? []).map((field) => (
@@ -434,7 +513,7 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave }) {
                   <input
                     type="checkbox"
                     checked={Array.isArray(draft[field.key]) && draft[field.key].includes(o.value)}
-                    onChange={() => toggleInGroup(field.key, o.value)}
+                    onChange={() => toggleInGroup(field, o.value)}
                     style={{ accentColor: 'var(--text-brand-tertiary)' }}
                   />
                   {o.label}
@@ -754,6 +833,7 @@ export default function AdminIntegrationsCanvas({
   onOpenSettings = () => {},
   onCloseSettings = () => {},
   onSaveSettings = () => {},
+  onSettingsMinSelectedBlocked = () => {},
   onPersonalIntegrationClick = () => {},
   onExpireToken = () => {},
   onReauth = () => {},
@@ -871,6 +951,8 @@ export default function AdminIntegrationsCanvas({
               baseUrl={baseUrl}
               onClose={onCloseSettings}
               onSave={onSaveSettings}
+              onDisconnect={onDisconnect}
+              onMinSelectedBlocked={onSettingsMinSelectedBlocked}
             />
           )}
 

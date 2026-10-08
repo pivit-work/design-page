@@ -285,13 +285,17 @@ const ROSTER_COLUMNS = [
 const ROSTER_PAGE_SIZE = 50;
 
 /**
+ * `baseColumns` — 표준 열 목록을 앱이 정해 넘길 때(키 배열 · 헤더는 `labels.roster[key]`). 직종·직함처럼
+ * 회사 설정을 따라 켜지는 열, 닉네임·직위·근무지(국가)·FTE·스쿼드 리드처럼 앱의 CSV 에 있는 열을
+ * 화면에도 같은 순서로 그리려고 둔다(「보이는 것 = 받는 것」). 없으면 위 `ROSTER_COLUMNS`.
+ *
  * `extraColumns` — 표준 열(+연봉) 뒤에 덧붙일 열 `[{ key, comp }]` (PW-1295 · 구성원 CSV 양식 열).
  * 헤더는 `labels.roster[key]`. `comp: true` 는 보상 열이라 연봉과 같은 조건(`showSalary`)에서만 나온다.
  * 무엇을 덧붙일지는 앱이 정한다 — 앱의 CSV 와 같은 목록을 넘겨야 「보이는 것 = 받는 것」이 맞는다.
  */
-function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge, extraColumns = [] }) {
+function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge, extraColumns = [], baseColumns }) {
   const columns = [
-    ...ROSTER_COLUMNS,
+    ...(baseColumns ?? ROSTER_COLUMNS),
     ...(showSalary ? ['salary'] : []),
     ...extraColumns.filter((c) => showSalary || !c.comp).map((c) => c.key),
   ];
@@ -455,7 +459,7 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
 function OrgSnapshotStatusView({
   data, labels, queryDate, onQueryDateChange, onExport, onExportRoster,
   activeTab, onTabChange, onDrilldown, onRosterMemberClick,
-  showComp, onShowCompChange, rosterExtraColumns,
+  showComp, onShowCompChange, rosterExtraColumns, rosterColumns,
 }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
@@ -653,6 +657,7 @@ function OrgSnapshotStatusView({
             showSalary={showSalary}
             onMemberClick={onRosterMemberClick}
             extraColumns={rosterExtraColumns}
+            baseColumns={rosterColumns}
           />
         )}
       </section>
@@ -1490,7 +1495,7 @@ function AppointmentHistoryView({ records, labels, onExport }) {
  */
 function AsOfSnapshotView({
   data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
-  onExport, onRosterMemberClick, rosterExtraColumns,
+  onExport, onRosterMemberClick, rosterExtraColumns, rosterColumns,
 }) {
   const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0, pending = false } = data;
   // pending — 고른 날짜의 응답이 아직 안 왔다. 화면에 남은 숫자는 **이전 날짜의 것**이라
@@ -1658,6 +1663,7 @@ function AsOfSnapshotView({
             changedHint={(col, row) => `${labels.roster[col]} · ${row.name}`}
             onMemberClick={onRosterMemberClick}
             extraColumns={rosterExtraColumns}
+            baseColumns={rosterColumns}
             rowBadge={fromFixedCopy ? {
               label: labels.asofFixedCopy,
               title: labels.asofFixedCopyHint,
@@ -1745,6 +1751,7 @@ export default function OrgSnapshotCanvas({
    * `comp: true` 는 보상 열 — 보상 표시를 켜고 연봉 값이 실려 온 경우에만 나온다. 헤더는 `labels.roster[key]`.
    */
   rosterExtraColumns = [],
+  rosterColumns,
   labels: providedLabels,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
@@ -1794,6 +1801,7 @@ export default function OrgSnapshotCanvas({
               showComp={showComp}
               onShowCompChange={onShowCompChange}
               rosterExtraColumns={rosterExtraColumns}
+              rosterColumns={rosterColumns}
             />
           )}
           {view === 'asof' && (
@@ -1809,6 +1817,7 @@ export default function OrgSnapshotCanvas({
               onExport={onExportAsOf}
               onRosterMemberClick={onRosterMemberClick}
               rosterExtraColumns={rosterExtraColumns}
+              rosterColumns={rosterColumns}
             />
           )}
           {view === 'single' && (
