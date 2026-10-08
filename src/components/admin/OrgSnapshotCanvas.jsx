@@ -7,6 +7,8 @@ import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from '
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import { LockGlyph } from '../shared/lineIcons.jsx';
+import { groupHistoryRows } from './appointmentHistoryRows.js';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -202,6 +204,16 @@ const DEFAULT_LABELS = {
   historyField: '항목',
   historyReason: '사유',
   searchEmployee: '이름 또는 사번 검색',
+  /** 대량 발령 한 번을 접은 줄의 대상자 칸. `{count}` 자리에 사람 수 (org-snapshot-spec §4) */
+  historyBulkAll: '전체 {count}명',
+  historyPeriodFrom: '발령일 시작',
+  historyPeriodTo: '발령일 끝',
+  /** 상세 패널 아래 줄 — `{by}` 처리자 · `{at}` 처리 시각 (§4 상세 패널) */
+  historyProcessed: '처리자: {by} · {at}',
+  // 단건 발령 — 직렬이 직군 여럿에 걸릴 때 직군 행 아래 (§2 [L] 2026-08-07)
+  apptFamilyRequired: '직군도 함께 선택해 주세요',
+  /** 직함 행 🔒 말풍선 (§2 직함변경의 발령 주체) */
+  titleLockHint: 'HR·소속 팀장 이상만 변경할 수 있습니다',
   // 예약 발령 (org-snapshot-spec §2 · §4 · PW-1422)
   /** 발령 일자가 오늘 이후일 때 그 칸 아래. `{date}` 자리에 발령일. */
   scheduledHint: '발령일({date})에 반영돼요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
@@ -800,7 +812,19 @@ function AppointmentSingleView({
       : (selectedMember?.fieldValues?.[f] ?? '');
   }
   const pickAxis = (level, value, group) => {
-    const { next, notice } = applyJobAxisChange(jobAxis, axisValues, level, value, group);
+    const applied = applyJobAxisChange(jobAxis, axisValues, level, value, group);
+    const { next } = applied;
+    let { notice } = applied;
+    // 고른 직렬이 직군 둘 이상에 걸리면 직군 행을 함께 열고 «직군도 함께 선택해 주세요»
+    // (org-snapshot-spec §2 [L] 2026-08-07). 묶음에서 골라 직군이 채워졌어도 그 직군이 맞는지
+    // 어드민이 보게 한다 — 그대로 두면 확정 때 이 행은 빠진다. 지운 칸 안내가 있으면 그게 먼저다.
+    const familyOwners = level === 'ladder' && value
+      ? Object.entries(jobAxis?.laddersByFamily ?? {}).filter(([, ls]) => (ls ?? []).includes(value)).length
+      : 0;
+    const familyRequired = familyOwners > 1;
+    if (familyRequired && !/Reset/.test(notice?.kind ?? '')) {
+      notice = { kind: 'familyRequired', field: 'family' };
+    }
     // 바뀌는 칸은 «변경 후» 에 싣고, 체크 안 된 칸이면 항목을 함께 체크한다 — 직렬만 바꿨는데
     // 지금 직무가 새 직렬에 없으면 직무를 비우는 것까지 이 발령에 들어가야 저장된다.
     const touched = ['family', 'ladder', 'duty'].filter(
@@ -809,11 +833,16 @@ function AppointmentSingleView({
     setChanges((p) => {
       const out = { ...p };
       for (const l of touched) out[AXIS_FIELD_OF_LEVEL[l]] = next[l];
+      if (familyRequired && !(AXIS_FIELD_OF_LEVEL.family in out)) out[AXIS_FIELD_OF_LEVEL.family] = next.family;
       return out;
     });
     setSelectedFields((prev) => {
       const out = new Set(prev);
       for (const l of touched) out.add(AXIS_FIELD_OF_LEVEL[l]);
+      // 고른 직렬이 직군 여럿에 걸리면(직무면 직렬 여럿) 위 칸을 비운 채 행을 연다 —
+      // 쌍 검증(INV-3·INV-8)을 통과하려면 어드민이 그 칸을 골라야 한다(org-snapshot-spec §2).
+      if (familyRequired || notice?.kind === 'familyAmbiguous') out.add(AXIS_FIELD_OF_LEVEL.family);
+      if (notice?.kind === 'ladderAmbiguous') out.add(AXIS_FIELD_OF_LEVEL.ladder);
       return out;
     });
     setAxisNotice(notice);
@@ -826,11 +855,26 @@ function AppointmentSingleView({
       m.name.toLowerCase().includes(q) || (m.employeeCode && m.employeeCode.toLowerCase().includes(q)));
   }, [members, searchQuery]);
 
-  const toggleField = (f) => setSelectedFields((prev) => {
-    const next = new Set(prev);
-    if (next.has(f)) next.delete(f); else next.add(f);
-    return next;
-  });
+  const toggleField = (f) => {
+    const adding = !selectedFields.has(f);
+    // 직무만 체크하면 위 칸인 직렬 행을 함께 연다(org-snapshot-spec §2 [L] 2026-08-16) — 직무
+    // 선택지는 직렬 아래로 좁혀지고 (직렬, 직무) 쌍이 맞아야 저장된다. 지금 직렬을 «변경 후»에
+    // 채워 두므로 좁히는 기준은 그대로고, 바꾸지 않으면 확정 때 이 행은 빠진다.
+    const ladderField = AXIS_FIELD_OF_LEVEL.ladder;
+    const openLadder = adding && jobAxis && f === AXIS_FIELD_OF_LEVEL.duty
+      && !selectedFields.has(ladderField) && changeableFields.includes(ladderField);
+    if (openLadder) {
+      setChanges((p) => (ladderField in p
+        ? p
+        : { ...p, [ladderField]: selectedMember?.fieldValues?.[ladderField] ?? '' }));
+    }
+    setSelectedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(f)) next.delete(f); else next.add(f);
+      if (openLadder) next.add(ladderField);
+      return next;
+    });
+  };
 
   const reset = () => {
     setSelectedMember(null); setSelectedFields(new Set());
@@ -845,11 +889,17 @@ function AppointmentSingleView({
     setSubmitError('');
     setPendingConflict(null);
     try {
-      const changeList = Array.from(selectedFields).map((f) => ({
+      const allChanges = Array.from(selectedFields).map((f) => ({
         field: f,
         before: selectedMember.fieldValues?.[f] ?? '',
         after: changes[f] ?? '',
       }));
+      // 함께 열린 직군·직렬 행을 그대로 두었으면(전 = 후) 이력에 「직렬: A → A」로 남기지 않는다.
+      const AXIS_PARENTS = [AXIS_FIELD_OF_LEVEL.family, AXIS_FIELD_OF_LEVEL.ladder];
+      const unchangedParent = (c) => AXIS_PARENTS.includes(c.field) && c.after === c.before;
+      const changeList = allChanges.some((c) => !unchangedParent(c))
+        ? allChanges.filter((c) => !unchangedParent(c))
+        : allChanges;
       await onSubmit?.({
         userId: selectedMember.id,
         type: appointmentType,
@@ -962,7 +1012,17 @@ function AppointmentSingleView({
                     const useSelect = selectFieldKeys.includes(f) && opts.length > 0;
                     return (
                       <RosterTable.Row key={f}>
-                        <RosterTable.Cell className="admin-snap-ba-field">{labels.fieldLabels[f] ?? f}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-field">
+                          {labels.fieldLabels[f] ?? f}
+                          {/* 직함은 HR·소속 팀장 이상만 낸다 — 발령 주체를 화면에서 못 박는다(§2 직함변경의 발령 주체) */}
+                          {f === 'businessTitle' && (
+                            <Tooltip content={labels.titleLockHint}>
+                              <span className="admin-snap-lock" aria-label={labels.titleLockHint} data-testid="appointment-single-title-lock">
+                                <LockGlyph size={12} />
+                              </span>
+                            </Tooltip>
+                          )}
+                        </RosterTable.Cell>
                         <RosterTable.Cell className="admin-snap-ba-before">{selectedMember.fieldValues?.[f] || '—'}</RosterTable.Cell>
                         <RosterTable.Cell className="admin-snap-ba-arrow">→</RosterTable.Cell>
                         <RosterTable.Cell>
@@ -983,11 +1043,13 @@ function AppointmentSingleView({
                               />
                               {axisNotice && axisNotice.field === axisLevel && (
                                 <div
-                                  className={`admin-snap-aff-msg${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
+                                  className={`admin-snap-aff-msg${/Reset|Ambiguous|Required/.test(axisNotice.kind) ? ' is-warn' : ''}`}
                                   role="status"
                                   data-testid="appointment-single-axis-notice"
                                 >
-                                  {jobAxisNoticeText(axisNotice, labels)}
+                                  {/^family(Required|Ambiguous)$/.test(axisNotice.kind) && labels.apptFamilyRequired
+                                    ? labels.apptFamilyRequired
+                                    : jobAxisNoticeText(axisNotice, labels)}
                                 </div>
                               )}
                             </>
@@ -1492,8 +1554,33 @@ function AppointmentBulkView({
 /* ════════════════════════════════════════════════════════════
  * 4. 발령 이력
  * ════════════════════════════════════════════════════════════ */
+const CEO_TYPE_KEYS = ['ceo_assign', 'ceo_release'];
+
+/** 이력 상세의 변경 전/후 표 — 빈 값은 «—»(§2 대표 발령 `— → 대표`). */
+function HistoryChangesTable({ changes, labels }) {
+  if (!changes || changes.length === 0) return null;
+  return (
+    <RosterTable scroll="none">
+      <RosterTable.Head>
+        <RosterTable.HeadCell>{labels.historyField}</RosterTable.HeadCell>
+        <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
+        <RosterTable.HeadCell>{labels.fieldAfter}</RosterTable.HeadCell>
+      </RosterTable.Head>
+      <RosterTable.Body>
+        {changes.map((ch, i) => (
+          <RosterTable.Row key={i}>
+            <RosterTable.Cell className="admin-snap-ba-field">{labels.fieldLabels[ch.field] ?? ch.field}</RosterTable.Cell>
+            <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '—'}</RosterTable.Cell>
+            <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '—'}</RosterTable.Cell>
+          </RosterTable.Row>
+        ))}
+      </RosterTable.Body>
+    </RosterTable>
+  );
+}
+
 function AppointmentHistoryView({
-  records, labels, onExport, onCancelScheduled,
+  records, error, labels, onExport, onCancelScheduled,
   structureRevisions, structureRevisionsError, onLoadStructureRevision,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -1505,19 +1592,36 @@ function AppointmentHistoryView({
   /** 구조 개정 상세 — `{ version, status: 'loading'|'ready'|'error', changes, error }` */
   const [revision, setRevision] = useState(null);
 
+  /** 기간 — 발령일 시작·끝 (YYYY-MM-DD, 빈 값은 열린 끝) (§4 필터) */
+  const [periodFrom, setPeriodFrom] = useState('');
+  const [periodTo, setPeriodTo] = useState('');
+
+  // 대표 지정·해제는 발령 화면에서 만들 수는 없지만 이력 필터에는 늘 보인다(§2 대표 발령의 특수 규칙).
   const typeKeys = useMemo(
-    () => Array.from(new Set(records.map((r) => r.typeKey).filter(Boolean))),
+    () => Array.from(new Set([...records.map((r) => r.typeKey).filter(Boolean), ...CEO_TYPE_KEYS])),
     [records],
   );
+  const rows = useMemo(() => groupHistoryRows(records, labels), [records, labels]);
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return records.filter((r) =>
-      (!typeFilter || r.typeKey === typeFilter) &&
-      (!q || (r.name ?? '').toLowerCase().includes(q)));
-  }, [records, searchQuery, typeFilter]);
+    const hit = (r) => !q
+      || (r.name ?? '').toLowerCase().includes(q)
+      || (r.employeeCode ?? '').toLowerCase().includes(q);
+    return rows.filter((row) =>
+      (!typeFilter || row.typeKey === typeFilter) &&
+      (!periodFrom || (row.date ?? '') >= periodFrom) &&
+      (!periodTo || (row.date ?? '') <= periodTo) &&
+      // 묶음은 한 사람이라도 맞으면 남기고 «전체 N명»은 그대로 둔다 — 걸러 낸 수로 바꾸면
+      // 그 발령이 몇 명짜리였는지가 거짓이 된다.
+      (row.members ? row.members.some(hit) : hit(row)));
+  }, [rows, searchQuery, typeFilter, periodFrom, periodTo]);
 
   // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
   const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
+  // 못 불러온 것을 «발령 이력이 없습니다»로 보이면 어드민은 이력이 지워진 줄 안다.
+  if (error && records.length === 0 && !revisionsWired) {
+    return <div className="admin-snap-warnbox" role="alert">{error}</div>;
+  }
   if (records.length === 0 && !revisionsWired) {
     return <EmptyState size="lg" description={labels.historyEmpty} />;
   }
@@ -1565,7 +1669,28 @@ function AppointmentHistoryView({
                 placeholder={labels.searchEmployee}
               />
             )}
-            {revisionsWired && (
+            {!showRevisions && (
+              <>
+                <DateInput
+                  className="admin-snap-input admin-snap-hist-period"
+                  value={periodFrom}
+                  max={periodTo || undefined}
+                  onChange={setPeriodFrom}
+                  aria-label={labels.historyPeriodFrom}
+                  data-testid="snap-hist-period-from"
+                />
+                <span className="admin-snap-hist-period-sep" aria-hidden="true">~</span>
+                <DateInput
+                  className="admin-snap-input admin-snap-hist-period"
+                  value={periodTo}
+                  min={periodFrom || undefined}
+                  onChange={setPeriodTo}
+                  aria-label={labels.historyPeriodTo}
+                  data-testid="snap-hist-period-to"
+                />
+              </>
+            )}
+            {(
               <select
                 className="admin-snap-select admin-snap-hist-typefilter"
                 aria-label={labels.historyType}
@@ -1575,7 +1700,7 @@ function AppointmentHistoryView({
               >
                 <option value="">{labels.historyTypeAll}</option>
                 {typeKeys.map((k) => <option key={k} value={k}>{labels.typeLabels[k] ?? k}</option>)}
-                <option value="revision">{labels.historyTypeRevision}</option>
+                {revisionsWired && <option value="revision">{labels.historyTypeRevision}</option>}
               </select>
             )}
             {!showRevisions && (
@@ -1584,6 +1709,9 @@ function AppointmentHistoryView({
           </div>
           {cancelError && (
             <div className="admin-snap-warnbox" role="alert">{cancelError}</div>
+          )}
+          {error && !showRevisions && (
+            <div className="admin-snap-warnbox" role="alert" data-testid="snap-hist-load-error">{error}</div>
           )}
           {showRevisions ? (
             <StructureRevisionTable
@@ -1594,7 +1722,7 @@ function AppointmentHistoryView({
               onOpen={openRevision}
             />
           ) : filtered.length === 0 ? (
-            <EmptyState size="lg" description={labels.historyEmpty} />
+            error ? null : <EmptyState size="lg" description={labels.historyEmpty} />
           ) : (
           <div className="admin-snap-hist-tablewrap">
             <RosterTable>
@@ -1631,7 +1759,7 @@ function AppointmentHistoryView({
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
-                      {rec.scheduled && onCancelScheduled && (
+                      {rec.scheduled && !rec.members && onCancelScheduled && (
                         <>
                           <button
                             type="button"
@@ -1670,23 +1798,30 @@ function AppointmentHistoryView({
               <button type="button" className="admin-snap-hist-panel-close" onClick={() => setSelected(null)}>×</button>
             </div>
             <div className="admin-snap-hist-panel-body">
-              {selected.changes && selected.changes.length > 0 && (
-                <RosterTable scroll="none">
-                  <RosterTable.Head>
-                      <RosterTable.HeadCell>{labels.historyField}</RosterTable.HeadCell>
-                      <RosterTable.HeadCell>{labels.fieldBefore}</RosterTable.HeadCell>
-                      <RosterTable.HeadCell>{labels.fieldAfter}</RosterTable.HeadCell>
-                    </RosterTable.Head>
-                  <RosterTable.Body>
-                    {selected.changes.map((ch, i) => (
-                      <RosterTable.Row key={i}>
-                        <RosterTable.Cell className="admin-snap-ba-field">{labels.fieldLabels[ch.field] ?? ch.field}</RosterTable.Cell>
-                        <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '-'}</RosterTable.Cell>
-                        <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '-'}</RosterTable.Cell>
-                      </RosterTable.Row>
-                    ))}
-                  </RosterTable.Body>
-                </RosterTable>
+              {selected.members ? (
+                /* 대량 발령 묶음 — 사람마다 이름 + 변경 전/후 (§4 «전체 N명») */
+                selected.members.map((m) => (
+                  <div key={m.id} className="admin-snap-hist-member" data-testid="snap-hist-group-member">
+                    <div className="admin-snap-hist-member-name">
+                      {m.name || '—'}
+                      {m.scheduled && <> · {labels.historyScheduled}</>}
+                      {m.scheduled && onCancelScheduled && (
+                        <button
+                          type="button"
+                          className="admin-snap-hist-detaillink admin-snap-hist-cancel"
+                          disabled={cancellingId === m.id}
+                          onClick={() => cancelScheduled(m)}
+                          data-testid={`snap-hist-cancel-${m.id}`}
+                        >
+                          {' · '}{labels.historyCancelScheduled}
+                        </button>
+                      )}
+                    </div>
+                    <HistoryChangesTable changes={m.changes} labels={labels} />
+                  </div>
+                ))
+              ) : (
+                <HistoryChangesTable changes={selected.changes} labels={labels} />
               )}
               {selected.reason && (
                 <>
@@ -1694,6 +1829,11 @@ function AppointmentHistoryView({
                   <div className="admin-snap-hist-reason">{selected.reason}</div>
                 </>
               )}
+              <div className="admin-snap-hist-processed" data-testid="snap-hist-processed">
+                {String(labels.historyProcessed ?? '')
+                  .replace('{by}', selected.by || '—')
+                  .replace('{at}', selected.processedAt || '—')}
+              </div>
             </div>
           </div>
         )}
@@ -2055,6 +2195,8 @@ export default function OrgSnapshotCanvas({
   bulkAffiliationTemplate,
   // 이력
   historyRecords = [],
+  /** 발령 이력 목록을 못 불러왔을 때 사유 — 있으면 «이력이 없습니다» 대신 이것을 띄운다 (W66) */
+  historyError,
   onExportHistory,
   /**
    * 예정 발령(행의 `scheduled: true`) 발효 전 취소 — `(record) => Promise` (PW-1422 · §4).
@@ -2182,6 +2324,7 @@ export default function OrgSnapshotCanvas({
           {view === 'history' && (
             <AppointmentHistoryView
               records={historyRecords}
+              error={historyError}
               labels={labels}
               onExport={onExportHistory}
               onCancelScheduled={onCancelScheduled}
