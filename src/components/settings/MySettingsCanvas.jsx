@@ -9,6 +9,7 @@ import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -57,6 +58,8 @@ const DEFAULT_LABELS = {
       '연락처·주소·가족·학력 등 개인정보 항목의 변경 이력입니다. 본인과 인사 담당자만 볼 수 있습니다.',
     bannerScope:
       '연봉은 보상 정보 탭에, 근태·휴가·복리후생은 각 화면에 이력이 있어 여기에는 표시하지 않습니다.',
+    fieldLabel: '항목',
+    periodLabel: '기간',
     allFields: '전체',
     periods: { all: '전체 기간', '3m': '최근 3개월', '1y': '최근 1년' },
     byMe: '본인',
@@ -1291,7 +1294,6 @@ function HistoryTab({
   const hasMore = Boolean(history && history.nextCursor);
   const isFiltered = field !== 'all' || period !== 'all';
 
-  const chip = (active) => `admin-notif-btn is-sm ${active ? 'is-primary' : 'is-soft'}`;
 
   return (
     <>
@@ -1306,22 +1308,27 @@ function HistoryTab({
       </div>
 
       <Card testId="history-card">
+        {/* 거르기는 한 줄 — 항목은 하나만 고르니 목록으로 접고, 기간은 모양이 다른 토글로 둬서
+            별개의 거르기로 읽히게 한다 (PW-1430). 좁으면 둘째 줄로 내려간다. */}
         <div className="msc-hist-filters" data-testid="history-filters">
-          <button type="button" className={chip(field === 'all')}
-            onClick={() => onFieldChange && onFieldChange('all')}
-            data-testid="history-field-all">{L.allFields}</button>
-          {/* 받은 목록 그대로 세운다 — 내 설정은 원 편집 자리 묶음(정책서 §2)을 넘긴다. */}
-          {fields.map((f) => (
-            <button key={f.key} type="button" className={chip(field === f.key)}
-              onClick={() => onFieldChange && onFieldChange(f.key)}
-              data-testid={`history-field-${f.key}`}>{f.label}</button>
-          ))}
-          <span className="msc-hist-filter-sep" aria-hidden="true" />
-          {['all', '3m', '1y'].map((p) => (
-            <button key={p} type="button" className={chip(period === p)}
-              onClick={() => onPeriodChange && onPeriodChange(p)}
-              data-testid={`history-period-${p}`}>{L.periods[p]}</button>
-          ))}
+          <label className="msc-hist-field">
+            <span className="msc-hist-field-label">{L.fieldLabel}</span>
+            <Select className="admin-emp-input" value={field}
+              onChange={(e) => onFieldChange && onFieldChange(e.target.value)}
+              aria-label={L.fieldLabel} data-testid="history-field-select">
+              <option value="all" data-testid="history-field-all">{L.allFields}</option>
+              {/* 받은 목록 그대로 세운다 — 내 설정은 원 편집 자리 묶음(정책서 §2)을 넘긴다. */}
+              {fields.map((f) => (
+                <option key={f.key} value={f.key} data-testid={`history-field-${f.key}`}>{f.label}</option>
+              ))}
+            </Select>
+          </label>
+          <SegmentedControl
+            items={['all', '3m', '1y'].map((p) => ({ value: p, label: L.periods[p], testId: `history-period-${p}` }))}
+            value={period}
+            onChange={(p) => onPeriodChange && onPeriodChange(p)}
+            ariaLabel={L.periodLabel}
+          />
         </div>
 
         {loading ? (
