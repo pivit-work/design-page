@@ -214,6 +214,11 @@ const DEFAULT_LABELS = {
     /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — 고른 사람을 그대로 넘긴다. 가입한 사람을 건너뛰는
        판정과 확인 창은 부르는 쪽이 한다. 파괴적이라 맨 아래 · 구분선 아래 · 빨간 글씨. */
     cancelRegistration: '등록 취소',
+    /* 부분 실패 배너 (§3.1 「부분 실패 원칙」 · TC-ADM-146). `{count}` 는 실패한 사람 수. */
+    failedTitle: '{count}건 저장 실패',
+    failedOnly: '실패 행만 보기',
+    failedShowAll: '전체 보기',
+    failedDismiss: '닫기',
     /* 좌석은 **지금 「재직」 인 사람 수**로 센다 — 휴직·수습·퇴사는 자리를 차지하지
        않는다(서버 `isBillableSeat` 와 같은 기준 · §3.2.1 · §3.7).
        🔴 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④). */
@@ -2145,6 +2150,11 @@ function EmployeesListView({
   /* 「등록 취소」 (PW-1351) — `onCancelRegistration(memberIds)`. 일괄은 고른 사람 전부, 행 메뉴는
      미가입(`unjoined`) 행 한 명을 넘긴다. 미주입이면 두 자리 모두 없다. */
   onCancelRegistration,
+  /* 일괄 처리 부분 실패 (§3.1 「부분 실패 원칙」 · TC-ADM-146) — `{ ids, message }`.
+     성공한 사람은 이미 반영됐고, 실패한 사람만 고른 채로 남겨 붉게 칠하고 위에 «N건 저장 실패»
+     배너와 [실패 행만 보기]를 띄운다. 새 값이 올 때마다 선택을 실패한 사람으로 갈아 끼운다.
+     `onDismissBulkFailure` 는 배너의 [닫기]. 미주입이면 배너가 없다. */
+  bulkFailure, onDismissBulkFailure,
   /* 「재입사 초대」 (PW-1355) — 퇴사자 행 한 명. 캔버스가 초대 창을 재입사 모드로 연다. */
   onRehireMember,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
@@ -2212,6 +2222,24 @@ function EmployeesListView({
   const [ownSelectedIds, setOwnSelectedIds] = useState(() => new Set());
   const selectedIds = providedSelectedIds ?? ownSelectedIds;
   const setSelectedIds = onSelectedIdsChange ?? setOwnSelectedIds;
+
+  /* 부분 실패 (§3.1) — 새 실패가 오면 실패한 사람만 고른 채로 남긴다. 성공한 사람까지
+     고른 채로 두면 다음 일괄 처리가 이미 반영된 사람에게도 같은 조작을 한 번 더 보낸다.
+     선택을 캔버스가 들고 있으면(`onSelectedIdsChange`) 갈아 끼우기도 캔버스가 한다 —
+     렌더 중에 남의 상태를 바꿀 수 없어서다. */
+  const failedIds = useMemo(
+    () => new Set((bulkFailure?.ids ?? EMPTY_ARRAY).map(String)),
+    [bulkFailure],
+  );
+  const [seenFailure, setSeenFailure] = useState(null);
+  if (seenFailure !== (bulkFailure ?? null)) {
+    setSeenFailure(bulkFailure ?? null);
+    if (!onSelectedIdsChange && bulkFailure?.ids?.length) setOwnSelectedIds(new Set(bulkFailure.ids));
+  }
+  // [실패 행만 보기]는 «그 실패»에만 걸린다 — 새 실패가 오거나 걷히면 저절로 풀린다.
+  const [failedOnlyFor, setFailedOnlyFor] = useState(null);
+  const failedOnly = failedOnlyFor !== null && failedOnlyFor === bulkFailure;
+  const setFailedOnly = (on) => setFailedOnlyFor(on ? bulkFailure : null);
   // 「소속 일괄 추가」 팝업 열림 (PW-608).
   const [bulkOrgOpen, setBulkOrgOpen] = useState(false);
   /* 열려 있는 일괄 처리 창 (PW-610) — `'manager' | 'status' | 'deactivate' | null`.
@@ -2443,9 +2471,12 @@ function EmployeesListView({
   );
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
+  // [실패 행만 보기]는 다른 필터와 무관하게 실패한 사람만 보인다 — 필터에 가려 실패 행이 안 보이면 안 된다.
   const ordered = useMemo(
-    () => [...filtered].sort((a, b) => (b.isCeo ? 1 : 0) - (a.isCeo ? 1 : 0)),
-    [filtered],
+    () =>
+      [...(failedOnly && failedIds.size > 0 ? members.filter((m) => failedIds.has(String(m.id))) : filtered)]
+        .sort((a, b) => (b.isCeo ? 1 : 0) - (a.isCeo ? 1 : 0)),
+    [filtered, failedOnly, failedIds, members],
   );
 
   const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
@@ -3111,6 +3142,37 @@ function EmployeesListView({
         )}
       </div>
 
+      {bulkFailure && failedIds.size > 0 && onDismissBulkFailure && (
+        <div className="admin-emp-banner is-error" role="alert" data-testid="employees-list-bulk-failure">
+          <span className="admin-emp-banner-icon" aria-hidden="true"><IconAlert size={18} /></span>
+          <div className="admin-emp-banner-main">
+            <div className="admin-emp-banner-title">
+              {String(labels.listBulk.failedTitle).split('{count}').join(String(failedIds.size))}
+            </div>
+            {bulkFailure.message && <div className="admin-emp-banner-body">{bulkFailure.message}</div>}
+          </div>
+          <div className="admin-emp-banner-actions">
+            <Button
+              variant="secondary"
+              size="sm"
+              data-testid="employees-list-failed-only"
+              aria-pressed={failedOnly}
+              onClick={() => { setFailedOnly(!failedOnly); setPage(1); }}
+            >
+              {failedOnly ? labels.listBulk.failedShowAll : labels.listBulk.failedOnly}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-testid="employees-list-failed-dismiss"
+              onClick={() => { setFailedOnly(false); onDismissBulkFailure(); }}
+            >
+              {labels.listBulk.failedDismiss}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 표는 이 컨테이너 안에서만 가로로 흐른다 — 페이지가 통째로 옆으로 밀리면
           스크롤 막대가 화면 밖으로 나가 손이 닿지 않는다(PW-400 §3). */}
       <RosterTable
@@ -3149,7 +3211,9 @@ function EmployeesListView({
         }))}
         rows={pageRows}
         rowKey={(m) => m.id}
-        rowProps={(m) => ({ 'data-testid': `employees-list-row-${m.id}` })}
+        rowProps={(m) => (failedIds.has(String(m.id))
+          ? { 'data-testid': `employees-list-row-${m.id}`, tone: 'error', 'data-bulk-failed': 'true' }
+          : { 'data-testid': `employees-list-row-${m.id}` })}
         renderCell={(m, col) => cell(m, col.key)}
         empty={labels.listEmptyFiltered}
       />
@@ -4757,6 +4821,9 @@ export default function AdminEmployeesCanvas({
      미가입 행(`member.unjoined`)의 ⋯ 메뉴(«비활성화» 대신)에 뜬다. 가입한 사람을 거르는 판정·확인 창은
      부르는 쪽이 한다. 미주입이면 두 자리 모두 없다. */
   onCancelRegistration,
+  /* 일괄 처리 부분 실패 — 목록 뷰로 그대로 넘긴다(`EmployeesListView` 주석). */
+  bulkFailure,
+  onDismissBulkFailure,
   /* 그 창이 한 번에 받는 인원 상한 (PW-1330). 넘게 고르면 항목이 막히고 안내가 붙는다. */
   bulkEditFieldsMax,
   /**
@@ -4974,6 +5041,12 @@ export default function AdminEmployeesCanvas({
      문구로 갈아 끼우므로, 뷰 안에 두면 새로고침 한 번에 체크가 말없이 풀린다 —
      소속·매니저를 한 번 고치기만 해도 그 새로고침이 돈다. */
   const [listSelectedIds, setListSelectedIds] = useState(() => new Set());
+  // 일괄 처리 부분 실패가 새로 오면 고른 사람을 실패한 사람으로 갈아 끼운다(§3.1 · 목록 뷰 `bulkFailure` 주석).
+  const [seenBulkFailure, setSeenBulkFailure] = useState(null);
+  if (seenBulkFailure !== (bulkFailure ?? null)) {
+    setSeenBulkFailure(bulkFailure ?? null);
+    if (bulkFailure?.ids?.length) setListSelectedIds(new Set(bulkFailure.ids));
+  }
   /* 대표(CEO) 지정·해제 확인 창 (§3.6-A · PW-576). 행 «⋯» 메뉴가 연다. */
   const [ceoConfirm, setCeoConfirm] = useState(null);
   // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
@@ -5158,6 +5231,8 @@ export default function AdminEmployeesCanvas({
             onBulkEditFields={canEdit ? onBulkEditFields : undefined}
             onInviteMembers={canEdit ? onInviteMembers : undefined}
             onCancelRegistration={canEdit ? onCancelRegistration : undefined}
+            bulkFailure={bulkFailure}
+            onDismissBulkFailure={onDismissBulkFailure}
             onRehireMember={canEdit && canInvite ? openRehire : undefined}
             bulkEditFieldsMax={bulkEditFieldsMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
