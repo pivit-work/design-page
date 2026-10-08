@@ -202,9 +202,37 @@ const DEFAULT_LABELS = {
   historyField: '항목',
   historyReason: '사유',
   searchEmployee: '이름 또는 사번 검색',
+  // 예약 발령 (org-snapshot-spec §2 · §4 · PW-1422)
+  /** 발령 일자가 오늘 이후일 때 그 칸 아래. `{date}` 자리에 발령일. */
+  scheduledHint: '발령일({date})에 반영돼요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
+  /** 같은 사람·같은 항목에 예정 건이 있을 때. `{date}` 발령일 · `{fields}` 항목 */
+  pendingOverwriteAsk: '예정된 발령이 있어요({date} {fields}) — 덮어쓸까요?',
+  pendingOverwriteConfirm: '덮어쓰기',
+  historyScheduled: '예정',
+  historyCancelScheduled: '발효 전 취소',
+  // 구조 개정 (org-snapshot-spec §4 · §5)
+  historyTypeAll: '전체 유형',
+  historyTypeRevision: '구조 개정',
+  revisionNo: '개정 번호',
+  revisionSavedAt: '저장 시각',
+  revisionSavedBy: '저장한 사람',
+  revisionChangedUnits: '바뀐 단위 수',
+  revisionEmpty: '구조 개정 이력이 없습니다',
+  revisionUnit: '부서',
+  revisionBefore: '개정 전',
+  revisionAfter: '개정 후',
+  revisionNoChanges: '바뀐 부서가 없습니다',
+  revisionLoading: '불러오는 중…',
+  /** As Of 배너 뒤에 붙는다. `{version}` · `{date}` */
+  asofTreeRevision: ' · 부서 트리는 구조 개정 #{version}({date}) 기준입니다',
   fieldLabels: {},
   typeLabels: {},
 };
+
+/** 문구의 `{key}` 자리를 채운다. */
+function fill(text, vars) {
+  return Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(v ?? ''), String(text ?? ''));
+}
 
 function merge(base, provided) {
   if (!provided) return base;
@@ -725,13 +753,29 @@ function OrgSnapshotStatusView({
 const AXIS_LEVEL_OF_FIELD = { jobFamily: 'family', jobLadder: 'ladder', jobDuty: 'duty' };
 const AXIS_FIELD_OF_LEVEL = { family: 'jobFamily', ladder: 'jobLadder', duty: 'jobDuty' };
 
+/** 발령일이 오늘 이후면 그 칸 아래 안내 — 저장해도 그날까지는 값이 안 바뀐다 (§2 · PW-1422). */
+function ScheduledHint({ date, today, labels }) {
+  if (!date || !today || date <= today) return null;
+  return (
+    <div className="admin-snap-sched-hint" data-testid="snap-scheduled-hint">
+      {fill(labels.scheduledHint, { date })}
+    </div>
+  );
+}
+
 function AppointmentSingleView({
   members, fieldOptions, changeableFields, selectFieldKeys, appointmentTypes,
   jobAxis, onOpenFieldOptions,
-  labels, onSubmit, defaultDate = '',
+  labels, onSubmit, defaultDate = '', today = '',
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
+  /**
+   * 같은 사람·같은 항목의 예정 발령과 부딪쳤을 때 `{ date, fields }` (PW-1422 · §2).
+   * 앱이 거절 응답을 이 모양으로 `err.pendingConflict` 에 실어 던진다. 덮어쓰면 같은
+   * 발령을 `replacePending: true` 로 다시 보낸다.
+   */
+  const [pendingConflict, setPendingConflict] = useState(null);
   const [selectedFields, setSelectedFields] = useState(() => new Set());
   const [appointmentType, setAppointmentType] = useState('');
   const [appointmentDate, setAppointmentDate] = useState(defaultDate);
@@ -792,12 +836,14 @@ function AppointmentSingleView({
     setSelectedMember(null); setSelectedFields(new Set());
     setAppointmentType(''); setAppointmentDate(defaultDate); setReason('');
     setChanges({}); setDone(false); setSubmitError(''); setAxisNotice(null);
+    setPendingConflict(null);
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = async ({ replacePending = false } = {}) => {
     if (!selectedMember) return;
     setSubmitting(true);
     setSubmitError('');
+    setPendingConflict(null);
     try {
       const changeList = Array.from(selectedFields).map((f) => ({
         field: f,
@@ -810,9 +856,14 @@ function AppointmentSingleView({
         date: appointmentDate,
         reason,
         changes: changeList,
+        ...(replacePending ? { replacePending: true } : {}),
       });
       setDone(true);
     } catch (err) {
+      if (err?.pendingConflict && !replacePending) {
+        setPendingConflict(err.pendingConflict);
+        return;
+      }
       // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
       setSubmitError(err?.message || String(err));
     } finally {
@@ -887,6 +938,7 @@ function AppointmentSingleView({
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentDate}</label>
               <DateInput className="admin-snap-input" value={appointmentDate} onChange={setAppointmentDate} />
+              <ScheduledHint date={appointmentDate} today={today} labels={labels} />
             </div>
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.reason}</label>
@@ -970,13 +1022,30 @@ function AppointmentSingleView({
           {submitError && (
             <div className="admin-snap-warnbox" role="alert">{submitError}</div>
           )}
+          {pendingConflict && (
+            <div className="admin-snap-warnbox admin-snap-overwrite" role="alert" data-testid="snap-pending-overwrite">
+              <span>{fill(labels.pendingOverwriteAsk, pendingConflict)}</span>
+              <span className="admin-snap-overwrite-actions">
+                <button type="button" className="admin-emp-btn is-soft" onClick={() => setPendingConflict(null)}>{labels.cancel}</button>
+                <button
+                  type="button"
+                  className="admin-emp-btn is-primary"
+                  disabled={submitting}
+                  onClick={() => handleConfirm({ replacePending: true })}
+                  data-testid="snap-pending-overwrite-confirm"
+                >
+                  {labels.pendingOverwriteConfirm}
+                </button>
+              </span>
+            </div>
+          )}
           <div className="admin-snap-actions">
             <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.cancel}</button>
             {/* 발령 유형도 있어야 누른다(PW-1058) — 서버는 유형이 없으면 거절한다. */}
             <button
               type="button"
               className="admin-emp-btn is-primary"
-              onClick={handleConfirm}
+              onClick={() => handleConfirm()}
               disabled={!selectedMember || !appointmentType || selectedFields.size === 0 || !appointmentDate || submitting}
               data-testid="snap-single-confirm"
             >
@@ -1396,6 +1465,7 @@ function AppointmentBulkView({
               <div className="admin-snap-field">
                 <label className="admin-snap-field-label">{labels.appointmentDate}</label>
                 <DateInput className="admin-snap-input" value={date} onChange={setDate} />
+                <ScheduledHint date={date} today={defaultDate} labels={labels} />
               </div>
               <div className="admin-snap-field">
                 <label className="admin-snap-field-label">{labels.reason}</label>
@@ -1422,33 +1492,110 @@ function AppointmentBulkView({
 /* ════════════════════════════════════════════════════════════
  * 4. 발령 이력
  * ════════════════════════════════════════════════════════════ */
-function AppointmentHistoryView({ records, labels, onExport }) {
+function AppointmentHistoryView({
+  records, labels, onExport, onCancelScheduled,
+  structureRevisions, structureRevisionsError, onLoadStructureRevision,
+}) {
   const [searchQuery, setSearchQuery] = useState('');
+  /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
+  const [typeFilter, setTypeFilter] = useState('');
   const [selected, setSelected] = useState(null);
+  const [cancelError, setCancelError] = useState('');
+  const [cancellingId, setCancellingId] = useState(null);
+  /** 구조 개정 상세 — `{ version, status: 'loading'|'ready'|'error', changes, error }` */
+  const [revision, setRevision] = useState(null);
 
+  const typeKeys = useMemo(
+    () => Array.from(new Set(records.map((r) => r.typeKey).filter(Boolean))),
+    [records],
+  );
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return records;
-    const q = searchQuery.toLowerCase();
-    return records.filter((r) => (r.name ?? '').toLowerCase().includes(q));
-  }, [records, searchQuery]);
+    const q = searchQuery.trim().toLowerCase();
+    return records.filter((r) =>
+      (!typeFilter || r.typeKey === typeFilter) &&
+      (!q || (r.name ?? '').toLowerCase().includes(q)));
+  }, [records, searchQuery, typeFilter]);
 
-  if (records.length === 0) {
+  // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
+  const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
+  if (records.length === 0 && !revisionsWired) {
     return <EmptyState size="lg" description={labels.historyEmpty} />;
   }
+  const showRevisions = typeFilter === 'revision';
+
+  const cancelScheduled = async (rec) => {
+    setCancelError('');
+    setCancellingId(rec.id);
+    try {
+      await onCancelScheduled?.(rec);
+      if (selected?.id === rec.id) setSelected(null);
+    } catch (err) {
+      // 실패하면 배지가 그대로 남고, 왜 안 됐는지를 이 화면 안에 띄운다.
+      setCancelError(err?.message || String(err));
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const openRevision = async (rev) => {
+    setSelected(null);
+    setRevision({ version: rev.version, savedAt: rev.savedAt, status: 'loading' });
+    try {
+      const detail = await onLoadStructureRevision?.(rev.version);
+      setRevision((cur) => (cur?.version === rev.version
+        ? { ...cur, status: 'ready', changes: detail?.changes ?? [], note: detail?.note ?? '' }
+        : cur));
+    } catch (err) {
+      setRevision((cur) => (cur?.version === rev.version
+        ? { ...cur, status: 'error', error: err?.message || String(err) }
+        : cur));
+    }
+  };
 
   return (
     <div className="admin-snap-canvas">
       <div className="admin-snap-hist-layout">
         <div className="admin-snap-hist-main">
           <div className="admin-snap-hist-toolbar">
-            <input
-              className="admin-snap-search admin-snap-hist-search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={labels.searchEmployee}
-            />
-            <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
+            {!showRevisions && (
+              <input
+                className="admin-snap-search admin-snap-hist-search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={labels.searchEmployee}
+              />
+            )}
+            {revisionsWired && (
+              <select
+                className="admin-snap-select admin-snap-hist-typefilter"
+                aria-label={labels.historyType}
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setSelected(null); setRevision(null); }}
+                data-testid="snap-hist-type-filter"
+              >
+                <option value="">{labels.historyTypeAll}</option>
+                {typeKeys.map((k) => <option key={k} value={k}>{labels.typeLabels[k] ?? k}</option>)}
+                <option value="revision">{labels.historyTypeRevision}</option>
+              </select>
+            )}
+            {!showRevisions && (
+              <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
+            )}
           </div>
+          {cancelError && (
+            <div className="admin-snap-warnbox" role="alert">{cancelError}</div>
+          )}
+          {showRevisions ? (
+            <StructureRevisionTable
+              revisions={structureRevisions}
+              error={structureRevisionsError}
+              selectedVersion={revision?.version}
+              labels={labels}
+              onOpen={openRevision}
+            />
+          ) : filtered.length === 0 ? (
+            <EmptyState size="lg" description={labels.historyEmpty} />
+          ) : (
           <div className="admin-snap-hist-tablewrap">
             <RosterTable>
               <RosterTable.Head>
@@ -1465,9 +1612,14 @@ function AppointmentHistoryView({ records, labels, onExport }) {
                     key={rec.id}
                     className="admin-snap-hist-row"
                     tone={selected?.id === rec.id ? 'selected' : undefined}
-                    onClick={() => setSelected(rec)}
+                    onClick={() => { setRevision(null); setSelected(rec); }}
                   >
-                    <RosterTable.Cell className="admin-snap-hist-date">{rec.date ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-date">
+                      {rec.date ?? '-'}
+                      {rec.scheduled && (
+                        <StatusBadge className="admin-snap-type-badge is-gray admin-snap-sched-badge">{labels.historyScheduled}</StatusBadge>
+                      )}
+                    </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
                       <StatusBadge className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
@@ -1478,21 +1630,39 @@ function AppointmentHistoryView({ records, labels, onExport }) {
                       {rec.mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
-                    <RosterTable.Cell><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
+                    <RosterTable.Cell>
+                      {rec.scheduled && onCancelScheduled && (
+                        <>
+                          <button
+                            type="button"
+                            className="admin-snap-hist-detaillink admin-snap-hist-cancel"
+                            disabled={cancellingId === rec.id}
+                            onClick={(e) => { e.stopPropagation(); cancelScheduled(rec); }}
+                            data-testid={`snap-hist-cancel-${rec.id}`}
+                          >
+                            {labels.historyCancelScheduled}
+                          </button>
+                          <span className="admin-snap-hist-detaillink">{'\u00a0·\u00a0'}</span>
+                        </>
+                      )}
+                      <span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span>
+                    </RosterTable.Cell>
                   </RosterTable.Row>
                 ))}
               </RosterTable.Body>
             </RosterTable>
           </div>
+          )}
         </div>
 
-        {selected && (
+        {selected && !showRevisions && (
           <div className="admin-snap-hist-panel">
             <div className="admin-snap-hist-panel-head">
               <div>
                 <div className="admin-snap-hist-panel-name">{selected.name}</div>
                 <div className="admin-snap-hist-panel-meta">
                   <span className="admin-snap-mono">{selected.date}</span>
+                  {selected.scheduled && <> {labels.historyScheduled}</>}
                   {' · '}
                   {selected.typeKey ? (labels.typeLabels[selected.typeKey] ?? selected.typeKey) : '-'}
                 </div>
@@ -1527,7 +1697,90 @@ function AppointmentHistoryView({ records, labels, onExport }) {
             </div>
           </div>
         )}
+
+        {revision && showRevisions && (
+          <div className="admin-snap-hist-panel" data-testid="snap-revision-panel">
+            <div className="admin-snap-hist-panel-head">
+              <div>
+                <div className="admin-snap-hist-panel-name">{labels.historyTypeRevision} #{revision.version}</div>
+                <div className="admin-snap-hist-panel-meta">
+                  <span className="admin-snap-mono">{revision.savedAt}</span>
+                </div>
+              </div>
+              <button type="button" className="admin-snap-hist-panel-close" onClick={() => setRevision(null)}>×</button>
+            </div>
+            <div className="admin-snap-hist-panel-body">
+              {revision.status === 'loading' && <LoadingState>{labels.revisionLoading}</LoadingState>}
+              {revision.status === 'error' && (
+                <div className="admin-snap-warnbox" role="alert">{revision.error}</div>
+              )}
+              {revision.status === 'ready' && revision.note && (
+                <div className="admin-snap-sched-hint" data-testid="snap-revision-note">{revision.note}</div>
+              )}
+              {revision.status === 'ready' && (revision.changes.length === 0 ? (
+                <EmptyState description={labels.revisionNoChanges} />
+              ) : (
+                <RosterTable scroll="none">
+                  <RosterTable.Head>
+                    <RosterTable.HeadCell>{labels.revisionUnit}</RosterTable.HeadCell>
+                    <RosterTable.HeadCell>{labels.revisionBefore}</RosterTable.HeadCell>
+                    <RosterTable.HeadCell>{labels.revisionAfter}</RosterTable.HeadCell>
+                  </RosterTable.Head>
+                  <RosterTable.Body>
+                    {revision.changes.map((ch, i) => (
+                      <RosterTable.Row key={i}>
+                        <RosterTable.Cell className="admin-snap-ba-field">{ch.unit}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '-'}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '-'}</RosterTable.Cell>
+                      </RosterTable.Row>
+                    ))}
+                  </RosterTable.Body>
+                </RosterTable>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * 구조 개정 목록 (§4 「구조 개정」 필터 · PW-1422) — 행 = 개정 번호 · 저장 시각 · 저장한 사람 ·
+ * 바뀐 단위 수. 불러오기 실패는 「없습니다」가 아니라 사유로 보인다.
+ */
+function StructureRevisionTable({ revisions, error, selectedVersion, labels, onOpen }) {
+  if (error) return <div className="admin-snap-warnbox" role="alert">{error}</div>;
+  if (!revisions) return <LoadingState>{labels.revisionLoading}</LoadingState>;
+  if (revisions.length === 0) return <EmptyState size="lg" description={labels.revisionEmpty} />;
+  return (
+    <div className="admin-snap-hist-tablewrap">
+      <RosterTable>
+        <RosterTable.Head>
+          <RosterTable.HeadCell>{labels.revisionNo}</RosterTable.HeadCell>
+          <RosterTable.HeadCell>{labels.revisionSavedAt}</RosterTable.HeadCell>
+          <RosterTable.HeadCell>{labels.revisionSavedBy}</RosterTable.HeadCell>
+          <RosterTable.HeadCell>{labels.revisionChangedUnits}</RosterTable.HeadCell>
+          <RosterTable.HeadCell aria-hidden="true" />
+        </RosterTable.Head>
+        <RosterTable.Body>
+          {revisions.map((rev) => (
+            <RosterTable.Row
+              key={rev.version}
+              className="admin-snap-hist-row"
+              tone={selectedVersion === rev.version ? 'selected' : undefined}
+              onClick={() => onOpen(rev)}
+              data-testid={`snap-revision-row-${rev.version}`}
+            >
+              <RosterTable.Cell className="admin-snap-hist-name">#{rev.version}</RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-date">{rev.savedAt ?? '-'}</RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-mode">{rev.savedBy ?? '-'}</RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-mode">{rev.changedUnits}</RosterTable.Cell>
+              <RosterTable.Cell><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
+            </RosterTable.Row>
+          ))}
+        </RosterTable.Body>
+      </RosterTable>
     </div>
   );
 }
@@ -1656,7 +1909,17 @@ function AsOfSnapshotView({
       {/* 타임머신 배너 — 앰버는 여기에만. C1 은 중립 톤이다(§5-A) */}
       {isPast && !isOut && (
         <div className="admin-snap-timemachine" role="status">
-          <span>{String(labels.asofBanner).replace('{date}', asOfDate)}</span>
+          <span>
+            {String(labels.asofBanner).replace('{date}', asOfDate)}
+            {data?.meta?.structureRevision && (
+              <span className="admin-snap-timemachine-revision" data-testid="asof-structure-revision">
+                {fill(labels.asofTreeRevision, {
+                  version: data.meta.structureRevision.version,
+                  date: data.meta.structureRevision.savedDate,
+                })}
+              </span>
+            )}
+          </span>
           <button type="button" onClick={() => onAsOfDateChange?.(today)}>
             {labels.asofBackToToday}
           </button>
@@ -1794,6 +2057,20 @@ export default function OrgSnapshotCanvas({
   historyRecords = [],
   onExportHistory,
   /**
+   * 예정 발령(행의 `scheduled: true`) 발효 전 취소 — `(record) => Promise` (PW-1422 · §4).
+   * 거절되면 그 사유를 이력 화면 안에 띄운다. 미주입이면 취소 버튼이 없다.
+   */
+  onCancelScheduled,
+  /**
+   * 구조 개정 목록 `[{ version, savedAt, savedBy, changedUnits }]` (§4 · PW-1422).
+   * 넘기면 발령 유형 필터에 「구조 개정」이 생긴다. `null` = 불러오는 중.
+   */
+  structureRevisions,
+  /** 구조 개정 목록을 못 불러왔을 때 사유 — 「없습니다」 대신 이것이 보인다. */
+  structureRevisionsError = '',
+  /** 개정 한 건 상세 `(version) => Promise<{ changes: [{ unit, before, after }] }>` */
+  onLoadStructureRevision,
+  /**
    * 뷰 탭 위 안내 띠 `{ title, body }` (PW-760). 조직 현황을 과거 날짜로 조회했을 때
    * 「그 시점 스냅샷이 없어 가장 가까운 기록으로 재구성했다」를 앱이 문장으로 만들어 넘긴다 —
    * 재구성 상태 판정은 서버 응답을 읽는 앱의 몫이다. 없으면 안 그린다.
@@ -1887,6 +2164,7 @@ export default function OrgSnapshotCanvas({
               labels={labels}
               onSubmit={onSubmitSingle}
               defaultDate={today}
+              today={today}
             />
           )}
           {view === 'bulk' && (
@@ -1906,6 +2184,10 @@ export default function OrgSnapshotCanvas({
               records={historyRecords}
               labels={labels}
               onExport={onExportHistory}
+              onCancelScheduled={onCancelScheduled}
+              structureRevisions={structureRevisions}
+              structureRevisionsError={structureRevisionsError}
+              onLoadStructureRevision={onLoadStructureRevision}
             />
           )}
         </>
