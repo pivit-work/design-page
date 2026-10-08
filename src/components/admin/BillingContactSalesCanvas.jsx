@@ -51,6 +51,15 @@ const DEFAULT_LABELS = {
     <>영업팀이 <b>영업일 기준 1~2일 내</b> {email} 로 연락드립니다.</>
   ),
   successNote: '접수 번호는 등록하신 이메일로 발송됩니다.',
+  // 문의는 끝점이 아니라 협의 단가 경로의 시작점이다 (PW-344 · screen-billing-contact-sales §3).
+  successNextStep: (
+    <>협의가 끝나면 <b>플랜 화면에서 바로 결제</b>하실 수 있도록 협의 단가가 등록됩니다.</>
+  ),
+
+  // 이미 견적이 있거나 만료된 채 재문의 (PW-344 · §7). 제출은 막지 않는다.
+  quoteActiveNotice: '협의 단가가 등록되어 있습니다',
+  quoteActiveCta: '플랜에서 결제하기',
+  quoteExpiredNotice: '이전 견적이 만료되었습니다',
   successCta: '구독 현황으로',
 
   planBadge: 'Pro · Enterprise',
@@ -111,6 +120,13 @@ export default function BillingContactSalesCanvas({
   workspace = { name: '', seats: 0, contactName: '', contactEmail: '' },
   role = 'owner',
   labels: providedLabels,
+  /**
+   * 폼 위 견적 안내 — `'active'`(유효 견적 있음 · [플랜에서 결제하기]) / `'expired'`(가장 최근
+   * 견적이 만료) / `null`. 어느 쪽이든 제출은 막지 않는다.
+   */
+  quoteNotice = null,
+  /** [플랜에서 결제하기] — `quoteNotice === 'active'` 일 때만 쓴다. */
+  onGoPlans,
   onSubmit,
   onBack,
   onDone,
@@ -186,8 +202,11 @@ export default function BillingContactSalesCanvas({
             <div style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>
               {labels.successDesc(f.email)}
             </div>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 24 }}>
+            <div style={{ fontSize: 13, color: T.muted, marginBottom: 6 }}>
               {labels.successNote}
+            </div>
+            <div style={{ fontSize: 13, color: T.sub, marginBottom: 24 }}>
+              {labels.successNextStep}
             </div>
             <button type="button" onClick={onDone}
               style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '12px 24px',
@@ -206,6 +225,29 @@ export default function BillingContactSalesCanvas({
             <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 20 }}>
               {labels.pageSubtitle}
             </p>
+
+            {/* 견적 안내 (PW-344) — 유효 견적이면 결제로 가는 길, 만료면 그 사실. 제출은 막지 않는다. */}
+            {quoteNotice === 'active' && (
+              <Card style={{ marginBottom: 16, background: T.purpleBg, border: 'none' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.purple, marginBottom: onGoPlans ? 12 : 0 }}>
+                  {labels.quoteActiveNotice}
+                </div>
+                {onGoPlans && (
+                  <button type="button" onClick={onGoPlans}
+                    style={{ fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: '8px 16px',
+                      borderRadius: 8, border: 'none', background: T.accent, color: '#fff', cursor: 'pointer' }}>
+                    {labels.quoteActiveCta}
+                  </button>
+                )}
+              </Card>
+            )}
+            {quoteNotice === 'expired' && (
+              <Card style={{ marginBottom: 16, background: T.bl, border: 'none' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                  {labels.quoteExpiredNotice}
+                </div>
+              </Card>
+            )}
 
             {/* 워크스페이스 컨텍스트(자동) */}
             <Card style={{ marginBottom: 16, background: T.bl, border: 'none' }}>
