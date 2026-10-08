@@ -2,6 +2,7 @@ import {
   narrowByParent, groupedChildren, groupedOptionValue, parseGroupedOptionValue,
 } from './jobAxis.js';
 import { IconChevronRight } from './employeesIcons.jsx';
+import { useEffect, useRef } from 'react';
 import Select from '../shared/Select.jsx';
 
 /**
@@ -23,11 +24,25 @@ import Select from '../shared/Select.jsx';
  * @param jobAxis   { families, ladders, duties, laddersByFamily, dutiesByLadder }
  * @param labels    { none, axisEmptyFamilies, axisEmptyLadders, axisEmptyDuties, axisGoFieldOptions }
  * @param onOpenFieldOptions  [조직 설정 →] 을 누르면 부른다. 없으면 버튼을 그리지 않는다
+ * @param candidates  아래 칸을 먼저 골라 위 칸 후보가 둘 이상일 때 그 후보 — 주면 **후보만** 남기고
+ *                    칸을 바로 펼친다(§3.5-A 「직렬을 먼저 선택 — 소속 직군 2개 이상」)
+ * @param inactive    비활성 처리된 값 목록 — 지금 값이 여기 있으면 `(비활성)` 을 붙인다(A3)
  */
 export default function JobAxisSelect({
   level, values, jobAxis, labels, onPick, onOpenFieldOptions,
-  className, disabled, testId, placeholder,
+  className, disabled, testId, placeholder, candidates, inactive,
 }) {
+  const selectRef = useRef(null);
+  const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
+  /* 후보가 생기면 칸을 펼친다. `showPicker` 를 못 쓰는 브라우저는 칸에 초점만 둔다 —
+     후보만 남아 있으니 고르는 일은 그대로다. */
+  useEffect(() => {
+    if (!hasCandidates || disabled) return;
+    const el = selectRef.current;
+    if (!el) return;
+    el.focus();
+    try { el.showPicker?.(); } catch { /* 사용자 동작 없이 부르면 막는 브라우저가 있다 */ }
+  }, [hasCandidates, disabled]);
   const axis = jobAxis || {};
   const families = axis.families || [];
   const ladders = axis.ladders || [];
@@ -37,7 +52,9 @@ export default function JobAxisSelect({
   let flat = null;
   let groups = null;
   let emptyKey = 'axisEmptyFamilies';
-  if (level === 'family') {
+  if (hasCandidates) {
+    flat = candidates;
+  } else if (level === 'family') {
     flat = families;
   } else {
     const map = (level === 'ladder' ? axis.laddersByFamily : axis.dutiesByLadder) || {};
@@ -90,6 +107,7 @@ export default function JobAxisSelect({
   return (
     <>
       <Select
+        ref={selectRef}
         className={className}
         value={cur}
         disabled={disabled}
@@ -99,7 +117,11 @@ export default function JobAxisSelect({
         <option value="">{placeholder ?? labels.none}</option>
         {/* 지금 값이 목록에 없어도(연결이 끊겼거나 비활성) 선택지에 남긴다 — 없으면
             select 가 «미지정» 으로 보여, 다른 칸만 고쳐 저장해도 멀쩡한 값이 지워진다. */}
-        {cur && !known && <option value={cur}>{cur}</option>}
+        {cur && !known && (
+          <option value={cur}>
+            {Array.isArray(inactive) && inactive.includes(cur) ? `${cur} ${labels.inactiveSuffix || '(비활성)'}` : cur}
+          </option>
+        )}
         {groups
           ? groups.map((g) => (
               <optgroup key={g.group} label={g.group}>

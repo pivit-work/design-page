@@ -239,4 +239,10 @@ export const JOB_AXIS_DEFAULT_LABELS = {
   axisEmptyLadders: '이 직군에 연결된 직렬이 없어요',
   axisEmptyDuties: '이 직렬에 연결된 직무가 없어요',
   axisGoFieldOptions: '조직 설정',
+  // 직군·직렬·직무 밖의 선택 칸이 비었을 때(§3.5) — 같은 [조직 설정 →] 을 붙인다
+  optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
+  // 비활성 처리된 값을 지금 가진 사람 — 그 값만 선택지에 남기고 뒤에 붙인다(§3.5 · A3)
+  inactiveSuffix: '(비활성)',
+  // 미등록 조합을 가진 사람의 편집 창을 열었을 때 직군 칸 위(A4) — 자동으로 고치지 않는다
+  axisUnregisteredPair: "'{pair}'는 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
 };
