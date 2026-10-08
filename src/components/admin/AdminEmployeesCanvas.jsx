@@ -164,7 +164,7 @@ const DEFAULT_LABELS = {
     assign: '+ 매니저 배정',
     /* 대표 행 — 상급자를 가질 수 없다. 「미배정」 으로 그리면 영원히 처리되지 않는
        빨간 칸이 남는다(§1-3-c R4). */
-    ceoTop: '조직 최상위 — 대표는 상급자를 가질 수 없습니다',
+    ceoTop: '조직 최상위 — 상급자를 가질 수 없습니다',
   },
   listPagination: { of: '/', prev: '이전', next: '다음' },
   /* 행 선택 · 「일괄 처리」 드롭다운 (PW-608 · 기획 §3.1).
@@ -353,19 +353,36 @@ const DEFAULT_LABELS = {
     historyLoadError: '이력을 불러오지 못했습니다.',
     historyRetry: '다시 시도',
     historyEmpty: '아직 변경 이력이 없습니다.',
-    historyEmptyHint: '휴대폰·주소·가족 정보 등 개인정보가 바뀌면 여기에 쌓입니다.',
+    historyEmptyHint: '휴대폰·주소·계좌 등 개인정보가 바뀌면 여기에 쌓입니다.',
     historyBySelf: '본인',
     historyAdded: '추가',
     historyRemoved: '삭제',
     historyPurged: '파기됨',
     historyWithheld: '변경됨',
     historyNone: '—',
+    /* 필드 거르기·더 보기 (정책서 §2-3·§2-4). `{field}` 는 고른 항목 이름. */
+    historyFieldLabel: '항목',
+    historyAllFields: '전체',
+    historyEmptyFiltered: '{field} 변경 이력이 없습니다.',
+    historyClearFilter: '필터 해제',
+    historyMore: '더 보기',
+    /* 바꾼 사람이 퇴사·삭제됨(E7) · 값을 지움(E3) · 다건 행 삭제(E18) */
+    historyResigned: '(퇴사)',
+    historyDeleted: '삭제됨',
+    historyDeletedValue: '(삭제됨)',
+    /* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
+    leaderOf: '조직장',
+    leaderGoOrgUnits: '팀 · 조직에서 변경',
   },
   /* 개인정보를 바꾸는 저장에서 사유를 받는 모달 (PW-460 §2-D-4) */
   changeReason: {
     title: '개인정보를 변경합니다',
     lead: '남이 바꾼 기록이라 사유를 남깁니다. 이력에 그대로 보입니다.',
     label: '변경 사유',
+    /* `{name}` 대상 이름 · `{count}` 바뀌는 항목 수 (정책서 §2-5) */
+    summary: '{name} · 변경 항목 {count}개',
+    /* 값을 이력에 안 남기는 칸(계좌번호)은 이 창에서도 값을 보이지 않는다. */
+    masked: '****',
     placeholder: '본인 요청 · 서류 대조 후 정정 등',
     cancel: '취소',
     submit: '변경 저장',
@@ -390,6 +407,8 @@ const DEFAULT_LABELS = {
     cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
+    /* 퇴사자 행의 「대표로 지정」은 흐리게 두고 이 툴팁을 단다(ceo-assign 정책서 §7 E2). */
+    ceoResignedBlocked: '퇴사자는 대표로 지정할 수 없습니다',
     /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다) */
     assignCeo: '대표로 지정', releaseCeo: '대표 지정 해제', ceoBadge: '대표',
   },
@@ -656,7 +675,7 @@ const ROW_MENU_Z = 1000;
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
 function RowActionMenu({
-  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onRehire, onCeo, ceoMode, onClose,
+  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onRehire, onCeo, ceoMode, ceoBlocked, onClose,
   labels, canEdit, anchorSelector, member = {},
 }) {
   const ref = useRef(null);
@@ -751,7 +770,19 @@ function RowActionMenu({
       {/* 대표(CEO) 지정·해제 (§3.6-A) — 폐기된 스프레드시트에만 있던 자리다(PW-576).
           정본이 정한 위치가 여기 «⋯ 더보기» 다. 지정 경로가 없으면(어드민 아님 ·
           퇴사자 행) 항목 자체를 그리지 않는다 — 눌러도 막히는 자리를 두지 않는다. */}
-      {onCeo && (
+      {onCeo && (ceoBlocked ? (
+        <Tooltip content={labels.menu.ceoResignedBlocked}>
+          <button
+            type="button"
+            className="admin-emp-row-menu-item has-icon is-disabled"
+            aria-disabled="true"
+            data-testid="employees-row-ceo-blocked"
+          >
+            <IconCrown size={13} />
+            {labels.menu.assignCeo}
+          </button>
+        </Tooltip>
+      ) : (
         <button
           type="button"
           className="admin-emp-row-menu-item has-icon"
@@ -761,7 +792,7 @@ function RowActionMenu({
           <IconCrown size={13} />
           {ceoMode === 'assign' ? labels.menu.assignCeo : labels.menu.releaseCeo}
         </button>
-      )}
+      ))}
       {/* 미가입 구성원 한 명에게 초대 (PW-1352). 퇴사자는 보낼 대상이 아니라(`inviteBlock`) 그리지 않는다. */}
       {onInviteSend && member.unjoined && member.inviteBlock === null && (
         <button
@@ -2835,14 +2866,11 @@ function EmployeesListView({
                 onInviteSend={onInviteMembers ? () => onInviteMembers([m.id]) : undefined}
                 onRehire={onRehireMember ? () => onRehireMember(m) : undefined}
                 member={m}
-                /* 퇴사자 행은 대표로 지정하지 않는다(§3.6-A-4 E3) — 항목을 흐리게
-                   두는 대신 아예 그리지 않는다. 이미 대표면 «해제» 로 바뀐다. */
-                onCeo={
-                  onOpenCeo && m.employmentStatus !== 'terminated'
-                    ? (mode) => onOpenCeo(m, mode)
-                    : undefined
-                }
+                /* 퇴사자 행은 대표로 지정하지 않는다 — 항목을 흐리게 두고 툴팁으로 까닭을
+                   단다(ceo-assign 정책서 §7 E2). 이미 대표면 «해제» 로 바뀌고 그것은 막지 않는다. */
+                onCeo={onOpenCeo ? (mode) => onOpenCeo(m, mode) : undefined}
                 ceoMode={m.isCeo ? 'release' : 'assign'}
+                ceoBlocked={m.employmentStatus === 'terminated' && !m.isCeo}
                 onClose={closeRowMenu}
               />
             )}
@@ -3319,71 +3347,129 @@ function panelErrorOf(e) {
  * 값 자리의 세 상태를 회색으로 뭉개지 않는다. 「아무도 못 본다」(파기됨)와 「애초에 안
  * 적었다」(변경됨)는 원인이 달라서, 보는 사람이 다음에 할 수 있는 일도 다르다.
  */
-function PersonalHistoryList({ state, labels, onRetry }) {
+function PersonalHistoryList({
+  state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false,
+}) {
   const L = labels.panel;
+  const fields = (state.page && state.page.fields) || [];
+  const isFiltered = field !== 'all';
 
+  /* 항목 거르기 — 고르면 서버에 다시 묻는다(§5-1). 받은 20건 안에서 거르면 21번째부터의
+     같은 항목이 「없다」로 보인다. 옵션은 «이력이 실제로 있는» 항목만이다(§2-3). */
+  const filter = fields.length > 0 && onFieldChange && (
+    <label className="admin-emp-hist-filter" data-testid="employees-history-filter">
+      <span className="admin-emp-hist-filter-label">{L.historyFieldLabel}</span>
+      <Select className="admin-emp-input" value={field}
+        onChange={(e) => onFieldChange(e.target.value)}
+        aria-label={L.historyFieldLabel} data-testid="employees-history-field-select">
+        <option value="all">{L.historyAllFields}</option>
+        {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+      </Select>
+    </label>
+  );
+
+  let body;
   if (state.status === 'loading' || state.status === 'idle') {
-    return (
-      <SkeletonList height={56} data-testid="employees-history-loading" />
-    );
-  }
-
-  if (state.status === 'error') {
-    return (
+    body = <SkeletonList height={56} data-testid="employees-history-loading" />;
+  } else if (state.status === 'error') {
+    body = (
       <div className="admin-emp-hist-empty" data-testid="employees-history-error">
         <div>{L.historyLoadError}</div>
         <button type="button" className="admin-emp-btn is-secondary" style={{ marginTop: 10 }}
           onClick={onRetry} data-testid="employees-history-retry">{L.historyRetry}</button>
       </div>
     );
-  }
-
-  const items = (state.page && state.page.items) || [];
-  if (items.length === 0) {
-    return (
+  } else if (((state.page && state.page.items) || []).length === 0) {
+    const picked = fields.find((f) => f.key === field);
+    body = isFiltered ? (
+      /* 거른 결과 0건은 문구를 가른다 — 같으면 이력이 아예 없는 것으로 읽힌다. */
+      <div className="admin-emp-hist-empty" data-testid="employees-history-empty-filtered">
+        <div>{fill(L.historyEmptyFiltered, { field: picked ? picked.label : field })}</div>
+        <button type="button" className="admin-emp-btn is-secondary" style={{ marginTop: 10 }}
+          onClick={() => onFieldChange && onFieldChange('all')}
+          data-testid="employees-history-clear-filter">{L.historyClearFilter}</button>
+      </div>
+    ) : (
       <div className="admin-emp-hist-empty" data-testid="employees-history-empty">
         <div>{L.historyEmpty}</div>
         {/* CTA 를 두지 않는다 — 이력은 만들러 가는 것이 아니다. */}
         <div className="admin-emp-hist-empty-hint">{L.historyEmptyHint}</div>
       </div>
     );
+  } else {
+    const { items, nextCursor } = state.page;
+    body = (
+      <>
+        <div className="admin-emp-hist-list" data-testid="employees-history-list">
+          {items.map((h) => {
+            /* 값을 지운 행(E3)은 이후 자리 「—」 옆에 «삭제됨»을, 다건 행을 지운 행(E18)은
+               이후 자리에 «(삭제됨)»을 쓴다 — 빈 「—」만 두면 무엇을 지웠는지 사라진다. */
+            const cleared = h.changeKind === 'update' && !h.after && Boolean(h.before);
+            const afterText = h.after
+              || (h.changeKind === 'remove' ? L.historyDeletedValue : L.historyNone);
+            return (
+              <div key={h.id} className="admin-emp-hist-row" data-testid={`employees-history-row-${h.id}`}>
+                <div className="admin-emp-hist-when">{h.changedAt}</div>
+                <div className="admin-emp-hist-main">
+                  <div className="admin-emp-hist-head">
+                    <span className="admin-emp-hist-field">
+                      {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
+                    </span>
+                    {h.changeKind === 'add' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyAdded}</DpStatusBadge>}
+                    {h.changeKind === 'remove' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyRemoved}</DpStatusBadge>}
+                    {cleared && h.state === 'normal' && (
+                      <DpStatusBadge className="admin-emp-hist-chip" data-testid={`employees-history-deleted-${h.id}`}>
+                        {L.historyDeleted}
+                      </DpStatusBadge>
+                    )}
+                    {/* 어디서 바뀌었는지는 보조 정보라 작은 회색 pill 이다(§2-2). 라벨은 소비자가 준다. */}
+                    {h.sourceLabel && (
+                      <DpStatusBadge className="admin-emp-hist-chip" data-testid={`employees-history-source-${h.id}`}>
+                        {h.sourceLabel}
+                      </DpStatusBadge>
+                    )}
+                  </div>
+                  <div className="admin-emp-hist-values">
+                    {h.state === 'purged' ? L.historyPurged
+                      : h.state === 'withheld' ? L.historyWithheld
+                        : (
+                          <>
+                            {/* 이전 값에 취소선을 긋지 않는다 — 「지워진 값」으로 읽힌다. */}
+                            <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
+                            {' → '}
+                            <span className="admin-emp-hist-after">{afterText}</span>
+                          </>
+                        )}
+                  </div>
+                  <div className={`admin-emp-hist-who${h.actor && h.actor.resigned ? ' is-resigned' : ''}`}
+                    data-testid={`employees-history-who-${h.id}`}>
+                    {h.actor && h.actor.name ? h.actor.name : L.historyNone}
+                    {/* 바꾼 사람이 퇴사·삭제돼도 이름은 남긴다 — 지우면 감사 추적이 끊긴다(E7). */}
+                    {h.actor && h.actor.resigned && <span className="admin-emp-hist-resigned">{L.historyResigned}</span>}
+                    {h.actor && h.actor.isSelf && <DpStatusBadge className="admin-emp-hist-chip is-self">{L.historyBySelf}</DpStatusBadge>}
+                  </div>
+                  {/* 사유가 없으면 줄 자체를 그리지 않는다 — 「사유 없음」을 매 행에 반복하지 않는다. */}
+                  {h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* 무한 스크롤을 쓰지 않는다 — 패널 본문이 이미 스크롤 칸이라 겹친다(§2-4). */}
+        {nextCursor && onLoadMore && (
+          <button type="button" className="admin-emp-btn is-secondary admin-emp-hist-more"
+            disabled={moreLoading} onClick={onLoadMore}
+            data-testid="employees-history-more">{L.historyMore}</button>
+        )}
+      </>
+    );
   }
 
   return (
-    <div className="admin-emp-hist-list" data-testid="employees-history-list">
-      {items.map((h) => (
-        <div key={h.id} className="admin-emp-hist-row" data-testid={`employees-history-row-${h.id}`}>
-          <div className="admin-emp-hist-when">{h.changedAt}</div>
-          <div className="admin-emp-hist-main">
-            <div className="admin-emp-hist-head">
-              <span className="admin-emp-hist-field">
-                {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
-              </span>
-              {h.changeKind === 'add' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyAdded}</DpStatusBadge>}
-              {h.changeKind === 'remove' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyRemoved}</DpStatusBadge>}
-            </div>
-            <div className="admin-emp-hist-values">
-              {h.state === 'purged' ? L.historyPurged
-                : h.state === 'withheld' ? L.historyWithheld
-                  : (
-                    <>
-                      {/* 이전 값에 취소선을 긋지 않는다 — 「지워진 값」으로 읽힌다. */}
-                      <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
-                      {' → '}
-                      <span className="admin-emp-hist-after">{h.after || L.historyNone}</span>
-                    </>
-                  )}
-            </div>
-            <div className="admin-emp-hist-who">
-              {h.actor && h.actor.name ? h.actor.name : L.historyNone}
-              {h.actor && h.actor.isSelf && <DpStatusBadge className="admin-emp-hist-chip is-self">{L.historyBySelf}</DpStatusBadge>}
-            </div>
-            {/* 사유가 없으면 줄 자체를 그리지 않는다 — 「사유 없음」을 매 행에 반복하지 않는다. */}
-            {h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
+    <>
+      {filter}
+      {body}
+    </>
   );
 }
 
@@ -3424,15 +3510,37 @@ function ChangeReasonModal({ prompt, labels }) {
         </>
       }
     >
-      {/* 어떤 항목이 걸렸는지 보여 준다 — 개수만 알리면 무엇을 고쳤는지 모른 채
-          사유를 쓰게 된다. 서버가 준 목록을 그대로 세운다. */}
-      <div className="admin-emp-reason-fields">
-        {(prompt.fields || []).map((f) => (
-          <DpStatusBadge key={f.key} className="admin-emp-hist-chip">{f.label}</DpStatusBadge>
-        ))}
-      </div>
+      {/* 어떤 항목이 «무엇에서 무엇으로» 바뀌는지 보여 준다 — 개수만 알리면 무엇을 고쳤는지
+          모른 채 사유를 쓰게 된다(정책서 §2-5). 서버가 준 목록을 그대로 세운다. 값을 못 받은
+          경로(다건 기록 등)는 항목 이름만 칩으로 남긴다. */}
+      {prompt.memberName && (
+        <div className="admin-emp-reason-summary" data-testid="change-reason-summary">
+          {fill(L.summary, { name: prompt.memberName, count: (prompt.changes || prompt.fields || []).length })}
+        </div>
+      )}
+      {prompt.changes && prompt.changes.length > 0 ? (
+        <div className="admin-emp-reason-changes" data-testid="change-reason-changes">
+          {prompt.changes.map((c) => (
+            <div key={c.field} className="admin-emp-reason-change" data-testid={`change-reason-change-${c.field}`}>
+              <span className="admin-emp-reason-change-label">{c.label}</span>
+              <span className="admin-emp-reason-change-values">
+                {c.masked ? L.masked : (c.before || labels.panel.historyNone)}
+                {' → '}
+                {c.masked ? L.masked : (c.after || labels.panel.historyNone)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="admin-emp-reason-fields">
+          {(prompt.fields || []).map((f) => (
+            <DpStatusBadge key={f.key} className="admin-emp-hist-chip">{f.label}</DpStatusBadge>
+          ))}
+        </div>
+      )}
       <label className="admin-emp-field">
-        <span className="admin-emp-field-label">{L.label}</span>
+        {/* 남이 바꾼 기록이라 사유가 필수다 — 이 창은 서버가 사유를 요구할 때만 뜬다. */}
+        <span className="admin-emp-field-label">{L.label}<span aria-hidden="true"> *</span></span>
         <input
           className="admin-emp-input"
           value={reason}
@@ -3466,6 +3574,9 @@ function EmployeesEditPanel({
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
   onOpenFieldOptions,
+  /* 이 사람이 조직장인 조직 id 목록과 그 조직을 조직단위 설정에서 여는 길(admin-spec §3.6-B-2).
+     목록이 비면 「조직장: …」 줄을 그리지 않고, 길이 없으면 링크만 뺀다. */
+  leaderUnitIds, onGoOrgUnit,
   /* 대표(CEO) 지정·해제 — `(mode: 'assign'|'release') => void`. 목록 행 ⋯ 메뉴와 **같은** 확인 창을 연다
      (admin-spec §3.6-A-2 ⓑ). 미주입이면(어드민 아님·퇴사자) «조직 위치» 칸을 그리지 않는다. */
   onOpenCeo,
@@ -3524,6 +3635,9 @@ function EmployeesEditPanel({
    */
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
+  /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
+  const [historyField, setHistoryField] = useState('all');
+  const [historyMoreLoading, setHistoryMoreLoading] = useState(false);
 
   // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
   // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
@@ -3540,6 +3654,8 @@ function EmployeesEditPanel({
     /* 다음 사람을 열었을 때 이력 탭이 먼저 뜨면 「내가 뭘 누른 거지」가 된다. */
     setPanelTab('info');
     setHistoryState({ status: 'idle', page: null });
+    setHistoryField('all');
+    setHistoryMoreLoading(false);
   }
 
   const memberId = member?.id;
@@ -3575,11 +3691,39 @@ function EmployeesEditPanel({
       return undefined;
     }
     let alive = true;
-    Promise.resolve(onLoadPersonalHistory(memberId, {}))
+    const query = historyField === 'all' ? {} : { field: historyField };
+    Promise.resolve(onLoadPersonalHistory(memberId, query))
       .then((page) => { if (alive) setHistoryState({ status: 'ready', page }); })
       .catch(() => { if (alive) setHistoryState({ status: 'error', page: null }); });
     return () => { alive = false; };
-  }, [historyState.status, memberId, onLoadPersonalHistory]);
+  }, [historyState.status, historyField, memberId, onLoadPersonalHistory]);
+
+  /* 「더 보기」 — 받은 커서로 다음 20건을 붙인다. 실패하면 붙인 목록과 커서를 그대로 둔다
+     (§7 — 알림은 소비자가 띄운다). 그 사이 항목을 바꾸거나 다른 사람을 열면 답을 버린다. */
+  const historyReqRef = useRef(0);
+  const loadMoreHistory = () => {
+    const page = historyState.page;
+    if (!page || !page.nextCursor || historyMoreLoading || !onLoadPersonalHistory) return;
+    const req = ++historyReqRef.current;
+    setHistoryMoreLoading(true);
+    const query = { cursor: page.nextCursor, ...(historyField === 'all' ? {} : { field: historyField }) };
+    Promise.resolve(onLoadPersonalHistory(memberId, query))
+      .then((next) => {
+        if (req !== historyReqRef.current) return;
+        setHistoryState((prev) => (prev.page ? {
+          status: 'ready',
+          page: { ...prev.page, items: [...prev.page.items, ...(next.items || [])], nextCursor: next.nextCursor ?? null },
+        } : prev));
+      })
+      .catch(() => {})
+      .finally(() => { if (req === historyReqRef.current) setHistoryMoreLoading(false); });
+  };
+  const changeHistoryField = (next) => {
+    historyReqRef.current += 1;
+    setHistoryMoreLoading(false);
+    setHistoryField(next);
+    setHistoryState((prev) => ({ status: 'loading', page: prev.page ? { ...prev.page, items: [] } : null }));
+  };
 
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
 
@@ -3805,6 +3949,10 @@ function EmployeesEditPanel({
               state={historyState}
               labels={labels}
               onRetry={() => setHistoryState({ status: 'loading', page: null })}
+              field={historyField}
+              onFieldChange={changeHistoryField}
+              onLoadMore={loadMoreHistory}
+              moreLoading={historyMoreLoading}
             />
           ) : (
           <>
@@ -3972,9 +4120,10 @@ function EmployeesEditPanel({
             )}
           </div>
 
-          {onOpenCeo && (
+          {(onOpenCeo || (leaderUnitIds && leaderUnitIds.length > 0)) && (
             <>
               <SectionLabel>{labels.panel.orgPosition}</SectionLabel>
+              {onOpenCeo && (
               <div className="admin-emp-ceo-row">
                 <div className="admin-emp-ceo-text">
                   <span className="admin-emp-manager-name">{labels.panel.ceoToggle}</span>
@@ -3988,6 +4137,29 @@ function EmployeesEditPanel({
                   data-testid="employees-panel-ceo-toggle"
                 />
               </div>
+              )}
+              {/* 이 사람이 조직장인 조직 — 읽기 전용이다. 지정·해제 자리는 조직이 맥락인
+                  조직단위 설정이라(admin-spec §3.6-B-1) 그리로 보낸다. 겸직 조직장은 전부 나열한다. */}
+              {leaderUnitIds && leaderUnitIds.length > 0 && (
+                <div className="admin-emp-leader-of" data-testid="employees-panel-leader-of">
+                  {leaderUnitIds.map((unitId) => (
+                    <div key={unitId} className="admin-emp-leader-of-row" data-testid={`employees-panel-leader-of-${unitId}`}>
+                      <span className="admin-emp-manager-note">{labels.panel.leaderOf}:</span>
+                      <OrgPathLabel
+                        entry={findOrgEntry(orgTree, unitId)}
+                        fallback={(orgUnits || []).find((u) => String(u.id) === String(unitId))?.name ?? '—'}
+                        muted="var(--text-tertiary)"
+                        color="inherit"
+                      />
+                    </div>
+                  ))}
+                  {onGoOrgUnit && (
+                    <button type="button" className="admin-emp-btn is-secondary is-sm"
+                      onClick={() => onGoOrgUnit(leaderUnitIds[0])}
+                      data-testid="employees-panel-leader-of-go">{labels.panel.leaderGoOrgUnits}</button>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -4790,6 +4962,8 @@ export default function AdminEmployeesCanvas({
         return (
           <EmployeesEditPanel
             member={target}
+            leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
+            onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo && target.employmentStatus !== 'terminated'
                 ? (mode) => setCeoConfirm({ row: target, mode })

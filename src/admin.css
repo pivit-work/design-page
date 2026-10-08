@@ -1458,6 +1458,19 @@
   background: var(--bg-secondary);
 }
 .admin-emp-ceo-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
+.admin-emp-leader-of {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary);
+}
+.admin-emp-leader-of-row { display: flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 100%; font-size: 12px; }
+.admin-emp-leader-of .admin-emp-btn { margin-top: 4px; }
 
 /* 상태 선택 — 공용 라디오 `Radio variant="card"` (form-field.css · PW-1012) 위에 이 창의 모양과
  * 상태별 의미색(brand/amber/gray)만 얹는다. 네이티브 라디오를 감추고 동그라미·흰 점을 그리는
@@ -3535,6 +3548,20 @@
 
 .admin-emp-hist-empty-hint { margin-top: 6px; font-size: 11px; }
 
+/* 항목 거르기 · 더 보기 (정책서 §2-3·§2-4) — 내 설정 변경 이력과 같은 모양 */
+.admin-emp-hist-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.admin-emp-hist-filter-label { font-size: 12px; color: var(--text-secondary); flex: none; }
+.admin-emp-hist-filter .admin-emp-input { flex: 1; min-width: 0; }
+.admin-emp-hist-more { display: block; margin: 10px auto 0; }
+/* 바꾼 사람이 퇴사·삭제됨(E7) — 이름은 남기고 흐리게 */
+.admin-emp-hist-who.is-resigned { color: var(--text-disabled, var(--text-tertiary)); }
+.admin-emp-hist-resigned { margin-left: 4px; }
+
 /* 자리 표시는 공용 `Skeleton`(src/loading.css)으로 옮겼다 (PW-1010) */
 
 .admin-emp-reason-fields {
@@ -3543,6 +3570,26 @@
   gap: 6px;
   margin: 8px 0 12px;
 }
+
+/* 사유 창 — «{이름} · 변경 항목 N개» 와 항목별 이전 → 이후 (정책서 §2-5) */
+.admin-emp-reason-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 4px 0 6px;
+}
+.admin-emp-reason-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-secondary);
+}
+.admin-emp-reason-change { display: flex; gap: 12px; font-size: 12px; min-width: 0; }
+.admin-emp-reason-change-label { flex: 0 0 96px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.admin-emp-reason-change-values { flex: 1; min-width: 0; color: var(--text-primary); overflow-wrap: anywhere; }
 
 .admin-emp-reason-lead {
   font-size: 11px;
