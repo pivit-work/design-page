@@ -335,3 +335,221 @@
   color: var(--text-tertiary);
   line-height: 20px;
 }
+
+/* ── 프로젝트 상세 — 머리 + 개요 (PW-1428) ──
+   시안 O. 프로젝트-원장/project-detail.jsx `ProjectDetail` 머리 · `OverviewTab`.
+   메뉴 면은 스쿼드 카드 메뉴(`sq-menu`)를 그대로 쓴다. 딱지 모양(`pd-badge`)은 status-badge.css. */
+.pd-page {
+  max-width: 1080px;
+  padding: 26px 32px 60px;
+}
+.pd-head { margin-bottom: 18px; }
+.pd-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+/* 색 네모 — 시안의 ■ 글리프 대신. 바깥 상자는 프로젝트 색을 옅게, 안 네모는 진하게 */
+.pd-color {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pd-color::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.1;
+}
+.pd-color-fill {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: currentColor;
+}
+.pd-name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 30px;
+  color: var(--text-primary);
+}
+.pd-spacer { flex: 1; }
+.pd-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.pd-more:hover { background: var(--bg-secondary); }
+.pd-subline {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.pd-subline-muted { color: var(--text-tertiary); }
+.pd-unassigned {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--fg-warning-primary);
+}
+
+.pd-menu { min-width: 200px; }
+.pd-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-top: 1px solid var(--border-secondary);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+.pd-menu-item:first-child { border-top: none; }
+.pd-menu-item:hover { background: var(--bg-secondary); }
+.pd-menu-item.is-sub { display: block; padding-left: 24px; border-top: none; }
+.pd-menu-item.is-danger { color: var(--text-error-primary); }
+.pd-menu-item.is-danger:hover { background: var(--utility-error-50); }
+.pd-menu-item.is-disabled,
+.pd-menu-item.is-disabled.is-danger {
+  color: var(--text-quaternary);
+  cursor: not-allowed;
+}
+.pd-menu-item.is-disabled:hover { background: transparent; }
+/* 비활성 사유 — 말풍선은 휴대폰에서 안 뜨므로 항목 아래 글씨로 늘 보인다 */
+.pd-menu-hint {
+  max-width: 260px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: normal;
+}
+.pd-menu-group {
+  padding: 8px 14px 2px;
+  border-top: 1px solid var(--border-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+.pd-card {
+  margin-bottom: 14px;
+  padding: 18px 22px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+}
+.pd-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.pd-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.pd-card-action { margin-left: auto; }
+.pd-info {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  row-gap: 12px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+.pd-info dt { color: var(--text-tertiary); }
+.pd-info dd { margin: 0; color: var(--text-primary); }
+.pd-info dd.is-empty { color: var(--text-tertiary); }
+.pd-mono { font-variant-numeric: tabular-nums; }
+.pd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-input {
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  outline: none;
+}
+.pd-input:focus { border-color: var(--fg-brand-primary); }
+.pd-form-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-date { width: 160px; }
+.pd-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pd-squad-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-secondary);
+}
+.pd-squad-name {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.pd-squad-name.is-link { cursor: pointer; }
+.pd-squad-name.is-link:hover { text-decoration: underline; }
+.pd-squad-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.pd-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}

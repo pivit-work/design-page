@@ -19,6 +19,7 @@ import {
   CheckGlyph,
   ChevronDownGlyph,
   CloseGlyph,
+  EyeGlyph,
   LockGlyph,
   PencilGlyph,
   PlusGlyph,
@@ -115,4 +116,9 @@ export function CheckIcon({ size = 12 }) {
 /** ✏️ 할당 편집 토글. */
 export function EditIcon({ size = 12 }) {
   return <PencilGlyph size={size} style={ICON_STYLE} />;
+}
+
+/** 👁 조회 전용 — 프로젝트 상세 머리 딱지(PW-1428). */
+export function EyeIcon({ size = 12 }) {
+  return <EyeGlyph size={size} style={ICON_STYLE} />;
 }

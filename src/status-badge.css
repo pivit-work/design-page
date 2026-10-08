@@ -1675,3 +1675,45 @@ button.dp-chip {
 .dp-chip__remove:focus-visible {
   opacity: 1;
 }
+
+/* ══ 스쿼드 카드 담당 프로젝트 · 프로젝트 상세 (PW-1428) ══════════════════════════════
+ * 색은 `StatusBadge tone` 이 준다 — 여기는 모양만. */
+
+/* 담당 프로젝트 행의 主 표시 — 시안 org-chart-app.jsx :3096 */
+.sq-proj-primary {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+}
+
+/* 담당 프로젝트 행의 상태(준비중·진행중·완료) — 시안 :3111 */
+.sq-proj-status {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+/* 프로젝트 상세 머리·연결 스쿼드의 딱지 — 시안 project-detail.jsx `Badge` */
+.pd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+}

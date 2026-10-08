@@ -186,3 +186,24 @@ export function generateRandomMembers(count, projectIds) {
   }
   return result;
 }
+
+/**
+ * 프로젝트 원장 상태(PW-1428) — 서버 코드값 3종.
+ * 모르는 값은 «준비중» 으로 떨어져 코드값이 화면에 새지 않는다.
+ */
+const PROJECT_STATUS_CODES = ['planned', 'active', 'done'];
+/** 시안 `STATUS_META` — 준비중 중성 / 진행중 초록 / 완료 회색. 색은 공용 딱지 뜻 표가 정한다. */
+const PROJECT_STATUS_TONE = { planned: 'neutral', active: 'success', done: 'neutral' };
+
+export function projectStatusCode(status) {
+  return PROJECT_STATUS_CODES.includes(status) ? status : 'planned';
+}
+
+export function projectStatusText(L, status) {
+  return L(`projectStatus.${projectStatusCode(status)}`);
+}
+
+export function projectStatusTone(status) {
+  return PROJECT_STATUS_TONE[projectStatusCode(status)];
+}
+
