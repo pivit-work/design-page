@@ -2634,6 +2634,12 @@
 }
 .admin-snap-overwrite-actions { display: inline-flex; gap: 8px; }
 .admin-snap-hist-typefilter { width: auto; min-width: 140px; margin-bottom: 0; }
+.admin-snap-hist-period { width: 140px; margin-bottom: 0; }
+.admin-snap-hist-period-sep { color: var(--text-tertiary); font-size: 12px; }
+.admin-snap-hist-member + .admin-snap-hist-member { margin-top: 14px; }
+.admin-snap-hist-member-name { font-family: var(--font-family-body); font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.admin-snap-hist-processed { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 12px; }
+.admin-snap-lock { display: inline-flex; vertical-align: middle; margin-left: 5px; color: var(--text-tertiary); cursor: help; }
 .admin-snap-timemachine-revision { font-weight: 400; }
 
 /* 이력 상세 패널 */
