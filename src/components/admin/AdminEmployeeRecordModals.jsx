@@ -246,6 +246,10 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
 
 
 // ── HR 모달 표시 헬퍼(모듈 레벨 — render 내 컴포넌트 생성 금지) ──
+/** `{ code: 라벨 }` 을 select 선택지로. 소비자가 라벨을 안 넘기면 선택지가 없다. */
+const optionsOf = (map) => Object.entries(map || {}).map(([value, label]) => ({ value, label }));
+/** 코드값을 라벨로 — 라벨이 없으면 코드를 그대로 둔다(서버가 이미 라벨을 줬을 수 있다). */
+const codeLabel = (map, code) => (code && map && map[code]) || code;
 function HrSection({ title, children }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -296,7 +300,7 @@ function joinAddressLine(address) {
   return [head, line, tail].filter(Boolean).join(' ');
 }
 
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
@@ -331,6 +335,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           className="admin-emp-input"
           type={type}
           inputMode={inputMode}
+          placeholder={placeholder}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
@@ -541,6 +546,13 @@ export function HrProfileModal({
   confirmDelete,
   // 주민등록번호 [보기] (W62) — `(memberId) => Promise<{ nationalId: string | null }>`. 없으면 버튼이 없다.
   onRevealNationalId,
+  // 학력·경력·자격증·부양가족을 HR 이 넣고 고치고 지운다 (W63 · arch-core §2-B 「HR 입력 주도」).
+  // `onSaveRecord(memberId, kind, recordId | null, body)` · `onDeleteRecord(memberId, kind, recordId)`,
+  // kind 는 'education'·'career'·'certifications'·'dependents'. 없으면 목록만 보인다(종전).
+  onSaveRecord, onDeleteRecord,
+  // 인사서류 — `onUploadDocument(memberId, { docType, file })` · `onDownloadDocument(memberId, doc)`.
+  // 지우기는 onDeleteRecord(memberId, 'documents', id).
+  onUploadDocument, onDownloadDocument,
 }) {
   const L = labels || {};
   const todayIso = today || todayIsoInZone();
@@ -607,6 +619,14 @@ export function HrProfileModal({
   const ec = family.emergencyContact ?? {};
   const deps = family.dependents ?? [];
   const relLabel = (r) => (L.hrRelation && L.hrRelation[r]) || r;
+  // 저장·지우기 뒤에는 창 전체를 다시 읽는다 — 다섯 목록이 한 응답(hr-profile)에 실려 온다.
+  const reload = () => Promise.resolve(onLoad(row?.id)).then((d) => { if (d) setData(d); });
+  const recordHandlers = (kind) => ({
+    onSave: onSaveRecord ? (recordId, body) => Promise.resolve(onSaveRecord(row?.id, kind, recordId, body)).then(reload) : undefined,
+    onDelete: onDeleteRecord ? (recordId) => Promise.resolve(onDeleteRecord(row?.id, kind, recordId)).then(reload) : undefined,
+    confirmDelete,
+    labels: L,
+  });
 
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기(+신원 저장) 창이라 아래 버튼 줄이 없다 —
@@ -735,7 +755,7 @@ export function HrProfileModal({
                 <>
                   <HrPair k={L.hrPersonalEmail || '개인 이메일'} v={identity.personalEmail} />
                   <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
-                  <HrPair k={L.hrGender || '성별'} v={identity.gender} />
+                  <HrPair k={L.hrGender || '성별'} v={(L.hrGenderOptions || []).find((o) => o.value === identity.gender)?.label ?? identity.gender} />
                   <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
                   <HrPair k={L.hrAddress || '주소'} v={joinAddressLine(identity.address)} />
                   <HrPair k={L.hrProbationEndDate || '수습 종료일'} v={identity.probationEndDate} />
@@ -812,24 +832,93 @@ export function HrProfileModal({
               <HrBenefitsSection memberId={row?.id} labels={L} onLoad={onLoadBenefits} onSave={onSaveBenefits} />
             )}
             <HrSection title={L.hrFamily || '가족'}>
-              <HrPair k={L.hrMarital || '혼인 여부'} v={family.maritalStatus} />
+              <HrPair k={L.hrMarital || '혼인 여부'} v={codeLabel(L.hrMaritalOptions, family.maritalStatus)} />
               <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
             </HrSection>
-            <HrSection title={`${L.hrDependents || '부양가족'} (${deps.length})`}>
-              <HrList items={deps} empty={L.hrDependentsEmpty || '등록된 부양가족이 없습니다.'} render={(d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`} />
-            </HrSection>
-            <HrSection title={`${L.hrEducation || '학력'} (${(org.education ?? []).length})`}>
-              <HrList items={org.education ?? []} empty={L.hrEducationEmpty || '등록된 학력이 없습니다.'} render={(e) => [e.school, e.major, e.degree, `${e.from ?? ''}~${e.to ?? ''}`, e.status].filter(Boolean).join(' · ')} />
-            </HrSection>
-            <HrSection title={`${L.hrCareer || '경력'} (${(org.career ?? []).length})`}>
-              <HrList items={org.career ?? []} empty={L.hrCareerEmpty || '등록된 경력이 없습니다.'} render={(c) => [c.company, c.department, c.role, `${c.from ?? ''}~${c.to ?? ''}`].filter(Boolean).join(' · ')} />
-            </HrSection>
-            <HrSection title={`${L.hrCert || '자격증'} (${(org.certifications ?? []).length})`}>
-              <HrList items={org.certifications ?? []} empty={L.hrCertEmpty || '등록된 자격증이 없습니다.'} render={(c) => [c.name, c.issuer, c.issuedDate && `발급 ${c.issuedDate}`, c.expiryDate && `만료 ${c.expiryDate}`].filter(Boolean).join(' · ')} />
-            </HrSection>
-            <HrSection title={`${L.hrDocuments || '증빙서류'} (${(org.documents ?? []).length})`}>
-              <HrList items={org.documents ?? []} empty={L.hrDocumentsEmpty || '첨부된 서류가 없습니다.'} render={(d) => [d.fileName, d.docType, d.uploadedAt].filter(Boolean).join(' · ')} />
-            </HrSection>
+            <HrRecordListSection
+              kind="dependents"
+              testId="hr-dependents"
+              title={L.hrDependents || '부양가족'}
+              items={deps}
+              fields={[
+                { key: 'name', label: L.hrDepName || '성명', required: true },
+                { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
+                { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date' },
+                { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
+              ]}
+              render={(d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`}
+              nameOf={(d) => d.name}
+              emptyText={L.hrDependentsEmpty || '등록된 부양가족이 없습니다.'}
+              addLabel={L.hrDepAdd || '부양가족 추가'}
+              {...recordHandlers('dependents')}
+            />
+            <HrRecordListSection
+              kind="education"
+              testId="hr-education"
+              title={L.hrEducation || '학력'}
+              items={org.education ?? []}
+              fields={[
+                { key: 'school', label: L.hrEduSchool || '학교명', required: true },
+                { key: 'major', label: L.hrEduMajor || '전공' },
+                { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
+                { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
+                { key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM' },
+                { key: 'status', label: L.hrEduStatus || '상태', required: true, options: optionsOf(L.hrEduStatusOptions) },
+                { key: 'isFinal', label: L.hrEduFinal || '최종학력', kind: 'boolean', options: [{ value: 'true', label: L.hrYes || '예' }, { value: 'false', label: L.hrNo || '아니오' }] },
+              ]}
+              render={(e) => [e.school, e.major, codeLabel(L.hrDegreeOptions, e.degree), `${e.from ?? ''}~${e.to ?? ''}`, codeLabel(L.hrEduStatusOptions, e.status), e.isFinal ? (L.hrEduFinal || '최종학력') : null].filter(Boolean).join(' · ')}
+              nameOf={(e) => e.school}
+              emptyText={L.hrEducationEmpty || '등록된 학력이 없습니다.'}
+              addLabel={L.hrEduAdd || '학력 추가'}
+              {...recordHandlers('education')}
+            />
+            <HrRecordListSection
+              kind="career"
+              testId="hr-career"
+              title={L.hrCareer || '경력'}
+              items={org.career ?? []}
+              fields={[
+                { key: 'company', label: L.hrCareerCompany || '회사명', required: true },
+                { key: 'department', label: L.hrCareerDept || '부서' },
+                { key: 'role', label: L.hrCareerRole || '직함' },
+                { key: 'from', label: L.hrCareerFrom || '입사', required: true, placeholder: 'YYYY-MM' },
+                { key: 'to', label: L.hrCareerTo || '퇴사', placeholder: 'YYYY-MM' },
+              ]}
+              render={(c) => [c.company, c.department, c.role, `${c.from ?? ''}~${c.to ?? ''}`].filter(Boolean).join(' · ')}
+              nameOf={(c) => c.company}
+              emptyText={L.hrCareerEmpty || '등록된 경력이 없습니다.'}
+              addLabel={L.hrCareerAdd || '경력 추가'}
+              {...recordHandlers('career')}
+            />
+            <HrRecordListSection
+              kind="certifications"
+              testId="hr-certifications"
+              title={L.hrCert || '자격증'}
+              items={org.certifications ?? []}
+              fields={[
+                { key: 'name', label: L.hrCertName || '자격증명', required: true },
+                { key: 'issuer', label: L.hrCertIssuer || '발급기관' },
+                { key: 'credentialNo', label: L.hrCertNo || '자격번호' },
+                { key: 'issuedDate', label: L.hrCertIssued || '발급일', kind: 'date' },
+                { key: 'expiryDate', label: L.hrCertExpiry || '만료일', kind: 'date' },
+              ]}
+              render={(c) => [c.name, c.issuer, c.issuedDate && `${L.hrCertIssuedPrefix || '발급'} ${c.issuedDate}`, c.expiryDate && `${L.hrCertExpiryPrefix || '만료'} ${c.expiryDate}`].filter(Boolean).join(' · ')}
+              nameOf={(c) => c.name}
+              emptyText={L.hrCertEmpty || '등록된 자격증이 없습니다.'}
+              addLabel={L.hrCertAdd || '자격증 추가'}
+              {...recordHandlers('certifications')}
+            />
+            <HrDocumentsSection
+              title={L.hrDocuments || '증빙서류'}
+              items={org.documents ?? []}
+              docTypeOptions={optionsOf(L.hrDocTypeOptions)}
+              emptyText={L.hrDocumentsEmpty || '첨부된 서류가 없습니다.'}
+              labels={L}
+              onUpload={onUploadDocument ? (arg) => Promise.resolve(onUploadDocument(row?.id, arg)).then(reload) : undefined}
+              onDownload={onDownloadDocument ? (doc) => onDownloadDocument(row?.id, doc) : undefined}
+              onDelete={recordHandlers('documents').onDelete}
+              confirmDelete={confirmDelete}
+            />
           </>
         )}
       </div>
@@ -951,6 +1040,256 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 disabled={busy || !form.courseName.trim()}
               >
                 {editingId ? (L.hrRecordSave || '저장') : (L.hrTrainingAdd || '교육 과정 추가')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </HrSection>
+  );
+}
+
+// ── HR 기록 창의 다건 5종 (W63 · arch-core-data-model §2-B · admin-spec §3.2.4) ──────
+// 학력·경력·자격증·부양가족·인사서류는 «HR 이 먼저 넣고 본인이 보완»한다. 종전 창은 목록을
+// 보여 주기만 해서 HR 이 넣을 길이 없었다. 줄마다 고치기·지우기, 아래 칸으로 추가한다 —
+// 같은 창의 「수료한 교육 과정」(HrTrainingsSection)과 같은 모양이다.
+//
+// 저장이 실패하면 이 묶음 안에 알리고 적던 값은 그대로 둔다. 남의 기록을 고칠 때 묻는
+// 변경 사유는 소비자가 묻는다(onSave/onDelete 가 사유 창까지 끝낸 뒤 돌아온다) — 사유를
+// 물었다가 취소하면 onSave 가 거절로 끝나고, 그때도 적던 값은 남는다.
+
+
+/** 칸 정의의 빈 값으로 폼을 만든다. */
+const emptyForm = (fields) => Object.fromEntries(fields.map((f) => [f.key, '']));
+
+/** 서버가 준 줄을 폼 값으로 — 논리값은 'true'/'false' 글자로 담는다(select 칸). */
+const formOf = (fields, row) =>
+  Object.fromEntries(
+    fields.map((f) => {
+      const v = row?.[f.key];
+      if (f.kind === 'boolean') return [f.key, v === true ? 'true' : v === false ? 'false' : ''];
+      return [f.key, v ?? ''];
+    }),
+  );
+
+/** 폼 값을 보낼 본문으로 — 빈 칸은 보내지 않는다(고칠 때 «보낸 것만» 바뀐다). */
+const bodyOf = (fields, form, editing) => {
+  const body = {};
+  for (const f of fields) {
+    const raw = typeof form[f.key] === 'string' ? form[f.key].trim() : form[f.key];
+    if (raw === '' || raw == null) {
+      // 고칠 때 비운 선택 칸은 null 로 보내 지운다. 넣을 때는 아예 싣지 않는다.
+      if (editing && !f.required) body[f.key] = null;
+      continue;
+    }
+    body[f.key] = f.kind === 'boolean' ? raw === 'true' : raw;
+  }
+  return body;
+};
+
+/**
+ * @param {object} props
+ * @param {string} props.title 묶음 제목(건수는 여기서 붙인다)
+ * @param {string} props.testId `data-testid` 접두
+ * @param {Array} props.items 서버가 준 줄
+ * @param {Array<{key:string,label:string,required?:boolean,kind?:'boolean'|'date',options?:Array,placeholder?:string}>} props.fields
+ * @param {(row:object)=>string} props.render 줄 한 줄 글
+ * @param {(row:object)=>string} props.nameOf 지우기 확인·버튼 이름에 쓰는 이름
+ * @param {string} props.emptyText
+ * @param {string} props.addLabel
+ * @param {(recordId:string|null, body:object)=>Promise} [props.onSave] 없으면 읽기 전용
+ * @param {(recordId:string)=>Promise} [props.onDelete]
+ * @param {(arg:{kind:string,label:string})=>Promise<boolean>} [props.confirmDelete]
+ * @param {string} props.kind confirmDelete 에 넘기는 종류
+ * @param {object} props.labels
+ */
+function HrRecordListSection({
+  title, testId, items, fields, render, nameOf, emptyText, addLabel,
+  onSave, onDelete, confirmDelete, kind, labels,
+}) {
+  const L = labels || {};
+  const [form, setForm] = useState(() => emptyForm(fields));
+  const [editingId, setEditingId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  const run = async (fn) => {
+    setBusy(true);
+    setError(false);
+    try {
+      await fn();
+      return true;
+    } catch {
+      setError(true);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const missing = fields.some((f) => f.required && !String(form[f.key] ?? '').trim());
+  const submit = async () => {
+    const ok = await run(() => onSave(editingId, bodyOf(fields, form, Boolean(editingId))));
+    if (ok) { setForm(emptyForm(fields)); setEditingId(null); }
+  };
+  const startEdit = (r) => { setEditingId(r.id); setForm(formOf(fields, r)); setError(false); };
+  const cancelEdit = () => { setEditingId(null); setForm(emptyForm(fields)); };
+  const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
+
+  const list = items ?? [];
+  return (
+    <HrSection title={`${title} (${list.length})`}>
+      <div data-testid={testId}>
+        {list.length === 0 ? (
+          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{emptyText}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {list.map((r) => (
+              <div
+                key={r.id}
+                data-testid={`${testId}-row`}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: editingId === r.id ? '#EEF2FF' : T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}
+              >
+                <span style={{ flex: 1 }}>{render(r)}</span>
+                {onSave && (
+                  <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordEdit || '고치기'} ${nameOf(r)}`}>
+                    {L.hrRecordEdit || '고치기'}
+                  </button>
+                )}
+                {onDelete && (
+                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                    if (confirmDelete && !(await confirmDelete({ kind, label: nameOf(r) }))) return;
+                    await run(() => onDelete(r.id));
+                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${nameOf(r)}`}>
+                    {L.hrRecordDelete || '지우기'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {onSave && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
+            {fields.map((f) => (
+              <HrEditPair
+                key={f.key}
+                k={f.required ? `${f.label} *` : f.label}
+                value={form[f.key]}
+                onChange={set(f.key)}
+                date={f.kind === 'date'}
+                options={f.options}
+                placeholder={f.placeholder}
+              />
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
+              {editingId && (
+                <button type="button" className="admin-emp-btn" onClick={cancelEdit} disabled={busy} style={{ fontSize: 12, padding: '6px 12px' }}>
+                  {L.hrRecordCancel || '취소'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="admin-emp-btn is-primary"
+                data-testid={`${testId}-submit`}
+                onClick={submit}
+                disabled={busy || missing}
+              >
+                {editingId ? (L.hrRecordSave || '저장') : addLabel}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </HrSection>
+  );
+}
+
+/**
+ * 인사서류 — 종류를 고르고 파일을 올린다. 고치기는 없다(다시 올리고 옛 것을 지운다).
+ * 파일 이름을 누르면 내려받는다.
+ */
+function HrDocumentsSection({
+  title, items, docTypeOptions, emptyText, onUpload, onDownload, onDelete, confirmDelete, labels,
+}) {
+  const L = labels || {};
+  const [docType, setDocType] = useState('');
+  const [file, setFile] = useState(null);
+  const [inputKey, setInputKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const typeLabel = (v) => docTypeOptions?.find((o) => o.value === v)?.label ?? v;
+
+  const run = async (fn) => {
+    setBusy(true);
+    setError(false);
+    try {
+      await fn();
+      return true;
+    } catch {
+      setError(true);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const upload = async () => {
+    const ok = await run(() => onUpload({ docType, file }));
+    if (ok) { setDocType(''); setFile(null); setInputKey((k) => k + 1); }
+  };
+
+  const list = items ?? [];
+  return (
+    <HrSection title={`${title} (${list.length})`}>
+      <div data-testid="hr-documents">
+        {list.length === 0 ? (
+          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{emptyText}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {list.map((d) => (
+              <div key={d.id} data-testid="hr-documents-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}>
+                <span style={{ flex: 1 }}>
+                  {onDownload ? (
+                    <button type="button" className="admin-emp-btn" onClick={() => onDownload(d)} style={{ fontSize: 12, padding: 0, border: 'none', background: 'none', color: '#4F46E5', textDecoration: 'underline' }}>
+                      {d.fileName}
+                    </button>
+                  ) : d.fileName}
+                  {[typeLabel(d.docType), d.uploadedAt].filter(Boolean).map((x) => ` · ${x}`).join('')}
+                </span>
+                {onDelete && (
+                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                    if (confirmDelete && !(await confirmDelete({ kind: 'documents', label: d.fileName }))) return;
+                    await run(() => onDelete(d.id));
+                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${d.fileName}`}>
+                    {L.hrRecordDelete || '지우기'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {onUpload && (
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
+            <HrEditPair k={`${L.hrDocType || '서류 종류'} *`} value={docType} onChange={setDocType} options={docTypeOptions || []} />
+            <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
+              <span style={{ minWidth: 88, color: T.muted }}>{`${L.hrDocFile || '파일'} *`}</span>
+              <input
+                key={inputKey}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                aria-label={L.hrDocFile || '파일'}
+                data-testid="hr-documents-file"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                style={{ flex: 1, fontSize: 12 }}
+              />
+            </div>
+            <div style={{ fontSize: 11, color: T.muted, padding: '2px 0 0 96px' }}>
+              {L.hrDocHint || 'pdf · jpg · png · webp, 10MB 까지'}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
+              <button type="button" className="admin-emp-btn is-primary" data-testid="hr-documents-submit" onClick={upload} disabled={busy || !docType || !file}>
+                {L.hrDocUpload || '서류 올리기'}
               </button>
             </div>
           </div>

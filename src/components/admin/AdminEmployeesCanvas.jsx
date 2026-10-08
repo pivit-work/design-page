@@ -4205,6 +4205,10 @@ function EmployeesEditPanel({
             onSaveBenefits={canEdit ? hrRecordHandlers?.onSaveBenefits : undefined}
             confirmDelete={hrRecordHandlers?.confirmDelete}
             onRevealNationalId={hrRecordHandlers?.onRevealNationalId}
+            onSaveRecord={canEdit ? hrRecordHandlers?.onSaveRecord : undefined}
+            onDeleteRecord={canEdit ? hrRecordHandlers?.onDeleteRecord : undefined}
+            onUploadDocument={canEdit ? hrRecordHandlers?.onUploadDocument : undefined}
+            onDownloadDocument={hrRecordHandlers?.onDownloadDocument}
             onClose={() => setHrOpen(false)}
           />
         )}
