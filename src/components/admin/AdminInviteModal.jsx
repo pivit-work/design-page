@@ -147,6 +147,7 @@ const DEFAULT_LABELS = {
   rehireBadge: '재입사',
   rehireNotice: '이전에 퇴사한 구성원이에요. 수락하면 이전 기록에 이어서 재입사로 등록됩니다.',
   rehireRevertNotice: '퇴사일부터 14일 안이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+  rehireConfirmedNotice: '퇴사가 확정된 구성원이라 이메일·이름·사번만 미리 채웠어요. 소속·직급·직무 등은 새로 정해 주세요.',
   rehireRoleLocked: '재입사자는 멤버로 시작합니다 — 가입 뒤 권한을 바꾸세요',
   errRehireHireDate: '재입사는 새 입사일이 필요해요',
   errPendingInvite: '초대 대기 중',
@@ -283,13 +284,20 @@ const EMPTY_BULK = {
  * 재입사 모드 행 — 비어 있는 칸만 이전 값으로 채운다(초대 §9 E8 ② · PW-1355). 이미 고친 칸은 덮지 않는다.
  * 권한은 «멤버»로 두고, 새 입사일은 비워 둔다(필수 — 어드민이 넣는다).
  */
+/* 퇴사가 확정된 뒤에도 채우는 «고정값» — 그 사람을 가리키는 값이라 재입사해도 회사가 새로 정하지 않는다.
+   소속·직급·직책·직군·직렬·직무·근무지·고용형태는 새 근로계약에서 다시 정하는 값이라, 퇴사가 확정되면
+   (정정 기간 14일이 지나면) 분리 보관분을 다시 쓰지 않도록 비운다(PW-1423 · 퇴사 처리 §5-G-1 · L-68). */
+const REHIRE_FIXED_FIELDS = ['name', 'employeeCode'];
+const REHIRE_RENEWED_FIELDS = ['jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'employmentType'];
+
 function withRehirePrefill(row, seed) {
   const next = { ...row, role: 'member' };
-  for (const k of ['name', 'employeeCode', 'jobLevel', 'jobPosition', 'jobFamily', 'jobTitle', 'jobDuty', 'workLocation', 'employmentType']) {
+  const fields = seed.revertOpen ? [...REHIRE_FIXED_FIELDS, ...REHIRE_RENEWED_FIELDS] : REHIRE_FIXED_FIELDS;
+  for (const k of fields) {
     if (!String(next[k] ?? '').trim() && seed[k]) next[k] = seed[k];
   }
   if (!next.email) next.email = seed.email;
-  if (next.teamIds.length === 0 && Array.isArray(seed.teamIds) && seed.teamIds.length > 0) {
+  if (seed.revertOpen && next.teamIds.length === 0 && Array.isArray(seed.teamIds) && seed.teamIds.length > 0) {
     next.teamIds = [...seed.teamIds];
     next.primaryTeamId = seed.primaryTeamId || (seed.teamIds.length >= 2 ? seed.teamIds[0] : '');
   }
@@ -533,6 +541,7 @@ export default function AdminInviteModal({
    * 재입사 대상 퇴사자 (PW-1355 · 초대 §9 E8) — `{ email, name, employeeCode, teamIds, primaryTeamId, jobLevel,
    * jobPosition, jobFamily, jobTitle(직렬), jobDuty, workLocation, employmentType, revertOpen }`.
    * 이 이메일을 넣은 행은 «재입사 모드»다: 배지·안내, 새 입사일 필수, 권한 «멤버» 고정, 비어 있는 칸은 이전 값으로 채운다.
+   * `revertOpen` 이 아니면(퇴사 확정) 이름·사번·이메일만 채운다(PW-1423 · 퇴사 처리 §5-G-1).
    */
   rehireMembers = [],
   /** 이 이메일의 재입사 대상으로 미리 채운 한 명으로 연다 — 목록 행 «재입사 초대» (PW-1355). */
@@ -1520,7 +1529,9 @@ export default function AdminInviteModal({
                   <div className="admin-inv-hint" role="status" data-testid="admin-invite-rehire">
                     <StatusBadge tone="neutral" className="admin-emp-role-pill">{labels.rehireBadge}</StatusBadge>{' '}
                     {labels.rehireNotice}
-                    {rehire.revertOpen && <div>{labels.rehireRevertNotice}</div>}
+                    {rehire.revertOpen
+                      ? <div>{labels.rehireRevertNotice}</div>
+                      : <div data-testid="admin-invite-rehire-confirmed">{labels.rehireConfirmedNotice}</div>}
                   </div>
                 )}
 
