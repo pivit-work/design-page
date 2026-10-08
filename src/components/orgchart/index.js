@@ -8,6 +8,9 @@ export { default as ProjectCanvas } from './ProjectCanvas.jsx';
 export { default as AssignmentGrid } from './AssignmentGrid.jsx';
 export { default as SquadCanvas } from './SquadCanvas.jsx';
 export { default as SquadFormCard } from './SquadFormCard.jsx';
+export { default as SquadProjectSection } from './SquadProjectSection.jsx';
+export { default as ProjectDetailCanvas } from './ProjectDetailCanvas.jsx';
+export { projectStatusCode, projectStatusText, projectStatusTone } from './project-constants.js';
 export { CapacityBar, SquadComposition, SquadAssignPopover, SquadHistoryPopover } from './SquadPieces.jsx';
 export {
   CAPACITY as SQUAD_CAPACITY,

@@ -19,7 +19,8 @@
  * 가져다 쓰고, 스쿼드에만 있는 조각만 `org_squad.css` 의 `sq-*` 로 정의한다.
  * 인라인 스타일에는 **데이터에서 오는 값**(스쿼드 색·계산된 폭·팝오버 좌표)과 z 층만 남긴다.
  *
- * 프로젝트 연결(`SquadProject`)은 이 캔버스 범위 밖이다 — 서버 창구가 아직 없다(PW-109/113).
+ * 프로젝트 연결(`SquadProject`)은 카드의 「담당 프로젝트」 칸(`SquadProjectSection`)이 그린다
+ * (PW-1428). `squad.projects` 를 넘긴 스쿼드에만 칸이 생긴다 — 안 넘기면 종전 카드 그대로다.
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
@@ -28,6 +29,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
+import SquadProjectSection from './SquadProjectSection.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
 import {
   CapacityBar,
@@ -196,6 +198,39 @@ export default function SquadCanvas({
   memberSuggestions = null,
   onMemberClick,
   onSubTabChange,
+  /**
+   * ── 담당 프로젝트 칸 (PW-1428) ──
+   * 각 `squad.projects`: `[{ id, name, description?, color?, status: 'planned'|'active'|'done',
+   * progress, isPrimary, primarySquadName?, linkedSquads?: [{ squadId, name }] }]`.
+   * 배열을 넘긴 스쿼드에만 칸이 생긴다.
+   *
+   * `projectOptions` — 조직의 모든 프로젝트 `[{ id, name, description?, status, color? }]`.
+   * 추가 드롭다운 후보 = 이것 − 이 스쿼드에 이미 붙은 것(다른 스쿼드에 붙은 것은 후보 — N:M).
+   */
+  projectOptions = [],
+  /**
+   * 프로젝트 칸을 고칠 수 있는가 — `boolean` 또는 `(squadId) => boolean`(스쿼드마다 다르다:
+   * 어드민 전체 · 매니저는 리드가 자기 조직인 스쿼드 · 리드는 자기 스쿼드).
+   * 「할당 편집」 이 켜져 있을 때만 「+ 프로젝트 추가」·主 지정·✕ 가 보인다. 거짓인 스쿼드는
+   * 편집 모드에서도 읽기 전용이고 칸 머리에 자물쇠가 선다.
+   */
+  canLinkProjects = false,
+  /** 드롭다운 맨 아래 「+ 새 프로젝트 만들기」 (어드민 · p062). 거짓이면 그 줄을 그리지 않는다. */
+  canCreateProject = false,
+  /** 프로젝트 행을 눌렀을 때 — `(projectId) => void`. 主 지정·✕ 는 여기로 오지 않는다. */
+  onOpenProject,
+  /** 「선택 N개 추가」 — `(squadId, projectIds) => Promise`. 거절되면 드롭다운 안에 사유를 띄우고 열어 둔다. */
+  onLinkProjects,
+  /** 새 프로젝트 만들기 — `(squadId, { name, description }) => Promise`. 거절되면 `error.message` 를 폼에 띄우고 열어 둔다. */
+  onCreateProject,
+  /** 主 지정 — `(projectId, squadId) => Promise`. 실패는 호스트가 `actionError` 로 알린다. */
+  onSetPrimarySquad,
+  /**
+   * 연결 해제 — `(squadId, projectId) => Promise`. 主 가 아닌 행은 묻지 않고 해제한다.
+   * 主 행인데 `linkedSquads` 에 다른 스쿼드가 있으면 「주 스쿼드 이전」 창을 먼저 연다
+   * (새 主 지정 → 해제 순서로 두 콜백을 부른다).
+   */
+  onUnlinkProject,
   // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
   showProjectTab = true,
   /**
@@ -215,6 +250,7 @@ export default function SquadCanvas({
   const [delAsk, setDelAsk] = useState(null); // { squadId, typed }
   const [statusMenu, setStatusMenu] = useState(null);
   const [statusAsk, setStatusAsk] = useState(null); // { squadId, to, kind, overloads }
+  const [projTarget, setProjTarget] = useState(null); // 「+ 프로젝트 추가」 를 연 스쿼드 id
 
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
@@ -396,6 +432,18 @@ export default function SquadCanvas({
   // 라이프사이클 관리이기 때문이다(§2).
   const ledgerReady = canManageLedger && !!onCreateSquad;
   const isEditing = editMode && canEditAssignments;
+  /** 프로젝트 칸 편집 — 「할당 편집」 이 켜져 있고, 이 스쿼드에 대해 자격이 있을 때 (PW-1428). */
+  const canLinkProjectsOf = (squadId) => isEditing
+    && (typeof canLinkProjects === 'function' ? !!canLinkProjects(squadId) : !!canLinkProjects);
+  const projectLinkCounts = useMemo(() => {
+    const counts = new Map();
+    squads.forEach((sq) => (sq.projects || []).forEach((p) => counts.set(p.id, (counts.get(p.id) || 0) + 1)));
+    return counts;
+  }, [squads]);
+  const projectNames = useMemo(
+    () => new Set(projectOptions.map((p) => String(p.name || '').trim().toLowerCase())),
+    [projectOptions],
+  );
   const editableSet = useMemo(
     () => (editableUserIds === null ? null : new Set(editableUserIds)),
     [editableUserIds],
@@ -776,7 +824,7 @@ export default function SquadCanvas({
                 <button
                   type="button" data-testid="squad-edit-toggle"
                   className={`sq-btn sq-btn-toggle${editMode ? ' is-on' : ''}`}
-                  onClick={() => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); }}
+                  onClick={() => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); }}
                 >
                   {editMode ? <CheckIcon size={14} /> : <EditIcon size={14} />}
                   {L(editMode ? 'squad.editDone' : 'squad.editAssign')}
@@ -1165,6 +1213,29 @@ export default function SquadCanvas({
                             </button>
                           ))}
                         </div>
+                      )}
+
+                      {/* 담당 프로젝트 — 구분선 아래 (정책 §4 카드 구조 · PW-1428) */}
+                      {Array.isArray(sq.projects) && (
+                        <SquadProjectSection
+                          squad={sq}
+                          linkCountOf={(id) => projectLinkCounts.get(id) || 0}
+                          candidates={projTarget === sq.id
+                            ? projectOptions.filter((p) => !sq.projects.some((x) => x.id === p.id))
+                            : []}
+                          existingNames={projectNames}
+                          isEditing={isEditing}
+                          editable={canLinkProjectsOf(sq.id)}
+                          canCreate={canCreateProject}
+                          pickerOpen={projTarget === sq.id}
+                          onOpenPicker={() => setProjTarget(sq.id)}
+                          onClosePicker={() => setProjTarget(null)}
+                          onOpenProject={onOpenProject}
+                          onLinkProjects={onLinkProjects}
+                          onCreateProject={onCreateProject}
+                          onSetPrimarySquad={onSetPrimarySquad}
+                          onUnlinkProject={onUnlinkProject}
+                        />
                       )}
                     </div>
                   );
