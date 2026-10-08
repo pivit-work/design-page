@@ -4266,3 +4266,23 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 .ono-mem-ai-regen:disabled { cursor: default; }
+.ono-mem-ai-report .ono-start-textarea { background: transparent; border-color: transparent; padding: 0; min-height: 160px; }
+.ono-mem-ai-report .ono-start-textarea:focus { border-color: transparent; }
+/* 고친 글을 AI 글로 덮기 전 묻는 상자 — 실패 상자와 같은 틀, 경고 색 */
+.ono-mem-ai-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  border-radius: 12px;
+  background: var(--componentColors-utility-warning-utilityWarning50);
+}
+.ono-mem-ai-confirm-msg {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--componentColors-utility-warning-utilityWarning700);
+  overflow-wrap: anywhere;
+}
