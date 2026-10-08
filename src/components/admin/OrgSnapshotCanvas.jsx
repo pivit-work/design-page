@@ -113,9 +113,18 @@ const DEFAULT_LABELS = {
   },
   drilldownAll: '전체 재직 구성원',
   drilldownHint: '구성원 보기',
-  tabs: { summary: '조직 현황', employment: '고용 유형', jobgroup: '직군/직무', age: '연령 구성' },
+  // 탭 이름은 기획서 그대로 (org-snapshot-spec §1 레이아웃 — 인원 현황 | 고용 유형 | 직군/직렬 | 연령).
+  tabs: { summary: '인원 현황', employment: '고용 유형', jobgroup: '직군/직렬', age: '연령' },
   orgTreeHeading: '조직 구성',
   noOrgStructure: '조직 구조 데이터가 없습니다',
+  /** 조직 현황 탭 조회일 아래 상시 캡션 `기록 시작 {날짜}` — 비어 있으면 안 그린다(§1 · As Of 와 같은 하한). */
+  statusCoverageCaption: '',
+  /** 날짜만 바꾸고 [적용]을 안 눌렀을 때 — 결과는 직전 적용 기준 그대로다(§1 적용 버튼 방식). */
+  applyHint: '적용을 눌러 조회하세요',
+  /** 트리 행 인원 뒤 `+N 겸직` 의 «겸직» — 합계에 섞지 않는다(MC2). */
+  concurrentSuffix: '겸직',
+  /** 주 소속이 없는 재직자 행 이름(MC8). */
+  unassigned: '미배정',
   countSuffix: '명',
   employmentHeading: '고용 유형별 인원',
   govFormatTitle: '관공서 제출 양식',
@@ -415,11 +424,18 @@ function ExportMenu({ labels, onExportRoster, onExportSummary }) {
 /* ════════════════════════════════════════════════════════════
  * 1. 조직 현황 스냅샷
  * ════════════════════════════════════════════════════════════ */
-function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
+function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint, concurrentSuffix }) {
   const [open, setOpen] = useState(defaultOpen);
   const hasChildren = node.children && node.children.length > 0;
   const pct = total > 0 ? Math.round((node.count / total) * 100) : 0;
-  const drill = (e) => { e.stopPropagation(); onDrilldown?.({ unit: node.name, label: node.name }); };
+  // `unitId` 는 같은 이름 조직을 가르고 겸직자를 찾는 데 쓴다(없으면 이름으로 거른다 — 지난 날짜 되감기).
+  // `unassigned` 행은 조직이 아니라 «주 소속 없음» 묶음이다(MC8).
+  const drill = (e) => {
+    e.stopPropagation();
+    onDrilldown?.(node.unassigned
+      ? { unassigned: true, label: node.name }
+      : { unit: node.name, unitId: node.id, label: node.name });
+  };
   return (
     <>
       <div
@@ -438,7 +454,15 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
             {node.name}
           </button>
         </Tooltip>
-        <span className="admin-snap-tree-count">{node.count}</span>
+        <span className="admin-snap-tree-count">
+          {node.count}
+          {/* 「12명 +2 겸직」 — 겸직은 합계에 섞지 않고 따로 보인다(MC2) */}
+          {node.concurrentCount > 0 && (
+            <span className="admin-snap-tree-count-concurrent" data-testid="snap-tree-concurrent">
+              +{node.concurrentCount} {concurrentSuffix}
+            </span>
+          )}
+        </span>
         <div className="admin-snap-tree-bar-wrap">
           <div className="admin-snap-tree-bar">
             <div
@@ -450,7 +474,7 @@ function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint }) {
         </div>
       </div>
       {hasChildren && open && node.children.map((child) => (
-        <OrgTreeRow key={child.name} node={child} depth={depth + 1} total={total} defaultOpen={false} onDrilldown={onDrilldown} hint={hint} />
+        <OrgTreeRow key={child.id ?? child.name} node={child} depth={depth + 1} total={total} defaultOpen={false} onDrilldown={onDrilldown} hint={hint} concurrentSuffix={concurrentSuffix} />
       ))}
     </>
   );
@@ -460,12 +484,15 @@ function OrgSnapshotStatusView({
   data, labels, queryDate, onQueryDateChange, onExport, onExportRoster,
   activeTab, onTabChange, onDrilldown, onRosterMemberClick,
   showComp, onShowCompChange, rosterExtraColumns, rosterColumns,
+  today, coverageFrom,
 }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
     summaryCards = [], orgTree = [], totalCount = 0,
     employment = [], jobFamilies = [], ageDist = [], ageSummary = [],
     roster = [],
+    // 주 소속 없는 재직자 수(MC8) · 기록 시작 전 날짜인가(§1 — As Of 와 같은 C1 빈 상태)
+    unassignedCount = 0, noRecord = false,
   } = data;
   const [rosterOpen, setRosterOpen] = useState(true);
   // 연봉은 Tier3 — 응답에 값이 있어도 '보상 표시' 를 켠 뒤에만 열이 나온다(기획 §1 토글).
@@ -496,13 +523,24 @@ function OrgSnapshotStatusView({
               {labels.asofShowComp}
             </label>
           )}
-          <div className="admin-snap-datepicker">
-            <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
-            <DateInput
-              value={draftDate}
-              onChange={(v) => setDraftDate(v)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
-            />
+          <div>
+            <div className="admin-snap-datepicker">
+              <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
+              {/* 하한 = 기록 시작일, 상한 = 오늘 — As Of 탭과 같은 재구성 경로라 같은 범위다(§1) */}
+              <DateInput
+                min={coverageFrom || undefined}
+                max={today || undefined}
+                value={draftDate}
+                onChange={(v) => setDraftDate(v)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
+              />
+            </div>
+            {/* 날짜만 바꾸고 미적용이면 안내 — 결과는 직전 적용 기준 그대로다 */}
+            {canApply ? (
+              <div className="admin-snap-coverage-caption" data-testid="status-apply-hint">{labels.applyHint}</div>
+            ) : labels.statusCoverageCaption && (
+              <div className="admin-snap-coverage-caption" data-testid="status-coverage-caption">{labels.statusCoverageCaption}</div>
+            )}
           </div>
           <button
             type="button"
@@ -553,11 +591,26 @@ function OrgSnapshotStatusView({
 
       <div className="admin-snap-content">
         {activeTab === 'summary' && (
-          orgTree.length === 0
-            ? <EmptyState size="lg" description={labels.noOrgStructure} />
-            : orgTree.map((node) => (
-              <OrgTreeRow key={node.name} node={node} depth={0} total={totalCount} defaultOpen onDrilldown={onDrilldown} hint={labels.drilldownHint} />
-            ))
+          noRecord
+            // 기록 시작 전 날짜 — «조직 구조가 없다»(사실 주장)가 아니라 «기록이 없다»(C1)
+            ? <EmptyState size="lg" data-testid="status-empty-c1" title={labels.asofOutOfRangeTitle} description={labels.asofOutOfRangeBody} />
+            : orgTree.length === 0 && unassignedCount === 0
+              ? <EmptyState size="lg" description={labels.noOrgStructure} />
+              : (
+                <>
+                  {orgTree.map((node) => (
+                    <OrgTreeRow key={node.id ?? node.name} node={node} depth={0} total={totalCount} defaultOpen onDrilldown={onDrilldown} hint={labels.drilldownHint} concurrentSuffix={labels.concurrentSuffix} />
+                  ))}
+                  {/* 주 소속이 없는 재직자 — 어느 조직에도 세지 않고 따로(MC8) */}
+                  {unassignedCount > 0 && (
+                    <OrgTreeRow
+                      node={{ name: labels.unassigned, count: unassignedCount, unassigned: true, children: [] }}
+                      depth={0} total={totalCount} defaultOpen={false}
+                      onDrilldown={onDrilldown} hint={labels.drilldownHint}
+                    />
+                  )}
+                </>
+              )
         )}
 
         {activeTab === 'employment' && (
@@ -1802,6 +1855,8 @@ export default function OrgSnapshotCanvas({
               onShowCompChange={onShowCompChange}
               rosterExtraColumns={rosterExtraColumns}
               rosterColumns={rosterColumns}
+              today={today}
+              coverageFrom={coverageFrom}
             />
           )}
           {view === 'asof' && (

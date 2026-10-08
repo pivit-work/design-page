@@ -504,6 +504,7 @@
 }
 .admin-kit-members-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .admin-kit-members-sub { font-size: 11.5px; color: var(--text-tertiary); }
+.admin-kit-members-tag { margin-left: 6px; vertical-align: 1px; }
 
 /* ── 녹음 사용량 칸 (결제 개요 카드·좌석 막대 모양) ──
    색은 BillingOverviewCanvas 의 T 표(accent #4F6AF5 · amber · red · slate)를 그대로 쓴다 —

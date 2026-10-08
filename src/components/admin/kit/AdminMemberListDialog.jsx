@@ -10,8 +10,9 @@
  *
  * Props
  *   title, countLabel, closeLabel, emptyLabel
- *   members   [{ key, name, sub, status, statusLabel, clickable }]
+ *   members   [{ key, name, sub, status, statusLabel, clickable, tag }]
  *             status: active · probation · on_leave · terminated · pending (색만 정한다)
+ *             tag: 이름 옆 작은 딱지 글자(예: 조직 스냅샷 노드의 «겸직» — org-snapshot-spec §1). 없으면 안 그린다
  *   renderAvatar(member)  아바타 자리 — 사진·이니셜 규칙은 앱이 갖는다
  *   onMemberClick(member) clickable 인 행을 누르면
  *   onClose
@@ -65,7 +66,10 @@ export default function AdminMemberListDialog({
             >
               {renderAvatar?.(m)}
               <span className="admin-kit-members-text">
-                <span className="admin-kit-members-name">{m.name}</span>
+                <span className="admin-kit-members-name">
+                  {m.name}
+                  {m.tag && <StatusBadge className="admin-kit-badge is-brand admin-kit-members-tag">{m.tag}</StatusBadge>}
+                </span>
                 <span className="admin-kit-members-sub">{m.sub}</span>
               </span>
               <StatusBadge className={`admin-kit-members-status is-${m.status || 'active'}`}>{m.statusLabel}</StatusBadge>

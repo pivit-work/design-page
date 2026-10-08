@@ -1929,6 +1929,12 @@
   color: var(--text-primary);
   margin-right: 8px;
 }
+/* 겸직 인원 `+N 겸직` — 인원 수와 붙어 보이되 합계가 아님이 드러나도록 한 톤 흐리게(조직 관리 트리와 같은 모양). */
+.admin-snap-tree-count-concurrent {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--text-quaternary, var(--text-tertiary));
+}
 .admin-snap-tree-bar-wrap {
   display: flex;
   align-items: center;
