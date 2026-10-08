@@ -46,6 +46,9 @@ const PERM_CATEGORIES = [
 ];
 const ALL_PERM_IDS = PERM_CATEGORIES.flatMap((c) => c.ids);
 
+// 정보 공개 범위 탭 아래 「공개 범위 설계 원칙」 줄 번호 — 라벨이 있는 번호만 그린다.
+const PRINCIPLE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8];
+
 const VIS_ITEMS = [
   { id: 'health', sensitive: true },
   { id: 'snippet', sensitive: true },
@@ -541,7 +544,9 @@ export default function AdminRbacCanvas({
         >
           {L.visibility.principlesTitle}
         </div>
-        {[1, 2, 3, 4].map((n) => (
+        {/* 원칙 줄은 소비 측이 준 principleN 라벨 수만큼 그린다 (admin-spec §4.4 — 1on1 녹음 원본을
+            «당사자 전용(어드민 제외)» 줄로 갈라 다섯 줄이 됐다). 라벨이 없는 번호에서 멈춘다. */}
+        {PRINCIPLE_NUMBERS.filter((n) => L.visibility[`principle${n}Title`]).map((n) => (
           <div key={n} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
             <span
               style={{
