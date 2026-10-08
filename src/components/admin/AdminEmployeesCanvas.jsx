@@ -2537,9 +2537,8 @@ function EmployeesListView({
     actions: null,
     // 체크박스는 표시용이라 파일의 열이 아니다(정책 §4-1 표 「체크박스 → 제외」).
     select: null,
-    // 휴대폰(T2)은 목록에 켤 수 있어도 반출 대상이 아니다(정책 §4-0 (2)) — 파일에
-    // 안 실리는 열을 「N열」 에 세면 받은 파일과 숫자가 어긋난다.
-    phone: null,
+    // 휴대폰(`phone`)은 일부러 여기 없다 — 목록에 「전화번호」 열이 있으므로 켜면 파일에도
+    // 실리고 「N열」 에도 센다(정책 «보이는 것 = 받는 것», 2026-10-08 커트 결정으로 W21 되돌림).
   };
   const exportColumns = cols
     .map((c) => (c.id in EXPORT_COLUMN_BY_LIST_COL ? EXPORT_COLUMN_BY_LIST_COL[c.id] : c.id))
