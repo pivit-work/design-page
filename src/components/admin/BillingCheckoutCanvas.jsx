@@ -97,6 +97,43 @@ const DEFAULT_LABELS = {
     `좌석당 ${won(seatPrice)} / 월 · 계약 좌석 ${max == null ? `${min}명 이상` : `${min}~${max}명`} · 견적 유효기간 ${validUntil}`,
   quoteRetryWithNewTerms: '새 조건으로 다시 결제',
   quoteContactSales: '영업팀 문의',
+
+  // ── 청구 기준일 (PW-324 · screen-billing-checkout §2) ──────
+  anchorNoteMonthly: (date, day) => (
+    <>오늘({date})이 <b style={{ color: T.text }}>청구 기준일</b>이 되며, 이후 매월 {day}일에 자동 결제됩니다.{day >= 29 ? ' 해당 일자가 없는 달은 말일에 청구합니다.' : ''}</>
+  ),
+  anchorNoteAnnual: (date, month, day) => (
+    <>오늘({date})이 <b style={{ color: T.text }}>청구 기준일</b>이 되며, 이후 매년 {month}월 {day}일에 자동 결제됩니다.{day >= 29 ? ' 해당 일자가 없는 해는 말일에 청구합니다.' : ''}</>
+  ),
+  firstCycleNote: (day) => (
+    <>첫 결제 후 {day}일까지 구성원을 추가하면 <b style={{ color: T.text }}>남은 기간분이 즉시 추가 청구</b>됩니다(일할). 2주기부터는 다음 청구일에 반영됩니다.</>
+  ),
+
+  // ── 결제 조건 요약 (법무 D2 · D25-8 · screen-billing-checkout §2) ──
+  termsTitle: '요금·자동 갱신·해지·환불 요약',
+  termsSubtitle: '이용약관 제8~10조의 중요한 내용입니다.',
+  termsViewFull: '이용약관 전문 보기',
+  termsChargeMonthly: (total, day) =>
+    `오늘 ${won(total)}이 결제되고, 이후 매월 ${day}일에 자동 결제됩니다(그 날짜가 없는 달은 말일).`,
+  termsChargeAnnual: (total, month, day) =>
+    `오늘 ${won(total)}이 결제되고, 이후 매년 ${month}월 ${day}일에 자동 결제됩니다(그 날짜가 없는 해는 말일).`,
+  termsAmount: '매 결제 금액은 결제일의 활성 구성원 수 × 좌석 단가입니다. 구성원이 늘면 금액이 늘어납니다.',
+  termsAmountNegotiated: (min) =>
+    `매 결제 금액은 결제일의 활성 구성원 수 × 좌석 단가입니다. 약정 최소 좌석(${min}명) 아래로는 내려가지 않습니다.`,
+  termsFirstCycle: '첫 결제 주기 안에 구성원이 늘면 남은 기간만큼 바로 추가 결제됩니다.',
+  termsCancel: '해지는 구독 현황에서 언제든 할 수 있고, 해지해도 이번 주기 끝까지 이용하신 뒤 무료 플랜으로 바뀝니다.',
+  termsRefundMonthly: '월간 구독은 중도 해지 시 남은 기간을 환불하지 않습니다.',
+  termsRefundAnnual: '연간 구독은 중도 해지 시 사용분을 정가로 차감한 잔액을 환불합니다.',
+  termsRefundCooling: '첫 결제 후 7일 이내·미사용이면 전액 환불됩니다.',
+  termsViewRefund: '해지·환불 정책 보기',
+  termsNoticeMonthly: '매월 결제는 따로 미리 알리지 않고, 결제 직후 영수증을 메일로 보내 드립니다.',
+  termsNoticeAnnual: '자동 갱신 30일 전에 한 번 메일로 미리 알려 드립니다.',
+
+  // ── 연간 협의 계약 약정 동의 (PW-344 · screen-billing-checkout §2) ──
+  commitmentAgree: (total, start, end) => (
+    <><b>연간 약정 조건</b>에 동의합니다. 지금 <b>1년분 {won(total)}</b>을 선결제하며, 약정 기간은 <b>{start} ~ {end}</b> 입니다. 중도 해지 시 사용분을 <b>정가로 차감</b>한 잔액만 환불됩니다(할인 회수).</>
+  ),
+  agreeCommitmentHint: '연간 약정 조건에 동의해 주세요',
 };
 
 function mergeLabels(provided) {
@@ -130,18 +167,29 @@ export default function BillingCheckoutCanvas({
    *
    * `{ quoteId, seatPrice, listPriceRef, overageSeatPrice, billingInterval,
    *    minSeats, maxSeats, contractStart, contractEnd, validUntil,
-   *    blocked: null | 'expired' | 'superseded',
+   *    blocked: null | 'expired' | 'superseded' | 'unavailable',
    *    replacement?: { seatPrice, minSeats, maxSeats, validUntil } | null }`
    *
    * `blocked === 'superseded'` 이고 `replacement`(지금 유효한 새 견적)가 있으면 새 조건을
    * 요약하고 [새 조건으로 다시 결제] 를 세운다 — 옛 단가로는 결제하지 않는다.
+   * `unavailable`(철회 등)은 만료와 같은 안내를 쓴다.
    */
   quote = null,
   /** [새 조건으로 다시 결제] — 변경된 견적의 새 견적으로 결제를 다시 시작한다. */
   onRetryWithNewQuote,
   /** [영업팀 문의] — 만료·변경 카드에서 영업 문의로 보낸다. */
   onContactSales,
+  /**
+   * 청구 기준일 미리보기 — 서버 결제 세션 값 `{ chargeDate: 'YYYY-MM-DD', anchorDay, firstCycle }`.
+   * 없으면 기준일 문장을 그리지 않는다(화면이 브라우저 시계로 따로 세지 않는다).
+   */
+  anchor = null,
   onPay,
+  /**
+   * 결제 조건 요약의 [이용약관 전문 보기] — 게시된 이용약관을 새 탭으로 연다. 게시 주소가
+   * 정해지기 전에는 넘기지 않는다: 빈 링크를 두지 않는다(screen-billing-checkout §7).
+   */
+  onViewTerms,
   onEditProfile,
   onBackToPlans,
   onViewRefundPolicy,
@@ -150,6 +198,7 @@ export default function BillingCheckoutCanvas({
   const labels = mergeLabels(providedLabels);
 
   const [agreeRefund, setAgreeRefund] = useState(false);
+  const [agreeCommitment, setAgreeCommitment] = useState(false);
 
   // 협의 단가 모드 (PW-344 ④). `blocked` 는 **서버 재검증 결과**다 — 화면이 유효기간을
   // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
@@ -186,8 +235,17 @@ export default function BillingCheckoutCanvas({
   const vat = amounts ? amounts.vat : Math.round(subtotal * vatRate);
   const total = amounts ? amounts.total : subtotal + vat;
 
+  const billInterval = quoteOk ? quote.billingInterval : order.interval;
+  const annual = billInterval === 'annual';
+  // 연간 협의 계약은 해지·환불 동의와 따로 약정 동의를 받는다 (PW-344).
+  const needCommitment = quoteOk && annual;
+  const [, anchorMonth, anchorDate] = anchor
+    ? anchor.chargeDate.split('-').map(Number)
+    : [0, 0, 0];
+
   const busy = payState === 'processing' || payState === 'confirming';
-  const blocked = !hasProfile || !agreeRefund || busy;
+  const blocked = !hasProfile || !agreeRefund || busy
+    || (needCommitment && !agreeCommitment);
 
   if (!canEdit) {
     return <div style={{ fontFamily: T.font, padding: 40 }}>{labels.noPermission}</div>;
@@ -208,12 +266,12 @@ export default function BillingCheckoutCanvas({
         {quoteBlocked && payState !== 'success' ? (
           <Card style={{ background: T.amberBg, border: '1px solid #FDE68A' }}>
             <div style={{ fontWeight: 800, color: T.amber, marginBottom: 6 }}>
-              {quoteBlocked === 'expired'
+              {quoteBlocked !== 'superseded'
                 ? labels.quoteBlockedTitleExpired
                 : labels.quoteBlockedTitleSuperseded}
             </div>
             <div style={{ fontSize: 13, color: T.text, marginBottom: 14 }}>
-              {quoteBlocked === 'expired'
+              {quoteBlocked !== 'superseded'
                 ? labels.quoteBlockedBodyExpired
                 : labels.quoteBlockedBodySuperseded}
             </div>
@@ -332,13 +390,29 @@ export default function BillingCheckoutCanvas({
               <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
               <Row label={labels.payNow} value={won(total)} strong />
               <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
-                {(quoteOk ? quote.billingInterval : order.interval) === 'annual'
+                {annual
                   ? labels.intervalNoteAnnual
                   : labels.intervalNoteMonthly}{' '}
                 {quoteOk
                   ? labels.negotiatedSeatBasisNote(minSeats)
                   : labels.seatBasisNote}
               </div>
+              {/* 청구 기준일 — 첫 결제 성공일의 일자가 이후 청구 기준일이 된다 (PW-324) */}
+              {anchor && (
+                <div data-testid="checkout-anchor-note"
+                  style={{ fontSize: 12, color: T.sub, marginTop: 10, paddingTop: 10,
+                    borderTop: `1px solid ${T.border}` }}>
+                  {annual
+                    ? labels.anchorNoteAnnual(anchor.chargeDate, anchorMonth, anchorDate)
+                    : labels.anchorNoteMonthly(anchor.chargeDate, anchor.anchorDay)}
+                </div>
+              )}
+              {/* 첫 주기 좌석 추가 = 즉시 일할 추가청구 (PW-324). 2주기 이후 재진입에는 없다. */}
+              {anchor && anchor.firstCycle && (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
+                  {labels.firstCycleNote(anchor.anchorDay)}
+                </div>
+              )}
             </Card>
 
             {/* 청구 정보 */}
@@ -369,6 +443,45 @@ export default function BillingCheckoutCanvas({
               </Card>
             )}
 
+            {/* 결제 조건 요약 (법무 D2 · D25-8) — 고지이지 동의가 아니다. 체크박스가 없고 버튼도
+                막지 않는다. 금액·결제일은 주문 요약과 같은 값에서 그린다. */}
+            <Card style={{ marginBottom: 16, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{labels.termsTitle}</div>
+                {onViewTerms && (
+                  <button type="button" onClick={onViewTerms}
+                    style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                      fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                    {labels.termsViewFull}
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>{labels.termsSubtitle}</div>
+              <ul data-testid="checkout-terms-summary" style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
+                {anchor && (
+                  <li>
+                    {annual
+                      ? labels.termsChargeAnnual(total, anchorMonth, anchorDate)
+                      : labels.termsChargeMonthly(total, anchor.anchorDay)}
+                  </li>
+                )}
+                <li>{quoteOk ? labels.termsAmountNegotiated(minSeats) : labels.termsAmount}</li>
+                <li>{labels.termsFirstCycle}</li>
+                <li>{labels.termsCancel}</li>
+                <li>
+                  {annual ? labels.termsRefundAnnual : labels.termsRefundMonthly}{' '}
+                  {labels.termsRefundCooling}{' '}
+                  <button type="button" onClick={onViewRefundPolicy}
+                    style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                      fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                    {labels.termsViewRefund}
+                  </button>
+                </li>
+                <li>{annual ? labels.termsNoticeAnnual : labels.termsNoticeMonthly}</li>
+              </ul>
+            </Card>
+
             {/* 해지·환불 정책 동의 (결제 전 필수) */}
             {hasProfile && (
               <Card style={{ marginBottom: 16, padding: 16 }}>
@@ -378,7 +491,7 @@ export default function BillingCheckoutCanvas({
                     style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>
                     <b>{labels.refundAgreeIntro}</b>{labels.refundAgreeSuffix}{' '}
-                    {order.interval === 'annual'
+                    {annual
                       ? labels.refundTermsAnnual
                       : labels.refundTermsMonthly}{' '}
                     {labels.refundCoolingNote}{' '}
@@ -387,6 +500,21 @@ export default function BillingCheckoutCanvas({
                         fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                       {labels.viewFullPolicy}
                     </button>
+                  </span>
+                </label>
+              </Card>
+            )}
+
+            {/* 연간 협의 계약 — 약정·선결제 동의 (PW-344). 해지·환불 동의와 따로 받는다. */}
+            {hasProfile && needCommitment && (
+              <Card style={{ marginBottom: 16, padding: 16 }}>
+                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={agreeCommitment}
+                    data-testid="checkout-commitment-agree"
+                    onChange={(e) => setAgreeCommitment(e.target.checked)}
+                    style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>
+                    {labels.commitmentAgree(total, quote.contractStart, quote.contractEnd)}
                   </span>
                 </label>
               </Card>
@@ -406,6 +534,11 @@ export default function BillingCheckoutCanvas({
             {hasProfile && !agreeRefund && payState === 'idle' && (
               <div style={{ textAlign: 'center', fontSize: 12, color: T.amber, marginTop: 8 }}>
                 {labels.agreeRefundHint}
+              </div>
+            )}
+            {hasProfile && agreeRefund && needCommitment && !agreeCommitment && payState === 'idle' && (
+              <div style={{ textAlign: 'center', fontSize: 12, color: T.amber, marginTop: 8 }}>
+                {labels.agreeCommitmentHint}
               </div>
             )}
 
