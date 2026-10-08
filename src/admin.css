@@ -3809,3 +3809,10 @@
 .admin-emp-tag-unapproved {
   margin-left: 4px;
 }
+
+/* 일괄 처리 부분 실패 배너 (§3.1 · TC-ADM-146) — 미배정 안내 배너와 같은 틀에 오류 색만 바꾼다. */
+.admin-emp-banner.is-error { align-items: center; margin: 0 0 12px; background: var(--utility-error-50, #fef3f2); border-color: var(--colors-error-200, #fecdca); }
+.admin-emp-banner.is-error .admin-emp-banner-icon,
+.admin-emp-banner.is-error .admin-emp-banner-title { color: var(--colors-error-600, #d92d20); }
+.admin-emp-banner-main { flex: 1; min-width: 0; }
+.admin-emp-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
