@@ -183,7 +183,7 @@ export default function ProjectDetailCanvas({
                   className="pd-more"
                   data-project-detail-anchor="more"
                   data-testid="project-detail-more"
-                  aria-label={L('projectDetail.menu')}
+                  aria-label={L('projectDetail.menuLabel')}
                   aria-expanded={menuOpen}
                   onClick={() => setMenuOpen((v) => !v)}
                 ><MoreIcon size={16} /></button>

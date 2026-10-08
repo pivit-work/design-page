@@ -336,7 +336,7 @@ export const ORGCHART_LABELS = {
   'projectDetail.progress': '진행률 {{value}}%',
   'projectDetail.editable': '편집 가능',
   'projectDetail.readOnly': '조회 전용',
-  'projectDetail.menu': '프로젝트 관리',
+  'projectDetail.menuLabel': '프로젝트 관리',
   'projectDetail.menu.edit': '수정',
   'projectDetail.menu.editDoneHint': '완료 프로젝트는 재개 후 수정',
   'projectDetail.menu.status': '상태 전환',
