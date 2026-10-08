@@ -1047,15 +1047,23 @@
 .msc-hist-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
   margin-bottom: 14px;
 }
 
-.msc-hist-filter-sep {
-  width: 1px;
-  align-self: stretch;
-  margin: 2px 4px;
-  background: var(--border-primary);
+.msc-hist-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.msc-hist-field-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .msc-hist-date {
