@@ -61,12 +61,18 @@ const DEFAULT_LABELS = {
   close: '닫기',
   seatsUnlimited: '좌석 무제한',
   seatsLeft: '남은 좌석 {n}석',
+  // 머리글 좌석 요약 `활성 좌석 N[/상한]` (§2-1) — 무제한 요금제는 `/상한` 을 뺀다.
+  seatsActive: '활성 좌석 {n}',
+  seatsActiveOf: '활성 좌석 {n}/{limit}',
+  seatsActiveUnknown: '활성 좌석 —',
   seatsUnknown: '좌석 정보를 불러오지 못했어요',
   // 좌석은 수락 시점에 증가한다 — 반드시 미래형(§4-4).
-  seatsWillGrow: '초대 시 {n}명 증가 (수락 시점 반영)',
+  seatsWillGrow: '초대 시 {n}명 증가',
   seatShort: '남은 좌석 {left}석 — {need}명을 초대하려면 플랜을 변경해야 합니다.',
   seatNone: '남은 좌석이 없습니다. 플랜을 변경해야 초대할 수 있습니다.',
   goBilling: '결제·구독',
+  // 협의 단가 계약 좌석 범위 초과 (§4-4-B) — 막지 않는다. 금액이 늘어난다는 안내일 뿐이다.
+  contractOverMax: '계약 좌석 범위({max}명) 초과 — 초대는 그대로 발송되며, 수락 후 초과분은 ₩{price} 단가로 청구되고 영업팀에 통지됩니다',
   bulkTitle: '일괄 지정',
   bulkHint: '여러 명에게 같은 값을 넣을 때 씁니다. 값을 바꿔도 이미 입력한 사람에게는 반영되지 않습니다.',
   // [PW-1310] 종전 「전체 적용」은 넣어 둔 값을 덮어쓴다는 것을 이름이 말하지 않았다(§4-2).
@@ -546,8 +552,17 @@ export default function AdminInviteModal({
   rehireMembers = [],
   /** 이 이메일의 재입사 대상으로 미리 채운 한 명으로 연다 — 목록 행 «재입사 초대» (PW-1355). */
   rehireOf = null,
-  /** { limit, remaining } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어) */
+  /**
+   * { limit, remaining, active } — null 이면 조회 실패(발송은 허용, 서버 402 가 최종 방어).
+   * `active`(활성 좌석)가 있으면 머리글이 `활성 좌석 N/상한`, 없으면(옛 호스트) `남은 좌석 N석`.
+   */
   seats = null,
+  /**
+   * 협의 단가 계약 — `{ maxSeats, overageSeatPrice, seatPrice, activeSeats }`. 정가 플랜은 null.
+   * «활성 좌석 + 좌석을 차지할 행»이 `maxSeats` 를 넘으면 warning 배너만 띄운다(§4-4-B).
+   * 🔴 발송은 막지 않는다 — 좌석 상한(Free)과 달리 이건 금액이 늘어난다는 안내다.
+   */
+  contract = null,
   /**
    * 머리글 좌석 요약 뒤에 붙는 청구 안내 — `{ text, emphasis }` (초대 정책 §4-4-A · W60).
    * 첫 주기 즉시 청구는 `emphasis: true`(강조색), 다음 청구일 반영은 `false`. 문구·금액은 앱이
@@ -852,6 +867,12 @@ export default function AdminInviteModal({
     .filter((r) => !seatExempt.has(normEmail(isCsv ? r.values.email : r.email)))
     .length;
   const seatShort = seatsLeft !== null && seatNeed > seatsLeft;
+  // 남은 좌석 0 은 넣은 사람이 없어도 바로 빨간 배너다(§2-1) — 모자람(amber)과 따로 본다.
+  const seatNone = seatsLeft === 0;
+  const contractOverMax = Boolean(
+    contract && contract.maxSeats != null && seatNeed > 0
+      && contract.activeSeats + seatNeed > contract.maxSeats,
+  );
   useEffect(() => {
     if (open) onSeatNeedChange?.(seatNeed);
   }, [open, seatNeed, onSeatNeedChange]);
@@ -1115,10 +1136,14 @@ export default function AdminInviteModal({
 
   const seatSummary =
     seats === null
-      ? labels.seatsUnknown
-      : seats.limit === null
-        ? labels.seatsUnlimited
-        : fmt(labels.seatsLeft, { n: seats.remaining });
+      ? `${labels.seatsActiveUnknown} · ${labels.seatsUnknown}`
+      : typeof seats.active === 'number'
+        ? seats.limit === null
+          ? fmt(labels.seatsActive, { n: seats.active })
+          : fmt(labels.seatsActiveOf, { n: seats.active, limit: seats.limit })
+        : seats.limit === null
+          ? labels.seatsUnlimited
+          : fmt(labels.seatsLeft, { n: seats.remaining });
 
   /* 직군 › 직렬 › 직무 3단 — 직렬은 직군에, 직무는 직렬에 매달린다(INV-3 · INV-8).
      위 칸을 고르기 전에는 아래 칸을 잠그고 그 칸에서 이유를 말한다. */
@@ -1287,21 +1312,39 @@ export default function AdminInviteModal({
         </div>
         )}
 
-        {(seatShort || banner) && (
+        {(seatShort || seatNone || contractOverMax || banner) && (
           <div className="admin-inv-banners">
-            {seatShort && (
-              <div className="admin-inv-banner is-warn" role="status">
+            {seatNone && (
+              <div className="admin-inv-banner is-error" role="alert" data-testid="admin-invite-seat-none">
                 <IconAlert size={16} />
-                <span>
-                  {seatsLeft === 0
-                    ? labels.seatNone
-                    : fmt(labels.seatShort, { left: seatsLeft, need: seatNeed })}
-                </span>
+                <span>{labels.seatNone}</span>
                 {onGoBilling && (
                   <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={onGoBilling}>
                     {labels.goBilling}
                   </button>
                 )}
+              </div>
+            )}
+            {seatShort && !seatNone && (
+              <div className="admin-inv-banner is-warn" role="status">
+                <IconAlert size={16} />
+                <span>{fmt(labels.seatShort, { left: seatsLeft, need: seatNeed })}</span>
+                {onGoBilling && (
+                  <button type="button" className="admin-emp-btn is-ghost is-sm" onClick={onGoBilling}>
+                    {labels.goBilling}
+                  </button>
+                )}
+              </div>
+            )}
+            {contractOverMax && (
+              <div className="admin-inv-banner is-warn" role="status" data-testid="admin-invite-contract-over">
+                <IconAlert size={16} />
+                <span>
+                  {fmt(labels.contractOverMax, {
+                    max: contract.maxSeats,
+                    price: Number(contract.overageSeatPrice ?? contract.seatPrice ?? 0).toLocaleString('ko-KR'),
+                  })}
+                </span>
               </div>
             )}
             {banner && (

@@ -1364,8 +1364,12 @@ function InvitesTab({
                           <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
                         </>
                       )}
+                      {/* 만료 행도 취소할 수 있다 — 대기·만료 둘 다 «재발송·취소»(초대 정책서 §4-6) */}
                       {inv.status === 'expired' && (
-                        <Button className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</Button>
+                        <>
+                          <Button className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)}>{labels.invites.resend}</Button>
+                          <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)}>{labels.invites.cancel}</button>
+                        </>
                       )}
                       {inv.status === 'accepted' && <span className="admin-emp-muted">—</span>}
                     </div>
@@ -5205,6 +5209,7 @@ export default function AdminEmployeesCanvas({
             return inv ? onResendInvite(inv.id) : Promise.reject(new Error('no pending invite'));
           } : undefined}
           seats={seats}
+          contract={contract}
           fieldOptions={{
             jobLevel: gradeOptions ?? [],
             jobCategory: categoryOptions ?? [],
