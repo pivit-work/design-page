@@ -89,8 +89,14 @@ const DEFAULT_LABELS = {
   quoteBlockedBodyExpired:
     '협의 단가 견적의 유효기간이 지났습니다. 영업팀에 문의해 새 견적을 받아 주세요.',
   quoteBlockedBodySuperseded:
-    '새 조건으로 견적이 다시 발행됐습니다. 플랜 화면에서 새 조건을 확인한 뒤 다시 진행해 주세요.',
+    '영업팀이 새 조건으로 견적을 다시 발행했습니다. 새 조건을 확인한 뒤 결제해 주세요.',
   quoteBlockedCta: '플랜 화면으로',
+  // 변경된 견적의 새 조건 요약 (screen-billing-checkout.policy.md 「견적 변경 재확인 카드」).
+  quoteNewTermsTitle: '새 조건',
+  quoteNewTerms: (seatPrice, min, max, validUntil) =>
+    `좌석당 ${won(seatPrice)} / 월 · 계약 좌석 ${max == null ? `${min}명 이상` : `${min}~${max}명`} · 견적 유효기간 ${validUntil}`,
+  quoteRetryWithNewTerms: '새 조건으로 다시 결제',
+  quoteContactSales: '영업팀 문의',
 };
 
 function mergeLabels(provided) {
@@ -124,9 +130,17 @@ export default function BillingCheckoutCanvas({
    *
    * `{ quoteId, seatPrice, listPriceRef, overageSeatPrice, billingInterval,
    *    minSeats, maxSeats, contractStart, contractEnd, validUntil,
-   *    blocked: null | 'expired' | 'superseded' }`
+   *    blocked: null | 'expired' | 'superseded',
+   *    replacement?: { seatPrice, minSeats, maxSeats, validUntil } | null }`
+   *
+   * `blocked === 'superseded'` 이고 `replacement`(지금 유효한 새 견적)가 있으면 새 조건을
+   * 요약하고 [새 조건으로 다시 결제] 를 세운다 — 옛 단가로는 결제하지 않는다.
    */
   quote = null,
+  /** [새 조건으로 다시 결제] — 변경된 견적의 새 견적으로 결제를 다시 시작한다. */
+  onRetryWithNewQuote,
+  /** [영업팀 문의] — 만료·변경 카드에서 영업 문의로 보낸다. */
+  onContactSales,
   onPay,
   onEditProfile,
   onBackToPlans,
@@ -203,12 +217,43 @@ export default function BillingCheckoutCanvas({
                 ? labels.quoteBlockedBodyExpired
                 : labels.quoteBlockedBodySuperseded}
             </div>
-            <button type="button" onClick={onBackToPlans}
-              style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
-                borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
-                color: T.text, cursor: 'pointer' }}>
-              {labels.quoteBlockedCta}
-            </button>
+            {quoteBlocked === 'superseded' && quote.replacement && (
+              <div data-testid="checkout-quote-new-terms"
+                style={{ fontSize: 13, color: T.text, background: '#fff', borderRadius: 10,
+                  border: `1px solid ${T.border}`, padding: '10px 14px', marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{labels.quoteNewTermsTitle}</div>
+                {labels.quoteNewTerms(
+                  quote.replacement.seatPrice,
+                  quote.replacement.minSeats,
+                  quote.replacement.maxSeats,
+                  quote.replacement.validUntil,
+                )}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {quoteBlocked === 'superseded' && quote.replacement && onRetryWithNewQuote && (
+                <button type="button" onClick={onRetryWithNewQuote}
+                  style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
+                    borderRadius: 10, border: 'none', background: T.accent,
+                    color: '#fff', cursor: 'pointer' }}>
+                  {labels.quoteRetryWithNewTerms}
+                </button>
+              )}
+              {onContactSales && (
+                <button type="button" onClick={onContactSales}
+                  style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
+                    borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
+                    color: T.text, cursor: 'pointer' }}>
+                  {labels.quoteContactSales}
+                </button>
+              )}
+              <button type="button" onClick={onBackToPlans}
+                style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
+                  borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
+                  color: T.text, cursor: 'pointer' }}>
+                {labels.quoteBlockedCta}
+              </button>
+            </div>
           </Card>
         ) : payState === 'success' ? (
           <Card style={{ textAlign: 'center', padding: 40 }}>
