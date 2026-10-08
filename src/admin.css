@@ -2616,6 +2616,26 @@
 }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
 
+/* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
+.admin-snap-sched-badge { margin-left: 6px; }
+.admin-snap-hist-cancel {
+  padding: 0; border: 0; background: none; cursor: pointer; font-family: inherit;
+}
+.admin-snap-hist-cancel:hover { text-decoration: underline; }
+.admin-snap-hist-cancel:disabled { opacity: 0.5; cursor: default; }
+.admin-snap-sched-hint {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+.admin-snap-overwrite {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.admin-snap-overwrite-actions { display: inline-flex; gap: 8px; }
+.admin-snap-hist-typefilter { width: auto; min-width: 140px; margin-bottom: 0; }
+.admin-snap-timemachine-revision { font-weight: 400; }
+
 /* 이력 상세 패널 */
 .admin-snap-hist-panel {
   flex: 0 0 320px;
