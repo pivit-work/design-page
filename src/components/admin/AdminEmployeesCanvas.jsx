@@ -1124,7 +1124,7 @@ function UnassignedTab({
                       <OrgPathLabel
                         entry={entry}
                         fallback={orgUnits.find((u) => u.id === g.unitId)?.name ?? '—'}
-                        muted="var(--text-tertiary)"
+                        muted="var(--text-secondary)"
                         color="inherit"
                       />
                     </div>
@@ -4507,7 +4507,7 @@ function EmployeesEditPanel({
                       <OrgPathLabel
                         entry={findOrgEntry(orgTree, unitId)}
                         fallback={(orgUnits || []).find((u) => String(u.id) === String(unitId))?.name ?? '—'}
-                        muted="var(--text-tertiary)"
+                        muted="var(--text-secondary)"
                         color="inherit"
                       />
                     </div>

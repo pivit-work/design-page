@@ -238,14 +238,14 @@ export default function AdminAiPromptsCanvas({
                       transition: 'background .15s ease',
                     }}
                   >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', minWidth: 44 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 44 }}>
                       {f.category}
                     </span>
                     <span style={{ flex: 1, opacity: f.comingSoon ? 0.55 : 1 }}>{f.label}</span>
                     {f.comingSoon && (
                       <span
                         data-testid={`coming-soon-${f.key}`}
-                        style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', borderRadius: 6, padding: '1px 7px', letterSpacing: '-0.01em' }}
+                        style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: 6, padding: '1px 7px', letterSpacing: '-0.01em' }}
                       >
                         {labels.comingSoon}
                       </span>
@@ -266,7 +266,7 @@ export default function AdminAiPromptsCanvas({
           <div style={{ flex: 1, minWidth: 0 }}>
             {!selected ? (
               <div className="admin-card" style={{ padding: '60px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: 'var(--text-tertiary)' }} data-testid="empty-state">{labels.selectFeature}</div>
+                <div style={{ fontSize: 14, color: 'var(--text-secondary)' }} data-testid="empty-state">{labels.selectFeature}</div>
               </div>
             ) : (
               <div className="admin-card" style={{ padding: 0, overflow: 'visible', opacity: isActive ? 1 : 0.6, transition: 'opacity .2s' }}>
@@ -277,7 +277,7 @@ export default function AdminAiPromptsCanvas({
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
                     {selected.hasCustom && selectedVersion != null && (
-                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtVersion(labels.version, selectedVersion)}
                       </span>
                     )}
@@ -336,7 +336,7 @@ export default function AdminAiPromptsCanvas({
                     data-testid="default-prompt-section"
                   >
                     <summary className="admin-section-label" style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      {labels.defaultPrompt} <span style={{ fontSize: 12, color: 'var(--text-quaternary)', fontWeight: 500 }}>{labels.readOnly}</span>
+                      {labels.defaultPrompt} <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{labels.readOnly}</span>
                     </summary>
                     <div
                       style={{
@@ -448,7 +448,7 @@ export default function AdminAiPromptsCanvas({
                     {showVersions && (
                       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="version-list">
                         {versions.length === 0 ? (
-                          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '8px 0' }}>{labels.noCustom}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '8px 0' }}>{labels.noCustom}</div>
                         ) : (
                           versions.map((v) => (
                             <div

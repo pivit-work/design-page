@@ -212,7 +212,7 @@
    "font-size": "12px",
    "font-weight": "500",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "font-family": "var(--font-family-body)",
    "border": "1px solid var(--border-primary)"
   },
@@ -282,7 +282,7 @@
    "font-size": "12px",
    "font-weight": "700",
    "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "display": "flex",
    "align-items": "center",
    "justify-content": "center",
@@ -1653,7 +1653,7 @@
   },
   "admin-integrations.css|.intg-status.is-disconnected": {
    "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e"
+   "color": "#687079 / 어두운 화면 #cecfd2"
   },
   "admin-integrations.css|.intg-status.is-error": {
    "background": "#f9fafb / 어두운 화면 #22262f",
@@ -1879,7 +1879,7 @@
   },
   "admin.css|.admin-snap-type-badge.is-gray": {
    "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e"
+   "color": "#687079 / 어두운 화면 #cecfd2"
   },
   "admin.css|.admin-snap-type-badge.is-green": {
    "background": "#d3f8df / 어두운 화면 #084c2e",

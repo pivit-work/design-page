@@ -544,7 +544,7 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           <span className="admin-notif-meta-sep" aria-hidden="true" />
           {rule.channels.map((c) => (
             <span key={c} className="admin-notif-channel-tag">
-              <Icon src={CHANNEL_ICON_SRC[c]} size={13} color="var(--text-quaternary)" baseUrl={baseUrl} />
+              <Icon src={CHANNEL_ICON_SRC[c]} size={13} color="var(--text-tertiary)" baseUrl={baseUrl} />
               {labels.channels[c]}
             </span>
           ))}

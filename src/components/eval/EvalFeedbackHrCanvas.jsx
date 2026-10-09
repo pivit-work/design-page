@@ -162,14 +162,14 @@ function TeamCoverage({ teams, L }) {
         {teams.map((t) => (
           <div key={t.team} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ width: 130, fontSize: 13, color: C.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.team}</span>
-            <span style={{ width: 74, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{t.covered}/{t.total} {L.teamCovered}</span>
-            <span style={{ width: 64, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{L.teamAvg} {t.avgInterval}{L.unitDays}</span>
+            <span style={{ width: 74, fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{t.covered}/{t.total} {L.teamCovered}</span>
+            <span style={{ width: 64, fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{L.teamAvg} {t.avgInterval}{L.unitDays}</span>
             <span style={{ flex: 1 }}><Bar value={t.ratePct} color={covColor(t.ratePct)} target={COVERAGE_TARGET_PCT} /></span>
             <span style={{ width: 40, textAlign: 'right', fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: covColor(t.ratePct) }}>{t.ratePct}%</span>
           </div>
         ))}
       </div>
-      <div data-testid="fbhr-coverage-legend" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
+      <div data-testid="fbhr-coverage-legend" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
         <span aria-hidden style={{ display: 'inline-block', height: 12, borderLeft: `1.5px dashed ${C.muted}` }} />
         {fmtLabel(L.coverageTargetLegend, { pct: COVERAGE_TARGET_PCT })}
       </div>
@@ -200,7 +200,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', color: m.urgent ? C.red : C.amber, fontWeight: 600 }}>
                   {m.lastFeedbackAt == null ? L.notWritten : `${m.daysSince}${L.daysOver}`}
                 </span>
-                <span style={{ fontSize: 12, color: C.muted, minWidth: 70 }}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
+                <span style={{ fontSize: 12, color: C.sub, minWidth: 70 }}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
                 <button
                   type="button"
                   disabled={!m.managerName || sent}
@@ -224,17 +224,17 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
-      <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted, marginBottom: 12 }}>{L.managerActivitySub}</div>
+      <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 12 }}>{L.managerActivitySub}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map((r, i) => {
           const sent = isSent('encourage', r.id, null);
           return (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: i < rows.length - 1 ? `1px solid ${C.borderL}` : 'none' }}>
-              <span style={{ width: 20, fontSize: 'var(--font-size-text-xs)', color: C.muted, textAlign: 'center' }}>{i + 1}</span>
+              <span style={{ width: 20, fontSize: 'var(--font-size-text-xs)', color: C.sub, textAlign: 'center' }}>{i + 1}</span>
               <Avatar name={r.name} photo={r.avatar} size={34} />
               <div style={{ minWidth: 90 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{r.name}</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{r.team}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>{r.team}</div>
               </div>
               <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, width: 80 }}>{L.colCoverage} {r.coveragePct}%</span>
               <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, width: 90 }}>{L.colInterval} {r.avgInterval == null ? '—' : `${r.avgInterval}${L.unitDays}`}</span>
@@ -305,14 +305,14 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', opacity: collabAvail ? 1 : 0.5 }}>
           <input type="checkbox" checked={collab && collabAvail} disabled={!collabAvail} onChange={(e) => setCollab(e.target.checked)} data-testid="fbhr-ch-collab" />
           <span style={{ fontSize: 13, color: C.text }}>{L.channelCollab}</span>
-          {!collabAvail && <span style={{ fontSize: 12, color: C.muted }}>({L.notIntegrated})</span>}
+          {!collabAvail && <span style={{ fontSize: 12, color: C.sub }}>({L.notIntegrated})</span>}
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', opacity: emailAvail ? 1 : 0.5 }}>
           <input type="checkbox" checked={email && emailAvail} disabled={!emailAvail} onChange={(e) => setEmail(e.target.checked)} data-testid="fbhr-ch-email" />
           <span style={{ fontSize: 13, color: C.text }}>{L.channelEmail}</span>
-          {!emailAvail && <span style={{ fontSize: 12, color: C.muted }}>({L.notIntegrated})</span>}
+          {!emailAvail && <span style={{ fontSize: 12, color: C.sub }}>({L.notIntegrated})</span>}
         </label>
-        <p style={{ fontSize: 12, margin: '8px 0 0', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.muted }}>
+        <p style={{ fontSize: 12, margin: '8px 0 0', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.sub }}>
           {!collabAvail && <><AlertIcon size={13} /> </>}
           {!collabAvail && !emailAvail ? L.channelNone : !collabAvail ? L.channelEmailOnly : L.channelHint}
         </p>

@@ -166,7 +166,7 @@ function TeamListScreen({ team, L, onSelect }) {
                 {m.pendingRequests > 0 && (
                   <Chip tone="accent" icon={<MailIcon size={11} />}>{`${L.requestChip} ${m.pendingRequests}`}</Chip>
                 )}
-                {m.department && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>{m.department}</span>}
+                {m.department && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{m.department}</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
               </button>
             );
@@ -214,7 +214,7 @@ function BlockCard({ block, L, onOpen }) {
         )}
       </div>
       {latest.length === 0 ? (
-        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>{L.emptyBlock}</p>
+        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.sub, margin: '4px 0' }}>{L.emptyBlock}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map((it) => (
@@ -235,7 +235,7 @@ function BlockCard({ block, L, onOpen }) {
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <span style={{ fontSize: 12, color: C.muted }}>{items.length}{L.countSuffix}</span>
+        <span style={{ fontSize: 12, color: C.sub }}>{items.length}{L.countSuffix}</span>
         {hasMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
         {!hasMyTurn && hasFeedback && <Chip tone="progress">{L.waiting}</Chip>}
         <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.accent : C.purple }}>{L.openThread}</span>
@@ -300,7 +300,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
         style={{ border: `1px solid ${aiState === 'done' ? C.accentBd : C.border}`, background: aiState === 'done' ? C.accentBg : 'var(--text-white)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONT, resize: 'vertical', whiteSpace: 'pre-wrap' }}
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 12, color: C.muted }}>
+        <span style={{ fontSize: 12, color: C.sub }}>
           {aiState === 'done' ? L.aiHintDone : L.aiHintIdle}
         </span>
         {aiState === 'done' && personalized && (
@@ -329,7 +329,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           </button>
         </span>
       </div>
-      {aiState === 'done' && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
+      {aiState === 'done' && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
 }
@@ -342,7 +342,7 @@ function FeedbackBubble({ item }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>나</span>
-            <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
+            <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
           </div>
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
             {item.text}
@@ -367,7 +367,7 @@ function RequestBubble({ item, L }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
           <Chip tone="accent" icon={<MailIcon size={11} />}>{L.incomingReq}</Chip>
-          <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
+          <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
           {item.text || '(내용 없는 요청)'}
@@ -443,7 +443,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
             <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
             {threadCount > summaryCount && (
-              <p data-testid="fbmgr-summary-stale" style={{ fontSize: 12, color: C.muted, margin: '6px 0 0' }}>{L.summaryStale}</p>
+              <p data-testid="fbmgr-summary-stale" style={{ fontSize: 12, color: C.sub, margin: '6px 0 0' }}>{L.summaryStale}</p>
             )}
           </div>
         )}
@@ -453,7 +453,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
           </div>
         )}
         {items.length === 0 ? (
-          <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
+          <p style={{ textAlign: 'center', color: C.sub, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
         ) : (
           items.map((it) => it.itemType === 'feedback' ? <FeedbackBubble key={it.id} item={it} /> : <RequestBubble key={it.id} item={it} L={L} />)
         )}
@@ -466,7 +466,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: isPastPeriod ? C.amberBg : C.surface, border: `1px solid ${isPastPeriod ? C.amberBd : C.border}`, borderRadius: 8, padding: '4px 10px' }}>
-      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.muted }}>{L.periodLabel}</span>
+      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.sub }}>{L.periodLabel}</span>
       <select value={periodKey} onChange={(e) => onChange(e.target.value)} data-testid="fbmgr-period" style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: isPastPeriod ? C.amber : C.text, fontFamily: FONT, cursor: 'pointer' }}>
         {options.map((o) => (
           <option key={o.key} value={o.key}>{o.label}{o.isCurrent ? '' : L.pastPeriodMark}</option>
@@ -535,9 +535,9 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
       {thread?.isPastPeriod && (
         <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
       )}
-      {krBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
+      {krBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
       {krBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
-      {initBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionInit}</div>}
+      {initBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionInit}</div>}
       {initBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
       {krBlocks.length === 0 && initBlocks.length === 0 && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 

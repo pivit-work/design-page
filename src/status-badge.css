@@ -156,7 +156,7 @@
 
 .intg-status.is-connected { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
 
-.intg-status.is-disconnected { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+.intg-status.is-disconnected { background: var(--dp-badge-neutral-bg); color: var(--text-secondary); } /* PW-1439 — «미연결» 은 읽어야 하는 글자 */
 
 .intg-status.is-connecting { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
 
@@ -464,7 +464,7 @@
 
 .admin-snap-type-badge.is-red { background: var(--utility-error-50); color: var(--text-error-primary); }
 
-.admin-snap-type-badge.is-gray { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
+.admin-snap-type-badge.is-gray { background: var(--dp-badge-neutral-bg); color: var(--text-secondary); } /* PW-1439 — 발령 유형 이름은 읽어야 하는 글자 */
 
 .admin-notif-editable-badge {
   font-size: var(--font-size-text-xs);

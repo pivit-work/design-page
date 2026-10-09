@@ -101,7 +101,7 @@
 .evc-period-label {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .evc-period-select {
@@ -180,7 +180,7 @@
   color: var(--text-tertiary);
 }
 .evc-card-types {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .evc-pending {
@@ -227,7 +227,7 @@
 }
 .evc-step-label {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evc-step.is-past .evc-step-dot {
@@ -282,7 +282,7 @@
 }
 .evc-hold-hint {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-onhold-banner {
   background: var(--utility-warning-50);
@@ -324,7 +324,7 @@
 }
 .evc-completion-label {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-completion-value {
   font-size: var(--font-size-text-md);
@@ -558,7 +558,7 @@
   gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-sched-confirm-line.is-after {
   color: var(--text-brand-secondary);
@@ -567,7 +567,7 @@
 .evc-sched-confirm-tag {
   flex: none;
   min-width: 2.5em;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
   font-weight: 400;
 }
 /* [PW-614] 지난 날짜 단계의 평가지 잠금 안내. 오류(빨강)가 아니라 «경고»다 —
@@ -676,7 +676,7 @@
 /* TC-051/052 항목 설명 툴팁 아이콘 */
 .evx-field-info {
   margin-left: 4px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: help;
 }
@@ -684,7 +684,7 @@
 .evx-field-visibility {
   margin: var(--spacing-sm) 0 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 .evx-field-visibility.is-restricted {
@@ -789,7 +789,7 @@
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   background: var(--utility-gray-50);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .evc-wiz-step.is-current .evc-wiz-step-num {
@@ -802,7 +802,7 @@
 }
 .evc-wiz-step-label {
   font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evc-wiz-step.is-current .evc-wiz-step-label {
@@ -825,7 +825,7 @@
 }
 .evc-wiz-hint {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: var(--spacing-sm) 0 0;
 }
 /* TC-028 사이클 설정 프리셋 불러오기/저장 */
@@ -882,7 +882,7 @@
 .evc-wiz-draft-state {
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evc-wiz-draft-state.is-error {
@@ -907,7 +907,7 @@
   margin: var(--spacing-sm) 0 0;
   padding-left: var(--spacing-2xl);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 /* 초안 카드의 「N/6단계 · 저장 시각」 — 완료율 자리를 대신한다.
@@ -918,7 +918,7 @@
   gap: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* PW-123 — 진행/생성이 막힌 사유. 두 버튼 사이(가운데)에 놓인다. */
@@ -964,7 +964,7 @@
 /* [PW-536] 1단계 종료일 아래 안내 — 이 기간이 「무엇을 평가하는가」임을 알린다 */
 .evc-field-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.5;
   margin: var(--spacing-sm) 0 0;
 }
@@ -992,7 +992,7 @@
 }
 .evc-sched-anchor-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 .evc-sched-anchor-note > strong {
@@ -1057,7 +1057,7 @@
 .evc-sched-handle {
   display: inline-flex;
   align-items: center;
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   cursor: grab;
   flex-shrink: 0;
 }
@@ -1083,7 +1083,7 @@
 }
 .evc-sched-owner {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 단계 켜기/끄기 — 공용 스위치(`Switch`, src/switch.css). 여기는 줄 끝으로 미는 자리만 (PW-1010) */
 .evc-sched-switch { margin-left: auto; }
@@ -1199,7 +1199,7 @@
 }
 .evc-tpl-confirm-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1233,7 +1233,7 @@
 .evc-tpl-confirm-state.is-none {
   background: var(--bg-secondary);
   border: 1px solid var(--border-secondary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-confirm-state.is-done {
   background: var(--utility-success-50);
@@ -1306,11 +1306,11 @@
 }
 .evc-rm-hint {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-empty {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--bg-secondary);
   border: 1px dashed var(--border-secondary);
@@ -1339,7 +1339,7 @@
   text-align: center;
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-field {
   padding: 5px 8px;
@@ -1366,7 +1366,7 @@
 }
 .evc-rm-unit {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-channels {
   display: inline-flex;
@@ -1380,7 +1380,7 @@
   border-radius: 99px;
   border: 1px solid var(--border-secondary);
   background: var(--bg-secondary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   font-family: inherit;
@@ -1412,7 +1412,7 @@
 }
 .evc-rm-sum-msg {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-actions {
   margin-left: auto;
@@ -1461,7 +1461,7 @@
 }
 .evc-rm-panel-eyebrow {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-panel-title {
   margin: var(--spacing-xs) 0 0;
@@ -1544,7 +1544,7 @@
   border-radius: 99px;
   border: 1px solid var(--border-secondary);
   background: var(--bg-primary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
   font-family: inherit;
@@ -1599,7 +1599,7 @@
 .evc-rm-preview-tag {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-bottom: var(--spacing-xs);
 }
 .evc-rm-preview-body {
@@ -1638,7 +1638,7 @@
 }
 .evc-rm-vars-label {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-var {
   padding: 3px 7px;
@@ -1687,7 +1687,7 @@
 /* 폴백 안내 — 경고가 아니라 «왜 위 문구가 보이는지» 를 말하는 줄이다. */
 .evc-rm-preview-note {
   margin-top: var(--spacing-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   line-height: 1.6;
 }
@@ -1721,7 +1721,7 @@
 .evc-rm-sum-label {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-sum-ch {
   display: inline-flex;
@@ -1792,7 +1792,7 @@
 .evc-tpl-item-text.is-muted { color: var(--text-tertiary); }
 .evc-tpl-item-type {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .evc-tpl-x {
@@ -1844,7 +1844,7 @@
 }
 .evc-tpl-ratiosum {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-ratiosum.is-invalid { color: var(--utility-error-500); font-weight: 700; }
 /* TC-027: 리뷰 종류 전체 OFF 경고 */
@@ -1907,7 +1907,7 @@
   border-radius: var(--radius-md);
 }
 .evc-tpl-lib-name { flex: 1; font-size: var(--font-size-text-sm); font-weight: 600; color: var(--text-primary); min-width: 0; }
-.evc-tpl-lib-meta { font-size: var(--font-size-text-xs); color: var(--text-tertiary); flex-shrink: 0; }
+.evc-tpl-lib-meta { font-size: var(--font-size-text-xs); color: var(--text-secondary); flex-shrink: 0; }
 
 /* ── PW-434 2단계 편집 컨텍스트 · 저장 템플릿에서 시작 · 전체 목록 ────────────
    정책: screen-eval-cycle-hr.policy.md §5.10-C · §5.10.1 */
@@ -1945,7 +1945,7 @@
 .evc-tpl-ctxbar-label {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evc-tpl-ctxbar-type {
@@ -1968,7 +1968,7 @@
   white-space: nowrap;
 }
 .evc-tpl-ctxbar-version { color: var(--text-secondary); }
-.evc-tpl-ctxbar-meta { color: var(--text-tertiary); }
+.evc-tpl-ctxbar-meta { color: var(--text-secondary); }
 .evc-tpl-ctxbar-from {
   display: inline-flex;
   align-items: center;
@@ -1995,7 +1995,7 @@
   margin-left: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-start-browse { flex-shrink: 0; white-space: nowrap; }
 /* 빈 상태여도 블록을 숨기지 않는다 — 숨기면 「저장하면 다음에 쓸 수 있다」가 전달되지 않는다. */
@@ -2005,7 +2005,7 @@
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .evc-tpl-start-error {
@@ -2068,7 +2068,7 @@
 }
 .evc-tpl-picker-scope-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-picker-toggle {
   flex-shrink: 0;
@@ -2104,7 +2104,7 @@
 }
 .evc-tpl-picker-block-count {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-picker-block-lock {
   display: inline-flex;
@@ -2112,11 +2112,11 @@
   gap: 3px;
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-picker-block-empty {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
@@ -2174,7 +2174,7 @@
   margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-tpl-peek-secs { display: flex; flex-direction: column; gap: var(--spacing-md); }
 .evc-tpl-peek-sec {
@@ -2189,7 +2189,7 @@
   font-weight: 700;
   color: var(--text-secondary);
 }
-.evc-tpl-peek-sec-count { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.evc-tpl-peek-sec-count { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evc-tpl-peek-items {
   display: flex;
   flex-direction: column;
@@ -2213,7 +2213,7 @@
   flex-shrink: 0;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border: 1px solid var(--border-secondary);
   border-radius: 99px;
   padding: 0 6px;
@@ -2252,7 +2252,7 @@
 .evc-tpl-preset-head { display: flex; align-items: center; gap: var(--spacing-sm); }
 .evc-tpl-preset-label { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
 .evc-tpl-preset.is-on .evc-tpl-preset-label { color: var(--bg-brand-solid); }
-.evc-tpl-preset-desc { font-size: var(--font-size-text-xs); color: var(--text-tertiary); line-height: 1.5; }
+.evc-tpl-preset-desc { font-size: var(--font-size-text-xs); color: var(--text-secondary); line-height: 1.5; }
 
 .evc-tpl-items-head {
   display: flex;
@@ -2266,7 +2266,7 @@
 .evc-tpl-item-handle {
   display: inline-flex;
   align-items: center;
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 .evc-tpl-ai {
@@ -2281,7 +2281,7 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-secondary);
   background: transparent;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   font-weight: 600;
   cursor: pointer;
@@ -2329,7 +2329,7 @@
   border-radius: var(--radius-lg);
   text-align: center;
   font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-preview-q { margin-bottom: var(--spacing-md); }
 .evc-preview-q-text {
@@ -2349,7 +2349,7 @@
 .evc-preview-scale-anchor,
 .evc-preview-scale-of {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   max-width: 140px;
   overflow-wrap: anywhere;
 }
@@ -2370,7 +2370,7 @@
 }
 .evc-preview-guide-inline {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: var(--spacing-xs);
 }
@@ -2383,7 +2383,7 @@
   align-items: center;
   justify-content: center;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-preview-gradechips { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
 
@@ -2528,7 +2528,7 @@
 }
 .evc-member-dept {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── A4 프리셋 불러오기 (첫 화면 1급 노출 + 다이얼로그) ── */
@@ -2551,7 +2551,7 @@
 }
 .evc-preset-cta-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-preset-list {
   display: flex;
@@ -2584,7 +2584,7 @@
 }
 .evc-preset-item-meta {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* PW-789 — 「삭제」·「이 설정으로 시작」 두 버튼을 한 줄에. 실패 문구는 행 아래 전폭. */
 .evc-preset-item { flex-wrap: wrap; }
@@ -2815,7 +2815,7 @@
   margin: 0;
   padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xs);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-filter-value-list {
   max-height: 200px;
@@ -2842,7 +2842,7 @@
 }
 .evc-filter-value-n {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-filter-actions {
   display: flex;
@@ -2961,7 +2961,7 @@
   background: var(--bg-tertiary);
   text-align: center;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-review-empty > p {
   margin: 0 0 var(--spacing-md);
@@ -3067,7 +3067,7 @@
 }
 .evc-org-n {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -3119,7 +3119,7 @@
 .evc-roster-meta {
   display: block;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-roster-move {
   display: inline-flex;
@@ -3153,7 +3153,7 @@
 .evc-excluded-reason {
   grid-column: 2;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 .evc-excluded-reason.is-manual {
@@ -3222,7 +3222,7 @@
   gap: var(--spacing-xs);
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -3293,7 +3293,7 @@
   border-top: 1px solid var(--bg-active);
 }
 .evx-detail-row span {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evx-detail-row b {
   color: var(--text-primary);
@@ -3398,7 +3398,7 @@
   overflow-wrap: anywhere;
 }
 .evm-selfref-text.is-empty {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evm-selfref-note {
   margin-top: var(--spacing-md);
@@ -3656,13 +3656,13 @@
 }
 .evm-score-anchor {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   max-width: 140px;
   overflow-wrap: anywhere;
 }
 .evm-score-of {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-left: 2px;
 }
 /* PW-433 ③ 체크박스 선택지 목록(구글 폼 구조) */
@@ -3744,7 +3744,7 @@
   margin-right: auto;
   margin-left: var(--spacing-md);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 /* TC-136 저장 실패 배너 */
@@ -3793,7 +3793,7 @@
 /* W34 — 직무 · 자발적 배지(주황, 리더 정책 §6.3.1) · 대기 행 강조 · 직접 추가 검색(§6.3.2) */
 .evp-nominee-job {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evp-unsolicited-badge,
 .evp-unsol-pending {
@@ -3863,7 +3863,7 @@
   color: var(--text-primary);
 }
 .evp-unsol-reason b {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 /* F3 자발적 신청(멤버) */
@@ -3897,7 +3897,7 @@
 }
 .evpv-cand-dept {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evpv-reason-warn {
   color: var(--utility-warning-600) !important;
@@ -3943,7 +3943,7 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evp-chevron {
   display: inline-flex;
@@ -4003,7 +4003,7 @@
 }
 .evpn-rule {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evpn-candidates {
   max-height: 260px;
@@ -4033,7 +4033,7 @@
 }
 .evpn-hint {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-root > .seg-control {
   margin-bottom: var(--spacing-lg);
@@ -4139,11 +4139,11 @@
 .evl-grade-caption {
   margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evl-submit-caption {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evl-submit-caption.is-calib-off {
   font-weight: 700;
@@ -4177,7 +4177,7 @@
   padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 .evl-sec-toggle:hover {
@@ -4186,7 +4186,7 @@
 .evl-sec-note {
   margin: 0 0 var(--spacing-md);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* §5.10 제출 완료 화면 */
 .evl-done {
@@ -4261,7 +4261,7 @@
   color: var(--text-secondary);
 }
 .evs-stat-unit {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-dist {
   display: flex;
@@ -4308,7 +4308,7 @@
 }
 .evs-dist-guide-cap {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* PW-1047 ①③ 비교 눈금 — 지난 평가·조정 전 값. 가이드(옅은 점선)와 겹쳐도 가려지게 진한 실선,
    막대 안에 들어가도 보이게 흰 테두리를 두른다. */
@@ -4330,7 +4330,7 @@
   gap: var(--spacing-xs) var(--spacing-lg);
   margin: var(--spacing-lg) 0 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-chart-legend-item {
   display: inline-flex;
@@ -4359,7 +4359,7 @@
 .evs-dist-pct {
   font-size: var(--font-size-text-xs);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* §4.A KPI 4종 카드 */
@@ -4391,11 +4391,11 @@
   font-size: var(--font-size-text-sm);
   font-weight: 600;
   margin-left: 2px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-kpi-label {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-kpi-sub {
   font-size: var(--font-size-text-xs);
@@ -4435,7 +4435,7 @@
 .evs-remind-counter {
   margin-left: auto;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-remind-list {
   flex: 1;
@@ -4470,7 +4470,7 @@
 }
 .evs-remind-meta {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 1px;
 }
 .evs-remind-pending {
@@ -4499,7 +4499,7 @@
 
 .evs-remind-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .evs-two-col {
@@ -4566,6 +4566,7 @@
   color: var(--utility-error-600);
 }
 .evs-leader-num.is-muted { color: var(--text-tertiary); }
+.evs-leader-num.is-sub { color: var(--text-secondary); }
 .evs-leader-delay {
   display: inline-block;
   padding: 1px 7px;
@@ -4693,7 +4694,7 @@
 .evs-heat-gh.seg-top { color: var(--utility-green-600); }
 .evs-heat-gh.seg-mid { color: var(--utility-brand-600); }
 .evs-heat-gh.seg-bottom { color: var(--utility-error-600); }
-.evs-heat-num { text-align: right; font-size: var(--font-size-text-xs); font-weight: 600; color: var(--text-tertiary); align-self: center; }
+.evs-heat-num { text-align: right; font-size: var(--font-size-text-xs); font-weight: 600; color: var(--text-secondary); align-self: center; }
 .evs-heat-dept { font-size: var(--font-size-text-sm); font-weight: 600; color: var(--text-primary); align-self: center; }
 .evs-heat-cell {
   display: flex;
@@ -4709,12 +4710,12 @@
 .evs-heat-cell.seg-bottom { background: color-mix(in srgb, var(--utility-error-500) calc(var(--heat) * 100%), transparent); }
 .evs-heat-cnt { font-variant-numeric: tabular-nums; font-weight: 800; font-size: var(--font-size-text-sm); color: var(--text-primary); }
 .evs-heat-pct { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
-.evs-heat-legend { display: flex; align-items: center; gap: 4px; margin-top: var(--spacing-sm); font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.evs-heat-legend { display: flex; align-items: center; gap: 4px; margin-top: var(--spacing-sm); font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evs-heat-swatch { width: 16px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--utility-brand-500) calc(var(--heat) * 100%), transparent); }
 
 .evs-rank { display: flex; flex-direction: column; gap: var(--spacing-md); }
 .evs-rank-row { display: grid; grid-template-columns: auto 1.2fr 2fr auto; gap: var(--spacing-sm); align-items: center; }
-.evs-rank-num { width: 20px; text-align: center; font-weight: 700; font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.evs-rank-num { width: 20px; text-align: center; font-weight: 700; font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 .evs-rank-num.is-first { color: var(--utility-brand-600); }
 .evs-rank-dept { font-size: var(--font-size-text-sm); color: var(--text-primary); }
 .evs-rank-bar { height: 8px; border-radius: var(--radius-full); background: var(--bg-secondary); overflow: hidden; }
@@ -4747,16 +4748,16 @@
 .evs-cd-delegate { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg); flex-wrap: wrap; }
 .evs-cd-delegate-text { flex: 1; min-width: 260px; }
 .evs-cd-delegate-line { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
-.evs-cd-delegate-sub { font-weight: 400; color: var(--text-tertiary); }
-.evs-cd-delegate-note { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-top: 4px; line-height: 1.6; }
+.evs-cd-delegate-sub { font-weight: 400; color: var(--text-secondary); }
+.evs-cd-delegate-note { font-size: var(--font-size-text-xs); color: var(--text-secondary); margin-top: 4px; line-height: 1.6; }
 
 /* §8 피평가자 통합 요약 (2열) */
 .evs-re { display: grid; grid-template-columns: 240px 1fr; gap: var(--spacing-lg); align-items: start; }
 @media (max-width: 820px) { .evs-re { grid-template-columns: 1fr; } }
 .evs-re-list { position: sticky; top: 0; max-height: 78vh; overflow-y: auto; }
-.evs-re-access { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-bottom: var(--spacing-sm); }
+.evs-re-access { font-size: var(--font-size-text-xs); color: var(--text-secondary); margin-bottom: var(--spacing-sm); }
 .evs-re-groups { display: flex; flex-direction: column; gap: var(--spacing-md); }
-.evs-re-group-dept { font-size: var(--font-size-text-xs); font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.evs-re-group-dept { font-size: var(--font-size-text-xs); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
 .evs-re-item {
   display: flex; align-items: center; gap: var(--spacing-sm);
   width: 100%; padding: var(--spacing-sm) var(--spacing-sm);
@@ -4818,7 +4819,7 @@
 }
 .evs-nb-yhead.tone-green { color: var(--utility-green-600); }
 .evs-nb-yhead.tone-amber { color: var(--utility-warning-700); }
-.evs-nb-yhead.tone-neutral { color: var(--text-tertiary); }
+.evs-nb-yhead.tone-neutral { color: var(--text-secondary); }
 .evs-nb-cell {
   min-height: 60px;
   border-radius: var(--radius-md);
@@ -4836,8 +4837,8 @@
   text-decoration: underline; text-underline-offset: 2px;
 }
 .evs-nb-name:hover { color: var(--utility-brand-600); }
-.evs-nb-empty-cell { color: var(--text-tertiary); font-size: var(--font-size-text-xs); }
-.evs-nb-caption { margin-top: var(--spacing-md); font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.evs-nb-empty-cell { color: var(--text-secondary); font-size: var(--font-size-text-xs); }
+.evs-nb-caption { margin-top: var(--spacing-md); font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 /* 승진 요청 카드 */
 .evs-pr-head { display: flex; align-items: center; justify-content: space-between; }
 .evs-pr-showall { background: none; border: none; cursor: pointer; font-size: var(--font-size-text-xs); color: var(--utility-brand-600); font-weight: 600; }
@@ -4852,7 +4853,7 @@
 /* J4 필터/CSV */
 .evs-j4-presets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-md); }
 .evs-j4-save { background: none; border: 1px dashed var(--bg-active); border-radius: var(--radius-full); padding: 4px 12px; cursor: pointer; font-size: var(--font-size-text-xs); color: var(--text-secondary); }
-.evs-j4-desc { font-size: var(--font-size-text-xs); color: var(--text-tertiary); line-height: 1.7; margin-bottom: var(--spacing-md); }
+.evs-j4-desc { font-size: var(--font-size-text-xs); color: var(--text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md); }
 .evs-j4-actions { display: flex; gap: var(--spacing-sm); }
 /* J1 역량/업적 비율 */
 .evs-j1-ratio-row { display: grid; grid-template-columns: 1.2fr 2fr auto; gap: var(--spacing-sm); align-items: center; margin-bottom: var(--spacing-md); }
@@ -5050,7 +5051,7 @@
   width: 130px;
   text-align: right;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -5137,7 +5138,7 @@
 }
 .evrr-name-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-grade,
 .evrr-leader {
@@ -5160,7 +5161,7 @@
 }
 .evrr-muted {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-table .evc-empty-sub {
   padding: var(--spacing-3xl);
@@ -5264,7 +5265,7 @@
   color: var(--text-secondary);
 }
 .evmon-check {
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   font-weight: 700;
 }
 .evmon-check.is-on {
@@ -5334,7 +5335,7 @@
 .evl-sig-period {
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evl-sig-block {
   display: flex;
@@ -5353,7 +5354,7 @@
 .evl-sig-sub {
   font-size: var(--font-size-text-xs);
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evl-sig-krs {
   list-style: none;
@@ -5470,7 +5471,7 @@
 .evs-section-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -5492,7 +5493,7 @@
 }
 .evs-cw-empty-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
   max-width: 380px;
 }
@@ -5529,7 +5530,7 @@
 }
 .evs-cw-session-meta {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-open {
   font-size: 12px;
@@ -5538,7 +5539,7 @@
   flex-shrink: 0;
 }
 .evs-cw-session.is-closed .evs-cw-open {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 테이블 뷰 */
 .evs-cw-table-view {
@@ -5585,7 +5586,7 @@
 }
 .evs-cw-num {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 .evs-cw-name {
@@ -5604,7 +5605,7 @@
   white-space: nowrap;
 }
 .evs-cw-date.is-sub {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-adjust {
   display: flex;
@@ -5640,7 +5641,7 @@
 }
 .evs-cw-spark-empty {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .evs-cw-adjust-select {
@@ -5673,7 +5674,7 @@
 .evs-cw-adjust-log {
   display: inline-flex;
   align-items: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: help;
 }
 .evs-cw-adjust-dir {
@@ -5721,7 +5722,7 @@
 }
 .evs-cw-appeal-sub {
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .evs-cw-appeal-meta {
@@ -5753,7 +5754,7 @@
 }
 .evs-cw-review-sub {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-review-status {
   margin-left: auto;
@@ -5771,7 +5772,7 @@
 .evs-cw-review-k {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 .evs-cw-review-v {
@@ -5822,7 +5823,7 @@
 }
 .evs-cw-review-readonly {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border-top: 1px solid var(--border-primary);
   padding-top: 12px;
 }
@@ -5900,7 +5901,7 @@
   margin-left: auto;
   min-width: 0;
   text-align: right;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -6032,11 +6033,11 @@
 }
 .evs-cw-candidate-kind.tone-muted {
   background: var(--utility-gray-100);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-candidate-dept {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-candidate-chair {
   font-size: 12px;
@@ -6052,13 +6053,13 @@
 }
 .evs-cw-create-hint {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 6px;
   line-height: 1.5;
 }
 .evs-cw-create-muted {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* PW-519 보상 조정 열 · 위원회 전용 칸 · 보상·연봉 열람 권한 창 */
@@ -6104,14 +6105,14 @@
 }
 .evs-cw-committee-k {
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-right: 6px;
 }
 .evs-cw-comp-locked-box {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-comp-access-status {
   margin-top: 12px;
@@ -6184,7 +6185,7 @@
 }
 .evs-cw-display-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 .evs-cw-display-answers {
@@ -6236,7 +6237,7 @@
 .evs-cw-dist-info {
   margin-left: auto;
   display: inline-flex;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: help;
   border-radius: 99px;
 }
@@ -6258,7 +6259,7 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-dist-seg {
   display: flex;
@@ -6338,7 +6339,7 @@
 }
 .evs-cw-dist-chip-rec {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border-left: 1px solid var(--border-primary);
   padding-left: 6px;
 }
@@ -6404,7 +6405,7 @@
 .evs-cw-filter-sec-hint {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-filter-op {
   display: flex;
@@ -6413,7 +6414,7 @@
 }
 .evs-cw-filter-op-label {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-filter-op-btn {
   padding: 3px 11px;
@@ -6471,7 +6472,7 @@
 }
 .evs-cw-detail-profile-role {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 2px 0 10px;
 }
 .evs-cw-detail-facts {
@@ -6488,7 +6489,7 @@
 .evs-cw-detail-facts dt {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-detail-facts dd {
   margin: 0;
@@ -6521,7 +6522,7 @@
 }
 .evs-cw-comment-empty {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-comment {
   display: flex;
@@ -6564,7 +6565,7 @@
 }
 .evs-cw-comment-readonly {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 @media (max-width: 900px) {
   .evs-cw-detail-3col {
@@ -6595,7 +6596,7 @@
   border-radius: 6px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -6618,7 +6619,7 @@
 /* §9.1 매니저 미추천 — 회색 배지. */
 .evs-cw-promo.tone-muted {
   background: var(--bg-tertiary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* §9.1 승진 마킹 요약 스트립 + §4.5 모두 펼치기/접기 — 표 바로 위. */
 .evs-cw-promo-summary {
@@ -6669,7 +6670,7 @@
 .evs-cw-comment-at {
   margin-left: 6px;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .evs-cw-detail-profile-level {
@@ -6697,7 +6698,7 @@
 }
 .evs-cw-myrole.tone-hr {
   background: var(--utility-gray-100);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── R8: 매니저 팀 캘리브레이션 결과 · 이의(어필) (EvalCycleTeamCalibrationCanvas) ── */
@@ -6814,7 +6815,7 @@
 }
 .evtcal-meta {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evtcal-flow {
   margin-left: auto;
@@ -6830,7 +6831,7 @@
 }
 .evtcal-flow-cap {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evtcal-arrow {
   font-size: var(--font-size-text-xs);
@@ -6843,7 +6844,7 @@
   min-width: 56px;
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evtcal-appeal-form {
   border-top: 1px dashed var(--utility-warning-200);
@@ -6862,7 +6863,7 @@
 .evtcal-appeal-hint {
   font-size: 12px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-left: var(--spacing-sm);
 }
 .evtcal-textarea {
@@ -7015,7 +7016,7 @@
 .evs-cw-filter-presets-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-filter-preset-pill {
   display: inline-flex;
@@ -7058,7 +7059,7 @@
 .evs-cw-filter-preset-tag {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-filter-save {
   display: flex;
@@ -7108,7 +7109,7 @@
   border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 .evs-cw-timeline-at {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-timeline-move {
   font-weight: 700;
@@ -7120,7 +7121,7 @@
 .evs-cw-timeline-empty {
   margin-top: 4px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-exclude-btn {
   margin-top: 8px;
@@ -7202,7 +7203,7 @@
   margin-left: 5px;
   font-size: var(--font-size-text-xs);
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-roster-add {
   position: relative;
@@ -7261,7 +7262,7 @@
 .evs-cw-roster-num {
   min-width: 18px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 .evs-cw-roster-name {
@@ -7271,7 +7272,7 @@
 }
 .evs-cw-roster-meta {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   /* 조직·직급은 회사가 정하는 값이라 길이가 흔들린다 — 넘치면 잘라 준다. */
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7417,7 +7418,7 @@
 }
 .evc-wiz-calibscope-roster-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-wiz-calibscope-add {
   position: relative;
@@ -7509,7 +7510,7 @@
 .evc-wiz-calibscope-row-num {
   min-width: 18px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 .evc-wiz-calibscope-row-name {
@@ -7519,7 +7520,7 @@
 }
 .evc-wiz-calibscope-row-meta {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   /* 조직·직급은 길이가 흔들리는 값이라(회사가 정한다) 넘치면 잘라 준다. */
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7539,7 +7540,7 @@
 .evc-wiz-calibscope-empty {
   margin: 6px 0 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-wiz-calibscope-excluded {
   margin-top: 8px;
@@ -7651,7 +7652,7 @@
 }
 .evc-wiz-committee-summary-hidden {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-wiz-committee-chips {
   display: flex;
@@ -7701,7 +7702,7 @@
 }
 .evc-wiz-committee-empty-sub {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-wiz-committee-retry {
   margin-top: 6px;
@@ -7763,7 +7764,7 @@
 }
 .evc-wiz-committee-meta {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 피드백 작성: 검색형 대상 선택기 (구성원 수백 명 대응) ───────── */
@@ -7809,12 +7810,12 @@
 }
 .fb-combo-email {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .fb-combo-empty {
   padding: var(--spacing-md);
   font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -7867,6 +7868,14 @@
 .evnav-domains > button.tab-active {
   cursor: default;
 }
+/* 선택 안 된 1행 탭도 읽어야 하는 글자라 secondary (PW-1439). 공용 .tab-inactive(조직도·스쿼드·
+   프로젝트·OKR)는 그대로 두고 평가 내비 안에서만 올린다. hover 는 primary 로 한 단계 더 진하게. */
+.evnav-domains > button.tab-inactive {
+  color: var(--text-secondary);
+}
+.evnav-domains > button.tab-inactive:hover {
+  color: var(--text-primary);
+}
 /* 2행 — 공용 밑줄 탭 줄. 여백만 1행에 맞춘다. */
 .evnav-nav .tl-tabs-row.evnav-views {
   margin: 13px 0 0;
@@ -7891,7 +7900,7 @@
 }
 .evnav-desc {
   font-size: var(--font-size-text-xs);
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -7926,13 +7935,13 @@
 .evc-tpl-grade-no {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: center;
 }
 .evc-tpl-grade-note {
   margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .evc-tpl-x.is-on { color: var(--utility-brand-600); }
@@ -7984,13 +7993,13 @@
 .evc-tpl-set-num { width: 60px; text-align: right; }
 .evc-tpl-set-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-weight: 400;
 }
 .evc-tpl-set-help {
   margin: var(--spacing-sm) 0 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .evc-tpl-set-help.is-warn { color: var(--utility-warning-600); }
@@ -8025,7 +8034,7 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -8039,7 +8048,7 @@
   margin-left: var(--spacing-xs);
   font-family: inherit;
   font-weight: 400;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* ── PW-435 ④ 건너뛴 단계 — 표에서 지우지 않고 「미사용」으로 남긴다 ────────── */
@@ -8049,7 +8058,7 @@
 .evc-wiz-step-skip {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evc-wiz-skipped {
@@ -8071,7 +8080,7 @@
 .evc-wiz-skipped-body {
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
@@ -8082,7 +8091,7 @@
 .evc-rm-dsec-note {
   margin-left: var(--spacing-xs);
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* [PW-1125] 「받는 사람이 볼 모습」 — 머리줄(제목 · [이메일 | 슬랙]) → 상자 하나 → 렌더링 안내 한 줄.
    한 벌의 문구가 채널마다 어떻게 그려지는가(「슬랙 문구는 어디서 확인하나」의 답)는 이제
@@ -8110,7 +8119,7 @@
 }
 .evc-rm-render-line {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 메시지 제목 줄 — 왼쪽 제목, 오른쪽 [나에게 테스트 발송] 글자 버튼 */
 .evc-rm-msg-head {
@@ -8135,7 +8144,7 @@
   white-space: nowrap;
 }
 .evc-rm-test-link:disabled {
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 /* 템플릿 셀렉트와 저장된 문구 불러오기를 한 줄에 — 좁으면 아래로 내려간다 */
@@ -8160,7 +8169,7 @@
   align-items: baseline;
   gap: var(--spacing-md);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.8;
 }
 .evc-rm-send-row + .evc-rm-send-row {
@@ -8197,7 +8206,7 @@
 }
 .evc-rm-saved-empty {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evc-rm-msg-actions {
   display: flex;
@@ -8229,7 +8238,7 @@
 .evc-rm-save-msg:disabled {
   border-color: var(--border-secondary);
   background: var(--bg-secondary);
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 /* AI 실패는 인라인으로만 알린다 — 전역 오류 화면으로 넘어가면 작성 중이던 문구가 날아간다. */
@@ -8300,7 +8309,7 @@
   margin-left: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 「저장된 게 없다」와 「못 불러왔다」는 다른 사실이다 — 색으로도 가른다 (PW-435 ⑥). */
@@ -8390,7 +8399,7 @@
 .evm-field-guide {
   margin-bottom: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 사이클 관리 화면 (PW-534 ㉮ · 정책 §4.6) ──
@@ -8404,7 +8413,7 @@
 }
 .evc-manage-suffix {
   font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 잠금 안내 — 아이콘과 문장이 여러 줄에서도 위쪽으로 정렬된다. */
 .evc-manage-lock {
@@ -8454,7 +8463,7 @@
 }
 .evrs-chip-req {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
@@ -8484,7 +8493,7 @@
   flex: none;
   min-width: 140px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrs-timeline-row.is-now .evrs-timeline-when {
   color: var(--brand-700);
@@ -8630,7 +8639,7 @@
   align-items: flex-start;
   gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evu-counter.is-warn {
   color: var(--utility-warning-700);
@@ -8756,7 +8765,7 @@
   white-space: nowrap;
 }
 .evmon-roster-sub {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8831,7 +8840,7 @@
 .evmon-dispatch-note {
   grid-column: 1 / -1;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-sections-toggle {
   font-size: var(--font-size-text-xs);
@@ -8848,7 +8857,7 @@
 .evrr-sections-hint,
 .evrr-sections-note {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 0;
 }
 .evrr-sections-error {
@@ -8879,7 +8888,7 @@
 }
 .evrr-section-req {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── PW-832 평가 창 — 공용 창 틀(ModalShell) 위의 변형 ─────────────────────────
@@ -8987,7 +8996,7 @@
 .evrr-refine-note {
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-refine-error {
   margin: 0;
@@ -9016,7 +9025,7 @@
 }
 .evrr-refine-q {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-refine-compare {
   display: grid;
@@ -9032,7 +9041,7 @@
 .evrr-refine-col-label {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evrr-refine-text {
   margin: 0;
@@ -9084,7 +9093,7 @@
 }
 .evs-cw-adjuster {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .evs-cw-row-appeal {
   margin-left: 6px;
@@ -9120,7 +9129,7 @@
 }
 .evs-cw-detail-log-at {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .evs-cw-review-context {
@@ -9168,7 +9177,19 @@
   line-height: 1.7;
   color: var(--text-secondary);
 }
-.evs-archived-excluded { color: var(--text-tertiary); }
+.evs-archived-excluded { color: var(--text-secondary); }
 /* PW-1429 · §16.4 — 재입사자의 성과 추이 아래 «이전 재직 구간 · 따로 보관 중» */
 .evs-cw-spark-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.evs-cw-spark-archived { font-size: var(--font-size-text-xs); line-height: 1.4; color: var(--text-tertiary); white-space: nowrap; }
+.evs-cw-spark-archived { font-size: var(--font-size-text-xs); line-height: 1.4; color: var(--text-secondary); white-space: nowrap; }
+/* PW-1439 — 공용 SegmentedControl(App.css `.seg-item`)의 고르지 않은 칸이 tertiary 라 평가 화면
+   안에서만 secondary 로 올린다(고른 칸은 primary). 다른 화면의 공용 규칙은 그대로. */
+.evc-root .seg-item,
+.evc-shell .seg-item,
+.evnav-shell .seg-item {
+  color: var(--text-secondary);
+}
+.evc-root .seg-item.is-active,
+.evc-shell .seg-item.is-active,
+.evnav-shell .seg-item.is-active {
+  color: var(--text-primary);
+}

@@ -192,7 +192,7 @@ export default function AdminRbacCanvas({
     padding: '9px 16px 4px',
     fontSize: 10,
     fontWeight: 700,
-    color: DP.textT,
+    color: DP.textS,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     background: DP.inset,
@@ -254,7 +254,7 @@ export default function AdminRbacCanvas({
                   >
                     {L.perms[pid]}
                   </div>
-                  <div style={{ fontSize: 11, color: DP.textT }}>
+                  <div style={{ fontSize: 11, color: DP.textS }}>
                     {L.permDescs[pid]}
                   </div>
                 </RosterTable.Cell>
@@ -332,7 +332,7 @@ export default function AdminRbacCanvas({
                   >
                     {L.roles[rid]}
                   </div>
-                  <div style={{ fontSize: 10, color: DP.textT }}>
+                  <div style={{ fontSize: 10, color: DP.textS }}>
                     {fill(L.permCount, { count: countPerms(rid) })}
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function AdminRbacCanvas({
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: DP.textT, marginBottom: 2 }}>
+              <div style={{ fontSize: 10, color: DP.textS, marginBottom: 2 }}>
                 {L.grantedPerms}
               </div>
               <div
@@ -380,7 +380,7 @@ export default function AdminRbacCanvas({
                 }}
               >
                 {countPerms(selectedRole)}
-                <span style={{ fontSize: 14, color: DP.textT }}>
+                <span style={{ fontSize: 14, color: DP.textS }}>
                   {fill(L.permOf, { total: ALL_PERM_IDS.length })}
                 </span>
               </div>
@@ -414,7 +414,7 @@ export default function AdminRbacCanvas({
                       <div style={{ fontSize: 12, fontWeight: 500, color: DP.textP }}>
                         {L.perms[pid]}
                       </div>
-                      <div style={{ fontSize: 11, color: DP.textT }}>
+                      <div style={{ fontSize: 11, color: DP.textS }}>
                         {L.permDescs[pid]}
                       </div>
                     </div>
@@ -425,7 +425,7 @@ export default function AdminRbacCanvas({
                         padding: '2px 8px',
                         borderRadius: 99,
                         background: checked ? DP.accentBg : DP.inset,
-                        color: checked ? DP.accentTc : DP.textT,
+                        color: checked ? DP.accentTc : DP.textS,
                         border: `1px solid ${checked ? DP.accentBd : DP.borderT}`,
                       }}
                     >
@@ -465,7 +465,7 @@ export default function AdminRbacCanvas({
                 <div style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
                   {L.roles[rid]}
                 </div>
-                <div style={{ fontSize: 10, color: DP.textT, marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: DP.textS, marginTop: 2 }}>
                   {L.roleDescs[rid]}
                 </div>
               </RosterTable.HeadCell>
@@ -495,7 +495,7 @@ export default function AdminRbacCanvas({
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: DP.textT, marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: DP.textS, marginTop: 2 }}>
                     {L.visDescs[item.id]}
                   </div>
                 </RosterTable.Cell>
@@ -511,7 +511,7 @@ export default function AdminRbacCanvas({
                           padding: '3px 10px',
                           borderRadius: 99,
                           background: on ? DP.accentBg : DP.inset,
-                          color: on ? DP.accentTc : DP.textT,
+                          color: on ? DP.accentTc : DP.textS,
                           border: `1px solid ${on ? DP.accentBd : DP.borderT}`,
                         }}
                       >
@@ -597,7 +597,7 @@ export default function AdminRbacCanvas({
           >
             {L.title}
           </h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: DP.textT }}>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: DP.textS }}>
             {L.description}
           </p>
         </div>
@@ -609,7 +609,7 @@ export default function AdminRbacCanvas({
             padding: '4px 10px',
             borderRadius: 99,
             background: DP.inset,
-            color: DP.textT,
+            color: DP.textS,
             border: `1px solid ${DP.borderT}`,
           }}
         >
@@ -668,7 +668,7 @@ export default function AdminRbacCanvas({
               <div className="admin-stat-label" style={{ margin: '0 0 2px' }}>
                 {L.roles[rid]}
               </div>
-              <div style={{ fontSize: 10, color: DP.textT, marginBottom: 10 }}>
+              <div style={{ fontSize: 10, color: DP.textS, marginBottom: 10 }}>
                 {L.roleDescs[rid]}
               </div>
               <div

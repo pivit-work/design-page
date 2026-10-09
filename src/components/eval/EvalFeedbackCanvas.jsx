@@ -225,7 +225,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
       </div>
 
       {latest.length === 0 ? (
-        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.muted, margin: '4px 0' }}>
+        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.sub, margin: '4px 0' }}>
           {isKr ? L.emptyBlock : L.emptyBlockInit}
         </p>
       ) : (
@@ -276,7 +276,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <span style={{ fontSize: 12, color: C.muted }}>
+        <span style={{ fontSize: 12, color: C.sub }}>
           {items.length}{L.countSuffix}
         </span>
         {isMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
@@ -343,7 +343,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, linkedLabelOf, onRepl
     >
       <div className="evc-shell-thread-list">
         {!hasItems ? (
-          <p style={{ textAlign: 'center', color: C.muted, fontSize: 13, padding: 24 }}>
+          <p style={{ textAlign: 'center', color: C.sub, fontSize: 13, padding: 24 }}>
             {L.threadEmpty}
           </p>
         ) : (
@@ -390,7 +390,7 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{item.person?.name}</span>
             {!item.isRead && <Chip tone="accent">{L.newBadge}</Chip>}
-            <span style={{ color: C.muted }}>{fmtDate(item.sentAt)}</span>
+            <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {targetLabel && (
               <Chip tone="info" data-testid={`fbm-linked-${item.id}`}>{targetLabel}</Chip>
             )}
@@ -534,7 +534,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               <button
                 type="button"
                 onClick={cancelEdit}
-                style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontSize: 12, cursor: 'pointer' }}
+                style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 12, cursor: 'pointer' }}
               >
                 {L.requestEditCancel}
               </button>
@@ -551,7 +551,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
           </div>
         ) : (
           <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
-            {item.text || <span style={{ color: C.muted }}>{L.requestEmptyText}</span>}
+            {item.text || <span style={{ color: C.sub }}>{L.requestEmptyText}</span>}
             <div style={{ marginTop: 6 }}>
               <Chip tone="accent">{L.requestTagFull}</Chip>
             </div>
@@ -566,7 +566,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               type="button"
               onClick={() => setEditing(true)}
               data-testid="fbm-request-edit"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.muted, padding: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.sub, padding: 0 }}
             >
               {L.requestEdit}
             </button>
@@ -689,7 +689,7 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
       {lockedCount > 0 && (
         <p
           data-testid="fbm-recipient-locked-hint"
-          style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.6 }}
+          style={{ margin: 0, fontSize: 12, color: C.sub, lineHeight: 1.6 }}
         >
           {lockedCount === recipients.length ? L.requestAllRequestedHint : L.requestAlreadyHint}
         </p>
@@ -760,7 +760,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
               <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.text }}>
                 {req.person?.name}{req.person?.inactive ? ` ${L.incomingInactive}` : ''}
               </span>
-              <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
+              <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
                 {req.person?.role ? `${req.person.role} · ` : ''}{fmtDate(req.sentAt)}
               </span>
               {req.linkedTargetTitle && <Chip tone="info">{req.linkedTargetTitle}</Chip>}
@@ -771,7 +771,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
               </div>
             )}
             {isPastPeriod ? (
-              <div style={{ marginTop: 8, fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
+              <div style={{ marginTop: 8, fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
                 <ClockIcon size={11} /> {L.incomingPastReadonly}
               </div>
             ) : openId !== req.id ? (
@@ -779,7 +779,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                 type="button"
                 onClick={() => { setOpenId(req.id); setText(''); }}
                 data-testid={`fbm-incoming-write-${req.id}`}
-                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.muted }}
+                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.sub }}
               >
                 {L.incomingWrite}
               </button>
@@ -835,7 +835,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
         padding: '4px 10px',
       }}
     >
-      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.muted }}>{L.periodLabel}</span>
+      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.sub }}>{L.periodLabel}</span>
       <select
         value={periodKey}
         onChange={(e) => onChange(e.target.value)}
@@ -1129,7 +1129,7 @@ export default function EvalFeedbackCanvas({
 
         {krBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
               {L.sectionKr}
             </div>
             {krBlocks.map((b) => (
@@ -1140,7 +1140,7 @@ export default function EvalFeedbackCanvas({
 
         {initBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionInit}
             </div>
             {initBlocks.map((b) => (
@@ -1151,7 +1151,7 @@ export default function EvalFeedbackCanvas({
 
         {etc && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.muted, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionEtc}
             </div>
             <BlockCard block={etc} L={L} onOpen={setOpenBlock} cardRef={etcCardRef} />
