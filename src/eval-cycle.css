@@ -115,6 +115,13 @@
 }
 
 /* ── 리스트 ── */
+/* PW-1459 — 「오래된 초안 N건」 접기. 카드 목록 끝, 왼쪽 정렬. */
+.evc-stale-drafts-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
 .evc-list {
   display: flex;
   flex-direction: column;
@@ -902,6 +909,26 @@
   font-size: var(--font-size-text-xs);
   font-weight: 600;
 }
+/* PW-1459 — 연달아 저장이 실패할 때의 지속 배너. 안내 배너와 같은 자리·모양, 색만 오류. */
+.evc-wiz-draft-banner.is-error {
+  border-color: var(--utility-error-200);
+  background: var(--utility-error-50);
+  color: var(--utility-error-700);
+}
+/* PW-1459 — 푸터 「저장 실패 · 다시 시도」의 다시 시도. 글자 버튼이다. */
+.evc-wiz-draft-state .evc-link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.evc-wiz-draft-state .evc-link-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
 /* 이탈 확인 다이얼로그의 「무슨 일이 일어나는지」 목록. */
 .evc-wiz-hint-list {
   margin: var(--spacing-sm) 0 0;
@@ -1164,6 +1191,14 @@
 .evc-sched-tpl-goto {
   margin-left: auto;
   flex-shrink: 0;
+}
+/* PW-1459 — 확정했던 템플릿이 지워졌다는 한 줄. 미확정 안내 위에 따로 선다. */
+.evc-sched-tpl-vanished {
+  flex-basis: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 600;
 }
 .evc-sched-tpl-unset {
   margin-top: var(--spacing-xs);

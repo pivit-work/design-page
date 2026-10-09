@@ -708,6 +708,27 @@ function clampStep(value) {
   return Math.min(Math.max(Math.trunc(n), 0), WIZARD_STEP_COUNT - 1);
 }
 
+/**
+ * PW-1459 §5.1-A-6 — 저장된 초안과 지금 위자드의 «칸 목록»이 다른가.
+ * 저장본에만 있는 칸은 무시되고, 지금만 있는 칸은 기본값으로 채워진다 — 둘 다 「양식이
+ * 바뀌었다」이다. 값이 아니라 칸 이름만 본다(값이 다른 것은 사용자가 저장한 내용이다).
+ * 제외 조건은 칸 묶음이 한 겹 안에 있어 그 안까지 본다.
+ */
+function draftShapeChanged(saved, current) {
+  if (!saved || typeof saved !== 'object') return false;
+  const differs = (a, b) => {
+    const known = Object.keys(b).filter((k) => b[k] !== undefined);
+    return (
+      Object.keys(a).some((k) => !(k in b)) ||
+      known.some((k) => !(k in a))
+    );
+  };
+  if (differs(saved, current)) return true;
+  const se = saved.exclusionRules;
+  const ce = current.exclusionRules;
+  return !!(se && ce && typeof se === 'object' && differs(se, ce));
+}
+
 /** `2026-08-23T18:20:00Z` → `18:20`. 시각이 없거나 못 읽으면 빈 문자열. */
 function stampTime(iso) {
   if (!iso) return '';
@@ -2359,6 +2380,14 @@ export default function EvalCycleWizard({
   onExclusionRulesChange,
   onCancel,
   onSubmit,
+  /**
+   * PW-1459 §5.1 — 새로 만드는 위자드의 6단계는 「평가 오픈하기」다. 이 콜백이 있으면
+   * 6단계 버튼이 입력값을 넘기고, 소비 측이 오픈 확인 창을 거쳐 만들기·오픈을 잇는다.
+   * 없으면(관리 모드·옛 소비 측) 종전대로 `onSubmit` 으로 저장만 한다.
+   */
+  onSubmitOpen,
+  /** PW-1459 §5.1-A-6 — 충돌 창 「상대 내용 불러오기」. 같은 초안의 최신 저장본으로 다시 연다. */
+  onLoadLatestDraft,
   // TC-028 사이클 설정 프리셋(불러오기/저장)
   presets = [],
   onSavePreset,
@@ -3016,12 +3045,21 @@ export default function EvalCycleWizard({
     schedFormatBad(id, field) || (field === 'end' && schedOrderBad(id));
   /* 켜져 있는 단계만 본다 — 끈 단계는 일정 입력 자체를 감추므로(§5.2.1 OFF 표현)
      거기 남아 있는 옛 값 때문에 진행이 막히면 영문을 알 수 없다. */
-  const scheduleValid = enabledRows.every(
-    (r) =>
-      !schedFormatBad(r.id, 'start') &&
-      !schedFormatBad(r.id, 'end') &&
-      !schedOrderBad(r.id),
-  );
+  /* PW-1459 §5.1 — 켠 단계는 시작·종료 일시가 «모두» 있어야 3단계를 넘어간다.
+     형식·순서만 보던 때에는 날짜 칸을 비워도 「다음」이 눌렸다. */
+  const schedEmpty = (id) => {
+    const sc = scheduleOf(id);
+    return !sc.start || !sc.end;
+  };
+  const scheduleMissing = enabledRows.some((r) => schedEmpty(r.id));
+  const scheduleValid =
+    !scheduleMissing &&
+    enabledRows.every(
+      (r) =>
+        !schedFormatBad(r.id, 'start') &&
+        !schedFormatBad(r.id, 'end') &&
+        !schedOrderBad(r.id),
+    );
 
   /* ── PW-536 일정 시작일(D0) ─────────────────────────────────────────────
      화면에 보이는 단계 중 「직접 수정」인 것만 센다. 꺼졌다 켜졌다 하며 목록에서
@@ -4254,6 +4292,9 @@ export default function EvalCycleWizard({
      * 조용히 살려 두면 되살렸을 때 **해제했는데 살아 있는** 상태가 된다 — 사용자가
      * 확정한 적 없다고 여기는 평가지가 그대로 오픈된다.
      */
+    /* PW-1459 §5.2 — 동료 리뷰를 끄면 지정 방식 선택도 지운다. 남겨 두면 다시 켰을 때
+       사용자가 고른 적 없다고 여기는 방식이 그대로 살아 돌아온다. */
+    if (turningOff && t === 'peer') setPeerAssignModes([]);
     if (turningOff) {
       setPhaseTemplateMap((m) => {
         if (!(t in m)) return m;
@@ -4389,6 +4430,8 @@ export default function EvalCycleWizard({
       confirmed,
       dirty,
       archived: (tpl?.status || 'active') === 'archived',
+      /* PW-1459 §5.1-A-6 — 확정이 가리키던 템플릿이 라이브러리에서 지워졌다(조회가 끝난 뒤에만 판정). */
+      vanished: !!id && !tpl && libraryResolved,
       editing,
       options: savedTemplates.filter(
         (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === rt.id,
@@ -5280,6 +5323,15 @@ export default function EvalCycleWizard({
     committees: committees.map(({ key, ...rest }) => rest),
   });
 
+  /**
+   * PW-1459 §5.1-A-6 — 이어 쓴 초안이 지금 위자드와 다른 양식으로 저장됐나. 저장된 칸 중
+   * 지금은 없는 칸(무시됨)이나, 지금 있는데 저장본에 없는 칸(기본값으로 채움)이 있으면
+   * 「일부 설정이 최신 양식으로 옮겨졌습니다」를 띄운다. 연 순간 한 번만 잰다.
+   */
+  const [draftMigrated] = useState(() =>
+    isDraftResume ? draftShapeChanged(D, collectDraft()) : false,
+  );
+
   /* 저장 상태. `savedSnapshot` 은 마지막으로 서버에 보낸 초안의 JSON 이다 —
      「저장 이후 바뀐 것이 있나」를 값으로 판정한다(플래그로 두면 되돌린 편집까지
      «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다). */
@@ -5291,6 +5343,12 @@ export default function EvalCycleWizard({
   );
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftError, setDraftError] = useState(false);
+  /* PW-1459 §5.1-A-6 — 연달아 실패한 횟수. 3회부터는 푸터 한 줄로는 놓치므로 위쪽에
+     지속 배너를 둔다. 한 번이라도 성공하면 0 으로 돌린다. */
+  const [draftFailStreak, setDraftFailStreak] = useState(0);
+  /* PW-1459 §5.1-A-6 — 다른 사람이 같은 초안을 먼저 저장했다. `{ savedByName, savedAt }` */
+  const [draftConflict, setDraftConflict] = useState(null);
+  const [conflictBusy, setConflictBusy] = useState(false);
   /* 이탈 확인 다이얼로그. null 이면 안 떠 있다. */
   const [leaveAsk, setLeaveAsk] = useState(false);
 
@@ -5325,10 +5383,19 @@ export default function EvalCycleWizard({
    * 🔴 **이동을 막지 않는다.** 저장을 기다렸다 렌더하면 매 단계마다 화면이 멈춘 것처럼
    * 보인다. 실패해도 이미 일어난 이동은 되돌리지 않고 푸터에만 알린다(§5.1-A-1).
    */
-  const saveDraft = async (overrides) => {
+  /**
+   * `lock` — PW-1459 충돌 창의 두 선택이 쓴다. `{ baseSavedAt }` 은 상대가 저장한 시각을
+   * 잠금 키로 보내 «알고 덮어쓴다», `{ asNew: true }` 는 이 초안과 떼어 새 초안으로 만든다.
+   */
+  const saveDraft = async (overrides, lock) => {
     if (!draftEnabled) return null;
     const payload = { ...collectDraft(), ...(overrides ?? {}) };
     const snapshot = JSON.stringify(payload);
+    const failed = () => {
+      setDraftError(true);
+      setDraftFailStreak((n) => n + 1);
+      return null;
+    };
     setDraftSaving(true);
     setDraftError(false);
     try {
@@ -5336,23 +5403,63 @@ export default function EvalCycleWizard({
         draftState: payload,
         draftStep: clampStep(payload.step),
         name: payload.name,
+        ...(lock ?? {}),
       });
-      if (!result) {
-        setDraftError(true);
-        return null;
+      if (result?.conflict) {
+        setDraftConflict(result.conflict);
+        return failed();
       }
+      if (!result) return failed();
       setDraftSavedAt(result.savedAt ?? null);
       setSavedSnapshot(snapshot);
+      setDraftFailStreak(0);
+      setDraftConflict(null);
       return result;
     } catch {
       // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
       // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
-      setDraftError(true);
-      return null;
+      return failed();
     } finally {
       setDraftSaving(false);
     }
   };
+
+  /** PW-1459 충돌 창의 세 선택. 실패하면 창을 연 채 둔다(푸터에 실패가 남는다). */
+  const resolveConflict = async (choice) => {
+    const conflict = draftConflict;
+    if (!conflict || conflictBusy) return;
+    setConflictBusy(true);
+    try {
+      if (choice === 'load') {
+        // 상대 내용으로 위자드를 다시 연다 — 소비 측이 그 초안을 읽어 새로 띄운다.
+        await onLoadLatestDraft?.();
+        return;
+      }
+      await saveDraft(
+        undefined,
+        choice === 'overwrite' ? { baseSavedAt: conflict.savedAt } : { asNew: true },
+      );
+    } finally {
+      setConflictBusy(false);
+    }
+  };
+
+  /* PW-1459 §5.1-A-5 — 탭 닫기·새로고침은 브라우저가 묻게 한다. 문구는 브라우저가 정한다.
+     저장 이후 바뀐 것이 있거나 마지막 저장이 실패했을 때만 건다. */
+  /* 연 순간의 값 — 아무것도 안 고쳤으면 「바뀜」이 아니다. 한 번도 저장 안 한 새 위자드는
+     `draftDirty` 가 늘 참이라 그것만 보면 열자마자 브라우저가 묻는다. */
+  const [openSnapshot] = useState(draftSnapshot);
+  const unloadArmed =
+    draftEnabled && (draftError || (draftDirty && draftSnapshot !== openSnapshot));
+  useEffect(() => {
+    if (!unloadArmed || typeof window === 'undefined') return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [unloadArmed]);
 
   // 단계 이동 — 위원 검색어는 초기화하고 선택은 유지한다. 돌아왔을 때 예전 검색어가
   // 남아 있으면 후보가 몇 명뿐인 것처럼 보인다.
@@ -5451,8 +5558,18 @@ export default function EvalCycleWizard({
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
+  const opensOnSubmit =
+    !isManage && !isSingleStep && typeof onSubmitOpen === 'function';
+  /* 6단계가 곧 오픈이면 미확정 템플릿은 여기서 막힌다 — 서버 오픈 전이가 같은 것을 거절한다
+     (§5.2.4 엣지 4 「미확정은 오픈에서만 막는다」의 그 «오픈»이다). */
+  const openBlockedByTemplates = opensOnSubmit && unconfirmedTypes.length > 0;
   const canSubmit =
-    step1Valid && scheduleValid && remindersValid && targetsValid && committeeValid;
+    step1Valid &&
+    scheduleValid &&
+    remindersValid &&
+    targetsValid &&
+    committeeValid &&
+    !openBlockedByTemplates;
   /**
    * [PW-531] 단계 표의 ✓ 판정 — `다음` 을 막는 조건과 같은 것을 단계별로 본다.
    * 2단계(템플릿)는 경고만 하고 진행을 막지 않으므로(§5.1 표) 늘 완료로 친다.
@@ -5469,7 +5586,9 @@ export default function EvalCycleWizard({
             : true;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
-    : !scheduleValid
+    : scheduleMissing
+      ? L.blockScheduleEmpty
+      : !scheduleValid
       ? L.submitBlockSchedule ?? L.dateOrderError
       : !remindersValid
         ? L.reminderNoRecipientErr
@@ -5477,7 +5596,9 @@ export default function EvalCycleWizard({
         ? L.submitBlockTargets
         : !committeeValid
           ? L.submitBlockCommittee
-          : null;
+          : openBlockedByTemplates
+            ? L.submitBlockTemplates
+            : null;
 
   /**
    * PW-531 — 「생성」의 결과를 기다린다.
@@ -5522,7 +5643,12 @@ export default function EvalCycleWizard({
             .filter((p) => !openedManage || reminders[p.id] !== undefined)
             .map((p) => [p.id, remindersOf(p.id)]),
         ),
-        templateMap: phaseTemplateMap,
+        // PW-1459 §5.1-A-6 — 지워진 템플릿을 가리키는 매핑은 비워서 보낸다.
+        templateMap: Object.fromEntries(
+          Object.entries(phaseTemplateMap).filter(
+            ([type]) => !confirmRowOf(type)?.vanished,
+          ),
+        ),
         gradeCardPosition,
         roleMode,
         roleVersions: roleMode === 'by_role' ? roleVersions : {},
@@ -5609,6 +5735,11 @@ export default function EvalCycleWizard({
         : [],
     };
     setSubmitFailed(false);
+    if (opensOnSubmit) {
+      // 저장·오픈은 확인 창이 맡는다 — 창의 「오픈하기」를 눌러야 무엇이든 만들어진다.
+      onSubmitOpen(payload);
+      return;
+    }
     setSubmitting(true);
     try {
       await onSubmit(payload);
@@ -5823,6 +5954,24 @@ export default function EvalCycleWizard({
                 ? ` · ${fill(L.draftSavedBy, { name: draftSavedByName })}`
                 : ''}
             </span>
+          </div>
+        )}
+
+        {!isSingleStep && isDraftResume && draftMigrated && (
+          <div className="evc-wiz-draft-banner" data-testid="evc-wiz-draft-migrated">
+            <InfoIcon size={14} />
+            <span>{L.draftMigratedBanner}</span>
+          </div>
+        )}
+        {/* PW-1459 §5.1-A-6 — 연달아 실패하면 푸터 한 줄로는 놓친다. 성공할 때까지 남는다. */}
+        {!isSingleStep && draftEnabled && draftFailStreak >= 3 && (
+          <div
+            className="evc-wiz-draft-banner is-error"
+            role="alert"
+            data-testid="evc-wiz-draft-failing"
+          >
+            <AlertIcon size={14} />
+            <span>{L.draftFailingBanner}</span>
           </div>
         )}
 
@@ -7073,6 +7222,14 @@ export default function EvalCycleWizard({
                                 className="evc-sched-tpl-unset"
                                 data-testid={`evc-sched-tpl-unset-${ph.id}`}
                               >
+                                {row?.vanished && (
+                                  <span
+                                    className="evc-sched-tpl-vanished"
+                                    data-testid={`evc-sched-tpl-vanished-${ph.id}`}
+                                  >
+                                    <AlertIcon size={12} /> {L.tplVanished}
+                                  </span>
+                                )}
                                 <span>
                                   {fill(L.tplConfirmMissing, {
                                     type: L[REVIEW_TYPE_KEYS[rtype]],
@@ -8242,6 +8399,11 @@ export default function EvalCycleWizard({
               {L.blockReviewTypes}
             </span>
           )}
+          {!isSingleStep && step === 2 && scheduleMissing && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-schedule-empty">
+              {L.blockScheduleEmpty}
+            </span>
+          )}
           {(isSingleStep || step === steps.length - 1) && submitBlockHint && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-submit">
               {submitBlockHint}
@@ -8266,7 +8428,20 @@ export default function EvalCycleWizard({
                 data-testid="evc-wiz-draft-state"
               >
                 {draftError ? (
-                  L.draftSaveFailed
+                  <>
+                    {/* PW-1459 §5.1-A-1 — 실패는 그 자리에서 다시 시도한다. */}
+                    <AlertIcon size={13} /> {L.draftSaveFailedShort}
+                    {' · '}
+                    <button
+                      type="button"
+                      className="evc-link-btn"
+                      disabled={draftSaving}
+                      onClick={() => void saveDraft()}
+                      data-testid="evc-wiz-draft-retry"
+                    >
+                      {L.draftRetry}
+                    </button>
+                  </>
                 ) : draftSaving ? (
                   L.draftSaving
                 ) : !draftSavedAt ? (
@@ -8324,7 +8499,9 @@ export default function EvalCycleWizard({
                     ? (singleStepSaveLabel ?? L.saveChanges)
                     : isManage
                       ? L.saveChanges
-                      : L.create}
+                      : opensOnSubmit
+                        ? L.openCycleSubmit
+                        : L.create}
               </button>
             )}
           </div>
@@ -8342,9 +8519,66 @@ export default function EvalCycleWizard({
       {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
+      {/* PW-1459 §5.1-A-6 — 다른 사람이 먼저 저장한 초안. 나중 저장이 앞 저장을 조용히
+          지우지 않게, 무엇을 할지 사용자가 고른다. */}
+      {draftConflict && (
+        <ModalShell
+          title={fill(L.draftConflictBody, {
+            name: draftConflict.savedByName || L.draftConflictSomeone,
+            time: draftConflict.savedAt ? stampTime(draftConflict.savedAt) : '',
+          })}
+          titleId="evc-wiz-conflict-title"
+          closeLabel={L.cancel}
+          onClose={() => setDraftConflict(null)}
+          busy={conflictBusy}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evc-wiz-conflict"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                disabled={conflictBusy || !onLoadLatestDraft}
+                onClick={() => void resolveConflict('load')}
+                data-testid="evc-wiz-conflict-load"
+              >
+                {L.draftConflictLoad}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                disabled={conflictBusy}
+                onClick={() => void resolveConflict('new')}
+                data-testid="evc-wiz-conflict-new"
+              >
+                {L.draftConflictSaveNew}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                disabled={conflictBusy}
+                onClick={() => void resolveConflict('overwrite')}
+                data-testid="evc-wiz-conflict-overwrite"
+              >
+                {L.draftConflictOverwrite}
+              </button>
+            </>
+          }
+        >
+          {null}
+        </ModalShell>
+      )}
+
       {leaveAsk && (
         <ModalShell
-          title={isManage ? L.manageLeaveTitle : L.draftLeaveTitle}
+          title={
+            isManage
+              ? L.manageLeaveTitle
+              : draftError
+                ? L.draftLeaveFailedTitle
+                : L.draftLeaveTitle
+          }
           titleId="evc-wiz-leave-title"
           closeLabel={L.cancel}
           onClose={() => setLeaveAsk(false)}
@@ -8382,25 +8616,27 @@ export default function EvalCycleWizard({
                   onClick={() => void leaveWithSave()}
                   data-testid="evc-wiz-leave-save"
                 >
-                  {L.draftLeaveSave}
+                  {draftError ? L.draftRetry : L.draftLeaveSave}
                 </button>
               )}
             </>
           }
         >
           <div className="evc-shell-body">
-              <p className="evc-wiz-hint">
-                {isManage ? L.manageLeaveBody : L.draftLeaveBody}
-              </p>
-              {!isManage && (
+              {!(draftError && !isManage) && (
+                <p className="evc-wiz-hint">
+                  {isManage ? L.manageLeaveBody : L.draftLeaveBody}
+                </p>
+              )}
+              {!isManage && !draftError && (
                 <ul className="evc-wiz-hint-list">
                   <li>{L.draftLeaveHint1}</li>
                   <li>{L.draftLeaveHint2}</li>
                 </ul>
               )}
-              {draftError && (
+              {draftError && !isManage && (
                 <p className="evc-wiz-block" data-testid="evc-wiz-leave-error">
-                  {L.draftSaveFailed}
+                  {L.draftLeaveFailedBody}
                 </p>
               )}
             </div>
