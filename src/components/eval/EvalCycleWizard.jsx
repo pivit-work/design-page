@@ -10196,7 +10196,11 @@ export default function EvalCycleWizard({
           body={
             <span data-testid="evc-tpl-confirm-swap-body">
               {fill(L.tplConfirmSwapBody, {
-                type: L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]],
+                // PW-1594 — 하향 차수 칸(`leader_2` …)은 확정 현황 행과 같은 이름(`하향 리뷰 · 2차`).
+                type: (() => {
+                  const row = confirmRows.find((r) => r.type === pendingConfirmSwap.type);
+                  return row?.round > 1 ? row.label : L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]];
+                })(),
                 from: pendingConfirmSwap.from,
                 to: pendingConfirmSwap.to,
               })}
