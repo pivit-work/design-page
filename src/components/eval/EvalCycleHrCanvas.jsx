@@ -6,6 +6,7 @@ import EvalCycleWizard from './EvalCycleWizard.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
@@ -69,8 +70,13 @@ const DEFAULT_LABELS = {
   title: '성과 평가',
   summary: '평가 사이클 {{count}}개',
   newCycle: '새 평가 사이클',
-  emptyTitle: '아직 평가 사이클이 없습니다',
-  emptySub: '새 평가 사이클을 만들어 성과 평가를 시작하세요.',
+  /** PW-1461 · 정책 §4.1-A — 목록 머리 ghost 버튼. 새 위자드를 불러오기 목록이 열린 채로 연다. */
+  loadSavedTemplate: '저장된 템플릿 불러오기',
+  /** PW-1461 · 정책 §4.2 — 한 줄로 이어 적는다(제목 + 권유). */
+  emptyTitle: '아직 평가 사이클이 없습니다.',
+  emptySub: '첫 사이클을 만들어보세요.',
+  /** PW-1461 · 정책 §4.1-A — 카드 단계 말풍선에 일정이 없을 때. */
+  stepNoSchedule: '일정 없음',
   manage: '관리',
   viewResults: '결과 보기',
   open: '오픈',
@@ -957,17 +963,89 @@ function stepsOf(cycle) {
   return steps.length > 0 ? steps : LIFECYCLE;
 }
 
-function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L }) {
+/**
+ * PW-1461 · 정책 §4.1-A — 카드 단계(사이클 상태) → 그 단계의 일정이 담긴 위자드 단계 id.
+ * 리뷰 작성(`peer_review`)은 동료·상향·하향이 함께 도는 자리라 켜진 것들의 일정을 합친다.
+ */
+const STEP_SCHEDULE_PHASES = {
+  self_review: ['self'],
+  peer_assign: ['peer_confirm'],
+  peer_review: ['peer', 'upward', 'leader', 'manager'],
+  calibration: ['calibration'],
+  report_review: ['report_review'],
+  hr_review: ['share'],
+};
+
+/** 이 단계의 일정 `{ start, end }`(날짜 'YYYY-MM-DD') — 없으면 null. */
+function stepScheduleOf(cycle, status) {
+  const rs = cycle?.reviewSequence;
+  const schedule = rs?.schedule ?? {};
+  const ids = (STEP_SCHEDULE_PHASES[status] ?? []).filter((id) => rs?.enabled?.[id] !== false);
+  const day = (v) => (typeof v === 'string' && v.length >= 10 ? v.slice(0, 10) : '');
+  let start = '';
+  let end = '';
+  for (const id of ids) {
+    const st = day(schedule[id]?.start);
+    const en = day(schedule[id]?.end);
+    if (st && (!start || st < start)) start = st;
+    if (en && (!end || en > end)) end = en;
+  }
+  return start || end ? { start, end } : null;
+}
+
+/**
+ * 단계 말풍선 — 단계 이름 + 진행 수치(소비 측이 `cycle.stageProgress[status] = { done, total }` 를
+ * 실었을 때만) + 일정. 목록 카드에 단계별 수치가 없으면 일정만 적는다.
+ */
+function stepTooltipText(cycle, status, L) {
+  const lines = [statusLabel(cycle, status, L)];
+  const prog = cycle?.stageProgress?.[status];
+  if (prog && typeof prog.done === 'number' && typeof prog.total === 'number') {
+    lines.push(`${prog.done}/${prog.total}`);
+  }
+  const sch = stepScheduleOf(cycle, status);
+  lines.push(sch ? `${sch.start} ~ ${sch.end}` : L.stepNoSchedule);
+  return lines.join('\n');
+}
+
+/**
+ * 단계 표시. `onSelectStep` 을 주면(초안이 아닌 카드) 단계마다 버튼이 되어 누르면 그 단계를 넘기고,
+ * 마우스를 올리면 진행 수치·일정 말풍선을 띄운다(정책 §4.1-A · §4.3 단계 타임라인 클릭).
+ * 안 주면 종래처럼 읽기 전용 그림이다(보조기기에는 숨긴다 — 상태 배지가 같은 말을 한다).
+ */
+function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L, onSelectStep }) {
   const currentIdx = steps.indexOf(status);
+  const clickable = typeof onSelectStep === 'function';
   return (
-    <div className="evc-stepper" aria-hidden="true">
+    <div className="evc-stepper" aria-hidden={clickable ? undefined : 'true'}>
       {steps.map((s, i) => {
         const state = currentIdx < 0 ? 'future' : i < currentIdx ? 'past' : i === currentIdx ? 'current' : 'future';
+        const label = statusLabel(cycle, s, L);
+        if (!clickable) {
+          return (
+            <div key={s} className={`evc-step is-${state}`}>
+              <span className="evc-step-dot" />
+              <span className="evc-step-label">{label}</span>
+            </div>
+          );
+        }
         return (
-          <div key={s} className={`evc-step is-${state}`}>
-            <span className="evc-step-dot" />
-            <span className="evc-step-label">{statusLabel(cycle, s, L)}</span>
-          </div>
+          <Tooltip key={s} content={stepTooltipText(cycle, s, L)}>
+            <button
+              type="button"
+              className={`evc-step is-${state} is-clickable`}
+              aria-label={label}
+              aria-current={state === 'current' ? 'step' : undefined}
+              data-testid={`evc-step-${s}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectStep(s);
+              }}
+            >
+              <span className="evc-step-dot" />
+              <span className="evc-step-label">{label}</span>
+            </button>
+          </Tooltip>
         );
       })}
     </div>
@@ -982,7 +1060,7 @@ function isStaleDraft(cycle) {
   return Number.isFinite(t) && Date.now() - t >= STALE_DRAFT_MS;
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft, onOpenStage }) {
   const isDraft = cycle.status === 'draft';
   /**
    * PW-440 — 「작성하다 만 초안」인가.
@@ -1039,6 +1117,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           status={cycle.status}
           steps={stepsOf(cycle)}
           labels={L}
+          onSelectStep={onOpenStage ? (s) => onOpenStage(cycle, s) : undefined}
         />
       )}
 
@@ -1262,6 +1341,12 @@ export default function EvalCycleHrCanvas({
    * 새 탭으로 여는 일은 라우터를 아는 소비 측이 맡는다. 안 넘기면 링크를 숨긴다.
    */
   onOpenTemplateLibrary,
+  /**
+   * PW-1461 · 정책 §4.3 「단계 타임라인 클릭」 — 초안이 아닌 카드의 단계를 누르면
+   * `(cycleId, status)` 로 부른다. 진행 현황 그 단계 상세로 옮기는 일은 라우터를 아는 소비 측이
+   * 맡는다. 안 넘기면 단계 표시는 눌리지 않는 그림이다.
+   */
+  onOpenCycleStage,
   onSaveTemplate,
   onDeleteTemplate,
   templateSaveError = null,
@@ -1675,6 +1760,8 @@ export default function EvalCycleHrCanvas({
 
   /** PW-1459 충돌 창 「상대 내용 불러오기」 — 같은 초안의 최신 저장본으로 위자드를 새로 연다. */
   const [wizardKey, setWizardKey] = useState(0);
+  /** PW-1461 — 「저장된 템플릿 불러오기」로 연 위자드는 불러오기 목록을 연 채로 시작한다. */
+  const [openPresetOnStart, setOpenPresetOnStart] = useState(false);
   const handleLoadLatestDraft = async () => {
     const cycleId = draftSession?.cycleId;
     if (!cycleId || !onLoadDraft) return;
@@ -1686,6 +1773,7 @@ export default function EvalCycleHrCanvas({
       }
       setDraftSession({ cycleId, savedAt: draft.draftSavedAt ?? null });
       setResumeTarget(draft);
+      setOpenPresetOnStart(false);
       setWizardKey((k) => k + 1);
     } catch {
       showToast(L.draftLoadError, 'error');
@@ -1754,6 +1842,7 @@ export default function EvalCycleHrCanvas({
   /** 위자드를 닫는다 — 초안 세션과 복원값을 함께 비운다(다음에 열면 새 초안이다). */
   const closeWizard = () => {
     setShowCreate(false);
+    setOpenPresetOnStart(false);
     setResumeTarget(null);
     setDraftSession(null);
     createdForOpen.current = null;
@@ -1785,19 +1874,43 @@ export default function EvalCycleHrCanvas({
           <h1 className="evc-title">{L.title}</h1>
           <p className="evc-summary">{fill(L.summary, { count: cycles.length })}</p>
         </div>
-        <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)} data-testid="evc-new-cycle">
-          + {L.newCycle}
-        </button>
+        <div className="evc-header-actions">
+          {/* PW-1461 · 정책 §4.1-A — 새 위자드를 불러오기 목록(§5.9)이 열린 채로 연다.
+              불러올 길이 없으면(소비 측이 콜백을 안 넘기면) 숨긴다 — 열어도 빈 창이다. */}
+          {(onLoadCyclePreset || onLoadCycleSettings) && (
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => {
+                setOpenPresetOnStart(true);
+                setShowCreate(true);
+              }}
+              data-testid="evc-load-saved-template"
+            >
+              {L.loadSavedTemplate}
+            </button>
+          )}
+          <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)} data-testid="evc-new-cycle">
+            + {L.newCycle}
+          </button>
+        </div>
       </header>
 
       {loading ? (
         <LoadingState className="evc-loading">…</LoadingState>
       ) : cycles.length === 0 ? (
+        // PW-1461 · 정책 §4.2 — 한 줄 문구 + 가운데 「새 평가 사이클」(+ 없이).
         <div className="evc-empty" data-testid="evc-empty">
-          <p className="evc-empty-title">{L.emptyTitle}</p>
-          <p className="evc-empty-sub">{L.emptySub}</p>
-          <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)}>
-            + {L.newCycle}
+          <p className="evc-empty-title" data-testid="evc-empty-text">
+            {[L.emptyTitle, L.emptySub].filter(Boolean).join(' ')}
+          </p>
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            onClick={() => setShowCreate(true)}
+            data-testid="evc-empty-new-cycle"
+          >
+            {L.newCycle}
           </button>
         </div>
       ) : (
@@ -1819,6 +1932,7 @@ export default function EvalCycleHrCanvas({
               onEditSchedule={(c) => setScheduleModal(c)}
               onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
               onDeleteDraft={requestDeleteDraft}
+              onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st) : undefined}
             />
           ))}
           {/* PW-1459 §5.1-A-6 — 90일 넘게 손대지 않은 초안은 지우지 않고 접어 둔다.
@@ -1851,6 +1965,7 @@ export default function EvalCycleHrCanvas({
                 onEditSchedule={(c) => setScheduleModal(c)}
                 onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
                 onDeleteDraft={requestDeleteDraft}
+                onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st) : undefined}
               />
             ))}
         </div>
@@ -1899,6 +2014,7 @@ export default function EvalCycleHrCanvas({
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
           onDeletePreset={onDeleteCyclePreset}
+          initialPresetDialogOpen={openPresetOnStart}
           libraryTemplates={libraryTemplates}
           libraryStatus={libraryStatus}
           onReloadLibraryTemplates={onReloadLibraryTemplates}

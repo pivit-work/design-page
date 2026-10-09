@@ -2436,6 +2436,11 @@ export default function EvalCycleWizard({
    */
   onDeletePreset,
   /**
+   * PW-1461 · 정책 §4.1-A — 목록 머리 「저장된 템플릿 불러오기」로 열었을 때 불러오기 목록을
+   * 연 채로 시작한다. 관리 모드이거나 불러올 길(`onLoadPreset`·`onLoadPastCycle`)이 없으면 무시한다.
+   */
+  initialPresetDialogOpen = false,
+  /**
    * 관리(수정) 모드 — 기존 사이클을 넘기면 그 값으로 프리필하고 마지막 버튼이
    * '변경사항 저장'이 된다 (정책 §4.3 "관리 → 해당 사이클 위자드 진입(관리 모드)").
    * 넘기지 않으면 종전대로 신규 생성 모드.
@@ -6101,7 +6106,9 @@ export default function EvalCycleWizard({
 
   // A4 불러오기 다이얼로그 — 목록에서 고르고 '이 설정으로 시작'.
   // 이미 입력한 값이 있으면 덮어쓰기 전에 확인을 받는다.
-  const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [presetDialogOpen, setPresetDialogOpen] = useState(
+    () => initialPresetDialogOpen && !isManage && !!(onLoadPreset || onLoadPastCycle),
+  );
   const [unsupportedRules, setUnsupportedRules] = useState([]);
   const [pendingPresetId, setPendingPresetId] = useState(null);
   const wizardDirty =

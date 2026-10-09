@@ -85,6 +85,12 @@
   color: var(--text-primary);
   margin: 0;
 }
+.evc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
 .evc-summary {
   margin: var(--spacing-xs) 0 0;
   font-size: var(--font-size-text-sm);
@@ -250,6 +256,24 @@
 .evc-step.is-current .evc-step-label {
   color: var(--utility-brand-600);
   font-weight: 700;
+}
+/* PW-1461 · 정책 §4.1-A — 초안 아닌 카드의 단계는 눌러 진행 현황 그 단계 상세로 간다. */
+.evc-step.is-clickable {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.evc-step.is-clickable:hover .evc-step-label {
+  text-decoration: underline;
+}
+.evc-step.is-clickable:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 1px;
 }
 
 /* ── 회수 / 비상정지 배너 ── */
