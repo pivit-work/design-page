@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
+import { ChatIcon, ClockIcon, MailIcon, ChevronDownIcon, ChevronUpIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -85,7 +85,6 @@ const DEFAULT_LABELS = {
   replyConfirmed: '✓ 확인했습니다',
   requestTag: '요청',
   requestTagFull: '피드백 요청',
-  requestEmptyText: '(내용 없는 요청)',
   requestPending: '대기중',
   requestAnswered: '응답됨',
   requestEdit: '수정',
@@ -99,7 +98,14 @@ const DEFAULT_LABELS = {
   requestAlreadyHint: '이미 요청한 사람은 응답이 오기 전까지 다시 선택할 수 없어요.',
   requestAllRequestedHint:
     '이 항목의 모든 대상에게 요청했어요. 응답이 오면 다시 요청할 수 있어요.',
-  requestTextPlaceholder: '어떤 부분에 대한 피드백이 필요한지…(선택 사항)',
+  requestTextPlaceholder: '어떤 부분에 대한 피드백이 필요한지 작성해 주세요 (선택 사항)',
+  requestCancel: '취소',
+  // 매니저도 동료도 없을 때 — 버튼은 두고 누르면 안내한다 (§10-9)
+  requestNoTarget: '요청할 대상이 없습니다',
+  // 매니저가 없으면 동료 칩만 보이고 이 안내가 붙는다 (§6.2 · §10-8)
+  requestNoManager: '지정된 매니저가 없어 동료에게만 요청할 수 있어요',
+  // 받는 사람 후보를 못 불러왔다 — 고를 수 없고 보낼 수 없다 (§8)
+  recipientsLoadFailed: '요청할 사람 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
   requestSendPrefix: '',
   requestSendSuffix: '에게 요청 전송 →',
   pastReadonly: '과거 기록에는 요청할 수 없습니다',
@@ -116,7 +122,16 @@ const DEFAULT_LABELS = {
   incomingCancel: '취소',
   incomingPastReadonly: '과거 기록에는 피드백을 작성할 수 없습니다',
   incomingInactive: '(비활성 사용자)',
+  // 「내 OKR」 패널 (§2) — {objectives}·{krs}·{covered}·{total} 을 채운다.
+  okrPanelTitle: '내 OKR',
+  okrPanelCounts: 'OBJECTIVE {objectives}개 · KR {krs}개',
+  okrPanelCoverage: '{covered}/{total} KR 커버',
+  okrObjectiveSuffix: ' OBJECTIVE',
 };
+
+function fill(template, vars) {
+  return String(template).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -292,7 +307,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
 }
 
 // ── 스레드 모달 ──
-function ThreadModal({ block, L, isPastPeriod, recipients, linkedLabelOf, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
+function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, linkedLabelOf, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = [...block.items].sort(
@@ -335,6 +350,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, linkedLabelOf, onRepl
             block={block}
             L={L}
             recipients={recipients}
+            recipientsFailed={recipientsFailed}
             lockedRecipientIds={pendingRecipientIds}
             onRequest={onRequest}
           />
@@ -514,7 +530,12 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }} data-testid="fbm-request-bubble">
       <div style={{ maxWidth: '80%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub, justifyContent: 'flex-end', marginBottom: 3 }}>
-          <span>→ {item.person?.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})</span>
+          <span>
+            → {item.person?.name}
+            {/* 받는 사람이 그 뒤 퇴사했다 (§10-7) */}
+            {item.person?.inactive ? ` ${L.incomingInactive}` : ''}
+            {' '}({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
+          </span>
           <span>{fmtDate(item.sentAt)}</span>
           <Chip tone={resolved ? 'success' : 'warning'}>
             {resolved ? L.requestAnswered : L.requestPending}
@@ -549,14 +570,15 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               </button>
             </div>
           </div>
-        ) : (
-          <div style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
-            {item.text || <span style={{ color: C.sub }}>{L.requestEmptyText}</span>}
+        ) : item.text ? (
+          // 본문이 있을 때만 본문과 「피드백 요청」 칩을 그린다 — 없으면 본문 칸째 숨긴다 (§5).
+          <div data-testid="fbm-request-body" style={{ background: C.blueBg, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
+            {item.text}
             <div style={{ marginTop: 6 }}>
               <Chip tone="accent">{L.requestTagFull}</Chip>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {!editing && (canEdit || canDelete) && (
@@ -599,7 +621,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
  * 있어도 요청 자체가 불가능해진다. 이미 요청한 사람은 **목록에서 빼지 않고 비활성 +
  * 사유 안내**로 남긴다 — 사라지면 "왜 이 사람이 안 보이지" 가 된다.
  */
-function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest }) {
+function RequestCompose({ block, L, recipients, recipientsFailed = false, lockedRecipientIds, onRequest }) {
   const locked = lockedRecipientIds || new Set();
   const isLocked = (r) => locked.has(r.id);
   const firstSelectable =
@@ -615,8 +637,15 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
   // 고른 사람이 그 사이 잠기면(다른 탭에서 요청 전송 등) 자동으로 놓는다.
   const recipient = picked && !isLocked(picked) ? picked : firstSelectable;
   const lockedCount = recipients.filter(isLocked).length;
+  const noManager =
+    recipients.length > 0 && !recipients.some((r) => r.kind === 'manager');
 
-  if (recipients.length === 0) return null;
+  // 취소 — 폼을 닫고 본문을 비우고 받는 사람을 기본(매니저)으로 되돌린다 (§6.4).
+  const cancel = () => {
+    setOpen(false);
+    setText('');
+    setPicked(null);
+  };
 
   const send = async () => {
     if (!recipient) return;
@@ -631,10 +660,39 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
       });
       setOpen(false);
       setText('');
+      setPicked(null);
     } finally {
       setBusy(false);
     }
   };
+
+  const cancelButton = (
+    <button
+      type="button"
+      onClick={cancel}
+      data-testid="fbm-request-cancel"
+      style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 13, cursor: 'pointer' }}
+    >
+      {L.requestCancel}
+    </button>
+  );
+
+  // 대상이 없거나(§10-9) 후보를 못 불러왔으면(§8) 고를 칩도 보낼 곳도 없다 — 안내와 취소만.
+  if (open && (recipientsFailed || recipients.length === 0)) {
+    return (
+      <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p data-testid="fbm-request-unavailable" style={{ margin: 0, fontSize: 12, color: recipientsFailed ? C.rose : C.sub, lineHeight: 1.6 }}>
+          {recipientsFailed ? L.recipientsLoadFailed : L.requestNoTarget}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          {cancelButton}
+          <button type="button" disabled data-testid="fbm-request-send" style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>
+            {L.kindManager + L.requestSendSuffix}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!open) {
     return (
@@ -686,6 +744,11 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
           );
         })}
       </div>
+      {noManager && (
+        <p data-testid="fbm-request-no-manager" style={{ margin: 0, fontSize: 12, color: C.sub, lineHeight: 1.6 }}>
+          {L.requestNoManager}
+        </p>
+      )}
       {lockedCount > 0 && (
         <p
           data-testid="fbm-recipient-locked-hint"
@@ -702,15 +765,18 @@ function RequestCompose({ block, L, recipients, lockedRecipientIds, onRequest })
         data-testid="fbm-request-text"
         style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
       />
-      <button
-        type="button"
-        disabled={!recipient || busy}
-        onClick={send}
-        data-testid="fbm-request-send"
-        style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
-      >
-        {(recipient?.kind === 'peer' ? L.kindPeer : L.kindManager) + L.requestSendSuffix}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        {cancelButton}
+        <button
+          type="button"
+          disabled={!recipient || busy}
+          onClick={send}
+          data-testid="fbm-request-send"
+          style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
+        >
+          {(recipient?.kind === 'peer' ? L.kindPeer : L.kindManager) + L.requestSendSuffix}
+        </button>
+      </div>
     </div>
   );
 }
@@ -869,6 +935,94 @@ function linkedLabel(item, krBlocks, initBlocks, L) {
 }
 
 // ── 그룹핑: items → KR/Init/기타 블록 ──
+/**
+ * 「내 OKR」 패널 — screen-feedback-member.policy.md §2 (PW-1454). 시안: eval-app.jsx `OkrPanel`.
+ *
+ * 처음엔 접혀 있다. 접힌 줄에 Objective·KR 수와 커버리지(피드백이나 요청이 있는 KR / 전체 KR)를,
+ * 펼치면 소유 단위(회사·팀·개인)별 Objective 그룹마다 진행률과 그 아래 KR(진행률·건수),
+ * 그리고 이니셔티브와 건수를 보인다. 건수는 받은 피드백과 보낸 요청을 합산한다 — 블록 카드와
+ * 같은 묶음(block.items)에서 세어 두 숫자가 어긋나지 않는다.
+ */
+function OkrPanel({ groups, krBlocks, initBlocks, L }) {
+  const [open, setOpen] = useState(false);
+  const krById = new Map(krBlocks.map((b) => [b.id, b]));
+  const covered = krBlocks.filter((b) => b.items.length > 0).length;
+  const countBadge = (n) =>
+    n > 0 ? <Chip tone="success">{n}{L.countSuffix}</Chip> : null;
+
+  return (
+    <div data-testid="fbm-okr-panel" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        data-testid="fbm-okr-panel-toggle"
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT }}
+      >
+        <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub }}>{L.okrPanelTitle}</span>
+        <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
+          {fill(L.okrPanelCounts, { objectives: groups.length, krs: krBlocks.length })}
+          {' · '}
+          <span data-testid="fbm-okr-coverage" style={{ color: covered > 0 ? C.teal : C.muted }}>
+            {fill(L.okrPanelCoverage, { covered, total: krBlocks.length })}
+          </span>
+        </span>
+        <span style={{ marginLeft: 'auto', color: C.muted, display: 'inline-flex' }}>
+          {open ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+        </span>
+      </button>
+
+      {open && (
+        <div data-testid="fbm-okr-panel-body" style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {groups.map((g) => (
+            <div key={g.id} data-testid={`fbm-okr-group-${g.id}`}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 4 }}>
+                {g.unitLabel}{L.okrObjectiveSuffix}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.text, flex: 1, lineHeight: 1.5 }}>{g.title}</span>
+                <span style={{ width: PROGRESS_BAR_W, height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
+                  <span style={{ display: 'block', width: `${g.progress ?? 0}%`, height: '100%', background: C.teal }} />
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>{g.progress ?? 0}%</span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionKr}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {g.krIds.map((id) => krById.get(id)).filter(Boolean).map((b) => (
+                  <div key={b.id} data-testid={`fbm-okr-kr-${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Chip tone="info">{b.badge}</Chip>
+                    <span style={{ fontSize: 12, color: C.sub, flex: 1, lineHeight: 1.4 }}>{b.title}</span>
+                    {countBadge(b.items.length)}
+                    <span style={{ width: 50, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
+                      <span style={{ display: 'block', width: `${b.progress ?? 0}%`, height: '100%', background: krColor(b.progress ?? 0) }} />
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: krColor(b.progress ?? 0), minWidth: 30, textAlign: 'right' }}>{b.progress ?? 0}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {initBlocks.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionInit}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {initBlocks.map((b) => (
+                  <span key={b.id} data-testid={`fbm-okr-init-${b.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: C.purple, background: C.purpleBg, border: `1px solid ${C.purpleBd}`, borderRadius: 20, padding: '2px 9px' }}>
+                      # {b.title}
+                    </span>
+                    {countBadge(b.items.length)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function groupBlocks(items, krs, initiatives) {
   const byKey = new Map();
   for (const it of items) {
@@ -917,6 +1071,11 @@ export default function EvalFeedbackCanvas({
   initiatives = [],
   items = [],
   recipients = [],
+  // 받는 사람 후보를 못 불러왔다 — 요청 폼이 고를 수 없게 열린다 (§8).
+  recipientsFailed = false,
+  // 「내 OKR」 패널의 Objective 그룹 — [{ id, unitLabel, title, progress, krIds }] (§2).
+  // 비어 있으면 패널을 그리지 않는다.
+  okrGroups = [],
   meName = '',
   meAvatar = null,
   meRole = '',
@@ -1118,6 +1277,10 @@ export default function EvalFeedbackCanvas({
           </div>
         )}
 
+        {okrGroups.length > 0 && krBlocks.length > 0 && (
+          <OkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} L={L} />
+        )}
+
         {onSendIncoming && (
           <IncomingRequestSection
             requests={incomingRequests}
@@ -1171,6 +1334,7 @@ export default function EvalFeedbackCanvas({
           L={L}
           isPastPeriod={isPastPeriod}
           recipients={recipients}
+          recipientsFailed={recipientsFailed}
           linkedLabelOf={linkedLabelOf}
           onReply={handleReply}
           onRequest={handleRequest}
