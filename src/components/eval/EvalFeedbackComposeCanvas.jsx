@@ -2,9 +2,10 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon } from './evalIcons';
+import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
+import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -85,6 +86,31 @@ const DEFAULT_LABELS = {
   // 요약을 연 뒤 대화가 늘었을 때 요약 블록 안내 (screen-feedback-member §10-17)
   summaryStale: '요약 이후 새 대화가 있습니다',
   emptyTeam: '직속 팀원이 없습니다.',
+  // ── 팀원 스레드 화면 (screen-feedback-manager §3.2~§3.8, PW-1455) ──
+  // 진입점 성격 안내 — {name} 에 팀원 이름 (§3.2.1)
+  infoBanner:
+    '{name} 님이 OKR을 달성해 가는 과정에 대한 수시 피드백 화면입니다. 목표 수립·조정에 대한 피드백은 OKR 화면에서 진행됩니다.',
+  // OKR 컨텍스트 패널 (§3.3) — {objectives}·{krs}·{covered}·{total} 을 채운다.
+  okrPanelTitle: 'OKR 컨텍스트',
+  okrPanelCounts: 'OBJECTIVE {objectives}개 · KR {krs}개',
+  okrPanelCoverage: '{covered}/{total} KR 커버',
+  okrObjectiveSuffix: ' OBJECTIVE',
+  okrPanelSnippets: '최근 스니핏',
+  // 받은 요청 칸 (§3.4) — {count} 에 건수
+  incomingSection: '받은 피드백 요청 {count}건',
+  answerRequest: '이 요청에 답변 작성',
+  linkedKrFallback: 'KR',
+  linkedInitFallback: '이니셔티브',
+  // 기타 칸 (§3.2-8) — 연결 없거나 목록 밖 대상의 피드백. 새로 쓰는 칸은 없다(FB1).
+  sectionEtc: '기타',
+  etcHint: '목록 밖의 KR에 연결되었거나 연결 대상이 없는 피드백이에요',
+  // 보낸 피드백 수정·삭제 (§3.8)
+  feedbackEdit: '수정',
+  feedbackDelete: '삭제',
+  feedbackEditSave: '저장',
+  feedbackEditCancel: '취소',
+  feedbackEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  feedbackDeleteError: '삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
 };
 
 function isObj(v) {
@@ -98,6 +124,9 @@ function mergeLabels(base, provided) {
     else if (provided[k] !== undefined) out[k] = provided[k];
   }
   return out;
+}
+function fill(template, vars) {
+  return String(template).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 }
 function krColor(p) {
   if (p >= 80) return C.green;
@@ -183,6 +212,7 @@ const PROGRESS_BAR_W = 96;
 
 function BlockCard({ block, L, onOpen }) {
   const isKr = block.type === 'kr';
+  const isEtc = block.type === 'etc';
   const items = block.items;
   const incoming = items.filter((i) => i.itemType === 'request');
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
@@ -202,7 +232,13 @@ function BlockCard({ block, L, onOpen }) {
       style={{ display: 'block', width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '14px 18px', cursor: 'pointer', fontFamily: FONT }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {isKr ? <Chip tone="info">{block.badge}</Chip> : <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>}
+        {isKr ? (
+          <Chip tone="info">{block.badge}</Chip>
+        ) : isEtc ? (
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{L.sectionEtc}</span>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}># {block.title}</span>
+        )}
         {isKr && <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{block.title}</span>}
         {isKr && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -334,19 +370,89 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
   );
 }
 
-function FeedbackBubble({ item }) {
+/**
+ * 내가 보낸 피드백 한 개 (§3.8). 팀원이 아직 답하지 않았고 지금 기간이면 수정·삭제가 붙는다.
+ * 수정은 그 자리 입력칸 — 빈 글은 저장 못 하고, 취소하면 원래 글로 돌아간다. 삭제는 확인 없이 바로.
+ * 실패하면 입력을 그대로 두고 말풍선 아래에 알린다.
+ */
+function FeedbackBubble({ item, L, canModify, onEdit, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(item.text || '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const modifiable = canModify && !item.memberReply;
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setEditText(item.text || '');
+    setError(null);
+  };
+  const save = async () => {
+    if (!editText.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onEdit(item, editText.trim());
+      setEditing(false);
+    } catch {
+      setError(L.feedbackEditError);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onDelete(item);
+    } catch {
+      setError(L.feedbackDeleteError);
+      setBusy(false);
+    }
+  };
+
   return (
-    <div>
+    <div data-testid={`fbmgr-feedback-${item.id}`}>
       <div style={{ display: 'flex', gap: 8 }}>
         <Avatar name="나" photo={item.author?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>나</span>
             <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
+            {modifiable && !editing && (
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => setEditing(true)} disabled={busy} data-testid="fbmgr-feedback-edit" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.sub, padding: 0 }}>
+                  {L.feedbackEdit}
+                </button>
+                <button type="button" onClick={remove} disabled={busy} data-testid="fbmgr-feedback-delete" style={{ background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: 12, color: C.red, padding: 0, opacity: busy ? 0.6 : 1 }}>
+                  {L.feedbackDelete}
+                </button>
+              </span>
+            )}
           </div>
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
-            {item.text}
-          </div>
+          {editing ? (
+            <div style={{ background: C.surface, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10 }}>
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                data-testid="fbmgr-feedback-edit-input"
+                style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.accentBd}`, fontSize: 13, color: C.text, resize: 'vertical', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.6, marginBottom: 8 }}
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 12, cursor: 'pointer' }}>
+                  {L.feedbackEditCancel}
+                </button>
+                <button type="button" onClick={save} disabled={busy || !editText.trim()} data-testid="fbmgr-feedback-edit-save" style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.accent, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy || !editText.trim() ? 'not-allowed' : 'pointer', opacity: busy || !editText.trim() ? 0.5 : 1 }}>
+                  {L.feedbackEditSave}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
+              {item.text}
+            </div>
+          )}
+          {error && <p data-testid="fbmgr-feedback-error" style={{ margin: '4px 0 0', fontSize: 12, color: C.red }}>{error}</p>}
         </div>
       </div>
       {item.memberReply && (
@@ -377,8 +483,9 @@ function RequestBubble({ item, L }) {
   );
 }
 
-function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onClose }) {
+function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
   const isKr = block.type === 'kr';
+  const isEtc = block.type === 'etc';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   const [summary, setSummary] = useState(null);
   const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
@@ -407,8 +514,8 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
 
   return (
     <ModalShell
-      title={isKr ? `${block.badge} · ${block.title}` : `# ${block.title}`}
-      description={isKr ? `${block.progress ?? 0}%` : undefined}
+      title={isKr ? `${block.badge} · ${block.title}` : isEtc ? L.sectionEtc : `# ${block.title}`}
+      description={isKr ? `${block.progress ?? 0}%` : isEtc ? L.etcHint : undefined}
       titleId="fbmgr-thread-title"
       closeLabel={L.close}
       onClose={onClose}
@@ -417,7 +524,8 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
       testId="fbmgr-thread-modal"
       closeTestId="fbmgr-thread-close"
       footer={
-        isPastPeriod ? (
+        // 「기타」는 한 대상의 스레드가 아니라 새로 쓸 곳이 없다(FB1 — 연결 없는 피드백 작성 UI 미제공).
+        isEtc ? undefined : isPastPeriod ? (
           <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
@@ -455,7 +563,16 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
         {items.length === 0 ? (
           <p style={{ textAlign: 'center', color: C.sub, fontSize: 13, padding: 24 }}>{L.threadEmpty}</p>
         ) : (
-          items.map((it) => it.itemType === 'feedback' ? <FeedbackBubble key={it.id} item={it} /> : <RequestBubble key={it.id} item={it} L={L} />)
+          items.map((it) => it.itemType === 'feedback' ? (
+            <FeedbackBubble
+              key={it.id}
+              item={it}
+              L={L}
+              canModify={!isPastPeriod && !!onEditFeedback && !!onDeleteFeedback}
+              onEdit={onEditFeedback}
+              onDelete={onDeleteFeedback}
+            />
+          ) : <RequestBubble key={it.id} item={it} L={L} />)
         )}
       </div>
     </ModalShell>
@@ -485,16 +602,88 @@ function groupBlocks(items, krs, initiatives) {
   }
   const krBlocks = krs.map((kr, i) => ({ type: 'kr', id: kr.id, key: `kr:${kr.id}`, badge: kr.badge || `KR${i + 1}`, title: kr.title, progress: kr.progress ?? 0, items: byKey.get(`kr:${kr.id}`) || [] }));
   const initBlocks = initiatives.map((it) => ({ type: 'init', id: it.id, key: `init:${it.id}`, title: it.title, items: byKey.get(`init:${it.id}`) || [] }));
-  return { krBlocks, initBlocks };
+  // 「기타」 — 연결 대상이 없거나 연결된 KR·이니셔티브가 지금 목록에 없는 것 전부(§3.2-8).
+  // 버리면 그 피드백이 이 화면 어디에도 안 보인다.
+  const shown = new Set([...krBlocks, ...initBlocks].map((b) => b.key));
+  const etcItems = [];
+  for (const [key, list] of byKey) {
+    if (!shown.has(key)) etcItems.push(...list);
+  }
+  const etc = etcItems.length ? { type: 'etc', id: 'etc', key: 'etc', title: '', items: etcItems } : null;
+  return { krBlocks, initBlocks, etc };
+}
+
+/** 요청에 걸린 대상 배지 문구 — 목록에 있으면 카드와 같은 이름, 없으면 종류만. */
+function linkedLabel(item, krBlocks, initBlocks, L) {
+  if (!item.linkedTargetType || !item.linkedTargetId) return null;
+  const key = `${item.linkedTargetType}:${item.linkedTargetId}`;
+  const kr = krBlocks.find((b) => b.key === key);
+  if (kr) return `${kr.badge} · ${kr.title}`;
+  const init = initBlocks.find((b) => b.key === key);
+  if (init) return `# ${init.title}`;
+  return item.linkedTargetType === 'kr' ? L.linkedKrFallback : L.linkedInitFallback;
+}
+
+/**
+ * 받은 피드백 요청 칸 (§3.4) — 그 팀원이 나에게 보낸, 아직 답하지 않은 요청만. 같은 대상으로
+ * 피드백을 보내면 서버가 그 요청을 해결로 바꾸고 다시 읽은 스레드에서 빠진다.
+ * 「답변 작성」은 그 요청의 KR/이니셔티브 대화 창을 연다. 걸린 대상이 지금 목록에 없으면
+ * 버튼을 달지 않는다 — 그때 무엇을 할지는 기획 질문으로 남겼다(§8-7, PW-1455).
+ */
+function IncomingRequestsSection({ requests, krBlocks, initBlocks, L, onAnswer }) {
+  if (requests.length === 0) return null;
+  const sorted = [...requests].sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+  const blockFor = (it) =>
+    it.linkedTargetType && it.linkedTargetId
+      ? [...krBlocks, ...initBlocks].find((b) => b.key === `${it.linkedTargetType}:${it.linkedTargetId}`) || null
+      : null;
+  return (
+    <div data-testid="fbmgr-incoming" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: C.accent }}>
+        <MailIcon size={14} /> {fill(L.incomingSection, { count: requests.length })}
+      </div>
+      {sorted.map((it) => {
+        const target = blockFor(it);
+        const label = linkedLabel(it, krBlocks, initBlocks, L);
+        return (
+          <div key={it.id} data-testid={`fbmgr-incoming-${it.id}`} style={{ display: 'flex', gap: 8 }}>
+            <Avatar name={it.author?.name} photo={it.author?.avatar} size={30} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
+                <span style={{ fontWeight: 700, color: C.text }}>{it.author?.name}</span>
+                {label && <Chip tone="info">{label}</Chip>}
+                <span style={{ color: C.sub }}>{fmtDate(it.sentAt)}</span>
+              </div>
+              {it.text && (
+                <div style={{ background: 'var(--bg-primary)', border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
+                  {it.text}
+                </div>
+              )}
+              {target && (
+                <button type="button" onClick={() => onAnswer(target)} data-testid={`fbmgr-incoming-answer-${it.id}`} style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: C.accent, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT }}>
+                  {L.answerRequest} <ChevronDownIcon size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── 팀원 스레드 화면 ──
-function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, openTarget, onOpenTargetHandled }) {
+function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled }) {
   const [openBlock, setOpenBlock] = useState(null);
   // 딥링크로 열린 모달을 사용자가 닫았는가 — 닫은 뒤 재조회로 되살아나지 않게.
   const [linkDismissed, setLinkDismissed] = useState(false);
-  const items = useMemo(() => thread?.items || [], [thread]);
-  const { krBlocks, initBlocks } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
+  // 답한(해결된) 요청은 이 화면에서 뺀다 — 같은 대상으로 피드백을 보내면 사라진다(§3.4 · §3.6).
+  const items = useMemo(
+    () => (thread?.items || []).filter((i) => !(i.itemType === 'request' && i.resolvedAt)),
+    [thread],
+  );
+  const { krBlocks, initBlocks, etc } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
+  const openRequests = useMemo(() => items.filter((i) => i.itemType === 'request'), [items]);
 
   // 딥링크 진입(OKR 타인 KR 「전체 보기」 → `/feedback/team?member=…&kr=…`).
   // 멤버 뷰와 같은 규칙 — 열 블록은 **파생값**이고 state 로 복사하지 않는다.
@@ -519,8 +708,9 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
   const liveBlock = useMemo(() => {
     const active = openBlock || linkedBlock;
     if (!active) return null;
-    return [...krBlocks, ...initBlocks].find((b) => b.key === active.key) || active;
-  }, [openBlock, linkedBlock, krBlocks, initBlocks]);
+    // 다시 읽은 뒤 블록이 사라졌으면(기타의 마지막 피드백을 지움 등) 창을 닫는다.
+    return [...krBlocks, ...initBlocks, ...(etc ? [etc] : [])].find((b) => b.key === active.key) || (active.type === 'etc' ? null : active);
+  }, [openBlock, linkedBlock, krBlocks, initBlocks, etc]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -535,14 +725,23 @@ function ThreadScreen({ member, thread, krs, initiatives, L, onBack, onChangePer
       {thread?.isPastPeriod && (
         <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
       )}
+      <div data-testid="fbmgr-info-banner" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
+        <ChatIcon size={12} /> {fill(L.infoBanner, { name: member.name })}
+      </div>
+      {okrGroups.length > 0 && krBlocks.length > 0 && (
+        <FeedbackOkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} snippets={snippets} L={L} testIdPrefix="fbmgr" />
+      )}
+      <IncomingRequestsSection requests={openRequests} krBlocks={krBlocks} initBlocks={initBlocks} L={L} onAnswer={setOpenBlock} />
       {krBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
       {krBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
       {initBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionInit}</div>}
       {initBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
-      {krBlocks.length === 0 && initBlocks.length === 0 && <p className="evc-empty-sub">{L.emptyBlock}</p>}
+      {etc && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionEtc}</div>}
+      {etc && <BlockCard block={etc} L={L} onOpen={setOpenBlock} />}
+      {krBlocks.length === 0 && initBlocks.length === 0 && !etc && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
-        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
+        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onEditFeedback={onEditFeedback} onDeleteFeedback={onDeleteFeedback} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
       )}
     </div>
   );
@@ -554,6 +753,9 @@ export default function EvalFeedbackComposeCanvas({
   thread = null,
   krs = [],
   initiatives = [],
+  // 팀원 OKR 컨텍스트 (§3.3) — Objective 그룹 `[{ id, unitLabel, title, progress, krIds }]` · 최근 스니핏 `[{ id, date, summary }]`
+  okrGroups = [],
+  snippets = [],
   labels: providedLabels,
   onSelectMember,
   onBack,
@@ -563,6 +765,9 @@ export default function EvalFeedbackComposeCanvas({
   onSendFeedback,
   onAiDraft,
   onSummarize,
+  // 보낸 피드백 수정·삭제 (§3.8) — `(item, text)` · `(item)`. 실패는 던진다(말풍선이 받아 알린다).
+  onUpdateFeedback,
+  onDeleteFeedback,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [toast, setToast] = useState(null);
@@ -626,12 +831,16 @@ export default function EvalFeedbackComposeCanvas({
             thread={thread}
             krs={krs}
             initiatives={initiatives}
+            okrGroups={okrGroups}
+            snippets={snippets}
             L={L}
             onBack={onBack}
             onChangePeriod={onChangePeriod}
             onSend={handleSend}
             onAiDraft={handleAiDraft}
             onSummarize={onSummarize}
+            onEditFeedback={onUpdateFeedback}
+            onDeleteFeedback={onDeleteFeedback}
             openTarget={openTarget}
             onOpenTargetHandled={onOpenTargetHandled}
           />
