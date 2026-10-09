@@ -266,6 +266,20 @@ function HrPair({ k, v }) {
     </div>
   );
 }
+/**
+ * 퇴사가 확정돼 따로 보관한 칸의 자리 (PW-1429 · 퇴사 처리 정책서 v1.19 §3-C 「옮긴 칸 자리」).
+ * 빈 입력창으로 두면 «입력 안 함»으로 읽혀 HR 이 다시 넣는다 — 그래서 고칠 수 없는 칸으로 한 줄을 둔다.
+ */
+function HrArchivedPair({ k, text }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-archived-note">
+      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
+      <span style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: `1px dashed ${T.border}`, background: T.bg, color: T.muted }}>
+        {text}
+      </span>
+    </div>
+  );
+}
 function HrList({ items, render, empty }) {
   if (items.length === 0) {
     return <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{empty}</div>;
@@ -566,9 +580,15 @@ export function HrProfileModal({
   // 인사서류 — `onUploadDocument(memberId, { docType, file })` · `onDownloadDocument(memberId, doc)`.
   // 지우기는 onDeleteRecord(memberId, 'documents', id).
   onUploadDocument, onDownloadDocument,
+  // 퇴사가 확정돼 법정 보존분을 따로 보관한 사람인가 (PW-1429). 참이면 옮긴 칸(인적 사항·계약·급여·계좌·학력)
+  // 자리에 입력창 대신 «따로 보관 중» 한 줄을 둔다. 값은 이미 원래 자리에 없다.
+  archived = false,
 }) {
   const L = labels || {};
   const todayIso = today || todayIsoInZone();
+  const archivedText = L.hrArchivedNote || '퇴사가 확정되어 따로 보관 중입니다';
+  /* 옮긴 칸이면 한 줄, 아니면 원래 칸 */
+  const kept = (k, node) => (archived ? <HrArchivedPair k={k} text={archivedText} /> : node);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -667,26 +687,50 @@ export function HrProfileModal({
               {onSaveIdentity ? (
                 <div data-testid="hr-identity-edit">
                   <HrEditPair k={L.hrPersonalEmail || '개인 이메일'} type="email" value={idDraft.personalEmail} onChange={setIdField('personalEmail')} />
-                  <HrEditPair k={L.hrBirthDate || '생년월일'} date value={idDraft.birthDate} onChange={setIdField('birthDate')}
+                  {kept(L.hrBirthDate || '생년월일', (
+                    <HrEditPair k={L.hrBirthDate || '생년월일'} date value={idDraft.birthDate} onChange={setIdField('birthDate')}
                     startView="year" max={todayIso} today={todayIso} />
-                  <HrEditPair
+                  ))}
+                  {kept(L.hrGender || '성별', (
+                    <HrEditPair
                     k={L.hrGender || '성별'}
                     value={idDraft.gender}
                     onChange={setIdField('gender')}
                     options={L.hrGenderOptions || [{ value: 'male', label: '남성' }, { value: 'female', label: '여성' }, { value: 'other', label: '기타' }]}
                   />
-                  <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
+                  ))}
+                  {kept(L.hrNationality || '국적', (
+                    <HrEditPair k={L.hrNationality || '국적'} value={idDraft.nationality} onChange={setIdField('nationality')} />
+                  ))}
                   <HrEditPair k={L.hrLastName || '성'} value={idDraft.lastName} onChange={setIdField('lastName')} />
                   {/* 집 주소 다섯 칸 (PW-920 · 코어 §1-3-g 11~15번). 한 칸에 몰아 담으면
                       우편번호를 따로 쓰는 곳이 그 문자열을 다시 갈라내야 한다. */}
+                  {archived ? (
+                  <>
+                  <HrArchivedPair k={L.hrAddress || '주소'} text={archivedText} />
+                  </>
+                  ) : (
+                  <>
                   <HrEditPair k={L.hrAddressPostalCode || '우편번호'} value={idDraft.addressPostalCode} onChange={setIdField('addressPostalCode')} />
                   <HrEditPair k={L.hrAddressRegion || '시 · 도'} value={idDraft.addressRegion} onChange={setIdField('addressRegion')} />
                   <HrEditPair k={L.hrAddressDistrict || '시군구 · 동'} value={idDraft.addressDistrict} onChange={setIdField('addressDistrict')} />
                   <HrEditPair k={L.hrAddressDetail || '상세 주소'} value={idDraft.addressDetail} onChange={setIdField('addressDetail')} />
                   <HrEditPair k={L.hrAddressCountry || '국가'} value={idDraft.addressCountry} onChange={setIdField('addressCountry')} />
-                  <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} date value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
+                  </>
+                  )}
+                  {kept(L.hrProbationEndDate || '수습 종료일', (
+                    <HrEditPair k={L.hrProbationEndDate || '수습 종료일'} date value={idDraft.probationEndDate} onChange={setIdField('probationEndDate')} />
+                  ))}
                   <HrEditPair k={L.hrLeaveStartDate || '휴직 시작일'} date value={idDraft.leaveStartDate} onChange={setIdField('leaveStartDate')} />
                   <HrEditPair k={L.hrLeaveEndDate || '휴직 종료일'} date value={idDraft.leaveEndDate} onChange={setIdField('leaveEndDate')} />
+                  {archived ? (
+                  <>
+                  <HrArchivedPair k={L.hrMilitaryService || '병역'} text={archivedText} />
+                  <HrArchivedPair k={L.hrHasDisability || '장애 여부'} text={archivedText} />
+                  <HrArchivedPair k={L.hrIsVeteranFamily || '보훈 대상 여부'} text={archivedText} />
+                  </>
+                  ) : (
+                  <>
                   <HrEditPair
                     k={L.hrMilitaryService || '병역'}
                     value={idDraft.militaryService}
@@ -713,19 +757,25 @@ export function HrProfileModal({
                     onChange={(v) => setIdField('isVeteranFamily')(v === 'yes')}
                     options={L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }]}
                   />
+                  </>
+                  )}
                   {/* 본인이 넣는 칸 — 여기서는 확인만 한다(§3.2.2 · §3.2.9). 영어 닉네임도 같다(§3.2.2 `nicknameEn`). */}
                   <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
                   <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
-                  <HrNationalIdRow
+                  {kept(L.hrNationalId || '주민등록번호', (
+                    <HrNationalIdRow
                     memberId={row?.id}
                     present={!!identity.nationalId?.present}
                     onReveal={onRevealNationalId}
                     labels={L}
                   />
+                  ))}
                   {/* ── 고용 일자·근무 일정 (PW-920 · 코어 §1-3-g 분류 2·4) ── */}
                   <HrEditPair k={L.hrServiceStartDate || '기산일'} date value={idDraft.serviceStartDate} onChange={setIdField('serviceStartDate')} />
                   <HrEditPair k={L.hrFirstHireDate || '최초 입사일'} date value={idDraft.firstHireDate} onChange={setIdField('firstHireDate')} />
-                  <HrEditPair k={L.hrEmploymentTypeStartDate || '현 고용형태 시작일'} date value={idDraft.employmentTypeStartDate} onChange={setIdField('employmentTypeStartDate')} />
+                  {kept(L.hrEmploymentTypeStartDate || '현 고용형태 시작일', (
+                    <HrEditPair k={L.hrEmploymentTypeStartDate || '현 고용형태 시작일'} date value={idDraft.employmentTypeStartDate} onChange={setIdField('employmentTypeStartDate')} />
+                  ))}
                   <HrEditPair k={L.hrLastWorkingDate || '마지막 출근일'} date value={idDraft.lastWorkingDate} onChange={setIdField('lastWorkingDate')} />
                   {lastDayAfterResign && (
                     <span style={{ display: 'block', fontSize: 11, color: '#DC2626', paddingLeft: 96 }} role="alert" data-testid="hr-last-working-date-error">
@@ -743,12 +793,14 @@ export function HrProfileModal({
                       {L.hrRehireDateOrder || '재입사자의 최초 입사일은 입사일보다 앞이어야 합니다. 날짜를 고쳐야 저장할 수 있습니다.'}
                     </span>
                   )}
-                  <HrEditPair
+                  {kept(L.hrWorkSchedule || '근무 일정', (
+                    <HrEditPair
                     k={L.hrWorkSchedule || '근무 일정'}
                     value={idDraft.workSchedule}
                     onChange={setIdField('workSchedule')}
                     options={L.hrWorkScheduleOptions || []}
                   />
+                  ))}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
                     {identityState === 'error' && (
                       <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">
@@ -774,13 +826,31 @@ export function HrProfileModal({
               ) : (
                 <>
                   <HrPair k={L.hrPersonalEmail || '개인 이메일'} v={identity.personalEmail} />
-                  <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
-                  <HrPair k={L.hrGender || '성별'} v={(L.hrGenderOptions || []).find((o) => o.value === identity.gender)?.label ?? identity.gender} />
-                  <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
-                  <HrPair k={L.hrAddress || '주소'} v={joinAddressLine(identity.address)} />
-                  <HrPair k={L.hrProbationEndDate || '수습 종료일'} v={identity.probationEndDate} />
+                  {kept(L.hrBirthDate || '생년월일', (
+                    <HrPair k={L.hrBirthDate || '생년월일'} v={identity.birthDate} />
+                  ))}
+                  {kept(L.hrGender || '성별', (
+                    <HrPair k={L.hrGender || '성별'} v={(L.hrGenderOptions || []).find((o) => o.value === identity.gender)?.label ?? identity.gender} />
+                  ))}
+                  {kept(L.hrNationality || '국적', (
+                    <HrPair k={L.hrNationality || '국적'} v={identity.nationality} />
+                  ))}
+                  {kept(L.hrAddress || '주소', (
+                    <HrPair k={L.hrAddress || '주소'} v={joinAddressLine(identity.address)} />
+                  ))}
+                  {kept(L.hrProbationEndDate || '수습 종료일', (
+                    <HrPair k={L.hrProbationEndDate || '수습 종료일'} v={identity.probationEndDate} />
+                  ))}
                   <HrPair k={L.hrLeaveStartDate || '휴직 시작일'} v={identity.leaveStartDate} />
                   <HrPair k={L.hrLeaveEndDate || '휴직 종료일'} v={identity.leaveEndDate} />
+                  {archived ? (
+                  <>
+                  <HrArchivedPair k={L.hrMilitaryService || '병역'} text={archivedText} />
+                  <HrArchivedPair k={L.hrHasDisability || '장애 여부'} text={archivedText} />
+                  <HrArchivedPair k={L.hrIsVeteranFamily || '보훈 대상 여부'} text={archivedText} />
+                  </>
+                  ) : (
+                  <>
                   <HrPair
                     k={L.hrMilitaryService || '병역'}
                     v={militaryLabel(identity.militaryService, L.hrMilitaryOptions)}
@@ -788,14 +858,18 @@ export function HrProfileModal({
                   <HrPair k={L.hrHasDisability || '장애 여부'} v={identity.hasDisability ? (L.hrYes || '예') : (L.hrNo || '아니오')} />
                   <HrPair k={L.hrDisabilityInfo || '장애 정보'} v={identity.hasDisability ? identity.disabilityInfo : null} />
                   <HrPair k={L.hrIsVeteranFamily || '보훈 대상 여부'} v={identity.isVeteranFamily ? (L.hrYes || '예') : (L.hrNo || '아니오')} />
+                  </>
+                  )}
                   <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
                   <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
-                  <HrNationalIdRow
+                  {kept(L.hrNationalId || '주민등록번호', (
+                    <HrNationalIdRow
                     memberId={row?.id}
                     present={!!identity.nationalId?.present}
                     onReveal={onRevealNationalId}
                     labels={L}
                   />
+                  ))}
                 </>
               )}
             </HrSection>
@@ -807,6 +881,10 @@ export function HrProfileModal({
             */}
             {onSaveIdentity && (
               <HrSection title={L.hrPaySection || '급여 · 계좌'}>
+              {archived ? (
+              <HrArchivedPair k={L.hrPaySection || '급여 · 계좌'} text={archivedText} />
+              ) : (
+              <>
                 <HrEditPair
                   k={L.hrPayType || '급여 유형'}
                   value={idDraft.payType}
@@ -836,6 +914,8 @@ export function HrProfileModal({
                     ? (L.hrBankAccountStored || '등록돼 있습니다. 바꾸려면 새 번호를 넣으세요.')
                     : (L.hrBankAccountEmpty || '등록된 계좌가 없습니다.')}
                 </div>
+              </>
+              )}
               </HrSection>
             )}
             {onLoadTrainings && (
@@ -873,7 +953,12 @@ export function HrProfileModal({
               addLabel={L.hrDepAdd || '부양가족 추가'}
               {...recordHandlers('dependents')}
             />
-            <HrRecordListSection
+            {archived ? (
+            <HrSection title={L.hrEducation || '학력'}>
+            <HrArchivedPair k={L.hrEducation || '학력'} text={archivedText} />
+            </HrSection>
+            ) : (
+              <HrRecordListSection
               kind="education"
               testId="hr-education"
               title={L.hrEducation || '학력'}
@@ -893,6 +978,7 @@ export function HrProfileModal({
               addLabel={L.hrEduAdd || '학력 추가'}
               {...recordHandlers('education')}
             />
+            )}
             <HrRecordListSection
               kind="career"
               testId="hr-career"
@@ -945,7 +1031,7 @@ export function HrProfileModal({
       </div>
     </ModalShell>
   );
-}
+  }
 
 // ── 수료한 교육 과정 (PW-920 재작업 · 코어 §1-3-g 81번) ─────────────────────
 // 한 사람에 여러 건이 쌓인다. 줄마다 고치기·지우기, 아래 한 줄로 추가한다.
@@ -1071,7 +1157,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
       </div>
     </HrSection>
   );
-}
+  }
 
 // ── HR 기록 창의 다건 5종 (W63 · arch-core-data-model §2-B · admin-spec §3.2.4) ──────
 // 학력·경력·자격증·부양가족·인사서류는 «HR 이 먼저 넣고 본인이 보완»한다. 종전 창은 목록을
@@ -1109,7 +1195,7 @@ const bodyOf = (fields, form, editing) => {
     body[f.key] = f.kind === 'boolean' ? raw === 'true' : raw;
   }
   return body;
-};
+  };
 
 /**
  * @param {object} props

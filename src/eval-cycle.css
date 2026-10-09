@@ -9146,3 +9146,29 @@
   font-weight: 700;
   outline: 2px solid var(--utility-brand-500);
 }
+
+/* PW-1429 · 대시보드 정책 §16.2 — 퇴사 확정으로 결과에서 빠진 인원 안내. 고칠 일이 아니라 «왜 수가
+   줄었나»를 알리는 사실이라 경고(amber)가 아니라 정보(파랑) 톤이다. 틀은 위 `.evs-calib-released` 와 같다. */
+.evs-archived-notice {
+  margin: 0 0 var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--utility-blue-50);
+  border: 1px solid var(--utility-blue-200);
+}
+.evs-archived-notice-title {
+  margin: 0 0 6px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--utility-blue-600);
+}
+.evs-archived-notice-body {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.evs-archived-excluded { color: var(--text-tertiary); }
+/* PW-1429 · §16.4 — 재입사자의 성과 추이 아래 «이전 재직 구간 · 따로 보관 중» */
+.evs-cw-spark-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.evs-cw-spark-archived { font-size: var(--font-size-text-xs); line-height: 1.4; color: var(--text-tertiary); white-space: nowrap; }
