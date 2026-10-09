@@ -915,8 +915,8 @@
   background: var(--utility-error-50);
   color: var(--utility-error-700);
 }
-/* PW-1459 — 푸터 「저장 실패 · 다시 시도」의 다시 시도. 글자 버튼이다. */
-.evc-wiz-draft-state .evc-link-btn {
+/* PW-1459 — 글자 버튼(푸터 「다시 시도」 · 직급 설정 링크). */
+.evc-link-btn {
   padding: 0;
   border: 0;
   background: none;
@@ -925,7 +925,7 @@
   text-decoration: underline;
   cursor: pointer;
 }
-.evc-wiz-draft-state .evc-link-btn:disabled {
+.evc-link-btn:disabled {
   cursor: default;
   opacity: 0.6;
 }

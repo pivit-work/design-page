@@ -299,6 +299,19 @@ const DEFAULT_LABELS = {
   targetManualKeptNotice: '수동 조정 {{count}}건은 유지했습니다',
   exclusionUnsupported: '이 조건은 현재 워크스페이스에서 지원하지 않습니다',
   exclusionUnsupportedLabel: '지원하지 않는 조건',
+  presetEmpty: '이전 사이클이 없습니다. 새로 작성하세요.',
+  pastCycleSection: '완료된 이전 사이클',
+  presetSection: '저장된 설정',
+  pastCycleMeta: '{{date}} 종료',
+  pastCycleLoadError: '해당 사이클 설정을 불러올 수 없습니다.',
+  copiedCycleName: '{{name}} (복사)',
+  tplVersionResetTitle: '다른 버전으로 바꿀까요?',
+  tplVersionResetBody: '현재 커스터마이징 설정이 프리셋으로 초기화됩니다. 계속하시겠습니까?',
+  templateTooManyItems: '항목이 너무 많으면 응답률이 낮아질 수 있습니다.',
+  roleLevelsSourceBadge: '회사 설정',
+  roleLevelsSourceHint: '직급은 어드민 직급 설정에서 불러옵니다 ({{count}}개)',
+  roleLevelsEmpty: '어드민에서 직급을 먼저 설정하세요',
+  roleLevelsSettingsLink: '직급 설정으로 이동',
 };
 
 const STATUS_META = {
@@ -1084,6 +1097,10 @@ export default function EvalCycleHrCanvas({
   fieldOptions = null,
   fieldOptionsAll = null,
   jobLadderFamilies = null,
+  /** PW-1459 §5.9 — 완료·회수 사이클의 설정 읽기. 넘기면 위자드 1단계에 «이전 사이클» 이 선다. */
+  onLoadCycleSettings,
+  /** PW-1459 §5.10.2 — 위자드의 「직급 설정으로 이동」. */
+  onGoToJobLevelSettings,
   onReloadCandidates,
   appointmentChangesError = false,
   onReloadAppointmentChanges,
@@ -1644,6 +1661,11 @@ export default function EvalCycleHrCanvas({
     });
   };
 
+  /* PW-1459 §5.9 — 설정을 불러올 수 있는 이전 사이클: 완료·회수. */
+  const pastCycles = cycles
+    .filter((c) => c.status === 'done' || c.status === 'revoked')
+    .map((c) => ({ id: c.id, name: c.name, endDate: c.endDate ?? null }));
+
   /* PW-1459 §5.1-A-6 — 오래된 초안(마지막 저장이 90일 이상 전)은 목록 끝에 접는다. */
   const [showStaleDrafts, setShowStaleDrafts] = useState(false);
   const staleDrafts = cycles.filter(isStaleDraft);
@@ -1773,6 +1795,7 @@ export default function EvalCycleHrCanvas({
           fieldOptions={fieldOptions}
           fieldOptionsAll={fieldOptionsAll}
           jobLadderFamilies={jobLadderFamilies}
+          onGoToJobLevelSettings={onGoToJobLevelSettings}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
@@ -1791,6 +1814,8 @@ export default function EvalCycleHrCanvas({
           draftSavedAt={resumeTarget?.draftSavedAt ?? null}
           draftSavedByName={resumeTarget?.draftSavedByName ?? null}
           presets={cyclePresets}
+          pastCycles={onLoadCycleSettings ? pastCycles : []}
+          onLoadPastCycle={onLoadCycleSettings}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
           onDeletePreset={onDeleteCyclePreset}
@@ -1833,6 +1858,7 @@ export default function EvalCycleHrCanvas({
           fieldOptions={fieldOptions}
           fieldOptionsAll={fieldOptionsAll}
           jobLadderFamilies={jobLadderFamilies}
+          onGoToJobLevelSettings={onGoToJobLevelSettings}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}

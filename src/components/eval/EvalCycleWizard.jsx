@@ -697,6 +697,8 @@ const ROSTER_HEAD_H = 35;
 const ROSTER_ROW_H = 52;
 const ROSTER_VIEW_H = 320;
 const ROSTER_OVERSCAN = 400;
+/** PW-1459 §5.10 — 항목이 이보다 많으면 응답률 경고(진행은 막지 않는다). */
+const TEMPLATE_ITEMS_WARN = 50;
 /** 고용유형 — 기획서 고정 ENUM 4종(§5.5.2 · §5.5.10). 회사가 바꿀 수 없고 「임원」 같은 값은 없다. */
 const EMPLOYMENT_TYPES = ['정규직', '계약직', '인턴', '자문'];
 /** 이 위자드가 아는 제외 조건 칸. 불러온 설정에 이 밖의 조건이 있으면 «지원하지 않는 조건»이다(§5.9). */
@@ -2384,6 +2386,14 @@ export default function EvalCycleWizard({
   orgUnitsLoading = false,
   orgUnitsError = false,
   onReloadOrgUnits,
+  /**
+   * PW-1459 §5.9 — 「이전 설정에서 시작하기」의 완료·회수 사이클 `[{ id, name, endDate }]` 과
+   * 그 설정 읽기(프리셋과 같은 칸 + `sourceCycleName`). 실패는 던진다(창 안에 적는다).
+   */
+  pastCycles = [],
+  onLoadPastCycle,
+  /** PW-1459 §5.10.2 — 직급이 하나도 없을 때 「어드민 직급 설정」으로 가는 길. */
+  onGoToJobLevelSettings,
   fieldOptions = null,
   fieldOptionsAll = null,
   /** PW-1459 — 직렬 → 속한 직군 목록(직군 › 직렬 병기와 직군별 좁히기). */
@@ -4385,16 +4395,27 @@ export default function EvalCycleWizard({
         : tplRatioInvalid
           ? 'templateBlockRatio'
           : null;
-  // 대상 멤버 jobPosition(직책)에서 목록 도출(중복 제거, 빈값 제외).
-  const roleLevels = [
-    ...new Set(candidates.map((c) => c.jobPosition).filter(Boolean)),
-  ];
+  /* PW-1459 §5.10.2 — 직급 목록은 회사가 어드민에서 설정한 직급(job_level, 설정 순서)이다.
+     조직 설정을 못 받았을 때만 종전대로 대상 멤버의 직책 값에서 뽑는다. */
+  const roleFromSettings = Array.isArray(fieldOptions?.jobLevel);
+  const roleLevels = roleFromSettings
+    ? fieldOptions.jobLevel
+    : [...new Set(candidates.map((c) => c.jobPosition).filter(Boolean))];
   const roleVersionOf = (role) => roleVersions[role] || 'standard';
   const setRoleVersion = (role, v) =>
     setRoleVersions((prev) => ({ ...prev, [role]: v }));
-  const selectTplPreset = (id) => {
+  const applyTplPreset = (id) => {
     setTplVersion(id);
     setTplQuestions(presetFor(id, tplType));
+  };
+  /* PW-1459 §5.10 — 손본 항목이 있으면 다른 버전으로 바꾸기 전에 묻는다. 말없이 바꾸면 고친 것이 사라진다. */
+  const [pendingTplVersion, setPendingTplVersion] = useState(null);
+  const selectTplPreset = (id) => {
+    if (id !== tplVersion && tplIsCustomized) {
+      setPendingTplVersion(id);
+      return;
+    }
+    applyTplPreset(id);
   };
   const tplIsCustomized =
     JSON.stringify(tplQuestions) !== JSON.stringify(presetFor(tplVersion, tplType));
@@ -6072,8 +6093,8 @@ export default function EvalCycleWizard({
     try {
       await onDeletePreset(target.id);
       if (selectedPresetId === target.id) setSelectedPresetId('');
-      // 마지막 하나를 지웠으면 창을 닫는다 — 열린 채 두면 다음에 저장할 때 저절로 뜬다.
-      if (presets.length <= 1) setPresetDialogOpen(false);
+      /* 마지막 하나를 지워도 창을 닫지 않는다(PW-1459 §5.9) — 창이 「이전 사이클이 없습니다…」
+         안내로 바뀐다. 예전에는 빈 창을 숨긴 채 열려 있어 다음 저장 때 저절로 떴다. */
     } catch {
       setPresetDeleteFailedId(target.id);
     } finally {
@@ -6089,6 +6110,37 @@ export default function EvalCycleWizard({
     }
     void loadPresetById(presetId);
   };
+
+  /* PW-1459 §5.9 — 이전 사이클에서 시작. 덮어쓰기 확인은 프리셋과 같은 창을 쓴다(키에 `cycle:` 를 붙여 가른다). */
+  const [pastCycleLoadFailed, setPastCycleLoadFailed] = useState(null);
+  const loadPastCycleById = async (cycleId) => {
+    if (!cycleId || !onLoadPastCycle) return;
+    setPastCycleLoadFailed(null);
+    try {
+      const settings = await onLoadPastCycle(cycleId);
+      applyPreset(settings);
+      // 이름은 「{원래 이름} (복사)」로 — 같은 이름 사이클이 둘이면 목록에서 가를 수 없다.
+      if (settings?.sourceCycleName) {
+        setName(fill(L.copiedCycleName, { name: settings.sourceCycleName }));
+      }
+      setPresetDialogOpen(false);
+      setPendingPresetId(null);
+    } catch {
+      setPendingPresetId(null);
+      setPastCycleLoadFailed(cycleId);
+    }
+  };
+  const startFromPastCycle = (cycleId) => {
+    if (wizardDirty) {
+      setPendingPresetId(`cycle:${cycleId}`);
+      return;
+    }
+    void loadPastCycleById(cycleId);
+  };
+  const loadPendingSource = (key) =>
+    String(key).startsWith('cycle:')
+      ? loadPastCycleById(String(key).slice('cycle:'.length))
+      : loadPresetById(key);
 
   /**
    * 위자드 본체. 창으로 뜰 때와 «화면 안 한 칸» 으로 뜰 때가 이 노드를 함께 쓴다
@@ -6156,13 +6208,18 @@ export default function EvalCycleWizard({
             <div className="evc-wiz-panel">
               {/* TC-028 저장된 설정 프리셋 불러오기 — 관리 모드에서는 숨긴다
                   (이미 값이 들어 있는 사이클을 프리셋으로 덮어쓰는 건 수정이 아니다). */}
-              {!isManage && presets.length > 0 && onLoadPreset && (
+              {/* PW-1459 §5.9 — 이전 사이클·저장한 설정이 하나도 없어도 자리는 둔다. 열면
+                  「이전 사이클이 없습니다. 새로 작성하세요.」가 뜬다. */}
+              {!isManage && (onLoadPreset || onLoadPastCycle) && (
                 <div className="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
                     <div className="evc-preset-cta-text">
                       <span className="evc-field-label">{L.presetLoadLabel}</span>
                       <span className="evc-preset-cta-sub">
-                        {fill(L.presetLoadSub, { count: presets.length })}
+                        {fill(L.presetLoadSub, {
+                          count: presets.length,
+                          cycles: pastCycles.length,
+                        })}
                       </span>
                     </div>
                     <button
@@ -6687,10 +6744,34 @@ export default function EvalCycleWizard({
                 ))}
               </div>
 
+              {/* PW-1459 §5.10.2 — 회사 직급이 하나도 없으면 블록을 숨기지 않고 어디서 정하는지 알린다. */}
+              {roleFromSettings && roleLevels.length === 0 && !hideRoleVersions && (
+                <div className="evc-tpl-role-empty" data-testid="evc-tpl-role-empty">
+                  <span className="evc-field-label">{L.roleVersionTitle}</span>
+                  <p className="evc-wiz-hint">
+                    {L.roleLevelsEmpty}{' '}
+                    {onGoToJobLevelSettings && (
+                      <button
+                        type="button"
+                        className="evc-link-btn"
+                        onClick={onGoToJobLevelSettings}
+                        data-testid="evc-tpl-role-settings-link"
+                      >
+                        {L.roleLevelsSettingsLink}
+                      </button>
+                    )}
+                  </p>
+                </div>
+              )}
               {roleLevels.length > 0 && !hideRoleVersions && (
                 <>
                   <div className="evc-tpl-role-head">
                     <span className="evc-field-label">{L.roleVersionTitle}</span>
+                    {roleFromSettings && (
+                      <StatusBadge className="evc-mode-badge" data-testid="evc-tpl-role-source">
+                        {L.roleLevelsSourceBadge}
+                      </StatusBadge>
+                    )}
                     <div className="evc-type-row evc-tpl-rolemode">
                       <button
                         type="button"
@@ -6710,6 +6791,11 @@ export default function EvalCycleWizard({
                       </button>
                     </div>
                   </div>
+                  {roleFromSettings && (
+                    <p className="evc-wiz-hint" data-testid="evc-tpl-role-source-hint">
+                      {fill(L.roleLevelsSourceHint, { count: roleLevels.length })}
+                    </p>
+                  )}
                   {roleMode === 'uniform' ? (
                     <p className="evc-wiz-hint">
                       {fill(L.roleUniformNote, {
@@ -6720,7 +6806,10 @@ export default function EvalCycleWizard({
                     <div className="evc-tpl-roles">
                       {roleLevels.map((role) => (
                         <div key={role} className="evc-tpl-role-row">
-                          <span className="evc-tpl-role-name">{role}</span>
+                          {/* PW-1459 §12 — 회사 직급명은 길이를 통제할 수 없다. 말줄임 + title 툴팁. */}
+                          <span className="evc-tpl-role-name" title={role}>
+                            {role}
+                          </span>
                           <div className="evc-tpl-role-versions">
                             {TEMPLATE_VERSIONS.map((v) => (
                               <button
@@ -6832,6 +6921,12 @@ export default function EvalCycleWizard({
                 </div>
               )}
 
+              {/* PW-1459 §5.10 — 막지 않고 경고만 한다. */}
+              {tplQuestions.length > TEMPLATE_ITEMS_WARN && (
+                <p className="evc-wiz-warn" data-testid="evc-tpl-too-many">
+                  {L.templateTooManyItems}
+                </p>
+              )}
               <div className="evc-tpl-items-head">
                 <span className="evc-field-label">
                   {L.templateItemsLabel} ({tplQuestions.length})
@@ -8903,7 +8998,7 @@ export default function EvalCycleWizard({
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
       {/* 마지막 하나까지 지우면 빈 창이 남는다 — 불러오기 줄도 사라지므로 창을 닫는다. */}
-      {presetDialogOpen && presets.length > 0 && (
+      {presetDialogOpen && (
         <ModalShell
           title={L.presetDialogTitle}
           description={L.presetDialogSub}
@@ -8915,6 +9010,61 @@ export default function EvalCycleWizard({
           footer={null}
         >
           <div className="evc-shell-body">
+            {pastCycles.length === 0 && presets.length === 0 && (
+              <div className="evc-review-empty" data-testid="evc-wiz-preset-empty">
+                <p>{L.presetEmpty}</p>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => setPresetDialogOpen(false)}
+                  data-testid="evc-wiz-preset-empty-close"
+                >
+                  {L.close ?? L.cancel}
+                </button>
+              </div>
+            )}
+            {/* PW-1459 §5.9 — 완료·회수된 이전 사이클. 일정은 가져오지 않는다. */}
+            {pastCycles.length > 0 && onLoadPastCycle && (
+              <>
+                <span className="evc-field-label">{L.pastCycleSection}</span>
+                <div className="evc-preset-list" data-testid="evc-wiz-pastcycle-list">
+                  {pastCycles.map((c) => (
+                    <div key={c.id} className="evc-preset-item">
+                      <div className="evc-preset-item-main">
+                        <span className="evc-preset-item-name">{c.name}</span>
+                        {c.endDate && (
+                          <span className="evc-preset-item-meta">
+                            {fill(L.pastCycleMeta, { date: String(c.endDate).slice(0, 10) })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="evc-preset-item-actions">
+                        <button
+                          type="button"
+                          className="evc-btn is-primary"
+                          onClick={() => startFromPastCycle(c.id)}
+                          data-testid={`evc-wiz-pastcycle-start-${c.id}`}
+                        >
+                          {L.presetStart}
+                        </button>
+                      </div>
+                      {pastCycleLoadFailed === c.id && (
+                        <span
+                          className="evc-wiz-preset-saved is-error evc-preset-item-error"
+                          role="alert"
+                          data-testid={`evc-wiz-pastcycle-failed-${c.id}`}
+                        >
+                          {L.pastCycleLoadError}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {presets.length > 0 && pastCycles.length > 0 && (
+              <span className="evc-field-label">{L.presetSection}</span>
+            )}
             <div className="evc-preset-list" data-testid="evc-wiz-preset-list">
               {presets.map((p) => (
                 <div key={p.id} className="evc-preset-item">
@@ -9087,6 +9237,22 @@ export default function EvalCycleWizard({
       )}
 
       {/* 덮어쓰기 확인 — 이미 입력한 값이 있을 때만 뜬다. */}
+      {pendingTplVersion && (
+        <AppConfirmModal
+          title={L.tplVersionResetTitle}
+          body={L.tplVersionResetBody}
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingTplVersion(null)}
+          onConfirm={() => {
+            applyTplPreset(pendingTplVersion);
+            setPendingTplVersion(null);
+          }}
+          cancelTestId="evc-tpl-version-reset-cancel"
+          confirmTestId="evc-tpl-version-reset-confirm"
+        />
+      )}
+
       {pendingPresetId && (
         <AppConfirmModal
           title={L.presetOverwriteTitle}
@@ -9094,7 +9260,7 @@ export default function EvalCycleWizard({
           cancelLabel={L.cancel}
           confirmLabel={L.confirm}
           onCancel={() => setPendingPresetId(null)}
-          onConfirm={() => void loadPresetById(pendingPresetId)}
+          onConfirm={() => void loadPendingSource(pendingPresetId)}
           cancelTestId="evc-wiz-preset-overwrite-cancel"
           confirmTestId="evc-wiz-preset-overwrite-confirm"
         />

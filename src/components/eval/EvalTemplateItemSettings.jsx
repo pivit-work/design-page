@@ -1,5 +1,6 @@
 import Tooltip from '../shared/Tooltip.jsx';
 import EvalNoteBlock from './EvalNoteBlock.jsx';
+import { AlertIcon } from './evalIcons.jsx';
 import {
   CHECK_MAX_OPTIONS,
   CHECK_MIN_OPTIONS,
@@ -332,16 +333,24 @@ export default function EvalTemplateItemSettings({
                 const on = (disclosure.audience || []).includes(a.id);
                 // 상향 리뷰의 '직속 조직장' = 평가 대상 본인. 켤 수는 있으나 무엇을 켜는지 알린다.
                 const isTargetSelf = reviewType === 'upward' && a.id === 'manager';
+                /* PW-1459 §5.12.3 — 차상위 조직장도 켜면 경고 톤이다(허용은 그대로).
+                   차상위용 툴팁 문구는 기획 확인 대기(PW-1541)라 아직 붙이지 않는다. */
+                const warnOn = on && reviewType === 'upward' && (a.id === 'manager' || a.id === 'upper');
                 return (
                   <Tooltip key={a.id} content={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}>
                     <button
                       type="button"
-                      className={`evc-type-chip${on ? ' is-on' : ''}${isTargetSelf && on ? ' is-warn' : ''}`}
+                      className={`evc-type-chip${on ? ' is-on' : ''}${warnOn ? ' is-warn' : ''}`}
                       onClick={() => onToggleAudience(q, a.id)}
                       data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
                     >
                       {L[a.labelKey]}
-                      {isTargetSelf && on ? ' ⚠' : ''}
+                      {warnOn && (
+                        <>
+                          {' '}
+                          <AlertIcon size={12} />
+                        </>
+                      )}
                     </button>
                   </Tooltip>
                 );
