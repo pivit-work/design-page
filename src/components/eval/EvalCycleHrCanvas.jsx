@@ -10,9 +10,12 @@ import { ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon } from './evalIcons
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
   countRemindersBeforePhaseStart,
+  isPastScheduleEnd,
   isPastScheduleStart,
   phaseHasTemplate,
 } from './evalSchedulePast.js';
+import { freshOverlapPairs, getOverlapPairs, overlapIdsOf } from './evalScheduleOverlap.js';
+import EvalScheduleOverlapAlert from './EvalScheduleOverlapAlert.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
@@ -24,7 +27,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  * `YYYY-MM-DDTHH:MM` 한 덩어리로 주고받는다.
  */
 const SCHED_DEFAULT_TIME = { start: '09:00', end: '18:00' };
-function SchedDateTime({ value, field, min, onChange, dateLabel, timeLabel, testId }) {
+function SchedDateTime({ value, field, min, onChange, dateLabel, timeLabel, testId, disabled = false }) {
   const v = String(value || '');
   const date = v.slice(0, 10);
   const time = v.length >= 16 ? v.slice(11, 16) : '';
@@ -37,11 +40,12 @@ function SchedDateTime({ value, field, min, onChange, dateLabel, timeLabel, test
         onChange={(d) => onChange(d ? `${d}T${time || SCHED_DEFAULT_TIME[field]}` : '')}
         aria-label={dateLabel}
         data-testid={testId}
+        disabled={disabled || undefined}
       />
       <TimeInput
         className="evc-input evc-time-input"
         value={time}
-        disabled={!date}
+        disabled={disabled || !date}
         onChange={(t) => onChange(`${date}T${t || SCHED_DEFAULT_TIME[field]}`)}
         aria-label={timeLabel}
         data-testid={`${testId}-time`}
@@ -103,6 +107,16 @@ const DEFAULT_LABELS = {
   editScheduleTitle: '단계별 일정 수정',
   editScheduleNote:
     '각 단계의 시작·종료 일시를 조정합니다. 단계 간 일정은 겹쳐도 됩니다(병렬 진행). 변경 시 해당 단계 담당자에게 알림이 발송됩니다.',
+  // PW-1461 · 정책 §4.5 · §6.5
+  overlapAlertTitle: '단계 일정이 겹칩니다',
+  overlapAlertBody: '아래 단계는 병렬 진행됩니다. 겹쳐도 저장할 수 있습니다.',
+  overlapAlertConfirm: '확인',
+  badgeParallel: '동시 진행',
+  schedulePhaseDoneLocked: '완료된 단계의 날짜는 변경할 수 없습니다.',
+  scheduleSaveFailed: '날짜 변경에 실패했습니다. 다시 시도해 주세요.',
+  // PW-1461 · 정책 §5.2.2 — 단계별 일정의 리뷰 순서
+  phaseOrderLocked: '오픈 이후 리뷰 순서는 변경할 수 없습니다.',
+  phaseOrderSaveFailed: '순서 저장에 실패했습니다. 다시 시도해 주세요.',
   editScheduleOrderErr: '종료 일시는 시작 일시와 같거나 이후여야 합니다.',
   editScheduleSave: '일정 저장',
   toastScheduleSaved: '일정이 수정되었습니다',
@@ -529,7 +543,15 @@ function toLocalInput(v, defTime) {
  * [PW-529 ③-c] `onGoToReportReview` — 「결과 발송」이 무엇을 하는 자리인지 적고,
  * 실제로 보내는 화면(리포트 검수)으로 보낸다. 진행 중 사이클이라 갈 대상이 특정된다.
  */
-function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportReview, isScheduleStartReached }) {
+function ScheduleEditModal({
+  cycle,
+  labels: L,
+  onCancel,
+  onSave,
+  onGoToReportReview,
+  isScheduleStartReached,
+  isScheduleEndReached,
+}) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
   // 연 순간의 값. PW-602 — 「무엇이 바뀌었나」를 이것과 견준다. 입력 칸과 «같은 정규화»
@@ -546,8 +568,32 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
     return init;
   });
   const [rows, setRows] = useState(initialRows);
-  const setField = (id, field, value) =>
-    setRows((r) => ({ ...r, [id]: { ...r[id], [field]: value } }));
+
+  /**
+   * [PW-1461 · 정책 §6.5] 완료된 단계 — 저장된 종료 일시가 이미 지난 단계. 날짜를 고칠 수
+   * 없다(서버도 거절한다). 판정은 «연 순간의 값»으로 한다 — 고쳐 넣는 값으로 재면 종료를
+   * 어제로 바꾼 순간 그 줄이 잠겨 되돌릴 수 없다. 서버와 같은 시간대로 재는 판정은 소비 측이
+   * 넘긴다(`isScheduleEndReached`). 안 넘기면 이 브라우저의 시계로 본다.
+   */
+  const isDone = (id) =>
+    typeof isScheduleEndReached === 'function'
+      ? isScheduleEndReached(initialRows[id]?.end)
+      : isPastScheduleEnd(initialRows[id]?.end);
+
+  /** [PW-1461 · 정책 §4.5] 겹침 판정은 마법사 3단계와 같은 모듈을 쓴다. */
+  const rowList = (r) =>
+    phases.map((id) => ({ id, name: L[PHASE_NAME_KEYS[id]] ?? id, ...r[id] }));
+  const overlapIds = overlapIdsOf(getOverlapPairs(rowList(rows)));
+  const [overlapAlert, setOverlapAlert] = useState(null);
+
+  const setField = (id, field, value) => {
+    if (isDone(id)) return;
+    const next = { ...rows, [id]: { ...rows[id], [field]: value } };
+    setRows(next);
+    // 편집으로 «전에 없던» 겹침이 생긴 순간에만 알린다 — 막지 않는다.
+    const fresh = freshOverlapPairs(rowList(rows), rowList(next));
+    if (fresh.length > 0) setOverlapAlert(fresh);
+  };
 
   const invalid = phases.filter((id) => {
     const r = rows[id];
@@ -641,7 +687,9 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
       await onSave(cycle.id, schedule);
     } catch {
       // 사유는 «누른 자리 옆»에 적는다 — 토스트는 스쳐 지나가고, 그때 창은 이미 닫힌 뒤였다.
-      // 확인 창은 걷는다 — 고쳐 넣던 값이 남아 있는 일정 창으로 돌아가 다시 누르게 한다.
+      // [PW-1461 · 정책 §6.5] 화면의 날짜는 원래 값으로 되돌린다 — 저장되지 않은 날짜가 남아
+      // 있으면 그것이 저장된 일정인 줄 안다. 확인 창은 걷는다.
+      setRows(initialRows);
       setConfirming(false);
       setSaveFailed(true);
       setSaving(false);
@@ -663,7 +711,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
         titleId="evc-schedule-modal-title"
         closeLabel={L.cancel}
         onClose={onCancel}
-        busy={saving || confirming}
+        busy={saving || confirming || !!overlapAlert}
         zIndex={1000}
         className="evc-shell is-wide"
         testId="evc-schedule-modal"
@@ -711,10 +759,12 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
           {phases.map((id, i) => {
             const bad = invalid.includes(id);
             const past = isPast(id);
+            const done = isDone(id);
+            const parallel = overlapIds.has(id);
             return (
               <div
                 key={id}
-                className={`evc-sched-modal-row${bad ? ' is-bad' : ''}`}
+                className={`evc-sched-modal-row${bad ? ' is-bad' : ''}${done ? ' is-done' : ''}${parallel ? ' has-overlap' : ''}`}
                 data-testid={`evc-sched-row-${id}`}
               >
                 <div className="evc-sched-modal-phase">
@@ -723,11 +773,19 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                     {L[PHASE_NAME_KEYS[id]] ?? id}
                   </span>
                   {/* [PW-614] 마법사 3단계와 같은 배지. 알리기만 하고 저장은 막지 않는다. */}
-                  {past && (
+                  {past && !done && (
                     <DpStatusBadge
                       className="evc-mode-badge is-warn"
                       data-testid={`evc-sched-modal-past-${id}`}>
                       {L.schedulePastBadge}
+                    </DpStatusBadge>
+                  )}
+                  {/* [PW-1461 · 정책 §4.5] 다른 단계와 기간이 겹치는 줄 — 보라 배지. */}
+                  {parallel && (
+                    <DpStatusBadge
+                      className="evc-status-badge tone-purple"
+                      data-testid={`evc-sched-modal-parallel-${id}`}>
+                      {L.badgeParallel}
                     </DpStatusBadge>
                   )}
                 </div>
@@ -741,6 +799,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                       dateLabel={L.startDate}
                       timeLabel={L.startTime}
                       testId={`evc-sched-start-${id}`}
+                      disabled={done}
                     />
                     {/* [PW-435 ①] 위자드 3단계와 **같은 표기**. 같은 값을 두 화면이
                         다르게 보이면 그 자체가 혼선이다. */}
@@ -763,6 +822,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                       dateLabel={L.endDate}
                       timeLabel={L.endTime}
                       testId={`evc-sched-end-${id}`}
+                      disabled={done}
                     />
                     <span
                       className="evc-sched-stamp is-end"
@@ -774,6 +834,14 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                   </label>
                 </div>
                 {bad && <div className="evc-sched-modal-err">{L.editScheduleOrderErr}</div>}
+                {done && (
+                  <div
+                    className="evc-sched-modal-locked"
+                    data-testid={`evc-sched-modal-done-${id}`}
+                  >
+                    {L.schedulePhaseDoneLocked}
+                  </div>
+                )}
                 {/* [PW-614] 지난 날짜가 그냥 지난 날짜가 아닌 단계 — 시작일이 도래하면 그
                     단계 평가지가 잠긴다(PW-535 잠금의 L1). 평가지가 없는 단계
                     (캘리브레이션·요약 검수·결과 발송)에는 잠길 것이 없어 적지 않는다. */}
@@ -788,7 +856,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
                     )}
                   </div>
                 )}
-                {willLockOnSave(id) && phaseHasTemplate(id) && (
+                {!done && willLockOnSave(id) && phaseHasTemplate(id) && (
                   <div
                     className="evc-sched-modal-warn"
                     data-testid={`evc-sched-modal-lock-note-${id}`}
@@ -803,7 +871,7 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
           {/* PW-614 — 실패 사유는 «누른 자리 옆»(버튼 바로 위)에 남긴다. 토스트는 스쳐 지나간다. */}
           {saveFailed && (
             <span className="evc-sched-modal-err" data-testid="evc-sched-save-failed">
-              {L.submitFailed}
+              {L.scheduleSaveFailed ?? L.submitFailed}
             </span>
           )}
     </div>
@@ -849,6 +917,12 @@ function ScheduleEditModal({ cycle, labels: L, onCancel, onSave, onGoToReportRev
         }}
       />
     )}
+    {/* [PW-1461 · 정책 §4.5] 겹침 안내 — 일정 창의 «형제»(위 확인 창과 같은 이유). */}
+    <EvalScheduleOverlapAlert
+      pairs={overlapAlert}
+      labels={L}
+      onClose={() => setOverlapAlert(null)}
+    />
     </>
   );
 }
@@ -1152,6 +1226,12 @@ export default function EvalCycleHrCanvas({
    * 안 넘기면 「지난 날짜」 배지와 같은 날짜 판정을 쓴다.
    */
   isScheduleStartReached,
+  /**
+   * [PW-1461 · 정책 §6.5] 완료된 단계 판정. `(end: string) => boolean` — 그 단계의 저장된
+   * 종료값이 서버 기준으로 이미 지났는가. 지났으면 그 줄의 날짜를 잠근다(서버도 거절한다).
+   * 안 넘기면 이 브라우저의 시계로 본다.
+   */
+  isScheduleEndReached,
   onHoldCycle,
   onResumeCycle,
   onPatchSchedule,
@@ -1974,6 +2054,7 @@ export default function EvalCycleHrCanvas({
               : undefined
           }
           isScheduleStartReached={isScheduleStartReached}
+          isScheduleEndReached={isScheduleEndReached}
         />
       )}
     </div>

@@ -35,7 +35,11 @@ import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
   isPastScheduleStart,
   isReminderBeforePhaseStart,
+  phaseHasTemplate,
 } from './evalSchedulePast.js';
+// [PW-1461 · 정책 §4.5] 겹침 판정·안내 창도 일정 수정 창과 같은 것을 쓴다.
+import { freshOverlapPairs, getOverlapPairs, overlapIdsOf } from './evalScheduleOverlap.js';
+import EvalScheduleOverlapAlert from './EvalScheduleOverlapAlert.jsx';
 import { AlertIcon, CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
@@ -996,21 +1000,7 @@ function activePhasesFor(reviewTypes) {
   );
 }
 
-/** 겹치는(병렬 진행) 단계 쌍. 겹침은 오류가 아니라 허용. */
-function getOverlapPairs(rows) {
-  const pairs = [];
-  for (let i = 0; i < rows.length; i += 1) {
-    for (let j = i + 1; j < rows.length; j += 1) {
-      const a = rows[i];
-      const b = rows[j];
-      if (!a.start || !a.end || !b.start || !b.end) continue;
-      if (a.start < b.end && b.start < a.end) {
-        pairs.push({ key: [a.id, b.id].sort().join('|'), a: a.name, b: b.name });
-      }
-    }
-  }
-  return pairs;
-}
+/* 겹치는(병렬 진행) 단계 쌍은 `evalScheduleOverlap.js` 가 판정한다 — 일정 수정 창과 한 벌이다. */
 
 /* ─────────────────────────────────────────────────────────────────────────
    PW-536 — 일정 시작일(D0). 정책 §5.2.1-A (2026-08-18).
@@ -2624,6 +2614,19 @@ export default function EvalCycleWizard({
   /** 잠근 단추 위에 띄울 이유(필수 단계는 제 이유가 먼저다). */
   phaseTogglesLockedHint = null,
   /**
+   * PW-1461 — 단계별 일정의 리뷰 순서(카드 끌기)를 잠근다(정책 §5.2.2 「사이클 오픈 후 순서 변경
+   * 시도 → 변경 불가」). 끌어 보면 순서는 그대로이고 `phaseOrderLockedHint` 를 그 자리에 띄운다.
+   * ⛔ 넘기지 않으면(`false`) 종전 그대로다.
+   */
+  phaseOrderLocked = false,
+  phaseOrderLockedHint = null,
+  /**
+   * PW-1461 — 「저장하면 평가지가 잠깁니다」 판정(일정 수정 창과 같은 소품). `(start) => boolean`.
+   * 오픈한 사이클의 단계별 일정 탭에서, 연 순간엔 시작 전이던 단계가 고친 날짜로 시작되게 되면
+   * 그 줄에 경고를 띄운다(정책 §5.10.3). 안 넘기면 날짜로 본다.
+   */
+  isScheduleStartReached,
+  /**
    * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
    * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, added, excluded }`.
    *
@@ -3037,7 +3040,9 @@ export default function EvalCycleWizard({
     .filter((p) => !disabledPhases.has(p.id))
     .map((p) => ({ id: p.id, name: L[p.nameKey], ...scheduleOf(p.id) }));
   const overlapPairs = getOverlapPairs(enabledRows);
-  const overlapIds = new Set(overlapPairs.flatMap((p) => p.key.split('|')));
+  const overlapIds = overlapIdsOf(overlapPairs);
+  /* [PW-1461 · 정책 §4.5] 편집으로 «전에 없던» 겹침이 생긴 순간의 안내. 막지 않는다. */
+  const [overlapAlert, setOverlapAlert] = useState(null);
 
   /* 단계 일정을 손으로 고치면 그 단계는 「직접 수정」이 된다 — 이후 어떤 재배치에서도
      덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」). */
@@ -3045,7 +3050,13 @@ export default function EvalCycleWizard({
     setScheduleDirty((prev) => (prev.includes(id) ? prev : [...prev, id]));
   const updateSchedule = (id, field, value) => {
     markScheduleDirty(id);
-    setSchedule((s) => ({ ...s, [id]: { ...scheduleOf(id), [field]: value } }));
+    const nextSlot = { ...scheduleOf(id), [field]: value };
+    setSchedule((s) => ({ ...s, [id]: nextSlot }));
+    const fresh = freshOverlapPairs(
+      enabledRows,
+      enabledRows.map((r) => (r.id === id ? { ...r, ...nextSlot } : r)),
+    );
+    if (fresh.length > 0) setOverlapAlert(fresh);
   };
   // 날짜·시각을 각각 편집해도 저장은 'YYYY-MM-DDTHH:mm' 한 값으로 유지한다.
   const updateSchedDate = (id, field, isoDate) =>
@@ -3171,6 +3182,20 @@ export default function EvalCycleWizard({
      그 판정이 아예 없는 채로 남았다(정책 §5.2.1-B 「같은 값을 두 화면이 다르게 보이면
      그 자체가 버그」). 공용 모듈로 옮겨 두 화면이 같은 함수를 쓴다. */
   const isPastPhase = (id) => isPastScheduleStart(scheduleOf(id).start);
+  /**
+   * [PW-1461 · 정책 §5.10.3] 오픈한 사이클에서 «연 순간엔 시작 전이던» 평가지 단계가 고친
+   * 날짜로 시작되게 되면, 저장하는 순간 그 단계 평가지가 잠긴다 — 일정 수정 창과 같은 경고다.
+   * 이미 시작된 단계는 이미 잠겨 있어 새로 알릴 것이 없다.
+   */
+  const startReached = (start) =>
+    typeof isScheduleStartReached === 'function'
+      ? isScheduleStartReached(start)
+      : isPastScheduleStart(start);
+  const willLockOnSave = (id) =>
+    openedManage &&
+    phaseHasTemplate(id) &&
+    !startReached(initialSeq?.schedule?.[id]?.start) &&
+    startReached(scheduleOf(id).start);
   /**
    * [PW-529 · 정책 §5.2.1-B 하한] 받는 사람이 0명인 리마인더가 하나라도 있으면 막는다.
    *
@@ -4295,14 +4320,32 @@ export default function EvalCycleWizard({
       else n.add(id);
       return n;
     });
+  /**
+   * [PW-1461 · 정책 §5.2.2] 순서 안내 — `'locked'`(오픈 뒤라 못 옮긴다) · `'saveFailed'`(옮긴
+   * 순서를 저장하지 못해 되돌렸다) · null.
+   */
+  const [orderNotice, setOrderNotice] = useState(null);
   const movePhase = (targetId) => {
+    if (phaseOrderLocked) return;
     if (!dragId || dragId === targetId) return;
+    const prev = [...orderedMiddle];
     const arr = [...orderedMiddle];
     const from = arr.indexOf(dragId);
     const to = arr.indexOf(targetId);
     if (from < 0 || to < 0) return;
     arr.splice(to, 0, arr.splice(from, 1)[0]);
     setPhaseOrder(arr);
+    setOrderNotice(null);
+    /* [PW-1461 · 정책 §5.2.2 · §12] 초안이면 옮긴 순서를 바로 저장한다. 실패하면 옮기기 전
+       순서로 되돌리고 그 자리에 알린다 — 화면에 남은 순서가 저장된 순서인 줄 알게 두지 않는다. */
+    if (draftEnabled) {
+      void saveDraft({ phaseOrder: arr }).then((saved) => {
+        if (saved) return;
+        // 그 사이 또 옮겼으면 그 순서를 덮지 않는다 — 실패한 «그 순서»일 때만 되돌린다.
+        setPhaseOrder((cur) => (cur.join('|') === arr.join('|') ? prev : cur));
+        setOrderNotice('saveFailed');
+      });
+    }
   };
 
   /**
@@ -7207,6 +7250,19 @@ export default function EvalCycleWizard({
                   {L.scheduleOverlapNote}
                 </div>
               )}
+              {/* [PW-1461 · 정책 §5.2.2] 순서를 옮기려 했는데 잠겼거나, 옮긴 순서를 저장하지 못했다. */}
+              {orderNotice && (
+                <p
+                  className="evx-notice is-warn"
+                  role="status"
+                  data-testid="evc-sched-order-notice"
+                  data-kind={orderNotice}
+                >
+                  {orderNotice === 'locked'
+                    ? (phaseOrderLockedHint ?? L.phaseOrderLocked)
+                    : L.phaseOrderSaveFailed}
+                </p>
+              )}
               {(() => {
                 let n = 0;
                 return displayPhases.map((ph) => {
@@ -7220,7 +7276,16 @@ export default function EvalCycleWizard({
                     <div
                       key={ph.id}
                       draggable={!ph.anchor}
-                      onDragStart={() => { if (!ph.anchor) setDragId(ph.id); }}
+                      onDragStart={(e) => {
+                        if (ph.anchor) return;
+                        /* [PW-1461] 오픈 뒤에는 끌기를 시작하지 않는다 — 시도한 자리에 이유를 띄운다. */
+                        if (phaseOrderLocked) {
+                          e.preventDefault();
+                          setOrderNotice('locked');
+                          return;
+                        }
+                        setDragId(ph.id);
+                      }}
                       onDragOver={(e) => { if (!ph.anchor && dragId) { e.preventDefault(); setOverId(ph.id); } }}
                       onDrop={() => { if (!ph.anchor) movePhase(ph.id); setDragId(null); setOverId(null); }}
                       onDragEnd={() => { setDragId(null); setOverId(null); }}
@@ -7228,9 +7293,16 @@ export default function EvalCycleWizard({
                       data-testid={`evc-sched-card-${ph.id}`}
                     >
                       <div className="evc-sched-head">
-                        <Tooltip content={ph.anchor ? L.phaseFixedHint : L.phaseDragHint}>
+                        <Tooltip
+                          content={
+                            ph.anchor
+                              ? L.phaseFixedHint
+                              : phaseOrderLocked
+                                ? (phaseOrderLockedHint ?? L.phaseDragHint)
+                                : L.phaseDragHint
+                          }>
                           <span className="evc-sched-handle">
-                            {ph.anchor ? <LockIcon /> : <GripIcon />}
+                            {ph.anchor || phaseOrderLocked ? <LockIcon /> : <GripIcon />}
                           </span>
                         </Tooltip>
                         <span className="evc-sched-num">{enabled ? n : '–'}</span>
@@ -7248,8 +7320,13 @@ export default function EvalCycleWizard({
                         )}
                         {ph.anchor && <StatusBadge className="evc-mode-badge is-muted">{L.badgeFixed}</StatusBadge>}
                         {!enabled && <StatusBadge className="evc-mode-badge is-muted">{L.badgeUnused}</StatusBadge>}
+                        {/* [PW-1461 · 정책 §4.5] 「동시 진행」은 보라 — 지난 날짜(경고)와 섞이지 않게. */}
                         {enabled && overlapIds.has(ph.id) && (
-                          <StatusBadge className="evc-mode-badge is-warn">{L.badgeParallel}</StatusBadge>
+                          <StatusBadge
+                            className="evc-status-badge tone-purple"
+                            data-testid={`evc-sched-parallel-${ph.id}`}>
+                            {L.badgeParallel}
+                          </StatusBadge>
                         )}
                         {/* [PW-536 · 정책 §5.2.1-A] 직접 고친 단계는 재배치에서 빠진다는
                             것을 그 자리에서 알린다 — 「전체 다시 배치」를 눌러야 풀린다. */}
@@ -7330,6 +7407,16 @@ export default function EvalCycleWizard({
                             </div>
                           ))}
                         </div>
+                      )}
+                      {/* [PW-1461 · 정책 §5.10.3] 고친 날짜로 이 단계가 시작되면 저장하는 순간 평가지가
+                          잠긴다 — 일정 수정 창과 같은 문구. 막지는 않는다. */}
+                      {enabled && willLockOnSave(ph.id) && (
+                        <p
+                          className="evx-notice is-warn"
+                          data-testid={`evc-sched-lock-note-${ph.id}`}
+                        >
+                          {L.schedulePastLockNote}
+                        </p>
                       )}
                       {enabled && (
                         <div className="evc-rm-block" data-testid={`evc-rm-block-${ph.id}`}>
@@ -9321,6 +9408,13 @@ export default function EvalCycleWizard({
           confirmTestId="evc-wiz-calib-dup-confirm"
         />
       )}
+
+      {/* PW-1461 · 정책 §4.5 — 새로 생긴 단계 겹침 안내. 막지 않는다(일정 수정 창과 같은 창). */}
+      <EvalScheduleOverlapAlert
+        pairs={overlapAlert}
+        labels={L}
+        onClose={() => setOverlapAlert(null)}
+      />
     </>
   );
 

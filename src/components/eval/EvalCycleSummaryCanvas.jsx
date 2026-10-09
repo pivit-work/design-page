@@ -687,7 +687,11 @@ function ManagerNoteLines({ note, L }) {
   if (!note) return null;
   const comment = note.confidentialComment?.trim();
   const compNote = note.compensationNote?.trim();
-  if (!comment && !note.promotionReady && !compNote) return null;
+  const promoReason = note.promotionReason?.trim();
+  const compStatus = note.compensationStatus ? L.cwCompStatus?.[note.compensationStatus] : null;
+  const compReason = note.compensationReason?.trim();
+  if (!comment && !note.promotionReady && !promoReason && !compNote && !compStatus && !compReason)
+    return null;
   return (
     <>
       {comment && (
@@ -700,6 +704,18 @@ function ManagerNoteLines({ note, L }) {
         <div className="evs-cw-detail-body" data-testid="evs-mgr-promo-ready">
           <span className="evs-cw-committee-k">{L.cwPromoReadyLabel}</span>
           {L.cwPromoReadyYes}
+        </div>
+      )}
+      {promoReason && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-promo-reason">
+          <span className="evs-cw-committee-k">{L.cwPromoReasonLabel}</span>
+          {promoReason}
+        </div>
+      )}
+      {(compStatus || compReason) && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-comp-opinion">
+          <span className="evs-cw-committee-k">{L.cwCompOpinionLabel}</span>
+          {[compStatus, compReason].filter(Boolean).join(' · ')}
         </div>
       )}
       {compNote && (
