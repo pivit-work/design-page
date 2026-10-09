@@ -5120,6 +5120,45 @@
   color: var(--utility-success-700);
   background: var(--utility-success-50);
 }
+/* PW-1458 — 리더에게 돌려보내 재검수를 기다리는 수 · 정책 §8.2 노랑 */
+.evrr-count.is-rejected {
+  color: var(--utility-warning-700);
+  background: var(--utility-warning-50);
+}
+.evrr-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+}
+.evrr-ai-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evrr-send-failed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.evrr-reject-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.evrr-reject-label {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.evrr-reject-count {
+  align-self: flex-end;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
 .evrr-toolbar {
   display: flex;
   align-items: center;

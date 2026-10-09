@@ -42,6 +42,8 @@ const DEFAULT_LABELS = {
   leaderTitle: '리더 코멘트',
   leaderCommentLabel: '최종 코멘트',
   peerTitle: '동료 피드백 요약 (익명)',
+  /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
+  peerBelowMin: '응답 인원이 공개 기준 미만입니다',
   growthTitle: '성장 영역 & 개선',
   selfTitle: '나의 셀프 리뷰',
   catWork: '업적',
@@ -266,6 +268,11 @@ export default function EvalCycleReportCanvas({
   leaderAnswers = [],
   leaderComment = null,
   peerAnswers = [],
+  /**
+   * PW-1458 — 응답 인원이 공개 기준 미만이라 서버가 뺀 동료 항목이 있다. 참이면 동료 칸에
+   * 「응답 인원이 공개 기준 미만입니다」를 띄운다 — 답이 하나도 안 남아도 칸을 그린다.
+   */
+  peerBelowDisclosureMin = false,
   selfGap = [],
   insight = null,
   sections,
@@ -349,10 +356,15 @@ export default function EvalCycleReportCanvas({
           </section>
         )}
 
-        {on('peer') && peerAnswers.length > 0 && (
+        {on('peer') && (peerAnswers.length > 0 || peerBelowDisclosureMin) && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.peerTitle}</h3>
-            <AnswerList answers={peerAnswers} L={L} />
+            {peerBelowDisclosureMin && (
+              <p className="evc-empty-sub" data-testid="evr-peer-below-min">
+                {L.peerBelowMin}
+              </p>
+            )}
+            {peerAnswers.length > 0 && <AnswerList answers={peerAnswers} L={L} />}
           </section>
         )}
 

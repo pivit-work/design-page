@@ -81,9 +81,12 @@ const DEFAULT_LABELS = {
   hold: '일시 중단',
   onHoldBanner: '이 사이클은 일시 중단되었습니다. 구성원의 작성·제출이 차단됩니다.',
   resume: '재개',
-  confirmHoldTitle: '평가를 일시 중단하시겠습니까?',
-  confirmHoldBody:
-    '구성원이 더 이상 작성·제출할 수 없습니다. 이미 작성한 내용은 보존되며, 재개하면 이어서 작성할 수 있습니다. 전체 구성원에게 일시 중단 알림이 발송됩니다.',
+  // PW-1458 — 진행 현황의 [평가 일시 중단]과 같은 확인 창 (정책 §6.6 확인 다이얼로그)
+  confirmHoldTitle: '평가 일시 중단',
+  confirmHoldBody: '평가를 일시 중단하면 구성원이 더 이상 작성·제출할 수 없습니다. 일시 중단하시겠습니까?',
+  // PW-1458 — 실패 문구 (정책 §5.7.1 엣지케이스). 실패하면 상태는 그대로다.
+  holdError: '일시 중단에 실패했습니다. 다시 시도해 주세요.',
+  resumeError: '재개에 실패했습니다. 다시 시도해 주세요.',
   // PW-440 — 작성 중 초안 카드
   statusWritingDraft: '초안',
   draftResume: '이어서 작성',
@@ -1202,12 +1205,12 @@ export default function EvalCycleHrCanvas({
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const run = useCallback(
-    async (fn, successMsg) => {
+    async (fn, successMsg, errorMsg) => {
       try {
         await fn();
         if (successMsg) showToast(successMsg);
       } catch {
-        showToast(L.toastError, 'error');
+        showToast(errorMsg ?? L.toastError, 'error');
       }
     },
     [showToast, L.toastError],
@@ -1397,13 +1400,13 @@ export default function EvalCycleHrCanvas({
       danger: false,
       onConfirm: () => {
         setConfirmModal(null);
-        void run(() => onHoldCycle?.(cycle.id), L.toastHeld);
+        void run(() => onHoldCycle?.(cycle.id), L.toastHeld, L.holdError);
       },
     });
   };
 
   const handleResume = (cycle) =>
-    void run(() => onResumeCycle?.(cycle.id), L.toastResumed);
+    void run(() => onResumeCycle?.(cycle.id), L.toastResumed, L.resumeError);
 
   /**
    * §4.1.2-A: 진행 중 단계 일정 저장.

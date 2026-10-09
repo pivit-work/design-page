@@ -2,6 +2,9 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Toast from '../shared/Toast.jsx';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -90,7 +93,38 @@ const DEFAULT_LABELS = {
   channelModalCancel: '취소',
   channelModalClose: '닫기',
   channelLocked: '항상 보냄',
+  // PW-1458 — 인사담당자의 「리더에게 반려」 (정책 §8.2·§8.4)
+  countRejected: '리더 반려',
+  statusRejected: '리더 반려',
+  rejectedNote: '리더에게 반려됨 — 재검수 대기',
+  rejectedReason: '반려 사유: {reason}',
+  reject: '리더에게 반려',
+  rejectModalTitle: '리더에게 반려',
+  rejectModalDesc: '{name}님 리포트를 리더에게 반려하여 재검수를 요청합니다',
+  rejectReasonLabel: '반려 사유',
+  rejectReasonPh: '리더에게 전달할 반려 사유를 입력하세요\n예: 역량 평가 점수가 실제 성과와 다릅니다',
+  rejectSubmit: '리더에게 반려',
+  rejectCancel: '취소',
+  rejectClose: '닫기',
+  rejectError: '반려하지 못했습니다. 다시 시도해 주세요.',
+  toastRejected: '리더에게 반려했습니다',
+  // PW-1458 — 캘리브레이션 확정 직후 만드는 AI 해설 (정책 §8.1·§9.3)
+  aiBadge: 'AI 생성',
+  aiGenerating: '리포트 생성 중',
+  aiFailed: '생성 실패',
+  aiRegenerate: '재생성',
+  aiRegenerateError: '리포트를 다시 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  // PW-1458 — 발송에서 빠진 것과 실패한 것 (정책 §8.6 예외 처리)
+  toastSkippedNotApproved: '미승인 {count}건은 제외됩니다',
+  sendFailedNote: '발송하지 못한 {count}명: {names}',
+  resend: '재발송',
+  // PW-1458 — 동료 피드백 다듬기 예외 (정책 §8.5 엣지)
+  refineUnchanged: '톤 정제 완료 (수정 없음)',
+  refineHiddenNote: '미공개 설정 — 발송 시 미포함',
 };
+
+/** PW-1458 — 반려 사유 최대 글자 수. 서버(`REJECTION_REASON_MAX`)와 같은 값이다. */
+const REJECT_REASON_MAX = 500;
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -109,6 +143,7 @@ const STATUS_META = {
   pending: { key: 'statusPending', cls: 'is-pending' },
   leader_approved: { key: 'statusApproved', cls: 'is-approved' },
   sent: { key: 'statusSent', cls: 'is-sent' },
+  leader_rejected: { key: 'statusRejected', cls: 'is-rejected' },
 };
 /** PW-978 — 검수 상태와 다른 축이다. 제외된 사람은 상태가 무엇이든 이 딱지 하나만 보인다. */
 const EXCLUDED_META = { key: 'statusExcluded', cls: 'is-excluded' };
@@ -280,6 +315,14 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
                 </div>
               </div>
 
+              {item.hiddenFromEvaluatee && (
+                <p
+                  className="evrr-refine-note"
+                  data-testid={`evrr-refine-hidden-${item.answerId}`}
+                >
+                  {L.refineHiddenNote}
+                </p>
+              )}
               {item.status === 'failed' && (
                 <p className="evrr-refine-note">{L.refineFailedNote}</p>
               )}
@@ -397,8 +440,12 @@ function ReviewRow({
   canEditSections,
   onToggleSection,
   refinement,
+  canReject,
+  onAskReject,
+  onRegenerate,
 }) {
   const [comment, setComment] = useState('');
+  const [regenBusy, setRegenBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
@@ -409,7 +456,11 @@ function ReviewRow({
   const canApprove =
     typeof row.canApprove === 'boolean'
       ? row.canApprove
-      : isMyReport && row.status === 'pending' && !excluded;
+      : isMyReport &&
+        (row.status === 'pending' || row.status === 'leader_rejected') &&
+        !excluded;
+  const rejected = row.status === 'leader_rejected' && !excluded;
+  const aiState = row.aiInsightState ?? 'none';
   const meta = excluded
     ? EXCLUDED_META
     : (STATUS_META[row.status] ?? STATUS_META.pending);
@@ -421,6 +472,22 @@ function ReviewRow({
   const refineMeta = row.peerRefinementStatus
     ? (REFINE_META[row.peerRefinementStatus] ?? null)
     : null;
+  // PW-1458 — AI 가 아무것도 고치지 않았으면 「완료」가 아니라 「수정 없음」으로 가른다(§8.5 엣지).
+  const refineText =
+    row.peerRefinementStatus === 'refined' && row.peerRefinementUnchanged === true
+      ? L.refineUnchanged
+      : refineMeta
+        ? L[refineMeta.key]
+        : null;
+
+  const regenerate = async () => {
+    setRegenBusy(true);
+    try {
+      await onRegenerate(row.memberId);
+    } finally {
+      setRegenBusy(false);
+    }
+  };
   const blocked = unresolved > 0;
 
   const approve = async () => {
@@ -458,6 +525,13 @@ function ReviewRow({
               {L.overrideBadge}
             </StatusBadge>
           )}
+          {row.aiGenerated === true && (
+            <StatusBadge
+              className="evrr-badge is-ai"
+              data-testid={`evrr-ai-badge-${row.memberId}`}>
+              {L.aiBadge}
+            </StatusBadge>
+          )}
         </span>
         {row.department && <span className="evrr-name-sub">{row.department}</span>}
         {overrideCount > 0 && (
@@ -474,7 +548,7 @@ function ReviewRow({
             <StatusBadge
               className={`evrr-badge ${refineMeta.cls}`}
               data-testid={`evrr-refine-badge-${row.memberId}`}>
-              {L[refineMeta.key]}
+              {refineText}
             </StatusBadge>
             {blocked && refinement && (
               <button
@@ -491,8 +565,40 @@ function ReviewRow({
           <span className="evrr-muted">—</span>
         )}
       </div>
-      <div className="evrr-cell">
+      <div className="evrr-cell evrr-status-cell">
         <StatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</StatusBadge>
+        {rejected && (
+          <span className="evrr-name-sub" data-testid={`evrr-rejected-${row.memberId}`}>
+            {L.rejectedNote}
+          </span>
+        )}
+        {rejected && row.rejectionReason && (
+          <span className="evrr-name-sub" data-testid={`evrr-rejected-reason-${row.memberId}`}>
+            {L.rejectedReason.replace('{reason}', row.rejectionReason)}
+          </span>
+        )}
+        {!excluded && aiState === 'generating' && (
+          <span className="evrr-ai-state" data-testid={`evrr-ai-generating-${row.memberId}`}>
+            <Spinner size={14} />
+            {L.aiGenerating}
+          </span>
+        )}
+        {!excluded && aiState === 'failed' && (
+          <span className="evrr-ai-state" data-testid={`evrr-ai-failed-${row.memberId}`}>
+            <StatusBadge className="evrr-badge is-failed">{L.aiFailed}</StatusBadge>
+            {canReject && onRegenerate && (
+              <button
+                type="button"
+                className="evc-btn"
+                disabled={regenBusy}
+                onClick={regenerate}
+                data-testid={`evrr-ai-regenerate-${row.memberId}`}
+              >
+                {L.aiRegenerate}
+              </button>
+            )}
+          </span>
+        )}
       </div>
       <div className="evrr-cell">
         {refinement && refineMeta && (
@@ -542,6 +648,17 @@ function ReviewRow({
         ) : row.status === 'leader_approved' ? (
           <span className="evrr-muted">{L.approved}</span>
         ) : null}
+        {/* PW-1458 — 서버가 줄마다 준 «돌려보낼 수 있나»와 보는 사람(인사담당자)을 함께 본다. */}
+        {canReject && onAskReject && row.rejectable === true && (
+          <button
+            type="button"
+            className="evc-btn"
+            onClick={() => onAskReject(row)}
+            data-testid={`evrr-reject-${row.memberId}`}
+          >
+            {L.reject}
+          </button>
+        )}
       </div>
     </div>
     {open && hasSections && (
@@ -602,6 +719,17 @@ export default function EvalReportReviewCanvas({
    * 안 주면 창 없이 `onSend(ids)` 로 바로 보낸다(기존 동작).
    */
   sendChannels = null,
+  /**
+   * PW-1458 — 인사담당자의 「리더에게 반려」 (정책 §8.4). `(memberId, reason)` 을 받아 저장하고
+   * 실패하면 throw 한다 — 창 안에 문구를 띄우고 쓰던 사유를 지키기 위해서다. 버튼은
+   * `queue.canReject` 와 줄의 `rejectable` 이 둘 다 참일 때만 그린다. 안 주면 그리지 않는다.
+   */
+  onReject = null,
+  /**
+   * PW-1458 — AI 해설 [재생성] (정책 §8.1). `(memberId)` — 끝나면 호출부가 큐를 다시 읽는다.
+   * 실패하면 throw 한다. 버튼은 `queue.canReject`(인사담당자) 일 때만 그린다.
+   */
+  onRegenerate = null,
   onApprove,
   onSend,
 }) {
@@ -618,6 +746,13 @@ export default function EvalReportReviewCanvas({
   /** PW-1228 — 채널 창에 올린 발송 대상(id 목록). null 이면 창이 닫혀 있다. */
   const [channelAsk, setChannelAsk] = useState(null);
   const [channelSending, setChannelSending] = useState(false);
+  /** PW-1458 — 반려 창에 올린 줄. null 이면 닫혀 있다. */
+  const [rejectAsk, setRejectAsk] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectBusy, setRejectBusy] = useState(false);
+  const [rejectError, setRejectError] = useState(null);
+  /** PW-1458 — 마지막 발송에서 실패한 사람 id. 비어 있으면 안내를 그리지 않는다(§8.6). */
+  const [failedIds, setFailedIds] = useState([]);
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
   const showToast = useCallback((msg, type = 'success') => {
@@ -657,6 +792,39 @@ export default function EvalReportReviewCanvas({
     }
   };
 
+  const canReject = q.canReject === true;
+
+  const askReject = (row) => {
+    setRejectReason('');
+    setRejectError(null);
+    setRejectAsk(row);
+  };
+
+  const submitReject = async () => {
+    const reason = rejectReason.trim();
+    if (!reason || !rejectAsk) return;
+    setRejectBusy(true);
+    setRejectError(null);
+    try {
+      await onReject?.(rejectAsk.memberId, reason);
+      setRejectAsk(null);
+      showToast(L.toastRejected);
+    } catch {
+      // 창을 닫지 않는다 — 쓰던 사유가 남아야 다시 누를 수 있다.
+      setRejectError(L.rejectError);
+    } finally {
+      setRejectBusy(false);
+    }
+  };
+
+  const handleRegenerate = async (memberId) => {
+    try {
+      await onRegenerate?.(memberId);
+    } catch {
+      showToast(L.aiRegenerateError, 'error');
+    }
+  };
+
   const send = (rawIds) => {
     // 고른 뒤에 막힌 사람이 생길 수 있다(동료가 리뷰를 고쳐 다시 내면 그 순간 막힌다).
     // 보내기 직전에 한 번 더 거른다 — 서버도 같은 판정으로 막지만 여기서 거르면
@@ -683,12 +851,16 @@ export default function EvalReportReviewCanvas({
       const result = await (channels ? onSend?.(ids, channels) : onSend?.(ids));
       setSelected(new Set());
       if (result && typeof result.sent === 'number') {
-        const sentMsg = L.toastSentCount.replace('{count}', String(result.sent));
-        showToast(
-          result.excluded > 0
-            ? `${sentMsg} · ${L.toastSkippedExcluded.replace('{count}', String(result.excluded))}`
-            : sentMsg,
-        );
+        const parts = [L.toastSentCount.replace('{count}', String(result.sent))];
+        if (result.excluded > 0) {
+          parts.push(L.toastSkippedExcluded.replace('{count}', String(result.excluded)));
+        }
+        // PW-1458 — 그 사이 반려되는 등 승인이 풀린 사람은 서버가 뺀다(§8.6 「미승인 N건은 제외됩니다」).
+        if (result.notApproved > 0) {
+          parts.push(L.toastSkippedNotApproved.replace('{count}', String(result.notApproved)));
+        }
+        showToast(parts.join(' · '));
+        setFailedIds(Array.isArray(result.failedMemberIds) ? result.failedMemberIds : []);
       } else {
         showToast(L.toastSent);
       }
@@ -725,6 +897,42 @@ export default function EvalReportReviewCanvas({
           onClose={() => setChannelAsk(null)}
         />
       )}
+      {rejectAsk && (
+        <ModalShell
+          title={L.rejectModalTitle}
+          description={L.rejectModalDesc.replace('{name}', rejectAsk.name || rejectAsk.memberId)}
+          titleId="evrr-reject-modal-title"
+          submitLabel={L.rejectSubmit}
+          cancelLabel={L.rejectCancel}
+          closeLabel={L.rejectClose}
+          canSubmit={rejectReason.trim().length > 0 && !rejectBusy}
+          busy={rejectBusy}
+          onOverlayClick={null}
+          onClose={() => setRejectAsk(null)}
+          onSubmit={submitReject}
+        >
+          <label className="evrr-reject-field" htmlFor="evrr-reject-reason">
+            <span className="evrr-reject-label">{L.rejectReasonLabel}</span>
+            <TextArea
+              id="evrr-reject-reason"
+              rows={4}
+              value={rejectReason}
+              placeholder={L.rejectReasonPh}
+              maxLength={REJECT_REASON_MAX}
+              onChange={(e) => setRejectReason(e.target.value.slice(0, REJECT_REASON_MAX))}
+              data-testid="evrr-reject-reason"
+            />
+            <span className="evrr-reject-count">
+              {rejectReason.length} / {REJECT_REASON_MAX}
+            </span>
+          </label>
+          {rejectError && (
+            <p className="evrr-refine-error" role="alert" data-testid="evrr-reject-error">
+              {rejectError}
+            </p>
+          )}
+        </ModalShell>
+      )}
       {/* PW-978 — 공용 Toast 로 그린다(<body> 바로 아래). 전에는 `.evc-root` 안에 그려서, 뿌리가
           position: fixed 인 탓에 z-index 가 앱 위쪽 바를 넘지 못해 알림이 한 번도 보이지 않았다. */}
       <Toast
@@ -746,7 +954,35 @@ export default function EvalReportReviewCanvas({
           <span className="evrr-count is-pending" data-testid="evrr-count-pending">{L.countPending} {q.counts.pending}</span>
           <span className="evrr-count is-approved" data-testid="evrr-count-approved">{L.countApproved} {q.counts.leaderApproved}</span>
           <span className="evrr-count is-sent" data-testid="evrr-count-sent">{L.countSent} {q.counts.sent}</span>
+          {(q.counts.leaderRejected ?? 0) > 0 && (
+            <span className="evrr-count is-rejected" data-testid="evrr-count-rejected">
+              {L.countRejected} {q.counts.leaderRejected}
+            </span>
+          )}
         </div>
+
+        {q.canSend && failedIds.length > 0 && (
+          <div className="evc-wiz-warn evrr-send-failed" role="alert" data-testid="evrr-send-failed">
+            <span>
+              {L.sendFailedNote
+                .replace('{count}', String(failedIds.length))
+                .replace(
+                  '{names}',
+                  failedIds
+                    .map((id) => q.rows.find((r) => r.memberId === id)?.name || id)
+                    .join(', '),
+                )}
+            </span>
+            <button
+              type="button"
+              className="evc-btn"
+              onClick={() => send(failedIds)}
+              data-testid="evrr-resend"
+            >
+              {L.resend}
+            </button>
+          </div>
+        )}
 
         {q.canSend && q.counts.pending > 0 && (
           <p className="evc-wiz-warn" data-testid="evrr-incomplete-warn">
@@ -821,6 +1057,9 @@ export default function EvalReportReviewCanvas({
                 canEditSections={q.canEditSections === true}
                 onToggleSection={onToggleSection}
                 refinement={refinement}
+                canReject={canReject}
+                onAskReject={onReject ? askReject : null}
+                onRegenerate={onRegenerate ? handleRegenerate : null}
               />
             ))
           )}
