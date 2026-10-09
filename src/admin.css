@@ -2721,6 +2721,12 @@
 .admin-snap-aff-msg { font-size: 10.5px; margin-top: 3px; white-space: normal; max-width: 280px; }
 .admin-snap-aff-msg.is-error { color: var(--utility-error-600, #d92d20); }
 .admin-snap-aff-msg.is-warn { color: var(--colors-warning-700, #b54708); }
+/* 두 번 적힌 조직경로(A6) — 행 제외 사유라 빨간 바탕으로 짚는다 */
+.admin-snap-aff-dup { font-size: 11px; color: var(--utility-error-700, #b42318); background: var(--utility-error-50, #fef3f2); border-radius: 4px; padding: 0 4px; margin-bottom: 2px; width: fit-content; }
+.admin-snap-aff-more { display: inline-block; font-size: 11px; color: var(--text-tertiary, #667085); cursor: help; text-decoration: underline dotted; }
+/* 행 처리 선택(신규 옵션 등록·직군 자동 보정·팀 자동 생성) */
+.admin-snap-aff-action { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; color: var(--text-secondary, #344054); white-space: normal; max-width: 280px; cursor: pointer; }
+.admin-snap-aff-action input { margin: 0; }
 .admin-snap-preview-table td .admin-snap-input { min-width: 150px; margin-bottom: 0; }
 
 /* ── 발령 이력 ── */
