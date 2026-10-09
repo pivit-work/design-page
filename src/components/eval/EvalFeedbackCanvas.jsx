@@ -3,6 +3,7 @@ import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { ChatIcon, ClockIcon, MailIcon, ChevronDownIcon, ChevronUpIcon } from './evalIcons';
+import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -107,7 +108,8 @@ const DEFAULT_LABELS = {
   // 받는 사람 후보를 못 불러왔다 — 고를 수 없고 보낼 수 없다 (§8)
   recipientsLoadFailed: '요청할 사람 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
   requestSendPrefix: '',
-  requestSendSuffix: '에게 요청 전송 →',
+  // 끝의 화살표는 글자가 아니라 아이콘으로 붙인다(SendArrow) — 번역문에 기호를 넣지 않는다 (§6.4).
+  requestSendSuffix: '에게 요청 전송',
   pastReadonly: '과거 기록에는 요청할 수 없습니다',
   kindManager: '매니저',
   kindPeer: '동료',
@@ -621,6 +623,11 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
  * 있어도 요청 자체가 불가능해진다. 이미 요청한 사람은 **목록에서 빼지 않고 비활성 +
  * 사유 안내**로 남긴다 — 사라지면 "왜 이 사람이 안 보이지" 가 된다.
  */
+/** 요청 전송 버튼 끝의 화살표 (§6.4 「… 요청 전송 →」). */
+function SendArrow() {
+  return <ArrowRightGlyph size={13} style={{ verticalAlign: 'middle', marginLeft: 4 }} aria-hidden />;
+}
+
 function RequestCompose({ block, L, recipients, recipientsFailed = false, lockedRecipientIds, onRequest }) {
   const locked = lockedRecipientIds || new Set();
   const isLocked = (r) => locked.has(r.id);
@@ -688,6 +695,7 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
           {cancelButton}
           <button type="button" disabled data-testid="fbm-request-send" style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>
             {L.kindManager + L.requestSendSuffix}
+            <SendArrow />
           </button>
         </div>
       </div>
@@ -775,6 +783,7 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
           style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
         >
           {(recipient?.kind === 'peer' ? L.kindPeer : L.kindManager) + L.requestSendSuffix}
+          <SendArrow />
         </button>
       </div>
     </div>
