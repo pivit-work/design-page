@@ -2,10 +2,11 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ChatIcon, ClockIcon, MailIcon, ChevronDownIcon, ChevronUpIcon } from './evalIcons';
+import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
+import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
@@ -130,10 +131,6 @@ const DEFAULT_LABELS = {
   okrPanelCoverage: '{covered}/{total} KR 커버',
   okrObjectiveSuffix: ' OBJECTIVE',
 };
-
-function fill(template, vars) {
-  return String(template).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
-}
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -944,94 +941,6 @@ function linkedLabel(item, krBlocks, initBlocks, L) {
 }
 
 // ── 그룹핑: items → KR/Init/기타 블록 ──
-/**
- * 「내 OKR」 패널 — screen-feedback-member.policy.md §2 (PW-1454). 시안: eval-app.jsx `OkrPanel`.
- *
- * 처음엔 접혀 있다. 접힌 줄에 Objective·KR 수와 커버리지(피드백이나 요청이 있는 KR / 전체 KR)를,
- * 펼치면 소유 단위(회사·팀·개인)별 Objective 그룹마다 진행률과 그 아래 KR(진행률·건수),
- * 그리고 이니셔티브와 건수를 보인다. 건수는 받은 피드백과 보낸 요청을 합산한다 — 블록 카드와
- * 같은 묶음(block.items)에서 세어 두 숫자가 어긋나지 않는다.
- */
-function OkrPanel({ groups, krBlocks, initBlocks, L }) {
-  const [open, setOpen] = useState(false);
-  const krById = new Map(krBlocks.map((b) => [b.id, b]));
-  const covered = krBlocks.filter((b) => b.items.length > 0).length;
-  const countBadge = (n) =>
-    n > 0 ? <Chip tone="success">{n}{L.countSuffix}</Chip> : null;
-
-  return (
-    <div data-testid="fbm-okr-panel" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        data-testid="fbm-okr-panel-toggle"
-        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: FONT }}
-      >
-        <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub }}>{L.okrPanelTitle}</span>
-        <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.muted }}>
-          {fill(L.okrPanelCounts, { objectives: groups.length, krs: krBlocks.length })}
-          {' · '}
-          <span data-testid="fbm-okr-coverage" style={{ color: covered > 0 ? C.teal : C.muted }}>
-            {fill(L.okrPanelCoverage, { covered, total: krBlocks.length })}
-          </span>
-        </span>
-        <span style={{ marginLeft: 'auto', color: C.muted, display: 'inline-flex' }}>
-          {open ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
-        </span>
-      </button>
-
-      {open && (
-        <div data-testid="fbm-okr-panel-body" style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {groups.map((g) => (
-            <div key={g.id} data-testid={`fbm-okr-group-${g.id}`}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 4 }}>
-                {g.unitLabel}{L.okrObjectiveSuffix}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.text, flex: 1, lineHeight: 1.5 }}>{g.title}</span>
-                <span style={{ width: PROGRESS_BAR_W, height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
-                  <span style={{ display: 'block', width: `${g.progress ?? 0}%`, height: '100%', background: C.teal }} />
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>{g.progress ?? 0}%</span>
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionKr}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {g.krIds.map((id) => krById.get(id)).filter(Boolean).map((b) => (
-                  <div key={b.id} data-testid={`fbm-okr-kr-${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Chip tone="info">{b.badge}</Chip>
-                    <span style={{ fontSize: 12, color: C.sub, flex: 1, lineHeight: 1.4 }}>{b.title}</span>
-                    {countBadge(b.items.length)}
-                    <span style={{ width: 50, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
-                      <span style={{ display: 'block', width: `${b.progress ?? 0}%`, height: '100%', background: krColor(b.progress ?? 0) }} />
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: krColor(b.progress ?? 0), minWidth: 30, textAlign: 'right' }}>{b.progress ?? 0}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          {initBlocks.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionInit}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {initBlocks.map((b) => (
-                  <span key={b.id} data-testid={`fbm-okr-init-${b.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: C.purple, background: C.purpleBg, border: `1px solid ${C.purpleBd}`, borderRadius: 20, padding: '2px 9px' }}>
-                      # {b.title}
-                    </span>
-                    {countBadge(b.items.length)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function groupBlocks(items, krs, initiatives) {
   const byKey = new Map();
   for (const it of items) {
@@ -1287,7 +1196,7 @@ export default function EvalFeedbackCanvas({
         )}
 
         {okrGroups.length > 0 && krBlocks.length > 0 && (
-          <OkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} L={L} />
+          <FeedbackOkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} L={L} testIdPrefix="fbm" />
         )}
 
         {onSendIncoming && (
