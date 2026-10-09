@@ -1442,6 +1442,35 @@
   margin-top: var(--spacing-md);
 }
 
+/* [PW-1456] 평가 템플릿 미리보기 드로어 — 공용 옆 패널 위, 폭 560(정책 screen-eval-template-library §6.2).
+   머리·본문·발 줄은 아래 리마인더 패널의 것을 그대로 쓴다. */
+.pw-side-panel.evc-tpl-drawer {
+  width: 560px;
+  display: flex;
+  flex-direction: column;
+}
+.evc-rm-panel-foot.evc-tpl-drawer-foot {
+  gap: var(--spacing-md);
+}
+/* [PW-1456] 검색·필터 뒤 다시 읽는 중·실패 — 직전 결과를 흐리게 둔다(정책 §8). */
+.evc-list.is-stale {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+/* [PW-1456] 카드 액션 처리 중 — 그 카드에 반투명 덮개(정책 §9). 덮개가 클릭도 받는다. */
+.evc-card.is-busy {
+  position: relative;
+}
+.evc-card.is-busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--bg-primary);
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* [PW-1066] 리마인더 편집 패널 — 공용 옆 패널(SidePanelShell) 위에 덧입힌다.
    글자·간격은 OKR 설정 마법사 눈금(13~14px 글자, 8~24px 간격)에 맞춘다. 안쪽 규칙은
    목록 안에 펼쳐지던 때의 것을 그대로 쓰고, 글자 크기 눈금만 이 패널 안에서 한 단계 올린다. */

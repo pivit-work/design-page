@@ -6,6 +6,7 @@ import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, Chevro
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -81,11 +82,10 @@ const DEFAULT_LABELS = {
   send: '전달 →',
   pastReadonly: '과거 기간은 읽기 전용입니다. 현재 기간에서만 작성할 수 있습니다.',
   toastSent: '피드백을 전달했습니다',
-  toastError: '전송에 실패했습니다',
+  toastError: '전송에 실패했습니다. 다시 시도해 주세요',
   aiError: 'AI 추천 생성에 실패했습니다. 직접 작성해 주세요.',
   // 요약을 연 뒤 대화가 늘었을 때 요약 블록 안내 (screen-feedback-member §10-17)
   summaryStale: '요약 이후 새 대화가 있습니다',
-  emptyTeam: '직속 팀원이 없습니다.',
   // ── 팀원 스레드 화면 (screen-feedback-manager §3.2~§3.8, PW-1455) ──
   // 진입점 성격 안내 — {name} 에 팀원 이름 (§3.2.1)
   infoBanner:
@@ -111,6 +111,9 @@ const DEFAULT_LABELS = {
   feedbackEditCancel: '취소',
   feedbackEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   feedbackDeleteError: '삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  // 팀원 0명 빈 상태(FB-1) — 1행은 매니저 뷰 ME-1 과 같은 문장, 2행은 사유 (screen-feedback-manager §5-A).
+  emptyTeam: '관리 중인 팀원이 없습니다.',
+  emptyTeamHint: '팀원 배정은 관리자가 합니다. 워크스페이스 관리자에게 요청하세요.',
 };
 
 function isObj(v) {
@@ -141,7 +144,11 @@ function fmtDate(v) {
 }
 
 // ── 팀 목록 화면 ──
-function TeamListScreen({ team, L, onSelect }) {
+function TeamListScreen({ team, L, onSelect, loading = false, failed = false }) {
+  // 불러오는 동안 카드 자리 셋을 깐다(§5). 못 불러왔으면 아무것도 그리지 않는다 — 「팀원이 없다」로
+  // 읽히지 않게, 실패 안내와 다시 시도는 화면(소비 측)이 띄운다(§5 「API 실패」).
+  if (loading) return <SkeletonList count={3} height={62} data-testid="fbmgr-team-skeleton" />;
+  if (failed) return null;
   const members = [...(team.members || [])].sort((a, b) => {
     if (a.lastFeedbackAt == null && b.lastFeedbackAt != null) return -1;
     if (a.lastFeedbackAt != null && b.lastFeedbackAt == null) return 1;
@@ -170,7 +177,10 @@ function TeamListScreen({ team, L, onSelect }) {
       </div>
 
       {members.length === 0 ? (
-        <p className="evc-empty-sub">{L.emptyTeam}</p>
+        <div data-testid="fbmgr-team-empty" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-text-sm)', fontWeight: 600, color: C.text }}>{L.emptyTeam}</p>
+          {L.emptyTeamHint && <p style={{ margin: '4px 0 0', fontSize: 'var(--font-size-text-xs)', fontWeight: 500, color: C.sub }}>{L.emptyTeamHint}</p>}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {members.map((m) => {
@@ -193,7 +203,7 @@ function TeamListScreen({ team, L, onSelect }) {
                 <span style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{m.name}</span>
                 <Chip tone={badge.tone}>{badge.label}</Chip>
                 {m.pendingRequests > 0 && (
-                  <Chip tone="accent" icon={<MailIcon size={11} />}>{`${L.requestChip} ${m.pendingRequests}`}</Chip>
+                  <Chip tone="accent" icon={<MailIcon size={11} />}>{`${L.requestChip} ${m.pendingRequests}${L.countSuffix}`}</Chip>
                 )}
                 {m.department && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{m.department}</span>}
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
@@ -316,6 +326,9 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
       await onSend({ linkedTargetType: block.type, linkedTargetId: block.id, text: text.trim() });
       setText('');
       setAiState('idle');
+    } catch {
+      // 실패 안내는 캔버스 루트가 띄웠다 — 입력은 그대로 둔다(manager §8-4).
+      // 잡지 않으면 클릭 처리기에서 처리되지 않은 거절로 새어 나간다.
     } finally {
       setBusy(false);
     }
@@ -375,7 +388,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
  * 수정은 그 자리 입력칸 — 빈 글은 저장 못 하고, 취소하면 원래 글로 돌아간다. 삭제는 확인 없이 바로.
  * 실패하면 입력을 그대로 두고 말풍선 아래에 알린다.
  */
-function FeedbackBubble({ item, L, canModify, onEdit, onDelete }) {
+function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
@@ -456,8 +469,10 @@ function FeedbackBubble({ item, L, canModify, onEdit, onDelete }) {
         </div>
       </div>
       {item.memberReply && (
-        <div style={{ marginLeft: 38, marginTop: 6 }}>
-          <div style={{ background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
+        // 팀원 답변 — 팀원 아바타 + 텍스트 (screen-feedback-manager §3.8).
+        <div data-testid="fbmgr-member-reply" style={{ marginLeft: 38, marginTop: 6, display: 'flex', gap: 8 }}>
+          <Avatar name={member?.name} photo={member?.avatar} size={24} />
+          <div style={{ minWidth: 0, flex: 1, background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
             {item.memberReply.text || '✓ 확인했습니다'}
           </div>
         </div>
@@ -483,7 +498,7 @@ function RequestBubble({ item, L }) {
   );
 }
 
-function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
+function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
@@ -567,6 +582,7 @@ function ThreadModal({ block, memberName, L, isPastPeriod, onSend, onAiDraft, on
             <FeedbackBubble
               key={it.id}
               item={it}
+              member={member}
               L={L}
               canModify={!isPastPeriod && !!onEditFeedback && !!onDeleteFeedback}
               onEdit={onEditFeedback}
@@ -673,8 +689,19 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, L, onAnswer }
 }
 
 // ── 팀원 스레드 화면 ──
-function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled }) {
-  const [openBlock, setOpenBlock] = useState(null);
+function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled, openBlockKey, onOpenBlockChange }) {
+  // 연 창은 소비 측이 쥘 수도 있다(`openBlockKey` 를 넘기면) — 브라우저 뒤로가기로 창만 닫으려면
+  // 창이 열린 것을 주소 기록에 남겨야 해서다(manager §8-10). 안 넘기면 종전처럼 캔버스가 쥔다.
+  const controlled = openBlockKey !== undefined;
+  const [localOpen, setLocalOpen] = useState(null);
+  const openBlock = useMemo(
+    () => (controlled ? (openBlockKey ? { key: openBlockKey } : null) : localOpen),
+    [controlled, openBlockKey, localOpen],
+  );
+  const setOpenBlock = (block) => {
+    if (!controlled) setLocalOpen(block);
+    onOpenBlockChange?.(block ? block.key : null);
+  };
   // 딥링크로 열린 모달을 사용자가 닫았는가 — 닫은 뒤 재조회로 되살아나지 않게.
   const [linkDismissed, setLinkDismissed] = useState(false);
   // 답한(해결된) 요청은 이 화면에서 뺀다 — 같은 대상으로 피드백을 보내면 사라진다(§3.4 · §3.6).
@@ -703,14 +730,20 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
     if (notified.current === key) return;
     notified.current = key;
     onOpenTargetHandled?.(Boolean(linkedBlock));
-  }, [openTarget, linkedBlock, onOpenTargetHandled]);
+    // 소비 측이 창을 쥐면 딥링크로 연 창도 넘긴다 — 그래야 뒤로가기가 이 창을 닫는다.
+    // 그 뒤로는 소비 측의 `openBlockKey` 만 창을 연다(아래 liveBlock).
+    if (controlled && linkedBlock) onOpenBlockChange?.(linkedBlock.key);
+  }, [openTarget, linkedBlock, onOpenTargetHandled, controlled, onOpenBlockChange]);
 
   const liveBlock = useMemo(() => {
-    const active = openBlock || linkedBlock;
+    const active = openBlock || (controlled ? null : linkedBlock);
     if (!active) return null;
+    const found = [...krBlocks, ...initBlocks, ...(etc ? [etc] : [])].find((b) => b.key === active.key);
+    if (found) return found;
     // 다시 읽은 뒤 블록이 사라졌으면(기타의 마지막 피드백을 지움 등) 창을 닫는다.
-    return [...krBlocks, ...initBlocks, ...(etc ? [etc] : [])].find((b) => b.key === active.key) || (active.type === 'etc' ? null : active);
-  }, [openBlock, linkedBlock, krBlocks, initBlocks, etc]);
+    // 소비 측이 준 키만 있고 블록이 아직 없으면(스레드 로딩 중) 열지 않는다.
+    return active.items && active.type !== 'etc' ? active : null;
+  }, [openBlock, controlled, linkedBlock, krBlocks, initBlocks, etc]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -741,7 +774,7 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
       {krBlocks.length === 0 && initBlocks.length === 0 && !etc && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
-        <ThreadModal block={liveBlock} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onEditFeedback={onEditFeedback} onDeleteFeedback={onDeleteFeedback} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
+        <ThreadModal block={liveBlock} member={member} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onEditFeedback={onEditFeedback} onDeleteFeedback={onDeleteFeedback} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
       )}
     </div>
   );
@@ -768,6 +801,12 @@ export default function EvalFeedbackComposeCanvas({
   // 보낸 피드백 수정·삭제 (§3.8) — `(item, text)` · `(item)`. 실패는 던진다(말풍선이 받아 알린다).
   onUpdateFeedback,
   onDeleteFeedback,
+  // 팀원 목록을 불러오는 중 / 못 불러왔다 (manager §5). 실패 안내는 소비 측이 띄운다.
+  teamLoading = false,
+  teamFailed = false,
+  // 연 창(블록 key) — 넘기면 소비 측이 쥔다. 열고 닫을 때 onOpenBlockChange(key | null).
+  openBlockKey,
+  onOpenBlockChange,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [toast, setToast] = useState(null);
@@ -843,9 +882,11 @@ export default function EvalFeedbackComposeCanvas({
             onDeleteFeedback={onDeleteFeedback}
             openTarget={openTarget}
             onOpenTargetHandled={onOpenTargetHandled}
+            openBlockKey={openBlockKey}
+            onOpenBlockChange={onOpenBlockChange}
           />
         ) : (
-          <TeamListScreen team={team} L={L} onSelect={onSelectMember} />
+          <TeamListScreen team={team} L={L} onSelect={onSelectMember} loading={teamLoading} failed={teamFailed} />
         )}
       </div>
     </div>
