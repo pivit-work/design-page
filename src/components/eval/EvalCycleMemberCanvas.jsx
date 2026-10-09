@@ -25,6 +25,9 @@ import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
  * onSave(items)/onSubmit 로 상위에 위임. 제출 완료 상태면 읽기 전용.
  */
 
+/** spec-eval-cycle §4.3.4 E5 — 자동 임시저장 주기. */
+export const AUTOSAVE_INTERVAL_MS = 60000;
+
 const DEFAULT_LABELS = {
   title: '셀프 리뷰',
   notActive: '셀프 리뷰 기간이 아닙니다',
@@ -36,6 +39,11 @@ const DEFAULT_LABELS = {
   actOneOnOne: '1:1 미팅',
   actFeedback: '받은 피드백',
   actSnippets: '스니핏 하이라이트',
+  // spec-eval-cycle §13.4 — 지난 기간 피드백 기록이 아직 없어 AI 가 이번 기간 것만 본다.
+  // 빈 문자열을 넘기면 줄을 그리지 않는다.
+  actPeriodNote: '현재 기간 데이터만 사용됩니다',
+  // spec-eval-cycle §10 — 이 기간 스니핏·OKR 이 비었을 때(`dataShortage`) 또는 AI 가 일부 항목을 못 채웠을 때.
+  dataShortage: '데이터가 부족하여 일부 항목은 직접 작성이 필요합니다',
   // §4.2.1 OKR KR 달성률 수기입력
   actKrTitle: 'OKR 달성 현황 — KR별 달성률을 직접 입력하세요',
   actKrHint: 'AI 자동 산출은 제공하지 않습니다 · 매니저 화면에 실시간 반영',
@@ -52,6 +60,8 @@ const DEFAULT_LABELS = {
   scoreLabel: '자기 평가 점수',
   rationalePlaceholder: '점수 근거를 서술하세요.',
   rationaleOptionalPlaceholder: '점수 근거를 서술하세요. (선택)',
+  // spec-eval-cycle §4.2.2 B6 — 「점수 이유 필수」 항목의 사유를 비우고 제출하면 그 칸 아래.
+  rationaleRequired: '점수 사유를 입력해 주세요.',
   growthTitle: '강점 · 보완 · 성장',
   strengthsLabel: '강점',
   strengthsPlaceholder: '이번 기간 발휘한 강점을 기록하세요.',
@@ -71,7 +81,9 @@ const DEFAULT_LABELS = {
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다.',
   // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
-  aiDraft: 'AI 초안 생성',
+  aiDraft: '전체 AI 초안 생성',
+  // spec-eval-cycle §4.3.4 E3 — 전체 생성과 함께 서술형 항목마다 그 항목만 만드는 단추.
+  aiDraftItem: '항목별 AI 초안 생성',
   aiDrafting: '초안 만드는 중…',
   // feedback-ai-spec §8.3 실패 문구 그대로.
   aiDraftError: 'AI 초안 생성에 실패했습니다. 직접 작성하거나 다시 시도해 주세요.',
@@ -355,6 +367,8 @@ export default function EvalCycleMemberCanvas({
   // feedback-ai-spec §8.3 — AI 초안 칸을 노랑(미확인)/초록(확인)으로 그리고 [확인]을 둔다.
   // 확인 상태를 저장하는 화면(셀프 리뷰)만 켠다 — 저장하지 않는 화면에서 켜면 다시 열 때 사라진다.
   trackAiDraft = false,
+  // [PW-1460] 이 기간 스니핏이나 OKR 이 비었는가 — 셀프 리뷰 화면이 판정해 넘긴다(spec §10).
+  dataShortage = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -368,8 +382,12 @@ export default function EvalCycleMemberCanvas({
   const [state, setState] = useState(() => seedState(answers, fields));
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
-  const [draftBusy, setDraftBusy] = useState(false);
-  const [draftError, setDraftError] = useState(false);
+  /* [PW-1460] AI 초안 진행·실패는 «어디서 눌렀나»를 담는다 — 'all'(전체) 또는 항목 key.
+     항목별 단추의 실패는 그 항목 아래에서 말한다. */
+  const [draftBusy, setDraftBusy] = useState(null);
+  const [draftError, setDraftError] = useState(null);
+  /** AI 가 근거가 없어 빈 초안을 돌려준 항목이 있었나 — 데이터 부족 안내를 띄운다. */
+  const [draftShort, setDraftShort] = useState(false);
   const submitted = status === 'submitted';
 
   // §4.2.1 KR 달성률 입력 — krProgress(부모 로드본)로 시드, 편집 중엔 유지.
@@ -393,46 +411,55 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
-  // TC-135: 30초 자동저장 — 사용자 편집 후 디바운스로 onSave 호출(early-return 앞 선언).
+  // TC-135 · spec-eval-cycle §4.3.4 E5 — 바뀐 것이 있으면 «60초마다» 자동 임시저장(early-return 앞 선언).
+  // 종전에는 편집이 멈춘 뒤 30초를 기다렸다 — 쉬지 않고 쓰면 끝까지 한 번도 저장되지 않았다.
   const dirtyRef = useRef(false);
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   const [autoSavedAt, setAutoSavedAt] = useState(null);
   const [autoSaving, setAutoSaving] = useState(false);
   const [saveError, setSaveError] = useState(false); // TC-136 저장 실패 배너
   useEffect(() => {
-    // 제출 완료·저장 콜백 없음·사용자 편집 없음이면 자동저장 안 함.
-    if (submitted || !onSave || !dirtyRef.current) return undefined;
-    const timer = setTimeout(() => {
+    // 제출 완료·저장 콜백 없음이면 자동저장 안 함. 편집이 없던 주기는 요청을 보내지 않는다.
+    if (submitted || !onSave) return undefined;
+    const timer = setInterval(() => {
+      if (!dirtyRef.current) return;
+      const cur = stateRef.current;
       const items = fields
         .filter(
           (f) =>
-            state[f.key].textAnswer.trim() ||
-            state[f.key].score != null ||
-            selectedOptions(state[f.key]).length > 0,
+            cur[f.key].textAnswer.trim() ||
+            cur[f.key].score != null ||
+            selectedOptions(cur[f.key]).length > 0,
         )
         .map((f) => ({
           templateItemId: f.templateItemId,
           itemCategory: f.category,
           growthType: f.growthType,
-          textAnswer: state[f.key].textAnswer,
-          score: state[f.key].score,
-          rationale: state[f.key].rationale || null,
-          checkedOptions: state[f.key].checkedOptions,
+          textAnswer: cur[f.key].textAnswer,
+          score: cur[f.key].score,
+          rationale: cur[f.key].rationale || null,
+          checkedOptions: cur[f.key].checkedOptions,
         }));
+      // 보내는 순간 깨끗하게 둔다 — 저장 중에 고친 것은 다음 주기에 다시 보낸다.
+      dirtyRef.current = false;
       setAutoSaving(true);
       Promise.resolve(onSave(items))
         .then(() => {
-          dirtyRef.current = false;
           setAutoSavedAt(new Date());
           setSaveError(false);
         })
         .catch(() => {
-          // TC-136 자동저장 실패 → 배너로 알림(dirty 유지해 다음 편집 때 재시도)
+          // TC-136 자동저장 실패 → 배너로 알리고 다음 주기에 다시 보낸다
+          dirtyRef.current = true;
           setSaveError(true);
         })
         .finally(() => setAutoSaving(false));
-    }, 30000);
-    return () => clearTimeout(timer);
-  }, [state, submitted, onSave, fields]);
+    }, AUTOSAVE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [submitted, onSave, fields]);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -569,9 +596,12 @@ export default function EvalCycleMemberCanvas({
   const emptyTextFields = fields.filter(
     (f) => f.type !== 'rating' && !state[f.key].textAnswer.trim(),
   );
-  const handleAiDraft = async () => {
-    if (!onAiDraft || emptyTextFields.length === 0) return;
-    const items = emptyTextFields.map((f) => ({
+  /** `only` 를 주면 그 항목 하나만 만든다(항목별 단추). 안 주면 빈 서술형 전부. */
+  const handleAiDraft = async (only = null) => {
+    const targets = only ? [only] : emptyTextFields;
+    if (!onAiDraft || targets.length === 0 || draftBusy) return;
+    const where = only ? only.key : 'all';
+    const items = targets.map((f) => ({
       index: fields.indexOf(f),
       itemCategory: f.category,
       growthType: f.growthType,
@@ -588,14 +618,20 @@ export default function EvalCycleMemberCanvas({
           title: e.text ?? null,
           body: e.description || e.text,
         })),
-      itemGuides: emptyTextFields
+      itemGuides: targets
         .filter((f) => f.templateItemId && f.description)
         .map((f) => ({ itemId: f.templateItemId, guide: f.description })),
     };
-    setDraftError(false);
-    setDraftBusy(true);
+    setDraftError(null);
+    setDraftBusy(where);
     try {
       const drafted = await onAiDraft(items, templateContext);
+      // 근거가 없어 빈 초안으로 돌아온 항목이 있으면 직접 쓰라고 알린다(spec §10).
+      setDraftShort(
+        items.some(
+          (it) => !drafted.find((d) => d.index === it.index)?.textAnswer?.trim(),
+        ),
+      );
       setState((prev) => {
         const next = { ...prev };
         for (const d of drafted) {
@@ -614,9 +650,9 @@ export default function EvalCycleMemberCanvas({
         return next;
       });
     } catch {
-      setDraftError(true);
+      setDraftError(where);
     } finally {
-      setDraftBusy(false);
+      setDraftBusy(null);
     }
   };
 
@@ -819,10 +855,24 @@ export default function EvalCycleMemberCanvas({
                   </div>
                 )}
               </div>
+              {L.actPeriodNote && (
+                <div className="evm-activity-note" data-testid="evm-activity-period-note">
+                  {L.actPeriodNote}
+                </div>
+              )}
             </section>
           </div>
         );
       })()}
+
+      {/* [PW-1460] spec §10 — 이 기간 스니핏·OKR 이 비었거나 AI 가 일부 항목을 못 채웠다. */}
+      {!submitted && (dataShortage || draftShort) && (
+        <div className="evc-list">
+          <p className="evx-notice is-warn" data-testid="evm-data-shortage">
+            {L.dataShortage}
+          </p>
+        </div>
+      )}
 
       {submitted && (
         <div className="evc-list">
@@ -910,6 +960,11 @@ export default function EvalCycleMemberCanvas({
                       onChange={(e) => setField(f.key, { rationale: e.target.value })}
                       data-testid={`evm-rationale-${f.key}`}
                     />
+                    {triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() && (
+                      <p className="evm-field-error" data-testid={`evm-rationale-error-${f.key}`}>
+                        {L.rationaleRequired}
+                      </p>
+                    )}
                   </>
                 ) : f.type === 'checkbox' ? (
                   /* PW-433 ③ 제목 + 선택지 2층. 선택지를 정한 적 없는 구 항목은
@@ -963,6 +1018,24 @@ export default function EvalCycleMemberCanvas({
                       onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
                       data-testid={`evm-text-${f.key}`}
                     />
+                    {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
+                    {onAiDraft && !submitted && !state[f.key].textAnswer.trim() && (
+                      <button
+                        type="button"
+                        className="evc-btn is-ghost evm-ai-item-draft"
+                        disabled={!!draftBusy || !!aiDraftDisabledReason}
+                        onClick={() => handleAiDraft(f)}
+                        data-testid={`evm-ai-draft-item-${f.key}`}
+                      >
+                        {draftBusy !== f.key && <SparkleIcon size={13} />}
+                        {draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
+                      </button>
+                    )}
+                    {draftError === f.key && (
+                      <p className="evm-field-error" data-testid={`evm-ai-draft-error-${f.key}`}>
+                        {L.aiDraftError}
+                      </p>
+                    )}
                     {aiStateOf(f) && (
                       <div
                         className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
@@ -1005,7 +1078,7 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {!submitted && draftError && (
+      {!submitted && draftError === 'all' && (
         <div className="evc-list">
           <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
             {L.aiDraftError}
@@ -1052,12 +1125,12 @@ export default function EvalCycleMemberCanvas({
               <button
                 type="button"
                 className="evc-btn is-ghost"
-                disabled={draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
-                onClick={handleAiDraft}
+                disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
+                onClick={() => handleAiDraft()}
                 data-testid="evm-ai-draft"
               >
-                {!draftBusy && <SparkleIcon size={15} />}
-                {draftBusy ? L.aiDrafting : L.aiDraft}
+                {draftBusy !== 'all' && <SparkleIcon size={15} />}
+                {draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
               </button>
             )}
             {onAiPolish && (

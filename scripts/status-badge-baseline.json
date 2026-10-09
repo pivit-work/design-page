@@ -1948,6 +1948,10 @@
    "background": "#e1fef2 / 어두운 화면 #0b4b31",
    "color": "#10774d / 어두운 화면 #96f9d2"
   },
+  "eval-cycle.css|.evc-wiz-calibscope-row-tag.is-dup": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
   "eval-cycle.css|.evc-wiz-committee-chip.is-chair": {
    "background": "#fdf2fa / 어두운 화면 #4e0d30",
    "color": "#dd2590 / 어두운 화면 #f670c7"
