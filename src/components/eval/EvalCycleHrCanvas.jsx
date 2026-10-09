@@ -309,6 +309,83 @@ const DEFAULT_LABELS = {
   draftConflictOverwrite: '내 내용으로 덮어쓰기',
   draftConflictSaveNew: '새 초안으로 저장',
   draftConflictLoad: '상대 내용 불러오기',
+  // PW-1594 하향 평가 차수 — 1단계 차수 · 2단계 차수 칩 · 3단계 차수 단계 · 4단계 하향 평가자 · 6단계 요약
+  leaderRoundPhaseName: '{{name}} · {{round}}차',
+  leaderRoundOwner: '{{round}}차 평가자',
+  leaderRoundTypeName: '{{type}} {{round}}차',
+  leaderRoundToggleHint: '차수 단계는 따로 끄지 않습니다 — 1단계에서 하향 차수를 줄이세요',
+  leaderRoundsLabel: '하향 차수',
+  leaderRoundsOne: '1차',
+  leaderRoundsUpTo: '1~{{n}}차',
+  leaderRoundsHintMax: '이 회사의 조직 깊이로는 최대 {{max}}차까지 둘 수 있습니다.',
+  leaderRoundsHintSingle: '이 회사는 조직장이 한 단계뿐이라 1차만 둘 수 있습니다.',
+  leaderRoundsHintSequential: '2차 평가자는 1차 리뷰가 제출된 뒤 그 내용을 보고 자신의 리뷰를 씁니다.',
+  leaderRoundsLoading: '조직 깊이를 계산하는 중…',
+  leaderRoundsLoadError: '조직 깊이를 불러오지 못했습니다',
+  leaderRoundsRetry: '다시 시도',
+  leaderRoundsDownTitle: '하향 차수를 줄일까요?',
+  leaderRoundsDownBody: '{{round}}차 이후의 템플릿 확정·일정·하향 평가자 지정이 함께 지워집니다',
+  leaderTplStartTitle: '하향 {{round}}차 템플릿을 어떻게 시작할까요?',
+  leaderTplStartLoad: '이전 하향 템플릿 불러오기',
+  leaderTplStartCopy: '{{round}}차 템플릿 복사',
+  leaderTplStartCopyBlocked: '{{round}}차를 먼저 시작해 주세요',
+  leaderTplStartNew: '새로 만들기',
+  leaderGradeMismatch: '하향 차수끼리 등급 체계가 다릅니다 ({{detail}}). 사람마다 하향 등급이 나온 차수가 달라, 등급 체계가 다르면 캘리브레이션에서 비교할 수 없습니다.',
+  leaderGradeMismatchItem: '{{round}}차: {{count}}단계',
+  leaderGradeAlign: '1차 등급 체계로 맞추기',
+  leaderOpenBlockUnconfirmed: '하향 평가자가 확정되지 않아 평가를 오픈할 수 없습니다',
+  leaderOpenBlockGrades: '하향 차수끼리 등급 체계가 달라 평가를 오픈할 수 없습니다',
+  leaderOpenBlockGoGrades: '2단계 하향 {{round}}차에서 고치기',
+  leaderAsgGoConfirm: '4단계에서 확정하기',
+  leaderAsgSummaryConfirmed: '확정됨 · 배정 {{assigned}}칸 · 건너뜀 {{skipped}}칸',
+  leaderAsgSummaryUnconfirmed: '미확정 — 4단계에서 확정하세요',
+  leaderAsgTitle: '하향 평가자',
+  leaderAsgSub: '조직 단계 기준으로 추천했습니다. 칸을 눌러 바꾸거나 건너뛸 수 있고, 확정해야 평가를 오픈할 수 있습니다.',
+  leaderAsgSummary: '대상 {{n}}명 · {{rounds}}차 · 경고 {{w}}건',
+  leaderAsgSummaryDetail: '(평가자 없음 {{a}} · 본인 {{b}} · 중복 {{c}} · 퇴사자 {{d}})',
+  leaderAsgWarnOnly: '경고만 보기',
+  leaderAsgSearch: '이름 검색',
+  leaderAsgConfirm: '확정',
+  leaderAsgConfirming: '확정하는 중…',
+  leaderAsgConfirmed: '확정됨 · {{at}} · {{by}}',
+  leaderAsgConfirmedNoBy: '확정됨 · {{at}}',
+  leaderAsgUnconfirmed: '미확정',
+  leaderAsgReconfirm: '다시 확정 필요',
+  leaderAsgReason_cellChanged: '하향 평가자가 바뀌었습니다',
+  leaderAsgReason_skipped: '건너뛴 칸이 생겼습니다',
+  leaderAsgReason_reverted: '추천으로 되돌린 칸이 있습니다',
+  leaderAsgReason_roster: '대상 명단이 바뀌었습니다',
+  leaderAsgReason_rounds: '하향 차수가 바뀌었습니다',
+  leaderAsgReasonRecompute: '조직 변경으로 추천이 바뀐 칸 {{count}}개 — 다시 확정해 주세요',
+  leaderAsgConfirmBlocked: '본인·퇴사자 배정을 먼저 바꿔 주세요 ({{count}}건)',
+  leaderAsgColTarget: '대상자',
+  leaderAsgColRound: '{{round}}차',
+  leaderAsgBadgeRecommended: '추천',
+  leaderAsgBadgeAdjusted: '조정됨',
+  leaderAsgAdjustedTip: '추천: {{name}}',
+  leaderAsgNone: '없음',
+  leaderAsgNoEvaluator: '평가자 없음',
+  leaderAsgNoEvaluatorHint: '지정하지 않으면 이 차수는 건너뜁니다',
+  leaderAsgSkipped: '건너뜀',
+  leaderAsgWarnSelf: '본인이 평가자',
+  leaderAsgWarnResigned: '퇴사자',
+  leaderAsgWarnDuplicate: '다른 차수와 같은 사람',
+  leaderAsgPickSearch: '이름·소속 검색',
+  leaderAsgPickEmpty: '검색 결과가 없습니다',
+  leaderAsgSkip: '이 차수 건너뛰기',
+  leaderAsgRevert: '추천으로 되돌리기',
+  leaderAsgResignedTag: '퇴사',
+  leaderAsgNoChainRow: '상위 조직장이 없습니다 — 평가자를 지정하거나 이 사람의 하향 평가를 건너뜁니다',
+  leaderAsgEmptyTargets: '대상자가 없습니다. 위 리뷰 & 조정에서 대상을 고르면 하향 평가자를 추천합니다.',
+  leaderAsgEmptyWarn: '경고가 없습니다.',
+  leaderAsgShowAll: '전체 보기',
+  leaderAsgLoadFailed: '하향 평가자 추천을 불러오지 못했습니다',
+  leaderAsgRetry: '다시 시도',
+  leaderAsgConfirmFailed: '확정하지 못했습니다. 다시 시도해 주세요.',
+  leaderAsgConflict: '다른 담당자가 하향 평가자를 바꿨습니다. 새로 불러옵니다.',
+  leaderAsgTopRoundEmpty: '{{round}}차에 추천 평가자가 있는 대상자가 없습니다 — 1단계에서 차수를 줄이거나 직접 지정하세요',
+  leaderAsgCellAria: '{{name}} {{round}}차 평가자 바꾸기',
+  leaderAsgToastClose: '닫기',
   tplVanished: '이 단계의 템플릿이 라이브러리에서 사라졌습니다',
   staleDraftsToggle: '오래된 초안 {{count}}건',
   targetOrgLoadError: '조직 정보를 불러오지 못했습니다',
@@ -1395,6 +1472,16 @@ export default function EvalCycleHrCanvas({
   /** PW-1228 — 마법사 평가 템플릿 단계의 두 설정을 숨긴다. 그대로 마법사에 넘긴다. */
   hideRoleVersions = false,
   hideRatioScope = false,
+  /**
+   * PW-1594 하향 평가 차수 — 마법사에 그대로 넘긴다(모양은 `EvalCycleWizard` 참조).
+   * 확정·해제는 사이클 id 가 필요해, 위자드가 모르면(첫 초안 저장 전) 이 캔버스가 아는 초안 id 를 채운다.
+   */
+  leaderRoundsMax = null,
+  leaderRoundsMaxStatus = 'ready',
+  onReloadLeaderRoundsMax,
+  onRecommendLeaderAssignments,
+  onConfirmLeaderAssignments,
+  onUnconfirmLeaderAssignments,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -1805,7 +1892,20 @@ export default function EvalCycleHrCanvas({
           cycleId: cycle.id,
           savedAt: draft.draftSavedAt ?? null,
         });
-        setResumeTarget(draft);
+        // PW-1594 — 하향 평가자 확정은 초안이 아니라 사이클에 있다. 이어쓰기 위자드가 그 상태로 열리게 함께 싣는다.
+        setResumeTarget({
+          ...draft,
+          leaderConfirm: cycle.leaderAssignmentConfirmedAt
+            ? {
+                confirmedAt: cycle.leaderAssignmentConfirmedAt,
+                confirmedBy:
+                  cycle.leaderAssignmentConfirmedBy ??
+                  (cycle.leaderAssignmentConfirmedByName
+                    ? { name: cycle.leaderAssignmentConfirmedByName }
+                    : null),
+              }
+            : null,
+        });
         setShowCreate(true);
       } catch {
         showToast(L.draftLoadError, 'error');
@@ -2033,6 +2133,28 @@ export default function EvalCycleHrCanvas({
           slackChannelsStatus={slackChannelsStatus}
           hideRoleVersions={hideRoleVersions}
           hideRatioScope={hideRatioScope}
+          leaderRoundsMax={leaderRoundsMax}
+          leaderRoundsMaxStatus={leaderRoundsMaxStatus}
+          onReloadLeaderRoundsMax={onReloadLeaderRoundsMax}
+          onRecommendLeaderAssignments={onRecommendLeaderAssignments}
+          onConfirmLeaderAssignments={
+            onConfirmLeaderAssignments
+              ? (input) =>
+                  onConfirmLeaderAssignments({
+                    ...input,
+                    cycleId: input?.cycleId ?? draftSession?.cycleId,
+                  })
+              : undefined
+          }
+          onUnconfirmLeaderAssignments={
+            onUnconfirmLeaderAssignments
+              ? (input) =>
+                  onUnconfirmLeaderAssignments({
+                    cycleId: input?.cycleId ?? draftSession?.cycleId,
+                  })
+              : undefined
+          }
+          leaderConfirmInitial={resumeTarget?.leaderConfirm ?? null}
         />
       )}
 
@@ -2086,6 +2208,21 @@ export default function EvalCycleHrCanvas({
           slackChannelsStatus={slackChannelsStatus}
           hideRoleVersions={hideRoleVersions}
           hideRatioScope={hideRatioScope}
+          leaderRoundsMax={leaderRoundsMax}
+          leaderRoundsMaxStatus={leaderRoundsMaxStatus}
+          onReloadLeaderRoundsMax={onReloadLeaderRoundsMax}
+          onRecommendLeaderAssignments={onRecommendLeaderAssignments}
+          onConfirmLeaderAssignments={
+            onConfirmLeaderAssignments
+              ? (input) =>
+                  onConfirmLeaderAssignments({ ...input, cycleId: manageTarget.cycle?.id })
+              : undefined
+          }
+          onUnconfirmLeaderAssignments={
+            onUnconfirmLeaderAssignments
+              ? () => onUnconfirmLeaderAssignments({ cycleId: manageTarget.cycle?.id })
+              : undefined
+          }
         />
       )}
 
@@ -2108,7 +2245,15 @@ export default function EvalCycleHrCanvas({
             <span data-testid="evc-open-block-body">
                 {fill(L.openBlockTemplate, {
                   type: openBlock.types
-                    .map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t)
+                    // [PW-1594] 서버가 하향 차수 단계(`leader_2`)를 돌려주면 `하향 2차` 로 적는다.
+                    .map((t) =>
+                      /^leader_\d+$/.test(t)
+                        ? fill(L.leaderRoundTypeName, {
+                            type: L[REVIEW_TYPE_KEYS.leader],
+                            round: t.slice('leader_'.length),
+                          })
+                        : (L[REVIEW_TYPE_KEYS[t]] ?? t),
+                    )
                     .join(', '),
                 })}
             </span>
