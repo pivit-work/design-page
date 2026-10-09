@@ -15,7 +15,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
 import Pagination from '../shared/Pagination.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
-import Skeleton from '../shared/Skeleton.jsx';
+import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -95,6 +95,10 @@ const DEFAULT_LABELS = {
   asofBackToToday: '현재로 복귀',
   asofExport: '조직 스냅샷 CSV',
   asofEmpty: '이 시점의 스냅샷이 없습니다',
+  // 명단 조회 실패(5xx·네트워크)·시간 초과 — 정책 §3. 빈 명단으로 보이면 안 된다.
+  asofLoadError: '명단을 불러오지 못했어요',
+  asofLoadErrorTimeout: '잠시 후 다시 시도해 주세요',
+  asofRetry: '다시 시도',
   /** `{date}` 자리에 기준일이 들어간다. */
   asofBanner: '{date} 시점으로 조회 중입니다',
   asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
@@ -2065,36 +2069,47 @@ function AsOfPresetRows({ presets, labels, asOfDate, isPast, today, onAsOfDateCh
  */
 function AsOfSnapshotView({
   data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
-  onExport, onRosterMemberClick, rosterExtraColumns, rosterColumns,
+  onExport, onRosterMemberClick, rosterExtraColumns, rosterColumns, onRetry,
 }) {
-  const { presets = [], meta = null, delta = null, roster = [], totalMembers = 0, pending = false } = data;
+  const {
+    presets = [], meta = null, delta = null, roster = [], totalMembers = 0, pending = false,
+    error = null,
+  } = data;
+  // error — 명단 조회가 실패했다(`'failed'` · 시간 초과면 `'timeout'`). 정책 §3: 표 자리에
+  // «불러오지 못했어요» + [다시 시도], 요약 카드는 직전 값을 남기지 않고 `—`. 실패를 빈 명단·
+  // 0명으로 그리면 «그날 아무도 없었다»는 없는 사실이 된다.
+  const failed = !!error && !pending;
+  // 아직 한 번도 응답이 없다(첫 로딩) — 표 자리에 8줄 뼈대. 날짜를 바꾼 재조회는 직전 명단을
+  // 흐리게 남긴다(아래 is-pending). 칩·날짜 칸은 어느 쪽이든 바로 누를 수 있다.
+  const firstLoad = pending && !meta && roster.length === 0;
   // pending — 고른 날짜의 응답이 아직 안 왔다. 화면에 남은 숫자는 **이전 날짜의 것**이라
   // 그대로 보이면 새 날짜의 값으로 읽힌다(PW-1248). 카드 값은 자리 표시로 바꾸고 명단은
   // 흐리게 남긴다(정책 §3 「날짜 변경 재조회」 — 표를 비우지 않는다). 날짜 칸·칩은 그대로 둔다.
   const isPast = !!asOfDate && asOfDate !== today;
   // 커버리지 하한은 prop 우선, 없으면 응답 메타. 옛 백엔드와 섞여도 화면이 죽지 않는다.
   const minDate = coverageFrom || meta?.coverageFrom || undefined;
-  const isOut = meta?.state === 'out_of_range';
+  const isOut = !failed && meta?.state === 'out_of_range';
   // C2 는 "재구성은 **됐는데** 그날 아무도 없었다" 이다 — 사실 주장이므로 재구성이
   // 실제로 성공했을 때만 쓴다. 응답이 없거나 실패해서 명단이 빈 것을 C2 로 그리면
   // "그날 아무도 없었다" 고 없는 사실을 만들어 낸다(이 티켓이 고치는 것과 같은 오류).
   const reconstructed = meta?.state === 'full' || meta?.state === 'partial';
-  const isEmptyFact = !isOut && reconstructed && roster.length === 0;
+  const isEmptyFact = !failed && !isOut && reconstructed && roster.length === 0;
   // 재구성 여부를 모른 채 명단만 빈 경우 — 중립 문구로 남긴다.
-  const isEmptyUnknown = !isOut && !reconstructed && roster.length === 0 && isPast;
+  const isEmptyUnknown = !failed && !isOut && !reconstructed && roster.length === 0 && isPast;
   // 그 날짜의 증빙 고정본에서 온 값인가(S2). 배지는 AI 출처 표기가 아니라 시점 출처다.
   const fromFixedCopy = meta?.reconstructedFrom === 'snapshot' && !!meta?.snapshotDate;
 
   // ⚠️ 0 금지 규칙 — 재구성 불가일 때 숫자 0 을 쓰지 않는다. "0명" 은 "그날 아무도
   // 없었다" 는 사실 주장이고, 실제로는 "그날은 기록이 없다" 이다.
   const dash = '—';
+  const noValue = isOut || failed;
   const cards = [
-    { key: 'total', value: isOut ? dash : totalMembers },
-    { key: 'joined', value: isOut || !delta ? dash : `+${delta.joinedCount}` },
-    { key: 'left', value: isOut || !delta ? dash : `-${delta.leftCount}` },
+    { key: 'total', value: noValue ? dash : totalMembers },
+    { key: 'joined', value: noValue || !delta ? dash : `+${delta.joinedCount}` },
+    { key: 'left', value: noValue || !delta ? dash : `-${delta.leftCount}` },
     {
       key: 'moved',
-      value: isOut || !delta ? dash : delta.movedCount + (delta.statusChangedCount ?? 0),
+      value: noValue || !delta ? dash : delta.movedCount + (delta.statusChangedCount ?? 0),
     },
   ];
 
@@ -2133,7 +2148,7 @@ function AsOfSnapshotView({
               <button
                 type="button"
                 className="admin-snap-export-btn"
-                disabled={isOut}
+                disabled={isOut || failed}
                 onClick={() => onExport?.()}
               >
                 ↓ {labels.asofExport}
@@ -2161,7 +2176,7 @@ function AsOfSnapshotView({
       />
 
       {/* 타임머신 배너 — 앰버는 여기에만. C1 은 중립 톤이다(§5-A) */}
-      {isPast && !isOut && (
+      {isPast && !isOut && !failed && (
         <div className="admin-snap-timemachine" role="status">
           <span>
             {String(labels.asofBanner).replace('{date}', asOfDate)}
@@ -2193,7 +2208,21 @@ function AsOfSnapshotView({
       </div>
 
       <div className={`admin-snap-content${pending ? ' is-pending' : ''}`} aria-busy={pending || undefined}>
-        {isOut ? (
+        {failed ? (
+          <EmptyState
+            size="lg"
+            data-testid="asof-load-error"
+            title={labels.asofLoadError}
+            description={error === 'timeout' ? labels.asofLoadErrorTimeout : undefined}
+            actions={onRetry ? (
+              <Button variant="secondary" size="sm" onClick={() => onRetry()}>
+                {labels.asofRetry}
+              </Button>
+            ) : undefined}
+          />
+        ) : firstLoad ? (
+          <SkeletonList count={8} height={28} gap={6} data-testid="asof-roster-skeleton" />
+        ) : isOut ? (
           <EmptyState
             size="lg"
             data-testid="asof-empty-c1"
@@ -2242,11 +2271,11 @@ function AsOfSnapshotView({
         )}
       </div>
       {/* partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A) */}
-      {meta?.state === 'partial' && !isOut && (
+      {meta?.state === 'partial' && !isOut && !failed && (
         <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
       )}
       {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
-      {labels.asofBlankColumnsNote && !isOut && (
+      {labels.asofBlankColumnsNote && !isOut && !failed && (
         <p className="admin-snap-footnote" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</p>
       )}
     </div>
@@ -2280,6 +2309,8 @@ export default function OrgSnapshotCanvas({
   showComp = false,
   onShowCompChange,
   onExportAsOf,
+  /** As Of 명단 조회 실패(`asOf.error`) 때 [다시 시도] — 없으면 버튼을 그리지 않는다. */
+  onAsOfRetry,
   // 발령 공통
   members = [],
   fieldOptions = {},
@@ -2404,6 +2435,7 @@ export default function OrgSnapshotCanvas({
               showComp={showComp}
               onShowCompChange={onShowCompChange}
               onExport={onExportAsOf}
+              onRetry={onAsOfRetry}
               onRosterMemberClick={onRosterMemberClick}
               rosterExtraColumns={rosterExtraColumns}
               rosterColumns={rosterColumns}
