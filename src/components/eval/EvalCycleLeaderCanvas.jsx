@@ -10,6 +10,7 @@ import { isNoteItem } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon, ZapIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
+import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -88,6 +89,21 @@ const DEFAULT_LABELS = {
   calibOffSubmittedNote: '제출한 등급이 최종 등급으로 확정되었습니다.',
   // PW-1045 위원회가 이 팀원의 등급을 바꿨다 — 등급 칸만 잠그고 까닭을 카드 안에 적는다.
   gradeLockedNote: '',
+  // PW-1594 하향 차수(리더 정책 §5.13). `{name}`·`{round}`·`{next}`·`{at}`·`{date}` 자리를 채운다.
+  roundTitle: '{name} — 하향 리뷰 · {round}차',
+  gradeRoundNote: '이 등급은 {next}차가 제출되면 참고 등급이 됩니다',
+  priorTitle: '앞 차수 리뷰',
+  priorHead: '{round}차 · {name} · 제출 {at}',
+  priorUnknownEvaluator: '—',
+  priorSkipped: '{round}차 — 평가자 없이 건너뛰었습니다',
+  priorOpenedByHr: 'HR 이 {round}차 제출 없이 이 차수를 열었습니다 ({date})',
+  priorPending: '{round}차 리뷰가 아직 제출되지 않았습니다.',
+  priorLate: '늦게 제출됨',
+  priorEdited: '제출 뒤 수정됨 · {at}',
+  priorNoAnswers: '작성된 항목이 없습니다.',
+  priorPrivateNote: '비공개 코멘트와 승진·보상 의견은 위원회·HR 에게만 전달되어 여기에 보이지 않습니다.',
+  priorLoadFailed: '앞 차수 리뷰를 불러오지 못했습니다',
+  priorRetry: '다시 시도',
   // spec-eval-cycle §4.2.2 B6 — 아래 제출 줄과 사유를 비운 칸 아래에 같은 문구.
   rationaleRequired: '점수 사유를 입력해 주세요.',
   save: '임시저장',
@@ -495,6 +511,22 @@ export default function EvalCycleLeaderCanvas({
    * 넘기지 않으면 그 칸을 그리지 않는다(종전 렌더 그대로). 블록이 null 이면 «불러오지 못했습니다».
    */
   evidenceSignals = null,
+  /**
+   * PW-1594 — 하향 차수(리더 정책 §5.13). `round` 는 이 화면의 차수, `rounds` 는 사이클의 차수 N.
+   * `rounds` 가 2 이상이면 머리를 `labels.roundTitle`(`{name}`·`{round}`)로 쓴다. 기본 1/1 — 종전 그대로.
+   */
+  round = 1,
+  rounds = 1,
+  /** 위 차수가 배정됐으면 등급 카드 아래 `labels.gradeRoundNote`(`{next}`). */
+  higherRoundAssigned = false,
+  /**
+   * 앞 차수 리뷰 — `{ status: 'loading' | 'failed' | 'ready', rounds }`. `round` 가 2 이상이고 값이
+   * 있을 때만 근거 칸 맨 위(셀프 리뷰보다 위)에 그린다. 실패해도 작성은 막지 않는다.
+   */
+  priorRounds = null,
+  onRetryPriorRounds,
+  /** 등급 저장값 → 이름(앞 차수 카드의 등급 딱지). 없으면 `gradeOptions` 의 이름. */
+  gradeLabels = null,
   labels: providedLabels,
   /** onSave(items, gradeKey, { auto }) — Promise 를 돌려주면 자동 임시저장 성공/실패를 표시한다(§5.9). */
   onSave,
@@ -530,6 +562,20 @@ export default function EvalCycleLeaderCanvas({
   const entries = useMemo(() => buildFields(template, L), [template, L]);
   /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
   const fields = useMemo(() => entries.filter((f) => f.type !== 'note'), [entries]);
+  // PW-1594 — 앞 차수 답의 항목 이름·척도. 이 차수 평가지에서 같은 항목을 찾고, 없으면(차수마다
+  // 평가지가 다를 수 있다) 근거 칸이 쓰는 구분 이름으로 떨어진다 — 저장값을 그대로 보이지 않는다.
+  // 서버가 그 차수 평가지의 항목 이름·척도를 실어 준다(`itemLabel`·`scaleMax`) — 차수마다 평가지 사본이
+  // 달라 이 화면 평가지의 항목 id 로는 대개 못 찾는다(PW-1594 브라우저 확인: 역량 질문 둘이 같은 이름으로 보였다).
+  const priorLabelOf = (a) => {
+    if (a.itemLabel) return a.itemLabel;
+    const f = a.templateItemId ? fields.find((x) => x.templateItemId === a.templateItemId) : null;
+    return f?.label || f?.section || evidenceLabel(a, L);
+  };
+  const priorScaleMaxOf = (a) =>
+    a.scaleMax ||
+    scaleMaxOf(a.templateItemId ? fields.find((x) => x.templateItemId === a.templateItemId) : null);
+  const priorGradeLabelOf = (key) =>
+    gradeLabels?.[key] ?? gradeOptions.find((g) => g.key === key)?.label ?? key;
   const [state, setState] = useState(() => seedState(leaderAnswers, fields));
   const [pickedGrade, setGrade] = useState(initialGrade);
   // PW-1045 — 등급 칸이 잠겼으면 고르던 등급 대신 호출부가 준 등급(위원회 값)을 쓴다. 화면을 연 사이
@@ -802,6 +848,12 @@ export default function EvalCycleLeaderCanvas({
           </button>
         ))}
       </div>
+      {/* PW-1594 §5.13.4 — 하향 등급은 «제출된 가장 높은 차수»의 값이다(위 차수가 배정된 경우에만). */}
+      {higherRoundAssigned && L.gradeRoundNote && (
+        <p className="evl-grade-round-note" data-testid="evl-grade-round-note">
+          {fillLabel(L.gradeRoundNote, { next: round + 1 })}
+        </p>
+      )}
     </section>
   );
 
@@ -817,10 +869,15 @@ export default function EvalCycleLeaderCanvas({
     </StatusBadge>
   );
 
+  // PW-1594 §5.13.3 — 차수가 둘 이상인 사이클은 `{이름} — 하향 리뷰 · {k}차`.
+  const titleText =
+    rounds >= 2 && L.roundTitle
+      ? fillLabel(L.roundTitle, { name: evaluateeName || '', round }).replace(/^\s*—\s*/, '')
+      : `${L.title}${evaluateeName ? ` — ${evaluateeName}` : ''}`;
   const header = (
     <header className="evc-header">
       <div>
-        <h1 className="evc-title">{L.title}{evaluateeName ? ` — ${evaluateeName}` : ''}</h1>
+        <h1 className="evc-title" data-testid="evl-title">{titleText}</h1>
         {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
       </div>
     </header>
@@ -855,12 +912,7 @@ export default function EvalCycleLeaderCanvas({
 
   return (
     <div className="evc-root">
-      <header className="evc-header">
-        <div>
-          <h1 className="evc-title">{L.title}{evaluateeName ? ` — ${evaluateeName}` : ''}</h1>
-          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
-        </div>
-      </header>
+      {header}
 
       {formLocked && locked && L.lockedNotice && (
         <p className="evx-notice" data-testid="evl-locked" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
@@ -890,6 +942,17 @@ export default function EvalCycleLeaderCanvas({
       <div className="evl-2pane">
         {/* 좌: 근거 */}
         <aside className="evl-evidence" data-testid="evl-evidence">
+          {/* PW-1594 §5.13.3 — 2차 이후면 근거 칸 맨 위(셀프 리뷰보다 위)에 앞 차수 리뷰 */}
+          {round >= 2 && priorRounds && (
+            <EvalLeaderPriorRounds
+              state={priorRounds}
+              onRetry={onRetryPriorRounds}
+              labelOf={priorLabelOf}
+              scaleMaxOf={priorScaleMaxOf}
+              gradeLabelOf={priorGradeLabelOf}
+              L={L}
+            />
+          )}
           <h3 className="evc-card-name">{L.evidenceTitle}</h3>
           {!selfSubmitted && (
             <p className="evl-self-pending" data-testid="evl-self-pending">

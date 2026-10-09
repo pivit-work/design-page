@@ -4290,6 +4290,35 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-1594 §5.13.4 — 위 차수가 배정됐을 때 등급 카드 아래 muted. 기획은 11px 이지만 평가 화면 글씨
+   아래끝(12px · PW-831 evalTypographyPalette 가드)에 맞춘다. */
+.evl-grade-round-note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+/* PW-1594 §5.13.3 — 근거 칸 맨 위 「앞 차수 리뷰」 */
+.evl-prior {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evl-prior-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+.evl-prior-head .evl-sec-toggle {
+  margin-left: auto;
+}
+.evl-prior-private {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
 .evl-submit-caption {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
@@ -9608,4 +9637,313 @@
 .evc-shell .seg-item.is-active,
 .evnav-shell .seg-item.is-active {
   color: var(--text-primary);
+}
+
+/* ════════════════════════════════════════════════════════════
+   PW-1594 하향 평가 차수 — 정책 screen-eval-cycle-hr.policy.md §5.13
+   새 시각 언어를 만들지 않는다: 세그먼트는 공용 SegmentedControl, 칩은 유형 칩과 같은 결,
+   요약 바는 2단계 확정 블록(.evc-tpl-confirm · §9-D-1 선택 요약 바), 표는 공용 RosterTable.
+   ════════════════════════════════════════════════════════════ */
+
+/* 1단계 `하향 차수` — 평가 종류 아래 한 덩어리. */
+.evc-wiz-rounds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+/* 2단계 차수 칩 줄 · 빈 차수 시작 · 등급 체계 불일치 줄 */
+.evc-tpl-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evc-tpl-rounds-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evc-tpl-rounds-label {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  margin-right: var(--spacing-xs);
+}
+/* 상태 점 — 미확정 회색 · 확정 초록 · 확정·수정 중 노랑(§5.10-D 상태 3종과 같은 뜻) */
+.evc-tpl-round-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.evc-tpl-round-dot.is-none { background: var(--utility-gray-400); }
+.evc-tpl-round-dot.is-done { background: var(--utility-success-500); }
+.evc-tpl-round-dot.is-dirty { background: var(--utility-warning-500); }
+.evc-tpl-round-start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-secondary);
+  background: var(--bg-secondary);
+}
+.evc-tpl-round-start-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evc-tpl-round-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+.evc-tpl-round-mismatch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+/* 6단계 오픈 차단 줄 — 사유와 «고치러 가기» 링크가 한 줄 */
+.evc-wiz-open-block {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+/* 4단계 ④ 하향 평가자 */
+.evc-la {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+.evc-la-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evc-la-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+}
+/* 미확정·확정 해제 — warning 틴트 */
+.evc-la-bar.is-warn {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+.evc-la-bar-count {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.evc-la-bar-detail {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evc-la-bar-toggle {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evc-la-search {
+  flex: 0 1 200px;
+  min-width: 140px;
+}
+.evc-la-bar-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evc-la-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+}
+.evc-la-state.is-done { color: var(--utility-success-700); }
+.evc-la-state.is-warn { color: var(--utility-warning-700); }
+.evc-la-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evc-la-blank {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+  padding: 12px 0;
+}
+.evc-la-loading-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.evc-la-table td {
+  vertical-align: top;
+}
+/* 칸 — 누르면 팝오버가 열린다. 버튼이지만 칸 안 글처럼 보인다. */
+.evc-la-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  min-height: 37px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font-family-body);
+  text-align: left;
+  cursor: pointer;
+}
+.evc-la-cell:hover,
+.evc-la-cell.is-open {
+  border-color: var(--bg-active);
+  background: var(--bg-secondary);
+}
+.evc-la-name-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.evc-la-name {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+}
+.evc-la-name.is-resigned {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+.evc-la-muted {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+}
+.evc-la-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--utility-warning-700);
+}
+.evc-la-hint {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evc-la-hint.is-warn { color: var(--utility-warning-700); }
+.evc-la-warn {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--utility-warning-700);
+}
+.evc-la-warn.is-block { color: var(--utility-error-600); }
+.evc-la-person {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evc-la-person-name {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+/* 칸 팝오버 — 공용 AnchoredLayer 가 자리를 잡고 면은 여기서. */
+.evc-la-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--bg-active);
+  box-shadow: 0 6px 16px rgb(15 23 42 / 12%);
+  /* 4단계 섹션은 사이클 만들기 창(ModalLayer zIndex 1000) 안에 있다 — 포털로 body 에 붙는 이 팝오버가
+     창 뒤에 깔리지 않게 그 위로 둔다(PW-1594 브라우저 확인). 진행 현황(창 밖)에서도 해가 없다. */
+  z-index: 1001;
+}
+.evc-la-pop-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.evc-la-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font-family-body);
+  text-align: left;
+  cursor: pointer;
+}
+.evc-la-pop-item:hover { background: var(--bg-secondary); }
+.evc-la-pop-actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* ── PW-1594 · 정책 §5.13.6 — 진행 현황 「하향 평가자」(오픈 뒤) 접이식 블록 ─────────────────
+   표·칸·팝오버는 4단계 ④ 섹션(.evc-la-*)을 그대로 쓴다. 여기는 접기 머리·잠긴 칸·「앞 차수 없이 열기」만. */
+.evmon-la-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-family-body);
+  text-align: left;
+  cursor: pointer;
+}
+.evmon-la-toggle .evc-card-name {
+  margin: 0;
+}
+.evmon-la-toggle-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evmon-la .evc-la {
+  margin-top: 12px;
+}
+.evc-la-cell.is-static {
+  cursor: default;
+}
+.evc-la-cell.is-static:hover {
+  border-color: transparent;
+  background: none;
+}
+.evmon-la-force {
+  margin-top: 2px;
+  font-size: var(--font-size-text-xs);
+}
+/* 캘리브레이션 표 「하향 등급」 칸 — 등급 배지 옆 출처 차수·미제출·원안 변경 배지(spec-calibration §20.1). */
+.evs-cw-leader-grade {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }

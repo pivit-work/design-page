@@ -11,6 +11,7 @@ import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
+import { leaderGradeMarks } from './evalLeaderLive.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -90,6 +91,12 @@ const DEFAULT_LABELS = {
   cwColLeader: '팀장',
   cwColDates: '입사일/승급일',
   cwColCurrent: '현재등급',
+  // [PW-1594 · spec-calibration §20.1] 하향 차수가 2 이상인 사이클 — 같은 칸의 값이 «하향 등급»(제출된 가장 높은 차수)이다.
+  cwColLeaderGrade: '하향 등급',
+  cwLeaderGradeRound: '{round}차',
+  cwLeaderGradeMissing: '{higher}차 미제출 · {round}차 등급',
+  cwLeaderGradeNone: '하향 없음',
+  cwLeaderGradeOriginChanged: '원안 변경됨',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
   cwAdjustUp: '올림',
@@ -313,6 +320,15 @@ const DEFAULT_LABELS = {
   cwDetailLogs: '변경 로그',
   cwLevelMixWarn: '이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
   cwDetailEmpty: '내용 없음',
+  // [PW-1594 · spec-calibration §20.2] 하향 차수가 둘 이상인 사이클 — 대상자 상세의 하향 리뷰를 차수별로 나눈다.
+  leaderRoundDetail: {
+    round: '{k}차',
+    skipped: '{k}차 — 건너뜀',
+    pending: '{k}차 — 미제출',
+    unknownEvaluator: '평가자 미지정',
+    confidentialTitle: '위원회 전용 — 구성원 비공개',
+    promoStatusLabel: '승진 의견',
+  },
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
   cwDetailProfile: '프로필',
@@ -670,7 +686,13 @@ function CalibRowPreview({ row, detail, failed, L }) {
           <div className="evs-cw-preview-k">{L.cwHoverSelf}</div>
           <div className="evs-cw-preview-body">{answerSummary(detail.self?.answers) || L.cwDetailEmpty}</div>
           <div className="evs-cw-preview-k">{L.cwHoverManager}</div>
-          <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+          {detail.manager?.rounds?.length ? (
+            <div className="evs-cw-preview-body">
+              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} notes={false} max={140} />
+            </div>
+          ) : (
+            <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+          )}
         </>
       )}
       <div className="evs-cw-preview-okr">{okr}</div>
@@ -725,6 +747,69 @@ function ManagerNoteLines({ note, L }) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * [PW-1594 · spec-calibration §20.2] 대상자 상세의 하향 리뷰를 차수 순으로 나눈다.
+ * `rounds` 는 차수별 배정 사이클에서만 서버가 싣는다 — 없으면 소비처가 종전 한 덩어리를 그린다.
+ * 차수 머리 `{k}차 · 작성자 · 등급`, 서술 요약, 그 차수의 비공개 의견(위원회 전용)을 차수 안에 둔다.
+ * 건너뛴 차수·아직 안 낸 차수는 한 줄. `notes=false` 면 비공개 의견을 그리지 않는다(호버 미리보기).
+ */
+function LeaderRoundsDetail({ rounds, L, notes = true, max }) {
+  const R = L.leaderRoundDetail || {};
+  const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
+  const sorted = [...rounds].sort((a, b) => a.round - b.round);
+  return (
+    <div className="evs-cw-detail-logs" data-testid="evs-leader-rounds">
+      {sorted.map((r) => {
+        const k = r.round;
+        if (r.skipped || !r.submittedAt) {
+          return (
+            <div
+              key={k}
+              className="evs-cw-detail-body"
+              data-testid={r.skipped ? 'evs-leader-round-skipped' : 'evs-leader-round-pending'}
+            >
+              {fmt(r.skipped ? R.skipped : R.pending, { k })}
+            </div>
+          );
+        }
+        const head = [fmt(R.round, { k }), r.evaluatorName || R.unknownEvaluator, r.gradeLabel]
+          .filter(Boolean)
+          .join(' · ');
+        const summary =
+          max != null
+            ? answerSummary(r.answers, max)
+            : (r.answers ?? []).map((a) => a.textAnswer).filter(Boolean).join(' · ');
+        const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
+        const hasNotes =
+          notes && (r.confidentialComment?.trim() || r.promotionReason?.trim() || promoStatus);
+        return (
+          <div key={k} className="evs-cw-detail-block" data-testid="evs-leader-round" data-round={k}>
+            <div className="evs-cw-review-k" data-testid="evs-leader-round-head">{head}</div>
+            <div className="evs-cw-detail-body">{summary || L.cwDetailEmpty}</div>
+            {hasNotes && (
+              <div data-testid="evs-leader-round-notes">
+                <div className="evs-cw-review-k">
+                  <LockIcon size={12} /> {R.confidentialTitle}
+                </div>
+                {promoStatus && (
+                  <div className="evs-cw-detail-body" data-testid="evs-leader-round-promo-status">
+                    <span className="evs-cw-committee-k">{R.promoStatusLabel}</span>
+                    {promoStatus}
+                  </div>
+                )}
+                <ManagerNoteLines
+                  note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason }}
+                  L={L}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -811,6 +896,42 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
         ),
       )}
     </svg>
+  );
+}
+
+/**
+ * [PW-1594 · spec-calibration §20.1] 「하향 등급」 칸의 딸린 배지 — 출처 차수(`2차`, 차수가 2 이상인 사이클만) ·
+ * 위 차수 미제출(`3차 미제출 · 2차 등급`, warning) · 하향 없음(muted) · 원안 변경됨. `leaderGrade` 가 없는
+ * 행(차수별 배정이 없는 옛 사이클)은 아무것도 그리지 않는다.
+ */
+function LeaderGradeMarks({ leaderGrade, multiRound, L }) {
+  const m = leaderGradeMarks(leaderGrade);
+  if (!m) return null;
+  return (
+    <>
+      {m.none && (
+        <StatusBadge className="evs-cw-badge tone-muted" data-testid="evs-cw-leader-none">
+          {L.cwLeaderGradeNone}
+        </StatusBadge>
+      )}
+      {m.missing ? (
+        <StatusBadge className="evc-status-badge tone-warn" data-testid="evs-cw-leader-missing">
+          {fmt(L.cwLeaderGradeMissing, { higher: m.missing.higher, round: m.missing.round })}
+        </StatusBadge>
+      ) : (
+        multiRound &&
+        m.round != null && (
+          <StatusBadge className="evc-type-badge" data-testid="evs-cw-leader-round">
+            {fmt(L.cwLeaderGradeRound, { round: m.round })}
+          </StatusBadge>
+        )
+      )}
+      {m.changed && (
+        <StatusBadge className="evc-status-badge tone-info" data-testid="evs-cw-leader-changed">
+          {L.cwLeaderGradeOriginChanged}
+        </StatusBadge>
+      )}
+    </>
   );
 }
 
@@ -1243,6 +1364,11 @@ export default function EvalCycleSummaryCanvas({
   integrated = [],
   calibSessions = [],
   calibTable = null,
+  /**
+   * [PW-1594 · spec-calibration §20.1] 사이클의 하향 차수 N(`reviewSequence.leaderRounds`). 2 이상이면 「현재등급」
+   * 머리를 「하향 등급」으로 쓰고 칸에 출처 차수 배지를 붙인다. 행의 `leaderGrade` 가 더 높은 차수를 말하면 그것을 따른다.
+   */
+  leaderRounds = 1,
   calibTableLoading = false,
   selectedCalibSessionId = null,
   onSelectCalibSession,
@@ -1350,6 +1476,16 @@ export default function EvalCycleSummaryCanvas({
   workspaceOnly = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // [PW-1594 · spec-calibration §20.1] 하향 차수 2 이상 — 머리 「하향 등급」 · 칸에 출처 차수 배지.
+  const multiLeaderRound = useMemo(
+    () =>
+      Number(leaderRounds) >= 2 ||
+      (calibTable?.rows ?? []).some(
+        (r) => (r.leaderGrade?.round ?? 0) >= 2 || r.leaderGrade?.missingHigherRound != null,
+      ),
+    [leaderRounds, calibTable],
+  );
+  const currentGradeColLabel = multiLeaderRound ? L.cwColLeaderGrade : L.cwColCurrent;
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
   // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
   const tabOpen = (key) =>
@@ -2823,7 +2959,9 @@ export default function EvalCycleSummaryCanvas({
                   {/* C. 매니저 */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
-                    {memberDetail.manager?.submitted ? (
+                    {memberDetail.manager?.rounds?.length ? (
+                      <LeaderRoundsDetail rounds={memberDetail.manager.rounds} L={L} />
+                    ) : memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
                           <StatusBadge className="evs-lp-tag tone-green evs-re-mgrade">{L.reManagerGrade}: {memberDetail.manager.gradeLabel}</StatusBadge>
@@ -3726,7 +3864,7 @@ export default function EvalCycleSummaryCanvas({
                               <SortTh sortKey="level" label={L.cwColLevel} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('lead') && <SortTh sortKey="leader" label={L.cwColLeader} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               {colOn('joined') && <SortTh sortKey="hireDate" label={L.cwColDates} sort={effectiveCalibSort} onSort={setCalibSort} />}
-                              <SortTh sortKey="current" label={L.cwColCurrent} sort={effectiveCalibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="current" label={currentGradeColLabel} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('trend') && <RosterTable.HeadCell>{L.cwColTrend}</RosterTable.HeadCell>}
                               <RosterTable.HeadCell>{L.cwColAdjust}</RosterTable.HeadCell>
                               {colOn('promo') && <RosterTable.HeadCell>{L.cwColPromo}</RosterTable.HeadCell>}
@@ -3827,14 +3965,17 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 )}
                                 <RosterTable.Cell>
-                                  {row.currentGradeKey ? (
-                                    <StatusBadge
-                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
-                                      {row.currentGradeLabel}
-                                    </StatusBadge>
-                                  ) : (
-                                    <span className="evs-cw-muted">—</span>
-                                  )}
+                                  <span className="evs-cw-leader-grade">
+                                    {row.currentGradeKey ? (
+                                      <StatusBadge
+                                        className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
+                                        {row.currentGradeLabel}
+                                      </StatusBadge>
+                                    ) : leaderGradeMarks(row.leaderGrade)?.none ? null : (
+                                      <span className="evs-cw-muted">—</span>
+                                    )}
+                                    <LeaderGradeMarks leaderGrade={row.leaderGrade} multiRound={multiLeaderRound} L={L} />
+                                  </span>
                                 </RosterTable.Cell>
                                 {colOn('trend') && (
                                 <RosterTable.Cell>
@@ -4101,7 +4242,7 @@ export default function EvalCycleSummaryCanvas({
                                           )}
                                           <dl className="evs-cw-detail-facts">
                                             <div>
-                                              <dt>{L.cwColCurrent}</dt>
+                                              <dt>{currentGradeColLabel}</dt>
                                               <dd>
                                                 {row.currentGradeLabel ? (
                                                   <StatusBadge
@@ -4182,7 +4323,7 @@ export default function EvalCycleSummaryCanvas({
                                           {/* §4.5 요약 칩 — 현재 등급 · 1차→위원회 조정 · 성과 추이 · OKR 달성률. */}
                                           <div className="evs-cw-detail-chips" data-testid="evs-cw-detail-chips">
                                             <span className="evs-cw-detail-stat">
-                                              {L.cwColCurrent}{' '}
+                                              {currentGradeColLabel}{' '}
                                               {row.currentGradeLabel ? (
                                                 <StatusBadge className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                                   {row.currentGradeLabel}
@@ -4225,7 +4366,9 @@ export default function EvalCycleSummaryCanvas({
                                             <DetailSectionHead open={secOpen('manager')} onToggle={() => toggleSec('manager')} testId="evs-cw-sec-manager">
                                               {L.cwDetailManager}
                                             </DetailSectionHead>
-                                            {secOpen('manager') && (
+                                            {secOpen('manager') && detail.manager?.rounds?.length ? (
+                                              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} />
+                                            ) : secOpen('manager') && (
                                               <div className="evs-cw-detail-body">
                                                 {detail.manager?.answers?.filter(
                                                   (a) => a.textAnswer,

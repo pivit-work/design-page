@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -63,6 +63,32 @@ import {
 import Switch from '../shared/Switch.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import { TEMPLATE_PRESETS, presetFor, DEFAULT_GRADES } from './evalTemplatePresets.js';
+// [PW-1594] 하향 평가 차수 — 단계 id 펼치기·묶음 이동·등급 체계 일치·배정 칸 경고는 한 모듈이 판정한다.
+import {
+  alignLeaderCells,
+  assignLeaderCell,
+  cellKey as leaderCellKey,
+  cellsForConfirm,
+  clampLeaderRounds,
+  computeLeaderWarnings,
+  dropAllLeaderKeys,
+  dropRoundsAbove,
+  expandLeaderPhases,
+  isLeaderPhaseId,
+  leaderAssignmentCounts,
+  leaderGradeMismatch,
+  leaderPhaseId,
+  leaderRoundOf,
+  mergeRecommendedCells,
+  moveGroupedPhase,
+  normalizeLeaderOrder,
+  phaseBaseId,
+  revertLeaderCell,
+  skipLeaderCell,
+  summarizeLeaderWarnings,
+  topRoundHasNoRecommendation,
+} from './evalLeaderRounds.js';
+import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
@@ -780,6 +806,36 @@ function stampDateTime(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** PW-1594 §5.13.4 — 하향 평가자 확정 시각 `MM/DD HH:MM`(24시간제). */
+function stampMonthDayTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** PW-1594 — 퇴사 상태. 인사 정보의 `terminated`(구 표기 `resigned` 도 받는다). */
+const isResignedStatus = (status) => status === 'terminated' || status === 'resigned';
+
+/** PW-1594 — 사이클·초안이 준 확정 상태를 `{ confirmedAt, confirmedBy }` 한 모양으로. */
+function leaderConfirmFrom(src) {
+  if (!src) return null;
+  const at = src.confirmedAt ?? src.leaderAssignmentConfirmedAt ?? null;
+  if (!at) return null;
+  // 사이클 응답은 확정한 사람을 id 로만 줄 수 있다(`leaderAssignmentConfirmedById`) — 이름이 있으면 함께 든다.
+  const by =
+    src.confirmedBy ??
+    src.leaderAssignmentConfirmedBy ??
+    (src.leaderAssignmentConfirmedByName || src.leaderAssignmentConfirmedById
+      ? {
+          id: src.leaderAssignmentConfirmedById ?? null,
+          name: src.leaderAssignmentConfirmedByName ?? null,
+        }
+      : null);
+  return { confirmedAt: at, confirmedBy: by ?? null };
+}
+
 /** 「아직 손대지 않음」 상태에서 쓰는 안정 참조 — 매 렌더 새 배열/Set 을 만들지 않는다. */
 const EMPTY_ORG_SEL = new Set();
 const EMPTY_IDS = [];
@@ -991,13 +1047,16 @@ function ReviewFilterPopover({ labels: L, applied, valuesOf, labelOf, countsOf, 
  * `required` 를 여기서 보면 안 된다. 「끌 수 없다」가 「항상 나타난다」로 새어 들어가
  * 고르지 않은 평가 종류의 단계가 일정에 뜬다 — PW-435 ②③ 이 그 증상이었다.
  */
-function activePhasesFor(reviewTypes) {
-  return ALL_PHASES.filter(
+function activePhasesFor(reviewTypes, leaderRounds = 1) {
+  const listed = ALL_PHASES.filter(
     (p) =>
       p.listedBy === 'always' ||
       reviewTypes.includes(p.id) ||
       (p.dependsOn && reviewTypes.includes(p.dependsOn)),
   );
+  /* [PW-1594 · 정책 §5.13.3] 하향 차수 N 이면 `하향 리뷰` 를 `leader` · `leader_2` … N개 단계로 펼친다.
+     1차만 쓰면 그대로다 — 1차만 쓰는 사이클의 3단계가 바뀌지 않게. */
+  return expandLeaderPhases(listed, reviewTypes.includes('leader') ? leaderRounds : 1);
 }
 
 /* 겹치는(병렬 진행) 단계 쌍은 `evalScheduleOverlap.js` 가 판정한다 — 일정 수정 창과 한 벌이다. */
@@ -2666,6 +2725,35 @@ export default function EvalCycleWizard({
    */
   hideRoleVersions = false,
   hideRatioScope = false,
+  /**
+   * PW-1594 §5.13.1 — 1단계 `하향 차수` 의 최댓값 M(재직 구성원 보고선 체인 길이의 최댓값 · D-1).
+   * 소비 측이 `GET /eval-cycles/leader-rounds/max` 로 읽어 넘긴다. 상태는 `'loading' | 'ready' | 'error'`.
+   * 로딩·실패 동안 선택지는 `1차` 하나이고 진행은 막지 않는다. ⛔ 안 넘기면(`null`) 1차만 고를 수 있다.
+   */
+  leaderRoundsMax = null,
+  leaderRoundsMaxStatus = 'ready',
+  /** 최댓값 조회 실패 시 「다시 시도」. 안 넘기면 버튼을 숨긴다. */
+  onReloadLeaderRoundsMax,
+  /**
+   * PW-1594 §5.13.4 — 하향 평가자 추천. `({ evaluateeIds, rounds, cells }) => Promise<{ cells }>`.
+   * 4단계 진입·대상 명단 변경·차수 변경 때 부른다. 실패는 «던진다»(표 위에 다시 시도를 띄운다).
+   * HR 이 고친 칸(`origin: 'adjusted'`)은 서버도 위자드도 덮지 않는다. 안 넘기면 섹션의 칸이 비어 보인다.
+   */
+  onRecommendLeaderAssignments,
+  /**
+   * PW-1594 §5.13.4 — 하향 평가자 확정. `({ cycleId?, cells, baseSavedAt }) => Promise<{ confirmedAt,
+   * confirmedBy, cells }>`. 실패는 던진다 — `err.status === 409` 면 다른 담당자가 먼저 고친 것이다.
+   * `cycleId` 는 위자드가 아는 사이클(관리 모드의 사이클 · 방금 저장한 초안)이고, 모르면 비어 있다.
+   * 안 넘기면 섹션의 `확정` 이 눌리지 않는다.
+   */
+  onConfirmLeaderAssignments,
+  /** PW-1594 — 확정 해제(확정 상태에서 칸·명단·차수가 처음 바뀔 때 한 번). `({ cycleId? }) => Promise`. */
+  onUnconfirmLeaderAssignments,
+  /**
+   * PW-1594 — 이어쓰기로 열 때의 확정 상태 `{ confirmedAt, confirmedBy }`(서버 사이클 값). 초안에 담긴
+   * 확정 상태가 있으면 그쪽이 먼저다. 관리 모드는 `cycle.leaderAssignmentConfirmedAt` 를 읽는다.
+   */
+  leaderConfirmInitial = null,
 }) {
   const isManage = !!cycle;
   /** 이미 연 사이클을 사이클 관리 탭에서 고치는 중인가(초안 이어쓰기는 아니다). */
@@ -2782,6 +2870,13 @@ export default function EvalCycleWizard({
     if (D?.reviewTypes) return [...D.reviewTypes];
     return cycle?.reviewTypes?.length ? [...cycle.reviewTypes] : ['self', 'leader'];
   });
+  /**
+   * PW-1594 §5.13.1 — 하향 차수 N(기본 1차 · D-1). 저장은 `reviewSequence.leaderRounds`, 초안 동안
+   * `draftState.leaderRounds`. 하향을 고르지 않은 동안에도 값은 1로 둔다(끄면 1로 되돌린다 · §5.13.1).
+   */
+  const [leaderRounds, setLeaderRounds] = useState(() =>
+    clampLeaderRounds(D?.leaderRounds ?? initialSeq?.leaderRounds ?? 1),
+  );
   // TC-046/047 하향 최종 등급 카드 위치(상단/하단/상단고정)
   const [gradeCardPosition, setGradeCardPosition] = useState(
     () => D?.gradeCardPosition ?? initialSeq?.gradeCardPosition ?? 'bottom',
@@ -2940,7 +3035,9 @@ export default function EvalCycleWizard({
     const initialTypes = D?.reviewTypes ?? cycle?.reviewTypes ?? ['self', 'leader'];
     const saved = D?.tplType;
     if (saved && initialTypes.includes(saved)) return saved;
-    if (landing?.tplType && initialTypes.includes(landing.tplType)) return landing.tplType;
+    // [PW-1594] 도착 지점이 하향 차수 칩(`leader_2` …)이면 편집 유형은 하향이다.
+    const landed = landing?.tplType ? phaseBaseId(landing.tplType) : null;
+    if (landed && initialTypes.includes(landed)) return landed;
     return (
       TEMPLATE_TYPES.map((t) => t.id).find((id) => initialTypes.includes(id)) ??
       'self'
@@ -2970,6 +3067,19 @@ export default function EvalCycleWizard({
   const [phaseTemplateMap, setPhaseTemplateMap] = useState(() => ({
     ...(D?.templateMap ?? initialSeq?.templateMap ?? {}),
   })); // { phaseId: templateId }
+  /* ── PW-1594 §5.13.2 하향 차수별 템플릿 ─────────────────────────────────────────
+     편집 버퍼를 차수마다 따로 둔다(칩 전환 = 버퍼 교체). 1차는 종전 하향 편집과 같다 — 다른 유형과
+     나눠 쓰는 «공유 버퍼» 가 곧 1차다. 2차 이후를 편집하는 동안에만 공유 버퍼에 그 차수가 올라가고,
+     1차 내용은 `tplRoundBuffers[1]` 에 내려가 있다. 지금 편집하지 않는 2차 이후도 여기 있다.
+     확정 키는 `templateMap.leader`(1차) · `leader_2` … 이고, 템플릿 자체(review_type)는 차수를 모른다. */
+  const [tplRound, setTplRound] = useState(() => {
+    const landed = leaderRoundOf(landing?.tplType);
+    const r = Number(D?.tplRound ?? (landed > 1 ? landed : 1));
+    return Number.isInteger(r) && r >= 1 && r <= leaderRounds ? r : 1;
+  });
+  const [tplRoundBuffers, setTplRoundBuffers] = useState(() => ({ ...(D?.tplRoundBuffers ?? {}) }));
+  /** 시작 방식(불러오기·복사·새로 만들기)을 고른 차수. 1차는 처음부터 시작돼 있다. */
+  const [tplRoundStarted, setTplRoundStarted] = useState(() => [...(D?.tplRoundStarted ?? [1])]);
   /* PW-433 — 항목 설정 패널. **한 번에 하나만** 연다. 행에는 이미 드래그 핸들·섹션 배지·
      질문·유형 배지·AI 배지·이유 토글·버튼 3개가 있어 설정을 더 붙이면 행이 읽히지 않는다
      (policy §5.11-C). */
@@ -3009,7 +3119,23 @@ export default function EvalCycleWizard({
   ];
 
   const hasPeer = reviewTypes.includes('peer');
-  const activePhases = activePhasesFor(reviewTypes);
+  /** PW-1594 — 이 사이클에 하향 리뷰가 있는가와, 실제로 쓰는 차수(하향이 없으면 1). */
+  const hasLeader = reviewTypes.includes('leader');
+  const roundsInUse = hasLeader ? leaderRounds : 1;
+  const activePhases = activePhasesFor(reviewTypes, leaderRounds);
+  /**
+   * 단계 이름. 하향 차수 단계(N ≥ 2)는 `하향 리뷰 · k차` 로 적는다(§5.13.3). 1차만 쓰면 종전 이름 그대로다.
+   * 3단계 카드·리마인더 패널·6단계 요약·테스트 발송이 모두 이 하나를 읽는다.
+   */
+  const phaseName = (p) =>
+    p?.round
+      ? fill(L.leaderRoundPhaseName ?? '{{name}} · {{round}}', { name: L[p.nameKey], round: p.round })
+      : L[p?.nameKey];
+  /** 단계 담당 — 차수 단계는 `k차 평가자`. */
+  const phaseOwner = (p) =>
+    p?.round
+      ? fill(L.leaderRoundOwner ?? '{{round}}', { round: p.round })
+      : L[p?.targetKey];
   /* PW-536 — 단계 일정의 기준점은 «대상 기간 시작일» 이 아니라 일정 시작일(D0)이다.
      직접 지정하기 전에는 대상 기간 종료일을 따라 다시 계산된다(§5.2.1-A 「자동 추적」). */
   const scheduleStart =
@@ -3032,10 +3158,15 @@ export default function EvalCycleWizard({
   const remindersOf = (id) =>
     (reminders[id] ?? (openedManage ? [] : defaultReminders())).map(normalizeReminder);
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
-  const orderedMiddle = [
-    ...phaseOrder.filter((id) => middleIds.includes(id)),
-    ...middleIds.filter((id) => !phaseOrder.includes(id)),
-  ];
+  /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 순서 안에서 «연속 · 오름차순» 한 묶음이다 — 저장된 순서가
+     어떻게 왔든(차수를 늘린 직후 · 옛 초안) 여기서 묶음으로 맞춘다. 서버도 오픈 때 같은 것을 본다. */
+  const orderedMiddle = normalizeLeaderOrder(
+    [
+      ...phaseOrder.filter((id) => middleIds.includes(id)),
+      ...middleIds.filter((id) => !phaseOrder.includes(id)),
+    ],
+    roundsInUse,
+  );
   const displayPhases = [
     activePhases.find((p) => p.id === 'self'),
     ...orderedMiddle.map((id) => activePhases.find((p) => p.id === id)),
@@ -3043,7 +3174,7 @@ export default function EvalCycleWizard({
   ].filter(Boolean);
   const enabledRows = displayPhases
     .filter((p) => !disabledPhases.has(p.id))
-    .map((p) => ({ id: p.id, name: L[p.nameKey], ...scheduleOf(p.id) }));
+    .map((p) => ({ id: p.id, name: phaseName(p), ...scheduleOf(p.id) }));
   const overlapPairs = getOverlapPairs(enabledRows);
   const overlapIds = overlapIdsOf(overlapPairs);
   /* [PW-1461 · 정책 §4.5] 편집으로 «전에 없던» 겹침이 생긴 순간의 안내. 막지 않는다. */
@@ -3210,7 +3341,7 @@ export default function EvalCycleWizard({
    */
   const reminderRecipientCount = (pid, rm) => {
     const selfOn = isSelfTargetOn(rm.targets);
-    const responderRole = PHASE_RESPONDER_ROLE[pid] ?? 'member';
+    const responderRole = PHASE_RESPONDER_ROLE[phaseBaseId(pid)] ?? 'member';
     const cc = ['leader', 'hr'].filter(
       (id) => rm.targets?.[id] && !(selfOn && responderRole === id),
     ).length;
@@ -3327,10 +3458,11 @@ export default function EvalCycleWizard({
       body: last?.body ?? '',
     });
   };
-  /** 이 «단계» 의 저장 문구만, 최근 저장순. 다른 단계 문구는 섞지 않는다. */
+  /** 이 «단계» 의 저장 문구만, 최근 저장순. 다른 단계 문구는 섞지 않는다.
+      [PW-1594] 하향 차수 단계(`leader_2` …)는 하향 문구를 같이 쓴다 — 저장도 `leader` 로 한다. */
   const savedForPhase = (pid) =>
     (savedMessages ?? [])
-      .filter((m) => m.phaseId === pid)
+      .filter((m) => phaseBaseId(m.phaseId) === phaseBaseId(pid))
       .slice()
       .sort((a, b) => String(b.savedAt ?? '').localeCompare(String(a.savedAt ?? '')));
   const loadSavedMessage = async (pid, rm, savedId) => {
@@ -3346,14 +3478,14 @@ export default function EvalCycleWizard({
   const saveCurrentMessage = async (ph, rm) => {
     if (!onSaveMessage) return;
     const cur = messageOf(rm);
-    const name = window.prompt(L.reminderSavePrompt, fill(L.reminderSaveNameDefault, { phase: L[ph.nameKey] }));
+    const name = window.prompt(L.reminderSavePrompt, fill(L.reminderSaveNameDefault, { phase: phaseName(ph) }));
     if (!name || !name.trim()) return;
     const dup = savedForPhase(ph.id).find((m) => m.name === name.trim());
     if (dup && !(await askConfirm(L.reminderSaveDuplicate, 'evc-wiz-reminder-save-duplicate'))) return;
     try {
       await onSaveMessage({
         id: dup?.id ?? null,
-        phaseId: ph.id,
+        phaseId: phaseBaseId(ph.id),
         name: name.trim(),
         subject: cur.subject ?? '',
         body: cur.body ?? '',
@@ -3413,8 +3545,8 @@ export default function EvalCycleWizard({
     markSet(setAiError, key, false);
     try {
       const out = await onPolishMessage({
-        phaseId: ph.id,
-        phaseName: L[ph.nameKey],
+        phaseId: phaseBaseId(ph.id),
+        phaseName: phaseName(ph),
         // 슬랙에는 제목이 없다 — 빈 제목을 «보내» 두면 AI 가 제목을 지어내 돌려주고,
         // 그 제목은 붙일 자리가 없어 조용히 버려진다. 아예 보내지 않는다.
         channel: slot,
@@ -3465,8 +3597,8 @@ export default function EvalCycleWizard({
     let out = null;
     try {
       out = await onTestSendMessage({
-        phaseId: ph.id,
-        phaseName: L[ph.nameKey],
+        phaseId: phaseBaseId(ph.id),
+        phaseName: phaseName(ph),
         cycleName: name.trim(),
         schedule: scheduleOf(ph.id),
         reminder: normalizeReminder(rm),
@@ -3810,7 +3942,7 @@ export default function EvalCycleWizard({
       (t) =>
         t.id !== 'self' &&
         rm.targets?.[t.id] &&
-        !(selfOn && PHASE_RESPONDER_ROLE[pid] === t.id),
+        !(selfOn && PHASE_RESPONDER_ROLE[phaseBaseId(pid)] === t.id),
     ).map((t) => L[t.labelKey]);
     return names.length ? names.join(' · ') : L.reminderEmailCcNone;
   };
@@ -3825,7 +3957,7 @@ export default function EvalCycleWizard({
     /* [PW-529 · 정책 §5.2.1-B] 당사자를 껐는가에 따라 셋이 함께 갈린다 —
        중복 억제 · 문구 후보 · 슬랙 @멘션. 한 자리에서 계산해 내려보낸다. */
     const selfOn = isSelfTargetOn(rm.targets);
-    const responderRole = PHASE_RESPONDER_ROLE[ph.id] ?? 'member';
+    const responderRole = PHASE_RESPONDER_ROLE[phaseBaseId(ph.id)] ?? 'member';
     // ⚠️ 「이미 당사자에 포함」이라는 억제는 **당사자를 켰을 때만** 성립한다.
     //    구 규칙(역할만 비교)을 그대로 두면 하향 리뷰에서 당사자(리더)를 껐을 때
     //    +리더 도 비활성이라 **아무도 받지 않는** 리마인더가 만들어진다.
@@ -3886,7 +4018,7 @@ export default function EvalCycleWizard({
         <div className="evc-rm-panel-head">
           <div>
             <div className="evc-rm-panel-eyebrow" data-testid="evc-rm-panel-eyebrow">
-              {fill(L.reminderPanelEyebrow, { stage: L[ph.nameKey], n: i + 1 })}
+              {fill(L.reminderPanelEyebrow, { stage: phaseName(ph), n: i + 1 })}
             </div>
             <h2 id="evc-rm-panel-title" className="evc-rm-panel-title" data-testid="evc-rm-panel-title">
               {reminderWhenText(rm)}
@@ -4005,7 +4137,7 @@ export default function EvalCycleWizard({
                   >
                     {on ? '✓' : '+'}{' '}
                     {isSelf
-                      ? (L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf)
+                      ? (L[PHASE_RESPONDER_SHORT[phaseBaseId(ph.id)]] ?? L.reminderRespSelf)
                       : L[t.labelKey]}
                     {dup ? ` · ${L.reminderTgtDup}` : ''}
                   </button>
@@ -4319,7 +4451,11 @@ export default function EvalCycleWizard({
     );
   };
   const togglePhaseEnabled = (id) =>
-    setDisabledPhases((prev) => {
+    /* [PW-1594 · 정책 §5.13.3] 차수 단계는 따로 끄지 않는다 — 차수를 줄이려면 1단계 `하향 차수` 를
+       줄인다(한 값이 두 곳에서 바뀌지 않게). 화면의 단추도 잠겨 있지만 함수에서도 막는다. */
+    isLeaderPhaseId(id) && roundsInUse > 1
+      ? undefined
+      : setDisabledPhases((prev) => {
       const n = new Set(prev);
       if (n.has(id)) n.delete(id);
       else n.add(id);
@@ -4334,11 +4470,11 @@ export default function EvalCycleWizard({
     if (phaseOrderLocked) return;
     if (!dragId || dragId === targetId) return;
     const prev = [...orderedMiddle];
-    const arr = [...orderedMiddle];
-    const from = arr.indexOf(dragId);
-    const to = arr.indexOf(targetId);
-    if (from < 0 || to < 0) return;
-    arr.splice(to, 0, arr.splice(from, 1)[0]);
+    /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 한 묶음으로 움직인다 — 어느 차수를 끌어도 묶음 전체가
+       옮겨 가고 묶음 안 순서는 그대로다. 같은 묶음 안에서 끌면 아무 일도 없다. 묶음이 아닌 단계끼리는
+       종전과 같다(대상 자리로 옮긴다). */
+    const arr = moveGroupedPhase(orderedMiddle, dragId, targetId);
+    if (!arr) return;
     setPhaseOrder(arr);
     setOrderNotice(null);
     /* [PW-1461 · 정책 §5.2.2 · §12] 초안이면 옮긴 순서를 바로 저장한다. 실패하면 옮기기 전
@@ -4392,11 +4528,24 @@ export default function EvalCycleWizard({
     if (turningOff && t === 'peer') setPeerAssignModes([]);
     if (turningOff) {
       setPhaseTemplateMap((m) => {
+        // [PW-1594 · L13] 하향을 끄면 차수별 확정(`leader_2` …)도 함께 버린다.
+        if (t === 'leader') return dropAllLeaderKeys(m);
         if (!(t in m)) return m;
         const next = { ...m };
         delete next[t];
         return next;
       });
+    }
+    /* [PW-1594 · §5.13.1 · L13] 하향을 끄면 차수는 1로 돌아가고, 차수별 버퍼·배정 칸·확정도 버린다.
+       다시 켜면 1차부터 새로 시작한다 — 끈 사이에 살아 있던 지정이 조용히 되살아나지 않게. */
+    if (turningOff && t === 'leader') {
+      setLeaderRounds(1);
+      setTplRound(1);
+      setTplRoundBuffers({});
+      setTplRoundStarted([1]);
+      setConfirmSnapshot((m) => dropRoundsAbove(m, 1));
+      setLeaderCells([]);
+      dropLeaderConfirm('rounds');
     }
     setPendingTypeOff(null);
   };
@@ -4405,11 +4554,62 @@ export default function EvalCycleWizard({
    * 화면 어디에도 안 보이는 결과라, 끄고 나서 알게 하면 늦다 (policy §5.2.4 엣지 1).
    */
   const toggleType = (t) => {
-    if (reviewTypes.includes(t) && confirmRowOf(t)?.confirmed) {
+    if (reviewTypes.includes(t) && typeHasConfirm(t)) {
       setPendingTypeOff(t);
       return;
     }
     applyTypeToggle(t);
+  };
+
+  /* ── PW-1594 §5.13.1 하향 차수 ──────────────────────────────────────────────────
+     최댓값 M 은 소비 측이 읽어 넘긴다. 못 읽었거나 읽는 중이면 고를 수 있는 것은 지금 값까지다
+     (새로 만들면 `1차` 하나 — 이어쓰기로 이미 고른 차수는 지우지 않는다). */
+  const leaderMaxReady = leaderRoundsMaxStatus === 'ready' && Number(leaderRoundsMax) >= 1;
+  const leaderMax = leaderMaxReady ? Math.trunc(Number(leaderRoundsMax)) : 1;
+  const leaderRoundChoices = Math.max(leaderMax, leaderRounds);
+  /** 차수 줄이기 확인 대기 — 줄일 값. */
+  const [pendingRoundsDown, setPendingRoundsDown] = useState(null);
+  /**
+   * 차수를 바꾼다. 줄이면 사라지는 차수의 템플릿 확정·일정·리마인더·배정 칸을 **버린다**(§5.13.1 ·
+   * §5.2.4 엣지 1 과 같은 규칙 — 남겨 두면 다시 늘렸을 때 고른 적 없다고 여기는 값이 살아난다).
+   * 늘리면 새 차수는 미확정·기본 일정·추천값으로 생긴다. 어느 쪽이든 하향 평가자 확정은 풀린다.
+   */
+  const applyLeaderRounds = (n) => {
+    const next = clampLeaderRounds(n);
+    setPendingRoundsDown(null);
+    if (next === leaderRounds) return;
+    const keepRound = (id) => leaderRoundOf(id) <= next;
+    if (next < leaderRounds) {
+      setPhaseTemplateMap((m) => dropRoundsAbove(m, next));
+      setConfirmSnapshot((m) => dropRoundsAbove(m, next));
+      setSchedule((m) => dropRoundsAbove(m, next));
+      setReminders((m) => dropRoundsAbove(m, next));
+      setScheduleDirty((prev) => prev.filter(keepRound));
+      setPhaseOrder((prev) => prev.filter(keepRound));
+      setDisabledPhases((prev) => new Set([...prev].filter(keepRound)));
+      setTplRoundStarted((prev) => prev.filter((k) => k <= next));
+      setLeaderCells((prev) => prev.filter((c) => c.round <= next));
+      const kept = Object.fromEntries(
+        Object.entries(tplRoundBuffers).filter(([k]) => Number(k) <= next),
+      );
+      // 편집 중이던 차수가 사라지면 1차로 돌아간다 — 1차 내용을 공유 버퍼에 되올린다.
+      if (tplType === 'leader' && tplRound > next) {
+        applyTplBuffer(kept[1] ?? confirmedRoundBuffer(1) ?? presetBufferFor('leader'));
+        delete kept[1];
+        setTplRound(1);
+      }
+      setTplRoundBuffers(kept);
+    } else {
+      // 차수 단계는 따로 끄지 않는다(§5.13.3) — 1차를 꺼 둔 채 늘렸으면 다시 켠다.
+      setDisabledPhases((prev) => new Set([...prev].filter((id) => !isLeaderPhaseId(id))));
+    }
+    setLeaderRounds(next);
+    dropLeaderConfirm('rounds');
+  };
+  /** 줄일 때만 먼저 묻는다 — 지워지는 것이 화면 어디에도 안 보이는 결과라서다. */
+  const requestLeaderRounds = (n) => {
+    if (n < leaderRounds) setPendingRoundsDown(n);
+    else applyLeaderRounds(n);
   };
 
   // ── 평가 템플릿 빌더 헬퍼 ──
@@ -4513,25 +4713,45 @@ export default function EvalCycleWizard({
   const libraryResolved = libraryStatus === 'ready';
   /** 오픈된 사이클을 관리로 열면 확정은 이미 스냅샷으로 옮겨 갔다 — 읽기 전용 (엣지 7). */
   const confirmReadOnly = isManage && !!cycle?.status && cycle.status !== 'draft';
+  /** [PW-1594] 하향 k차의 짧은 이름(`하향 2차`) — 6단계 조합 요약·편집 바가 쓴다. */
+  const leaderRoundShort = (k) =>
+    fill(L.leaderRoundTypeName ?? '{{type}} {{round}}', { type: L.reviewLeader, round: k });
+  /**
+   * 확정 칸 — 유형 하나에 하나. [PW-1594 · §5.13.2] 하향은 차수가 2 이상이면 차수 수만큼 칸이 생긴다
+   * (`하향 리뷰 · 1차` …). 칸의 키(`type`)가 곧 `templateMap` 의 키다(`leader` · `leader_2` …).
+   */
+  const confirmSlots = TEMPLATE_TYPES.filter((rt) => reviewTypes.includes(rt.id)).flatMap((rt) =>
+    rt.id === 'leader' && roundsInUse > 1
+      ? Array.from({ length: roundsInUse }, (_, i) => ({ key: leaderPhaseId(i + 1), rt, round: i + 1 }))
+      : [{ key: rt.id, rt, round: 0 }],
+  );
   /** 1단계에서 고른 유형만, 1단계 칩과 같은 순서로. 고르지 않은 유형은 행 자체가 없다. */
-  const confirmRows = TEMPLATE_TYPES.filter((rt) => reviewTypes.includes(rt.id)).map((rt) => {
-    const id = phaseTemplateMap[rt.id] || '';
+  const confirmRows = confirmSlots.map(({ key, rt, round }) => {
+    const id = phaseTemplateMap[key] || '';
     const tpl = id ? templateById.get(id) : null;
     // 확정이 가리키던 템플릿이 라이브러리에서 사라졌으면 «미확정» 으로 되돌린다 (엣지 3).
     // 오픈한 사이클은 확정이 사이클 전용 스냅샷을 가리켜 라이브러리에 없는 게 정상이다(PW-1461 — 「사라졌다」로 잘못 읽었다).
     const confirmed = !!id && (confirmReadOnly || !!tpl || !libraryResolved);
-    const editing = rt.id === tplType;
+    const editing = rt.id === tplType && (!round || round === tplRound);
     // 지문이 없으면(초안 이어쓰기·관리 모드 프리필) 판단하지 않는다 — 모르는 것을
     // 「수정 중」으로 말하면 확정이 안 된 것처럼 읽힌다.
-    const snapshot = confirmSnapshot[rt.id];
+    const snapshot = confirmSnapshot[key];
     const dirty =
       confirmed &&
       editing &&
       snapshot !== undefined &&
       snapshot !== JSON.stringify(normalizeQuestions(tplQuestions));
     return {
-      type: rt.id,
+      type: key,
+      baseType: rt.id,
+      round,
       nameKey: rt.nameKey,
+      /** 확정 현황 행의 이름 — 차수 칸은 `하향 리뷰 · k차`. */
+      label: round
+        ? fill(L.leaderRoundPhaseName ?? '{{name}} · {{round}}', { name: L.phaseLeader, round })
+        : L[rt.nameKey],
+      /** 6단계 조합 요약의 이름 — 차수 칸은 `하향 k차`. */
+      shortLabel: round ? leaderRoundShort(round) : L[rt.nameKey],
       id,
       tpl: tpl || null,
       confirmed,
@@ -4546,6 +4766,8 @@ export default function EvalCycleWizard({
     };
   });
   const confirmRowOf = (type) => confirmRows.find((r) => r.type === type) || null;
+  /** [PW-1594] 이 평가 종류에 확정된 칸이 하나라도 있나(하향은 차수 칸 중 하나라도). */
+  const typeHasConfirm = (type) => confirmRows.some((r) => r.baseType === type && r.confirmed);
   /** 아직 확정되지 않은 유형 — 6단계 경고와 오픈 차단이 같은 값을 본다. */
   const unconfirmedTypes = confirmRows.filter((r) => !r.confirmed).map((r) => r.type);
   const templateNameOf = (row) =>
@@ -4600,10 +4822,176 @@ export default function EvalCycleWizard({
    * `setTplType` 을 부르는 진입점은 이 함수와 `loadTemplate` 둘이고, 화면에만 두면
    * 다음 진입점이 생길 때 또 뚫린다 — PW-434 의 「다른 유형도 보기」가 정확히 그랬다.
    */
-  const selectTplType = (id) => {
-    if (!reviewTypes.includes(id)) return;
-    if (!tplIsCustomized) setTplQuestions(presetFor(tplVersion, id));
-    setTplType(id);
+  const selectTplType = (id) => openTplSlot(id, id === tplType ? tplRound : 1);
+
+  /* ── PW-1594 §5.13.2 차수별 편집 버퍼 ────────────────────────────────────────── */
+  /** 지금 공유 버퍼(화면의 편집 중 값) 한 벌. */
+  const captureTplBuffer = () => ({
+    name: tplName,
+    version: tplVersion,
+    questions: tplQuestions,
+    grades: tplGrades,
+    absolute: tplAbsolute,
+    ratioScope: tplRatioScope,
+    loadedFrom: tplLoadedFrom,
+  });
+  const applyTplBuffer = (b) => {
+    setTplName(b.name ?? '');
+    setTplVersion(b.version ?? 'standard');
+    setTplQuestions(b.questions ?? []);
+    setTplGrades(b.grades ?? DEFAULT_GRADES);
+    setTplAbsolute(!!b.absolute);
+    setTplRatioScope(b.ratioScope || 'div');
+    setTplLoadedFrom(b.loadedFrom ?? null);
+    setTplEditingId(null);
+  };
+  /** 템플릿 → 버퍼(불러오기와 같은 프리필). */
+  const tplBufferFrom = (tpl) => ({
+    name: tpl.name,
+    version: tpl.version,
+    questions: tpl.questions ?? [],
+    grades: tpl.grades ?? DEFAULT_GRADES,
+    absolute: !!tpl.absolute,
+    ratioScope: tpl.ratioScope || 'div',
+    loadedFrom: {
+      name: tpl.name,
+      revision: tpl.revision || 1,
+      snapshot: JSON.stringify(tpl.questions ?? []),
+    },
+  });
+  /** k차가 확정한 템플릿으로 만든 버퍼. 확정이 없거나 라이브러리에 없으면 null. */
+  const confirmedRoundBuffer = (k) => {
+    const tpl = templateById.get(phaseTemplateMap[leaderPhaseId(k)]);
+    return tpl ? tplBufferFrom(tpl) : null;
+  };
+  /** 빈 차수 — 시작 방식을 고르기 전에는 항목이 없다(§5.13.2 「빈 차수에서 시작하기」). */
+  const emptyRoundBuffer = () => ({
+    name: '',
+    version: tplVersion,
+    questions: [],
+    grades: DEFAULT_GRADES,
+    absolute: false,
+    ratioScope: 'div',
+    loadedFrom: null,
+  });
+  const presetBufferFor = (type, version = tplVersion) => ({
+    ...emptyRoundBuffer(),
+    version,
+    questions: presetFor(version, type),
+  });
+  const bufferCustomized = (b, type) =>
+    JSON.stringify(b.questions) !== JSON.stringify(presetFor(b.version, type));
+  /** k차를 시작했나 — 1차 · 시작 방식을 고른 차수 · 확정이 있는 차수. */
+  const roundStarted = (k) =>
+    k <= 1 || tplRoundStarted.includes(k) || !!phaseTemplateMap[leaderPhaseId(k)];
+  const markRoundStarted = (k) =>
+    setTplRoundStarted((prev) => (prev.includes(k) ? prev : [...prev, k]));
+  /** 지금 편집 중인 확정 키 — 하향이면 차수 키(`leader` · `leader_2` …), 아니면 유형 id. */
+  const tplKey = tplType === 'leader' ? leaderPhaseId(tplRound) : tplType;
+
+  /**
+   * 편집 칸(유형 · 하향 차수)을 옮긴다. `setTplType` 을 부르는 길은 이 함수와 `loadTemplate` 둘이다.
+   *
+   * 공유 버퍼 = 1차·다른 유형 칸(종전 동작 — 손대지 않은 프리셋이면 새 유형에 맞게 다시 깐다).
+   * 2차 이후로 들어가면 공유 버퍼 내용을 `tplRoundBuffers[1]` 로 내려 두고 그 차수 버퍼를 올린다.
+   * 2차 이후에서 나오면 그 차수를 내려 두고 1차 내용을 되올린다. 한 번의 계산으로 끝낸다 — 상태를
+   * 두 번 나눠 바꾸면 두 번째 계산이 첫 번째 결과를 못 본다.
+   *
+   * 🔴 [PW-435 ③] 가드를 화면이 아니라 여기에 둔다 — 고르지 않은 유형으로는 못 간다.
+   */
+  const openTplSlot = (type, round = 1) => {
+    if (!reviewTypes.includes(type)) return;
+    const k = type === 'leader' ? Math.min(Math.max(1, round), roundsInUse) : 1;
+    const curRound = tplType === 'leader' ? tplRound : 1;
+    if (type === tplType && k === curRound) return;
+    const cur = captureTplBuffer();
+    const buffers = { ...tplRoundBuffers };
+    // ① 지금 칸을 내려놓고, 공유 칸에 있어야 할 내용(base)과 그 유형(baseType)을 구한다.
+    let base = cur;
+    let baseType = tplType;
+    if (tplType === 'leader' && curRound > 1) {
+      buffers[curRound] = cur;
+      base = buffers[1] ?? confirmedRoundBuffer(1) ?? presetBufferFor('leader');
+      baseType = 'leader';
+      delete buffers[1];
+    }
+    // ② 가려는 칸을 올린다.
+    if (type === 'leader' && k > 1) {
+      buffers[1] =
+        baseType !== 'leader' && !bufferCustomized(base, baseType)
+          ? { ...base, questions: presetFor(base.version, 'leader') }
+          : base;
+      applyTplBuffer(buffers[k] ?? confirmedRoundBuffer(k) ?? emptyRoundBuffer());
+      delete buffers[k];
+    } else {
+      const next =
+        type !== baseType && !bufferCustomized(base, baseType)
+          ? { ...base, questions: presetFor(base.version, type) }
+          : base;
+      if (next !== cur) applyTplBuffer(next);
+    }
+    setTplRoundBuffers(buffers);
+    setTplType(type);
+    setTplRound(k);
+  };
+  /** 확정 칸 키(`self` · `leader_2` …)로 그 칸을 연다 — 3·6단계에서 2단계로 보낼 때. */
+  const openTplKey = (key) => {
+    const base = phaseBaseId(key);
+    openTplSlot(base, base === 'leader' ? leaderRoundOf(key) : 1);
+  };
+  /** k차 버퍼 한 벌(편집 중이면 화면 값). 없으면 확정 템플릿 · 그것도 없으면 null. */
+  const roundBufferOf = (k) =>
+    tplType === 'leader' && k === tplRound
+      ? captureTplBuffer()
+      : tplRoundBuffers[k] ?? confirmedRoundBuffer(k);
+  /** 빈 차수 시작 — `{k-1}차 템플릿 복사`(앞 차수 버퍼를 1회 복사 · 이름과 출처는 비운다). */
+  const copyPrevRound = () => {
+    const prev = roundBufferOf(tplRound - 1);
+    if (!prev) return;
+    applyTplBuffer({ ...prev, name: '', loadedFrom: null });
+    markRoundStarted(tplRound);
+  };
+  const startRoundFresh = () => {
+    applyTplBuffer(presetBufferFor('leader'));
+    markRoundStarted(tplRound);
+  };
+  const startRoundFromLibrary = () => {
+    markRoundStarted(tplRound);
+    setTplPickerOpen(true);
+  };
+
+  /* ⛔ 등급 체계 일치(§5.13.2 · D-5). 확정된 하향 차수끼리 등급 키와 순서가 같아야 한다.
+     빨간 줄·오픈 차단은 확정된 템플릿 자체로 본다 — 서버가 오픈 때 보는 것도 그것이다. 편집 중 값의
+     불일치는 맞추기 버튼을 보일지만 가른다. */
+  const confirmedLeaderRounds = Array.from({ length: roundsInUse }, (_, i) => i + 1).filter(
+    (k) => hasLeader && roundsInUse > 1 && !!phaseTemplateMap[leaderPhaseId(k)],
+  );
+  const liveGradeMismatch = leaderGradeMismatch(
+    confirmedLeaderRounds.map((k) => ({ round: k, grades: roundBufferOf(k)?.grades })),
+  );
+  const confirmedGradeMismatch = leaderGradeMismatch(
+    confirmedLeaderRounds.map((k) => ({
+      round: k,
+      grades: templateById.get(phaseTemplateMap[leaderPhaseId(k)])?.grades,
+    })),
+  );
+  /** 등급 체계가 1차와 다른 첫 차수 — 6단계 오픈 차단이 그 칩으로 보낸다. */
+  const firstMismatchRound = (() => {
+    if (!confirmedGradeMismatch.mismatch) return null;
+    const sig = (k) =>
+      JSON.stringify(
+        (templateById.get(phaseTemplateMap[leaderPhaseId(k)])?.grades ?? []).map((g) =>
+          String(g.label ?? '').trim(),
+        ),
+      );
+    const first = confirmedLeaderRounds[0];
+    return confirmedLeaderRounds.find((k) => sig(k) !== sig(first)) ?? first;
+  })();
+  /** `1차 등급 체계로 맞추기` — 지금 차수 버퍼의 등급만 1차 것으로 바꾼다(항목은 그대로). */
+  const round1Grades = roundBufferOf(1)?.grades ?? null;
+  const alignGradesToRound1 = () => {
+    if (!round1Grades) return;
+    setTplGrades(round1Grades.map((g) => ({ ...g })));
   };
   const tplDrop = (targetIdx) => {
     if (tplDragIdx === null || tplDragIdx === targetIdx) {
@@ -4740,14 +5128,17 @@ export default function EvalCycleWizard({
         setTplSaved(true);
         // PW-441 §5.10-D — 저장 «성공» 이 곧 이 사이클의 그 유형 확정이다.
         // 서버가 돌려준 id 로 확정해야 한다(로컬 임시 id 로 적으면 가리킬 대상이 없다).
-        confirmTemplateFor(tplType, saved, undefined, tpl.questions);
+        // [PW-1594] 하향이면 지금 편집 중인 «차수» 칸을 확정한다.
+        confirmTemplateFor(tplKey, saved, undefined, tpl.questions);
+        if (tplType === 'leader') markRoundStarted(tplRound);
       });
       return;
     }
     setLocalTemplates((prev) => [tpl, ...prev]);
     setTplName('');
     setTplSaved(true);
-    confirmTemplateFor(tplType, tpl);
+    confirmTemplateFor(tplKey, tpl);
+    if (tplType === 'leader') markRoundStarted(tplRound);
   };
   /**
    * 라이브러리에서 불러오기 — 서버 복제가 아니라 **편집 버퍼 프리필**이다. 이후 항목을 고쳐도
@@ -4770,8 +5161,12 @@ export default function EvalCycleWizard({
     setTplPeek(null);
     // PW-441 §5.10-D — 불러오기 «완료» 가 곧 확정이다. 이미 다른 것으로 확정돼 있으면
     // 버퍼 프리필까지 통째로 확인 뒤로 미룬다(취소하면 화면이 그대로 남는다).
+    /* [PW-1594] 하향 템플릿은 지금 편집 중인 차수 칸으로 들어간다(다른 유형을 편집 중이었으면 1차).
+       `tplType` 이 하향이 아니면 차수는 늘 1이다(`openTplSlot`). */
+    const key = type === 'leader' && tplType === 'leader' ? tplKey : type;
     const apply = () => {
       setTplType(type);
+      if (type === 'leader') markRoundStarted(leaderRoundOf(key));
       setTplName(tpl.name);
       setTplVersion(tpl.version);
       setTplQuestions(tpl.questions);
@@ -4786,14 +5181,14 @@ export default function EvalCycleWizard({
       });
     };
     // 다른 템플릿으로 이미 확정돼 있으면 더 무거운 «A → B» 확인 하나만 띄운다 — 두 번 묻지 않는다.
-    const prevId = phaseTemplateMap[type];
+    const prevId = phaseTemplateMap[key];
     if (prevId && prevId !== tpl.id) {
-      confirmTemplateFor(type, tpl, apply);
+      confirmTemplateFor(key, tpl, apply);
       return;
     }
     // 그 밖의 모든 불러오기(확정 없음·같은 템플릿 다시)도 편집 중인 항목·등급을 덮어쓰므로
     // 먼저 묻는다 (library policy §11 「불러오기 확인」 · cycle-hr §5.10.1). 취소하면 아무것도 안 바뀐다.
-    setPendingTplLoad({ run: () => confirmTemplateFor(type, tpl, apply) });
+    setPendingTplLoad({ run: () => confirmTemplateFor(key, tpl, apply) });
   };
 
   const togglePeerMode = (key) =>
@@ -5061,6 +5456,247 @@ export default function EvalCycleWizard({
   const targetCount = targetIds.length;
   const exclusionOf = (id) => exclusions.find((e) => e.memberId === id);
   const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
+
+  /* ── PW-1594 §5.13.4 4단계 ④ 하향 평가자 ──────────────────────────────────────
+     칸 값은 초안(`leaderAssignments`)에 담기고 복원된다. 확정은 초안이 아니라 서버의 배정 표에
+     바로 쓴다(design.md 「확정은 초안이 아니라 배정 표에 쓴다」) — 위자드는 그 결과(시각·누가)만 든다.
+     오픈 뒤(관리 모드의 연 사이클)에는 이 섹션을 그리지 않는다 — 그때 표는 진행 현황(§5.13.6)이다. */
+  const leaderSectionOn = hasLeader && !openedManage;
+  const [leaderCellsState, setLeaderCells] = useState(() =>
+    Array.isArray(D?.leaderAssignments) ? D.leaderAssignments : [],
+  );
+  /** 칸 = 대상 명단 × 1~N차. 명단에서 빠진 사람·없어진 차수의 칸은 여기서 떨어진다. */
+  const leaderCells = leaderSectionOn
+    ? alignLeaderCells(leaderCellsState, targetIds, roundsInUse)
+    : [];
+  const [leaderConfirm, setLeaderConfirm] = useState(() =>
+    leaderConfirmFrom(D?.leaderConfirm) ??
+    leaderConfirmFrom(leaderConfirmInitial) ??
+    (isManage ? leaderConfirmFrom(cycle) : null),
+  );
+  /** 확정 당시의 명단·차수 지문 — 지금과 다르면 확정 표가 지금 명단을 덮지 못한다(서버 오픈 게이트와 같다). */
+  const leaderShapeKey = `${roundsInUse}|${targetIds.join(',')}`;
+  const [leaderConfirmShape, setLeaderConfirmShape] = useState(() =>
+    D?.leaderConfirmShape ?? null,
+  );
+  /** 확정이 풀린 사유 `{ kind, count? }` — 요약 바의 「다시 확정 필요」 옆 한 줄. */
+  const [leaderUnconfirmed, setLeaderUnconfirmed] = useState(null);
+  /** 추천 응답이 온(또는 실패한) 요청 키. 로딩 여부는 «지금 키»와 견줘 파생한다. */
+  const [leaderRecommendDone, setLeaderRecommendDone] = useState({ key: null, failed: false });
+  const [leaderReloadTick, setLeaderReloadTick] = useState(0);
+  const [leaderConfirming, setLeaderConfirming] = useState(false);
+  /** 섹션 토스트 — `'confirmFailed' | 'conflict'`. */
+  const [leaderToast, setLeaderToast] = useState(null);
+  /** 위자드가 아는 사이클 id — 관리 모드의 사이클 · 방금 저장한 초안. 확정·해제 요청에 싣는다. */
+  const knownCycleIdRef = useRef(cycle?.id ?? null);
+  /* 비동기 응답이 «그때의 값»이 아니라 지금 값을 보게 하는 자리. 렌더 중에는 읽지도 쓰지도 않는다. */
+  const leaderLatest = useRef({});
+  useLayoutEffect(() => {
+    leaderLatest.current = {
+      cells: leaderCellsState,
+      confirm: leaderConfirm,
+      confirmShape: leaderConfirmShape,
+      recommend: onRecommendLeaderAssignments,
+      unconfirm: onUnconfirmLeaderAssignments,
+    };
+  });
+
+  /** 서버에 확정 해제를 알린다. 실패해도 화면은 미확정이다 — 오픈은 화면에서 막히고 서버도 표를 다시 본다. */
+  const sendUnconfirm = () => {
+    void Promise.resolve(
+      leaderLatest.current.unconfirm?.({ cycleId: knownCycleIdRef.current ?? undefined }),
+    ).catch(() => {});
+  };
+  /**
+   * 확정을 푼다(§5.13.4 「확정 해제」). 확정 상태에서 칸·명단·차수가 처음 바뀔 때 한 번만 서버에 알린다.
+   */
+  const dropLeaderConfirm = (kind, count) => {
+    if (!leaderConfirm) return;
+    setLeaderConfirm(null);
+    setLeaderConfirmShape(null);
+    setLeaderUnconfirmed({ kind, count });
+    sendUnconfirm();
+  };
+  /* 대상 명단·차수가 확정 당시와 달라졌다 — 이 단계의 여러 손잡이(조직 트리·필터 일괄·제외 조건·
+     되돌리기)가 명단을 바꾸므로 한 곳에서 «파생»으로 본다. 서버에서 받은 확정(지문 없음)은 추천을
+     처음 받을 때의 명단을 기준으로 삼는다(아래 추천 응답). */
+  const leaderStale =
+    leaderSectionOn &&
+    !!leaderConfirm &&
+    leaderConfirmShape !== null &&
+    leaderConfirmShape !== leaderShapeKey;
+  const leaderStaleKind =
+    leaderStale && Number(leaderConfirmShape.split('|')[0]) !== roundsInUse ? 'rounds' : 'roster';
+  /* 어긋난 순간 서버에도 한 번 알린다(바깥 시스템에 알리기만 — 상태는 위에서 파생한다). */
+  useEffect(() => {
+    if (leaderStale) sendUnconfirm();
+    // sendUnconfirm 은 ref 만 읽는다 — 어긋남이 생기는 순간 한 번이면 된다.
+  }, [leaderStale]);
+
+  /* 추천 — 4단계에 들어올 때 · 명단이 바뀔 때 · 차수가 바뀔 때 · 「다시 시도」. 손대지 않은 칸만
+     새 추천으로 바뀐다(조정됨·건너뜀은 서버도 위자드도 덮지 않는다). 명단을 연달아 고치는 동안
+     요청이 쏟아지지 않게 잠깐 모았다 보낸다. 늦게 온 응답은 버린다(정리 함수가 막는다). */
+  const recommendOn =
+    leaderSectionOn && step === 3 && typeof onRecommendLeaderAssignments === 'function';
+  const recommendKey = recommendOn ? `${leaderShapeKey}#${leaderReloadTick}` : null;
+  useEffect(() => {
+    if (!recommendKey) return undefined;
+    const [shape] = recommendKey.split('#');
+    const [roundsStr, idsStr] = shape.split('|');
+    const evaluateeIds = idsStr ? idsStr.split(',') : [];
+    if (evaluateeIds.length === 0) return undefined;
+    const rounds = Number(roundsStr);
+    let live = true;
+    const timer = setTimeout(() => {
+      const latest = leaderLatest.current;
+      const adjusted = alignLeaderCells(latest.cells, evaluateeIds, rounds).filter(
+        (c) => c.origin === 'adjusted',
+      );
+      Promise.resolve(
+        latest.recommend?.({ evaluateeIds, rounds, cells: cellsForConfirm(adjusted) }),
+      )
+        .then((res) => {
+          if (!live) return;
+          const now = leaderLatest.current;
+          const prev = alignLeaderCells(now.cells, evaluateeIds, rounds);
+          const { cells, changed } = mergeRecommendedCells(prev, res?.cells ?? []);
+          setLeaderCells(alignLeaderCells(cells, evaluateeIds, rounds));
+          setLeaderRecommendDone({ key: recommendKey, failed: false });
+          if (now.confirm && now.confirmShape === null) setLeaderConfirmShape(shape);
+          /* 다시 계산으로 손대지 않은 칸이 바뀌었다 — 확정 상태였으면 풀고 그 수를 알린다(§5.13.4 · L8). */
+          if (changed > 0 && now.confirm) {
+            setLeaderConfirm(null);
+            setLeaderConfirmShape(null);
+            setLeaderUnconfirmed({ kind: 'recompute', count: changed });
+            void Promise.resolve(
+              now.unconfirm?.({ cycleId: knownCycleIdRef.current ?? undefined }),
+            ).catch(() => {});
+          }
+        })
+        .catch(() => {
+          if (live) setLeaderRecommendDone({ key: recommendKey, failed: true });
+        });
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [recommendKey]);
+  const leaderRecommendStatus = !recommendKey
+    ? 'ready'
+    : targetIds.length === 0
+      ? 'ready'
+      : leaderRecommendDone.key !== recommendKey
+        ? 'loading'
+        : leaderRecommendDone.failed
+          ? 'error'
+          : 'ready';
+
+  /** 퇴사 판정은 직원 목록의 상태로(서버 경고와 같은 규칙). */
+  const candidateById = new Map(candidates.map((c) => [c.id, c]));
+  const isResignedId = (id) => isResignedStatus(candidateById.get(id)?.employmentStatus);
+  /**
+   * 칸마다 경고. 서버가 준 경고를 쓰되, HR 이 손댄 칸이 있는 대상자는 화면에서 같은 규칙으로 다시
+   * 센다(중복은 한 대상자의 칸끼리 보는 규칙이라 그 사람 칸 전부를 다시 본다).
+   */
+  const leaderWarnings = (() => {
+    const local = computeLeaderWarnings(leaderCells, isResignedId);
+    const touched = new Set(
+      leaderCells.filter((c) => !Array.isArray(c.warnings)).map((c) => c.evaluateeId),
+    );
+    const out = new Map();
+    leaderCells.forEach((c) => {
+      const key = leaderCellKey(c.evaluateeId, c.round);
+      out.set(key, touched.has(c.evaluateeId) ? local.get(key) ?? [] : c.warnings);
+    });
+    return out;
+  })();
+  const leaderWarnSummary = summarizeLeaderWarnings(leaderWarnings);
+  /** 확정이 지금 명단·차수를 그대로 덮나. 오픈 차단과 6단계 요약이 이 값을 본다. */
+  const leaderConfirmed = !!leaderConfirm && !leaderUnconfirmed && !leaderStale;
+  const leaderCounts = leaderAssignmentCounts(leaderCells);
+
+  /** 칸 하나를 바꾼다 — 확정 상태였으면 푼다(§5.13.4 「버튼 — 트리거 → 결과」). */
+  const editLeaderCell = (evaluateeId, round, fn, kind) => {
+    const base = alignLeaderCells(leaderCellsState, targetIds, roundsInUse);
+    setLeaderCells(
+      base.map((c) => (c.evaluateeId === evaluateeId && c.round === round ? fn(c) : c)),
+    );
+    dropLeaderConfirm(kind);
+  };
+  const assignLeader = (evaluateeId, round, personId) =>
+    editLeaderCell(evaluateeId, round, (c) => assignLeaderCell(c, personId), 'cellChanged');
+  const skipLeader = (evaluateeId, round) =>
+    editLeaderCell(evaluateeId, round, skipLeaderCell, 'skipped');
+  const revertLeader = (evaluateeId, round) =>
+    editLeaderCell(evaluateeId, round, revertLeaderCell, 'reverted');
+
+  /**
+   * `확정` — 차단 경고(본인·퇴사자)가 없을 때만. 초안이면 먼저 저장해 잠금 키(`baseSavedAt`)를 맞춘다.
+   * 평가자 없음 칸은 건너뜀으로 저장한다. 실패는 토스트로 알리고 미확정을 유지한다. 409 면 다른
+   * 담당자가 먼저 고친 것이라 알리고 추천을 다시 받는다(§5.1-A 낙관적 잠금과 같은 처리).
+   */
+  const confirmLeader = async () => {
+    if (leaderConfirming || !onConfirmLeaderAssignments) return;
+    if (leaderWarnSummary.blocking > 0) return;
+    setLeaderConfirming(true);
+    setLeaderToast(null);
+    try {
+      let baseSavedAt = draftSavedAt ?? undefined;
+      if (draftEnabled) {
+        const saved = await saveDraft();
+        if (!saved) throw new Error('draft save failed');
+        if (saved.cycleId) knownCycleIdRef.current = saved.cycleId;
+        baseSavedAt = saved.savedAt ?? baseSavedAt;
+      }
+      const res = await onConfirmLeaderAssignments({
+        cycleId: knownCycleIdRef.current ?? undefined,
+        cells: cellsForConfirm(leaderCells),
+        baseSavedAt,
+      });
+      if (Array.isArray(res?.cells) && res.cells.length > 0) {
+        setLeaderCells(
+          alignLeaderCells(
+            mergeRecommendedCells(leaderCells, res.cells).cells,
+            targetIds,
+            roundsInUse,
+          ),
+        );
+      }
+      setLeaderConfirm(leaderConfirmFrom(res) ?? { confirmedAt: new Date().toISOString(), confirmedBy: null });
+      setLeaderConfirmShape(leaderShapeKey);
+      setLeaderUnconfirmed(null);
+    } catch (err) {
+      if (err?.status === 409 || err?.response?.status === 409) {
+        setLeaderToast('conflict');
+        setLeaderReloadTick((n) => n + 1);
+      } else {
+        setLeaderToast('confirmFailed');
+      }
+    } finally {
+      setLeaderConfirming(false);
+    }
+  };
+  /** 확정 해제 사유 한 줄. */
+  const leaderUnconfirmKind = leaderStale ? { kind: leaderStaleKind } : leaderUnconfirmed;
+  const leaderReconfirmReason = !leaderUnconfirmKind
+    ? null
+    : leaderUnconfirmKind.kind === 'recompute'
+      ? fill(L.leaderAsgReasonRecompute, { count: leaderUnconfirmKind.count ?? 0 })
+      : L[`leaderAsgReason_${leaderUnconfirmKind.kind}`] ?? L.leaderAsgReason_cellChanged;
+  /** 칸 팝오버의 직원 검색 후보 — 위자드가 이미 받는 구성원 목록. */
+  const leaderPeople = candidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    org: c.department ?? '',
+    resigned: isResignedStatus(c.employmentStatus),
+  }));
+  const leaderPersonOf = (id) => {
+    const c = candidateById.get(id);
+    return c
+      ? { name: c.name, org: c.department ?? '', resigned: isResignedStatus(c.employmentStatus) }
+      : null;
+  };
   /* 규칙 5 — 「수동 포함」 배지를 붙일 수 있는 사람. 규칙이 뺀 사람만이다. */
   const ruleExcludedIds = new Set(autoExclusions.map((e) => e.memberId));
   /* 고용유형 조건의 값 목록 — 시스템 고정 4종이다(§5.5.2 · PW-1459). 「해당 N명」은 조건이
@@ -5550,6 +6186,17 @@ export default function EvalCycleWizard({
     manualInclude: keptIds,
     // 5단계 — 캘리브레이션 카드(PW-1460). 화면용 key 는 싣지 않는다.
     committees: committees.map(({ key, ...rest }) => rest),
+    /* [PW-1594] 하향 차수 · 차수별 편집 버퍼 · 하향 평가자 칸. 기본값(1차만 · 손대지 않음)이면 싣지 않는다 —
+       칸 이름이 늘면 그 전에 저장한 초안이 전부 「최신 양식으로 옮겨졌습니다」로 열린다(§5.1-A-6).
+       칸의 화면용 경고는 싣지 않는다 — 열 때 다시 센다. 확정은 서버 배정 표가 정본이고 여기는 그 표시다. */
+    leaderRounds: leaderRounds > 1 ? leaderRounds : undefined,
+    tplRound: tplRound > 1 ? tplRound : undefined,
+    tplRoundBuffers: Object.keys(tplRoundBuffers).length > 0 ? tplRoundBuffers : undefined,
+    tplRoundStarted: tplRoundStarted.some((k) => k > 1) ? tplRoundStarted : undefined,
+    leaderAssignments:
+      leaderCells.length > 0 ? leaderCells.map(({ warnings: _w, ...rest }) => rest) : undefined,
+    leaderConfirm: leaderConfirmed ? leaderConfirm : undefined,
+    leaderConfirmShape: leaderConfirmed ? (leaderConfirmShape ?? undefined) : undefined,
   });
 
   /**
@@ -5592,8 +6239,18 @@ export default function EvalCycleWizard({
    * 바뀌므로 사용자가 손댄 값(`*Edit`)만 본다 — 안 그러면 열자마자 «변경»이 된다.
    */
   const collectManageSnapshot = () => {
-    const { step: _step, localTemplates: _local, orgIds: _org, manualExclude: _manual, ...rest } =
-      collectDraft();
+    /* [PW-1594] 하향 평가자 칸·확정은 서버 추천이 늦게 와서 채워지고, 확정은 서버에 바로 쓰인다 —
+       «사용자가 고친 설정»이 아니라 보지 않는다(보면 대상자 탭을 열자마자 «변경»이 된다). */
+    const {
+      step: _step,
+      localTemplates: _local,
+      orgIds: _org,
+      manualExclude: _manual,
+      leaderAssignments: _la,
+      leaderConfirm: _lc,
+      leaderConfirmShape: _ls,
+      ...rest
+    } = collectDraft();
     return JSON.stringify({
       ...rest,
       orgSelEdit: orgSelEdit ? [...orgSelEdit] : null,
@@ -5725,8 +6382,17 @@ export default function EvalCycleWizard({
    * [PW-441] 3단계·6단계에서 2단계로 되돌려 보낼 때. **단계만 옮기고 유형을 안 맞추면
    * 도착해서 또 찾아야 한다** — 편집 대상 유형까지 함께 맞춘다 (policy §5.2.4).
    */
+  /** [PW-1594] 6단계 → 4단계 ④ 하향 평가자 섹션. 단계를 옮긴 뒤 그 섹션까지 내려 준다. */
+  const leaderSectionRef = useRef(null);
+  const goToLeaderSection = () => {
+    goStep(3, { exact: true });
+    setTimeout(() => {
+      leaderSectionRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }, 0);
+  };
   const goToTemplateStep = (type) => {
-    if (type) selectTplType(type);
+    // [PW-1594] 하향 차수 칸 키(`leader_2`)면 그 차수 칩까지 맞춘다.
+    if (type) openTplKey(type);
     goStep(1);
   };
 
@@ -5772,7 +6438,8 @@ export default function EvalCycleWizard({
    * 리뷰 화면을 열지 않고, 서버도 같은 자리(오픈 전이)에서 다시 본다.
    */
   const unconfirmedTypeNames = unconfirmedTypes
-    .map((t) => L[REVIEW_TYPE_KEYS[t]] || t)
+    // [PW-1594] 하향 차수 칸(`leader_2`)은 `하향 2차` 로 적는다 — 키가 화면에 새지 않게.
+    .map((t) => confirmRowOf(t)?.shortLabel || L[REVIEW_TYPE_KEYS[t]] || t)
     .join(', ');
 
   const canAdvance =
@@ -5792,13 +6459,25 @@ export default function EvalCycleWizard({
   /* 6단계가 곧 오픈이면 미확정 템플릿은 여기서 막힌다 — 서버 오픈 전이가 같은 것을 거절한다
      (§5.2.4 엣지 4 「미확정은 오픈에서만 막는다」의 그 «오픈»이다). */
   const openBlockedByTemplates = opensOnSubmit && unconfirmedTypes.length > 0;
+  /* [PW-1594 · §5.13.5] 오픈 차단 2종 — ① 하향 평가자 미확정(지금 명단·차수를 덮는 확정이 아니면) ②
+     하향 차수끼리 등급 체계가 다름. 둘 다 «오픈»에서만 막는다 — 저장만 하는 관리 모드는 막지 않는다. */
+  /* 확정할 길(`onConfirmLeaderAssignments`)을 받지 않은 소비 측(디자인 미리보기 · 옛 화면)에서는 막지
+     않는다 — 풀 수 없는 차단은 오픈 버튼을 영영 잠근다. 서버 오픈 게이트가 같은 것을 다시 본다. */
+  const openBlockedByLeader =
+    opensOnSubmit &&
+    leaderSectionOn &&
+    typeof onConfirmLeaderAssignments === 'function' &&
+    !leaderConfirmed;
+  const openBlockedByGrades = opensOnSubmit && confirmedGradeMismatch.mismatch;
   const canSubmit =
     step1Valid &&
     scheduleValid &&
     remindersValid &&
     targetsValid &&
     committeeValid &&
-    !openBlockedByTemplates;
+    !openBlockedByTemplates &&
+    !openBlockedByLeader &&
+    !openBlockedByGrades;
   /**
    * [PW-531] 단계 표의 ✓ 판정 — `다음` 을 막는 조건과 같은 것을 단계별로 본다.
    * 2단계(템플릿)는 경고만 하고 진행을 막지 않으므로(§5.1 표) 늘 완료로 친다.
@@ -5827,7 +6506,11 @@ export default function EvalCycleWizard({
           ? L.submitBlockCommittee
           : openBlockedByTemplates
             ? L.submitBlockTemplates
-            : null;
+            : openBlockedByLeader
+              ? L.leaderOpenBlockUnconfirmed
+              : openBlockedByGrades
+                ? L.leaderOpenBlockGrades
+                : null;
 
   /**
    * PW-531 — 「생성」의 결과를 기다린다.
@@ -5873,11 +6556,17 @@ export default function EvalCycleWizard({
             .map((p) => [p.id, remindersOf(p.id)]),
         ),
         // PW-1459 §5.1-A-6 — 지워진 템플릿을 가리키는 매핑은 비워서 보낸다.
+        // [PW-1594] 하향 차수 키는 `leader` · `leader_2` … 이고, 지금 차수를 넘는 키는 싣지 않는다.
         templateMap: Object.fromEntries(
           Object.entries(phaseTemplateMap).filter(
-            ([type]) => !confirmRowOf(type)?.vanished,
+            ([type]) =>
+              !confirmRowOf(type)?.vanished &&
+              (!isLeaderPhaseId(type) || (hasLeader && leaderRoundOf(type) <= roundsInUse)),
           ),
         ),
+        /* [PW-1594 · §5.13.1] 하향 차수. order·enabled·schedule·reminders·templateMap 의 차수 키와 함께
+           간다 — 차수 단계는 order 안에서 연속·오름차순이다(normalizeLeaderOrder). */
+        leaderRounds: roundsInUse,
         gradeCardPosition,
         roleMode,
         roleVersions: roleMode === 'by_role' ? roleVersions : {},
@@ -6014,6 +6703,8 @@ export default function EvalCycleWizard({
           gradeCardPosition,
           roleMode,
           roleVersions: roleMode === 'by_role' ? roleVersions : {},
+          // [PW-1594] 하향 차수도 사이클 설정이다 — 프리셋으로 다시 열면 같은 차수로 연다.
+          leaderRounds: roundsInUse,
         },
         // PW-122: 템플릿 본문까지 담아야 '템플릿을 그대로 가져옵니다' 가 사실이 된다.
         // 여기 없으면 단계별 템플릿 매핑(templateMap)만 남아 가리킬 대상이 사라진다.
@@ -6074,6 +6765,18 @@ export default function EvalCycleWizard({
     );
     const rs = preset?.reviewSequence;
     if (rs?.gradeCardPosition) setGradeCardPosition(rs.gradeCardPosition);
+    /* [PW-1594] 하향 차수 — 프리셋·이전 사이클의 차수로 연다. 차수별 편집 버퍼·배정 칸은 지금 위자드의
+       것이 아니라 비운다(배정은 이 사이클 대상자로 다시 추천받는다). */
+    if (rs && 'leaderRounds' in rs) {
+      setLeaderRounds(clampLeaderRounds(rs.leaderRounds));
+      if (tplType === 'leader' && tplRound > 1) {
+        applyTplBuffer(tplRoundBuffers[1] ?? presetBufferFor('leader'));
+      }
+      setTplRound(1);
+      setTplRoundBuffers({});
+      setTplRoundStarted([1]);
+      setLeaderCells([]);
+    }
     // PW-122 일정은 '며칠째'로 바꿔 들고, 사이클 시작일에 맞춰 다시 깐다.
     // 원본 사이클의 절대 날짜를 그대로 넣으면 새 사이클 기간 밖 날짜가 박힌다.
     if (rs?.schedule) {
@@ -6399,6 +7102,56 @@ export default function EvalCycleWizard({
                 </p>
               )}
 
+              {/* [PW-1594 · 정책 §5.13.1] 하향 차수 — 하향 리뷰를 골랐을 때만. 평가 종류 바로 아래,
+                  동료 리뷰어 지정 방식보다 위. 기본 1차(D-1). 최댓값 M 을 계산하는 동안·못 읽었을 때도
+                  다음 단계로 가는 것은 막지 않는다. */}
+              {hasLeader && (
+                <div className="evc-wiz-rounds" data-testid="evc-wiz-leader-rounds">
+                  <span className="evc-field-label">{L.leaderRoundsLabel}</span>
+                  {leaderRoundsMaxStatus === 'loading' ? (
+                    <span className="evc-field-note" data-testid="evc-wiz-leader-rounds-loading">
+                      {L.leaderRoundsLoading}
+                    </span>
+                  ) : (
+                    <SegmentedControl
+                      ariaLabel={L.leaderRoundsLabel}
+                      value={leaderRounds}
+                      onChange={requestLeaderRounds}
+                      items={Array.from({ length: leaderRoundChoices }, (_, i) => ({
+                        value: i + 1,
+                        label: i === 0 ? L.leaderRoundsOne : fill(L.leaderRoundsUpTo, { n: i + 1 }),
+                        testId: `evc-wiz-leader-rounds-${i + 1}`,
+                      }))}
+                    />
+                  )}
+                  {leaderRoundsMaxStatus === 'error' ? (
+                    <p className="evc-wiz-warn" role="alert" data-testid="evc-wiz-leader-rounds-error">
+                      {L.leaderRoundsLoadError}
+                      {onReloadLeaderRoundsMax && (
+                        <>
+                          {' '}
+                          <button
+                            type="button"
+                            className="evc-link-btn"
+                            onClick={() => onReloadLeaderRoundsMax()}
+                            data-testid="evc-wiz-leader-rounds-retry"
+                          >
+                            {L.leaderRoundsRetry}
+                          </button>
+                        </>
+                      )}
+                    </p>
+                  ) : leaderRoundsMaxStatus === 'ready' ? (
+                    <p className="evc-field-note" data-testid="evc-wiz-leader-rounds-hint">
+                      {leaderMax > 1
+                        ? fill(L.leaderRoundsHintMax, { max: leaderMax })
+                        : L.leaderRoundsHintSingle}{' '}
+                      {L.leaderRoundsHintSequential}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+
               {hasPeer && (
                 <>
                   <span className="evc-field-label">{L.peerAssignModeLabel}</span>
@@ -6456,7 +7209,11 @@ export default function EvalCycleWizard({
                   <span className="evc-tpl-ctxbar-label">{L.tplEditingNow}</span>
                   <span className="evc-tpl-ctxbar-type" data-testid="evc-tpl-ctxbar-type">
                     {fill(L.tplForType, {
-                      type: L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
+                      // [PW-1594] 하향 차수를 나눴으면 지금 편집 중인 차수까지(`하향 2차용`).
+                      type:
+                        tplType === 'leader' && roundsInUse > 1
+                          ? leaderRoundShort(tplRound)
+                          : L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
                     })}
                   </span>
                   <span className="evc-tpl-ctxbar-version">
@@ -6525,7 +7282,7 @@ export default function EvalCycleWizard({
                     className={`evc-tpl-confirm-row${row.editing ? ' is-editing' : ''}`}
                     data-testid={`evc-tpl-confirm-row-${row.type}`}
                   >
-                    <StatusBadge className="evc-mode-badge">{L[row.nameKey]}</StatusBadge>
+                    <StatusBadge className="evc-mode-badge">{row.label}</StatusBadge>
                     {/* 상태 배지는 라이브러리 조회를 «기다리지 않고» 먼저 그린다 —
                         확정 여부는 위자드가 이미 아는 사실인데 덮으면 「모른다」로 보인다
                         (엣지 1-A). */}
@@ -6589,6 +7346,7 @@ export default function EvalCycleWizard({
                             onChange={(e) => {
                               const picked = row.options.find((t) => t.id === e.target.value);
                               if (picked) confirmTemplateFor(row.type, picked);
+                              if (picked && row.round) markRoundStarted(row.round);
                             }}
                             data-testid={`evc-tpl-confirm-select-${row.type}`}
                           >
@@ -6603,7 +7361,7 @@ export default function EvalCycleWizard({
                         <button
                           type="button"
                           className="evc-btn is-ghost"
-                          onClick={() => selectTplType(row.type)}
+                          onClick={() => openTplKey(row.type)}
                           disabled={row.editing}
                           data-testid={`evc-tpl-confirm-edit-${row.type}`}
                         >
@@ -6643,6 +7401,99 @@ export default function EvalCycleWizard({
                   );
                 })}
               </div>
+
+              {/* [PW-1594 · 정책 §5.13.2] 하향 차수 칩 — 하향을 편집 중이고 차수가 2 이상일 때만. 칩 = 지금
+                  편집 중인 차수, 점 = 상태 3종(미확정 회색 · 확정 초록 · 확정·수정 중 노랑 — §5.10-D 와 같은 뜻).
+                  비어 있는 2차 이후는 시작 방식 셋 중 하나를 고르면 버튼 줄이 사라진다. 등급 체계가 차수끼리
+                  다르면 칩 줄 아래 빨간 줄 — 진행은 막지 않고 오픈에서 막는다(§5.13.5 ②). */}
+              {tplType === 'leader' && roundsInUse > 1 && (
+                <div className="evc-tpl-rounds" data-testid="evc-tpl-rounds">
+                  <div className="evc-tpl-rounds-row">
+                    <span className="evc-tpl-rounds-label">{L.leaderRoundsLabel}</span>
+                    {Array.from({ length: roundsInUse }, (_, i) => i + 1).map((k) => {
+                      const row = confirmRowOf(leaderPhaseId(k));
+                      const dot = row?.confirmed ? (row.dirty ? 'dirty' : 'done') : 'none';
+                      return (
+                        <Chip
+                          key={k}
+                          selected={k === tplRound}
+                          onClick={() => openTplSlot('leader', k)}
+                          icon={<span className={`evc-tpl-round-dot is-${dot}`} aria-hidden />}
+                          data-testid={`evc-tpl-round-${k}`}
+                          data-state={dot}
+                        >
+                          {leaderRoundShort(k)}
+                        </Chip>
+                      );
+                    })}
+                  </div>
+                  {tplRound > 1 && !roundStarted(tplRound) && (
+                    <div className="evc-tpl-round-start" data-testid="evc-tpl-round-start">
+                      <span className="evc-tpl-round-start-title">
+                        {fill(L.leaderTplStartTitle, { round: tplRound })}
+                      </span>
+                      <div className="evc-tpl-round-start-actions">
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={startRoundFromLibrary}
+                          data-testid="evc-tpl-round-start-load"
+                        >
+                          {L.leaderTplStartLoad}
+                        </button>
+                        <Tooltip
+                          content={
+                            roundBufferOf(tplRound - 1)
+                              ? undefined
+                              : fill(L.leaderTplStartCopyBlocked, { round: tplRound - 1 })
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="evc-btn is-ghost"
+                            disabled={!roundBufferOf(tplRound - 1)}
+                            onClick={copyPrevRound}
+                            data-testid="evc-tpl-round-start-copy"
+                          >
+                            {fill(L.leaderTplStartCopy, { round: tplRound - 1 })}
+                          </button>
+                        </Tooltip>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={startRoundFresh}
+                          data-testid="evc-tpl-round-start-new"
+                        >
+                          {L.leaderTplStartNew}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {/* 빨간 줄은 «확정된» 템플릿끼리로 판정한다(§5.13.2) — 맞추기를 눌러도 저장(확정)하기 전에는
+                      오픈이 막히므로 줄도 남는다. 맞추기 버튼은 편집 중 값이 아직 다를 때만(PW-1594 브라우저 확인). */}
+                  {(confirmedGradeMismatch.mismatch || liveGradeMismatch.mismatch) && (
+                    <div className="evc-wiz-warn evc-tpl-round-mismatch" role="alert" data-testid="evc-tpl-round-mismatch">
+                      <span>
+                        {fill(L.leaderGradeMismatch, {
+                          detail: (confirmedGradeMismatch.mismatch ? confirmedGradeMismatch : liveGradeMismatch).rounds
+                            .map((r) => fill(L.leaderGradeMismatchItem, { round: r.round, count: r.count }))
+                            .join(' · '),
+                        })}
+                      </span>
+                      {tplRound !== 1 && round1Grades && roundStarted(tplRound) && liveGradeMismatch.mismatch && (
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={alignGradesToRound1}
+                          data-testid="evc-tpl-round-align"
+                        >
+                          {L.leaderGradeAlign}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* PW-434 ⑤ 저장된 템플릿에서 시작 — 평가 유형 «바로 다음», 등급·항목보다 위.
                   「다 작성한 후에 이전 템플릿을 불러올 수 있다고 인지하기 보다는 셋팅전에 과거
@@ -7278,7 +8129,7 @@ export default function EvalCycleWizard({
                   if (enabled) n += 1;
                   const isOver =
                     overId === ph.id && !ph.anchor && dragId && dragId !== ph.id;
-                  const rtype = PHASE_TO_REVIEW_TYPE[ph.id];
+                  const rtype = PHASE_TO_REVIEW_TYPE[phaseBaseId(ph.id)];
                   const sc = scheduleOf(ph.id);
                   return (
                     <div
@@ -7314,9 +8165,9 @@ export default function EvalCycleWizard({
                           </span>
                         </Tooltip>
                         <span className="evc-sched-num">{enabled ? n : '–'}</span>
-                        <span className="evc-sched-name">{L[ph.nameKey]}</span>
+                        <span className="evc-sched-name">{phaseName(ph)}</span>
                         <span className="evc-sched-owner">
-                          {L.ownerLabel}: {L[ph.targetKey]}
+                          {L.ownerLabel}: {phaseOwner(ph)}
                         </span>
                         {ph.required && <StatusBadge className="evc-mode-badge">{L.badgeRequired}</StatusBadge>}
                         {/* [PW-435 ④] 캘리브레이션처럼 «항상 등재되지만 필수가 아닌» 단계는
@@ -7353,13 +8204,14 @@ export default function EvalCycleWizard({
                             {L.schedulePastBadge}
                           </StatusBadge>
                         )}
-                        <Tooltip content={ph.required ? L.phaseRequiredHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined} className="evc-sched-switch-tip">
+                        {/* [PW-1594 · §5.13.3] 차수 단계는 따로 끄지 않는다 — 1단계 `하향 차수` 로 줄인다. */}
+                        <Tooltip content={ph.required ? L.phaseRequiredHint : ph.round ? L.leaderRoundToggleHint : phaseTogglesLocked ? (phaseTogglesLockedHint ?? undefined) : undefined} className="evc-sched-switch-tip">
                           <Switch
                             className="evc-sched-switch"
                             checked={enabled}
                             onChange={() => togglePhaseEnabled(ph.id)}
-                            disabled={ph.required || phaseTogglesLocked}
-                            label={L[ph.nameKey]}
+                            disabled={ph.required || !!ph.round || phaseTogglesLocked}
+                            label={phaseName(ph)}
                             /* 잠금 사유는 「필수 단계라서」가 아니라 «왜 필수인지» 로 적는다 (정책 §5.2.1). */
                             data-testid={`evc-sched-toggle-${ph.id}`}
                           />
@@ -7461,7 +8313,7 @@ export default function EvalCycleWizard({
                                     </span>
                                     {selfOn ? (
                                       <StatusBadge className="evc-rm-sum-chip is-primary">
-                                        {L[PHASE_RESPONDER_SHORT[ph.id]] ?? L.reminderRespSelf}
+                                        {L[PHASE_RESPONDER_SHORT[phaseBaseId(ph.id)]] ?? L.reminderRespSelf}
                                       </StatusBadge>
                                     ) : (
                                       <StatusBadge
@@ -7538,7 +8390,8 @@ export default function EvalCycleWizard({
                           2단계에만 있어서, 3단계에서 고르게 하면 또 왕복한다. 2단계에서 확정한
                           것을 읽기 전용으로 적기만 하고, 바꾸려면 2단계로 보낸다. */}
                       {enabled && rtype && (() => {
-                        const row = confirmRowOf(rtype);
+                        // [PW-1594] 확정 칸의 키는 단계 id 와 같다 — 하향 차수 단계는 그 차수 칸을 읽는다.
+                        const row = confirmRowOf(ph.id);
                         return (
                           <div className="evc-sched-tpl">
                             <span className="evc-field-label">
@@ -7565,7 +8418,7 @@ export default function EvalCycleWizard({
                                 <button
                                   type="button"
                                   className="evc-btn is-ghost evc-sched-tpl-goto"
-                                  onClick={() => goToTemplateStep(rtype)}
+                                  onClick={() => goToTemplateStep(ph.id)}
                                   data-testid={`evc-sched-tpl-change-${ph.id}`}
                                 >
                                   {L.tplConfirmGoChange} <ArrowRightIcon size={12} />
@@ -7586,13 +8439,13 @@ export default function EvalCycleWizard({
                                 )}
                                 <span>
                                   {fill(L.tplConfirmMissing, {
-                                    type: L[REVIEW_TYPE_KEYS[rtype]],
+                                    type: row?.round ? row.shortLabel : L[REVIEW_TYPE_KEYS[rtype]],
                                   })}
                                 </span>
                                 <button
                                   type="button"
                                   className="evc-btn is-ghost evc-sched-tpl-goto"
-                                  onClick={() => goToTemplateStep(rtype)}
+                                  onClick={() => goToTemplateStep(ph.id)}
                                   data-testid={`evc-sched-tpl-goto-${ph.id}`}
                                 >
                                   {L.tplConfirmGoSet} <ArrowRightIcon size={12} />
@@ -8509,6 +9362,38 @@ export default function EvalCycleWizard({
                 <p className="evc-wiz-hint">{L.targetReviewFooter}</p>
               </div>
 
+              {/* [PW-1594 · 정책 §5.13.4] ④ 하향 평가자 — 리뷰 & 조정 «아래». 하향 리뷰가 있으면 1차만
+                  써도 그린다(평가자 없는 대상자를 오픈 전에 보이는 것은 1차 사이클에도 필요하다). 오픈 뒤
+                  관리 화면에서는 그리지 않는다 — 그때 표는 진행 현황(§5.13.6)이 맡는다. */}
+              {leaderSectionOn && (
+                <div ref={leaderSectionRef}>
+                  <EvalLeaderAssignmentSection
+                    labels={L}
+                    rounds={roundsInUse}
+                    rows={targetMembers.map((m) => ({
+                      id: m.id,
+                      name: m.name,
+                      sub: [m.department, m.jobPosition].filter(Boolean).join(' · '),
+                    }))}
+                    cells={leaderCells}
+                    warningsByCell={leaderWarnings}
+                    people={leaderPeople}
+                    personOf={leaderPersonOf}
+                    status={leaderRecommendStatus}
+                    onRetry={() => setLeaderReloadTick((n) => n + 1)}
+                    confirm={leaderStale ? null : leaderConfirm}
+                    reconfirmReason={leaderReconfirmReason}
+                    confirming={leaderConfirming}
+                    onConfirm={onConfirmLeaderAssignments ? confirmLeader : undefined}
+                    onAssign={assignLeader}
+                    onSkip={skipLeader}
+                    onRevert={revertLeader}
+                    topRoundEmpty={topRoundHasNoRecommendation(leaderCells, roundsInUse)}
+                    formatStamp={stampMonthDayTime}
+                  />
+                </div>
+              )}
+
               {hirePicker && (
                 <DatePicker
                   todaySelects
@@ -8738,7 +9623,7 @@ export default function EvalCycleWizard({
                         className={`evc-summary-tpl-item${row.confirmed ? '' : ' is-warn'}`}
                         data-testid={`evc-wiz-summary-tpl-${row.type}`}
                       >
-                        {L[row.nameKey]}{' '}
+                        {row.shortLabel}{' '}
                         {row.confirmed
                           ? templateNameOf(row) || L.tplConfirmUnknown
                           : L.tplConfirmSummaryMissing}
@@ -8746,6 +9631,32 @@ export default function EvalCycleWizard({
                     ))}
                   </b>
                 </div>
+                {/* [PW-1594 · 정책 §5.13.5] 하향 평가자 — 확정됐으면 배정·건너뜀 칸 수, 아니면 4단계로 보낸다. */}
+                {leaderSectionOn && (
+                  <div className="evc-summary-row" data-testid="evc-wiz-summary-leader">
+                    <span>{L.leaderAsgTitle}</span>
+                    {leaderConfirmed ? (
+                      <b data-testid="evc-wiz-summary-leader-confirmed">
+                        {fill(L.leaderAsgSummaryConfirmed, {
+                          assigned: leaderCounts.assigned,
+                          skipped: leaderCounts.skipped,
+                        })}
+                      </b>
+                    ) : (
+                      <b className="evc-summary-tpl-item is-warn" data-testid="evc-wiz-summary-leader-unconfirmed">
+                        {L.leaderAsgSummaryUnconfirmed}{' '}
+                        <button
+                          type="button"
+                          className="evc-link-btn"
+                          onClick={goToLeaderSection}
+                          data-testid="evc-wiz-summary-leader-go"
+                        >
+                          {L.leaderAsgGoConfirm}
+                        </button>
+                      </b>
+                    )}
+                  </div>
+                )}
                 {/* library policy §7 · cycle-hr §5.10.1 — 오픈할 때 라이브러리 원본을 사이클 사본으로
                     굳힌다. 이미 연 사이클은 굳은 뒤라 이 안내가 거짓이 된다. */}
                 {!openedManage && (
@@ -8758,11 +9669,39 @@ export default function EvalCycleWizard({
                   <b>
                     {displayPhases
                       .filter((p) => !disabledPhases.has(p.id))
-                      .map((p) => L[p.nameKey])
+                      .map((p) => phaseName(p))
                       .join(' · ')}
                   </b>
                 </div>
               </div>
+              {/* [PW-1594 · 정책 §5.13.5] 오픈 차단 사유 2종 — 미확정 템플릿 차단과 같은 자리에서 막고, 고치러
+                  갈 곳(4단계 ④ 섹션 · 2단계의 그 차수 칩)까지 함께 준다. */}
+              {openBlockedByLeader && (
+                <p className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-leader">
+                  {L.leaderOpenBlockUnconfirmed}{' '}
+                  <button
+                    type="button"
+                    className="evc-link-btn"
+                    onClick={goToLeaderSection}
+                    data-testid="evc-wiz-open-block-leader-go"
+                  >
+                    {L.leaderAsgGoConfirm}
+                  </button>
+                </p>
+              )}
+              {openBlockedByGrades && (
+                <p className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-grades">
+                  {L.leaderOpenBlockGrades}{' '}
+                  <button
+                    type="button"
+                    className="evc-link-btn"
+                    onClick={() => goToTemplateStep(leaderPhaseId(firstMismatchRound ?? 1))}
+                    data-testid="evc-wiz-open-block-grades-go"
+                  >
+                    {fill(L.leaderOpenBlockGoGrades, { round: firstMismatchRound ?? 1 })}
+                  </button>
+                </p>
+              )}
               {/* PW-1459 — 6단계가 곧 오픈이면 「준비 중으로 저장 · 목록에서 오픈」 안내는 거짓이다. */}
               {!opensOnSubmit && (
                 <p className="evc-wiz-hint">
@@ -9257,7 +10196,11 @@ export default function EvalCycleWizard({
           body={
             <span data-testid="evc-tpl-confirm-swap-body">
               {fill(L.tplConfirmSwapBody, {
-                type: L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]],
+                // PW-1594 — 하향 차수 칸(`leader_2` …)은 확정 현황 행과 같은 이름(`하향 리뷰 · 2차`).
+                type: (() => {
+                  const row = confirmRows.find((r) => r.type === pendingConfirmSwap.type);
+                  return row?.round > 1 ? row.label : L[REVIEW_TYPE_KEYS[pendingConfirmSwap.type]];
+                })(),
                 from: pendingConfirmSwap.from,
                 to: pendingConfirmSwap.to,
               })}
@@ -9329,6 +10272,35 @@ export default function EvalCycleWizard({
           onConfirm={() => applyTypeToggle(pendingTypeOff)}
           cancelTestId="evc-wiz-type-off-cancel"
           confirmTestId="evc-wiz-type-off-ok"
+        />
+      )}
+
+      {/* [PW-1594 · §5.13.1] 하향 차수 줄이기 — 사라지는 차수의 템플릿 확정·일정·평가자 지정을 버린다. */}
+      {pendingRoundsDown != null && (
+        <AppConfirmModal
+          title={L.leaderRoundsDownTitle}
+          body={
+            <span data-testid="evc-wiz-rounds-down-body">
+              {fill(L.leaderRoundsDownBody, { round: pendingRoundsDown + 1 })}
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingRoundsDown(null)}
+          onConfirm={() => applyLeaderRounds(pendingRoundsDown)}
+          cancelTestId="evc-wiz-rounds-down-cancel"
+          confirmTestId="evc-wiz-rounds-down-ok"
+        />
+      )}
+
+      {/* [PW-1594 · §5.13.4] 하향 평가자 확정 실패 · 다른 담당자가 먼저 고침. 상태는 미확정 그대로. */}
+      {leaderToast && (
+        <Toast
+          tone="error"
+          message={leaderToast === 'conflict' ? L.leaderAsgConflict : L.leaderAsgConfirmFailed}
+          onClose={() => setLeaderToast(null)}
+          closeLabel={L.leaderAsgToastClose}
+          data-testid={`evc-la-toast-${leaderToast}`}
         />
       )}
 
