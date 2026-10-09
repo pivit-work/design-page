@@ -75,7 +75,7 @@ const DEFAULT_LABELS = {
   title: '스쿼드 선택',
   hint: '스쿼드는 기능조직과 평행한 한시 조직축입니다. 계층이 없어 상태별로 묶어 보여줍니다.',
   leadHint: '소속한 스쿼드에는 [리드로] 버튼이 뜹니다 — 스쿼드당 리드 1명만 유지됩니다.',
-  ledgerHint: '스쿼드 생성·상태 전환·삭제, 계획 투입%는 조직도 스쿼드 뷰에서 합니다.',
+  ledgerHint: '비중은 스쿼드 리드가, 캐파 사용은 본인이 조직도 스쿼드 뷰에서 정합니다',
   search: '스쿼드 검색',
   empty: '검색 결과가 없어요',
   groupActive: '진행중',
@@ -98,6 +98,7 @@ const DEFAULT_LABELS = {
   leadReplaceBody: '기존 리드 {current} 님의 지정은 해제됩니다 — 스쿼드당 리드는 1명입니다.',
   leadReleaseBody: '{name} 님의 {squad} 리드 지정을 해제합니다. 리드가 없는 스쿼드도 정상입니다.',
   leadNoRoleChange: '스쿼드 리드는 한시 조직의 역할이라 계정 권한(역할)은 바뀌지 않습니다.',
+  leadNoHistory: '스쿼드는 발령 대상이 아니므로 발령 이력에 남지 않습니다.',
   leadConfirm: '확인',
 };
 
@@ -136,6 +137,10 @@ function SquadLeadConfirm({ mode, memberName, squadName, currentLeadName, labels
           {/* SQ11 — 권한(역할)은 바뀌지 않는다. 조직장 모달의 승격 안내·강등 체크박스가
               여기 없는 이유를 사용자에게도 밝힌다. */}
           <p style={{ margin: 0, fontSize: 11, color: T.muted }}>{L.leadNoRoleChange}</p>
+          {/* 조직장 지정과 달리 발령 이력에 남지 않는다(TC-ADM-086) — 이력에서 찾지 않게 미리 밝힌다. */}
+          {L.leadNoHistory && (
+            <p data-testid="squad-lead-no-history" style={{ margin: '4px 0 0', fontSize: 11, color: T.muted }}>{L.leadNoHistory}</p>
+          )}
         </div>
       }
       cancelLabel={L.cancel}
@@ -242,8 +247,6 @@ export default function SquadPicker({
         <>
           {L.hint}
           <br />{L.leadHint}
-          {/* SQ3 — 원장 CRUD 가 여기 없는 이유를 밝힌다. */}
-          <br /><span data-testid="squad-picker-ledger-hint">{L.ledgerHint}</span>
         </>
       }
       titleId="squad-picker-title"
@@ -259,6 +262,8 @@ export default function SquadPicker({
             <span data-testid="squad-picker-count" style={{ fontSize: 11, color: T.sub }}>
               {fill(L.selectedCount, { count: activeCount })}
             </span>
+            {/* admin-spec §3.1 — 하단에 `선택 N개` + 비중·캐파를 어디서 정하나(여기서 안 다루는 이유). */}
+            <span data-testid="squad-picker-ledger-hint" style={{ display: 'block', fontSize: 11, color: T.muted }}>{L.ledgerHint}</span>
           </div>
           <div className="adm-shell-foot-actions">
             {saveNotice && <span className="adm-shell-save-notice">{saveNotice}</span>}
