@@ -64,8 +64,11 @@ export default function OkrResourceCanvas({
   const L = mergeOkrResourceLabels(providedLabels);
   const items = (views?.length ? VIEWS.filter((v) => views.includes(v)) : VIEWS)
     .map((value) => ({ value, label: L.views[value] }));
-  const [picked, setView] = useState(initialView);
-  const view = items.some((item) => item.value === picked) ? picked : (items[0]?.value ?? 'my');
+  // 사람이 고른 탭이 없으면 initialView — 불러오는 중(placeholder)에 먼저 떠 있던 캔버스도 따라가게
+  // 상태 초기값으로 굳히지 않는다.
+  const [picked, setView] = useState(null);
+  const wanted = picked ?? initialView;
+  const view = items.some((item) => item.value === wanted) ? wanted : (items[0]?.value ?? 'my');
   const [openTeam, setOpenTeam] = useState(null);
 
   if (placeholder != null) {
