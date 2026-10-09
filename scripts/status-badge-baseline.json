@@ -2253,6 +2253,14 @@
   },
   "timeline.css|.tl-snippet-tag:hover:not(:disabled):not(.tl-snippet-tag-selected)": {
    "background": "#f9fafb / 어두운 화면 #22262f"
+  },
+  "status-badge.css|.evrr-badge.is-rejected": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "status-badge.css|.evrr-badge.is-ai": {
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#5925dc / 어두운 화면 #fafaff"
   }
  }
 }

@@ -1,12 +1,13 @@
 import { Fragment, useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { ChevronLeftIcon, StopIcon } from './evalIcons.jsx';
+import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
- * 순수 표현: stages/members/completionPct + 콜백(onRemind/onEmergencyStop/onReopen/onResume).
+ * 순수 표현: stages/members/completionPct + 콜백(onRemind/onEmergencyStop/onReopen/onHold/onResume).
  */
 
 const DEFAULT_LABELS = {
@@ -26,6 +27,11 @@ const DEFAULT_LABELS = {
   reopen: '재개',
   // [PW-1120] 일시 중단(`on_hold`) 중 진행 현황 오른쪽 위 (정책 §6.6 버튼 위치 ②·라벨)
   resume: '평가 재개',
+  // [PW-1458] 진행 중일 때 같은 자리의 [평가 일시 중단] + 확인 창 (정책 §6.6 — 사이클 목록과 같은 문구)
+  hold: '평가 일시 중단',
+  confirmHoldTitle: '평가 일시 중단',
+  confirmHoldBody: '평가를 일시 중단하면 구성원이 더 이상 작성·제출할 수 없습니다. 일시 중단하시겠습니까?',
+  confirmHoldCancel: '취소',
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
@@ -224,6 +230,12 @@ export default function EvalCycleMonitoringCanvas({
   onRemind,
   onEmergencyStop,
   onReopen,
+  /**
+   * [PW-1458] 진행 중(`active`)일 때 [평가 일시 중단] — 확인 창을 거쳐 부른다 (정책 §6.6).
+   * 프로미스를 돌려주면 끝날 때까지 확인 창을 잠근다. 실패 안내는 호출부가 한다.
+   * 안 주면 버튼을 그리지 않는다.
+   */
+  onHold,
   onResume,
   onExclude,
   onRestore,
@@ -291,6 +303,20 @@ export default function EvalCycleMonitoringCanvas({
   const [exportKind, setExportKind] = useState(null);
   const [exportReason, setExportReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
+  // [PW-1458] 일시 중단 확인 창 — 열림 · 보내는 중
+  const [holdConfirmOpen, setHoldConfirmOpen] = useState(false);
+  const [holdBusy, setHoldBusy] = useState(false);
+  const confirmHold = async () => {
+    setHoldBusy(true);
+    try {
+      await onHold?.();
+    } catch {
+      // 실패 안내는 호출부 몫이다 — 창만 닫는다.
+    } finally {
+      setHoldBusy(false);
+      setHoldConfirmOpen(false);
+    }
+  };
   /* [PW-1054] 「보이는 N명」은 표에 보이는 줄 수 = 파일 줄 수다. 제외된 사람도 표에 흐리게
      남고, 서버 진행 상태 CSV 도 그 사람을 「제외 여부 Y」 줄로 싣는다(§6.9.2 「보이는 것과
      받는 것이 같아야 한다」). 제외자를 빼고 세면 화면 인원과 파일 줄 수가 갈리고, 전원이
@@ -325,20 +351,33 @@ export default function EvalCycleMonitoringCanvas({
 
   // [PW-1120] 일시 중단 중에는 구성원 제출이 막혀 있어 리마인더를 받아도 할 수 있는 것이 없다 —
   // 그 자리에 [평가 재개]를 둔다(정책 §6.6 「진행 현황 탭 우상단(동일 동작)」).
-  const onHold = status === 'on_hold';
+  const isOnHold = status === 'on_hold';
+  // [PW-1458] 일시 중단할 수 있는 «진행 중» — 서버(`EvalCycle.hold`)가 막는 상태를 뺀 나머지.
+  const canHold =
+    !!status && !['draft', 'done', 'on_hold', 'emergency_stopped', 'revoked'].includes(status);
   const hasControls = stopped
     ? !!onReopen
-    : onHold
+    : isOnHold
       ? !!onResume || !!(canStop && onEmergencyStop)
-      : !!onRemind || !!(canStop && onEmergencyStop);
+      : !!onRemind || !!(canHold && onHold) || !!(canStop && onEmergencyStop);
   const controls = (
     <div className="evmon-controls">
-      {onHold && onResume && (
+      {canHold && onHold && (
+        <button
+          type="button"
+          className="evc-btn is-hold"
+          onClick={() => setHoldConfirmOpen(true)}
+          data-testid="evmon-hold"
+        >
+          <PauseIcon size={14} /> {L.hold}
+        </button>
+      )}
+      {isOnHold && onResume && (
         <button type="button" className="evc-btn is-primary" onClick={() => onResume()} data-testid="evmon-resume">
           {L.resume}
         </button>
       )}
-      {!stopped && !onHold && onRemind && (
+      {!stopped && !isOnHold && onRemind && (
         <button type="button" className="evc-btn is-ghost" onClick={() => onRemind()} data-testid="evmon-remind">
           {L.remind}
         </button>
@@ -665,6 +704,23 @@ export default function EvalCycleMonitoringCanvas({
       </Frame>
 
       {/* [PW-534] 확인 모달 (§6.9.4) — 응답 벌만 사유를 받는다. */}
+      {holdConfirmOpen && (
+        <ConfirmModal
+          title={L.confirmHoldTitle}
+          body={L.confirmHoldBody}
+          confirmLabel={L.hold}
+          cancelLabel={L.confirmHoldCancel}
+          busy={holdBusy}
+          onConfirm={() => void confirmHold()}
+          onCancel={() => {
+            if (!holdBusy) setHoldConfirmOpen(false);
+          }}
+          testId="evmon-hold-confirm"
+          confirmTestId="evmon-hold-confirm-ok"
+          cancelTestId="evmon-hold-confirm-cancel"
+        />
+      )}
+
       {exportKind && (
         <ModalShell
           title={
