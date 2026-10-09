@@ -6,7 +6,7 @@ import EvalCycleWizard from './EvalCycleWizard.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
-import { PauseIcon, PlayIcon } from './evalIcons.jsx';
+import { ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
   countRemindersBeforePhaseStart,
@@ -184,7 +184,7 @@ const DEFAULT_LABELS = {
   modeLeaderAssign: '리더 지정',
   modeHrAssign: 'HR 지정',
   recommendedBadge: '권장',
-  exceptionBadge: '예외',
+  exceptionBadge: '예외 옵션',
   scheduleHint: '활성화한 리뷰 종류에 따라 필요한 단계만 표시됩니다. 마감일은 선택 사항입니다.',
   dueLabel: '마감',
   createDraftHint: '생성하면 준비 중 상태로 저장됩니다. 대상자 설정 후 목록에서 오픈하세요.',
@@ -270,11 +270,48 @@ const DEFAULT_LABELS = {
   confirmAdvanceAllDone: '이 단계를 모두 마쳤습니다.',
   confirmAdvancePendingUnknown: '아직 마치지 않은 사람 수를 불러오지 못했습니다.',
   toastCreated: '평가 사이클이 생성되었습니다',
-  toastOpened: '사이클이 오픈되었습니다',
+  toastOpened: '평가가 오픈되었습니다',
   toastRevoked: '사이클이 회수되었습니다',
   toastDeleted: '사이클이 삭제되었습니다',
   toastError: '오류가 발생했습니다',
   toastNameRequired: '사이클 이름을 입력하세요',
+  blockScheduleEmpty: '켠 단계의 시작·종료 일시를 모두 입력하세요',
+  openCycleSubmit: '평가 오픈하기',
+  submitBlockTemplates: '2단계에서 평가 유형별 템플릿을 확정해야 오픈할 수 있습니다',
+  draftSaveFailedShort: '저장 실패',
+  draftRetry: '다시 시도',
+  draftFailingBanner: '저장되지 않고 있습니다',
+  draftLeaveFailedTitle: '저장에 실패했습니다',
+  draftLeaveFailedBody: '그래도 나가시겠습니까?',
+  draftMigratedBanner: '일부 설정이 최신 양식으로 옮겨졌습니다',
+  draftConflictBody: '{{name}}님이 {{time}}에 이 초안을 수정했습니다',
+  draftConflictSomeone: '다른 사용자',
+  draftConflictOverwrite: '내 내용으로 덮어쓰기',
+  draftConflictSaveNew: '새 초안으로 저장',
+  draftConflictLoad: '상대 내용 불러오기',
+  tplVanished: '이 단계의 템플릿이 라이브러리에서 사라졌습니다',
+  staleDraftsToggle: '오래된 초안 {{count}}건',
+  targetOrgLoadError: '조직 정보를 불러오지 못했습니다',
+  targetCandidatesLoadError: '구성원 명단을 불러오지 못했습니다',
+  targetInactiveSuffix: '(비활성)',
+  exclusionEmploymentTypeSuffix: '에 해당하면 제외',
+  targetIncludedToast: '{{count}}명을 수동 포함했습니다 — 규칙 제외를 사람이 뒤집은 것으로 남습니다',
+  targetManualKeptNotice: '수동 조정 {{count}}건은 유지했습니다',
+  exclusionUnsupported: '이 조건은 현재 워크스페이스에서 지원하지 않습니다',
+  exclusionUnsupportedLabel: '지원하지 않는 조건',
+  presetEmpty: '이전 사이클이 없습니다. 새로 작성하세요.',
+  pastCycleSection: '완료된 이전 사이클',
+  presetSection: '저장된 설정',
+  pastCycleMeta: '{{date}} 종료',
+  pastCycleLoadError: '해당 사이클 설정을 불러올 수 없습니다.',
+  copiedCycleName: '{{name}} (복사)',
+  tplVersionResetTitle: '다른 버전으로 바꿀까요?',
+  tplVersionResetBody: '현재 커스터마이징 설정이 프리셋으로 초기화됩니다. 계속하시겠습니까?',
+  templateTooManyItems: '항목이 너무 많으면 응답률이 낮아질 수 있습니다.',
+  roleLevelsSourceBadge: '회사 설정',
+  roleLevelsSourceHint: '직급은 어드민 직급 설정에서 불러옵니다 ({{count}}개)',
+  roleLevelsEmpty: '어드민에서 직급을 먼저 설정하세요',
+  roleLevelsSettingsLink: '직급 설정으로 이동',
 };
 
 const STATUS_META = {
@@ -863,6 +900,14 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L }) {
   );
 }
 
+const STALE_DRAFT_MS = 90 * 24 * 60 * 60 * 1000;
+/** 위자드 초안이고, 마지막 저장이 90일 이상 전인가. 저장 시각이 없으면 접지 않는다. */
+function isStaleDraft(cycle) {
+  if (cycle?.status !== 'draft' || !cycle.draftState || !cycle.draftSavedAt) return false;
+  const t = new Date(cycle.draftSavedAt).getTime();
+  return Number.isFinite(t) && Date.now() - t >= STALE_DRAFT_MS;
+}
+
 function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft }) {
   const isDraft = cycle.status === 'draft';
   /**
@@ -1044,6 +1089,18 @@ export default function EvalCycleHrCanvas({
   onReloadCommitteeCandidates,
   /* PW-980 — 대상자 후보·발령 이력 조회 실패. 위자드로 그대로 넘긴다. */
   candidatesError = false,
+  /* PW-1459 — 대상자 단계: 로딩·조직 조회 실패, 필터 값 목록의 출처(조직 설정). 위자드에 그대로 넘긴다. */
+  candidatesLoading = false,
+  orgUnitsLoading = false,
+  orgUnitsError = false,
+  onReloadOrgUnits,
+  fieldOptions = null,
+  fieldOptionsAll = null,
+  jobLadderFamilies = null,
+  /** PW-1459 §5.9 — 완료·회수 사이클의 설정 읽기. 넘기면 위자드 1단계에 «이전 사이클» 이 선다. */
+  onLoadCycleSettings,
+  /** PW-1459 §5.10.2 — 위자드의 「직급 설정으로 이동」. */
+  onGoToJobLevelSettings,
   onReloadCandidates,
   appointmentChangesError = false,
   onReloadAppointmentChanges,
@@ -1289,6 +1346,33 @@ export default function EvalCycleHrCanvas({
     setOpenConfirm(cycle);
   };
 
+  /**
+   * PW-1459 §5.1·§5.7 — 위자드 6단계 「평가 오픈하기」. 입력값을 받아 확인 창을 띄우고,
+   * 창의 「오픈하기」에서 저장 → 오픈을 잇는다.
+   *
+   * 저장은 됐는데 오픈이 실패하면 그 사이클은 «준비 중»으로 남는다. 다시 누르면 새로
+   * 만들지 않고 그 사이클을 갱신해 오픈한다 — 안 그러면 누를 때마다 사이클이 하나씩 는다.
+   */
+  const [openAfterSubmit, setOpenAfterSubmit] = useState(null);
+  const createdForOpen = useRef(null);
+  const handleSubmitOpen = (payload) => setOpenAfterSubmit(payload);
+  const handleConfirmCreateOpen = async () => {
+    const payload = openAfterSubmit;
+    const existingId = draftSession?.cycleId ?? createdForOpen.current;
+    let id = existingId;
+    if (existingId && onUpdateCycle) {
+      await onUpdateCycle(existingId, payload, { thenOpen: true });
+    } else {
+      id = await onCreateCycle?.(payload, { thenOpen: true });
+    }
+    createdForOpen.current = id ?? null;
+    await onOpenCycle?.(id);
+    createdForOpen.current = null;
+    setOpenAfterSubmit(null);
+    closeWizard();
+    showToast(L.toastOpened);
+  };
+
   /** [PW-637] 확인 창의 「오픈하기」. 실패는 다시 던져 창이 열린 채 사유를 적게 한다. */
   const handleConfirmOpen = async (cycle) => {
     await onOpenCycle?.(cycle.id);
@@ -1484,13 +1568,18 @@ export default function EvalCycleHrCanvas({
    * 날아간다 — 이 카드가 없애려는 바로 그 일이다. `null` 로 알리고 위자드가 푸터에
    * 인라인으로 표시한다.
    */
-  const handleSaveDraft = async ({ draftState, draftStep, name }) => {
+  /**
+   * PW-1459 §5.1-A-6 — 충돌 창의 선택이 잠금을 바꿔 보낸다. `baseSavedAt` 은 상대가 저장한
+   * 시각(알고 덮어쓴다), `asNew` 는 이 초안과 떼어 새 초안을 만든다.
+   * 소비 측이 던진 값에 `draftConflict` 가 있으면 위자드에 `{ conflict }` 로 돌려준다.
+   */
+  const handleSaveDraft = async ({ draftState, draftStep, name, baseSavedAt, asNew }) => {
     if (!onSaveDraft) return null;
     try {
       const saved = await onSaveDraft({
-        cycleId: draftSession?.cycleId,
+        cycleId: asNew ? undefined : draftSession?.cycleId,
         // 낙관적 잠금 키 — 그 사이 다른 HR 이 저장했으면 서버가 거절한다.
-        baseSavedAt: draftSession?.savedAt ?? null,
+        baseSavedAt: asNew ? null : (baseSavedAt ?? draftSession?.savedAt ?? null),
         draftState,
         draftStep,
         name,
@@ -1498,8 +1587,28 @@ export default function EvalCycleHrCanvas({
       if (!saved) return null;
       setDraftSession({ cycleId: saved.cycleId, savedAt: saved.savedAt });
       return saved;
-    } catch {
+    } catch (err) {
+      if (err?.draftConflict) return { conflict: err.draftConflict };
       return null;
+    }
+  };
+
+  /** PW-1459 충돌 창 「상대 내용 불러오기」 — 같은 초안의 최신 저장본으로 위자드를 새로 연다. */
+  const [wizardKey, setWizardKey] = useState(0);
+  const handleLoadLatestDraft = async () => {
+    const cycleId = draftSession?.cycleId;
+    if (!cycleId || !onLoadDraft) return;
+    try {
+      const draft = await onLoadDraft(cycleId);
+      if (!draft?.draftState) {
+        showToast(L.draftLoadError, 'error');
+        return;
+      }
+      setDraftSession({ cycleId, savedAt: draft.draftSavedAt ?? null });
+      setResumeTarget(draft);
+      setWizardKey((k) => k + 1);
+    } catch {
+      showToast(L.draftLoadError, 'error');
     }
   };
 
@@ -1552,11 +1661,22 @@ export default function EvalCycleHrCanvas({
     });
   };
 
+  /* PW-1459 §5.9 — 설정을 불러올 수 있는 이전 사이클: 완료·회수. */
+  const pastCycles = cycles
+    .filter((c) => c.status === 'done' || c.status === 'revoked')
+    .map((c) => ({ id: c.id, name: c.name, endDate: c.endDate ?? null }));
+
+  /* PW-1459 §5.1-A-6 — 오래된 초안(마지막 저장이 90일 이상 전)은 목록 끝에 접는다. */
+  const [showStaleDrafts, setShowStaleDrafts] = useState(false);
+  const staleDrafts = cycles.filter(isStaleDraft);
+  const freshCycles = staleDrafts.length ? cycles.filter((c) => !isStaleDraft(c)) : cycles;
+
   /** 위자드를 닫는다 — 초안 세션과 복원값을 함께 비운다(다음에 열면 새 초안이다). */
   const closeWizard = () => {
     setShowCreate(false);
     setResumeTarget(null);
     setDraftSession(null);
+    createdForOpen.current = null;
   };
 
   /**
@@ -1602,7 +1722,7 @@ export default function EvalCycleHrCanvas({
         </div>
       ) : (
         <div className="evc-list">
-          {cycles.map((cycle) => (
+          {freshCycles.map((cycle) => (
             <CycleCard
               key={cycle.id}
               cycle={cycle}
@@ -1621,11 +1741,44 @@ export default function EvalCycleHrCanvas({
               onDeleteDraft={requestDeleteDraft}
             />
           ))}
+          {/* PW-1459 §5.1-A-6 — 90일 넘게 손대지 않은 초안은 지우지 않고 접어 둔다.
+              지우면 무엇이 있었는지 설명할 수 없고, 펼쳐 두면 진행 중 사이클을 밀어낸다. */}
+          {staleDrafts.length > 0 && (
+            <button
+              type="button"
+              className="evc-btn is-ghost evc-stale-drafts-toggle"
+              aria-expanded={showStaleDrafts}
+              onClick={() => setShowStaleDrafts((v) => !v)}
+              data-testid="evc-stale-drafts-toggle"
+            >
+              {fill(L.staleDraftsToggle, { count: staleDrafts.length })}
+              {showStaleDrafts ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+            </button>
+          )}
+          {showStaleDrafts &&
+            staleDrafts.map((cycle) => (
+              <CycleCard
+                key={cycle.id}
+                cycle={cycle}
+                labels={L}
+                onManage={onManageCycle || onUpdateCycle ? handleManage : requestDelete}
+                onOpen={handleOpen}
+                onAdvance={handleAdvance}
+                advancing={advancingId === cycle.id}
+                onViewResults={onViewResults ? (c) => onViewResults(c.id) : () => {}}
+                onHold={requestHold}
+                onResume={handleResume}
+                onEditSchedule={(c) => setScheduleModal(c)}
+                onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
+                onDeleteDraft={requestDeleteDraft}
+              />
+            ))}
         </div>
       )}
 
       {showCreate && (
         <EvalCycleWizard
+          key={wizardKey}
           labels={L}
           candidates={candidates}
           orgUnits={orgUnits}
@@ -1635,6 +1788,14 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           candidatesError={candidatesError}
+          candidatesLoading={candidatesLoading}
+          orgUnitsLoading={orgUnitsLoading}
+          orgUnitsError={orgUnitsError}
+          onReloadOrgUnits={onReloadOrgUnits}
+          fieldOptions={fieldOptions}
+          fieldOptionsAll={fieldOptionsAll}
+          jobLadderFamilies={jobLadderFamilies}
+          onGoToJobLevelSettings={onGoToJobLevelSettings}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
@@ -1643,14 +1804,18 @@ export default function EvalCycleHrCanvas({
           onReloadRuleExclusions={onReloadRuleExclusions}
           onExclusionRulesChange={onExclusionRulesChange}
           onSubmit={handleCreate}
+          onSubmitOpen={onOpenCycle ? handleSubmitOpen : undefined}
           onCancel={cancelWizard}
           onOpenTemplateLibrary={onOpenTemplateLibrary}
           onSaveDraft={onSaveDraft ? handleSaveDraft : undefined}
+          onLoadLatestDraft={onLoadDraft ? handleLoadLatestDraft : undefined}
           draftState={resumeTarget?.draftState ?? null}
           draftStep={resumeTarget?.draftStep ?? 0}
           draftSavedAt={resumeTarget?.draftSavedAt ?? null}
           draftSavedByName={resumeTarget?.draftSavedByName ?? null}
           presets={cyclePresets}
+          pastCycles={onLoadCycleSettings ? pastCycles : []}
+          onLoadPastCycle={onLoadCycleSettings}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
           onDeletePreset={onDeleteCyclePreset}
@@ -1686,6 +1851,14 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           candidatesError={candidatesError}
+          candidatesLoading={candidatesLoading}
+          orgUnitsLoading={orgUnitsLoading}
+          orgUnitsError={orgUnitsError}
+          onReloadOrgUnits={onReloadOrgUnits}
+          fieldOptions={fieldOptions}
+          fieldOptionsAll={fieldOptionsAll}
+          jobLadderFamilies={jobLadderFamilies}
+          onGoToJobLevelSettings={onGoToJobLevelSettings}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
@@ -1755,6 +1928,15 @@ export default function EvalCycleHrCanvas({
                   }}
         />
         )}
+
+      {openAfterSubmit && (
+        <OpenConfirmModal
+          cycle={openAfterSubmit}
+          labels={L}
+          onCancel={() => setOpenAfterSubmit(null)}
+          onConfirm={handleConfirmCreateOpen}
+        />
+      )}
 
       {openConfirm && (
         <OpenConfirmModal

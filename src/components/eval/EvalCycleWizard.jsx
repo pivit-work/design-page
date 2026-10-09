@@ -12,6 +12,7 @@ import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Toast from '../shared/Toast.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -689,6 +690,30 @@ const REVIEW_AXES = [
   { key: 'jobPosition', labelKey: 'targetAxisJobPosition' },
 ];
 const REVIEW_AXIS_KEYS = REVIEW_AXES.map((a) => a.key);
+/* PW-1459 E12 — 대상 명단 가상 스크롤. 높이는 CSS(.evc-roster-group-head 35px ·
+   .evc-roster-row.is-fixed 52px · .evc-review-pane-body 최대 320px)와 같은 값이다. */
+const ROSTER_VIRTUAL_MIN = 100;
+const ROSTER_HEAD_H = 35;
+const ROSTER_ROW_H = 52;
+const ROSTER_VIEW_H = 320;
+const ROSTER_OVERSCAN = 400;
+/** PW-1459 §5.10 — 항목이 이보다 많으면 응답률 경고(진행은 막지 않는다). */
+const TEMPLATE_ITEMS_WARN = 50;
+/** 고용유형 — 기획서 고정 ENUM 4종(§5.5.2 · §5.5.10). 회사가 바꿀 수 없고 「임원」 같은 값은 없다. */
+const EMPLOYMENT_TYPES = ['정규직', '계약직', '인턴', '자문'];
+/** 이 위자드가 아는 제외 조건 칸. 불러온 설정에 이 밖의 조건이 있으면 «지원하지 않는 조건»이다(§5.9). */
+const KNOWN_EXCLUSION_KEYS = new Set([
+  'onLeave',
+  'hireDate',
+  'hireDateRef',
+  'hireDateDirection',
+  'roleChange',
+  'promotion',
+  'promotionRef',
+  'promotionDirection',
+  'employmentType',
+  'employmentTypeValues',
+]);
 /** 축별 선택값의 빈 상태. 축이 늘어도 여기 한 곳만 본다. */
 const emptyAxisSel = () =>
   REVIEW_AXIS_KEYS.reduce((acc, k) => ({ ...acc, [k]: [] }), {});
@@ -706,6 +731,27 @@ function clampStep(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
   return Math.min(Math.max(Math.trunc(n), 0), WIZARD_STEP_COUNT - 1);
+}
+
+/**
+ * PW-1459 §5.1-A-6 — 저장된 초안과 지금 위자드의 «칸 목록»이 다른가.
+ * 저장본에만 있는 칸은 무시되고, 지금만 있는 칸은 기본값으로 채워진다 — 둘 다 「양식이
+ * 바뀌었다」이다. 값이 아니라 칸 이름만 본다(값이 다른 것은 사용자가 저장한 내용이다).
+ * 제외 조건은 칸 묶음이 한 겹 안에 있어 그 안까지 본다.
+ */
+function draftShapeChanged(saved, current) {
+  if (!saved || typeof saved !== 'object') return false;
+  const differs = (a, b) => {
+    const known = Object.keys(b).filter((k) => b[k] !== undefined);
+    return (
+      Object.keys(a).some((k) => !(k in b)) ||
+      known.some((k) => !(k in a))
+    );
+  };
+  if (differs(saved, current)) return true;
+  const se = saved.exclusionRules;
+  const ce = current.exclusionRules;
+  return !!(se && ce && typeof se === 'object' && differs(se, ce));
 }
 
 /** `2026-08-23T18:20:00Z` → `18:20`. 시각이 없거나 못 읽으면 빈 문자열. */
@@ -839,7 +885,7 @@ function TriCheck({ state, label, onToggle }) {
  * 축을 만질 때마다 뒤 명단이 다시 그려지면 그 자체가 「동적 요소」라서 그렇다.
  * 팝오버 밖 클릭은 **적용하지 않고 닫는다** — 되돌아갈 곳이 없으면 「적용」이 뜻을 잃는다.
  */
-function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, onClose }) {
+function ReviewFilterPopover({ labels: L, applied, valuesOf, labelOf, countsOf, onApply, onClose }) {
   const [draft, setDraft] = useState(() => {
     const d = emptyAxisSel();
     REVIEW_AXIS_KEYS.forEach((k) => {
@@ -906,7 +952,7 @@ function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, 
                 onChange={() => toggle(v)}
                 data-testid={`evc-wiz-filter-val-${axis}-${v}`}
               >
-                <span className="evc-filter-value-name">{v}</span>
+                <span className="evc-filter-value-name">{labelOf ? labelOf(axis, v, draft) : v}</span>
                 <span className="evc-filter-value-n">{counts[v] ?? 0}</span>
               </Checkbox>
             ))}
@@ -2330,6 +2376,28 @@ export default function EvalCycleWizard({
    * 「다음」·저장은 원래대로 막힌다.
    */
   candidatesError = false,
+  /**
+   * PW-1459 §5.5.2 — 필터 값 목록은 조직 설정(필드 옵션)에서 읽는다. 축 키별 값 배열.
+   * `fieldOptions` 는 지금 고를 수 있는 값(설정 순서), `fieldOptionsAll` 은 비활성까지 포함한 전부.
+   * 안 넘기면 종전대로 후보가 가진 값에서 뽑는다.
+   */
+  /** PW-1459 §5.5.5 — 대상자 단계 로딩·조직 조회 실패. */
+  candidatesLoading = false,
+  orgUnitsLoading = false,
+  orgUnitsError = false,
+  onReloadOrgUnits,
+  /**
+   * PW-1459 §5.9 — 「이전 설정에서 시작하기」의 완료·회수 사이클 `[{ id, name, endDate }]` 과
+   * 그 설정 읽기(프리셋과 같은 칸 + `sourceCycleName`). 실패는 던진다(창 안에 적는다).
+   */
+  pastCycles = [],
+  onLoadPastCycle,
+  /** PW-1459 §5.10.2 — 직급이 하나도 없을 때 「어드민 직급 설정」으로 가는 길. */
+  onGoToJobLevelSettings,
+  fieldOptions = null,
+  fieldOptionsAll = null,
+  /** PW-1459 — 직렬 → 속한 직군 목록(직군 › 직렬 병기와 직군별 좁히기). */
+  jobLadderFamilies = null,
   /** 대상자 후보 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadCandidates,
   /**
@@ -2359,6 +2427,14 @@ export default function EvalCycleWizard({
   onExclusionRulesChange,
   onCancel,
   onSubmit,
+  /**
+   * PW-1459 §5.1 — 새로 만드는 위자드의 6단계는 「평가 오픈하기」다. 이 콜백이 있으면
+   * 6단계 버튼이 입력값을 넘기고, 소비 측이 오픈 확인 창을 거쳐 만들기·오픈을 잇는다.
+   * 없으면(관리 모드·옛 소비 측) 종전대로 `onSubmit` 으로 저장만 한다.
+   */
+  onSubmitOpen,
+  /** PW-1459 §5.1-A-6 — 충돌 창 「상대 내용 불러오기」. 같은 초안의 최신 저장본으로 다시 연다. */
+  onLoadLatestDraft,
   // TC-028 사이클 설정 프리셋(불러오기/저장)
   presets = [],
   onSavePreset,
@@ -3016,12 +3092,21 @@ export default function EvalCycleWizard({
     schedFormatBad(id, field) || (field === 'end' && schedOrderBad(id));
   /* 켜져 있는 단계만 본다 — 끈 단계는 일정 입력 자체를 감추므로(§5.2.1 OFF 표현)
      거기 남아 있는 옛 값 때문에 진행이 막히면 영문을 알 수 없다. */
-  const scheduleValid = enabledRows.every(
-    (r) =>
-      !schedFormatBad(r.id, 'start') &&
-      !schedFormatBad(r.id, 'end') &&
-      !schedOrderBad(r.id),
-  );
+  /* PW-1459 §5.1 — 켠 단계는 시작·종료 일시가 «모두» 있어야 3단계를 넘어간다.
+     형식·순서만 보던 때에는 날짜 칸을 비워도 「다음」이 눌렸다. */
+  const schedEmpty = (id) => {
+    const sc = scheduleOf(id);
+    return !sc.start || !sc.end;
+  };
+  const scheduleMissing = enabledRows.some((r) => schedEmpty(r.id));
+  const scheduleValid =
+    !scheduleMissing &&
+    enabledRows.every(
+      (r) =>
+        !schedFormatBad(r.id, 'start') &&
+        !schedFormatBad(r.id, 'end') &&
+        !schedOrderBad(r.id),
+    );
 
   /* ── PW-536 일정 시작일(D0) ─────────────────────────────────────────────
      화면에 보이는 단계 중 「직접 수정」인 것만 센다. 꺼졌다 켜졌다 하며 목록에서
@@ -4254,6 +4339,9 @@ export default function EvalCycleWizard({
      * 조용히 살려 두면 되살렸을 때 **해제했는데 살아 있는** 상태가 된다 — 사용자가
      * 확정한 적 없다고 여기는 평가지가 그대로 오픈된다.
      */
+    /* PW-1459 §5.2 — 동료 리뷰를 끄면 지정 방식 선택도 지운다. 남겨 두면 다시 켰을 때
+       사용자가 고른 적 없다고 여기는 방식이 그대로 살아 돌아온다. */
+    if (turningOff && t === 'peer') setPeerAssignModes([]);
     if (turningOff) {
       setPhaseTemplateMap((m) => {
         if (!(t in m)) return m;
@@ -4307,16 +4395,27 @@ export default function EvalCycleWizard({
         : tplRatioInvalid
           ? 'templateBlockRatio'
           : null;
-  // 대상 멤버 jobPosition(직책)에서 목록 도출(중복 제거, 빈값 제외).
-  const roleLevels = [
-    ...new Set(candidates.map((c) => c.jobPosition).filter(Boolean)),
-  ];
+  /* PW-1459 §5.10.2 — 직급 목록은 회사가 어드민에서 설정한 직급(job_level, 설정 순서)이다.
+     조직 설정을 못 받았을 때만 종전대로 대상 멤버의 직책 값에서 뽑는다. */
+  const roleFromSettings = Array.isArray(fieldOptions?.jobLevel);
+  const roleLevels = roleFromSettings
+    ? fieldOptions.jobLevel
+    : [...new Set(candidates.map((c) => c.jobPosition).filter(Boolean))];
   const roleVersionOf = (role) => roleVersions[role] || 'standard';
   const setRoleVersion = (role, v) =>
     setRoleVersions((prev) => ({ ...prev, [role]: v }));
-  const selectTplPreset = (id) => {
+  const applyTplPreset = (id) => {
     setTplVersion(id);
     setTplQuestions(presetFor(id, tplType));
+  };
+  /* PW-1459 §5.10 — 손본 항목이 있으면 다른 버전으로 바꾸기 전에 묻는다. 말없이 바꾸면 고친 것이 사라진다. */
+  const [pendingTplVersion, setPendingTplVersion] = useState(null);
+  const selectTplPreset = (id) => {
+    if (id !== tplVersion && tplIsCustomized) {
+      setPendingTplVersion(id);
+      return;
+    }
+    applyTplPreset(id);
   };
   const tplIsCustomized =
     JSON.stringify(tplQuestions) !== JSON.stringify(presetFor(tplVersion, tplType));
@@ -4389,6 +4488,8 @@ export default function EvalCycleWizard({
       confirmed,
       dirty,
       archived: (tpl?.status || 'active') === 'archived',
+      /* PW-1459 §5.1-A-6 — 확정이 가리키던 템플릿이 라이브러리에서 지워졌다(조회가 끝난 뒤에만 판정). */
+      vanished: libraryMode && !!id && !tpl && libraryResolved,
       editing,
       options: savedTemplates.filter(
         (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === rt.id,
@@ -4667,6 +4768,7 @@ export default function EvalCycleWizard({
 
      불변식: `manualInclude ⊆ 규칙 제외자` · `manualExclude ∩ 규칙 제외자 = ∅`. */
   const excludeOne = (id) => {
+    markManualAdjust();
     // 「수동 포함」 상태의 규칙 제외자를 다시 빼면 **규칙 사유로 돌아간다**(수동 제외 아님).
     if (keptIds.includes(id)) {
       setKeptIds((prev) => prev.filter((x) => x !== id));
@@ -4675,6 +4777,7 @@ export default function EvalCycleWizard({
     setManualExcludedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
   const includeOne = (id) => {
+    markManualAdjust();
     // 수동 제외를 되돌리면 **배지 없이 원상**이다.
     if (manualExcludedIds.includes(id)) {
       setManualExcludedIds((prev) => prev.filter((x) => x !== id));
@@ -4688,6 +4791,7 @@ export default function EvalCycleWizard({
      조직 트리 하나이고, 축(직급·고용형태·직렬·직군·직책)은 **표시만** 거르는 필터다. */
   const hasOrgUnits = Array.isArray(orgUnits) && orgUnits.length > 0;
   const orgTree = buildOrgTree(orgUnits, candidates);
+  const targetsLoading = candidatesLoading || orgUnitsLoading;
   const unitKeyOf = (c) => orgUnitKeyOf(c, hasOrgUnits);
   /** 트리가 아는 단위 id 전체 — 여기 없는 소속은 「미지정」으로 모은다. */
   const knownUnitIds = new Set(
@@ -4874,6 +4978,13 @@ export default function EvalCycleWizard({
   useEffect(() => {
     onExclusionRulesChange?.(JSON.parse(exclusionQueryKey));
   }, [exclusionQueryKey, onExclusionRulesChange]);
+  /* PW-1459 E4 — 제외 조건이 바뀌어 다시 판정해도 수동 제외·수동 포함은 그대로다. 마지막 수동
+     조정 뒤로 조건이 바뀌었으면 그 사실을 「수동 조정 N건은 유지했습니다」로 말한다. */
+  const rulesKeyNow = JSON.stringify(exclusionRulesNow);
+  const [rulesAtManual, setRulesAtManual] = useState(openedRulesKey);
+  const markManualAdjust = () => setRulesAtManual(rulesKeyNow);
+  const manualAdjustCount = manualExcludedIds.length + keptIds.length;
+  const showManualKept = manualAdjustCount > 0 && rulesKeyNow !== rulesAtManual;
   const rulesPinned =
     isManage &&
     Array.isArray(recordedExclusions) &&
@@ -4903,11 +5014,9 @@ export default function EvalCycleWizard({
   const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
   /* 규칙 5 — 「수동 포함」 배지를 붙일 수 있는 사람. 규칙이 뺀 사람만이다. */
   const ruleExcludedIds = new Set(autoExclusions.map((e) => e.memberId));
-  /* 고용유형 조건의 값 목록 — 평가 모듈이 자기 목록을 갖지 않는다(§5.5.2). 구성원이
-     실제로 가진 값에서 뽑는다. 「해당 N명」은 조건이 실제로 도는 모집단(고른 조직)에서 센다. */
-  const employmentTypeOptions = [
-    ...new Set(candidates.map((c) => c.employmentType).filter(Boolean)),
-  ];
+  /* 고용유형 조건의 값 목록 — 시스템 고정 4종이다(§5.5.2 · PW-1459). 「해당 N명」은 조건이
+     실제로 도는 모집단(고른 조직)에서 센다. */
+  const employmentTypeOptions = EMPLOYMENT_TYPES;
   const employmentTypeHitCount = scopedCandidates.filter(
     (c) => c.employmentType && employmentTypeValues.includes(c.employmentType),
   ).length;
@@ -4982,13 +5091,61 @@ export default function EvalCycleWizard({
 
   /* ── 필터·검색 — 표시만 거른다(카운터 3값과 저장분은 흔들리지 않는다) ────────── */
   /** 축의 값 목록. 직렬은 고른 직군 아래로 좁는다(직군 → 직렬은 부모–자식). */
+  /** PW-1459 — 직렬이 속한 직군. 조직 설정의 관계가 있으면 그것, 없으면 후보에서 본다. */
+  const familiesOfLadder = (ladder) =>
+    jobLadderFamilies?.[ladder] ??
+    [
+      ...new Set(
+        candidates
+          .filter((c) => c.jobTitle === ladder && c.jobFamily)
+          .map((c) => c.jobFamily),
+      ),
+    ];
   const axisValuesFor = (axisKey, sel) => {
+    // PW-1459 §5.5.2 — 고용유형은 고정 4종, 나머지는 조직 설정의 «지금 고를 수 있는» 값(설정 순서).
+    if (axisKey === 'employmentType') return EMPLOYMENT_TYPES;
+    const options = fieldOptions?.[axisKey];
+    if (Array.isArray(options)) {
+      const fams = sel.jobFamily ?? [];
+      if (axisKey === 'jobTitle' && fams.length > 0) {
+        return options.filter((l) => familiesOfLadder(l).some((f) => fams.includes(f)));
+      }
+      return options;
+    }
     const pool =
       axisKey === 'jobTitle' && (sel.jobFamily ?? []).length > 0
         ? scopedCandidates.filter((c) => sel.jobFamily.includes(c.jobFamily))
         : scopedCandidates;
     return [...new Set(pool.map((c) => c[axisKey]).filter(Boolean))];
   };
+  /** PW-1459 §5.5.2 — 직군을 안 골랐으면 직렬 값에 `직군 › 직렬` 을 병기한다. */
+  const axisLabelFor = (axisKey, value, sel) => {
+    if (axisKey !== 'jobTitle' || (sel.jobFamily ?? []).length > 0) return value;
+    const fams = familiesOfLadder(value);
+    return fams.length > 0 ? `${fams.join(' · ')} › ${value}` : value;
+  };
+  /** PW-1459 E6 — 조직 설정에서 비활성한 값. 명단 행에는 남기고 값 뒤에 `(비활성)`. */
+  const isInactiveValue = (axisKey, value) =>
+    !!value &&
+    Array.isArray(fieldOptions?.[axisKey]) &&
+    Array.isArray(fieldOptionsAll?.[axisKey]) &&
+    fieldOptionsAll[axisKey].includes(value) &&
+    !fieldOptions[axisKey].includes(value);
+  const metaOf = (c) =>
+    [c.jobLevel, c.employmentType]
+      .filter(Boolean)
+      .map((v, i) =>
+        i === 0 && isInactiveValue('jobLevel', v) ? `${v} ${L.targetInactiveSuffix}` : v,
+      )
+      .join(' · ');
+  /** PW-1459 규칙 9 — 그룹 안 정렬: 직급 옵션 순서(설정의 위쪽 먼저) → 이름. 직급이 없거나 목록 밖이면 뒤로. */
+  const levelOrder = fieldOptionsAll?.jobLevel ?? fieldOptions?.jobLevel ?? [];
+  const levelRank = (c) => {
+    const i = levelOrder.indexOf(c.jobLevel);
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const byLevelThenName = (a, b) =>
+    levelRank(a) - levelRank(b) || String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ko');
   /** 값별 인원수 — 「지금 조직 선택 안에서」 센다. */
   const axisCountsFor = (axisKey) =>
     scopedCandidates.reduce((acc, c) => {
@@ -5112,7 +5269,9 @@ export default function EvalCycleWizard({
   orgTree.forEach((d) => {
     unitsOfDept(d).forEach((unitId) => {
       if (!orgSel.has(unitId)) return;
-      const members = visibleTargets.filter((c) => bucketOf(c) === unitId);
+      const members = visibleTargets
+        .filter((c) => bucketOf(c) === unitId)
+        .sort(byLevelThenName);
       if (members.length === 0) return;
       const team = d.teams.find((t) => t.id === unitId);
       reviewGroups.push({
@@ -5123,9 +5282,9 @@ export default function EvalCycleWizard({
     });
   });
   if (orgSel.has(UNASSIGNED_ORG_ID)) {
-    const members = visibleTargets.filter(
-      (c) => bucketOf(c) === UNASSIGNED_ORG_ID,
-    );
+    const members = visibleTargets
+      .filter((c) => bucketOf(c) === UNASSIGNED_ORG_ID)
+      .sort(byLevelThenName);
     if (members.length > 0) {
       reviewGroups.push({
         id: UNASSIGNED_ORG_ID,
@@ -5135,9 +5294,55 @@ export default function EvalCycleWizard({
     }
   }
 
+  /* PW-1459 E12 — 명단이 100명을 넘으면 가상 스크롤. 스크롤 위치·창 높이는 스크롤 이벤트에서만 잰다. */
+  const rosterMemberTotal = reviewGroups.reduce((n, g) => n + g.members.length, 0);
+  const rosterVirtual = rosterMemberTotal > ROSTER_VIRTUAL_MIN;
+  const [rosterScroll, setRosterScroll] = useState({ top: 0, height: ROSTER_VIEW_H });
+  const rosterGroupTop = new Map();
+  reviewGroups.reduce((acc, g) => {
+    rosterGroupTop.set(g.id, acc);
+    const rows = groupCollapsed.has(g.id) ? 0 : g.members.length;
+    return acc + ROSTER_HEAD_H + rows * ROSTER_ROW_H;
+  }, 0);
+  const onRosterScroll = rosterVirtual
+    ? (e) =>
+        setRosterScroll({
+          top: e.currentTarget.scrollTop,
+          height: e.currentTarget.clientHeight || ROSTER_VIEW_H,
+        })
+    : undefined;
+  const renderRosterRow = (c) => (
+    <div key={c.id} className={`evc-roster-row${rosterVirtual ? ' is-fixed' : ''}`}>
+      <div className="evc-roster-who">
+        <span className="evc-roster-name">{c.name}</span>
+        <span className="evc-roster-meta">{metaOf(c)}</span>
+      </div>
+      {keptIds.includes(c.id) && (
+        <StatusBadge
+          className="evc-roster-badge"
+          data-testid={`evc-wiz-kept-${c.id}`}>
+          {L.targetManualInclude}
+        </StatusBadge>
+      )}
+      <Tooltip content={L.targetReviewExcludeOne}>
+        <button
+          type="button"
+          className="evc-roster-move is-out"
+          onClick={() => excludeOne(c.id)}
+          aria-label={L.targetReviewExcludeOne}
+          data-testid={`evc-wiz-exclude-${c.id}`}
+        >
+          {L.targetMoveOut}
+          <ArrowRightIcon size={13} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+
   /** 여럿을 한 번에 옮긴다 — 되돌리기 1회를 위해 직전 상태를 스냅샷으로 남긴다. */
   const moveMany = (list, toExcluded) => {
-    if (list.length === 0) return;
+    if (list.length === 0) return 0;
+    markManualAdjust();
     setUndoSnapshot({ manual: [...manualExcludedIds], kept: [...keptIds] });
     const ids = list.map((c) => c.id);
     if (toExcluded) {
@@ -5158,13 +5363,31 @@ export default function EvalCycleWizard({
         ...prev,
         ...toKept.filter((id) => !prev.includes(id)),
       ]);
+      return toKept.length;
     }
+    return ids.length;
   };
   const undoMove = () => {
     if (!undoSnapshot) return;
     setManualExcludedIds(undoSnapshot.manual);
     setKeptIds(undoSnapshot.kept);
     setUndoSnapshot(null);
+    setWizToast(null);
+  };
+
+  /* PW-1459 E19 — 일괄 되돌리기로 규칙 제외자가 「수동 포함」이 되면 몇 명인지와
+     그것이 기록으로 남는다는 것을 알린다. 되돌리기는 1회(위 스냅샷). */
+  const [wizToast, setWizToast] = useState(null);
+  const wizToastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(wizToastTimer.current), []);
+  const showWizToast = (toast) => {
+    setWizToast(toast);
+    clearTimeout(wizToastTimer.current);
+    wizToastTimer.current = setTimeout(() => setWizToast(null), 6000);
+  };
+  const includeVisibleExcluded = () => {
+    const kept = moveMany(visibleExcluded, false);
+    if (kept > 0) showWizToast({ kind: 'included', count: kept });
   };
 
 
@@ -5280,6 +5503,15 @@ export default function EvalCycleWizard({
     committees: committees.map(({ key, ...rest }) => rest),
   });
 
+  /**
+   * PW-1459 §5.1-A-6 — 이어 쓴 초안이 지금 위자드와 다른 양식으로 저장됐나. 저장된 칸 중
+   * 지금은 없는 칸(무시됨)이나, 지금 있는데 저장본에 없는 칸(기본값으로 채움)이 있으면
+   * 「일부 설정이 최신 양식으로 옮겨졌습니다」를 띄운다. 연 순간 한 번만 잰다.
+   */
+  const [draftMigrated] = useState(() =>
+    isDraftResume ? draftShapeChanged(D, collectDraft()) : false,
+  );
+
   /* 저장 상태. `savedSnapshot` 은 마지막으로 서버에 보낸 초안의 JSON 이다 —
      「저장 이후 바뀐 것이 있나」를 값으로 판정한다(플래그로 두면 되돌린 편집까지
      «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다). */
@@ -5291,6 +5523,12 @@ export default function EvalCycleWizard({
   );
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftError, setDraftError] = useState(false);
+  /* PW-1459 §5.1-A-6 — 연달아 실패한 횟수. 3회부터는 푸터 한 줄로는 놓치므로 위쪽에
+     지속 배너를 둔다. 한 번이라도 성공하면 0 으로 돌린다. */
+  const [draftFailStreak, setDraftFailStreak] = useState(0);
+  /* PW-1459 §5.1-A-6 — 다른 사람이 같은 초안을 먼저 저장했다. `{ savedByName, savedAt }` */
+  const [draftConflict, setDraftConflict] = useState(null);
+  const [conflictBusy, setConflictBusy] = useState(false);
   /* 이탈 확인 다이얼로그. null 이면 안 떠 있다. */
   const [leaveAsk, setLeaveAsk] = useState(false);
 
@@ -5325,10 +5563,19 @@ export default function EvalCycleWizard({
    * 🔴 **이동을 막지 않는다.** 저장을 기다렸다 렌더하면 매 단계마다 화면이 멈춘 것처럼
    * 보인다. 실패해도 이미 일어난 이동은 되돌리지 않고 푸터에만 알린다(§5.1-A-1).
    */
-  const saveDraft = async (overrides) => {
+  /**
+   * `lock` — PW-1459 충돌 창의 두 선택이 쓴다. `{ baseSavedAt }` 은 상대가 저장한 시각을
+   * 잠금 키로 보내 «알고 덮어쓴다», `{ asNew: true }` 는 이 초안과 떼어 새 초안으로 만든다.
+   */
+  const saveDraft = async (overrides, lock) => {
     if (!draftEnabled) return null;
     const payload = { ...collectDraft(), ...(overrides ?? {}) };
     const snapshot = JSON.stringify(payload);
+    const failed = () => {
+      setDraftError(true);
+      setDraftFailStreak((n) => n + 1);
+      return null;
+    };
     setDraftSaving(true);
     setDraftError(false);
     try {
@@ -5336,23 +5583,63 @@ export default function EvalCycleWizard({
         draftState: payload,
         draftStep: clampStep(payload.step),
         name: payload.name,
+        ...(lock ?? {}),
       });
-      if (!result) {
-        setDraftError(true);
-        return null;
+      if (result?.conflict) {
+        setDraftConflict(result.conflict);
+        return failed();
       }
+      if (!result) return failed();
       setDraftSavedAt(result.savedAt ?? null);
       setSavedSnapshot(snapshot);
+      setDraftFailStreak(0);
+      setDraftConflict(null);
       return result;
     } catch {
       // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
       // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
-      setDraftError(true);
-      return null;
+      return failed();
     } finally {
       setDraftSaving(false);
     }
   };
+
+  /** PW-1459 충돌 창의 세 선택. 실패하면 창을 연 채 둔다(푸터에 실패가 남는다). */
+  const resolveConflict = async (choice) => {
+    const conflict = draftConflict;
+    if (!conflict || conflictBusy) return;
+    setConflictBusy(true);
+    try {
+      if (choice === 'load') {
+        // 상대 내용으로 위자드를 다시 연다 — 소비 측이 그 초안을 읽어 새로 띄운다.
+        await onLoadLatestDraft?.();
+        return;
+      }
+      await saveDraft(
+        undefined,
+        choice === 'overwrite' ? { baseSavedAt: conflict.savedAt } : { asNew: true },
+      );
+    } finally {
+      setConflictBusy(false);
+    }
+  };
+
+  /* PW-1459 §5.1-A-5 — 탭 닫기·새로고침은 브라우저가 묻게 한다. 문구는 브라우저가 정한다.
+     저장 이후 바뀐 것이 있거나 마지막 저장이 실패했을 때만 건다. */
+  /* 연 순간의 값 — 아무것도 안 고쳤으면 「바뀜」이 아니다. 한 번도 저장 안 한 새 위자드는
+     `draftDirty` 가 늘 참이라 그것만 보면 열자마자 브라우저가 묻는다. */
+  const [openSnapshot] = useState(draftSnapshot);
+  const unloadArmed =
+    draftEnabled && (draftError || (draftDirty && draftSnapshot !== openSnapshot));
+  useEffect(() => {
+    if (!unloadArmed || typeof window === 'undefined') return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [unloadArmed]);
 
   // 단계 이동 — 위원 검색어는 초기화하고 선택은 유지한다. 돌아왔을 때 예전 검색어가
   // 남아 있으면 후보가 몇 명뿐인 것처럼 보인다.
@@ -5451,8 +5738,18 @@ export default function EvalCycleWizard({
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
+  const opensOnSubmit =
+    !isManage && !isSingleStep && typeof onSubmitOpen === 'function';
+  /* 6단계가 곧 오픈이면 미확정 템플릿은 여기서 막힌다 — 서버 오픈 전이가 같은 것을 거절한다
+     (§5.2.4 엣지 4 「미확정은 오픈에서만 막는다」의 그 «오픈»이다). */
+  const openBlockedByTemplates = opensOnSubmit && unconfirmedTypes.length > 0;
   const canSubmit =
-    step1Valid && scheduleValid && remindersValid && targetsValid && committeeValid;
+    step1Valid &&
+    scheduleValid &&
+    remindersValid &&
+    targetsValid &&
+    committeeValid &&
+    !openBlockedByTemplates;
   /**
    * [PW-531] 단계 표의 ✓ 판정 — `다음` 을 막는 조건과 같은 것을 단계별로 본다.
    * 2단계(템플릿)는 경고만 하고 진행을 막지 않으므로(§5.1 표) 늘 완료로 친다.
@@ -5469,7 +5766,9 @@ export default function EvalCycleWizard({
             : true;
   const submitBlockHint = !step1Valid
     ? L.submitBlockBasics
-    : !scheduleValid
+    : scheduleMissing
+      ? L.blockScheduleEmpty
+      : !scheduleValid
       ? L.submitBlockSchedule ?? L.dateOrderError
       : !remindersValid
         ? L.reminderNoRecipientErr
@@ -5477,7 +5776,9 @@ export default function EvalCycleWizard({
         ? L.submitBlockTargets
         : !committeeValid
           ? L.submitBlockCommittee
-          : null;
+          : openBlockedByTemplates
+            ? L.submitBlockTemplates
+            : null;
 
   /**
    * PW-531 — 「생성」의 결과를 기다린다.
@@ -5522,7 +5823,12 @@ export default function EvalCycleWizard({
             .filter((p) => !openedManage || reminders[p.id] !== undefined)
             .map((p) => [p.id, remindersOf(p.id)]),
         ),
-        templateMap: phaseTemplateMap,
+        // PW-1459 §5.1-A-6 — 지워진 템플릿을 가리키는 매핑은 비워서 보낸다.
+        templateMap: Object.fromEntries(
+          Object.entries(phaseTemplateMap).filter(
+            ([type]) => !confirmRowOf(type)?.vanished,
+          ),
+        ),
         gradeCardPosition,
         roleMode,
         roleVersions: roleMode === 'by_role' ? roleVersions : {},
@@ -5609,6 +5915,11 @@ export default function EvalCycleWizard({
         : [],
     };
     setSubmitFailed(false);
+    if (opensOnSubmit) {
+      // 저장·오픈은 확인 창이 맡는다 — 창의 「오픈하기」를 눌러야 무엇이든 만들어진다.
+      onSubmitOpen(payload);
+      return;
+    }
     setSubmitting(true);
     try {
       await onSubmit(payload);
@@ -5696,6 +6007,10 @@ export default function EvalCycleWizard({
     // A4: 대상자 조건(범위 축·제외 규칙)도 함께 복원한다.
     if (Array.isArray(cfg.orgIds)) setOrgSel(new Set(cfg.orgIds));
     const ex = cfg.exclusionRules || {};
+    // PW-1459 §5.9 — 이 위자드가 모르는 조건은 버리지 않고 «지원하지 않는 조건»으로 보여 준다.
+    setUnsupportedRules(
+      Object.keys(ex).filter((k) => !KNOWN_EXCLUSION_KEYS.has(k) && !!ex[k]),
+    );
     setExcludeOnLeave(!!ex.onLeave);
     setExcludeHireDate(!!ex.hireDate);
     setHireDateRef(ex.hireDateRef || '');
@@ -5744,6 +6059,7 @@ export default function EvalCycleWizard({
   // A4 불러오기 다이얼로그 — 목록에서 고르고 '이 설정으로 시작'.
   // 이미 입력한 값이 있으면 덮어쓰기 전에 확인을 받는다.
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [unsupportedRules, setUnsupportedRules] = useState([]);
   const [pendingPresetId, setPendingPresetId] = useState(null);
   const wizardDirty =
     !!name.trim() ||
@@ -5777,8 +6093,8 @@ export default function EvalCycleWizard({
     try {
       await onDeletePreset(target.id);
       if (selectedPresetId === target.id) setSelectedPresetId('');
-      // 마지막 하나를 지웠으면 창을 닫는다 — 열린 채 두면 다음에 저장할 때 저절로 뜬다.
-      if (presets.length <= 1) setPresetDialogOpen(false);
+      /* 마지막 하나를 지워도 창을 닫지 않는다(PW-1459 §5.9) — 창이 「이전 사이클이 없습니다…」
+         안내로 바뀐다. 예전에는 빈 창을 숨긴 채 열려 있어 다음 저장 때 저절로 떴다. */
     } catch {
       setPresetDeleteFailedId(target.id);
     } finally {
@@ -5794,6 +6110,37 @@ export default function EvalCycleWizard({
     }
     void loadPresetById(presetId);
   };
+
+  /* PW-1459 §5.9 — 이전 사이클에서 시작. 덮어쓰기 확인은 프리셋과 같은 창을 쓴다(키에 `cycle:` 를 붙여 가른다). */
+  const [pastCycleLoadFailed, setPastCycleLoadFailed] = useState(null);
+  const loadPastCycleById = async (cycleId) => {
+    if (!cycleId || !onLoadPastCycle) return;
+    setPastCycleLoadFailed(null);
+    try {
+      const settings = await onLoadPastCycle(cycleId);
+      applyPreset(settings);
+      // 이름은 「{원래 이름} (복사)」로 — 같은 이름 사이클이 둘이면 목록에서 가를 수 없다.
+      if (settings?.sourceCycleName) {
+        setName(fill(L.copiedCycleName, { name: settings.sourceCycleName }));
+      }
+      setPresetDialogOpen(false);
+      setPendingPresetId(null);
+    } catch {
+      setPendingPresetId(null);
+      setPastCycleLoadFailed(cycleId);
+    }
+  };
+  const startFromPastCycle = (cycleId) => {
+    if (wizardDirty) {
+      setPendingPresetId(`cycle:${cycleId}`);
+      return;
+    }
+    void loadPastCycleById(cycleId);
+  };
+  const loadPendingSource = (key) =>
+    String(key).startsWith('cycle:')
+      ? loadPastCycleById(String(key).slice('cycle:'.length))
+      : loadPresetById(key);
 
   /**
    * 위자드 본체. 창으로 뜰 때와 «화면 안 한 칸» 으로 뜰 때가 이 노드를 함께 쓴다
@@ -5826,6 +6173,24 @@ export default function EvalCycleWizard({
           </div>
         )}
 
+        {!isSingleStep && isDraftResume && draftMigrated && (
+          <div className="evc-wiz-draft-banner" data-testid="evc-wiz-draft-migrated">
+            <InfoIcon size={14} />
+            <span>{L.draftMigratedBanner}</span>
+          </div>
+        )}
+        {/* PW-1459 §5.1-A-6 — 연달아 실패하면 푸터 한 줄로는 놓친다. 성공할 때까지 남는다. */}
+        {!isSingleStep && draftEnabled && draftFailStreak >= 3 && (
+          <div
+            className="evc-wiz-draft-banner is-error"
+            role="alert"
+            data-testid="evc-wiz-draft-failing"
+          >
+            <AlertIcon size={14} />
+            <span>{L.draftFailingBanner}</span>
+          </div>
+        )}
+
         {/* 갈 곳이 한 곳뿐이면 단계 표는 «누를 수 없는 표» 가 된다. */}
         {!isSingleStep && (
           <StepBar
@@ -5843,13 +6208,18 @@ export default function EvalCycleWizard({
             <div className="evc-wiz-panel">
               {/* TC-028 저장된 설정 프리셋 불러오기 — 관리 모드에서는 숨긴다
                   (이미 값이 들어 있는 사이클을 프리셋으로 덮어쓰는 건 수정이 아니다). */}
-              {!isManage && presets.length > 0 && onLoadPreset && (
+              {/* PW-1459 §5.9 — 이전 사이클·저장한 설정이 하나도 없어도 자리는 둔다. 열면
+                  「이전 사이클이 없습니다. 새로 작성하세요.」가 뜬다. */}
+              {!isManage && (onLoadPreset || onLoadPastCycle) && (
                 <div className="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
                     <div className="evc-preset-cta-text">
                       <span className="evc-field-label">{L.presetLoadLabel}</span>
                       <span className="evc-preset-cta-sub">
-                        {fill(L.presetLoadSub, { count: presets.length })}
+                        {fill(L.presetLoadSub, {
+                          count: presets.length,
+                          cycles: pastCycles.length,
+                        })}
                       </span>
                     </div>
                     <button
@@ -6374,10 +6744,34 @@ export default function EvalCycleWizard({
                 ))}
               </div>
 
+              {/* PW-1459 §5.10.2 — 회사 직급이 하나도 없으면 블록을 숨기지 않고 어디서 정하는지 알린다. */}
+              {roleFromSettings && roleLevels.length === 0 && !hideRoleVersions && (
+                <div data-testid="evc-tpl-role-empty">
+                  <span className="evc-field-label">{L.roleVersionTitle}</span>
+                  <p className="evc-wiz-hint">
+                    {L.roleLevelsEmpty}{' '}
+                    {onGoToJobLevelSettings && (
+                      <button
+                        type="button"
+                        className="evc-link-btn"
+                        onClick={onGoToJobLevelSettings}
+                        data-testid="evc-tpl-role-settings-link"
+                      >
+                        {L.roleLevelsSettingsLink}
+                      </button>
+                    )}
+                  </p>
+                </div>
+              )}
               {roleLevels.length > 0 && !hideRoleVersions && (
                 <>
                   <div className="evc-tpl-role-head">
                     <span className="evc-field-label">{L.roleVersionTitle}</span>
+                    {roleFromSettings && (
+                      <StatusBadge className="evc-mode-badge" data-testid="evc-tpl-role-source">
+                        {L.roleLevelsSourceBadge}
+                      </StatusBadge>
+                    )}
                     <div className="evc-type-row evc-tpl-rolemode">
                       <button
                         type="button"
@@ -6397,6 +6791,11 @@ export default function EvalCycleWizard({
                       </button>
                     </div>
                   </div>
+                  {roleFromSettings && (
+                    <p className="evc-wiz-hint" data-testid="evc-tpl-role-source-hint">
+                      {fill(L.roleLevelsSourceHint, { count: roleLevels.length })}
+                    </p>
+                  )}
                   {roleMode === 'uniform' ? (
                     <p className="evc-wiz-hint">
                       {fill(L.roleUniformNote, {
@@ -6407,7 +6806,10 @@ export default function EvalCycleWizard({
                     <div className="evc-tpl-roles">
                       {roleLevels.map((role) => (
                         <div key={role} className="evc-tpl-role-row">
-                          <span className="evc-tpl-role-name">{role}</span>
+                          {/* PW-1459 §12 — 회사 직급명은 길이를 통제할 수 없다. 말줄임 + title 툴팁. */}
+                          <span className="evc-tpl-role-name" title={role}>
+                            {role}
+                          </span>
                           <div className="evc-tpl-role-versions">
                             {TEMPLATE_VERSIONS.map((v) => (
                               <button
@@ -6519,6 +6921,12 @@ export default function EvalCycleWizard({
                 </div>
               )}
 
+              {/* PW-1459 §5.10 — 막지 않고 경고만 한다. */}
+              {tplQuestions.length > TEMPLATE_ITEMS_WARN && (
+                <p className="evc-wiz-warn" data-testid="evc-tpl-too-many">
+                  {L.templateTooManyItems}
+                </p>
+              )}
               <div className="evc-tpl-items-head">
                 <span className="evc-field-label">
                   {L.templateItemsLabel} ({tplQuestions.length})
@@ -7073,6 +7481,14 @@ export default function EvalCycleWizard({
                                 className="evc-sched-tpl-unset"
                                 data-testid={`evc-sched-tpl-unset-${ph.id}`}
                               >
+                                {row?.vanished && (
+                                  <span
+                                    className="evc-sched-tpl-vanished"
+                                    data-testid={`evc-sched-tpl-vanished-${ph.id}`}
+                                  >
+                                    <AlertIcon size={12} /> {L.tplVanished}
+                                  </span>
+                                )}
                                 <span>
                                   {fill(L.tplConfirmMissing, {
                                     type: L[REVIEW_TYPE_KEYS[rtype]],
@@ -7125,30 +7541,8 @@ export default function EvalCycleWizard({
 
           {step === 3 && (
             <div className="evc-wiz-panel">
-              {/* PW-980 — 후보 명단을 못 받으면 조직 트리도 명단도 빈다. 「대상이 없다」로
-                  읽히지 않게 단계 맨 위에서 말하고 다시 받게 한다. */}
-              {candidatesError && (
-                <div
-                  className="evc-wiz-committee-error"
-                  role="status"
-                  data-testid="evc-wiz-candidates-error"
-                >
-                  <span>
-                    {L.targetCandidatesLoadError ??
-                      '대상자 후보 명단을 불러오지 못했습니다.'}
-                  </span>
-                  {onReloadCandidates && (
-                    <button
-                      type="button"
-                      className="evc-wiz-committee-retry"
-                      onClick={onReloadCandidates}
-                      data-testid="evc-wiz-candidates-retry"
-                    >
-                      {L.wizardCommitteeRetry ?? '다시 시도'}
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* PW-980 — 후보 명단을 못 받으면 「대상이 없다」로 읽히지 않게 말하고 다시 받게
+                  한다. PW-1459 §5.5.5 부터 그 자리는 가운데 명단이다(아래). */}
               {/* PW-443 — 상단 「대상 범위」 탭 7종과 딸린 축 값 칩·개별 선택 명단을
                   제거했다. 모집단을 정하는 손잡이는 아래 「리뷰 & 조정」의 조직 트리
                   하나이고, 직급·직렬·직군·직책은 그 위의 필터가 흡수한다. 탭은 고를
@@ -7360,6 +7754,10 @@ export default function EvalCycleWizard({
                           ))
                         )}
                       </div>
+                      {/* PW-1459 §5.3.1 — 무엇을 하는 조건인지 값 바로 뒤에 말한다. */}
+                      <span data-testid="evc-wiz-excl-employment-suffix">
+                        {L.exclusionEmploymentTypeSuffix}
+                      </span>
                       <span
                         className="evc-wiz-hint"
                         data-testid="evc-wiz-excl-employment-count"
@@ -7377,6 +7775,27 @@ export default function EvalCycleWizard({
                       data-testid="evc-wiz-excl-employment-all"
                     >
                       {L.exclusionEmploymentTypeAll}
+                    </p>
+                  )}
+                  {/* PW-1459 §5.9 — 불러온 설정에 있던, 이 회사에서 쓸 수 없는 조건. 적용하지 않는다. */}
+                  {unsupportedRules.map((k) => (
+                    <Tooltip key={k} content={L.exclusionUnsupported}>
+                      <Checkbox
+                        className="evl-promo-row"
+                        checked={false}
+                        disabled
+                        onChange={() => {}}
+                        data-testid={`evc-wiz-excl-unsupported-${k}`}
+                      >
+                        <span>{L.exclusionUnsupportedLabel}</span>
+                      </Checkbox>
+                    </Tooltip>
+                  ))}
+                  {/* PW-1459 E4 — 조건이 바뀌어도 사람이 직접 옮긴 것은 그대로다. */}
+                  {showManualKept && (
+                    <p className="evc-wiz-hint" data-testid="evc-wiz-manual-kept">
+                      <InfoIcon size={12} />{' '}
+                      {fill(L.targetManualKeptNotice, { count: manualAdjustCount })}
                     </p>
                   )}
                 </div>
@@ -7462,6 +7881,7 @@ export default function EvalCycleWizard({
                         labels={L}
                         applied={reviewFilters}
                         valuesOf={axisValuesFor}
+                        labelOf={axisLabelFor}
                         countsOf={axisCountsFor}
                         onApply={(draft) => {
                           setReviewFilters(draft);
@@ -7532,6 +7952,30 @@ export default function EvalCycleWizard({
                       </button>
                     </div>
                     <div className="evc-review-pane-body">
+                      {/* PW-1459 §5.5.5 — 오기 전엔 자리 표시, 못 받으면 그 자리에서 다시 시도.
+                          조직만 실패하면 명단은 그대로 둔다(부분 실패를 전체 실패로 만들지 않는다). */}
+                      {targetsLoading ? (
+                        <div data-testid="evc-wiz-org-skeleton">
+                          {Array.from({ length: 6 }, (_, i) => (
+                            <Skeleton key={i} height={44} radius="var(--radius-md)" />
+                          ))}
+                        </div>
+                      ) : orgUnitsError ? (
+                        <div className="evc-review-empty" data-testid="evc-wiz-org-error">
+                          <p>{L.targetOrgLoadError}</p>
+                          {onReloadOrgUnits && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadOrgUnits}
+                              data-testid="evc-wiz-org-retry"
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                      <>
                       <div className="evc-org-row is-root">
                         <span className="evc-org-caret" />
                         <TriCheck
@@ -7664,6 +8108,8 @@ export default function EvalCycleWizard({
                           <span className="evc-org-n">{unassignedCount}</span>
                         </div>
                       )}
+                      </>
+                      )}
                     </div>
                     <div className="evc-review-pane-foot" data-testid="evc-wiz-org-summary">
                       {fill(L.targetOrgSelected, {
@@ -7697,8 +8143,41 @@ export default function EvalCycleWizard({
                         </button>
                       )}
                     </div>
-                    <div className="evc-review-pane-body">
-                      {focusOffTarget ? (
+                    <div
+                      className="evc-review-pane-body"
+                      onScroll={onRosterScroll}
+                      data-testid="evc-wiz-roster-body"
+                    >
+                      {targetsLoading ? (
+                        <div data-testid="evc-wiz-roster-skeleton">
+                          {[0, 1].map((g) => (
+                            <div key={g}>
+                              {Array.from({ length: 6 }, (_, i) => (
+                                <Skeleton key={i} height={44} radius="var(--radius-md)" />
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : candidatesError ? (
+                        /* PW-1459 §5.5.5 — 명단을 못 받았다는 말은 명단 자리에서 한다. */
+                        <div
+                          className="evc-review-empty"
+                          role="status"
+                          data-testid="evc-wiz-candidates-error"
+                        >
+                          <p>{L.targetCandidatesLoadError}</p>
+                          {onReloadCandidates && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadCandidates}
+                              data-testid="evc-wiz-candidates-retry"
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
+                        </div>
+                      ) : focusOffTarget ? (
                         /* E16 — 「필터 결과 0명」과 문구를 가른다. 원인이 다르고
                            처방도 다르다(초기화가 아니라 「대상에 포함」이다). */
                         <div
@@ -7714,6 +8193,21 @@ export default function EvalCycleWizard({
                           >
                             {L.targetFocusInclude}
                           </button>
+                        </div>
+                      ) : orgUnitsError && scopedCandidates.length === 0 ? (
+                        /* PW-1459 — 조직을 못 불러와 고른 조직을 맞출 수 없다. 「조직을 선택하세요」는
+                           고를 트리가 없는 자리에서 할 수 없는 일을 시킨다. */
+                        <div className="evc-review-empty" data-testid="evc-wiz-roster-org-error">
+                          <p>{L.targetOrgLoadError}</p>
+                          {onReloadOrgUnits && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadOrgUnits}
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
                         </div>
                       ) : scopedCandidates.length === 0 ? (
                         <p className="evc-review-empty" data-testid="evc-wiz-pick-org">
@@ -7735,10 +8229,7 @@ export default function EvalCycleWizard({
                       ) : (
                         reviewGroups.map((g) => {
                           const open = !groupCollapsed.has(g.id);
-                          return (
-                            <div key={g.id}>
-                              {/* 접혀도 인원수와 「제외 →」 는 보인다 —
-                                  접힌 그룹을 통째로 뺄 수 있어야 접기가 쓸모 있다. */}
+                          const head = (
                               <div className="evc-roster-group-head">
                                 <button
                                   type="button"
@@ -7774,38 +8265,49 @@ export default function EvalCycleWizard({
                                   <ArrowRightIcon size={13} />
                                 </button>
                               </div>
-                              {open &&
-                                g.members.map((c) => (
-                                  <div key={c.id} className="evc-roster-row">
-                                    <div className="evc-roster-who">
-                                      <span className="evc-roster-name">{c.name}</span>
-                                      <span className="evc-roster-meta">
-                                        {[c.jobLevel, c.employmentType]
-                                          .filter(Boolean)
-                                          .join(' · ')}
-                                      </span>
-                                    </div>
-                                    {keptIds.includes(c.id) && (
-                                      <StatusBadge
-                                        className="evc-roster-badge"
-                                        data-testid={`evc-wiz-kept-${c.id}`}>
-                                        {L.targetManualInclude}
-                                      </StatusBadge>
-                                    )}
-                                    <Tooltip content={L.targetReviewExcludeOne}>
-                                      <button
-                                        type="button"
-                                        className="evc-roster-move is-out"
-                                        onClick={() => excludeOne(c.id)}
-                                        aria-label={L.targetReviewExcludeOne}
-                                        data-testid={`evc-wiz-exclude-${c.id}`}
-                                      >
-                                        {L.targetMoveOut}
-                                        <ArrowRightIcon size={13} />
-                                      </button>
-                                    </Tooltip>
-                                  </div>
-                                ))}
+                          );
+                          if (!rosterVirtual) {
+                            return (
+                              <div key={g.id}>
+                                {head}
+                                {open && g.members.map(renderRosterRow)}
+                              </div>
+                            );
+                          }
+                          /* PW-1459 E12 — 100명이 넘으면 보이는 창(앞뒤 여유 포함)에 걸친 그룹·행만
+                             그린다. 나머지 자리는 같은 높이의 빈 칸이 지켜 스크롤 길이가 그대로다. */
+                          const top = rosterGroupTop.get(g.id) ?? 0;
+                          const rows = open ? g.members.length : 0;
+                          const height = ROSTER_HEAD_H + rows * ROSTER_ROW_H;
+                          const winTop = rosterScroll.top - ROSTER_OVERSCAN;
+                          const winBottom = rosterScroll.top + rosterScroll.height + ROSTER_OVERSCAN;
+                          if (top + height < winTop || top > winBottom) {
+                            return (
+                              <div
+                                key={g.id}
+                                style={{ height }}
+                                data-testid={`evc-wiz-group-placeholder-${g.id}`}
+                              />
+                            );
+                          }
+                          const first = Math.max(
+                            0,
+                            Math.floor((winTop - top - ROSTER_HEAD_H) / ROSTER_ROW_H),
+                          );
+                          const last = Math.min(
+                            rows,
+                            Math.ceil((winBottom - top - ROSTER_HEAD_H) / ROSTER_ROW_H),
+                          );
+                          return (
+                            <div key={g.id}>
+                              {head}
+                              {open && (
+                                <>
+                                  <div style={{ height: first * ROSTER_ROW_H }} />
+                                  {g.members.slice(first, Math.max(first, last)).map(renderRosterRow)}
+                                  <div style={{ height: (rows - Math.max(first, last)) * ROSTER_ROW_H }} />
+                                </>
+                              )}
                             </div>
                           );
                         })
@@ -7841,7 +8343,7 @@ export default function EvalCycleWizard({
                         <button
                           type="button"
                           className="evc-review-pane-action"
-                          onClick={() => moveMany(visibleExcluded, false)}
+                          onClick={includeVisibleExcluded}
                           data-testid="evc-wiz-include-all"
                         >
                           {anyReviewFilter
@@ -8166,9 +8668,12 @@ export default function EvalCycleWizard({
                   </b>
                 </div>
               </div>
-              <p className="evc-wiz-hint">
-                {isManage ? L.manageSaveHint : L.createDraftHint}
-              </p>
+              {/* PW-1459 — 6단계가 곧 오픈이면 「준비 중으로 저장 · 목록에서 오픈」 안내는 거짓이다. */}
+              {!opensOnSubmit && (
+                <p className="evc-wiz-hint">
+                  {isManage ? L.manageSaveHint : L.createDraftHint}
+                </p>
+              )}
               {/* TC-028 이 설정을 프리셋으로 저장 */}
               {onSavePreset && (
                 <div className="evc-wiz-preset-save" data-testid="evc-wiz-preset-save">
@@ -8242,6 +8747,11 @@ export default function EvalCycleWizard({
               {L.blockReviewTypes}
             </span>
           )}
+          {!isSingleStep && step === 2 && scheduleMissing && (
+            <span className="evc-wiz-block" data-testid="evc-wiz-block-schedule-empty">
+              {L.blockScheduleEmpty}
+            </span>
+          )}
           {(isSingleStep || step === steps.length - 1) && submitBlockHint && (
             <span className="evc-wiz-block" data-testid="evc-wiz-block-submit">
               {submitBlockHint}
@@ -8266,7 +8776,20 @@ export default function EvalCycleWizard({
                 data-testid="evc-wiz-draft-state"
               >
                 {draftError ? (
-                  L.draftSaveFailed
+                  <>
+                    {/* PW-1459 §5.1-A-1 — 실패는 그 자리에서 다시 시도한다. */}
+                    <AlertIcon size={13} /> {L.draftSaveFailedShort}
+                    {' · '}
+                    <button
+                      type="button"
+                      className="evc-link-btn"
+                      disabled={draftSaving}
+                      onClick={() => void saveDraft()}
+                      data-testid="evc-wiz-draft-retry"
+                    >
+                      {L.draftRetry}
+                    </button>
+                  </>
                 ) : draftSaving ? (
                   L.draftSaving
                 ) : !draftSavedAt ? (
@@ -8324,7 +8847,9 @@ export default function EvalCycleWizard({
                     ? (singleStepSaveLabel ?? L.saveChanges)
                     : isManage
                       ? L.saveChanges
-                      : L.create}
+                      : opensOnSubmit
+                        ? L.openCycleSubmit
+                        : L.create}
               </button>
             )}
           </div>
@@ -8342,9 +8867,89 @@ export default function EvalCycleWizard({
       {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
+      {wizToast?.kind === 'included' && (
+        <Toast
+          tone="info"
+          message={
+            <>
+              {fill(L.targetIncludedToast, { count: wizToast.count })}{' '}
+              {undoSnapshot && (
+                <button
+                  type="button"
+                  className="evc-review-undo"
+                  onClick={undoMove}
+                  data-testid="evc-wiz-toast-undo"
+                >
+                  <UndoIcon size={12} />
+                  {L.targetUndo}
+                </button>
+              )}
+            </>
+          }
+          data-testid="evc-wiz-include-toast"
+        />
+      )}
+
+      {/* PW-1459 §5.1-A-6 — 다른 사람이 먼저 저장한 초안. 나중 저장이 앞 저장을 조용히
+          지우지 않게, 무엇을 할지 사용자가 고른다. */}
+      {draftConflict && (
+        <ModalShell
+          title={fill(L.draftConflictBody, {
+            name: draftConflict.savedByName || L.draftConflictSomeone,
+            time: draftConflict.savedAt ? stampTime(draftConflict.savedAt) : '',
+          })}
+          titleId="evc-wiz-conflict-title"
+          closeLabel={L.cancel}
+          onClose={() => setDraftConflict(null)}
+          busy={conflictBusy}
+          zIndex={1000}
+          className="evc-shell is-wide"
+          overlayTestId="evc-wiz-conflict"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                disabled={conflictBusy || !onLoadLatestDraft}
+                onClick={() => void resolveConflict('load')}
+                data-testid="evc-wiz-conflict-load"
+              >
+                {L.draftConflictLoad}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                disabled={conflictBusy}
+                onClick={() => void resolveConflict('new')}
+                data-testid="evc-wiz-conflict-new"
+              >
+                {L.draftConflictSaveNew}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                disabled={conflictBusy}
+                onClick={() => void resolveConflict('overwrite')}
+                data-testid="evc-wiz-conflict-overwrite"
+              >
+                {L.draftConflictOverwrite}
+              </button>
+            </>
+          }
+        >
+          {null}
+        </ModalShell>
+      )}
+
       {leaveAsk && (
         <ModalShell
-          title={isManage ? L.manageLeaveTitle : L.draftLeaveTitle}
+          title={
+            isManage
+              ? L.manageLeaveTitle
+              : draftError
+                ? L.draftLeaveFailedTitle
+                : L.draftLeaveTitle
+          }
           titleId="evc-wiz-leave-title"
           closeLabel={L.cancel}
           onClose={() => setLeaveAsk(false)}
@@ -8382,25 +8987,27 @@ export default function EvalCycleWizard({
                   onClick={() => void leaveWithSave()}
                   data-testid="evc-wiz-leave-save"
                 >
-                  {L.draftLeaveSave}
+                  {draftError ? L.draftRetry : L.draftLeaveSave}
                 </button>
               )}
             </>
           }
         >
           <div className="evc-shell-body">
-              <p className="evc-wiz-hint">
-                {isManage ? L.manageLeaveBody : L.draftLeaveBody}
-              </p>
-              {!isManage && (
+              {!(draftError && !isManage) && (
+                <p className="evc-wiz-hint">
+                  {isManage ? L.manageLeaveBody : L.draftLeaveBody}
+                </p>
+              )}
+              {!isManage && !draftError && (
                 <ul className="evc-wiz-hint-list">
                   <li>{L.draftLeaveHint1}</li>
                   <li>{L.draftLeaveHint2}</li>
                 </ul>
               )}
-              {draftError && (
+              {draftError && !isManage && (
                 <p className="evc-wiz-block" data-testid="evc-wiz-leave-error">
-                  {L.draftSaveFailed}
+                  {L.draftLeaveFailedBody}
                 </p>
               )}
             </div>
@@ -8409,7 +9016,7 @@ export default function EvalCycleWizard({
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}
       {/* 마지막 하나까지 지우면 빈 창이 남는다 — 불러오기 줄도 사라지므로 창을 닫는다. */}
-      {presetDialogOpen && presets.length > 0 && (
+      {presetDialogOpen && (
         <ModalShell
           title={L.presetDialogTitle}
           description={L.presetDialogSub}
@@ -8421,6 +9028,61 @@ export default function EvalCycleWizard({
           footer={null}
         >
           <div className="evc-shell-body">
+            {pastCycles.length === 0 && presets.length === 0 && (
+              <div className="evc-review-empty" data-testid="evc-wiz-preset-empty">
+                <p>{L.presetEmpty}</p>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={() => setPresetDialogOpen(false)}
+                  data-testid="evc-wiz-preset-empty-close"
+                >
+                  {L.close ?? L.cancel}
+                </button>
+              </div>
+            )}
+            {/* PW-1459 §5.9 — 완료·회수된 이전 사이클. 일정은 가져오지 않는다. */}
+            {pastCycles.length > 0 && onLoadPastCycle && (
+              <>
+                <span className="evc-field-label">{L.pastCycleSection}</span>
+                <div className="evc-preset-list" data-testid="evc-wiz-pastcycle-list">
+                  {pastCycles.map((c) => (
+                    <div key={c.id} className="evc-preset-item">
+                      <div className="evc-preset-item-main">
+                        <span className="evc-preset-item-name">{c.name}</span>
+                        {c.endDate && (
+                          <span className="evc-preset-item-meta">
+                            {fill(L.pastCycleMeta, { date: String(c.endDate).slice(0, 10) })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="evc-preset-item-actions">
+                        <button
+                          type="button"
+                          className="evc-btn is-primary"
+                          onClick={() => startFromPastCycle(c.id)}
+                          data-testid={`evc-wiz-pastcycle-start-${c.id}`}
+                        >
+                          {L.presetStart}
+                        </button>
+                      </div>
+                      {pastCycleLoadFailed === c.id && (
+                        <span
+                          className="evc-wiz-preset-saved is-error evc-preset-item-error"
+                          role="alert"
+                          data-testid={`evc-wiz-pastcycle-failed-${c.id}`}
+                        >
+                          {L.pastCycleLoadError}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {presets.length > 0 && pastCycles.length > 0 && (
+              <span className="evc-field-label">{L.presetSection}</span>
+            )}
             <div className="evc-preset-list" data-testid="evc-wiz-preset-list">
               {presets.map((p) => (
                 <div key={p.id} className="evc-preset-item">
@@ -8593,6 +9255,22 @@ export default function EvalCycleWizard({
       )}
 
       {/* 덮어쓰기 확인 — 이미 입력한 값이 있을 때만 뜬다. */}
+      {pendingTplVersion && (
+        <AppConfirmModal
+          title={L.tplVersionResetTitle}
+          body={L.tplVersionResetBody}
+          cancelLabel={L.cancel}
+          confirmLabel={L.confirm}
+          onCancel={() => setPendingTplVersion(null)}
+          onConfirm={() => {
+            applyTplPreset(pendingTplVersion);
+            setPendingTplVersion(null);
+          }}
+          cancelTestId="evc-tpl-version-reset-cancel"
+          confirmTestId="evc-tpl-version-reset-confirm"
+        />
+      )}
+
       {pendingPresetId && (
         <AppConfirmModal
           title={L.presetOverwriteTitle}
@@ -8600,7 +9278,7 @@ export default function EvalCycleWizard({
           cancelLabel={L.cancel}
           confirmLabel={L.confirm}
           onCancel={() => setPendingPresetId(null)}
-          onConfirm={() => void loadPresetById(pendingPresetId)}
+          onConfirm={() => void loadPendingSource(pendingPresetId)}
           cancelTestId="evc-wiz-preset-overwrite-cancel"
           confirmTestId="evc-wiz-preset-overwrite-confirm"
         />
