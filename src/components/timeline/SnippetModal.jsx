@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import Icon from '../shared/Icon.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import StepNavButton from '../shared/StepNav.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -96,7 +97,12 @@ const DEFAULT_DRAFT_LABELS = {
   saving: '저장 중...',
   saved: (time) => `자동저장됨 ${time}`,
   saveFailed: '저장 실패',
+  progressLoading: '가져오는 중',
+  progressDone: '완료',
+  progressFail: '못 가져옴',
 };
+
+const PROGRESS_TONE = { loading: 'progress', done: 'success', fail: 'warning' };
 
 /** 그 칸이 비었나 — 태그는 개수, 나머지는 공백을 뺀 글. */
 function isFieldEmpty(key, texts, sum, tg) {
@@ -150,6 +156,11 @@ const DEFAULT_SUGGESTED_TAGS = [
 //   onOpenAccountLinks?: () => void — 안내의 「내 설정으로 →」.
 //   aiNotice?: { at: 'draft' | 'summary' | 'tags', content: ReactNode } | null
 //     호스트가 그 AI 버튼 자리에 띄우는 안내(체험 AI 소진 등). 한 번에 하나.
+//   draftProgress?: { rows?: Array<{ key, name, state: 'loading'|'done'|'fail', text }>, note?: string } | null
+//     버튼 아래 「어디서 무엇을 가져오는 중인가」(PW-1649). 창을 열면 호스트가 Jira·GitHub 활동을 미리
+//     가져오며 rows 로 한 줄씩(이름 · 문구 · 상태 딱지) 넘기고, 다 끝나면 rows 대신 note 한 줄
+//     (「Jira·GitHub 23:01에 가져옴」)로 접는다. 계정 연결 안내가 떠 있을 때는 그리지 않는다.
+//     딱지 문구는 draftLabels 의 progressLoading·progressDone·progressFail.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //
 // 자동 저장 표시 (기획 daily-snippet 작성 §11.2) — 모두 optional:
@@ -206,6 +217,7 @@ export default function SnippetModal({
   sectionMaxLength = DEFAULT_SECTION_MAX_LENGTH,
   onAiDraft,
   aiDraftLinked,
+  draftProgress,
   onOpenAccountLinks,
   aiNotice,
   draftLabels,
@@ -707,6 +719,20 @@ export default function SnippetModal({
                     <span>{draftLoading ? L.filling : L.fill}</span>
                   </button>
                 </div>
+              )}
+              {draftLinked !== false && draftProgress?.rows?.length > 0 && draftProgress.rows.map((row) => (
+                <div key={row.key ?? row.name} className="tl-snippet-draft-link" role="status">
+                  <span>
+                    <strong>{row.name}</strong> · {row.text}
+                  </span>
+                  <StatusBadge tone={PROGRESS_TONE[row.state] ?? 'neutral'}>
+                    {row.state === 'loading' && <Spinner size={10} />}
+                    {row.state === 'loading' ? ` ${L.progressLoading}` : row.state === 'done' ? L.progressDone : L.progressFail}
+                  </StatusBadge>
+                </div>
+              ))}
+              {draftLinked !== false && !draftProgress?.rows?.length && draftProgress?.note && (
+                <div className="tl-snippet-draft-note">{draftProgress.note}</div>
               )}
               {noticeAt('draft')}
               {draftNote === 'empty' && <div className="tl-snippet-draft-note">{L.empty}</div>}
