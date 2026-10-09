@@ -121,6 +121,8 @@ const BASE_LABELS = {
   },
   transfer: {
     ownerLabel: '소유자',
+    // 토큰 소유자가 Slack 워크스페이스 관리자일 때 이름 옆 배지 (screen-slack-transfer.policy §2.1)
+    slackAdminLabel: 'Slack Admin',
     expireToken: '토큰 만료',
     reauth: '재인증',
     tokenHistory: '토큰 이력',
@@ -143,6 +145,10 @@ const BASE_LABELS = {
     },
     reauthModal: {
       title: '재인증',
+      // 누가 새 소유자가 되는지 먼저 말한다 (screen-slack-transfer.policy §3.2)
+      guide: '본인의 Slack 계정으로 인증합니다. 인증 완료 시 본인이 새 소유자가 됩니다.',
+      // 지금 어드민이 Slack 워크스페이스 관리자가 아니면 인증 버튼을 잠그고 이 문장을 보인다 (§3.2 · §6)
+      notSlackAdmin: 'Slack 워크스페이스에서 관리자 권한을 먼저 획득해야 인증할 수 있습니다.',
       // 현재 토큰을 인증한 계정과 다른 관리자가 재인증을 시도할 때 노출되는 경고.
       // 앞에 인증자 이름이 붙는다: "{이름}님이 인증한 상태입니다. …"
       differentOwnerWarning: '님이 인증한 상태입니다. 정말로 다시 인증하시겠습니까?',
@@ -747,17 +753,25 @@ function ExpireModal({ labels, onClose, onConfirm, error }) {
   );
 }
 
-function ReauthModal({ owner, labels, onClose, onConfirm }) {
+function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
   const L = labels.transfer.reauthModal;
   // 현재 로그인 사용자가 토큰 소유자와 다르면 경고. 소유자 여부는 소비자가
   // owner.isCurrentUser 로 판단해 전달한다(기본 undefined → 경고 노출: 안전측).
   const isDifferentOwner = owner.isCurrentUser !== true;
+  // Slack 워크스페이스 관리자만 인증할 수 있다. 소비자가 «아니다»(false)를 확인했을 때만 잠근다 —
+  // 모르면(undefined·null) 막지 않는다(서버가 다시 확인한다).
+  const notSlackAdmin = me?.isSlackAdmin === false;
   return (
     <ConfirmModal
       testId="intg-reauth-modal"
       title={L.title}
       body={
         <>
+          {L.guide && (
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 12px' }} data-testid="intg-reauth-guide">
+              {L.guide}
+            </p>
+          )}
           <div className="intg-modal-usercard">
             <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
             <div>
@@ -773,8 +787,15 @@ function ReauthModal({ owner, labels, onClose, onConfirm }) {
               {owner.name}{L.differentOwnerWarning}
             </div>
           )}
+
+          {notSlackAdmin && (
+            <div className="intg-note is-error" style={{ marginTop: 12 }} data-testid="intg-reauth-not-slack-admin">
+              {L.notSlackAdmin}
+            </div>
+          )}
         </>
       }
+      confirmDisabled={notSlackAdmin}
       cancelLabel={L.cancel}
       confirmLabel={L.confirm}
       zIndex={10000}
@@ -827,6 +848,11 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
             <div className="intg-owner-name">
               {owner.name}
               <DpStatusBadge className="intg-pill is-brand">{labels.transfer.ownerLabel}</DpStatusBadge>
+              {owner.isSlackAdmin && (
+                <DpStatusBadge className="intg-pill is-good" data-testid="intg-owner-slack-admin">
+                  {labels.transfer.slackAdminLabel}
+                </DpStatusBadge>
+              )}
             </div>
             <div className="intg-owner-sub">
               {owner.title} &middot; {transfer.connectedLabel}
@@ -876,7 +902,7 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
         <ExpireModal labels={labels} onClose={() => setShowExpireModal(false)} onConfirm={handleExpireConfirm} error={expireError} />
       )}
       {showReauthModal && (
-        <ReauthModal owner={owner} labels={labels} onClose={() => setShowReauthModal(false)} onConfirm={handleReauthConfirm} />
+        <ReauthModal owner={owner} me={transfer.me} labels={labels} onClose={() => setShowReauthModal(false)} onConfirm={handleReauthConfirm} />
       )}
     </section>
   );
