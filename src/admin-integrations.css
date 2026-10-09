@@ -65,13 +65,13 @@
   margin-top: 2px;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .intg-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 /* ── 사용처 메타 / 마지막 동기화 ────────────────────────────────────── */
-.intg-usage { font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
-.intg-meta { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 8px; }
+.intg-usage { font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+.intg-meta { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
 .intg-meta-accent { color: var(--text-brand-tertiary); font-weight: 600; }
 
 /* ── 안내/경고/오류 박스 ────────────────────────────────────────────── */
@@ -153,10 +153,10 @@
 /* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
 /* 칸 여백·머리 행·구분선은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .intg-table .num { font-variant-numeric: tabular-nums; }
-.intg-table .time { color: var(--text-tertiary); font-variant-numeric: tabular-nums; font-size: 12px; }
+.intg-table .time { color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
 .intg-table .svc { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .intg-table .svc img { width: 16px; height: 16px; object-fit: contain; }
-.intg-table-empty { text-align: center; padding: 40px 0; color: var(--text-tertiary); font-size: 13px; }
+.intg-table-empty { text-align: center; padding: 40px 0; color: var(--text-secondary); font-size: 13px; }
 
 /* ── 개인 연동 배너 ─────────────────────────────────────────────────── */
 .intg-banner {
@@ -170,19 +170,19 @@
 .intg-owner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
 .intg-owner-id { display: flex; align-items: center; gap: 12px; }
 .intg-owner-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.intg-owner-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.intg-owner-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 .intg-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--text-brand-tertiary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
 .intg-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
-.intg-stat-row .label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+.intg-stat-row .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
 .intg-stat-row .value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .intg-loglist-title { margin: 16px 0 12px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
 /* 데이터 수집 현황(integrations-spec §5) 구역 제목 */
 .intg-section-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .intg-logrow { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea); }
 .intg-logrow-info { display: flex; align-items: center; gap: 10px; }
-.intg-logrow-date { font-size: 11px; color: var(--text-tertiary); min-width: 80px; }
+.intg-logrow-date { font-size: 11px; color: var(--text-secondary); min-width: 80px; }
 .intg-logrow-desc { font-size: 12px; color: var(--text-primary); }
-.intg-loglist-footer { font-size: 11px; color: var(--text-tertiary); margin-top: 12px; font-style: italic; }
+.intg-loglist-footer { font-size: 11px; color: var(--text-secondary); margin-top: 12px; font-style: italic; }
 
 /* ── 토큰 만료·재인증 확인 창 본문 ── 창은 공용 ConfirmModal(PW-836) ── */
 .intg-confirm-p { margin: 0 0 12px; }
@@ -190,13 +190,13 @@
 
 /* ── 툴 카탈로그 · 연동 요청 (W73 · screen-integrations.policy §2-6~§2-10) ── */
 .intg-admin-tab { display: flex; flex-direction: column; gap: 18px; }
-.intg-section-desc { margin: -8px 0 12px; font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+.intg-section-desc { margin: -8px 0 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 .intg-catalog-warning { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; }
 .intg-catalog-logo { width: 28px; height: 28px; color: var(--text-tertiary); }
 .intg-catalog-logo img { width: 18px; height: 18px; }
 .intg-catalog-group { font-size: 12px; font-weight: 700; color: var(--text-primary); }
-.intg-catalog-group-desc { margin-left: 8px; font-size: 11px; color: var(--text-tertiary); }
-.intg-catalog-muted { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+.intg-catalog-group-desc { margin-left: 8px; font-size: 11px; color: var(--text-secondary); }
+.intg-catalog-muted { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 /* 꺼진 줄은 흐리게 — 단 «활성화» 버튼 칸은 그대로(잠긴 버튼처럼 보이면 안 된다) */
 .intg-table .rt-row.intg-row-off td:not(:last-child) { opacity: 0.6; }
 .intg-table-empty .intg-btn { margin-left: 12px; }
@@ -208,3 +208,5 @@
 .intg-banner.is-warning { background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
 .intg-banner.is-warning .intg-banner-msg { color: var(--colors-warning-700, var(--text-secondary)); }
 .intg-personal-chips { display: flex; margin-top: 6px; flex-wrap: wrap; gap: 6px; }
+/* PW-1439 — «… · 어드민 활성화 필요» 는 읽어야 하는 글자라 중립 칩 글자만 secondary 로 (이 칩 줄 안에서만) */
+.intg-personal-chips { --dp-badge-neutral-fg: var(--text-secondary); }

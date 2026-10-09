@@ -2199,7 +2199,7 @@ export default function EvalCycleSummaryCanvas({
                   {deptStats.map((d) => (
                     <div className="evs-leader-row evs-dept-drow" role="row" key={d.dept} data-testid="evs-dept-drow" style={{ '--gcols': d.gradeCounts.length }}>
                       <span className="evs-leader-name">{d.dept}</span>
-                      <span className="evs-leader-num is-muted">{d.total}{L.unit}</span>
+                      <span className={`evs-leader-num${d.total > 0 ? ' is-sub' : ' is-muted'}`}>{d.total}{L.unit}</span>
                       {d.gradeCounts.map((g, i) => (
                         <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}{L.unit}</span>
                       ))}
@@ -2528,7 +2528,7 @@ export default function EvalCycleSummaryCanvas({
                       {deptStats.map((d) => (
                         <div className="evs-leader-row evs-j1-drow" role="row" key={d.dept} data-testid="evs-j1-dept-row" style={{ '--gcols': d.gradeCounts.length }}>
                           <span className="evs-leader-name">{d.dept}</span>
-                          <span className="evs-leader-num is-muted">{d.total}{L.unit}</span>
+                          <span className={`evs-leader-num${d.total > 0 ? ' is-sub' : ' is-muted'}`}>{d.total}{L.unit}</span>
                           {d.gradeCounts.map((g, i) => (
                             <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}</span>
                           ))}

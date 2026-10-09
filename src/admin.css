@@ -64,7 +64,7 @@
 .admin-header-date {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-invite-button {
   padding: 8px 15px;
@@ -235,7 +235,7 @@
 .admin-stat-sub {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -288,7 +288,7 @@
 .admin-team-title {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-team-dept {
   font-family: var(--font-family-body);
@@ -312,7 +312,7 @@
 .admin-team-snippet-text {
   font-family: var(--font-family-body);
   font-size: 14px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-team-snippet.is-submitted .admin-team-snippet-dot {
   background: var(--utility-green-600);
@@ -338,13 +338,13 @@
 .admin-team-empty-cell {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .admin-team-pending {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm, 13px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 상시 평가 카드 ─────────────────────────────────────────────────── */
@@ -397,7 +397,7 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-left: 4px;
 }
 .admin-eval-bar {
@@ -432,7 +432,7 @@
 .admin-eval-empty {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   padding: 8px 0;
 }
 
@@ -493,7 +493,7 @@
 .admin-integration-sync {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-integration-status {
   display: inline-flex;
@@ -506,7 +506,7 @@
 }
 /* 준비 중(미구현) 연동 — 연결됨 초록이 아니라 중립 회색. */
 .admin-integration-status.is-muted {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-integration-connect {
   padding: 4px 12px;
@@ -530,7 +530,7 @@
 .admin-activity-count {
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-activity-list {
   display: flex;
@@ -551,7 +551,7 @@
 .admin-activity-time {
   font-family: var(--font-family-body);
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   width: 56px;
   flex-shrink: 0;
   margin-top: 1px;
@@ -565,7 +565,7 @@
   color: var(--text-brand-tertiary);
 }
 .admin-activity-actor.is-system {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-activity-text {
   font-family: var(--font-family-body);
@@ -577,7 +577,7 @@
   padding: 16px;
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ============================================================
@@ -603,7 +603,7 @@
   padding: 1px 8px;
   border-radius: 99px;
   background: var(--bg-secondary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .admin-emp-tab-count.is-active {
@@ -667,13 +667,13 @@
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 그 소속 조직의 조직장 표시(admin-spec §3.1 「👤 조직장 배지」) — 무채색, 대표 왕관(보라)과 갈린다. */
 .admin-emp-row-dept-leader {
   display: inline-flex;
   align-self: center;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 소속 칩 3개 초과분 «+N» — 말풍선에 전체 경로 (screen-admin-org-units §10 L4). */
 .admin-emp-row-dept-overflow {
@@ -755,7 +755,7 @@
 }
 .admin-emp-count {
   font-size: var(--font-size-text-sm, 14px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-emp-toolbar-actions {
   display: flex;
@@ -905,7 +905,7 @@
   padding: 8px 10px 4px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 거르기 줄의 한 줄 안내 — 직군을 바꿔 직렬 필터가 풀렸을 때(admin-spec §3.1). */
 .admin-emp-filter-notice {
@@ -928,7 +928,7 @@
   font-size: 11px;
   font-weight: 500;
   line-height: 16px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 /* 아이콘은 첫 글자 줄에 맞춘다(11px 아이콘 vs 16px 줄높이). */
@@ -958,7 +958,7 @@
   border-color: var(--text-brand-tertiary);
   box-shadow: 0 0 0 3px rgba(45, 189, 130, 0.16);
 }
-.admin-emp-select-empty { padding: 16px 10px; font-size: 11px; color: var(--text-tertiary); text-align: center; }
+.admin-emp-select-empty { padding: 16px 10px; font-size: 11px; color: var(--text-secondary); text-align: center; }
 
 .admin-emp-filter-reset {
   font-size: var(--font-size-text-xs, 12px);
@@ -972,7 +972,7 @@
 
 /* 페이지네이션·미세 텍스트 유틸 (mono 는 페이지 카운터 숫자에만) */
 .admin-emp-mono { font-variant-numeric: tabular-nums; font-size: var(--font-size-text-xs, 12px); color: var(--text-secondary); }
-.admin-emp-muted { color: var(--text-tertiary); font-size: var(--font-size-text-sm, 13px); }
+.admin-emp-muted { color: var(--text-secondary); font-size: var(--font-size-text-sm, 13px); }
 
 .admin-emp-actions-cell { position: relative; }
 .admin-emp-actions { display: flex; justify-content: flex-end; gap: 4px; }
@@ -1102,7 +1102,7 @@
   padding: 2px 6px 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-emp-select-check {
   display: flex;
@@ -1165,7 +1165,7 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   min-width: 0;
 }
 .admin-emp-row-email { color: var(--text-secondary); }
@@ -1264,7 +1264,7 @@
   box-shadow: 0 0 0 3px rgba(45, 189, 130, 0.16);
 }
 .admin-emp-picker-list { max-height: 220px; overflow-y: auto; }
-.admin-emp-picker-empty { padding: 16px 10px; font-size: 11px; color: var(--text-tertiary); text-align: center; }
+.admin-emp-picker-empty { padding: 16px 10px; font-size: 11px; color: var(--text-secondary); text-align: center; }
 .admin-emp-picker-item {
   display: flex;
   flex-direction: column;
@@ -1280,7 +1280,7 @@
 }
 .admin-emp-picker-item:hover { background: var(--bg-secondary); }
 .admin-emp-picker-item-name { font-size: var(--font-size-text-xs, 12px); font-weight: 700; color: var(--text-primary); }
-.admin-emp-picker-item-path { font-size: 11px; color: var(--text-tertiary); }
+.admin-emp-picker-item-path { font-size: 11px; color: var(--text-secondary); }
 
 /* ── 미배정 관리 탭 ──────────────────────────────────────── */
 .admin-emp-unassigned { display: flex; flex-direction: column; gap: 16px; }
@@ -1305,7 +1305,7 @@
   justify-content: space-between;
   margin-bottom: 12px;
 }
-.admin-emp-unassigned-empty { padding: 40px 20px; text-align: center; font-size: var(--font-size-text-sm, 14px); color: var(--text-tertiary); font-weight: 500; }
+.admin-emp-unassigned-empty { padding: 40px 20px; text-align: center; font-size: var(--font-size-text-sm, 14px); color: var(--text-secondary); font-weight: 500; }
 .admin-emp-unassigned-empty.is-ok {
   display: flex;
   align-items: center;
@@ -1345,7 +1345,7 @@
   flex-wrap: wrap;
   font-size: 13px;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 3px;
 }
 .admin-emp-unassigned-action { position: relative; }
@@ -1373,7 +1373,7 @@
 .admin-emp-team-note {
   font-size: 13px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--bg-secondary);
@@ -1400,7 +1400,7 @@
 .admin-emp-status-stack { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
 .admin-emp-status-stack .admin-emp-retire { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .admin-emp-panel-name { font-size: var(--font-size-text-md, 16px); font-weight: 700; line-height: 24px; color: var(--text-primary); }
-.admin-emp-panel-email { font-size: 13px; color: var(--text-tertiary); }
+.admin-emp-panel-email { font-size: 13px; color: var(--text-secondary); }
 .admin-emp-panel-close {
   display: inline-flex;
   align-items: center;
@@ -1497,7 +1497,7 @@
   background: var(--bg-secondary);
 }
 .admin-emp-manager-name { font-size: var(--font-size-text-sm, 14px); font-weight: 600; color: var(--text-primary); }
-.admin-emp-manager-note { font-size: 12px; color: var(--text-tertiary); }
+.admin-emp-manager-note { font-size: 12px; color: var(--text-secondary); }
 /* 조직 위치 — 대표(CEO) 지정 스위치 줄. 매니저 칸과 같은 회색 바탕 줄에 글과 공용 Switch 를 양끝에 둔다 (W60). */
 .admin-emp-ceo-row {
   display: flex;
@@ -1534,7 +1534,7 @@
 .admin-emp-status-date-note {
   font-size: var(--font-size-text-xs, 12px);
   line-height: 16px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-emp-status-date-note.is-error { color: var(--colors-text-textErrorPrimary, #d92d20); }
 /* 직군 → 직렬 → 직무 3단 연동 (§3.5-A · PW-748) — 고를 값이 없을 때의 사유 + [조직 설정 →],
@@ -1590,7 +1590,7 @@
 .admin-emp-invite-stat-label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 .admin-emp-invite-stat-value {
@@ -1604,11 +1604,11 @@
 }
 .admin-emp-invite-stat-sub {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-emp-invite-stat.is-pending .admin-emp-invite-stat-value { color: var(--colors-warning-600, #dc6803); }
 .admin-emp-invite-stat.is-accepted .admin-emp-invite-stat-value { color: var(--text-brand-tertiary); }
-.admin-emp-invite-stat.is-expired .admin-emp-invite-stat-value { color: var(--text-tertiary); }
+.admin-emp-invite-stat.is-expired .admin-emp-invite-stat-value { color: var(--text-secondary); }
 
 /* 인라인 초대 작성 바 */
 .admin-emp-invite-composer {
@@ -1639,7 +1639,7 @@
   padding: 24px 0;
   text-align: center;
   font-size: var(--font-size-text-sm, 14px);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 이력 표의 칸 여백·머리 행·구분선·「현재」 줄 바탕은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-emp-sal-table td.is-amount {
@@ -1705,7 +1705,7 @@
   margin-top: 10px;
   font-size: var(--font-size-text-xs, 13px);
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 헤더 설명의 마스킹 고지 — 자물쇠 SVG 는 이 span 의 color 를 상속한다. */
 .admin-emp-sal-mask {
@@ -1713,7 +1713,7 @@
   align-items: center;
   gap: 3px;
   margin-left: 6px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 /* 보상 이력 창 위 «HR 전용» 고정 안내 (W69 · admin-spec §3.2.4). 자물쇠 SVG 는 color 를 상속한다. */
 .admin-emp-sal-hronly {
@@ -1784,7 +1784,7 @@
   margin-top: 4px;
   font-size: 12px;
   text-align: right;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 요약 카드 `—` 아래 사유 캡션. 0 을 쓰지 않는 이유를 카드가 직접 말한다. */
@@ -1792,7 +1792,7 @@
   margin: 2px 0 0;
   font-family: var(--font-family-body);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 현황 헤더: 제목 + 조회일 + 내보내기 ── */
@@ -1856,7 +1856,7 @@
   font-family: var(--font-family-body);
   font-size: 13px;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-datepicker input {
   border: none;
@@ -1942,7 +1942,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 0;
   white-space: nowrap;
 }
@@ -1980,7 +1980,7 @@
   font-size: 12px;
   line-height: 1.6;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-agesummary {
   display: flex;
@@ -1994,7 +1994,7 @@
   font-family: var(--font-family-body);
   font-size: 13px;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-agesummary-item strong {
   margin-left: 6px;
@@ -2049,7 +2049,7 @@
 .admin-snap-tree-count-concurrent {
   margin-left: 4px;
   font-weight: 500;
-  color: var(--text-quaternary, var(--text-tertiary));
+  color: var(--text-secondary);
 }
 .admin-snap-tree-bar-wrap {
   display: flex;
@@ -2074,7 +2074,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   width: 32px;
   text-align: right;
 }
@@ -2116,7 +2116,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 정보 박스 (관공서 양식 안내 / 집계) ── */
@@ -2144,7 +2144,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   line-height: 1.8;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-infobox-body strong { color: var(--text-primary); font-weight: 700; }
 .admin-snap-infobox-body .admin-snap-mono { font-family: var(--font-family-body); color: var(--text-primary); font-weight: 700; }
@@ -2187,7 +2187,7 @@
   flex-shrink: 0;
   font-family: var(--font-family-body);
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: right;
 }
 
@@ -2283,7 +2283,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2307,7 +2307,7 @@
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-roster-idx {
   width: 44px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 .admin-snap-roster-name {
@@ -2371,7 +2371,7 @@
   font-family: var(--font-family-body);
   font-size: 11.5px;
   letter-spacing: -0.01em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── As Of (시점별 조직 스냅샷) ── */
@@ -2536,7 +2536,7 @@
 .admin-snap-target-meta {
   font-family: var(--font-family-body);
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-target-meta .admin-snap-mono { font-family: var(--font-family-body); }
 
@@ -2550,7 +2550,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
@@ -2607,7 +2607,7 @@
 /* 변경 전/후 표 */
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-ba-field { font-weight: 600; color: var(--text-primary); }
-.admin-snap-ba-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
+.admin-snap-ba-before { color: var(--text-secondary); font-family: var(--font-family-body); }
 .admin-snap-ba-after { font-weight: 700; color: var(--text-primary); }
 .admin-snap-ba-arrow { color: var(--text-tertiary); width: 24px; text-align: center; }
 .admin-snap-card-section { border: 1px solid var(--border-primary); border-radius: var(--radius-lg, 12px); overflow: hidden; }
@@ -2639,7 +2639,7 @@
 .admin-snap-done-sub {
   font-family: var(--font-family-body);
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-bottom: 16px;
 }
 
@@ -2657,7 +2657,7 @@
   font-size: 12px;
   font-weight: 700;
   background: var(--bg-secondary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border: 1px solid var(--border-primary);
 }
 .admin-snap-step-badge { transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
@@ -2666,7 +2666,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-step-label.is-active { font-weight: 700; color: var(--text-primary); }
 .admin-snap-step-connector { width: 40px; height: 1px; background: var(--border-primary); margin: 0 12px; }
@@ -2699,13 +2699,13 @@
 /* 아이콘은 이모지가 아니라 선 아이콘(IconUpload) — 색은 CSV 가져오기 창 끌어놓기 칸과 같다(PW-785). */
 .admin-snap-dropzone-icon { display: flex; justify-content: center; margin-bottom: 8px; color: var(--text-tertiary); }
 .admin-snap-dropzone-title { font-family: var(--font-family-body); font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.admin-snap-dropzone-sub { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+.admin-snap-dropzone-sub { font-family: var(--font-family-body); font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 
 .admin-snap-status-badges { display: flex; gap: 12px; margin-bottom: 14px; }
 
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-pv-name { font-weight: 700; color: var(--text-primary); }
-.admin-snap-pv-before { color: var(--text-tertiary); font-family: var(--font-family-body); }
+.admin-snap-pv-before { color: var(--text-secondary); font-family: var(--font-family-body); }
 .admin-snap-pv-after { font-weight: 700; color: var(--text-primary); }
 .admin-snap-warnbox {
   background: var(--colors-warning-50, #fffaeb);
@@ -2726,7 +2726,7 @@
 .admin-snap-aff-msg.is-warn { color: var(--colors-warning-700, #b54708); }
 /* 두 번 적힌 조직경로(A6) — 행 제외 사유라 빨간 바탕으로 짚는다 */
 .admin-snap-aff-dup { font-size: 11px; color: var(--utility-error-700, #b42318); background: var(--utility-error-50, #fef3f2); border-radius: 4px; padding: 0 4px; margin-bottom: 2px; width: fit-content; }
-.admin-snap-aff-more { display: inline-block; font-size: 11px; color: var(--text-tertiary, #667085); cursor: help; text-decoration: underline dotted; }
+.admin-snap-aff-more { display: inline-block; font-size: 11px; color: var(--text-secondary); cursor: help; text-decoration: underline dotted; }
 /* 행 처리 선택(신규 옵션 등록·직군 자동 보정·팀 자동 생성) */
 .admin-snap-aff-action { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; color: var(--text-secondary, #344054); white-space: normal; max-width: 280px; cursor: pointer; }
 .admin-snap-aff-action input { margin: 0; }
@@ -2745,7 +2745,7 @@
   overflow: hidden;
 }
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
-.admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-tertiary); }
+.admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-secondary); }
 .admin-snap-hist-name { font-weight: 700; color: var(--text-primary); }
 .admin-snap-hist-mode { color: var(--text-secondary); }
 .admin-snap-hist-mode.is-bulk { color: var(--colors-warning-600, #dc6803); }
@@ -2767,7 +2767,7 @@
   margin-top: 5px;
   font-size: 11px;
   line-height: 1.5;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-snap-overwrite {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
@@ -2778,7 +2778,7 @@
 .admin-snap-hist-period-sep { color: var(--text-tertiary); font-size: 12px; }
 .admin-snap-hist-member + .admin-snap-hist-member { margin-top: 14px; }
 .admin-snap-hist-member-name { font-family: var(--font-family-body); font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-.admin-snap-hist-processed { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 12px; }
+.admin-snap-hist-processed { font-family: var(--font-family-body); font-size: 12px; color: var(--text-secondary); margin-top: 12px; }
 .admin-snap-lock { display: inline-flex; vertical-align: middle; margin-left: 5px; color: var(--text-tertiary); cursor: help; }
 .admin-snap-timemachine-revision { font-weight: 400; }
 
@@ -2801,7 +2801,7 @@
   border-bottom: 1px solid var(--bg-secondary);
 }
 .admin-snap-hist-panel-name { font-family: var(--font-family-body); font-size: 13px; font-weight: 800; color: var(--text-primary); }
-.admin-snap-hist-panel-meta { font-family: var(--font-family-body); font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+.admin-snap-hist-panel-meta { font-family: var(--font-family-body); font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 .admin-snap-hist-panel-meta .admin-snap-mono { font-family: var(--font-family-body); }
 .admin-snap-hist-panel-close {
   border: none; background: transparent; cursor: pointer;
@@ -2817,7 +2817,7 @@
   font-family: var(--font-family-body);
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 14px 0 4px;
 }
 .admin-snap-hist-reason {
@@ -2889,7 +2889,7 @@
   color: var(--text-primary);
 }
 .admin-notif-summary-value.is-good { color: var(--text-brand-secondary); }
-.admin-notif-summary-value.is-muted { color: var(--text-tertiary); }
+.admin-notif-summary-value.is-muted { color: var(--text-secondary); }
 
 /* ── 안내 배너 ───────────────────────────────────────────── */
 .admin-notif-banner {
@@ -2929,7 +2929,7 @@
 }
 .admin-notif-filter-label {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-notif-filter-chip {
   padding: 6px 14px;
@@ -2970,7 +2970,7 @@
 }
 .admin-notif-group-count {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-notif-rule-list {
   padding: 0;
@@ -3017,7 +3017,7 @@
 .admin-notif-rule-condition {
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   word-break: keep-all;
 }
 .admin-notif-rule-meta {
@@ -3040,11 +3040,11 @@
   gap: 4px;
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .admin-notif-rule-cooldown {
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
   max-width: 160px;
   text-align: right;
@@ -3234,7 +3234,7 @@
 }
 .admin-notif-fixed-lock { display: inline-flex; align-items: center; flex-shrink: 0; }
 .admin-notif-fixed-text { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex: 1; }
-.admin-notif-fixed-tag { font-size: var(--font-size-text-xs); color: var(--text-tertiary); flex-shrink: 0; }
+.admin-notif-fixed-tag { font-size: var(--font-size-text-xs); color: var(--text-secondary); flex-shrink: 0; }
 
 /* cooldown 편집기 */
 .admin-notif-cooldown-box {
@@ -3250,7 +3250,7 @@
 .admin-notif-row-inline { display: flex; align-items: center; gap: var(--spacing-md); }
 .admin-notif-inline-label { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex-shrink: 0; }
 .admin-notif-inline-label.is-fixed { min-width: 56px; }
-.admin-notif-sub-label { font-size: var(--font-size-text-xs); color: var(--text-tertiary); margin-bottom: var(--spacing-sm); }
+.admin-notif-sub-label { font-size: var(--font-size-text-xs); color: var(--text-secondary); margin-bottom: var(--spacing-sm); }
 .admin-notif-weekdays { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; }
 .admin-notif-weekday {
   width: 38px;
@@ -3283,7 +3283,7 @@
   gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   word-break: keep-all;
 }
 
@@ -3302,7 +3302,7 @@
   outline: none;
 }
 .admin-notif-role-card-label,
-.admin-notif-channel-label { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-tertiary); }
+.admin-notif-channel-label { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-secondary); }
 .admin-notif-channel-icon { display: flex; justify-content: center; margin-bottom: var(--spacing-xs); }
 
 /* 선택된 수신 대상 카드 — 역할별 색 대신 브랜드 그린 단일 accent (팔레트 절제) */
@@ -3370,7 +3370,7 @@
   align-items: center;
   gap: 8px;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 필드 ── */
@@ -3378,7 +3378,7 @@
 .admin-inv-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   letter-spacing: 0.4px;
 }
 .admin-inv-input,
@@ -3416,7 +3416,7 @@
 .admin-inv-note {
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 .admin-inv-row-error {
@@ -3471,7 +3471,7 @@
 .admin-inv-team-row:not(:disabled):hover { background: var(--bg-secondary); }
 .admin-inv-team-row:disabled { cursor: default; }
 /* 조상 경로(P5) — 어느 «개발팀»인지 알려 주되 고를 수는 없다 */
-.admin-inv-team-row.is-ancestor .admin-inv-team-name { color: var(--text-quaternary, #98a2b3); }
+.admin-inv-team-row.is-ancestor .admin-inv-team-name { color: var(--text-secondary); }
 .admin-inv-team-none { padding: 6px 10px; }
 .admin-inv-team-searchbox { display: flex; flex-direction: column; gap: 6px; }
 .admin-inv-team-add { align-self: flex-start; }
@@ -3488,7 +3488,7 @@
   font-size: var(--font-size-text-xs);
 }
 .admin-inv-picked-path { flex: 1 1 200px; min-width: 0; display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; overflow-wrap: anywhere; }
-.admin-inv-picked-anc { color: var(--text-tertiary); white-space: pre; }
+.admin-inv-picked-anc { color: var(--text-secondary); white-space: pre; }
 .admin-inv-picked-name { color: var(--text-primary); font-weight: 600; }
 .admin-inv-picked-opt { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); cursor: pointer; }
 .admin-inv-picked-opt input { accent-color: var(--bg-brand-solid); }
@@ -3531,7 +3531,7 @@
   border: 1px dashed var(--border-primary);
   border-radius: var(--radius-lg);
   background: var(--bg-secondary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: center;
 }
@@ -3585,7 +3585,7 @@
 .admin-inv-csv-fix .admin-inv-field { max-width: 220px; }
 
 /* ── 푸터 (버튼 줄 왼쪽 요약) ── */
-.admin-inv-summary { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.admin-inv-summary { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 
 /* ── 확인 창 본문 — 창 자체는 공용 ConfirmModal(초대 창 위 겹침 순서도 그쪽이 갖는다) ── */
 .admin-inv-confirm-body {
@@ -3598,7 +3598,7 @@
   margin: 0;
   padding-left: 18px;
   font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 1.8;
 }
 
@@ -3620,7 +3620,7 @@
   min-width: 74px;
   font-variant-numeric: tabular-nums;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .admin-emp-hist-main { flex: 1; min-width: 0; }
@@ -3647,12 +3647,12 @@
 }
 
 /* 이전 값에 취소선을 쓰지 않는다 — 「지워진 값」으로 읽힌다. 톤으로만 가른다. */
-.admin-emp-hist-before { color: var(--text-tertiary); }
+.admin-emp-hist-before { color: var(--text-secondary); }
 .admin-emp-hist-after { color: var(--text-primary); font-weight: 600; }
 
 .admin-emp-hist-who {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -3670,7 +3670,7 @@
   padding: 28px 0;
   text-align: center;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .admin-emp-hist-empty-hint { margin-top: 6px; font-size: 11px; }
@@ -3720,7 +3720,7 @@
 
 .admin-emp-reason-lead {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin: 8px 0 0;
   line-height: 1.6;
 }
@@ -3784,7 +3784,7 @@
   margin-left: 8px;
   font-size: var(--font-size-text-md, 16px);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 공용 탭(Tabs)의 줄 — 타임라인 자리의 바깥 여백(20px 0 0 12px)은 어드민 본문에서 걷는다. */
@@ -3869,7 +3869,7 @@
   border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
 }
 .admin-emp-archived-intro { font-size: var(--font-size-text-sm, 14px); line-height: 20px; color: var(--text-secondary); }
-.admin-emp-archived-meta { font-size: var(--font-size-text-xs, 12px); line-height: 16px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.admin-emp-archived-meta { font-size: var(--font-size-text-xs, 12px); line-height: 16px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .admin-emp-archived-confirm {
   display: flex;
   flex-direction: column;
@@ -3884,7 +3884,7 @@
 .admin-emp-archived-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .admin-emp-archived-log-title { font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
 .admin-emp-archived-log { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-text-xs, 12px); line-height: 18px; color: var(--text-primary); overflow-wrap: anywhere; }
-.admin-emp-archived-log-at { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.admin-emp-archived-log-at { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 /* 옮긴 칸 자리 — 고칠 수 없는 칸의 표기(점선). 빈 입력창처럼 보이면 «입력 안 함»으로 읽힌다. */
 .admin-emp-archived-note {
   padding: 8px 10px;
@@ -3893,5 +3893,30 @@
   background: var(--bg-quaternary);
   font-size: var(--font-size-text-xs, 12px);
   line-height: 16px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+}
+
+/* ── PW-1439 — 공용 부품의 «읽어야 하는 글자»를 어드민 안에서만 secondary 로 ──
+   공용 `.dp-pager`(pagination.css)·`.seg-item`(App.css)은 다른 화면도 쓰므로 공용 규칙은
+   그대로 두고 어드민 캔버스 뿌리 아래에서만 올린다. 고르지 않은 칸은 secondary, 고른 칸은
+   흰 바탕 위에서 한 단계 진하게(primary). 고를 수 없는 칸(:disabled)은 공용 규칙대로. */
+.admin-canvas .dp-pager__range,
+.admin-canvas .dp-pager__page,
+.admin-snap-canvas .dp-pager__range,
+.admin-snap-canvas .dp-pager__page,
+.admin-emp-canvas .dp-pager__range,
+.admin-emp-canvas .dp-pager__page {
+  color: var(--text-secondary);
+}
+.admin-canvas .seg-item,
+.admin-snap-canvas .seg-item,
+.admin-emp-canvas .seg-item,
+.admin-notif-canvas .seg-item {
+  color: var(--text-secondary);
+}
+.admin-canvas .seg-item.is-active,
+.admin-snap-canvas .seg-item.is-active,
+.admin-emp-canvas .seg-item.is-active,
+.admin-notif-canvas .seg-item.is-active {
+  color: var(--text-primary);
 }

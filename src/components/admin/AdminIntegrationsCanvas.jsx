@@ -776,7 +776,7 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
             <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{owner.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                 {L.titleLabel}: {owner.title}
               </div>
             </div>
@@ -889,7 +889,7 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
       <div>
         <h4 className="intg-loglist-title">{labels.transfer.tokenHistory}</h4>
         {(transfer.tokenLogs ?? []).length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '8px 0' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
             {labels.transfer.noLogs}
           </div>
         ) : (
@@ -999,7 +999,7 @@ export default function AdminIntegrationsCanvas({
   if (loading) {
     return (
       <div className="admin-canvas" data-testid="intg-loading">
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)', fontSize: 13 }}>
           {labels.loading}
         </div>
       </div>
@@ -1021,7 +1021,7 @@ export default function AdminIntegrationsCanvas({
           <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
             {forbidden ? labels.error.forbiddenTitle : labels.error.loadFailedTitle}
           </p>
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {forbidden ? labels.error.forbiddenDesc : labels.error.loadFailedDesc}
           </p>
           {!forbidden && (
