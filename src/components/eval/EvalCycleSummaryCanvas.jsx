@@ -11,6 +11,7 @@ import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
+import { leaderGradeMarks } from './evalLeaderLive.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -90,6 +91,12 @@ const DEFAULT_LABELS = {
   cwColLeader: '팀장',
   cwColDates: '입사일/승급일',
   cwColCurrent: '현재등급',
+  // [PW-1594 · spec-calibration §20.1] 하향 차수가 2 이상인 사이클 — 같은 칸의 값이 «하향 등급»(제출된 가장 높은 차수)이다.
+  cwColLeaderGrade: '하향 등급',
+  cwLeaderGradeRound: '{round}차',
+  cwLeaderGradeMissing: '{higher}차 미제출 · {round}차 등급',
+  cwLeaderGradeNone: '하향 없음',
+  cwLeaderGradeOriginChanged: '원안 변경됨',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
   cwAdjustUp: '올림',
@@ -814,6 +821,42 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
   );
 }
 
+/**
+ * [PW-1594 · spec-calibration §20.1] 「하향 등급」 칸의 딸린 배지 — 출처 차수(`2차`, 차수가 2 이상인 사이클만) ·
+ * 위 차수 미제출(`3차 미제출 · 2차 등급`, warning) · 하향 없음(muted) · 원안 변경됨. `leaderGrade` 가 없는
+ * 행(차수별 배정이 없는 옛 사이클)은 아무것도 그리지 않는다.
+ */
+function LeaderGradeMarks({ leaderGrade, multiRound, L }) {
+  const m = leaderGradeMarks(leaderGrade);
+  if (!m) return null;
+  return (
+    <>
+      {m.none && (
+        <StatusBadge className="evs-cw-badge tone-muted" data-testid="evs-cw-leader-none">
+          {L.cwLeaderGradeNone}
+        </StatusBadge>
+      )}
+      {m.missing ? (
+        <StatusBadge className="evc-status-badge tone-warn" data-testid="evs-cw-leader-missing">
+          {fmt(L.cwLeaderGradeMissing, { higher: m.missing.higher, round: m.missing.round })}
+        </StatusBadge>
+      ) : (
+        multiRound &&
+        m.round != null && (
+          <StatusBadge className="evc-type-badge" data-testid="evs-cw-leader-round">
+            {fmt(L.cwLeaderGradeRound, { round: m.round })}
+          </StatusBadge>
+        )
+      )}
+      {m.changed && (
+        <StatusBadge className="evc-status-badge tone-info" data-testid="evs-cw-leader-changed">
+          {L.cwLeaderGradeOriginChanged}
+        </StatusBadge>
+      )}
+    </>
+  );
+}
+
 // 등급 톤: 최상위=green, 최하위=red, 그 외=accent.
 function gradeTone(gradeKey, orderedGrades) {
   if (!gradeKey || !orderedGrades?.length) return 'muted';
@@ -1243,6 +1286,11 @@ export default function EvalCycleSummaryCanvas({
   integrated = [],
   calibSessions = [],
   calibTable = null,
+  /**
+   * [PW-1594 · spec-calibration §20.1] 사이클의 하향 차수 N(`reviewSequence.leaderRounds`). 2 이상이면 「현재등급」
+   * 머리를 「하향 등급」으로 쓰고 칸에 출처 차수 배지를 붙인다. 행의 `leaderGrade` 가 더 높은 차수를 말하면 그것을 따른다.
+   */
+  leaderRounds = 1,
   calibTableLoading = false,
   selectedCalibSessionId = null,
   onSelectCalibSession,
@@ -1350,6 +1398,16 @@ export default function EvalCycleSummaryCanvas({
   workspaceOnly = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // [PW-1594 · spec-calibration §20.1] 하향 차수 2 이상 — 머리 「하향 등급」 · 칸에 출처 차수 배지.
+  const multiLeaderRound = useMemo(
+    () =>
+      Number(leaderRounds) >= 2 ||
+      (calibTable?.rows ?? []).some(
+        (r) => (r.leaderGrade?.round ?? 0) >= 2 || r.leaderGrade?.missingHigherRound != null,
+      ),
+    [leaderRounds, calibTable],
+  );
+  const currentGradeColLabel = multiLeaderRound ? L.cwColLeaderGrade : L.cwColCurrent;
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
   // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
   const tabOpen = (key) =>
@@ -3726,7 +3784,7 @@ export default function EvalCycleSummaryCanvas({
                               <SortTh sortKey="level" label={L.cwColLevel} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('lead') && <SortTh sortKey="leader" label={L.cwColLeader} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               {colOn('joined') && <SortTh sortKey="hireDate" label={L.cwColDates} sort={effectiveCalibSort} onSort={setCalibSort} />}
-                              <SortTh sortKey="current" label={L.cwColCurrent} sort={effectiveCalibSort} onSort={setCalibSort} />
+                              <SortTh sortKey="current" label={currentGradeColLabel} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('trend') && <RosterTable.HeadCell>{L.cwColTrend}</RosterTable.HeadCell>}
                               <RosterTable.HeadCell>{L.cwColAdjust}</RosterTable.HeadCell>
                               {colOn('promo') && <RosterTable.HeadCell>{L.cwColPromo}</RosterTable.HeadCell>}
@@ -3827,14 +3885,17 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 )}
                                 <RosterTable.Cell>
-                                  {row.currentGradeKey ? (
-                                    <StatusBadge
-                                      className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
-                                      {row.currentGradeLabel}
-                                    </StatusBadge>
-                                  ) : (
-                                    <span className="evs-cw-muted">—</span>
-                                  )}
+                                  <span className="evs-cw-leader-grade">
+                                    {row.currentGradeKey ? (
+                                      <StatusBadge
+                                        className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
+                                        {row.currentGradeLabel}
+                                      </StatusBadge>
+                                    ) : leaderGradeMarks(row.leaderGrade)?.none ? null : (
+                                      <span className="evs-cw-muted">—</span>
+                                    )}
+                                    <LeaderGradeMarks leaderGrade={row.leaderGrade} multiRound={multiLeaderRound} L={L} />
+                                  </span>
                                 </RosterTable.Cell>
                                 {colOn('trend') && (
                                 <RosterTable.Cell>
@@ -4101,7 +4162,7 @@ export default function EvalCycleSummaryCanvas({
                                           )}
                                           <dl className="evs-cw-detail-facts">
                                             <div>
-                                              <dt>{L.cwColCurrent}</dt>
+                                              <dt>{currentGradeColLabel}</dt>
                                               <dd>
                                                 {row.currentGradeLabel ? (
                                                   <StatusBadge
@@ -4182,7 +4243,7 @@ export default function EvalCycleSummaryCanvas({
                                           {/* §4.5 요약 칩 — 현재 등급 · 1차→위원회 조정 · 성과 추이 · OKR 달성률. */}
                                           <div className="evs-cw-detail-chips" data-testid="evs-cw-detail-chips">
                                             <span className="evs-cw-detail-stat">
-                                              {L.cwColCurrent}{' '}
+                                              {currentGradeColLabel}{' '}
                                               {row.currentGradeLabel ? (
                                                 <StatusBadge className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                                   {row.currentGradeLabel}

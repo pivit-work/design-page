@@ -41,6 +41,8 @@ const DEFAULT_LABELS = {
   sourceOkr: 'OKR',
   leaderTitle: '리더 코멘트',
   leaderCommentLabel: '최종 코멘트',
+  // PW-1594 — 하향 리뷰가 여러 차수일 때 묶음 머리. `{round}` 자리에 차수.
+  leaderRoundTitle: '하향 리뷰 · {round}차',
   peerTitle: '동료 피드백 요약 (익명)',
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
@@ -82,6 +84,23 @@ function krColor(p) {
   if (p >= 80) return 'var(--utility-success-500)';
   if (p >= 50) return 'var(--utility-warning-500)';
   return 'var(--utility-error-500)';
+}
+
+/**
+ * PW-1594 — 하향 리뷰 답을 차수(`leaderRound`)로 묶는다. 차수가 둘 이상일 때만 묶음을 돌려주고,
+ * 하나뿐이거나 값이 없는 옛 응답이면 `null`(종전처럼 한 목록).
+ */
+function groupLeaderRounds(answers) {
+  const byRound = new Map();
+  for (const a of answers ?? []) {
+    const r = Number.isInteger(a?.leaderRound) ? a.leaderRound : 1;
+    if (!byRound.has(r)) byRound.set(r, []);
+    byRound.get(r).push(a);
+  }
+  if (byRound.size < 2) return null;
+  return [...byRound.entries()]
+    .sort(([x], [y]) => x - y)
+    .map(([round, list]) => ({ round, answers: list }));
 }
 
 function AnswerList({ answers, L }) {
@@ -283,6 +302,7 @@ export default function EvalCycleReportCanvas({
 
   // 리포트 항목 켜짐/꺼짐(서버가 사람마다 내려준다). 맵에 없는 항목은 켜진 것으로 본다.
   const on = (key) => sections?.[key] !== false;
+  const leaderRoundGroups = groupLeaderRounds(leaderAnswers);
   // 맵이 있으면 «끈 것» 과 «아직 없는 것» 을 가를 수 있다 — 발송된 리포트는 접지 않는다.
   // 맵이 없는 옛 응답만 「등급도 리더 코멘트도 없으면 아직」 으로 추측한다.
   const notReady = sections
@@ -352,7 +372,20 @@ export default function EvalCycleReportCanvas({
                 </div>
               </div>
             )}
-            {leaderAnswers.length > 0 && <AnswerList answers={leaderAnswers} L={L} />}
+            {leaderAnswers.length > 0 &&
+              (leaderRoundGroups ? (
+                // PW-1594 — 하향 리뷰가 여러 차수면 차수마다 묶는다. 하나면 종전 그대로.
+                leaderRoundGroups.map(({ round, answers }) => (
+                  <div key={round} data-testid={`evr-leader-round-${round}`}>
+                    <h4 className="evc-field-label">
+                      {String(L.leaderRoundTitle || '').replace('{round}', String(round))}
+                    </h4>
+                    <AnswerList answers={answers} L={L} />
+                  </div>
+                ))
+              ) : (
+                <AnswerList answers={leaderAnswers} L={L} />
+              ))}
           </section>
         )}
 

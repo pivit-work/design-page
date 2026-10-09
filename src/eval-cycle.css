@@ -4290,6 +4290,35 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-1594 §5.13.4 — 위 차수가 배정됐을 때 등급 카드 아래 muted. 기획은 11px 이지만 평가 화면 글씨
+   아래끝(12px · PW-831 evalTypographyPalette 가드)에 맞춘다. */
+.evl-grade-round-note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+/* PW-1594 §5.13.3 — 근거 칸 맨 위 「앞 차수 리뷰」 */
+.evl-prior {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--bg-active);
+}
+.evl-prior-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+.evl-prior-head .evl-sec-toggle {
+  margin-left: auto;
+}
+.evl-prior-private {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
 .evl-submit-caption {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
@@ -9868,4 +9897,51 @@
   gap: 6px;
   padding-top: 6px;
   border-top: 1px solid var(--border-secondary);
+}
+
+/* ── PW-1594 · 정책 §5.13.6 — 진행 현황 「하향 평가자」(오픈 뒤) 접이식 블록 ─────────────────
+   표·칸·팝오버는 4단계 ④ 섹션(.evc-la-*)을 그대로 쓴다. 여기는 접기 머리·잠긴 칸·「앞 차수 없이 열기」만. */
+.evmon-la-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-family-body);
+  text-align: left;
+  cursor: pointer;
+}
+.evmon-la-toggle .evc-card-name {
+  margin: 0;
+}
+.evmon-la-toggle-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evmon-la .evc-la {
+  margin-top: 12px;
+}
+.evc-la-cell.is-static {
+  cursor: default;
+}
+.evc-la-cell.is-static:hover {
+  border-color: transparent;
+  background: none;
+}
+.evmon-la-force {
+  margin-top: 2px;
+  font-size: var(--font-size-text-xs);
+}
+/* 캘리브레이션 표 「하향 등급」 칸 — 등급 배지 옆 출처 차수·미제출·원안 변경 배지(spec-calibration §20.1). */
+.evs-cw-leader-grade {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }

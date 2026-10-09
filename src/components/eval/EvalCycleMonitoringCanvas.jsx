@@ -389,6 +389,11 @@ export default function EvalCycleMonitoringCanvas({
    * 안 주면 기간은 글자로만 보인다.
    */
   onChangeStageDate,
+  /**
+   * [PW-1594 · 정책 §5.13.6] 단계 요약 아래 「하향 평가자」(오픈 뒤) 접이식 블록 — 호출부가 만든 노드
+   * (보통 `EvalLeaderAssignmentLiveSection`). 차수별 배정이 없는 옛 사이클이면 호출부가 안 넘긴다.
+   */
+  leaderAssignments = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   /* [PW-1461 · 정책 §6.5] 고른 날짜를 저장하는 동안 그 자리에 먼저 보인다. 실패하면 지운다(= 원래 날짜). */
@@ -643,6 +648,8 @@ export default function EvalCycleMonitoringCanvas({
             </p>
           )}
         </section>
+
+        {leaderAssignments}
 
         {/* 멤버 현황
             [PW-534] 단계 열을 사이클 phases 기반 «동적»으로 (§6.2.1) — 3종 고정이라
