@@ -190,6 +190,11 @@ const DEFAULT_LABELS = {
   affColLeader: '조직장',
   affColRole: '권한',
   affNoChange: '변경 없음',
+  // 미리보기 «소속 변경» 칸 — 줄이 많으면 앞 3줄만 두고 나머지는 +N 에 접는다(§3-A A7).
+  affMoreLines: '+{n}',
+  affDuplicatePrefix: '중복',
+  // 오류 행이 섞여도 정상 행만 확정하거나, 아무것도 반영하지 않고 처음으로 돌아간다(§3).
+  cancelAll: '전체 취소',
   affPromote: '멤버 → 매니저',
   affSelectPrimary: '주 소속 선택',
   errorCount: '제외',
@@ -1146,9 +1151,34 @@ function StatusIcon({ tone, size = 12 }) {
    겸직(다중 소속)은 행을 나누지 않고 조직경로 한 칸에 `|` 배열로 넣는다
    (org-snapshot-spec.md §3-A). 파싱·검증 규칙은 소비자가 `parseUpload` 로
    주입한다 — 조직 트리·현재 소속·조직장 같은 판정 근거가 앱에 있기 때문이다. */
+/* 미리보기 «소속 변경» 칸 — 추가(+)·제거(−) 줄과 두 번 적힌 경로(A6 · 강조).
+   줄이 3개를 넘으면 앞 3줄만 두고 나머지는 +N 으로 접고, 마우스를 올리면 전체를 보인다(§3-A A7). */
+const AFF_VISIBLE_LINES = 3;
+function AffiliationChangeLines({ row, labels }) {
+  // 같은 경로가 두 번 적힌 행은 추가 줄에도 같은 경로가 두 번 온다 — 키에 순번을 붙인다.
+  const lines = [
+    ...(row.duplicates ?? []).map((tPath, i) => ({ key: `dup-${i}-${tPath}`, className: 'admin-snap-aff-dup', text: `${labels.affDuplicatePrefix} · ${tPath}` })),
+    ...(row.added ?? []).map((tPath, i) => ({ key: `add-${i}-${tPath}`, className: 'admin-snap-aff-add', text: `+ ${tPath}` })),
+    ...(row.removed ?? []).map((tPath, i) => ({ key: `rm-${i}-${tPath}`, className: 'admin-snap-aff-remove', text: `− ${tPath}` })),
+  ];
+  if (lines.length === 0) return <span className="admin-snap-pv-before">{labels.affNoChange}</span>;
+  const shown = lines.slice(0, AFF_VISIBLE_LINES);
+  const hidden = lines.slice(AFF_VISIBLE_LINES);
+  return (
+    <>
+      {shown.map((l) => <div key={l.key} className={l.className}>{l.text}</div>)}
+      {hidden.length > 0 && (
+        <span className="admin-snap-aff-more" title={lines.map((l) => l.text).join('\n')}>
+          {fill(labels.affMoreLines, { n: hidden.length })}
+        </span>
+      )}
+    </>
+  );
+}
+
 function AppointmentBulkView({
   members, bulkFields, labels, onSubmit, defaultDate = '',
-  parseUpload, onFixPrimary, affiliationTemplate,
+  parseUpload, onFixPrimary, onRowAction, affiliationTemplate,
 }) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
@@ -1160,6 +1190,8 @@ function AppointmentBulkView({
   const [previewRows, setPreviewRows] = useState([]);
   const [affiliationMode, setAffiliationMode] = useState(false);
   const [parseError, setParseError] = useState('');
+  // 파일에서 읽지 않은 열 등 파일 단위 안내 — 조용히 버리지 않는다(§3 [L] 2026-08-16).
+  const [parseNotices, setParseNotices] = useState([]);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -1205,11 +1237,13 @@ function AppointmentBulkView({
     // 한국어 엑셀이 저장한 EUC-KR 파일도 열 이름이 깨지지 않게 읽는다 (PW-968).
     const text = await readCsvFileText(f);
     // 소비자가 파서를 주입하면 겸직 검증(§3-A)을 그쪽 규칙으로 돌린다.
+    // XLSX 처럼 글자로 못 읽는 파일은 소비자가 `file` 로 직접 읽는다 — 그래서 결과가 약속(Promise)일 수 있다.
     if (parseUpload) {
-      const parsed = parseUpload(text, { fields, fileName: f.name });
+      const parsed = await parseUpload(text, { fields, fileName: f.name, file: f });
       setPreviewRows(parsed?.rows ?? []);
       setAffiliationMode(!!parsed?.hasAffiliationColumns);
       setParseError(parsed?.error ?? '');
+      setParseNotices(parsed?.notices ?? []);
       return;
     }
     const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
@@ -1240,6 +1274,7 @@ function AppointmentBulkView({
     setPreviewRows(rows);
     setAffiliationMode(false);
     setParseError('');
+    setParseNotices([]);
   }, [members, bulkFields, labels, parseUpload, fields]);
 
   // 파싱을 마쳐야 Step 3 으로 넘어간다 — 검증을 건너뛴 확정 경로를 두지 않는다.
@@ -1258,6 +1293,14 @@ function AppointmentBulkView({
   const fixPrimary = (row, value) => {
     if (!onFixPrimary) return;
     const next = onFixPrimary(row, value);
+    if (!next) return;
+    setPreviewRows((prev) => prev.map((r) => (r === row ? next : r)));
+  };
+
+  /* 행 처리 선택(신규 옵션 등록·직군 자동 보정·팀 자동 생성 — §3) — 주소속처럼 소비자가 재검증한 행으로 갈아 끼운다. */
+  const toggleRowAction = (row, key, checked) => {
+    if (!onRowAction) return;
+    const next = onRowAction(row, key, checked);
     if (!next) return;
     setPreviewRows((prev) => prev.map((r) => (r === row ? next : r)));
   };
@@ -1291,7 +1334,7 @@ function AppointmentBulkView({
   const reset = () => {
     setStep(1); setSelectedColumns(new Set()); setFile(null);
     setReason(''); setDate(defaultDate); setPreviewRows([]); setDone(false);
-    setAffiliationMode(false); setParseError(''); setSubmitError('');
+    setAffiliationMode(false); setParseError(''); setParseNotices([]); setSubmitError('');
   };
 
   if (done) {
@@ -1431,6 +1474,9 @@ function AppointmentBulkView({
             {affiliationMode && (
               <div className="admin-snap-warnbox">{labels.affOverwriteWarning}</div>
             )}
+            {parseNotices.map((text, ni) => (
+              <div key={`notice-${ni}`} className="admin-snap-hint" role="status">{text}</div>
+            ))}
             {previewRows.length > 0 ? (
               <RosterTable nowrap tableClassName="admin-snap-preview-table">
                   <RosterTable.Head>
@@ -1457,15 +1503,7 @@ function AppointmentBulkView({
                           {affiliationMode && (
                             <>
                               <RosterTable.Cell>
-                                {(row.added ?? []).map((tPath) => (
-                                  <div key={`add-${tPath}`} className="admin-snap-aff-add">+ {tPath}</div>
-                                ))}
-                                {(row.removed ?? []).map((tPath) => (
-                                  <div key={`rm-${tPath}`} className="admin-snap-aff-remove">− {tPath}</div>
-                                ))}
-                                {(row.added ?? []).length === 0 && (row.removed ?? []).length === 0 && (
-                                  <span className="admin-snap-pv-before">{labels.affNoChange}</span>
-                                )}
+                                <AffiliationChangeLines row={row} labels={labels} />
                               </RosterTable.Cell>
                               <RosterTable.Cell>
                                 {/* 주소속 미지정·불일치는 여기서 바로 고칠 수 있다(§3-A-3). */}
@@ -1518,6 +1556,16 @@ function AppointmentBulkView({
                                 {m.text}
                               </div>
                             ))}
+                            {onRowAction && (row.actions ?? []).map((a) => (
+                              <label key={a.key} className="admin-snap-aff-action">
+                                <input
+                                  type="checkbox"
+                                  checked={!!a.checked}
+                                  onChange={(e) => toggleRowAction(row, a.key, e.target.checked)}
+                                />
+                                {a.label}
+                              </label>
+                            ))}
                           </RosterTable.Cell>
                         </RosterTable.Row>
                       );
@@ -1542,7 +1590,10 @@ function AppointmentBulkView({
               <div className="admin-snap-warnbox" role="alert">{submitError}</div>
             )}
             <div className="admin-snap-actions" style={{ justifyContent: 'space-between' }}>
-              <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(2)}>← {labels.prev}</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(2)}>← {labels.prev}</button>
+                <button type="button" className="admin-emp-btn is-soft" disabled={submitting} onClick={reset}>{labels.cancelAll}</button>
+              </div>
               {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
               <button type="button" className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting} onClick={handleConfirm}>
                 {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
@@ -2254,6 +2305,7 @@ export default function OrgSnapshotCanvas({
   parseBulkUpload,
   /** 미리보기에서 주 소속을 고쳤을 때 재검증한 행을 돌려준다. `(row, value) => row` */
   onFixBulkPrimary,
+  onBulkRowAction,
   /** 템플릿에 덧붙일 겸직 열/샘플: `{ columns: [], sample: [], sampleByField: {} }` */
   bulkAffiliationTemplate,
   // 이력
@@ -2381,6 +2433,7 @@ export default function OrgSnapshotCanvas({
               defaultDate={today}
               parseUpload={parseBulkUpload}
               onFixPrimary={onFixBulkPrimary}
+              onRowAction={onBulkRowAction}
               affiliationTemplate={bulkAffiliationTemplate}
             />
           )}
