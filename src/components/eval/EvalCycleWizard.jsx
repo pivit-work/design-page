@@ -8194,6 +8194,21 @@ export default function EvalCycleWizard({
                             {L.targetFocusInclude}
                           </button>
                         </div>
+                      ) : orgUnitsError && scopedCandidates.length === 0 ? (
+                        /* PW-1459 — 조직을 못 불러와 고른 조직을 맞출 수 없다. 「조직을 선택하세요」는
+                           고를 트리가 없는 자리에서 할 수 없는 일을 시킨다. */
+                        <div className="evc-review-empty" data-testid="evc-wiz-roster-org-error">
+                          <p>{L.targetOrgLoadError}</p>
+                          {onReloadOrgUnits && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadOrgUnits}
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
+                        </div>
                       ) : scopedCandidates.length === 0 ? (
                         <p className="evc-review-empty" data-testid="evc-wiz-pick-org">
                           {L.targetPickOrg}
@@ -8653,9 +8668,12 @@ export default function EvalCycleWizard({
                   </b>
                 </div>
               </div>
-              <p className="evc-wiz-hint">
-                {isManage ? L.manageSaveHint : L.createDraftHint}
-              </p>
+              {/* PW-1459 — 6단계가 곧 오픈이면 「준비 중으로 저장 · 목록에서 오픈」 안내는 거짓이다. */}
+              {!opensOnSubmit && (
+                <p className="evc-wiz-hint">
+                  {isManage ? L.manageSaveHint : L.createDraftHint}
+                </p>
+              )}
               {/* TC-028 이 설정을 프리셋으로 저장 */}
               {onSavePreset && (
                 <div className="evc-wiz-preset-save" data-testid="evc-wiz-preset-save">
