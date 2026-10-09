@@ -1566,6 +1566,11 @@
   font-weight: 700;
   flex-shrink: 0;
 }
+/* PW-1460 — 두 캘리브레이션 명단에 같이 든 사람. 막지 않는 경고라 주황이다. */
+.evc-wiz-calibscope-row-tag.is-dup {
+  background: var(--utility-warning-50);
+  color: var(--utility-warning-700);
+}
 
 /* 2곳이 같은 값을 쓴다 */
 .evs-cw-roster-excluded-chip,

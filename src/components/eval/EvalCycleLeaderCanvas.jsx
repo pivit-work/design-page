@@ -86,7 +86,8 @@ const DEFAULT_LABELS = {
   calibOffSubmittedNote: '제출한 등급이 최종 등급으로 확정되었습니다.',
   // PW-1045 위원회가 이 팀원의 등급을 바꿨다 — 등급 칸만 잠그고 까닭을 카드 안에 적는다.
   gradeLockedNote: '',
-  rationaleRequired: '사유가 입력되지 않은 항목이 있습니다.',
+  // spec-eval-cycle §4.2.2 B6 — 아래 제출 줄과 사유를 비운 칸 아래에 같은 문구.
+  rationaleRequired: '점수 사유를 입력해 주세요.',
   save: '임시저장',
   submit: '제출하기',
   // category labels for evidence
@@ -872,6 +873,11 @@ export default function EvalCycleLeaderCanvas({
                         onChange={(e) => setField(f.key, { rationale: e.target.value })}
                         data-testid={`evl-rationale-${f.key}`}
                       />
+                      {triedSubmit && isIncomplete(f) && (
+                        <p className="evm-field-error" data-testid={`evl-rationale-error-${f.key}`}>
+                          {L.rationaleRequired}
+                        </p>
+                      )}
                     </>
                   ) : f.type === 'checkbox' ? (
                     /* PW-433 ③ 제목 + 선택지 2층. 선택지가 없는 구 항목은 구 동작으로 폴백. */
