@@ -44,6 +44,9 @@ const C = {
 const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
+  // 내가 쓴 피드백의 작성자 이름 — 영어 화면에서는 소비 측이 'Me' 를 넘긴다.
+  me: '나',
+  emptyItemText: '(내용 없음)',
   title: '팀 피드백',
   subtitle: '팀원별로 OKR 달성 과정에 대한 피드백을 남깁니다.',
   cardRequests: '피드백 요청',
@@ -265,15 +268,15 @@ function BlockCard({ block, L, onOpen }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map((it) => (
             <div key={it.id} style={{ display: 'flex', gap: 8 }}>
-              <Avatar name={it.itemType === 'request' ? it.author?.name : '나'} photo={it.author?.avatar} size={22} />
+              <Avatar name={it.itemType === 'request' ? it.author?.name : L.me} photo={it.author?.avatar} size={22} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
-                  <span style={{ fontWeight: 700, color: C.text }}>{it.itemType === 'request' ? it.author?.name : '나'}</span>
+                  <span style={{ fontWeight: 700, color: C.text }}>{it.itemType === 'request' ? it.author?.name : L.me}</span>
                   {it.itemType === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
                   <span>{fmtDate(it.sentAt)}</span>
                 </div>
                 <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {it.text || '(내용 없음)'}
+                  {it.text || L.emptyItemText}
                 </p>
               </div>
             </div>
@@ -427,10 +430,10 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
   return (
     <div data-testid={`fbmgr-feedback-${item.id}`}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name="나" photo={item.author?.avatar} size={30} />
+        <Avatar name={L.me} photo={item.author?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-            <span style={{ fontWeight: 700, color: C.text }}>나</span>
+            <span style={{ fontWeight: 700, color: C.text }}>{L.me}</span>
             <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {modifiable && !editing && (
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
