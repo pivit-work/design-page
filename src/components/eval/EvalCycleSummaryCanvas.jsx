@@ -589,6 +589,12 @@ const DEFAULT_LABELS = {
   publish: '발송',
   yes: '✓',
   no: '·',
+  /* PW-1429 · 대시보드 정책 §16.2 — 퇴사 확정으로 결과에서 빠진 인원. {n} 은 사람 수 */
+  archivedExcluded: '퇴사 확정 {n}명 제외',
+  cwTrendPriorArchived: '이전 재직 구간 · 따로 보관 중',
+  archivedNoticeTitle: '퇴사가 확정된 {n}명의 평가 결과는 따로 보관 중이라 이 화면에서 빠져 있습니다',
+  archivedNoticeBody: '인원·등급 분포·비율·내보내기 파일이 모두 {n}명을 뺀 값이라, 처음 집계했을 때보다 인원이 적게 보일 수 있습니다.',
+  archivedNoticeHr: '따로 보관한 기록은 어드민 › 구성원 설정의 퇴사자 상세 «따로 보관한 기록»에서 사유를 적고 파일로 받습니다.',
 };
 
 function isObj(v) {
@@ -734,7 +740,19 @@ function DetailSectionHead({ open, onToggle, testId, children }) {
   );
 }
 
-function MiniSparkline({ trend, domain, emptyLabel = '—' }) {
+/* PW-1429 · 대시보드 정책 §16.4 — 재입사한 사람의 이전 재직 구간 등급은 따로 보관돼 추이에 없다. 빈칸은
+   «등급을 받은 적 없음»으로 읽히므로 그래프 아래에 그 사실을 한 줄 단다. */
+function MiniSparkline({ archivedPrior = false, archivedLabel, ...rest }) {
+  if (!archivedPrior) return <MiniSparklineChart {...rest} />;
+  return (
+    <span className="evs-cw-spark-cell">
+      <MiniSparklineChart {...rest} />
+      <span className="evs-cw-spark-archived" data-testid="evs-cw-spark-archived">{archivedLabel}</span>
+    </span>
+  );
+}
+
+function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
   const scores = (trend ?? []).map((t) => (t == null ? null : t.score));
   const valid = scores.filter((s) => s != null);
   // §14 — 추이는 이번 사이클을 포함하므로 점이 둘 미만이면 지난 이력이 없는 것이다 → 「이력 없음」.
@@ -1278,6 +1296,11 @@ export default function EvalCycleSummaryCanvas({
   report = null,
   gradeLabels = {},
   labels: providedLabels,
+  /* 퇴사가 확정돼 이 사이클의 등급을 따로 보관한 사람 수(PW-1429 · 정책 §16). 이미 다른 모든 수에서 빠진
+     값이라 더하지 않는다. 0 이면 안내 줄도 «제외» 표기도 없다. 이름은 받지 않는다. */
+  archivedDepartedCount = 0,
+  /* 꺼내는 길 문장은 회사 어드민(HR)에게만 — 꺼내는 권한이 HR 에게만 있다(§16.2). */
+  showArchivedRecordsPath = false,
   onGenerate,
   onPublish,
   onSendReminders,
@@ -1843,7 +1866,16 @@ export default function EvalCycleSummaryCanvas({
               {cycle?.name ? ` · ${cycle.name}` : ''}
             </p>
           ) : (
-            cycle?.name && <p className="evc-summary">{cycle.name}</p>
+            cycle?.name && (
+              <p className="evc-summary">
+                {cycle.name}
+                {archivedDepartedCount > 0 && (
+                  <span className="evs-archived-excluded" data-testid="evs-archived-excluded">
+                    {' · '}{L.archivedExcluded.split('{n}').join(String(archivedDepartedCount))}
+                  </span>
+                )}
+              </p>
+            )
           )}
           <PeriodSelector
             periods={periods}
@@ -1892,6 +1924,19 @@ export default function EvalCycleSummaryCanvas({
       )}
 
       <div className="evc-list">
+        {/* PW-1429 · 정책 §16.2 — 탭을 바꿔도 남는다(일곱 탭의 수가 같은 이유로 줄어 있다). 닫기 없음.
+            ⛔ 이름·부서·등급·퇴사일을 싣지 않는다 — 전후 분포를 비교해 그 사람의 등급을 읽는 길이 열린다. */}
+        {!workspaceOnly && archivedDepartedCount > 0 && (
+          <div className="evs-archived-notice" role="status" data-testid="evs-archived-notice">
+            <p className="evs-archived-notice-title">
+              {L.archivedNoticeTitle.split('{n}').join(String(archivedDepartedCount))}
+            </p>
+            <p className="evs-archived-notice-body">
+              {L.archivedNoticeBody.split('{n}').join(String(archivedDepartedCount))}
+              {showArchivedRecordsPath && <> {L.archivedNoticeHr}</>}
+            </p>
+          </div>
+        )}
         {beforeCalibration && (
           <p className="evc-empty-sub" role="status" data-testid="evs-before-calibration">
             {L.beforeCalibration}
@@ -3777,7 +3822,7 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 {colOn('trend') && (
                                 <RosterTable.Cell>
-                                  <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} />
+                                  <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} />
                                 </RosterTable.Cell>
                                 )}
                                 <RosterTable.Cell>
@@ -4135,7 +4180,7 @@ export default function EvalCycleSummaryCanvas({
                                             )}
                                             <span className="evs-cw-detail-stat">
                                               {L.cwColTrend}{' '}
-                                              <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} />
+                                              <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} />
                                             </span>
                                             <span className="evs-cw-detail-stat" data-testid="evs-cw-detail-chip-okr">
                                               {fmt(L.cwOkrChip, {

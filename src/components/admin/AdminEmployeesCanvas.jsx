@@ -29,6 +29,8 @@ import FormField from '../shared/FormField.jsx';
 import ToneBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.jsx';
+import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
 import Radio from '../shared/Radio.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
@@ -3796,6 +3798,11 @@ function EmployeesEditPanel({
   /* 대표(CEO) 지정·해제 — `(mode: 'assign'|'release') => void`. 목록 행 ⋯ 메뉴와 **같은** 확인 창을 연다
      (admin-spec §3.6-A-2 ⓑ). 미주입이면(어드민 아님·퇴사자) «조직 위치» 칸을 그리지 않는다. */
   onOpenCeo,
+  /* 따로 보관한 기록 (PW-1429 · 퇴사 처리 정책서 v1.19 §3-C) — 퇴사가 확정된 사람의 법정 보존분.
+     `onLoadArchivedRecords(memberId) => Promise<{ pendingTerminationDate, segments }>` ·
+     `onDownloadArchivedRecords(memberId, retireDate, reason) => Promise<void>`(실패면 reject).
+     미주입이면(어드민 아님) 칸도 «따로 보관 중» 표기도 없다. */
+  onLoadArchivedRecords, onDownloadArchivedRecords,
 }) {
   const [draft, setDraft] = useState(member);
   const [syncedId, setSyncedId] = useState(member?.id);
@@ -3849,6 +3856,8 @@ function EmployeesEditPanel({
    * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
    * 한가운데를 읽기 전용 표가 끊는다.
    */
+  /* 따로 보관한 기록 — 불러오기 상태는 효과 밖(사람이 바뀌는 자리·[다시 시도])에서만 'loading' 으로 세운다 */
+  const [archive, setArchive] = useState({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -3872,9 +3881,26 @@ function EmployeesEditPanel({
     setHistoryState({ status: 'idle', page: null });
     setHistoryField('all');
     setHistoryMoreLoading(false);
+    setArchive({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
   }
 
   const memberId = member?.id;
+  useEffect(() => {
+    if (archive.status !== 'loading' || !memberId || !onLoadArchivedRecords) return undefined;
+    let alive = true;
+    Promise.resolve(onLoadArchivedRecords(memberId))
+      .then((view) => { if (alive) setArchive({ status: 'ready', view }); })
+      // 빈 칸으로 보이면 «보관한 것이 없다»로 읽힌다 — 실패는 실패로 보인다
+      .catch(() => { if (alive) setArchive({ status: 'error', view: null }); });
+    return () => { alive = false; };
+  }, [archive.status, memberId, onLoadArchivedRecords]);
+  const archivedLabels = { ...ARCHIVED_RECORDS_DEFAULT_LABELS, ...(labels.panel?.archived || {}) };
+  /* 지금 구간의 기록이 옮겨졌나 — 그러면 옮긴 칸 자리에 «따로 보관 중»을 둔다. 재입사해 재직 중이면
+     지금 구간 값은 새로 넣은 값이라 그대로 보인다(정책서 E35). */
+  const archivedNow =
+    archive.status === 'ready' &&
+    member?.employmentStatus === 'terminated' &&
+    (archive.view?.segments ?? []).some((seg) => seg.terminationDate === member?.terminationDate);
   useEffect(() => {
     if (identityState !== 'loading' || !memberId || !onLoadHrProfile) {
       return undefined;
@@ -4212,6 +4238,13 @@ function EmployeesEditPanel({
                 <SectionLabel>{labels.panel[g.labelKey]}</SectionLabel>
                 <div className="admin-emp-field-group">
                   {shown.map((f) => {
+                    if (archivedNow && f.key === 'employmentType') {
+                      return (
+                        <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
+                          <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-employmentType" />
+                        </FormField>
+                      );
+                    }
                     const opts = f.kind === 'select' && !AXIS_LEVEL_OF[f.key] ? optionsFor(f) : null;
                     const axisLevel = AXIS_LEVEL_OF[f.key];
                     return (
@@ -4559,6 +4592,24 @@ function EmployeesEditPanel({
               )}
           </div>
 
+          {onLoadArchivedRecords && (
+            <ArchivedRecordsSection
+              memberName={member.name}
+              state={archive}
+              labels={archivedLabels}
+              onRetry={() => setArchive({ status: 'loading', view: null })}
+              onDownload={
+                onDownloadArchivedRecords
+                  ? async (retireDate, reason) => {
+                      await onDownloadArchivedRecords(member.id, retireDate, reason);
+                      // 칸 아래 «내려받은 기록»에 방금 줄이 붙도록 다시 읽는다
+                      setArchive({ status: 'loading', view: null });
+                    }
+                  : undefined
+              }
+            />
+          )}
+
           {/* 보상 — 연봉 열람 권한이 없으면 칸도 이력 버튼도 그리지 않는다(T3).
               값을 «—» 로 가려 두면 「비어 있다」로 읽혀 덮어쓰는 사고가 난다. */}
           {canViewSalary && (
@@ -4566,15 +4617,19 @@ function EmployeesEditPanel({
               <SectionLabel>{labels.panel.paySection}</SectionLabel>
               <div className="admin-emp-field-group">
                 <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.salary}>
-                  <TextInput
-                    className="admin-emp-input"
-                    value={draft.salary ?? ''}
-                    disabled={!canEdit}
-                    data-testid="employees-panel-salary"
-                    onChange={(e) => set('salary', e.target.value)}
-                  />
+                  {archivedNow ? (
+                    <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-salary" />
+                  ) : (
+                    <TextInput
+                      className="admin-emp-input"
+                      value={draft.salary ?? ''}
+                      disabled={!canEdit}
+                      data-testid="employees-panel-salary"
+                      onChange={(e) => set('salary', e.target.value)}
+                    />
+                  )}
                 </FormField>
-                {onLoadSalaryHistory && (
+                {onLoadSalaryHistory && !archivedNow && (
                   <button
                     type="button"
                     className="admin-emp-btn is-ghost admin-emp-btn-block"
@@ -4628,13 +4683,17 @@ function EmployeesEditPanel({
           <SectionLabel>{labels.panel.recordSection}</SectionLabel>
           <div className="admin-emp-field-group">
             <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.education}>
-              <TextInput
-                className="admin-emp-input"
-                value={draft.education ?? ''}
-                disabled={!canEdit}
-                data-testid="employees-panel-education"
-                onChange={(e) => set('education', e.target.value)}
-              />
+              {archivedNow ? (
+                <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-education" />
+              ) : (
+                <TextInput
+                  className="admin-emp-input"
+                  value={draft.education ?? ''}
+                  disabled={!canEdit}
+                  data-testid="employees-panel-education"
+                  onChange={(e) => set('education', e.target.value)}
+                />
+              )}
             </FormField>
             {onLoadHrProfile && (
               <button
@@ -4658,6 +4717,7 @@ function EmployeesEditPanel({
           <HrProfileModal
             row={draft}
             labels={labels.records}
+            archived={archivedNow}
             onLoad={onLoadHrProfile}
             today={today}
             onSaveIdentity={canEdit ? onSaveIdentity : undefined}
@@ -4975,6 +5035,8 @@ export default function AdminEmployeesCanvas({
    * 선다. 빠진 콜백의 자리는 그리지 않는다(교육·복리후생 묶음 / 줄마다 고치기·지우기).
    */
   hrRecordHandlers,
+  onLoadArchivedRecords,
+  onDownloadArchivedRecords,
   onLoadHrProfile,
   /** 「오늘」 `YYYY-MM-DD` — 보는 사람의 내 설정 타임존(PW-781). 인사 기록 생년월일 달력의 상한 (PW-1301) */
   today,
@@ -5322,6 +5384,8 @@ export default function AdminEmployeesCanvas({
             onAddSalaryHistory={onAddSalaryHistory}
             defaultCurrency={defaultCurrency}
             hrRecordHandlers={hrRecordHandlers}
+            onLoadArchivedRecords={onLoadArchivedRecords}
+            onDownloadArchivedRecords={onDownloadArchivedRecords}
           />
         );
       })()}

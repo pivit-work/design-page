@@ -3844,3 +3844,45 @@
 .admin-emp-banner.is-error .admin-emp-banner-title { color: var(--colors-error-600, #d92d20); }
 .admin-emp-banner-main { flex: 1; min-width: 0; }
 .admin-emp-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── 따로 보관한 기록 (PW-1429 · 퇴사 처리 정책서 v1.19 §3-C) ─────────────────────
+   퇴사자 상세 «정보» 탭의 칸. 값은 펼치지 않고 구간·날짜·내려받은 기록만 보인다.
+   내려받기 확인 박스는 경고 톤(amber 글자)만 쓰고 채움은 중립이다 — 위 `.admin-emp-banner` 와 같은 판단. */
+.admin-emp-archived-head { display: inline-flex; align-items: center; gap: 8px; }
+.admin-emp-archived-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.admin-emp-archived {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-archived-intro { font-size: var(--font-size-text-sm, 14px); line-height: 20px; color: var(--text-secondary); }
+.admin-emp-archived-meta { font-size: var(--font-size-text-xs, 12px); line-height: 16px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.admin-emp-archived-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+}
+.admin-emp-archived-confirm-title { font-size: var(--font-size-text-sm, 14px); font-weight: 600; line-height: 20px; color: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-archived-confirm-body { font-size: var(--font-size-text-xs, 12px); line-height: 18px; color: var(--text-secondary); }
+.admin-emp-archived-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.admin-emp-archived-log-title { font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-secondary); margin-top: 2px; }
+.admin-emp-archived-log { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-text-xs, 12px); line-height: 18px; color: var(--text-primary); overflow-wrap: anywhere; }
+.admin-emp-archived-log-at { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+/* 옮긴 칸 자리 — 고칠 수 없는 칸의 표기(점선). 빈 입력창처럼 보이면 «입력 안 함»으로 읽힌다. */
+.admin-emp-archived-note {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--colors-border-borderSecondary, #d0d5dd);
+  background: var(--bg-quaternary);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
