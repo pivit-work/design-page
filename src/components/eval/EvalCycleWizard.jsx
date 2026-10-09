@@ -6746,7 +6746,7 @@ export default function EvalCycleWizard({
 
               {/* PW-1459 §5.10.2 — 회사 직급이 하나도 없으면 블록을 숨기지 않고 어디서 정하는지 알린다. */}
               {roleFromSettings && roleLevels.length === 0 && !hideRoleVersions && (
-                <div className="evc-tpl-role-empty" data-testid="evc-tpl-role-empty">
+                <div data-testid="evc-tpl-role-empty">
                   <span className="evc-field-label">{L.roleVersionTitle}</span>
                   <p className="evc-wiz-hint">
                     {L.roleLevelsEmpty}{' '}
