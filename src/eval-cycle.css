@@ -3171,6 +3171,18 @@
   flex: 1;
   min-width: 0;
 }
+/* PW-1459 — 100명이 넘어 가상 스크롤로 그릴 때는 행 높이를 고정한다(위치 계산이 이 값을 쓴다). */
+.evc-roster-row.is-fixed {
+  box-sizing: border-box;
+  height: 52px;
+  min-height: 0;
+  overflow: hidden;
+}
+.evc-roster-row.is-fixed .evc-roster-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .evc-roster-name {
   display: block;
   font-size: 13px;

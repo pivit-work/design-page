@@ -291,6 +291,14 @@ const DEFAULT_LABELS = {
   draftConflictLoad: '상대 내용 불러오기',
   tplVanished: '이 단계의 템플릿이 라이브러리에서 사라졌습니다',
   staleDraftsToggle: '오래된 초안 {{count}}건',
+  targetOrgLoadError: '조직 정보를 불러오지 못했습니다',
+  targetCandidatesLoadError: '구성원 명단을 불러오지 못했습니다',
+  targetInactiveSuffix: '(비활성)',
+  exclusionEmploymentTypeSuffix: '에 해당하면 제외',
+  targetIncludedToast: '{{count}}명을 수동 포함했습니다 — 규칙 제외를 사람이 뒤집은 것으로 남습니다',
+  targetManualKeptNotice: '수동 조정 {{count}}건은 유지했습니다',
+  exclusionUnsupported: '이 조건은 현재 워크스페이스에서 지원하지 않습니다',
+  exclusionUnsupportedLabel: '지원하지 않는 조건',
 };
 
 const STATUS_META = {
@@ -1068,6 +1076,14 @@ export default function EvalCycleHrCanvas({
   onReloadCommitteeCandidates,
   /* PW-980 — 대상자 후보·발령 이력 조회 실패. 위자드로 그대로 넘긴다. */
   candidatesError = false,
+  /* PW-1459 — 대상자 단계: 로딩·조직 조회 실패, 필터 값 목록의 출처(조직 설정). 위자드에 그대로 넘긴다. */
+  candidatesLoading = false,
+  orgUnitsLoading = false,
+  orgUnitsError = false,
+  onReloadOrgUnits,
+  fieldOptions = null,
+  fieldOptionsAll = null,
+  jobLadderFamilies = null,
   onReloadCandidates,
   appointmentChangesError = false,
   onReloadAppointmentChanges,
@@ -1750,6 +1766,13 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           candidatesError={candidatesError}
+          candidatesLoading={candidatesLoading}
+          orgUnitsLoading={orgUnitsLoading}
+          orgUnitsError={orgUnitsError}
+          onReloadOrgUnits={onReloadOrgUnits}
+          fieldOptions={fieldOptions}
+          fieldOptionsAll={fieldOptionsAll}
+          jobLadderFamilies={jobLadderFamilies}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}
@@ -1803,6 +1826,13 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
           candidatesError={candidatesError}
+          candidatesLoading={candidatesLoading}
+          orgUnitsLoading={orgUnitsLoading}
+          orgUnitsError={orgUnitsError}
+          onReloadOrgUnits={onReloadOrgUnits}
+          fieldOptions={fieldOptions}
+          fieldOptionsAll={fieldOptionsAll}
+          jobLadderFamilies={jobLadderFamilies}
           onReloadCandidates={onReloadCandidates}
           appointmentChangesError={appointmentChangesError}
           onReloadAppointmentChanges={onReloadAppointmentChanges}

@@ -12,6 +12,7 @@ import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Toast from '../shared/Toast.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -689,6 +690,28 @@ const REVIEW_AXES = [
   { key: 'jobPosition', labelKey: 'targetAxisJobPosition' },
 ];
 const REVIEW_AXIS_KEYS = REVIEW_AXES.map((a) => a.key);
+/* PW-1459 E12 — 대상 명단 가상 스크롤. 높이는 CSS(.evc-roster-group-head 35px ·
+   .evc-roster-row.is-fixed 52px · .evc-review-pane-body 최대 320px)와 같은 값이다. */
+const ROSTER_VIRTUAL_MIN = 100;
+const ROSTER_HEAD_H = 35;
+const ROSTER_ROW_H = 52;
+const ROSTER_VIEW_H = 320;
+const ROSTER_OVERSCAN = 400;
+/** 고용유형 — 기획서 고정 ENUM 4종(§5.5.2 · §5.5.10). 회사가 바꿀 수 없고 「임원」 같은 값은 없다. */
+const EMPLOYMENT_TYPES = ['정규직', '계약직', '인턴', '자문'];
+/** 이 위자드가 아는 제외 조건 칸. 불러온 설정에 이 밖의 조건이 있으면 «지원하지 않는 조건»이다(§5.9). */
+const KNOWN_EXCLUSION_KEYS = new Set([
+  'onLeave',
+  'hireDate',
+  'hireDateRef',
+  'hireDateDirection',
+  'roleChange',
+  'promotion',
+  'promotionRef',
+  'promotionDirection',
+  'employmentType',
+  'employmentTypeValues',
+]);
 /** 축별 선택값의 빈 상태. 축이 늘어도 여기 한 곳만 본다. */
 const emptyAxisSel = () =>
   REVIEW_AXIS_KEYS.reduce((acc, k) => ({ ...acc, [k]: [] }), {});
@@ -860,7 +883,7 @@ function TriCheck({ state, label, onToggle }) {
  * 축을 만질 때마다 뒤 명단이 다시 그려지면 그 자체가 「동적 요소」라서 그렇다.
  * 팝오버 밖 클릭은 **적용하지 않고 닫는다** — 되돌아갈 곳이 없으면 「적용」이 뜻을 잃는다.
  */
-function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, onClose }) {
+function ReviewFilterPopover({ labels: L, applied, valuesOf, labelOf, countsOf, onApply, onClose }) {
   const [draft, setDraft] = useState(() => {
     const d = emptyAxisSel();
     REVIEW_AXIS_KEYS.forEach((k) => {
@@ -927,7 +950,7 @@ function ReviewFilterPopover({ labels: L, applied, valuesOf, countsOf, onApply, 
                 onChange={() => toggle(v)}
                 data-testid={`evc-wiz-filter-val-${axis}-${v}`}
               >
-                <span className="evc-filter-value-name">{v}</span>
+                <span className="evc-filter-value-name">{labelOf ? labelOf(axis, v, draft) : v}</span>
                 <span className="evc-filter-value-n">{counts[v] ?? 0}</span>
               </Checkbox>
             ))}
@@ -2351,6 +2374,20 @@ export default function EvalCycleWizard({
    * 「다음」·저장은 원래대로 막힌다.
    */
   candidatesError = false,
+  /**
+   * PW-1459 §5.5.2 — 필터 값 목록은 조직 설정(필드 옵션)에서 읽는다. 축 키별 값 배열.
+   * `fieldOptions` 는 지금 고를 수 있는 값(설정 순서), `fieldOptionsAll` 은 비활성까지 포함한 전부.
+   * 안 넘기면 종전대로 후보가 가진 값에서 뽑는다.
+   */
+  /** PW-1459 §5.5.5 — 대상자 단계 로딩·조직 조회 실패. */
+  candidatesLoading = false,
+  orgUnitsLoading = false,
+  orgUnitsError = false,
+  onReloadOrgUnits,
+  fieldOptions = null,
+  fieldOptionsAll = null,
+  /** PW-1459 — 직렬 → 속한 직군 목록(직군 › 직렬 병기와 직군별 좁히기). */
+  jobLadderFamilies = null,
   /** 대상자 후보 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadCandidates,
   /**
@@ -4431,7 +4468,7 @@ export default function EvalCycleWizard({
       dirty,
       archived: (tpl?.status || 'active') === 'archived',
       /* PW-1459 §5.1-A-6 — 확정이 가리키던 템플릿이 라이브러리에서 지워졌다(조회가 끝난 뒤에만 판정). */
-      vanished: !!id && !tpl && libraryResolved,
+      vanished: libraryMode && !!id && !tpl && libraryResolved,
       editing,
       options: savedTemplates.filter(
         (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === rt.id,
@@ -4710,6 +4747,7 @@ export default function EvalCycleWizard({
 
      불변식: `manualInclude ⊆ 규칙 제외자` · `manualExclude ∩ 규칙 제외자 = ∅`. */
   const excludeOne = (id) => {
+    markManualAdjust();
     // 「수동 포함」 상태의 규칙 제외자를 다시 빼면 **규칙 사유로 돌아간다**(수동 제외 아님).
     if (keptIds.includes(id)) {
       setKeptIds((prev) => prev.filter((x) => x !== id));
@@ -4718,6 +4756,7 @@ export default function EvalCycleWizard({
     setManualExcludedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
   const includeOne = (id) => {
+    markManualAdjust();
     // 수동 제외를 되돌리면 **배지 없이 원상**이다.
     if (manualExcludedIds.includes(id)) {
       setManualExcludedIds((prev) => prev.filter((x) => x !== id));
@@ -4731,6 +4770,7 @@ export default function EvalCycleWizard({
      조직 트리 하나이고, 축(직급·고용형태·직렬·직군·직책)은 **표시만** 거르는 필터다. */
   const hasOrgUnits = Array.isArray(orgUnits) && orgUnits.length > 0;
   const orgTree = buildOrgTree(orgUnits, candidates);
+  const targetsLoading = candidatesLoading || orgUnitsLoading;
   const unitKeyOf = (c) => orgUnitKeyOf(c, hasOrgUnits);
   /** 트리가 아는 단위 id 전체 — 여기 없는 소속은 「미지정」으로 모은다. */
   const knownUnitIds = new Set(
@@ -4917,6 +4957,13 @@ export default function EvalCycleWizard({
   useEffect(() => {
     onExclusionRulesChange?.(JSON.parse(exclusionQueryKey));
   }, [exclusionQueryKey, onExclusionRulesChange]);
+  /* PW-1459 E4 — 제외 조건이 바뀌어 다시 판정해도 수동 제외·수동 포함은 그대로다. 마지막 수동
+     조정 뒤로 조건이 바뀌었으면 그 사실을 「수동 조정 N건은 유지했습니다」로 말한다. */
+  const rulesKeyNow = JSON.stringify(exclusionRulesNow);
+  const [rulesAtManual, setRulesAtManual] = useState(openedRulesKey);
+  const markManualAdjust = () => setRulesAtManual(rulesKeyNow);
+  const manualAdjustCount = manualExcludedIds.length + keptIds.length;
+  const showManualKept = manualAdjustCount > 0 && rulesKeyNow !== rulesAtManual;
   const rulesPinned =
     isManage &&
     Array.isArray(recordedExclusions) &&
@@ -4946,11 +4993,9 @@ export default function EvalCycleWizard({
   const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
   /* 규칙 5 — 「수동 포함」 배지를 붙일 수 있는 사람. 규칙이 뺀 사람만이다. */
   const ruleExcludedIds = new Set(autoExclusions.map((e) => e.memberId));
-  /* 고용유형 조건의 값 목록 — 평가 모듈이 자기 목록을 갖지 않는다(§5.5.2). 구성원이
-     실제로 가진 값에서 뽑는다. 「해당 N명」은 조건이 실제로 도는 모집단(고른 조직)에서 센다. */
-  const employmentTypeOptions = [
-    ...new Set(candidates.map((c) => c.employmentType).filter(Boolean)),
-  ];
+  /* 고용유형 조건의 값 목록 — 시스템 고정 4종이다(§5.5.2 · PW-1459). 「해당 N명」은 조건이
+     실제로 도는 모집단(고른 조직)에서 센다. */
+  const employmentTypeOptions = EMPLOYMENT_TYPES;
   const employmentTypeHitCount = scopedCandidates.filter(
     (c) => c.employmentType && employmentTypeValues.includes(c.employmentType),
   ).length;
@@ -5025,13 +5070,61 @@ export default function EvalCycleWizard({
 
   /* ── 필터·검색 — 표시만 거른다(카운터 3값과 저장분은 흔들리지 않는다) ────────── */
   /** 축의 값 목록. 직렬은 고른 직군 아래로 좁는다(직군 → 직렬은 부모–자식). */
+  /** PW-1459 — 직렬이 속한 직군. 조직 설정의 관계가 있으면 그것, 없으면 후보에서 본다. */
+  const familiesOfLadder = (ladder) =>
+    jobLadderFamilies?.[ladder] ??
+    [
+      ...new Set(
+        candidates
+          .filter((c) => c.jobTitle === ladder && c.jobFamily)
+          .map((c) => c.jobFamily),
+      ),
+    ];
   const axisValuesFor = (axisKey, sel) => {
+    // PW-1459 §5.5.2 — 고용유형은 고정 4종, 나머지는 조직 설정의 «지금 고를 수 있는» 값(설정 순서).
+    if (axisKey === 'employmentType') return EMPLOYMENT_TYPES;
+    const options = fieldOptions?.[axisKey];
+    if (Array.isArray(options)) {
+      const fams = sel.jobFamily ?? [];
+      if (axisKey === 'jobTitle' && fams.length > 0) {
+        return options.filter((l) => familiesOfLadder(l).some((f) => fams.includes(f)));
+      }
+      return options;
+    }
     const pool =
       axisKey === 'jobTitle' && (sel.jobFamily ?? []).length > 0
         ? scopedCandidates.filter((c) => sel.jobFamily.includes(c.jobFamily))
         : scopedCandidates;
     return [...new Set(pool.map((c) => c[axisKey]).filter(Boolean))];
   };
+  /** PW-1459 §5.5.2 — 직군을 안 골랐으면 직렬 값에 `직군 › 직렬` 을 병기한다. */
+  const axisLabelFor = (axisKey, value, sel) => {
+    if (axisKey !== 'jobTitle' || (sel.jobFamily ?? []).length > 0) return value;
+    const fams = familiesOfLadder(value);
+    return fams.length > 0 ? `${fams.join(' · ')} › ${value}` : value;
+  };
+  /** PW-1459 E6 — 조직 설정에서 비활성한 값. 명단 행에는 남기고 값 뒤에 `(비활성)`. */
+  const isInactiveValue = (axisKey, value) =>
+    !!value &&
+    Array.isArray(fieldOptions?.[axisKey]) &&
+    Array.isArray(fieldOptionsAll?.[axisKey]) &&
+    fieldOptionsAll[axisKey].includes(value) &&
+    !fieldOptions[axisKey].includes(value);
+  const metaOf = (c) =>
+    [c.jobLevel, c.employmentType]
+      .filter(Boolean)
+      .map((v, i) =>
+        i === 0 && isInactiveValue('jobLevel', v) ? `${v} ${L.targetInactiveSuffix}` : v,
+      )
+      .join(' · ');
+  /** PW-1459 규칙 9 — 그룹 안 정렬: 직급 옵션 순서(설정의 위쪽 먼저) → 이름. 직급이 없거나 목록 밖이면 뒤로. */
+  const levelOrder = fieldOptionsAll?.jobLevel ?? fieldOptions?.jobLevel ?? [];
+  const levelRank = (c) => {
+    const i = levelOrder.indexOf(c.jobLevel);
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const byLevelThenName = (a, b) =>
+    levelRank(a) - levelRank(b) || String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ko');
   /** 값별 인원수 — 「지금 조직 선택 안에서」 센다. */
   const axisCountsFor = (axisKey) =>
     scopedCandidates.reduce((acc, c) => {
@@ -5155,7 +5248,9 @@ export default function EvalCycleWizard({
   orgTree.forEach((d) => {
     unitsOfDept(d).forEach((unitId) => {
       if (!orgSel.has(unitId)) return;
-      const members = visibleTargets.filter((c) => bucketOf(c) === unitId);
+      const members = visibleTargets
+        .filter((c) => bucketOf(c) === unitId)
+        .sort(byLevelThenName);
       if (members.length === 0) return;
       const team = d.teams.find((t) => t.id === unitId);
       reviewGroups.push({
@@ -5166,9 +5261,9 @@ export default function EvalCycleWizard({
     });
   });
   if (orgSel.has(UNASSIGNED_ORG_ID)) {
-    const members = visibleTargets.filter(
-      (c) => bucketOf(c) === UNASSIGNED_ORG_ID,
-    );
+    const members = visibleTargets
+      .filter((c) => bucketOf(c) === UNASSIGNED_ORG_ID)
+      .sort(byLevelThenName);
     if (members.length > 0) {
       reviewGroups.push({
         id: UNASSIGNED_ORG_ID,
@@ -5178,9 +5273,55 @@ export default function EvalCycleWizard({
     }
   }
 
+  /* PW-1459 E12 — 명단이 100명을 넘으면 가상 스크롤. 스크롤 위치·창 높이는 스크롤 이벤트에서만 잰다. */
+  const rosterMemberTotal = reviewGroups.reduce((n, g) => n + g.members.length, 0);
+  const rosterVirtual = rosterMemberTotal > ROSTER_VIRTUAL_MIN;
+  const [rosterScroll, setRosterScroll] = useState({ top: 0, height: ROSTER_VIEW_H });
+  const rosterGroupTop = new Map();
+  reviewGroups.reduce((acc, g) => {
+    rosterGroupTop.set(g.id, acc);
+    const rows = groupCollapsed.has(g.id) ? 0 : g.members.length;
+    return acc + ROSTER_HEAD_H + rows * ROSTER_ROW_H;
+  }, 0);
+  const onRosterScroll = rosterVirtual
+    ? (e) =>
+        setRosterScroll({
+          top: e.currentTarget.scrollTop,
+          height: e.currentTarget.clientHeight || ROSTER_VIEW_H,
+        })
+    : undefined;
+  const renderRosterRow = (c) => (
+    <div key={c.id} className={`evc-roster-row${rosterVirtual ? ' is-fixed' : ''}`}>
+      <div className="evc-roster-who">
+        <span className="evc-roster-name">{c.name}</span>
+        <span className="evc-roster-meta">{metaOf(c)}</span>
+      </div>
+      {keptIds.includes(c.id) && (
+        <StatusBadge
+          className="evc-roster-badge"
+          data-testid={`evc-wiz-kept-${c.id}`}>
+          {L.targetManualInclude}
+        </StatusBadge>
+      )}
+      <Tooltip content={L.targetReviewExcludeOne}>
+        <button
+          type="button"
+          className="evc-roster-move is-out"
+          onClick={() => excludeOne(c.id)}
+          aria-label={L.targetReviewExcludeOne}
+          data-testid={`evc-wiz-exclude-${c.id}`}
+        >
+          {L.targetMoveOut}
+          <ArrowRightIcon size={13} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+
   /** 여럿을 한 번에 옮긴다 — 되돌리기 1회를 위해 직전 상태를 스냅샷으로 남긴다. */
   const moveMany = (list, toExcluded) => {
-    if (list.length === 0) return;
+    if (list.length === 0) return 0;
+    markManualAdjust();
     setUndoSnapshot({ manual: [...manualExcludedIds], kept: [...keptIds] });
     const ids = list.map((c) => c.id);
     if (toExcluded) {
@@ -5201,13 +5342,31 @@ export default function EvalCycleWizard({
         ...prev,
         ...toKept.filter((id) => !prev.includes(id)),
       ]);
+      return toKept.length;
     }
+    return ids.length;
   };
   const undoMove = () => {
     if (!undoSnapshot) return;
     setManualExcludedIds(undoSnapshot.manual);
     setKeptIds(undoSnapshot.kept);
     setUndoSnapshot(null);
+    setWizToast(null);
+  };
+
+  /* PW-1459 E19 — 일괄 되돌리기로 규칙 제외자가 「수동 포함」이 되면 몇 명인지와
+     그것이 기록으로 남는다는 것을 알린다. 되돌리기는 1회(위 스냅샷). */
+  const [wizToast, setWizToast] = useState(null);
+  const wizToastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(wizToastTimer.current), []);
+  const showWizToast = (toast) => {
+    setWizToast(toast);
+    clearTimeout(wizToastTimer.current);
+    wizToastTimer.current = setTimeout(() => setWizToast(null), 6000);
+  };
+  const includeVisibleExcluded = () => {
+    const kept = moveMany(visibleExcluded, false);
+    if (kept > 0) showWizToast({ kind: 'included', count: kept });
   };
 
 
@@ -5827,6 +5986,10 @@ export default function EvalCycleWizard({
     // A4: 대상자 조건(범위 축·제외 규칙)도 함께 복원한다.
     if (Array.isArray(cfg.orgIds)) setOrgSel(new Set(cfg.orgIds));
     const ex = cfg.exclusionRules || {};
+    // PW-1459 §5.9 — 이 위자드가 모르는 조건은 버리지 않고 «지원하지 않는 조건»으로 보여 준다.
+    setUnsupportedRules(
+      Object.keys(ex).filter((k) => !KNOWN_EXCLUSION_KEYS.has(k) && !!ex[k]),
+    );
     setExcludeOnLeave(!!ex.onLeave);
     setExcludeHireDate(!!ex.hireDate);
     setHireDateRef(ex.hireDateRef || '');
@@ -5875,6 +6038,7 @@ export default function EvalCycleWizard({
   // A4 불러오기 다이얼로그 — 목록에서 고르고 '이 설정으로 시작'.
   // 이미 입력한 값이 있으면 덮어쓰기 전에 확인을 받는다.
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [unsupportedRules, setUnsupportedRules] = useState([]);
   const [pendingPresetId, setPendingPresetId] = useState(null);
   const wizardDirty =
     !!name.trim() ||
@@ -7282,30 +7446,8 @@ export default function EvalCycleWizard({
 
           {step === 3 && (
             <div className="evc-wiz-panel">
-              {/* PW-980 — 후보 명단을 못 받으면 조직 트리도 명단도 빈다. 「대상이 없다」로
-                  읽히지 않게 단계 맨 위에서 말하고 다시 받게 한다. */}
-              {candidatesError && (
-                <div
-                  className="evc-wiz-committee-error"
-                  role="status"
-                  data-testid="evc-wiz-candidates-error"
-                >
-                  <span>
-                    {L.targetCandidatesLoadError ??
-                      '대상자 후보 명단을 불러오지 못했습니다.'}
-                  </span>
-                  {onReloadCandidates && (
-                    <button
-                      type="button"
-                      className="evc-wiz-committee-retry"
-                      onClick={onReloadCandidates}
-                      data-testid="evc-wiz-candidates-retry"
-                    >
-                      {L.wizardCommitteeRetry ?? '다시 시도'}
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* PW-980 — 후보 명단을 못 받으면 「대상이 없다」로 읽히지 않게 말하고 다시 받게
+                  한다. PW-1459 §5.5.5 부터 그 자리는 가운데 명단이다(아래). */}
               {/* PW-443 — 상단 「대상 범위」 탭 7종과 딸린 축 값 칩·개별 선택 명단을
                   제거했다. 모집단을 정하는 손잡이는 아래 「리뷰 & 조정」의 조직 트리
                   하나이고, 직급·직렬·직군·직책은 그 위의 필터가 흡수한다. 탭은 고를
@@ -7517,6 +7659,10 @@ export default function EvalCycleWizard({
                           ))
                         )}
                       </div>
+                      {/* PW-1459 §5.3.1 — 무엇을 하는 조건인지 값 바로 뒤에 말한다. */}
+                      <span data-testid="evc-wiz-excl-employment-suffix">
+                        {L.exclusionEmploymentTypeSuffix}
+                      </span>
                       <span
                         className="evc-wiz-hint"
                         data-testid="evc-wiz-excl-employment-count"
@@ -7534,6 +7680,27 @@ export default function EvalCycleWizard({
                       data-testid="evc-wiz-excl-employment-all"
                     >
                       {L.exclusionEmploymentTypeAll}
+                    </p>
+                  )}
+                  {/* PW-1459 §5.9 — 불러온 설정에 있던, 이 회사에서 쓸 수 없는 조건. 적용하지 않는다. */}
+                  {unsupportedRules.map((k) => (
+                    <Tooltip key={k} content={L.exclusionUnsupported}>
+                      <Checkbox
+                        className="evl-promo-row"
+                        checked={false}
+                        disabled
+                        onChange={() => {}}
+                        data-testid={`evc-wiz-excl-unsupported-${k}`}
+                      >
+                        <span>{L.exclusionUnsupportedLabel}</span>
+                      </Checkbox>
+                    </Tooltip>
+                  ))}
+                  {/* PW-1459 E4 — 조건이 바뀌어도 사람이 직접 옮긴 것은 그대로다. */}
+                  {showManualKept && (
+                    <p className="evc-wiz-hint" data-testid="evc-wiz-manual-kept">
+                      <InfoIcon size={12} />{' '}
+                      {fill(L.targetManualKeptNotice, { count: manualAdjustCount })}
                     </p>
                   )}
                 </div>
@@ -7619,6 +7786,7 @@ export default function EvalCycleWizard({
                         labels={L}
                         applied={reviewFilters}
                         valuesOf={axisValuesFor}
+                        labelOf={axisLabelFor}
                         countsOf={axisCountsFor}
                         onApply={(draft) => {
                           setReviewFilters(draft);
@@ -7689,6 +7857,30 @@ export default function EvalCycleWizard({
                       </button>
                     </div>
                     <div className="evc-review-pane-body">
+                      {/* PW-1459 §5.5.5 — 오기 전엔 자리 표시, 못 받으면 그 자리에서 다시 시도.
+                          조직만 실패하면 명단은 그대로 둔다(부분 실패를 전체 실패로 만들지 않는다). */}
+                      {targetsLoading ? (
+                        <div data-testid="evc-wiz-org-skeleton">
+                          {Array.from({ length: 6 }, (_, i) => (
+                            <Skeleton key={i} height={44} radius="var(--radius-md)" />
+                          ))}
+                        </div>
+                      ) : orgUnitsError ? (
+                        <div className="evc-review-empty" data-testid="evc-wiz-org-error">
+                          <p>{L.targetOrgLoadError}</p>
+                          {onReloadOrgUnits && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadOrgUnits}
+                              data-testid="evc-wiz-org-retry"
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                      <>
                       <div className="evc-org-row is-root">
                         <span className="evc-org-caret" />
                         <TriCheck
@@ -7821,6 +8013,8 @@ export default function EvalCycleWizard({
                           <span className="evc-org-n">{unassignedCount}</span>
                         </div>
                       )}
+                      </>
+                      )}
                     </div>
                     <div className="evc-review-pane-foot" data-testid="evc-wiz-org-summary">
                       {fill(L.targetOrgSelected, {
@@ -7854,8 +8048,41 @@ export default function EvalCycleWizard({
                         </button>
                       )}
                     </div>
-                    <div className="evc-review-pane-body">
-                      {focusOffTarget ? (
+                    <div
+                      className="evc-review-pane-body"
+                      onScroll={onRosterScroll}
+                      data-testid="evc-wiz-roster-body"
+                    >
+                      {targetsLoading ? (
+                        <div data-testid="evc-wiz-roster-skeleton">
+                          {[0, 1].map((g) => (
+                            <div key={g}>
+                              {Array.from({ length: 6 }, (_, i) => (
+                                <Skeleton key={i} height={44} radius="var(--radius-md)" />
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : candidatesError ? (
+                        /* PW-1459 §5.5.5 — 명단을 못 받았다는 말은 명단 자리에서 한다. */
+                        <div
+                          className="evc-review-empty"
+                          role="status"
+                          data-testid="evc-wiz-candidates-error"
+                        >
+                          <p>{L.targetCandidatesLoadError}</p>
+                          {onReloadCandidates && (
+                            <button
+                              type="button"
+                              className="evc-filter-reset"
+                              onClick={onReloadCandidates}
+                              data-testid="evc-wiz-candidates-retry"
+                            >
+                              {L.wizardCommitteeRetry ?? '다시 시도'}
+                            </button>
+                          )}
+                        </div>
+                      ) : focusOffTarget ? (
                         /* E16 — 「필터 결과 0명」과 문구를 가른다. 원인이 다르고
                            처방도 다르다(초기화가 아니라 「대상에 포함」이다). */
                         <div
@@ -7892,10 +8119,7 @@ export default function EvalCycleWizard({
                       ) : (
                         reviewGroups.map((g) => {
                           const open = !groupCollapsed.has(g.id);
-                          return (
-                            <div key={g.id}>
-                              {/* 접혀도 인원수와 「제외 →」 는 보인다 —
-                                  접힌 그룹을 통째로 뺄 수 있어야 접기가 쓸모 있다. */}
+                          const head = (
                               <div className="evc-roster-group-head">
                                 <button
                                   type="button"
@@ -7931,38 +8155,49 @@ export default function EvalCycleWizard({
                                   <ArrowRightIcon size={13} />
                                 </button>
                               </div>
-                              {open &&
-                                g.members.map((c) => (
-                                  <div key={c.id} className="evc-roster-row">
-                                    <div className="evc-roster-who">
-                                      <span className="evc-roster-name">{c.name}</span>
-                                      <span className="evc-roster-meta">
-                                        {[c.jobLevel, c.employmentType]
-                                          .filter(Boolean)
-                                          .join(' · ')}
-                                      </span>
-                                    </div>
-                                    {keptIds.includes(c.id) && (
-                                      <StatusBadge
-                                        className="evc-roster-badge"
-                                        data-testid={`evc-wiz-kept-${c.id}`}>
-                                        {L.targetManualInclude}
-                                      </StatusBadge>
-                                    )}
-                                    <Tooltip content={L.targetReviewExcludeOne}>
-                                      <button
-                                        type="button"
-                                        className="evc-roster-move is-out"
-                                        onClick={() => excludeOne(c.id)}
-                                        aria-label={L.targetReviewExcludeOne}
-                                        data-testid={`evc-wiz-exclude-${c.id}`}
-                                      >
-                                        {L.targetMoveOut}
-                                        <ArrowRightIcon size={13} />
-                                      </button>
-                                    </Tooltip>
-                                  </div>
-                                ))}
+                          );
+                          if (!rosterVirtual) {
+                            return (
+                              <div key={g.id}>
+                                {head}
+                                {open && g.members.map(renderRosterRow)}
+                              </div>
+                            );
+                          }
+                          /* PW-1459 E12 — 100명이 넘으면 보이는 창(앞뒤 여유 포함)에 걸친 그룹·행만
+                             그린다. 나머지 자리는 같은 높이의 빈 칸이 지켜 스크롤 길이가 그대로다. */
+                          const top = rosterGroupTop.get(g.id) ?? 0;
+                          const rows = open ? g.members.length : 0;
+                          const height = ROSTER_HEAD_H + rows * ROSTER_ROW_H;
+                          const winTop = rosterScroll.top - ROSTER_OVERSCAN;
+                          const winBottom = rosterScroll.top + rosterScroll.height + ROSTER_OVERSCAN;
+                          if (top + height < winTop || top > winBottom) {
+                            return (
+                              <div
+                                key={g.id}
+                                style={{ height }}
+                                data-testid={`evc-wiz-group-placeholder-${g.id}`}
+                              />
+                            );
+                          }
+                          const first = Math.max(
+                            0,
+                            Math.floor((winTop - top - ROSTER_HEAD_H) / ROSTER_ROW_H),
+                          );
+                          const last = Math.min(
+                            rows,
+                            Math.ceil((winBottom - top - ROSTER_HEAD_H) / ROSTER_ROW_H),
+                          );
+                          return (
+                            <div key={g.id}>
+                              {head}
+                              {open && (
+                                <>
+                                  <div style={{ height: first * ROSTER_ROW_H }} />
+                                  {g.members.slice(first, Math.max(first, last)).map(renderRosterRow)}
+                                  <div style={{ height: (rows - Math.max(first, last)) * ROSTER_ROW_H }} />
+                                </>
+                              )}
                             </div>
                           );
                         })
@@ -7998,7 +8233,7 @@ export default function EvalCycleWizard({
                         <button
                           type="button"
                           className="evc-review-pane-action"
-                          onClick={() => moveMany(visibleExcluded, false)}
+                          onClick={includeVisibleExcluded}
                           data-testid="evc-wiz-include-all"
                         >
                           {anyReviewFilter
@@ -8519,6 +8754,29 @@ export default function EvalCycleWizard({
       {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
+      {wizToast?.kind === 'included' && (
+        <Toast
+          tone="info"
+          message={
+            <>
+              {fill(L.targetIncludedToast, { count: wizToast.count })}{' '}
+              {undoSnapshot && (
+                <button
+                  type="button"
+                  className="evc-review-undo"
+                  onClick={undoMove}
+                  data-testid="evc-wiz-toast-undo"
+                >
+                  <UndoIcon size={12} />
+                  {L.targetUndo}
+                </button>
+              )}
+            </>
+          }
+          data-testid="evc-wiz-include-toast"
+        />
+      )}
+
       {/* PW-1459 §5.1-A-6 — 다른 사람이 먼저 저장한 초안. 나중 저장이 앞 저장을 조용히
           지우지 않게, 무엇을 할지 사용자가 고른다. */}
       {draftConflict && (
