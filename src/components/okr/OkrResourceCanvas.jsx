@@ -22,6 +22,10 @@ import { mergeOkrResourceLabels } from './okrResourceLabels.js';
  * 탭을 항상 3개 그리면 눌렀을 때 권한 오류만 나오는 탭이 남는다. 판정 자체는 호스트
  * (서버 권한)가 하고, 여기서는 받은 목록만 그린다.
  *
+ * `initialView` 는 처음 열 서브탭이다(주소의 `?tab=` 을 호스트가 넘긴다). `views` 에 없으면 첫 탭을
+ * 연다 — 권한이 없는 탭으로 들어온 사람은 자기 입력으로 떨어진다. 팀·조직 데이터가 늦게 와서
+ * `views` 가 나중에 늘면 그때 그 탭으로 넘어간다.
+ *
  * `placeholder` 를 주면 헤더·본문 대신 같은 자리(`.rsx-area`)에 그것만 그린다 — 불러오는 중·
  * 불러오기 실패처럼 `data` 가 아직 없을 때. `actionError` 는 저장·코멘트 실패 문구로,
  * 헤더 위에 인라인으로 띄운다(전역 오류 화면으로 보내면 방금 맞춘 슬라이더 값이 날아간다).
@@ -45,6 +49,7 @@ export default function OkrResourceCanvas({
   icons,
   baseUrl = '',
   views,
+  initialView,
   onSave,
   onComment,
   onApplyEstimates,
@@ -59,7 +64,11 @@ export default function OkrResourceCanvas({
   const L = mergeOkrResourceLabels(providedLabels);
   const items = (views?.length ? VIEWS.filter((v) => views.includes(v)) : VIEWS)
     .map((value) => ({ value, label: L.views[value] }));
-  const [view, setView] = useState(items[0]?.value ?? 'my');
+  // 사람이 고른 탭이 없으면 initialView — 불러오는 중(placeholder)에 먼저 떠 있던 캔버스도 따라가게
+  // 상태 초기값으로 굳히지 않는다.
+  const [picked, setView] = useState(null);
+  const wanted = picked ?? initialView;
+  const view = items.some((item) => item.value === wanted) ? wanted : (items[0]?.value ?? 'my');
   const [openTeam, setOpenTeam] = useState(null);
 
   if (placeholder != null) {
