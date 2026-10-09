@@ -4518,7 +4518,8 @@ export default function EvalCycleWizard({
     const id = phaseTemplateMap[rt.id] || '';
     const tpl = id ? templateById.get(id) : null;
     // 확정이 가리키던 템플릿이 라이브러리에서 사라졌으면 «미확정» 으로 되돌린다 (엣지 3).
-    const confirmed = !!id && (!!tpl || !libraryResolved);
+    // 오픈한 사이클은 확정이 사이클 전용 스냅샷을 가리켜 라이브러리에 없는 게 정상이다(PW-1461 — 「사라졌다」로 잘못 읽었다).
+    const confirmed = !!id && (confirmReadOnly || !!tpl || !libraryResolved);
     const editing = rt.id === tplType;
     // 지문이 없으면(초안 이어쓰기·관리 모드 프리필) 판단하지 않는다 — 모르는 것을
     // 「수정 중」으로 말하면 확정이 안 된 것처럼 읽힌다.
@@ -4537,7 +4538,7 @@ export default function EvalCycleWizard({
       dirty,
       archived: (tpl?.status || 'active') === 'archived',
       /* PW-1459 §5.1-A-6 — 확정이 가리키던 템플릿이 라이브러리에서 지워졌다(조회가 끝난 뒤에만 판정). */
-      vanished: libraryMode && !!id && !tpl && libraryResolved,
+      vanished: libraryMode && !confirmReadOnly && !!id && !tpl && libraryResolved,
       editing,
       options: savedTemplates.filter(
         (t) => (t.status || 'active') === 'active' && (t.reviewType || 'self') === rt.id,
