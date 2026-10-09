@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo } from 'react';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
 import { IconLock } from './employeeExport.jsx';
+import { IconChevronRight } from './employeesIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
@@ -119,7 +120,9 @@ export function CeoBadge({ label }) {
 
 
 /** 대표 지정/해제 확인 모달 — 정책 §4-A. 실패해도 닫지 않고 인라인 에러를 띄운다. */
-export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOptions = [], onConfirm, onClose }) {
+/* `onOpenFieldOptions` — 직책 옵션에 '대표'가 없을 때 [조직 설정 →] 으로 그 값을 더하는 화면을 연다
+   (screen-admin-ceo-assign.policy §4-A). 미주입이면 사유 글만 남는다. */
+export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOptions = [], onConfirm, onClose, onOpenFieldOptions }) {
   const L = labels || {};
   const assigning = mode === 'assign';
   // 체크박스는 isCeo 와 독립된 컬럼을 함께 설정할 뿐, 자동 연동이 아니다.
@@ -210,7 +213,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
               )}
             </>
           ) : (
-            <div>{L.ceoReleaseBody || '조직도 최상위가 비고, 이 구성원은 상급자 없는 상태가 됩니다. 권한과 직책은 자동으로 되돌리지 않습니다.'}</div>
+            <div>{(L.ceoReleaseBody || '대표 지정을 해제하면 조직도 최상위가 비어 가상 루트 노드로 표시됩니다. {name}님의 매니저는 소속 조직의 조직장으로 다시 계산됩니다. 권한과 직책은 자동으로 되돌리지 않습니다.').replace('{name}', name)}</div>
           )}
         </div>
 
@@ -221,14 +224,26 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
               setAlsoSetJobPosition,
               (L.ceoAlsoSetJobPosition || "직책을 '{value}'로 함께 변경").replace('{value}', ceoPositionLabel),
               !positionAvailable,
-              positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다 — 조직 설정에서 추가하세요."),
+              positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다"),
+            )}
+            {!positionAvailable && onOpenFieldOptions && (
+              <button
+                type="button"
+                className="admin-emp-btn is-ghost is-sm"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={onOpenFieldOptions}
+                data-testid="ceo-position-go-field-options"
+              >
+                {L.ceoPositionGoSettings || '조직 설정'}
+                <IconChevronRight size={14} />
+              </button>
             )}
           </div>
         )}
 
         {assigning && (
           <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.8 }}>
-            <div>· {L.ceoNoteManager || '대표는 상급자를 가질 수 없습니다.'}</div>
+            <div>· {L.ceoNoteManager || '매니저가 없어지고 이후 매니저가 생기지 않습니다 (조직 최상위)'}</div>
             <div>· {L.ceoNoteRole || '권한은 바뀌지 않습니다 — 권한 관리 화면에서 따로 조정하세요.'}</div>
             <div>· {L.ceoNoteHistory || '이 변경은 발령 이력에 기록됩니다.'}</div>
           </div>

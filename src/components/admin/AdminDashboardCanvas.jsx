@@ -5,7 +5,7 @@ import LinkButton from './LinkButton.jsx';
 import AdminStatTile from './AdminStatTile.jsx';
 import AdminTeamRow from './AdminTeamRow.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { CloseGlyph, CrownGlyph } from '../shared/lineIcons.jsx';
+import { ChevronRightGlyph, CloseGlyph, CrownGlyph } from '../shared/lineIcons.jsx';
 import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
@@ -65,7 +65,7 @@ const DEFAULT_LABELS = {
   emptyActivity: '오늘 활동 기록이 없습니다',
   logTypes: { snippet: '스니핏', alert: '알림', oneonone: '1on1', meeting: '회의록', eval: '평가' },
   ceoBannerTitle: '대표(CEO)가 지정되지 않았습니다',
-  ceoBannerBody: '조직도 최상위가 비어 있습니다. 대표를 지정하면 조직도와 구성원 목록에 반영됩니다.',
+  ceoBannerBody: '조직도 최상위가 비어 있어 회사 노드로 표시됩니다',
   ceoBannerCta: '지정하기',
   ceoBannerDismiss: '닫기',
 };
@@ -150,6 +150,8 @@ export default function AdminDashboardCanvas({
           </div>
           <button type="button" className="admin-ceo-banner-cta" onClick={onAssignCeo}>
             {labels.ceoBannerCta}
+            {/* [지정하기 →] (admin-spec §2.2) — 화살표는 글자가 아니라 아이콘이다(번역문에 기호를 두지 않는다). */}
+            <ChevronRightGlyph size={14} focusable="false" />
           </button>
           {onDismissCeoBanner && (
             <button type="button" className="admin-ceo-banner-dismiss" onClick={onDismissCeoBanner} aria-label={labels.ceoBannerDismiss}>

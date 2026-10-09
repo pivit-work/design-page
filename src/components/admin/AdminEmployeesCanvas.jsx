@@ -390,6 +390,8 @@ const DEFAULT_LABELS = {
     /* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
     leaderOf: '조직장',
     leaderGoOrgUnits: '팀 · 조직에서 변경',
+    squadSection: '스쿼드',
+    squadGoView: '조직도 스쿼드 뷰',
   },
   /* 개인정보를 바꾸는 저장에서 사유를 받는 모달 (PW-460 §2-D-4) */
   changeReason: {
@@ -449,8 +451,8 @@ const DEFAULT_LABELS = {
     admin: '어드민', ceo: '대표', leader: '조직장', member: '직원',
   },
   unassigned: {
-    bannerTitle: '조직 또는 매니저가 배정되지 않은 구성원이 있습니다.',
-    bannerBody: '온보딩에서 "나중에 배정"을 선택했거나 신규 합류 후 미배정 상태입니다. 1on1·OKR·평가가 정상 작동하려면 조직·매니저 배정이 필요합니다.',
+    bannerTitle: '조직장이 없는 조직이나 소속이 없는 구성원이 있습니다',
+    bannerBody: '1on1·OKR·평가 기능이 정상 작동하려면 조직장 지정과 소속 배정이 필요합니다.',
     noOrgTitle: '조직(부서) 미배정 구성원',
     noOrgEmpty: '모든 구성원에게 조직이 배정되었습니다',
     // PW-873 — 매니저가 빈 사람 대신 그 원인(조직장이 빈 조직 · 대표 미지정)을 경고한다.
@@ -974,7 +976,7 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({
-  members, orgUnits, labels, renderAvatar, onAssignOrgUnit,
+  members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onChangeAffiliations,
   leaderGaps = EMPTY_LEADER_GAPS, onGoAssignLeader, onGoAssignCeo,
 }) {
   const [pickerFor, setPickerFor] = useState(null);
@@ -998,16 +1000,20 @@ function UnassignedTab({
   const gapUnits = leaderGaps.units ?? EMPTY_ARRAY;
   const ceoGapIds = leaderGaps.ceoMemberIds ?? EMPTY_ARRAY;
   const gapCount = gapUnits.length + (ceoGapIds.length > 0 ? 1 : 0);
+  // 배너는 손볼 것이 있을 때만 뜬다(admin-spec §3.3 · PW-874) — 늘 떠 있으면 다 고친 뒤에도 경고로 읽힌다.
+  const needsAttention = noOrg.length > 0 || gapCount > 0;
 
   return (
     <div className="admin-emp-unassigned">
-      <div className="admin-emp-banner">
+      {needsAttention && (
+      <div className="admin-emp-banner" data-testid="unassigned-banner">
         <span className="admin-emp-banner-icon" aria-hidden="true"><IconAlert size={18} /></span>
         <div>
           <div className="admin-emp-banner-title">{labels.unassigned.bannerTitle}</div>
           <div className="admin-emp-banner-body">{labels.unassigned.bannerBody}</div>
         </div>
       </div>
+      )}
 
       <Card>
         <div className="admin-emp-section-head">
@@ -1040,6 +1046,28 @@ function UnassignedTab({
                   {pickerFor === m.id && (
                     // 소속은 계층이다 — 평면 목록이면 하위 조직이 어느 본부 밑인지,
                     // 동명이팀 중 어느 쪽인지 알 수 없다(PW-112, §5-A).
+                    // 목록 소속 칸과 같은 팝업·같은 규칙(겸직 다중 선택·주 소속 지정 · admin-spec §3.3 섹션 2).
+                    // 주 소속만 잃은 사람은 남은 겸직이 미리 골라져 있다. 다중 저장 경로가
+                    // 없는 소비자에게는 종전 단일 선택으로 연다.
+                    onChangeAffiliations ? (() => {
+                      const selected = Array.isArray(m.orgUnitIds) ? m.orgUnitIds : [];
+                      return (
+                        <OrgTreePicker
+                          open
+                          multi
+                          units={orgUnits}
+                          subtitle={m.displayName || m.name}
+                          selectedIds={selected}
+                          retainedIds={retainedOrgIds(m, selected)}
+                          labels={labels.orgPicker}
+                          onApply={({ unitIds, primaryUnitId }) => {
+                            if (unitIds && unitIds.length > 0) onChangeAffiliations(m.id, { unitIds, primaryUnitId });
+                            setPickerFor(null);
+                          }}
+                          onClose={() => setPickerFor(null)}
+                        />
+                      );
+                    })() : (
                     <OrgTreePicker
                       open
                       units={orgUnits}
@@ -1049,6 +1077,7 @@ function UnassignedTab({
                       onApply={(unitId) => { if (unitId) onAssignOrgUnit(m.id, unitId); }}
                       onClose={() => setPickerFor(null)}
                     />
+                    )
                   )}
                 </div>
               </div>
@@ -3795,6 +3824,10 @@ function EmployeesEditPanel({
   /* 이 사람이 조직장인 조직 id 목록과 그 조직을 조직단위 설정에서 여는 길(admin-spec §3.6-B-2).
      목록이 비면 「조직장: …」 줄을 그리지 않고, 길이 없으면 링크만 뺀다. */
   leaderUnitIds, onGoOrgUnit,
+  /* 스쿼드 — 패널에서는 읽기 전용이다. 배정은 목록 스쿼드 칸 팝업, 비중·캐파는 조직도 스쿼드 뷰가
+     정본이라(admin-spec §3.1 · TC-ADM-084) [조직도 스쿼드 뷰 →] 로 보낸다. `squadOptions` 가 비면
+     (스쿼드를 안 쓰는 회사) 칸을 그리지 않고, `onGoSquadView` 가 없으면 버튼만 뺀다. */
+  squadOptions, squadLabels, onGoSquadView,
   /* 대표(CEO) 지정·해제 — `(mode: 'assign'|'release') => void`. 목록 행 ⋯ 메뉴와 **같은** 확인 창을 연다
      (admin-spec §3.6-A-2 ⓑ). 미주입이면(어드민 아님·퇴사자) «조직 위치» 칸을 그리지 않는다. */
   onOpenCeo,
@@ -4489,6 +4522,25 @@ function EmployeesEditPanel({
             </>
           )}
 
+          {Array.isArray(squadOptions) && squadOptions.length > 0 && (
+            <>
+              <SectionLabel>{labels.panel.squadSection}</SectionLabel>
+              <div className="admin-emp-leader-of" data-testid="employees-panel-squads">
+                <SquadCell
+                  squads={squadOptions}
+                  assignments={Array.isArray(member.squads) ? member.squads : []}
+                  statusLabels={squadLabels || {}}
+                  closedLabel={(squadLabels || {}).closedCount}
+                />
+                {onGoSquadView && (
+                  <button type="button" className="admin-emp-btn is-secondary is-sm"
+                    onClick={onGoSquadView}
+                    data-testid="employees-panel-squads-go">{labels.panel.squadGoView}<IconChevronRight size={14} /></button>
+                )}
+              </div>
+            </>
+          )}
+
           <SectionLabel>{labels.panel.managerSection}</SectionLabel>
           <div className="admin-emp-manager-readonly">
             {member.isCeo ? (
@@ -4901,6 +4953,8 @@ export default function AdminEmployeesCanvas({
   leaderGaps = EMPTY_LEADER_GAPS,
   /** [조직장 지정] `(unitId) => void` — 조직단위 설정으로 보낸다. 미주입이면 버튼이 없다. */
   onGoAssignLeader,
+  /* [조직도 스쿼드 뷰 →] — 편집 패널 스쿼드 칸에서 조직도 스쿼드 뷰로 보낸다(TC-ADM-084). */
+  onGoSquadView,
   /**
    * 일괄 초대 발송 (PW-114). `(rows) => Promise<{sent, failed[]}>`.
    *
@@ -5312,6 +5366,7 @@ export default function AdminEmployeesCanvas({
           labels={labels}
           renderAvatar={renderAvatar}
           onAssignOrgUnit={onAssignOrgUnit}
+          onChangeAffiliations={onChangeAffiliations}
           leaderGaps={leaderGaps}
           onGoAssignLeader={canEdit ? onGoAssignLeader : undefined}
           /* 대표는 전체 구성원 행 메뉴에서 지정한다 — 그 메뉴가 서는 조건과 같게 건다. */
@@ -5342,6 +5397,9 @@ export default function AdminEmployeesCanvas({
             member={target}
             leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
             onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
+            squadOptions={squadOptions}
+            squadLabels={labels.squadPicker}
+            onGoSquadView={onGoSquadView}
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo && target.employmentStatus !== 'terminated'
                 ? (mode) => setCeoConfirm({ row: target, mode })
@@ -5408,6 +5466,7 @@ export default function AdminEmployeesCanvas({
           currentCeoName={members.find((m) => m.isCeo && m.id !== ceoConfirm.row.id)?.name}
           labels={labels.records}
           positionOptions={positionOptions ?? EMPTY_ARRAY}
+          onOpenFieldOptions={onOpenFieldOptions}
           onConfirm={(opts) =>
             ceoConfirm.mode === 'assign'
               ? onAssignCeo(ceoConfirm.row.id, opts)
