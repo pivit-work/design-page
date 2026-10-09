@@ -56,6 +56,23 @@ export function phaseHasTemplate(phaseId) {
   return TEMPLATE_PHASES.includes(phaseId);
 }
 
+/**
+ * [PW-1461 · 정책 §6.5] 단계의 종료 일시가 이미 지났는가 — «완료된 단계». 시작 판정과 달리
+ * **시각까지** 본다(오늘 18:00 에 끝나는 단계는 오후 내내 진행 중이다). 날짜만 적힌 옛 값은
+ * 종료 기본 시각(18:00)으로 친다. 값이 없거나 못 읽으면 `false`.
+ *
+ * 이 판정은 브라우저 시계로 잰 «대비책»이다. 서버(`EvalCycle.reschedule`)는 회사 시간대로 재고,
+ * 소비 측은 그 기준의 판정을 넘긴다(`isScheduleEndReached`).
+ */
+export function isPastScheduleEnd(end, now = new Date()) {
+  const raw = String(end ?? '').trim();
+  const m = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/.exec(raw);
+  if (!m) return false;
+  const at = new Date(`${m[1]}T${m[2] ?? '18:00'}`);
+  if (Number.isNaN(at.getTime())) return false;
+  return at.getTime() <= now.getTime();
+}
+
 export default isPastScheduleStart;
 
 /**

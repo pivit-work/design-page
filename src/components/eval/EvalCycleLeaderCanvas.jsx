@@ -2,10 +2,12 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Radio from '../shared/Radio.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
-import { AlertIcon, ZapIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon, ZapIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 
@@ -103,8 +105,9 @@ const DEFAULT_LABELS = {
   // F5 evidence + assessment
   peerEvidenceTitle: '동료 피드백 요약 (익명)',
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
-  historyTitle: '과거 등급 추이',
-  historyEmpty: '등급 변경 이력이 없습니다.',
+  // PW-1461 leader §5.1.2 · spec §4.4-B — 지난 사이클 최종 등급 추이(최근 4회)
+  historyTitle: '과거 평가 추이',
+  historyEmpty: '지난 평가 이력이 아직 없습니다.',
   // PW-1214 근거 넷 (TC-EVAL-020)
   signalsPeriod: '평가 기간',
   signalsLoadFailed: '불러오지 못했습니다.',
@@ -126,13 +129,39 @@ const DEFAULT_LABELS = {
   signalsRate: '작성률',
   // TC-046/047 상단고정(Freeze) 안내
   freezeNote: '헤더 프리즈 중 — 스크롤해도 상단 고정',
+  // PW-1461 leader §5.3.1 — 위치 일시 토글. {position} = 템플릿 기본 위치 이름
+  gradePosTop: '상단',
+  gradePosBottom: '하단',
+  gradePosFreeze: '상단고정',
+  gradePosAria: '최종 등급 카드 위치',
+  gradePosNote: '템플릿 기본 위치: {position} · 일시 변경은 본인 화면에만 적용',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
   // TC-054 상위(위원회) 전용 섹션 배지 — 피평가자에게 노출되지 않음을 명시
-  committeeOnlyBadge: '상위 전용',
-  committeeOnlyHint: '이 섹션은 캘리브레이션 위원회만 열람하며, 피평가자에게는 공개되지 않습니다.',
-  confidentialLabel: '비밀 코멘트 (위원회 전용)',
-  confidentialPh: '캘리브레이션 위원회만 열람합니다.',
-  promotionLabel: '승진 고려 대상',
+  // PW-1461 leader §5.7 — 공개 대상 배지(호버 툴팁) · 빨간 안내
+  committeeOnlyBadge: '상위 경영진·HR·캘리 위원회 전용',
+  committeeOnlyTooltip: '상위 경영진, HR, 캘리브레이션 위원회에게만 공개됩니다.',
+  committeeOnlyHint:
+    '이 영역은 상위 경영진, HR, 캘리브레이션 위원회에만 공유됩니다. 피평가자 본인에게는 절대 공개되지 않습니다.',
+  confidentialLabel: '캘리브레이션 위원회 전용 코멘트 (CONFIDENTIAL)',
+  confidentialPh: '캘리브레이션 위원회에 전하고 싶은 의견',
+  // PW-1461 leader §5.8 — 승진·보상 세 갈래 + 사유
+  promoCompTitle: '승진 · 보상 고려',
+  promotionStatusLabel: '승진 고려 여부',
+  promotionRecommended: '대상임',
+  promotionNotYet: '아직 아님',
+  promotionDeferred: '판단 유보',
+  promotionReasonLabel: '승진 판단 사유',
+  promotionReasonPh:
+    "예: '이번 기간 리드 역할 수행 및 OKR 초과 달성으로 승진 대상 추천', '직무 이동 1년 미만으로 아직 대상 아님 — 다음 사이클 재검토 예정', '이해관계자 피드백 확인 후 판단 예정'",
+  compensationStatusLabel: '보상 조정 필요 수준',
+  compensationUrgent: '시급한 조정 필요',
+  compensationModerate: '어느 정도 필요',
+  compensationMaintain: '현 상태 유지 적합',
+  compensationReasonLabel: '보상 조정 사유',
+  compensationReasonPh:
+    "예: '현재 시장 대비 급여 낮음, 이탈 리스크 있어 즉각 조정 필요', '성과 우수하나 조정 주기상 다음 분기 검토 적합'",
+  promotionReasonMissing:
+    '승진 판단 사유를 남겨두면 위원회 검토 시 도움이 됩니다. 계속 제출하시겠습니까?',
   // TC-098 승진 요청서 4항목
   promoReqHistory: '① 평가 이력 요약 (과거 등급·성과)',
   promoReqBackground: '② 검토 배경·필요성',
@@ -140,11 +169,6 @@ const DEFAULT_LABELS = {
   promoReqNotes: '④ 추가 사항',
   promoReqSubmit: '승진 요청서 제출',
   promoReqSaved: '제출됨',
-  // TC-055 승진 사유 작성 가이드
-  promotionGuide:
-    '승진 고려로 표시하면 위원회 검토 대상이 됩니다. 비밀 코멘트에 근거(성과·역량·기여)를 함께 남겨주세요.',
-  compLabel: '보상 메모',
-  compPh: '보상 조정 의견',
   saveAssessment: '부가 평가 저장',
 };
 
@@ -352,17 +376,97 @@ function evidenceLabel(a, L) {
 // 기본값을 렌더마다 새 배열로 만들면 «답이 새로 왔다»로 읽혀 다시 시드하는 렌더가 끝없이 돈다.
 const NO_ANSWERS = [];
 
+/** PW-1461 §5.8 세 갈래 — 저장값과 라벨 키. 화면은 라벨로만 그린다. */
+const PROMOTION_CHOICES = [
+  ['recommended', 'promotionRecommended'],
+  ['not_yet', 'promotionNotYet'],
+  ['deferred', 'promotionDeferred'],
+];
+const COMPENSATION_CHOICES = [
+  ['urgent', 'compensationUrgent'],
+  ['moderate', 'compensationModerate'],
+  ['maintain', 'compensationMaintain'],
+];
+const GRADE_POSITIONS = ['top', 'bottom', 'freeze'];
+const GRADE_POS_LABEL_KEY = { top: 'gradePosTop', bottom: 'gradePosBottom', freeze: 'gradePosFreeze' };
+
+/**
+ * 사이클 기간 한 줄 — `2025.01–06`(같은 해) · `2024.07–2025.06`. 숫자만 써서 로케일에 매이지 않는다.
+ * 날짜가 없으면 사이클 이름으로 대신한다.
+ */
+function cyclePeriodLabel(p) {
+  const ym = (d) => (typeof d === 'string' && /^\d{4}-\d{2}/.test(d) ? [d.slice(0, 4), d.slice(5, 7)] : null);
+  const a = ym(p?.startDate);
+  const b = ym(p?.endDate);
+  if (!a && !b) return p?.cycleName ?? '';
+  if (!a || !b) return (a ?? b).join('.');
+  if (a[0] === b[0]) return a[1] === b[1] ? `${a[0]}.${a[1]}` : `${a[0]}.${a[1]}–${b[1]}`;
+  return `${a[0]}.${a[1]}–${b[0]}.${b[1]}`;
+}
+
+/**
+ * PW-1461 leader §5.1.2 — 과거 평가 추이. 점 하나 = 지난 사이클 하나(오래된 것부터, 호출부가 최근 4회).
+ * 높이는 그 사이클 등급 수로 맞춘다(사이클마다 등급 수가 달라도 「맨 위·맨 아래」가 같은 높이).
+ * 점 아래 칸에 등급 이름과 사이클 기간을 적는다 — 열 가운데가 점의 x 와 같다.
+ */
+function PastGradeTrend({ points, L }) {
+  const n = points.length;
+  const W = 240;
+  const H = 72;
+  const PAD = 10;
+  const x = (i) => ((i + 0.5) / n) * W;
+  const ratio = (p) =>
+    p.gradeScore != null && p.gradeCount ? (p.gradeCount > 1 ? (p.gradeScore - 1) / (p.gradeCount - 1) : 1) : null;
+  const y = (r) => H - PAD - r * (H - PAD * 2);
+  const pts = points.map((p, i) => {
+    const r = ratio(p);
+    return r == null ? null : [x(i), y(r)];
+  });
+  const drawn = pts.filter(Boolean);
+  const d = drawn.map(([px, py], i) => `${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
+  return (
+    <div className="evl-trend" data-testid="evl-trend">
+      <svg
+        className="evl-trend-svg"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={L.historyTitle}
+      >
+        <line x1={0} x2={W} y1={y(1)} y2={y(1)} stroke="currentColor" strokeOpacity={0.15} strokeDasharray="3 3" />
+        <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity={0.15} strokeDasharray="3 3" />
+        {drawn.length > 1 && (
+          <path d={d} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        {pts.map((pt, i) =>
+          pt ? <circle key={points[i].cycleId ?? i} cx={pt[0]} cy={pt[1]} r={4} fill="currentColor" data-testid="evl-trend-dot" /> : null,
+        )}
+      </svg>
+      <ol className="evl-trend-labels" style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}>
+        {points.map((p, i) => (
+          <li key={p.cycleId ?? i} data-testid="evl-trend-point">
+            <span className="evl-trend-grade">{p.gradeLabel}</span>
+            <span className="evl-trend-period" title={p.cycleName}>{cyclePeriodLabel(p)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export default function EvalCycleLeaderCanvas({
   evaluateeName,
   cycle,
   selfAnswers = [],
   leaderAnswers = NO_ANSWERS,
   peerAnswers = [],
-  gradeHistory = [],
+  /**
+   * PW-1461 — 과거 평가 추이(오래된 것부터). 점: { cycleId, cycleName, startDate, endDate, gradeLabel,
+   * gradeScore, gradeCount }. 비면 `labels.historyEmpty`.
+   */
+  pastGrades = [],
   assessment = null,
   gradeKey: initialGrade = null,
   gradeOptions = DEFAULT_GRADES,
-  gradeLabels = {},
   template = null,
   active = true,
   submitted = false,
@@ -394,6 +498,10 @@ export default function EvalCycleLeaderCanvas({
   labels: providedLabels,
   /** onSave(items, gradeKey, { auto }) — Promise 를 돌려주면 자동 임시저장 성공/실패를 표시한다(§5.9). */
   onSave,
+  /**
+   * onSubmit(items, gradeKey, { assessment }) — PW-1461 부가 평가(위원회 코멘트·승진·보상 세 갈래·사유)가
+   * 잠기지 않았으면 그 현재 값을 함께 넘긴다. 호출부는 제출 전에 그것도 저장한다.
+   */
   onSubmit,
   onSaveAssessment,
   /** 제출이 막혔을 때(`'grade'` = 등급 미선택) — 호출부가 토스트를 띄운다(§5.3). */
@@ -429,10 +537,22 @@ export default function EvalCycleLeaderCanvas({
   // 그 값이 저장된 줄 알게 두지 않는다.
   const grade = gradeLocked ? initialGrade : pickedGrade;
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
-  // 승진 고려 = 체크값 또는 이미 승진 요청서가 제출돼 있으면 켠 상태(TC-098 프리필 노출).
-  const [promotionReady, setPromotionReady] = useState(
-    (assessment?.promotionReady ?? false) || !!promotionRequest,
+  // PW-1461 §5.8 승진 고려 세 갈래. 옛 저장(체크만)은 «대상임»으로 읽고, 승진 요청서가 이미 있으면 «대상임».
+  const [promotionStatus, setPromotionStatus] = useState(
+    () =>
+      assessment?.promotionStatus ??
+      ((assessment?.promotionReady ?? false) || !!promotionRequest ? 'recommended' : null),
   );
+  const [promotionReason, setPromotionReason] = useState(assessment?.promotionReason ?? '');
+  // 보상 조정 세 갈래 — 옛 «보상 메모»가 있으면 사유 칸에 이어 보인다.
+  const [compensationStatus, setCompensationStatus] = useState(assessment?.compensationStatus ?? null);
+  const [compensationReason, setCompensationReason] = useState(
+    assessment?.compensationReason ?? assessment?.compensationNote ?? '',
+  );
+  // §5.3.1 위치 일시 토글 — 저장하지 않는다(새로고침하면 템플릿 위치).
+  const [gradePosPicked, setGradePosPicked] = useState(null);
+  // §5.8 승진을 골랐는데 사유가 비었을 때의 제출 확인
+  const [promoReasonAsk, setPromoReasonAsk] = useState(false);
   // TC-098 승진 요청서 4항목
   const [promoForm, setPromoForm] = useState({
     evalHistorySummary: promotionRequest?.evalHistorySummary ?? '',
@@ -442,7 +562,6 @@ export default function EvalCycleLeaderCanvas({
   });
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoSaved, setPromoSaved] = useState(false);
-  const [compensationNote, setCompensationNote] = useState(assessment?.compensationNote ?? '');
 
   // 답변/템플릿 async 로드 시 재시드 — effect-setState 대신 during-render 리셋
   // (React 공식 "adjust state during render"), fields/leaderAnswers 참조 변경 시에만.
@@ -594,7 +713,25 @@ export default function EvalCycleLeaderCanvas({
       setRationaleAsk(missing);
       return;
     }
-    onSubmit?.(toItems(), grade);
+    askPromoReasonThenSubmit();
+  };
+  // PW-1461 §5.8 — 부가 평가 현재 값. 잠겼으면 보내지 않는다.
+  const assessmentPayload = () => ({
+    confidentialComment,
+    promotionStatus,
+    promotionReason: promotionStatus ? promotionReason : null,
+    compensationStatus,
+    compensationReason: compensationStatus ? compensationReason : null,
+  });
+  const submitNow = () =>
+    onSubmit?.(toItems(), grade, assessmentLocked ? {} : { assessment: assessmentPayload() });
+  // §5.8 — 승진을 골랐는데 사유가 비면 권장 경고(막지 않는다). 둘 다 안 골라도 제출된다.
+  const askPromoReasonThenSubmit = () => {
+    if (!assessmentLocked && promotionStatus && !promotionReason.trim() && L.promotionReasonMissing) {
+      setPromoReasonAsk(true);
+      return;
+    }
+    submitNow();
   };
   const rationaleAskText = rationaleAsk
     ? fillLabel(rationaleAsk.length > 1 ? L.rationaleMissingMany : L.rationaleMissingOne, {
@@ -604,7 +741,11 @@ export default function EvalCycleLeaderCanvas({
     : '';
 
   // TC-046/047 최종 등급 카드 위치(HR 옵션): top·bottom·freeze(상단고정=슬림 sticky 헤더).
-  const gradePos = cycle?.reviewSequence?.gradeCardPosition ?? 'bottom';
+  // PW-1461 §5.3.1 — 템플릿 값이 기본, 리더가 이 화면에서만 잠깐 바꾼다(저장 안 함).
+  const templatePos = GRADE_POSITIONS.includes(cycle?.reviewSequence?.gradeCardPosition)
+    ? cycle.reviewSequence.gradeCardPosition
+    : 'bottom';
+  const gradePos = gradePosPicked ?? templatePos;
   const isFreeze = gradePos === 'freeze';
   const gradeAtTop = gradePos === 'top' || isFreeze;
   const gradeCard = (
@@ -614,7 +755,22 @@ export default function EvalCycleLeaderCanvas({
       data-testid="evl-grade-card"
       data-position={gradePos}
     >
-      {isFreeze && <p className="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
+      <div className="evl-grade-pos">
+        <SegmentedControl
+          ariaLabel={L.gradePosAria}
+          value={gradePos}
+          onChange={setGradePosPicked}
+          items={GRADE_POSITIONS.map((p) => ({
+            value: p,
+            label: L[GRADE_POS_LABEL_KEY[p]],
+            testId: `evl-grade-pos-${p}`,
+          }))}
+        />
+        <span className="evl-grade-caption" data-testid="evl-grade-pos-note">
+          {fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })}
+        </span>
+      </div>
+      {isFreeze && <p className="evl-freeze-note" data-testid="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
       {calibrationEnabled && L.gradeCaptionCalibOn && (
         <p className="evl-grade-caption" data-testid="evl-grade-caption">{L.gradeCaptionCalibOn}</p>
@@ -647,6 +803,18 @@ export default function EvalCycleLeaderCanvas({
         ))}
       </div>
     </section>
+  );
+
+  // leader §5.7 공개 대상 배지 — 자물쇠 + 짧은 이름, 마우스를 올리면 공개 대상 말풍선.
+  const committeeBadge = (testId) => (
+    <StatusBadge
+      className="evl-committee-badge"
+      title={L.committeeOnlyTooltip}
+      tabIndex={0}
+      data-testid={testId}
+    >
+      <LockIcon size={12} /> {L.committeeOnlyBadge}
+    </StatusBadge>
   );
 
   const header = (
@@ -762,18 +930,10 @@ export default function EvalCycleLeaderCanvas({
           )}
 
           <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.historyTitle}</h3>
-          {gradeHistory.length === 0 ? (
+          {pastGrades.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evl-history-empty">{L.historyEmpty}</p>
           ) : (
-            <ul className="evl-history" data-testid="evl-history">
-              {gradeHistory.map((h, i) => (
-                <li key={i} className="evl-evi-text">
-                  {(h.fromGradeKey ? (gradeLabels[h.fromGradeKey] ?? h.fromGradeKey) : '—')}
-                  {' → '}
-                  {gradeLabels[h.toGradeKey] ?? h.toGradeKey}
-                </li>
-              ))}
-            </ul>
+            <PastGradeTrend points={pastGrades} L={L} />
           )}
         </aside>
 
@@ -944,23 +1104,14 @@ export default function EvalCycleLeaderCanvas({
           {/* 최종 등급 — 하단 배치(기본)일 때만 여기 렌더 */}
           {!gradeAtTop && gradeCard}
 
-          {/* F5 승진·보상·비밀 코멘트 — TC-054 상위(위원회) 전용 */}
-          <section
-            className="evc-card"
-            data-testid="evl-assessment"
-          >
-            <h3 className="evc-card-name">
-              {L.assessmentTitle}
-              <StatusBadge
-                className="evl-committee-badge"
-                title={L.committeeOnlyHint}
-                data-testid="evl-committee-badge">
-                {L.committeeOnlyBadge}
-              </StatusBadge>
-            </h3>
-            <p className="evl-committee-hint">{L.committeeOnlyHint}</p>
-            <div className="evm-field">
-              <span className="evc-field-label">{L.confidentialLabel}</span>
+          {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역(연빨강 바탕·빨간 테두리·빨간 안내) */}
+          <div className="evl-assessment" data-testid="evl-assessment">
+            <section className="evc-card evl-confidential-zone" data-testid="evl-confidential-card">
+              <h3 className="evc-card-name">
+                {L.confidentialLabel}
+                {committeeBadge('evl-committee-badge')}
+              </h3>
+              <p className="evl-committee-hint" data-testid="evl-committee-hint">{L.committeeOnlyHint}</p>
               <textarea
                 className="evm-textarea"
                 rows={2}
@@ -968,105 +1119,144 @@ export default function EvalCycleLeaderCanvas({
                 placeholder={L.confidentialPh}
                 disabled={assessmentLocked}
                 onChange={(e) => setConfidentialComment(e.target.value)}
+                aria-label={L.confidentialLabel}
                 data-testid="evl-confidential"
               />
-            </div>
-            <label className="evl-promo-row">
-              <input
-                type="checkbox"
-                checked={promotionReady}
-                disabled={assessmentLocked}
-                onChange={(e) => setPromotionReady(e.target.checked)}
-                data-testid="evl-promotion"
-              />
-              <span>{L.promotionLabel}</span>
-            </label>
-            {promotionReady && (
-              <p className="evl-promo-guide" data-testid="evl-promo-guide">
-                {L.promotionGuide}
-              </p>
-            )}
-            {promotionReady && onSubmitPromotion && (
-              <div className="evl-promo-req" data-testid="evl-promo-req">
-                {[
-                  ['evalHistorySummary', L.promoReqHistory],
-                  ['reviewBackground', L.promoReqBackground],
-                  ['levelRoleExamples', L.promoReqExamples],
-                  ['additionalNotes', L.promoReqNotes],
-                ].map(([field, label]) => (
-                  <div className="evm-field" key={field}>
-                    <span className="evc-field-label">{label}</span>
-                    <textarea
-                      className="evm-textarea"
-                      rows={2}
-                      value={promoForm[field]}
+            </section>
+
+            <section className="evc-card evl-confidential-zone" data-testid="evl-promo-comp-card">
+              <h3 className="evc-card-name">
+                {L.promoCompTitle}
+                {committeeBadge('evl-committee-badge-promo')}
+              </h3>
+              <p className="evl-committee-hint">{L.committeeOnlyHint}</p>
+
+              <div className="evm-field" role="radiogroup" aria-label={L.promotionStatusLabel}>
+                <span className="evc-field-label">{L.promotionStatusLabel}</span>
+                <div className="evl-choice-row">
+                  {PROMOTION_CHOICES.map(([value, key]) => (
+                    <Radio
+                      key={value}
+                      name="evl-promotion-status"
+                      value={value}
+                      checked={promotionStatus === value}
                       disabled={assessmentLocked}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setPromoForm((f) => ({ ...f, [field]: v }));
-                        setPromoSaved(false);
-                      }}
-                      data-testid={`evl-promo-${field}`}
+                      onChange={() => setPromotionStatus(value)}
+                      label={L[key]}
+                      data-testid={`evl-promotion-${value}`}
                     />
-                  </div>
-                ))}
-                <div className="evc-card-buttons">
-                  {promoSaved && (
-                    <span
-                      className="evm-kr-saved"
-                      data-testid="evl-promo-saved"
-                    >
-                      ✓ {L.promoReqSaved}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="evc-btn is-ghost"
-                    disabled={promoBusy || assessmentLocked}
-                    onClick={() => {
-                      setPromoBusy(true);
-                      Promise.resolve(onSubmitPromotion(promoForm))
-                        .then(() => setPromoSaved(true))
-                        .catch(() => {})
-                        .finally(() => setPromoBusy(false));
-                    }}
-                    data-testid="evl-promo-submit"
-                  >
-                    {L.promoReqSubmit}
-                  </button>
+                  ))}
                 </div>
+                {promotionStatus && (
+                  <textarea
+                    className="evm-textarea"
+                    rows={2}
+                    value={promotionReason}
+                    placeholder={L.promotionReasonPh}
+                    disabled={assessmentLocked}
+                    onChange={(e) => setPromotionReason(e.target.value)}
+                    aria-label={L.promotionReasonLabel}
+                    data-testid="evl-promotion-reason"
+                  />
+                )}
               </div>
-            )}
-            <div className="evm-field">
-              <span className="evc-field-label">{L.compLabel}</span>
-              <textarea
-                className="evm-textarea"
-                rows={2}
-                value={compensationNote}
-                placeholder={L.compPh}
-                disabled={assessmentLocked}
-                onChange={(e) => setCompensationNote(e.target.value)}
-                data-testid="evl-comp"
-              />
-            </div>
-            <div className="evc-card-buttons">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={assessmentLocked}
-                onClick={() =>
-                  onSaveAssessment?.({
-                    confidentialComment,
-                    promotionReady,
-                    compensationNote,
-                  })
-                }
-                data-testid="evl-save-assessment"
-              >
-                {L.saveAssessment}
-              </button>
-            </div>
-          </section>
+
+              {/* TC-098 승진 요청서 — 데이터 모델 promotion_requests «승진 대상 매니저가 제출하는 요청서»라 «대상임»일 때만 */}
+              {promotionStatus === 'recommended' && onSubmitPromotion && (
+                <div className="evl-promo-req" data-testid="evl-promo-req">
+                  {[
+                    ['evalHistorySummary', L.promoReqHistory],
+                    ['reviewBackground', L.promoReqBackground],
+                    ['levelRoleExamples', L.promoReqExamples],
+                    ['additionalNotes', L.promoReqNotes],
+                  ].map(([field, label]) => (
+                    <div className="evm-field" key={field}>
+                      <span className="evc-field-label">{label}</span>
+                      <textarea
+                        className="evm-textarea"
+                        rows={2}
+                        value={promoForm[field]}
+                        disabled={assessmentLocked}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setPromoForm((f) => ({ ...f, [field]: v }));
+                          setPromoSaved(false);
+                        }}
+                        data-testid={`evl-promo-${field}`}
+                      />
+                    </div>
+                  ))}
+                  <div className="evc-card-buttons">
+                    {promoSaved && (
+                      <span
+                        className="evm-kr-saved"
+                        data-testid="evl-promo-saved"
+                      >
+                        ✓ {L.promoReqSaved}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      disabled={promoBusy || assessmentLocked}
+                      onClick={() => {
+                        setPromoBusy(true);
+                        Promise.resolve(onSubmitPromotion(promoForm))
+                          .then(() => setPromoSaved(true))
+                          .catch(() => {})
+                          .finally(() => setPromoBusy(false));
+                      }}
+                      data-testid="evl-promo-submit"
+                    >
+                      {L.promoReqSubmit}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="evm-field" role="radiogroup" aria-label={L.compensationStatusLabel}>
+                <span className="evc-field-label">{L.compensationStatusLabel}</span>
+                <div className="evl-choice-row">
+                  {COMPENSATION_CHOICES.map(([value, key]) => (
+                    <Radio
+                      key={value}
+                      name="evl-compensation-status"
+                      value={value}
+                      checked={compensationStatus === value}
+                      disabled={assessmentLocked}
+                      onChange={() => setCompensationStatus(value)}
+                      label={L[key]}
+                      data-testid={`evl-compensation-${value}`}
+                    />
+                  ))}
+                </div>
+                {compensationStatus && (
+                  <textarea
+                    className="evm-textarea"
+                    rows={2}
+                    value={compensationReason}
+                    placeholder={L.compensationReasonPh}
+                    disabled={assessmentLocked}
+                    onChange={(e) => setCompensationReason(e.target.value)}
+                    aria-label={L.compensationReasonLabel}
+                    data-testid="evl-compensation-reason"
+                  />
+                )}
+              </div>
+
+              <div className="evc-card-buttons">
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={assessmentLocked}
+                  onClick={() => onSaveAssessment?.(assessmentPayload())}
+                  data-testid="evl-save-assessment"
+                >
+                  {L.saveAssessment}
+                </button>
+              </div>
+            </section>
+          </div>
 
           {!formLocked && (
             <div className="evm-submit-bar">
@@ -1115,9 +1305,23 @@ export default function EvalCycleLeaderCanvas({
           onCancel={() => setRationaleAsk(null)}
           onConfirm={() => {
             setRationaleAsk(null);
-            onSubmit?.(toItems(), grade);
+            askPromoReasonThenSubmit();
           }}
           testId="evl-rationale-confirm"
+        />
+      )}
+
+      {promoReasonAsk && (
+        <ConfirmModal
+          title={L.promotionReasonMissing}
+          confirmLabel={L.rationaleMissingContinue}
+          cancelLabel={L.rationaleMissingCancel}
+          onCancel={() => setPromoReasonAsk(false)}
+          onConfirm={() => {
+            setPromoReasonAsk(false);
+            submitNow();
+          }}
+          testId="evl-promo-reason-confirm"
         />
       )}
 

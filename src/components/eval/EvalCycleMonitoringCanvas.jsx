@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import DatePicker from '../shared/DatePicker.jsx';
 import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
@@ -90,6 +91,13 @@ const DEFAULT_LABELS = {
   stageUpwardReview: '상향 리뷰',
   stageLeaderReview: '하향 리뷰',
   stageCalibration: '캘리브레이션',
+  // [PW-1461] 결과 발송 단계 (정책 §6.8 · §5.2.1-C)
+  stageResultShare: '결과 발송',
+  // [PW-1461] 단계 카드의 기간 바로 고치기 (정책 §6.5)
+  stageDateStart: '시작일 바꾸기',
+  stageDateEnd: '종료일 바꾸기',
+  stageDateLocked: '완료된 단계의 날짜는 변경할 수 없습니다.',
+  stageDateSaveFailed: '날짜 변경에 실패했습니다. 다시 시도해 주세요.',
   // self status
   selfNotStarted: '시작 전',
   selfInProgress: '작성 중',
@@ -107,7 +115,80 @@ const STAGE_KEY = {
   upward_review: 'stageUpwardReview',
   leader_review: 'stageLeaderReview',
   calibration: 'stageCalibration',
+  result_share: 'stageResultShare',
 };
+
+/** `YYYY-MM-DD…` → 로컬 자정 `Date`. 못 읽으면 null. */
+function isoToDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ''));
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+function dateToIso(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/**
+ * [PW-1461 · 정책 §6.5] 단계 카드의 기간 — 날짜를 누르면 그 자리에서 달력이 뜬다.
+ *
+ * · 끝나지 않은 단계만 고친다. 완료된 단계는 눌러도 아무 일 없고 이유만 툴팁으로 보인다.
+ * · 고른 날짜는 바로 저장한다(`onChange` 가 프로미스). 실패하면 원래 날짜로 돌아가고
+ *   부르는 쪽이 문구를 띄운다.
+ * · 종료일은 시작일 앞을, 시작일은 종료일 뒤를 고를 수 없다 — 단계 안의 순서만 지킨다(겹침은 허용).
+ */
+function StagePeriod({ stageKey, period, L, onChange, busy }) {
+  const [picker, setPicker] = useState(null);
+  const shown = (v) => String(v ?? '').slice(0, 10) || '—';
+  const editable = !!onChange && !period.locked;
+  const open = (field) => (e) => {
+    e.stopPropagation();
+    if (!editable || busy) return;
+    const el = e.currentTarget;
+    setPicker({ field, rect: el.getBoundingClientRect(), el });
+  };
+  const dateBtn = (field) => {
+    const btn = (
+      <button
+        type="button"
+        className={`evmon-stage-date${editable ? '' : ' is-locked'}`}
+        aria-label={field === 'start' ? L.stageDateStart : L.stageDateEnd}
+        aria-disabled={!editable || undefined}
+        onClick={open(field)}
+        data-testid={`evmon-stage-date-${field}-${stageKey}`}
+      >
+        {shown(period[field])}
+      </button>
+    );
+    return period.locked ? (
+      <Tooltip content={L.stageDateLocked}>{btn}</Tooltip>
+    ) : (
+      btn
+    );
+  };
+  return (
+    <span className="evmon-stage-period" data-testid={`evmon-stage-period-${stageKey}`}>
+      {dateBtn('start')}
+      <span aria-hidden="true">~</span>
+      {dateBtn('end')}
+      {picker && (
+        <DatePicker
+          anchorRect={picker.rect}
+          anchorEl={picker.el}
+          selectedDate={isoToDate(period[picker.field])}
+          minDate={picker.field === 'end' ? isoToDate(period.start) ?? undefined : undefined}
+          maxDate={picker.field === 'start' ? isoToDate(period.end) ?? undefined : undefined}
+          onSelect={(d) => {
+            const field = picker.field;
+            setPicker(null);
+            onChange(field, dateToIso(d));
+          }}
+          onClose={() => setPicker(null)}
+          data-testid={`evmon-stage-picker-${stageKey}`}
+        />
+      )}
+    </span>
+  );
+}
 const SELF_KEY = {
   not_started: 'selfNotStarted',
   in_progress: 'selfInProgress',
@@ -297,8 +378,47 @@ export default function EvalCycleMonitoringCanvas({
   selectedStage = null,
   /** [PW-585] 상세 안에 놓을 호출부 노드. 지금은 「리마인더 발송 기록」 하나다(§6.10.1). */
   stageDetail = null,
+  /**
+   * [PW-1461 · 정책 §6.5] 단계 카드에 보일 기간 — `{ [stageKey]: { start, end, locked } }`
+   * (`start`·`end` 는 `YYYY-MM-DD…`, `locked` = 완료된 단계). 없는 단계는 기간을 안 그린다.
+   */
+  stagePeriods = null,
+  /**
+   * [PW-1461 · 정책 §6.5] 기간의 날짜를 바로 고친다. `(stageKey, field, 'YYYY-MM-DD') => Promise`.
+   * 실패하면 던진다 — 캔버스가 원래 날짜로 되돌리고 `stageDateSaveFailed` 를 띄운다.
+   * 안 주면 기간은 글자로만 보인다.
+   */
+  onChangeStageDate,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  /* [PW-1461 · 정책 §6.5] 고른 날짜를 저장하는 동안 그 자리에 먼저 보인다. 실패하면 지운다(= 원래 날짜). */
+  const [pendingDates, setPendingDates] = useState({});
+  const [dateSaving, setDateSaving] = useState(false);
+  const [dateFailed, setDateFailed] = useState(false);
+  const changeStageDate = async (stageKey, field, iso) => {
+    if (!onChangeStageDate || dateSaving) return;
+    setDateFailed(false);
+    setDateSaving(true);
+    setPendingDates((p) => ({ ...p, [stageKey]: { ...(p[stageKey] ?? {}), [field]: iso } }));
+    try {
+      await onChangeStageDate(stageKey, field, iso);
+    } catch {
+      setDateFailed(true);
+    } finally {
+      // 성공하면 부르는 쪽이 새 기간을 내려준다. 실패하면 원래 날짜로 돌아간다 — 둘 다 지운다.
+      setPendingDates((p) => {
+        const next = { ...p };
+        delete next[stageKey];
+        return next;
+      });
+      setDateSaving(false);
+    }
+  };
+  const periodOf = (key) => {
+    const base = stagePeriods?.[key];
+    if (!base) return null;
+    return { ...base, ...(pendingDates[key] ?? {}) };
+  };
   // [PW-534] 확인 모달 — null | 'progress' | 'answers'
   const [exportKind, setExportKind] = useState(null);
   const [exportReason, setExportReason] = useState('');
@@ -467,17 +587,42 @@ export default function EvalCycleMonitoringCanvas({
                   <span className="evmon-stage-count">{s.done}/{s.total}</span>
                 </>
               );
+              /* [PW-1461 · 정책 §6.5] 기간은 줄 «옆»에 둔다 — 줄이 버튼이라 그 안에 날짜 버튼을
+                 넣을 수 없다(버튼 안 버튼). */
+              const period = periodOf(s.key);
+              const periodNode = period ? (
+                <StagePeriod
+                  stageKey={s.key}
+                  period={period}
+                  L={L}
+                  busy={dateSaving}
+                  onChange={
+                    onChangeStageDate
+                      ? (field, iso) => void changeStageDate(s.key, field, iso)
+                      : undefined
+                  }
+                />
+              ) : null;
+              const withPeriod = (row) =>
+                periodNode ? (
+                  <div className="evmon-stage-row" key={s.key}>
+                    {row}
+                    {periodNode}
+                  </div>
+                ) : (
+                  row
+                );
               // [PW-585] 누를 수 있을 때만 button 으로 바꾼다 — 콜백이 없는 호출부에서
               // 커서·포커스 링만 생기고 아무 일도 안 나는 줄이 되면 안 된다.
               if (!onSelectStage) {
-                return (
+                return withPeriod(
                   <div className="evmon-stage" key={s.key} data-testid="evmon-stage">
                     {inner}
-                  </div>
+                  </div>,
                 );
               }
               const open = selectedStage?.key === s.key;
-              return (
+              return withPeriod(
                 <button
                   type="button"
                   className={`evmon-stage is-clickable${open ? ' is-open' : ''}`}
@@ -488,10 +633,15 @@ export default function EvalCycleMonitoringCanvas({
                 >
                   {inner}
                   <span className="evmon-stage-chevron" aria-hidden="true">›</span>
-                </button>
+                </button>,
               );
             })}
           </div>
+          {dateFailed && (
+            <p className="evmon-stage-date-error" role="alert" data-testid="evmon-stage-date-failed">
+              {L.stageDateSaveFailed}
+            </p>
+          )}
         </section>
 
         {/* 멤버 현황
