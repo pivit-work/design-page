@@ -4961,8 +4961,8 @@ export default function EvalCycleWizard({
   };
 
   /* ⛔ 등급 체계 일치(§5.13.2 · D-5). 확정된 하향 차수끼리 등급 키와 순서가 같아야 한다.
-     화면 경고는 «지금 편집 중인 값»으로 본다(맞추기를 누르면 바로 사라지게). 오픈 차단은 확정된
-     템플릿 자체로 본다 — 서버가 오픈 때 보는 것도 그것이다. */
+     빨간 줄·오픈 차단은 확정된 템플릿 자체로 본다 — 서버가 오픈 때 보는 것도 그것이다. 편집 중 값의
+     불일치는 맞추기 버튼을 보일지만 가른다. */
   const confirmedLeaderRounds = Array.from({ length: roundsInUse }, (_, i) => i + 1).filter(
     (k) => hasLeader && roundsInUse > 1 && !!phaseTemplateMap[leaderPhaseId(k)],
   );
@@ -7469,16 +7469,18 @@ export default function EvalCycleWizard({
                       </div>
                     </div>
                   )}
-                  {liveGradeMismatch.mismatch && (
+                  {/* 빨간 줄은 «확정된» 템플릿끼리로 판정한다(§5.13.2) — 맞추기를 눌러도 저장(확정)하기 전에는
+                      오픈이 막히므로 줄도 남는다. 맞추기 버튼은 편집 중 값이 아직 다를 때만(PW-1594 브라우저 확인). */}
+                  {(confirmedGradeMismatch.mismatch || liveGradeMismatch.mismatch) && (
                     <div className="evc-wiz-warn evc-tpl-round-mismatch" role="alert" data-testid="evc-tpl-round-mismatch">
                       <span>
                         {fill(L.leaderGradeMismatch, {
-                          detail: liveGradeMismatch.rounds
+                          detail: (confirmedGradeMismatch.mismatch ? confirmedGradeMismatch : liveGradeMismatch).rounds
                             .map((r) => fill(L.leaderGradeMismatchItem, { round: r.round, count: r.count }))
                             .join(' · '),
                         })}
                       </span>
-                      {tplRound !== 1 && round1Grades && roundStarted(tplRound) && (
+                      {tplRound !== 1 && round1Grades && roundStarted(tplRound) && liveGradeMismatch.mismatch && (
                         <button
                           type="button"
                           className="evc-btn is-ghost"

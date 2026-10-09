@@ -9871,7 +9871,9 @@
   background: var(--bg-primary);
   border: 1px solid var(--bg-active);
   box-shadow: 0 6px 16px rgb(15 23 42 / 12%);
-  z-index: 41;
+  /* 4단계 섹션은 사이클 만들기 창(ModalLayer zIndex 1000) 안에 있다 — 포털로 body 에 붙는 이 팝오버가
+     창 뒤에 깔리지 않게 그 위로 둔다(PW-1594 브라우저 확인). 진행 현황(창 밖)에서도 해가 없다. */
+  z-index: 1001;
 }
 .evc-la-pop-list {
   display: flex;

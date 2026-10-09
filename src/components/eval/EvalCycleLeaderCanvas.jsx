@@ -564,11 +564,15 @@ export default function EvalCycleLeaderCanvas({
   const fields = useMemo(() => entries.filter((f) => f.type !== 'note'), [entries]);
   // PW-1594 — 앞 차수 답의 항목 이름·척도. 이 차수 평가지에서 같은 항목을 찾고, 없으면(차수마다
   // 평가지가 다를 수 있다) 근거 칸이 쓰는 구분 이름으로 떨어진다 — 저장값을 그대로 보이지 않는다.
+  // 서버가 그 차수 평가지의 항목 이름·척도를 실어 준다(`itemLabel`·`scaleMax`) — 차수마다 평가지 사본이
+  // 달라 이 화면 평가지의 항목 id 로는 대개 못 찾는다(PW-1594 브라우저 확인: 역량 질문 둘이 같은 이름으로 보였다).
   const priorLabelOf = (a) => {
+    if (a.itemLabel) return a.itemLabel;
     const f = a.templateItemId ? fields.find((x) => x.templateItemId === a.templateItemId) : null;
     return f?.label || f?.section || evidenceLabel(a, L);
   };
   const priorScaleMaxOf = (a) =>
+    a.scaleMax ||
     scaleMaxOf(a.templateItemId ? fields.find((x) => x.templateItemId === a.templateItemId) : null);
   const priorGradeLabelOf = (key) =>
     gradeLabels?.[key] ?? gradeOptions.find((g) => g.key === key)?.label ?? key;

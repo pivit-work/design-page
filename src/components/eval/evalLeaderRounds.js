@@ -266,9 +266,16 @@ export function mergeRecommendedCells(prevCells, serverCells) {
   return { cells, changed };
 }
 
-/** 칸에 사람을 지정한다 → 조정됨. */
+/**
+ * 칸에 사람을 지정한다 → 조정됨. 추천받은 바로 그 사람을 고르면 추천으로 돌아간다 — 「조정됨」은
+ * 추천과 다르다는 표시라, 같은 사람인데 조정됨으로 남으면 HR 이 무엇을 바꿨는지 읽을 수 없다.
+ */
 export function assignLeaderCell(cell, evaluatorId) {
-  return { ...cell, evaluatorId, skipped: false, origin: 'adjusted', warnings: undefined };
+  const origin =
+    cell.recommendedEvaluatorId && evaluatorId === cell.recommendedEvaluatorId
+      ? 'recommended'
+      : 'adjusted';
+  return { ...cell, evaluatorId, skipped: false, origin, warnings: undefined };
 }
 
 /** 이 차수 건너뛰기 → 조정됨 · 건너뜀. */

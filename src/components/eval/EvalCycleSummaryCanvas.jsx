@@ -320,6 +320,15 @@ const DEFAULT_LABELS = {
   cwDetailLogs: '변경 로그',
   cwLevelMixWarn: '이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
   cwDetailEmpty: '내용 없음',
+  // [PW-1594 · spec-calibration §20.2] 하향 차수가 둘 이상인 사이클 — 대상자 상세의 하향 리뷰를 차수별로 나눈다.
+  leaderRoundDetail: {
+    round: '{k}차',
+    skipped: '{k}차 — 건너뜀',
+    pending: '{k}차 — 미제출',
+    unknownEvaluator: '평가자 미지정',
+    confidentialTitle: '위원회 전용 — 구성원 비공개',
+    promoStatusLabel: '승진 의견',
+  },
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
   cwDetailProfile: '프로필',
@@ -677,7 +686,13 @@ function CalibRowPreview({ row, detail, failed, L }) {
           <div className="evs-cw-preview-k">{L.cwHoverSelf}</div>
           <div className="evs-cw-preview-body">{answerSummary(detail.self?.answers) || L.cwDetailEmpty}</div>
           <div className="evs-cw-preview-k">{L.cwHoverManager}</div>
-          <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+          {detail.manager?.rounds?.length ? (
+            <div className="evs-cw-preview-body">
+              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} notes={false} max={140} />
+            </div>
+          ) : (
+            <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+          )}
         </>
       )}
       <div className="evs-cw-preview-okr">{okr}</div>
@@ -732,6 +747,69 @@ function ManagerNoteLines({ note, L }) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * [PW-1594 · spec-calibration §20.2] 대상자 상세의 하향 리뷰를 차수 순으로 나눈다.
+ * `rounds` 는 차수별 배정 사이클에서만 서버가 싣는다 — 없으면 소비처가 종전 한 덩어리를 그린다.
+ * 차수 머리 `{k}차 · 작성자 · 등급`, 서술 요약, 그 차수의 비공개 의견(위원회 전용)을 차수 안에 둔다.
+ * 건너뛴 차수·아직 안 낸 차수는 한 줄. `notes=false` 면 비공개 의견을 그리지 않는다(호버 미리보기).
+ */
+function LeaderRoundsDetail({ rounds, L, notes = true, max }) {
+  const R = L.leaderRoundDetail || {};
+  const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
+  const sorted = [...rounds].sort((a, b) => a.round - b.round);
+  return (
+    <div className="evs-cw-detail-logs" data-testid="evs-leader-rounds">
+      {sorted.map((r) => {
+        const k = r.round;
+        if (r.skipped || !r.submittedAt) {
+          return (
+            <div
+              key={k}
+              className="evs-cw-detail-body"
+              data-testid={r.skipped ? 'evs-leader-round-skipped' : 'evs-leader-round-pending'}
+            >
+              {fmt(r.skipped ? R.skipped : R.pending, { k })}
+            </div>
+          );
+        }
+        const head = [fmt(R.round, { k }), r.evaluatorName || R.unknownEvaluator, r.gradeLabel]
+          .filter(Boolean)
+          .join(' · ');
+        const summary =
+          max != null
+            ? answerSummary(r.answers, max)
+            : (r.answers ?? []).map((a) => a.textAnswer).filter(Boolean).join(' · ');
+        const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
+        const hasNotes =
+          notes && (r.confidentialComment?.trim() || r.promotionReason?.trim() || promoStatus);
+        return (
+          <div key={k} className="evs-cw-detail-block" data-testid="evs-leader-round" data-round={k}>
+            <div className="evs-cw-review-k" data-testid="evs-leader-round-head">{head}</div>
+            <div className="evs-cw-detail-body">{summary || L.cwDetailEmpty}</div>
+            {hasNotes && (
+              <div data-testid="evs-leader-round-notes">
+                <div className="evs-cw-review-k">
+                  <LockIcon size={12} /> {R.confidentialTitle}
+                </div>
+                {promoStatus && (
+                  <div className="evs-cw-detail-body" data-testid="evs-leader-round-promo-status">
+                    <span className="evs-cw-committee-k">{R.promoStatusLabel}</span>
+                    {promoStatus}
+                  </div>
+                )}
+                <ManagerNoteLines
+                  note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason }}
+                  L={L}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -2881,7 +2959,9 @@ export default function EvalCycleSummaryCanvas({
                   {/* C. 매니저 */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
-                    {memberDetail.manager?.submitted ? (
+                    {memberDetail.manager?.rounds?.length ? (
+                      <LeaderRoundsDetail rounds={memberDetail.manager.rounds} L={L} />
+                    ) : memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
                           <StatusBadge className="evs-lp-tag tone-green evs-re-mgrade">{L.reManagerGrade}: {memberDetail.manager.gradeLabel}</StatusBadge>
@@ -4286,7 +4366,9 @@ export default function EvalCycleSummaryCanvas({
                                             <DetailSectionHead open={secOpen('manager')} onToggle={() => toggleSec('manager')} testId="evs-cw-sec-manager">
                                               {L.cwDetailManager}
                                             </DetailSectionHead>
-                                            {secOpen('manager') && (
+                                            {secOpen('manager') && detail.manager?.rounds?.length ? (
+                                              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} />
+                                            ) : secOpen('manager') && (
                                               <div className="evs-cw-detail-body">
                                                 {detail.manager?.answers?.filter(
                                                   (a) => a.textAnswer,
