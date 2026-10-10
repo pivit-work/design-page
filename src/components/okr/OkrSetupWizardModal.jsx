@@ -86,7 +86,7 @@ export default function OkrSetupWizardModal({
   onFetchAlignment,
   onBookOneOnOne,
   // 비전 이미지 생성 (선택): (scope, narrative) → Promise<{ imageUrl }>.
-  // 안 넘기면 버튼은 표시만 되고 placeholder 박스가 유지된다 (데모).
+  // 안 넘기면 «비전 이미지» 상자를 통째로 그리지 않는다 — 눌러도 아무 일 없는 버튼을 남기지 않는다 (PW-1552).
   onGenerateVision,
   title = 'OKR 설정',
   initialState,
@@ -367,6 +367,7 @@ export default function OkrSetupWizardModal({
             </p>
           </div>
 
+          {onGenerateVision && (
           <div className="okr-wz-vision">
             <div className="okr-wz-vision-head">
               <div className="okr-wz-section">
@@ -385,6 +386,7 @@ export default function OkrSetupWizardModal({
               )}
             </div>
           </div>
+          )}
         </>
       )}
 
