@@ -2,6 +2,8 @@ import { Component, useState, useEffect, useRef, useCallback, useMemo } from 're
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
+import Avatar from '../shared/Avatar.jsx';
+import PhotoOr from './PhotoOr.jsx';
 import { CloseGlyph, ClockGlyph, MapPinGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
@@ -400,7 +402,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 {teamList.map((tm, i) => (
                   <div key={i} className="modal-team-member">
                     <div className="modal-team-avatar-wrap">
-                      <img src={tm.avatar} alt="" className="modal-team-avatar" />
+                      <PhotoOr src={tm.avatar} className="modal-team-avatar" fallback={<Avatar name={tm.name} size={48} className="modal-team-avatar" />} />
                       <span className={`modal-team-dot ${tm.online ? 'online' : 'offline'}`} />
                     </div>
                     <div className="modal-team-name">{tm.name}</div>

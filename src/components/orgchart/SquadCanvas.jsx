@@ -65,6 +65,7 @@ import {
 } from './squadIcons.jsx';
 import { useDismissLayer } from './hooks.js';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import PhotoOr from './PhotoOr.jsx';
 import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgchart-labels.jsx';
 
 import { todayIsoInZone } from '../shared/calendarDate.js';
@@ -1079,9 +1080,7 @@ export default function SquadCanvas({
                                   className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
                                   onClick={() => p && onMemberClick?.(p)}
                                 >
-                                  {photo ? (
-                                    <img src={photo} alt="" className="pj-avatar-sm" />
-                                  ) : (
+                                  <PhotoOr src={photo} className="pj-avatar-sm" fallback={(
                                     <div
                                       className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
                                       style={{
@@ -1091,7 +1090,7 @@ export default function SquadCanvas({
                                           : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
                                       }}
                                     >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
-                                  )}
+                                  )} />
                                   {mm.role === 'lead' && (
                                     <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
                                   )}
@@ -1362,13 +1361,10 @@ export default function SquadCanvas({
                         className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
                         onClick={() => p && onMemberClick?.(p)}
                       >
-                        {photo ? (
-                          <img
-                            src={photo}
-                            alt=""
-                            className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
-                          />
-                        ) : (
+                        <PhotoOr
+                          src={photo}
+                          className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
+                          fallback={(
                         <span
                           className="pj-member-avatar pj-member-initials sq-avatar-lg"
                           style={{
@@ -1378,7 +1374,8 @@ export default function SquadCanvas({
                               : {}),
                           }}
                         >{rowLabel}</span>
-                        )}
+                          )}
+                        />
                         {/* 자리가 모자라 말줄임으로 끊긴 이름도 읽을 수 있어야 한다 —
                             끊긴 채 확인할 방법이 없으면 그건 그것대로 결함이다. */}
                         <span className="pj-member-name" title={nameOf(userId)}>{nameOf(userId)}</span>

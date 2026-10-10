@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import Avatar from '../shared/Avatar.jsx';
+import PhotoOr from './PhotoOr.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import { ModalContext, DragContext, MoveContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
@@ -134,7 +136,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
       <div className="member-content">
         <div className="member-row">
           <div className="avatar-wrap">
-            <img src={member.avatar} alt="" className="avatar-sm" />
+            <PhotoOr src={member.avatar} className="avatar-sm" fallback={<Avatar name={member.name} size={32} className="avatar-sm" />} />
             <span className="online-dot" style={{ background: status.dotColor }} />
           </div>
           <span className="member-name">{member.name}</span>

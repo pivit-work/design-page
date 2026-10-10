@@ -11,7 +11,12 @@ export function loadOkrPositions() {
 }
 
 export function saveOkrPositions(positions) {
-  localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(positions));
+  // 저장소가 막힌 브라우저(사파리 개인 모드·쿠키 차단·용량 초과)에서는 여기서 예외가 난다 —
+  // 끌 때마다 부르므로 그대로 두면 카드를 끄는 순간 오류가 된다(PW-1637). 위치는 이번
+  // 화면에서만 기억하면 충분하다.
+  try {
+    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(positions));
+  } catch { /* 저장 못 함 — 이번 화면에서만 기억한다 */ }
 }
 
 export function useOkrPositions() {
