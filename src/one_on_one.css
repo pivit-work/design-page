@@ -2661,6 +2661,42 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 12px;
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
 }
+/* 회의 후 AI 초안 확정 (PW-1551 · oneonone-spec §8-2) — 미확정 노랑 / 확정 초록, 매니저 끝난 화면만 */
+.ono-mem-feedback-box.is-ai-unconfirmed {
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  background: var(--componentColors-utility-warning-utilityWarning50);
+}
+.ono-mem-feedback-box.is-ai-confirmed {
+  border: 1px solid var(--utility-success-200);
+  background: var(--utility-green-50);
+  transition: background 0.2s, border-color 0.2s;
+}
+.ono-mem-feedback-box .ono-mem-note-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ono-feedback-ai-badge {
+  background: var(--bg-primary);
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  color: var(--componentColors-utility-warning-utilityWarning700);
+}
+.ono-feedback-confirm-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.ono-feedback-confirm {
+  padding: 4px 12px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--componentColors-utility-warning-utilityWarning700);
+  cursor: pointer;
+}
+.ono-feedback-confirm:disabled { cursor: default; opacity: 0.6; }
+.ono-done-share-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
 .ono-mem-feedback-text {
   margin: 0;
   font-size: var(--font-size-text-sm);
