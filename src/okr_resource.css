@@ -110,6 +110,8 @@
 /* ── 저장 / 매니저 코멘트 ── */
 .rsx-save-row { display: flex; justify-content: flex-end; }
 .rsx-save-btn { padding: 10px 14px; background: var(--bg-brand-solid); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
+/* 누를 수 없음 — design-page 의 disabled 관례 그대로(.seg-item:disabled · .intg-btn:disabled). */
+.rsx-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .rsx-comments-section { padding-left: 24px; display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
 .rsx-section-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 /* 스레드 — 별개 코멘트 사이 8px(Figma 17478:24609), 답글은 원 코멘트에 붙는다(24419 gap 0). */
