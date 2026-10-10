@@ -81,6 +81,12 @@
   color: var(--text-tertiary);
 }
 
+/* 수를 못 불러왔을 때 수 자리 — 「0개」와 헷갈리지 않게 오류 색 (PW-1668) */
+.tl-meta-error {
+  font-weight: 600;
+  color: var(--text-error-primary);
+}
+
 /* Count override: SemiBold (600) per earlier Figma context */
 .tl-meta-count {
   font-weight: 600;

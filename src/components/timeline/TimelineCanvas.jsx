@@ -15,6 +15,7 @@ import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
 import Tabs from '../shared/Tabs.jsx';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
+import Button from '../shared/Button.jsx';
 
 const TIMELINE_TAB_ITEMS = [
   { value: 'gantt', label: '간트' },
@@ -122,6 +123,12 @@ export default function TimelineCanvas({
   // null 이면 그 줄을 그리지 않는다 — 볼 수 있는 프로젝트가 없는 사람에게
   // 「있다는 것도」 알리지 않을 때 (PW-1601).
   activeProjectCount = 2,
+  // 진행 중 프로젝트 수를 못 불러왔다 — 그 줄의 수 자리에 실패 문구와 [다시 시도]를 그린다.
+  // 「0개」로 그리면 실패가 「프로젝트가 없다」로 읽힌다 (PW-1668). activeProjectCount 보다 앞선다.
+  activeProjectCountError = false,
+  onActiveProjectCountRetry,
+  activeProjectCountErrorLabel = '불러오지 못했습니다',
+  activeProjectCountRetryLabel = '다시 시도',
   // 초기 탭 / 캘린더 보기 단위 — URL 진입점(예: /timeline/week)에서 주입.
   initialTab,
   initialCalViewUnit,
@@ -492,7 +499,18 @@ export default function TimelineCanvas({
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
           <h1 className="tl-page-title">Timeline</h1>
-          {activeProjectCount !== null && (
+          {activeProjectCountError ? (
+            <div className="tl-page-meta" role="alert" data-testid="tl-project-count-error">
+              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-error">{activeProjectCountErrorLabel}</span>
+              {onActiveProjectCountRetry && (
+                <Button variant="ghost" size="sm" onClick={() => onActiveProjectCountRetry()}>
+                  {activeProjectCountRetryLabel}
+                </Button>
+              )}
+            </div>
+          ) : activeProjectCount !== null && (
             <div className="tl-page-meta">
               <span className="tl-meta-label">진행 중 프로젝트</span>
               <span className="tl-meta-sep">·</span>
