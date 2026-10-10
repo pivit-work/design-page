@@ -679,7 +679,8 @@ function OrgSnapshotStatusView({
                 <span className="admin-snap-emp-pct">{e.pct}%</span>
               </div>
             ))}
-            <p className="admin-snap-footnote">{labels.govFormatDesc}</p>
+            {/* 빈 문자열을 넘기면 안내 줄을 숨긴다 — 안내하는 기능이 아직 없을 때 (PW-1583) */}
+            {labels.govFormatDesc ? <p className="admin-snap-footnote">{labels.govFormatDesc}</p> : null}
           </div>
         )}
 
