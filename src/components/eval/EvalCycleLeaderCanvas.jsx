@@ -11,6 +11,7 @@ import { AlertIcon, LockIcon, ZapIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
+import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -121,6 +122,23 @@ const DEFAULT_LABELS = {
   // F5 evidence + assessment
   peerEvidenceTitle: '동료 피드백 요약 (익명)',
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
+  // PW-1613 — 동료 피드백 요약(`peerSummary` 를 넘겼을 때)
+  peerReviewerCount: '{count}명 작성',
+  peerChunkWork: '업적 관련',
+  peerChunkCompetency: '역량 관련',
+  peerChunkSources: '원본 {count}개',
+  peerChunkEmpty: '이 묶음에 해당하는 동료 답이 없습니다.',
+  peerSummaryNone: '동료 피드백 요약이 아직 없습니다. [요약 만들기]를 누르면 AI 가 업적·역량별로 요약합니다.',
+  peerSummaryGenerate: '요약 만들기',
+  peerSummaryRefresh: '요약 새로고침',
+  peerSummaryRetry: '다시 시도',
+  peerSummaryFailed: '요약을 만들지 못했습니다. 원본은 아래에서 그대로 볼 수 있습니다.',
+  peerSummaryGeneratedAt: '{at} 에 만든 요약',
+  peerOriginalOpen: '원본 보기',
+  peerOriginalSubmittedAt: '제출 {at}',
+  peerOriginalNote: '동료가 제출한 원문입니다(AI 로 다듬기 전).',
+  peerOriginalClose: '닫기',
+  peerBelowMin: '응답 인원이 공개 기준보다 적은 질문 {count}개는 보이지 않습니다.',
   // PW-1461 leader §5.1.2 · spec §4.4-B — 지난 사이클 최종 등급 추이(최근 4회)
   historyTitle: '과거 평가 추이',
   historyEmpty: '지난 평가 이력이 아직 없습니다.',
@@ -476,6 +494,13 @@ export default function EvalCycleLeaderCanvas({
   selfAnswers = [],
   leaderAnswers = NO_ANSWERS,
   peerAnswers = [],
+  /**
+   * PW-1613 — 동료 피드백 요약(업적·역량 AI 요약 + 동료별 원본 보기). 모양은 `EvalLeaderPeerSummary`.
+   * 넘기면 위 `peerAnswers` 원문 나열 대신 이것을 그린다. 넘기지 않으면 종전 렌더 그대로.
+   */
+  peerSummary = null,
+  /** PW-1613 — [요약 만들기]·[요약 새로고침]·[다시 시도]. 없으면 버튼을 그리지 않는다. */
+  onPeerSummaryGenerate,
   /**
    * PW-1461 — 과거 평가 추이(오래된 것부터). 점: { cycleId, cycleName, startDate, endDate, gradeLabel,
    * gradeScore, gradeCount }. 비면 `labels.historyEmpty`.
@@ -981,16 +1006,27 @@ export default function EvalCycleLeaderCanvas({
 
           <EvalLeaderEvidenceSignals signals={evidenceSignals} L={L} />
 
-          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.peerEvidenceTitle}</h3>
-          {peerAnswers.length === 0 ? (
-            <p className="evc-empty-sub" data-testid="evl-peer-empty">{L.peerEvidenceEmpty}</p>
+          {peerSummary ? (
+            <EvalLeaderPeerSummary
+              peer={peerSummary}
+              onGenerate={onPeerSummaryGenerate}
+              labelOf={(a) => evidenceLabel(a, L)}
+              L={L}
+            />
           ) : (
-            peerAnswers.map((a) => (
-              <div className="evl-evi-item" key={a.id} data-testid="evl-peer-item">
-                <span className="evc-field-label">{evidenceLabel(a, L)}</span>
-                <p className="evl-evi-text">{a.textAnswer}</p>
-              </div>
-            ))
+            <>
+              <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.peerEvidenceTitle}</h3>
+              {peerAnswers.length === 0 ? (
+                <p className="evc-empty-sub" data-testid="evl-peer-empty">{L.peerEvidenceEmpty}</p>
+              ) : (
+                peerAnswers.map((a) => (
+                  <div className="evl-evi-item" key={a.id} data-testid="evl-peer-item">
+                    <span className="evc-field-label">{evidenceLabel(a, L)}</span>
+                    <p className="evl-evi-text">{a.textAnswer}</p>
+                  </div>
+                ))
+              )}
+            </>
           )}
 
           <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.historyTitle}</h3>
