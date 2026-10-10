@@ -135,6 +135,8 @@ const DEFAULT_LABELS = {
   /** 주 소속이 없는 재직자 행 이름(MC8). */
   unassigned: '미배정',
   countSuffix: '명',
+  /** 인원 수 글자. 주면 `{n}{countSuffix}` 대신 쓴다 — 영어처럼 1명/여러 명 표기가 갈리는 언어용(PW-1663). */
+  formatCount: undefined,
   employmentHeading: '고용 유형별 인원',
   govFormatTitle: '관공서 제출 양식',
   govFormatDesc: '고용 유형별 인원 수 및 인건비 추이 데이터는 내보내기 → 관공서 양식에서 서식 포맷으로 다운로드 가능합니다.',
@@ -256,6 +258,10 @@ const DEFAULT_LABELS = {
 /** 문구의 `{key}` 자리를 채운다. */
 function fill(text, vars) {
   return Object.entries(vars).reduce((s, [k, v]) => s.split(`{${k}}`).join(v ?? ''), String(text ?? ''));
+}
+
+function countText(labels, n) {
+  return typeof labels.formatCount === 'function' ? labels.formatCount(n) : `${n}${labels.countSuffix}`;
 }
 
 function merge(base, provided) {
@@ -675,7 +681,7 @@ function OrgSnapshotStatusView({
                 <div className="admin-snap-emp-bar">
                   <div className="admin-snap-emp-bar-fill" style={{ width: `${(e.count / empMax) * 100}%` }} />
                 </div>
-                <span className="admin-snap-emp-count">{e.count}{labels.countSuffix}</span>
+                <span className="admin-snap-emp-count">{countText(labels, e.count)}</span>
                 <span className="admin-snap-emp-pct">{e.pct}%</span>
               </div>
             ))}
@@ -696,7 +702,7 @@ function OrgSnapshotStatusView({
                     <div className="admin-snap-jg-pills">
                       {jg.roles.map((r) => <StatusBadge key={r} className="admin-snap-jg-pill">{r}</StatusBadge>)}
                     </div>
-                    <span className="admin-snap-jg-count">{jg.count}{labels.countSuffix}</span>
+                    <span className="admin-snap-jg-count">{countText(labels, jg.count)}</span>
                     {jg.lead != null && <span className="admin-snap-jg-lead">{labels.leaderPrefix}: {jg.lead || '—'}</span>}
                   </div>
                 ))}
@@ -719,7 +725,7 @@ function OrgSnapshotStatusView({
                         style={{ width: `${(a.count / ageMax) * 100}%` }}
                       />
                     </div>
-                    <span className="admin-snap-age-count">{a.count}{labels.countSuffix}</span>
+                    <span className="admin-snap-age-count">{countText(labels, a.count)}</span>
                     {/* 관공서 기준(청년 ~39세 / 장년 50+) 구간 강조 — 제출 서식의 핵심 축 */}
                     {a.flagLabel && <span className="admin-snap-age-flag">{a.flagLabel}</span>}
                   </div>
@@ -745,7 +751,7 @@ function OrgSnapshotStatusView({
           <div className="admin-snap-roster-titlewrap">
             <span className="admin-snap-roster-title">{labels.rosterTitle}</span>
             <span className="admin-snap-roster-meta">
-              {queryDate} · {roster.length}{labels.countSuffix} · {labels.rosterHint}
+              {queryDate} · {countText(labels, roster.length)} · {labels.rosterHint}
             </span>
           </div>
           <button
