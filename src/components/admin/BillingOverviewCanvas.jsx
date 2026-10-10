@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -65,7 +66,8 @@ const DEFAULT_LABELS = {
   lockedTitle: '유료 기능이 잠금되었습니다 — 결제수단 갱신 필요',
   lockedDesc: '결제수단을 갱신해 결제가 되면 다시 쓸 수 있습니다. (데이터는 보존됩니다)',
   // 잠겨도 데이터는 내보낼 수 있다(같은 정책서 행 「데이터 export 링크는 유지」 · PW-1618).
-  lockedExportLink: '구성원 명부 내보내기 →',
+  // 화살표는 문구가 아니라 아이콘으로 붙인다 — 번역 문구 끝의 기호는 앱 검사가 막는다.
+  lockedExportLink: '구성원 명부 내보내기',
 
   cancelReservedTitle: '해지 예약됨',
   cancelReservedDesc: (date) => `${date} 이후 Free 플랜으로 전환됩니다.`,
@@ -315,8 +317,10 @@ export default function BillingOverviewCanvas({
               {sub.locked && onNavigateExport && (
                 <button type="button" data-testid="billing-locked-export" onClick={onNavigateExport}
                   style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
-                    fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 6 }}>
+                    fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 6,
+                    display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   {labels.lockedExportLink}
+                  <ArrowRightGlyph size={13} />
                 </button>
               )}
               {!canEdit && (
