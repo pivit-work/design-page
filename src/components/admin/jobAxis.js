@@ -227,6 +227,17 @@ export function jobAxisNoticeText(notice, labels) {
 }
 
 /** 세 칸 연동의 기본 문구 (한국어) — 화면 라벨 묶음에 섞어 쓴다. */
+/**
+ * 저장 값 → 화면 글자. `valueLabels` 는 `{ 칸 키: { 저장 값: 라벨 } }` 이고, 없는 값은 그대로 둔다.
+ * 직군의 시스템 값 `unassigned`(미분류)처럼 저장 값이 사람이 읽는 말이 아닌 것만 호출부가 넣는다.
+ * 고르기·좁히기·짝 판정은 언제나 저장 값으로 한다 — 이 함수는 그리는 자리에서만 쓴다.
+ */
+export function axisValueLabel(valueLabels, key, value) {
+  if (!value) return value;
+  const label = valueLabels && valueLabels[key] && valueLabels[key][value];
+  return label || value;
+}
+
 export const JOB_AXIS_DEFAULT_LABELS = {
   axisNoticeLadderReset: '직렬이 초기화되었습니다. 다시 선택해 주세요',
   axisNoticeLadderDutyReset: '직렬·직무가 초기화되었습니다. 다시 선택해 주세요',
