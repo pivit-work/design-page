@@ -543,7 +543,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
       closeTestId="fbmgr-thread-close"
       footer={
         // 「기타」는 한 대상의 스레드가 아니라 새로 쓸 곳이 없다(FB1 — 연결 없는 피드백 작성 UI 미제공).
-        isEtc ? undefined : isPastPeriod ? (
+        isEtc ? null : isPastPeriod ? (
           <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
