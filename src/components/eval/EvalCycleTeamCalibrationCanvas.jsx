@@ -35,6 +35,8 @@ const DEFAULT_LABELS = {
   appealCancel: '취소',
   appealSubmit: '이의 접수',
   appealSubmittedBadge: '어필 접수됨',
+  // PW-1612 — 위원회가 이 이의의 재검토 화면을 연 뒤.
+  appealReviewingBadge: '재검토 중',
   appealAcceptedBadge: '어필 수용',
   appealRejectedBadge: '어필 반려',
   appealReasonTitle: '접수된 이의 사유',
@@ -194,9 +196,11 @@ export default function EvalCycleTeamCalibrationCanvas({
                   ? { cls: 'tone-green', txt: L.appealAcceptedBadge }
                   : appeal?.status === 'rejected'
                     ? { cls: 'tone-red', txt: L.appealRejectedBadge }
-                    : appeal
-                      ? { cls: 'tone-accent', txt: L.appealSubmittedBadge }
-                      : null;
+                    : appeal?.status === 'reviewing'
+                      ? { cls: 'tone-accent', txt: L.appealReviewingBadge }
+                      : appeal
+                        ? { cls: 'tone-accent', txt: L.appealSubmittedBadge }
+                        : null;
               return (
                 <div
                   key={r.memberId}
