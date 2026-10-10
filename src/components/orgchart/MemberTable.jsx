@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AssignmentGrid from './AssignmentGrid.jsx';
+import PhotoOr from './PhotoOr.jsx';
 import { MEMBERS, generateRandomMembers } from './project-constants.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
@@ -71,11 +72,11 @@ export default function MemberTable({ projects, stickyTop = 0, onMemberClick, or
         )}
         renderName={(member) => (
           <div className="pj-member-info">
-            {member.avatar ? (
-              <img src={member.avatar} alt="" className="pj-member-avatar" />
-            ) : (
-              <span className="pj-member-avatar pj-member-initials">{member.initials}</span>
-            )}
+            <PhotoOr
+              src={member.avatar}
+              className="pj-member-avatar"
+              fallback={<span className="pj-member-avatar pj-member-initials">{member.initials}</span>}
+            />
             <div className="pj-member-text">
               <span className="pj-member-name">{member.name}</span>
               <span className="pj-member-email">{member.email}</span>

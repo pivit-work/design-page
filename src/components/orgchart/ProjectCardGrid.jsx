@@ -1,5 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Avatar from '../shared/Avatar.jsx';
+import PhotoOr from './PhotoOr.jsx';
 import { PROJECT_STATUSES } from './project-constants.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
@@ -35,7 +37,7 @@ function ProjectCard({ project }) {
       <div className="pj-card-members">
         <div className="pj-avatar-group">
           {project.avatars.slice(0, 7).map((url, i) => (
-            <img key={i} src={url} alt="" className="pj-avatar-sm" />
+            <PhotoOr key={i} src={url} className="pj-avatar-sm" fallback={<Avatar size={24} className="pj-avatar-sm" />} />
           ))}
           {project.memberCount > 7 && (
             <span className="pj-avatar-sm pj-avatar-more">+{project.memberCount - 7}</span>
