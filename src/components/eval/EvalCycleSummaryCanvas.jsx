@@ -278,6 +278,8 @@ const DEFAULT_LABELS = {
   cwInboxTitle: '어필 재검토 인박스',
   cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
   cwAppealPending: '재검토 대기',
+  // PW-1612 — 위원이 1인 재검토 화면을 연 뒤의 이의(기획서 이의 상태 reviewing).
+  cwAppealReviewing: '재검토 중',
   cwAppealReviewCta: '→ 재검토',
   // spec-calibration §14 「이미 처리된 어필 재진입」 — 결과를 읽기 전용으로 다시 연다(재결정 불가).
   cwInboxDecidedTitle: '처리된 어필',
@@ -642,6 +644,18 @@ function calibScopeLabel(scope, L) {
   return parts.join(' · ');
 }
 /** 코멘트 시각 — `M/D HH:mm`(보는 사람 시간대). */
+/**
+ * 이의(어필) 상태 — 수용·반려만 결정된 것이다. 대기(pending)와 위원이 열어 본 재검토 중(reviewing)은
+ * 인박스에 남는다(PW-1612). 옛 값 'open' 도 대기로 읽힌다.
+ */
+function isAppealDecided(status) {
+  return status === 'accepted' || status === 'rejected';
+}
+
+function appealWaitingText(status, L) {
+  return status === 'reviewing' ? L.cwAppealReviewing : L.cwAppealPending;
+}
+
 function fmtDateTime(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso);
@@ -3250,7 +3264,7 @@ export default function EvalCycleSummaryCanvas({
               (() => {
                 const appeal = gradeAppeals.find((a) => a.id === selectedAppealId);
                 if (!appeal) return null;
-                const decided = appeal.status !== 'open';
+                const decided = isAppealDecided(appeal.status);
                 const gradeOpts = (appealGradeOptions ?? gradeDistribution).map((d) => ({
                   gradeKey: d.gradeKey,
                   label: d.label,
@@ -3289,7 +3303,7 @@ export default function EvalCycleSummaryCanvas({
                   ? appeal.status === 'accepted'
                     ? L.cwStatusAccepted
                     : L.cwStatusRejected
-                  : L.cwAppealPending;
+                  : appealWaitingText(appeal.status, L);
                 return (
                   <div className="evs-cw-review" data-testid="evs-cw-review">
                     <div className="evs-cw-review-head">
@@ -3480,17 +3494,17 @@ export default function EvalCycleSummaryCanvas({
                 <div className="evs-cw-inbox">
                   <div className="evs-section-label">
                     {L.cwInboxTitle}
-                    {gradeAppeals.filter((a) => a.status === 'open').length > 0
-                      ? ` (${gradeAppeals.filter((a) => a.status === 'open').length})`
+                    {gradeAppeals.filter((a) => !isAppealDecided(a.status)).length > 0
+                      ? ` (${gradeAppeals.filter((a) => !isAppealDecided(a.status)).length})`
                       : ''}
                   </div>
-                  {gradeAppeals.filter((a) => a.status === 'open').length === 0 ? (
+                  {gradeAppeals.filter((a) => !isAppealDecided(a.status)).length === 0 ? (
                     <div className="evs-cw-empty">
                       <div className="evs-cw-empty-sub">{L.cwInboxEmpty}</div>
                     </div>
                   ) : (
                     gradeAppeals
-                      .filter((a) => a.status === 'open')
+                      .filter((a) => !isAppealDecided(a.status))
                       .map((a) => (
                         <button
                           type="button"
@@ -3499,7 +3513,9 @@ export default function EvalCycleSummaryCanvas({
                           onClick={() => onSelectAppeal?.(a.id)}
                           data-testid="evs-cw-appeal"
                         >
-                          <StatusBadge className="evs-cw-appeal-badge">{L.cwAppealPending}</StatusBadge>
+                          <StatusBadge className="evs-cw-appeal-badge" data-status={a.status}>
+                            {appealWaitingText(a.status, L)}
+                          </StatusBadge>
                           <div className="evs-cw-appeal-main">
                             <div className="evs-cw-appeal-name">
                               {a.memberName}
@@ -3523,13 +3539,13 @@ export default function EvalCycleSummaryCanvas({
                         </button>
                       ))
                   )}
-                  {gradeAppeals.some((a) => a.status !== 'open') && (
+                  {gradeAppeals.some((a) => isAppealDecided(a.status)) && (
                     <>
                       <div className="evs-section-label" data-testid="evs-cw-decided-title">
-                        {L.cwInboxDecidedTitle} ({gradeAppeals.filter((a) => a.status !== 'open').length})
+                        {L.cwInboxDecidedTitle} ({gradeAppeals.filter((a) => isAppealDecided(a.status)).length})
                       </div>
                       {gradeAppeals
-                        .filter((a) => a.status !== 'open')
+                        .filter((a) => isAppealDecided(a.status))
                         .map((a) => (
                           <button
                             type="button"
