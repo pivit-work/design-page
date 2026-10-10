@@ -41,6 +41,12 @@ import ModalShell from '../shared/ModalShell.jsx';
  *  - onOpenContext() — 위 둘의 버튼을 누르면 부른다(컨텍스트 설정 화면으로 보낸다).
  *  - contextAppliedLabel — onExtractKrs 결과에 `contextApplied: true` 가 오면 KR 초안 머리에 붙일 배지 문구.
  *  막지 않는다 — 컨텍스트가 없어도 마법사는 그대로 진행된다.
+ *
+ * AI 버튼 자리 안내 (선택 · 마법사 정책서 §5 · okr-policy §5.5A · 체험 AI 소진):
+ *  - onAiError(at, error) — AI 콜백이 실패하면 먼저 부른다(at = 'vision' | 'objective' | 'krs').
+ *      `true` 를 돌려주면 소비자가 그 실패를 안내로 대신한 것이라 아래 빨간 실패 문구를 띄우지 않는다.
+ *  - aiNotice — { at, content } | null. 그 버튼 바로 아래에 content(노드)를 그린다. 한 번에 하나다.
+ *  버튼은 숨기지도 잠그지도 않는다 — 직접 입력·저장은 그대로다.
  */
 const DEFAULT_SCOPE_CARD = {
   individual: { label: '개인 OKR', desc: '내 OKR을 직접 설계', badge: '단위 고정' },
@@ -95,6 +101,8 @@ export default function OkrSetupWizardModal({
   contextNotice = null,
   onOpenContext,
   contextAppliedLabel = '',
+  onAiError,
+  aiNotice = null,
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -169,8 +177,8 @@ export default function OkrSetupWizardModal({
       }));
       setKrs(list); setKrsConfirmed(false);
       setKrsContextApplied(res?.contextApplied === true);
-    } catch {
-      setError('KR 추출에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } catch (err) {
+      if (!onAiError?.('krs', err)) setError('KR 추출에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setKrsLoading(false); }
   };
 
@@ -188,8 +196,8 @@ export default function OkrSetupWizardModal({
       // 이 시점엔 KR 이 없다 — 재료는 구술뿐이다(§6 · PW-734).
       const res = await onDeriveObjective?.(scope, narrative, targetId);
       changeObjective(res?.objective?.title ?? '');
-    } catch {
-      setError('Objective 작성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } catch (err) {
+      if (!onAiError?.('objective', err)) setError('Objective 작성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setObjLoading(false); }
   };
 
@@ -237,6 +245,11 @@ export default function OkrSetupWizardModal({
       {loading ? '생성 중…' : `✦ ${label}`}
     </button>
   );
+  // 체험 AI 소진 등 소비자가 넘긴 안내 — 누른 버튼 바로 아래 한 자리에만 그린다.
+  const aiNoticeAt = (at) =>
+    aiNotice && aiNotice.at === at ? (
+      <div className="okr-wz-ai-notice" data-testid={`okr-wz-ai-notice-${at}`}>{aiNotice.content}</div>
+    ) : null;
 
   const genVision = async () => {
     if (!onGenerateVision || visionLoading) return;
@@ -244,8 +257,8 @@ export default function OkrSetupWizardModal({
     try {
       const res = await onGenerateVision(scope, narrative);
       setVisionImage(res?.imageUrl ?? null);
-    } catch {
-      setError('비전 이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } catch (err) {
+      if (!onAiError?.('vision', err)) setError('비전 이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setVisionLoading(false); }
   };
 
@@ -378,6 +391,7 @@ export default function OkrSetupWizardModal({
                 {visionLoading ? '생성 중…' : 'AI 비전 이미지 생성'}
               </button>
             </div>
+            {aiNoticeAt('vision')}
             <div className="okr-wz-vision-card">
               {visionImage ? (
                 <img className="okr-wz-vision-img" src={visionImage} alt="AI 비전 이미지" />
@@ -399,6 +413,7 @@ export default function OkrSetupWizardModal({
             </div>
             {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
           </div>
+          {aiNoticeAt('objective')}
           <div className={`okr-wz-draft${objConfirmed ? ' is-confirmed' : ''}`}>
             <div className="okr-wz-draft-head">
               <StatusBadge className="okr-wz-badge">
@@ -434,6 +449,7 @@ export default function OkrSetupWizardModal({
             </div>
             {aiBtn(krs.length ? 'AI로 다시 추출' : 'AI로 KR 추출', genKrs, krsLoading)}
           </div>
+          {aiNoticeAt('krs')}
           {/* 확정 Objective — KR 이 무엇을 재는지 늘 보이게 둔다(§3-3 · PW-734). */}
           <div className="okr-wz-objective-banner" data-testid="okr-wz-objective-banner">
             <span className="okr-wz-objective-banner-tag">OBJECTIVE</span>

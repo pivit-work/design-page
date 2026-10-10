@@ -60,6 +60,9 @@ export default function ReportCanvas({
   isGenerating = false,
   // 생성 중 문구 — 소비처가 i18n 문구를 넘긴다 (PW-1385). 안 넘기면 시안 그대로.
   generatingLabel,
+  // 목록 맨 위(이번 기간 행 자리)에 붙이는 안내 노드 — 체험 AI 를 다 써서 생성 버튼이 막혔거나
+  // 금요일 자동 생성을 건너뛴 것을 알리는 앰버 안내 (timeline-feed policy §16 · 시안 timeline-app.jsx).
+  aiNotice = null,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
@@ -120,6 +123,7 @@ export default function ReportCanvas({
         </div>
 
         <div className="report-list">
+          {aiNotice && <div className="report-ai-notice" data-testid="report-ai-notice">{aiNotice}</div>}
           {reports.map((r) => (listType === 'weekly' ? (
             <ReportWeeklyRow
               key={r.id}

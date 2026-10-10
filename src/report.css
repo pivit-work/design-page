@@ -60,6 +60,11 @@
   gap: 2px;
 }
 
+/* 목록 맨 위 안내 자리 — 체험 AI 소진으로 생성이 막힌 것을 알린다 (timeline-feed policy §16) */
+.report-ai-notice {
+  margin-bottom: 8px;
+}
+
 /* ── 행 ─────────────────────────────────────────────────────────────────── */
 /* 기본 행: white bg / 90px 고정 높이 / radius 6, badge 컬럼(77px) + 본문 */
 .report-row {
