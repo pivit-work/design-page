@@ -77,13 +77,17 @@ jobs:
       - name: Check side stripes
         run: npm run check:side-stripes
 
+      # 판 번호만 바꾸는 커밋이라 push 전 훅(lint 50초 등)을 다시 돌릴 까닭이 없다 — 위 단계에서 이미 검사했다.
+      # 훅이 돌면 발행 한 번이 2분 34초가 되어 3분이 깎였다.
       - name: Bump patch version
+        env:
+          LEFTHOOK: 0
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           npm version patch --no-git-tag-version
           git add package.json package-lock.json
-          git commit -m "chore: bump version to $(node -p 'require(\"./package.json\").version')" || true
+          git commit -m "chore: bump version to $(node -p "require('./package.json').version")" || true
           git pull --rebase
           git push
 
