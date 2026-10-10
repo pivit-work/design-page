@@ -1658,7 +1658,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
  *
  * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
  */
-function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, onToggleAction, feedbackEvidence, renderRecordingPlayer }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
@@ -1746,8 +1746,10 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         >
           <div className="ono-mem-table">
             <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
+            {/* 지난 회의록은 읽기 전용이다 — 눌러도 완료가 바뀌지 않는다 (PW-1638, 기획 §10.3).
+                완료 체크는 결과 탭의 «내 액션 아이템»에서만 한다. */}
             {session.actionItems.map((item) => (
-              <div className="ono-mem-row is-clickable" key={item.id} onClick={() => onToggleAction(item.id)}>
+              <div className="ono-mem-row" key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
                 <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
@@ -1771,7 +1773,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, onToggleAction, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
+function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -1789,7 +1791,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
         session={selected} manager={manager} avatar={avatar} renderAvatar={renderAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
         formatDate={formatDate} formatDuration={formatDuration}
-        onBack={() => select(null)} onToggleAction={onToggleAction}
+        onBack={() => select(null)}
         feedbackEvidence={feedbackEvidence}
         renderRecordingPlayer={renderRecordingPlayer}
       />
@@ -2026,7 +2028,6 @@ export default function OneOnOneMemberCanvas({
           {...shared}
           sessions={sessions} manager={manager} avatar={smallAvatar} renderAvatar={renderAvatar}
           healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
-          onToggleAction={onToggleAction}
           feedbackEvidence={feedbackEvidence}
           onHistorySelect={onHistorySelect}
           renderRecordingPlayer={renderRecordingPlayer}
