@@ -568,6 +568,64 @@ function HrNationalIdRow({ memberId, present, onReveal, labels }) {
   );
 }
 
+/**
+ * 계좌번호 줄 (PW-1622 · admin-spec §3.2.3 「계좌번호 마스킹·열람 감사」).
+ *
+ * 계좌가 들어 있으면 기본은 끝 네 자리만(`●●●● 6789`) 읽기 전용으로 보인다. [보기]를 누르면
+ * 전체 번호를 받아 고칠 수 있는 입력칸이 되고, 이 줄 아래에 «{이름}의 계좌번호 열람이 감사 로그에
+ * 기록되었습니다.»가 뜬다(누를 때마다 서버에 열람 기록이 남는다). [가리기]·저장·창 닫기로 다시 가려진다.
+ * 계좌가 없으면 빈 입력칸과 «등록된 계좌가 없습니다.» — 새 번호를 넣는다. 실패는 이 줄 안에 알린다.
+ */
+function HrBankAccountRow({ name, bankAccount, revealed, state, value, onChange, onReveal, onHide, labels }) {
+  const L = labels || {};
+  const label = L.hrBankAccount || '계좌번호';
+  const hint = { fontSize: 11, color: T.muted, padding: '2px 0 0 96px' };
+  if (!bankAccount?.present || revealed) {
+    return (
+      <>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <HrEditPair k={label} value={value} onChange={onChange} />
+          </div>
+          {revealed && (
+            <button type="button" className="admin-emp-btn" onClick={onHide} data-testid="hr-bank-account-hide">
+              {L.hrBankAccountHide || '가리기'}
+            </button>
+          )}
+        </div>
+        <div style={hint} role={revealed ? 'status' : undefined} data-testid={revealed ? 'hr-bank-account-audit' : undefined}>
+          {revealed
+            ? (L.hrBankAccountRevealed || '{name}의 계좌번호 열람이 감사 로그에 기록되었습니다.').replace('{name}', name || '')
+            : (L.hrBankAccountEmpty || '등록된 계좌가 없습니다.')}
+        </div>
+      </>
+    );
+  }
+  const masked = bankAccount.last4 ? `●●●● ${bankAccount.last4}` : '●●●●';
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-bank-account">
+      <span style={{ minWidth: 88, color: T.muted }}>{label}</span>
+      <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums' }}>{masked}</span>
+      {onReveal && (
+        <button
+          type="button"
+          className="admin-emp-btn"
+          onClick={onReveal}
+          disabled={state === 'loading'}
+          data-testid="hr-bank-account-reveal"
+        >
+          {L.hrBankAccountReveal || '보기'}
+        </button>
+      )}
+      {state === 'error' && (
+        <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">
+          {L.hrBankAccountRevealError || '불러오지 못했습니다. 다시 시도해 주세요.'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** 병역 기본 선택지. 소비자가 L.hrMilitaryOptions 로 로케일 라벨을 덮는다. */
 const MILITARY_OPTIONS = [
   { value: 'completed', label: '군필' },
@@ -588,6 +646,9 @@ export function HrProfileModal({
   confirmDelete,
   // 주민등록번호 [보기] (W62) — `(memberId) => Promise<{ nationalId: string | null }>`. 없으면 버튼이 없다.
   onRevealNationalId,
+  // 계좌번호 [보기] (PW-1622 · §3.2.3) — `(memberId) => Promise<{ bankAccount: string | null }>`.
+  // 없으면 [보기]가 없고, 계좌가 있는 사람은 끝 네 자리만 보인다(새 번호는 넣을 수 없다).
+  onRevealBankAccount,
   // 학력·경력·자격증·부양가족을 HR 이 넣고 고치고 지운다 (W63 · arch-core §2-B 「HR 입력 주도」).
   // `onSaveRecord(memberId, kind, recordId | null, body)` · `onDeleteRecord(memberId, kind, recordId)`,
   // kind 는 'education'·'career'·'certifications'·'dependents'. 없으면 목록만 보인다(종전).
@@ -610,6 +671,9 @@ export function HrProfileModal({
   // 신원 정보 편집 draft — onSaveIdentity 가 없으면 읽기 전용(기존 동작).
   const [identityDraft, setIdentityDraft] = useState(null);
   const [identityState, setIdentityState] = useState('idle');
+  // 계좌번호 [보기]로 받은 전체 번호 — 이 창이 열려 있는 동안만 들고 있다(PW-1622).
+  const [bankRevealed, setBankRevealed] = useState(null);
+  const [bankRevealState, setBankRevealState] = useState('idle');
 
   useEffect(() => {
     // loading/error 초기값(true/false) — 모달은 열 때마다 새로 마운트되므로
@@ -642,7 +706,8 @@ export function HrProfileModal({
      퇴사일은 이 창이 아니라 구성원 창에서 고친다. 그래서 그 창이 넘긴 행의 값과 견준다. */
   const lastDayAfterResign = lastWorkingDateAfterTermination(idDraft.lastWorkingDate, row?.terminationDate);
   const rehireDateBad = rehireFirstHireNotBefore(idDraft.isRehire, idDraft.firstHireDate, row?.hireDate);
-  const identityBase = flattenIdentity(identity);
+  /* [보기]로 받은 번호가 입력칸에 채워진 것은 «고친 것»이 아니다 — 그 번호를 기준으로 견준다. */
+  const identityBase = { ...flattenIdentity(identity), bankAccount: bankRevealed ?? '' };
   const identityDirty =
     !!identityDraft &&
     HR_IDENTITY_FIELDS.some(
@@ -651,16 +716,38 @@ export function HrProfileModal({
   const submitIdentity = () => {
     if (lastDayAfterResign || rehireDateBad) return;
     setIdentityState('saving');
-    Promise.resolve(onSaveIdentity(row?.id, shapeIdentityForSave(idDraft)))
+    /* [보기]로 연 번호를 그대로 두었으면 보내지 않는다 — 계좌는 손대지 않은 것이다. */
+    const draftToSave =
+      bankRevealed != null && idDraft.bankAccount === bankRevealed
+        ? { ...idDraft, bankAccount: '' }
+        : idDraft;
+    Promise.resolve(onSaveIdentity(row?.id, shapeIdentityForSave(draftToSave)))
       .then((saved) => {
         // 서버가 돌려준 값이 정본 — 정규화(빈 문자열→null)를 화면에 반영한다.
         if (saved) {
           setData((d) => ({ ...(d ?? {}), identity: saved }));
           setIdentityDraft(flattenIdentity(saved));
+          setBankRevealed(null);
         }
         setIdentityState('saved');
       })
       .catch(() => setIdentityState('error'));
+  };
+
+  const revealBankAccount = () => {
+    setBankRevealState('loading');
+    Promise.resolve(onRevealBankAccount(row?.id))
+      .then((r) => {
+        const full = r?.bankAccount ?? '';
+        setBankRevealed(full);
+        setIdentityDraft((p) => ({ ...(p ?? flattenIdentity(identity)), bankAccount: full }));
+        setBankRevealState('idle');
+      })
+      .catch(() => setBankRevealState('error'));
+  };
+  const hideBankAccount = () => {
+    setBankRevealed(null);
+    setIdentityDraft((p) => ({ ...(p ?? flattenIdentity(identity)), bankAccount: '' }));
   };
 
   const family = data?.family ?? {};
@@ -919,16 +1006,17 @@ export function HrProfileModal({
                 <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
                 <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
                 <HrEditPair k={L.hrBankName || '은행명'} value={idDraft.bankName} onChange={setIdField('bankName')} />
-                <HrEditPair
-                  k={L.hrBankAccount || '계좌번호'}
+                <HrBankAccountRow
+                  name={row?.name}
+                  bankAccount={identity.bankAccount}
+                  revealed={bankRevealed != null}
+                  state={bankRevealState}
                   value={idDraft.bankAccount}
                   onChange={setIdField('bankAccount')}
+                  onReveal={onRevealBankAccount ? revealBankAccount : undefined}
+                  onHide={hideBankAccount}
+                  labels={L}
                 />
-                <div style={{ fontSize: 11, color: T.muted, padding: '2px 0 0 96px' }}>
-                  {identity.bankAccount?.present
-                    ? (L.hrBankAccountStored || '등록돼 있습니다. 바꾸려면 새 번호를 넣으세요.')
-                    : (L.hrBankAccountEmpty || '등록된 계좌가 없습니다.')}
-                </div>
               </>
               )}
               </HrSection>
