@@ -47,6 +47,8 @@ const DEFAULT_LABELS = {
   // 내가 쓴 피드백의 작성자 이름 — 영어 화면에서는 소비 측이 'Me' 를 넘긴다.
   me: '나',
   emptyItemText: '(내용 없음)',
+  // 본문 없이 «확인» 만 누른 팀원 답 (PW-1538 — 스레드 창에 박혀 있던 문구를 라벨로 뺐다)
+  replyConfirmed: '확인했습니다',
   title: '팀 피드백',
   subtitle: '팀원별로 OKR 달성 과정에 대한 피드백을 남깁니다.',
   cardRequests: '피드백 요청',
@@ -223,18 +225,37 @@ function TeamListScreen({ team, L, onSelect, loading = false, failed = false }) 
 /** KR 진행률 바 폭. 카드가 1080px 로 넓어져 40px 는 점처럼 보였다 (PW-218). */
 const PROGRESS_BAR_W = 96;
 
-function BlockCard({ block, L, onOpen }) {
+/* [PW-1538] 미리보기에 팀원 답도 한 줄로 넣는다 — 스레드 창이 답을 따로 한 줄로 세듯이
+   (ThreadModal threadCount). 빼면 답이 와도 카드에는 내 피드백만 보여 답이 안 온 줄 안다. */
+function previewEntries(items) {
+  const entries = [];
+  for (const it of items) {
+    entries.push({ key: it.id, kind: it.itemType, item: it, at: it.sentAt });
+    if (it.itemType === 'feedback' && it.memberReply) {
+      entries.push({ key: `${it.id}-reply`, kind: 'reply', item: it, at: it.memberReply.createdAt });
+    }
+  }
+  return entries.sort((a, b) => new Date(a.at) - new Date(b.at)).slice(-2);
+}
+
+function BlockCard({ block, member, L, onOpen }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = block.items;
   const incoming = items.filter((i) => i.itemType === 'request');
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
-  const latest = [...items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)).slice(-2);
+  const latest = previewEntries(items);
   /* [PW-1054] 답하지 않은 요청이 있을 때만 「내 차례」. 같은 화면 팀 목록의 「요청 N」은 서버가
      답 안 된 것만 센다 — 요청이 하나라도 있으면 띄우던 종전 판정은 답을 보낸 뒤에도 남았다.
      `resolvedAt` 이 없는(모르는) 요청은 종전대로 답 안 된 것으로 본다. */
   const hasMyTurn = incoming.some((i) => !i.resolvedAt);
-  const hasFeedback = items.some((i) => i.itemType === 'feedback');
+  /* [PW-1538] 「대기」는 마지막으로 보낸 피드백에 팀원이 아직 답하지 않았을 때만 (screen-feedback-manager
+     §3.5 「피드백 전송 후 응답 대기」). 피드백이 있기만 하면 띄우던 종전 판정은 답이 온 뒤에도 남았다. */
+  const lastFeedback = [...items]
+    .filter((i) => i.itemType === 'feedback')
+    .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
+    .at(-1);
+  const isWaiting = !!lastFeedback && !lastFeedback.memberReply;
 
   return (
     <button
@@ -266,27 +287,33 @@ function BlockCard({ block, L, onOpen }) {
         <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.sub, margin: '4px 0' }}>{L.emptyBlock}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {latest.map((it) => (
-            <div key={it.id} style={{ display: 'flex', gap: 8 }}>
-              <Avatar name={it.itemType === 'request' ? it.author?.name : L.me} photo={it.author?.avatar} size={22} />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
-                  <span style={{ fontWeight: 700, color: C.text }}>{it.itemType === 'request' ? it.author?.name : L.me}</span>
-                  {it.itemType === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
-                  <span>{fmtDate(it.sentAt)}</span>
+          {latest.map(({ key, kind, item: it, at }) => {
+            // 요청·답은 팀원이 쓴 것, 피드백은 내가 쓴 것
+            const name = kind === 'request' ? it.author?.name : kind === 'reply' ? member?.name : L.me;
+            const photo = kind === 'reply' ? member?.avatar : it.author?.avatar;
+            const text = kind === 'reply' ? it.memberReply.text || L.replyConfirmed : it.text || L.emptyItemText;
+            return (
+              <div key={key} data-testid={kind === 'reply' ? 'fbmgr-block-reply' : undefined} style={{ display: 'flex', gap: 8 }}>
+                <Avatar name={name} photo={photo} size={22} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
+                    <span style={{ fontWeight: 700, color: C.text }}>{name}</span>
+                    {kind === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
+                    <span>{fmtDate(at)}</span>
+                  </div>
+                  <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {text}
+                  </p>
                 </div>
-                <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {it.text || L.emptyItemText}
-                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
         <span style={{ fontSize: 12, color: C.sub }}>{items.length}{L.countSuffix}</span>
         {hasMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
-        {!hasMyTurn && hasFeedback && <Chip tone="progress">{L.waiting}</Chip>}
+        {!hasMyTurn && isWaiting && <Chip tone="progress">{L.waiting}</Chip>}
         <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.accent : C.purple }}>{L.openThread}</span>
       </div>
     </button>
@@ -476,7 +503,7 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
         <div data-testid="fbmgr-member-reply" style={{ marginLeft: 38, marginTop: 6, display: 'flex', gap: 8 }}>
           <Avatar name={member?.name} photo={member?.avatar} size={24} />
           <div style={{ minWidth: 0, flex: 1, background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
-            {item.memberReply.text || '✓ 확인했습니다'}
+            {item.memberReply.text || L.replyConfirmed}
           </div>
         </div>
       )}
@@ -769,11 +796,11 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
       )}
       <IncomingRequestsSection requests={openRequests} krBlocks={krBlocks} initBlocks={initBlocks} L={L} onAnswer={setOpenBlock} />
       {krBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
-      {krBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
+      {krBlocks.map((b) => <BlockCard key={b.key} block={b} member={member} L={L} onOpen={setOpenBlock} />)}
       {initBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionInit}</div>}
-      {initBlocks.map((b) => <BlockCard key={b.key} block={b} L={L} onOpen={setOpenBlock} />)}
+      {initBlocks.map((b) => <BlockCard key={b.key} block={b} member={member} L={L} onOpen={setOpenBlock} />)}
       {etc && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionEtc}</div>}
-      {etc && <BlockCard block={etc} L={L} onOpen={setOpenBlock} />}
+      {etc && <BlockCard block={etc} member={member} L={L} onOpen={setOpenBlock} />}
       {krBlocks.length === 0 && initBlocks.length === 0 && !etc && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
