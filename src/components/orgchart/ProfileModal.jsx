@@ -105,7 +105,8 @@ function applyTexture(app, objectName, imageSrc) {
 // 어드민 조직단위 설정이 조직장 카드에 «변경»·«해제»를 붙이려고 쓴다(PW-1303). 관리 동작이라
 // 본인·퇴사·휴직이어도 막지 않는다(퇴사한 조직장도 해제할 수 있어야 한다).
 // 미지정이면 지금까지처럼 피드백주기·미팅잡기다(시각·레이아웃 변화 없음).
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false }) {
+// slackDmUrl — 연락처의 슬랙 핸들을 누르면 열 DM 주소(PW-1636). member.profile.slack·email 을 주면 연락처가 눌리는 줄이 된다.
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -338,7 +339,28 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           )}
           <div className="modal-info-section">
             <div className="modal-info-label">{L('profile.contact')}</div>
-            <div className="modal-info-content">{profile.contacts}</div>
+            {profile.slack || profile.email ? (
+              // 슬랙·이메일을 따로 받으면 눌리는 줄로 그린다(공개 카드 정책서 §4 — 핸들 → 슬랙 DM, 이메일 → mailto · PW-1636).
+              // 슬랙 DM 주소(slackDmUrl prop — 멤버와 따로 받는다: 멤버 객체가 바뀌면 창이 새로 열린 것으로 본다)를
+              // 못 받은 사람은 핸들을 글자로만 둔다 — 눌러도 아무 데도 안 가는 링크를 만들지 않는다.
+              // 모양은 아래 «링크» 줄과 같은 modal-info-link 다(새 모양을 만들지 않는다).
+              <div className="modal-info-content">
+                {profile.slack && (slackDmUrl ? (
+                  <a className="modal-info-link" href={slackDmUrl} target="_blank" rel="noopener noreferrer" data-testid="profile-contact-slack">
+                    {profile.slack}
+                  </a>
+                ) : (
+                  <div data-testid="profile-contact-slack">{profile.slack}</div>
+                ))}
+                {profile.email && (
+                  <a className="modal-info-link" href={`mailto:${profile.email}`} data-testid="profile-contact-email">
+                    {profile.email}
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="modal-info-content">{profile.contacts}</div>
+            )}
             {/* 근무지 — 공개했고 값이 있을 때만 연락처 아래 핀 줄로(PW-1217). */}
             {profile.location && (
               <div className="modal-location" data-testid="profile-location">
