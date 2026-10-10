@@ -133,6 +133,8 @@ const DEFAULT_LABELS = {
     current: '현재 조직',
     currentManager: '현재 매니저',
     level: '레벨',
+    jobFamily: '직군',
+    jobDuty: '직무',
     dept: '소속',
     joinDate: '입사일',
     currentNote: '조직 정보는 어드민에서만 변경 가능합니다.',
@@ -231,14 +233,18 @@ const DEFAULT_LABELS = {
     photoHelp: '사진을 클릭하면 프로필 사진으로 설정됩니다.',
     basicInfo: '기본 정보',
     name: '이름',
-    displayName: '닉네임 (표시 이름)',
-    displayNameHint: '평가·조직도·슬랙 표시명으로 사용됩니다.',
-    displayNamePlaceholder: '예: 데이빗 민 (민현식)',
+    // 닉네임(호칭 원값)과 표시 이름(화면에 찍히는 문자열)은 다른 칸이다 — my-settings-spec §4.2 (2026-08-19).
+    nickname: '닉네임',
+    nicknameHint: '사내에서 부르는 호칭입니다. 괄호나 본명은 붙이지 않습니다.',
+    nicknamePlaceholder: '예: 데이빗',
+    displayName: '표시 이름',
+    displayNameHint: '평가·조직도·슬랙 표시명으로 사용됩니다. 비우면 «닉네임(이름)»으로 표시됩니다.',
+    displayNamePlaceholder: '예: 데이빗(민현식)',
     title: '직함',
     email: '이메일',
     emailReadonlyHint: '이메일은 로그인 계정입니다. 변경은 관리자에게 문의하세요.',
     adminManagedHint:
-      '이름·닉네임·직함 등 인사 정보는 관리자가 관리합니다. 변경이 필요하면 관리자에게 문의하세요.',
+      '이름·직함 등 인사 정보는 관리자가 관리합니다. 변경이 필요하면 관리자에게 문의하세요.',
     phone: '전화번호',
     phoneHint: '개인 휴대폰 번호입니다.',
     fillRequest: '채워 주세요',
@@ -954,6 +960,8 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
   const currentPairs = [
     { label: L.currentManager, value: cur.manager ? `${cur.manager.name}${cur.manager.title ? ` (${cur.manager.title})` : ''}` : '-' },
     { label: L.level, value: cur.level },
+    { label: L.jobFamily, value: cur.jobFamily },
+    { label: L.jobDuty, value: cur.jobDuty },
     { label: L.dept, value: cur.dept },
     { label: L.joinDate, value: cur.joinDate },
   ];
@@ -1979,10 +1987,22 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.name}
                     />
                   </Field>
+                  <Field label={labels.profile.nickname} hint={labels.profile.nicknameHint}>
+                    <TextInput
+                      className={inputClass('nickname')}
+                      value={draft.nickname || ''}
+                      maxLength={50}
+                      onChange={(e) => setField('nickname')(e.target.value)}
+                      readOnly={isReadOnly('nickname')}
+                      placeholder={isReadOnly('nickname') ? '' : labels.profile.nicknamePlaceholder}
+                      aria-label={labels.profile.nickname}
+                    />
+                  </Field>
                   <Field label={labels.profile.displayName} hint={labels.profile.displayNameHint}>
                     <TextInput
                       className={inputClass('displayName')}
                       value={draft.displayName || ''}
+                      maxLength={100}
                       onChange={(e) => setField('displayName')(e.target.value)}
                       readOnly={isReadOnly('displayName')}
                       placeholder={isReadOnly('displayName') ? '' : labels.profile.displayNamePlaceholder}
