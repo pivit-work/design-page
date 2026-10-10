@@ -5,7 +5,7 @@ import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import Tabs from '../shared/Tabs.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
@@ -45,6 +45,8 @@ const DEFAULT_LABELS = {
   joinedTooltip: '{{at}} 합류',
   // [PW-1462] 평가 기간 중 퇴사 (정책 엣지케이스 「해당 구성원 평가 행 비활성 처리 + "퇴사 처리됨" 배지」)
   retiredBadge: '퇴사 처리됨',
+  // [PW-1462] 부서 고르기 (정책 §6.4)
+  deptFilterLabel: '부서',
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
@@ -418,11 +420,13 @@ export default function EvalCycleMonitoringCanvas({
    */
   leaderAssignments = null,
   /**
-   * [PW-1462 · 정책 §6.4] 부서 탭 — `[{ value, label, disabled }]`. 「전체」도 호출부가 첫 칸으로 넣는다.
+   * [PW-1462 · 정책 §6.4] 부서 고르기 — `[{ value, label, disabled }]`. 「전체」도 호출부가 첫 줄로 넣는다.
    * 구성원이 없는 부서는 `disabled`. 거르는 것도 호출부다 — 표·단계 상세·내보내기가 같은 범위를
-   * 따라야 해서(§6.2.3) 캔버스가 표만 거르면 셋이 갈린다. 안 주면 탭을 그리지 않는다.
+   * 따라야 해서(§6.2.3) 캔버스가 표만 거르면 셋이 갈린다. 안 주면 그리지 않는다.
+   *
+   * 탭이 아니라 드롭다운이다 — 부서가 수십 개인 회사에서 탭 줄이 본문 칸을 넘어 지저분했다(커트 2026-10-10).
    */
-  departmentTabs = null,
+  departmentOptions = null,
   departmentValue = null,
   onSelectDepartment,
   /**
@@ -704,15 +708,17 @@ export default function EvalCycleMonitoringCanvas({
         {/* [PW-585] 단계 상세 (정책 §6.8) — 들어가면 구성원 표 자리를 대신한다.
             둘을 함께 그리면 같은 화면에 «사람 축» 표와 «단계 축» 상세가 겹쳐 서서
             지금 무엇을 보고 있는지가 흐려진다. 「← 단계 목록」으로 돌아온다. */}
-        {/* [PW-1462 · 정책 §6.4] 부서 탭 — 구성원 표와 단계 상세가 함께 따른다. */}
-        {departmentTabs && departmentTabs.length > 1 && (
-          <div data-testid="evmon-dept-tabs">
-            <Tabs
-              items={departmentTabs.map((d) => ({ ...d, testId: `evmon-dept-${d.value}` }))}
-              value={departmentValue}
-              onChange={(v) => onSelectDepartment?.(v)}
+        {/* [PW-1462 · 정책 §6.4] 부서 고르기 — 구성원 표와 단계 상세가 함께 따른다. */}
+        {departmentOptions && departmentOptions.length > 1 && (
+          <label className="evmon-dept-filter" data-testid="evmon-dept-filter">
+            <span className="evc-field-label">{L.deptFilterLabel}</span>
+            <Select
+              value={departmentValue ?? ''}
+              onChange={(e) => onSelectDepartment?.(e.target.value)}
+              options={departmentOptions}
+              data-testid="evmon-dept-select"
             />
-          </div>
+          </label>
         )}
         {selectedStage ? (
           <section className="evc-card" data-testid="evmon-stage-detail">

@@ -90,6 +90,20 @@
   margin: 0 auto var(--spacing-xl);
 }
 
+/* [PW-1462] 진행 현황 부서 고르기 (정책 §6.4) — 이름표 옆에 드롭다운 하나. 본문 칸(1080) 왼쪽에 맞춘다. */
+.evmon-dept-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.evmon-dept-filter .dp-select {
+  width: auto;
+  min-width: 200px;
+}
+
 /* 평가지 화면에서 단계 줄(알약)이 설 때 — 단계 줄 → 아래 안내·카드 간격을 위 줄 → 단계 줄
    간격(20px)보다 넓힌다. 아래가 더 좁으면 단계 줄이 위 줄이 아니라 아래 카드에 딸린 것처럼
    읽힌다 (PW-640). 단계 줄이 없는 화면(단계 하나·다른 관리 탭)은 종전 12px 그대로다. */
