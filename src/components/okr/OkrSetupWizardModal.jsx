@@ -481,8 +481,11 @@ export default function OkrSetupWizardModal({
                     onChange={(e) => patchKr(k.id, { title: e.target.value })} />
                   <input className="okr-wz-krcell is-num" type="number" value={k.current} placeholder="현재" aria-label="현재값"
                     onChange={(e) => patchKr(k.id, { current: e.target.value })} />
-                  <input className="okr-wz-krcell is-num" type="number" value={k.target} placeholder="목표" aria-label="목표값"
-                    onChange={(e) => patchKr(k.id, { target: e.target.value })} />
+                  {/* «완료 여부»는 목표 1 고정이라 칸을 감춘다(okr-spec §3.1B). 빈 칸은 열 자리를 지킨다. */}
+                  {k.type === 'boolean' ? <span aria-hidden="true" /> : (
+                    <input className="okr-wz-krcell is-num" type="number" value={k.target} placeholder="목표" aria-label="목표값"
+                      onChange={(e) => patchKr(k.id, { target: e.target.value })} />
+                  )}
                   <input className="okr-wz-krcell is-unit" value={k.unit} placeholder="단위" aria-label="단위"
                     onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
                   <button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
