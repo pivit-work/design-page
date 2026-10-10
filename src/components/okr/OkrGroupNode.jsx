@@ -21,6 +21,8 @@ export default function OkrGroupNode({
   isRoot = false,
   onOpen,
   emptyObjectivesLabel = '등록된 Objective 없음',
+  // false 면 Objective 요약(빈 자리 표시 포함)을 접는다 — 툴바 전체 접기(okr-policy.md §3.4, PW-1641).
+  objectivesExpanded = true,
   children,
 }) {
   const { isDragging, onDown, style } = useOkrDrag(group.id, () => onOpen(group.id));
@@ -33,7 +35,7 @@ export default function OkrGroupNode({
       style={style}
     >
       <OkrGroupCard group={group} onMouseDown={onDown} isDragging={isDragging} />
-      {objectives.length > 0 ? (
+      {!objectivesExpanded ? null : objectives.length > 0 ? (
         <div className="okr-objective-list">
           {objectives.map((objective, i) => (
             <ObjectiveRow

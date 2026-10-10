@@ -690,6 +690,7 @@ export default function OkrPage({ icons, baseUrl }) {
   const [openGroupId, setOpenGroupId] = useState(null);
   const [year, setYear] = useState('2026');
   const [quarter, setQuarter] = useState('Q1');
+  const [objectivesExpanded, setObjectivesExpanded] = useState(true);
   const [composeOpen, setComposeOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [ctxOpen, setCtxOpen] = useState(false);
@@ -729,9 +730,11 @@ export default function OkrPage({ icons, baseUrl }) {
           <OkrToolbar
             year={year} years={YEARS} onYearChange={setYear}
             quarter={quarter} quarters={QUARTERS} onQuarterChange={setQuarter}
+            objectivesExpanded={objectivesExpanded}
+            onToggleObjectivesExpanded={() => setObjectivesExpanded((v) => !v)}
             icons={icons} baseUrl={baseUrl}
           />
-          <OkrDashboardCanvas key={knobKey(knobs)} data={{ ...tree, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} />
+          <OkrDashboardCanvas key={knobKey(knobs)} data={{ ...tree, quarter }} icons={icons} baseUrl={baseUrl} onBlockClick={setOpenGroupId} objectivesExpanded={objectivesExpanded} />
         </>
       ) : activeTab === 'company' ? (
         <>

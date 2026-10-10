@@ -24,6 +24,8 @@ export default function OkrDashboardCanvas({
   onBlockClick,
   emptyObjectivesLabel = '등록된 Objective 없음',
   emptyPersonsLabel = '개인 OKR 없음',
+  // false 면 모든 노드의 Objective 요약을 숨긴다 — 툴바의 전체 펼치기/접기(PW-1641).
+  objectivesExpanded = true,
 }) {
   const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
     ignoreSelector: '.zoom-controls, .okr-group-card, .okr-objective-row, .okr-member-chip',
@@ -116,7 +118,7 @@ export default function OkrDashboardCanvas({
         }}>
           <OkrConnectors containerRef={canvasInnerRef} scale={scale} />
           <div className="okr-tree">
-            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel}>
+            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel} objectivesExpanded={objectivesExpanded}>
               <div className="okr-teams-row">
                 {data.teams.map((team) => (
                   <OkrGroupNode
@@ -124,6 +126,7 @@ export default function OkrDashboardCanvas({
                     group={team}
                     onOpen={openGroup}
                     emptyObjectivesLabel={emptyObjectivesLabel}
+                    objectivesExpanded={objectivesExpanded}
                   >
                     {/* 개인 계층 — `persons` 가 배열이면(빈 배열 포함) 운영 중이라는 뜻이다.
                         `undefined` 는 개인 OKR 미운영이라 계층 자체를 그리지 않는다
@@ -137,6 +140,7 @@ export default function OkrDashboardCanvas({
                               group={{ ...person, type: 'person' }}
                               onOpen={openGroup}
                               emptyObjectivesLabel={emptyObjectivesLabel}
+                              objectivesExpanded={objectivesExpanded}
                             />
                           ))
                         ) : (

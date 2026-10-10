@@ -20,6 +20,12 @@ export default function OkrToolbar({
   quarter, quarters, onQuarterChange,
   levels = [], selectedLevelId, onLevelChange, levelPickerLabel = '하위 계층 선택',
   depthLabel, policyChip,
+  // 전체 펼치기/접기 — 모든 노드의 Objective 요약을 한꺼번에 접고 편다. 기본 펼침
+  // (okr-policy.md §3.4). 상태는 캔버스와 나눠 써야 해서 부모가 갖는다. 콜백을 안 넘기면
+  // 버튼을 그리지 않는다 — 눌러도 아무 일 없는 버튼을 남기지 않는다(PW-1641).
+  objectivesExpanded = true, onToggleObjectivesExpanded,
+  expandLabel = '모든 노드의 Objective 요약을 펼칩니다',
+  collapseLabel = '모든 노드의 Objective 요약을 접습니다',
   icons, baseUrl = '',
 }) {
   const [openMenu, setOpenMenu] = useState(null); // 'year' | 'quarter' | null
@@ -77,9 +83,18 @@ export default function OkrToolbar({
           <StatusBadge className="okr-policy-chip" title={policyChip.title}>{policyChip.label}</StatusBadge>
         )}
       </div>
-      <button className="okr-icon-btn">
-        <Icon src={icons.chevronSelector} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-      </button>
+      {onToggleObjectivesExpanded && (
+        <button
+          type="button"
+          className="okr-icon-btn"
+          onClick={onToggleObjectivesExpanded}
+          aria-expanded={objectivesExpanded}
+          aria-label={objectivesExpanded ? collapseLabel : expandLabel}
+          title={objectivesExpanded ? collapseLabel : expandLabel}
+        >
+          <Icon src={icons.chevronSelector} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
+        </button>
+      )}
     </div>
   );
 }
