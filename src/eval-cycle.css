@@ -32,10 +32,36 @@
 .evc-toolbar,
 .evc-list,
 .evc-empty,
-.evc-loading {
+.evc-loading,
+.evc-root > .evc-card,
+.evc-root > .evx-notice {
   max-width: 1080px;
   margin-left: auto;
   margin-right: auto;
+}
+/* 목록 칸(.evc-list) 안에 든 칸은 이미 1080 칸 안이다. 여기서도 좌우 auto 를 두면 세로 flex
+   안에서 내용 폭만큼 줄어 가운데에 좁게 뜬다 — 동료 리뷰 탭의 빈 상자가 200px 로 줄고, 외부
+   데이터의 제목 줄이 가운데로 몰렸다 (PW-1652). 칸을 꽉 채운다. */
+.evc-list > :is(.evc-header, .evc-list, .evc-empty, .evc-loading) {
+  margin-left: 0;
+  margin-right: 0;
+}
+/* 목록 끝에서 다음 쪽을 못 불러왔을 때의 한 줄(글 + 「다시 시도」) — 목록과 같은 1080 칸에
+   왼쪽 줄을 맞추고, 마지막 카드와 띄우고, 글과 버튼의 세로 가운데를 맞춘다. 평가 템플릿에서
+   빈 상태 글 모양(.evc-empty-sub)만 빌려 써 카드에 붙고 칸 밖으로 삐져나왔다 (PW-1652).
+   그 클래스와 함께 쓰지 않는다 — 파일 뒤쪽에 있어 margin 을 덮는다. 글 모양은 여기서 준다. */
+.evc-list-more-error {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  max-width: 1080px;
+  margin: var(--spacing-xl) auto 0;
+}
+/* 목록 칸 안의 제목 줄 — 칸 gap(16) 에 8 을 더해 다른 화면의 제목 아래 간격(24)과 맞춘다. */
+.evc-list > .evc-header {
+  margin-bottom: var(--spacing-md);
 }
 
 /* 헤더 아래 툴바 슬롯(탭 줄 등). 이 칸에 안 들어가 있던 동안, 평가지 화면의 단계 줄만
@@ -153,9 +179,11 @@
     box-shadow 0.2s ease,
     border-color 0.2s ease;
 }
-/* 목록 칸(.evc-list) 없이 화면에 바로 쌓인 카드끼리도 목록 안과 같은 간격을 둔다 —
-   팀 캘리브레이션 화면은 안내 카드와 결과 카드가 0px 로 맞닿아 있었다. */
-.evc-root > .evc-card + .evc-card {
+/* 목록 칸(.evc-list) 없이 화면에 바로 쌓인 덩어리끼리도 목록 안과 같은 간격을 둔다 —
+   팀 캘리브레이션 화면은 안내 카드와 결과 카드가 0px 로 맞닿아 있었고, 동료 리뷰어 확정은
+   안내 줄과 빈 상태가, 사이클 관리는 잠금 안내와 본문이 맞닿아 있었다 (PW-1652). */
+.evc-root > :is(.evc-card, .evx-notice, .evc-list, .evc-empty, .evc-loading)
+  + :is(.evc-card, .evx-notice, .evc-list, .evc-empty, .evc-loading) {
   margin-top: var(--spacing-xl);
 }
 .evc-card:hover {
@@ -723,6 +751,30 @@
   color: var(--text-secondary);
   margin-top: var(--spacing-sm);
 }
+/* 가운데 정렬 가로 줄에 버튼·칩과 나란히 선 이름표 — 위 여백 6px 때문에 3px 아래로 처졌다
+   (PW-1652). 위 여백은 세로로 쌓일 때만 쓴다. */
+:is(
+    .evm-score-row,
+    .evc-tpl-confirm-head,
+    .evc-tpl-start-head,
+    .evc-tpl-role-head,
+    .evc-tpl-items-head,
+    .evc-review-head,
+    .evc-rm-head,
+    .evl-prior-head,
+    .evr-gap-row
+  )
+  > .evc-field-label {
+  margin-top: 0;
+}
+/* 안내 문장 끝에 버튼이 붙은 줄(템플릿 수정 창의 「복제」) — 문장 기준선에 버튼이 얹혀 세로
+   가운데가 2px 어긋났다 (PW-1652). */
+.evc-wiz-hint.has-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
 /* TC-051/052 항목 설명 툴팁 아이콘 */
 .evx-field-info {
   margin-left: 4px;
@@ -1042,6 +1094,8 @@
 /* [PW-536] 일정 시작일(D0) — 단계별 일정의 기준점 */
 .evc-sched-anchor {
   display: flex;
+  /* 위 단계 안내 줄(.evc-wiz-hint)과 패널 gap(6px)만으로는 붙어 보인다 (PW-1652). */
+  margin-top: var(--spacing-sm);
   align-items: center;
   gap: var(--spacing-md);
   flex-wrap: wrap;
@@ -1105,7 +1159,8 @@
 .evc-sched-card.is-off { opacity: 0.55; }
 /* [PW-529 ③-b] 「결과 발송」 단계 카드의 안내 — 여기서 리포트가 나가는 게 아니라는 말. */
 .evc-sched-guide {
-  margin: 0 0 var(--spacing-md);
+  /* 위 단계 제목 줄(.evc-sched-head)은 아래 여백이 없다 — 위로도 띄운다 (PW-1652). */
+  margin: var(--spacing-md) 0;
   padding: 8px 11px;
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
@@ -2411,6 +2466,12 @@
   flex-direction: column;
   gap: var(--spacing-lg);
 }
+/* 옆 패널(.evc-rm-panel-body) 안에서는 패널이 스크롤한다. 안쪽을 60vh 로 또 묶으면 평가지가
+   한 칸 안에서만 스크롤되고 패널 아래가 비었다 (PW-1652). */
+.evc-rm-panel-body .evc-preview-body {
+  max-height: none;
+  overflow: visible;
+}
 .evc-preview-sec-title {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
@@ -2446,6 +2507,10 @@
   font-size: var(--font-size-text-sm);
   color: var(--text-primary);
   margin-bottom: var(--spacing-xs);
+}
+/* 점수 칸 — 동그라미 줄 바로 아래 이유 입력칸이 0px 로 붙어 있었다 (PW-1652). */
+.evc-preview-scale + .evm-textarea {
+  margin-top: var(--spacing-md);
 }
 .evc-preview-scale {
   display: flex;
@@ -2980,6 +3045,10 @@
   display: flex;
   align-items: stretch;
   gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+/* 세 칸 아래 설명 줄 — 기본 위 여백(6px)이면 칸 테두리에 붙어 보인다 (PW-1652). */
+.evc-review-split + .evc-wiz-hint {
   margin-top: var(--spacing-lg);
 }
 .evc-review-pane {
@@ -5313,6 +5382,11 @@
   align-items: center;
   gap: var(--spacing-lg);
 }
+/* 안내 글이 빈 상태 글 모양(.evc-empty-sub)을 빌려 써 아래 여백 8px 이 따라왔다 — 오른쪽
+   버튼과 세로 가운데가 4px 어긋났다 (PW-1652). */
+.evrr-toolbar > .evc-empty-sub {
+  margin: 0;
+}
 .evrr-toolbar-actions {
   margin-left: auto;
   display: flex;
@@ -5756,7 +5830,9 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
   line-height: 1.6;
-  max-width: 380px;
+  /* 380px 에서는 한 낱말이 두 줄로 갈렸다(「표시 / 됩니다」 · PW-1652). 폭을 넓히고 낱말 단위로 꺾는다. */
+  max-width: 560px;
+  word-break: keep-all;
 }
 .evs-cw-session {
   display: flex;
@@ -8528,13 +8604,17 @@
 /* 메시지 제목 줄 — 왼쪽 제목, 오른쪽 [나에게 테스트 발송] 글자 버튼 */
 .evc-rm-msg-head {
   display: flex;
-  align-items: baseline;
+  /* baseline 이면 14px 제목(아이콘 포함)과 12px 글자 버튼의 세로 가운데가 2px 어긋났다.
+     아래 고르기 상자와의 간격은 제목이 아니라 이 줄이 갖는다 — 제목 margin 은 이 줄 높이에
+     잡히지 않아 상자와 0px 로 붙어 보였다 (PW-1652). */
+  align-items: center;
   justify-content: space-between;
   gap: var(--spacing-md);
   flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
 }
 .evc-rm-msg-head .evc-rm-dsec-title {
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0;
 }
 .evc-rm-test-link {
   padding: 0;
@@ -9399,6 +9479,16 @@
 .tl-group-modal.evc-wiz-shell .evc-wiz-body {
   padding: 0;
   overflow: visible;
+}
+/* 단계 표와 바닥 줄(취소·이전 / 다음)도 같은 48px 칸에 맞춘다 — 자기 여백(20px)이 남아 단계 표
+   첫 칸은 본문보다 20px 안쪽, 바닥 줄 버튼은 28px 바깥에서 시작했다 (PW-1652). */
+.tl-group-modal.evc-wiz-shell .evc-wiz-steps {
+  padding-left: 0;
+  padding-right: 0;
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-footer {
+  padding-left: 48px;
+  padding-right: 48px;
 }
 .evmon-nav {
   display: flex;
