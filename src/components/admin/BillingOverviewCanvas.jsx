@@ -64,6 +64,8 @@ const DEFAULT_LABELS = {
   // 미납 유예가 지나 유료 기능이 잠겼을 때(screen-billing-overview.policy.md §3 「유예 만료(잠금)」).
   lockedTitle: '유료 기능이 잠금되었습니다 — 결제수단 갱신 필요',
   lockedDesc: '결제수단을 갱신해 결제가 되면 다시 쓸 수 있습니다. (데이터는 보존됩니다)',
+  // 잠겨도 데이터는 내보낼 수 있다(같은 정책서 행 「데이터 export 링크는 유지」 · PW-1618).
+  lockedExportLink: '구성원 명부 내보내기 →',
 
   cancelReservedTitle: '해지 예약됨',
   cancelReservedDesc: (date) => `${date} 이후 Free 플랜으로 전환됩니다.`,
@@ -224,6 +226,12 @@ export default function BillingOverviewCanvas({
   onNavigateMethods,
   onNavigatePlans,
   onNavigateMembers,
+  /**
+   * 잠금 배너의 「구성원 명부 내보내기 →」 (PW-1618). 잠겨도 열리는 구성원 설정의
+   * 명부 내보내기로 보낸다. 넘기지 않으면 링크를 그리지 않는다. 갱신 권한과 무관하게
+   * 보인다 — 내보내기는 결제 담당이 아니어도 할 수 있다.
+   */
+  onNavigateExport,
   onNavigateHistory,
   onUndoCancel,
   onCancelPeriodEnd,
@@ -289,6 +297,13 @@ export default function BillingOverviewCanvas({
               <div style={{ fontSize: 13, color: T.text }}>
                 {sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil)}
               </div>
+              {sub.locked && onNavigateExport && (
+                <button type="button" data-testid="billing-locked-export" onClick={onNavigateExport}
+                  style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                    fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 6 }}>
+                  {labels.lockedExportLink}
+                </button>
+              )}
               {!canEdit && (
                 <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
                   {labels.dunningNoPerm}
