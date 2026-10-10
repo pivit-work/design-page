@@ -744,9 +744,12 @@ export default function EvalCycleMonitoringCanvas({
           </section>
         ) : (() => {
         const dynamic = memberPhases.length > 0;
+        // 마지막 칸은 「리마인더 · 제외」 두 버튼이 한 줄에 들어가는 폭 — 96px 이면 미제출자 줄의
+        // 버튼 묶음이 카드 오른쪽을 넘었다(영어 「Remind · Exclude」는 더) (PW-1652).
+        const actionsCol = '176px';
         const cols = dynamic
-          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1.2fr', '1fr', '96px'].join(' ')
-          : '2fr 1fr 1fr 1fr 1fr 96px';
+          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1.2fr', '1fr', actionsCol].join(' ')
+          : `2fr 1fr 1fr 1fr 1fr ${actionsCol}`;
         return (
         <section className="evc-card">
           <h3 className="evc-card-name">{L.membersTitle}</h3>
@@ -828,7 +831,7 @@ export default function EvalCycleMonitoringCanvas({
                     <Check ok={m.graded} />
                   )}
                 </span>
-                <span className="evmon-controls">
+                <span className="evmon-controls evmon-row-actions">
                   {/* [PW-1462] 미제출 1건 이상일 때만 (정책 §6.2.1). 뺀 사람·퇴사자는 리마인더를 받지 않는다. */}
                   {onRemindMember && !m.excluded && !m.retired && !stopped && !isOnHold &&
                     (m.phases || []).some((p) => p.status !== null && p.done < p.total) && (
