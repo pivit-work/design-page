@@ -99,6 +99,7 @@ const DEFAULT_LABELS = {
   asofLoadError: '명단을 불러오지 못했어요',
   asofLoadErrorTimeout: '잠시 후 다시 시도해 주세요',
   asofRetry: '다시 시도',
+  statusLoadError: '조직 현황을 불러오지 못했어요',
   /** `{date}` 자리에 기준일이 들어간다. */
   asofBanner: '{date} 시점으로 조회 중입니다',
   asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
@@ -543,6 +544,9 @@ function OrgSnapshotStatusView({
   activeTab, onTabChange, onDrilldown, onRosterMemberClick,
   showComp, onShowCompChange, rosterExtraColumns, rosterColumns,
   today, coverageFrom,
+  // 집계 조회가 실패했다(`'failed'`·`'timeout'`). 카드·명단을 빈 값으로 그리면 «조직 구조가 없습니다»처럼
+  // 실패가 «없음»으로 보인다 — 날짜 줄은 두고 그 아래를 안내 하나로 바꾼다(As Of 탭의 실패와 같은 모양).
+  error = null, onRetry,
 }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
@@ -617,6 +621,21 @@ function OrgSnapshotStatusView({
         </div>
       </header>
 
+      {error ? (
+        <div className="admin-snap-content">
+          <EmptyState
+            size="lg"
+            data-testid="status-load-error"
+            title={labels.statusLoadError}
+            description={error === 'timeout' ? labels.asofLoadErrorTimeout : undefined}
+            actions={onRetry ? (
+              <Button variant="secondary" size="sm" onClick={() => onRetry()}>
+                {labels.asofRetry}
+              </Button>
+            ) : undefined}
+          />
+        </div>
+      ) : (<>
       <div
         className="admin-snap-summary-grid"
         style={{ gridTemplateColumns: `repeat(${Math.max(1, summaryCards.length)}, minmax(0, 1fr))` }}
@@ -774,6 +793,7 @@ function OrgSnapshotStatusView({
           />
         )}
       </section>
+      </>)}
     </div>
   );
 }
@@ -2323,6 +2343,10 @@ export default function OrgSnapshotCanvas({
   onExportAsOf,
   /** As Of 명단 조회 실패(`asOf.error`) 때 [다시 시도] — 없으면 버튼을 그리지 않는다. */
   onAsOfRetry,
+  /** 조직 현황 집계 조회 실패(`'failed'`·`'timeout'`). 있으면 날짜 줄 아래를 안내 하나로 바꾼다. */
+  snapshotError = null,
+  /** 조직 현황 실패 때 [다시 시도] — 없으면 버튼을 그리지 않는다. */
+  onSnapshotRetry,
   // 발령 공통
   members = [],
   fieldOptions = {},
@@ -2418,6 +2442,8 @@ export default function OrgSnapshotCanvas({
         <>
           {view === 'snapshot' && (
             <OrgSnapshotStatusView
+              error={snapshotError}
+              onRetry={onSnapshotRetry}
               data={snapshot}
               labels={labels}
               queryDate={queryDate}
