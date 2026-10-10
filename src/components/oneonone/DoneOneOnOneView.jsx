@@ -161,6 +161,13 @@ const DEFAULT_LABELS = {
   feedbackSupport: '지원 계획',
   shareOn: '멤버에게 공개됨',
   shareOff: '비공개',
+  /* 회의 후 AI 초안 확정 (PW-1551 · oneonone-spec §8-2) — 공개하면 확정한 항목만 간다. */
+  feedbackUnconfirmed: 'AI 미확정',
+  feedbackConfirm: '확정',
+  feedbackConfirmBusy: '확정하는 중…',
+  feedbackConfirmFailed: '확정하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  shareNeedsConfirm: '확정한 항목이 있어야 공개할 수 있습니다',
+  shareUnconfirmedNotice: '확정하지 않은 {count}개 항목은 공개되지 않습니다.',
 
   /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ── */
   shareCta: '{name} 님에게 피드백 공개',
@@ -967,7 +974,12 @@ function FeedbackEditor({ session, L, icons, baseUrl, edit, onDone }) {
  * 가면 매니저는 공개된 줄 안다 — 그 오해의 대가가 큰 종류의 글이다. 실패는 그 자리에
  * 문구로 알리고(전역 오류 화면으로 튕기지 않는다) 직전 모습을 유지한다.
  */
-function ShareControl({ shared, memberName, L, share }) {
+/*
+ * `confirmedCount`·`unconfirmedCount` (PW-1551) — 소비처가 `feedbackConfirm` 을 넘겼을 때만 숫자다.
+ * 확정 0개면 공개 버튼을 끄고 이유를 옆에 적는다. 미확정이 남아 있으면 확인 창에 «N개는 공개되지
+ * 않습니다»를 덧붙인다. `null` 이면 예전처럼 막지 않는다.
+ */
+function ShareControl({ shared, memberName, L, share, confirmedCount = null, unconfirmedCount = 0 }) {
   // 확인 단계를 통과했는지. 공개에 **성공**하면 아래 `shared` 분기가 이 값과 무관하게
   // 그려지므로 여기서 되돌릴 필요가 없고, **실패**하면 켜진 채 남아야 한다 — 확인
   // 박스를 닫아 버리면 매니저가 처음부터 다시 눌러야 한다.
@@ -1019,6 +1031,11 @@ function ShareControl({ shared, memberName, L, share }) {
               : L.shareConfirmTitleNoName}
           </p>
           <p className="ono-done-share-confirm-notice">{L.shareConfirmNotice}</p>
+          {unconfirmedCount > 0 && (
+            <p className="ono-done-share-confirm-notice" data-testid="ono-done-share-unconfirmed-notice">
+              {fill(L.shareUnconfirmedNotice, { count: unconfirmedCount })}
+            </p>
+          )}
           {share?.transcriptOption && (
             <Checkbox
               checked={withTranscript}
@@ -1069,11 +1086,16 @@ function ShareControl({ shared, memberName, L, share }) {
         type="button"
         className="ono-done-share-cta"
         onClick={() => setConfirming(true)}
-        disabled={busy}
+        disabled={busy || confirmedCount === 0}
         data-testid="ono-done-share"
       >
         {memberName ? fill(L.shareCta, { name: memberName }) : L.shareCtaNoName}
       </button>
+      {confirmedCount === 0 && (
+        <p className="ono-done-share-hint" data-testid="ono-done-share-needs-confirm">
+          {L.shareNeedsConfirm}
+        </p>
+      )}
       {/* 이 분기에는 실패 문구가 없다 — 공개가 실패하면 확인 박스가 열린 채로 남고,
           되돌리기가 실패하면 공개됨 분기에 머문다. 여기까지 내려왔다는 것은 실패한
           일이 없다는 뜻이다. 지난 실패 문구를 여기서 다시 띄우면, 방금 성공적으로
@@ -1190,6 +1212,12 @@ export default function DoneOneOnOneView({
   agendaEdit,
   managerNotesEdit,
   feedbackEdit,
+  /**
+   * 회의 후 피드백 확정 (PW-1551 · oneonone-spec §8-2) — `{ confirmed: { strengths, sbi, support },
+   * onConfirm(key), busyKey, error }`. 넘기면 항목마다 노랑(미확정)/초록(확정)이 그려지고, 확정 0개면
+   * 공개 버튼이 꺼진다. 안 넘기면 예전 모습 그대로다.
+   */
+  feedbackConfirm,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -1334,6 +1362,7 @@ export default function DoneOneOnOneView({
                 ) : null
               }
               {...(feedbackEvidence || {})}
+              confirm={feedbackConfirm}
             />
           )}
           {share && (
@@ -1342,6 +1371,16 @@ export default function DoneOneOnOneView({
               memberName={memberName}
               L={L}
               share={share}
+              confirmedCount={
+                feedbackConfirm
+                  ? session.managerFeedback.filter((f) => feedbackConfirm.confirmed?.[f.key]).length
+                  : null
+              }
+              unconfirmedCount={
+                feedbackConfirm
+                  ? session.managerFeedback.filter((f) => !feedbackConfirm.confirmed?.[f.key]).length
+                  : 0
+              }
             />
           )}
         </div>

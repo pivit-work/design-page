@@ -656,7 +656,12 @@ function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump })
  * 발췌 로딩·실패가 **본문 표시를 막지 않는다.** 본문은 먼저 그리고, 발췌 자리에만
  * 상태 문구를 둔다 — 근거를 못 불러왔다고 피드백을 못 읽게 되면 안 된다.
  */
-export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra }) {
+/**
+ * `confirm` — 매니저 끝난 화면만 넘긴다 (PW-1551 · oneonone-spec §8-2). 항목마다 AI 초안의
+ * 미확정(노랑 + «AI 미확정» + [확정]) / 확정(초록) 상태를 그린다. 공개하면 확정한 항목만 팀원에게 간다.
+ * `{ confirmed: { strengths, sbi, support }, onConfirm(key), busyKey, error }`. 팀원 화면은 넘기지 않는다.
+ */
+export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra, confirm }) {
   const items = session.managerFeedback ?? [];
   if (items.length === 0) return null;
   // 공개 뒤 고쳤는가 (PW-1046) — 서버가 공개된 회차에만 싣는다. 매니저·팀원 화면 공통.
@@ -692,9 +697,24 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
       }
     >
       <div className="ono-mem-feedback">
-        {items.map((item) => (
-          <div className="ono-mem-feedback-box" key={item.key}>
-            <div className="ono-mem-note-label">{titleOf(item.key)}</div>
+        {items.map((item) => {
+          const confirmed = !!confirm?.confirmed?.[item.key];
+          const aiState = confirm ? (confirmed ? ' is-ai-confirmed' : ' is-ai-unconfirmed') : '';
+          return (
+          <div
+            className={`ono-mem-feedback-box${aiState}`}
+            key={item.key}
+            data-testid={confirm ? `ono-feedback-item-${item.key}` : undefined}
+            data-confirmed={confirm ? String(confirmed) : undefined}
+          >
+            <div className="ono-mem-note-label">
+              {titleOf(item.key)}
+              {confirm && !confirmed && (
+                <DpStatusBadge className="ono-feedback-ai-badge" data-testid={`ono-feedback-unconfirmed-${item.key}`}>
+                  {L.feedbackUnconfirmed}
+                </DpStatusBadge>
+              )}
+            </div>
             <p className="ono-mem-feedback-text">{item.text}</p>
 
             {loading && <p className="ono-mem-evidence-status">{L.evidenceLoading}</p>}
@@ -717,9 +737,28 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
                 jump={jump}
               />
             )}
+            {confirm && !confirmed && (
+              <div className="ono-feedback-confirm-row">
+                <button
+                  type="button"
+                  className="ono-feedback-confirm"
+                  onClick={() => confirm.onConfirm?.(item.key)}
+                  disabled={!!confirm.busyKey}
+                  data-testid={`ono-feedback-confirm-${item.key}`}
+                >
+                  {confirm.busyKey === item.key ? L.feedbackConfirmBusy : L.feedbackConfirm}
+                </button>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
+      {confirm?.error && (
+        <p className="ono-done-inline-error" role="alert" data-testid="ono-feedback-confirm-error">
+          {L.feedbackConfirmFailed}
+        </p>
+      )}
     </Section>
   );
 }
