@@ -15,6 +15,7 @@ import {
 } from './OneOnOneMemberCanvas.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 /**
  * 매니저 **DONE 단계** 뷰 (PW-430).
@@ -171,6 +172,8 @@ const DEFAULT_LABELS = {
   shareConfirmNotice:
     '피드백 본문과 근거 발췌를 볼 수 있게 됩니다. 나중에 공개를 취소할 수 있습니다.',
   shareConfirm: '공개',
+  /* oneonone-spec §9-B-5 (PW-81) — 기본 꺼짐. 켜면 팀원이 그 회차 대화 원문 전체와 녹음을 본다 (PW-1462). */
+  shareTranscript: '대화 원문(STT 스크립트)도 함께 공개',
   shareCancel: '취소',
   shareBusy: '공개하는 중…',
   shareDone: '피드백이 팀원에게 공개되었습니다',
@@ -969,6 +972,9 @@ function ShareControl({ shared, memberName, L, share }) {
   // 그려지므로 여기서 되돌릴 필요가 없고, **실패**하면 켜진 채 남아야 한다 — 확인
   // 박스를 닫아 버리면 매니저가 처음부터 다시 눌러야 한다.
   const [confirming, setConfirming] = useState(false);
+  // PW-1462 — 「대화 원문도 함께 공개」. 기본 꺼짐(oneonone-spec §9-B-5). 확인 박스를 닫으면 다시 꺼진다 —
+  // 지난번에 켜 둔 값이 남아 있으면 매니저가 모르는 채 원문까지 공개한다.
+  const [withTranscript, setWithTranscript] = useState(false);
 
   const busy = !!share?.busy;
 
@@ -985,6 +991,7 @@ function ShareControl({ shared, memberName, L, share }) {
               // 않으면, 앞서 공개할 때 켜 둔 값이 남아 있어 CTA 대신 확인 박스가
               // 열린 채로 돌아온다.
               setConfirming(false);
+              setWithTranscript(false);
               share?.onUnshare?.();
             }}
             disabled={busy}
@@ -1012,11 +1019,22 @@ function ShareControl({ shared, memberName, L, share }) {
               : L.shareConfirmTitleNoName}
           </p>
           <p className="ono-done-share-confirm-notice">{L.shareConfirmNotice}</p>
+          {share?.transcriptOption && (
+            <Checkbox
+              checked={withTranscript}
+              onChange={(e) => setWithTranscript(e.target.checked)}
+              disabled={busy}
+              label={L.shareTranscript}
+              data-testid="ono-done-share-transcript"
+            />
+          )}
           <div className="ono-done-share-confirm-actions">
             <button
               type="button"
               className="ono-done-share-go"
-              onClick={() => share?.onShare?.()}
+              onClick={() =>
+                share?.onShare?.({ shareTranscript: !!share?.transcriptOption && withTranscript })
+              }
               disabled={busy}
               data-testid="ono-done-share-confirm-go"
             >
@@ -1025,7 +1043,10 @@ function ShareControl({ shared, memberName, L, share }) {
             <button
               type="button"
               className="ono-done-share-abort"
-              onClick={() => setConfirming(false)}
+              onClick={() => {
+                setConfirming(false);
+                setWithTranscript(false);
+              }}
               disabled={busy}
               data-testid="ono-done-share-confirm-cancel"
             >
@@ -1099,7 +1120,10 @@ export default function DoneOneOnOneView({
    */
   slack,
   /**
-   * `{ busy, error, onShare(), onUnshare() }` — 피드백 공개/되돌리기 (PW-432).
+   * `{ busy, error, onShare({ shareTranscript }), onUnshare(), transcriptOption }` — 피드백 공개/되돌리기 (PW-432).
+   *
+   * `transcriptOption` 이 참이면 확인 박스에 「대화 원문(STT 스크립트)도 함께 공개」 체크박스가 선다
+   * (oneonone-spec §9-B-5 · PW-1462). 대화 기록이 없는 회차는 공개할 원문이 없어 소비처가 끈다.
    *
    * **안 넘기면 지금까지처럼 공개 여부 배지만 그린다** — 컨트롤 없이 이 캔버스를 쓰던
    * 소비처가 그대로 살아 있어야 해서다. 공개 여부 자체는 `session.isShared` 로 읽는다.

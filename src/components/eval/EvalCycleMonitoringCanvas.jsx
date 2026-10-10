@@ -5,6 +5,7 @@ import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
@@ -21,7 +22,10 @@ const DEFAULT_LABELS = {
   colPeer: '동료 확정',
   colLeader: '하향',
   colGrade: '등급',
-  remind: '미완료자 리마인더',
+  // [PW-1462] 정책 §6.3 버튼 이름
+  remind: '전체 리마인더 발송',
+  // [PW-1462] 구성원 줄마다 — 미제출이 1건 이상인 사람 (정책 §6.2.1 액션 열)
+  remindOne: '리마인더',
   reminded: '{{count}}명에게 리마인더 발송',
   emergencyStop: '비상 정지',
   stoppedBanner: '이 사이클은 비상 정지되었습니다. 제출이 차단됩니다.',
@@ -39,12 +43,16 @@ const DEFAULT_LABELS = {
   // [PW-534 ㉯] 오픈 뒤 합류한 대상자 (정책 §5.3.6)
   joinedBadge: '중도 합류',
   joinedTooltip: '{{at}} 합류',
+  // [PW-1462] 평가 기간 중 퇴사 (정책 엣지케이스 「해당 구성원 평가 행 비활성 처리 + "퇴사 처리됨" 배지」)
+  retiredBadge: '퇴사 처리됨',
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
   navReportReview: '리포트 검수',
   // [PW-534] 단계 열의 셀 (정책 §6.2.2)
   colProgress: '진행률',
+  // [PW-1462] 진행률 열 (정책 §6.2.1 「완료 N / 대상 M」 · 대상 0이면 –)
+  progressCell: '완료 {{done}} / 대상 {{total}}',
   statusPending: '미제출',
   statusInProgress: '작성 중',
   statusSubmitted: '제출 완료',
@@ -64,8 +72,14 @@ const DEFAULT_LABELS = {
   exportModalTitleProgress: '진행 상태 CSV 내보내기',
   exportModalTitleAnswers: '평가 응답 CSV 내보내기',
   exportModalBodyProgress: '현재 화면에 보이는 {{count}}명의 단계별 진행 상태를 내려받습니다.',
+  // [PW-1462] 정책 §6.9.4 — 행 수를 미리 밝힌다
   exportModalBodyAnswers:
+    '평가 응답 원문 {{count}}행을 내려받습니다. 익명 항목의 작성자 정보는 포함되지 않습니다. 사유를 입력해 주세요.',
+  // 행 수를 세지 않는 호출부(`onOpenExport` 없음)는 개정 전 문구 그대로다
+  exportModalBodyAnswersNoCount:
     '평가 응답 원문을 내려받습니다. 익명 항목의 작성자 정보는 포함되지 않습니다. 사유를 입력해 주세요.',
+  exportAnswersCounting: '내려받을 행 수를 세는 중입니다…',
+  exportAnswersCountFailed: '내려받을 행 수를 불러오지 못했습니다. 창을 닫고 다시 열어 주세요.',
   exportReasonLabel: '반출 사유',
   exportReasonPlaceholder: '예) 2026 상반기 평가 이력 보관 — 인사팀 아카이브',
   exportReasonRequired: '사유를 입력해 주세요 (200자 이내).',
@@ -300,6 +314,15 @@ function Check({ ok }) {
   );
 }
 
+/** [PW-1462] 진행률 — 대상이 있는 단계의 건수를 더한다(동료·상향은 배정 건수). */
+function memberProgress(m) {
+  const counted = (m.phases || []).filter((p) => p.status !== null);
+  return counted.reduce(
+    (acc, p) => ({ done: acc.done + (p.done || 0), total: acc.total + (p.total || 0) }),
+    { done: 0, total: 0 },
+  );
+}
+
 export default function EvalCycleMonitoringCanvas({
   cycle,
   stages = [],
@@ -394,6 +417,25 @@ export default function EvalCycleMonitoringCanvas({
    * (보통 `EvalLeaderAssignmentLiveSection`). 차수별 배정이 없는 옛 사이클이면 호출부가 안 넘긴다.
    */
   leaderAssignments = null,
+  /**
+   * [PW-1462 · 정책 §6.4] 부서 탭 — `[{ value, label, disabled }]`. 「전체」도 호출부가 첫 칸으로 넣는다.
+   * 구성원이 없는 부서는 `disabled`. 거르는 것도 호출부다 — 표·단계 상세·내보내기가 같은 범위를
+   * 따라야 해서(§6.2.3) 캔버스가 표만 거르면 셋이 갈린다. 안 주면 탭을 그리지 않는다.
+   */
+  departmentTabs = null,
+  departmentValue = null,
+  onSelectDepartment,
+  /**
+   * [PW-1462 · 정책 §6.2.1 · §6.3] 구성원 줄의 「리마인더」. 미제출이 1건 이상이고, 빼지도
+   * 퇴사하지도 않은 사람 줄에만 선다. `(memberId) => void`. 안 주면 버튼이 없다.
+   */
+  onRemindMember,
+  /**
+   * [PW-1462 · 정책 §6.9.4] 평가 응답 확인 창의 「N행」. `undefined` 면 세는 중, `null` 이면 못 셌다.
+   * 창을 열 때 `onOpenExport('answers')` 가 불리면 호출부가 센다.
+   */
+  answersRowCount,
+  onOpenExport,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   /* [PW-1461 · 정책 §6.5] 고른 날짜를 저장하는 동안 그 자리에 먼저 보인다. 실패하면 지운다(= 원래 날짜). */
@@ -449,6 +491,10 @@ export default function EvalCycleMonitoringCanvas({
   const visibleCount = members.length;
   const canExport = exportEnabled && !exportBusy && visibleCount > 0;
 
+  const openExport = (kind) => {
+    setExportKind(kind);
+    onOpenExport?.(kind);
+  };
   const closeExport = () => {
     setExportKind(null);
     setExportReason('');
@@ -658,6 +704,16 @@ export default function EvalCycleMonitoringCanvas({
         {/* [PW-585] 단계 상세 (정책 §6.8) — 들어가면 구성원 표 자리를 대신한다.
             둘을 함께 그리면 같은 화면에 «사람 축» 표와 «단계 축» 상세가 겹쳐 서서
             지금 무엇을 보고 있는지가 흐려진다. 「← 단계 목록」으로 돌아온다. */}
+        {/* [PW-1462 · 정책 §6.4] 부서 탭 — 구성원 표와 단계 상세가 함께 따른다. */}
+        {departmentTabs && departmentTabs.length > 1 && (
+          <div data-testid="evmon-dept-tabs">
+            <Tabs
+              items={departmentTabs.map((d) => ({ ...d, testId: `evmon-dept-${d.value}` }))}
+              value={departmentValue}
+              onChange={(v) => onSelectDepartment?.(v)}
+            />
+          </div>
+        )}
         {selectedStage ? (
           <section className="evc-card" data-testid="evmon-stage-detail">
             <div className="evmon-detail-head">
@@ -683,7 +739,7 @@ export default function EvalCycleMonitoringCanvas({
         ) : (() => {
         const dynamic = memberPhases.length > 0;
         const cols = dynamic
-          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1fr', 'auto'].join(' ')
+          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1.2fr', '1fr', 'auto'].join(' ')
           : '2fr 1fr 1fr 1fr 1fr auto';
         return (
         <section className="evc-card">
@@ -700,11 +756,12 @@ export default function EvalCycleMonitoringCanvas({
                   <span>{L.colLeader}</span>
                 </>
               )}
+              {dynamic && <span>{L.colProgress}</span>}
               <span>{L.colGrade}</span>
               <span />
             </div>
             {members.map((m) => (
-              <div className="evmon-row" role="row" key={m.memberId} data-testid="evmon-member" style={{ gridTemplateColumns: cols, opacity: m.excluded ? 0.55 : 1 }}>
+              <div className="evmon-row" role="row" key={m.memberId} data-testid="evmon-member" style={{ gridTemplateColumns: cols, opacity: m.excluded || m.retired ? 0.55 : 1 }}>
                 <span className="evmon-c-name">
                   {m.name || m.memberId}
                   {m.excluded && (
@@ -715,6 +772,11 @@ export default function EvalCycleMonitoringCanvas({
                   {/* PW-534 ㉯ — 오픈 «뒤» 합류한 사람 (정책 §5.3.6).
                       지난 단계가 전부 미제출인 것이 «안 낸 것» 이 아니라 «있지도 않았던
                       것» 이다. 표시가 없으면 독촉 명단에서 둘이 섞인다. */}
+                  {m.retired && (
+                    <StatusBadge className="evc-status-badge tone-neutral" style={{ marginLeft: 'var(--spacing-sm)' }} data-testid="evmon-retired-badge">
+                      {L.retiredBadge}
+                    </StatusBadge>
+                  )}
                   {m.joinedAt && (
                     <StatusBadge
                       className="evc-status-badge tone-info"
@@ -741,6 +803,14 @@ export default function EvalCycleMonitoringCanvas({
                     <Check ok={m.leaderSubmitted} />
                   </>
                 )}
+                {dynamic && (() => {
+                  const pr = memberProgress(m);
+                  return (
+                    <span className="evmon-self" data-testid="evmon-progress">
+                      {pr.total > 0 ? fill(L.progressCell, pr) : L.cellNone}
+                    </span>
+                  );
+                })()}
                 <span>
                   {m.gradeKey ? (
                     <StatusBadge
@@ -752,7 +822,14 @@ export default function EvalCycleMonitoringCanvas({
                     <Check ok={m.graded} />
                   )}
                 </span>
-                <span>
+                <span className="evmon-controls">
+                  {/* [PW-1462] 미제출 1건 이상일 때만 (정책 §6.2.1). 뺀 사람·퇴사자는 리마인더를 받지 않는다. */}
+                  {onRemindMember && !m.excluded && !m.retired && !stopped && !isOnHold &&
+                    (m.phases || []).some((p) => p.status !== null && p.done < p.total) && (
+                    <button type="button" className="evc-btn is-ghost" onClick={() => onRemindMember(m.memberId)} data-testid="evmon-remind-member">
+                      {L.remindOne}
+                    </button>
+                  )}
                   {m.excluded
                     ? onRestore && (
                         <button type="button" className="evc-btn is-ghost" onClick={() => onRestore(m.memberId)} data-testid="evmon-restore">
@@ -794,7 +871,7 @@ export default function EvalCycleMonitoringCanvas({
                   type="button"
                   className="evc-btn is-ghost"
                   disabled={!canExport}
-                  onClick={() => setExportKind('progress')}
+                  onClick={() => openExport('progress')}
                   data-testid="evmon-export-progress"
                 >
                   {L.exportProgress}
@@ -805,7 +882,7 @@ export default function EvalCycleMonitoringCanvas({
                   type="button"
                   className="evc-btn is-ghost"
                   disabled={!canExport}
-                  onClick={() => setExportKind('answers')}
+                  onClick={() => openExport('answers')}
                   data-testid="evmon-export-answers"
                 >
                   {L.exportAnswers}
@@ -887,14 +964,20 @@ export default function EvalCycleMonitoringCanvas({
           }
           description={
             exportKind === 'answers'
-              ? L.exportModalBodyAnswers
+              ? !onOpenExport
+                ? L.exportModalBodyAnswersNoCount
+                : answersRowCount === undefined
+                  ? L.exportAnswersCounting
+                  : answersRowCount === null
+                    ? L.exportAnswersCountFailed
+                    : fill(L.exportModalBodyAnswers, { count: answersRowCount.toLocaleString() })
               : fill(L.exportModalBodyProgress, { count: visibleCount })
           }
           titleId="evmon-export-modal-title"
           submitLabel={L.exportConfirm}
           cancelLabel={L.exportCancel}
           closeLabel={L.exportCancel}
-          canSubmit
+          canSubmit={!(exportKind === 'answers' && onOpenExport && answersRowCount === undefined)}
           onClose={closeExport}
           onSubmit={submitExport}
         >
