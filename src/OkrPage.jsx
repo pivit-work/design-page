@@ -778,7 +778,13 @@ export default function OkrPage({ icons, baseUrl }) {
         />
       )}
       {effSetup && (
-        <OkrSetupWizardModal icons={icons} baseUrl={baseUrl} onClose={() => { setSetupOpen(false); clearModalKnob(); }} />
+        <OkrSetupWizardModal
+          icons={icons}
+          baseUrl={baseUrl}
+          // 데모: 비전 이미지 상자는 생성 기능을 받을 때만 그려진다. 빈 상자 그대로 보이게 null 을 돌려준다.
+          onGenerateVision={async () => ({ imageUrl: null })}
+          onClose={() => { setSetupOpen(false); clearModalKnob(); }}
+        />
       )}
       {effCtx && (
         <OkrContextSetupModal
