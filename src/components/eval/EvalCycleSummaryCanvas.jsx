@@ -346,6 +346,9 @@ const DEFAULT_LABELS = {
   cwCreateDesc: '① 평가 대상자(조직) 선택 → ② 참여 위원 지정. HR 준비 · 조정·확정 권한은 위원회.',
   cwCreateNameLabel: '제목',
   cwCreateNamePlaceholder: '예: Engineering 팀장급 캘리브레이션',
+  // PW-1611 — 개최 날짜(선택). 상태(예정/진행 중)와는 엮지 않는 «언제 모이나» 표시다.
+  cwCreateDateLabel: '개최 날짜 (선택)',
+  cwCreateDateHint: '비워 두면 «날짜 미정»으로 보입니다. 위원 관리에서 나중에 바꿀 수 있습니다.',
   cwCreateTargetLabel: '① 평가 대상자 · 조직 (복수 선택)',
   cwCreateTargetHint: '선택 조직의 대상자가 자동 매핑됩니다. 대상 인원은 생성 후 조견표에 표시됩니다.',
   cwCreatePreview: '예상 대상자 {n}명 (위원 제외)',
@@ -645,6 +648,15 @@ function fmtDateTime(iso) {
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
+}
+/** PW-1611 — 조견표 `fmtDate` 와 같은 시계(브라우저 로컬)로 날짜 칸 값을 만든다. */
+function isoToDateKey(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 function fmtDate(iso) {
   const d = new Date(iso);
@@ -1680,6 +1692,8 @@ export default function EvalCycleSummaryCanvas({
   // R1(v0.3) 위원회 생성 모달
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
+  // PW-1611 — 'YYYY-MM-DD' | ''. 시각으로 바꾸는 것(사용자 시간대)은 앱이 한다.
+  const [createDate, setCreateDate] = useState('');
   const [createDepts, setCreateDepts] = useState([]);
   const [createLevels, setCreateLevels] = useState([]);
   /* PW-444 — 자동 매핑에 대한 사람 손. 유효 대상 = (조건 매칭 ∪ 추가) − 제외 − 위원.
@@ -1788,6 +1802,10 @@ export default function EvalCycleSummaryCanvas({
   // PW-129 — 같은 모달을 '위원 관리' 로 재사용한다. 관리 모드에서는 제목/설명이 바뀌고
   // ①대상자·제목 입력이 숨으며, 후보 목록이 현재 위원으로 미리 체크된 채 열린다.
   const [committeeManage, setCommitteeManage] = useState(false);
+  // PW-1611 — 위원 관리 창이 연 세션의 지금 개최 날짜. 조견표 목록(calibSessions)이 정본이다.
+  const savedSessionDate = isoToDateKey(
+    calibSessions.find((s) => s.id === sessionCommittee?.sessionId)?.scheduledAt,
+  );
   const activeCommittee = useMemo(
     () => (sessionCommittee?.members ?? []).filter((m) => m.isActive !== false),
     [sessionCommittee],
@@ -1804,7 +1822,8 @@ export default function EvalCycleSummaryCanvas({
     if (seededSessionRef.current === sessionCommittee.sessionId) return;
     seededSessionRef.current = sessionCommittee.sessionId;
     setCreateCommittee(activeCommittee.map((m) => m.userId));
-  }, [showCreate, committeeManage, sessionCommittee, activeCommittee]);
+    setCreateDate(savedSessionDate);
+  }, [showCreate, committeeManage, sessionCommittee, activeCommittee, savedSessionDate]);
   const committeeLocked = committeeManage && sessionCommittee?.locked === true;
   const committeeReadOnly =
     committeeManage &&
@@ -1842,6 +1861,7 @@ export default function EvalCycleSummaryCanvas({
       before.length !== after.length || before.some((id, i) => id !== after[i])
     );
   }, [committeeManage, activeCommittee, createCommittee]);
+  const dateDirty = committeeManage && createDate !== savedSessionDate;
 
   /**
    * PW-134 위원장 이양 — 위원장을 명단에서 빼면 **이어받을 사람을 사람이 고른다.**
@@ -1916,6 +1936,7 @@ export default function EvalCycleSummaryCanvas({
   const closeCreateModal = () => {
     setShowCreate(false);
     setCommitteeManage(false);
+    setCreateDate('');
     setDirectTransferPick('');
     setDirectTransferConfirming(false);
     setCreateAdded([]);
@@ -5367,7 +5388,7 @@ export default function EvalCycleSummaryCanvas({
                     committeeReadOnly ||
                     committeeSaving ||
                     createCommittee.length === 0 ||
-                    !committeeDirty ||
+                    (!committeeDirty && !dateDirty) ||
                     // PW-134 — 위원장을 빼는데 이어받을 사람이 정해지지 않았으면
                     // 저장 자체를 막는다. 서버도 400 으로 막지만, 여기서 막아야
                     // "저장을 눌렀는데 에러" 대신 "고르면 저장" 이 된다.
@@ -5381,6 +5402,8 @@ export default function EvalCycleSummaryCanvas({
                     Promise.resolve(
                       onSaveCommittee?.(createCommittee, {
                         transferChairTo: chairTransferTo || undefined,
+                        // PW-1611 — 바뀐 때만 싣는다. '' 는 «날짜 미정»으로 되돌린다는 뜻이라 null.
+                        ...(dateDirty ? { scheduledDate: createDate || null } : {}),
                       }),
                     ).then(
                       () => closeCreateModal(),
@@ -5417,6 +5440,7 @@ export default function EvalCycleSummaryCanvas({
                     Promise.resolve(onCreateSession?.({
                       name: createName.trim(),
                       scope,
+                      scheduledDate: createDate || null,
                       // PW-444 — 명단에서 손으로 더하고 뺀 결과. 서버 유효 대상 계산식
                       // (조건 매칭 ∪ 추가) − 제외 의 두 항이다.
                       addedMemberIds: createAdded,
@@ -5453,6 +5477,19 @@ export default function EvalCycleSummaryCanvas({
                 />
               </>
             )}
+
+            <label className="evs-cw-create-lbl" htmlFor="evs-cw-create-date">
+              {L.cwCreateDateLabel}
+            </label>
+            <DateInput
+              id="evs-cw-create-date"
+              className="evs-cw-create-input"
+              value={createDate}
+              onChange={setCreateDate}
+              disabled={committeeReadOnly}
+              data-testid="evs-cw-create-date"
+            />
+            <div className="evs-cw-create-muted">{L.cwCreateDateHint}</div>
 
             {!committeeManage && (
             <div className="evs-cw-create-section evs-cw-create-section-target">
