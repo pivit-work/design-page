@@ -115,6 +115,14 @@ const DEFAULT_LABELS = {
     `${date}까지 ${planLabel} 기능을 계속 사용한 뒤 Free로 전환됩니다. 잔여기간 환불은 없습니다. 기간 내 해지 취소 가능.`,
   periodEndAction: '기간말 해지 예약',
 
+  // 미납(past_due) 해지 — 환불 대상 결제가 없어 무환불 즉시 해지 하나만 있다
+  // (screen-billing-overview.policy.md §7 · cancellation-refund-policy.md §10 · PW-1619).
+  pastDueCancelTitle: '지금 해지',
+  pastDueCancelBadge: '(환불 없음)',
+  pastDueCancelDesc: (planLabel) =>
+    `결제가 밀려 있어 환불은 없습니다. 누르면 바로 ${planLabel} 구독이 끝나고 Free로 전환됩니다. 밀린 요금은 청구하지 않으며 회사 데이터는 그대로 남습니다.`,
+  pastDueCancelAction: '지금 해지',
+
   refundTitle: '즉시 해지 + 환불',
   refundCoolingDesc: '결제 후 7일 이내·유료기능 미사용 — 청약철회로 전액 환불됩니다.',
   // 청약철회 기한(cancellation-refund-policy.md §10 「철회 가능 기한 D-n」). 마지막 날이면 D-0 대신 「오늘까지」.
@@ -228,6 +236,8 @@ export default function BillingOverviewCanvas({
   onUndoCancel,
   onCancelPeriodEnd,
   onCancelRefund,
+  /** 미납(past_due) 구독의 무환불 즉시 해지 (PW-1619). 해지 창이 미납일 때 이것 하나만 보인다. */
+  onCancelPastDue,
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
@@ -264,6 +274,11 @@ export default function BillingOverviewCanvas({
 
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
   const handleRefund = () => { setCancelOpen(false); onCancelRefund?.(); };
+  const handlePastDue = () => { setCancelOpen(false); onCancelPastDue?.(); };
+  // 미납이어도 해지는 된다 — 환불 없이 바로 끝난다(PW-1619). 기간말 예약은 미납 구독에선
+  // 기간이 끝나도 닫히지 않아 고르지 못하게 한다.
+  const pastDue = sub.status === 'past_due';
+  const canCancel = canEdit && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
 
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
@@ -568,7 +583,7 @@ export default function BillingOverviewCanvas({
               fontSize: 14, cursor: 'pointer', padding: 0 }}>
             {labels.viewHistory}
           </button>
-          {sub.status === 'active' && !sub.cancelAtPeriodEnd && canEdit && (
+          {canCancel && (
             <Btn kind="danger" onClick={() => setCancelOpen(true)}>{labels.cancelSubscription}</Btn>
           )}
         </Card>
@@ -592,6 +607,20 @@ export default function BillingOverviewCanvas({
             }
           >
             <div style={{ fontFamily: T.font }}>
+              {pastDue ? (
+                /* 미납 — 무환불 즉시 해지 하나만 (PW-1619) */
+                <div data-testid="billing-cancel-past-due"
+                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
+                    {labels.pastDueCancelTitle}{' '}
+                    <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>{labels.pastDueCancelBadge}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
+                    {labels.pastDueCancelDesc(plan.label)}
+                  </div>
+                  <Btn kind="danger" onClick={handlePastDue}>{labels.pastDueCancelAction}</Btn>
+                </div>
+              ) : (<>
               {/* ⓐ 기간말 해지 (항상 노출, 기본·무환불) */}
               <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
@@ -637,6 +666,7 @@ export default function BillingOverviewCanvas({
                     : labels.monthlyNoRefundNote}
                 </div>
               )}
+              </>)}
             </div>
           </ModalShell>
         )}
