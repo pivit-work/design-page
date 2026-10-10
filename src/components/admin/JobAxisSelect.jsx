@@ -27,11 +27,15 @@ import Select from '../shared/Select.jsx';
  * @param candidates  아래 칸을 먼저 골라 위 칸 후보가 둘 이상일 때 그 후보 — 주면 **후보만** 남기고
  *                    칸을 바로 펼친다(§3.5-A 「직렬을 먼저 선택 — 소속 직군 2개 이상」)
  * @param inactive    비활성 처리된 값 목록 — 지금 값이 여기 있으면 `(비활성)` 을 붙인다(A3)
+ * @param familyLabel 직군 저장 값 → 화면 글자. 직군 칸의 선택지와 직렬 칸의 묶음 이름에 쓴다.
+ *                    미주입이면 저장 값 그대로다(미분류 `unassigned` 를 «미분류»로 — PW-1595)
  */
 export default function JobAxisSelect({
   level, values, jobAxis, labels, onPick, onOpenFieldOptions,
-  className, disabled, testId, placeholder, candidates, inactive,
+  className, disabled, testId, placeholder, candidates, inactive, familyLabel,
 }) {
+  const show = (v) => (level === 'family' && familyLabel ? familyLabel(v) : v);
+  const groupLabel = (g) => (familyLabel && level === 'ladder' ? familyLabel(g) : g);
   const selectRef = useRef(null);
   const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
   /* 후보가 생기면 칸을 펼친다. `showPicker` 를 못 쓰는 브라우저는 칸에 초점만 둔다 —
@@ -119,18 +123,18 @@ export default function JobAxisSelect({
             select 가 «미지정» 으로 보여, 다른 칸만 고쳐 저장해도 멀쩡한 값이 지워진다. */}
         {cur && !known && (
           <option value={cur}>
-            {Array.isArray(inactive) && inactive.includes(cur) ? `${cur} ${labels.inactiveSuffix || '(비활성)'}` : cur}
+            {Array.isArray(inactive) && inactive.includes(cur) ? `${show(cur)} ${labels.inactiveSuffix || '(비활성)'}` : show(cur)}
           </option>
         )}
         {groups
           ? groups.map((g) => (
-              <optgroup key={g.group} label={g.group}>
+              <optgroup key={g.group} label={groupLabel(g.group)}>
                 {g.options.map((o) => (
                   <option key={`${g.group}|${o}`} value={groupedOptionValue(g.group, o)}>{o}</option>
                 ))}
               </optgroup>
             ))
-          : flat.map((o) => <option key={o} value={o}>{o}</option>)}
+          : flat.map((o) => <option key={o} value={o}>{show(o)}</option>)}
       </Select>
       {emptyNote}
     </>

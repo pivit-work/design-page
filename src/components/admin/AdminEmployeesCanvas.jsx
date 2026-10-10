@@ -4,7 +4,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
-import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, parentsOf, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
+import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, parentsOf, axisValueLabel, JOB_AXIS_DEFAULT_LABELS } from './jobAxis.js';
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
@@ -1739,12 +1739,13 @@ function TextCell({ value }) {
  * (admin-spec §3.1 「미등록 조합 배지」). 값은 그대로 두고 행을 숨기거나 고치지 않는다.
  * 연결표를 못 받았으면(빈 매핑) 판정하지 않는다 — `isValidPair` 규칙 그대로.
  * 위 칸이 비었으면 그 칸 쪽 문제라 여기서는 경고하지 않는다.
+ * `parentLabel` 은 말풍선에 쓸 위 칸 글자다(미분류 `unassigned` → «미분류»). 판정은 `parent` 저장 값으로 한다.
  */
-function AxisPairCell({ value, parent, map, labels, testId }) {
+function AxisPairCell({ value, parent, parentLabel, map, labels, testId }) {
   if (!value) return <Dash />;
   const bad = !!parent && !isValidPair(map, parent, value);
   if (!bad) return <TextCell value={value} />;
-  const tip = String(labels.unregisteredPair).split('{pair}').join(`${parent} · ${value}`);
+  const tip = String(labels.unregisteredPair).split('{pair}').join(`${parentLabel || parent} · ${value}`);
   return (
     <span className="admin-emp-cell-text admin-emp-cell-unregistered">
       {value}
@@ -2139,7 +2140,7 @@ function ListManagerCell({ member, labels, candidates, onAssignManager, renderAv
 }
 
 function EmployeesListView({
-  members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis,
+  members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis, valueLabels,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
   leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
   onOpenEdit, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
@@ -2365,9 +2366,9 @@ function EmployeesListView({
   const axis = jobAxis || {};
   const families = useMemo(
     () => (axis.families?.length
-      ? [{ id: LIST_ALL, label: allLabel }, ...axis.families.map((v) => ({ id: v, label: v }))]
-      : optionsOf(members, (m) => m.jobFamily, allLabel)),
-    [axis.families, members, allLabel],
+      ? [{ id: LIST_ALL, label: allLabel }, ...axis.families.map((v) => ({ id: v, label: axisValueLabel(valueLabels, 'jobFamily', v) }))]
+      : optionsOf(members, (m) => m.jobFamily, allLabel).map((o) => (o.id === LIST_ALL ? o : { ...o, label: axisValueLabel(valueLabels, 'jobFamily', o.id) }))),
+    [axis.families, members, allLabel, valueLabels],
   );
   const ladders = useMemo(() => {
     const narrowed = family !== LIST_ALL
@@ -3003,9 +3004,9 @@ function EmployeesListView({
       case 'jobPosition': return <TextCell value={m.jobPosition} />;
       case 'jobLevel': return <TextCell value={m.jobLevel} />;
       case 'jobRank': return <TextCell value={m.jobRank} />;
-      case 'jobFamily': return <TextCell value={m.jobFamily} />;
+      case 'jobFamily': return <TextCell value={axisValueLabel(valueLabels, 'jobFamily', m.jobFamily)} />;
       case 'jobTitle':
-        return <AxisPairCell value={m.jobTitle} parent={m.jobFamily} map={axis.laddersByFamily} labels={labels} testId={`list-unregistered-ladder-${m.id}`} />;
+        return <AxisPairCell value={m.jobTitle} parent={m.jobFamily} parentLabel={axisValueLabel(valueLabels, 'jobFamily', m.jobFamily)} map={axis.laddersByFamily} labels={labels} testId={`list-unregistered-ladder-${m.id}`} />;
       case 'jobDuty':
         return <AxisPairCell value={m.jobDuty} parent={m.jobTitle} map={axis.dutiesByLadder} labels={labels} testId={`list-unregistered-duty-${m.id}`} />;
       case 'employmentType': return <TextCell value={m.employmentType} />;
@@ -3821,6 +3822,8 @@ function EmployeesEditPanel({
   onOpenFieldOptions,
   /* 비활성 처리된 선택지 값 — 칸 키 → 값 목록 (§3.5 · A3). 미주입이면 `(비활성)` 을 붙이지 않는다. */
   inactiveFieldValues,
+  /* 저장 값 → 화면 글자 (`axisValueLabel`). 미주입이면 저장 값 그대로다. */
+  valueLabels,
   /* 이 사람이 조직장인 조직 id 목록과 그 조직을 조직단위 설정에서 여는 길(admin-spec §3.6-B-2).
      목록이 비면 「조직장: …」 줄을 그리지 않고, 길이 없으면 링크만 뺀다. */
   leaderUnitIds, onGoOrgUnit,
@@ -4054,11 +4057,12 @@ function EmployeesEditPanel({
     setAxisNotice(notice);
   };
   const inactiveOf = (key) => (inactiveFieldValues && inactiveFieldValues[key]) || EMPTY_ARRAY;
+  const familyLabel = (v) => axisValueLabel(valueLabels, 'jobFamily', v);
   /* 미등록 조합(A4) — 연결표에서 끊긴 조합을 가진 사람이면 직군 칸 위에 amber 안내. 값은 고치지 않는다 —
      어드민이 바꿔야 저장된다. 위 칸이 비었거나 연결표를 못 받았으면 판정하지 않는다(`isValidPair`). */
   const unregisteredPair =
     draft.jobFamily && draft.jobTitle && !isValidPair(axis.laddersByFamily, draft.jobFamily, draft.jobTitle)
-      ? `${draft.jobFamily} · ${draft.jobTitle}`
+      ? `${axisValueLabel(valueLabels, 'jobFamily', draft.jobFamily)} · ${draft.jobTitle}`
       : draft.jobTitle && draft.jobDuty && !isValidPair(axis.dutiesByLadder, draft.jobTitle, draft.jobDuty)
         ? `${draft.jobTitle} · ${draft.jobDuty}`
         : null;
@@ -4306,6 +4310,7 @@ function EmployeesEditPanel({
                           <JobAxisSelect
                             candidates={axisCandidates(axisLevel)}
                             inactive={inactiveOf(f.key)}
+                            familyLabel={familyLabel}
                             level={axisLevel}
                             values={axisValues}
                             jobAxis={axis}
@@ -5061,6 +5066,10 @@ export default function AdminEmployeesCanvas({
   /* 비활성 처리된 선택지 값 — 편집 창 칸 키 → 값 목록 (§3.5 · A3). 구성원이 지금 이 값을 갖고
      있으면 선택지에 `(비활성)` 을 붙여 그 값만 남긴다. 미주입이면 붙이지 않는다. */
   inactiveFieldValues,
+  /* 저장 값 → 화면 글자 — `{ jobFamily: { unassigned: '미분류' } }` (PW-1595). 목록 직군 칸·직렬 칸
+     말풍선·직군 필터, 편집 창 직군 칸·미등록 조합 안내가 이걸로 그린다. 고르기·저장은 저장 값 그대로다.
+     미주입이면 저장 값을 그대로 그린다. */
+  valueLabels,
   /* 초대 창 — 선택지·조직 조회가 실패했나와 다시 부르는 길 (초대 §3 · §8). */
   fieldOptionsFailed = false,
   onRetryFieldOptions,
@@ -5306,6 +5315,7 @@ export default function AdminEmployeesCanvas({
             renderAvatar={renderAvatar}
             // 직군>직렬>직무 좁히기 — 편집 패널의 3단 연동 select 와 같은 축이다.
             jobAxis={jobAxis}
+            valueLabels={valueLabels}
             canViewSalary={canViewSalary}
             managerCandidates={managerCandidates}
             optCols={listOptCols}
@@ -5437,6 +5447,7 @@ export default function AdminEmployeesCanvas({
             jobAxis={jobAxis}
             onOpenFieldOptions={onOpenFieldOptions}
             inactiveFieldValues={inactiveFieldValues}
+            valueLabels={valueLabels}
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
             canViewSalary={canViewSalary}
             onLoadSalaryHistory={onLoadSalaryHistory}
