@@ -86,6 +86,15 @@ const DEFAULT_LABELS = {
   // 연간은 1년분을 선결제한다 — 합계도 1년분이다 (PW-757, 결제하기 화면 합계와 같은 금액).
   annualTotalLabel: '1년분 예상 합계',
   annualEstimateNote: '연간 체감 단가 적용 기준 — 연 35% 할인(확정)',
+  // 협의 단가 견적의 예상 청구액 (PW-1620 · screen-billing-plans §2 「협의 단가 좌석 라인」·§7)
+  estimateQuoteLineItem: (seats, unit, months = 1) =>
+    `${seats}좌석 × ${won(unit)} / 좌석 / 월${months > 1 ? ` × ${months}개월` : ''} · 협의 단가`,
+  estimateOverageLineItem: (seats, unit, months = 1) =>
+    `계약 범위 초과 ${seats}좌석 × ${won(unit)} / 좌석 / 월${months > 1 ? ` × ${months}개월` : ''}`,
+  estimateMinSeatsNote: (min) => `약정 최소 좌석 ${min}명 기준으로 청구됩니다.`,
+  estimateQuoteLoading: '협의 단가로 계산하는 중입니다…',
+  estimateQuoteFailed: '예상 청구액을 불러오지 못했습니다.',
+  estimateQuoteRetry: '다시 시도',
   estimateFootnote: '* 표시 금액은 현재 좌석 기준 예상치입니다. 실제 청구 금액은 청구일 서버 재계산값이 적용됩니다.',
   proCardTitle: 'Pro · Enterprise — 커스텀 견적',
   proCardBody: 'Pro 플랜은 100인+ 조직 및 엔터프라이즈 요건에 맞춰 커스텀 견적을 제공합니다. SSO·고급 권한·전용 AI 한도·약정 협의 할인이 포함됩니다.',
@@ -482,6 +491,17 @@ export default function BillingPlansCanvas({
    * 지금 활성 구성원이 상한을 넘었으면(`overageSeats > 0`) 초과 안내를 띄운다.
    */
   contract = null,
+  /**
+   * 유효 견적의 플랜(Pro)을 미리보기할 때 «예상 청구액» 칸에 그릴 **서버 계산 금액** (PW-1620).
+   * 캔버스는 협의 단가 금액을 직접 셈하지 않는다 — 결제하기 화면과 같은 서버 값을 그대로 그린다.
+   * `{ seats, billedSeats, minSeats, baseSeats, overageSeats, unitPrice, overageUnitPrice,
+   *    months, baseAmount, overageAmount, subtotal, vat, total }` 또는 `null`(불러오는 중).
+   * 고른 좌석(`seats`)과 다른 좌석으로 계산된 값이면 불러오는 중으로 본다.
+   */
+  quoteEstimate = null,
+  /** 위 금액을 불러오지 못했다 — 「없음」이 아니라 실패 안내와 [다시 시도]를 그린다. */
+  quoteEstimateFailed = false,
+  onRetryQuoteEstimate = () => {},
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -534,7 +554,14 @@ export default function BillingPlansCanvas({
     .filter((p) => (p.tierRank ?? 0) > 0 && !p.isCustom)
     .sort((a, b) => (a.tierRank ?? 0) - (b.tierRank ?? 0))[0];
 
+  // 결제할 수 있는 협의 견적이 있으면 그 플랜이 기본 미리보기다 (PW-1620 · screen-billing-plans §7).
+  // 견적 플랜 카드의 버튼은 곧장 결제로 넘어가 미리보기를 고를 틈이 없다 — 기본을 지금 요금제로 두면
+  // 「예상 청구액」이 실제로 낼 협의 금액이 아니라 지금 요금제 정가로 보인다. 갱신 견적은 다음 기간
+  // 조건이라 지금 청구 미리보기에 쓰지 않는다.
+  const payableQuotePlanCode =
+    quote && !quote.expired && !quote.isRenewal ? quote.planCode : null;
   const effectivePreview = previewPlanCode
+    ?? payableQuotePlanCode
     ?? (isCurrentFree ? (lowestPaidPlan?.code ?? subscription.planCode) : subscription.planCode);
   const billingPlan = plans.find((p) => p.code === effectivePreview) ?? currentPlan;
   const previewPlan = plans.find((p) => p.code === previewPlanCode);
@@ -624,6 +651,13 @@ export default function BillingPlansCanvas({
     Boolean(validQuote) &&
     validQuote.maxSeats != null &&
     seats > validQuote.maxSeats;
+  // 유효 견적의 플랜을 미리보기 중이면 예상 청구액은 협의 단가(서버 계산)로 그린다 (PW-1620).
+  // 정가 칸과 동시에 뜨지 않는다 — 정가로 셈한 금액이 협의 금액 옆에 남으면 어느 쪽이 청구되는지 모른다.
+  const useQuoteEstimate =
+    Boolean(validQuote) && !validQuote.isRenewal &&
+    Boolean(billingPlan) && billingPlan.code === validQuote.planCode;
+  const readyQuoteEstimate =
+    quoteEstimate && quoteEstimate.seats === seats ? quoteEstimate : null;
   // Pro 커스텀 안내 카드는 유효 견적이 없을 때만 — 있으면 협의 단가 카드가 그 자리를 대신한다
   // (screen-billing-plans §2 · TC-BILL-140 「동시에 뜨지 않음」).
   const showProCard = Boolean(currentPlan?.isCustom || previewPlan?.isCustom) && !validQuote;
@@ -861,7 +895,7 @@ export default function BillingPlansCanvas({
         </Card>
 
         {/* 예상 청구액 */}
-        {seats > 0 && billingPlan && !billingPlan.isCustom && (
+        {seats > 0 && billingPlan && !billingPlan.isCustom && !useQuoteEstimate && (
           <Card style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
               {isCurrentFree && (billingPlan.tierRank ?? 0) > 0
@@ -886,6 +920,58 @@ export default function BillingPlansCanvas({
             </div>
             {interval === 'annual' && (
               <div style={{ fontSize: 12, color: T.amber, marginTop: 8 }}>{labels.annualEstimateNote}</div>
+            )}
+            <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{labels.estimateFootnote}</div>
+          </Card>
+        )}
+
+        {/* 예상 청구액 — 유효 견적의 플랜(Pro). 금액은 서버 계산값 (PW-1620) */}
+        {seats > 0 && useQuoteEstimate && (
+          <Card style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
+              {isCurrentFree ? labels.estimateTitleUpgrade(billingPlan.label) : labels.estimateTitle}
+              <span style={{ fontSize: 12, color: T.muted, fontWeight: 400, marginLeft: 8 }}>
+                {labels.estimateSubnote(seats)}
+              </span>
+            </div>
+            {quoteEstimateFailed ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: T.sub }}>
+                <span>{labels.estimateQuoteFailed}</span>
+                <Btn kind="secondary" onClick={onRetryQuoteEstimate}>{labels.estimateQuoteRetry}</Btn>
+              </div>
+            ) : !readyQuoteEstimate ? (
+              <div style={{ fontSize: 14, color: T.muted }}>{labels.estimateQuoteLoading}</div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
+                  <span>
+                    {labels.estimateQuoteLineItem(readyQuoteEstimate.baseSeats, readyQuoteEstimate.unitPrice, readyQuoteEstimate.months)}
+                  </span>
+                  <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.baseAmount)}</span>
+                </div>
+                {readyQuoteEstimate.overageSeats > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
+                    <span>
+                      {labels.estimateOverageLineItem(readyQuoteEstimate.overageSeats, readyQuoteEstimate.overageUnitPrice, readyQuoteEstimate.months)}
+                    </span>
+                    <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.overageAmount)}</span>
+                  </div>
+                )}
+                {readyQuoteEstimate.billedSeats > seats && (
+                  <div style={{ fontSize: 12, color: T.amber, marginBottom: 6 }}>
+                    {labels.estimateMinSeatsNote(readyQuoteEstimate.minSeats)}
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 8 }}>
+                  <span>{labels.vatLabel}</span>
+                  <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.vat)}</span>
+                </div>
+                <Divider />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 800 }}>
+                  <span>{readyQuoteEstimate.months > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel}</span>
+                  <span>{won(readyQuoteEstimate.total)}</span>
+                </div>
+              </>
             )}
             <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{labels.estimateFootnote}</div>
           </Card>
