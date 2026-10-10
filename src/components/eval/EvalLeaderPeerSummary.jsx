@@ -105,7 +105,7 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
   const canSummarize = peer.canSummarize ?? withOriginal.length > 0;
 
   return (
-    <section className="evl-peer" data-testid="evl-peer">
+    <section data-testid="evl-peer">
       <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>
         {L.peerEvidenceTitle}
         {reviewers.length > 0 ? (
