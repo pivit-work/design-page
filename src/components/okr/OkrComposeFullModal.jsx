@@ -587,7 +587,12 @@ export default function OkrComposeFullModal({
                             type="button"
                             className={`okr-cf-method${kr.inputType === method.key ? ' is-active' : ''}`}
                             key={method.key}
-                            onClick={() => patchKr(objective.key, kr.key, { inputType: method.key, unit: method.unit })}
+                            // «완료 여부»는 목표 1 고정이라 목표값 칸을 감춘다(okr-spec §3.1B).
+                            onClick={() => patchKr(objective.key, kr.key, {
+                              inputType: method.key,
+                              unit: method.unit,
+                              ...(method.key === 'binary' ? { target: 1 } : {}),
+                            })}
                           >
                             <p className="okr-cf-method-label">{method.label}</p>
                             <p className="okr-cf-method-desc">{method.desc}</p>
@@ -595,14 +600,16 @@ export default function OkrComposeFullModal({
                         ))}
                       </div>
                       <div className="okr-cf-kr-meta">
-                        <input
-                          className="okr-cf-input is-sm"
-                          placeholder="목표"
-                          aria-label="KR 목표값"
-                          type="number"
-                          value={kr.target}
-                          onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
-                        />
+                        {kr.inputType !== 'binary' && (
+                          <input
+                            className="okr-cf-input is-sm"
+                            placeholder="목표"
+                            aria-label="KR 목표값"
+                            type="number"
+                            value={kr.target}
+                            onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
+                          />
+                        )}
                         <input
                           className="okr-cf-input is-sm"
                           placeholder="단위"
