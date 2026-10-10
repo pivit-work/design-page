@@ -2527,6 +2527,12 @@ export default function EvalCycleWizard({
    * 시각은 어느 쪽이든 같다.
    */
   libraryTemplates = null,
+  /**
+   * PW-1654 — 이 사이클의 `templateMap` 이 가리키는 템플릿 이름표 `[{ id, name, revision, status }]`.
+   * 오픈한 사이클은 사이클 전용 사본을, 초안은 보관된 원본을 가리킬 수 있어 라이브러리 목록에 없다.
+   * 라이브러리에서 못 찾은 id 의 **이름 표기**에만 쓴다 — 선택지·항목 불러오기에는 안 쓴다(항목이 없다).
+   */
+  cycleTemplates = null,
   /** 저장 요청. 저장된 템플릿을 돌려주면 성공, falsy 면 실패로 보고 입력을 유지한다. */
   onSaveTemplate,
   /**
@@ -4697,6 +4703,9 @@ export default function EvalCycleWizard({
       하나로 모여 셀프 전용 정규화(구 `hideFromEvaluatee` 끄기)가 필요 없어졌다. */
   const normalizeQuestions = (qs) => qs || [];
   const templateById = new Map(savedTemplates.map((t) => [t.id, t]));
+  /** 이름 표기용 조회 — 라이브러리에 없으면 사이클이 가리키는 템플릿 이름표에서 (PW-1654). */
+  const cycleTemplateById = new Map((cycleTemplates || []).map((t) => [t.id, t]));
+  const namedTemplateOf = (id) => (id ? templateById.get(id) || cycleTemplateById.get(id) || null : null);
   /**
    * 확정한 «그 순간의 편집 버퍼» 지문. `확정 · 수정 중` 은 이것과 현재 버퍼를 견준다.
    *
@@ -4728,7 +4737,7 @@ export default function EvalCycleWizard({
   /** 1단계에서 고른 유형만, 1단계 칩과 같은 순서로. 고르지 않은 유형은 행 자체가 없다. */
   const confirmRows = confirmSlots.map(({ key, rt, round }) => {
     const id = phaseTemplateMap[key] || '';
-    const tpl = id ? templateById.get(id) : null;
+    const tpl = namedTemplateOf(id);
     // 확정이 가리키던 템플릿이 라이브러리에서 사라졌으면 «미확정» 으로 되돌린다 (엣지 3).
     // 오픈한 사이클은 확정이 사이클 전용 스냅샷을 가리켜 라이브러리에 없는 게 정상이다(PW-1461 — 「사라졌다」로 잘못 읽었다).
     const confirmed = !!id && (confirmReadOnly || !!tpl || !libraryResolved);
@@ -4803,7 +4812,7 @@ export default function EvalCycleWizard({
       setPendingConfirmSwap(null);
     };
     if (prevId && prevId !== tpl.id) {
-      const prev = templateById.get(prevId);
+      const prev = namedTemplateOf(prevId);
       setPendingConfirmSwap({
         type,
         from: prev?.name || L.tplConfirmUnknown,
