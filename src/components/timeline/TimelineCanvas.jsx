@@ -119,6 +119,8 @@ export default function TimelineCanvas({
   now,
   // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
   // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
+  // null 이면 그 줄을 그리지 않는다 — 볼 수 있는 프로젝트가 없는 사람에게
+  // 「있다는 것도」 알리지 않을 때 (PW-1601).
   activeProjectCount = 2,
   // 초기 탭 / 캘린더 보기 단위 — URL 진입점(예: /timeline/week)에서 주입.
   initialTab,
@@ -490,11 +492,13 @@ export default function TimelineCanvas({
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
           <h1 className="tl-page-title">Timeline</h1>
-          <div className="tl-page-meta">
-            <span className="tl-meta-label">진행 중 프로젝트</span>
-            <span className="tl-meta-sep">·</span>
-            <span className="tl-meta-count">{activeProjectCount}개</span>
-          </div>
+          {activeProjectCount !== null && (
+            <div className="tl-page-meta">
+              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-count">{activeProjectCount}개</span>
+            </div>
+          )}
         </div>
       </div>
 
