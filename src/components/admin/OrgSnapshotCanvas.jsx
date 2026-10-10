@@ -1248,7 +1248,8 @@ function AppointmentBulkView({
       setAffiliationMode(!!parsed?.hasAffiliationColumns);
       setParseError(parsed?.error ?? '');
       setParseNotices(parsed?.notices ?? []);
-      return;
+      // 거절 이유는 Step 2 에만 그린다 — 넘어가면 이유 대신 «파일 검증 대기 중»만 남는다 (PW-1532).
+      return !parsed?.error;
     }
     const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
     if (lines.length < 2) return;
@@ -1285,9 +1286,13 @@ function AppointmentBulkView({
   const acceptFile = (f) => {
     if (!f) return;
     setFile(f);
-    Promise.resolve(parseUploaded(f)).then(() => setStep(3));
+    Promise.resolve(parseUploaded(f)).then((ok) => { if (ok !== false) setStep(3); });
   };
-  const onFileChange = (e) => acceptFile(e.target.files?.[0]);
+  const onFileChange = (e) => {
+    acceptFile(e.target.files?.[0]);
+    // 거절된 파일을 고쳐 같은 이름으로 다시 골라도 change 가 오게 비운다.
+    e.target.value = '';
+  };
   const onDrop = (e) => {
     e.preventDefault();
     acceptFile(e.dataTransfer.files?.[0]);
