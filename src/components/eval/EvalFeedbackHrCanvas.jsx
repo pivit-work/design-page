@@ -265,7 +265,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                 <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', color: m.urgent ? C.red : C.amber, fontWeight: 600 }}>
                   {m.lastFeedbackAt == null ? L.notWritten : `${m.daysSince}${L.daysOver}`}
                 </span>
-                <span style={{ fontSize: 12, color: C.sub, minWidth: 70 }}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
+                <span style={{ fontSize: 12, color: C.sub, width: 180, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={m.managerName || undefined}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
                 {/* 못 누르는 이유를 말풍선으로 (정책 §3.3·§8-1). */}
                 <Tooltip content={!m.managerName ? L.noManagerTooltip : sent ? L.sentTooltip : null}>
                   <button

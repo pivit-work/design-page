@@ -2230,7 +2230,7 @@ export default function EvalCycleSummaryCanvas({
                     <span className="evs-leader-num">{L.leaderColDone}</span>
                     <span className="evs-leader-num">{L.leaderColIncomplete}</span>
                     <span className="evs-leader-num">{L.leaderColDelayed}</span>
-                    <span>{L.leaderColProgress}</span>
+                    <span className="evs-leader-prog-head">{L.leaderColProgress}</span>
                   </div>
                   {leaderStats.map((s) => {
                     const incomplete = s.total - s.done;
