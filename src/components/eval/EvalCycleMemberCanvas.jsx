@@ -92,6 +92,8 @@ const DEFAULT_LABELS = {
   aiDraftEdited: 'AI 수정됨',
   aiDraftConfirmed: 'AI 초안 확인됨',
   aiDraftConfirm: '확인',
+  // PW-1614 기획서 절대 규칙 3 — 확인 안 한(노란) 초안 칸이 남으면 제출되지 않는다.
+  aiDraftPendingWarn: 'AI 초안을 확인한 뒤 제출해 주세요.',
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
@@ -674,8 +676,11 @@ export default function EvalCycleMemberCanvas({
     if (f.type === 'checkbox') return false;
     return !state[f.key].textAnswer.trim();
   };
+  const isAiPending = (f) => aiStateOf(f)?.tone === 'unconfirmed';
+  const hasAiPending = fields.some(isAiPending);
   const handleSubmitClick = () => {
-    const inc = fields.find(isIncomplete);
+    // 빈 칸이 먼저다 — 다 채운 뒤에야 노란 칸(PW-1614)으로 안내한다.
+    const inc = fields.find(isIncomplete) || fields.find(isAiPending);
     if (inc) {
       setTriedSubmit(true);
       fieldRefs.current[inc.key]?.scrollIntoView({
@@ -1010,7 +1015,7 @@ export default function EvalCycleMemberCanvas({
                 ) : (
                   <>
                     <textarea
-                      className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}`}
+                      className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}`}
                       rows={4}
                       value={state[f.key].textAnswer}
                       placeholder={f.placeholder}
@@ -1097,6 +1102,10 @@ export default function EvalCycleMemberCanvas({
             {triedSubmit && !canSubmit ? (
               <span className="evm-incomplete-warn" data-testid="evm-incomplete-warn">
                 {L.incompleteWarn}
+              </span>
+            ) : triedSubmit && hasAiPending ? (
+              <span className="evm-incomplete-warn" data-testid="evm-ai-pending-warn">
+                {L.aiDraftPendingWarn}
               </span>
             ) : (
               fill(L.progress, { filled, total: textFields.length })

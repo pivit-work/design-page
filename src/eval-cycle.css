@@ -3855,6 +3855,10 @@
   background: var(--utility-success-50);
   border-color: var(--utility-success-200);
 }
+/* PW-1614 확인 안 한 초안 칸으로 제출을 막았을 때 — 노랑 바탕은 두고 테두리만 빨강(빈 칸과 같은 강조). */
+.evm-textarea.is-ai-unconfirmed.is-invalid:not(:focus) {
+  border-color: var(--utility-error-500);
+}
 .evm-ai-draft-bar {
   display: flex;
   align-items: center;
