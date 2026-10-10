@@ -64,6 +64,11 @@ export default function MeetingRecordContent({
   // 새 액션 아이템의 기본 기한 'YYYY-MM-DD'. 주지 않으면 브라우저 기준 오늘이다 —
   // 사용자 시간대의 오늘을 쓰려면 caller 가 넘긴다.
   defaultDueDate,
+  // 할 일 한 줄 최대 글자 수 · 최대 개수 (기획 screen-minutes-review §7 「100자」·§8 「30개」).
+  // 다 찬 뒤 [추가]를 누르면 줄을 더하지 않고 onActionItemLimit 을 부른다 — 안내는 caller 가 띄운다.
+  actionItemMaxLength,
+  actionItemMaxCount,
+  onActionItemLimit,
 }) {
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
@@ -188,6 +193,7 @@ export default function MeetingRecordContent({
                 type="text"
                 className="mtg-record-action-title"
                 value={a.title}
+                maxLength={actionItemMaxLength}
                 placeholder={labels.actionItemTitlePlaceholder ?? labels.newActionItemTitle ?? ''}
                 onChange={(e) => updateAction(idx, { title: e.target.value })}
                 readOnly={readOnly}
@@ -252,6 +258,10 @@ export default function MeetingRecordContent({
               type="button"
               className="mtg-record-action-add"
               onClick={() => {
+                if (actionItemMaxCount != null && actions.length >= actionItemMaxCount) {
+                  onActionItemLimit?.();
+                  return;
+                }
                 // 신규 항목은 빈 title + 담당자 미설정 으로 시작 — 하드코딩
                 // placeholder 가 그대로 저장돼 모든 신규가 "새 액션 아이템" 으로
                 // 보이는 회귀를 방지. ref 콜백이 마운트 시 한 번 focus 한다.
