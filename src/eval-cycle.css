@@ -8356,13 +8356,34 @@
 .evnav-domains > button.tab-inactive:hover {
   color: var(--text-primary);
 }
-/* 2행 — 공용 밑줄 탭 줄. 여백만 1행에 맞춘다. */
-.evnav-nav .tl-tabs-row.evnav-views {
+/* 2행 — 섹션마다 공용 세그먼트 통 하나(PW-1653). 통 높이는 4+28+4=36 이라 예전 밑줄 탭 줄과 같다 —
+   그래서 `--evnav-h` 는 그대로다. 통 사이 10 은 매니저 › 팀 스니핏의 두 통 사이와 같다.
+   좁아지면 접지 않고 가로 스크롤(접히면 `--evnav-h` 가 어긋난다). */
+.evnav-views {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin: 13px 0 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.evnav-views .tl-tab {
+.evnav-views::-webkit-scrollbar {
+  display: none;
+}
+.evnav-groups {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 10px;
+}
+/* 통이 넓어 설명 글 자리가 모자라면(영어 1280 폭) 끝을 「…」로 접는다 — 통은 줄이지 않는다 */
+.evnav-views .evnav-desc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.evnav-groups .seg-item {
   white-space: nowrap;
 }
 /* 3행 — 「내 평가 홈」 한 칸 안의 탭(조직장·관리자 · PW-1160). 2행과 같은 밑줄 탭이고,

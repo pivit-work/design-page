@@ -1,4 +1,5 @@
 import Tabs from '../shared/Tabs.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
 /**
@@ -10,8 +11,10 @@ import Tooltip from '../shared/Tooltip.jsx';
  * 모양은 여러 화면이 같이 쓰는 조각을 따른다 (PW-832 · 2026-09-22 커트 결정 (나)):
  *   - 1행: 도메인 — OKR·조직도 맨 위와 같은 큰 제목 탭(`org_chart.css` 의 `.tab-nav`).
  *     그 스타일시트는 소비측이 함께 불러야 한다(OKR 화면과 같은 방식).
- *   - 2행: 선택 도메인의 화면들 — 공용 `Tabs`(타임라인 「간트 / 캘린더」와 같은 밑줄 탭).
- *     섹션 사이 세로 구분선은 탭 부품에 자리가 없어 없앴고, 도메인 설명은 줄 오른쪽에 둔다.
+ *   - 2행: 선택 도메인의 화면들 — 섹션마다 공용 `SegmentedControl` 통 하나(매니저 › 팀 스니핏
+ *     「오늘 / 이번 주 / 전체」 「레드 플래그」와 같은 모양 · PW-1653). 고른 화면만 흰 알약으로 뜨고,
+ *     통 사이 틈이 섹션을 가른다. 섹션 이름은 화면에 쓰지 않는다. 도메인 설명은 줄 오른쪽에 둔다.
+ *     밑줄 탭 한 줄(PW-832)이던 동안 관리자의 탭 아홉 개가 한 줄에 붙어 고른 탭이 안 보였다.
  *
  * 시안의 '역할 전환기'는 데모용(`TODO(auth)`)이라 옮기지 않았다 — 실제 앱은
  * 로그인 사용자의 역할로 항목을 필터해서 넘긴다.
@@ -23,7 +26,7 @@ import Tooltip from '../shared/Tooltip.jsx';
  * @param {Array}    props.domains          [{ id, label, desc }]
  * @param {string}   props.activeDomain     활성 도메인 id
  * @param {Function} props.onDomainChange   (domainId) => void
- * @param {Array}    props.sections         활성 도메인의 섹션 [{ id, label, items: [{ id, label }] }]
+ * @param {Array}    props.sections         활성 도메인의 섹션 [{ id, label, items: [{ id, label }] }] — 섹션 하나가 통 하나
  * @param {string}   props.activeItemId     활성 화면 id (부모 탭 하이라이트는 호출측이 부모 id 를 넘겨 처리)
  * @param {Function} props.onSelect         (itemId) => void
  * @param {Array}    [props.subItems]       3행 — 활성 화면 «안»의 탭 [{ id, label }]. 비우면 줄이 없다.
@@ -47,9 +50,17 @@ export default function EvalShellNav({
   onSubSelect,
 }) {
   const desc = domains.find((d) => d.id === activeDomain)?.desc || '';
-  const items = sections.flatMap((sec) =>
-    (sec.items || []).map((item) => ({ value: item.id, label: item.label, testId: `evnav-item-${item.id}` })),
-  );
+  const groups = sections
+    .map((sec, si) => ({
+      id: sec.id || sec.label || String(si),
+      label: sec.label,
+      items: (sec.items || []).map((item) => ({
+        value: item.id,
+        label: item.label,
+        testId: `evnav-item-${item.id}`,
+      })),
+    }))
+    .filter((g) => g.items.length > 0);
   const subTabs = subItems.map((item) => ({
     value: item.id,
     label: item.label,
@@ -78,10 +89,21 @@ export default function EvalShellNav({
         })}
       </div>
 
-      {(items.length > 0 || desc) && (
-        <div className="tl-tabs-row evnav-views">
-          {items.length > 0 ? (
-            <Tabs items={items} value={activeItemId} onChange={(id) => onSelect?.(id)} />
+      {(groups.length > 0 || desc) && (
+        <div className="evnav-views">
+          {groups.length > 0 ? (
+            <div className="evnav-groups" data-testid="evnav-groups">
+              {/* 고른 화면이 없는 통은 알약 없이 선다 — SegmentedControl 이 value 가 목록에 없으면 알약을 내린다 */}
+              {groups.map((g) => (
+                <SegmentedControl
+                  key={g.id}
+                  items={g.items}
+                  value={activeItemId}
+                  onChange={(id) => id !== activeItemId && onSelect?.(id)}
+                  ariaLabel={g.label}
+                />
+              ))}
+            </div>
           ) : (
             <span />
           )}
