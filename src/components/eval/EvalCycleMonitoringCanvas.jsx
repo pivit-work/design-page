@@ -745,8 +745,8 @@ export default function EvalCycleMonitoringCanvas({
         ) : (() => {
         const dynamic = memberPhases.length > 0;
         const cols = dynamic
-          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1.2fr', '1fr', 'auto'].join(' ')
-          : '2fr 1fr 1fr 1fr 1fr auto';
+          ? ['2fr', ...memberPhases.map(() => '1.2fr'), '1.2fr', '1fr', '96px'].join(' ')
+          : '2fr 1fr 1fr 1fr 1fr 96px';
         return (
         <section className="evc-card">
           <h3 className="evc-card-name">{L.membersTitle}</h3>

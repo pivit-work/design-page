@@ -2371,7 +2371,7 @@ function CommitteeCard({
                       />
                       <span className="evc-wiz-committee-text">
                         <span className="evc-wiz-committee-name">
-                          {c.name}
+                          <span className="evc-wiz-committee-name-text" title={c.name}>{c.name}</span>
                           {on && idx === 0 && (
                             <span className="evc-wiz-committee-chair">
                               {L.wizardCommitteeChair}
