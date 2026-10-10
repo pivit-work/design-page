@@ -613,6 +613,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-krpreview-name { flex: 1; }
 .okr-wz-krpreview-val { font-size: 11px; color: var(--text-secondary); }
 .okr-wz-error { margin: 10px 0 0; font-size: 12px; color: var(--utility-error-500); }
+/* 체험 AI 소진 등 AI 버튼 바로 아래 안내 자리 (마법사 정책서 §5) */
+.okr-wz-ai-notice { margin: 8px 0 12px; }
 .okr-wz-align { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .okr-wz-align-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-secondary); border-radius: 10px; background: var(--bg-secondary); }
 .okr-wz-align-row.is-warn { border-color: var(--utility-error-200); background: var(--utility-error-50); }
