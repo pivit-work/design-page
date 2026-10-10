@@ -7391,16 +7391,46 @@
   max-width: 640px;
 }
 
-/* ── R5b: 상세 레벨혼합 경고 ── */
-.evs-cw-detail-levelmix {
-  margin-top: var(--spacing-sm);
-  padding: 6px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--utility-warning-50);
-  border: 1px solid var(--utility-warning-200);
+/* ── PW-1610 §4.5 표 위 「레벨 구성」 — 직급이 섞이면 경고색 ── */
+.evs-cw-levelmix-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   font-size: 12px;
-  line-height: 1.5;
+}
+.evs-cw-levelmix-bar.is-mixed {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+.evs-cw-levelmix-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evs-cw-levelmix-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--utility-warning-700);
+  line-height: 1.5;
+}
+
+/* ── PW-1610 위원회 만들기 「상위 조직장 자동 지정」 ── */
+.evs-cw-auto-assign {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.evs-cw-auto-assign-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── R7b: 워크스페이스 승진 9블록 모달 ── */

@@ -5,7 +5,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
 import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import AvatarPhoto from './AvatarPhoto';
 import LoadingState from '../shared/LoadingState.jsx';
@@ -319,6 +319,9 @@ const DEFAULT_LABELS = {
   cwDetailFailed: '대상자 정보를 불러오지 못했습니다. 접었다 다시 펼치면 다시 불러옵니다.',
   cwDetailLogs: '변경 로그',
   cwLevelMixWarn: '이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
+  cwLevelMixLabel: '레벨 구성',
+  cwLevelMixCount: '{level} {n}명',
+  cwLevelUnassigned: '미지정',
   cwDetailEmpty: '내용 없음',
   // [PW-1594 · spec-calibration §20.2] 하향 차수가 둘 이상인 사이클 — 대상자 상세의 하향 리뷰를 차수별로 나눈다.
   leaderRoundDetail: {
@@ -361,6 +364,9 @@ const DEFAULT_LABELS = {
   cwCreateSearchReset: '검색 초기화',
   cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
   cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
+  cwAutoAssign: '상위 조직장 자동 지정 ({n}명)',
+  cwAutoAssignHint: '대상자보다 위에 있는 조직장을 위원으로 더합니다.',
+  cwAutoAssignNone: '대상자 위에 조직장이 없어 자동으로 고를 사람이 없습니다. 직접 골라 주세요.',
   cwCreateCommitteeSearch: '이름·부서·직책으로 검색',
   cwCommitteeOutsideSearch: '검색 결과 밖 {count}명 포함',
   cwCreateCommitteeSearchEmpty: '검색 결과가 없습니다.',
@@ -983,6 +989,76 @@ const FILTER_KEY_COLUMN = { job: 'job', team: 'team', promo: 'promo' };
 /** PW-519 보상 조정 코드 → 배지 색. 코드값을 화면에 그대로 내지 않는다(라벨은 L.cwCompStatus). */
 const COMP_TONE = { urgent: 'red', moderate: 'accent', maintain: 'muted' };
 
+/**
+ * PW-1610 §4.2 「직급·레벨」 — 구성원 정보의 직위(사원~부장) + 직급(Junior~C-Level) 배지.
+ * 서버가 직위·직급 칸을 주지 않던 옛 응답은 종전 값(`level`)을 그대로 쓴다.
+ */
+function hasRankFields(row) {
+  return !!row && ('jobLevel' in row || 'jobRank' in row);
+}
+/** «같은 레벨끼리 비교» 축 — 표 위 「레벨 구성」이 이 값으로 센다. */
+function levelKeyOf(row) {
+  return (hasRankFields(row) ? row.jobLevel : row.level) || null;
+}
+/** 정렬 — 회사 직급 목록 순서, 목록에 없는 직급, 직급 없음 순. 같은 직급 안에서는 직위. */
+function levelSortKey(row) {
+  if (!hasRankFields(row)) return row.level ?? '';
+  const order = String(row.jobLevelOrder ?? 999).padStart(3, '0');
+  return `${order}|${row.jobLevel ?? '\uffff'}|${row.jobRank ?? ''}`;
+}
+function RankLevel({ row }) {
+  if (!hasRankFields(row)) return row.level || '—';
+  if (!row.jobRank && !row.jobLevel) return '—';
+  return (
+    <>
+      {row.jobRank}
+      {row.jobRank && row.jobLevel ? ' ' : null}
+      {row.jobLevel ? (
+        <StatusBadge className="evs-cw-roster-tag" data-testid="evs-cw-level-badge">
+          {row.jobLevel}
+        </StatusBadge>
+      ) : null}
+    </>
+  );
+}
+/** 표 위 「레벨 구성」 — 직급별 인원(직급 순서대로, 비어 있는 사람은 맨 뒤 «미지정»). */
+function levelComposition(rows) {
+  const byKey = new Map();
+  for (const r of rows) {
+    const key = levelKeyOf(r);
+    const cur = byKey.get(key) ?? { key, n: 0, order: r.jobLevelOrder ?? 999 };
+    cur.n += 1;
+    byKey.set(key, cur);
+  }
+  const entries = [...byKey.values()].sort(
+    (a, b) =>
+      (a.key == null) - (b.key == null) ||
+      a.order - b.order ||
+      String(a.key).localeCompare(String(b.key), 'ko'),
+  );
+  return { entries, mixed: entries.filter((e) => e.key != null).length > 1 };
+}
+/**
+ * PW-1610 §3.3② 「상위 조직장 자동 지정」 — 대상자마다 조직도 위로 올라간 조직장(`leadersAbove`,
+ * 서버가 가까운 순으로 준다)을 합친다. 대상자 본인·이미 고른 위원·후보 밖 사람은 뺀다.
+ * 위쪽 조직장부터 — 먼저 들어간 사람이 위원장이 되므로(cwCreateCommitteeHint) 맨 위가 앞에 선다.
+ */
+function autoCommitteeIdsOf(targets, candidateIds, pickedIds) {
+  const targetIds = new Set(targets.map((m) => m.memberId));
+  const height = new Map(); // 맨 위에서 몇 칸 아래인가 — 작을수록 위
+  for (const m of targets) {
+    const chain = m.leadersAbove ?? [];
+    chain.forEach((id, i) => {
+      const h = chain.length - 1 - i;
+      if (!height.has(id) || h < height.get(id)) height.set(id, h);
+    });
+  }
+  return [...height.entries()]
+    .filter(([id]) => candidateIds.has(id) && !targetIds.has(id) && !pickedIds.has(id))
+    .sort((a, b) => a[1] - b[1])
+    .map(([id]) => id);
+}
+
 function sortCalibRows(rows, sort, orderedGrades) {
   if (!sort?.key) return rows;
   const gradeRank = (key) => {
@@ -998,7 +1074,7 @@ function sortCalibRows(rows, sort, orderedGrades) {
       case 'team':
         return row.team ?? '';
       case 'level':
-        return row.level ?? '';
+        return levelSortKey(row);
       case 'leader':
         return row.leaderName ?? '';
       case 'hireDate':
@@ -1574,6 +1650,7 @@ export default function EvalCycleSummaryCanvas({
   const [conflictShownSession, setConflictShownSession] = useState(null);
   const conflictShown = conflictShownSession != null && conflictShownSession === selectedCalibSessionId;
   const viewerPosition = calibTable?.viewerPosition || null;
+  const calibLevelMix = levelComposition(calibTable?.rows ?? []);
   const conflictIds = viewerPosition
     ? (calibTable?.rows ?? []).filter((r) => r.level && r.level === viewerPosition).map((r) => r.memberId)
     : [];
@@ -1731,6 +1808,15 @@ export default function EvalCycleSummaryCanvas({
   const committeeReadOnly =
     committeeManage &&
     (committeeLocked || sessionCommittee?.canManage === false);
+  /* PW-1610 — 서버가 조직도 위쪽 조직장(leadersAbove)을 줄 때만 버튼을 띄운다. */
+  const canAutoAssign = !committeeManage && scopeRoster.some((m) => Array.isArray(m.leadersAbove));
+  const autoCommitteeIds = canAutoAssign
+    ? autoCommitteeIdsOf(
+        createRoster,
+        new Set(committeeCandidates.map((c) => c.id)),
+        createCommitteeSet,
+      )
+    : [];
   // 체크가 풀린 위원 중 조정 이력이 있는 사람 — 저장 전에 경고를 보여준다.
   const droppedWithHistory = useMemo(() => {
     if (!committeeManage) return [];
@@ -3731,6 +3817,30 @@ export default function EvalCycleSummaryCanvas({
                     </button>
                   </div>
                 )}
+                {/* PW-1610 §4.5 레벨 구성 — 캘리브레이션은 같은 직급끼리 비교한다. 세션에 직급이 둘 이상
+                    섞이면 경고. 직급을 아무도 안 적은 회사에서는 셀 것이 없어 띄우지 않는다. */}
+                {calibLevelMix.entries.some((e) => e.key != null) && (
+                  <div
+                    className={`evs-cw-levelmix-bar${calibLevelMix.mixed ? ' is-mixed' : ''}`}
+                    data-testid="evs-cw-levelmix-bar"
+                  >
+                    <span className="evs-cw-levelmix-label">{L.cwLevelMixLabel}</span>
+                    {calibLevelMix.entries.map((e) => (
+                      <StatusBadge
+                        key={e.key ?? '__none'}
+                        className="evs-cw-roster-tag"
+                        data-testid="evs-cw-levelmix-chip"
+                      >
+                        {fmt(L.cwLevelMixCount, { level: e.key ?? L.cwLevelUnassigned, n: e.n })}
+                      </StatusBadge>
+                    ))}
+                    {calibLevelMix.mixed && (
+                      <span className="evs-cw-levelmix-warn" data-testid="evs-cw-levelmix">
+                        <AlertIcon size={14} /> {L.cwLevelMixWarn}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {calibTableLoading || !calibTable ? (
                   <div className="evs-cw-empty">
@@ -3954,7 +4064,9 @@ export default function EvalCycleSummaryCanvas({
                                 </RosterTable.Cell>
                                 {colOn('job') && <RosterTable.Cell className="evs-cw-muted">{row.job || '—'}</RosterTable.Cell>}
                                 {colOn('team') && <RosterTable.Cell className="evs-cw-muted">{row.team}</RosterTable.Cell>}
-                                <RosterTable.Cell className="evs-cw-muted">{row.level || '—'}</RosterTable.Cell>
+                                <RosterTable.Cell className="evs-cw-muted" data-testid="evs-cw-level-cell">
+                                  <RankLevel row={row} />
+                                </RosterTable.Cell>
                                 {colOn('lead') && <RosterTable.Cell className="evs-cw-muted">{row.leaderName ?? '—'}</RosterTable.Cell>}
                                 {colOn('joined') && (
                                 <RosterTable.Cell>
@@ -4195,9 +4307,9 @@ export default function EvalCycleSummaryCanvas({
                                           <div className="evs-cw-detail-profile-role">
                                             {(row.job || '—') + ' · ' + row.team}
                                           </div>
-                                          {row.level ? (
-                                            <div className="evs-cw-detail-profile-level">
-                                              {L.cwColLevel}: <strong>{row.level}</strong>
+                                          {(hasRankFields(row) ? row.jobRank || row.jobLevel : row.level) ? (
+                                            <div className="evs-cw-detail-profile-level" data-testid="evs-cw-detail-profile-level">
+                                              {L.cwColLevel}: <strong><RankLevel row={row} /></strong>
                                             </div>
                                           ) : null}
                                           {/* §4.5 좌측 프로필의 매니저 승진 추천 배지(§9.1 매니저 축과 같은 값). */}
@@ -4226,20 +4338,6 @@ export default function EvalCycleSummaryCanvas({
                                           >
                                             {L.cwExcludeMember}
                                           </button>
-                                          {[
-                                            ...new Set(
-                                              visibleRows
-                                                .map((r) => r.level)
-                                                .filter(Boolean),
-                                            ),
-                                          ].length > 1 && (
-                                            <div
-                                              className="evs-cw-detail-levelmix"
-                                              data-testid="evs-cw-levelmix"
-                                            >
-                                              <AlertIcon size={14} /> {L.cwLevelMixWarn}
-                                            </div>
-                                          )}
                                           <dl className="evs-cw-detail-facts">
                                             <div>
                                               <dt>{currentGradeColLabel}</dt>
@@ -5578,6 +5676,24 @@ export default function EvalCycleSummaryCanvas({
                 <div className="evs-cw-create-muted">{L.cwCreateNoCommittee}</div>
               ) : (
                 <>
+                {canAutoAssign && (
+                  <div className="evs-cw-auto-assign" data-testid="evs-cw-auto-assign-row">
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost evs-cw-auto-assign-btn"
+                      disabled={committeeReadOnly || autoCommitteeIds.length === 0}
+                      onClick={() =>
+                        setCreateCommittee((prev) => [...prev, ...autoCommitteeIds.filter((id) => !prev.includes(id))])
+                      }
+                      data-testid="evs-cw-auto-assign"
+                    >
+                      <ZapIcon size={12} /> {fmt(L.cwAutoAssign, { n: autoCommitteeIds.length })}
+                    </button>
+                    <span className="evs-cw-create-muted" data-testid="evs-cw-auto-assign-hint">
+                      {autoCommitteeIds.length === 0 ? L.cwAutoAssignNone : L.cwAutoAssignHint}
+                    </span>
+                  </div>
+                )}
                 <input
                   className="evs-cw-create-input evs-cw-create-search"
                   value={committeeSearch}
