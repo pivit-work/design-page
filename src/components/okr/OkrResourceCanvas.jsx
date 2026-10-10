@@ -37,6 +37,8 @@ import { mergeOkrResourceLabels } from './okrResourceLabels.js';
  * 「입력 가능」 자리를 「조회 전용」으로 바꾼다. 코멘트·답글은 그대로 둔다(가동률을 바꾸지 않는다).
  * 조직 현황 탭은 달과 무관하게 늘 「조회 전용」이다(기획서 §3-0).
  *
+ * `maxTotal` 은 내 입력의 한 달 합계 상한 — 넘는 동안 [저장] 이 눌리지 않는다(PW-1587).
+ *
  * `data.month` 는 글자 대신 요소를 받아도 된다 — 호스트가 달 옆에 이동 버튼을 붙일 자리다.
  * 그때는 문장에 넣을 달 글자를 `data.monthLabel` 로 따로 준다(끝난 달 안내 문장).
  * `data.periodKey` 가 바뀌면 세 뷰를 새로 그린다 — 뷰가 슬라이더 값 등을 자기 상태로 들고 있어,
@@ -60,6 +62,7 @@ export default function OkrResourceCanvas({
   actionError,
   labels: providedLabels,
   readOnly = false,
+  maxTotal,
 }) {
   const L = mergeOkrResourceLabels(providedLabels);
   const items = (views?.length ? VIEWS.filter((v) => views.includes(v)) : VIEWS)
@@ -110,6 +113,7 @@ export default function OkrResourceCanvas({
           onApplyEstimates={onApplyEstimates}
           onReply={onReply}
           onOpenProject={onOpenProject}
+          maxTotal={maxTotal}
           labels={L}
         />
       )}

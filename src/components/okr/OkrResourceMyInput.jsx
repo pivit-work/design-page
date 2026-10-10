@@ -39,6 +39,10 @@ import { entryProjectId } from './okrResourceEntries.js';
  * 원장이 없어 글자 그대로다. 아래 「투입 항목 추가」 칩은 그대로 «행에 더하기» 다. `unsaved` 는 화면에서
  * 고쳐 놓고 아직 저장하지 않은 값이 있는지 — 호스트가 이동 방식(같은 탭/새 탭)을 가르는 데 쓴다.
  * 끝난 달(`readOnly`)에도 눌린다 — 조회 목적이다.
+ *
+ * `maxTotal` 을 주면 지금 화면의 합계가 그 값을 넘는 동안 [저장] 이 눌리지 않는다(리소스 흐름도
+ * 「합계 200% 초과 → 저장 불가」 · PW-1587). 합계가 슬라이더와 함께 움직이므로 판정도 여기서 한다.
+ * 생략하면 늘 눌린다.
  */
 /** 수동 % 와 추정 % 의 차이가 이만큼(%p) 이상이면 «차이 큼» — 리소스 정책서 §5-3.4. */
 export const ESTIMATE_GAP_PP = 15;
@@ -60,7 +64,7 @@ const sameEntries = (a, b) => {
 
 export default function OkrResourceMyInput({
   data, icons, baseUrl = '', onSave, onApplyEstimates, onReply, labels: L = OKR_RESOURCE_DEFAULT_LABELS,
-  readOnly = false, monthLabel = '', onOpenProject,
+  readOnly = false, monthLabel = '', onOpenProject, maxTotal,
 }) {
   const M = L.my;
   const [entries, setEntries] = useState(data.entries);
@@ -373,7 +377,14 @@ export default function OkrResourceMyInput({
 
       {!readOnly && (
         <div className="rsx-save-row">
-          <button type="button" className="rsx-save-btn" onClick={() => onSave?.(entries)}>{M.save}</button>
+          <button
+            type="button"
+            className="rsx-save-btn"
+            disabled={maxTotal != null && total > maxTotal}
+            onClick={() => onSave?.(entries)}
+          >
+            {M.save}
+          </button>
         </div>
       )}
 
