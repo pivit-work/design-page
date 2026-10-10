@@ -5,7 +5,12 @@
  * 원온원 할 일 이행률 · 스니핏 활동량. 블록 값이 null 이면 앱이 그 근거를 못 읽은 것이라
  * «불러오지 못했습니다»를, 빈 값이면 «없음» 문구를 그린다. 둘을 섞으면 실패가 «기록 없음»으로
  * 보여 매니저가 잘못된 근거로 평가한다.
+ *
+ * OKR 큰 % 는 팀원이 셀프 리뷰에 적은 KR 달성률의 가중 평균이다(okr-spec §12.1, PW-1607).
+ * KR 이 있는데 `averagePct` 가 null 이면 팀원이 하나도 안 적은 것이라 «미입력» 배지를 그린다(§12.3).
  */
+
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 const HEALTH_MAX = 10;
 
@@ -84,9 +89,14 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
           <p className="evc-empty-sub">{L.signalsOkrEmpty}</p>
         ) : (
           <>
-            {okr.averagePct != null && (
+            {okr.averagePct != null ? (
               <p className="evl-sig-big">
                 {okr.averagePct}%<span className="evl-sig-sub"> {L.signalsOkrAverage}</span>
+              </p>
+            ) : (
+              <p className="evl-sig-big" data-testid="evl-sig-okr-unentered">
+                <StatusBadge className="evc-status-badge tone-neutral">{L.signalsOkrUnentered}</StatusBadge>
+                <span className="evl-sig-sub"> {L.signalsOkrAverage}</span>
               </p>
             )}
             <ul className="evl-sig-krs">
