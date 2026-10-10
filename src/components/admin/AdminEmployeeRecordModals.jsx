@@ -605,7 +605,8 @@ function HrBankAccountRow({ name, bankAccount, revealed, state, value, onChange,
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-bank-account">
       <span style={{ minWidth: 88, color: T.muted }}>{label}</span>
-      <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums' }}>{masked}</span>
+      {/* 옆에 실패 안내가 붙어도 «●●●● 6789»가 두 줄로 꺾이지 않게 한 덩어리로 둔다 */}
+      <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{masked}</span>
       {onReveal && (
         <button
           type="button"
