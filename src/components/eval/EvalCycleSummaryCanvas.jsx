@@ -367,6 +367,7 @@ const DEFAULT_LABELS = {
   cwAutoAssign: '상위 조직장 자동 지정 ({n}명)',
   cwAutoAssignHint: '대상자보다 위에 있는 조직장을 위원으로 더합니다.',
   cwAutoAssignNone: '대상자 위에 조직장이 없어 자동으로 고를 사람이 없습니다. 직접 골라 주세요.',
+  cwAutoAssignDone: '대상자 위의 조직장을 모두 위원으로 넣었습니다.',
   cwCreateCommitteeSearch: '이름·부서·직책으로 검색',
   cwCommitteeOutsideSearch: '검색 결과 밖 {count}명 포함',
   cwCreateCommitteeSearchEmpty: '검색 결과가 없습니다.',
@@ -1810,13 +1811,11 @@ export default function EvalCycleSummaryCanvas({
     (committeeLocked || sessionCommittee?.canManage === false);
   /* PW-1610 — 서버가 조직도 위쪽 조직장(leadersAbove)을 줄 때만 버튼을 띄운다. */
   const canAutoAssign = !committeeManage && scopeRoster.some((m) => Array.isArray(m.leadersAbove));
-  const autoCommitteeIds = canAutoAssign
-    ? autoCommitteeIdsOf(
-        createRoster,
-        new Set(committeeCandidates.map((c) => c.id)),
-        createCommitteeSet,
-      )
+  /* 위쪽 조직장 전부(이미 고른 사람 포함) — 0명이면 «없다», 남은 게 0명이면 «다 넣었다»를 가른다. */
+  const autoCommitteeAll = canAutoAssign
+    ? autoCommitteeIdsOf(createRoster, new Set(committeeCandidates.map((c) => c.id)), new Set())
     : [];
+  const autoCommitteeIds = autoCommitteeAll.filter((id) => !createCommitteeSet.has(id));
   // 체크가 풀린 위원 중 조정 이력이 있는 사람 — 저장 전에 경고를 보여준다.
   const droppedWithHistory = useMemo(() => {
     if (!committeeManage) return [];
@@ -5690,7 +5689,11 @@ export default function EvalCycleSummaryCanvas({
                       <ZapIcon size={12} /> {fmt(L.cwAutoAssign, { n: autoCommitteeIds.length })}
                     </button>
                     <span className="evs-cw-create-muted" data-testid="evs-cw-auto-assign-hint">
-                      {autoCommitteeIds.length === 0 ? L.cwAutoAssignNone : L.cwAutoAssignHint}
+                      {autoCommitteeAll.length === 0
+                        ? L.cwAutoAssignNone
+                        : autoCommitteeIds.length === 0
+                          ? L.cwAutoAssignDone
+                          : L.cwAutoAssignHint}
                     </span>
                   </div>
                 )}
