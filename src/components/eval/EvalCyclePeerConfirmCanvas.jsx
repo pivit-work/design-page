@@ -20,7 +20,7 @@ import { ChevronRightIcon } from './evalIcons.jsx';
 const DEFAULT_LABELS = {
   title: '동료 리뷰어 확정',
   // 리더 정책 §6.0-A — 전용 화면 상단 복귀 버튼(PW-1469). `onBack` 이 없으면 그리지 않는다.
-  back: '← 팀 평가 관리',
+  back: '팀 평가 관리',
   subtitle: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
   // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용
   feedbackOnlyNotice: '',
@@ -466,7 +466,8 @@ export default function EvalCyclePeerConfirmCanvas({
         <div>
           {onBack && (
             <button type="button" className="evc-btn is-ghost" onClick={onBack} data-testid="evp-back">
-              {L.back}
+              {/* 화살표는 캔버스가 붙인다 — 앱의 번역 문구에는 기호를 두지 않는다(PW-315). */}
+              <span aria-hidden="true">← </span>{L.back}
             </button>
           )}
           <h1 className="evc-title">{L.title}</h1>
