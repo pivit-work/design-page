@@ -615,7 +615,7 @@ export default function EvalCycleMonitoringCanvas({
       )}
 
       {stopped && (
-        <p className="evx-notice" data-testid="evmon-stopped" style={{ maxWidth: 1080, margin: '0 auto 12px', background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+        <p className="evx-notice" data-testid="evmon-stopped" style={{ maxWidth: 1080, margin: '0 auto 12px 0', background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
           {L.stoppedBanner}
         </p>
       )}

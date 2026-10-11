@@ -941,12 +941,12 @@ export default function EvalCycleLeaderCanvas({
       {header}
 
       {formLocked && locked && L.lockedNotice && (
-        <p className="evx-notice" data-testid="evl-locked" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+        <p className="evx-notice" data-testid="evl-locked" style={{ maxWidth: 1080, margin: '0 auto 12px 0' }}>
           {L.lockedNotice}
         </p>
       )}
       {submitted && (
-        <p className="evx-notice is-success" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+        <p className="evx-notice is-success" data-testid="evl-submitted" style={{ maxWidth: 1080, margin: '0 auto 12px 0' }}>
           ✓ {L.submittedBanner}
           {!calibrationEnabled && (
             <span data-testid="evl-submitted-calib-off"> {L.calibOffSubmittedNote}</span>
@@ -960,7 +960,7 @@ export default function EvalCycleLeaderCanvas({
         </p>
       )}
       {saveStatus?.kind === 'failed' && (
-        <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed" style={{ maxWidth: 1080, margin: '0 auto 12px' }}>
+        <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed" style={{ maxWidth: 1080, margin: '0 auto 12px 0' }}>
           {L.autoSaveFailed}
         </p>
       )}

@@ -27,7 +27,10 @@
   font-family: var(--font-family-body);
 }
 
-/* 내부 콘텐츠는 중앙 정렬 + 최대폭 제한 (스크롤바는 콘텐츠 영역 우측 끝) */
+/* 내부 콘텐츠는 최대폭 제한 + 왼쪽 정렬 (스크롤바는 콘텐츠 영역 우측 끝).
+   가운데에 세우면 넓은 창에서 본문이 위쪽 탭 줄(.evnav-nav)보다 오른쪽에서 시작했다 —
+   1440px 창에서 탭 줄 252 · 본문 300. 탭 줄 첫 글자와 같은 왼쪽 줄에 세우고 남는 폭은
+   오른쪽에 둔다 (PW-1656). 이 파일의 다른 1080 칸도 같은 이유로 왼쪽에 붙인다. */
 .evc-header,
 .evc-toolbar,
 .evc-list,
@@ -37,7 +40,7 @@
 .evc-root > .evx-notice,
 .evc-root > .load-failure-notice {
   max-width: 1080px;
-  margin-left: auto;
+  margin-left: 0;
   margin-right: auto;
 }
 /* 평가 본문 자리 안에 둔 「접근 권한이 없습니다」 화면 — 창 전체 높이(100vh)를 잡으면 본문이
@@ -64,7 +67,7 @@
   align-items: center;
   gap: var(--spacing-md);
   max-width: 1080px;
-  margin: var(--spacing-xl) auto 0;
+  margin: var(--spacing-xl) auto 0 0;
 }
 /* 목록 칸 안의 제목 줄 — 칸 gap(16) 에 8 을 더해 다른 화면의 제목 아래 간격(24)과 맞춘다. */
 .evc-list > .evc-header {
@@ -94,7 +97,7 @@
    맞닿았다. 본문 칸(1080)에 맞추고 아래로 카드 사이 간격을 둔다. */
 .tl-tabs-row.evc-tabs-row {
   max-width: 1080px;
-  margin: 0 auto var(--spacing-xl);
+  margin: 0 auto var(--spacing-xl) 0;
 }
 
 /* [PW-1462] 진행 현황 부서 고르기 (정책 §6.4) — 이름표 옆에 드롭다운 하나. 본문 칸(1080) 왼쪽에 맞춘다. */
@@ -104,7 +107,7 @@
   gap: var(--spacing-md);
   width: 100%;
   max-width: 1080px;
-  margin: 0 auto;
+  margin: 0 auto 0 0;
 }
 .evmon-dept-filter .dp-select {
   width: auto;
@@ -3971,7 +3974,7 @@
   justify-content: space-between;
   gap: var(--spacing-md);
   max-width: 1080px;
-  margin: var(--spacing-lg) auto 0;
+  margin: var(--spacing-lg) auto 0 0;
   padding: var(--spacing-lg) var(--spacing-2xl);
   background: var(--bg-quaternary);
   border: 1px solid var(--bg-active);
@@ -4015,7 +4018,7 @@
 /* TC-136 저장 실패 배너 */
 .evm-save-error {
   max-width: 1080px;
-  margin: var(--spacing-md) auto 0;
+  margin: var(--spacing-md) auto 0 0;
   padding: 10px 16px;
   border-radius: var(--radius-md);
   background: var(--utility-error-50);
@@ -4304,9 +4307,8 @@
 }
 .evc-root > .seg-control {
   margin-bottom: var(--spacing-lg);
-  /* 제목·카드는 1080 칸 가운데에 서는데 전환 버튼만 그 규칙 밖이라 화면 왼쪽 끝에서 시작했다
-     (동료 리뷰어 지정 · PW-1652). 알약 폭은 그대로 두고 왼쪽 줄만 1080 칸에 맞춘다. */
-  margin-left: max(0px, calc((100% - 1080px) / 2));
+  /* 1080 칸은 왼쪽에 붙어 서므로(PW-1656) 전환 버튼도 따로 들일 것 없이 본문 왼쪽 줄에서
+     시작한다. 가운데 칸 시절 여기서 칸 여백만큼 들였었다 (PW-1652). */
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -4317,7 +4319,7 @@
   gap: var(--spacing-2xl);
   align-items: flex-start;
   max-width: 1080px;
-  margin: 0 auto;
+  margin: 0 auto 0 0;
 }
 .evl-evidence {
   position: sticky;
@@ -4462,7 +4464,7 @@
 /* §5.9 「저장됨 HH:MM」 — 화면 우상단, 3초 뒤 사라진다 */
 .evl-autosaved {
   max-width: 1080px;
-  margin: 0 auto var(--spacing-md);
+  margin: 0 auto var(--spacing-md) 0;
   text-align: right;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
@@ -5537,7 +5539,7 @@
   flex-direction: column;
   gap: var(--spacing-md);
   max-width: 1080px;
-  margin: 0 auto;
+  margin: 0 auto 0 0;
 }
 .fb-item {
   gap: var(--spacing-sm);
@@ -8425,6 +8427,8 @@
    top 을 내비 높이만큼 밀어 준다(`.evnav-shell .evc-root`).
    ════════════════════════════════════════════════════════════ */
 .evnav-shell {
+  /* 탭 줄 왼쪽 여백 — 본문(.evc-root)도 같은 값으로 들여 두 줄의 왼쪽을 맞춘다 (PW-1656). */
+  --evnav-pad-left: 12px;
   /* 1행 큰 제목 탭 8(위 여백)+38 + 간격 13 + 2행 밑줄 탭 36. 행이 접히면 값이 어긋나므로
      아래에서 두 행 모두 nowrap 으로 고정한다. */
   --evnav-h: 95px;
@@ -8438,13 +8442,14 @@
   right: 0;
   z-index: 80;
   box-sizing: border-box;
-  padding: 8px 40px 0 12px;
+  padding: 8px 40px 0 var(--evnav-pad-left);
   background: var(--bg-primary);
   font-family: var(--font-family-body);
 }
 /* 평가 셸 안에서는 캔버스를 내비 아래로 내린다 */
 .evnav-shell .evc-root {
   top: calc(68px + var(--evnav-h));
+  padding-left: var(--evnav-pad-left);
 }
 /* 1행 — 모양은 `.tab-nav`(OKR·조직도)가 준다. 키보드로도 고를 수 있게 버튼으로 두고
    버튼 기본 모양만 걷는다. 좁아지면 줄바꿈 대신 가로 스크롤. */
