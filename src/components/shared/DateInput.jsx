@@ -29,6 +29,9 @@ import { useFieldControl } from './formField.js';
  *   startView  'day'(기본) | 'year' — 'year' 면 비어 있는 칸의 달력을 연도 보기로 연다.
  *              먼 과거를 고르는 칸(생년월일)이 쓴다. 값이 있으면 그 달의 일 보기다 (PW-1301)
  *   invalid    틀림 표시를 직접 켤 때. `FormField` 안이면 그 틀의 오류 문구를 따른다 (PW-1012)
+ *   onRevert   (typed: string) => void — 칸을 떠날 때 친 값이 날짜가 아니어서 마지막 값으로
+ *              되돌렸을 때 부른다. 되돌림은 말없이 일어나므로, 부르는 쪽이 그 사실을 칸 옆에
+ *              알릴 때 쓴다 (PW-1698)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -70,6 +73,7 @@ export default function DateInput({
   today,
   invalid,
   startView = 'day',
+  onRevert,
   ...rest
 }) {
   // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
@@ -105,7 +109,11 @@ export default function DateInput({
   const onBlur = () => {
     const v = normalize(draft);
     if (v === '' || isIsoDate(v)) setDraft(v);
-    else setDraft(current);
+    else {
+      setDraft(current);
+      // 손대지 않은 칸(바깥 값이 처음부터 온전하지 않은 경우)은 되돌린 것이 없다.
+      if (draft !== current) onRevert?.(draft);
+    }
   };
 
   const open = () => {
