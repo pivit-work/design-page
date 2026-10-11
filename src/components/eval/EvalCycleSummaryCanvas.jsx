@@ -638,7 +638,10 @@ function committeeCandidateMatches(c, q) {
 /** §3.2·§3.3 — 세션 범위 라벨(조직 / 레벨). 고르지 않은 축은 빼고, 둘 다 없으면 전체 조직. */
 function calibScopeLabel(scope, L) {
   const depts = Array.isArray(scope?.departments) ? scope.departments.filter(Boolean) : [];
-  const levels = Array.isArray(scope?.levels) ? scope.levels.filter(Boolean) : [];
+  // PW-1687 — 옛 위원회의 직책 조건(`levels`)과 직급 조건(`jobLevels`)을 함께 보인다.
+  const levels = [scope?.levels, scope?.jobLevels]
+    .flatMap((v) => (Array.isArray(v) ? v : []))
+    .filter(Boolean);
   const parts = [depts.length > 0 ? depts.join(', ') : L.cwScopeAll];
   if (levels.length > 0) parts.push(levels.join(', '));
   return parts.join(' · ');
@@ -1671,15 +1674,16 @@ export default function EvalCycleSummaryCanvas({
   /** 표·CSV·미리보기가 함께 쓰는 「지금 화면에 보이는 행」. */
   const calibFields = calibFilterFields(calibTable?.rows ?? [], L);
   /**
-   * §10.G.7 이해상충 — 위원이면 서버가 그의 직급(`viewerPosition`)을 준다. 같은 직급 피평가자는
+   * §10.G.7 이해상충 — 위원이면 서버가 그의 직급(`viewerJobLevel`, Junior~C-Level)을 준다. 행의
+   * `jobLevel` 이 같은 피평가자는
    * 처음에 숨기고 [보기]로 다시 보인다. 세션을 바꾸면 다시 숨긴 채로 시작한다.
    */
   const [conflictShownSession, setConflictShownSession] = useState(null);
   const conflictShown = conflictShownSession != null && conflictShownSession === selectedCalibSessionId;
-  const viewerPosition = calibTable?.viewerPosition || null;
+  const viewerJobLevel = calibTable?.viewerJobLevel || null;
   const calibLevelMix = levelComposition(calibTable?.rows ?? []);
-  const conflictIds = viewerPosition
-    ? (calibTable?.rows ?? []).filter((r) => r.level && r.level === viewerPosition).map((r) => r.memberId)
+  const conflictIds = viewerJobLevel
+    ? (calibTable?.rows ?? []).filter((r) => r.jobLevel && r.jobLevel === viewerJobLevel).map((r) => r.memberId)
     : [];
   const calibBaseRows =
     conflictShown || conflictIds.length === 0
@@ -5448,7 +5452,8 @@ export default function EvalCycleSummaryCanvas({
                   onClick={() => {
                     const scope = {};
                     if (createDepts.length > 0) scope.departments = createDepts;
-                    if (createLevels.length > 0) scope.levels = createLevels;
+                    // PW-1687 — 칩 값은 직급(jobLevel)이다. 옛 `levels`(직책)에 넣지 않는다.
+                    if (createLevels.length > 0) scope.jobLevels = createLevels;
                     setCommitteeError('');
                     setCommitteeSaving(true);
                     // PW-966 — 만들어진 «뒤에» 닫는다. 예전에는 누르자마자 닫아서, 실패하면

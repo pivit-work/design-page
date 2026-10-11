@@ -1656,6 +1656,7 @@ function newCommitteeCard(seed = {}) {
     name: seed.name ?? '',
     depts: [...(seed.depts ?? [])],
     levels: [...(seed.levels ?? [])],
+    jobLevels: [...(seed.jobLevels ?? [])],
     added: [...(seed.added ?? [])],
     excluded: [...(seed.excluded ?? [])],
     members: [...(seed.members ?? [])],
@@ -1688,6 +1689,7 @@ function initialCommitteeCards(D, CI) {
         name: CI.name,
         depts: CI.depts,
         levels: CI.levels,
+        jobLevels: CI.jobLevels,
         added: CI.added,
         excluded: CI.excluded,
         members: CI.committee,
@@ -1699,10 +1701,13 @@ function initialCommitteeCards(D, CI) {
 
 /* 서버 `matchesScope` 와 같은 규칙 — **고르지 않은 축으로는 자르지 않는다**(빈 축 = 전체).
    화면이 서버와 다른 규칙을 쓰면 「명단엔 12명인데 실제 대상은 40명」이 된다. */
+/* PW-1687 — 고르는 «직급»은 직급(jobLevel, Junior~C-Level)이다. `levels` 는 그 전에 만든 위원회가
+   직책(jobPosition) 값으로 저장해 둔 조건이라 직책으로 계속 비교한다 — 대상자가 바뀌지 않게. */
 function matchesCommitteeCardScope(card, m) {
   return (
     (card.depts.length === 0 || card.depts.includes(committeeDeptOf(m))) &&
-    (card.levels.length === 0 || card.levels.includes(m.jobPosition))
+    (card.levels.length === 0 || card.levels.includes(m.jobPosition)) &&
+    (card.jobLevels.length === 0 || card.jobLevels.includes(m.jobLevel))
   );
 }
 
@@ -1764,8 +1769,9 @@ function CommitteeCard({
   const setCommitteeName = setField('name');
   const committeeDepts = card.depts;
   const setCommitteeDepts = setField('depts');
-  const committeeLevels = card.levels;
-  const setCommitteeLevels = setField('levels');
+  const committeeLevels = card.jobLevels;
+  const setCommitteeLevels = setField('jobLevels');
+  const setCommitteeLegacyLevels = setField('levels');
   const setCommitteeAdded = setField('added');
   const setCommitteeExcluded = setField('excluded');
   /* 검색어는 «보기 조건»이라 카드 안에 둔다 — 초안에도 요청에도 싣지 않는다. */
@@ -1787,7 +1793,7 @@ function CommitteeCard({
   /* 명단 검색은 **표시만** 바꾼다 — 제외·추가 상태도 인원 수도 검색어와 무관하다. */
   const visibleCommitteeRoster = committeeRosterQuery
     ? committeeRoster.filter((m) =>
-        [m.name, committeeDeptOf(m), m.jobPosition].some((v) =>
+        [m.name, committeeDeptOf(m), m.jobLevel, m.jobPosition].some((v) =>
           String(v ?? '')
             .toLowerCase()
             .includes(committeeRosterQuery),
@@ -1802,7 +1808,7 @@ function CommitteeCard({
           (m) =>
             !committeeRosterIds.has(m.id) &&
             !committeeSelectedIds.has(m.id) &&
-            [m.name, committeeDeptOf(m), m.jobPosition].some((v) =>
+            [m.name, committeeDeptOf(m), m.jobLevel, m.jobPosition].some((v) =>
               String(v ?? '')
                 .toLowerCase()
                 .includes(committeeAddQuery),
@@ -1818,6 +1824,9 @@ function CommitteeCard({
     setCommitteeLevels((prev) =>
       prev.includes(lv) ? prev.filter((x) => x !== lv) : [...prev, lv],
     );
+  /* 옛 위원회의 직책 조건은 켜진 칩으로만 보이고, 누르면 걷힌다 — 새로 고를 수는 없다. */
+  const removeCommitteeLegacyLevel = (lv) =>
+    setCommitteeLegacyLevels((prev) => prev.filter((x) => x !== lv));
   const excludeFromRoster = (m) => {
     /* 개별 추가분은 추가를 취소하면 사라진다. 조건에도 걸리는 사람이면 제외까지 함께 —
        추가만 지우면 조건 매칭으로 곧바로 되살아나서, 눌러도 아무 일이 없어 보인다. */
@@ -1948,7 +1957,7 @@ function CommitteeCard({
           </>
         )}
 
-        {committeeLevelOptions.length > 0 && (
+        {(committeeLevelOptions.length > 0 || card.levels.length > 0) && (
           <>
             <div className="evc-wiz-calibscope-label">
               {L.wizardCommitteeLevelLabel ??
@@ -1970,6 +1979,18 @@ function CommitteeCard({
                   </button>
                 );
               })}
+              {card.levels.map((lv) => (
+                <button
+                  type="button"
+                  key={`legacy-${lv}`}
+                  className="evc-wiz-calibscope-chip is-on"
+                  aria-pressed
+                  onClick={() => removeCommitteeLegacyLevel(lv)}
+                  data-testid={`evc-wiz-committee-legacy-level-${lv}`}
+                >
+                  {lv}
+                </button>
+              ))}
             </div>
           </>
         )}
@@ -2033,7 +2054,7 @@ function CommitteeCard({
                       {m.name}
                     </span>
                     <span className="evc-wiz-calibscope-row-meta">
-                      {[committeeDeptOf(m), m.jobPosition]
+                      {[committeeDeptOf(m), m.jobLevel]
                         .filter(Boolean)
                         .join(' · ')}
                     </span>
@@ -2115,7 +2136,7 @@ function CommitteeCard({
                     {m.name}
                   </span>
                   <span className="evc-wiz-calibscope-row-meta">
-                    {[committeeDeptOf(m), m.jobPosition]
+                    {[committeeDeptOf(m), m.jobLevel]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
@@ -2698,7 +2719,8 @@ export default function EvalCycleWizard({
   isScheduleStartReached,
   /**
    * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
-   * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, added, excluded }`.
+   * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, jobLevels, added, excluded }`.
+   * `levels` 는 옛 위원회의 직책 조건, `jobLevels` 는 직급 조건이다(PW-1687).
    *
    * 초안 복원(`draftState`)과 같은 자리 — 상태 초기값에서만 읽는다. 이펙트로 뒤늦게
    * 덮으면 사용자가 이미 고친 값을 되돌린다. 값이 늦게 오면 소비 측이 `key` 로 새로 띄운다.
@@ -5727,9 +5749,15 @@ export default function EvalCycleWizard({
   const committeeDeptOptions = [
     ...new Set(targetMembers.map(committeeDeptOf).filter(Boolean)),
   ];
+  /* PW-1687 — 직급(jobLevel) 칩. 순서는 회사가 설정한 직급 순서, 설정에 없는 값은 뒤에. */
+  const committeeLevelOrder = fieldOptionsAll?.jobLevel ?? fieldOptions?.jobLevel ?? [];
   const committeeLevelOptions = [
-    ...new Set(targetMembers.map((c) => c.jobPosition).filter(Boolean)),
-  ];
+    ...new Set(targetMembers.map((c) => c.jobLevel).filter(Boolean)),
+  ].sort((a, b) => {
+    const ia = committeeLevelOrder.indexOf(a);
+    const ib = committeeLevelOrder.indexOf(b);
+    return (ia < 0 ? Infinity : ia) - (ib < 0 ? Infinity : ib);
+  });
   /* PW-1460 — 카드마다 명단을 한 번 구해 완성·중복·빠진 대상 판정이 같은 명단을 본다. */
   const committeeRosters = committees.map((c) => committeeRosterOf(c, targetMembers));
   const incompleteCommitteeCount = committees.filter(
@@ -5758,7 +5786,7 @@ export default function EvalCycleWizard({
     ...new Set(
       targetMembers
         .filter((m) => !committeeCardsOf.has(m.id))
-        .map((m) => [committeeDeptOf(m), m.jobPosition].filter(Boolean).join('·'))
+        .map((m) => [committeeDeptOf(m), m.jobLevel].filter(Boolean).join('·'))
         .filter(Boolean),
     ),
   ];
@@ -6118,6 +6146,7 @@ export default function EvalCycleWizard({
     committees[0].members.length === 0 &&
     committees[0].depts.length === 0 &&
     committees[0].levels.length === 0 &&
+    committees[0].jobLevels.length === 0 &&
     committees[0].added.length === 0 &&
     committees[0].excluded.length === 0;
   const committeeInScope =
@@ -6651,6 +6680,7 @@ export default function EvalCycleWizard({
               scope: {
                 ...(c.depts.length > 0 ? { departments: c.depts } : {}),
                 ...(c.levels.length > 0 ? { levels: c.levels } : {}),
+                ...(c.jobLevels.length > 0 ? { jobLevels: c.jobLevels } : {}),
               },
               addedMemberIds: c.added,
               excludedMemberIds: c.excluded,
@@ -10377,7 +10407,7 @@ export default function EvalCycleWizard({
                   <li key={m.id} data-testid="evc-wiz-calib-dup-row">
                     <b>{m.name}</b>{' '}
                     <span className="evc-wiz-calib-dup-meta">
-                      {[committeeDeptOf(m), m.jobPosition].filter(Boolean).join(' · ')}
+                      {[committeeDeptOf(m), m.jobLevel].filter(Boolean).join(' · ')}
                     </span>{' '}
                     <span className="evc-wiz-calib-dup-titles">{titles.join(' · ')}</span>
                   </li>
