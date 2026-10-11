@@ -1470,6 +1470,8 @@
   padding-top: 10px;
   border-top: 1px dashed var(--border-secondary);
 }
+/* 회사 전체 리마인더 꺼짐 경고 — .evx-notice 가 margin 0 이라 아래 머리줄에 붙었다(PW-1706). */
+.evc-rm-block > .evx-notice { margin-bottom: var(--spacing-md); }
 .evc-rm-head {
   display: flex;
   align-items: center;
@@ -5232,6 +5234,8 @@
   flex-direction: column;
   gap: var(--spacing-md);
 }
+/* 리더 차수 제목 바로 아래 답변 목록 — 제목에 아래 여백이 없어 붙었다(PW-1706). */
+.evc-field-label + .evr-answers { margin-top: var(--spacing-md); }
 .evr-answer {
   display: flex;
   flex-direction: column;

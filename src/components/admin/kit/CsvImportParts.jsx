@@ -171,9 +171,9 @@ export function CsvSectionHead({ icon, title, desc, tone }) {
  * tone: neutral · brand · success · warn · error
  * title 이 있으면 굵은 첫 줄 + children 이 둘째 줄, 없으면 children 한 줄.
  */
-export function AdminNotice({ tone = 'neutral', icon, title, children, testId, role }) {
+export function AdminNotice({ tone = 'neutral', icon, title, children, testId, role, className }) {
   return (
-    <div className={cx('admin-kit-notice', `is-${tone}`, title && 'has-title')} data-testid={testId} role={role}>
+    <div className={cx('admin-kit-notice', `is-${tone}`, title && 'has-title', className)} data-testid={testId} role={role}>
       {icon && <span className="admin-kit-notice-icon">{icon}</span>}
       <div className="admin-kit-notice-text">
         {title && <p className="admin-kit-notice-title">{title}</p>}

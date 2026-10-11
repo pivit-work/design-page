@@ -104,6 +104,13 @@
   letter-spacing: -0.01em;
   color: var(--text-primary);
 }
+/* 카드 맨 위 제목 아래를 띄운다 — 전역 리셋(* { margin: 0 })이 기본 여백을 지워 아래 내용과 붙었다(PW-1706).
+   머리줄(.admin-section-header) 안의 제목은 카드 바로 아래가 아니라 걸리지 않는다. */
+.admin-card > .admin-section-label { margin-bottom: var(--spacing-md); }
+.admin-card > .admin-section-label + .admin-notif-banner { margin-bottom: var(--spacing-lg); }
+/* 결제·구독 위 탭 줄 바로 아래 안내 띠 — 탭과 띠가 여백 없는 형제로 쌓여 붙었다(PW-1706).
+   위쪽만 띄워서 띠가 없을 때 탭과 본문 사이는 그대로다. */
+.admin-billing-notice { margin-top: var(--spacing-lg); }
 
 /* ── 작은 링크 버튼 (직원 관리, 평가 관리, 연동 설정) ─────────────── */
 .admin-link-button {
@@ -1418,6 +1425,8 @@
 .admin-emp-panel-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
 .admin-emp-panel-body .admin-section-label { margin-top: 22px; }
 .admin-emp-panel-body .admin-section-label:first-child { margin-top: 0; }
+/* 칸 묶음은 div 로 한 번 감싸여 패널 gap 이 제목과 칸 사이에 닿지 않는다(PW-1706). */
+.admin-emp-panel-body > div > .admin-section-label { margin-bottom: var(--spacing-md); }
 .admin-emp-panel-footer {
   display: flex;
   gap: 12px;
