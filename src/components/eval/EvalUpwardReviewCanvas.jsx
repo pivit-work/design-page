@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import EvalCycleMemberCanvas from './EvalCycleMemberCanvas.jsx';
 import AvatarPhoto from './AvatarPhoto.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 
 /**
@@ -24,6 +25,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  *         answers, submitted, previousTarget, template }
  * - labels: 사람이 읽는 문구 전부(i18n 은 소비자가 채운다)
  * - onRetry, onSave(items), onSubmit(items), onAiDraft(items), onConfirmLeaderChange()
+ * - onSaveError(): [임시저장] 단추가 실패했을 때(§5U.5 토스트는 소비자가 띄운다)
  * - aiDraftDisabledReason: AI 초안 근거가 없을 때의 이유(있으면 버튼이 꺼진다)
  */
 
@@ -31,6 +33,8 @@ const DEFAULT_LABELS = {
   title: '상향 리뷰 작성',
   deadline: '마감 {{date}}',
   targetRelation: '직속 리더',
+  // §5U.2 평가 대상 카드의 배지. 초안 근거가 원온원·피드백임을 알린다.
+  aiBadge: 'AI 원온원·피드백 기반 초안',
   noticeTitle: '이 리뷰는 {{name}}님에게 그대로 전달되지 않습니다',
   // 대상이 아직 안 왔을 때(불러오는 중) — 이름 자리를 비운 문장을 만들지 않는다.
   noticeTitleNoName: '이 리뷰는 평가 대상 리더에게 그대로 전달되지 않습니다',
@@ -105,6 +109,9 @@ function TargetCard({ target, L }) {
         <span className="evc-card-name">{target.name}</span>
         {meta && <span className="evc-card-meta">{meta}</span>}
         <span className="evu-target-relation">{L.targetRelation}</span>
+        <StatusBadge className="evc-status-badge tone-purple" data-testid="evu-target-ai-badge">
+          {L.aiBadge}
+        </StatusBadge>
       </div>
     </section>
   );
@@ -155,6 +162,7 @@ export default function EvalUpwardReviewCanvas({
   onSubmit,
   onAiDraft,
   onConfirmLeaderChange,
+  onSaveError,
   aiDraftDisabledReason = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -284,6 +292,9 @@ export default function EvalUpwardReviewCanvas({
       onSave={onSave}
       onSubmit={onSubmit}
       onAiDraft={onAiDraft}
+      // §5U.4 「적용 전에는 본문을 바꾸지 않는다」 — 초안은 [사용]을 눌러야 칸에 들어간다.
+      draftNeedsApply
+      onSaveError={onSaveError}
       aiDraftDisabledReason={aiDraftDisabledReason}
       // 항목별 공개 안내는 끈다 — 그 줄은 옛 항목 필드(visibleToRoles)를 읽어, 값이 비면
       // 「피평가자 본인에게도 공개됩니다」라고 적는다. 상향의 공개는 위 익명 안내가 정본이다

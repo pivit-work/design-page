@@ -16,7 +16,7 @@ import { leaderGradeMarks } from './evalLeaderLive.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
- * 나머지는 평가가 끝난 뒤에만 의미가 있다. 위원회 초대 여부는 여기서 보지 않는다.
+ * 나머지는 평가가 끝난 뒤에만 의미가 있다. 위원회 초대 여부는 `showCalibWorkTab` 이 따로 본다.
  */
 const TAB_OPEN_STATUSES = {
   overview: ['done'],
@@ -1790,6 +1790,8 @@ export default function EvalCycleSummaryCanvas({
    */
   toolbar = null,
   workspaceOnly = false,
+  // [PW-1465] 요약 정책 §3 탭 G — 위원회에 초대된 사람에게만 탭을 만든다. false 면 탭 자체가 없다.
+  showCalibWorkTab = true,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // [PW-1594 · spec-calibration §20.1] 하향 차수 2 이상 — 머리 「하향 등급」 · 칸에 출처 차수 배지.
@@ -1806,7 +1808,8 @@ export default function EvalCycleSummaryCanvas({
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : initialTab || 'overview');
   // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
   const tabOpen = (key) =>
-    !cycle?.status || (TAB_OPEN_STATUSES[key] ?? []).includes(cycle.status);
+    (key !== 'calib_work' || workspaceOnly || showCalibWorkTab) &&
+    (!cycle?.status || (TAB_OPEN_STATUSES[key] ?? []).includes(cycle.status));
   const beforeCalibration =
     !workspaceOnly && !!cycle?.status && !TAB_OPEN_STATUSES.integrated.includes(cycle.status);
   const [execSection, setExecSection] = useState('j1');
@@ -2356,7 +2359,7 @@ export default function EvalCycleSummaryCanvas({
     { key: 'calib', label: L.tabCalib },
     { key: 'exec', label: L.tabExec },
     { key: 'integrated', label: L.tabIntegrated },
-    { key: 'calib_work', label: L.tabCalibWork },
+    ...(showCalibWorkTab ? [{ key: 'calib_work', label: L.tabCalibWork }] : []),
   ];
   // 고른 탭이 아직 안 열린 단계면 열린 첫 탭을 보인다 — 하나도 안 열렸으면 아무 탭도 그리지 않는다.
   const shownTab = workspaceOnly || tabOpen(tab) ? tab : (tabs.find((t) => tabOpen(t.key))?.key ?? null);

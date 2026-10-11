@@ -125,6 +125,11 @@ const DEFAULT_LABELS = {
   aiDraftEdited: 'AI 수정됨',
   aiDraftConfirmed: 'AI 초안 확인됨',
   aiDraftConfirm: '확인',
+  // §4.3.1 — 적용 단계를 켠 화면(상향 리뷰 §5U.4)에서 초안 블록의 두 버튼.
+  aiDraftUse: '사용',
+  aiDraftFold: '접기',
+  // §5U.4 실패 박스의 버튼.
+  aiDraftRetry: '다시 시도',
   // PW-1614 기획서 절대 규칙 3 — 확인 안 한(노란) 초안 칸이 남으면 제출되지 않는다.
   aiDraftPendingWarn: 'AI 초안을 확인한 뒤 제출해 주세요.',
   // PW-1464 · §4.4.1 문구 — 남은 노란 칸 수를 함께 말한다. 비우면 위 문구를 쓴다.
@@ -450,6 +455,11 @@ export default function EvalCycleMemberCanvas({
   onGoPeerReview = null,
   // [PW-1464] 완료 화면의 「내 평가 현황으로」(§6.1) — 갈 곳이 있을 때만 넘긴다.
   onGoMyEval = null,
+  // [PW-1465] 상향 리뷰 §5U.4 — 초안을 칸에 바로 넣지 않고 칸 아래 노란 블록에 둔다.
+  // [사용]을 눌러야 칸에 들어가고, [접기]는 버린다. 적용 전에는 본문을 바꾸지 않는다.
+  draftNeedsApply = false,
+  // [PW-1465] [임시저장] 단추로 저장하다 실패했을 때. 자동 저장 실패는 폼 아래 띠만 띄운다.
+  onSaveError,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -469,6 +479,14 @@ export default function EvalCycleMemberCanvas({
   const [draftError, setDraftError] = useState(null);
   /** AI 가 근거가 없어 빈 초안을 돌려준 항목이 있었나 — 데이터 부족 안내를 띄운다. */
   const [draftShort, setDraftShort] = useState(false);
+  // [PW-1465] draftNeedsApply 일 때 아직 [사용] 하지 않은 초안. { [fieldKey]: text }
+  const [pendingDraft, setPendingDraft] = useState({});
+  const dropPendingDraft = (key) =>
+    setPendingDraft((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   const submitted = status === 'submitted';
   // [PW-1464] 제출했거나 마감이 지났으면 고칠 수 없다(§4.1). 둘 다 입력을 잠그고 제출 바를 감춘다.
   const readOnly = submitted || closed;
@@ -657,7 +675,7 @@ export default function EvalCycleMemberCanvas({
   // 이미 쓴 내용은 절대 덮어쓰지 않는다(초안 때문에 작성분이 날아가면 안 된다).
   // 채울 칸이 없으면 버튼 자체가 비활성 — '다듬기'로 넘어가면 되는 상태다.
   const emptyTextFields = fields.filter(
-    (f) => f.type !== 'rating' && !state[f.key].textAnswer.trim(),
+    (f) => f.type !== 'rating' && !state[f.key].textAnswer.trim() && !pendingDraft[f.key],
   );
   /** `only` 를 주면 그 항목 하나만 만든다(항목별 단추). 안 주면 빈 서술형 전부. */
   const handleAiDraft = async (only = null) => {
@@ -696,6 +714,17 @@ export default function EvalCycleMemberCanvas({
         ),
       );
       if (!only) setDraftDoneAll(true);
+      if (draftNeedsApply) {
+        setPendingDraft((prev) => {
+          const next = { ...prev };
+          for (const d of drafted) {
+            const f = fields[d.index];
+            if (f && d.textAnswer?.trim()) next[f.key] = d.textAnswer;
+          }
+          return next;
+        });
+        return;
+      }
       setState((prev) => {
         const next = { ...prev };
         for (const d of drafted) {
@@ -1261,7 +1290,7 @@ export default function EvalCycleMemberCanvas({
                       data-testid={`evm-text-${f.key}`}
                     />
                     {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
-                    {onAiDraft && !readOnly && !state[f.key].textAnswer.trim() && (
+                    {onAiDraft && !readOnly && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
                       <button
                         type="button"
                         className="evc-btn is-ghost evm-ai-item-draft"
@@ -1276,7 +1305,43 @@ export default function EvalCycleMemberCanvas({
                     {draftError === f.key && (
                       <p className="evm-field-error" data-testid={`evm-ai-draft-error-${f.key}`}>
                         {L.aiDraftError}
+                        <button
+                          type="button"
+                          className="evm-ai-draft-retry"
+                          disabled={!!draftBusy}
+                          onClick={() => handleAiDraft(f)}
+                          data-testid={`evm-ai-draft-retry-${f.key}`}
+                        >
+                          {L.aiDraftRetry}
+                        </button>
                       </p>
+                    )}
+                    {pendingDraft[f.key] && !readOnly && (
+                      <div className="evm-ai-draft-pending" data-testid={`evm-ai-pending-${f.key}`}>
+                        <span className="evm-ai-draft-badge">{L.aiDraftUnconfirmed}</span>
+                        <p className="evm-ai-draft-pending-text">{pendingDraft[f.key]}</p>
+                        <div className="evm-ai-draft-bar is-unconfirmed">
+                          <button
+                            type="button"
+                            className="evm-ai-draft-confirm"
+                            onClick={() => {
+                              setField(f.key, { textAnswer: pendingDraft[f.key] });
+                              dropPendingDraft(f.key);
+                            }}
+                            data-testid={`evm-ai-use-${f.key}`}
+                          >
+                            {L.aiDraftUse}
+                          </button>
+                          <button
+                            type="button"
+                            className="evm-ai-draft-confirm"
+                            onClick={() => dropPendingDraft(f.key)}
+                            data-testid={`evm-ai-fold-${f.key}`}
+                          >
+                            {L.aiDraftFold}
+                          </button>
+                        </div>
+                      </div>
                     )}
                     {aiStateOf(f) && (
                       <div
@@ -1324,6 +1389,15 @@ export default function EvalCycleMemberCanvas({
         <div className="evc-list">
           <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
             {L.aiDraftError}
+            <button
+              type="button"
+              className="evm-ai-draft-retry"
+              disabled={!!draftBusy}
+              onClick={() => handleAiDraft()}
+              data-testid="evm-ai-draft-retry"
+            >
+              {L.aiDraftRetry}
+            </button>
           </p>
         </div>
       )}
@@ -1397,7 +1471,10 @@ export default function EvalCycleMemberCanvas({
                     setAutoSavedAt(new Date());
                     setSaveError(false);
                   })
-                  .catch(() => setSaveError(true))
+                  .catch(() => {
+                    setSaveError(true);
+                    onSaveError?.();
+                  })
               }
               data-testid="evm-save"
             >
