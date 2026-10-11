@@ -53,6 +53,8 @@ const DEFAULT_LABELS = {
   catStrengths: '강점',
   catImprovements: '보완점',
   catGrowthDemo: '성장',
+  // [PW-1748] 칸(강점·보완점·성장한 점)이 없는 성장 답의 이름 — 리더 리뷰 근거 패널과 같은 말.
+  catGrowth: '성장',
 };
 
 const CAT_KEY = { work_achievement: 'catWork', competency: 'catCompetency' };
@@ -80,9 +82,8 @@ function catLabel(a, L) {
   const kind = categoryKind(a.itemCategory);
   if (kind === 'growth') {
     const key = GROWTH_KEY[a.growthType];
-    if (key) return L[key];
-    // 칸이 없는 성장 답은 저장된 구분 문장을 그대로 쓴다. 내부 값(`growth`)이면 화면에 내지 않는다.
-    return a.itemCategory === kind ? (a.growthType ?? '') : a.itemCategory;
+    // 칸이 없는 성장 답(하향 리뷰 성장 답·「성장 가능성」 점수)은 구분 이름 «성장».
+    return key ? L[key] : L.catGrowth;
   }
   return L[CAT_KEY[kind]] ?? a.itemCategory ?? '';
 }
