@@ -9570,6 +9570,27 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-1463 — 꺼 둔 항목의 «최종 리포트에 안 들어간다» 회색 안내 (정책 §8.3). */
+.evrr-section-off-note {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+/* PW-1463 — 캘리브레이션에서 등급이 바뀐 사람: 빨간 점 + 글 (정책 §8.5 엣지). */
+.evrr-adjusted {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-error-700);
+}
+.evrr-adjusted-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--utility-error-500);
+}
 
 /* ── PW-832 평가 창 — 공용 창 틀(ModalShell) 위의 변형 ─────────────────────────
    평가 창은 내용 높이가 제각각이라 껍데기의 고정 높이(428px)를 내용 높이로 푼다.

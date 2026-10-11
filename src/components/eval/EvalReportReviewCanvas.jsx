@@ -108,6 +108,9 @@ const DEFAULT_LABELS = {
   rejectClose: '닫기',
   rejectError: '반려하지 못했습니다. 다시 시도해 주세요.',
   toastRejected: '리더에게 반려했습니다',
+  // PW-1463 — 캘리브레이션에서 등급이 바뀐 사람 · HR 이 끈 항목 (리더 정책 §8.3·§8.5)
+  gradeAdjusted: '등급 조정됨 — 코멘트 검토 필요',
+  sectionOffNote: '(이 섹션은 최종 리포트에 포함되지 않습니다)',
   // PW-1458 — 캘리브레이션 확정 직후 만드는 AI 해설 (정책 §8.1·§9.3)
   aiBadge: 'AI 생성',
   aiGenerating: '리포트 생성 중',
@@ -202,6 +205,15 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
               />
               <span className="evrr-section-label">{L.sectionLabels?.[key] ?? key}</span>
               {required && <span className="evrr-section-req">{L.sectionsRequired}</span>}
+              {/* PW-1463 — 꺼 둔 항목은 «빠진다»를 글로도 적는다(리더 정책 §8.3). 취소선만으로는
+                  읽기 전용인 리더가 «내가 못 누르는 것»과 «리포트에서 빠지는 것»을 가르지 못한다. */}
+              {!on && (
+                <span
+                  className="evrr-section-off-note"
+                  data-testid={`evrr-section-off-${row.memberId}-${key}`}>
+                  {L.sectionOffNote}
+                </span>
+              )}
             </label>
           );
         })}
@@ -460,6 +472,10 @@ function ReviewRow({
         (row.status === 'pending' || row.status === 'leader_rejected') &&
         !excluded;
   const rejected = row.status === 'leader_rejected' && !excluded;
+  const gradeAdjustedOpen =
+    row.gradeAdjusted === true &&
+    !excluded &&
+    (row.status === 'pending' || row.status === 'leader_rejected');
   const aiState = row.aiInsightState ?? 'none';
   const meta = excluded
     ? EXCLUDED_META
@@ -533,6 +549,14 @@ function ReviewRow({
             </StatusBadge>
           )}
         </span>
+        {/* PW-1463 — 위원회가 등급을 바꾼 사람(서버 판정). 승인하기 전까지만 — 승인했으면 이미
+            코멘트를 본 것이다(리더 정책 §8.5 엣지). */}
+        {gradeAdjustedOpen && (
+          <span className="evrr-adjusted" data-testid={`evrr-adjusted-${row.memberId}`}>
+            <span className="evrr-adjusted-dot" aria-hidden />
+            {L.gradeAdjusted}
+          </span>
+        )}
         {row.department && <span className="evrr-name-sub">{row.department}</span>}
         {overrideCount > 0 && (
           <span className="evrr-name-sub" data-testid={`evrr-override-note-${row.memberId}`}>
