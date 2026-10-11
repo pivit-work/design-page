@@ -635,6 +635,8 @@ function StatusBadge({ status, labels }) {
  * 계산해 넘긴 `{ kind, label }` 을 그리기만 한다. 없으면 아무것도 그리지 않는다.
  *   kind 'upcoming' — 마지막 출근일 전(당일 포함) → 주의 색
  *   kind 'ended'    — 마지막 출근일은 지났고 퇴사일 전 → 중립 색
+ * `hint` 는 마우스를 올렸을 때 말풍선 — 무엇을 기준으로 붙었나(마지막 출근일)와 재직 상태는 그대로라는 것.
+ * 없으면 라벨을 쓴다(PW-1695 — 라벨만 되풀이해 퇴사 예정자로 읽혔다).
  */
 function RetirementBadge({ notice }) {
   if (!notice || !notice.label) return null;
@@ -644,7 +646,7 @@ function RetirementBadge({ notice }) {
       tone={tone}
       className={`admin-emp-status admin-emp-retire is-${notice.kind === 'upcoming' ? 'upcoming' : 'ended'}`}
       data-testid="employees-retirement-badge"
-      title={notice.label}
+      title={notice.hint || notice.label}
     >
       {notice.label}
     </DpStatusBadge>
