@@ -325,6 +325,32 @@ function seedState(answers, fields) {
   return state;
 }
 
+// 저장할 답 — 무언가 쓴 칸만. 임시저장·자동 저장·제출이 모두 이 모양을 쓴다(PW-1614).
+function answerItems(fields, state, trackAiDraft) {
+  return fields
+    .filter(
+      (f) =>
+        state[f.key].textAnswer.trim() ||
+        state[f.key].score != null ||
+        selectedOptions(state[f.key]).length > 0,
+    )
+    .map((f) => ({
+      templateItemId: f.templateItemId,
+      itemCategory: f.category,
+      growthType: f.growthType,
+      textAnswer: state[f.key].textAnswer,
+      score: state[f.key].score,
+      rationale: state[f.key].rationale || null,
+      checkedOptions: state[f.key].checkedOptions,
+      ...(trackAiDraft
+        ? {
+            aiDraft: state[f.key].aiDraft ?? null,
+            isConfirmed: !!state[f.key].isConfirmed,
+          }
+        : {}),
+    }));
+}
+
 // §4.2.1 KR 입력 폼 시드 — krProgress 항목별 {percent, note}.
 function seedKrState(krList) {
   const state = {};
@@ -428,23 +454,9 @@ export default function EvalCycleMemberCanvas({
     if (submitted || !onSave) return undefined;
     const timer = setInterval(() => {
       if (!dirtyRef.current) return;
-      const cur = stateRef.current;
-      const items = fields
-        .filter(
-          (f) =>
-            cur[f.key].textAnswer.trim() ||
-            cur[f.key].score != null ||
-            selectedOptions(cur[f.key]).length > 0,
-        )
-        .map((f) => ({
-          templateItemId: f.templateItemId,
-          itemCategory: f.category,
-          growthType: f.growthType,
-          textAnswer: cur[f.key].textAnswer,
-          score: cur[f.key].score,
-          rationale: cur[f.key].rationale || null,
-          checkedOptions: cur[f.key].checkedOptions,
-        }));
+      // [PW-1614] 임시저장·제출과 같은 모양으로 보낸다 — 여기서 AI 초안 상태를 빼먹으면
+      // 자동 저장만 된 칸은 새로고침 뒤 노란 표시가 사라지고 확인 없이 제출됐다.
+      const items = answerItems(fields, stateRef.current, trackAiDraft);
       // 보내는 순간 깨끗하게 둔다 — 저장 중에 고친 것은 다음 주기에 다시 보낸다.
       dirtyRef.current = false;
       setAutoSaving(true);
@@ -461,7 +473,7 @@ export default function EvalCycleMemberCanvas({
         .finally(() => setAutoSaving(false));
     }, AUTOSAVE_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [submitted, onSave, fields]);
+  }, [submitted, onSave, fields, trackAiDraft]);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -538,29 +550,7 @@ export default function EvalCycleMemberCanvas({
     }
   };
 
-  const toItems = () =>
-    fields
-      .filter(
-        (f) =>
-          state[f.key].textAnswer.trim() ||
-          state[f.key].score != null ||
-          selectedOptions(state[f.key]).length > 0,
-      )
-      .map((f) => ({
-        templateItemId: f.templateItemId,
-        itemCategory: f.category,
-        growthType: f.growthType,
-        textAnswer: state[f.key].textAnswer,
-        score: state[f.key].score,
-        rationale: state[f.key].rationale || null,
-        checkedOptions: state[f.key].checkedOptions,
-        ...(trackAiDraft
-          ? {
-              aiDraft: state[f.key].aiDraft ?? null,
-              isConfirmed: !!state[f.key].isConfirmed,
-            }
-          : {}),
-      }));
+  const toItems = () => answerItems(fields, state, trackAiDraft);
 
   const handleAiPolish = async () => {
     if (!onAiPolish) return;
