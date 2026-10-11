@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Tabs from '../shared/Tabs.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
@@ -56,6 +57,11 @@ export default function MeetingRecordContent({
   // caller 가 메타 섹션 바로 아래(요약 위)에 끼워넣을 수 있는 임의 노드.
   // 녹음 플레이어, 외부 위젯 등. 패키지는 도메인을 알지 않는다.
   headerExtra,
+  // 요약 자리를 「요약 | 발언 기록」 탭으로 나눈다 (PW-1704). { label, content } — label 은 탭 이름
+  // (개수까지 caller 가 넣는다), content 는 탭 안에 그릴 노드(`MeetingTranscript` 또는 안내).
+  // 두 탭이 같은 높이 칸을 번갈아 써서, 발언이 길어도 창 길이·아래 버튼 자리가 그대로다.
+  // 주지 않으면 지금처럼 요약 섹션만 그린다.
+  transcriptTab,
   // 읽기 전용 — 회의 담당자가 아닌 참석자 (기획 screen-minutes-review §4.4).
   // 할 일 입력·담당자·기한을 잠그고 추가·삭제 버튼을 숨긴다. 모양은 그대로다.
   readOnly = false,
@@ -89,6 +95,8 @@ export default function MeetingRecordContent({
   };
 
   // 여러 항목 동시 펼침 허용 — Set 기반.
+  const [tab, setTab] = useState('summary');
+
   const [expanded, setExpanded] = useState(() => new Set([0]));
   const toggleExpanded = (i) => {
     setExpanded((prev) => {
@@ -132,11 +140,33 @@ export default function MeetingRecordContent({
 
       {headerExtra}
 
-      {/* 요약 */}
-      <section className="mtg-progress-section mtg-record-section">
-        <span className="mtg-progress-section-label">{labels.summary}</span>
-        <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
-      </section>
+      {/* 요약 — 발언 기록이 있으면 「요약 | 발언 기록」 탭 (PW-1704). 처음은 요약 탭이다. */}
+      {transcriptTab ? (
+        <section className="mtg-progress-section mtg-record-section">
+          <div className="tl-tabs-row mtg-record-tabs-row">
+            <Tabs
+              items={[
+                { value: 'summary', label: labels.summary },
+                { value: 'transcript', label: transcriptTab.label },
+              ]}
+              value={tab}
+              onChange={setTab}
+            />
+          </div>
+          <div className="mtg-record-tab-pane" role="tabpanel" data-testid={`meeting-record-tab-${tab}`}>
+            {tab === 'summary' ? (
+              <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+            ) : (
+              transcriptTab.content
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="mtg-progress-section mtg-record-section">
+          <span className="mtg-progress-section-label">{labels.summary}</span>
+          <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+        </section>
+      )}
 
       {/* 주요논의 — accordion */}
       <section className="mtg-progress-section mtg-record-section">

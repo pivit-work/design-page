@@ -173,6 +173,7 @@ export {
   MeetingInProgressModal,
   MeetingEndConfirmModal,
   MeetingRecordContent,
+  MeetingTranscript,
   MeetingShareContent,
   RecordMethodModal,
   MicSelectModal,

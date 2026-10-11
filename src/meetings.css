@@ -1598,3 +1598,52 @@ input.mtg-record-action-title::placeholder {
   cursor: default;
 }
 .mtg-start-btn.is-inprogress:hover { filter: none; }
+
+/* ─── 회의록 「요약 | 발언 기록」 탭 (PW-1704) ───
+   두 탭이 같은 높이 칸을 번갈아 쓴다 — 발언이 수십 개여도 창 길이·[공유하기] 자리가 그대로다.
+   넘치면 칸 안에서만 넘어간다. */
+.tl-tabs-row.mtg-record-tabs-row { margin: 0 0 12px; }
+.mtg-record-tab-pane {
+  height: 260px;
+  overflow-y: auto;
+}
+
+/* 발언 목록 — 원 + 이름, 그 아래 «시각 + 문장». 번호 없음. */
+.mtg-transcript { display: flex; flex-direction: column; gap: 10px; }
+.mtg-transcript-tools {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 6px;
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+}
+.mtg-transcript-speakers { display: flex; flex-wrap: wrap; gap: 6px; }
+.mtg-transcript-list { list-style: none; margin: 0; padding: 0; }
+.mtg-transcript-group { display: flex; gap: 10px; padding: 10px 0; }
+.mtg-transcript-group + .mtg-transcript-group {
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+.mtg-transcript-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mtg-transcript-speaker {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.mtg-transcript-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.mtg-transcript-time {
+  margin-right: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.mtg-transcript-empty { margin: 12px 0; font-size: 13px; color: var(--text-tertiary); }
