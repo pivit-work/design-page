@@ -4,7 +4,7 @@ import Button from '../shared/Button.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
 import { resolveUiLocale } from '../shared/uiLocale.js';
 import {
   TrendIcon,
@@ -77,6 +77,7 @@ const DEFAULT_LABELS = {
   doneBodyNext: '셀프 리뷰가 제출되었습니다. 다음 단계({{next}})가 곧 시작됩니다.',
   doneStepsTitle: '다음 단계',
   donePeerReview: '동료 리뷰 작성하기',
+  doneMyEval: '내 평가 현황으로',
   // §4.3 AI 초안 카드.
   aiCardTitle: 'AI 초안 생성 ({{period}})',
   aiCardNoPeriod: '기간 미설정',
@@ -447,6 +448,8 @@ export default function EvalCycleMemberCanvas({
   doneSteps = null,
   // [PW-1464] 동료 리뷰를 지금 쓸 수 있으면 넘긴다 — 완료 화면의 「동료 리뷰 작성하기 →」.
   onGoPeerReview = null,
+  // [PW-1464] 완료 화면의 「내 평가 현황으로」(§6.1) — 갈 곳이 있을 때만 넘긴다.
+  onGoMyEval = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -1030,11 +1033,20 @@ export default function EvalCycleMemberCanvas({
                   ))}
                 </div>
               )}
-              {onGoPeerReview && (
-                <Button className="evc-btn is-primary" onClick={onGoPeerReview} data-testid="evm-done-peer">
-                  {L.donePeerReview}
-                  <ArrowRightIcon size={14} />
-                </Button>
+              {(onGoPeerReview || onGoMyEval) && (
+                <div className="evm-done-actions">
+                  {onGoPeerReview && (
+                    <Button className="evc-btn is-primary" onClick={onGoPeerReview} data-testid="evm-done-peer">
+                      {L.donePeerReview}
+                      <ArrowRightIcon size={14} />
+                    </Button>
+                  )}
+                  {onGoMyEval && (
+                    <Button className="evc-btn" onClick={onGoMyEval} data-testid="evm-done-my-eval">
+                      {L.doneMyEval}
+                    </Button>
+                  )}
+                </div>
               )}
             </section>
           </div>
@@ -1106,7 +1118,7 @@ export default function EvalCycleMemberCanvas({
           <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
             <h3 className="evc-card-name">{sec.title}</h3>
             {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
-            {selfReview && sec.fields.some((f) => f.category === 'competency') && (
+            {selfReview && sec.fields.some((f) => categoryKind(f.category) === 'competency') && (
               <p className="evm-competency-ref" data-testid="evm-competency-ref">
                 <NoteIcon size={13} />
                 <span>{L.competencyRefBadge}</span>

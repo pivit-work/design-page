@@ -171,6 +171,28 @@ export const CATEGORY_COLORS = {
 export const sectionColor = (s, category) =>
   CATEGORY_COLORS[category] || SECTION_COLORS[s] || 'var(--text-tertiary)';
 
+/**
+ * 저장된 구분이 업적·역량·성장 중 어느 쪽인가 — 모르면 null (PW-1464).
+ *
+ * 구분 값은 두 모양으로 저장된다. 어드민 템플릿 편집은 `competency` 같은 내부 값을, 사이클
+ * 만들기 마법사의 기본 평가지(`evalTemplatePresets.js`)는 「역량 (How)」 같은 문장을 그대로
+ * 저장한다. 내부 값만 보고 가르면 마법사로 만든 평가지에서는 역량 항목을 못 알아본다 — 셀프
+ * 리뷰 역량 섹션 머리 표시가 늘 빠졌다. 서버의 같은 판정은 `backend/src/eval-cycles/rules/
+ * eval-item-category.ts` 이고, 문장 표는 위 `SECTION_COLORS` 의 열쇠와 같다.
+ */
+const SECTION_KIND = {
+  '성과 (What)': 'work_achievement',
+  '역량 (How)': 'competency',
+  '성장 (Growth)': 'growth',
+};
+export function categoryKind(category) {
+  const raw = String(category ?? '').trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower === 'work_achievement' || lower === 'competency' || lower === 'growth') return lower;
+  return SECTION_KIND[raw] ?? null;
+}
+
 /** 섹션별로 항목을 묶는다 — 미리보기·평가지 렌더가 같은 순서로 그리게 한다. */
 export function groupBySection(items) {
   const groups = [];

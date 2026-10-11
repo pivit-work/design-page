@@ -10459,6 +10459,13 @@
   text-align: center;
   padding: var(--spacing-4xl) var(--spacing-2xl);
 }
+/* [PW-1464] 완료 화면 단추 줄 — 「동료 리뷰 작성하기」와 「내 평가 현황으로」 */
+.evm-done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
 .evm-done-icon {
   color: var(--utility-success-500);
 }
