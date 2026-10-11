@@ -1062,7 +1062,7 @@ export default function EvalCycleMemberCanvas({
       {selfReview && onAiDraft && !readOnly && (
         <div className="evc-list">
           <section className="evc-card evm-ai-card" data-testid="evm-ai-card">
-            <div className="evm-ai-card-head">
+            <div>
               <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
                 <SparkleIcon size={15} />
                 <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
