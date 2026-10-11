@@ -16,6 +16,7 @@ import useTimelineDnD from './hooks/useTimelineDnD.js';
 import Tabs from '../shared/Tabs.jsx';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 import Button from '../shared/Button.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 const TIMELINE_TAB_ITEMS = [
   { value: 'gantt', label: '간트' },
@@ -157,6 +158,12 @@ export default function TimelineCanvas({
   const [selectedDate, setSelectedDate] = useState(() =>
     initialDate ?? parseIsoDate(TODAY_STR),
   );
+  // 오늘보다 뒤 날짜에는 스니핏을 쓸 수 없다 — 셀 피커와 툴바가 같은 판정을 쓴다 (PW-1421 · PW-1714).
+  const isAfterToday = (isoDate) => Boolean(todayDate && isoDate > todayDate);
+  // 툴바 「이벤트 추가」·「스니핏 작성」은 날짜 탭의 날짜로 연다. 그 날짜가 오늘보다 뒤면
+  // 스니핏 작성만 끈다 (PW-1714 · 정책 §7.2-B).
+  const selectedIsoDate = formatIsoDate(selectedDate);
+  const headerSnippetDisabled = isAfterToday(selectedIsoDate);
 
   const isGantt = currentTab === 'gantt';
   // 간트는 항상 일(day) 뷰 — 하루 단위 그리드.
@@ -308,14 +315,14 @@ export default function TimelineCanvas({
     setInternalSnippetPromptOpen(false);
     onSnippetPromptDismiss?.();
   };
-  // 셀 피커는 그 칸의 날짜를 넘긴다 — 호스트가 그 날짜로 작성 창을 연다 (PW-1417).
-  // 툴바 CTA·작성 유도처럼 날짜 없이 부르면 호스트가 오늘로 연다.
+  // 셀 피커는 그 칸의 날짜를, 툴바 버튼은 날짜 탭의 날짜를 넘긴다 — 호스트가 그 날짜로
+  // 작성 창을 연다 (PW-1417 · PW-1714). 작성 유도처럼 날짜 없이 부르면 호스트가 오늘로 연다.
   const handleSnippetCreate = (date) => {
     if (onSnippetCreate) onSnippetCreate(date);
     else setSnippetModalOpen(true);
   };
-  const handleSnippetEdit = () => {
-    if (onSnippetEdit) onSnippetEdit();
+  const handleSnippetEdit = (date) => {
+    if (onSnippetEdit) onSnippetEdit(date);
     else setSnippetModalOpen(true);
   };
   const handleSnippetSubmit = () => {
@@ -391,7 +398,7 @@ export default function TimelineCanvas({
   const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
   const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
   // hour 는 셀 피커에서 클릭한 시각(정수), date 는 그 셀의 날짜(`YYYY-MM-DD`).
-  // 툴바 버튼은 둘 다 없이 호출한다 — 호스트가 "오늘" 을 기본값으로 쓰면 된다.
+  // 툴바 버튼은 시각 없이 날짜 탭의 날짜만 넘긴다 (PW-1714).
   const handleAddEventClick = (hour, date) => {
     if (onAddEvent) onAddEvent(hour, date);
     else setEventAddOpen(true);
@@ -605,7 +612,7 @@ export default function TimelineCanvas({
           <button
             type="button"
             className="tl-add-event tl-add-event-secondary"
-            onClick={() => handleAddEventClick()}
+            onClick={() => handleAddEventClick(undefined, selectedIsoDate)}
           >
             <Icon src={icons.plus} size={20} color="var(--colors-foreground-fgBrandPrimary, #2dbd82)" baseUrl={baseUrl} />
             <span>이벤트 추가</span>
@@ -613,15 +620,29 @@ export default function TimelineCanvas({
         )}
 
         {snippetState === 'create' ? (
-          <button type="button" className="tl-add-event" onClick={() => handleSnippetCreate()}>
-            <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
-            <span>스니핏 작성</span>
-          </button>
+          <Tooltip content={headerSnippetDisabled ? snippetFutureLabel : undefined}>
+            <button
+              type="button"
+              className="tl-add-event"
+              disabled={headerSnippetDisabled}
+              onClick={() => handleSnippetCreate(selectedIsoDate)}
+            >
+              <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
+              <span>스니핏 작성</span>
+            </button>
+          </Tooltip>
         ) : snippetState === 'edit' ? (
-          <button type="button" className="tl-add-event" onClick={handleSnippetEdit}>
-            <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
-            <span>스니핏 수정</span>
-          </button>
+          <Tooltip content={headerSnippetDisabled ? snippetFutureLabel : undefined}>
+            <button
+              type="button"
+              className="tl-add-event"
+              disabled={headerSnippetDisabled}
+              onClick={() => handleSnippetEdit(selectedIsoDate)}
+            >
+              <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
+              <span>스니핏 수정</span>
+            </button>
+          </Tooltip>
         ) : (
           <div className="tl-snippet-status" role="status">
             <Icon src="/icons-solid/hand.svg" size={20} color="var(--colors-text-textBrandTertiary, #21a67a)" baseUrl={baseUrl} />
@@ -728,7 +749,7 @@ export default function TimelineCanvas({
           gcalConnected={gcalConnected}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
-          snippetDisabled={Boolean(todayDate && cellPicker.date > todayDate)}
+          snippetDisabled={isAfterToday(cellPicker.date)}
           snippetDisabledLabel={snippetFutureLabel}
           onEvent={handleAddEventClick}
           onClose={() => setCellPicker(null)}

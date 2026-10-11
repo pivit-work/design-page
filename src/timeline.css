@@ -342,6 +342,16 @@
   background: var(--colors-emerald-600);
 }
 
+/* 날짜 탭이 오늘보다 뒤면 스니핏 작성이 꺼진다 — 셀 피커 항목과 같은 표현 (PW-1714). */
+.tl-add-event:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tl-add-event:disabled:hover {
+  background: var(--colors-background-bgBrandSolid);
+}
+
 /* Secondary variant — Figma Buttons: Hierarchy=Secondary.
    bg bgBrandSecondary (#e1fef2), text textBrandTertiary (#21a67a),
    icon fgBrandPrimary (#2dbd82), padding 8 14, no border. */
