@@ -19,7 +19,8 @@ import Button from '../shared/Button.jsx';
  *   'failed'  못 만들었다(또는 저장된 요약을 못 읽었다) — `summary.message`(없으면 기본 문구) + [다시 시도].
  *             원본 보기는 그대로 된다. [다시 시도]가 무엇을 다시 하는지는 호출부가 정한다.
  *             `summary.previous`({ chunks })가 있으면 전에 만든 요약을 그 위에 그대로 둔다(새로고침 실패)
- *   'blocked' AI 를 쓸 수 없다(체험 횟수 소진 등) — `summary.message` 를 그대로 보인다
+ *   'blocked' AI 를 쓸 수 없다(체험 횟수 소진 등) — `summary.message` 를 보이고, `summary.notice`(노드)가
+ *             있으면 그 아래에 그린다(결제 안내)
  *
  * @param {{ reviewers: object[], hiddenBelowMin?: number, canSummarize?: boolean, summary?: object }|null} peer
  *   reviewers: [{ key, label, named, role, submittedAt, answers: [{ id, itemCategory, growthType, itemLabel, score, textAnswer }] }]
@@ -62,10 +63,13 @@ function SummaryBody({ summary, onGenerate, L }) {
   const status = summary?.status ?? 'none';
   if (status === 'loading') return <Skeleton height={92} data-testid="evl-peer-summary-loading" />;
   if (status === 'blocked') {
+    // `summary.notice` — 호출부가 넣는 결제 안내 같은 것. 이 칸 안에 그려야 화면을 덮는 평가 본문
+    // 밑에 깔리지 않는다(페이지 머리에 따로 띄우면 왼쪽 메뉴·본문 뒤로 숨는다).
     return (
-      <p className="evc-empty-sub" data-testid="evl-peer-summary-blocked">
-        {summary.message}
-      </p>
+      <div data-testid="evl-peer-summary-blocked">
+        <p className="evc-empty-sub">{summary.message}</p>
+        {summary.notice ?? null}
+      </div>
     );
   }
   const generate = onGenerate && (
