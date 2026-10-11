@@ -89,6 +89,7 @@ export default function TimelineCanvas({
   // 일 뷰에서만 보이는 "이벤트 추가" 버튼 클릭.
   onAddEvent,
   // NameColumn 하단 버튼 3종. 미주입 시 no-op(버튼 클릭해도 아무 일 없음).
+  // onAddGroup(reveal) — 호스트가 그룹을 붙인 뒤 reveal() 을 부르면 새 그룹까지 스크롤한다.
   onAddGroup,
   onAddInternalMember,
   onAddExternalMember,
@@ -375,7 +376,18 @@ export default function TimelineCanvas({
   const [internalOpen, setInternalOpen] = useState(false);
   const [externalOpen, setExternalOpen] = useState(false);
   const [eventAddOpen, setEventAddOpen] = useState(false);
-  const handleAddGroupClick = onAddGroup ?? (() => setGroupAddOpen(true));
+  // 새 그룹은 맨 아래에 붙는다 — 리스트가 길면 화면 밖이라 "아무 일도 안 일어난" 것처럼 보이므로
+  // 세로 스크롤을 끝까지 내린다. 새 행이 커밋된 뒤 측정하도록 rAF 로 defer.
+  const revealLastGroup = () => {
+    requestAnimationFrame(() => {
+      const sc = rightScrollRef.current;
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    });
+  };
+  // 호스트가 자기 창을 띄우면(onAddGroup) 그룹을 붙인 뒤 부를 revealLastGroup 을 넘긴다.
+  const handleAddGroupClick = onAddGroup
+    ? () => onAddGroup(revealLastGroup)
+    : () => setGroupAddOpen(true);
   const handleAddInternalClick = onAddInternalMember ?? (() => setInternalOpen(true));
   const handleAddExternalClick = onAddExternalMember ?? (() => setExternalOpen(true));
   // hour 는 셀 피커에서 클릭한 시각(정수), date 는 그 셀의 날짜(`YYYY-MM-DD`).
@@ -390,13 +402,7 @@ export default function TimelineCanvas({
       { id: `g-${Date.now()}`, label: name, memberIds: [] },
     ]);
     setGroupAddOpen(false);
-    // 새 그룹은 맨 아래에 추가된다. 리스트가 길면(예: 부서 그룹 멤버 다수) 화면
-    // 밖이라 "아무 일도 안 일어난" 것처럼 보이므로, 세로 스크롤을 끝까지 내려
-    // 새 그룹이 보이게 한다. 새 행이 커밋된 뒤 측정하도록 rAF 로 defer.
-    requestAnimationFrame(() => {
-      const sc = rightScrollRef.current;
-      if (sc) sc.scrollTop = sc.scrollHeight;
-    });
+    revealLastGroup();
   };
   const handleAddInternal = ({ memberId, groupId }) => {
     handleGroupsCommit(
