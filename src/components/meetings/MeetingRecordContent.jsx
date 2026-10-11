@@ -62,6 +62,9 @@ export default function MeetingRecordContent({
   // 두 탭이 같은 높이 칸을 번갈아 써서, 발언이 길어도 창 길이·아래 버튼 자리가 그대로다.
   // 주지 않으면 지금처럼 요약 섹션만 그린다.
   transcriptTab,
+  // 요약 바로 아래 작은 글씨 한 줄 (PW-1705) — 예: 「참고한 자료: 받아쓰기 · 10월 안건」. 문구는 caller 가
+  // 만든다. 탭이 있으면 요약 탭에서만 보인다. 주지 않으면 그리지 않는다.
+  summaryNote,
   // 읽기 전용 — 회의 담당자가 아닌 참석자 (기획 screen-minutes-review §4.4).
   // 할 일 입력·담당자·기한을 잠그고 추가·삭제 버튼을 숨긴다. 모양은 그대로다.
   readOnly = false,
@@ -155,7 +158,10 @@ export default function MeetingRecordContent({
           </div>
           <div className="mtg-record-tab-pane" role="tabpanel" data-testid={`meeting-record-tab-${tab}`}>
             {tab === 'summary' ? (
-              <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+              <>
+                <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+                {summaryNote && <p className="mtg-record-summary-note">{summaryNote}</p>}
+              </>
             ) : (
               transcriptTab.content
             )}
@@ -165,6 +171,7 @@ export default function MeetingRecordContent({
         <section className="mtg-progress-section mtg-record-section">
           <span className="mtg-progress-section-label">{labels.summary}</span>
           <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+          {summaryNote && <p className="mtg-record-summary-note">{summaryNote}</p>}
         </section>
       )}
 

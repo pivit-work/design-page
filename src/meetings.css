@@ -539,6 +539,14 @@
   min-height: 0;
 }
 .mtg-record-readonly:focus { outline: none; }
+/* 요약 아래 「참고한 자료」 한 줄 (PW-1705) */
+.mtg-record-summary-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
 .mtg-record-bullet-list {
   list-style: disc;
   margin: 0;
