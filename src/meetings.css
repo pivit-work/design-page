@@ -1618,7 +1618,7 @@ input.mtg-record-action-title::placeholder {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 6px;
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-primary);
 }
 .mtg-transcript-speakers { display: flex; flex-wrap: wrap; gap: 6px; }
 .mtg-transcript-list { list-style: none; margin: 0; padding: 0; }
