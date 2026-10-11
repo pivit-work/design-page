@@ -3234,7 +3234,15 @@ export default function EvalCycleSummaryCanvas({
                           {/* [PW-1466] §8.2 — 이름 아래 직함, 요약 상태 점, 검수 완료 배지 */}
                           <span className="evs-re-item-who">
                             <span className="evs-re-item-name">{m.name || m.memberId}</span>
-                            {m.title && <span className="evs-re-item-title" data-testid="evs-re-item-title">{m.title}</span>}
+                            {(m.title || m.summaryStatus === 'reviewed') && (
+                              <span className="evs-re-item-sub">
+                                {m.title && <span className="evs-re-item-title" data-testid="evs-re-item-title">{m.title}</span>}
+                                {/* 배지는 이름 줄이 아니라 둘째 줄에 — 이름 줄에 두면 이름·직함이 잘린다 */}
+                                {m.summaryStatus === 'reviewed' && (
+                                  <StatusBadge tone="success" className="evs-re-reviewed" data-testid="evs-re-reviewed">{L.reStatusReviewed}</StatusBadge>
+                                )}
+                              </span>
+                            )}
                           </span>
                           <Tooltip content={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}>
                             <span
@@ -3244,9 +3252,6 @@ export default function EvalCycleSummaryCanvas({
                               aria-label={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}
                             />
                           </Tooltip>
-                          {m.summaryStatus === 'reviewed' && (
-                            <StatusBadge tone="success" className="evs-re-reviewed" data-testid="evs-re-reviewed">{L.reStatusReviewed}</StatusBadge>
-                          )}
                           {m.gradeLabel && (
                             <StatusBadge className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</StatusBadge>
                           )}
