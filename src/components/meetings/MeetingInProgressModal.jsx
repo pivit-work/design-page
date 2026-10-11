@@ -39,6 +39,8 @@ export default function MeetingInProgressModal({
   onMemoChange,
   onStopRecording,          // "녹음 종료만 하기" 클릭
   recordingStopped = false, // 'record' 모드에서 녹음만 종료된 상태 (회색 카드 "녹음만 종료됨.")
+  // 진행 phase 메모 칸 위에 caller 가 넣는 노드 — Meet 회의의 머리 안내·[직접 녹음 켜기] 자리 (PW-1716).
+  progressExtra,
   // record/share phase 에 그대로 forward (caller 주입)
   recordData,
   shareData,
@@ -228,6 +230,8 @@ export default function MeetingInProgressModal({
                 <span className="mtg-progress-rec-stopped">{labels.recordingStoppedText}</span>
               </div>
             )}
+
+            {progressExtra}
 
             <section className={`mtg-progress-section ${mode === 'memo' ? 'is-memo-only' : ''}`}>
               <label htmlFor="mtg-memo" className="mtg-progress-section-label">
