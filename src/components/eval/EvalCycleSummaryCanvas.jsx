@@ -6279,7 +6279,8 @@ export default function EvalCycleSummaryCanvas({
                       </button>
                     );
                     return lastOne ? (
-                      <Tooltip key={c.id} content={L.cwManageLastMember}>
+                      /* is-block — 두른 쪽이 줄 폭을 다 채워 다른 후보 줄과 폭이 같다. */
+                      <Tooltip key={c.id} content={L.cwManageLastMember} className="is-block">
                         {row}
                       </Tooltip>
                     ) : (
