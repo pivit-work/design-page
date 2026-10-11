@@ -6,7 +6,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Radio from '../shared/Radio.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon, ZapIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
@@ -400,12 +400,14 @@ function seedState(answers, fields) {
 // [PW-1087] 평가지로 쓴 성장 답은 앱이 답에 실어 준 평가지 항목 이름(`itemLabel`)을 쓴다.
 // 평가지 없는 기본 폼 답은 칸 이름(강점·보완·성장)을, 그것도 없으면 구분 이름(「성장」)으로
 // 채운다. 업적·역량은 종전 그대로다.
+// [PW-1748] 구분은 `categoryKind` 로 가른다 — 사이클 만들기 평가지는 「성장 (Growth)」 같은 문장을 저장한다.
 function evidenceLabel(a, L) {
-  if (a.itemCategory === 'growth') {
+  const kind = categoryKind(a.itemCategory);
+  if (kind === 'growth') {
     // [PW-882] 평가지 답에도 칸(`growthType`)이 찍히게 됐다 — 이름은 여전히 질문 이름이 먼저다.
     return a.itemLabel || L[EVIDENCE_GROWTH_KEY[a.growthType]] || L.catGrowth;
   }
-  return L[EVIDENCE_CAT_KEY[a.itemCategory]] ?? a.itemCategory ?? '';
+  return L[EVIDENCE_CAT_KEY[kind]] ?? a.itemCategory ?? '';
 }
 
 // 기본값을 렌더마다 새 배열로 만들면 «답이 새로 왔다»로 읽혀 다시 시드하는 렌더가 끝없이 돈다.

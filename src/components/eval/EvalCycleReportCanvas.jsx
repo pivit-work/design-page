@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { InfoIcon } from './evalIcons.jsx';
-import { scaleMaxOf } from './evalTemplateItemModel.js';
+import { scaleMaxOf, categoryKind } from './evalTemplateItemModel.js';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -75,9 +75,30 @@ function mergeLabels(base, provided) {
   return out;
 }
 
+// [PW-1748] 구분은 `categoryKind` 로 가른다 — 사이클 만들기 평가지는 「성장 (Growth)」 같은 문장을 저장한다.
 function catLabel(a, L) {
-  if (a.itemCategory === 'growth') return L[GROWTH_KEY[a.growthType]] ?? a.growthType ?? '';
-  return L[CAT_KEY[a.itemCategory]] ?? a.itemCategory ?? '';
+  const kind = categoryKind(a.itemCategory);
+  if (kind === 'growth') {
+    const key = GROWTH_KEY[a.growthType];
+    if (key) return L[key];
+    // 칸이 없는 성장 답은 저장된 구분 문장을 그대로 쓴다. 내부 값(`growth`)이면 화면에 내지 않는다.
+    return a.itemCategory === kind ? (a.growthType ?? '') : a.itemCategory;
+  }
+  return L[CAT_KEY[kind]] ?? a.itemCategory ?? '';
+}
+
+/**
+ * 셀프 답 목록에 다시 그릴 답인가 (PW-1748).
+ *
+ * 성장 영역에 이미 나간 답(칸이 있는 답)과, 성장 영역을 끈 리포트의 성장 구분 답은 뺀다.
+ * 칸이 없는 성장 답(사이클 만들기 평가지의 「성장 가능성」 점수 같은 것)은 성장 영역이 켜져
+ * 있을 때 종전대로 둔다 — 구분이 내부 값이면 빠지고 문장이면 보인다. 어느 쪽으로 맞출지는
+ * 기획 판단이라 여기서 정하지 않았다.
+ */
+function shownInSelfList(a, growthOn) {
+  if (growthOn && a.growthType) return false;
+  if (categoryKind(a.itemCategory) !== 'growth') return true;
+  return growthOn && a.itemCategory !== 'growth';
 }
 
 function krColor(p) {
@@ -408,9 +429,7 @@ export default function EvalCycleReportCanvas({
             <h3 className="evc-card-name">{L.selfTitle}</h3>
             {/* [PW-882] 성장 영역에 나간 답은 여기서 다시 그리지 않는다. */}
             <AnswerList
-              answers={selfAnswers.filter(
-                (a) => a.itemCategory !== 'growth' && !(on('growth') && a.growthType),
-              )}
+              answers={selfAnswers.filter((a) => shownInSelfList(a, on('growth')))}
               L={L}
             />
           </section>
