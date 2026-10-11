@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronDownGlyph, ChevronRightGlyph, CloseGlyph, DragHandleGlyph } from '../shared/lineIcons.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
@@ -55,6 +56,26 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
           </Tooltip>
         )}
         <span className="tl-group-header-count">{group.memberIds.length}</span>
+        {/* 조직도 연결 그룹 표시와 안내 (pivit-work PW-1689). 생김새는 디자이너 카드(PW-1690)가 정할
+            때까지 기존 딱지 부품으로 자리만 잡는다 — badge: { label, hint },
+            notice: { label, hint, onAction? } (onAction 이 있으면 눌러서 다시 시도). */}
+        {group.badge && (
+          <StatusBadge tone="info" className="intg-pill" title={group.badge.hint}>
+            {group.badge.label}
+          </StatusBadge>
+        )}
+        {group.notice && (
+          <StatusBadge
+            tone="warning"
+            className="intg-pill"
+            title={group.notice.hint}
+            {...(group.notice.onAction
+              ? { as: 'button', type: 'button', onClick: group.notice.onAction }
+              : null)}
+          >
+            {group.notice.label}
+          </StatusBadge>
+        )}
       </div>
       <div className="tl-group-header-actions">
         {onRemoveGroup && !group.isDefault && (
