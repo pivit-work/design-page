@@ -1317,6 +1317,8 @@ export default function EvalCycleHrCanvas({
   committeeCandidatesLoading = false,
   committeeCandidatesError = false,
   onReloadCommitteeCandidates,
+  /** PW-1686 — 구성원별 위쪽 조직장. 위자드 위원회 카드의 「상위 조직장 자동 지정」에 넘긴다. */
+  committeeLeaderChains = null,
   /* PW-980 — 대상자 후보·발령 이력 조회 실패. 위자드로 그대로 넘긴다. */
   candidatesError = false,
   /* PW-1459 — 대상자 단계: 로딩·조직 조회 실패, 필터 값 목록의 출처(조직 설정). 위자드에 그대로 넘긴다. */
@@ -2082,6 +2084,7 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesLoading={committeeCandidatesLoading}
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
+          committeeLeaderChains={committeeLeaderChains}
           candidatesError={candidatesError}
           candidatesLoading={candidatesLoading}
           orgUnitsLoading={orgUnitsLoading}
@@ -2168,6 +2171,7 @@ export default function EvalCycleHrCanvas({
           committeeCandidatesLoading={committeeCandidatesLoading}
           committeeCandidatesError={committeeCandidatesError}
           onReloadCommitteeCandidates={onReloadCommitteeCandidates}
+          committeeLeaderChains={committeeLeaderChains}
           candidatesError={candidatesError}
           candidatesLoading={candidatesLoading}
           orgUnitsLoading={orgUnitsLoading}

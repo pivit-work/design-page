@@ -40,7 +40,8 @@ import {
 // [PW-1461 · 정책 §4.5] 겹침 판정·안내 창도 일정 수정 창과 같은 것을 쓴다.
 import { freshOverlapPairs, getOverlapPairs, overlapIdsOf } from './evalScheduleOverlap.js';
 import EvalScheduleOverlapAlert from './EvalScheduleOverlapAlert.jsx';
-import { AlertIcon, CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
+import { AlertIcon, CheckCircleIcon, InfoIcon, ZapIcon } from './evalIcons.jsx';
+import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
 import { EvalTemplateGradeRows, EvalTemplateItemRow } from './EvalTemplateBuilder.jsx';
@@ -1752,6 +1753,7 @@ function CommitteeCard({
   committeeCandidatesLoading,
   committeeCandidatesError,
   onReloadCommitteeCandidates,
+  committeeLeaderChains,
   dupIds,
   complete,
 }) {
@@ -1876,6 +1878,19 @@ function CommitteeCard({
     setCommittee((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+
+  /* PW-1686 — 위원회 만들기 창(PW-1610)과 같은 「상위 조직장 자동 지정」. 대상은 이 카드의 유효
+     대상자(위원은 이미 빠져 있다), 계산은 두 화면이 같은 함수를 쓴다. */
+  const canAutoAssign = committeeLeaderChains != null && committeeCandidates.length > 0;
+  /* 위쪽 조직장 전부(이미 고른 사람 포함) — 0명이면 «없다», 남은 게 0명이면 «다 넣었다»를 가른다. */
+  const autoCommitteeAll = canAutoAssign
+    ? autoCommitteeIdsOf(
+        committeeRoster.map((m) => ({ id: m.id, leadersAbove: committeeLeaderChains[m.id] })),
+        committeeCandidates.map((c) => c.id),
+        new Set(),
+      )
+    : [];
+  const autoCommitteeIds = autoCommitteeAll.filter((id) => !committeeSelectedIds.has(id));
 
   return (
     <section
@@ -2212,6 +2227,29 @@ function CommitteeCard({
         </span>
       </div>
 
+      {canAutoAssign && (
+        <div className="evs-cw-auto-assign" data-testid="evc-wiz-committee-auto-assign-row">
+          <button
+            type="button"
+            className="evc-btn is-ghost evs-cw-auto-assign-btn"
+            disabled={autoCommitteeIds.length === 0}
+            onClick={() =>
+              setCommittee((prev) => [...prev, ...autoCommitteeIds.filter((id) => !prev.includes(id))])
+            }
+            data-testid="evc-wiz-committee-auto-assign"
+          >
+            <ZapIcon size={12} /> {fill(L.wizardCommitteeAutoAssign, { count: autoCommitteeIds.length })}
+          </button>
+          <span className="evs-cw-create-muted" data-testid="evc-wiz-committee-auto-assign-hint">
+            {autoCommitteeAll.length === 0
+              ? L.wizardCommitteeAutoAssignNone
+              : autoCommitteeIds.length === 0
+                ? L.wizardCommitteeAutoAssignDone
+                : L.wizardCommitteeAutoAssignHint}
+          </span>
+        </div>
+      )}
+
       {/* 위원 검색 — 입력 즉시 필터. 후보 명단이 아직 없거나 조회가 깨졌으면 비활성 */}
       <TextInput
         className="evc-wiz-committee-search"
@@ -2440,6 +2478,12 @@ export default function EvalCycleWizard({
   committeeCandidatesError = false,
   /** 조회 실패 시 '다시 시도'. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadCommitteeCandidates,
+  /**
+   * PW-1686 — 구성원별 위쪽 조직장(가까운 순) `{ [userId]: string[] }`. 위가 없는 사람은 빠져 있다.
+   * 위원회 카드의 「상위 조직장 자동 지정」이 쓴다. `null`(아직 없음·못 받음)이면 버튼을 숨긴다 —
+   * 위원회 만들기 창도 이 정보가 없으면 버튼을 그리지 않는다.
+   */
+  committeeLeaderChains = null,
   /**
    * PW-980 — 대상자 후보(`candidates`) 조회 실패. 안 넘기면 실패가 「후보 0명」과 똑같이
    * 보여서, 관리자가 대상자 단계가 빈 것을 「대상이 없다」로 읽는다. 대상이 0명이면
@@ -9598,6 +9642,7 @@ export default function EvalCycleWizard({
                   committeeCandidatesLoading={committeeCandidatesLoading}
                   committeeCandidatesError={committeeCandidatesError}
                   onReloadCommitteeCandidates={onReloadCommitteeCandidates}
+                  committeeLeaderChains={committeeLeaderChains}
                   dupIds={committeeDupIds}
                   complete={isCommitteeCardComplete(card, committeeRosters[i])}
                 />
