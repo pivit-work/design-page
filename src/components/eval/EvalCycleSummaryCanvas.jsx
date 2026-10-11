@@ -494,6 +494,8 @@ const DEFAULT_LABELS = {
   cdDelegateNote: '구성원별 등급 변경·변경 사유·변경 로그는 캘리브레이션 워크스페이스(탭 G)에서 실명·이력 원본으로 확인합니다. 본 탭은 전사 분포·통계 관점만 제공합니다.',
   cdOpenWorkspace: '캘리브레이션 워크스페이스 열기 →',
   cdGuideExceed: '가이드라인 초과',
+  // [PW-1466] 정책 §7.D.3·§7.D.7 — 조정 내역의 순변화가 분포 차이와 어긋나면 그래프를 그리지 않는다.
+  cdMismatch: '조정 내역과 분포가 일치하지 않습니다',
   // §5.B 부서별 분석
   deptHeatTitle: '부서별 등급 분포 히트맵',
   deptRankTitle: '부서별 평균 달성률 랭킹',
@@ -558,6 +560,20 @@ const DEFAULT_LABELS = {
   remindSelectAll: '전체 선택',
   remindSelectedOf: '선택 {sel}명 / 대상 {total}명',
   remindLeaderDept: '{dept}',
+  // [PW-1466] 정책 §4.A.2.1 — 줄에 부서·리더. 리더가 없으면(조직의 맨 위) 부서만.
+  remindDeptLeader: '{dept} · 리더 {leader}',
+  // [PW-1466] 정책 §4.A.4 — 탁월 비율이 가이드의 2배를 넘을 때만 경고한다.
+  excellentOverBadge: '가이드 2배 초과',
+  // [PW-1466] 정책 §4.A.4 — 리더 지연은 «N건» 빨간 배지.
+  leaderDelayCount: '{n}건',
+  // [PW-1466] 정책 §15.2 S4·§15.4 — 등급 분포 아래 해설. 가이드 이름은 끈 사이클이면 «등급 분포 가이드».
+  distNotePrevUp: '{grade} 비율이 직전 사이클 대비 {delta}%p 상승했습니다.',
+  distNotePrevDown: '{grade} 비율이 직전 사이클 대비 {delta}%p 하락했습니다.',
+  distNotePrevSame: '{grade} 비율이 직전 사이클과 같습니다.',
+  distNoteGuideName: '캘리브레이션 가이드라인',
+  distNoteGuideOver: '{guideName}({guide}%) 대비 +{delta}%p 높은 수준입니다.',
+  distNoteGuideUnder: '{guideName}({guide}%) 대비 {delta}%p 낮은 수준입니다.',
+  distNoteGuideSame: '{guideName}({guide}%)와 같은 수준입니다.',
   remindPending: '미제출: {type}',
   remindDue: '마감 {date}',
   remindLast: '최근 리마인드 {date}',
@@ -1958,6 +1974,46 @@ export default function EvalCycleSummaryCanvas({
   const distPct = (d) => (d.pct != null ? d.pct : distTotal > 0 ? Math.round((100 * (d.count ?? 0)) / distTotal) : 0);
   const hasDistGuide = gradeDistribution.some((d) => d.guidelinePct != null);
   // 지난 평가보다 5%p 이상 움직인 등급만 범례에 적는다 — 전부 적으면 눈금을 보는 이유가 없어진다.
+  // [PW-1466] 정책 §4.A.4 — 탁월 비율이 가이드의 2배를 넘었나.
+  const excellentOverGuide =
+    excellentGuidelinePct != null && excellentGuidelinePct > 0 && excellentPct > 2 * excellentGuidelinePct;
+  // [PW-1466] 정책 §15.2 S4 — 분포 아래 해설: 직전 대비 최상위 등급 비율 변화 + 가이드 대비 차이.
+  const distNote = [];
+  const topGrade = gradeDistribution[0];
+  if (topGrade && previousCycle && Number.isFinite(previousCycle.excellentPct)) {
+    const d = excellentPct - previousCycle.excellentPct;
+    distNote.push(
+      fmt(d > 0 ? L.distNotePrevUp : d < 0 ? L.distNotePrevDown : L.distNotePrevSame, {
+        grade: topGrade.label,
+        delta: Math.abs(d),
+      }),
+    );
+  }
+  if (topGrade && excellentGuidelinePct != null) {
+    const d = excellentPct - excellentGuidelinePct;
+    distNote.push(
+      fmt(d > 0 ? L.distNoteGuideOver : d < 0 ? L.distNoteGuideUnder : L.distNoteGuideSame, {
+        guideName: L.distNoteGuideName,
+        guide: excellentGuidelinePct,
+        delta: Math.abs(d),
+      }),
+    );
+  }
+  // [PW-1466] 정책 §7.D.3 — 조정 내역(전→후 쌍별 건수)의 순변화가 조정 전후 분포 차이와 같아야 그린다.
+  const calibMismatch = (() => {
+    if (!calibResult || !Array.isArray(calibResult.adjustments)) return false;
+    const net = new Map();
+    for (const adj of calibResult.adjustments) {
+      net.set(adj.fromGradeKey, (net.get(adj.fromGradeKey) ?? 0) - adj.count);
+      net.set(adj.toGradeKey, (net.get(adj.toGradeKey) ?? 0) + adj.count);
+    }
+    const afterOf = new Map(calibResult.after.map((a) => [a.gradeKey, a.count]));
+    const keys = new Set([...net.keys(), ...calibResult.before.map((b) => b.gradeKey)]);
+    return [...keys].some((k) => {
+      const before = calibResult.before.find((b) => b.gradeKey === k)?.count ?? 0;
+      return (afterOf.get(k) ?? 0) - before !== (net.get(k) ?? 0);
+    });
+  })();
   const distMovers = previousCycle
     ? gradeDistribution
         .map((d) => {
@@ -2238,9 +2294,18 @@ export default function EvalCycleSummaryCanvas({
                   <span className="evs-kpi-sub">{selfSubmittedCount}{L.unit} / {totalParticipants}{L.unit}</span>
                 )}
               </div>
-              <div className="evs-kpi tone-amber" data-testid="evs-kpi-excellent">
+              {/* [PW-1466] 정책 §4.A.4 — 주황 경고는 가이드의 2배를 넘을 때만. 늘 주황이면 경고가 아니다. */}
+              <div className={`evs-kpi${excellentOverGuide ? ' tone-amber' : ''}`} data-testid="evs-kpi-excellent">
                 <span className="evs-kpi-value">{excellentPct}%</span>
-                <span className="evs-kpi-label">{L.kpiExcellent}</span>
+                <span className="evs-kpi-label">
+                  {L.kpiExcellent}
+                  {excellentOverGuide && (
+                    <>
+                      {' '}
+                      <StatusBadge tone="warning" data-testid="evs-kpi-excellent-over">{L.excellentOverBadge}</StatusBadge>
+                    </>
+                  )}
+                </span>
                 <span className="evs-kpi-sub">
                   {excellentCount}{L.unit}
                   {excellentGuidelinePct != null && <> / {L.guideWord} {excellentGuidelinePct}%</>}
@@ -2321,6 +2386,9 @@ export default function EvalCycleSummaryCanvas({
                       )}
                     </p>
                   )}
+                  {distNote.length > 0 && (
+                    <p className="evs-dist-note" data-testid="evs-dist-note">{distNote.join(' ')}</p>
+                  )}
                 </>
               )}
             </section>
@@ -2354,7 +2422,7 @@ export default function EvalCycleSummaryCanvas({
                         <span className={`evs-leader-num${incomplete > 0 ? ' evs-leader-bad' : ' is-muted'}`}>{incomplete}{L.unit}</span>
                         <span className="evs-leader-num">
                           {s.delayed > 0 ? (
-                            <span className="evs-leader-delay">{s.delayed}{L.unit}</span>
+                            <span className="evs-leader-delay" data-testid="evs-leader-delay">{fmt(L.leaderDelayCount, { n: s.delayed })}</span>
                           ) : (
                             <span className="is-muted">—</span>
                           )}
@@ -2384,7 +2452,8 @@ export default function EvalCycleSummaryCanvas({
                 <div className="evs-dept-outlier" data-testid="evs-dept-outlier">
                   <div className="evs-dept-outlier-title"><AlertIcon size={14} /> {L.deptOutlierTitle}</div>
                   {deptOutliers.map((o, i) => (
-                    <div className="evs-dept-outlier-row" key={i}>
+                    // [PW-1466] 정책 §5.B.5 — 심각도 «높음»은 빨강.
+                    <div className={`evs-dept-outlier-row${o.severity === 'high' ? ' is-high' : ''}`} key={i} data-testid="evs-dept-outlier-row">
                       {o.dept} — {o.grade} 비율 {o.actual}% (가이드 {o.guide}% 대비 <span className="evs-dept-outlier-delta">+{o.delta}%p</span>)
                     </div>
                   ))}
@@ -2619,6 +2688,11 @@ export default function EvalCycleSummaryCanvas({
               <h3 className="evc-card-name">{L.cdDistTitle}</h3>
               {/* PW-1047 ① 등급마다 막대 한 줄 — 조정 후를 칠하고, 조정 전은 눈금으로 겹친다.
                   늘었다·줄었다를 초록·빨강으로 칠하지 않는다(최하가 늘어도 초록이 되던 문제). */}
+              {calibMismatch ? (
+                <p className="evs-cd-mismatch" role="alert" data-testid="evs-cd-mismatch">
+                  <AlertIcon size={14} /> {L.cdMismatch}
+                </p>
+              ) : (
               <div className="evs-dist" data-testid="evs-cd-dist">
                 {calibResult.before.map((b, i) => {
                   const a = calibResult.after[i] ?? { count: 0, pct: 0 };
@@ -2653,11 +2727,17 @@ export default function EvalCycleSummaryCanvas({
                           </span>
                         )}
                       </div>
-                      <span className="evs-dist-count">{a.count}{L.unit}<span className="evs-dist-pct"> ({a.pct}%)</span></span>
+                      <span className="evs-dist-count">
+                        {a.count}{L.unit}<span className="evs-dist-pct"> ({a.pct}%)</span>
+                        {guide != null && a.pct > guide && (
+                          <span className="evs-cd-over" data-testid="evs-cd-guide-over">{L.cdGuideExceed}</span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
               </div>
+              )}
               <p className="evs-chart-legend" data-testid="evs-cd-legend">
                 <span className="evs-chart-legend-item">
                   <span className="evs-legend-tick" aria-hidden />
@@ -6073,9 +6153,12 @@ export default function EvalCycleSummaryCanvas({
                     <div className="evs-remind-info">
                       <div className="evs-remind-name">{n.name || n.memberId}</div>
                       <div className="evs-remind-meta">
-                        {fmt(L.remindLeaderDept, { dept: n.dept })}
+                        {n.leaderName
+                          ? fmt(L.remindDeptLeader, { dept: n.dept, leader: n.leaderName })
+                          : fmt(L.remindLeaderDept, { dept: n.dept })}
                         {' · '}
-                        <span className="evs-remind-pending">{fmt(L.remindPending, { type: pendingTypeLabel(n.pendingType) })}</span>
+                        {/* [PW-1466] 한 사람이 여러 유형을 안 냈으면 모두 적는다(셀프 → 동료 → 하향 순). */}
+                        <span className="evs-remind-pending">{fmt(L.remindPending, { type: (n.pendingTypes || [n.pendingType]).map(pendingTypeLabel).join(' · ') })}</span>
                         {n.dueDate && <> · {fmt(L.remindDue, { date: fmtDate(n.dueDate) })}</>}
                         {' · '}
                         {fmt(L.remindLast, { date: n.lastRemindedAt ? fmtDate(n.lastRemindedAt) : L.remindNone })}

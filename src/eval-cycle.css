@@ -5167,6 +5167,36 @@
 .evs-dept-outlier-title { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--utility-warning-700); margin-bottom: 4px; }
 .evs-dept-outlier-row { font-size: var(--font-size-text-xs); color: var(--utility-warning-700); line-height: 1.6; }
 .evs-dept-outlier-delta { font-weight: 700; color: var(--utility-error-600); }
+/* [PW-1466] 정책 §5.B.5 — 심각도 «높음» 부서는 빨강 */
+.evs-dept-outlier-row.is-high { color: var(--utility-error-600); font-weight: 600; }
+/* [PW-1466] 정책 §15.2 S4 — 전사 요약 등급 분포 아래 해설 */
+.evs-dist-note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+/* [PW-1466] 정책 §7.D.7 — 조정 후에도 가이드를 넘는 막대 옆 */
+.evs-cd-over {
+  margin-left: 6px;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-warning-700);
+}
+/* [PW-1466] 정책 §7.D.3 — 조정 내역과 분포가 어긋나 그래프를 그리지 않을 때 */
+.evs-cd-mismatch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  background: var(--utility-error-50);
+  border: 1px solid var(--utility-error-200);
+  color: var(--utility-error-700);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+}
 
 .evs-heat { display: flex; flex-direction: column; }
 .evs-heat-row {
