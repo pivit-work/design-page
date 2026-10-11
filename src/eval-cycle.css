@@ -10619,3 +10619,169 @@
 .evm-done-step.is-done .evm-done-step-mark {
   background: transparent;
 }
+
+/* ── 구성원 「내 평가 홈」 (EvalMyHomeCanvas · PW-1468 · 기획 §4.4-C E1) ──
+   시안 MyEvalDashboard: 결과 도착 배너 · 사이클 카드(역할 칩 + 단계 상자 흐름) · 내가 주는 동료 리뷰. */
+.evmh-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-radius: var(--radius-xl);
+  background: var(--utility-green-50);
+  border: 1px solid var(--utility-green-200);
+}
+.evmh-banner-icon {
+  display: inline-flex;
+  color: var(--utility-green-600);
+  flex: none;
+}
+.evmh-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.evmh-banner-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--utility-green-700);
+}
+.evmh-banner-sub {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evmh-banner-cta {
+  margin-left: auto;
+  flex: none;
+}
+.evmh-cycle-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.evmh-cycle-period {
+  margin: 2px 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evmh-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+.evmh-flow {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs);
+}
+.evmh-flow-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  color: var(--text-tertiary);
+}
+/* 상자 폭은 고정이지만 글자는 로케일·단계 이름에 따라 길어진다 — 높이는 내용을 따라 늘고 글자는 줄을 바꾼다. */
+.evmh-phase {
+  position: relative;
+  flex: 0 0 136px;
+  width: 136px;
+  min-height: 128px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  font-family: var(--font-family-body);
+  text-align: left;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+button.evmh-phase {
+  cursor: pointer;
+}
+button.evmh-phase:hover {
+  border-color: var(--border-primary);
+}
+button.evmh-phase:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 2px;
+}
+.evmh-phase.is-active {
+  border-color: var(--utility-warning-300);
+  background: var(--utility-warning-50);
+}
+.evmh-phase.is-done {
+  border-color: var(--utility-green-300);
+  background: var(--utility-green-50);
+}
+.evmh-phase.is-evaluator {
+  border-color: var(--utility-brand-300);
+  background: var(--utility-brand-50);
+}
+.evmh-phase.is-idle {
+  opacity: 0.7;
+}
+.evmh-phase-check {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  display: inline-flex;
+  color: var(--utility-green-600);
+}
+.evmh-phase-top,
+.evmh-phase-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+}
+.evmh-phase-top {
+  padding-right: var(--spacing-xl);
+}
+.evmh-phase-label {
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.evmh-phase-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--utility-brand-600);
+}
+.evmh-phase-due {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evmh-peer-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evmh-peer-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+}
+.evmh-peer-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
