@@ -31,6 +31,7 @@ export default function OkrBoard({
   onKrUpdate,
   onSubmitFeedback,
   onViewAllFeedback,
+  onWriteFeedback,
   onRefreshInsights,
   onInsightAction,
   onToggleInitiative,
@@ -67,7 +68,9 @@ export default function OkrBoard({
             icons={icons}
             baseUrl={baseUrl}
             defaultExpanded={i === 0}
-            onWriteFeedback={(kr) => setComposeKr(kr)}
+            // 소비처가 onWriteFeedback 을 주면 작성 창을 열지 않고 그쪽에 넘긴다 — 피드백을
+            // 다른 화면(수시 피드백)에서 쓰는 소비처용 (PW-1600 · okr-policy §8.4).
+            onWriteFeedback={(kr) => (onWriteFeedback ? onWriteFeedback(kr) : setComposeKr(kr))}
             onViewFeedback={(kr) => onViewAllFeedback?.(kr)}
             onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
             onToggleInitiative={onToggleInitiative}

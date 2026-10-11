@@ -158,7 +158,11 @@ export default function OkrObjectiveSection({
                 <div className="okr-p-col-main" />
                 <div className="okr-p-col-weight" />
                 <div className="okr-p-col-pic">
-                  <StatusBadge className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</StatusBadge>
+                  {/* canWrite === false 면 칩을 그리지 않는다 — 소비처가 «이 KR 에는 쓰러 갈 곳이 없다»
+                      (볼 수 없는 사람의 KR 등)고 판정했을 때. 눌러도 막히는 칩을 두지 않는다 (PW-1600). */}
+                  {kr.feedback.canWrite !== false && (
+                    <StatusBadge className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</StatusBadge>
+                  )}
                 </div>
               </div>
               {openFeedback[i] && kr.feedback.comments.map((comment, ci) => (

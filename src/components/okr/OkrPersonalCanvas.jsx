@@ -47,6 +47,7 @@ export default function OkrPersonalCanvas({
   onKrUpdate,
   onSubmitFeedback,
   onViewAllFeedback,
+  onWriteFeedback,
   onRefreshInsights,
   onInsightAction,
   onToggleInitiative,
@@ -137,7 +138,7 @@ export default function OkrPersonalCanvas({
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} />
+          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} />
         </>
       )}
     </div>
