@@ -19,6 +19,8 @@ import { ChevronRightIcon } from './evalIcons.jsx';
 
 const DEFAULT_LABELS = {
   title: '동료 리뷰어 확정',
+  // 리더 정책 §6.0-A — 전용 화면 상단 복귀 버튼(PW-1469). `onBack` 이 없으면 그리지 않는다.
+  back: '← 팀 평가 관리',
   subtitle: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
   // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용
   feedbackOnlyNotice: '',
@@ -432,6 +434,8 @@ export default function EvalCyclePeerConfirmCanvas({
   onAdopt,
   onReject,
   onSeen,
+  // 리더 정책 §6.0-A — 「← 팀 평가 관리」. 셸 밖(단독 프리뷰)에서는 넘기지 않아 버튼이 없다.
+  onBack,
   // 리더 정책 §6.2 — 상태를 다 받기 전에는 카드 자리에 스켈레톤(버튼이 눌리지 않게)
   loading = false,
   // 카드 목록 위에 끼우는 안내(앱이 그린다) — 예: 체험 AI 를 다 써 «AI 추천»을 건너뛰었다(PW-1394).
@@ -460,6 +464,11 @@ export default function EvalCyclePeerConfirmCanvas({
     <div className="evc-root">
       <header className="evc-header">
         <div>
+          {onBack && (
+            <button type="button" className="evc-btn is-ghost" onClick={onBack} data-testid="evp-back">
+              {L.back}
+            </button>
+          )}
           <h1 className="evc-title">{L.title}</h1>
           <p className="evc-summary">{L.subtitle}</p>
         </div>
