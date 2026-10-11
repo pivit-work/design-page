@@ -11,6 +11,7 @@
  */
 import {
   AlertTriangleGlyph,
+  ArrowRightGlyph,
   ChatGlyph,
   CheckCircleGlyph,
   ChevronDownGlyph,
@@ -97,6 +98,11 @@ export function InfoIcon({ size = 16 }) {
 // ✅/✓ 완료 — check 원.
 export function CheckCircleIcon({ size = 16 }) {
   return <CheckCircleGlyph size={size} style={GLYPH_STYLE} />;
+}
+
+// → 다음 화면으로 — 화살표 (PW-1464 셀프 리뷰 완료 화면 「동료 리뷰 작성하기」).
+export function ArrowRightIcon({ size = 16 }) {
+  return <ArrowRightGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ⚠️/🚨 경고 — 삼각형.

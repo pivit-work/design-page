@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem } from './evalTemplateItemModel.js';
@@ -14,6 +15,7 @@ import {
   SparkleIcon,
   AlertIcon,
   CheckCircleIcon,
+  ArrowRightIcon,
 } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 
@@ -51,6 +53,36 @@ const DEFAULT_LABELS = {
   actKrSave: '달성률 저장',
   actKrSaved: '저장되었습니다',
   actKrEmpty: '이 기간에 입력할 개인 KR이 없습니다.',
+  // PW-1464 · 대상자 화면 정책 §4.2 — 셀프 리뷰 요약 박스는 비어도 칸마다 «없다»를 말한다.
+  actOneOnOneEmpty: '이 기간 1:1 기록이 없습니다',
+  actFeedbackEmpty: '이 기간 받은 피드백이 없습니다',
+  actSnippetsEmpty: '이 기간 스니핏이 없습니다',
+  actOkrEmpty: '이 기간 OKR이 없습니다',
+  actOkrTitle: 'OKR 달성 현황',
+  // 불러오지 못한 칸은 «없다»로 말하지 않는다.
+  actLoadFailed: '불러오지 못했습니다',
+  // §4.4a — 활동 데이터가 하나도 없으면 박스에 안내하고 AI 초안 단추를 끈다.
+  actNoData: '해당 기간 데이터가 없습니다',
+  // §4.2.0 — 참고 영역과 작성 영역 사이 구분선.
+  writeDivider: '이제부터 성과를 기록합니다. 성과는 업적과 역량으로 구성됩니다.',
+  // §4.0 — 역량 섹션 머리의 데이터 출처 표시.
+  competencyRefBadge: '어드민 설정 역량 항목 참조 가능 (공통·직무·리더십)',
+  // §4.1 — 마감이 지났으면 읽기 전용.
+  closedNotice: '마감이 지났습니다. 관리자에게 문의하세요.',
+  // §4.2.1 — 달성률을 안 넣은 KR 이 있는 채 제출하면 묻고, 확인하면 제출한다.
+  krUnfilledConfirm: '달성률이 입력되지 않은 KR이 있습니다. 그대로 제출할까요?',
+  // §4.9 · §6.1 제출 완료 화면.
+  doneTitle: '셀프 리뷰 제출 완료!',
+  doneBody: '셀프 리뷰가 제출되었습니다.',
+  doneBodyNext: '셀프 리뷰가 제출되었습니다. 다음 단계({{next}})가 곧 시작됩니다.',
+  doneStepsTitle: '다음 단계',
+  donePeerReview: '동료 리뷰 작성하기',
+  // §4.3 AI 초안 카드.
+  aiCardTitle: 'AI 초안 생성 ({{period}})',
+  aiCardNoPeriod: '기간 미설정',
+  aiCardSub: '상단 활동 요약을 분석해 항목별 초안을 만듭니다',
+  aiDraftDone: '초안 생성 완료',
+  cancel: '취소',
   // TC-140 달성률 미입력 경고(제출은 가능)
   actKrUnfilledWarn: '달성률 미입력 KR {{count}}개 — 제출 전 입력을 권장합니다(제출은 가능).',
   workTitle: '업적 (What)',
@@ -94,6 +126,8 @@ const DEFAULT_LABELS = {
   aiDraftConfirm: '확인',
   // PW-1614 기획서 절대 규칙 3 — 확인 안 한(노란) 초안 칸이 남으면 제출되지 않는다.
   aiDraftPendingWarn: 'AI 초안을 확인한 뒤 제출해 주세요.',
+  // PW-1464 · §4.4.1 문구 — 남은 노란 칸 수를 함께 말한다. 비우면 위 문구를 쓴다.
+  aiDraftPendingCount: '',
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
@@ -397,6 +431,22 @@ export default function EvalCycleMemberCanvas({
   trackAiDraft = false,
   // [PW-1460] 이 기간 스니핏이나 OKR 이 비었는가 — 셀프 리뷰 화면이 판정해 넘긴다(spec §10).
   dataShortage = false,
+  // [PW-1464] 셀프 리뷰 화면만 켠다 — 대상자 화면 정책 §4 의 셀프 전용 표시(요약 빈 문구·구분선·
+  // 역량 머리 표시·AI 초안 카드·칸 입력 상태 색·점수 다시 눌러 해제·저장 표시·제출 완료 화면).
+  // 같은 캔버스를 쓰는 동료·상향 리뷰는 그대로다.
+  selfReview = false,
+  // [PW-1464] 셀프 마감이 지났다(서버가 저장을 거절하는 판정과 같다) — 읽기 전용 + 안내.
+  closed = false,
+  // [PW-1464] 셀프 리뷰 요약에서 불러오지 못한 칸 — { oneOnOne, feedback, snippets, okr } 참/거짓.
+  activityFailed = null,
+  // [PW-1464] 활동 데이터가 하나도 없다(전부 불러왔고 전부 비었다) — 박스 안내 + AI 초안 단추 끔.
+  noActivityData = false,
+  // [PW-1464] AI 초안 카드 제목의 분석 기간(「2026.01 – 2026.06」). 없으면 「기간 미설정」.
+  aiPeriod = null,
+  // [PW-1464] 제출 완료 화면의 「다음 단계」 — [{ key, label, done }]. null 이면 완료 화면 대신 띠.
+  doneSteps = null,
+  // [PW-1464] 동료 리뷰를 지금 쓸 수 있으면 넘긴다 — 완료 화면의 「동료 리뷰 작성하기 →」.
+  onGoPeerReview = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -417,6 +467,10 @@ export default function EvalCycleMemberCanvas({
   /** AI 가 근거가 없어 빈 초안을 돌려준 항목이 있었나 — 데이터 부족 안내를 띄운다. */
   const [draftShort, setDraftShort] = useState(false);
   const submitted = status === 'submitted';
+  // [PW-1464] 제출했거나 마감이 지났으면 고칠 수 없다(§4.1). 둘 다 입력을 잠그고 제출 바를 감춘다.
+  const readOnly = submitted || closed;
+  /** 전체 AI 초안을 한 번 만들었다 — 카드 단추가 「초안 생성 완료」가 된다(§4.3). */
+  const [draftDoneAll, setDraftDoneAll] = useState(false);
 
   // §4.2.1 KR 달성률 입력 — krProgress(부모 로드본)로 시드, 편집 중엔 유지.
   const krList = useMemo(
@@ -439,6 +493,8 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
+  /** [PW-1464] 달성률 미입력 KR 확인 창이 떠 있다. */
+  const [krAsk, setKrAsk] = useState(false);
   // TC-135 · spec-eval-cycle §4.3.4 E5 — 바뀐 것이 있으면 «60초마다» 자동 임시저장(early-return 앞 선언).
   // 종전에는 편집이 멈춘 뒤 30초를 기다렸다 — 쉬지 않고 쓰면 끝까지 한 번도 저장되지 않았다.
   const dirtyRef = useRef(false);
@@ -451,7 +507,7 @@ export default function EvalCycleMemberCanvas({
   const [saveError, setSaveError] = useState(false); // TC-136 저장 실패 배너
   useEffect(() => {
     // 제출 완료·저장 콜백 없음이면 자동저장 안 함. 편집이 없던 주기는 요청을 보내지 않는다.
-    if (submitted || !onSave) return undefined;
+    if (readOnly || !onSave) return undefined;
     const timer = setInterval(() => {
       if (!dirtyRef.current) return;
       // [PW-1614] 임시저장·제출과 같은 모양으로 보낸다 — 여기서 AI 초안 상태를 빼먹으면
@@ -473,7 +529,19 @@ export default function EvalCycleMemberCanvas({
         .finally(() => setAutoSaving(false));
     }, AUTOSAVE_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [submitted, onSave, fields, trackAiDraft]);
+  }, [readOnly, onSave, fields, trackAiDraft]);
+
+  // [PW-1464] §4.7 「저장됨 HH:MM」은 3초 뒤, §4.2.1 「입력 완료 — …」는 2.5초 뒤 사라진다.
+  useEffect(() => {
+    if (!selfReview || !autoSavedAt) return undefined;
+    const timer = setTimeout(() => setAutoSavedAt(null), 3000);
+    return () => clearTimeout(timer);
+  }, [selfReview, autoSavedAt]);
+  useEffect(() => {
+    if (!selfReview || !krSaved) return undefined;
+    const timer = setTimeout(() => setKrSaved(false), 2500);
+    return () => clearTimeout(timer);
+  }, [selfReview, krSaved]);
 
   // 템플릿/답변이 나중에 도착하면(async 로드) 재시드. fields 는 useMemo,
   // answers 는 부모 ref 라 편집 중엔 안 바뀌고 로드·저장 시점에만 재시드된다.
@@ -624,6 +692,7 @@ export default function EvalCycleMemberCanvas({
           (it) => !drafted.find((d) => d.index === it.index)?.textAnswer?.trim(),
         ),
       );
+      if (!only) setDraftDoneAll(true);
       setState((prev) => {
         const next = { ...prev };
         for (const d of drafted) {
@@ -668,6 +737,16 @@ export default function EvalCycleMemberCanvas({
   };
   const isAiPending = (f) => aiStateOf(f)?.tone === 'unconfirmed';
   const hasAiPending = fields.some(isAiPending);
+  // [PW-1464] §4.4a — 활동 데이터가 하나도 없으면 전체·항목별 AI 초안 단추를 끈다.
+  const aiOff = aiDraftDisabledReason || (selfReview && noActivityData ? L.actNoData : null);
+  // [PW-1464] §4.8a 서술 칸 입력 상태 — 아무것도 안 쓴 처음(회색) / 다른 칸을 쓴 뒤 남은 칸(주황) / 쓴 칸(흰색).
+  const anyAnswered = fields.some(
+    (f) => state[f.key].textAnswer.trim() || state[f.key].score != null,
+  );
+  const inputStateClass = (f) => {
+    if (!selfReview || readOnly || state[f.key].textAnswer.trim()) return '';
+    return anyAnswered ? ' is-pending' : ' is-blank';
+  };
   const handleSubmitClick = () => {
     // 빈 칸이 먼저다 — 다 채운 뒤에야 노란 칸(PW-1614)으로 안내한다.
     const inc = fields.find(isIncomplete) || fields.find(isAiPending);
@@ -679,10 +758,16 @@ export default function EvalCycleMemberCanvas({
       });
       return;
     }
-    // [PW-967·PW-1007] 제출 약속을 돌려주면 [제출](공용 `Button`)이 끝날 때까지 스스로 잠근다 —
-    // 결과를 안 기다려 두 번 누르면 두 번 나갔다. 실패하면 풀려 다시 누를 수 있다(알림은 화면이 띄운다).
-    return onSubmit ? Promise.resolve(onSubmit(toItems())) : undefined;
+    // [PW-1464] §4.2.1 — 달성률을 안 넣은 KR 이 있으면 묻고, 확인하면 그대로 제출한다(막지 않는다).
+    if (selfReview && krUnfilledCount > 0) {
+      setKrAsk(true);
+      return undefined;
+    }
+    return submitNow();
   };
+  // [PW-967·PW-1007] 제출 약속을 돌려주면 [제출](공용 `Button`)이 끝날 때까지 스스로 잠근다 —
+  // 결과를 안 기다려 두 번 누르면 두 번 나갔다. 실패하면 풀려 다시 누를 수 있다(알림은 화면이 띄운다).
+  const submitNow = () => (onSubmit ? Promise.resolve(onSubmit(toItems())) : undefined);
 
   // 섹션(section) 별 그룹핑 — 등장 순서 유지.
   const sections = [];
@@ -706,6 +791,15 @@ export default function EvalCycleMemberCanvas({
       </header>
 
       {headerSlot}
+
+      {/* [PW-1464] §4.7 셀프 리뷰의 임시저장 실패는 위쪽 빨간 띠로 알린다. */}
+      {selfReview && !readOnly && saveError && (
+        <div className="evc-list">
+          <div className="evm-save-error" role="alert" data-testid="evm-save-error">
+            {L.saveError}
+          </div>
+        </div>
+      )}
 
       {selfReference && (
         <div className="evc-list">
@@ -747,14 +841,25 @@ export default function EvalCycleMemberCanvas({
 
       {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
       {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 박스에 full-width 로 노출 */}
-      {!submitted && (activitySummary || krList.length > 0) && (() => {
-        const blocks = activitySummary
+      {!submitted &&
+        (selfReview ? activitySummary != null : activitySummary || krList.length > 0) &&
+        (() => {
+        const failed = activityFailed || {};
+        const allBlocks = activitySummary
           ? [
-              { key: 'oneOnOne', icon: <UsersIcon size={14} />, label: L.actOneOnOne, items: activitySummary.oneOnOne },
-              { key: 'feedback', icon: <ChatIcon size={14} />, label: L.actFeedback, items: activitySummary.receivedFeedback },
-              { key: 'snippets', icon: <NoteIcon size={14} />, label: L.actSnippets, items: activitySummary.snippets },
-            ].filter((b) => Array.isArray(b.items) && b.items.length > 0)
+              { key: 'oneOnOne', icon: <UsersIcon size={14} />, label: L.actOneOnOne, items: activitySummary.oneOnOne, emptyText: L.actOneOnOneEmpty },
+              { key: 'feedback', icon: <ChatIcon size={14} />, label: L.actFeedback, items: activitySummary.receivedFeedback, emptyText: L.actFeedbackEmpty },
+              { key: 'snippets', icon: <NoteIcon size={14} />, label: L.actSnippets, items: activitySummary.snippets, emptyText: L.actSnippetsEmpty },
+            ]
           : [];
+        // [PW-1464] 셀프 리뷰는 칸을 늘 그리고 비면 «없다»를, 못 불러왔으면 그 사실을 말한다(§4.2).
+        const blocks = selfReview
+          ? allBlocks.map((b) => ({
+              ...b,
+              items: Array.isArray(b.items) ? b.items : [],
+              emptyText: failed[b.key] ? L.actLoadFailed : b.emptyText,
+            }))
+          : allBlocks.filter((b) => Array.isArray(b.items) && b.items.length > 0);
         if (blocks.length === 0 && krList.length === 0) return null;
         return (
           <div className="evc-list">
@@ -770,8 +875,21 @@ export default function EvalCycleMemberCanvas({
                     {b.items.map((item, i) => (
                       <div className="evm-activity-item" key={i}>· {item}</div>
                     ))}
+                    {b.items.length === 0 && (
+                      <div className="evm-activity-item is-empty" data-testid={`evm-activity-${b.key}-empty`}>
+                        {b.emptyText}
+                      </div>
+                    )}
                   </div>
                 ))}
+                {selfReview && krList.length === 0 && (
+                  <div className="evm-activity-block" data-testid="evm-activity-okr">
+                    <div className="evm-activity-block-title"><TargetIcon size={14} /><span>{L.actOkrTitle}</span></div>
+                    <div className="evm-activity-item is-empty" data-testid="evm-activity-okr-empty">
+                      {failed.okr ? L.actLoadFailed : L.actOkrEmpty}
+                    </div>
+                  </div>
+                )}
                 {krList.length > 0 && (
                   <div className="evm-activity-block evm-kr" data-testid="evm-kr">
                     <div className="evm-kr-head">
@@ -820,7 +938,7 @@ export default function EvalCycleMemberCanvas({
                         </div>
                       ))}
                     </div>
-                    {krUnfilledCount > 0 && (
+                    {!selfReview && krUnfilledCount > 0 && (
                       <div
                         className="evm-kr-warn"
                         data-testid="evm-kr-unfilled-warn"
@@ -850,6 +968,11 @@ export default function EvalCycleMemberCanvas({
                   </div>
                 )}
               </div>
+              {selfReview && noActivityData && (
+                <div className="evm-activity-note" data-testid="evm-activity-nodata">
+                  {L.actNoData}
+                </div>
+              )}
               {L.actPeriodNote && (
                 <div className="evm-activity-note" data-testid="evm-activity-period-note">
                   {L.actPeriodNote}
@@ -869,7 +992,7 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {submitted && (
+      {submitted && !(selfReview && doneSteps) && (
         <div className="evc-list">
           <p className="evx-notice is-success" data-testid="evm-submitted">
             <CheckCircleIcon size={16} />
@@ -878,10 +1001,117 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
+      {/* [PW-1464] §4.9 · §6.1 셀프 리뷰 제출 완료 화면 — 제출한 답은 아래에 읽기 전용으로 남는다. */}
+      {submitted && selfReview && doneSteps && (() => {
+        const next = doneSteps.find((st) => !st.done);
+        return (
+          <div className="evc-list">
+            <section className="evc-card evm-done" data-testid="evm-done">
+              <div className="evm-done-icon"><CheckCircleIcon size={32} /></div>
+              <h2 className="evm-done-title">{L.doneTitle}</h2>
+              <p className="evm-done-body">
+                {next ? fill(L.doneBodyNext, { next: next.label }) : L.doneBody}
+              </p>
+              {doneSteps.length > 0 && (
+                <div className="evm-done-steps" data-testid="evm-done-steps">
+                  <div className="evm-done-steps-title">{L.doneStepsTitle}</div>
+                  {doneSteps.map((st, i) => (
+                    <div
+                      className={`evm-done-step${st.done ? ' is-done' : ''}`}
+                      key={st.key}
+                      data-testid={`evm-done-step-${st.key}`}
+                      data-done={st.done ? 'true' : 'false'}
+                    >
+                      <span className="evm-done-step-mark">
+                        {st.done ? <CheckCircleIcon size={14} /> : i + 1}
+                      </span>
+                      <span>{st.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {onGoPeerReview && (
+                <Button className="evc-btn is-primary" onClick={onGoPeerReview} data-testid="evm-done-peer">
+                  {L.donePeerReview}
+                  <ArrowRightIcon size={14} />
+                </Button>
+              )}
+            </section>
+          </div>
+        );
+      })()}
+
+      {closed && !submitted && (
+        <div className="evc-list">
+          <p className="evx-notice is-warn" data-testid="evm-closed">
+            {L.closedNotice}
+          </p>
+        </div>
+      )}
+
+      {/* [PW-1464] §4.2.0 참고 영역과 작성 영역의 경계 */}
+      {selfReview && !submitted && (
+        <div className="evc-list">
+          <div className="evm-write-divider" data-testid="evm-write-divider">
+            <span>{L.writeDivider}</span>
+          </div>
+        </div>
+      )}
+
+      {/* [PW-1464] §4.3 AI 초안 카드 — 전체 생성 단추가 하단 바에서 여기로 온다. */}
+      {selfReview && onAiDraft && !readOnly && (
+        <div className="evc-list">
+          <section className="evc-card evm-ai-card" data-testid="evm-ai-card">
+            <div className="evm-ai-card-head">
+              <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
+                <SparkleIcon size={15} />
+                <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
+              </div>
+              <div className="evm-ai-card-sub">{L.aiCardSub}</div>
+            </div>
+            <div className="evc-card-buttons">
+              {aiOff && (
+                <span className="evm-autosave" data-testid="evm-ai-draft-reason">
+                  {aiOff}
+                </span>
+              )}
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiOff}
+                onClick={() => handleAiDraft()}
+                data-testid="evm-ai-draft"
+              >
+                {draftBusy === 'all' ? (
+                  L.aiDrafting
+                ) : draftDoneAll ? (
+                  <>
+                    <CheckCircleIcon size={15} />
+                    {L.aiDraftDone}
+                  </>
+                ) : (
+                  <>
+                    <SparkleIcon size={15} />
+                    {L.aiDraft}
+                  </>
+                )}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       <div className="evc-list">
         {sections.map((sec) => (
           <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
             <h3 className="evc-card-name">{sec.title}</h3>
+            {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
+            {selfReview && sec.fields.some((f) => f.category === 'competency') && (
+              <p className="evm-competency-ref" data-testid="evm-competency-ref">
+                <NoteIcon size={13} />
+                <span>{L.competencyRefBadge}</span>
+              </p>
+            )}
             {sec.fields.map((f) =>
               /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
               f.type === 'note' ? (
@@ -926,8 +1156,13 @@ export default function EvalCycleMemberCanvas({
                             type="button"
                             key={n}
                             className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
-                            disabled={submitted}
-                            onClick={() => setField(f.key, { score: n })}
+                            disabled={readOnly}
+                            onClick={() =>
+                              // [PW-1464] §4.5 셀프 리뷰는 같은 점수를 다시 누르면 선택을 푼다.
+                              setField(f.key, {
+                                score: selfReview && state[f.key].score === n ? null : n,
+                              })
+                            }
                             data-testid={`evm-score-${f.key}-${n}`}
                           >
                             {n}
@@ -951,7 +1186,7 @@ export default function EvalCycleMemberCanvas({
                           ? L.rationalePlaceholder
                           : L.rationaleOptionalPlaceholder
                       }
-                      disabled={submitted}
+                      disabled={readOnly}
                       onChange={(e) => setField(f.key, { rationale: e.target.value })}
                       data-testid={`evm-rationale-${f.key}`}
                     />
@@ -972,7 +1207,7 @@ export default function EvalCycleMemberCanvas({
                             type={f.allowMultiple ? 'checkbox' : 'radio'}
                             name={`evm-opt-${f.key}`}
                             checked={selectedOptions(state[f.key]).includes(o.id)}
-                            disabled={submitted}
+                            disabled={readOnly}
                             onChange={() =>
                               setField(f.key, {
                                 checkedOptions: {
@@ -995,7 +1230,7 @@ export default function EvalCycleMemberCanvas({
                       <input
                         type="checkbox"
                         checked={state[f.key].score === 1}
-                        disabled={submitted}
+                        disabled={readOnly}
                         onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
                         data-testid={`evm-check-${f.key}`}
                       />
@@ -1005,20 +1240,20 @@ export default function EvalCycleMemberCanvas({
                 ) : (
                   <>
                     <textarea
-                      className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}`}
+                      className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}${inputStateClass(f)}`}
                       rows={4}
                       value={state[f.key].textAnswer}
                       placeholder={f.placeholder}
-                      disabled={submitted}
+                      disabled={readOnly}
                       onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
                       data-testid={`evm-text-${f.key}`}
                     />
                     {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
-                    {onAiDraft && !submitted && !state[f.key].textAnswer.trim() && (
+                    {onAiDraft && !readOnly && !state[f.key].textAnswer.trim() && (
                       <button
                         type="button"
                         className="evc-btn is-ghost evm-ai-item-draft"
-                        disabled={!!draftBusy || !!aiDraftDisabledReason}
+                        disabled={!!draftBusy || !!aiOff}
                         onClick={() => handleAiDraft(f)}
                         data-testid={`evm-ai-draft-item-${f.key}`}
                       >
@@ -1038,7 +1273,7 @@ export default function EvalCycleMemberCanvas({
                         data-state={aiStateOf(f).tone}
                       >
                         <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
-                        {aiStateOf(f).tone === 'unconfirmed' && !submitted && (
+                        {aiStateOf(f).tone === 'unconfirmed' && !readOnly && (
                           <button
                             type="button"
                             className="evm-ai-draft-confirm"
@@ -1081,12 +1316,12 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {!submitted && saveError && (
+      {!submitted && !selfReview && saveError && (
         <div className="evm-save-error" role="alert" data-testid="evm-save-error">
           {L.saveError}
         </div>
       )}
-      {!submitted && (
+      {!readOnly && (
         <div className="evm-submit-bar">
           <span className="evm-progress">
             {triedSubmit && !canSubmit ? (
@@ -1095,7 +1330,9 @@ export default function EvalCycleMemberCanvas({
               </span>
             ) : triedSubmit && hasAiPending ? (
               <span className="evm-incomplete-warn" data-testid="evm-ai-pending-warn">
-                {L.aiDraftPendingWarn}
+                {L.aiDraftPendingCount
+                  ? fill(L.aiDraftPendingCount, { count: fields.filter(isAiPending).length })
+                  : L.aiDraftPendingWarn}
               </span>
             ) : (
               fill(L.progress, { filled, total: textFields.length })
@@ -1115,12 +1352,12 @@ export default function EvalCycleMemberCanvas({
             </span>
           )}
           <div className="evc-card-buttons">
-            {onAiDraft && aiDraftDisabledReason && (
+            {onAiDraft && !selfReview && aiDraftDisabledReason && (
               <span className="evm-autosave" data-testid="evm-ai-draft-reason">
                 {aiDraftDisabledReason}
               </span>
             )}
-            {onAiDraft && (
+            {onAiDraft && !selfReview && (
               <button
                 type="button"
                 className="evc-btn is-ghost"
@@ -1163,6 +1400,20 @@ export default function EvalCycleMemberCanvas({
             </Button>
           </div>
         </div>
+      )}
+
+      {krAsk && (
+        <ConfirmModal
+          title={L.krUnfilledConfirm}
+          confirmLabel={L.submit}
+          cancelLabel={L.cancel}
+          onCancel={() => setKrAsk(false)}
+          onConfirm={() => {
+            setKrAsk(false);
+            submitNow();
+          }}
+          testId="evm-kr-unfilled-confirm"
+        />
       )}
     </div>
   );

@@ -13,18 +13,22 @@ export const TEMPLATE_PRESETS = {
     { id: 's1', section: '성과 (What)', text: '이번 기간 종합 코멘트를 작성해주세요.', type: 'textarea', ai: true },
     { id: 's2', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
+  // PW-1464 · 대상자 화면 정책 §4.0 — 표준 = 성과 2(서술) · 역량 3(점수) · 성장 3(서술 2 + 점수 1).
+  // OKR/KR 달성도는 점수가 아니라 서술이다(§4.6 — 정량 달성률은 KR 달성률 입력으로 일원화).
   standard: [
     { id: 'q1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea', ai: true },
-    { id: 'q2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
-    { id: 'q3', section: '역량 (How)', text: '주도성 · 오너십', type: 'rating' },
+    { id: 'q2', section: '성과 (What)', text: 'OKR/KR 달성도에 대한 코멘트를 작성해주세요.', type: 'textarea', ai: true },
+    { id: 'q3', section: '역량 (How)', text: '주도성 / 오너십', type: 'rating' },
     { id: 'q4', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating' },
-    { id: 'q5', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true, growthType: 'strengths' },
-    { id: 'q6', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true, growthType: 'improvements' },
-    { id: 'q7', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
+    { id: 'q5', section: '역량 (How)', text: '실행력', type: 'rating' },
+    { id: 'q6', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true, growthType: 'strengths' },
+    { id: 'q7', section: '성장 (Growth)', text: '성장 영역', type: 'textarea', ai: true, growthType: 'improvements' },
+    { id: 'q8', section: '성장 (Growth)', text: '성장 가능성', type: 'rating' },
+    { id: 'q9', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
   detailed: [
     { id: 'd1', section: '성과 (What)', text: '이번 기간 주요 성과를 서술해주세요.', type: 'textarea', ai: true },
-    { id: 'd2', section: '성과 (What)', text: 'OKR/KR 달성도', type: 'rating' },
+    { id: 'd2', section: '성과 (What)', text: 'OKR/KR 달성도에 대한 코멘트를 작성해주세요.', type: 'textarea', ai: true },
     { id: 'd3', section: '성과 (What)', text: '정량 목표 달성률', type: 'rating', requiresRationale: true },
     { id: 'd4', section: '역량 (How)', text: '주도성 / 오너십', type: 'rating', requiresRationale: true },
     { id: 'd5', section: '역량 (How)', text: '협업 · 커뮤니케이션', type: 'rating', requiresRationale: true },
