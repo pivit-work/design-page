@@ -77,6 +77,12 @@
 /* ── 안내/경고/오류 박스 ────────────────────────────────────────────── */
 .intg-note { padding: 8px 12px; border-radius: var(--radius-sm, 8px); font-size: 12px; line-height: 1.5; }
 .intg-note.is-error { background: var(--utility-error-50); border: 1px solid var(--colors-error-200); color: var(--colors-error-600); }
+.intg-note.is-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
 .intg-note.is-warning {
   background: var(--colors-warning-50);
   border: 1px solid var(--colors-warning-200);
@@ -133,6 +139,7 @@
 .intg-setting-check label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 /* 저장 직후 [저장] 자리에 2초 보이는 「✓ 저장됨」(연동 화면 기획 §6). */
 .intg-saved { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.intg-setting-text { font-size: 13px; color: var(--text-secondary); }
 .intg-setting-link { font-size: 13px; font-weight: 500; color: var(--text-brand-tertiary); text-decoration: underline; white-space: nowrap; }
 .intg-select {
   padding: 7px 12px;

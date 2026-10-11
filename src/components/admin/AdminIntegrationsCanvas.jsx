@@ -325,6 +325,20 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
         </div>
       )}
 
+      {/* 상태는 그대로 «연동됨»이고 덧붙이는 안내 한 줄 — 누르면 [재연결]과 같은 연결 창 (pivit-work PW-1671 · 협업툴 연동 §5-A). */}
+      {isConnected && card.notice && (
+        <div className="intg-note is-info" data-testid={`intg-notice-${app}`}>
+          <span>{card.notice.text}</span>
+          <button
+            type="button"
+            className="intg-btn intg-btn-neutral intg-btn-sm"
+            onClick={() => onReconnect(app)}
+          >
+            {card.notice.actionLabel}
+          </button>
+        </div>
+      )}
+
       {isError && card.errorMessage && (
         <div className="intg-note is-error">{card.errorMessage}</div>
       )}
@@ -561,6 +575,12 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
               onChange={(v) => setField(field.key, v)}
               label={field.label}
             />
+          )}
+          {/* 고를 것 없이 읽기만 하는 한 줄 — 저장하지 않는다 (pivit-work PW-1671 「변경 사항을 바로 받습니다」). */}
+          {field.kind === 'text' && (
+            <span className="intg-setting-text" data-testid={`intg-setting-text-${field.key}`}>
+              {field.text}
+            </span>
           )}
           {/* 새 창으로 여는 글자 링크 — 값이 아니라 바깥 설정 화면으로 보낸다 (PW-1152 GitHub 저장소 범위).
               draft 에는 싣지만 저장하지 않는 칸이다. 주소가 없으면 그리지 않는다. */}
