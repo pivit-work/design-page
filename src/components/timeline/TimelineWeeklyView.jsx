@@ -287,28 +287,30 @@ export default function TimelineWeeklyView({
           </div>
         </section>
 
-        {/* OKR progress */}
-        <section className="tl-weekly-section">
-          <div className="tl-weekly-section-title">OKR 달성도 변화</div>
-          <ul className="tl-weekly-okr-list">
-            {(report.okrItems ?? []).map((o, i) => (
-              // KR title(label) 은 OKR 간 중복될 수 있어 unique 하지 않다. index 를 함께 키로 쓴다.
-              <li key={`${o.label}-${i}`} className="tl-weekly-okr-item">
-                <div className="tl-weekly-okr-row">
-                  <span className="tl-weekly-okr-label">{o.label}</span>
-                  <span className="tl-weekly-okr-delta" style={{ color: o.color }}>
-                    {o.delta >= 0 ? '+' : ''}{o.delta}%
+        {/* OKR progress — 그 주에 넣을 KR 이 없으면 제목까지 통째로 그리지 않는다 (PW-1602 커트 결정 2026-10-11) */}
+        {(report.okrItems ?? []).length > 0 && (
+          <section className="tl-weekly-section">
+            <div className="tl-weekly-section-title">OKR 달성도 변화</div>
+            <ul className="tl-weekly-okr-list">
+              {(report.okrItems ?? []).map((o, i) => (
+                // KR title(label) 은 OKR 간 중복될 수 있어 unique 하지 않다. index 를 함께 키로 쓴다.
+                <li key={`${o.label}-${i}`} className="tl-weekly-okr-item">
+                  <div className="tl-weekly-okr-row">
+                    <span className="tl-weekly-okr-label">{o.label}</span>
+                    <span className="tl-weekly-okr-delta" style={{ color: o.color }}>
+                      {o.delta >= 0 ? '+' : ''}{o.delta}%
+                    </span>
+                    <span className="tl-weekly-okr-value" style={{ color: o.color }}>{o.value}%</span>
+                  </div>
+                  <span className="tl-weekly-okr-bar">
+                    <span style={{ width: `${o.value}%`, background: o.barColor }} />
                   </span>
-                  <span className="tl-weekly-okr-value" style={{ color: o.color }}>{o.value}%</span>
-                </div>
-                <span className="tl-weekly-okr-bar">
-                  <span style={{ width: `${o.value}%`, background: o.barColor }} />
-                </span>
-                <span className="tl-weekly-okr-prev">지난 주 {o.prev}%</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <span className="tl-weekly-okr-prev">지난 주 {o.prev}%</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* 주요 기여 / 블로커 (2-col) */}
         <section className="tl-weekly-section">
