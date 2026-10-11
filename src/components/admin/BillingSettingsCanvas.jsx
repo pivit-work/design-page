@@ -183,6 +183,11 @@ export default function BillingSettingsCanvas({
   onReturnToCheckout,
   // 저장 안 한 변경이 생기고 사라질 때마다 알린다 — 앱이 떠날 때 경고를 건다(§4).
   onDirtyChange,
+  // 저장하지 않은 입력값으로 폼을 연다(마지막 저장값은 profile 그대로라 «저장 안 한 변경»으로 보인다).
+  // 자동 로그아웃 뒤 다시 로그인했을 때 고치던 값을 되살리는 데 쓴다(앱 PW-1673). 처음 열 때만 읽는다.
+  draftFields = null,
+  // 입력값이 바뀔 때마다 알린다 — 앱이 떠나기 직전 고치던 값을 남기는 데 쓴다(앱 PW-1673).
+  onFieldsChange,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -204,7 +209,9 @@ export default function BillingSettingsCanvas({
 
   // 폼 상태
   const base = seedFields(profile);
-  const [fields, setFields] = useState(base);
+  const [fields, setFields] = useState(() =>
+    draftFields ? seedFields(draftFields) : base,
+  );
   const [saved, setSaved] = useState(base); // 마지막 저장값 (dirty 비교용)
   const [touched, setTouched] = useState({}); // blur 된 필드 추적
   const [errors, setErrors] = useState({});
@@ -217,6 +224,9 @@ export default function BillingSettingsCanvas({
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+  useEffect(() => {
+    onFieldsChange?.(fields);
+  }, [fields, onFieldsChange]);
 
   // 전체 검증 통과 여부
   const allValid = FIELD_KEYS.every((k) => !validateField(k, fields[k]));
