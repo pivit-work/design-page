@@ -79,7 +79,8 @@ const DEFAULT_LABELS = {
   cwOpen: '→ 열기',
   cwStatusDraft: '예정',
   cwStatusInProgress: '진행 중',
-  cwStatusClosed: '확정 완료',
+  // summary policy §10.G.2 — 완료 세션은 회색 「완료」 배지.
+  cwStatusClosed: '완료',
   cwCommitBtn: '최종 확정',
   cwClosedBadge: '확정 완료 — 조정·위원 변경 불가',
   cwBack: '← 목록',
@@ -399,6 +400,16 @@ const DEFAULT_LABELS = {
     '이어받을 위원이 없습니다. 위원을 먼저 추가한 뒤 제외하세요.',
   // 기획 spec-calibration §3.4④ 문구 그대로 — 표 맨 위와 위원 관리 창에 같은 문장.
   cwManageChairAuto: '위원장이 자동 지정되었습니다 — 변경하려면 위원 관리에서 이양하세요',
+  // summary policy §10.G.2-D — 위원 관리 창 안의 위원장 부재 배너(이름 포함).
+  cwManageChairAutoNamed: '위원장이 자동 지정되었습니다({name}). 변경하려면 이양하세요',
+  cwManageLastMember: '위원회에는 최소 1명의 위원이 필요합니다',
+  // 기획서 「{이름}을 위원회에서…」 — 조사는 받침에 맞춰 붙인다({nameObj}).
+  cwManageRemoveConfirm: '{nameObj} 위원회에서 제외합니다. 작성한 논의 코멘트와 조정 이력은 보존됩니다.',
+  cwManageRemoveConfirmSubmit: '제외',
+  cwConflict: '이해상충',
+  cwConflictOption: '{name} (이해상충)',
+  cwJoinedAt: '합류 {date}',
+  cwSessionManage: '위원 관리',
   cwManageSaveFailed: '위원 구성을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwCreateFailed: '위원회를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
   cwReviewFailed: '재검토 결과를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
@@ -412,7 +423,7 @@ const DEFAULT_LABELS = {
   cwDirectTransferPlaceholder: '이어받을 위원을 선택하세요',
   cwDirectTransferSubmit: '위원장 넘기기',
   cwDirectTransferConfirm:
-    '{name} 님에게 위원장을 넘깁니다. 이후 내 화면은 조회 전용으로 바뀝니다.',
+    '{name}에게 위원장을 넘깁니다. 이후 내 화면은 조회 전용으로 바뀝니다.',
   cwDirectTransferConfirmSubmit: '넘기기',
   cwDirectTransferCancel: '취소',
   cwDirectTransferFailed: '위원장을 넘기지 못했습니다. 잠시 후 다시 시도해 주세요.',
@@ -446,6 +457,7 @@ const DEFAULT_LABELS = {
   j1ColWork: '업적 평균',
   j1ColAchieve: 'OKR 달성률',
   j1NoScore: '—',
+  j1NoCompetency: '역량 평가 항목이 없어 비율 분석이 불가합니다.',
   execJ2Title: 'J2 — 리더별 관대/엄격 평가 패턴 지표',
   execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
   nbConfidential: '이 화면은 캘리브레이션 위원회 · HR만 열람 가능합니다. 매니저·구성원 비공개.',
@@ -457,6 +469,8 @@ const DEFAULT_LABELS = {
   nbXMaintain: '현 수준 유지',
   // §9.2 승진축 — 위원회 마킹이 먼저(가=대상·부=비대상), 미마킹이면 매니저 추천=보류·미추천=비대상.
   // 키 이름은 서버 줄 키(recommended/deferred/not_yet) 그대로다.
+  // summary policy §9.F.4 — 칸마다 인원 수, 누르면 이름이 펼쳐진다.
+  nbCount: '{n}명',
   nbYRecommended: '대상',
   nbYNotYet: '비대상',
   nbYDeferred: '보류',
@@ -470,6 +484,7 @@ const DEFAULT_LABELS = {
   prF2: '② 검토 배경·필요성',
   prF3: '③ 레벨 역할 수행 사례',
   prF4: '④ 추가 사항',
+  prCommitteeNote: '위원회 의견',
   prStatusDraft: '작성 중',
   prStatusSubmitted: '검토 대기',
   prStatusCommittee: '위원회 검토 중',
@@ -664,6 +679,15 @@ function isObj(v) {
 }
 function fmt(str, vars) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+}
+/**
+ * 이름 뒤 목적격 조사 — 끝 글자 받침이 있으면 「을」, 없으면 「를」. 한글이 아닌 끝 글자(영문 이름 등)는
+ * 받침을 알 수 없어 「을(를)」. 「{nameObj} 위원회에서 제외합니다」처럼 쓴다.
+ */
+function withObjectParticle(name) {
+  const code = String(name).charCodeAt(String(name).length - 1);
+  if (!(code >= 0xac00 && code <= 0xd7a3)) return `${name}을(를)`;
+  return `${name}${(code - 0xac00) % 28 === 0 ? '를' : '을'}`;
 }
 /** §3.3② 위원 후보 검색 — 이름·부서·직책 부분일치(q 는 소문자로 다듬은 검색어). */
 function committeeCandidateMatches(c, q) {
@@ -1224,6 +1248,55 @@ function sortCalibRows(rows, sort, orderedGrades) {
   });
 }
 
+/** summary policy §9.F.2 부서별 분석 표 — 머리글 정렬 값. 값이 없는 칸은 늘 맨 뒤. */
+function sortDeptStats(rows, sort) {
+  if (!sort.key) return rows;
+  const val = (d) => {
+    if (sort.key === 'dept') return d.dept;
+    if (sort.key === 'total') return d.total;
+    if (sort.key === 'comp') return d.competencyAvg;
+    if (sort.key === 'work') return d.workAchievementAvg;
+    if (sort.key === 'achieve') return d.avgAchieve;
+    return d.gradeCounts.find((g) => `grade:${g.gradeKey}` === sort.key)?.count ?? null;
+  };
+  const dir = sort.dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = val(a);
+    const vb = val(b);
+    if (va == null || vb == null) return va == null ? (vb == null ? 0 : 1) : -1;
+    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+    return String(va).localeCompare(String(vb), 'ko') * dir;
+  });
+}
+
+/** 부서별 분석 표 머리글 한 칸 — 누르면 오름↔내림. `SortTh` 와 같은 화살표를 쓴다. */
+function DeptSortHead({ sortKey, label, sort, onSort, className = 'evs-leader-num' }) {
+  const active = sort.key === sortKey;
+  return (
+    <span
+      role="columnheader"
+      className={className}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        className={`evs-j1-sort${active ? ' is-active' : ''}`}
+        onClick={() =>
+          onSort((prev) =>
+            prev.key === sortKey
+              ? { key: sortKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+              : { key: sortKey, dir: 'asc' },
+          )
+        }
+        data-testid={`evs-j1-th-${sortKey}`}
+      >
+        {label}
+        <span className="evs-cw-th-arrow">{active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}</span>
+      </button>
+    </span>
+  );
+}
+
 // TC-076/166 정렬 가능한 테이블 헤더 — 클릭 시 asc↔desc 토글, 현재 정렬 방향 표시.
 function SortTh({ sortKey, label, sort, onSort }) {
   const active = sort.key === sortKey;
@@ -1488,6 +1561,30 @@ const PERIOD_TYPE_KEYS = {
   half: 'periodHalf',
   annual: 'periodAnnual',
 };
+/**
+ * summary policy §9.F.4 9블록 한 칸 — 인원 수를 보이고, 누르면 이름 목록이 펼쳐진다.
+ * 이름을 그리는 법(누를 수 있는 버튼인지)은 부르는 쪽이 `renderName` 으로 정한다.
+ */
+function NineBoxCellBody({ members, L, renderName, testId }) {
+  const [open, setOpen] = useState(false);
+  if (members.length === 0) return <span className="evs-nb-empty-cell">—</span>;
+  return (
+    <>
+      <button
+        type="button"
+        className="evs-nb-count"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        data-testid={testId}
+      >
+        {fmt(L.nbCount, { n: members.length })}
+        {open ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
+      </button>
+      {open && members.map(renderName)}
+    </>
+  );
+}
+
 function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
   if (!periods || periods.length === 0) return null;
   const current = periods.find((p) => p.cycleId === selectedCycleId);
@@ -1714,6 +1811,8 @@ export default function EvalCycleSummaryCanvas({
     !workspaceOnly && !!cycle?.status && !TAB_OPEN_STATUSES.integrated.includes(cycle.status);
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
+  // §9.F.2 부서별 분석 표 머리글 정렬 — 처음엔 서버 순서.
+  const [deptSort, setDeptSort] = useState({ key: null, dir: 'asc' });
   // R7b 워크스페이스 내 승진 9블록 모달
   const [showNineBox, setShowNineBox] = useState(false);
   // §10.G 어필 1인 재검토 폼 상태
@@ -1841,8 +1940,28 @@ export default function EvalCycleSummaryCanvas({
   // 고정한다. 필터에 걸려 사라지면 실수로 해제하거나 같은 사람을 다시 고르게 된다. 검색어를
   // 비우면 원래 정렬로 복귀.
   const committeeSearchQuery = committeeSearch.trim().toLowerCase();
+  // PW-129 — 같은 모달을 '위원 관리' 로 재사용한다. 관리 모드에서는 제목/설명이 바뀌고
+  // ①대상자·제목 입력이 숨으며, 후보 목록이 현재 위원으로 미리 체크된 채 열린다.
+  const [committeeManage, setCommitteeManage] = useState(false);
+  /* §10.G.2-D — 위원 관리 창은 지금 위원을 위에 둔다(서버 순서 = 위원장 → 합류일 순). */
+  const committeeMemberOf = useMemo(
+    () =>
+      new Map(
+        (sessionCommittee?.members ?? [])
+          .filter((m) => m.isActive !== false)
+          .map((m, i) => [m.userId, { ...m, order: i }]),
+      ),
+    [sessionCommittee],
+  );
+  const orderedCommitteeCandidates = useMemo(() => {
+    if (!committeeManage || committeeMemberOf.size === 0) return committeeCandidates;
+    const members = committeeCandidates
+      .filter((c) => committeeMemberOf.has(c.id))
+      .sort((a, b) => committeeMemberOf.get(a.id).order - committeeMemberOf.get(b.id).order);
+    return [...members, ...committeeCandidates.filter((c) => !committeeMemberOf.has(c.id))];
+  }, [committeeCandidates, committeeMemberOf, committeeManage]);
   const visibleCommitteeCandidates = useMemo(() => {
-    if (!committeeSearchQuery) return committeeCandidates;
+    if (!committeeSearchQuery) return orderedCommitteeCandidates;
     const pinned = createCommittee
       .map((id) => committeeCandidates.find((c) => c.id === id))
       .filter(Boolean);
@@ -1851,7 +1970,7 @@ export default function EvalCycleSummaryCanvas({
       (c) => !pinnedIds.has(c.id) && committeeCandidateMatches(c, committeeSearchQuery),
     );
     return [...pinned, ...matched];
-  }, [committeeCandidates, createCommittee, committeeSearchQuery]);
+  }, [committeeCandidates, orderedCommitteeCandidates, createCommittee, committeeSearchQuery]);
   // §14 — 검색어를 바꿔 이미 고른 위원이 결과 밖으로 빠져도 선택은 그대로다. 몇 명이
   // 그런지 선택 요약에 밝힌다(「검색 결과 밖 K명 포함」).
   const committeeOutsideSearchCount = committeeSearchQuery
@@ -1931,9 +2050,6 @@ export default function EvalCycleSummaryCanvas({
     setCreateAddSearch('');
   };
 
-  // PW-129 — 같은 모달을 '위원 관리' 로 재사용한다. 관리 모드에서는 제목/설명이 바뀌고
-  // ①대상자·제목 입력이 숨으며, 후보 목록이 현재 위원으로 미리 체크된 채 열린다.
-  const [committeeManage, setCommitteeManage] = useState(false);
   // PW-1611 — 위원 관리 창이 연 세션의 지금 개최 날짜. 조견표 목록(calibSessions)이 정본이다.
   const savedSessionDate = isoToDateKey(
     calibSessions.find((s) => s.id === sessionCommittee?.sessionId)?.scheduledAt,
@@ -2068,10 +2184,21 @@ export default function EvalCycleSummaryCanvas({
    */
   const [committeeError, setCommitteeError] = useState('');
   const [committeeSaving, setCommitteeSaving] = useState(false);
+  /**
+   * §10.G.2-D 일반 위원 제외 — 저장 전에 「{이름}을 위원회에서 제외합니다…」를 한 번 보이고 다시 눌러야
+   * 저장한다. 위원장 제외는 이양 대상 고르기가 그 확인을 대신한다.
+   */
+  const [removeConfirming, setRemoveConfirming] = useState(false);
+  const removedMembers = useMemo(() => {
+    if (!committeeManage) return [];
+    const keep = new Set(createCommittee);
+    return activeCommittee.filter((m) => !keep.has(m.userId) && m.userId !== chairUserId);
+  }, [committeeManage, createCommittee, activeCommittee, chairUserId]);
 
   const closeCreateModal = () => {
     setShowCreate(false);
     setCommitteeManage(false);
+    setRemoveConfirming(false);
     setCreateDate('');
     setDirectTransferPick('');
     setDirectTransferConfirming(false);
@@ -2993,10 +3120,16 @@ export default function EvalCycleSummaryCanvas({
                   </section>
                   <section className="evc-card" data-testid="evs-j1-ratio">
                     <h3 className="evc-card-name">{L.j1RatioTitle}</h3>
+                    {/* §13 — 하향 평가지에 역량 항목이 없으면 비율을 그리지 않고 이유를 말한다. */}
+                    {execSummary?.hasCompetencyItems === false && (
+                      <p className="evc-empty-sub" data-testid="evs-j1-no-competency">{L.j1NoCompetency}</p>
+                    )}
                     {[
-                      { label: L.j1CompLabel, val: execSummary?.competencyAvg, max: scaleMaxOf({ scaleMax: execSummary?.competencyScaleMax }), tone: 'purple' },
+                      execSummary?.hasCompetencyItems === false
+                        ? null
+                        : { label: L.j1CompLabel, val: execSummary?.competencyAvg, max: scaleMaxOf({ scaleMax: execSummary?.competencyScaleMax }), tone: 'purple' },
                       { label: L.j1WorkLabel, val: execSummary?.workAchievementAvg, max: scaleMaxOf({ scaleMax: execSummary?.workAchievementScaleMax }), tone: 'accent' },
-                    ].map((r) => (
+                    ].filter(Boolean).map((r) => (
                       <div className="evs-j1-ratio-row" key={r.label}>
                         <span className="evs-j1-ratio-label">{r.label}</span>
                         <div className="evs-dist-track evs-j1-ratio-track">
@@ -3015,17 +3148,17 @@ export default function EvalCycleSummaryCanvas({
                     <p className="evc-empty-sub">{L.deptDataEmpty}</p>
                   ) : (
                     <div className="evs-leader-table">
-                      <div className="evs-leader-row evs-j1-drow evs-leader-head" style={{ '--gcols': deptStats[0]?.gradeCounts.length || 3 }}>
-                        <span>{L.deptColDept}</span>
-                        <span className="evs-leader-num">{L.deptColCount}</span>
+                      <div className="evs-leader-row evs-j1-drow evs-leader-head" role="row" style={{ '--gcols': deptStats[0]?.gradeCounts.length || 3 }}>
+                        <DeptSortHead sortKey="dept" label={L.deptColDept} sort={deptSort} onSort={setDeptSort} className="" />
+                        <DeptSortHead sortKey="total" label={L.deptColCount} sort={deptSort} onSort={setDeptSort} />
                         {(deptStats[0]?.gradeCounts ?? []).map((g) => (
-                          <span className="evs-leader-num" key={g.gradeKey}>{g.label}</span>
+                          <DeptSortHead key={g.gradeKey} sortKey={`grade:${g.gradeKey}`} label={g.label} sort={deptSort} onSort={setDeptSort} />
                         ))}
-                        <span className="evs-leader-num">{L.j1ColComp}</span>
-                        <span className="evs-leader-num">{L.j1ColWork}</span>
-                        <span className="evs-leader-num">{L.j1ColAchieve}</span>
+                        <DeptSortHead sortKey="comp" label={L.j1ColComp} sort={deptSort} onSort={setDeptSort} />
+                        <DeptSortHead sortKey="work" label={L.j1ColWork} sort={deptSort} onSort={setDeptSort} />
+                        <DeptSortHead sortKey="achieve" label={L.j1ColAchieve} sort={deptSort} onSort={setDeptSort} />
                       </div>
-                      {deptStats.map((d) => (
+                      {sortDeptStats(deptStats, deptSort).map((d) => (
                         <div className="evs-leader-row evs-j1-drow" role="row" key={d.dept} data-testid="evs-j1-dept-row" style={{ '--gcols': d.gradeCounts.length }}>
                           <span className="evs-leader-name">{d.dept}</span>
                           <span className={`evs-leader-num${d.total > 0 ? ' is-sub' : ' is-muted'}`}>{d.total}{L.unit}</span>
@@ -3116,9 +3249,14 @@ export default function EvalCycleSummaryCanvas({
                                   const highlight = y === 'recommended' && x === 'urgent';
                                   return (
                                     <div className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`} key={x} data-testid={`evs-nb-cell-${y}-${x}`}>
-                                      {members.length === 0 ? <span className="evs-nb-empty-cell">—</span> : members.map((m) => (
-                                        <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
-                                      ))}
+                                      <NineBoxCellBody
+                                        members={members}
+                                        L={L}
+                                        testId={`evs-nb-count-${y}-${x}`}
+                                        renderName={(m) => (
+                                          <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
+                                        )}
+                                      />
                                     </div>
                                   );
                                 })}
@@ -3160,6 +3298,8 @@ export default function EvalCycleSummaryCanvas({
                                   { label: L.prF2, val: r.reviewBackground },
                                   { label: L.prF3, val: r.levelRoleExamples },
                                   { label: L.prF4, val: r.additionalNotes },
+                                  // §9.F.4 위원회 검토 결과 — 의견이 있을 때만.
+                                  { label: L.prCommitteeNote, val: r.committeeNote },
                                 ].map((f) => f.val && (
                                   <div className="evs-pr-field" key={f.label}>
                                     <div className="evs-pr-field-label">{f.label}</div>
@@ -3501,18 +3641,18 @@ export default function EvalCycleSummaryCanvas({
                                   className={`evs-nb-cell x-${x}${highlight ? ' is-priority' : ''}`}
                                   key={x}
                                 >
-                                  {members.length === 0 ? (
-                                    <span className="evs-nb-empty-cell">—</span>
-                                  ) : (
-                                    members.map((m) => (
+                                  <NineBoxCellBody
+                                    members={members}
+                                    L={L}
+                                    renderName={(m) => (
                                       <span
                                         className="evs-nb-name"
                                         key={m.memberId}
                                       >
                                         {m.name || m.memberId}
                                       </span>
-                                    ))
-                                  )}
+                                    )}
+                                  />
                                 </div>
                               );
                             })}
@@ -3882,15 +4022,15 @@ export default function EvalCycleSummaryCanvas({
                           : L.cwStatusDraft;
                     const tone =
                       s.status === 'closed'
-                        ? 'green'
+                        ? 'muted'
                         : s.status === 'in_progress'
                           ? 'accent'
                           : 'muted';
                     const closed = s.status === 'closed';
                     return (
+                      <div key={s.id} className="evs-cw-session-wrap">
                       <button
                         type="button"
-                        key={s.id}
                         className={`evs-cw-session${closed ? ' is-closed' : ''}`}
                         onClick={() => onSelectCalibSession?.(s.id)}
                         data-testid="evs-cw-session"
@@ -3928,6 +4068,25 @@ export default function EvalCycleSummaryCanvas({
                         <StatusBadge className={`evs-cw-status tone-${tone}`}>{statusLabel}</StatusBadge>
                         <span className="evs-cw-open">{L.cwOpen}</span>
                       </button>
+                      {/* §10.G.2-D — 줄을 눌러 여는 것과 따로, 그 세션의 위원 관리 창만 연다. */}
+                      {onOpenCommittee && (
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost evs-cw-session-manage"
+                          onClick={() => {
+                            setShowCreate(true);
+                            setCommitteeManage(true);
+                            setCommitteeSearch('');
+                            setCreateCommittee([]);
+                            seededSessionRef.current = null;
+                            onOpenCommittee(s.id);
+                          }}
+                          data-testid="evs-cw-session-manage"
+                        >
+                          {L.cwSessionManage}
+                        </button>
+                      )}
+                      </div>
                     );
                   })
                 )}
@@ -5678,6 +5837,10 @@ export default function EvalCycleSummaryCanvas({
                     (chairDropped && !chairTransferTo)
                   }
                   onClick={() => {
+                    if (removedMembers.length > 0 && !removeConfirming) {
+                      setRemoveConfirming(true);
+                      return;
+                    }
                     setCommitteeError('');
                     setCommitteeSaving(true);
                     // 성공했을 때만 닫는다 — 실패하면 사용자가 고른 명단이 그대로
@@ -5697,7 +5860,9 @@ export default function EvalCycleSummaryCanvas({
                     );
                   }}
                 >
-                  {L.cwManageSubmit}
+                  {removeConfirming && removedMembers.length > 0
+                    ? L.cwManageRemoveConfirmSubmit
+                    : L.cwManageSubmit}
                 </button>
               ) : (
                 <button
@@ -6046,20 +6211,26 @@ export default function EvalCycleSummaryCanvas({
                   {visibleCommitteeCandidates.map((c) => {
                     const idx = createCommittee.indexOf(c.id);
                     const on = idx >= 0;
-                    return (
+                    const member = committeeManage ? committeeMemberOf.get(c.id) : null;
+                    /* §10.G.2-D 마지막 1인 — 체크를 풀 수 없다. 툴팁이 뜨도록 disabled 대신 aria-disabled. */
+                    const lastOne = committeeManage && on && createCommittee.length === 1;
+                    const row = (
                       <button
                         type="button"
                         key={c.id}
                         className={`evs-cw-candidate${on ? ' is-on' : ''}`}
                         data-testid="evs-cw-candidate"
                         disabled={committeeReadOnly}
-                        onClick={() =>
+                        aria-disabled={lastOne || undefined}
+                        onClick={() => {
+                          if (lastOne) return;
+                          setRemoveConfirming(false);
                           setCreateCommittee((prev) =>
                             prev.includes(c.id)
                               ? prev.filter((x) => x !== c.id)
                               : [...prev, c.id],
-                          )
-                        }
+                          );
+                        }}
                       >
                         <span
                           className={`evc-member-check${on ? ' is-on' : ''}`}
@@ -6087,8 +6258,32 @@ export default function EvalCycleSummaryCanvas({
                           ? c.id === chairUserId
                           : on && idx === 0) ? (
                           <span className="evs-cw-candidate-chair">{L.cwChair}</span>
+                        ) : member ? (
+                          <span className="evs-cw-candidate-dept">{L.cwRoleMember}</span>
+                        ) : null}
+                        {member && (member.jobRank || member.jobLevel) ? (
+                          <span className="evs-cw-candidate-dept" data-testid="evs-cw-member-rank">
+                            {[member.jobRank, member.jobLevel].filter(Boolean).join(' · ')}
+                          </span>
+                        ) : null}
+                        {member?.addedAt ? (
+                          <span className="evs-cw-candidate-dept" data-testid="evs-cw-member-joined">
+                            {fmt(L.cwJoinedAt, { date: fmtDate(member.addedAt) })}
+                          </span>
+                        ) : null}
+                        {member?.isTarget ? (
+                          <span className="evs-cw-candidate-conflict" data-testid="evs-cw-member-conflict">
+                            <AlertIcon size={12} /> {L.cwConflict}
+                          </span>
                         ) : null}
                       </button>
+                    );
+                    return lastOne ? (
+                      <Tooltip key={c.id} content={L.cwManageLastMember}>
+                        {row}
+                      </Tooltip>
+                    ) : (
+                      row
                     );
                   })}
                 </div>
@@ -6143,6 +6338,19 @@ export default function EvalCycleSummaryCanvas({
                   })}
                 </div>
               )}
+              {committeeManage && removeConfirming && removedMembers.length > 0 && (
+                <div
+                  className="evs-cw-exclusion"
+                  role="alert"
+                  data-testid="evs-cw-committee-remove-confirm"
+                >
+                  {removedMembers.map((m) => (
+                    <div key={m.userId}>
+                      {fmt(L.cwManageRemoveConfirm, { name: m.name, nameObj: withObjectParticle(m.name) })}
+                    </div>
+                  ))}
+                </div>
+              )}
               {committeeError && (
                 <div
                   className="evs-cw-exclusion"
@@ -6158,7 +6366,7 @@ export default function EvalCycleSummaryCanvas({
                   className="evs-cw-exclusion"
                   data-testid="evs-cw-committee-chair-auto"
                 >
-                  {L.cwManageChairAuto}
+                  {fmt(L.cwManageChairAutoNamed, { name: chairNameOf(chairUserId) })}
                 </div>
               )}
               {/* §3.4③ — 위원장이 제외 없이 위원장만 넘긴다. */}
@@ -6184,7 +6392,7 @@ export default function EvalCycleSummaryCanvas({
                     <option value="">{L.cwDirectTransferPlaceholder}</option>
                     {directTransferOptions.map((m) => (
                       <option key={m.userId} value={m.userId}>
-                        {m.name}
+                        {m.isTarget ? fmt(L.cwConflictOption, { name: m.name }) : m.name}
                       </option>
                     ))}
                   </select>
@@ -6278,7 +6486,7 @@ export default function EvalCycleSummaryCanvas({
                         </option>
                         {chairTransferOptions.map((m) => (
                           <option key={m.userId} value={m.userId}>
-                            {m.name}
+                            {m.isTarget ? fmt(L.cwConflictOption, { name: m.name }) : m.name}
                           </option>
                         ))}
                       </select>

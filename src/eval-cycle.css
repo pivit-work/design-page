@@ -5383,6 +5383,17 @@
 }
 .evs-nb-name:hover { color: var(--utility-brand-600); }
 .evs-nb-empty-cell { color: var(--text-secondary); font-size: var(--font-size-text-xs); }
+.evs-nb-count {
+  display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
+  background: none; border: none; padding: 1px 0; cursor: pointer;
+  font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary);
+}
+.evs-nb-count:hover { color: var(--utility-brand-600); }
+.evs-j1-sort {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: inherit;
+}
+.evs-j1-sort.is-active { color: var(--text-primary); }
 .evs-nb-caption { margin-top: var(--spacing-md); font-size: var(--font-size-text-xs); color: var(--text-secondary); }
 /* 승진 요청 카드 */
 .evs-pr-head { display: flex; align-items: center; justify-content: space-between; }
@@ -6165,6 +6176,19 @@
   opacity: 0.65;
   cursor: default;
 }
+/* §10.G.2-D — 세션 줄 옆 「위원 관리」. 줄(열기) 버튼과 형제로 둬 클릭이 섞이지 않는다. */
+.evs-cw-session-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.evs-cw-session-wrap > .evs-cw-session {
+  flex: 1;
+  min-width: 0;
+}
+.evs-cw-session-manage {
+  flex-shrink: 0;
+}
 .evs-cw-session-main {
   flex: 1;
   min-width: 0;
@@ -6685,6 +6709,18 @@
 .evs-cw-candidate-dept {
   font-size: 12px;
   color: var(--text-secondary);
+}
+/* §10.G.2-D 이해상충 — 위원이면서 이 세션 대상자 */
+.evs-cw-candidate-conflict {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--utility-warning-700);
+}
+.evs-cw-candidate[aria-disabled='true'] {
+  cursor: not-allowed;
 }
 .evs-cw-candidate-chair {
   font-size: 12px;
