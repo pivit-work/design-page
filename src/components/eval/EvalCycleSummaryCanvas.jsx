@@ -610,6 +610,23 @@ const DEFAULT_LABELS = {
   reEmptyList: '이 사이클에 해당하는 구성원이 없습니다.',
   reSelectPrompt: '왼쪽 목록에서 피평가자를 선택하세요.',
   reNoData: '이 구성원의 통합 리뷰 요약 데이터가 아직 준비되지 않았습니다.',
+  // [PW-1466] 정책 §8.4~§8.6·§13 — 통합 요약 AI 생성·검수
+  reSummaryNone: '이 구성원의 통합 리뷰 요약 데이터가 아직 준비되지 않았습니다. [AI 요약 생성] 버튼을 눌러주세요.',
+  reStatusNone: '요약 생성 필요',
+  reStatusGenerating: '생성 중…',
+  reStatusUnreviewed: 'AI 초안 미확인',
+  reStatusReviewed: '검수 완료',
+  reGenerate: 'AI 요약 생성',
+  reRegenerate: '요약 재생성',
+  reReviewComplete: '1차 검수 완료',
+  reGenerateLeaderOnly: 'AI 요약 생성은 조직장만 실행할 수 있습니다.',
+  reReviewLeaderOnly: '검수 완료는 조직장만 처리할 수 있습니다',
+  reGenFailed: 'AI 요약 생성에 실패했습니다. 다시 시도해 주세요.',
+  reRetry: '재시도',
+  reNewData: '새 데이터가 추가되었습니다. 재생성을 권장합니다.',
+  rePeerFew: '동료 리뷰 데이터가 부족합니다 ({n}건). 요약의 정확도가 낮을 수 있습니다.',
+  reAiSummary: 'AI 요약',
+  reUnconfirmed: '미확인',
   reFinalGrade: '최종 등급',
   reAdjustedBadge: '캘리브레이션 조정됨',
   reSelfTitle: '셀프 리뷰 요약',
@@ -800,6 +817,93 @@ function ManagerNoteLines({ note, L }) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * [PW-1466] 통합 요약 AI 요약 한 칸 (정책 §8.3). 검수 전(미확인)이면 노란 배경 — AI 결과는 확인 전까지
+ * 노랑(기획 절대 규칙 3). 요약이 없으면 그리지 않는다 — 아래 원문이 그대로 보인다.
+ */
+function AiSummaryText({ L, text, status, testId }) {
+  if (!text) return null;
+  return (
+    <div className={`evs-re-ai${status === 'unreviewed' ? ' is-unreviewed' : ''}`} data-testid={testId}>
+      <div className="evs-re-ai-k">{L.reAiSummary}</div>
+      <p className="evs-re-ai-text">{text}</p>
+    </div>
+  );
+}
+
+/**
+ * [PW-1466] 통합 요약 상태·버튼·안내 (정책 §8.4~§8.6·§13).
+ * 버튼은 조직장(`detail.canManageIntegratedSummary`)에게 켜고, HR 에게는 끈 채 «조직장만» 안내를 보인다.
+ * 위원회 등 그 밖의 사람에게는 상태만 보인다.
+ */
+function IntegratedSummaryActions({ L, detail, status, statusLabel, failed, viewerIsHr, notice, onGenerate, onReview }) {
+  const s = detail.integratedSummary;
+  const can = detail.canManageIntegratedSummary === true && !!onGenerate;
+  const busy = status === 'generating';
+  const exists = s && s.status !== 'none';
+  const tone = status === 'reviewed' ? 'success' : status === 'unreviewed' ? 'warning' : status === 'generating' ? 'warning' : null;
+  return (
+    <section className="evc-card evs-re-actions" data-testid="evs-re-actions">
+      <div className="evs-re-actions-row">
+        <StatusBadge tone={tone ?? undefined} className={`evs-re-status is-${status}`} data-testid="evs-re-status" data-status={status}>
+          <span className={`evs-re-dot is-${status}`} aria-hidden />
+          {statusLabel}
+        </StatusBadge>
+        {(can || viewerIsHr) && (
+          <div className="evs-re-actions-btns">
+            {!exists ? (
+              <Tooltip content={can ? '' : L.reGenerateLeaderOnly}>
+                <button type="button" className="evc-btn is-primary" disabled={!can || busy} onClick={() => onGenerate(false)} data-testid="evs-re-generate">
+                  {L.reGenerate}
+                </button>
+              </Tooltip>
+            ) : (
+              <Tooltip content={can ? '' : L.reGenerateLeaderOnly}>
+                <button type="button" className="evc-btn is-ghost" disabled={!can || busy} onClick={() => onGenerate(true)} data-testid="evs-re-regenerate">
+                  <RefreshIcon size={14} /> {L.reRegenerate}
+                </button>
+              </Tooltip>
+            )}
+            {exists && s.status !== 'reviewed' && (
+              <Tooltip content={can && onReview ? '' : L.reReviewLeaderOnly}>
+                <button type="button" className="evc-btn is-primary" disabled={!can || !onReview || busy} onClick={() => onReview?.()} data-testid="evs-re-review-complete">
+                  {L.reReviewComplete}
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        )}
+      </div>
+      {!can && viewerIsHr && (
+        <p className="evs-re-note" data-testid="evs-re-leader-only">{L.reGenerateLeaderOnly}</p>
+      )}
+      {notice}
+      {failed && !busy && (
+        <div className="evs-re-alert is-error" role="alert" data-testid="evs-re-gen-failed">
+          <span>{L.reGenFailed}</span>
+          {can && (
+            <button type="button" className="evc-btn is-ghost" onClick={() => onGenerate(exists)} data-testid="evs-re-retry">{L.reRetry}</button>
+          )}
+        </div>
+      )}
+      {s?.newDataSinceGeneration && !busy && (
+        <div className="evs-re-alert" data-testid="evs-re-new-data">
+          <span>{L.reNewData}</span>
+          {can && (
+            <button type="button" className="evc-btn is-ghost" onClick={() => onGenerate(true)} data-testid="evs-re-new-data-regenerate">{L.reRegenerate}</button>
+          )}
+        </div>
+      )}
+      {can && !busy && (detail.peerReviewerCount ?? 0) < 3 && (
+        <div className="evs-re-alert" data-testid="evs-re-peer-few">{fmt(L.rePeerFew, { n: detail.peerReviewerCount ?? 0 })}</div>
+      )}
+      {!exists && !busy && (
+        <p className="evc-empty-sub" data-testid="evs-re-summary-none">{L.reSummaryNone}</p>
+      )}
+    </section>
   );
 }
 
@@ -1550,6 +1654,19 @@ export default function EvalCycleSummaryCanvas({
   onSendReminders,
   onOpenWorkspace,
   onSelectMember,
+  /**
+   * [PW-1466] 통합 요약 [AI 요약 생성]·[요약 재생성] — `(memberId, { regenerate }) => Promise`.
+   * 거절(reject)하면 «생성 실패» 안내와 [재시도]를 그린다. 확인 창은 부르는 쪽이 띄운다.
+   */
+  onGenerateSummary,
+  /** [PW-1466] [1차 검수 완료] — `(memberId) => Promise`. 확인 창은 부르는 쪽이 띄운다. */
+  onCompleteSummaryReview,
+  /** [PW-1466] 처음 열 탭. 없으면 전사 요약. */
+  initialTab,
+  /** [PW-1466] HR 조회 모드 — 생성·검수 버튼을 끈 채 «조직장만» 안내를 보인다(§8.6). */
+  summaryViewerIsHr = false,
+  /** [PW-1466] 버튼 곁에 띄울 안내(체험 AI 소진 등). 부르는 쪽이 그린다. */
+  summaryActionNotice = null,
   onNineBoxNameClick,
   onExportCsv,
   onSaveFilterPreset,
@@ -1588,7 +1705,8 @@ export default function EvalCycleSummaryCanvas({
     [leaderRounds, calibTable],
   );
   const currentGradeColLabel = multiLeaderRound ? L.cwColLeaderGrade : L.cwColCurrent;
-  const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : 'overview');
+  // [PW-1466] 주소에 고른 구성원이 있으면 통합 요약 탭으로 연다(`initialTab`).
+  const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : initialTab || 'overview');
   // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
   const tabOpen = (key) =>
     !cycle?.status || (TAB_OPEN_STATUSES[key] ?? []).includes(cycle.status);
@@ -2147,6 +2265,48 @@ export default function EvalCycleSummaryCanvas({
     approved: { label: L.prStatusApproved, tone: 'green' },
     rejected: { label: L.prStatusRejected, tone: 'red' },
   };
+
+  // [PW-1466] 통합 요약 생성 중인 사람·실패한 사람 — 요청 동안만 화면이 든다(§8.5 «생성 중»).
+  const [summaryBusy, setSummaryBusy] = useState(() => new Set());
+  const [summaryFailed, setSummaryFailed] = useState(() => new Set());
+  const markSet = (setter, id, on) =>
+    setter((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const runGenerate = async (memberId, regenerate) => {
+    if (!onGenerateSummary || summaryBusy.has(memberId)) return;
+    markSet(setSummaryBusy, memberId, true);
+    markSet(setSummaryFailed, memberId, false);
+    try {
+      await onGenerateSummary(memberId, { regenerate });
+    } catch {
+      markSet(setSummaryFailed, memberId, true);
+    } finally {
+      markSet(setSummaryBusy, memberId, false);
+    }
+  };
+  const runReview = async (memberId) => {
+    if (!onCompleteSummaryReview || summaryBusy.has(memberId)) return;
+    markSet(setSummaryBusy, memberId, true);
+    try {
+      await onCompleteSummaryReview(memberId);
+    } finally {
+      markSet(setSummaryBusy, memberId, false);
+    }
+  };
+  const summaryStatusOf = (memberId, status) =>
+    summaryBusy.has(memberId) ? 'generating' : status || 'none';
+  const summaryStatusLabel = (st) =>
+    st === 'generating'
+      ? L.reStatusGenerating
+      : st === 'unreviewed'
+        ? L.reStatusUnreviewed
+        : st === 'reviewed'
+          ? L.reStatusReviewed
+          : L.reStatusNone;
 
   // §8 피평가자 목록 — 부서 그룹핑 + 이름 가나다.
   const revieweeGroups = (() => {
@@ -3071,7 +3231,22 @@ export default function EvalCycleSummaryCanvas({
                           data-testid={`evs-re-item-${m.memberId}`}
                         >
                           <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(m.name || '?').slice(0, 1)}<AvatarPhoto photo={m.avatar} name={m.name} /></span>
-                          <span className="evs-re-item-name">{m.name || m.memberId}</span>
+                          {/* [PW-1466] §8.2 — 이름 아래 직함, 요약 상태 점, 검수 완료 배지 */}
+                          <span className="evs-re-item-who">
+                            <span className="evs-re-item-name">{m.name || m.memberId}</span>
+                            {m.title && <span className="evs-re-item-title" data-testid="evs-re-item-title">{m.title}</span>}
+                          </span>
+                          <Tooltip content={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}>
+                            <span
+                              className={`evs-re-dot is-${summaryStatusOf(m.memberId, m.summaryStatus)}`}
+                              data-testid={`evs-re-dot-${m.memberId}`}
+                              data-status={summaryStatusOf(m.memberId, m.summaryStatus)}
+                              aria-label={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}
+                            />
+                          </Tooltip>
+                          {m.summaryStatus === 'reviewed' && (
+                            <StatusBadge tone="success" className="evs-re-reviewed" data-testid="evs-re-reviewed">{L.reStatusReviewed}</StatusBadge>
+                          )}
                           {m.gradeLabel && (
                             <StatusBadge className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</StatusBadge>
                           )}
@@ -3110,13 +3285,30 @@ export default function EvalCycleSummaryCanvas({
                     </div>
                   </div>
 
+                  <IntegratedSummaryActions
+                    L={L}
+                    detail={memberDetail}
+                    status={summaryStatusOf(memberDetail.memberId, memberDetail.integratedSummary?.status)}
+                    statusLabel={summaryStatusLabel(summaryStatusOf(memberDetail.memberId, memberDetail.integratedSummary?.status))}
+                    failed={summaryFailed.has(memberDetail.memberId)}
+                    viewerIsHr={summaryViewerIsHr}
+                    notice={summaryActionNotice}
+                    onGenerate={onGenerateSummary ? (regenerate) => runGenerate(memberDetail.memberId, regenerate) : null}
+                    onReview={onCompleteSummaryReview ? () => runReview(memberDetail.memberId) : null}
+                  />
+
                   {/* A. 셀프 */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-self">{L.reSelfTitle}</h3>
+                    <AiSummaryText L={L} text={memberDetail.integratedSummary?.selfSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-self" />
                     {memberDetail.self?.submitted && memberDetail.self.answers.length ? (
                       <div className="evs-re-answers">
                         {memberDetail.self.answers.map((a) => (
-                          <div className="evs-re-answer" key={a.id}>
+                          /* [PW-1466] §8.3.A — 확인하지 않은 AI 초안 답은 노란 배경 + «미확인» */
+                          <div className={`evs-re-answer${a.aiUnconfirmed ? ' is-unconfirmed' : ''}`} key={a.id} data-testid="evs-re-self-answer">
+                            {a.aiUnconfirmed && (
+                              <StatusBadge tone="warning" className="evs-re-unconfirmed" data-testid="evs-re-unconfirmed">{L.reUnconfirmed}</StatusBadge>
+                            )}
                             {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                           </div>
@@ -3130,6 +3322,7 @@ export default function EvalCycleSummaryCanvas({
                   {/* B. 동료 (익명) */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-peer">{L.rePeerTitle}</h3>
+                    <AiSummaryText L={L} text={memberDetail.integratedSummary?.peerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-peer" />
                     {memberDetail.peer?.answers.length ? (
                       <div className="evs-re-answers">
                         {memberDetail.peer.answers.map((a) => (
@@ -3147,6 +3340,7 @@ export default function EvalCycleSummaryCanvas({
                   {/* C. 매니저 */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
+                    <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
                     {memberDetail.manager?.rounds?.length ? (
                       <LeaderRoundsDetail rounds={memberDetail.manager.rounds} L={L} />
                     ) : memberDetail.manager?.submitted ? (
