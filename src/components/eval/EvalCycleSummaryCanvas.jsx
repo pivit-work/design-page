@@ -3236,7 +3236,7 @@ export default function EvalCycleSummaryCanvas({
                             <span className="evs-re-item-name">{m.name || m.memberId}</span>
                             {(m.title || m.summaryStatus === 'reviewed') && (
                               <span className="evs-re-item-sub">
-                                {m.title && <span className="evs-re-item-title" data-testid="evs-re-item-title">{m.title}</span>}
+                                {m.title && <span className="evs-re-item-title" title={m.title} data-testid="evs-re-item-title">{m.title}</span>}
                                 {/* 배지는 이름 줄이 아니라 둘째 줄에 — 이름 줄에 두면 이름·직함이 잘린다 */}
                                 {m.summaryStatus === 'reviewed' && (
                                   <StatusBadge tone="success" className="evs-re-reviewed" data-testid="evs-re-reviewed">{L.reStatusReviewed}</StatusBadge>

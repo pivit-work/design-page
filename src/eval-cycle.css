@@ -5297,8 +5297,9 @@
 /* [PW-1466] 정책 §8.2~§8.6 — 통합 요약 상태·직함·AI 요약·미확인 */
 .evs-re-item-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .evs-re-item-who .evs-re-item-name { flex: none; }
-.evs-re-item-sub { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.evs-re-item-title { min-width: 0; font-size: var(--font-size-text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 직함은 한 줄을 다 쓰고 배지는 그 아래로 — 같은 줄에 두면 좁은 목록에서 직함이 몇 글자만 남는다 */
+.evs-re-item-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.evs-re-item-title { flex: 1 1 100%; min-width: 0; font-size: var(--font-size-text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .evs-re-reviewed { flex: none; }
 .evs-re-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--utility-gray-500); }
 .evs-re-dot.is-generating { background: var(--utility-orange-500); }
