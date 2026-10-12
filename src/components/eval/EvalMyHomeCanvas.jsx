@@ -11,7 +11,8 @@ import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon } from './evalIcons.j
  * 셀프 + 동료(주는 리뷰) + 팀원 하향 + 캘리브레이션 + 결과를 «내가 해야 할 일» 한 장에 모은다.
  * 무엇을 그릴지(어느 단계가 있나·상태·마감)는 앱이 정해 넘기고, 이 캔버스는 그리기만 한다.
  *
- *   cycles[{ id, name, period, phases[{ id, label, due, status, actionable, evaluator }] }]
+ *   cycles[{ id, name, period, calibrationEnabled?, phases[{ id, label, due, status, actionable, evaluator }] }]
+ *     calibrationEnabled === false 면 캘리브레이션 칩을 그리지 않는다 (member §10.1 M2).
  *     status: 'submitted' | 'in_progress' | 'pending'
  *     actionable: 누르면 갈 곳이 있다 · evaluator: 평가자 자격으로 열리는 상자(하향·캘리브레이션)
  *   reportBanner: { cycleId, cycleName, gradeLabel } | null
@@ -208,7 +209,8 @@ export default function EvalMyHomeCanvas({
                 <StatusBadge tone="progress" className="evc-status-badge">{L.inProgress}</StatusBadge>
               </div>
               <div className="evmh-chips">
-                {CHIP_ORDER.map((id) => {
+                {/* member §10.1 M2 — 캘리브레이션을 끈 평가는 그 칩을 회색으로도 남기지 않는다. */}
+                {CHIP_ORDER.filter((id) => id !== 'calibration' || c.calibrationEnabled !== false).map((id) => {
                   const on = present.has(id);
                   return (
                     <StatusBadge

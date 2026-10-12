@@ -7429,6 +7429,9 @@
   line-height: 1.6;
   color: var(--text-secondary);
 }
+.evtcal-calib-off-actions {
+  margin-top: var(--spacing-lg);
+}
 .evtcal-released {
   margin: 0 0 var(--spacing-md);
   background: var(--utility-warning-50);

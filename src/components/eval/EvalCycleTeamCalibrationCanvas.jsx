@@ -48,6 +48,8 @@ const DEFAULT_LABELS = {
   calibOffTitle: '이 사이클은 캘리브레이션을 사용하지 않습니다',
   calibOffBody:
     '하향 리뷰에서 제출하신 등급이 그대로 최종 등급이 됩니다. 위원회 조정·결과 통보·이의(어필) 절차가 없습니다.',
+  // leader §12.3 — 안내 카드 아래 평가 현황으로 돌아가는 버튼.
+  calibOffBack: '평가 현황으로',
   calibReleasedBanner: '이 사이클은 진행 중 캘리브레이션이 해제되었습니다.',
 };
 
@@ -98,6 +100,8 @@ export default function EvalCycleTeamCalibrationCanvas({
    * 서버 판정(완료된 사이클이면 이의 불가)을 보고 넘길지 정한다.
    */
   onAppeal,
+  /** 끈 사이클 안내 카드의 [평가 현황으로]. 넘기지 않으면 버튼을 그리지 않는다. */
+  onBackToStatus,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openId, setOpenId] = useState(null);
@@ -133,6 +137,18 @@ export default function EvalCycleTeamCalibrationCanvas({
           <h3 className="evc-card-name">{L.calibOffTitle}</h3>
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
           <p className="evtcal-calib-off-body">{L.calibOffBody}</p>
+          {onBackToStatus && (
+            <div className="evtcal-calib-off-actions">
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                data-testid="evtcal-calib-off-back"
+                onClick={onBackToStatus}
+              >
+                {L.calibOffBack}
+              </button>
+            </div>
+          )}
         </section>
       </div>
     );
