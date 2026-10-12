@@ -79,6 +79,8 @@ const DEFAULT_LABELS = {
   sentTooltip: '최근 발송됨 (24시간 후 재발송 가능)',
   managerActivityTitle: '매니저별 피드백 활동',
   managerActivitySub: '활동 점수 = 커버리지 × 50% + 주기 × 30% + 품질 × 20%',
+  // 품질 축(SBI 판정)은 사람 확인 없는 AI 판정이라 평가·보상·인사 입력으로 쓰지 않는다 (screen-feedback-hr.policy §2.5 · D3 ⓑ).
+  managerActivityUsageNotice: '피드백 활동을 독려하기 위한 지표입니다. 평가·보상·인사 결정에 쓰지 않습니다.',
   colCoverage: '커버리지',
   colInterval: '평균 주기',
   colSbi: 'SBI 준수',
@@ -299,7 +301,8 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
       <div style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
-      <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 12 }}>{L.managerActivitySub}</div>
+      <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 4 }}>{L.managerActivitySub}</div>
+      <div data-testid="fbhr-activity-usage-notice" style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 12 }}>{L.managerActivityUsageNotice}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map((r, i) => {
           const sent = isSent('encourage', r.id, null);

@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
+import { ChatIcon, ClockIcon, MailIcon, SparkleIcon } from './evalIcons';
+import Spinner from '../shared/Spinner.jsx';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -112,6 +113,13 @@ const DEFAULT_LABELS = {
   // 끝의 화살표는 글자가 아니라 아이콘으로 붙인다(SendArrow) — 번역문에 기호를 넣지 않는다 (§6.4).
   requestSendSuffix: '에게 요청 전송',
   pastReadonly: '과거 기록에는 요청할 수 없습니다',
+  // 대화 요약 (feedback-ai-spec §11 · screen-feedback-member §1.7.2) — 매니저 KR 창과 같은 모양.
+  summarize: '대화 요약',
+  summarizing: '요약 중…',
+  summarizeTooFew: '아직 대화가 충분하지 않습니다',
+  summaryBadge: 'AI 요약',
+  summaryFailed: '대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.',
+  summaryStale: '요약 이후 새 대화가 있습니다',
   kindManager: '매니저',
   kindPeer: '동료',
   toastSent: '전송했습니다',
@@ -306,7 +314,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
 }
 
 // ── 스레드 모달 ──
-function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, linkedLabelOf, onReply, onRequest, onEditRequest, onDeleteRequest, onClose }) {
+function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, linkedLabelOf, onReply, onRequest, onEditRequest, onDeleteRequest, onSummarize, onClose }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = [...block.items].sort(
@@ -326,6 +334,30 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
       ),
     [items],
   );
+  // 대화 요약 — 저장하지 않는 일회성 뷰(ai-spec §11.4). 요약을 만들 때의 대화 수를 기억해
+  // 그 뒤 늘면 요약은 그대로 두고 안내만 붙인다. 활성 조건: 피드백+요청+답변 ≥ 5 (§11.2).
+  const [summary, setSummary] = useState(null);
+  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
+  const [summaryCount, setSummaryCount] = useState(0);
+  const threadCount = items.reduce((n, it) => n + 1 + (it.myReply ? 1 : 0), 0);
+  const canSummarize = threadCount >= 5;
+  const summarize = async () => {
+    if (!onSummarize || !canSummarize || summaryState === 'loading') return;
+    setSummaryState('loading');
+    try {
+      const res = await onSummarize(block);
+      if (res) {
+        setSummary(res);
+        setSummaryCount(threadCount);
+        setSummaryState('idle');
+      } else {
+        // 앱이 요약 대신 다른 안내(체험 AI 소진 등)를 띄웠다 — 실패 문구를 겹쳐 띄우지 않는다.
+        setSummaryState('idle');
+      }
+    } catch {
+      setSummaryState('error');
+    }
+  };
 
   return (
     <ModalShell
@@ -357,6 +389,34 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
       }
     >
       <div className="evc-shell-thread-list">
+        {/* 「기타」는 한 대상의 스레드가 아니라 요약할 대화 흐름이 없다. */}
+        {onSummarize && !isEtc && (
+          <Tooltip content={canSummarize ? '' : L.summarizeTooFew} className="fbm-summarize-tip">
+          <button
+            type="button"
+            disabled={!canSummarize || summaryState === 'loading'}
+            onClick={summarize}
+            data-testid="fbm-summarize"
+            style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${canSummarize ? C.tealBd : C.border}`, background: canSummarize ? C.tealBg : C.borderL, color: canSummarize ? C.teal : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+          >
+            {summaryState === 'loading' ? <><Spinner size={12} /> {L.summarizing}</> : <><SparkleIcon size={12} /> {L.summarize}</>}
+          </button>
+          </Tooltip>
+        )}
+        {summary && (
+          <div data-testid="fbm-summary" style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.teal, marginBottom: 4 }}><SparkleIcon size={12} /> {L.summaryBadge}</div>
+            <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
+            {threadCount > summaryCount && (
+              <p data-testid="fbm-summary-stale" style={{ fontSize: 12, color: C.sub, margin: '6px 0 0' }}>{L.summaryStale}</p>
+            )}
+          </div>
+        )}
+        {summaryState === 'error' && (
+          <div data-testid="fbm-summary-error" style={{ background: C.roseBg, color: C.rose, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
+            {L.summaryFailed}
+          </div>
+        )}
         {!hasItems ? (
           <p style={{ textAlign: 'center', color: C.sub, fontSize: 13, padding: 24 }}>
             {L.threadEmpty}
@@ -1002,6 +1062,9 @@ export default function EvalFeedbackCanvas({
   onRequest,
   onEditRequest,
   onDeleteRequest,
+  // 스레드 대화 요약(FB3). `onSummarize(block)` 이 { summaryText } 를 돌려주면 요약을 띄우고,
+  // null 이면 앱이 다른 안내를 띄운 것으로 보고 조용히 둔다. 없으면 버튼을 그리지 않는다.
+  onSummarize,
   openTarget = null,
   onOpenTargetHandled,
   // 동료로서 받은 요청(PW-1218). `onSendIncoming(request, text)` 가 Promise 를 돌려준다.
@@ -1258,6 +1321,7 @@ export default function EvalFeedbackCanvas({
           onRequest={handleRequest}
           onEditRequest={handleEditRequest}
           onDeleteRequest={handleDeleteRequest}
+          onSummarize={onSummarize}
           onClose={() => { setOpenBlock(null); setLinkDismissed(true); }}
         />
       )}
