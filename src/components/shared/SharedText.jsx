@@ -41,3 +41,6 @@ export const ReadonlyBox = make('dp-readonly-box', 'div', 'ReadonlyBox');
 
 /** 연두 안내 카드 — 바탕·모서리·여백·줄 사이 (`.mtg-progress-rec-card`). 안의 글씨는 위 부품으로 채운다. */
 export const NoticeCard = make('dp-notice-card', 'div', 'NoticeCard');
+
+/** 창 본문 설명 글씨 — 14/20 600 2단계 글씨 (`.tl-group-modal-desc`, ModalShell 머리 설명과 같은 모양). 기본 `p`. */
+export const ModalDescription = make('dp-modal-description', 'p', 'ModalDescription');

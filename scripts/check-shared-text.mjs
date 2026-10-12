@@ -67,9 +67,14 @@ const PAIRS = [
     from: [['src/meetings.css', '.mtg-progress-rec-card']],
     props: ['background', 'border-radius', 'gap', 'flex-direction'],
   },
+  {
+    part: '.dp-modal-description',
+    from: [['src/modal-shell.css', '.tl-group-modal-desc']],
+    props: ['margin', 'font-size', 'line-height', 'font-weight', 'color'],
+  },
 ];
 
-const EXPORTS = ['SectionTitle', 'MetaLabel', 'NoteText', 'ReadonlyBox', 'NoticeCard'];
+const EXPORTS = ['SectionTitle', 'MetaLabel', 'NoteText', 'ReadonlyBox', 'NoticeCard', 'ModalDescription'];
 
 export function check({ readFile = read } = {}) {
   const problems = [];

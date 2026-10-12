@@ -55,6 +55,7 @@ export {
   NoteText,
   ReadonlyBox,
   NoticeCard,
+  ModalDescription,
 } from './shared/SharedText.jsx';
 // 두 곳 이상에서 쓰는 선 아이콘 — 그림은 한 벌만 (PW-1011)
 export {

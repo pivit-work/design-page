@@ -2,6 +2,7 @@
    글씨와 칸 공용 부품 — SectionTitle · MetaLabel · NoteText · ReadonlyBox · NoticeCard
 
    디자이너가 회의 화면에 이미 그린 모양을 값 그대로 꺼냈다. 새 모양이 아니다.
+   ModalDescription 은 공용 창 틀(ModalShell)의 머리 설명 글씨에서 꺼냈다.
    값을 바꾸려면 원래 클래스(괄호 안)와 함께 바꾼다 — scripts/check-shared-text.mjs 가
    둘이 갈라지면 실패한다.
 
@@ -61,4 +62,13 @@
   background: var(--utility-brand-50);
   border-radius: 8px;
   box-sizing: border-box;
+}
+
+/* 창 본문 설명 글씨 (.tl-group-modal-desc — 공용 창 틀 ModalShell 머리의 설명 한 줄) */
+.dp-modal-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
