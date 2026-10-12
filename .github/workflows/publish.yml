@@ -77,6 +77,10 @@ jobs:
       - name: Check side stripes
         run: npm run check:side-stripes
 
+      # 글씨와 칸 부품이 원래 디자이너 클래스와 같은 값인지 (2026-10-12).
+      - name: Check shared text parts
+        run: npm run check:shared-text
+
       # 판 번호만 바꾸는 커밋이라 push 전 훅(lint 50초 등)을 다시 돌릴 까닭이 없다 — 위 단계에서 이미 검사했다.
       # 훅이 돌면 발행 한 번이 2분 34초가 되어 3분이 깎였다.
       - name: Bump patch version

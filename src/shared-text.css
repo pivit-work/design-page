@@ -1,0 +1,64 @@
+/* ══════════════════════════════════════════════════════════════
+   글씨와 칸 공용 부품 — SectionTitle · MetaLabel · NoteText · ReadonlyBox · NoticeCard
+
+   디자이너가 회의 화면에 이미 그린 모양을 값 그대로 꺼냈다. 새 모양이 아니다.
+   값을 바꾸려면 원래 클래스(괄호 안)와 함께 바꾼다 — scripts/check-shared-text.mjs 가
+   둘이 갈라지면 실패한다.
+
+   여백(margin)은 놓이는 자리가 정한다 — 부품은 0 으로 둔다.
+   ══════════════════════════════════════════════════════════════ */
+
+/* 섹션 제목 (.mtg-progress-section-label — 회의록 「요약」·회의 진행 「실시간 메모」) */
+.dp-section-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 이름표 (.mtg-record-meta-label — 회의록 「회의·일시·참석」) */
+.dp-meta-label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* 작은 보조 글씨 (.mtg-record-summary-note — 회의록 요약 아래 「참고한 자료」 한 줄) */
+.dp-note-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* 회색 칸 (.tl-snippet-textarea + .mtg-record-readonly — 회의록 「요약」·「결정 사항」 읽기 전용 칸) */
+.dp-readonly-box {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+
+/* 연두 안내 카드 (.mtg-progress-rec-card — 회의 진행 중 녹음 카드의 바탕·모서리·안쪽 여백·줄 사이).
+   녹음 카드의 가운데 정렬과 아래쪽 32px 는 녹음 시간 숫자 자리라 가져오지 않았다. */
+.dp-notice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 16px;
+  background: var(--utility-brand-50);
+  border-radius: 8px;
+  box-sizing: border-box;
+}

@@ -47,6 +47,15 @@ export {
 export { default as AiFailBox } from './shared/AiFailBox.jsx';
 // 녹음 시간 소진 안내 — 회의록 목록·1on1 녹음 바 (PW-1023). 스타일은 recording-limit-notice.css
 export { default as RecordingLimitNotice } from './shared/RecordingLimitNotice.jsx';
+// 글씨와 칸 — 디자이너가 회의 화면에 그린 섹션 제목·이름표·작은 보조 글씨·회색 칸·연두 안내 카드를
+// 값 그대로 꺼낸 부품 (2026-10-12). 스타일은 shared-text.css(index.css 가 끌어온다)
+export {
+  SectionTitle,
+  MetaLabel,
+  NoteText,
+  ReadonlyBox,
+  NoticeCard,
+} from './shared/SharedText.jsx';
 // 두 곳 이상에서 쓰는 선 아이콘 — 그림은 한 벌만 (PW-1011)
 export {
   CloseGlyph,

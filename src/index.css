@@ -7,6 +7,7 @@
 @import './switch.css';
 @import './tooltip.css';
 @import './loading.css';
+@import './shared-text.css';
 
 :root {
   --font-family-body: 'Pretendard', sans-serif;
