@@ -2014,6 +2014,13 @@ export default function OneOnOneMemberCanvas({
    * 거둔다. `onSave` 는 Promise 를 돌려주고, 거절하면 편집이 열린 채 남는다.
    */
   resultNotes = null,
+  /**
+   * 탭 줄 **위**에 서는 안내 띠 자리 (PW-1718) — 팀원 녹음 안내·동의 띠를 소비처가 넣는다.
+   *
+   * 캔버스 밖에 두면 본문(가운데 좁은 칸)과 달리 화면 끝까지 펼쳐져서, 같은 칸 안에 세운다.
+   * 안 넘기면 자리 자체가 없다(종전 화면 그대로).
+   */
+  notice = null,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -2030,6 +2037,7 @@ export default function OneOnOneMemberCanvas({
 
   return (
     <div className="ono-mem" data-testid="ono-member-canvas">
+      {notice}
       <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />
 
       {tab === 'prep' && (session && session.status === 'ready' ? (
