@@ -6,6 +6,9 @@
  * 개발이 만들어도 됐다(2026-10-12 커트). 한쪽만 고쳐 값이 갈라지면 그 전제가 깨진다 — 부품이 지어낸
  * 모양이 되거나, 회의 화면만 다른 모양이 된다. 그래서 속성 하나하나를 원래 클래스와 맞대어 본다.
  *
+ * HintText·KeyHint 는 디자이너 원본이 아니라 pivit-work 화면 값을 옮긴 것이라(디자이너 검수 필요) 견줄 원래
+ * 클래스가 이 저장소에 없다 — export 만 본다.
+ *
  * 그리고 부품이 배럴에서 export 되고 index.css 가 스타일을 끌어오는지도 본다 — 빠지면 소비자는
  * 부품을 쓸 수 없거나, 써도 브라우저 기본 글씨(16px 검정)로 나온다.
  *
@@ -74,7 +77,7 @@ const PAIRS = [
   },
 ];
 
-const EXPORTS = ['SectionTitle', 'MetaLabel', 'NoteText', 'ReadonlyBox', 'NoticeCard', 'ModalDescription'];
+const EXPORTS = ['SectionTitle', 'MetaLabel', 'NoteText', 'ReadonlyBox', 'NoticeCard', 'ModalDescription', 'HintText', 'KeyHint'];
 
 export function check({ readFile = read } = {}) {
   const problems = [];
@@ -120,5 +123,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error(`\n[check:shared-text] 실패\n\n${problems.map((p) => `  - ${p}`).join('\n')}\n`);
     process.exit(1);
   }
-  console.log('[check:shared-text] 통과 — 글씨와 칸 부품 다섯이 원래 디자이너 모양과 같다');
+  console.log('[check:shared-text] 통과 — 디자이너 모양을 꺼낸 부품이 원래 클래스와 같고, 부품이 모두 export 된다');
 }

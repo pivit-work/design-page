@@ -72,3 +72,37 @@
   font-weight: 600;
   color: var(--text-secondary);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   화면에 있던 모양을 옮긴 부품 — 디자이너 검수 필요 (2026-10-12 커트)
+
+   아래 둘은 디자이너 원본이 아니라 pivit-work 화면이 그리던 값을 그대로 옮겼다.
+   디자이너가 검수해 값을 바꾸면 이 블록만 고친다.
+   ══════════════════════════════════════════════════════════════ */
+
+/* 안내 문장 한 줄 (pivit-work LoginPage.css .login-notice p — 비밀번호 재설정 «메일 보냈다» 안내).
+   줄 사이(6px)는 감싸는 칸이 정한다. */
+.dp-hint-text {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+
+/* 키 안내 한 칸 — 키 표시 + 글 (pivit-work CommandPalette 아래 «↑↓ 이동 · ↵ 열기 · ESC 닫기»).
+   키와 글 사이는 띄어쓰기 한 칸이다. */
+.dp-key-hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.dp-key-hint__key {
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 18px;
+}
